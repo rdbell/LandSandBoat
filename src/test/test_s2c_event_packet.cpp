@@ -160,7 +160,7 @@ auto testPlayerFallbackConstructor() -> bool
 {
     auto      character = makeChar(0x01020304, 0x0506, 0x0708);
     EventInfo eventInfo{};
-    eventInfo.eventId    = 0x9001;
+    eventInfo.eventId    = 0x12349001;
     eventInfo.eventFlags = 0;
 
     auto packet = GP_SERV_COMMAND_EVENT(&character, &eventInfo);
