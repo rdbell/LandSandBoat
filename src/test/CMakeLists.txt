@@ -279,6 +279,10 @@ set(SOURCES
     test_s2c_header_only_packets.cpp
     test_s2c_link_concierge_header_packet.h
     test_s2c_link_concierge_header_packet.cpp
+    test_s2c_magicschedulor_packet.h
+    test_s2c_magicschedulor_packet.cpp
+    test_s2c_mapschedulor_packet.h
+    test_s2c_mapschedulor_packet.cpp
     test_s2c_message_packet.h
     test_s2c_message_packet.cpp
     test_s2c_logout_packet.h
@@ -295,14 +299,24 @@ set(SOURCES
     test_s2c_packet_id_enum.cpp
     test_s2c_partyreq_packet.h
     test_s2c_partyreq_packet.cpp
+    test_s2c_pendingnum_packet.h
+    test_s2c_pendingnum_packet.cpp
+    test_s2c_pendingstr_packet.h
+    test_s2c_pendingstr_packet.cpp
     test_s2c_registration_packet.h
     test_s2c_registration_packet.cpp
     test_s2c_reqsubmapnum_packet.h
     test_s2c_reqsubmapnum_packet.cpp
+    test_s2c_schedulor_packet.h
+    test_s2c_schedulor_packet.cpp
     test_s2c_shop_packets.h
     test_s2c_shop_packets.cpp
     test_s2c_systemmes_packet.h
     test_s2c_systemmes_packet.cpp
+    test_s2c_talknum_packet.h
+    test_s2c_talknum_packet.cpp
+    test_s2c_talknumname_packet.h
+    test_s2c_talknumname_packet.cpp
     test_s2c_tracking_state_packet.h
     test_s2c_tracking_state_packet.cpp
     test_s2c_translate_packet.h
