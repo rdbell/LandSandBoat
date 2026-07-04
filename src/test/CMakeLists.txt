@@ -323,6 +323,8 @@ set(SOURCES
     test_s2c_systemmes_packet.cpp
     test_s2c_talknum_packet.h
     test_s2c_talknum_packet.cpp
+    test_s2c_talknumwork_packet.h
+    test_s2c_talknumwork_packet.cpp
     test_s2c_talknumname_packet.h
     test_s2c_talknumname_packet.cpp
     test_s2c_tracking_state_packet.h
