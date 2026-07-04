@@ -263,6 +263,8 @@ set(SOURCES
     test_s2c_chocobo_racing_packets.cpp
     test_s2c_default_packets.h
     test_s2c_default_packets.cpp
+    test_s2c_effect_packet.h
+    test_s2c_effect_packet.cpp
     test_s2c_equip_clear_packet.h
     test_s2c_equip_clear_packet.cpp
     test_s2c_faq_gmparam_packet.h

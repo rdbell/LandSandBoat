@@ -164,6 +164,7 @@ auto runS2CBallistaPacketSelfTests() -> bool;
 auto runS2CBlackEditPacketSelfTests() -> bool;
 auto runS2CBlackListPacketSelfTests() -> bool;
 auto runS2CChocoboRacingPacketSelfTests() -> bool;
+auto runS2CEffectPacketSelfTests() -> bool;
 auto runS2CLinkConciergeHeaderPacketSelfTests() -> bool;
 auto runS2CMagicSchedulorPacketSelfTests() -> bool;
 auto runS2CMapSchedulorPacketSelfTests() -> bool;
@@ -335,6 +336,7 @@ namespace
         ok = runS2CBlackEditPacketSelfTests() && ok;
         ok = runS2CBlackListPacketSelfTests() && ok;
         ok = runS2CChocoboRacingPacketSelfTests() && ok;
+        ok = runS2CEffectPacketSelfTests() && ok;
         ok = runS2CLinkConciergeHeaderPacketSelfTests() && ok;
         ok = runS2CMagicSchedulorPacketSelfTests() && ok;
         ok = runS2CMapSchedulorPacketSelfTests() && ok;
