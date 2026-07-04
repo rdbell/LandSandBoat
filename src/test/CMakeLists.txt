@@ -253,6 +253,8 @@ set(SOURCES
     test_result_set_typed_getters.cpp
     test_rng_engines.h
     test_rng_engines.cpp
+    test_s2c_ballista_packets.h
+    test_s2c_ballista_packets.cpp
     test_s2c_default_packets.h
     test_s2c_default_packets.cpp
     test_s2c_equip_clear_packet.h
