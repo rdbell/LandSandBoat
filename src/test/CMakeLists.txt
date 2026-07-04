@@ -285,6 +285,8 @@ set(SOURCES
     test_s2c_packet_id_enum.cpp
     test_s2c_partyreq_packet.h
     test_s2c_partyreq_packet.cpp
+    test_s2c_registration_packet.h
+    test_s2c_registration_packet.cpp
     test_s2c_reqsubmapnum_packet.h
     test_s2c_reqsubmapnum_packet.cpp
     test_s2c_shop_packets.h
