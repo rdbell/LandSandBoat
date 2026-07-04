@@ -283,6 +283,8 @@ set(SOURCES
     test_s2c_eventucoff_packet.cpp
     test_s2c_entity_vis_packet.h
     test_s2c_entity_vis_packet.cpp
+    test_s2c_fragments_servmes_packet.h
+    test_s2c_fragments_servmes_packet.cpp
     test_s2c_switch_packets.h
     test_s2c_switch_packets.cpp
     test_s2c_eventstr_packet.h
