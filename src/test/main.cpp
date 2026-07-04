@@ -195,6 +195,7 @@ auto runS2CSchedulorPacketSelfTests() -> bool;
 auto runS2CSystemMesPacketSelfTests() -> bool;
 auto runS2CTalkNumPacketSelfTests() -> bool;
 auto runS2CTalkNumWorkPacketSelfTests() -> bool;
+auto runS2CTalkNumWork2PacketSelfTests() -> bool;
 auto runS2CTalkNumNamePacketSelfTests() -> bool;
 auto runS2CTrackingStatePacketSelfTests() -> bool;
 auto runS2CTranslatePacketSelfTests() -> bool;
@@ -371,6 +372,7 @@ namespace
         ok = runS2CSystemMesPacketSelfTests() && ok;
         ok = runS2CTalkNumPacketSelfTests() && ok;
         ok = runS2CTalkNumWorkPacketSelfTests() && ok;
+        ok = runS2CTalkNumWork2PacketSelfTests() && ok;
         ok = runS2CTalkNumNamePacketSelfTests() && ok;
         ok = runS2CTrackingStatePacketSelfTests() && ok;
         ok = runS2CTranslatePacketSelfTests() && ok;
