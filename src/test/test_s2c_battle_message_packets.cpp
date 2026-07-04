@@ -171,7 +171,7 @@ auto testBattleMessageConstructor() -> bool
     bool ok = true;
     ok      = expectEqualUInt(packet.getType(), 0x029, "BATTLE_MESSAGE type") && ok;
     ok      = expectEqualUInt(packet.getSize(), battleMsgPacketSize, "BATTLE_MESSAGE size") && ok;
-    ok      = expectBytes(packet, 0, std::array<uint8, 4>{ 0x29, 0x07, 0xEF, 0xBE }, "BATTLE_MESSAGE header") && ok;
+    ok      = expectBytes(packet, 0, std::array<uint8, 4>{ 0x29, 0x0E, 0xEF, 0xBE }, "BATTLE_MESSAGE header") && ok;
     ok      = expectBytes(packet, battleMsgUniqueNoCasOffset, std::array<uint8, 4>{ 0x44, 0x33, 0x22, 0x11 }, "BATTLE_MESSAGE UniqueNoCas") && ok;
     ok      = expectBytes(packet, battleMsgUniqueNoTarOffset, std::array<uint8, 4>{ 0xDD, 0xCC, 0xBB, 0xAA }, "BATTLE_MESSAGE UniqueNoTar") && ok;
     ok      = expectBytes(packet, battleMsgDataOffset, std::array<uint8, 4>{ 0xFF, 0xFF, 0xFF, 0xFF }, "BATTLE_MESSAGE Data") && ok;
@@ -223,7 +223,7 @@ auto testBattleMessage2Constructor() -> bool
     bool ok = true;
     ok      = expectEqualUInt(packet.getType(), 0x02D, "BATTLE_MESSAGE2 type") && ok;
     ok      = expectEqualUInt(packet.getSize(), battleMsg2PacketSize, "BATTLE_MESSAGE2 size") && ok;
-    ok      = expectBytes(packet, 0, std::array<uint8, 4>{ 0x2D, 0x07, 0xEF, 0xBE }, "BATTLE_MESSAGE2 header") && ok;
+    ok      = expectBytes(packet, 0, std::array<uint8, 4>{ 0x2D, 0x0E, 0xEF, 0xBE }, "BATTLE_MESSAGE2 header") && ok;
     ok      = expectBytes(packet, battleMsg2UniqueNoCasOffset, std::array<uint8, 4>{ 0x44, 0x33, 0x22, 0x11 }, "BATTLE_MESSAGE2 UniqueNoCas") && ok;
     ok      = expectBytes(packet, battleMsg2UniqueNoTarOffset, std::array<uint8, 4>{ 0xDD, 0xCC, 0xBB, 0xAA }, "BATTLE_MESSAGE2 UniqueNoTar") && ok;
     ok      = expectBytes(packet, battleMsg2ActIndexCasOffset, std::array<uint8, 2>{ 0x66, 0x55 }, "BATTLE_MESSAGE2 ActIndexCas") && ok;
