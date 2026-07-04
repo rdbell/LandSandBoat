@@ -171,6 +171,7 @@ auto runS2CMyRoomPacketSelfTests() -> bool;
 auto runS2CPacketControlPacketSelfTests() -> bool;
 auto runS2CPartyReqPacketSelfTests() -> bool;
 auto runS2CFAQGMParamPacketSelfTests() -> bool;
+auto runS2CSystemMesPacketSelfTests() -> bool;
 auto runS2CTrackingStatePacketSelfTests() -> bool;
 
 namespace
@@ -321,6 +322,7 @@ namespace
         ok = runS2CPacketControlPacketSelfTests() && ok;
         ok = runS2CPartyReqPacketSelfTests() && ok;
         ok = runS2CFAQGMParamPacketSelfTests() && ok;
+        ok = runS2CSystemMesPacketSelfTests() && ok;
         ok = runS2CTrackingStatePacketSelfTests() && ok;
 
         return ok;

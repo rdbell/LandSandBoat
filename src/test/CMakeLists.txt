@@ -277,6 +277,8 @@ set(SOURCES
     test_s2c_reqsubmapnum_packet.cpp
     test_s2c_shop_packets.h
     test_s2c_shop_packets.cpp
+    test_s2c_systemmes_packet.h
+    test_s2c_systemmes_packet.cpp
     test_s2c_tracking_state_packet.h
     test_s2c_tracking_state_packet.cpp
     test_s2c_weather_packet.h
