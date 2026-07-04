@@ -172,6 +172,7 @@ auto runS2CPacketControlPacketSelfTests() -> bool;
 auto runS2CPartyReqPacketSelfTests() -> bool;
 auto runS2CFAQGMParamPacketSelfTests() -> bool;
 auto runS2CGMPacketSelfTests() -> bool;
+auto runS2CGMSupportPacketSelfTests() -> bool;
 auto runS2CMessagePacketSelfTests() -> bool;
 auto runS2CSystemMesPacketSelfTests() -> bool;
 auto runS2CTrackingStatePacketSelfTests() -> bool;
@@ -325,6 +326,7 @@ namespace
         ok = runS2CPartyReqPacketSelfTests() && ok;
         ok = runS2CFAQGMParamPacketSelfTests() && ok;
         ok = runS2CGMPacketSelfTests() && ok;
+        ok = runS2CGMSupportPacketSelfTests() && ok;
         ok = runS2CMessagePacketSelfTests() && ok;
         ok = runS2CSystemMesPacketSelfTests() && ok;
         ok = runS2CTrackingStatePacketSelfTests() && ok;
