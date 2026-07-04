@@ -168,6 +168,7 @@ auto runS2CMusicPacketSelfTests() -> bool;
 auto runS2CMusicVolumePacketSelfTests() -> bool;
 auto runS2CEquipClearPacketSelfTests() -> bool;
 auto runS2CDefaultPacketSelfTests() -> bool;
+auto runS2CGroupList2PacketSelfTests() -> bool;
 auto runS2CMyRoomPacketSelfTests() -> bool;
 auto runS2CPacketControlPacketSelfTests() -> bool;
 auto runS2CPartyReqPacketSelfTests() -> bool;
@@ -323,6 +324,7 @@ namespace
         ok = runS2CMusicVolumePacketSelfTests() && ok;
         ok = runS2CEquipClearPacketSelfTests() && ok;
         ok = runS2CDefaultPacketSelfTests() && ok;
+        ok = runS2CGroupList2PacketSelfTests() && ok;
         ok = runS2CMyRoomPacketSelfTests() && ok;
         ok = runS2CPacketControlPacketSelfTests() && ok;
         ok = runS2CPartyReqPacketSelfTests() && ok;
