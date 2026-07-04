@@ -201,6 +201,7 @@ auto runS2CTalkNumWork2PacketSelfTests() -> bool;
 auto runS2CTalkNumNamePacketSelfTests() -> bool;
 auto runS2CTrackingStatePacketSelfTests() -> bool;
 auto runS2CTranslatePacketSelfTests() -> bool;
+auto runS2CWPosPacketSelfTests() -> bool;
 
 namespace
 {
@@ -380,6 +381,7 @@ namespace
         ok = runS2CTalkNumNamePacketSelfTests() && ok;
         ok = runS2CTrackingStatePacketSelfTests() && ok;
         ok = runS2CTranslatePacketSelfTests() && ok;
+        ok = runS2CWPosPacketSelfTests() && ok;
 
         return ok;
     }

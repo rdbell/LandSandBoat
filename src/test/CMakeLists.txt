@@ -339,6 +339,8 @@ set(SOURCES
     test_s2c_translate_packet.cpp
     test_s2c_weather_packet.h
     test_s2c_weather_packet.cpp
+    test_s2c_wpos_packets.h
+    test_s2c_wpos_packets.cpp
     test_search_packet_buffer.h
     test_search_packet_buffer.cpp
     test_settings_number_helper.h
