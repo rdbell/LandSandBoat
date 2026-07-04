@@ -277,6 +277,8 @@ set(SOURCES
     test_s2c_equip_clear_packet.cpp
     test_s2c_event_packet.h
     test_s2c_event_packet.cpp
+    test_s2c_eventucoff_packet.h
+    test_s2c_eventucoff_packet.cpp
     test_s2c_eventstr_packet.h
     test_s2c_eventstr_packet.cpp
     test_s2c_eventnum_packet.h
