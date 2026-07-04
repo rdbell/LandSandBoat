@@ -255,6 +255,8 @@ set(SOURCES
     test_rng_engines.cpp
     test_s2c_ballista_packets.h
     test_s2c_ballista_packets.cpp
+    test_s2c_chocobo_racing_packets.h
+    test_s2c_chocobo_racing_packets.cpp
     test_s2c_default_packets.h
     test_s2c_default_packets.cpp
     test_s2c_equip_clear_packet.h

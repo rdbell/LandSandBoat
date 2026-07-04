@@ -161,6 +161,7 @@ auto runC2SAUCPacketSelfTests() -> bool;
 auto runC2SLoginPacketSelfTests() -> bool;
 auto runS2CHeaderOnlyPacketSelfTests() -> bool;
 auto runS2CBallistaPacketSelfTests() -> bool;
+auto runS2CChocoboRacingPacketSelfTests() -> bool;
 auto runS2CLogoutPacketSelfTests() -> bool;
 auto runS2CWeatherPacketSelfTests() -> bool;
 auto runS2CShopPacketSelfTests() -> bool;
@@ -319,6 +320,7 @@ namespace
         ok = runC2SLoginPacketSelfTests() && ok;
         ok = runS2CHeaderOnlyPacketSelfTests() && ok;
         ok = runS2CBallistaPacketSelfTests() && ok;
+        ok = runS2CChocoboRacingPacketSelfTests() && ok;
         ok = runS2CLogoutPacketSelfTests() && ok;
         ok = runS2CWeatherPacketSelfTests() && ok;
         ok = runS2CShopPacketSelfTests() && ok;
