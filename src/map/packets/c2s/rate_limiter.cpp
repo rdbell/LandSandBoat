@@ -42,14 +42,18 @@ PacketRateLimiter::PacketRateLimiter()
 
 auto PacketRateLimiter::isLimited(CCharEntity* PChar, uint16 packetId) -> bool
 {
+    return isLimited(PChar->m_PacketRecievedTimestamps, packetId, timer::now());
+}
+
+auto PacketRateLimiter::isLimited(std::unordered_map<uint16, timer::time_point>& timestamps, uint16 packetId, timer::time_point timeNow) -> bool
+{
     const auto rateLimitIt = rateLimits_.find(packetId);
     if (rateLimitIt == rateLimits_.end())
     {
         return false;
     }
 
-    auto timeNow                 = timer::now();
-    const auto [it, wasInserted] = PChar->m_PacketRecievedTimestamps.emplace(packetId, timeNow);
+    const auto [it, wasInserted] = timestamps.emplace(packetId, timeNow);
     if (wasInserted)
     {
         return false;

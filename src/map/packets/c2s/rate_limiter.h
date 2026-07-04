@@ -33,6 +33,7 @@ class PacketRateLimiter
 public:
     PacketRateLimiter();
     auto isLimited(CCharEntity* PChar, uint16 packetId) -> bool;
+    auto isLimited(std::unordered_map<uint16, timer::time_point>& timestamps, uint16 packetId, timer::time_point timeNow) -> bool;
 
 private:
     std::unordered_map<uint16, timer::duration> rateLimits_;

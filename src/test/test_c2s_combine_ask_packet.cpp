@@ -1,0 +1,289 @@
+/*
+===========================================================================
+
+  Copyright (c) 2026 LandSandBoat Dev Teams
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see http://www.gnu.org/licenses/
+
+===========================================================================
+*/
+
+#include "test_c2s_combine_ask_packet.h"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <iostream>
+#include <set>
+#include <string>
+#include <string_view>
+
+#include "map/items.h"
+#include "map/packets/c2s/0x096_combine_ask.h"
+
+namespace
+{
+
+using CombineAskPacketBytes = std::array<std::uint8_t, sizeof(GP_CLI_COMMAND_COMBINE_ASK)>;
+
+const std::set<ITEMID> kValidCrystals = {
+    FIRE_CRYSTAL,
+    ICE_CRYSTAL,
+    WIND_CRYSTAL,
+    EARTH_CRYSTAL,
+    LIGHTNING_CRYSTAL,
+    WATER_CRYSTAL,
+    LIGHT_CRYSTAL,
+    DARK_CRYSTAL,
+    DARK_CLUSTER,
+    INFERNO_CRYSTAL,
+    GLACIER_CRYSTAL,
+    CYCLONE_CRYSTAL,
+    TERRA_CRYSTAL,
+    PLASMA_CRYSTAL,
+    TORRENT_CRYSTAL,
+    AURORA_CRYSTAL,
+    TWILIGHT_CRYSTAL,
+    PYRE_CRYSTAL,
+    FROST_CRYSTAL,
+    VORTEX_CRYSTAL,
+    GEO_CRYSTAL,
+    BOLT_CRYSTAL,
+    FLUID_CRYSTAL,
+    GLIMMER_CRYSTAL,
+    SHADOW_CRYSTAL,
+};
+
+auto expectEqualInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
+{
+    if (actual != expected)
+    {
+        std::cerr << "c2s COMBINE_ASK packet self-test failed: " << label << " got " << actual << " expected " << expected << '\n';
+        return false;
+    }
+    return true;
+}
+
+auto expectTrue(bool actual, const std::string& label) -> bool
+{
+    if (!actual)
+    {
+        std::cerr << "c2s COMBINE_ASK packet self-test failed: " << label << '\n';
+        return false;
+    }
+    return true;
+}
+
+auto expectFalse(bool actual, const std::string& label) -> bool
+{
+    if (actual)
+    {
+        std::cerr << "c2s COMBINE_ASK packet self-test failed: " << label << '\n';
+        return false;
+    }
+    return true;
+}
+
+auto expectEqualString(std::string_view actual, std::string_view expected, const std::string& label) -> bool
+{
+    if (actual != expected)
+    {
+        std::cerr << "c2s COMBINE_ASK packet self-test failed: " << label << " got \"" << actual << "\" expected \"" << expected << "\"\n";
+        return false;
+    }
+    return true;
+}
+
+template <std::size_t N>
+auto expectBytes(const std::array<std::uint8_t, N>& actual, const std::array<std::uint8_t, N>& expected, const std::string& label) -> bool
+{
+    if (actual != expected)
+    {
+        std::cerr << "c2s COMBINE_ASK packet self-test failed: " << label << " got";
+        for (const auto value : actual)
+        {
+            std::cerr << ' ' << static_cast<unsigned>(value);
+        }
+        std::cerr << " expected";
+        for (const auto value : expected)
+        {
+            std::cerr << ' ' << static_cast<unsigned>(value);
+        }
+        std::cerr << '\n';
+        return false;
+    }
+    return true;
+}
+
+auto expectValid(const PacketValidationResult& result, const std::string& label) -> bool
+{
+    bool ok = true;
+    ok      = expectTrue(result.valid(), label + " valid") && ok;
+    ok      = expectEqualString(result.errorString(), "", label + " error string") && ok;
+    return ok;
+}
+
+auto expectInvalidError(const PacketValidationResult& result, const std::string& expected, const std::string& label) -> bool
+{
+    bool ok = true;
+    ok      = expectFalse(result.valid(), label + " valid") && ok;
+    ok      = expectEqualString(result.errorString(), expected, label + " error string") && ok;
+    return ok;
+}
+
+auto encodedPacketBytes(const GP_CLI_COMMAND_COMBINE_ASK& packet) -> CombineAskPacketBytes
+{
+    auto bytes = CombineAskPacketBytes{};
+    std::memcpy(bytes.data(), &packet, bytes.size());
+    return bytes;
+}
+
+auto makeCombineAskPacket() -> GP_CLI_COMMAND_COMBINE_ASK
+{
+    auto packet         = GP_CLI_COMMAND_COMBINE_ASK{};
+    packet.header.id   = static_cast<std::uint16_t>(PacketC2S::GP_CLI_COMMAND_COMBINE_ASK);
+    packet.header.size = sizeof(GP_CLI_COMMAND_COMBINE_ASK) / 4U;
+    packet.header.sync = 0xBEEF;
+    packet.HashNo      = 0x11;
+    packet.padding00   = 0x22;
+    packet.Crystal     = FIRE_CRYSTAL;
+    packet.CrystalIdx  = 0x33;
+    packet.Items       = 8;
+    packet.ItemNo[0]   = 0x0102;
+    packet.ItemNo[1]   = 0x0304;
+    packet.ItemNo[2]   = 0x0506;
+    packet.ItemNo[3]   = 0x0708;
+    packet.ItemNo[4]   = 0x090A;
+    packet.ItemNo[5]   = 0x0B0C;
+    packet.ItemNo[6]   = 0x0D0E;
+    packet.ItemNo[7]   = 0x0F10;
+    packet.TableNo[0]  = 0x21;
+    packet.TableNo[1]  = 0x22;
+    packet.TableNo[2]  = 0x23;
+    packet.TableNo[3]  = 0x24;
+    packet.TableNo[4]  = 0x25;
+    packet.TableNo[5]  = 0x26;
+    packet.TableNo[6]  = 0x27;
+    packet.TableNo[7]  = 0x28;
+    packet.padding01   = 0x4455;
+    return packet;
+}
+
+auto validateCombineAskPure(ITEMID crystal, std::uint8_t items) -> PacketValidationResult
+{
+    auto validator = PacketValidator(nullptr);
+    validator.oneOf("Crystal", crystal, kValidCrystals)
+        .range("Items", items, 1, 8);
+    return validator;
+}
+
+auto testCombineAskLayoutMetadataAndPayload() -> bool
+{
+    const auto packet = makeCombineAskPacket();
+    bool       ok     = true;
+
+    ok = expectEqualString(GP_CLI_COMMAND_COMBINE_ASK::name, "GP_CLI_COMMAND_COMBINE_ASK", "COMBINE_ASK name") && ok;
+    ok = expectEqualInt(static_cast<std::uint16_t>(GP_CLI_COMMAND_COMBINE_ASK::packetId), 0x096, "COMBINE_ASK packet id") && ok;
+    ok = expectEqualInt(sizeof(GP_CLI_COMMAND_COMBINE_ASK), 36, "COMBINE_ASK sizeof") && ok;
+    ok = expectEqualInt(offsetof(GP_CLI_COMMAND_COMBINE_ASK, HashNo), 4, "COMBINE_ASK HashNo offset") && ok;
+    ok = expectEqualInt(offsetof(GP_CLI_COMMAND_COMBINE_ASK, padding00), 5, "COMBINE_ASK padding00 offset") && ok;
+    ok = expectEqualInt(offsetof(GP_CLI_COMMAND_COMBINE_ASK, Crystal), 6, "COMBINE_ASK Crystal offset") && ok;
+    ok = expectEqualInt(offsetof(GP_CLI_COMMAND_COMBINE_ASK, CrystalIdx), 8, "COMBINE_ASK CrystalIdx offset") && ok;
+    ok = expectEqualInt(offsetof(GP_CLI_COMMAND_COMBINE_ASK, Items), 9, "COMBINE_ASK Items offset") && ok;
+    ok = expectEqualInt(offsetof(GP_CLI_COMMAND_COMBINE_ASK, ItemNo), 10, "COMBINE_ASK ItemNo offset") && ok;
+    ok = expectEqualInt(sizeof(GP_CLI_COMMAND_COMBINE_ASK::ItemNo), 16, "COMBINE_ASK ItemNo bytes") && ok;
+    ok = expectEqualInt(offsetof(GP_CLI_COMMAND_COMBINE_ASK, TableNo), 26, "COMBINE_ASK TableNo offset") && ok;
+    ok = expectEqualInt(sizeof(GP_CLI_COMMAND_COMBINE_ASK::TableNo), 8, "COMBINE_ASK TableNo bytes") && ok;
+    ok = expectEqualInt(offsetof(GP_CLI_COMMAND_COMBINE_ASK, padding01), 34, "COMBINE_ASK padding01 offset") && ok;
+    ok = expectBytes(encodedPacketBytes(packet),
+                     CombineAskPacketBytes{
+                         0x96, 0x12, 0xEF, 0xBE,
+                         0x11, 0x22, 0x00, 0x10,
+                         0x33, 0x08,
+                         0x02, 0x01, 0x04, 0x03,
+                         0x06, 0x05, 0x08, 0x07,
+                         0x0A, 0x09, 0x0C, 0x0B,
+                         0x0E, 0x0D, 0x10, 0x0F,
+                         0x21, 0x22, 0x23, 0x24,
+                         0x25, 0x26, 0x27, 0x28,
+                         0x55, 0x44 },
+                     "COMBINE_ASK encoded packet") &&
+         ok;
+    ok = expectEqualInt(packet.HashNo, 0x11, "COMBINE_ASK HashNo") && ok;
+    ok = expectEqualInt(packet.padding00, 0x22, "COMBINE_ASK padding00") && ok;
+    ok = expectEqualInt(packet.Crystal, FIRE_CRYSTAL, "COMBINE_ASK Crystal") && ok;
+    ok = expectEqualInt(packet.CrystalIdx, 0x33, "COMBINE_ASK CrystalIdx") && ok;
+    ok = expectEqualInt(packet.Items, 8, "COMBINE_ASK Items") && ok;
+    ok = expectEqualInt(packet.ItemNo[0], 0x0102, "COMBINE_ASK ItemNo 0") && ok;
+    ok = expectEqualInt(packet.ItemNo[7], 0x0F10, "COMBINE_ASK ItemNo 7") && ok;
+    ok = expectEqualInt(packet.TableNo[0], 0x21, "COMBINE_ASK TableNo 0") && ok;
+    ok = expectEqualInt(packet.TableNo[7], 0x28, "COMBINE_ASK TableNo 7") && ok;
+    ok = expectEqualInt(packet.padding01, 0x4455, "COMBINE_ASK padding01") && ok;
+    return ok;
+}
+
+auto testCombineAskCrystalConstants() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualInt(FIRE_CRYSTAL, 4096, "FIRE_CRYSTAL") && ok;
+    ok      = expectEqualInt(ICE_CRYSTAL, 4097, "ICE_CRYSTAL") && ok;
+    ok      = expectEqualInt(WIND_CRYSTAL, 4098, "WIND_CRYSTAL") && ok;
+    ok      = expectEqualInt(EARTH_CRYSTAL, 4099, "EARTH_CRYSTAL") && ok;
+    ok      = expectEqualInt(LIGHTNING_CRYSTAL, 4100, "LIGHTNING_CRYSTAL") && ok;
+    ok      = expectEqualInt(WATER_CRYSTAL, 4101, "WATER_CRYSTAL") && ok;
+    ok      = expectEqualInt(LIGHT_CRYSTAL, 4102, "LIGHT_CRYSTAL") && ok;
+    ok      = expectEqualInt(DARK_CRYSTAL, 4103, "DARK_CRYSTAL") && ok;
+    ok      = expectEqualInt(DARK_CLUSTER, 4111, "DARK_CLUSTER") && ok;
+    ok      = expectEqualInt(INFERNO_CRYSTAL, 4238, "INFERNO_CRYSTAL") && ok;
+    ok      = expectEqualInt(GLACIER_CRYSTAL, 4239, "GLACIER_CRYSTAL") && ok;
+    ok      = expectEqualInt(CYCLONE_CRYSTAL, 4240, "CYCLONE_CRYSTAL") && ok;
+    ok      = expectEqualInt(TERRA_CRYSTAL, 4241, "TERRA_CRYSTAL") && ok;
+    ok      = expectEqualInt(PLASMA_CRYSTAL, 4242, "PLASMA_CRYSTAL") && ok;
+    ok      = expectEqualInt(TORRENT_CRYSTAL, 4243, "TORRENT_CRYSTAL") && ok;
+    ok      = expectEqualInt(AURORA_CRYSTAL, 4244, "AURORA_CRYSTAL") && ok;
+    ok      = expectEqualInt(TWILIGHT_CRYSTAL, 4245, "TWILIGHT_CRYSTAL") && ok;
+    ok      = expectEqualInt(PYRE_CRYSTAL, 6506, "PYRE_CRYSTAL") && ok;
+    ok      = expectEqualInt(FROST_CRYSTAL, 6507, "FROST_CRYSTAL") && ok;
+    ok      = expectEqualInt(VORTEX_CRYSTAL, 6508, "VORTEX_CRYSTAL") && ok;
+    ok      = expectEqualInt(GEO_CRYSTAL, 6509, "GEO_CRYSTAL") && ok;
+    ok      = expectEqualInt(BOLT_CRYSTAL, 6510, "BOLT_CRYSTAL") && ok;
+    ok      = expectEqualInt(FLUID_CRYSTAL, 6511, "FLUID_CRYSTAL") && ok;
+    ok      = expectEqualInt(GLIMMER_CRYSTAL, 6512, "GLIMMER_CRYSTAL") && ok;
+    ok      = expectEqualInt(SHADOW_CRYSTAL, 6513, "SHADOW_CRYSTAL") && ok;
+    return ok;
+}
+
+auto testCombineAskPureValidationFacts() -> bool
+{
+    bool ok = true;
+    ok      = expectValid(validateCombineAskPure(FIRE_CRYSTAL, 1), "COMBINE_ASK fire crystal validation") && ok;
+    ok      = expectValid(validateCombineAskPure(DARK_CLUSTER, 8), "COMBINE_ASK dark cluster validation") && ok;
+    ok      = expectValid(validateCombineAskPure(TWILIGHT_CRYSTAL, 1), "COMBINE_ASK twilight crystal validation") && ok;
+    ok      = expectValid(validateCombineAskPure(SHADOW_CRYSTAL, 1), "COMBINE_ASK shadow crystal validation") && ok;
+    ok      = expectInvalidError(validateCombineAskPure(static_cast<ITEMID>(4095), 1), "Crystal value 4095 is not allowed.", "COMBINE_ASK invalid crystal validation") && ok;
+    ok      = expectInvalidError(validateCombineAskPure(FIRE_CRYSTAL, 0), "Items out of range: 0 not in [1, 8]", "COMBINE_ASK zero items validation") && ok;
+    ok      = expectInvalidError(validateCombineAskPure(FIRE_CRYSTAL, 9), "Items out of range: 9 not in [1, 8]", "COMBINE_ASK high items validation") && ok;
+    ok      = expectInvalidError(validateCombineAskPure(static_cast<ITEMID>(4095), 0), "Crystal value 4095 is not allowed.", "COMBINE_ASK validation order") && ok;
+    return ok;
+}
+
+} // namespace
+
+auto runC2SCombineAskPacketSelfTests() -> bool
+{
+    return testCombineAskLayoutMetadataAndPayload() &&
+           testCombineAskCrystalConstants() &&
+           testCombineAskPureValidationFacts();
+}
