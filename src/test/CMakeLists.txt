@@ -267,6 +267,8 @@ set(SOURCES
     test_s2c_black_edit_packet.cpp
     test_s2c_black_list_packet.h
     test_s2c_black_list_packet.cpp
+    test_s2c_chat_std_packet.h
+    test_s2c_chat_std_packet.cpp
     test_s2c_chocobo_racing_packets.h
     test_s2c_chocobo_racing_packets.cpp
     test_s2c_default_packets.h
