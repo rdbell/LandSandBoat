@@ -161,6 +161,7 @@ auto runC2SAUCPacketSelfTests() -> bool;
 auto runC2SLoginPacketSelfTests() -> bool;
 auto runS2CHeaderOnlyPacketSelfTests() -> bool;
 auto runS2CBallistaPacketSelfTests() -> bool;
+auto runS2CBattle2PacketSelfTests() -> bool;
 auto runS2CBattleMessagePacketSelfTests() -> bool;
 auto runS2CBlackEditPacketSelfTests() -> bool;
 auto runS2CBlackListPacketSelfTests() -> bool;
@@ -339,6 +340,7 @@ namespace
         ok = runC2SLoginPacketSelfTests() && ok;
         ok = runS2CHeaderOnlyPacketSelfTests() && ok;
         ok = runS2CBallistaPacketSelfTests() && ok;
+        ok = runS2CBattle2PacketSelfTests() && ok;
         ok = runS2CBattleMessagePacketSelfTests() && ok;
         ok = runS2CBlackEditPacketSelfTests() && ok;
         ok = runS2CBlackListPacketSelfTests() && ok;

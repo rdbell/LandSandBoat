@@ -255,6 +255,8 @@ set(SOURCES
     test_rng_engines.cpp
     test_s2c_ballista_packets.h
     test_s2c_ballista_packets.cpp
+    test_s2c_battle2_packet.h
+    test_s2c_battle2_packet.cpp
     test_s2c_battle_message_packets.h
     test_s2c_battle_message_packets.cpp
     test_s2c_black_edit_packet.h
