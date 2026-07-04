@@ -184,6 +184,7 @@ auto runS2CGMSupportPacketSelfTests() -> bool;
 auto runS2CMessagePacketSelfTests() -> bool;
 auto runS2CSystemMesPacketSelfTests() -> bool;
 auto runS2CTrackingStatePacketSelfTests() -> bool;
+auto runS2CTranslatePacketSelfTests() -> bool;
 
 namespace
 {
@@ -346,6 +347,7 @@ namespace
         ok = runS2CMessagePacketSelfTests() && ok;
         ok = runS2CSystemMesPacketSelfTests() && ok;
         ok = runS2CTrackingStatePacketSelfTests() && ok;
+        ok = runS2CTranslatePacketSelfTests() && ok;
 
         return ok;
     }

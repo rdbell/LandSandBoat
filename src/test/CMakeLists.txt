@@ -303,6 +303,8 @@ set(SOURCES
     test_s2c_systemmes_packet.cpp
     test_s2c_tracking_state_packet.h
     test_s2c_tracking_state_packet.cpp
+    test_s2c_translate_packet.h
+    test_s2c_translate_packet.cpp
     test_s2c_weather_packet.h
     test_s2c_weather_packet.cpp
     test_search_packet_buffer.h
