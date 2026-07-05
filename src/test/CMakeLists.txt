@@ -363,6 +363,8 @@ set(SOURCES
     test_s2c_musicvolume_packet.cpp
     test_s2c_myroom_packets.h
     test_s2c_myroom_packets.cpp
+    test_s2c_mount_data_packet.h
+    test_s2c_mount_data_packet.cpp
     test_s2c_packet_control_packet.h
     test_s2c_packet_control_packet.cpp
     test_s2c_packet_id_enum.h
