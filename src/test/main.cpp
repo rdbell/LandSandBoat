@@ -223,6 +223,7 @@ auto runS2CGMSupportPacketSelfTests() -> bool;
 auto runS2CGroupEffectsPacketSelfTests() -> bool;
 auto runS2CGuildListPacketSelfTests() -> bool;
 auto runS2CGuildResultPacketSelfTests() -> bool;
+auto runS2CInspectMessagePacketSelfTests() -> bool;
 auto runS2CMessagePacketSelfTests() -> bool;
 auto runS2CSchedulorPacketSelfTests() -> bool;
 auto runS2CSystemMesPacketSelfTests() -> bool;
@@ -434,6 +435,7 @@ namespace
         ok = runS2CGroupEffectsPacketSelfTests() && ok;
         ok = runS2CGuildListPacketSelfTests() && ok;
         ok = runS2CGuildResultPacketSelfTests() && ok;
+        ok = runS2CInspectMessagePacketSelfTests() && ok;
         ok = runS2CMessagePacketSelfTests() && ok;
         ok = runS2CSchedulorPacketSelfTests() && ok;
         ok = runS2CSystemMesPacketSelfTests() && ok;
