@@ -193,6 +193,7 @@ auto runS2CEquipListPacketSelfTests() -> bool;
 auto runS2CDefaultPacketSelfTests() -> bool;
 auto runS2CGroupList2PacketSelfTests() -> bool;
 auto runS2CItemSearchPacketSelfTests() -> bool;
+auto runS2CItemListPacketSelfTests() -> bool;
 auto runS2CItemNumPacketSelfTests() -> bool;
 auto runS2CItemSubcontainerPacketSelfTests() -> bool;
 auto runS2CMyRoomPacketSelfTests() -> bool;
@@ -388,6 +389,7 @@ namespace
         ok = runS2CDefaultPacketSelfTests() && ok;
         ok = runS2CGroupList2PacketSelfTests() && ok;
         ok = runS2CItemSearchPacketSelfTests() && ok;
+        ok = runS2CItemListPacketSelfTests() && ok;
         ok = runS2CItemNumPacketSelfTests() && ok;
         ok = runS2CItemSubcontainerPacketSelfTests() && ok;
         ok = runS2CMyRoomPacketSelfTests() && ok;

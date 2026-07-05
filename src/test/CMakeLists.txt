@@ -313,6 +313,8 @@ set(SOURCES
     test_s2c_header_only_packets.cpp
     test_s2c_itemsearch_packet.h
     test_s2c_itemsearch_packet.cpp
+    test_s2c_item_list_packet.h
+    test_s2c_item_list_packet.cpp
     test_s2c_item_num_packet.h
     test_s2c_item_num_packet.cpp
     test_s2c_item_subcontainer_packet.h
