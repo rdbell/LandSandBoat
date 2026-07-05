@@ -327,6 +327,8 @@ set(SOURCES
     test_s2c_packet_control_packet.cpp
     test_s2c_packet_id_enum.h
     test_s2c_packet_id_enum.cpp
+    test_s2c_pbx_result_packet.h
+    test_s2c_pbx_result_packet.cpp
     test_s2c_partyreq_packet.h
     test_s2c_partyreq_packet.cpp
     test_s2c_pendingnum_packet.h
