@@ -185,6 +185,7 @@ auto runS2CEventStrPacketSelfTests() -> bool;
 auto runS2CEventNumPacketSelfTests() -> bool;
 auto runS2CLinkConciergeHeaderPacketSelfTests() -> bool;
 auto runS2CMagicSchedulorPacketSelfTests() -> bool;
+auto runS2CMapGroupPacketSelfTests() -> bool;
 auto runS2CMapSchedulorPacketSelfTests() -> bool;
 auto runS2CLogoutPacketSelfTests() -> bool;
 auto runS2CWeatherPacketSelfTests() -> bool;
@@ -391,6 +392,7 @@ namespace
         ok = runS2CEventNumPacketSelfTests() && ok;
         ok = runS2CLinkConciergeHeaderPacketSelfTests() && ok;
         ok = runS2CMagicSchedulorPacketSelfTests() && ok;
+        ok = runS2CMapGroupPacketSelfTests() && ok;
         ok = runS2CMapSchedulorPacketSelfTests() && ok;
         ok = runS2CLogoutPacketSelfTests() && ok;
         ok = runS2CWeatherPacketSelfTests() && ok;

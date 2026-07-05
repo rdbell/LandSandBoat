@@ -343,6 +343,8 @@ set(SOURCES
     test_s2c_link_concierge_header_packet.cpp
     test_s2c_magicschedulor_packet.h
     test_s2c_magicschedulor_packet.cpp
+    test_s2c_map_group_packet.h
+    test_s2c_map_group_packet.cpp
     test_s2c_mapschedulor_packet.h
     test_s2c_mapschedulor_packet.cpp
     test_s2c_message_packet.h
