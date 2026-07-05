@@ -46,7 +46,6 @@ TestEngine::TestEngine(Application& application, TestConfig testConfig, std::uni
 , worldEngine_(std::move(worldEngine))
 , mockManager_(std::make_unique<MockManager>())
 , testConfig_(std::move(testConfig))
-, reporters_(testConfig_.verbose, testConfig_.output)
 {
     TestChar::clean();
 
@@ -64,15 +63,20 @@ TestEngine::TestEngine(Application& application, TestConfig testConfig, std::uni
     lua["xi"]["test"]          = lua.create_table();
     lua["xi"]["test"]["world"] = simulation_.get();
 
-    // Collect all test suites
-    testCollector_ = std::make_unique<TestCollector>(testConfig_.filters, reporters_);
 }
 
 TestEngine::~TestEngine() = default;
 
 auto TestEngine::executeTests() -> Task<bool>
 {
+    co_return co_await executeTests(testConfig_);
+}
+
+auto TestEngine::executeTests(TestConfig testConfig) -> Task<bool>
+{
     TracyZoneScoped;
+
+    prepareRun(std::move(testConfig));
 
     TestResults results;
 
@@ -103,9 +107,19 @@ auto TestEngine::executeTests() -> Task<bool>
     const auto runEndTime    = std::chrono::steady_clock::now();
     const auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(runEndTime - runStartTime);
 
-    reporters_.onRunComplete(totalDuration);
+    reporters_->onRunComplete(totalDuration);
 
     co_return results.failed == 0;
+}
+
+void TestEngine::prepareRun(TestConfig testConfig)
+{
+    testConfig_ = std::move(testConfig);
+    TestChar::clean();
+    simulation_->cleanClients();
+    testConfig_.loggerSink->clear();
+    reporters_     = std::make_unique<ReporterContainer>(testConfig_.verbose, testConfig_.output, testConfig_.console);
+    testCollector_ = std::make_unique<TestCollector>(testConfig_.filters, *reporters_);
 }
 
 auto TestEngine::executeSuite(const TestSuite& suite, HookContext context) -> TestResults
@@ -117,7 +131,7 @@ auto TestEngine::executeSuite(const TestSuite& suite, HookContext context) -> Te
     auto        suiteStartTime = std::chrono::steady_clock::now();
 
     // Notify reporters of suite start
-    reporters_.onSuiteStart(suite);
+    reporters_->onSuiteStart(suite);
 
     // Add this suite's before_each to the context (accumulates as we go down)
     if (suite.beforeEachFunc().valid())
@@ -167,7 +181,7 @@ auto TestEngine::executeSuite(const TestSuite& suite, HookContext context) -> Te
             results.skipped++;
 
             // Notify reporters
-            reporters_.onTestSkipped(suite, testCase);
+            reporters_->onTestSkipped(suite, testCase);
 
             continue;
         }
@@ -229,7 +243,7 @@ auto TestEngine::executeSuite(const TestSuite& suite, HookContext context) -> Te
     auto suiteDuration = std::chrono::duration_cast<std::chrono::milliseconds>(suiteEndTime - suiteStartTime);
 
     // Notify reporters of suite end
-    reporters_.onSuiteEnd(suite, suiteDuration);
+    reporters_->onSuiteEnd(suite, suiteDuration);
 
     return results;
 }
@@ -247,7 +261,7 @@ void TestEngine::reportSetupTeardownFailure(const TestSuite& suite, const std::s
 
     // Since we don't have a TestCase for setup/teardown, we just report the result
     // without calling onTestStart
-    reporters_.onTestEnd(failure);
+    reporters_->onTestEnd(failure);
 }
 
 auto TestEngine::executeTestCase(const TestCase& testCase, const HookContext& context, const TestSuite& suite) const -> bool
@@ -256,7 +270,7 @@ auto TestEngine::executeTestCase(const TestCase& testCase, const HookContext& co
     TracyZoneString(fmt::format("{} :: {}", suite.fullName(), testCase.name()));
 
     // Notify reporters of test start
-    reporters_.onTestStart(suite, testCase);
+    reporters_->onTestStart(suite, testCase);
 
     // Track timing
     auto startTime = std::chrono::steady_clock::now();
@@ -331,7 +345,7 @@ auto TestEngine::executeTestCase(const TestCase& testCase, const HookContext& co
         .filePath     = suite.sourceFile()
     };
 
-    reporters_.onTestEnd(testResult);
+    reporters_->onTestEnd(testResult);
     return status == TestStatus::Passed;
 }
 

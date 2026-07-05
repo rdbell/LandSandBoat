@@ -47,6 +47,7 @@ struct TestConfig
     std::string                   output;
     bool                          keepGoing{ false };
     bool                          watch{ false };
+    bool                          console{ true };
     FilterConfig                  filters;
 };
 
@@ -80,8 +81,10 @@ public:
     DISALLOW_COPY_AND_MOVE(TestEngine);
 
     auto executeTests() -> Task<bool>;
+    auto executeTests(TestConfig testConfig) -> Task<bool>;
 
 private:
+    void prepareRun(TestConfig testConfig);
     auto executeSuite(const TestSuite& suite, HookContext context) -> TestResults;
     void reportSetupTeardownFailure(const TestSuite& suite, const std::string& functionName, const std::string& errorMessage) const;
     auto executeTestCase(const TestCase& testCase, const HookContext& context, const TestSuite& suite) const -> bool;
@@ -94,7 +97,7 @@ private:
     std::unique_ptr<WorldEngine>        worldEngine_;
     std::unique_ptr<MockManager>        mockManager_;
     TestConfig                          testConfig_;
-    ReporterContainer                   reporters_;
+    std::unique_ptr<ReporterContainer>  reporters_;
     std::unique_ptr<TestLuaEnvironment> luaEnvironment_;
     std::unique_ptr<TestCollector>      testCollector_;
     std::unique_ptr<CLuaSimulation>     simulation_;

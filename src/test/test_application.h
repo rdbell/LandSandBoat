@@ -23,6 +23,9 @@
 
 #include "common/application.h"
 #include "in_memory_sink.h"
+#include "test_engine.h"
+
+#include <thread>
 
 #ifndef _WIN32
 #include <sys/resource.h>
@@ -39,7 +42,11 @@ public:
     void captureLogger() const;
 
 private:
+    auto baseTestConfig() const -> TestConfig;
+    void runDaemonStdio();
+
     std::shared_ptr<InMemorySink> sink_;
+    std::thread                   daemonThread_;
 
     bool success_{ false };
 };

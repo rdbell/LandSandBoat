@@ -25,10 +25,12 @@
 #include "reporters/console_reporter.h"
 #include "reporters/ctrf_reporter.h"
 
-ReporterContainer::ReporterContainer(bool verbose, const std::string& outputFile)
+ReporterContainer::ReporterContainer(bool verbose, const std::string& outputFile, bool enableConsole)
 {
-    // Always add console reporter
-    reporters_.push_back(std::make_unique<ConsoleReporter>(verbose));
+    if (enableConsole)
+    {
+        reporters_.push_back(std::make_unique<ConsoleReporter>(verbose));
+    }
 
     // Add file reporter if specified
     if (!outputFile.empty())

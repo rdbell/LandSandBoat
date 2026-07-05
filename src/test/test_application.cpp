@@ -24,12 +24,55 @@
 
 #include "common/settings.h"
 
+#include <nlohmann/json.hpp>
 #include <spdlog/async.h>
 
+#include <future>
+#include <format>
+#include <iostream>
 #include <string>
+#include <vector>
 
 namespace
 {
+
+constexpr auto TestDaemonPrefix = "XI_TESTD ";
+
+auto jsonStringArray(const nlohmann::json& object, const char* key) -> std::vector<std::string>
+{
+    std::vector<std::string> values;
+    if (!object.contains(key))
+    {
+        return values;
+    }
+
+    const auto& node = object.at(key);
+    if (node.is_string())
+    {
+        values.push_back(node.get<std::string>());
+        return values;
+    }
+
+    if (!node.is_array())
+    {
+        return values;
+    }
+
+    for (const auto& value : node)
+    {
+        if (value.is_string())
+        {
+            values.push_back(value.get<std::string>());
+        }
+    }
+
+    return values;
+}
+
+void writeDaemonResponse(nlohmann::json response)
+{
+    std::cout << TestDaemonPrefix << response.dump() << std::endl;
+}
 
 auto appConfig() -> ApplicationConfig
 {
@@ -54,6 +97,11 @@ auto appConfig() -> ApplicationConfig
             ArgumentDefinition{
                 .name        = "--no-lua-smoke",
                 .description = "Skip loading every non-test Lua file during test-server startup.",
+                .type        = ArgumentType::Flag,
+            },
+            ArgumentDefinition{
+                .name        = "--daemon-stdio",
+                .description = "Keep the warmed test server running and accept JSON-lines commands on stdin.",
                 .type        = ArgumentType::Flag,
             },
             ArgumentDefinition{
@@ -113,9 +161,10 @@ auto TestApplication::createEngine() -> std::unique_ptr<Engine>
 auto TestApplication::run() -> bool
 {
     TracyZoneScoped;
+    const bool daemonMode = args().get<bool>("--daemon-stdio");
 
     scheduler_.postToMainThread(
-        [&]() -> Task<void>
+        [&, daemonMode]() -> Task<void>
         {
             // The test harness embeds both the world and map servers in this one process. Route their
             // IPC over inproc:// (a shared, in-process transport) instead of a TCP port.
@@ -152,27 +201,19 @@ auto TestApplication::run() -> bool
             // Prepare TestEngine with MapEngine and WorldEngine
             //
 
-            TestConfig testConfig{
-                .loggerSink = sink_,
-                .verbose    = args().get<bool>("--verbose"),
-                .output     = args().present<std::string>("--output").value_or(""),
-                .keepGoing  = args().get<bool>("--keep-going"),
-                .watch      = args().get<bool>("--watch"),
-                .filters    = {
-                    .includePatterns = args().get<std::vector<std::string>>("--file"),
-                    .excludePatterns = args().get<std::vector<std::string>>("--no-file"),
-                    .includeFilters  = args().get<std::vector<std::string>>("--filter"),
-                    .excludeFilters  = args().get<std::vector<std::string>>("--no-filter"),
-                    .includeTags     = args().get<std::vector<std::string>>("--tag"),
-                    .excludeTags     = args().get<std::vector<std::string>>("--no-tag"),
-                },
-            };
+            auto testConfig = baseTestConfig();
 
             engine_ = std::make_unique<TestEngine>(*this, std::move(testConfig), std::move(mapEngine), std::move(worldEngine));
 
             // From this point, every logging statements end up in the in-memory sink
             // Print to stderr directly if needed
             captureLogger();
+
+            if (daemonMode)
+            {
+                daemonThread_ = std::thread(&TestApplication::runDaemonStdio, this);
+                co_return;
+            }
 
             // Record the result and exit through the normal path so main() can run
             // lua_cleanup() before the process tears down.
@@ -190,7 +231,158 @@ auto TestApplication::run() -> bool
         success_ = false;
     }
 
+    if (daemonThread_.joinable())
+    {
+        daemonThread_.join();
+    }
+
     return success_;
+}
+
+auto TestApplication::baseTestConfig() const -> TestConfig
+{
+    return TestConfig{
+        .loggerSink = sink_,
+        .verbose    = args().get<bool>("--verbose"),
+        .output     = args().present<std::string>("--output").value_or(""),
+        .keepGoing  = args().get<bool>("--keep-going"),
+        .watch      = args().get<bool>("--watch"),
+        .console    = true,
+        .filters    = {
+            .includePatterns = args().get<std::vector<std::string>>("--file"),
+            .excludePatterns = args().get<std::vector<std::string>>("--no-file"),
+            .includeFilters  = args().get<std::vector<std::string>>("--filter"),
+            .excludeFilters  = args().get<std::vector<std::string>>("--no-filter"),
+            .includeTags     = args().get<std::vector<std::string>>("--tag"),
+            .excludeTags     = args().get<std::vector<std::string>>("--no-tag"),
+        },
+    };
+}
+
+void TestApplication::runDaemonStdio()
+{
+    success_ = true;
+    writeDaemonResponse({
+        { "event", "ready" },
+        { "protocol", 1 },
+    });
+
+    std::string line;
+    while (std::getline(std::cin, line))
+    {
+        if (line.empty())
+        {
+            continue;
+        }
+
+        nlohmann::json command;
+        try
+        {
+            command = nlohmann::json::parse(line);
+        }
+        catch (const std::exception& e)
+        {
+            writeDaemonResponse({
+                { "status", "error" },
+                { "error", std::format("invalid JSON command: {}", e.what()) },
+            });
+            continue;
+        }
+
+        const auto id = command.value("id", std::string{});
+        const auto op = command.value("op", std::string{});
+
+        if (op == "shutdown")
+        {
+            success_ = true;
+            writeDaemonResponse({
+                { "id", id },
+                { "status", "ok" },
+            });
+            requestExit();
+            break;
+        }
+
+        if (op != "run")
+        {
+            writeDaemonResponse({
+                { "id", id },
+                { "status", "error" },
+                { "error", std::format("unknown daemon op '{}'", op) },
+            });
+            continue;
+        }
+
+        auto testConfig                  = baseTestConfig();
+        testConfig.output                = command.value("output", testConfig.output);
+        testConfig.keepGoing             = command.value("keepGoing", testConfig.keepGoing);
+        testConfig.verbose               = command.value("verbose", testConfig.verbose);
+        testConfig.console               = command.value("console", false);
+        testConfig.watch                 = false;
+        if (command.contains("files"))
+        {
+            testConfig.filters.includePatterns = jsonStringArray(command, "files");
+        }
+        if (command.contains("excludeFiles"))
+        {
+            testConfig.filters.excludePatterns = jsonStringArray(command, "excludeFiles");
+        }
+        if (command.contains("filters"))
+        {
+            testConfig.filters.includeFilters = jsonStringArray(command, "filters");
+        }
+        if (command.contains("excludeFilters"))
+        {
+            testConfig.filters.excludeFilters = jsonStringArray(command, "excludeFilters");
+        }
+        if (command.contains("tags"))
+        {
+            testConfig.filters.includeTags = jsonStringArray(command, "tags");
+        }
+        if (command.contains("excludeTags"))
+        {
+            testConfig.filters.excludeTags = jsonStringArray(command, "excludeTags");
+        }
+
+        auto promise = std::make_shared<std::promise<bool>>();
+        auto future  = promise->get_future();
+
+        scheduler_.postToMainThread(
+            [this, promise, testConfig = std::move(testConfig)]() mutable -> Task<void>
+            {
+                try
+                {
+                    const auto ok = co_await static_cast<TestEngine*>(engine_.get())->executeTests(std::move(testConfig));
+                    promise->set_value(ok);
+                }
+                catch (...)
+                {
+                    promise->set_exception(std::current_exception());
+                }
+            });
+
+        try
+        {
+            const auto ok = future.get();
+            writeDaemonResponse({
+                { "id", id },
+                { "status", ok ? "passed" : "failed" },
+                { "ok", ok },
+            });
+            success_ = success_ && ok;
+        }
+        catch (const std::exception& e)
+        {
+            writeDaemonResponse({
+                { "id", id },
+                { "status", "error" },
+                { "error", e.what() },
+            });
+            success_ = false;
+        }
+    }
+
+    requestExit();
 }
 
 // Replace all loggers sinks with the in-memory sink

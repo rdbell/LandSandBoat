@@ -30,7 +30,7 @@
 class ReporterContainer
 {
 public:
-    explicit ReporterContainer(bool verbose = false, const std::string& outputFile = "");
+    explicit ReporterContainer(bool verbose = false, const std::string& outputFile = "", bool enableConsole = true);
 
     void onSuiteStart(const TestSuite& suite) const;
     void onSuiteEnd(const TestSuite& suite, std::chrono::milliseconds duration) const;
