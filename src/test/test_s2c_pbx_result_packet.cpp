@@ -127,7 +127,7 @@ auto testCheckIncomingConstructor() -> bool
     bool ok = true;
     ok      = expectEqualUInt(packet.getType(), 0x04B, "check incoming type") && ok;
     ok      = expectEqualUInt(packet.getSize(), pbxStatelessPacketSize, "check incoming size") && ok;
-    ok      = expectBytes(packet, 0, std::array<uint8, 4>{ 0x4B, 0x0B, 0xEF, 0xBE }, "check incoming header") && ok;
+    ok      = expectBytes(packet, 0, std::array<uint8, 4>{ 0x4B, 0x0A, 0xEF, 0xBE }, "check incoming header") && ok;
     ok      = expectBytes(packet, pbxCommandOffset, std::array<uint8, 12>{ 0x05, 0x01, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x02, 0xFF, 0x07, 0xFF }, "check incoming scalar fields") && ok;
     ok      = expectRepeatedByte(packet, pbxRepresentOffset, 4, 0, "check incoming represent") && ok;
     ok      = expectRepeatedByte(packet, pbxStatelessPacketSize, PACKET_SIZE - pbxStatelessPacketSize, 0, "check incoming tail") && ok;
