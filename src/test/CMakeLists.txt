@@ -259,6 +259,8 @@ set(SOURCES
     test_s2c_assist_packet.cpp
     test_s2c_auc_packet.h
     test_s2c_auc_packet.cpp
+    test_s2c_alter_ego_points_packet.h
+    test_s2c_alter_ego_points_packet.cpp
     test_s2c_battle2_packet.h
     test_s2c_battle2_packet.cpp
     test_s2c_battlefield_packet.h
