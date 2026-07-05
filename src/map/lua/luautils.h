@@ -143,7 +143,7 @@ auto findGlobalLuaFunction(const std::string& funcName) -> sol::function;
 // Lua lifetime
 //
 
-void init(IPP mapIPP, bool isRunningInCI);
+void init(IPP mapIPP, bool smokeLuaFiles);
 void garbageCollectStep();
 void garbageCollectFull();
 void cleanup();

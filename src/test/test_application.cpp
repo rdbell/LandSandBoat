@@ -52,6 +52,11 @@ auto appConfig() -> ApplicationConfig
                 .type        = ArgumentType::Flag,
             },
             ArgumentDefinition{
+                .name        = "--no-lua-smoke",
+                .description = "Skip loading every non-test Lua file during test-server startup.",
+                .type        = ArgumentType::Flag,
+            },
+            ArgumentDefinition{
                 .name        = "--tag",
                 .description = "Only run tests with these #tags.",
                 .type        = ArgumentType::Multiple,
@@ -133,6 +138,7 @@ auto TestApplication::run() -> bool
                 .isTestServer      = true,
                 .lazyZones         = true,
                 .controlledWeather = true,
+                .smokeLuaFiles     = !args().get<bool>("--no-lua-smoke"),
             };
             auto mapEngine = std::make_unique<MapEngine>(*this, mapConfig);
 

@@ -302,7 +302,7 @@ sol::function nonEmptyOrNil(const std::string& funcName, sol::function fn)
 //
 // @brief Initialization of Lua user classes and global functions.
 //
-void init(IPP mapIPP, bool isRunningInCI)
+void init(IPP mapIPP, bool smokeLuaFiles)
 {
     TracyZoneScoped;
 
@@ -569,7 +569,7 @@ void init(IPP mapIPP, bool isRunningInCI)
     }
 
     // Load all lua files (for sanity testing, no need for during regular use)
-    if (isRunningInCI)
+    if (smokeLuaFiles)
     {
         ShowInfo("*** CI ONLY: Smoke testing by running all Lua files. ***");
         for (const auto& entry : sorted_directory_iterator<std::filesystem::recursive_directory_iterator>("./scripts"))
