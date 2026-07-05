@@ -341,6 +341,8 @@ set(SOURCES
     test_s2c_item_subcontainer_packet.cpp
     test_s2c_link_concierge_header_packet.h
     test_s2c_link_concierge_header_packet.cpp
+    test_s2c_magic_data_packet.h
+    test_s2c_magic_data_packet.cpp
     test_s2c_magicschedulor_packet.h
     test_s2c_magicschedulor_packet.cpp
     test_s2c_map_group_packet.h
