@@ -207,6 +207,7 @@ auto runS2CItemAttrPacketSelfTests() -> bool;
 auto runS2CItemSearchPacketSelfTests() -> bool;
 auto runS2CItemListPacketSelfTests() -> bool;
 auto runS2CItemNumPacketSelfTests() -> bool;
+auto runS2CItemSamePacketSelfTests() -> bool;
 auto runS2CItemTradeSessionPacketSelfTests() -> bool;
 auto runS2CItemTradePacketSelfTests() -> bool;
 auto runS2CItemSubcontainerPacketSelfTests() -> bool;
@@ -428,6 +429,7 @@ namespace
         ok = runS2CItemSearchPacketSelfTests() && ok;
         ok = runS2CItemListPacketSelfTests() && ok;
         ok = runS2CItemNumPacketSelfTests() && ok;
+        ok = runS2CItemSamePacketSelfTests() && ok;
         ok = runS2CItemTradeSessionPacketSelfTests() && ok;
         ok = runS2CItemTradePacketSelfTests() && ok;
         ok = runS2CItemSubcontainerPacketSelfTests() && ok;

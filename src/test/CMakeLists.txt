@@ -351,6 +351,8 @@ set(SOURCES
     test_s2c_item_list_packet.cpp
     test_s2c_item_num_packet.h
     test_s2c_item_num_packet.cpp
+    test_s2c_item_same_packet.h
+    test_s2c_item_same_packet.cpp
     test_s2c_item_trade_session_packets.h
     test_s2c_item_trade_session_packets.cpp
     test_s2c_item_trade_packets.h
