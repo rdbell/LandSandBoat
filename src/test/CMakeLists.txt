@@ -311,6 +311,8 @@ set(SOURCES
     test_s2c_gm_packets.cpp
     test_s2c_gm_support_packets.h
     test_s2c_gm_support_packets.cpp
+    test_s2c_group_effects_packet.h
+    test_s2c_group_effects_packet.cpp
     test_s2c_group_list2_packet.h
     test_s2c_group_list2_packet.cpp
     test_s2c_header_only_packets.h
