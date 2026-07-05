@@ -297,6 +297,8 @@ set(SOURCES
     test_s2c_eventnum_packet.cpp
     test_s2c_faq_gmparam_packet.h
     test_s2c_faq_gmparam_packet.cpp
+    test_s2c_fish_packet.h
+    test_s2c_fish_packet.cpp
     test_s2c_friendpass_packet.h
     test_s2c_friendpass_packet.cpp
     test_s2c_gm_packets.h
