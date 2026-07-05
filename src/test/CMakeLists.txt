@@ -319,6 +319,8 @@ set(SOURCES
     test_s2c_item_list_packet.cpp
     test_s2c_item_num_packet.h
     test_s2c_item_num_packet.cpp
+    test_s2c_item_trade_packets.h
+    test_s2c_item_trade_packets.cpp
     test_s2c_item_subcontainer_packet.h
     test_s2c_item_subcontainer_packet.cpp
     test_s2c_link_concierge_header_packet.h
