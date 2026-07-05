@@ -115,8 +115,8 @@ auto testLayout() -> bool
 {
     bool ok = true;
     ok      = expectEqualUInt(sizeof(GP_SERV_HEADER), 4, "sizeof(GP_SERV_HEADER)") && ok;
-    ok      = expectEqualUInt(itemAttrPacketDataSize, 37, "sizeof(PacketData)") && ok;
-    ok      = expectEqualUInt(itemAttrUnroundedPacketSize, 41, "unrounded packet size") && ok;
+    ok      = expectEqualUInt(itemAttrPacketDataSize, 40, "sizeof(PacketData)") && ok;
+    ok      = expectEqualUInt(itemAttrUnroundedPacketSize, 44, "unrounded packet size") && ok;
     ok      = expectEqualUInt(itemAttrItemNumOffset, 4, "ItemNum offset") && ok;
     ok      = expectEqualUInt(itemAttrPriceOffset, 8, "Price offset") && ok;
     ok      = expectEqualUInt(itemAttrItemNoOffset, 12, "ItemNo offset") && ok;

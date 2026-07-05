@@ -76,4 +76,4 @@ private:
 };
 
 template <class T>
-using SynchronizedShared = Synchronized<T, std::shared_mutex, std::shared_lock>;
+using SynchronizedShared = Synchronized<T, std::shared_mutex, std::unique_lock, std::shared_lock>;

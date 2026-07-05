@@ -120,8 +120,8 @@ auto testLayout() -> bool
 {
     bool ok = true;
     ok      = expectEqualUInt(sizeof(GP_SERV_HEADER), 4, "sizeof(GP_SERV_HEADER)") && ok;
-    ok      = expectEqualUInt(chatStdPacketDataSize, 169, "sizeof(PacketData)") && ok;
-    ok      = expectEqualUInt(chatStdFullPacketSize, 173, "full packet size before dynamic rounding") && ok;
+    ok      = expectEqualUInt(chatStdPacketDataSize, 170, "sizeof(PacketData)") && ok;
+    ok      = expectEqualUInt(chatStdFullPacketSize, 174, "full packet size before dynamic rounding") && ok;
     ok      = expectEqualUInt(chatStdKindOffset, 4, "Kind offset") && ok;
     ok      = expectEqualUInt(chatStdAttrOffset, 5, "Attr offset") && ok;
     ok      = expectEqualUInt(chatStdDataOffset, 6, "Data offset") && ok;

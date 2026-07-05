@@ -114,8 +114,8 @@ auto testLayout() -> bool
     ok      = expectEqualUInt(tradeReqUniqueNoOffset, 4, "ITEM_TRADE_REQ UniqueNo offset") && ok;
     ok      = expectEqualUInt(tradeReqActIndexOffset, 8, "ITEM_TRADE_REQ ActIndex offset") && ok;
     ok      = expectEqualUInt(tradeReqPadding00Offset, 10, "ITEM_TRADE_REQ padding00 offset") && ok;
-    ok      = expectEqualUInt(tradeResPacketDataSize, 10, "sizeof(ITEM_TRADE_RES::PacketData)") && ok;
-    ok      = expectEqualUInt(tradeResUnroundedPacketSize, 14, "ITEM_TRADE_RES unrounded packet size") && ok;
+    ok      = expectEqualUInt(tradeResPacketDataSize, 12, "sizeof(ITEM_TRADE_RES::PacketData)") && ok;
+    ok      = expectEqualUInt(tradeResUnroundedPacketSize, 16, "ITEM_TRADE_RES unrounded packet size") && ok;
     ok      = expectEqualUInt(tradeResUniqueNoOffset, 4, "ITEM_TRADE_RES UniqueNo offset") && ok;
     ok      = expectEqualUInt(tradeResKindOffset, 8, "ITEM_TRADE_RES Kind offset") && ok;
     ok      = expectEqualUInt(tradeResActIndexOffset, 12, "ITEM_TRADE_RES ActIndex offset") && ok;

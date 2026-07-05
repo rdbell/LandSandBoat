@@ -158,7 +158,8 @@ auto testFeatureBitmask() -> bool
          ok;
 
     resetSettings(featureSettings);
-    ok = expectEqual(loginHelpers::generateFeatureBitmask(), setAll(featureSettings), "all features") && ok;
+    const auto allFeatures = setAll(featureSettings);
+    ok = expectEqual(loginHelpers::generateFeatureBitmask(), allFeatures, "all features") && ok;
 
     resetSettings(featureSettings);
     return ok;

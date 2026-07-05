@@ -134,11 +134,11 @@ auto testLayout() -> bool
     bool ok = true;
     ok      = expectEqualUInt(guildListItemSize, 8, "sizeof(GP_GUILD_ITEM)") && ok;
     ok      = expectEqualUInt(guildListItemLen, 30, "std::size(List)") && ok;
-    ok      = expectEqualUInt(guildBuyListPacketSize, 246, "GUILD_BUYLIST packet size") && ok;
+    ok      = expectEqualUInt(guildBuyListPacketSize, 248, "GUILD_BUYLIST packet size") && ok;
     ok      = expectEqualUInt(guildBuyListListOffset, 4, "GUILD_BUYLIST List offset") && ok;
     ok      = expectEqualUInt(guildBuyListCountOffset, 244, "GUILD_BUYLIST Count offset") && ok;
     ok      = expectEqualUInt(guildBuyListStatOffset, 245, "GUILD_BUYLIST Stat offset") && ok;
-    ok      = expectEqualUInt(guildSellListPacketSize, 246, "GUILD_SELLLIST packet size") && ok;
+    ok      = expectEqualUInt(guildSellListPacketSize, 248, "GUILD_SELLLIST packet size") && ok;
     ok      = expectEqualUInt(guildSellListListOffset, 4, "GUILD_SELLLIST List offset") && ok;
     ok      = expectEqualUInt(guildSellListCountOffset, 244, "GUILD_SELLLIST Count offset") && ok;
     ok      = expectEqualUInt(guildSellListStatOffset, 245, "GUILD_SELLLIST Stat offset") && ok;

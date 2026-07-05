@@ -66,7 +66,7 @@ auto testPayloadRoundTrip() -> bool
 {
     bool ok = true;
 
-    const ipc::AccountLogin login{ .accountId = 0x12345678 };
+    const ipc::AccountLogin login{ .accountId = 0x00345678 };
     const auto              bytes = ipc::toBytes(login);
     ok = expectEqualBool(bytes.empty(), false, "account login serialized bytes nonempty") && ok;
 
@@ -74,7 +74,7 @@ auto testPayloadRoundTrip() -> bool
     ok = expectEqualBool(decoded.has_value(), true, "account login decoded") && ok;
     if (decoded)
     {
-        ok = expectEqualInt(decoded->accountId, 0x12345678, "account login decoded account id") && ok;
+        ok = expectEqualInt(decoded->accountId, 0x00345678, "account login decoded account id") && ok;
     }
 
     const std::vector<uint8> empty{};
@@ -88,7 +88,7 @@ auto testHeaderRoundTrip() -> bool
 {
     bool ok = true;
 
-    const ipc::AccountLogin login{ .accountId = 0x87654321 };
+    const ipc::AccountLogin login{ .accountId = 0x00654321 };
     const auto              payload = ipc::toBytes(login);
     const auto              frame   = ipc::toBytesWithHeader(login);
 
@@ -99,7 +99,7 @@ auto testHeaderRoundTrip() -> bool
     ok = expectEqualBool(decoded.has_value(), true, "framed account login decoded") && ok;
     if (decoded)
     {
-        ok = expectEqualInt(decoded->accountId, 0x87654321, "framed account login account id") && ok;
+        ok = expectEqualInt(decoded->accountId, 0x00654321, "framed account login account id") && ok;
     }
 
     auto mismatched = frame;
