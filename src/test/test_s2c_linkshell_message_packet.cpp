@@ -89,8 +89,8 @@ auto testLayout() -> bool
     ok      = expectEqualUInt(linkshellMessageTextSize, 128, "sMessage size") && ok;
     ok      = expectEqualUInt(linkshellMessageModifierSize, 16, "modifier size") && ok;
     ok      = expectEqualUInt(linkshellMessageEncodedNameSize, 16, "encodedLsName size") && ok;
-    ok      = expectEqualUInt(linkshellMessagePacketDataSize, 176, "sizeof(LINKSHELL_MESSAGE::PacketData)") && ok;
-    ok      = expectEqualUInt(linkshellMessagePacketSize, 180, "LINKSHELL_MESSAGE packet size") && ok;
+    ok      = expectEqualUInt(linkshellMessagePacketDataSize, 172, "sizeof(LINKSHELL_MESSAGE::PacketData)") && ok;
+    ok      = expectEqualUInt(linkshellMessagePacketSize, 176, "LINKSHELL_MESSAGE packet size") && ok;
     ok      = expectEqualUInt(linkshellMessageFlags0Offset, 4, "flags byte 0 offset") && ok;
     ok      = expectEqualUInt(linkshellMessageFlags1Offset, 5, "flags byte 1 offset") && ok;
     ok      = expectEqualUInt(linkshellMessageSeqIDOffset, 6, "seqId offset") && ok;
@@ -123,7 +123,7 @@ auto testPacketDataBytes() -> bool
     data.encodedLsName[0]  = 0x12;
     data.encodedLsName[15] = 0x34;
 
-    auto expected = std::array<uint8, 176>{};
+    auto expected = std::array<uint8, 172>{};
     expected[0]   = 0xA5;
     expected[1]   = 0x79;
     expected[2]   = 0x22;
