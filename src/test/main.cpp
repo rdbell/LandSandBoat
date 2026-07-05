@@ -220,6 +220,7 @@ auto runS2CFriendPassPacketSelfTests() -> bool;
 auto runS2CRegistrationPacketSelfTests() -> bool;
 auto runS2CGMPacketSelfTests() -> bool;
 auto runS2CGMSupportPacketSelfTests() -> bool;
+auto runS2CGroupAttrPacketSelfTests() -> bool;
 auto runS2CGroupCheckIDPacketSelfTests() -> bool;
 auto runS2CGroupComlinkPacketSelfTests() -> bool;
 auto runS2CGroupEffectsPacketSelfTests() -> bool;
@@ -436,6 +437,7 @@ namespace
         ok = runS2CRegistrationPacketSelfTests() && ok;
         ok = runS2CGMPacketSelfTests() && ok;
         ok = runS2CGMSupportPacketSelfTests() && ok;
+        ok = runS2CGroupAttrPacketSelfTests() && ok;
         ok = runS2CGroupCheckIDPacketSelfTests() && ok;
         ok = runS2CGroupComlinkPacketSelfTests() && ok;
         ok = runS2CGroupEffectsPacketSelfTests() && ok;
