@@ -29,6 +29,7 @@
 #include <string>
 
 #include "map/entities/char_entity.h"
+#include "map/packets/s2c/0x03c_shop_list.h"
 #include "map/packets/s2c/0x03d_shop_sell.h"
 #include "map/packets/s2c/0x03e_shop_open.h"
 #include "map/packets/s2c/0x03f_shop_buy.h"
@@ -53,6 +54,19 @@ constexpr auto shopBuyPacketDefaultSize   = sizeof(GP_SERV_HEADER) + sizeof(GP_S
 constexpr auto shopOpenShopListNumOffset = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_SHOP_OPEN::PacketData, ShopListNum);
 constexpr auto shopOpenPadding00Offset   = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_SHOP_OPEN::PacketData, padding00);
 constexpr auto shopOpenPacketDefaultSize = sizeof(GP_SERV_HEADER) + sizeof(GP_SERV_COMMAND_SHOP_OPEN::PacketData);
+
+constexpr auto shopListOffsetIndexOffset  = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_SHOP_LIST::PacketData, ShopItemOffsetIndex);
+constexpr auto shopListFlagsOffset        = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_SHOP_LIST::PacketData, Flags);
+constexpr auto shopListPadding00Offset    = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_SHOP_LIST::PacketData, padding00);
+constexpr auto shopListShopItemTblOffset  = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_SHOP_LIST::PacketData, ShopItemTbl);
+constexpr auto shopListEntrySize          = sizeof(GP_SHOP);
+constexpr auto shopListEntryPriceOffset   = offsetof(GP_SHOP, ItemPrice);
+constexpr auto shopListEntryItemNoOffset  = offsetof(GP_SHOP, ItemNo);
+constexpr auto shopListEntryIndexOffset   = offsetof(GP_SHOP, ShopIndex);
+constexpr auto shopListEntryPaddingOffset = offsetof(GP_SHOP, padding00);
+constexpr auto shopListEntrySkillOffset   = offsetof(GP_SHOP, Skill);
+constexpr auto shopListEntryInfoOffset    = offsetof(GP_SHOP, GuildInfo);
+constexpr auto shopListPacketDefaultSize  = sizeof(GP_SERV_HEADER) + sizeof(GP_SERV_COMMAND_SHOP_LIST::PacketData);
 
 auto packetData(CBasicPacket& packet) -> uint8*
 {
@@ -91,6 +105,28 @@ auto expectBytes(CBasicPacket& packet, const std::array<uint8, N>& expected, con
     return true;
 }
 
+template <std::size_t N>
+auto expectBytesAt(CBasicPacket& packet, std::size_t offset, const std::array<uint8, N>& expected, const std::string& label) -> bool
+{
+    const auto* data = packetData(packet) + offset;
+    if (std::memcmp(data, expected.data(), expected.size()) != 0)
+    {
+        std::cerr << "s2c shop packet self-test failed: " << label << " got";
+        for (std::size_t i = 0; i < expected.size(); ++i)
+        {
+            std::cerr << ' ' << static_cast<unsigned>(data[i]);
+        }
+        std::cerr << " expected";
+        for (const auto value : expected)
+        {
+            std::cerr << ' ' << static_cast<unsigned>(value);
+        }
+        std::cerr << '\n';
+        return false;
+    }
+    return true;
+}
+
 auto expectZeroTail(CBasicPacket& packet, std::size_t offset, const std::string& label) -> bool
 {
     const auto* data = packetData(packet);
@@ -103,6 +139,58 @@ auto expectZeroTail(CBasicPacket& packet, std::size_t offset, const std::string&
         }
     }
     return true;
+}
+
+auto shopListEntryOffset(std::size_t index) -> std::size_t
+{
+    return shopListShopItemTblOffset + index * shopListEntrySize;
+}
+
+auto expectShopListEntry(CBasicPacket& packet, std::size_t index, uint32 price, uint16 itemNo, uint8 shopIndex, uint16 skill, uint16 guildInfo, const std::string& label) -> bool
+{
+    const auto offset = shopListEntryOffset(index);
+    bool       ok     = true;
+    ok                = expectBytesAt(packet, offset + shopListEntryPriceOffset, std::array<uint8, 4>{
+                       static_cast<uint8>(price),
+                       static_cast<uint8>(price >> 8),
+                       static_cast<uint8>(price >> 16),
+                       static_cast<uint8>(price >> 24),
+                   },
+                   label + " ItemPrice") &&
+         ok;
+    ok = expectBytesAt(packet, offset + shopListEntryItemNoOffset, std::array<uint8, 2>{
+                           static_cast<uint8>(itemNo),
+                           static_cast<uint8>(itemNo >> 8),
+                       },
+                       label + " ItemNo") &&
+         ok;
+    ok = expectEqualUInt(packetData(packet)[offset + shopListEntryIndexOffset], shopIndex, label + " ShopIndex") && ok;
+    ok = expectEqualUInt(packetData(packet)[offset + shopListEntryPaddingOffset], 0, label + " padding00") && ok;
+    ok = expectBytesAt(packet, offset + shopListEntrySkillOffset, std::array<uint8, 2>{
+                           static_cast<uint8>(skill),
+                           static_cast<uint8>(skill >> 8),
+                       },
+                       label + " Skill") &&
+         ok;
+    ok = expectBytesAt(packet, offset + shopListEntryInfoOffset, std::array<uint8, 2>{
+                           static_cast<uint8>(guildInfo),
+                           static_cast<uint8>(guildInfo >> 8),
+                       },
+                       label + " GuildInfo") &&
+         ok;
+    return ok;
+}
+
+void populateShopListCharacter(CCharEntity& character)
+{
+    character.Container->setSize(20);
+    for (uint8 slot = 0; slot < 20; ++slot)
+    {
+        character.Container->setItem(slot, static_cast<uint16>(0x2000 + slot), 0, 0x10000000 + slot);
+    }
+    character.Container->setRestriction(1, GuildRestriction{ 3, 4 });
+    character.Container->setRestriction(2, JobRestriction{ 7, 55 });
+    character.Container->setRestriction(19, JobRestriction{ 9, 70 });
 }
 
 auto testShopSellLayout() -> bool
@@ -138,6 +226,25 @@ auto testShopOpenLayout() -> bool
     ok      = expectEqualUInt(shopOpenPacketDefaultSize, 8, "SHOP_OPEN default size") && ok;
     ok      = expectEqualUInt(shopOpenShopListNumOffset, 4, "SHOP_OPEN ShopListNum offset") && ok;
     ok      = expectEqualUInt(shopOpenPadding00Offset, 6, "SHOP_OPEN padding00 offset") && ok;
+    return ok;
+}
+
+auto testShopListLayout() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualUInt(sizeof(GP_SHOP), 12, "GP_SHOP size") && ok;
+    ok      = expectEqualUInt(sizeof(GP_SERV_COMMAND_SHOP_LIST::PacketData), 232, "SHOP_LIST sizeof(PacketData)") && ok;
+    ok      = expectEqualUInt(shopListPacketDefaultSize, 236, "SHOP_LIST default size") && ok;
+    ok      = expectEqualUInt(shopListOffsetIndexOffset, 4, "SHOP_LIST ShopItemOffsetIndex offset") && ok;
+    ok      = expectEqualUInt(shopListFlagsOffset, 6, "SHOP_LIST Flags offset") && ok;
+    ok      = expectEqualUInt(shopListPadding00Offset, 7, "SHOP_LIST padding00 offset") && ok;
+    ok      = expectEqualUInt(shopListShopItemTblOffset, 8, "SHOP_LIST ShopItemTbl offset") && ok;
+    ok      = expectEqualUInt(shopListEntryPriceOffset, 0, "GP_SHOP ItemPrice offset") && ok;
+    ok      = expectEqualUInt(shopListEntryItemNoOffset, 4, "GP_SHOP ItemNo offset") && ok;
+    ok      = expectEqualUInt(shopListEntryIndexOffset, 6, "GP_SHOP ShopIndex offset") && ok;
+    ok      = expectEqualUInt(shopListEntryPaddingOffset, 7, "GP_SHOP padding00 offset") && ok;
+    ok      = expectEqualUInt(shopListEntrySkillOffset, 8, "GP_SHOP Skill offset") && ok;
+    ok      = expectEqualUInt(shopListEntryInfoOffset, 10, "GP_SHOP GuildInfo offset") && ok;
     return ok;
 }
 
@@ -201,6 +308,46 @@ auto testShopOpenConstructor() -> bool
     return ok;
 }
 
+auto testShopListConstructorChunksAndRestrictions() -> bool
+{
+    auto character = CCharEntity{};
+    populateShopListCharacter(character);
+    auto packet = GP_SERV_COMMAND_SHOP_LIST(&character);
+    packet.setSequence(0xBEEF);
+
+    const auto& pushedPackets = character.getPacketList();
+    bool        ok            = true;
+    ok                        = expectEqualUInt(pushedPackets.size(), 1, "SHOP_LIST pushed full packet count") && ok;
+    if (!pushedPackets.empty())
+    {
+        auto& firstPacket = *pushedPackets.front();
+        ok               = expectEqualUInt(firstPacket.getType(), 0x03C, "SHOP_LIST first type") && ok;
+        ok               = expectEqualUInt(firstPacket.getSize(), 236, "SHOP_LIST first size") && ok;
+        ok               = expectEqualUInt(firstPacket.ref<uint16>(shopListOffsetIndexOffset), 0, "SHOP_LIST first offset index") && ok;
+        ok               = expectEqualUInt(packetData(firstPacket)[shopListFlagsOffset], 0x00, "SHOP_LIST first flags") && ok;
+        ok               = expectEqualUInt(packetData(firstPacket)[shopListPadding00Offset], 0, "SHOP_LIST first padding00") && ok;
+        ok               = expectShopListEntry(firstPacket, 0, 0x10000000, 0x2000, 0, 0, 0, "SHOP_LIST first entry 0") && ok;
+        ok               = expectShopListEntry(firstPacket, 1, 0x10000001, 0x2001, 1, 3, 500, "SHOP_LIST first guild entry") && ok;
+        ok               = expectShopListEntry(firstPacket, 2, 0x10000002, 0x2002, 2, 71, 55, "SHOP_LIST first job entry") && ok;
+        ok               = expectShopListEntry(firstPacket, 18, 0x10000012, 0x2012, 18, 0, 0, "SHOP_LIST first entry 18") && ok;
+        ok               = expectZeroTail(firstPacket, 236, "SHOP_LIST first tail") && ok;
+    }
+
+    ok = expectEqualUInt(packet.getType(), 0x03C, "SHOP_LIST final type") && ok;
+    ok = expectEqualUInt(packet.getSize(), 20, "SHOP_LIST final size") && ok;
+    ok = expectBytes(packet, std::array<uint8, 20>{
+                                 0x3C, 0x0A, 0xEF, 0xBE,
+                                 0x13, 0x00, 0x89, 0x00,
+                                 0x13, 0x00, 0x00, 0x10,
+                                 0x13, 0x20, 0x13, 0x00,
+                                 0x49, 0x00, 0x46, 0x00,
+                             },
+                             "encoded SHOP_LIST final packet") &&
+         ok;
+    ok = expectZeroTail(packet, 20, "SHOP_LIST final tail") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CShopPacketSelfTests() -> bool
@@ -209,8 +356,10 @@ auto runS2CShopPacketSelfTests() -> bool
     ok      = testShopSellLayout() && ok;
     ok      = testShopBuyLayout() && ok;
     ok      = testShopOpenLayout() && ok;
+    ok      = testShopListLayout() && ok;
     ok      = testShopSellConstructor() && ok;
     ok      = testShopBuyConstructor() && ok;
     ok      = testShopOpenConstructor() && ok;
+    ok      = testShopListConstructorChunksAndRestrictions() && ok;
     return ok;
 }
