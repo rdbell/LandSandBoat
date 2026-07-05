@@ -277,6 +277,8 @@ set(SOURCES
     test_s2c_chocobo_racing_packets.cpp
     test_s2c_combine_packets.h
     test_s2c_combine_packets.cpp
+    test_s2c_command_data_packet.h
+    test_s2c_command_data_packet.cpp
     test_s2c_influence_packets.h
     test_s2c_influence_packets.cpp
     test_s2c_job_points_packet.h
