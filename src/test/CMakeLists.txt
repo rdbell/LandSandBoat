@@ -349,6 +349,8 @@ set(SOURCES
     test_s2c_item_attr_packet.cpp
     test_s2c_itemsearch_packet.h
     test_s2c_itemsearch_packet.cpp
+    test_s2c_item_max_packet.h
+    test_s2c_item_max_packet.cpp
     test_s2c_item_list_packet.h
     test_s2c_item_list_packet.cpp
     test_s2c_item_num_packet.h

@@ -205,6 +205,7 @@ auto runS2CGroupListPacketSelfTests() -> bool;
 auto runS2CGroupList2PacketSelfTests() -> bool;
 auto runS2CItemAttrPacketSelfTests() -> bool;
 auto runS2CItemSearchPacketSelfTests() -> bool;
+auto runS2CItemMaxPacketSelfTests() -> bool;
 auto runS2CItemListPacketSelfTests() -> bool;
 auto runS2CItemNumPacketSelfTests() -> bool;
 auto runS2CItemSamePacketSelfTests() -> bool;
@@ -428,6 +429,7 @@ namespace
         ok = runS2CGroupList2PacketSelfTests() && ok;
         ok = runS2CItemAttrPacketSelfTests() && ok;
         ok = runS2CItemSearchPacketSelfTests() && ok;
+        ok = runS2CItemMaxPacketSelfTests() && ok;
         ok = runS2CItemListPacketSelfTests() && ok;
         ok = runS2CItemNumPacketSelfTests() && ok;
         ok = runS2CItemSamePacketSelfTests() && ok;
