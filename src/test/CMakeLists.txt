@@ -307,6 +307,8 @@ set(SOURCES
     test_s2c_group_list2_packet.cpp
     test_s2c_header_only_packets.h
     test_s2c_header_only_packets.cpp
+    test_s2c_itemsearch_packet.h
+    test_s2c_itemsearch_packet.cpp
     test_s2c_link_concierge_header_packet.h
     test_s2c_link_concierge_header_packet.cpp
     test_s2c_magicschedulor_packet.h
