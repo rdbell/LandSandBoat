@@ -99,6 +99,7 @@ auto expectZeroTail(CBasicPacket& packet, std::size_t offset, const std::string&
 auto makeItem() -> CItem
 {
     auto item = CItem(0x1234);
+    item.setStackSize(0xFFFFFFFF);
     item.setQuantity(0x01020304);
     item.setLocationID(LOC_WARDROBE3);
     item.setSlotID(0x22);
