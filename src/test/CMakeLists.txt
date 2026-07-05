@@ -395,6 +395,8 @@ set(SOURCES
     test_s2c_registration_packet.cpp
     test_s2c_reqsubmapnum_packet.h
     test_s2c_reqsubmapnum_packet.cpp
+    test_s2c_roe_activelog_packet.h
+    test_s2c_roe_activelog_packet.cpp
     test_s2c_roe_log_packet.h
     test_s2c_roe_log_packet.cpp
     test_s2c_schedulor_packet.h
