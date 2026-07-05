@@ -319,6 +319,8 @@ set(SOURCES
     test_s2c_gm_packets.cpp
     test_s2c_gm_support_packets.h
     test_s2c_gm_support_packets.cpp
+    test_s2c_group_checkid_packet.h
+    test_s2c_group_checkid_packet.cpp
     test_s2c_group_effects_packet.h
     test_s2c_group_effects_packet.cpp
     test_s2c_group_solicit_req_packet.h
