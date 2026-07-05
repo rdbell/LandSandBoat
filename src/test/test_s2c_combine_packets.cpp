@@ -114,13 +114,11 @@ auto expectZeroTail(CBasicPacket& packet, std::size_t offset, const std::string&
     return true;
 }
 
-auto makeChar(std::uint32_t id, std::uint16_t targid, std::string name) -> CCharEntity
+void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid, std::string name)
 {
-    auto character  = CCharEntity{};
     character.id    = id;
     character.targid = targid;
     character.name   = std::move(name);
-    return character;
 }
 
 auto testLayout() -> bool
@@ -158,8 +156,9 @@ auto testLayout() -> bool
 
 auto testCombineAnsConstructor() -> bool
 {
-    auto character = makeChar(0x11223344, 0x5566, "CrafterName123456789");
-    auto packet    = GP_SERV_COMMAND_COMBINE_ANS(&character, SynthesisResult::Success, CCraftState::Result{ .itemId = 0x2345, .qty = 3 });
+    auto character = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566, "CrafterName123456789");
+    auto packet = GP_SERV_COMMAND_COMBINE_ANS(&character, SynthesisResult::Success, CCraftState::Result{ .itemId = 0x2345, .qty = 3 });
     packet.setSequence(0xBEEF);
 
     bool ok = true;
@@ -172,8 +171,9 @@ auto testCombineAnsConstructor() -> bool
 
 auto testCombineInfConstructor() -> bool
 {
-    auto character = makeChar(0x11223344, 0x5566, "CrafterName123456789");
-    auto packet    = GP_SERV_COMMAND_COMBINE_INF(&character, SynthesisResult::Success, CCraftState::Result{ .itemId = 0x2345, .qty = 3 });
+    auto character = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566, "CrafterName123456789");
+    auto packet = GP_SERV_COMMAND_COMBINE_INF(&character, SynthesisResult::Success, CCraftState::Result{ .itemId = 0x2345, .qty = 3 });
     packet.setSequence(0xBEEF);
 
     const auto expectedPrefix = std::array<uint8, 46>{

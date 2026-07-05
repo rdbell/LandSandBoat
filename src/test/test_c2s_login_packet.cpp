@@ -57,16 +57,6 @@ constexpr auto loginDammyAreaOffset   = 90U;
 
 using LoginBytes = std::array<std::uint8_t, sizeof(GP_CLI_COMMAND_LOGIN)>;
 
-auto expectEqualInt(std::int64_t actual, std::int64_t expected, const std::string& label) -> bool
-{
-    if (actual != expected)
-    {
-        std::cerr << "c2s LOGIN packet self-test failed: " << label << " got " << actual << " expected " << expected << '\n';
-        return false;
-    }
-    return true;
-}
-
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
 {
     if (actual != expected)

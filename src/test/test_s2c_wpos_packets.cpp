@@ -61,13 +61,11 @@ auto packetData(CBasicPacket& packet) -> uint8*
     return static_cast<uint8*>(packet);
 }
 
-auto makeChar(std::uint32_t id, std::uint16_t targid, position_t position) -> CCharEntity
+void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid, position_t position)
 {
-    auto character   = CCharEntity{};
     character.id     = id;
     character.targid = targid;
     character.loc.p  = position;
-    return character;
 }
 
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
@@ -170,8 +168,9 @@ auto testWPosNormalConstructor() -> bool
 {
     const auto oldPosition = position_t{ -8.0f, 9.0f, -10.0f, 0, 0x11 };
     const auto newPosition = position_t{ 1.5f, -2.25f, 3.75f, 0, 0x7F };
-    auto       character   = makeChar(0x11223344, 0x5566, oldPosition);
-    auto       packet      = GP_SERV_COMMAND_WPOS(&character, newPosition, POSMODE::NORMAL);
+    auto       character   = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566, oldPosition);
+    auto packet = GP_SERV_COMMAND_WPOS(&character, newPosition, POSMODE::NORMAL);
     packet.setSequence(0xBEEF);
 
     bool ok = true;
@@ -189,8 +188,9 @@ auto testWPosRotateConstructor() -> bool
 {
     const auto oldPosition = position_t{ 1.5f, -2.25f, 3.75f, 0, 0x11 };
     const auto newPosition = position_t{ -8.0f, 9.0f, -10.0f, 0, 0x7F };
-    auto       character   = makeChar(0x11223344, 0x5566, oldPosition);
-    auto       packet      = GP_SERV_COMMAND_WPOS(&character, newPosition, POSMODE::ROTATE);
+    auto       character   = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566, oldPosition);
+    auto packet = GP_SERV_COMMAND_WPOS(&character, newPosition, POSMODE::ROTATE);
     auto       expected    = oldPosition;
     expected.rotation      = newPosition.rotation;
 
@@ -204,8 +204,9 @@ auto testWPosClearDoesNotMove() -> bool
 {
     const auto oldPosition = position_t{ 1.5f, -2.25f, 3.75f, 0, 0x11 };
     const auto newPosition = position_t{ -8.0f, 9.0f, -10.0f, 0, 0x7F };
-    auto       character   = makeChar(0x11223344, 0x5566, oldPosition);
-    auto       packet      = GP_SERV_COMMAND_WPOS(&character, newPosition, POSMODE::CLEAR);
+    auto       character   = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566, oldPosition);
+    auto packet = GP_SERV_COMMAND_WPOS(&character, newPosition, POSMODE::CLEAR);
 
     bool ok = true;
     ok      = expectWPosPayload(packet, wposXOffset, wposYOffset, wposZOffset, wposUniqueNoOffset, wposActIndexOffset, wposModeOffset, wposDirOffset, POSMODE::CLEAR, oldPosition.rotation) && ok;
@@ -217,8 +218,9 @@ auto testWPos2LayoutAndConstructor() -> bool
 {
     const auto oldPosition = position_t{ -8.0f, 9.0f, -10.0f, 0, 0x11 };
     const auto newPosition = position_t{ 1.5f, -2.25f, 3.75f, 0, 0x7F };
-    auto       character   = makeChar(0x11223344, 0x5566, oldPosition);
-    auto       packet      = GP_SERV_COMMAND_WPOS2(&character, newPosition, POSMODE::MATERIALIZE);
+    auto       character   = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566, oldPosition);
+    auto packet = GP_SERV_COMMAND_WPOS2(&character, newPosition, POSMODE::MATERIALIZE);
     packet.setSequence(0xBEEF);
 
     bool ok = true;

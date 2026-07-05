@@ -50,21 +50,17 @@ auto packetData(CBasicPacket& packet) -> uint8*
     return static_cast<uint8*>(packet);
 }
 
-auto makeChar(std::uint32_t id, std::uint16_t targid, std::uint16_t zone) -> CCharEntity
+void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid, std::uint16_t zone)
 {
-    auto character             = CCharEntity{};
     character.id               = id;
     character.targid           = targid;
     character.loc.destination  = zone;
-    return character;
 }
 
-auto makeEntity(std::uint32_t id, std::uint16_t targid) -> CBaseEntity
+void makeEntity(CBaseEntity& entity, std::uint32_t id, std::uint16_t targid)
 {
-    auto entity  = CBaseEntity{};
     entity.id    = id;
     entity.targid = targid;
-    return entity;
 }
 
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
@@ -131,8 +127,10 @@ auto testLayout() -> bool
 
 auto testTargetEntityConstructor() -> bool
 {
-    auto      character = makeChar(0x11223344, 0x5566, 0x1234);
-    auto      target    = makeEntity(0xAABBCCDD, 0xEEFF);
+    auto      character = CCharEntity{};
+    auto      target    = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566, 0x1234);
+    makeEntity(target, 0xAABBCCDD, 0xEEFF);
     EventInfo eventInfo{};
     eventInfo.targetEntity = &target;
     eventInfo.eventId      = 0x789A;
@@ -158,7 +156,8 @@ auto testTargetEntityConstructor() -> bool
 
 auto testPlayerFallbackConstructor() -> bool
 {
-    auto      character = makeChar(0x01020304, 0x0506, 0x0708);
+    auto      character = CCharEntity{};
+    makeChar(character, 0x01020304, 0x0506, 0x0708);
     EventInfo eventInfo{};
     eventInfo.eventId    = 0x12349001;
     eventInfo.eventFlags = 0;

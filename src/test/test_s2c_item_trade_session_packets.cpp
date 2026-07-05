@@ -99,12 +99,10 @@ auto expectZeroTail(CBasicPacket& packet, std::size_t offset, const std::string&
     return true;
 }
 
-auto makeChar(std::uint32_t id, std::uint16_t targid) -> CCharEntity
+void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid)
 {
-    auto character = CCharEntity();
-    character.id   = id;
+    character.id     = id;
     character.targid = targid;
-    return character;
 }
 
 auto testLayout() -> bool
@@ -127,8 +125,9 @@ auto testLayout() -> bool
 
 auto testTradeReqConstructor() -> bool
 {
-    auto character = makeChar(0x11223344, 0x5566);
-    auto packet    = GP_SERV_COMMAND_ITEM_TRADE_REQ(&character);
+    auto character = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566);
+    auto packet = GP_SERV_COMMAND_ITEM_TRADE_REQ(&character);
     packet.setSequence(0xBEEF);
 
     bool ok = true;
@@ -141,8 +140,9 @@ auto testTradeReqConstructor() -> bool
 
 auto testTradeResConstructor() -> bool
 {
-    auto character = makeChar(0x11223344, 0x5566);
-    auto packet    = GP_SERV_COMMAND_ITEM_TRADE_RES(&character, GP_ITEM_TRADE_RES_KIND::ErrYouTrade);
+    auto character = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566);
+    auto packet = GP_SERV_COMMAND_ITEM_TRADE_RES(&character, GP_ITEM_TRADE_RES_KIND::ErrYouTrade);
     packet.setSequence(0xBEEF);
 
     bool ok = true;

@@ -36,7 +36,7 @@
 namespace
 {
 
-constexpr auto groupEffectsMemberCount      = std::size(GP_SERV_COMMAND_GROUP_EFFECTS::PacketData::Members);
+constexpr auto groupEffectsMemberCount      = 5U;
 constexpr auto groupEffectsMemberSize       = sizeof(partymemberbuffs_t);
 constexpr auto groupEffectsUniqueNoOffset   = sizeof(GP_SERV_HEADER) + offsetof(partymemberbuffs_t, UniqueNo);
 constexpr auto groupEffectsActIndexOffset   = sizeof(GP_SERV_HEADER) + offsetof(partymemberbuffs_t, ActIndex);
@@ -119,12 +119,10 @@ auto expectZeroTail(CBasicPacket& packet, std::size_t offset, const std::string&
     return true;
 }
 
-auto makeChar(std::uint32_t id, std::uint16_t targid) -> CCharEntity
+void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid)
 {
-    auto character  = CCharEntity{};
-    character.id    = id;
+    character.id     = id;
     character.targid = targid;
-    return character;
 }
 
 auto testLayout() -> bool
@@ -145,12 +143,18 @@ auto testLayout() -> bool
 
 auto testConstructorCopiesMembersAndCapsAtFive() -> bool
 {
-    auto member0 = makeChar(0x11223344, 0x5566);
-    auto member1 = makeChar(0xAABBCCDD, 0x7788);
-    auto member2 = makeChar(0x01020304, 0x090A);
-    auto member3 = makeChar(0x05060708, 0x0B0C);
-    auto member4 = makeChar(0x0D0E0F10, 0x0D0E);
-    auto member5 = makeChar(0xDEADBEEF, 0xF00D);
+    auto member0 = CCharEntity{};
+    auto member1 = CCharEntity{};
+    auto member2 = CCharEntity{};
+    auto member3 = CCharEntity{};
+    auto member4 = CCharEntity{};
+    auto member5 = CCharEntity{};
+    makeChar(member0, 0x11223344, 0x5566);
+    makeChar(member1, 0xAABBCCDD, 0x7788);
+    makeChar(member2, 0x01020304, 0x090A);
+    makeChar(member3, 0x05060708, 0x0B0C);
+    makeChar(member4, 0x0D0E0F10, 0x0D0E);
+    makeChar(member5, 0xDEADBEEF, 0xF00D);
 
     auto members = std::vector<CCharEntity*>{ &member0, &member1, &member2, &member3, &member4, &member5 };
     auto packet  = GP_SERV_COMMAND_GROUP_EFFECTS(members);

@@ -98,7 +98,7 @@ auto testPacketDataBytes() -> bool
 auto testNullConstructorBytes() -> bool
 {
     const auto packet = GroupCheckIDPacket(nullptr);
-    return expectEqualUInt(packet.data().GroupID, 0, "nullptr constructor GroupID");
+    return expectEqualUInt(packet.ref<uint32>(groupCheckIDGroupIDOffset), 0, "nullptr constructor GroupID");
 }
 
 } // namespace

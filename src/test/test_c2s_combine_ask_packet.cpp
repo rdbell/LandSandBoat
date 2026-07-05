@@ -30,6 +30,7 @@
 #include <string>
 #include <string_view>
 
+#include "common/cbasetypes.h"
 #include "map/items.h"
 #include "map/packets/c2s/0x096_combine_ask.h"
 

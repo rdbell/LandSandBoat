@@ -54,16 +54,6 @@ auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::st
     return true;
 }
 
-auto expectEqualInt(std::int64_t actual, std::int64_t expected, const std::string& label) -> bool
-{
-    if (actual != expected)
-    {
-        std::cerr << "s2c PENDINGNUM packet self-test failed: " << label << " got " << actual << " expected " << expected << '\n';
-        return false;
-    }
-    return true;
-}
-
 template <std::size_t Size>
 auto expectBytes(CBasicPacket& packet, std::size_t offset, const std::array<uint8, Size>& expected, const std::string& label) -> bool
 {

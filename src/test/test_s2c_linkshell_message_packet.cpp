@@ -50,6 +50,11 @@ constexpr auto linkshellMessageEncodedNameSize    = sizeof(LinkshellMessagePacke
 constexpr auto linkshellMessagePacketDataSize     = sizeof(LinkshellMessagePacket::PacketData);
 constexpr auto linkshellMessagePacketSize         = sizeof(GP_SERV_HEADER) + linkshellMessagePacketDataSize;
 
+auto packetData(CBasicPacket& packet) -> uint8*
+{
+    return static_cast<uint8*>(packet);
+}
+
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
 {
     if (actual != expected)
@@ -151,8 +156,8 @@ auto testConstructorBytes() -> bool
     auto ls1 = LinkshellMessagePacket("PosterName", "Linkshell message", "Linkshell", 0x11223344, LinkshellSlot::LS1);
     auto ls2 = LinkshellMessagePacket("PosterName", "Linkshell message", "Linkshell", 0x11223344, LinkshellSlot::LS2);
 
-    const auto* ls1Data = reinterpret_cast<const uint8*>(&ls1.data());
-    const auto* ls2Data = reinterpret_cast<const uint8*>(&ls2.data());
+    const auto* ls1Data = packetData(ls1) + sizeof(GP_SERV_HEADER);
+    const auto* ls2Data = packetData(ls2) + sizeof(GP_SERV_HEADER);
 
     bool ok = true;
     ok      = expectEqualUInt(ls1Data[0], 0x70, "constructor LS1 stat/attr byte") && ok;

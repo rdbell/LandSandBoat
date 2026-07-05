@@ -101,16 +101,14 @@ auto expectZeroTail(CBasicPacket& packet, std::size_t offset, const std::string&
     return expectZeroRange(packet, offset, PACKET_SIZE - offset, label);
 }
 
-auto sizedCharacter() -> CCharEntity
+void sizeCharacter(CCharEntity& character)
 {
-    auto character = CCharEntity{};
     for (uint8 location = 0; location < MAX_CONTAINER_ID; ++location)
     {
         auto* storage = character.getStorage(location);
         storage->AddBuff(static_cast<int8>(20 + location));
         storage->SetSize(static_cast<uint8>(location));
     }
-    return character;
 }
 
 auto testLayout() -> bool
@@ -133,8 +131,9 @@ auto testLayout() -> bool
 
 auto testConstructor() -> bool
 {
-    auto character = sizedCharacter();
-    auto packet    = GP_SERV_COMMAND_ITEM_MAX(&character);
+    auto character = CCharEntity{};
+    sizeCharacter(character);
+    auto packet = GP_SERV_COMMAND_ITEM_MAX(&character);
     packet.setSequence(0xBEEF);
 
     const auto expectedHeader = std::array<uint8, 4>{ 0x1C, 0x32, 0xEF, 0xBE };

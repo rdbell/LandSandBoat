@@ -46,19 +46,15 @@ auto packetData(CBasicPacket& packet) -> uint8*
     return static_cast<uint8*>(packet);
 }
 
-auto makeChar(std::uint32_t id, std::uint16_t targid) -> CCharEntity
+void populateChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid)
 {
-    auto character   = CCharEntity{};
     character.id     = id;
     character.targid = targid;
-    return character;
 }
 
-auto makeTarget(std::uint32_t id) -> CBattleEntity
+void populateTarget(CBattleEntity& target, std::uint32_t id)
 {
-    auto target = CBattleEntity{};
-    target.id   = id;
-    return target;
+    target.id = id;
 }
 
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
@@ -122,9 +118,11 @@ auto testLayout() -> bool
 
 auto testConstructorWithTarget() -> bool
 {
-    auto character = makeChar(0x11223344, 0x5566);
-    auto target    = makeTarget(0xAABBCCDD);
-    auto packet    = GP_SERV_COMMAND_ASSIST(&character, &target);
+    auto character = CCharEntity{};
+    auto target    = CBattleEntity{};
+    populateChar(character, 0x11223344, 0x5566);
+    populateTarget(target, 0xAABBCCDD);
+    auto packet = GP_SERV_COMMAND_ASSIST(&character, &target);
     packet.setSequence(0xBEEF);
 
     bool ok = true;
@@ -141,8 +139,9 @@ auto testConstructorWithTarget() -> bool
 
 auto testConstructorWithoutTarget() -> bool
 {
-    auto character = makeChar(0x11223344, 0x5566);
-    auto packet    = GP_SERV_COMMAND_ASSIST(&character, nullptr);
+    auto character = CCharEntity{};
+    populateChar(character, 0x11223344, 0x5566);
+    auto packet = GP_SERV_COMMAND_ASSIST(&character, nullptr);
 
     bool ok = true;
     ok      = expectBytes(packet, assistUniqueNoOffset, std::array<uint8, 4>{ 0x44, 0x33, 0x22, 0x11 }, "UniqueNo") && ok;

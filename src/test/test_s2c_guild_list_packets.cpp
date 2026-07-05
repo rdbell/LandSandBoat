@@ -37,7 +37,7 @@
 namespace
 {
 
-constexpr auto guildListItemLen          = std::size(GP_SERV_COMMAND_GUILD_BUYLIST::PacketData::List);
+constexpr auto guildListItemLen          = 30U;
 constexpr auto guildListItemSize         = sizeof(GP_GUILD_ITEM);
 constexpr auto guildBuyListListOffset    = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_GUILD_BUYLIST::PacketData, List);
 constexpr auto guildBuyListCountOffset   = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_GUILD_BUYLIST::PacketData, Count);

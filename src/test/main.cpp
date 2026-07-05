@@ -479,9 +479,9 @@ int main(int argc, char** argv)
 {
     TracySetThreadName("Test Thread");
 
-    const auto omegaSelfTestsSuccess = runOmegaSelfTests();
-
     auto testApp = std::make_unique<TestApplication>(argc, argv);
+
+    const auto omegaSelfTestsSuccess = runOmegaSelfTests();
 
     const auto success = testApp->run();
 

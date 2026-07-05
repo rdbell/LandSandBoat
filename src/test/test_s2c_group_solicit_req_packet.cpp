@@ -133,15 +133,14 @@ auto testPacketDataBytes() -> bool
 auto testConstructorBytes() -> bool
 {
     auto packet = GroupSolicitReqPacket(0x11223344, 0x5566, "InviterName", PartyKind::Alliance);
-    const auto& data = packet.data();
 
     bool ok = true;
-    ok      = expectEqualUInt(data.UniqueNo, 0x11223344, "constructor UniqueNo") && ok;
-    ok      = expectEqualUInt(data.ActIndex, 0x5566, "constructor ActIndex") && ok;
-    ok      = expectEqualUInt(data.AnonFlag, 0, "constructor AnonFlag") && ok;
-    ok      = expectEqualUInt(static_cast<uint8>(data.Kind), static_cast<uint8>(PartyKind::Alliance), "constructor Kind") && ok;
-    ok      = expectEqualUInt(data.sName[0], static_cast<uint8>('I'), "constructor sName first byte") && ok;
-    ok      = expectEqualUInt(data.RaceNo, 0, "constructor RaceNo") && ok;
+    ok      = expectEqualUInt(packet.ref<uint32>(groupSolicitReqUniqueNoOffset), 0x11223344, "constructor UniqueNo") && ok;
+    ok      = expectEqualUInt(packet.ref<uint16>(groupSolicitReqActIndexOffset), 0x5566, "constructor ActIndex") && ok;
+    ok      = expectEqualUInt(packet.ref<uint8>(groupSolicitReqAnonFlagOffset), 0, "constructor AnonFlag") && ok;
+    ok      = expectEqualUInt(packet.ref<uint8>(groupSolicitReqKindOffset), static_cast<uint8>(PartyKind::Alliance), "constructor Kind") && ok;
+    ok      = expectEqualUInt(packet.ref<uint8>(groupSolicitReqNameOffset), static_cast<uint8>('I'), "constructor sName first byte") && ok;
+    ok      = expectEqualUInt(packet.ref<uint16>(groupSolicitReqRaceNoOffset), 0, "constructor RaceNo") && ok;
     return ok;
 }
 

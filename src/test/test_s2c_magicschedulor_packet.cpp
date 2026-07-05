@@ -29,6 +29,7 @@
 #include <string>
 
 #include "entities/base_entity.h"
+#include "map/entities/char_entity.h"
 #include "map/packets/s2c/0x03a_magicschedulor.h"
 
 namespace
@@ -94,12 +95,10 @@ auto expectZeroRange(CBasicPacket& packet, std::size_t offset, std::size_t end, 
     return true;
 }
 
-auto makeEntity(std::uint32_t id, std::uint16_t targid) -> CBaseEntity
+void makeEntity(CBaseEntity& entity, std::uint32_t id, std::uint16_t targid)
 {
-    auto entity  = CBaseEntity{};
     entity.id    = id;
     entity.targid = targid;
-    return entity;
 }
 
 auto testLayout() -> bool
@@ -120,8 +119,10 @@ auto testLayout() -> bool
 
 auto testEntityConstructor() -> bool
 {
-    auto caster = makeEntity(0x11223344, 0x5566);
-    auto target = makeEntity(0xAABBCCDD, 0xEEFF);
+    auto caster = CCharEntity{};
+    auto target = CCharEntity{};
+    makeEntity(caster, 0x11223344, 0x5566);
+    makeEntity(target, 0xAABBCCDD, 0xEEFF);
     auto packet = GP_SERV_COMMAND_MAGICSCHEDULOR(&caster, &target, 0x7788, GP_SERV_COMMAND_MAGICSCHEDULOR_TYPE::WeaponSkill);
     packet.setSequence(0xBEEF);
 

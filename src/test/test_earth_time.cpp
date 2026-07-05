@@ -114,10 +114,10 @@ auto runEarthTimeSelfTests() -> bool
     ok = expectJstFields(mondayAtReset, "monday at reset", 2026, 7, 6, 186, 1, 0, 0, 0) && ok;
     ok = expectEqual(earth_time::timestamp(earth_time::get_next_game_week(mondayAtReset)), 1783782000U, "monday at reset next game week") && ok;
 
-    const earth_time::time_point justAfterUtcMidnight{ 1783036800s + 1ns };
+    const earth_time::time_point justAfterUtcMidnight{ 1783036800s + 1us };
     ok = expectEqual(earth_time::timestamp(earth_time::utc::get_next_midnight(justAfterUtcMidnight)), 1783123200U, "utc just after midnight") && ok;
 
-    const earth_time::time_point justAfterJstMidnight{ 1783263600s + 1ns };
+    const earth_time::time_point justAfterJstMidnight{ 1783263600s + 1us };
     ok = expectEqual(earth_time::timestamp(earth_time::jst::get_next_midnight(justAfterJstMidnight)), 1783350000U, "jst just after midnight") && ok;
 
     const earth_time::time_point preEpoch{ -500ms };

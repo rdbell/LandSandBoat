@@ -45,12 +45,10 @@ auto packetData(CBasicPacket& packet) -> uint8*
     return static_cast<uint8*>(packet);
 }
 
-auto makeChar(std::uint32_t id, std::uint16_t targid) -> CCharEntity
+void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid)
 {
-    auto character   = CCharEntity{};
     character.id     = id;
     character.targid = targid;
-    return character;
 }
 
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
@@ -114,8 +112,9 @@ auto testLayout() -> bool
 
 auto testConstructor() -> bool
 {
-    auto character = makeChar(0x11223344, 0x5566);
-    auto packet    = GP_SERV_COMMAND_DIG(&character);
+    auto character = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566);
+    auto packet = GP_SERV_COMMAND_DIG(&character);
     packet.setSequence(0xBEEF);
 
     bool ok = true;

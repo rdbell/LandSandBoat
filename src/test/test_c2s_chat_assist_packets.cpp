@@ -40,13 +40,10 @@ namespace
 constexpr auto chatStdStrOffset        = 6U;
 constexpr auto chatStdStrMaxSize       = 128U;
 constexpr auto chatNameSNameOffset     = 6U;
-constexpr auto chatNameSNameSize       = 15U;
 constexpr auto chatNameMesOffset       = 21U;
 constexpr auto chatNameMesMaxSize      = 128U;
 constexpr auto assistChannelSNameOffset = 6U;
-constexpr auto assistChannelSNameSize   = 15U;
 constexpr auto assistChannelMesOffset   = 21U;
-constexpr auto assistChannelMesSize     = 1U;
 
 using ChatStdShortBytes       = std::array<std::uint8_t, 12>;
 using ChatStdFullBytes        = std::array<std::uint8_t, sizeof(GP_CLI_COMMAND_CHAT_STD)>;

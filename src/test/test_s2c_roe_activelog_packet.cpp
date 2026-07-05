@@ -36,7 +36,7 @@ namespace
 
 using ROEActiveLogPacket = GP_SERV_COMMAND_ROE_ACTIVELOG;
 
-constexpr auto roeActiveLogRecordCount     = std::size(ROEActiveLogPacket::PacketData::records);
+constexpr auto roeActiveLogRecordCount     = 64U;
 constexpr auto roeActiveLogRecordSize      = sizeof(record_t);
 constexpr auto roeActiveLogRecordsOffset   = sizeof(GP_SERV_HEADER) + offsetof(ROEActiveLogPacket::PacketData, records);
 constexpr auto roeActiveLogPacketDataSize  = sizeof(ROEActiveLogPacket::PacketData);

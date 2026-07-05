@@ -129,6 +129,7 @@ auto TestApplication::run() -> bool
             //
 
             MapConfig mapConfig{
+                .inCI              = true,
                 .isTestServer      = true,
                 .lazyZones         = true,
                 .controlledWeather = true,

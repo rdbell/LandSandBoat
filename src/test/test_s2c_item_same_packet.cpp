@@ -94,16 +94,14 @@ auto expectZeroTail(CBasicPacket& packet, std::size_t offset, const std::string&
     return true;
 }
 
-auto syncedCharacter(bool includeWardrobe3) -> CCharEntity
+void syncCharacter(CCharEntity& character, bool includeWardrobe3)
 {
-    auto character = CCharEntity{};
     character.inventorySyncState().markSynced(LOC_INVENTORY);
     if (includeWardrobe3)
     {
         character.inventorySyncState().markSynced(LOC_WARDROBE3);
     }
     character.inventorySyncState().markSynced(LOC_RECYCLEBIN);
-    return character;
 }
 
 auto testLayout() -> bool
@@ -124,8 +122,9 @@ auto testLayout() -> bool
 
 auto testAllLoadedConstructor() -> bool
 {
-    auto character = syncedCharacter(true);
-    auto packet    = GP_SERV_COMMAND_ITEM_SAME(&character);
+    auto character = CCharEntity{};
+    syncCharacter(character, true);
+    auto packet = GP_SERV_COMMAND_ITEM_SAME(&character);
     packet.setSequence(0xBEEF);
 
     bool ok = true;
@@ -138,8 +137,9 @@ auto testAllLoadedConstructor() -> bool
 
 auto testStillLoadingConstructor() -> bool
 {
-    auto character = syncedCharacter(false);
-    auto packet    = GP_SERV_COMMAND_ITEM_SAME(LOC_WARDROBE3, &character);
+    auto character = CCharEntity{};
+    syncCharacter(character, false);
+    auto packet = GP_SERV_COMMAND_ITEM_SAME(LOC_WARDROBE3, &character);
     packet.setSequence(0xBEEF);
 
     bool ok = true;

@@ -29,6 +29,7 @@
 #include <string>
 
 #include "entities/base_entity.h"
+#include "map/entities/char_entity.h"
 #include "map/enums/four_cc.h"
 #include "map/packets/s2c/0x038_schedulor.h"
 
@@ -93,12 +94,10 @@ auto expectZeroRange(CBasicPacket& packet, std::size_t offset, std::size_t end, 
     return true;
 }
 
-auto makeEntity(std::uint32_t id, std::uint16_t targid) -> CBaseEntity
+void makeEntity(CBaseEntity& entity, std::uint32_t id, std::uint16_t targid)
 {
-    auto entity  = CBaseEntity{};
     entity.id    = id;
     entity.targid = targid;
-    return entity;
 }
 
 auto testLayout() -> bool
@@ -117,8 +116,10 @@ auto testLayout() -> bool
 
 auto testFourCCConstructor() -> bool
 {
-    auto caster = makeEntity(0x11223344, 0x5566);
-    auto target = makeEntity(0xAABBCCDD, 0xEEFF);
+    auto caster = CCharEntity{};
+    auto target = CCharEntity{};
+    makeEntity(caster, 0x11223344, 0x5566);
+    makeEntity(target, 0xAABBCCDD, 0xEEFF);
     auto packet = GP_SERV_COMMAND_SCHEDULOR(&caster, &target, FourCC::FadeOut);
     packet.setSequence(0xBEEF);
 
@@ -137,8 +138,10 @@ auto testFourCCConstructor() -> bool
 
 auto testRawTagConstructor() -> bool
 {
-    auto       caster = makeEntity(0x01020304, 0x0506);
-    auto       target = makeEntity(0x0708090A, 0x0B0C);
+    auto       caster = CCharEntity{};
+    auto       target = CCharEntity{};
+    makeEntity(caster, 0x01020304, 0x0506);
+    makeEntity(target, 0x0708090A, 0x0B0C);
     const char tag[4] = { 'a', '\0', 'b', '\0' };
     auto       packet = GP_SERV_COMMAND_SCHEDULOR(&caster, &target, tag);
 

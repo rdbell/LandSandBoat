@@ -29,6 +29,7 @@
 #include <fmt/ranges.h>
 #include <format>
 #include <set>
+#include <type_traits>
 
 enum LSTYPE : std::uint8_t;
 enum class KeyItem : uint16_t;
@@ -123,9 +124,9 @@ public:
         {
             result_.addError(std::format("{} out of range: {} not in [{}, {}]",
                                          fieldName,
-                                         val,
-                                         minVal,
-                                         maxVal));
+                                         formatValue(val),
+                                         formatValue(minVal),
+                                         formatValue(maxVal)));
         }
 
         return *this;
@@ -258,6 +259,19 @@ public:
     }
 
 private:
+    template <typename T>
+    static auto formatValue(T value)
+    {
+        if constexpr (std::is_enum_v<T>)
+        {
+            return static_cast<std::underlying_type_t<T>>(value);
+        }
+        else
+        {
+            return value;
+        }
+    }
+
     const CCharEntity*     PChar_;
     PacketValidationResult result_;
 };

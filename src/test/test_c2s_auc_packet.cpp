@@ -63,16 +63,6 @@ constexpr auto aucParcelTimeStampOffset    = 36U;
 
 using AUCBytes = std::array<std::uint8_t, sizeof(GP_CLI_COMMAND_AUC)>;
 
-auto expectEqualInt(std::int64_t actual, std::int64_t expected, const std::string& label) -> bool
-{
-    if (actual != expected)
-    {
-        std::cerr << "c2s AUC packet self-test failed: " << label << " got " << actual << " expected " << expected << '\n';
-        return false;
-    }
-    return true;
-}
-
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
 {
     if (actual != expected)

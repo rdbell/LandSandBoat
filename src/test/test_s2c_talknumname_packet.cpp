@@ -49,13 +49,11 @@ auto packetData(CBasicPacket& packet) -> uint8*
     return static_cast<uint8*>(packet);
 }
 
-auto makeChar(std::uint32_t id, std::uint16_t targid, std::string name) -> CCharEntity
+void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid, std::string name)
 {
-    auto character  = CCharEntity{};
     character.id    = id;
     character.targid = targid;
     character.name   = std::move(name);
-    return character;
 }
 
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
@@ -142,8 +140,9 @@ auto testLayout() -> bool
 
 auto testConstructor() -> bool
 {
-    auto character = makeChar(0x11223344, 0x5566, "Alice");
-    auto packet    = GP_SERV_COMMAND_TALKNUMNAME(&character, 0x1234);
+    auto character = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566, "Alice");
+    auto packet = GP_SERV_COMMAND_TALKNUMNAME(&character, 0x1234);
     packet.setSequence(0xBEEF);
 
     bool ok = true;
@@ -162,8 +161,9 @@ auto testConstructor() -> bool
 
 auto testEmbeddedNulNameCopiesRawBytes() -> bool
 {
-    auto character = makeChar(0x01020304, 0x0506, std::string("Bob\0Raw", 7));
-    auto packet    = GP_SERV_COMMAND_TALKNUMNAME(&character, 0x0142);
+    auto character = CCharEntity{};
+    makeChar(character, 0x01020304, 0x0506, std::string("Bob\0Raw", 7));
+    auto packet = GP_SERV_COMMAND_TALKNUMNAME(&character, 0x0142);
 
     bool ok = true;
     ok      = expectBytes(packet, talkNumNameSNameOffset, nameBytes(std::string_view("Bob\0Raw", 7)), "embedded-nul sName") && ok;
@@ -173,8 +173,9 @@ auto testEmbeddedNulNameCopiesRawBytes() -> bool
 
 auto testLongNameTruncatesWithoutTerminator() -> bool
 {
-    auto character = makeChar(0x01020304, 0x0506, "abcdefghijklmnopZ");
-    auto packet    = GP_SERV_COMMAND_TALKNUMNAME(&character, 0x0142);
+    auto character = CCharEntity{};
+    makeChar(character, 0x01020304, 0x0506, "abcdefghijklmnopZ");
+    auto packet = GP_SERV_COMMAND_TALKNUMNAME(&character, 0x0142);
 
     bool ok = true;
     ok      = expectBytes(packet, talkNumNameSNameOffset, nameBytes("abcdefghijklmnop"), "long sName") && ok;
@@ -184,8 +185,9 @@ auto testLongNameTruncatesWithoutTerminator() -> bool
 
 auto testHighMessageIDWraps() -> bool
 {
-    auto character = makeChar(0x01020304, 0x0506, "");
-    auto packet    = GP_SERV_COMMAND_TALKNUMNAME(&character, 0x9001);
+    auto character = CCharEntity{};
+    makeChar(character, 0x01020304, 0x0506, "");
+    auto packet = GP_SERV_COMMAND_TALKNUMNAME(&character, 0x9001);
 
     bool ok = true;
     ok      = expectBytes(packet, talkNumNameMesNumOffset, std::array<uint8, 2>{ 0x01, 0x10 }, "wrapped MesNum") && ok;

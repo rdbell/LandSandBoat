@@ -85,13 +85,11 @@ auto makeStoredEntity(std::uint32_t id, std::uint16_t targid, ENTITYTYPE objtype
 #pragma clang diagnostic pop
 #endif
 
-auto makeChar(std::uint32_t id, std::uint16_t targid, std::string name) -> CCharEntity
+void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid, std::string name)
 {
-    auto character  = CCharEntity{};
     character.id    = id;
     character.targid = targid;
     character.name   = std::move(name);
-    return character;
 }
 
 auto packetData(CBasicPacket& packet) -> uint8*
@@ -212,8 +210,9 @@ auto testNPCNoNameConstructor() -> bool
 
 auto testPCHidesNameWhenShowNameFalse() -> bool
 {
-    auto character = makeChar(0x01020304, 0x0708, "Alice");
-    auto packet    = GP_SERV_COMMAND_TALKNUMWORK(&character, 0x0142);
+    auto character = CCharEntity{};
+    makeChar(character, 0x01020304, 0x0708, "Alice");
+    auto packet = GP_SERV_COMMAND_TALKNUMWORK(&character, 0x0142);
 
     bool ok = true;
     ok      = expectBytes(packet, talkNumWorkUniqueNoOffset, std::array<uint8, 4>{ 0x04, 0x03, 0x02, 0x01 }, "pc UniqueNo") && ok;
@@ -225,8 +224,9 @@ auto testPCHidesNameWhenShowNameFalse() -> bool
 
 auto testShowNameCopiesAndTruncatesRawName() -> bool
 {
-    auto character = makeChar(0xAABBCCDD, 0xEEFF, std::string("ab\0cdefghijklmnopqrstuvwxyz012345", 33));
-    auto packet    = GP_SERV_COMMAND_TALKNUMWORK(&character, 0x9001, 1, 2, 3, 4, true);
+    auto character = CCharEntity{};
+    makeChar(character, 0xAABBCCDD, 0xEEFF, std::string("ab\0cdefghijklmnopqrstuvwxyz012345", 33));
+    auto packet = GP_SERV_COMMAND_TALKNUMWORK(&character, 0x9001, 1, 2, 3, 4, true);
 
     bool ok = true;
     ok      = expectBytes(packet, talkNumWorkMesNumOffset, std::array<uint8, 2>{ 0x01, 0x90 }, "show-name MesNum") && ok;

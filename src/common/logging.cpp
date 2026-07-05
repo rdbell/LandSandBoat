@@ -219,13 +219,13 @@ auto logging::loggerFor(std::string_view name) -> spdlog::logger*
     {
         if (logNames[i] == name)
         {
-            return logPointers[i];
+            return logPointers[i] != nullptr ? logPointers[i] : spdlog::default_logger_raw();
         }
     }
 
     // Fallback for the (pre-init) edge case: pay the one-off registry lookup.
     const auto logger = spdlog::get(std::string(name));
-    return logger.get();
+    return logger ? logger.get() : spdlog::default_logger_raw();
 }
 
 void logging::AddBacktrace(const std::string& str)

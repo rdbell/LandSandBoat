@@ -48,13 +48,11 @@ auto packetData(CBasicPacket& packet) -> uint8*
     return static_cast<uint8*>(packet);
 }
 
-auto makeChar(std::uint32_t id, std::uint16_t targid, std::uint8_t animation) -> CCharEntity
+void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid, std::uint8_t animation)
 {
-    auto character      = CCharEntity{};
     character.id        = id;
     character.targid    = targid;
     character.animation = animation;
-    return character;
 }
 
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
@@ -120,8 +118,9 @@ auto testLayout() -> bool
 
 auto testConstructor() -> bool
 {
-    auto character = makeChar(0x11223344, 0x5566, 0x22);
-    auto packet    = GP_SERV_COMMAND_EFFECT(&character, SynthesisEffect::Dark, 0x7F);
+    auto character = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566, 0x22);
+    auto packet = GP_SERV_COMMAND_EFFECT(&character, SynthesisEffect::Dark, 0x7F);
     packet.setSequence(0xBEEF);
 
     bool ok = true;

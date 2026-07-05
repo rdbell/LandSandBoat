@@ -134,6 +134,12 @@ struct bitset
     static constexpr std::size_t    storage_size = (N + 7) / 8;
     std::array<uint8, storage_size> data;
 
+    bitset() = default;
+    bitset(const bitset&) = default;
+    bitset(bitset&&) = default;
+    xi::bitset<N>& operator=(const xi::bitset<N>&) = default;
+    xi::bitset<N>& operator=(xi::bitset<N>&&) = default;
+
     void set(std::size_t pos, bool value)
     {
         if (value)
@@ -199,12 +205,6 @@ struct bitset
     std::size_t size() const
     {
         return N;
-    }
-
-    xi::bitset<storage_size>& operator=(xi::bitset<storage_size>&& other)
-    {
-        data = std::move(other.data);
-        return *this;
     }
 
     bit_reference operator[](std::size_t pos)

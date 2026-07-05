@@ -54,13 +54,11 @@ constexpr auto talkNumWork2NumElementSize  = sizeof(GP_SERV_COMMAND_TALKNUMWORK2
 constexpr auto talkNumWork2String1Len      = sizeof(GP_SERV_COMMAND_TALKNUMWORK2::PacketData::String1);
 constexpr auto talkNumWork2String2Len      = sizeof(GP_SERV_COMMAND_TALKNUMWORK2::PacketData::String2);
 
-auto makeChar(std::uint32_t id, std::uint16_t targid, std::string name) -> CCharEntity
+void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid, std::string name)
 {
-    auto character  = CCharEntity{};
     character.id    = id;
     character.targid = targid;
     character.name   = std::move(name);
-    return character;
 }
 
 auto packetData(CBasicPacket& packet) -> uint8*
@@ -162,8 +160,9 @@ auto testLayout() -> bool
 
 auto testFishingConstructorCopiesFullStringField() -> bool
 {
-    auto character = makeChar(0x11223344, 0x5566, std::string("ab\0cdefghijklmnopqrstuvwxyz012345", 33));
-    auto packet    = GP_SERV_COMMAND_TALKNUMWORK2(&character, 0x789A, 0x1234, 0xEF);
+    auto character = CCharEntity{};
+    makeChar(character, 0x11223344, 0x5566, std::string("ab\0cdefghijklmnopqrstuvwxyz012345", 33));
+    auto packet = GP_SERV_COMMAND_TALKNUMWORK2(&character, 0x789A, 0x1234, 0xEF);
     packet.setSequence(0xBEEF);
 
     bool ok = true;
@@ -187,9 +186,11 @@ auto testFishingConstructorCopiesFullStringField() -> bool
 
 auto testMessageConstructorNameActorAndShowSender() -> bool
 {
-    auto actor     = makeChar(0x01020304, 0x0708, "Actor");
-    auto nameActor = makeChar(0xAABBCCDD, 0xEEFF, "SenderName");
-    auto packet    = GP_SERV_COMMAND_TALKNUMWORK2(&actor, 0x9001, &nameActor, -1, 0x7FFFFFFF, static_cast<int32>(0x80000000), static_cast<int32>(0xA0B0C0D0), 0x1234, true);
+    auto actor     = CCharEntity{};
+    auto nameActor = CCharEntity{};
+    makeChar(actor, 0x01020304, 0x0708, "Actor");
+    makeChar(nameActor, 0xAABBCCDD, 0xEEFF, "SenderName");
+    auto packet = GP_SERV_COMMAND_TALKNUMWORK2(&actor, 0x9001, &nameActor, -1, 0x7FFFFFFF, static_cast<int32>(0x80000000), static_cast<int32>(0xA0B0C0D0), 0x1234, true);
 
     bool ok = true;
     ok      = expectBytes(packet, talkNumWork2UniqueNoOffset, std::array<uint8, 4>{ 0x04, 0x03, 0x02, 0x01 }, "message UniqueNo") && ok;
@@ -207,7 +208,8 @@ auto testMessageConstructorNameActorAndShowSender() -> bool
 
 auto testMessageConstructorDefaultsHideSenderAndUseActorName() -> bool
 {
-    auto actor  = makeChar(0x01020304, 0x0708, "ActorName");
+    auto actor = CCharEntity{};
+    makeChar(actor, 0x01020304, 0x0708, "ActorName");
     auto packet = GP_SERV_COMMAND_TALKNUMWORK2(&actor, 0x0142);
 
     bool ok = true;
