@@ -176,6 +176,7 @@ auto runS2CCommandDataPacketSelfTests() -> bool;
 auto runS2CInfluencePacketSelfTests() -> bool;
 auto runS2CJobPointsPacketSelfTests() -> bool;
 auto runS2CDigPacketSelfTests() -> bool;
+auto runS2CDungeonPacketSelfTests() -> bool;
 auto runS2CEffectPacketSelfTests() -> bool;
 auto runS2CEventPacketSelfTests() -> bool;
 auto runS2CEventUCOffPacketSelfTests() -> bool;
@@ -385,6 +386,7 @@ namespace
         ok = runS2CInfluencePacketSelfTests() && ok;
         ok = runS2CJobPointsPacketSelfTests() && ok;
         ok = runS2CDigPacketSelfTests() && ok;
+        ok = runS2CDungeonPacketSelfTests() && ok;
         ok = runS2CEffectPacketSelfTests() && ok;
         ok = runS2CEventPacketSelfTests() && ok;
         ok = runS2CEventUCOffPacketSelfTests() && ok;
