@@ -181,6 +181,7 @@ CPMAddPackage(
     NAME json
     GITHUB_REPOSITORY nlohmann/json
     GIT_TAG v3.12.0
+    GIT_SHALLOW TRUE
     SYSTEM ON
 ) # defines: nlohmann_json::nlohmann_json
 

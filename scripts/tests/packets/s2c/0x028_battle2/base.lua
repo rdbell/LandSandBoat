@@ -55,23 +55,6 @@ local ph         = require('scripts.tests.packets.s2c.0x028_battle2.placeholders
 
 ---@alias Battle2TestSuite table<string, Battle2TestEntry>
 
----@type table<string, Battle2TestSuite>
-local testSuites =
-{
-    ['Abilities']        = require('scripts.tests.packets.s2c.0x028_battle2.abilities'),
-    ['Basic Attacks']    = require('scripts.tests.packets.s2c.0x028_battle2.basic_attacks'),
-    ['Beastmaster']      = require('scripts.tests.packets.s2c.0x028_battle2.beastmaster'),
-    ['Dancer #dnc']      = require('scripts.tests.packets.s2c.0x028_battle2.dancer'),
-    ['Dragoon #drg']     = require('scripts.tests.packets.s2c.0x028_battle2.dragoon'),
-    ['Items #item']      = require('scripts.tests.packets.s2c.0x028_battle2.items'),
-    ['Magic #magic']     = require('scripts.tests.packets.s2c.0x028_battle2.magic'),
-    ['Mobskills']        = require('scripts.tests.packets.s2c.0x028_battle2.mobskills'),
-    ['Ranged']           = require('scripts.tests.packets.s2c.0x028_battle2.ranged'),
-    ['Rune Fencer #run'] = require('scripts.tests.packets.s2c.0x028_battle2.runefencer'),
-    ['Summoner #smn']    = require('scripts.tests.packets.s2c.0x028_battle2.summoner'),
-    ['Weaponskills #ws'] = require('scripts.tests.packets.s2c.0x028_battle2.weaponskills'),
-}
-
 -- TODO: Replace with some higher level diff library
 local function diffPacket(actual, expected, prefix, phValues)
     prefix = prefix or 'action'
@@ -112,6 +95,9 @@ local function diffPacket(actual, expected, prefix, phValues)
     return diffs
 end
 
+local runner = {}
+
+function runner.runSuite(suiteName, suiteDefinition)
 describe('BATTLE2', function()
     ---@type CClientEntityPair
     local player
@@ -133,17 +119,7 @@ describe('BATTLE2', function()
         mob.assert:isAlive()
     end)
 
-    -- Iterate through test suites in deterministic order
-    local suiteNames = {}
-    for suiteName in pairs(testSuites) do
-        table.insert(suiteNames, suiteName)
-    end
-
-    table.sort(suiteNames)
-
-    for _, suiteName in ipairs(suiteNames) do
-        local suiteDefinition = testSuites[suiteName]
-        describe(suiteName, function()
+    describe(suiteName, function()
             -- Iterate through test cases in deterministic order
             local caseNames = {}
             for caseName in pairs(suiteDefinition) do
@@ -251,5 +227,7 @@ describe('BATTLE2', function()
                 end)
             end
         end)
-    end
-end)
+    end)
+end
+
+return runner
