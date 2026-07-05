@@ -29,6 +29,7 @@
 
 #include <future>
 #include <format>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -72,6 +73,35 @@ auto jsonStringArray(const nlohmann::json& object, const char* key) -> std::vect
 void writeDaemonResponse(nlohmann::json response)
 {
     std::cout << TestDaemonPrefix << response.dump() << std::endl;
+}
+
+auto daemonReportSummary(const std::string& outputPath) -> nlohmann::json
+{
+    if (outputPath.empty())
+    {
+        return nullptr;
+    }
+
+    std::ifstream file(outputPath);
+    if (!file.is_open())
+    {
+        return nullptr;
+    }
+
+    try
+    {
+        nlohmann::json report;
+        file >> report;
+        if (report.contains("results") && report["results"].contains("summary"))
+        {
+            return report["results"]["summary"];
+        }
+    }
+    catch (...)
+    {
+    }
+
+    return nullptr;
 }
 
 auto appConfig() -> ApplicationConfig
@@ -343,6 +373,7 @@ void TestApplication::runDaemonStdio()
         {
             testConfig.filters.excludeTags = jsonStringArray(command, "excludeTags");
         }
+        const auto outputPath = testConfig.output;
 
         auto promise = std::make_shared<std::promise<bool>>();
         auto future  = promise->get_future();
@@ -364,11 +395,16 @@ void TestApplication::runDaemonStdio()
         try
         {
             const auto ok = future.get();
-            writeDaemonResponse({
+            auto response = nlohmann::json{
                 { "id", id },
                 { "status", ok ? "passed" : "failed" },
                 { "ok", ok },
-            });
+            };
+            if (auto summary = daemonReportSummary(outputPath); !summary.is_null())
+            {
+                response["summary"] = std::move(summary);
+            }
+            writeDaemonResponse(std::move(response));
             success_ = success_ && ok;
         }
         catch (const std::exception& e)

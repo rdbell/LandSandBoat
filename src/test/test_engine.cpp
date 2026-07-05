@@ -20,9 +20,11 @@
 */
 
 #include "test_engine.h"
+#include "common/earth_time.h"
 #include "common/logging.h"
 #include "common/lua.h"
 #include "common/settings.h"
+#include "common/timer.h"
 #include "common/tracy.h"
 #include "enums/test_status.h"
 #include "in_memory_sink.h"
@@ -115,8 +117,13 @@ auto TestEngine::executeTests(TestConfig testConfig) -> Task<bool>
 void TestEngine::prepareRun(TestConfig testConfig)
 {
     testConfig_ = std::move(testConfig);
+    mockManager_->restoreAll();
+    timer::reset_offset();
+    earth_time::reset_offset();
     TestChar::clean();
     simulation_->cleanClients();
+    simulation_->setSetupContext(false);
+    simulation_->seed();
     testConfig_.loggerSink->clear();
     reporters_     = std::make_unique<ReporterContainer>(testConfig_.verbose, testConfig_.output, testConfig_.console);
     testCollector_ = std::make_unique<TestCollector>(testConfig_.filters, *reporters_);
