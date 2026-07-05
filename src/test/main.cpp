@@ -189,6 +189,7 @@ auto runS2CReqSubmapNumPacketSelfTests() -> bool;
 auto runS2CMusicPacketSelfTests() -> bool;
 auto runS2CMusicVolumePacketSelfTests() -> bool;
 auto runS2CEquipClearPacketSelfTests() -> bool;
+auto runS2CEquipListPacketSelfTests() -> bool;
 auto runS2CDefaultPacketSelfTests() -> bool;
 auto runS2CGroupList2PacketSelfTests() -> bool;
 auto runS2CItemSearchPacketSelfTests() -> bool;
@@ -381,6 +382,7 @@ namespace
         ok = runS2CMusicPacketSelfTests() && ok;
         ok = runS2CMusicVolumePacketSelfTests() && ok;
         ok = runS2CEquipClearPacketSelfTests() && ok;
+        ok = runS2CEquipListPacketSelfTests() && ok;
         ok = runS2CDefaultPacketSelfTests() && ok;
         ok = runS2CGroupList2PacketSelfTests() && ok;
         ok = runS2CItemSearchPacketSelfTests() && ok;
