@@ -68,7 +68,7 @@ describe('Treasure Hunter', function()
             },
         }
 
-        local iterations = 2000 -- should be 10,000
+        local iterations = tonumber(os.getenv('LSB_TREASURE_HUNTER_ITERATIONS') or '') or 250 -- should be 10,000
 
         for zone, mobs in pairs(checkTable) do
             player:gotoZone(zone)

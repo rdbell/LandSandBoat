@@ -421,6 +421,7 @@ void CLuaSimulation::tick(const Maybe<TickType> boundary) const
 
             // We cannot co_await within a Lua binding - the suspension will obliterate the Lua stack.
             engine_->scheduler().blockOnMainThread(time_server(engine_->scheduler(), engine_->config()));
+            earth_time::add_offset(nextJstHourlyUpdate - earth_time::now());
         }
         break;
         case TickType::JSTDaily:
@@ -431,6 +432,7 @@ void CLuaSimulation::tick(const Maybe<TickType> boundary) const
 
             // We cannot co_await within a Lua binding - the suspension will obliterate the Lua stack.
             engine_->scheduler().blockOnMainThread(time_server(engine_->scheduler(), engine_->config()));
+            earth_time::add_offset(nextJstDailyUpdate - earth_time::now());
         }
         break;
         case TickType::VanadielHourly:

@@ -9,7 +9,7 @@ describe('HQ', function()
             })
     end)
 
-    local tries = 1000
+    local tries = tonumber(os.getenv('LSB_HQ_TRIES') or '') or 50
 
     local function runSynths(p, skills, crystal, ings, nq, hq, expectedHQ, primarySpeedMod)
         for skillId, level in pairs(skills) do

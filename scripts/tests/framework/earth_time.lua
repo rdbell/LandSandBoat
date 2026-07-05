@@ -56,8 +56,8 @@ describe('Earth Time', function()
                 jstYearDay    = 186,
                 jstWeekday    = 1,
                 jstHour       = 0,
-                jstMidnight   = 1783263600,
-                nextJstWeek   = 1783782000,
+                jstMidnight   = 1783350000,
+                nextJstWeek   = 1783868400,
             },
             {
                 name          = '2001-12-31T15:00:00Z',
@@ -68,8 +68,8 @@ describe('Earth Time', function()
                 jstYearDay    = 0,
                 jstWeekday    = 2,
                 jstHour       = 0,
-                jstMidnight   = 1009810800,
-                nextJstWeek   = 1010242800,
+                jstMidnight   = 1009897200,
+                nextJstWeek   = 1010329200,
             },
         }
 
