@@ -28,8 +28,11 @@
 #include <iostream>
 #include <string>
 
+#include "map/entities/char_entity.h"
 #include "map/packets/s2c/0x03d_shop_sell.h"
+#include "map/packets/s2c/0x03e_shop_open.h"
 #include "map/packets/s2c/0x03f_shop_buy.h"
+#include "map/trade_container.h"
 
 namespace
 {
@@ -46,6 +49,10 @@ constexpr auto shopBuyBuyStateOffset      = sizeof(GP_SERV_HEADER) + offsetof(GP
 constexpr auto shopBuyPadding00Offset     = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_SHOP_BUY::PacketData, padding00);
 constexpr auto shopBuyCountOffset         = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_SHOP_BUY::PacketData, Count);
 constexpr auto shopBuyPacketDefaultSize   = sizeof(GP_SERV_HEADER) + sizeof(GP_SERV_COMMAND_SHOP_BUY::PacketData);
+
+constexpr auto shopOpenShopListNumOffset = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_SHOP_OPEN::PacketData, ShopListNum);
+constexpr auto shopOpenPadding00Offset   = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_SHOP_OPEN::PacketData, padding00);
+constexpr auto shopOpenPacketDefaultSize = sizeof(GP_SERV_HEADER) + sizeof(GP_SERV_COMMAND_SHOP_OPEN::PacketData);
 
 auto packetData(CBasicPacket& packet) -> uint8*
 {
@@ -124,6 +131,16 @@ auto testShopBuyLayout() -> bool
     return ok;
 }
 
+auto testShopOpenLayout() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualUInt(sizeof(GP_SERV_COMMAND_SHOP_OPEN::PacketData), 4, "SHOP_OPEN sizeof(PacketData)") && ok;
+    ok      = expectEqualUInt(shopOpenPacketDefaultSize, 8, "SHOP_OPEN default size") && ok;
+    ok      = expectEqualUInt(shopOpenShopListNumOffset, 4, "SHOP_OPEN ShopListNum offset") && ok;
+    ok      = expectEqualUInt(shopOpenPadding00Offset, 6, "SHOP_OPEN padding00 offset") && ok;
+    return ok;
+}
+
 auto testShopSellConstructor() -> bool
 {
     auto packet = GP_SERV_COMMAND_SHOP_SELL(0x7F, 0x11223344);
@@ -163,6 +180,27 @@ auto testShopBuyConstructor() -> bool
     return ok;
 }
 
+auto testShopOpenConstructor() -> bool
+{
+    auto character = CCharEntity{};
+    character.Container->setItemsCount(0x34);
+
+    auto packet = GP_SERV_COMMAND_SHOP_OPEN(&character);
+    packet.setSequence(0xBEEF);
+
+    const auto expected = std::array<uint8, 8>{
+        0x3E, 0x04, 0xEF, 0xBE,
+        0x34, 0x00, 0x00, 0x00,
+    };
+
+    bool ok = true;
+    ok      = expectEqualUInt(packet.getType(), 0x03E, "SHOP_OPEN type") && ok;
+    ok      = expectEqualUInt(packet.getSize(), expected.size(), "SHOP_OPEN size") && ok;
+    ok      = expectBytes(packet, expected, "encoded SHOP_OPEN prefix") && ok;
+    ok      = expectZeroTail(packet, expected.size(), "SHOP_OPEN tail") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CShopPacketSelfTests() -> bool
@@ -170,7 +208,9 @@ auto runS2CShopPacketSelfTests() -> bool
     bool ok = true;
     ok      = testShopSellLayout() && ok;
     ok      = testShopBuyLayout() && ok;
+    ok      = testShopOpenLayout() && ok;
     ok      = testShopSellConstructor() && ok;
     ok      = testShopBuyConstructor() && ok;
+    ok      = testShopOpenConstructor() && ok;
     return ok;
 }
