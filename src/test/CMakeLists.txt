@@ -307,6 +307,8 @@ set(SOURCES
     test_s2c_job_info_packet.cpp
     test_s2c_job_points_packet.h
     test_s2c_job_points_packet.cpp
+    test_s2c_jump_packet.h
+    test_s2c_jump_packet.cpp
     test_s2c_default_packets.h
     test_s2c_default_packets.cpp
     test_s2c_dig_packet.h
