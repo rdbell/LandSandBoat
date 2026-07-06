@@ -203,6 +203,7 @@ auto runS2CDungeonPacketSelfTests() -> bool;
 auto runS2CEffectPacketSelfTests() -> bool;
 auto runS2CEventPacketSelfTests() -> bool;
 auto runS2CEventUCOffPacketSelfTests() -> bool;
+auto runS2CEntitySetNamePacketSelfTests() -> bool;
 auto runS2CEntityVisPacketSelfTests() -> bool;
 auto runS2CFragmentsFishRankingPacketSelfTests() -> bool;
 auto runS2CFragmentsServmesPacketSelfTests() -> bool;
@@ -474,6 +475,7 @@ namespace
         ok = runS2CEffectPacketSelfTests() && ok;
         ok = runS2CEventPacketSelfTests() && ok;
         ok = runS2CEventUCOffPacketSelfTests() && ok;
+        ok = runS2CEntitySetNamePacketSelfTests() && ok;
         ok = runS2CEntityVisPacketSelfTests() && ok;
         ok = runS2CFragmentsFishRankingPacketSelfTests() && ok;
         ok = runS2CFragmentsServmesPacketSelfTests() && ok;
