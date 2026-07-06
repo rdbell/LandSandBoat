@@ -293,6 +293,8 @@ set(SOURCES
     test_s2c_chat_std_packet.cpp
     test_s2c_chocobo_racing_packets.h
     test_s2c_chocobo_racing_packets.cpp
+    test_s2c_clistatus_packet.h
+    test_s2c_clistatus_packet.cpp
     test_s2c_clistatus2_packet.h
     test_s2c_clistatus2_packet.cpp
     test_s2c_combine_packets.h
