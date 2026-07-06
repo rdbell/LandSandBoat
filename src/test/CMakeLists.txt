@@ -525,6 +525,8 @@ set(SOURCES
     test_singleton_helper.cpp
     test_spatial_orientation.h
     test_spatial_orientation.cpp
+    test_sjis_codec.h
+    test_sjis_codec.cpp
     test_string_codec.h
     test_string_codec.cpp
     test_string_utils.h
