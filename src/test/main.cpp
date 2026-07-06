@@ -47,6 +47,7 @@ auto runTypedFlagsSelfTests() -> bool;
 auto runMaybeOptionalSelfTests() -> bool;
 auto runMMOConfigTypesSelfTests() -> bool;
 auto runMMOKeyItemsSelfTests() -> bool;
+auto runMMOProgressLogSelfTests() -> bool;
 auto runMMOSearchBazaarSelfTests() -> bool;
 auto runMMOStatsSkillsSelfTests() -> bool;
 auto runUUIDGenerationSelfTests() -> bool;
@@ -277,6 +278,7 @@ namespace
         ok = runMaybeOptionalSelfTests() && ok;
         ok = runMMOConfigTypesSelfTests() && ok;
         ok = runMMOKeyItemsSelfTests() && ok;
+        ok = runMMOProgressLogSelfTests() && ok;
         ok = runMMOSearchBazaarSelfTests() && ok;
         ok = runMMOStatsSkillsSelfTests() && ok;
         ok = runUUIDGenerationSelfTests() && ok;
