@@ -173,6 +173,8 @@ set(SOURCES
     test_hash_utils.cpp
     test_rate_limit_utils.h
     test_rate_limit_utils.cpp
+    test_mmo_keyitems.h
+    test_mmo_keyitems.cpp
     test_mmo_search_bazaar.h
     test_mmo_search_bazaar.cpp
     test_mmo_stats_skills.h
