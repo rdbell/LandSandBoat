@@ -395,6 +395,8 @@ set(SOURCES
     test_s2c_mapschedulor_packet.cpp
     test_s2c_miscdata_unknown_packet.h
     test_s2c_miscdata_unknown_packet.cpp
+    test_s2c_miscdata_unity_packets.h
+    test_s2c_miscdata_unity_packets.cpp
     test_s2c_message_packet.h
     test_s2c_message_packet.cpp
     test_s2c_logout_packet.h
