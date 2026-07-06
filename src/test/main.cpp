@@ -202,6 +202,7 @@ auto runS2CMapGroupPacketSelfTests() -> bool;
 auto runS2CMapSchedulorPacketSelfTests() -> bool;
 auto runS2CMiscDataJobPointsPacketSelfTests() -> bool;
 auto runS2CMiscDataHomepointsPacketSelfTests() -> bool;
+auto runS2CMiscDataMonstrosityPacketSelfTests() -> bool;
 auto runS2CMiscDataStatusIconsPacketSelfTests() -> bool;
 auto runS2CMiscDataUnknownPacketSelfTests() -> bool;
 auto runS2CMiscDataUnityPacketSelfTests() -> bool;
@@ -443,6 +444,7 @@ namespace
         ok = runS2CMapSchedulorPacketSelfTests() && ok;
         ok = runS2CMiscDataJobPointsPacketSelfTests() && ok;
         ok = runS2CMiscDataHomepointsPacketSelfTests() && ok;
+        ok = runS2CMiscDataMonstrosityPacketSelfTests() && ok;
         ok = runS2CMiscDataStatusIconsPacketSelfTests() && ok;
         ok = runS2CMiscDataUnknownPacketSelfTests() && ok;
         ok = runS2CMiscDataUnityPacketSelfTests() && ok;
