@@ -45,6 +45,7 @@ auto runTimerHelpersSelfTests() -> bool;
 auto runSynchronizedSelfTests() -> bool;
 auto runTypedFlagsSelfTests() -> bool;
 auto runMaybeOptionalSelfTests() -> bool;
+auto runMMOConfigTypesSelfTests() -> bool;
 auto runUUIDGenerationSelfTests() -> bool;
 auto runZlibCompressedSizeSelfTests() -> bool;
 auto runArgumentsParserSelfTests() -> bool;
@@ -269,6 +270,7 @@ namespace
         ok = runSynchronizedSelfTests() && ok;
         ok = runTypedFlagsSelfTests() && ok;
         ok = runMaybeOptionalSelfTests() && ok;
+        ok = runMMOConfigTypesSelfTests() && ok;
         ok = runUUIDGenerationSelfTests() && ok;
         ok = runZlibCompressedSizeSelfTests() && ok;
         ok = runArgumentsParserSelfTests() && ok;

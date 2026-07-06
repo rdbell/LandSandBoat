@@ -245,6 +245,8 @@ set(SOURCES
     test_mariadb_result_set_metadata.cpp
     test_matcher.h
     test_matcher.cpp
+    test_mmo_config_types.h
+    test_mmo_config_types.cpp
     test_maybe_optional.h
     test_maybe_optional.cpp
     test_numeric_utils.h
