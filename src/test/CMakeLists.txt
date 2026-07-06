@@ -421,6 +421,8 @@ set(SOURCES
     test_s2c_map_group_packet.cpp
     test_s2c_mapschedulor_packet.h
     test_s2c_mapschedulor_packet.cpp
+    test_s2c_merit_packet.h
+    test_s2c_merit_packet.cpp
     test_s2c_miscdata_merits_packet.h
     test_s2c_miscdata_merits_packet.cpp
     test_s2c_miscdata_job_points_packet.h

@@ -211,6 +211,7 @@ auto runS2CMagicDataPacketSelfTests() -> bool;
 auto runS2CMagicSchedulorPacketSelfTests() -> bool;
 auto runS2CMapGroupPacketSelfTests() -> bool;
 auto runS2CMapSchedulorPacketSelfTests() -> bool;
+auto runS2CMeritPacketSelfTests() -> bool;
 auto runS2CMiscDataMeritsPacketSelfTests() -> bool;
 auto runS2CMiscDataJobPointsPacketSelfTests() -> bool;
 auto runS2CMiscDataHomepointsPacketSelfTests() -> bool;
@@ -474,6 +475,7 @@ namespace
         ok = runS2CMagicSchedulorPacketSelfTests() && ok;
         ok = runS2CMapGroupPacketSelfTests() && ok;
         ok = runS2CMapSchedulorPacketSelfTests() && ok;
+        ok = runS2CMeritPacketSelfTests() && ok;
         ok = runS2CMiscDataMeritsPacketSelfTests() && ok;
         ok = runS2CMiscDataJobPointsPacketSelfTests() && ok;
         ok = runS2CMiscDataHomepointsPacketSelfTests() && ok;
