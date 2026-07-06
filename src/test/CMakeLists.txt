@@ -475,6 +475,8 @@ set(SOURCES
     test_s2c_talknumwork2_packet.cpp
     test_s2c_talknumname_packet.h
     test_s2c_talknumname_packet.cpp
+    test_s2c_tracking_list_packet.h
+    test_s2c_tracking_list_packet.cpp
     test_s2c_tracking_state_packet.h
     test_s2c_tracking_state_packet.cpp
     test_s2c_tracking_pos_packet.h
