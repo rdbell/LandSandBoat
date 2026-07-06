@@ -173,6 +173,8 @@ set(SOURCES
     test_hash_utils.cpp
     test_rate_limit_utils.h
     test_rate_limit_utils.cpp
+    test_mmo_stats_skills.h
+    test_mmo_stats_skills.cpp
     test_ipc_channel.h
     test_ipc_channel.cpp
     test_ipc_chat_payloads.h
