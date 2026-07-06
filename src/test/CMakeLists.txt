@@ -393,6 +393,8 @@ set(SOURCES
     test_s2c_map_group_packet.cpp
     test_s2c_mapschedulor_packet.h
     test_s2c_mapschedulor_packet.cpp
+    test_s2c_miscdata_homepoints_packet.h
+    test_s2c_miscdata_homepoints_packet.cpp
     test_s2c_miscdata_unknown_packet.h
     test_s2c_miscdata_unknown_packet.cpp
     test_s2c_miscdata_unity_packets.h
