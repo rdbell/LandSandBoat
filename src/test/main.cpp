@@ -185,6 +185,7 @@ auto runS2CCommandDataPacketSelfTests() -> bool;
 auto runS2CCurrencies1PacketSelfTests() -> bool;
 auto runS2CCurrencies2PacketSelfTests() -> bool;
 auto runS2CInfluencePacketSelfTests() -> bool;
+auto runS2CJobInfoPacketSelfTests() -> bool;
 auto runS2CJobPointsPacketSelfTests() -> bool;
 auto runS2CDigPacketSelfTests() -> bool;
 auto runS2CDungeonPacketSelfTests() -> bool;
@@ -430,6 +431,7 @@ namespace
         ok = runS2CCurrencies1PacketSelfTests() && ok;
         ok = runS2CCurrencies2PacketSelfTests() && ok;
         ok = runS2CInfluencePacketSelfTests() && ok;
+        ok = runS2CJobInfoPacketSelfTests() && ok;
         ok = runS2CJobPointsPacketSelfTests() && ok;
         ok = runS2CDigPacketSelfTests() && ok;
         ok = runS2CDungeonPacketSelfTests() && ok;
