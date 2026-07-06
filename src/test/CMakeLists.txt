@@ -171,6 +171,8 @@ set(SOURCES
     test_filewatcher_queue.cpp
     test_hash_utils.h
     test_hash_utils.cpp
+    test_mmo_eminence.h
+    test_mmo_eminence.cpp
     test_rate_limit_utils.h
     test_rate_limit_utils.cpp
     test_mmo_keyitems.h
