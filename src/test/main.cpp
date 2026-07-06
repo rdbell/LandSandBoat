@@ -259,6 +259,7 @@ auto runS2CPBXResultPacketSelfTests() -> bool;
 auto runS2CPartyReqPacketSelfTests() -> bool;
 auto runS2CPendingNumPacketSelfTests() -> bool;
 auto runS2CPendingStrPacketSelfTests() -> bool;
+auto runS2CPetSyncPacketSelfTests() -> bool;
 auto runS2CFAQGMParamPacketSelfTests() -> bool;
 auto runS2CFishPacketSelfTests() -> bool;
 auto runS2CFriendPassPacketSelfTests() -> bool;
@@ -531,6 +532,7 @@ namespace
         ok = runS2CPartyReqPacketSelfTests() && ok;
         ok = runS2CPendingNumPacketSelfTests() && ok;
         ok = runS2CPendingStrPacketSelfTests() && ok;
+        ok = runS2CPetSyncPacketSelfTests() && ok;
         ok = runS2CFAQGMParamPacketSelfTests() && ok;
         ok = runS2CFishPacketSelfTests() && ok;
         ok = runS2CFriendPassPacketSelfTests() && ok;
