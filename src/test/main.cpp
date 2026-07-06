@@ -237,6 +237,7 @@ auto runS2CItemTradeSessionPacketSelfTests() -> bool;
 auto runS2CItemTradePacketSelfTests() -> bool;
 auto runS2CItemSubcontainerPacketSelfTests() -> bool;
 auto runS2CMyRoomPacketSelfTests() -> bool;
+auto runS2CMyRoomOperationPacketSelfTests() -> bool;
 auto runS2CPacketControlPacketSelfTests() -> bool;
 auto runS2CPBXResultPacketSelfTests() -> bool;
 auto runS2CPartyReqPacketSelfTests() -> bool;
@@ -487,6 +488,7 @@ namespace
         ok = runS2CItemTradePacketSelfTests() && ok;
         ok = runS2CItemSubcontainerPacketSelfTests() && ok;
         ok = runS2CMyRoomPacketSelfTests() && ok;
+        ok = runS2CMyRoomOperationPacketSelfTests() && ok;
         ok = runS2CPacketControlPacketSelfTests() && ok;
         ok = runS2CPBXResultPacketSelfTests() && ok;
         ok = runS2CPartyReqPacketSelfTests() && ok;
