@@ -114,8 +114,9 @@ describe('BATTLE2', function()
                 zone  = xi.zone.QUFIM_ISLAND,
             })
 
-        mob = player.entities:moveTo(17293357)
+        mob = player.entities:get(17293357)
         mob:respawn()
+        player.entities:moveTo(mob)
         mob.assert:isAlive()
     end)
 
