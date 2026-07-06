@@ -183,6 +183,7 @@ auto runS2CBattlefieldPacketSelfTests() -> bool;
 auto runS2CBattleMessagePacketSelfTests() -> bool;
 auto runS2CBlackEditPacketSelfTests() -> bool;
 auto runS2CBlackListPacketSelfTests() -> bool;
+auto runS2CCharSyncPacketSelfTests() -> bool;
 auto runS2CChatStdPacketSelfTests() -> bool;
 auto runS2CChocoboRacingPacketSelfTests() -> bool;
 auto runS2CCliStatusPacketSelfTests() -> bool;
@@ -456,6 +457,7 @@ namespace
         ok = runS2CBattleMessagePacketSelfTests() && ok;
         ok = runS2CBlackEditPacketSelfTests() && ok;
         ok = runS2CBlackListPacketSelfTests() && ok;
+        ok = runS2CCharSyncPacketSelfTests() && ok;
         ok = runS2CChatStdPacketSelfTests() && ok;
         ok = runS2CChocoboRacingPacketSelfTests() && ok;
         ok = runS2CCliStatusPacketSelfTests() && ok;
