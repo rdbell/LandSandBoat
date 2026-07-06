@@ -222,6 +222,7 @@ auto runS2CMusicVolumePacketSelfTests() -> bool;
 auto runS2CMountDataPacketSelfTests() -> bool;
 auto runS2CEquipClearPacketSelfTests() -> bool;
 auto runS2CEquipListPacketSelfTests() -> bool;
+auto runS2CEquipInspectPacketSelfTests() -> bool;
 auto runS2CEquipSetValidPacketSelfTests() -> bool;
 auto runS2CDefaultPacketSelfTests() -> bool;
 auto runS2CEmoteListPacketSelfTests() -> bool;
@@ -478,6 +479,7 @@ namespace
         ok = runS2CMountDataPacketSelfTests() && ok;
         ok = runS2CEquipClearPacketSelfTests() && ok;
         ok = runS2CEquipListPacketSelfTests() && ok;
+        ok = runS2CEquipInspectPacketSelfTests() && ok;
         ok = runS2CEquipSetValidPacketSelfTests() && ok;
         ok = runS2CDefaultPacketSelfTests() && ok;
         ok = runS2CEmoteListPacketSelfTests() && ok;

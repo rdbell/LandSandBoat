@@ -321,6 +321,8 @@ set(SOURCES
     test_s2c_equip_clear_packet.cpp
     test_s2c_equip_list_packet.h
     test_s2c_equip_list_packet.cpp
+    test_s2c_equip_inspect_packet.h
+    test_s2c_equip_inspect_packet.cpp
     test_s2c_equipset_valid_packet.h
     test_s2c_equipset_valid_packet.cpp
     test_s2c_event_packet.h
