@@ -425,6 +425,8 @@ set(SOURCES
     test_s2c_roe_activelog_packet.cpp
     test_s2c_roe_log_packet.h
     test_s2c_roe_log_packet.cpp
+    test_s2c_scenarioitem_packet.h
+    test_s2c_scenarioitem_packet.cpp
     test_s2c_unity_packet.h
     test_s2c_unity_packet.cpp
     test_s2c_schedulor_packet.h
