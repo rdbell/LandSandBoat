@@ -48,6 +48,7 @@ auto runMaybeOptionalSelfTests() -> bool;
 auto runMMOConfigTypesSelfTests() -> bool;
 auto runUUIDGenerationSelfTests() -> bool;
 auto runZlibCompressedSizeSelfTests() -> bool;
+auto runFileUtilsSelfTests() -> bool;
 auto runArgumentsParserSelfTests() -> bool;
 auto runVersionInfoSelfTests() -> bool;
 auto runSingletonHelperSelfTests() -> bool;
@@ -273,6 +274,7 @@ namespace
         ok = runMMOConfigTypesSelfTests() && ok;
         ok = runUUIDGenerationSelfTests() && ok;
         ok = runZlibCompressedSizeSelfTests() && ok;
+        ok = runFileUtilsSelfTests() && ok;
         ok = runArgumentsParserSelfTests() && ok;
         ok = runVersionInfoSelfTests() && ok;
         ok = runSingletonHelperSelfTests() && ok;

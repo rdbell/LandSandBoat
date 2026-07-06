@@ -165,6 +165,8 @@ set(SOURCES
     test_earth_time.cpp
     test_engine.h
     test_engine.cpp
+    test_file_utils.h
+    test_file_utils.cpp
     test_filewatcher_queue.h
     test_filewatcher_queue.cpp
     test_hash_utils.h
