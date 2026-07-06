@@ -171,6 +171,8 @@ set(SOURCES
     test_filewatcher_queue.cpp
     test_hash_utils.h
     test_hash_utils.cpp
+    test_rate_limit_utils.h
+    test_rate_limit_utils.cpp
     test_ipc_channel.h
     test_ipc_channel.cpp
     test_ipc_chat_payloads.h
