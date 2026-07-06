@@ -227,6 +227,7 @@ auto runS2CDefaultPacketSelfTests() -> bool;
 auto runS2CEmoteListPacketSelfTests() -> bool;
 auto runS2CGroupListPacketSelfTests() -> bool;
 auto runS2CGroupList2PacketSelfTests() -> bool;
+auto runS2CGroupTblPacketSelfTests() -> bool;
 auto runS2CItemAttrPacketSelfTests() -> bool;
 auto runS2CItemSearchPacketSelfTests() -> bool;
 auto runS2CItemMaxPacketSelfTests() -> bool;
@@ -482,6 +483,7 @@ namespace
         ok = runS2CEmoteListPacketSelfTests() && ok;
         ok = runS2CGroupListPacketSelfTests() && ok;
         ok = runS2CGroupList2PacketSelfTests() && ok;
+        ok = runS2CGroupTblPacketSelfTests() && ok;
         ok = runS2CItemAttrPacketSelfTests() && ok;
         ok = runS2CItemSearchPacketSelfTests() && ok;
         ok = runS2CItemMaxPacketSelfTests() && ok;

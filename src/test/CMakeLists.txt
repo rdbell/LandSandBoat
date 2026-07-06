@@ -371,6 +371,8 @@ set(SOURCES
     test_s2c_guild_result_packets.cpp
     test_s2c_group_list2_packet.h
     test_s2c_group_list2_packet.cpp
+    test_s2c_group_tbl_packet.h
+    test_s2c_group_tbl_packet.cpp
     test_s2c_header_only_packets.h
     test_s2c_header_only_packets.cpp
     test_s2c_inspect_message_packet.h
