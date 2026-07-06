@@ -172,6 +172,7 @@ auto runS2CHeaderOnlyPacketSelfTests() -> bool;
 auto runS2CBallistaPacketSelfTests() -> bool;
 auto runS2CAssistPacketSelfTests() -> bool;
 auto runS2CAlterEgoPointsPacketSelfTests() -> bool;
+auto runS2CAbilRecastPacketSelfTests() -> bool;
 auto runS2CAUCPacketSelfTests() -> bool;
 auto runS2CBattle2PacketSelfTests() -> bool;
 auto runS2CBattlefieldPacketSelfTests() -> bool;
@@ -418,6 +419,7 @@ namespace
         ok = runS2CBallistaPacketSelfTests() && ok;
         ok = runS2CAssistPacketSelfTests() && ok;
         ok = runS2CAlterEgoPointsPacketSelfTests() && ok;
+        ok = runS2CAbilRecastPacketSelfTests() && ok;
         ok = runS2CAUCPacketSelfTests() && ok;
         ok = runS2CBattle2PacketSelfTests() && ok;
         ok = runS2CBattlefieldPacketSelfTests() && ok;
