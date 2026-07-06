@@ -325,6 +325,8 @@ set(SOURCES
     test_s2c_eventstr_packet.cpp
     test_s2c_eventnum_packet.h
     test_s2c_eventnum_packet.cpp
+    test_s2c_extended_job_packet.h
+    test_s2c_extended_job_packet.cpp
     test_s2c_faq_gmparam_packet.h
     test_s2c_faq_gmparam_packet.cpp
     test_s2c_emote_list_packet.h
