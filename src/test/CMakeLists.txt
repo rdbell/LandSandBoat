@@ -397,6 +397,8 @@ set(SOURCES
     test_s2c_miscdata_job_points_packet.cpp
     test_s2c_miscdata_homepoints_packet.h
     test_s2c_miscdata_homepoints_packet.cpp
+    test_s2c_miscdata_status_icons_packet.h
+    test_s2c_miscdata_status_icons_packet.cpp
     test_s2c_miscdata_unknown_packet.h
     test_s2c_miscdata_unknown_packet.cpp
     test_s2c_miscdata_unity_packets.h
