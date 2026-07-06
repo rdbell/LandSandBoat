@@ -295,6 +295,8 @@ set(SOURCES
     test_s2c_combine_packets.cpp
     test_s2c_command_data_packet.h
     test_s2c_command_data_packet.cpp
+    test_s2c_currencies_1_packet.h
+    test_s2c_currencies_1_packet.cpp
     test_s2c_currencies_2_packet.h
     test_s2c_currencies_2_packet.cpp
     test_s2c_influence_packets.h
