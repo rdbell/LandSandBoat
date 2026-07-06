@@ -34,6 +34,18 @@ describe('Action interrupts', function()
         end
     end
 
+    local function waitFor(condition, message)
+        for _ = 1, 10 do
+            if condition() then
+                return
+            end
+
+            xi.test.world:skipTime(1)
+        end
+
+        assert(condition(), message)
+    end
+
     it('completes a cast normally when nothing prevents it', function()
         caster:addStatusEffect(xi.effect.CHAINSPELL, { power = 0, duration = 60, origin = caster })
 
@@ -59,17 +71,29 @@ describe('Action interrupts', function()
             completed = true
         end)
 
+        local magicTaken = false
+        local sleepApplied = false
         target:addListener('MAGIC_TAKE', 'TEST_SLEEP', function(_, magicCaster)
-            magicCaster:addStatusEffect(xi.effect.SLEEP_I, { power = 1, duration = 60, origin = magicCaster })
+            magicTaken = true
+            sleepApplied = magicCaster:addStatusEffect(xi.effect.SLEEP_I, { power = 1, duration = 60, origin = magicCaster })
         end)
 
         caster.actions:useSpell(target, xi.magic.spell.STONE)
-        settle()
+
+        waitFor(function()
+            return completed and magicTaken and sleepApplied and caster:hasStatusEffect(xi.effect.SLEEP_I)
+        end, 'cast should complete and MAGIC_TAKE should apply sleep')
+
+        waitFor(function()
+            return caster:getCurrentAction() == actionSleep
+        end, 'caster should be parked inactive afterward')
 
         caster:removeListener('TEST_USE')
         target:removeListener('TEST_SLEEP')
 
         assert(completed, 'cast should complete (the sleep lands at the finish, after the check)')
+        assert(magicTaken, 'target should receive MAGIC_TAKE')
+        assert(sleepApplied, 'sleep should be applied by MAGIC_TAKE')
         assert(caster:hasStatusEffect(xi.effect.SLEEP_I), 'caster should be asleep')
         assert(caster:getCurrentAction() == actionSleep, 'caster should be parked inactive afterward')
     end)
