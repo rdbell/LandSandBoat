@@ -99,6 +99,7 @@ auto runLoginAuthConstantSelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
+auto runMapZoneEnumPrimitiveSelfTests() -> bool;
 auto runSearchPacketBufferSelfTests() -> bool;
 auto runMapPacketBasicHeaderSelfTests() -> bool;
 auto runC2SPacketValidationScalarSelfTests() -> bool;
@@ -365,6 +366,7 @@ namespace
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
+        ok = runMapZoneEnumPrimitiveSelfTests() && ok;
         ok = runSearchPacketBufferSelfTests() && ok;
         ok = runMapPacketBasicHeaderSelfTests() && ok;
         ok = runC2SPacketValidationScalarSelfTests() && ok;

@@ -239,6 +239,8 @@ set(SOURCES
     test_lua_environment.cpp
     test_map_action_enum_primitives.h
     test_map_action_enum_primitives.cpp
+    test_map_zone_enum_primitives.h
+    test_map_zone_enum_primitives.cpp
     test_map_emote_enums.h
     test_map_emote_enums.cpp
     test_map_enum_primitives.h
