@@ -401,6 +401,8 @@ set(SOURCES
     test_s2c_music_packet.cpp
     test_s2c_musicvolume_packet.h
     test_s2c_musicvolume_packet.cpp
+    test_s2c_mission_packet.h
+    test_s2c_mission_packet.cpp
     test_s2c_myroom_packets.h
     test_s2c_myroom_packets.cpp
     test_s2c_mount_data_packet.h
