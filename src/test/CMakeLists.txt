@@ -279,6 +279,8 @@ set(SOURCES
     test_s2c_alter_ego_points_packet.cpp
     test_s2c_abil_recast_packet.h
     test_s2c_abil_recast_packet.cpp
+    test_s2c_bazaar_packets.h
+    test_s2c_bazaar_packets.cpp
     test_s2c_battle2_packet.h
     test_s2c_battle2_packet.cpp
     test_s2c_battlefield_packet.h
