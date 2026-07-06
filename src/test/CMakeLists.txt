@@ -443,6 +443,8 @@ set(SOURCES
     test_s2c_miscdata_unity_packets.cpp
     test_s2c_message_packet.h
     test_s2c_message_packet.cpp
+    test_s2c_login_packet.h
+    test_s2c_login_packet.cpp
     test_s2c_logout_packet.h
     test_s2c_logout_packet.cpp
     test_s2c_music_packet.h
