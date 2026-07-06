@@ -204,6 +204,7 @@ auto runS2CEffectPacketSelfTests() -> bool;
 auto runS2CEventPacketSelfTests() -> bool;
 auto runS2CEventUCOffPacketSelfTests() -> bool;
 auto runS2CEntityVisPacketSelfTests() -> bool;
+auto runS2CFragmentsFishRankingPacketSelfTests() -> bool;
 auto runS2CFragmentsServmesPacketSelfTests() -> bool;
 auto runS2CSwitchPacketSelfTests() -> bool;
 auto runS2CEventStrPacketSelfTests() -> bool;
@@ -474,6 +475,7 @@ namespace
         ok = runS2CEventPacketSelfTests() && ok;
         ok = runS2CEventUCOffPacketSelfTests() && ok;
         ok = runS2CEntityVisPacketSelfTests() && ok;
+        ok = runS2CFragmentsFishRankingPacketSelfTests() && ok;
         ok = runS2CFragmentsServmesPacketSelfTests() && ok;
         ok = runS2CSwitchPacketSelfTests() && ok;
         ok = runS2CEventStrPacketSelfTests() && ok;
