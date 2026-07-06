@@ -223,6 +223,8 @@ void SaveMazeUnlocks(CCharEntity* PChar);                       // save the char
 void SaveDeathTime(CCharEntity* PChar);                         // save when this character last died
 void SavePlayTime(CCharEntity* PChar);                          // save this character's total play time
 void SaveLastLogout(const CCharEntity* PChar);                  // save the last logout time of this character
+void SetCharacterPersistenceSuppressedForTests(bool suppressed); // suppress destructor persistence for standalone C++ tests
+bool IsCharacterPersistenceSuppressedForTests();
 void SavePrevZoneLineID(CCharEntity* PChar, uint32 ZoneLineID); // save the last zoneline the player crossed.
 bool hasMogLockerAccess(const CCharEntity* PChar);              // true if have access, false otherwise
 

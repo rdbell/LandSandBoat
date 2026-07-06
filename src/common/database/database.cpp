@@ -252,6 +252,12 @@ auto db::checkCharset() -> void
 
 auto db::checkTriggers() -> void
 {
+    if (starts_with(db::getDatabaseVersion(), "SQLite "))
+    {
+        ShowInfo("Skipping MariaDB trigger check for SQLite test database");
+        return;
+    }
+
     const auto triggerQuery = "SHOW TRIGGERS WHERE `Trigger` LIKE ?";
 
     const auto triggers = {

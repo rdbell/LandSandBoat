@@ -16951,7 +16951,7 @@ void CLuaBaseEntity::removeAllManeuvers() const
  *  Example : player:setAttachment(8465, 0)
  ************************************************************************/
 
-void CLuaBaseEntity::setAttachment(const uint8 attachmentItemID, const uint8 slotID) const
+void CLuaBaseEntity::setAttachment(const uint16 attachmentItemID, const uint8 slotID) const
 {
     auto* PChar = dynamic_cast<CCharEntity*>(m_PBaseEntity);
 
@@ -16961,7 +16961,13 @@ void CLuaBaseEntity::setAttachment(const uint8 attachmentItemID, const uint8 slo
         return;
     }
 
-    puppetutils::setAttachment(PChar, slotID, attachmentItemID - 0x2100);
+    if (attachmentItemID < 0x2100 || attachmentItemID > 0x21FF)
+    {
+        ShowWarning("Invalid automaton attachment item id %u.", attachmentItemID);
+        return;
+    }
+
+    puppetutils::setAttachment(PChar, slotID, static_cast<uint8>(attachmentItemID - 0x2100));
     charutils::SendExtendedJobPackets(PChar);
     puppetutils::SaveAutomaton(PChar);
 }

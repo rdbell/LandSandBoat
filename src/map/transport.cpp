@@ -137,7 +137,7 @@ void CTransportHandler::InitializeTransport(IPP mapIPP)
                                  "time_interval, time_waiting, time_anim_arrive, time_anim_depart "
                                  "FROM transport "
                                  "LEFT JOIN zone_settings ON ((transport >> 12) & 0xFFF) = zoneid "
-                                 "WHERE IF(? <> 0, ? = zoneip AND ? = zoneport, TRUE)",
+                                 "WHERE (? = 0) OR (? = zoneip AND ? = zoneport)",
                                  mapIPP.getIP(),
                                  mapIPP.getIPString(),
                                  mapIPP.getPort());
@@ -208,7 +208,7 @@ void CTransportHandler::InitializeTransport(IPP mapIPP)
     rset = db::preparedStmt("SELECT zone, time_offset, time_interval, time_waiting, time_anim_arrive, time_anim_depart "
                             "FROM transport LEFT JOIN "
                             "zone_settings ON zone = zoneid WHERE "
-                            "IF(? <> 0, ? = zoneip AND ? = zoneport, TRUE)",
+                            "(? = 0) OR (? = zoneip AND ? = zoneport)",
                             mapIPP.getIP(),
                             mapIPP.getIPString(),
                             mapIPP.getPort());

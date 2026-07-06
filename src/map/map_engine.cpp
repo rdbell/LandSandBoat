@@ -147,7 +147,7 @@ auto MapEngine::init() -> Task<void>
     luautils::init(mapIPP, config_.smokeLuaFiles); // Also calls moduleutils::LoadLuaModules();
 
     // Delete sessions that are associated with this map process, but leave others alone
-    db::preparedStmt("DELETE FROM accounts_sessions WHERE IF(? = 0 AND ? = 0, true, server_addr = ? AND server_port = ?)",
+    db::preparedStmt("DELETE FROM accounts_sessions WHERE (? = 0 AND ? = 0) OR (server_addr = ? AND server_port = ?)",
                      mapIPP.getIP(),
                      mapIPP.getPort(),
                      mapIPP.getIP(),

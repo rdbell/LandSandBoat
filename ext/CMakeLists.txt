@@ -304,6 +304,7 @@ set(SHARED_EXTERNAL_LIBS
     spdlog
     concurrentqueue
     mariadbclient
+    SQLite3::SQLite3
     sol2_single
     argparse
     efsw

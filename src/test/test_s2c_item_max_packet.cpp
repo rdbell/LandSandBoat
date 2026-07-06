@@ -103,6 +103,12 @@ auto expectZeroTail(CBasicPacket& packet, std::size_t offset, const std::string&
 
 void sizeCharacter(CCharEntity& character)
 {
+    character.status      = STATUS_TYPE::NORMAL;
+    character.health.hp   = 1;
+    character.health.maxhp = 1;
+    character.updateCharVarCache("mog-locker-expiry-timestamp", 0);
+    character.updateCharVarCache("mog-locker-access-type", 0);
+
     for (uint8 location = 0; location < MAX_CONTAINER_ID; ++location)
     {
         auto* storage = character.getStorage(location);

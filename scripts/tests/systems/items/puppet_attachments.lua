@@ -10,6 +10,7 @@ describe('Puppet attachments', function()
                 zone  = xi.zone.SOUTHERN_SAN_DORIA,
             })
 
+        player:setPetName(xi.petType.AUTOMATON, xi.petName.MK_IV)
         player:unlockAttachment(xi.item.HARLEQUIN_FRAME)
         player:unlockAttachment(xi.item.HARLEQUIN_HEAD)
         player:unlockAttachment(xi.item.STROBE_ATTACHMENT)

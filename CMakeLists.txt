@@ -99,6 +99,9 @@ endif()
 # Find MariaDB
 find_package(MariaDB REQUIRED)
 
+# Find SQLite
+find_package(SQLite3 REQUIRED)
+
 # Find ZMQ
 find_package(ZeroMQ REQUIRED)
 

@@ -42,6 +42,14 @@ set(COMMON_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/database/libmariadb/libmariadb_prepared_statement.h
     ${CMAKE_CURRENT_SOURCE_DIR}/database/libmariadb/libmariadb_result_set.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/database/libmariadb/libmariadb_result_set.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/database/sqlite/sqlite_connection.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/database/sqlite/sqlite_connection.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/database/sqlite/sqlite_database.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/database/sqlite/sqlite_database.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/database/sqlite/sqlite_prepared_statement.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/database/sqlite/sqlite_prepared_statement.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/database/sqlite/sqlite_result_set.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/database/sqlite/sqlite_result_set.h
     ${CMAKE_CURRENT_SOURCE_DIR}/types/flat_hash_map.h
     ${CMAKE_CURRENT_SOURCE_DIR}/types/hash_map.h
     ${CMAKE_CURRENT_SOURCE_DIR}/types/maybe.h

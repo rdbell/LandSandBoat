@@ -186,10 +186,22 @@ const std::set traverserStoneReductionKeyItems = {
     KeyItem::IVORY_ABYSSITE_OF_CELERITY
 };
 
+bool characterPersistenceSuppressedForTests = false;
+
 } // namespace
 
 namespace charutils
 {
+
+void SetCharacterPersistenceSuppressedForTests(const bool suppressed)
+{
+    characterPersistenceSuppressedForTests = suppressed;
+}
+
+bool IsCharacterPersistenceSuppressedForTests()
+{
+    return characterPersistenceSuppressedForTests;
+}
 
 /************************************************************************
  *                                                                       *
@@ -5969,20 +5981,25 @@ void SaveMissionsList(CCharEntity* PChar)
     TracyZoneScoped;
 
     db::preparedStmt("UPDATE chars "
-                     "LEFT JOIN char_profile USING(charid) "
                      "SET "
                      "missions = ?, "
                      "assault = ?, "
-                     "campaign = ?, "
+                     "campaign = ? "
+                     "WHERE charid = ? "
+                     "LIMIT 1",
+                     PChar->m_missionLog,
+                     PChar->m_assaultLog,
+                     PChar->m_campaignLog,
+                     PChar->id);
+
+    db::preparedStmt("UPDATE char_profile "
+                     "SET "
                      "rank_points = ?, "
                      "rank_sandoria = ?, "
                      "rank_bastok = ?, "
                      "rank_windurst = ? "
                      "WHERE charid = ? "
                      "LIMIT 1",
-                     PChar->m_missionLog,
-                     PChar->m_assaultLog,
-                     PChar->m_campaignLog,
                      PChar->profile.rankpoints,
                      PChar->profile.rank[0],
                      PChar->profile.rank[1],
@@ -6108,13 +6125,17 @@ void SaveTitles(CCharEntity* PChar)
     TracyZoneScoped;
 
     db::preparedStmt("UPDATE chars "
-                     "LEFT JOIN char_stats USING(charid) "
-                     "SET "
-                     "titles = ?, "
-                     "title = ? "
+                     "SET titles = ? "
                      "WHERE charid = ? "
                      "LIMIT 1",
                      PChar->m_TitleList,
+                     PChar->id);
+
+    db::preparedStmt("UPDATE char_stats "
+                     "SET "
+                     "title = ? "
+                     "WHERE charid = ? "
+                     "LIMIT 1",
                      PChar->profile.title,
                      PChar->id);
 }

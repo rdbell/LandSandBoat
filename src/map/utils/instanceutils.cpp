@@ -51,7 +51,7 @@ auto GetInstancesAssignedToThisProcess(IPP mapIPP) -> std::vector<uint16>
 
     const auto rset = db::preparedStmt("SELECT instanceid FROM instance_list INNER JOIN zone_settings "
                                        "ON instance_zone = zone_settings.zoneid "
-                                       "WHERE IF(? <> 0, ? = zoneip AND ? = zoneport, TRUE)",
+                                       "WHERE (? = 0) OR (? = zoneip AND ? = zoneport)",
                                        mapIPP.getIP(),
                                        mapIPP.getIPString(),
                                        mapIPP.getPort());

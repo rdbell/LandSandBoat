@@ -24,6 +24,8 @@
 #include <common/types/maybe.h>
 
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include <argparse/argparse.hpp>
 
@@ -82,8 +84,22 @@ public:
         return {};
     }
 
+    auto hasRawArgument(const std::string_view argName) const -> bool
+    {
+        for (int i = 1; i < argc_; ++i)
+        {
+            if (rawArgs_[i] == argName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 private:
     int                                       argc_;
     char**                                    argv_;
+    std::vector<std::string>                  rawArgs_;
     std::unique_ptr<argparse::ArgumentParser> args_;
 };

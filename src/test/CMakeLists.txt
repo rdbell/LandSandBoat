@@ -479,7 +479,7 @@ add_executable(xi_test
 
 set(TEST_LIB_SOURCES ${SOURCES})
 add_library(xi_test_lib
-    STATIC
+    OBJECT
         ${TEST_LIB_SOURCES})
 
 if(WIN32)

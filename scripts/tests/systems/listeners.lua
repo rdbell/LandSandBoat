@@ -18,6 +18,8 @@ describe('AoE Listeners', function()
 
         mob1 = player.entities:moveTo('Wild_Rabbit')
         mob2 = player.entities:moveTo('Wild_Sheep')
+        mob1:respawn()
+        mob2:respawn()
 
         local pos = player:getPos()
         mob1:setPos(pos.x, pos.y, pos.z)
@@ -36,10 +38,13 @@ describe('AoE Listeners', function()
             mob2Hit = true
         end)
 
+        player:addStatusEffect(xi.effect.CHAINSPELL, { power = 0, duration = 60, origin = player })
         player:addSpell(xi.magic.spell.FIRAGA)
         player.actions:useSpell(mob1, xi.magic.spell.FIRAGA)
-        xi.test.world:tickEntity(player)
-        xi.test.world:skipTime(10)
+
+        for _ = 1, 5 do
+            xi.test.world:skipTime(3)
+        end
 
         assert(mob1Hit, 'MAGIC_TAKE should fire on primary target')
         assert(mob2Hit, 'MAGIC_TAKE should fire on AoE subtarget')

@@ -304,7 +304,7 @@ CCharEntity::~CCharEntity()
         PUnityChat->DelMember(this);
     }
 
-    if (isDead())
+    if (isDead() && !charutils::IsCharacterPersistenceSuppressedForTests())
     {
         charutils::SaveDeathTime(this);
     }
@@ -364,7 +364,10 @@ CCharEntity::~CCharEntity()
         PParty->PopMember(this);
     }
 
-    charutils::WriteHistory(this);
+    if (!charutils::IsCharacterPersistenceSuppressedForTests())
+    {
+        charutils::WriteHistory(this);
+    }
 
     this->clearTransactions();
 

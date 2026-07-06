@@ -23,6 +23,7 @@
 
 #include <common/lua.h>
 #include <common/tracy.h>
+#include <map/utils/charutils.h>
 
 #include <cstdlib>
 #include <iostream>
@@ -481,7 +482,9 @@ int main(int argc, char** argv)
 
     auto testApp = std::make_unique<TestApplication>(argc, argv);
 
+    charutils::SetCharacterPersistenceSuppressedForTests(true);
     const auto omegaSelfTestsSuccess = runOmegaSelfTests();
+    charutils::SetCharacterPersistenceSuppressedForTests(false);
 
     const auto success = testApp->run();
 

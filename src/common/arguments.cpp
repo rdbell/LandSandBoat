@@ -30,6 +30,12 @@ Arguments::Arguments(const ApplicationConfig& config, const int argc, char** arg
 , argv_(argv)
 , args_(std::make_unique<argparse::ArgumentParser>(argv[0], version::GetVersionString()))
 {
+    rawArgs_.reserve(argc_);
+    for (int i = 0; i < argc_; ++i)
+    {
+        rawArgs_.emplace_back(argv_[i] == nullptr ? "" : argv_[i]);
+    }
+
     //
     // Defaults
     //

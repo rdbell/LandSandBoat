@@ -831,7 +831,7 @@ public:
     void removeOldestManeuver() const;
     void removeAllManeuvers() const;
     auto getAttachments() const -> sol::table;
-    void setAttachment(uint8 attachmentItemID, uint8 slotID) const;
+    void setAttachment(uint16 attachmentItemID, uint8 slotID) const;
     void updateAttachments() const;
     void reduceBurden(float percentReduction, const sol::object& intReductionObj) const;
     auto isExceedingElementalCapacity() const -> bool;

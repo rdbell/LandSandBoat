@@ -220,7 +220,7 @@ auto GetZonesAssignedToThisProcess(const IPP mapIPP) -> std::vector<uint16>
     //     : but this query is entirely internal, so it's OK.
     const auto zonesQuery = fmt::format("SELECT zoneid "
                                         "FROM zone_settings "
-                                        "WHERE IF({} <> 0, '{}' = zoneip AND {} = zoneport, TRUE)",
+                                        "WHERE ({} = 0) OR ('{}' = zoneip AND {} = zoneport)",
                                         ip,
                                         ipStr,
                                         port);

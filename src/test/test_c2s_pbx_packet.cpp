@@ -248,7 +248,10 @@ auto validatePBXPacket(const PBXValidationInput& input) -> PacketValidationResul
     packet.ResParam2  = input.ResParam2;
     packet.ResParam3  = input.ResParam3;
 
-    auto character = CCharEntity{};
+    auto character       = CCharEntity{};
+    character.status     = STATUS_TYPE::NORMAL;
+    character.health.hp  = 1;
+    character.health.maxhp = 1;
     return packet.validate(nullptr, &character);
 }
 
