@@ -186,6 +186,7 @@ auto runS2CCliStatusPacketSelfTests() -> bool;
 auto runS2CCliStatus2PacketSelfTests() -> bool;
 auto runS2CCombinePacketSelfTests() -> bool;
 auto runS2CCommandDataPacketSelfTests() -> bool;
+auto runS2CConfigPacketSelfTests() -> bool;
 auto runS2CCurrencies1PacketSelfTests() -> bool;
 auto runS2CCurrencies2PacketSelfTests() -> bool;
 auto runS2CEnterZonePacketSelfTests() -> bool;
@@ -448,6 +449,7 @@ namespace
         ok = runS2CCliStatus2PacketSelfTests() && ok;
         ok = runS2CCombinePacketSelfTests() && ok;
         ok = runS2CCommandDataPacketSelfTests() && ok;
+        ok = runS2CConfigPacketSelfTests() && ok;
         ok = runS2CCurrencies1PacketSelfTests() && ok;
         ok = runS2CCurrencies2PacketSelfTests() && ok;
         ok = runS2CEnterZonePacketSelfTests() && ok;
