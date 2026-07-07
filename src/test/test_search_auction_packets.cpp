@@ -297,6 +297,24 @@ auto testAuctionCategoryListQueryCanOmitNoHistoryRows() -> bool
                              "auction category omit-no-history query");
 }
 
+auto testAuctionItemFromIDQueryBuildsSQLAndParam() -> bool
+{
+    const auto query = BuildAuctionItemFromIDQuery(0x2345);
+
+    bool ok = true;
+    ok      = expectEqualString(query.sql,
+                                "SELECT aH, COUNT(*)-SUM(stack), SUM(stack) "
+                                "FROM item_basic "
+                                "LEFT JOIN auction_house ON item_basic.itemId = auction_house.itemid AND auction_house.buyer_name IS NULL "
+                                "LEFT JOIN item_equipment ON item_basic.itemid = item_equipment.itemid "
+                                "LEFT JOIN item_weapon ON item_basic.itemid = item_weapon.itemid "
+                                "WHERE item_basic.itemid = ?",
+                                "auction item-from-id query") &&
+         ok;
+    ok = expectEqualInt(query.itemID, 0x2345, "auction item-from-id item id") && ok;
+    return ok;
+}
+
 auto testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() -> bool
 {
     const auto empty  = BuildAuctionItemFromIDRow(0x2222, 0, 0, 0);
@@ -392,6 +410,7 @@ auto runSearchAuctionPacketSelfTests() -> bool
            testAuctionCategoryItemPreservesStackCounts() &&
            testAuctionCategoryListQueryUsesItemBasicByDefault() &&
            testAuctionCategoryListQueryCanOmitNoHistoryRows() &&
+           testAuctionItemFromIDQueryBuildsSQLAndParam() &&
            testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() &&
            testAuctionHistoryRowsReverseForPacketOrder() &&
            testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows() &&

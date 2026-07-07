@@ -114,13 +114,8 @@ ahItem CDataLoader::GetAHItemFromItemID(uint16 ItemID)
 {
     ahItem CAHItem = BuildAuctionItemFromIDRow(ItemID, 0, 0, 0);
 
-    auto rset = db::preparedStmt("SELECT aH, COUNT(*)-SUM(stack), SUM(stack) "
-                                 "FROM item_basic "
-                                 "LEFT JOIN auction_house ON item_basic.itemId = auction_house.itemid AND auction_house.buyer_name IS NULL "
-                                 "LEFT JOIN item_equipment ON item_basic.itemid = item_equipment.itemid "
-                                 "LEFT JOIN item_weapon ON item_basic.itemid = item_weapon.itemid "
-                                 "WHERE item_basic.itemid = ?",
-                                 ItemID);
+    const auto query = BuildAuctionItemFromIDQuery(ItemID);
+    auto       rset  = db::preparedStmt(query.sql, query.itemID);
     FOR_DB_SINGLE_RESULT(rset)
     {
         CAHItem = BuildAuctionItemFromIDRow(ItemID,
