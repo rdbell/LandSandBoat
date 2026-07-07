@@ -7,6 +7,10 @@ set(SOURCES
     ${REPORTERS_SOURCES}
     ../search/packets/auction_history.cpp
     ../search/packets/auction_list.cpp
+    ../search/packets/linkshell_list.cpp
+    ../search/packets/party_list.cpp
+    ../search/packets/search_comment.cpp
+    ../search/packets/search_list.cpp
     enums/test_status.h
     enums/tick_type.h
     tests/rng_spread_tests.cpp
@@ -553,6 +557,8 @@ set(SOURCES
     test_search_auction_packets.cpp
     test_search_packet_buffer.h
     test_search_packet_buffer.cpp
+    test_search_social_packets.h
+    test_search_social_packets.cpp
     test_settings_number_helper.h
     test_settings_number_helper.cpp
     test_settings_value_conversions.h
