@@ -337,6 +337,8 @@ set(SOURCES
     test_s2c_enterzone_packet.cpp
     test_s2c_effect_packet.h
     test_s2c_effect_packet.cpp
+    test_s2c_entity_update_packet.h
+    test_s2c_entity_update_packet.cpp
     test_s2c_equip_clear_packet.h
     test_s2c_equip_clear_packet.cpp
     test_s2c_equip_list_packet.h

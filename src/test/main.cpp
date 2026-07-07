@@ -204,6 +204,7 @@ auto runS2CJumpPacketSelfTests() -> bool;
 auto runS2CDigPacketSelfTests() -> bool;
 auto runS2CDungeonPacketSelfTests() -> bool;
 auto runS2CEffectPacketSelfTests() -> bool;
+auto runS2CEntityUpdatePacketSelfTests() -> bool;
 auto runS2CEventPacketSelfTests() -> bool;
 auto runS2CEventUCOffPacketSelfTests() -> bool;
 auto runS2CEntitySetNamePacketSelfTests() -> bool;
@@ -480,6 +481,7 @@ namespace
         ok = runS2CDigPacketSelfTests() && ok;
         ok = runS2CDungeonPacketSelfTests() && ok;
         ok = runS2CEffectPacketSelfTests() && ok;
+        ok = runS2CEntityUpdatePacketSelfTests() && ok;
         ok = runS2CEventPacketSelfTests() && ok;
         ok = runS2CEventUCOffPacketSelfTests() && ok;
         ok = runS2CEntitySetNamePacketSelfTests() && ok;
