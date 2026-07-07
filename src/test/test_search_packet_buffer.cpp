@@ -30,7 +30,9 @@
 #include <string>
 
 #include "common/logging.h"
+#include "common/md52.h"
 #include "common/types/maybe.h"
+#include "search/search_packet_hash.h"
 #include "search/search.h"
 #include "search/search_request_type.h"
 
@@ -96,6 +98,65 @@ auto testRequestTypeStrings() -> bool
     return ok;
 }
 
+void writeSearchPacketHash(std::uint8_t* packet, const std::uint16_t length)
+{
+    std::uint8_t digest[16]{};
+    md5(packet + 8, digest, length - 28);
+    std::memcpy(packet + length - 0x14, digest, sizeof(digest));
+}
+
+auto testPacketHashValidationAcceptsMatchingDigest() -> bool
+{
+    auto input = std::array<std::uint8_t, 64>{};
+    for (std::size_t i = 8; i < input.size() - 0x14; ++i)
+    {
+        input[i] = static_cast<std::uint8_t>((i * 19U) + 3U);
+    }
+
+    writeSearchPacketHash(input.data(), input.size());
+
+    return expectTrue(ValidateSearchPacketHash(input.data(), input.size()), "matching packet hash accepted");
+}
+
+auto testPacketHashValidationRejectsDigestMismatch() -> bool
+{
+    auto input = std::array<std::uint8_t, 64>{};
+    for (std::size_t i = 8; i < input.size() - 0x14; ++i)
+    {
+        input[i] = static_cast<std::uint8_t>((i * 23U) + 5U);
+    }
+
+    writeSearchPacketHash(input.data(), input.size());
+    input[input.size() - 0x14 + 7] ^= 0x80;
+
+    return expectTrue(!ValidateSearchPacketHash(input.data(), input.size()), "mismatched packet hash rejected");
+}
+
+auto testPacketHashValidationIgnoresTrailingKeyBytes() -> bool
+{
+    auto input = std::array<std::uint8_t, 64>{};
+    for (std::size_t i = 8; i < input.size() - 0x14; ++i)
+    {
+        input[i] = static_cast<std::uint8_t>((i * 29U) + 11U);
+    }
+
+    writeSearchPacketHash(input.data(), input.size());
+    input[input.size() - 4] = 0xAA;
+    input[input.size() - 3] = 0xBB;
+    input[input.size() - 2] = 0xCC;
+    input[input.size() - 1] = 0xDD;
+
+    return expectTrue(ValidateSearchPacketHash(input.data(), input.size()), "trailing key bytes ignored by hash");
+}
+
+auto testPacketHashValidationAcceptsMinimumFrame() -> bool
+{
+    auto input = std::array<std::uint8_t, 28>{};
+    writeSearchPacketHash(input.data(), input.size());
+
+    return expectTrue(ValidateSearchPacketHash(input.data(), input.size()), "minimum packet hash frame accepted");
+}
+
 auto testAcceptedPacketCopiesBytesAndSize() -> bool
 {
     const auto expected = std::array<std::uint8_t, 5>{ 0x10, 0x20, 0x30, 0x40, 0x50 };
@@ -152,6 +213,10 @@ auto runSearchPacketBufferSelfTests() -> bool
 {
     return testRequestTypeConstants() &&
            testRequestTypeStrings() &&
+           testPacketHashValidationAcceptsMatchingDigest() &&
+           testPacketHashValidationRejectsDigestMismatch() &&
+           testPacketHashValidationIgnoresTrailingKeyBytes() &&
+           testPacketHashValidationAcceptsMinimumFrame() &&
            testAcceptedPacketCopiesBytesAndSize() &&
            testMaxSizePacketIsAccepted() &&
            testShortPacketCopiesPrefixAndSize() &&

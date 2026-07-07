@@ -6,6 +6,7 @@ set(SOURCES
     ${LUA_SOURCES}
     ${REPORTERS_SOURCES}
     ../search/auction_request_order.cpp
+    ../search/search_packet_hash.cpp
     ../search/search_request_parser.cpp
     ../search/search_request_type.cpp
     ../search/packets/auction_history.cpp

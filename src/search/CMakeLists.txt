@@ -14,6 +14,8 @@ set(SOURCES
     search_engine.cpp
     search_handler.h
     search_handler.cpp
+    search_packet_hash.cpp
+    search_packet_hash.h
     search_request_parser.cpp
     search_request_type.cpp
     search_request_type.h

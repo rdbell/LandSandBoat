@@ -37,6 +37,7 @@
 #include "packets/party_list.h"
 #include "packets/search_comment.h"
 #include "packets/search_list.h"
+#include "search_packet_hash.h"
 
 SearchHandler::SearchHandler(Scheduler& scheduler, asio::ip::tcp::socket socket, SynchronizedShared<std::map<std::string, uint16_t>>& IPAddressesInUseList, SynchronizedShared<std::unordered_set<std::string>>& IPAddressWhitelist)
 : scheduler_(scheduler)
@@ -183,27 +184,7 @@ bool SearchHandler::validatePacket(uint16_t length)
 {
     DebugSocketsFmt("Validating packet from IP {} ({} bytes)", ipAddress_, length);
 
-    // Check if packet is valid
-    uint8 PacketHash[16]{};
-
-    int32 toHash = length; // whole packet
-
-    toHash -= 0x08; // -headersize
-    toHash -= 0x10; // -hashsize
-    toHash -= 0x04; // -keysize
-
-    md5(reinterpret_cast<uint8*>(&buffer_[8]), PacketHash, toHash);
-
-    for (uint8 i = 0; i < 16; ++i)
-    {
-        if (buffer_[length - 0x14 + i] != PacketHash[i])
-        {
-            ShowErrorFmt("Search hash wrong byte {}: {} should be {}", i, hex8ToString(PacketHash[i]), hex8ToString(buffer_[length - 0x14 + i]));
-            return false;
-        }
-    }
-
-    return true;
+    return ValidateSearchPacketHash(buffer_.data(), length);
 }
 
 void SearchHandler::read_func(uint16_t length)
