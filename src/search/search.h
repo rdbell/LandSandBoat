@@ -41,6 +41,8 @@ struct search_req
     uint8         commentType;
 };
 
+search_req ParseSearchRequestPayload(uint8* payload, uint8 size);
+
 class searchPacket
 {
 public:

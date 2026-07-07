@@ -12,6 +12,7 @@ set(SOURCES
     search_engine.cpp
     search_handler.h
     search_handler.cpp
+    search_request_parser.cpp
 )
 
 if(UNIX)

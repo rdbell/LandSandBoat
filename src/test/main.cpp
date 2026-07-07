@@ -108,6 +108,7 @@ auto runMapConfigConstantsSelfTests() -> bool;
 auto runMapZoneEnumPrimitiveSelfTests() -> bool;
 auto runSearchAuctionPacketSelfTests() -> bool;
 auto runSearchPacketBufferSelfTests() -> bool;
+auto runSearchRequestParserSelfTests() -> bool;
 auto runSearchSocialPacketSelfTests() -> bool;
 auto runMapPacketBasicHeaderSelfTests() -> bool;
 auto runWorldCharacterCacheSelfTests() -> bool;
@@ -398,6 +399,7 @@ namespace
         ok = runMapZoneEnumPrimitiveSelfTests() && ok;
         ok = runSearchAuctionPacketSelfTests() && ok;
         ok = runSearchPacketBufferSelfTests() && ok;
+        ok = runSearchRequestParserSelfTests() && ok;
         ok = runSearchSocialPacketSelfTests() && ok;
         ok = runMapPacketBasicHeaderSelfTests() && ok;
         ok = runC2SPacketValidationScalarSelfTests() && ok;

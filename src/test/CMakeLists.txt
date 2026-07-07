@@ -5,6 +5,7 @@ set(SOURCES
     ${COMMON_SOURCES}
     ${LUA_SOURCES}
     ${REPORTERS_SOURCES}
+    ../search/search_request_parser.cpp
     ../search/packets/auction_history.cpp
     ../search/packets/auction_list.cpp
     ../search/packets/linkshell_list.cpp
@@ -557,6 +558,8 @@ set(SOURCES
     test_search_auction_packets.cpp
     test_search_packet_buffer.h
     test_search_packet_buffer.cpp
+    test_search_request_parser.h
+    test_search_request_parser.cpp
     test_search_social_packets.h
     test_search_social_packets.cpp
     test_settings_number_helper.h
