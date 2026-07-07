@@ -30,6 +30,7 @@
 
 #include "data_loader.h"
 #include "search.h"
+#include "search_player_filter.h"
 
 namespace
 {
@@ -367,136 +368,7 @@ std::list<SearchEntity*> CDataLoader::GetPlayersList(search_req sr, int* count)
                 PPlayer->sjob = 0;
             }
 
-            // filter by linkshell ID
-            if (sr.lsId.has_value())
-            {
-                auto searchedLsId = sr.lsId.value();
-                if (searchedLsId == 0)
-                {
-                    // lsId of 0 is automatic fail, it means the requester did not have a linkshell equipped
-                    continue;
-                }
-
-                if (PPlayer->linkshellid1 != searchedLsId && PPlayer->linkshellid2 != searchedLsId)
-                {
-                    // Current player does not match the given LS ID
-                    continue;
-                }
-            }
-
-            // filter anon players if job/nation/race/rank/level search
-            if ((PPlayer->flags1 & 0x4000) &&
-                (sr.jobid > 0 || sr.nation != 255 || sr.race != 255 || sr.minRank > 0 || sr.maxRank > 0 || sr.minlvl > 0 || sr.maxlvl > 0))
-            {
-                continue;
-            }
-
-            // filter by job
-            if (sr.jobid > 0 && sr.jobid != PPlayer->mjob)
-            {
-                continue;
-            }
-
-            // filter by nation
-            if (sr.nation != 255 && sr.nation != PPlayer->nation)
-            {
-                continue;
-            }
-
-            // filter by race
-            if (sr.race != 255)
-            {
-                // hume (male/female)
-                if (sr.race == 0 && (PPlayer->race != 1 && PPlayer->race != 2))
-                {
-                    continue;
-                    // elvaan (male/female)
-                }
-                if (sr.race == 1 && (PPlayer->race != 3 && PPlayer->race != 4))
-                {
-                    continue;
-                    // tarutaru (male/female)
-                }
-                if (sr.race == 2 && (PPlayer->race != 5 && PPlayer->race != 6))
-                {
-                    continue;
-                    // mithra (female only)
-                }
-                else if (sr.race == 3 && PPlayer->race != 7)
-                {
-                    continue;
-                    // galka (male only)
-                }
-                else if (sr.race == 4 && PPlayer->race != 8)
-                {
-                    continue;
-                }
-            }
-
-            // filter by rank
-            if (sr.minRank > 0 && sr.maxRank >= sr.minRank)
-            {
-                if (PPlayer->rank < sr.minRank || PPlayer->rank > sr.maxRank)
-                {
-                    continue;
-                }
-            }
-
-            // filter by flag (away, seek party etc.)
-            if (sr.flags != 0)
-            {
-                // Check if unity ID is set (bits 22+)
-                if (uint32_t searchUnityId = sr.flags >> 22; searchUnityId != 0)
-                {
-                    if (PPlayer->unityLeader != searchUnityId)
-                    {
-                        continue;
-                    }
-                }
-                else if (!(PPlayer->flags2 & sr.flags))
-                {
-                    // Normal bitwise check for other flags (bits 0-21)
-                    continue;
-                }
-            }
-
-            // filter by level
-            if (sr.minlvl > 0 && sr.maxlvl >= sr.minlvl)
-            {
-                if (PPlayer->mlvl < sr.minlvl || PPlayer->mlvl > sr.maxlvl)
-                {
-                    continue;
-                }
-            }
-
-            // filter by name
-            if (sr.nameLen > 0)
-            {
-                std::string dbname;
-                dbname.insert(0, PPlayer->name);
-
-                // can't be this name, too long
-                if (sr.nameLen > dbname.length())
-                {
-                    continue;
-                }
-                bool validName = true;
-                for (int i = 0; i < sr.nameLen; i++)
-                {
-                    // convert to lowercase for both
-                    if (tolower(sr.name[i]) != tolower(PPlayer->name[i]))
-                    {
-                        validName = false;
-                        break;
-                    }
-                }
-                if (!validName)
-                {
-                    continue;
-                }
-            }
-
-            if (PPlayer->gmHidden)
+            if (!SearchPlayerMatchesRequest(*PPlayer, sr))
             {
                 continue;
             }

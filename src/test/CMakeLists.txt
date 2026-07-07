@@ -8,6 +8,7 @@ set(SOURCES
     ../search/auction_request_order.cpp
     ../search/search_packet_crypto.cpp
     ../search/search_packet_hash.cpp
+    ../search/search_player_filter.cpp
     ../search/search_request_parser.cpp
     ../search/search_request_type.cpp
     ../search/search_session_tracker.cpp

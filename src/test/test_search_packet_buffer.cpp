@@ -35,8 +35,10 @@
 #include "common/logging.h"
 #include "common/md52.h"
 #include "common/types/maybe.h"
+#include "search/data_loader.h"
 #include "search/search_packet_crypto.h"
 #include "search/search_packet_hash.h"
+#include "search/search_player_filter.h"
 #include "search/search.h"
 #include "search/search_request_type.h"
 #include "search/search_session_tracker.h"
@@ -349,6 +351,139 @@ auto testSearchSessionTrackerIgnoresWhitelistedIP() -> bool
     return ok;
 }
 
+auto defaultSearchRequest() -> search_req
+{
+    auto request = search_req{};
+    request.race = 255;
+    request.nation = 255;
+    return request;
+}
+
+auto defaultSearchEntity() -> SearchEntity
+{
+    auto player = SearchEntity{};
+    player.name = "Alpha";
+    player.id = 0x101;
+    player.mjob = 7;
+    player.mlvl = 75;
+    player.sjob = 3;
+    player.slvl = 37;
+    player.nation = 1;
+    player.rank = 6;
+    player.race = 5;
+    player.flags1 = 0x0100;
+    player.flags2 = 0x0100;
+    player.linkshellid1 = 0x1234;
+    player.linkshellid2 = 0x5678;
+    player.unityLeader = 9;
+    return player;
+}
+
+auto testSearchPlayerFilterAcceptsDefaultRequest() -> bool
+{
+    const auto request = defaultSearchRequest();
+    const auto player = defaultSearchEntity();
+
+    return expectTrue(SearchPlayerMatchesRequest(player, request), "default search request accepts visible player");
+}
+
+auto testSearchPlayerFilterLinkshellAndAnonRules() -> bool
+{
+    bool ok = true;
+
+    auto player = defaultSearchEntity();
+    auto request = defaultSearchRequest();
+    request.lsId = Maybe<uint32>(0);
+    ok = expectTrue(!SearchPlayerMatchesRequest(player, request), "zero linkshell request rejects player") && ok;
+
+    request = defaultSearchRequest();
+    request.lsId = Maybe<uint32>(0x5678);
+    ok = expectTrue(SearchPlayerMatchesRequest(player, request), "matching secondary linkshell accepts player") && ok;
+
+    request.lsId = Maybe<uint32>(0x9999);
+    ok = expectTrue(!SearchPlayerMatchesRequest(player, request), "nonmatching linkshell rejects player") && ok;
+
+    player = defaultSearchEntity();
+    player.flags1 |= 0x4000;
+    request = defaultSearchRequest();
+    ok = expectTrue(SearchPlayerMatchesRequest(player, request), "anon player survives broad search") && ok;
+
+    request.jobid = player.mjob;
+    ok = expectTrue(!SearchPlayerMatchesRequest(player, request), "anon player rejects private-field search") && ok;
+
+    return ok;
+}
+
+auto testSearchPlayerFilterRaceRankLevelNameAndHiddenRules() -> bool
+{
+    bool ok = true;
+
+    auto player = defaultSearchEntity();
+    auto request = defaultSearchRequest();
+    request.race = 2; // tarutaru male/female
+    ok = expectTrue(SearchPlayerMatchesRequest(player, request), "tarutaru grouped race accepts race 5") && ok;
+
+    request.race = 3; // mithra only
+    ok = expectTrue(!SearchPlayerMatchesRequest(player, request), "mithra grouped race rejects race 5") && ok;
+
+    request = defaultSearchRequest();
+    request.minRank = 4;
+    request.maxRank = 6;
+    ok = expectTrue(SearchPlayerMatchesRequest(player, request), "rank range accepts boundary player") && ok;
+
+    request.minRank = 7;
+    request.maxRank = 6;
+    ok = expectTrue(SearchPlayerMatchesRequest(player, request), "inverted rank range ignored") && ok;
+
+    request = defaultSearchRequest();
+    request.minlvl = 76;
+    request.maxlvl = 99;
+    ok = expectTrue(!SearchPlayerMatchesRequest(player, request), "level range rejects lower player") && ok;
+
+    request.minlvl = 80;
+    request.maxlvl = 79;
+    ok = expectTrue(SearchPlayerMatchesRequest(player, request), "inverted level range ignored") && ok;
+
+    request = defaultSearchRequest();
+    request.name = "alP";
+    request.nameLen = 3;
+    ok = expectTrue(SearchPlayerMatchesRequest(player, request), "case-insensitive name prefix accepts player") && ok;
+
+    request.name = "alphabet";
+    request.nameLen = 8;
+    ok = expectTrue(!SearchPlayerMatchesRequest(player, request), "overlong name prefix rejects player") && ok;
+
+    request = defaultSearchRequest();
+    player.gmHidden = true;
+    ok = expectTrue(!SearchPlayerMatchesRequest(player, request), "GM-hidden player rejects broad search") && ok;
+
+    return ok;
+}
+
+auto testSearchPlayerFilterFlagsAndUnityRules() -> bool
+{
+    bool ok = true;
+    auto player = defaultSearchEntity();
+    auto request = defaultSearchRequest();
+
+    request.flags = 0x0100;
+    ok = expectTrue(SearchPlayerMatchesRequest(player, request), "normal flag match accepts player") && ok;
+
+    request.flags = 0x0200;
+    ok = expectTrue(!SearchPlayerMatchesRequest(player, request), "normal flag miss rejects player") && ok;
+
+    request.flags = 9U << 22;
+    ok = expectTrue(SearchPlayerMatchesRequest(player, request), "unity flag match accepts player") && ok;
+
+    request.flags = (9U << 22) | 0x0200;
+    ok = expectTrue(SearchPlayerMatchesRequest(player, request), "unity flag match ignores lower flag miss") && ok;
+
+    request.flags = 8U << 22;
+    ok = expectTrue(!SearchPlayerMatchesRequest(player, request), "unity flag miss rejects player") && ok;
+
+    return ok;
+}
+
 auto testAcceptedPacketCopiesBytesAndSize() -> bool
 {
     const auto expected = std::array<std::uint8_t, 5>{ 0x10, 0x20, 0x30, 0x40, 0x50 };
@@ -415,6 +550,10 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchSessionTrackerCountsActiveIP() &&
            testSearchSessionTrackerRemovesAndErasesIP() &&
            testSearchSessionTrackerIgnoresWhitelistedIP() &&
+           testSearchPlayerFilterAcceptsDefaultRequest() &&
+           testSearchPlayerFilterLinkshellAndAnonRules() &&
+           testSearchPlayerFilterRaceRankLevelNameAndHiddenRules() &&
+           testSearchPlayerFilterFlagsAndUnityRules() &&
            testAcceptedPacketCopiesBytesAndSize() &&
            testMaxSizePacketIsAccepted() &&
            testShortPacketCopiesPrefixAndSize() &&

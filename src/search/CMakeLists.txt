@@ -18,6 +18,8 @@ set(SOURCES
     search_packet_crypto.h
     search_packet_hash.cpp
     search_packet_hash.h
+    search_player_filter.cpp
+    search_player_filter.h
     search_request_parser.cpp
     search_request_type.cpp
     search_request_type.h
