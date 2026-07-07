@@ -767,6 +767,20 @@ auto testSearchPlayerStateLeavesCurrentZoneAndClearsMonstrosityJobs() -> bool
     return ok;
 }
 
+auto testSearchRankForNationSelectsNationRank() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualInt(SearchRankForNation(0, 3, 5, 7), 3, "san d'oria rank selected") && ok;
+    ok      = expectEqualInt(SearchRankForNation(1, 3, 5, 7), 5, "bastok rank selected") && ok;
+    ok      = expectEqualInt(SearchRankForNation(2, 3, 5, 7), 7, "windurst rank selected") && ok;
+    return ok;
+}
+
+auto testSearchRankForNationDefaultsInvalidNationToZero() -> bool
+{
+    return expectEqualInt(SearchRankForNation(3, 3, 5, 7), 0, "invalid nation rank");
+}
+
 auto testSearchPartyMemberStateNormalizesPartyFlagsOnly() -> bool
 {
     auto player = defaultSearchEntity();
@@ -936,6 +950,8 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchPlayerStateNormalizesFlagsAndZone() &&
            testSearchPlayerStateSetsPartyMemberWithoutLeader() &&
            testSearchPlayerStateLeavesCurrentZoneAndClearsMonstrosityJobs() &&
+           testSearchRankForNationSelectsNationRank() &&
+           testSearchRankForNationDefaultsInvalidNationToZero() &&
            testSearchPartyMemberStateNormalizesPartyFlagsOnly() &&
            testSearchPartyMemberStateSetsMemberWithoutLeader() &&
            testSearchLinkshellMemberStateNormalizesLinkshellFlagsOnly() &&

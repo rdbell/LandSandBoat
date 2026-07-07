@@ -1,5 +1,6 @@
 #include "search_player_state.h"
 
+#include "common/logging.h"
 #include "common/mmo.h"
 #include "data_loader.h"
 
@@ -18,6 +19,22 @@ auto SearchSettingsFromInt(const uint32 settingsInt) -> SAVE_CONF
 }
 
 } // namespace
+
+auto SearchRankForNation(const uint8 nation, const uint8 rankSandoria, const uint8 rankBastok, const uint8 rankWindurst) -> uint8
+{
+    switch (nation)
+    {
+        case 0:
+            return rankSandoria;
+        case 1:
+            return rankBastok;
+        case 2:
+            return rankWindurst;
+        default:
+            ShowWarningFmt("Inconsistent player nation allegiance : {}", nation);
+            return static_cast<uint8>(0U);
+    }
+}
 
 void NormalizeSearchPlayerForList(SearchEntity& player, const uint32 settingsInt, const uint32 partyId)
 {

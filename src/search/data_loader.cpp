@@ -183,23 +183,10 @@ std::list<SearchEntity*> CDataLoader::GetPlayersList(search_req sr, int* count)
             PPlayer->slvl     = rset->get<uint8>("slvl");
             PPlayer->race     = rset->get<uint8>("race");
 
-            // TODO: Use a nation enum?
-            switch (PPlayer->nation)
-            {
-                case 0:
-                    PPlayer->rank = rset->get<uint8>("rank_sandoria");
-                    break;
-                case 1:
-                    PPlayer->rank = rset->get<uint8>("rank_bastok");
-                    break;
-                case 2:
-                    PPlayer->rank = rset->get<uint8>("rank_windurst");
-                    break;
-                default:
-                    ShowWarningFmt("Inconsistent player nation allegiance : {}", PPlayer->nation);
-                    PPlayer->rank = static_cast<uint8>(0U);
-                    break;
-            }
+            PPlayer->rank = SearchRankForNation(PPlayer->nation,
+                                                rset->get<uint8>("rank_sandoria"),
+                                                rset->get<uint8>("rank_bastok"),
+                                                rset->get<uint8>("rank_windurst"));
 
             const auto settingsInt = rset->get<uint32>("settings");
             PPlayer->languages     = rset->get<uint8>("languages");
@@ -264,23 +251,10 @@ std::list<SearchEntity*> CDataLoader::GetPartyList(uint32 PartyID, uint32 Allian
             PPlayer->slvl   = rset->get<uint8>("slvl");
             PPlayer->race   = rset->get<uint8>("race");
 
-            // TODO: Use a nation enum?
-            switch (PPlayer->nation)
-            {
-                case 0:
-                    PPlayer->rank = rset->get<uint8>("rank_sandoria");
-                    break;
-                case 1:
-                    PPlayer->rank = rset->get<uint8>("rank_bastok");
-                    break;
-                case 2:
-                    PPlayer->rank = rset->get<uint8>("rank_windurst");
-                    break;
-                default:
-                    ShowWarningFmt("Inconsistent player nation allegiance : {}", PPlayer->nation);
-                    PPlayer->rank = static_cast<uint8>(0U);
-                    break;
-            }
+            PPlayer->rank = SearchRankForNation(PPlayer->nation,
+                                                rset->get<uint8>("rank_sandoria"),
+                                                rset->get<uint8>("rank_bastok"),
+                                                rset->get<uint8>("rank_windurst"));
 
             const auto settingsInt = rset->get<uint32>("settings");
             PPlayer->languages     = rset->get<uint8>("languages");
@@ -323,23 +297,10 @@ std::list<SearchEntity*> CDataLoader::GetLinkshellList(uint32 LinkshellID)
             PPlayer->slvl   = rset->get<uint8>("slvl");
             PPlayer->race   = rset->get<uint8>("race");
 
-            // TODO: Use a nation enum?
-            switch (PPlayer->nation)
-            {
-                case 0:
-                    PPlayer->rank = rset->get<uint8>("rank_sandoria");
-                    break;
-                case 1:
-                    PPlayer->rank = rset->get<uint8>("rank_bastok");
-                    break;
-                case 2:
-                    PPlayer->rank = rset->get<uint8>("rank_windurst");
-                    break;
-                default:
-                    ShowWarningFmt("Inconsistent player nation allegiance : {}", PPlayer->nation);
-                    PPlayer->rank = (uint8)0;
-                    break;
-            }
+            PPlayer->rank = SearchRankForNation(PPlayer->nation,
+                                                rset->get<uint8>("rank_sandoria"),
+                                                rset->get<uint8>("rank_bastok"),
+                                                rset->get<uint8>("rank_windurst"));
 
             PPlayer->linkshellid1   = rset->get<uint32>("linkshellid1");
             PPlayer->linkshellid2   = rset->get<uint32>("linkshellid2");
