@@ -538,6 +538,45 @@ auto testSearchPlayerCountQueryCountsAllSessionsForInvalidJobs() -> bool
     return ok;
 }
 
+auto testSearchPlayerListQueryBuildsBaseQuery() -> bool
+{
+    return expectEqualString(
+        BuildSearchPlayerListQuery(""),
+        "SELECT charid, partyid, charname, pos_zone, pos_prevzone, nation, rank_sandoria, rank_bastok, unity_leader, "
+        "rank_windurst, race, mjob, sjob, mlvl, slvl, languages, settings, seacom_type, disconnecting, gmHiddenEnabled, muted, "
+        "linkshellid1, linkshellid2 "
+        "FROM accounts_sessions "
+        "LEFT JOIN accounts_parties USING (charid) "
+        "LEFT JOIN chars USING (charid) "
+        "LEFT JOIN char_look USING (charid) "
+        "LEFT JOIN char_stats USING (charid) "
+        "LEFT JOIN char_profile USING(charid) "
+        "LEFT JOIN char_flags USING(charid) "
+        "WHERE charname IS NOT NULL "
+        " ORDER BY charname ASC",
+        "player list base query");
+}
+
+auto testSearchPlayerListQueryAppendsFilterBeforeOrder() -> bool
+{
+    return expectEqualString(
+        BuildSearchPlayerListQuery(" AND  mjob = 7"),
+        "SELECT charid, partyid, charname, pos_zone, pos_prevzone, nation, rank_sandoria, rank_bastok, unity_leader, "
+        "rank_windurst, race, mjob, sjob, mlvl, slvl, languages, settings, seacom_type, disconnecting, gmHiddenEnabled, muted, "
+        "linkshellid1, linkshellid2 "
+        "FROM accounts_sessions "
+        "LEFT JOIN accounts_parties USING (charid) "
+        "LEFT JOIN chars USING (charid) "
+        "LEFT JOIN char_look USING (charid) "
+        "LEFT JOIN char_stats USING (charid) "
+        "LEFT JOIN char_profile USING(charid) "
+        "LEFT JOIN char_flags USING(charid) "
+        "WHERE charname IS NOT NULL "
+        " AND  mjob = 7"
+        " ORDER BY charname ASC",
+        "player list filtered query");
+}
+
 auto testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() -> bool
 {
     bool ok = true;
@@ -807,6 +846,8 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchPlayerQueryFilterBuildsRepresentativeFragment() &&
            testSearchPlayerCountQueryUsesJobFilterForValidJobs() &&
            testSearchPlayerCountQueryCountsAllSessionsForInvalidJobs() &&
+           testSearchPlayerListQueryBuildsBaseQuery() &&
+           testSearchPlayerListQueryAppendsFilterBeforeOrder() &&
            testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() &&
            testSearchPlayerQueryFilterCapsZoneListAtTenAndStopsAtZero() &&
            testSearchPlayerStateNormalizesFlagsAndZone() &&

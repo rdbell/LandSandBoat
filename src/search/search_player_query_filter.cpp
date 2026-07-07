@@ -22,6 +22,26 @@ auto BuildSearchPlayerCountQuery(const search_req& request) -> SearchPlayerCount
     };
 }
 
+auto BuildSearchPlayerListQuery(const std::string& filterQuery) -> std::string
+{
+    std::string query =
+        "SELECT charid, partyid, charname, pos_zone, pos_prevzone, nation, rank_sandoria, rank_bastok, unity_leader, "
+        "rank_windurst, race, mjob, sjob, mlvl, slvl, languages, settings, seacom_type, disconnecting, gmHiddenEnabled, muted, "
+        "linkshellid1, linkshellid2 "
+        "FROM accounts_sessions "
+        "LEFT JOIN accounts_parties USING (charid) "
+        "LEFT JOIN chars USING (charid) "
+        "LEFT JOIN char_look USING (charid) "
+        "LEFT JOIN char_stats USING (charid) "
+        "LEFT JOIN char_profile USING(charid) "
+        "LEFT JOIN char_flags USING(charid) "
+        "WHERE charname IS NOT NULL ";
+
+    query.append(filterQuery);
+    query.append(" ORDER BY charname ASC");
+    return query;
+}
+
 auto BuildSearchPlayerQueryFilter(const search_req& request) -> std::string
 {
     std::string filterQuery;

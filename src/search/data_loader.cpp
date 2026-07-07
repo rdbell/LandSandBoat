@@ -170,22 +170,7 @@ std::list<SearchEntity*> CDataLoader::GetPlayersList(search_req sr, int* count)
 {
     std::list<SearchEntity*> PlayersList;
     std::string              filterQry = BuildSearchPlayerQueryFilter(sr);
-
-    std::string fmtQuery =
-        "SELECT charid, partyid, charname, pos_zone, pos_prevzone, nation, rank_sandoria, rank_bastok, unity_leader, "
-        "rank_windurst, race, mjob, sjob, mlvl, slvl, languages, settings, seacom_type, disconnecting, gmHiddenEnabled, muted, "
-        "linkshellid1, linkshellid2 "
-        "FROM accounts_sessions "
-        "LEFT JOIN accounts_parties USING (charid) "
-        "LEFT JOIN chars USING (charid) "
-        "LEFT JOIN char_look USING (charid) "
-        "LEFT JOIN char_stats USING (charid) "
-        "LEFT JOIN char_profile USING(charid) "
-        "LEFT JOIN char_flags USING(charid) "
-        "WHERE charname IS NOT NULL ";
-
-    fmtQuery.append(filterQry);
-    fmtQuery.append(" ORDER BY charname ASC");
+    std::string              fmtQuery = BuildSearchPlayerListQuery(filterQry);
 
     auto rset = db::preparedStmt(fmtQuery);
     if (rset && rset->rowsCount())

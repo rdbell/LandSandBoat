@@ -14,4 +14,5 @@ struct SearchPlayerCountQuery
 };
 
 auto BuildSearchPlayerCountQuery(const search_req& request) -> SearchPlayerCountQuery;
+auto BuildSearchPlayerListQuery(const std::string& filterQuery) -> std::string;
 auto BuildSearchPlayerQueryFilter(const search_req& request) -> std::string;
