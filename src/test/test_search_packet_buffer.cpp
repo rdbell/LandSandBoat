@@ -169,6 +169,32 @@ auto testSearchAuctionExpirationPlanEnabled() -> bool
     return ok;
 }
 
+auto testSearchAuctionInitializationPlanDisabled() -> bool
+{
+    const auto plan = BuildSearchAuctionInitializationPlan({
+        .enabled        = false,
+        .expirationDays = 14,
+    });
+
+    bool ok = true;
+    ok      = expectTrue(!plan.runInitialCleanup, "disabled search auction initial cleanup") && ok;
+    ok      = expectEqualInt(plan.expirationDays, 0, "disabled search auction initial cleanup days") && ok;
+    return ok;
+}
+
+auto testSearchAuctionInitializationPlanEnabled() -> bool
+{
+    const auto plan = BuildSearchAuctionInitializationPlan({
+        .enabled        = true,
+        .expirationDays = 21,
+    });
+
+    bool ok = true;
+    ok      = expectTrue(plan.runInitialCleanup, "enabled search auction initial cleanup") && ok;
+    ok      = expectEqualInt(plan.expirationDays, 21, "enabled search auction initial cleanup days") && ok;
+    return ok;
+}
+
 auto testSearchAuctionExpirationDaysUsesOptionalFallback() -> bool
 {
     bool ok = true;
@@ -979,6 +1005,8 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchApplicationConsoleCommandDescriptors() &&
            testSearchAuctionExpirationPlanDisabled() &&
            testSearchAuctionExpirationPlanEnabled() &&
+           testSearchAuctionInitializationPlanDisabled() &&
+           testSearchAuctionInitializationPlanEnabled() &&
            testSearchAuctionExpirationDaysUsesOptionalFallback() &&
            testRequestTypeStrings() &&
            testPacketHashValidationAcceptsMatchingDigest() &&

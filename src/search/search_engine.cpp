@@ -61,12 +61,21 @@ SearchEngine::~SearchEngine()
 
 void SearchEngine::onInitialize()
 {
-    if (settings::get<bool>("search.EXPIRE_AUCTIONS"))
+    auto initializationSettings = SearchAuctionInitializationSettings{
+        .enabled = settings::get<bool>("search.EXPIRE_AUCTIONS"),
+    };
+    if (initializationSettings.enabled)
     {
-        ShowInfoFmt("AH task to return items older than {} days is running", settings::get<uint16>("search.EXPIRE_DAYS"));
+        initializationSettings.expirationDays = settings::get<uint16>("search.EXPIRE_DAYS");
+    }
+
+    const auto initializationPlan = BuildSearchAuctionInitializationPlan(initializationSettings);
+    if (initializationPlan.runInitialCleanup)
+    {
+        ShowInfoFmt("AH task to return items older than {} days is running", initializationPlan.expirationDays);
 
         scheduler_.postToWorkerThread(
-            [this, days = settings::get<uint16>("search.EXPIRE_DAYS")]
+            [this, days = initializationPlan.expirationDays]
             {
                 expireAH(days);
             });

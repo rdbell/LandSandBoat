@@ -13,6 +13,19 @@ auto BuildSearchAuctionExpirationPlan(const SearchAuctionExpirationSettings& set
     };
 }
 
+auto BuildSearchAuctionInitializationPlan(const SearchAuctionInitializationSettings& settings) -> SearchAuctionInitializationPlan
+{
+    if (!settings.enabled)
+    {
+        return {};
+    }
+
+    return SearchAuctionInitializationPlan{
+        .runInitialCleanup = true,
+        .expirationDays    = settings.expirationDays,
+    };
+}
+
 auto SearchAuctionExpirationDays(const Maybe<uint16> days) -> uint16
 {
     return days.value_or(0);
