@@ -107,6 +107,7 @@ auto runMapConfigConstantsSelfTests() -> bool;
 auto runMapZoneEnumPrimitiveSelfTests() -> bool;
 auto runSearchPacketBufferSelfTests() -> bool;
 auto runMapPacketBasicHeaderSelfTests() -> bool;
+auto runWorldCharacterCacheSelfTests() -> bool;
 auto runWorldZoneSettingsSelfTests() -> bool;
 auto runC2SPacketValidationScalarSelfTests() -> bool;
 auto runC2SPacketIDEnumSelfTests() -> bool;
@@ -355,6 +356,7 @@ namespace
         ok = runSettingsValueConversionsSelfTests() && ok;
         ok = runLoginPacketHashSelfTests() && ok;
         ok = runLoginJSONGetSelfTests() && ok;
+        ok = runWorldCharacterCacheSelfTests() && ok;
         ok = runWorldZoneSettingsSelfTests() && ok;
         ok = runMariaDBConnectionLossSelfTests() && ok;
         ok = runMariaDBResultCellConversionsSelfTests() && ok;
