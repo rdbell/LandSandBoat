@@ -261,6 +261,8 @@ set(SOURCES
     test_map_packet_basic_header.cpp
     test_world_character_cache.h
     test_world_character_cache.cpp
+    test_world_daily_tally.h
+    test_world_daily_tally.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h
