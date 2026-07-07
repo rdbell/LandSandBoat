@@ -34,12 +34,14 @@
 #include "common/blowfish.h"
 #include "common/logging.h"
 #include "common/md52.h"
+#include "common/mmo.h"
 #include "common/types/maybe.h"
 #include "search/data_loader.h"
 #include "search/search_packet_crypto.h"
 #include "search/search_packet_hash.h"
 #include "search/search_player_filter.h"
 #include "search/search_player_query_filter.h"
+#include "search/search_player_state.h"
 #include "search/search.h"
 #include "search/search_request_type.h"
 #include "search/search_session_tracker.h"
@@ -546,6 +548,71 @@ auto testSearchPlayerQueryFilterCapsZoneListAtTenAndStopsAtZero() -> bool
     return ok;
 }
 
+auto testSearchPlayerStateNormalizesFlagsAndZone() -> bool
+{
+    auto player = defaultSearchEntity();
+    player.zone = 0;
+    player.prevzone = 245;
+    player.seacom_type = 0x40;
+    player.disconnecting = true;
+    player.muted = true;
+    player.flags1 = 0x0004;
+
+    auto settings = SAVE_CONF{};
+    settings.MentorFlg = 1;
+    settings.AwayFlg = 1;
+    settings.AnonymityFlg = 1;
+    settings.InviteFlg = 1;
+    const auto settingsBytes = settings;
+    uint32 settingsInt = 0;
+    std::memcpy(&settingsInt, &settingsBytes, sizeof(uint32));
+
+    NormalizeSearchPlayerForList(player, settingsInt, player.id);
+
+    bool ok = true;
+    ok = expectEqualInt(player.zone, 245, "normalized previous zone") && ok;
+    ok = expectTrue(player.mentor, "normalized mentor flag") && ok;
+    ok = expectEqualInt(player.flags1, 0x2000E91D, "normalized search flags1") && ok;
+    ok = expectEqualInt(player.flags2, player.flags1, "normalized search flags2 mirror") && ok;
+    return ok;
+}
+
+auto testSearchPlayerStateSetsPartyMemberWithoutLeader() -> bool
+{
+    auto player = defaultSearchEntity();
+
+    NormalizeSearchPlayerForList(player, 0, player.id + 1);
+
+    bool ok = true;
+    ok = expectEqualInt(player.flags1, 0x2100, "party member flag without leader flag") && ok;
+    ok = expectEqualInt(player.flags2, player.flags1, "party member flags2 mirror") && ok;
+    return ok;
+}
+
+auto testSearchPlayerStateLeavesCurrentZoneAndClearsMonstrosityJobs() -> bool
+{
+    auto player = defaultSearchEntity();
+    player.zone = 230;
+    player.prevzone = 245;
+    player.mjob = 23;
+    player.sjob = 3;
+
+    NormalizeSearchPlayerForList(player, 0, 0);
+
+    bool ok = true;
+    ok = expectEqualInt(player.zone, 230, "current zone retained") && ok;
+    ok = expectEqualInt(player.mjob, 0, "monstrosity main job cleared") && ok;
+    ok = expectEqualInt(player.sjob, 0, "monstrosity sub job cleared") && ok;
+
+    player = defaultSearchEntity();
+    player.mjob = 7;
+    player.sjob = 23;
+    NormalizeSearchPlayerForList(player, 0, 0);
+    ok = expectEqualInt(player.mjob, 0, "monstrosity sub clears main job") && ok;
+    ok = expectEqualInt(player.sjob, 0, "monstrosity sub job cleared") && ok;
+    return ok;
+}
+
 auto testAcceptedPacketCopiesBytesAndSize() -> bool
 {
     const auto expected = std::array<std::uint8_t, 5>{ 0x10, 0x20, 0x30, 0x40, 0x50 };
@@ -619,6 +686,9 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchPlayerQueryFilterBuildsRepresentativeFragment() &&
            testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() &&
            testSearchPlayerQueryFilterCapsZoneListAtTenAndStopsAtZero() &&
+           testSearchPlayerStateNormalizesFlagsAndZone() &&
+           testSearchPlayerStateSetsPartyMemberWithoutLeader() &&
+           testSearchPlayerStateLeavesCurrentZoneAndClearsMonstrosityJobs() &&
            testAcceptedPacketCopiesBytesAndSize() &&
            testMaxSizePacketIsAccepted() &&
            testShortPacketCopiesPrefixAndSize() &&

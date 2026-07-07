@@ -32,13 +32,7 @@
 #include "search.h"
 #include "search_player_filter.h"
 #include "search_player_query_filter.h"
-
-namespace
-{
-
-uint8 JOB_MON = 23;
-
-} // namespace
+#include "search_player_state.h"
 
 CDataLoader::CDataLoader()
 {
@@ -269,13 +263,8 @@ std::list<SearchEntity*> CDataLoader::GetPlayersList(search_req sr, int* count)
                     break;
             }
 
-            uint32    settingsInt    = rset->get<uint32>("settings");
-            SAVE_CONF playerSettings = {};
-            std::memcpy(&playerSettings, &settingsInt, sizeof(uint32));
-
-            PPlayer->zone          = (PPlayer->zone == 0 ? PPlayer->prevzone : PPlayer->zone);
+            const auto settingsInt = rset->get<uint32>("settings");
             PPlayer->languages     = rset->get<uint8>("languages");
-            PPlayer->mentor        = playerSettings.MentorFlg;
             PPlayer->linkshellid1  = rset->get<uint32>("linkshellid1");
             PPlayer->linkshellid2  = rset->get<uint32>("linkshellid2");
             PPlayer->seacom_type   = rset->get<uint8>("seacom_type");
@@ -285,58 +274,7 @@ std::list<SearchEntity*> CDataLoader::GetPlayersList(search_req sr, int* count)
             PPlayer->unityLeader   = rset->get<uint8>("unity_leader");
             const auto partyid     = rset->getOrDefault<uint32>("partyid", 0);
 
-            if (PPlayer->mentor)
-            {
-                PPlayer->flags1 |= 0x0001;
-            }
-
-            if (partyid == PPlayer->id)
-            {
-                PPlayer->flags1 |= 0x0008;
-            }
-
-            if (PPlayer->seacom_type)
-            {
-                PPlayer->flags1 |= 0x0010;
-            }
-
-            if (playerSettings.AwayFlg)
-            {
-                PPlayer->flags1 |= 0x0100;
-            }
-
-            if (PPlayer->disconnecting)
-            {
-                PPlayer->flags1 |= 0x0800;
-            }
-
-            if (partyid != 0)
-            {
-                PPlayer->flags1 |= 0x2000;
-            }
-
-            if (playerSettings.AnonymityFlg)
-            {
-                PPlayer->flags1 |= 0x4000;
-            }
-
-            if (playerSettings.InviteFlg)
-            {
-                PPlayer->flags1 |= 0x8000;
-            }
-
-            if (PPlayer->muted)
-            {
-                PPlayer->flags1 |= 0x20000000;
-            }
-
-            PPlayer->flags2 = PPlayer->flags1;
-
-            if (PPlayer->mjob == JOB_MON || PPlayer->sjob == JOB_MON)
-            {
-                PPlayer->mjob = 0;
-                PPlayer->sjob = 0;
-            }
+            NormalizeSearchPlayerForList(*PPlayer, settingsInt, partyid);
 
             if (!SearchPlayerMatchesRequest(*PPlayer, sr))
             {
