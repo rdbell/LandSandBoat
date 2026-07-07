@@ -569,6 +569,8 @@ set(SOURCES
     test_xirand_helpers.cpp
     test_zlib_compressed_size.h
     test_zlib_compressed_size.cpp
+    test_zlib_codec.h
+    test_zlib_codec.cpp
     test_zmq_endpoint_opened.h
     test_zmq_endpoint_opened.cpp
 )

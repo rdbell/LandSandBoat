@@ -54,6 +54,7 @@ auto runMMOSearchBazaarSelfTests() -> bool;
 auto runMMOStatsSkillsSelfTests() -> bool;
 auto runUUIDGenerationSelfTests() -> bool;
 auto runZlibCompressedSizeSelfTests() -> bool;
+auto runZlibCodecSelfTests() -> bool;
 auto runFileUtilsSelfTests() -> bool;
 auto runRateLimitUtilsSelfTests() -> bool;
 auto runArgumentsParserSelfTests() -> bool;
@@ -331,6 +332,7 @@ namespace
         ok = runMMOStatsSkillsSelfTests() && ok;
         ok = runUUIDGenerationSelfTests() && ok;
         ok = runZlibCompressedSizeSelfTests() && ok;
+        ok = runZlibCodecSelfTests() && ok;
         ok = runFileUtilsSelfTests() && ok;
         ok = runRateLimitUtilsSelfTests() && ok;
         ok = runArgumentsParserSelfTests() && ok;
