@@ -259,6 +259,8 @@ set(SOURCES
     test_map_msg_basic_enum.cpp
     test_map_packet_basic_header.h
     test_map_packet_basic_header.cpp
+    test_world_zone_settings.h
+    test_world_zone_settings.cpp
     test_mariadb_connection_loss.h
     test_mariadb_connection_loss.cpp
     test_mariadb_result_cell_conversions.h
