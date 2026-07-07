@@ -297,6 +297,8 @@ set(SOURCES
     test_s2c_char_status_packet.cpp
     test_s2c_char_sync_packet.h
     test_s2c_char_sync_packet.cpp
+    test_s2c_char_update_packet.h
+    test_s2c_char_update_packet.cpp
     test_s2c_chat_std_packet.h
     test_s2c_chat_std_packet.cpp
     test_s2c_chocobo_racing_packets.h
