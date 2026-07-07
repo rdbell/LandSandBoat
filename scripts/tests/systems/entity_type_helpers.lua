@@ -2,12 +2,21 @@ describe('Base entity type helper bindings', function()
     ---@type CClientEntityPair
     local player
 
+    ---@type CTestEntity
+    local mob
+
     before_each(function()
         player = xi.test.world:spawnPlayer({
             zone  = xi.zone.WEST_RONFAURE,
             job   = xi.job.SMN,
             level = 99,
         })
+    end)
+
+    after_each(function()
+        if mob then
+            mob:setAllegiance(0)
+        end
     end)
 
     it('classifies real player, pet, trust, npc, and mob entities', function()
@@ -34,7 +43,7 @@ describe('Base entity type helper bindings', function()
         assert(trust, 'Valaineral was not summoned')
 
         local npc = player.entities:get('Field_Manual')
-        local mob = player.entities:moveTo('Wild_Rabbit')
+        mob = player.entities:moveTo('Wild_Rabbit')
 
         assert(npc, 'Field Manual NPC was not found')
         assert(mob, 'Wild Rabbit mob was not found')
