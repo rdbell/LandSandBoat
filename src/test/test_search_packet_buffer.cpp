@@ -38,6 +38,7 @@
 #include "common/types/maybe.h"
 #include "search/data_loader.h"
 #include "search/search_application_config.h"
+#include "search/search_engine_config.h"
 #include "search/search_packet_crypto.h"
 #include "search/search_packet_hash.h"
 #include "search/search_player_filter.h"
@@ -139,6 +140,40 @@ auto testSearchApplicationConsoleCommandDescriptors() -> bool
     ok      = expectEqualString(commands[0].description, "AH task to return items older than 14 days", "search ah cleanup command description") && ok;
     ok      = expectEqualString(commands[1].name, "expire_all", "search expire all command name") && ok;
     ok      = expectEqualString(commands[1].description, "Force-expire all items on the AH, returning to sender", "search expire all command description") && ok;
+    return ok;
+}
+
+auto testSearchAuctionExpirationPlanDisabled() -> bool
+{
+    const auto plan = BuildSearchAuctionExpirationPlan({
+        .enabled         = false,
+        .intervalSeconds = 30,
+    });
+
+    bool ok = true;
+    ok      = expectTrue(!plan.schedulePeriodicCleanup, "disabled search auction expiration schedule") && ok;
+    ok      = expectEqualInt(plan.intervalSeconds, 0, "disabled search auction expiration interval") && ok;
+    return ok;
+}
+
+auto testSearchAuctionExpirationPlanEnabled() -> bool
+{
+    const auto plan = BuildSearchAuctionExpirationPlan({
+        .enabled         = true,
+        .intervalSeconds = 900,
+    });
+
+    bool ok = true;
+    ok      = expectTrue(plan.schedulePeriodicCleanup, "enabled search auction expiration schedule") && ok;
+    ok      = expectEqualInt(plan.intervalSeconds, 900, "enabled search auction expiration interval") && ok;
+    return ok;
+}
+
+auto testSearchAuctionExpirationDaysUsesOptionalFallback() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualInt(SearchAuctionExpirationDays(Maybe<uint16>(21)), 21, "search auction expiration explicit days") && ok;
+    ok      = expectEqualInt(SearchAuctionExpirationDays(std::nullopt), 0, "search auction expiration all-days fallback") && ok;
     return ok;
 }
 
@@ -942,6 +977,9 @@ auto runSearchPacketBufferSelfTests() -> bool
     return testRequestTypeConstants() &&
            testSearchApplicationServerName() &&
            testSearchApplicationConsoleCommandDescriptors() &&
+           testSearchAuctionExpirationPlanDisabled() &&
+           testSearchAuctionExpirationPlanEnabled() &&
+           testSearchAuctionExpirationDaysUsesOptionalFallback() &&
            testRequestTypeStrings() &&
            testPacketHashValidationAcceptsMatchingDigest() &&
            testPacketHashValidationRejectsDigestMismatch() &&

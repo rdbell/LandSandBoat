@@ -16,6 +16,8 @@ set(SOURCES
     search_application.cpp
     search_engine.h
     search_engine.cpp
+    search_engine_config.h
+    search_engine_config.cpp
     search_handler.h
     search_handler.cpp
     search_packet_crypto.cpp

@@ -22,6 +22,7 @@
 #include "search_engine.h"
 #include "common/lua.h"
 #include "data_loader.h"
+#include "search_engine_config.h"
 
 SearchEngine::SearchEngine(Scheduler& scheduler)
 : scheduler_(scheduler)
@@ -38,9 +39,13 @@ SearchEngine::SearchEngine(Scheduler& scheduler)
             });
     }
 
-    if (settings::get<bool>("search.EXPIRE_AUCTIONS"))
+    const auto expirationPlan = BuildSearchAuctionExpirationPlan({
+        .enabled         = settings::get<bool>("search.EXPIRE_AUCTIONS"),
+        .intervalSeconds = settings::get<uint32>("search.EXPIRE_INTERVAL"),
+    });
+    if (expirationPlan.schedulePeriodicCleanup)
     {
-        const auto interval   = std::chrono::seconds(settings::get<uint32>("search.EXPIRE_INTERVAL"));
+        const auto interval   = std::chrono::seconds(expirationPlan.intervalSeconds);
         periodicCleanupToken_ = scheduler_.intervalOnMainThread(
             interval,
             [this]()
@@ -81,5 +86,5 @@ void SearchEngine::onExpireAll(std::vector<std::string>& inputs) const
 void SearchEngine::expireAH(const Maybe<uint16> days) const
 {
     CDataLoader data;
-    data.ExpireAHItems(days.value_or(0));
+    data.ExpireAHItems(SearchAuctionExpirationDays(days));
 }
