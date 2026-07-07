@@ -39,6 +39,7 @@
 #include "packets/search_list.h"
 #include "search_packet_crypto.h"
 #include "search_packet_hash.h"
+#include "search_handler_dispatch.h"
 #include "search_session_tracker.h"
 
 SearchHandler::SearchHandler(Scheduler& scheduler, asio::ip::tcp::socket socket, SynchronizedShared<std::map<std::string, uint16_t>>& IPAddressesInUseList, SynchronizedShared<std::unordered_set<std::string>>& IPAddressWhitelist)
@@ -158,7 +159,7 @@ bool SearchHandler::validatePacket(uint16_t length)
 
 void SearchHandler::read_func(uint16_t length)
 {
-    if (length != ref<uint16>(buffer_.data(), 0x00) || length < 28)
+    if (!IsSearchPacketFrameLengthValid(length, ref<uint16>(buffer_.data(), 0x00)))
     {
         ShowErrorFmt("Search packetsize wrong. Size {} should be {}.", length, ref<uint16>(buffer_.data(), 0x00));
         return;
@@ -172,37 +173,34 @@ void SearchHandler::read_func(uint16_t length)
 
         ShowInfoFmt("Search Request: {} ({}), size: {}, ip: {}", SearchRequestTypeToString(packetType), packetType, length, ipAddress_);
 
-        switch (packetType)
+        switch (SearchHandlerDispatchForRequestType(packetType))
         {
-            case TCP_SEARCH:
-            case TCP_SEARCH_ALL:
+            case SearchHandlerDispatch::SearchRequest:
             {
                 HandleSearchRequest();
             }
             break;
-            case TCP_SEARCH_COMMENT:
+            case SearchHandlerDispatch::SearchComment:
             {
                 HandleSearchComment();
             }
             break;
-            case TCP_GROUP_LIST:
+            case SearchHandlerDispatch::GroupList:
             {
                 HandleGroupListRequest();
             }
             break;
-            case TCP_AH_REQUEST:
-            case TCP_AH_REQUEST_MORE:
+            case SearchHandlerDispatch::AuctionHouseRequest:
             {
                 HandleAuctionHouseRequest();
             }
             break;
-            case TCP_AH_HISTORY_SINGLE:
-            case TCP_AH_HISTORY_STACK:
+            case SearchHandlerDispatch::AuctionHouseHistory:
             {
                 HandleAuctionHouseHistory();
             }
             break;
-            default:
+            case SearchHandlerDispatch::Unknown:
             {
                 ShowErrorFmt("Unknown packet type: {}", packetType);
             }

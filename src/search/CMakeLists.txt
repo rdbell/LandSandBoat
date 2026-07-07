@@ -20,6 +20,8 @@ set(SOURCES
     search_engine_config.cpp
     search_handler.h
     search_handler.cpp
+    search_handler_dispatch.h
+    search_handler_dispatch.cpp
     search_packet_crypto.cpp
     search_packet_crypto.h
     search_packet_hash.cpp

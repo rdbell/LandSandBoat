@@ -39,6 +39,7 @@
 #include "search/data_loader.h"
 #include "search/search_application_config.h"
 #include "search/search_engine_config.h"
+#include "search/search_handler_dispatch.h"
 #include "search/search_packet_crypto.h"
 #include "search/search_packet_hash.h"
 #include "search/search_player_filter.h"
@@ -200,6 +201,31 @@ auto testSearchAuctionExpirationDaysUsesOptionalFallback() -> bool
     bool ok = true;
     ok      = expectEqualInt(SearchAuctionExpirationDays(Maybe<uint16>(21)), 21, "search auction expiration explicit days") && ok;
     ok      = expectEqualInt(SearchAuctionExpirationDays(std::nullopt), 0, "search auction expiration all-days fallback") && ok;
+    return ok;
+}
+
+auto testSearchHandlerFrameLengthValidation() -> bool
+{
+    bool ok = true;
+    ok      = expectTrue(IsSearchPacketFrameLengthValid(28, 28), "minimum search handler frame length") && ok;
+    ok      = expectTrue(IsSearchPacketFrameLengthValid(64, 64), "matching search handler frame length") && ok;
+    ok      = expectTrue(!IsSearchPacketFrameLengthValid(27, 27), "short search handler frame length") && ok;
+    ok      = expectTrue(!IsSearchPacketFrameLengthValid(64, 63), "mismatched search handler frame length") && ok;
+    return ok;
+}
+
+auto testSearchHandlerDispatchForRequestTypes() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualInt(static_cast<uint8>(SearchHandlerDispatchForRequestType(TCP_SEARCH)), static_cast<uint8>(SearchHandlerDispatch::SearchRequest), "TCP_SEARCH dispatch") && ok;
+    ok      = expectEqualInt(static_cast<uint8>(SearchHandlerDispatchForRequestType(TCP_SEARCH_ALL)), static_cast<uint8>(SearchHandlerDispatch::SearchRequest), "TCP_SEARCH_ALL dispatch") && ok;
+    ok      = expectEqualInt(static_cast<uint8>(SearchHandlerDispatchForRequestType(TCP_SEARCH_COMMENT)), static_cast<uint8>(SearchHandlerDispatch::SearchComment), "TCP_SEARCH_COMMENT dispatch") && ok;
+    ok      = expectEqualInt(static_cast<uint8>(SearchHandlerDispatchForRequestType(TCP_GROUP_LIST)), static_cast<uint8>(SearchHandlerDispatch::GroupList), "TCP_GROUP_LIST dispatch") && ok;
+    ok      = expectEqualInt(static_cast<uint8>(SearchHandlerDispatchForRequestType(TCP_AH_REQUEST)), static_cast<uint8>(SearchHandlerDispatch::AuctionHouseRequest), "TCP_AH_REQUEST dispatch") && ok;
+    ok      = expectEqualInt(static_cast<uint8>(SearchHandlerDispatchForRequestType(TCP_AH_REQUEST_MORE)), static_cast<uint8>(SearchHandlerDispatch::AuctionHouseRequest), "TCP_AH_REQUEST_MORE dispatch") && ok;
+    ok      = expectEqualInt(static_cast<uint8>(SearchHandlerDispatchForRequestType(TCP_AH_HISTORY_SINGLE)), static_cast<uint8>(SearchHandlerDispatch::AuctionHouseHistory), "TCP_AH_HISTORY_SINGLE dispatch") && ok;
+    ok      = expectEqualInt(static_cast<uint8>(SearchHandlerDispatchForRequestType(TCP_AH_HISTORY_STACK)), static_cast<uint8>(SearchHandlerDispatch::AuctionHouseHistory), "TCP_AH_HISTORY_STACK dispatch") && ok;
+    ok      = expectEqualInt(static_cast<uint8>(SearchHandlerDispatchForRequestType(0xFF)), static_cast<uint8>(SearchHandlerDispatch::Unknown), "unknown search handler dispatch") && ok;
     return ok;
 }
 
@@ -1008,6 +1034,8 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchAuctionInitializationPlanDisabled() &&
            testSearchAuctionInitializationPlanEnabled() &&
            testSearchAuctionExpirationDaysUsesOptionalFallback() &&
+           testSearchHandlerFrameLengthValidation() &&
+           testSearchHandlerDispatchForRequestTypes() &&
            testRequestTypeStrings() &&
            testPacketHashValidationAcceptsMatchingDigest() &&
            testPacketHashValidationRejectsDigestMismatch() &&
