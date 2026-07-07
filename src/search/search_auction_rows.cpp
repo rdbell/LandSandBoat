@@ -81,6 +81,18 @@ auto BuildExpiredAuctionSellerNameQuery(const uint32 sellerID) -> ExpiredAuction
     };
 }
 
+auto BuildExpiredAuctionDeliveryBoxQuery(const ListingToExpire& listing) -> ExpiredAuctionDeliveryBoxQuery
+{
+    return ExpiredAuctionDeliveryBoxQuery{
+        "INSERT INTO delivery_box (charid, charname, box, itemid, itemsubid, quantity, senderid, sender) VALUES "
+        "(?, ?, 1, ?, 0, ?, 0, 'AH-Jeuno')",
+        listing.sellerID,
+        listing.sellerName,
+        listing.itemID,
+        AuctionExpiredDeliveryQuantity(listing),
+    };
+}
+
 auto BuildAuctionItemFromIDRow(const uint16 itemID, const uint16 category, const uint32 singleAmount, const uint32 stackAmount) -> ahItem
 {
     auto item          = ahItem{};

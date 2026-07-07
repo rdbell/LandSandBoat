@@ -406,12 +406,12 @@ void CDataLoader::ExpireAHItems(uint16 expireAgeInDays)
                 listing.sellerName = rset1->get<std::string>("charname");
             }
 
-            const auto rset2 = db::preparedStmt("INSERT INTO delivery_box (charid, charname, box, itemid, itemsubid, quantity, senderid, sender) VALUES "
-                                                "(?, ?, 1, ?, 0, ?, 0, 'AH-Jeuno')",
-                                                listing.sellerID,
-                                                listing.sellerName,
-                                                listing.itemID,
-                                                AuctionExpiredDeliveryQuantity(listing));
+            const auto deliveryBoxQuery = BuildExpiredAuctionDeliveryBoxQuery(listing);
+            const auto rset2            = db::preparedStmt(deliveryBoxQuery.sql,
+                                                            deliveryBoxQuery.sellerID,
+                                                            deliveryBoxQuery.sellerName,
+                                                            deliveryBoxQuery.itemID,
+                                                            deliveryBoxQuery.quantity);
             if (rset2 && rset2->rowsAffected())
             {
                 // delete the item from the auction house

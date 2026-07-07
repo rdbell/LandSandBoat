@@ -370,6 +370,37 @@ auto testExpiredAuctionSellerNameQueryBuildsSQLAndParam() -> bool
     return ok;
 }
 
+auto testExpiredAuctionDeliveryBoxQueryBuildsSQLAndParams() -> bool
+{
+    auto listing        = BuildListingToExpire(11, 0x1234, 12, 1, 0x456789);
+    listing.sellerName = "Seller";
+    const auto query    = BuildExpiredAuctionDeliveryBoxQuery(listing);
+
+    bool ok = true;
+    ok      = expectEqualString(query.sql,
+                                "INSERT INTO delivery_box (charid, charname, box, itemid, itemsubid, quantity, senderid, sender) VALUES "
+                                "(?, ?, 1, ?, 0, ?, 0, 'AH-Jeuno')",
+                                "expired auction delivery-box query") &&
+         ok;
+    ok = expectEqualInt(query.sellerID, 0x456789, "expired auction delivery-box seller id") && ok;
+    ok = expectEqualString(query.sellerName, "Seller", "expired auction delivery-box seller name") && ok;
+    ok = expectEqualInt(query.itemID, 0x1234, "expired auction delivery-box item id") && ok;
+    ok = expectEqualInt(query.quantity, 12, "expired auction delivery-box stack quantity") && ok;
+    return ok;
+}
+
+auto testExpiredAuctionDeliveryBoxQueryUsesSingleQuantity() -> bool
+{
+    auto listing        = BuildListingToExpire(12, 0x4567, 12, 0, 0xABCDEF);
+    listing.sellerName = "SingleSeller";
+    const auto query    = BuildExpiredAuctionDeliveryBoxQuery(listing);
+
+    bool ok = true;
+    ok      = expectEqualInt(query.quantity, 1, "expired auction delivery-box single quantity") && ok;
+    ok      = expectEqualString(query.sellerName, "SingleSeller", "expired auction delivery-box single seller name") && ok;
+    return ok;
+}
+
 auto testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() -> bool
 {
     const auto empty  = BuildAuctionItemFromIDRow(0x2222, 0, 0, 0);
@@ -470,6 +501,8 @@ auto runSearchAuctionPacketSelfTests() -> bool
            testExpiredAuctionListingsQueryBuildsSQLAndCutoff() &&
            testExpiredAuctionListingsQueryUsesUnsignedCutoffArithmetic() &&
            testExpiredAuctionSellerNameQueryBuildsSQLAndParam() &&
+           testExpiredAuctionDeliveryBoxQueryBuildsSQLAndParams() &&
+           testExpiredAuctionDeliveryBoxQueryUsesSingleQuantity() &&
            testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() &&
            testAuctionHistoryRowsReverseForPacketOrder() &&
            testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows() &&
