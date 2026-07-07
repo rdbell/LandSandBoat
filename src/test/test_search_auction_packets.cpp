@@ -401,6 +401,19 @@ auto testExpiredAuctionDeliveryBoxQueryUsesSingleQuantity() -> bool
     return ok;
 }
 
+auto testExpiredAuctionDeleteListingQueryBuildsSQLAndParam() -> bool
+{
+    const auto query = BuildExpiredAuctionDeleteListingQuery(0x12345678);
+
+    bool ok = true;
+    ok      = expectEqualString(query.sql,
+                                "DELETE FROM auction_house WHERE id = ?",
+                                "expired auction delete listing query") &&
+         ok;
+    ok = expectEqualInt(query.saleID, 0x12345678, "expired auction delete listing sale id") && ok;
+    return ok;
+}
+
 auto testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() -> bool
 {
     const auto empty  = BuildAuctionItemFromIDRow(0x2222, 0, 0, 0);
@@ -503,6 +516,7 @@ auto runSearchAuctionPacketSelfTests() -> bool
            testExpiredAuctionSellerNameQueryBuildsSQLAndParam() &&
            testExpiredAuctionDeliveryBoxQueryBuildsSQLAndParams() &&
            testExpiredAuctionDeliveryBoxQueryUsesSingleQuantity() &&
+           testExpiredAuctionDeleteListingQueryBuildsSQLAndParam() &&
            testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() &&
            testAuctionHistoryRowsReverseForPacketOrder() &&
            testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows() &&

@@ -415,7 +415,8 @@ void CDataLoader::ExpireAHItems(uint16 expireAgeInDays)
             if (rset2 && rset2->rowsAffected())
             {
                 // delete the item from the auction house
-                db::preparedStmt("DELETE FROM auction_house WHERE id = ?", listing.saleID);
+                const auto deleteListingQuery = BuildExpiredAuctionDeleteListingQuery(listing.saleID);
+                db::preparedStmt(deleteListingQuery.sql, deleteListingQuery.saleID);
             }
         }
     }

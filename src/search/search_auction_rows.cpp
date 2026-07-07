@@ -93,6 +93,14 @@ auto BuildExpiredAuctionDeliveryBoxQuery(const ListingToExpire& listing) -> Expi
     };
 }
 
+auto BuildExpiredAuctionDeleteListingQuery(const uint32 saleID) -> ExpiredAuctionDeleteListingQuery
+{
+    return ExpiredAuctionDeleteListingQuery{
+        "DELETE FROM auction_house WHERE id = ?",
+        saleID,
+    };
+}
+
 auto BuildAuctionItemFromIDRow(const uint16 itemID, const uint16 category, const uint32 singleAmount, const uint32 stackAmount) -> ahItem
 {
     auto item          = ahItem{};
