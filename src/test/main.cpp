@@ -66,6 +66,7 @@ auto runDatabaseQueryHelpersSelfTests() -> bool;
 auto runLoggingUntrustedStringsSelfTests() -> bool;
 auto runLoggingBacktraceBufferSelfTests() -> bool;
 auto runLoginMalformedStringSelfTests() -> bool;
+auto runLoginCertHelpersSelfTests() -> bool;
 auto runLoginDisplayBitmasksSelfTests() -> bool;
 auto runLoginErrorPacketSelfTests() -> bool;
 auto runLoginOTPHelpersSelfTests() -> bool;
@@ -350,6 +351,7 @@ namespace
         ok = runLoggingUntrustedStringsSelfTests() && ok;
         ok = runLoggingBacktraceBufferSelfTests() && ok;
         ok = runLoginMalformedStringSelfTests() && ok;
+        ok = runLoginCertHelpersSelfTests() && ok;
         ok = runLoginDisplayBitmasksSelfTests() && ok;
         ok = runLoginErrorPacketSelfTests() && ok;
         ok = runLoginOTPHelpersSelfTests() && ok;

@@ -219,6 +219,8 @@ set(SOURCES
     test_logging_untrusted_strings.cpp
     test_login_auth_constants.h
     test_login_auth_constants.cpp
+    test_login_cert_helpers.h
+    test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
     test_login_display_bitmasks.cpp
     test_login_error_codes.h
