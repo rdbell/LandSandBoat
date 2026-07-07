@@ -26,6 +26,7 @@
 #include <iostream>
 #include <string>
 
+#include "search/auction_request_order.h"
 #include "search/data_loader.h"
 #include "search/packets/auction_history.h"
 #include "search/packets/auction_list.h"
@@ -56,6 +57,16 @@ auto expectBytes(const std::uint8_t* actual, const std::string& expected, const 
     if (std::memcmp(actual, expected.data(), expected.size()) != 0)
     {
         std::cerr << "search auction packet self-test failed: " << label << '\n';
+        return false;
+    }
+    return true;
+}
+
+auto expectEqualString(const std::string& actual, const std::string& expected, const std::string& label) -> bool
+{
+    if (actual != expected)
+    {
+        std::cerr << "search auction packet self-test failed: " << label << " got " << actual << " expected " << expected << '\n';
         return false;
     }
     return true;
@@ -185,6 +196,46 @@ auto testAuctionHistoryCapsAtTenRecords() -> bool
     return ok;
 }
 
+auto testAuctionOrderByDefaultsToItemID() -> bool
+{
+    std::uint8_t packet[64]{};
+    const auto   orderBy = BuildAuctionHouseOrderByString(packet, 0);
+
+    return expectEqualString(orderBy, "ORDER BY item_basic.itemid", "auction order default");
+}
+
+auto testAuctionOrderByMapsSupportedParamsInPacketOrder() -> bool
+{
+    std::uint8_t packet[96]{};
+    packet[0x18] = 2;
+    packet[0x20] = 5;
+    packet[0x28] = 6;
+    packet[0x30] = 9;
+
+    const auto orderBy = BuildAuctionHouseOrderByString(packet, 4);
+
+    return expectEqualString(orderBy,
+                             "ORDER BY item_equipment.level DESC, item_weapon.dmg DESC, item_weapon.delay DESC, item_basic.sortname, item_basic.itemid",
+                             "auction order supported params");
+}
+
+auto testAuctionOrderByIgnoresUnsupportedAndUsesLowByte() -> bool
+{
+    std::uint8_t packet[96]{};
+    packet[0x18] = 3;
+    packet[0x19] = 2;
+    packet[0x20] = 9;
+    packet[0x21] = 5;
+    packet[0x28] = 8;
+    packet[0x30] = 5;
+
+    const auto orderBy = BuildAuctionHouseOrderByString(packet, 4);
+
+    return expectEqualString(orderBy,
+                             "ORDER BY item_basic.sortname, item_weapon.dmg DESC, item_basic.itemid",
+                             "auction order low-byte params");
+}
+
 } // namespace
 
 auto runSearchAuctionPacketSelfTests() -> bool
@@ -196,5 +247,8 @@ auto runSearchAuctionPacketSelfTests() -> bool
            testAuctionHistoryConstructorUsesStackSelection() &&
            testAuctionHistoryConstructorUsesSingleSelection() &&
            testAuctionHistoryAddItemWritesRecordAndLength() &&
-           testAuctionHistoryCapsAtTenRecords();
+           testAuctionHistoryCapsAtTenRecords() &&
+           testAuctionOrderByDefaultsToItemID() &&
+           testAuctionOrderByMapsSupportedParamsInPacketOrder() &&
+           testAuctionOrderByIgnoresUnsupportedAndUsesLowByte();
 }

@@ -5,6 +5,7 @@ set(SOURCES
     ${COMMON_SOURCES}
     ${LUA_SOURCES}
     ${REPORTERS_SOURCES}
+    ../search/auction_request_order.cpp
     ../search/search_request_parser.cpp
     ../search/packets/auction_history.cpp
     ../search/packets/auction_list.cpp

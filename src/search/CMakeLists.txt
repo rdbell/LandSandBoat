@@ -3,6 +3,8 @@ add_subdirectory(packets)
 set(SOURCES
     ${COMMON_SOURCES}
     ${PACKET_SOURCES}
+    auction_request_order.cpp
+    auction_request_order.h
     data_loader.cpp
     data_loader.h
     search_listener.h

@@ -30,6 +30,7 @@
 #include <map>
 #include <unordered_set>
 
+#include "auction_request_order.h"
 #include "packets/auction_history.h"
 #include "packets/auction_list.h"
 #include "packets/linkshell_list.h"
@@ -455,39 +456,9 @@ void SearchHandler::HandleAuctionHouseRequest()
 {
     uint8 AHCatID = ref<uint8>(buffer_.data(), 0x16);
 
-    // 2 - level
-    // 3 - race
-    // 4 - job
-    // 5 - damage
-    // 6 - delay
-    // 7 - defense
-    // 8 - resistance
-    // 9 - name
-    std::string OrderByString = "ORDER BY";
     uint8       paramCount    = ref<uint8>(buffer_.data(), 0x12);
-    for (uint8 i = 0; i < paramCount; ++i) // Item sort options
-    {
-        uint8 param = ref<uint32>(buffer_.data(), 0x18 + 8 * i);
-        ShowInfoFmt(" Param{}: {}", i, param);
-        switch (param)
-        {
-            case 2:
-                OrderByString.append(" item_equipment.level DESC,");
-                break;
-            case 5:
-                OrderByString.append(" item_weapon.dmg DESC,");
-                break;
-            case 6:
-                OrderByString.append(" item_weapon.delay DESC,");
-                break;
-            case 9:
-                OrderByString.append(" item_basic.sortname,");
-                break;
-        }
-    }
-
-    OrderByString.append(" item_basic.itemid");
-    const char* OrderByArray = OrderByString.data();
+    std::string OrderByString = BuildAuctionHouseOrderByString(buffer_.data(), paramCount);
+    const char* OrderByArray  = OrderByString.data();
 
     CDataLoader          PDataLoader;
     std::vector<ahItem*> ItemList = PDataLoader.GetAHItemsToCategory(AHCatID, OrderByArray);
