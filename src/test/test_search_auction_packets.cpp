@@ -311,6 +311,33 @@ auto testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows() -> bool
     return ok;
 }
 
+auto testAuctionListingToExpireUsesPlaceholderSellerName() -> bool
+{
+    const auto listing = BuildListingToExpire(11, 0x1234, 12, 1, 0x456789);
+
+    bool ok = true;
+    ok      = expectEqualInt(listing.saleID, 11, "auction expire listing sale id") && ok;
+    ok      = expectEqualInt(listing.itemID, 0x1234, "auction expire listing item id") && ok;
+    ok      = expectEqualInt(listing.itemStack, 12, "auction expire listing item stack") && ok;
+    ok      = expectEqualInt(listing.ahStack, 1, "auction expire listing ah stack") && ok;
+    ok      = expectEqualInt(listing.sellerID, 0x456789, "auction expire listing seller id") && ok;
+    ok      = expectEqualString(listing.sellerName, "?", "auction expire listing placeholder seller name") && ok;
+    return ok;
+}
+
+auto testAuctionExpiredDeliveryQuantityUsesStackFlag() -> bool
+{
+    const auto stackListing  = BuildListingToExpire(11, 0x1234, 12, 1, 0x456789);
+    const auto singleListing = BuildListingToExpire(12, 0x1234, 12, 0, 0x456789);
+    const auto otherListing  = BuildListingToExpire(13, 0x1234, 12, 2, 0x456789);
+
+    bool ok = true;
+    ok      = expectEqualInt(AuctionExpiredDeliveryQuantity(stackListing), 12, "auction expire stack quantity") && ok;
+    ok      = expectEqualInt(AuctionExpiredDeliveryQuantity(singleListing), 1, "auction expire single quantity") && ok;
+    ok      = expectEqualInt(AuctionExpiredDeliveryQuantity(otherListing), 1, "auction expire non-stack quantity") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runSearchAuctionPacketSelfTests() -> bool
@@ -330,5 +357,7 @@ auto runSearchAuctionPacketSelfTests() -> bool
            testAuctionCategoryItemPreservesStackCounts() &&
            testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() &&
            testAuctionHistoryRowsReverseForPacketOrder() &&
-           testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows();
+           testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows() &&
+           testAuctionListingToExpireUsesPlaceholderSellerName() &&
+           testAuctionExpiredDeliveryQuantityUsesStackFlag();
 }

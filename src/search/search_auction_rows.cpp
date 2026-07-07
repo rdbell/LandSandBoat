@@ -32,3 +32,13 @@ void OrderAuctionHistoryForPacket(std::vector<ahHistory*>& history)
 {
     std::reverse(history.begin(), history.end());
 }
+
+auto BuildListingToExpire(const uint32 saleID, const uint32 itemID, const uint8 itemStack, const uint8 ahStack, const uint32 sellerID) -> ListingToExpire
+{
+    return ListingToExpire{ saleID, itemID, itemStack, ahStack, sellerID, "?" };
+}
+
+auto AuctionExpiredDeliveryQuantity(const ListingToExpire& listing) -> uint8
+{
+    return listing.ahStack == 1 ? listing.itemStack : 1;
+}

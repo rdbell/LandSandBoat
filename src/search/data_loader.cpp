@@ -440,16 +440,6 @@ std::string CDataLoader::GetSearchComment(uint32 playerId)
     return std::string();
 }
 
-struct ListingToExpire
-{
-    uint32      saleID     = 0;
-    uint32      itemID     = 0;
-    uint8       itemStack  = 0;
-    uint8       ahStack    = 0;
-    uint32      sellerID   = 0;
-    std::string sellerName = "?";
-};
-
 void CDataLoader::ExpireAHItems(uint16 expireAgeInDays)
 {
     ShowInfoFmt("Expiring auction house listings over {} days old", expireAgeInDays);
@@ -475,7 +465,7 @@ void CDataLoader::ExpireAHItems(uint16 expireAgeInDays)
             uint32 sellerID  = rset0->get<uint32>("seller");
             // NOTE: seller name left out for now, we'll populate this later
 
-            listingsToExpire.emplace_back(ListingToExpire{ saleID, itemID, itemStack, ahStack, sellerID, "?" });
+            listingsToExpire.emplace_back(BuildListingToExpire(saleID, itemID, itemStack, ahStack, sellerID));
         }
 
         for (auto listing : listingsToExpire)
@@ -492,7 +482,7 @@ void CDataLoader::ExpireAHItems(uint16 expireAgeInDays)
                                                 listing.sellerID,
                                                 listing.sellerName,
                                                 listing.itemID,
-                                                listing.ahStack == 1 ? listing.itemStack : 1);
+                                                AuctionExpiredDeliveryQuantity(listing));
             if (rset2 && rset2->rowsAffected())
             {
                 // delete the item from the auction house
