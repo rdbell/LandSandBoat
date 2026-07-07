@@ -82,6 +82,14 @@ auto BuildSearchLinkshellListQuery(const uint32 linkshellID) -> SearchLinkshellL
     };
 }
 
+auto BuildSearchCommentQuery(const uint32 playerID) -> SearchCommentQuery
+{
+    return SearchCommentQuery{
+        "SELECT seacom_message FROM accounts_sessions WHERE charid = ?",
+        playerID,
+    };
+}
+
 auto BuildSearchPlayerQueryFilter(const search_req& request) -> std::string
 {
     std::string filterQuery;

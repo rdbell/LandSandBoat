@@ -642,6 +642,20 @@ auto testSearchLinkshellListQueryBuildsSQLAndParams() -> bool
     return ok;
 }
 
+auto testSearchCommentQueryBuildsSQLAndParam() -> bool
+{
+    const auto query = BuildSearchCommentQuery(0x01020304);
+
+    bool ok = true;
+    ok      = expectEqualString(
+             query.sql,
+             "SELECT seacom_message FROM accounts_sessions WHERE charid = ?",
+             "search comment query") &&
+         ok;
+    ok = expectEqualInt(query.playerID, 0x01020304, "search comment player id") && ok;
+    return ok;
+}
+
 auto testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() -> bool
 {
     bool ok = true;
@@ -916,6 +930,7 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchPartyListQueryBuildsSQLAndPartyParams() &&
            testSearchPartyListQueryChoosesAllianceAndFallbackParams() &&
            testSearchLinkshellListQueryBuildsSQLAndParams() &&
+           testSearchCommentQueryBuildsSQLAndParam() &&
            testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() &&
            testSearchPlayerQueryFilterCapsZoneListAtTenAndStopsAtZero() &&
            testSearchPlayerStateNormalizesFlagsAndZone() &&
