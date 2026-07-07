@@ -502,6 +502,42 @@ auto testSearchPlayerQueryFilterBuildsRepresentativeFragment() -> bool
         "representative player query filter");
 }
 
+auto testSearchPlayerCountQueryUsesJobFilterForValidJobs() -> bool
+{
+    auto request  = defaultSearchRequest();
+    request.jobid = 7;
+    const auto query = BuildSearchPlayerCountQuery(request);
+
+    bool ok = true;
+    ok      = expectEqualString(query.sql, "SELECT COUNT(*) FROM accounts_sessions LEFT JOIN char_stats USING (charid) WHERE mjob = ?", "valid job count query") && ok;
+    ok      = expectTrue(query.filtersJob, "valid job count query filters job") && ok;
+    ok      = expectEqualInt(query.jobID, 7, "valid job count query job id") && ok;
+
+    request.jobid = 20;
+    const auto highestJobQuery = BuildSearchPlayerCountQuery(request);
+    ok                        = expectTrue(highestJobQuery.filtersJob, "highest valid job count query filters job") && ok;
+    ok                        = expectEqualInt(highestJobQuery.jobID, 20, "highest valid job count query job id") && ok;
+
+    return ok;
+}
+
+auto testSearchPlayerCountQueryCountsAllSessionsForInvalidJobs() -> bool
+{
+    auto request = defaultSearchRequest();
+
+    bool ok = true;
+    for (const auto jobID : { static_cast<uint8>(0), static_cast<uint8>(21), static_cast<uint8>(255) })
+    {
+        request.jobid    = jobID;
+        const auto query = BuildSearchPlayerCountQuery(request);
+        ok               = expectEqualString(query.sql, "SELECT COUNT(*) FROM accounts_sessions", "invalid job count query") && ok;
+        ok               = expectTrue(!query.filtersJob, "invalid job count query does not filter job") && ok;
+        ok               = expectEqualInt(query.jobID, 0, "invalid job count query clears job id") && ok;
+    }
+
+    return ok;
+}
+
 auto testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() -> bool
 {
     bool ok = true;
@@ -769,6 +805,8 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchPlayerFilterRaceRankLevelNameAndHiddenRules() &&
            testSearchPlayerFilterFlagsAndUnityRules() &&
            testSearchPlayerQueryFilterBuildsRepresentativeFragment() &&
+           testSearchPlayerCountQueryUsesJobFilterForValidJobs() &&
+           testSearchPlayerCountQueryCountsAllSessionsForInvalidJobs() &&
            testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() &&
            testSearchPlayerQueryFilterCapsZoneListAtTenAndStopsAtZero() &&
            testSearchPlayerStateNormalizesFlagsAndZone() &&

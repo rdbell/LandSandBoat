@@ -4,6 +4,24 @@
 #include "common/types/maybe.h"
 #include "search.h"
 
+auto BuildSearchPlayerCountQuery(const search_req& request) -> SearchPlayerCountQuery
+{
+    if (request.jobid > 0 && request.jobid < 21)
+    {
+        return SearchPlayerCountQuery{
+            "SELECT COUNT(*) FROM accounts_sessions LEFT JOIN char_stats USING (charid) WHERE mjob = ?",
+            true,
+            request.jobid,
+        };
+    }
+
+    return SearchPlayerCountQuery{
+        "SELECT COUNT(*) FROM accounts_sessions",
+        false,
+        0,
+    };
+}
+
 auto BuildSearchPlayerQueryFilter(const search_req& request) -> std::string
 {
     std::string filterQuery;

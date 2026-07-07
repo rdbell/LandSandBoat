@@ -139,10 +139,10 @@ ahItem CDataLoader::GetAHItemFromItemID(uint16 ItemID)
 
 uint32 CDataLoader::GetPlayersCount(const search_req& sr)
 {
-    uint8 jobid = sr.jobid;
-    if (jobid > 0 && jobid < 21)
+    const auto query = BuildSearchPlayerCountQuery(sr);
+    if (query.filtersJob)
     {
-        auto rset = db::preparedStmt("SELECT COUNT(*) FROM accounts_sessions LEFT JOIN char_stats USING (charid) WHERE mjob = ?", jobid);
+        auto rset = db::preparedStmt(query.sql, query.jobID);
         if (rset && rset->rowsCount() && rset->next())
         {
             return rset->get<uint32>("COUNT(*)");
@@ -150,7 +150,7 @@ uint32 CDataLoader::GetPlayersCount(const search_req& sr)
     }
     else
     {
-        auto rset = db::preparedStmt("SELECT COUNT(*) FROM accounts_sessions");
+        auto rset = db::preparedStmt(query.sql);
         if (rset && rset->rowsCount() && rset->next())
         {
             return rset->get<uint32>("COUNT(*)");
