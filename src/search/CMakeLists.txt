@@ -7,6 +7,8 @@ set(SOURCES
     auction_request_order.h
     data_loader.cpp
     data_loader.h
+    search_auction_rows.cpp
+    search_auction_rows.h
     search_listener.h
     search_application.h
     search_application.cpp

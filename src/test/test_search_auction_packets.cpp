@@ -25,11 +25,13 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "search/auction_request_order.h"
 #include "search/data_loader.h"
 #include "search/packets/auction_history.h"
 #include "search/packets/auction_list.h"
+#include "search/search_auction_rows.h"
 
 namespace
 {
@@ -236,6 +238,79 @@ auto testAuctionOrderByIgnoresUnsupportedAndUsesLowByte() -> bool
                              "auction order low-byte params");
 }
 
+auto testAuctionCategoryItemMarksSingleOnlyStackAmount() -> bool
+{
+    const auto item = BuildAuctionCategoryItem(0x1234, 5, 0, 1, 7);
+
+    bool ok = true;
+    ok      = expectEqualInt(item.ItemID, 0x1234, "auction category row item id") && ok;
+    ok      = expectEqualInt(item.SingleAmount, 5, "auction category row single amount") && ok;
+    ok      = expectEqualInt(item.StackAmount, 0xFFFFFFFF, "auction category row single-only stack marker") && ok;
+    ok      = expectEqualInt(item.Category, 7, "auction category row category") && ok;
+    return ok;
+}
+
+auto testAuctionCategoryItemPreservesStackCounts() -> bool
+{
+    const auto item = BuildAuctionCategoryItem(0x4567, 3, 9, 12, 8);
+
+    bool ok = true;
+    ok      = expectEqualInt(item.ItemID, 0x4567, "auction category stack row item id") && ok;
+    ok      = expectEqualInt(item.SingleAmount, 3, "auction category stack row single amount") && ok;
+    ok      = expectEqualInt(item.StackAmount, 9, "auction category stack row stack amount") && ok;
+    ok      = expectEqualInt(item.Category, 8, "auction category stack row category") && ok;
+    return ok;
+}
+
+auto testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() -> bool
+{
+    const auto empty  = BuildAuctionItemFromIDRow(0x2222, 0, 0, 0);
+    const auto loaded = BuildAuctionItemFromIDRow(0x2222, 12, 4, 6);
+
+    bool ok = true;
+    ok      = expectEqualInt(empty.ItemID, 0x2222, "auction item default item id") && ok;
+    ok      = expectEqualInt(empty.Category, 0, "auction item default category") && ok;
+    ok      = expectEqualInt(empty.SingleAmount, 0, "auction item default single amount") && ok;
+    ok      = expectEqualInt(empty.StackAmount, 0, "auction item default stack amount") && ok;
+    ok      = expectEqualInt(loaded.ItemID, 0x2222, "auction item loaded item id") && ok;
+    ok      = expectEqualInt(loaded.Category, 12, "auction item loaded category") && ok;
+    ok      = expectEqualInt(loaded.SingleAmount, 4, "auction item loaded single amount") && ok;
+    ok      = expectEqualInt(loaded.StackAmount, 6, "auction item loaded stack amount") && ok;
+    return ok;
+}
+
+auto testAuctionHistoryRowsReverseForPacketOrder() -> bool
+{
+    auto first  = ahHistory{ 100, 1, "SellerA", "BuyerA" };
+    auto second = ahHistory{ 200, 2, "SellerB", "BuyerB" };
+    auto third  = ahHistory{ 300, 3, "SellerC", "BuyerC" };
+    auto rows   = std::vector<ahHistory*>{ &first, &second, &third };
+
+    OrderAuctionHistoryForPacket(rows);
+
+    bool ok = true;
+    ok      = expectEqualInt(rows[0]->Price, 300, "auction history first reversed price") && ok;
+    ok      = expectEqualInt(rows[1]->Price, 200, "auction history middle reversed price") && ok;
+    ok      = expectEqualInt(rows[2]->Price, 100, "auction history last reversed price") && ok;
+    return ok;
+}
+
+auto testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows() -> bool
+{
+    auto empty = std::vector<ahHistory*>{};
+    OrderAuctionHistoryForPacket(empty);
+
+    auto only = ahHistory{ 400, 4, "SellerD", "BuyerD" };
+    auto rows = std::vector<ahHistory*>{ &only };
+    OrderAuctionHistoryForPacket(rows);
+
+    bool ok = true;
+    ok      = expectEqualInt(empty.size(), 0, "auction history empty reverse size") && ok;
+    ok      = expectEqualInt(rows.size(), 1, "auction history single reverse size") && ok;
+    ok      = expectEqualInt(rows[0]->Price, 400, "auction history single reverse price") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runSearchAuctionPacketSelfTests() -> bool
@@ -250,5 +325,10 @@ auto runSearchAuctionPacketSelfTests() -> bool
            testAuctionHistoryCapsAtTenRecords() &&
            testAuctionOrderByDefaultsToItemID() &&
            testAuctionOrderByMapsSupportedParamsInPacketOrder() &&
-           testAuctionOrderByIgnoresUnsupportedAndUsesLowByte();
+           testAuctionOrderByIgnoresUnsupportedAndUsesLowByte() &&
+           testAuctionCategoryItemMarksSingleOnlyStackAmount() &&
+           testAuctionCategoryItemPreservesStackCounts() &&
+           testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() &&
+           testAuctionHistoryRowsReverseForPacketOrder() &&
+           testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows();
 }

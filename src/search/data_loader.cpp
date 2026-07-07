@@ -23,10 +23,9 @@
 #include "common/logging.h"
 #include "common/settings.h"
 
-#include <algorithm>
-
 #include "data_loader.h"
 #include "search.h"
+#include "search_auction_rows.h"
 #include "search_player_filter.h"
 #include "search_player_query_filter.h"
 #include "search_player_state.h"
@@ -71,7 +70,7 @@ std::vector<ahHistory*> CDataLoader::GetAHItemHistory(uint16 ItemID, bool stack)
 
             HistoryList.emplace_back(PAHHistory);
         }
-        std::reverse(HistoryList.begin(), HistoryList.end());
+        OrderAuctionHistoryForPacket(HistoryList);
     }
     return HistoryList;
 }
@@ -120,19 +119,11 @@ std::vector<ahItem*> CDataLoader::GetAHItemsToCategory(uint8 ahCategoryID, const
     {
         while (rset->next())
         {
-            ahItem* PAHItem = new ahItem;
-
-            PAHItem->ItemID = rset->get<uint16>("itemid");
-
-            PAHItem->SingleAmount = rset->getOrDefault<uint32>("COUNT(*)-SUM(stack)", 0);
-            PAHItem->StackAmount  = rset->getOrDefault<uint32>("SUM(stack)", 0);
-            PAHItem->Category     = ahCategoryID;
-
-            if (rset->get<uint32>("stackSize") == 1)
-            {
-                PAHItem->StackAmount = -1;
-            }
-
+            ahItem* PAHItem = new ahItem(BuildAuctionCategoryItem(rset->get<uint16>("itemid"),
+                                                                  rset->getOrDefault<uint32>("COUNT(*)-SUM(stack)", 0),
+                                                                  rset->getOrDefault<uint32>("SUM(stack)", 0),
+                                                                  rset->get<uint32>("stackSize"),
+                                                                  ahCategoryID));
             ItemList.emplace_back(PAHItem);
         }
     }
@@ -143,11 +134,7 @@ std::vector<ahItem*> CDataLoader::GetAHItemsToCategory(uint8 ahCategoryID, const
 // Return single item including category and how many are listed
 ahItem CDataLoader::GetAHItemFromItemID(uint16 ItemID)
 {
-    ahItem CAHItem       = {};
-    CAHItem.ItemID       = ItemID;
-    CAHItem.Category     = 0;
-    CAHItem.SingleAmount = 0;
-    CAHItem.StackAmount  = 0;
+    ahItem CAHItem = BuildAuctionItemFromIDRow(ItemID, 0, 0, 0);
 
     auto rset = db::preparedStmt("SELECT aH, COUNT(*)-SUM(stack), SUM(stack) "
                                  "FROM item_basic "
@@ -158,9 +145,10 @@ ahItem CDataLoader::GetAHItemFromItemID(uint16 ItemID)
                                  ItemID);
     FOR_DB_SINGLE_RESULT(rset)
     {
-        CAHItem.Category     = rset->get<uint16>("aH");
-        CAHItem.SingleAmount = rset->getOrDefault<uint32>("COUNT(*)-SUM(stack)", 0);
-        CAHItem.StackAmount  = rset->getOrDefault<uint32>("SUM(stack)", 0);
+        CAHItem = BuildAuctionItemFromIDRow(ItemID,
+                                            rset->get<uint16>("aH"),
+                                            rset->getOrDefault<uint32>("COUNT(*)-SUM(stack)", 0),
+                                            rset->getOrDefault<uint32>("SUM(stack)", 0));
     }
     return CAHItem;
 }
