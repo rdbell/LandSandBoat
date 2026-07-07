@@ -357,6 +357,19 @@ auto testExpiredAuctionListingsQueryUsesUnsignedCutoffArithmetic() -> bool
     return expectEqualInt(query.cutoff, static_cast<uint32>(100 - 2 * 86400), "expired auction listings wrapped cutoff");
 }
 
+auto testExpiredAuctionSellerNameQueryBuildsSQLAndParam() -> bool
+{
+    const auto query = BuildExpiredAuctionSellerNameQuery(0x12345678);
+
+    bool ok = true;
+    ok      = expectEqualString(query.sql,
+                                "SELECT charname FROM chars WHERE charid = ?",
+                                "expired auction seller-name query") &&
+         ok;
+    ok = expectEqualInt(query.sellerID, 0x12345678, "expired auction seller-name seller id") && ok;
+    return ok;
+}
+
 auto testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() -> bool
 {
     const auto empty  = BuildAuctionItemFromIDRow(0x2222, 0, 0, 0);
@@ -456,6 +469,7 @@ auto runSearchAuctionPacketSelfTests() -> bool
            testAuctionHistoryQueryBuildsSQLAndParams() &&
            testExpiredAuctionListingsQueryBuildsSQLAndCutoff() &&
            testExpiredAuctionListingsQueryUsesUnsignedCutoffArithmetic() &&
+           testExpiredAuctionSellerNameQueryBuildsSQLAndParam() &&
            testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() &&
            testAuctionHistoryRowsReverseForPacketOrder() &&
            testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows() &&

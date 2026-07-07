@@ -73,6 +73,14 @@ auto BuildExpiredAuctionListingsQuery(const uint16 expireAgeInDays, const uint32
     };
 }
 
+auto BuildExpiredAuctionSellerNameQuery(const uint32 sellerID) -> ExpiredAuctionSellerNameQuery
+{
+    return ExpiredAuctionSellerNameQuery{
+        "SELECT charname FROM chars WHERE charid = ?",
+        sellerID,
+    };
+}
+
 auto BuildAuctionItemFromIDRow(const uint16 itemID, const uint16 category, const uint32 singleAmount, const uint32 stackAmount) -> ahItem
 {
     auto item          = ahItem{};

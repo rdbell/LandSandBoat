@@ -399,7 +399,8 @@ void CDataLoader::ExpireAHItems(uint16 expireAgeInDays)
         for (auto listing : listingsToExpire)
         {
             // Populate name now
-            const auto rset1 = db::preparedStmt("SELECT charname FROM chars WHERE charid = ?", listing.sellerID);
+            const auto sellerNameQuery = BuildExpiredAuctionSellerNameQuery(listing.sellerID);
+            const auto rset1           = db::preparedStmt(sellerNameQuery.sql, sellerNameQuery.sellerID);
             if (rset1 && rset1->rowsCount() && rset1->next())
             {
                 listing.sellerName = rset1->get<std::string>("charname");
