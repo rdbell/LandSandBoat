@@ -37,6 +37,7 @@
 #include "packets/party_list.h"
 #include "packets/search_comment.h"
 #include "packets/search_list.h"
+#include "search_packet_crypto.h"
 #include "search_packet_hash.h"
 
 SearchHandler::SearchHandler(Scheduler& scheduler, asio::ip::tcp::socket socket, SynchronizedShared<std::map<std::string, uint16_t>>& IPAddressesInUseList, SynchronizedShared<std::unordered_set<std::string>>& IPAddressWhitelist)
@@ -137,47 +138,14 @@ void SearchHandler::decrypt(uint16_t length)
 {
     DebugSocketsFmt("Decrypting packet from IP {} ({} bytes)", ipAddress_, length);
 
-    // Get key from packet
-    ref<uint32>(key, 16) = ref<uint32>(buffer_.data(), length - 4);
-
-    // Decrypt packet
-    md5(reinterpret_cast<uint8*>(key), blowfish_.hash, 20);
-
-    blowfish_init(reinterpret_cast<int8*>(blowfish_.hash), 16, blowfish_.P, blowfish_.S[0]);
-
-    uint16_t tmp = (length - 12) / 4;
-    tmp -= tmp % 2;
-
-    for (uint16_t i = 0; i < tmp; i += 2)
-    {
-        blowfish_decipher(reinterpret_cast<uint32*>(buffer_.data()) + i + 2, reinterpret_cast<uint32*>(buffer_.data()) + i + 3, blowfish_.P, blowfish_.S[0]);
-    }
-
-    ref<uint32>(key, 20) = ref<uint32>(buffer_.data(), length - 0x18);
+    DecryptSearchPacket(buffer_.data(), length, key, blowfish_);
 }
 
 void SearchHandler::encrypt(uint16_t length)
 {
     DebugSocketsFmt("Encrypting packet for IP {} ({} bytes)", ipAddress_, length);
 
-    ref<uint16>(buffer_.data(), 0x00) = length;     // packet size
-    ref<uint32>(buffer_.data(), 0x04) = 0x46465849; // "IXFF"
-
-    md5(reinterpret_cast<uint8*>(key), blowfish_.hash, 24);
-
-    blowfish_init((int8*)blowfish_.hash, 16, blowfish_.P, blowfish_.S[0]);
-
-    md5(buffer_.data() + 8, buffer_.data() + length - 0x18 + 0x04, length - 0x18 - 0x04);
-
-    uint8 tmp = (length - 12) / 4;
-    tmp -= tmp % 2;
-
-    for (uint8 i = 0; i < tmp; i += 2)
-    {
-        blowfish_encipher(reinterpret_cast<uint32*>(buffer_.data()) + i + 2, reinterpret_cast<uint32*>(buffer_.data()) + i + 3, blowfish_.P, blowfish_.S[0]);
-    }
-
-    memcpy(&buffer_[length] - 0x04, key + 16, 4);
+    EncryptSearchPacket(buffer_.data(), length, key, blowfish_);
 }
 
 bool SearchHandler::validatePacket(uint16_t length)

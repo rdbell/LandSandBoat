@@ -29,9 +29,11 @@
 #include <iostream>
 #include <string>
 
+#include "common/blowfish.h"
 #include "common/logging.h"
 #include "common/md52.h"
 #include "common/types/maybe.h"
+#include "search/search_packet_crypto.h"
 #include "search/search_packet_hash.h"
 #include "search/search.h"
 #include "search/search_request_type.h"
@@ -69,6 +71,36 @@ auto expectEqualString(const std::string& actual, const std::string& expected, c
     return true;
 }
 
+auto defaultSearchKey() -> std::array<std::uint8_t, 24>
+{
+    return {
+        0x30,
+        0x73,
+        0x3D,
+        0x6D,
+        0x3C,
+        0x31,
+        0x49,
+        0x5A,
+        0x32,
+        0x7A,
+        0x42,
+        0x43,
+        0x63,
+        0x38,
+        0x7B,
+        0x7E,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+    };
+}
+
 auto testRequestTypeConstants() -> bool
 {
     bool ok = true;
@@ -103,6 +135,25 @@ void writeSearchPacketHash(std::uint8_t* packet, const std::uint16_t length)
     std::uint8_t digest[16]{};
     md5(packet + 8, digest, length - 28);
     std::memcpy(packet + length - 0x14, digest, sizeof(digest));
+}
+
+void encipherSearchBlocks(std::uint8_t* packet, const std::uint16_t length, const std::uint8_t* key, const std::int32_t keyLength, const bool truncateBlockCount)
+{
+    auto blowfish = blowfish_t{};
+    md5(const_cast<std::uint8_t*>(key), blowfish.hash, keyLength);
+    blowfish_init(reinterpret_cast<int8*>(blowfish.hash), 16, blowfish.P, blowfish.S[0]);
+
+    auto tmp = static_cast<std::uint16_t>((length - 12) / 4);
+    if (truncateBlockCount)
+    {
+        tmp = static_cast<std::uint8_t>(tmp);
+    }
+    tmp -= tmp % 2;
+
+    for (std::uint16_t i = 0; i < tmp; i += 2)
+    {
+        blowfish_encipher(reinterpret_cast<std::uint32_t*>(packet) + i + 2, reinterpret_cast<std::uint32_t*>(packet) + i + 3, blowfish.P, blowfish.S[0]);
+    }
 }
 
 auto testPacketHashValidationAcceptsMatchingDigest() -> bool
@@ -155,6 +206,98 @@ auto testPacketHashValidationAcceptsMinimumFrame() -> bool
     writeSearchPacketHash(input.data(), input.size());
 
     return expectTrue(ValidateSearchPacketHash(input.data(), input.size()), "minimum packet hash frame accepted");
+}
+
+auto testSearchPacketEncryptMatchesManualFrame() -> bool
+{
+    auto input = std::array<std::uint8_t, 64>{};
+    for (std::size_t i = 8; i < input.size() - 0x14; ++i)
+    {
+        input[i] = static_cast<std::uint8_t>((i * 37U) + 13U);
+    }
+    input[input.size() - 0x18] = 0xAB;
+    input[input.size() - 0x17] = 0xCD;
+    input[input.size() - 0x16] = 0xEF;
+    input[input.size() - 0x15] = 0x12;
+
+    auto expected = input;
+    auto key = defaultSearchKey();
+    expected[0] = static_cast<std::uint8_t>(expected.size());
+    expected[1] = 0x00;
+    std::memcpy(expected.data() + 4, "IXFF", 4);
+    writeSearchPacketHash(expected.data(), expected.size());
+    encipherSearchBlocks(expected.data(), expected.size(), key.data(), 24, true);
+    std::memcpy(expected.data() + expected.size() - 4, key.data() + 16, 4);
+
+    auto actual = input;
+    auto encryptBlowfish = blowfish_t{};
+    EncryptSearchPacket(actual.data(), actual.size(), key.data(), encryptBlowfish);
+
+    bool ok = true;
+    ok      = expectTrue(std::memcmp(actual.data(), expected.data(), actual.size()) == 0, "encrypted packet matches manual frame") && ok;
+    ok      = expectTrue(std::memcmp(actual.data() + 8, input.data() + 8, 8) != 0, "encrypted payload changed") && ok;
+    ok      = expectTrue(std::memcmp(actual.data() + actual.size() - 4, defaultSearchKey().data() + 16, 4) == 0, "encrypted packet trailing key") && ok;
+    return ok;
+}
+
+auto testSearchPacketEncryptUsesUint8BlockCount() -> bool
+{
+    auto input = std::array<std::uint8_t, 1100>{};
+    for (std::size_t i = 8; i < input.size() - 0x14; ++i)
+    {
+        input[i] = static_cast<std::uint8_t>((i * 43U) + 19U);
+    }
+
+    auto expected = input;
+    auto key = defaultSearchKey();
+    expected[0] = static_cast<std::uint8_t>(expected.size());
+    expected[1] = static_cast<std::uint8_t>(expected.size() >> 8);
+    std::memcpy(expected.data() + 4, "IXFF", 4);
+    writeSearchPacketHash(expected.data(), expected.size());
+    encipherSearchBlocks(expected.data(), expected.size(), key.data(), 24, true);
+    std::memcpy(expected.data() + expected.size() - 4, key.data() + 16, 4);
+
+    auto actual = input;
+    auto encryptBlowfish = blowfish_t{};
+    EncryptSearchPacket(actual.data(), actual.size(), key.data(), encryptBlowfish);
+
+    bool ok = true;
+    ok      = expectTrue(std::memcmp(actual.data(), expected.data(), actual.size()) == 0, "large encrypted packet matches uint8 block count") && ok;
+    ok      = expectTrue(std::memcmp(actual.data() + 72, input.data() + 72, 8) == 0, "large encrypted packet leaves overflow blocks unchanged") && ok;
+    return ok;
+}
+
+auto testSearchPacketDecryptMatchesManualFrame() -> bool
+{
+    auto plain = std::array<std::uint8_t, 64>{};
+    for (std::size_t i = 8; i < plain.size(); ++i)
+    {
+        plain[i] = static_cast<std::uint8_t>((i * 41U) + 17U);
+    }
+    plain[plain.size() - 0x18] = 0x24;
+    plain[plain.size() - 0x17] = 0x68;
+    plain[plain.size() - 0x16] = 0xAC;
+    plain[plain.size() - 0x15] = 0xE0;
+    plain[plain.size() - 4] = 0x13;
+    plain[plain.size() - 3] = 0x57;
+    plain[plain.size() - 2] = 0x9B;
+    plain[plain.size() - 1] = 0xDF;
+
+    auto decryptKey = defaultSearchKey();
+    std::memcpy(decryptKey.data() + 16, plain.data() + plain.size() - 4, 4);
+    auto encrypted = plain;
+    encipherSearchBlocks(encrypted.data(), encrypted.size(), decryptKey.data(), 20, false);
+
+    auto actual = encrypted;
+    auto actualKey = defaultSearchKey();
+    auto decryptBlowfish = blowfish_t{};
+    DecryptSearchPacket(actual.data(), actual.size(), actualKey.data(), decryptBlowfish);
+
+    bool ok = true;
+    ok      = expectTrue(std::memcmp(actual.data(), plain.data(), actual.size()) == 0, "decrypted packet matches manual frame") && ok;
+    ok      = expectTrue(std::memcmp(actualKey.data() + 16, plain.data() + plain.size() - 4, 4) == 0, "decrypt key reads trailing packet key") && ok;
+    ok      = expectTrue(std::memcmp(actualKey.data() + 20, plain.data() + plain.size() - 0x18, 4) == 0, "decrypt key reads decrypted packet key") && ok;
+    return ok;
 }
 
 auto testAcceptedPacketCopiesBytesAndSize() -> bool
@@ -217,6 +360,9 @@ auto runSearchPacketBufferSelfTests() -> bool
            testPacketHashValidationRejectsDigestMismatch() &&
            testPacketHashValidationIgnoresTrailingKeyBytes() &&
            testPacketHashValidationAcceptsMinimumFrame() &&
+           testSearchPacketEncryptMatchesManualFrame() &&
+           testSearchPacketEncryptUsesUint8BlockCount() &&
+           testSearchPacketDecryptMatchesManualFrame() &&
            testAcceptedPacketCopiesBytesAndSize() &&
            testMaxSizePacketIsAccepted() &&
            testShortPacketCopiesPrefixAndSize() &&
