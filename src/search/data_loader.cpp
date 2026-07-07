@@ -48,13 +48,8 @@ std::vector<ahHistory*> CDataLoader::GetAHItemHistory(uint16 ItemID, bool stack)
 {
     std::vector<ahHistory*> HistoryList;
 
-    auto rset = db::preparedStmt("SELECT sale, sell_date, seller_name, buyer_name "
-                                 "FROM auction_house "
-                                 "WHERE itemid = ? AND stack = ? AND buyer_name IS NOT NULL "
-                                 "ORDER BY sell_date DESC "
-                                 "LIMIT 10",
-                                 ItemID,
-                                 stack);
+    const auto query = BuildAuctionHistoryQuery(ItemID, stack);
+    auto       rset  = db::preparedStmt(query.sql, query.itemID, query.stack);
 
     if (rset && rset->rowsCount())
     {

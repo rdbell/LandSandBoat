@@ -51,6 +51,19 @@ auto BuildAuctionItemFromIDQuery(const uint16 itemID) -> AuctionItemFromIDQuery
     };
 }
 
+auto BuildAuctionHistoryQuery(const uint16 itemID, const bool stack) -> AuctionHistoryQuery
+{
+    return AuctionHistoryQuery{
+        "SELECT sale, sell_date, seller_name, buyer_name "
+        "FROM auction_house "
+        "WHERE itemid = ? AND stack = ? AND buyer_name IS NOT NULL "
+        "ORDER BY sell_date DESC "
+        "LIMIT 10",
+        itemID,
+        stack,
+    };
+}
+
 auto BuildAuctionItemFromIDRow(const uint16 itemID, const uint16 category, const uint32 singleAmount, const uint32 stackAmount) -> ahItem
 {
     auto item          = ahItem{};

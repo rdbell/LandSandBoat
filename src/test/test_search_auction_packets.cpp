@@ -315,6 +315,27 @@ auto testAuctionItemFromIDQueryBuildsSQLAndParam() -> bool
     return ok;
 }
 
+auto testAuctionHistoryQueryBuildsSQLAndParams() -> bool
+{
+    const auto stackQuery  = BuildAuctionHistoryQuery(0x4567, true);
+    const auto singleQuery = BuildAuctionHistoryQuery(0x4567, false);
+
+    bool ok = true;
+    ok      = expectEqualString(stackQuery.sql,
+                                "SELECT sale, sell_date, seller_name, buyer_name "
+                                "FROM auction_house "
+                                "WHERE itemid = ? AND stack = ? AND buyer_name IS NOT NULL "
+                                "ORDER BY sell_date DESC "
+                                "LIMIT 10",
+                                "auction history query") &&
+         ok;
+    ok = expectEqualInt(stackQuery.itemID, 0x4567, "auction history item id") && ok;
+    ok = expectEqualInt(stackQuery.stack, true, "auction history stack param") && ok;
+    ok = expectEqualInt(singleQuery.itemID, 0x4567, "auction history single item id") && ok;
+    ok = expectEqualInt(singleQuery.stack, false, "auction history single stack param") && ok;
+    return ok;
+}
+
 auto testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() -> bool
 {
     const auto empty  = BuildAuctionItemFromIDRow(0x2222, 0, 0, 0);
@@ -411,6 +432,7 @@ auto runSearchAuctionPacketSelfTests() -> bool
            testAuctionCategoryListQueryUsesItemBasicByDefault() &&
            testAuctionCategoryListQueryCanOmitNoHistoryRows() &&
            testAuctionItemFromIDQueryBuildsSQLAndParam() &&
+           testAuctionHistoryQueryBuildsSQLAndParams() &&
            testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() &&
            testAuctionHistoryRowsReverseForPacketOrder() &&
            testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows() &&
