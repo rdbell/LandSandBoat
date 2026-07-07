@@ -577,6 +577,44 @@ auto testSearchPlayerListQueryAppendsFilterBeforeOrder() -> bool
         "player list filtered query");
 }
 
+auto testSearchPartyListQueryBuildsSQLAndPartyParams() -> bool
+{
+    const auto query = BuildSearchPartyListQuery(123, 0);
+
+    bool ok = true;
+    ok      = expectEqualString(
+             query.sql,
+             "SELECT charid, partyid, charname, pos_zone, nation, rank_sandoria, rank_bastok, rank_windurst, race, settings, mjob, sjob, mlvl, slvl, languages, seacom_type, disconnecting "
+             "FROM accounts_sessions "
+             "LEFT JOIN accounts_parties USING(charid) "
+             "LEFT JOIN chars USING(charid) "
+             "LEFT JOIN char_look USING(charid) "
+             "LEFT JOIN char_stats USING(charid) "
+             "LEFT JOIN char_profile USING(charid) "
+             "LEFT JOIN char_flags USING(charid) "
+             "WHERE IF (allianceid <> 0, allianceid IN (SELECT allianceid FROM accounts_parties WHERE charid = ?) , partyid = ?) "
+             "ORDER BY charname ASC "
+             "LIMIT 64",
+             "party list query") &&
+         ok;
+    ok = expectEqualInt(query.firstParam, 123, "party list party first param") && ok;
+    ok = expectEqualInt(query.secondParam, 123, "party list party second param") && ok;
+    return ok;
+}
+
+auto testSearchPartyListQueryChoosesAllianceAndFallbackParams() -> bool
+{
+    const auto partyWithAlliance = BuildSearchPartyListQuery(123, 456);
+    const auto allianceOnly      = BuildSearchPartyListQuery(0, 456);
+
+    bool ok = true;
+    ok      = expectEqualInt(partyWithAlliance.firstParam, 456, "party list alliance first param") && ok;
+    ok      = expectEqualInt(partyWithAlliance.secondParam, 123, "party list alliance second param") && ok;
+    ok      = expectEqualInt(allianceOnly.firstParam, 456, "party list alliance-only first param") && ok;
+    ok      = expectEqualInt(allianceOnly.secondParam, 456, "party list alliance-only second param") && ok;
+    return ok;
+}
+
 auto testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() -> bool
 {
     bool ok = true;
@@ -848,6 +886,8 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchPlayerCountQueryCountsAllSessionsForInvalidJobs() &&
            testSearchPlayerListQueryBuildsBaseQuery() &&
            testSearchPlayerListQueryAppendsFilterBeforeOrder() &&
+           testSearchPartyListQueryBuildsSQLAndPartyParams() &&
+           testSearchPartyListQueryChoosesAllianceAndFallbackParams() &&
            testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() &&
            testSearchPlayerQueryFilterCapsZoneListAtTenAndStopsAtZero() &&
            testSearchPlayerStateNormalizesFlagsAndZone() &&

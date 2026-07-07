@@ -42,6 +42,25 @@ auto BuildSearchPlayerListQuery(const std::string& filterQuery) -> std::string
     return query;
 }
 
+auto BuildSearchPartyListQuery(const uint32 partyID, const uint32 allianceID) -> SearchPartyListQuery
+{
+    return SearchPartyListQuery{
+        "SELECT charid, partyid, charname, pos_zone, nation, rank_sandoria, rank_bastok, rank_windurst, race, settings, mjob, sjob, mlvl, slvl, languages, seacom_type, disconnecting "
+        "FROM accounts_sessions "
+        "LEFT JOIN accounts_parties USING(charid) "
+        "LEFT JOIN chars USING(charid) "
+        "LEFT JOIN char_look USING(charid) "
+        "LEFT JOIN char_stats USING(charid) "
+        "LEFT JOIN char_profile USING(charid) "
+        "LEFT JOIN char_flags USING(charid) "
+        "WHERE IF (allianceid <> 0, allianceid IN (SELECT allianceid FROM accounts_parties WHERE charid = ?) , partyid = ?) "
+        "ORDER BY charname ASC "
+        "LIMIT 64",
+        (!allianceID ? partyID : allianceID),
+        (!partyID ? allianceID : partyID),
+    };
+}
+
 auto BuildSearchPlayerQueryFilter(const search_req& request) -> std::string
 {
     std::string filterQuery;
