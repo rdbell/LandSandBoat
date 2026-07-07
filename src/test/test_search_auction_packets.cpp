@@ -262,6 +262,41 @@ auto testAuctionCategoryItemPreservesStackCounts() -> bool
     return ok;
 }
 
+auto testAuctionCategoryListQueryUsesItemBasicByDefault() -> bool
+{
+    const auto query = BuildAuctionCategoryListQuery(false, "ORDER BY item_basic.itemid");
+
+    return expectEqualString(query,
+                             "SELECT item_basic.itemid, item_basic.stackSize, COUNT(*)-SUM(stack), SUM(stack) "
+                             "FROM item_basic "
+                             "LEFT JOIN auction_house ON item_basic.itemId = auction_house.itemid AND auction_house.buyer_name IS NULL "
+                             "LEFT JOIN item_equipment ON item_basic.itemid = item_equipment.itemid "
+                             "LEFT JOIN item_weapon ON item_basic.itemid = item_weapon.itemid "
+                             "WHERE aH = ? "
+                             "GROUP BY item_basic.itemid "
+                             "ORDER BY item_basic.itemid",
+                             "auction category default query");
+}
+
+auto testAuctionCategoryListQueryCanOmitNoHistoryRows() -> bool
+{
+    const auto query = BuildAuctionCategoryListQuery(true, "ORDER BY item_basic.sortname, item_basic.itemid");
+
+    return expectEqualString(query,
+                             "SELECT item_basic.itemid, item_basic.stackSize, COUNT(*)-SUM(stack), SUM(stack) "
+                             "FROM (SELECT item_basic.* "
+                             "FROM item_basic "
+                             "INNER JOIN auction_house_items ON item_basic.itemid = auction_house_items.itemid"
+                             ") AS item_basic  "
+                             "LEFT JOIN auction_house ON item_basic.itemId = auction_house.itemid AND auction_house.buyer_name IS NULL "
+                             "LEFT JOIN item_equipment ON item_basic.itemid = item_equipment.itemid "
+                             "LEFT JOIN item_weapon ON item_basic.itemid = item_weapon.itemid "
+                             "WHERE aH = ? "
+                             "GROUP BY item_basic.itemid "
+                             "ORDER BY item_basic.sortname, item_basic.itemid",
+                             "auction category omit-no-history query");
+}
+
 auto testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() -> bool
 {
     const auto empty  = BuildAuctionItemFromIDRow(0x2222, 0, 0, 0);
@@ -355,6 +390,8 @@ auto runSearchAuctionPacketSelfTests() -> bool
            testAuctionOrderByIgnoresUnsupportedAndUsesLowByte() &&
            testAuctionCategoryItemMarksSingleOnlyStackAmount() &&
            testAuctionCategoryItemPreservesStackCounts() &&
+           testAuctionCategoryListQueryUsesItemBasicByDefault() &&
+           testAuctionCategoryListQueryCanOmitNoHistoryRows() &&
            testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() &&
            testAuctionHistoryRowsReverseForPacketOrder() &&
            testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows() &&

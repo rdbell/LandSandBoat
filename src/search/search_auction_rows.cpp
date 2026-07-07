@@ -18,6 +18,26 @@ auto BuildAuctionCategoryItem(const uint16 itemID, const uint32 singleAmount, co
     return item;
 }
 
+auto BuildAuctionCategoryListQuery(const bool omitNoHistory, const std::string& orderByString) -> std::string
+{
+    const auto fromTable = omitNoHistory ? "(SELECT item_basic.* "
+                                           "FROM item_basic "
+                                           "INNER JOIN auction_house_items ON item_basic.itemid = auction_house_items.itemid"
+                                           ") AS item_basic "
+                                         : "item_basic";
+
+    return "SELECT item_basic.itemid, item_basic.stackSize, COUNT(*)-SUM(stack), SUM(stack) "
+           "FROM " +
+           std::string(fromTable) +
+           " "
+           "LEFT JOIN auction_house ON item_basic.itemId = auction_house.itemid AND auction_house.buyer_name IS NULL "
+           "LEFT JOIN item_equipment ON item_basic.itemid = item_equipment.itemid "
+           "LEFT JOIN item_weapon ON item_basic.itemid = item_weapon.itemid "
+           "WHERE aH = ? "
+           "GROUP BY item_basic.itemid "
+           + orderByString;
+}
+
 auto BuildAuctionItemFromIDRow(const uint16 itemID, const uint16 category, const uint32 singleAmount, const uint32 stackAmount) -> ahItem
 {
     auto item          = ahItem{};
