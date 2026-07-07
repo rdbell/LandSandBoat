@@ -157,6 +157,8 @@ set(SOURCES
     test_collector.h
     test_collector.cpp
     test_common.h
+    test_data_enum_traits.h
+    test_data_enum_traits.cpp
     test_database_binding.h
     test_database_binding.cpp
     test_database_convenience_helpers.h
