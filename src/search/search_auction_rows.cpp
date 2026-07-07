@@ -64,6 +64,15 @@ auto BuildAuctionHistoryQuery(const uint16 itemID, const bool stack) -> AuctionH
     };
 }
 
+auto BuildExpiredAuctionListingsQuery(const uint16 expireAgeInDays, const uint32 currentTimestamp) -> ExpiredAuctionListingsQuery
+{
+    return ExpiredAuctionListingsQuery{
+        "SELECT T0.id,T0.itemid,T1.stacksize, T0.stack, T0.seller FROM auction_house T0 INNER JOIN item_basic T1 ON "
+        "T0.itemid = T1.itemid WHERE T0.buyer_name IS NULL AND T0.date <= ?",
+        currentTimestamp - static_cast<uint32>(expireAgeInDays) * 86400u,
+    };
+}
+
 auto BuildAuctionItemFromIDRow(const uint16 itemID, const uint16 category, const uint32 singleAmount, const uint32 stackAmount) -> ahItem
 {
     auto item          = ahItem{};

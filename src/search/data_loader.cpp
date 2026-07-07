@@ -376,10 +376,8 @@ void CDataLoader::ExpireAHItems(uint16 expireAgeInDays)
 
     std::vector<ListingToExpire> listingsToExpire;
 
-    const auto cutoff = earth_time::timestamp() - static_cast<uint32>(expireAgeInDays) * 86400u;
-    const auto rset0  = db::preparedStmt("SELECT T0.id,T0.itemid,T1.stacksize, T0.stack, T0.seller FROM auction_house T0 INNER JOIN item_basic T1 ON "
-                                         "T0.itemid = T1.itemid WHERE T0.buyer_name IS NULL AND T0.date <= ?",
-                                         cutoff);
+    const auto query = BuildExpiredAuctionListingsQuery(expireAgeInDays, earth_time::timestamp());
+    const auto rset0 = db::preparedStmt(query.sql, query.cutoff);
 
     const auto expiredAuctions = rset0->rowsCount();
 

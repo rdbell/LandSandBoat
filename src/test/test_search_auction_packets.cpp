@@ -336,6 +336,27 @@ auto testAuctionHistoryQueryBuildsSQLAndParams() -> bool
     return ok;
 }
 
+auto testExpiredAuctionListingsQueryBuildsSQLAndCutoff() -> bool
+{
+    const auto query = BuildExpiredAuctionListingsQuery(7, 1'700'000'000);
+
+    bool ok = true;
+    ok      = expectEqualString(query.sql,
+                                "SELECT T0.id,T0.itemid,T1.stacksize, T0.stack, T0.seller FROM auction_house T0 INNER JOIN item_basic T1 ON "
+                                "T0.itemid = T1.itemid WHERE T0.buyer_name IS NULL AND T0.date <= ?",
+                                "expired auction listings query") &&
+         ok;
+    ok = expectEqualInt(query.cutoff, 1'700'000'000 - 7 * 86400, "expired auction listings cutoff") && ok;
+    return ok;
+}
+
+auto testExpiredAuctionListingsQueryUsesUnsignedCutoffArithmetic() -> bool
+{
+    const auto query = BuildExpiredAuctionListingsQuery(2, 100);
+
+    return expectEqualInt(query.cutoff, static_cast<uint32>(100 - 2 * 86400), "expired auction listings wrapped cutoff");
+}
+
 auto testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() -> bool
 {
     const auto empty  = BuildAuctionItemFromIDRow(0x2222, 0, 0, 0);
@@ -433,6 +454,8 @@ auto runSearchAuctionPacketSelfTests() -> bool
            testAuctionCategoryListQueryCanOmitNoHistoryRows() &&
            testAuctionItemFromIDQueryBuildsSQLAndParam() &&
            testAuctionHistoryQueryBuildsSQLAndParams() &&
+           testExpiredAuctionListingsQueryBuildsSQLAndCutoff() &&
+           testExpiredAuctionListingsQueryUsesUnsignedCutoffArithmetic() &&
            testAuctionItemFromIDRowBuildsDefaultAndLoadedRows() &&
            testAuctionHistoryRowsReverseForPacketOrder() &&
            testAuctionHistoryRowsReverseAllowsEmptyAndSingleRows() &&
