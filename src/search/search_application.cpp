@@ -22,6 +22,7 @@
 #include "search_application.h"
 
 #include "common/console_service.h"
+#include "search_application_config.h"
 #include "search_engine.h"
 
 namespace
@@ -30,7 +31,7 @@ namespace
 auto appConfig() -> ApplicationConfig
 {
     return ApplicationConfig{
-        .serverName = "search",
+        .serverName = SearchApplicationServerName(),
         .arguments  = {},
     };
 }
@@ -51,14 +52,17 @@ auto SearchApplication::createEngine() -> std::unique_ptr<Engine>
 
 void SearchApplication::registerCommands(ConsoleService& console)
 {
-    const auto expiryDays   = settings::get<uint16>("search.EXPIRE_DAYS");
-    auto*      searchEngine = static_cast<SearchEngine*>(engine_.get());
+    const auto expiryDays    = settings::get<uint16>("search.EXPIRE_DAYS");
+    const auto commands      = SearchApplicationConsoleCommandDescriptors(expiryDays);
+    auto*      searchEngine  = static_cast<SearchEngine*>(engine_.get());
+    const auto& ahCleanup    = commands[0];
+    const auto& expireAll    = commands[1];
 
-    console.registerCommand("ah_cleanup",
-                            fmt::format("AH task to return items older than {} days", expiryDays),
+    console.registerCommand(ahCleanup.name,
+                            ahCleanup.description,
                             std::bind(&SearchEngine::onAHCleanup, searchEngine, std::placeholders::_1));
 
-    console.registerCommand("expire_all",
-                            "Force-expire all items on the AH, returning to sender",
+    console.registerCommand(expireAll.name,
+                            expireAll.description,
                             std::bind(&SearchEngine::onExpireAll, searchEngine, std::placeholders::_1));
 }

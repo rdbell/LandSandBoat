@@ -10,6 +10,8 @@ set(SOURCES
     search_auction_rows.cpp
     search_auction_rows.h
     search_listener.h
+    search_application_config.h
+    search_application_config.cpp
     search_application.h
     search_application.cpp
     search_engine.h

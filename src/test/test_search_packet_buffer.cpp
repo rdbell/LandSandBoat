@@ -37,6 +37,7 @@
 #include "common/mmo.h"
 #include "common/types/maybe.h"
 #include "search/data_loader.h"
+#include "search/search_application_config.h"
 #include "search/search_packet_crypto.h"
 #include "search/search_packet_hash.h"
 #include "search/search_player_filter.h"
@@ -120,6 +121,24 @@ auto testRequestTypeConstants() -> bool
     ok      = expectEqualInt(TCP_SEARCH_COMMENT, 0x08, "TCP_SEARCH_COMMENT value") && ok;
     ok      = expectEqualInt(TCP_AH_REQUEST_MORE, 0x10, "TCP_AH_REQUEST_MORE value") && ok;
     ok      = expectEqualInt(TCP_AH_REQUEST, 0x15, "TCP_AH_REQUEST value") && ok;
+    return ok;
+}
+
+auto testSearchApplicationServerName() -> bool
+{
+    return expectEqualString(SearchApplicationServerName(), "search", "search application server name");
+}
+
+auto testSearchApplicationConsoleCommandDescriptors() -> bool
+{
+    const auto commands = SearchApplicationConsoleCommandDescriptors(14);
+
+    bool ok = true;
+    ok      = expectEqualInt(commands.size(), 2, "search application command count") && ok;
+    ok      = expectEqualString(commands[0].name, "ah_cleanup", "search ah cleanup command name") && ok;
+    ok      = expectEqualString(commands[0].description, "AH task to return items older than 14 days", "search ah cleanup command description") && ok;
+    ok      = expectEqualString(commands[1].name, "expire_all", "search expire all command name") && ok;
+    ok      = expectEqualString(commands[1].description, "Force-expire all items on the AH, returning to sender", "search expire all command description") && ok;
     return ok;
 }
 
@@ -921,6 +940,8 @@ auto testOversizedPacketIsRejected() -> bool
 auto runSearchPacketBufferSelfTests() -> bool
 {
     return testRequestTypeConstants() &&
+           testSearchApplicationServerName() &&
+           testSearchApplicationConsoleCommandDescriptors() &&
            testRequestTypeStrings() &&
            testPacketHashValidationAcceptsMatchingDigest() &&
            testPacketHashValidationRejectsDigestMismatch() &&
