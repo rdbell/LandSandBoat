@@ -18,12 +18,9 @@
 
 ===========================================================================
 */
-#include <cstring>
-
 #include "common/database.h"
 #include "common/earth_time.h"
 #include "common/logging.h"
-#include "common/mmo.h"
 #include "common/settings.h"
 
 #include <algorithm>
@@ -355,49 +352,12 @@ std::list<SearchEntity*> CDataLoader::GetPartyList(uint32 PartyID, uint32 Allian
                     break;
             }
 
-            uint32    settingsInt    = rset->get<uint32>("settings");
-            SAVE_CONF playerSettings = {};
-            std::memcpy(&playerSettings, &settingsInt, sizeof(uint32));
-
+            const auto settingsInt = rset->get<uint32>("settings");
             PPlayer->languages     = rset->get<uint8>("languages");
-            PPlayer->mentor        = playerSettings.MentorFlg;
             PPlayer->seacom_type   = rset->get<uint8>("seacom_type");
             PPlayer->disconnecting = rset->get<bool>("disconnecting");
 
-            if (PPlayer->mentor)
-            {
-                PPlayer->flags1 |= 0x0001;
-            }
-            if (PartyID == PPlayer->id)
-            {
-                PPlayer->flags1 |= 0x0008;
-            }
-            if (PPlayer->seacom_type)
-            {
-                PPlayer->flags1 |= 0x0010;
-            }
-            if (playerSettings.AwayFlg)
-            {
-                PPlayer->flags1 |= 0x0100;
-            }
-            if (PPlayer->disconnecting)
-            {
-                PPlayer->flags1 |= 0x0800;
-            }
-            if (PartyID != 0)
-            {
-                PPlayer->flags1 |= 0x2000;
-            }
-            if (playerSettings.AnonymityFlg)
-            {
-                PPlayer->flags1 |= 0x4000;
-            }
-            if (playerSettings.InviteFlg)
-            {
-                PPlayer->flags1 |= 0x8000;
-            }
-
-            PPlayer->flags2 = PPlayer->flags1;
+            NormalizeSearchPartyMemberForList(*PPlayer, settingsInt, PartyID);
 
             PartyList.emplace_back(PPlayer);
         }
@@ -472,38 +432,8 @@ std::list<SearchEntity*> CDataLoader::GetLinkshellList(uint32 LinkshellID)
 
             const auto partyid = rset->getOrDefault<uint32>("partyid", 0);
 
-            uint32    settingsInt    = rset->get<uint32>("settings");
-            SAVE_CONF playerSettings = {};
-            std::memcpy(&playerSettings, &settingsInt, sizeof(uint32));
-
-            if (partyid == PPlayer->id)
-            {
-                PPlayer->flags1 |= 0x0008;
-            }
-            if (playerSettings.AwayFlg)
-            {
-                PPlayer->flags1 |= 0x0100;
-            }
-
-            if (PPlayer->disconnecting)
-            {
-                PPlayer->flags1 |= 0x0800;
-            }
-
-            if (partyid != 0)
-            {
-                PPlayer->flags1 |= 0x2000;
-            }
-            if (playerSettings.AnonymityFlg)
-            {
-                PPlayer->flags1 |= 0x4000;
-            }
-            if (playerSettings.InviteFlg)
-            {
-                PPlayer->flags1 |= 0x8000;
-            }
-
-            PPlayer->flags2 = PPlayer->flags1;
+            const auto settingsInt = rset->get<uint32>("settings");
+            NormalizeSearchLinkshellMemberForList(*PPlayer, settingsInt, partyid);
 
             LinkshellList.emplace_back(PPlayer);
         }

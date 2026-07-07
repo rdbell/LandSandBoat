@@ -613,6 +613,91 @@ auto testSearchPlayerStateLeavesCurrentZoneAndClearsMonstrosityJobs() -> bool
     return ok;
 }
 
+auto testSearchPartyMemberStateNormalizesPartyFlagsOnly() -> bool
+{
+    auto player = defaultSearchEntity();
+    player.zone = 0;
+    player.prevzone = 245;
+    player.mjob = 23;
+    player.seacom_type = 0x40;
+    player.disconnecting = true;
+
+    auto settings = SAVE_CONF{};
+    settings.MentorFlg = 1;
+    settings.AwayFlg = 1;
+    settings.AnonymityFlg = 1;
+    settings.InviteFlg = 1;
+    const auto settingsBytes = settings;
+    uint32 settingsInt = 0;
+    std::memcpy(&settingsInt, &settingsBytes, sizeof(uint32));
+
+    NormalizeSearchPartyMemberForList(player, settingsInt, player.id);
+
+    bool ok = true;
+    ok = expectEqualInt(player.zone, 0, "party member zone left unchanged") && ok;
+    ok = expectEqualInt(player.mjob, 23, "party member monstrosity job left unchanged") && ok;
+    ok = expectTrue(player.mentor, "party member mentor flag") && ok;
+    ok = expectEqualInt(player.flags1, 0xE919, "party member flags1") && ok;
+    ok = expectEqualInt(player.flags2, player.flags1, "party member flags2 mirror") && ok;
+    return ok;
+}
+
+auto testSearchPartyMemberStateSetsMemberWithoutLeader() -> bool
+{
+    auto player = defaultSearchEntity();
+
+    NormalizeSearchPartyMemberForList(player, 0, player.id + 1);
+
+    bool ok = true;
+    ok = expectEqualInt(player.flags1, 0x2100, "party member flag without leader flag") && ok;
+    ok = expectEqualInt(player.flags2, player.flags1, "party member flags2 mirror") && ok;
+    return ok;
+}
+
+auto testSearchLinkshellMemberStateNormalizesLinkshellFlagsOnly() -> bool
+{
+    auto player = defaultSearchEntity();
+    player.seacom_type = 0x40;
+    player.disconnecting = true;
+
+    auto settings = SAVE_CONF{};
+    settings.MentorFlg = 1;
+    settings.AwayFlg = 1;
+    settings.AnonymityFlg = 1;
+    settings.InviteFlg = 1;
+    const auto settingsBytes = settings;
+    uint32 settingsInt = 0;
+    std::memcpy(&settingsInt, &settingsBytes, sizeof(uint32));
+
+    NormalizeSearchLinkshellMemberForList(player, settingsInt, player.id);
+
+    bool ok = true;
+    ok = expectTrue(!player.mentor, "linkshell member mentor left unset") && ok;
+    ok = expectEqualInt(player.flags1, 0xE908, "linkshell member flags1") && ok;
+    ok = expectEqualInt(player.flags2, player.flags1, "linkshell member flags2 mirror") && ok;
+    return ok;
+}
+
+auto testSearchLinkshellMemberStatePreservesUnrelatedFields() -> bool
+{
+    auto player = defaultSearchEntity();
+    player.zone = 0;
+    player.prevzone = 245;
+    player.mjob = 23;
+    player.languages = 7;
+    player.seacom_type = 0x40;
+
+    NormalizeSearchLinkshellMemberForList(player, 0, player.id + 1);
+
+    bool ok = true;
+    ok = expectEqualInt(player.zone, 0, "linkshell member zone left unchanged") && ok;
+    ok = expectEqualInt(player.mjob, 23, "linkshell member monstrosity job left unchanged") && ok;
+    ok = expectEqualInt(player.languages, 7, "linkshell member languages left unchanged") && ok;
+    ok = expectEqualInt(player.flags1, 0x2100, "linkshell member flag without leader flag") && ok;
+    ok = expectEqualInt(player.flags2, player.flags1, "linkshell member flags2 mirror") && ok;
+    return ok;
+}
+
 auto testAcceptedPacketCopiesBytesAndSize() -> bool
 {
     const auto expected = std::array<std::uint8_t, 5>{ 0x10, 0x20, 0x30, 0x40, 0x50 };
@@ -689,6 +774,10 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchPlayerStateNormalizesFlagsAndZone() &&
            testSearchPlayerStateSetsPartyMemberWithoutLeader() &&
            testSearchPlayerStateLeavesCurrentZoneAndClearsMonstrosityJobs() &&
+           testSearchPartyMemberStateNormalizesPartyFlagsOnly() &&
+           testSearchPartyMemberStateSetsMemberWithoutLeader() &&
+           testSearchLinkshellMemberStateNormalizesLinkshellFlagsOnly() &&
+           testSearchLinkshellMemberStatePreservesUnrelatedFields() &&
            testAcceptedPacketCopiesBytesAndSize() &&
            testMaxSizePacketIsAccepted() &&
            testShortPacketCopiesPrefixAndSize() &&

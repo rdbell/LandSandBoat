@@ -10,12 +10,18 @@ namespace
 
 constexpr uint8 JOB_MON = 23;
 
+auto SearchSettingsFromInt(const uint32 settingsInt) -> SAVE_CONF
+{
+    SAVE_CONF playerSettings = {};
+    std::memcpy(&playerSettings, &settingsInt, sizeof(uint32));
+    return playerSettings;
+}
+
 } // namespace
 
 void NormalizeSearchPlayerForList(SearchEntity& player, const uint32 settingsInt, const uint32 partyId)
 {
-    SAVE_CONF playerSettings = {};
-    std::memcpy(&playerSettings, &settingsInt, sizeof(uint32));
+    const auto playerSettings = SearchSettingsFromInt(settingsInt);
 
     player.zone   = player.zone == 0 ? player.prevzone : player.zone;
     player.mentor = playerSettings.MentorFlg;
@@ -72,4 +78,78 @@ void NormalizeSearchPlayerForList(SearchEntity& player, const uint32 settingsInt
         player.mjob = 0;
         player.sjob = 0;
     }
+}
+
+void NormalizeSearchPartyMemberForList(SearchEntity& player, const uint32 settingsInt, const uint32 partyId)
+{
+    const auto playerSettings = SearchSettingsFromInt(settingsInt);
+
+    player.mentor = playerSettings.MentorFlg;
+
+    if (player.mentor)
+    {
+        player.flags1 |= 0x0001;
+    }
+    if (partyId == player.id)
+    {
+        player.flags1 |= 0x0008;
+    }
+    if (player.seacom_type)
+    {
+        player.flags1 |= 0x0010;
+    }
+    if (playerSettings.AwayFlg)
+    {
+        player.flags1 |= 0x0100;
+    }
+    if (player.disconnecting)
+    {
+        player.flags1 |= 0x0800;
+    }
+    if (partyId != 0)
+    {
+        player.flags1 |= 0x2000;
+    }
+    if (playerSettings.AnonymityFlg)
+    {
+        player.flags1 |= 0x4000;
+    }
+    if (playerSettings.InviteFlg)
+    {
+        player.flags1 |= 0x8000;
+    }
+
+    player.flags2 = player.flags1;
+}
+
+void NormalizeSearchLinkshellMemberForList(SearchEntity& player, const uint32 settingsInt, const uint32 partyId)
+{
+    const auto playerSettings = SearchSettingsFromInt(settingsInt);
+
+    if (partyId == player.id)
+    {
+        player.flags1 |= 0x0008;
+    }
+    if (playerSettings.AwayFlg)
+    {
+        player.flags1 |= 0x0100;
+    }
+    if (player.disconnecting)
+    {
+        player.flags1 |= 0x0800;
+    }
+    if (partyId != 0)
+    {
+        player.flags1 |= 0x2000;
+    }
+    if (playerSettings.AnonymityFlg)
+    {
+        player.flags1 |= 0x4000;
+    }
+    if (playerSettings.InviteFlg)
+    {
+        player.flags1 |= 0x8000;
+    }
+
+    player.flags2 = player.flags1;
 }
