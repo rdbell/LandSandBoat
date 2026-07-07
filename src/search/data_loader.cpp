@@ -315,21 +315,8 @@ std::list<SearchEntity*> CDataLoader::GetLinkshellList(uint32 LinkshellID)
 {
     std::list<SearchEntity*> LinkshellList;
 
-    auto rset = db::preparedStmt("SELECT charid, partyid, charname, pos_zone, nation, rank_sandoria, rank_bastok, rank_windurst, race, settings, mjob, sjob, "
-                                 "mlvl, slvl, linkshellid1, linkshellid2, "
-                                 "linkshellrank1, linkshellrank2, disconnecting "
-                                 "FROM accounts_sessions "
-                                 "LEFT JOIN accounts_parties USING (charid) "
-                                 "LEFT JOIN chars USING (charid) "
-                                 "LEFT JOIN char_look USING (charid) "
-                                 "LEFT JOIN char_stats USING (charid) "
-                                 "LEFT JOIN char_profile USING(charid) "
-                                 "LEFT JOIN char_flags USING(charid) "
-                                 "WHERE linkshellid1 = ? OR linkshellid2 = ? "
-                                 "ORDER BY charname ASC "
-                                 "LIMIT 64",
-                                 LinkshellID,
-                                 LinkshellID);
+    const auto query = BuildSearchLinkshellListQuery(LinkshellID);
+    auto       rset  = db::preparedStmt(query.sql, query.firstParam, query.secondParam);
     if (rset && rset->rowsCount())
     {
         while (rset->next())
