@@ -20,6 +20,8 @@ set(SOURCES
     search_packet_hash.h
     search_player_filter.cpp
     search_player_filter.h
+    search_player_query_filter.cpp
+    search_player_query_filter.h
     search_request_parser.cpp
     search_request_type.cpp
     search_request_type.h

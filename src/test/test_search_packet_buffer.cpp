@@ -39,6 +39,7 @@
 #include "search/search_packet_crypto.h"
 #include "search/search_packet_hash.h"
 #include "search/search_player_filter.h"
+#include "search/search_player_query_filter.h"
 #include "search/search.h"
 #include "search/search_request_type.h"
 #include "search/search_session_tracker.h"
@@ -484,6 +485,67 @@ auto testSearchPlayerFilterFlagsAndUnityRules() -> bool
     return ok;
 }
 
+auto testSearchPlayerQueryFilterBuildsRepresentativeFragment() -> bool
+{
+    auto request = defaultSearchRequest();
+    request.jobid = 7;
+    request.zoneid[0] = 230;
+    request.zoneid[1] = 231;
+    request.zoneid[2] = 0;
+    request.commentType = 0xA0;
+
+    return expectEqualString(
+        BuildSearchPlayerQueryFilter(request),
+        " AND  mjob = 7 AND (pos_zone IN (230, 231) OR (pos_zone = 0 AND pos_prevzone IN (230, 231)))  AND (seacom_type & 0xF0) = 160",
+        "representative player query filter");
+}
+
+auto testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() -> bool
+{
+    bool ok = true;
+
+    auto request = defaultSearchRequest();
+    ok = expectEqualString(BuildSearchPlayerQueryFilter(request), "", "empty player query filter") && ok;
+
+    request.jobid = 21;
+    request.zoneid[0] = 0;
+    request.commentType = 0;
+    ok = expectEqualString(BuildSearchPlayerQueryFilter(request), "", "invalid job player query filter") && ok;
+
+    request.jobid = 20;
+    ok = expectEqualString(BuildSearchPlayerQueryFilter(request), " AND  mjob = 20", "highest valid job player query filter") && ok;
+
+    return ok;
+}
+
+auto testSearchPlayerQueryFilterCapsZoneListAtTenAndStopsAtZero() -> bool
+{
+    auto request = defaultSearchRequest();
+    for (std::size_t i = 0; i < 15; ++i)
+    {
+        request.zoneid[i] = static_cast<uint16>(200 + i);
+    }
+
+    bool ok = true;
+    ok = expectEqualString(
+             BuildSearchPlayerQueryFilter(request),
+             " AND (pos_zone IN (200, 201, 202, 203, 204, 205, 206, 207, 208, 209) OR (pos_zone = 0 AND pos_prevzone IN (200, 201, 202, 203, 204, 205, 206, 207, 208, 209))) ",
+             "ten-zone player query filter") &&
+         ok;
+
+    request = defaultSearchRequest();
+    request.zoneid[0] = 230;
+    request.zoneid[1] = 0;
+    request.zoneid[2] = 231;
+    ok = expectEqualString(
+             BuildSearchPlayerQueryFilter(request),
+             " AND (pos_zone IN (230) OR (pos_zone = 0 AND pos_prevzone IN (230))) ",
+             "zero-terminated player query filter") &&
+         ok;
+
+    return ok;
+}
+
 auto testAcceptedPacketCopiesBytesAndSize() -> bool
 {
     const auto expected = std::array<std::uint8_t, 5>{ 0x10, 0x20, 0x30, 0x40, 0x50 };
@@ -554,6 +616,9 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchPlayerFilterLinkshellAndAnonRules() &&
            testSearchPlayerFilterRaceRankLevelNameAndHiddenRules() &&
            testSearchPlayerFilterFlagsAndUnityRules() &&
+           testSearchPlayerQueryFilterBuildsRepresentativeFragment() &&
+           testSearchPlayerQueryFilterIgnoresInvalidOrAbsentInputs() &&
+           testSearchPlayerQueryFilterCapsZoneListAtTenAndStopsAtZero() &&
            testAcceptedPacketCopiesBytesAndSize() &&
            testMaxSizePacketIsAccepted() &&
            testShortPacketCopiesPrefixAndSize() &&

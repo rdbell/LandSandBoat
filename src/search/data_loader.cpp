@@ -31,6 +31,7 @@
 #include "data_loader.h"
 #include "search.h"
 #include "search_player_filter.h"
+#include "search_player_query_filter.h"
 
 namespace
 {
@@ -211,38 +212,7 @@ uint32 CDataLoader::GetPlayersCount(const search_req& sr)
 std::list<SearchEntity*> CDataLoader::GetPlayersList(search_req sr, int* count)
 {
     std::list<SearchEntity*> PlayersList;
-    std::string              filterQry;
-
-    if (sr.jobid > 0 && sr.jobid < 21)
-    {
-        filterQry.append(" AND ");
-        filterQry.append(" mjob = ");
-        filterQry.append(std::to_string(static_cast<unsigned long long>(sr.jobid)));
-    }
-
-    if (sr.zoneid[0] > 0)
-    {
-        std::string zoneList;
-        int         i = 1;
-        zoneList.append(std::to_string(static_cast<unsigned long long>(sr.zoneid[0])));
-        while (i < 10 && sr.zoneid[i] != 0)
-        {
-            zoneList.append(", ");
-            zoneList.append(std::to_string(static_cast<unsigned long long>(sr.zoneid[i])));
-            i++;
-        }
-        filterQry.append(" AND ");
-        filterQry.append("(pos_zone IN (");
-        filterQry.append(zoneList);
-        filterQry.append(") OR (pos_zone = 0 AND pos_prevzone IN (");
-        filterQry.append(zoneList);
-        filterQry.append("))) ");
-    }
-
-    if (sr.commentType != 0)
-    {
-        filterQry.append(fmt::format(" AND (seacom_type & 0xF0) = {}", sr.commentType));
-    }
+    std::string              filterQry = BuildSearchPlayerQueryFilter(sr);
 
     std::string fmtQuery =
         "SELECT charid, partyid, charname, pos_zone, pos_prevzone, nation, rank_sandoria, rank_bastok, unity_leader, "
