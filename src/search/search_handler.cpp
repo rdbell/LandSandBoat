@@ -206,31 +206,6 @@ bool SearchHandler::validatePacket(uint16_t length)
     return true;
 }
 
-inline std::string searchTypeToString(uint8 type)
-{
-    switch (type)
-    {
-        case TCP_SEARCH:
-            return "SEARCH";
-        case TCP_SEARCH_ALL:
-            return "SEARCH_ALL";
-        case TCP_SEARCH_COMMENT:
-            return "SEARCH_COMMENT";
-        case TCP_GROUP_LIST:
-            return "GROUP_LIST";
-        case TCP_AH_REQUEST:
-            return "AH_REQUEST";
-        case TCP_AH_REQUEST_MORE:
-            return "AH_REQUEST_MORE";
-        case TCP_AH_HISTORY_SINGLE:
-            return "AH_HISTORY_SINGLE";
-        case TCP_AH_HISTORY_STACK:
-            return "AH_HISTORY_STACK";
-        default:
-            return "UNKNOWN";
-    }
-}
-
 void SearchHandler::read_func(uint16_t length)
 {
     if (length != ref<uint16>(buffer_.data(), 0x00) || length < 28)
@@ -245,7 +220,7 @@ void SearchHandler::read_func(uint16_t length)
     {
         uint8 packetType = buffer_[0x0B];
 
-        ShowInfoFmt("Search Request: {} ({}), size: {}, ip: {}", searchTypeToString(packetType), packetType, length, ipAddress_);
+        ShowInfoFmt("Search Request: {} ({}), size: {}, ip: {}", SearchRequestTypeToString(packetType), packetType, length, ipAddress_);
 
         switch (packetType)
         {

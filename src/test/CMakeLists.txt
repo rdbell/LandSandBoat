@@ -7,6 +7,7 @@ set(SOURCES
     ${REPORTERS_SOURCES}
     ../search/auction_request_order.cpp
     ../search/search_request_parser.cpp
+    ../search/search_request_type.cpp
     ../search/packets/auction_history.cpp
     ../search/packets/auction_list.cpp
     ../search/packets/linkshell_list.cpp

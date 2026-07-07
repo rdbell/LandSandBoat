@@ -33,18 +33,7 @@
 #include "common/synchronized.h"
 
 #include "search.h"
-
-enum TCPREQUESTTYPE
-{
-    TCP_SEARCH_ALL        = 0x00,
-    TCP_GROUP_LIST        = 0x02,
-    TCP_SEARCH            = 0x03,
-    TCP_AH_HISTORY_SINGLE = 0x05,
-    TCP_AH_HISTORY_STACK  = 0x06,
-    TCP_SEARCH_COMMENT    = 0x08,
-    TCP_AH_REQUEST_MORE   = 0x10,
-    TCP_AH_REQUEST        = 0x15,
-};
+#include "search_request_type.h"
 
 class SearchHandler : public std::enable_shared_from_this<SearchHandler>
 {

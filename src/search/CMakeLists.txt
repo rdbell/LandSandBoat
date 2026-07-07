@@ -15,6 +15,8 @@ set(SOURCES
     search_handler.h
     search_handler.cpp
     search_request_parser.cpp
+    search_request_type.cpp
+    search_request_type.h
 )
 
 if(UNIX)

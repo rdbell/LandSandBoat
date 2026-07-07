@@ -32,6 +32,7 @@
 #include "common/logging.h"
 #include "common/types/maybe.h"
 #include "search/search.h"
+#include "search/search_request_type.h"
 
 namespace
 {
@@ -54,6 +55,45 @@ auto expectTrue(bool actual, const std::string& label) -> bool
         return false;
     }
     return true;
+}
+
+auto expectEqualString(const std::string& actual, const std::string& expected, const std::string& label) -> bool
+{
+    if (actual != expected)
+    {
+        std::cerr << "search packet buffer self-test failed: " << label << " got " << actual << " expected " << expected << '\n';
+        return false;
+    }
+    return true;
+}
+
+auto testRequestTypeConstants() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualInt(TCP_SEARCH_ALL, 0x00, "TCP_SEARCH_ALL value") && ok;
+    ok      = expectEqualInt(TCP_GROUP_LIST, 0x02, "TCP_GROUP_LIST value") && ok;
+    ok      = expectEqualInt(TCP_SEARCH, 0x03, "TCP_SEARCH value") && ok;
+    ok      = expectEqualInt(TCP_AH_HISTORY_SINGLE, 0x05, "TCP_AH_HISTORY_SINGLE value") && ok;
+    ok      = expectEqualInt(TCP_AH_HISTORY_STACK, 0x06, "TCP_AH_HISTORY_STACK value") && ok;
+    ok      = expectEqualInt(TCP_SEARCH_COMMENT, 0x08, "TCP_SEARCH_COMMENT value") && ok;
+    ok      = expectEqualInt(TCP_AH_REQUEST_MORE, 0x10, "TCP_AH_REQUEST_MORE value") && ok;
+    ok      = expectEqualInt(TCP_AH_REQUEST, 0x15, "TCP_AH_REQUEST value") && ok;
+    return ok;
+}
+
+auto testRequestTypeStrings() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualString(SearchRequestTypeToString(TCP_SEARCH_ALL), "SEARCH_ALL", "TCP_SEARCH_ALL string") && ok;
+    ok      = expectEqualString(SearchRequestTypeToString(TCP_GROUP_LIST), "GROUP_LIST", "TCP_GROUP_LIST string") && ok;
+    ok      = expectEqualString(SearchRequestTypeToString(TCP_SEARCH), "SEARCH", "TCP_SEARCH string") && ok;
+    ok      = expectEqualString(SearchRequestTypeToString(TCP_AH_HISTORY_SINGLE), "AH_HISTORY_SINGLE", "TCP_AH_HISTORY_SINGLE string") && ok;
+    ok      = expectEqualString(SearchRequestTypeToString(TCP_AH_HISTORY_STACK), "AH_HISTORY_STACK", "TCP_AH_HISTORY_STACK string") && ok;
+    ok      = expectEqualString(SearchRequestTypeToString(TCP_SEARCH_COMMENT), "SEARCH_COMMENT", "TCP_SEARCH_COMMENT string") && ok;
+    ok      = expectEqualString(SearchRequestTypeToString(TCP_AH_REQUEST_MORE), "AH_REQUEST_MORE", "TCP_AH_REQUEST_MORE string") && ok;
+    ok      = expectEqualString(SearchRequestTypeToString(TCP_AH_REQUEST), "AH_REQUEST", "TCP_AH_REQUEST string") && ok;
+    ok      = expectEqualString(SearchRequestTypeToString(0xFF), "UNKNOWN", "unknown request type string") && ok;
+    return ok;
 }
 
 auto testAcceptedPacketCopiesBytesAndSize() -> bool
@@ -110,7 +150,9 @@ auto testOversizedPacketIsRejected() -> bool
 
 auto runSearchPacketBufferSelfTests() -> bool
 {
-    return testAcceptedPacketCopiesBytesAndSize() &&
+    return testRequestTypeConstants() &&
+           testRequestTypeStrings() &&
+           testAcceptedPacketCopiesBytesAndSize() &&
            testMaxSizePacketIsAccepted() &&
            testShortPacketCopiesPrefixAndSize() &&
            testOversizedPacketIsRejected();
