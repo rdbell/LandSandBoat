@@ -5,6 +5,8 @@ set(SOURCES
     ${COMMON_SOURCES}
     ${LUA_SOURCES}
     ${REPORTERS_SOURCES}
+    ../search/packets/auction_history.cpp
+    ../search/packets/auction_list.cpp
     enums/test_status.h
     enums/tick_type.h
     tests/rng_spread_tests.cpp
@@ -547,6 +549,8 @@ set(SOURCES
     test_s2c_weather_packet.cpp
     test_s2c_wpos_packets.h
     test_s2c_wpos_packets.cpp
+    test_search_auction_packets.h
+    test_search_auction_packets.cpp
     test_search_packet_buffer.h
     test_search_packet_buffer.cpp
     test_settings_number_helper.h
@@ -629,6 +633,7 @@ target_include_directories(xi_test_lib
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../search
         ${CMAKE_CURRENT_SOURCE_DIR}/../map
         ${CMAKE_CURRENT_SOURCE_DIR}/../world
 )
