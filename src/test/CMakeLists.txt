@@ -10,6 +10,7 @@ set(SOURCES
     ../search/search_packet_hash.cpp
     ../search/search_request_parser.cpp
     ../search/search_request_type.cpp
+    ../search/search_session_tracker.cpp
     ../search/packets/auction_history.cpp
     ../search/packets/auction_list.cpp
     ../search/packets/linkshell_list.cpp

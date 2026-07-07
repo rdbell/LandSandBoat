@@ -27,7 +27,9 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <string>
+#include <unordered_set>
 
 #include "common/blowfish.h"
 #include "common/logging.h"
@@ -37,6 +39,7 @@
 #include "search/search_packet_hash.h"
 #include "search/search.h"
 #include "search/search_request_type.h"
+#include "search/search_session_tracker.h"
 
 namespace
 {
@@ -300,6 +303,52 @@ auto testSearchPacketDecryptMatchesManualFrame() -> bool
     return ok;
 }
 
+auto testSearchSessionTrackerCountsActiveIP() -> bool
+{
+    auto sessions = std::map<std::string, uint16>{};
+    auto whitelist = std::unordered_set<std::string>{};
+
+    AddSearchSession(sessions, whitelist, "198.51.100.7");
+    AddSearchSession(sessions, whitelist, "198.51.100.7");
+
+    bool ok = true;
+    ok      = expectEqualInt(GetSearchSessionsInUse(sessions, whitelist, "198.51.100.7"), 2, "active search sessions count") && ok;
+    ok      = expectEqualInt(GetSearchSessionsInUse(sessions, whitelist, "203.0.113.9"), 0, "missing search sessions count") && ok;
+    return ok;
+}
+
+auto testSearchSessionTrackerRemovesAndErasesIP() -> bool
+{
+    auto sessions = std::map<std::string, uint16>{ { "198.51.100.7", 2 } };
+    auto whitelist = std::unordered_set<std::string>{};
+
+    RemoveSearchSession(sessions, whitelist, "203.0.113.9");
+    RemoveSearchSession(sessions, whitelist, "198.51.100.7");
+
+    bool ok = true;
+    ok      = expectEqualInt(GetSearchSessionsInUse(sessions, whitelist, "198.51.100.7"), 1, "decremented search sessions count") && ok;
+    ok      = expectEqualInt(sessions.size(), 1, "decremented search sessions retained") && ok;
+
+    RemoveSearchSession(sessions, whitelist, "198.51.100.7");
+    ok = expectEqualInt(GetSearchSessionsInUse(sessions, whitelist, "198.51.100.7"), 0, "removed search sessions count") && ok;
+    ok = expectEqualInt(sessions.size(), 0, "removed search sessions erased") && ok;
+    return ok;
+}
+
+auto testSearchSessionTrackerIgnoresWhitelistedIP() -> bool
+{
+    auto sessions = std::map<std::string, uint16>{ { "198.51.100.7", 3 } };
+    auto whitelist = std::unordered_set<std::string>{ "198.51.100.7" };
+
+    AddSearchSession(sessions, whitelist, "198.51.100.7");
+    RemoveSearchSession(sessions, whitelist, "198.51.100.7");
+
+    bool ok = true;
+    ok      = expectEqualInt(GetSearchSessionsInUse(sessions, whitelist, "198.51.100.7"), 0, "whitelisted search sessions count") && ok;
+    ok      = expectEqualInt(sessions.at("198.51.100.7"), 3, "whitelisted stored count unchanged") && ok;
+    return ok;
+}
+
 auto testAcceptedPacketCopiesBytesAndSize() -> bool
 {
     const auto expected = std::array<std::uint8_t, 5>{ 0x10, 0x20, 0x30, 0x40, 0x50 };
@@ -363,6 +412,9 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchPacketEncryptMatchesManualFrame() &&
            testSearchPacketEncryptUsesUint8BlockCount() &&
            testSearchPacketDecryptMatchesManualFrame() &&
+           testSearchSessionTrackerCountsActiveIP() &&
+           testSearchSessionTrackerRemovesAndErasesIP() &&
+           testSearchSessionTrackerIgnoresWhitelistedIP() &&
            testAcceptedPacketCopiesBytesAndSize() &&
            testMaxSizePacketIsAccepted() &&
            testShortPacketCopiesPrefixAndSize() &&

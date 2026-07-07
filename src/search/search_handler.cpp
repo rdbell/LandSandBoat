@@ -39,6 +39,7 @@
 #include "packets/search_list.h"
 #include "search_packet_crypto.h"
 #include "search_packet_hash.h"
+#include "search_session_tracker.h"
 
 SearchHandler::SearchHandler(Scheduler& scheduler, asio::ip::tcp::socket socket, SynchronizedShared<std::map<std::string, uint16_t>>& IPAddressesInUseList, SynchronizedShared<std::unordered_set<std::string>>& IPAddressWhitelist)
 : scheduler_(scheduler)
@@ -451,12 +452,7 @@ uint16_t SearchHandler::getNumSessionsInUse(const std::string& ipAddressStr)
     return IPAddressesInUse_.read(
         [ipAddressStr](const auto& ipAddrsInUse) -> uint16_t
         {
-            if (ipAddrsInUse.find(ipAddressStr) != ipAddrsInUse.end())
-            {
-                return ipAddrsInUse.at(ipAddressStr);
-            }
-
-            return 0;
+            return GetSearchSessionsInUse(ipAddrsInUse, {}, ipAddressStr);
         });
 }
 
@@ -476,20 +472,7 @@ void SearchHandler::removeFromUsedIPAddresses(const std::string& ipAddressStr)
     IPAddressesInUse_.write(
         [ipAddressStr](auto& ipAddrsInUse)
         {
-            if (ipAddrsInUse.find(ipAddressStr) != ipAddrsInUse.end())
-            {
-                ipAddrsInUse[ipAddressStr] -= 1;
-            }
-            else // Removing nothing, do nothing.
-            {
-                return;
-            }
-
-            // If we got here, check if we want to remove an IP from the map
-            if (ipAddrsInUse[ipAddressStr] <= 0)
-            {
-                ipAddrsInUse.erase(ipAddressStr);
-            }
+            RemoveSearchSession(ipAddrsInUse, {}, ipAddressStr);
         });
 }
 
@@ -509,13 +492,6 @@ void SearchHandler::addToUsedIPAddresses(const std::string& ipAddressStr)
     IPAddressesInUse_.write(
         [ipAddressStr](auto& ipAddrsInUse)
         {
-            if (ipAddrsInUse.find(ipAddressStr) == ipAddrsInUse.end())
-            {
-                ipAddrsInUse[ipAddressStr] = 1;
-            }
-            else
-            {
-                ipAddrsInUse[ipAddressStr] += 1;
-            }
+            AddSearchSession(ipAddrsInUse, {}, ipAddressStr);
         });
 }

@@ -21,6 +21,8 @@ set(SOURCES
     search_request_parser.cpp
     search_request_type.cpp
     search_request_type.h
+    search_session_tracker.cpp
+    search_session_tracker.h
 )
 
 if(UNIX)
