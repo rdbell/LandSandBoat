@@ -20,6 +20,8 @@ set(SOURCES
     test_arguments_parser.cpp
     test_bitpack.h
     test_bitpack.cpp
+    test_blowfish.h
+    test_blowfish.cpp
     test_c2s_action_packet.h
     test_c2s_action_packet.cpp
     test_c2s_auc_packet.h

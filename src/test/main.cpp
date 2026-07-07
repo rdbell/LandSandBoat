@@ -32,6 +32,7 @@
 auto runEarthTimeSelfTests() -> bool;
 auto runIPPSelfTests() -> bool;
 auto runBitpackSelfTests() -> bool;
+auto runBlowfishSelfTests() -> bool;
 auto runStringCodecSelfTests() -> bool;
 auto runSJISCodecSelfTests() -> bool;
 auto runSpatialOrientationSelfTests() -> bool;
@@ -310,6 +311,7 @@ namespace
         ok = runEarthTimeSelfTests() && ok;
         ok = runIPPSelfTests() && ok;
         ok = runBitpackSelfTests() && ok;
+        ok = runBlowfishSelfTests() && ok;
         ok = runStringCodecSelfTests() && ok;
         ok = runSJISCodecSelfTests() && ok;
         ok = runSpatialOrientationSelfTests() && ok;
