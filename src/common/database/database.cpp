@@ -396,7 +396,10 @@ auto db::getTableColumnNames(const std::string& tableName) -> std::vector<std::s
 {
     TracyZoneScoped;
 
-    const auto rset = db::preparedStmt("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = ? AND TABLE_SCHEMA = ?", tableName, db::getDatabaseSchema());
+    const auto version = db::getDatabaseVersion();
+    const auto rset    = version.rfind("SQLite ", 0) == 0
+                         ? db::preparedStmt("SELECT name FROM pragma_table_info(?)", tableName)
+                         : db::preparedStmt("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = ? AND TABLE_SCHEMA = ?", tableName, db::getDatabaseSchema());
     if (rset && rset->rowsCount())
     {
         std::vector<std::string> columnNames;
