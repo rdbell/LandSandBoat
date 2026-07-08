@@ -65,6 +65,7 @@ auto runLatentEffectSelfTests() -> bool;
 auto runArgumentsParserSelfTests() -> bool;
 auto runVersionInfoSelfTests() -> bool;
 auto runSingletonHelperSelfTests() -> bool;
+auto runInventorySyncStateSelfTests() -> bool;
 auto runDatabaseQueryHelpersSelfTests() -> bool;
 auto runLoggingUntrustedStringsSelfTests() -> bool;
 auto runLoggingBacktraceBufferSelfTests() -> bool;
@@ -361,6 +362,7 @@ namespace
         ok = runArgumentsParserSelfTests() && ok;
         ok = runVersionInfoSelfTests() && ok;
         ok = runSingletonHelperSelfTests() && ok;
+        ok = runInventorySyncStateSelfTests() && ok;
         ok = runDatabaseQueryHelpersSelfTests() && ok;
         ok = runLoggingUntrustedStringsSelfTests() && ok;
         ok = runLoggingBacktraceBufferSelfTests() && ok;
