@@ -206,6 +206,8 @@ set(SOURCES
     test_grades.cpp
     test_trade_container.h
     test_trade_container.cpp
+    test_universal_container.h
+    test_universal_container.cpp
     test_recast_container.h
     test_recast_container.cpp
     test_trait.h
