@@ -224,6 +224,8 @@ set(SOURCES
     test_item_puppet.cpp
     test_item_shop.h
     test_item_shop.cpp
+    test_item_transaction.h
+    test_item_transaction.cpp
     test_item_usable.h
     test_item_usable.cpp
     test_item_weapon.h
