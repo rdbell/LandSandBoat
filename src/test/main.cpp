@@ -66,6 +66,7 @@ auto runArgumentsParserSelfTests() -> bool;
 auto runVersionInfoSelfTests() -> bool;
 auto runSingletonHelperSelfTests() -> bool;
 auto runInventorySyncStateSelfTests() -> bool;
+auto runGradesSelfTests() -> bool;
 auto runRecastContainerSelfTests() -> bool;
 auto runTraitSelfTests() -> bool;
 auto runModifierSelfTests() -> bool;
@@ -370,6 +371,7 @@ namespace
         ok = runVersionInfoSelfTests() && ok;
         ok = runSingletonHelperSelfTests() && ok;
         ok = runInventorySyncStateSelfTests() && ok;
+        ok = runGradesSelfTests() && ok;
         ok = runRecastContainerSelfTests() && ok;
         ok = runTraitSelfTests() && ok;
         ok = runModifierSelfTests() && ok;
