@@ -66,6 +66,7 @@ auto runArgumentsParserSelfTests() -> bool;
 auto runVersionInfoSelfTests() -> bool;
 auto runSingletonHelperSelfTests() -> bool;
 auto runInventorySyncStateSelfTests() -> bool;
+auto runSpatialGridSelfTests() -> bool;
 auto runDatabaseQueryHelpersSelfTests() -> bool;
 auto runLoggingUntrustedStringsSelfTests() -> bool;
 auto runLoggingBacktraceBufferSelfTests() -> bool;
@@ -363,6 +364,7 @@ namespace
         ok = runVersionInfoSelfTests() && ok;
         ok = runSingletonHelperSelfTests() && ok;
         ok = runInventorySyncStateSelfTests() && ok;
+        ok = runSpatialGridSelfTests() && ok;
         ok = runDatabaseQueryHelpersSelfTests() && ok;
         ok = runLoggingUntrustedStringsSelfTests() && ok;
         ok = runLoggingBacktraceBufferSelfTests() && ok;
