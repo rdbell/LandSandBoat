@@ -598,6 +598,8 @@ set(SOURCES
     test_timer_helpers.cpp
     test_tracy_hex_helpers.h
     test_tracy_hex_helpers.cpp
+    test_trigger_area.h
+    test_trigger_area.cpp
     test_typed_flags.h
     test_typed_flags.cpp
     test_uuid_generation.h
