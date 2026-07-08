@@ -56,4 +56,38 @@ describe('Puppet attachments', function()
         assert(not pcall(player.unlockAttachment, player), 'unlockAttachment accepted missing item')
         assert(not pcall(player.unlockAttachment, player, 'bad'), 'unlockAttachment accepted non-numeric item')
     end)
+
+    it('reads and updates automaton frame and head with ownership gates', function()
+        assert(player:getAutomatonFrame() == xi.automaton.frame.HARLEQUIN, 'expected default Harlequin frame')
+        assert(player:getAutomatonHead() == xi.automaton.head.HARLEQUIN, 'expected default Harlequin head')
+
+        player:setAutomatonFrame(xi.automaton.frame.VALOREDGE)
+        assert(player:getAutomatonFrame() == xi.automaton.frame.HARLEQUIN, 'locked frame should not equip')
+
+        player:unlockAttachment(xi.item.VALOREDGE_FRAME)
+        player:setAutomatonFrame(xi.automaton.frame.VALOREDGE)
+        assert(player:getAutomatonFrame() == xi.automaton.frame.VALOREDGE, 'unlocked frame should equip')
+
+        player:setAutomatonHead(xi.automaton.head.SOULSOOTHER)
+        assert(player:getAutomatonHead() == xi.automaton.head.HARLEQUIN, 'locked head should not equip')
+
+        player:unlockAttachment(xi.item.SOULSOOTHER_HEAD)
+        player:setAutomatonHead(xi.automaton.head.SOULSOOTHER)
+        assert(player:getAutomatonHead() == xi.automaton.head.SOULSOOTHER, 'unlocked head should equip')
+
+        player:spawnPet(xi.petId.AUTOMATON)
+        local pet = player:getPet()
+        assert(pet, 'Automaton was not summoned')
+        assert(pet:getAutomatonFrame() == xi.automaton.frame.VALOREDGE, 'pet should expose equipped frame')
+        assert(pet:getAutomatonHead() == xi.automaton.head.SOULSOOTHER, 'pet should expose equipped head')
+
+        assert(not pcall(player.getAutomatonFrame), 'getAutomatonFrame accepted missing self')
+        assert(not pcall(player.getAutomatonHead), 'getAutomatonHead accepted missing self')
+        assert(not pcall(player.setAutomatonFrame), 'setAutomatonFrame accepted missing self')
+        assert(not pcall(player.setAutomatonFrame, player), 'setAutomatonFrame accepted missing frame')
+        assert(not pcall(player.setAutomatonFrame, player, 'bad'), 'setAutomatonFrame accepted non-numeric frame')
+        assert(not pcall(player.setAutomatonHead), 'setAutomatonHead accepted missing self')
+        assert(not pcall(player.setAutomatonHead, player), 'setAutomatonHead accepted missing head')
+        assert(not pcall(player.setAutomatonHead, player, 'bad'), 'setAutomatonHead accepted non-numeric head')
+    end)
 end)
