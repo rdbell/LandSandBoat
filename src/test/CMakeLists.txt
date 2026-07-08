@@ -204,6 +204,8 @@ set(SOURCES
     test_inventory_sync_state.cpp
     test_item_currency.h
     test_item_currency.cpp
+    test_item_fish.h
+    test_item_fish.cpp
     test_item_general.h
     test_item_general.cpp
     test_item_puppet.h
