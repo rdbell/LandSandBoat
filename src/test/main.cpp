@@ -44,6 +44,7 @@ auto runHashUtilsSelfTests() -> bool;
 auto runRngEnginesSelfTests() -> bool;
 auto runXiBitsetSelfTests() -> bool;
 auto runCircularBufferSelfTests() -> bool;
+auto runCraftStateSelfTests() -> bool;
 auto runTimerHelpersSelfTests() -> bool;
 auto runSynchronizedSelfTests() -> bool;
 auto runTypedFlagsSelfTests() -> bool;
@@ -337,6 +338,7 @@ namespace
         ok = runRngEnginesSelfTests() && ok;
         ok = runXiBitsetSelfTests() && ok;
         ok = runCircularBufferSelfTests() && ok;
+        ok = runCraftStateSelfTests() && ok;
         ok = runTimerHelpersSelfTests() && ok;
         ok = runSynchronizedSelfTests() && ok;
         ok = runTypedFlagsSelfTests() && ok;

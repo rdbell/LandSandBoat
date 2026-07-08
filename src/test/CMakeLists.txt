@@ -175,6 +175,8 @@ set(SOURCES
     test_circular_buffer.cpp
     test_collector.h
     test_collector.cpp
+    test_craft_state.h
+    test_craft_state.cpp
     test_common.h
     test_data_enum_traits.h
     test_data_enum_traits.cpp
