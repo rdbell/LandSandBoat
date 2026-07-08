@@ -202,6 +202,8 @@ set(SOURCES
     test_hash_utils.cpp
     test_inventory_sync_state.h
     test_inventory_sync_state.cpp
+    test_item_access.h
+    test_item_access.cpp
     test_item_currency.h
     test_item_currency.cpp
     test_item_equipment.h
