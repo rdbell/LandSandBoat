@@ -258,6 +258,8 @@ set(SOURCES
     test_login_packet_helpers.cpp
     test_login_world_list_packet.h
     test_login_world_list_packet.cpp
+    test_los_cache.h
+    test_los_cache.cpp
     test_look_parser.h
     test_look_parser.cpp
     test_lua_environment.h
