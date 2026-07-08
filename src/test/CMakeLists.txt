@@ -208,6 +208,8 @@ set(SOURCES
     test_ximesh_math.cpp
     test_ximesh_structs.h
     test_ximesh_structs.cpp
+    test_ximesh_null_mesh.h
+    test_ximesh_null_mesh.cpp
     test_mmo_eminence.h
     test_mmo_eminence.cpp
     test_rate_limit_utils.h

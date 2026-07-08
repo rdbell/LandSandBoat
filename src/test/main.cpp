@@ -69,6 +69,7 @@ auto runInventorySyncStateSelfTests() -> bool;
 auto runSpatialGridSelfTests() -> bool;
 auto runXimeshMathSelfTests() -> bool;
 auto runXimeshStructsSelfTests() -> bool;
+auto runXimeshNullMeshSelfTests() -> bool;
 auto runDatabaseQueryHelpersSelfTests() -> bool;
 auto runLoggingUntrustedStringsSelfTests() -> bool;
 auto runLoggingBacktraceBufferSelfTests() -> bool;
@@ -369,6 +370,7 @@ namespace
         ok = runSpatialGridSelfTests() && ok;
         ok = runXimeshMathSelfTests() && ok;
         ok = runXimeshStructsSelfTests() && ok;
+        ok = runXimeshNullMeshSelfTests() && ok;
         ok = runDatabaseQueryHelpersSelfTests() && ok;
         ok = runLoggingUntrustedStringsSelfTests() && ok;
         ok = runLoggingBacktraceBufferSelfTests() && ok;
