@@ -51,4 +51,30 @@ describe('Traverser Stones', function()
         assert(player:getClaimedTraverserStones() == available)
         assert(player:getAvailableTraverserStones() == 0)
     end)
+
+    it('sets claimed stones directly and ignores non-player receivers', function()
+        local npc = player.entities:get('Field_Manual')
+
+        assert(npc, 'Field Manual NPC was not found')
+
+        player:setClaimedTraverserStones(3)
+        assert(player:getClaimedTraverserStones() == 3)
+
+        player:addClaimedTraverserStones(2)
+        assert(player:getClaimedTraverserStones() == 5)
+
+        npc:setTraverserEpoch()
+        npc:addClaimedTraverserStones(9)
+        npc:setClaimedTraverserStones(7)
+        assert(npc:getTraverserEpoch() == 0)
+        assert(npc:getAvailableTraverserStones() == 0)
+        assert(npc:getClaimedTraverserStones() == 0)
+
+        assert(not pcall(player.addClaimedTraverserStones), 'addClaimedTraverserStones accepted missing self')
+        assert(not pcall(player.addClaimedTraverserStones, player), 'addClaimedTraverserStones accepted missing count')
+        assert(not pcall(player.addClaimedTraverserStones, player, 'bad'), 'addClaimedTraverserStones accepted non-numeric count')
+        assert(not pcall(player.setClaimedTraverserStones), 'setClaimedTraverserStones accepted missing self')
+        assert(not pcall(player.setClaimedTraverserStones, player), 'setClaimedTraverserStones accepted missing total')
+        assert(not pcall(player.setClaimedTraverserStones, player, 'bad'), 'setClaimedTraverserStones accepted non-numeric total')
+    end)
 end)
