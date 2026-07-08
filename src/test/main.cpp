@@ -60,6 +60,7 @@ auto runZlibCompressedSizeSelfTests() -> bool;
 auto runZlibCodecSelfTests() -> bool;
 auto runFileUtilsSelfTests() -> bool;
 auto runRateLimitUtilsSelfTests() -> bool;
+auto runEventInfoSelfTests() -> bool;
 auto runArgumentsParserSelfTests() -> bool;
 auto runVersionInfoSelfTests() -> bool;
 auto runSingletonHelperSelfTests() -> bool;
@@ -354,6 +355,7 @@ namespace
         ok = runZlibCodecSelfTests() && ok;
         ok = runFileUtilsSelfTests() && ok;
         ok = runRateLimitUtilsSelfTests() && ok;
+        ok = runEventInfoSelfTests() && ok;
         ok = runArgumentsParserSelfTests() && ok;
         ok = runVersionInfoSelfTests() && ok;
         ok = runSingletonHelperSelfTests() && ok;
