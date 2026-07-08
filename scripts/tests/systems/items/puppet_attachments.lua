@@ -17,6 +17,7 @@ describe('Puppet attachments', function()
     end)
 
     it('equipped attachment is visible on the spawned automaton', function()
+        player:setAttachment(xi.item.ATTUNER_ATTACHMENT, 6)
         player:setAttachment(xi.item.STROBE_ATTACHMENT, 5)
         player:spawnPet(xi.petId.AUTOMATON)
 
@@ -36,6 +37,24 @@ describe('Puppet attachments', function()
         assert(item)
         assert(item == 'strobe',
             string.format('expected strobe, got %s', item))
+        assert(attachments[0] == '', 'expected empty slot 0')
+        assert(attachments[6] == '', 'locked attachment should not equip')
+        assert(pet:hasAttachmentSet(xi.item.STROBE_ATTACHMENT), 'expected equipped attachment to be visible')
+        assert(not pet:hasAttachmentSet(xi.item.ATTUNER_ATTACHMENT), 'expected absent attachment to be false')
+        assert(not player:hasAttachmentSet(xi.item.STROBE_ATTACHMENT), 'non-pet should not have equipped attachments')
+
+        player:setAttachment(xi.item.STROBE_ATTACHMENT, 5)
+        assert(pet:hasAttachmentSet(xi.item.STROBE_ATTACHMENT), 'duplicate attachment set should be ignored')
+
+        assert(not pcall(player.hasAttachmentSet), 'hasAttachmentSet accepted missing self')
+        assert(not pcall(player.hasAttachmentSet, player), 'hasAttachmentSet accepted missing item')
+        assert(not pcall(player.hasAttachmentSet, player, 'bad'), 'hasAttachmentSet accepted non-numeric item')
+        assert(not pcall(player.setAttachment), 'setAttachment accepted missing self')
+        assert(not pcall(player.setAttachment, player), 'setAttachment accepted missing item')
+        assert(not pcall(player.setAttachment, player, xi.item.STROBE_ATTACHMENT), 'setAttachment accepted missing slot')
+        assert(not pcall(player.setAttachment, player, xi.item.STROBE_ATTACHMENT, 'bad'), 'setAttachment accepted non-numeric slot')
+        assert(not pcall(player.getAttachments), 'getAttachments accepted missing self')
+        assert(player:getAttachments() == nil, 'non-automaton getAttachments should return nil')
     end)
 
     it('tracks unlocked frame, head, and attachment ownership', function()
