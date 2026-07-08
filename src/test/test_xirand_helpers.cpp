@@ -23,6 +23,7 @@
 
 #include "common/xirand.h"
 
+#include <array>
 #include <cstddef>
 #include <iostream>
 #include <map>
@@ -155,6 +156,7 @@ auto testEmptyWeightedHelpers() -> bool
 
     ok = expectEqual(xirand::GetWeightedIndex(std::span<const double>{}), static_cast<std::size_t>(0), "empty span weighted index") && ok;
     ok = expectEqual(xirand::GetWeightedIndex(std::initializer_list<double>{}), static_cast<std::size_t>(0), "empty list weighted index") && ok;
+    ok = expectEqual(xirand::GetWeightedIndex({ 0.0, 0.0, 0.0 }), static_cast<std::size_t>(0), "zero-total weighted index") && ok;
     ok = expectEqual(xirand::GetWeightedElement(std::map<std::string, double>{}), std::string{}, "empty defaultable weighted element") && ok;
     ok = expectOutOfRange(
              []()
@@ -163,6 +165,38 @@ auto testEmptyWeightedHelpers() -> bool
              },
              "empty non-default weighted element") &&
          ok;
+
+    return ok;
+}
+
+auto testDeterministicDetailHelpers() -> bool
+{
+    bool ok = true;
+
+    Squirrel5 boundedGenerator(0xDEADBEEF);
+    ok = expectEqual(xirand::detail::bounded32(boundedGenerator, 1), static_cast<std::uint32_t>(0), "bounded32 count 1") && ok;
+    ok = expectEqual(xirand::detail::bounded32(boundedGenerator, 2), static_cast<std::uint32_t>(1), "bounded32 count 2") && ok;
+    ok = expectEqual(xirand::detail::bounded32(boundedGenerator, 10), static_cast<std::uint32_t>(9), "bounded32 count 10") && ok;
+    ok = expectEqual(xirand::detail::bounded32(boundedGenerator, 1000), static_cast<std::uint32_t>(385), "bounded32 count 1000") && ok;
+    ok = expectEqual(xirand::detail::bounded32(boundedGenerator, uint64_t{ 1 } << 32), static_cast<std::uint32_t>(1094824577), "bounded32 full span") && ok;
+
+    Squirrel5 canonicalGenerator(0xDEADBEEF);
+    ok = expectEqual(xirand::detail::canonical53(canonicalGenerator), 0.11791174088876899, "canonical53 first draw") && ok;
+    ok = expectEqual(xirand::detail::canonical53(canonicalGenerator), 0.98960414071137448, "canonical53 second draw") && ok;
+
+    Squirrel5 weightedGenerator(0xDEADBEEF);
+    std::array<double, 3> weightedValues{ 1.0, 3.0, 6.0 };
+    std::array<double, 3> zeroValues{ 0.0, 0.0, 0.0 };
+    std::array<double, 3> trailingValues{ 0.0, 0.0, 5.0 };
+    ok = expectEqual(xirand::detail::weightedIndex(weightedGenerator, std::span<const double>(weightedValues)), static_cast<std::size_t>(1), "weightedIndex first draw") && ok;
+    ok = expectEqual(xirand::detail::weightedIndex(weightedGenerator, std::span<const double>(weightedValues)), static_cast<std::size_t>(2), "weightedIndex second draw") && ok;
+    ok = expectEqual(xirand::detail::weightedIndex(weightedGenerator, std::span<const double>(zeroValues)), static_cast<std::size_t>(0), "weightedIndex zero total") && ok;
+    ok = expectEqual(xirand::detail::weightedIndex(weightedGenerator, std::span<const double>(trailingValues)), static_cast<std::size_t>(2), "weightedIndex trailing weight") && ok;
+
+    Squirrel5 shuffleGenerator(0xDEADBEEF);
+    std::array<int, 6> values{ 0, 1, 2, 3, 4, 5 };
+    xirand::detail::shuffle(values.begin(), values.end(), shuffleGenerator);
+    ok = expectTrue(values == std::array<int, 6>{ 2, 5, 1, 3, 4, 0 }, "deterministic shuffle order") && ok;
 
     return ok;
 }
@@ -177,6 +211,7 @@ auto runXirandHelpersSelfTests() -> bool
     ok = testNonEmptyDomains() && ok;
     ok = testEmptyRandomElement() && ok;
     ok = testEmptyWeightedHelpers() && ok;
+    ok = testDeterministicDetailHelpers() && ok;
 
     return ok;
 }
