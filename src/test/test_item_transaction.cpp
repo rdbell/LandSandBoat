@@ -22,6 +22,7 @@
 #include "test_item_transaction.h"
 
 #include "map/items/item.h"
+#include "map/items/item_access.h"
 #include "map/items/transaction.h"
 
 #include <cstdint>
@@ -73,6 +74,16 @@ struct ProbeTransaction final : Transaction
     auto holds(const CItem* item) const -> bool override
     {
         return item == held;
+    }
+
+    static auto enterItem(CItem* item) -> bool
+    {
+        return enterTx(item);
+    }
+
+    static void exitItem(CItem* item)
+    {
+        exitTx(item);
     }
 
     bool         commitResult{ true };
@@ -181,6 +192,31 @@ auto testHoldsDispatch() -> bool
     return ok;
 }
 
+auto testItemStateBridge() -> bool
+{
+    CItem item(0x5000);
+
+    bool ok = true;
+    ok      = expectBool(ProbeTransaction::enterItem(nullptr), false, "enter bridge null") && ok;
+    ProbeTransaction::exitItem(nullptr);
+
+    ok = expectBool(ProbeTransaction::enterItem(&item), true, "enter bridge free item") && ok;
+    ok = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::InTransaction), "bridge enters tx state") && ok;
+    ok = expectBool(item.isBusy(), true, "bridge tx state busy") && ok;
+    ok = expectBool(ProbeTransaction::enterItem(&item), false, "enter bridge rejects tx item") && ok;
+    ok = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::InTransaction), "bridge tx reject keeps state") && ok;
+    ProbeTransaction::exitItem(&item);
+    ok = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::Free), "bridge exits to free") && ok;
+    ok = expectBool(item.isBusy(), false, "bridge exit not busy") && ok;
+
+    ok = expectBool(xi::items::mark(&item, ItemState::Bazaar), true, "mark busy before bridge") && ok;
+    ok = expectBool(ProbeTransaction::enterItem(&item), false, "enter bridge rejects busy item") && ok;
+    ok = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::Bazaar), "bridge reject keeps busy state") && ok;
+    ProbeTransaction::exitItem(&item);
+    ok = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::Free), "bridge exit from busy frees") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runItemTransactionSelfTests() -> bool
@@ -192,5 +228,6 @@ auto runItemTransactionSelfTests() -> bool
     ok      = testRollbackStateTransitions() && ok;
     ok      = testRollbackIfOpenFromDestructor() && ok;
     ok      = testHoldsDispatch() && ok;
+    ok      = testItemStateBridge() && ok;
     return ok;
 }
