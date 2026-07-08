@@ -206,6 +206,8 @@ set(SOURCES
     test_item_currency.cpp
     test_item_equipment.h
     test_item_equipment.cpp
+    test_item_exdata.h
+    test_item_exdata.cpp
     test_item_fish.h
     test_item_fish.cpp
     test_item_flowerpot.h

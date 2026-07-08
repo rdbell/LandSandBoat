@@ -68,6 +68,7 @@ auto runSingletonHelperSelfTests() -> bool;
 auto runInventorySyncStateSelfTests() -> bool;
 auto runItemCurrencySelfTests() -> bool;
 auto runItemEquipmentSelfTests() -> bool;
+auto runItemExdataSelfTests() -> bool;
 auto runItemFishSelfTests() -> bool;
 auto runItemFlowerpotSelfTests() -> bool;
 auto runItemFurnishingSelfTests() -> bool;
@@ -387,6 +388,7 @@ namespace
         ok = runInventorySyncStateSelfTests() && ok;
         ok = runItemCurrencySelfTests() && ok;
         ok = runItemEquipmentSelfTests() && ok;
+        ok = runItemExdataSelfTests() && ok;
         ok = runItemFishSelfTests() && ok;
         ok = runItemFlowerpotSelfTests() && ok;
         ok = runItemFurnishingSelfTests() && ok;
