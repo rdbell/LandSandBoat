@@ -206,6 +206,8 @@ set(SOURCES
     test_spatial_grid.cpp
     test_ximesh_math.h
     test_ximesh_math.cpp
+    test_ximesh_structs.h
+    test_ximesh_structs.cpp
     test_mmo_eminence.h
     test_mmo_eminence.cpp
     test_rate_limit_utils.h
