@@ -76,6 +76,7 @@ auto runItemLinkshellSelfTests() -> bool;
 auto runItemPuppetSelfTests() -> bool;
 auto runItemShopSelfTests() -> bool;
 auto runItemUsableSelfTests() -> bool;
+auto runItemWeaponSelfTests() -> bool;
 auto runGradesSelfTests() -> bool;
 auto runTradeContainerSelfTests() -> bool;
 auto runUniversalContainerSelfTests() -> bool;
@@ -394,6 +395,7 @@ namespace
         ok = runItemPuppetSelfTests() && ok;
         ok = runItemShopSelfTests() && ok;
         ok = runItemUsableSelfTests() && ok;
+        ok = runItemWeaponSelfTests() && ok;
         ok = runGradesSelfTests() && ok;
         ok = runTradeContainerSelfTests() && ok;
         ok = runUniversalContainerSelfTests() && ok;
