@@ -210,6 +210,8 @@ set(SOURCES
     test_item_furnishing.cpp
     test_item_general.h
     test_item_general.cpp
+    test_item_linkshell.h
+    test_item_linkshell.cpp
     test_item_puppet.h
     test_item_puppet.cpp
     test_item_shop.h

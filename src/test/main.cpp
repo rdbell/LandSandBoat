@@ -70,6 +70,7 @@ auto runItemCurrencySelfTests() -> bool;
 auto runItemFishSelfTests() -> bool;
 auto runItemFurnishingSelfTests() -> bool;
 auto runItemGeneralSelfTests() -> bool;
+auto runItemLinkshellSelfTests() -> bool;
 auto runItemPuppetSelfTests() -> bool;
 auto runItemShopSelfTests() -> bool;
 auto runGradesSelfTests() -> bool;
@@ -384,6 +385,7 @@ namespace
         ok = runItemFishSelfTests() && ok;
         ok = runItemFurnishingSelfTests() && ok;
         ok = runItemGeneralSelfTests() && ok;
+        ok = runItemLinkshellSelfTests() && ok;
         ok = runItemPuppetSelfTests() && ok;
         ok = runItemShopSelfTests() && ok;
         ok = runGradesSelfTests() && ok;
