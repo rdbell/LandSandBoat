@@ -578,6 +578,8 @@ set(SOURCES
     test_settings_number_helper.cpp
     test_settings_value_conversions.h
     test_settings_value_conversions.cpp
+    test_settings_loader.h
+    test_settings_loader.cpp
     test_singleton_helper.h
     test_singleton_helper.cpp
     test_spatial_orientation.h

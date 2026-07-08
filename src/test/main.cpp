@@ -72,6 +72,7 @@ auto runLoginErrorPacketSelfTests() -> bool;
 auto runLoginOTPHelpersSelfTests() -> bool;
 auto runSettingsNumberHelperSelfTests() -> bool;
 auto runSettingsValueConversionsSelfTests() -> bool;
+auto runSettingsLoaderSelfTests() -> bool;
 auto runLoginPacketHashSelfTests() -> bool;
 auto runLoginJSONGetSelfTests() -> bool;
 auto runMariaDBConnectionLossSelfTests() -> bool;
@@ -360,6 +361,7 @@ namespace
         ok = runLoginOTPHelpersSelfTests() && ok;
         ok = runSettingsNumberHelperSelfTests() && ok;
         ok = runSettingsValueConversionsSelfTests() && ok;
+        ok = runSettingsLoaderSelfTests() && ok;
         ok = runLoginPacketHashSelfTests() && ok;
         ok = runLoginJSONGetSelfTests() && ok;
         ok = runWorldCharacterCacheSelfTests() && ok;
