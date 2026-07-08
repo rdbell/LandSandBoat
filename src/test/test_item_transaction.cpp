@@ -23,7 +23,10 @@
 
 #include "map/items/item.h"
 #include "map/items/item_access.h"
+#include "map/items/item_equipment.h"
+#include "map/items/item_usable.h"
 #include "map/items/transaction.h"
+#include "map/items/transactions/item_use.h"
 
 #include <cstdint>
 #include <iostream>
@@ -217,6 +220,88 @@ auto testItemStateBridge() -> bool
     return ok;
 }
 
+auto fakePlayer() -> CCharEntity*
+{
+    // These self-tests only exercise transaction paths that never dereference player_.
+    return reinterpret_cast<CCharEntity*>(std::uintptr_t{ 0x1 });
+}
+
+auto testItemUseStartValidation() -> bool
+{
+    CItemUsable item(0x6000);
+
+    bool ok = true;
+    ok      = expectBool(ItemUseTransaction::start(nullptr, &item) == nullptr, true, "item use rejects null player") && ok;
+    ok      = expectBool(ItemUseTransaction::start(fakePlayer(), nullptr) == nullptr, true, "item use rejects null item") && ok;
+
+    ok = expectBool(xi::items::mark(&item, ItemState::Bazaar), true, "item use mark busy") && ok;
+    item.setSubType(ITEM_LOCKED);
+    item.setSubType(ITEM_CHARGED);
+    ok = expectBool(ItemUseTransaction::start(fakePlayer(), &item) == nullptr, true, "item use rejects busy consumable") && ok;
+    ok = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::Free), "item use busy reject force-frees") && ok;
+    ok = expectBool(item.isSubType(ITEM_LOCKED), false, "item use busy reject unlocks") && ok;
+    ok = expectBool(item.isSubType(ITEM_CHARGED), true, "item use busy reject preserves other subtypes") && ok;
+    return ok;
+}
+
+auto testItemUseConsumableCustody() -> bool
+{
+    CItemUsable item(0x6001);
+    item.setSubType(ITEM_LOCKED);
+    item.setSubType(ITEM_CHARGED);
+
+    auto tx = ItemUseTransaction::start(fakePlayer(), &item);
+
+    bool ok = true;
+    ok      = expectBool(tx != nullptr, true, "item use starts consumable tx") && ok;
+    ok      = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::InTransaction), "item use consumable enters tx") && ok;
+    ok      = expectBool(item.isBusy(), true, "item use consumable busy") && ok;
+    ok      = expectBool(tx->holds(&item), true, "item use holds consumable") && ok;
+
+    tx->rollback();
+    ok = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::Free), "item use rollback frees consumable") && ok;
+    ok = expectBool(item.isSubType(ITEM_LOCKED), false, "item use rollback unlocks consumable") && ok;
+    ok = expectBool(item.isSubType(ITEM_CHARGED), true, "item use rollback preserves other subtypes") && ok;
+    ok = expectBool(tx->holds(&item), false, "item use closed tx no longer holds") && ok;
+    return ok;
+}
+
+auto testItemUseDestructorRollback() -> bool
+{
+    CItemUsable item(0x6002);
+    item.setSubType(ITEM_LOCKED);
+
+    {
+        auto tx = ItemUseTransaction::start(fakePlayer(), &item);
+        if (!expectBool(tx != nullptr, true, "item use destructor starts tx"))
+        {
+            return false;
+        }
+    }
+
+    bool ok = true;
+    ok      = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::Free), "item use destructor frees consumable") && ok;
+    ok      = expectBool(item.isSubType(ITEM_LOCKED), false, "item use destructor unlocks consumable") && ok;
+    return ok;
+}
+
+auto testItemUseEquipmentNoCustody() -> bool
+{
+    CItemEquipment item(0x6003);
+
+    bool ok = true;
+    ok      = expectBool(xi::items::mark(&item, ItemState::Equipped), true, "item use equipment mark equipped") && ok;
+
+    auto tx = ItemUseTransaction::start(fakePlayer(), &item);
+    ok      = expectBool(tx != nullptr, true, "item use starts equipment tx") && ok;
+    ok      = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::Equipped), "item use equipment keeps state") && ok;
+    ok      = expectBool(tx->holds(&item), false, "item use equipment not held") && ok;
+    ok      = expectBool(tx->commit(), true, "item use equipment commit succeeds") && ok;
+    ok      = expectBool(tx->isOpen(), false, "item use equipment commit closes") && ok;
+    ok      = expectUInt(static_cast<uint8>(item.state()), static_cast<uint8>(ItemState::Equipped), "item use equipment commit keeps state") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runItemTransactionSelfTests() -> bool
@@ -229,5 +314,9 @@ auto runItemTransactionSelfTests() -> bool
     ok      = testRollbackIfOpenFromDestructor() && ok;
     ok      = testHoldsDispatch() && ok;
     ok      = testItemStateBridge() && ok;
+    ok      = testItemUseStartValidation() && ok;
+    ok      = testItemUseConsumableCustody() && ok;
+    ok      = testItemUseDestructorRollback() && ok;
+    ok      = testItemUseEquipmentNoCustody() && ok;
     return ok;
 }
