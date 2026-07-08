@@ -216,6 +216,8 @@ set(SOURCES
     test_item_puppet.cpp
     test_item_shop.h
     test_item_shop.cpp
+    test_item_usable.h
+    test_item_usable.cpp
     test_grades.h
     test_grades.cpp
     test_trade_container.h

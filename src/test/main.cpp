@@ -73,6 +73,7 @@ auto runItemGeneralSelfTests() -> bool;
 auto runItemLinkshellSelfTests() -> bool;
 auto runItemPuppetSelfTests() -> bool;
 auto runItemShopSelfTests() -> bool;
+auto runItemUsableSelfTests() -> bool;
 auto runGradesSelfTests() -> bool;
 auto runTradeContainerSelfTests() -> bool;
 auto runUniversalContainerSelfTests() -> bool;
@@ -388,6 +389,7 @@ namespace
         ok = runItemLinkshellSelfTests() && ok;
         ok = runItemPuppetSelfTests() && ok;
         ok = runItemShopSelfTests() && ok;
+        ok = runItemUsableSelfTests() && ok;
         ok = runGradesSelfTests() && ok;
         ok = runTradeContainerSelfTests() && ok;
         ok = runUniversalContainerSelfTests() && ok;
