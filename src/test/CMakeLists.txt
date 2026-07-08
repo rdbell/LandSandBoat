@@ -206,6 +206,8 @@ set(SOURCES
     test_recast_container.cpp
     test_trait.h
     test_trait.cpp
+    test_modifier.h
+    test_modifier.cpp
     test_spatial_grid.h
     test_spatial_grid.cpp
     test_ximesh_math.h

@@ -68,6 +68,7 @@ auto runSingletonHelperSelfTests() -> bool;
 auto runInventorySyncStateSelfTests() -> bool;
 auto runRecastContainerSelfTests() -> bool;
 auto runTraitSelfTests() -> bool;
+auto runModifierSelfTests() -> bool;
 auto runSpatialGridSelfTests() -> bool;
 auto runXimeshMathSelfTests() -> bool;
 auto runXimeshStructsSelfTests() -> bool;
@@ -371,6 +372,7 @@ namespace
         ok = runInventorySyncStateSelfTests() && ok;
         ok = runRecastContainerSelfTests() && ok;
         ok = runTraitSelfTests() && ok;
+        ok = runModifierSelfTests() && ok;
         ok = runSpatialGridSelfTests() && ok;
         ok = runXimeshMathSelfTests() && ok;
         ok = runXimeshStructsSelfTests() && ok;
