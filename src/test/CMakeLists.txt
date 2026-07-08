@@ -204,6 +204,8 @@ set(SOURCES
     test_inventory_sync_state.cpp
     test_grades.h
     test_grades.cpp
+    test_trade_container.h
+    test_trade_container.cpp
     test_recast_container.h
     test_recast_container.cpp
     test_trait.h

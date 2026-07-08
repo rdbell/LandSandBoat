@@ -67,6 +67,7 @@ auto runVersionInfoSelfTests() -> bool;
 auto runSingletonHelperSelfTests() -> bool;
 auto runInventorySyncStateSelfTests() -> bool;
 auto runGradesSelfTests() -> bool;
+auto runTradeContainerSelfTests() -> bool;
 auto runRecastContainerSelfTests() -> bool;
 auto runTraitSelfTests() -> bool;
 auto runModifierSelfTests() -> bool;
@@ -373,6 +374,7 @@ namespace
         ok = runSingletonHelperSelfTests() && ok;
         ok = runInventorySyncStateSelfTests() && ok;
         ok = runGradesSelfTests() && ok;
+        ok = runTradeContainerSelfTests() && ok;
         ok = runRecastContainerSelfTests() && ok;
         ok = runTraitSelfTests() && ok;
         ok = runModifierSelfTests() && ok;
