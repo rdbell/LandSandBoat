@@ -66,6 +66,7 @@ auto runArgumentsParserSelfTests() -> bool;
 auto runVersionInfoSelfTests() -> bool;
 auto runSingletonHelperSelfTests() -> bool;
 auto runInventorySyncStateSelfTests() -> bool;
+auto runItemCurrencySelfTests() -> bool;
 auto runItemShopSelfTests() -> bool;
 auto runGradesSelfTests() -> bool;
 auto runTradeContainerSelfTests() -> bool;
@@ -375,6 +376,7 @@ namespace
         ok = runVersionInfoSelfTests() && ok;
         ok = runSingletonHelperSelfTests() && ok;
         ok = runInventorySyncStateSelfTests() && ok;
+        ok = runItemCurrencySelfTests() && ok;
         ok = runItemShopSelfTests() && ok;
         ok = runGradesSelfTests() && ok;
         ok = runTradeContainerSelfTests() && ok;
