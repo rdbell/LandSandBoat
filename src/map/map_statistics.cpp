@@ -32,7 +32,7 @@ MapStatistics::MapStatistics()
     reset();
 }
 
-auto MapStatistics::toString(Key key)
+auto MapStatistics::toString(Key key) -> const char*
 {
     switch (key)
     {

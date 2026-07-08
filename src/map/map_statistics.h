@@ -44,7 +44,7 @@ public:
 
     MapStatistics();
 
-    static auto toString(Key key);
+    static auto toString(Key key) -> const char*;
 
     void set(Key key, int64 value);
     auto get(Key key) const -> int64;
