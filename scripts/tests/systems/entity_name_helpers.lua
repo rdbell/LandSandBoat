@@ -27,5 +27,19 @@ describe('Base entity name helper bindings', function()
 
         assert(mobName == 'Wild_Rabbit', string.format('Unexpected mob name: %s', mobName))
         assert(mobPacketName ~= '', 'Mob packet name was empty')
+
+        local npc = player.entities:get('Field_Manual')
+        assert(npc, 'Field Manual NPC was not found')
+
+        assert(pcall(player.hideName, player, true), 'player hideName rejected a valid hide')
+        assert(pcall(player.hideName, player, false), 'player hideName rejected a valid show')
+        assert(pcall(npc.hideName, npc, true), 'NPC hideName rejected a valid hide')
+        assert(pcall(npc.hideName, npc, false), 'NPC hideName rejected a valid show')
+        assert(pcall(mob.hideName, mob, true), 'mob hideName rejected a valid hide')
+        assert(pcall(mob.hideName, mob, false), 'mob hideName rejected a valid show')
+
+        assert(not pcall(mob.hideName), 'hideName accepted missing self')
+        assert(not pcall(mob.hideName, mob), 'hideName accepted missing state')
+        assert(not pcall(mob.hideName, mob, 'bad'), 'hideName accepted non-boolean state')
     end)
 end)
