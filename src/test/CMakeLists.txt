@@ -192,6 +192,8 @@ set(SOURCES
     test_engine.cpp
     test_event_info.h
     test_event_info.cpp
+    test_latent_effect.h
+    test_latent_effect.cpp
     test_file_utils.h
     test_file_utils.cpp
     test_filewatcher_queue.h
