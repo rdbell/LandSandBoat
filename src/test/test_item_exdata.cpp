@@ -66,6 +66,17 @@ auto expectUInt(std::uint64_t actual, std::uint64_t expected, const char* label)
     return true;
 }
 
+auto expectString(const std::string& actual, const std::string& expected, const char* label) -> bool
+{
+    if (actual != expected)
+    {
+        std::cerr << "item exdata self-test failed: " << label << " got "
+                  << actual << " expected " << expected << '\n';
+        return false;
+    }
+    return true;
+}
+
 struct LocalExdata
 {
     uint16 Marker;
@@ -253,6 +264,47 @@ auto testRawExdataOverlay() -> bool
     return ok;
 }
 
+auto testTimerInfoTableSerialization() -> bool
+{
+    sol::state lua;
+    auto       input = lua.create_table();
+    input["remainingCharges"] = 7;
+    input["flags"]            = 0xC000;
+    input["timeValue1"]       = 0x11223344;
+    input["timeValue2"]       = 0x55667788;
+    input["signature"]        = "OmegaXI2026";
+
+    Exdata::ItemTimerInfo timer{};
+    timer.fromTable(input);
+
+    bool ok = true;
+    ok      = expectUInt(timer.Header, 1, "timer header from table") && ok;
+    ok      = expectUInt(timer.RemainingCharges, 7, "timer remaining charges from table") && ok;
+    ok      = expectUInt(timer.Flags, 0xC000, "timer flags from table") && ok;
+    ok      = expectUInt(timer.TimeValue1, 0x11223344, "timer time value 1 from table") && ok;
+    ok      = expectUInt(timer.TimeValue2, 0x55667788, "timer time value 2 from table") && ok;
+    ok      = expectString(Exdata::decodeSignature(timer.Signature), "OmegaXI2026", "timer signature from table") && ok;
+
+    auto output = lua.create_table();
+    timer.toTable(output);
+    ok = expectUInt(output["remainingCharges"].get<uint8>(), 7, "timer remaining charges to table") && ok;
+    ok = expectUInt(output["flags"].get<uint16>(), 0xC000, "timer flags to table") && ok;
+    ok = expectUInt(output["timeValue1"].get<uint32>(), 0x11223344, "timer time value 1 to table") && ok;
+    ok = expectUInt(output["timeValue2"].get<uint32>(), 0x55667788, "timer time value 2 to table") && ok;
+    ok = expectString(output["signature"].get<std::string>(), "OmegaXI2026", "timer signature to table") && ok;
+
+    auto partial = lua.create_table();
+    partial["flags"] = 0x9000;
+    timer.fromTable(partial);
+    ok = expectUInt(timer.Header, 1, "timer header partial update") && ok;
+    ok = expectUInt(timer.RemainingCharges, 7, "timer remaining charges preserved") && ok;
+    ok = expectUInt(timer.Flags, 0x9000, "timer flags partial update") && ok;
+    ok = expectUInt(timer.TimeValue1, 0x11223344, "timer time value 1 preserved") && ok;
+    ok = expectUInt(timer.TimeValue2, 0x55667788, "timer time value 2 preserved") && ok;
+    ok = expectString(Exdata::decodeSignature(timer.Signature), "OmegaXI2026", "timer signature preserved") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runItemExdataSelfTests() -> bool
@@ -262,5 +314,6 @@ auto runItemExdataSelfTests() -> bool
     ok      = testItemIDTypeDispatch() && ok;
     ok      = testPredicateTypeDispatchAndPrecedence() && ok;
     ok      = testRawExdataOverlay() && ok;
+    ok      = testTimerInfoTableSerialization() && ok;
     return ok;
 }
