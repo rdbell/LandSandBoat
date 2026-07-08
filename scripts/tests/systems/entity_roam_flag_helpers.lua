@@ -36,5 +36,7 @@ describe('Base entity roam flag helper bindings', function()
         assert(not pcall(mob.setRoamFlags, mob), 'setRoamFlags accepted missing flags')
         assert(not pcall(mob.setRoamFlags, mob, 'bad'), 'setRoamFlags accepted non-numeric flags')
         assert(not pcall(player.setRoamFlags, player, 'bad'), 'non-mob setRoamFlags accepted non-numeric flags')
+
+        assert(pcall(mob.setRoamFlags, mob, initialFlags), 'failed to restore initial mob roam flags')
     end)
 end)
