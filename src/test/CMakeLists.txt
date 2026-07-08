@@ -306,6 +306,8 @@ set(SOURCES
     test_map_key_item_enum.cpp
     test_map_msg_basic_enum.h
     test_map_msg_basic_enum.cpp
+    test_mob_modifier.h
+    test_mob_modifier.cpp
     test_map_packet_basic_header.h
     test_map_packet_basic_header.cpp
     test_world_character_cache.h

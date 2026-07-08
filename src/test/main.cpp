@@ -140,6 +140,7 @@ auto runMapEmoteEnumSelfTests() -> bool;
 auto runMapFourCCExdataEnumSelfTests() -> bool;
 auto runMapMsgBasicEnumSelfTests() -> bool;
 auto runMapKeyItemEnumSelfTests() -> bool;
+auto runMobModifierSelfTests() -> bool;
 auto runC2SGameOKPacketSelfTests() -> bool;
 auto runC2SNetEndPacketSelfTests() -> bool;
 auto runC2SCLStatPacketSelfTests() -> bool;
@@ -445,6 +446,7 @@ namespace
         ok = runMapFourCCExdataEnumSelfTests() && ok;
         ok = runMapMsgBasicEnumSelfTests() && ok;
         ok = runMapKeyItemEnumSelfTests() && ok;
+        ok = runMobModifierSelfTests() && ok;
         ok = runC2SGameOKPacketSelfTests() && ok;
         ok = runC2SNetEndPacketSelfTests() && ok;
         ok = runC2SCLStatPacketSelfTests() && ok;
