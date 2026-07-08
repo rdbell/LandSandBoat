@@ -600,6 +600,8 @@ set(SOURCES
     test_tracy_hex_helpers.cpp
     test_trigger_area.h
     test_trigger_area.cpp
+    test_weather_container.h
+    test_weather_container.cpp
     test_typed_flags.h
     test_typed_flags.cpp
     test_uuid_generation.h

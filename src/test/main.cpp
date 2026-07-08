@@ -100,6 +100,7 @@ auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
 auto runTracyHexHelperSelfTests() -> bool;
 auto runTriggerAreaSelfTests() -> bool;
+auto runWeatherContainerSelfTests() -> bool;
 auto runMapEnumPrimitiveSelfTests() -> bool;
 auto runLoginErrorCodeSelfTests() -> bool;
 auto runLoginAuthConstantSelfTests() -> bool;
@@ -393,6 +394,7 @@ namespace
         ok = runIPCMessageFramingSelfTests() && ok;
         ok = runTracyHexHelperSelfTests() && ok;
         ok = runTriggerAreaSelfTests() && ok;
+        ok = runWeatherContainerSelfTests() && ok;
         ok = runMapEnumPrimitiveSelfTests() && ok;
         ok = runLoginErrorCodeSelfTests() && ok;
         ok = runLoginAuthConstantSelfTests() && ok;
