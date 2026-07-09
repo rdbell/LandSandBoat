@@ -632,6 +632,19 @@ auto testModBlackMageValues() -> bool
     return ok;
 }
 
+auto testModRedMageValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::BLINK), 299, "Mod::BLINK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STONESKIN), 300, "Mod::STONESKIN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PHALANX), 301, "Mod::PHALANX") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENF_MAG_POTENCY), 290, "Mod::ENF_MAG_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENF_MAG_DURATION), 1151, "Mod::ENF_MAG_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_SABOTEUR), 297, "Mod::ENHANCES_SABOTEUR") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PHALANX_RECEIVED), 1182, "Mod::PHALANX_RECEIVED") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -712,6 +725,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModMonkValues() && ok;
     ok      = testModWhiteMageValues() && ok;
     ok      = testModBlackMageValues() && ok;
+    ok      = testModRedMageValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
