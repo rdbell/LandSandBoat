@@ -715,6 +715,25 @@ auto testModDarkKnightValues() -> bool
     return ok;
 }
 
+auto testModBeastmasterValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::TAME), 304, "Mod::TAME") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CHARM_TIME), 360, "Mod::CHARM_TIME") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FAMILIAR_BONUS), 1169, "Mod::FAMILIAR_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REWARD_HP_BONUS), 364, "Mod::REWARD_HP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CHARM_CHANCE), 391, "Mod::CHARM_CHANCE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FERAL_HOWL_DURATION), 503, "Mod::FERAL_HOWL_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::JUG_LEVEL_RANGE), 564, "Mod::JUG_LEVEL_RANGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CALL_BEAST_DELAY), 273, "Mod::CALL_BEAST_DELAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SIC_READY_RECAST), 1052, "Mod::SIC_READY_RECAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TANDEM_STRIKE_POWER), 271, "Mod::TANDEM_STRIKE_POWER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TANDEM_BLOW_POWER), 272, "Mod::TANDEM_BLOW_POWER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_MONSTER_CORRELATION), 1155, "Mod::ENHANCES_MONSTER_CORRELATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_SPUR), 1157, "Mod::ENHANCES_SPUR") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -799,6 +818,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModThiefValues() && ok;
     ok      = testModPaladinValues() && ok;
     ok      = testModDarkKnightValues() && ok;
+    ok      = testModBeastmasterValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
