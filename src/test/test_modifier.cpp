@@ -808,6 +808,24 @@ auto testModSamuraiValues() -> bool
     return ok;
 }
 
+auto testModNinjaValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::UTSUSEMI), 307, "Mod::UTSUSEMI") && ok;
+    ok      = expectInt(static_cast<int>(Mod::UTSUSEMI_BONUS), 900, "Mod::UTSUSEMI_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::NINJA_TOOL), 308, "Mod::NINJA_TOOL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::NIN_NUKE_BONUS_INNIN), 223, "Mod::NIN_NUKE_BONUS_INNIN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::NIN_NUKE_BONUS_GEAR), 522, "Mod::NIN_NUKE_BONUS_GEAR") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DAKEN), 911, "Mod::DAKEN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::NINJUTSU_DURATION), 1000, "Mod::NINJUTSU_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_SANGE), 1091, "Mod::ENHANCES_SANGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_FUTAE), 1148, "Mod::ENHANCES_FUTAE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::UTSUSEMI_AOE), 1179, "Mod::UTSUSEMI_AOE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::YONIN_UTSUSEMI_ENMITY), 1192, "Mod::YONIN_UTSUSEMI_ENMITY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SANGE_MULTI_HIT), 1193, "Mod::SANGE_MULTI_HIT") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -896,6 +914,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModBardValues() && ok;
     ok      = testModRangerValues() && ok;
     ok      = testModSamuraiValues() && ok;
+    ok      = testModNinjaValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
