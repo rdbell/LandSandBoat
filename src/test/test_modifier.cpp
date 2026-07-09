@@ -125,6 +125,18 @@ auto testModElementalMagicAttackAndAccuracyValues() -> bool
     return ok;
 }
 
+auto testModWeaponSkillAttackPercentageAndSkillupValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::WSACC), 48, "Mod::WSACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ATTP), 62, "Mod::ATTP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DEFP), 63, "Mod::DEFP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::COMBAT_SKILLUP_RATE), 64, "Mod::COMBAT_SKILLUP_RATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAGIC_SKILLUP_RATE), 65, "Mod::MAGIC_SKILLUP_RATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RATTP), 66, "Mod::RATTP") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -169,6 +181,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModElementalMagicEvasionValues() && ok;
     ok      = testModCombatRatingValues() && ok;
     ok      = testModElementalMagicAttackAndAccuracyValues() && ok;
+    ok      = testModWeaponSkillAttackPercentageAndSkillupValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
