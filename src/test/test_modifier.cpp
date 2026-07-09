@@ -1228,6 +1228,25 @@ auto testModAftermathAndExtraDamageValues() -> bool
     return ok;
 }
 
+auto testModFoodCursnaAndClammingValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::APPRECIATE_GYSAHL_GREENS), 156, "Mod::APPRECIATE_GYSAHL_GREENS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EAT_RAW_FISH), 412, "Mod::EAT_RAW_FISH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EAT_RAW_MEAT), 413, "Mod::EAT_RAW_MEAT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DRINK_DISTILLED), 159, "Mod::DRINK_DISTILLED") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EQUIPMENT_ONLY_RACE), 276, "Mod::EQUIPMENT_ONLY_RACE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_CURSNA_RCVD), 67, "Mod::ENHANCES_CURSNA_RCVD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_CURSNA), 310, "Mod::ENHANCES_CURSNA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_HOLYWATER), 495, "Mod::ENHANCES_HOLYWATER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_PROT_SHELL_RCVD), 977, "Mod::ENHANCES_PROT_SHELL_RCVD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_PROT_RCVD), 1050, "Mod::ENHANCES_PROT_RCVD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RETALIATION), 414, "Mod::RETALIATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CLAMMING_IMPROVED_RESULTS), 509, "Mod::CLAMMING_IMPROVED_RESULTS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CLAMMING_REDUCED_INCIDENTS), 510, "Mod::CLAMMING_REDUCED_INCIDENTS") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1338,6 +1357,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModAbsorbDMGToMPValues() && ok;
     ok      = testModItemAdditionalEffectValues() && ok;
     ok      = testModAftermathAndExtraDamageValues() && ok;
+    ok      = testModFoodCursnaAndClammingValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
