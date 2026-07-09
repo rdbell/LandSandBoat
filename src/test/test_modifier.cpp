@@ -826,6 +826,33 @@ auto testModNinjaValues() -> bool
     return ok;
 }
 
+auto testModDragoonValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::ANCIENT_CIRCLE_DURATION), 859, "Mod::ANCIENT_CIRCLE_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ANCIENT_CIRCLE_POTENCY), 1142, "Mod::ANCIENT_CIRCLE_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::JUMP_TP_BONUS), 361, "Mod::JUMP_TP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::JUMP_SPIRIT_TP_BONUS), 285, "Mod::JUMP_SPIRIT_TP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::JUMP_ATT_BONUS), 362, "Mod::JUMP_ATT_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::JUMP_SOUL_SPIRIT_ATT_BONUS), 286, "Mod::JUMP_SOUL_SPIRIT_ATT_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::JUMP_ACC_BONUS), 936, "Mod::JUMP_ACC_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::JUMP_DOUBLE_ATTACK), 888, "Mod::JUMP_DOUBLE_ATTACK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HIGH_JUMP_ENMITY_REDUCTION), 363, "Mod::HIGH_JUMP_ENMITY_REDUCTION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FORCE_JUMP_CRIT), 828, "Mod::FORCE_JUMP_CRIT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WYVERN_EFFECTIVE_BREATH), 829, "Mod::WYVERN_EFFECTIVE_BREATH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WYVERN_SUBJOB_TRAITS), 974, "Mod::WYVERN_SUBJOB_TRAITS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WYVERN_BREATH_MACC), 986, "Mod::WYVERN_BREATH_MACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WYVERN_LVL_BONUS), 1043, "Mod::WYVERN_LVL_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WYVERN_ATTRIBUTE_DA), 1056, "Mod::WYVERN_ATTRIBUTE_DA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WYVERN_SHOW_READYING), 1195, "Mod::WYVERN_SHOW_READYING") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DRAGOON_BREATH_RECAST), 1057, "Mod::DRAGOON_BREATH_RECAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCE_DEEP_BREATHING), 283, "Mod::ENHANCE_DEEP_BREATHING") && ok;
+    ok      = expectInt(static_cast<int>(Mod::UNCAPPED_WYVERN_BREATH), 284, "Mod::UNCAPPED_WYVERN_BREATH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_STRAFE), 282, "Mod::ENHANCES_STRAFE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_SPIRIT_LINK), 281, "Mod::ENHANCES_SPIRIT_LINK") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -915,6 +942,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModRangerValues() && ok;
     ok      = testModSamuraiValues() && ok;
     ok      = testModNinjaValues() && ok;
+    ok      = testModDragoonValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
