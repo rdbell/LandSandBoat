@@ -204,6 +204,8 @@ set(SOURCES
     test_inventory_sync_state.cpp
     test_item_access.h
     test_item_access.cpp
+    test_item_container.h
+    test_item_container.cpp
     test_item_currency.h
     test_item_currency.cpp
     test_item_equipment.h
@@ -304,6 +306,8 @@ set(SOURCES
     test_login_error_packet.cpp
     test_login_json_get.h
     test_login_json_get.cpp
+    test_login_key_packet.h
+    test_login_key_packet.cpp
     test_login_malformed_string.h
     test_login_malformed_string.cpp
     test_login_otp_helpers.h
@@ -318,6 +322,10 @@ set(SOURCES
     test_los_cache.cpp
     test_map_statistics.h
     test_map_statistics.cpp
+    test_map_network_packet_building.h
+    test_map_network_packet_building.cpp
+    test_map_session_blowfish.h
+    test_map_session_blowfish.cpp
     test_look_parser.h
     test_look_parser.cpp
     test_lua_environment.h
@@ -644,6 +652,8 @@ set(SOURCES
     test_settings_loader.cpp
     test_singleton_helper.h
     test_singleton_helper.cpp
+    test_sqlite_query_translation.h
+    test_sqlite_query_translation.cpp
     test_spatial_orientation.h
     test_spatial_orientation.cpp
     test_sjis_codec.h
