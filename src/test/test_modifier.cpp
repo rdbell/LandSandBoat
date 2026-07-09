@@ -253,6 +253,14 @@ auto testModExtendedDamageTakenValues() -> bool
     return ok;
 }
 
+auto testModReceivedDamageCapValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::RECEIVED_DAMAGE_CAP), 221, "Mod::RECEIVED_DAMAGE_CAP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RECEIVED_DAMAGE_VARIANT), 222, "Mod::RECEIVED_DAMAGE_VARIANT") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -306,6 +314,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModFishingGearValues() && ok;
     ok      = testModBaseDamageTakenValues() && ok;
     ok      = testModExtendedDamageTakenValues() && ok;
+    ok      = testModReceivedDamageCapValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
