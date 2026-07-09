@@ -645,6 +645,27 @@ auto testModRedMageValues() -> bool
     return ok;
 }
 
+auto testModThiefValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::FLEE_DURATION), 93, "Mod::FLEE_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STEAL), 298, "Mod::STEAL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DESPOIL), 896, "Mod::DESPOIL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PERFECT_DODGE), 883, "Mod::PERFECT_DODGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TRIPLE_ATTACK), 302, "Mod::TRIPLE_ATTACK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TRIPLE_ATTACK_DMG), 1039, "Mod::TRIPLE_ATTACK_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TREASURE_HUNTER), 303, "Mod::TREASURE_HUNTER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TREASURE_HUNTER_PROC), 1048, "Mod::TREASURE_HUNTER_PROC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TREASURE_HUNTER_CAP), 1049, "Mod::TREASURE_HUNTER_CAP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SNEAK_ATK_DEX), 830, "Mod::SNEAK_ATK_DEX") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TRICK_ATK_AGI), 520, "Mod::TRICK_ATK_AGI") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MUG_EFFECT), 835, "Mod::MUG_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ACC_COLLAB_EFFECT), 884, "Mod::ACC_COLLAB_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HIDE_DURATION), 885, "Mod::HIDE_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GILFINDER), 897, "Mod::GILFINDER") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -726,6 +747,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModWhiteMageValues() && ok;
     ok      = testModBlackMageValues() && ok;
     ok      = testModRedMageValues() && ok;
+    ok      = testModThiefValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
