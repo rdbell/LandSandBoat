@@ -112,6 +112,7 @@ auto testConstructorDefaults() -> bool
     ok      = expectUInt(item.getCurrentUnlockPoints(), 0, "default unlock current") && ok;
     ok      = expectBool(item.isUnlockable(), false, "default unlockable") && ok;
     ok      = expectBool(item.isUnlocked(), false, "default unlocked") && ok;
+    ok      = expectBool(item.isDirty(), false, "default dirty flag") && ok;
     return ok;
 }
 
@@ -188,14 +189,20 @@ auto testUnlockAndRodExdata() -> bool
     item.setSkillType(SKILL_SWORD);
     ok = expectBool(item.isUnlockable(), true, "unlockable with skill and total") && ok;
     ok = expectBool(item.isUnlocked(), false, "not initially unlocked") && ok;
+    ok = expectBool(item.isDirty(), false, "clean before unlock point write") && ok;
     item.setCurrentUnlockPoints(120);
     ok = expectUInt(item.getCurrentUnlockPoints(), 120, "current unlock points") && ok;
     ok = expectUInt(exdataU16(item, 0), 120, "raw unlock points") && ok;
+    ok = expectBool(item.isDirty(), true, "set current unlock points marks dirty") && ok;
+    item.setDirty(false);
     ok = expectBool(item.addWsPoints(50), false, "partial ws points add") && ok;
     ok = expectUInt(item.getCurrentUnlockPoints(), 170, "current unlock after partial add") && ok;
+    ok = expectBool(item.isDirty(), true, "partial ws points add marks dirty") && ok;
+    item.setDirty(false);
     ok = expectBool(item.addWsPoints(200), true, "capped ws points add") && ok;
     ok = expectUInt(item.getCurrentUnlockPoints(), 300, "current unlock capped") && ok;
     ok = expectBool(item.isUnlocked(), true, "unlocked after cap") && ok;
+    ok = expectBool(item.isDirty(), true, "capped ws points add marks dirty") && ok;
 
     CItemWeapon inert(0x2004);
     ok = expectBool(inert.addWsPoints(10), true, "zero unlock total add returns true") && ok;
@@ -304,6 +311,7 @@ auto testCopyConstructorCopiesFields() -> bool
     ok      = expectDouble(copy.getDPS(), 12.75, "copy dps") && ok;
     ok      = expectUInt(copy.getTotalUnlockPointsNeeded(), 300, "copy unlock total") && ok;
     ok      = expectUInt(copy.getCurrentUnlockPoints(), 120, "copy unlock current") && ok;
+    ok      = expectBool(copy.isDirty(), true, "copy dirty flag") && ok;
     ok      = expectInt(copy.getModifier(Mod::DEF), 20, "copy modifier") && ok;
     return ok;
 }
