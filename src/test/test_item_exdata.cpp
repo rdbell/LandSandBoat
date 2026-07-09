@@ -559,6 +559,247 @@ auto testMetadataTableSerialization() -> bool
     return ok;
 }
 
+auto testFurnishingTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto furnitureInput = lua.create_table();
+    furnitureInput["on2ndFloor"] = false;
+    furnitureInput["installed"]  = true;
+    furnitureInput["x"]          = 5;
+    furnitureInput["z"]          = 6;
+    furnitureInput["y"]          = 7;
+    furnitureInput["rotation"]   = 8;
+    furnitureInput["order"]      = 9;
+    furnitureInput["signature"]  = "FurnishSig";
+
+    Exdata::Furniture furniture{};
+    furniture.fromTable(furnitureInput);
+    auto* furnitureRaw = reinterpret_cast<uint8*>(&furniture);
+    ok = expectUInt(furniture.On2ndFloor, 0, "furniture on2ndFloor from table") && ok;
+    ok = expectUInt(furniture.Installed, 1, "furniture installed from table") && ok;
+    ok = expectUInt(furniture.X, 5, "furniture x from table") && ok;
+    ok = expectUInt(furniture.Z, 6, "furniture z from table") && ok;
+    ok = expectUInt(furniture.Y, 7, "furniture y from table") && ok;
+    ok = expectUInt(furniture.Rotation, 8, "furniture rotation from table") && ok;
+    ok = expectUInt(furniture.Order, 9, "furniture order from table") && ok;
+    ok = expectString(Exdata::decodeSignature(furniture.Signature), "FurnishSig", "furniture signature from table") && ok;
+    ok = expectUInt(furnitureRaw[1], 0x40, "furniture raw flags byte") && ok;
+    ok = expectUInt(furnitureRaw[2], 9, "furniture raw order byte") && ok;
+    ok = expectUInt(furnitureRaw[6], 5, "furniture raw x byte") && ok;
+    ok = expectUInt(furnitureRaw[7], 6, "furniture raw z byte") && ok;
+    ok = expectUInt(furnitureRaw[8], 7, "furniture raw y byte") && ok;
+    ok = expectUInt(furnitureRaw[9], 8, "furniture raw rotation byte") && ok;
+
+    auto furnitureOutput = lua.create_table();
+    furniture.toTable(furnitureOutput);
+    ok = expectUInt(furnitureOutput["on2ndFloor"].get<bool>() ? 1 : 0, 0, "furniture on2ndFloor to table") && ok;
+    ok = expectUInt(furnitureOutput["installed"].get<bool>() ? 1 : 0, 1, "furniture installed to table") && ok;
+    ok = expectUInt(furnitureOutput["x"].get<uint8>(), 5, "furniture x to table") && ok;
+    ok = expectUInt(furnitureOutput["z"].get<uint8>(), 6, "furniture z to table") && ok;
+    ok = expectUInt(furnitureOutput["y"].get<uint8>(), 7, "furniture y to table") && ok;
+    ok = expectUInt(furnitureOutput["rotation"].get<uint8>(), 8, "furniture rotation to table") && ok;
+    ok = expectUInt(furnitureOutput["order"].get<uint8>(), 9, "furniture order to table") && ok;
+    ok = expectString(furnitureOutput["signature"].get<std::string>(), "FurnishSig", "furniture signature to table") && ok;
+
+    furnitureRaw[0]  = 0xA0;
+    furnitureRaw[1]  = 0xAA;
+    furnitureRaw[3]  = 0xB1;
+    furnitureRaw[4]  = 0xB2;
+    furnitureRaw[5]  = 0xB3;
+    furnitureRaw[22] = 0xC1;
+    furnitureRaw[23] = 0xC2;
+
+    auto furniturePartial = lua.create_table();
+    furniturePartial["on2ndFloor"] = true;
+    furniturePartial["x"]          = 10;
+    furniture.fromTable(furniturePartial);
+    ok = expectUInt(furniture.On2ndFloor, 1, "furniture on2ndFloor partial update") && ok;
+    ok = expectUInt(furniture.Installed, 0, "furniture installed preserved from raw bit") && ok;
+    ok = expectUInt(furniture.X, 10, "furniture x partial update") && ok;
+    ok = expectString(Exdata::decodeSignature(furniture.Signature), "FurnishSig", "furniture signature preserved") && ok;
+    ok = expectUInt(furnitureRaw[0], 0xA0, "furniture header preserved") && ok;
+    ok = expectUInt(furnitureRaw[1], 0xAB, "furniture hidden flag bits preserved") && ok;
+    ok = expectUInt(furnitureRaw[3], 0xB1, "furniture padding byte 0 preserved") && ok;
+    ok = expectUInt(furnitureRaw[5], 0xB3, "furniture padding byte 2 preserved") && ok;
+    ok = expectUInt(furnitureRaw[22], 0xC1, "furniture tail padding byte 0 preserved") && ok;
+    ok = expectUInt(furnitureRaw[23], 0xC2, "furniture tail padding byte 1 preserved") && ok;
+
+    auto flowerInput = lua.create_table();
+    flowerInput["step"]         = 3;
+    flowerInput["dried"]        = true;
+    flowerInput["crystal1"]     = 1;
+    flowerInput["crystal2"]     = 4;
+    flowerInput["kind"]         = 2;
+    flowerInput["examined"]     = true;
+    flowerInput["strength"]     = 0xB2;
+    flowerInput["x"]            = 5;
+    flowerInput["z"]            = 6;
+    flowerInput["y"]            = 7;
+    flowerInput["rotation"]     = 8;
+    flowerInput["timePlanted"]  = 0x11223344;
+    flowerInput["timeNextStep"] = 0x55667788;
+
+    Exdata::FlowerPot flower{};
+    flower.fromTable(flowerInput);
+    auto* flowerRaw = reinterpret_cast<uint8*>(&flower);
+    ok = expectUInt(flower.Step, 3, "flowerpot step from table") && ok;
+    ok = expectUInt(flower.Dried, 1, "flowerpot dried from table") && ok;
+    ok = expectUInt(flower.Crystal1, 1, "flowerpot crystal1 from table") && ok;
+    ok = expectUInt(flower.Crystal2, 4, "flowerpot crystal2 from table") && ok;
+    ok = expectUInt(flower.Kind, 2, "flowerpot kind from table") && ok;
+    ok = expectUInt(flower.Examined, 1, "flowerpot examined from table") && ok;
+    ok = expectUInt(flower.Strength, 0x32, "flowerpot strength masked from table") && ok;
+    ok = expectUInt(flower.X, 5, "flowerpot x from table") && ok;
+    ok = expectUInt(flower.Z, 6, "flowerpot z from table") && ok;
+    ok = expectUInt(flower.Y, 7, "flowerpot y from table") && ok;
+    ok = expectUInt(flower.Rotation, 8, "flowerpot rotation from table") && ok;
+    ok = expectUInt(flower.TimePlanted, 0x11223344, "flowerpot time planted from table") && ok;
+    ok = expectUInt(flower.TimeNextStep, 0x55667788, "flowerpot time next step from table") && ok;
+    ok = expectUInt(flowerRaw[1], 0x80, "flowerpot raw dried byte") && ok;
+    ok = expectUInt(flowerRaw[5], 0x65, "flowerpot raw examined strength byte") && ok;
+    ok = expectUInt(flowerRaw[6], 5, "flowerpot raw x byte") && ok;
+    ok = expectUInt(flowerRaw[7], 6, "flowerpot raw z byte") && ok;
+    ok = expectUInt(flowerRaw[8], 7, "flowerpot raw y byte") && ok;
+    ok = expectUInt(flowerRaw[9], 8, "flowerpot raw rotation byte") && ok;
+    ok = expectUInt(flowerRaw[12], 0x44, "flowerpot raw planted byte 0") && ok;
+    ok = expectUInt(flowerRaw[15], 0x11, "flowerpot raw planted byte 3") && ok;
+    ok = expectUInt(flowerRaw[16], 0x88, "flowerpot raw next byte 0") && ok;
+    ok = expectUInt(flowerRaw[19], 0x55, "flowerpot raw next byte 3") && ok;
+
+    auto flowerOutput = lua.create_table();
+    flower.toTable(flowerOutput);
+    ok = expectUInt(flowerOutput["step"].get<uint8>(), 3, "flowerpot step to table") && ok;
+    ok = expectUInt(flowerOutput["dried"].get<bool>() ? 1 : 0, 1, "flowerpot dried to table") && ok;
+    ok = expectUInt(flowerOutput["crystal1"].get<uint8>(), 1, "flowerpot crystal1 to table") && ok;
+    ok = expectUInt(flowerOutput["crystal2"].get<uint8>(), 4, "flowerpot crystal2 to table") && ok;
+    ok = expectUInt(flowerOutput["kind"].get<uint8>(), 2, "flowerpot kind to table") && ok;
+    ok = expectUInt(flowerOutput["examined"].get<bool>() ? 1 : 0, 1, "flowerpot examined to table") && ok;
+    ok = expectUInt(flowerOutput["strength"].get<uint8>(), 0x32, "flowerpot strength to table") && ok;
+    ok = expectUInt(flowerOutput["x"].get<uint8>(), 5, "flowerpot x to table") && ok;
+    ok = expectUInt(flowerOutput["z"].get<uint8>(), 6, "flowerpot z to table") && ok;
+    ok = expectUInt(flowerOutput["y"].get<uint8>(), 7, "flowerpot y to table") && ok;
+    ok = expectUInt(flowerOutput["rotation"].get<uint8>(), 8, "flowerpot rotation to table") && ok;
+    ok = expectUInt(flowerOutput["timePlanted"].get<uint32>(), 0x11223344, "flowerpot time planted to table") && ok;
+    ok = expectUInt(flowerOutput["timeNextStep"].get<uint32>(), 0x55667788, "flowerpot time next step to table") && ok;
+
+    flowerRaw[1]  = 0x7E;
+    flowerRaw[10] = 0xD1;
+    flowerRaw[11] = 0xD2;
+    flowerRaw[20] = 0xE1;
+    flowerRaw[21] = 0xE2;
+    flowerRaw[22] = 0xE3;
+    flowerRaw[23] = 0xE4;
+
+    auto flowerPartial = lua.create_table();
+    flowerPartial["dried"]   = true;
+    flowerPartial["strength"] = 0xFF;
+    flower.fromTable(flowerPartial);
+    ok = expectUInt(flower.Step, 3, "flowerpot step preserved") && ok;
+    ok = expectUInt(flower.Dried, 1, "flowerpot dried partial update") && ok;
+    ok = expectUInt(flower.Installed, 1, "flowerpot installed raw bit preserved") && ok;
+    ok = expectUInt(flower.Strength, 0x7F, "flowerpot strength masked partial update") && ok;
+    ok = expectUInt(flowerRaw[1], 0xFE, "flowerpot hidden flag bits preserved") && ok;
+    ok = expectUInt(flowerRaw[5], 0xFF, "flowerpot examined bit preserved with strength update") && ok;
+    ok = expectUInt(flowerRaw[10], 0xD1, "flowerpot padding byte 0 preserved") && ok;
+    ok = expectUInt(flowerRaw[11], 0xD2, "flowerpot padding byte 1 preserved") && ok;
+    ok = expectUInt(flowerRaw[20], 0xE1, "flowerpot unknown byte 0 preserved") && ok;
+    ok = expectUInt(flowerRaw[23], 0xE4, "flowerpot unknown byte 3 preserved") && ok;
+
+    auto mannequinInput = lua.create_table();
+    mannequinInput["x"]        = 1;
+    mannequinInput["z"]        = 2;
+    mannequinInput["y"]        = 3;
+    mannequinInput["rotation"] = 4;
+    mannequinInput["main"]     = 5;
+    mannequinInput["sub"]      = 6;
+    mannequinInput["ranged"]   = 7;
+    mannequinInput["head"]     = 8;
+    mannequinInput["body"]     = 9;
+    mannequinInput["hands"]    = 10;
+    mannequinInput["legs"]     = 11;
+    mannequinInput["feet"]     = 12;
+    mannequinInput["race"]     = 13;
+    mannequinInput["pose"]     = 14;
+
+    Exdata::Mannequin mannequin{};
+    mannequin.fromTable(mannequinInput);
+    auto* mannequinRaw = reinterpret_cast<uint8*>(&mannequin);
+    ok = expectUInt(mannequin.X, 1, "mannequin x from table") && ok;
+    ok = expectUInt(mannequin.Z, 2, "mannequin z from table") && ok;
+    ok = expectUInt(mannequin.Y, 3, "mannequin y from table") && ok;
+    ok = expectUInt(mannequin.Rotation, 4, "mannequin rotation from table") && ok;
+    ok = expectUInt(mannequin.EquipMain, 5, "mannequin main from table") && ok;
+    ok = expectUInt(mannequin.EquipSub, 6, "mannequin sub from table") && ok;
+    ok = expectUInt(mannequin.EquipRanged, 7, "mannequin ranged from table") && ok;
+    ok = expectUInt(mannequin.EquipHead, 8, "mannequin head from table") && ok;
+    ok = expectUInt(mannequin.EquipBody, 9, "mannequin body from table") && ok;
+    ok = expectUInt(mannequin.EquipHands, 10, "mannequin hands from table") && ok;
+    ok = expectUInt(mannequin.EquipLegs, 11, "mannequin legs from table") && ok;
+    ok = expectUInt(mannequin.EquipFeet, 12, "mannequin feet from table") && ok;
+    ok = expectUInt(mannequin.Race, 13, "mannequin race from table") && ok;
+    ok = expectUInt(mannequin.Pose, 14, "mannequin pose from table") && ok;
+    ok = expectUInt(mannequinRaw[6], 1, "mannequin raw x byte") && ok;
+    ok = expectUInt(mannequinRaw[7], 2, "mannequin raw z byte") && ok;
+    ok = expectUInt(mannequinRaw[8], 3, "mannequin raw y byte") && ok;
+    ok = expectUInt(mannequinRaw[9], 4, "mannequin raw rotation byte") && ok;
+    ok = expectUInt(mannequinRaw[10], 5, "mannequin raw main byte") && ok;
+    ok = expectUInt(mannequinRaw[11], 6, "mannequin raw sub byte") && ok;
+    ok = expectUInt(mannequinRaw[12], 7, "mannequin raw ranged byte") && ok;
+    ok = expectUInt(mannequinRaw[13], 8, "mannequin raw head byte") && ok;
+    ok = expectUInt(mannequinRaw[14], 9, "mannequin raw body byte") && ok;
+    ok = expectUInt(mannequinRaw[15], 10, "mannequin raw hands byte") && ok;
+    ok = expectUInt(mannequinRaw[16], 11, "mannequin raw legs byte") && ok;
+    ok = expectUInt(mannequinRaw[17], 12, "mannequin raw feet byte") && ok;
+    ok = expectUInt(mannequinRaw[18], 13, "mannequin raw race byte") && ok;
+    ok = expectUInt(mannequinRaw[19], 14, "mannequin raw pose byte") && ok;
+
+    auto mannequinOutput = lua.create_table();
+    mannequin.toTable(mannequinOutput);
+    ok = expectUInt(mannequinOutput["x"].get<uint8>(), 1, "mannequin x to table") && ok;
+    ok = expectUInt(mannequinOutput["z"].get<uint8>(), 2, "mannequin z to table") && ok;
+    ok = expectUInt(mannequinOutput["y"].get<uint8>(), 3, "mannequin y to table") && ok;
+    ok = expectUInt(mannequinOutput["rotation"].get<uint8>(), 4, "mannequin rotation to table") && ok;
+    ok = expectUInt(mannequinOutput["main"].get<uint8>(), 5, "mannequin main to table") && ok;
+    ok = expectUInt(mannequinOutput["sub"].get<uint8>(), 6, "mannequin sub to table") && ok;
+    ok = expectUInt(mannequinOutput["ranged"].get<uint8>(), 7, "mannequin ranged to table") && ok;
+    ok = expectUInt(mannequinOutput["head"].get<uint8>(), 8, "mannequin head to table") && ok;
+    ok = expectUInt(mannequinOutput["body"].get<uint8>(), 9, "mannequin body to table") && ok;
+    ok = expectUInt(mannequinOutput["hands"].get<uint8>(), 10, "mannequin hands to table") && ok;
+    ok = expectUInt(mannequinOutput["legs"].get<uint8>(), 11, "mannequin legs to table") && ok;
+    ok = expectUInt(mannequinOutput["feet"].get<uint8>(), 12, "mannequin feet to table") && ok;
+    ok = expectUInt(mannequinOutput["race"].get<uint8>(), 13, "mannequin race to table") && ok;
+    ok = expectUInt(mannequinOutput["pose"].get<uint8>(), 14, "mannequin pose to table") && ok;
+
+    mannequinRaw[0]  = 0xA1;
+    mannequinRaw[1]  = 0xA2;
+    mannequinRaw[2]  = 0xB1;
+    mannequinRaw[3]  = 0xB2;
+    mannequinRaw[4]  = 0xB3;
+    mannequinRaw[5]  = 0xB4;
+    mannequinRaw[20] = 0xC1;
+    mannequinRaw[21] = 0xC2;
+    mannequinRaw[22] = 0xC3;
+    mannequinRaw[23] = 0xC4;
+
+    auto mannequinPartial = lua.create_table();
+    mannequinPartial["main"] = 22;
+    mannequinPartial["pose"] = 21;
+    mannequin.fromTable(mannequinPartial);
+    ok = expectUInt(mannequin.EquipMain, 22, "mannequin main partial update") && ok;
+    ok = expectUInt(mannequin.Pose, 21, "mannequin pose partial update") && ok;
+    ok = expectUInt(mannequin.Race, 13, "mannequin race preserved") && ok;
+    ok = expectUInt(mannequinRaw[0], 0xA1, "mannequin header preserved") && ok;
+    ok = expectUInt(mannequinRaw[1], 0xA2, "mannequin flags preserved") && ok;
+    ok = expectUInt(mannequinRaw[2], 0xB1, "mannequin padding byte 0 preserved") && ok;
+    ok = expectUInt(mannequinRaw[5], 0xB4, "mannequin padding byte 3 preserved") && ok;
+    ok = expectUInt(mannequinRaw[20], 0xC1, "mannequin tail padding byte 0 preserved") && ok;
+    ok = expectUInt(mannequinRaw[23], 0xC4, "mannequin tail padding byte 3 preserved") && ok;
+
+    return ok;
+}
+
 auto testPassTimerTableSerialization() -> bool
 {
     sol::state lua;
@@ -723,6 +964,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
     ok      = testMetadataTableSerialization() && ok;
+    ok      = testFurnishingTableSerialization() && ok;
     ok      = testPassTimerTableSerialization() && ok;
     return ok;
 }
