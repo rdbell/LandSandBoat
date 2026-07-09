@@ -74,6 +74,20 @@ auto testModCoreValues() -> bool
     return ok;
 }
 
+auto testModElementalMagicEvasionValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::FIRE_MEVA), 15, "Mod::FIRE_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ICE_MEVA), 16, "Mod::ICE_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIND_MEVA), 17, "Mod::WIND_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EARTH_MEVA), 18, "Mod::EARTH_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THUNDER_MEVA), 19, "Mod::THUNDER_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WATER_MEVA), 20, "Mod::WATER_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_MEVA), 21, "Mod::LIGHT_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_MEVA), 22, "Mod::DARK_MEVA") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -115,6 +129,7 @@ auto runModifierSelfTests() -> bool
     bool ok = true;
     ok      = testPetModTypeValues() && ok;
     ok      = testModCoreValues() && ok;
+    ok      = testModElementalMagicEvasionValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
