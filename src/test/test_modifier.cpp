@@ -508,6 +508,29 @@ auto testModEnfeebleResistanceValues() -> bool
     return ok;
 }
 
+auto testModEnfeebleMEVAValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::SLEEP_MEVA), 200, "Mod::SLEEP_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::POISON_MEVA), 201, "Mod::POISON_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PARALYZE_MEVA), 202, "Mod::PARALYZE_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BLIND_MEVA), 203, "Mod::BLIND_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SILENCE_MEVA), 204, "Mod::SILENCE_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::VIRUS_MEVA), 205, "Mod::VIRUS_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PETRIFY_MEVA), 206, "Mod::PETRIFY_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BIND_MEVA), 207, "Mod::BIND_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CURSE_MEVA), 208, "Mod::CURSE_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GRAVITY_MEVA), 209, "Mod::GRAVITY_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SLOW_MEVA), 210, "Mod::SLOW_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STUN_MEVA), 211, "Mod::STUN_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CHARM_MEVA), 212, "Mod::CHARM_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AMNESIA_MEVA), 213, "Mod::AMNESIA_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LULLABY_MEVA), 214, "Mod::LULLABY_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DEATH_MEVA), 215, "Mod::DEATH_MEVA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STATUS_MEVA), 216, "Mod::STATUS_MEVA") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -580,6 +603,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModFoodValues() && ok;
     ok      = testModKillerEffectValues() && ok;
     ok      = testModEnfeebleResistanceValues() && ok;
+    ok      = testModEnfeebleMEVAValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
