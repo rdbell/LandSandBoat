@@ -213,6 +213,14 @@ auto testBattleMessage2Layout() -> bool
     return ok;
 }
 
+auto testBattleMessage2CombatMessages() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualUInt(USE_OBTAIN_ESCHA_SILT, 765, "BATTLE_MESSAGE2 USE_OBTAIN_ESCHA_SILT") && ok;
+    ok      = expectEqualUInt(USE_OBTAIN_ESCHA_BEAD, 766, "BATTLE_MESSAGE2 USE_OBTAIN_ESCHA_BEAD") && ok;
+    return ok;
+}
+
 auto testBattleMessage2Constructor() -> bool
 {
     auto sender = makeEntity(0x11223344, 0x5566);
@@ -245,6 +253,7 @@ auto runS2CBattleMessagePacketSelfTests() -> bool
     ok      = testBattleMessageConstructor() && ok;
     ok      = testBattleMessageBasicConstructor() && ok;
     ok      = testBattleMessage2Layout() && ok;
+    ok      = testBattleMessage2CombatMessages() && ok;
     ok      = testBattleMessage2Constructor() && ok;
     return ok;
 }
