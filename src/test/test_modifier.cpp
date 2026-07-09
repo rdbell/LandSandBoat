@@ -241,6 +241,18 @@ auto testModBaseDamageTakenValues() -> bool
     return ok;
 }
 
+auto testModExtendedDamageTakenValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::DMGPHYS_II), 190, "Mod::DMGPHYS_II") && ok;
+    ok      = expectInt(static_cast<int>(Mod::UDMGPHYS), 387, "Mod::UDMGPHYS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::UDMGBREATH), 388, "Mod::UDMGBREATH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::UDMGMAGIC), 389, "Mod::UDMGMAGIC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::UDMGRANGE), 390, "Mod::UDMGRANGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DMGMAGIC_II), 831, "Mod::DMGMAGIC_II") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -293,6 +305,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModSynthesisAndRidingSkillValues() && ok;
     ok      = testModFishingGearValues() && ok;
     ok      = testModBaseDamageTakenValues() && ok;
+    ok      = testModExtendedDamageTakenValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
