@@ -362,6 +362,14 @@ auto testModMagicCriticalValues() -> bool
     return ok;
 }
 
+auto testModFencerValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::FENCER_TP_BONUS), 903, "Mod::FENCER_TP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FENCER_CRITHITRATE), 904, "Mod::FENCER_CRITHITRATE") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -424,6 +432,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModCriticalHitRateValues() && ok;
     ok      = testModCriticalDamageValues() && ok;
     ok      = testModMagicCriticalValues() && ok;
+    ok      = testModFencerValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
