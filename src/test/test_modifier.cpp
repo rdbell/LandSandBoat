@@ -765,6 +765,31 @@ auto testModBardValues() -> bool
     return ok;
 }
 
+auto testModRangerValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::CAMOUFLAGE_DURATION), 98, "Mod::CAMOUFLAGE_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RECYCLE), 305, "Mod::RECYCLE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SNAPSHOT), 365, "Mod::SNAPSHOT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RAPID_SHOT), 359, "Mod::RAPID_SHOT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIDESCAN), 340, "Mod::WIDESCAN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BARRAGE_ACC), 420, "Mod::BARRAGE_ACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BARRAGE_COUNT), 138, "Mod::BARRAGE_COUNT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DOUBLE_SHOT_RATE), 422, "Mod::DOUBLE_SHOT_RATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::VELOCITY_SNAPSHOT_BONUS), 423, "Mod::VELOCITY_SNAPSHOT_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::VELOCITY_RATT_BONUS), 424, "Mod::VELOCITY_RATT_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SHADOW_BIND_EXT), 425, "Mod::SHADOW_BIND_EXT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SCAVENGE_EFFECT), 312, "Mod::SCAVENGE_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SHARPSHOT), 314, "Mod::SHARPSHOT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TRUE_SHOT_EFFECT), 1053, "Mod::TRUE_SHOT_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DEAD_AIM_EFFECT), 1054, "Mod::DEAD_AIM_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BOUNTY_SHOT_TH_BONUS), 826, "Mod::BOUNTY_SHOT_TH_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RETAIN_CAMOUFLAGE), 1189, "Mod::RETAIN_CAMOUFLAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RETAIN_UNLIMITED_SHOT), 1190, "Mod::RETAIN_UNLIMITED_SHOT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RA_IGNORE_LVL_DIFF), 1191, "Mod::RA_IGNORE_LVL_DIFF") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -851,6 +876,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModDarkKnightValues() && ok;
     ok      = testModBeastmasterValues() && ok;
     ok      = testModBardValues() && ok;
+    ok      = testModRangerValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
