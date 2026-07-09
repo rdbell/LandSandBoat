@@ -617,6 +617,92 @@ auto testEscutcheonTableSerialization() -> bool
     return ok;
 }
 
+auto testSerializedTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto input                  = lua.create_table();
+    input["serverIndex"]        = 0x7F;
+    input["serialNumber"]       = 500;
+    input["signature"]          = "Serialized";
+
+    Exdata::Serialized serialized{};
+    serialized.fromTable(input);
+    auto* serializedRaw = reinterpret_cast<uint8*>(&serialized);
+
+    ok = expectUInt(static_cast<uint8>(serialized.AugmentKind), 0x02, "serialized augment kind from table") && ok;
+    ok = expectUInt(static_cast<uint8>(serialized.AugmentSubKind), 0x10, "serialized augment subkind from table") && ok;
+    ok = expectUInt(serialized.ServerIndex, 0x7F, "serialized server index from table") && ok;
+    ok = expectUInt(serialized.SerialNumber, 500, "serialized serial number from table") && ok;
+    ok = expectString(Exdata::decodeSignature(serialized.Signature), "Serialized", "serialized signature from table") && ok;
+
+    const uint8 expectedRaw[] = { 0x02, 0x10, 0x00, 0x00, 0x7F, 0x00, 0xF4, 0x01, 0x00, 0x00, 0x00, 0x00 };
+    for (std::size_t i = 0; i < sizeof(expectedRaw); ++i)
+    {
+        ok = expectUInt(serializedRaw[i], expectedRaw[i], "serialized raw byte") && ok;
+    }
+
+    auto output = lua.create_table();
+    serialized.toTable(output);
+    ok = expectUInt(output["augmentKind"].get<uint8>(), 0x02, "serialized augment kind to table") && ok;
+    ok = expectUInt(output["augmentSubKind"].get<uint8>(), 0x10, "serialized augment subkind to table") && ok;
+    ok = expectUInt(output["serverIndex"].get<uint8>(), 0x7F, "serialized server index to table") && ok;
+    ok = expectUInt(output["serialNumber"].get<uint16>(), 500, "serialized serial number to table") && ok;
+    ok = expectString(output["signature"].get<std::string>(), "Serialized", "serialized signature to table") && ok;
+
+    serializedRaw[0]  = 0xFE;
+    serializedRaw[1]  = 0xF0;
+    serializedRaw[2]  = 0xA1;
+    serializedRaw[3]  = 0xA2;
+    serializedRaw[5]  = 0xB1;
+    serializedRaw[8]  = 0xC1;
+    serializedRaw[9]  = 0xC2;
+    serializedRaw[10] = 0xC3;
+    serializedRaw[11] = 0xC4;
+
+    auto rawFlagOutput = lua.create_table();
+    serialized.toTable(rawFlagOutput);
+    ok = expectUInt(rawFlagOutput["augmentKind"].get<uint8>(), 0xFE, "serialized raw augment kind to table") && ok;
+    ok = expectUInt(rawFlagOutput["augmentSubKind"].get<uint8>(), 0xF0, "serialized raw augment subkind to table") && ok;
+
+    auto partial            = lua.create_table();
+    partial["serialNumber"] = 42;
+    partial["signature"]    = "Se";
+    serialized.fromTable(partial);
+
+    ok = expectUInt(static_cast<uint8>(serialized.AugmentKind), 0x02, "serialized augment kind reset") && ok;
+    ok = expectUInt(static_cast<uint8>(serialized.AugmentSubKind), 0x10, "serialized augment subkind reset") && ok;
+    ok = expectUInt(serialized.ServerIndex, 0x7F, "serialized server index preserved") && ok;
+    ok = expectUInt(serialized.SerialNumber, 42, "serialized serial number partial update") && ok;
+    ok = expectString(Exdata::decodeSignature(serialized.Signature), "Se", "serialized short signature partial update") && ok;
+
+    const uint8 expectedPartialRaw[] = { 0x02, 0x10, 0xA1, 0xA2, 0x7F, 0xB1, 0x2A, 0x00, 0xC1, 0xC2, 0xC3, 0xC4 };
+    for (std::size_t i = 0; i < sizeof(expectedPartialRaw); ++i)
+    {
+        ok = expectUInt(serializedRaw[i], expectedPartialRaw[i], "serialized partial raw byte") && ok;
+    }
+
+    uint8 expectedShortSignature[12] = {};
+    Exdata::encodeSignature(std::string("Se"), expectedShortSignature);
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(serializedRaw[12 + i], expectedShortSignature[i], "serialized short signature raw byte") && ok;
+    }
+
+    auto preserveSignature           = lua.create_table();
+    preserveSignature["serverIndex"] = 0x11;
+    serialized.fromTable(preserveSignature);
+    ok = expectUInt(serialized.ServerIndex, 0x11, "serialized server index update with omitted signature") && ok;
+    ok = expectString(Exdata::decodeSignature(serialized.Signature), "Se", "serialized omitted signature preserved") && ok;
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(serializedRaw[12 + i], expectedShortSignature[i], "serialized omitted signature raw byte") && ok;
+    }
+
+    return ok;
+}
+
 auto testTimerInfoTableSerialization() -> bool
 {
     sol::state lua;
@@ -1477,6 +1563,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testChocoboEggTableSerialization() && ok;
     ok      = testChocoboCardTableSerialization() && ok;
     ok      = testEscutcheonTableSerialization() && ok;
+    ok      = testSerializedTableSerialization() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testSoulTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
