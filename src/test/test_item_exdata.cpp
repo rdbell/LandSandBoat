@@ -305,6 +305,165 @@ auto testTimerInfoTableSerialization() -> bool
     return ok;
 }
 
+auto testSoulTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto plateInput = lua.create_table();
+    plateInput["signature"]   = "Goblin_Bounty_Hunter";
+    plateInput["zoneId"]      = 0x1234;
+    plateInput["familyId"]    = 0x5678;
+    plateInput["poolId"]      = 0x9ABC;
+    plateInput["level"]       = 0x9A;
+    plateInput["feralSkill"]  = 0x1ABC;
+    plateInput["feralPoints"] = 0xA2;
+    plateInput["quality"]     = 0x7D;
+
+    Exdata::SoulPlate plate{};
+    plate.fromTable(plateInput);
+    auto* plateRaw = reinterpret_cast<uint8*>(&plate);
+
+    const uint8 expectedPlateSignature[] = {
+        0x8F, 0xBF, 0x16, 0xCD, 0x3B, 0xA1, 0x6F, 0xEB, 0xBB, 0xA7, 0x99, 0x00, 0x00, 0x00,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedPlateSignature); ++i)
+    {
+        ok = expectUInt(plateRaw[i], expectedPlateSignature[i], "soul plate signature raw byte") && ok;
+    }
+    ok = expectString(UnpackSoultrapperName(plate.Signature), "GoblinBountyH", "soul plate signature from table") && ok;
+    ok = expectUInt(plate.ZoneId, 0x1234, "soul plate zone from table") && ok;
+    ok = expectUInt(plate.FamilyId, 0x5678, "soul plate family from table") && ok;
+    ok = expectUInt(plate.PoolId, 0x9ABC, "soul plate pool from table") && ok;
+    ok = expectUInt(plate.Level, 0x1A, "soul plate level masked from table") && ok;
+    ok = expectUInt(plate.FeralSkill, 0xABC, "soul plate feral skill masked from table") && ok;
+    ok = expectUInt(plate.FeralPoints, 0x22, "soul plate feral points masked from table") && ok;
+    ok = expectUInt(plate.Quality, 0x3D, "soul plate quality masked from table") && ok;
+    ok = expectUInt(plateRaw[14], 0x34, "soul plate raw zone byte 0") && ok;
+    ok = expectUInt(plateRaw[15], 0x12, "soul plate raw zone byte 1") && ok;
+    ok = expectUInt(plateRaw[16], 0x78, "soul plate raw family byte 0") && ok;
+    ok = expectUInt(plateRaw[17], 0x56, "soul plate raw family byte 1") && ok;
+    ok = expectUInt(plateRaw[18], 0xBC, "soul plate raw pool byte 0") && ok;
+    ok = expectUInt(plateRaw[19], 0x9A, "soul plate raw pool byte 1") && ok;
+    ok = expectUInt(plateRaw[20], 0x1A, "soul plate raw bitfield byte 0") && ok;
+    ok = expectUInt(plateRaw[21], 0x5E, "soul plate raw bitfield byte 1") && ok;
+    ok = expectUInt(plateRaw[22], 0x15, "soul plate raw bitfield byte 2") && ok;
+    ok = expectUInt(plateRaw[23], 0xF5, "soul plate raw bitfield byte 3") && ok;
+
+    auto plateOutput = lua.create_table();
+    plate.toTable(plateOutput);
+    ok = expectString(plateOutput["signature"].get<std::string>(), "GoblinBountyH", "soul plate signature to table") && ok;
+    ok = expectUInt(plateOutput["zoneId"].get<uint16>(), 0x1234, "soul plate zone to table") && ok;
+    ok = expectUInt(plateOutput["familyId"].get<uint16>(), 0x5678, "soul plate family to table") && ok;
+    ok = expectUInt(plateOutput["poolId"].get<uint16>(), 0x9ABC, "soul plate pool to table") && ok;
+    ok = expectUInt(plateOutput["level"].get<uint32>(), 0x1A, "soul plate level to table") && ok;
+    ok = expectUInt(plateOutput["feralSkill"].get<uint32>(), 0xABC, "soul plate feral skill to table") && ok;
+    ok = expectUInt(plateOutput["feralPoints"].get<uint32>(), 0x22, "soul plate feral points to table") && ok;
+    ok = expectUInt(plateOutput["quality"].get<uint32>(), 0x3D, "soul plate quality to table") && ok;
+
+    auto platePartial = lua.create_table();
+    platePartial["signature"] = "Crab";
+    platePartial["quality"]   = 7;
+    plate.fromTable(platePartial);
+    ok = expectString(UnpackSoultrapperName(plate.Signature), "Crab", "soul plate signature partial update") && ok;
+    ok = expectUInt(plate.ZoneId, 0x1234, "soul plate zone preserved") && ok;
+    ok = expectUInt(plate.Level, 0x1A, "soul plate level preserved") && ok;
+    ok = expectUInt(plate.Quality, 7, "soul plate quality partial update") && ok;
+    const uint8 expectedShortPlateSignature[] = {
+        0x87, 0xCB, 0x0E, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedShortPlateSignature); ++i)
+    {
+        ok = expectUInt(plateRaw[i], expectedShortPlateSignature[i], "soul plate short signature raw byte") && ok;
+    }
+
+    auto reflectorInput = lua.create_table();
+    reflectorInput["nameFirst"]      = 0x5A;
+    reflectorInput["nameLast"]       = 0x3F;
+    reflectorInput["poolId"]         = 0x1234;
+    reflectorInput["exp"]            = 0x9A;
+    reflectorInput["discipline"]     = 0xBC;
+    reflectorInput["temperament"]    = 0x1D;
+    reflectorInput["aggressiveness"] = 0x1A;
+    reflectorInput["level"]          = 0xE3;
+
+    auto reflectorSkills = lua.create_table();
+    auto setReflectorSkill = [&](uint8 index, uint32 skillId, uint8 level)
+    {
+        auto slot       = lua.create_table();
+        slot["skillId"] = skillId;
+        slot["level"]   = level;
+        reflectorSkills[index] = slot;
+    };
+    setReflectorSkill(1, 0x1ABC, 0x85);
+    setReflectorSkill(2, 0x234, 0x12);
+    setReflectorSkill(3, 0x345, 0x23);
+    setReflectorSkill(4, 0x456, 0x34);
+    setReflectorSkill(5, 0x567, 0x45);
+    setReflectorSkill(6, 0x678, 0x56);
+    setReflectorSkill(7, 0x789, 0x67);
+    reflectorInput["feralSkills"] = reflectorSkills;
+
+    Exdata::SoulReflector reflector{};
+    reflector.fromTable(reflectorInput);
+    auto* reflectorRaw = reinterpret_cast<uint8*>(&reflector);
+
+    const uint8 expectedReflectorRaw[] = {
+        0xDA, 0x4F, 0x23, 0xA1, 0xC9, 0xDB, 0x3A, 0xE6,
+        0xD5, 0x02, 0x8D, 0x48, 0x8A, 0x66, 0x64, 0x45,
+        0xB4, 0xB3, 0x2A, 0xE2, 0x99, 0x35, 0xF1, 0xCE,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedReflectorRaw); ++i)
+    {
+        ok = expectUInt(reflectorRaw[i], expectedReflectorRaw[i], "soul reflector raw byte") && ok;
+    }
+    ok = expectUInt(reflector.NameFirst, 0x1A, "soul reflector first name masked from table") && ok;
+    ok = expectUInt(reflector.NameLast, 0x3F, "soul reflector last name from table") && ok;
+    ok = expectUInt(reflector.PoolId, 0x1234, "soul reflector pool from table") && ok;
+    ok = expectUInt(reflector.Exp, 0x9A, "soul reflector exp from table") && ok;
+    ok = expectUInt(reflector.Discipline, 0xBC, "soul reflector discipline from table") && ok;
+    ok = expectUInt(reflector.Temperament, 0x0D, "soul reflector temperament masked from table") && ok;
+    ok = expectUInt(reflector.Aggressiveness, 0x0A, "soul reflector aggressiveness masked from table") && ok;
+    ok = expectUInt(reflector.Level, 0x63, "soul reflector level masked from table") && ok;
+
+    auto reflectorOutput = lua.create_table();
+    reflector.toTable(reflectorOutput);
+    ok = expectUInt(reflectorOutput["nameFirst"].get<uint8>(), 0x1A, "soul reflector first name to table") && ok;
+    ok = expectUInt(reflectorOutput["nameLast"].get<uint8>(), 0x3F, "soul reflector last name to table") && ok;
+    ok = expectUInt(reflectorOutput["poolId"].get<uint16>(), 0x1234, "soul reflector pool to table") && ok;
+    ok = expectUInt(reflectorOutput["exp"].get<uint8>(), 0x9A, "soul reflector exp to table") && ok;
+    ok = expectUInt(reflectorOutput["discipline"].get<uint8>(), 0xBC, "soul reflector discipline to table") && ok;
+    ok = expectUInt(reflectorOutput["temperament"].get<uint8>(), 0x0D, "soul reflector temperament to table") && ok;
+    ok = expectUInt(reflectorOutput["aggressiveness"].get<uint8>(), 0x0A, "soul reflector aggressiveness to table") && ok;
+    ok = expectUInt(reflectorOutput["level"].get<uint8>(), 0x63, "soul reflector level to table") && ok;
+
+    auto reflectorPartial = lua.create_table();
+    reflectorPartial["nameFirst"] = 2;
+    auto partialSkills            = lua.create_table();
+    auto partialSlot2             = lua.create_table();
+    partialSlot2["level"]         = 0x7F;
+    partialSkills[2]              = partialSlot2;
+    auto partialSlot4             = lua.create_table();
+    partialSlot4["skillId"]       = 1;
+    partialSkills[4]              = partialSlot4;
+    reflectorPartial["feralSkills"] = partialSkills;
+    reflector.fromTable(reflectorPartial);
+    ok = expectUInt(reflector.NameFirst, 2, "soul reflector first name partial update") && ok;
+    ok = expectUInt(reflector.NameLast, 0x3F, "soul reflector last name preserved") && ok;
+
+    const uint8 expectedPartialReflectorRaw[] = {
+        0xC2, 0x4F, 0x23, 0xA1, 0xC9, 0xDB, 0x3A, 0xE6,
+        0xD5, 0x02, 0x8D, 0xFC, 0x8B, 0x66, 0x14, 0x00,
+        0xB4, 0xB3, 0x2A, 0xE2, 0x99, 0x35, 0xF1, 0xCE,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedPartialReflectorRaw); ++i)
+    {
+        ok = expectUInt(reflectorRaw[i], expectedPartialReflectorRaw[i], "soul reflector partial raw byte") && ok;
+    }
+
+    return ok;
+}
+
 auto testLogTicketTableSerialization() -> bool
 {
     sol::state lua;
@@ -962,6 +1121,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testPredicateTypeDispatchAndPrecedence() && ok;
     ok      = testRawExdataOverlay() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
+    ok      = testSoulTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
     ok      = testMetadataTableSerialization() && ok;
     ok      = testFurnishingTableSerialization() && ok;
