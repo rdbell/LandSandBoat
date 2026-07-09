@@ -29,6 +29,7 @@
 #include <regex>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace
@@ -191,7 +192,9 @@ auto translateInsertSet(std::string query) -> std::string
     return translated;
 }
 
-auto translateSQLiteQuery(std::string query) -> std::string
+} // namespace
+
+auto db::detail::sqlite::translateQuery(std::string query) -> std::string
 {
     static const std::regex onDuplicatePattern(R"(\s+ON\s+DUPLICATE\s+KEY\s+UPDATE\s+)", std::regex_constants::icase);
     static const std::regex valuesPattern(R"(\bvalues\s*\(\s*`?([A-Za-z0-9_]+)`?\s*\))", std::regex_constants::icase);
@@ -249,8 +252,6 @@ auto translateSQLiteQuery(std::string query) -> std::string
     return query;
 }
 
-} // namespace
-
 db::SQLiteConnection::SQLiteConnection(sqlite3* db)
 : db_(db)
 {
@@ -266,7 +267,7 @@ db::SQLiteConnection::~SQLiteConnection()
 
 auto db::SQLiteConnection::prepare(const std::string& query) -> std::unique_ptr<PreparedStatement>
 {
-    const auto translatedQuery = translateSQLiteQuery(query);
+    const auto translatedQuery = detail::sqlite::translateQuery(query);
     sqlite3_stmt* stmt = nullptr;
     const auto rc = sqlite3_prepare_v2(db_, translatedQuery.c_str(), static_cast<int>(translatedQuery.size()), &stmt, nullptr);
     if (rc != SQLITE_OK)

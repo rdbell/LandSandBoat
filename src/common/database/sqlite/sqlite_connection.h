@@ -29,6 +29,15 @@
 
 struct sqlite3;
 
+namespace db::detail::sqlite
+{
+
+// Rewrites the MariaDB-flavored query forms used by LSB into the SQLite
+// equivalents accepted by SQLiteConnection.
+auto translateQuery(std::string query) -> std::string;
+
+} // namespace db::detail::sqlite
+
 namespace db
 {
 
