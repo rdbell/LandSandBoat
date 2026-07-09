@@ -1058,6 +1058,35 @@ auto testModTPValues() -> bool
     return ok;
 }
 
+auto testModRuneFencerValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::INQUARTATA), 963, "Mod::INQUARTATA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_BATTUTA), 1004, "Mod::ENHANCES_BATTUTA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_ELEMENTAL_SFORZO), 1005, "Mod::ENHANCES_ELEMENTAL_SFORZO") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_SLEIGHT_OF_SWORD), 1006, "Mod::ENHANCES_SLEIGHT_OF_SWORD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_INSPIRATION), 1007, "Mod::ENHANCES_INSPIRATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SWORDPLAY), 1008, "Mod::SWORDPLAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIEMENT), 1009, "Mod::LIEMENT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::VALIANCE_VALLATION_DURATION), 1010, "Mod::VALIANCE_VALLATION_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PFLUG), 1011, "Mod::PFLUG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::VIVACIOUS_PULSE_POTENCY), 1012, "Mod::VIVACIOUS_PULSE_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_VIVACIOUS_PULSE), 1013, "Mod::AUGMENTS_VIVACIOUS_PULSE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RAYKE_DURATION), 1014, "Mod::RAYKE_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ODYLLIC_SUBTERFUGE_DURATION), 1015, "Mod::ODYLLIC_SUBTERFUGE_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SWIPE), 1016, "Mod::SWIPE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIEMENT_DURATION), 1017, "Mod::LIEMENT_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GAMBIT_DURATION), 1018, "Mod::GAMBIT_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EMBOLDEN_DURATION), 1019, "Mod::EMBOLDEN_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIEMENT_EXTENDS_TO_AREA), 1020, "Mod::LIEMENT_EXTENDS_TO_AREA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::INSPIRATION_FAST_CAST), 1021, "Mod::INSPIRATION_FAST_CAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PARRY_SPIKES), 1022, "Mod::PARRY_SPIKES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PARRY_SPIKES_DMG), 1023, "Mod::PARRY_SPIKES_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SPECIAL_ATTACK_EVASION), 1024, "Mod::SPECIAL_ATTACK_EVASION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_SLEIGHT_OF_SWORD), 277, "Mod::AUGMENTS_SLEIGHT_OF_SWORD") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1157,6 +1186,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModGeomancerValues() && ok;
     ok      = testModEnspellAndSpikesValues() && ok;
     ok      = testModTPValues() && ok;
+    ok      = testModRuneFencerValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
