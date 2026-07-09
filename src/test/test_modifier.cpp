@@ -1015,6 +1015,25 @@ auto testModScholarValues() -> bool
     return ok;
 }
 
+auto testModGeomancerValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::CARDINAL_CHANT), 959, "Mod::CARDINAL_CHANT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CARDINAL_CHANT_BONUS), 1132, "Mod::CARDINAL_CHANT_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::INDI_DURATION), 960, "Mod::INDI_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GEOMANCY_BONUS), 961, "Mod::GEOMANCY_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIDENED_COMPASS), 962, "Mod::WIDENED_COMPASS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MENDING_HALATION), 968, "Mod::MENDING_HALATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RADIAL_ARCANA), 969, "Mod::RADIAL_ARCANA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CURATIVE_RECANTATION), 970, "Mod::CURATIVE_RECANTATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PRIMEVAL_ZEAL), 971, "Mod::PRIMEVAL_ZEAL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FULL_CIRCLE), 1025, "Mod::FULL_CIRCLE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BOLSTER_EFFECT), 1028, "Mod::BOLSTER_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIFE_CYCLE_EFFECT), 1029, "Mod::LIFE_CYCLE_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AURA_SIZE), 1030, "Mod::AURA_SIZE") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1111,6 +1130,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModPuppetmasterValues() && ok;
     ok      = testModDancerValues() && ok;
     ok      = testModScholarValues() && ok;
+    ok      = testModGeomancerValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
