@@ -504,6 +504,148 @@ auto testAugmentStandardTableSerialization() -> bool
     return ok;
 }
 
+auto testAugmentTrialTableSerialization() -> bool
+{
+    bool ok = true;
+
+    auto input              = lua.create_table();
+    auto inputAugments      = lua.create_table();
+    auto inputAugment1      = lua.create_table();
+    inputAugment1["id"]     = 0x1234;
+    inputAugment1["value"]  = 0x3F;
+    inputAugments[1]        = inputAugment1;
+    auto inputAugment2      = lua.create_table();
+    inputAugment2["id"]     = 0x155;
+    inputAugment2["value"]  = 4;
+    inputAugments[2]        = inputAugment2;
+    auto inputTrial         = lua.create_table();
+    inputTrial["id"]        = 0x9234;
+    inputTrial["completed"] = true;
+    input["augmentKind"]    = 0x02;
+    input["augmentSubKind"] = 0x43;
+    input["augments"]       = inputAugments;
+    input["trial"]          = inputTrial;
+    input["signature"]      = "TrialSig";
+
+    Exdata::AugmentTrial trial{};
+    trial.fromTable(input);
+    auto* trialRaw = reinterpret_cast<uint8*>(&trial);
+
+    const uint8 expectedRawPrefix[] = {
+        0x02, 0x43, 0x34, 0xFA, 0x55, 0x21, 0x00, 0x00, 0x00, 0x00, 0x34, 0x92,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedRawPrefix); ++i)
+    {
+        ok = expectUInt(trialRaw[i], expectedRawPrefix[i], "augment trial raw prefix byte") && ok;
+    }
+
+    uint8 expectedSignature[12] = {};
+    Exdata::encodeSignature(std::string("TrialSig"), expectedSignature);
+    for (std::size_t i = 0; i < sizeof(expectedSignature); ++i)
+    {
+        ok = expectUInt(trial.Signature[i], expectedSignature[i], "augment trial signature byte") && ok;
+    }
+    ok = expectUInt(static_cast<uint8>(trial.AugmentKind), 0x02, "augment trial kind from table") && ok;
+    ok = expectUInt(static_cast<uint8>(trial.AugmentSubKind), 0x43, "augment trial subkind from table") && ok;
+    ok = expectUInt(trial.Augments[0].Id, 0x234, "augment trial augment 1 id truncated") && ok;
+    ok = expectUInt(trial.Augments[0].Value, 31, "augment trial augment 1 value truncated") && ok;
+    ok = expectUInt(trial.Augments[1].Id, 0x155, "augment trial augment 2 id") && ok;
+    ok = expectUInt(trial.Augments[1].Value, 4, "augment trial augment 2 value") && ok;
+    ok = expectUInt(trial.TrialId, 0x1234, "augment trial id truncated") && ok;
+    ok = expectUInt(trial.Completed, 1, "augment trial completed from table") && ok;
+
+    auto output = lua.create_table();
+    trial.toTable(output);
+    auto outputAugments = output["augments"].get<sol::table>();
+    auto outputAugment1 = outputAugments[1].get<sol::table>();
+    auto outputAugment2 = outputAugments[2].get<sol::table>();
+    auto outputTrial    = output["trial"].get<sol::table>();
+    ok = expectUInt(output["augmentKind"].get<uint8>(), 0x02, "augment trial kind to table") && ok;
+    ok = expectUInt(output["augmentSubKind"].get<uint8>(), 0x43, "augment trial subkind to table") && ok;
+    ok = expectUInt(outputAugment1["id"].get<uint16>(), 0x234, "augment trial augment 1 id to table") && ok;
+    ok = expectUInt(outputAugment1["value"].get<uint16>(), 31, "augment trial augment 1 value to table") && ok;
+    ok = expectUInt(outputAugment2["id"].get<uint16>(), 0x155, "augment trial augment 2 id to table") && ok;
+    ok = expectUInt(outputAugment2["value"].get<uint16>(), 4, "augment trial augment 2 value to table") && ok;
+    ok = expectUInt(outputTrial["id"].get<uint16>(), 0x1234, "augment trial id to table") && ok;
+    ok = expectUInt(outputTrial["completed"].get<bool>(), 1, "augment trial completed to table") && ok;
+    ok = expectString(output["signature"].get<std::string>(), "TrialSig", "augment trial signature to table") && ok;
+
+    trialRaw[0]  = 0xFE;
+    trialRaw[1]  = 0xF0;
+    trialRaw[6]  = 0xFF;
+    trialRaw[7]  = 0xFF;
+    trialRaw[8]  = 0x78;
+    trialRaw[9]  = 0x56;
+    trialRaw[10] = 0xFF;
+    trialRaw[11] = 0xFF;
+
+    auto partial         = lua.create_table();
+    auto partialAugments = lua.create_table();
+    auto partialAugment2 = lua.create_table();
+    partialAugment2["id"] = 0x42;
+    partialAugments[2]    = partialAugment2;
+    auto partialTrial     = lua.create_table();
+    partialTrial["completed"] = false;
+    partial["augments"]       = partialAugments;
+    partial["trial"]          = partialTrial;
+    partial["signature"]      = "Tr";
+    trial.fromTable(partial);
+
+    const uint8 expectedPartialRawPrefix[] = {
+        0xFE, 0xF0, 0x34, 0xFA, 0x42, 0x20, 0xFF, 0xFF, 0x78, 0x56, 0xFF, 0x7F,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedPartialRawPrefix); ++i)
+    {
+        ok = expectUInt(trialRaw[i], expectedPartialRawPrefix[i], "augment trial partial raw prefix byte") && ok;
+    }
+
+    uint8 expectedShortSignature[12] = {};
+    Exdata::encodeSignature(std::string("Tr"), expectedShortSignature);
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(trial.Signature[i], expectedShortSignature[i], "augment trial short signature byte") && ok;
+    }
+    ok = expectUInt(static_cast<uint8>(trial.AugmentKind), 0xFE, "augment trial partial kind preserved") && ok;
+    ok = expectUInt(static_cast<uint8>(trial.AugmentSubKind), 0xF0, "augment trial partial subkind preserved") && ok;
+    ok = expectUInt(trial.Augments[0].Id, 0x234, "augment trial partial augment 1 id preserved") && ok;
+    ok = expectUInt(trial.Augments[1].Id, 0x42, "augment trial partial augment 2 id updated") && ok;
+    ok = expectUInt(trial.Augments[1].Value, 4, "augment trial partial augment 2 value preserved") && ok;
+    ok = expectUInt(trial.Augments[2].Id, 0x7FF, "augment trial partial augment 3 id preserved") && ok;
+    ok = expectUInt(trial.Augments[2].Value, 31, "augment trial partial augment 3 value preserved") && ok;
+    ok = expectUInt(trial.Augments[3].Id, 0x678, "augment trial partial augment 4 id preserved") && ok;
+    ok = expectUInt(trial.Augments[3].Value, 10, "augment trial partial augment 4 value preserved") && ok;
+    ok = expectUInt(trial.TrialId, 0x7FFF, "augment trial partial trial id preserved") && ok;
+    ok = expectUInt(trial.Completed, 0, "augment trial partial completed updated") && ok;
+
+    auto scalarTables        = lua.create_table();
+    scalarTables["augments"] = "bad";
+    scalarTables["trial"]    = "bad";
+    trial.fromTable(scalarTables);
+    for (std::size_t i = 0; i < sizeof(expectedPartialRawPrefix); ++i)
+    {
+        ok = expectUInt(trialRaw[i], expectedPartialRawPrefix[i], "augment trial scalar tables raw prefix byte") && ok;
+    }
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(trial.Signature[i], expectedShortSignature[i], "augment trial scalar tables signature byte") && ok;
+    }
+
+    auto longSignature          = lua.create_table();
+    longSignature["signature"] = "abcdefghijklmnopqrstuvwxyz";
+    trial.fromTable(longSignature);
+
+    uint8 expectedLongSignature[12] = {};
+    Exdata::encodeSignature(std::string("abcdefghijklmnopqrstuvwxyz"), expectedLongSignature);
+    for (std::size_t i = 0; i < sizeof(expectedLongSignature); ++i)
+    {
+        ok = expectUInt(trial.Signature[i], expectedLongSignature[i], "augment trial long signature byte") && ok;
+    }
+    trial.toTable(output);
+    ok = expectString(output["signature"].get<std::string>(), "abcdefghijklmno", "augment trial long signature to table") && ok;
+
+    return ok;
+}
+
 auto testFishTableSerialization() -> bool
 {
     sol::state lua;
@@ -2152,6 +2294,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testRawExdataOverlay() && ok;
     ok      = testLinkshellTableSerialization() && ok;
     ok      = testAugmentStandardTableSerialization() && ok;
+    ok      = testAugmentTrialTableSerialization() && ok;
     ok      = testFishTableSerialization() && ok;
     ok      = testChocoboEggTableSerialization() && ok;
     ok      = testChocoboCardTableSerialization() && ok;
