@@ -607,6 +607,20 @@ auto testModMonkValues() -> bool
     return ok;
 }
 
+auto testModWhiteMageValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::AFFLATUS_SOLACE), 293, "Mod::AFFLATUS_SOLACE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AFFLATUS_MISERY), 294, "Mod::AFFLATUS_MISERY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUSPICE_EFFECT), 484, "Mod::AUSPICE_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AOE_NA), 524, "Mod::AOE_NA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REGEN_MULTIPLIER), 838, "Mod::REGEN_MULTIPLIER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CURE2MP_PERCENT), 860, "Mod::CURE2MP_PERCENT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DIVINE_BENISON), 910, "Mod::DIVINE_BENISON") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REGEN_BONUS), 989, "Mod::REGEN_BONUS") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -685,6 +699,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModFTPBonusValues() && ok;
     ok      = testModWarriorValues() && ok;
     ok      = testModMonkValues() && ok;
+    ok      = testModWhiteMageValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
