@@ -418,6 +418,19 @@ auto testModCastAndRecastValues() -> bool
     return ok;
 }
 
+auto testModDelaySkillchainAndSwingValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::DELAY), 171, "Mod::DELAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RANGED_DELAY), 172, "Mod::RANGED_DELAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MARTIAL_ARTS), 173, "Mod::MARTIAL_ARTS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SKILLCHAINBONUS), 174, "Mod::SKILLCHAINBONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SKILLCHAINDMG), 175, "Mod::SKILLCHAINDMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAX_SWINGS), 978, "Mod::MAX_SWINGS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ADDITIONAL_SWING_CHANCE), 979, "Mod::ADDITIONAL_SWING_CHANCE") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -485,6 +498,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModHasteAndSpellInterruptValues() && ok;
     ok      = testModMovementSpeedValues() && ok;
     ok      = testModCastAndRecastValues() && ok;
+    ok      = testModDelaySkillchainAndSwingValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
