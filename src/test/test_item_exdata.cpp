@@ -760,6 +760,142 @@ auto testAugmentBundleTableSerialization() -> bool
     return ok;
 }
 
+auto testAugmentMezzotintTableSerialization() -> bool
+{
+    bool ok = true;
+
+    auto input              = lua.create_table();
+    auto inputAugments      = lua.create_table();
+    auto inputAugment1      = lua.create_table();
+    inputAugment1["index"]  = 0x23;
+    inputAugment1["value"]  = 0xF3;
+    inputAugments[1]        = inputAugment1;
+    auto inputAugment2      = lua.create_table();
+    inputAugment2["index"]  = 0x7A;
+    inputAugment2["value"]  = 0x05;
+    inputAugments[2]        = inputAugment2;
+    input["augmentKind"]    = 0x02;
+    input["augmentSubKind"] = 0x20;
+    input["type"]           = 0x06;
+    input["rank"]           = 0x3F;
+    input["accumulatedRP"]  = 0x12345;
+    input["augments"]       = inputAugments;
+    input["signature"]      = "MezzoSig";
+
+    Exdata::AugmentMezzotint mezzotint{};
+    mezzotint.fromTable(input);
+    auto* mezzotintRaw = reinterpret_cast<uint8*>(&mezzotint);
+
+    const uint8 expectedRawPrefix[] = {
+        0x02, 0x20, 0x7E, 0x00, 0x45, 0x23, 0x23, 0xF3, 0x7A, 0x05, 0x00, 0x00,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedRawPrefix); ++i)
+    {
+        ok = expectUInt(mezzotintRaw[i], expectedRawPrefix[i], "augment mezzotint raw prefix byte") && ok;
+    }
+
+    uint8 expectedSignature[12] = {};
+    Exdata::encodeSignature(std::string("MezzoSig"), expectedSignature);
+    for (std::size_t i = 0; i < sizeof(expectedSignature); ++i)
+    {
+        ok = expectUInt(mezzotint.Signature[i], expectedSignature[i], "augment mezzotint signature byte") && ok;
+    }
+    ok = expectUInt(static_cast<uint8>(mezzotint.AugmentKind), 0x02, "augment mezzotint kind from table") && ok;
+    ok = expectUInt(static_cast<uint8>(mezzotint.AugmentSubKind), 0x20, "augment mezzotint subkind from table") && ok;
+    ok = expectUInt(mezzotint.Type, 2, "augment mezzotint type truncated") && ok;
+    ok = expectUInt(mezzotint.Rank, 31, "augment mezzotint rank truncated") && ok;
+    ok = expectUInt(mezzotint.AccumulatedRP, 0x2345, "augment mezzotint accumulated RP truncated") && ok;
+    ok = expectUInt(mezzotint.Augments[0].Index, 0x23, "augment mezzotint augment 1 index") && ok;
+    ok = expectUInt(mezzotint.Augments[0].Value, 0xF3, "augment mezzotint augment 1 value") && ok;
+    ok = expectUInt(mezzotint.Augments[1].Index, 0x7A, "augment mezzotint augment 2 index") && ok;
+    ok = expectUInt(mezzotint.Augments[1].Value, 0x05, "augment mezzotint augment 2 value") && ok;
+
+    auto output = lua.create_table();
+    mezzotint.toTable(output);
+    auto outputAugments = output["augments"].get<sol::table>();
+    auto outputAugment1 = outputAugments[1].get<sol::table>();
+    auto outputAugment2 = outputAugments[2].get<sol::table>();
+    ok = expectUInt(output["augmentKind"].get<uint8>(), 0x02, "augment mezzotint kind to table") && ok;
+    ok = expectUInt(output["augmentSubKind"].get<uint8>(), 0x20, "augment mezzotint subkind to table") && ok;
+    ok = expectUInt(output["type"].get<uint8>(), 2, "augment mezzotint type to table") && ok;
+    ok = expectUInt(output["rank"].get<uint8>(), 31, "augment mezzotint rank to table") && ok;
+    ok = expectUInt(output["accumulatedRP"].get<uint16>(), 0x2345, "augment mezzotint accumulated RP to table") && ok;
+    ok = expectUInt(outputAugment1["index"].get<uint8>(), 0x23, "augment mezzotint augment 1 index to table") && ok;
+    ok = expectUInt(outputAugment1["value"].get<uint8>(), 0xF3, "augment mezzotint augment 1 value to table") && ok;
+    ok = expectUInt(outputAugment2["index"].get<uint8>(), 0x7A, "augment mezzotint augment 2 index to table") && ok;
+    ok = expectUInt(outputAugment2["value"].get<uint8>(), 0x05, "augment mezzotint augment 2 value to table") && ok;
+    ok = expectString(output["signature"].get<std::string>(), "MezzoSig", "augment mezzotint signature to table") && ok;
+
+    mezzotintRaw[0]  = 0xFE;
+    mezzotintRaw[1]  = 0xF0;
+    mezzotintRaw[2] |= 0x80;
+    mezzotintRaw[3]  = 0xA2;
+    mezzotintRaw[10] = 0xCC;
+    mezzotintRaw[11] = 0xDD;
+
+    auto partial         = lua.create_table();
+    auto partialAugments = lua.create_table();
+    auto partialAugment2 = lua.create_table();
+    partialAugment2["index"] = 0x42;
+    partialAugments[2]       = partialAugment2;
+    partial["augments"]      = partialAugments;
+    partial["signature"]     = "Mz";
+    mezzotint.fromTable(partial);
+
+    const uint8 expectedPartialRawPrefix[] = {
+        0xFE, 0xF0, 0xFE, 0xA2, 0x45, 0x23, 0x23, 0xF3, 0x42, 0x05, 0xCC, 0xDD,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedPartialRawPrefix); ++i)
+    {
+        ok = expectUInt(mezzotintRaw[i], expectedPartialRawPrefix[i], "augment mezzotint partial raw prefix byte") && ok;
+    }
+
+    uint8 expectedShortSignature[12] = {};
+    Exdata::encodeSignature(std::string("Mz"), expectedShortSignature);
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(mezzotint.Signature[i], expectedShortSignature[i], "augment mezzotint short signature byte") && ok;
+    }
+    ok = expectUInt(static_cast<uint8>(mezzotint.AugmentKind), 0xFE, "augment mezzotint partial kind preserved") && ok;
+    ok = expectUInt(static_cast<uint8>(mezzotint.AugmentSubKind), 0xF0, "augment mezzotint partial subkind preserved") && ok;
+    ok = expectUInt(mezzotint.Type, 2, "augment mezzotint partial type preserved") && ok;
+    ok = expectUInt(mezzotint.Rank, 31, "augment mezzotint partial rank preserved") && ok;
+    ok = expectUInt(mezzotint.AccumulatedRP, 0x2345, "augment mezzotint partial accumulated RP preserved") && ok;
+    ok = expectUInt(mezzotint.Augments[0].Index, 0x23, "augment mezzotint partial augment 1 index preserved") && ok;
+    ok = expectUInt(mezzotint.Augments[0].Value, 0xF3, "augment mezzotint partial augment 1 value preserved") && ok;
+    ok = expectUInt(mezzotint.Augments[1].Index, 0x42, "augment mezzotint partial augment 2 index updated") && ok;
+    ok = expectUInt(mezzotint.Augments[1].Value, 0x05, "augment mezzotint partial augment 2 value preserved") && ok;
+    ok = expectUInt(mezzotint.Augments[2].Index, 0xCC, "augment mezzotint partial augment 3 index preserved") && ok;
+    ok = expectUInt(mezzotint.Augments[2].Value, 0xDD, "augment mezzotint partial augment 3 value preserved") && ok;
+
+    auto scalarAugments        = lua.create_table();
+    scalarAugments["augments"] = "bad";
+    mezzotint.fromTable(scalarAugments);
+    for (std::size_t i = 0; i < sizeof(expectedPartialRawPrefix); ++i)
+    {
+        ok = expectUInt(mezzotintRaw[i], expectedPartialRawPrefix[i], "augment mezzotint scalar augments raw prefix byte") && ok;
+    }
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(mezzotint.Signature[i], expectedShortSignature[i], "augment mezzotint scalar augments signature byte") && ok;
+    }
+
+    auto longSignature          = lua.create_table();
+    longSignature["signature"] = "abcdefghijklmnopqrstuvwxyz";
+    mezzotint.fromTable(longSignature);
+
+    uint8 expectedLongSignature[12] = {};
+    Exdata::encodeSignature(std::string("abcdefghijklmnopqrstuvwxyz"), expectedLongSignature);
+    for (std::size_t i = 0; i < sizeof(expectedLongSignature); ++i)
+    {
+        ok = expectUInt(mezzotint.Signature[i], expectedLongSignature[i], "augment mezzotint long signature byte") && ok;
+    }
+    mezzotint.toTable(output);
+    ok = expectString(output["signature"].get<std::string>(), "abcdefghijklmno", "augment mezzotint long signature to table") && ok;
+
+    return ok;
+}
+
 auto testFishTableSerialization() -> bool
 {
     sol::state lua;
@@ -2410,6 +2546,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testAugmentStandardTableSerialization() && ok;
     ok      = testAugmentTrialTableSerialization() && ok;
     ok      = testAugmentBundleTableSerialization() && ok;
+    ok      = testAugmentMezzotintTableSerialization() && ok;
     ok      = testFishTableSerialization() && ok;
     ok      = testChocoboEggTableSerialization() && ok;
     ok      = testChocoboCardTableSerialization() && ok;
