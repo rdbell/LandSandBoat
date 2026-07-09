@@ -1150,6 +1150,16 @@ auto testModAutoTickCureAndDelayValues() -> bool
     return ok;
 }
 
+auto testModBashKickAndWyvernBreathValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::SHIELD_BASH), 385, "Mod::SHIELD_BASH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::KICK_DMG), 386, "Mod::KICK_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WEAPON_BASH), 392, "Mod::WEAPON_BASH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WYVERN_BREATH), 402, "Mod::WYVERN_BREATH") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1254,6 +1264,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModStealthAndDurationValues() && ok;
     ok      = testModWeaponDamageRatingValues() && ok;
     ok      = testModAutoTickCureAndDelayValues() && ok;
+    ok      = testModBashKickAndWyvernBreathValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
