@@ -660,11 +660,14 @@ void MapNetworking::preparePacket(uint8* buff, MapSession* PSession)
     // - assign the outgoing packet the number of the last packet sent to the client +1
     // - write down the current time of sending the packet
 
-    ref<uint16>(buff, 0) = PSession->server_packet_id;
-    ref<uint16>(buff, 2) = PSession->client_packet_id;
+    preparePacketHeader(buff, PSession->server_packet_id, PSession->client_packet_id, earth_time::timestamp());
+}
 
-    // save the current time (32 BIT!)
-    ref<uint32>(buff, 8) = earth_time::timestamp();
+void MapNetworking::preparePacketHeader(uint8* buff, uint16 serverPacketId, uint16 clientPacketId, uint32 timestamp)
+{
+    ref<uint16>(buff, 0) = serverPacketId;
+    ref<uint16>(buff, 2) = clientPacketId;
+    ref<uint32>(buff, 8) = timestamp;
 }
 
 auto MapNetworking::compressPacket(uint8* buff, size_t buffsize) -> Maybe<size_t>

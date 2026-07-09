@@ -73,6 +73,9 @@ public:
     // Sets header, sequence, timestamp
     void preparePacket(uint8* buff, MapSession* PSession);
 
+    // Pure header helper used by preparePacket and protocol parity tests.
+    static void preparePacketHeader(uint8* buff, uint16 serverPacketId, uint16 clientPacketId, uint32 timestamp);
+
     // Add payload between preparePacket and compressPacket
 
     auto compressPacket(uint8* buff, size_t buffsize) -> Maybe<size_t>;
