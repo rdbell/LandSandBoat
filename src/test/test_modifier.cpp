@@ -166,6 +166,22 @@ auto testModWeaponCombatSkillValues() -> bool
     return ok;
 }
 
+auto testModAutomatonRangedAndDefensiveSkillValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_MELEE_SKILL), 101, "Mod::AUTO_MELEE_SKILL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_RANGED_SKILL), 102, "Mod::AUTO_RANGED_SKILL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_MAGIC_SKILL), 103, "Mod::AUTO_MAGIC_SKILL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ARCHERY), 104, "Mod::ARCHERY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MARKSMAN), 105, "Mod::MARKSMAN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THROW), 106, "Mod::THROW") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GUARD), 107, "Mod::GUARD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EVASION), 108, "Mod::EVASION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SHIELD), 109, "Mod::SHIELD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PARRY), 110, "Mod::PARRY") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -213,6 +229,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModWeaponSkillAttackPercentageAndSkillupValues() && ok;
     ok      = testModEvasionAndRecoveryValues() && ok;
     ok      = testModWeaponCombatSkillValues() && ok;
+    ok      = testModAutomatonRangedAndDefensiveSkillValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
