@@ -556,6 +556,22 @@ auto testModParalyzeMijinAndDualWieldValues() -> bool
     return ok;
 }
 
+auto testModFTPBonusValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::FIRE_FTP_BONUS), 544, "Mod::FIRE_FTP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ICE_FTP_BONUS), 545, "Mod::ICE_FTP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIND_FTP_BONUS), 546, "Mod::WIND_FTP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EARTH_FTP_BONUS), 547, "Mod::EARTH_FTP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THUNDER_FTP_BONUS), 548, "Mod::THUNDER_FTP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WATER_FTP_BONUS), 549, "Mod::WATER_FTP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_FTP_BONUS), 550, "Mod::LIGHT_FTP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_FTP_BONUS), 551, "Mod::DARK_FTP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ANY_FTP_BONUS), 1144, "Mod::ANY_FTP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DAY_FTP_BONUS), 1145, "Mod::DAY_FTP_BONUS") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -631,6 +647,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModEnfeebleMEVAValues() && ok;
     ok      = testModStatusEffectImmunobreakValues() && ok;
     ok      = testModParalyzeMijinAndDualWieldValues() && ok;
+    ok      = testModFTPBonusValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
