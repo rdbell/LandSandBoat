@@ -572,6 +572,21 @@ auto testModFTPBonusValues() -> bool
     return ok;
 }
 
+auto testModWarriorValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::DOUBLE_ATTACK), 288, "Mod::DOUBLE_ATTACK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DOUBLE_ATTACK_DMG), 1038, "Mod::DOUBLE_ATTACK_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WARCRY_DURATION), 483, "Mod::WARCRY_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BERSERK_POTENCY), 948, "Mod::BERSERK_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BERSERK_DURATION), 954, "Mod::BERSERK_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AGGRESSOR_DURATION), 955, "Mod::AGGRESSOR_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DEFENDER_DURATION), 956, "Mod::DEFENDER_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_RESTRAINT), 1045, "Mod::ENHANCES_RESTRAINT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_BLOOD_RAGE), 1046, "Mod::ENHANCES_BLOOD_RAGE") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -648,6 +663,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModStatusEffectImmunobreakValues() && ok;
     ok      = testModParalyzeMijinAndDualWieldValues() && ok;
     ok      = testModFTPBonusValues() && ok;
+    ok      = testModWarriorValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
