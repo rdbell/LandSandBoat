@@ -379,6 +379,131 @@ auto testLinkshellTableSerialization() -> bool
     return ok;
 }
 
+auto testAugmentStandardTableSerialization() -> bool
+{
+    bool ok = true;
+
+    auto input              = lua.create_table();
+    auto inputAugments      = lua.create_table();
+    auto inputAugment1      = lua.create_table();
+    inputAugment1["id"]     = 0x1234;
+    inputAugment1["value"]  = 0x3F;
+    inputAugments[1]        = inputAugment1;
+    auto inputAugment2      = lua.create_table();
+    inputAugment2["id"]     = 0x155;
+    inputAugment2["value"]  = 4;
+    inputAugments[2]        = inputAugment2;
+    input["augmentKind"]    = 0x02;
+    input["augmentSubKind"] = 0x03;
+    input["augments"]       = inputAugments;
+    input["signature"]      = "Standard";
+
+    Exdata::AugmentStandard standard{};
+    standard.fromTable(input);
+    auto* standardRaw = reinterpret_cast<uint8*>(&standard);
+
+    const uint8 expectedRawPrefix[] = {
+        0x02, 0x03, 0x34, 0xFA, 0x55, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedRawPrefix); ++i)
+    {
+        ok = expectUInt(standardRaw[i], expectedRawPrefix[i], "augment standard raw prefix byte") && ok;
+    }
+
+    uint8 expectedSignature[12] = {};
+    Exdata::encodeSignature(std::string("Standard"), expectedSignature);
+    for (std::size_t i = 0; i < sizeof(expectedSignature); ++i)
+    {
+        ok = expectUInt(standard.Signature[i], expectedSignature[i], "augment standard signature byte") && ok;
+    }
+    ok = expectUInt(static_cast<uint8>(standard.AugmentKind), 0x02, "augment standard kind from table") && ok;
+    ok = expectUInt(static_cast<uint8>(standard.AugmentSubKind), 0x03, "augment standard subkind from table") && ok;
+    ok = expectUInt(standard.Augments[0].Id, 0x234, "augment standard augment 1 id truncated") && ok;
+    ok = expectUInt(standard.Augments[0].Value, 31, "augment standard augment 1 value truncated") && ok;
+    ok = expectUInt(standard.Augments[1].Id, 0x155, "augment standard augment 2 id") && ok;
+    ok = expectUInt(standard.Augments[1].Value, 4, "augment standard augment 2 value") && ok;
+
+    auto output = lua.create_table();
+    standard.toTable(output);
+    auto outputAugments = output["augments"].get<sol::table>();
+    auto outputAugment1 = outputAugments[1].get<sol::table>();
+    auto outputAugment2 = outputAugments[2].get<sol::table>();
+    ok = expectUInt(output["augmentKind"].get<uint8>(), 0x02, "augment standard kind to table") && ok;
+    ok = expectUInt(output["augmentSubKind"].get<uint8>(), 0x03, "augment standard subkind to table") && ok;
+    ok = expectUInt(outputAugment1["id"].get<uint16>(), 0x234, "augment standard augment 1 id to table") && ok;
+    ok = expectUInt(outputAugment1["value"].get<uint16>(), 31, "augment standard augment 1 value to table") && ok;
+    ok = expectUInt(outputAugment2["id"].get<uint16>(), 0x155, "augment standard augment 2 id to table") && ok;
+    ok = expectUInt(outputAugment2["value"].get<uint16>(), 4, "augment standard augment 2 value to table") && ok;
+    ok = expectString(output["signature"].get<std::string>(), "Standard", "augment standard signature to table") && ok;
+
+    standardRaw[0]  = 0xFE;
+    standardRaw[1]  = 0xF0;
+    standardRaw[6]  = 0xFF;
+    standardRaw[7]  = 0xFF;
+    standardRaw[8]  = 0x78;
+    standardRaw[9]  = 0x56;
+    standardRaw[10] = 0x9A;
+    standardRaw[11] = 0xBC;
+
+    auto partial         = lua.create_table();
+    auto partialAugments = lua.create_table();
+    auto partialAugment2 = lua.create_table();
+    partialAugment2["id"] = 0x42;
+    partialAugments[2]    = partialAugment2;
+    partial["augments"]   = partialAugments;
+    partial["signature"]  = "St";
+    standard.fromTable(partial);
+
+    const uint8 expectedPartialRawPrefix[] = {
+        0xFE, 0xF0, 0x34, 0xFA, 0x42, 0x20, 0xFF, 0xFF, 0x78, 0x56, 0x9A, 0xBC,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedPartialRawPrefix); ++i)
+    {
+        ok = expectUInt(standardRaw[i], expectedPartialRawPrefix[i], "augment standard partial raw prefix byte") && ok;
+    }
+
+    uint8 expectedShortSignature[12] = {};
+    Exdata::encodeSignature(std::string("St"), expectedShortSignature);
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(standard.Signature[i], expectedShortSignature[i], "augment standard short signature byte") && ok;
+    }
+    ok = expectUInt(static_cast<uint8>(standard.AugmentKind), 0xFE, "augment standard partial kind preserved") && ok;
+    ok = expectUInt(static_cast<uint8>(standard.AugmentSubKind), 0xF0, "augment standard partial subkind preserved") && ok;
+    ok = expectUInt(standard.Augments[0].Id, 0x234, "augment standard partial augment 1 id preserved") && ok;
+    ok = expectUInt(standard.Augments[1].Id, 0x42, "augment standard partial augment 2 id updated") && ok;
+    ok = expectUInt(standard.Augments[1].Value, 4, "augment standard partial augment 2 value preserved") && ok;
+    ok = expectUInt(standard.Augments[2].Id, 0x7FF, "augment standard partial augment 3 id preserved") && ok;
+    ok = expectUInt(standard.Augments[2].Value, 31, "augment standard partial augment 3 value preserved") && ok;
+
+    auto scalarAugments        = lua.create_table();
+    scalarAugments["augments"] = "bad";
+    standard.fromTable(scalarAugments);
+    for (std::size_t i = 0; i < sizeof(expectedPartialRawPrefix); ++i)
+    {
+        ok = expectUInt(standardRaw[i], expectedPartialRawPrefix[i], "augment standard scalar augments raw prefix byte") && ok;
+    }
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(standard.Signature[i], expectedShortSignature[i], "augment standard scalar augments signature byte") && ok;
+    }
+
+    auto longSignature          = lua.create_table();
+    longSignature["signature"] = "abcdefghijklmnopqrstuvwxyz";
+    standard.fromTable(longSignature);
+
+    uint8 expectedLongSignature[12] = {};
+    Exdata::encodeSignature(std::string("abcdefghijklmnopqrstuvwxyz"), expectedLongSignature);
+    for (std::size_t i = 0; i < sizeof(expectedLongSignature); ++i)
+    {
+        ok = expectUInt(standard.Signature[i], expectedLongSignature[i], "augment standard long signature byte") && ok;
+    }
+    standard.toTable(output);
+    ok = expectString(output["signature"].get<std::string>(), "abcdefghijklmno", "augment standard long signature to table") && ok;
+
+    return ok;
+}
+
 auto testFishTableSerialization() -> bool
 {
     sol::state lua;
@@ -2026,6 +2151,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testPredicateTypeDispatchAndPrecedence() && ok;
     ok      = testRawExdataOverlay() && ok;
     ok      = testLinkshellTableSerialization() && ok;
+    ok      = testAugmentStandardTableSerialization() && ok;
     ok      = testFishTableSerialization() && ok;
     ok      = testChocoboEggTableSerialization() && ok;
     ok      = testChocoboCardTableSerialization() && ok;
