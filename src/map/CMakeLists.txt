@@ -92,6 +92,7 @@ set(MAP_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/map_session_container.h
     ${CMAKE_CURRENT_SOURCE_DIR}/map_session.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/map_session.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/map_session_blowfish.h
     ${CMAKE_CURRENT_SOURCE_DIR}/map_socket.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/map_socket.h
     ${CMAKE_CURRENT_SOURCE_DIR}/map_statistics.cpp

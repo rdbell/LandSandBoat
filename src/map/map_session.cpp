@@ -20,22 +20,20 @@
 */
 
 #include "map_session.h"
+#include "map_session_blowfish.h"
 
 #include "common/md52.h"
 
-void MapSession::incrementBlowfish()
+#include <cstring>
+
+namespace map_session_blowfish
 {
-    hasDecryptedPacket = false;
-    prev_blowfish      = blowfish;
 
-    blowfish.key[4] += 2;
-
-    initBlowfish();
-}
-
-void MapSession::initBlowfish()
+void initialize(blowfish_t& blowfish)
 {
-    md5((uint8*)(blowfish.key), blowfish.hash, 20);
+    static_assert(sizeof(blowfish.key) == 20);
+
+    md5(reinterpret_cast<uint8*>(blowfish.key), blowfish.hash, sizeof(blowfish.key));
 
     for (uint32 i = 0; i < 16; ++i)
     {
@@ -45,7 +43,28 @@ void MapSession::initBlowfish()
             break;
         }
     }
-    blowfish_init((int8*)blowfish.hash, 16, blowfish.P, blowfish.S[0]);
+    blowfish_init(reinterpret_cast<int8*>(blowfish.hash), 16, blowfish.P, blowfish.S[0]);
+}
+
+void increment(blowfish_t& blowfish, blowfish_t& previous, bool& hasDecryptedPacket)
+{
+    hasDecryptedPacket = false;
+    previous           = blowfish;
+
+    blowfish.key[4] += 2;
+    initialize(blowfish);
+}
+
+} // namespace map_session_blowfish
+
+void MapSession::incrementBlowfish()
+{
+    map_session_blowfish::increment(blowfish, prev_blowfish, hasDecryptedPacket);
+}
+
+void MapSession::initBlowfish()
+{
+    map_session_blowfish::initialize(blowfish);
 }
 
 auto MapSession::toString() -> std::string
