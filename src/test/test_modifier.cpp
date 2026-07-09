@@ -379,6 +379,17 @@ auto testModSmiteAndGuardValues() -> bool
     return ok;
 }
 
+auto testModHasteAndSpellInterruptValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::HASTE_MAGIC), 167, "Mod::HASTE_MAGIC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SPELLINTERRUPT), 168, "Mod::SPELLINTERRUPT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TWOHAND_HASTE_ABILITY), 217, "Mod::TWOHAND_HASTE_ABILITY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HASTE_ABILITY), 383, "Mod::HASTE_ABILITY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HASTE_GEAR), 384, "Mod::HASTE_GEAR") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -443,6 +454,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModMagicCriticalValues() && ok;
     ok      = testModFencerValues() && ok;
     ok      = testModSmiteAndGuardValues() && ok;
+    ok      = testModHasteAndSpellInterruptValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
