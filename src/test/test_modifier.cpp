@@ -547,6 +547,15 @@ auto testModStatusEffectImmunobreakValues() -> bool
     return ok;
 }
 
+auto testModParalyzeMijinAndDualWieldValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::PARALYZE), 257, "Mod::PARALYZE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MIJIN_RERAISE), 258, "Mod::MIJIN_RERAISE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DUAL_WIELD), 259, "Mod::DUAL_WIELD") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -621,6 +630,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModEnfeebleResistanceValues() && ok;
     ok      = testModEnfeebleMEVAValues() && ok;
     ok      = testModStatusEffectImmunobreakValues() && ok;
+    ok      = testModParalyzeMijinAndDualWieldValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
