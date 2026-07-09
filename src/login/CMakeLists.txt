@@ -19,6 +19,8 @@ set(SOURCES
     session.h
     view_session.h
     view_session.cpp
+    version_lock.h
+    version_lock.cpp
 )
 
 if(UNIX)

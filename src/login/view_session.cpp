@@ -28,6 +28,7 @@
 #include <common/utils.h>
 
 #include "login_packets.h"
+#include "version_lock.h"
 
 void view_session::read_func()
 {
@@ -320,24 +321,29 @@ void view_session::read_func()
         break;
         case 0x26: // 38: Version + Expansions, "Setting up connection."
         {
-            std::string client_ver_data = asStringFromUntrustedSource(buffer_.data() + 0x74, 6); // Full length is 10 but we drop last 4. This contains "E" in the english client. Perhaps this can be used as a hint for language?
-            client_ver_data             = client_ver_data + "xx_x";                              // And then we replace those last 4
+            const auto versionFlow = login::version_lock::evaluateFlow(
+                std::span<const uint8>(buffer_.data() + 0x74, login::version_lock::PrefixLength),
+                settings::get<std::string>("login.CLIENT_VER"),
+                []()
+                {
+                    return settings::get<uint8>("login.VER_LOCK");
+                });
+            const auto& versionDecision = versionFlow.version;
+            const auto client_ver_data = versionDecision.clientVersion;
             DebugSockets(fmt::format("Version: {} from {}", client_ver_data, ipAddress));
 
-            std::string expected_version(settings::get<std::string>("login.CLIENT_VER"), 0, 6); // Same deal here!
-            expected_version     = expected_version + "xx_x";
-            bool versionMismatch = expected_version != client_ver_data;
-            bool fatalMismatch   = false;
+            const auto expected_version = versionDecision.expectedVersion;
+            const bool versionMismatch  = versionDecision.mismatch;
 
             if (versionMismatch)
             {
                 ShowError(fmt::format("view_session: Account {} has incorrect client version: got {}, expected {}", session.accountID, client_ver_data, expected_version));
 
-                switch (settings::get<uint8>("login.VER_LOCK"))
+                switch (versionFlow.lockMode)
                 {
                     // enabled
-                    case 1:
-                        if (expected_version < client_ver_data)
+                    case login::version_lock::Strict:
+                        if (versionDecision.direction == login::version_lock::MismatchDirection::ServerTooOld)
                         {
                             ShowError("view_session: The server must be updated to support this client version");
                         }
@@ -345,14 +351,12 @@ void view_session::read_func()
                         {
                             ShowError("view_session: The client must be updated to support this server version");
                         }
-                        fatalMismatch = true;
                         break;
                     // enabled greater than or equal
-                    case 2:
-                        if (expected_version > client_ver_data)
+                    case login::version_lock::AllowNewer:
+                        if (versionDecision.fatal)
                         {
                             ShowError("view_session: The client must be updated to support this server version");
-                            fatalMismatch = true;
                         }
                         break;
                     default:
@@ -361,12 +365,12 @@ void view_session::read_func()
                 }
             }
 
-            if (fatalMismatch)
+            if (versionFlow.responseLength == login::version_lock::ResponseLength::VersionError)
             {
                 if (auto data = session.view_session.get())
                 {
                     loginHelpers::generateErrorMessage(data->buffer_.data(), loginErrors::errorCode::GAMES_DATA_HAS_BEEN_UPDATED); // "The games data has been updated"
-                    data->do_write(0x24);
+                    data->do_write(static_cast<std::size_t>(versionFlow.responseLength));
                     return;
                 }
             }
@@ -380,7 +384,7 @@ void view_session::read_func()
             if (auto data = session.view_session.get())
             {
                 std::memcpy(data->buffer_.data(), buffer_.data(), 0x28);
-                data->do_write(0x28);
+                data->do_write(static_cast<std::size_t>(versionFlow.responseLength));
             }
         }
         break;
