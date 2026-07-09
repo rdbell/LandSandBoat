@@ -461,6 +461,158 @@ auto testLogTicketTableSerialization() -> bool
     return ok;
 }
 
+auto testPassTimerTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto lampInput = lua.create_table();
+    lampInput["chamberId"] = 3;
+    lampInput["flags"]     = 5;
+    lampInput["startTime"] = 0x55667788;
+    lampInput["endTime"]   = 0x11223344;
+
+    Exdata::GlowingLamp lamp{};
+    lamp.fromTable(lampInput);
+    const auto* lampRaw = reinterpret_cast<const uint8*>(&lamp);
+    ok = expectUInt(lamp.ChamberId, 0x20, "glowing lamp chamber id from table") && ok;
+    ok = expectUInt(lamp.Flags, 5, "glowing lamp flags from table") && ok;
+    ok = expectUInt(lamp.StartTime, 0x55667788, "glowing lamp start time from table") && ok;
+    ok = expectUInt(lamp.EndTime, 0x11223344, "glowing lamp end time from table") && ok;
+    ok = expectUInt(lampRaw[0], 0x20, "glowing lamp raw chamber low byte") && ok;
+    ok = expectUInt(lampRaw[1], 0x00, "glowing lamp raw chamber high byte") && ok;
+    ok = expectUInt(lampRaw[2], 0x05, "glowing lamp raw flags byte") && ok;
+    ok = expectUInt(lampRaw[8], 0x44, "glowing lamp raw end byte 0") && ok;
+    ok = expectUInt(lampRaw[11], 0x11, "glowing lamp raw end byte 3") && ok;
+    ok = expectUInt(lampRaw[12], 0x88, "glowing lamp raw start byte 0") && ok;
+    ok = expectUInt(lampRaw[15], 0x55, "glowing lamp raw start byte 3") && ok;
+
+    auto lampOutput = lua.create_table();
+    lamp.toTable(lampOutput);
+    ok = expectUInt(lampOutput["chamberId"].get<uint16>(), 3, "glowing lamp chamber id to table") && ok;
+    ok = expectUInt(lampOutput["flags"].get<uint8>(), 5, "glowing lamp flags to table") && ok;
+    ok = expectUInt(lampOutput["startTime"].get<uint32>(), 0x55667788, "glowing lamp start time to table") && ok;
+    ok = expectUInt(lampOutput["endTime"].get<uint32>(), 0x11223344, "glowing lamp end time to table") && ok;
+
+    auto lampPartial = lua.create_table();
+    lampPartial["chamberId"] = 0;
+    lampPartial["startTime"] = 0xAABBCCDD;
+    lamp.fromTable(lampPartial);
+    ok = expectUInt(lamp.ChamberId, 0, "glowing lamp chamber zero update") && ok;
+    ok = expectUInt(lamp.Flags, 5, "glowing lamp flags preserved") && ok;
+    ok = expectUInt(lamp.StartTime, 0xAABBCCDD, "glowing lamp start partial update") && ok;
+    ok = expectUInt(lamp.EndTime, 0x11223344, "glowing lamp end preserved") && ok;
+
+    auto lampMaskedFlags = lua.create_table();
+    lampMaskedFlags["flags"] = 0x0D;
+    lamp.fromTable(lampMaskedFlags);
+    lamp.toTable(lampOutput);
+    ok = expectUInt(lamp.Flags, 5, "glowing lamp flags masked to bitfield") && ok;
+    ok = expectUInt(lampOutput["flags"].get<uint8>(), 5, "glowing lamp masked flags to table") && ok;
+
+    auto legionInput = lua.create_table();
+    legionInput["timestamp"] = 0x11223344;
+    legionInput["title"]     = 0x55667788;
+    legionInput["signature"] = "OmegaXI2026";
+
+    Exdata::LegionPass legion{};
+    legion.fromTable(legionInput);
+    auto* legionRaw = reinterpret_cast<uint8*>(&legion);
+    ok = expectUInt(legion.Timestamp, 0x11223344, "legion timestamp from table") && ok;
+    ok = expectUInt(legion.Title, 0x55667788, "legion title from table") && ok;
+    ok = expectString(Exdata::decodeSignature(legion.Signature), "OmegaXI2026", "legion signature from table") && ok;
+    ok = expectUInt(legionRaw[0], 0x44, "legion raw timestamp byte 0") && ok;
+    ok = expectUInt(legionRaw[3], 0x11, "legion raw timestamp byte 3") && ok;
+    ok = expectUInt(legionRaw[4], 0x88, "legion raw title byte 0") && ok;
+    ok = expectUInt(legionRaw[7], 0x55, "legion raw title byte 3") && ok;
+    legionRaw[8]  = 0x9A;
+    legionRaw[9]  = 0xBC;
+    legionRaw[10] = 0xDE;
+    legionRaw[11] = 0xF0;
+
+    auto legionOutput = lua.create_table();
+    legion.toTable(legionOutput);
+    ok = expectUInt(legionOutput["timestamp"].get<uint32>(), 0x11223344, "legion timestamp to table") && ok;
+    ok = expectUInt(legionOutput["title"].get<uint32>(), 0x55667788, "legion title to table") && ok;
+    ok = expectString(legionOutput["signature"].get<std::string>(), "OmegaXI2026", "legion signature to table") && ok;
+
+    auto legionPartial = lua.create_table();
+    legionPartial["title"] = 0x01020304;
+    legion.fromTable(legionPartial);
+    ok = expectUInt(legion.Timestamp, 0x11223344, "legion timestamp preserved") && ok;
+    ok = expectUInt(legion.Title, 0x01020304, "legion title partial update") && ok;
+    ok = expectString(Exdata::decodeSignature(legion.Signature), "OmegaXI2026", "legion signature preserved") && ok;
+    ok = expectUInt(legionRaw[8], 0x9A, "legion raw padding byte 0 preserved") && ok;
+    ok = expectUInt(legionRaw[9], 0xBC, "legion raw padding byte 1 preserved") && ok;
+    ok = expectUInt(legionRaw[10], 0xDE, "legion raw padding byte 2 preserved") && ok;
+    ok = expectUInt(legionRaw[11], 0xF0, "legion raw padding byte 3 preserved") && ok;
+
+    auto hourglassInput = lua.create_table();
+    hourglassInput["flags"]     = 6;
+    hourglassInput["startTime"] = 0x55667788;
+    hourglassInput["endTime"]   = 0x11223344;
+    hourglassInput["zoneId"]    = 0x1234;
+
+    Exdata::PerpetualHourglass hourglass{};
+    hourglass.fromTable(hourglassInput);
+    const auto* hourglassRaw = reinterpret_cast<const uint8*>(&hourglass);
+    ok = expectUInt(hourglass.Flags, 6, "hourglass flags from table") && ok;
+    ok = expectUInt(hourglass.StartTime, 0x55667788, "hourglass start time from table") && ok;
+    ok = expectUInt(hourglass.EndTime, 0x11223344, "hourglass end time from table") && ok;
+    ok = expectUInt(hourglass.ZoneId, 0x1234, "hourglass zone id from table") && ok;
+    ok = expectUInt(hourglassRaw[2], 0x06, "hourglass raw flags byte") && ok;
+    ok = expectUInt(hourglassRaw[8], 0x44, "hourglass raw end byte 0") && ok;
+    ok = expectUInt(hourglassRaw[11], 0x11, "hourglass raw end byte 3") && ok;
+    ok = expectUInt(hourglassRaw[12], 0x88, "hourglass raw start byte 0") && ok;
+    ok = expectUInt(hourglassRaw[15], 0x55, "hourglass raw start byte 3") && ok;
+    ok = expectUInt(hourglassRaw[16], 0x34, "hourglass raw zone byte 0") && ok;
+    ok = expectUInt(hourglassRaw[17], 0x12, "hourglass raw zone byte 1") && ok;
+
+    auto hourglassOutput = lua.create_table();
+    hourglass.toTable(hourglassOutput);
+    ok = expectUInt(hourglassOutput["flags"].get<uint8>(), 6, "hourglass flags to table") && ok;
+    ok = expectUInt(hourglassOutput["startTime"].get<uint32>(), 0x55667788, "hourglass start time to table") && ok;
+    ok = expectUInt(hourglassOutput["endTime"].get<uint32>(), 0x11223344, "hourglass end time to table") && ok;
+    ok = expectUInt(hourglassOutput["zoneId"].get<uint16>(), 0x1234, "hourglass zone id to table") && ok;
+
+    auto hourglassPartial = lua.create_table();
+    hourglassPartial["flags"] = 3;
+    hourglass.fromTable(hourglassPartial);
+    ok = expectUInt(hourglass.Flags, 3, "hourglass flags partial update") && ok;
+    ok = expectUInt(hourglass.StartTime, 0x55667788, "hourglass start preserved") && ok;
+    ok = expectUInt(hourglass.EndTime, 0x11223344, "hourglass end preserved") && ok;
+    ok = expectUInt(hourglass.ZoneId, 0x1234, "hourglass zone preserved") && ok;
+
+    auto hourglassMaskedFlags = lua.create_table();
+    hourglassMaskedFlags["flags"] = 0x0E;
+    hourglass.fromTable(hourglassMaskedFlags);
+    hourglass.toTable(hourglassOutput);
+    ok = expectUInt(hourglass.Flags, 6, "hourglass flags masked to bitfield") && ok;
+    ok = expectUInt(hourglassOutput["flags"].get<uint8>(), 6, "hourglass masked flags to table") && ok;
+
+    auto honeymoonInput = lua.create_table();
+    honeymoonInput["plan"] = 2;
+
+    Exdata::HoneymoonTicket honeymoon{};
+    honeymoon.fromTable(honeymoonInput);
+    const auto* honeymoonRaw = reinterpret_cast<const uint8*>(&honeymoon);
+    ok = expectUInt(honeymoon.Plan, 2, "honeymoon plan from table") && ok;
+    ok = expectString(Exdata::decodeSignature(honeymoon.Signature), "PlanB", "honeymoon plan signature from table") && ok;
+    ok = expectUInt(honeymoonRaw[0], 0x02, "honeymoon raw plan byte") && ok;
+
+    auto honeymoonOutput = lua.create_table();
+    honeymoon.toTable(honeymoonOutput);
+    ok = expectUInt(honeymoonOutput["plan"].get<uint8>(), 2, "honeymoon plan to table") && ok;
+
+    auto honeymoonPartial = lua.create_table();
+    honeymoonPartial["plan"] = 5;
+    honeymoon.fromTable(honeymoonPartial);
+    ok = expectUInt(honeymoon.Plan, 5, "honeymoon out-of-range plan update") && ok;
+    ok = expectString(Exdata::decodeSignature(honeymoon.Signature), "PlanB", "honeymoon out-of-range signature preserved") && ok;
+
+    return ok;
+}
+
 } // namespace
 
 auto runItemExdataSelfTests() -> bool
@@ -472,5 +624,6 @@ auto runItemExdataSelfTests() -> bool
     ok      = testRawExdataOverlay() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
+    ok      = testPassTimerTableSerialization() && ok;
     return ok;
 }
