@@ -279,6 +279,25 @@ auto testModSpecificDamageTakenValues() -> bool
     return ok;
 }
 
+auto testModNullDamageValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::NULL_DAMAGE), 142, "Mod::NULL_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::NULL_PHYSICAL_DAMAGE), 416, "Mod::NULL_PHYSICAL_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::NULL_BREATH_DAMAGE), 143, "Mod::NULL_BREATH_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::NULL_MAGICAL_DAMAGE), 476, "Mod::NULL_MAGICAL_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::NULL_RANGED_DAMAGE), 239, "Mod::NULL_RANGED_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FIRE_NULL), 467, "Mod::FIRE_NULL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ICE_NULL), 468, "Mod::ICE_NULL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIND_NULL), 469, "Mod::WIND_NULL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EARTH_NULL), 470, "Mod::EARTH_NULL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LTNG_NULL), 471, "Mod::LTNG_NULL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WATER_NULL), 472, "Mod::WATER_NULL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_NULL), 473, "Mod::LIGHT_NULL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_NULL), 474, "Mod::DARK_NULL") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -334,6 +353,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModExtendedDamageTakenValues() && ok;
     ok      = testModReceivedDamageCapValues() && ok;
     ok      = testModSpecificDamageTakenValues() && ok;
+    ok      = testModNullDamageValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
