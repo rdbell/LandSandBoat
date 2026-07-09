@@ -878,6 +878,19 @@ auto testModSummonerValues() -> bool
     return ok;
 }
 
+auto testModBlueMageValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::BLUE_POINTS), 309, "Mod::BLUE_POINTS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BLUE_LEARN_CHANCE), 945, "Mod::BLUE_LEARN_CHANCE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BLUE_JOB_TRAIT_BONUS), 1058, "Mod::BLUE_JOB_TRAIT_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BLUE_MAGIC_EFFECT), 1059, "Mod::BLUE_MAGIC_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_BURST_AFFINITY), 1139, "Mod::ENHANCES_BURST_AFFINITY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_CHAIN_AFFINITY), 1140, "Mod::ENHANCES_CHAIN_AFFINITY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BLUE_MAGIC_RECAST), 1147, "Mod::BLUE_MAGIC_RECAST") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -969,6 +982,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModNinjaValues() && ok;
     ok      = testModDragoonValues() && ok;
     ok      = testModSummonerValues() && ok;
+    ok      = testModBlueMageValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
