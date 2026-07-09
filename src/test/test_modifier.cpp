@@ -1160,6 +1160,23 @@ auto testModBashKickAndWyvernBreathValues() -> bool
     return ok;
 }
 
+auto testModGearSetValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::DA_DOUBLE_DMG_RATE), 408, "Mod::DA_DOUBLE_DMG_RATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TA_TRIPLE_DMG_RATE), 409, "Mod::TA_TRIPLE_DMG_RATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ZANSHIN_DOUBLE_DAMAGE), 410, "Mod::ZANSHIN_DOUBLE_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RAPID_SHOT_DOUBLE_DAMAGE), 479, "Mod::RAPID_SHOT_DOUBLE_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EXTRA_DUAL_WIELD_ATTACK), 481, "Mod::EXTRA_DUAL_WIELD_ATTACK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EXTRA_KICK_ATTACK), 482, "Mod::EXTRA_KICK_ATTACK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SAMBA_DOUBLE_DAMAGE), 415, "Mod::SAMBA_DOUBLE_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::QUICK_DRAW_TRIPLE_DAMAGE), 417, "Mod::QUICK_DRAW_TRIPLE_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BAR_ELEMENT_NULL_CHANCE), 418, "Mod::BAR_ELEMENT_NULL_CHANCE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GRIMOIRE_INSTANT_CAST), 419, "Mod::GRIMOIRE_INSTANT_CAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::QUAD_ATTACK), 430, "Mod::QUAD_ATTACK") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1265,6 +1282,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModWeaponDamageRatingValues() && ok;
     ok      = testModAutoTickCureAndDelayValues() && ok;
     ok      = testModBashKickAndWyvernBreathValues() && ok;
+    ok      = testModGearSetValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
