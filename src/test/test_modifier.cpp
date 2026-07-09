@@ -734,6 +734,37 @@ auto testModBeastmasterValues() -> bool
     return ok;
 }
 
+auto testModBardValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::MINNE_EFFECT), 433, "Mod::MINNE_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MINUET_EFFECT), 434, "Mod::MINUET_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PAEON_EFFECT), 435, "Mod::PAEON_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REQUIEM_EFFECT), 436, "Mod::REQUIEM_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THRENODY_EFFECT), 437, "Mod::THRENODY_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MADRIGAL_EFFECT), 438, "Mod::MADRIGAL_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAMBO_EFFECT), 439, "Mod::MAMBO_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LULLABY_EFFECT), 440, "Mod::LULLABY_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ETUDE_EFFECT), 441, "Mod::ETUDE_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BALLAD_EFFECT), 442, "Mod::BALLAD_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MARCH_EFFECT), 443, "Mod::MARCH_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FINALE_EFFECT), 444, "Mod::FINALE_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CAROL_EFFECT), 445, "Mod::CAROL_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAZURKA_EFFECT), 446, "Mod::MAZURKA_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ELEGY_EFFECT), 447, "Mod::ELEGY_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PRELUDE_EFFECT), 448, "Mod::PRELUDE_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HYMNUS_EFFECT), 449, "Mod::HYMNUS_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::VIRELAI_EFFECT), 450, "Mod::VIRELAI_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SCHERZO_EFFECT), 451, "Mod::SCHERZO_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ALL_SONGS_EFFECT), 452, "Mod::ALL_SONGS_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAXIMUM_SONGS_BONUS), 453, "Mod::MAXIMUM_SONGS_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SONG_DURATION_BONUS), 454, "Mod::SONG_DURATION_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SONG_SPELLCASTING_TIME), 455, "Mod::SONG_SPELLCASTING_TIME") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SONG_RECAST_DELAY), 833, "Mod::SONG_RECAST_DELAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENT_SONG_STAT), 1003, "Mod::AUGMENT_SONG_STAT") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -819,6 +850,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModPaladinValues() && ok;
     ok      = testModDarkKnightValues() && ok;
     ok      = testModBeastmasterValues() && ok;
+    ok      = testModBardValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
