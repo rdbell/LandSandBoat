@@ -691,6 +691,30 @@ auto testModPaladinValues() -> bool
     return ok;
 }
 
+auto testModDarkKnightValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::ARCANE_CIRCLE_DURATION), 858, "Mod::ARCANE_CIRCLE_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ARCANE_CIRCLE_POTENCY), 1069, "Mod::ARCANE_CIRCLE_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SOULEATER_EFFECT), 96, "Mod::SOULEATER_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SOULEATER_EFFECT_II), 53, "Mod::SOULEATER_EFFECT_II") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DESPERATE_BLOWS), 906, "Mod::DESPERATE_BLOWS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STALWART_SOUL), 907, "Mod::STALWART_SOUL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DREAD_SPIKES_EFFECT), 998, "Mod::DREAD_SPIKES_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_MAGIC_CAST), 1071, "Mod::DARK_MAGIC_CAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_MAGIC_DURATION), 1072, "Mod::DARK_MAGIC_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_BLOOD_WEAPON), 1070, "Mod::ENHANCES_BLOOD_WEAPON") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_DARK_SEAL), 1073, "Mod::ENHANCES_DARK_SEAL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_DIABOLIC_EYE), 275, "Mod::ENHANCES_DIABOLIC_EYE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_NETHER_VOID), 1083, "Mod::ENHANCES_NETHER_VOID") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_MUTED_SOUL), 1084, "Mod::ENHANCES_MUTED_SOUL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_ABSORB_EFFECTS), 1136, "Mod::ENHANCES_ABSORB_EFFECTS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_ABSORB), 1137, "Mod::AUGMENTS_ABSORB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ABSORB_EFFECT_DURATION), 1138, "Mod::ABSORB_EFFECT_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_ABSORB_TP), 1153, "Mod::AUGMENTS_ABSORB_TP") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -774,6 +798,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModRedMageValues() && ok;
     ok      = testModThiefValues() && ok;
     ok      = testModPaladinValues() && ok;
+    ok      = testModDarkKnightValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
