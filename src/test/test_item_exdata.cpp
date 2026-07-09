@@ -461,6 +461,104 @@ auto testLogTicketTableSerialization() -> bool
     return ok;
 }
 
+auto testMetadataTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto evolithInput = lua.create_table();
+    evolithInput["augment"]   = 0x555;
+    evolithInput["shape"]     = 0x1B;
+    evolithInput["element"]   = 0x0D;
+    evolithInput["bonus"]     = 0x19;
+    evolithInput["signature"] = "EvolithSig";
+
+    Exdata::Evolith evolith{};
+    evolith.fromTable(evolithInput);
+    auto* evolithRaw = reinterpret_cast<uint8*>(&evolith);
+    ok = expectUInt(evolith.Augment, 0x155, "evolith augment masked from table") && ok;
+    ok = expectUInt(evolith.Shape, 0x0B, "evolith shape masked from table") && ok;
+    ok = expectUInt(evolith.Element, 5, "evolith element masked from table") && ok;
+    ok = expectUInt(evolith.Bonus, 9, "evolith bonus masked from table") && ok;
+    ok = expectString(Exdata::decodeSignature(evolith.Signature), "EvolithSig", "evolith signature from table") && ok;
+    ok = expectUInt(evolithRaw[0], 0x55, "evolith raw bitfield byte 0") && ok;
+    ok = expectUInt(evolithRaw[1], 0x6D, "evolith raw bitfield byte 1") && ok;
+    ok = expectUInt(evolithRaw[2], 0x13, "evolith raw bitfield byte 2") && ok;
+    ok = expectUInt(evolithRaw[3], 0x00, "evolith raw bitfield byte 3") && ok;
+
+    auto evolithOutput = lua.create_table();
+    evolith.toTable(evolithOutput);
+    ok = expectUInt(evolithOutput["augment"].get<uint32>(), 0x155, "evolith augment to table") && ok;
+    ok = expectUInt(evolithOutput["shape"].get<uint32>(), 0x0B, "evolith shape to table") && ok;
+    ok = expectUInt(evolithOutput["element"].get<uint32>(), 5, "evolith element to table") && ok;
+    ok = expectUInt(evolithOutput["bonus"].get<uint32>(), 9, "evolith bonus to table") && ok;
+    ok = expectString(evolithOutput["signature"].get<std::string>(), "EvolithSig", "evolith signature to table") && ok;
+
+    evolithRaw[2] |= 0xE0;
+    evolithRaw[3] = 0xA5;
+    evolithRaw[4] = 0xC1;
+    evolithRaw[5] = 0xC2;
+    evolithRaw[6] = 0xC3;
+    evolithRaw[7] = 0xC4;
+    evolithRaw[8] = 0xC5;
+    evolithRaw[9] = 0xC6;
+    evolithRaw[10] = 0xC7;
+    evolithRaw[11] = 0xC8;
+
+    auto evolithPartial = lua.create_table();
+    evolithPartial["shape"] = 2;
+    evolith.fromTable(evolithPartial);
+    ok = expectUInt(evolith.Augment, 0x155, "evolith augment preserved") && ok;
+    ok = expectUInt(evolith.Shape, 2, "evolith shape partial update") && ok;
+    ok = expectUInt(evolith.Element, 5, "evolith element preserved") && ok;
+    ok = expectUInt(evolith.Bonus, 9, "evolith bonus preserved") && ok;
+    ok = expectString(Exdata::decodeSignature(evolith.Signature), "EvolithSig", "evolith signature preserved") && ok;
+    ok = expectUInt(evolithRaw[2] & 0xE0, 0xE0, "evolith hidden bitfield bits preserved") && ok;
+    ok = expectUInt(evolithRaw[3], 0xA5, "evolith hidden bitfield byte preserved") && ok;
+    ok = expectUInt(evolithRaw[4], 0xC1, "evolith padding byte 0 preserved") && ok;
+    ok = expectUInt(evolithRaw[11], 0xC8, "evolith padding byte 7 preserved") && ok;
+
+    auto craftingInput = lua.create_table();
+    craftingInput["quality"]   = 0x1234;
+    craftingInput["signature"] = "CraftedBy";
+
+    Exdata::CraftingSet crafting{};
+    crafting.fromTable(craftingInput);
+    auto* craftingRaw = reinterpret_cast<uint8*>(&crafting);
+    ok = expectUInt(crafting.Quality, 0x1234, "crafting set quality from table") && ok;
+    ok = expectString(Exdata::decodeSignature(crafting.Signature), "CraftedBy", "crafting set signature from table") && ok;
+    ok = expectUInt(craftingRaw[2], 0x34, "crafting set raw quality byte 0") && ok;
+    ok = expectUInt(craftingRaw[3], 0x12, "crafting set raw quality byte 1") && ok;
+
+    auto craftingOutput = lua.create_table();
+    crafting.toTable(craftingOutput);
+    ok = expectUInt(craftingOutput["quality"].get<uint16>(), 0x1234, "crafting set quality to table") && ok;
+    ok = expectString(craftingOutput["signature"].get<std::string>(), "CraftedBy", "crafting set signature to table") && ok;
+
+    craftingRaw[0]  = 0xA1;
+    craftingRaw[1]  = 0xB2;
+    craftingRaw[4]  = 0xD1;
+    craftingRaw[5]  = 0xD2;
+    craftingRaw[6]  = 0xD3;
+    craftingRaw[7]  = 0xD4;
+    craftingRaw[8]  = 0xD5;
+    craftingRaw[9]  = 0xD6;
+    craftingRaw[10] = 0xD7;
+    craftingRaw[11] = 0xD8;
+
+    auto craftingPartial = lua.create_table();
+    craftingPartial["quality"] = 0x0102;
+    crafting.fromTable(craftingPartial);
+    ok = expectUInt(crafting.Quality, 0x0102, "crafting set quality partial update") && ok;
+    ok = expectString(Exdata::decodeSignature(crafting.Signature), "CraftedBy", "crafting set signature preserved") && ok;
+    ok = expectUInt(craftingRaw[0], 0xA1, "crafting set prefix padding byte 0 preserved") && ok;
+    ok = expectUInt(craftingRaw[1], 0xB2, "crafting set prefix padding byte 1 preserved") && ok;
+    ok = expectUInt(craftingRaw[4], 0xD1, "crafting set middle padding byte 0 preserved") && ok;
+    ok = expectUInt(craftingRaw[11], 0xD8, "crafting set middle padding byte 7 preserved") && ok;
+
+    return ok;
+}
+
 auto testPassTimerTableSerialization() -> bool
 {
     sol::state lua;
@@ -624,6 +722,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testRawExdataOverlay() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
+    ok      = testMetadataTableSerialization() && ok;
     ok      = testPassTimerTableSerialization() && ok;
     return ok;
 }
