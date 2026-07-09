@@ -1087,6 +1087,29 @@ auto testModRuneFencerValues() -> bool
     return ok;
 }
 
+auto testModElementalStaffAndAffinityPerpValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::FIRE_STAFF_BONUS), 347, "Mod::FIRE_STAFF_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ICE_STAFF_BONUS), 348, "Mod::ICE_STAFF_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIND_STAFF_BONUS), 349, "Mod::WIND_STAFF_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EARTH_STAFF_BONUS), 350, "Mod::EARTH_STAFF_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THUNDER_STAFF_BONUS), 351, "Mod::THUNDER_STAFF_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WATER_STAFF_BONUS), 352, "Mod::WATER_STAFF_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_STAFF_BONUS), 353, "Mod::LIGHT_STAFF_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_STAFF_BONUS), 354, "Mod::DARK_STAFF_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FIRE_AFFINITY_PERP), 553, "Mod::FIRE_AFFINITY_PERP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ICE_AFFINITY_PERP), 554, "Mod::ICE_AFFINITY_PERP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIND_AFFINITY_PERP), 555, "Mod::WIND_AFFINITY_PERP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EARTH_AFFINITY_PERP), 556, "Mod::EARTH_AFFINITY_PERP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THUNDER_AFFINITY_PERP), 557, "Mod::THUNDER_AFFINITY_PERP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WATER_AFFINITY_PERP), 558, "Mod::WATER_AFFINITY_PERP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_AFFINITY_PERP), 559, "Mod::LIGHT_AFFINITY_PERP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_AFFINITY_PERP), 560, "Mod::DARK_AFFINITY_PERP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ADDS_WEAPONSKILL), 355, "Mod::ADDS_WEAPONSKILL") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1187,6 +1210,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModEnspellAndSpikesValues() && ok;
     ok      = testModTPValues() && ok;
     ok      = testModRuneFencerValues() && ok;
+    ok      = testModElementalStaffAndAffinityPerpValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
