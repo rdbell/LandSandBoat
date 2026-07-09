@@ -1277,6 +1277,24 @@ auto testModJobAbilityAugmentValues() -> bool
     return ok;
 }
 
+auto testModSpellEnhancementAndWeatherValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_REFRESH), 529, "Mod::ENHANCES_REFRESH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::NO_SPELL_MP_DEPLETION), 530, "Mod::NO_SPELL_MP_DEPLETION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STONESKIN_BONUS_HP), 539, "Mod::STONESKIN_BONUS_HP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DAY_NUKE_BONUS), 565, "Mod::DAY_NUKE_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DAY_WEATHER_PROC_BONUS), 1194, "Mod::DAY_WEATHER_PROC_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::IRIDESCENCE), 566, "Mod::IRIDESCENCE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BARSPELL_AMOUNT), 567, "Mod::BARSPELL_AMOUNT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BARSPELL_MDEF_BONUS), 827, "Mod::BARSPELL_MDEF_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RAPTURE_AMOUNT), 568, "Mod::RAPTURE_AMOUNT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EBULLIENCE_AMOUNT), 569, "Mod::EBULLIENCE_AMOUNT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AQUAVEIL_COUNT), 832, "Mod::AQUAVEIL_COUNT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENH_MAGIC_DURATION), 890, "Mod::ENH_MAGIC_DURATION") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1390,6 +1408,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModFoodCursnaAndClammingValues() && ok;
     ok      = testModChocoboHELMDrainAndAmmoValues() && ok;
     ok      = testModJobAbilityAugmentValues() && ok;
+    ok      = testModSpellEnhancementAndWeatherValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
