@@ -756,6 +756,126 @@ auto testWeaponUnlockTableSerialization() -> bool
     return ok;
 }
 
+auto testMeebleGrimoireTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto input  = lua.create_table();
+    auto clears = lua.create_table();
+
+    const uint8 inputClears[5][4] = {
+        { 1, 2, 3, 4 },
+        { 5, 6, 7, 8 },
+        { 0, 7, 8, 9 },
+        { 4, 3, 2, 1 },
+        { 7, 0, 5, 6 },
+    };
+    const uint8 expectedClears[5][4] = {
+        { 1, 2, 3, 4 },
+        { 5, 6, 7, 7 },
+        { 0, 7, 7, 7 },
+        { 4, 3, 2, 1 },
+        { 7, 0, 5, 6 },
+    };
+
+    for (uint8 type = 0; type < 5; ++type)
+    {
+        auto levels = lua.create_table();
+        for (uint8 level = 0; level < 4; ++level)
+        {
+            levels[level + 1] = inputClears[type][level];
+        }
+        clears[type + 1] = levels;
+    }
+    input["clears"] = clears;
+    input["count"]  = 0x15;
+    input["zone"]   = 2;
+
+    Exdata::MeebleGrimoire grimoire{};
+    grimoire.fromTable(input);
+    auto* grimoireRaw = reinterpret_cast<uint8*>(&grimoire);
+
+    const uint8 expectedRaw[] = { 0x29, 0xCB, 0xBF, 0x1F, 0xF8, 0xD1, 0xE2, 0xE0 };
+    for (std::size_t i = 0; i < sizeof(expectedRaw); ++i)
+    {
+        ok = expectUInt(grimoireRaw[i], expectedRaw[i], "meeble grimoire clears raw byte") && ok;
+    }
+    ok = expectUInt(grimoire.Count, 0x15, "meeble grimoire count from table") && ok;
+    ok = expectUInt(grimoire.Zone, 2, "meeble grimoire zone from table") && ok;
+    for (uint8 type = 0; type < 5; ++type)
+    {
+        for (uint8 level = 0; level < 4; ++level)
+        {
+            const int32 bitOffset = (type * 4 + level) * 3;
+            ok = expectUInt(unpackBitsLE(grimoire.Clears, bitOffset, 3), expectedClears[type][level], "meeble grimoire clear count") && ok;
+        }
+    }
+    for (std::size_t i = 9; i < 12; ++i)
+    {
+        ok = expectUInt(grimoireRaw[i], 0x00, "meeble grimoire leading padding byte") && ok;
+    }
+    for (std::size_t i = 13; i < CItem::extra_size; ++i)
+    {
+        ok = expectUInt(grimoireRaw[i], 0x00, "meeble grimoire trailing padding byte") && ok;
+    }
+
+    auto output = lua.create_table();
+    grimoire.toTable(output);
+    auto outputClears = output["clears"].get<sol::table>();
+    auto type2Clears  = outputClears[2].get<sol::table>();
+    auto type5Clears  = outputClears[5].get<sol::table>();
+    ok = expectUInt(type2Clears[4].get<uint8>(), 7, "meeble grimoire clamped clear to table") && ok;
+    ok = expectUInt(type5Clears[3].get<uint8>(), 5, "meeble grimoire clear to table") && ok;
+    ok = expectUInt(output["count"].get<uint8>(), 0x15, "meeble grimoire count to table") && ok;
+    ok = expectUInt(output["zone"].get<uint8>(), 2, "meeble grimoire zone to table") && ok;
+
+    grimoireRaw[7] |= 0x0F;
+    grimoireRaw[9]  = 0xA1;
+    grimoireRaw[10] = 0xA2;
+    grimoireRaw[11] = 0xA3;
+    for (std::size_t i = 13; i < CItem::extra_size; ++i)
+    {
+        grimoireRaw[i] = static_cast<uint8>(0xB0 + i);
+    }
+
+    auto partial       = lua.create_table();
+    auto partialClears = lua.create_table();
+    auto partialLevels = lua.create_table();
+    partialLevels[3]   = 2;
+    partialClears[2]   = partialLevels;
+    partial["clears"]  = partialClears;
+    partial["count"]   = 42;
+    grimoire.fromTable(partial);
+
+    const uint8 expectedPartialRaw[] = { 0x29, 0xCB, 0x97, 0x1F, 0xF8, 0xD1, 0xE2, 0xEF };
+    for (std::size_t i = 0; i < sizeof(expectedPartialRaw); ++i)
+    {
+        ok = expectUInt(grimoireRaw[i], expectedPartialRaw[i], "meeble grimoire partial clears raw byte") && ok;
+    }
+    ok = expectUInt(grimoire.Count, 42, "meeble grimoire count partial update") && ok;
+    ok = expectUInt(grimoire.Zone, 2, "meeble grimoire zone partial update preserved") && ok;
+    ok = expectUInt(unpackBitsLE(grimoire.Clears, (1 * 4 + 2) * 3, 3), 2, "meeble grimoire partial clear update") && ok;
+    ok = expectUInt(grimoireRaw[9], 0xA1, "meeble grimoire partial leading padding byte 0") && ok;
+    ok = expectUInt(grimoireRaw[10], 0xA2, "meeble grimoire partial leading padding byte 1") && ok;
+    ok = expectUInt(grimoireRaw[11], 0xA3, "meeble grimoire partial leading padding byte 2") && ok;
+    for (std::size_t i = 13; i < CItem::extra_size; ++i)
+    {
+        ok = expectUInt(grimoireRaw[i], static_cast<uint8>(0xB0 + i), "meeble grimoire trailing padding preserved") && ok;
+    }
+
+    auto omitted = lua.create_table();
+    grimoire.fromTable(omitted);
+    ok = expectUInt(grimoire.Count, 42, "meeble grimoire omitted count preserved") && ok;
+    ok = expectUInt(grimoire.Zone, 2, "meeble grimoire omitted zone preserved") && ok;
+    for (std::size_t i = 0; i < sizeof(expectedPartialRaw); ++i)
+    {
+        ok = expectUInt(grimoireRaw[i], expectedPartialRaw[i], "meeble grimoire omitted clears raw byte") && ok;
+    }
+
+    return ok;
+}
+
 auto testTimerInfoTableSerialization() -> bool
 {
     sol::state lua;
@@ -1618,6 +1738,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testEscutcheonTableSerialization() && ok;
     ok      = testSerializedTableSerialization() && ok;
     ok      = testWeaponUnlockTableSerialization() && ok;
+    ok      = testMeebleGrimoireTableSerialization() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testSoulTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
