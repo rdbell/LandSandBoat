@@ -21,6 +21,7 @@
 
 #include "test_item_equipment.h"
 
+#include "map/items/exdata/augment_trial.h"
 #include "map/items/item_equipment.h"
 
 #include <cstdint>
@@ -163,6 +164,61 @@ auto testModifiersAndShieldAbsorption() -> bool
     return ok;
 }
 
+auto testTrialNumberExdata() -> bool
+{
+    const auto hasAugments = static_cast<uint8>(Exdata::AugmentKindFlags::HasAugments);
+    const auto standard    = static_cast<uint8>(Exdata::AugmentSubKindFlags::Standard);
+    const auto mezzotint   = static_cast<uint8>(Exdata::AugmentSubKindFlags::Mezzotint);
+    const auto trial       = static_cast<uint8>(Exdata::AugmentSubKindFlags::Trial);
+
+    CItemEquipment item(0x3003);
+
+    bool ok = true;
+    item.setTrialNumber(0x1234);
+    ok = expectUInt(item.getTrialNumber(), 0x1234, "trial number") && ok;
+    ok = expectUInt(item.m_extra[0], hasAugments, "trial augment kind") && ok;
+    ok = expectUInt(item.m_extra[1], standard | trial, "trial augment subkind") && ok;
+    ok = expectUInt(item.m_extra[10], 0x34, "trial raw low byte") && ok;
+    ok = expectUInt(item.m_extra[11], 0x12, "trial raw high byte") && ok;
+    ok = expectBool(item.isSubType(ITEM_AUGMENTED), true, "trial augmented subtype") && ok;
+
+    CItemEquipment preserving(0x3004);
+    preserving.m_extra[0]  = 0x80;
+    preserving.m_extra[1]  = mezzotint;
+    preserving.m_extra[2]  = 0x34;
+    preserving.m_extra[3]  = 0xFA;
+    preserving.m_extra[4]  = 0x55;
+    preserving.m_extra[5]  = 0x21;
+    preserving.m_extra[11] = 0x80;
+    preserving.m_extra[12] = 0xA1;
+    preserving.m_extra[23] = 0xB2;
+
+    preserving.setTrialNumber(0x9234);
+    ok = expectUInt(preserving.getTrialNumber(), 0x1234, "masked trial number") && ok;
+    ok = expectUInt(preserving.m_extra[0], 0x82, "preserved trial augment kind") && ok;
+    ok = expectUInt(preserving.m_extra[1], mezzotint | standard | trial, "preserved trial augment subkind") && ok;
+    ok = expectUInt(preserving.m_extra[2], 0x34, "preserved first augment low byte") && ok;
+    ok = expectUInt(preserving.m_extra[3], 0xFA, "preserved first augment high byte") && ok;
+    ok = expectUInt(preserving.m_extra[4], 0x55, "preserved second augment low byte") && ok;
+    ok = expectUInt(preserving.m_extra[5], 0x21, "preserved second augment high byte") && ok;
+    ok = expectUInt(preserving.m_extra[10], 0x34, "masked trial raw low byte") && ok;
+    ok = expectUInt(preserving.m_extra[11], 0x92, "completed masked trial raw high byte") && ok;
+    ok = expectUInt(preserving.m_extra[12], 0xA1, "preserved signature first byte") && ok;
+    ok = expectUInt(preserving.m_extra[23], 0xB2, "preserved signature last byte") && ok;
+    ok = expectBool(preserving.isSubType(ITEM_AUGMENTED), true, "preserved augmented subtype") && ok;
+
+    preserving.setTrialNumber(0);
+    ok = expectUInt(preserving.getTrialNumber(), 0, "cleared trial number") && ok;
+    ok = expectUInt(preserving.m_extra[0], 0x82, "cleared trial keeps augment kind") && ok;
+    ok = expectUInt(preserving.m_extra[1], mezzotint | standard, "cleared trial subkind") && ok;
+    ok = expectUInt(preserving.m_extra[10], 0x00, "cleared trial raw low byte") && ok;
+    ok = expectUInt(preserving.m_extra[11], 0x80, "cleared trial keeps completed bit") && ok;
+    ok = expectUInt(preserving.m_extra[12], 0xA1, "cleared trial keeps signature first byte") && ok;
+    ok = expectUInt(preserving.m_extra[23], 0xB2, "cleared trial keeps signature last byte") && ok;
+    ok = expectBool(preserving.isSubType(ITEM_AUGMENTED), true, "cleared trial keeps augmented subtype") && ok;
+    return ok;
+}
+
 auto testRacePetAndLatentLists() -> bool
 {
     CItemEquipment item(0x2002);
@@ -263,6 +319,7 @@ auto runItemEquipmentSelfTests() -> bool
     ok      = testConstructorDefaults() && ok;
     ok      = testScalarFieldsAndSlotType() && ok;
     ok      = testModifiersAndShieldAbsorption() && ok;
+    ok      = testTrialNumberExdata() && ok;
     ok      = testRacePetAndLatentLists() && ok;
     ok      = testCopyConstructorCopiesFields() && ok;
     return ok;
