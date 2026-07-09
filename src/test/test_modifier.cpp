@@ -1263,6 +1263,20 @@ auto testModChocoboHELMDrainAndAmmoValues() -> bool
     return ok;
 }
 
+auto testModJobAbilityAugmentValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_CONVERT), 525, "Mod::AUGMENTS_CONVERT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_SA), 526, "Mod::AUGMENTS_SA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_TA), 527, "Mod::AUGMENTS_TA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_FEINT), 502, "Mod::AUGMENTS_FEINT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_ASSASSINS_CHARGE), 886, "Mod::AUGMENTS_ASSASSINS_CHARGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_AMBUSH), 887, "Mod::AUGMENTS_AMBUSH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_AURA_STEAL), 889, "Mod::AUGMENTS_AURA_STEAL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_CONSPIRATOR), 912, "Mod::AUGMENTS_CONSPIRATOR") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1375,6 +1389,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModAftermathAndExtraDamageValues() && ok;
     ok      = testModFoodCursnaAndClammingValues() && ok;
     ok      = testModChocoboHELMDrainAndAmmoValues() && ok;
+    ok      = testModJobAbilityAugmentValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
