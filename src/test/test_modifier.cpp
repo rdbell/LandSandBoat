@@ -531,6 +531,22 @@ auto testModEnfeebleMEVAValues() -> bool
     return ok;
 }
 
+auto testModStatusEffectImmunobreakValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::SLEEP_IMMUNOBREAK), 261, "Mod::SLEEP_IMMUNOBREAK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::POISON_IMMUNOBREAK), 262, "Mod::POISON_IMMUNOBREAK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PARALYZE_IMMUNOBREAK), 263, "Mod::PARALYZE_IMMUNOBREAK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BLIND_IMMUNOBREAK), 264, "Mod::BLIND_IMMUNOBREAK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SILENCE_IMMUNOBREAK), 265, "Mod::SILENCE_IMMUNOBREAK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PETRIFY_IMMUNOBREAK), 266, "Mod::PETRIFY_IMMUNOBREAK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BIND_IMMUNOBREAK), 267, "Mod::BIND_IMMUNOBREAK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GRAVITY_IMMUNOBREAK), 268, "Mod::GRAVITY_IMMUNOBREAK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SLOW_IMMUNOBREAK), 269, "Mod::SLOW_IMMUNOBREAK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ADDLE_IMMUNOBREAK), 270, "Mod::ADDLE_IMMUNOBREAK") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -604,6 +620,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModKillerEffectValues() && ok;
     ok      = testModEnfeebleResistanceValues() && ok;
     ok      = testModEnfeebleMEVAValues() && ok;
+    ok      = testModStatusEffectImmunobreakValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
