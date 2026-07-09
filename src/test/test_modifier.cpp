@@ -298,6 +298,23 @@ auto testModNullDamageValues() -> bool
     return ok;
 }
 
+auto testModAbsorbDamageValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::ABSORB_DMG_CHANCE), 480, "Mod::ABSORB_DMG_CHANCE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PHYS_ABSORB), 512, "Mod::PHYS_ABSORB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAGIC_ABSORB), 475, "Mod::MAGIC_ABSORB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FIRE_ABSORB), 459, "Mod::FIRE_ABSORB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ICE_ABSORB), 460, "Mod::ICE_ABSORB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIND_ABSORB), 461, "Mod::WIND_ABSORB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EARTH_ABSORB), 462, "Mod::EARTH_ABSORB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LTNG_ABSORB), 463, "Mod::LTNG_ABSORB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WATER_ABSORB), 464, "Mod::WATER_ABSORB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_ABSORB), 465, "Mod::LIGHT_ABSORB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_ABSORB), 466, "Mod::DARK_ABSORB") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -354,6 +371,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModReceivedDamageCapValues() && ok;
     ok      = testModSpecificDamageTakenValues() && ok;
     ok      = testModNullDamageValues() && ok;
+    ok      = testModAbsorbDamageValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
