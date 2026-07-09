@@ -937,6 +937,40 @@ auto testModCorsairValues() -> bool
     return ok;
 }
 
+auto testModPuppetmasterValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_MAB_COEFFICIENT), 157, "Mod::AUTO_MAB_COEFFICIENT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MANEUVER_BONUS), 504, "Mod::MANEUVER_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::OVERLOAD_THRESH), 505, "Mod::OVERLOAD_THRESH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_DECISION_DELAY), 842, "Mod::AUTO_DECISION_DELAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_SHIELD_BASH_DELAY), 843, "Mod::AUTO_SHIELD_BASH_DELAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_MAGIC_COOLDOWN), 844, "Mod::AUTO_MAGIC_COOLDOWN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_HEALING_DELAY), 845, "Mod::AUTO_HEALING_DELAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_HEALING_THRESHOLD), 846, "Mod::AUTO_HEALING_THRESHOLD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BURDEN_DECAY), 847, "Mod::BURDEN_DECAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_SHIELD_BASH_SLOW), 848, "Mod::AUTO_SHIELD_BASH_SLOW") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_TP_EFFICIENCY), 849, "Mod::AUTO_TP_EFFICIENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_SCAN_RESISTS), 850, "Mod::AUTO_SCAN_RESISTS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REPAIR_EFFECT), 853, "Mod::REPAIR_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REPAIR_POTENCY), 854, "Mod::REPAIR_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PREVENT_OVERLOAD), 855, "Mod::PREVENT_OVERLOAD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SUPPRESS_OVERLOAD), 125, "Mod::SUPPRESS_OVERLOAD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_STEAM_JACKET_REDUCTION), 939, "Mod::AUTO_STEAM_JACKET_REDUCTION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_SCHURZEN), 940, "Mod::AUTO_SCHURZEN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_EQUALIZER), 941, "Mod::AUTO_EQUALIZER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_PERFORMANCE_BOOST), 942, "Mod::AUTO_PERFORMANCE_BOOST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_ANALYZER), 943, "Mod::AUTO_ANALYZER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_ELEM_CAPACITY), 987, "Mod::AUTO_ELEM_CAPACITY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_RANGED_DELAY), 1001, "Mod::AUTO_RANGED_DELAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTO_RANGED_DAMAGEP), 1002, "Mod::AUTO_RANGED_DAMAGEP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUTOMATON_LVL_BONUS), 1044, "Mod::AUTOMATON_LVL_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::VOLT_GUN_POTENCY), 1198, "Mod::VOLT_GUN_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TACTICAL_SWITCH_TP_BONUS), 1199, "Mod::TACTICAL_SWITCH_TP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::OVERDRIVE_BONUS_DURATION), 1200, "Mod::OVERDRIVE_BONUS_DURATION") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1030,6 +1064,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModSummonerValues() && ok;
     ok      = testModBlueMageValues() && ok;
     ok      = testModCorsairValues() && ok;
+    ok      = testModPuppetmasterValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
