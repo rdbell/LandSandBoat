@@ -321,6 +321,77 @@ auto testRawOnlyPayloadOverlays() -> bool
     return ok;
 }
 
+auto testExdataTableDispatch() -> bool
+{
+    bool ok = true;
+
+    CItem none(0x1234);
+    auto  unsupportedInput = lua.create_table();
+    unsupportedInput["timestamp"] = 0x11223344;
+    auto unsupportedOutput = lua.create_table();
+    ok = expectUInt(Exdata::toTable(&none, unsupportedOutput), 0, "dispatch unsupported toTable") && ok;
+    ok = expectUInt(Exdata::fromTable(&none, unsupportedInput), 0, "dispatch unsupported fromTable") && ok;
+
+    CItem legion(LEGION_PASS);
+    auto  legionInput        = lua.create_table();
+    legionInput["timestamp"] = 0x11223344;
+    legionInput["title"]     = 0x55667788;
+    legionInput["signature"] = "Dispatch";
+
+    ok = expectUInt(Exdata::fromTable(&legion, legionInput), 1, "dispatch legion fromTable") && ok;
+
+    auto legionOutput = lua.create_table();
+    ok = expectUInt(Exdata::toTable(&legion, legionOutput), 1, "dispatch legion toTable") && ok;
+    ok = expectUInt(legionOutput["timestamp"].get<uint32>(), 0x11223344, "dispatch legion timestamp") && ok;
+    ok = expectUInt(legionOutput["title"].get<uint32>(), 0x55667788, "dispatch legion title") && ok;
+    ok = expectString(legionOutput["signature"].get<std::string>(), "Dispatch", "dispatch legion signature") && ok;
+
+    CItemEquipment equipment(0x5003);
+    auto           bundleInput        = lua.create_table();
+    bundleInput["augmentKind"]        = static_cast<uint8>(Exdata::AugmentKindFlags::Bundled);
+    bundleInput["type"]               = 2;
+    bundleInput["rank"]               = 18;
+    bundleInput["augmentIndex"]       = 0x89ABCDEF;
+    bundleInput["signature"]          = "Bundle";
+    ok = expectUInt(Exdata::fromTable(&equipment, bundleInput), 1, "dispatch augment bundle fromTable") && ok;
+
+    auto bundleOutput = lua.create_table();
+    ok = expectUInt(Exdata::toTable(&equipment, bundleOutput), 1, "dispatch augment bundle toTable") && ok;
+    ok = expectUInt(bundleOutput["augmentKind"].get<uint8>(), static_cast<uint8>(Exdata::AugmentKindFlags::Bundled), "dispatch augment bundle kind") && ok;
+    ok = expectUInt(bundleOutput["rank"].get<uint8>(), 18, "dispatch augment bundle rank") && ok;
+    ok = expectUInt(bundleOutput["augmentIndex"].get<uint32>(), 0x89ABCDEF, "dispatch augment bundle index") && ok;
+    ok = expectString(bundleOutput["signature"].get<std::string>(), "Bundle", "dispatch augment bundle signature") && ok;
+
+    for (std::size_t i = 0; i < CItem::extra_size; ++i)
+    {
+        equipment.m_extra[i] = 0;
+    }
+    equipment.m_extra[0] = static_cast<uint8>(Exdata::AugmentKindFlags::Bundled);
+
+    auto trialInput              = lua.create_table();
+    auto trial                   = lua.create_table();
+    trial["id"]                  = 0x9234;
+    trial["completed"]           = true;
+    trialInput["augmentKind"]    = static_cast<uint8>(Exdata::AugmentKindFlags::HasAugments);
+    trialInput["augmentSubKind"] = static_cast<uint8>(Exdata::AugmentSubKindFlags::Standard) |
+                                   static_cast<uint8>(Exdata::AugmentSubKindFlags::Trial);
+    trialInput["trial"]          = trial;
+    trialInput["signature"]      = "Trial";
+
+    ok = expectUInt(Exdata::fromTable(&equipment, trialInput), 1, "dispatch augment trial fromTable") && ok;
+
+    auto trialOutput = lua.create_table();
+    ok = expectUInt(Exdata::toTable(&equipment, trialOutput), 1, "dispatch augment trial toTable") && ok;
+    auto outputTrial = trialOutput["trial"].get<sol::table>();
+    ok = expectUInt(trialOutput["augmentKind"].get<uint8>(), static_cast<uint8>(Exdata::AugmentKindFlags::HasAugments), "dispatch augment trial kind") && ok;
+    ok = expectUInt(trialOutput["augmentSubKind"].get<uint8>(), 0x43, "dispatch augment trial subkind") && ok;
+    ok = expectUInt(outputTrial["id"].get<uint16>(), 0x1234, "dispatch augment trial id truncated") && ok;
+    ok = expectUInt(outputTrial["completed"].get<bool>(), 1, "dispatch augment trial completed") && ok;
+    ok = expectString(trialOutput["signature"].get<std::string>(), "Trial", "dispatch augment trial signature") && ok;
+
+    return ok;
+}
+
 auto testLinkshellTableSerialization() -> bool
 {
     bool ok = true;
@@ -1982,6 +2053,20 @@ auto testLogTicketTableSerialization() -> bool
     ok = expectUInt(assault.Flag3, 1, "assault flag 3 preserved") && ok;
     ok = expectUInt(assault.Flag10, 1, "assault flag 10 preserved") && ok;
 
+    auto* assaultMutableRaw = reinterpret_cast<uint8*>(&assault);
+    assaultMutableRaw[1] |= 0xFC;
+    for (std::size_t i = 2; i < 24; ++i)
+    {
+        assaultMutableRaw[i] = static_cast<uint8>(0xA0 + (i - 2));
+    }
+    assault.fromTable(assaultPartial);
+    ok = expectUInt(assaultMutableRaw[0], 0x07, "assault hidden raw byte 0") && ok;
+    ok = expectUInt(assaultMutableRaw[1], 0xFE, "assault hidden padding bits preserved") && ok;
+    for (std::size_t i = 2; i < 24; ++i)
+    {
+        ok = expectUInt(assaultMutableRaw[i], static_cast<uint8>(0xA0 + (i - 2)), "assault hidden padding byte preserved") && ok;
+    }
+
     auto bettingInput = lua.create_table();
     bettingInput["raceId"]       = 0x23456;
     bettingInput["raceGrade"]    = 0x2A;
@@ -2018,6 +2103,20 @@ auto testLogTicketTableSerialization() -> bool
     ok = expectUInt(betting.RaceId, 0x23456, "betting race id preserved") && ok;
     ok = expectUInt(betting.Quills, 0x2AA, "betting quills partial update") && ok;
 
+    auto* bettingMutableRaw = reinterpret_cast<uint8*>(&betting);
+    bettingMutableRaw[5] |= 0xFC;
+    for (std::size_t i = 6; i < 24; ++i)
+    {
+        bettingMutableRaw[i] = static_cast<uint8>(0xB0 + (i - 6));
+    }
+    betting.fromTable(bettingPartial);
+    ok = expectUInt(bettingMutableRaw[4], 0xAA, "betting hidden quills low byte") && ok;
+    ok = expectUInt(bettingMutableRaw[5], 0xFE, "betting hidden quills padding preserved") && ok;
+    for (std::size_t i = 6; i < 24; ++i)
+    {
+        ok = expectUInt(bettingMutableRaw[i], static_cast<uint8>(0xB0 + (i - 6)), "betting hidden padding byte preserved") && ok;
+    }
+
     auto brennerInput = lua.create_table();
     brennerInput["timeValue"] = 0x11223344;
     brennerInput["level"]     = 75;
@@ -2045,6 +2144,24 @@ auto testLogTicketTableSerialization() -> bool
     ok = expectUInt(brenner.Level, 50, "brenner level partial update") && ok;
     ok = expectUInt(brenner.Mode, 1, "brenner mode partial update") && ok;
 
+    auto* brennerMutableRaw = reinterpret_cast<uint8*>(&brenner);
+    brennerMutableRaw[8]  = 0xC1;
+    brennerMutableRaw[9]  = 0xC2;
+    brennerMutableRaw[10] = 0xC3;
+    for (std::size_t i = 12; i < 24; ++i)
+    {
+        brennerMutableRaw[i] = static_cast<uint8>(0xC4 + (i - 12));
+    }
+    brenner.fromTable(brennerPartial);
+    ok = expectUInt(brennerMutableRaw[8], 0xC1, "brenner hidden padding byte 8 preserved") && ok;
+    ok = expectUInt(brennerMutableRaw[9], 0xC2, "brenner hidden padding byte 9 preserved") && ok;
+    ok = expectUInt(brennerMutableRaw[10], 0xC3, "brenner hidden padding byte 10 preserved") && ok;
+    ok = expectUInt(brennerMutableRaw[11], 0x01, "brenner mode byte after hidden update") && ok;
+    for (std::size_t i = 12; i < 24; ++i)
+    {
+        ok = expectUInt(brennerMutableRaw[i], static_cast<uint8>(0xC4 + (i - 12)), "brenner hidden tail byte preserved") && ok;
+    }
+
     auto lotteryInput = lua.create_table();
     lotteryInput["number"] = 0x345678;
     lotteryInput["title"]  = 0x9A;
@@ -2070,6 +2187,18 @@ auto testLogTicketTableSerialization() -> bool
     ok = expectUInt(lottery.Number, 0x345678, "lottery number preserved") && ok;
     ok = expectUInt(lottery.Title, 0x7B, "lottery title partial update") && ok;
 
+    auto* lotteryMutableRaw = reinterpret_cast<uint8*>(&lottery);
+    for (std::size_t i = 4; i < 24; ++i)
+    {
+        lotteryMutableRaw[i] = static_cast<uint8>(0xD0 + (i - 4));
+    }
+    lottery.fromTable(lotteryPartial);
+    ok = expectUInt(lotteryMutableRaw[3], 0x7B, "lottery hidden title byte") && ok;
+    for (std::size_t i = 4; i < 24; ++i)
+    {
+        ok = expectUInt(lotteryMutableRaw[i], static_cast<uint8>(0xD0 + (i - 4)), "lottery hidden padding byte preserved") && ok;
+    }
+
     auto certificateInput = lua.create_table();
     certificateInput["raceId"]    = 0x23456;
     certificateInput["raceGrade"] = 0x2A;
@@ -2094,6 +2223,22 @@ auto testLogTicketTableSerialization() -> bool
     certificate.fromTable(certificatePartial);
     ok = expectUInt(certificate.RaceId, 0x23456, "race certificate race id preserved") && ok;
     ok = expectUInt(certificate.RaceGrade, 0x15, "race certificate grade partial update") && ok;
+
+    auto* certificateMutableRaw = reinterpret_cast<uint8*>(&certificate);
+    certificateMutableRaw[3] = 0xA5;
+    for (std::size_t i = 4; i < 24; ++i)
+    {
+        certificateMutableRaw[i] = static_cast<uint8>(0xE0 + (i - 4));
+    }
+    certificate.fromTable(certificatePartial);
+    ok = expectUInt(certificateMutableRaw[0], 0x56, "race certificate hidden raw byte 0") && ok;
+    ok = expectUInt(certificateMutableRaw[1], 0x34, "race certificate hidden raw byte 1") && ok;
+    ok = expectUInt(certificateMutableRaw[2], 0x56, "race certificate hidden grade byte") && ok;
+    ok = expectUInt(certificateMutableRaw[3], 0xA5, "race certificate hidden padding bits preserved") && ok;
+    for (std::size_t i = 4; i < 24; ++i)
+    {
+        ok = expectUInt(certificateMutableRaw[i], static_cast<uint8>(0xE0 + (i - 4)), "race certificate hidden padding byte preserved") && ok;
+    }
 
     return ok;
 }
@@ -2486,6 +2631,28 @@ auto testPassTimerTableSerialization() -> bool
     ok = expectUInt(lamp.Flags, 5, "glowing lamp flags masked to bitfield") && ok;
     ok = expectUInt(lampOutput["flags"].get<uint8>(), 5, "glowing lamp masked flags to table") && ok;
 
+    auto* lampMutableRaw = reinterpret_cast<uint8*>(&lamp);
+    lampMutableRaw[2] |= 0xF8;
+    lampMutableRaw[3] = 0xA1;
+    lampMutableRaw[4] = 0xA2;
+    lampMutableRaw[5] = 0xA3;
+    lampMutableRaw[6] = 0xA4;
+    lampMutableRaw[7] = 0xA5;
+    for (std::size_t i = 16; i < 24; ++i)
+    {
+        lampMutableRaw[i] = static_cast<uint8>(0xA6 + (i - 16));
+    }
+    lamp.fromTable(lampPartial);
+    ok = expectUInt(lampMutableRaw[2], 0xFD, "glowing lamp hidden flags byte preserved") && ok;
+    for (std::size_t i = 3; i < 8; ++i)
+    {
+        ok = expectUInt(lampMutableRaw[i], static_cast<uint8>(0xA1 + (i - 3)), "glowing lamp hidden middle byte preserved") && ok;
+    }
+    for (std::size_t i = 16; i < 24; ++i)
+    {
+        ok = expectUInt(lampMutableRaw[i], static_cast<uint8>(0xA6 + (i - 16)), "glowing lamp hidden tail byte preserved") && ok;
+    }
+
     auto legionInput = lua.create_table();
     legionInput["timestamp"] = 0x11223344;
     legionInput["title"]     = 0x55667788;
@@ -2566,6 +2733,32 @@ auto testPassTimerTableSerialization() -> bool
     ok = expectUInt(hourglass.Flags, 6, "hourglass flags masked to bitfield") && ok;
     ok = expectUInt(hourglassOutput["flags"].get<uint8>(), 6, "hourglass masked flags to table") && ok;
 
+    auto* hourglassMutableRaw = reinterpret_cast<uint8*>(&hourglass);
+    hourglassMutableRaw[0] = 0xB1;
+    hourglassMutableRaw[1] = 0xB2;
+    hourglassMutableRaw[2] |= 0xF8;
+    hourglassMutableRaw[3] = 0xB3;
+    hourglassMutableRaw[4] = 0xB4;
+    hourglassMutableRaw[5] = 0xB5;
+    hourglassMutableRaw[6] = 0xB6;
+    hourglassMutableRaw[7] = 0xB7;
+    for (std::size_t i = 18; i < 24; ++i)
+    {
+        hourglassMutableRaw[i] = static_cast<uint8>(0xB8 + (i - 18));
+    }
+    hourglass.fromTable(hourglassPartial);
+    ok = expectUInt(hourglassMutableRaw[0], 0xB1, "hourglass hidden prefix byte 0 preserved") && ok;
+    ok = expectUInt(hourglassMutableRaw[1], 0xB2, "hourglass hidden prefix byte 1 preserved") && ok;
+    ok = expectUInt(hourglassMutableRaw[2], 0xFB, "hourglass hidden flags byte preserved") && ok;
+    for (std::size_t i = 3; i < 8; ++i)
+    {
+        ok = expectUInt(hourglassMutableRaw[i], static_cast<uint8>(0xB3 + (i - 3)), "hourglass hidden middle byte preserved") && ok;
+    }
+    for (std::size_t i = 18; i < 24; ++i)
+    {
+        ok = expectUInt(hourglassMutableRaw[i], static_cast<uint8>(0xB8 + (i - 18)), "hourglass hidden tail byte preserved") && ok;
+    }
+
     auto honeymoonInput = lua.create_table();
     honeymoonInput["plan"] = 2;
 
@@ -2586,6 +2779,19 @@ auto testPassTimerTableSerialization() -> bool
     ok = expectUInt(honeymoon.Plan, 5, "honeymoon out-of-range plan update") && ok;
     ok = expectString(Exdata::decodeSignature(honeymoon.Signature), "PlanB", "honeymoon out-of-range signature preserved") && ok;
 
+    auto* honeymoonMutableRaw = reinterpret_cast<uint8*>(&honeymoon);
+    for (std::size_t i = 1; i < 12; ++i)
+    {
+        honeymoonMutableRaw[i] = static_cast<uint8>(0xC0 + (i - 1));
+    }
+    honeymoon.fromTable(honeymoonPartial);
+    ok = expectUInt(honeymoonMutableRaw[0], 0x05, "honeymoon hidden plan byte") && ok;
+    for (std::size_t i = 1; i < 12; ++i)
+    {
+        ok = expectUInt(honeymoonMutableRaw[i], static_cast<uint8>(0xC0 + (i - 1)), "honeymoon hidden padding byte preserved") && ok;
+    }
+    ok = expectString(Exdata::decodeSignature(honeymoon.Signature), "PlanB", "honeymoon hidden signature preserved") && ok;
+
     return ok;
 }
 
@@ -2599,6 +2805,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testPredicateTypeDispatchAndPrecedence() && ok;
     ok      = testRawExdataOverlay() && ok;
     ok      = testRawOnlyPayloadOverlays() && ok;
+    ok      = testExdataTableDispatch() && ok;
     ok      = testLinkshellTableSerialization() && ok;
     ok      = testAugmentStandardTableSerialization() && ok;
     ok      = testAugmentTrialTableSerialization() && ok;
