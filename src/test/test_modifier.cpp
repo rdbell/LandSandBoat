@@ -261,6 +261,24 @@ auto testModReceivedDamageCapValues() -> bool
     return ok;
 }
 
+auto testModSpecificDamageTakenValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::SLASH_SDT), 49, "Mod::SLASH_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PIERCE_SDT), 50, "Mod::PIERCE_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::IMPACT_SDT), 51, "Mod::IMPACT_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HTH_SDT), 52, "Mod::HTH_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FIRE_SDT), 54, "Mod::FIRE_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ICE_SDT), 55, "Mod::ICE_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIND_SDT), 56, "Mod::WIND_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EARTH_SDT), 57, "Mod::EARTH_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THUNDER_SDT), 58, "Mod::THUNDER_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WATER_SDT), 59, "Mod::WATER_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_SDT), 60, "Mod::LIGHT_SDT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_SDT), 61, "Mod::DARK_SDT") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -315,6 +333,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModBaseDamageTakenValues() && ok;
     ok      = testModExtendedDamageTakenValues() && ok;
     ok      = testModReceivedDamageCapValues() && ok;
+    ok      = testModSpecificDamageTakenValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
