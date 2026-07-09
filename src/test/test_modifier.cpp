@@ -323,6 +323,18 @@ auto testModTacticalParryAndInhibitTPValues() -> bool
     return ok;
 }
 
+auto testModActionPowerMultiplierValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::POWER_MULTIPLIER_BASIC_ATTACK), 1173, "Mod::POWER_MULTIPLIER_BASIC_ATTACK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::POWER_MULTIPLIER_BASIC_RANGED), 1174, "Mod::POWER_MULTIPLIER_BASIC_RANGED") && ok;
+    ok      = expectInt(static_cast<int>(Mod::POWER_MULTIPLIER_SPELL), 1175, "Mod::POWER_MULTIPLIER_SPELL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::POWER_MULTIPLIER_WEAPONSKILL), 1176, "Mod::POWER_MULTIPLIER_WEAPONSKILL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::POWER_MULTIPLIER_JOB_ABILITY), 1177, "Mod::POWER_MULTIPLIER_JOB_ABILITY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::POWER_MULTIPLIER_MOBSKILL), 1178, "Mod::POWER_MULTIPLIER_MOBSKILL") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -381,6 +393,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModNullDamageValues() && ok;
     ok      = testModAbsorbDamageValues() && ok;
     ok      = testModTacticalParryAndInhibitTPValues() && ok;
+    ok      = testModActionPowerMultiplierValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
