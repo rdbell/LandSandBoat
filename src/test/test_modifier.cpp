@@ -55,6 +55,25 @@ auto testPetModTypeValues() -> bool
     return ok;
 }
 
+auto testModCoreValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::NONE), 0, "Mod::NONE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DEF), 1, "Mod::DEF") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HP), 2, "Mod::HP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HPP), 3, "Mod::HPP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MP), 5, "Mod::MP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MPP), 6, "Mod::MPP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STR), 8, "Mod::STR") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DEX), 9, "Mod::DEX") && ok;
+    ok      = expectInt(static_cast<int>(Mod::VIT), 10, "Mod::VIT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AGI), 11, "Mod::AGI") && ok;
+    ok      = expectInt(static_cast<int>(Mod::INT), 12, "Mod::INT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MND), 13, "Mod::MND") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CHR), 14, "Mod::CHR") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -95,6 +114,7 @@ auto runModifierSelfTests() -> bool
 {
     bool ok = true;
     ok      = testPetModTypeValues() && ok;
+    ok      = testModCoreValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
