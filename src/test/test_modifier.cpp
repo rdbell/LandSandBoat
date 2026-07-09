@@ -1186,6 +1186,13 @@ auto testModReraiseValues() -> bool
     return ok;
 }
 
+auto testModAbsorbDMGToMPValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::ABSORB_DMG_TO_MP), 516, "Mod::ABSORB_DMG_TO_MP") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1293,6 +1300,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModBashKickAndWyvernBreathValues() && ok;
     ok      = testModGearSetValues() && ok;
     ok      = testModReraiseValues() && ok;
+    ok      = testModAbsorbDMGToMPValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
