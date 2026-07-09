@@ -1049,6 +1049,15 @@ auto testModEnspellAndSpikesValues() -> bool
     return ok;
 }
 
+auto testModTPValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::TP_BONUS), 345, "Mod::TP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SAVETP), 880, "Mod::SAVETP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CONSERVE_TP), 944, "Mod::CONSERVE_TP") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1147,6 +1156,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModScholarValues() && ok;
     ok      = testModGeomancerValues() && ok;
     ok      = testModEnspellAndSpikesValues() && ok;
+    ok      = testModTPValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
