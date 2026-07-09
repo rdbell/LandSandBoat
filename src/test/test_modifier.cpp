@@ -1119,6 +1119,19 @@ auto testModStealthAndDurationValues() -> bool
     return ok;
 }
 
+auto testModWeaponDamageRatingValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::DMG_RATING), 287, "Mod::DMG_RATING") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAIN_DMG_RATING), 366, "Mod::MAIN_DMG_RATING") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SUB_DMG_RATING), 367, "Mod::SUB_DMG_RATING") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RANGED_DMG_RATING), 376, "Mod::RANGED_DMG_RATING") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAIN_DMG_RANK), 377, "Mod::MAIN_DMG_RANK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SUB_DMG_RANK), 378, "Mod::SUB_DMG_RANK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RANGED_DMG_RANK), 379, "Mod::RANGED_DMG_RANK") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1221,6 +1234,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModRuneFencerValues() && ok;
     ok      = testModElementalStaffAndAffinityPerpValues() && ok;
     ok      = testModStealthAndDurationValues() && ok;
+    ok      = testModWeaponDamageRatingValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
