@@ -1177,6 +1177,15 @@ auto testModGearSetValues() -> bool
     return ok;
 }
 
+auto testModReraiseValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::RERAISE_I), 456, "Mod::RERAISE_I") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RERAISE_II), 457, "Mod::RERAISE_II") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RERAISE_III), 458, "Mod::RERAISE_III") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1283,6 +1292,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModAutoTickCureAndDelayValues() && ok;
     ok      = testModBashKickAndWyvernBreathValues() && ok;
     ok      = testModGearSetValues() && ok;
+    ok      = testModReraiseValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
