@@ -485,6 +485,29 @@ auto testModKillerEffectValues() -> bool
     return ok;
 }
 
+auto testModEnfeebleResistanceValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::SLEEPRES), 240, "Mod::SLEEPRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::POISONRES), 241, "Mod::POISONRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PARALYZERES), 242, "Mod::PARALYZERES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BLINDRES), 243, "Mod::BLINDRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SILENCERES), 244, "Mod::SILENCERES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::VIRUSRES), 245, "Mod::VIRUSRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PETRIFYRES), 246, "Mod::PETRIFYRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BINDRES), 247, "Mod::BINDRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CURSERES), 248, "Mod::CURSERES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GRAVITYRES), 249, "Mod::GRAVITYRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SLOWRES), 250, "Mod::SLOWRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STUNRES), 251, "Mod::STUNRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CHARMRES), 252, "Mod::CHARMRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AMNESIARES), 253, "Mod::AMNESIARES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LULLABYRES), 254, "Mod::LULLABYRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DEATHRES), 255, "Mod::DEATHRES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STATUSRES), 958, "Mod::STATUSRES") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -556,6 +579,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModMagicDamageAndMPCostValues() && ok;
     ok      = testModFoodValues() && ok;
     ok      = testModKillerEffectValues() && ok;
+    ok      = testModEnfeebleResistanceValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
