@@ -891,6 +891,52 @@ auto testModBlueMageValues() -> bool
     return ok;
 }
 
+auto testModCorsairValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::EXP_BONUS), 382, "Mod::EXP_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_RANGE), 528, "Mod::ROLL_RANGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::JOB_BONUS_CHANCE), 542, "Mod::JOB_BONUS_CHANCE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RANDOM_DEAL_BONUS), 220, "Mod::RANDOM_DEAL_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TRIPLE_SHOT_RATE), 999, "Mod::TRIPLE_SHOT_RATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::QUICK_DRAW_RECAST), 1060, "Mod::QUICK_DRAW_RECAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DMG_REFLECT), 316, "Mod::DMG_REFLECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_ROGUES), 317, "Mod::ROLL_ROGUES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_GALLANTS), 318, "Mod::ROLL_GALLANTS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_CHAOS), 319, "Mod::ROLL_CHAOS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_BEAST), 320, "Mod::ROLL_BEAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_CHORAL), 321, "Mod::ROLL_CHORAL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_HUNTERS), 322, "Mod::ROLL_HUNTERS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_SAMURAI), 323, "Mod::ROLL_SAMURAI") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_NINJA), 324, "Mod::ROLL_NINJA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_DRACHEN), 325, "Mod::ROLL_DRACHEN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_EVOKERS), 326, "Mod::ROLL_EVOKERS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_MAGUS), 327, "Mod::ROLL_MAGUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_CORSAIRS), 328, "Mod::ROLL_CORSAIRS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_PUPPET), 329, "Mod::ROLL_PUPPET") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_DANCERS), 330, "Mod::ROLL_DANCERS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_SCHOLARS), 331, "Mod::ROLL_SCHOLARS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_BOLTERS), 869, "Mod::ROLL_BOLTERS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_CASTERS), 870, "Mod::ROLL_CASTERS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_COURSERS), 871, "Mod::ROLL_COURSERS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_BLITZERS), 872, "Mod::ROLL_BLITZERS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_TACTICIANS), 873, "Mod::ROLL_TACTICIANS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_ALLIES), 874, "Mod::ROLL_ALLIES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_MISERS), 875, "Mod::ROLL_MISERS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_COMPANIONS), 876, "Mod::ROLL_COMPANIONS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_AVENGERS), 877, "Mod::ROLL_AVENGERS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_NATURALISTS), 878, "Mod::ROLL_NATURALISTS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ROLL_RUNEISTS), 879, "Mod::ROLL_RUNEISTS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BUST), 332, "Mod::BUST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::QUICK_DRAW_DMG), 411, "Mod::QUICK_DRAW_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::QUICK_DRAW_DMG_PERCENT), 834, "Mod::QUICK_DRAW_DMG_PERCENT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::QUICK_DRAW_MACC), 191, "Mod::QUICK_DRAW_MACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PHANTOM_ROLL), 881, "Mod::PHANTOM_ROLL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PHANTOM_DURATION), 882, "Mod::PHANTOM_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PHANTOM_RECAST), 1076, "Mod::PHANTOM_RECAST") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -983,6 +1029,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModDragoonValues() && ok;
     ok      = testModSummonerValues() && ok;
     ok      = testModBlueMageValues() && ok;
+    ok      = testModCorsairValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
