@@ -21,16 +21,48 @@
 
 #include "test_recast_container.h"
 
+#include "common/database/database.h"
+#include "common/database/libmariadb/libmariadb_result_set.h"
+#include "map/char_recast_container.h"
 #include "map/entities/battle_entity.h"
+#include "map/entities/char_entity.h"
+#include "map/enums/loot_recast.h"
 #include "map/recast_container.h"
 
 #include <cstdint>
 #include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
 
 using namespace std::chrono_literals;
 
 namespace
 {
+
+class FakeDatabase final : public db::Database
+{
+public:
+    auto execute(const std::string& query, const std::vector<db::BoundValue>&) -> std::unique_ptr<db::ResultSet> override
+    {
+        return std::make_unique<db::LibMariaDBResultSet>(static_cast<std::size_t>(1), query);
+    }
+
+    auto getSchema() -> std::string override
+    {
+        return "xidb";
+    }
+
+    auto getVersion() -> std::string override
+    {
+        return "test";
+    }
+
+    auto getDriverVersion() -> std::string override
+    {
+        return "test";
+    }
+};
 
 auto expectBool(bool actual, bool expected, const char* label) -> bool
 {
@@ -172,6 +204,67 @@ auto testCheckExpiry() -> bool
     return ok;
 }
 
+auto testCharItemAndLootLists() -> bool
+{
+    CCharEntity          character;
+    CCharRecastContainer container(&character);
+    auto                 itemID = static_cast<Recast>(0x1204);
+
+    auto* item = container.Load(RECAST_ITEM, itemID, 20s);
+    container.AddLootRecast(LootRecastID::Seal, 30s);
+
+    bool ok = true;
+    ok      = expectBool(item != nullptr, true, "char item Load returns entry") && ok;
+    ok      = expectUInt(container.GetRecastList(RECAST_ITEM)->size(), 1, "char item list size") && ok;
+    ok      = expectBool(container.Has(RECAST_ITEM, itemID), true, "char has item recast") && ok;
+    ok      = expectBool(container.HasLootRecast(LootRecastID::Seal), true, "char has loot recast") && ok;
+    ok      = expectSeconds(container.GetLootRecast(LootRecastID::Seal)->RecastTime, 30, "char loot recast duration") && ok;
+
+    container.DeleteByIndex(RECAST_ITEM, 0);
+    container.Del(RECAST_LOOT);
+
+    ok = expectUInt(container.GetRecastList(RECAST_ITEM)->size(), 0, "char item delete by index") && ok;
+    ok = expectUInt(container.GetRecastList(RECAST_LOOT)->size(), 0, "char loot Del clears list") && ok;
+    return ok;
+}
+
+auto testCharLootCheckExpiry() -> bool
+{
+    CCharEntity          character;
+    CCharRecastContainer container(&character);
+
+    auto* loot = container.Load(RECAST_LOOT, static_cast<Recast>(LootRecastID::Geode), 1s);
+    loot->TimeStamp -= 2s;
+
+    container.Check();
+
+    return expectBool(container.HasLootRecast(LootRecastID::Geode), false, "expired char loot recast removed");
+}
+
+auto testCharChangeJob() -> bool
+{
+    CCharEntity          character;
+    CCharRecastContainer container(&character);
+    FakeDatabase         fake;
+
+    container.Load(RECAST_ABILITY, Recast::Special, 3600s);
+    container.Load(RECAST_ABILITY, Recast::Special2, 3600s);
+    container.Load(RECAST_ABILITY, Recast::Sic, 30s);
+    container.Load(RECAST_ABILITY, Recast::RandomDeal, 45s);
+
+    db::setDatabase(&fake);
+    container.ChangeJob();
+    db::setDatabase(nullptr);
+
+    bool ok = true;
+    ok      = expectUInt(container.GetRecastList(RECAST_ABILITY)->size(), 2, "char ChangeJob ability list size") && ok;
+    ok      = expectBool(container.Has(RECAST_ABILITY, Recast::Special), true, "char ChangeJob keeps special") && ok;
+    ok      = expectBool(container.Has(RECAST_ABILITY, Recast::Special2), true, "char ChangeJob keeps special2") && ok;
+    ok      = expectBool(container.Has(RECAST_ABILITY, Recast::Sic), false, "char ChangeJob drops sic") && ok;
+    ok      = expectBool(container.Has(RECAST_ABILITY, Recast::RandomDeal), false, "char ChangeJob drops random deal") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runRecastContainerSelfTests() -> bool
@@ -182,5 +275,8 @@ auto runRecastContainerSelfTests() -> bool
     ok      = testDeletionAndResetSemantics() && ok;
     ok      = testDeleteAllSemantics() && ok;
     ok      = testCheckExpiry() && ok;
+    ok      = testCharItemAndLootLists() && ok;
+    ok      = testCharLootCheckExpiry() && ok;
+    ok      = testCharChangeJob() && ok;
     return ok;
 }
