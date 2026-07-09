@@ -390,6 +390,144 @@ auto testChocoboEggTableSerialization() -> bool
     return ok;
 }
 
+auto testChocoboCardTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto makeStat = [&](bool trait, uint8 rp, uint8 rank)
+    {
+        auto stat   = lua.create_table();
+        stat["trait"] = trait;
+        stat["rp"]    = rp;
+        stat["rank"]  = rank;
+        return stat;
+    };
+
+    auto input             = lua.create_table();
+    input["strength"]      = makeStat(true, 8, 3);
+    input["endurance"]     = makeStat(false, 4, 2);
+    input["discernment"]   = makeStat(true, 12, 4);
+    auto receptivity       = lua.create_table();
+    receptivity["rp"]      = 20;
+    receptivity["rank"]    = 5;
+    input["receptivity"]   = receptivity;
+    auto dna               = lua.create_table();
+    dna[1]                 = 0x0A;
+    dna[2]                 = 4;
+    dna[3]                 = 6;
+    input["dna"]           = dna;
+    auto abilities         = lua.create_table();
+    abilities[1]           = 0x1B;
+    abilities[2]           = 0x0C;
+    input["abilities"]     = abilities;
+    input["temperament"]   = 0x0D;
+    input["weather"]       = 0x1E;
+    input["gender"]        = 3;
+    input["color"]         = 0x0D;
+    input["size"]          = 0x0E;
+    input["name"]          = "ChocoTest";
+
+    Exdata::ChocoboCard card{};
+    card.fromTable(input);
+    auto* cardRaw = reinterpret_cast<uint8*>(&card);
+
+    ok = expectUInt(card.STR.Trait, 1, "chocobo card strength trait from table") && ok;
+    ok = expectUInt(card.STR.RP, 8, "chocobo card strength rp from table") && ok;
+    ok = expectUInt(card.STR.Rank, 3, "chocobo card strength rank from table") && ok;
+    ok = expectUInt(card.END.Trait, 0, "chocobo card endurance trait from table") && ok;
+    ok = expectUInt(card.END.RP, 4, "chocobo card endurance rp from table") && ok;
+    ok = expectUInt(card.END.Rank, 2, "chocobo card endurance rank from table") && ok;
+    ok = expectUInt(card.DSC.Trait, 1, "chocobo card discernment trait from table") && ok;
+    ok = expectUInt(card.DSC.RP, 12, "chocobo card discernment rp from table") && ok;
+    ok = expectUInt(card.DSC.Rank, 4, "chocobo card discernment rank from table") && ok;
+    ok = expectUInt(card.RCP.RP, 20, "chocobo card receptivity rp from table") && ok;
+    ok = expectUInt(card.RCP.Rank, 5, "chocobo card receptivity rank from table") && ok;
+    ok = expectUInt(card.DNA1, 2, "chocobo card dna 1 masked from table") && ok;
+    ok = expectUInt(card.DNA2, 4, "chocobo card dna 2 from table") && ok;
+    ok = expectUInt(card.DNA3, 6, "chocobo card dna 3 from table") && ok;
+    ok = expectUInt(card.Ability1, 0x0B, "chocobo card ability 1 masked from table") && ok;
+    ok = expectUInt(card.Ability2, 0x0C, "chocobo card ability 2 from table") && ok;
+    ok = expectUInt(card.Temperament, 5, "chocobo card temperament masked from table") && ok;
+    ok = expectUInt(card.Weather, 0x0E, "chocobo card weather masked from table") && ok;
+    ok = expectUInt(card.Gender, 1, "chocobo card gender masked from table") && ok;
+    ok = expectUInt(card.Color, 5, "chocobo card color masked from table") && ok;
+    ok = expectUInt(card.Size, 6, "chocobo card size masked from table") && ok;
+    ok = expectString(Exdata::decodeSignature(card.Signature), "ChocoTest", "chocobo card name from table") && ok;
+    const uint8 expectedCardRaw[] = { 0x71, 0x48, 0x99, 0xB4, 0xA2, 0x97, 0xEB, 0x6B };
+    for (std::size_t i = 0; i < sizeof(expectedCardRaw); ++i)
+    {
+        ok = expectUInt(cardRaw[i], expectedCardRaw[i], "chocobo card raw byte") && ok;
+    }
+    ok = expectUInt(cardRaw[8], 0x00, "chocobo card raw padding byte 0") && ok;
+    ok = expectUInt(cardRaw[11], 0x00, "chocobo card raw padding byte 3") && ok;
+
+    auto output = lua.create_table();
+    card.toTable(output);
+    ok = expectUInt(output["temperament"].get<uint32>(), 5, "chocobo card temperament to table") && ok;
+    ok = expectUInt(output["weather"].get<uint32>(), 0x0E, "chocobo card weather to table") && ok;
+    ok = expectUInt(output["gender"].get<uint32>(), 1, "chocobo card gender to table") && ok;
+    ok = expectUInt(output["color"].get<uint32>(), 5, "chocobo card color to table") && ok;
+    ok = expectUInt(output["size"].get<uint32>(), 6, "chocobo card size to table") && ok;
+    ok = expectString(output["name"].get<std::string>(), "ChocoTest", "chocobo card name to table") && ok;
+
+    cardRaw[7] |= 0x80;
+    cardRaw[8]  = 0xC1;
+    cardRaw[9]  = 0xC2;
+    cardRaw[10] = 0xC3;
+    cardRaw[11] = 0xC4;
+
+    auto partial             = lua.create_table();
+    auto partialStrength     = lua.create_table();
+    partialStrength["rp"]    = 2;
+    partial["strength"]      = partialStrength;
+    auto partialReceptivity  = lua.create_table();
+    partialReceptivity["rank"] = 1;
+    partial["receptivity"]   = partialReceptivity;
+    auto partialDNA          = lua.create_table();
+    partialDNA[3]            = 1;
+    partial["dna"]           = partialDNA;
+    auto partialAbilities    = lua.create_table();
+    partialAbilities[2]      = 3;
+    partial["abilities"]     = partialAbilities;
+    partial["weather"]       = 1;
+    partial["name"]          = "Co";
+    card.fromTable(partial);
+    ok = expectUInt(card.STR.Trait, 1, "chocobo card strength trait preserved") && ok;
+    ok = expectUInt(card.STR.RP, 2, "chocobo card strength rp partial update") && ok;
+    ok = expectUInt(card.STR.Rank, 3, "chocobo card strength rank preserved") && ok;
+    ok = expectUInt(card.END.RP, 4, "chocobo card endurance preserved") && ok;
+    ok = expectUInt(card.RCP.RP, 20, "chocobo card receptivity rp preserved") && ok;
+    ok = expectUInt(card.RCP.Rank, 1, "chocobo card receptivity rank partial update") && ok;
+    ok = expectUInt(card.DNA1, 2, "chocobo card dna 1 preserved") && ok;
+    ok = expectUInt(card.DNA2, 4, "chocobo card dna 2 preserved") && ok;
+    ok = expectUInt(card.DNA3, 1, "chocobo card dna 3 partial update") && ok;
+    ok = expectUInt(card.Ability1, 0x0B, "chocobo card ability 1 preserved") && ok;
+    ok = expectUInt(card.Ability2, 3, "chocobo card ability 2 partial update") && ok;
+    ok = expectUInt(card.Weather, 1, "chocobo card weather partial update") && ok;
+    ok = expectUInt(card.Gender, 1, "chocobo card gender preserved") && ok;
+    ok = expectUInt(card.Color, 5, "chocobo card color preserved") && ok;
+    ok = expectUInt(card.Size, 6, "chocobo card size preserved") && ok;
+    ok = expectString(Exdata::decodeSignature(card.Signature), "Co", "chocobo card short name partial update") && ok;
+    const uint8 expectedPartialCardRaw[] = { 0x65, 0x48, 0x99, 0x34, 0x62, 0x76, 0x1A, 0xEB };
+    for (std::size_t i = 0; i < sizeof(expectedPartialCardRaw); ++i)
+    {
+        ok = expectUInt(cardRaw[i], expectedPartialCardRaw[i], "chocobo card partial raw byte") && ok;
+    }
+    ok = expectUInt(cardRaw[8], 0xC1, "chocobo card padding byte 0 preserved") && ok;
+    ok = expectUInt(cardRaw[9], 0xC2, "chocobo card padding byte 1 preserved") && ok;
+    ok = expectUInt(cardRaw[10], 0xC3, "chocobo card padding byte 2 preserved") && ok;
+    ok = expectUInt(cardRaw[11], 0xC4, "chocobo card padding byte 3 preserved") && ok;
+    uint8 expectedShortSignature[12] = {};
+    Exdata::encodeSignature(std::string("Co"), expectedShortSignature);
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(cardRaw[12 + i], expectedShortSignature[i], "chocobo card short signature raw byte") && ok;
+    }
+
+    return ok;
+}
+
 auto testTimerInfoTableSerialization() -> bool
 {
     sol::state lua;
@@ -1248,6 +1386,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testRawExdataOverlay() && ok;
     ok      = testFishTableSerialization() && ok;
     ok      = testChocoboEggTableSerialization() && ok;
+    ok      = testChocoboCardTableSerialization() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testSoulTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
