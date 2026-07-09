@@ -464,6 +464,27 @@ auto testModFoodValues() -> bool
     return ok;
 }
 
+auto testModKillerEffectValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::VERMIN_KILLER), 224, "Mod::VERMIN_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BIRD_KILLER), 225, "Mod::BIRD_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AMORPH_KILLER), 226, "Mod::AMORPH_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIZARD_KILLER), 227, "Mod::LIZARD_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AQUAN_KILLER), 228, "Mod::AQUAN_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PLANTOID_KILLER), 229, "Mod::PLANTOID_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BEAST_KILLER), 230, "Mod::BEAST_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::UNDEAD_KILLER), 231, "Mod::UNDEAD_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ARCANA_KILLER), 232, "Mod::ARCANA_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DRAGON_KILLER), 233, "Mod::DRAGON_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DEMON_KILLER), 234, "Mod::DEMON_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EMPTY_KILLER), 235, "Mod::EMPTY_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HUMANOID_KILLER), 236, "Mod::HUMANOID_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LUMINIAN_KILLER), 237, "Mod::LUMINIAN_KILLER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LUMINION_KILLER), 238, "Mod::LUMINION_KILLER") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -534,6 +555,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModDelaySkillchainAndSwingValues() && ok;
     ok      = testModMagicDamageAndMPCostValues() && ok;
     ok      = testModFoodValues() && ok;
+    ok      = testModKillerEffectValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
