@@ -528,6 +528,95 @@ auto testChocoboCardTableSerialization() -> bool
     return ok;
 }
 
+auto testEscutcheonTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto input                     = lua.create_table();
+    input["status"]                = 0xA5;
+    input["bonusObjective"]        = 0xBC;
+    input["craftsmanship"]         = 0x1234;
+    input["stage"]                 = 0x1D;
+    input["successDownPenalty"]    = 0x1BCDE;
+    input["signature"]             = "Escutcheon";
+
+    Exdata::Escutcheon escutcheon{};
+    escutcheon.fromTable(input);
+    auto* escutcheonRaw = reinterpret_cast<uint8*>(&escutcheon);
+
+    ok = expectUInt(static_cast<uint8>(escutcheon.AugmentKind), 0x02, "escutcheon augment kind from table") && ok;
+    ok = expectUInt(static_cast<uint8>(escutcheon.AugmentSubKind), 0x0B, "escutcheon augment subkind from table") && ok;
+    ok = expectUInt(escutcheon.Status, 0xA5, "escutcheon status from table") && ok;
+    ok = expectUInt(escutcheon.BonusObjective, 0xBC, "escutcheon bonus objective from table") && ok;
+    ok = expectUInt(escutcheon.Craftsmanship, 0x1234, "escutcheon craftsmanship from table") && ok;
+    ok = expectUInt(escutcheon.Stage, 0x0D, "escutcheon stage masked from table") && ok;
+    ok = expectUInt(escutcheon.SuccessDownPenalty, 0xBCDE, "escutcheon success penalty masked from table") && ok;
+    ok = expectString(Exdata::decodeSignature(escutcheon.Signature), "Escutcheon", "escutcheon signature from table") && ok;
+
+    const uint8 expectedRaw[] = { 0x02, 0x0B, 0x00, 0x00, 0xA5, 0xBC, 0x34, 0x12, 0xED, 0xCD, 0x0B, 0x00 };
+    for (std::size_t i = 0; i < sizeof(expectedRaw); ++i)
+    {
+        ok = expectUInt(escutcheonRaw[i], expectedRaw[i], "escutcheon raw byte") && ok;
+    }
+
+    auto output = lua.create_table();
+    escutcheon.toTable(output);
+    ok = expectUInt(output["status"].get<uint8>(), 0xA5, "escutcheon status to table") && ok;
+    ok = expectUInt(output["bonusObjective"].get<uint8>(), 0xBC, "escutcheon bonus objective to table") && ok;
+    ok = expectUInt(output["craftsmanship"].get<uint16>(), 0x1234, "escutcheon craftsmanship to table") && ok;
+    ok = expectUInt(output["stage"].get<uint32>(), 0x0D, "escutcheon stage to table") && ok;
+    ok = expectUInt(output["successDownPenalty"].get<uint32>(), 0xBCDE, "escutcheon success penalty to table") && ok;
+    ok = expectString(output["signature"].get<std::string>(), "Escutcheon", "escutcheon signature to table") && ok;
+
+    escutcheonRaw[0]  = 0xFE;
+    escutcheonRaw[1]  = 0xF0;
+    escutcheonRaw[2]  = 0xA1;
+    escutcheonRaw[3]  = 0xA2;
+    escutcheonRaw[10] |= 0xF0;
+    escutcheonRaw[11] = 0xA5;
+
+    auto partial                  = lua.create_table();
+    partial["stage"]              = 2;
+    partial["successDownPenalty"] = 0x42;
+    partial["signature"]          = "Sh";
+    escutcheon.fromTable(partial);
+
+    ok = expectUInt(static_cast<uint8>(escutcheon.AugmentKind), 0x02, "escutcheon augment kind reset") && ok;
+    ok = expectUInt(static_cast<uint8>(escutcheon.AugmentSubKind), 0x0B, "escutcheon augment subkind reset") && ok;
+    ok = expectUInt(escutcheon.Status, 0xA5, "escutcheon status preserved") && ok;
+    ok = expectUInt(escutcheon.BonusObjective, 0xBC, "escutcheon bonus objective preserved") && ok;
+    ok = expectUInt(escutcheon.Craftsmanship, 0x1234, "escutcheon craftsmanship preserved") && ok;
+    ok = expectUInt(escutcheon.Stage, 2, "escutcheon stage partial update") && ok;
+    ok = expectUInt(escutcheon.SuccessDownPenalty, 0x42, "escutcheon success penalty partial update") && ok;
+    ok = expectString(Exdata::decodeSignature(escutcheon.Signature), "Sh", "escutcheon short signature partial update") && ok;
+
+    const uint8 expectedPartialRaw[] = { 0x02, 0x0B, 0xA1, 0xA2, 0xA5, 0xBC, 0x34, 0x12, 0x22, 0x04, 0xF0, 0xA5 };
+    for (std::size_t i = 0; i < sizeof(expectedPartialRaw); ++i)
+    {
+        ok = expectUInt(escutcheonRaw[i], expectedPartialRaw[i], "escutcheon partial raw byte") && ok;
+    }
+
+    uint8 expectedShortSignature[12] = {};
+    Exdata::encodeSignature(std::string("Sh"), expectedShortSignature);
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(escutcheonRaw[12 + i], expectedShortSignature[i], "escutcheon short signature raw byte") && ok;
+    }
+
+    auto preserveSignature = lua.create_table();
+    preserveSignature["status"] = 0x11;
+    escutcheon.fromTable(preserveSignature);
+    ok = expectUInt(escutcheon.Status, 0x11, "escutcheon status update with omitted signature") && ok;
+    ok = expectString(Exdata::decodeSignature(escutcheon.Signature), "Sh", "escutcheon omitted signature preserved") && ok;
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(escutcheonRaw[12 + i], expectedShortSignature[i], "escutcheon omitted signature raw byte") && ok;
+    }
+
+    return ok;
+}
+
 auto testTimerInfoTableSerialization() -> bool
 {
     sol::state lua;
@@ -1387,6 +1476,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testFishTableSerialization() && ok;
     ok      = testChocoboEggTableSerialization() && ok;
     ok      = testChocoboCardTableSerialization() && ok;
+    ok      = testEscutcheonTableSerialization() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testSoulTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
