@@ -265,6 +265,120 @@ auto testRawExdataOverlay() -> bool
     return ok;
 }
 
+auto testLinkshellTableSerialization() -> bool
+{
+    bool ok = true;
+
+    auto input        = lua.create_table();
+    auto inputColor   = lua.create_table();
+    input["groupId"]  = 0x11223344;
+    input["groupKey"] = 0x15566;
+    inputColor["r"]   = 0x11;
+    inputColor["g"]   = 0x12;
+    inputColor["b"]   = 0x13;
+    inputColor["a"]   = 0x1F;
+    input["color"]    = inputColor;
+    input["flag"]     = 0x1AB;
+    input["name"]     = "OmegaXI2026";
+
+    Exdata::Linkshell linkshell{};
+    linkshell.fromTable(input);
+    auto* linkshellRaw = reinterpret_cast<uint8*>(&linkshell);
+
+    const uint8 expectedRaw[] = {
+        0x44, 0x33, 0x22, 0x11, 0x66, 0x55, 0x21, 0xF3,
+        0xAB, 0xA4, 0xD1, 0x47, 0x07, 0x28, 0xF7, 0xD7,
+        0x7E, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedRaw); ++i)
+    {
+        ok = expectUInt(linkshellRaw[i], expectedRaw[i], "linkshell raw byte") && ok;
+    }
+    ok = expectUInt(linkshell.GroupId, 0x11223344, "linkshell group id from table") && ok;
+    ok = expectUInt(linkshell.GroupKey, 0x5566, "linkshell group key from table") && ok;
+    ok = expectUInt(linkshell.Color.R, 1, "linkshell color r from table") && ok;
+    ok = expectUInt(linkshell.Color.G, 2, "linkshell color g from table") && ok;
+    ok = expectUInt(linkshell.Color.B, 3, "linkshell color b from table") && ok;
+    ok = expectUInt(linkshell.Color.A, 15, "linkshell color a from table") && ok;
+    ok = expectUInt(linkshell.Flag, 0xAB, "linkshell flag from table") && ok;
+
+    auto output = lua.create_table();
+    linkshell.toTable(output);
+    auto outputColor = output["color"].get<sol::table>();
+    ok = expectUInt(output["groupId"].get<uint32>(), 0x11223344, "linkshell group id to table") && ok;
+    ok = expectUInt(output["groupKey"].get<uint16>(), 0x5566, "linkshell group key to table") && ok;
+    ok = expectUInt(outputColor["r"].get<uint8>(), 1, "linkshell color r to table") && ok;
+    ok = expectUInt(outputColor["g"].get<uint8>(), 2, "linkshell color g to table") && ok;
+    ok = expectUInt(outputColor["b"].get<uint8>(), 3, "linkshell color b to table") && ok;
+    ok = expectUInt(outputColor["a"].get<uint8>(), 15, "linkshell color a to table") && ok;
+    ok = expectUInt(output["flag"].get<uint8>(), 0xAB, "linkshell flag to table") && ok;
+    ok = expectString(output["name"].get<std::string>(), "OmegaXI2026", "linkshell name to table") && ok;
+
+    auto partial      = lua.create_table();
+    auto partialColor = lua.create_table();
+    partialColor["g"] = 0x1E;
+    partial["color"]  = partialColor;
+    partial["flag"]   = 3;
+    linkshell.fromTable(partial);
+
+    const uint8 expectedPartialRaw[] = {
+        0x44, 0x33, 0x22, 0x11, 0x66, 0x55, 0xE1, 0xF3,
+        0x03, 0xA4, 0xD1, 0x47, 0x07, 0x28, 0xF7, 0xD7,
+        0x7E, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedPartialRaw); ++i)
+    {
+        ok = expectUInt(linkshellRaw[i], expectedPartialRaw[i], "linkshell partial raw byte") && ok;
+    }
+    ok = expectUInt(linkshell.Color.R, 1, "linkshell partial color r preserved") && ok;
+    ok = expectUInt(linkshell.Color.G, 14, "linkshell partial color g update") && ok;
+    ok = expectUInt(linkshell.Color.B, 3, "linkshell partial color b preserved") && ok;
+    ok = expectUInt(linkshell.Color.A, 15, "linkshell partial color a preserved") && ok;
+
+    auto scalarColor     = lua.create_table();
+    scalarColor["color"] = "bad";
+    linkshell.fromTable(scalarColor);
+    for (std::size_t i = 0; i < sizeof(expectedPartialRaw); ++i)
+    {
+        ok = expectUInt(linkshellRaw[i], expectedPartialRaw[i], "linkshell scalar color raw byte") && ok;
+    }
+
+    auto longName    = lua.create_table();
+    longName["name"] = "abcdefghijklmnopqrstuvwx";
+    linkshell.fromTable(longName);
+
+    char expectedLongName[LinkshellStringLength] = {};
+    EncodeStringLinkshell("abcdefghijklmnopqrstuvwx", expectedLongName);
+    for (std::size_t i = 0; i < sizeof(linkshell.Name); ++i)
+    {
+        ok = expectUInt(linkshell.Name[i], static_cast<uint8>(expectedLongName[i]), "linkshell long name raw byte") && ok;
+    }
+    linkshell.toTable(output);
+    ok = expectString(output["name"].get<std::string>(), "abcdefghijklmnopqrst", "linkshell long name to table") && ok;
+
+    auto shortName    = lua.create_table();
+    shortName["name"] = "A";
+    linkshell.fromTable(shortName);
+
+    char expectedShortName[LinkshellStringLength] = {};
+    EncodeStringLinkshell("A", expectedShortName);
+    for (std::size_t i = 0; i < sizeof(linkshell.Name); ++i)
+    {
+        ok = expectUInt(linkshell.Name[i], static_cast<uint8>(expectedShortName[i]), "linkshell short name raw byte") && ok;
+    }
+    linkshell.toTable(output);
+    ok = expectString(output["name"].get<std::string>(), "A", "linkshell short name to table") && ok;
+
+    auto omitted = lua.create_table();
+    linkshell.fromTable(omitted);
+    for (std::size_t i = 0; i < sizeof(linkshell.Name); ++i)
+    {
+        ok = expectUInt(linkshell.Name[i], static_cast<uint8>(expectedShortName[i]), "linkshell omitted name raw byte") && ok;
+    }
+
+    return ok;
+}
+
 auto testFishTableSerialization() -> bool
 {
     sol::state lua;
@@ -1911,6 +2025,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testItemIDTypeDispatch() && ok;
     ok      = testPredicateTypeDispatchAndPrecedence() && ok;
     ok      = testRawExdataOverlay() && ok;
+    ok      = testLinkshellTableSerialization() && ok;
     ok      = testFishTableSerialization() && ok;
     ok      = testChocoboEggTableSerialization() && ok;
     ok      = testChocoboCardTableSerialization() && ok;
