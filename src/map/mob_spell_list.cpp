@@ -59,12 +59,42 @@ auto CMobSpellList::GetSpellMinLevel(const SpellID spellId) const -> uint16
 namespace mobSpellList
 {
 
-std::unordered_map<uint16, std::unique_ptr<CMobSpellList>> PMobSpellList;
+CMobSpellListRegistry PMobSpellList;
+
+void CMobSpellListRegistry::EnsureEmptyList()
+{
+    spellLists_[0] = std::make_unique<CMobSpellList>(0);
+}
+
+auto CMobSpellListRegistry::AddRow(const MobSpellListRow& row) -> bool
+{
+    if (row.spellListId >= MAX_MOBSPELLLIST_ID)
+    {
+        return false;
+    }
+
+    auto it = spellLists_.find(row.spellListId);
+    if (it == spellLists_.end())
+    {
+        it = spellLists_.emplace(row.spellListId, std::make_unique<CMobSpellList>(row.spellListId)).first;
+    }
+    it->second->AddSpell(row.spellId, row.minLevel, row.maxLevel);
+    return true;
+}
+
+auto CMobSpellListRegistry::Get(const uint16 mobSpellListId) const -> CMobSpellList*
+{
+    if (const auto it = spellLists_.find(mobSpellListId); it != spellLists_.end())
+    {
+        return it->second.get();
+    }
+    return nullptr;
+}
 
 // Load list of spells
 void LoadMobSpellList()
 {
-    PMobSpellList[0] = std::make_unique<CMobSpellList>(0); // Add empty spell list for mobSpellListId 0
+    PMobSpellList.EnsureEmptyList(); // Add empty spell list for mobSpellListId 0
 
     const auto query = "SELECT mob_spell_lists.spell_list_id, "
                        "mob_spell_lists.spell_id, "
@@ -83,21 +113,16 @@ void LoadMobSpellList()
         const auto minLvl      = rset->get<uint16>("min_level");
         const auto maxLvl      = rset->get<uint16>("max_level");
 
-        if (!PMobSpellList.contains(spellListId))
-        {
-            PMobSpellList.emplace(spellListId, std::make_unique<CMobSpellList>(spellListId));
-        }
-
-        PMobSpellList[spellListId]->AddSpell(static_cast<SpellID>(spellId), minLvl, maxLvl);
+        PMobSpellList.AddRow({ spellListId, static_cast<SpellID>(spellId), minLvl, maxLvl });
     }
 }
 
 // Get Spell By ID
 auto GetMobSpellList(const uint16 mobSpellListId) -> CMobSpellList*
 {
-    if (PMobSpellList.contains(mobSpellListId))
+    if (auto* spellList = PMobSpellList.Get(mobSpellListId); spellList != nullptr)
     {
-        return PMobSpellList[mobSpellListId].get();
+        return spellList;
     }
 
     ShowErrorFmt("Mob spell list ID {} does not exist.", mobSpellListId);

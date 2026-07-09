@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include "common/cbasetypes.h"
@@ -55,6 +57,26 @@ private:
 
 namespace mobSpellList
 {
+
+struct MobSpellListRow
+{
+    uint16  spellListId;
+    SpellID spellId;
+    uint16  minLevel;
+    uint16  maxLevel;
+};
+
+// Pure registry seam shared by database loading and focused parity tests.
+class CMobSpellListRegistry
+{
+public:
+    void EnsureEmptyList();
+    auto AddRow(const MobSpellListRow& row) -> bool;
+    auto Get(uint16 mobSpellListId) const -> CMobSpellList*;
+
+private:
+    std::unordered_map<uint16, std::unique_ptr<CMobSpellList>> spellLists_;
+};
 
 void LoadMobSpellList();
 
