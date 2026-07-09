@@ -103,6 +103,28 @@ auto testModCombatRatingValues() -> bool
     return ok;
 }
 
+auto testModElementalMagicAttackAndAccuracyValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::FIRE_MAB), 32, "Mod::FIRE_MAB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ICE_MAB), 33, "Mod::ICE_MAB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIND_MAB), 34, "Mod::WIND_MAB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EARTH_MAB), 35, "Mod::EARTH_MAB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THUNDER_MAB), 36, "Mod::THUNDER_MAB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WATER_MAB), 37, "Mod::WATER_MAB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_MAB), 38, "Mod::LIGHT_MAB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_MAB), 39, "Mod::DARK_MAB") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FIRE_MACC), 40, "Mod::FIRE_MACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ICE_MACC), 41, "Mod::ICE_MACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WIND_MACC), 42, "Mod::WIND_MACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EARTH_MACC), 43, "Mod::EARTH_MACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THUNDER_MACC), 44, "Mod::THUNDER_MACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WATER_MACC), 45, "Mod::WATER_MACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_MACC), 46, "Mod::LIGHT_MACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_MACC), 47, "Mod::DARK_MACC") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -146,6 +168,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModCoreValues() && ok;
     ok      = testModElementalMagicEvasionValues() && ok;
     ok      = testModCombatRatingValues() && ok;
+    ok      = testModElementalMagicAttackAndAccuracyValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
