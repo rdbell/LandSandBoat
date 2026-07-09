@@ -1110,6 +1110,15 @@ auto testModElementalStaffAndAffinityPerpValues() -> bool
     return ok;
 }
 
+auto testModStealthAndDurationValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::STEALTH), 358, "Mod::STEALTH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SNEAK_DURATION), 946, "Mod::SNEAK_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::INVISIBLE_DURATION), 947, "Mod::INVISIBLE_DURATION") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1211,6 +1220,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModTPValues() && ok;
     ok      = testModRuneFencerValues() && ok;
     ok      = testModElementalStaffAndAffinityPerpValues() && ok;
+    ok      = testModStealthAndDurationValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
