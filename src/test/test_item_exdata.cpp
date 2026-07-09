@@ -305,6 +305,162 @@ auto testTimerInfoTableSerialization() -> bool
     return ok;
 }
 
+auto testLogTicketTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto assaultInput = lua.create_table();
+    auto flagsInput   = lua.create_table();
+    flagsInput[1]     = true;
+    flagsInput[3]     = true;
+    flagsInput[10]    = true;
+    assaultInput["flags"] = flagsInput;
+
+    Exdata::AssaultLog assault{};
+    assault.fromTable(assaultInput);
+    const auto* assaultRaw = reinterpret_cast<const uint8*>(&assault);
+    ok = expectUInt(assault.Flag1, 1, "assault flag 1 from table") && ok;
+    ok = expectUInt(assault.Flag2, 0, "assault flag 2 from table") && ok;
+    ok = expectUInt(assault.Flag3, 1, "assault flag 3 from table") && ok;
+    ok = expectUInt(assault.Flag10, 1, "assault flag 10 from table") && ok;
+    ok = expectUInt(assaultRaw[0], 0x05, "assault raw byte 0") && ok;
+    ok = expectUInt(assaultRaw[1], 0x02, "assault raw byte 1") && ok;
+
+    auto assaultOutput = lua.create_table();
+    assault.toTable(assaultOutput);
+    auto flagsOutput = assaultOutput["flags"].get<sol::table>();
+    ok = expectUInt(flagsOutput[1].get<bool>(), true, "assault flag 1 to table") && ok;
+    ok = expectUInt(flagsOutput[2].get<bool>(), false, "assault flag 2 to table") && ok;
+    ok = expectUInt(flagsOutput[3].get<bool>(), true, "assault flag 3 to table") && ok;
+    ok = expectUInt(flagsOutput[10].get<bool>(), true, "assault flag 10 to table") && ok;
+
+    auto assaultPartial = lua.create_table();
+    auto partialFlags   = lua.create_table();
+    partialFlags[2]     = true;
+    assaultPartial["flags"] = partialFlags;
+    assault.fromTable(assaultPartial);
+    ok = expectUInt(assault.Flag1, 1, "assault flag 1 preserved") && ok;
+    ok = expectUInt(assault.Flag2, 1, "assault flag 2 partial update") && ok;
+    ok = expectUInt(assault.Flag3, 1, "assault flag 3 preserved") && ok;
+    ok = expectUInt(assault.Flag10, 1, "assault flag 10 preserved") && ok;
+
+    auto bettingInput = lua.create_table();
+    bettingInput["raceId"]       = 0x23456;
+    bettingInput["raceGrade"]    = 0x2A;
+    bettingInput["racePairingL"] = 0x0B;
+    bettingInput["racePairingR"] = 0x0C;
+    bettingInput["quills"]       = 0x155;
+
+    Exdata::BettingSlip betting{};
+    betting.fromTable(bettingInput);
+    const auto* bettingRaw = reinterpret_cast<const uint8*>(&betting);
+    ok = expectUInt(betting.RaceId, 0x23456, "betting race id from table") && ok;
+    ok = expectUInt(betting.RaceGrade, 0x2A, "betting race grade from table") && ok;
+    ok = expectUInt(betting.RacePairingL, 0x0B, "betting left pairing from table") && ok;
+    ok = expectUInt(betting.RacePairingR, 0x0C, "betting right pairing from table") && ok;
+    ok = expectUInt(betting.Quills, 0x155, "betting quills from table") && ok;
+    ok = expectUInt(bettingRaw[0], 0x56, "betting raw byte 0") && ok;
+    ok = expectUInt(bettingRaw[1], 0x34, "betting raw byte 1") && ok;
+    ok = expectUInt(bettingRaw[2], 0xAA, "betting raw byte 2") && ok;
+    ok = expectUInt(bettingRaw[3], 0xCB, "betting raw byte 3") && ok;
+    ok = expectUInt(bettingRaw[4], 0x55, "betting raw byte 4") && ok;
+    ok = expectUInt(bettingRaw[5], 0x01, "betting raw byte 5") && ok;
+
+    auto bettingOutput = lua.create_table();
+    betting.toTable(bettingOutput);
+    ok = expectUInt(bettingOutput["raceId"].get<uint32>(), 0x23456, "betting race id to table") && ok;
+    ok = expectUInt(bettingOutput["raceGrade"].get<uint32>(), 0x2A, "betting race grade to table") && ok;
+    ok = expectUInt(bettingOutput["racePairingL"].get<uint32>(), 0x0B, "betting left pairing to table") && ok;
+    ok = expectUInt(bettingOutput["racePairingR"].get<uint32>(), 0x0C, "betting right pairing to table") && ok;
+    ok = expectUInt(bettingOutput["quills"].get<uint16>(), 0x155, "betting quills to table") && ok;
+
+    auto bettingPartial = lua.create_table();
+    bettingPartial["quills"] = 0x2AA;
+    betting.fromTable(bettingPartial);
+    ok = expectUInt(betting.RaceId, 0x23456, "betting race id preserved") && ok;
+    ok = expectUInt(betting.Quills, 0x2AA, "betting quills partial update") && ok;
+
+    auto brennerInput = lua.create_table();
+    brennerInput["timeValue"] = 0x11223344;
+    brennerInput["level"]     = 75;
+
+    Exdata::BrennerBook brenner{};
+    brenner.fromTable(brennerInput);
+    const auto* brennerRaw = reinterpret_cast<const uint8*>(&brenner);
+    ok = expectUInt(brenner.TimeValue, 0x11223344, "brenner time value from table") && ok;
+    ok = expectUInt(brenner.Level, 75, "brenner level from table") && ok;
+    ok = expectUInt(brenner.Mode, 1, "brenner mode from table") && ok;
+    ok = expectUInt(brennerRaw[0], 0x44, "brenner raw byte 0") && ok;
+    ok = expectUInt(brennerRaw[3], 0x11, "brenner raw byte 3") && ok;
+    ok = expectUInt(brennerRaw[4], 0x4B, "brenner raw byte 4") && ok;
+    ok = expectUInt(brennerRaw[11], 0x01, "brenner raw mode byte") && ok;
+
+    auto brennerOutput = lua.create_table();
+    brenner.toTable(brennerOutput);
+    ok = expectUInt(brennerOutput["timeValue"].get<uint32>(), 0x11223344, "brenner time value to table") && ok;
+    ok = expectUInt(brennerOutput["level"].get<uint32>(), 75, "brenner level to table") && ok;
+
+    auto brennerPartial = lua.create_table();
+    brennerPartial["level"] = 50;
+    brenner.fromTable(brennerPartial);
+    ok = expectUInt(brenner.TimeValue, 0x11223344, "brenner time value preserved") && ok;
+    ok = expectUInt(brenner.Level, 50, "brenner level partial update") && ok;
+    ok = expectUInt(brenner.Mode, 1, "brenner mode partial update") && ok;
+
+    auto lotteryInput = lua.create_table();
+    lotteryInput["number"] = 0x345678;
+    lotteryInput["title"]  = 0x9A;
+
+    Exdata::LotteryTicket lottery{};
+    lottery.fromTable(lotteryInput);
+    const auto* lotteryRaw = reinterpret_cast<const uint8*>(&lottery);
+    ok = expectUInt(lottery.Number, 0x345678, "lottery number from table") && ok;
+    ok = expectUInt(lottery.Title, 0x9A, "lottery title from table") && ok;
+    ok = expectUInt(lotteryRaw[0], 0x78, "lottery raw byte 0") && ok;
+    ok = expectUInt(lotteryRaw[1], 0x56, "lottery raw byte 1") && ok;
+    ok = expectUInt(lotteryRaw[2], 0x34, "lottery raw byte 2") && ok;
+    ok = expectUInt(lotteryRaw[3], 0x9A, "lottery raw byte 3") && ok;
+
+    auto lotteryOutput = lua.create_table();
+    lottery.toTable(lotteryOutput);
+    ok = expectUInt(lotteryOutput["number"].get<uint32>(), 0x345678, "lottery number to table") && ok;
+    ok = expectUInt(lotteryOutput["title"].get<uint8>(), 0x9A, "lottery title to table") && ok;
+
+    auto lotteryPartial = lua.create_table();
+    lotteryPartial["title"] = 0x7B;
+    lottery.fromTable(lotteryPartial);
+    ok = expectUInt(lottery.Number, 0x345678, "lottery number preserved") && ok;
+    ok = expectUInt(lottery.Title, 0x7B, "lottery title partial update") && ok;
+
+    auto certificateInput = lua.create_table();
+    certificateInput["raceId"]    = 0x23456;
+    certificateInput["raceGrade"] = 0x2A;
+
+    Exdata::RaceCertificate certificate{};
+    certificate.fromTable(certificateInput);
+    const auto* certificateRaw = reinterpret_cast<const uint8*>(&certificate);
+    ok = expectUInt(certificate.RaceId, 0x23456, "race certificate race id from table") && ok;
+    ok = expectUInt(certificate.RaceGrade, 0x2A, "race certificate grade from table") && ok;
+    ok = expectUInt(certificateRaw[0], 0x56, "race certificate raw byte 0") && ok;
+    ok = expectUInt(certificateRaw[1], 0x34, "race certificate raw byte 1") && ok;
+    ok = expectUInt(certificateRaw[2], 0xAA, "race certificate raw byte 2") && ok;
+    ok = expectUInt(certificateRaw[3], 0x00, "race certificate raw byte 3") && ok;
+
+    auto certificateOutput = lua.create_table();
+    certificate.toTable(certificateOutput);
+    ok = expectUInt(certificateOutput["raceId"].get<uint32>(), 0x23456, "race certificate race id to table") && ok;
+    ok = expectUInt(certificateOutput["raceGrade"].get<uint32>(), 0x2A, "race certificate grade to table") && ok;
+
+    auto certificatePartial = lua.create_table();
+    certificatePartial["raceGrade"] = 0x15;
+    certificate.fromTable(certificatePartial);
+    ok = expectUInt(certificate.RaceId, 0x23456, "race certificate race id preserved") && ok;
+    ok = expectUInt(certificate.RaceGrade, 0x15, "race certificate grade partial update") && ok;
+
+    return ok;
+}
+
 } // namespace
 
 auto runItemExdataSelfTests() -> bool
@@ -315,5 +471,6 @@ auto runItemExdataSelfTests() -> bool
     ok      = testPredicateTypeDispatchAndPrecedence() && ok;
     ok      = testRawExdataOverlay() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
+    ok      = testLogTicketTableSerialization() && ok;
     return ok;
 }
