@@ -703,6 +703,59 @@ auto testSerializedTableSerialization() -> bool
     return ok;
 }
 
+auto testWeaponUnlockTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto input            = lua.create_table();
+    input["unlockPoints"] = 0x11234;
+
+    Exdata::WeaponUnlock unlock{};
+    unlock.fromTable(input);
+    auto* unlockRaw = reinterpret_cast<uint8*>(&unlock);
+
+    ok = expectUInt(unlock.UnlockPoints, 0x1234, "weapon unlock points from table") && ok;
+    ok = expectUInt(unlockRaw[0], 0x34, "weapon unlock raw byte 0") && ok;
+    ok = expectUInt(unlockRaw[1], 0x12, "weapon unlock raw byte 1") && ok;
+    for (std::size_t i = 2; i < CItem::extra_size; ++i)
+    {
+        ok = expectUInt(unlockRaw[i], 0x00, "weapon unlock padding byte") && ok;
+    }
+
+    auto output = lua.create_table();
+    unlock.toTable(output);
+    ok = expectUInt(output["unlockPoints"].get<uint16>(), 0x1234, "weapon unlock points to table") && ok;
+
+    uint8 expectedPadding[22] = {};
+    for (std::size_t i = 0; i < sizeof(expectedPadding); ++i)
+    {
+        expectedPadding[i] = static_cast<uint8>(0xA2 + i);
+        unlockRaw[2 + i]  = expectedPadding[i];
+    }
+
+    auto partial            = lua.create_table();
+    partial["unlockPoints"] = 42;
+    unlock.fromTable(partial);
+    ok = expectUInt(unlock.UnlockPoints, 42, "weapon unlock points partial update") && ok;
+    ok = expectUInt(unlockRaw[0], 0x2A, "weapon unlock partial raw byte 0") && ok;
+    ok = expectUInt(unlockRaw[1], 0x00, "weapon unlock partial raw byte 1") && ok;
+    for (std::size_t i = 0; i < sizeof(expectedPadding); ++i)
+    {
+        ok = expectUInt(unlockRaw[2 + i], expectedPadding[i], "weapon unlock padding byte preserved") && ok;
+    }
+
+    auto omitted = lua.create_table();
+    unlock.fromTable(omitted);
+    ok = expectUInt(unlock.UnlockPoints, 42, "weapon unlock points omitted update preserved") && ok;
+    for (std::size_t i = 0; i < sizeof(expectedPadding); ++i)
+    {
+        ok = expectUInt(unlockRaw[2 + i], expectedPadding[i], "weapon unlock omitted padding byte preserved") && ok;
+    }
+
+    return ok;
+}
+
 auto testTimerInfoTableSerialization() -> bool
 {
     sol::state lua;
@@ -1564,6 +1617,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testChocoboCardTableSerialization() && ok;
     ok      = testEscutcheonTableSerialization() && ok;
     ok      = testSerializedTableSerialization() && ok;
+    ok      = testWeaponUnlockTableSerialization() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testSoulTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
