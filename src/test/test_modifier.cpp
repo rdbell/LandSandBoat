@@ -219,6 +219,16 @@ auto testModSynthesisAndRidingSkillValues() -> bool
     return ok;
 }
 
+auto testModFishingGearValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::PENGUIN_RING_EFFECT), 152, "Mod::PENGUIN_RING_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ALBATROSS_RING_EFFECT), 153, "Mod::ALBATROSS_RING_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PELICAN_RING_EFFECT), 154, "Mod::PELICAN_RING_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FISHING_SKILL_GAIN), 155, "Mod::FISHING_SKILL_GAIN") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -269,6 +279,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModAutomatonRangedAndDefensiveSkillValues() && ok;
     ok      = testModMagicSkillValues() && ok;
     ok      = testModSynthesisAndRidingSkillValues() && ok;
+    ok      = testModFishingGearValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
