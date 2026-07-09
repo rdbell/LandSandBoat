@@ -370,6 +370,15 @@ auto testModFencerValues() -> bool
     return ok;
 }
 
+auto testModSmiteAndGuardValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::SMITE), 898, "Mod::SMITE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::TACTICAL_GUARD), 899, "Mod::TACTICAL_GUARD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GUARD_PERCENT), 976, "Mod::GUARD_PERCENT") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -433,6 +442,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModCriticalDamageValues() && ok;
     ok      = testModMagicCriticalValues() && ok;
     ok      = testModFencerValues() && ok;
+    ok      = testModSmiteAndGuardValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
