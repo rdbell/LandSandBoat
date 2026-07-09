@@ -33,6 +33,8 @@ set(SOURCES
     mock_socket.h
     test_active_database_dispatch.h
     test_active_database_dispatch.cpp
+    test_action_model.h
+    test_action_model.cpp
     test_application.h
     test_application.cpp
     test_arguments_parser.h
@@ -316,6 +318,8 @@ set(SOURCES
     test_login_packet_hash.cpp
     test_login_packet_helpers.h
     test_login_packet_helpers.cpp
+    test_login_version_lock.h
+    test_login_version_lock.cpp
     test_login_world_list_packet.h
     test_login_world_list_packet.cpp
     test_los_cache.h
@@ -348,6 +352,8 @@ set(SOURCES
     test_map_msg_basic_enum.cpp
     test_mob_modifier.h
     test_mob_modifier.cpp
+    test_mob_spell_list.h
+    test_mob_spell_list.cpp
     test_map_packet_basic_header.h
     test_map_packet_basic_header.cpp
     test_world_character_cache.h
@@ -650,6 +656,8 @@ set(SOURCES
     test_settings_value_conversions.cpp
     test_settings_loader.h
     test_settings_loader.cpp
+    test_scheduler_combinators.h
+    test_scheduler_combinators.cpp
     test_singleton_helper.h
     test_singleton_helper.cpp
     test_sqlite_query_translation.h
