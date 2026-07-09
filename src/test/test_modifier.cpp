@@ -1212,6 +1212,22 @@ auto testModItemAdditionalEffectValues() -> bool
     return ok;
 }
 
+auto testModAftermathAndExtraDamageValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::GOV_CLEARS), 496, "Mod::GOV_CLEARS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AFTERMATH), 256, "Mod::AFTERMATH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EXTRA_DMG_CHANCE), 506, "Mod::EXTRA_DMG_CHANCE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::OCC_DO_EXTRA_DMG), 507, "Mod::OCC_DO_EXTRA_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REM_OCC_DO_DOUBLE_DMG), 863, "Mod::REM_OCC_DO_DOUBLE_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REM_OCC_DO_TRIPLE_DMG), 864, "Mod::REM_OCC_DO_TRIPLE_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REM_OCC_DO_DOUBLE_DMG_RANGED), 867, "Mod::REM_OCC_DO_DOUBLE_DMG_RANGED") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REM_OCC_DO_TRIPLE_DMG_RANGED), 868, "Mod::REM_OCC_DO_TRIPLE_DMG_RANGED") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MYTHIC_OCC_ATT_TWICE), 865, "Mod::MYTHIC_OCC_ATT_TWICE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MYTHIC_OCC_ATT_THRICE), 866, "Mod::MYTHIC_OCC_ATT_THRICE") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1321,6 +1337,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModReraiseValues() && ok;
     ok      = testModAbsorbDMGToMPValues() && ok;
     ok      = testModItemAdditionalEffectValues() && ok;
+    ok      = testModAftermathAndExtraDamageValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
