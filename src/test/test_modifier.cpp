@@ -335,6 +335,15 @@ auto testModActionPowerMultiplierValues() -> bool
     return ok;
 }
 
+auto testModCriticalHitRateValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::CRITHITRATE_ONLY_WEP), 141, "Mod::CRITHITRATE_ONLY_WEP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CRITHITRATE), 165, "Mod::CRITHITRATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CRITICAL_HIT_EVASION), 166, "Mod::CRITICAL_HIT_EVASION") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -394,6 +403,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModAbsorbDamageValues() && ok;
     ok      = testModTacticalParryAndInhibitTPValues() && ok;
     ok      = testModActionPowerMultiplierValues() && ok;
+    ok      = testModCriticalHitRateValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
