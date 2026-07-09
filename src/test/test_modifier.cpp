@@ -1193,6 +1193,25 @@ auto testModAbsorbDMGToMPValues() -> bool
     return ok;
 }
 
+auto testModItemAdditionalEffectValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_LVADJUST), 278, "Mod::ITEM_ADDEFFECT_LVADJUST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_PLACEHLD), 279, "Mod::ITEM_ADDEFFECT_PLACEHLD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_DSTAT), 280, "Mod::ITEM_ADDEFFECT_DSTAT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_TYPE), 431, "Mod::ITEM_ADDEFFECT_TYPE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_SUBEFFECT), 499, "Mod::ITEM_SUBEFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_DMG), 500, "Mod::ITEM_ADDEFFECT_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_CHANCE), 501, "Mod::ITEM_ADDEFFECT_CHANCE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_ELEMENT), 950, "Mod::ITEM_ADDEFFECT_ELEMENT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_STATUS), 951, "Mod::ITEM_ADDEFFECT_STATUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_POWER), 952, "Mod::ITEM_ADDEFFECT_POWER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_DURATION), 953, "Mod::ITEM_ADDEFFECT_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_PRIORITY), 1180, "Mod::ITEM_ADDEFFECT_PRIORITY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ITEM_ADDEFFECT_SCRIPTED), 1181, "Mod::ITEM_ADDEFFECT_SCRIPTED") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1301,6 +1320,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModGearSetValues() && ok;
     ok      = testModReraiseValues() && ok;
     ok      = testModAbsorbDMGToMPValues() && ok;
+    ok      = testModItemAdditionalEffectValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
