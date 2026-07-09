@@ -315,6 +315,14 @@ auto testModAbsorbDamageValues() -> bool
     return ok;
 }
 
+auto testModTacticalParryAndInhibitTPValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::TACTICAL_PARRY), 486, "Mod::TACTICAL_PARRY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::INHIBIT_TP), 488, "Mod::INHIBIT_TP") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -372,6 +380,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModSpecificDamageTakenValues() && ok;
     ok      = testModNullDamageValues() && ok;
     ok      = testModAbsorbDamageValues() && ok;
+    ok      = testModTacticalParryAndInhibitTPValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
