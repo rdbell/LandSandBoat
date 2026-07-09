@@ -406,6 +406,18 @@ auto testModMovementSpeedValues() -> bool
     return ok;
 }
 
+auto testModCastAndRecastValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::UFASTCAST), 407, "Mod::UFASTCAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CURE_CAST_TIME), 519, "Mod::CURE_CAST_TIME") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ELEMENTAL_CELERITY), 901, "Mod::ELEMENTAL_CELERITY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HEALING_MAGIC_RECAST), 1183, "Mod::HEALING_MAGIC_RECAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENFEEBLING_MAGIC_RECAST), 1184, "Mod::ENFEEBLING_MAGIC_RECAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCING_MAGIC_RECAST), 1185, "Mod::ENHANCING_MAGIC_RECAST") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -472,6 +484,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModSmiteAndGuardValues() && ok;
     ok      = testModHasteAndSpellInterruptValues() && ok;
     ok      = testModMovementSpeedValues() && ok;
+    ok      = testModCastAndRecastValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
