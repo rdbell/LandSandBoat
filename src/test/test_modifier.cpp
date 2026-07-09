@@ -621,6 +621,17 @@ auto testModWhiteMageValues() -> bool
     return ok;
 }
 
+auto testModBlackMageValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::CLEAR_MIND), 295, "Mod::CLEAR_MIND") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CONSERVE_MP), 296, "Mod::CONSERVE_MP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ELEMENTAL_MAGIC_RECAST), 1146, "Mod::ELEMENTAL_MAGIC_RECAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_ELEMENTAL_SEAL), 1149, "Mod::ENHANCES_ELEMENTAL_SEAL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ELEMENTAL_DEBUFF_EFFECT), 1150, "Mod::ELEMENTAL_DEBUFF_EFFECT") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -700,6 +711,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModWarriorValues() && ok;
     ok      = testModMonkValues() && ok;
     ok      = testModWhiteMageValues() && ok;
+    ok      = testModBlackMageValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
