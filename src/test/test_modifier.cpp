@@ -1132,6 +1132,24 @@ auto testModWeaponDamageRatingValues() -> bool
     return ok;
 }
 
+auto testModAutoTickCureAndDelayValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::REGAIN), 368, "Mod::REGAIN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REGAIN_DOWN), 406, "Mod::REGAIN_DOWN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REFRESH), 369, "Mod::REFRESH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REFRESH_DOWN), 405, "Mod::REFRESH_DOWN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REGEN), 370, "Mod::REGEN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REGEN_DOWN), 404, "Mod::REGEN_DOWN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CURE_POTENCY), 374, "Mod::CURE_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CURE_POTENCY_II), 260, "Mod::CURE_POTENCY_II") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CURE_POTENCY_RCVD), 375, "Mod::CURE_POTENCY_RCVD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CURE_POTENCY_BONUS), 1051, "Mod::CURE_POTENCY_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DELAYP), 380, "Mod::DELAYP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RANGED_DELAYP), 381, "Mod::RANGED_DELAYP") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1235,6 +1253,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModElementalStaffAndAffinityPerpValues() && ok;
     ok      = testModStealthAndDurationValues() && ok;
     ok      = testModWeaponDamageRatingValues() && ok;
+    ok      = testModAutoTickCureAndDelayValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
