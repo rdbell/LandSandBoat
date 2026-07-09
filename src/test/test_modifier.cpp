@@ -202,6 +202,23 @@ auto testModMagicSkillValues() -> bool
     return ok;
 }
 
+auto testModSynthesisAndRidingSkillValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::FISH), 127, "Mod::FISH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WOOD), 128, "Mod::WOOD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SMITH), 129, "Mod::SMITH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GOLDSMITH), 130, "Mod::GOLDSMITH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CLOTH), 131, "Mod::CLOTH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LEATHER), 132, "Mod::LEATHER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BONE), 133, "Mod::BONE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ALCHEMY), 134, "Mod::ALCHEMY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::COOK), 135, "Mod::COOK") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SYNERGY), 136, "Mod::SYNERGY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RIDING), 137, "Mod::RIDING") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -251,6 +268,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModWeaponCombatSkillValues() && ok;
     ok      = testModAutomatonRangedAndDefensiveSkillValues() && ok;
     ok      = testModMagicSkillValues() && ok;
+    ok      = testModSynthesisAndRidingSkillValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
