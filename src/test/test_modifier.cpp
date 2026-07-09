@@ -790,6 +790,24 @@ auto testModRangerValues() -> bool
     return ok;
 }
 
+auto testModSamuraiValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::WARDING_CIRCLE_DURATION), 95, "Mod::WARDING_CIRCLE_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WARDING_CIRCLE_POTENCY), 1143, "Mod::WARDING_CIRCLE_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MEDITATE_DURATION), 94, "Mod::MEDITATE_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ZANSHIN), 306, "Mod::ZANSHIN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THIRD_EYE_COUNTER_RATE), 508, "Mod::THIRD_EYE_COUNTER_RATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THIRD_EYE_RETENTION_RATE), 839, "Mod::THIRD_EYE_RETENTION_RATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::THIRD_EYE_BONUS), 1055, "Mod::THIRD_EYE_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SENGIKORI_SC_DMG_DEBUFF), 1088, "Mod::SENGIKORI_SC_DMG_DEBUFF") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SENGIKORI_MB_DMG_DEBUFF), 1089, "Mod::SENGIKORI_MB_DMG_DEBUFF") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SENGIKORI_BONUS), 1090, "Mod::SENGIKORI_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HASSO_ZANSHIN_BONUS), 1187, "Mod::HASSO_ZANSHIN_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SEIGAN_COUNTER_BONUS), 1188, "Mod::SEIGAN_COUNTER_BONUS") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -877,6 +895,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModBeastmasterValues() && ok;
     ok      = testModBardValues() && ok;
     ok      = testModRangerValues() && ok;
+    ok      = testModSamuraiValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
