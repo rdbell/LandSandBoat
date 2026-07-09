@@ -19,6 +19,8 @@
 #include <common/cbasetypes.h>
 #include <common/types/maybe.h>
 
+#include <functional>
+
 class CMobEntity;
 
 struct SpawnSlotEntry
@@ -31,15 +33,27 @@ struct SpawnSlotEntry
     uint8 spawnChance{ 0 };
 };
 
+// Optional per-call dependencies for deterministic slot selection. Empty
+// functions retain the live SpawnHandler and xirand behavior.
+struct SpawnSlotHooks
+{
+    std::function<uint32()>                  roll100;
+    std::function<std::size_t(std::size_t)> fallbackIndex;
+    std::function<bool(const CMobEntity*)>  canSpawnNow;
+};
+
 class SpawnSlot
 {
 public:
     void AddMob(CMobEntity* mob, uint8 spawnChance);
     void RemoveMob(const CMobEntity* mob);
     auto TrySpawn(Maybe<uint32> specificMobId = std::nullopt) -> bool;
+    auto TrySpawn(const SpawnSlotHooks& hooks, Maybe<uint32> specificMobId = std::nullopt) -> bool;
     auto IsEmpty() const -> bool;
     auto GetEntries() const -> const std::vector<SpawnSlotEntry>&;
 
 private:
+    auto trySpawn(Maybe<uint32> specificMobId, const SpawnSlotHooks* hooks) -> bool;
+
     std::vector<SpawnSlotEntry> entries;
 };

@@ -26,7 +26,10 @@
 #include "common/singleton.h"
 #include "common/vana_time.h"
 #include "entities/npc_entity.h"
+#include <functional>
 #include <vector>
+
+class TimeTriggerTestAccess;
 
 struct Trigger_t
 {
@@ -34,7 +37,7 @@ struct Trigger_t
 
     CNpcEntity* npc; // NPC entity that the trigger belongs to
 
-    vanadiel_time::duration period;       // The vanadiel time between two firings of the trigger
+    vanadiel_time::duration period;       // The vanadiel time between two firings of the trigger. Must be nonzero.
     vanadiel_time::duration minuteOffset; // The vanadiel time after SE epoch which the period syncs to
 
     uint32 lastTrigger; // Used to store the last firing of the trigger
@@ -50,6 +53,13 @@ protected:
     CTriggerHandler() = default;
 
 private:
+    using TriggerCallback = std::function<void(CNpcEntity*, uint8)>;
+
+    void insertTriggerAt(Trigger_t, vanadiel_time::duration);
+    void triggerTimerAt(vanadiel_time::duration, const TriggerCallback&);
+
     std::vector<Trigger_t> triggerList;
+
+    friend class TimeTriggerTestAccess;
 };
 #endif

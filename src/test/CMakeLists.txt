@@ -350,10 +350,14 @@ set(SOURCES
     test_map_key_item_enum.cpp
     test_map_msg_basic_enum.h
     test_map_msg_basic_enum.cpp
+    test_maze.h
+    test_maze.cpp
     test_mob_modifier.h
     test_mob_modifier.cpp
     test_mob_spell_list.h
     test_mob_spell_list.cpp
+    test_notoriety_container.h
+    test_notoriety_container.cpp
     test_map_packet_basic_header.h
     test_map_packet_basic_header.cpp
     test_world_character_cache.h
@@ -662,6 +666,8 @@ set(SOURCES
     test_singleton_helper.cpp
     test_sqlite_query_translation.h
     test_sqlite_query_translation.cpp
+    test_spawn_slot.h
+    test_spawn_slot.cpp
     test_spatial_orientation.h
     test_spatial_orientation.cpp
     test_sjis_codec.h
@@ -670,12 +676,16 @@ set(SOURCES
     test_string_codec.cpp
     test_string_utils.h
     test_string_utils.cpp
+    test_status_effect_model.h
+    test_status_effect_model.cpp
     test_suite.h
     test_suite.cpp
     test_synchronized.h
     test_synchronized.cpp
     test_timer_helpers.h
     test_timer_helpers.cpp
+    test_time_triggers.h
+    test_time_triggers.cpp
     test_tracy_hex_helpers.h
     test_tracy_hex_helpers.cpp
     test_trigger_area.h

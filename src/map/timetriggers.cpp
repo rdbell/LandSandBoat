@@ -27,15 +27,27 @@
 
 void CTriggerHandler::insertTrigger(Trigger_t trigger)
 {
-    vanadiel_time::duration alignedTime = vanadiel_time::now().time_since_epoch() - trigger.minuteOffset;
+    insertTriggerAt(trigger, vanadiel_time::now().time_since_epoch());
+}
+
+void CTriggerHandler::insertTriggerAt(Trigger_t trigger, vanadiel_time::duration vanaTime)
+{
+    vanadiel_time::duration alignedTime = vanaTime - trigger.minuteOffset;
     trigger.lastTrigger                 = alignedTime / trigger.period;
     triggerList.emplace_back(trigger);
 }
 
 void CTriggerHandler::triggerTimer()
 {
-    Trigger_t*              trigger  = nullptr;
-    vanadiel_time::duration vanaTime = vanadiel_time::now().time_since_epoch();
+    triggerTimerAt(vanadiel_time::now().time_since_epoch(), [](CNpcEntity* npc, uint8 id)
+    {
+        luautils::OnTimeTrigger(npc, id);
+    });
+}
+
+void CTriggerHandler::triggerTimerAt(vanadiel_time::duration vanaTime, const TriggerCallback& callback)
+{
+    Trigger_t*              trigger = nullptr;
     vanadiel_time::duration alignedTime;
     uint32                  timeCount = 0;
 
@@ -47,7 +59,7 @@ void CTriggerHandler::triggerTimer()
 
         if (timeCount > trigger->lastTrigger)
         {
-            luautils::OnTimeTrigger(trigger->npc, trigger->id);
+            callback(trigger->npc, trigger->id);
             trigger->lastTrigger = timeCount;
         }
     }

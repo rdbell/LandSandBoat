@@ -38,6 +38,16 @@ void SpawnSlot::RemoveMob(const CMobEntity* mob)
 
 auto SpawnSlot::TrySpawn(const Maybe<uint32> specificMobId) -> bool
 {
+    return trySpawn(specificMobId, nullptr);
+}
+
+auto SpawnSlot::TrySpawn(const SpawnSlotHooks& hooks, const Maybe<uint32> specificMobId) -> bool
+{
+    return trySpawn(specificMobId, &hooks);
+}
+
+auto SpawnSlot::trySpawn(const Maybe<uint32> specificMobId, const SpawnSlotHooks* hooks) -> bool
+{
     // Get SpawnHandler from first mob's zone for condition checking
     SpawnHandler* spawnHandler = nullptr;
     if (!entries.empty() && entries[0].mob->loc.zone)
@@ -58,11 +68,17 @@ auto SpawnSlot::TrySpawn(const Maybe<uint32> specificMobId) -> bool
             return false;
         }
 
-        if (!it->mob->isAlive() && (!spawnHandler || spawnHandler->canSpawnNow(it->mob)))
+        if (!it->mob->isAlive())
         {
-            it->mob->m_AllowRespawn = true;
-            it->mob->Spawn();
-            return true;
+            const bool canSpawnNow = hooks && hooks->canSpawnNow ?
+                                         hooks->canSpawnNow(it->mob) :
+                                         !spawnHandler || spawnHandler->canSpawnNow(it->mob);
+            if (canSpawnNow)
+            {
+                it->mob->m_AllowRespawn = true;
+                it->mob->Spawn();
+                return true;
+            }
         }
 
         return false;
@@ -85,7 +101,10 @@ auto SpawnSlot::TrySpawn(const Maybe<uint32> specificMobId) -> bool
         }
 
         // Use SpawnHandler to check spawn conditions (time, weather, etc.)
-        if (spawnHandler && !spawnHandler->canSpawnNow(entry.mob))
+        const bool canSpawnNow = hooks && hooks->canSpawnNow ?
+                                     hooks->canSpawnNow(entry.mob) :
+                                     !spawnHandler || spawnHandler->canSpawnNow(entry.mob);
+        if (!canSpawnNow)
         {
             continue;
         }
@@ -116,7 +135,7 @@ auto SpawnSlot::TrySpawn(const Maybe<uint32> specificMobId) -> bool
     // Check for chance spawns
     if (totalChance > 0)
     {
-        const uint32 roll = xirand::GetRandomNumber(100);
+        const uint32 roll = hooks && hooks->roll100 ? hooks->roll100() : xirand::GetRandomNumber(100);
 
         // Check if roll is low enough number to make one of the chance mobs to spawn.
         if (roll < totalChance)
@@ -142,7 +161,14 @@ auto SpawnSlot::TrySpawn(const Maybe<uint32> specificMobId) -> bool
         if (!remainingSpawns.empty())
         {
             // Pick a random mob from the non-chance spawns
-            allowedSpawn = xirand::GetRandomElement(remainingSpawns);
+            if (hooks && hooks->fallbackIndex)
+            {
+                allowedSpawn = remainingSpawns.at(hooks->fallbackIndex(remainingSpawns.size()));
+            }
+            else
+            {
+                allowedSpawn = xirand::GetRandomElement(remainingSpawns);
+            }
         }
         else
         {
