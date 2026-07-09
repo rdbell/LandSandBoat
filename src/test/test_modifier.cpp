@@ -990,6 +990,31 @@ auto testModDancerValues() -> bool
     return ok;
 }
 
+auto testModScholarValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::BLACK_MAGIC_COST), 393, "Mod::BLACK_MAGIC_COST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WHITE_MAGIC_COST), 394, "Mod::WHITE_MAGIC_COST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BLACK_MAGIC_CAST), 395, "Mod::BLACK_MAGIC_CAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WHITE_MAGIC_CAST), 396, "Mod::WHITE_MAGIC_CAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BLACK_MAGIC_RECAST), 397, "Mod::BLACK_MAGIC_RECAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WHITE_MAGIC_RECAST), 398, "Mod::WHITE_MAGIC_RECAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ALACRITY_CELERITY_EFFECT), 399, "Mod::ALACRITY_CELERITY_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_ARTS_EFFECT), 334, "Mod::LIGHT_ARTS_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_ARTS_EFFECT), 335, "Mod::DARK_ARTS_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_ARTS_SKILL), 336, "Mod::LIGHT_ARTS_SKILL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DARK_ARTS_SKILL), 337, "Mod::DARK_ARTS_SKILL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LIGHT_ARTS_REGEN), 338, "Mod::LIGHT_ARTS_REGEN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REGEN_DURATION), 339, "Mod::REGEN_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HELIX_EFFECT), 478, "Mod::HELIX_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HELIX_DURATION), 477, "Mod::HELIX_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STORMSURGE_EFFECT), 400, "Mod::STORMSURGE_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SUBLIMATION_BONUS), 401, "Mod::SUBLIMATION_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::GRIMOIRE_SPELLCASTING), 489, "Mod::GRIMOIRE_SPELLCASTING") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STRATAGEM_RECAST), 1159, "Mod::STRATAGEM_RECAST") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1085,6 +1110,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModCorsairValues() && ok;
     ok      = testModPuppetmasterValues() && ok;
     ok      = testModDancerValues() && ok;
+    ok      = testModScholarValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
