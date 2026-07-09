@@ -666,6 +666,31 @@ auto testModThiefValues() -> bool
     return ok;
 }
 
+auto testModPaladinValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::HOLY_CIRCLE_DURATION), 857, "Mod::HOLY_CIRCLE_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HOLY_CIRCLE_POTENCY), 1141, "Mod::HOLY_CIRCLE_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RAMPART_DURATION), 92, "Mod::RAMPART_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ABSORB_PHYSDMG_TO_MP), 426, "Mod::ABSORB_PHYSDMG_TO_MP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SHIELD_MASTERY_TP), 485, "Mod::SHIELD_MASTERY_TP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SENTINEL_EFFECT), 837, "Mod::SENTINEL_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SHIELD_DEF_BONUS), 905, "Mod::SHIELD_DEF_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::COVER_TO_MP), 965, "Mod::COVER_TO_MP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::COVER_MAGIC_AND_RANGED), 966, "Mod::COVER_MAGIC_AND_RANGED") && ok;
+    ok      = expectInt(static_cast<int>(Mod::COVER_DURATION), 967, "Mod::COVER_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_CHIVALRY), 1061, "Mod::ENHANCES_CHIVALRY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_DIVINE_EMBLEM), 1062, "Mod::ENHANCES_DIVINE_EMBLEM") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_FEALTY), 1063, "Mod::ENHANCES_FEALTY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_IRON_WILL), 1064, "Mod::ENHANCES_IRON_WILL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_GUARDIAN), 1065, "Mod::ENHANCES_GUARDIAN") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PALISADE_BLOCK_BONUS), 1066, "Mod::PALISADE_BLOCK_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REPRISAL_BLOCK_BONUS), 1067, "Mod::REPRISAL_BLOCK_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REPRISAL_SPIKES_BONUS), 1068, "Mod::REPRISAL_SPIKES_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SHIELD_BARRIER), 1082, "Mod::SHIELD_BARRIER") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -748,6 +773,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModBlackMageValues() && ok;
     ok      = testModRedMageValues() && ok;
     ok      = testModThiefValues() && ok;
+    ok      = testModPaladinValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
