@@ -344,6 +344,15 @@ auto testModCriticalHitRateValues() -> bool
     return ok;
 }
 
+auto testModCriticalDamageValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::CRIT_DMG_INCREASE), 421, "Mod::CRIT_DMG_INCREASE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::RANGED_CRIT_DMG_INCREASE), 964, "Mod::RANGED_CRIT_DMG_INCREASE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CRIT_DEF_BONUS), 908, "Mod::CRIT_DEF_BONUS") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -404,6 +413,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModTacticalParryAndInhibitTPValues() && ok;
     ok      = testModActionPowerMultiplierValues() && ok;
     ok      = testModCriticalHitRateValues() && ok;
+    ok      = testModCriticalDamageValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
