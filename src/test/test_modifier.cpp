@@ -353,6 +353,15 @@ auto testModCriticalDamageValues() -> bool
     return ok;
 }
 
+auto testModMagicCriticalValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::MAGIC_CRITHITRATE), 562, "Mod::MAGIC_CRITHITRATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAGIC_CRIT_DMG_INCREASE), 563, "Mod::MAGIC_CRIT_DMG_INCREASE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAGIC_CRITHITRATE_II), 1168, "Mod::MAGIC_CRITHITRATE_II") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -414,6 +423,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModActionPowerMultiplierValues() && ok;
     ok      = testModCriticalHitRateValues() && ok;
     ok      = testModCriticalDamageValues() && ok;
+    ok      = testModMagicCriticalValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
