@@ -439,6 +439,31 @@ auto testModMagicDamageAndMPCostValues() -> bool
     return ok;
 }
 
+auto testModFoodValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_MACCP), 99, "Mod::FOOD_MACCP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_MACC_CAP), 100, "Mod::FOOD_MACC_CAP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_HPP), 176, "Mod::FOOD_HPP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_HP_CAP), 177, "Mod::FOOD_HP_CAP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_MPP), 178, "Mod::FOOD_MPP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_MP_CAP), 179, "Mod::FOOD_MP_CAP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_ATTP), 180, "Mod::FOOD_ATTP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_ATT_CAP), 181, "Mod::FOOD_ATT_CAP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_DEFP), 182, "Mod::FOOD_DEFP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_DEF_CAP), 183, "Mod::FOOD_DEF_CAP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_ACCP), 184, "Mod::FOOD_ACCP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_ACC_CAP), 185, "Mod::FOOD_ACC_CAP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_RATTP), 186, "Mod::FOOD_RATTP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_RATT_CAP), 187, "Mod::FOOD_RATT_CAP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_RACCP), 188, "Mod::FOOD_RACCP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_RACC_CAP), 189, "Mod::FOOD_RACC_CAP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_DURATION), 937, "Mod::FOOD_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_HP), 1130, "Mod::FOOD_HP") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOD_MP), 1131, "Mod::FOOD_MP") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -508,6 +533,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModCastAndRecastValues() && ok;
     ok      = testModDelaySkillchainAndSwingValues() && ok;
     ok      = testModMagicDamageAndMPCostValues() && ok;
+    ok      = testModFoodValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
