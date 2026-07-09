@@ -22,6 +22,7 @@
 #include "test_trait.h"
 
 #include "map/blue_trait.h"
+#include "map/entities/battle_entity.h"
 #include "map/trait.h"
 
 #include <cstdint>
@@ -96,6 +97,36 @@ auto testBlueTraitDefaultsAndSetters() -> bool
     return ok;
 }
 
+auto testTraitRegistryJobLookup() -> bool
+{
+    auto* noneTraits = traits::GetTraits(JOB_NON);
+    auto* warTraits  = traits::GetTraits(JOB_WAR);
+    auto* lastTraits = traits::GetTraits(MAX_JOBTYPE - 1);
+
+    bool ok = true;
+    ok      = expectInt(noneTraits != nullptr, 1, "job non trait list") && ok;
+    ok      = expectInt(warTraits != nullptr, 1, "valid job trait list") && ok;
+    ok      = expectInt(lastTraits != nullptr, 1, "last valid job trait list") && ok;
+    ok      = expectInt(traits::GetTraits(MAX_JOBTYPE) == nullptr, 1, "invalid job trait list") && ok;
+
+    if (warTraits != nullptr)
+    {
+        const auto originalSize = warTraits->size();
+        CTrait     trait(77);
+        trait.setJob(JOB_WAR);
+        warTraits->push_back(&trait);
+
+        ok = expectInt(traits::GetTraits(JOB_WAR) == warTraits, 1, "same job trait list pointer") && ok;
+        ok = expectInt(warTraits->size(), originalSize + 1, "inserted trait list size") && ok;
+        ok = expectInt(warTraits->back()->getID(), 77, "inserted trait ID") && ok;
+
+        warTraits->pop_back();
+        ok = expectInt(warTraits->size(), originalSize, "restored trait list size") && ok;
+    }
+
+    return ok;
+}
+
 } // namespace
 
 auto runTraitSelfTests() -> bool
@@ -103,5 +134,6 @@ auto runTraitSelfTests() -> bool
     bool ok = true;
     ok      = testTraitDefaultsAndSetters() && ok;
     ok      = testBlueTraitDefaultsAndSetters() && ok;
+    ok      = testTraitRegistryJobLookup() && ok;
     return ok;
 }
