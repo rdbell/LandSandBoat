@@ -1247,6 +1247,22 @@ auto testModFoodCursnaAndClammingValues() -> bool
     return ok;
 }
 
+auto testModChocoboHELMDrainAndAmmoValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::CHOCOBO_RIDING_TIME), 511, "Mod::CHOCOBO_RIDING_TIME") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HARVESTING_RESULT), 513, "Mod::HARVESTING_RESULT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::LOGGING_RESULT), 514, "Mod::LOGGING_RESULT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MINING_RESULT), 515, "Mod::MINING_RESULT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::EGGHELM), 517, "Mod::EGGHELM") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SHIELDBLOCKRATE), 518, "Mod::SHIELDBLOCKRATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DIA_DOT), 313, "Mod::DIA_DOT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENH_DRAIN_ASPIR), 315, "Mod::ENH_DRAIN_ASPIR") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_ABSORB_LIBERATOR), 521, "Mod::AUGMENTS_ABSORB_LIBERATOR") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AMMO_SWING), 523, "Mod::AMMO_SWING") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1358,6 +1374,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModItemAdditionalEffectValues() && ok;
     ok      = testModAftermathAndExtraDamageValues() && ok;
     ok      = testModFoodCursnaAndClammingValues() && ok;
+    ok      = testModChocoboHELMDrainAndAmmoValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
