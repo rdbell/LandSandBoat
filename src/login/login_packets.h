@@ -21,6 +21,11 @@
 
 #pragma once
 
+#include "common/md52.h"
+
+#include <cstddef>
+#include <cstdint>
+
 // Source for this entire reference is from atom0s's dump at https://github.com/atom0s/XiPackets
 // Thank you for your service to the community, atom0s!
 
@@ -35,6 +40,17 @@ struct packet_t
     uint32_t command;       // PS2: command
     uint8_t  identifer[16]; // PS2: identifer
 };
+
+// PS2: lpkt_key https://github.com/atom0s/XiPackets/blob/main/lobby/S2C_0x0005_ResponseKey.md
+struct lpkt_key : packet_t
+{
+    uint32_t key;            // PS2: key
+    uint32_t excode_server;  // PS2: excode_server
+    uint32_t excode_server2; // PS2: (New; did not exist.)
+};
+
+static_assert(sizeof(packet_t) == 28);
+static_assert(sizeof(lpkt_key) == 40);
 
 namespace loginPackets
 {
@@ -60,6 +76,24 @@ inline void clearIdentifier(packet_t& packet)
     {
         packet.identifer[i] = 0;
     }
+}
+
+inline auto generateKeyPacket(uint16_t expansionMask, uint16_t featureMask) -> lpkt_key
+{
+    auto packet           = lpkt_key{};
+    packet.packet_size    = static_cast<uint32_t>(sizeof(lpkt_key));
+    packet.terminator     = getTerminator();
+    packet.command        = 0x05;
+    packet.key            = 0xAD5DE04F;
+    packet.excode_server  = expansionMask;
+    packet.excode_server2 = featureMask;
+    clearIdentifier(packet);
+
+    uint8 hash[16] = {};
+    md5(reinterpret_cast<uint8*>(&packet), hash, static_cast<int32>(sizeof(packet)));
+    copyHashIntoPacket(packet, hash);
+
+    return packet;
 }
 
 } // namespace loginPackets

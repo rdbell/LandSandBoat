@@ -371,42 +371,9 @@ void view_session::read_func()
                 }
             }
 
-            // https://github.com/atom0s/XiPackets/blob/main/lobby/S2C_0x0005_ResponseKey.md
-            struct lpkt_key
-            {
-                uint32_t packet_size;    // PS2: packet_size
-                uint32_t terminator;     // PS2: terminator
-                uint32_t command;        // PS2: command
-                uint8_t  identifer[16];  // PS2: identifer
-                uint32_t key;            // PS2: key
-                uint32_t excode_server;  // PS2: excode_server
-                uint32_t excode_server2; // PS2: (New; did not exist.)
-            };
-
-            lpkt_key packet = {};
-
-            // Zero buffers
-            std::memset(buffer_.data(), 0, 0x28);
-            std::memset(&packet, 0, sizeof(lpkt_key));
-
-            packet.packet_size    = 0x28;       // NOT the size of lpkt_key
-            packet.terminator     = 0x46465849; // F F X I (in memory as I X F F)
-            packet.command        = 0x05;
-            packet.key            = 0xAD5DE04F; // old magic key. May be able to replace with a randomized key some day...
-            packet.excode_server  = loginHelpers::generateExpansionBitmask();
-            packet.excode_server2 = loginHelpers::generateFeatureBitmask();
-
-            std::memcpy(buffer_.data(), &packet, sizeof(lpkt_key));
-
-            // Hash the packet data and then write the value of the hash into the packet.
-            unsigned char hash[16];
-            md5(reinterpret_cast<uint8*>(buffer_.data()), hash, 0x28);
-
-            for (int i = 0; i < 16; i++)
-            {
-                packet.identifer[i] = hash[i];
-            }
-
+            const auto packet = loginPackets::generateKeyPacket(
+                loginHelpers::generateExpansionBitmask(),
+                loginHelpers::generateFeatureBitmask());
             std::memcpy(buffer_.data(), &packet, sizeof(lpkt_key));
             DebugSockets("view_session: Sending version and expansions info to account %d", session.accountID);
 
