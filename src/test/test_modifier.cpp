@@ -853,6 +853,31 @@ auto testModDragoonValues() -> bool
     return ok;
 }
 
+auto testModSummonerValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::AVATAR_PERPETUATION), 371, "Mod::AVATAR_PERPETUATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WEATHER_REDUCTION), 372, "Mod::WEATHER_REDUCTION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DAY_REDUCTION), 373, "Mod::DAY_REDUCTION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PERPETUATION_REDUCTION), 346, "Mod::PERPETUATION_REDUCTION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HALF_PERPETUATION_CARBUNCLE), 356, "Mod::HALF_PERPETUATION_CARBUNCLE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HALF_PERPETUATION_DAY), 1170, "Mod::HALF_PERPETUATION_DAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::HALF_PERPETUATION_WEATHER), 1171, "Mod::HALF_PERPETUATION_WEATHER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BP_DELAY), 357, "Mod::BP_DELAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_ELEMENTAL_SIPHON), 540, "Mod::ENHANCES_ELEMENTAL_SIPHON") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BP_DELAY_II), 541, "Mod::BP_DELAY_II") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BP_DAMAGE), 126, "Mod::BP_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::BLOOD_BOON), 913, "Mod::BLOOD_BOON") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AVATARS_FAVOR_ENHANCE), 1154, "Mod::AVATARS_FAVOR_ENHANCE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AVATAR_LVL_BONUS), 1040, "Mod::AVATAR_LVL_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CARBUNCLE_LVL_BONUS), 1041, "Mod::CARBUNCLE_LVL_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CAIT_SITH_LVL_BONUS), 1042, "Mod::CAIT_SITH_LVL_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENHANCES_MANA_CEDE), 74, "Mod::ENHANCES_MANA_CEDE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SUMMONING_MAGIC_CAST), 1078, "Mod::SUMMONING_MAGIC_CAST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SPIRIT_CAST_REDUCTION), 140, "Mod::SPIRIT_CAST_REDUCTION") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -943,6 +968,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModSamuraiValues() && ok;
     ok      = testModNinjaValues() && ok;
     ok      = testModDragoonValues() && ok;
+    ok      = testModSummonerValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
