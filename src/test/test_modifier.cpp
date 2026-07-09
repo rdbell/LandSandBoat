@@ -971,6 +971,25 @@ auto testModPuppetmasterValues() -> bool
     return ok;
 }
 
+auto testModDancerValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::FINISHING_MOVES), 333, "Mod::FINISHING_MOVES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SAMBA_DURATION), 490, "Mod::SAMBA_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WALTZ_POTENCY), 491, "Mod::WALTZ_POTENCY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::JIG_DURATION), 492, "Mod::JIG_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::VFLOURISH_MACC), 493, "Mod::VFLOURISH_MACC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STEP_FINISH), 494, "Mod::STEP_FINISH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STEP_ACCURACY), 403, "Mod::STEP_ACCURACY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WALTZ_DELAY), 497, "Mod::WALTZ_DELAY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SAMBA_PDURATION), 498, "Mod::SAMBA_PDURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::REVERSE_FLOURISH_EFFECT), 836, "Mod::REVERSE_FLOURISH_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MAX_FINISHING_MOVE_BONUS), 988, "Mod::MAX_FINISHING_MOVE_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::WALTZ_COST), 139, "Mod::WALTZ_COST") && ok;
+    ok      = expectInt(static_cast<int>(Mod::STEP_TP_CONSUMED), 1077, "Mod::STEP_TP_CONSUMED") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1065,6 +1084,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModBlueMageValues() && ok;
     ok      = testModCorsairValues() && ok;
     ok      = testModPuppetmasterValues() && ok;
+    ok      = testModDancerValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
