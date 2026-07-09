@@ -431,6 +431,14 @@ auto testModDelaySkillchainAndSwingValues() -> bool
     return ok;
 }
 
+auto testModMagicDamageAndMPCostValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::MAGIC_DAMAGE), 311, "Mod::MAGIC_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MP_COST_REDUCTION), 1197, "Mod::MP_COST_REDUCTION") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -499,6 +507,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModMovementSpeedValues() && ok;
     ok      = testModCastAndRecastValues() && ok;
     ok      = testModDelaySkillchainAndSwingValues() && ok;
+    ok      = testModMagicDamageAndMPCostValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
