@@ -319,6 +319,77 @@ auto testFishTableSerialization() -> bool
     return ok;
 }
 
+auto testChocoboEggTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto input       = lua.create_table();
+    auto dna         = lua.create_table();
+    dna[1]           = 0x0B;
+    dna[2]           = 5;
+    dna[3]           = 7;
+    input["dna"]     = dna;
+    input["ability"] = 0x1D;
+    input["plan"]    = 6;
+    input["isBred"]  = true;
+
+    Exdata::ChocoboEgg egg{};
+    egg.fromTable(input);
+    auto* eggRaw = reinterpret_cast<uint8*>(&egg);
+
+    ok = expectUInt(egg.DNA1, 3, "chocobo egg dna 1 masked from table") && ok;
+    ok = expectUInt(egg.DNA2, 5, "chocobo egg dna 2 from table") && ok;
+    ok = expectUInt(egg.DNA3, 7, "chocobo egg dna 3 from table") && ok;
+    ok = expectUInt(egg.Ability, 0x0D, "chocobo egg ability masked from table") && ok;
+    ok = expectUInt(egg.Plan, 2, "chocobo egg plan masked from table") && ok;
+    ok = expectUInt(egg.IsBred, 1, "chocobo egg bred flag from table") && ok;
+    ok = expectUInt(eggRaw[0], 0xEB, "chocobo egg raw bitfield byte 0") && ok;
+    ok = expectUInt(eggRaw[1], 0x9B, "chocobo egg raw bitfield byte 1") && ok;
+    ok = expectUInt(eggRaw[2], 0x00, "chocobo egg raw bitfield byte 2") && ok;
+    ok = expectUInt(eggRaw[3], 0x80, "chocobo egg raw bitfield byte 3") && ok;
+    ok = expectUInt(eggRaw[4], 0x00, "chocobo egg raw padding byte 0") && ok;
+    ok = expectUInt(eggRaw[23], 0x00, "chocobo egg raw padding byte 19") && ok;
+
+    auto output = lua.create_table();
+    egg.toTable(output);
+    auto dnaOutput = output["dna"].get<sol::table>();
+    ok = expectUInt(dnaOutput[1].get<uint32>(), 3, "chocobo egg dna 1 to table") && ok;
+    ok = expectUInt(dnaOutput[2].get<uint32>(), 5, "chocobo egg dna 2 to table") && ok;
+    ok = expectUInt(dnaOutput[3].get<uint32>(), 7, "chocobo egg dna 3 to table") && ok;
+    ok = expectUInt(output["ability"].get<uint32>(), 0x0D, "chocobo egg ability to table") && ok;
+    ok = expectUInt(output["plan"].get<uint32>(), 2, "chocobo egg plan to table") && ok;
+    ok = expectUInt(output["isBred"].get<bool>() ? 1 : 0, 1, "chocobo egg bred flag to table") && ok;
+
+    eggRaw[1] |= 0x20;
+    eggRaw[2]  = 0xA5;
+    eggRaw[3]  = 0xD2;
+    eggRaw[4]  = 0xC1;
+    eggRaw[23] = 0xD3;
+
+    auto partial       = lua.create_table();
+    auto partialDNA    = lua.create_table();
+    partialDNA[2]      = 1;
+    partial["dna"]     = partialDNA;
+    partial["ability"] = 2;
+    partial["isBred"]  = false;
+    egg.fromTable(partial);
+    ok = expectUInt(egg.DNA1, 3, "chocobo egg dna 1 preserved") && ok;
+    ok = expectUInt(egg.DNA2, 1, "chocobo egg dna 2 partial update") && ok;
+    ok = expectUInt(egg.DNA3, 7, "chocobo egg dna 3 preserved") && ok;
+    ok = expectUInt(egg.Ability, 2, "chocobo egg ability partial update") && ok;
+    ok = expectUInt(egg.Plan, 2, "chocobo egg plan preserved") && ok;
+    ok = expectUInt(egg.IsBred, 0, "chocobo egg bred flag cleared") && ok;
+    ok = expectUInt(eggRaw[0], 0xCB, "chocobo egg partial raw bitfield byte 0") && ok;
+    ok = expectUInt(eggRaw[1], 0xA5, "chocobo egg partial raw bitfield byte 1") && ok;
+    ok = expectUInt(eggRaw[2], 0xA5, "chocobo egg hidden bitfield byte 2 preserved") && ok;
+    ok = expectUInt(eggRaw[3], 0x52, "chocobo egg hidden bitfield byte 3 preserved") && ok;
+    ok = expectUInt(eggRaw[4], 0xC1, "chocobo egg padding byte 0 preserved") && ok;
+    ok = expectUInt(eggRaw[23], 0xD3, "chocobo egg padding byte 19 preserved") && ok;
+
+    return ok;
+}
+
 auto testTimerInfoTableSerialization() -> bool
 {
     sol::state lua;
@@ -1176,6 +1247,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testPredicateTypeDispatchAndPrecedence() && ok;
     ok      = testRawExdataOverlay() && ok;
     ok      = testFishTableSerialization() && ok;
+    ok      = testChocoboEggTableSerialization() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testSoulTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
