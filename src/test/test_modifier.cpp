@@ -390,6 +390,22 @@ auto testModHasteAndSpellInterruptValues() -> bool
     return ok;
 }
 
+auto testModMovementSpeedValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::MOVE_SPEED_STACKABLE), 75, "Mod::MOVE_SPEED_STACKABLE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MOVE_SPEED_GEAR_BONUS), 76, "Mod::MOVE_SPEED_GEAR_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MOVE_SPEED_WEIGHT_PENALTY), 77, "Mod::MOVE_SPEED_WEIGHT_PENALTY") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MOVE_SPEED_QUICKENING), 78, "Mod::MOVE_SPEED_QUICKENING") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MOVE_SPEED_MAZURKA), 79, "Mod::MOVE_SPEED_MAZURKA") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MOVE_SPEED_OVERRIDE), 169, "Mod::MOVE_SPEED_OVERRIDE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MOUNT_MOVE), 972, "Mod::MOUNT_MOVE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MOVE_SPEED_FLEE), 1085, "Mod::MOVE_SPEED_FLEE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MOVE_SPEED_BOLTERS_ROLL), 1086, "Mod::MOVE_SPEED_BOLTERS_ROLL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::MOVE_SPEED_CHEER), 1087, "Mod::MOVE_SPEED_CHEER") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -455,6 +471,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModFencerValues() && ok;
     ok      = testModSmiteAndGuardValues() && ok;
     ok      = testModHasteAndSpellInterruptValues() && ok;
+    ok      = testModMovementSpeedValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
