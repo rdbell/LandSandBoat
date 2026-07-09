@@ -587,6 +587,26 @@ auto testModWarriorValues() -> bool
     return ok;
 }
 
+auto testModMonkValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::BOOST_EFFECT), 97, "Mod::BOOST_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CHAKRA_MULT), 1026, "Mod::CHAKRA_MULT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::CHAKRA_REMOVAL), 1027, "Mod::CHAKRA_REMOVAL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SUBTLE_BLOW), 289, "Mod::SUBTLE_BLOW") && ok;
+    ok      = expectInt(static_cast<int>(Mod::COUNTER), 291, "Mod::COUNTER") && ok;
+    ok      = expectInt(static_cast<int>(Mod::KICK_ATTACK_RATE), 292, "Mod::KICK_ATTACK_RATE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::PERFECT_COUNTER_ATT), 428, "Mod::PERFECT_COUNTER_ATT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::COUNTER_DAMAGE), 1047, "Mod::COUNTER_DAMAGE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOOTWORK_ATT_BONUS), 429, "Mod::FOOTWORK_ATT_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::COUNTERSTANCE_EFFECT), 543, "Mod::COUNTERSTANCE_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DODGE_EFFECT), 552, "Mod::DODGE_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::FOCUS_EFFECT), 561, "Mod::FOCUS_EFFECT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ADDITIVE_GUARD), 1092, "Mod::ADDITIVE_GUARD") && ok;
+    ok      = expectInt(static_cast<int>(Mod::AUGMENTS_IMPETUS), 1097, "Mod::AUGMENTS_IMPETUS") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -664,6 +684,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModParalyzeMijinAndDualWieldValues() && ok;
     ok      = testModFTPBonusValues() && ok;
     ok      = testModWarriorValues() && ok;
+    ok      = testModMonkValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
