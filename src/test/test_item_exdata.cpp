@@ -22,6 +22,7 @@
 #include "test_item_exdata.h"
 
 #include "common/lua.h"
+#include "map/items/exdata/storage_slip.h"
 #include "map/items/exdata.h"
 #include "map/items/item.h"
 #include "map/items/item_equipment.h"
@@ -33,6 +34,7 @@
 #include "map/items.h"
 #include "map/utils/fishingutils.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <map>
@@ -85,6 +87,12 @@ struct LocalExdata
 };
 
 static_assert(sizeof(LocalExdata) == CItem::extra_size);
+static_assert(sizeof(Exdata::Appraisable) == CItem::extra_size);
+static_assert(offsetof(Exdata::Appraisable, AppraisalId) == 22);
+static_assert(sizeof(Exdata::WornItem) == CItem::extra_size);
+static_assert(offsetof(Exdata::WornItem, UseCount) == 0);
+static_assert(sizeof(Exdata::StorageSlip) == CItem::extra_size);
+static_assert(offsetof(Exdata::StorageSlip, Items) == 0);
 
 auto testTypeEnumGoldenValues() -> bool
 {
@@ -262,6 +270,54 @@ auto testRawExdataOverlay() -> bool
     ok = expectUInt(copy.exdata<LocalExdata>().Marker, 0x1234, "copy marker") && ok;
     ok = expectUInt(copy.exdata<LocalExdata>().Payload[0], 0x56, "copy payload first byte") && ok;
     ok = expectUInt(copy.exdata<LocalExdata>().Payload[21], 0x78, "copy payload last byte") && ok;
+    return ok;
+}
+
+auto testRawOnlyPayloadOverlays() -> bool
+{
+    bool ok = true;
+
+    CItem appraisableItem(0x6001);
+    for (std::size_t i = 0; i < CItem::extra_size; ++i)
+    {
+        appraisableItem.m_extra[i] = static_cast<uint8>(0xA0 + i);
+    }
+
+    auto& appraisable = appraisableItem.exdata<Exdata::Appraisable>();
+    ok                = expectUInt(appraisable.AppraisalId, 0xB6, "appraisable appraisal id offset") && ok;
+    appraisable.AppraisalId = 0x44;
+    ok                      = expectUInt(appraisableItem.m_extra[0], 0xA0, "appraisable prefix byte preserved") && ok;
+    ok                      = expectUInt(appraisableItem.m_extra[22], 0x44, "appraisable appraisal id raw byte") && ok;
+    ok                      = expectUInt(appraisableItem.m_extra[23], 0xB7, "appraisable suffix byte preserved") && ok;
+
+    CItem wornItem(0x6002);
+    for (std::size_t i = 0; i < CItem::extra_size; ++i)
+    {
+        wornItem.m_extra[i] = static_cast<uint8>(0x70 + i);
+    }
+
+    auto& worn = wornItem.exdata<Exdata::WornItem>();
+    ok         = expectUInt(worn.UseCount, 0x70, "worn item use count offset") && ok;
+    worn.UseCount = 0x03;
+    ok            = expectUInt(wornItem.m_extra[0], 0x03, "worn item use count raw byte") && ok;
+    ok            = expectUInt(wornItem.m_extra[1], 0x71, "worn item padding first byte preserved") && ok;
+    ok            = expectUInt(wornItem.m_extra[23], 0x87, "worn item padding last byte preserved") && ok;
+
+    CItem storageItem(0x6003);
+    auto& storage = storageItem.exdata<Exdata::StorageSlip>();
+    storage.Items[0]  = 0x01;
+    storage.Items[5]  = 0x80;
+    storage.Items[23] = 0x55;
+    ok                = expectUInt(storageItem.m_extra[0], 0x01, "storage slip first bitmask byte") && ok;
+    ok                = expectUInt(storageItem.m_extra[5], 0x80, "storage slip middle bitmask byte") && ok;
+    ok                = expectUInt(storageItem.m_extra[23], 0x55, "storage slip last bitmask byte") && ok;
+
+    for (std::size_t i = 0; i < CItem::extra_size; ++i)
+    {
+        storageItem.m_extra[i] = static_cast<uint8>(0x20 + i);
+        ok                     = expectUInt(storage.Items[i], 0x20 + i, "storage slip raw byte overlay") && ok;
+    }
+
     return ok;
 }
 
@@ -2542,6 +2598,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testItemIDTypeDispatch() && ok;
     ok      = testPredicateTypeDispatchAndPrecedence() && ok;
     ok      = testRawExdataOverlay() && ok;
+    ok      = testRawOnlyPayloadOverlays() && ok;
     ok      = testLinkshellTableSerialization() && ok;
     ok      = testAugmentStandardTableSerialization() && ok;
     ok      = testAugmentTrialTableSerialization() && ok;
