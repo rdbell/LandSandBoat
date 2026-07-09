@@ -229,6 +229,18 @@ auto testModFishingGearValues() -> bool
     return ok;
 }
 
+auto testModBaseDamageTakenValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::DMG_AOE), 158, "Mod::DMG_AOE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DMG), 160, "Mod::DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DMGPHYS), 161, "Mod::DMGPHYS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DMGBREATH), 162, "Mod::DMGBREATH") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DMGMAGIC), 163, "Mod::DMGMAGIC") && ok;
+    ok      = expectInt(static_cast<int>(Mod::DMGRANGE), 164, "Mod::DMGRANGE") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -280,6 +292,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModMagicSkillValues() && ok;
     ok      = testModSynthesisAndRidingSkillValues() && ok;
     ok      = testModFishingGearValues() && ok;
+    ok      = testModBaseDamageTakenValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
