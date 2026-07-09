@@ -264,6 +264,61 @@ auto testRawExdataOverlay() -> bool
     return ok;
 }
 
+auto testFishTableSerialization() -> bool
+{
+    sol::state lua;
+    bool       ok = true;
+
+    auto input = lua.create_table();
+    input["size"]     = 300;
+    input["weight"]   = 1500;
+    input["isRanked"] = true;
+
+    Exdata::Fish fish{};
+    fish.fromTable(input);
+    auto* fishRaw = reinterpret_cast<uint8*>(&fish);
+
+    ok = expectUInt(fish.Size, 300, "fish size from table") && ok;
+    ok = expectUInt(fish.Weight, 1500, "fish weight from table") && ok;
+    ok = expectUInt(fish.IsRanked, 1, "fish ranked flag from table") && ok;
+    ok = expectUInt(fishRaw[0], 0x2C, "fish raw size byte 0") && ok;
+    ok = expectUInt(fishRaw[1], 0x01, "fish raw size byte 1") && ok;
+    ok = expectUInt(fishRaw[2], 0xDC, "fish raw weight byte 0") && ok;
+    ok = expectUInt(fishRaw[3], 0x05, "fish raw weight byte 1") && ok;
+    ok = expectUInt(fishRaw[4], 0x01, "fish raw ranked byte") && ok;
+    ok = expectUInt(fishRaw[5], 0x00, "fish raw padding byte 0") && ok;
+    ok = expectUInt(fishRaw[23], 0x00, "fish raw padding byte 18") && ok;
+
+    auto output = lua.create_table();
+    fish.toTable(output);
+    ok = expectUInt(output["size"].get<uint16>(), 300, "fish size to table") && ok;
+    ok = expectUInt(output["weight"].get<uint16>(), 1500, "fish weight to table") && ok;
+    ok = expectUInt(output["isRanked"].get<bool>() ? 1 : 0, 1, "fish ranked flag to table") && ok;
+
+    fishRaw[4]  = 0xFE;
+    fishRaw[5]  = 0xA1;
+    fishRaw[23] = 0xB3;
+
+    auto partial = lua.create_table();
+    partial["weight"]   = 42;
+    partial["isRanked"] = true;
+    fish.fromTable(partial);
+    ok = expectUInt(fish.Size, 300, "fish size preserved") && ok;
+    ok = expectUInt(fish.Weight, 42, "fish weight partial update") && ok;
+    ok = expectUInt(fish.IsRanked, 1, "fish ranked flag partial update") && ok;
+    ok = expectUInt(fishRaw[4], 0xFF, "fish hidden ranked byte bits preserved") && ok;
+    ok = expectUInt(fishRaw[5], 0xA1, "fish padding byte 0 preserved") && ok;
+    ok = expectUInt(fishRaw[23], 0xB3, "fish padding byte 18 preserved") && ok;
+
+    auto unranked = lua.create_table();
+    unranked["isRanked"] = false;
+    fish.fromTable(unranked);
+    ok = expectUInt(fish.IsRanked, 0, "fish ranked flag cleared") && ok;
+    ok = expectUInt(fishRaw[4], 0xFE, "fish hidden ranked byte bits preserved when cleared") && ok;
+
+    return ok;
+}
+
 auto testTimerInfoTableSerialization() -> bool
 {
     sol::state lua;
@@ -1120,6 +1175,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testItemIDTypeDispatch() && ok;
     ok      = testPredicateTypeDispatchAndPrecedence() && ok;
     ok      = testRawExdataOverlay() && ok;
+    ok      = testFishTableSerialization() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testSoulTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
