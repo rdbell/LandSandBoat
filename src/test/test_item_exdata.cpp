@@ -646,6 +646,120 @@ auto testAugmentTrialTableSerialization() -> bool
     return ok;
 }
 
+auto testAugmentBundleTableSerialization() -> bool
+{
+    bool ok = true;
+
+    auto input              = lua.create_table();
+    input["augmentKind"]    = 0xFE;
+    input["augmentSubKind"] = 0xF0;
+    input["type"]           = 0x06;
+    input["rank"]           = 0x3F;
+    input["accumulatedRP"]  = 0x12345;
+    input["maxRankTier"]    = 3;
+    input["rpCurve"]        = 2;
+    input["augmentIndex"]   = 0x89ABCDEF;
+    input["signature"]      = "BundleSig";
+
+    Exdata::AugmentBundle bundle{};
+    bundle.fromTable(input);
+    auto* bundleRaw = reinterpret_cast<uint8*>(&bundle);
+
+    const uint8 expectedRawPrefix[] = {
+        0x03, 0x83, 0x00, 0x00, 0x16, 0x8D, 0xFC, 0x09, 0xEF, 0xCD, 0xAB, 0x89,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedRawPrefix); ++i)
+    {
+        ok = expectUInt(bundleRaw[i], expectedRawPrefix[i], "augment bundle raw prefix byte") && ok;
+    }
+
+    uint8 expectedSignature[12] = {};
+    Exdata::encodeSignature(std::string("BundleSig"), expectedSignature);
+    for (std::size_t i = 0; i < sizeof(expectedSignature); ++i)
+    {
+        ok = expectUInt(bundle.Signature[i], expectedSignature[i], "augment bundle signature byte") && ok;
+    }
+    ok = expectUInt(static_cast<uint8>(bundle.AugmentKind), 0x03, "augment bundle kind forced from table") && ok;
+    ok = expectUInt(static_cast<uint8>(bundle.AugmentSubKind), 0x83, "augment bundle subkind forced from table") && ok;
+    ok = expectUInt(bundle.Type, 2, "augment bundle type truncated") && ok;
+    ok = expectUInt(bundle.Rank, 31, "augment bundle rank truncated") && ok;
+    ok = expectUInt(bundle.AccumulatedRP, 0x2345, "augment bundle accumulated RP truncated") && ok;
+    ok = expectUInt(bundle.MaxRankTier, 3, "augment bundle max rank tier") && ok;
+    ok = expectUInt(bundle.RPCurve, 2, "augment bundle RP curve") && ok;
+    ok = expectUInt(bundle.AugmentIndex, 0x89ABCDEF, "augment bundle augment index") && ok;
+
+    auto output = lua.create_table();
+    bundle.toTable(output);
+    ok = expectUInt(output["augmentKind"].get<uint8>(), 0x03, "augment bundle kind to table") && ok;
+    ok = expectUInt(output["augmentSubKind"].get<uint8>(), 0x83, "augment bundle subkind to table") && ok;
+    ok = expectUInt(output["type"].get<uint32>(), 2, "augment bundle type to table") && ok;
+    ok = expectUInt(output["rank"].get<uint32>(), 31, "augment bundle rank to table") && ok;
+    ok = expectUInt(output["accumulatedRP"].get<uint32>(), 0x2345, "augment bundle accumulated RP to table") && ok;
+    ok = expectUInt(output["maxRankTier"].get<uint32>(), 3, "augment bundle max rank tier to table") && ok;
+    ok = expectUInt(output["rpCurve"].get<uint32>(), 2, "augment bundle RP curve to table") && ok;
+    ok = expectUInt(output["augmentIndex"].get<uint32>(), 0x89ABCDEF, "augment bundle augment index to table") && ok;
+    ok = expectString(output["signature"].get<std::string>(), "BundleSig", "augment bundle signature to table") && ok;
+
+    bundleRaw[0] = 0xFE;
+    bundleRaw[1] = 0xF0;
+    bundleRaw[2] = 0xA1;
+    bundleRaw[3] = 0xA2;
+    bundleRaw[7] |= 0xF2;
+
+    auto partial         = lua.create_table();
+    partial["rank"]     = 4;
+    partial["signature"] = "Bu";
+    bundle.fromTable(partial);
+
+    const uint8 expectedPartialRawPrefix[] = {
+        0x03, 0x83, 0xA1, 0xA2, 0x16, 0x8D, 0x90, 0xFB, 0xEF, 0xCD, 0xAB, 0x89,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedPartialRawPrefix); ++i)
+    {
+        ok = expectUInt(bundleRaw[i], expectedPartialRawPrefix[i], "augment bundle partial raw prefix byte") && ok;
+    }
+
+    uint8 expectedShortSignature[12] = {};
+    Exdata::encodeSignature(std::string("Bu"), expectedShortSignature);
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(bundle.Signature[i], expectedShortSignature[i], "augment bundle short signature byte") && ok;
+    }
+    ok = expectUInt(static_cast<uint8>(bundle.AugmentKind), 0x03, "augment bundle partial kind forced") && ok;
+    ok = expectUInt(static_cast<uint8>(bundle.AugmentSubKind), 0x83, "augment bundle partial subkind forced") && ok;
+    ok = expectUInt(bundle.Type, 2, "augment bundle partial type preserved") && ok;
+    ok = expectUInt(bundle.Rank, 4, "augment bundle partial rank updated") && ok;
+    ok = expectUInt(bundle.AccumulatedRP, 0x2345, "augment bundle partial accumulated RP preserved") && ok;
+    ok = expectUInt(bundle.MaxRankTier, 3, "augment bundle partial max rank tier preserved") && ok;
+    ok = expectUInt(bundle.RPCurve, 2, "augment bundle partial RP curve preserved") && ok;
+    ok = expectUInt(bundle.AugmentIndex, 0x89ABCDEF, "augment bundle partial augment index preserved") && ok;
+
+    auto omittedSignature = lua.create_table();
+    omittedSignature["type"] = 1;
+    bundle.fromTable(omittedSignature);
+    for (std::size_t i = 0; i < sizeof(expectedShortSignature); ++i)
+    {
+        ok = expectUInt(bundle.Signature[i], expectedShortSignature[i], "augment bundle omitted signature byte") && ok;
+    }
+    ok = expectUInt(bundle.Type, 1, "augment bundle omitted signature type updated") && ok;
+    ok = expectString(Exdata::decodeSignature(bundle.Signature), "Bu", "augment bundle omitted signature preserved") && ok;
+
+    auto longSignature          = lua.create_table();
+    longSignature["signature"] = "abcdefghijklmnopqrstuvwxyz";
+    bundle.fromTable(longSignature);
+
+    uint8 expectedLongSignature[12] = {};
+    Exdata::encodeSignature(std::string("abcdefghijklmnopqrstuvwxyz"), expectedLongSignature);
+    for (std::size_t i = 0; i < sizeof(expectedLongSignature); ++i)
+    {
+        ok = expectUInt(bundle.Signature[i], expectedLongSignature[i], "augment bundle long signature byte") && ok;
+    }
+    bundle.toTable(output);
+    ok = expectString(output["signature"].get<std::string>(), "abcdefghijklmno", "augment bundle long signature to table") && ok;
+
+    return ok;
+}
+
 auto testFishTableSerialization() -> bool
 {
     sol::state lua;
@@ -2295,6 +2409,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testLinkshellTableSerialization() && ok;
     ok      = testAugmentStandardTableSerialization() && ok;
     ok      = testAugmentTrialTableSerialization() && ok;
+    ok      = testAugmentBundleTableSerialization() && ok;
     ok      = testFishTableSerialization() && ok;
     ok      = testChocoboEggTableSerialization() && ok;
     ok      = testChocoboCardTableSerialization() && ok;
