@@ -21,6 +21,7 @@
 
 #include "test_item_exdata.h"
 
+#include "common/lua.h"
 #include "map/items/exdata.h"
 #include "map/items/item.h"
 #include "map/items/item_equipment.h"
@@ -871,6 +872,184 @@ auto testMeebleGrimoireTableSerialization() -> bool
     for (std::size_t i = 0; i < sizeof(expectedPartialRaw); ++i)
     {
         ok = expectUInt(grimoireRaw[i], expectedPartialRaw[i], "meeble grimoire omitted clears raw byte") && ok;
+    }
+
+    return ok;
+}
+
+auto testTabulaTableSerialization() -> bool
+{
+    bool ok = true;
+
+    auto input = lua.create_table();
+    auto runes = lua.create_table();
+
+    auto rune1        = lua.create_table();
+    rune1["id"]       = 0x234;
+    rune1["rotation"] = 6;
+    rune1["position"] = 0;
+    runes[1]          = rune1;
+
+    auto rune2        = lua.create_table();
+    rune2["id"]       = 0x155;
+    rune2["rotation"] = 1;
+    rune2["position"] = 13;
+    runes[2]          = rune2;
+
+    auto rune3        = lua.create_table();
+    rune3["id"]       = 0;
+    rune3["rotation"] = 3;
+    rune3["position"] = 24;
+    runes[3]          = rune3;
+
+    auto rune4        = lua.create_table();
+    rune4["id"]       = 0x1AA;
+    rune4["rotation"] = 2;
+    rune4["position"] = 25;
+    runes[4]          = rune4;
+
+    input["voucher"] = 0x9A;
+    input["runes"]   = runes;
+    input["uses"]    = 0x8A;
+
+    Exdata::Tabula tabula{};
+    tabula.fromTable(input);
+    auto* tabulaRaw = reinterpret_cast<uint8*>(&tabula);
+
+    const uint8 expectedRaw[] = {
+        0x9A, 0x00, 0x04, 0x80, 0x1A, 0x55, 0x40, 0x1A,
+        0xA0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x09, 0xE0, 0x00, 0x01, 0x40, 0x00, 0x00,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedRaw); ++i)
+    {
+        ok = expectUInt(tabulaRaw[i], expectedRaw[i], "tabula raw byte") && ok;
+    }
+    ok = expectUInt(tabula.Voucher, 0x1A, "tabula voucher from table") && ok;
+    ok = expectUInt(tabula.AnchorBits, 0x1000801, "tabula anchors from table") && ok;
+    ok = expectUInt(unpackBitsLE(tabula.RuneStream, 0, 9), 0x34, "tabula rune 1 id truncated") && ok;
+    ok = expectUInt(unpackBitsLE(tabula.RuneStream, 9, 9), 0x155, "tabula rune 2 id") && ok;
+    ok = expectUInt(unpackBitsLE(tabula.RuneStream, 27, 9), 0x1AA, "tabula invalid-position rune id stored") && ok;
+    ok = expectUInt(unpackBitsLE(tabula.RuneStream, 108, 2), 2, "tabula rune 1 rotation truncated") && ok;
+    ok = expectUInt(unpackBitsLE(tabula.RuneStream, 110, 2), 1, "tabula rune 2 rotation") && ok;
+    ok = expectUInt(unpackBitsLE(tabula.RuneStream, 132, 7), 10, "tabula uses truncated") && ok;
+
+    auto output = lua.create_table();
+    tabula.toTable(output);
+    sol::optional<uint32>     outputVoucher = output["voucher"];
+    sol::optional<uint8>      outputUses    = output["uses"];
+    sol::optional<sol::table> outputRunes   = output["runes"];
+    ok = expectUInt(outputVoucher.value_or(0), 0x1A, "tabula voucher to table") && ok;
+    ok = expectUInt(outputRunes ? outputRunes->size() : 0, 2, "tabula visible rune count to table") && ok;
+    if (outputRunes)
+    {
+        std::size_t visibleRune = 0;
+        for (auto& entry : *outputRunes)
+        {
+            auto rune = entry.second.as<sol::optional<sol::table>>();
+            if (!rune)
+            {
+                continue;
+            }
+
+            ++visibleRune;
+            sol::optional<uint16> runeId  = (*rune)["id"];
+            sol::optional<uint8>  runeRot = (*rune)["rotation"];
+            sol::optional<uint8>  runePos = (*rune)["position"];
+            if (visibleRune == 1)
+            {
+                ok = expectUInt(runeId.value_or(0), 0x34, "tabula rune 1 id to table") && ok;
+                ok = expectUInt(runeRot.value_or(0), 2, "tabula rune 1 rotation to table") && ok;
+                ok = expectUInt(runePos.value_or(0), 0, "tabula rune 1 position to table") && ok;
+            }
+            else if (visibleRune == 2)
+            {
+                ok = expectUInt(runeId.value_or(0), 0x155, "tabula rune 2 id to table") && ok;
+                ok = expectUInt(runeRot.value_or(0), 1, "tabula rune 2 rotation to table") && ok;
+                ok = expectUInt(runePos.value_or(0), 13, "tabula rune 2 position to table") && ok;
+            }
+        }
+        ok = expectUInt(visibleRune, 2, "tabula visible rune iteration count") && ok;
+    }
+    ok = expectUInt(outputUses.value_or(0), 10, "tabula uses to table") && ok;
+
+    tabulaRaw[21] |= 0xF8;
+    tabulaRaw[22] = 0xA5;
+    tabulaRaw[23] = 0x5A;
+
+    auto usesOnly   = lua.create_table();
+    usesOnly["uses"] = 42;
+    tabula.fromTable(usesOnly);
+    const uint8 expectedUsesOnlyTail[] = { 0x05, 0x58, 0xA5, 0x5A };
+    for (std::size_t i = 0; i < 20; ++i)
+    {
+        ok = expectUInt(tabulaRaw[i], expectedRaw[i], "tabula uses-only preserved raw prefix") && ok;
+    }
+    for (std::size_t i = 0; i < sizeof(expectedUsesOnlyTail); ++i)
+    {
+        ok = expectUInt(tabulaRaw[20 + i], expectedUsesOnlyTail[i], "tabula uses-only hidden tail byte") && ok;
+    }
+    tabula.toTable(output);
+    outputUses = output["uses"];
+    ok = expectUInt(outputUses.value_or(0), 42, "tabula uses-only to table") && ok;
+
+    auto reset       = lua.create_table();
+    auto resetRunes  = lua.create_table();
+    auto resetRune   = lua.create_table();
+    resetRune["id"]       = 0x123;
+    resetRune["rotation"] = 2;
+    resetRune["position"] = 2;
+    resetRunes[1]         = resetRune;
+    reset["voucher"]      = 0x44;
+    reset["runes"]        = resetRunes;
+    reset["uses"]         = 5;
+    tabula.fromTable(reset);
+
+    const uint8 expectedResetRaw[] = {
+        0x44, 0x00, 0x00, 0x20, 0x91, 0x80, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x08, 0x00, 0x00, 0x00, 0xA0, 0x00, 0x00,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedResetRaw); ++i)
+    {
+        ok = expectUInt(tabulaRaw[i], expectedResetRaw[i], "tabula reset raw byte") && ok;
+    }
+
+    auto omitted = lua.create_table();
+    tabula.fromTable(omitted);
+    for (std::size_t i = 0; i < sizeof(expectedResetRaw); ++i)
+    {
+        ok = expectUInt(tabulaRaw[i], expectedResetRaw[i], "tabula omitted raw byte") && ok;
+    }
+
+    auto scalarRunes     = lua.create_table();
+    scalarRunes["runes"] = "bad";
+    tabula.fromTable(scalarRunes);
+    for (std::size_t i = 0; i < sizeof(expectedResetRaw); ++i)
+    {
+        ok = expectUInt(tabulaRaw[i], expectedResetRaw[i], "tabula scalar runes raw byte") && ok;
+    }
+
+    auto keyedInput       = lua.create_table();
+    auto keyedRunes       = lua.create_table();
+    auto keyedRune        = lua.create_table();
+    keyedRune["id"]       = 0x123;
+    keyedRune["rotation"] = 1;
+    keyedRune["position"] = 1;
+    keyedRunes["only"]    = keyedRune;
+    keyedInput["runes"]   = keyedRunes;
+
+    Exdata::Tabula keyedTabula{};
+    keyedTabula.fromTable(keyedInput);
+    const auto* keyedRaw = reinterpret_cast<const uint8*>(&keyedTabula);
+    const uint8 expectedKeyedRaw[] = {
+        0x00, 0x00, 0x00, 0x40, 0x91, 0x80, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+    for (std::size_t i = 0; i < sizeof(expectedKeyedRaw); ++i)
+    {
+        ok = expectUInt(keyedRaw[i], expectedKeyedRaw[i], "tabula string-keyed raw byte") && ok;
     }
 
     return ok;
@@ -1739,6 +1918,7 @@ auto runItemExdataSelfTests() -> bool
     ok      = testSerializedTableSerialization() && ok;
     ok      = testWeaponUnlockTableSerialization() && ok;
     ok      = testMeebleGrimoireTableSerialization() && ok;
+    ok      = testTabulaTableSerialization() && ok;
     ok      = testTimerInfoTableSerialization() && ok;
     ok      = testSoulTableSerialization() && ok;
     ok      = testLogTicketTableSerialization() && ok;
