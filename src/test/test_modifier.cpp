@@ -1034,6 +1034,21 @@ auto testModGeomancerValues() -> bool
     return ok;
 }
 
+auto testModEnspellAndSpikesValues() -> bool
+{
+    bool ok = true;
+    ok      = expectInt(static_cast<int>(Mod::ENSPELL), 341, "Mod::ENSPELL") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENSPELL_DMG), 343, "Mod::ENSPELL_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENSPELL_DMG_BONUS), 432, "Mod::ENSPELL_DMG_BONUS") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENSPELL_CHANCE), 856, "Mod::ENSPELL_CHANCE") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENSPELL_DMG_PCT), 1195, "Mod::ENSPELL_DMG_PCT") && ok;
+    ok      = expectInt(static_cast<int>(Mod::ENSPELL_DURATION), 938, "Mod::ENSPELL_DURATION") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SPIKES), 342, "Mod::SPIKES") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SPIKES_DMG), 344, "Mod::SPIKES_DMG") && ok;
+    ok      = expectInt(static_cast<int>(Mod::SPIKES_DMG_BONUS), 1079, "Mod::SPIKES_DMG_BONUS") && ok;
+    return ok;
+}
+
 auto testModifierAccessorsAndSetAmount() -> bool
 {
     CModifier modifier(Mod::FASTCAST, -12);
@@ -1131,6 +1146,7 @@ auto runModifierSelfTests() -> bool
     ok      = testModDancerValues() && ok;
     ok      = testModScholarValues() && ok;
     ok      = testModGeomancerValues() && ok;
+    ok      = testModEnspellAndSpikesValues() && ok;
     ok      = testModifierAccessorsAndSetAmount() && ok;
     ok      = testPetModifierAccessorsAndSetAmount() && ok;
     return ok;
