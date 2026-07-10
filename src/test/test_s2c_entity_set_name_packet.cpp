@@ -162,6 +162,14 @@ auto testTrustConstructorIncludesMasterTargID() -> bool
     auto packet = CEntitySetNamePacket(&trust);
 
     bool ok = true;
+    ok      = expectEqualUInt(trust.trustID(), 0x777, "trust id") && ok;
+    ok      = expectEqualUInt(static_cast<uint8>(trust.passiveTrust()),
+                              static_cast<uint8>(IsPassiveTrust::No),
+                              "active trust flag") && ok;
+    ok      = expectEqualUInt(trust.released(), false, "trust initially unreleased") && ok;
+    ok      = expectEqualUInt(static_cast<uint8>(trust.shieldSize()), 3, "default trust shield size") && ok;
+    trust.setReleased(true);
+    ok = expectEqualUInt(trust.released(), true, "trust released transition") && ok;
     ok      = expectPackedMessageSize(packet, 0x18 + 5, "trust") && ok;
     ok      = expectBytes(packet, entitySetNameTargIDOffset, std::array<uint8, 2>{ 0xFF, 0xEE }, "trust targid") && ok;
     ok      = expectBytes(packet, entitySetNameEntityIDOffset, std::array<uint8, 4>{ 0xDD, 0xCC, 0xBB, 0xAA }, "trust id") && ok;
