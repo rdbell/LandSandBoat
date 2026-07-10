@@ -35,6 +35,8 @@ set(SOURCES
     test_active_database_dispatch.cpp
     test_action_model.h
     test_action_model.cpp
+    test_base_entity_model.h
+    test_base_entity_model.cpp
     test_application.h
     test_application.cpp
     test_arguments_parser.h
