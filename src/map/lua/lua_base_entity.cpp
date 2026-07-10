@@ -15657,13 +15657,13 @@ uint8 CLuaBaseEntity::getWeaponSkillType(uint8 slotID)
 
 uint8 CLuaBaseEntity::getWeaponSubSkillType(uint8 slotID)
 {
-    auto* PChar = static_cast<CCharEntity*>(m_PBaseEntity);
-
-    if (!PChar)
+    if (m_PBaseEntity->objtype != TYPE_PC)
     {
         ShowWarning("Invalid Entity (%s) calling function.", m_PBaseEntity->getName());
         return 0;
     }
+
+    auto* PChar = static_cast<CCharEntity*>(m_PBaseEntity);
 
     if (slotID <= 3)
     {
