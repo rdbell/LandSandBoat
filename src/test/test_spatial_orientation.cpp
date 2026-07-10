@@ -26,8 +26,12 @@
 #include "map/navmesh/navmesh.h"
 #include "map/navmesh/navmesh_config.h"
 
+#include <DetourNavMesh.h>
+
 #include <array>
+#include <cstddef>
 #include <cmath>
+#include <cstring>
 #include <iostream>
 #include <string>
 
@@ -35,6 +39,36 @@ namespace
 {
 
 constexpr float pi = 3.1415927410125732f;
+
+// Mirrors the anonymous serialization structs in navmesh.cpp. LSB writes these
+// native objects directly, so their ABI is part of the MSET file format.
+struct NativeNavMeshSetHeader
+{
+    int             magic;
+    int             version;
+    int             numTiles;
+    dtNavMeshParams params;
+};
+
+struct NativeNavMeshTileHeader
+{
+    dtTileRef tileRef;
+    int       dataSize;
+};
+
+static_assert(sizeof(int) == 4);
+static_assert(sizeof(float) == 4);
+static_assert(sizeof(dtTileRef) == 4); // RECASTNAVIGATION_DT_POLYREF64 is OFF.
+static_assert(sizeof(dtNavMeshParams) == 28);
+static_assert(offsetof(dtNavMeshParams, orig) == 0);
+static_assert(offsetof(dtNavMeshParams, tileWidth) == 12);
+static_assert(offsetof(dtNavMeshParams, tileHeight) == 16);
+static_assert(offsetof(dtNavMeshParams, maxTiles) == 20);
+static_assert(offsetof(dtNavMeshParams, maxPolys) == 24);
+static_assert(sizeof(NativeNavMeshSetHeader) == 40);
+static_assert(offsetof(NativeNavMeshSetHeader, params) == 12);
+static_assert(sizeof(NativeNavMeshTileHeader) == 8);
+static_assert(offsetof(NativeNavMeshTileHeader, dataSize) == 4);
 
 template <typename T, typename U>
 auto expectEqual(const T actual, const U expected, const std::string& label) -> bool
@@ -130,6 +164,31 @@ auto runRelationCase(const RelationCase& testCase, uint8 facingCone, uint8 relat
 auto runSpatialOrientationSelfTests() -> bool
 {
     bool ok = true;
+
+    const auto nativeHeader = NativeNavMeshSetHeader{
+        .magic   = 'M' << 24 | 'S' << 16 | 'E' << 8 | 'T',
+        .version = 1,
+        .numTiles = 2,
+        .params = {
+            .orig = { 1.0f, -2.0f, 3.5f },
+            .tileWidth = 4.0f,
+            .tileHeight = 5.5f,
+            .maxTiles = 6,
+            .maxPolys = 7,
+        },
+    };
+    auto nativeHeaderBytes = std::array<uint8, sizeof(nativeHeader)>{};
+    std::memcpy(nativeHeaderBytes.data(), &nativeHeader, sizeof(nativeHeader));
+    constexpr auto expectedHeaderBytes = std::array<uint8, 40>{
+        0x54, 0x45, 0x53, 0x4D, 0x01, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x60, 0x40,
+        0x00, 0x00, 0x80, 0x40, 0x00, 0x00, 0xB0, 0x40, 0x06, 0x00, 0x00, 0x00,
+        0x07, 0x00, 0x00, 0x00,
+    };
+    for (size_t i = 0; i < expectedHeaderBytes.size(); ++i)
+    {
+        ok = expectEqual(nativeHeaderBytes[i], expectedHeaderBytes[i], "navmesh native MSET header byte " + std::to_string(i)) && ok;
+    }
 
     constexpr uint8 facingCone   = 90;
     constexpr uint8 relationCone = 64;

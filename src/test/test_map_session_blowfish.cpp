@@ -22,11 +22,14 @@
 #include "test_map_session_blowfish.h"
 
 #include "common/blowfish.h"
+#include "map/entities/char_entity.h"
+#include "map/map_session.h"
 #include "map/map_session_blowfish.h"
 
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <string>
 
 namespace
 {
@@ -43,6 +46,17 @@ auto expectBool(bool actual, bool expected, const char* label) -> bool
 }
 
 auto expectUInt(std::uint64_t actual, std::uint64_t expected, const char* label) -> bool
+{
+    if (actual != expected)
+    {
+        std::cerr << "map session blowfish self-test failed: " << label << " got "
+                  << actual << " expected " << expected << '\n';
+        return false;
+    }
+    return true;
+}
+
+auto expectString(const std::string& actual, const std::string& expected, const char* label) -> bool
 {
     if (actual != expected)
     {
@@ -254,6 +268,24 @@ auto testIncrementWrapsWordFour() -> bool
     return ok;
 }
 
+auto testSessionDiagnosticsAndLastUpdateTap() -> bool
+{
+    MapSession session;
+    session.client_ipp = IPP(0x0100007F, 54230);
+    session.last_update = earth_time::time_point{};
+
+    bool ok = expectString(session.toString(), "MapSession: client_ipp: 127.0.0.1:54230", "session string");
+
+    session.forceLinkDead = true;
+    session.tapLastUpdate();
+    ok = expectBool(session.last_update == earth_time::time_point{}, true, "forced link-dead tap ignored") && ok;
+
+    session.forceLinkDead = false;
+    session.tapLastUpdate();
+    ok = expectBool(session.last_update > earth_time::time_point{}, true, "normal tap updates timestamp") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runMapSessionBlowfishSelfTests() -> bool
@@ -263,5 +295,6 @@ auto runMapSessionBlowfishSelfTests() -> bool
     ok      = testFirstNullDigestSuffixIsZeroed() && ok;
     ok      = testIncrementSnapshotsAndResets() && ok;
     ok      = testIncrementWrapsWordFour() && ok;
+    ok      = testSessionDiagnosticsAndLastUpdateTap() && ok;
     return ok;
 }
