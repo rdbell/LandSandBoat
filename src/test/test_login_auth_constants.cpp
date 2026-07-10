@@ -104,6 +104,21 @@ auto testSupportedXiloaderVersion() -> bool
     return ok;
 }
 
+auto testAuthInputValidation() -> bool
+{
+    return expectAll({
+        { static_cast<std::uint64_t>(malformedAuthPacketResult(0x00)), static_cast<std::uint64_t>(login_result::LOGIN_ERROR), "ancient malformed packet" },
+        { static_cast<std::uint64_t>(malformedAuthPacketResult(0xFF)), static_cast<std::uint64_t>(login_result::LOGIN_ERROR_VERSION_UNSUPPORTED), "old malformed packet" },
+        { static_cast<std::uint64_t>(isSupportedXiloaderVersion({ 2, 1, 0 })), 1, "supported exact version" },
+        { static_cast<std::uint64_t>(isSupportedXiloaderVersion({ 2, 1, 255 })), 1, "patch version ignored" },
+        { static_cast<std::uint64_t>(isSupportedXiloaderVersion({ 2, 0, 255 })), 0, "minor version rejected" },
+        { static_cast<std::uint64_t>(validateAuthInput({ 1, 0, 0 }, "", "")), static_cast<std::uint64_t>(auth_input_validation::VERSION_UNSUPPORTED), "version validation precedes credentials" },
+        { static_cast<std::uint64_t>(validateAuthInput({ 2, 1, 0 }, "", "")), static_cast<std::uint64_t>(auth_input_validation::MALFORMED_USERNAME), "username validation precedes password" },
+        { static_cast<std::uint64_t>(validateAuthInput({ 2, 1, 7 }, "username", "")), static_cast<std::uint64_t>(auth_input_validation::MALFORMED_PASSWORD), "malformed password" },
+        { static_cast<std::uint64_t>(validateAuthInput({ 2, 1, 7 }, "username", "password")), static_cast<std::uint64_t>(auth_input_validation::READY), "ready input" },
+    });
+}
+
 auto testAuthComponents() -> bool
 {
     const auto combined = SEND_EMAIL | ENABLE_ACCOUNT_CREATE | ENABLE_PASSWORD_RESET;
@@ -139,6 +154,7 @@ auto runLoginAuthConstantSelfTests() -> bool
     return testLoginCommands() &&
            testLoginResults() &&
            testSupportedXiloaderVersion() &&
+           testAuthInputValidation() &&
            testAuthComponents() &&
            testAccountCodes();
 }

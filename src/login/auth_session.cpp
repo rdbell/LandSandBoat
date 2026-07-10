@@ -126,19 +126,8 @@ void auth_session::read_func()
 
     if (jsonBuffer.is_discarded()) // not json
     {
-        const auto newModeFlag = ref<uint8>(buffer_.data(), 0) == 0xFF;
-        if (!newModeFlag) // Ancient, original xiloader pre-sessionhash
-        {
-            ref<uint8>(buffer_.data(), 0) = static_cast<uint8>(login_result::LOGIN_ERROR);
-
-            do_write(1);
-        }
-        else // old non-json xiloader
-        {
-            ref<uint8>(buffer_.data(), 0) = static_cast<uint8>(login_result::LOGIN_ERROR_VERSION_UNSUPPORTED);
-
-            do_write(1);
-        }
+        ref<uint8>(buffer_.data(), 0) = static_cast<uint8>(malformedAuthPacketResult(ref<uint8>(buffer_.data(), 0)));
+        do_write(1);
 
         // close socket
         socket_.lowest_layer().shutdown(asio::socket_base::shutdown_both);
@@ -155,8 +144,10 @@ void auth_session::read_func()
     bool                   trust_this_computer = loginHelpers::jsonGet<bool>(jsonBuffer, "trust_this_computer").value_or(false);
     std::array<uint8_t, 3> version             = loginHelpers::jsonGet<uint8, 3>(jsonBuffer, "version").value_or(std::array<uint8_t, 3>{ 0, 0, 0 });
 
+    const auto inputValidation = validateAuthInput(version, username, password);
+
     // Check major.minor but ignore trivial
-    if (version[0] != SupportedXiloaderVersion[0] || version[1] != SupportedXiloaderVersion[1])
+    if (inputValidation == auth_input_validation::VERSION_UNSUPPORTED)
     {
         std::string errorMessage = fmt::format("Your xiloader is too old.\nPlease update to version '{}.{}.x'.\nYour client reported '{}.{}.{}'.", SupportedXiloaderVersion[0], SupportedXiloaderVersion[1], version[0], version[1], version[2]);
         sendJsonOnlyErrorMessage(errorMessage);
@@ -166,13 +157,13 @@ void auth_session::read_func()
     DebugSockets(fmt::format("auth code: {} from {}", code, ipAddress));
 
     // data checks
-    if (loginHelpers::isStringMalformed(username, 16))
+    if (inputValidation == auth_input_validation::MALFORMED_USERNAME)
     {
         ShowWarningFmt("login_parse: malformed username from {}", ipAddress);
         return;
     }
 
-    if (loginHelpers::isStringMalformed(password, 32))
+    if (inputValidation == auth_input_validation::MALFORMED_PASSWORD)
     {
         ShowWarningFmt("login_parse: malformed password from {}", ipAddress);
         return;

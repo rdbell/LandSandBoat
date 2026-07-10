@@ -189,6 +189,57 @@ auto testIndependentPeriodsOffsetsAndOrder() -> bool
     return ok;
 }
 
+auto testDuplicateRegistrationsRemainIndependent() -> bool
+{
+    auto& handler = *CTriggerHandler::getInstance();
+    TimeTriggerTestAccess::reset(handler);
+
+    NpcStorage npc;
+    Trigger_t  trigger{ 19, npc.pointer(), vanaMinute(10), VanaDuration::zero(), 0 };
+    TimeTriggerTestAccess::insert(handler, trigger, vanaMinute(5));
+    TimeTriggerTestAccess::insert(handler, trigger, vanaMinute(15));
+
+    std::vector<CallbackCall> calls;
+    TimeTriggerTestAccess::tick(handler, vanaMinute(20), [&](CNpcEntity* calledNpc, uint8 id)
+    {
+        calls.emplace_back(CallbackCall{ calledNpc, id });
+    });
+
+    bool ok = true;
+    ok      = expectEqual(calls.size(), static_cast<std::size_t>(2), "duplicate callback count") && ok;
+    if (calls.size() >= 2)
+    {
+        ok = expectCall(calls[0], npc.pointer(), 19, "first duplicate callback") && ok;
+        ok = expectCall(calls[1], npc.pointer(), 19, "second duplicate callback") && ok;
+    }
+    return ok;
+}
+
+auto testBackwardClockDoesNotRewindLastBucket() -> bool
+{
+    auto& handler = *CTriggerHandler::getInstance();
+    TimeTriggerTestAccess::reset(handler);
+    TimeTriggerTestAccess::insert(handler, Trigger_t{ 0, nullptr, vanaMinute(10), VanaDuration::zero(), 0 }, vanaMinute(25));
+
+    std::size_t calls = 0;
+    auto callback = [&](CNpcEntity*, uint8)
+    {
+        ++calls;
+    };
+
+    TimeTriggerTestAccess::tick(handler, vanaMinute(30), callback);
+    TimeTriggerTestAccess::tick(handler, vanaMinute(19), callback);
+    TimeTriggerTestAccess::tick(handler, vanaMinute(30), callback);
+
+    bool ok = true;
+    ok      = expectEqual(calls, static_cast<std::size_t>(1), "rollback and restored bucket callback count") && ok;
+    ok      = expectEqual(TimeTriggerTestAccess::lastTrigger(handler, 0), static_cast<uint32>(3), "last bucket after rollback") && ok;
+
+    TimeTriggerTestAccess::tick(handler, vanaMinute(40), callback);
+    ok = expectEqual(calls, static_cast<std::size_t>(2), "later bucket after rollback callback count") && ok;
+    return ok;
+}
+
 auto testChronoDivisionAndUint32Conversion() -> bool
 {
     auto& handler = *CTriggerHandler::getInstance();
@@ -217,6 +268,8 @@ auto runTimeTriggerSelfTests() -> bool
     ok      = testAlignedInsertionBoundaryAndIdentity() && ok;
     ok      = testMultiPeriodJumpAndLastBucketAdvance() && ok;
     ok      = testIndependentPeriodsOffsetsAndOrder() && ok;
+    ok      = testDuplicateRegistrationsRemainIndependent() && ok;
+    ok      = testBackwardClockDoesNotRewindLastBucket() && ok;
     ok      = testChronoDivisionAndUint32Conversion() && ok;
     TimeTriggerTestAccess::reset(*CTriggerHandler::getInstance());
     return ok;

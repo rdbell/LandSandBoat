@@ -119,6 +119,34 @@ auto testLOSCacheLRU() -> bool
     return ok;
 }
 
+auto testLOSCacheUpdatePromotionAndCellBoundaries() -> bool
+{
+    LineOfSightCache cache;
+
+    for (uint16 zone = 1; zone <= 8; ++zone)
+    {
+        cache.put(src, dst, zone, true, baseTime);
+    }
+
+    // Updating the LRU entry refreshes both its value and expiry, and promotes
+    // it before the next insertion chooses an eviction victim.
+    cache.put(src, dst, 1, false, baseTime + 1s);
+    cache.put(src, dst, 9, true, baseTime + 1s);
+
+    bool ok = true;
+    ok      = expectHit(cache, src, dst, 1, baseTime + 3499ms, false, "updated LRU entry retained and refreshed") && ok;
+    ok      = expectMiss(cache, src, dst, 2, baseTime + 1s, "update promotion evicts previous successor") && ok;
+
+    const auto boundarySrc = Vector3{ 2.0f, -2.0f, 0.0f };
+    const auto insideSrc   = Vector3{ 1.999f, -1.999f, 0.0f };
+    const auto sameCell    = Vector3{ 3.999f, -3.999f, 1.999f };
+    cache.put(boundarySrc, dst, 10, true, baseTime);
+
+    ok = expectHit(cache, sameCell, dst, 10, baseTime, true, "exact positive and negative cell boundaries") && ok;
+    ok = expectMiss(cache, insideSrc, dst, 10, baseTime, "values inside zero cell differ from exact boundaries") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runLOSCacheSelfTests() -> bool
@@ -127,5 +155,6 @@ auto runLOSCacheSelfTests() -> bool
     ok      = testLOSCacheEmptyHitExpiryAndUpdate() && ok;
     ok      = testLOSCacheQuantizedDirectionalZoneKeys() && ok;
     ok      = testLOSCacheLRU() && ok;
+    ok      = testLOSCacheUpdatePromotionAndCellBoundaries() && ok;
     return ok;
 }

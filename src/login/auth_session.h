@@ -69,6 +69,44 @@ enum class login_result : uint8_t
 
 constexpr std::array<uint8, 3> SupportedXiloaderVersion = { 2, 1, 0 };
 
+enum class auth_input_validation : uint8_t
+{
+    READY,
+    VERSION_UNSUPPORTED,
+    MALFORMED_USERNAME,
+    MALFORMED_PASSWORD,
+};
+
+constexpr auto malformedAuthPacketResult(uint8 firstByte) -> login_result
+{
+    return firstByte == 0xFF ? login_result::LOGIN_ERROR_VERSION_UNSUPPORTED : login_result::LOGIN_ERROR;
+}
+
+constexpr auto isSupportedXiloaderVersion(const std::array<uint8, 3>& version) -> bool
+{
+    return version[0] == SupportedXiloaderVersion[0] && version[1] == SupportedXiloaderVersion[1];
+}
+
+inline auto validateAuthInput(const std::array<uint8, 3>& version, const std::string& username, const std::string& password) -> auth_input_validation
+{
+    if (!isSupportedXiloaderVersion(version))
+    {
+        return auth_input_validation::VERSION_UNSUPPORTED;
+    }
+
+    if (loginHelpers::isStringMalformed(username, 16))
+    {
+        return auth_input_validation::MALFORMED_USERNAME;
+    }
+
+    if (loginHelpers::isStringMalformed(password, 32))
+    {
+        return auth_input_validation::MALFORMED_PASSWORD;
+    }
+
+    return auth_input_validation::READY;
+}
+
 // NOTE: This collection of flags is 64-bits wide!
 enum AUTH_COMPONENTS
 {

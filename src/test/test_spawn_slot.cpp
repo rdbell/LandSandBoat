@@ -14,8 +14,10 @@
 #include "test_spawn_slot.h"
 
 #include "map/entities/mob_entity.h"
+#include "map/spawn_handler.h"
 #include "map/spawn_slot.h"
 
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -348,6 +350,63 @@ auto testChanceTotalsAndFallbacks() -> bool
     return ok;
 }
 
+auto testRespawnRegistry() -> bool
+{
+    using namespace std::chrono_literals;
+
+    bool         ok = true;
+    SpawnHandler handler(nullptr);
+
+    ok = expect(!handler.isRegistered(nullptr), "null mob is not registered") && ok;
+    ok = expect(!handler.getRemainingRespawnTime(nullptr).has_value(), "null mob has no remaining respawn") && ok;
+    handler.registerForRespawn(nullptr);
+    handler.unregister(nullptr);
+
+    TestMob disabled(20);
+    disabled.m_AllowRespawn = false;
+    disabled.m_RespawnTime  = 30min;
+    handler.registerForRespawn(&disabled);
+    ok = expect(!handler.isRegistered(&disabled), "respawn-disabled mob is not registered") && ok;
+
+    TestMob unslotted(21);
+    unslotted.m_AllowRespawn = true;
+    unslotted.m_RespawnTime  = 30min;
+    handler.registerForRespawn(&unslotted);
+    ok = expect(handler.isRegistered(&unslotted), "unslotted mob is registered by ID") && ok;
+    const auto unslottedRemaining = handler.getRemainingRespawnTime(&unslotted);
+    ok = expect(unslottedRemaining.has_value() && *unslottedRemaining > 29min && *unslottedRemaining <= 30min,
+                "default respawn delay supplies unslotted deadline") && ok;
+    handler.unregister(&unslotted);
+    ok = expect(!handler.isRegistered(&unslotted) && !handler.getRemainingRespawnTime(&unslotted).has_value(),
+                "unregister removes unslotted deadline") && ok;
+
+    SpawnSlot slot;
+    TestMob   first(30);
+    TestMob   second(31);
+    first.m_AllowRespawn  = true;
+    second.m_AllowRespawn = true;
+    first.m_RespawnTime   = 20min;
+    second.m_RespawnTime  = 25min;
+    slot.AddMob(&first, 0);
+    slot.AddMob(&second, 0);
+
+    handler.registerForRespawn(&first);
+    ok = expect(handler.isRegistered(&first) && handler.isRegistered(&second), "slot members share one registration") && ok;
+    handler.registerForRespawn(&second, 40min);
+    const auto replacedRemaining = handler.getRemainingRespawnTime(&first);
+    ok = expect(replacedRemaining.has_value() && *replacedRemaining > 39min && *replacedRemaining <= 40min,
+                "slot registration is replaced by override") && ok;
+    handler.unregister(&first);
+    ok = expect(!handler.isRegistered(&second), "unregistering one slot member clears shared registration") && ok;
+
+    handler.registerForRespawn(&unslotted, -1s);
+    const auto overdueRemaining = handler.getRemainingRespawnTime(&unslotted);
+    ok = expect(overdueRemaining.has_value() && *overdueRemaining == timer::duration::zero(),
+                "overdue registration remains present and clamps remaining time to zero") && ok;
+
+    return ok;
+}
+
 } // namespace
 
 auto runSpawnSlotSelfTests() -> bool
@@ -359,5 +418,6 @@ auto runSpawnSlotSelfTests() -> bool
     ok      = testEligibilityOrder() && ok;
     ok      = testWeightedBoundaries() && ok;
     ok      = testChanceTotalsAndFallbacks() && ok;
+    ok      = testRespawnRegistry() && ok;
     return ok;
 }

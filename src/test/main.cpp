@@ -39,6 +39,7 @@ auto runSJISCodecSelfTests() -> bool;
 auto runSpatialOrientationSelfTests() -> bool;
 auto runNumericUtilsSelfTests() -> bool;
 auto runStringUtilsSelfTests() -> bool;
+auto runConsoleServiceInputSelfTests() -> bool;
 auto runLookParserSelfTests() -> bool;
 auto runHashUtilsSelfTests() -> bool;
 auto runRngEnginesSelfTests() -> bool;
@@ -381,6 +382,7 @@ namespace
         ok = runSpatialOrientationSelfTests() && ok;
         ok = runNumericUtilsSelfTests() && ok;
         ok = runStringUtilsSelfTests() && ok;
+        ok = runConsoleServiceInputSelfTests() && ok;
         ok = runLookParserSelfTests() && ok;
         ok = runHashUtilsSelfTests() && ok;
         ok = runRngEnginesSelfTests() && ok;

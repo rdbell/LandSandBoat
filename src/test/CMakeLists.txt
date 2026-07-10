@@ -33,6 +33,8 @@ set(SOURCES
     mock_socket.h
     test_active_database_dispatch.h
     test_active_database_dispatch.cpp
+    test_console_service_input.h
+    test_console_service_input.cpp
     test_action_model.h
     test_action_model.cpp
     test_base_entity_model.h
