@@ -26,11 +26,18 @@
 
 #include "packets/basic.h"
 
+#include <utility>
+
 enum class GP_CLI_COMMAND_PBX_BOXNO : int8_t;
 class CCharEntity;
 
 namespace dboxutils
 {
+
+namespace detail
+{
+auto SendConfirmationResults(bool atCapacity) -> std::pair<uint8, uint8>;
+} // namespace detail
 
 void SendOldItems(CCharEntity* PChar, GP_CLI_COMMAND_PBX_BOXNO BoxNo);
 void AddItemsToBeSent(CCharEntity* PChar, GP_CLI_COMMAND_PBX_BOXNO BoxNo, int8_t PostWorkNo, int8_t ItemWorkNo, uint32 ItemStacks, const std::string& receiverName);

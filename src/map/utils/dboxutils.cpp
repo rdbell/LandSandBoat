@@ -51,6 +51,11 @@ auto isDeliveryBoxInflightAtCapacity(uint32 charid) -> bool
 
 } // anonymous namespace
 
+auto dboxutils::detail::SendConfirmationResults(const bool atCapacity) -> std::pair<uint8, uint8>
+{
+    return { 0x02, atCapacity ? 0xFE : 0x01 };
+}
+
 void dboxutils::SendOldItems(CCharEntity* PChar, GP_CLI_COMMAND_PBX_BOXNO BoxNo)
 {
     DebugDeliveryBoxFmt("DBOX: SendOldItems: player: {} ({}), BoxNo: {}", PChar->name, PChar->id, static_cast<int8_t>(BoxNo));
@@ -235,8 +240,9 @@ void dboxutils::SendConfirmation(CCharEntity* PChar, GP_CLI_COMMAND_PBX_BOXNO Bo
 
             if (isDeliveryBoxInflightAtCapacity(charid))
             {
-                PChar->pushPacket<GP_SERV_COMMAND_PBX_RESULT>(GP_CLI_COMMAND_PBX_COMMAND::Send, BoxNo, PItem, PostWorkNo, send_items, 0x02);
-                PChar->pushPacket<GP_SERV_COMMAND_PBX_RESULT>(GP_CLI_COMMAND_PBX_COMMAND::Send, BoxNo, PItem, PostWorkNo, send_items, 0xFE);
+                const auto [stageResult, finalResult] = detail::SendConfirmationResults(true);
+                PChar->pushPacket<GP_SERV_COMMAND_PBX_RESULT>(GP_CLI_COMMAND_PBX_COMMAND::Send, BoxNo, PItem, PostWorkNo, send_items, stageResult);
+                PChar->pushPacket<GP_SERV_COMMAND_PBX_RESULT>(GP_CLI_COMMAND_PBX_COMMAND::Send, BoxNo, PItem, PostWorkNo, send_items, finalResult);
                 return;
             }
 
@@ -256,8 +262,9 @@ void dboxutils::SendConfirmation(CCharEntity* PChar, GP_CLI_COMMAND_PBX_BOXNO Bo
                     if (rset2 && rset2->rowsAffected())
                     {
                         PItem->setSent(true);
-                        PChar->pushPacket<GP_SERV_COMMAND_PBX_RESULT>(GP_CLI_COMMAND_PBX_COMMAND::Send, BoxNo, PItem, PostWorkNo, send_items, 0x02);
-                        PChar->pushPacket<GP_SERV_COMMAND_PBX_RESULT>(GP_CLI_COMMAND_PBX_COMMAND::Send, BoxNo, PItem, PostWorkNo, send_items, 0x01);
+                        const auto [stageResult, finalResult] = detail::SendConfirmationResults(false);
+                        PChar->pushPacket<GP_SERV_COMMAND_PBX_RESULT>(GP_CLI_COMMAND_PBX_COMMAND::Send, BoxNo, PItem, PostWorkNo, send_items, stageResult);
+                        PChar->pushPacket<GP_SERV_COMMAND_PBX_RESULT>(GP_CLI_COMMAND_PBX_COMMAND::Send, BoxNo, PItem, PostWorkNo, send_items, finalResult);
                         return;
                     }
                 }

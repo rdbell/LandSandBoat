@@ -25,6 +25,7 @@
 #define _GARDENUTILS_H
 
 #include "common/cbasetypes.h"
+#include <map>
 #include <vector>
 
 class CCharEntity;
@@ -44,6 +45,14 @@ typedef std::vector<GardenResult_t> GardenResultList_t;
 
 namespace gardenutils
 {
+
+namespace detail
+{
+using ResultMap = std::map<uint32, GardenResultList_t>;
+
+auto ResultKey(uint8 seed, uint8 element1, uint8 element2) -> uint32;
+void AppendResult(ResultMap& results, uint8 seed, uint8 element1, uint8 element2, uint16 itemId, uint8 minQuantity, uint8 maxQuantity, uint8 weight);
+} // namespace detail
 
 void Initialize();
 

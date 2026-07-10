@@ -53,6 +53,18 @@ const auto isPartiallyUsed = [](CItem* PItem) -> bool
 
 } // namespace
 
+auto auctionutils::detail::AuctionFee(const uint32 limitPrice, const uint32 baseFee, const float taxRate,
+                                      const uint32 maxFee) -> uint32
+{
+    const auto fee = static_cast<uint32>(baseFee + (limitPrice * taxRate / 100));
+    return std::clamp<uint32>(fee, 0, maxFee);
+}
+
+auto auctionutils::detail::TransactionQuantity(const bool stack, const uint32 stackSize) -> uint32
+{
+    return stack ? stackSize : 1;
+}
+
 void auctionutils::SellingItems(CCharEntity* PChar, GP_AUC_PARAM_ASKCOMMIT param)
 {
     TracyZoneScoped;
@@ -160,14 +172,14 @@ void auctionutils::ProofOfPurchase(CCharEntity* PChar, GP_AUC_PARAM_LOT param)
                 PChar->pushPacket<GP_SERV_COMMAND_AUC>(GP_CLI_COMMAND_AUC_COMMAND::LotIn, 197, 0, 0, 0, 0); // Failed to place up
                 return;
             }
-            auctionFee = static_cast<uint32>(settings::get<uint32>("map.AH_BASE_FEE_STACKS") + (param.LimitPrice * settings::get<float>("map.AH_TAX_RATE_STACKS") / 100));
+            auctionFee = detail::AuctionFee(param.LimitPrice, settings::get<uint32>("map.AH_BASE_FEE_STACKS"),
+                                            settings::get<float>("map.AH_TAX_RATE_STACKS"), settings::get<uint32>("map.AH_MAX_FEE"));
         }
         else // Selling a single item
         {
-            auctionFee = static_cast<uint32>(settings::get<uint32>("map.AH_BASE_FEE_SINGLE") + (param.LimitPrice * settings::get<float>("map.AH_TAX_RATE_SINGLE") / 100));
+            auctionFee = detail::AuctionFee(param.LimitPrice, settings::get<uint32>("map.AH_BASE_FEE_SINGLE"),
+                                            settings::get<float>("map.AH_TAX_RATE_SINGLE"), settings::get<uint32>("map.AH_MAX_FEE"));
         }
-
-        auctionFee = std::clamp<uint32>(auctionFee, 0, settings::get<uint32>("map.AH_MAX_FEE"));
 
         const auto PGil = PChar->getStorage(LOC_INVENTORY)->GetItem(0);
         if (PGil->getQuantity() < auctionFee || PGil->getReserve() > 0)
@@ -262,7 +274,8 @@ auto auctionutils::PurchasingItems(CCharEntity* PChar, GP_AUC_PARAM_BID param) -
                                                    param.BidPrice);
                 if (rset && rset->rowsAffected())
                 {
-                    if (charutils::AddItem(PChar, LOC_INVENTORY, param.ItemNo, (param.ItemStacks == 0 ? PItem->getStackSize() : 1)) != ERROR_SLOTID)
+                    if (charutils::AddItem(PChar, LOC_INVENTORY, param.ItemNo,
+                                           detail::TransactionQuantity(param.ItemStacks == 0, PItem->getStackSize())) != ERROR_SLOTID)
                     {
                         charutils::UpdateItem(PChar, LOC_INVENTORY, 0, -static_cast<int32>(param.BidPrice));
 

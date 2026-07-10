@@ -188,6 +188,8 @@ set(SOURCES
     test_craft_state.h
     test_craft_state.cpp
     test_common.h
+    test_auction_transaction_runtime.h
+    test_auction_transaction_runtime.cpp
     test_data_enum_traits.h
     test_data_enum_traits.cpp
     test_database_binding.h
@@ -196,6 +198,8 @@ set(SOURCES
     test_database_convenience_helpers.cpp
     test_database_query_helpers.h
     test_database_query_helpers.cpp
+    test_delivery_box_transaction_runtime.h
+    test_delivery_box_transaction_runtime.cpp
     test_earth_time.h
     test_earth_time.cpp
     test_engine.h
@@ -208,6 +212,8 @@ set(SOURCES
     test_file_utils.cpp
     test_filewatcher_queue.h
     test_filewatcher_queue.cpp
+    test_garden_result_runtime.h
+    test_garden_result_runtime.cpp
     test_hash_utils.h
     test_hash_utils.cpp
     test_inventory_sync_state.h
@@ -244,8 +250,12 @@ set(SOURCES
     test_item_weapon.cpp
     test_instance_lifecycle.h
     test_instance_lifecycle.cpp
+    test_instance_utils_runtime.h
+    test_instance_utils_runtime.cpp
     test_grades.h
     test_grades.cpp
+    test_guild_pattern_runtime.h
+    test_guild_pattern_runtime.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h

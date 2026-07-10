@@ -28,6 +28,17 @@ class CGuild;
 namespace guildutils
 {
 
+namespace detail
+{
+struct PatternDecision
+{
+    bool  persist;
+    uint8 pattern;
+};
+
+auto SelectPattern(uint32 storedDay, uint32 currentDay, uint8 randomPattern, uint32 storedPattern) -> PatternDecision;
+} // namespace detail
+
 void Initialize();
 void Cleanup();
 void UpdateGuildPointsPattern();

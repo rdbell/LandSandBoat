@@ -39,7 +39,7 @@ constexpr uint32 VANADAYS_TO_WILT           = 36;
 constexpr uint32 VANADAYS_TO_GUARANTEE_WILT = 144;
 constexpr uint32 VANATIME_FOR_WILT_STAGE    = 65535 * VANADAY_SECONDS;
 
-std::map<uint32, GardenResultList_t> g_pGardenResultMap; // global map of gardening results
+gardenutils::detail::ResultMap g_pGardenResultMap; // global map of gardening results
 
 GardenResult_t::GardenResult_t() = default;
 
@@ -54,6 +54,17 @@ GardenResult_t::GardenResult_t(uint16 ItemID, uint8 MinQuantity, uint8 MaxQuanti
 namespace gardenutils
 {
 
+auto detail::ResultKey(const uint8 seed, const uint8 element1, const uint8 element2) -> uint32
+{
+    return (seed << 8) + (element1 << 4) + element2;
+}
+
+void detail::AppendResult(ResultMap& results, const uint8 seed, const uint8 element1, const uint8 element2,
+                          const uint16 itemId, const uint8 minQuantity, const uint8 maxQuantity, const uint8 weight)
+{
+    results[ResultKey(seed, element1, element2)].emplace_back(itemId, minQuantity, maxQuantity, weight);
+}
+
 void LoadResultList()
 {
     const auto rset = db::preparedStmt("SELECT resultId, seed, element1, element2, result, min_quantity, max_quantity, weight FROM gardening_results");
@@ -66,16 +77,12 @@ void LoadResultList()
             uint8 Element1 = rset->get<uint8>("element1");
             uint8 Element2 = rset->get<uint8>("element2");
 
-            uint32 uid = (SeedID << 8) + (Element1 << 4) + Element2;
-
-            GardenResultList_t& resultList = g_pGardenResultMap[uid];
-
             uint16 ItemID      = rset->get<uint16>("result");
             uint8  MinQuantity = rset->get<uint8>("min_quantity");
             uint8  MaxQuantity = rset->get<uint8>("max_quantity");
             uint8  Weight      = rset->get<uint8>("weight");
 
-            resultList.emplace_back(ItemID, MinQuantity, MaxQuantity, Weight);
+            detail::AppendResult(g_pGardenResultMap, SeedID, Element1, Element2, ItemID, MinQuantity, MaxQuantity, Weight);
         }
     }
 }
@@ -282,7 +289,7 @@ std::tuple<uint16, uint8> CalculateResults(CCharEntity* PChar, CItemFlowerpot* P
 
     strength += (int16)((100 - strength) * (PItem->getStrength() / 32.0f));
 
-    uint32 resultUid = (PItem->getPlant() << 8) + (PItem->getCommonCrystalFeed() << 4) + PItem->getExtraCrystalFeed();
+    uint32 resultUid = detail::ResultKey(PItem->getPlant(), PItem->getCommonCrystalFeed(), PItem->getExtraCrystalFeed());
 
     GardenResult_t      item;
     int8                cumulativeWeight = 0;

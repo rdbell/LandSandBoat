@@ -31,6 +31,12 @@ class CCharEntity;
 namespace auctionutils
 {
 
+namespace detail
+{
+auto AuctionFee(uint32 limitPrice, uint32 baseFee, float taxRate, uint32 maxFee) -> uint32;
+auto TransactionQuantity(bool stack, uint32 stackSize) -> uint32;
+} // namespace detail
+
 void SellingItems(CCharEntity* PChar, GP_AUC_PARAM_ASKCOMMIT param);
 void OpenListOfSales(CCharEntity* PChar);
 void RetrieveListOfItemsSoldByPlayer(CCharEntity* PChar);
