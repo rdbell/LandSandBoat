@@ -40,9 +40,8 @@ describe('Guild shop hours', function()
         openAt(22)
         player.packets:clear()
 
-        xi.test.world:tick(xi.tick.TIME)
         xi.test.world:setVanaTime(23, 30)
-        xi.test.world:tick(xi.tick.TIME)
+        xi.guildShops.onGameHour(player, player.entities:get('Kamilah'))
 
         assert(guildStat() == statClose, 'not closed at close hour')
     end)
