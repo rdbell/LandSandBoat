@@ -155,6 +155,7 @@ auto runIPCSessionPayloadSelfTests() -> bool;
 auto runIPCPartyPayloadSelfTests() -> bool;
 auto runIPCLinkshellPayloadSelfTests() -> bool;
 auto runIPCGMCallPayloadSelfTests() -> bool;
+auto runGMCallAssembly1238SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -517,6 +518,7 @@ namespace
         ok = runIPCPartyPayloadSelfTests() && ok;
         ok = runIPCLinkshellPayloadSelfTests() && ok;
         ok = runIPCGMCallPayloadSelfTests() && ok;
+        ok = runGMCallAssembly1238SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;

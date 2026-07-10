@@ -23,9 +23,24 @@
 
 #include "packets/c2s/0x0d3_faq_gmcall.h"
 
+#include <map>
+#include <string>
 #include <vector>
 
 class CCharEntity;
+
+namespace gmcall::detail
+{
+
+struct AssembledCall
+{
+    std::string                        message;
+    std::map<std::string, std::string> parameters;
+};
+
+auto AssembleCall(std::vector<GP_CLI_COMMAND_FAQ_GMCALL> packets) -> AssembledCall;
+
+} // namespace gmcall::detail
 
 class GMCallContainer
 {

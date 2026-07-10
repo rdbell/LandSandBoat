@@ -56,6 +56,121 @@ const std::unordered_set<std::string> ALLOWED_GMCALL_PARAMS = {
 
 } // namespace
 
+auto gmcall::detail::AssembleCall(std::vector<GP_CLI_COMMAND_FAQ_GMCALL> packets) -> AssembledCall
+{
+    AssembledCall call;
+
+    // Reorder fragments by sequence ID
+    std::ranges::sort(packets,
+                      [](const auto& a, const auto& b)
+                      {
+                          return a.seq < b.seq;
+                      });
+
+    for (const auto& packet : packets)
+    {
+        std::size_t offset = 0;
+        for (uint8_t block = 0; block < packet.blkNum && offset < sizeof(packet.Data); ++block)
+        {
+            if (offset + sizeof(FFGpGMReportBlockHdr) > sizeof(packet.Data))
+            {
+                break;
+            }
+
+            const auto* header    = reinterpret_cast<const FFGpGMReportBlockHdr*>(&packet.Data[offset]);
+            const auto  blockSize = header->bkLength;
+
+            if (blockSize < sizeof(FFGpGMReportBlockHdr) || offset + blockSize > sizeof(packet.Data))
+            {
+                break;
+            }
+
+            switch (static_cast<GMReportBlockType>(header->bkType))
+            {
+                case GMReportBlockType::Position:
+                {
+                    // This contains client reported position but is not generally useful.
+                    break;
+                }
+                case GMReportBlockType::Version:
+                {
+                    if (blockSize >= sizeof(sub_block_01_t))
+                    {
+                        const auto* blk                      = reinterpret_cast<const sub_block_01_t*>(&packet.Data[offset]);
+                        call.parameters["VERSION.UNKNOWN00"] = std::to_string(blk->unknown00);
+                        call.parameters["VERSION.UNKNOWN01"] = fmt::format("{},{},{},{}", blk->unknown01[0], blk->unknown01[1], blk->unknown01[2], blk->unknown01[3]);
+                    }
+                    break;
+                }
+                case GMReportBlockType::Error:
+                {
+                    if (blockSize >= sizeof(FFGpGMReportECodeStruct))
+                    {
+                        const auto* blk                   = reinterpret_cast<const FFGpGMReportECodeStruct*>(&packet.Data[offset]);
+                        call.parameters["ERROR.CODE"]     = std::to_string(blk->code);
+                        call.parameters["ERROR.COUNT"]    = std::to_string(blk->count);
+                        call.parameters["ERROR.TIMECODE"] = std::to_string(blk->timeCode);
+                    }
+                    break;
+                }
+                case GMReportBlockType::StringParam:
+                {
+                    const auto  strLen  = std::min<std::size_t>(blockSize - sizeof(FFGpGMReportBlockHdr), sizeof(sub_block_03_t::Str));
+                    const auto* strData = reinterpret_cast<const char*>(&packet.Data[offset + sizeof(FFGpGMReportBlockHdr)]);
+                    std::string param(strData, strnlen(strData, strLen));
+
+                    if (const auto colonPos = param.find(':'); colonPos != std::string::npos)
+                    {
+                        auto       key   = param.substr(0, colonPos);
+                        const auto value = param.substr(colonPos + 1);
+                        if (!ALLOWED_GMCALL_PARAMS.contains(key))
+                        {
+                            ShowWarning("GMCallContainer: Unknown parameter key. Ignoring.");
+                        }
+                        else
+                        {
+                            call.parameters[key] = value;
+                            if (key == "GMCALL.INPUT")
+                            {
+                                call.message = value;
+                            }
+                        }
+                    }
+                    break;
+                }
+                case GMReportBlockType::LobbyHistory:
+                {
+                    const auto  dataSize   = blockSize - sizeof(FFGpGMReportBlockHdr);
+                    const auto  numEntries = std::min(dataSize / sizeof(FFGpGMReportLobbyEntry), std::size_t(8));
+                    const auto* entries    = reinterpret_cast<const FFGpGMReportLobbyEntry*>(&packet.Data[offset + sizeof(FFGpGMReportBlockHdr)]);
+
+                    for (std::size_t i = 0; i < numEntries; ++i)
+                    {
+                        if (entries[i].ident == 0)
+                        {
+                            continue;
+                        }
+
+                        auto prefix                           = fmt::format("LOBBY.{}", i);
+                        call.parameters[prefix + ".CMD"]      = std::to_string(entries[i].cmd);
+                        call.parameters[prefix + ".OPT"]      = std::to_string(entries[i].opt);
+                        call.parameters[prefix + ".TIMECODE"] = std::to_string(entries[i].timeCode);
+                        call.parameters[prefix + ".IDENT"]    = std::to_string(entries[i].ident);
+                        call.parameters[prefix + ".NAME"]     = std::string(reinterpret_cast<const char*>(entries[i].name), strnlen(reinterpret_cast<const char*>(entries[i].name), sizeof(entries[i].name)));
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+
+            offset += blockSize;
+        }
+    }
+
+    return call;
+}
+
 // Store one GMCALL packet for later processing
 auto GMCallContainer::addPacket(const GP_CLI_COMMAND_FAQ_GMCALL& packet) -> bool
 {
@@ -85,122 +200,12 @@ void GMCallContainer::clear()
 // Build the actual GM call out of multiple packets
 void GMCallContainer::processCall(const CCharEntity* PChar) const
 {
-    std::map<std::string, std::string> parameters;
-    std::string                        message;
-
-    // Reorder fragments by sequence ID
-    auto sortedPackets = packets_;
-    std::ranges::sort(sortedPackets,
-                      [](const auto& a, const auto& b)
-                      {
-                          return a.seq < b.seq;
-                      });
-
-    for (const auto& packet : sortedPackets)
-    {
-        std::size_t offset = 0;
-        for (uint8_t block = 0; block < packet.blkNum && offset < sizeof(packet.Data); ++block)
-        {
-            if (offset + sizeof(FFGpGMReportBlockHdr) > sizeof(packet.Data))
-            {
-                break;
-            }
-
-            const auto* header    = reinterpret_cast<const FFGpGMReportBlockHdr*>(&packet.Data[offset]);
-            const auto  blockSize = header->bkLength;
-
-            if (blockSize < sizeof(FFGpGMReportBlockHdr) || offset + blockSize > sizeof(packet.Data))
-            {
-                break;
-            }
-
-            switch (static_cast<GMReportBlockType>(header->bkType))
-            {
-                case GMReportBlockType::Position:
-                {
-                    // This contains client reported position but is not generally useful.
-                    break;
-                }
-                case GMReportBlockType::Version:
-                {
-                    if (blockSize >= sizeof(sub_block_01_t))
-                    {
-                        const auto* blk                 = reinterpret_cast<const sub_block_01_t*>(&packet.Data[offset]);
-                        parameters["VERSION.UNKNOWN00"] = std::to_string(blk->unknown00);
-                        parameters["VERSION.UNKNOWN01"] = fmt::format("{},{},{},{}", blk->unknown01[0], blk->unknown01[1], blk->unknown01[2], blk->unknown01[3]);
-                    }
-                    break;
-                }
-                case GMReportBlockType::Error:
-                {
-                    if (blockSize >= sizeof(FFGpGMReportECodeStruct))
-                    {
-                        const auto* blk              = reinterpret_cast<const FFGpGMReportECodeStruct*>(&packet.Data[offset]);
-                        parameters["ERROR.CODE"]     = std::to_string(blk->code);
-                        parameters["ERROR.COUNT"]    = std::to_string(blk->count);
-                        parameters["ERROR.TIMECODE"] = std::to_string(blk->timeCode);
-                    }
-                    break;
-                }
-                case GMReportBlockType::StringParam:
-                {
-                    const auto  strLen  = std::min<std::size_t>(blockSize - sizeof(FFGpGMReportBlockHdr), sizeof(sub_block_03_t::Str));
-                    const auto* strData = reinterpret_cast<const char*>(&packet.Data[offset + sizeof(FFGpGMReportBlockHdr)]);
-                    std::string param(strData, strnlen(strData, strLen));
-
-                    if (const auto colonPos = param.find(':'); colonPos != std::string::npos)
-                    {
-                        auto       key   = param.substr(0, colonPos);
-                        const auto value = param.substr(colonPos + 1);
-                        if (!ALLOWED_GMCALL_PARAMS.contains(key))
-                        {
-                            ShowWarning("GMCallContainer: Unknown parameter key. Ignoring.");
-                        }
-                        else
-                        {
-                            parameters[key] = value;
-                            if (key == "GMCALL.INPUT")
-                            {
-                                message = value;
-                            }
-                        }
-                    }
-                    break;
-                }
-                case GMReportBlockType::LobbyHistory:
-                {
-                    const auto  dataSize   = blockSize - sizeof(FFGpGMReportBlockHdr);
-                    const auto  numEntries = std::min(dataSize / sizeof(FFGpGMReportLobbyEntry), std::size_t(8));
-                    const auto* entries    = reinterpret_cast<const FFGpGMReportLobbyEntry*>(&packet.Data[offset + sizeof(FFGpGMReportBlockHdr)]);
-
-                    for (std::size_t i = 0; i < numEntries; ++i)
-                    {
-                        if (entries[i].ident == 0)
-                        {
-                            continue;
-                        }
-
-                        auto prefix                      = fmt::format("LOBBY.{}", i);
-                        parameters[prefix + ".CMD"]      = std::to_string(entries[i].cmd);
-                        parameters[prefix + ".OPT"]      = std::to_string(entries[i].opt);
-                        parameters[prefix + ".TIMECODE"] = std::to_string(entries[i].timeCode);
-                        parameters[prefix + ".IDENT"]    = std::to_string(entries[i].ident);
-                        parameters[prefix + ".NAME"]     = std::string(reinterpret_cast<const char*>(entries[i].name), strnlen(reinterpret_cast<const char*>(entries[i].name), sizeof(entries[i].name)));
-                    }
-                    break;
-                }
-                default:
-                    break;
-            }
-
-            offset += blockSize;
-        }
-    }
+    const auto call = gmcall::detail::AssembleCall(packets_);
 
     uint32 callId = 0;
     db::transaction([&]()
                     {
-                        db::preparedStmt("INSERT INTO help_desk (charid, message) VALUES (?, ?)", PChar->id, message);
+                        db::preparedStmt("INSERT INTO help_desk (charid, message) VALUES (?, ?)", PChar->id, call.message);
                         if (const auto rset = db::preparedStmt("SELECT LAST_INSERT_ID() AS id"); rset && rset->next())
                         {
                             callId = rset->get<uint32>("id");
@@ -217,8 +222,8 @@ void GMCallContainer::processCall(const CCharEntity* PChar) const
         .posX       = PChar->loc.p.x,
         .posY       = PChar->loc.p.y,
         .posZ       = PChar->loc.p.z,
-        .message    = message,
-        .parameters = parameters,
+        .message    = call.message,
+        .parameters = call.parameters,
     });
 }
 
