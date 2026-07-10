@@ -46,6 +46,7 @@
 #include "packets/s2c/0x0dc_group_solicit_req.h"
 
 #include "gmcall_container.h"
+#include "gmcall_response_notification.h"
 #include "items/item_linkshell.h"
 #include "packets/c2s/0x0b7_assist_channel.h"
 
@@ -995,10 +996,16 @@ void IPCClient::handleMessage_GMCallResponse(const IPP& ipp, const ipc::GMCallRe
 {
     TracyZoneScoped;
 
-    if (CCharEntity* PChar = zoneutils::GetChar(message.charId))
-    {
-        PChar->gmCallContainer().sendPendingResponse(PChar);
-    }
+    mapipc::HandleGMCallResponse(
+        message,
+        [](const uint32 charId)
+        {
+            return zoneutils::GetChar(charId);
+        },
+        [](CCharEntity* PChar)
+        {
+            PChar->gmCallContainer().sendPendingResponse(PChar);
+        });
 }
 
 void IPCClient::handleUnknownMessage(const IPP& ipp, const std::span<uint8_t> message)

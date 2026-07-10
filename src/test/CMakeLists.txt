@@ -262,6 +262,8 @@ set(SOURCES
     test_gmcall_assembly_1238.cpp
     test_gmcall_pending_response_1239.h
     test_gmcall_pending_response_1239.cpp
+    test_map_gmcall_response_notification_1241.h
+    test_map_gmcall_response_notification_1241.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h
