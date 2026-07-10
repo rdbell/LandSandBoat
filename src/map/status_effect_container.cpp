@@ -558,7 +558,10 @@ bool CStatusEffectContainer::AddStatusEffect(std::unique_ptr<CStatusEffect> PSta
 void CStatusEffectContainer::DeleteStatusEffects()
 {
     TracyZoneScoped;
-    TracyZoneString(m_POwner->getName());
+    if (m_POwner != nullptr)
+    {
+        TracyZoneString(m_POwner->getName());
+    }
 
     bool update_icons    = false;
     bool effects_removed = false;
@@ -581,7 +584,7 @@ void CStatusEffectContainer::DeleteStatusEffects()
         }
     }
 
-    if (effects_removed)
+    if (effects_removed && m_POwner != nullptr)
     {
         if (m_POwner->objtype == TYPE_PC)
         {

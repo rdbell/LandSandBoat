@@ -104,9 +104,25 @@ auto testQueriesAndOrdering() -> bool
     return ok;
 }
 
+auto testDeferredDeletion() -> bool
+{
+    CStatusEffectContainer container(nullptr);
+    auto*                  deleted = makeEffect(container, xi::StatusEffect::Blindness, 1, timer::time_point{}, 0, 0, xi::StatusEffectFlag::None, 1s);
+    makeEffect(container, xi::StatusEffect::Paralysis, 2, timer::time_point{}, 0, 0, xi::StatusEffectFlag::None, 1s);
+    deleted->markDeleted();
+
+    container.DeleteStatusEffects();
+
+    bool ok = true;
+    ok      = expect(container.m_StatusEffectSet.size() == 1, "deleted effects swept") && ok;
+    ok      = expect(container.GetStatusEffect(xi::StatusEffect::Blindness) == nullptr, "swept effect absent") && ok;
+    ok      = expect(container.GetStatusEffect(xi::StatusEffect::Paralysis) != nullptr, "active effect retained") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runStatusEffectContainerSelfTests() -> bool
 {
-    return testQueriesAndOrdering();
+    return testQueriesAndOrdering() && testDeferredDeletion();
 }
