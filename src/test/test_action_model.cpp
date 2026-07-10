@@ -212,6 +212,35 @@ auto testRecordSkillchain() -> bool
     return ok;
 }
 
+auto testRecordDamage() -> bool
+{
+    CBattleEntity deadTarget;
+    deadTarget.health.maxhp = 1000;
+    deadTarget.health.modhp = 1000;
+    deadTarget.health.hp    = 0;
+
+    auto heavy = action_result_t{};
+    heavy.recordDamage({ ATTACK_TYPE::PHYSICAL, 200, &deadTarget, true });
+
+    auto medium = action_result_t{};
+    medium.recordDamage({ ATTACK_TYPE::RANGED, 100, &deadTarget, false });
+
+    auto light = action_result_t{};
+    light.recordDamage({ ATTACK_TYPE::SPECIAL, 10, &deadTarget, false });
+
+    auto magical = action_result_t{};
+    magical.recordDamage({ ATTACK_TYPE::MAGICAL, 200, nullptr, true });
+
+    bool ok = true;
+    ok      = expect(heavy.param == 200, "heavy damage value") && ok;
+    ok      = expect(heavy.info == (ActionInfo::Defeated | ActionInfo::CriticalHit), "heavy defeat and critical flags") && ok;
+    ok      = expect(heavy.hitDistortion == HitDistortion::Heavy, "heavy hit distortion") && ok;
+    ok      = expect(medium.hitDistortion == HitDistortion::Medium && medium.info == ActionInfo::Defeated, "medium ranged distortion") && ok;
+    ok      = expect(light.hitDistortion == HitDistortion::Light && light.info == ActionInfo::Defeated, "light special distortion") && ok;
+    ok      = expect(magical.param == 200 && magical.info == ActionInfo::None && magical.hitDistortion == HitDistortion::None, "magical outcome leaves attack flags clear") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runActionModelSelfTests() -> bool
@@ -221,5 +250,6 @@ auto runActionModelSelfTests() -> bool
     ok      = testOrderingMutationAndCopy() && ok;
     ok      = testNormalize() && ok;
     ok      = testRecordSkillchain() && ok;
+    ok      = testRecordDamage() && ok;
     return ok;
 }
