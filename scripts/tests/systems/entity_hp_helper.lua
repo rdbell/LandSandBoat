@@ -84,6 +84,12 @@ describe('Base entity HP helper bindings', function()
         assert(mob:getHP() == 500, 'restoreHP during death animation should not change HP')
         mob:setAnimation(xi.animation.NONE)
 
+        player:setMaxHP(20000)
+        assert(player:getBaseHP() == 20000, 'player getBaseHP should keep raw max HP')
+        assert(player:getMaxHP() == 9999, 'player getMaxHP should clamp effective max HP')
+        player:setHP(20000)
+        assert(player:getHP() == 9999, 'player setHP should cap at effective max HP')
+
         assert(npc:getHP() == 0, 'NPC getHP should fall back to zero')
         assert(npc:getHPP() == 0, 'NPC getHPP should fall back to zero')
         assert(npc:getMaxHP() == 0, 'NPC getMaxHP should fall back to zero')
