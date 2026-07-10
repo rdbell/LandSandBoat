@@ -31,6 +31,16 @@
 namespace blacklistutils
 {
 
+auto detail::IsNameCharactersOnly(const std::string& name) -> bool
+{
+    return to_lower(name).find_first_not_of("abcdefghijklmnopqrstuvwxyz\0") == std::string::npos;
+}
+
+auto detail::FullChunkFlags(const int totalCount, const int rowCount) -> std::pair<bool, bool>
+{
+    return { totalCount <= 12, totalCount == rowCount };
+}
+
 auto IsBlacklisted(uint32 ownerId, uint32 targetId) -> bool
 {
     const auto rset = db::preparedStmt("SELECT * FROM char_blacklist WHERE charid_owner = ? AND charid_target = ? LIMIT 1", ownerId, targetId);
@@ -80,19 +90,12 @@ void SendBlacklist(CCharEntity* PChar)
     int       totalCount   = 0;
     const int rowCount     = rset->rowsCount();
 
-    auto isNameCharactersOnly = [](const std::string& name) -> bool
-    {
-        // null terminator added for paranoia, the docs say `find_first_not_of` _will_ check those.
-        // https://en.cppreference.com/w/cpp/string/basic_string/find_first_not_of
-        return to_lower(name).find_first_not_of("abcdefghijklmnopqrstuvwxyz\0") == std::string::npos;
-    };
-
     while (rset->next())
     {
         auto accid_target = rset->get<uint32>(0);
         auto targetName   = rset->get<std::string>(1);
 
-        if (isNameCharactersOnly(targetName))
+        if (detail::IsNameCharactersOnly(targetName))
         {
             blacklist.emplace_back(accid_target, targetName);
             currentCount++;
@@ -100,10 +103,11 @@ void SendBlacklist(CCharEntity* PChar)
 
             if (currentCount == 12)
             {
+                const auto [reset, last] = detail::FullChunkFlags(totalCount, rowCount);
                 PChar->pushPacket<GP_SERV_COMMAND_BLACK_LIST>(
                     blacklist,
-                    GP_SERV_COMMAND_BLACK_LIST::ResetClientBlacklist{ totalCount <= 12 },
-                    GP_SERV_COMMAND_BLACK_LIST::LastBlacklistPacket{ totalCount == rowCount });
+                    GP_SERV_COMMAND_BLACK_LIST::ResetClientBlacklist{ reset },
+                    GP_SERV_COMMAND_BLACK_LIST::LastBlacklistPacket{ last });
 
                 blacklist.clear();
                 currentCount = 0;

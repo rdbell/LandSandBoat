@@ -43,6 +43,33 @@
 namespace blueutils
 {
 
+namespace detail
+{
+void CompactSpellSet(std::array<uint8, 20>& spells)
+{
+    for (int i = 0; i < 20; i++)
+    {
+        if (spells[i] == 0)
+        {
+            for (int j = i; j < 20; j++)
+            {
+                if (spells[j] != 0)
+                {
+                    spells[i] = spells[j];
+                    spells[j] = 0;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+bool ExceedsSetPoints(uint8 currentPoints, uint8 spellPoints, uint8 maxPoints)
+{
+    return currentPoints + spellPoints > maxPoints;
+}
+} // namespace detail
+
 void SetBlueSpell(CCharEntity* PChar, CBlueSpell* PSpell, uint8 slotIndex, bool addingSpell)
 {
     // sanity check
@@ -232,21 +259,7 @@ bool IsSpellSet(CCharEntity* PChar, CBlueSpell* PSpell)
 
 void CompactSpells(CCharEntity* PChar)
 {
-    for (int i = 0; i < 20; i++)
-    {
-        if (PChar->m_SetBlueSpells[i] == 0)
-        {
-            for (int j = i; j < 20; j++)
-            {
-                if (PChar->m_SetBlueSpells[j] != 0)
-                {
-                    PChar->m_SetBlueSpells[i] = PChar->m_SetBlueSpells[j];
-                    PChar->m_SetBlueSpells[j] = 0;
-                    break;
-                }
-            }
-        }
-    }
+    detail::CompactSpellSet(PChar->m_SetBlueSpells);
 }
 
 void CheckSpellLevels(CCharEntity* PChar)
@@ -388,7 +401,7 @@ void ValidateBlueSpells(CCharEntity* PChar)
         if (PChar->m_SetBlueSpells[slot] != 0)
         {
             CBlueSpell* PSpell = (CBlueSpell*)spell::GetSpell(static_cast<SpellID>(PChar->m_SetBlueSpells[slot] + 0x200));
-            if (currentPoints + PSpell->getSetPoints() > maxSetPoints)
+            if (detail::ExceedsSetPoints(currentPoints, PSpell->getSetPoints(), maxSetPoints))
             {
                 SetBlueSpell(PChar, PSpell, slot, false);
             }

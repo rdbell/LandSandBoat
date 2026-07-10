@@ -51,6 +51,8 @@ set(SOURCES
     test_bitpack.cpp
     test_blowfish.h
     test_blowfish.cpp
+    test_blacklist_persistence_runtime.h
+    test_blacklist_persistence_runtime.cpp
     test_c2s_action_packet.h
     test_c2s_action_packet.cpp
     test_c2s_auc_packet.h
@@ -372,6 +374,8 @@ set(SOURCES
     test_map_emote_enums.cpp
     test_map_enum_primitives.h
     test_map_enum_primitives.cpp
+    test_mount_state_runtime_1234.h
+    test_mount_state_runtime_1234.cpp
     test_map_fourcc_exdata_enums.h
     test_map_fourcc_exdata_enums.cpp
     test_map_key_item_enum.h
@@ -710,6 +714,11 @@ set(SOURCES
     test_status_effect_container.cpp
     test_status_effect_data.h
     test_status_effect_data.cpp
+    test_blue_magic_set_runtime_1233.cpp
+    test_server_variable_persistence_1235.h
+    test_server_variable_persistence_1235.cpp
+    test_zone_catalog_runtime_1231.h
+    test_zone_catalog_runtime_1231.cpp
     test_suite.h
     test_suite.cpp
     test_synchronized.h

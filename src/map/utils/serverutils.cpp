@@ -37,6 +37,16 @@ namespace serverutils
 std::unordered_map<std::string, std::pair<int32, uint32>> serverVarCache;
 std::unordered_set<std::string>                           serverVarChanges;
 
+auto detail::MakePersistencePlan(const int32 value, const uint32 expiry) -> PersistencePlan
+{
+    return { value == 0 ? PersistenceOperation::Delete : PersistenceOperation::Upsert, value, expiry };
+}
+
+auto detail::ShouldRetry(const int32 verify, const int32 value, const int32 tries, const uint8 retryMax) -> bool
+{
+    return verify != value && tries < retryMax;
+}
+
 uint32 GetServerVar(const std::string& name)
 {
     const auto rset = db::preparedStmt("SELECT value, expiry FROM server_variables WHERE name = ? LIMIT 1", name);
@@ -100,7 +110,8 @@ void PersistVolatileServerVars()
         int32  value           = cachedServerVar.first;
         uint32 varTimestamp    = cachedServerVar.second;
 
-        if (value == 0)
+        const auto plan = detail::MakePersistencePlan(value, varTimestamp);
+        if (plan.operation == detail::PersistenceOperation::Delete)
         {
             db::preparedStmt("DELETE FROM server_variables WHERE name = ? LIMIT 1", name);
         }
@@ -125,7 +136,8 @@ void PersistServerVar(const std::string& name, int32 value, uint32 expiry /* = 0
         tries++;
         verify = INT_MIN;
 
-        if (value == 0)
+        const auto plan = detail::MakePersistencePlan(value, expiry);
+        if (plan.operation == detail::PersistenceOperation::Delete)
         {
             db::preparedStmt("DELETE FROM server_variables WHERE name = ? LIMIT 1", name);
         }
@@ -161,7 +173,7 @@ void PersistServerVar(const std::string& name, int32 value, uint32 expiry /* = 0
         {
             break;
         }
-    } while (verify != value && tries < setVarMaxRetry);
+    } while (detail::ShouldRetry(verify, value, tries, setVarMaxRetry));
 }
 
 } // namespace serverutils

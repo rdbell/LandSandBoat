@@ -30,6 +30,25 @@
 namespace serverutils
 {
 
+namespace detail
+{
+enum class PersistenceOperation : uint8
+{
+    Delete,
+    Upsert,
+};
+
+struct PersistencePlan
+{
+    PersistenceOperation operation;
+    int32                value;
+    uint32               expiry;
+};
+
+auto MakePersistencePlan(int32 value, uint32 expiry) -> PersistencePlan;
+auto ShouldRetry(int32 verify, int32 value, int32 tries, uint8 retryMax) -> bool;
+} // namespace detail
+
 uint32 GetServerVar(const std::string& var);
 void   SetServerVar(const std::string& var, int32 value, uint32 expiry = 0);
 void   PersistServerVar(const std::string& var, int32 value, uint32 expiry = 0);

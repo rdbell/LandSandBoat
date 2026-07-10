@@ -717,6 +717,25 @@ auto LoadMOBList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
  *                                                                       *
  ************************************************************************/
 
+auto zoneutils::detail::IsInstancedZoneType(const ZONE_TYPE zoneType) -> bool
+{
+    return zoneType & ZONE_TYPE::INSTANCED;
+}
+
+auto zoneutils::detail::DecideZoneReady(const bool loaded, const bool lazyEnabled, const bool managed,
+                                        const bool asyncMode) -> ZoneReadyDecision
+{
+    if (loaded || !lazyEnabled)
+    {
+        return ZoneReadyDecision::Ready;
+    }
+    if (!managed)
+    {
+        return ZoneReadyDecision::UnmanagedReady;
+    }
+    return asyncMode ? ZoneReadyDecision::QueueAsynchronously : ZoneReadyDecision::LoadSynchronously;
+}
+
 auto CreateZone(Scheduler& scheduler, MapConfig config, uint16 ZoneID) -> CZone*
 {
     const auto query = "SELECT zonetype, restriction FROM zone_settings "
@@ -728,7 +747,7 @@ auto CreateZone(Scheduler& scheduler, MapConfig config, uint16 ZoneID) -> CZone*
         const auto zoneType    = rset->get<ZONE_TYPE>("zonetype");
         const auto restriction = rset->get<uint8>("restriction");
 
-        if (zoneType & ZONE_TYPE::INSTANCED)
+        if (zoneutils::detail::IsInstancedZoneType(zoneType))
         {
             return new CZoneInstance(scheduler, config, static_cast<ZONEID>(ZoneID), GetCurrentRegion(ZoneID), GetCurrentContinent(ZoneID), restriction);
         }
@@ -910,26 +929,17 @@ auto GetManagedZones() -> std::vector<std::pair<uint16, std::string>>
 // for requesting the zone is loaded if it isn't ready.
 auto IsZoneReady(Scheduler& scheduler, MapConfig config, uint16 zoneId) -> Task<bool>
 {
-    // Zone already loaded, or lazy loading disabled (all zones loaded at startup)
-    if (GetZone(zoneId) || !lazyLoad.enabled)
+    const auto decision = detail::DecideZoneReady(GetZone(zoneId) != nullptr, lazyLoad.enabled,
+                                                  lazyLoad.managedZones.contains(zoneId), lazyLoad.asyncMode);
+    if (decision == detail::ZoneReadyDecision::Ready || decision == detail::ZoneReadyDecision::UnmanagedReady)
     {
         co_return true;
     }
-
-    // Zone not managed by this process - caller will handle cross-process
-    if (!lazyLoad.managedZones.contains(zoneId))
-    {
-        co_return true;
-    }
-
-    // Sync mode: load now
-    if (!lazyLoad.asyncMode)
+    if (decision == detail::ZoneReadyDecision::LoadSynchronously)
     {
         co_await LoadZones(scheduler, config, { zoneId });
         co_return true;
     }
-
-    // Async mode: queue and tell caller to wait
     lazyLoad.loadQueue.push(zoneId);
     co_return false;
 }

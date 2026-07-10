@@ -24,11 +24,27 @@
 #include <cstdint>
 
 class CCharEntity;
+class CStatusEffect;
 
 struct MountPacketDefinition
 {
     uint8_t  ChocoboIndex;
     uint32_t CustomProperties[2];
+};
+
+enum class MountAnimation : uint8_t
+{
+    None,
+    Chocobo,
+    Mount,
+};
+
+struct MountStateResolution
+{
+    bool           mounted;
+    uint16_t       mount;
+    uint16_t       subPower;
+    MountAnimation animation;
 };
 
 // Odd values work but will force short tail, even if the bit is set in traits.
@@ -72,6 +88,8 @@ struct ChocoboCustomProperties
 
 namespace mountutils
 {
+
+auto resolveState(const CStatusEffect* effect) -> MountStateResolution;
 
 auto packetDefinition(const CCharEntity* PChar) -> MountPacketDefinition;
 

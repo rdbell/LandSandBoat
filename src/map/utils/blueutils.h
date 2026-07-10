@@ -34,6 +34,12 @@
 namespace blueutils
 {
 
+namespace detail
+{
+void CompactSpellSet(std::array<uint8, 20>& spells);
+bool ExceedsSetPoints(uint8 currentPoints, uint8 spellPoints, uint8 maxPoints);
+} // namespace detail
+
 void  SetBlueSpell(CCharEntity* PChar, CBlueSpell* PSpell, uint8 slotIndex, bool addingSpell);
 bool  HasEnoughSetPoints(CCharEntity* PChar, CBlueSpell* PSpellToAdd, uint8 slotToPut);
 void  TryLearningSpells(CCharEntity* PChar, CMobEntity* PMob);

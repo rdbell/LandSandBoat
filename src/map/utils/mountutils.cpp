@@ -29,21 +29,42 @@
 namespace mountutils
 {
 
+auto resolveState(const CStatusEffect* effect) -> MountStateResolution
+{
+    if (!effect)
+    {
+        return MountStateResolution{
+            .mounted   = false,
+            .mount     = 0,
+            .subPower  = 0,
+            .animation = MountAnimation::None,
+        };
+    }
+
+    const auto mount = effect->GetPower();
+    return MountStateResolution{
+        .mounted  = true,
+        .mount    = mount,
+        .subPower = effect->GetSubPower(),
+        .animation = mount == MOUNT_CHOCOBO || mount == MOUNT_NOBLE_CHOCOBO ? MountAnimation::Chocobo : MountAnimation::Mount,
+    };
+}
+
 // ChocoboIndex is a field (0-7) used in various packets.
 // While it has little incidence for mounts, it is extremely important for custom chocobos.
 // CustomProperties[0] sets the Personal Chocobo model.
 // CustomProperties[1] is used for Noble Chocobo, and is set to 1.
 auto packetDefinition(const CCharEntity* PChar) -> MountPacketDefinition
 {
-    const auto* effect = PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Mounted);
-    if (!effect)
+    const auto state = resolveState(PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Mounted));
+    if (!state.mounted)
     {
         return MountPacketDefinition{
             .ChocoboIndex = 0,
         };
     }
 
-    switch (const auto mount = effect->GetPower())
+    switch (const auto mount = state.mount)
     {
         case MOUNT_CHOCOBO:
         {

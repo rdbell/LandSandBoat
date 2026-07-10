@@ -24,10 +24,19 @@
 
 #include "common/cbasetypes.h"
 
+#include <string>
+#include <utility>
+
 class CCharEntity;
 
 namespace blacklistutils
 {
+
+namespace detail
+{
+auto IsNameCharactersOnly(const std::string& name) -> bool;
+auto FullChunkFlags(int totalCount, int rowCount) -> std::pair<bool, bool>;
+} // namespace detail
 
 auto IsBlacklisted(uint32 ownerId, uint32 targetId) -> bool;
 auto AddBlacklisted(uint32 ownerId, uint32 targetId) -> bool;

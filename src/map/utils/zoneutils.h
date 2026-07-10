@@ -44,6 +44,17 @@ struct LazyLoadState
     std::queue<uint16> loadQueue{};
 };
 
+enum class ZoneReadyDecision : uint8
+{
+    Ready,
+    UnmanagedReady,
+    LoadSynchronously,
+    QueueAsynchronously,
+};
+
+auto IsInstancedZoneType(ZONE_TYPE zoneType) -> bool;
+auto DecideZoneReady(bool loaded, bool lazyEnabled, bool managed, bool asyncMode) -> ZoneReadyDecision;
+
 } // namespace detail
 
 auto LoadZones(Scheduler& scheduler, MapConfig config, const std::vector<uint16>& zoneIds) -> Task<void>;
