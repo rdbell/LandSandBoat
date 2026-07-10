@@ -1,0 +1,28 @@
+describe('Base entity maximum skill level helper binding', function()
+    it('looks up job skill ranks and level caps independently of the receiver', function()
+        local player = xi.test.world:spawnPlayer({
+            zone = xi.zone.WEST_RONFAURE,
+        })
+        local npc = player.entities:get('Field_Manual')
+        assert(npc, 'Field Manual NPC was not found')
+
+        assert(player:getMaxSkillLevel(99, xi.job.WAR, xi.skill.GREAT_AXE) == 424, 'WAR great axe cap should use rank A+')
+        assert(player:getMaxSkillLevel(99, xi.job.SMN, xi.skill.SUMMONING_MAGIC) == 417, 'SMN summoning cap should use rank A-')
+        assert(player:getMaxSkillLevel(75, xi.job.RDM, xi.skill.ENHANCING_MAGIC) == 256, 'RDM enhancing cap should use rank B+')
+        assert(player:getMaxSkillLevel(99, xi.job.BLM, xi.skill.CLUB) == 378, 'BLM club cap should use rank C+')
+        assert(player:getMaxSkillLevel(99, xi.job.SMN, xi.skill.GREAT_AXE) == 0, 'unavailable job skills should use rank zero')
+        assert(player:getMaxSkillLevel(0, xi.job.WAR, xi.skill.GREAT_AXE) == 0, 'level zero should have a zero cap')
+        assert(player:getMaxSkillLevel(100, xi.job.SMN, xi.skill.SUMMONING_MAGIC) == 417, 'levels above 99 should clamp to 99')
+        assert(player:getMaxSkillLevel(255, xi.job.SMN, xi.skill.SUMMONING_MAGIC) == 417, 'uint8 maximum level should clamp to 99')
+        assert(player:getMaxSkillLevel(256, xi.job.WAR, xi.skill.GREAT_AXE) == 0, 'numeric levels should narrow to uint8')
+        assert(npc:getMaxSkillLevel(99, xi.job.SMN, xi.skill.SUMMONING_MAGIC) == 417, 'receiver type should not affect lookup')
+
+        assert(not pcall(player.getMaxSkillLevel), 'getMaxSkillLevel accepted missing self')
+        assert(not pcall(player.getMaxSkillLevel, player), 'getMaxSkillLevel accepted missing level')
+        assert(not pcall(player.getMaxSkillLevel, player, 99), 'getMaxSkillLevel accepted missing job ID')
+        assert(not pcall(player.getMaxSkillLevel, player, 99, xi.job.SMN), 'getMaxSkillLevel accepted missing skill ID')
+        assert(not pcall(player.getMaxSkillLevel, player, 'bad', xi.job.SMN, xi.skill.SUMMONING_MAGIC), 'getMaxSkillLevel accepted non-numeric level')
+        assert(not pcall(player.getMaxSkillLevel, player, 99, 'bad', xi.skill.SUMMONING_MAGIC), 'getMaxSkillLevel accepted non-numeric job ID')
+        assert(not pcall(player.getMaxSkillLevel, player, 99, xi.job.SMN, 'bad'), 'getMaxSkillLevel accepted non-numeric skill ID')
+    end)
+end)
