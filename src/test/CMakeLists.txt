@@ -248,6 +248,8 @@ set(SOURCES
     test_trait.cpp
     test_job_points.h
     test_job_points.cpp
+    test_enmity_container.h
+    test_enmity_container.cpp
     test_modifier.h
     test_modifier.cpp
     test_spatial_grid.h

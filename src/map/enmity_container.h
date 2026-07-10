@@ -23,6 +23,9 @@
 #define _CENMITYCONTAINER_H
 
 #include "common/cbasetypes.h"
+#include "map_constants.h"
+
+#include <algorithm>
 #include <unordered_map>
 
 class CBattleEntity;
@@ -38,6 +41,54 @@ struct EnmityObject_t
 };
 
 typedef std::unordered_map<uint32, EnmityObject_t> EnmityList_t;
+
+// Pure CE/VE math helpers shared by CEnmityContainer and unit tests.
+// These deliberately avoid battle-entity, zone, and notoriety dependencies so
+// OmegaXI parity fixtures can pin clamp/bonus/decay behavior in isolation.
+namespace enmitymath
+{
+// Per-tick VE reduction: (int)(60 / kLogicUpdateRate) == 24 with default rate.
+inline constexpr int32 VEDecayAmount()
+{
+    return static_cast<int32>(60 / kLogicUpdateRate);
+}
+
+inline auto ClampEnmity(int32 value, int32 cap) -> int32
+{
+    return std::clamp(value, 0, cap);
+}
+
+// SetCE/SetVE use min(amount, cap) only — no zero floor.
+inline auto CapAmount(int32 amount, int32 cap) -> int32
+{
+    return std::min(amount, cap);
+}
+
+// Existing-entry delta: current + (delta > 0 ? delta * bonus : delta).
+inline auto ApplyDelta(int32 current, int32 delta, float bonus) -> int32
+{
+    return static_cast<int32>(current + (delta > 0 ? delta * bonus : delta));
+}
+
+// New-entry axis after optional initial boost, then bonus, then [0, cap] clamp.
+inline auto ApplyNewEntryAxis(int32 value, float bonus, int32 cap) -> int32
+{
+    return ClampEnmity(static_cast<int32>(value * bonus), cap);
+}
+
+inline auto LowerByPercent(int32 value, uint8 percent) -> int32
+{
+    float  mod    = (static_cast<float>(percent) / 100.0f);
+    auto   amount = static_cast<int32>(value * mod);
+    return value - (amount < 0 ? 0 : amount);
+}
+
+inline auto DecayVE(int32 ve) -> int32
+{
+    const int32 decay = VEDecayAmount();
+    return ve - (ve > decay ? decay : ve);
+}
+} // namespace enmitymath
 
 class CEnmityContainer
 {

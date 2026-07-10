@@ -210,12 +210,12 @@ void CEnmityContainer::UpdateEnmity(CBattleEntity* PEntity, int32 CE, int32 VE, 
         }
         float bonus = CalculateEnmityBonus(PEntity);
 
-        int32 newCE = (int32)(enmity_obj->second.CE + (CE > 0 ? CE * bonus : CE));
-        int32 newVE = (int32)(enmity_obj->second.VE + (VE > 0 ? VE * bonus : VE));
+        int32 newCE = enmitymath::ApplyDelta(enmity_obj->second.CE, CE, bonus);
+        int32 newVE = enmitymath::ApplyDelta(enmity_obj->second.VE, VE, bonus);
 
         // Check for cap limit
-        enmity_obj->second.CE = std::clamp(newCE, 0, EnmityCap);
-        enmity_obj->second.VE = std::clamp(newVE, 0, EnmityCap);
+        enmity_obj->second.CE = enmitymath::ClampEnmity(newCE, EnmityCap);
+        enmity_obj->second.VE = enmitymath::ClampEnmity(newVE, EnmityCap);
 
         if (CE >= 0 && VE >= 0)
         {
@@ -242,8 +242,8 @@ void CEnmityContainer::UpdateEnmity(CBattleEntity* PEntity, int32 CE, int32 VE, 
 
         float bonus = CalculateEnmityBonus(PEntity);
 
-        CE = std::clamp((int32)(CE * bonus), 0, EnmityCap);
-        VE = std::clamp((int32)(VE * bonus), 0, EnmityCap);
+        CE = enmitymath::ApplyNewEntryAxis(CE, bonus, EnmityCap);
+        VE = enmitymath::ApplyNewEntryAxis(VE, bonus, EnmityCap);
 
         m_EnmityList.emplace(PEntity->id, EnmityObject_t{ PEntity, CE, VE, true });
         PEntity->PNotorietyContainer->add(m_EnmityHolder);
@@ -339,17 +339,17 @@ void CEnmityContainer::LowerEnmityByPercent(CBattleEntity* PEntity, uint8 percen
 
     if (enmity_obj != m_EnmityList.end())
     {
-        float mod = ((float)(percent) / 100.0f);
+        auto priorCE = enmity_obj->second.CE;
+        auto priorVE = enmity_obj->second.VE;
 
-        auto CEValue = (int32)(enmity_obj->second.CE * mod);
-        enmity_obj->second.CE -= (CEValue < 0 ? 0 : CEValue);
-
-        auto VEValue = (int32)(enmity_obj->second.VE * mod);
-        enmity_obj->second.VE -= (VEValue < 0 ? 0 : VEValue);
+        enmity_obj->second.CE = enmitymath::LowerByPercent(priorCE, percent);
+        enmity_obj->second.VE = enmitymath::LowerByPercent(priorVE, percent);
 
         // transfer hate if HateReceiver not nullptr
         if (HateReceiver != nullptr)
         {
+            auto CEValue = priorCE - enmity_obj->second.CE;
+            auto VEValue = priorVE - enmity_obj->second.VE;
             UpdateEnmity(HateReceiver, CEValue, VEValue);
         }
     }
@@ -384,7 +384,7 @@ void CEnmityContainer::SetCE(CBattleEntity* PEntity, const int32 amount)
     auto PEnmity = m_EnmityList.find(PEntity->id);
     if (PEnmity != m_EnmityList.end())
     {
-        PEnmity->second.CE = std::min(amount, EnmityCap);
+        PEnmity->second.CE = enmitymath::CapAmount(amount, EnmityCap);
     }
     else
     {
@@ -398,7 +398,7 @@ void CEnmityContainer::SetVE(CBattleEntity* PEntity, const int32 amount)
     auto PEnmity = m_EnmityList.find(PEntity->id);
     if (PEnmity != m_EnmityList.end())
     {
-        PEnmity->second.VE = std::min(amount, EnmityCap);
+        PEnmity->second.VE = enmitymath::CapAmount(amount, EnmityCap);
     }
     else
     {
@@ -525,10 +525,8 @@ void CEnmityContainer::DecayEnmity()
 {
     for (auto& it : m_EnmityList)
     {
-        EnmityObject_t& PEnmityObject = it.second;
-        constexpr int   decay_amount  = (int)(60 / kLogicUpdateRate); // TODO: This should decay relative to the delta tick time?
-
-        PEnmityObject.VE -= PEnmityObject.VE > decay_amount ? decay_amount : PEnmityObject.VE;
+        // TODO: This should decay relative to the delta tick time?
+        it.second.VE = enmitymath::DecayVE(it.second.VE);
     }
 }
 
