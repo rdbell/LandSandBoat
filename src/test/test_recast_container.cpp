@@ -135,6 +135,24 @@ auto testChargedRecastAccumulation() -> bool
     return ok;
 }
 
+auto testRestoredAbilityRecast() -> bool
+{
+    CBattleEntity     entity;
+    CRecastContainer container(&entity);
+
+    // charutils restores a persisted row by passing its remaining duration
+    // through Load; verify that the production container keeps it active and
+    // preserves charge metadata for the next ability use.
+    auto* restored = container.Load(RECAST_ABILITY, Recast::Sic, 20s, 10s, 3);
+
+    bool ok = true;
+    ok      = expectSeconds(restored->RecastTime, 20, "restored ability remaining duration") && ok;
+    ok      = expectSeconds(restored->chargeTime, 10, "restored ability charge time") && ok;
+    ok      = expectUInt(restored->maxCharges, 3, "restored ability max charges") && ok;
+    ok      = expectBool(container.HasRecast(RECAST_ABILITY, Recast::Sic, 4s), true, "restored ability is active") && ok;
+    return ok;
+}
+
 auto testDeletionAndResetSemantics() -> bool
 {
     CBattleEntity     entity;
@@ -272,6 +290,7 @@ auto runRecastContainerSelfTests() -> bool
     bool ok = true;
     ok      = testLoadAndLookup() && ok;
     ok      = testChargedRecastAccumulation() && ok;
+    ok      = testRestoredAbilityRecast() && ok;
     ok      = testDeletionAndResetSemantics() && ok;
     ok      = testDeleteAllSemantics() && ok;
     ok      = testCheckExpiry() && ok;
