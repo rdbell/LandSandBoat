@@ -157,6 +157,66 @@ auto testRestrictionsResizeAndClean() -> bool
     return ok;
 }
 
+auto testAccountingMutationBoundaries() -> bool
+{
+    CTradeContainer container;
+
+    // setItem is both the add and replacement operation. Every in-range call
+    // advances the caller-maintained count, even when the slot is occupied or
+    // the replacement clears it.
+    container.setItem(0, 0x3001, 1, 4);
+    container.setItem(0, 0x3002, 2, 9);
+    container.setItem(0, 0, 0xFF, 0);
+
+    bool ok = true;
+    ok      = expectUInt(container.getItemsCount(), 3, "add replace clear item count") && ok;
+    ok      = expectUInt(container.getSlotCount(), 0, "clear removes occupied slot") && ok;
+    ok      = expectUInt(container.getTotalQuantity(), 0, "clear removes quantity") && ok;
+
+    // Scalar updates do not maintain m_ItemsCount and clearing only an item ID
+    // leaves the independent quantity vector contributing to totals.
+    container.setItemsCount(17);
+    container.setItem(1, 0x4001, 3, 6);
+    container.setItemID(1, 0);
+    ok = expectUInt(container.getItemsCount(), 18, "scalar update leaves item count") && ok;
+    ok = expectUInt(container.getSlotCount(), 0, "item id clear changes occupancy") && ok;
+    ok = expectUInt(container.getItemQuantity(0), 6, "zero item id quantity accounting") && ok;
+    ok = expectUInt(container.getTotalQuantity(), 6, "cleared item id retains quantity accounting") && ok;
+
+    // Native unsigned arithmetic wraps rather than saturating.
+    container.Clean();
+    container.setItemsCount(0xFF);
+    container.setItem(0, 0x5001, 4, 1);
+    ok = expectUInt(container.getItemsCount(), 0, "item count uint8 wrap") && ok;
+
+    container.setItem(0, 0x5002, 4, UINT32_MAX);
+    container.setItem(1, 0x5002, 5, 2);
+    ok = expectUInt(container.getItemQuantity(0x5002), 1, "item quantity uint32 wrap") && ok;
+    ok = expectUInt(container.getTotalQuantity(), 1, "total quantity uint32 wrap") && ok;
+
+    // Gil contributes one to the total regardless of its stored quantity, but
+    // per-item lookup still returns and wraps the stored quantities.
+    container.setItem(2, 0xFFFF, 6, UINT32_MAX);
+    container.setItem(3, 0xFFFF, 7, 2);
+    ok = expectUInt(container.getItemQuantity(0xFFFF), 1, "gil quantity lookup uint32 wrap") && ok;
+    ok = expectUInt(container.getTotalQuantity(), 3, "duplicate gil slots count independently") && ok;
+
+    // Resizing storage never reconciles the separately maintained count.
+    container.setItemsCount(91);
+    container.setSize(1);
+    ok = expectUInt(container.getItemsCount(), 91, "shrink leaves item count") && ok;
+    ok = expectUInt(container.getSlotCount(), 1, "shrink retains occupied slot") && ok;
+
+    container.Clean();
+    container.setSize(UINT8_MAX);
+    for (std::uint16_t slotID = 0; slotID < UINT8_MAX; ++slotID)
+    {
+        container.setItemID(static_cast<std::uint8_t>(slotID), 1);
+    }
+    ok = expectUInt(container.getSlotCount(), UINT8_MAX, "maximum slot count") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runTradeContainerSelfTests() -> bool
@@ -165,5 +225,6 @@ auto runTradeContainerSelfTests() -> bool
     ok      = testDefaultStateAndBounds() && ok;
     ok      = testScalarSlotsAndTotals() && ok;
     ok      = testRestrictionsResizeAndClean() && ok;
+    ok      = testAccountingMutationBoundaries() && ok;
     return ok;
 }

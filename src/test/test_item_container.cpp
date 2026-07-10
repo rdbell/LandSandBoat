@@ -132,6 +132,35 @@ auto testDefaultsAndCapacityMutation() -> bool
     return ok;
 }
 
+auto testCapacityFailureSideEffectsAndBoundaries() -> bool
+{
+    CItemContainer container(12);
+    container.SetSize(MAX_CONTAINER_SIZE);
+
+    auto edge    = std::make_unique<CItem>(700);
+    auto edgeRaw = edge.get();
+
+    bool ok = true;
+    ok      = expectUInt(container.InsertItem(std::move(edge), MAX_CONTAINER_SIZE), MAX_CONTAINER_SIZE, "maximum slot insert") && ok;
+    ok      = expectItem(container.GetItem(MAX_CONTAINER_SIZE), edgeRaw, "maximum slot lookup") && ok;
+    ok      = expectUInt(container.SearchItem(700), MAX_CONTAINER_SIZE, "maximum slot search") && ok;
+
+    // AddBuff stores m_buff before SetSize validates the resulting usable
+    // capacity. The failed shrink therefore keeps size 120 but retains buff 0.
+    ok = expectUInt(container.AddBuff(0), ERROR_SLOTID, "buff shrink below count rejected") && ok;
+    ok = expectUInt(container.GetBuff(), 0, "failed buff shrink keeps buff mutation") && ok;
+    ok = expectUInt(container.GetSize(), MAX_CONTAINER_SIZE, "failed buff shrink keeps size") && ok;
+
+    CItemContainer zeroSized(13);
+    auto           zero    = std::make_unique<CItem>(701);
+    auto           zeroRaw = zero.get();
+    ok = expectUInt(zeroSized.InsertItem(std::move(zero), 0), 0, "zero-sized slot zero insert") && ok;
+    ok = expectItem(zeroSized.GetItem(0), zeroRaw, "zero-sized slot zero lookup") && ok;
+    ok = expectUInt(zeroSized.SearchItem(701), 0, "zero-sized slot zero search") && ok;
+    ok = expectUInt(zeroSized.GetFreeSlotsCount(), 0, "zero-sized slot zero not counted") && ok;
+    return ok;
+}
+
 auto testInsertionReplacementAndRemoval() -> bool
 {
     CItemContainer container(0x0123);
@@ -248,6 +277,40 @@ auto testCrossContainerMoves() -> bool
     return ok;
 }
 
+auto testSameContainerMoves() -> bool
+{
+    CItemContainer container(14);
+    container.SetSize(4);
+
+    auto first    = std::make_unique<CItem>(800);
+    auto firstRaw = first.get();
+    auto third    = std::make_unique<CItem>(801);
+    auto thirdRaw = third.get();
+    container.InsertItem(std::move(first), 1);
+    container.InsertItem(std::move(third), 3);
+
+    bool ok = true;
+    // With no explicit destination, removal precedes the first-free scan. The
+    // earlier hole wins, so an in-container move can relocate toward slot 1.
+    ok = expectUInt(container.MoveItemTo(3, container), 2, "same-container first-free move") && ok;
+    ok = expectItem(container.GetItem(2), thirdRaw, "same-container first-free destination") && ok;
+    ok = expectItem(container.GetItem(3), nullptr, "same-container first-free source") && ok;
+    ok = expectUInt(thirdRaw->getSlotID(), 2, "same-container first-free metadata") && ok;
+    ok = expectUInt(container.GetFreeSlotsCount(), 2, "same-container first-free count") && ok;
+
+    ok = expectUInt(container.MoveItemTo(1, container, 4), 4, "same-container explicit move") && ok;
+    ok = expectItem(container.GetItem(4), firstRaw, "same-container explicit destination") && ok;
+    ok = expectItem(container.GetItem(1), nullptr, "same-container explicit source") && ok;
+    ok = expectUInt(firstRaw->getSlotID(), 4, "same-container explicit metadata") && ok;
+    ok = expectUInt(container.GetFreeSlotsCount(), 2, "same-container explicit count") && ok;
+
+    // The source slot is still occupied during validation, so moving explicitly
+    // to the same slot is rejected without removing the item.
+    ok = expectUInt(container.MoveItemTo(4, container, 4), ERROR_SLOTID, "same-slot move rejected") && ok;
+    ok = expectItem(container.GetItem(4), firstRaw, "same-slot rejection keeps item") && ok;
+    return ok;
+}
+
 auto testSearchAndUnsignedStackSpace() -> bool
 {
     CItemContainer container(4);
@@ -352,9 +415,11 @@ auto runItemContainerSelfTests() -> bool
 {
     bool ok = true;
     ok      = testDefaultsAndCapacityMutation() && ok;
+    ok      = testCapacityFailureSideEffectsAndBoundaries() && ok;
     ok      = testInsertionReplacementAndRemoval() && ok;
     ok      = testInvalidAndNilItems() && ok;
     ok      = testCrossContainerMoves() && ok;
+    ok      = testSameContainerMoves() && ok;
     ok      = testSearchAndUnsignedStackSpace() && ok;
     ok      = testForEachAndClearCount() && ok;
     ok      = testShrinkAndClearIgnoreHiddenItems() && ok;

@@ -37,6 +37,8 @@ set(SOURCES
     test_console_service_input.cpp
     test_action_model.h
     test_action_model.cpp
+    test_action_queue.h
+    test_action_queue.cpp
     test_base_entity_model.h
     test_base_entity_model.cpp
     test_application.h

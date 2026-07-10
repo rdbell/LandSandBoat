@@ -65,6 +65,7 @@ auto runEventInfoSelfTests() -> bool;
 auto runLatentEffectSelfTests() -> bool;
 auto runArgumentsParserSelfTests() -> bool;
 auto runActionModelSelfTests() -> bool;
+auto runActionQueueSelfTests() -> bool;
 auto runBaseEntityModelSelfTests() -> bool;
 auto runVersionInfoSelfTests() -> bool;
 auto runSingletonHelperSelfTests() -> bool;
@@ -408,6 +409,7 @@ namespace
         ok = runLatentEffectSelfTests() && ok;
         ok = runArgumentsParserSelfTests() && ok;
         ok = runActionModelSelfTests() && ok;
+        ok = runActionQueueSelfTests() && ok;
         ok = runBaseEntityModelSelfTests() && ok;
         ok = runVersionInfoSelfTests() && ok;
         ok = runSingletonHelperSelfTests() && ok;

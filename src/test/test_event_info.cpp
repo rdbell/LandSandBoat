@@ -129,6 +129,60 @@ auto testEventInfoReset() -> bool
     return ok;
 }
 
+auto testEventInfoCopyLifecycle() -> bool
+{
+    EventInfo original;
+    original.targetEntity          = reinterpret_cast<CBaseEntity*>(0x1234);
+    original.scriptFile            = "scripts/zones/Test/DefaultActions.lua";
+    original.eventId               = 77;
+    original.option                = -9;
+    original.params[0]             = 0;
+    original.params[255]           = UINT32_MAX;
+    original.strings[0]            = "";
+    original.strings[255]          = "original";
+    original.textTable             = 45;
+    original.type                  = OPTIONAL_CUTSCENE;
+    original.cutsceneOptions       = { -1, 0, 5 };
+    original.interruptText         = 1234;
+    original.eventFlags            = UINT32_MAX;
+    original.canSkip               = true;
+
+    EventInfo copy = original;
+    copy.params[255]          = 7;
+    copy.params[1]            = 100;
+    copy.strings[255]         = "copy";
+    copy.strings[1]           = "added";
+    copy.cutsceneOptions[0]   = 99;
+    copy.cutsceneOptions.push_back(12);
+
+    bool ok = true;
+    ok      = expectBool(copy.targetEntity == original.targetEntity, true, "copy target identity") && ok;
+    ok      = expectBool(copy.scriptFile == original.scriptFile, true, "copy script file") && ok;
+    ok      = expectEqual(copy.eventId, static_cast<int32>(77), "copy event id") && ok;
+    ok      = expectEqual(copy.option, static_cast<int32>(-9), "copy option") && ok;
+    ok      = expectEqual(copy.textTable, static_cast<int16>(45), "copy text table") && ok;
+    ok      = expectEqual(copy.type, OPTIONAL_CUTSCENE, "copy type") && ok;
+    ok      = expectEqual(copy.interruptText, static_cast<uint16>(1234), "copy interrupt text") && ok;
+    ok      = expectEqual(copy.eventFlags, UINT32_MAX, "copy event flags") && ok;
+    ok      = expectBool(copy.canSkip, true, "copy can skip") && ok;
+    ok      = expectBool(copy.hasCutsceneOption(99), true, "copy option lookup after mutation") && ok;
+    ok      = expectBool(copy.hasCutsceneOption(-1), false, "copy replaced original option") && ok;
+    ok      = expectEqual(original.params.at(255), UINT32_MAX, "copy owns params values") && ok;
+    ok      = expectBool(original.params.contains(1), false, "copy owns params insertions") && ok;
+    ok      = expectBool(original.strings.at(255) == "original", true, "copy owns string values") && ok;
+    ok      = expectBool(original.strings.contains(1), false, "copy owns string insertions") && ok;
+    ok      = expectEqual(original.cutsceneOptions.size(), static_cast<std::size_t>(3), "copy owns option length") && ok;
+    ok      = expectEqual(original.cutsceneOptions[0], static_cast<int32>(-1), "copy owns option values") && ok;
+
+    copy.reset();
+    ok = expectEqual(copy.interruptText, static_cast<uint16>(1234), "copy reset preserves interrupt text") && ok;
+    ok = expectEqual(original.eventId, static_cast<int32>(77), "copy reset preserves original event id") && ok;
+    ok = expectEqual(original.params.size(), static_cast<std::size_t>(2), "copy reset preserves original params") && ok;
+    ok = expectEqual(original.strings.size(), static_cast<std::size_t>(2), "copy reset preserves original strings") && ok;
+    ok = expectEqual(original.cutsceneOptions.size(), static_cast<std::size_t>(3), "copy reset preserves original options") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runEventInfoSelfTests() -> bool
@@ -138,5 +192,6 @@ auto runEventInfoSelfTests() -> bool
     ok      = testEventInfoDefaults() && ok;
     ok      = testEventInfoCutsceneOptionLookup() && ok;
     ok      = testEventInfoReset() && ok;
+    ok      = testEventInfoCopyLifecycle() && ok;
     return ok;
 }

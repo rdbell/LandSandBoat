@@ -123,6 +123,9 @@ auto testHasEnmityPrunesStaleMobsAndRetainsOtherEntities() -> bool
     CMobEntity liveMissingOwner;
     liveMissingOwner.health.hp = 1;
     liveMissingOwner.status    = STATUS_TYPE::UPDATE;
+    // Pruning uses the C++ dynamic type, not objtype. Deliberately give this
+    // real CMobEntity a misleading discriminator to pin that distinction.
+    liveMissingOwner.objtype = TYPE_PC;
     addOwnerEnmity(liveMissingOwner, owner, static_cast<uint16>(ownerID + 1));
 
     CMobEntity liveWithOwner;
@@ -132,6 +135,9 @@ auto testHasEnmityPrunesStaleMobsAndRetainsOtherEntities() -> bool
 
     CBattleEntity nonMob;
     nonMob.allegiance = ALLEGIANCE_TYPE::MOB;
+    // Conversely, a plain battle entity is retained even when its objtype says
+    // mob because dynamic_cast<CMobEntity*> still fails.
+    nonMob.objtype = TYPE_MOB;
 
     CNotorietyContainer container(&owner);
     container.add(&deadWithEnmity);
@@ -156,6 +162,34 @@ auto testHasEnmityPrunesStaleMobsAndRetainsOtherEntities() -> bool
     return ok;
 }
 
+auto testOwnerIDLookupUsesTruncatedKey() -> bool
+{
+    CBattleEntity owner;
+    owner.id         = 0x12345;
+    owner.allegiance = ALLEGIANCE_TYPE::PLAYER;
+
+    CMobEntity fullOwnerIDOnly;
+    fullOwnerIDOnly.health.hp = 1;
+    fullOwnerIDOnly.status    = STATUS_TYPE::UPDATE;
+    addOwnerEnmity(fullOwnerIDOnly, owner, owner.id);
+
+    CMobEntity truncatedOwnerID;
+    truncatedOwnerID.health.hp = 1;
+    truncatedOwnerID.status    = STATUS_TYPE::UPDATE;
+    addOwnerEnmity(truncatedOwnerID, owner, static_cast<uint16>(owner.id));
+
+    CNotorietyContainer container(&owner);
+    container.add(&fullOwnerIDOnly);
+    container.add(&truncatedOwnerID);
+
+    bool ok = true;
+    ok      = expectBool(container.hasEnmity(), true, "truncated owner-ID key retains mob") && ok;
+    ok      = expectSize(container.size(), 1, "full owner-ID key does not satisfy truncated lookup") && ok;
+    ok      = expectBool(contains(container, &fullOwnerIDOnly), false, "full owner-ID key pruned") && ok;
+    ok      = expectBool(contains(container, &truncatedOwnerID), true, "low-16-bit owner-ID key retained") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runNotorietyContainerSelfTests() -> bool
@@ -163,5 +197,6 @@ auto runNotorietyContainerSelfTests() -> bool
     bool ok = true;
     ok      = testMembershipFilteringDeduplicationAndRemoval() && ok;
     ok      = testHasEnmityPrunesStaleMobsAndRetainsOtherEntities() && ok;
+    ok      = testOwnerIDLookupUsesTruncatedKey() && ok;
     return ok;
 }
