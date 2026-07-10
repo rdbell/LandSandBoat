@@ -25,6 +25,7 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 #include <vector>
 
 class CCharEntity;
@@ -39,6 +40,16 @@ struct AssembledCall
 };
 
 auto AssembleCall(std::vector<GP_CLI_COMMAND_FAQ_GMCALL> packets) -> AssembledCall;
+
+struct PendingResponsePacket
+{
+    uint32_t    callId;
+    uint16_t    seqId;
+    uint16_t    pktNum;
+    std::string message;
+};
+
+auto BuildPendingResponsePackets(uint32_t callId, std::string_view response) -> std::vector<PendingResponsePacket>;
 
 } // namespace gmcall::detail
 

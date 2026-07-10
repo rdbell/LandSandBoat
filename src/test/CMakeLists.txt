@@ -260,6 +260,8 @@ set(SOURCES
     test_guild_pattern_runtime.cpp
     test_gmcall_assembly_1238.h
     test_gmcall_assembly_1238.cpp
+    test_gmcall_pending_response_1239.h
+    test_gmcall_pending_response_1239.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h

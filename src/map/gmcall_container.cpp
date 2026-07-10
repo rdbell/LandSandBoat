@@ -171,6 +171,32 @@ auto gmcall::detail::AssembleCall(std::vector<GP_CLI_COMMAND_FAQ_GMCALL> packets
     return call;
 }
 
+auto gmcall::detail::BuildPendingResponsePackets(const uint32_t callId, const std::string_view response) -> std::vector<PendingResponsePacket>
+{
+    constexpr std::size_t maxPerPacket = sizeof(GP_SERV_COMMAND_SET_GMMSG::PacketData::Msg);
+    const auto            totalPackets = (response.size() + maxPerPacket - 1) / maxPerPacket;
+
+    std::vector<PendingResponsePacket> packets;
+    packets.reserve(totalPackets);
+
+    for (std::size_t i = 0; i < totalPackets; ++i)
+    {
+        const auto chunkOffset = i * maxPerPacket;
+        const auto chunkSize   = std::min(response.size() - chunkOffset, maxPerPacket);
+        const auto seqId       = static_cast<uint16_t>(i + 1);
+        const auto pktNum      = static_cast<uint16_t>((i == totalPackets - 1) ? 0 : seqId);
+
+        packets.emplace_back(PendingResponsePacket{
+            .callId  = callId,
+            .seqId   = seqId,
+            .pktNum  = pktNum,
+            .message = std::string(response.substr(chunkOffset, chunkSize)),
+        });
+    }
+
+    return packets;
+}
+
 // Store one GMCALL packet for later processing
 auto GMCallContainer::addPacket(const GP_CLI_COMMAND_FAQ_GMCALL& packet) -> bool
 {
@@ -242,19 +268,9 @@ void GMCallContainer::sendPendingResponse(CCharEntity* PChar) const
         const auto callId   = rset->get<uint32>("id");
         const auto response = rset->get<std::string>("response");
 
-        // Max 244 characters per packet, with an upper limit of 1024 characters.
-        constexpr std::size_t maxPerPacket = sizeof(GP_SERV_COMMAND_SET_GMMSG::PacketData::Msg);
-        const auto            totalPackets = (response.size() + maxPerPacket - 1) / maxPerPacket;
-
-        for (std::size_t i = 0; i < totalPackets; ++i)
+        for (const auto& packet : gmcall::detail::BuildPendingResponsePackets(callId, response))
         {
-            const auto chunkOffset = i * maxPerPacket;
-            const auto chunkSize   = std::min(response.size() - chunkOffset, maxPerPacket);
-            const auto chunk       = response.substr(chunkOffset, chunkSize);
-            const auto seqId       = static_cast<uint16_t>(i + 1);
-            const auto pktNum      = static_cast<uint16_t>((i == totalPackets - 1) ? 0 : seqId);
-
-            PChar->pushPacket<GP_SERV_COMMAND_SET_GMMSG>(callId, seqId, pktNum, chunk);
+            PChar->pushPacket<GP_SERV_COMMAND_SET_GMMSG>(packet.callId, packet.seqId, packet.pktNum, packet.message);
         }
     }
 }
