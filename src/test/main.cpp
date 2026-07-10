@@ -118,6 +118,7 @@ auto runLoginKeyPacketSelfTests() -> bool;
 auto runLoginVersionLockSelfTests() -> bool;
 auto runMapNetworkPacketBuildingSelfTests() -> bool;
 auto runMapSessionBlowfishSelfTests() -> bool;
+auto runMapSessionIndexSelfTests() -> bool;
 auto runSQLiteQueryTranslationSelfTests() -> bool;
 auto runMariaDBConnectionLossSelfTests() -> bool;
 auto runMariaDBResultCellConversionsSelfTests() -> bool;
@@ -456,6 +457,7 @@ namespace
         ok = runLoginVersionLockSelfTests() && ok;
         ok = runMapNetworkPacketBuildingSelfTests() && ok;
         ok = runMapSessionBlowfishSelfTests() && ok;
+        ok = runMapSessionIndexSelfTests() && ok;
         ok = runSQLiteQueryTranslationSelfTests() && ok;
         ok = runWorldCharacterCacheSelfTests() && ok;
         ok = runWorldDailyTallySelfTests() && ok;

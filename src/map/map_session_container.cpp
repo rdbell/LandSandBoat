@@ -34,6 +34,121 @@
 #include "utils/charutils.h"
 #include "utils/petutils.h"
 
+void MapSessionIndex::addSession(MapSession* session)
+{
+    if (session != nullptr)
+    {
+        sessions_[session->client_ipp] = session;
+    }
+}
+
+void MapSessionIndex::addPendingSession(MapSession* session)
+{
+    if (session != nullptr)
+    {
+        pendingSessions_[session->charID] = session;
+    }
+}
+
+auto MapSessionIndex::getSessionByIPP(const IPP& ipp) const -> MapSession*
+{
+    if (const auto it = sessions_.find(ipp); it != sessions_.end())
+    {
+        return it->second;
+    }
+    return nullptr;
+}
+
+auto MapSessionIndex::getSessionByIPP(const uint64 ipp) const -> MapSession*
+{
+    return getSessionByIPP(IPP(ipp));
+}
+
+auto MapSessionIndex::getSessionByCharId(const uint32 charId) const -> MapSession*
+{
+    for (const auto& [_, session] : sessions_)
+    {
+        if (session != nullptr && session->charID == charId)
+        {
+            return session;
+        }
+    }
+    return nullptr;
+}
+
+auto MapSessionIndex::getSessionByAccountId(const uint32 accountId) const -> MapSession*
+{
+    for (const auto& [_, session] : sessions_)
+    {
+        if (session != nullptr && session->accountID == accountId)
+        {
+            return session;
+        }
+    }
+    return nullptr;
+}
+
+auto MapSessionIndex::getPendingSessionByCharId(const uint32 charId) const -> MapSession*
+{
+    if (const auto it = pendingSessions_.find(charId); it != pendingSessions_.end())
+    {
+        return it->second;
+    }
+    return nullptr;
+}
+
+auto MapSessionIndex::removeSession(MapSession* session) -> bool
+{
+    if (session == nullptr)
+    {
+        return false;
+    }
+    const auto it = sessions_.find(session->client_ipp);
+    if (it == sessions_.end() || it->second != session)
+    {
+        return false;
+    }
+    sessions_.erase(it);
+    return true;
+}
+
+auto MapSessionIndex::removePendingSession(MapSession* session) -> bool
+{
+    if (session == nullptr)
+    {
+        return false;
+    }
+    const auto it = pendingSessions_.find(session->charID);
+    if (it == pendingSessions_.end() || it->second != session)
+    {
+        return false;
+    }
+    pendingSessions_.erase(it);
+    return true;
+}
+
+auto MapSessionIndex::removePendingSession(const uint32 charId) -> MapSession*
+{
+    const auto it = pendingSessions_.find(charId);
+    if (it == pendingSessions_.end())
+    {
+        return nullptr;
+    }
+    auto* session = it->second;
+    pendingSessions_.erase(it);
+    return session;
+}
+
+auto MapSessionIndex::confirmedSize() const -> std::size_t
+{
+    return sessions_.size();
+}
+
+auto MapSessionIndex::pendingSize() const -> std::size_t
+{
+    return pendingSessions_.size();
+}
+
 MapSessionContainer::MapSessionContainer(Scheduler& scheduler)
 : scheduler_(scheduler)
 {
@@ -65,7 +180,12 @@ auto MapSessionContainer::createSession(IPP ipp) -> MapSession*
     map_session_data->client_ipp = ipp;
     map_session_data->tapLastUpdate();
 
+    if (auto* previous = index_.getSessionByIPP(ipp))
+    {
+        index_.removeSession(previous);
+    }
     sessions_[ipp] = std::move(map_session_data);
+    index_.addSession(sessions_[ipp].get());
 
     return sessions_[ipp].get();
 }
@@ -89,7 +209,12 @@ auto MapSessionContainer::createPendingSession(uint32 charId) -> MapSession*
     map_session_data->charID    = charId;
     map_session_data->tapLastUpdate();
 
+    if (auto* previous = index_.getPendingSessionByCharId(charId))
+    {
+        index_.removePendingSession(previous);
+    }
     pending_sessions_[charId] = std::move(map_session_data);
+    index_.addPendingSession(pending_sessions_[charId].get());
 
     return pending_sessions_[charId].get();
 }
@@ -98,26 +223,14 @@ auto MapSessionContainer::getSessionByIPP(IPP ipp) -> MapSession*
 {
     TracyZoneScoped;
 
-    if (sessions_.find(ipp) != sessions_.end())
-    {
-        return sessions_[ipp].get();
-    }
-
-    return nullptr;
+    return index_.getSessionByIPP(ipp);
 }
 
 auto MapSessionContainer::getSessionByIPP(uint64 ipp) -> MapSession*
 {
     TracyZoneScoped;
 
-    auto ippObj = IPP(ipp);
-
-    if (sessions_.find(ippObj) != sessions_.end())
-    {
-        return sessions_[ippObj].get();
-    }
-
-    return nullptr;
+    return index_.getSessionByIPP(ipp);
 }
 
 auto MapSessionContainer::getSessionByChar(CCharEntity* PChar) -> MapSession*
@@ -144,42 +257,21 @@ auto MapSessionContainer::getSessionByCharId(uint32 charId) -> MapSession*
 {
     TracyZoneScoped;
 
-    for (const auto& [_, session] : sessions_)
-    {
-        if (session->charID == charId)
-        {
-            return session.get();
-        }
-    }
-
-    return nullptr;
+    return index_.getSessionByCharId(charId);
 }
 
 auto MapSessionContainer::getPendingSessionByCharId(uint32 charId) -> MapSession*
 {
     TracyZoneScoped;
 
-    if (pending_sessions_.contains(charId))
-    {
-        return pending_sessions_[charId].get();
-    }
-
-    return nullptr;
+    return index_.getPendingSessionByCharId(charId);
 }
 
 auto MapSessionContainer::getSessionByAccountId(uint32 accountId) -> MapSession*
 {
     TracyZoneScoped;
 
-    for (const auto& [_, session] : sessions_)
-    {
-        if (session->accountID == accountId)
-        {
-            return session.get();
-        }
-    }
-
-    return nullptr;
+    return index_.getSessionByAccountId(accountId);
 }
 
 auto MapSessionContainer::getSessionByCharName(const std::string& name) -> MapSession*
@@ -275,6 +367,7 @@ void MapSessionContainer::cleanupSessions(IPP mapIPP)
 
                     map_session_data->PChar.reset();
 
+                    index_.removeSession(map_session_data.get());
                     sessions_.erase(it++);
                 }
                 else
@@ -285,6 +378,7 @@ void MapSessionContainer::cleanupSessions(IPP mapIPP)
                         db::preparedStmt("DELETE FROM accounts_sessions WHERE charid = ?", map_session_data->charID);
                     }
 
+                    index_.removeSession(map_session_data.get());
                     sessions_.erase(it++);
                 }
 
@@ -321,6 +415,7 @@ void MapSessionContainer::cleanupSessions(IPP mapIPP)
 
                 db::preparedStmt("DELETE FROM accounts_sessions WHERE charid = ?", map_session_data->charID);
 
+                index_.removePendingSession(map_session_data.get());
                 return true; // Erase
             }
 
@@ -343,6 +438,13 @@ void MapSessionContainer::destroySession(MapSession* map_session_data)
     TracyZoneScoped;
 
     if (map_session_data == nullptr)
+    {
+        return;
+    }
+
+    // Refuse stale or foreign pointers so a replacement session cannot be
+    // erased through the owning map while the index still points elsewhere.
+    if (!index_.removeSession(map_session_data))
     {
         return;
     }
@@ -378,6 +480,11 @@ void MapSessionContainer::destroyPendingSession(MapSession* map_session_data)
         return;
     }
 
+    if (!index_.removePendingSession(map_session_data))
+    {
+        return;
+    }
+
     ShowDebugFmt("Closing pending session for character id {}", map_session_data->charID);
 
     pending_sessions_.erase(map_session_data->charID);
@@ -387,9 +494,9 @@ void MapSessionContainer::destroyPendingSession(uint32 charId)
 {
     TracyZoneScoped;
 
-    if (auto map_session_data = getPendingSessionByCharId(charId))
+    if (index_.removePendingSession(charId) != nullptr)
     {
-        ShowDebugFmt("Closing pending session for character id {}", map_session_data->charID);
+        ShowDebugFmt("Closing pending session for character id {}", charId);
 
         pending_sessions_.erase(charId);
     }

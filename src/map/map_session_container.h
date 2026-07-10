@@ -29,6 +29,36 @@ class CCharEntity;
 class Scheduler;
 struct MapSession;
 
+// Non-owning lookup index shared by MapSessionContainer and focused parity
+// tests. Session lifetime remains owned by MapSessionContainer. The indexed
+// client_ipp must not change while a confirmed session is indexed, and charID
+// must not change while a pending session is indexed. Confirmed character and
+// account lookups are live scans; callers use this class from the map server's
+// owning thread.
+class MapSessionIndex
+{
+public:
+    void addSession(MapSession* session);
+    void addPendingSession(MapSession* session);
+
+    auto getSessionByIPP(const IPP& ipp) const -> MapSession*;
+    auto getSessionByIPP(uint64 ipp) const -> MapSession*;
+    auto getSessionByCharId(uint32 charId) const -> MapSession*;
+    auto getSessionByAccountId(uint32 accountId) const -> MapSession*;
+    auto getPendingSessionByCharId(uint32 charId) const -> MapSession*;
+
+    auto removeSession(MapSession* session) -> bool;
+    auto removePendingSession(MapSession* session) -> bool;
+    auto removePendingSession(uint32 charId) -> MapSession*;
+
+    auto confirmedSize() const -> std::size_t;
+    auto pendingSize() const -> std::size_t;
+
+private:
+    std::map<IPP, MapSession*>    sessions_;
+    std::map<uint32, MapSession*> pendingSessions_;
+};
+
 class MapSessionContainer
 {
 public:
@@ -56,4 +86,5 @@ private:
     Scheduler&                                    scheduler_;
     std::map<IPP, std::unique_ptr<MapSession>>    sessions_;         // Confirmed sessions mapped by IP
     std::map<uint32, std::unique_ptr<MapSession>> pending_sessions_; // Pending sessions notified via IPC that a character may be arriving
+    MapSessionIndex                               index_;
 };

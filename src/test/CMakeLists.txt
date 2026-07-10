@@ -330,6 +330,8 @@ set(SOURCES
     test_map_network_packet_building.cpp
     test_map_session_blowfish.h
     test_map_session_blowfish.cpp
+    test_map_session_index.h
+    test_map_session_index.cpp
     test_look_parser.h
     test_look_parser.cpp
     test_lua_environment.h

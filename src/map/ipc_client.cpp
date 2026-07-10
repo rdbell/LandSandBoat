@@ -792,7 +792,7 @@ void IPCClient::handleMessage_KillSession(const IPP& ipp, const ipc::KillSession
         if (sessionToDelete->blowfish.status == BLOWFISH_PENDING_ZONE)
         {
             ShowDebugFmt("Closing pending session of charid {} on request of other process", message.victimId);
-            networking_.sessions().destroySession(sessionToDelete);
+            networking_.sessions().destroyPendingSession(sessionToDelete);
         }
         else
         {
