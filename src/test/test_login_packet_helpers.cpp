@@ -126,6 +126,102 @@ auto testClearIdentifier() -> bool
     return ok;
 }
 
+auto testCharacterInfoLayout() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualInt(sizeof(TC_OPERATION_MAKE), 96, "TC_OPERATION_MAKE size") && ok;
+    ok      = expectEqualInt(sizeof(lpkt_chr_info_sub2), 140, "lpkt_chr_info_sub2 size") && ok;
+    ok      = expectEqualInt(sizeof(lpkt_chr_info2), 2272, "lpkt_chr_info2 size") && ok;
+    ok      = expectEqualInt(offsetof(lpkt_chr_info_sub2, character_name), 12, "character name offset") && ok;
+    ok      = expectEqualInt(offsetof(lpkt_chr_info_sub2, world_name), 28, "world name offset") && ok;
+    ok      = expectEqualInt(offsetof(lpkt_chr_info_sub2, character_info), 44, "character operation offset") && ok;
+    ok      = expectEqualInt(offsetof(TC_OPERATION_MAKE, GrapIDTbl), 12, "equipment offset") && ok;
+    ok      = expectEqualInt(offsetof(TC_OPERATION_MAKE, zone_no), 28, "zone low offset") && ok;
+    ok      = expectEqualInt(offsetof(TC_OPERATION_MAKE, zone_no2), 35, "zone high offset") && ok;
+    ok      = expectEqualInt(offsetof(TC_OPERATION_MAKE, job_lev), 56, "job levels offset") && ok;
+    return ok;
+}
+
+auto testCharacterInfoFixedSlotMutations() -> bool
+{
+    auto response       = lpkt_chr_info2{};
+    response.characters = 4;
+    for (std::size_t i = 0; i < std::size(response.character_info); ++i)
+    {
+        auto& slot                  = response.character_info[i];
+        slot.ffxi_id                = static_cast<uint32_t>(100 + i);
+        slot.status                 = 0xBEEF;
+        slot.character_info.Gold    = static_cast<uint32_t>(900 + i);
+        slot.character_name[0]      = 'X';
+        slot.character_name[1]      = 'Y';
+        slot.character_name[2]      = 'Z';
+    }
+    response.character_info[1].ffxi_id = 777;
+    response.character_info[7].ffxi_id = 777;
+
+    // Pure extraction of data_session::deleteCharFromCharInfo's fixed-array loop.
+    for (auto& slot : response.character_info)
+    {
+        if (slot.ffxi_id == 777)
+        {
+            slot.status            = 0x01;
+            slot.character_name[0] = 0x20;
+            slot.character_name[1] = 0x00;
+        }
+    }
+
+    bool ok = true;
+    for (const auto index : { 1U, 7U })
+    {
+        const auto& slot = response.character_info[index];
+        ok               = expectEqualInt(slot.status, 1, "deleted slot available") && ok;
+        ok               = expectEqualInt(static_cast<uint8_t>(slot.character_name[0]), 0x20, "deleted slot space marker") && ok;
+        ok               = expectEqualInt(static_cast<uint8_t>(slot.character_name[1]), 0, "deleted slot name terminator") && ok;
+        ok               = expectEqualInt(static_cast<uint8_t>(slot.character_name[2]), 'Z', "deleted slot name tail preserved") && ok;
+        ok               = expectEqualInt(slot.character_info.Gold, 900 + index, "deleted slot payload preserved") && ok;
+    }
+    ok = expectEqualInt(response.characters, 4, "delete preserves character count") && ok;
+    ok = expectEqualInt(response.character_info[2].status, 0xBEEF, "delete preserves unrelated slot") && ok;
+
+    response.character_info[2].character_name[0] = 0x20;
+    response.character_info[3].character_name[0] = 0x20;
+    auto replacement                               = lpkt_chr_info_sub2{};
+    replacement.ffxi_id                            = 0x12345678;
+    std::memcpy(replacement.character_name, "Added", 6);
+
+    // Pure extraction of data_session::addCharIntoCharInfo's first-space loop.
+    for (auto& slot : response.character_info)
+    {
+        if (slot.character_name[0] == 0x20)
+        {
+            slot = replacement;
+            break;
+        }
+    }
+    ok = expectEqualInt(response.character_info[1].ffxi_id, replacement.ffxi_id, "add reuses first deleted space slot") && ok;
+    ok = expectEqualInt(response.character_info[2].ffxi_id, 102, "add leaves later space slot") && ok;
+    ok = expectEqualInt(response.character_info[3].ffxi_id, 103, "add leaves final space slot") && ok;
+    ok = expectEqualInt(response.characters, 4, "add preserves character count") && ok;
+    return ok;
+}
+
+auto testCharacterIDAndZoneShaping() -> bool
+{
+    constexpr uint32_t characterID = 0xAB123456;
+    constexpr uint16_t zone        = 0x03AB;
+    constexpr auto     lowID       = static_cast<uint16_t>(characterID & 0xFFFF);
+    constexpr auto     highID      = static_cast<uint8_t>((characterID >> 16) & 0xFF);
+    constexpr auto     lowZone     = static_cast<uint8_t>(zone);
+    constexpr auto     highZone    = static_cast<uint8_t>((zone >> 8) & 1);
+
+    bool ok = true;
+    ok      = expectEqualInt(lowID, 0x3456, "character ID low split") && ok;
+    ok      = expectEqualInt(highID, 0x12, "character ID high split") && ok;
+    ok      = expectEqualInt(lowZone, 0xAB, "zone low byte") && ok;
+    ok      = expectEqualInt(highZone, 1, "zone high bit") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runLoginPacketHelperSelfTests() -> bool
@@ -133,5 +229,8 @@ auto runLoginPacketHelperSelfTests() -> bool
     return testPacketHeaderLayout() &&
            testTerminator() &&
            testCopyHashIntoPacket() &&
-           testClearIdentifier();
+           testClearIdentifier() &&
+           testCharacterInfoLayout() &&
+           testCharacterInfoFixedSlotMutations() &&
+           testCharacterIDAndZoneShaping();
 }

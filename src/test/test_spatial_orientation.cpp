@@ -22,6 +22,9 @@
 #include "test_spatial_orientation.h"
 
 #include "common/utils.h"
+#include "map/navmesh/inavmesh.h"
+#include "map/navmesh/navmesh.h"
+#include "map/navmesh/navmesh_config.h"
 
 #include <array>
 #include <cmath>
@@ -51,6 +54,17 @@ auto expectNear(float actual, float expected, float epsilon, const std::string& 
     if (std::fabs(actual - expected) > epsilon)
     {
         std::cerr << "spatial orientation self-test failed: " << label << " expected " << expected << ", got " << actual << '\n';
+        return false;
+    }
+
+    return true;
+}
+
+auto expectString(const std::string& actual, const std::string& expected, const std::string& label) -> bool
+{
+    if (actual != expected)
+    {
+        std::cerr << "spatial orientation self-test failed: " << label << " expected \"" << expected << "\", got \"" << actual << "\"\n";
         return false;
     }
 
@@ -156,6 +170,76 @@ auto runSpatialOrientationSelfTests() -> bool
     ok = expectPosition(nearPosition(nearOrigin, 2.5f, 0.0f), position_t(12.5f, 2.0f, -2.999999523f, 12, 0), "near forward") && ok;
     ok = expectPosition(nearPosition(nearOrigin, 2.5f, pi), position_t(7.5f, 2.0f, -2.999999523f, 12, 0), "near behind") && ok;
     ok = expectPosition(nearPosition(position_t(1.0f, 2.0f, 1.0f, 9, 64), 2.0f, 0.0f), position_t(1.0f, 2.0f, -1.0f, 9, 64), "near rot64") && ok;
+
+    const auto navPosition = position_t(1.25f, -2.5f, 4.75f, 19, 237);
+    float      navTriple[3]{};
+    CNavMesh::ToDetourPos(&navPosition, navTriple);
+    ok = expectNear(navTriple[0], 1.25f, 0.0f, "navmesh position to Detour x") && ok;
+    ok = expectNear(navTriple[1], 2.5f, 0.0f, "navmesh position to Detour y") && ok;
+    ok = expectNear(navTriple[2], -4.75f, 0.0f, "navmesh position to Detour z") && ok;
+    CNavMesh::ToFFXIPos(navTriple);
+    ok = expectNear(navTriple[0], 1.25f, 0.0f, "navmesh triple round trip x") && ok;
+    ok = expectNear(navTriple[1], -2.5f, 0.0f, "navmesh triple round trip y") && ok;
+    ok = expectNear(navTriple[2], 4.75f, 0.0f, "navmesh triple round trip z") && ok;
+
+    const auto detourPosition = position_t(1.25f, 2.5f, -4.75f, 19, 237);
+    CNavMesh::ToFFXIPos(&detourPosition, navTriple);
+    ok = expectNear(navTriple[0], 1.25f, 0.0f, "navmesh position to FFXI x") && ok;
+    ok = expectNear(navTriple[1], -2.5f, 0.0f, "navmesh position to FFXI y") && ok;
+    ok = expectNear(navTriple[2], 4.75f, 0.0f, "navmesh position to FFXI z") && ok;
+
+    auto navPositionInPlace = navPosition;
+    CNavMesh::ToDetourPos(&navPositionInPlace);
+    CNavMesh::ToFFXIPos(&navPositionInPlace);
+    ok = expectPosition(navPositionInPlace, navPosition, "navmesh position in-place round trip") && ok;
+
+    const auto config = NavMeshConfig{};
+    ok = expectNear(config.cellSize, 0.5f, 0.0f, "navmesh config cellSize") && ok;
+    ok = expectNear(config.cellHeight, 0.4f, 0.0f, "navmesh config cellHeight") && ok;
+    ok = expectNear(config.walkableSlopeAngle, 46.0f, 0.0f, "navmesh config walkableSlopeAngle") && ok;
+    ok = expectNear(config.agentHeight, 2.0f, 0.0f, "navmesh config agentHeight") && ok;
+    ok = expectNear(config.agentRadius, 0.5f, 0.0f, "navmesh config agentRadius") && ok;
+    ok = expectNear(config.agentMaxClimb, 0.6f, 0.0f, "navmesh config agentMaxClimb") && ok;
+    ok = expectNear(config.maxEdgeLen, 0.0f, 0.0f, "navmesh config maxEdgeLen") && ok;
+    ok = expectNear(config.maxSimplificationError, 1.3f, 0.0f, "navmesh config maxSimplificationError") && ok;
+    ok = expectEqual(config.minRegionArea, 8, "navmesh config minRegionArea") && ok;
+    ok = expectEqual(config.mergeRegionArea, 20, "navmesh config mergeRegionArea") && ok;
+    ok = expectEqual(config.maxVertsPerPoly, 6, "navmesh config maxVertsPerPoly") && ok;
+    ok = expectNear(config.detailSampleDist, 6.0f, 0.0f, "navmesh config detailSampleDist") && ok;
+    ok = expectNear(config.detailSampleMaxError, 1.0f, 0.0f, "navmesh config detailSampleMaxError") && ok;
+    ok = expectEqual(config.tileSize, 64, "navmesh config tileSize") && ok;
+    ok = expectEqual(config.filterLowHangingObstacles, true, "navmesh config low obstacles") && ok;
+    ok = expectEqual(config.filterLedgeSpans, true, "navmesh config ledges") && ok;
+    ok = expectEqual(config.filterWalkableLowHeightSpans, true, "navmesh config low height") && ok;
+
+    NullNavMesh nullNavMesh;
+    ok = expectEqual(nullNavMesh.findPath(navPosition, position_t()).empty(), true, "null navmesh empty path") && ok;
+    const auto [randomStatus, randomPosition] = nullNavMesh.findRandomPosition(navPosition, -100.0f);
+    ok = expectEqual(randomStatus, 0, "null navmesh random status") && ok;
+    ok = expectPosition(randomPosition, navPosition, "null navmesh random copy") && ok;
+    ok = expectEqual(nullNavMesh.raycast(navPosition, position_t()), true, "null navmesh raycast") && ok;
+    ok = expectEqual(nullNavMesh.validPosition(navPosition), true, "null navmesh valid position") && ok;
+    float untouched[3]{ 9.0f, 8.0f, 7.0f };
+    ok = expectEqual(nullNavMesh.findClosestValidPoint(navPosition, untouched), false, "null navmesh closest") && ok;
+    ok = expectEqual(nullNavMesh.findFurthestValidPoint(navPosition, position_t(), untouched), false, "null navmesh furthest") && ok;
+    ok = expectNear(untouched[0], 9.0f, 0.0f, "null navmesh output untouched x") && ok;
+    auto unsnapped = navPosition;
+    nullNavMesh.snapToValidPosition(unsnapped);
+    ok = expectPosition(unsnapped, navPosition, "null navmesh snap noop") && ok;
+
+    ok = expectString(CNavMesh::detourStatusString(0), "", "navmesh empty Detour status") && ok;
+    ok = expectString(
+             CNavMesh::detourStatusString(DT_FAILURE | DT_SUCCESS | DT_IN_PROGRESS | DT_WRONG_MAGIC | DT_WRONG_VERSION |
+                                          DT_OUT_OF_MEMORY | DT_INVALID_PARAM | DT_BUFFER_TOO_SMALL | DT_OUT_OF_NODES |
+                                          DT_PARTIAL_RESULT | DT_ALREADY_OCCUPIED),
+             "DT_FAILURE: Operation failed. DT_SUCCESS: Operation succeeded. DT_IN_PROGRESS: Operation still in progress. "
+             "DT_WRONG_MAGIC: Input data is not recognized. DT_WRONG_VERSION: Input data is in wrong version. "
+             "DT_OUT_OF_MEMORY: Operation ran out of memory. DT_INVALID_PARAM: An input parameter was invalid. "
+             "DT_BUFFER_TOO_SMALL: Result buffer for the query was too small to store all results. "
+             "DT_OUT_OF_NODES: Query ran out of nodes during search. "
+             "DT_PARTIAL_RESULT: Query did not reach the end location, returning best guess. "
+             "DT_ALREADY_OCCUPIED: A tile has already been assigned to the given x, y coordinate. ",
+             "navmesh Detour status decomposition") && ok;
 
     return ok;
 }

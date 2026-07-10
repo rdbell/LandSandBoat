@@ -1,6 +1,7 @@
 #include "test_base_entity_model.h"
 
 #include "map/entities/char_entity.h"
+#include "map/entities/fellow_entity.h"
 #include "map/zone.h"
 
 #include <cmath>
@@ -76,6 +77,12 @@ auto testCharacterConfigurationPredicates() -> bool
     return ok;
 }
 
+auto testFellowConstructorClassification() -> bool
+{
+    CFellowEntity entity(nullptr);
+    return expect(entity.objtype == TYPE_FELLOW, "fellow constructor classification");
+}
+
 auto testZoneLineSpawnCycle() -> bool
 {
     zoneLine_t line{};
@@ -103,5 +110,6 @@ auto runBaseEntityModelSelfTests() -> bool
 {
     return testIdentityPositionAndDynamicState() &&
            testCharacterConfigurationPredicates() &&
+           testFellowConstructorClassification() &&
            testZoneLineSpawnCycle();
 }

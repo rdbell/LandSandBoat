@@ -22,6 +22,8 @@
 #include "test_data_enum_traits.h"
 
 #include "map/data/enums/enum_traits.h"
+#include "map/data/backends/yaml.h"
+#include "map/data/load.h"
 
 #include <array>
 #include <cstdint>
@@ -31,6 +33,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace
 {
@@ -46,6 +49,12 @@ enum class TestCreatureFlags : std::uint8_t
 {
     None  = 0,
     Small = 1,
+};
+
+struct TestDataRecord
+{
+    std::uint16_t Id{};
+    std::string   Name{};
 };
 
 constexpr auto creatureEntries = std::array<std::pair<std::string_view, TestCreature>, 5>{
@@ -134,6 +143,94 @@ auto testToName() -> bool
     return ok;
 }
 
+auto testYAMLNodeAndMerge() -> bool
+{
+    using Backend = xi::data::backends::YAMLBackend;
+    using Node    = xi::data::Node<Backend>;
+
+    Backend::Tree core{ R"(
+items:
+  1:
+    name: original
+    nested:
+      keep: 17
+      list: [core-a, core-b]
+)" };
+    Backend::Tree module{ R"(
+items:
+  1:
+    name: patched
+    nested:
+      added: true
+      list: [module-only]
+  2: {name: added}
+)" };
+    Backend::mergeInto(core.root(), module.root());
+
+    const Node root{ core.root() };
+    const auto one    = root.child("items").child("1");
+    const auto nested = one.child("nested");
+    bool       ok     = true;
+    ok = expectString(one.read<std::string>("name"), "patched", "YAML scalar read") && ok;
+    ok = expectEqual(nested.read<int>("keep"), 17, "recursive map merge retains core") && ok;
+    ok = expectTrue(nested.read<bool>("added"), "recursive map merge adds module value") && ok;
+    ok = expectEqual(nested.child("list").children().size(), std::size_t{ 1 }, "nested sequence replaces core sequence") && ok;
+    ok = expectString(nested.child("list").children().front().as<std::string>(), "module-only", "replacement sequence value") && ok;
+    ok = expectTrue(root.child("items").has("2"), "recursive map merge adds record") && ok;
+    ok = expectEqual(one.read<int>("missing"), 0, "missing field returns zero") && ok;
+    return ok;
+}
+
+auto testYAMLPopulationFailures() -> bool
+{
+    using Backend = xi::data::backends::YAMLBackend;
+    using Node    = xi::data::Node<Backend>;
+
+    const auto populate = [](const Node child, const std::uint16_t id) {
+        return TestDataRecord{ .Id = id, .Name = child.read<std::string>("name") };
+    };
+
+    bool ok = true;
+    {
+        Backend::Tree tree{ "records: {16555: {name: ridill}}" };
+        const auto result = xi::data::populateMapDriver<TestDataRecord>(Node{ tree.root() }, "records", xi::data::IdSource::YAMLKey, "numeric.yaml", populate);
+        ok = expectEqual(result.at(16555).Id, std::uint16_t{ 16555 }, "numeric YAML key ID") && ok;
+        ok = expectString(result.at(16555).Name, "ridill", "numeric YAML key record") && ok;
+    }
+
+    try
+    {
+        Backend::Tree tree{ "records: {rabbit: {name: rabbit}}" };
+        (void)xi::data::populateMapDriver<TestDataRecord>(Node{ tree.root() }, "records", xi::data::IdSource::YAMLKey, "bad-key.yaml", populate);
+        ok = expectTrue(false, "malformed YAML key throws") && ok;
+    }
+    catch (const std::exception&)
+    {
+    }
+
+    try
+    {
+        Backend::Tree tree{ "records: {first: {id: 4}, second: {id: 4}}" };
+        (void)xi::data::populateMapDriver<TestDataRecord>(Node{ tree.root() }, "records", xi::data::IdSource::YAMLField, "duplicate.yaml", populate);
+        ok = expectTrue(false, "duplicate YAML ID throws") && ok;
+    }
+    catch (const std::exception&)
+    {
+    }
+
+    try
+    {
+        Backend::Tree tree{ "items: [one, two" };
+        (void)tree;
+        ok = expectTrue(false, "malformed YAML throws") && ok;
+    }
+    catch (const std::exception&)
+    {
+    }
+
+    return ok;
+}
+
 } // namespace
 
 namespace xi::data
@@ -166,6 +263,8 @@ auto runDataEnumTraitsSelfTests() -> bool
 
     ok = testFromName() && ok;
     ok = testToName() && ok;
+    ok = testYAMLNodeAndMerge() && ok;
+    ok = testYAMLPopulationFailures() && ok;
     ok = expectTrue(xi::data::Nameable<TestCreature>, "Nameable concept accepts specialized enum") && ok;
     ok = expectFalse(xi::data::isFlagEnum<TestCreature>, "isFlagEnum defaults false") && ok;
     ok = expectTrue(xi::data::isFlagEnum<TestCreatureFlags>, "isFlagEnum specialization") && ok;
