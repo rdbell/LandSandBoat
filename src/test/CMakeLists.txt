@@ -400,6 +400,8 @@ set(SOURCES
     test_world_character_cache.cpp
     test_world_daily_tally.h
     test_world_daily_tally.cpp
+    test_world_gmcall_response_1240.h
+    test_world_gmcall_response_1240.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h

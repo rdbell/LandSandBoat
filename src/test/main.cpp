@@ -182,6 +182,7 @@ auto runSearchSocialPacketSelfTests() -> bool;
 auto runMapPacketBasicHeaderSelfTests() -> bool;
 auto runWorldCharacterCacheSelfTests() -> bool;
 auto runWorldDailyTallySelfTests() -> bool;
+auto runWorldGMCallResponse1240SelfTests() -> bool;
 auto runWorldZoneSettingsSelfTests() -> bool;
 auto runC2SPacketValidationScalarSelfTests() -> bool;
 auto runC2SPacketIDEnumSelfTests() -> bool;
@@ -497,6 +498,7 @@ namespace
         ok = runSQLiteQueryTranslationSelfTests() && ok;
         ok = runWorldCharacterCacheSelfTests() && ok;
         ok = runWorldDailyTallySelfTests() && ok;
+        ok = runWorldGMCallResponse1240SelfTests() && ok;
         ok = runWorldZoneSettingsSelfTests() && ok;
         ok = runMariaDBConnectionLossSelfTests() && ok;
         ok = runMariaDBResultCellConversionsSelfTests() && ok;

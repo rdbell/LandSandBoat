@@ -12,6 +12,7 @@ set(SOURCES
     conquest_system.h
     daily_tally.h
     daily_tally.cpp
+    gmcall_response.h
     http_server.cpp
     http_server.h
     ipc_server.cpp

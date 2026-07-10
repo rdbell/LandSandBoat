@@ -26,6 +26,7 @@
 #include "character_cache.h"
 #include "colonization_system.h"
 #include "conquest_system.h"
+#include "gmcall_response.h"
 
 #include <concurrentqueue.h>
 #include <memory>
@@ -735,9 +736,8 @@ void IPCServer::handleMessage_GMCallResponse(const IPP& ipp, const ipc::GMCallRe
 {
     TracyZoneScoped;
 
-    // Client can only read up to 1024 characters, drop any extra characters now.
-    auto truncatedMessage    = message;
-    truncatedMessage.message = truncatedMessage.message.substr(0, 1024);
+    // Client can only read up to 1024 bytes, drop any extra bytes now.
+    const auto truncatedMessage = world::gmcall::TruncateResponse(message);
 
     db::preparedStmt("UPDATE help_desk "
                      "SET response = ?, responded_at = NOW() "
