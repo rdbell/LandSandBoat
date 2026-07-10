@@ -88,6 +88,7 @@ auto runTradeContainerSelfTests() -> bool;
 auto runUniversalContainerSelfTests() -> bool;
 auto runRecastContainerSelfTests() -> bool;
 auto runTraitSelfTests() -> bool;
+auto runJobPointsSelfTests() -> bool;
 auto runModifierSelfTests() -> bool;
 auto runMazeSelfTests() -> bool;
 auto runNotorietyContainerSelfTests() -> bool;
@@ -428,6 +429,7 @@ namespace
         ok = runUniversalContainerSelfTests() && ok;
         ok = runRecastContainerSelfTests() && ok;
         ok = runTraitSelfTests() && ok;
+        ok = runJobPointsSelfTests() && ok;
         ok = runModifierSelfTests() && ok;
         ok = runMazeSelfTests() && ok;
         ok = runNotorietyContainerSelfTests() && ok;
