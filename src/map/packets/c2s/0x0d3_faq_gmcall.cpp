@@ -22,6 +22,7 @@
 #include "0x0d3_faq_gmcall.h"
 
 #include "entities/char_entity.h"
+#include "gmcall_packet_handlers.h"
 
 auto GP_CLI_COMMAND_FAQ_GMCALL::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
@@ -34,29 +35,18 @@ auto GP_CLI_COMMAND_FAQ_GMCALL::validate(MapSession* PSession, const CCharEntity
 
 void GP_CLI_COMMAND_FAQ_GMCALL::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    switch (static_cast<GP_CLI_COMMAND_FAQ_GMCALL_TYPE>(this->type))
-    {
-        case GP_CLI_COMMAND_FAQ_GMCALL_TYPE::AddHistory:
+    gmcall::handler::HandleFAQGMCall(
+        *this,
+        [&](const GP_CLI_COMMAND_FAQ_GMCALL& packet)
         {
-            // Client sent extra information after acknowledging a response.
-            // Contains several blocks, none of which are worth collecting at this point.
-            break;
-        }
-        case GP_CLI_COMMAND_FAQ_GMCALL_TYPE::GMCall:
+            return PChar->gmCallContainer().addPacket(packet);
+        },
+        [&]()
         {
-            // User submitted a GM call. There can be many packets, but they should not be processed until eos == 1
-            if (PChar->gmCallContainer().addPacket(*this))
-            {
-                // Received eos 1 - store in DB and send to ZMQ
-                PChar->gmCallContainer().processCall(PChar);
-                PChar->m_charHistory.gmCalls++;
-            }
-            break;
-        }
-        case GP_CLI_COMMAND_FAQ_GMCALL_TYPE::GMNotice:
+            PChar->gmCallContainer().processCall(PChar);
+        },
+        [&]()
         {
-            // Unknown usage.
-            break;
-        }
-    }
+            PChar->m_charHistory.gmCalls++;
+        });
 }

@@ -157,6 +157,7 @@ auto runIPCLinkshellPayloadSelfTests() -> bool;
 auto runIPCGMCallPayloadSelfTests() -> bool;
 auto runGMCallAssembly1238SelfTests() -> bool;
 auto runGMCallPendingResponse1239SelfTests() -> bool;
+auto runGMCallPacketHandlers1242SelfTests() -> bool;
 auto runMapGMCallResponseNotification1241SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
@@ -524,6 +525,7 @@ namespace
         ok = runIPCGMCallPayloadSelfTests() && ok;
         ok = runGMCallAssembly1238SelfTests() && ok;
         ok = runGMCallPendingResponse1239SelfTests() && ok;
+        ok = runGMCallPacketHandlers1242SelfTests() && ok;
         ok = runMapGMCallResponseNotification1241SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;

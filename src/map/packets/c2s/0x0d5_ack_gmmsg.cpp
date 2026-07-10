@@ -23,6 +23,7 @@
 
 #include "entities/char_entity.h"
 #include "gmcall_container.h"
+#include "gmcall_packet_handlers.h"
 
 auto GP_CLI_COMMAND_ACK_GMMSG::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
@@ -32,5 +33,9 @@ auto GP_CLI_COMMAND_ACK_GMMSG::validate(MapSession* PSession, const CCharEntity*
 
 void GP_CLI_COMMAND_ACK_GMMSG::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    PChar->gmCallContainer().acknowledgeOldestResponse(PChar);
+    gmcall::handler::HandleAckGMMsg(*this,
+                                    [&]()
+                                    {
+                                        PChar->gmCallContainer().acknowledgeOldestResponse(PChar);
+                                    });
 }
