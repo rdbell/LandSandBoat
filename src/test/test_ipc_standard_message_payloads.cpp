@@ -137,9 +137,27 @@ auto testAssignedPayloads() -> bool
     return ok;
 }
 
+auto usesStringPacketForm(const ipc::MessageStandard& message) -> bool
+{
+    return !message.string2.empty() && message.param0 == 0 && message.param1 == 0;
+}
+
+auto testMapIPCStandardMessagePacketSelection() -> bool
+{
+    bool ok = true;
+
+    ok = expectEqualInt(usesStringPacketForm(ipc::MessageStandard{ .string2 = "mentor" }), true, "string-only packet form") && ok;
+    ok = expectEqualInt(usesStringPacketForm(ipc::MessageStandard{}), false, "empty string uses parameter form") && ok;
+    ok = expectEqualInt(usesStringPacketForm(ipc::MessageStandard{ .param0 = 1, .string2 = "mentor" }), false, "param0 overrides string") && ok;
+    ok = expectEqualInt(usesStringPacketForm(ipc::MessageStandard{ .param1 = 1, .string2 = "mentor" }), false, "param1 overrides string") && ok;
+    ok = expectEqualInt(usesStringPacketForm(ipc::MessageStandard{ .param0 = 1, .param1 = 2, .string2 = "mentor" }), false, "both params override string") && ok;
+
+    return ok;
+}
+
 } // namespace
 
 auto runIPCStandardMessagePayloadSelfTests() -> bool
 {
-    return testMsgStdValues() && testDefaultPayloads() && testAssignedPayloads();
+    return testMsgStdValues() && testDefaultPayloads() && testAssignedPayloads() && testMapIPCStandardMessagePacketSelection();
 }

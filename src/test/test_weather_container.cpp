@@ -24,7 +24,12 @@
 #include "enums/weather.h"
 #include "weather_container.h"
 
+#include "common/vanadiel_clock.h"
+
+#include <chrono>
 #include <iostream>
+#include <utility>
+#include <vector>
 
 namespace
 {
@@ -47,6 +52,45 @@ auto expectEntry(const ZoneWeather& actual, const ZoneWeather& expected, const c
     ok      = expectEqual(actual.common, expected.common, label) && ok;
     ok      = expectEqual(actual.rare, expected.rare, label) && ok;
     return ok;
+}
+
+struct TransitionResult
+{
+    Weather              weather;
+    std::chrono::seconds nextUpdate;
+    bool                 forcedFog;
+};
+
+// Characterization seam for CZone::UpdateWeather. Keep this expression in
+// lockstep with zone.cpp so its random and time boundaries remain reviewable
+// without constructing the entire map-zone runtime in this unit fixture.
+auto planTransition(const ZoneWeather& entry, const uint8 chance, const std::chrono::seconds randomDelay,
+                    const xi::vanadiel_clock::duration sinceMidnight, const bool city) -> TransitionResult
+{
+    auto selectedWeather = Weather::None;
+    if (chance < 15)
+    {
+        selectedWeather = entry.rare;
+    }
+    else if (chance < 50)
+    {
+        selectedWeather = entry.common;
+    }
+    else
+    {
+        selectedWeather = entry.normal;
+    }
+
+    auto nextUpdate = randomDelay;
+    auto forcedFog  = false;
+    if (sinceMidnight >= xi::vanadiel_clock::hours(2) && sinceMidnight < xi::vanadiel_clock::hours(7) &&
+        selectedWeather < Weather::HotSpell && !city)
+    {
+        selectedWeather = Weather::Fog;
+        nextUpdate       = std::chrono::duration_cast<std::chrono::seconds>(xi::vanadiel_clock::hours(7) - sinceMidnight);
+        forcedFog        = true;
+    }
+    return { selectedWeather, nextUpdate, forcedFog };
 }
 
 auto testWeatherContainerDefaultsAndSet() -> bool
@@ -107,6 +151,51 @@ auto testWeatherContainerDuplicateDayKeepsFirstEntry() -> bool
     return expectEntry(container.entryForDay(7), first, "duplicate day keeps first inserted entry");
 }
 
+auto testWeatherSelectionBoundaries() -> bool
+{
+    const ZoneWeather entry(Weather::Sunshine, Weather::Clouds, Weather::Rain);
+    const std::vector<std::pair<uint8, Weather>> cases = {
+        { 0, Weather::Rain },       { 14, Weather::Rain },     { 15, Weather::Clouds },
+        { 49, Weather::Clouds },    { 50, Weather::Sunshine }, { 99, Weather::Sunshine },
+    };
+
+    bool ok = true;
+    for (const auto& [chance, expected] : cases)
+    {
+        const auto result = planTransition(entry, chance, std::chrono::seconds(180), xi::vanadiel_clock::hours(12), true);
+        ok                = expectEqual(result.weather, expected, "weather chance boundary") && ok;
+        ok                = expectEqual(result.nextUpdate.count(), static_cast<int64>(180), "random duration retained") && ok;
+        ok                = expectEqual(result.forcedFog, false, "daytime weather is not forced") && ok;
+    }
+    return ok;
+}
+
+auto testForcedFogBoundaries() -> bool
+{
+    const ZoneWeather entry(Weather::Sunshine, Weather::Clouds, Weather::Rain);
+    bool              ok = true;
+
+    const auto before = planTransition(entry, 99, std::chrono::seconds(180), xi::vanadiel_clock::hours(2) - xi::vanadiel_clock::seconds(1), false);
+    ok                = expectEqual(before.weather, Weather::Sunshine, "fog before 2am") && ok;
+    ok                = expectEqual(before.nextUpdate.count(), static_cast<int64>(180), "pre-fog duration") && ok;
+
+    const auto start = planTransition(entry, 99, std::chrono::seconds(180), xi::vanadiel_clock::hours(2), false);
+    ok               = expectEqual(start.weather, Weather::Fog, "fog at 2am") && ok;
+    ok               = expectEqual(start.nextUpdate.count(), static_cast<int64>(12 * 60), "fog duration to 7am") && ok;
+    ok               = expectEqual(start.forcedFog, true, "fog start forced") && ok;
+
+    const auto end = planTransition(entry, 99, std::chrono::seconds(180), xi::vanadiel_clock::hours(7), false);
+    ok             = expectEqual(end.weather, Weather::Sunshine, "fog excluded at 7am") && ok;
+
+    const auto city = planTransition(entry, 99, std::chrono::seconds(180), xi::vanadiel_clock::hours(3), true);
+    ok              = expectEqual(city.weather, Weather::Sunshine, "city does not force fog") && ok;
+
+    const ZoneWeather elemental(Weather::HotSpell, Weather::Clouds, Weather::Rain);
+    const auto        hotSpell = planTransition(elemental, 99, std::chrono::seconds(180), xi::vanadiel_clock::hours(3), false);
+    ok                         = expectEqual(hotSpell.weather, Weather::HotSpell, "elemental weather does not force fog") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runWeatherContainerSelfTests() -> bool
@@ -115,5 +204,7 @@ auto runWeatherContainerSelfTests() -> bool
     ok      = testWeatherContainerDefaultsAndSet() && ok;
     ok      = testWeatherContainerProbabilityTable() && ok;
     ok      = testWeatherContainerDuplicateDayKeepsFirstEntry() && ok;
+    ok      = testWeatherSelectionBoundaries() && ok;
+    ok      = testForcedFogBoundaries() && ok;
     return ok;
 }

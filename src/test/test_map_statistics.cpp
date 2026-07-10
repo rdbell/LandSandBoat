@@ -114,6 +114,34 @@ auto testMapStatisticsCounters() -> bool
     return ok;
 }
 
+auto testMapStatisticsTimingAggregation() -> bool
+{
+    MapStatistics stats;
+
+    // Timing samples are signed millisecond counters. Each key aggregates
+    // independently, and decrement uses the same signed arithmetic path as the
+    // packet counters.
+    stats.increment(Key::TasksTickTime, 7);
+    stats.increment(Key::TasksTickTime, 5);
+    stats.increment(Key::NetworkTickTime, 3);
+    stats.decrement(Key::NetworkTickTime, 8);
+    stats.set(Key::TotalTickTime, 19);
+    stats.increment(Key::TickDiffTime, 4);
+
+    bool ok = true;
+    ok      = expectInt64(stats.get(Key::TasksTickTime), 12, "tasks timing samples accumulate") && ok;
+    ok      = expectInt64(stats.get(Key::NetworkTickTime), -5, "network timing subtraction remains signed") && ok;
+    ok      = expectInt64(stats.get(Key::TotalTickTime), 19, "total timing assignment") && ok;
+    ok      = expectInt64(stats.get(Key::TickDiffTime), 4, "tick diff timing independent") && ok;
+
+    stats.print();
+    ok = expectInt64(stats.get(Key::TasksTickTime), 0, "tasks timing reset after report") && ok;
+    ok = expectInt64(stats.get(Key::NetworkTickTime), 0, "network timing reset after report") && ok;
+    ok = expectInt64(stats.get(Key::TotalTickTime), 0, "total timing reset after report") && ok;
+    ok = expectInt64(stats.get(Key::TickDiffTime), 0, "tick diff timing reset after report") && ok;
+    return ok;
+}
+
 auto testMapStatisticsPrintResets() -> bool
 {
     MapStatistics stats;
@@ -132,6 +160,7 @@ auto runMapStatisticsSelfTests() -> bool
     bool ok = true;
     ok      = testMapStatisticsLabels() && ok;
     ok      = testMapStatisticsCounters() && ok;
+    ok      = testMapStatisticsTimingAggregation() && ok;
     ok      = testMapStatisticsPrintResets() && ok;
     return ok;
 }

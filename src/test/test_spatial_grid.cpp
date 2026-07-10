@@ -73,6 +73,16 @@ auto collectIds(const SpatialGrid& grid, position_t center, float radius) -> std
     return ids;
 }
 
+auto collectIdsInVisitOrder(const SpatialGrid& grid, position_t center, float radius) -> std::vector<uint32>
+{
+    std::vector<uint32> ids;
+    grid.forEachInRange(center, radius, [&ids](const CBaseEntity* entity)
+    {
+        ids.push_back(entity->id);
+    });
+    return ids;
+}
+
 auto expectIds(const std::vector<uint32>& actual, const std::vector<uint32>& expected, const char* label) -> bool
 {
     if (actual != expected)
@@ -193,6 +203,65 @@ auto testDuplicateAddBehavior() -> bool
     return ok;
 }
 
+auto testDeterministicVisitAndMutationOrder() -> bool
+{
+    SpatialGrid grid(10.0f);
+
+    TestEntity northwestFirst(5001, position_t{ -1.0f, 0.0f, -1.0f, 0, 0 });
+    TestEntity northwestSecond(5002, position_t{ -2.0f, 0.0f, -2.0f, 0, 0 });
+    TestEntity northwestThird(5006, position_t{ -3.0f, 0.0f, -3.0f, 0, 0 });
+    TestEntity southwest(5003, position_t{ -1.0f, 0.0f, 1.0f, 0, 0 });
+    TestEntity northeast(5004, position_t{ 1.0f, 0.0f, -1.0f, 0, 0 });
+    TestEntity southeast(5005, position_t{ 1.0f, 0.0f, 1.0f, 0, 0 });
+
+    grid.add(&southeast);
+    grid.add(&northwestFirst);
+    grid.add(&southwest);
+    grid.add(&northwestSecond);
+    grid.add(&northwestThird);
+    grid.add(&northeast);
+
+    bool ok = true;
+    ok      = expectIds(collectIdsInVisitOrder(grid, position_t{ 0.0f, 0.0f, 0.0f, 0, 0 }, 10.0f),
+                        { 5001, 5002, 5006, 5003, 5004, 5005 }, "dx/dz and bucket visit order") && ok;
+
+    grid.remove(&northwestFirst);
+    ok = expectIds(collectIdsInVisitOrder(grid, position_t{ -1.0f, 0.0f, -1.0f, 0, 0 }, 0.0f),
+                   { 5006, 5002 }, "swap removal moves last bucket member into erased slot") && ok;
+
+    southeast.loc.p = position_t{ -3.0f, 0.0f, -3.0f, 0, 0 };
+    grid.update(&southeast);
+    ok = expectIds(collectIdsInVisitOrder(grid, position_t{ -1.0f, 0.0f, -1.0f, 0, 0 }, 0.0f),
+                   { 5006, 5002, 5005 }, "cross-cell update appends to destination") && ok;
+    return ok;
+}
+
+auto testDuplicateMutationUsesPointerIdentity() -> bool
+{
+    SpatialGrid grid(10.0f);
+    TestEntity duplicate(6001, position_t{ 1.0f, 0.0f, 1.0f, 0, 0 });
+
+    grid.add(&duplicate);
+    grid.add(&duplicate);
+    duplicate.loc.p = position_t{ 21.0f, 0.0f, 1.0f, 0, 0 };
+    grid.update(&duplicate);
+
+    bool ok = true;
+    ok      = expectEqual(grid.size(), static_cast<std::size_t>(2), "duplicate move size") && ok;
+    ok      = expectIds(collectIdsInVisitOrder(grid, position_t{ 1.0f, 0.0f, 1.0f, 0, 0 }, 0.0f),
+                        { 6001 }, "duplicate move leaves old pointer entry") && ok;
+    ok      = expectIds(collectIdsInVisitOrder(grid, position_t{ 21.0f, 0.0f, 1.0f, 0, 0 }, 0.0f),
+                        { 6001 }, "duplicate move files pointer in new cell") && ok;
+
+    grid.remove(&duplicate);
+    ok = expectEqual(grid.size(), static_cast<std::size_t>(1), "duplicate remove size") && ok;
+    ok = expectIds(collectIdsInVisitOrder(grid, position_t{ 1.0f, 0.0f, 1.0f, 0, 0 }, 0.0f),
+                   { 6001 }, "duplicate remove leaves untracked old pointer entry") && ok;
+    ok = expectIds(collectIdsInVisitOrder(grid, position_t{ 21.0f, 0.0f, 1.0f, 0, 0 }, 0.0f),
+                   {}, "duplicate remove pulls tracked pointer entry") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runSpatialGridSelfTests() -> bool
@@ -202,5 +271,7 @@ auto runSpatialGridSelfTests() -> bool
     ok      = testAddUpdateRemoveAndClear() && ok;
     ok      = testUpdateUntrackedAndBroadRangeScan() && ok;
     ok      = testDuplicateAddBehavior() && ok;
+    ok      = testDeterministicVisitAndMutationOrder() && ok;
+    ok      = testDuplicateMutationUsesPointerIdentity() && ok;
     return ok;
 }

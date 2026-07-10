@@ -31,6 +31,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -132,6 +133,58 @@ auto testChargedRecastAccumulation() -> bool
     ok      = expectUInt(recast->maxCharges, 3, "max charges retained") && ok;
     ok      = expectBool(container.HasRecast(RECAST_ABILITY, Recast::Sic, 1s), true, "one charge blocked") && ok;
     ok      = expectBool(container.HasRecast(RECAST_ABILITY, Recast::Sic, 4s), true, "too many charges blocked") && ok;
+    return ok;
+}
+
+auto testMutationBoundaries() -> bool
+{
+    CCharEntity          character;
+    CCharRecastContainer container(&character);
+
+    // Recast is uint16: Mount (256) must remain distinct from Special (0),
+    // including through the ability list's zero-in-place index deletion.
+    container.Load(RECAST_ABILITY, Recast::Special, 1h);
+    container.Load(RECAST_ABILITY, Recast::Mount, 20s, 10s, 3);
+    container.Load(RECAST_ABILITY, Recast::Sic, 30s);
+    const auto maxID = static_cast<Recast>(std::numeric_limits<std::uint16_t>::max());
+    container.Load(RECAST_ABILITY, maxID, 40s);
+    FakeDatabase fake;
+    db::setDatabase(&fake);
+    container.DeleteByIndex(RECAST_ABILITY, 1);
+    db::setDatabase(nullptr);
+
+    auto* abilities = container.GetRecastList(RECAST_ABILITY);
+    bool  ok        = true;
+    ok = expectUInt(abilities->size(), 4, "ability mutation list size") && ok;
+    ok = expectBool(abilities->at(0).ID == Recast::Special, true, "ability mutation first ID") && ok;
+    ok = expectBool(abilities->at(1).ID == Recast::Mount, true, "ability mutation uint16 ID") && ok;
+    ok = expectSeconds(abilities->at(1).RecastTime, 0, "ability mutation zero in place") && ok;
+    ok = expectBool(abilities->at(2).ID == Recast::Sic, true, "ability mutation preserves order") && ok;
+    ok = expectBool(abilities->at(3).ID == maxID, true, "ability mutation uint16 maximum ID") && ok;
+
+    // Load replaces nonzero charge metadata before applying the new cap.
+    auto* mount = container.Load(RECAST_ABILITY, Recast::Mount, 10s, 10s, 3);
+    auto  beforeCap = mount->TimeStamp;
+    mount           = container.Load(RECAST_ABILITY, Recast::Mount, 5s, 5s, 2);
+    ok = expectSeconds(mount->chargeTime, 5, "updated charge time") && ok;
+    ok = expectUInt(mount->maxCharges, 2, "updated max charges") && ok;
+    ok = expectSeconds(mount->RecastTime, 10, "updated charge cap") && ok;
+    ok = expectSeconds(mount->TimeStamp - beforeCap, 5, "updated cap timestamp shift") && ok;
+
+    // timer::count_seconds floors negative fractions instead of truncating
+    // toward zero. Just above a one-charge recast therefore permits -500ms.
+    mount->TimeStamp  = timer::now();
+    mount->RecastTime = 11s;
+    mount->chargeTime = 10s;
+    mount->maxCharges = 1;
+    ok = expectBool(container.HasRecast(RECAST_ABILITY, Recast::Mount, -500ms), false, "negative fractional charge request") && ok;
+    ok = expectBool(container.HasRecast(RECAST_ABILITY, Recast::Mount, 999ms), true, "positive fractional charge request") && ok;
+
+    // Check expires at equality and zeroes abilities in place.
+    mount->TimeStamp = timer::now() - mount->RecastTime;
+    container.Check();
+    ok = expectBool(container.GetRecast(RECAST_ABILITY, Recast::Mount) != nullptr, true, "exact-expiry ability retained") && ok;
+    ok = expectSeconds(container.GetRecast(RECAST_ABILITY, Recast::Mount)->RecastTime, 0, "exact-expiry ability zeroed") && ok;
     return ok;
 }
 
@@ -290,6 +343,7 @@ auto runRecastContainerSelfTests() -> bool
     bool ok = true;
     ok      = testLoadAndLookup() && ok;
     ok      = testChargedRecastAccumulation() && ok;
+    ok      = testMutationBoundaries() && ok;
     ok      = testRestoredAbilityRecast() && ok;
     ok      = testDeletionAndResetSemantics() && ok;
     ok      = testDeleteAllSemantics() && ok;

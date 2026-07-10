@@ -73,6 +73,23 @@ auto expectEqualBool(bool actual, bool expected, const std::string& label) -> bo
     return true;
 }
 
+// Characterization seams for the pure recipient predicates embedded in
+// IPCClient::handleMessage_ChatMessage{Yell,Assist,ServerMessage}.
+auto shouldDeliverYell(bool zoneAllowsYell, uint32_t recipientId, uint32_t senderId) -> bool
+{
+    return zoneAllowsYell && recipientId != senderId;
+}
+
+auto shouldDeliverAssist(bool zoneAllowsAssist, uint32_t recipientId, uint32_t senderId, bool eligible) -> bool
+{
+    return zoneAllowsAssist && recipientId != senderId && eligible;
+}
+
+auto shouldDeliverServerMessage(uint32_t recipientId, uint32_t senderId, bool skipSender) -> bool
+{
+    return !skipSender || recipientId != senderId;
+}
+
 auto chatTypeCases() -> std::vector<ChatTypeCase>
 {
     return {
@@ -153,9 +170,30 @@ auto testDefaultPayloads() -> bool
     return ok;
 }
 
+auto testMapIPCRoutingPredicates() -> bool
+{
+    bool ok = true;
+
+    ok = expectEqualBool(shouldDeliverYell(true, 100, 200), true, "yell delivers to other character") && ok;
+    ok = expectEqualBool(shouldDeliverYell(true, 100, 100), false, "yell excludes sender") && ok;
+    ok = expectEqualBool(shouldDeliverYell(false, 100, 200), false, "yell requires enabled zone") && ok;
+    ok = expectEqualBool(shouldDeliverYell(true, 0, 0), false, "yell compares zero ids normally") && ok;
+
+    ok = expectEqualBool(shouldDeliverAssist(true, 100, 200, true), true, "assist delivers to eligible other character") && ok;
+    ok = expectEqualBool(shouldDeliverAssist(true, 100, 100, true), false, "assist excludes sender") && ok;
+    ok = expectEqualBool(shouldDeliverAssist(true, 100, 200, false), false, "assist requires eligibility") && ok;
+    ok = expectEqualBool(shouldDeliverAssist(false, 100, 200, true), false, "assist requires enabled zone") && ok;
+
+    ok = expectEqualBool(shouldDeliverServerMessage(100, 100, false), true, "server message includes sender by default") && ok;
+    ok = expectEqualBool(shouldDeliverServerMessage(100, 100, true), false, "server message can skip sender") && ok;
+    ok = expectEqualBool(shouldDeliverServerMessage(100, 200, true), true, "server message skip retains others") && ok;
+
+    return ok;
+}
+
 } // namespace
 
 auto runIPCChatPayloadSelfTests() -> bool
 {
-    return testChatMessageTypes() && testDefaultPayloads();
+    return testChatMessageTypes() && testDefaultPayloads() && testMapIPCRoutingPredicates();
 }
