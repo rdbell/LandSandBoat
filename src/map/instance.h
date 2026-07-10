@@ -42,6 +42,8 @@ struct zoneMusicOverride_t
     Maybe<uint16> m_bSongM;    // battle music (party)
 };
 
+class InstanceTestAccess;
+
 class CInstance : public CZoneEntities
 {
 public:
@@ -89,6 +91,13 @@ public:
     auto overlayId() const -> uint32;
 
 private:
+    friend class InstanceTestAccess;
+
+    static auto elapsedTime(timer::time_point startTime, timer::time_point tick) -> timer::duration;
+    static auto timeCheckDue(timer::time_point startTime, timer::time_point lastTimeCheck, timer::time_point tick, bool charsEmpty, bool failed) -> bool;
+    static void registerChar(std::vector<uint32>& registeredChars, uint32& commander, uint32 id);
+    static auto checkFirstEntry(std::set<uint32>& enteredChars, uint32 id) -> bool;
+
     void LoadInstance();
 
     uint32              m_instanceid{ 0 };

@@ -41,6 +41,8 @@ set(SOURCES
     test_action_queue.cpp
     test_base_entity_model.h
     test_base_entity_model.cpp
+    test_battlefield.h
+    test_battlefield.cpp
     test_application.h
     test_application.cpp
     test_arguments_parser.h
@@ -240,6 +242,8 @@ set(SOURCES
     test_item_usable.cpp
     test_item_weapon.h
     test_item_weapon.cpp
+    test_instance_lifecycle.h
+    test_instance_lifecycle.cpp
     test_grades.h
     test_grades.cpp
     test_trade_container.h
@@ -334,6 +338,8 @@ set(SOURCES
     test_login_world_list_packet.cpp
     test_los_cache.h
     test_los_cache.cpp
+    test_linkshell.h
+    test_linkshell.cpp
     test_map_statistics.h
     test_map_statistics.cpp
     test_map_network_packet_building.h
@@ -702,10 +708,14 @@ set(SOURCES
     test_timer_helpers.cpp
     test_time_triggers.h
     test_time_triggers.cpp
+    test_transport_runtime.h
+    test_transport_runtime.cpp
     test_tracy_hex_helpers.h
     test_tracy_hex_helpers.cpp
     test_trigger_area.h
     test_trigger_area.cpp
+    test_treasure_pool_resolution.h
+    test_treasure_pool_resolution.cpp
     test_weather_container.h
     test_weather_container.cpp
     test_typed_flags.h

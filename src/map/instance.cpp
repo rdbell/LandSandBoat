@@ -138,11 +138,16 @@ void CInstance::LoadInstance()
 
 void CInstance::RegisterChar(CCharEntity* PChar)
 {
-    if (m_registeredChars.empty())
+    registerChar(m_registeredChars, m_commander, PChar->id);
+}
+
+void CInstance::registerChar(std::vector<uint32>& registeredChars, uint32& commander, uint32 id)
+{
+    if (registeredChars.empty())
     {
-        m_commander = PChar->id;
+        commander = id;
     }
-    m_registeredChars.emplace_back(PChar->id);
+    registeredChars.emplace_back(id);
 }
 
 uint8 CInstance::GetLevelCap() const
@@ -182,8 +187,13 @@ timer::duration CInstance::GetWipeTime()
 
 timer::duration CInstance::GetElapsedTime(timer::time_point tick)
 {
+    return elapsedTime(m_startTime, tick);
+}
+
+auto CInstance::elapsedTime(timer::time_point startTime, timer::time_point tick) -> timer::duration
+{
     // no reason to allow returning a negative elapsed time, can happen if map server is delayed and processing a previous tick
-    return std::max(timer::duration(0s), tick - m_startTime);
+    return std::max(timer::duration(0s), tick - startTime);
 }
 
 uint64_t CInstance::GetLocalVar(const std::string& name) const
@@ -239,19 +249,24 @@ void CInstance::SetLocalVar(const std::string& name, uint64_t value)
 
 void CInstance::CheckTime(timer::time_point tick)
 {
+    if (timeCheckDue(m_startTime, m_lastTimeCheck, tick, CharListEmpty(), Failed()))
+    {
+        luautils::OnInstanceTimeUpdate(GetZone(), this, static_cast<uint32>(timer::count_milliseconds(GetElapsedTime(tick))));
+        m_lastTimeCheck = tick;
+    }
+}
+
+auto CInstance::timeCheckDue(timer::time_point startTime, timer::time_point lastTimeCheck, timer::time_point tick, bool charsEmpty, bool failed) -> bool
+{
     auto checkFrequency = 1s;
     // Once someone zones in, m_lastTimeCheck will change and checkFrequency will be pinned at 1s for the remainder of the instance
-    if (CharListEmpty() && m_startTime == m_lastTimeCheck)
+    if (charsEmpty && startTime == lastTimeCheck)
     {
         // give grace period before first instance check to allow time to register instance and zone in
         // instance.lua lets the client run through the event for a maximum of 35s before forcing zone change with `setPos`
         checkFrequency = 40s;
     }
-    if (m_lastTimeCheck + checkFrequency <= tick && !Failed())
-    {
-        luautils::OnInstanceTimeUpdate(GetZone(), this, static_cast<uint32>(timer::count_milliseconds(GetElapsedTime(tick))));
-        m_lastTimeCheck = tick;
-    }
+    return lastTimeCheck + checkFrequency <= tick && !failed;
 }
 
 bool CInstance::CharRegistered(CCharEntity* PChar)
@@ -336,8 +351,13 @@ void CInstance::Cancel()
 
 bool CInstance::CheckFirstEntry(uint32 id)
 {
+    return checkFirstEntry(m_enteredChars, id);
+}
+
+auto CInstance::checkFirstEntry(std::set<uint32>& enteredChars, uint32 id) -> bool
+{
     // insert returns a pair (iterator,inserted)
-    return m_enteredChars.insert(id).second;
+    return enteredChars.insert(id).second;
 }
 
 uint16 CInstance::GetSoloBattleMusic()
