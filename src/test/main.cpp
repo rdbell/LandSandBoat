@@ -92,6 +92,7 @@ auto runMazeSelfTests() -> bool;
 auto runNotorietyContainerSelfTests() -> bool;
 auto runSpawnSlotSelfTests() -> bool;
 auto runStatusEffectModelSelfTests() -> bool;
+auto runStatusEffectContainerSelfTests() -> bool;
 auto runTimeTriggerSelfTests() -> bool;
 auto runSpatialGridSelfTests() -> bool;
 auto runXimeshMathSelfTests() -> bool;
@@ -428,6 +429,7 @@ namespace
         ok = runNotorietyContainerSelfTests() && ok;
         ok = runSpawnSlotSelfTests() && ok;
         ok = runStatusEffectModelSelfTests() && ok;
+        ok = runStatusEffectContainerSelfTests() && ok;
         ok = runTimeTriggerSelfTests() && ok;
         ok = runSpatialGridSelfTests() && ok;
         ok = runXimeshMathSelfTests() && ok;
