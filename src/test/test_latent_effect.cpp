@@ -23,6 +23,7 @@
 
 #include "data/enums/latent.h"
 #include "latent_effect.h"
+#include "latent_effect_container.h"
 
 #include <iostream>
 
@@ -124,6 +125,40 @@ auto testModOnItemOnly() -> bool
     return ok;
 }
 
+auto testLatentEffectContainerBookkeeping() -> bool
+{
+    CLatentEffectContainer container(nullptr);
+
+    bool ok = true;
+    ok      = expectBool(container.HasAllLatentsActive(18), true, "empty scripted slot active") && ok;
+
+    container.AddLatentEffect(xi::Latent::HpUnderPercent, 75, Mod::DEF, 12);
+    ok = expectBool(container.HasAllLatentsActive(18), false, "scripted latent uses max slot") && ok;
+    ok = expectBool(container.HasAllLatentsActive(17), true, "other slot ignores scripted latent") && ok;
+
+    ok = expectBool(container.DelLatentEffect(xi::Latent::HpOverPercent, 75, Mod::DEF, 12), false, "condition id mismatch") && ok;
+    ok = expectBool(container.DelLatentEffect(xi::Latent::HpUnderPercent, 74, Mod::DEF, 12), false, "condition value mismatch") && ok;
+    ok = expectBool(container.DelLatentEffect(xi::Latent::HpUnderPercent, 75, Mod::ATT, 12), false, "modifier id mismatch") && ok;
+    ok = expectBool(container.DelLatentEffect(xi::Latent::HpUnderPercent, 75, Mod::DEF, 13), false, "modifier power mismatch") && ok;
+    ok = expectBool(container.HasAllLatentsActive(18), false, "mismatched deletes preserve latent") && ok;
+
+    container.AddLatentEffect(xi::Latent::HpUnderPercent, 75, Mod::DEF, 12);
+    ok = expectBool(container.DelLatentEffect(xi::Latent::HpUnderPercent, 75, Mod::DEF, 12), true, "first duplicate deleted") && ok;
+    ok = expectBool(container.HasAllLatentsActive(18), false, "second duplicate remains") && ok;
+    ok = expectBool(container.DelLatentEffect(xi::Latent::HpUnderPercent, 75, Mod::DEF, 12), true, "second duplicate deleted") && ok;
+    ok = expectBool(container.HasAllLatentsActive(18), true, "all duplicates deleted") && ok;
+    ok = expectBool(container.DelLatentEffect(xi::Latent::HpUnderPercent, 75, Mod::DEF, 12), false, "missing latent delete") && ok;
+
+    container.AddLatentEffect(xi::Latent::MpUnder, 20, Mod::DEF, 3);
+    container.AddLatentEffect(xi::Latent::TpOver, 1000, Mod::ATT, 4);
+    container.DelLatentEffects(99, 17);
+    ok = expectBool(container.HasAllLatentsActive(18), false, "other slot delete preserves latents") && ok;
+    container.DelLatentEffects(99, 18);
+    ok = expectBool(container.HasAllLatentsActive(18), true, "slot delete removes every latent") && ok;
+
+    return ok;
+}
+
 } // namespace
 
 auto runLatentEffectSelfTests() -> bool
@@ -132,5 +167,6 @@ auto runLatentEffectSelfTests() -> bool
     ok      = testLatentEffectConstructor() && ok;
     ok      = testLatentEffectSetters() && ok;
     ok      = testModOnItemOnly() && ok;
+    ok      = testLatentEffectContainerBookkeeping() && ok;
     return ok;
 }
