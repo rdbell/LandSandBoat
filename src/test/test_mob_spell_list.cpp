@@ -68,6 +68,10 @@ auto testListStorageAndLookup() -> bool
     ok      = expect(list.GetSpellMinLevel(spellA) == 5, "first-match minimum level") && ok;
     ok      = expect(list.GetSpellMinLevel(spellB) == 1, "second spell minimum level") && ok;
     ok      = expect(list.GetSpellMinLevel(static_cast<SpellID>(999)) == 255, "missing spell sentinel") && ok;
+
+    ok = expect(list.GetEligibleSpells(5) == std::vector<SpellID>{ spellA, spellB }, "inclusive lower level eligibility") && ok;
+    ok = expect(list.GetEligibleSpells(20) == std::vector<SpellID>{ spellA, spellB, spellA }, "ordered duplicate eligibility") && ok;
+    ok = expect(list.GetEligibleSpells(100).empty(), "empty level eligibility") && ok;
     return ok;
 }
 

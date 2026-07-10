@@ -55,6 +55,19 @@ auto CMobSpellList::GetSpellMinLevel(const SpellID spellId) const -> uint16
     return 255;
 }
 
+auto CMobSpellList::GetEligibleSpells(const uint16 level) const -> std::vector<SpellID>
+{
+    std::vector<SpellID> eligible;
+    for (const auto& mobSpell : m_spellList)
+    {
+        if (level >= mobSpell.min_level && level <= mobSpell.max_level)
+        {
+            eligible.emplace_back(mobSpell.spellId);
+        }
+    }
+    return eligible;
+}
+
 // Implement namespace to work with spells
 namespace mobSpellList
 {

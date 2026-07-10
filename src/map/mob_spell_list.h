@@ -47,6 +47,7 @@ public:
 
     void AddSpell(SpellID spellId, uint16 minLvl, uint16 maxLvl);
     auto GetSpellMinLevel(SpellID spellId) const -> uint16;
+    auto GetEligibleSpells(uint16 level) const -> std::vector<SpellID>;
 
     // main spell list
     std::vector<MobSpell_t> m_spellList;

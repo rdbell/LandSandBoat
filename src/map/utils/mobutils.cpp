@@ -1387,12 +1387,9 @@ void RecalculateSpellContainer(CMobEntity* PMob)
     PMob->SpellContainer->ClearSpells();
 
     // insert the rest of the spells
-    for (std::vector<MobSpell_t>::iterator it = PMob->m_SpellListContainer->m_spellList.begin(); it != PMob->m_SpellListContainer->m_spellList.end(); ++it)
+    for (const auto spellId : PMob->m_SpellListContainer->GetEligibleSpells(PMob->GetMLevel()))
     {
-        if (PMob->GetMLevel() >= (*it).min_level && PMob->GetMLevel() <= (*it).max_level)
-        {
-            PMob->SpellContainer->AddSpell((*it).spellId);
-        }
+        PMob->SpellContainer->AddSpell(spellId);
     }
 }
 
