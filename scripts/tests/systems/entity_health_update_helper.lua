@@ -97,5 +97,7 @@ describe('Base entity health update helper bindings', function()
         assert(player:getBaseHP() == 20000, 'player base HP should remain raw after updateHealth')
         assert(player:getMaxHP() == 9999, 'player effective HP should retain the 9999 cap')
         assert(player:getHP() == 9999, 'player current HP should clamp to the effective cap')
+
+        mob:despawn()
     end)
 end)
