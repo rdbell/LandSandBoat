@@ -22,6 +22,7 @@
 #include "test_latent_effect.h"
 
 #include "data/enums/latent.h"
+#include "entities/char_entity.h"
 #include "latent_effect.h"
 #include "latent_effect_container.h"
 
@@ -159,6 +160,50 @@ auto testLatentEffectContainerBookkeeping() -> bool
     return ok;
 }
 
+auto testLatentEffectContainerEquipmentInsertion() -> bool
+{
+    CCharEntity owner;
+    // The setter persists levels for TYPE_PC. Native self-tests run before the
+    // SQLite test database is installed, so suppress only that unrelated write.
+    owner.objtype = TYPE_NONE;
+    owner.SetMLevel(49);
+    CLatentEffectContainer container(&owner);
+
+    std::vector<CItemEquipment::itemLatent> ordinary{
+        { xi::Latent::HpUnderPercent, 75, Mod::DEF, 12 },
+        { xi::Latent::MpUnder, 20, Mod::ATT, 7 },
+    };
+
+    bool ok = true;
+    container.AddLatentEffects(ordinary, 50, 4);
+    ok = expectBool(container.HasAllLatentsActive(4), true, "below-level ordinary latent skipped") && ok;
+
+    owner.SetMLevel(50);
+    container.AddLatentEffects(ordinary, 50, 4);
+    ok = expectBool(container.HasAllLatentsActive(4), false, "required-level ordinary latent added") && ok;
+    ok = expectBool(container.DelLatentEffect(xi::Latent::HpUnderPercent, 75, Mod::DEF, 12), true, "ordinary latent fields copied") && ok;
+    ok = expectBool(container.DelLatentEffect(xi::Latent::MpUnder, 20, Mod::ATT, 7), true, "second ordinary latent copied") && ok;
+    ok = expectBool(container.HasAllLatentsActive(4), true, "ordinary latent removed after exact delete") && ok;
+
+    owner.SetMLevel(49);
+    std::vector<CItemEquipment::itemLatent> jobLevelID{
+        { xi::Latent::JobLevelAbove, 60, Mod::ATT, 3 },
+    };
+    container.AddLatentEffects(jobLevelID, 50, 5);
+    ok = expectBool(container.HasAllLatentsActive(5), true, "job-level condition id does not bypass level gate") && ok;
+
+    std::vector<CItemEquipment::itemLatent> jobLevelValue{
+        { xi::Latent::HpUnderPercent, static_cast<uint16>(xi::Latent::JobLevelAbove), Mod::ATT, 4 },
+    };
+    container.AddLatentEffects(jobLevelValue, 50, 6);
+    ok = expectBool(container.HasAllLatentsActive(6), false, "job-level enum value bypasses level gate") && ok;
+    ok = expectBool(container.DelLatentEffect(xi::Latent::HpUnderPercent, static_cast<uint16>(xi::Latent::JobLevelAbove), Mod::ATT, 4), true,
+                    "bypass latent fields copied") &&
+         ok;
+
+    return ok;
+}
+
 } // namespace
 
 auto runLatentEffectSelfTests() -> bool
@@ -168,5 +213,6 @@ auto runLatentEffectSelfTests() -> bool
     ok      = testLatentEffectSetters() && ok;
     ok      = testModOnItemOnly() && ok;
     ok      = testLatentEffectContainerBookkeeping() && ok;
+    ok      = testLatentEffectContainerEquipmentInsertion() && ok;
     return ok;
 }
