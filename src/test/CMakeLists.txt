@@ -680,6 +680,8 @@ set(SOURCES
     test_status_effect_model.cpp
     test_status_effect_container.h
     test_status_effect_container.cpp
+    test_status_effect_data.h
+    test_status_effect_data.cpp
     test_suite.h
     test_suite.cpp
     test_synchronized.h
