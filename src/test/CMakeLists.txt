@@ -620,6 +620,8 @@ set(SOURCES
     test_trust_valid_target_1427.cpp
     test_pet_valid_target_1428.h
     test_pet_valid_target_1428.cpp
+    test_pet_jug_timer_1429.h
+    test_pet_jug_timer_1429.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

@@ -22,6 +22,7 @@
 #include "pet_entity.h"
 #include "map/pet_death_capacity.h"
 #include "map/pet_fade_out_capacity.h"
+#include "map/pet_jug_timer_capacity.h"
 #include "map/pet_spawn_capacity.h"
 #include "map/pet_valid_target_capacity.h"
 #include "map/pet_zoning_restore_capacity.h"
@@ -106,45 +107,36 @@ bool CPetEntity::isBstPet() const
 
 timer::time_point CPetEntity::getJugSpawnTime()
 {
-    if (m_PetType != PET_TYPE::JUG_PET)
-    {
-        ShowWarning("Non-Jug Pet calling function (%d).", static_cast<uint8>(m_PetType));
-    }
-
-    return m_jugSpawnTime;
+    return petjugtimerhelpers::GetSpawnTime(
+        m_PetType == PET_TYPE::JUG_PET,
+        m_jugSpawnTime,
+        [&]() { ShowWarning("Non-Jug Pet calling function (%d).", static_cast<uint8>(m_PetType)); });
 }
 
 void CPetEntity::setJugSpawnTime(timer::time_point spawnTime)
 {
-    if (m_PetType != PET_TYPE::JUG_PET)
-    {
-        ShowWarning("Non-Jug Pet calling function (%d).", static_cast<uint8>(m_PetType));
-        return;
-    }
-
-    m_jugSpawnTime = spawnTime;
+    petjugtimerhelpers::SetSpawnTime(
+        m_PetType == PET_TYPE::JUG_PET,
+        spawnTime,
+        [&]() { ShowWarning("Non-Jug Pet calling function (%d).", static_cast<uint8>(m_PetType)); },
+        [&](timer::time_point value) { m_jugSpawnTime = value; });
 }
 
 timer::duration CPetEntity::getJugDuration()
 {
-    if (m_PetType != PET_TYPE::JUG_PET)
-    {
-        ShowWarning("Non-Jug Pet calling function (%d).", static_cast<uint8>(m_PetType));
-        return 0s;
-    }
-
-    return m_jugDuration;
+    return petjugtimerhelpers::GetDuration(
+        m_PetType == PET_TYPE::JUG_PET,
+        m_jugDuration,
+        [&]() { ShowWarning("Non-Jug Pet calling function (%d).", static_cast<uint8>(m_PetType)); });
 }
 
 void CPetEntity::setJugDuration(timer::duration seconds)
 {
-    if (m_PetType != PET_TYPE::JUG_PET)
-    {
-        ShowWarning("Non-Jug Pet calling function (%d).", static_cast<uint8>(m_PetType));
-        return;
-    }
-
-    m_jugDuration = seconds;
+    petjugtimerhelpers::SetDuration(
+        m_PetType == PET_TYPE::JUG_PET,
+        seconds,
+        [&]() { ShowWarning("Non-Jug Pet calling function (%d).", static_cast<uint8>(m_PetType)); },
+        [&](timer::duration value) { m_jugDuration = value; });
 }
 
 const std::string CPetEntity::GetScriptName()
