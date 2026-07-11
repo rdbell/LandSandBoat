@@ -37,6 +37,7 @@
 #include "daken_sange_ammo_capacity.h"
 #include "attack_loop_capacity.h"
 #include "engage_capacity.h"
+#include "despawn_finalize_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3988,9 +3989,12 @@ void CBattleEntity::OnDespawn(CDespawnState& /*unused*/)
 {
     TracyZoneScoped;
 
-    FadeOut();
-    // #event despawn
-    PAI->EventHandler.triggerListener("DESPAWN", this);
+    despawnfinalizehelpers::Apply(
+        [&]() { FadeOut(); },
+        [&]() {
+            // #event despawn
+            PAI->EventHandler.triggerListener("DESPAWN", this);
+        });
 }
 
 void CBattleEntity::SetBattleStartTime(timer::time_point time)

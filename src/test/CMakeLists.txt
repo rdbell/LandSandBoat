@@ -570,6 +570,8 @@ set(SOURCES
     test_attack_loop_1402.cpp
     test_engage_1403.h
     test_engage_1403.cpp
+    test_despawn_finalize_1404.h
+    test_despawn_finalize_1404.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
