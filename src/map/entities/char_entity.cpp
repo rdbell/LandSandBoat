@@ -23,6 +23,7 @@
 
 #include "can_attack_capacity.h"
 #include "char_pet_zoning_capacity.h"
+#include "char_automaton_capacity.h"
 #include "common/logging.h"
 #include "common/timer.h"
 #include "common/utils.h"
@@ -688,18 +689,8 @@ void CCharEntity::addAutomatonElementCapacity(const uint8 element, const int8 va
 
 void CCharEntity::setAutomatonElementalCapacityBonus(const uint8 bonus)
 {
-    if (bonus == automatonInfo_.elementalCapacityBonus)
-    {
-        return;
-    }
-
-    int8 difference = static_cast<int8>(bonus) - automatonInfo_.elementalCapacityBonus;
-    for (size_t i = 0; i < automatonInfo_.elementMax.size(); ++i)
-    {
-        automatonInfo_.elementMax[i] += difference;
-    }
-
-    automatonInfo_.elementalCapacityBonus = bonus;
+    charautomatonhelpers::ApplyElementalCapacityBonus(
+        bonus, automatonInfo_.elementalCapacityBonus, automatonInfo_.elementMax);
 }
 
 auto CCharEntity::getAutomatonFrame() const -> AutomatonFrame
@@ -719,14 +710,7 @@ auto CCharEntity::getAutomatonAttachment(const uint8 slotid) const -> uint8
 
 auto CCharEntity::hasAutomatonAttachment(const uint8 attachment) const -> bool
 {
-    for (auto&& attachmentid : automatonInfo_.equip.attachments)
-    {
-        if (attachmentid == attachment)
-        {
-            return true;
-        }
-    }
-    return false;
+    return charautomatonhelpers::HasAttachment(automatonInfo_.equip.attachments, attachment);
 }
 
 auto CCharEntity::getAutomatonElementMax(const uint8 element) const -> uint8

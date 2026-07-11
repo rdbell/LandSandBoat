@@ -351,6 +351,7 @@ auto runPetAbility1431SelfTests() -> bool;
 auto runPetAbilityResult1432SelfTests() -> bool;
 auto runPetConstruction1433SelfTests() -> bool;
 auto runCharPetZoning1434SelfTests() -> bool;
+auto runCharAutomaton1435SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -912,6 +913,7 @@ namespace
         ok = runPetAbilityResult1432SelfTests() && ok;
         ok = runPetConstruction1433SelfTests() && ok;
         ok = runCharPetZoning1434SelfTests() && ok;
+        ok = runCharAutomaton1435SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
