@@ -27,6 +27,7 @@
 #include "camouflage_retain_capacity.h"
 #include "ranged_additional_effect_capacity.h"
 #include "ranged_outcome_capacity.h"
+#include "ranged_actor_finalize_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3486,12 +3487,13 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
         StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Sange);
     }
 
-    if (isChar || isTrust)
+    const auto actorFinalization = rangedactorfinalizehelpers::ResolveRangedActorFinalization(isChar, isTrust);
+    if (actorFinalization.claimTarget)
     {
         battleutils::ClaimMob(PTarget, this);
     }
 
-    if (isChar)
+    if (actorFinalization.removeAmmo)
     {
         battleutils::RemoveAmmo(PChar, ammoConsumed);
 
@@ -3529,8 +3531,14 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
     else
     {
         // Mob or trust
-        StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Detectable);
-        PTarget->LastAttacked = timer::now();
+        if (actorFinalization.stripAllDetectable)
+        {
+            StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Detectable);
+        }
+        if (actorFinalization.updateTargetLastAttacked)
+        {
+            PTarget->LastAttacked = timer::now();
+        }
     }
     this->processActionEffectFlags(action);
 }

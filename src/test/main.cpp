@@ -310,6 +310,7 @@ auto runRangedAmmo1390SelfTests() -> bool;
 auto runCamouflageRetain1391SelfTests() -> bool;
 auto runRangedAdditionalEffect1392SelfTests() -> bool;
 auto runRangedOutcome1393SelfTests() -> bool;
+auto runRangedActorFinalize1394SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -830,6 +831,7 @@ namespace
         ok = runCamouflageRetain1391SelfTests() && ok;
         ok = runRangedAdditionalEffect1392SelfTests() && ok;
         ok = runRangedOutcome1393SelfTests() && ok;
+        ok = runRangedActorFinalize1394SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
