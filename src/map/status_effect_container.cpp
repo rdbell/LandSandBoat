@@ -51,6 +51,7 @@ When a status effect is gained twice on a player. It can do one or more of the f
 #include "latent_effect_container.h"
 #include "notoriety_container.h"
 #include "status_effect_container.h"
+#include "status_effect_capacity.h"
 
 #include "enums/msg_std.h"
 #include "map_engine.h"
@@ -237,12 +238,13 @@ bool CStatusEffectContainer::CanGainStatusEffect(CStatusEffect* PStatusEffect)
         case xi::StatusEffect::SleepIi:
         case xi::StatusEffect::Lullaby:
         {
-            uint16 subPower = PStatusEffect->GetSubPower();
-            if (subPower == ELEMENT_LIGHT && m_POwner->hasImmunity(IMMUNITY_LIGHT_SLEEP))
-            {
-                return false;
-            }
-            else if (subPower == ELEMENT_DARK && m_POwner->hasImmunity(IMMUNITY_DARK_SLEEP))
+            const uint16 subPower = PStatusEffect->GetSubPower();
+            if (statuseffecthelpers::ShouldRejectSleepImmunity(
+                    true,
+                    statuseffecthelpers::IsLightSleepSubPower(subPower, ELEMENT_LIGHT),
+                    statuseffecthelpers::IsDarkSleepSubPower(subPower, ELEMENT_DARK),
+                    m_POwner->hasImmunity(IMMUNITY_LIGHT_SLEEP),
+                    m_POwner->hasImmunity(IMMUNITY_DARK_SLEEP)))
             {
                 return false;
             }
@@ -250,73 +252,73 @@ bool CStatusEffectContainer::CanGainStatusEffect(CStatusEffect* PStatusEffect)
             break;
         }
         case xi::StatusEffect::Weight:
-            if (m_POwner->hasImmunity(IMMUNITY_GRAVITY))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_GRAVITY)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Bind:
-            if (m_POwner->hasImmunity(IMMUNITY_BIND))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_BIND)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Stun:
-            if (m_POwner->hasImmunity(IMMUNITY_STUN))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_STUN)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Silence:
-            if (m_POwner->hasImmunity(IMMUNITY_SILENCE))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_SILENCE)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Paralysis:
-            if (m_POwner->hasImmunity(IMMUNITY_PARALYZE))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_PARALYZE)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Blindness:
-            if (m_POwner->hasImmunity(IMMUNITY_BLIND))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_BLIND)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Slow:
-            if (m_POwner->hasImmunity(IMMUNITY_SLOW))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_SLOW)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Poison:
-            if (m_POwner->hasImmunity(IMMUNITY_POISON))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_POISON)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Elegy:
-            if (m_POwner->hasImmunity(IMMUNITY_ELEGY))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_ELEGY)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Requiem:
-            if (m_POwner->hasImmunity(IMMUNITY_REQUIEM))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_REQUIEM)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Terror:
-            if (m_POwner->hasImmunity(IMMUNITY_TERROR))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_TERROR)))
             {
                 return false;
             }
             break;
         case xi::StatusEffect::Petrification:
-            if (m_POwner->hasImmunity(IMMUNITY_PETRIFY))
+            if (statuseffecthelpers::ShouldRejectSimpleImmunity(m_POwner->hasImmunity(IMMUNITY_PETRIFY)))
             {
                 return false;
             }
@@ -334,7 +336,9 @@ bool CStatusEffectContainer::CanGainStatusEffect(CStatusEffect* PStatusEffect)
         {
             const auto PAftermath = this->GetStatusEffect(xi::StatusEffect::Aftermath);
             // Geirskogul aftermath edge case
-            if (PAftermath && (PAftermath->GetPower() == 8 || PAftermath->GetPower() == 22))
+            if (statuseffecthelpers::ShouldBlockSpikesDueToAftermath(
+                    PAftermath != nullptr,
+                    PAftermath != nullptr ? PAftermath->GetPower() : 0))
             {
                 return false;
             }
@@ -345,14 +349,16 @@ bool CStatusEffectContainer::CanGainStatusEffect(CStatusEffect* PStatusEffect)
     }
 
     // make sure pets can't be charmed
-    if ((statusEffect == xi::StatusEffect::CharmI || statusEffect == xi::StatusEffect::CharmIi) && m_POwner->PMaster != nullptr)
+    if (statuseffecthelpers::ShouldBlockCharmOnPet(
+            statusEffect == xi::StatusEffect::CharmI || statusEffect == xi::StatusEffect::CharmIi,
+            m_POwner->PMaster != nullptr))
     {
         return false;
     }
 
     // check if a status effect blocks this
     xi::StatusEffect blockId = effects::EffectsParams[static_cast<uint16>(statusEffect)].BlockId;
-    if (static_cast<uint16>(blockId) != 0 && HasStatusEffect(blockId))
+    if (statuseffecthelpers::ShouldBlockByBlockId(static_cast<uint16>(blockId), HasStatusEffect(blockId)))
     {
         return false;
     }
@@ -363,67 +369,42 @@ bool CStatusEffectContainer::CanGainStatusEffect(CStatusEffect* PStatusEffect)
     {
         CStatusEffect* negativeEffect = GetStatusEffect(negativeId);
 
-        if (negativeEffect != nullptr)
+        if (statuseffecthelpers::HasNegativeEffect(static_cast<uint16>(negativeId), negativeEffect != nullptr))
         {
-            if (statusEffect == xi::StatusEffect::Haste && negativeEffect->GetStatusID() == xi::StatusEffect::Slow && negativeEffect->GetSubPower() == 1)
+            if (statuseffecthelpers::IsHasteVsSlowRemote(
+                    statusEffect == xi::StatusEffect::Haste,
+                    negativeEffect->GetStatusID() == xi::StatusEffect::Slow,
+                    negativeEffect->GetSubPower()))
             {
                 // slow i remote
                 return true;
             }
 
-            if (PStatusEffect->GetTier() != 0 && negativeEffect->GetTier() != 0)
-            {
-                return PStatusEffect->GetTier() == negativeEffect->GetTier() ? statusEffect > negativeId : PStatusEffect->GetTier() > negativeEffect->GetTier();
-            }
-
-            // new status effect must be stronger
-            return PStatusEffect->GetPower() >= negativeEffect->GetPower();
+            return statuseffecthelpers::CanGainVsNegative(
+                PStatusEffect->GetTier(),
+                PStatusEffect->GetPower(),
+                negativeEffect->GetTier(),
+                negativeEffect->GetPower(),
+                PStatusEffect->GetTier() != 0 && negativeEffect->GetTier() != 0,
+                statusEffect > negativeId);
         }
     }
 
     CStatusEffect* existingEffect = GetStatusEffect(statusEffect);
 
     // check overwrite
-    if (existingEffect != nullptr)
+    if (statuseffecthelpers::HasExistingEffect(existingEffect != nullptr))
     {
-        auto overwrite = effects::EffectsParams[static_cast<uint16>(statusEffect)].Overwrite;
-
-        if (overwrite == xi::EffectOverwrite::Always || overwrite == xi::EffectOverwrite::IgnoreDuplicate)
-        {
-            return true;
-        }
-        else if (overwrite == xi::EffectOverwrite::Never)
-        {
-            return false;
-        }
-        else if (overwrite == xi::EffectOverwrite::EqualHigher)
-        {
-            if (PStatusEffect->GetTier() != 0 && existingEffect->GetTier() != 0)
-            {
-                return PStatusEffect->GetTier() >= existingEffect->GetTier();
-            }
-            return PStatusEffect->GetPower() >= existingEffect->GetPower();
-        }
-        else if (overwrite == xi::EffectOverwrite::Higher)
-        {
-            if (PStatusEffect->GetTier() != 0 && existingEffect->GetTier() != 0)
-            {
-                return PStatusEffect->GetTier() > existingEffect->GetTier();
-            }
-            return PStatusEffect->GetPower() > existingEffect->GetPower();
-        }
-        else if (overwrite == xi::EffectOverwrite::TierHigher)
-        {
-            if (PStatusEffect->GetTier() != 0 && existingEffect->GetTier() != 0)
-            {
-                return PStatusEffect->GetTier() > existingEffect->GetTier();
-            }
-        }
-
-        return false;
+        const auto overwrite = static_cast<uint8>(effects::EffectsParams[static_cast<uint16>(statusEffect)].Overwrite);
+        return statuseffecthelpers::CanGainOverwrite(
+            overwrite,
+            PStatusEffect->GetTier(),
+            PStatusEffect->GetPower(),
+            existingEffect->GetTier(),
+            existingEffect->GetPower());
     }
 
-    return true;
+    return statuseffecthelpers::CanGainWhenNoExisting();
 }
 
 void CStatusEffectContainer::OverwriteStatusEffect(CStatusEffect* StatusEffect)
@@ -433,14 +414,14 @@ void CStatusEffectContainer::OverwriteStatusEffect(CStatusEffect* StatusEffect)
     xi::StatusEffect statusEffect = StatusEffect->GetStatusID();
     // remove effect
     xi::EffectOverwrite overwrite = effects::EffectsParams[static_cast<uint16>(statusEffect)].Overwrite;
-    if (overwrite != xi::EffectOverwrite::IgnoreDuplicate)
+    if (statuseffecthelpers::ShouldDeleteOnOverwrite(static_cast<uint8>(overwrite)))
     {
         DelStatusEffectSilent(statusEffect);
     }
 
     // remove effect by id
     xi::StatusEffect removeId = effects::EffectsParams[static_cast<uint16>(statusEffect)].RemoveId;
-    if (removeId > xi::StatusEffect::Ko)
+    if (statuseffecthelpers::ShouldRemoveLinkedId(static_cast<uint16>(removeId), static_cast<uint16>(xi::StatusEffect::Ko)))
     {
         DelStatusEffectSilent(removeId);
     }
