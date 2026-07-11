@@ -169,6 +169,7 @@ auto runMapAssistChannelEvent1290SelfTests() -> bool;
 auto runMapPlayerRelocation1291SelfTests() -> bool;
 auto runMapEntityInformationRequest1292SelfTests() -> bool;
 auto runMapStandardMessageDelivery1293SelfTests() -> bool;
+auto runMapPlayerKickRefresh1294SelfTests() -> bool;
 auto runWorldChatMessageParty1259SelfTests() -> bool;
 auto runWorldChatMessageAlliance1260SelfTests() -> bool;
 auto runWorldChatMessageLinkshell1261SelfTests() -> bool;
@@ -590,6 +591,7 @@ namespace
         ok = runMapPlayerRelocation1291SelfTests() && ok;
         ok = runMapEntityInformationRequest1292SelfTests() && ok;
         ok = runMapStandardMessageDelivery1293SelfTests() && ok;
+        ok = runMapPlayerKickRefresh1294SelfTests() && ok;
         ok = runWorldChatMessageParty1259SelfTests() && ok;
         ok = runWorldChatMessageAlliance1260SelfTests() && ok;
         ok = runWorldChatMessageLinkshell1261SelfTests() && ok;

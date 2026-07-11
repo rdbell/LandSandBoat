@@ -27,6 +27,7 @@
 #include "char_zone.h"
 #include "chat_message_tell.h"
 #include "entity_information_request.h"
+#include "player_kick_refresh.h"
 #include "player_relocation.h"
 #include "standard_message_delivery.h"
 
@@ -657,11 +658,10 @@ void IPCClient::handleMessage_PlayerKick(const IPP& ipp, const ipc::PlayerKick& 
 {
     TracyZoneScoped;
 
-    // player was kicked and is no longer in alliance/party db -- they need a direct update.
-    if (CCharEntity* PChar = zoneutils::GetChar(message.victimId))
-    {
-        PChar->ReloadPartyInc();
-    }
+    mapipc::HandlePlayerKick(message, [](const uint32 victimId)
+                             {
+                                 return zoneutils::GetChar(victimId);
+                             });
 }
 
 void IPCClient::handleMessage_MessageStandard(const IPP& ipp, const ipc::MessageStandard& message)
