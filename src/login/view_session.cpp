@@ -22,6 +22,7 @@
 #include "view_session.h"
 
 #include "character_name.h"
+#include "character_select.h"
 #include "data_session.h"
 #include "view_lobby_ack.h"
 
@@ -41,7 +42,7 @@ void view_session::read_func()
     const auto sessionHash = loginHelpers::getHashFromPacket(ipAddress, buffer_.data());
     if (sessionHash == "")
     {
-        ShowWarning(fmt::format("Session requested without valid sessionHash from {}", ipAddress));
+        ShowWarning(loginHelpers::FormatMissingSessionHashWarning(ipAddress));
         return;
     }
 
@@ -58,39 +59,45 @@ void view_session::read_func()
     {
         case 0x07: // 07: "Notifying lobby server of current selections."
         {
-            const auto requestedCharacterID                 = ref<uint32>(buffer_.data(), 28);
+            const auto requestedCharacterID                 = ref<uint32>(buffer_.data(), loginHelpers::CharacterSelectIDOffset);
             char       requestedCharacter[PacketNameLength] = {};
-            std::memcpy(&requestedCharacter, buffer_.data() + 36, PacketNameLength - 1);
+            std::memcpy(&requestedCharacter, buffer_.data() + loginHelpers::CharacterSelectNameOffset, PacketNameLength - 1);
 
-            uint32 accountID = 0;
-
-            const auto rset = db::preparedStmt("SELECT accid FROM chars WHERE charid = ? AND charname = ? LIMIT 1",
+            uint32     accountID = 0;
+            bool       rowFound  = false;
+            const auto rset      = db::preparedStmt("SELECT accid FROM chars WHERE charid = ? AND charname = ? LIMIT 1",
                                                requestedCharacterID,
                                                requestedCharacter);
             if (rset && rset->rowsCount() != 0 && rset->next())
             {
-                accountID                    = rset->get<uint32>("accid");
-                session.requestedCharacterID = requestedCharacterID;
+                accountID = rset->get<uint32>("accid");
+                rowFound  = true;
             }
-            else
+
+            const auto selectGate = loginHelpers::ClassifyCharacterSelect(
+                static_cast<bool>(rset),
+                rowFound,
+                accountID,
+                session.accountID);
+            if (selectGate == loginHelpers::character_select_gate::MISMATCHED_NAME)
             {
-                ShowError(fmt::format("Account ID {} tried to select a character id with a mismatched character name.", session.accountID));
+                ShowError(loginHelpers::FormatCharacterSelectMismatchedName(session.accountID));
+                socket_.lowest_layer().close();
+                return;
+            }
+            if (selectGate == loginHelpers::character_select_gate::WRONG_ACCOUNT)
+            {
+                ShowError(loginHelpers::FormatCharacterSelectWrongAccount(session.accountID));
                 socket_.lowest_layer().close();
                 return;
             }
 
-            if (accountID != session.accountID)
-            {
-                ShowError(fmt::format("Account ID {} tried to login as character not in their account.", session.accountID));
-                socket_.lowest_layer().close();
-                return;
-            }
+            session.requestedCharacterID = requestedCharacterID;
 
             if (auto data = session.data_session)
             {
-                std::memset(data->buffer_.data(), 0, 0x05);
-                data->buffer_.data()[0] = 0x02;
-                data->do_write(0x05);
+                loginHelpers::GenerateDataSelectNotifyPacket(data->buffer_.data());
+                data->do_write(loginHelpers::DataSelectNotifyPacketSize);
             }
         }
         break;
