@@ -27,6 +27,7 @@
 #include "char_zone.h"
 #include "chat_message_tell.h"
 #include "entity_information_request.h"
+#include "linkshell_updates.h"
 #include "party_alliance_updates.h"
 #include "player_kick_refresh.h"
 #include "player_relocation.h"
@@ -701,44 +702,38 @@ void IPCClient::handleMessage_LinkshellRankChange(const IPP& ipp, const ipc::Lin
 {
     TracyZoneScoped;
 
-    if (CLinkshell* PLinkshell = linkshell::GetLinkshell(message.linkshellId))
-    {
-        PLinkshell->ChangeMemberRank(message.memberName, message.requesterRank, message.newRank);
-    }
+    mapipc::HandleLinkshellRankChange(message, linkshell::GetLinkshell);
 }
 
 void IPCClient::handleMessage_LinkshellRemove(const IPP& ipp, const ipc::LinkshellRemove& message)
 {
     TracyZoneScoped;
 
-    CCharEntity* PChar = zoneutils::GetCharByName(message.victimName);
-
-    if (PChar && PChar->PLinkshell1 && PChar->PLinkshell1->getID() == message.linkshellId)
-    {
-        CItemLinkshell* targetLS = (CItemLinkshell*)PChar->getEquip(SLOT_LINK1);
-        if (targetLS && (message.requesterRank == LSTYPE_LINKSHELL || (message.requesterRank == LSTYPE_PEARLSACK && targetLS->GetLSType() == LSTYPE_LINKPEARL)))
+    mapipc::HandleLinkshellRemove(
+        message,
+        zoneutils::GetCharByName,
+        [](CCharEntity* character, const int slot)
         {
-            PChar->PLinkshell1->RemoveMemberByName(message.victimName, message.requesterRank);
-        }
-    }
-    else if (PChar && PChar->PLinkshell2 && PChar->PLinkshell2->getID() == message.linkshellId)
-    {
-        CItemLinkshell* targetLS = (CItemLinkshell*)PChar->getEquip(SLOT_LINK2);
-        if (targetLS && (message.requesterRank == LSTYPE_LINKSHELL || (message.requesterRank == LSTYPE_PEARLSACK && targetLS->GetLSType() == LSTYPE_LINKPEARL)))
+            return slot == 1 ? character->PLinkshell1 : character->PLinkshell2;
+        },
+        [](CCharEntity* character, const int slot) -> std::optional<uint8>
         {
-            PChar->PLinkshell2->RemoveMemberByName(message.victimName, message.requesterRank);
-        }
-    }
+            auto* item = reinterpret_cast<CItemLinkshell*>(character->getEquip(slot == 1 ? SLOT_LINK1 : SLOT_LINK2));
+            return item ? std::optional<uint8>{ static_cast<uint8>(item->GetLSType()) } : std::nullopt;
+        });
 }
 
 void IPCClient::handleMessage_LinkshellSetMessage(const IPP& ipp, const ipc::LinkshellSetMessage& message)
 {
     TracyZoneScoped;
 
-    if (CLinkshell* PLinkshell = linkshell::GetLinkshell(message.linkshellId))
-    {
-        PLinkshell->PushPacket(0, std::make_unique<GP_SERV_COMMAND_LINKSHELL_MESSAGE>(message.poster, message.message, message.linkshellName, message.postTime, LinkshellSlot::LS1));
-    }
+    mapipc::HandleLinkshellSetMessage(
+        message,
+        linkshell::GetLinkshell,
+        [](CLinkshell* linkshell, const ipc::LinkshellSetMessage& update)
+        {
+            linkshell->PushPacket(0, std::make_unique<GP_SERV_COMMAND_LINKSHELL_MESSAGE>(update.poster, update.message, update.linkshellName, update.postTime, LinkshellSlot::LS1));
+        });
 }
 
 void IPCClient::handleMessage_LuaFunction(const IPP& ipp, const ipc::LuaFunction& message)
