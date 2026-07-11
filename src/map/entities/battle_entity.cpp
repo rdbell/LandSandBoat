@@ -42,6 +42,7 @@
 #include "hit_interrupt_capacity.h"
 #include "battle_time_capacity.h"
 #include "enmity_presence_capacity.h"
+#include "death_finalize_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -2357,25 +2358,24 @@ void CBattleEntity::Die()
 {
     TracyZoneScoped;
 
-    if (CBaseEntity* PKiller = GetEntity(m_OwnerID.targid))
-    {
-        static_cast<CBattleEntity*>(PKiller)->ForAlliance(
-            [this](CBattleEntity* PMember)
-            {
-                CCharEntity* member = static_cast<CCharEntity*>(PMember);
-                if (member->PClaimedMob == this)
+    CBaseEntity* PKiller = GetEntity(m_OwnerID.targid);
+    deathfinalizehelpers::Apply(
+        PKiller != nullptr,
+        [&]()
+        {
+            static_cast<CBattleEntity*>(PKiller)->ForAlliance(
+                [this](CBattleEntity* PMember)
                 {
-                    member->PClaimedMob = nullptr;
-                }
-            });
-
-        PAI->EventHandler.triggerListener("DEATH", this, PKiller);
-    }
-    else
-    {
-        PAI->EventHandler.triggerListener("DEATH", this);
-    }
-    SetBattleTargetID(0);
+                    CCharEntity* member = static_cast<CCharEntity*>(PMember);
+                    if (member->PClaimedMob == this)
+                    {
+                        member->PClaimedMob = nullptr;
+                    }
+                });
+        },
+        [&]() { PAI->EventHandler.triggerListener("DEATH", this, PKiller); },
+        [&]() { PAI->EventHandler.triggerListener("DEATH", this); },
+        [&]() { SetBattleTargetID(0); });
 }
 
 void CBattleEntity::processActionEffectFlags(const action_t& action) const

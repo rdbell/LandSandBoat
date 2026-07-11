@@ -582,6 +582,8 @@ set(SOURCES
     test_battle_identity_1408.cpp
     test_enmity_presence_1409.h
     test_enmity_presence_1409.cpp
+    test_death_finalize_1410.h
+    test_death_finalize_1410.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
