@@ -1,0 +1,188 @@
+#pragma once
+
+#include "common/cbasetypes.h"
+
+#include <cstdint>
+
+// Pure attackutils::CheckForDamageMultiplier policy halves.
+
+namespace attackutilshelpers
+{
+
+// PHYSICAL_ATTACK_TYPE pins used by damage multiplier selection.
+constexpr uint8 AttackTypeNormal    = 0;
+constexpr uint8 AttackTypeDouble    = 1;
+constexpr uint8 AttackTypeTriple    = 2;
+constexpr uint8 AttackTypeZanshin   = 3;
+constexpr uint8 AttackTypeRanged    = 5;
+constexpr uint8 AttackTypeRapidShot = 6;
+constexpr uint8 AttackTypeSamba     = 7;
+
+// SLOT_MAIN pin.
+constexpr uint8 SlotMain = 0;
+
+// ShouldRejectNullWeapon mirrors PWeapon == nullptr early return.
+inline auto ShouldRejectNullWeapon(const bool weaponNull) -> bool
+{
+    return weaponNull;
+}
+
+// ResolveRemOccRates selects REM occ triple/double chance (already /10 applied by host).
+// Host injects the mod/10 values for the attack type branch.
+inline auto ShouldUseRangedRemOcc(const uint8 attackType) -> bool
+{
+    return attackType == AttackTypeRanged || attackType == AttackTypeRapidShot;
+}
+
+// ShouldUseMainHandRemOcc mirrors NORMAL && weaponSlot == SLOT_MAIN.
+inline auto ShouldUseMainHandRemOcc(const uint8 attackType, const uint8 weaponSlot) -> bool
+{
+    return attackType == AttackTypeNormal && weaponSlot == SlotMain;
+}
+
+// OccExtraDmgMultiplier mirrors GetScaledItemModifier OCC_DO_EXTRA_DMG / 100.
+// Host injects the scaled raw mod; pure half divides by 100.
+inline auto OccExtraDmgMultiplier(const int16 scaledOccExtraDmgMod) -> float
+{
+    return static_cast<float>(scaledOccExtraDmgMod) / 100.0f;
+}
+
+// OccExtraDmgChance mirrors GetScaledItemModifier EXTRA_DMG_CHANCE / 10.
+inline auto OccExtraDmgChance(const int16 scaledExtraDmgChanceMod) -> int16
+{
+    return static_cast<int16>(scaledExtraDmgChanceMod / 10);
+}
+
+// RemOccChance mirrors rem mod / 10.
+inline auto RemOccChance(const int16 remOccMod) -> int16
+{
+    return static_cast<int16>(remOccMod / 10);
+}
+
+// RollChancePercent mirrors (1 + rand(100)) <= chance — inclusive 1..100 vs chance.
+// Host injects roll in 0..99 (xirand::GetRandomNumber(100)); pure uses 1+roll.
+inline auto RollChancePercent(const int16 chance, const int roll0to99) -> bool
+{
+    if (chance <= 0)
+    {
+        return false;
+    }
+    return (1 + roll0to99) <= chance;
+}
+
+// Occ damage ladder preference when allowProc (exclusive first-match):
+// 1) extra > 3.0 && chance roll
+// 2) rem triple chance roll → *3
+// 3) extra > 2.0 && chance roll
+// 4) rem double chance roll → *2
+// 5) extra > 0 && chance roll
+enum class OccProcResult : uint8
+{
+    None          = 0,
+    ExtraDamage   = 1,
+    RemTriple     = 2,
+    RemDouble     = 3,
+};
+
+// ResolveAllowProcLadder evaluates the allowProc exclusive ladder.
+// Each *Procs flag is the result of RollChancePercent for that step.
+// Host must only roll when the preceding steps fail (short-circuit RNG order).
+inline auto ResolveAllowProcLadder(
+    const bool allowProc,
+    const float occExtraDmg,
+    const bool extraGt3Procs,
+    const bool remTripleProcs,
+    const bool extraGt2Procs,
+    const bool remDoubleProcs,
+    const bool extraAnyProcs) -> OccProcResult
+{
+    if (!allowProc)
+    {
+        return OccProcResult::None;
+    }
+    if (occExtraDmg > 3.0f && extraGt3Procs)
+    {
+        return OccProcResult::ExtraDamage;
+    }
+    if (remTripleProcs)
+    {
+        return OccProcResult::RemTriple;
+    }
+    if (occExtraDmg > 2.0f && extraGt2Procs)
+    {
+        return OccProcResult::ExtraDamage;
+    }
+    if (remDoubleProcs)
+    {
+        return OccProcResult::RemDouble;
+    }
+    if (occExtraDmg > 0.0f && extraAnyProcs)
+    {
+        return OccProcResult::ExtraDamage;
+    }
+    return OccProcResult::None;
+}
+
+// ApplyOccProcDamage applies the ladder result.
+inline auto ApplyOccProcDamage(
+    const uint32 damage,
+    const OccProcResult result,
+    const float occExtraDmg) -> uint32
+{
+    switch (result)
+    {
+        case OccProcResult::ExtraDamage:
+            return static_cast<uint32>(damage * occExtraDmg);
+        case OccProcResult::RemTriple:
+            return static_cast<uint32>(damage * 3.0f);
+        case OccProcResult::RemDouble:
+            return static_cast<uint32>(damage * 2.0f);
+        default:
+            return damage;
+    }
+}
+
+// Type-specific double/triple damage after allowProc ladder fails.
+// Host injects whether the rate roll succeeded for the attack type.
+inline auto ShouldApplyZanshinDoubleDamage(const uint8 attackType, const bool rateProcs) -> bool
+{
+    return attackType == AttackTypeZanshin && rateProcs;
+}
+
+inline auto ShouldApplyTATripleDamage(const uint8 attackType, const bool rateProcs) -> bool
+{
+    return attackType == AttackTypeTriple && rateProcs;
+}
+
+inline auto ShouldApplyDADoubleDamage(const uint8 attackType, const bool rateProcs) -> bool
+{
+    return attackType == AttackTypeDouble && rateProcs;
+}
+
+inline auto ShouldApplyRapidShotDoubleDamage(const uint8 attackType, const bool rateProcs) -> bool
+{
+    return attackType == AttackTypeRapidShot && rateProcs;
+}
+
+inline auto ShouldApplySambaDoubleDamage(const uint8 attackType, const bool rateProcs) -> bool
+{
+    return attackType == AttackTypeSamba && rateProcs;
+}
+
+// ApplyTypeDoubleDamage multiplies original damage by factor.
+inline auto ApplyTypeDoubleDamage(const uint32 originalDamage, const uint8 factor) -> uint32
+{
+    return originalDamage * factor;
+}
+
+// RollRatePercent mirrors rand(100) < mod (0..99 style).
+inline auto RollRatePercent(const int16 rateMod, const int roll0to99) -> bool
+{
+    if (rateMod <= 0)
+    {
+        return false;
+    }
+    return roll0to99 < rateMod;
+}
+
+} // namespace attackutilshelpers

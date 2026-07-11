@@ -20,6 +20,7 @@
 */
 
 #include "attackutils.h"
+#include "utils/attackutils_capacity.h"
 #include "attack.h"
 #include "battleutils.h"
 #include "common/utils.h"
@@ -254,7 +255,7 @@ bool IsBlocked(CBattleEntity* PAttacker, CBattleEntity* PDefender)
  ************************************************************************/
 uint32 CheckForDamageMultiplier(CCharEntity* PChar, CItemWeapon* PWeapon, uint32 damage, PHYSICAL_ATTACK_TYPE attackType, uint8 weaponSlot, bool allowProc)
 {
-    if (PWeapon == nullptr)
+    if (attackutilshelpers::ShouldRejectNullWeapon(PWeapon == nullptr))
     {
         return damage;
     }
@@ -262,82 +263,97 @@ uint32 CheckForDamageMultiplier(CCharEntity* PChar, CItemWeapon* PWeapon, uint32
     uint32 originalDamage    = damage;
     int16  occ_do_triple_dmg = 0;
     int16  occ_do_double_dmg = 0;
+    const auto attackTypeU8 = static_cast<uint8>(attackType);
 
-    switch (attackType)
+    if (attackutilshelpers::ShouldUseRangedRemOcc(attackTypeU8))
     {
-        case PHYSICAL_ATTACK_TYPE::RANGED:
-        case PHYSICAL_ATTACK_TYPE::RAPID_SHOT:
-            occ_do_triple_dmg = PChar->getMod(Mod::REM_OCC_DO_TRIPLE_DMG_RANGED) / 10;
-            occ_do_double_dmg = PChar->getMod(Mod::REM_OCC_DO_DOUBLE_DMG_RANGED) / 10;
-            break;
-        case PHYSICAL_ATTACK_TYPE::NORMAL:
-            if (weaponSlot == SLOT_MAIN) // Only applies to mainhand
-            {
-                occ_do_triple_dmg = PChar->getMod(Mod::REM_OCC_DO_TRIPLE_DMG) / 10;
-                occ_do_double_dmg = PChar->getMod(Mod::REM_OCC_DO_DOUBLE_DMG) / 10;
-            }
-            break;
-        default:
-            break;
+        occ_do_triple_dmg = attackutilshelpers::RemOccChance(PChar->getMod(Mod::REM_OCC_DO_TRIPLE_DMG_RANGED));
+        occ_do_double_dmg = attackutilshelpers::RemOccChance(PChar->getMod(Mod::REM_OCC_DO_DOUBLE_DMG_RANGED));
+    }
+    else if (attackutilshelpers::ShouldUseMainHandRemOcc(attackTypeU8, weaponSlot))
+    {
+        occ_do_triple_dmg = attackutilshelpers::RemOccChance(PChar->getMod(Mod::REM_OCC_DO_TRIPLE_DMG));
+        occ_do_double_dmg = attackutilshelpers::RemOccChance(PChar->getMod(Mod::REM_OCC_DO_DOUBLE_DMG));
     }
 
-    float occ_extra_dmg        = battleutils::GetScaledItemModifier(PChar, PWeapon, Mod::OCC_DO_EXTRA_DMG) / 100.0f;
-    int16 occ_extra_dmg_chance = battleutils::GetScaledItemModifier(PChar, PWeapon, Mod::EXTRA_DMG_CHANCE) / 10;
+    const float occ_extra_dmg = attackutilshelpers::OccExtraDmgMultiplier(
+        battleutils::GetScaledItemModifier(PChar, PWeapon, Mod::OCC_DO_EXTRA_DMG));
+    const int16 occ_extra_dmg_chance = attackutilshelpers::OccExtraDmgChance(
+        battleutils::GetScaledItemModifier(PChar, PWeapon, Mod::EXTRA_DMG_CHANCE));
 
+    // Preserve exclusive short-circuit RNG order of the allowProc ladder.
     if (allowProc)
     {
-        if (occ_extra_dmg > 3.0f && occ_extra_dmg_chance > 0 && (1 + xirand::GetRandomNumber(100)) <= occ_extra_dmg_chance)
+        if (occ_extra_dmg > 3.0f &&
+            attackutilshelpers::RollChancePercent(occ_extra_dmg_chance, xirand::GetRandomNumber(100)))
         {
-            return (uint32)(damage * occ_extra_dmg);
+            return attackutilshelpers::ApplyOccProcDamage(
+                damage, attackutilshelpers::OccProcResult::ExtraDamage, occ_extra_dmg);
         }
-        else if (occ_do_triple_dmg > 0 && (1 + xirand::GetRandomNumber(100)) <= occ_do_triple_dmg)
+        if (attackutilshelpers::RollChancePercent(occ_do_triple_dmg, xirand::GetRandomNumber(100)))
         {
-            return (uint32)(damage * 3.0f);
+            return attackutilshelpers::ApplyOccProcDamage(
+                damage, attackutilshelpers::OccProcResult::RemTriple, occ_extra_dmg);
         }
-        else if (occ_extra_dmg > 2.0f && occ_extra_dmg_chance > 0 && (1 + xirand::GetRandomNumber(100)) <= occ_extra_dmg_chance)
+        if (occ_extra_dmg > 2.0f &&
+            attackutilshelpers::RollChancePercent(occ_extra_dmg_chance, xirand::GetRandomNumber(100)))
         {
-            return (uint32)(damage * occ_extra_dmg);
+            return attackutilshelpers::ApplyOccProcDamage(
+                damage, attackutilshelpers::OccProcResult::ExtraDamage, occ_extra_dmg);
         }
-        else if (occ_do_double_dmg > 0 && (1 + xirand::GetRandomNumber(100)) <= occ_do_double_dmg)
+        if (attackutilshelpers::RollChancePercent(occ_do_double_dmg, xirand::GetRandomNumber(100)))
         {
-            return (uint32)(damage * 2.0f);
+            return attackutilshelpers::ApplyOccProcDamage(
+                damage, attackutilshelpers::OccProcResult::RemDouble, occ_extra_dmg);
         }
-        else if (occ_extra_dmg > 0 && occ_extra_dmg_chance > 0 && (1 + xirand::GetRandomNumber(100)) <= occ_extra_dmg_chance)
+        if (occ_extra_dmg > 0 &&
+            attackutilshelpers::RollChancePercent(occ_extra_dmg_chance, xirand::GetRandomNumber(100)))
         {
-            return (uint32)(damage * occ_extra_dmg);
+            return attackutilshelpers::ApplyOccProcDamage(
+                damage, attackutilshelpers::OccProcResult::ExtraDamage, occ_extra_dmg);
         }
     }
 
     switch (attackType)
     {
         case PHYSICAL_ATTACK_TYPE::ZANSHIN:
-            if (xirand::GetRandomNumber(100) < PChar->getMod(Mod::ZANSHIN_DOUBLE_DAMAGE))
+            if (attackutilshelpers::ShouldApplyZanshinDoubleDamage(
+                    attackTypeU8,
+                    attackutilshelpers::RollRatePercent(PChar->getMod(Mod::ZANSHIN_DOUBLE_DAMAGE), xirand::GetRandomNumber(100))))
             {
-                return originalDamage * 2;
+                return attackutilshelpers::ApplyTypeDoubleDamage(originalDamage, 2);
             }
             break;
         case PHYSICAL_ATTACK_TYPE::TRIPLE:
-            if (xirand::GetRandomNumber(100) < PChar->getMod(Mod::TA_TRIPLE_DMG_RATE))
+            if (attackutilshelpers::ShouldApplyTATripleDamage(
+                    attackTypeU8,
+                    attackutilshelpers::RollRatePercent(PChar->getMod(Mod::TA_TRIPLE_DMG_RATE), xirand::GetRandomNumber(100))))
             {
-                return originalDamage * 3;
+                return attackutilshelpers::ApplyTypeDoubleDamage(originalDamage, 3);
             }
             break;
         case PHYSICAL_ATTACK_TYPE::DOUBLE:
-            if (xirand::GetRandomNumber(100) < PChar->getMod(Mod::DA_DOUBLE_DMG_RATE))
+            if (attackutilshelpers::ShouldApplyDADoubleDamage(
+                    attackTypeU8,
+                    attackutilshelpers::RollRatePercent(PChar->getMod(Mod::DA_DOUBLE_DMG_RATE), xirand::GetRandomNumber(100))))
             {
-                return originalDamage * 2;
+                return attackutilshelpers::ApplyTypeDoubleDamage(originalDamage, 2);
             }
             break;
         case PHYSICAL_ATTACK_TYPE::RAPID_SHOT:
-            if (xirand::GetRandomNumber(100) < PChar->getMod(Mod::RAPID_SHOT_DOUBLE_DAMAGE))
+            if (attackutilshelpers::ShouldApplyRapidShotDoubleDamage(
+                    attackTypeU8,
+                    attackutilshelpers::RollRatePercent(PChar->getMod(Mod::RAPID_SHOT_DOUBLE_DAMAGE), xirand::GetRandomNumber(100))))
             {
-                return originalDamage * 2;
+                return attackutilshelpers::ApplyTypeDoubleDamage(originalDamage, 2);
             }
             break;
         case PHYSICAL_ATTACK_TYPE::SAMBA:
-            if (xirand::GetRandomNumber(100) < PChar->getMod(Mod::SAMBA_DOUBLE_DAMAGE))
+            if (attackutilshelpers::ShouldApplySambaDoubleDamage(
+                    attackTypeU8,
+                    attackutilshelpers::RollRatePercent(PChar->getMod(Mod::SAMBA_DOUBLE_DAMAGE), xirand::GetRandomNumber(100))))
             {
-                return originalDamage * 2;
+                return attackutilshelpers::ApplyTypeDoubleDamage(originalDamage, 2);
             }
             break;
         default:

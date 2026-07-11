@@ -522,6 +522,8 @@ set(SOURCES
     test_attack_assembly_1378.cpp
     test_attack_hitrate_1379.h
     test_attack_hitrate_1379.cpp
+    test_attackutils_multiplier_1380.h
+    test_attackutils_multiplier_1380.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
