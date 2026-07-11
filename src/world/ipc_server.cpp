@@ -34,6 +34,7 @@
 #include "colonization_event.h"
 #include "conquest_event.h"
 #include "entity_information_request.h"
+#include "entity_information_response.h"
 #include "chat_message_alliance.h"
 #include "chat_message_assist.h"
 #include "chat_message_custom.h"
@@ -862,7 +863,12 @@ void IPCServer::handleMessage_EntityInformationResponse(const IPP& ipp, const ip
 {
     TracyZoneScoped;
 
-    rerouteMessageToCharId(message.requesterId, message);
+    worldipc::HandleEntityInformationResponse(
+        message,
+        [this](const uint32 requesterId, const ipc::EntityInformationResponse& response)
+        {
+            rerouteMessageToCharId(requesterId, response);
+        });
 }
 
 void IPCServer::handleMessage_SendPlayerToLocation(const IPP& ipp, const ipc::SendPlayerToLocation& message)
