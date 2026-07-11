@@ -592,6 +592,8 @@ set(SOURCES
     test_mob_death_reward_1413.cpp
     test_pet_death_1414.h
     test_pet_death_1414.cpp
+    test_trust_death_1415.h
+    test_trust_death_1415.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

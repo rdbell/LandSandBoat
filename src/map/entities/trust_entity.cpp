@@ -20,6 +20,7 @@
 */
 
 #include <map/entities/trust_entity.h>
+#include <map/trust_death_capacity.h>
 
 #include "action/action.h"
 #include "action/interrupts.h"
@@ -137,16 +138,15 @@ void CTrustEntity::FadeOut()
 
 void CTrustEntity::Die()
 {
-    luautils::OnMobDeath(this, nullptr);
-    PEnmityContainer->Clear();
-    PAI->ClearStateStack();
-    PAI->Internal_Die(0s);
-    static_cast<CCharEntity*>(PMaster)->RemoveTrust(this);
-    m_OwnerID.clean();
-
-    // NOTE: This is purposefully calling CBattleEntity's impl.
-    // TODO: Calling a grand-parent's impl. of an overridden function is bad
-    CBattleEntity::Die();
+    trustdeathhelpers::Apply(
+        [&]() { luautils::OnMobDeath(this, nullptr); },
+        [&]() { PEnmityContainer->Clear(); },
+        [&]() { PAI->ClearStateStack(); },
+        [&]() { PAI->Internal_Die(0s); },
+        [&]() { static_cast<CCharEntity*>(PMaster)->RemoveTrust(this); },
+        [&]() { m_OwnerID.clean(); },
+        // Purposefully skip CMobEntity::Die; trusts have no mob reward path.
+        [&]() { CBattleEntity::Die(); });
 }
 
 void CTrustEntity::Spawn()
