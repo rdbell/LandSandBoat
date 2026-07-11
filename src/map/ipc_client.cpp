@@ -26,6 +26,7 @@
 #include "char_var_update.h"
 #include "char_zone.h"
 #include "chat_message_tell.h"
+#include "entity_information_request.h"
 #include "player_relocation.h"
 
 #include "common/ipp.h"
@@ -806,90 +807,92 @@ void IPCClient::handleMessage_EntityInformationRequest(const IPP& ipp, const ipc
 {
     TracyZoneScoped;
 
-    auto PEntity = [&]() -> CBaseEntity*
+    const auto snapshot = [](CBaseEntity* entity) -> std::optional<mapipc::EntityInformationTarget>
     {
-        if (message.entityType & TYPE_PC)
+        if (!entity)
         {
-            return zoneutils::GetChar(message.targetId);
+            return std::nullopt;
         }
-        else
+        return mapipc::EntityInformationTarget{
+            .id         = entity->id,
+            .objType    = entity->objtype,
+            .status     = entity->status,
+            .hasZone    = entity->loc.zone != nullptr,
+            .zoneId     = static_cast<uint16>(entity->loc.zone ? entity->loc.zone->GetID() : 0),
+            .x          = entity->loc.p.x,
+            .y          = entity->loc.p.y,
+            .z          = entity->loc.p.z,
+            .rot        = entity->loc.p.rotation,
+            .moghouseId = entity->objtype == TYPE_PC ? static_cast<CCharEntity*>(entity)->m_moghouseID : 0,
+        };
+    };
+
+    mapipc::HandleEntityInformationRequest(
+        message,
+        [&](const uint32 targetId)
         {
-            return zoneutils::GetEntity(message.targetId);
-        }
-    }();
-
-    if (PEntity && PEntity->loc.zone)
-    {
-        const bool isSpawned = PEntity->status != STATUS_TYPE::DISAPPEAR;
-
-        float x = 0.0f;
-        float y = 0.0f;
-        float z = 0.0f;
-
-        if ((message.entityType & TYPE_MOB) && !isSpawned)
+            return snapshot(zoneutils::GetChar(targetId));
+        },
+        [&](const uint32 targetId)
         {
-            // If entity not spawned, go to default location as listed in database
-            const auto rset = db::preparedStmt("SELECT pos_x, pos_y, pos_z FROM mob_spawn_points WHERE mobid = ?", PEntity->id);
-            if (rset && rset->rowsCount())
+            return snapshot(zoneutils::GetEntity(targetId));
+        },
+        [](const uint32 entityId) -> std::optional<mapipc::EntityInformationPosition>
+        {
+            // If a mob is not spawned, use its last database spawn point.
+            const auto rset = db::preparedStmt("SELECT pos_x, pos_y, pos_z FROM mob_spawn_points WHERE mobid = ?", entityId);
+            if (!rset || !rset->rowsCount())
             {
-                while (rset->next())
-                {
-                    x = rset->get<float>("pos_x");
-                    y = rset->get<float>("pos_y");
-                    z = rset->get<float>("pos_z");
-                }
+                return std::nullopt;
             }
-        }
-        else
+
+            mapipc::EntityInformationPosition position{};
+            while (rset->next())
+            {
+                position.x = rset->get<float>("pos_x");
+                position.y = rset->get<float>("pos_y");
+                position.z = rset->get<float>("pos_z");
+            }
+            return position;
+        },
+        [](const ipc::EntityInformationResponse& response)
         {
-            // Otherwise, their information is available
-            x = PEntity->loc.p.x;
-            y = PEntity->loc.p.y;
-            z = PEntity->loc.p.z;
-        }
-
-        const bool shouldWarp = message.warp && isSpawned;
-
-        const auto moghouseId = PEntity->objtype == TYPE_PC ? static_cast<CCharEntity*>(PEntity)->m_moghouseID : 0;
-
-        message::send(ipc::EntityInformationResponse{
-            .requesterId = message.requesterId,
-            .targetId    = message.targetId,
-            .entityType  = message.entityType,
-            .warp        = shouldWarp,
-            .zoneId      = PEntity->loc.zone->GetID(),
-            .x           = x,
-            .y           = y,
-            .z           = z,
-            .rot         = PEntity->loc.p.rotation,
-            .moghouseId  = moghouseId,
+            message::send(response);
+        },
+        [](const uint32 targetId)
+        {
+            ShowWarningFmt("EntityInformationRequest for entity {} failed", targetId);
         });
-    }
-    else
-    {
-        ShowWarningFmt("EntityInformationRequest for entity {} failed", message.targetId);
-    }
 }
 
 void IPCClient::handleMessage_EntityInformationResponse(const IPP& ipp, const ipc::EntityInformationResponse& message)
 {
     TracyZoneScoped;
 
-    mapipc::HandleEntityInformationResponse(message, [](const uint32 requesterId) { return zoneutils::GetChar(requesterId); });
+    mapipc::HandleEntityInformationResponse(message, [](const uint32 requesterId)
+                                            {
+                                                return zoneutils::GetChar(requesterId);
+                                            });
 }
 
 void IPCClient::handleMessage_SendPlayerToLocation(const IPP& ipp, const ipc::SendPlayerToLocation& message)
 {
     TracyZoneScoped;
 
-    mapipc::HandleSendPlayerToLocation(message, [](const uint32 targetId) { return zoneutils::GetChar(targetId); });
+    mapipc::HandleSendPlayerToLocation(message, [](const uint32 targetId)
+                                       {
+                                           return zoneutils::GetChar(targetId);
+                                       });
 }
 
 void IPCClient::handleMessage_AssistChannelEvent(const IPP& ipp, const ipc::AssistChannelEvent& message) const
 {
     TracyZoneScoped;
 
-    mapipc::HandleAssistChannelEvent(message, [](const uint32 receiverId) { return zoneutils::GetChar(receiverId); });
+    mapipc::HandleAssistChannelEvent(message, [](const uint32 receiverId)
+                                     {
+                                         return zoneutils::GetChar(receiverId);
+                                     });
 }
 
 void IPCClient::handleMessage_GMCallRequest(const IPP& ipp, const ipc::GMCallRequest& message)
