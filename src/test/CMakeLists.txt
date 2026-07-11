@@ -574,6 +574,8 @@ set(SOURCES
     test_despawn_finalize_1404.cpp
     test_post_tick_death_1405.h
     test_post_tick_death_1405.cpp
+    test_hit_interrupt_1406.h
+    test_hit_interrupt_1406.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

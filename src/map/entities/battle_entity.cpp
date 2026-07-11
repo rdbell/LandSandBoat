@@ -39,6 +39,7 @@
 #include "engage_capacity.h"
 #include "despawn_finalize_capacity.h"
 #include "post_tick_death_capacity.h"
+#include "hit_interrupt_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3980,10 +3981,7 @@ void CBattleEntity::OnEngage(CAttackState& state)
 
 void CBattleEntity::TryHitInterrupt(CBattleEntity* PAttacker)
 {
-    if (PAI->GetCurrentState())
-    {
-        PAI->GetCurrentState()->TryInterrupt(PAttacker);
-    }
+    hitinterrupthelpers::Route(PAI->GetCurrentState(), PAttacker);
 }
 
 void CBattleEntity::OnDespawn(CDespawnState& /*unused*/)
