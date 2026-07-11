@@ -3,6 +3,7 @@
 #include "common/cbasetypes.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 
 // Pure CAttackRound::CreateAttacks multi-hit preference and clamp policy.
@@ -184,5 +185,152 @@ inline auto ShouldApplyAmbushTripleBonus(
 {
     return hasAmbushTrait && hasAugmentsAmbushMod && rotationInWindow;
 }
+
+// --- Slice 1375: kick / daken / follow-up pure policy ---
+
+// PHYSICAL_ATTACK_TYPE numeric mirrors (attack.h).
+constexpr uint8 AttackTypeNormal    = 0;
+constexpr uint8 AttackTypeDouble    = 1;
+constexpr uint8 AttackTypeTriple    = 2;
+constexpr uint8 AttackTypeZanshin   = 3;
+constexpr uint8 AttackTypeKick      = 4;
+constexpr uint8 AttackTypeRanged    = 5;
+constexpr uint8 AttackTypeRapidShot = 6;
+constexpr uint8 AttackTypeSamba     = 7;
+constexpr uint8 AttackTypeQuad      = 8;
+constexpr uint8 AttackTypeDaken     = 9;
+constexpr uint8 AttackTypeFollowUp  = 10;
+
+// Virtue Stone item ID for ammo-swing follow-up.
+constexpr uint16 VirtueStoneItemID = 18244;
+
+// Max follow-up swings stored (one per hand).
+constexpr std::size_t MaxFollowUpSwings = 2;
+
+// ShouldCreateKickAttacks mirrors IsH2H() gate.
+inline auto ShouldCreateKickAttacks(const bool isH2H) -> bool
+{
+    return isH2H;
+}
+
+// ShouldAddMNKKickMerit mirrors MNK main job && TYPE_PC.
+inline auto ShouldAddMNKKickMerit(const bool isMNKMain, const bool isPC) -> bool
+{
+    return isMNKMain && isPC;
+}
+
+// ClampKickAttackRate mirrors std::clamp(rate, 0, 100).
+inline auto ClampKickAttackRate(const uint16 rate) -> uint16
+{
+    return rate > 100 ? static_cast<uint16>(100) : rate;
+}
+
+// ShouldProcKickAttack mirrors rolled < kickAttack rate.
+inline auto ShouldProcKickAttack(const bool rateProcs) -> bool
+{
+    return rateProcs;
+}
+
+// ShouldProcExtraKick mirrors kick occurred && rolled < EXTRA_KICK_ATTACK.
+inline auto ShouldProcExtraKick(const bool kickOccurred, const bool extraKickProcs) -> bool
+{
+    return kickOccurred && extraKickProcs;
+}
+
+// ShouldCreateDakenAttack mirrors TYPE_PC.
+inline auto ShouldCreateDakenAttack(const bool isPC) -> bool
+{
+    return isPC;
+}
+
+// ShouldProcDakenThrow mirrors ammo is shuriken && rolled < DAKEN.
+inline auto ShouldProcDakenThrow(const bool ammoIsShuriken, const bool dakenProcs) -> bool
+{
+    return ammoIsShuriken && dakenProcs;
+}
+
+// IsAmmoSwingEligibleAttackType mirrors NORMAL/DOUBLE/TRIPLE/SAMBA/QUAD.
+inline auto IsAmmoSwingEligibleAttackType(const uint8 attackType) -> bool
+{
+    switch (attackType)
+    {
+        case AttackTypeNormal:
+        case AttackTypeDouble:
+        case AttackTypeTriple:
+        case AttackTypeSamba:
+        case AttackTypeQuad:
+            return true;
+        default:
+            return false;
+    }
+}
+
+// IsFollowUpModSupported currently only AMMO_SWING is implemented.
+inline auto IsFollowUpModSupported(const bool isAmmoSwingMod) -> bool
+{
+    return isAmmoSwingMod;
+}
+
+// IsAttackTypeEligibleForFollowUp combines mod support + attack type.
+inline auto IsAttackTypeEligibleForFollowUp(const bool isAmmoSwingMod, const uint8 attackType) -> bool
+{
+    return IsFollowUpModSupported(isAmmoSwingMod) && IsAmmoSwingEligibleAttackType(attackType);
+}
+
+// ShouldUseMainWeaponForFollowUp mirrors IsH2H || RIGHTATTACK.
+inline auto ShouldUseMainWeaponForFollowUp(const bool isH2H, const bool isRightAttack) -> bool
+{
+    return isH2H || isRightAttack;
+}
+
+// ShouldUseSubWeaponForFollowUp mirrors LEFTATTACK.
+inline auto ShouldUseSubWeaponForFollowUp(const bool isLeftAttack) -> bool
+{
+    return isLeftAttack;
+}
+
+// ShouldProcAmmoSwing mirrors weapon present && rolled < scaled AMMO_SWING.
+inline auto ShouldProcAmmoSwing(const bool weaponPresent, const bool ammoSwingProcs) -> bool
+{
+    return weaponPresent && ammoSwingProcs;
+}
+
+// IsVirtueStoneAmmo mirrors ammo ID == 18244 && quantity > 0.
+inline auto IsVirtueStoneAmmo(const uint16 ammoID, const uint32 quantity) -> bool
+{
+    return ammoID == VirtueStoneItemID && quantity > 0;
+}
+
+// ShouldUnequipAmmoAfterConsume mirrors quantity == 1 before consume.
+inline auto ShouldUnequipAmmoAfterConsume(const uint32 quantityBeforeConsume) -> bool
+{
+    return quantityBeforeConsume == 1;
+}
+
+// CanStoreFollowUpSwing mirrors size < 2 && (empty || back != direction).
+inline auto CanStoreFollowUpSwing(
+    const std::size_t currentCount,
+    const bool empty,
+    const bool lastDirectionDiffers) -> bool
+{
+    if (currentCount >= MaxFollowUpSwings)
+    {
+        return false;
+    }
+    return empty || lastDirectionDiffers;
+}
+
+// ShouldAppendStoredFollowUps mirrors !m_followUpSwings.empty().
+inline auto ShouldAppendStoredFollowUps(const bool hasStoredFollowUps) -> bool
+{
+    return hasStoredFollowUps;
+}
+
+// ShouldProcFollowUpForChar mirrors attacker is PC && has AMMO_SWING mod.
+inline auto ShouldProcFollowUpForChar(const bool isPC, const bool hasAmmoSwingMod) -> bool
+{
+    return isPC && hasAmmoSwingMod;
+}
+
 
 } // namespace attackroundhelpers

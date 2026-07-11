@@ -291,6 +291,7 @@ auto runStatusEffectAddRemove1371SelfTests() -> bool;
 auto runStatusEffectDelete1372SelfTests() -> bool;
 auto runStatusEffectSave1373SelfTests() -> bool;
 auto runAttackRoundMultihit1374SelfTests() -> bool;
+auto runAttackRoundFollowUp1375SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -792,6 +793,7 @@ namespace
         ok = runStatusEffectDelete1372SelfTests() && ok;
         ok = runStatusEffectSave1373SelfTests() && ok;
         ok = runAttackRoundMultihit1374SelfTests() && ok;
+        ok = runAttackRoundFollowUp1375SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

@@ -378,26 +378,9 @@ void CAttackRound::CreateAttacks(CItemWeapon* PWeapon, PHYSICAL_ATTACK_DIRECTION
  ************************************************************************/
 bool CAttackRound::IsAttackTypeEligibleForFollowUp(Mod followUpType, PHYSICAL_ATTACK_TYPE attackType)
 {
-    switch (followUpType)
-    {
-        case Mod::AMMO_SWING:
-        {
-            switch (attackType)
-            {
-                case PHYSICAL_ATTACK_TYPE::NORMAL:
-                case PHYSICAL_ATTACK_TYPE::DOUBLE:
-                case PHYSICAL_ATTACK_TYPE::TRIPLE:
-                case PHYSICAL_ATTACK_TYPE::SAMBA:
-                case PHYSICAL_ATTACK_TYPE::QUAD:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        default:
-            return false;
-    }
+    return attackroundhelpers::IsAttackTypeEligibleForFollowUp(
+        followUpType == Mod::AMMO_SWING,
+        static_cast<uint8>(attackType));
 }
 
 /************************************************************************
@@ -409,7 +392,7 @@ void CAttackRound::ProcFollowUpAttacks()
 {
     if (CCharEntity* PChar = dynamic_cast<CCharEntity*>(m_attacker))
     {
-        if (PChar->getMod(Mod::AMMO_SWING))
+        if (attackroundhelpers::ShouldProcFollowUpForChar(true, PChar->getMod(Mod::AMMO_SWING) != 0))
         {
             // iterate through attackSwings and attempt to proc and store a follow-up swing
             for (auto& attack : m_attackSwings)
@@ -420,21 +403,23 @@ void CAttackRound::ProcFollowUpAttacks()
 
                 if (IsAttackTypeEligibleForFollowUp(Mod::AMMO_SWING, type))
                 {
-                    if (IsH2H() || direction == RIGHTATTACK)
+                    if (attackroundhelpers::ShouldUseMainWeaponForFollowUp(IsH2H(), direction == RIGHTATTACK))
                     {
                         PWeapon = PChar->getEquip(SLOT_MAIN);
                     }
-                    else if (direction == LEFTATTACK)
+                    else if (attackroundhelpers::ShouldUseSubWeaponForFollowUp(direction == LEFTATTACK))
                     {
                         PWeapon = PChar->getEquip(SLOT_SUB);
                     }
 
-                    if (PWeapon && xirand::GetRandomNumber(100) < battleutils::GetScaledItemModifier(PChar, PWeapon, Mod::AMMO_SWING))
+                    if (attackroundhelpers::ShouldProcAmmoSwing(
+                            PWeapon != nullptr,
+                            PWeapon != nullptr && xirand::GetRandomNumber(100) < battleutils::GetScaledItemModifier(PChar, PWeapon, Mod::AMMO_SWING)))
                     {
-                        CItemEquipment*     PAmmo       = PChar->getEquip(SLOT_AMMO);
-                        static const uint16 virtueStone = 18244;
+                        CItemEquipment* PAmmo = PChar->getEquip(SLOT_AMMO);
 
-                        if (PAmmo && PAmmo->getID() == virtueStone && PAmmo->getQuantity() > 0)
+                        if (PAmmo != nullptr &&
+                            attackroundhelpers::IsVirtueStoneAmmo(PAmmo->getID(), PAmmo->getQuantity()))
                         {
                             auto  eloc = PChar->equipLocation(SLOT_AMMO);
                             uint8 loc  = eloc ? static_cast<uint8>(eloc->Container) : 0;
@@ -442,7 +427,7 @@ void CAttackRound::ProcFollowUpAttacks()
 
                             if (AddFollowUpAttack(direction))
                             {
-                                if (PAmmo->getQuantity() == 1)
+                                if (attackroundhelpers::ShouldUnequipAmmoAfterConsume(PAmmo->getQuantity()))
                                 {
                                     charutils::UnequipItem(PChar, SLOT_AMMO);
                                     PChar->RequestPersist(CHAR_PERSIST::EQUIP);
@@ -460,7 +445,7 @@ void CAttackRound::ProcFollowUpAttacks()
         // TODO: else if (Dynamis [D]) {};
 
         // Append any swings stored in m_followUpSwings to the attack round
-        if (!m_followUpSwings.empty())
+        if (attackroundhelpers::ShouldAppendStoredFollowUps(!m_followUpSwings.empty()))
         {
             for (size_t i = 0; i < m_followUpSwings.size(); i++)
             {
@@ -477,13 +462,13 @@ void CAttackRound::ProcFollowUpAttacks()
  ************************************************************************/
 bool CAttackRound::AddFollowUpAttack(PHYSICAL_ATTACK_DIRECTION direction)
 {
-    if (m_followUpSwings.size() < 2)
+    if (attackroundhelpers::CanStoreFollowUpSwing(
+            m_followUpSwings.size(),
+            m_followUpSwings.empty(),
+            !m_followUpSwings.empty() && m_followUpSwings.back() != direction))
     {
-        if (m_followUpSwings.empty() || m_followUpSwings.back() != direction)
-        {
-            m_followUpSwings.push_back(direction);
-            return true;
-        }
+        m_followUpSwings.push_back(direction);
+        return true;
     }
 
     return false;
@@ -496,26 +481,30 @@ bool CAttackRound::AddFollowUpAttack(PHYSICAL_ATTACK_DIRECTION direction)
  ************************************************************************/
 void CAttackRound::CreateKickAttacks()
 {
-    if (IsH2H())
+    if (attackroundhelpers::ShouldCreateKickAttacks(IsH2H()))
     {
         // kick attack mod (All jobs)
         uint16 kickAttack = m_attacker->getMod(Mod::KICK_ATTACK_RATE);
 
-        if (m_attacker->GetMJob() == JOB_MNK && m_attacker->objtype == TYPE_PC) // MNK (Main job)
+        if (attackroundhelpers::ShouldAddMNKKickMerit(
+                m_attacker->GetMJob() == JOB_MNK,
+                m_attacker->objtype == TYPE_PC)) // MNK (Main job)
         {
             kickAttack += ((CCharEntity*)m_attacker)->PMeritPoints->GetMeritValue(MERIT_KICK_ATTACK_RATE, (CCharEntity*)m_attacker);
         }
 
-        kickAttack = std::clamp<uint16>(kickAttack, 0, 100);
+        kickAttack = attackroundhelpers::ClampKickAttackRate(kickAttack);
 
-        if (xirand::GetRandomNumber(100) < kickAttack)
+        if (attackroundhelpers::ShouldProcKickAttack(xirand::GetRandomNumber(100) < kickAttack))
         {
             AddAttackSwing(PHYSICAL_ATTACK_TYPE::KICK, RIGHTATTACK, 1);
             m_kickAttackOccured = true;
         }
 
         // Tantra set mod: Try an extra left kick attack.
-        if (m_kickAttackOccured && xirand::GetRandomNumber(100) < m_attacker->getMod(Mod::EXTRA_KICK_ATTACK))
+        if (attackroundhelpers::ShouldProcExtraKick(
+                m_kickAttackOccured,
+                xirand::GetRandomNumber(100) < m_attacker->getMod(Mod::EXTRA_KICK_ATTACK)))
         {
             AddAttackSwing(PHYSICAL_ATTACK_TYPE::KICK, LEFTATTACK, 1);
         }
@@ -529,16 +518,14 @@ void CAttackRound::CreateKickAttacks()
  ************************************************************************/
 void CAttackRound::CreateDakenAttack()
 {
-    if (m_attacker->objtype == TYPE_PC)
+    if (attackroundhelpers::ShouldCreateDakenAttack(m_attacker->objtype == TYPE_PC))
     {
         auto* PAmmo = static_cast<CItemWeapon*>(m_attacker->m_Weapons[SLOT_AMMO]);
-        if (PAmmo && PAmmo->isShuriken())
+        const bool isShuriken = PAmmo != nullptr && PAmmo->isShuriken();
+        uint16     daken      = m_attacker->getMod(Mod::DAKEN);
+        if (attackroundhelpers::ShouldProcDakenThrow(isShuriken, xirand::GetRandomNumber(100) < daken))
         {
-            uint16 daken = m_attacker->getMod(Mod::DAKEN);
-            if (xirand::GetRandomNumber(100) < daken)
-            {
-                AddAttackSwing(PHYSICAL_ATTACK_TYPE::DAKEN, RIGHTATTACK, 1);
-            }
+            AddAttackSwing(PHYSICAL_ATTACK_TYPE::DAKEN, RIGHTATTACK, 1);
         }
     }
 }
