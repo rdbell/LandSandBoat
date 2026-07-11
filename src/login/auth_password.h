@@ -2,14 +2,33 @@
 
 #include "auth_session.h"
 
+#include <array>
 #include <cstddef>
+#include <cstdint>
+#include <fmt/format.h>
 #include <string>
 
-// Pure password-scheme and LOGIN_ATTEMPT account-status helpers for AUTH.
-// Extracted so native tests can pin the exact predicates without SSL/DB hosts.
+// Pure password-scheme, LOGIN_ATTEMPT account-status, and AUTH diagnostic
+// helpers. Extracted so native tests can pin the exact predicates without
+// SSL/DB hosts.
 
 namespace loginHelpers
 {
+
+// FormatUnsupportedXiloaderVersionError mirrors the JSON error_message body
+// sent when validateAuthInput reports VERSION_UNSUPPORTED. Patch is rendered
+// as the literal 'x' for the supported version and as the reported client
+// patch for the third reported component.
+inline auto FormatUnsupportedXiloaderVersionError(const std::array<uint8_t, 3>& clientVersion) -> std::string
+{
+    return fmt::format(
+        "Your xiloader is too old.\nPlease update to version '{}.{}.x'.\nYour client reported '{}.{}.{}'.",
+        SupportedXiloaderVersion[0],
+        SupportedXiloaderVersion[1],
+        clientVersion[0],
+        clientVersion[1],
+        clientVersion[2]);
+}
 
 // isBcryptHash mirrors the anonymous-namespace helper formerly local to
 // auth_session::validatePassword. A 60-byte Modular Crypt Format bcrypt string

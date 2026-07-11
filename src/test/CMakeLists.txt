@@ -380,6 +380,8 @@ set(SOURCES
     test_login_auth_constants.cpp
     test_login_auth_password_1307.h
     test_login_auth_password_1307.cpp
+    test_login_auth_version_error_1308.h
+    test_login_auth_version_error_1308.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

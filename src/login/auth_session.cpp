@@ -136,8 +136,7 @@ void auth_session::read_func()
     // Check major.minor but ignore trivial
     if (inputValidation == auth_input_validation::VERSION_UNSUPPORTED)
     {
-        std::string errorMessage = fmt::format("Your xiloader is too old.\nPlease update to version '{}.{}.x'.\nYour client reported '{}.{}.{}'.", SupportedXiloaderVersion[0], SupportedXiloaderVersion[1], version[0], version[1], version[2]);
-        sendJsonOnlyErrorMessage(errorMessage);
+        sendJsonOnlyErrorMessage(loginHelpers::FormatUnsupportedXiloaderVersionError(version));
         return;
     }
 

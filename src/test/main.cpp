@@ -225,6 +225,7 @@ auto runMountStateRuntime1234SelfTests() -> bool;
 auto runLoginErrorCodeSelfTests() -> bool;
 auto runLoginAuthConstantSelfTests() -> bool;
 auto runLoginAuthPassword1307SelfTests() -> bool;
+auto runLoginAuthVersionError1308SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -660,6 +661,7 @@ namespace
         ok = runLoginErrorCodeSelfTests() && ok;
         ok = runLoginAuthConstantSelfTests() && ok;
         ok = runLoginAuthPassword1307SelfTests() && ok;
+        ok = runLoginAuthVersionError1308SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
