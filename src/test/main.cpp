@@ -166,6 +166,7 @@ auto runMapCharZone1254SelfTests() -> bool;
 auto runMapCharVarUpdate1256SelfTests() -> bool;
 auto runMapChatMessageTell1258SelfTests() -> bool;
 auto runWorldChatMessageParty1259SelfTests() -> bool;
+auto runWorldChatMessageAlliance1260SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -553,6 +554,7 @@ namespace
         ok = runMapCharVarUpdate1256SelfTests() && ok;
         ok = runMapChatMessageTell1258SelfTests() && ok;
         ok = runWorldChatMessageParty1259SelfTests() && ok;
+        ok = runWorldChatMessageAlliance1260SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;

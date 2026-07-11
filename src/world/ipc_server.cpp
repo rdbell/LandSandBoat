@@ -25,8 +25,9 @@
 #include "char_id_reroute.h"
 #include "char_var_update.h"
 #include "char_zone.h"
-#include "chat_message_tell.h"
+#include "chat_message_alliance.h"
 #include "chat_message_party.h"
+#include "chat_message_tell.h"
 
 #include "besieged_system.h"
 #include "campaign_system.h"
@@ -121,25 +122,7 @@ auto IPCServer::getIPPsForAlliance(uint32 allianceId) -> std::vector<IPP>
 
     // TODO: We know when chars move, we could be caching this info
 
-    const auto query = "SELECT server_addr, server_port, MIN(charid) FROM accounts_sessions JOIN accounts_parties USING (charid) "
-                       "WHERE allianceid = ? "
-                       "GROUP BY server_addr, server_port";
-
-    const auto rset = db::preparedStmt(query, allianceId);
-    if (rset && rset->rowsCount())
-    {
-        std::vector<IPP> ippList;
-        while (rset->next())
-        {
-            const auto ip   = rset->get<uint64>("server_addr");
-            const auto port = rset->get<uint64>("server_port");
-            ippList.emplace_back(ip, port);
-        }
-
-        return ippList;
-    }
-
-    return {};
+    return world::ipc::LookupAllianceEndpoints(allianceId);
 }
 
 auto IPCServer::getIPPsForLinkshell(uint32 linkshellId) -> std::vector<IPP>
@@ -450,6 +433,7 @@ void IPCServer::handleMessage_ChatMessageParty(const IPP& ipp, const ipc::ChatMe
         },
         [this](const IPP& endpoint, const ipc::ChatMessageParty& partyMessage)
         {
+            DebugIPCFmt("Message: -> rerouting to party<{}> on {}", partyMessage.partyId, endpoint.toString());
             sendMessage(endpoint, partyMessage);
         });
 }
@@ -458,7 +442,17 @@ void IPCServer::handleMessage_ChatMessageAlliance(const IPP& ipp, const ipc::Cha
 {
     TracyZoneScoped;
 
-    rerouteMessageToAllianceMembers(message.allianceId, message);
+    worldipc::HandleChatMessageAlliance(
+        message,
+        [this](const uint32 allianceId)
+        {
+            return getIPPsForAlliance(allianceId);
+        },
+        [this](const IPP& endpoint, const ipc::ChatMessageAlliance& allianceMessage)
+        {
+            DebugIPCFmt("Message: -> rerouting to alliance<{}> on {}", allianceMessage.allianceId, endpoint.toString());
+            sendMessage(endpoint, allianceMessage);
+        });
 }
 
 void IPCServer::handleMessage_ChatMessageLinkshell(const IPP& ipp, const ipc::ChatMessageLinkshell& message)

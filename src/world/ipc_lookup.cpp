@@ -2,6 +2,28 @@
 
 #include "common/database.h"
 
+namespace
+{
+
+template <typename IP, typename Port>
+auto CollectEndpoints(db::ResultSet* result) -> std::vector<IPP>
+{
+    if (!result || !result->rowsCount())
+    {
+        return {};
+    }
+    std::vector<IPP> endpoints;
+    while (result->next())
+    {
+        const auto ip   = result->get<IP>("server_addr");
+        const auto port = result->get<Port>("server_port");
+        endpoints.emplace_back(ip, port);
+    }
+    return endpoints;
+}
+
+} // namespace
+
 auto world::ipc::LookupCharacterEndpoint(const uint32_t charId) -> Maybe<IPP>
 {
     const auto rset = db::preparedStmt("SELECT server_addr, server_port FROM accounts_sessions WHERE charid = ? LIMIT 1", charId);
@@ -32,15 +54,14 @@ auto world::ipc::LookupPartyEndpoints(const uint32_t partyId) -> std::vector<IPP
         "partyid = ?) GROUP BY server_addr, server_port",
         partyId,
         partyId);
-    if (!rset || !rset->rowsCount())
-    {
-        return {};
-    }
+    return CollectEndpoints<uint32, uint16>(rset.get());
+}
 
-    std::vector<IPP> endpoints;
-    while (rset->next())
-    {
-        endpoints.emplace_back(rset->get<uint32>("server_addr"), rset->get<uint16>("server_port"));
-    }
-    return endpoints;
+auto world::ipc::LookupAllianceEndpoints(const uint32_t allianceId) -> std::vector<IPP>
+{
+    const auto rset = db::preparedStmt(
+        "SELECT server_addr, server_port, MIN(charid) FROM accounts_sessions JOIN accounts_parties USING (charid) "
+        "WHERE allianceid = ? GROUP BY server_addr, server_port",
+        allianceId);
+    return CollectEndpoints<uint64, uint64>(rset.get());
 }
