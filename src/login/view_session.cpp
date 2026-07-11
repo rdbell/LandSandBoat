@@ -23,6 +23,7 @@
 
 #include "character_name.h"
 #include "data_session.h"
+#include "view_lobby_ack.h"
 
 #include <common/lua.h>
 #include <common/settings.h>
@@ -95,7 +96,8 @@ void view_session::read_func()
         break;
         case 0x14: // 20: "Deleting from lobby server"
         {
-            if (!settings::get<bool>("login.CHARACTER_DELETION"))
+            if (loginHelpers::ClassifyCharacterDeletionGate(settings::get<bool>("login.CHARACTER_DELETION")) ==
+                loginHelpers::character_deletion_gate::DENIED)
             {
                 loginHelpers::generateErrorMessage(buffer_.data(), loginErrors::errorCode::COULD_NOT_CONNECT_TO_LOBBY_SERVER);
                 do_write(0x24);
@@ -105,22 +107,8 @@ void view_session::read_func()
             lpkt_deletechr deleteCharPacket = {};
             std::memcpy(&deleteCharPacket, buffer_.data(), sizeof(lpkt_deletechr));
 
-            std::memset(buffer_.data(), 0, 0x20);
-            buffer_.data()[0] = 0x20; // size
-
-            buffer_.data()[4] = 0x49; // I
-            buffer_.data()[5] = 0x58; // X
-            buffer_.data()[6] = 0x46; // F
-            buffer_.data()[7] = 0x46; // F
-
-            buffer_.data()[8] = 0x03; // result
-
-            unsigned char hash[16];
-
-            md5(buffer_.data(), hash, 0x20);
-            std::memcpy(buffer_.data() + 12, hash, 16);
-
-            do_write(0x20);
+            loginHelpers::GenerateViewLobbyAckPacket(buffer_.data());
+            do_write(loginHelpers::ViewLobbyAckPacketSize);
 
             uint32 charID = deleteCharPacket.ffxi_id;
 
@@ -158,7 +146,7 @@ void view_session::read_func()
                              session.accountID);
 
             // Increment key after delete
-            session.incrementKeyValue += 4;
+            session.incrementKeyValue += loginHelpers::DeleteKeyIncrement;
         }
         break;
         case 0x21: // 33: Registering character name onto the lobby server
@@ -179,23 +167,8 @@ void view_session::read_func()
             session.justCreatedNewChar = true;
             ShowInfo(fmt::format("char <{}> was successfully created on account {}", session.requestedNewCharacterName, session.accountID));
 
-            std::memset(buffer_.data(), 0, 0x20);
-
-            buffer_.data()[0] = 0x20; // size
-
-            buffer_.data()[4] = 0x49; // I
-            buffer_.data()[5] = 0x58; // X
-            buffer_.data()[6] = 0x46; // F
-            buffer_.data()[7] = 0x46; // F
-
-            buffer_.data()[8] = 0x03; // result
-
-            unsigned char hash[16];
-
-            md5(buffer_.data(), hash, 0x20);
-            std::memcpy(buffer_.data() + 12, hash, 16);
-
-            do_write(0x20);
+            loginHelpers::GenerateViewLobbyAckPacket(buffer_.data());
+            do_write(loginHelpers::ViewLobbyAckPacketSize);
         }
         break;
         case 0x22: // 34: Checking name and Gold World Pass
@@ -288,22 +261,8 @@ void view_session::read_func()
                     // copy charname
                     session.requestedNewCharacterName = CharName;
 
-                    std::memset(buffer_.data(), 0, 0x20);
-                    buffer_.data()[0] = 0x20; // size
-
-                    buffer_.data()[4] = 0x49; // I
-                    buffer_.data()[5] = 0x58; // X
-                    buffer_.data()[6] = 0x46; // F
-                    buffer_.data()[7] = 0x46; // F
-
-                    buffer_.data()[8] = 0x03; // result
-
-                    unsigned char hash[16];
-
-                    md5(reinterpret_cast<uint8*>(buffer_.data()), hash, 0x20);
-                    std::memcpy(buffer_.data() + 12, hash, 16);
-
-                    do_write(0x20);
+                    loginHelpers::GenerateViewLobbyAckPacket(buffer_.data());
+                    do_write(loginHelpers::ViewLobbyAckPacketSize);
                 }
             }
         }
