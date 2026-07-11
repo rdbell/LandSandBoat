@@ -588,4 +588,75 @@ inline auto GetPartyInfoAllianceIDInject(const bool hasAlliance, const uint32 al
 // GetPartyInfoOrderFlags is PARTY_SECOND | PARTY_THIRD used in ORDER BY partyflag & ?.
 constexpr uint16 GetPartyInfoOrderFlags = 0x0001 | 0x0002;
 
+// PartyQMFlag is PARTY_QM (0x0010).
+constexpr uint16 PartyQMFlag = 0x0010;
+
+// ShouldSetQuarterMasterDBFlag mirrors if (PEntity != nullptr) after GetMemberByName.
+// Always clears QM flags first; sets only when a member was resolved.
+inline auto ShouldSetQuarterMasterDBFlag(const bool memberFound) -> bool
+{
+    return memberFound;
+}
+
+// remove_member_gate is the pure outcome of RemoveMember's first checks.
+enum class remove_member_gate : uint8_t
+{
+    REJECT_NULL_OR_MISMATCH, // PEntity null or PParty != this
+    REMOVE_AS_LEADER,        // m_PLeader == PEntity → RemovePartyLeader
+    REMOVE_NON_LEADER,       // find + PC cleanup path
+};
+
+// ClassifyRemoveMember mirrors RemoveMember's leader vs non-leader branch.
+inline auto ClassifyRemoveMember(
+    const bool entityNull,
+    const bool partyMismatch,
+    const bool isLeader) -> remove_member_gate
+{
+    if (entityNull || partyMismatch)
+    {
+        return remove_member_gate::REJECT_NULL_OR_MISMATCH;
+    }
+    if (isLeader)
+    {
+        return remove_member_gate::REMOVE_AS_LEADER;
+    }
+    return remove_member_gate::REMOVE_NON_LEADER;
+}
+
+// FormatRemoveMemberNullWarning mirrors ShowWarning for null/mismatch.
+inline auto FormatRemoveMemberNullWarning() -> std::string
+{
+    return "CParty::RemoveMember() - PEntity was null, or PParty mismatch.";
+}
+
+// ShouldClearQuarterMasterOnRemove mirrors m_PQuarterMaster == PChar.
+inline auto ShouldClearQuarterMasterOnRemove(const bool isQuarterMaster) -> bool
+{
+    return isQuarterMaster;
+}
+
+// ShouldDisableSyncOnRemove mirrors m_PSyncTarget == PChar for the leaving PC.
+inline auto ShouldDisableSyncOnRemove(const bool isSyncTarget) -> bool
+{
+    return isSyncTarget;
+}
+
+// ShouldApplyLeavingSyncCountdown mirrors non-leader leave when the leaver is
+// not the sync target but has infinite LevelSync (other members keep sync).
+// Original: m_PSyncTarget != nullptr && m_PSyncTarget != PChar && not disappear && has infinite sync.
+inline auto ShouldApplyLeavingSyncCountdown(
+    const bool hasSyncTarget,
+    const bool leaverIsSyncTarget,
+    const bool notDisappear,
+    const bool hasInfiniteLevelSync) -> bool
+{
+    return hasSyncTarget && !leaverIsSyncTarget && notDisappear && hasInfiniteLevelSync;
+}
+
+// ShouldRunPCRemoveCleanup mirrors m_PartyType == PARTY_PCS && objtype == TYPE_PC.
+inline auto ShouldRunPCRemoveCleanup(const bool isPCParty, const bool isPCEntity) -> bool
+{
+    return isPCParty && isPCEntity;
+}
+
 } // namespace partyhelpers

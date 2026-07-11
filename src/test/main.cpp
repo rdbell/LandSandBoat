@@ -266,6 +266,7 @@ auto runPartyDisband1345SelfTests() -> bool;
 auto runAllianceAssignLeader1346SelfTests() -> bool;
 auto runPartyAssignRole1347SelfTests() -> bool;
 auto runPartyMemberLookup1348SelfTests() -> bool;
+auto runPartyRemoveMember1349SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -742,6 +743,7 @@ namespace
         ok = runAllianceAssignLeader1346SelfTests() && ok;
         ok = runPartyAssignRole1347SelfTests() && ok;
         ok = runPartyMemberLookup1348SelfTests() && ok;
+        ok = runPartyRemoveMember1349SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

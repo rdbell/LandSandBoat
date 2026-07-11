@@ -297,13 +297,18 @@ CBattleEntity* CParty::GetMemberByName(const std::string& memberName)
 
 void CParty::RemoveMember(CBattleEntity* PEntity)
 {
-    if (PEntity == nullptr || PEntity->PParty != this)
+    const auto gate = partyhelpers::ClassifyRemoveMember(
+        PEntity == nullptr,
+        PEntity != nullptr && PEntity->PParty != this,
+        PEntity != nullptr && m_PLeader == PEntity);
+
+    if (gate == partyhelpers::remove_member_gate::REJECT_NULL_OR_MISMATCH)
     {
-        ShowWarning("CParty::RemoveMember() - PEntity was null, or PParty mismatch.");
+        ShowWarning("%s", partyhelpers::FormatRemoveMemberNullWarning());
         return;
     }
 
-    if (m_PLeader == PEntity)
+    if (gate == partyhelpers::remove_member_gate::REMOVE_AS_LEADER)
     {
         RemovePartyLeader(PEntity);
 
@@ -320,37 +325,37 @@ void CParty::RemoveMember(CBattleEntity* PEntity)
 
         if (memberToDelete != members.end())
         {
-            if (m_PartyType == PARTY_PCS && PEntity->objtype == TYPE_PC)
+            if (partyhelpers::ShouldRunPCRemoveCleanup(m_PartyType == PARTY_PCS, PEntity->objtype == TYPE_PC))
             {
                 CCharEntity* PChar = static_cast<CCharEntity*>(PEntity);
 
-                if (m_PQuarterMaster == PChar)
+                if (partyhelpers::ShouldClearQuarterMasterOnRemove(m_PQuarterMaster == PChar))
                 {
                     SetQuarterMaster("");
                 }
-                if (m_PSyncTarget == PChar)
+                if (partyhelpers::ShouldDisableSyncOnRemove(m_PSyncTarget == PChar))
                 {
                     SetSyncTarget("", MsgStd::LevelSyncRemoveLeftParty);
                     CStatusEffect* sync = PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
-                    if (sync && sync->GetDuration() == 0s)
+                    if (partyhelpers::ShouldStartSyncDisableCountdown(sync != nullptr, sync != nullptr && sync->GetDuration() == 0s))
                     {
-                        PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 30, MsgStd::LevelSyncRemoveLeftParty);
+                        PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, partyhelpers::LevelSyncDisableDurationSeconds, MsgStd::LevelSyncRemoveLeftParty);
                         sync->SetStartTime(timer::now());
-                        sync->SetDuration(30s);
+                        sync->SetDuration(std::chrono::seconds(partyhelpers::LevelSyncDisableDurationSeconds));
                     }
                     DisableSync();
                 }
-                if (m_PSyncTarget != nullptr && m_PSyncTarget != PChar)
                 {
-                    if (PChar->status != STATUS_TYPE::DISAPPEAR)
+                    CStatusEffect* sync = PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
+                    if (partyhelpers::ShouldApplyLeavingSyncCountdown(
+                            m_PSyncTarget != nullptr,
+                            m_PSyncTarget == PChar,
+                            PChar->status != STATUS_TYPE::DISAPPEAR,
+                            sync != nullptr && sync->GetDuration() == 0s))
                     {
-                        CStatusEffect* sync = PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
-                        if (sync && sync->GetDuration() == 0s)
-                        {
-                            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 30, MsgStd::LevelSyncRemoveLeftParty);
-                            sync->SetStartTime(timer::now());
-                            sync->SetDuration(30s);
-                        }
+                        PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, partyhelpers::LevelSyncDisableDurationSeconds, MsgStd::LevelSyncRemoveLeftParty);
+                        sync->SetStartTime(timer::now());
+                        sync->SetDuration(std::chrono::seconds(partyhelpers::LevelSyncDisableDurationSeconds));
                     }
                 }
 
@@ -417,37 +422,37 @@ void CParty::DelMember(CBattleEntity* PEntity)
 
         if (memberToDelete != members.end())
         {
-            if (m_PartyType == PARTY_PCS && PEntity->objtype == TYPE_PC)
+            if (partyhelpers::ShouldRunPCRemoveCleanup(m_PartyType == PARTY_PCS, PEntity->objtype == TYPE_PC))
             {
                 CCharEntity* PChar = static_cast<CCharEntity*>(PEntity);
 
-                if (m_PQuarterMaster == PChar)
+                if (partyhelpers::ShouldClearQuarterMasterOnRemove(m_PQuarterMaster == PChar))
                 {
                     SetQuarterMaster("");
                 }
-                if (m_PSyncTarget == PChar)
+                if (partyhelpers::ShouldDisableSyncOnRemove(m_PSyncTarget == PChar))
                 {
                     SetSyncTarget("", MsgStd::LevelSyncRemoveLeftParty);
                     CStatusEffect* sync = PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
-                    if (sync && sync->GetDuration() == 0s)
+                    if (partyhelpers::ShouldStartSyncDisableCountdown(sync != nullptr, sync != nullptr && sync->GetDuration() == 0s))
                     {
-                        PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 30, MsgStd::LevelSyncRemoveLeftParty);
+                        PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, partyhelpers::LevelSyncDisableDurationSeconds, MsgStd::LevelSyncRemoveLeftParty);
                         sync->SetStartTime(timer::now());
-                        sync->SetDuration(30s);
+                        sync->SetDuration(std::chrono::seconds(partyhelpers::LevelSyncDisableDurationSeconds));
                     }
                     DisableSync();
                 }
-                if (m_PSyncTarget != nullptr && m_PSyncTarget != PChar)
                 {
-                    if (PChar->status != STATUS_TYPE::DISAPPEAR)
+                    CStatusEffect* sync = PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
+                    if (partyhelpers::ShouldApplyLeavingSyncCountdown(
+                            m_PSyncTarget != nullptr,
+                            m_PSyncTarget == PChar,
+                            PChar->status != STATUS_TYPE::DISAPPEAR,
+                            sync != nullptr && sync->GetDuration() == 0s))
                     {
-                        CStatusEffect* sync = PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
-                        if (sync && sync->GetDuration() == 0s)
-                        {
-                            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 30, MsgStd::LevelSyncRemoveLeftParty);
-                            sync->SetStartTime(timer::now());
-                            sync->SetDuration(30s);
-                        }
+                        PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, partyhelpers::LevelSyncDisableDurationSeconds, MsgStd::LevelSyncRemoveLeftParty);
+                        sync->SetStartTime(timer::now());
+                        sync->SetDuration(std::chrono::seconds(partyhelpers::LevelSyncDisableDurationSeconds));
                     }
                 }
                 PChar->PLatentEffectContainer->CheckLatentsPartyMembers(members.size(), 0);
@@ -1285,13 +1290,16 @@ void CParty::SetQuarterMaster(const std::string& MemberName)
     CBattleEntity* PEntity = GetMemberByName(MemberName);
     m_PQuarterMaster       = PEntity;
 
-    db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag & ~? WHERE partyid = ? AND partyflag & ?", PARTY_QM, m_PartyID, PARTY_QM);
+    db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag & ~? WHERE partyid = ? AND partyflag & ?",
+                     partyhelpers::PartyQMFlag,
+                     m_PartyID,
+                     partyhelpers::PartyQMFlag);
 
-    if (PEntity != nullptr)
+    if (partyhelpers::ShouldSetQuarterMasterDBFlag(PEntity != nullptr))
     {
         db::preparedStmt("UPDATE accounts_parties JOIN chars ON accounts_parties.charid = chars.charid "
                          "SET partyflag = partyflag | ? WHERE partyid = ? AND charname = ?",
-                         PARTY_QM,
+                         partyhelpers::PartyQMFlag,
                          m_PartyID,
                          MemberName);
     }

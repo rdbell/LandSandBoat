@@ -462,6 +462,8 @@ set(SOURCES
     test_party_assign_role_1347.cpp
     test_party_member_lookup_1348.h
     test_party_member_lookup_1348.cpp
+    test_party_remove_member_1349.h
+    test_party_remove_member_1349.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
