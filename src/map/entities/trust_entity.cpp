@@ -21,6 +21,7 @@
 
 #include <map/entities/trust_entity.h>
 #include <map/trust_death_capacity.h>
+#include <map/trust_fade_out_capacity.h>
 #include <map/trust_spawn_capacity.h>
 
 #include "action/action.h"
@@ -133,8 +134,9 @@ void CTrustEntity::PostTick()
 
 void CTrustEntity::FadeOut()
 {
-    CBaseEntity::FadeOut();
-    loc.zone->UpdateEntityPacket(this, ENTITY_DESPAWN, UPDATE_NONE);
+    trustfadeouthelpers::Apply(
+        [&]() { CBaseEntity::FadeOut(); },
+        [&]() { loc.zone->UpdateEntityPacket(this, ENTITY_DESPAWN, UPDATE_NONE); });
 }
 
 void CTrustEntity::Die()
