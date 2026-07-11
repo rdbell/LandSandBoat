@@ -687,7 +687,10 @@ auto CStatusEffectContainer::DelStatusEffect(xi::StatusEffect StatusID) -> bool
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetStatusID() == StatusID && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::MatchesActiveStatusID(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                static_cast<uint16>(StatusID),
+                PStatusEffect->isDeleted()))
         {
             RemoveStatusEffect(PStatusEffect.get());
             return true;
@@ -717,7 +720,7 @@ auto CStatusEffectContainer::DelStatusEffect(xi::StatusEffect StatusID, uint16 S
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetStatusID() == StatusID && PStatusEffect->GetSubID() == SubID && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::MatchesDelBySubID(static_cast<uint16>(PStatusEffect->GetStatusID()), static_cast<uint16>(StatusID), PStatusEffect->GetSubID(), SubID, PStatusEffect->isDeleted()))
         {
             RemoveStatusEffect(PStatusEffect.get());
             return true;
@@ -732,7 +735,14 @@ auto CStatusEffectContainer::DelStatusEffectBySource(xi::StatusEffect StatusID, 
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetStatusID() == StatusID && PStatusEffect->GetSourceType() == sourceType && PStatusEffect->GetSourceTypeParam() == sourceTypeParam && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::MatchesDelBySource(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                static_cast<uint16>(StatusID),
+                PStatusEffect->GetSourceType(),
+                static_cast<uint16>(sourceType),
+                PStatusEffect->GetSourceTypeParam(),
+                sourceTypeParam,
+                PStatusEffect->isDeleted()))
         {
             RemoveStatusEffect(PStatusEffect.get());
             return true;
@@ -747,7 +757,12 @@ auto CStatusEffectContainer::DelStatusEffectByTier(xi::StatusEffect StatusID, ui
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetStatusID() == StatusID && PStatusEffect->GetTier() == tier && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::MatchesDelByTier(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                static_cast<uint16>(StatusID),
+                PStatusEffect->GetTier(),
+                tier,
+                PStatusEffect->isDeleted()))
         {
             RemoveStatusEffect(PStatusEffect.get(), EffectNotice::Silent);
             return true;
@@ -768,7 +783,7 @@ void CStatusEffectContainer::KillAllStatusEffect()
     for (auto effect_iter = m_StatusEffectSet.begin(); effect_iter != m_StatusEffectSet.end();)
     {
         CStatusEffect* PStatusEffect = effect_iter->get();
-        if (PStatusEffect->GetDuration() != 0s)
+        if (statuseffecthelpers::ShouldKillTimedEffect(PStatusEffect->GetDuration() != 0s))
         {
             luautils::OnEffectLose(m_POwner, PStatusEffect);
 
@@ -791,27 +806,23 @@ void CStatusEffectContainer::HandleEffectGainSideEffects(CStatusEffect* StatusEf
 
     xi::StatusEffect effect = StatusEffect->GetStatusID();
 
-    if (m_POwner->isAlive())
+    if (statuseffecthelpers::ShouldRunGainSideEffects(m_POwner->isAlive()))
     {
         // this should actually go into a char charm AI
-        if (m_POwner->objtype == TYPE_PC)
+        if (statuseffecthelpers::ShouldDespawnPetOnCharm(
+                m_POwner->objtype == TYPE_PC,
+                statuseffecthelpers::IsCharmStatusID(static_cast<uint16>(effect)),
+                m_POwner->PPet != nullptr))
         {
-            if (effect == xi::StatusEffect::CharmI || effect == xi::StatusEffect::CharmIi)
-            {
-                if (m_POwner->PPet != nullptr)
-                {
-                    petutils::DespawnPet(m_POwner);
-                }
-            }
+            petutils::DespawnPet(m_POwner);
         }
 
-        if (HasPreventActionEffect(false))
+        if (statuseffecthelpers::ShouldRewriteSleepIcon(
+                HasPreventActionEffect(false),
+                static_cast<uint16>(effect)))
         {
             // change icon of sleep II and lullaby. Apparently they don't stop player movement.
-            if (effect == xi::StatusEffect::SleepIi || effect == xi::StatusEffect::Lullaby)
-            {
-                StatusEffect->SetIcon(static_cast<uint16>(xi::StatusEffect::SleepI));
-            }
+            StatusEffect->SetIcon(static_cast<uint16>(xi::StatusEffect::SleepI));
         }
     }
 }
@@ -822,20 +833,20 @@ void CStatusEffectContainer::DelStatusEffectsByIcon(const uint16 BuffNo)
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetIcon() == BuffNo)
+        if (statuseffecthelpers::CanClientCancelIcon(
+                PStatusEffect->GetIcon(),
+                BuffNo,
+                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::NoCancel)))
         {
             // This covers all effects that client can remove. Function not used for anything the server removes.
-            if (!(PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::NoCancel)))
-            {
-                RemoveStatusEffect(PStatusEffect.get());
-            }
+            RemoveStatusEffect(PStatusEffect.get());
         }
     }
 }
 
 void CStatusEffectContainer::DelStatusEffectsByType(uint16 Type)
 {
-    if (Type <= 0)
+    if (statuseffecthelpers::ShouldRejectZeroEffectType(Type))
     {
         return;
     }
@@ -844,7 +855,7 @@ void CStatusEffectContainer::DelStatusEffectsByType(uint16 Type)
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetEffectType() == Type)
+        if (statuseffecthelpers::MatchesEffectType(PStatusEffect->GetEffectType(), Type))
         {
             RemoveStatusEffect(PStatusEffect.get(), EffectNotice::Silent);
         }
@@ -857,14 +868,14 @@ void CStatusEffectContainer::DelStatusEffectsByFlag(xi::StatusEffectFlag flag, E
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->HasEffectFlag(flag))
+        if (statuseffecthelpers::MatchesFlagForDelete(PStatusEffect->HasEffectFlag(flag)))
         {
             // If this is an NM/Mob Nightmare sleep, it can be removed explictly by a cure
             // see mobskills/nightmare.lua for full explanation
-            if (
-                (flag & xi::StatusEffectFlag::Damage) != xi::StatusEffectFlag::None &&
-                PStatusEffect->GetStatusID() == xi::StatusEffect::SleepI &&
-                PStatusEffect->GetTier() >= 5) // Tier 5 = Diabolos NM Nightmare
+            if (statuseffecthelpers::ShouldSkipNightmareSleepOnDamageFlag(
+                    (flag & xi::StatusEffectFlag::Damage) != xi::StatusEffectFlag::None,
+                    static_cast<uint16>(PStatusEffect->GetStatusID()),
+                    PStatusEffect->GetTier()))
             {
                 continue;
             }

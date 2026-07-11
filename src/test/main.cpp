@@ -288,6 +288,7 @@ auto runStatusEffectPrevent1368SelfTests() -> bool;
 auto runStatusEffectParams1369SelfTests() -> bool;
 auto runRecastCharge1370SelfTests() -> bool;
 auto runStatusEffectAddRemove1371SelfTests() -> bool;
+auto runStatusEffectDelete1372SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -786,6 +787,7 @@ namespace
         ok = runStatusEffectParams1369SelfTests() && ok;
         ok = runRecastCharge1370SelfTests() && ok;
         ok = runStatusEffectAddRemove1371SelfTests() && ok;
+        ok = runStatusEffectDelete1372SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

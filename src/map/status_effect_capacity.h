@@ -760,4 +760,122 @@ inline auto IsSilentNotice(const uint8 notice, const uint8 silentValue) -> bool
 }
 
 
+// --- Slice 1372: DelStatusEffectsBy* / KillAll / gain side-effect pure filters ---
+
+// MatchesActiveStatusID mirrors ID match && !deleted.
+inline auto MatchesActiveStatusID(const uint16 effectID, const uint16 targetID, const bool deleted) -> bool
+{
+    return !deleted && effectID == targetID;
+}
+
+// MatchesDelBySubID mirrors ID + SubID + !deleted.
+inline auto MatchesDelBySubID(
+    const uint16 effectID,
+    const uint16 targetID,
+    const uint32 effectSubID,
+    const uint32 targetSubID,
+    const bool deleted) -> bool
+{
+    return !deleted && effectID == targetID && effectSubID == targetSubID;
+}
+
+// MatchesDelBySource mirrors ID + sourceType + sourceParam + !deleted.
+inline auto MatchesDelBySource(
+    const uint16 effectID,
+    const uint16 targetID,
+    const uint16 effectSourceType,
+    const uint16 targetSourceType,
+    const uint32 effectSourceParam,
+    const uint32 targetSourceParam,
+    const bool deleted) -> bool
+{
+    return !deleted && effectID == targetID && effectSourceType == targetSourceType && effectSourceParam == targetSourceParam;
+}
+
+// MatchesDelByTier mirrors ID + tier + !deleted.
+inline auto MatchesDelByTier(
+    const uint16 effectID,
+    const uint16 targetID,
+    const uint16 effectTier,
+    const uint16 targetTier,
+    const bool deleted) -> bool
+{
+    return !deleted && effectID == targetID && effectTier == targetTier;
+}
+
+// ShouldKillTimedEffect mirrors duration != 0 for KillAllStatusEffect.
+inline auto ShouldKillTimedEffect(const bool durationNonzero) -> bool
+{
+    return durationNonzero;
+}
+
+// ShouldDespawnPetOnCharm mirrors PC + CharmI/II + hasPet.
+inline auto ShouldDespawnPetOnCharm(const bool isPC, const bool isCharmEffect, const bool hasPet) -> bool
+{
+    return isPC && isCharmEffect && hasPet;
+}
+
+// IsCharmStatusID mirrors CharmI or CharmIi.
+inline auto IsCharmStatusID(const uint16 statusID) -> bool
+{
+    return statusID == StatusIDCharmI || statusID == StatusIDCharmIi;
+}
+
+// ShouldRewriteSleepIcon mirrors prevent-action active && (SleepIi || Lullaby).
+inline auto ShouldRewriteSleepIcon(const bool hasPreventAction, const uint16 statusID) -> bool
+{
+    return hasPreventAction && (statusID == StatusIDSleepIi || statusID == StatusIDLullaby);
+}
+
+// CanClientCancelIcon mirrors icon match && !NoCancel.
+inline auto CanClientCancelIcon(const uint16 effectIcon, const uint16 buffNo, const bool hasNoCancelFlag) -> bool
+{
+    return effectIcon == buffNo && !hasNoCancelFlag;
+}
+
+// MatchesEffectType mirrors type equality for DelStatusEffectsByType.
+inline auto MatchesEffectType(const uint16 effectType, const uint16 targetType) -> bool
+{
+    return effectType == targetType && effectType != 0;
+}
+
+// MatchesFlagForDelete mirrors HasEffectFlag(flag) for DelStatusEffectsByFlag.
+// Optional exclude permanently if duration==0? Production only checks flag.
+inline auto MatchesFlagForDelete(const bool hasFlag) -> bool
+{
+    return hasFlag;
+}
+
+// IsCharmEffectForGainSideEffects dual-home of CharmI/II.
+inline auto IsCharmEffectForGainSideEffects(const uint16 statusID) -> bool
+{
+    return IsCharmStatusID(statusID);
+}
+
+// ShouldRunGainSideEffects mirrors isAlive owner.
+inline auto ShouldRunGainSideEffects(const bool isAlive) -> bool
+{
+    return isAlive;
+}
+
+
+// Diabolos NM Nightmare sleep tier threshold for DelStatusEffectsByFlag(Damage).
+constexpr uint8 DiabolosNightmareSleepTierMin = 5;
+
+// ShouldSkipNightmareSleepOnDamageFlag mirrors Damage flag + SleepI + tier >= 5.
+inline auto ShouldSkipNightmareSleepOnDamageFlag(
+    const bool flagIncludesDamage,
+    const uint16 statusID,
+    const uint8 tier) -> bool
+{
+    return flagIncludesDamage && statusID == StatusIDSleepI && tier >= DiabolosNightmareSleepTierMin;
+}
+
+// ShouldRejectZeroEffectType mirrors Type <= 0 for DelStatusEffectsByType.
+inline auto ShouldRejectZeroEffectType(const uint16 type) -> bool
+{
+    return type == 0;
+}
+
+
 } // namespace statuseffecthelpers
