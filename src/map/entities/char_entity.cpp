@@ -22,6 +22,7 @@
 #include "char_entity.h"
 
 #include "can_attack_capacity.h"
+#include "char_pet_zoning_capacity.h"
 #include "common/logging.h"
 #include "common/timer.h"
 #include "common/utils.h"
@@ -591,51 +592,44 @@ void CCharEntity::setPetZoningInfo()
     {
         return;
     }
-    petZoningInfo.petID = PPetEntity->petID();
-
-    switch (PPetEntity->getPetType())
-    {
-        case PET_TYPE::JUG_PET:
-            if (!settings::get<bool>("map.KEEP_JUGPET_THROUGH_ZONING"))
-            {
-                break;
-            }
+    const auto petType = PPetEntity->getPetType();
+    const auto petID   = PPetEntity->petID();
+    const bool transientAvatar = petID == PETID_ALEXANDER || petID == PETID_ODIN || petID == PETID_ATOMOS;
+    charpetzoninghelpers::ApplyCapture(
+        petType == PET_TYPE::JUG_PET,
+        petType == PET_TYPE::AVATAR,
+        petType == PET_TYPE::AUTOMATON,
+        petType == PET_TYPE::WYVERN,
+        transientAvatar,
+        [&]() { return settings::get<bool>("map.KEEP_JUGPET_THROUGH_ZONING"); },
+        [&]() { petZoningInfo.petID = petID; },
+        [&]()
+        {
             petZoningInfo.jugSpawnTime = PPetEntity->getJugSpawnTime();
             petZoningInfo.jugDuration  = PPetEntity->getJugDuration();
-            [[fallthrough]];
-        case PET_TYPE::AVATAR:
-            if (PPetEntity->petID() == PETID_ALEXANDER || PPetEntity->petID() == PETID_ODIN || PPetEntity->petID() == PETID_ATOMOS)
-            {
-                // Alexander, Odin and Atomos cannot persist through zoning.
-                break;
-            }
-            [[fallthrough]];
-        case PET_TYPE::AUTOMATON:
-        case PET_TYPE::WYVERN:
+        },
+        [&]()
+        {
             petZoningInfo.petLevel = PPetEntity->getSpawnLevel();
             petZoningInfo.petHP    = PPet->health.hp;
             petZoningInfo.petTP    = PPet->health.tp;
             petZoningInfo.petMP    = PPet->health.mp;
-            petZoningInfo.petType  = PPetEntity->getPetType();
-            break;
-        default:
-            break;
-    }
-
-    petZoningInfo.respawnPet = true;
+            petZoningInfo.petType  = petType;
+        },
+        [&]() { petZoningInfo.respawnPet = true; });
 }
 
 void CCharEntity::resetPetZoningInfo()
 {
-    // reset the petZoning info
-    petZoningInfo.petLevel     = 0;
-    petZoningInfo.petHP        = 0;
-    petZoningInfo.petTP        = 0;
-    petZoningInfo.petMP        = 0;
-    petZoningInfo.respawnPet   = false;
-    petZoningInfo.petType      = PET_TYPE::AVATAR;
-    petZoningInfo.jugSpawnTime = timer::time_point{};
-    petZoningInfo.jugDuration  = 0s;
+    charpetzoninghelpers::ApplyReset(
+        [&]() { petZoningInfo.petLevel = 0; },
+        [&]() { petZoningInfo.petHP = 0; },
+        [&]() { petZoningInfo.petTP = 0; },
+        [&]() { petZoningInfo.petMP = 0; },
+        [&]() { petZoningInfo.respawnPet = false; },
+        [&]() { petZoningInfo.petType = PET_TYPE::AVATAR; },
+        [&]() { petZoningInfo.jugSpawnTime = timer::time_point{}; },
+        [&]() { petZoningInfo.jugDuration = 0s; });
 }
 
 auto CCharEntity::shouldPetPersistThroughZoning() const -> bool
@@ -657,10 +651,14 @@ auto CCharEntity::shouldPetPersistThroughZoning() const -> bool
         petType = petZoningInfo.petType;
     }
 
-    return petType == PET_TYPE::WYVERN ||
-           petType == PET_TYPE::AVATAR ||
-           petType == PET_TYPE::AUTOMATON ||
-           (petType == PET_TYPE::JUG_PET && settings::get<bool>("map.KEEP_JUGPET_THROUGH_ZONING"));
+    return charpetzoninghelpers::ShouldPersist(
+        PPetEntity != nullptr,
+        petZoningInfo.respawnPet,
+        petType == PET_TYPE::WYVERN,
+        petType == PET_TYPE::AVATAR,
+        petType == PET_TYPE::AUTOMATON,
+        petType == PET_TYPE::JUG_PET,
+        [&]() { return settings::get<bool>("map.KEEP_JUGPET_THROUGH_ZONING"); });
 }
 
 void CCharEntity::setAutomatonFrame(const AutomatonFrame frame)
