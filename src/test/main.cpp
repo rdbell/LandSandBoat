@@ -245,6 +245,7 @@ auto runLoginDataA21324SelfTests() -> bool;
 auto runLoginConnectCleanup1325SelfTests() -> bool;
 auto runLoginConnectConsole1326SelfTests() -> bool;
 auto runPartyCapacity1327SelfTests() -> bool;
+auto runPartyMemberCount1328SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -700,6 +701,7 @@ namespace
         ok = runLoginConnectCleanup1325SelfTests() && ok;
         ok = runLoginConnectConsole1326SelfTests() && ok;
         ok = runPartyCapacity1327SelfTests() && ok;
+        ok = runPartyMemberCount1328SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

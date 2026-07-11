@@ -88,4 +88,30 @@ inline auto PartyHasTrusts(const bool anyMemberHasTrusts) -> bool
     return anyMemberHasTrusts;
 }
 
+// MemberCountContribution is one member's contribution to CParty::MemberCount.
+// zoneMatches is member->getZone() == ZoneID.
+// isPC is member->objtype == TYPE_PC.
+// trustCount is PTrusts.size() for PC members (ignored when !isPC).
+// Trusts are counted regardless of trust zone (production does not filter them).
+inline auto MemberCountContribution(const bool zoneMatches, const bool isPC, const uint8 trustCount) -> uint8
+{
+    uint8 count = 0;
+    if (zoneMatches)
+    {
+        count++;
+    }
+    if (isPC)
+    {
+        count = static_cast<uint8>(count + trustCount);
+    }
+    return count;
+}
+
+// AccumulateMemberCount adds one contribution into a running total with uint8 wrap
+// matching production's uint8 count increments.
+inline auto AccumulateMemberCount(const uint8 running, const uint8 contribution) -> uint8
+{
+    return static_cast<uint8>(running + contribution);
+}
+
 } // namespace partyhelpers

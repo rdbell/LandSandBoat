@@ -239,21 +239,17 @@ uint8 CParty::MemberCount(uint16 ZoneID)
 
     for (auto member : members)
     {
-        if (member->getZone() == ZoneID)
-        {
-            count++;
-        }
-        if (member->objtype == TYPE_PC)
+        const bool  zoneMatches = member->getZone() == ZoneID;
+        const bool  isPC        = member->objtype == TYPE_PC;
+        uint8       trustCount  = 0;
+        if (isPC)
         {
             auto* charMember = static_cast<CCharEntity*>(member);
-            std::for_each(
-                charMember->PTrusts.begin(),
-                charMember->PTrusts.end(),
-                [&](CTrustEntity* trust)
-                {
-                    count++;
-                });
+            trustCount       = static_cast<uint8>(charMember->PTrusts.size());
         }
+        count = partyhelpers::AccumulateMemberCount(
+            count,
+            partyhelpers::MemberCountContribution(zoneMatches, isPC, trustCount));
     }
     return count;
 }
