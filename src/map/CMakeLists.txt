@@ -58,6 +58,7 @@ set(MAP_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/gmcall_container.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/gmcall_container.h
     ${CMAKE_CURRENT_SOURCE_DIR}/gmcall_packet_handlers.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/gmcall_persistence.h
     ${CMAKE_CURRENT_SOURCE_DIR}/gmcall_response_notification.h
     ${CMAKE_CURRENT_SOURCE_DIR}/grades.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/grades.h

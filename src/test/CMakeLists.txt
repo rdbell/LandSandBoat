@@ -264,6 +264,8 @@ set(SOURCES
     test_gmcall_pending_response_1239.cpp
     test_gmcall_packet_handlers_1242.h
     test_gmcall_packet_handlers_1242.cpp
+    test_gmcall_persistence_1243.h
+    test_gmcall_persistence_1243.cpp
     test_map_gmcall_response_notification_1241.h
     test_map_gmcall_response_notification_1241.cpp
     test_trade_container.h

@@ -24,6 +24,7 @@
 #include "common/ipc_structs.h"
 #include "common/logging.h"
 #include "entities/char_entity.h"
+#include "gmcall_persistence.h"
 #include "ipc_client.h"
 #include "packets/s2c/0x0b6_set_gmmsg.h"
 
@@ -171,6 +172,46 @@ auto gmcall::detail::AssembleCall(std::vector<GP_CLI_COMMAND_FAQ_GMCALL> packets
     return call;
 }
 
+auto gmcall::detail::PersistCall(const uint32_t charId, const std::string_view message) -> uint32_t
+{
+    uint32_t callId = 0;
+    db::transaction([&]()
+                    {
+                        db::preparedStmt("INSERT INTO help_desk (charid, message) VALUES (?, ?)", charId, std::string(message));
+                        if (const auto rset = db::preparedStmt("SELECT LAST_INSERT_ID() AS id"); rset && rset->next())
+                        {
+                            callId = rset->get<uint32>("id");
+                        }
+                    });
+    return callId;
+}
+
+auto gmcall::detail::OldestPendingResponse(const uint32_t charId) -> std::optional<PendingResponse>
+{
+    const auto rset = db::preparedStmt("SELECT id, response "
+                                       "FROM help_desk "
+                                       "WHERE charid = ? AND response IS NOT NULL AND deleted_at IS NULL "
+                                       "ORDER BY id ASC LIMIT 1",
+                                       charId);
+    FOR_DB_SINGLE_RESULT(rset)
+    {
+        return PendingResponse{
+            .callId   = rset->get<uint32>("id"),
+            .response = rset->get<std::string>("response"),
+        };
+    }
+    return std::nullopt;
+}
+
+void gmcall::detail::AcknowledgeOldestResponse(const uint32_t charId)
+{
+    db::preparedStmt("UPDATE help_desk "
+                     "SET deleted_at = NOW() "
+                     "WHERE charid = ? AND response IS NOT NULL AND deleted_at IS NULL "
+                     "ORDER BY id ASC LIMIT 1",
+                     charId);
+}
+
 auto gmcall::detail::BuildPendingResponsePackets(const uint32_t callId, const std::string_view response) -> std::vector<PendingResponsePacket>
 {
     constexpr std::size_t maxPerPacket = sizeof(GP_SERV_COMMAND_SET_GMMSG::PacketData::Msg);
@@ -226,17 +267,8 @@ void GMCallContainer::clear()
 // Build the actual GM call out of multiple packets
 void GMCallContainer::processCall(const CCharEntity* PChar) const
 {
-    const auto call = gmcall::detail::AssembleCall(packets_);
-
-    uint32 callId = 0;
-    db::transaction([&]()
-                    {
-                        db::preparedStmt("INSERT INTO help_desk (charid, message) VALUES (?, ?)", PChar->id, call.message);
-                        if (const auto rset = db::preparedStmt("SELECT LAST_INSERT_ID() AS id"); rset && rset->next())
-                        {
-                            callId = rset->get<uint32>("id");
-                        }
-                    });
+    const auto call   = gmcall::detail::AssembleCall(packets_);
+    const auto callId = gmcall::detail::PersistCall(PChar->id, call.message);
 
     // Send the GM call to xi_world for rerouting to external listeners
     message::send(ipc::GMCallRequest{
@@ -258,17 +290,9 @@ void GMCallContainer::sendPendingResponse(CCharEntity* PChar) const
 {
     TracyZoneScoped;
 
-    const auto rset = db::preparedStmt("SELECT id, response "
-                                       "FROM help_desk "
-                                       "WHERE charid = ? AND response IS NOT NULL AND deleted_at IS NULL "
-                                       "ORDER BY id ASC LIMIT 1",
-                                       PChar->id);
-    FOR_DB_SINGLE_RESULT(rset)
+    if (const auto pending = gmcall::detail::OldestPendingResponse(PChar->id))
     {
-        const auto callId   = rset->get<uint32>("id");
-        const auto response = rset->get<std::string>("response");
-
-        for (const auto& packet : gmcall::detail::BuildPendingResponsePackets(callId, response))
+        for (const auto& packet : gmcall::detail::BuildPendingResponsePackets(pending->callId, pending->response))
         {
             PChar->pushPacket<GP_SERV_COMMAND_SET_GMMSG>(packet.callId, packet.seqId, packet.pktNum, packet.message);
         }
@@ -280,11 +304,7 @@ void GMCallContainer::acknowledgeOldestResponse(CCharEntity* PChar) const
 {
     TracyZoneScoped;
 
-    db::preparedStmt("UPDATE help_desk "
-                     "SET deleted_at = NOW() "
-                     "WHERE charid = ? AND response IS NOT NULL AND deleted_at IS NULL "
-                     "ORDER BY id ASC LIMIT 1",
-                     PChar->id);
+    gmcall::detail::AcknowledgeOldestResponse(PChar->id);
 
     // Send another response if player has multiple queued.
     sendPendingResponse(PChar);
