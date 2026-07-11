@@ -22,6 +22,7 @@
 #include "pet_entity.h"
 #include "map/pet_ability_capacity.h"
 #include "map/pet_can_attack_capacity.h"
+#include "map/pet_construction_capacity.h"
 #include "map/pet_death_capacity.h"
 #include "map/pet_fade_out_capacity.h"
 #include "map/pet_jug_timer_capacity.h"
@@ -65,15 +66,18 @@ CPetEntity::CPetEntity(PET_TYPE petType, uint32 petID)
 , m_jugDuration(timer::duration{})
 {
     TracyZoneScoped;
-
-    objtype                     = TYPE_PET;
-    m_EcoSystem                 = xi::Ecosystem::Unclassified;
-    allegiance                  = ALLEGIANCE_TYPE::PLAYER;
-    m_MobSkillList              = 0;
-    m_bReleaseTargIDOnDisappear = true;
-    spawnAnimation              = SPAWN_ANIMATION::SPECIAL; // Initial spawn has the special spawn-in animation
-
-    PAI = std::make_unique<CAIContainer>(this, std::make_unique<CPathFind>(this), std::make_unique<CPetController>(this), std::make_unique<CTargetFind>(this));
+    petconstructionhelpers::Apply(
+        [&]() { objtype = TYPE_PET; },
+        [&]() { m_EcoSystem = xi::Ecosystem::Unclassified; },
+        [&]() { allegiance = ALLEGIANCE_TYPE::PLAYER; },
+        [&]() { m_MobSkillList = 0; },
+        [&]() { m_bReleaseTargIDOnDisappear = true; },
+        // Initial spawn has the special spawn-in animation.
+        [&]() { spawnAnimation = SPAWN_ANIMATION::SPECIAL; },
+        [&]()
+        {
+            PAI = std::make_unique<CAIContainer>(this, std::make_unique<CPathFind>(this), std::make_unique<CPetController>(this), std::make_unique<CTargetFind>(this));
+        });
 }
 
 CPetEntity::~CPetEntity()

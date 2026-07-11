@@ -628,6 +628,8 @@ set(SOURCES
     test_pet_ability_1431.cpp
     test_pet_ability_result_1432.h
     test_pet_ability_result_1432.cpp
+    test_pet_construction_1433.h
+    test_pet_construction_1433.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
