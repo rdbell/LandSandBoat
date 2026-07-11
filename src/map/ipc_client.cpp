@@ -22,6 +22,7 @@
 #include "ipc_client.h"
 
 #include "account_login.h"
+#include "char_var_update.h"
 #include "char_zone.h"
 
 #include "common/ipp.h"
@@ -195,10 +196,16 @@ void IPCClient::handleMessage_CharVarUpdate(const IPP& ipp, const ipc::CharVarUp
 {
     TracyZoneScoped;
 
-    if (auto* PChar = zoneutils::GetChar(message.charId))
-    {
-        PChar->updateCharVarCache(message.varName, message.value, message.expiry);
-    }
+    mapipc::HandleCharVarUpdate(
+        message,
+        [](const uint32 charId)
+        {
+            return zoneutils::GetChar(charId);
+        },
+        [](CCharEntity* character, const std::string& varName, const int32 value, const uint32 expiry)
+        {
+            character->updateCharVarCache(varName, value, expiry);
+        });
 }
 
 void IPCClient::handleMessage_ChatMessageTell(const IPP& ipp, const ipc::ChatMessageTell& message)

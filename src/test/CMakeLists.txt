@@ -272,6 +272,8 @@ set(SOURCES
     test_map_account_login_1253.cpp
     test_map_char_zone_1254.h
     test_map_char_zone_1254.cpp
+    test_map_char_var_update_1256.h
+    test_map_char_var_update_1256.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h
@@ -422,6 +424,8 @@ set(SOURCES
     test_world_account_login_1252.cpp
     test_world_char_zone_1255.h
     test_world_char_zone_1255.cpp
+    test_world_char_var_update_1256.h
+    test_world_char_var_update_1256.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h

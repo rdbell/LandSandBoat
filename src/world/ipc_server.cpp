@@ -22,6 +22,8 @@
 #include "ipc_server.h"
 
 #include "account_login.h"
+#include "char_id_reroute.h"
+#include "char_var_update.h"
 #include "char_zone.h"
 
 #include "besieged_system.h"
@@ -251,12 +253,18 @@ void IPCServer::rerouteMessageToCharId(uint32 charId, const auto& message)
 {
     TracyZoneScoped;
 
-    if (const auto maybeCharIPP = getIPPForCharId(charId))
-    {
-        const auto charIPP = *maybeCharIPP;
-        DebugIPCFmt("Message: -> rerouting to char<{}> on {}", charId, charIPP.toString());
-        sendMessage(charIPP, std::move(message));
-    }
+    worldipc::RerouteMessageToCharId(
+        charId,
+        message,
+        [this](const uint32 targetId)
+        {
+            return getIPPForCharId(targetId);
+        },
+        [this, charId](const IPP& endpoint, const auto& delivered)
+        {
+            DebugIPCFmt("Message: -> rerouting to char<{}> on {}", charId, endpoint.toString());
+            this->sendMessage(endpoint, delivered);
+        });
 }
 
 void IPCServer::rerouteMessageToCharName(const std::string& charName, const auto& message)
@@ -428,7 +436,12 @@ void IPCServer::handleMessage_CharVarUpdate(const IPP& ipp, const ipc::CharVarUp
 {
     TracyZoneScoped;
 
-    rerouteMessageToCharId(message.charId, message);
+    worldipc::HandleCharVarUpdate(
+        message,
+        [this](const uint32 charId, const ipc::CharVarUpdate& update)
+        {
+            rerouteMessageToCharId(charId, update);
+        });
 }
 
 void IPCServer::handleMessage_ChatMessageTell(const IPP& ipp, const ipc::ChatMessageTell& message)
