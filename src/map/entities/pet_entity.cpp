@@ -20,6 +20,7 @@
 */
 
 #include "pet_entity.h"
+#include "map/pet_death_capacity.h"
 
 #include <cstring>
 
@@ -239,27 +240,27 @@ void CPetEntity::FadeOut()
 
 void CPetEntity::Die()
 {
-    PAI->ClearStateStack();
+    const bool masterIsPlayer = PMaster != nullptr && PMaster->objtype == TYPE_PC;
+    const bool despawnForZoning = petdeathhelpers::ShouldDespawnForZoning(
+        health.hp > 0,
+        PMaster != nullptr,
+        masterIsPlayer,
+        masterIsPlayer && static_cast<CCharEntity*>(PMaster)->petZoningInfo.respawnPet);
+    const bool detachMaster = petdeathhelpers::ShouldDetachPlayerMaster(
+        PMaster != nullptr,
+        PMaster != nullptr && PMaster->PPet == this,
+        masterIsPlayer);
 
-    // master is zoning, don't go to death state, instead despawn instantly
-    if (health.hp > 0 && PMaster && PMaster->objtype == TYPE_PC && static_cast<CCharEntity*>(PMaster)->petZoningInfo.respawnPet)
-    {
-        PAI->Internal_Despawn(true);
-    }
-    else
-    {
-        PAI->Internal_Die(2500ms);
-    }
-
-    luautils::OnMobDeath(this, nullptr);
-
-    // NOTE: This is purposefully calling CBattleEntity's impl.
-    // TODO: Calling a grand-parent's impl. of an overrideden function is bad
-    CBattleEntity::Die();
-    if (PMaster && PMaster->PPet == this && PMaster->objtype == TYPE_PC)
-    {
-        petutils::DetachPet(PMaster);
-    }
+    petdeathhelpers::Apply(
+        despawnForZoning,
+        detachMaster,
+        [&]() { PAI->ClearStateStack(); },
+        [&]() { PAI->Internal_Despawn(true); },
+        [&]() { PAI->Internal_Die(2500ms); },
+        [&]() { luautils::OnMobDeath(this, nullptr); },
+        // NOTE: Purposefully skip CMobEntity::Die; pet deaths have no mob reward path.
+        [&]() { CBattleEntity::Die(); },
+        [&]() { petutils::DetachPet(PMaster); });
 }
 
 void CPetEntity::Spawn()
