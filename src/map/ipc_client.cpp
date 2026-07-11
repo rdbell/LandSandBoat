@@ -25,6 +25,7 @@
 #include "assist_channel_event.h"
 #include "char_var_update.h"
 #include "char_zone.h"
+#include "chat_message_custom.h"
 #include "chat_message_tell.h"
 #include "entity_information_request.h"
 #include "group_chat_delivery.h"
@@ -422,11 +423,17 @@ void IPCClient::handleMessage_ChatMessageCustom(const IPP& ipp, const ipc::ChatM
 {
     TracyZoneScoped;
 
-    CCharEntity* PChar = zoneutils::GetChar(message.recipientId);
-    if (PChar && PChar->status != STATUS_TYPE::DISAPPEAR && !jailutils::InPrison(PChar))
-    {
-        PChar->pushPacket(std::make_unique<GP_SERV_COMMAND_CHAT_STD>(PChar, message.messageType, message.message, message.senderName));
-    }
+    mapipc::HandleChatMessageCustom(
+        message,
+        zoneutils::GetChar,
+        [](CCharEntity* character)
+        {
+            return std::pair{ character->status == STATUS_TYPE::DISAPPEAR, jailutils::InPrison(character) };
+        },
+        [](CCharEntity* character, const ipc::ChatMessageCustom& chat)
+        {
+            character->pushPacket(std::make_unique<GP_SERV_COMMAND_CHAT_STD>(character, chat.messageType, chat.message, chat.senderName));
+        });
 }
 
 void IPCClient::handleMessage_PartyInvite(const IPP& ipp, const ipc::PartyInvite& message)
