@@ -21,6 +21,7 @@
 
 #include "pet_entity.h"
 #include "map/pet_death_capacity.h"
+#include "map/pet_spawn_capacity.h"
 
 #include <cstring>
 
@@ -265,23 +266,19 @@ void CPetEntity::Die()
 
 void CPetEntity::Spawn()
 {
-    // we need to skip CMobEntity's spawn because it calculates stats (and our stats are already calculated)
-    if (PMaster && PMaster->objtype == TYPE_PC && m_EcoSystem == xi::Ecosystem::Elemental)
-    {
-        this->defaultMobMod(MOBMOD_MAGIC_DELAY, 12);
-        this->defaultMobMod(MOBMOD_MAGIC_COOL, 48);
-        mobutils::GetAvailableSpells(this);
-    }
-
-    if (m_PetType == PET_TYPE::JUG_PET)
-    {
-        m_jugSpawnTime = timer::now();
-    }
-
-    // NOTE: This is purposefully calling CBattleEntity's impl.
-    // TODO: Calling a grand-parent's impl. of an overridden function is bad
-    CBattleEntity::Spawn();
-    luautils::OnMobSpawn(this);
+    petspawnhelpers::Apply(
+        petspawnhelpers::ShouldInitializeElemental(
+            PMaster != nullptr,
+            PMaster != nullptr && PMaster->objtype == TYPE_PC,
+            m_EcoSystem == xi::Ecosystem::Elemental),
+        m_PetType == PET_TYPE::JUG_PET,
+        [&]() { defaultMobMod(MOBMOD_MAGIC_DELAY, 12); },
+        [&]() { defaultMobMod(MOBMOD_MAGIC_COOL, 48); },
+        [&]() { mobutils::GetAvailableSpells(this); },
+        [&]() { m_jugSpawnTime = timer::now(); },
+        // Purposefully skip CMobEntity::Spawn; pet stats are already calculated.
+        [&]() { CBattleEntity::Spawn(); },
+        [&]() { luautils::OnMobSpawn(this); });
 }
 
 void CPetEntity::loadPetZoningInfo()
