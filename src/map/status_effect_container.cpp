@@ -1447,7 +1447,9 @@ void CStatusEffectContainer::RemoveAllStatusEffectsInIDRange(xi::StatusEffect st
 
 auto CStatusEffectContainer::SetEffectParams(CStatusEffect* StatusEffect) -> void
 {
-    if (static_cast<uint16>(StatusEffect->GetStatusID()) >= MAX_EFFECTID)
+    if (statuseffecthelpers::ShouldRejectEffectIDOutOfRange(
+            static_cast<uint16>(StatusEffect->GetStatusID()),
+            statuseffecthelpers::MaxEffectID))
     {
         ShowWarning("Status Effect ID (%d) exceeds MAX_EFFECTID", static_cast<uint16>(StatusEffect->GetStatusID()));
         return;
@@ -1455,7 +1457,10 @@ auto CStatusEffectContainer::SetEffectParams(CStatusEffect* StatusEffect) -> voi
 
     auto subType = StatusEffect->GetSubID();
 
-    if (StatusEffect->GetStatusID() == xi::StatusEffect::None && subType == 0)
+    if (statuseffecthelpers::ShouldRejectNoneZeroSub(
+            static_cast<uint16>(StatusEffect->GetStatusID()),
+            subType,
+            statuseffecthelpers::StatusIDNoneEffect))
     {
         ShowWarning("None-type Effect has SubID of 0");
         return;
@@ -1470,20 +1475,20 @@ auto CStatusEffectContainer::SetEffectParams(CStatusEffect* StatusEffect) -> voi
     bool effectFromItemEnchant = false;
     bool effectFromItemFood    = false;
 
-    if (effectSourceType != EffectSourceType::SOURCE_NONE && effectSourceTypeParam > 0)
+    if (statuseffecthelpers::HasEffectSource(effectSourceType, effectSourceTypeParam))
     {
-        if (effectSourceType == EffectSourceType::SOURCE_EQUIPPED_ITEM)
+        if (statuseffecthelpers::IsEquippedItemSource(effectSourceType))
         {
             auto PItem = xi::items::lookup(effectSourceTypeParam);
             if (PItem != nullptr)
             {
                 // get the item lua script and check if it has valid functions
-                auto itemName     = "items/" + PItem->getName();
+                auto itemName     = statuseffecthelpers::FormatItemScriptName(PItem->getName());
                 auto itemFullName = fmt::format("./scripts/{}.lua", itemName);
                 auto onEffectGain = luautils::getCachedFileFunction(itemFullName, "onEffectGain");
                 auto onEffectLose = luautils::getCachedFileFunction(itemFullName, "onEffectLose");
 
-                effectFromItemEnchant = onEffectGain.valid() && onEffectLose.valid();
+                effectFromItemEnchant = statuseffecthelpers::ShouldSetItemScriptName(onEffectGain.valid(), onEffectLose.valid());
 
                 // if it does have valid functions then set the status effect name as the script (similar to actual status effects)
                 if (effectFromItemEnchant)
@@ -1492,18 +1497,18 @@ auto CStatusEffectContainer::SetEffectParams(CStatusEffect* StatusEffect) -> voi
                 }
             }
         }
-        else if (effectSourceType == EffectSourceType::SOURCE_FOOD)
+        else if (statuseffecthelpers::IsFoodSource(effectSourceType))
         {
             auto PItem = xi::items::lookup(StatusEffect->GetSourceTypeParam());
             if (PItem != nullptr)
             {
                 // get the item lua script and check if it has valid functions
-                auto itemName     = "items/" + PItem->getName();
+                auto itemName     = statuseffecthelpers::FormatItemScriptName(PItem->getName());
                 auto itemFullName = fmt::format("./scripts/{}.lua", itemName);
                 auto onEffectGain = luautils::getCachedFileFunction(itemFullName, "onEffectGain");
                 auto onEffectLose = luautils::getCachedFileFunction(itemFullName, "onEffectLose");
 
-                effectFromItemFood = onEffectGain.valid() && onEffectLose.valid();
+                effectFromItemFood = statuseffecthelpers::ShouldSetItemScriptName(onEffectGain.valid(), onEffectLose.valid());
 
                 // if it does have valid functions then set the status effect name as the script (similar to actual status effects)
                 if (effectFromItemFood)
@@ -1515,26 +1520,25 @@ auto CStatusEffectContainer::SetEffectParams(CStatusEffect* StatusEffect) -> voi
     }
 
     // Effects that use /server/scripts/effects/ as their lua file source.
-    if (!effectFromItemEnchant &&                                           // The effect is not from an item enchantment (See condition above).
-        !effectFromItemFood &&                                              // The effect is not from a usable food item.
-        effect != xi::StatusEffect::Enchantment &&                          // The effect is not an enchantment that has an effect source defined currently.
-        effectSourceType != EffectSourceType::SOURCE_EQUIPPED_ITEM &&       // The source is not from an equipped item
-        (effect != xi::StatusEffect::Food ||                                // Exclude food effects with a sourceTypeParam > 0 (See condition below)
-         (effect == xi::StatusEffect::Food && effectSourceTypeParam == 0))) // Food effects from FoV/Gov Books have a subType of 0 and are handled in the scripts/effects/food.lua
+    const bool useEffectsPath = statuseffecthelpers::ShouldUseEffectsScriptPath(
+        effectFromItemEnchant,
+        effectFromItemFood,
+        effect == xi::StatusEffect::Enchantment,
+        effectSourceType == EffectSourceType::SOURCE_EQUIPPED_ITEM,
+        effect == xi::StatusEffect::Food,
+        effectSourceTypeParam);
+    if (useEffectsPath)
     {
-        name.insert(0, "effects/");
-        name.insert(name.size(), effects::EffectsParams[static_cast<uint16>(effect)].Name);
+        name = statuseffecthelpers::FormatEffectsScriptName(effects::EffectsParams[static_cast<uint16>(effect)].Name);
     }
-
     // Is an effect from a usable item not caught above.
     // Known use cases: Enchantments without an effect source.
     else
     {
         const CItem* Ptem = xi::items::lookup(subType);
-        if (Ptem != nullptr && subType > 0)
+        if (statuseffecthelpers::ShouldUseItemSubTypeScript(useEffectsPath, subType, Ptem != nullptr))
         {
-            name.insert(0, "items/");
-            name.insert(name.size(), Ptem->getName());
+            name = statuseffecthelpers::FormatItemScriptName(Ptem->getName());
         }
     }
 

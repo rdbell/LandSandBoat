@@ -500,6 +500,8 @@ set(SOURCES
     test_treasure_pool_policy_1367.cpp
     test_status_effect_prevent_1368.h
     test_status_effect_prevent_1368.cpp
+    test_status_effect_params_1369.h
+    test_status_effect_params_1369.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

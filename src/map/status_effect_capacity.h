@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 // Pure CStatusEffectContainer::CanGainStatusEffect policy halves.
 
@@ -564,6 +565,104 @@ inline auto ConfrontationPowerOrZero(const bool hasConfrontationFlag, const uint
 inline auto ShouldCopyConfrontation(const bool hasConfrontationFlag) -> bool
 {
     return hasConfrontationFlag;
+}
+
+
+// --- Slice 1369: SetEffectParams script path selection pure halves ---
+
+// Source type numeric mirrors (EffectSourceType).
+constexpr uint16 SourceTypeNone         = 0;
+constexpr uint16 SourceTypeEquippedItem = 1;
+constexpr uint16 SourceTypeTemporaryItem = 2;
+constexpr uint16 SourceTypeMob          = 3;
+constexpr uint16 SourceTypeFood         = 4;
+
+// Selected status IDs for path selection (generated status_effect.h).
+constexpr uint16 StatusIDNoneEffect  = 255; // xi::StatusEffect::None
+constexpr uint16 StatusIDFood        = 251;
+constexpr uint16 StatusIDEnchantment = 162;
+constexpr uint16 MaxEffectID         = 814; // MAX_EFFECTID
+
+// ShouldRejectEffectIDOutOfRange mirrors statusID >= MAX_EFFECTID.
+inline auto ShouldRejectEffectIDOutOfRange(const uint16 statusID, const uint16 maxEffectID) -> bool
+{
+    return statusID >= maxEffectID;
+}
+
+// ShouldRejectNoneZeroSub mirrors None status with subID == 0.
+inline auto ShouldRejectNoneZeroSub(const uint16 statusID, const uint32 subID, const uint16 noneID) -> bool
+{
+    return statusID == noneID && subID == 0;
+}
+
+// HasEffectSource mirrors sourceType != NONE && sourceTypeParam > 0.
+inline auto HasEffectSource(const uint16 sourceType, const uint32 sourceTypeParam) -> bool
+{
+    return sourceType != SourceTypeNone && sourceTypeParam > 0;
+}
+
+// IsEquippedItemSource / IsFoodSource.
+inline auto IsEquippedItemSource(const uint16 sourceType) -> bool
+{
+    return sourceType == SourceTypeEquippedItem;
+}
+
+inline auto IsFoodSource(const uint16 sourceType) -> bool
+{
+    return sourceType == SourceTypeFood;
+}
+
+// ShouldSetItemScriptName mirrors valid onEffectGain/Lose pair.
+inline auto ShouldSetItemScriptName(const bool gainValid, const bool loseValid) -> bool
+{
+    return gainValid && loseValid;
+}
+
+// FormatItemScriptName mirrors "items/" + itemName.
+inline auto FormatItemScriptName(const std::string& itemName) -> std::string
+{
+    return std::string("items/") + itemName;
+}
+
+// FormatEffectsScriptName mirrors "effects/" + effectName.
+inline auto FormatEffectsScriptName(const std::string& effectName) -> std::string
+{
+    return std::string("effects/") + effectName;
+}
+
+// ShouldUseEffectsScriptPath mirrors the multi-condition gate for effects/ scripts.
+inline auto ShouldUseEffectsScriptPath(
+    const bool effectFromItemEnchant,
+    const bool effectFromItemFood,
+    const bool isEnchantmentEffect,
+    const bool isEquippedItemSource,
+    const bool isFoodEffect,
+    const uint32 sourceTypeParam) -> bool
+{
+    if (effectFromItemEnchant || effectFromItemFood)
+    {
+        return false;
+    }
+    if (isEnchantmentEffect)
+    {
+        return false;
+    }
+    if (isEquippedItemSource)
+    {
+        return false;
+    }
+    // Food with sourceTypeParam > 0 excluded; Food with param 0 allowed.
+    if (isFoodEffect && sourceTypeParam != 0)
+    {
+        return false;
+    }
+    return true;
+}
+
+// ShouldUseItemSubTypeScript mirrors else branch: subType > 0 && item lookup hit.
+inline auto ShouldUseItemSubTypeScript(const bool useEffectsPath, const uint32 subType, const bool itemFound) -> bool
+{
+    return !useEffectsPath && subType > 0 && itemFound;
 }
 
 
