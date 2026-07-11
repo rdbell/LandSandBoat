@@ -754,4 +754,156 @@ inline auto ShouldApplyPartyLevelSyncOnJoin(const bool hasSyncTarget) -> bool
     return hasSyncTarget;
 }
 
+// --- Out-of-zone AddMember(uint32) ---
+
+// ShouldRunOutOfZoneAddMember mirrors m_PartyType == PARTY_PCS for AddMember(id).
+inline auto ShouldRunOutOfZoneAddMember(const bool isPCParty) -> bool
+{
+    return isPCParty;
+}
+
+// FormatAddMemberOutOfZoneFullWarning mirrors the out-of-zone full-party warning.
+inline auto FormatAddMemberOutOfZoneFullWarning() -> std::string
+{
+    return "CParty::AddMember() - Party was full when trying to add a member from out of zone.";
+}
+
+// PartySecondFlag is PARTY_SECOND (0x0001).
+constexpr uint16 PartySecondFlag = 0x0001;
+
+// PartyThirdFlag is PARTY_THIRD (0x0002).
+constexpr uint16 PartyThirdFlag = 0x0002;
+
+// OutOfZoneAddMemberFlags mirrors alliance party-number flags for remote add.
+// Without alliance, flags stay 0 (new member is neither SECOND nor THIRD).
+// partyNumber 1 → PARTY_SECOND; 2 → PARTY_THIRD; else 0.
+inline auto OutOfZoneAddMemberFlags(const bool hasAlliance, const uint8 partyNumber) -> uint16
+{
+    if (!hasAlliance)
+    {
+        return 0;
+    }
+    if (partyNumber == 1)
+    {
+        return PartySecondFlag;
+    }
+    if (partyNumber == 2)
+    {
+        return PartyThirdFlag;
+    }
+    return 0;
+}
+
+// --- DelMember / PopMember / PushMember admission ---
+
+// entity_party_gate is shared null/mismatch admission for DelMember and PopMember.
+enum class entity_party_gate : uint8_t
+{
+    REJECT_NULL_OR_MISMATCH,
+    PROCEED,
+};
+
+// ClassifyEntityPartyMatch mirrors DelMember/PopMember null or PParty != this.
+inline auto ClassifyEntityPartyMatch(const bool entityNull, const bool partyMismatch) -> entity_party_gate
+{
+    if (entityNull || partyMismatch)
+    {
+        return entity_party_gate::REJECT_NULL_OR_MISMATCH;
+    }
+    return entity_party_gate::PROCEED;
+}
+
+// FormatDelMemberNullWarning mirrors DelMember null/mismatch warning.
+inline auto FormatDelMemberNullWarning() -> std::string
+{
+    return "CParty::DelMember() - PEntity was null, or PParty mismatch.";
+}
+
+// FormatPopMemberNullWarning mirrors PopMember null/mismatch warning.
+inline auto FormatPopMemberNullWarning() -> std::string
+{
+    return "CParty::PopMember() - PEntity was null, or PParty mismatch.";
+}
+
+// del_member_path is DelMember's leader vs non-leader branch after admission.
+enum class del_member_path : uint8_t
+{
+    AS_LEADER,   // m_PLeader == PEntity → RemovePartyLeader
+    NON_LEADER,  // find + PC cleanup / erase
+};
+
+// ClassifyDelMemberPath mirrors m_PLeader == PEntity after admission.
+inline auto ClassifyDelMemberPath(const bool isLeader) -> del_member_path
+{
+    return isLeader ? del_member_path::AS_LEADER : del_member_path::NON_LEADER;
+}
+
+// ShouldReloadPartyAfterLeaderDel mirrors RemovePartyLeader return true.
+inline auto ShouldReloadPartyAfterLeaderDel(const bool removePartyLeaderReturnedTrue) -> bool
+{
+    return removePartyLeaderReturnedTrue;
+}
+
+// ShouldDeleteEmptyPartyOnPop mirrors members.empty() after erase in PopMember.
+inline auto ShouldDeleteEmptyPartyOnPop(const bool membersEmpty) -> bool
+{
+    return membersEmpty;
+}
+
+// ShouldClearAllianceMainOnPop mirrors getMainParty() == this when dissolving.
+inline auto ShouldClearAllianceMainOnPop(const bool hasAlliance, const bool isMainParty) -> bool
+{
+    return hasAlliance && isMainParty;
+}
+
+// push_member_gate is PushMember admission before append.
+enum class push_member_gate : uint8_t
+{
+    REJECT_NULL_OR_HAS_PARTY,
+    PROCEED,
+};
+
+// ClassifyPushMember mirrors PushMember's null or already-has-party gate.
+inline auto ClassifyPushMember(const bool entityNull, const bool alreadyHasParty) -> push_member_gate
+{
+    if (entityNull || alreadyHasParty)
+    {
+        return push_member_gate::REJECT_NULL_OR_HAS_PARTY;
+    }
+    return push_member_gate::PROCEED;
+}
+
+// FormatPushMemberNullWarning mirrors PushMember null/has-party warning.
+inline auto FormatPushMemberNullWarning() -> std::string
+{
+    return "CParty::PushMember() - PEntity was null, or PParty not null.";
+}
+
+// PartySyncFlag is PARTY_SYNC (0x0100).
+constexpr uint16 PartySyncFlag = 0x0100;
+
+// ShouldAssignLeaderFromFlags mirrors memberinfo.flags & PARTY_LEADER.
+inline auto ShouldAssignLeaderFromFlags(const uint16 flags) -> bool
+{
+    return (flags & PartyLeaderFlag) != 0;
+}
+
+// ShouldAssignQuarterMasterFromFlags mirrors memberinfo.flags & PARTY_QM.
+inline auto ShouldAssignQuarterMasterFromFlags(const uint16 flags) -> bool
+{
+    return (flags & PartyQMFlag) != 0;
+}
+
+// ShouldAssignSyncTargetFromFlags mirrors memberinfo.flags & PARTY_SYNC.
+inline auto ShouldAssignSyncTargetFromFlags(const uint16 flags) -> bool
+{
+    return (flags & PartySyncFlag) != 0;
+}
+
+// MemberInfoMatchesEntity mirrors memberinfo.id == PEntity->id for role restore.
+inline auto MemberInfoMatchesEntity(const uint32 memberInfoID, const uint32 entityID) -> bool
+{
+    return memberInfoID == entityID;
+}
+
 } // namespace partyhelpers

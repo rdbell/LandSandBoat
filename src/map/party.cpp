@@ -403,15 +403,16 @@ void CParty::RemoveMember(CBattleEntity* PEntity)
 
 void CParty::DelMember(CBattleEntity* PEntity)
 {
-    if (PEntity == nullptr || PEntity->PParty != this)
+    if (partyhelpers::ClassifyEntityPartyMatch(PEntity == nullptr, PEntity != nullptr && PEntity->PParty != this) ==
+        partyhelpers::entity_party_gate::REJECT_NULL_OR_MISMATCH)
     {
-        ShowWarning("CParty::DelMember() - PEntity was null, or PParty mismatch.");
+        ShowWarning("%s", partyhelpers::FormatDelMemberNullWarning());
         return;
     }
 
-    if (m_PLeader == PEntity)
+    if (partyhelpers::ClassifyDelMemberPath(m_PLeader == PEntity) == partyhelpers::del_member_path::AS_LEADER)
     {
-        if (RemovePartyLeader(PEntity)) // Only reload party if party has not disbanded
+        if (partyhelpers::ShouldReloadPartyAfterLeaderDel(RemovePartyLeader(PEntity))) // Only reload if not disbanded
         {
             this->ReloadParty();
         }
@@ -482,9 +483,10 @@ void CParty::DelMember(CBattleEntity* PEntity)
 
 void CParty::PopMember(CBattleEntity* PEntity)
 {
-    if (PEntity == nullptr || PEntity->PParty != this)
+    if (partyhelpers::ClassifyEntityPartyMatch(PEntity == nullptr, PEntity != nullptr && PEntity->PParty != this) ==
+        partyhelpers::entity_party_gate::REJECT_NULL_OR_MISMATCH)
     {
-        ShowWarning("CParty::PopMember() - PEntity was null, or PParty mismatch.");
+        ShowWarning("%s", partyhelpers::FormatPopMemberNullWarning());
         return;
     }
 
@@ -496,11 +498,11 @@ void CParty::PopMember(CBattleEntity* PEntity)
     }
 
     // free memory, party will re reinsatiated when they zone back in
-    if (members.empty())
+    if (partyhelpers::ShouldDeleteEmptyPartyOnPop(members.empty()))
     {
         if (m_PAlliance)
         {
-            if (m_PAlliance->getMainParty() == this)
+            if (partyhelpers::ShouldClearAllianceMainOnPop(true, m_PAlliance->getMainParty() == this))
             {
                 m_PAlliance->setMainParty(nullptr);
             }
@@ -742,76 +744,72 @@ void CParty::AddMember(CBattleEntity* PEntity)
 
 void CParty::AddMember(uint32 id)
 {
-    if (m_PartyType == PARTY_PCS)
+    if (!partyhelpers::ShouldRunOutOfZoneAddMember(m_PartyType == PARTY_PCS))
     {
-        // Out-of-zone add is always a PC joining a PC party.
-        if (partyhelpers::ShouldRejectPCAddFull(true, true, IsFull()))
-        {
-            ShowWarning("CParty::AddMember() - Party was full when trying to add a member from out of zone.");
-            return;
-        }
-
-        if (partyhelpers::ShouldRejectPCAddTrusts(true, true, HasTrusts()))
-        {
-            ShowWarning("CParty::AddMember() - Party had summoned trusts when trying to add a member.");
-            return;
-        }
-
-        uint32 allianceid = 0;
-        uint16 Flags      = 0;
-        if (m_PAlliance)
-        {
-            allianceid = m_PAlliance->m_AllianceID;
-            if (this->m_PartyNumber == 1)
-            {
-                Flags = PARTY_SECOND;
-            }
-            else if (this->m_PartyNumber == 2)
-            {
-                Flags = PARTY_THIRD;
-            }
-        }
-
-        db::preparedStmt("INSERT INTO accounts_parties (charid, partyid, allianceid, partyflag) VALUES (?, ?, ?, ?)",
-                         id,
-                         m_PartyID,
-                         allianceid,
-                         Flags);
-
-        if (m_PAlliance)
-        {
-            message::send(ipc::AllianceReload{
-                .allianceId = m_PAlliance->m_AllianceID,
-            });
-        }
-        else
-        {
-            message::send(ipc::PartyReload{
-                .partyId = m_PartyID,
-            });
-        }
-
-        /*if (PChar->nameflags.flags & FLAG_INVITE)
-        {
-            PChar->nameflags.flags ^= FLAG_INVITE;
-            PChar->updatemask |= UPDATE_HP;
-
-            charutils::SaveCharStats(PChar);
-
-            PChar->status = STATUS_UPDATE;
-            PChar->pushPacket<GP_SERV_COMMAND_CONFIG>(PChar);
-            PChar->pushPacket<CCharStatusPacket>(PChar);
-            PChar->pushPacket<CCharSyncPacket>(PChar);
-        }
-        PChar->PTreasurePool->UpdatePool(PChar);*/
+        return;
     }
+
+    // Out-of-zone add is always a PC joining a PC party.
+    if (partyhelpers::ShouldRejectPCAddFull(true, true, IsFull()))
+    {
+        ShowWarning("%s", partyhelpers::FormatAddMemberOutOfZoneFullWarning());
+        return;
+    }
+
+    if (partyhelpers::ShouldRejectPCAddTrusts(true, true, HasTrusts()))
+    {
+        ShowWarning("%s", partyhelpers::FormatAddMemberTrustsWarning());
+        return;
+    }
+
+    const bool hasAlliance = m_PAlliance != nullptr;
+    uint32     allianceid  = 0;
+    if (hasAlliance)
+    {
+        allianceid = m_PAlliance->m_AllianceID;
+    }
+    const uint16 Flags = partyhelpers::OutOfZoneAddMemberFlags(hasAlliance, this->m_PartyNumber);
+
+    db::preparedStmt("INSERT INTO accounts_parties (charid, partyid, allianceid, partyflag) VALUES (?, ?, ?, ?)",
+                     id,
+                     m_PartyID,
+                     allianceid,
+                     Flags);
+
+    if (partyhelpers::ShouldNotifyAllianceReloadOnRole(hasAlliance))
+    {
+        message::send(ipc::AllianceReload{
+            .allianceId = m_PAlliance->m_AllianceID,
+        });
+    }
+    else
+    {
+        message::send(ipc::PartyReload{
+            .partyId = m_PartyID,
+        });
+    }
+
+    /*if (PChar->nameflags.flags & FLAG_INVITE)
+    {
+        PChar->nameflags.flags ^= FLAG_INVITE;
+        PChar->updatemask |= UPDATE_HP;
+
+        charutils::SaveCharStats(PChar);
+
+        PChar->status = STATUS_UPDATE;
+        PChar->pushPacket<GP_SERV_COMMAND_CONFIG>(PChar);
+        PChar->pushPacket<CCharStatusPacket>(PChar);
+        PChar->pushPacket<CCharSyncPacket>(PChar);
+    }
+    PChar->PTreasurePool->UpdatePool(PChar);*/
 }
 
 void CParty::PushMember(CBattleEntity* PEntity)
 {
-    if (PEntity == nullptr || PEntity->PParty != nullptr)
+    if (partyhelpers::ClassifyPushMember(PEntity == nullptr, PEntity != nullptr && PEntity->PParty != nullptr) ==
+        partyhelpers::push_member_gate::REJECT_NULL_OR_HAS_PARTY)
     {
-        ShowWarning("CParty::PushMember() - PEntity was null, or PParty not null.");
+        ShowWarning("%s", partyhelpers::FormatPushMemberNullWarning());
         return;
     }
 
@@ -822,17 +820,17 @@ void CParty::PushMember(CBattleEntity* PEntity)
 
     for (auto&& memberinfo : info)
     {
-        if (memberinfo.id == PEntity->id)
+        if (partyhelpers::MemberInfoMatchesEntity(memberinfo.id, PEntity->id))
         {
-            if (memberinfo.flags & PARTY_LEADER)
+            if (partyhelpers::ShouldAssignLeaderFromFlags(memberinfo.flags))
             {
                 m_PLeader = PEntity;
             }
-            if (memberinfo.flags & PARTY_QM)
+            if (partyhelpers::ShouldAssignQuarterMasterFromFlags(memberinfo.flags))
             {
                 m_PQuarterMaster = PEntity;
             }
-            if (memberinfo.flags & PARTY_SYNC)
+            if (partyhelpers::ShouldAssignSyncTargetFromFlags(memberinfo.flags))
             {
                 m_PSyncTarget = PEntity;
             }
