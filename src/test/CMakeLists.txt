@@ -388,6 +388,8 @@ set(SOURCES
     test_login_auth_account_create_1310.cpp
     test_login_auth_change_password_1311.h
     test_login_auth_change_password_1311.cpp
+    test_login_auth_totp_uri_1312.h
+    test_login_auth_totp_uri_1312.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

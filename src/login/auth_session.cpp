@@ -438,9 +438,9 @@ void auth_session::read_func()
             const auto serverName = settings::get<std::string>("main.SERVER_NAME");
             const auto secret     = otpHelpers::createAccountSecret(username, "TOTP");
 
-            if (!secret.empty())
+            if (loginHelpers::IsCreateTOTPSecretValid(secret))
             {
-                const std::string uri = fmt::format("otpauth://totp/{}:{}?secret={}&issuer={}&algorithm={}&digits=6&period=30", serverName, username, secret, serverName, "SHA1");
+                const std::string uri = loginHelpers::FormatTOTPURI(serverName, username, secret);
 
                 json sendTOTP;
                 sendTOTP["result"]   = login_result::LOGIN_SUCCESS_CREATE_TOTP;
@@ -450,7 +450,7 @@ void auth_session::read_func()
             }
             else
             {
-                sendJsonOnlyErrorMessage("Failed to validate credentials");
+                sendJsonOnlyErrorMessage(loginHelpers::FailedCredentialValidationMessage);
             }
             break;
         }

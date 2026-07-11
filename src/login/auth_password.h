@@ -173,4 +173,35 @@ inline auto IsEmptyUpdatedPassword(const std::string& updatedPassword) -> bool
     return updatedPassword == "";
 }
 
+// TOTP URI fixed parameters embedded by LOGIN_CREATE_TOTP (not settings-driven).
+inline constexpr const char* TOTPURIAlgorithm = "SHA1";
+inline constexpr int         TOTPURIDigits    = 6;
+inline constexpr int         TOTPURIPeriod    = 30;
+
+// FormatTOTPURI mirrors the otpauth URI built by LOGIN_CREATE_TOTP after a
+// non-empty secret is created. Values are interpolated without URL encoding,
+// matching LSB fmt::format usage. Issuer is always the server name.
+inline auto FormatTOTPURI(const std::string& serverName, const std::string& username, const std::string& secret) -> std::string
+{
+    return fmt::format("otpauth://totp/{}:{}?secret={}&issuer={}&algorithm={}&digits={}&period={}",
+                       serverName,
+                       username,
+                       secret,
+                       serverName,
+                       TOTPURIAlgorithm,
+                       TOTPURIDigits,
+                       TOTPURIPeriod);
+}
+
+// IsCreateTOTPSecretValid reports whether createAccountSecret produced a usable
+// secret. Empty secrets take the failure JSON path in LOGIN_CREATE_TOTP.
+inline auto IsCreateTOTPSecretValid(const std::string& secret) -> bool
+{
+    return !secret.empty();
+}
+
+// FailedCredentialValidationMessage is the error_message body used by several
+// AUTH TOTP/credential failure paths in auth_session.
+inline constexpr const char* FailedCredentialValidationMessage = "Failed to validate credentials";
+
 } // namespace loginHelpers
