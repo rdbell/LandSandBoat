@@ -31,6 +31,7 @@
 #include "group_chat_delivery.h"
 #include "linkshell_updates.h"
 #include "party_alliance_updates.h"
+#include "party_invite.h"
 #include "player_kick_refresh.h"
 #include "player_relocation.h"
 #include "standard_message_delivery.h"
@@ -440,58 +441,40 @@ void IPCClient::handleMessage_PartyInvite(const IPP& ipp, const ipc::PartyInvite
 {
     TracyZoneScoped;
 
-    if (CCharEntity* PInvitee = zoneutils::GetChar(message.inviteeId))
-    {
-        // make sure invitee isn't dead or in jail, they aren't a party member and don't already have an invite pending, and your party is not full
-        if (PInvitee->isDead() ||
-            jailutils::InPrison(PInvitee) ||
-            PInvitee->InvitePending.id != 0 ||
-            (PInvitee->PParty && message.inviteType == PartyKind::Party) ||
-            (message.inviteType == PartyKind::Alliance && (!PInvitee->PParty || PInvitee->PParty->GetLeader() != PInvitee || (PInvitee->PParty && PInvitee->PParty->m_PAlliance))))
+    mapipc::HandlePartyInvite(
+        message,
+        zoneutils::GetChar,
+        [](CCharEntity* invitee)
         {
-            message::send(ipc::MessageStandard{
-                .recipientId = message.inviterId,
-                .message     = MsgStd::CannotInvite,
-            });
-
-            return;
-        }
-
-        if (PInvitee->getBlockingAid())
+            return mapipc::PartyInviteeSnapshot{
+                .dead          = invitee->isDead(),
+                .inPrison      = jailutils::InPrison(invitee),
+                .invitePending = invitee->InvitePending.id != 0,
+                .hasParty      = invitee->PParty != nullptr,
+                .isPartyLeader = invitee->PParty && invitee->PParty->GetLeader() == invitee,
+                .hasAlliance   = invitee->PParty && invitee->PParty->m_PAlliance,
+                .blockingAid   = invitee->getBlockingAid(),
+                .hasLevelSync  = invitee->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LevelSync),
+            };
+        },
+        [](const ipc::MessageStandard& feedback)
         {
-            // Target is blocking assistance
-            message::send(ipc::MessageSystem{
-                .recipientId = message.inviterId,
-                .message     = MsgStd::TargetIsCurrentlyBlocking,
-            });
-
-            // Interaction was blocked
-            PInvitee->pushPacket<GP_SERV_COMMAND_SYSTEMMES>(0, 0, MsgStd::BlockedByBlockaid);
-
-            // You cannot invite that person at this time.
-            message::send(ipc::MessageStandard{
-                .recipientId = message.inviterId,
-                .message     = MsgStd::CannotInvite,
-            });
-
-            return;
-        }
-
-        if (PInvitee->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LevelSync))
+            message::send(feedback);
+        },
+        [](const ipc::MessageSystem& feedback)
         {
-            message::send(ipc::MessageStandard{
-                .recipientId = message.inviterId,
-                .message     = MsgStd::CannotInviteLevelSync,
-            });
-
-            return;
-        }
-
-        PInvitee->InvitePending.id     = message.inviterId;
-        PInvitee->InvitePending.targid = message.inviterTargId;
-
-        PInvitee->pushPacket(std::make_unique<GP_SERV_COMMAND_GROUP_SOLICIT_REQ>(message.inviterId, message.inviterTargId, message.inviterName, message.inviteType));
-    }
+            message::send(feedback);
+        },
+        [](CCharEntity* invitee)
+        {
+            invitee->pushPacket<GP_SERV_COMMAND_SYSTEMMES>(0, 0, MsgStd::BlockedByBlockaid);
+        },
+        [](CCharEntity* invitee, const ipc::PartyInvite& invite)
+        {
+            invitee->InvitePending.id     = invite.inviterId;
+            invitee->InvitePending.targid = invite.inviterTargId;
+            invitee->pushPacket(std::make_unique<GP_SERV_COMMAND_GROUP_SOLICIT_REQ>(invite.inviterId, invite.inviterTargId, invite.inviterName, invite.inviteType));
+        });
 }
 
 void IPCClient::handleMessage_PartyInviteResponse(const IPP& ipp, const ipc::PartyInviteResponse& message)

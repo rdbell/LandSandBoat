@@ -296,6 +296,8 @@ set(SOURCES
     test_map_zone_wide_chat_delivery_1298.cpp
     test_map_chat_message_custom_1299.h
     test_map_chat_message_custom_1299.cpp
+    test_map_party_invite_1300.h
+    test_map_party_invite_1300.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h

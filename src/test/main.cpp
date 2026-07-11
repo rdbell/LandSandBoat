@@ -175,6 +175,7 @@ auto runMapLinkshellUpdates1296SelfTests() -> bool;
 auto runMapGroupChatDelivery1297SelfTests() -> bool;
 auto runMapZoneWideChatDelivery1298SelfTests() -> bool;
 auto runMapChatMessageCustom1299SelfTests() -> bool;
+auto runMapPartyInvite1300SelfTests() -> bool;
 auto runWorldChatMessageParty1259SelfTests() -> bool;
 auto runWorldChatMessageAlliance1260SelfTests() -> bool;
 auto runWorldChatMessageLinkshell1261SelfTests() -> bool;
@@ -602,6 +603,7 @@ namespace
         ok = runMapGroupChatDelivery1297SelfTests() && ok;
         ok = runMapZoneWideChatDelivery1298SelfTests() && ok;
         ok = runMapChatMessageCustom1299SelfTests() && ok;
+        ok = runMapPartyInvite1300SelfTests() && ok;
         ok = runWorldChatMessageParty1259SelfTests() && ok;
         ok = runWorldChatMessageAlliance1260SelfTests() && ok;
         ok = runWorldChatMessageLinkshell1261SelfTests() && ok;
