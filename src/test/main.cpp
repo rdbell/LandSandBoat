@@ -318,6 +318,7 @@ auto runAttackHitPath1398SelfTests() -> bool;
 auto runAttackPostSwing1399SelfTests() -> bool;
 auto runZanshin1400SelfTests() -> bool;
 auto runDakenSangeAmmo1401SelfTests() -> bool;
+auto runAttackLoop1402SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -846,6 +847,7 @@ namespace
         ok = runAttackPostSwing1399SelfTests() && ok;
         ok = runZanshin1400SelfTests() && ok;
         ok = runDakenSangeAmmo1401SelfTests() && ok;
+        ok = runAttackLoop1402SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

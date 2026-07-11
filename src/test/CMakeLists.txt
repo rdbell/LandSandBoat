@@ -566,6 +566,8 @@ set(SOURCES
     test_zanshin_1400.cpp
     test_daken_sange_ammo_1401.h
     test_daken_sange_ammo_1401.cpp
+    test_attack_loop_1402.h
+    test_attack_loop_1402.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

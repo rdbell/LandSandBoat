@@ -35,6 +35,7 @@
 #include "attack_post_swing_capacity.h"
 #include "zanshin_capacity.h"
 #include "daken_sange_ammo_capacity.h"
+#include "attack_loop_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3608,7 +3609,10 @@ bool CBattleEntity::OnAttack(CAttackState& state, action_t& action)
     //  Make sure our target is alive on each iteration to not overkill;
     //  And make sure we aren't dead in case we died to a counter.
     /////////////////////////////////////////////////////////////////////////
-    while (attackRound.GetAttackSwingCount() && PTarget->isAlive() && this->isAlive())
+    while (attackloophelpers::ShouldContinue(
+        [&]() { return attackRound.GetAttackSwingCount(); },
+        [&]() { return PTarget->isAlive(); },
+        [&]() { return this->isAlive(); }))
     {
         action_result_t& actionResult = list.addResult();
         // Reference to the current swing.
@@ -3933,22 +3937,19 @@ bool CBattleEntity::OnAttack(CAttackState& state, action_t& action)
             battleutils::RemoveAmmo(PChar, 1);
         }
 
-        attackRound.DeleteAttackSwing();
-
-        if (list.results.size() == 8)
+        if (attackloophelpers::FinishSwing(
+                [&]() { attackRound.DeleteAttackSwing(); },
+                [&]() { return list.results.size(); }))
         {
             break;
         }
     }
 
-    PAI->EventHandler.triggerListener("ATTACK", this, PTarget, &action);
-    PTarget->PAI->EventHandler.triggerListener("ATTACKED", PTarget, this, &action);
-    /////////////////////////////////////////////////////////////////////////////////////////////
-    // End of attack loop
-    /////////////////////////////////////////////////////////////////////////////////////////////
-
-    this->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Detectable);
-    this->processActionEffectFlags(action);
+    attackloophelpers::ApplyFinalization(
+        [&]() { PAI->EventHandler.triggerListener("ATTACK", this, PTarget, &action); },
+        [&]() { PTarget->PAI->EventHandler.triggerListener("ATTACKED", PTarget, this, &action); },
+        [&]() { this->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Detectable); },
+        [&]() { this->processActionEffectFlags(action); });
 
     return true;
 }
