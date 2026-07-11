@@ -26,6 +26,7 @@
 #include <map/trust_fade_out_capacity.h>
 #include <map/trust_post_tick_capacity.h>
 #include <map/trust_spawn_capacity.h>
+#include <map/trust_valid_target_capacity.h>
 
 #include "action/action.h"
 #include "action/interrupts.h"
@@ -173,41 +174,23 @@ void CTrustEntity::Spawn()
 
 bool CTrustEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
 {
-    // Passive GEO trusts like Sakura etc are basically walking indicolures and cant be targeted
-    if (passiveTrust_)
-    {
-        return false;
-    }
-
-    if (PInitiator->objtype == TYPE_TRUST && PMaster == PInitiator->PMaster)
-    {
-        return true;
-    }
-
-    if ((targetFlags & TARGET_PLAYER_PARTY_PIANISSIMO) && PInitiator->allegiance == allegiance && PMaster && PInitiator != this)
-    {
-        if (PInitiator->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Pianissimo))
-        {
-            return true;
-        }
-    }
-
-    if ((targetFlags & TARGET_PLAYER_PARTY_ENTRUST) && PInitiator->allegiance == allegiance && PMaster && PInitiator != this)
-    {
-        return true;
-    }
-
-    if (targetFlags & TARGET_PLAYER_PARTY && PInitiator->objtype == TYPE_PET && PInitiator->allegiance == allegiance)
-    {
-        return true;
-    }
-
-    if (targetFlags & TARGET_PLAYER_PARTY && PInitiator->allegiance == allegiance && PMaster)
-    {
-        return PInitiator->PParty == PMaster->PParty;
-    }
-
-    return CMobEntity::ValidTarget(PInitiator, targetFlags);
+    const trustvalidtargethelpers::Context ctx{
+        .passiveTrust      = passiveTrust_,
+        .initiatorIsTrust  = PInitiator->objtype == TYPE_TRUST,
+        .sameMaster        = PMaster == PInitiator->PMaster,
+        .pianissimoTarget  = (targetFlags & TARGET_PLAYER_PARTY_PIANISSIMO) != 0,
+        .entrustTarget     = (targetFlags & TARGET_PLAYER_PARTY_ENTRUST) != 0,
+        .playerPartyTarget = (targetFlags & TARGET_PLAYER_PARTY) != 0,
+        .sameAllegiance    = PInitiator->allegiance == allegiance,
+        .hasMaster         = PMaster != nullptr,
+        .initiatorIsSelf   = PInitiator == this,
+        .initiatorIsPet    = PInitiator->objtype == TYPE_PET,
+        .sameParty         = PMaster != nullptr && PInitiator->PParty == PMaster->PParty,
+    };
+    return trustvalidtargethelpers::Apply(
+        ctx,
+        [&]() { return PInitiator->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Pianissimo); },
+        [&]() { return CMobEntity::ValidTarget(PInitiator, targetFlags); });
 }
 
 void CTrustEntity::OnDespawn(CDespawnState& /*unused*/)

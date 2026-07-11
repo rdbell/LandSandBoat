@@ -616,6 +616,8 @@ set(SOURCES
     test_trust_despawn_1425.cpp
     test_trust_cast_finished_1426.h
     test_trust_cast_finished_1426.cpp
+    test_trust_valid_target_1427.h
+    test_trust_valid_target_1427.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
