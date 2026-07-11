@@ -24,6 +24,7 @@
 #include "can_attack_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_automaton_capacity.h"
+#include "char_storage_capacity.h"
 #include "common/logging.h"
 #include "common/timer.h"
 #include "common/utils.h"
@@ -735,44 +736,17 @@ auto CCharEntity::getAutomatonElementCapacity(const uint8 element) const -> uint
 
 auto CCharEntity::getStorage(const uint8 locationId) const -> CItemContainer*
 {
-    switch (locationId)
+    const std::array<CItemContainer*, MAX_CONTAINER_ID> containers = {
+        m_Inventory.get(), m_Mogsafe.get(), m_Storage.get(), m_Tempitems.get(),
+        m_Moglocker.get(), m_Mogsatchel.get(), m_Mogsack.get(), m_Mogcase.get(),
+        m_Wardrobe.get(), m_Mogsafe2.get(), m_Wardrobe2.get(), m_Wardrobe3.get(),
+        m_Wardrobe4.get(), m_Wardrobe5.get(), m_Wardrobe6.get(), m_Wardrobe7.get(),
+        m_Wardrobe8.get(), m_RecycleBin.get()
+    };
+    auto container = charstoragehelpers::Resolve(locationId, containers);
+    if (container.has_value())
     {
-        case LOC_INVENTORY:
-            return m_Inventory.get();
-        case LOC_MOGSAFE:
-            return m_Mogsafe.get();
-        case LOC_STORAGE:
-            return m_Storage.get();
-        case LOC_TEMPITEMS:
-            return m_Tempitems.get();
-        case LOC_MOGLOCKER:
-            return m_Moglocker.get();
-        case LOC_MOGSATCHEL:
-            return m_Mogsatchel.get();
-        case LOC_MOGSACK:
-            return m_Mogsack.get();
-        case LOC_MOGCASE:
-            return m_Mogcase.get();
-        case LOC_WARDROBE:
-            return m_Wardrobe.get();
-        case LOC_MOGSAFE2:
-            return m_Mogsafe2.get();
-        case LOC_WARDROBE2:
-            return m_Wardrobe2.get();
-        case LOC_WARDROBE3:
-            return m_Wardrobe3.get();
-        case LOC_WARDROBE4:
-            return m_Wardrobe4.get();
-        case LOC_WARDROBE5:
-            return m_Wardrobe5.get();
-        case LOC_WARDROBE6:
-            return m_Wardrobe6.get();
-        case LOC_WARDROBE7:
-            return m_Wardrobe7.get();
-        case LOC_WARDROBE8:
-            return m_Wardrobe8.get();
-        case LOC_RECYCLEBIN:
-            return m_RecycleBin.get();
+        return *container;
     }
 
     ShowWarning("Unhandled or Invalid Location ID (%d) passed to function.", locationId);

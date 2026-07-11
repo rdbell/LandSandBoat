@@ -634,6 +634,8 @@ set(SOURCES
     test_char_pet_zoning_1434.cpp
     test_char_automaton_1435.h
     test_char_automaton_1435.cpp
+    test_char_storage_1436.h
+    test_char_storage_1436.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
