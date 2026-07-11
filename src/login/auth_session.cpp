@@ -324,15 +324,13 @@ void auth_session::read_func()
                 const auto rset1 = db::preparedStmt("SELECT COALESCE(MAX(accounts.id), 0) AS max_id FROM accounts");
                 if (rset1 && rset1->rowsCount() != 0 && rset1->next())
                 {
-                    accid = rset1->get<uint32>("max_id") + 1;
+                    accid = loginHelpers::NextAccountID(rset1->get<uint32>("max_id"));
                 }
                 else
                 {
                     sendLoginResult(login_result::LOGIN_ERROR_CREATE);
                     return;
                 }
-
-                accid = (accid < 1000 ? 1000 : accid);
 
                 // creating new account
                 std::tm timecreateinfo = earth_time::to_local_tm();

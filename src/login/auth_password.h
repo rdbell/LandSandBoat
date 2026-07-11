@@ -8,12 +8,24 @@
 #include <fmt/format.h>
 #include <string>
 
-// Pure password-scheme, LOGIN_ATTEMPT account-status, and AUTH diagnostic
-// helpers. Extracted so native tests can pin the exact predicates without
-// SSL/DB hosts.
+// Pure password-scheme, LOGIN_ATTEMPT account-status, AUTH diagnostic, and
+// LOGIN_CREATE account-id helpers. Extracted so native tests can pin the exact
+// predicates without SSL/DB hosts.
 
 namespace loginHelpers
 {
+
+// MinAccountID is the floor applied after max_id + 1 in LOGIN_CREATE.
+// Retail-era account IDs start at 1000.
+constexpr uint32 MinAccountID = 1000;
+
+// NextAccountID mirrors LOGIN_CREATE: candidate = maxExistingID + 1 (uint32
+// wrap), then floor at MinAccountID when candidate is still below the floor.
+inline auto NextAccountID(const uint32 maxExistingID) -> uint32
+{
+    const uint32 candidate = maxExistingID + 1;
+    return candidate < MinAccountID ? MinAccountID : candidate;
+}
 
 // FormatUnsupportedXiloaderVersionError mirrors the JSON error_message body
 // sent when validateAuthInput reports VERSION_UNSUPPORTED. Patch is rendered

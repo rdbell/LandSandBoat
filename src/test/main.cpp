@@ -226,6 +226,7 @@ auto runLoginErrorCodeSelfTests() -> bool;
 auto runLoginAuthConstantSelfTests() -> bool;
 auto runLoginAuthPassword1307SelfTests() -> bool;
 auto runLoginAuthVersionError1308SelfTests() -> bool;
+auto runLoginAuthAccountID1309SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -662,6 +663,7 @@ namespace
         ok = runLoginAuthConstantSelfTests() && ok;
         ok = runLoginAuthPassword1307SelfTests() && ok;
         ok = runLoginAuthVersionError1308SelfTests() && ok;
+        ok = runLoginAuthAccountID1309SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
