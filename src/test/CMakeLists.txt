@@ -270,6 +270,8 @@ set(SOURCES
     test_map_gmcall_response_notification_1241.cpp
     test_map_account_login_1253.h
     test_map_account_login_1253.cpp
+    test_map_char_zone_1254.h
+    test_map_char_zone_1254.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h

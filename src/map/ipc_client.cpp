@@ -22,6 +22,7 @@
 #include "ipc_client.h"
 
 #include "account_login.h"
+#include "char_zone.h"
 
 #include "common/ipp.h"
 
@@ -174,17 +175,20 @@ void IPCClient::handleMessage_CharZone(const IPP& ipp, const ipc::CharZone& mess
 {
     TracyZoneScoped;
 
-    auto session = networking_.sessions().getSessionByCharId(message.charId);
-
-    if (session) // Update in case of edge case
-    {
-        session->tapLastUpdate();
-    }
-    else
-    {
-        // Create a pending session that the character might use ahead of time
-        networking_.sessions().createPendingSession(message.charId);
-    }
+    mapipc::HandleCharZone(
+        message,
+        [this](const uint32 charId)
+        {
+            return networking_.sessions().getSessionByCharId(charId);
+        },
+        [](MapSession* session)
+        {
+            session->tapLastUpdate();
+        },
+        [this](const uint32 charId)
+        {
+            networking_.sessions().createPendingSession(charId);
+        });
 }
 
 void IPCClient::handleMessage_CharVarUpdate(const IPP& ipp, const ipc::CharVarUpdate& message)
