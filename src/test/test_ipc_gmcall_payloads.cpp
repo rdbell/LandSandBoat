@@ -21,11 +21,13 @@
 
 #include "test_ipc_gmcall_payloads.h"
 
-#include "common/ipc_structs.h"
+#include "common/ipc.h"
 
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace
 {
@@ -55,6 +57,26 @@ auto expectEqualString(const std::string& actual, const std::string& expected, c
     if (actual != expected)
     {
         std::cerr << "IPC GM call payload self-test failed: " << label << " got " << actual << " expected " << expected << '\n';
+        return false;
+    }
+    return true;
+}
+
+auto expectEqualBytes(const std::vector<uint8>& actual, const std::vector<uint8>& expected, const std::string& label) -> bool
+{
+    if (actual != expected)
+    {
+        std::cerr << "IPC GM call payload self-test failed: " << label << " got";
+        for (const auto byte : actual)
+        {
+            std::cerr << " " << static_cast<int>(byte);
+        }
+        std::cerr << " expected";
+        for (const auto byte : expected)
+        {
+            std::cerr << " " << static_cast<int>(byte);
+        }
+        std::cerr << '\n';
         return false;
     }
     return true;
@@ -125,9 +147,56 @@ auto testAssignedPayloads() -> bool
 
     return ok;
 }
+
+auto testWireEncoding() -> bool
+{
+    bool ok = true;
+
+    const ipc::GMCallRequest request{
+        .callId     = 1001,
+        .charId     = 2002,
+        .charName   = "Omega",
+        .accId      = 3003,
+        .zoneId     = 230,
+        .posX       = 1.25f,
+        .posY       = -2.5f,
+        .posZ       = 3.75f,
+        .message    = "Need help",
+        .parameters = { { "category", "stuck" }, { "area", "Mog House" } },
+    };
+    const std::vector<uint8> expectedRequest{
+        36,
+        0xE9, 0x07,
+        0xD2, 0x0F,
+        0x05, 'O', 'm', 'e', 'g', 'a',
+        0xBB, 0x17,
+        0xE6, 0x00,
+        0x00, 0x00, 0xA0, 0x3F,
+        0x00, 0x00, 0x20, 0xC0,
+        0x00, 0x00, 0x70, 0x40,
+        0x09, 'N', 'e', 'e', 'd', ' ', 'h', 'e', 'l', 'p',
+        0x02,
+        0x04, 'a', 'r', 'e', 'a',
+        0x09, 'M', 'o', 'g', ' ', 'H', 'o', 'u', 's', 'e',
+        0x08, 'c', 'a', 't', 'e', 'g', 'o', 'r', 'y',
+        0x05, 's', 't', 'u', 'c', 'k',
+    };
+    ok = expectEqualBytes(ipc::toBytesWithHeader(request), expectedRequest, "request wire bytes") && ok;
+
+    const ipc::GMCallResponse response{ .callId = 1001, .charId = 2002, .message = "On the way" };
+    const std::vector<uint8> expectedResponse{
+        37,
+        0xE9, 0x07,
+        0xD2, 0x0F,
+        0x0A, 'O', 'n', ' ', 't', 'h', 'e', ' ', 'w', 'a', 'y',
+    };
+    ok = expectEqualBytes(ipc::toBytesWithHeader(response), expectedResponse, "response wire bytes") && ok;
+
+    return ok;
+}
 } // namespace
 
 auto runIPCGMCallPayloadSelfTests() -> bool
 {
-    return testDefaultPayloads() && testAssignedPayloads();
+    return testDefaultPayloads() && testAssignedPayloads() && testWireEncoding();
 }

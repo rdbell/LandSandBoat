@@ -62,6 +62,26 @@ auto expectEqualString(const std::string& actual, const std::string& expected, c
     return true;
 }
 
+auto expectEqualBytes(const std::vector<uint8>& actual, const std::vector<uint8>& expected, const std::string& label) -> bool
+{
+    if (actual != expected)
+    {
+        std::cerr << "IPC message framing self-test failed: " << label << " got";
+        for (const auto byte : actual)
+        {
+            std::cerr << " " << static_cast<int>(byte);
+        }
+        std::cerr << " expected";
+        for (const auto byte : expected)
+        {
+            std::cerr << " " << static_cast<int>(byte);
+        }
+        std::cerr << '\n';
+        return false;
+    }
+    return true;
+}
+
 auto testPayloadRoundTrip() -> bool
 {
     bool ok = true;
@@ -168,9 +188,27 @@ auto testVectorPayloadRoundTrip() -> bool
     return ok;
 }
 
+auto testSignedWireEncoding() -> bool
+{
+    const ipc::CharVarUpdate update{
+        .charId = 0,
+        .value  = -65,
+        .expiry = 0,
+    };
+    const std::vector<uint8> expected{
+        static_cast<uint8>(ipc::MessageType::CharVarUpdate),
+        0x00,
+        0xC1, 0x41,
+        0x00,
+        0x00,
+    };
+    return expectEqualBytes(ipc::toBytesWithHeader(update), expected, "signed wire bytes");
+}
+
 } // namespace
 
 auto runIPCMessageFramingSelfTests() -> bool
 {
-    return testPayloadRoundTrip() && testHeaderRoundTrip() && testStringPayloadRoundTrip() && testVectorPayloadRoundTrip();
+    return testPayloadRoundTrip() && testHeaderRoundTrip() && testStringPayloadRoundTrip() && testVectorPayloadRoundTrip() &&
+           testSignedWireEncoding();
 }
