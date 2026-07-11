@@ -430,6 +430,8 @@ set(SOURCES
     test_world_char_var_update_1256.cpp
     test_world_chat_message_tell_1257.h
     test_world_chat_message_tell_1257.cpp
+    test_world_chat_message_party_1259.h
+    test_world_chat_message_party_1259.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h

@@ -26,6 +26,7 @@
 #include "char_var_update.h"
 #include "char_zone.h"
 #include "chat_message_tell.h"
+#include "chat_message_party.h"
 
 #include "besieged_system.h"
 #include "campaign_system.h"
@@ -111,26 +112,7 @@ auto IPCServer::getIPPsForParty(uint32 partyId) -> std::vector<IPP>
 
     // TODO: We know when chars move, we could be caching this info
 
-    // TODO: Simplify query now that there's alliance versions?
-    const auto query = "SELECT server_addr, server_port, MIN(charid) FROM accounts_sessions JOIN accounts_parties USING (charid) "
-                       "WHERE IF (allianceid <> 0, allianceid = (SELECT MAX(allianceid) FROM accounts_parties WHERE partyid = ?), "
-                       "partyid = ?) GROUP BY server_addr, server_port";
-
-    const auto rset = db::preparedStmt(query, partyId, partyId);
-    if (rset && rset->rowsCount())
-    {
-        std::vector<IPP> ippList;
-        while (rset->next())
-        {
-            const auto ip   = rset->get<uint64>("server_addr");
-            const auto port = rset->get<uint64>("server_port");
-            ippList.emplace_back(ip, port);
-        }
-
-        return ippList;
-    }
-
-    return {};
+    return world::ipc::LookupPartyEndpoints(partyId);
 }
 
 auto IPCServer::getIPPsForAlliance(uint32 allianceId) -> std::vector<IPP>
@@ -460,7 +442,16 @@ void IPCServer::handleMessage_ChatMessageParty(const IPP& ipp, const ipc::ChatMe
 {
     TracyZoneScoped;
 
-    rerouteMessageToPartyMembers(message.partyId, message);
+    worldipc::HandleChatMessageParty(
+        message,
+        [this](const uint32 partyId)
+        {
+            return getIPPsForParty(partyId);
+        },
+        [this](const IPP& endpoint, const ipc::ChatMessageParty& partyMessage)
+        {
+            sendMessage(endpoint, partyMessage);
+        });
 }
 
 void IPCServer::handleMessage_ChatMessageAlliance(const IPP& ipp, const ipc::ChatMessageAlliance& message)
