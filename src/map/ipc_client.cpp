@@ -26,6 +26,7 @@
 #include "char_var_update.h"
 #include "char_zone.h"
 #include "chat_message_tell.h"
+#include "player_relocation.h"
 
 #include "common/ipp.h"
 
@@ -874,67 +875,14 @@ void IPCClient::handleMessage_EntityInformationResponse(const IPP& ipp, const ip
 {
     TracyZoneScoped;
 
-    CCharEntity* PChar = zoneutils::GetChar(message.requesterId);
-    if (PChar && PChar->loc.zone)
-    {
-        if (message.warp)
-        {
-            PChar->loc.p.x         = message.x;
-            PChar->loc.p.y         = message.y;
-            PChar->loc.p.z         = message.z;
-            PChar->loc.p.rotation  = message.rot;
-            PChar->loc.destination = message.zoneId;
-
-            PChar->m_moghouseID = message.moghouseId;
-            PChar->loc.boundary = 0;
-            PChar->updatemask   = 0;
-
-            PChar->status    = STATUS_TYPE::DISAPPEAR;
-            PChar->animation = ANIMATION_NONE;
-
-            PChar->clearPacketList();
-
-            PChar->requestedZoneChange = true;
-
-            // Save pet if any
-            if (PChar->shouldPetPersistThroughZoning())
-            {
-                PChar->setPetZoningInfo();
-            }
-        }
-    }
+    mapipc::HandleEntityInformationResponse(message, [](const uint32 requesterId) { return zoneutils::GetChar(requesterId); });
 }
 
 void IPCClient::handleMessage_SendPlayerToLocation(const IPP& ipp, const ipc::SendPlayerToLocation& message)
 {
     TracyZoneScoped;
 
-    CCharEntity* PChar = zoneutils::GetChar(message.targetId);
-    if (PChar && PChar->loc.zone)
-    {
-        PChar->loc.p.x         = message.x;
-        PChar->loc.p.y         = message.y;
-        PChar->loc.p.z         = message.z;
-        PChar->loc.p.rotation  = message.rot;
-        PChar->loc.destination = message.zoneId;
-
-        PChar->m_moghouseID = message.moghouseId;
-        PChar->loc.boundary = 0;
-        PChar->updatemask   = 0;
-
-        PChar->status    = STATUS_TYPE::DISAPPEAR;
-        PChar->animation = ANIMATION_NONE;
-
-        PChar->clearPacketList();
-
-        PChar->requestedWarp = true;
-
-        // Save pet if any
-        if (PChar->shouldPetPersistThroughZoning())
-        {
-            PChar->setPetZoningInfo();
-        }
-    }
+    mapipc::HandleSendPlayerToLocation(message, [](const uint32 targetId) { return zoneutils::GetChar(targetId); });
 }
 
 void IPCClient::handleMessage_AssistChannelEvent(const IPP& ipp, const ipc::AssistChannelEvent& message) const

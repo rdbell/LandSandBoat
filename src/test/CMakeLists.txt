@@ -278,6 +278,8 @@ set(SOURCES
     test_map_chat_message_tell_1258.cpp
     test_map_assist_channel_event_1290.h
     test_map_assist_channel_event_1290.cpp
+    test_map_player_relocation_1291.h
+    test_map_player_relocation_1291.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h
