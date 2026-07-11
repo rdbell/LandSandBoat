@@ -114,4 +114,32 @@ inline auto AccumulateMemberCount(const uint8 running, const uint8 contribution)
     return static_cast<uint8>(running + contribution);
 }
 
+// LevelSyncMinLevel is the exclusive lower bound for the sync target's main job
+// level in CParty::RefreshSync (syncLevel < 10 removes sync).
+constexpr uint8 LevelSyncMinLevel = 10;
+
+// ShouldRemoveSyncForLowLevel mirrors syncLevel < 10 before SetSyncTarget clear.
+inline auto ShouldRemoveSyncForLowLevel(const uint8 syncLevel) -> bool
+{
+    return syncLevel < LevelSyncMinLevel;
+}
+
+// ResolveSyncMemberLevel mirrors NewMLevel selection for a same-zone PC member:
+// if syncLevel < memberMainJobLevel then syncLevel else memberMainJobLevel.
+inline auto ResolveSyncMemberLevel(const uint8 syncLevel, const uint8 memberMainJobLevel) -> uint8
+{
+    if (syncLevel < memberMainJobLevel)
+    {
+        return syncLevel;
+    }
+    return memberMainJobLevel;
+}
+
+// ShouldApplySyncToMember mirrors the RefreshSync per-member filter:
+// TYPE_PC and same zone as the sync target.
+inline auto ShouldApplySyncToMember(const bool isPC, const bool sameZoneAsSyncTarget) -> bool
+{
+    return isPC && sameZoneAsSyncTarget;
+}
+
 } // namespace partyhelpers

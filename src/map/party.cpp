@@ -1294,29 +1294,20 @@ void CParty::RefreshSync()
 {
     CCharEntity* sync      = (CCharEntity*)m_PSyncTarget;
     uint8        syncLevel = sync->jobs.job[sync->GetMJob()];
-    if (syncLevel < 10)
+    if (partyhelpers::ShouldRemoveSyncForLowLevel(syncLevel))
     {
         SetSyncTarget("", MsgStd::LevelSyncRemoveLowLevel);
     }
     for (auto& i : members)
     {
-        if (i->objtype != TYPE_PC || i->getZone() != sync->getZone())
+        if (!partyhelpers::ShouldApplySyncToMember(i->objtype == TYPE_PC, i->getZone() == sync->getZone()))
         {
             continue;
         }
 
         CCharEntity* member = (CCharEntity*)i;
 
-        uint8 NewMLevel = 0;
-
-        if (syncLevel < member->jobs.job[member->GetMJob()])
-        {
-            NewMLevel = syncLevel;
-        }
-        else
-        {
-            NewMLevel = member->jobs.job[member->GetMJob()];
-        }
+        const uint8 NewMLevel = partyhelpers::ResolveSyncMemberLevel(syncLevel, member->jobs.job[member->GetMJob()]);
 
         CStatusEffect* syncEffect = member->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
         if (syncEffect != nullptr)
