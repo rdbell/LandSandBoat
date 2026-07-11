@@ -1284,32 +1284,39 @@ void CParty::PushPacket(uint32 senderID, uint16 ZoneID, const std::unique_ptr<CB
 
 void CParty::PushEffectsPacket()
 {
-    if (m_EffectsChanged)
+    if (!partyhelpers::ShouldPushEffectsPacket(m_EffectsChanged))
     {
-        auto info = GetPartyInfo();
-
-        for (auto& PMember : members)
-        {
-            auto*                     PMemberChar = static_cast<CCharEntity*>(PMember);
-            std::vector<CCharEntity*> sameZoneMembers;
-
-            for (auto& memberinfo : info)
-            {
-                if (memberinfo.partyid == m_PartyID && memberinfo.id != PMemberChar->id)
-                {
-                    auto* PPartyMember = zoneutils::GetChar(memberinfo.id);
-                    if (PPartyMember && PPartyMember->getZone() == PMemberChar->getZone())
-                    {
-                        sameZoneMembers.push_back(PPartyMember);
-                    }
-                }
-            }
-
-            // Make and send packet for PMemberChar
-            PMemberChar->pushPacket<GP_SERV_COMMAND_GROUP_EFFECTS>(sameZoneMembers);
-        }
-        m_EffectsChanged = false;
+        return;
     }
+
+    auto info = GetPartyInfo();
+
+    for (auto& PMember : members)
+    {
+        auto*                     PMemberChar = static_cast<CCharEntity*>(PMember);
+        std::vector<CCharEntity*> sameZoneMembers;
+
+        for (auto& memberinfo : info)
+        {
+            auto*      PPartyMember = zoneutils::GetChar(memberinfo.id);
+            const bool charFound    = PPartyMember != nullptr;
+            const bool sameZone     = charFound && PPartyMember->getZone() == PMemberChar->getZone();
+            if (partyhelpers::ShouldIncludeInGroupEffects(
+                    memberinfo.partyid,
+                    m_PartyID,
+                    memberinfo.id,
+                    PMemberChar->id,
+                    charFound,
+                    sameZone))
+            {
+                sameZoneMembers.push_back(PPartyMember);
+            }
+        }
+
+        // Make and send packet for PMemberChar
+        PMemberChar->pushPacket<GP_SERV_COMMAND_GROUP_EFFECTS>(sameZoneMembers);
+    }
+    m_EffectsChanged = false;
 }
 
 void CParty::EffectsChanged()

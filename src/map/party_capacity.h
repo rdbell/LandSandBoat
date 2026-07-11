@@ -258,4 +258,39 @@ inline auto ShouldPushPartyPacketToMember(
     return true;
 }
 
+// ShouldIncludeInGroupEffects mirrors PushEffectsPacket's partyInfo_t filter for
+// building sameZoneMembers: same party, not self, char resolved, same zone.
+inline auto ShouldIncludeInGroupEffects(
+    const uint32 infoPartyID,
+    const uint32 partyID,
+    const uint32 infoCharID,
+    const uint32 selfCharID,
+    const bool   charFound,
+    const bool   sameZone) -> bool
+{
+    if (infoPartyID != partyID)
+    {
+        return false;
+    }
+    if (infoCharID == selfCharID)
+    {
+        return false;
+    }
+    if (!charFound)
+    {
+        return false;
+    }
+    if (!sameZone)
+    {
+        return false;
+    }
+    return true;
+}
+
+// ShouldPushEffectsPacket mirrors PushEffectsPacket's m_EffectsChanged gate.
+inline auto ShouldPushEffectsPacket(const bool effectsChanged) -> bool
+{
+    return effectsChanged;
+}
+
 } // namespace partyhelpers
