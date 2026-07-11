@@ -178,6 +178,7 @@ auto runWorldPartyInviteResponse1268SelfTests() -> bool;
 auto runWorldPartyReload1269SelfTests() -> bool;
 auto runWorldPartyDisband1270SelfTests() -> bool;
 auto runWorldAllianceReload1271SelfTests() -> bool;
+auto runWorldAllianceDissolve1272SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -577,6 +578,7 @@ namespace
         ok = runWorldPartyReload1269SelfTests() && ok;
         ok = runWorldPartyDisband1270SelfTests() && ok;
         ok = runWorldAllianceReload1271SelfTests() && ok;
+        ok = runWorldAllianceDissolve1272SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;

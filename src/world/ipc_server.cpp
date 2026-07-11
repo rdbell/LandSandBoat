@@ -22,6 +22,9 @@
 #include "ipc_server.h"
 
 #include "account_login.h"
+#include "alliance_dissolve.h"
+#include "alliance_members_reroute.h"
+#include "alliance_reload.h"
 #include "char_id_reroute.h"
 #include "char_var_update.h"
 #include "char_zone.h"
@@ -32,8 +35,6 @@
 #include "chat_message_party.h"
 #include "chat_message_server_message.h"
 #include "chat_message_tell.h"
-#include "alliance_members_reroute.h"
-#include "alliance_reload.h"
 #include "chat_message_unity.h"
 #include "chat_message_yell.h"
 #include "party_invite.h"
@@ -624,7 +625,12 @@ void IPCServer::handleMessage_AllianceDissolve(const IPP& ipp, const ipc::Allian
 {
     TracyZoneScoped;
 
-    rerouteMessageToAllianceMembers(message.allianceId, message);
+    worldipc::HandleAllianceDissolve(
+        message,
+        [this](const uint32 allianceId, const ipc::AllianceDissolve& dissolve)
+        {
+            rerouteMessageToAllianceMembers(allianceId, dissolve);
+        });
 
     // TODO:
     // worldServer_.partySystem_->handleMessage(message);
