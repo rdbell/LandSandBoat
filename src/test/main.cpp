@@ -335,6 +335,7 @@ auto runTrustDeath1415SelfTests() -> bool;
 auto runAutomatonDeath1416SelfTests() -> bool;
 auto runPetSpawn1417SelfTests() -> bool;
 auto runTrustSpawn1418SelfTests() -> bool;
+auto runPetZoningRestore1419SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -880,6 +881,7 @@ namespace
         ok = runAutomatonDeath1416SelfTests() && ok;
         ok = runPetSpawn1417SelfTests() && ok;
         ok = runTrustSpawn1418SelfTests() && ok;
+        ok = runPetZoningRestore1419SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

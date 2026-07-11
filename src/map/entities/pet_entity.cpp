@@ -22,6 +22,7 @@
 #include "pet_entity.h"
 #include "map/pet_death_capacity.h"
 #include "map/pet_spawn_capacity.h"
+#include "map/pet_zoning_restore_capacity.h"
 
 #include <cstring>
 
@@ -283,24 +284,18 @@ void CPetEntity::Spawn()
 
 void CPetEntity::loadPetZoningInfo()
 {
-    if (!PAI->IsSpawned())
-    {
-        ShowWarning("Attempt to load info without Pet spawned.");
-        return;
-    }
-
-    if (auto* master = dynamic_cast<CCharEntity*>(PMaster))
-    {
-        health.tp = static_cast<uint16>(master->petZoningInfo.petTP);
-        health.hp = master->petZoningInfo.petHP;
-        health.mp = master->petZoningInfo.petMP;
-
-        if (m_PetType == PET_TYPE::JUG_PET)
-        {
-            setJugDuration(master->petZoningInfo.jugDuration);
-            setJugSpawnTime(master->petZoningInfo.jugSpawnTime);
-        }
-    }
+    const bool spawned = PAI->IsSpawned();
+    auto* master       = spawned ? dynamic_cast<CCharEntity*>(PMaster) : nullptr;
+    petzoningrestorehelpers::Apply(
+        spawned,
+        master != nullptr,
+        m_PetType == PET_TYPE::JUG_PET,
+        [&]() { ShowWarning("Attempt to load info without Pet spawned."); },
+        [&]() { health.tp = petzoningrestorehelpers::RestoredTP(master->petZoningInfo.petTP); },
+        [&]() { health.hp = master->petZoningInfo.petHP; },
+        [&]() { health.mp = master->petZoningInfo.petMP; },
+        [&]() { setJugDuration(master->petZoningInfo.jugDuration); },
+        [&]() { setJugSpawnTime(master->petZoningInfo.jugSpawnTime); });
 }
 
 void CPetEntity::OnAbility(CAbilityState& state, action_t& action)
