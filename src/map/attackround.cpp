@@ -20,6 +20,7 @@
 */
 
 #include "attackround.h"
+#include "attackround_capacity.h"
 #include "ai/ai_container.h"
 #include "items/item_weapon.h"
 #include "mob_modifier.h"
@@ -244,15 +245,15 @@ void CAttackRound::CreateAttacks(CItemWeapon* PWeapon, PHYSICAL_ATTACK_DIRECTION
     bool isPC = m_attacker->objtype == TYPE_PC;
 
     // Checking the players weapon hit count
-    if (PWeapon->getReqLvl() <= m_attacker->GetMLevel())
+    if (attackroundhelpers::ShouldUseWeaponHitCount(PWeapon->getReqLvl(), m_attacker->GetMLevel()))
     {
         num = PWeapon->getHitCount();
     }
 
     // Existance of "Occasionally attacks X times" overwrites PWeapon hit count
-    if (isPC && m_attacker->getMod(Mod::MAX_SWINGS))
+    if (attackroundhelpers::ShouldApplyMaxSwingsMod(isPC, static_cast<uint8>(m_attacker->getMod(Mod::MAX_SWINGS))))
     {
-        auto modSwings = std::min<uint8>((uint8) static_cast<CCharEntity*>(m_attacker)->getMod(Mod::MAX_SWINGS), 8);
+        auto modSwings = attackroundhelpers::ClampMaxSwings(static_cast<uint8>(m_attacker->getMod(Mod::MAX_SWINGS)));
         num            = battleutils::getHitCount(modSwings);
     }
 
@@ -261,9 +262,9 @@ void CAttackRound::CreateAttacks(CItemWeapon* PWeapon, PHYSICAL_ATTACK_DIRECTION
     {
         auto multiHitMax = (uint8) static_cast<CMobEntity*>(m_attacker)->getMobMod(MOBMOD_MULTI_HIT);
 
-        if (multiHitMax > 0)
+        if (attackroundhelpers::ShouldApplyMobMultiHit(multiHitMax))
         {
-            num = 1 + battleutils::getHitCount(multiHitMax);
+            num = attackroundhelpers::MobMultiHitSwingCount(battleutils::getHitCount(multiHitMax));
         }
     }
 
@@ -310,9 +311,9 @@ void CAttackRound::CreateAttacks(CItemWeapon* PWeapon, PHYSICAL_ATTACK_DIRECTION
         }
     }
 
-    quadAttack   = std::clamp<int16>(quadAttack, 0, 100);
-    doubleAttack = std::clamp<int16>(doubleAttack, 0, 100);
-    tripleAttack = std::clamp<int16>(tripleAttack, 0, 100);
+    quadAttack   = attackroundhelpers::ClampAttackRate(quadAttack);
+    doubleAttack = attackroundhelpers::ClampAttackRate(doubleAttack);
+    tripleAttack = attackroundhelpers::ClampAttackRate(tripleAttack);
 
     // Preference matters! The following are additional hits to the default hit that don't stack up
     // Mikage > Quad > Triple > Double > Mythic Aftermath > Occasionally Attacks > Hasso + Zanshin
