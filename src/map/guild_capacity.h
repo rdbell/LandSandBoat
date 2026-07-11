@@ -1,0 +1,156 @@
+#pragma once
+
+#include "common/cbasetypes.h"
+
+#include <algorithm>
+#include <cstdint>
+#include <utility>
+
+// Pure CGuild daily-points trade math extracted for native tests and OmegaXI.
+
+namespace guildhelpers
+{
+
+// GPItemRanks mirrors GP_ITEM_RANKS (skill-rank tiers 3..9).
+constexpr size_t GPItemRanks = 7;
+
+// SkillRankMin / SkillRankMax clamp for RealSkills.rank[guildId+48].
+constexpr uint8 SkillRankMin = 3;
+constexpr uint8 SkillRankMax = 9;
+
+// SkillRankOffset is added to guild id for RealSkills.rank index.
+constexpr uint8 SkillRankOffset = 48;
+
+// DailyPointsIneligible is curPoints == 1 (recent guild change).
+constexpr int32 DailyPointsIneligible = 1;
+
+// ClampSkillRank mirrors std::clamp(rank, 3, 9).
+inline auto ClampSkillRank(const uint8 rank) -> uint8
+{
+    return std::clamp(rank, SkillRankMin, SkillRankMax);
+}
+
+// SkillRankToTier mirrors rank - 3 for m_GPItems[rank - 3] indexing.
+inline auto SkillRankToTier(const uint8 clampedRank) -> uint8
+{
+    return static_cast<uint8>(clampedRank - SkillRankMin);
+}
+
+// SkillRankCharIndex mirrors m_id + 48 into RealSkills.rank.
+inline auto SkillRankCharIndex(const uint8 guildID) -> uint8
+{
+    return static_cast<uint8>(guildID + SkillRankOffset);
+}
+
+// IsDailyPointsEligible mirrors curPoints != 1.
+inline auto IsDailyPointsEligible(const int32 curPoints) -> bool
+{
+    return curPoints != DailyPointsIneligible;
+}
+
+// PatternRankAfterAdvance mirrors (rank + 1) % (tier + 4).
+inline auto PatternRankAfterAdvance(const uint8 currentRank, const size_t tierIndex) -> uint8
+{
+    return static_cast<uint8>((currentRank + 1) % (tierIndex + 4));
+}
+
+// PatternRankFromElapsedDays mirrors elapsedDays % (i + 4).
+inline auto PatternRankFromElapsedDays(const uint32 elapsedDays, const size_t tierIndex) -> uint8
+{
+    return static_cast<uint8>(elapsedDays % static_cast<uint32>(tierIndex + 4));
+}
+
+// RemainingDailyCapacity mirrors maxpoints - clamp(curPoints, 0, maxpoints).
+inline auto RemainingDailyCapacity(const uint16 curPoints, const uint16 maxPoints) -> uint16
+{
+    return static_cast<uint16>(maxPoints - std::clamp(curPoints, static_cast<uint16>(0), maxPoints));
+}
+
+// TradeQuantity mirrors
+// min(((maxpoints - clamp(cur,0,max)) / points) + 1, reserve).
+// When points is 0, returns 0 to avoid division by zero (defensive; production
+// guild_item_points rows always have points > 0).
+inline auto TradeQuantity(const uint16 curPoints, const uint16 maxPoints, const uint16 pointsPerItem, const uint16 reserve) -> uint16
+{
+    if (pointsPerItem == 0)
+    {
+        return 0;
+    }
+    const uint16 remaining = RemainingDailyCapacity(curPoints, maxPoints);
+    const uint16 fromCap   = static_cast<uint16>((remaining / pointsPerItem) + 1);
+    return std::min(fromCap, reserve);
+}
+
+// ClampPointsToAdd mirrors the curPoints <= maxpoints branch:
+// pointsToAdd = clamp(points * quantity, 0, maxpoints - curPoints) when under
+// cap; else 0.
+inline auto ClampPointsToAdd(const uint16 curPoints, const uint16 maxPoints, const uint16 pointsPerItem, const uint16 quantity) -> uint16
+{
+    if (curPoints > maxPoints)
+    {
+        return 0;
+    }
+    const uint32 raw = static_cast<uint32>(pointsPerItem) * static_cast<uint32>(quantity);
+    const uint16 room = static_cast<uint16>(maxPoints - curPoints);
+    if (raw > room)
+    {
+        return room;
+    }
+    return static_cast<uint16>(raw);
+}
+
+// AddGuildPointsResult is pure (quantity, pointsToAdd) before host side effects.
+struct AddGuildPointsResult
+{
+    uint8  quantity;
+    int16  pointsToAdd;
+};
+
+// ComputeAddGuildPoints mirrors the matched-item path of addGuildPoints.
+// ineligible when curPoints == 1; itemMatched when GP item id matches trade.
+inline auto ComputeAddGuildPoints(
+    const bool   ineligible,
+    const bool   itemMatched,
+    const uint16 curPoints,
+    const uint16 maxPoints,
+    const uint16 pointsPerItem,
+    const uint16 reserve) -> AddGuildPointsResult
+{
+    if (ineligible || !itemMatched)
+    {
+        return { 0, 0 };
+    }
+    const uint16 quantity    = TradeQuantity(curPoints, maxPoints, pointsPerItem, reserve);
+    const uint16 pointsToAdd = ClampPointsToAdd(curPoints, maxPoints, pointsPerItem, quantity);
+    return { static_cast<uint8>(std::min<uint16>(quantity, 255)), static_cast<int16>(pointsToAdd) };
+}
+
+// DailyGPItemResult is pure (itemId, remainingPoints) for getDailyGPItem.
+struct DailyGPItemResult
+{
+    uint16 itemId;
+    uint16 remainingPoints;
+};
+
+// ComputeDailyGPItem mirrors getDailyGPItem after rank clamp and first GP item.
+// ineligible → remaining 0; else remaining capacity.
+inline auto ComputeDailyGPItem(
+    const bool   ineligible,
+    const uint16 itemId,
+    const uint16 curPoints,
+    const uint16 maxPoints) -> DailyGPItemResult
+{
+    if (ineligible)
+    {
+        return { itemId, 0 };
+    }
+    return { itemId, RemainingDailyCapacity(curPoints, maxPoints) };
+}
+
+// NewDailyPointsTotal mirrors curPoints + pointsToAdd for char-var write.
+inline auto NewDailyPointsTotal(const uint16 curPoints, const uint16 pointsToAdd) -> uint16
+{
+    return static_cast<uint16>(curPoints + pointsToAdd);
+}
+
+} // namespace guildhelpers

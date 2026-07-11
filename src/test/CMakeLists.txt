@@ -478,6 +478,8 @@ set(SOURCES
     test_linkshell_registry_1355.cpp
     test_unitychat_capacity_1356.h
     test_unitychat_capacity_1356.cpp
+    test_guild_points_math_1358.h
+    test_guild_points_math_1358.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
