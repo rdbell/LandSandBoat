@@ -432,6 +432,8 @@ set(SOURCES
     test_map_app_config_1332.cpp
     test_world_app_config_1333.h
     test_world_app_config_1333.cpp
+    test_party_set_sync_target_1334.h
+    test_party_set_sync_target_1334.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

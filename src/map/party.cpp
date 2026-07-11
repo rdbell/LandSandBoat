@@ -1118,83 +1118,106 @@ void CParty::SetSyncTarget(const std::string& MemberName, MsgStd message)
 {
     CBattleEntity* PEntity = GetMemberByName(MemberName);
 
-    if (settings::get<bool>("map.LEVEL_SYNC_ENABLE"))
+    const bool levelSyncEnabled = settings::get<bool>("map.LEVEL_SYNC_ENABLE");
+    const bool designeeFound    = PEntity != nullptr;
+    const bool designeeIsPC     = designeeFound && PEntity->objtype == TYPE_PC;
+
+    bool   anyMemberHasBlockingStatus = false;
+    uint8  designeeLevel              = 0;
+    bool   sameZoneAsLeader           = false;
+    CCharEntity* PChar                = nullptr;
+
+    if (designeeIsPC)
     {
-        if (PEntity && PEntity->objtype == TYPE_PC)
+        PChar             = static_cast<CCharEntity*>(PEntity);
+        designeeLevel     = PChar->GetMLevel();
+        sameZoneAsLeader  = GetLeader() != nullptr && PChar->getZone() == GetLeader()->getZone();
+        for (auto& member : members)
         {
-            CCharEntity* PChar = (CCharEntity*)PEntity;
-            // enable level sync
-            if (PChar->GetMLevel() < 10)
+            if (member->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::LevelRestriction, xi::StatusEffect::LevelSync, xi::StatusEffect::SjRestriction, xi::StatusEffect::Confrontation, xi::StatusEffect::Battlefield }))
             {
-                ((CCharEntity*)GetLeader())->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>((CCharEntity*)GetLeader(), (CCharEntity*)GetLeader(), 0, 10, MsgStd::LevelSyncDesigneeBelowMin);
-                return;
-            }
-            else if (PChar->getZone() != GetLeader()->getZone())
-            {
-                ((CCharEntity*)GetLeader())->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>((CCharEntity*)GetLeader(), (CCharEntity*)GetLeader(), 0, 0, MsgStd::LevelSyncDesigneeInOtherArea);
-                return;
-            }
-            else
-            {
-                for (auto& member : members)
-                {
-                    if (member->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::LevelRestriction, xi::StatusEffect::LevelSync, xi::StatusEffect::SjRestriction, xi::StatusEffect::Confrontation, xi::StatusEffect::Battlefield }))
-                    {
-                        ((CCharEntity*)GetLeader())->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>((CCharEntity*)GetLeader(), (CCharEntity*)GetLeader(), 0, 0, MsgStd::LevelSyncPreventedByStatus);
-                        return;
-                    }
-                }
-                m_PSyncTarget = PChar;
-                for (auto& i : members)
-                {
-                    if (i->objtype != TYPE_PC)
-                    {
-                        continue;
-                    }
-
-                    CCharEntity* member = (CCharEntity*)i;
-
-                    if (member->status != STATUS_TYPE::DISAPPEAR && member->getZone() == PChar->getZone())
-                    {
-                        member->pushPacket<GP_SERV_COMMAND_MESSAGE>(PChar->GetMLevel(), 0, 0, 0, message);
-                        member->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Dispelable | xi::StatusEffectFlag::OnZone);
-                        member->StatusEffectContainer->AddStatusEffectSilent(xi::StatusEffect::LevelSync, static_cast<uint16>(xi::StatusEffect::LevelSync), PChar->GetMLevel(), 0s, 0s);
-                        member->loc.zone->PushPacket(member, CHAR_INRANGE, std::make_unique<CCharSyncPacket>(member));
-                    }
-                }
-                db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag & ~? WHERE partyid = ? AND partyflag & ?",
-                                 PARTY_SYNC,
-                                 m_PartyID,
-                                 PARTY_SYNC);
-                db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag | ? WHERE partyid = ? AND charid = ?",
-                                 PARTY_SYNC,
-                                 m_PartyID,
-                                 PChar->id);
+                anyMemberHasBlockingStatus = true;
+                break;
             }
         }
-        else
+    }
+
+    const auto gate = partyhelpers::ClassifySetSyncTarget(
+        levelSyncEnabled,
+        designeeFound,
+        designeeIsPC,
+        designeeLevel,
+        sameZoneAsLeader,
+        anyMemberHasBlockingStatus);
+
+    switch (gate)
+    {
+        case partyhelpers::set_sync_target_gate::DISABLED:
+            return;
+
+        case partyhelpers::set_sync_target_gate::REJECT_BELOW_MIN:
+            ((CCharEntity*)GetLeader())->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>((CCharEntity*)GetLeader(), (CCharEntity*)GetLeader(), 0, partyhelpers::LevelSyncMinLevel, MsgStd::LevelSyncDesigneeBelowMin);
+            return;
+
+        case partyhelpers::set_sync_target_gate::REJECT_OTHER_AREA:
+            ((CCharEntity*)GetLeader())->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>((CCharEntity*)GetLeader(), (CCharEntity*)GetLeader(), 0, 0, MsgStd::LevelSyncDesigneeInOtherArea);
+            return;
+
+        case partyhelpers::set_sync_target_gate::REJECT_STATUS:
+            ((CCharEntity*)GetLeader())->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>((CCharEntity*)GetLeader(), (CCharEntity*)GetLeader(), 0, 0, MsgStd::LevelSyncPreventedByStatus);
+            return;
+
+        case partyhelpers::set_sync_target_gate::ENABLE:
+        {
+            m_PSyncTarget = PChar;
+            for (auto& i : members)
+            {
+                const bool isPC         = i->objtype == TYPE_PC;
+                CCharEntity* member     = isPC ? static_cast<CCharEntity*>(i) : nullptr;
+                const bool notDisappear = member != nullptr && member->status != STATUS_TYPE::DISAPPEAR;
+                const bool sameZone     = member != nullptr && member->getZone() == PChar->getZone();
+                if (!partyhelpers::ShouldApplySyncEnableToMember(isPC, notDisappear, sameZone))
+                {
+                    continue;
+                }
+
+                member->pushPacket<GP_SERV_COMMAND_MESSAGE>(PChar->GetMLevel(), 0, 0, 0, message);
+                member->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Dispelable | xi::StatusEffectFlag::OnZone);
+                member->StatusEffectContainer->AddStatusEffectSilent(xi::StatusEffect::LevelSync, static_cast<uint16>(xi::StatusEffect::LevelSync), PChar->GetMLevel(), 0s, 0s);
+                member->loc.zone->PushPacket(member, CHAR_INRANGE, std::make_unique<CCharSyncPacket>(member));
+            }
+            db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag & ~? WHERE partyid = ? AND partyflag & ?",
+                             PARTY_SYNC,
+                             m_PartyID,
+                             PARTY_SYNC);
+            db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag | ? WHERE partyid = ? AND charid = ?",
+                             PARTY_SYNC,
+                             m_PartyID,
+                             PChar->id);
+            return;
+        }
+
+        case partyhelpers::set_sync_target_gate::DISABLE:
         {
             if (m_PSyncTarget != nullptr)
             {
                 // disable level sync
                 for (auto& i : members)
                 {
-                    if (i->objtype != TYPE_PC)
+                    const bool isPC         = i->objtype == TYPE_PC;
+                    CCharEntity* member     = isPC ? static_cast<CCharEntity*>(i) : nullptr;
+                    const bool notDisappear = member != nullptr && member->status != STATUS_TYPE::DISAPPEAR;
+                    if (!partyhelpers::ShouldApplySyncDisableToMember(isPC, notDisappear))
                     {
                         continue;
                     }
 
-                    CCharEntity* member = (CCharEntity*)i;
-
-                    if (member->status != STATUS_TYPE::DISAPPEAR)
+                    CStatusEffect* sync = member->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
+                    if (partyhelpers::ShouldStartSyncDisableCountdown(sync != nullptr, sync != nullptr && sync->GetDuration() == 0s))
                     {
-                        CStatusEffect* sync = member->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
-                        if (sync && sync->GetDuration() == 0s)
-                        {
-                            member->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(member, member, 0, 30, message);
-                            sync->SetStartTime(timer::now());
-                            sync->SetDuration(30s);
-                        }
+                        member->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(member, member, 0, partyhelpers::LevelSyncDisableDurationSeconds, message);
+                        sync->SetStartTime(timer::now());
+                        sync->SetDuration(std::chrono::seconds(partyhelpers::LevelSyncDisableDurationSeconds));
                     }
                 }
             }
@@ -1203,6 +1226,7 @@ void CParty::SetSyncTarget(const std::string& MemberName, MsgStd message)
                              PARTY_SYNC,
                              m_PartyID,
                              PARTY_SYNC);
+            return;
         }
     }
 }

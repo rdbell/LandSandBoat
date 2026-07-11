@@ -142,4 +142,85 @@ inline auto ShouldApplySyncToMember(const bool isPC, const bool sameZoneAsSyncTa
     return isPC && sameZoneAsSyncTarget;
 }
 
+// LevelSyncDisableDurationSeconds is the countdown applied when removing an
+// infinite (duration == 0) LevelSync effect on disable.
+constexpr uint32 LevelSyncDisableDurationSeconds = 30;
+
+// MsgStd IDs used by SetSyncTarget rejection paths (msg_std.h).
+constexpr uint16 MsgLevelSyncDesigneeBelowMin    = 541;
+constexpr uint16 MsgLevelSyncDesigneeInOtherArea = 542;
+constexpr uint16 MsgLevelSyncPreventedByStatus   = 543;
+
+// set_sync_target_gate is the pure outcome of CParty::SetSyncTarget admission
+// after LEVEL_SYNC_ENABLE and before packet/DB hosts.
+enum class set_sync_target_gate : uint8_t
+{
+    DISABLED,           // map.LEVEL_SYNC_ENABLE is false — no-op
+    ENABLE,             // set m_PSyncTarget and apply LevelSync to members
+    DISABLE,            // clear m_PSyncTarget (empty/invalid designee)
+    REJECT_BELOW_MIN,   // designee main level < LevelSyncMinLevel
+    REJECT_OTHER_AREA,  // designee zone != leader zone
+    REJECT_STATUS,      // a party member has a blocking status effect
+};
+
+// ClassifySetSyncTarget mirrors SetSyncTarget's ordered policy checks.
+// designeeFound/designeeIsPC describe GetMemberByName + TYPE_PC.
+// designeeLevel is GetMLevel(); sameZoneAsLeader compares designee vs leader zone.
+// anyMemberHasBlockingStatus is true when any member has LevelRestriction,
+// LevelSync, SjRestriction, Confrontation, or Battlefield.
+inline auto ClassifySetSyncTarget(
+    const bool  levelSyncEnabled,
+    const bool  designeeFound,
+    const bool  designeeIsPC,
+    const uint8 designeeLevel,
+    const bool  sameZoneAsLeader,
+    const bool  anyMemberHasBlockingStatus) -> set_sync_target_gate
+{
+    if (!levelSyncEnabled)
+    {
+        return set_sync_target_gate::DISABLED;
+    }
+    if (!designeeFound || !designeeIsPC)
+    {
+        return set_sync_target_gate::DISABLE;
+    }
+    if (designeeLevel < LevelSyncMinLevel)
+    {
+        return set_sync_target_gate::REJECT_BELOW_MIN;
+    }
+    if (!sameZoneAsLeader)
+    {
+        return set_sync_target_gate::REJECT_OTHER_AREA;
+    }
+    if (anyMemberHasBlockingStatus)
+    {
+        return set_sync_target_gate::REJECT_STATUS;
+    }
+    return set_sync_target_gate::ENABLE;
+}
+
+// ShouldApplySyncEnableToMember mirrors the enable-path per-member filter:
+// TYPE_PC, status != DISAPPEAR, same zone as designee.
+inline auto ShouldApplySyncEnableToMember(
+    const bool isPC,
+    const bool notDisappear,
+    const bool sameZoneAsDesignee) -> bool
+{
+    return isPC && notDisappear && sameZoneAsDesignee;
+}
+
+// ShouldApplySyncDisableToMember mirrors the disable-path per-member filter:
+// TYPE_PC and status != DISAPPEAR (zone is not checked on disable).
+inline auto ShouldApplySyncDisableToMember(const bool isPC, const bool notDisappear) -> bool
+{
+    return isPC && notDisappear;
+}
+
+// ShouldStartSyncDisableCountdown mirrors disable applying a 30s countdown only
+// when the member has LevelSync with duration == 0 (infinite).
+inline auto ShouldStartSyncDisableCountdown(const bool hasLevelSync, const bool durationIsZero) -> bool
+{
+    return hasLevelSync && durationIsZero;
+}
+
 } // namespace partyhelpers
