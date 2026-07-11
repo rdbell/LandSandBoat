@@ -208,6 +208,8 @@ auto db::detail::sqlite::translateQuery(std::string query) -> std::string
     static const std::regex ifFunctionPattern(R"(\bIF\s*\()", std::regex_constants::icase);
     static const std::regex insertIgnorePattern(R"(^(\s*)INSERT\s+IGNORE\s+INTO\b)", std::regex_constants::icase);
     static const std::regex insertLimitPattern(R"(^(\s*INSERT\b.+?)\s+LIMIT\s+\d+\s*$)", std::regex_constants::icase);
+    static const std::regex mutationLimitPattern(R"(^(\s*(?:UPDATE|DELETE)\b.+?)\s+LIMIT\s+1\s*$)", std::regex_constants::icase);
+    static const std::regex deleteAliasPattern(R"(^(\s*)DELETE\s+([A-Za-z0-9_`]+)\s+FROM\s+\2\b)", std::regex_constants::icase);
 
     query = translateInsertSet(std::move(query));
 
@@ -236,6 +238,7 @@ auto db::detail::sqlite::translateQuery(std::string query) -> std::string
     query = std::regex_replace(query, unixTimestampIdentifierPattern, "CAST(strftime('%s', $1) AS INTEGER) AS \"UNIX_TIMESTAMP($1)\"");
     query = std::regex_replace(query, ifFunctionPattern, "IIF(");
     query = std::regex_replace(query, insertIgnorePattern, "$1INSERT OR IGNORE INTO");
+    query = std::regex_replace(query, deleteAliasPattern, "$1DELETE FROM $2");
 
     replaceAll(query, "NOW()", "CURRENT_TIMESTAMP");
     replaceAll(query, "now()", "CURRENT_TIMESTAMP");
@@ -248,6 +251,7 @@ auto db::detail::sqlite::translateQuery(std::string query) -> std::string
     query = std::regex_replace(query, onDuplicatePattern, " ON CONFLICT DO UPDATE SET ");
     query = std::regex_replace(query, valuesPattern, "excluded.$1");
     query = std::regex_replace(query, insertLimitPattern, "$1");
+    query = std::regex_replace(query, mutationLimitPattern, "$1");
 
     return query;
 }

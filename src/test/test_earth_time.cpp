@@ -22,6 +22,7 @@
 #include "test_earth_time.h"
 
 #include "common/earth_time.h"
+#include "common/vana_time.h"
 
 #include <chrono>
 #include <cstdlib>
@@ -196,6 +197,18 @@ auto expectLocalFields(const earth_time::time_point tp,
 auto runEarthTimeSelfTests() -> bool
 {
     bool ok = true;
+
+    const vanadiel_time::time_point yearZero{
+        vanadiel_time::clock::days{ 9 } + vanadiel_time::clock::hours{ 9 }
+    };
+    ok = expectEqual(vanadiel_time::get_year(yearZero), 0, "Vana'diel year zero year") && ok;
+    ok = expectEqual(vanadiel_time::get_month(yearZero), 1U, "Vana'diel year zero month") && ok;
+    ok = expectEqual(vanadiel_time::get_monthday(yearZero), 10U, "Vana'diel year zero month day") && ok;
+    ok = expectEqual(vanadiel_time::get_yearday(yearZero), 9U, "Vana'diel year zero year day") && ok;
+    ok = expectEqual(vanadiel_time::get_weekday(yearZero), 1U, "Vana'diel year zero weekday") && ok;
+    ok = expectEqual(vanadiel_time::get_hour(yearZero), 9U, "Vana'diel year zero hour") && ok;
+    ok = expectEqual(vanadiel_time::get_minute(yearZero), 0U, "Vana'diel year zero minute") && ok;
+    ok = expectEqual(vanadiel_time::get_second(yearZero), 0U, "Vana'diel year zero second") && ok;
 
     const earth_time::time_point friday{ 1783036800s };
     ok = expectEqual(earth_time::timestamp(friday), 1783036800U, "friday timestamp") && ok;

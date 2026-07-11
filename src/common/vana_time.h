@@ -86,49 +86,40 @@ inline uint32 count_days(const duration& d)
     return static_cast<uint32>(total_days.count());
 }
 
-// seconds after the minute - [​0​, 60]
+// seconds after the minute - [​0​, 59]
 inline uint32 get_second(const time_point& tp = now())
 {
-    const duration       since_epoch = tp.time_since_epoch();
-    const clock::minutes minutes     = std::chrono::floor<clock::minutes>(since_epoch);
-    const clock::seconds seconds     = std::chrono::floor<clock::seconds>(since_epoch);
-    return static_cast<uint32>((seconds % minutes).count());
+    const clock::seconds seconds = std::chrono::floor<clock::seconds>(tp.time_since_epoch());
+    return static_cast<uint32>(seconds.count() % 60);
 }
 
 // minutes after the hour – [​0​, 59]
 inline uint32 get_minute(const time_point& tp = now())
 {
-    const duration       since_epoch = tp.time_since_epoch();
-    const clock::hours   hours       = std::chrono::floor<clock::hours>(since_epoch);
-    const clock::minutes minutes     = std::chrono::floor<clock::minutes>(since_epoch);
-    return static_cast<uint32>((minutes % hours).count());
+    const clock::minutes minutes = std::chrono::floor<clock::minutes>(tp.time_since_epoch());
+    return static_cast<uint32>(minutes.count() % 60);
 }
 
 // hours since midnight – [​0​, 23]
 inline uint32 get_hour(const time_point& tp = now())
 {
-    const duration     since_epoch = tp.time_since_epoch();
-    const clock::days  days        = std::chrono::floor<clock::days>(since_epoch);
-    const clock::hours hours       = std::chrono::floor<clock::hours>(since_epoch);
-    return static_cast<uint32>((hours % days).count());
+    const clock::hours hours = std::chrono::floor<clock::hours>(tp.time_since_epoch());
+    return static_cast<uint32>(hours.count() % 24);
 }
 
 // day of the month – [1, 30]
 inline uint32 get_monthday(const time_point& tp = now())
 {
-    const duration      since_epoch = tp.time_since_epoch();
-    const clock::months months      = std::chrono::floor<clock::months>(since_epoch);
-    const clock::days   days        = std::chrono::ceil<clock::days>(since_epoch);
-    return static_cast<uint32>((days % months).count());
+    const clock::days days = std::chrono::floor<clock::days>(tp.time_since_epoch());
+    return static_cast<uint32>(days.count() % 30 + 1);
 }
 
 // current month – [​1​, 12]
 inline uint32 get_month(const time_point& tp = now())
 {
     const duration      since_epoch = tp.time_since_epoch();
-    const clock::years  years       = std::chrono::floor<clock::years>(since_epoch);
-    const clock::months months      = std::chrono::ceil<clock::months>(since_epoch);
-    return static_cast<uint32>((months % years).count());
+    const clock::months months      = std::chrono::floor<clock::months>(since_epoch);
+    return static_cast<uint32>(months.count() % 12 + 1);
 }
 
 // years since 886
@@ -142,19 +133,15 @@ inline int32 get_year(const time_point& tp = now())
 // days since Firesday – [​0​, 7]
 inline uint32 get_weekday(const time_point& tp = now())
 {
-    const duration     since_epoch = tp.time_since_epoch();
-    const clock::weeks weeks       = std::chrono::floor<clock::weeks>(since_epoch);
-    const clock::days  days        = std::chrono::floor<clock::days>(since_epoch);
-    return static_cast<uint32>((days % weeks).count());
+    const clock::days days = std::chrono::floor<clock::days>(tp.time_since_epoch());
+    return static_cast<uint32>(days.count() % 8);
 }
 
 // days since 1st day of year – [​0​, 360]
 inline uint32 get_yearday(const time_point& tp = now())
 {
-    const duration     since_epoch = tp.time_since_epoch();
-    const clock::years years       = std::chrono::floor<clock::years>(since_epoch);
-    const clock::days  days        = std::chrono::floor<clock::days>(since_epoch);
-    return static_cast<uint32>((days % years).count());
+    const clock::days days = std::chrono::floor<clock::days>(tp.time_since_epoch());
+    return static_cast<uint32>(days.count() % 360);
 }
 
 inline time_point get_next_midnight(const time_point& tp = now())

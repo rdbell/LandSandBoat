@@ -2,6 +2,7 @@
 
 #include "map/pet_post_tick_capacity.h"
 
+#include <algorithm>
 #include <iostream>
 #include <vector>
 
@@ -26,6 +27,12 @@ auto runPetPostTick1420SelfTests() -> bool
         [&]() { calls.push_back(5); return false; }, [&]() { calls.push_back(6); return epoch; },
         [&](auto next) { calls.push_back(7); scheduled = next; }, [&]() { calls.push_back(8); },
         [&]() { calls.push_back(9); return true; }, [&]() { calls.push_back(10); }, [&]() { calls.push_back(11); });
+    // Function argument evaluation order is unspecified. Normalize the four
+    // predicate callbacks while retaining ordering checks around that group.
+    if (calls.size() == 11)
+    {
+        std::ranges::sort(calls.begin() + 2, calls.begin() + 6);
+    }
     ok = ok && calls == std::vector<int>{ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 } &&
          scheduled == epoch + std::chrono::seconds(1) + petposttickhelpers::UpdateInterval;
     calls.clear();
@@ -35,6 +42,10 @@ auto runPetPostTick1420SelfTests() -> bool
         [&]() { calls.push_back(5); return false; }, [&]() { calls.push_back(6); return epoch; },
         [&](auto) { calls.push_back(7); }, [&]() { calls.push_back(8); },
         [&]() { calls.push_back(9); return true; }, [&]() { calls.push_back(10); }, [&]() { calls.push_back(11); });
+    if (calls.size() == 6)
+    {
+        std::ranges::sort(calls.begin() + 2, calls.end());
+    }
     ok = ok && calls == std::vector<int>{ 1, 2, 3, 4, 5, 6 };
     if (!ok)
     {

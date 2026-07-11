@@ -89,10 +89,8 @@ auto runIPPSelfTests() -> bool
     ok = expectIPP("zone", "192.168.1.45", 54230, 755083456U, 232916831545536ULL, "192.168.1.45:54230") && ok;
     ok = expectIPP("public", "10.20.30.40", 12345, 673059850U, 53022044328970ULL, "10.20.30.40:12345") && ok;
 
-    ok = expectEqual(str2ip("010.020.030.040"), 673059850U, "leading zeroes full") && ok;
-    ok = expectEqual(ip2str(str2ip("010.020.030.040")), "10.20.30.40", "leading zeroes round trip") && ok;
-    ok = expectEqual(str2ip("127.000.000.001"), 16777343U, "leading zeroes loopback") && ok;
-    ok = expectEqual(str2ip("001.002.003.004"), 67305985U, "leading zeroes small") && ok;
+    // inet_pton acceptance of noncanonical IPv4 text with leading zeroes
+    // differs between supported platforms, so only canonical forms are pinned.
 
     const auto invalidIP = str2ip("not-an-ip");
     ok                   = expectEqual(invalidIP, 0U, "invalid str2ip") && ok;
