@@ -351,16 +351,20 @@ void view_session::read_func()
         break;
         case 0x1F: // 31: "Acquiring Player Data"
         {
-            if (auto data = session.data_session.get())
+            if (loginHelpers::ClassifyDataSessionPresence(session.data_session != nullptr) ==
+                loginHelpers::data_session_presence_gate::PRESENT)
             {
-                std::memset(data->buffer_.data(), 0, 5);
-                data->buffer_.data()[0] = 0x01;
-                data->do_write(0x05);
+                auto data = session.data_session.get();
+                loginHelpers::GenerateDataAcquirePlayerNotifyPacket(data->buffer_.data());
+                data->do_write(loginHelpers::DataSessionNotifyPacketSize);
             }
             else
             {
-                loginHelpers::generateErrorMessage(buffer_.data(), loginErrors::errorCode::COULD_NOT_CONNECT_TO_LOBBY_SERVER); // "Could not connect to lobby server.\nPlease check this title's news for announcements."
-                do_write(0x24);                                                                                                // This used to error, but this case is probably not valid after sessionHash. // TODO: is this this else block still needed?
+                // "Could not connect to lobby server.\nPlease check this title's news for announcements."
+                // This used to error, but this case is probably not valid after sessionHash.
+                // TODO: is this this else block still needed?
+                loginHelpers::generateErrorMessage(buffer_.data(), loginErrors::errorCode::COULD_NOT_CONNECT_TO_LOBBY_SERVER);
+                do_write(0x24);
                 return;
             }
         }

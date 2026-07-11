@@ -9,7 +9,8 @@
 #include <string>
 
 // Pure VIEW 0x07 character-selection ownership gates and data-session notify
-// packet helpers extracted so native tests can pin policy without sockets/SQL.
+// packet helpers (0x07 select nudge and 0x1F acquire-player-data) extracted so
+// native tests can pin policy without sockets/SQL.
 
 namespace loginHelpers
 {
@@ -59,20 +60,52 @@ inline auto FormatCharacterSelectWrongAccount(const uint32 sessionAccountID) -> 
     return fmt::format("Account ID {} tried to login as character not in their account.", sessionAccountID);
 }
 
-// DataSelectNotifyPacketSize is the fixed write length for the data_session
-// nudge after a successful VIEW 0x07 selection.
-constexpr std::size_t DataSelectNotifyPacketSize = 0x05;
+// DataSessionNotifyPacketSize is the fixed write length for short data_session
+// nudge packets used by VIEW 0x07 and VIEW 0x1F.
+constexpr std::size_t DataSessionNotifyPacketSize = 0x05;
 
-// DataSelectNotifyCommand is buffer_[0] of that 5-byte notify.
+// Back-compat alias used by VIEW 0x07 select path.
+constexpr std::size_t DataSelectNotifyPacketSize = DataSessionNotifyPacketSize;
+
+// DataSelectNotifyCommand is buffer_[0] after a successful VIEW 0x07 selection.
 constexpr uint8 DataSelectNotifyCommand = 0x02;
 
-// GenerateDataSelectNotifyPacket fills a 5-byte buffer with zeros and sets
-// byte 0 to DataSelectNotifyCommand. packet must point to at least
-// DataSelectNotifyPacketSize bytes.
+// DataAcquirePlayerNotifyCommand is buffer_[0] for VIEW 0x1F "Acquiring Player Data".
+constexpr uint8 DataAcquirePlayerNotifyCommand = 0x01;
+
+// GenerateDataSessionNotifyPacket fills a 5-byte buffer with zeros and sets
+// byte 0 to command. packet must point to at least DataSessionNotifyPacketSize bytes.
+inline void GenerateDataSessionNotifyPacket(uint8* packet, const uint8 command)
+{
+    std::memset(packet, 0, DataSessionNotifyPacketSize);
+    packet[0] = command;
+}
+
+// GenerateDataSelectNotifyPacket is the VIEW 0x07 select nudge (command 0x02).
 inline void GenerateDataSelectNotifyPacket(uint8* packet)
 {
-    std::memset(packet, 0, DataSelectNotifyPacketSize);
-    packet[0] = DataSelectNotifyCommand;
+    GenerateDataSessionNotifyPacket(packet, DataSelectNotifyCommand);
+}
+
+// GenerateDataAcquirePlayerNotifyPacket is the VIEW 0x1F acquire-player nudge
+// (command 0x01).
+inline void GenerateDataAcquirePlayerNotifyPacket(uint8* packet)
+{
+    GenerateDataSessionNotifyPacket(packet, DataAcquirePlayerNotifyCommand);
+}
+
+// data_session_presence_gate is the pure outcome of requiring a live data_session
+// for VIEW 0x1F.
+enum class data_session_presence_gate : uint8_t
+{
+    PRESENT, // write acquire-player notify to data_session
+    MISSING, // emit lobby connection error on the view socket
+};
+
+// ClassifyDataSessionPresence mirrors the if (auto data = session.data_session) branch.
+inline auto ClassifyDataSessionPresence(const bool hasDataSession) -> data_session_presence_gate
+{
+    return hasDataSession ? data_session_presence_gate::PRESENT : data_session_presence_gate::MISSING;
 }
 
 // FormatMissingSessionHashWarning mirrors the VIEW entry warning when
