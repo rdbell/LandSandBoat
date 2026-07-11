@@ -242,6 +242,7 @@ auto runLoginViewAcquirePlayer1321SelfTests() -> bool;
 auto runLoginSessionCleanup1322SelfTests() -> bool;
 auto runLoginDataA11323SelfTests() -> bool;
 auto runLoginDataA21324SelfTests() -> bool;
+auto runLoginConnectCleanup1325SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -694,6 +695,7 @@ namespace
         ok = runLoginSessionCleanup1322SelfTests() && ok;
         ok = runLoginDataA11323SelfTests() && ok;
         ok = runLoginDataA21324SelfTests() && ok;
+        ok = runLoginConnectCleanup1325SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

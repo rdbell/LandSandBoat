@@ -21,6 +21,8 @@
 
 #include "connect_engine.h"
 
+#include "connect_cleanup.h"
+
 #include "common/timer.h"
 
 namespace
@@ -28,8 +30,7 @@ namespace
 
 auto getZMQEndpointString() -> std::string
 {
-    return fmt::format(
-        "{}://{}:{}",
+    return loginHelpers::FormatZMQEndpointString(
         settings::get<std::string>("network.ZMQ_TRANSPORT"),
         settings::get<std::string>("network.ZMQ_IP"),
         settings::get<uint16>("network.ZMQ_PORT"));
@@ -42,10 +43,8 @@ auto getZMQRoutingId() -> uint64
     const auto ip   = str2ip(settings::get<std::string>("network.LOGIN_AUTH_IP"));
     const auto port = settings::get<uint16>("network.LOGIN_AUTH_PORT");
 
-    return IPP(ip, port).getRawIPP();
+    return loginHelpers::ConnectDealerRoutingID(ip, port);
 }
-
-constexpr auto kSessionCleanTime = 15min;
 
 } // namespace
 
@@ -57,7 +56,7 @@ ConnectEngine::ConnectEngine(Scheduler& scheduler, ZMQService& zmqService)
 , m_viewHandler(scheduler_, settings::get<uint32>("network.LOGIN_VIEW_PORT"), dealerChannel_)
 {
     periodicCleanupToken_ = scheduler.intervalOnMainThread(
-        kSessionCleanTime,
+        loginHelpers::SessionCleanInterval,
         [this]()
         {
             periodicCleanup();
@@ -80,9 +79,10 @@ void ConnectEngine::periodicCleanup()
             session_t& session = sessionIterator->second;
 
             // If it's been 15 minutes, erase it from the session list
-            if (!session.data_session &&
-                !session.view_session &&
-                timer::now() > session.authorizedTime + kSessionCleanTime)
+            if (loginHelpers::ShouldEraseIdleSession(
+                    session.data_session != nullptr,
+                    session.view_session != nullptr,
+                    loginHelpers::IsSessionExpired(timer::now(), session.authorizedTime)))
             {
                 sessionIterator = ipAddrIterator->second.erase(sessionIterator);
             }
@@ -93,7 +93,7 @@ void ConnectEngine::periodicCleanup()
         }
 
         // If this map entry is empty, clean it up
-        if (ipAddrIterator->second.size() == 0)
+        if (loginHelpers::ShouldEraseEmptyIPEntry(ipAddrIterator->second.size() == 0))
         {
             ipAddrIterator = sessions.erase(ipAddrIterator);
         }
