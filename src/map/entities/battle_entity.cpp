@@ -41,6 +41,7 @@
 #include "post_tick_death_capacity.h"
 #include "hit_interrupt_capacity.h"
 #include "battle_time_capacity.h"
+#include "enmity_presence_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -4045,31 +4046,29 @@ uint16 CBattleEntity::GetBattleTargetID() const
 
 bool CBattleEntity::hasEnmityEXPENSIVE() const
 {
-    // TODO: This check seems to always fail for pets?
-    if (PNotorietyContainer->hasEnmity())
+    const auto scanZone = [&]()
     {
-        return true;
-    }
+        bool isTargeted = false;
 
-    bool isTargeted = false;
-
-    // TODO: this is bad but because of how super tanking is implemented there's not much we can do without a larger refactor
-    if (loc.zone)
-    {
-        loc.zone->ForEachMob([&](CMobEntity* PMob)
-                             {
-                                 if (!PMob->isAlive())
+        // TODO: this is bad but because of how super tanking is implemented there's not much we can do without a larger refactor
+        if (loc.zone)
+        {
+            loc.zone->ForEachMob([&](CMobEntity* PMob)
                                  {
-                                     return;
-                                 }
-                                 // Account for charmed mobs attacking normal mobs, etc
-                                 if (PMob->GetBattleTargetID() == targid && PMob->allegiance != allegiance)
-                                 {
-                                     isTargeted = true;
-                                     return;
-                                 }
-                             });
-    }
+                                     if (enmitypresencehelpers::IsTargetedByLiveOpponent(
+                                             PMob->isAlive(),
+                                             PMob->GetBattleTargetID(),
+                                             targid,
+                                             static_cast<uint8>(PMob->allegiance),
+                                             static_cast<uint8>(allegiance)))
+                                     {
+                                         isTargeted = true;
+                                     }
+                                 });
+        }
 
-    return isTargeted;
+        return isTargeted;
+    };
+
+    return enmitypresencehelpers::Resolve(PNotorietyContainer->hasEnmity(), scanZone);
 }

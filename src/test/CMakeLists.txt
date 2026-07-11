@@ -580,6 +580,8 @@ set(SOURCES
     test_battle_time_1407.cpp
     test_battle_identity_1408.h
     test_battle_identity_1408.cpp
+    test_enmity_presence_1409.h
+    test_enmity_presence_1409.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
