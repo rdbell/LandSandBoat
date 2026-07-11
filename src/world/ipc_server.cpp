@@ -36,6 +36,8 @@
 #include "chat_message_yell.h"
 #include "party_invite.h"
 #include "party_invite_response.h"
+#include "party_members_reroute.h"
+#include "party_reload.h"
 
 #include "besieged_system.h"
 #include "campaign_system.h"
@@ -225,11 +227,18 @@ void IPCServer::rerouteMessageToPartyMembers(uint32 partyId, const auto& message
 {
     TracyZoneScoped;
 
-    for (const auto& ipp : getIPPsForParty(partyId))
-    {
-        DebugIPCFmt("Message: -> rerouting to party<{}> on {}", partyId, ipp.toString());
-        sendMessage(ipp, message);
-    }
+    worldipc::RerouteMessageToPartyMembers(
+        partyId,
+        message,
+        [this](const uint32 targetId)
+        {
+            return getIPPsForParty(targetId);
+        },
+        [this, partyId](const IPP& endpoint, const auto& delivered)
+        {
+            DebugIPCFmt("Message: -> rerouting to party<{}> on {}", partyId, endpoint.toString());
+            this->sendMessage(endpoint, delivered);
+        });
 }
 
 void IPCServer::rerouteMessageToAllianceMembers(uint32 allianceId, const auto& message)
@@ -560,7 +569,12 @@ void IPCServer::handleMessage_PartyReload(const IPP& ipp, const ipc::PartyReload
 {
     TracyZoneScoped;
 
-    rerouteMessageToPartyMembers(message.partyId, message);
+    worldipc::HandlePartyReload(
+        message,
+        [this](const uint32 partyId, const ipc::PartyReload& reload)
+        {
+            rerouteMessageToPartyMembers(partyId, reload);
+        });
 
     // TODO:
     // worldServer_.partySystem_->handleMessage(message);

@@ -450,6 +450,8 @@ set(SOURCES
     test_world_party_invite_1267.cpp
     test_world_party_invite_response_1268.h
     test_world_party_invite_response_1268.cpp
+    test_world_party_reload_1269.h
+    test_world_party_reload_1269.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h
