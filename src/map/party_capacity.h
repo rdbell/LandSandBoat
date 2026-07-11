@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <fmt/format.h>
 #include <string>
 
 // Pure CParty capacity / trust admission gates extracted so native tests can
@@ -402,5 +403,68 @@ inline auto ShouldReplaceSoloTreasurePool(const bool hasTreasurePool, const bool
 
 // MsgLevelSyncRemoveLeftParty is MsgStd::LevelSyncRemoveLeftParty (553).
 constexpr uint16 MsgLevelSyncRemoveLeftParty = 553;
+
+// MsgLevelSyncSet is MsgStd::LevelSyncSet (238).
+constexpr uint16 MsgLevelSyncSet = 238;
+
+// assign_party_role_action is the pure host action for AssignPartyRole after
+// PC-type and membership checks.
+enum class assign_party_role_action : uint8_t
+{
+    REJECT_MOB_PARTY,      // not PARTY_PCS
+    REJECT_NOT_MEMBER,     // DB membership miss
+    SET_LEADER,            // ChangeKind 0
+    SET_QUARTERMASTER,     // ChangeKind 4
+    CLEAR_QUARTERMASTER,   // ChangeKind 5 (lottery)
+    SET_LEVEL_SYNC,        // ChangeKind 6
+    DISABLE_LEVEL_SYNC,    // ChangeKind 7
+    REJECT_UNKNOWN_ROLE,   // default
+};
+
+// ClassifyAssignPartyRole mirrors AssignPartyRole ordered gates + switch.
+// role is the raw GP_CLI_COMMAND_GROUP_CHANGE2_CHANGEKIND value.
+inline auto ClassifyAssignPartyRole(
+    const bool   isPCParty,
+    const bool   membershipQueryOk,
+    const bool   membershipRowFound,
+    const uint8  role) -> assign_party_role_action
+{
+    if (!isPCParty)
+    {
+        return assign_party_role_action::REJECT_MOB_PARTY;
+    }
+    if (!membershipQueryOk || !membershipRowFound)
+    {
+        return assign_party_role_action::REJECT_NOT_MEMBER;
+    }
+    switch (role)
+    {
+        case 0: // SetPartyLeader
+            return assign_party_role_action::SET_LEADER;
+        case 4: // SetQuartermaster
+            return assign_party_role_action::SET_QUARTERMASTER;
+        case 5: // SetLottery
+            return assign_party_role_action::CLEAR_QUARTERMASTER;
+        case 6: // SetLevelSync
+            return assign_party_role_action::SET_LEVEL_SYNC;
+        case 7: // DisableLevelSync
+            return assign_party_role_action::DISABLE_LEVEL_SYNC;
+        default:
+            return assign_party_role_action::REJECT_UNKNOWN_ROLE;
+    }
+}
+
+// ShouldNotifyAllianceReloadOnRole mirrors if (m_PAlliance) AllianceReload else PartyReload.
+// Only for successful role actions (not rejects).
+inline auto ShouldNotifyAllianceReloadOnRole(const bool hasAlliance) -> bool
+{
+    return hasAlliance;
+}
+
+// FormatAssignRoleMobPartyWarning mirrors ShowWarningFmt for mob parties.
+inline auto FormatAssignRoleMobPartyWarning(const uint8 role, const std::string& memberName) -> std::string
+{
+    return fmt::format("Attempting to assign role ({}) to {} in Mob Party.", role, memberName);
+}
 
 } // namespace partyhelpers

@@ -190,41 +190,51 @@ void CParty::DisbandParty(bool playerInitiated)
 // Assign roles to group members (players only)
 void CParty::AssignPartyRole(const std::string& MemberName, const GP_CLI_COMMAND_GROUP_CHANGE2_CHANGEKIND role)
 {
-    if (m_PartyType != PARTY_PCS)
+    const bool isPCParty = m_PartyType == PARTY_PCS;
+
+    // Early pure gate for mob parties (preserves no membership SQL on mob path).
+    if (!isPCParty)
     {
-        ShowWarningFmt("Attempting to assign role ({}) to {} in Mob Party.", static_cast<uint8_t>(role), MemberName);
+        ShowWarningFmt("{}", partyhelpers::FormatAssignRoleMobPartyWarning(static_cast<uint8>(role), MemberName));
         return;
     }
 
     // Make sure that the character is actually a part of this party
     const auto rset = db::preparedStmt("SELECT chars.charid FROM chars JOIN accounts_parties ON accounts_parties.charid = chars.charid WHERE charname = ? AND partyid = ?", MemberName, m_PartyID);
-    if (!rset || rset->rowsCount() == 0)
-    {
-        return;
-    }
 
-    switch (role)
+    const auto action = partyhelpers::ClassifyAssignPartyRole(
+        isPCParty,
+        static_cast<bool>(rset),
+        rset && rset->rowsCount() != 0,
+        static_cast<uint8>(role));
+
+    switch (action)
     {
-        case GP_CLI_COMMAND_GROUP_CHANGE2_CHANGEKIND::SetPartyLeader:
+        case partyhelpers::assign_party_role_action::REJECT_MOB_PARTY:
+            // Unreachable when isPCParty is true; kept for switch exhaustiveness.
+            ShowWarningFmt("{}", partyhelpers::FormatAssignRoleMobPartyWarning(static_cast<uint8>(role), MemberName));
+            return;
+        case partyhelpers::assign_party_role_action::REJECT_NOT_MEMBER:
+        case partyhelpers::assign_party_role_action::REJECT_UNKNOWN_ROLE:
+            return;
+        case partyhelpers::assign_party_role_action::SET_LEADER:
             SetLeader(MemberName);
             break;
-        case GP_CLI_COMMAND_GROUP_CHANGE2_CHANGEKIND::SetQuartermaster:
+        case partyhelpers::assign_party_role_action::SET_QUARTERMASTER:
             SetQuarterMaster(MemberName);
             break;
-        case GP_CLI_COMMAND_GROUP_CHANGE2_CHANGEKIND::SetLottery:
+        case partyhelpers::assign_party_role_action::CLEAR_QUARTERMASTER:
             SetQuarterMaster("");
             break;
-        case GP_CLI_COMMAND_GROUP_CHANGE2_CHANGEKIND::SetLevelSync:
+        case partyhelpers::assign_party_role_action::SET_LEVEL_SYNC:
             SetSyncTarget(MemberName, MsgStd::LevelSyncSet);
             break;
-        case GP_CLI_COMMAND_GROUP_CHANGE2_CHANGEKIND::DisableLevelSync:
+        case partyhelpers::assign_party_role_action::DISABLE_LEVEL_SYNC:
             SetSyncTarget("", MsgStd::LevelSyncRemoveLeftParty);
             break;
-        default:
-            return;
     }
 
-    if (m_PAlliance)
+    if (partyhelpers::ShouldNotifyAllianceReloadOnRole(m_PAlliance != nullptr))
     {
         message::send(ipc::AllianceReload{
             .allianceId = m_PAlliance->m_AllianceID,

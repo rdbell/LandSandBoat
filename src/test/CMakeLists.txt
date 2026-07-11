@@ -458,6 +458,8 @@ set(SOURCES
     test_party_disband_1345.cpp
     test_alliance_assign_leader_1346.h
     test_alliance_assign_leader_1346.cpp
+    test_party_assign_role_1347.h
+    test_party_assign_role_1347.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
