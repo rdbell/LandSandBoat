@@ -626,6 +626,8 @@ set(SOURCES
     test_pet_can_attack_1430.cpp
     test_pet_ability_1431.h
     test_pet_ability_1431.cpp
+    test_pet_ability_result_1432.h
+    test_pet_ability_result_1432.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

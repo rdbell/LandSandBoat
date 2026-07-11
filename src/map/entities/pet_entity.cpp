@@ -323,20 +323,16 @@ void CPetEntity::OnAbility(CAbilityState& state, action_t& action)
             auto prevMsg                  = actionResult.messageID;
 
             int32 value = luautils::OnUseAbility(this, PTarget, PAbility, &action);
-            if (prevMsg == actionResult.messageID)
-            {
-                actionResult.messageID = PAbility->getMessage();
-            }
-            if (actionResult.messageID == MsgBasic::None)
-            {
-                actionResult.messageID = MsgBasic::UsesJobAbility;
-            }
-            actionResult.param = value;
-            if (value < 0)
-            {
-                actionResult.messageID = messageutils::GetAbsorbVariant(actionResult.messageID);
-                actionResult.param     = -value;
-            }
+            const auto result = petabilityhelpers::FinalizeResult(
+                prevMsg,
+                actionResult.messageID,
+                PAbility->getMessage(),
+                MsgBasic::None,
+                MsgBasic::UsesJobAbility,
+                value,
+                [](MsgBasic message) { return messageutils::GetAbsorbVariant(message); });
+            actionResult.messageID = result.message;
+            actionResult.param     = result.param;
         },
         [&]() { ActionInterrupts::AbilityInterrupt(this); },
         [&]() { ActionInterrupts::AbilityParalyzed(this, PTarget); },
