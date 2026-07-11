@@ -540,6 +540,8 @@ set(SOURCES
     test_attack_state_1387.cpp
     test_can_attack_1388.h
     test_can_attack_1388.cpp
+    test_ranged_hit_count_1389.h
+    test_ranged_hit_count_1389.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

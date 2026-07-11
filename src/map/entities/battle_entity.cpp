@@ -22,6 +22,7 @@
 #include "battle_entity.h"
 
 #include "can_attack_capacity.h"
+#include "ranged_hit_count_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3199,54 +3200,57 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
         ammoThrowing   = PAmmo ? PAmmo->isThrowing() : false;
         rangedThrowing = PItem ? PItem->isThrowing() : false;
 
-        if (ammoThrowing)
+        if (rangedhitcounthelpers::ShouldNullRangedWeaponOnAmmoThrow(ammoThrowing))
         {
-            slot  = SLOT_AMMO;
+            slot  = rangedhitcounthelpers::ResolveRangedWeaponSlot(true);
             PItem = nullptr;
         }
-        if (rangedThrowing)
+        if (rangedhitcounthelpers::ShouldNullAmmoOnRangedThrow(rangedThrowing))
         {
             PAmmo = nullptr;
         }
     }
 
     uint8 shadowsTaken = 0;
-    uint8 hitCount     = 1; // 1 hit by default
     uint8 realHits     = 0; // Used to store the real number of hits for tp multiplier
     auto  ammoConsumed = 0;
     bool  hitOccured   = false; // Track if there was a successful hit
     bool  wasCritical  = false; // Track if the hit was critical
     bool  isBarrage    = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Barrage, 0);
-    bool  isSange      = isChar && StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sange) && getMod(Mod::SANGE_MULTI_HIT) > 0; // Pre-SoA Sange logic check, applied in SoA module
+    // Pre-SoA Sange logic check, applied in SoA module
+    bool isSange = isChar && rangedhitcounthelpers::IsSangeActive(
+                                 StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sange),
+                                 getMod(Mod::SANGE_MULTI_HIT));
 
-    // Player Barrage check
-    if (isChar && !ammoThrowing && !rangedThrowing && isBarrage)
+    // Preserve exclusive ladder + RNG short-circuit order of the original
+    // if/else chain (do not pre-roll triple/double when barrage/sange apply).
+    uint8 hitCount = rangedhitcounthelpers::BaseRangedHitCount;
+    if (rangedhitcounthelpers::ShouldApplyCharBarrage(isChar, ammoThrowing, rangedThrowing, isBarrage) ||
+        rangedhitcounthelpers::ShouldApplyNonCharBarrage(isChar, isBarrage))
     {
-        hitCount += battleutils::getBarrageShotCount(this);
+        hitCount = static_cast<uint8>(
+            rangedhitcounthelpers::BaseRangedHitCount + battleutils::getBarrageShotCount(this));
     }
-    else if (!isChar && isBarrage) // Mobs and trusts have barrage
+    else if (rangedhitcounthelpers::ShouldApplySange(isChar, ammoThrowing, isSange))
     {
-        hitCount += battleutils::getBarrageShotCount(this);
-    }
-    else if (isChar && ammoThrowing && isSange)
-    {
-        int32 shadows = std::clamp<int32>(getMod(Mod::UTSUSEMI), 0, 7);
         StatusEffectContainer->DelStatusEffect(xi::StatusEffect::CopyImage);
-
-        hitCount += static_cast<uint8>(shadows);
-
-        if (PAmmo && PAmmo->getQuantity() < hitCount)
-        {
-            hitCount = PAmmo->getQuantity();
-        }
+        hitCount = static_cast<uint8>(
+            rangedhitcounthelpers::BaseRangedHitCount +
+            rangedhitcounthelpers::ClampUtsusemiForSange(getMod(Mod::UTSUSEMI)));
+        hitCount = rangedhitcounthelpers::CapHitCountByAmmoQuantity(
+            hitCount, PAmmo != nullptr, PAmmo ? static_cast<uint8>(std::min<uint32>(PAmmo->getQuantity(), 255)) : static_cast<uint8>(0));
     }
-    else if ((isChar || isTrust) && StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TripleShot) && xirand::GetRandomNumber(100) < getMod(Mod::TRIPLE_SHOT_RATE))
+    else if (rangedhitcounthelpers::ShouldTryTripleShot(
+                 isChar, isTrust, StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TripleShot)) &&
+             rangedhitcounthelpers::MultiShotProcs(getMod(Mod::TRIPLE_SHOT_RATE), xirand::GetRandomNumber(100)))
     {
-        hitCount = 3;
+        hitCount = rangedhitcounthelpers::TripleShotHitCount;
     }
-    else if ((isChar || isTrust) && StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DoubleShot) && xirand::GetRandomNumber(100) < getMod(Mod::DOUBLE_SHOT_RATE))
+    else if (rangedhitcounthelpers::ShouldTryDoubleShot(
+                 isChar, isTrust, StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DoubleShot)) &&
+             rangedhitcounthelpers::MultiShotProcs(getMod(Mod::DOUBLE_SHOT_RATE), xirand::GetRandomNumber(100)))
     {
-        hitCount = 2;
+        hitCount = rangedhitcounthelpers::DoubleShotHitCount;
     }
 
     // Loop for barrage hits. Once there is a miss the loop ends
