@@ -29,6 +29,7 @@
 #include "char_name_reroute.h"
 #include "char_var_update.h"
 #include "char_zone.h"
+#include "conquest_event.h"
 #include "chat_message_alliance.h"
 #include "chat_message_assist.h"
 #include "chat_message_custom.h"
@@ -782,7 +783,13 @@ void IPCServer::handleMessage_ConquestEvent(const IPP& ipp, const ipc::ConquestE
 {
     TracyZoneScoped;
 
-    worldServer_.conquestSystem_->handleMessage(message.type, { ipp, message.payload });
+    worldipc::HandleConquestEvent(
+        ipp,
+        message,
+        [this](ConquestMessage type, IPPMessage&& event)
+        {
+            return worldServer_.conquestSystem_->handleMessage(type, std::move(event));
+        });
 }
 
 void IPCServer::handleMessage_BesiegedEvent(const IPP& ipp, const ipc::BesiegedEvent& message)
