@@ -355,6 +355,7 @@ auto runCharAutomaton1435SelfTests() -> bool;
 auto runCharStorage1436SelfTests() -> bool;
 auto runCharPlaytime1437SelfTests() -> bool;
 auto runCharBazaar1438SelfTests() -> bool;
+auto runCharName1439SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -920,6 +921,7 @@ namespace
         ok = runCharStorage1436SelfTests() && ok;
         ok = runCharPlaytime1437SelfTests() && ok;
         ok = runCharBazaar1438SelfTests() && ok;
+        ok = runCharName1439SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

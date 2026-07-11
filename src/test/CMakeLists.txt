@@ -640,6 +640,8 @@ set(SOURCES
     test_char_playtime_1437.cpp
     test_char_bazaar_1438.h
     test_char_bazaar_1438.cpp
+    test_char_name_1439.h
+    test_char_name_1439.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

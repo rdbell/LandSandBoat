@@ -24,6 +24,7 @@
 #include "can_attack_capacity.h"
 #include "char_automaton_capacity.h"
 #include "char_bazaar_capacity.h"
+#include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_playtime_capacity.h"
 #include "char_storage_capacity.h"
@@ -833,12 +834,7 @@ bool CCharEntity::hasBazaar()
 
 void CCharEntity::SetName(const std::string& name)
 {
-    this->name = name;
-
-    if (this->name.size() > PacketNameLength)
-    {
-        this->name.resize(PacketNameLength); // Enforce max name limit
-    }
+    this->name = charnamehelpers::Normalize(name);
 }
 
 int16 CCharEntity::addTP(int16 tp)
