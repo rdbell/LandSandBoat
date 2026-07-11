@@ -2,6 +2,7 @@
 
 #include "common/cbasetypes.h"
 
+#include <cctype>
 #include <cstddef>
 #include <cstdint>
 #include <fmt/format.h>
@@ -466,5 +467,125 @@ inline auto FormatAssignRoleMobPartyWarning(const uint8 role, const std::string&
 {
     return fmt::format("Attempting to assign role ({}) to {} in Mob Party.", role, memberName);
 }
+
+// get_member_by_name_gate is the pure outcome of GetMemberByName before the
+// member-list scan.
+enum class get_member_by_name_gate : uint8_t
+{
+    REJECT_MOB_PARTY, // not PARTY_PCS — warn, return nullptr
+    REJECT_EMPTY,     // memberName == ""
+    SEARCH,           // case-insensitive scan of members
+};
+
+// ClassifyGetMemberByName mirrors GetMemberByName's ordered pre-scan gates.
+inline auto ClassifyGetMemberByName(const bool isPCParty, const bool nameEmpty) -> get_member_by_name_gate
+{
+    if (!isPCParty)
+    {
+        return get_member_by_name_gate::REJECT_MOB_PARTY;
+    }
+    if (nameEmpty)
+    {
+        return get_member_by_name_gate::REJECT_EMPTY;
+    }
+    return get_member_by_name_gate::SEARCH;
+}
+
+// FormatGetMemberMobPartyWarning mirrors ShowWarning for mob GetMemberByName.
+inline auto FormatGetMemberMobPartyWarning(const std::string& memberName) -> std::string
+{
+    return fmt::format("Attempting to get Member data for {} in Mob Party.", memberName);
+}
+
+// MemberNameMatches mirrors strcmpi(a, b) == 0 (case-insensitive equality).
+inline auto MemberNameMatches(const std::string& a, const std::string& b) -> bool
+{
+    if (a.size() != b.size())
+    {
+        return false;
+    }
+    for (std::size_t i = 0; i < a.size(); ++i)
+    {
+        if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i])))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// set_leader_lookup_gate is the pure outcome of the PC SetLeader charname query.
+enum class set_leader_lookup_gate : uint8_t
+{
+    NOT_FOUND, // query fail or no row — return early
+    FOUND,     // rewrite partyid/flags and set m_PLeader
+};
+
+// ClassifySetLeaderLookup mirrors rset success with a row in SetLeader(PC).
+inline auto ClassifySetLeaderLookup(const bool queryOk, const bool rowFound) -> set_leader_lookup_gate
+{
+    if (queryOk && rowFound)
+    {
+        return set_leader_lookup_gate::FOUND;
+    }
+    return set_leader_lookup_gate::NOT_FOUND;
+}
+
+// PartyLeaderFlag is PARTY_LEADER (0x0004).
+constexpr uint16 PartyLeaderFlag = 0x0004;
+
+// AllianceLeaderFlag is ALLIANCE_LEADER (0x0008); dual-hosted with alliancehelpers.
+constexpr uint16 AllianceLeaderFlag = 0x0008;
+
+// ClearLeaderFlagsMask is ALLIANCE_LEADER | PARTY_LEADER cleared on old leaders.
+constexpr uint16 ClearLeaderFlagsMask = AllianceLeaderFlag | PartyLeaderFlag;
+
+// LeaderPartyFlags mirrors IF(allianceid = partyid, ALLIANCE_LEADER|PARTY_LEADER, PARTY_LEADER).
+inline auto LeaderPartyFlags(const bool allianceIdEqualsPartyId) -> uint16
+{
+    return allianceIdEqualsPartyId ? static_cast<uint16>(AllianceLeaderFlag | PartyLeaderFlag) : PartyLeaderFlag;
+}
+
+// ShouldRewriteAllianceIDOnLeaderChange mirrors
+// m_PAlliance && m_PAlliance->m_AllianceID == m_PartyID.
+inline auto ShouldRewriteAllianceIDOnLeaderChange(const bool hasAlliance, const bool allianceIdEqualsPartyId) -> bool
+{
+    return hasAlliance && allianceIdEqualsPartyId;
+}
+
+// NewPartyIDFromLeaderChar mirrors m_PartyID = newId after PC SetLeader.
+inline auto NewPartyIDFromLeaderChar(const uint32 leaderCharID) -> uint32
+{
+    return leaderCharID;
+}
+
+// ShouldUseMobPartyFirstMemberAsLeader mirrors the PARTY_MOBS SetLeader branch
+// (members.at(0)); host must ensure the list is non-empty.
+inline auto ShouldUseMobPartyFirstMemberAsLeader(const bool isMobParty) -> bool
+{
+    return isMobParty;
+}
+
+// FormatGetPartyInfoMobWarning mirrors GetPartyInfo's mob-party warning.
+inline auto FormatGetPartyInfoMobWarning() -> std::string
+{
+    return "Attempting to get Party data for Mob Party.";
+}
+
+// ShouldQueryPartyInfo mirrors m_PartyType == PARTY_PCS before the SQL load.
+inline auto ShouldQueryPartyInfo(const bool isPCParty) -> bool
+{
+    return isPCParty;
+}
+
+// GetPartyInfoAllianceIDInject mirrors m_PAlliance ? m_AllianceID : 0 for the
+// accounts_parties WHERE clause.
+inline auto GetPartyInfoAllianceIDInject(const bool hasAlliance, const uint32 allianceID) -> uint32
+{
+    return hasAlliance ? allianceID : 0;
+}
+
+// GetPartyInfoOrderFlags is PARTY_SECOND | PARTY_THIRD used in ORDER BY partyflag & ?.
+constexpr uint16 GetPartyInfoOrderFlags = 0x0001 | 0x0002;
 
 } // namespace partyhelpers

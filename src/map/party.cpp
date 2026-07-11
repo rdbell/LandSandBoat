@@ -273,20 +273,20 @@ uint8 CParty::MemberCount(uint16 ZoneID)
 // Returns entity pointer to party member by name (used for /pcmd kick or otherwise)
 CBattleEntity* CParty::GetMemberByName(const std::string& memberName)
 {
-    if (m_PartyType != PARTY_PCS)
+    const auto gate = partyhelpers::ClassifyGetMemberByName(m_PartyType == PARTY_PCS, memberName.empty());
+    if (gate == partyhelpers::get_member_by_name_gate::REJECT_MOB_PARTY)
     {
-        ShowWarning("Attempting to get Member data for %s in Mob Party.", memberName);
+        ShowWarning("%s", partyhelpers::FormatGetMemberMobPartyWarning(memberName));
         return nullptr;
     }
-
-    if (memberName == "")
+    if (gate == partyhelpers::get_member_by_name_gate::REJECT_EMPTY)
     {
         return nullptr;
     }
 
     for (auto& member : members)
     {
-        if (strcmpi(memberName.c_str(), member->getName().c_str()) == 0)
+        if (partyhelpers::MemberNameMatches(memberName, member->getName()))
         {
             return member;
         }
@@ -590,18 +590,18 @@ std::vector<CParty::partyInfo_t> CParty::GetPartyInfo() const
 {
     std::vector<CParty::partyInfo_t> memberinfo;
 
-    if (m_PartyType != PARTY_PCS)
+    if (!partyhelpers::ShouldQueryPartyInfo(m_PartyType == PARTY_PCS))
     {
-        ShowWarning("Attempting to get Party data for Mob Party.");
+        ShowWarning("%s", partyhelpers::FormatGetPartyInfoMobWarning());
         return memberinfo;
     }
 
     const auto rset = db::preparedStmt("SELECT chars.charid, partyid, allianceid, charname, partyflag, pos_zone, pos_prevzone FROM accounts_parties "
                                        "LEFT JOIN chars ON accounts_parties.charid = chars.charid WHERE "
                                        "(allianceid <> 0 AND allianceid = ?) OR partyid = ? ORDER BY partyflag & ?, timestamp",
-                                       m_PAlliance ? m_PAlliance->m_AllianceID : 0,
+                                       partyhelpers::GetPartyInfoAllianceIDInject(m_PAlliance != nullptr, m_PAlliance ? m_PAlliance->m_AllianceID : 0),
                                        m_PartyID,
-                                       PARTY_SECOND | PARTY_THIRD);
+                                       partyhelpers::GetPartyInfoOrderFlags);
     if (rset && rset->rowsCount())
     {
         while (rset->next())
@@ -1109,12 +1109,19 @@ void CParty::ReloadTreasurePool(CCharEntity* PChar)
 
 void CParty::SetLeader(const std::string& MemberName)
 {
+    if (partyhelpers::ShouldUseMobPartyFirstMemberAsLeader(m_PartyType == PARTY_MOBS))
+    {
+        m_PLeader = members.at(0);
+        return;
+    }
+
     if (m_PartyType == PARTY_PCS)
     {
         uint32 newId = 0;
 
         const auto rset = db::preparedStmt("SELECT chars.charid from accounts_sessions JOIN chars ON chars.charid = accounts_sessions.charid WHERE charname = ?", MemberName);
-        if (rset && rset->rowsCount() && rset->next())
+        if (partyhelpers::ClassifySetLeaderLookup(static_cast<bool>(rset), rset && rset->rowsCount() && rset->next()) ==
+            partyhelpers::set_leader_lookup_gate::FOUND)
         {
             newId = rset->get<uint32>(0);
         }
@@ -1123,18 +1130,26 @@ void CParty::SetLeader(const std::string& MemberName)
             return;
         }
 
-        db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag & ~? WHERE partyid = ? AND partyflag & ?", ALLIANCE_LEADER | PARTY_LEADER, m_PartyID, PARTY_LEADER);
+        db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag & ~? WHERE partyid = ? AND partyflag & ?",
+                         partyhelpers::ClearLeaderFlagsMask,
+                         m_PartyID,
+                         partyhelpers::PartyLeaderFlag);
         db::preparedStmt("UPDATE accounts_parties SET partyid = ? WHERE partyid = ?", newId, m_PartyID);
         db::preparedStmt("UPDATE accounts_parties SET allianceid = ? WHERE allianceid = ?", newId, m_PartyID);
 
         m_PLeader = GetMemberByName(MemberName);
-        if (this->m_PAlliance && this->m_PAlliance->m_AllianceID == m_PartyID)
+        if (partyhelpers::ShouldRewriteAllianceIDOnLeaderChange(this->m_PAlliance != nullptr, this->m_PAlliance && this->m_PAlliance->m_AllianceID == m_PartyID))
         {
             m_PAlliance->m_AllianceID = newId;
         }
 
-        m_PartyID = newId;
-        db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag | IF(allianceid = partyid, ?, ?) WHERE charid = ?", ALLIANCE_LEADER | PARTY_LEADER, PARTY_LEADER, newId);
+        m_PartyID = partyhelpers::NewPartyIDFromLeaderChar(newId);
+        // SQL IF(allianceid = partyid, ALLIANCE_LEADER|PARTY_LEADER, PARTY_LEADER) stays server-side;
+        // LeaderPartyFlags documents the two branch values for hosts.
+        db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag | IF(allianceid = partyid, ?, ?) WHERE charid = ?",
+                         partyhelpers::LeaderPartyFlags(true),
+                         partyhelpers::LeaderPartyFlags(false),
+                         newId);
 
         // Passing leader dismisses trusts
         for (auto* PMemberEntity : members)
@@ -1144,10 +1159,6 @@ void CParty::SetLeader(const std::string& MemberName)
                 PMember->ClearTrusts();
             }
         }
-    }
-    else
-    {
-        m_PLeader = members.at(0);
     }
 }
 
