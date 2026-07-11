@@ -205,10 +205,61 @@ auto testSignedWireEncoding() -> bool
     return expectEqualBytes(ipc::toBytesWithHeader(update), expected, "signed wire bytes");
 }
 
+auto testForwardCompatibleTrailingFields() -> bool
+{
+    bool ok = true;
+
+    const std::vector<uint8> partial{
+        static_cast<uint8>(ipc::MessageType::CharVarUpdate),
+        0x2A,
+    };
+    const auto partialDecoded = ipc::fromBytesWithHeader<ipc::CharVarUpdate>(partial);
+    ok = expectEqualBool(partialDecoded.has_value(), true, "partial aggregate decoded") && ok;
+    if (partialDecoded)
+    {
+        ok = expectEqualInt(partialDecoded->charId, 42, "partial aggregate char id") && ok;
+        ok = expectEqualInt(partialDecoded->value, 0, "partial aggregate default value") && ok;
+        ok = expectEqualInt(partialDecoded->expiry, 0, "partial aggregate default expiry") && ok;
+        ok = expectEqualString(partialDecoded->varName, "", "partial aggregate default name") && ok;
+    }
+
+    auto trailing = ipc::toBytesWithHeader(ipc::AccountLogin{ .accountId = 77 });
+    trailing.push_back(0xAA);
+    trailing.push_back(0xBB);
+    const auto trailingDecoded = ipc::fromBytesWithHeader<ipc::AccountLogin>(trailing);
+    ok = expectEqualBool(trailingDecoded.has_value(), true, "trailing bytes ignored") && ok;
+    if (trailingDecoded)
+    {
+        ok = expectEqualInt(trailingDecoded->accountId, 77, "trailing bytes account id") && ok;
+    }
+
+    return ok;
+}
+
+auto testMalformedDynamicPayloads() -> bool
+{
+    bool ok = true;
+
+    const std::vector<uint8> headerOnly{ static_cast<uint8>(ipc::MessageType::AccountLogin) };
+    const auto headerOnlyDecoded = ipc::fromBytesWithHeader<ipc::AccountLogin>(headerOnly);
+    ok = expectEqualBool(headerOnlyDecoded.has_value(), false, "header-only payload rejected") && ok;
+
+    const std::vector<uint8> shortString{
+        static_cast<uint8>(ipc::MessageType::GMCallResponse),
+        0x01,
+        0x02,
+        0x05, 'x',
+    };
+    const auto shortStringDecoded = ipc::fromBytesWithHeader<ipc::GMCallResponse>(shortString);
+    ok = expectEqualBool(shortStringDecoded.has_value(), false, "short string payload rejected") && ok;
+
+    return ok;
+}
+
 } // namespace
 
 auto runIPCMessageFramingSelfTests() -> bool
 {
     return testPayloadRoundTrip() && testHeaderRoundTrip() && testStringPayloadRoundTrip() && testVectorPayloadRoundTrip() &&
-           testSignedWireEncoding();
+           testSignedWireEncoding() && testForwardCompatibleTrailingFields() && testMalformedDynamicPayloads();
 }
