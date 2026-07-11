@@ -36,6 +36,7 @@
 #include "chat_message_yell.h"
 #include "party_invite.h"
 #include "party_invite_response.h"
+#include "party_disband.h"
 #include "party_members_reroute.h"
 #include "party_reload.h"
 
@@ -584,7 +585,12 @@ void IPCServer::handleMessage_PartyDisband(const IPP& ipp, const ipc::PartyDisba
 {
     TracyZoneScoped;
 
-    rerouteMessageToPartyMembers(message.partyId, message);
+    worldipc::HandlePartyDisband(
+        message,
+        [this](const uint32 partyId, const ipc::PartyDisband& disband)
+        {
+            rerouteMessageToPartyMembers(partyId, disband);
+        });
 
     // TODO:
     // worldServer_.partySystem_->handleMessage(message);
