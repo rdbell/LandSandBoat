@@ -438,6 +438,8 @@ set(SOURCES
     test_party_push_packet_1335.cpp
     test_party_group_effects_1336.h
     test_party_group_effects_1336.cpp
+    test_map_gm_console_1337.h
+    test_map_gm_console_1337.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

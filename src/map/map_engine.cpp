@@ -21,6 +21,8 @@
 
 #include "map_engine.h"
 
+#include "map_gm_console.h"
+
 #include "common/blowfish.h"
 #include "common/console_service.h"
 #include "common/database.h"
@@ -393,15 +395,15 @@ void MapEngine::onBacktrace(std::vector<std::string>& inputs) const
 
 void MapEngine::onReloadRecipes(std::vector<std::string>& inputs) const
 {
-    fmt::print("> Reloading crafting recipes\n");
+    fmt::print("{}", mapapp::FormatReloadRecipesNotice());
     synthutils::LoadSynthRecipes();
 }
 
 void MapEngine::onGM(const std::vector<std::string>& inputs) const
 {
-    if (inputs.size() != 3)
+    if (!mapapp::ClassifyGMCommandArgsValid(inputs.size()))
     {
-        fmt::print("Usage: gm <char_name> <level>. example: gm Testo 1\n");
+        fmt::print("{}", mapapp::FormatGMUsage());
         return;
     }
 
@@ -409,18 +411,18 @@ void MapEngine::onGM(const std::vector<std::string>& inputs) const
     auto*       PChar = zoneutils::GetCharByName(name);
     if (!PChar)
     {
-        fmt::print("Couldnt find character: {}\n", name);
+        fmt::print("{}", mapapp::FormatGMCharNotFound(name));
         return;
     }
 
-    const auto level = std::clamp<uint8>(static_cast<uint8>(stoi(inputs[2])), 0, 5);
+    const auto level = mapapp::ClampGMLevel(stoi(inputs[2]));
 
     PChar->m_GMlevel = level;
 
     charutils::SaveCharGMLevel(PChar);
 
-    fmt::print("> Promoting {} to GM level {}\n", PChar->name, level);
-    PChar->pushPacket<GP_SERV_COMMAND_CHAT_STD>(PChar, MESSAGE_SYSTEM_3, fmt::format("You have been set to GM level {}.", level));
+    fmt::print("{}", mapapp::FormatGMPromote(PChar->name, level));
+    PChar->pushPacket<GP_SERV_COMMAND_CHAT_STD>(PChar, MESSAGE_SYSTEM_3, mapapp::FormatGMPlayerNotice(level));
 }
 
 auto MapEngine::networking() const -> MapNetworking&
