@@ -24,6 +24,7 @@
 
 #include "entities/char_entity.h"
 #include "recast_container.h"
+#include "recast_capacity.h"
 
 #include "enums/recast.h"
 
@@ -98,37 +99,44 @@ Recast_t* CRecastContainer::Load(RECASTTYPE type, const Recast id, timer::durati
 {
     Recast_t* recast = GetRecast(type, id);
 
-    if (recast == nullptr)
+    if (recasthelpers::IsNewRecastEntry(recast == nullptr))
     {
         GetRecastList(type)->emplace_back(Recast_t{ id, timer::now(), duration, chargeTime, maxCharges });
         return &GetRecastList(type)->back();
     }
     else
     {
-        if (chargeTime != 0s)
+        if (recasthelpers::ShouldUpdateChargeTime(chargeTime != 0s))
         {
             recast->chargeTime = chargeTime;
         }
-        if (maxCharges)
+        if (recasthelpers::ShouldUpdateMaxCharges(maxCharges != 0))
         {
             recast->maxCharges = maxCharges;
         }
-        if (recast->chargeTime == 0s)
+        if (recasthelpers::IsSimpleRecast(recast->chargeTime == 0s))
         {
             recast->TimeStamp  = timer::now();
             recast->RecastTime = duration;
         }
         else
         {
-            if (recast->RecastTime == 0s)
+            if (recasthelpers::ShouldStampOnZeroRecast(recast->RecastTime == 0s))
             {
                 recast->TimeStamp = timer::now();
             }
-            else if (recast->RecastTime + duration > recast->chargeTime * recast->maxCharges)
+            else
             {
-                auto diff = (recast->RecastTime + duration) - (recast->chargeTime * recast->maxCharges);
-                recast->TimeStamp += diff;
-                duration -= diff;
+                const auto recastUnits  = recast->RecastTime.count();
+                const auto durationUnits = duration.count();
+                const auto chargeUnits  = recast->chargeTime.count();
+                const auto chargeCap    = recasthelpers::ChargeCapUnits(chargeUnits, recast->maxCharges);
+                if (recasthelpers::ExceedsChargeCap(recastUnits, durationUnits, chargeCap))
+                {
+                    const auto diffUnits = recasthelpers::ChargeCapOverflowDiff(recastUnits, durationUnits, chargeCap);
+                    recast->TimeStamp += timer::duration(diffUnits);
+                    duration -= timer::duration(diffUnits);
+                }
             }
             recast->RecastTime += duration;
         }
@@ -246,9 +254,9 @@ bool CRecastContainer::HasRecast(RECASTTYPE type, Recast id, timer::duration rec
 
     for (auto& i : *PRecastList)
     {
-        if (i.ID == id && i.RecastTime > 0s)
+        if (recasthelpers::IsMatchingActiveRecast(i.ID == id, i.RecastTime > 0s))
         {
-            if (i.chargeTime == 0s)
+            if (recasthelpers::HasRecastWhenSimple(i.chargeTime == 0s))
             {
                 return true;
             }
@@ -259,16 +267,18 @@ bool CRecastContainer::HasRecast(RECASTTYPE type, Recast id, timer::duration rec
                 // "recast" 1-4 = sic/ready
                 // "recast" 1 = quickdraw, stratagems
                 auto crypticRecastSecondsAsType = timer::count_seconds(recast);
-                if (crypticRecastSecondsAsType > i.maxCharges)
+                if (recasthelpers::RequestExceedsMaxCharges(crypticRecastSecondsAsType, i.maxCharges))
                 {
                     return true;
                 }
 
-                auto  currentRecast    = i.TimeStamp - timer::now() + i.RecastTime;
-                uint8 availableCharges = static_cast<uint8>(currentRecast / i.chargeTime);
-                auto  charges          = i.maxCharges - availableCharges - 1;
+                auto currentRecast = i.TimeStamp - timer::now() + i.RecastTime;
+                uint8 availableCharges = recasthelpers::AvailableCharges(
+                    currentRecast.count(),
+                    i.chargeTime.count());
+                auto charges = recasthelpers::RemainingChargesAfterRequest(i.maxCharges, availableCharges);
 
-                if (charges < crypticRecastSecondsAsType)
+                if (recasthelpers::HasInsufficientCharges(charges, crypticRecastSecondsAsType))
                 {
                     return true;
                 }
@@ -296,7 +306,10 @@ void CRecastContainer::Check()
         {
             Recast_t* recast = &PRecastList->at(i);
 
-            if (timer::now() >= recast->TimeStamp + recast->RecastTime)
+            if (recasthelpers::ShouldExpireRecast(
+                    timer::now().time_since_epoch().count(),
+                    recast->TimeStamp.time_since_epoch().count(),
+                    recast->RecastTime.count()))
             {
                 if (type == RECAST_MAGIC)
                 {
@@ -304,6 +317,7 @@ void CRecastContainer::Check()
                 }
                 else
                 {
+                    // ability: retain entry with zero recast
                     recast->RecastTime = 0s;
                 }
             }

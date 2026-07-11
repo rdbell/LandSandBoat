@@ -286,6 +286,7 @@ auto runStatusEffectTick1366SelfTests() -> bool;
 auto runTreasurePoolPolicy1367SelfTests() -> bool;
 auto runStatusEffectPrevent1368SelfTests() -> bool;
 auto runStatusEffectParams1369SelfTests() -> bool;
+auto runRecastCharge1370SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -782,6 +783,7 @@ namespace
         ok = runTreasurePoolPolicy1367SelfTests() && ok;
         ok = runStatusEffectPrevent1368SelfTests() && ok;
         ok = runStatusEffectParams1369SelfTests() && ok;
+        ok = runRecastCharge1370SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
