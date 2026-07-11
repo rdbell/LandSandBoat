@@ -20,6 +20,7 @@
 */
 
 #include "attack.h"
+#include "attack_capacity.h"
 #include "ai/ai_container.h"
 #include "attackround.h"
 #include "entities/battle_entity.h"
@@ -182,15 +183,14 @@ bool CAttack::CheckGuarded()
     m_isGuarded = attackutils::IsGuarded(m_attacker, m_victim);
     if (m_isGuarded)
     {
-        m_damageRatio -= 1.0f;
-        m_damageRatio = std::max(m_damageRatio, 0.f);
+        m_damageRatio = attackhelpers::ApplyGuardDamageRatio(m_damageRatio);
     }
     return m_isGuarded;
 }
 
 bool CAttack::CheckParried()
 {
-    if (m_attackType != PHYSICAL_ATTACK_TYPE::DAKEN)
+    if (!attackhelpers::ShouldSkipParryForDaken(static_cast<uint8>(m_attackType)))
     {
         if (attackutils::IsParried(m_attacker, m_victim))
         {
@@ -207,18 +207,18 @@ bool CAttack::IsAnticipated() const
 
 bool CAttack::IsDeflected() const
 {
-    if (!m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DefenseBoost))
+    const bool hasDefenseBoost = m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DefenseBoost);
+    uint16     subpower        = 0;
+    bool       inFront         = false;
+    if (hasDefenseBoost)
     {
-        return false;
+        subpower = m_victim->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::DefenseBoost)->GetSubPower();
+        if (subpower != 0)
+        {
+            inFront = infront(m_attacker->loc.p, m_victim->loc.p, subpower);
+        }
     }
-
-    uint16 subpower = m_victim->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::DefenseBoost)->GetSubPower();
-    if (subpower == 0)
-    {
-        return false;
-    }
-
-    return infront(m_attacker->loc.p, m_victim->loc.p, subpower);
+    return attackhelpers::IsDeflected(hasDefenseBoost, subpower, inFront);
 }
 
 /************************************************************************
@@ -380,14 +380,14 @@ void CAttack::SetDamage(int32 value)
 
 bool CAttack::CheckAnticipated()
 {
-    if (m_attackType == PHYSICAL_ATTACK_TYPE::DAKEN)
+    if (attackhelpers::ShouldSkipAnticipateForDaken(static_cast<uint8>(m_attackType)))
     {
         return false;
     }
 
     // bail out before hitting lua if we dont have TE
     CStatusEffect* thirdEyeEffect = m_victim->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::ThirdEye, 0);
-    if (thirdEyeEffect == nullptr)
+    if (!attackhelpers::HasThirdEyeForAnticipate(thirdEyeEffect != nullptr))
     {
         return false;
     }
@@ -431,13 +431,15 @@ bool CAttack::IsCountered() const
 bool CAttack::CheckCounter()
 {
     // TODO return false if boost is active (when boost gets refactored to be current retail accurate)
-    if (m_attackType == PHYSICAL_ATTACK_TYPE::DAKEN)
+    if (attackhelpers::ShouldSkipCounterForDaken(static_cast<uint8>(m_attackType)))
     {
         return false;
     }
 
     // Don't counter if not engaged or stunned, slept, etc.
-    if (!m_victim->PAI->IsEngaged() || m_victim->StatusEffectContainer->HasPreventActionEffect(true))
+    if (attackhelpers::ShouldBlockCounterForState(
+            m_victim->PAI->IsEngaged(),
+            m_victim->StatusEffectContainer->HasPreventActionEffect(true)))
     {
         m_isCountered = false;
         return m_isCountered;
@@ -446,7 +448,7 @@ bool CAttack::CheckCounter()
     uint8 meritCounter = 0;
 
     // Skip checking for counter merits if you're not on MNK
-    if (m_victim->objtype == TYPE_PC && m_victim->GetMJob() == JOB_MNK)
+    if (attackhelpers::ShouldAddMNKCounterMerit(m_victim->objtype == TYPE_PC, m_victim->GetMJob() == JOB_MNK))
     {
         auto* PChar = static_cast<CCharEntity*>(m_victim);
 
@@ -462,22 +464,28 @@ bool CAttack::CheckCounter()
         auto* PChar              = static_cast<CCharEntity*>(m_victim);
         auto* weapon             = dynamic_cast<CItemWeapon*>(PChar->m_Weapons[SLOT_MAIN]);
         bool  isValid2HandWeapon = weapon && weapon->isTwoHanded();
-        bool  hasValidSeigan     = isValid2HandWeapon && PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Seigan, 0);
+        bool  hasValidSeigan     = attackhelpers::IsValidSeiganForCounter(
+            isValid2HandWeapon,
+            PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Seigan, 0));
 
-        if (hasValidSeigan)
-        {
-            seiganChance = PChar->getMod(Mod::ZANSHIN) + PChar->PMeritPoints->GetMeritValue(MERIT_ZASHIN_ATTACK_RATE, PChar);
-            seiganChance = std::clamp<uint16>(seiganChance, 0, 100);
-            seiganChance /= 4;
-        }
+        seiganChance = attackhelpers::ComputeSeiganCounterChance(
+            hasValidSeigan,
+            PChar->getMod(Mod::ZANSHIN),
+            PChar->PMeritPoints->GetMeritValue(MERIT_ZASHIN_ATTACK_RATE, PChar));
     }
 
     // Do not counter if PD is up
-    if (!m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::PerfectDodge))
+    if (!attackhelpers::ShouldSkipCounterForPerfectDodge(
+            m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::PerfectDodge)))
     {
-        if ((xirand::GetRandomNumber(100) < std::clamp<uint16>(m_victim->getMod(Mod::COUNTER) + meritCounter, 0, 80) ||
-             xirand::GetRandomNumber(100) < seiganChance) &&
-            facing(m_victim->loc.p, m_attacker->loc.p, 64))
+        const auto counterRate = attackhelpers::ClampCounterRate(m_victim->getMod(Mod::COUNTER), meritCounter);
+        // Preserve short-circuit roll order: counter rate first, seigan only if counter fails.
+        const bool counterRateProcs = xirand::GetRandomNumber(100) < counterRate;
+        const bool seiganRateProcs  = !counterRateProcs && xirand::GetRandomNumber(100) < seiganChance;
+        const bool rateAttempt      = attackhelpers::ShouldAttemptCounterRate(counterRateProcs, seiganRateProcs);
+        const bool isFacing         = facing(m_victim->loc.p, m_attacker->loc.p, attackhelpers::CounterFacingArc);
+
+        if (rateAttempt && isFacing)
         {
             if (xirand::GetRandomNumber(100) < battleutils::GetHitRate(m_victim, m_attacker))
             {
@@ -489,7 +497,8 @@ bool CAttack::CheckCounter()
                 m_attacker->PAI->EventHandler.triggerListener("MELEE_SWING_MISS", m_attacker, m_victim, this);
             }
         }
-        else if (m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::PerfectCounter))
+        else if (attackhelpers::ShouldPerfectCounter(
+                     m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::PerfectCounter)))
         {
             // Perfect Counter only counters hits that normal counter misses, always critical, can counter 1-3 times before wearing
             // TODO: Perfect Counter can negate an attack even if it misses (No accuracy check yet)
@@ -511,7 +520,7 @@ bool CAttack::IsCovered() const
 bool CAttack::CheckCover()
 {
     CBattleEntity* PCoverAbilityUser = m_attackRound->GetCoverAbilityUserEntity();
-    if (PCoverAbilityUser != nullptr && PCoverAbilityUser->isAlive())
+    if (attackhelpers::IsCoverActive(PCoverAbilityUser != nullptr, PCoverAbilityUser != nullptr && PCoverAbilityUser->isAlive()))
     {
         m_isCovered = true;
         m_victim    = PCoverAbilityUser;
