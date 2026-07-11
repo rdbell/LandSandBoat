@@ -185,6 +185,7 @@ auto runWorldMessageSystem1275SelfTests() -> bool;
 auto runWorldLinkshellRankChange1276SelfTests() -> bool;
 auto runWorldLinkshellRemove1277SelfTests() -> bool;
 auto runWorldLinkshellSetMessage1278SelfTests() -> bool;
+auto runWorldLuaFunction1279SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -591,6 +592,7 @@ namespace
         ok = runWorldLinkshellRankChange1276SelfTests() && ok;
         ok = runWorldLinkshellRemove1277SelfTests() && ok;
         ok = runWorldLinkshellSetMessage1278SelfTests() && ok;
+        ok = runWorldLuaFunction1279SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;

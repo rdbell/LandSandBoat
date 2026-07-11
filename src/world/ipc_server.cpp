@@ -42,6 +42,7 @@
 #include "linkshell_rank_change.h"
 #include "linkshell_remove.h"
 #include "linkshell_set_message.h"
+#include "lua_function.h"
 #include "message_standard.h"
 #include "message_system.h"
 #include "party_invite.h"
@@ -50,6 +51,7 @@
 #include "party_members_reroute.h"
 #include "party_reload.h"
 #include "player_kick.h"
+#include "zone_id_reroute.h"
 
 #include "besieged_system.h"
 #include "campaign_system.h"
@@ -233,12 +235,18 @@ void IPCServer::rerouteMessageToZoneId(uint16 zoneId, const auto& message)
 {
     TracyZoneScoped;
 
-    if (const auto maybeZoneIPP = getIPPForZoneId(zoneId))
-    {
-        const auto zoneIPP = *maybeZoneIPP;
-        DebugIPCFmt("Message: -> rerouting to zone<{}> on {}", zoneId, zoneIPP.toString());
-        sendMessage(zoneIPP, std::move(message));
-    }
+    worldipc::RerouteMessageToZoneId(
+        zoneId,
+        message,
+        [this](uint16 targetZoneId)
+        {
+            return getIPPForZoneId(targetZoneId);
+        },
+        [this, zoneId](const IPP& endpoint, const auto& delivered)
+        {
+            DebugIPCFmt("Message: -> rerouting to zone<{}> on {}", zoneId, endpoint.toString());
+            this->sendMessage(endpoint, delivered);
+        });
 }
 
 void IPCServer::rerouteMessageToPartyMembers(uint32 partyId, const auto& message)
@@ -736,7 +744,12 @@ void IPCServer::handleMessage_LuaFunction(const IPP& ipp, const ipc::LuaFunction
 {
     TracyZoneScoped;
 
-    rerouteMessageToZoneId(message.executorZoneId, message);
+    worldipc::HandleLuaFunction(
+        message,
+        [this](uint16 executorZoneId, const ipc::LuaFunction& function)
+        {
+            rerouteMessageToZoneId(executorZoneId, function);
+        });
 }
 
 void IPCServer::handleMessage_KillSession(const IPP& ipp, const ipc::KillSession& message)
