@@ -26,6 +26,7 @@
 #include "character_cache.h"
 #include "colonization_system.h"
 #include "conquest_system.h"
+#include "gmcall_request.h"
 #include "gmcall_response.h"
 
 #include <concurrentqueue.h>
@@ -721,13 +722,7 @@ void IPCServer::handleMessage_GMCallRequest(const IPP& ipp, const ipc::GMCallReq
 {
     TracyZoneScoped;
 
-    ShowInfoFmt("GM Call #{} from {} (charId: {}, accId: {}, zone: {}): {}",
-                message.callId,
-                message.charName,
-                message.charId,
-                message.accId,
-                message.zoneId,
-                message.message);
+    ShowInfoFmt("{}", world::gmcall::FormatRequestLog(message));
 
     // TODO: Route this to external clients
 }
