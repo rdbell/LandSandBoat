@@ -293,4 +293,31 @@ inline auto AcceptsOTPOrRecovery(const bool totpValid, const std::string& otp, c
     return totpValid || MatchesRecoveryCode(otp, recoveryCode);
 }
 
+// SessionHashSeed mirrors the LOGIN_ATTEMPT success hash input:
+//   earth_time::timestamp() ^ getpid()
+// before MD5 over the native 4-byte representation of the seed.
+inline auto SessionHashSeed(const uint32 timestamp, const uint32 pid) -> uint32
+{
+    return timestamp ^ pid;
+}
+
+// SessionHashLength is the MD5 digest size stored as session_hash (JSON array).
+constexpr std::size_t SessionHashLength = 16;
+
+// Change-password success JSON fixed fields (LOGIN_CHANGE_PASSWORD).
+constexpr login_result ChangePasswordSuccessResult    = login_result::LOGIN_SUCCESS_CHANGE_PASSWORD;
+constexpr uint32       ChangePasswordSuccessAccountID = 0;
+// Empty string session_hash (not a 16-byte array) on change-password success.
+inline constexpr const char* ChangePasswordSuccessSessionHash = "";
+
+// Login-attempt success JSON result field.
+constexpr login_result LoginAttemptSuccessResult = login_result::LOGIN_SUCCESS;
+
+// FormatUnhandledAuthCode mirrors the default login_cmd switch diagnostic.
+// code is the raw JSON "command" value (int8 in production).
+inline auto FormatUnhandledAuthCode(const int8 code, const std::string& ipAddress) -> std::string
+{
+    return fmt::format("Unhandled auth code: {} from {}", code, ipAddress);
+}
+
 } // namespace loginHelpers

@@ -260,12 +260,12 @@ void auth_session::read_func()
             */
 
             // Success
-            unsigned char hash[16];
-            uint32        hashData = earth_time::timestamp() ^ getpid();
+            unsigned char hash[loginHelpers::SessionHashLength];
+            uint32        hashData = loginHelpers::SessionHashSeed(earth_time::timestamp(), static_cast<uint32>(getpid()));
             md5(reinterpret_cast<uint8*>(&hashData), hash, sizeof(hashData));
 
             json loginSuccessReply;
-            loginSuccessReply["result"]       = static_cast<uint8>(login_result::LOGIN_SUCCESS);
+            loginSuccessReply["result"]       = static_cast<uint8>(loginHelpers::LoginAttemptSuccessResult);
             loginSuccessReply["account_id"]   = accountID;
             loginSuccessReply["session_hash"] = hash; // This has to be sent as an array, json.dump() tries to convert to UTF which fails
 
@@ -410,9 +410,9 @@ void auth_session::read_func()
                 otpHelpers::removeAllTrustTokens(accid);
 
                 json loginErrorChangePasswordReply;
-                loginErrorChangePasswordReply["result"]       = login_result::LOGIN_SUCCESS_CHANGE_PASSWORD;
-                loginErrorChangePasswordReply["account_id"]   = 0;
-                loginErrorChangePasswordReply["session_hash"] = "";
+                loginErrorChangePasswordReply["result"]       = loginHelpers::ChangePasswordSuccessResult;
+                loginErrorChangePasswordReply["account_id"]   = loginHelpers::ChangePasswordSuccessAccountID;
+                loginErrorChangePasswordReply["session_hash"] = loginHelpers::ChangePasswordSuccessSessionHash;
 
                 sendJsonAsBuffer(loginErrorChangePasswordReply);
 
@@ -426,7 +426,7 @@ void auth_session::read_func()
             // Look up and validate account password
             if (!validatePassword(username, password))
             {
-                sendJsonOnlyErrorMessage("Failed to validate credentials");
+                sendJsonOnlyErrorMessage(loginHelpers::FailedCredentialValidationMessage);
                 return;
             }
 
@@ -540,7 +540,7 @@ void auth_session::read_func()
         }
         default:
         {
-            ShowErrorFmt("Unhandled auth code: {} from {}", code, ipAddress);
+            ShowError(loginHelpers::FormatUnhandledAuthCode(code, ipAddress));
         }
         break;
     }
