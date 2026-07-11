@@ -38,8 +38,10 @@
 #include "chat_message_tell.h"
 #include "chat_message_unity.h"
 #include "chat_message_yell.h"
+#include "linkshell_members_reroute.h"
 #include "linkshell_rank_change.h"
 #include "linkshell_remove.h"
+#include "linkshell_set_message.h"
 #include "message_standard.h"
 #include "message_system.h"
 #include "party_invite.h"
@@ -279,11 +281,18 @@ void IPCServer::rerouteMessageToLinkshellMembers(uint32 linkshellId, const auto&
 {
     TracyZoneScoped;
 
-    for (const auto& ipp : getIPPsForLinkshell(linkshellId))
-    {
-        DebugIPCFmt("Message: -> rerouting to linkshell<{}> on {}", linkshellId, ipp.toString());
-        sendMessage(ipp, message);
-    }
+    worldipc::RerouteMessageToLinkshellMembers(
+        linkshellId,
+        message,
+        [this](uint32 targetLinkshellId)
+        {
+            return getIPPsForLinkshell(targetLinkshellId);
+        },
+        [this, linkshellId](const IPP& endpoint, const auto& delivered)
+        {
+            DebugIPCFmt("Message: -> rerouting to linkshell<{}> on {}", linkshellId, endpoint.toString());
+            this->sendMessage(endpoint, delivered);
+        });
 }
 
 void IPCServer::rerouteMessageToUnityMembers(uint32 unityId, const auto& message)
@@ -715,7 +724,12 @@ void IPCServer::handleMessage_LinkshellSetMessage(const IPP& ipp, const ipc::Lin
 {
     TracyZoneScoped;
 
-    rerouteMessageToLinkshellMembers(message.linkshellId, message);
+    worldipc::HandleLinkshellSetMessage(
+        message,
+        [this](uint32 linkshellId, const ipc::LinkshellSetMessage& update)
+        {
+            rerouteMessageToLinkshellMembers(linkshellId, update);
+        });
 }
 
 void IPCServer::handleMessage_LuaFunction(const IPP& ipp, const ipc::LuaFunction& message)
