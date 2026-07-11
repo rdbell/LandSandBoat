@@ -23,6 +23,8 @@
 
 #include "cert_helpers.h"
 #include "common/console_service.h"
+#include "common/timer.h"
+#include "connect_cleanup.h"
 #include "connect_engine.h"
 
 namespace
@@ -58,15 +60,16 @@ void ConnectApplication::registerCommands(ConsoleService& console)
         "Print server runtime statistics",
         [](std::vector<std::string>& inputs)
         {
-            const size_t uniqueIPs      = loginHelpers::getAuthenticatedSessions().size();
+            auto&        sessions       = loginHelpers::getAuthenticatedSessions();
+            const size_t uniqueIPs      = sessions.size();
             size_t       uniqueAccounts = 0;
 
-            for (auto& ipAddrMap : loginHelpers::getAuthenticatedSessions())
+            for (const auto& ipAddrMap : sessions)
             {
-                uniqueAccounts += loginHelpers::getAuthenticatedSessions()[ipAddrMap.first].size();
+                uniqueAccounts += ipAddrMap.second.size();
             }
 
-            ShowInfo("Serving %u IP addresses with %u accounts", uniqueIPs, uniqueAccounts);
+            ShowInfo("%s", loginHelpers::FormatConnectStats(uniqueIPs, uniqueAccounts));
         });
 
     console.registerCommand(
@@ -83,10 +86,12 @@ void ConnectApplication::registerCommands(ConsoleService& console)
                 {
                     session_t& session = sessionIterator->second;
 
-                    // If it's been 15 minutes, erase it from the session list
-                    if (!session.data_session &&
-                        !session.view_session &&
-                        timer::now() > session.authorizedTime)
+                    // Console "clear" intentionally uses now > authorizedTime
+                    // without the 15-minute TTL used by ConnectEngine::periodicCleanup.
+                    if (loginHelpers::ShouldEraseOnClearCommand(
+                            session.data_session != nullptr,
+                            session.view_session != nullptr,
+                            loginHelpers::IsAuthorizedTimePassed(timer::now(), session.authorizedTime)))
                     {
                         sessionIterator = ipAddrIterator->second.erase(sessionIterator);
                     }
@@ -97,7 +102,7 @@ void ConnectApplication::registerCommands(ConsoleService& console)
                 }
 
                 // If this map entry is empty, clean it up
-                if (ipAddrIterator->second.size() == 0)
+                if (loginHelpers::ShouldEraseEmptyIPEntry(ipAddrIterator->second.size() == 0))
                 {
                     ipAddrIterator = sessions.erase(ipAddrIterator);
                 }

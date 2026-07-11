@@ -5,6 +5,7 @@
 #include "common/timer.h"
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <fmt/format.h>
 #include <string>
@@ -62,6 +63,45 @@ inline auto FormatZMQEndpointString(
 inline auto ConnectDealerRoutingID(const uint32 loginAuthIP, const uint16 loginAuthPort) -> uint64
 {
     return IPP(loginAuthIP, loginAuthPort).getRawIPP();
+}
+
+// ShouldEraseOnClearCommand mirrors ConnectApplication's "clear" console path.
+// Unlike periodicCleanup, production compares now > authorizedTime with NO
+// +SessionCleanInterval offset — preserved for parity.
+// nowAfterAuthorized is host-evaluated: now > authorizedTime.
+inline auto ShouldEraseOnClearCommand(
+    const bool hasDataSession,
+    const bool hasViewSession,
+    const bool nowAfterAuthorized) -> bool
+{
+    return !hasDataSession && !hasViewSession && nowAfterAuthorized;
+}
+
+// IsAuthorizedTimePassed mirrors timer::now() > authorizedTime (strict >).
+inline auto IsAuthorizedTimePassed(
+    const timer::time_point now,
+    const timer::time_point authorizedTime) -> bool
+{
+    return now > authorizedTime;
+}
+
+// SumAuthenticatedAccountSessions sums each IP's inner session-map size.
+// Production uniqueAccounts is this sum; uniqueIPs is the outer map size.
+inline auto SumAuthenticatedAccountSessions(const std::size_t* perIPSessionCounts, const std::size_t countLength) -> std::size_t
+{
+    std::size_t uniqueAccounts = 0;
+    for (std::size_t i = 0; i < countLength; ++i)
+    {
+        uniqueAccounts += perIPSessionCounts[i];
+    }
+    return uniqueAccounts;
+}
+
+// FormatConnectStats mirrors the ShowInfo text from the "stats" console command
+// (printf-style "Serving %u IP addresses with %u accounts").
+inline auto FormatConnectStats(const std::size_t uniqueIPs, const std::size_t uniqueAccounts) -> std::string
+{
+    return fmt::format("Serving {} IP addresses with {} accounts", uniqueIPs, uniqueAccounts);
 }
 
 } // namespace loginHelpers
