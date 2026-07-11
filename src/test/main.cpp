@@ -188,6 +188,7 @@ auto runWorldLinkshellSetMessage1278SelfTests() -> bool;
 auto runWorldLuaFunction1279SelfTests() -> bool;
 auto runWorldKillSession1280SelfTests() -> bool;
 auto runWorldConquestEvent1281SelfTests() -> bool;
+auto runWorldBesiegedEvent1282SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -597,6 +598,7 @@ namespace
         ok = runWorldLuaFunction1279SelfTests() && ok;
         ok = runWorldKillSession1280SelfTests() && ok;
         ok = runWorldConquestEvent1281SelfTests() && ok;
+        ok = runWorldBesiegedEvent1282SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;

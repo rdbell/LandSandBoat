@@ -7,7 +7,7 @@ namespace worldipc
 {
 
 template <typename Handle>
-void HandleConquestEvent(const IPP& source, const ipc::ConquestEvent& message, Handle&& handle)
+void HandleBesiegedEvent(const IPP& source, const ipc::BesiegedEvent& message, Handle&& handle)
 {
     HandleRegionalEvent(source, message, std::forward<Handle>(handle));
 }
