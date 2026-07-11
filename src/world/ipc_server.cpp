@@ -58,6 +58,7 @@
 #include "party_members_reroute.h"
 #include "party_reload.h"
 #include "player_kick.h"
+#include "send_player_to_location.h"
 #include "zone_id_reroute.h"
 
 #include "besieged_system.h"
@@ -875,7 +876,12 @@ void IPCServer::handleMessage_SendPlayerToLocation(const IPP& ipp, const ipc::Se
 {
     TracyZoneScoped;
 
-    rerouteMessageToCharId(message.targetId, message);
+    worldipc::HandleSendPlayerToLocation(
+        message,
+        [this](const uint32 targetId, const ipc::SendPlayerToLocation& location)
+        {
+            rerouteMessageToCharId(targetId, location);
+        });
 }
 
 void IPCServer::handleMessage_AssistChannelEvent(const IPP& ipp, const ipc::AssistChannelEvent& message)

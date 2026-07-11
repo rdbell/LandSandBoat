@@ -486,6 +486,8 @@ set(SOURCES
     test_world_entity_information_request_1285.cpp
     test_world_entity_information_response_1286.h
     test_world_entity_information_response_1286.cpp
+    test_world_send_player_to_location_1287.h
+    test_world_send_player_to_location_1287.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h
