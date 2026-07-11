@@ -29,6 +29,7 @@
 #include "chat_message_linkshell.h"
 #include "chat_message_party.h"
 #include "chat_message_tell.h"
+#include "chat_message_unity.h"
 
 #include "besieged_system.h"
 #include "campaign_system.h"
@@ -141,24 +142,7 @@ auto IPCServer::getIPPsForUnity(uint32 unityId) -> std::vector<IPP>
 
     // TODO: We know when chars move, we could be caching this info
 
-    const auto query = "SELECT server_addr, server_port FROM accounts_sessions "
-                       "WHERE unitychat = ? GROUP BY server_addr, server_port";
-
-    const auto rset = db::preparedStmt(query, unityId);
-    if (rset && rset->rowsCount())
-    {
-        std::vector<IPP> ippList;
-        while (rset->next())
-        {
-            const auto ip   = rset->get<uint64>("server_addr");
-            const auto port = rset->get<uint64>("server_port");
-            ippList.emplace_back(ip, port);
-        }
-
-        return ippList;
-    }
-
-    return {};
+    return world::ipc::LookupUnityEndpoints(unityId);
 }
 
 auto IPCServer::getIPPsForYellZones() -> std::vector<IPP>
@@ -460,7 +444,17 @@ void IPCServer::handleMessage_ChatMessageUnity(const IPP& ipp, const ipc::ChatMe
 {
     TracyZoneScoped;
 
-    rerouteMessageToUnityMembers(message.unityLeaderId, message);
+    worldipc::HandleChatMessageUnity(
+        message,
+        [this](const uint32 unityId)
+        {
+            return getIPPsForUnity(unityId);
+        },
+        [this](const IPP& endpoint, const ipc::ChatMessageUnity& unityMessage)
+        {
+            DebugIPCFmt("Message: -> rerouting to unity<{}> on {}", unityMessage.unityLeaderId, endpoint.toString());
+            sendMessage(endpoint, unityMessage);
+        });
 }
 
 void IPCServer::handleMessage_ChatMessageYell(const IPP& ipp, const ipc::ChatMessageYell& message)

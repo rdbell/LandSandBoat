@@ -75,3 +75,12 @@ auto world::ipc::LookupLinkshellEndpoints(const uint32_t linkshellId) -> std::ve
         linkshellId);
     return CollectEndpoints<uint64, uint64>(rset.get());
 }
+
+auto world::ipc::LookupUnityEndpoints(const uint32_t unityId) -> std::vector<IPP>
+{
+    const auto rset = db::preparedStmt(
+        "SELECT server_addr, server_port FROM accounts_sessions "
+        "WHERE unitychat = ? GROUP BY server_addr, server_port",
+        unityId);
+    return CollectEndpoints<uint64, uint64>(rset.get());
+}

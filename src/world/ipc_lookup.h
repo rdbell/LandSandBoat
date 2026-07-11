@@ -15,5 +15,6 @@ auto LookupCharacterNameEndpoint(const std::string& charName) -> Maybe<IPP>;
 auto LookupPartyEndpoints(uint32_t partyId) -> std::vector<IPP>;
 auto LookupAllianceEndpoints(uint32_t allianceId) -> std::vector<IPP>;
 auto LookupLinkshellEndpoints(uint32_t linkshellId) -> std::vector<IPP>;
+auto LookupUnityEndpoints(uint32_t unityId) -> std::vector<IPP>;
 
 } // namespace world::ipc
