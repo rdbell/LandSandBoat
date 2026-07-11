@@ -21,6 +21,7 @@
 
 #include "mob_entity.h"
 #include "map/mob_death_capacity.h"
+#include "map/mob_death_reward_capacity.h"
 
 #include "can_attack_capacity.h"
 #include "ai/ai_container.h"
@@ -1268,23 +1269,20 @@ void CMobEntity::Die()
             // clang-format off
             PAI->QueueAction(queueAction_t(m_DropItemTime, false, [this](CBaseEntity* PEntity)
             {
-                if (static_cast<CMobEntity*>(PEntity)->isDead())
-                {
-                    if (auto* PLastAttacker = GetEntity(lastAttackerId_.targid); PLastAttacker && PLastAttacker->id == lastAttackerId_.id)
-                    {
-                        loc.zone->PushPacket(this, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PLastAttacker, this, 0, 0, MsgBasic::DefeatsTarget));
-                    }
-                    else
-                    {
-                        loc.zone->PushPacket(this, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::FallsToGround));
-                    }
-
-                    DistributeRewards();
-                    m_OwnerID.clean();
-
-                    m_THLvl          = 0;
-                    m_GilfinderLevel = 0;
-                }
+                const bool mobDead = static_cast<CMobEntity*>(PEntity)->isDead();
+                auto* PLastAttacker = mobDead ? GetEntity(lastAttackerId_.targid) : nullptr;
+                const bool validLastAttacker = mobdeathrewardhelpers::HasValidLastAttacker(
+                    PLastAttacker != nullptr,
+                    PLastAttacker != nullptr && PLastAttacker->id == lastAttackerId_.id);
+                mobdeathrewardhelpers::Apply(
+                    mobDead,
+                    validLastAttacker,
+                    [&]() { loc.zone->PushPacket(this, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PLastAttacker, this, 0, 0, MsgBasic::DefeatsTarget)); },
+                    [&]() { loc.zone->PushPacket(this, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::FallsToGround)); },
+                    [&]() { DistributeRewards(); },
+                    [&]() { m_OwnerID.clean(); },
+                    [&]() { m_THLvl = 0; },
+                    [&]() { m_GilfinderLevel = 0; });
             }));
             // clang-format on
         },

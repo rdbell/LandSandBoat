@@ -329,6 +329,7 @@ auto runEnmityPresence1409SelfTests() -> bool;
 auto runDeathFinalize1410SelfTests() -> bool;
 auto runBattleSpawn1411SelfTests() -> bool;
 auto runMobDeath1412SelfTests() -> bool;
+auto runMobDeathReward1413SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -868,6 +869,7 @@ namespace
         ok = runDeathFinalize1410SelfTests() && ok;
         ok = runBattleSpawn1411SelfTests() && ok;
         ok = runMobDeath1412SelfTests() && ok;
+        ok = runMobDeathReward1413SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

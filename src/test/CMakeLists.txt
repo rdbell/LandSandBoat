@@ -588,6 +588,8 @@ set(SOURCES
     test_battle_spawn_1411.cpp
     test_mob_death_1412.h
     test_mob_death_1412.cpp
+    test_mob_death_reward_1413.h
+    test_mob_death_reward_1413.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
