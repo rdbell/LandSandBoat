@@ -33,6 +33,7 @@
 #include "linkshell_updates.h"
 #include "party_alliance_updates.h"
 #include "party_invite.h"
+#include "party_invite_response.h"
 #include "player_kick_refresh.h"
 #include "player_relocation.h"
 #include "regional_event_dispatch.h"
@@ -483,76 +484,68 @@ void IPCClient::handleMessage_PartyInviteResponse(const IPP& ipp, const ipc::Par
 {
     TracyZoneScoped;
 
-    CCharEntity* PInviter = zoneutils::GetChar(message.inviterId);
-    if (PInviter)
-    {
-        if (message.inviteAnswer == 0)
+    mapipc::HandlePartyInviteResponse(
+        message,
+        zoneutils::GetChar,
+        [](CCharEntity* inviter)
         {
-            PInviter->pushPacket<GP_SERV_COMMAND_MESSAGE>(PInviter, 0, 0, MsgStd::InvitationDeclined);
-        }
-        else
+            return mapipc::PartyInviteResponseInviterState{
+                .hasParty      = inviter->PParty != nullptr,
+                .isPartyLeader = inviter->PParty && inviter->PParty->GetLeader() == inviter,
+                .hasAlliance   = inviter->PParty && inviter->PParty->m_PAlliance,
+            };
+        },
+        [](const uint32 inviterId, const uint32 inviteeId) -> std::size_t
         {
             // both party leaders?
             const auto rset = db::preparedStmt("SELECT * FROM accounts_parties WHERE partyid <> 0 AND "
                                                "((charid = ? OR charid = ?) AND partyflag & ?)",
-                                               message.inviterId,
-                                               message.inviteeId,
+                                               inviterId,
+                                               inviteeId,
                                                PARTY_LEADER);
-            if (rset && rset->rowsCount() == 2)
+            return rset ? rset->rowsCount() : 0;
+        },
+        [](const uint32 inviterId) -> std::size_t
+        {
+            const auto rset = db::preparedStmt("SELECT * FROM accounts_parties WHERE allianceid <> 0 AND "
+                                               "allianceid = (SELECT allianceid FROM accounts_parties where "
+                                               "charid = ?) GROUP BY partyid",
+                                               inviterId);
+            return rset ? rset->rowsCount() : 0;
+        },
+        [](const uint32 inviteeId) -> bool
+        {
+            const auto rset = db::preparedStmt("SELECT * FROM accounts_parties WHERE partyid <> 0 AND charid = ?", inviteeId);
+            return rset && rset->rowsCount() != 0;
+        },
+        [](CCharEntity* inviter)
+        {
+            inviter->pushPacket<GP_SERV_COMMAND_MESSAGE>(inviter, 0, 0, MsgStd::InvitationDeclined);
+        },
+        [](CCharEntity* inviter, const uint32 inviteeId)
+        {
+            inviter->PParty->m_PAlliance->addParty(inviteeId);
+        },
+        [](CCharEntity* inviter, const uint32 inviteeId)
+        {
+            CAlliance* alliance = new CAlliance(inviter);
+            alliance->addParty(inviteeId);
+        },
+        [](CCharEntity* inviter)
+        {
+            if (inviter->PParty == nullptr)
             {
-                if (PInviter->PParty)
-                {
-                    if (PInviter->PParty->m_PAlliance)
-                    {
-                        const auto rset2 = db::preparedStmt("SELECT * FROM accounts_parties WHERE allianceid <> 0 AND "
-                                                            "allianceid = (SELECT allianceid FROM accounts_parties where "
-                                                            "charid = ?) GROUP BY partyid",
-                                                            message.inviterId);
-                        if (rset2 && rset2->rowsCount() > 0 && rset2->rowsCount() < 3)
-                        {
-                            PInviter->PParty->m_PAlliance->addParty(message.inviteeId);
-                        }
-                        else
-                        {
-                            message::send(ipc::MessageStandard{
-                                .recipientId = message.inviteeId,
-                                .message     = MsgStd::CannotBeProcessed,
-                            });
-                        }
-                    }
-                    else if (PInviter->PParty)
-                    {
-                        // make new alliance
-                        CAlliance* PAlliance = new CAlliance(PInviter);
-                        PAlliance->addParty(message.inviteeId);
-                    }
-                }
-                else // Somehow, the inviter didn't have a party despite the database thinking they did.
-                {
-                    message::send(ipc::MessageStandard{
-                        .recipientId = message.inviteeId,
-                        .message     = MsgStd::CannotBeProcessed,
-                    });
-                }
+                inviter->PParty = new CParty(inviter);
             }
-            else
-            {
-                if (PInviter->PParty == nullptr)
-                {
-                    PInviter->PParty = new CParty(PInviter);
-                }
-
-                if (PInviter->PParty && PInviter->PParty->GetLeader() == PInviter)
-                {
-                    const auto rset2 = db::preparedStmt("SELECT * FROM accounts_parties WHERE partyid <> 0 AND charid = ?", message.inviteeId);
-                    if (rset2 && rset2->rowsCount() == 0)
-                    {
-                        PInviter->PParty->AddMember(message.inviteeId);
-                    }
-                }
-            }
-        }
-    }
+        },
+        [](CCharEntity* inviter, const uint32 inviteeId)
+        {
+            inviter->PParty->AddMember(inviteeId);
+        },
+        [](const ipc::MessageStandard& feedback)
+        {
+            message::send(feedback);
+        });
 }
 
 void IPCClient::handleMessage_PartyReload(const IPP& ipp, const ipc::PartyReload& message)
