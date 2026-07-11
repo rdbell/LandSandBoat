@@ -40,6 +40,7 @@
 #include "despawn_finalize_capacity.h"
 #include "post_tick_death_capacity.h"
 #include "hit_interrupt_capacity.h"
+#include "battle_time_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -4003,7 +4004,7 @@ void CBattleEntity::SetBattleStartTime(timer::time_point time)
 
 timer::duration CBattleEntity::GetBattleTime()
 {
-    return timer::now() - m_battleStartTime;
+    return battletimehelpers::Elapsed(timer::now(), m_battleStartTime);
 }
 
 void CBattleEntity::setBattleID(uint16 battleID)
