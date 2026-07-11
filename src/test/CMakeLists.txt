@@ -496,6 +496,8 @@ set(SOURCES
     test_status_effect_selection_1365.cpp
     test_status_effect_tick_1366.h
     test_status_effect_tick_1366.cpp
+    test_treasure_pool_policy_1367.h
+    test_treasure_pool_policy_1367.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

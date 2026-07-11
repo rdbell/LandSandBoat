@@ -1,0 +1,251 @@
+#pragma once
+
+#include "common/cbasetypes.h"
+
+#include <cstddef>
+#include <cstdint>
+
+// Pure CTreasurePool add/lot/eviction policy halves.
+
+namespace treasurepoolhelpers
+{
+
+// TREASUREPOOL_SIZE mirror.
+constexpr uint8 PoolSize = 10;
+
+// FreeSlotID starts as uint8(-1) == 255; "unset" is FreeSlotID > PoolSize.
+constexpr uint8 FreeSlotUnset = static_cast<uint8>(-1);
+
+// Pass lot mask FF FF.
+constexpr uint16 PassedLot = 65535;
+
+// treasure_checktime mirror (seconds).
+constexpr uint32 TreasureCheckTimeSeconds = 3;
+
+// IsFreeSlotUnset mirrors FreeSlotID > TREASUREPOOL_SIZE after uint8(-1) init.
+inline auto IsFreeSlotUnset(const uint8 freeSlotID) -> bool
+{
+    return freeSlotID > PoolSize;
+}
+
+// FirstEmptySlotFound when freeSlotID was set from an empty slot (ID==0).
+inline auto IsValidFreeSlot(const uint8 freeSlotID) -> bool
+{
+    return freeSlotID < PoolSize;
+}
+
+// ShouldSkipRareCheck mirrors non-solo pool + NoRareCheck item flag.
+inline auto ShouldSkipRareCheck(const bool isSoloPool, const bool itemHasNoRareCheck) -> bool
+{
+    return !isSoloPool && itemHasNoRareCheck;
+}
+
+// ShouldApplyRareMemberCheck mirrors rare item and not skip.
+inline auto ShouldApplyRareMemberCheck(const bool itemIsRare, const bool skipRareCheck) -> bool
+{
+    return itemIsRare && !skipRareCheck;
+}
+
+// ShouldRejectRareAllHave mirrors everyone already owns the rare item.
+inline auto ShouldRejectRareAllHave(const bool applyRareCheck, const bool anyMemberMissingRare) -> bool
+{
+    return applyRareCheck && !anyMemberMissingRare;
+}
+
+// CanEvictNonRareNonExclusive mirrors !Rare && !Exclusive for oldest pass 1.
+inline auto CanEvictNonRareNonExclusive(const bool hasRare, const bool hasExclusive) -> bool
+{
+    return !hasRare && !hasExclusive;
+}
+
+// CanEvictNonExclusive mirrors !Exclusive for oldest pass 2.
+inline auto CanEvictNonExclusive(const bool hasExclusive) -> bool
+{
+    return !hasExclusive;
+}
+
+// PreferOlderTimestamp mirrors TimeStamp < oldest for eviction candidate.
+// Times are host-normalized comparable units.
+inline auto PreferOlderTimestamp(const int64 candidateStamp, const int64 oldestStamp) -> bool
+{
+    return candidateStamp < oldestStamp;
+}
+
+// DefaultFallbackSlot mirrors FreeSlotID = 0 when all eviction passes fail.
+inline auto DefaultFallbackSlot() -> uint8
+{
+    return 0;
+}
+
+// ShouldForceCheckOnFullPoolInsert mirrors SlotID == 10 after free-slot scan.
+// SlotID ends at PoolSize when the free-slot loop completes without break.
+inline auto ShouldForceCheckOnFullPoolInsert(const uint8 slotAfterFreeScan) -> bool
+{
+    return slotAfterFreeScan == PoolSize;
+}
+
+// ShouldAutoResolveSolo mirrors memberCount() == 1 after insert.
+inline auto ShouldAutoResolveSolo(const std::size_t memberCount) -> bool
+{
+    return memberCount == 1;
+}
+
+// IsSlotInRange mirrors SlotID >= TREASUREPOOL_SIZE reject for lot/pass.
+inline auto IsSlotOutOfRange(const uint8 slotID) -> bool
+{
+    return slotID >= PoolSize;
+}
+
+// CanLotWithInventory mirrors freeSlots != 0.
+inline auto CanLotWithInventory(const uint8 freeSlots) -> bool
+{
+    return freeSlots != 0;
+}
+
+// CanLotRareItem mirrors !(rare && alreadyHas).
+inline auto CanLotRareItem(const bool itemIsRare, const bool alreadyHasItem) -> bool
+{
+    return !(itemIsRare && alreadyHasItem);
+}
+
+// IsHigherLot mirrors lotInfo.lot > highestLot.
+inline auto IsHigherLot(const uint16 candidateLot, const uint16 highestLot) -> bool
+{
+    return candidateLot > highestLot;
+}
+
+// IsPassedLot mirrors lot == 65535.
+inline auto IsPassedLot(const uint16 lot) -> bool
+{
+    return lot == PassedLot;
+}
+
+// ShouldRejectNullMember mirrors PChar null || pool mismatch.
+inline auto ShouldRejectNullMember(const bool charNull, const bool poolMismatch) -> bool
+{
+    return charNull || poolMismatch;
+}
+
+// ShouldRejectNullItem mirrors !PNewItem / !PItem for lot.
+inline auto ShouldRejectNullItem(const bool itemNull) -> bool
+{
+    return itemNull;
+}
+
+// ShouldUpdatePoolForChar mirrors status != DISAPPEAR.
+inline auto ShouldUpdatePoolForChar(const bool isDisappear) -> bool
+{
+    return !isDisappear;
+}
+
+// ShouldFlushPool mirrors m_count != 0.
+inline auto ShouldFlushPool(const uint8 itemCount) -> bool
+{
+    return itemCount != 0;
+}
+
+// SelectEvictionSlot: pure multi-pass selection over host-provided slot metadata.
+// Returns freeSlot if already set; else scans passes; else default 0.
+// For each slot index 0..count-1, host provides:
+//   empty (ID==0), stamp, hasRare, hasExclusive, itemPresent (lookup non-null).
+// This helper only evaluates the three eviction passes when freeSlot is unset.
+struct EvictionSlotView
+{
+    bool  empty;
+    bool  itemPresent;
+    bool  hasRare;
+    bool  hasExclusive;
+    int64 stamp;
+};
+
+inline auto SelectFreeOrEvictionSlot(
+    const uint8 freeSlotIfEmpty,
+    const EvictionSlotView* slots,
+    const uint8 slotCount) -> uint8
+{
+    if (!IsFreeSlotUnset(freeSlotIfEmpty))
+    {
+        return freeSlotIfEmpty;
+    }
+    if (slots == nullptr || slotCount == 0)
+    {
+        return DefaultFallbackSlot();
+    }
+
+    // Pass 1: oldest non-rare non-ex
+    uint8 freeSlot = FreeSlotUnset;
+    int64 oldest   = 0;
+    bool  hasOld   = false;
+    for (uint8 i = 0; i < slotCount; ++i)
+    {
+        const auto& s = slots[i];
+        if (s.itemPresent && CanEvictNonRareNonExclusive(s.hasRare, s.hasExclusive) &&
+            (!hasOld || PreferOlderTimestamp(s.stamp, oldest)))
+        {
+            freeSlot = i;
+            oldest   = s.stamp;
+            hasOld   = true;
+        }
+    }
+    if (!IsFreeSlotUnset(freeSlot))
+    {
+        return freeSlot;
+    }
+
+    // Pass 2: oldest non-ex
+    freeSlot = FreeSlotUnset;
+    hasOld   = false;
+    for (uint8 i = 0; i < slotCount; ++i)
+    {
+        const auto& s = slots[i];
+        if (s.itemPresent && CanEvictNonExclusive(s.hasExclusive) &&
+            (!hasOld || PreferOlderTimestamp(s.stamp, oldest)))
+        {
+            freeSlot = i;
+            oldest   = s.stamp;
+            hasOld   = true;
+        }
+    }
+    if (!IsFreeSlotUnset(freeSlot))
+    {
+        return freeSlot;
+    }
+
+    // Pass 3: oldest any
+    freeSlot = FreeSlotUnset;
+    hasOld   = false;
+    for (uint8 i = 0; i < slotCount; ++i)
+    {
+        const auto& s = slots[i];
+        if (!hasOld || PreferOlderTimestamp(s.stamp, oldest))
+        {
+            freeSlot = i;
+            oldest   = s.stamp;
+            hasOld   = true;
+        }
+    }
+    if (!IsFreeSlotUnset(freeSlot))
+    {
+        return freeSlot;
+    }
+    return DefaultFallbackSlot();
+}
+
+// FindFirstEmptySlot returns first empty index or FreeSlotUnset.
+inline auto FindFirstEmptySlot(const bool* emptyFlags, const uint8 slotCount) -> uint8
+{
+    if (emptyFlags == nullptr)
+    {
+        return FreeSlotUnset;
+    }
+    for (uint8 i = 0; i < slotCount; ++i)
+    {
+        if (emptyFlags[i])
+        {
+            return i;
+        }
+    }
+    return FreeSlotUnset;
+}
+
+} // namespace treasurepoolhelpers

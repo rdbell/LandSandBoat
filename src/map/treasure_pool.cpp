@@ -29,6 +29,7 @@
 #include "item_container.h"
 #include "recast_container.h"
 #include "treasure_pool.h"
+#include "treasure_pool_capacity.h"
 #include "utils/charutils.h"
 #include "utils/itemutils.h"
 
@@ -166,19 +167,21 @@ void CTreasurePool::delMember(CCharEntity* PChar)
 uint8 CTreasurePool::addItem(uint16 ItemID, CBaseEntity* PEntity)
 {
     uint8             SlotID     = 0;
-    uint8             FreeSlotID = -1;
+    uint8             FreeSlotID = treasurepoolhelpers::FreeSlotUnset;
     timer::time_point oldest     = timer::time_point::max();
     const CItem*      PNewItem   = xi::items::lookup(ItemID);
 
-    if (!PNewItem)
+    if (treasurepoolhelpers::ShouldRejectNullItem(PNewItem == nullptr))
     {
         return m_count; // no change
     }
 
     // Check if everyone in the treasure pool already has this item
     // Some items do not honor this check and will be added to the party pool regardless
-    const bool skipRareCheck = m_TreasurePoolType != TreasurePoolType::Solo && PNewItem->hasFlag(ItemFlag::NoRareCheck);
-    if (PNewItem->hasFlag(ItemFlag::Rare) && !skipRareCheck)
+    const bool skipRareCheck = treasurepoolhelpers::ShouldSkipRareCheck(
+        m_TreasurePoolType == TreasurePoolType::Solo,
+        PNewItem->hasFlag(ItemFlag::NoRareCheck));
+    if (treasurepoolhelpers::ShouldApplyRareMemberCheck(PNewItem->hasFlag(ItemFlag::Rare), skipRareCheck))
     {
         bool doesNotHaveRareItem = false;
 
@@ -193,7 +196,7 @@ uint8 CTreasurePool::addItem(uint16 ItemID, CBaseEntity* PEntity)
         }
 
         // If everyone has this rare item, don't add it to the pool
-        if (!doesNotHaveRareItem)
+        if (treasurepoolhelpers::ShouldRejectRareAllHave(true, doesNotHaveRareItem))
         {
             return m_count; // no change
         }
@@ -208,53 +211,65 @@ uint8 CTreasurePool::addItem(uint16 ItemID, CBaseEntity* PEntity)
         }
     }
 
-    if (FreeSlotID > TREASUREPOOL_SIZE)
+    if (treasurepoolhelpers::IsFreeSlotUnset(FreeSlotID))
     {
         // find the oldest non-rare and non-ex item
         for (SlotID = 0; SlotID < 10; ++SlotID)
         {
             const CItem* PItem = xi::items::lookup(m_PoolItems[SlotID].ID);
-            if (PItem != nullptr && !PItem->hasFlag(ItemFlag::Rare | ItemFlag::Exclusive) && m_PoolItems[SlotID].TimeStamp < oldest)
+            if (PItem != nullptr &&
+                treasurepoolhelpers::CanEvictNonRareNonExclusive(
+                    PItem->hasFlag(ItemFlag::Rare),
+                    PItem->hasFlag(ItemFlag::Exclusive)) &&
+                treasurepoolhelpers::PreferOlderTimestamp(
+                    m_PoolItems[SlotID].TimeStamp.time_since_epoch().count(),
+                    oldest.time_since_epoch().count()))
             {
                 FreeSlotID = SlotID;
                 oldest     = m_PoolItems[SlotID].TimeStamp;
             }
         }
-        if (FreeSlotID > TREASUREPOOL_SIZE)
+        if (treasurepoolhelpers::IsFreeSlotUnset(FreeSlotID))
         {
             // find the oldest non-ex item
             for (SlotID = 0; SlotID < 10; ++SlotID)
             {
                 const CItem* PItem = xi::items::lookup(m_PoolItems[SlotID].ID);
-                if (PItem != nullptr && !PItem->hasFlag(ItemFlag::Exclusive) && m_PoolItems[SlotID].TimeStamp < oldest)
+                if (PItem != nullptr &&
+                    treasurepoolhelpers::CanEvictNonExclusive(PItem->hasFlag(ItemFlag::Exclusive)) &&
+                    treasurepoolhelpers::PreferOlderTimestamp(
+                        m_PoolItems[SlotID].TimeStamp.time_since_epoch().count(),
+                        oldest.time_since_epoch().count()))
                 {
                     FreeSlotID = SlotID;
                     oldest     = m_PoolItems[SlotID].TimeStamp;
                 }
             }
 
-            if (FreeSlotID > TREASUREPOOL_SIZE)
+            if (treasurepoolhelpers::IsFreeSlotUnset(FreeSlotID))
             {
                 // find the oldest item
                 for (SlotID = 0; SlotID < 10; ++SlotID)
                 {
-                    if (m_PoolItems[SlotID].TimeStamp < oldest)
+                    if (treasurepoolhelpers::PreferOlderTimestamp(
+                            m_PoolItems[SlotID].TimeStamp.time_since_epoch().count(),
+                            oldest.time_since_epoch().count()))
                     {
                         FreeSlotID = SlotID;
                         oldest     = m_PoolItems[SlotID].TimeStamp;
                     }
                 }
 
-                if (FreeSlotID > TREASUREPOOL_SIZE)
+                if (treasurepoolhelpers::IsFreeSlotUnset(FreeSlotID))
                 {
                     // default fallback
-                    FreeSlotID = 0;
+                    FreeSlotID = treasurepoolhelpers::DefaultFallbackSlot();
                 }
             }
         }
     }
 
-    if (SlotID == 10)
+    if (treasurepoolhelpers::ShouldForceCheckOnFullPoolInsert(SlotID))
     {
         m_PoolItems[FreeSlotID].TimeStamp = timer::start_time;
         checkTreasureItem(timer::now(), FreeSlotID);
@@ -271,7 +286,7 @@ uint8 CTreasurePool::addItem(uint16 ItemID, CBaseEntity* PEntity)
         member->pushPacket<GP_SERV_COMMAND_TROPHY_LIST>(&m_PoolItems[FreeSlotID], PEntity, false);
     }
 
-    if (memberCount() == 1)
+    if (treasurepoolhelpers::ShouldAutoResolveSolo(memberCount()))
     {
         checkTreasureItem(timer::now(), FreeSlotID);
     }
