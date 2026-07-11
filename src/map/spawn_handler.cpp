@@ -28,6 +28,7 @@
 #include "entities/mob_entity.h"
 #include "enums/weather.h"
 #include "lua/luautils.h"
+#include "spawn_capacity.h"
 #include "spawn_slot.h"
 #include "utils/zoneutils.h"
 #include "zone.h"
@@ -59,7 +60,10 @@ auto SpawnHandler::getSpawnSlot(uint32_t slotId) const -> SpawnSlot*
 // Respawn timer can optionally be overriden for deaggro/scripting purposes.
 void SpawnHandler::registerForRespawn(CMobEntity* PMob, const Maybe<timer::duration> respawnTime)
 {
-    if (!PMob || !PMob->m_AllowRespawn || PMob->PInstance != nullptr)
+    if (spawnhelpers::ShouldRejectRegisterForRespawn(
+            PMob == nullptr,
+            PMob != nullptr && PMob->m_AllowRespawn,
+            PMob != nullptr && PMob->PInstance != nullptr))
     {
         return;
     }
@@ -69,7 +73,9 @@ void SpawnHandler::registerForRespawn(CMobEntity* PMob, const Maybe<timer::durat
 
     if (auto slot = PMob->GetSpawnSlot())
     {
-        const auto specificMobId   = respawnTime.has_value() ? Maybe<uint32>(PMob->id) : std::nullopt;
+        const auto specificMobId   = spawnhelpers::ShouldUseSpecificMobIdForSlot(respawnTime.has_value())
+                                         ? Maybe<uint32>(PMob->id)
+                                         : std::nullopt;
         pendingSlotRespawns_[slot] = { respawnAt, specificMobId };
     }
     else
@@ -156,20 +162,22 @@ void SpawnHandler::Tick(const timer::time_point now)
         pendingRespawns_,
         [&](const auto& pair)
         {
-            if (pair.second > spawnThreshold)
+            if (!spawnhelpers::IsRespawnDueWithinWindow(pair.second > spawnThreshold))
             {
                 return false;
             }
 
-            const uint16 targid = static_cast<uint16>(pair.first & 0x0FFF);
+            const uint16 targid = spawnhelpers::EntityTargidFromId(pair.first);
             auto*        PMob   = static_cast<CMobEntity*>(zone_->GetEntity(targid, TYPE_MOB));
 
-            if (!PMob)
+            if (spawnhelpers::ShouldDropMissingMobRegistration(PMob != nullptr))
             {
                 return true;
             }
 
-            if (!canSpawnNow(PMob) || luautils::OnMobSpawnCheck(PMob) != 0)
+            if (spawnhelpers::ShouldKeepPendingWhenCannotSpawn(
+                    canSpawnNow(PMob),
+                    luautils::OnMobSpawnCheck(PMob) == 0))
             {
                 return false;
             }
@@ -188,7 +196,7 @@ void SpawnHandler::Tick(const timer::time_point now)
         pendingSlotRespawns_,
         [&](const auto& pair)
         {
-            if (pair.second.respawnAt > spawnThreshold)
+            if (!spawnhelpers::IsRespawnDueWithinWindow(pair.second.respawnAt > spawnThreshold))
             {
                 return false;
             }
@@ -209,7 +217,7 @@ void SpawnHandler::onTOTDChange(const vanadiel_time::TOTD totd) const
             zone_->ForEachMob(
                 [](CMobEntity* PMob)
                 {
-                    if (PMob->m_SpawnType & SPAWNTYPE_ATNIGHT)
+                    if (spawnhelpers::ShouldDespawnOnNewDay(static_cast<uint8>(PMob->m_SpawnType)))
                     {
                         PMob->SetDespawnTime(1ms);
                     }
@@ -221,7 +229,7 @@ void SpawnHandler::onTOTDChange(const vanadiel_time::TOTD totd) const
             zone_->ForEachMob(
                 [](CMobEntity* PMob)
                 {
-                    if (PMob->m_SpawnType & SPAWNTYPE_ATEVENING)
+                    if (spawnhelpers::ShouldDespawnOnDawn(static_cast<uint8>(PMob->m_SpawnType)))
                     {
                         PMob->SetDespawnTime(1ms);
                     }
@@ -241,19 +249,18 @@ void SpawnHandler::onWeatherChange(Weather weather) const
     zone_->ForEachMob(
         [weather, element](CMobEntity* PMob)
         {
-            if (PMob->m_EcoSystem == xi::Ecosystem::Elemental && PMob->PMaster == nullptr && PMob->m_SpawnType & SPAWNTYPE_WEATHER)
+            const uint8 spawnType = static_cast<uint8>(PMob->m_SpawnType);
+            if (spawnhelpers::ShouldDespawnElementalOnWeather(
+                    PMob->m_EcoSystem == xi::Ecosystem::Elemental,
+                    PMob->PMaster != nullptr,
+                    spawnType,
+                    PMob->m_Element == element))
             {
-                if (PMob->m_Element != element)
-                {
-                    PMob->SetDespawnTime(1s);
-                }
+                PMob->SetDespawnTime(1s);
             }
-            else if (PMob->m_SpawnType & SPAWNTYPE_FOG)
+            else if (spawnhelpers::ShouldDespawnFogMobOnWeather(spawnType, weather == Weather::Fog))
             {
-                if (weather != Weather::Fog)
-                {
-                    PMob->SetDespawnTime(1s);
-                }
+                PMob->SetDespawnTime(1s);
             }
         });
 }
@@ -261,54 +268,14 @@ void SpawnHandler::onWeatherChange(Weather weather) const
 // Ensures the mob meets all conditions for spawning on current wave: TOTD, Weather, Respawn disabled etc.
 auto SpawnHandler::canSpawnNow(const CMobEntity* PMob) const -> bool
 {
-    if (!PMob || !PMob->m_AllowRespawn)
-    {
-        return false;
-    }
-
-    // Time-based spawn conditions
     const auto totd = vanadiel_time::get_totd();
-    if (PMob->m_SpawnType & SPAWNTYPE_ATNIGHT)
-    {
-        // 20:00-04:00 (NIGHT, MIDNIGHT)
-        if (totd != vanadiel_time::TOTD::NIGHT && totd != vanadiel_time::TOTD::MIDNIGHT)
-        {
-            return false;
-        }
-    }
-
-    if (PMob->m_SpawnType & SPAWNTYPE_ATEVENING)
-    {
-        // 18:00-06:00 (EVENING, NIGHT, MIDNIGHT, NEWDAY)
-        if (totd != vanadiel_time::TOTD::EVENING &&
-            totd != vanadiel_time::TOTD::NIGHT &&
-            totd != vanadiel_time::TOTD::MIDNIGHT &&
-            totd != vanadiel_time::TOTD::NEWDAY)
-        {
-            return false;
-        }
-    }
-
-    // Weather-based spawn conditions
-    if (PMob->m_SpawnType & SPAWNTYPE_FOG)
-    {
-        if (zone_->weather().current() != Weather::Fog)
-        {
-            return false;
-        }
-    }
-
-    if (PMob->m_SpawnType & SPAWNTYPE_WEATHER)
-    {
-        // Only for elementals without a master
-        if (PMob->m_EcoSystem == xi::Ecosystem::Elemental && PMob->PMaster == nullptr)
-        {
-            if (PMob->m_Element != zoneutils::GetWeatherElement(zone_->weather().current()))
-            {
-                return false;
-            }
-        }
-    }
-
-    return true;
+    return spawnhelpers::CanSpawnNowPure(
+        PMob == nullptr,
+        PMob != nullptr && PMob->m_AllowRespawn,
+        PMob != nullptr ? static_cast<uint8>(PMob->m_SpawnType) : 0,
+        totd,
+        zone_->weather().current() == Weather::Fog,
+        PMob != nullptr && PMob->m_EcoSystem == xi::Ecosystem::Elemental,
+        PMob != nullptr && PMob->PMaster != nullptr,
+        PMob != nullptr && PMob->m_Element == zoneutils::GetWeatherElement(zone_->weather().current()));
 }

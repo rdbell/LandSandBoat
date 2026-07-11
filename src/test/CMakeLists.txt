@@ -486,6 +486,8 @@ set(SOURCES
     test_latent_condition_eval_1360.cpp
     test_battlefield_policy_1361.h
     test_battlefield_policy_1361.cpp
+    test_spawn_can_spawn_1362.h
+    test_spawn_can_spawn_1362.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
