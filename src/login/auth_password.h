@@ -145,6 +145,78 @@ inline auto classifyLoginAttemptAccountStatus(const uint32 status) -> login_atte
     return login_attempt_account_gate::REJECT;
 }
 
+// login_attempt_otp_outcome is the pure LOGIN_ATTEMPT OTP/trust-token plan
+// after the account-status gate allows login.
+enum class login_attempt_otp_outcome : uint8_t
+{
+    SKIP,                 // account does not need OTP — continue, otpVerified=false
+    VERIFIED,             // OTP path succeeded — continue, otpVerified=true
+    REJECT_TRUST_TOKEN,   // invalid/missing trust with no OTP fallback — TRUST_TOKEN_INVALID
+    REJECT_OTP,           // TOTP validation failed — LOGIN_ERROR
+};
+
+// login_attempt_otp_plan pairs the outcome with the otpVerified flag used for
+// satchel upgrade and optional trust-token issuance.
+struct login_attempt_otp_plan
+{
+    login_attempt_otp_outcome outcome{};
+    bool                      otpVerified{};
+};
+
+// PlanLoginAttemptOTP mirrors the doesAccountNeedOTP / trust_token / otp block
+// in LOGIN_ATTEMPT. Host injects trustTokenValid (only meaningful when
+// trustToken is non-empty) and totpValid (only consulted when not trusted).
+inline auto PlanLoginAttemptOTP(
+    const bool        needsOTP,
+    const std::string& trustToken,
+    const std::string& otp,
+    const bool        trustTokenValid,
+    const bool        totpValid) -> login_attempt_otp_plan
+{
+    if (!needsOTP)
+    {
+        return login_attempt_otp_plan{ .outcome = login_attempt_otp_outcome::SKIP, .otpVerified = false };
+    }
+
+    const bool trustedByToken = !trustToken.empty() && trustTokenValid;
+    if (!trustedByToken)
+    {
+        if (otp.empty() && !trustToken.empty())
+        {
+            return login_attempt_otp_plan{ .outcome = login_attempt_otp_outcome::REJECT_TRUST_TOKEN, .otpVerified = false };
+        }
+        if (!totpValid)
+        {
+            return login_attempt_otp_plan{ .outcome = login_attempt_otp_outcome::REJECT_OTP, .otpVerified = false };
+        }
+    }
+
+    return login_attempt_otp_plan{ .outcome = login_attempt_otp_outcome::VERIFIED, .otpVerified = true };
+}
+
+// LoginResultForLoginAttemptOTP maps reject outcomes to reply codes. Returns
+// nullopt when login may continue (SKIP or VERIFIED).
+inline auto LoginResultForLoginAttemptOTP(const login_attempt_otp_outcome outcome) -> Maybe<login_result>
+{
+    switch (outcome)
+    {
+        case login_attempt_otp_outcome::REJECT_TRUST_TOKEN:
+            return login_result::LOGIN_ERROR_TRUST_TOKEN_INVALID;
+        case login_attempt_otp_outcome::REJECT_OTP:
+            return login_result::LOGIN_ERROR;
+        case login_attempt_otp_outcome::SKIP:
+        case login_attempt_otp_outcome::VERIFIED:
+            return std::nullopt;
+    }
+    return login_result::LOGIN_ERROR;
+}
+
+// ShouldIssueTrustToken mirrors trust_this_computer && otpVerified on success.
+inline auto ShouldIssueTrustToken(const bool trustThisComputer, const bool otpVerified) -> bool
+{
+    return trustThisComputer && otpVerified;
+}
+
 // change_password_status_plan is the pure dual-flag outcome of the
 // LOGIN_CHANGE_PASSWORD status checks after password/OTP validation.
 // LSB checks BANNED and NORMAL independently: a banned emit does not return,

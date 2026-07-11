@@ -392,6 +392,8 @@ set(SOURCES
     test_login_auth_totp_uri_1312.cpp
     test_login_auth_otp_recovery_1313.h
     test_login_auth_otp_recovery_1313.cpp
+    test_login_auth_login_attempt_otp_1314.h
+    test_login_auth_login_attempt_otp_1314.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

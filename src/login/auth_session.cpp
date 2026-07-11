@@ -189,37 +189,32 @@ void auth_session::read_func()
                 return;
             }
 
-            bool otpVerified = false;
-
-            if (otpHelpers::doesAccountNeedOTP(accountID, "TOTP"))
+            const bool needsOTP = otpHelpers::doesAccountNeedOTP(accountID, "TOTP");
+            bool       trustTokenValid = false;
+            if (needsOTP && !trust_token.empty())
             {
-                bool trustedByToken = false;
-
-                // Try trust token first
-                if (!trust_token.empty())
-                {
-                    trustedByToken = otpHelpers::validateTrustToken(accountID, trust_token);
-                }
-
-                // Fall back to OTP code if trust token invalid/missing
-                if (!trustedByToken)
-                {
-                    if (otp.empty() && !trust_token.empty())
-                    {
-                        // Trust token was provided but invalid, and no OTP to fall back to
-                        sendLoginResult(login_result::LOGIN_ERROR_TRUST_TOKEN_INVALID);
-                        return;
-                    }
-
-                    if (!otpHelpers::validateTOTP(otp, otpHelpers::getAccountSecret(username, "TOTP")))
-                    {
-                        sendLoginResult(login_result::LOGIN_ERROR);
-                        return;
-                    }
-                }
-
-                otpVerified = true;
+                trustTokenValid = otpHelpers::validateTrustToken(accountID, trust_token);
             }
+            // totpValid is only evaluated when needsOTP and not trusted by token
+            // and not already on the trust-token-invalid-without-OTP path — same
+            // call points as the pre-extract control flow.
+            bool totpValid = false;
+            if (needsOTP)
+            {
+                const bool trustedByToken = !trust_token.empty() && trustTokenValid;
+                if (!trustedByToken && !(otp.empty() && !trust_token.empty()))
+                {
+                    totpValid = otpHelpers::validateTOTP(otp, otpHelpers::getAccountSecret(username, "TOTP"));
+                }
+            }
+
+            const auto otpPlan = loginHelpers::PlanLoginAttemptOTP(needsOTP, trust_token, otp, trustTokenValid, totpValid);
+            if (const auto otpResult = loginHelpers::LoginResultForLoginAttemptOTP(otpPlan.outcome))
+            {
+                sendLoginResult(*otpResult);
+                return;
+            }
+            const bool otpVerified = otpPlan.otpVerified;
 
             db::preparedStmt("UPDATE accounts SET accounts.timelastmodify = NULL WHERE accounts.id = ?", accountID);
 
@@ -274,7 +269,7 @@ void auth_session::read_func()
             loginSuccessReply["account_id"]   = accountID;
             loginSuccessReply["session_hash"] = hash; // This has to be sent as an array, json.dump() tries to convert to UTF which fails
 
-            if (trust_this_computer && otpVerified)
+            if (loginHelpers::ShouldIssueTrustToken(trust_this_computer, otpVerified))
             {
                 try
                 {
