@@ -28,6 +28,8 @@
 #include "conquest_system.h"
 #include "gmcall_request.h"
 #include "gmcall_response.h"
+#include "gmcall_response_persistence.h"
+#include "ipc_lookup.h"
 
 #include <concurrentqueue.h>
 #include <memory>
@@ -70,19 +72,7 @@ auto IPCServer::getIPPForCharId(uint32 charId) -> Maybe<IPP>
     //     return *cachedIPP;
     // }
 
-    const auto rset = db::preparedStmt("SELECT server_addr, server_port FROM accounts_sessions WHERE charid = ? LIMIT 1", charId);
-    if (rset && rset->rowsCount() && rset->next())
-    {
-        const auto ip   = rset->get<uint32>("server_addr");
-        const auto port = rset->get<uint16>("server_port");
-        const auto ipp  = IPP(ip, port);
-
-        // characterCache_.updateCharacter(charId, ipp);
-
-        return ipp;
-    }
-
-    return std::nullopt;
+    return world::ipc::LookupCharacterEndpoint(charId);
 }
 
 auto IPCServer::getIPPForCharName(const std::string& charName) -> Maybe<IPP>
@@ -734,11 +724,7 @@ void IPCServer::handleMessage_GMCallResponse(const IPP& ipp, const ipc::GMCallRe
     // Client can only read up to 1024 bytes, drop any extra bytes now.
     const auto truncatedMessage = world::gmcall::TruncateResponse(message);
 
-    db::preparedStmt("UPDATE help_desk "
-                     "SET response = ?, responded_at = NOW() "
-                     "WHERE id = ?",
-                     truncatedMessage.message,
-                     truncatedMessage.callId);
+    world::gmcall::PersistResponse(truncatedMessage.callId, truncatedMessage.message);
 
     if (const auto maybeCharIPP = getIPPForCharId(truncatedMessage.charId))
     {

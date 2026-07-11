@@ -410,6 +410,8 @@ set(SOURCES
     test_world_gmcall_response_1240.cpp
     test_world_gmcall_request_1244.h
     test_world_gmcall_request_1244.cpp
+    test_world_gmcall_database_1245.h
+    test_world_gmcall_database_1245.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h
