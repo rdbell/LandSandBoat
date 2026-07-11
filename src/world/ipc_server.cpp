@@ -29,6 +29,7 @@
 #include "chat_message_assist.h"
 #include "chat_message_linkshell.h"
 #include "chat_message_party.h"
+#include "chat_message_server_message.h"
 #include "chat_message_tell.h"
 #include "chat_message_unity.h"
 #include "chat_message_yell.h"
@@ -497,7 +498,17 @@ void IPCServer::handleMessage_ChatMessageServerMessage(const IPP& ipp, const ipc
 {
     TracyZoneScoped;
 
-    rerouteMessageToAllZones(message);
+    worldipc::HandleChatMessageServerMessage(
+        message,
+        [this]
+        {
+            return getIPPsForAllZones();
+        },
+        [this](const IPP& endpoint, const ipc::ChatMessageServerMessage& serverMessage)
+        {
+            DebugIPCFmt("Message: -> rerouting to all zones on {}", endpoint.toString());
+            sendMessage(endpoint, serverMessage);
+        });
 }
 
 void IPCServer::handleMessage_ChatMessageCustom(const IPP& ipp, const ipc::ChatMessageCustom& message)
