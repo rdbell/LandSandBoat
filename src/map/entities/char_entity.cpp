@@ -27,6 +27,7 @@
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_playtime_capacity.h"
+#include "char_resource_capacity.h"
 #include "char_storage_capacity.h"
 #include "common/logging.h"
 #include "common/timer.h"
@@ -839,26 +840,26 @@ void CCharEntity::SetName(const std::string& name)
 
 int16 CCharEntity::addTP(int16 tp)
 {
-    tp = CBattleEntity::addTP(tp);
-    PLatentEffectContainer->CheckLatentsTP();
-
-    return abs(tp);
+    return charresourcehelpers::Apply<int16>(
+        tp,
+        [&](const int16 requested) { return CBattleEntity::addTP(requested); },
+        [&]() { PLatentEffectContainer->CheckLatentsTP(); });
 }
 
 int32 CCharEntity::addHP(int32 hp)
 {
-    hp = CBattleEntity::addHP(hp);
-    PLatentEffectContainer->CheckLatentsHP();
-
-    return abs(hp);
+    return charresourcehelpers::Apply<int32>(
+        hp,
+        [&](const int32 requested) { return CBattleEntity::addHP(requested); },
+        [&]() { PLatentEffectContainer->CheckLatentsHP(); });
 }
 
 int32 CCharEntity::addMP(int32 mp)
 {
-    mp = CBattleEntity::addMP(mp);
-    PLatentEffectContainer->CheckLatentsMP();
-
-    return abs(mp);
+    return charresourcehelpers::Apply<int32>(
+        mp,
+        [&](const int32 requested) { return CBattleEntity::addMP(requested); },
+        [&]() { PLatentEffectContainer->CheckLatentsMP(); });
 }
 
 bool CCharEntity::getStyleLocked() const
