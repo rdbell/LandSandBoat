@@ -308,6 +308,8 @@ set(SOURCES
     test_map_lua_function_1304.cpp
     test_map_ipc_diagnostics_1305.h
     test_map_ipc_diagnostics_1305.cpp
+    test_map_gmcall_request_1306.h
+    test_map_gmcall_request_1306.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h

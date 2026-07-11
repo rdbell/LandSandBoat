@@ -28,6 +28,7 @@
 #include "chat_message_custom.h"
 #include "chat_message_tell.h"
 #include "entity_information_request.h"
+#include "gmcall_request.h"
 #include "group_chat_delivery.h"
 #include "ipc_diagnostics.h"
 #include "kill_session.h"
@@ -913,6 +914,8 @@ void IPCClient::handleMessage_AssistChannelEvent(const IPP& ipp, const ipc::Assi
 void IPCClient::handleMessage_GMCallRequest(const IPP& ipp, const ipc::GMCallRequest& message)
 {
     TracyZoneScoped;
+
+    mapipc::HandleGMCallRequest(ipp, message);
 }
 
 void IPCClient::handleMessage_GMCallResponse(const IPP& ipp, const ipc::GMCallResponse& message)
