@@ -194,6 +194,7 @@ auto runWorldColonizationEvent1284SelfTests() -> bool;
 auto runWorldEntityInformationRequest1285SelfTests() -> bool;
 auto runWorldEntityInformationResponse1286SelfTests() -> bool;
 auto runWorldSendPlayerToLocation1287SelfTests() -> bool;
+auto runWorldAssistChannelEvent1288SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -609,6 +610,7 @@ namespace
         ok = runWorldEntityInformationRequest1285SelfTests() && ok;
         ok = runWorldEntityInformationResponse1286SelfTests() && ok;
         ok = runWorldSendPlayerToLocation1287SelfTests() && ok;
+        ok = runWorldAssistChannelEvent1288SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;

@@ -25,6 +25,7 @@
 #include "alliance_dissolve.h"
 #include "alliance_members_reroute.h"
 #include "alliance_reload.h"
+#include "assist_channel_event.h"
 #include "besieged_event.h"
 #include "campaign_event.h"
 #include "char_id_reroute.h"
@@ -888,7 +889,12 @@ void IPCServer::handleMessage_AssistChannelEvent(const IPP& ipp, const ipc::Assi
 {
     TracyZoneScoped;
 
-    rerouteMessageToCharId(message.receiverId, message);
+    worldipc::HandleAssistChannelEvent(
+        message,
+        [this](const uint32 receiverId, const ipc::AssistChannelEvent& event)
+        {
+            rerouteMessageToCharId(receiverId, event);
+        });
 }
 
 void IPCServer::handleMessage_GMCallRequest(const IPP& ipp, const ipc::GMCallRequest& message)
