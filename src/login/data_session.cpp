@@ -21,6 +21,7 @@
 
 #include "data_session.h"
 
+#include "data_a1.h"
 #include "session_cleanup.h"
 
 #include "common/database.h"
@@ -82,22 +83,24 @@ void data_session::read_func()
         case 0xA1: // 161
         {
             const auto maintMode          = settings::get<uint8>("login.MAINT_MODE");
-            const auto recievedAcccountID = ref<uint32>(buffer_.data(), 1);
+            const auto recievedAcccountID = ref<uint32>(buffer_.data(), loginHelpers::DataA1AccountIDOffset);
 
-            if (session.accountID == recievedAcccountID)
+            if (loginHelpers::ClassifyDataA1AccountMatch(session.accountID, recievedAcccountID) ==
+                loginHelpers::data_a1_account_match_gate::MATCH)
             {
-                session.serverIP = ref<uint32>(buffer_.data(), 5); // Used for: search-server ip
+                session.serverIP = ref<uint32>(buffer_.data(), loginHelpers::DataA1ServerIPOffset); // Used for: search-server ip
 
                 uint32 numContentIds = 0;
 
                 const auto rset0 = db::preparedStmt("SELECT content_ids FROM accounts WHERE id = ?", session.accountID);
-                if (rset0 && rset0->rowsCount() && rset0->next())
+                if (loginHelpers::ClassifyDataA1AccountRow(static_cast<bool>(rset0), rset0 && rset0->rowsCount() && rset0->next()) ==
+                    loginHelpers::data_a1_account_row_gate::FOUND)
                 {
                     numContentIds = rset0->get<uint32>("content_ids");
                 }
                 else
                 {
-                    ShowWarning(fmt::format("Claimed accountID {} somehow doesn't have an account and should not have gotten this far.", session.accountID));
+                    ShowWarning(loginHelpers::FormatClaimedAccountMissingWarning(session.accountID));
 
                     // Close socket so client errors.
                     socket_.lowest_layer().close();
@@ -149,7 +152,7 @@ void data_session::read_func()
                         std::memcpy(strCharName, dbCharName.c_str(), dbCharName.length());
 
                         int32 gmlevel = rset1->get<int32>("gmlevel");
-                        if (maintMode == 0 || gmlevel > 0)
+                        if (loginHelpers::ShouldIncludeCharacterInMaintList(maintMode, gmlevel))
                         {
                             uint8 worldId = 0; // Use when multiple worlds are supported.
 
@@ -176,7 +179,7 @@ void data_session::read_func()
                             uint16 zone = rset1->get<uint16>("pos_zone");
 
                             uint8 MainJob    = rset1->get<uint8>("mjob");
-                            uint8 lvlMainJob = rset1->get<uint8>(13 + MainJob);
+                            uint8 lvlMainJob = rset1->get<uint8>(loginHelpers::MainJobLevelColumnIndex(MainJob));
 
                             characterInfo.character_info.mon_no     = rset1->get<uint16>("race");
                             characterInfo.character_info.mjob_no    = MainJob;
@@ -229,14 +232,15 @@ void data_session::read_func()
                     // the filtering above removes any non-GM characters so
                     // at this point we need to make sure stop players with empty lists
                     // from logging in or creating new characters
-                    if (maintMode > 0 && i == 0)
+                    if (loginHelpers::ClassifyDataA1MaintEmptyList(maintMode, i) ==
+                        loginHelpers::data_a1_maint_empty_gate::REJECT)
                     {
                         if (auto viewSession = session.view_session.get())
                         {
                             loginHelpers::generateErrorMessage(viewSession->buffer_.data(), loginErrors::errorCode::COULD_NOT_CONNECT_TO_LOBBY_SERVER);
                             viewSession->do_write(0x24);
                         }
-                        ShowWarning(fmt::format("char:({}) attmpted login during maintenance mode (0xA2). Sending error to client.", session.accountID));
+                        ShowWarning(loginHelpers::FormatMaintModeLoginAttemptWarning(session.accountID));
                         return;
                     }
                 }
