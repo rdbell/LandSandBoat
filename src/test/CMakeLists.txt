@@ -444,6 +444,8 @@ set(SOURCES
     test_map_engine_config_1338.cpp
     test_alliance_dissolve_1339.h
     test_alliance_dissolve_1339.cpp
+    test_party_remove_leader_1340.h
+    test_party_remove_leader_1340.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

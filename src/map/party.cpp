@@ -502,13 +502,17 @@ void CParty::PopMember(CBattleEntity* PEntity)
 
 bool CParty::RemovePartyLeader(CBattleEntity* PEntity)
 {
-    if (members.empty())
+    const bool isMobParty = m_PartyType == PARTYTYPE::PARTY_MOBS;
+    const bool isEmpty    = members.empty();
+
+    if (isEmpty)
     {
-        ShowWarning("CParty::RemovePartyLeader - called when \"member\" list was empty");
-        return false;
+        ShowWarning("%s", partyhelpers::FormatRemovePartyLeaderEmptyWarning());
+        return partyhelpers::RemovePartyLeaderReturnValue(partyhelpers::remove_party_leader_plan::EMPTY_LIST);
     }
 
-    if (m_PartyType != PARTYTYPE::PARTY_MOBS)
+    // PC parties: attempt DB promote of a non-leader session member.
+    if (partyhelpers::ShouldAttemptPCLeaderPromote(isMobParty))
     {
         const auto rset = db::preparedStmt("SELECT charname FROM accounts_sessions JOIN chars ON accounts_sessions.charid = chars.charid "
                                            "JOIN accounts_parties ON accounts_parties.charid = chars.charid WHERE partyid = ? AND NOT partyflag & ? "
@@ -522,31 +526,48 @@ bool CParty::RemovePartyLeader(CBattleEntity* PEntity)
         }
     }
 
-    if (m_PartyType == PARTYTYPE::PARTY_MOBS) // mob party, mob destructor being called and is leader of a party
+    bool hasOtherMember = false;
+    for (auto member : members)
     {
-        for (auto member : members)
+        if (member != PEntity)
         {
-            if (member != PEntity) // assign leader to next party member
-            {
-                m_PLeader = member;
-                DelMember(PEntity);
-
-                return true;
-            }
+            hasOtherMember = true;
+            break;
         }
     }
 
-    if (m_PLeader == PEntity)
-    {
-        DisbandParty();
-        return false;
-    }
-    else
-    {
-        RemoveMember(PEntity);
-    }
+    const bool stillLeader = m_PLeader == PEntity;
+    const auto plan        = partyhelpers::ClassifyRemovePartyLeader(isEmpty, isMobParty, hasOtherMember, stillLeader);
 
-    return true;
+    switch (plan)
+    {
+        case partyhelpers::remove_party_leader_plan::MOB_PROMOTE_AND_DEL:
+            // mob party, mob destructor being called and is leader of a party
+            for (auto member : members)
+            {
+                if (member != PEntity) // assign leader to next party member
+                {
+                    m_PLeader = member;
+                    DelMember(PEntity);
+                    return partyhelpers::RemovePartyLeaderReturnValue(plan);
+                }
+            }
+            // Fall through if no other member (should not happen when hasOtherMember).
+            DisbandParty();
+            return partyhelpers::RemovePartyLeaderReturnValue(partyhelpers::remove_party_leader_plan::DISBAND);
+
+        case partyhelpers::remove_party_leader_plan::DISBAND:
+            DisbandParty();
+            return partyhelpers::RemovePartyLeaderReturnValue(plan);
+
+        case partyhelpers::remove_party_leader_plan::REMOVE_MEMBER:
+            RemoveMember(PEntity);
+            return partyhelpers::RemovePartyLeaderReturnValue(plan);
+
+        case partyhelpers::remove_party_leader_plan::EMPTY_LIST:
+        default:
+            return partyhelpers::RemovePartyLeaderReturnValue(partyhelpers::remove_party_leader_plan::EMPTY_LIST);
+    }
 }
 
 std::vector<CParty::partyInfo_t> CParty::GetPartyInfo() const

@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 // Pure CParty capacity / trust admission gates extracted so native tests can
 // pin policy without DB, entity pointers, or packets.
@@ -291,6 +292,70 @@ inline auto ShouldIncludeInGroupEffects(
 inline auto ShouldPushEffectsPacket(const bool effectsChanged) -> bool
 {
     return effectsChanged;
+}
+
+// remove_party_leader_plan is the pure host action plan for RemovePartyLeader
+// after empty-list check and after any PC DB promote attempt / mob next-member scan.
+enum class remove_party_leader_plan : uint8_t
+{
+    EMPTY_LIST,          // members.empty() — warn, return false
+    MOB_PROMOTE_AND_DEL, // PARTY_MOBS with another member — assign leader, DelMember, return true
+    DISBAND,             // still leader after promote attempt — DisbandParty, return false
+    REMOVE_MEMBER,       // no longer leader — RemoveMember, return true
+};
+
+// ShouldAttemptPCLeaderPromote mirrors m_PartyType != PARTY_MOBS before the
+// accounts_sessions JOIN lookup for a non-leader replacement.
+inline auto ShouldAttemptPCLeaderPromote(const bool isMobParty) -> bool
+{
+    return !isMobParty;
+}
+
+// ClassifyRemovePartyLeader mirrors RemovePartyLeader after the empty check.
+// isMobParty: m_PartyType == PARTY_MOBS.
+// hasOtherMember: any member != removing entity (used for mob promote path).
+// stillLeader: m_PLeader == PEntity after any PC SetLeader / before mob promote.
+// For mob parties with hasOtherMember, MOB_PROMOTE_AND_DEL wins before stillLeader.
+inline auto ClassifyRemovePartyLeader(
+    const bool isEmpty,
+    const bool isMobParty,
+    const bool hasOtherMember,
+    const bool stillLeader) -> remove_party_leader_plan
+{
+    if (isEmpty)
+    {
+        return remove_party_leader_plan::EMPTY_LIST;
+    }
+    if (isMobParty && hasOtherMember)
+    {
+        return remove_party_leader_plan::MOB_PROMOTE_AND_DEL;
+    }
+    if (stillLeader)
+    {
+        return remove_party_leader_plan::DISBAND;
+    }
+    return remove_party_leader_plan::REMOVE_MEMBER;
+}
+
+// RemovePartyLeaderReturnValue mirrors the bool return for each plan.
+inline auto RemovePartyLeaderReturnValue(const remove_party_leader_plan plan) -> bool
+{
+    switch (plan)
+    {
+        case remove_party_leader_plan::MOB_PROMOTE_AND_DEL:
+        case remove_party_leader_plan::REMOVE_MEMBER:
+            return true;
+        case remove_party_leader_plan::EMPTY_LIST:
+        case remove_party_leader_plan::DISBAND:
+        default:
+            return false;
+    }
+}
+
+// FormatRemovePartyLeaderEmptyWarning mirrors the ShowWarning text.
+inline auto FormatRemovePartyLeaderEmptyWarning() -> std::string
+{
+    return "CParty::RemovePartyLeader - called when \"member\" list was empty";
 }
 
 } // namespace partyhelpers
