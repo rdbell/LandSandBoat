@@ -23,6 +23,7 @@
 #include "map/pet_death_capacity.h"
 #include "map/pet_spawn_capacity.h"
 #include "map/pet_zoning_restore_capacity.h"
+#include "map/pet_post_tick_capacity.h"
 
 #include <cstring>
 
@@ -218,20 +219,18 @@ WYVERN_TYPE CPetEntity::getWyvernType()
 
 void CPetEntity::PostTick()
 {
-    CBattleEntity::PostTick();
-    timer::time_point now = timer::now();
-    if (loc.zone && updatemask && status != STATUS_TYPE::DISAPPEAR && now > m_nextUpdateTimer)
-    {
-        m_nextUpdateTimer = now + 250ms;
-        loc.zone->UpdateEntityPacket(this, ENTITY_UPDATE, updatemask);
-
-        if (PMaster && PMaster->PPet == this)
-        {
-            ((CCharEntity*)PMaster)->pushPacket<CPetSyncPacket>((CCharEntity*)PMaster);
-        }
-
-        updatemask = 0;
-    }
+    petposttickhelpers::Apply(
+        [&]() { CBattleEntity::PostTick(); },
+        [&]() { return timer::now(); },
+        [&]() { return loc.zone != nullptr; },
+        [&]() { return updatemask != 0; },
+        [&]() { return status == STATUS_TYPE::DISAPPEAR; },
+        [&]() { return m_nextUpdateTimer; },
+        [&](timer::time_point next) { m_nextUpdateTimer = next; },
+        [&]() { loc.zone->UpdateEntityPacket(this, ENTITY_UPDATE, updatemask); },
+        [&]() { return petposttickhelpers::ShouldSyncMaster(PMaster != nullptr, PMaster != nullptr && PMaster->PPet == this); },
+        [&]() { static_cast<CCharEntity*>(PMaster)->pushPacket<CPetSyncPacket>(static_cast<CCharEntity*>(PMaster)); },
+        [&]() { updatemask = 0; });
 }
 
 void CPetEntity::FadeOut()

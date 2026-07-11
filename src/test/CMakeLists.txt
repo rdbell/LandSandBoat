@@ -602,6 +602,8 @@ set(SOURCES
     test_trust_spawn_1418.cpp
     test_pet_zoning_restore_1419.h
     test_pet_zoning_restore_1419.cpp
+    test_pet_post_tick_1420.h
+    test_pet_post_tick_1420.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
