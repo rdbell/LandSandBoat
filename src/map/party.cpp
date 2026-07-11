@@ -73,17 +73,17 @@ CParty::CParty(CBattleEntity* PEntity)
     m_PQuarterMaster = nullptr;
     m_EffectsChanged = false;
 
-    if (PEntity != nullptr && PEntity->PParty == nullptr)
+    if (partyhelpers::ShouldInitPartyFromEntity(PEntity == nullptr, PEntity != nullptr && PEntity->PParty != nullptr))
     {
-        m_PartyID   = PEntity->id;
-        m_PartyType = PEntity->objtype == TYPE_PC ? PARTY_PCS : PARTY_MOBS;
+        m_PartyID   = partyhelpers::PartyIDFromEntity(PEntity->id);
+        m_PartyType = partyhelpers::ResolvePartyTypeIsPC(PEntity->objtype == TYPE_PC) ? PARTY_PCS : PARTY_MOBS;
 
         AddMember(PEntity);
         SetLeader(PEntity->name);
     }
     else
     {
-        ShowWarning("CParty::CParty() - PEntity was null, or party was not null.");
+        ShowWarning("%s", partyhelpers::FormatCPartyCtorNullWarning());
     }
 }
 
@@ -867,45 +867,24 @@ CBattleEntity* CParty::GetQuaterMaster()
 
 uint16 CParty::GetMemberFlags(CBattleEntity* PEntity)
 {
-    if (PEntity == nullptr || PEntity->PParty != this)
+    if (partyhelpers::ShouldRejectGetMemberFlags(PEntity == nullptr, PEntity != nullptr && PEntity->PParty != this))
     {
-        ShowWarning("CParty::GetMemberFlags() - PEntity was null, or PParty mismatch.");
+        ShowWarning("%s", partyhelpers::FormatGetMemberFlagsNullWarning());
         return 0;
     }
 
-    uint16 Flags = 0;
+    const bool isLeader = PEntity == m_PLeader;
+    const bool isAllianceLeader = partyhelpers::IsAllianceLeaderForFlags(
+        PEntity->PParty->m_PAlliance != nullptr,
+        isLeader,
+        PEntity->PParty->m_PAlliance != nullptr && PEntity->PParty->m_PAlliance->getMainParty() == PEntity->PParty);
 
-    if (PEntity->PParty->m_PAlliance != nullptr)
-    {
-        if (PEntity == m_PLeader && PEntity->PParty->m_PAlliance->getMainParty() == PEntity->PParty)
-        {
-            Flags |= ALLIANCE_LEADER;
-        }
-    }
-
-    if (PEntity->PParty->m_PartyNumber == 1)
-    {
-        Flags += PARTY_SECOND;
-    }
-    else if (PEntity->PParty->m_PartyNumber == 2)
-    {
-        Flags += PARTY_THIRD;
-    }
-
-    if (PEntity == m_PLeader)
-    {
-        Flags |= PARTY_LEADER;
-    }
-    if (PEntity == m_PQuarterMaster)
-    {
-        Flags |= PARTY_QM;
-    }
-    if (PEntity == m_PSyncTarget)
-    {
-        Flags |= PARTY_SYNC;
-    }
-
-    return Flags;
+    return partyhelpers::MemberFlags(
+        PEntity->PParty->m_PartyNumber,
+        isLeader,
+        PEntity == m_PQuarterMaster,
+        PEntity == m_PSyncTarget,
+        isAllianceLeader);
 }
 
 // update the party for all members

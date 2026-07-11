@@ -1031,4 +1031,94 @@ inline auto ShouldAssignAllianceLeaderFromFlags(const uint16 flags, const bool h
     return hasAlliance && (flags & AllianceLeaderFlag) != 0;
 }
 
+// --- GetMemberFlags / CParty constructor ---
+
+// FormatGetMemberFlagsNullWarning mirrors GetMemberFlags null/mismatch warning.
+inline auto FormatGetMemberFlagsNullWarning() -> std::string
+{
+    return "CParty::GetMemberFlags() - PEntity was null, or PParty mismatch.";
+}
+
+// ShouldRejectGetMemberFlags mirrors PEntity null or PParty != this.
+inline auto ShouldRejectGetMemberFlags(const bool entityNull, const bool partyMismatch) -> bool
+{
+    return entityNull || partyMismatch;
+}
+
+// IsAllianceLeaderForFlags mirrors has alliance && entity is leader && this is main.
+inline auto IsAllianceLeaderForFlags(const bool hasAlliance, const bool isLeader, const bool isMainParty) -> bool
+{
+    return hasAlliance && isLeader && isMainParty;
+}
+
+// MemberFlags assembles PARTYFLAG bits the same way as CParty::GetMemberFlags
+// once role/alliance decisions are known:
+//  1. ALLIANCE_LEADER when isAllianceLeader
+//  2. PARTY_SECOND when partyNumber == 1, PARTY_THIRD when partyNumber == 2
+//  3. PARTY_LEADER / PARTY_QM / PARTY_SYNC for matching roles
+// LSB uses += for SECOND/THIRD and |= for the role bits.
+inline auto MemberFlags(
+    const uint8 partyNumber,
+    const bool  isLeader,
+    const bool  isQM,
+    const bool  isSync,
+    const bool  isAllianceLeader) -> uint16
+{
+    uint16 flags = 0;
+
+    if (isAllianceLeader)
+    {
+        flags |= AllianceLeaderFlag;
+    }
+
+    if (partyNumber == 1)
+    {
+        flags += PartySecondFlag;
+    }
+    else if (partyNumber == 2)
+    {
+        flags += PartyThirdFlag;
+    }
+
+    if (isLeader)
+    {
+        flags |= PartyLeaderFlag;
+    }
+    if (isQM)
+    {
+        flags |= PartyQMFlag;
+    }
+    if (isSync)
+    {
+        flags |= PartySyncFlag;
+    }
+
+    return flags;
+}
+
+// ShouldInitPartyFromEntity mirrors PEntity != null && PParty == nullptr in CParty ctor.
+inline auto ShouldInitPartyFromEntity(const bool entityNull, const bool alreadyHasParty) -> bool
+{
+    return !entityNull && !alreadyHasParty;
+}
+
+// FormatCPartyCtorNullWarning mirrors constructor null/has-party warning.
+inline auto FormatCPartyCtorNullWarning() -> std::string
+{
+    return "CParty::CParty() - PEntity was null, or party was not null.";
+}
+
+// ResolvePartyTypeIsPC mirrors objtype == TYPE_PC ? PARTY_PCS : PARTY_MOBS
+// (true → PC party type).
+inline auto ResolvePartyTypeIsPC(const bool isPCEntity) -> bool
+{
+    return isPCEntity;
+}
+
+// PartyIDFromEntity mirrors m_PartyID = PEntity->id on construct.
+inline auto PartyIDFromEntity(const uint32 entityID) -> uint32
+{
+    return entityID;
+}
+
 } // namespace partyhelpers
