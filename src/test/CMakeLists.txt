@@ -604,6 +604,8 @@ set(SOURCES
     test_pet_zoning_restore_1419.cpp
     test_pet_post_tick_1420.h
     test_pet_post_tick_1420.cpp
+    test_automaton_post_tick_1421.h
+    test_automaton_post_tick_1421.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

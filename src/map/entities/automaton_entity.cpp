@@ -21,6 +21,7 @@
 
 #include "automaton_entity.h"
 #include "map/automaton_death_capacity.h"
+#include "map/automaton_post_tick_capacity.h"
 
 #include "action/action.h"
 #include "ai/ai_container.h"
@@ -143,15 +144,13 @@ auto CAutomatonEntity::overloadChance(const uint8 element) const -> uint8
 
 void CAutomatonEntity::PostTick()
 {
-    auto pre_mask = updatemask;
-    CPetEntity::PostTick();
-    if (pre_mask && status != STATUS_TYPE::DISAPPEAR)
-    {
-        if (PMaster && PMaster->objtype == TYPE_PC)
-        {
-            charutils::SendExtendedJobPackets(static_cast<CCharEntity*>(PMaster));
-        }
-    }
+    const bool hadUpdateMask = updatemask != 0;
+    automatonposttickhelpers::Apply(
+        hadUpdateMask,
+        [&]() { CPetEntity::PostTick(); },
+        [&]() { return status == STATUS_TYPE::DISAPPEAR; },
+        [&]() { return PMaster != nullptr && PMaster->objtype == TYPE_PC; },
+        [&]() { charutils::SendExtendedJobPackets(static_cast<CCharEntity*>(PMaster)); });
 }
 
 void CAutomatonEntity::Die()
