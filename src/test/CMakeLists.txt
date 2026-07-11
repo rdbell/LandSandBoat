@@ -526,6 +526,8 @@ set(SOURCES
     test_attackutils_multiplier_1380.cpp
     test_range_state_1381.h
     test_range_state_1381.cpp
+    test_magic_state_1382.h
+    test_magic_state_1382.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

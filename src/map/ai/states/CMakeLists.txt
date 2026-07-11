@@ -13,6 +13,7 @@ set(AI_STATE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/item_state.h
     ${CMAKE_CURRENT_SOURCE_DIR}/magic_state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/magic_state.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/magic_state_capacity.h
     ${CMAKE_CURRENT_SOURCE_DIR}/mobskill_state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/mobskill_state.h
     ${CMAKE_CURRENT_SOURCE_DIR}/petskill_state.cpp

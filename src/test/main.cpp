@@ -298,6 +298,7 @@ auto runAttackAssembly1378SelfTests() -> bool;
 auto runAttackHitRate1379SelfTests() -> bool;
 auto runAttackutilsMultiplier1380SelfTests() -> bool;
 auto runRangeState1381SelfTests() -> bool;
+auto runMagicState1382SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -806,6 +807,7 @@ namespace
         ok = runAttackHitRate1379SelfTests() && ok;
         ok = runAttackutilsMultiplier1380SelfTests() && ok;
         ok = runRangeState1381SelfTests() && ok;
+        ok = runMagicState1382SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
