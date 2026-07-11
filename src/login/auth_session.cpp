@@ -459,16 +459,15 @@ void auth_session::read_func()
             // Look up and validate account password
             if (!validatePassword(username, password))
             {
-                sendJsonOnlyErrorMessage("Failed to validate credentials");
+                sendJsonOnlyErrorMessage(loginHelpers::FailedCredentialValidationMessage);
                 return;
             }
 
             const auto secret       = otpHelpers::getAccountSecret(username, "TOTP");
             const auto recoveryCode = otpHelpers::getAccountRecoveryCode(username, "TOTP");
 
-            // Perform case-insensitive comparison on the recovery code vs input otp
-            // use c_str() because that guarantees both have a null terminator (and thus are the same length)
-            if (otpHelpers::validateTOTP(otp, secret) || strcmpi(otp.c_str(), recoveryCode.c_str()) == 0)
+            // TOTP or case-insensitive recovery code (pure dual gate).
+            if (loginHelpers::AcceptsOTPOrRecovery(otpHelpers::validateTOTP(otp, secret), otp, recoveryCode))
             {
                 // validated
                 uint32     accid = loginHelpers::getAccountId(username);
@@ -483,7 +482,7 @@ void auth_session::read_func()
             }
             else
             {
-                sendJsonOnlyErrorMessage("Failed to validate credentials");
+                sendJsonOnlyErrorMessage(loginHelpers::FailedCredentialValidationMessage);
             }
             break;
         }
@@ -492,16 +491,15 @@ void auth_session::read_func()
             // Look up and validate account password
             if (!validatePassword(username, password))
             {
-                sendJsonOnlyErrorMessage("Failed to validate credentials");
+                sendJsonOnlyErrorMessage(loginHelpers::FailedCredentialValidationMessage);
                 return;
             }
 
             const auto secret       = otpHelpers::getAccountSecret(username, "TOTP");
             const auto recoveryCode = otpHelpers::getAccountRecoveryCode(username, "TOTP");
 
-            // Perform case-insensitive comparison on the recovery code vs input otp
-            // use c_str() because that guarantees both have a null terminator (and thus are the same length)
-            if (otpHelpers::validateTOTP(otp, secret) || strcmpi(otp.c_str(), recoveryCode.c_str()) == 0)
+            // TOTP or case-insensitive recovery code (pure dual gate).
+            if (loginHelpers::AcceptsOTPOrRecovery(otpHelpers::validateTOTP(otp, secret), otp, recoveryCode))
             {
                 const auto newRecoveryCode = otpHelpers::regenerateAccountRecoveryCode(username, "TOTP");
 
@@ -513,7 +511,7 @@ void auth_session::read_func()
             }
             else
             {
-                sendJsonOnlyErrorMessage("Failed to validate credentials");
+                sendJsonOnlyErrorMessage(loginHelpers::FailedCredentialValidationMessage);
             }
             break;
         }
@@ -522,7 +520,7 @@ void auth_session::read_func()
             // Look up and validate account password
             if (!validatePassword(username, password))
             {
-                sendJsonOnlyErrorMessage("Failed to validate credentials");
+                sendJsonOnlyErrorMessage(loginHelpers::FailedCredentialValidationMessage);
                 return;
             }
 
@@ -540,7 +538,7 @@ void auth_session::read_func()
             }
             else
             {
-                sendJsonOnlyErrorMessage("Failed to validate credentials");
+                sendJsonOnlyErrorMessage(loginHelpers::FailedCredentialValidationMessage);
             }
 
             break;

@@ -204,4 +204,21 @@ inline auto IsCreateTOTPSecretValid(const std::string& secret) -> bool
 // AUTH TOTP/credential failure paths in auth_session.
 inline constexpr const char* FailedCredentialValidationMessage = "Failed to validate credentials";
 
+// MatchesRecoveryCode mirrors strcmpi(otp.c_str(), recoveryCode.c_str()) == 0
+// used by LOGIN_REMOVE_TOTP and LOGIN_REGENERATE_RECOVERY. Comparison is
+// case-insensitive and length-sensitive (null-terminated C-string rules via
+// strcmpi / strcasecmp).
+inline auto MatchesRecoveryCode(const std::string& otp, const std::string& recoveryCode) -> bool
+{
+    return strcmpi(otp.c_str(), recoveryCode.c_str()) == 0;
+}
+
+// AcceptsOTPOrRecovery mirrors the dual validation gate:
+//   validateTOTP(otp, secret) || MatchesRecoveryCode(otp, recoveryCode)
+// totpValid is injected so the pure half does not depend on wall-clock TOTP.
+inline auto AcceptsOTPOrRecovery(const bool totpValid, const std::string& otp, const std::string& recoveryCode) -> bool
+{
+    return totpValid || MatchesRecoveryCode(otp, recoveryCode);
+}
+
 } // namespace loginHelpers
