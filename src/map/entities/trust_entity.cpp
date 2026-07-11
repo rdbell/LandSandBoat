@@ -20,6 +20,7 @@
 */
 
 #include <map/entities/trust_entity.h>
+#include <map/trust_cast_finished_capacity.h>
 #include <map/trust_death_capacity.h>
 #include <map/trust_despawn_capacity.h>
 #include <map/trust_fade_out_capacity.h>
@@ -221,13 +222,11 @@ void CTrustEntity::OnDespawn(CDespawnState& /*unused*/)
 
 void CTrustEntity::OnCastFinished(CMagicState& state, action_t& action)
 {
-    // NOTE: This is purposefully calling CBattleEntity's impl.
-    // TODO: Calling a grand-parent's impl. of an overridden function is bad
-    CBattleEntity::OnCastFinished(state, action);
-
-    auto* PSpell = state.GetSpell();
-
-    PRecastContainer->Add(RECAST_MAGIC, static_cast<Recast>(PSpell->getID()), action.recast);
+    trustcastfinishedhelpers::Apply(
+        // Purposefully skip CMobEntity::OnCastFinished.
+        [&]() { CBattleEntity::OnCastFinished(state, action); },
+        [&]() { return static_cast<Recast>(state.GetSpell()->getID()); },
+        [&](Recast spellID) { PRecastContainer->Add(RECAST_MAGIC, spellID, action.recast); });
 }
 
 void CTrustEntity::OnMobSkillFinished(CMobSkillState& state, action_t& action)
