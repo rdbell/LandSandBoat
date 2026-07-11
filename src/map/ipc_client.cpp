@@ -22,6 +22,7 @@
 #include "ipc_client.h"
 
 #include "account_login.h"
+#include "assist_channel_event.h"
 #include "char_var_update.h"
 #include "char_zone.h"
 #include "chat_message_tell.h"
@@ -53,8 +54,6 @@
 #include "gmcall_container.h"
 #include "gmcall_response_notification.h"
 #include "items/item_linkshell.h"
-#include "packets/c2s/0x0b7_assist_channel.h"
-
 #include "utils/charutils.h"
 #include "utils/jailutils.h"
 #include "utils/serverutils.h"
@@ -942,27 +941,7 @@ void IPCClient::handleMessage_AssistChannelEvent(const IPP& ipp, const ipc::Assi
 {
     TracyZoneScoped;
 
-    CCharEntity* PChar = zoneutils::GetChar(message.receiverId);
-    if (!PChar)
-    {
-        return;
-    }
-
-    switch (static_cast<GP_CLI_COMMAND_ASSIST_CHANNEL_KIND>(message.action))
-    {
-        case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::AddToMuteList:
-            PChar->aman().mute(message.senderId);
-            break;
-        case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::RemoveFromMuteList:
-            PChar->aman().unmute(message.senderId);
-            break;
-        case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::GiveThumbsUp:
-            PChar->aman().addThumbsUp(message.senderId);
-            break;
-        case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::IssueWarning:
-            PChar->aman().addThumbsDown(message.senderId);
-            break;
-    }
+    mapipc::HandleAssistChannelEvent(message, [](const uint32 receiverId) { return zoneutils::GetChar(receiverId); });
 }
 
 void IPCClient::handleMessage_GMCallRequest(const IPP& ipp, const ipc::GMCallRequest& message)
