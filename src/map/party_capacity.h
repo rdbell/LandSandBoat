@@ -906,4 +906,129 @@ inline auto MemberInfoMatchesEntity(const uint32 memberInfoID, const uint32 enti
     return memberInfoID == entityID;
 }
 
+// --- ReloadParty / ReloadPartyMembers / ReloadTreasurePool ---
+
+// ShouldSkipMobReloadParty mirrors PARTY_MOBS early return in ReloadParty.
+inline auto ShouldSkipMobReloadParty(const bool isMobParty) -> bool
+{
+    return isMobParty;
+}
+
+// reload_party_path is alliance vs solo-party packet fan-out.
+enum class reload_party_path : uint8_t
+{
+    ALLIANCE, // m_PAlliance != nullptr
+    PARTY,    // regular party
+};
+
+// ClassifyReloadPartyPath mirrors m_PAlliance != nullptr after mob skip.
+inline auto ClassifyReloadPartyPath(const bool hasAlliance) -> reload_party_path
+{
+    return hasAlliance ? reload_party_path::ALLIANCE : reload_party_path::PARTY;
+}
+
+// FormatReloadPartyMembersNullWarning mirrors ReloadPartyMembers null gate.
+inline auto FormatReloadPartyMembersNullWarning() -> std::string
+{
+    return "CParty::ReloadPartyMembers() - PChar was null.";
+}
+
+// ShouldRejectNullReloadPartyMembers mirrors PChar == nullptr.
+inline auto ShouldRejectNullReloadPartyMembers(const bool charNull) -> bool
+{
+    return charNull;
+}
+
+// AlliancePartySlotMask is PARTY_SECOND | PARTY_THIRD for list index resets.
+constexpr uint16 AlliancePartySlotMask = PartySecondFlag | PartyThirdFlag;
+
+// ShouldResetAllianceListIndex mirrors
+// (memberinfo.flags & (PARTY_SECOND|PARTY_THIRD)) != alliance cursor.
+inline auto ShouldResetAllianceListIndex(const uint16 memberFlags, const uint16 allianceCursor) -> bool
+{
+    return (memberFlags & AlliancePartySlotMask) != allianceCursor;
+}
+
+// NextAllianceListCursor mirrors alliance = memberinfo.flags & mask.
+inline auto NextAllianceListCursor(const uint16 memberFlags) -> uint16
+{
+    return memberFlags & AlliancePartySlotMask;
+}
+
+// OfflineMemberZoneID mirrors zone == 0 ? prev_zone : zone for offline list rows.
+inline auto OfflineMemberZoneID(const uint16 zone, const uint16 prevZone) -> uint16
+{
+    return zone == 0 ? prevZone : zone;
+}
+
+// FormatReloadTreasurePoolNullWarning mirrors ReloadTreasurePool null gate.
+inline auto FormatReloadTreasurePoolNullWarning() -> std::string
+{
+    return "CParty::ReloadTreasurePool() - PChar was null.";
+}
+
+// ShouldRejectNullReloadTreasurePool mirrors PChar == nullptr.
+inline auto ShouldRejectNullReloadTreasurePool(const bool charNull) -> bool
+{
+    return charNull;
+}
+
+// ShouldKeepZoneTreasurePool mirrors non-null zone-type pool early return.
+inline auto ShouldKeepZoneTreasurePool(const bool hasPool, const bool isZonePool) -> bool
+{
+    return hasPool && isZonePool;
+}
+
+// reload_treasure_scan is which roster to scan for a joinable pool.
+enum class reload_treasure_scan : uint8_t
+{
+    NONE,     // no party — fall through to solo create
+    ALLIANCE, // has party and alliance
+    PARTY,    // has party, no alliance
+};
+
+// ClassifyReloadTreasureScan mirrors party/alliance structure before member walk.
+inline auto ClassifyReloadTreasureScan(const bool hasParty, const bool hasAlliance) -> reload_treasure_scan
+{
+    if (!hasParty)
+    {
+        return reload_treasure_scan::NONE;
+    }
+    if (hasAlliance)
+    {
+        return reload_treasure_scan::ALLIANCE;
+    }
+    return reload_treasure_scan::PARTY;
+}
+
+// ShouldJoinMemberTreasurePool mirrors candidate != self, has pool, same zone.
+inline auto ShouldJoinMemberTreasurePool(const bool isSelf, const bool candidateHasPool, const bool sameZone) -> bool
+{
+    return !isSelf && candidateHasPool && sameZone;
+}
+
+// ShouldDelOwnPoolBeforeJoin mirrors PChar->PTreasurePool != nullptr before reassign.
+inline auto ShouldDelOwnPoolBeforeJoin(const bool hasOwnPool) -> bool
+{
+    return hasOwnPool;
+}
+
+// ShouldCreateSoloTreasurePool mirrors PTreasurePool == nullptr at end of reload.
+inline auto ShouldCreateSoloTreasurePool(const bool hasPool) -> bool
+{
+    return !hasPool;
+}
+
+// ShouldRefreshFlagsForParty mirrors memberinfo.partyid == m_PartyID.
+inline auto ShouldRefreshFlagsForParty(const uint32 memberInfoPartyID, const uint32 partyID) -> bool
+{
+    return memberInfoPartyID == partyID;
+}
+
+// ShouldAssignAllianceLeaderFromFlags mirrors flags & ALLIANCE_LEADER when alliance set.
+inline auto ShouldAssignAllianceLeaderFromFlags(const uint16 flags, const bool hasAlliance) -> bool
+{
+    return hasAlliance && (flags & AllianceLeaderFlag) != 0;
+}
+
 } // namespace partyhelpers

@@ -911,7 +911,7 @@ uint16 CParty::GetMemberFlags(CBattleEntity* PEntity)
 // update the party for all members
 void CParty::ReloadParty()
 {
-    if (m_PartyType == PARTYTYPE::PARTY_MOBS) // Mob parties don't need to send packets
+    if (partyhelpers::ShouldSkipMobReloadParty(m_PartyType == PARTYTYPE::PARTY_MOBS)) // Mob parties don't need to send packets
     {
         return;
     }
@@ -919,7 +919,7 @@ void CParty::ReloadParty()
     auto info = GetPartyInfo();
 
     // alliance
-    if (this->m_PAlliance != nullptr)
+    if (partyhelpers::ClassifyReloadPartyPath(this->m_PAlliance != nullptr) == partyhelpers::reload_party_path::ALLIANCE)
     {
         for (auto&& party : m_PAlliance->partyList)
         {
@@ -934,9 +934,9 @@ void CParty::ReloadParty()
                 uint8 j = 0;
                 for (auto&& memberinfo : info)
                 {
-                    if ((memberinfo.flags & (PARTY_SECOND | PARTY_THIRD)) != alliance)
+                    if (partyhelpers::ShouldResetAllianceListIndex(memberinfo.flags, alliance))
                     {
-                        alliance = memberinfo.flags & (PARTY_SECOND | PARTY_THIRD);
+                        alliance = partyhelpers::NextAllianceListCursor(memberinfo.flags);
                         j        = 0;
                     }
                     auto* PPartyMember = zoneutils::GetChar(memberinfo.id);
@@ -948,7 +948,7 @@ void CParty::ReloadParty()
                     }
                     else
                     {
-                        uint16 zoneid = memberinfo.zone == 0 ? memberinfo.prev_zone : memberinfo.zone;
+                        uint16 zoneid = partyhelpers::OfflineMemberZoneID(memberinfo.zone, memberinfo.prev_zone);
                         PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(memberinfo.id, memberinfo.name, memberinfo.flags, j, zoneid);
                     }
                     j++;
@@ -1001,7 +1001,7 @@ void CParty::ReloadParty()
                 }
                 else
                 {
-                    uint16 zoneid = memberinfo.zone == 0 ? memberinfo.prev_zone : memberinfo.zone;
+                    uint16 zoneid = partyhelpers::OfflineMemberZoneID(memberinfo.zone, memberinfo.prev_zone);
                     PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(memberinfo.id, memberinfo.name, memberinfo.flags, j, zoneid);
                 }
                 j++;
@@ -1013,25 +1013,25 @@ void CParty::ReloadParty()
 // update party info for PChar
 void CParty::ReloadPartyMembers(CCharEntity* PChar)
 {
-    if (PChar == nullptr)
+    if (partyhelpers::ShouldRejectNullReloadPartyMembers(PChar == nullptr))
     {
-        ShowWarning("CParty::ReloadPartyMembers() - PChar was null.");
+        ShowWarning("%s", partyhelpers::FormatReloadPartyMembersNullWarning());
         return;
     }
 
     PChar->ReloadPartyDec();
     PChar->pushPacket<GP_SERV_COMMAND_GROUP_TBL>(this);
 
-    int alliance = 0;
+    uint16 alliance = 0;
 
     auto info = GetPartyInfo();
     RefreshFlags(info);
     uint8 j = 0;
     for (auto&& memberinfo : info)
     {
-        if ((memberinfo.flags & (PARTY_SECOND | PARTY_THIRD)) != alliance)
+        if (partyhelpers::ShouldResetAllianceListIndex(memberinfo.flags, alliance))
         {
-            alliance = memberinfo.flags & (PARTY_SECOND | PARTY_THIRD);
+            alliance = partyhelpers::NextAllianceListCursor(memberinfo.flags);
             j        = 0;
         }
         CCharEntity* PPartyMember = zoneutils::GetChar(memberinfo.id);
@@ -1041,7 +1041,7 @@ void CParty::ReloadPartyMembers(CCharEntity* PChar)
         }
         else
         {
-            uint16 zoneid = memberinfo.zone == 0 ? memberinfo.prev_zone : memberinfo.zone;
+            uint16 zoneid = partyhelpers::OfflineMemberZoneID(memberinfo.zone, memberinfo.prev_zone);
             PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(memberinfo.id, memberinfo.name, memberinfo.flags, j, zoneid);
         }
         j++;
@@ -1051,51 +1051,38 @@ void CParty::ReloadPartyMembers(CCharEntity* PChar)
 // update treasure pool for specified character
 void CParty::ReloadTreasurePool(CCharEntity* PChar)
 {
-    if (PChar == nullptr)
+    if (partyhelpers::ShouldRejectNullReloadTreasurePool(PChar == nullptr))
     {
-        ShowWarning("CParty::ReloadTreasurePool() - PChar was null.");
+        ShowWarning("%s", partyhelpers::FormatReloadTreasurePoolNullWarning());
         return;
     }
 
-    if (PChar->PTreasurePool != nullptr && PChar->PTreasurePool->getPoolType() == TreasurePoolType::Zone)
+    if (partyhelpers::ShouldKeepZoneTreasurePool(
+            PChar->PTreasurePool != nullptr,
+            PChar->PTreasurePool != nullptr && PChar->PTreasurePool->getPoolType() == TreasurePoolType::Zone))
     {
         return;
     }
+
+    const auto scan = partyhelpers::ClassifyReloadTreasureScan(
+        PChar->PParty != nullptr,
+        PChar->PParty != nullptr && PChar->PParty->m_PAlliance != nullptr);
 
     // alliance
-    if (PChar->PParty != nullptr)
+    if (scan == partyhelpers::reload_treasure_scan::ALLIANCE)
     {
-        if (PChar->PParty->m_PAlliance != nullptr)
+        for (std::size_t a = 0; a < PChar->PParty->m_PAlliance->partyList.size(); ++a)
         {
-            for (std::size_t a = 0; a < PChar->PParty->m_PAlliance->partyList.size(); ++a)
+            for (std::size_t i = 0; i < PChar->PParty->m_PAlliance->partyList.at(a)->members.size(); ++i)
             {
-                for (std::size_t i = 0; i < PChar->PParty->m_PAlliance->partyList.at(a)->members.size(); ++i)
+                CCharEntity* PPartyMember = (CCharEntity*)PChar->PParty->m_PAlliance->partyList.at(a)->members.at(i);
+
+                if (partyhelpers::ShouldJoinMemberTreasurePool(
+                        PPartyMember == PChar,
+                        PPartyMember->PTreasurePool != nullptr,
+                        PPartyMember->getZone() == PChar->getZone()))
                 {
-                    CCharEntity* PPartyMember = (CCharEntity*)PChar->PParty->m_PAlliance->partyList.at(a)->members.at(i);
-
-                    if (PPartyMember != PChar && PPartyMember->PTreasurePool != nullptr && PPartyMember->getZone() == PChar->getZone())
-                    {
-                        if (PChar->PTreasurePool != nullptr)
-                        {
-                            PChar->PTreasurePool->delMember(PChar);
-                        }
-                        PChar->PTreasurePool = PPartyMember->PTreasurePool;
-                        PChar->PTreasurePool->addMember(PChar);
-                        return;
-                    }
-                }
-
-            } // regular party
-        }
-        else if (PChar->PParty->m_PAlliance == nullptr)
-        {
-            for (auto& member : members)
-            {
-                CCharEntity* PPartyMember = (CCharEntity*)member;
-
-                if (PPartyMember != PChar && PPartyMember->PTreasurePool != nullptr && PPartyMember->getZone() == PChar->getZone())
-                {
-                    if (PChar->PTreasurePool != nullptr)
+                    if (partyhelpers::ShouldDelOwnPoolBeforeJoin(PChar->PTreasurePool != nullptr))
                     {
                         PChar->PTreasurePool->delMember(PChar);
                     }
@@ -1104,10 +1091,32 @@ void CParty::ReloadTreasurePool(CCharEntity* PChar)
                     return;
                 }
             }
+
+        } // regular party
+    }
+    else if (scan == partyhelpers::reload_treasure_scan::PARTY)
+    {
+        for (auto& member : members)
+        {
+            CCharEntity* PPartyMember = (CCharEntity*)member;
+
+            if (partyhelpers::ShouldJoinMemberTreasurePool(
+                    PPartyMember == PChar,
+                    PPartyMember->PTreasurePool != nullptr,
+                    PPartyMember->getZone() == PChar->getZone()))
+            {
+                if (partyhelpers::ShouldDelOwnPoolBeforeJoin(PChar->PTreasurePool != nullptr))
+                {
+                    PChar->PTreasurePool->delMember(PChar);
+                }
+                PChar->PTreasurePool = PPartyMember->PTreasurePool;
+                PChar->PTreasurePool->addMember(PChar);
+                return;
+            }
         }
     }
 
-    if (PChar->PTreasurePool == nullptr)
+    if (partyhelpers::ShouldCreateSoloTreasurePool(PChar->PTreasurePool != nullptr))
     {
         PChar->PTreasurePool = new CTreasurePool(TreasurePoolType::Solo);
         PChar->PTreasurePool->addMember(PChar);
@@ -1508,14 +1517,14 @@ void CParty::RefreshFlags(std::vector<partyInfo_t>& info)
 
     for (auto&& memberinfo : info)
     {
-        if (memberinfo.partyid == m_PartyID)
+        if (partyhelpers::ShouldRefreshFlagsForParty(memberinfo.partyid, m_PartyID))
         {
-            if (memberinfo.flags & PARTY_LEADER)
+            if (partyhelpers::ShouldAssignLeaderFromFlags(memberinfo.flags))
             {
                 bool found = false;
                 for (auto* member : members)
                 {
-                    if (member->id == memberinfo.id)
+                    if (partyhelpers::MemberInfoMatchesEntity(member->id, memberinfo.id))
                     {
                         m_PLeader = member;
                         found     = true;
@@ -1526,12 +1535,12 @@ void CParty::RefreshFlags(std::vector<partyInfo_t>& info)
                     m_PLeader = nullptr;
                 }
             }
-            if (memberinfo.flags & PARTY_QM)
+            if (partyhelpers::ShouldAssignQuarterMasterFromFlags(memberinfo.flags))
             {
                 bool found = false;
                 for (auto* member : members)
                 {
-                    if (member->id == memberinfo.id)
+                    if (partyhelpers::MemberInfoMatchesEntity(member->id, memberinfo.id))
                     {
                         m_PQuarterMaster = member;
                         found            = true;
@@ -1542,12 +1551,12 @@ void CParty::RefreshFlags(std::vector<partyInfo_t>& info)
                     m_PQuarterMaster = nullptr;
                 }
             }
-            if (memberinfo.flags & PARTY_SYNC)
+            if (partyhelpers::ShouldAssignSyncTargetFromFlags(memberinfo.flags))
             {
                 bool found = false;
                 for (auto* member : members)
                 {
-                    if (member->id == memberinfo.id)
+                    if (partyhelpers::MemberInfoMatchesEntity(member->id, memberinfo.id))
                     {
                         m_PSyncTarget = member;
                         found         = true;
@@ -1558,12 +1567,12 @@ void CParty::RefreshFlags(std::vector<partyInfo_t>& info)
                     m_PSyncTarget = nullptr;
                 }
             }
-            if (memberinfo.flags & ALLIANCE_LEADER && m_PAlliance)
+            if (partyhelpers::ShouldAssignAllianceLeaderFromFlags(memberinfo.flags, m_PAlliance != nullptr))
             {
                 bool found = false;
                 for (auto* member : members)
                 {
-                    if (member->id == memberinfo.id)
+                    if (partyhelpers::MemberInfoMatchesEntity(member->id, memberinfo.id))
                     {
                         m_PAlliance->setMainParty(this);
                         found = true;

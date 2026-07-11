@@ -468,6 +468,8 @@ set(SOURCES
     test_party_add_member_1350.cpp
     test_party_push_pop_del_1351.h
     test_party_push_pop_del_1351.cpp
+    test_party_reload_1352.h
+    test_party_reload_1352.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
