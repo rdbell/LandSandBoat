@@ -28,6 +28,7 @@
 #include "job_points.h"
 #include "latent_effect_container.h"
 #include "party.h"
+#include "party_capacity.h"
 #include "status_effect_container.h"
 #include "treasure_pool.h"
 #include "utils/blueutils.h"
@@ -601,13 +602,13 @@ void CParty::AddMember(CBattleEntity* PEntity)
         return;
     }
 
-    if (PEntity->objtype == TYPE_PC && m_PartyType == PARTY_PCS && IsFull())
+    if (partyhelpers::ShouldRejectPCAddFull(PEntity->objtype == TYPE_PC, m_PartyType == PARTY_PCS, IsFull()))
     {
         ShowWarning("CParty::AddMember() - Party was full when trying to add a member.");
         return;
     }
 
-    if (PEntity->objtype == TYPE_PC && m_PartyType == PARTY_PCS && HasTrusts())
+    if (partyhelpers::ShouldRejectPCAddTrusts(PEntity->objtype == TYPE_PC, m_PartyType == PARTY_PCS, HasTrusts()))
     {
         ShowWarning("CParty::AddMember() - Party had summoned trusts when trying to add a member.");
         return;
@@ -701,13 +702,14 @@ void CParty::AddMember(uint32 id)
 {
     if (m_PartyType == PARTY_PCS)
     {
-        if (IsFull())
+        // Out-of-zone add is always a PC joining a PC party.
+        if (partyhelpers::ShouldRejectPCAddFull(true, true, IsFull()))
         {
             ShowWarning("CParty::AddMember() - Party was full when trying to add a member from out of zone.");
             return;
         }
 
-        if (HasTrusts())
+        if (partyhelpers::ShouldRejectPCAddTrusts(true, true, HasTrusts()))
         {
             ShowWarning("CParty::AddMember() - Party had summoned trusts when trying to add a member.");
             return;
@@ -1356,40 +1358,30 @@ void CParty::SetPartyNumber(uint8 number)
 
 bool CParty::HasOnlyOneMember() const
 {
-    if (members.size() != 1)
-    {
-        return false;
-    }
-
     // Load party size to make sure that there is only one member in the party across all servers
-    return LoadPartySize() == 1;
+    return partyhelpers::HasOnlyOnePartyMember(members.size(), LoadPartySize());
 }
 
 bool CParty::IsFull() const
 {
-    if (members.size() > 5)
-    {
-        return true;
-    }
-
     // Load party size to make sure that that all members are accounted for across all servers
-    return LoadPartySize() > 5;
+    return partyhelpers::IsPartyFull(members.size(), LoadPartySize());
 }
 
 uint32 CParty::LoadPartySize() const
 {
     if (m_PartyType != PARTYTYPE::PARTY_PCS)
     {
-        return static_cast<uint32>(members.size());
+        return partyhelpers::LoadPartySizeForType(false, members.size(), 0);
     }
 
     const auto rset = db::preparedStmt("SELECT COUNT(*) FROM accounts_parties WHERE partyid = ?", m_PartyID);
     if (rset && rset->rowsCount() && rset->next())
     {
-        return rset->get<uint32>(0);
+        return partyhelpers::LoadPartySizeForType(true, members.size(), rset->get<uint32>(0));
     }
 
-    return 0;
+    return partyhelpers::LoadPartySizeForType(true, members.size(), 0);
 }
 
 timer::time_point CParty::GetTimeLastMemberJoined()
@@ -1407,17 +1399,19 @@ timer::time_point CParty::GetTimeLastMemberJoined()
 
 bool CParty::HasTrusts()
 {
+    bool anyMemberHasTrusts = false;
     for (auto* PMember : members)
     {
         if (auto* PCharMember = dynamic_cast<CCharEntity*>(PMember))
         {
             if (!PCharMember->PTrusts.empty())
             {
-                return true;
+                anyMemberHasTrusts = true;
+                break;
             }
         }
     }
-    return false;
+    return partyhelpers::PartyHasTrusts(anyMemberHasTrusts);
 }
 
 void CParty::RefreshFlags(std::vector<partyInfo_t>& info)
