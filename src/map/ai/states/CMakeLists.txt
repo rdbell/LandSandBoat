@@ -19,6 +19,7 @@ set(AI_STATE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/petskill_state.h
     ${CMAKE_CURRENT_SOURCE_DIR}/range_state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/range_state.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/range_state_capacity.h
     ${CMAKE_CURRENT_SOURCE_DIR}/state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/state.h
     ${CMAKE_CURRENT_SOURCE_DIR}/synth_state.cpp

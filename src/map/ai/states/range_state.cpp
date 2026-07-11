@@ -24,6 +24,7 @@
 #include "action/action.h"
 #include "action/interrupts.h"
 #include "ai/ai_container.h"
+#include "range_state_capacity.h"
 #include "entities/char_entity.h"
 #include "entities/trust_entity.h"
 #include "enums/action/category.h"
@@ -76,13 +77,12 @@ CRangeState::CRangeState(CBattleEntity* PEntity, uint16 targid)
     auto delay = m_PEntity->GetRangedWeaponDelay(false);
     delay      = battleutils::GetRangedDelayReduction(m_PEntity, delay);
 
-    // Rapid Shot
-    if (m_PEntity->objtype == TYPE_PC || m_PEntity->objtype == TYPE_TRUST)
+    // Rapid Shot (pure policy in rangestatehelpers)
     {
         CItemWeapon* weapon     = dynamic_cast<CItemWeapon*>(m_PEntity->m_Weapons[SLOT_RANGED]);
-        bool         isThrowing = weapon && weapon->isThrowing();
-        // Don't apply Rapid Shot to throwing weapons
-        if (!isThrowing)
+        const bool   isThrowing = weapon && weapon->isThrowing();
+        if (rangestatehelpers::ShouldTryRapidShot(
+                m_PEntity->objtype == TYPE_PC || m_PEntity->objtype == TYPE_TRUST, isThrowing))
         {
             auto chance{ m_PEntity->getMod(Mod::RAPID_SHOT) };
 
@@ -91,29 +91,28 @@ CRangeState::CRangeState(CBattleEntity* PEntity, uint16 targid)
                 chance += PChar->PMeritPoints->GetMeritValue(MERIT_RAPID_SHOT_RATE, PChar);
             }
 
-            // Don't bother if we cant even proc
-            if (chance > 0)
+            if (rangestatehelpers::RapidShotProcs(chance, xirand::GetRandomNumber(100)))
             {
-                if (xirand::GetRandomNumber(100) < chance)
-                {
-                    // reduce delay by 2-50%
-                    // https://www.bg-wiki.com/ffxi/Rapid_Shot
-                    // https://www.ffxiah.com/forum/topic/49806/ranger-firing-range-testing/4/#3233650
-                    delay       = (int16)(delay * (1.0f - xirand::GetRandomNumber<uint16>(2, 50) / 100.0f));
-                    m_rapidShot = true;
-                }
+                // reduce delay by 2-50% (draw is [2, 50) → 2..49%)
+                // https://www.bg-wiki.com/ffxi/Rapid_Shot
+                // https://www.ffxiah.com/forum/topic/49806/ranger-firing-range-testing/4/#3233650
+                delay       = rangestatehelpers::ApplyRapidShotDelayReduction(delay, xirand::GetRandomNumber<uint16>(2, 50));
+                m_rapidShot = true;
             }
         }
     }
 
-    if (m_PEntity->objtype == TYPE_MOB)
+    if (rangestatehelpers::ShouldApplyMobReturnWeaponDelay(m_PEntity->objtype == TYPE_MOB))
     {
         // Mobs have different delay returns for pulling out their weapon
-        m_returnWeaponDelay = 2850ms;
+        m_returnWeaponDelay = std::chrono::milliseconds(rangestatehelpers::MobReturnWeaponDelayMs);
 
-        if (distance(m_PEntity->loc.p, PTarget->loc.p) <= m_PEntity->GetMeleeRange(PTarget))
+        if (rangestatehelpers::ShouldApplyMobMeleeFreePhase(
+                true, distance(m_PEntity->loc.p, PTarget->loc.p) <= m_PEntity->GetMeleeRange(PTarget)))
         {
-            m_freePhaseTime = 6500ms + std::chrono::milliseconds(xirand::GetRandomNumber(0, 1500)); // Seems to have a random factor on to when it can shoot next. 1 or 2 melee auto attacks
+            // Seems to have a random factor on when it can shoot next. 1 or 2 melee auto attacks
+            m_freePhaseTime = std::chrono::milliseconds(
+                rangestatehelpers::MobFreePhaseTimeMs(xirand::GetRandomNumber(0, 1500)));
         }
     }
 
@@ -164,7 +163,9 @@ bool CRangeState::Update(timer::time_point tick)
 
         action_t action{};
         auto*    cast_errorMsg = dynamic_cast<GP_SERV_COMMAND_BATTLE_MESSAGE*>(m_errorMsg.get());
-        if (m_errorMsg && (!cast_errorMsg || cast_errorMsg->getMessageId() != MsgBasic::CannotSee))
+        const uint16 errMsgId  = cast_errorMsg ? static_cast<uint16>(cast_errorMsg->getMessageId()) : 0;
+        if (rangestatehelpers::ShouldInterruptOnError(
+                m_errorMsg != nullptr, cast_errorMsg != nullptr, errMsgId))
         {
             if (auto* PChar = dynamic_cast<CCharEntity*>(m_PEntity))
             {
@@ -179,7 +180,9 @@ bool CRangeState::Update(timer::time_point tick)
         {
             m_errorMsg.reset();
 
-            if (!PTarget || distance(m_PEntity->loc.p, PTarget->loc.p) > m_PEntity->GetRangedAttackRange())
+            if (!PTarget ||
+                rangestatehelpers::IsOutOfRangedAttackRange(
+                    distance(m_PEntity->loc.p, PTarget->loc.p), m_PEntity->GetRangedAttackRange()))
             {
                 m_isOutOfRange = true;
             }
@@ -218,95 +221,84 @@ void CRangeState::Cleanup(timer::time_point tick)
 
 bool CRangeState::CanUseRangedAttack(CBattleEntity* PTarget, bool isEndOfAttack)
 {
-    if (!PTarget)
-    {
-        m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(m_PEntity, m_PEntity, 0, 0, MsgBasic::CannotAttackTarget);
-        return false;
-    }
+    auto*      PChar            = dynamic_cast<CCharEntity*>(m_PEntity);
+    const bool isPC             = PChar != nullptr;
+    bool       hasRangedWeapon  = false;
+    bool       hasThrowingAmmo  = false;
+    bool       hasAmmoWeapon    = false;
+    uint8      skillType        = 0;
 
-    if (auto* PChar = dynamic_cast<CCharEntity*>(m_PEntity))
+    if (PChar)
     {
         CItemWeapon* PRanged = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED));
         CItemWeapon* PAmmo   = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO));
 
-        if (!((PRanged && PRanged->isType(ITEM_WEAPON)) || (PAmmo && PAmmo->isThrowing())))
+        hasRangedWeapon = PRanged && PRanged->isType(ITEM_WEAPON);
+        hasThrowingAmmo = PAmmo && PAmmo->isThrowing();
+        skillType       = rangestatehelpers::ResolveRangedSkillType(
+            hasRangedWeapon,
+            hasRangedWeapon ? PRanged->getSkillType() : 0,
+            (PAmmo != nullptr) ? PAmmo->getSkillType() : 0);
+
+        // Barrage side-effect for throwing stays host-side.
+        if (skillType == SKILL_THROWING &&
+            rangestatehelpers::HasInitialRangedEquip(hasRangedWeapon, hasThrowingAmmo))
         {
-            m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::NoRangedWeapon);
-            return false;
+            PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Barrage);
         }
 
-        auto SkillType = PRanged ? PRanged->getSkillType() : PAmmo->getSkillType();
-
-        switch (SkillType)
-        {
-            case SKILL_THROWING:
-            {
-                // remove barrage, doesn't work here
-                PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Barrage);
-                break;
-            }
-            case SKILL_ARCHERY:
-            case SKILL_MARKSMANSHIP:
-            {
-                PRanged = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO));
-                if (PRanged != nullptr && PRanged->isType(ITEM_WEAPON))
-                {
-                    break;
-                }
-                else
-                {
-                    m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::NoRangedWeapon);
-                    return false;
-                }
-            }
-            default:
-            {
-                m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::NoRangedWeapon);
-                return false;
-            }
-        }
+        CItemWeapon* PAmmoWeapon = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO));
+        hasAmmoWeapon            = PAmmoWeapon != nullptr && PAmmoWeapon->isType(ITEM_WEAPON);
     }
 
-    if (!facing(m_PEntity->loc.p, PTarget->loc.p, 64))
+    const bool isFacing = PTarget && facing(m_PEntity->loc.p, PTarget->loc.p, 64);
+    const bool canSee   = PTarget && m_PEntity->CanSeeTarget(PTarget);
+
+    bool freePhaseBusy = false;
+    if (PChar)
     {
-        m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(m_PEntity, PTarget, 0, 0, MsgBasic::CannotSee);
-        return false;
+        // Same clock period as m_freePhaseTime; .count() preserves the strict < comparison.
+        const auto elapsed = m_PEntity->PAI->getTick() - PChar->m_LastRangedAttackTime;
+        freePhaseBusy      = rangestatehelpers::FreePhaseBusy(elapsed.count(), m_freePhaseTime.count());
     }
 
-    if (!isEndOfAttack && !m_PEntity->CanSeeTarget(PTarget))
+    const auto fail = rangestatehelpers::EvaluateCanUseRangedAttack(
+        PTarget != nullptr,
+        isPC,
+        hasRangedWeapon,
+        hasThrowingAmmo,
+        skillType,
+        hasAmmoWeapon,
+        isFacing,
+        isEndOfAttack,
+        canSee,
+        freePhaseBusy,
+        m_PEntity->animation);
+
+    if (fail == rangestatehelpers::RangedUseFail::None)
     {
-        m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(m_PEntity, PTarget, 0, 0, MsgBasic::CannotPerformAction);
-        return false;
+        return true;
     }
 
-    // make sure player is waiting the appropriate time between ranged attacks
-    if (auto PChar = dynamic_cast<CCharEntity*>(m_PEntity))
+    const auto msg = static_cast<MsgBasic>(static_cast<uint16>(fail));
+    if (fail == rangestatehelpers::RangedUseFail::NoRangedWeapon && PChar)
     {
-        if (m_PEntity->PAI->getTick() - PChar->m_LastRangedAttackTime < m_freePhaseTime)
-        {
-            m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(m_PEntity, PTarget, 0, 0, MsgBasic::WaitLonger);
-            return false;
-        }
+        m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, msg);
     }
-
-    uint8 anim = m_PEntity->animation;
-    if (anim != ANIMATION_NONE && anim != ANIMATION_ATTACK)
+    else if (fail == rangestatehelpers::RangedUseFail::CannotAttackTarget)
     {
-        m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(m_PEntity, PTarget, 0, 0, MsgBasic::CannotPerformAction);
-        return false;
+        m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(m_PEntity, m_PEntity, 0, 0, msg);
     }
-
-    return true;
+    else
+    {
+        m_errorMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(m_PEntity, PTarget ? PTarget : m_PEntity, 0, 0, msg);
+    }
+    return false;
 }
 
 bool CRangeState::HasMoved()
 {
-    if (m_PEntity->objtype != TYPE_PC)
-    {
-        return false;
-    }
-
-    float charDistance = distance(m_startPos, m_PEntity->loc.p, true);
-
-    return charDistance > 0.3;
+    return rangestatehelpers::RangeHasMoved(
+        m_PEntity->objtype == TYPE_PC,
+        distance(m_startPos, m_PEntity->loc.p, true));
 }
