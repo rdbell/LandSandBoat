@@ -88,6 +88,213 @@ inline auto DecayVE(int32 ve) -> int32
     const int32 decay = VEDecayAmount();
     return ve - (ve > decay ? decay : ve);
 }
+
+// --- UpdateEnmity admission / TH / range / bonus (slice 1357) ---
+
+// ShouldRejectNonMobHolder mirrors holder objtype != TYPE_MOB early return.
+inline auto ShouldRejectNonMobHolder(const bool holderIsMob) -> bool
+{
+    return !holderIsMob;
+}
+
+// EnmityRangeNormal is max distance for non-NM holders (25.0f).
+constexpr float EnmityRangeNormal = 25.0f;
+
+// EnmityRangeNotorious is max distance for NM holders (28.0f).
+constexpr float EnmityRangeNotorious = 28.0f;
+
+// EnmityRangeMax mirrors m_Type == MOBTYPE_NOTORIOUS ? 28.0f : 25.0f.
+inline auto EnmityRangeMax(const bool isNotorious) -> float
+{
+    return isNotorious ? EnmityRangeNotorious : EnmityRangeNormal;
+}
+
+// IsWithinEnmityRangePure mirrors same-zone && within maxRange.
+// distanceIsWithin is host-evaluated isWithinDistance(holder, entity, maxRange).
+inline auto IsWithinEnmityRangePure(const bool sameZone, const bool distanceIsWithin) -> bool
+{
+    return sameZone && distanceIsWithin;
+}
+
+// ShouldZeroEnmityOutOfRange mirrors !IsWithinEnmityRange → CE=VE=0.
+inline auto ShouldZeroEnmityOutOfRange(const bool withinRange) -> bool
+{
+    return !withinRange;
+}
+
+// TreasureHunterMainCap is max TH for THF main (8).
+constexpr int16 TreasureHunterMainCap = 8;
+
+// TreasureHunterNonMainCap is max TH for non-THF main (4).
+constexpr int16 TreasureHunterNonMainCap = 4;
+
+// CapTreasureHunterLevel enforces TH8 for THF main and TH4 otherwise.
+// rawTH is getMod(TREASURE_HUNTER); isTHFMain is GetMJob() == JOB_THF.
+inline auto CapTreasureHunterLevel(const int16 rawTH, const bool isTHFMain) -> int16
+{
+    if (isTHFMain)
+    {
+        return std::min(TreasureHunterMainCap, rawTH);
+    }
+    return std::min(TreasureHunterNonMainCap, rawTH);
+}
+
+// ShouldApplyDirectActionTH mirrors if (directAction) TH/GF side effects.
+inline auto ShouldApplyDirectActionTH(const bool directAction) -> bool
+{
+    return directAction;
+}
+
+// ShouldRaiseHolderTH mirrors m_THLvl < THlevel.
+inline auto ShouldRaiseHolderTH(const int16 holderTH, const int16 candidateTH) -> bool
+{
+    return holderTH < candidateTH;
+}
+
+// ShouldRaiseHolderGilfinder mirrors m_GilfinderLevel < GFlevel.
+inline auto ShouldRaiseHolderGilfinder(const int16 holderGF, const int16 candidateGF) -> bool
+{
+    return holderGF < candidateGF;
+}
+
+// ShouldRebindEnmityOwner mirrors PEnmityOwner == nullptr on existing entry.
+inline auto ShouldRebindEnmityOwner(const bool ownerPresent) -> bool
+{
+    return !ownerPresent;
+}
+
+// ShouldActivateEnmityEntry mirrors CE >= 0 && VE >= 0 after update.
+inline auto ShouldActivateEnmityEntry(const int32 ce, const int32 ve) -> bool
+{
+    return ce >= 0 && ve >= 0;
+}
+
+// ShouldCreateNewEnmityEntry mirrors else if (CE >= 0 && VE >= 0) for missing key.
+inline auto ShouldCreateNewEnmityEntry(const bool entryExists, const int32 ce, const int32 ve) -> bool
+{
+    return !entryExists && ce >= 0 && ve >= 0;
+}
+
+// ShouldApplyInitialEnmityBoost mirrors initial==true (no active entries yet).
+inline auto ShouldApplyInitialEnmityBoost(const bool anyActiveEntry) -> bool
+{
+    return !anyActiveEntry;
+}
+
+// InitialCEBoost / InitialVEBoost for first active entry on a quiet list.
+constexpr int32 InitialCEBoost = 200;
+constexpr int32 InitialVEBoost = 900;
+
+// ShouldAddMasterBaseEnmity mirrors withMaster && (pet || charmed-mob-by-PC).
+// isPet is objtype==TYPE_PET; isCharmedMobByPC is TYPE_MOB with PC master.
+inline auto ShouldAddMasterBaseEnmity(const bool withMaster, const bool hasMaster, const bool isPet, const bool isCharmedMobByPC) -> bool
+{
+    return withMaster && hasMaster && (isPet || isCharmedMobByPC);
+}
+
+// ShouldMarkNotTameable mirrors if (!tameable) m_tameable = false.
+inline auto ShouldMarkNotTameable(const bool tameable) -> bool
+{
+    return !tameable;
+}
+
+// EnmityBonusMinClamp / EnmityBonusMaxClamp for raw enmityBonus before factor.
+constexpr int EnmityBonusMinClamp = -50;
+constexpr int EnmityBonusMaxClamp = 100;
+
+// CalculateEnmityBonusFactor mirrors (100 + clamp(enmityBonus,-50,100)) / 100.0f.
+// enmityBonus is sum of ENMITY mod and PC merit adjustments (host-computed).
+inline auto CalculateEnmityBonusFactor(const int enmityBonus) -> float
+{
+    const int clamped = std::clamp(enmityBonus, EnmityBonusMinClamp, EnmityBonusMaxClamp);
+    return (100.0f + static_cast<float>(clamped)) / 100.0f;
+}
+
+// ShouldSkipDamageEnmitySelf mirrors holder id == entity id.
+inline auto ShouldSkipDamageEnmitySelf(const bool sameEntity) -> bool
+{
+    return sameEntity;
+}
+
+// FloorDamageForEnmity mirrors Damage < 1 ? 1 : Damage.
+inline auto FloorDamageForEnmity(const int32 damage) -> int32
+{
+    return damage < 1 ? 1 : damage;
+}
+
+// AttackEnmityCEDelta mirrors -1800 * Damage / maxHP * reduction.
+// reduction is (100 - min(ENMITY_LOSS_REDUCTION, 100)) / 100.
+inline auto AttackEnmityLossReduction(const int16 enmityLossReductionMod) -> float
+{
+    return (100.0f - static_cast<float>(std::min<int16>(enmityLossReductionMod, 100))) / 100.0f;
+}
+
+inline auto AttackEnmityCEDelta(const int32 damage, const int32 maxHP, const float reduction) -> int32
+{
+    if (maxHP <= 0)
+    {
+        return 0;
+    }
+    return static_cast<int32>(-1800.0f * static_cast<float>(damage) / static_cast<float>(maxHP) * reduction);
+}
+
+// CoverEnmityCEBonus is +200 CE applied to cover user.
+constexpr int32 CoverEnmityCEBonus = 200;
+
+// CoverEnmityLowerPercent is 10% lower on cover target.
+constexpr uint8 CoverEnmityLowerPercent = 10;
+
+// ShouldApplyCoverEnmity mirrors both cover target and user non-null.
+inline auto ShouldApplyCoverEnmity(const bool targetNonNull, const bool userNonNull) -> bool
+{
+    return targetNonNull && userNonNull;
+}
+
+// CoverUserNewCE mirrors GetCE(user) + 200.
+inline auto CoverUserNewCE(const int32 currentCE) -> int32
+{
+    return currentCE + CoverEnmityCEBonus;
+}
+
+// ShouldRaiseHiPCLvl mirrors m_HiPCLvl < entity MLevel after damage enmity.
+inline auto ShouldRaiseHiPCLvl(const uint8 holderHiPCLvl, const uint8 entityMLevel) -> bool
+{
+    return holderHiPCLvl < entityMLevel;
+}
+
+// ShouldSkipHighestEnmitySameAllegiance mirrors owner allegiance == holder.
+// ownerMissing means POwner is null — still eligible (treat as candidate).
+inline auto ShouldSkipHighestEnmitySameAllegiance(const bool ownerPresent, const bool sameAllegiance) -> bool
+{
+    return ownerPresent && sameAllegiance;
+}
+
+// ShouldPreferCurrentBattleTargetOnTie mirrors tie + highest is battle target.
+inline auto ShouldPreferCurrentBattleTargetOnTie(
+    const bool enmityTied,
+    const bool hasCurrentHighest,
+    const bool holderHasBattleTarget,
+    const bool currentHighestIsBattleTarget) -> bool
+{
+    return enmityTied && hasCurrentHighest && holderHasBattleTarget && currentHighestIsBattleTarget;
+}
+
+// ShouldPruneHighestEnmity mirrors missing/wrong-zone/instance/dead owner.
+inline auto ShouldPruneHighestEnmity(
+    const bool ownerResolved,
+    const bool sameZone,
+    const bool sameInstance,
+    const bool isDead) -> bool
+{
+    return !ownerResolved || !sameZone || !sameInstance || isDead;
+}
+
+// ShouldAddBaseEnmitySameZone mirrors AddBaseEnmity zone check.
+inline auto ShouldAddBaseEnmitySameZone(const bool sameZone) -> bool
+{
+    return sameZone;
+}
+
 } // namespace enmitymath
 
 class CEnmityContainer

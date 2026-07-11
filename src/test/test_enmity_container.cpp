@@ -120,6 +120,90 @@ auto testExistingEntryClampComposition() -> bool
     return ok;
 }
 
+auto expectBool(const bool condition, const char* label) -> bool
+{
+    if (!condition)
+    {
+        std::cerr << "enmity container self-test failed: " << label << '\n';
+    }
+    return condition;
+}
+
+auto testUpdateEnmityAdmission1357() -> bool
+{
+    bool ok = true;
+
+    ok = expectBool(enmitymath::ShouldRejectNonMobHolder(false), "reject non-mob") && ok;
+    ok = expectBool(!enmitymath::ShouldRejectNonMobHolder(true), "accept mob") && ok;
+
+    ok = expectEqual(static_cast<int>(enmitymath::EnmityRangeNormal * 10), 250, "range normal") && ok;
+    ok = expectEqual(static_cast<int>(enmitymath::EnmityRangeNotorious * 10), 280, "range nm") && ok;
+    ok = expectBool(enmitymath::EnmityRangeMax(true) == enmitymath::EnmityRangeNotorious, "max nm") && ok;
+    ok = expectBool(enmitymath::EnmityRangeMax(false) == enmitymath::EnmityRangeNormal, "max normal") && ok;
+    ok = expectBool(enmitymath::IsWithinEnmityRangePure(true, true), "in range") && ok;
+    ok = expectBool(!enmitymath::IsWithinEnmityRangePure(false, true), "cross zone") && ok;
+    ok = expectBool(enmitymath::ShouldZeroEnmityOutOfRange(false), "zero oor") && ok;
+
+    ok = expectEqual(enmitymath::CapTreasureHunterLevel(10, true), static_cast<int16>(8), "th main cap") && ok;
+    ok = expectEqual(enmitymath::CapTreasureHunterLevel(10, false), static_cast<int16>(4), "th non-main cap") && ok;
+    ok = expectEqual(enmitymath::CapTreasureHunterLevel(3, false), static_cast<int16>(3), "th below cap") && ok;
+    ok = expectBool(enmitymath::ShouldApplyDirectActionTH(true), "direct th") && ok;
+    ok = expectBool(enmitymath::ShouldRaiseHolderTH(2, 4), "raise th") && ok;
+    ok = expectBool(!enmitymath::ShouldRaiseHolderTH(4, 4), "no raise th") && ok;
+    ok = expectBool(enmitymath::ShouldRaiseHolderGilfinder(1, 3), "raise gf") && ok;
+
+    ok = expectBool(enmitymath::ShouldRebindEnmityOwner(false), "rebind") && ok;
+    ok = expectBool(!enmitymath::ShouldRebindEnmityOwner(true), "no rebind") && ok;
+    ok = expectBool(enmitymath::ShouldActivateEnmityEntry(0, 0), "activate zero") && ok;
+    ok = expectBool(!enmitymath::ShouldActivateEnmityEntry(-1, 0), "no activate") && ok;
+    ok = expectBool(enmitymath::ShouldCreateNewEnmityEntry(false, 1, 1), "create") && ok;
+    ok = expectBool(!enmitymath::ShouldCreateNewEnmityEntry(true, 1, 1), "no create exists") && ok;
+    ok = expectBool(enmitymath::ShouldApplyInitialEnmityBoost(false), "initial boost") && ok;
+    ok = expectBool(!enmitymath::ShouldApplyInitialEnmityBoost(true), "no initial") && ok;
+    ok = expectEqual(enmitymath::InitialCEBoost, static_cast<int32>(200), "ce boost") && ok;
+    ok = expectEqual(enmitymath::InitialVEBoost, static_cast<int32>(900), "ve boost") && ok;
+
+    ok = expectBool(enmitymath::ShouldAddMasterBaseEnmity(true, true, true, false), "master pet") && ok;
+    ok = expectBool(enmitymath::ShouldAddMasterBaseEnmity(true, true, false, true), "master charm") && ok;
+    ok = expectBool(!enmitymath::ShouldAddMasterBaseEnmity(true, true, false, false), "master other") && ok;
+    ok = expectBool(enmitymath::ShouldMarkNotTameable(false), "not tameable") && ok;
+
+    // bonus factor: 0 → 1.0, +50 → 1.5, -50 → 0.5, clamp +100 → 2.0, clamp -60 → 0.5
+    ok = expectBool(enmitymath::CalculateEnmityBonusFactor(0) == 1.0f, "bonus 0") && ok;
+    ok = expectBool(enmitymath::CalculateEnmityBonusFactor(50) == 1.5f, "bonus 50") && ok;
+    ok = expectBool(enmitymath::CalculateEnmityBonusFactor(-50) == 0.5f, "bonus -50") && ok;
+    ok = expectBool(enmitymath::CalculateEnmityBonusFactor(100) == 2.0f, "bonus 100") && ok;
+    ok = expectBool(enmitymath::CalculateEnmityBonusFactor(200) == 2.0f, "bonus clamp high") && ok;
+    ok = expectBool(enmitymath::CalculateEnmityBonusFactor(-60) == 0.5f, "bonus clamp low") && ok;
+
+    ok = expectBool(enmitymath::ShouldSkipDamageEnmitySelf(true), "self dmg") && ok;
+    ok = expectEqual(enmitymath::FloorDamageForEnmity(0), static_cast<int32>(1), "floor 0") && ok;
+    ok = expectEqual(enmitymath::FloorDamageForEnmity(5), static_cast<int32>(5), "floor 5") && ok;
+
+    ok = expectBool(enmitymath::AttackEnmityLossReduction(0) == 1.0f, "loss red 0") && ok;
+    ok = expectBool(enmitymath::AttackEnmityLossReduction(50) == 0.5f, "loss red 50") && ok;
+    ok = expectBool(enmitymath::AttackEnmityLossReduction(100) == 0.0f, "loss red 100") && ok;
+    // -1800 * 100 / 1000 * 1.0 = -180
+    ok = expectEqual(enmitymath::AttackEnmityCEDelta(100, 1000, 1.0f), static_cast<int32>(-180), "attack ce") && ok;
+    ok = expectEqual(enmitymath::AttackEnmityCEDelta(100, 0, 1.0f), static_cast<int32>(0), "attack maxhp0") && ok;
+
+    ok = expectBool(enmitymath::ShouldApplyCoverEnmity(true, true), "cover") && ok;
+    ok = expectEqual(enmitymath::CoverUserNewCE(50), static_cast<int32>(250), "cover ce") && ok;
+    ok = expectEqual(enmitymath::CoverEnmityLowerPercent, static_cast<uint8>(10), "cover pct") && ok;
+
+    ok = expectBool(enmitymath::ShouldRaiseHiPCLvl(50, 75), "hi pc") && ok;
+    ok = expectBool(enmitymath::ShouldSkipHighestEnmitySameAllegiance(true, true), "skip ally") && ok;
+    ok = expectBool(!enmitymath::ShouldSkipHighestEnmitySameAllegiance(false, true), "null owner ok") && ok;
+    ok = expectBool(enmitymath::ShouldPreferCurrentBattleTargetOnTie(true, true, true, true), "tie keep") && ok;
+    ok = expectBool(enmitymath::ShouldPruneHighestEnmity(false, true, true, false), "prune null") && ok;
+    ok = expectBool(enmitymath::ShouldPruneHighestEnmity(true, false, true, false), "prune zone") && ok;
+    ok = expectBool(enmitymath::ShouldPruneHighestEnmity(true, true, true, true), "prune dead") && ok;
+    ok = expectBool(!enmitymath::ShouldPruneHighestEnmity(true, true, true, false), "keep valid") && ok;
+    ok = expectBool(enmitymath::ShouldAddBaseEnmitySameZone(true), "base zone") && ok;
+
+    return ok;
+}
+
 } // namespace
 
 auto runEnmityContainerSelfTests() -> bool
@@ -131,5 +215,6 @@ auto runEnmityContainerSelfTests() -> bool
     ok      = testLowerByPercent() && ok;
     ok      = testDecayVE() && ok;
     ok      = testExistingEntryClampComposition() && ok;
+    ok      = testUpdateEnmityAdmission1357() && ok;
     return ok;
 }
