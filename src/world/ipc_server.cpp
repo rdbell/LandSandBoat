@@ -42,6 +42,7 @@
 #include "party_disband.h"
 #include "party_members_reroute.h"
 #include "party_reload.h"
+#include "player_kick.h"
 
 #include "besieged_system.h"
 #include "campaign_system.h"
@@ -640,7 +641,12 @@ void IPCServer::handleMessage_PlayerKick(const IPP& ipp, const ipc::PlayerKick& 
 {
     TracyZoneScoped;
 
-    rerouteMessageToCharId(message.victimId, message);
+    worldipc::HandlePlayerKick(
+        message,
+        [this](const uint32 victimId, const ipc::PlayerKick& kick)
+        {
+            rerouteMessageToCharId(victimId, kick);
+        });
 
     // TODO:
     // worldServer_.partySystem_->handleMessage(message);

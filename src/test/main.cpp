@@ -179,6 +179,7 @@ auto runWorldPartyReload1269SelfTests() -> bool;
 auto runWorldPartyDisband1270SelfTests() -> bool;
 auto runWorldAllianceReload1271SelfTests() -> bool;
 auto runWorldAllianceDissolve1272SelfTests() -> bool;
+auto runWorldPlayerKick1273SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -579,6 +580,7 @@ namespace
         ok = runWorldPartyDisband1270SelfTests() && ok;
         ok = runWorldAllianceReload1271SelfTests() && ok;
         ok = runWorldAllianceDissolve1272SelfTests() && ok;
+        ok = runWorldPlayerKick1273SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;
