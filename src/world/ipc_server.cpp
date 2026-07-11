@@ -26,6 +26,7 @@
 #include "alliance_members_reroute.h"
 #include "alliance_reload.h"
 #include "besieged_event.h"
+#include "campaign_event.h"
 #include "char_id_reroute.h"
 #include "char_name_reroute.h"
 #include "char_var_update.h"
@@ -810,7 +811,13 @@ void IPCServer::handleMessage_CampaignEvent(const IPP& ipp, const ipc::CampaignE
 {
     TracyZoneScoped;
 
-    worldServer_.campaignSystem_->handleMessage(message.type, { ipp, message.payload });
+    worldipc::HandleCampaignEvent(
+        ipp,
+        message,
+        [this](CampaignMessage type, IPPMessage&& event)
+        {
+            return worldServer_.campaignSystem_->handleMessage(type, std::move(event));
+        });
 }
 
 void IPCServer::handleMessage_ColonizationEvent(const IPP& ipp, const ipc::ColonizationEvent& message)

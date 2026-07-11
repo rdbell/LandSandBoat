@@ -478,6 +478,8 @@ set(SOURCES
     test_world_conquest_event_1281.cpp
     test_world_besieged_event_1282.h
     test_world_besieged_event_1282.cpp
+    test_world_campaign_event_1283.h
+    test_world_campaign_event_1283.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h
