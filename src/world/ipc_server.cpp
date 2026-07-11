@@ -31,6 +31,7 @@
 #include "char_name_reroute.h"
 #include "char_var_update.h"
 #include "char_zone.h"
+#include "colonization_event.h"
 #include "conquest_event.h"
 #include "chat_message_alliance.h"
 #include "chat_message_assist.h"
@@ -824,7 +825,13 @@ void IPCServer::handleMessage_ColonizationEvent(const IPP& ipp, const ipc::Colon
 {
     TracyZoneScoped;
 
-    worldServer_.colonizationSystem_->handleMessage(message.type, { ipp, message.payload });
+    worldipc::HandleColonizationEvent(
+        ipp,
+        message,
+        [this](ColonizationMessage type, IPPMessage&& event)
+        {
+            return worldServer_.colonizationSystem_->handleMessage(type, std::move(event));
+        });
 }
 
 void IPCServer::handleMessage_EntityInformationRequest(const IPP& ipp, const ipc::EntityInformationRequest& message)

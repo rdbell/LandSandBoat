@@ -190,6 +190,7 @@ auto runWorldKillSession1280SelfTests() -> bool;
 auto runWorldConquestEvent1281SelfTests() -> bool;
 auto runWorldBesiegedEvent1282SelfTests() -> bool;
 auto runWorldCampaignEvent1283SelfTests() -> bool;
+auto runWorldColonizationEvent1284SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -601,6 +602,7 @@ namespace
         ok = runWorldConquestEvent1281SelfTests() && ok;
         ok = runWorldBesiegedEvent1282SelfTests() && ok;
         ok = runWorldCampaignEvent1283SelfTests() && ok;
+        ok = runWorldColonizationEvent1284SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;
