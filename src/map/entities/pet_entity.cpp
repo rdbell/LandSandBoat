@@ -23,6 +23,7 @@
 #include "map/pet_death_capacity.h"
 #include "map/pet_fade_out_capacity.h"
 #include "map/pet_spawn_capacity.h"
+#include "map/pet_valid_target_capacity.h"
 #include "map/pet_zoning_restore_capacity.h"
 #include "map/pet_post_tick_capacity.h"
 
@@ -359,11 +360,10 @@ void CPetEntity::OnAbility(CAbilityState& state, action_t& action)
 
 bool CPetEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
 {
-    if (targetFlags & TARGET_PLAYER && PInitiator->allegiance == allegiance)
-    {
-        return false;
-    }
-    return CMobEntity::ValidTarget(PInitiator, targetFlags);
+    return petvalidtargethelpers::Apply(
+        (targetFlags & TARGET_PLAYER) != 0,
+        PInitiator->allegiance == allegiance,
+        [&]() { return CMobEntity::ValidTarget(PInitiator, targetFlags); });
 }
 
 bool CPetEntity::CanAttack(CBattleEntity* PTarget, std::unique_ptr<CBasicPacket>& errMsg)
