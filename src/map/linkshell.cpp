@@ -407,7 +407,9 @@ std::map<uint32, std::unique_ptr<CLinkshell>> LinkshellList;
 auto LoadLinkshell(uint32 id) -> CLinkshell*
 {
     const auto rset = db::preparedStmt("SELECT linkshellid, color, name, postrights FROM linkshells WHERE linkshellid = ? LIMIT 1", id);
-    if (rset && rset->rowsCount() && rset->next())
+    if (linkshellhelpers::ClassifyLoadLinkshell(
+            rset != nullptr,
+            rset && rset->rowsCount() && rset->next()) == linkshellhelpers::load_linkshell_gate::FOUND)
     {
         const auto linkshellid = rset->get<uint32>("linkshellid");
         const auto color       = rset->get<uint16>("color");
@@ -432,7 +434,7 @@ auto LoadLinkshell(uint32 id) -> CLinkshell*
 // Unloads a loaded linkshell, only used after all members are removed
 void UnloadLinkshell(uint32 id)
 {
-    if (auto PLinkshell = LinkshellList.find(id); PLinkshell != LinkshellList.end())
+    if (linkshellhelpers::ShouldUnloadLinkshell(LinkshellList.find(id) != LinkshellList.end()))
     {
         LinkshellList.erase(id);
     }
@@ -441,46 +443,52 @@ void UnloadLinkshell(uint32 id)
 // add character to online linkshell list, used to send messages
 bool AddOnlineMember(CCharEntity* PChar, CItemLinkshell* PItemLinkshell, uint8 lsNum)
 {
-    if (PChar == nullptr)
+    if (linkshellhelpers::ShouldRejectNullOnlineMember(PChar == nullptr))
     {
-        ShowWarning("PChar is null.");
-        return false;
+        ShowWarning("%s", linkshellhelpers::FormatOnlineMemberNullWarning());
+        return linkshellhelpers::OnlineMemberAlwaysReturnsFalse();
     }
 
-    if (PItemLinkshell != nullptr && PItemLinkshell->isType(ITEM_LINKSHELL))
+    if (linkshellhelpers::ShouldProcessLinkshellItem(
+            PItemLinkshell != nullptr,
+            PItemLinkshell != nullptr && PItemLinkshell->isType(ITEM_LINKSHELL)))
     {
         CLinkshell* PLinkshell = nullptr;
-        if (auto LinkshellListShell = LinkshellList.find(PItemLinkshell->GetLSID()); LinkshellListShell != LinkshellList.end())
+        const bool  foundInCache =
+            LinkshellList.find(PItemLinkshell->GetLSID()) != LinkshellList.end();
+        if (!linkshellhelpers::ShouldLoadLinkshellOnOnlineAdd(foundInCache))
         {
-            PLinkshell = LinkshellListShell->second.get();
+            PLinkshell = LinkshellList.find(PItemLinkshell->GetLSID())->second.get();
         }
         else
         {
             PLinkshell = LoadLinkshell(PItemLinkshell->GetLSID());
         }
-        if (PLinkshell)
+        if (linkshellhelpers::ShouldAddMemberAfterOnlineLookup(PLinkshell != nullptr))
         {
             PLinkshell->AddMember(PChar, PItemLinkshell->GetLSType(), lsNum);
         }
     }
-    return false;
+    return linkshellhelpers::OnlineMemberAlwaysReturnsFalse();
 }
 
 // remove online member so we don't try to send messages to them
 bool DelOnlineMember(CCharEntity* PChar, CItemLinkshell* PItemLinkshell)
 {
-    if (PChar == nullptr)
+    if (linkshellhelpers::ShouldRejectNullOnlineMember(PChar == nullptr))
     {
-        ShowWarning("PChar is null.");
-        return false;
+        ShowWarning("%s", linkshellhelpers::FormatOnlineMemberNullWarning());
+        return linkshellhelpers::OnlineMemberAlwaysReturnsFalse();
     }
 
-    if (PItemLinkshell != nullptr && PItemLinkshell->isType(ITEM_LINKSHELL))
+    if (linkshellhelpers::ShouldProcessLinkshellItem(
+            PItemLinkshell != nullptr,
+            PItemLinkshell != nullptr && PItemLinkshell->isType(ITEM_LINKSHELL)))
     {
         try
         {
             CLinkshell* Linkshell = LinkshellList.at(PItemLinkshell->GetLSID()).get();
-            if (!Linkshell->DelMember(PChar))
+            if (linkshellhelpers::ShouldEraseLinkshellAfterDelOnline(Linkshell->DelMember(PChar)))
             {
                 LinkshellList.erase(PItemLinkshell->GetLSID());
             }
@@ -490,43 +498,58 @@ bool DelOnlineMember(CCharEntity* PChar, CItemLinkshell* PItemLinkshell)
             ShowError("linkshell::DelOnlineMember caught exception: %s", exception.what());
         }
     }
-    return false;
+    return linkshellhelpers::OnlineMemberAlwaysReturnsFalse();
 }
 
 bool IsValidLinkshellName(const std::string& name)
 {
     const auto rset = db::preparedStmt("SELECT linkshellid FROM linkshells WHERE name = ? AND broken != 1", name);
-    return !rset || rset->rowsCount() == 0;
+    return linkshellhelpers::IsValidLinkshellNameFromQuery(rset != nullptr, rset ? rset->rowsCount() : 0);
 }
 
 uint32 RegisterNewLinkshell(const std::string& name, uint16 color)
 {
-    if (IsValidLinkshellName(name))
+    const bool nameValid = IsValidLinkshellName(name);
+    const bool insertOk  = nameValid && db::preparedStmt(
+                                          "INSERT INTO linkshells (name, color, postrights) VALUES (?, ?, ?)",
+                                          name,
+                                          color,
+                                          linkshellhelpers::RegisterNewLinkshellPostRights);
+
+    bool selectOk = false;
+    bool hasRow   = false;
+    bool loadOk   = false;
+    uint32 id     = 0;
+
+    if (insertOk)
     {
-        if (db::preparedStmt("INSERT INTO linkshells (name, color, postrights) VALUES (?, ?, ?)",
-                             name,
-                             color,
-                             static_cast<uint8>(LSTYPE_PEARLSACK)))
+        const auto rset = db::preparedStmt("SELECT linkshellid FROM linkshells WHERE name = ? AND broken != 1", name);
+        selectOk        = rset != nullptr;
+        hasRow          = rset && rset->rowsCount() && rset->next();
+        if (hasRow)
         {
-            const auto rset = db::preparedStmt("SELECT linkshellid FROM linkshells WHERE name = ? AND broken != 1", name);
-            if (rset && rset->rowsCount() && rset->next())
+            id = rset->get<uint32>("linkshellid");
+            if (auto* PLinkshell = LoadLinkshell(id))
             {
-                const auto id = rset->get<uint32>("linkshellid");
-                if (auto* PLinkshell = LoadLinkshell(id))
-                {
-                    return PLinkshell->getID();
-                }
+                loadOk = true;
+                id     = PLinkshell->getID();
             }
         }
+    }
+
+    if (linkshellhelpers::ClassifyRegisterNewLinkshell(nameValid, insertOk, selectOk, hasRow, loadOk) ==
+        linkshellhelpers::register_linkshell_gate::SUCCESS)
+    {
+        return id;
     }
     return 0;
 }
 
 CLinkshell* GetLinkshell(uint32 id)
 {
-    if (auto PLinkshell = LinkshellList.find(id); PLinkshell != LinkshellList.end())
+    if (linkshellhelpers::ShouldReturnCachedLinkshell(LinkshellList.find(id) != LinkshellList.end()))
     {
-        return PLinkshell->second.get();
+        return LinkshellList.find(id)->second.get();
     }
     else
     {

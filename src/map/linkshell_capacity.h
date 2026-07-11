@@ -163,4 +163,132 @@ inline auto DelMemberRemaining(const std::size_t memberCountAfter) -> bool
     return memberCountAfter != 0;
 }
 
+// --- Registry: Load / Unload / Online / Register ---
+
+// load_linkshell_gate is pure outcome of LoadLinkshell DB lookup.
+enum class load_linkshell_gate : uint8_t
+{
+    NOT_FOUND, // query fail, no rows, or next fail
+    FOUND,     // construct and insert into LinkshellList
+};
+
+// ClassifyLoadLinkshell mirrors rset && rowsCount && next.
+inline auto ClassifyLoadLinkshell(const bool queryOk, const bool hasRow) -> load_linkshell_gate
+{
+    if (queryOk && hasRow)
+    {
+        return load_linkshell_gate::FOUND;
+    }
+    return load_linkshell_gate::NOT_FOUND;
+}
+
+// ShouldUnloadLinkshell mirrors find hit in LinkshellList.
+inline auto ShouldUnloadLinkshell(const bool foundInList) -> bool
+{
+    return foundInList;
+}
+
+// FormatOnlineMemberNullWarning mirrors AddOnlineMember/DelOnlineMember null warn.
+inline auto FormatOnlineMemberNullWarning() -> std::string
+{
+    return "PChar is null.";
+}
+
+// ShouldRejectNullOnlineMember mirrors PChar == nullptr.
+inline auto ShouldRejectNullOnlineMember(const bool charNull) -> bool
+{
+    return charNull;
+}
+
+// ShouldProcessLinkshellItem mirrors item != null && isType(ITEM_LINKSHELL).
+inline auto ShouldProcessLinkshellItem(const bool itemNonNull, const bool isLinkshellType) -> bool
+{
+    return itemNonNull && isLinkshellType;
+}
+
+// ShouldLoadLinkshellOnOnlineAdd mirrors cache miss before LoadLinkshell.
+inline auto ShouldLoadLinkshellOnOnlineAdd(const bool foundInCache) -> bool
+{
+    return !foundInCache;
+}
+
+// ShouldAddMemberAfterOnlineLookup mirrors PLinkshell != nullptr.
+inline auto ShouldAddMemberAfterOnlineLookup(const bool linkshellLoaded) -> bool
+{
+    return linkshellLoaded;
+}
+
+// OnlineMemberAlwaysReturnsFalse documents AddOnlineMember/DelOnlineMember
+// always return false regardless of work done (LSB quirk).
+inline auto OnlineMemberAlwaysReturnsFalse() -> bool
+{
+    return false;
+}
+
+// ShouldEraseLinkshellAfterDelOnline mirrors !DelMember (roster empty).
+inline auto ShouldEraseLinkshellAfterDelOnline(const bool delMemberRemaining) -> bool
+{
+    return !delMemberRemaining;
+}
+
+// IsValidLinkshellNameFromQuery mirrors !rset || rowsCount == 0 (name free).
+inline auto IsValidLinkshellNameFromQuery(const bool queryOk, const uint32 rowCount) -> bool
+{
+    return !queryOk || rowCount == 0;
+}
+
+// RegisterNewLinkshellPostRights is the INSERT postrights value LSTYPE_PEARLSACK.
+// Production stores LSTYPE (rank) enum into the postrights column for new shells.
+constexpr uint8 RegisterNewLinkshellPostRights = static_cast<uint8>(LSTYPE_PEARLSACK);
+
+// ShouldAttemptRegisterInsert mirrors IsValidLinkshellName true.
+inline auto ShouldAttemptRegisterInsert(const bool nameValid) -> bool
+{
+    return nameValid;
+}
+
+// ClassifyRegisterNewLinkshell is ordered outcome after name validation.
+enum class register_linkshell_gate : uint8_t
+{
+    REJECT_NAME,   // name taken / invalid query path
+    REJECT_INSERT, // insert failed
+    REJECT_SELECT, // post-insert select failed
+    REJECT_LOAD,   // LoadLinkshell returned null
+    SUCCESS,       // return loaded id
+};
+
+// ClassifyRegisterNewLinkshell mirrors RegisterNewLinkshell control flow.
+// nameValid is IsValidLinkshellName; insertOk/selectOk/hasRow/loadOk are host results.
+inline auto ClassifyRegisterNewLinkshell(
+    const bool nameValid,
+    const bool insertOk,
+    const bool selectOk,
+    const bool hasRow,
+    const bool loadOk) -> register_linkshell_gate
+{
+    if (!nameValid)
+    {
+        return register_linkshell_gate::REJECT_NAME;
+    }
+    if (!insertOk)
+    {
+        return register_linkshell_gate::REJECT_INSERT;
+    }
+    if (!selectOk || !hasRow)
+    {
+        return register_linkshell_gate::REJECT_SELECT;
+    }
+    if (!loadOk)
+    {
+        return register_linkshell_gate::REJECT_LOAD;
+    }
+    return register_linkshell_gate::SUCCESS;
+}
+
+// ShouldReturnCachedLinkshell mirrors GetLinkshell find hit.
+inline auto ShouldReturnCachedLinkshell(const bool foundInList) -> bool
+{
+    return foundInList;
+}
+
 } // namespace linkshellhelpers

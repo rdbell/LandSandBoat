@@ -474,6 +474,8 @@ set(SOURCES
     test_party_member_flags_1353.cpp
     test_linkshell_capacity_1354.h
     test_linkshell_capacity_1354.cpp
+    test_linkshell_registry_1355.h
+    test_linkshell_registry_1355.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
