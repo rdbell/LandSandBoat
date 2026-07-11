@@ -20,6 +20,7 @@
 */
 
 #include "mob_entity.h"
+#include "map/mob_death_capacity.h"
 
 #include "can_attack_capacity.h"
 #include "ai/ai_container.h"
@@ -1249,47 +1250,45 @@ void CMobEntity::Die()
 {
     TracyZoneScoped;
 
-    if (PBattlefield != nullptr)
-    {
-        PBattlefield->handleDeath(this);
-    }
+    const bool killSummonerPet = mobdeathhelpers::ShouldKillSummonerPet(PPet != nullptr, PPet != nullptr && PPet->isAlive(), GetMJob() == JOB_SMN);
+    const bool detachMaster    = mobdeathhelpers::ShouldDetachPlayerMaster(PMaster != nullptr, PMaster != nullptr && PMaster->PPet == this, PMaster != nullptr && PMaster->objtype == TYPE_PC);
 
-    PEnmityContainer->Clear();
-    PAI->ClearStateStack();
-    if (PPet != nullptr && PPet->isAlive() && GetMJob() == JOB_SMN)
-    {
-        PPet->Die();
-    }
-    PAI->Internal_Die(15s);
-    CBattleEntity::Die();
-
-    // clang-format off
-    PAI->QueueAction(queueAction_t(m_DropItemTime, false, [this](CBaseEntity* PEntity)
-    {
-        if (static_cast<CMobEntity*>(PEntity)->isDead())
+    mobdeathhelpers::Apply(
+        PBattlefield != nullptr,
+        killSummonerPet,
+        detachMaster,
+        [&]() { PBattlefield->handleDeath(this); },
+        [&]() { PEnmityContainer->Clear(); },
+        [&]() { PAI->ClearStateStack(); },
+        [&]() { PPet->Die(); },
+        [&]() { PAI->Internal_Die(15s); },
+        [&]() { CBattleEntity::Die(); },
+        [&]()
         {
-            if (auto* PLastAttacker = GetEntity(lastAttackerId_.targid); PLastAttacker && PLastAttacker->id == lastAttackerId_.id)
+            // clang-format off
+            PAI->QueueAction(queueAction_t(m_DropItemTime, false, [this](CBaseEntity* PEntity)
             {
-                loc.zone->PushPacket(this, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PLastAttacker, this, 0, 0, MsgBasic::DefeatsTarget));
-            }
-            else
-            {
-                loc.zone->PushPacket(this, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::FallsToGround));
-            }
+                if (static_cast<CMobEntity*>(PEntity)->isDead())
+                {
+                    if (auto* PLastAttacker = GetEntity(lastAttackerId_.targid); PLastAttacker && PLastAttacker->id == lastAttackerId_.id)
+                    {
+                        loc.zone->PushPacket(this, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PLastAttacker, this, 0, 0, MsgBasic::DefeatsTarget));
+                    }
+                    else
+                    {
+                        loc.zone->PushPacket(this, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::FallsToGround));
+                    }
 
-            DistributeRewards();
-            m_OwnerID.clean();
+                    DistributeRewards();
+                    m_OwnerID.clean();
 
-            m_THLvl          = 0;
-            m_GilfinderLevel = 0;
-        }
-    }));
-    // clang-format on
-
-    if (PMaster && PMaster->PPet == this && PMaster->objtype == TYPE_PC)
-    {
-        petutils::DetachPet(PMaster);
-    }
+                    m_THLvl          = 0;
+                    m_GilfinderLevel = 0;
+                }
+            }));
+            // clang-format on
+        },
+        [&]() { petutils::DetachPet(PMaster); });
 }
 
 void CMobEntity::OnDisengage(CAttackState& state)
