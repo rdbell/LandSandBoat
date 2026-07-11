@@ -20,6 +20,7 @@
 */
 
 #include "automaton_entity.h"
+#include "map/automaton_death_capacity.h"
 
 #include "action/action.h"
 #include "ai/ai_container.h"
@@ -155,11 +156,10 @@ void CAutomatonEntity::PostTick()
 
 void CAutomatonEntity::Die()
 {
-    if (PMaster != nullptr)
-    {
-        PMaster->StatusEffectContainer->RemoveAllManeuvers();
-    }
-    CPetEntity::Die();
+    automatondeathhelpers::Apply(
+        PMaster != nullptr,
+        [&]() { PMaster->StatusEffectContainer->RemoveAllManeuvers(); },
+        [&]() { CPetEntity::Die(); });
 }
 
 bool CAutomatonEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)

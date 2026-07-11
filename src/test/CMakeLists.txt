@@ -594,6 +594,8 @@ set(SOURCES
     test_pet_death_1414.cpp
     test_trust_death_1415.h
     test_trust_death_1415.cpp
+    test_automaton_death_1416.h
+    test_automaton_death_1416.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
