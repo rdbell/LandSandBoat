@@ -24,6 +24,7 @@
 #include "common/arguments.h"
 #include "common/console_service.h"
 #include "common/utils.h"
+#include "map_app_config.h"
 #include "map_engine.h"
 #include "map_networking.h"
 #include "map_socket.h"
@@ -37,30 +38,9 @@ namespace
 
 auto appConfig() -> ApplicationConfig
 {
-    const std::vector arguments = {
-        ArgumentDefinition{
-            .name        = "--ip",
-            .description = "Specify the IP address to bind to",
-        },
-        ArgumentDefinition{
-            .name        = "--port",
-            .description = "Specify the port to bind to",
-        },
-        ArgumentDefinition{
-            .name        = "--lazy",
-            .description = "Load zones on demand. For development only.",
-            .type        = ArgumentType::Flag,
-        },
-        ArgumentDefinition{
-            .name        = "--rebuild-navmeshes",
-            .description = "Force rebuild all navmeshes from ximesh on startup.",
-            .type        = ArgumentType::Flag,
-        },
-    };
-
     return ApplicationConfig{
-        .serverName = "map",
-        .arguments  = arguments,
+        .serverName = mapapp::MapServerName,
+        .arguments  = mapapp::BuildArgumentDefinitions(),
     };
 }
 
@@ -72,20 +52,20 @@ MapApplication::MapApplication(const int argc, char** argv)
     auto ip   = 0;
     auto port = 0;
 
-    if (const auto maybeIP = args().present("--ip"))
+    if (const auto maybeIP = args().present(std::string(mapapp::MapCLIArguments[0].name)))
     {
         ip = str2ip(*maybeIP);
     }
 
-    if (const auto maybePort = args().present("--port"))
+    if (const auto maybePort = args().present(std::string(mapapp::MapCLIArguments[1].name)))
     {
         port = std::stoi(*maybePort);
     }
 
     engineConfig_.ipp              = IPP(ip, port);
     engineConfig_.inCI             = Application::isRunningInCI();
-    engineConfig_.lazyZones        = args().get<bool>("--lazy");
-    engineConfig_.rebuildNavmeshes = args().get<bool>("--rebuild-navmeshes");
+    engineConfig_.lazyZones        = args().get<bool>(std::string(mapapp::MapCLIArguments[2].name));
+    engineConfig_.rebuildNavmeshes = args().get<bool>(std::string(mapapp::MapCLIArguments[3].name));
 }
 
 MapApplication::~MapApplication()
@@ -101,10 +81,10 @@ void MapApplication::registerCommands(ConsoleService& console)
 {
     auto* mapEngine = static_cast<MapEngine*>(engine_.get());
 
-    console.registerCommand("gm", "Change a character's GM level", std::bind(&MapEngine::onGM, mapEngine, std::placeholders::_1));
-    console.registerCommand("reload_recipes", "Reload crafting recipes", std::bind(&MapEngine::onReloadRecipes, mapEngine, std::placeholders::_1));
-    console.registerCommand("stats", "Print runtime stats", std::bind(&MapEngine::onStats, mapEngine, std::placeholders::_1));
-    console.registerCommand("backtrace", "Print backtrace", std::bind(&MapEngine::onBacktrace, mapEngine, std::placeholders::_1));
+    console.registerCommand(mapapp::MapGMCommandName, mapapp::MapGMCommandHelp, std::bind(&MapEngine::onGM, mapEngine, std::placeholders::_1));
+    console.registerCommand(mapapp::MapReloadRecipesCommandName, mapapp::MapReloadRecipesCommandHelp, std::bind(&MapEngine::onReloadRecipes, mapEngine, std::placeholders::_1));
+    console.registerCommand(mapapp::MapStatsCommandName, mapapp::MapStatsCommandHelp, std::bind(&MapEngine::onStats, mapEngine, std::placeholders::_1));
+    console.registerCommand(mapapp::MapBacktraceCommandName, mapapp::MapBacktraceCommandHelp, std::bind(&MapEngine::onBacktrace, mapEngine, std::placeholders::_1));
 }
 
 auto MapApplication::run() -> bool

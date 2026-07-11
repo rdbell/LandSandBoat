@@ -428,6 +428,8 @@ set(SOURCES
     test_party_level_sync_1330.cpp
     test_login_connect_app_1331.h
     test_login_connect_app_1331.cpp
+    test_map_app_config_1332.h
+    test_map_app_config_1332.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
