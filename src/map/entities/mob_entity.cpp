@@ -21,6 +21,7 @@
 
 #include "mob_entity.h"
 
+#include "can_attack_capacity.h"
 #include "ai/ai_container.h"
 #include "ai/controllers/mob_controller.h"
 #include "ai/helpers/pathfind.h"
@@ -1150,8 +1151,10 @@ bool CMobEntity::CanAttack(CBattleEntity* PTarget, std::unique_ptr<CBasicPacket>
 {
     TracyZoneScoped;
 
-    auto skill_list_id{ getMobMod(MOBMOD_ATTACK_SKILL_LIST) };
-    if (skill_list_id)
+    using namespace canattackhelpers;
+
+    const auto skill_list_id{ getMobMod(MOBMOD_ATTACK_SKILL_LIST) };
+    if (ShouldUseMobSkillListRange(skill_list_id))
     {
         auto attack_range{ GetMeleeRange(PTarget) };
         auto skillList{ battleutils::GetMobSkillList(skill_list_id) };
@@ -1161,20 +1164,18 @@ bool CMobEntity::CanAttack(CBattleEntity* PTarget, std::unique_ptr<CBasicPacket>
             auto* skill{ battleutils::GetMobSkill(skillList.front()) };
             if (skill)
             {
-                attack_range = modelHitboxSize + skill->getDistance() + PTarget->modelHitboxSize;
+                attack_range = MobSkillListAttackRange(
+                    modelHitboxSize, skill->getDistance(), PTarget->modelHitboxSize);
             }
         }
 
-        bool  autoAttackEnabled  = PAI->GetController()->IsAutoAttackEnabled();
-        float distanceFromTarget = distance(loc.p, PTarget->loc.p);
-        bool  tooFar             = distanceFromTarget > attack_range;
+        return MobCanAttackWithSkillListRange(
+            distance(loc.p, PTarget->loc.p),
+            attack_range,
+            PAI->GetController()->IsAutoAttackEnabled());
+    }
 
-        return !tooFar && autoAttackEnabled;
-    }
-    else
-    {
-        return CBattleEntity::CanAttack(PTarget, errMsg);
-    }
+    return CBattleEntity::CanAttack(PTarget, errMsg);
 }
 
 void CMobEntity::OnEngage(CAttackState& state)

@@ -23,6 +23,7 @@
 
 #include <cstring>
 
+#include "can_attack_capacity.h"
 #include "ai/ai_container.h"
 #include "ai/controllers/pet_controller.h"
 #include "ai/helpers/pathfind.h"
@@ -376,8 +377,10 @@ bool CPetEntity::CanAttack(CBattleEntity* PTarget, std::unique_ptr<CBasicPacket>
     // prevent pets from attacking mobs that the PC master does not own
     if (this->PMaster)
     {
-        auto* PChar = dynamic_cast<CCharEntity*>(this->PMaster);
-        if (PChar && !PChar->IsMobOwner(PTarget))
+        auto*      PChar          = dynamic_cast<CCharEntity*>(this->PMaster);
+        const bool hasPCMaster    = PChar != nullptr;
+        const bool masterOwns     = PChar && PChar->IsMobOwner(PTarget);
+        if (canattackhelpers::PetCanAttackClaimFail(hasPCMaster, masterOwns))
         {
             errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, PTarget, 0, 0, MsgBasic::AlreadyClaimed);
             PAI->Disengage();

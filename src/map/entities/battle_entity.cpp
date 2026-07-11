@@ -21,6 +21,7 @@
 
 #include "battle_entity.h"
 
+#include "can_attack_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -559,12 +560,12 @@ auto CBattleEntity::GetWeaponDelay(bool tp) -> uint32
 
 float CBattleEntity::GetMeleeRange(const CBattleEntity* target) const
 {
-    return modelHitboxSize + 2.0f + target->modelHitboxSize;
+    return canattackhelpers::GetMeleeRange(modelHitboxSize, target->modelHitboxSize);
 }
 
 float CBattleEntity::GetRangedAttackRange()
 {
-    return 25.0f;
+    return canattackhelpers::RangedAttackRangeDefault;
 }
 
 int16 CBattleEntity::GetRangedWeaponDelay(bool forTPCalc)
@@ -3145,16 +3146,11 @@ bool CBattleEntity::CanAttack(CBattleEntity* PTarget, std::unique_ptr<CBasicPack
 {
     TracyZoneScoped;
 
-    if (PTarget->PAI->IsUntargetable())
-    {
-        return false;
-    }
-
-    bool  autoAttackEnabled  = PAI->GetController()->IsAutoAttackEnabled();
-    float distanceFromTarget = distance(loc.p, PTarget->loc.p);
-    bool  tooFar             = distanceFromTarget > GetMeleeRange(PTarget);
-
-    return !tooFar && autoAttackEnabled;
+    return canattackhelpers::BattleCanAttack(
+        PTarget->PAI->IsUntargetable(),
+        distance(loc.p, PTarget->loc.p),
+        GetMeleeRange(PTarget),
+        PAI->GetController()->IsAutoAttackEnabled());
 }
 
 void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)

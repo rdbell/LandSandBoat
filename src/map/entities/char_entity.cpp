@@ -21,6 +21,7 @@
 
 #include "char_entity.h"
 
+#include "can_attack_capacity.h"
 #include "common/logging.h"
 #include "common/timer.h"
 #include "common/utils.h"
@@ -1405,37 +1406,35 @@ bool CCharEntity::CanAttack(CBattleEntity* PTarget, std::unique_ptr<CBasicPacket
 {
     TracyZoneScoped;
 
-    if (PTarget->PAI->IsUntargetable())
+    using namespace canattackhelpers;
+
+    const float dist = distance(loc.p, PTarget->loc.p);
+    const auto  fail = EvaluateCharCanAttack(
+        PTarget->PAI->IsUntargetable(),
+        IsMobOwner(PTarget),
+        StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::CharmI, xi::StatusEffect::CharmIi }),
+        dist,
+        facing(this->loc.p, PTarget->loc.p, CharFacingCone),
+        GetMeleeRange(PTarget));
+
+    if (CharCanAttackSucceeded(fail))
+    {
+        return true;
+    }
+
+    if (fail == CanAttackFail::Untargetable)
     {
         return false;
     }
 
-    float dist = distance(loc.p, PTarget->loc.p);
+    errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(
+        this, PTarget, 0, 0, static_cast<MsgBasic>(static_cast<uint16>(fail)));
 
-    if (!IsMobOwner(PTarget))
+    if (ShouldDisengageOnCharCanAttackFail(fail))
     {
-        errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, PTarget, 0, 0, MsgBasic::AlreadyClaimed);
-
         PAI->Disengage();
-        return false;
     }
-    else if (!this->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::CharmI, xi::StatusEffect::CharmIi }) && dist > 30)
-    {
-        errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, PTarget, 0, 0, MsgBasic::LoseSight);
-        PAI->Disengage();
-        return false;
-    }
-    else if (!facing(this->loc.p, PTarget->loc.p, 64))
-    {
-        errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, PTarget, 0, 0, MsgBasic::UnableToSeeTarget);
-        return false;
-    }
-    else if (dist > GetMeleeRange(PTarget))
-    {
-        errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, PTarget, 0, 0, MsgBasic::TargetOutOfRange);
-        return false;
-    }
-    return true;
+    return false;
 }
 
 bool CCharEntity::OnAttack(CAttackState& state, action_t& action)
