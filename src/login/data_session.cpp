@@ -21,6 +21,8 @@
 
 #include "data_session.h"
 
+#include "session_cleanup.h"
+
 #include "common/database.h"
 #include "common/ipc.h"
 #include "common/utils.h"
@@ -563,31 +565,37 @@ void data_session::read_func()
 
 void data_session::handle_error(std::error_code ec, std::shared_ptr<handler_session> self)
 {
-    if (self->sessionHash != "")
+    if (!loginHelpers::HasSessionHashForCleanup(self->sessionHash))
     {
-        auto& map = loginHelpers::getAuthenticatedSessions()[self->ipAddress];
-        auto  it  = map.find(self->sessionHash);
+        return;
+    }
 
-        if (it != map.end())
+    auto& map = loginHelpers::getAuthenticatedSessions()[self->ipAddress];
+    auto  it  = map.find(self->sessionHash);
+
+    const bool entryFound = it != map.end();
+    const bool otherPeerPresent =
+        entryFound && it->second.view_session != nullptr;
+    const auto plan = loginHelpers::PlanSessionErrorCleanup(
+        entryFound,
+        loginHelpers::session_error_peer::DATA,
+        otherPeerPresent);
+
+    if (plan.clearPeer)
+    {
+        it->second.data_session = nullptr;
+    }
+
+    if (plan.eraseSessionEntry)
+    {
+        map.erase(it);
+
+        // Remove IP from map if no entries remain
+        auto& sessions = loginHelpers::getAuthenticatedSessions();
+        if (auto outerIt = sessions.find(self->ipAddress); outerIt != sessions.end() &&
+            loginHelpers::ShouldEraseIPAfterSessionErase(outerIt->second.empty()))
         {
-            session_t& session = it->second;
-            if (session.data_session.get())
-            {
-                session.data_session = nullptr;
-            }
-
-            if (session.data_session == nullptr && session.view_session == nullptr)
-            {
-                // Remove entry if needs to be
-                map.erase(it);
-
-                // Remove IP from map if no entries remain
-                auto& sessions = loginHelpers::getAuthenticatedSessions();
-                if (auto outerIt = sessions.find(self->ipAddress); outerIt != sessions.end() && outerIt->second.empty())
-                {
-                    sessions.erase(outerIt);
-                }
-            }
+            sessions.erase(outerIt);
         }
     }
 }

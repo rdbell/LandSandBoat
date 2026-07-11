@@ -239,6 +239,7 @@ auto runLoginCharacterSelect1318SelfTests() -> bool;
 auto runLoginCharacterDelete1319SelfTests() -> bool;
 auto runLoginCharacterCreate1320SelfTests() -> bool;
 auto runLoginViewAcquirePlayer1321SelfTests() -> bool;
+auto runLoginSessionCleanup1322SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -688,6 +689,7 @@ namespace
         ok = runLoginCharacterDelete1319SelfTests() && ok;
         ok = runLoginCharacterCreate1320SelfTests() && ok;
         ok = runLoginViewAcquirePlayer1321SelfTests() && ok;
+        ok = runLoginSessionCleanup1322SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

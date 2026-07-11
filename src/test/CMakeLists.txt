@@ -408,6 +408,8 @@ set(SOURCES
     test_login_character_create_1320.cpp
     test_login_view_acquire_player_1321.h
     test_login_view_acquire_player_1321.cpp
+    test_login_session_cleanup_1322.h
+    test_login_session_cleanup_1322.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
