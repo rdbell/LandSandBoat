@@ -21,6 +21,7 @@
 
 #include "pet_entity.h"
 #include "map/pet_death_capacity.h"
+#include "map/pet_fade_out_capacity.h"
 #include "map/pet_spawn_capacity.h"
 #include "map/pet_zoning_restore_capacity.h"
 #include "map/pet_post_tick_capacity.h"
@@ -235,8 +236,9 @@ void CPetEntity::PostTick()
 
 void CPetEntity::FadeOut()
 {
-    CMobEntity::FadeOut();
-    loc.zone->UpdateEntityPacket(this, ENTITY_DESPAWN, UPDATE_NONE);
+    petfadeouthelpers::Apply(
+        [&]() { CMobEntity::FadeOut(); },
+        [&]() { loc.zone->UpdateEntityPacket(this, ENTITY_DESPAWN, UPDATE_NONE); });
 }
 
 void CPetEntity::Die()
