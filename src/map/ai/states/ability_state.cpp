@@ -22,6 +22,7 @@
 #include "ability_state.h"
 
 #include "ability.h"
+#include "ability_state_capacity.h"
 #include "action/action.h"
 #include "action/interrupts.h"
 #include "ai/ai_container.h"
@@ -57,41 +58,69 @@ auto PetSkillDistanceCheck(CCharEntity* PChar, CBaseEntity* PTarget, const CAbil
         return false;
     }
 
-    if (PPetSkill->isBloodPactRage() || PPetSkill->isBloodPactWard())
-    {
-        // Blood Pacts:
-        // 1 - PC must be within 20y + hitboxes from target
-        // 2 - Avatar must be within skill range + hitboxes from target
-        if (PChar != PTarget && distance(PChar->loc.p, PTarget->loc.p) > 20.0f + PChar->modelHitboxSize + PTarget->modelHitboxSize)
-        {
-            return false;
-        }
+    const bool isBloodPact = PPetSkill->isBloodPactRage() || PPetSkill->isBloodPactWard();
+    const bool isJugReady  = PPetSkill->getMobSkillID() > 0;
 
-        if (distance(PPet->loc.p, PTarget->loc.p) > PPetSkill->getDistance() + PPet->modelHitboxSize + PTarget->modelHitboxSize)
+    float petToEnemyDist = 0.f;
+    float enemyHitbox    = 0.f;
+    bool  hasPetTarget   = false;
+    if (isJugReady && (PPetSkill->getValidTargets() & TARGET_ENEMY))
+    {
+        if (auto* PPetTarget = PPet->GetBattleTarget(); PPetTarget)
         {
+            hasPetTarget   = true;
+            petToEnemyDist = distance(PPet->loc.p, PPetTarget->loc.p);
+            enemyHitbox    = PPetTarget->modelHitboxSize;
+        }
+    }
+
+    const bool ok = abilitystatehelpers::EvaluatePetSkillDistance(
+        true,
+        isBloodPact,
+        PChar == PTarget,
+        distance(PChar->loc.p, PTarget->loc.p),
+        PChar->modelHitboxSize,
+        PTarget->modelHitboxSize,
+        distance(PPet->loc.p, PTarget->loc.p),
+        PPetSkill->getDistance(),
+        PPet->modelHitboxSize,
+        isJugReady,
+        distance(PChar->loc.p, PPet->loc.p),
+        (PPetSkill->getValidTargets() & TARGET_ENEMY) != 0,
+        hasPetTarget,
+        petToEnemyDist,
+        enemyHitbox);
+
+    if (!ok)
+    {
+        // Message selection mirrors original branches for out-of-range cases.
+        if (isBloodPact)
+        {
+            if (abilitystatehelpers::BloodPactPCOutOfRange(
+                    PChar == PTarget, distance(PChar->loc.p, PTarget->loc.p),
+                    PChar->modelHitboxSize, PTarget->modelHitboxSize))
+            {
+                // Original: silent fail (no packet) for PC range
+                return false;
+            }
             PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PTarget, 0, 0, MsgBasic::TargetOutOfRange);
             return false;
         }
-    }
-    else if (PPetSkill->getMobSkillID() > 0)
-    {
-        // Jug pet skills:
-        // 1 - PC must be within 4y + hitboxes from pet
-        // 2 - Pet must be within skill range + hitboxes from enemy (if skill targets enemy)
-        if (distance(PChar->loc.p, PPet->loc.p) > 4.0f + PChar->modelHitboxSize + PPet->modelHitboxSize)
+        if (isJugReady)
         {
-            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::TargetOutOfRange);
-            return false;
-        }
-
-        if (PPetSkill->getValidTargets() & TARGET_ENEMY)
-        {
-            if (auto* PPetTarget = PPet->GetBattleTarget(); PPetTarget && distance(PPet->loc.p, PPetTarget->loc.p) > PPetSkill->getDistance() + PPet->modelHitboxSize + PPetTarget->modelHitboxSize)
+            if (abilitystatehelpers::ReadyPCToPetOutOfRange(
+                    distance(PChar->loc.p, PPet->loc.p), PChar->modelHitboxSize, PPet->modelHitboxSize))
             {
-                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PPetTarget, 0, 0, MsgBasic::TargetOutOfRange);
+                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::TargetOutOfRange);
                 return false;
             }
+            if (auto* PPetTarget = PPet->GetBattleTarget(); PPetTarget)
+            {
+                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PPetTarget, 0, 0, MsgBasic::TargetOutOfRange);
+            }
+            return false;
         }
+        return false;
     }
 
     return true;
@@ -165,21 +194,27 @@ CAbility* CAbilityState::GetAbility()
 void CAbilityState::ApplyEnmity()
 {
     auto* PTarget = GetTarget();
-    if (PTarget)
+    if (!PTarget)
     {
-        if (m_PAbility->getValidTarget() & TARGET_ENEMY && PTarget->allegiance != m_PEntity->allegiance)
-        {
-            if (PTarget->objtype == TYPE_MOB && !(m_PAbility->getCE() == 0 && m_PAbility->getVE() == 0))
-            {
-                CMobEntity* mob = (CMobEntity*)PTarget;
-                mob->PEnmityContainer->UpdateEnmity(m_PEntity, m_PAbility->getCE(), m_PAbility->getVE(), false, m_PAbility->getID() == ABILITY_CHARM);
-                battleutils::ClaimMob(mob, m_PEntity);
-            }
-        }
-        else if (PTarget->allegiance == m_PEntity->allegiance)
-        {
-            battleutils::GenerateInRangeEnmity(m_PEntity, m_PAbility->getCE(), m_PAbility->getVE());
-        }
+        return;
+    }
+
+    if (abilitystatehelpers::ShouldUpdateHostileEnmity(
+            (m_PAbility->getValidTarget() & TARGET_ENEMY) != 0,
+            PTarget->allegiance != m_PEntity->allegiance,
+            PTarget->objtype == TYPE_MOB,
+            m_PAbility->getCE(),
+            m_PAbility->getVE()))
+    {
+        CMobEntity* mob = (CMobEntity*)PTarget;
+        mob->PEnmityContainer->UpdateEnmity(
+            m_PEntity, m_PAbility->getCE(), m_PAbility->getVE(), false,
+            abilitystatehelpers::IsCharmAbility(m_PAbility->getID()));
+        battleutils::ClaimMob(mob, m_PEntity);
+    }
+    else if (abilitystatehelpers::ShouldGenerateAllyEnmity(PTarget->allegiance == m_PEntity->allegiance))
+    {
+        battleutils::GenerateInRangeEnmity(m_PEntity, m_PAbility->getCE(), m_PAbility->getVE());
     }
 }
 
@@ -249,16 +284,24 @@ bool CAbilityState::CanUseAbility()
     if (m_PEntity->objtype == TYPE_PC)
     {
         auto* PChar = static_cast<CCharEntity*>(m_PEntity);
-        if (PChar->PRecastContainer->HasRecast(RECAST_ABILITY, PAbility->getRecastId(), PAbility->getRecastTime()))
+        if (abilitystatehelpers::HasAbilityRecast(
+                PChar->PRecastContainer->HasRecast(RECAST_ABILITY, PAbility->getRecastId(), PAbility->getRecastTime())))
         {
             PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::WaitLonger);
             return false;
         }
 
-        if (PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Amnesia) ||
-            (PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Impairment) && (PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Impairment)->GetPower() == 0x01 || PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Impairment)->GetPower() == 0x03)) ||
-            (!PAbility->isPetAbility() && !charutils::hasAbility(PChar, PAbility->getID())) ||
-            (PAbility->isPetAbility() && PAbility->getID() >= ABILITY_HEALING_RUBY && !charutils::hasPetAbility(PChar, PAbility->getID() - ABILITY_HEALING_RUBY)))
+        const bool   hasAmnesia    = PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Amnesia);
+        const bool   hasImpairment = PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Impairment);
+        const uint16 impairPower   = hasImpairment ? PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Impairment)->GetPower() : 0;
+        const bool   hasAbility    = charutils::hasAbility(PChar, PAbility->getID());
+        const bool   hasPetAbility = PAbility->isPetAbility() && PAbility->getID() >= ABILITY_HEALING_RUBY
+                                         ? charutils::hasPetAbility(PChar, PAbility->getID() - ABILITY_HEALING_RUBY)
+                                         : false;
+
+        if (abilitystatehelpers::StatusBlocksAbility(hasAmnesia, hasImpairment, impairPower) ||
+            abilitystatehelpers::PCLacksAbilityAccess(
+                PAbility->isPetAbility(), PAbility->getID(), hasAbility, hasPetAbility))
         {
             PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::UnableToUseJobAbility2);
             return false;
@@ -267,22 +310,33 @@ bool CAbilityState::CanUseAbility()
         if (PTarget && PChar->IsValidTarget(PTarget->targid, PAbility->getValidTarget(), errMsg))
         {
             // TODO: Rework the way abilities and pet abilities are laid out so it can all go through the same block and have the pet special checks done in lua
-            const CPetSkill* PPetSkill       = PAbility->isPetAbility() ? battleutils::GetPetSkill(PAbility->getID()) : nullptr;
-            const bool       isLuopanAbility = PAbility->getID() >= ABILITY_CONCENTRIC_PULSE && PAbility->getID() <= ABILITY_RADIAL_ARCANA;
-            if (PPetSkill && !isLuopanAbility && (PPetSkill->isBloodPactRage() || PPetSkill->isBloodPactWard() || PPetSkill->getMobSkillID() > 0))
+            const CPetSkill* PPetSkill = PAbility->isPetAbility() ? battleutils::GetPetSkill(PAbility->getID()) : nullptr;
+            if (PPetSkill && abilitystatehelpers::NeedsPetSkillDistanceCheck(
+                                 PAbility->isPetAbility(),
+                                 true,
+                                 PPetSkill->isBloodPactRage(),
+                                 PPetSkill->isBloodPactWard(),
+                                 PPetSkill->getMobSkillID() > 0,
+                                 PAbility->getID()))
             {
                 if (!PetSkillDistanceCheck(PChar, PTarget, PAbility))
                 {
                     return false;
                 }
             }
-            else if (PChar != PTarget && distance(PChar->loc.p, PTarget->loc.p) > PAbility->getRange() + PChar->modelHitboxSize + PTarget->modelHitboxSize)
+            else if (PChar != PTarget &&
+                     abilitystatehelpers::OutOfAbilityRange(
+                         distance(PChar->loc.p, PTarget->loc.p),
+                         PAbility->getRange(),
+                         PChar->modelHitboxSize,
+                         PTarget->modelHitboxSize))
             {
                 PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PTarget, 0, 0, MsgBasic::TooFarAway);
                 return false;
             }
 
-            if (m_PEntity->loc.zone->CanUseMisc(MISC_LOS_PLAYER_BLOCK) && !m_PEntity->CanSeeTarget(PTarget))
+            if (abilitystatehelpers::ShouldCheckPlayerAbilityLOS(m_PEntity->loc.zone->CanUseMisc(MISC_LOS_PLAYER_BLOCK)) &&
+                !m_PEntity->CanSeeTarget(PTarget))
             {
                 PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PTarget, 0, 0, MsgBasic::UnableToSeeTarget);
                 return false;
@@ -299,38 +353,30 @@ bool CAbilityState::CanUseAbility()
         }
         return false;
     }
-    else
+
+    // Non-PC path
+    const bool hasAmnesia    = m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Amnesia);
+    const bool hasImpairment = m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Impairment);
+    const uint16 impairPower = hasImpairment ? m_PEntity->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Impairment)->GetPower() : 0;
+    const bool targetValid   = PTarget && m_PEntity->IsValidTarget(PTarget->targid, PAbility->getValidTarget(), errMsg);
+    const float dist         = (PTarget) ? distance(m_PEntity->loc.p, PTarget->loc.p) : 0.f;
+    const float tHitbox      = (PTarget) ? PTarget->modelHitboxSize : 0.f;
+
+    if (abilitystatehelpers::NonPCCancelAbility(
+            PTarget != nullptr,
+            hasAmnesia,
+            hasImpairment,
+            impairPower,
+            targetValid,
+            PTarget && m_PEntity == PTarget,
+            dist,
+            PAbility->getRange(),
+            m_PEntity->modelHitboxSize,
+            tHitbox))
     {
-        bool   cancelAbility   = false;
-        bool   hasAmnesia      = m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Amnesia);
-        bool   hasImpairment   = m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Impairment);
-        uint16 impairmentPower = hasImpairment ? m_PEntity->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Impairment)->GetPower() : 0;
-
-        if (!PTarget)
-        {
-            cancelAbility = true;
-        }
-
-        if (hasAmnesia ||
-            (hasImpairment && (impairmentPower == 0x01 || impairmentPower == 0x03)))
-        {
-            cancelAbility = true;
-        }
-
-        if (PTarget && m_PEntity->IsValidTarget(PTarget->targid, PAbility->getValidTarget(), errMsg))
-        {
-            if (m_PEntity != PTarget && distance(m_PEntity->loc.p, PTarget->loc.p) > PAbility->getRange() + m_PEntity->modelHitboxSize + PTarget->modelHitboxSize)
-            {
-                cancelAbility = true;
-            }
-        }
-
-        if (cancelAbility)
-        {
-            return false;
-        }
-
-        // TODO: should luautils::OnAbilityCheck go here too?
+        return false;
     }
+
+    // TODO: should luautils::OnAbilityCheck go here too?
     return true;
 }
