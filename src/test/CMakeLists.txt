@@ -268,6 +268,8 @@ set(SOURCES
     test_gmcall_persistence_1243.cpp
     test_map_gmcall_response_notification_1241.h
     test_map_gmcall_response_notification_1241.cpp
+    test_map_account_login_1253.h
+    test_map_account_login_1253.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h

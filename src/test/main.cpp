@@ -161,6 +161,7 @@ auto runGMCallPendingResponse1239SelfTests() -> bool;
 auto runGMCallPacketHandlers1242SelfTests() -> bool;
 auto runGMCallPersistence1243SelfTests() -> bool;
 auto runMapGMCallResponseNotification1241SelfTests() -> bool;
+auto runMapAccountLogin1253SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -537,6 +538,7 @@ namespace
         ok = runGMCallPacketHandlers1242SelfTests() && ok;
         ok = runGMCallPersistence1243SelfTests() && ok;
         ok = runMapGMCallResponseNotification1241SelfTests() && ok;
+        ok = runMapAccountLogin1253SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;

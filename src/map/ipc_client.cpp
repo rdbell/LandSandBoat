@@ -21,6 +21,8 @@
 
 #include "ipc_client.h"
 
+#include "account_login.h"
+
 #include "common/ipp.h"
 
 #include <concurrentqueue.h>
@@ -152,57 +154,20 @@ void IPCClient::handleMessage_AccountLogin(const IPP& ipp, const ipc::AccountLog
 {
     TracyZoneScoped;
 
-    if (auto session = networking_.sessions().getSessionByAccountId(message.accountId))
-    {
-        session->forceLinkDead = true; // Don't accept any more updates for last packet received time
-
-        // Extreme overkill but...
-        // Scramble key so server rejects input
-        for (uint32_t& i : session->blowfish.key)
+    mapipc::HandleAccountLogin(
+        message,
+        [this](const uint32 accountId)
         {
-            i = xirand::GetRandomNumber<uint32_t>(std::numeric_limits<uint32_t>::max());
-        }
-
-        for (uint32_t& i : session->prev_blowfish.key)
+            return networking_.sessions().getSessionByAccountId(accountId);
+        },
+        []
         {
-            i = xirand::GetRandomNumber<uint32_t>(std::numeric_limits<uint32_t>::max());
-        }
-
-        for (uint32_t& i : session->blowfish.P)
+            return xirand::GetRandomNumber<uint32_t>(std::numeric_limits<uint32_t>::max());
+        },
+        []
         {
-            i = xirand::GetRandomNumber<uint32_t>(std::numeric_limits<uint32_t>::max());
-        }
-
-        for (uint32_t& i : session->prev_blowfish.P)
-        {
-            i = xirand::GetRandomNumber<uint32_t>(std::numeric_limits<uint32_t>::max());
-        }
-
-        for (uint8_t& i : session->blowfish.hash)
-        {
-            // uniform_int_distribution doesnt like uint8_t, so do some workaround
-            i = static_cast<uint8_t>(xirand::GetRandomNumber<uint16_t>(std::numeric_limits<uint16_t>::max()) % 255);
-        }
-
-        for (uint8_t& i : session->prev_blowfish.hash)
-        {
-            // uniform_int_distribution doesnt like uint8_t, so do some workaround
-            i = static_cast<uint8_t>(xirand::GetRandomNumber<uint16_t>(std::numeric_limits<uint16_t>::max()) % 255);
-        }
-
-        for (int i = 0; i < 4; i++)
-        {
-            for (uint32_t& x : session->blowfish.S[i])
-            {
-                x = xirand::GetRandomNumber<uint32_t>(std::numeric_limits<uint32_t>::max());
-            }
-
-            for (uint32_t& x : session->prev_blowfish.S[i])
-            {
-                x = xirand::GetRandomNumber<uint32_t>(std::numeric_limits<uint32_t>::max());
-            }
-        }
-    }
+            return xirand::GetRandomNumber<uint16_t>(std::numeric_limits<uint16_t>::max());
+        });
 }
 
 void IPCClient::handleMessage_CharZone(const IPP& ipp, const ipc::CharZone& message)
