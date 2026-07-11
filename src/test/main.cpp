@@ -151,6 +151,7 @@ auto runLoggingContextStackSelfTests() -> bool;
 auto runXirandHelpersSelfTests() -> bool;
 auto runIPCMessageTypeSelfTests() -> bool;
 auto runIPCChatPayloadSelfTests() -> bool;
+auto runIPCDispatch1248SelfTests() -> bool;
 auto runIPCSessionPayloadSelfTests() -> bool;
 auto runIPCPartyPayloadSelfTests() -> bool;
 auto runIPCLinkshellPayloadSelfTests() -> bool;
@@ -524,6 +525,7 @@ namespace
         ok = runXirandHelpersSelfTests() && ok;
         ok = runIPCMessageTypeSelfTests() && ok;
         ok = runIPCChatPayloadSelfTests() && ok;
+        ok = runIPCDispatch1248SelfTests() && ok;
         ok = runIPCSessionPayloadSelfTests() && ok;
         ok = runIPCPartyPayloadSelfTests() && ok;
         ok = runIPCLinkshellPayloadSelfTests() && ok;

@@ -306,6 +306,8 @@ set(SOURCES
     test_ipc_channel.cpp
     test_ipc_chat_payloads.h
     test_ipc_chat_payloads.cpp
+    test_ipc_dispatch_1248.h
+    test_ipc_dispatch_1248.cpp
     test_ipc_gmcall_payloads.h
     test_ipc_gmcall_payloads.cpp
     test_ipc_linkshell_payloads.h
