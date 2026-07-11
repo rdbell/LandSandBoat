@@ -26,6 +26,7 @@
 #include "char_var_update.h"
 #include "char_zone.h"
 #include "chat_message_alliance.h"
+#include "chat_message_assist.h"
 #include "chat_message_linkshell.h"
 #include "chat_message_party.h"
 #include "chat_message_tell.h"
@@ -479,7 +480,17 @@ void IPCServer::handleMessage_ChatMessageAssist(const IPP& ipp, const ipc::ChatM
 {
     TracyZoneScoped;
 
-    rerouteMessageToAssistZones(message);
+    worldipc::HandleChatMessageAssist(
+        message,
+        [this]
+        {
+            return getIPPsForAssistZones();
+        },
+        [this](const IPP& endpoint, const ipc::ChatMessageAssist& assistMessage)
+        {
+            DebugIPCFmt("Message: -> rerouting to assist zone on {}", endpoint.toString());
+            sendMessage(endpoint, assistMessage);
+        });
 }
 
 void IPCServer::handleMessage_ChatMessageServerMessage(const IPP& ipp, const ipc::ChatMessageServerMessage& message)
