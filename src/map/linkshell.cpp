@@ -37,6 +37,7 @@
 #include "item_container.h"
 #include "items/item_linkshell.h"
 #include "linkshell.h"
+#include "linkshell_capacity.h"
 
 #include "enums/item_lockflg.h"
 #include "items.h"
@@ -100,7 +101,7 @@ void CLinkshell::setMessage(const std::string& message, const std::string& poste
         return;
     }
 
-    if (message.size() != 0)
+    if (linkshellhelpers::ShouldSendLinkshellMessageIPC(message.size() != 0))
     {
         message::send(ipc::LinkshellSetMessage{
             .linkshellId   = m_id,
@@ -115,20 +116,20 @@ void CLinkshell::setMessage(const std::string& message, const std::string& poste
 // add a character to the list of online members
 void CLinkshell::AddMember(CCharEntity* PChar, int8 type, uint8 lsNum)
 {
-    if (PChar == nullptr)
+    if (linkshellhelpers::ShouldRejectNullAddMember(PChar == nullptr))
     {
         return;
     }
 
-    if (std::find(members.begin(), members.end(), PChar) != members.end())
+    if (linkshellhelpers::ShouldRejectDuplicateAddMember(std::find(members.begin(), members.end(), PChar) != members.end()))
     {
-        ShowWarning("CLinkshell::AddMember attempted to add member '%s' who is already in the online member list.", PChar->getName());
+        ShowWarning("%s", linkshellhelpers::FormatAddMemberAlreadyWarning(PChar->getName()));
         return;
     }
 
     members.emplace_back(PChar);
 
-    if (lsNum == 1)
+    if (linkshellhelpers::IsLinkshellSlot1(lsNum))
     {
         db::preparedStmt("UPDATE accounts_sessions SET linkshellid1 = ?, linkshellrank1 = ? WHERE charid = ?", this->getID(), type, PChar->id);
         PChar->PLinkshell1 = this;
@@ -161,7 +162,7 @@ bool CLinkshell::DelMember(CCharEntity* PChar)
             break;
         }
     }
-    return !members.empty();
+    return linkshellhelpers::DelMemberRemaining(members.size());
 }
 
 // Promotes or demotes the target member (pearlsack/linkpearl)
@@ -169,21 +170,21 @@ void CLinkshell::ChangeMemberRank(const std::string& MemberName, const uint8 req
 {
     // 2 = Pearl to sack
     // 3 = Sack to pearl
-    if (newRank < 2 || newRank > 3)
+    if (!linkshellhelpers::IsValidRankChangeNewRank(newRank))
     {
-        ShowErrorFmt("CLinkshell::ChangeMemberRank: Invalid rank change request for member '{}' in linkshell {}.", MemberName, m_id);
+        ShowErrorFmt("{}", linkshellhelpers::FormatChangeMemberRankError(MemberName, m_id));
         return;
     }
 
-    if (requesterRank != LSTYPE_LINKSHELL)
+    if (!linkshellhelpers::IsValidRankChangeRequester(requesterRank))
     {
-        ShowErrorFmt("CLinkshell::ChangeMemberRank: Invalid rank change request for member '{}' in linkshell {}.", MemberName, m_id);
+        ShowErrorFmt("{}", linkshellhelpers::FormatChangeMemberRankError(MemberName, m_id));
         return;
     }
 
-    const int newId = (ITEMID::LINKSHELL + newRank) - 1;
+    const auto newId = linkshellhelpers::ResolveRankChangeItemID(newRank);
 
-    if (newId == ITEMID::PEARLSACK || newId == ITEMID::LINKPEARL)
+    if (linkshellhelpers::IsValidRankChangeItemID(newId))
     {
         for (auto& member : members)
         {
@@ -193,7 +194,7 @@ void CLinkshell::ChangeMemberRank(const std::string& MemberName, const uint8 req
 
                 SLOTTYPE slot = SLOT_LINK1;
                 int      lsID = 1;
-                if (PMember->PLinkshell2 == this)
+                if (linkshellhelpers::IsLinkshell2Attachment(PMember->PLinkshell2 == this))
                 {
                     lsID = 2;
                     slot = SLOT_LINK2;
@@ -211,7 +212,7 @@ void CLinkshell::ChangeMemberRank(const std::string& MemberName, const uint8 req
                     auto* newShellItem = static_cast<CItemLinkshell*>(PNewItem.get());
                     newShellItem->setQuantity(1);
                     std::memcpy(newShellItem->m_extra, PItemLinkshell->m_extra, 24);
-                    newShellItem->SetLSType(newId == ITEMID::PEARLSACK ? LSTYPE_PEARLSACK : LSTYPE_LINKPEARL);
+                    newShellItem->SetLSType(static_cast<LSTYPE>(linkshellhelpers::ResolveLSTypeFromRankItemID(newId)));
                     newShellItem->setSubType(ITEM_LOCKED);
                     uint8 LocationID = PItemLinkshell->getLocationID();
                     uint8 SlotID     = PItemLinkshell->getSlotID();
@@ -301,9 +302,11 @@ void CLinkshell::RemoveMemberByName(const std::string& MemberName, uint8 request
                     CItemLinkshell* newPItemLinkshell = (CItemLinkshell*)Inventory->GetItem(SlotID);
                     if (newPItemLinkshell != nullptr && newPItemLinkshell->isType(ITEM_LINKSHELL) && newPItemLinkshell->GetLSID() == lsid)
                     {
-                        if (requesterRank == LSTYPE_LINKSHELL || newPItemLinkshell == PItemLinkshell)
+                        if (linkshellhelpers::ShouldBreakInventoryPearl(
+                                requesterRank,
+                                newPItemLinkshell == PItemLinkshell))
                         {
-                            if (newPItemLinkshell->GetLSType() != LSTYPE_LINKSHELL)
+                            if (linkshellhelpers::ShouldMarkPearlBroken(static_cast<uint8>(newPItemLinkshell->GetLSType())))
                             {
                                 newPItemLinkshell->SetLSType(LSTYPE_BROKEN);
 
@@ -325,7 +328,7 @@ void CLinkshell::RemoveMemberByName(const std::string& MemberName, uint8 request
 
             PMember->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PMember);
             PMember->pushPacket<CCharStatusPacket>(PMember);
-            if (breakLinkshell)
+            if (linkshellhelpers::ShouldSendBreakMessage(breakLinkshell))
             {
                 PMember->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::LinkshellNoLongerExists);
             }
@@ -358,18 +361,21 @@ void CLinkshell::PushPacket(uint32 senderID, const std::unique_ptr<CBasicPacket>
 {
     for (auto& member : members)
     {
-        if (member->id != senderID && member->status != STATUS_TYPE::DISAPPEAR && !jailutils::InPrison(member))
+        if (linkshellhelpers::ShouldReceiveLinkshellPacket(
+                member->id == senderID,
+                member->status == STATUS_TYPE::DISAPPEAR,
+                jailutils::InPrison(member)))
         {
             auto newPacket = packet->copy();
-            if (member->PLinkshell2 == this)
+            if (linkshellhelpers::ShouldRewritePacketAsLinkshell2(member->PLinkshell2 == this))
             {
                 if (newPacket->getType() == static_cast<uint16_t>(PacketS2C::GP_SERV_COMMAND_CHAT_STD))
                 {
-                    newPacket->ref<uint8>(0x04) = MESSAGE_LINKSHELL2;
+                    newPacket->ref<uint8>(0x04) = linkshellhelpers::ChatStdMessageTypeForLS2();
                 }
                 else if (newPacket->getType() == static_cast<uint16_t>(PacketS2C::GP_SERV_COMMAND_LINKSHELL_MESSAGE))
                 {
-                    newPacket->ref<uint8>(0x05) |= 0x40;
+                    newPacket->ref<uint8>(0x05) = linkshellhelpers::ApplyLinkshellMessageLS2Flag(newPacket->ref<uint8>(0x05));
                 }
             }
             member->pushPacket(std::move(newPacket));
@@ -385,7 +391,7 @@ void CLinkshell::PushLinkshellMessage(CCharEntity* PChar, LinkshellSlot slot)
         const auto poster      = rset->getOrDefault<std::string>("poster", "");
         const auto message     = rset->getOrDefault<std::string>("message", "");
         const auto messageTime = rset->getOrDefault<uint32>("messagetime", 0);
-        if (!message.empty())
+        if (linkshellhelpers::ShouldPushStoredLinkshellMessage(!message.empty()))
         {
             PChar->pushPacket<GP_SERV_COMMAND_LINKSHELL_MESSAGE>(poster, message, m_name, messageTime, slot);
         }

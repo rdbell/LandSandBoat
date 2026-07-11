@@ -271,6 +271,7 @@ auto runPartyAddMember1350SelfTests() -> bool;
 auto runPartyPushPopDel1351SelfTests() -> bool;
 auto runPartyReload1352SelfTests() -> bool;
 auto runPartyMemberFlags1353SelfTests() -> bool;
+auto runLinkshellCapacity1354SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -752,6 +753,7 @@ namespace
         ok = runPartyPushPopDel1351SelfTests() && ok;
         ok = runPartyReload1352SelfTests() && ok;
         ok = runPartyMemberFlags1353SelfTests() && ok;
+        ok = runLinkshellCapacity1354SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
