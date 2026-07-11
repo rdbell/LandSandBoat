@@ -878,4 +878,114 @@ inline auto ShouldRejectZeroEffectType(const uint16 type) -> bool
 }
 
 
+// --- Slice 1373: SaveStatusEffects pure persistence filters ---
+
+// Shadow/skin status IDs for power resync before save.
+constexpr uint16 StatusIDCopyImage  = 66;
+constexpr uint16 StatusIDBlink      = 36;
+constexpr uint16 StatusIDStoneskin  = 37;
+
+// ShouldRejectNonPCSave mirrors objtype != TYPE_PC.
+inline auto ShouldRejectNonPCSave(const bool isPC) -> bool
+{
+    return !isPC;
+}
+
+// ShouldStripOnSave mirrors (logout && Logout flag) || (!logout && OnZone flag).
+inline auto ShouldStripOnSave(const bool logout, const bool hasLogoutFlag, const bool hasOnZoneFlag) -> bool
+{
+    return (logout && hasLogoutFlag) || (!logout && hasOnZoneFlag);
+}
+
+// ShouldSkipDeletedOnSave mirrors isDeleted().
+inline auto ShouldSkipDeletedOnSave(const bool deleted) -> bool
+{
+    return deleted;
+}
+
+// ShouldPersistEffect mirrors realDuration > 0 || durationSeconds == 0.
+inline auto ShouldPersistEffect(const int64 realDurationSeconds, const int64 durationSeconds) -> bool
+{
+    return realDurationSeconds > 0 || durationSeconds == 0;
+}
+
+// IsCopyImageEffect / IsBlinkEffect / IsStoneskinEffect for power resync.
+inline auto IsCopyImageEffect(const uint16 statusID) -> bool
+{
+    return statusID == StatusIDCopyImage;
+}
+
+inline auto IsBlinkEffect(const uint16 statusID) -> bool
+{
+    return statusID == StatusIDBlink;
+}
+
+inline auto IsStoneskinEffect(const uint16 statusID) -> bool
+{
+    return statusID == StatusIDStoneskin;
+}
+
+// ShouldResyncUtsusemiPower mirrors CopyImage before save.
+inline auto ShouldResyncUtsusemiPower(const uint16 statusID) -> bool
+{
+    return IsCopyImageEffect(statusID);
+}
+
+// ShouldResyncBlinkPower mirrors Blink before save.
+inline auto ShouldResyncBlinkPower(const uint16 statusID) -> bool
+{
+    return IsBlinkEffect(statusID);
+}
+
+// ShouldResyncStoneskinPower mirrors Stoneskin before save.
+inline auto ShouldResyncStoneskinPower(const uint16 statusID) -> bool
+{
+    return IsStoneskinEffect(statusID);
+}
+
+// ComputePersistedDurationSeconds:
+// if durationSeconds == 0 → 0 (permanent)
+// else if OfflineTick → full durationSeconds
+// else if realDuration > 0 → realDuration
+// else skip (caller uses ShouldPersistEffect first)
+inline auto ComputePersistedDurationSeconds(
+    const int64 durationSeconds,
+    const int64 realDurationSeconds,
+    const bool hasOfflineTickFlag) -> uint32
+{
+    if (durationSeconds <= 0)
+    {
+        return 0;
+    }
+    if (hasOfflineTickFlag)
+    {
+        return static_cast<uint32>(durationSeconds);
+    }
+    if (realDurationSeconds > 0)
+    {
+        return static_cast<uint32>(realDurationSeconds);
+    }
+    return 0;
+}
+
+// RealDurationSeconds mirrors count_seconds(start + duration - now).
+// Host supplies start+duration and now as absolute seconds (or same unit).
+inline auto RealDurationSeconds(const int64 expirySeconds, const int64 nowSeconds) -> int64
+{
+    return expirySeconds - nowSeconds;
+}
+
+// ShouldLoadCopyImageUtsusemi mirrors CopyImage on load path.
+inline auto ShouldLoadCopyImageUtsusemi(const uint16 statusID) -> bool
+{
+    return IsCopyImageEffect(statusID);
+}
+
+// ShouldLoadBlinkMod mirrors Blink on load path.
+inline auto ShouldLoadBlinkMod(const uint16 statusID) -> bool
+{
+    return IsBlinkEffect(statusID);
+}
+
+
 } // namespace statuseffecthelpers

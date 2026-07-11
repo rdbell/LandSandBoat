@@ -1654,11 +1654,11 @@ void CStatusEffectContainer::LoadStatusEffects()
                                             rset->get<uint32>("originid"));
 
         // load shadows left
-        if (PStatusEffect->GetStatusID() == xi::StatusEffect::CopyImage)
+        if (statuseffecthelpers::ShouldLoadCopyImageUtsusemi(static_cast<uint16>(PStatusEffect->GetStatusID())))
         {
             m_POwner->setModifier(Mod::UTSUSEMI, PStatusEffect->GetSubPower());
         }
-        else if (PStatusEffect->GetStatusID() == xi::StatusEffect::Blink)
+        else if (statuseffecthelpers::ShouldLoadBlinkMod(static_cast<uint16>(PStatusEffect->GetStatusID())))
         {
             m_POwner->setModifier(Mod::BLINK, PStatusEffect->GetPower());
         }
@@ -1683,7 +1683,7 @@ void CStatusEffectContainer::LoadStatusEffects()
 void CStatusEffectContainer::SaveStatusEffects(bool logout)
 {
     // Print entity name and bail out if entity isn't a player.
-    if (m_POwner->objtype != TYPE_PC)
+    if (statuseffecthelpers::ShouldRejectNonPCSave(m_POwner->objtype == TYPE_PC))
     {
         ShowDebug("Non-player entity %s (ID: %d) attempt to save Status Effect.", m_POwner->getName(), m_POwner->id);
 
@@ -1694,13 +1694,16 @@ void CStatusEffectContainer::SaveStatusEffects(bool logout)
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if ((logout && PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Logout)) || (!logout && PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::OnZone)))
+        if (statuseffecthelpers::ShouldStripOnSave(
+                logout,
+                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Logout),
+                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::OnZone)))
         {
             RemoveStatusEffect(PStatusEffect.get(), EffectNotice::Silent);
             continue;
         }
 
-        if (PStatusEffect->isDeleted())
+        if (statuseffecthelpers::ShouldSkipDeletedOnSave(PStatusEffect->isDeleted()))
         {
             continue;
         }
@@ -1708,41 +1711,30 @@ void CStatusEffectContainer::SaveStatusEffects(bool logout)
         const auto durationSeconds     = timer::count_seconds(PStatusEffect->GetDuration());
         const auto realDurationSeconds = timer::count_seconds(PStatusEffect->GetStartTime() + PStatusEffect->GetDuration() - timer::now());
 
-        if (realDurationSeconds > 0 || durationSeconds == 0)
+        if (statuseffecthelpers::ShouldPersistEffect(realDurationSeconds, durationSeconds))
         {
             // save power of utsusemi and blink
-            if (PStatusEffect->GetStatusID() == xi::StatusEffect::CopyImage)
+            if (statuseffecthelpers::ShouldResyncUtsusemiPower(static_cast<uint16>(PStatusEffect->GetStatusID())))
             {
                 PStatusEffect->SetSubPower(m_POwner->getMod(Mod::UTSUSEMI));
             }
-            else if (PStatusEffect->GetStatusID() == xi::StatusEffect::Blink)
+            else if (statuseffecthelpers::ShouldResyncBlinkPower(static_cast<uint16>(PStatusEffect->GetStatusID())))
             {
                 PStatusEffect->SetPower(m_POwner->getMod(Mod::BLINK));
             }
-            else if (PStatusEffect->GetStatusID() == xi::StatusEffect::Stoneskin)
+            else if (statuseffecthelpers::ShouldResyncStoneskinPower(static_cast<uint16>(PStatusEffect->GetStatusID())))
             {
                 PStatusEffect->SetPower(m_POwner->getMod(Mod::STONESKIN));
             }
 
-            uint32 duration = 0;
+            uint32 duration = statuseffecthelpers::ComputePersistedDurationSeconds(
+                durationSeconds,
+                realDurationSeconds,
+                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::OfflineTick));
 
-            if (durationSeconds > 0)
+            if (durationSeconds > 0 && duration == 0)
             {
-                if (PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::OfflineTick))
-                {
-                    duration = static_cast<uint32>(durationSeconds);
-                }
-                else
-                {
-                    if (realDurationSeconds > 0)
-                    {
-                        duration = static_cast<uint32>(realDurationSeconds);
-                    }
-                    else
-                    {
-                        continue;
-                    }
-                }
+                continue;
             }
 
             uint32 tick      = static_cast<uint32>(timer::count_seconds(PStatusEffect->GetTickTime()));

@@ -508,6 +508,8 @@ set(SOURCES
     test_status_effect_add_remove_1371.cpp
     test_status_effect_delete_1372.h
     test_status_effect_delete_1372.cpp
+    test_status_effect_save_1373.h
+    test_status_effect_save_1373.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
