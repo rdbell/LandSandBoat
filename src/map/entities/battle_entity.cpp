@@ -43,6 +43,7 @@
 #include "battle_time_capacity.h"
 #include "enmity_presence_capacity.h"
 #include "death_finalize_capacity.h"
+#include "battle_spawn_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -2347,11 +2348,12 @@ void CBattleEntity::Spawn()
 {
     TracyZoneScoped;
 
-    animation = ANIMATION_NONE;
-    HideName(false);
-    CBaseEntity::Spawn();
-    m_OwnerID.clean();
-    setBattleID(0);
+    battlespawnhelpers::Apply(
+        [&]() { animation = ANIMATION_NONE; },
+        [&]() { HideName(false); },
+        [&]() { CBaseEntity::Spawn(); },
+        [&]() { m_OwnerID.clean(); },
+        [&]() { setBattleID(0); });
 }
 
 void CBattleEntity::Die()

@@ -584,6 +584,8 @@ set(SOURCES
     test_enmity_presence_1409.cpp
     test_death_finalize_1410.h
     test_death_finalize_1410.cpp
+    test_battle_spawn_1411.h
+    test_battle_spawn_1411.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
