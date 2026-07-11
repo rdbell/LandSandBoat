@@ -22,8 +22,9 @@
 #include "char_entity.h"
 
 #include "can_attack_capacity.h"
-#include "char_pet_zoning_capacity.h"
 #include "char_automaton_capacity.h"
+#include "char_bazaar_capacity.h"
+#include "char_pet_zoning_capacity.h"
 #include "char_playtime_capacity.h"
 #include "char_storage_capacity.h"
 #include "common/logging.h"
@@ -819,27 +820,15 @@ int16 CCharEntity::getShieldDefense()
 
 bool CCharEntity::hasBazaar()
 {
-    if (isSettingBazaarPrices)
-    {
-        return false;
-    }
-
-    CItemContainer* playerInventory = getStorage(LOC_INVENTORY);
-
-    if (playerInventory)
-    {
-        for (uint8 slotID = 1; slotID <= playerInventory->GetSize(); ++slotID)
+    return charbazaarhelpers::HasBazaar(
+        isSettingBazaarPrices,
+        [&]() { return getStorage(LOC_INVENTORY); },
+        [](const CItemContainer* inventory) { return inventory->GetSize(); },
+        [](const CItemContainer* inventory, const uint8 slotId)
         {
-            CItem* PItem = playerInventory->GetItem(slotID);
-
-            if ((PItem != nullptr) && (PItem->getCharPrice() != 0))
-            {
-                return true;
-                break;
-            }
-        }
-    }
-    return false;
+            const auto* item = inventory->GetItem(slotId);
+            return item == nullptr ? 0 : item->getCharPrice();
+        });
 }
 
 void CCharEntity::SetName(const std::string& name)
