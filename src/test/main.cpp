@@ -173,6 +173,7 @@ auto runWorldChatMessageYell1263SelfTests() -> bool;
 auto runWorldChatMessageAssist1264SelfTests() -> bool;
 auto runWorldChatMessageServerMessage1265SelfTests() -> bool;
 auto runWorldChatMessageCustom1266SelfTests() -> bool;
+auto runWorldPartyInvite1267SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -567,6 +568,7 @@ namespace
         ok = runWorldChatMessageAssist1264SelfTests() && ok;
         ok = runWorldChatMessageServerMessage1265SelfTests() && ok;
         ok = runWorldChatMessageCustom1266SelfTests() && ok;
+        ok = runWorldPartyInvite1267SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;
