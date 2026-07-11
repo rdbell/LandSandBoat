@@ -26,6 +26,7 @@
 #include "alliance_members_reroute.h"
 #include "alliance_reload.h"
 #include "char_id_reroute.h"
+#include "char_name_reroute.h"
 #include "char_var_update.h"
 #include "char_zone.h"
 #include "chat_message_alliance.h"
@@ -37,6 +38,7 @@
 #include "chat_message_tell.h"
 #include "chat_message_unity.h"
 #include "chat_message_yell.h"
+#include "linkshell_rank_change.h"
 #include "message_standard.h"
 #include "message_system.h"
 #include "party_invite.h"
@@ -210,12 +212,18 @@ void IPCServer::rerouteMessageToCharName(const std::string& charName, const auto
 {
     TracyZoneScoped;
 
-    if (const auto maybeCharIPP = getIPPForCharName(charName))
-    {
-        const auto charIPP = *maybeCharIPP;
-        DebugIPCFmt("Message: -> rerouting to char<{}> on {}", charName, charIPP.toString());
-        sendMessage(charIPP, std::move(message));
-    }
+    worldipc::RerouteMessageToCharName(
+        charName,
+        message,
+        [this](const std::string& targetName)
+        {
+            return getIPPForCharName(targetName);
+        },
+        [this, &charName](const IPP& endpoint, const auto& delivered)
+        {
+            DebugIPCFmt("Message: -> rerouting to char<{}> on {}", charName, endpoint.toString());
+            this->sendMessage(endpoint, delivered);
+        });
 }
 
 void IPCServer::rerouteMessageToZoneId(uint16 zoneId, const auto& message)
@@ -682,7 +690,12 @@ void IPCServer::handleMessage_LinkshellRankChange(const IPP& ipp, const ipc::Lin
 {
     TracyZoneScoped;
 
-    rerouteMessageToCharName(message.memberName, message);
+    worldipc::HandleLinkshellRankChange(
+        message,
+        [this](const std::string& memberName, const ipc::LinkshellRankChange& change)
+        {
+            rerouteMessageToCharName(memberName, change);
+        });
 }
 
 void IPCServer::handleMessage_LinkshellRemove(const IPP& ipp, const ipc::LinkshellRemove& message)

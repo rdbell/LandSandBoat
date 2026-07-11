@@ -464,6 +464,8 @@ set(SOURCES
     test_world_message_standard_1274.cpp
     test_world_message_system_1275.h
     test_world_message_system_1275.cpp
+    test_world_linkshell_rank_change_1276.h
+    test_world_linkshell_rank_change_1276.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h
