@@ -30,6 +30,7 @@
 #include "chat_message_party.h"
 #include "chat_message_tell.h"
 #include "chat_message_unity.h"
+#include "chat_message_yell.h"
 
 #include "besieged_system.h"
 #include "campaign_system.h"
@@ -461,7 +462,17 @@ void IPCServer::handleMessage_ChatMessageYell(const IPP& ipp, const ipc::ChatMes
 {
     TracyZoneScoped;
 
-    rerouteMessageToYellZones(message);
+    worldipc::HandleChatMessageYell(
+        message,
+        [this]
+        {
+            return getIPPsForYellZones();
+        },
+        [this](const IPP& endpoint, const ipc::ChatMessageYell& yellMessage)
+        {
+            DebugIPCFmt("Message: -> rerouting to yell zone on {}", endpoint.toString());
+            sendMessage(endpoint, yellMessage);
+        });
 }
 
 void IPCServer::handleMessage_ChatMessageAssist(const IPP& ipp, const ipc::ChatMessageAssist& message)

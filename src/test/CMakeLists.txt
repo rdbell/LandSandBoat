@@ -438,6 +438,8 @@ set(SOURCES
     test_world_chat_message_linkshell_1261.cpp
     test_world_chat_message_unity_1262.h
     test_world_chat_message_unity_1262.cpp
+    test_world_chat_message_yell_1263.h
+    test_world_chat_message_yell_1263.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h
