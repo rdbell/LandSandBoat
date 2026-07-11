@@ -65,3 +65,13 @@ auto world::ipc::LookupAllianceEndpoints(const uint32_t allianceId) -> std::vect
         allianceId);
     return CollectEndpoints<uint64, uint64>(rset.get());
 }
+
+auto world::ipc::LookupLinkshellEndpoints(const uint32_t linkshellId) -> std::vector<IPP>
+{
+    const auto rset = db::preparedStmt(
+        "SELECT server_addr, server_port FROM accounts_sessions "
+        "WHERE linkshellid1 = ? OR linkshellid2 = ? GROUP BY server_addr, server_port",
+        linkshellId,
+        linkshellId);
+    return CollectEndpoints<uint64, uint64>(rset.get());
+}

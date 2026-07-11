@@ -89,6 +89,7 @@ describe('Base entity health update helper bindings', function()
         assert(mob:getMaxHP() == 0, 'fully weakened mob should have zero effective max HP')
         assert(mob:getHP() == 0, 'fully weakened mob should clamp current HP to zero')
         assert(mob:getHPP() == 0, 'zero effective HP should report zero HPP')
+        mob:delMod(xi.mod.WEAKNESS_PCT, -100)
 
         player:setMaxHP(20000)
         player:setHP(20000)

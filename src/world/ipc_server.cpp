@@ -26,6 +26,7 @@
 #include "char_var_update.h"
 #include "char_zone.h"
 #include "chat_message_alliance.h"
+#include "chat_message_linkshell.h"
 #include "chat_message_party.h"
 #include "chat_message_tell.h"
 
@@ -131,24 +132,7 @@ auto IPCServer::getIPPsForLinkshell(uint32 linkshellId) -> std::vector<IPP>
 
     // TODO: We know when chars move, we could be caching this info
 
-    const auto query = "SELECT server_addr, server_port FROM accounts_sessions "
-                       "WHERE linkshellid1 = ? OR linkshellid2 = ? GROUP BY server_addr, server_port";
-
-    const auto rset = db::preparedStmt(query, linkshellId, linkshellId);
-    if (rset && rset->rowsCount())
-    {
-        std::vector<IPP> ippList;
-        while (rset->next())
-        {
-            const auto ip   = rset->get<uint64>("server_addr");
-            const auto port = rset->get<uint64>("server_port");
-            ippList.emplace_back(ip, port);
-        }
-
-        return ippList;
-    }
-
-    return {};
+    return world::ipc::LookupLinkshellEndpoints(linkshellId);
 }
 
 auto IPCServer::getIPPsForUnity(uint32 unityId) -> std::vector<IPP>
@@ -459,7 +443,17 @@ void IPCServer::handleMessage_ChatMessageLinkshell(const IPP& ipp, const ipc::Ch
 {
     TracyZoneScoped;
 
-    rerouteMessageToLinkshellMembers(message.linkshellId, message);
+    worldipc::HandleChatMessageLinkshell(
+        message,
+        [this](const uint32 linkshellId)
+        {
+            return getIPPsForLinkshell(linkshellId);
+        },
+        [this](const IPP& endpoint, const ipc::ChatMessageLinkshell& linkshellMessage)
+        {
+            DebugIPCFmt("Message: -> rerouting to linkshell<{}> on {}", linkshellMessage.linkshellId, endpoint.toString());
+            sendMessage(endpoint, linkshellMessage);
+        });
 }
 
 void IPCServer::handleMessage_ChatMessageUnity(const IPP& ipp, const ipc::ChatMessageUnity& message)
