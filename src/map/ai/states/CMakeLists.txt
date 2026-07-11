@@ -20,6 +20,7 @@ set(AI_STATE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/mobskill_state_capacity.h
     ${CMAKE_CURRENT_SOURCE_DIR}/petskill_state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/petskill_state.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/petskill_state_capacity.h
     ${CMAKE_CURRENT_SOURCE_DIR}/range_state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/range_state.h
     ${CMAKE_CURRENT_SOURCE_DIR}/range_state_capacity.h
