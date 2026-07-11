@@ -223,4 +223,39 @@ inline auto ShouldStartSyncDisableCountdown(const bool hasLevelSync, const bool 
     return hasLevelSync && durationIsZero;
 }
 
+// ShouldPushPartyPacketToMember mirrors CParty::PushPacket's per-member filter.
+// ZoneID 0 means all zones; otherwise the member must match ZoneID.
+// senderID is skipped; DISAPPEAR and prison members are skipped.
+inline auto ShouldPushPartyPacketToMember(
+    const bool   isPC,
+    const uint32 memberID,
+    const uint32 senderID,
+    const bool   notDisappear,
+    const bool   inPrison,
+    const uint16 zoneIDFilter,
+    const uint16 memberZoneID) -> bool
+{
+    if (!isPC)
+    {
+        return false;
+    }
+    if (memberID == senderID)
+    {
+        return false;
+    }
+    if (!notDisappear)
+    {
+        return false;
+    }
+    if (inPrison)
+    {
+        return false;
+    }
+    if (zoneIDFilter != 0 && memberZoneID != zoneIDFilter)
+    {
+        return false;
+    }
+    return true;
+}
+
 } // namespace partyhelpers

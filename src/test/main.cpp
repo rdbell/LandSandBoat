@@ -252,6 +252,7 @@ auto runLoginConnectApp1331SelfTests() -> bool;
 auto runMapAppConfig1332SelfTests() -> bool;
 auto runWorldAppConfig1333SelfTests() -> bool;
 auto runPartySetSyncTarget1334SelfTests() -> bool;
+auto runPartyPushPacket1335SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -714,6 +715,7 @@ namespace
         ok = runMapAppConfig1332SelfTests() && ok;
         ok = runWorldAppConfig1333SelfTests() && ok;
         ok = runPartySetSyncTarget1334SelfTests() && ok;
+        ok = runPartyPushPacket1335SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

@@ -1256,19 +1256,28 @@ void CParty::PushPacket(uint32 senderID, uint16 ZoneID, const std::unique_ptr<CB
 {
     for (auto& i : members)
     {
-        if (i == nullptr || i->objtype != TYPE_PC)
+        if (i == nullptr)
         {
             continue;
         }
 
-        CCharEntity* member = (CCharEntity*)i;
-
-        if (member->id != senderID && member->status != STATUS_TYPE::DISAPPEAR && !jailutils::InPrison(member))
+        const bool isPC = i->objtype == TYPE_PC;
+        if (!isPC)
         {
-            if (ZoneID == 0 || member->getZone() == ZoneID)
-            {
-                member->pushPacket(packet->copy());
-            }
+            continue;
+        }
+
+        CCharEntity* member = static_cast<CCharEntity*>(i);
+        if (partyhelpers::ShouldPushPartyPacketToMember(
+                isPC,
+                member->id,
+                senderID,
+                member->status != STATUS_TYPE::DISAPPEAR,
+                jailutils::InPrison(member),
+                ZoneID,
+                member->getZone()))
+        {
+            member->pushPacket(packet->copy());
         }
     }
 }
