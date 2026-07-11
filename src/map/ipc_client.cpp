@@ -28,6 +28,7 @@
 #include "chat_message_tell.h"
 #include "entity_information_request.h"
 #include "player_relocation.h"
+#include "standard_message_delivery.h"
 
 #include "common/ipp.h"
 
@@ -667,29 +668,37 @@ void IPCClient::handleMessage_MessageStandard(const IPP& ipp, const ipc::Message
 {
     TracyZoneScoped;
 
-    if (CCharEntity* PChar = zoneutils::GetChar(message.recipientId))
-    {
-        // TODO: Exchange the packet struct over IPC to avoid having to match one-offs.
-        // This matches messages with just a string parameter.
-        if (message.string2.size() > 0 && message.param0 == 0 && message.param1 == 0)
+    mapipc::HandleMessageStandard(
+        message,
+        [](const uint32 recipientId)
         {
-            PChar->pushPacket(std::make_unique<GP_SERV_COMMAND_MESSAGE>(message.string2, message.message));
-        }
-        else
+            return zoneutils::GetChar(recipientId);
+        },
+        [](CCharEntity* player, const std::string& string2, const MsgStd messageId)
         {
-            PChar->pushPacket(std::make_unique<GP_SERV_COMMAND_MESSAGE>(PChar, message.param0, message.param1, message.message));
-        }
-    }
+            // TODO: Exchange the packet struct over IPC to avoid having to match one-offs.
+            player->pushPacket(std::make_unique<GP_SERV_COMMAND_MESSAGE>(string2, messageId));
+        },
+        [](CCharEntity* player, const uint32 param0, const uint32 param1, const MsgStd messageId)
+        {
+            player->pushPacket(std::make_unique<GP_SERV_COMMAND_MESSAGE>(player, param0, param1, messageId));
+        });
 }
 
 void IPCClient::handleMessage_MessageSystem(const IPP& ipp, const ipc::MessageSystem& message)
 {
     TracyZoneScoped;
 
-    if (CCharEntity* PChar = zoneutils::GetChar(message.recipientId))
-    {
-        PChar->pushPacket(std::make_unique<GP_SERV_COMMAND_MESSAGE>(PChar, message.param0, message.param1, message.message));
-    }
+    mapipc::HandleMessageSystem(
+        message,
+        [](const uint32 recipientId)
+        {
+            return zoneutils::GetChar(recipientId);
+        },
+        [](CCharEntity* player, const uint32 param0, const uint32 param1, const MsgStd messageId)
+        {
+            player->pushPacket(std::make_unique<GP_SERV_COMMAND_MESSAGE>(player, param0, param1, messageId));
+        });
 }
 
 void IPCClient::handleMessage_LinkshellRankChange(const IPP& ipp, const ipc::LinkshellRankChange& message)
