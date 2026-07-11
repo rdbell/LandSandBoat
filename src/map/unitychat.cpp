@@ -21,6 +21,7 @@
 #include "entities/char_entity.h"
 #include "ipc_client.h"
 #include "unitychat.h"
+#include "unitychat_capacity.h"
 #include "utils/jailutils.h"
 
 CUnityChat::CUnityChat(uint32 leader)
@@ -52,14 +53,17 @@ bool CUnityChat::DelMember(CCharEntity* PChar)
             break;
         }
     }
-    return !members.empty();
+    return unitychathelpers::DelMemberRemaining(members.size());
 }
 
 void CUnityChat::PushPacket(uint32 senderID, const std::unique_ptr<CBasicPacket>& packet)
 {
     for (auto& member : members)
     {
-        if (member->id != senderID && member->status != STATUS_TYPE::DISAPPEAR && !jailutils::InPrison(member))
+        if (unitychathelpers::ShouldReceiveUnityPacket(
+                member->id == senderID,
+                member->status == STATUS_TYPE::DISAPPEAR,
+                jailutils::InPrison(member)))
         {
             member->pushPacket(packet->copy());
         }
@@ -80,7 +84,7 @@ CUnityChat* LoadUnityChat(uint32 leader)
 
 void UnloadUnityChat(uint32 leader)
 {
-    if (auto PUnity = UnityChatList.find(leader); PUnity != UnityChatList.end())
+    if (unitychathelpers::ShouldUnloadUnityChat(UnityChatList.find(leader) != UnityChatList.end()))
     {
         UnityChatList.erase(leader);
     }
@@ -88,56 +92,60 @@ void UnloadUnityChat(uint32 leader)
 
 bool AddOnlineMember(CCharEntity* PChar, uint32 leader)
 {
-    if (PChar == nullptr)
+    if (unitychathelpers::ShouldRejectNullOnlineMember(PChar == nullptr))
     {
-        ShowWarning("PChar is null.");
-        return false;
+        ShowWarning("%s", unitychathelpers::FormatOnlineMemberNullWarning());
+        return unitychathelpers::OnlineMemberAlwaysReturnsFalse();
     }
 
-    CUnityChat* PUnity = nullptr;
-    if (auto UnityChatListUnity = UnityChatList.find(leader); UnityChatListUnity != UnityChatList.end())
+    CUnityChat* PUnity       = nullptr;
+    const bool  foundInCache = UnityChatList.find(leader) != UnityChatList.end();
+    if (!unitychathelpers::ShouldLoadUnityChatOnOnlineAdd(foundInCache, leader))
     {
-        PUnity = UnityChatListUnity->second.get();
+        if (foundInCache)
+        {
+            PUnity = UnityChatList.find(leader)->second.get();
+        }
     }
-    else if (leader != 0)
+    else
     {
         PUnity = LoadUnityChat(leader);
     }
-    if (PUnity)
+    if (unitychathelpers::ShouldAddMemberAfterOnlineLookup(PUnity != nullptr))
     {
         PUnity->AddMember(PChar);
     }
-    return false;
+    return unitychathelpers::OnlineMemberAlwaysReturnsFalse();
 }
 
 bool DelOnlineMember(CCharEntity* PChar, uint32 leader)
 {
-    if (PChar == nullptr)
+    if (unitychathelpers::ShouldRejectNullOnlineMember(PChar == nullptr))
     {
-        ShowWarning("PChar is null.");
-        return false;
+        ShowWarning("%s", unitychathelpers::FormatOnlineMemberNullWarning());
+        return unitychathelpers::OnlineMemberAlwaysReturnsFalse();
     }
 
     try
     {
         CUnityChat* PUnityChat = UnityChatList.at(leader).get();
-        if (!PUnityChat->DelMember(PChar))
+        if (unitychathelpers::ShouldEraseUnityChatAfterDelOnline(PUnityChat->DelMember(PChar)))
         {
             UnityChatList.erase(leader);
         }
     }
     catch (std::out_of_range& exception)
     {
-        ShowError("unitychat::DelOnlineMember caught exception: %s", exception.what());
+        ShowError("%s", unitychathelpers::FormatDelOnlineMemberException(exception.what()));
     }
-    return false;
+    return unitychathelpers::OnlineMemberAlwaysReturnsFalse();
 }
 
 CUnityChat* GetUnityChat(uint32 leader)
 {
-    if (auto PUnityChat = UnityChatList.find(leader); PUnityChat != UnityChatList.end())
+    if (unitychathelpers::ShouldReturnCachedUnityChat(UnityChatList.find(leader) != UnityChatList.end()))
     {
-        return PUnityChat->second.get();
+        return UnityChatList.find(leader)->second.get();
     }
     else
     {

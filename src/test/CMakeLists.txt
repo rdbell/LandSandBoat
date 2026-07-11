@@ -476,6 +476,8 @@ set(SOURCES
     test_linkshell_capacity_1354.cpp
     test_linkshell_registry_1355.h
     test_linkshell_registry_1355.cpp
+    test_unitychat_capacity_1356.h
+    test_unitychat_capacity_1356.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
