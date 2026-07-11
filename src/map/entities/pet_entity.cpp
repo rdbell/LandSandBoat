@@ -20,6 +20,7 @@
 */
 
 #include "pet_entity.h"
+#include "map/pet_can_attack_capacity.h"
 #include "map/pet_death_capacity.h"
 #include "map/pet_fade_out_capacity.h"
 #include "map/pet_jug_timer_capacity.h"
@@ -30,7 +31,6 @@
 
 #include <cstring>
 
-#include "can_attack_capacity.h"
 #include "ai/ai_container.h"
 #include "ai/controllers/pet_controller.h"
 #include "ai/helpers/pathfind.h"
@@ -360,21 +360,19 @@ bool CPetEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
 
 bool CPetEntity::CanAttack(CBattleEntity* PTarget, std::unique_ptr<CBasicPacket>& errMsg)
 {
-    // prevent pets from attacking mobs that the PC master does not own
-    if (this->PMaster)
-    {
-        auto*      PChar          = dynamic_cast<CCharEntity*>(this->PMaster);
-        const bool hasPCMaster    = PChar != nullptr;
-        const bool masterOwns     = PChar && PChar->IsMobOwner(PTarget);
-        if (canattackhelpers::PetCanAttackClaimFail(hasPCMaster, masterOwns))
+    CCharEntity* PChar = nullptr;
+    return petcanattackhelpers::Apply(
+        PMaster != nullptr,
+        [&]()
         {
-            errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, PTarget, 0, 0, MsgBasic::AlreadyClaimed);
-            PAI->Disengage();
-            return false;
-        }
-    }
-
-    return CBattleEntity::CanAttack(PTarget, errMsg);
+            PChar = dynamic_cast<CCharEntity*>(PMaster);
+            return PChar != nullptr;
+        },
+        [&]() { return PChar->IsMobOwner(PTarget); },
+        [&]() { errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, PTarget, 0, 0, MsgBasic::AlreadyClaimed); },
+        [&]() { PAI->Disengage(); },
+        // Purposefully skip CMobEntity::CanAttack.
+        [&]() { return CBattleEntity::CanAttack(PTarget, errMsg); });
 }
 
 void CPetEntity::OnPetSkillFinished(CPetSkillState& state, action_t& action)
