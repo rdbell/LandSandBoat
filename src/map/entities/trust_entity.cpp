@@ -21,6 +21,7 @@
 
 #include <map/entities/trust_entity.h>
 #include <map/trust_death_capacity.h>
+#include <map/trust_spawn_capacity.h>
 
 #include "action/action.h"
 #include "action/interrupts.h"
@@ -151,20 +152,16 @@ void CTrustEntity::Die()
 
 void CTrustEntity::Spawn()
 {
-    // NOTE: This is purposefully calling CBattleEntity's impl.
-    // TODO: Calling a grand-parent's impl. of an overridden function is bad
-    // we need to skip CMobEntity's spawn because it calculates stats (and our stats are already calculated)
-    CBattleEntity::Spawn();
-    luautils::OnMobSpawn(this);
-
-    // Recompute derived HP/MP after spawn-time modifiers (e.g. HPP/MPP)
-    // and force current HP/MP to max so trusts start in a fully synchronized state.
-    UpdateHealth();
-    health.hp = GetMaxHP();
-    health.mp = GetMaxMP();
-    updatemask |= UPDATE_HP;
-
-    static_cast<CCharEntity*>(PMaster)->pushPacket<CEntitySetNamePacket>(this);
+    trustspawnhelpers::Apply(
+        // Purposefully skip CMobEntity::Spawn; trust stats are already calculated.
+        [&]() { CBattleEntity::Spawn(); },
+        [&]() { luautils::OnMobSpawn(this); },
+        // Recompute derived maxima after spawn-time Lua modifiers.
+        [&]() { UpdateHealth(); },
+        [&]() { health.hp = GetMaxHP(); },
+        [&]() { health.mp = GetMaxMP(); },
+        [&]() { updatemask |= UPDATE_HP; },
+        [&]() { static_cast<CCharEntity*>(PMaster)->pushPacket<CEntitySetNamePacket>(this); });
 }
 
 bool CTrustEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)

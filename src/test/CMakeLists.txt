@@ -598,6 +598,8 @@ set(SOURCES
     test_automaton_death_1416.cpp
     test_pet_spawn_1417.h
     test_pet_spawn_1417.cpp
+    test_trust_spawn_1418.h
+    test_trust_spawn_1418.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
