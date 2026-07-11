@@ -32,6 +32,7 @@
 #include "attack_entry_capacity.h"
 #include "attack_swing_gate_capacity.h"
 #include "attack_hit_path_capacity.h"
+#include "attack_post_swing_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3862,16 +3863,18 @@ bool CBattleEntity::OnAttack(CAttackState& state, action_t& action)
         }
 
         // If we didn't hit at all, set param to 0 if we didn't blink any shadows.
-        if (actionResult.resolution == ActionResolution::Miss && actionResult.messageID != MsgBasic::ShadowAbsorb)
-        {
-            actionResult.param = 0;
-        }
+        actionResult.param = attackpostswinghelpers::NormalizeMissParam(
+            static_cast<uint8>(actionResult.resolution),
+            static_cast<uint16>(actionResult.messageID),
+            actionResult.param);
 
         // Run enspell/spike routines for hit, guard, or block as long as this isn't a Daken swing
-        if (actionResult.resolution != ActionResolution::Miss && actionResult.resolution != ActionResolution::Parry && attack.GetAttackType() != PHYSICAL_ATTACK_TYPE::DAKEN)
+        if (attackpostswinghelpers::ShouldRunEnspellAndSpikes(
+                static_cast<uint8>(actionResult.resolution),
+                static_cast<uint8>(attack.GetAttackType())))
         {
             // Handle addtl effects/enspells only if the target is not already dead
-            if (PTarget->GetHPP() > 0)
+            if (attackpostswinghelpers::ShouldRunEnspell(PTarget->GetHPP()))
             {
                 battleutils::HandleEnspell(this, PTarget, &actionResult, attack.IsFirstSwing(), (CItemWeapon*)this->m_Weapons[attack.GetWeaponSlot()], attack.GetDamage(), attack);
             }
@@ -3879,7 +3882,9 @@ bool CBattleEntity::OnAttack(CAttackState& state, action_t& action)
         }
 
         // if we parried, run battuta check if applicable
-        if (actionResult.resolution == ActionResolution::Parry && PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Battuta))
+        if (attackpostswinghelpers::ShouldRunParrySpikes(
+                static_cast<uint8>(actionResult.resolution),
+                [&]() { return PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Battuta); }))
         {
             battleutils::HandleParrySpikesDamage(this, PTarget, &actionResult, attack.GetDamage());
         }
