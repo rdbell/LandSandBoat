@@ -490,6 +490,8 @@ set(SOURCES
     test_world_send_player_to_location_1287.cpp
     test_world_assist_channel_event_1288.h
     test_world_assist_channel_event_1288.cpp
+    test_world_ipc_diagnostics_1289.h
+    test_world_ipc_diagnostics_1289.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h

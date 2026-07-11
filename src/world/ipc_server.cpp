@@ -36,6 +36,7 @@
 #include "conquest_event.h"
 #include "entity_information_request.h"
 #include "entity_information_response.h"
+#include "ipc_diagnostics.h"
 #include "chat_message_alliance.h"
 #include "chat_message_assist.h"
 #include "chat_message_custom.h"
@@ -377,7 +378,7 @@ void IPCServer::handleMessage_EmptyStruct(const IPP& ipp, const ipc::EmptyStruct
 {
     TracyZoneScoped;
 
-    ShowWarningFmt("Received EmptyStruct message from {} - this is probably a bug", ipp.toString());
+    ShowWarning(worldipc::FormatEmptyStructWarning(ipp));
 }
 
 void IPCServer::handleMessage_AccountLogin(const IPP& ipp, const ipc::AccountLogin& message)
@@ -925,5 +926,5 @@ void IPCServer::handleUnknownMessage(const IPP& ipp, const std::span<uint8_t> me
 {
     TracyZoneScoped;
 
-    ShowWarningFmt("Received unknown message from {} with code {} and size {}", ipp.toString(), message[0], message.size());
+    ShowWarning(worldipc::FormatUnknownMessageWarning(ipp, message[0], message.size()));
 }
