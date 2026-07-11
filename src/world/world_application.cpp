@@ -23,8 +23,10 @@
 
 #include "common/application.h"
 #include "common/logging.h"
+#include "common/settings.h"
 
 #include "ipc_server.h"
+#include "world_app_config.h"
 #include "world_engine.h"
 
 namespace
@@ -33,7 +35,7 @@ namespace
 auto appConfig() -> ApplicationConfig
 {
     return ApplicationConfig{
-        .serverName = "world",
+        .serverName = worldapp::WorldServerName,
         .arguments  = {},
     };
 }
@@ -49,6 +51,6 @@ WorldApplication::~WorldApplication() = default;
 
 auto WorldApplication::createEngine() -> std::unique_ptr<Engine>
 {
-    const auto httpEnabled = settings::get<bool>("network.ENABLE_HTTP");
+    const auto httpEnabled = settings::get<bool>(worldapp::WorldHTTPEnableSettingKey);
     return std::make_unique<WorldEngine>(scheduler_, zmqService_, WorldEngine::EnableHTTPServer{ httpEnabled });
 }

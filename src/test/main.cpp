@@ -250,6 +250,7 @@ auto runAllianceCapacity1329SelfTests() -> bool;
 auto runPartyLevelSync1330SelfTests() -> bool;
 auto runLoginConnectApp1331SelfTests() -> bool;
 auto runMapAppConfig1332SelfTests() -> bool;
+auto runWorldAppConfig1333SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -710,6 +711,7 @@ namespace
         ok = runPartyLevelSync1330SelfTests() && ok;
         ok = runLoginConnectApp1331SelfTests() && ok;
         ok = runMapAppConfig1332SelfTests() && ok;
+        ok = runWorldAppConfig1333SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
