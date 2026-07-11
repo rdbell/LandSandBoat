@@ -859,12 +859,15 @@ auto CStatusEffectContainer::EraseStatusEffect() -> xi::StatusEffect
     std::vector<CStatusEffect*> erasableList;
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Erasable) && PStatusEffect->GetDuration() > 0s && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::IsErasableCandidate(
+                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Erasable),
+                PStatusEffect->GetDuration() > 0s,
+                PStatusEffect->isDeleted()))
         {
             erasableList.emplace_back(PStatusEffect.get());
         }
     }
-    if (!erasableList.empty())
+    if (statuseffecthelpers::HasRemovableCandidates(erasableList.size()))
     {
         auto             rndIdx = xirand::GetRandomNumber(erasableList.size());
         xi::StatusEffect result = erasableList.at(rndIdx)->GetStatusID();
@@ -881,15 +884,16 @@ auto CStatusEffectContainer::HealingWaltz() -> xi::StatusEffect
     std::vector<CStatusEffect*> waltzableList;
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if ((PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Waltzable) ||
-             PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Erasable)) &&
-            PStatusEffect->GetDuration() > 0s &&
-            !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::IsWaltzableCandidate(
+                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Waltzable),
+                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Erasable),
+                PStatusEffect->GetDuration() > 0s,
+                PStatusEffect->isDeleted()))
         {
             waltzableList.emplace_back(PStatusEffect.get());
         }
     }
-    if (!waltzableList.empty())
+    if (statuseffecthelpers::HasRemovableCandidates(waltzableList.size()))
     {
         auto             rndIdx = xirand::GetRandomNumber(waltzableList.size());
         xi::StatusEffect result = waltzableList.at(rndIdx)->GetStatusID();
@@ -909,7 +913,10 @@ uint8 CStatusEffectContainer::EraseAllStatusEffect()
     uint8 count = 0;
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Erasable) && PStatusEffect->GetDuration() > 0s && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::IsErasableCandidate(
+                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Erasable),
+                PStatusEffect->GetDuration() > 0s,
+                PStatusEffect->isDeleted()))
         {
             RemoveStatusEffect(PStatusEffect.get());
             count++;
@@ -931,12 +938,15 @@ auto CStatusEffectContainer::DispelStatusEffect(xi::StatusEffectFlag flag) -> xi
     std::vector<CStatusEffect*> dispelableList;
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->HasEffectFlag(flag) && PStatusEffect->GetDuration() > 0s && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::IsFlagRemovableCandidate(
+                PStatusEffect->HasEffectFlag(flag),
+                PStatusEffect->GetDuration() > 0s,
+                PStatusEffect->isDeleted()))
         {
             dispelableList.emplace_back(PStatusEffect.get());
         }
     }
-    if (!dispelableList.empty())
+    if (statuseffecthelpers::HasRemovableCandidates(dispelableList.size()))
     {
         auto             rndIdx = xirand::GetRandomNumber(dispelableList.size());
         xi::StatusEffect result = dispelableList.at(rndIdx)->GetStatusID();
@@ -955,7 +965,10 @@ auto CStatusEffectContainer::DispelAllStatusEffect(xi::StatusEffectFlag flag) ->
     uint8 count = 0;
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->HasEffectFlag(flag) && PStatusEffect->GetDuration() > 0s && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::IsFlagRemovableCandidate(
+                PStatusEffect->HasEffectFlag(flag),
+                PStatusEffect->GetDuration() > 0s,
+                PStatusEffect->isDeleted()))
         {
             RemoveStatusEffect(PStatusEffect.get(), EffectNotice::Silent);
             count++;
@@ -1013,23 +1026,28 @@ bool CStatusEffectContainer::ApplyBardEffect(CStatusEffect* PStatusEffect, uint8
     CStatusEffect* oldestSong   = nullptr;
     for (const auto& ExistingStatusEffect : m_StatusEffectSet)
     {
-        if (ExistingStatusEffect->GetStatusID() >= xi::StatusEffect::Requiem && ExistingStatusEffect->GetStatusID() <= xi::StatusEffect::Nocturne) // is an active brd effect
+        if (statuseffecthelpers::IsBardSongID(static_cast<uint16>(ExistingStatusEffect->GetStatusID()))) // is an active brd effect
         {
-            if (ExistingStatusEffect->GetTier() == PStatusEffect->GetTier() && ExistingStatusEffect->GetStatusID() == PStatusEffect->GetStatusID())
+            if (statuseffecthelpers::IsSameBardSongOverwrite(
+                    PStatusEffect->GetTier(),
+                    static_cast<uint16>(PStatusEffect->GetStatusID()),
+                    ExistingStatusEffect->GetTier(),
+                    static_cast<uint16>(ExistingStatusEffect->GetStatusID())))
             { // same tier/type, overwrite
                 // OVERWRITE
                 PStatusEffect->SetEffectSlot(ExistingStatusEffect->GetEffectSlot()); // use same slot as the one it replaces
                 DelStatusEffectByTier(PStatusEffect->GetStatusID(), PStatusEffect->GetTier());
             }
-            if (ExistingStatusEffect->GetSubID() == PStatusEffect->GetSubID())
+            if (statuseffecthelpers::IsOwnBardSong(ExistingStatusEffect->GetSubID(), PStatusEffect->GetSubID()))
             { // YOUR BRD effect
                 numOfEffects++;
                 if (!oldestSong)
                 {
                     oldestSong = ExistingStatusEffect.get();
                 }
-                else if (ExistingStatusEffect->GetStartTime() + ExistingStatusEffect->GetDuration() <
-                         oldestSong->GetStartTime() + oldestSong->GetDuration())
+                else if (statuseffecthelpers::IsEarlierSongExpiry(
+                             (ExistingStatusEffect->GetStartTime() + ExistingStatusEffect->GetDuration()).time_since_epoch().count(),
+                             (oldestSong->GetStartTime() + oldestSong->GetDuration()).time_since_epoch().count()))
                 {
                     oldestSong = ExistingStatusEffect.get();
                 }
@@ -1037,9 +1055,9 @@ bool CStatusEffectContainer::ApplyBardEffect(CStatusEffect* PStatusEffect, uint8
         }
     }
 
-    if (numOfEffects < maxSongs)
+    if (statuseffecthelpers::CanApplyBardWithoutReplace(numOfEffects, maxSongs))
     {
-        if (PStatusEffect->GetEffectSlot() == 0)
+        if (statuseffecthelpers::ShouldAssignLowestFreeSlot(PStatusEffect->GetEffectSlot()))
         {
             // use lowest available slot, unless it's replacing an existing song
             PStatusEffect->SetEffectSlot(GetLowestFreeSlot());
@@ -1047,7 +1065,7 @@ bool CStatusEffectContainer::ApplyBardEffect(CStatusEffect* PStatusEffect, uint8
         AddStatusEffect(std::unique_ptr<CStatusEffect>(PStatusEffect));
         return true;
     }
-    else if (oldestSong)
+    else if (statuseffecthelpers::CanApplyBardReplacingOldest(oldestSong != nullptr))
     {
         // overwrite oldest
         PStatusEffect->SetEffectSlot(oldestSong->GetEffectSlot());
@@ -1090,7 +1108,11 @@ auto CStatusEffectContainer::GetHighestRuneEffect() -> xi::StatusEffect
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetStatusID() >= xi::StatusEffect::Ignis && PStatusEffect->GetStatusID() <= xi::StatusEffect::Tenebrae && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::ShouldCountActiveInRange(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                statuseffecthelpers::RuneIDFirst,
+                statuseffecthelpers::RuneIDLast,
+                PStatusEffect->isDeleted()))
         {
             if (runeEffects.count(PStatusEffect->GetStatusID()) == 0)
             {
@@ -1104,14 +1126,16 @@ auto CStatusEffectContainer::GetHighestRuneEffect() -> xi::StatusEffect
     }
 
     xi::StatusEffect highestRune      = xi::StatusEffect::None;
-    int              highestRuneValue = 0;
+    uint8            highestRuneValue = 0;
+    bool             hasCurrent       = false;
 
     for (auto iter = runeEffects.begin(); iter != runeEffects.end(); ++iter)
     {
-        if (highestRune == xi::StatusEffect::None || iter->second > highestRuneValue)
+        if (statuseffecthelpers::PreferHigherRuneCount(hasCurrent, highestRuneValue, iter->second))
         {
             highestRune      = iter->first;
             highestRuneValue = iter->second;
+            hasCurrent       = true;
         }
     }
 
@@ -1314,7 +1338,11 @@ auto CStatusEffectContainer::GetStatusEffectsInIDRange(xi::StatusEffect start, x
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetStatusID() >= start && PStatusEffect->GetStatusID() <= end && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::ShouldCountActiveInRange(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                static_cast<uint16>(start),
+                static_cast<uint16>(end),
+                PStatusEffect->isDeleted()))
         {
             effectList.emplace_back(PStatusEffect->GetStatusID());
         }
@@ -1327,7 +1355,11 @@ auto CStatusEffectContainer::GetStatusEffectCountInIDRange(xi::StatusEffect star
     uint8 count = 0;
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetStatusID() >= start && PStatusEffect->GetStatusID() <= end && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::ShouldCountActiveInRange(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                static_cast<uint16>(start),
+                static_cast<uint16>(end),
+                PStatusEffect->isDeleted()))
         {
             count++;
         }
@@ -1397,7 +1429,10 @@ void CStatusEffectContainer::RemoveAllStatusEffectsInIDRange(xi::StatusEffect st
 {
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetStatusID() >= start && PStatusEffect->GetStatusID() <= end)
+        if (statuseffecthelpers::ShouldRemoveAllInRange(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                static_cast<uint16>(start),
+                static_cast<uint16>(end)))
         {
             RemoveStatusEffect(PStatusEffect.get(), EffectNotice::Silent);
         }

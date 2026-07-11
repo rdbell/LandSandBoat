@@ -281,6 +281,7 @@ auto runBattlefieldPolicy1361SelfTests() -> bool;
 auto runSpawnCanSpawn1362SelfTests() -> bool;
 auto runZonePolicy1363SelfTests() -> bool;
 auto runStatusEffectCanGain1364SelfTests() -> bool;
+auto runStatusEffectSelection1365SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -772,6 +773,7 @@ namespace
         ok = runSpawnCanSpawn1362SelfTests() && ok;
         ok = runZonePolicy1363SelfTests() && ok;
         ok = runStatusEffectCanGain1364SelfTests() && ok;
+        ok = runStatusEffectSelection1365SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

@@ -2,6 +2,7 @@
 
 #include "common/cbasetypes.h"
 
+#include <cstddef>
 #include <cstdint>
 
 // Pure CStatusEffectContainer::CanGainStatusEffect policy halves.
@@ -195,5 +196,151 @@ inline auto HasExistingEffect(const bool existingPresent) -> bool
 {
     return existingPresent;
 }
+
+// --- Slice 1365: erase/dispel/waltz, bard song apply, highest-rune pure halves ---
+
+// Bard song inclusive ID range (Requiem..Nocturne).
+constexpr uint16 BardSongIDFirst = 192;
+constexpr uint16 BardSongIDLast  = 223;
+
+// Rune effect inclusive ID range (Ignis..Tenebrae).
+constexpr uint16 RuneIDFirst = 523;
+constexpr uint16 RuneIDLast  = 530;
+
+// Maneuver inclusive ID range (FireManeuver..DarkManeuver).
+constexpr uint16 ManeuverIDFirst = 300;
+constexpr uint16 ManeuverIDLast  = 307;
+
+// IsTimedActiveCandidate mirrors duration > 0 && !deleted for removable lists.
+inline auto IsTimedActiveCandidate(const bool durationPositive, const bool deleted) -> bool
+{
+    return durationPositive && !deleted;
+}
+
+// IsErasableCandidate mirrors EraseStatusEffect filter.
+inline auto IsErasableCandidate(const bool hasErasable, const bool durationPositive, const bool deleted) -> bool
+{
+    return hasErasable && IsTimedActiveCandidate(durationPositive, deleted);
+}
+
+// IsWaltzableCandidate mirrors HealingWaltz filter (waltzable || erasable).
+inline auto IsWaltzableCandidate(
+    const bool hasWaltzable,
+    const bool hasErasable,
+    const bool durationPositive,
+    const bool deleted) -> bool
+{
+    return (hasWaltzable || hasErasable) && IsTimedActiveCandidate(durationPositive, deleted);
+}
+
+// IsFlagRemovableCandidate mirrors DispelStatusEffect / DispelAll filter.
+inline auto IsFlagRemovableCandidate(
+    const bool hasFlag,
+    const bool durationPositive,
+    const bool deleted) -> bool
+{
+    return hasFlag && IsTimedActiveCandidate(durationPositive, deleted);
+}
+
+// HasRemovableCandidates gates random pick when list non-empty.
+inline auto HasRemovableCandidates(const std::size_t count) -> bool
+{
+    return count > 0;
+}
+
+// IsInInclusiveIDRange mirrors start <= id <= end.
+inline auto IsInInclusiveIDRange(const uint16 id, const uint16 first, const uint16 last) -> bool
+{
+    return id >= first && id <= last;
+}
+
+// IsBardSongID mirrors Requiem..Nocturne check.
+inline auto IsBardSongID(const uint16 id) -> bool
+{
+    return IsInInclusiveIDRange(id, BardSongIDFirst, BardSongIDLast);
+}
+
+// IsRuneID mirrors Ignis..Tenebrae check.
+inline auto IsRuneID(const uint16 id) -> bool
+{
+    return IsInInclusiveIDRange(id, RuneIDFirst, RuneIDLast);
+}
+
+// IsManeuverID mirrors FireManeuver..DarkManeuver check.
+inline auto IsManeuverID(const uint16 id) -> bool
+{
+    return IsInInclusiveIDRange(id, ManeuverIDFirst, ManeuverIDLast);
+}
+
+// IsSameBardSongOverwrite mirrors same tier && same status ID.
+inline auto IsSameBardSongOverwrite(
+    const uint8 newTier,
+    const uint16 newID,
+    const uint8 existingTier,
+    const uint16 existingID) -> bool
+{
+    return existingTier == newTier && existingID == newID;
+}
+
+// IsOwnBardSong mirrors ExistingStatusEffect->GetSubID() == PStatusEffect->GetSubID().
+inline auto IsOwnBardSong(const uint32 existingSubID, const uint32 newSubID) -> bool
+{
+    return existingSubID == newSubID;
+}
+
+// IsEarlierSongExpiry mirrors start+duration comparison for oldest own song.
+// Times are host-normalized monotonic units (e.g. milliseconds since epoch).
+inline auto IsEarlierSongExpiry(
+    const int64 candidateExpiry,
+    const int64 oldestExpiry) -> bool
+{
+    return candidateExpiry < oldestExpiry;
+}
+
+// CanApplyBardWithoutReplace mirrors numOfEffects < maxSongs.
+inline auto CanApplyBardWithoutReplace(const uint8 numOfEffects, const uint8 maxSongs) -> bool
+{
+    return numOfEffects < maxSongs;
+}
+
+// ShouldAssignLowestFreeSlot mirrors GetEffectSlot() == 0 on apply path.
+inline auto ShouldAssignLowestFreeSlot(const uint8 effectSlot) -> bool
+{
+    return effectSlot == 0;
+}
+
+// CanApplyBardReplacingOldest mirrors else-if (oldestSong) after full song slots.
+inline auto CanApplyBardReplacingOldest(const bool hasOldestSong) -> bool
+{
+    return hasOldestSong;
+}
+
+// ShouldCountActiveInRange mirrors id in [first,last] && !deleted.
+inline auto ShouldCountActiveInRange(
+    const uint16 id,
+    const uint16 first,
+    const uint16 last,
+    const bool deleted) -> bool
+{
+    return IsInInclusiveIDRange(id, first, last) && !deleted;
+}
+
+// PreferHigherRuneCount: true when candidate should replace current highest.
+// Ties keep the current (first-seen) highest — matches iter->second > highestRuneValue.
+inline auto PreferHigherRuneCount(
+    const bool hasCurrent,
+    const uint8 currentCount,
+    const uint8 candidateCount) -> bool
+{
+    return !hasCurrent || candidateCount > currentCount;
+}
+
+// ShouldRemoveAllInRange mirrors RemoveAllStatusEffectsInIDRange id check
+// (note: production does not skip deleted here).
+inline auto ShouldRemoveAllInRange(const uint16 id, const uint16 first, const uint16 last) -> bool
+{
+    return IsInInclusiveIDRange(id, first, last);
+}
+
 
 } // namespace statuseffecthelpers
