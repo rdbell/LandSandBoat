@@ -180,6 +180,7 @@ auto runMapKillSession1301SelfTests() -> bool;
 auto runMapRegionalEventDispatch1302SelfTests() -> bool;
 auto runMapPartyInviteResponse1303SelfTests() -> bool;
 auto runMapLuaFunction1304SelfTests() -> bool;
+auto runMapIPCDiagnostics1305SelfTests() -> bool;
 auto runWorldChatMessageParty1259SelfTests() -> bool;
 auto runWorldChatMessageAlliance1260SelfTests() -> bool;
 auto runWorldChatMessageLinkshell1261SelfTests() -> bool;
@@ -612,6 +613,7 @@ namespace
         ok = runMapRegionalEventDispatch1302SelfTests() && ok;
         ok = runMapPartyInviteResponse1303SelfTests() && ok;
         ok = runMapLuaFunction1304SelfTests() && ok;
+        ok = runMapIPCDiagnostics1305SelfTests() && ok;
         ok = runWorldChatMessageParty1259SelfTests() && ok;
         ok = runWorldChatMessageAlliance1260SelfTests() && ok;
         ok = runWorldChatMessageLinkshell1261SelfTests() && ok;

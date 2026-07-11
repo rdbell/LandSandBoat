@@ -29,6 +29,7 @@
 #include "chat_message_tell.h"
 #include "entity_information_request.h"
 #include "group_chat_delivery.h"
+#include "ipc_diagnostics.h"
 #include "kill_session.h"
 #include "linkshell_updates.h"
 #include "lua_function.h"
@@ -163,7 +164,7 @@ void IPCClient::handleMessage_EmptyStruct(const IPP& ipp, const ipc::EmptyStruct
 {
     TracyZoneScoped;
 
-    ShowWarningFmt("Received EmptyStruct message from {} - this is probably a bug", ipp.toString());
+    ShowWarning(mapipc::FormatEmptyStructWarning(ipp));
 }
 
 void IPCClient::handleMessage_AccountLogin(const IPP& ipp, const ipc::AccountLogin& message)
@@ -934,5 +935,5 @@ void IPCClient::handleUnknownMessage(const IPP& ipp, const std::span<uint8_t> me
 {
     TracyZoneScoped;
 
-    ShowWarningFmt("Received unknown message from {} with code {} and size {}", ipp.toString(), message[0], message.size());
+    ShowWarning(mapipc::FormatUnknownMessageWarning(ipp, message[0], message.size()));
 }
