@@ -28,6 +28,7 @@
 
 #include "alliance.h"
 #include "base_entity.h"
+#include "battle_identity_capacity.h"
 #include "enums/msg_basic.h"
 #include "modifier.h"
 
@@ -442,7 +443,7 @@ public:
 
     void SetBattleTargetID(uint16 id)
     {
-        m_battleTarget = id;
+        m_battleIdentity.SetBattleTargetID(id);
     }
 
     CBattleEntity* GetBattleTarget();
@@ -528,9 +529,9 @@ private:
     JOBTYPE           m_sjob;
     uint8             m_mlvl; // CURRENT level of the main job
     uint8             m_slvl; // CURRENT level of the sub job
-    uint16            m_battleTarget{ 0 };
+    // Battle IDs must match for entities to interact; target ID is the current zone-local combat target.
+    battleidentityhelpers::State m_battleIdentity{};
     timer::time_point m_battleStartTime;
-    uint16            m_battleID = 0; // Current battle the entity is participating in. Battle ID must match in order for entities to interact with each other.
 
     std::unordered_map<Mod, int16, EnumClassHash>                                                m_modStat;     // array of modifiers
     std::unordered_map<Mod, int16, EnumClassHash>                                                m_modStatSave; // saved state

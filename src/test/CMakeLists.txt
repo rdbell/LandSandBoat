@@ -578,6 +578,8 @@ set(SOURCES
     test_hit_interrupt_1406.cpp
     test_battle_time_1407.h
     test_battle_time_1407.cpp
+    test_battle_identity_1408.h
+    test_battle_identity_1408.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

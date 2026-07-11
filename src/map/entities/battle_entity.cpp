@@ -3561,7 +3561,7 @@ void CBattleEntity::OnDisengage(CAttackState& s)
     TracyZoneScoped;
 
     const auto state = disengagehelpers::ResolveDisengageState(animation, updatemask);
-    m_battleTarget   = state.battleTarget;
+    SetBattleTargetID(state.battleTarget);
     animation        = state.animation;
     updatemask       = state.updateMask;
     PAI->EventHandler.triggerListener("DISENGAGE", this);
@@ -4009,12 +4009,12 @@ timer::duration CBattleEntity::GetBattleTime()
 
 void CBattleEntity::setBattleID(uint16 battleID)
 {
-    m_battleID = battleID;
+    m_battleIdentity.SetBattleID(battleID);
 }
 
 uint16 CBattleEntity::getBattleID()
 {
-    return m_battleID;
+    return m_battleIdentity.GetBattleID();
 }
 
 auto CBattleEntity::Tick(timer::time_point /*unused*/) -> Task<void>
@@ -4040,7 +4040,7 @@ void CBattleEntity::PostTick()
 
 uint16 CBattleEntity::GetBattleTargetID() const
 {
-    return m_battleTarget;
+    return m_battleIdentity.GetBattleTargetID();
 }
 
 bool CBattleEntity::hasEnmityEXPENSIVE() const
