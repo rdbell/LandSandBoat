@@ -35,6 +35,7 @@
 #include "party_invite.h"
 #include "player_kick_refresh.h"
 #include "player_relocation.h"
+#include "regional_event_dispatch.h"
 #include "standard_message_delivery.h"
 #include "zone_wide_chat_delivery.h"
 
@@ -784,22 +785,33 @@ void IPCClient::handleMessage_ConquestEvent(const IPP& ipp, const ipc::ConquestE
 {
     TracyZoneScoped;
 
-    conquest::HandleMessage(message.type, { message.payload.data(), message.payload.size() });
+    mapipc::HandleConquestEvent(
+        message,
+        [](const ConquestMessage type, const std::span<const uint8> payload)
+        {
+            conquest::HandleMessage(type, payload);
+        });
 }
 
 void IPCClient::handleMessage_BesiegedEvent(const IPP& ipp, const ipc::BesiegedEvent& message)
 {
     TracyZoneScoped;
+
+    mapipc::HandleBesiegedEvent(message);
 }
 
 void IPCClient::handleMessage_CampaignEvent(const IPP& ipp, const ipc::CampaignEvent& message)
 {
     TracyZoneScoped;
+
+    mapipc::HandleCampaignEvent(message);
 }
 
 void IPCClient::handleMessage_ColonizationEvent(const IPP& ipp, const ipc::ColonizationEvent& message)
 {
     TracyZoneScoped;
+
+    mapipc::HandleColonizationEvent(message);
 }
 
 void IPCClient::handleMessage_EntityInformationRequest(const IPP& ipp, const ipc::EntityInformationRequest& message)
