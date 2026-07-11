@@ -21,6 +21,8 @@
 
 #include "login_helpers.h"
 
+#include "character_create.h"
+
 namespace loginHelpers
 {
 
@@ -255,71 +257,47 @@ int32 createCharacter(session_t& session, uint8* buf, lpkt_chr_info_sub2& charIn
 
     const auto charName = asStringFromUntrustedSource(createchar.m_name);
 
-    createchar.m_look.race = ref<uint8>(buf, 48);
-    createchar.m_look.size = ref<uint8>(buf, 57);
-    createchar.m_look.face = ref<uint8>(buf, 60);
+    createchar.m_look.race = ref<uint8>(buf, CreateCharRaceOffset);
+    createchar.m_look.size = ref<uint8>(buf, CreateCharSizeOffset);
+    createchar.m_look.face = ref<uint8>(buf, CreateCharFaceOffset);
 
-    if (createchar.m_look.race < 1 || createchar.m_look.race > 8) // 1(HumeM) to 8(Galka)
+    if (ClassifyCreateCharRace(createchar.m_look.race) != create_char_field_gate::ALLOW)
     {
-        ShowError(fmt::format("{} attempted to create character with invalid race {}", charName, createchar.m_look.race));
+        ShowError(FormatInvalidCreateRace(charName, createchar.m_look.race));
         return -1;
     }
 
-    if (createchar.m_look.size > 2) // Large
+    if (ClassifyCreateCharSize(createchar.m_look.size) != create_char_field_gate::ALLOW)
     {
-        ShowError(fmt::format("{} attempted to create character with invalid size {}", charName, createchar.m_look.size));
+        ShowError(FormatInvalidCreateSize(charName, createchar.m_look.size));
         return -1;
     }
 
-    if (createchar.m_look.face > 15) // Face 8B
+    if (ClassifyCreateCharFace(createchar.m_look.face) != create_char_field_gate::ALLOW)
     {
-        ShowError(fmt::format("{} attempted to create character with invalid face {}", charName, createchar.m_look.face));
+        ShowError(FormatInvalidCreateFace(charName, createchar.m_look.face));
         return -1;
     }
 
     // Validate that the job is a starting job.
-    uint8 mjob        = ref<uint8>(buf, 50);
-    createchar.m_mjob = std::clamp<uint8>(mjob, 1, 6);
+    uint8 mjob        = ref<uint8>(buf, CreateCharJobOffset);
+    createchar.m_mjob = ClampStartingJob(mjob);
 
     // Log that the character attempting to create a non-starting job.
     if (mjob != createchar.m_mjob)
     {
-        ShowInfo(fmt::format("{} attempted to create invalid starting job {} substituting {}",
-                             charName,
-                             mjob,
-                             createchar.m_mjob));
+        ShowInfo(FormatInvalidStartingJobSubstitution(charName, mjob, createchar.m_mjob));
     }
 
-    createchar.m_nation = ref<uint8>(buf, 54);
+    createchar.m_nation = ref<uint8>(buf, CreateCharNationOffset);
 
-    if (createchar.m_nation > 2) // 0x00 = San d'Oria, 0x01 = Bastok, 0x02 = Windurst
+    if (ClassifyCreateCharNation(createchar.m_nation) != create_char_field_gate::ALLOW)
     {
-        ShowError(fmt::format("{} attempted to create character with invalid nation {}", charName, createchar.m_nation));
+        ShowError(FormatInvalidCreateNation(charName, createchar.m_nation));
         return -1;
     }
 
-    std::vector<uint32> bastokStartingZones   = { 0xEA, 0xEB, 0xEC };
-    std::vector<uint32> sandoriaStartingZones = { 0xE6, 0xE7, 0xE8 };
-    std::vector<uint32> windurstStartingZones = { 0xEE, 0xF0, 0xF1 };
-
-    switch (createchar.m_nation)
-    {
-        case 0x02: // windy start
-        {
-            createchar.m_zone = windurstStartingZones[xirand::GetRandomNumber(3)];
-            break;
-        }
-        case 0x01: // bastok start
-        {
-            createchar.m_zone = bastokStartingZones[xirand::GetRandomNumber(3)];
-            break;
-        }
-        case 0x00: // sandy start
-        {
-            createchar.m_zone = sandoriaStartingZones[xirand::GetRandomNumber(3)];
-            break;
-        }
-    }
+    createchar.m_zone = StartingZoneForNation(createchar.m_nation, static_cast<uint8>(xirand::GetRandomNumber(3)));
 
     const auto rset = db::preparedStmt("SELECT COALESCE(MAX(charid), 0) AS max_id FROM chars");
     if (!rset)
@@ -330,7 +308,7 @@ int32 createCharacter(session_t& session, uint8* buf, lpkt_chr_info_sub2& charIn
     uint32 charID = 0;
     if (rset->rowsCount() != 0 && rset->next())
     {
-        charID = rset->get<uint32>("max_id") + 1;
+        charID = NextCharacterID(rset->get<uint32>("max_id"));
     }
 
     if (saveCharacter(session.accountID, charID, &createchar) == -1)
@@ -342,18 +320,14 @@ int32 createCharacter(session_t& session, uint8* buf, lpkt_chr_info_sub2& charIn
     // We are making an assumption on what it wants - so for now just copy what is probably required (name, charid and some other stuff related to IDs.)
     std::memcpy(&charInfo.character_name, charName.c_str(), std::min(charName.size(), sizeof(charInfo.character_name)));
 
-    uint8  worldId     = 0;      // Use when multiple worlds are supported.
-    uint32 contentId   = charID; // Reusing the character ID as the content ID (which is also the name of character folder within the USER directory) at the moment
-    uint16 charIdMain  = charID & 0xFFFF;
-    uint8  charIdExtra = (charID >> 16) & 0xFF;
-
-    charInfo.ffxi_id           = contentId;
-    charInfo.ffxi_id_world     = charIdMain;
-    charInfo.worldid           = worldId;
-    charInfo.status            = 1; // 0 = Invalid/Hidden, 1 = Available, 2 = Disabled (unpaid)
-    charInfo.race_change       = 0; // 0 = no race change service, 1 = race change service (gold star icon) (NOT YET SUPPORTED!)
-    charInfo.renamef           = 0; // 0 = no rename required, 1 = rename required (NOT YET SUPPORTED!)
-    charInfo.ffxi_id_world_tbl = charIdExtra;
+    const auto ids = PackCreateCharInfoIDs(charID);
+    charInfo.ffxi_id           = ids.ffxi_id;
+    charInfo.ffxi_id_world     = ids.ffxi_id_world;
+    charInfo.worldid           = ids.worldid;
+    charInfo.status            = ids.status;
+    charInfo.race_change       = ids.race_change;
+    charInfo.renamef           = ids.renamef;
+    charInfo.ffxi_id_world_tbl = ids.ffxi_id_world_tbl;
 
     ShowDebug(fmt::format("char <{}> successfully saved", charName));
     return 0;
