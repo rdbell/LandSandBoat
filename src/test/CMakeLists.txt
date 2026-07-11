@@ -286,6 +286,8 @@ set(SOURCES
     test_map_standard_message_delivery_1293.cpp
     test_map_player_kick_refresh_1294.h
     test_map_player_kick_refresh_1294.cpp
+    test_map_party_alliance_updates_1295.h
+    test_map_party_alliance_updates_1295.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h

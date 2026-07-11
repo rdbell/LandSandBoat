@@ -27,6 +27,7 @@
 #include "char_zone.h"
 #include "chat_message_tell.h"
 #include "entity_information_request.h"
+#include "party_alliance_updates.h"
 #include "player_kick_refresh.h"
 #include "player_relocation.h"
 #include "standard_message_delivery.h"
@@ -556,102 +557,97 @@ void IPCClient::handleMessage_PartyReload(const IPP& ipp, const ipc::PartyReload
 {
     TracyZoneScoped;
 
-    const auto rset = db::preparedStmt("SELECT charid FROM accounts_parties WHERE partyid = ?", message.partyId);
-    if (rset && rset->rowsCount())
-    {
-        while (rset->next())
+    mapipc::HandlePartyReload(
+        message,
+        [](const uint32 partyId, auto&& visit)
         {
-            const auto charid = rset->get<uint32>("charid");
-            if (CCharEntity* PChar = zoneutils::GetChar(charid))
+            const auto rset = db::preparedStmt("SELECT charid FROM accounts_parties WHERE partyid = ?", partyId);
+            if (rset && rset->rowsCount())
             {
-                PChar->ReloadPartyInc();
+                while (rset->next())
+                {
+                    std::invoke(visit, rset->get<uint32>("charid"));
+                }
             }
-        }
-    }
+        },
+        [](const uint32 characterId)
+        {
+            return zoneutils::GetChar(characterId);
+        });
 }
 
 void IPCClient::handleMessage_PartyDisband(const IPP& ipp, const ipc::PartyDisband& message)
 {
     TracyZoneScoped;
 
-    CParty* PParty = nullptr;
-
-    const auto partyid = message.partyId;
-
-    // TODO: When Party/Alliance gets a rewrite, make a zoneutils::ForEachParty or some other accessor to reduce the amount of iterations significantly.
-
-    // clang-format off
-    zoneutils::ForEachZone([partyid, &PParty](CZone* PZone)
-    {
-        PZone->ForEachChar([partyid, &PParty](CCharEntity* PChar)
+    mapipc::HandlePartyDisband(
+        message,
+        [](const uint32 partyId)
         {
-            if (PChar->PParty && PChar->PParty->GetPartyID() == partyid)
-            {
-                PParty = PChar->PParty;
-                return;
-            }
+            CParty* party = nullptr;
+
+            // TODO: Add a zoneutils::ForEachParty accessor when party/alliance is rewritten.
+            zoneutils::ForEachZone([partyId, &party](CZone* zone)
+                                   {
+                                       zone->ForEachChar([partyId, &party](CCharEntity* player)
+                                                         {
+                                                             if (player->PParty && player->PParty->GetPartyID() == partyId)
+                                                             {
+                                                                 party = player->PParty;
+                                                             }
+                                                         });
+                                   });
+            return party;
         });
-        if (PParty)
-        {
-            return;
-        }
-    });
-    if (PParty)
-    {
-        PParty->DisbandParty(false);
-    }
-    // clang-format on
 }
 
 void IPCClient::handleMessage_AllianceReload(const IPP& ipp, const ipc::AllianceReload& message)
 {
     TracyZoneScoped;
 
-    const auto rset = db::preparedStmt("SELECT charid FROM accounts_parties WHERE allianceid = ?", message.allianceId);
-    if (rset && rset->rowsCount())
-    {
-        while (rset->next())
+    mapipc::HandleAllianceReload(
+        message,
+        [](const uint32 allianceId, auto&& visit)
         {
-            const auto charid = rset->get<uint32>("charid");
-            if (CCharEntity* PChar = zoneutils::GetChar(charid))
+            const auto rset = db::preparedStmt("SELECT charid FROM accounts_parties WHERE allianceid = ?", allianceId);
+            if (rset && rset->rowsCount())
             {
-                PChar->ReloadPartyInc();
+                while (rset->next())
+                {
+                    std::invoke(visit, rset->get<uint32>("charid"));
+                }
             }
-        }
-    }
+        },
+        [](const uint32 characterId)
+        {
+            return zoneutils::GetChar(characterId);
+        });
 }
 
 void IPCClient::handleMessage_AllianceDissolve(const IPP& ipp, const ipc::AllianceDissolve& message)
 {
     TracyZoneScoped;
 
-    CAlliance* PAlliance = nullptr;
-
-    const auto allianceid = message.allianceId;
-
-    // TODO: When Party/Alliance gets a rewrite, make a zoneutils::ForEachAlliance or some other accessor to reduce the amount of iterations significantly.
-
-    // clang-format off
-    zoneutils::ForEachZone([allianceid, &PAlliance](CZone* PZone)
-    {
-        PZone->ForEachChar([allianceid, &PAlliance](CCharEntity* PChar)
+    mapipc::HandleAllianceDissolve(
+        message,
+        [](const uint32 allianceId)
         {
-            if (PChar->PParty && PChar->PParty->m_PAlliance && PChar->PParty->m_PAlliance->m_AllianceID == allianceid)
-            {
-                PAlliance = PChar->PParty->m_PAlliance;
-                return;
-            }
+            CAlliance* alliance = nullptr;
+
+            // TODO: Add a zoneutils::ForEachAlliance accessor when party/alliance is rewritten.
+            zoneutils::ForEachZone([allianceId, &alliance](CZone* zone)
+                                   {
+                                       zone->ForEachChar([allianceId, &alliance](CCharEntity* player)
+                                                         {
+                                                             if (player->PParty && player->PParty->m_PAlliance &&
+                                                                 player->PParty->m_PAlliance->m_AllianceID == allianceId)
+                                                             {
+                                                                 alliance = player->PParty->m_PAlliance;
+                                                             }
+                                                         });
+                                   });
+            return alliance;
         });
-        if (PAlliance)
-        {
-            return;
-        }
-    });
-    if (PAlliance)
-    {
-        PAlliance->dissolveAlliance(false);
-    }
-    // clang-format on
 }
 
 void IPCClient::handleMessage_PlayerKick(const IPP& ipp, const ipc::PlayerKick& message)
