@@ -30,5 +30,6 @@ set(AI_STATE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/trigger_state.h
     ${CMAKE_CURRENT_SOURCE_DIR}/weaponskill_state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/weaponskill_state.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/weaponskill_state_capacity.h
     PARENT_SCOPE
 )

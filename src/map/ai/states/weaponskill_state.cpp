@@ -31,6 +31,7 @@
 #include "utils/battleutils.h"
 #include "utils/zoneutils.h"
 #include "weapon_skill.h"
+#include "weaponskill_state_capacity.h"
 
 CWeaponSkillState::CWeaponSkillState(CBattleEntity* PEntity, uint16 targid, uint16 wsid)
 : CState(PEntity, targid)
@@ -91,36 +92,34 @@ CWeaponSkill* CWeaponSkillState::GetSkill()
 
 void CWeaponSkillState::SpendCost()
 {
-    auto tp = 0;
-    if (m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui))
+    using namespace weaponskillstatehelpers;
+
+    const auto result = EvaluateSpendCost(
+        m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui),
+        m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sekkanoki),
+        static_cast<int16>(m_PEntity->health.tp),
+        m_PEntity->getMod(Mod::WS_NO_DEPLETE),
+        xirand::GetRandomNumber(100),
+        m_PEntity->getMod(Mod::CONSERVE_TP),
+        xirand::GetRandomNumber(100),
+        static_cast<int16>(xirand::GetRandomNumber(10, 200)));
+
+    // Meikyo Shisui uses the entity's current TP value for the weaponskill (3K -> 2K -> 1K).
+    // Sekkanoki counts as a 1000 TP weaponskill and is consumed.
+    if (result.tpDrain != 0)
     {
-        // Meikyo Shisui uses the entitys current TP value for the weaponskill. 3K -> 2K -> 1K. So we set TP the entities current amount.
-        tp = m_PEntity->health.tp;
-        m_PEntity->addTP(-1000);
+        m_PEntity->addTP(-result.tpDrain);
     }
-    else if (m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sekkanoki))
+    if (result.deleteSekkanoki)
     {
-        // Sekkanoki counts as a 1000 TP weaponskill.
-        tp = 1000;
-        m_PEntity->addTP(-1000);
         m_PEntity->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Sekkanoki);
     }
-    else
+    if (result.tpRestore != 0)
     {
-        tp = m_PEntity->health.tp;
-
-        if (m_PEntity->getMod(Mod::WS_NO_DEPLETE) <= xirand::GetRandomNumber(100))
-        {
-            m_PEntity->addTP(-tp);
-        }
+        m_PEntity->addTP(result.tpRestore);
     }
 
-    if (xirand::GetRandomNumber(100) < m_PEntity->getMod(Mod::CONSERVE_TP))
-    {
-        m_PEntity->addTP(xirand::GetRandomNumber(10, 200));
-    }
-
-    m_spent = tp;
+    m_spent = result.spentTP;
 }
 
 bool CWeaponSkillState::Update(timer::time_point tick)
@@ -131,7 +130,7 @@ bool CWeaponSkillState::Update(timer::time_point tick)
         return false;
     }
 
-    if (m_PEntity->isAlive() && !IsCompleted())
+    if (weaponskillstatehelpers::ShouldExecuteWeaponskill(m_PEntity->isAlive(), IsCompleted()))
     {
         CBattleEntity* PTarget = dynamic_cast<CBattleEntity*>(GetTarget());
         action_t       action;
@@ -148,7 +147,8 @@ bool CWeaponSkillState::Update(timer::time_point tick)
             }
 
             // Reset Restraint bonus and trackers on weaponskill use
-            if (m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Restraint))
+            if (weaponskillstatehelpers::ShouldResetRestraint(
+                    m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Restraint)))
             {
                 uint16 WSBonus = m_PEntity->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Restraint)->GetPower();
                 m_PEntity->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Restraint)->SetPower(0);
@@ -156,11 +156,14 @@ bool CWeaponSkillState::Update(timer::time_point tick)
                 m_PEntity->delModifier(Mod::ALL_WSDMG_FIRST_HIT, WSBonus);
             }
 
-            if (action.actiontype == ActionCategory::SkillFinish) // category changes upon being out of range. This does not count for RoE and delay is not increased beyond the normal delay.
+            // category changes upon being out of range. This does not count for RoE and delay is not increased beyond the normal delay.
+            if (weaponskillstatehelpers::IsSkillFinishCategory(
+                    static_cast<uint8>(action.actiontype),
+                    static_cast<uint8>(ActionCategory::SkillFinish)))
             {
                 // only send lua the WS events if we are in range
-                uint32 weaponskillVar    = PTarget->GetLocalVar("weaponskillHit");
-                uint32 weaponskillDamage = weaponskillVar & 0xFFFFFF;
+                const uint32 weaponskillVar    = PTarget->GetLocalVar("weaponskillHit");
+                const uint32 weaponskillDamage = weaponskillstatehelpers::ExtractWeaponskillDamage(weaponskillVar);
 
                 m_PEntity->PAI->EventHandler.triggerListener("WEAPONSKILL_USE", m_PEntity, PTarget, m_PSkill.get(), m_spent, &action, weaponskillDamage);
                 for (auto& actionTarget : action.targets)
@@ -172,7 +175,7 @@ bool CWeaponSkillState::Update(timer::time_point tick)
                     }
                 }
 
-                if (m_PEntity->objtype == TYPE_PC)
+                if (weaponskillstatehelpers::ShouldCountPCHistoryWS(m_PEntity->objtype == TYPE_PC))
                 {
                     roeutils::event(ROE_EVENT::ROE_WSKILL_USE, static_cast<CCharEntity*>(m_PEntity), RoeDatagram("skillType", m_PSkill->getType()));
                 }
@@ -187,9 +190,9 @@ bool CWeaponSkillState::Update(timer::time_point tick)
         m_finishTime = tick + delay;
         Complete();
     }
-    else if (tick > m_finishTime)
+    else if (weaponskillstatehelpers::ShouldExitWeaponskill(tick > m_finishTime))
     {
-        if (m_PEntity->objtype == TYPE_PC)
+        if (weaponskillstatehelpers::ShouldCountPCHistoryWS(m_PEntity->objtype == TYPE_PC))
         {
             CCharEntity* PChar = static_cast<CCharEntity*>(m_PEntity);
             PChar->m_charHistory.wsUsed++;

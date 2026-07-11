@@ -530,6 +530,8 @@ set(SOURCES
     test_magic_state_1382.cpp
     test_ability_state_1383.h
     test_ability_state_1383.cpp
+    test_weaponskill_state_1384.h
+    test_weaponskill_state_1384.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
