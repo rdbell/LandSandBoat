@@ -33,6 +33,7 @@
 #include "attack_swing_gate_capacity.h"
 #include "attack_hit_path_capacity.h"
 #include "attack_post_swing_capacity.h"
+#include "zanshin_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3891,19 +3892,22 @@ bool CBattleEntity::OnAttack(CAttackState& state, action_t& action)
 
         const auto currentAttackType = attack.GetAttackType();
         // try zanshin only on single swing attack rounds - it is last priority in the multi-hit order
-        if (attack.IsFirstSwing() && attackRound.GetAttackSwingCount() == 1)
+        if (zanshinhelpers::ShouldEvaluate(attack.IsFirstSwing(), attackRound.GetAttackSwingCount()))
         {
-            uint16 zanshinChance = this->getMod(Mod::ZANSHIN) + battleutils::GetMeritValue(this, MERIT_ZASHIN_ATTACK_RATE);
-            zanshinChance        = std::clamp<uint16>(zanshinChance, 0, 100);
+            const uint16 zanshinChance = zanshinhelpers::ResolveChance(
+                this->getMod(Mod::ZANSHIN),
+                battleutils::GetMeritValue(this, MERIT_ZASHIN_ATTACK_RATE));
 
             // zanshin may only proc on a missed/guarded/countered swing or as SAM main with hasso up (at 25% of the base zanshin rate)
-            const bool missedOrCountered = actionResult.resolution != ActionResolution::Hit || actionResult.spikesEffect == ActionReactKind::Counter;
-            const bool normalZanshinProc = missedOrCountered && xirand::GetRandomNumber(100) < zanshinChance;
+            const auto procs = zanshinhelpers::ResolveProcs(
+                static_cast<uint8>(actionResult.resolution),
+                static_cast<uint8>(actionResult.spikesEffect),
+                zanshinChance,
+                this->getMod(Mod::HASSO_ZANSHIN_BONUS) > 0,
+                [&]() { return this->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hasso); },
+                [&]() { return xirand::GetRandomNumber(100); });
 
-            const bool isSamWithHasso   = this->getMod(Mod::HASSO_ZANSHIN_BONUS) > 0 && this->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hasso);
-            const bool hassoZanshinProc = isSamWithHasso && xirand::GetRandomNumber(100) < zanshinChance / 4;
-
-            if (normalZanshinProc || hassoZanshinProc)
+            if (procs.addSwing())
             {
                 attackRound.AddAttackSwing(PHYSICAL_ATTACK_TYPE::ZANSHIN, PHYSICAL_ATTACK_DIRECTION::RIGHTATTACK, 1);
             }

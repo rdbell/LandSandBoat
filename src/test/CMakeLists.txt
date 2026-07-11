@@ -562,6 +562,8 @@ set(SOURCES
     test_attack_hit_path_1398.cpp
     test_attack_post_swing_1399.h
     test_attack_post_swing_1399.cpp
+    test_zanshin_1400.h
+    test_zanshin_1400.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

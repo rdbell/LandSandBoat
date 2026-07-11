@@ -316,6 +316,7 @@ auto runAttackEntry1396SelfTests() -> bool;
 auto runAttackSwingGate1397SelfTests() -> bool;
 auto runAttackHitPath1398SelfTests() -> bool;
 auto runAttackPostSwing1399SelfTests() -> bool;
+auto runZanshin1400SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -842,6 +843,7 @@ namespace
         ok = runAttackSwingGate1397SelfTests() && ok;
         ok = runAttackHitPath1398SelfTests() && ok;
         ok = runAttackPostSwing1399SelfTests() && ok;
+        ok = runZanshin1400SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
