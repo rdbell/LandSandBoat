@@ -38,6 +38,7 @@
 #include "chat_message_tell.h"
 #include "chat_message_unity.h"
 #include "chat_message_yell.h"
+#include "kill_session.h"
 #include "linkshell_members_reroute.h"
 #include "linkshell_rank_change.h"
 #include "linkshell_remove.h"
@@ -756,32 +757,25 @@ void IPCServer::handleMessage_KillSession(const IPP& ipp, const ipc::KillSession
 {
     TracyZoneScoped;
 
-    const auto rset = db::preparedStmt("SELECT pos_prevzone, pos_zone from chars where charid = ? LIMIT 1", message.victimId);
-
-    // Get zone ID from query and try to send to _just_ the previous zone
-    if (rset && rset->rowsCount() && rset->next())
-    {
-        const auto prevZoneID = rset->get<uint32>("pos_prevzone");
-        const auto nextZoneID = rset->get<uint32>("pos_zone");
-
-        if (prevZoneID != nextZoneID)
+    worldipc::HandleKillSession(
+        message,
+        [](uint32 victimId)
         {
-            const auto zoneSettings = zoneSettings_.zoneSettingsMap_.at(prevZoneID);
-
-            DebugIPCFmt("Message: -> rerouting to {}", zoneSettings.ipp.toString());
-
-            sendMessage(zoneSettings.ipp, message);
-        }
-    }
-    else // Otherwise, send to all zones
-    {
-        for (const auto& ipp : zoneSettings_.mapEndpoints_)
+            return world::ipc::LookupKillSessionZones(victimId);
+        },
+        [this](uint16 previousZoneId)
         {
-            DebugIPCFmt("Message: -> rerouting to {}", ipp.toString());
-
-            sendMessage(ipp, message);
-        }
-    }
+            return zoneSettings_.zoneSettingsMap_.at(previousZoneId).ipp;
+        },
+        [this]() -> const std::vector<IPP>&
+        {
+            return zoneSettings_.mapEndpoints_;
+        },
+        [this](const IPP& endpoint, const ipc::KillSession& kill)
+        {
+            DebugIPCFmt("Message: -> rerouting to {}", endpoint.toString());
+            sendMessage(endpoint, kill);
+        });
 }
 
 void IPCServer::handleMessage_ConquestEvent(const IPP& ipp, const ipc::ConquestEvent& message)

@@ -472,6 +472,8 @@ set(SOURCES
     test_world_linkshell_set_message_1278.cpp
     test_world_lua_function_1279.h
     test_world_lua_function_1279.cpp
+    test_world_kill_session_1280.h
+    test_world_kill_session_1280.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h

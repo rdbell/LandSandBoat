@@ -84,3 +84,16 @@ auto world::ipc::LookupUnityEndpoints(const uint32_t unityId) -> std::vector<IPP
         unityId);
     return CollectEndpoints<uint64, uint64>(rset.get());
 }
+
+auto world::ipc::LookupKillSessionZones(const uint32_t victimId) -> Maybe<worldipc::KillSessionZones>
+{
+    const auto rset = db::preparedStmt("SELECT pos_prevzone, pos_zone from chars where charid = ? LIMIT 1", victimId);
+    if (rset && rset->rowsCount() && rset->next())
+    {
+        return worldipc::KillSessionZones{
+            .previous = rset->get<uint32>("pos_prevzone"),
+            .current  = rset->get<uint32>("pos_zone"),
+        };
+    }
+    return std::nullopt;
+}
