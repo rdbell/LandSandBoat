@@ -20,6 +20,7 @@
 */
 
 #include "latent_effect_container.h"
+#include "latent_capacity.h"
 
 #include "ai/ai_container.h"
 #include "conquest_system.h"
@@ -758,7 +759,7 @@ void CLatentEffectContainer::ProcessLatentEffects(const std::function<bool(CLate
         }
     }
 
-    if (update)
+    if (latenthelpers::ProcessLatentListWantsHealthUpdate(update))
     {
         m_POwner->UpdateHealth();
     }
@@ -774,14 +775,8 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
     auto expression  = false;
     auto latentFound = true;
 
-    if (m_POwner == nullptr)
-    {
-        return false;
-    }
-
-    // this gets the current zone ID or destination zone ID if zoning
-    uint16 playerZoneID = m_POwner->getZone();
-    if (playerZoneID == 0)
+    const uint16 playerZoneID = m_POwner != nullptr ? m_POwner->getZone() : 0;
+    if (latenthelpers::ShouldRejectProcessLatent(m_POwner == nullptr, playerZoneID == 0))
     {
         return false;
     }
@@ -792,80 +787,104 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
     switch (latentEffect.GetConditionsID())
     {
         case xi::Latent::HpUnderPercent:
-            expression = ((float)m_POwner->health.hp / m_POwner->health.maxhp) * 100 <= latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateHpUnderPercent(
+                m_POwner->health.hp, m_POwner->health.maxhp, latentEffect.GetConditionsValue());
             break;
         case xi::Latent::HpOverPercent:
-            expression = ((float)m_POwner->health.hp / m_POwner->health.maxhp) * 100 >= latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateHpOverPercent(
+                m_POwner->health.hp, m_POwner->health.maxhp, latentEffect.GetConditionsValue());
             break;
         case xi::Latent::HpUnderTpUnder100:
-            expression = ((float)m_POwner->health.hp / m_POwner->health.maxhp) * 100 <= latentEffect.GetConditionsValue() && m_POwner->health.tp < 1000;
+            expression = latenthelpers::EvaluateHpUnderTpUnder100(
+                m_POwner->health.hp, m_POwner->health.maxhp, m_POwner->health.tp, latentEffect.GetConditionsValue());
             break;
         case xi::Latent::HpOverTpUnder100:
-            expression = ((float)m_POwner->health.hp / m_POwner->health.maxhp) * 100 >= latentEffect.GetConditionsValue() && m_POwner->health.tp < 1000;
+            expression = latenthelpers::EvaluateHpOverTpUnder100(
+                m_POwner->health.hp, m_POwner->health.maxhp, m_POwner->health.tp, latentEffect.GetConditionsValue());
             break;
         case xi::Latent::MpUnderPercent:
-            expression = m_POwner->health.maxmp && ((float)m_POwner->health.mp / m_POwner->health.maxmp) * 100 <= latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateMpUnderPercent(
+                m_POwner->health.mp, m_POwner->health.maxmp, latentEffect.GetConditionsValue());
             break;
         case xi::Latent::MpUnder:
-            expression = m_POwner->health.mp <= latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateMpUnder(m_POwner->health.mp, latentEffect.GetConditionsValue());
             break;
         case xi::Latent::TpUnder:
-            expression = m_POwner->health.tp < latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateTpUnder(m_POwner->health.tp, latentEffect.GetConditionsValue());
             break;
         case xi::Latent::TpOver:
-            expression = m_POwner->health.tp > latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateTpOver(m_POwner->health.tp, latentEffect.GetConditionsValue());
             break;
         case xi::Latent::Subjob:
-            expression = m_POwner->GetSJob() == latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateSubjob(m_POwner->GetSJob(), latentEffect.GetConditionsValue());
             break;
         case xi::Latent::PetId:
-            expression =
-                m_POwner->PPet != nullptr && m_POwner->PPet->objtype == TYPE_PET && ((CPetEntity*)m_POwner->PPet)->petID() == latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluatePetID(
+                m_POwner->PPet != nullptr,
+                m_POwner->PPet != nullptr && m_POwner->PPet->objtype == TYPE_PET,
+                m_POwner->PPet != nullptr && m_POwner->PPet->objtype == TYPE_PET
+                    ? static_cast<CPetEntity*>(m_POwner->PPet)->petID()
+                    : 0,
+                latentEffect.GetConditionsValue());
             break;
         case xi::Latent::WeaponDrawn:
-            expression = m_POwner->animation == ANIMATION_ATTACK;
+            expression = latenthelpers::EvaluateWeaponDrawn(m_POwner->animation == ANIMATION_ATTACK);
             break;
         case xi::Latent::WeaponSheathed:
-            expression = m_POwner->animation != ANIMATION_ATTACK;
+            expression = latenthelpers::EvaluateWeaponSheathed(m_POwner->animation == ANIMATION_ATTACK);
             break;
         case xi::Latent::SignetBonus:
         {
             CBattleEntity* PTarget = m_POwner->GetBattleTarget();
-            expression             = PTarget != nullptr &&
-                                     m_POwner->GetMLevel() >= PTarget->GetMLevel() &&
-                                     m_POwner->loc.zone != nullptr &&
-                                     m_POwner->loc.zone->GetRegionID() < REGION_TYPE::WEST_AHT_URHGAN;
+            expression             = latenthelpers::EvaluateSignetBonus(
+                PTarget != nullptr,
+                PTarget != nullptr && m_POwner->GetMLevel() >= PTarget->GetMLevel(),
+                m_POwner->loc.zone != nullptr && m_POwner->loc.zone->GetRegionID() < REGION_TYPE::WEST_AHT_URHGAN);
             break;
         }
         case xi::Latent::SanctionRegenBonus:
-            expression = m_POwner->loc.zone != nullptr &&
-                         m_POwner->loc.zone->GetRegionID() >= REGION_TYPE::WEST_AHT_URHGAN &&
-                         m_POwner->loc.zone->GetRegionID() <= REGION_TYPE::ALZADAAL &&
-                         ((float)m_POwner->health.hp / m_POwner->health.maxhp) * 100 < latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateSanctionRegionHPUnder(
+                m_POwner->loc.zone != nullptr &&
+                    m_POwner->loc.zone->GetRegionID() >= REGION_TYPE::WEST_AHT_URHGAN &&
+                    m_POwner->loc.zone->GetRegionID() <= REGION_TYPE::ALZADAAL,
+                m_POwner->health.hp,
+                m_POwner->health.maxhp,
+                latentEffect.GetConditionsValue());
             break;
         case xi::Latent::SanctionRefreshBonus:
-            expression = m_POwner->loc.zone != nullptr &&
-                         m_POwner->loc.zone->GetRegionID() >= REGION_TYPE::WEST_AHT_URHGAN &&
-                         m_POwner->loc.zone->GetRegionID() <= REGION_TYPE::ALZADAAL &&
-                         ((float)m_POwner->health.mp / m_POwner->health.maxmp) * 100 < latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateSanctionRegionMPUnder(
+                m_POwner->loc.zone != nullptr &&
+                    m_POwner->loc.zone->GetRegionID() >= REGION_TYPE::WEST_AHT_URHGAN &&
+                    m_POwner->loc.zone->GetRegionID() <= REGION_TYPE::ALZADAAL,
+                m_POwner->health.mp,
+                m_POwner->health.maxmp,
+                latentEffect.GetConditionsValue());
             break;
         case xi::Latent::SigilRegenBonus:
-            expression = m_POwner->loc.zone != nullptr &&
-                         m_POwner->loc.zone->GetRegionID() >= REGION_TYPE::RONFAURE_FRONT &&
-                         m_POwner->loc.zone->GetRegionID() <= REGION_TYPE::VALDEAUNIA_FRONT &&
-                         ((float)m_POwner->health.hp / m_POwner->health.maxhp) * 100 < latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateSigilRegionHPUnder(
+                m_POwner->loc.zone != nullptr &&
+                    m_POwner->loc.zone->GetRegionID() >= REGION_TYPE::RONFAURE_FRONT &&
+                    m_POwner->loc.zone->GetRegionID() <= REGION_TYPE::VALDEAUNIA_FRONT,
+                m_POwner->health.hp,
+                m_POwner->health.maxhp,
+                latentEffect.GetConditionsValue());
             break;
         case xi::Latent::SigilRefreshBonus:
-            expression = m_POwner->loc.zone != nullptr &&
-                         m_POwner->loc.zone->GetRegionID() >= REGION_TYPE::RONFAURE_FRONT &&
-                         m_POwner->loc.zone->GetRegionID() <= REGION_TYPE::VALDEAUNIA_FRONT &&
-                         ((float)m_POwner->health.mp / m_POwner->health.maxmp) * 100 < latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateSigilRegionMPUnder(
+                m_POwner->loc.zone != nullptr &&
+                    m_POwner->loc.zone->GetRegionID() >= REGION_TYPE::RONFAURE_FRONT &&
+                    m_POwner->loc.zone->GetRegionID() <= REGION_TYPE::VALDEAUNIA_FRONT,
+                m_POwner->health.mp,
+                m_POwner->health.maxmp,
+                latentEffect.GetConditionsValue());
             break;
         case xi::Latent::StatusEffectActive:
-            expression = m_POwner->StatusEffectContainer->HasStatusEffect(static_cast<xi::StatusEffect>(latentEffect.GetConditionsValue()));
+            expression = latenthelpers::EvaluateStatusEffectActive(
+                m_POwner->StatusEffectContainer->HasStatusEffect(static_cast<xi::StatusEffect>(latentEffect.GetConditionsValue())));
             break;
         case xi::Latent::NoFoodActive:
-            expression = !m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Food);
+            expression = latenthelpers::EvaluateNoFoodActive(
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Food));
             break;
         case xi::Latent::PartyMembers:
         {
@@ -879,7 +898,7 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
                 partyCount = PParty->members.size();
             }
 
-            expression = latentEffect.GetConditionsValue() <= (partyCount + trustCount);
+            expression = latenthelpers::EvaluatePartyMembers(latentEffect.GetConditionsValue(), partyCount, trustCount);
             break;
         }
         case xi::Latent::PartyMembersInZone:
@@ -902,7 +921,7 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
                 }
             }
 
-            expression = latentEffect.GetConditionsValue() <= inZone;
+            expression = latenthelpers::EvaluatePartyMembersInZone(latentEffect.GetConditionsValue(), inZone);
             break;
         }
         case xi::Latent::AvatarInParty:
@@ -1208,14 +1227,17 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
             expression = m_POwner->isInGarrison() && m_POwner->GetMLevel() >= latentEffect.GetConditionsValue();
             break;
         case xi::Latent::FoodActive:
-            expression = m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Food) &&
-                         m_POwner->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Food)->GetSourceTypeParam() == latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateFoodActive(
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Food),
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Food) &&
+                    m_POwner->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Food)->GetSourceTypeParam() ==
+                        latentEffect.GetConditionsValue());
             break;
         case xi::Latent::JobLevelBelow:
-            expression = m_POwner->GetMLevel() < latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateJobLevelBelow(m_POwner->GetMLevel(), latentEffect.GetConditionsValue());
             break;
         case xi::Latent::JobLevelAbove:
-            expression = m_POwner->GetMLevel() >= latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateJobLevelAbove(m_POwner->GetMLevel(), latentEffect.GetConditionsValue());
             break;
         case xi::Latent::WeatherCondition:
             expression = latentEffect.GetConditionsValue() == static_cast<uint16_t>(battleutils::GetWeather((CBattleEntity*)m_POwner, false));
@@ -1274,10 +1296,13 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
             break;
         }
         case xi::Latent::MpOver:
-            expression = m_POwner->health.mp >= latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateMpOver(m_POwner->health.mp, latentEffect.GetConditionsValue());
             break;
         case xi::Latent::WeaponDrawnMpOver:
-            expression = m_POwner->health.mp > latentEffect.GetConditionsValue() && m_POwner->animation == ANIMATION_ATTACK;
+            expression = latenthelpers::EvaluateWeaponDrawnMPOver(
+                m_POwner->animation == ANIMATION_ATTACK,
+                m_POwner->health.mp,
+                latentEffect.GetConditionsValue());
             break;
         case xi::Latent::ElevenRollActive:
             expression = m_POwner->StatusEffectContainer->CheckForElevenRoll();
@@ -1309,13 +1334,13 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
             }
             break;
         case xi::Latent::Mainjob:
-            expression = m_POwner->GetMJob() == latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateMainjob(m_POwner->GetMJob(), latentEffect.GetConditionsValue());
             break;
         case xi::Latent::EquippedInSlot:
-            expression = latentEffect.GetSlot() == latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateEquippedInSlot(latentEffect.GetSlot(), latentEffect.GetConditionsValue());
             break;
         case xi::Latent::DuringWs:
-            expression = isDuringWs;
+            expression = latenthelpers::EvaluateDuringWS(isDuringWs);
             break;
         default:
             latentFound = false;
@@ -1324,7 +1349,7 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
     }
 
     // if we did not hit the default case, attempt to apply the latent effect based on the expression
-    if (latentFound)
+    if (latenthelpers::ShouldApplyLatentExpression(latentFound))
     {
         return ApplyLatentEffect(latentEffect, expression);
     }
@@ -1334,7 +1359,7 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
 // Activates a latent effect if true otherwise deactivates the latent effect
 bool CLatentEffectContainer::ApplyLatentEffect(CLatentEffect& effect, bool expression)
 {
-    if (expression)
+    if (latenthelpers::ApplyLatentWantsActivate(expression))
     {
         return effect.Activate();
     }

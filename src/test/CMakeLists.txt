@@ -480,6 +480,8 @@ set(SOURCES
     test_unitychat_capacity_1356.cpp
     test_guild_points_math_1358.h
     test_guild_points_math_1358.cpp
+    test_latent_condition_eval_1359.h
+    test_latent_condition_eval_1359.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
