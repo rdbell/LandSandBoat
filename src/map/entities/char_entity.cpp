@@ -30,6 +30,7 @@
 #include "char_playtime_capacity.h"
 #include "char_resource_capacity.h"
 #include "char_storage_capacity.h"
+#include "char_trust_roster_capacity.h"
 #include "common/logging.h"
 #include "common/timer.h"
 #include "common/utils.h"
@@ -974,36 +975,20 @@ bool CCharEntity::ReloadParty() const
 
 void CCharEntity::RemoveTrust(CTrustEntity* PTrust)
 {
-    if (!PTrust->PAI->IsSpawned())
-    {
-        return;
-    }
-
-    // clang-format off
-    auto trustIt = std::find_if(PTrusts.begin(), PTrusts.end(), [PTrust](auto trust)
-    {
-        return PTrust == trust;
-    });
-    // clang-format on
-
-    if (trustIt != PTrusts.end())
-    {
-        PTrust->PAI->Despawn();
-        PTrusts.erase(trustIt);
-    }
-
-    ReloadPartyInc();
+    chartrustrosterhelpers::Remove(
+        PTrusts,
+        PTrust,
+        [](CTrustEntity* trust) { return trust->PAI->IsSpawned(); },
+        [](CTrustEntity* trust) { trust->PAI->Despawn(); },
+        [&]() { ReloadPartyInc(); });
 }
 
 void CCharEntity::ClearTrusts()
 {
-    for (auto* PTrust : PTrusts)
-    {
-        PTrust->PAI->Despawn();
-    }
-    PTrusts.clear();
-
-    ReloadPartyInc();
+    chartrustrosterhelpers::Clear(
+        PTrusts,
+        [](CTrustEntity* trust) { trust->PAI->Despawn(); },
+        [&]() { ReloadPartyInc(); });
 }
 
 void CCharEntity::RequestPersist(CHAR_PERSIST toPersist)

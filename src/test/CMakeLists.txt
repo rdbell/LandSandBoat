@@ -646,6 +646,8 @@ set(SOURCES
     test_char_resource_1440.cpp
     test_char_equipment_1441.h
     test_char_equipment_1441.cpp
+    test_char_trust_roster_1442.h
+    test_char_trust_roster_1442.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
