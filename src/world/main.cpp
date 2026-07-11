@@ -20,6 +20,7 @@
 */
 
 #include "world_application.h"
+#include "world_app_config.h"
 
 int main(int argc, char** argv)
 {
@@ -27,5 +28,5 @@ int main(int argc, char** argv)
 
     worldApp->run();
 
-    return 0;
+    return worldapp::WorldMainExitCode;
 }

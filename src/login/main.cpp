@@ -20,6 +20,7 @@
 */
 
 #include "connect_application.h"
+#include "connect_cleanup.h"
 
 // openssl applink.c prevents issues with debug vs release vs threaded/single threaded .dlls at runtime
 // apparently not an issue with linux
@@ -33,5 +34,5 @@ int main(int argc, char** argv)
 
     connectApp->run();
 
-    return 0;
+    return loginHelpers::ConnectMainExitCode;
 }

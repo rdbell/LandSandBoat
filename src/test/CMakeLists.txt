@@ -450,6 +450,8 @@ set(SOURCES
     test_alliance_remove_party_1341.cpp
     test_map_main_exit_1342.h
     test_map_main_exit_1342.cpp
+    test_fixed_main_exit_1343.h
+    test_fixed_main_exit_1343.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

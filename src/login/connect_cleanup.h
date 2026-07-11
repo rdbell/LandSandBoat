@@ -113,4 +113,8 @@ inline constexpr const char* ConnectStatsCommandHelp = "Print server runtime sta
 inline constexpr const char* ConnectClearCommandName = "clear";
 inline constexpr const char* ConnectClearCommandHelp = "Run periodic session cleanup routine";
 
+// ConnectMainExitCode is the fixed process exit code after connectApp->run().
+// Production always returns 0 regardless of run outcome.
+inline constexpr int ConnectMainExitCode = 0;
+
 } // namespace loginHelpers

@@ -13,4 +13,8 @@ inline constexpr const char* WorldServerName = "world";
 // Host reads settings::get<bool>(WorldHTTPEnableSettingKey).
 inline constexpr const char* WorldHTTPEnableSettingKey = "network.ENABLE_HTTP";
 
+// WorldMainExitCode is the fixed process exit code after worldApp->run().
+// Production always returns 0 regardless of run outcome.
+inline constexpr int WorldMainExitCode = 0;
+
 } // namespace worldapp
