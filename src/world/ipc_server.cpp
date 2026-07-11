@@ -35,6 +35,7 @@
 #include "chat_message_unity.h"
 #include "chat_message_yell.h"
 #include "party_invite.h"
+#include "party_invite_response.h"
 
 #include "besieged_system.h"
 #include "campaign_system.h"
@@ -544,7 +545,12 @@ void IPCServer::handleMessage_PartyInviteResponse(const IPP& ipp, const ipc::Par
 {
     TracyZoneScoped;
 
-    rerouteMessageToCharId(message.inviterId, message);
+    worldipc::HandlePartyInviteResponse(
+        message,
+        [this](const uint32 inviterId, const ipc::PartyInviteResponse& response)
+        {
+            rerouteMessageToCharId(inviterId, response);
+        });
 
     // TODO:
     // worldServer_.partySystem_->handleMessage(message);
