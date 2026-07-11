@@ -33,6 +33,7 @@
 #include "char_zone.h"
 #include "colonization_event.h"
 #include "conquest_event.h"
+#include "entity_information_request.h"
 #include "chat_message_alliance.h"
 #include "chat_message_assist.h"
 #include "chat_message_custom.h"
@@ -845,15 +846,16 @@ void IPCServer::handleMessage_EntityInformationRequest(const IPP& ipp, const ipc
     //     TYPE_NPC    = 0x02,
     //     TYPE_MOB    = 0x04,
 
-    if (message.entityType == 0x01)
-    {
-        rerouteMessageToCharId(message.targetId, message);
-    }
-    else
-    {
-        const auto zoneId = (message.targetId >> 12) & 0x0FFF;
-        rerouteMessageToZoneId(zoneId, message);
-    }
+    worldipc::HandleEntityInformationRequest(
+        message,
+        [this](const uint32 charId, const ipc::EntityInformationRequest& request)
+        {
+            rerouteMessageToCharId(charId, request);
+        },
+        [this](const uint16 zoneId, const ipc::EntityInformationRequest& request)
+        {
+            rerouteMessageToZoneId(zoneId, request);
+        });
 }
 
 void IPCServer::handleMessage_EntityInformationResponse(const IPP& ipp, const ipc::EntityInformationResponse& message)
