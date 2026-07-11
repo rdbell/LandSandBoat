@@ -26,6 +26,7 @@
 #include "common/settings.h"
 #include "common/timer.h"
 #include "common/utils.h"
+#include "ranged_ammo_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -5935,27 +5936,26 @@ bool RemoveAmmo(CCharEntity* PChar, int quantity)
 {
     CItemWeapon* PItem = (CItemWeapon*)PChar->getEquip(SLOT_AMMO);
 
-    if (PItem)
+    if (!rangedammohelpers::RemoveAmmoShouldAct(PItem != nullptr))
     {
-        if ((PItem->getQuantity() - quantity) < 1)
-        {
-            auto  eloc = PChar->equipLocation(SLOT_AMMO);
-            uint8 slot = eloc ? eloc->Slot : 0;
-            uint8 loc  = eloc ? static_cast<uint8>(eloc->Container) : 0;
-            charutils::UnequipItem(PChar, SLOT_AMMO);
-            PChar->RequestPersist(CHAR_PERSIST::EQUIP);
-            charutils::UpdateItem(PChar, loc, slot, -quantity);
-            PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
-            return true;
-        }
-        else
-        {
-            auto ammoLoc = PChar->equipLocation(SLOT_AMMO);
-            charutils::UpdateItem(PChar, static_cast<uint8>(ammoLoc->Container), ammoLoc->Slot, -quantity);
-            PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
-            return false;
-        }
+        return false;
     }
+
+    if (rangedammohelpers::RemoveAmmoEmptiesSlot(true, PItem->getQuantity(), quantity))
+    {
+        auto  eloc = PChar->equipLocation(SLOT_AMMO);
+        uint8 slot = eloc ? eloc->Slot : 0;
+        uint8 loc  = eloc ? static_cast<uint8>(eloc->Container) : 0;
+        charutils::UnequipItem(PChar, SLOT_AMMO);
+        PChar->RequestPersist(CHAR_PERSIST::EQUIP);
+        charutils::UpdateItem(PChar, loc, slot, -quantity);
+        PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
+        return true;
+    }
+
+    auto ammoLoc = PChar->equipLocation(SLOT_AMMO);
+    charutils::UpdateItem(PChar, static_cast<uint8>(ammoLoc->Container), ammoLoc->Slot, -quantity);
+    PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
     return false;
 }
 

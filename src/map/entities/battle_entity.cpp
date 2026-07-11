@@ -23,6 +23,7 @@
 
 #include "can_attack_capacity.h"
 #include "ranged_hit_count_capacity.h"
+#include "ranged_ammo_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3305,31 +3306,34 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
 
         if (isChar)
         {
-            uint16 recycleChance = getMod(Mod::RECYCLE);
-            if (charutils::hasTrait(PChar, TRAIT_RECYCLE))
+            using namespace rangedammohelpers;
+
+            const bool hasUnlimitedShot = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::UnlimitedShot);
+            int16      recycleChance    = ResolveRecycleChance(
+                getMod(Mod::RECYCLE),
+                charutils::hasTrait(PChar, TRAIT_RECYCLE),
+                charutils::hasTrait(PChar, TRAIT_RECYCLE)
+                    ? static_cast<int16>(PChar->PMeritPoints->GetMeritValue(MERIT_RECYCLE, PChar))
+                    : static_cast<int16>(0),
+                static_cast<int16>(PChar->PJobPoints->GetJobPointValue(JP_AMMO_CONSUMPTION)));
+            recycleChance = ApplyUnlimitedShotToRecycleChance(recycleChance, hasUnlimitedShot);
+
+            if (ShouldDeleteUnlimitedShot(hasUnlimitedShot, hitOccured, getMod(Mod::RETAIN_UNLIMITED_SHOT)))
             {
-                recycleChance += PChar->PMeritPoints->GetMeritValue(MERIT_RECYCLE, PChar);
+                StatusEffectContainer->DelStatusEffect(xi::StatusEffect::UnlimitedShot);
             }
 
-            recycleChance += PChar->PJobPoints->GetJobPointValue(JP_AMMO_CONSUMPTION);
-
-            if (StatusEffectContainer->HasStatusEffect(xi::StatusEffect::UnlimitedShot))
+            if (ShouldDeleteFlashyAndStealthShot(true))
             {
-                recycleChance = 100;
-                if (hitOccured || getMod(Mod::RETAIN_UNLIMITED_SHOT) <= 0)
-                {
-                    StatusEffectContainer->DelStatusEffect(xi::StatusEffect::UnlimitedShot);
-                }
+                StatusEffectContainer->DelStatusEffect(xi::StatusEffect::FlashyShot);
+                StatusEffectContainer->DelStatusEffect(xi::StatusEffect::StealthShot);
             }
 
-            StatusEffectContainer->DelStatusEffect(xi::StatusEffect::FlashyShot);
-            StatusEffectContainer->DelStatusEffect(xi::StatusEffect::StealthShot);
-
-            if (PAmmo != nullptr && xirand::GetRandomNumber(100) > recycleChance)
+            if (ShouldConsumeAmmo(PAmmo != nullptr, recycleChance, xirand::GetRandomNumber(100)))
             {
                 ++ammoConsumed;
                 charutils::TrackArrowUsageForScavenge(PChar, PAmmo);
-                if (PAmmo->getQuantity() == i)
+                if (ShouldTruncateHitCountOnAmmoDeplete(true, static_cast<uint8>(PAmmo->getQuantity()), i))
                 {
                     hitCount = i;
                 }
@@ -3340,8 +3344,10 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
     // We hit the target at least once
     if (hitOccured)
     {
+        using namespace rangedammohelpers;
+
         // TODO: Check if mobs and trusts have penalties and messages
-        if (isChar && actionResult.messageID != MsgBasic::RangedAttackCrit)
+        if (ShouldApplyDistancePenaltyMessage(isChar, actionResult.messageID == MsgBasic::RangedAttackCrit))
         {
             auto rangedPenaltyFunction = lua["xi"]["combat"]["ranged"]["attackDistancePenalty"];
             auto distancePenaltyResult = rangedPenaltyFunction(this, PTarget);
@@ -3357,30 +3363,24 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
                 distancePenalty = distancePenaltyResult.get_type() == sol::type::number ? distancePenaltyResult.get<int16>(0) : 0;
             }
 
-            if (distancePenalty == 0)
-            {
-                actionResult.messageID = MsgBasic::RangedAttackPummels;
-            }
-            else if (distancePenalty <= 15)
-            {
-                actionResult.messageID = MsgBasic::RangedAttackSquarely;
-            }
-            else
-            {
-                actionResult.messageID = MsgBasic::RangedAttackHit;
-            }
+            actionResult.messageID = static_cast<MsgBasic>(RangedDistanceMsgID(ResolveRangedDistanceMessage(distancePenalty)));
         }
 
         // any misses with barrage/sange cause remaining shots to miss, meaning we must check Action.reaction
-        if (actionResult.resolution != ActionResolution::Hit && (isBarrage || isSange))
+        if (ShouldForceBarrageSangeHitResolution(
+                true,
+                actionResult.resolution == ActionResolution::Hit,
+                isBarrage,
+                isSange))
         {
             actionResult.resolution = ActionResolution::Hit;
         }
 
-        if (isChar && slot == SLOT_RANGED)
+        if (ShouldApplyRangedDamageMultiplier(isChar, slot == SLOT_RANGED))
         {
-            auto attackType = state.IsRapidShot() ? PHYSICAL_ATTACK_TYPE::RAPID_SHOT : PHYSICAL_ATTACK_TYPE::RANGED;
-            totalDamage     = attackutils::CheckForDamageMultiplier(PChar, PItem, totalDamage, attackType, slot, true);
+            auto attackType = static_cast<PHYSICAL_ATTACK_TYPE>(
+                ResolveRangedPhysicalAttackType(state.IsRapidShot()));
+            totalDamage = attackutils::CheckForDamageMultiplier(PChar, PItem, totalDamage, attackType, slot, true);
         }
         actionResult.recordDamage(attack_outcome_t{
             .atkType    = ATTACK_TYPE::PHYSICAL,
@@ -3461,21 +3461,20 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
 
     // Barrage/Sange: override message to display as ability
     // On a full miss, leave the existing RangedAttackMiss message in place
-    if (isBarrage || isSange)
+    if ((isBarrage || isSange) && hitOccured)
     {
-        if (hitOccured)
-        {
-            actionResult.messageID = isSange ? MsgBasic::UsesSangeTakesDamage : MsgBasic::UsesBarrageTakesDamage;
-        }
+        actionResult.messageID = rangedammohelpers::ShouldUseSangeDisplayMessage(isSange)
+                                     ? MsgBasic::UsesSangeTakesDamage
+                                     : MsgBasic::UsesBarrageTakesDamage;
     }
 
     // Remove barrage/sange effects after firing
-    if (isBarrage)
+    if (rangedammohelpers::ShouldDeleteBarrageStatus(isBarrage))
     {
         StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Barrage);
     }
 
-    if (isSange)
+    if (rangedammohelpers::ShouldDeleteSangeStatus(isSange))
     {
         StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Sange);
     }
