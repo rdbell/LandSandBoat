@@ -20,6 +20,7 @@
 */
 
 #include <map/map_application.h>
+#include <map/map_app_config.h>
 
 #include <common/lua.h>
 
@@ -32,7 +33,7 @@ int main(int argc, char** argv)
 
     const auto success = mapApp->run();
 
-    const auto exitCode = success ? EXIT_SUCCESS : EXIT_FAILURE;
+    const auto exitCode = mapapp::MapMainExitCode(success);
 
     // Explicitly destroy MapApplication before the lua state get cleaned up
     mapApp.reset();

@@ -448,6 +448,8 @@ set(SOURCES
     test_party_remove_leader_1340.cpp
     test_alliance_remove_party_1341.h
     test_alliance_remove_party_1341.cpp
+    test_map_main_exit_1342.h
+    test_map_main_exit_1342.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

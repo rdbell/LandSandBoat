@@ -259,6 +259,7 @@ auto runMapEngineConfig1338SelfTests() -> bool;
 auto runAllianceDissolve1339SelfTests() -> bool;
 auto runPartyRemoveLeader1340SelfTests() -> bool;
 auto runAllianceRemoveParty1341SelfTests() -> bool;
+auto runMapMainExit1342SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -728,6 +729,7 @@ namespace
         ok = runAllianceDissolve1339SelfTests() && ok;
         ok = runPartyRemoveLeader1340SelfTests() && ok;
         ok = runAllianceRemoveParty1341SelfTests() && ok;
+        ok = runMapMainExit1342SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

@@ -121,7 +121,7 @@ auto MapApplication::run() -> bool
     }
     catch (const std::exception& e)
     {
-        ShowCriticalFmt("Fatal Exception: {}", e.what());
+        ShowCriticalFmt("{}", mapapp::FormatMapFatalException(e.what()));
         return false;
     }
 

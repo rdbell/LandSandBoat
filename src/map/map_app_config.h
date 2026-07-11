@@ -5,6 +5,7 @@
 
 #include <array>
 #include <cstddef>
+#include <fmt/format.h>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -114,6 +115,25 @@ inline auto BuildMapEngineConfigInputs(
         .lazyZones        = lazyZones,
         .rebuildNavmeshes = rebuildNavmeshes,
     };
+}
+
+// MapMainExitCode mirrors main's success ? EXIT_SUCCESS : EXIT_FAILURE.
+// EXIT_SUCCESS is 0; EXIT_FAILURE is typically 1.
+inline auto MapMainExitCode(const bool runSuccess) -> int
+{
+    return runSuccess ? 0 : 1;
+}
+
+// FormatMapFatalException mirrors ShowCriticalFmt("Fatal Exception: {}", e.what()).
+inline auto FormatMapFatalException(const std::string& what) -> std::string
+{
+    return fmt::format("Fatal Exception: {}", what);
+}
+
+// ShouldTerminateOnNullEngine mirrors !engine_ after createEngine.
+inline auto ShouldTerminateOnNullEngine(const bool engineCreated) -> bool
+{
+    return !engineCreated;
 }
 
 } // namespace mapapp
