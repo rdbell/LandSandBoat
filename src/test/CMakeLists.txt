@@ -494,6 +494,8 @@ set(SOURCES
     test_status_effect_can_gain_1364.cpp
     test_status_effect_selection_1365.h
     test_status_effect_selection_1365.cpp
+    test_status_effect_tick_1366.h
+    test_status_effect_tick_1366.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

@@ -343,4 +343,169 @@ inline auto ShouldRemoveAllInRange(const uint16 id, const uint16 first, const ui
 }
 
 
+// --- Slice 1366: expiry, tick due, aura range, eleven-roll, perpetuation ---
+
+// Default aura base radius in yalms before AURA_SIZE mod.
+constexpr float AuraBaseRange = 6.0f;
+
+// Aura effect create duration/tick mirrors HandleAura (3s tick, 4s duration).
+constexpr uint32 AuraEffectTickSeconds     = 3;
+constexpr uint32 AuraEffectDurationSeconds = 4;
+
+// Corsair roll ID range for eleven-roll (FightersRoll..NaturalistsRoll).
+// FightersRoll=310 .. NaturalistsRoll=339; RuneistsRoll=600.
+constexpr uint16 ElevenRollIDFirst  = 310;
+constexpr uint16 ElevenRollIDLast   = 339;
+constexpr uint16 RuneistsRollID     = 600;
+constexpr uint16 ElevenRollSubPower = 11;
+
+// Nightmare sleep tier threshold (tier >= 4 is player avatar Nightmare).
+constexpr uint8 NightmareSleepTierMin = 4;
+
+// Avatar Favor perpetuation multiplier numerator/denominator for floor(cost * 1.2).
+// Implemented as cost * 6 / 5 after reductions when Favor applies.
+// Production: static_cast<int16>(perpetuationCost * 1.2) which floors.
+
+// ShouldExpireEffect mirrors duration != 0 && start+duration <= tick.
+// Times are host-normalized units (same scale).
+inline auto ShouldExpireEffect(
+    const bool durationNonzero,
+    const int64 expiryTime,
+    const int64 tickTime) -> bool
+{
+    return durationNonzero && expiryTime <= tickTime;
+}
+
+// ShouldTickEffect mirrors tickTime != 0 && elapsedTicks < (tick-start)/tickPeriod.
+// elapsedThreshold is host-computed (tick - start) / tickPeriod as integer division.
+inline auto ShouldTickEffect(const bool tickPeriodNonzero, const uint32 elapsedTickCount, const uint32 elapsedThreshold) -> bool
+{
+    return tickPeriodNonzero && elapsedTickCount < elapsedThreshold;
+}
+
+// ComputeAuraRange mirrors 6.0 + (AURA_SIZE / 100.0).
+inline auto ComputeAuraRange(const int16 auraSizeMod) -> float
+{
+    return AuraBaseRange + (static_cast<float>(auraSizeMod) / 100.0f);
+}
+
+// IsWithinAuraRange mirrors distance <= auraRange + modelHitboxSize.
+inline auto IsWithinAuraRange(const float distance, const float auraRange, const float modelHitboxSize) -> bool
+{
+    return distance <= auraRange + modelHitboxSize;
+}
+
+// ShouldUseMasterForAura mirrors pet or trust owner redirection.
+inline auto ShouldUseMasterForAura(const bool isPet, const bool isTrust) -> bool
+{
+    return isPet || isTrust;
+}
+
+// ResolveAuraEffectIcon mirrors subIcon > 0 ? subIcon : subID.
+inline auto ResolveAuraEffectIcon(const uint16 subIcon, const uint16 subID) -> uint16
+{
+    return subIcon > 0 ? subIcon : subID;
+}
+
+// ShouldRefreshAlwaysExpiringAura mirrors existing effect with AlwaysExpiring flag.
+inline auto ShouldRefreshAlwaysExpiringAura(const bool hasEffect, const bool hasAlwaysExpiringFlag) -> bool
+{
+    return hasEffect && hasAlwaysExpiringFlag;
+}
+
+// ShouldUpdateAuraPower mirrors power != subPower on refresh path.
+inline auto ShouldUpdateAuraPower(const uint16 existingPower, const uint16 auraSubPower) -> bool
+{
+    return existingPower != auraSubPower;
+}
+
+// IsElevenRollEffect mirrors FightersRoll..NaturalistsRoll or RuneistsRoll with subPower 11.
+inline auto IsElevenRollEffect(const uint16 statusID, const uint16 subPower, const uint16 firstRoll, const uint16 lastRoll, const uint16 runeistsRoll) -> bool
+{
+    if (subPower != ElevenRollSubPower)
+    {
+        return false;
+    }
+    if (statusID >= firstRoll && statusID <= lastRoll)
+    {
+        return true;
+    }
+    return statusID == runeistsRoll;
+}
+
+// ShouldBreakSleepFromRegenDown mirrors NOT (has SleepI && tier >= 4).
+inline auto ShouldBreakSleepFromRegenDown(const bool hasSleepI, const uint8 sleepTier) -> bool
+{
+    return !(hasSleepI && sleepTier >= NightmareSleepTierMin);
+}
+
+// ShouldApplyRegainTP mirrors objtype != MOB || engaged.
+inline auto ShouldApplyRegainTP(const bool isMob, const bool isEngaged) -> bool
+{
+    return !isMob || isEngaged;
+}
+
+// ShouldDespawnAvatarOnZeroMP mirrors mp==0 && has pet && pet is avatar type.
+inline auto ShouldDespawnAvatarOnZeroMP(const bool mpIsZero, const bool hasPet, const bool petIsAvatar) -> bool
+{
+    return mpIsZero && hasPet && petIsAvatar;
+}
+
+// HalfPerpetuationCost floors cost/2 when any half flag applies.
+inline auto ApplyHalfPerpetuation(const int16 cost, const bool applyHalf) -> int16
+{
+    return applyHalf ? static_cast<int16>(cost / 2) : cost;
+}
+
+// AdjustPerpetuationAfterHalf applies reduction, elemental, day, weather subtracts.
+inline auto AdjustPerpetuationAfterHalf(
+    const int16 halfAdjustedCost,
+    const int16 perpetuationReduction,
+    const int16 elementalAffinityPerp,
+    const int16 dayReduction,
+    const int16 weatherReduction) -> int16
+{
+    return static_cast<int16>(
+        halfAdjustedCost - perpetuationReduction - elementalAffinityPerp - dayReduction - weatherReduction);
+}
+
+// ApplyAvatarFavorPerpetuation floors cost * 1.2 via double cast parity.
+inline auto ApplyAvatarFavorPerpetuation(const int16 cost, const bool applyFavor) -> int16
+{
+    if (!applyFavor)
+    {
+        return cost;
+    }
+    return static_cast<int16>(cost * 1.2);
+}
+
+// FinalizePerpetuationCost: Astral Flow zeros; else clamp min 1.
+inline auto FinalizePerpetuationCost(const int16 cost, const bool hasAstralFlow) -> int16
+{
+    if (hasAstralFlow)
+    {
+        return 0;
+    }
+    return cost < 1 ? static_cast<int16>(1) : cost;
+}
+
+// ShouldApplyAvatarPerpetuationPath mirrors AVATAR_PERPETUATION > 0 && TYPE_PC.
+inline auto ShouldApplyAvatarPerpetuationPath(const int16 avatarPerpetuationMod, const bool isPC) -> bool
+{
+    return avatarPerpetuationMod > 0 && isPC;
+}
+
+// IsPetElementValid mirrors element in [FIRE..DARK] (1..8 typically).
+inline auto IsPetElementValid(const uint8 petElement, const uint8 elementFire, const uint8 elementDark) -> bool
+{
+    return petElement >= elementFire && petElement <= elementDark;
+}
+
+// WeatherMatchesPetStrong mirrors weather == strong || weather == strong+1 (double weather).
+inline auto WeatherMatchesPetStrong(const uint16 weather, const uint16 weatherStrong) -> bool
+{
+    return weather == weatherStrong || weather == static_cast<uint16>(weatherStrong + 1);
+}
+
+
 } // namespace statuseffecthelpers

@@ -1745,7 +1745,10 @@ void CStatusEffectContainer::CheckEffectsExpiry(timer::time_point tick)
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetDuration() != 0s && PStatusEffect->GetStartTime() + PStatusEffect->GetDuration() <= tick)
+        if (statuseffecthelpers::ShouldExpireEffect(
+                PStatusEffect->GetDuration() != 0s,
+                (PStatusEffect->GetStartTime() + PStatusEffect->GetDuration()).time_since_epoch().count(),
+                tick.time_since_epoch().count()))
         {
             RemoveStatusEffect(PStatusEffect.get());
         }
@@ -1760,9 +1763,9 @@ void CStatusEffectContainer::HandleAura(CStatusEffect* PStatusEffect)
 
     CBattleEntity* PEntity    = m_POwner;
     AURA_TARGET    auraTarget = static_cast<AURA_TARGET>(PStatusEffect->GetTier());
-    float          aura_range = 6.0f + (PEntity->getMod(Mod::AURA_SIZE) / 100.0f); // Adding to this mod should be the value you want * 100
+    float          aura_range = statuseffecthelpers::ComputeAuraRange(PEntity->getMod(Mod::AURA_SIZE)); // Adding to this mod should be the value you want * 100
 
-    if (PEntity->objtype == TYPE_PET || PEntity->objtype == TYPE_TRUST)
+    if (statuseffecthelpers::ShouldUseMasterForAura(PEntity->objtype == TYPE_PET, PEntity->objtype == TYPE_TRUST))
     {
         PEntity = PEntity->PMaster;
     }
@@ -1975,8 +1978,13 @@ void CStatusEffectContainer::TickEffects(timer::time_point tick)
     {
         for (const auto& PStatusEffect : m_StatusEffectSet)
         {
-            if (PStatusEffect->GetTickTime() != 0s &&
-                PStatusEffect->GetElapsedTickCount() < (tick - PStatusEffect->GetStartTime()) / PStatusEffect->GetTickTime())
+            const auto tickPeriod = PStatusEffect->GetTickTime();
+            const auto elapsedThreshold =
+                tickPeriod != 0s ? static_cast<uint32>((tick - PStatusEffect->GetStartTime()) / tickPeriod) : 0u;
+            if (statuseffecthelpers::ShouldTickEffect(
+                    tickPeriod != 0s,
+                    PStatusEffect->GetElapsedTickCount(),
+                    elapsedThreshold))
             {
                 if (PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Aura))
                 {
@@ -2033,18 +2041,22 @@ void CStatusEffectContainer::TickRegen(timer::time_point tick)
 
                 // If target has nightmare sleep. Don't break sleep from REGEN_DOWN damage
                 // see mobskills/nightmare.lua for full explanation
-                if (
-                    !(
-                        m_POwner->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::SleepI) &&
-                        m_POwner->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::SleepI)->GetTier() >= 4)) // Tier 4 = Player Avatar Nightmare
                 {
-                    WakeUp();
+                    const auto* sleepEffect = m_POwner->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::SleepI);
+                    if (statuseffecthelpers::ShouldBreakSleepFromRegenDown(
+                            sleepEffect != nullptr,
+                            sleepEffect != nullptr ? sleepEffect->GetTier() : 0))
+                    {
+                        WakeUp();
+                    }
                 }
             }
         }
 
         // Final perpetuation = (Base / Half_Factor +- Reductions Or Penalties) * Avatar_Favor_Factor -> Minimum perpetuation is 1 except with 2Hour. Then refresh is applied.
-        if (m_POwner->getMod(Mod::AVATAR_PERPETUATION) > 0 && (m_POwner->objtype == TYPE_PC))
+        if (statuseffecthelpers::ShouldApplyAvatarPerpetuationPath(
+                m_POwner->getMod(Mod::AVATAR_PERPETUATION),
+                m_POwner->objtype == TYPE_PC))
         {
             int16 perpetuationCost = m_POwner->getMod(Mod::AVATAR_PERPETUATION);
 
@@ -2074,63 +2086,48 @@ void CStatusEffectContainer::TickRegen(timer::time_point tick)
 
                 // Day / Weather elemental matches.
                 bool dayMatch     = elementValid && dayElement == petElement;
-                bool weatherMatch = elementValid && (weather == weatherStrong[petElementIdx] || weather == static_cast<Weather>(static_cast<uint16_t>(weatherStrong[petElementIdx]) + 1));
+                bool weatherMatch = elementValid && statuseffecthelpers::WeatherMatchesPetStrong(
+                                                        static_cast<uint16>(weather),
+                                                        static_cast<uint16>(weatherStrong[petElementIdx]));
 
                 // Halve perpetuation cost before all regular reductions.
                 bool halfFromCarby   = PChar->getMod(Mod::HALF_PERPETUATION_CARBUNCLE) != 0 && PPet->petID() == PETID_CARBUNCLE;
                 bool halfFromDay     = PChar->getMod(Mod::HALF_PERPETUATION_DAY) != 0 && dayMatch;
                 bool halfFromWeather = PChar->getMod(Mod::HALF_PERPETUATION_WEATHER) != 0 && weatherMatch;
 
-                if (halfFromCarby || halfFromDay || halfFromWeather)
-                {
-                    perpetuationCost = static_cast<int16>(perpetuationCost / 2); // Confirmed it's floored.
-                }
+                perpetuationCost = statuseffecthelpers::ApplyHalfPerpetuation(
+                    perpetuationCost,
+                    halfFromCarby || halfFromDay || halfFromWeather);
 
-                // Apply regular perpetuation reduction.
-                perpetuationCost = perpetuationCost - PChar->getMod(Mod::PERPETUATION_REDUCTION);
-
-                // Apply elemental affinity perpetuation bonus/penalty.
-                if (elementValid)
-                {
-                    perpetuationCost = perpetuationCost - PChar->getMod(strong[petElementIdx]);
-                }
-
-                // Apply day element perpetuation reduction.
-                if (dayMatch)
-                {
-                    perpetuationCost = perpetuationCost - PChar->getMod(Mod::DAY_REDUCTION);
-                }
-
-                // Apply weather element perpetuation reduction.
-                if (weatherMatch)
-                {
-                    perpetuationCost = perpetuationCost - PChar->getMod(Mod::WEATHER_REDUCTION);
-                }
+                // Apply regular / elemental / day / weather perpetuation reductions.
+                perpetuationCost = statuseffecthelpers::AdjustPerpetuationAfterHalf(
+                    perpetuationCost,
+                    PChar->getMod(Mod::PERPETUATION_REDUCTION),
+                    elementValid ? PChar->getMod(strong[petElementIdx]) : static_cast<int16>(0),
+                    dayMatch ? PChar->getMod(Mod::DAY_REDUCTION) : static_cast<int16>(0),
+                    weatherMatch ? PChar->getMod(Mod::WEATHER_REDUCTION) : static_cast<int16>(0));
 
                 // Avatar's Favor multiplier after all regular reductions.
-                if (PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AvatarsFavor) &&
-                    ((PPet->petID() >= PETID_CARBUNCLE && PPet->petID() <= PETID_CAIT_SITH) || PPet->petID() == PETID_SIREN))
-                {
-                    perpetuationCost = static_cast<int16>(perpetuationCost * 1.2); // Confirmed it's floored.
-                }
+                const bool applyFavor =
+                    PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AvatarsFavor) &&
+                    ((PPet->petID() >= PETID_CARBUNCLE && PPet->petID() <= PETID_CAIT_SITH) || PPet->petID() == PETID_SIREN);
+                perpetuationCost = statuseffecthelpers::ApplyAvatarFavorPerpetuation(perpetuationCost, applyFavor);
             }
 
-            // Astral Flow.
-            if (m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AstralFlow))
-            {
-                perpetuationCost = 0;
-            }
-            else if (perpetuationCost < 1)
-            {
-                perpetuationCost = 1;
-            }
+            // Astral Flow / min-1 clamp.
+            perpetuationCost = statuseffecthelpers::FinalizePerpetuationCost(
+                perpetuationCost,
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AstralFlow));
 
             m_POwner->addMP(refresh - perpetuationCost);
 
-            if (m_POwner->health.mp == 0 && m_POwner->PPet != nullptr && m_POwner->PPet->objtype == TYPE_PET)
+            if (m_POwner->PPet != nullptr && m_POwner->PPet->objtype == TYPE_PET)
             {
                 CPetEntity* PPet = (CPetEntity*)m_POwner->PPet;
-                if (PPet->getPetType() == PET_TYPE::AVATAR)
+                if (statuseffecthelpers::ShouldDespawnAvatarOnZeroMP(
+                        m_POwner->health.mp == 0,
+                        true,
+                        PPet->getPetType() == PET_TYPE::AVATAR))
                 {
                     petutils::DespawnPet(m_POwner);
                 }
@@ -2141,7 +2138,7 @@ void CStatusEffectContainer::TickRegen(timer::time_point tick)
             m_POwner->addMP(refresh);
         }
 
-        if (m_POwner->objtype != TYPE_MOB || m_POwner->PAI->IsEngaged())
+        if (statuseffecthelpers::ShouldApplyRegainTP(m_POwner->objtype == TYPE_MOB, m_POwner->PAI->IsEngaged()))
         {
             m_POwner->addTP(regain);
         }
@@ -2195,9 +2192,12 @@ bool CStatusEffectContainer::CheckForElevenRoll()
 {
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if ((PStatusEffect->GetStatusID() >= xi::StatusEffect::FightersRoll && PStatusEffect->GetStatusID() <= xi::StatusEffect::NaturalistsRoll &&
-             PStatusEffect->GetSubPower() == 11) ||
-            (PStatusEffect->GetStatusID() == xi::StatusEffect::RuneistsRoll && PStatusEffect->GetSubPower() == 11))
+        if (statuseffecthelpers::IsElevenRollEffect(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                PStatusEffect->GetSubPower(),
+                statuseffecthelpers::ElevenRollIDFirst,
+                statuseffecthelpers::ElevenRollIDLast,
+                statuseffecthelpers::RuneistsRollID))
         {
             return true;
         }
