@@ -274,6 +274,8 @@ set(SOURCES
     test_map_char_zone_1254.cpp
     test_map_char_var_update_1256.h
     test_map_char_var_update_1256.cpp
+    test_map_chat_message_tell_1258.h
+    test_map_chat_message_tell_1258.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h

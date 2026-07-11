@@ -29,6 +29,7 @@
 #include <string>
 
 #include "common/ipc_structs.h"
+#include "map/entities/char_entity.h"
 #include "map/enums/chat_message_type.h"
 #include "map/packets/s2c/0x017_chat_std.h"
 
@@ -148,6 +149,26 @@ auto testZoneConstructor() -> bool
     return ok;
 }
 
+auto testCharacterConstructor() -> bool
+{
+    CCharEntity recipient{};
+    recipient.name            = "Recipient";
+    recipient.loc.destination = 0x3456;
+    recipient.visibleGmLevel  = 5;
+    auto packet               = GP_SERV_COMMAND_CHAT_STD(&recipient, MESSAGE_TELL, "Hello", "Sender");
+
+    bool ok = true;
+    ok      = expectEqualUInt(packet.getSize(), 28, "character size") && ok;
+    ok      = expectBytes(packet, chatStdKindOffset, std::array<uint8, 4>{ 0x03, 0x00, 0x56, 0x34 }, "character scalar fields") && ok;
+    ok      = expectBytes(packet, chatStdSNameOffset, std::array<uint8, 15>{ 'S', 'e', 'n', 'd', 'e', 'r' }, "character sender name") && ok;
+    ok      = expectBytes(packet, chatStdMesOffset, std::array<uint8, 5>{ 'H', 'e', 'l', 'l', 'o' }, "character message") && ok;
+
+    auto fallback = GP_SERV_COMMAND_CHAT_STD(&recipient, MESSAGE_TELL, "", "");
+    ok = expectBytes(fallback, chatStdKindOffset, std::array<uint8, 4>{ 0x03, 0x01, 0x56, 0x34 }, "character fallback scalar fields") && ok;
+    ok = expectBytes(fallback, chatStdSNameOffset, std::array<uint8, 15>{ 'R', 'e', 'c', 'i', 'p', 'i', 'e', 'n', 't' }, "character fallback name") && ok;
+    return ok;
+}
+
 auto testZoneGMBranch() -> bool
 {
     auto packet = GP_SERV_COMMAND_CHAT_STD("", 0x0001, MESSAGE_SYSTEM_1, "", 3);
@@ -205,6 +226,7 @@ auto runS2CChatStdPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testZoneConstructor() && ok;
+    ok      = testCharacterConstructor() && ok;
     ok      = testZoneGMBranch() && ok;
     ok      = testAssistConstructor() && ok;
     ok      = testTruncation() && ok;

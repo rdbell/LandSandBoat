@@ -164,6 +164,7 @@ auto runMapGMCallResponseNotification1241SelfTests() -> bool;
 auto runMapAccountLogin1253SelfTests() -> bool;
 auto runMapCharZone1254SelfTests() -> bool;
 auto runMapCharVarUpdate1256SelfTests() -> bool;
+auto runMapChatMessageTell1258SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -549,6 +550,7 @@ namespace
         ok = runMapAccountLogin1253SelfTests() && ok;
         ok = runMapCharZone1254SelfTests() && ok;
         ok = runMapCharVarUpdate1256SelfTests() && ok;
+        ok = runMapChatMessageTell1258SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;

@@ -24,6 +24,7 @@
 #include "account_login.h"
 #include "char_var_update.h"
 #include "char_zone.h"
+#include "chat_message_tell.h"
 
 #include "common/ipp.h"
 
@@ -212,37 +213,38 @@ void IPCClient::handleMessage_ChatMessageTell(const IPP& ipp, const ipc::ChatMes
 {
     TracyZoneScoped;
 
-    CCharEntity* PChar = zoneutils::GetCharByName(message.recipientName);
-    if (PChar && PChar->status != STATUS_TYPE::DISAPPEAR && !jailutils::InPrison(PChar))
-    {
-        const auto gmSent = message.gmLevel > 0;
-
-        if (settings::get<bool>("map.BLOCK_TELL_TO_HIDDEN_GM") && PChar->m_isGMHidden && !gmSent)
+    mapipc::HandleChatMessageTell(
+        message,
+        [](const std::string& recipientName)
         {
-            message::send(ipc::MessageStandard{
-                .recipientId = message.senderId,
-                .message     = MsgStd::TellNotReceivedOffline,
-            });
-        }
-        else if (PChar->isAway() && !gmSent)
+            return zoneutils::GetCharByName(recipientName);
+        },
+        [](CCharEntity* character)
         {
-            message::send(ipc::MessageStandard{
-                .recipientId = message.senderId,
-                .message     = MsgStd::TellNotReceivedAway,
-            });
-        }
-        else
+            return mapipc::InspectChatMessageTellRecipient(
+                character->status == STATUS_TYPE::DISAPPEAR,
+                [character]
+                {
+                    return jailutils::InPrison(character);
+                },
+                character->m_isGMHidden);
+        },
+        []
         {
-            PChar->pushPacket(std::make_unique<GP_SERV_COMMAND_CHAT_STD>(PChar, MESSAGE_TELL, message.message, message.senderName));
-        }
-    }
-    else
-    {
-        message::send(ipc::MessageStandard{
-            .recipientId = message.senderId,
-            .message     = MsgStd::TellNotReceivedOffline,
+            return settings::get<bool>("map.BLOCK_TELL_TO_HIDDEN_GM");
+        },
+        [](CCharEntity* character)
+        {
+            return character->isAway();
+        },
+        [](const ipc::MessageStandard& feedback)
+        {
+            message::send(feedback);
+        },
+        [](CCharEntity* character, const ipc::ChatMessageTell& tell)
+        {
+            character->pushPacket(std::make_unique<GP_SERV_COMMAND_CHAT_STD>(character, MESSAGE_TELL, tell.message, tell.senderName));
         });
-    }
 }
 
 void IPCClient::handleMessage_ChatMessageParty(const IPP& ipp, const ipc::ChatMessageParty& message)
