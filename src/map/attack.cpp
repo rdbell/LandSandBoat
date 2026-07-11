@@ -656,98 +656,105 @@ void CAttack::ProcessDamage()
         {
             // Mobs use a different base damage formula than players.
             // H2H attacks from mobs have a base damage penalty applied based on what zone they are in.
-            float       mobH2HPenalty = 1.0f;
-            int32       fSTR          = battleutils::GetFSTR(m_attacker, m_victim, slot);
-            REGION_TYPE regionID      = m_attacker->loc.zone->GetRegionID();
-
-            if (static_cast<CMobEntity*>(m_attacker)->getMobMod(MOBMOD_NO_H2H_PENALTY) == 0)
-            {
-                if (regionID <= REGION_TYPE::LIMBUS) // Pre TOAU zones
-                {
-                    mobH2HPenalty = 0.425f; // Vanilla - COP
-                }
-                else
-                {
-                    mobH2HPenalty = 0.650f; // TOAU onward
-                }
-            }
+            int32       fSTR     = battleutils::GetFSTR(m_attacker, m_victim, slot);
+            REGION_TYPE regionID = m_attacker->loc.zone->GetRegionID();
+            float       mobH2HPenalty = attackhelpers::SelectMobH2HPenalty(
+                static_cast<CMobEntity*>(m_attacker)->getMobMod(MOBMOD_NO_H2H_PENALTY) != 0,
+                regionID <= REGION_TYPE::LIMBUS);
 
             m_damage = m_baseDamage + m_bonusBasePhysicalDamage;
+            kickDamage = m_attacker->getMod(Mod::KICK_DMG);
 
-            if (m_attackType == PHYSICAL_ATTACK_TYPE::KICK) // Per Jimmy Kick damage adds in fSTR after the two penalties
-            {
-                float kickPenalty = 2.0f / 3.0f; // per Jimmy, 2/3rds penalty for kicks
-                kickDamage        = m_attacker->getMod(Mod::KICK_DMG);
-
-                m_damage = (m_damage + kickDamage) * mobH2HPenalty * kickPenalty + fSTR;
-            }
-            else // Non-kick mob h2h adds fSTR in before the penalty
-            {
-                m_damage = (m_damage + fSTR) * mobH2HPenalty;
-            }
-
-            m_damage = std::max(m_damage, 0);
-
-            m_damage = std::floor<uint32>(m_damage * m_damageRatio);
+            float preRatio = attackhelpers::AssembleMobH2HDamagePreRatio(
+                m_damage,
+                attackhelpers::IsKickAttackType(static_cast<uint8>(m_attackType)),
+                kickDamage,
+                fSTR,
+                mobH2HPenalty);
+            m_damage = attackhelpers::FloorAtZero(static_cast<int32>(preRatio));
+            m_damage = attackhelpers::ApplyDamageRatio(m_damage, m_damageRatio);
         }
-        else if (m_attackType == PHYSICAL_ATTACK_TYPE::KICK) // Players use this calculation.
+        else if (attackhelpers::IsKickAttackType(static_cast<uint8>(m_attackType))) // Players use this calculation.
         {
-            kickDamage = m_naturalH2hDamage + m_attacker->getMod(Mod::KICK_DMG); // KICK_DMG includes weapon dmg if footwork is active
-            m_damage   = std::max(kickDamage + m_bonusBasePhysicalDamage + battleutils::GetFSTR(m_attacker, m_victim, slot), 0);
-            m_damage   = std::floor<uint32>(m_damage * m_damageRatio);
+            // KICK_DMG includes weapon dmg if footwork is active
+            m_damage = attackhelpers::AssemblePlayerH2HKickPreRatio(
+                m_naturalH2hDamage,
+                m_attacker->getMod(Mod::KICK_DMG),
+                static_cast<int32>(m_bonusBasePhysicalDamage),
+                battleutils::GetFSTR(m_attacker, m_victim, slot));
+            m_damage = attackhelpers::ApplyDamageRatio(m_damage, m_damageRatio);
         }
         else // Players use this calculation.
         {
-            m_damage = std::max(m_baseDamage + m_naturalH2hDamage + m_bonusBasePhysicalDamage + battleutils::GetFSTR(m_attacker, m_victim, slot), 0);
-            m_damage = std::floor<uint32>(m_damage * m_damageRatio);
+            m_damage = attackhelpers::AssemblePlayerH2HPunchPreRatio(
+                m_baseDamage,
+                m_naturalH2hDamage,
+                static_cast<int32>(m_bonusBasePhysicalDamage),
+                battleutils::GetFSTR(m_attacker, m_victim, slot));
+            m_damage = attackhelpers::ApplyDamageRatio(m_damage, m_damageRatio);
         }
     }
     else if (slot == SLOT_MAIN)
     {
-        m_damage = std::max(m_attacker->GetMainWeaponDmg() + m_bonusBasePhysicalDamage + battleutils::GetFSTR(m_attacker, m_victim, slot), 0);
-        m_damage = std::floor<uint32>(m_damage * m_damageRatio);
+        m_damage = attackhelpers::AssembleMainHandPreRatio(
+            m_attacker->GetMainWeaponDmg(),
+            static_cast<int32>(m_bonusBasePhysicalDamage),
+            battleutils::GetFSTR(m_attacker, m_victim, slot));
+        m_damage = attackhelpers::ApplyDamageRatio(m_damage, m_damageRatio);
     }
     else if (slot == SLOT_SUB)
     {
-        m_damage = std::max(m_attacker->GetSubWeaponDmg() + m_bonusBasePhysicalDamage + battleutils::GetFSTR(m_attacker, m_victim, slot), 0);
-        m_damage = std::floor<uint32>(m_damage * m_damageRatio);
+        m_damage = attackhelpers::AssembleSubHandPreRatio(
+            m_attacker->GetSubWeaponDmg(),
+            static_cast<int32>(m_bonusBasePhysicalDamage),
+            battleutils::GetFSTR(m_attacker, m_victim, slot));
+        m_damage = attackhelpers::ApplyDamageRatio(m_damage, m_damageRatio);
     }
     else if (slot == SLOT_AMMO)
     {
         // GetFSTR uses slot to determine fSTR vs fSTR2
-        m_damage = std::max(m_attacker->GetRangedWeaponDmg() + battleutils::GetFSTR(m_attacker, m_victim, slot), 0);
-        m_damage = std::floor<uint32>(m_damage * m_damageRatio);
+        m_damage = attackhelpers::AssembleRangedAmmoPreRatio(
+            m_attacker->GetRangedWeaponDmg(),
+            battleutils::GetFSTR(m_attacker, m_victim, slot));
+        m_damage = attackhelpers::ApplyDamageRatio(m_damage, m_damageRatio);
     }
 
     // Apply Scarlet Delirium damage bonus
     // xi::StatusEffect::ScarletDelirium1 is only active after damage has been dealt to the DRK and xi::StatusEffect::ScarletDelirium has been removed.
-    if (m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::ScarletDelirium1))
+    if (attackhelpers::ShouldApplyScarletDelirium(
+            m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::ScarletDelirium1)))
     {
-        float effectPower = 1.0f + static_cast<float>(m_attacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::ScarletDelirium1)->GetPower()) / 1000.0f;
-
-        m_damage = std::floor<uint32>(m_damage * std::max(effectPower, 0.f));
+        float effectPower = attackhelpers::ScarletDeliriumMultiplier(
+            m_attacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::ScarletDelirium1)->GetPower());
+        m_damage = attackhelpers::FloorProduct(m_damage, effectPower);
     }
 
     // Apply "Double Attack" damage and "Triple Attack" damage mods
-    if (m_attackType == PHYSICAL_ATTACK_TYPE::DOUBLE && m_attacker->objtype == TYPE_PC)
+    if (attackhelpers::ShouldApplyDoubleAttackDamage(static_cast<uint8>(m_attackType), m_attacker->objtype == TYPE_PC))
     {
-        m_damage = std::floor<uint32>(m_damage * 1.0f + std::max(m_attacker->getMod(Mod::DOUBLE_ATTACK_DMG) / 100.0f, 0.f));
+        m_damage = attackhelpers::ApplyDoubleTripleAttackDamage(
+            m_damage,
+            m_attacker->getMod(Mod::DOUBLE_ATTACK_DMG));
     }
-    else if (m_attackType == PHYSICAL_ATTACK_TYPE::TRIPLE && m_attacker->objtype == TYPE_PC)
+    else if (attackhelpers::ShouldApplyTripleAttackDamage(static_cast<uint8>(m_attackType), m_attacker->objtype == TYPE_PC))
     {
-        m_damage = std::floor<uint32>(m_damage * 1.0f + std::max(m_attacker->getMod(Mod::TRIPLE_ATTACK_DMG) / 100.0f, 0.f));
+        m_damage = attackhelpers::ApplyDoubleTripleAttackDamage(
+            m_damage,
+            m_attacker->getMod(Mod::TRIPLE_ATTACK_DMG));
     }
 
     // Soul eater.
-    if (m_attacker->objtype == TYPE_PC)
+    if (attackhelpers::ShouldApplySoulEater(m_attacker->objtype == TYPE_PC))
     {
         m_damage = battleutils::doSoulEaterEffect(static_cast<CCharEntity*>(m_attacker), m_damage);
     }
 
     // Set attack type to Samba if the attack type is normal.  Don't overwrite other types.  Used for Samba double damage.
-    if (m_attackType == PHYSICAL_ATTACK_TYPE::NORMAL && (m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DrainSamba) ||
-                                                         m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AspirSamba) ||
-                                                         m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::HasteSamba)))
+    if (attackhelpers::ShouldPromoteNormalToSamba(
+            static_cast<uint8>(m_attackType),
+            m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DrainSamba),
+            m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AspirSamba),
+            m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::HasteSamba)))
     {
         SetAttackType(PHYSICAL_ATTACK_TYPE::SAMBA);
     }
@@ -759,25 +766,32 @@ void CAttack::ProcessDamage()
     }
 
     // Apply Sneak Attack Augment Mod
-    if (m_attacker->getMod(Mod::AUGMENTS_SA) > 0 && IsSneakAttack() && m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SneakAttack))
+    if (attackhelpers::ShouldApplySAAugment(
+            m_attacker->getMod(Mod::AUGMENTS_SA),
+            IsSneakAttack(),
+            m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SneakAttack)))
     {
-        m_damage = std::floor<uint32>(m_damage * (1.0f + std::max(m_attacker->getMod(Mod::AUGMENTS_SA) / 100.0f, 0.f)));
+        m_damage = attackhelpers::FloorProduct(
+            m_damage,
+            attackhelpers::AugmentDamageMultiplier(m_attacker->getMod(Mod::AUGMENTS_SA)));
     }
 
     // Apply Trick Attack Augment Mod
-    if (m_attacker->getMod(Mod::AUGMENTS_TA) > 0 && IsTrickAttack() && m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TrickAttack))
+    if (attackhelpers::ShouldApplyTAAugment(
+            m_attacker->getMod(Mod::AUGMENTS_TA),
+            IsTrickAttack(),
+            m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TrickAttack)))
     {
-        m_damage = std::floor<uint32>(m_damage * (1.0f + std::max(m_attacker->getMod(Mod::AUGMENTS_TA) / 100.0f, 0.f)));
+        m_damage = attackhelpers::FloorProduct(
+            m_damage,
+            attackhelpers::AugmentDamageMultiplier(m_attacker->getMod(Mod::AUGMENTS_TA)));
     }
 
     // low level mobs can get negative fSTR so low they crater their (base weapon damage + fstr) to below 0.
     // TODO: find out proper fSTR calc for low level mobs when your VIT is ridiculously high. It's likely that this is slightly wrong (possibly you'd get more hits for 0 than you should)
     // However, there are legitimate strategies on retail with 1 dmg weapons and negative fSTR ranks that result in all auto attacks hitting for 0 but using enspells for damage so no TP is fed.
     // Absorption isn't possible at this point in the calculation, so zero it.
-    if (m_damage < 0)
-    {
-        m_damage = 0;
-    }
+    m_damage = attackhelpers::ClampNonNegativeDamage(m_damage);
 
     // Try skill up.
     if (m_damage > 0)

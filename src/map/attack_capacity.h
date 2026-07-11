@@ -3,6 +3,7 @@
 #include "common/cbasetypes.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 
 // Pure CAttack check-policy halves for parry/guard/deflect/counter/cover.
@@ -263,6 +264,212 @@ inline auto SelectMobH2HPenalty(const bool noH2HPenaltyMod, const bool isPreToAU
 inline auto ShouldApplyConsumeMana(const bool isPC) -> bool
 {
     return isPC;
+}
+
+
+// --- Slice 1378: ProcessDamage base assembly and post-multipliers ---
+
+// PHYSICAL_ATTACK_TYPE numeric pins used by damage assembly.
+constexpr uint8 AttackTypeDouble = 1;
+constexpr uint8 AttackTypeTriple = 2;
+constexpr uint8 AttackTypeKick   = 4;
+
+// Mob kick penalty is 2/3 per Jimmy.
+constexpr float MobKickPenalty = 2.0f / 3.0f;
+
+// FloorAtZero mirrors std::max(damage, 0).
+inline auto FloorAtZero(const int32 damage) -> int32
+{
+    return damage < 0 ? 0 : damage;
+}
+
+// ApplyDamageRatio mirrors floor(damage * damageRatio) as uint32-style floor.
+// Returns non-negative int32; negative inputs clamp to 0 first.
+inline auto ApplyDamageRatio(const int32 damage, const float damageRatio) -> int32
+{
+    if (damage <= 0)
+    {
+        return 0;
+    }
+    return static_cast<int32>(std::floor(static_cast<float>(damage) * damageRatio));
+}
+
+// AssembleMobH2HDamage mirrors mob H2H kick vs non-kick path before ratio.
+// baseDamage is weapon dmg + bonusBasePhysicalDamage (not yet including fSTR).
+// kickDamageMod is Mod::KICK_DMG; fSTR is injected.
+inline auto AssembleMobH2HDamage(
+    const int32 baseDamagePlusBonus,
+    const bool isKick,
+    const int32 kickDamageMod,
+    const int32 fSTR,
+    const float mobH2HPenalty) -> int32
+{
+    if (isKick)
+    {
+        // (base + kick) * mobPenalty * kickPenalty + fSTR
+        float dmg = static_cast<float>(baseDamagePlusBonus + kickDamageMod) * mobH2HPenalty * MobKickPenalty;
+        dmg += static_cast<float>(fSTR);
+        return FloorAtZero(static_cast<int32>(dmg)); // intermediate before ratio uses float then cast elsewhere
+    }
+    // Non-kick: (base + fSTR) * mobPenalty
+    float dmg = static_cast<float>(baseDamagePlusBonus + fSTR) * mobH2HPenalty;
+    return FloorAtZero(static_cast<int32>(dmg));
+}
+
+// Note: production uses float intermediate then floor after ratio. For non-kick
+// path: m_damage = (m_damage + fSTR) * mobH2HPenalty then max(0) then floor*ratio.
+// Returning int32 mid-cast can diverge; provide float intermediate helpers.
+
+// AssembleMobH2HDamagePreRatio returns the pre-ratio value as float for fidelity.
+inline auto AssembleMobH2HDamagePreRatio(
+    const int32 baseDamagePlusBonus,
+    const bool isKick,
+    const int32 kickDamageMod,
+    const int32 fSTR,
+    const float mobH2HPenalty) -> float
+{
+    if (isKick)
+    {
+        return static_cast<float>(baseDamagePlusBonus + kickDamageMod) * mobH2HPenalty * MobKickPenalty + static_cast<float>(fSTR);
+    }
+    return static_cast<float>(baseDamagePlusBonus + fSTR) * mobH2HPenalty;
+}
+
+// AssemblePlayerH2HKickPreRatio mirrors kickDamage + bonus + fSTR (kickDamage already includes natural+kick mod).
+inline auto AssemblePlayerH2HKickPreRatio(
+    const int32 naturalH2hDamage,
+    const int32 kickDamageMod,
+    const int32 bonusBasePhysicalDamage,
+    const int32 fSTR) -> int32
+{
+    return FloorAtZero(naturalH2hDamage + kickDamageMod + bonusBasePhysicalDamage + fSTR);
+}
+
+// AssemblePlayerH2HPunchPreRatio mirrors base + natural + bonus + fSTR.
+inline auto AssemblePlayerH2HPunchPreRatio(
+    const int32 baseDamage,
+    const int32 naturalH2hDamage,
+    const int32 bonusBasePhysicalDamage,
+    const int32 fSTR) -> int32
+{
+    return FloorAtZero(baseDamage + naturalH2hDamage + bonusBasePhysicalDamage + fSTR);
+}
+
+// AssembleMainHandPreRatio mirrors main weapon dmg + bonus + fSTR.
+inline auto AssembleMainHandPreRatio(
+    const int32 mainWeaponDmg,
+    const int32 bonusBasePhysicalDamage,
+    const int32 fSTR) -> int32
+{
+    return FloorAtZero(mainWeaponDmg + bonusBasePhysicalDamage + fSTR);
+}
+
+// AssembleSubHandPreRatio mirrors sub weapon dmg + bonus + fSTR.
+inline auto AssembleSubHandPreRatio(
+    const int32 subWeaponDmg,
+    const int32 bonusBasePhysicalDamage,
+    const int32 fSTR) -> int32
+{
+    return FloorAtZero(subWeaponDmg + bonusBasePhysicalDamage + fSTR);
+}
+
+// AssembleRangedAmmoPreRatio mirrors ranged weapon dmg + fSTR (no bonus base SA/TA for ammo path).
+inline auto AssembleRangedAmmoPreRatio(const int32 rangedWeaponDmg, const int32 fSTR) -> int32
+{
+    return FloorAtZero(rangedWeaponDmg + fSTR);
+}
+
+// FloorProduct mirrors floor(damage * mult) as uint32 floor then cast.
+inline auto FloorProduct(const int32 damage, const float mult) -> int32
+{
+    if (damage <= 0)
+    {
+        return 0;
+    }
+    return static_cast<int32>(std::floor(static_cast<float>(damage) * mult));
+}
+
+// ScarletDeliriumMultiplier mirrors 1.0 + power/1000.
+inline auto ScarletDeliriumMultiplier(const uint16 effectPower) -> float
+{
+    float mult = 1.0f + static_cast<float>(effectPower) / 1000.0f;
+    return mult < 0.0f ? 0.0f : mult;
+}
+
+// ShouldApplyScarletDelirium mirrors has ScarletDelirium1.
+inline auto ShouldApplyScarletDelirium(const bool hasScarletDelirium1) -> bool
+{
+    return hasScarletDelirium1;
+}
+
+// MultiAttackDmgModFraction mirrors max(mod/100, 0) for DA/TA dmg mods.
+inline auto MultiAttackDmgModFraction(const int16 dmgMod) -> float
+{
+    float bonus = static_cast<float>(dmgMod) / 100.0f;
+    return bonus < 0.0f ? 0.0f : bonus;
+}
+
+// ApplyDoubleTripleAttackDamage mirrors LSB:
+// floor(damage * 1.0f + max(mod/100, 0)) — additive, not multiplicative.
+// Preserves the production quirk where the mod adds a fractional amount after *1.0.
+inline auto ApplyDoubleTripleAttackDamage(const int32 damage, const int16 dmgMod) -> int32
+{
+    float result = static_cast<float>(damage) * 1.0f + MultiAttackDmgModFraction(dmgMod);
+    return static_cast<int32>(std::floor(result));
+}
+
+// ShouldApplyDoubleAttackDamage mirrors DOUBLE type && PC.
+inline auto ShouldApplyDoubleAttackDamage(const uint8 attackType, const bool isPC) -> bool
+{
+    return attackType == AttackTypeDouble && isPC;
+}
+
+// ShouldApplyTripleAttackDamage mirrors TRIPLE type && PC.
+inline auto ShouldApplyTripleAttackDamage(const uint8 attackType, const bool isPC) -> bool
+{
+    return attackType == AttackTypeTriple && isPC;
+}
+
+// ShouldApplySoulEater mirrors TYPE_PC.
+inline auto ShouldApplySoulEater(const bool isPC) -> bool
+{
+    return isPC;
+}
+
+// ShouldApplySAAugment mirrors AUGMENTS_SA > 0 && isSA && has SA effect.
+inline auto ShouldApplySAAugment(
+    const int16 augmentsSAMod,
+    const bool isSneakAttack,
+    const bool hasSneakAttackEffect) -> bool
+{
+    return augmentsSAMod > 0 && isSneakAttack && hasSneakAttackEffect;
+}
+
+// ShouldApplyTAAugment mirrors AUGMENTS_TA > 0 && isTA && has TA effect.
+inline auto ShouldApplyTAAugment(
+    const int16 augmentsTAMod,
+    const bool isTrickAttack,
+    const bool hasTrickAttackEffect) -> bool
+{
+    return augmentsTAMod > 0 && isTrickAttack && hasTrickAttackEffect;
+}
+
+// AugmentDamageMultiplier mirrors 1.0 + max(mod/100, 0) for SA/TA augments.
+inline auto AugmentDamageMultiplier(const int16 augmentMod) -> float
+{
+    return 1.0f + MultiAttackDmgModFraction(augmentMod);
+}
+
+// ClampNonNegativeDamage mirrors final m_damage < 0 → 0.
+inline auto ClampNonNegativeDamage(const int32 damage) -> int32
+{
+    return FloorAtZero(damage);
+}
+
+// IsKickAttackType mirrors KICK.
+inline auto IsKickAttackType(const uint8 attackType) -> bool
+{
+    return attackType == AttackTypeKick;
 }
 
 

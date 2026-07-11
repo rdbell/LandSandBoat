@@ -294,6 +294,7 @@ auto runAttackRoundMultihit1374SelfTests() -> bool;
 auto runAttackRoundFollowUp1375SelfTests() -> bool;
 auto runAttackChecks1376SelfTests() -> bool;
 auto runAttackDamage1377SelfTests() -> bool;
+auto runAttackAssembly1378SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -798,6 +799,7 @@ namespace
         ok = runAttackRoundFollowUp1375SelfTests() && ok;
         ok = runAttackChecks1376SelfTests() && ok;
         ok = runAttackDamage1377SelfTests() && ok;
+        ok = runAttackAssembly1378SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
