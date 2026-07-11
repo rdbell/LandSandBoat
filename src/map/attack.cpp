@@ -543,23 +543,32 @@ void CAttack::ProcessDamage()
     if (settings::get<bool>("map.ENABLE_AUTO_ATTACK_LUA"))
     {
         // Sneak attack.
-        if (m_attacker->GetMJob() == JOB_THF && m_isFirstSwing && m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SneakAttack) &&
-            (behind(m_attacker->loc.p, m_victim->loc.p, 64) || m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hide) ||
-             m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Doubt)))
+        if (attackhelpers::ShouldApplySneakAttack(
+                m_attacker->GetMJob() == JOB_THF,
+                m_isFirstSwing,
+                m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SneakAttack),
+                behind(m_attacker->loc.p, m_victim->loc.p, 64),
+                m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hide),
+                m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Doubt)))
         {
             m_isSA = true;
         }
 
         // Trick attack.
-        if (m_attacker->GetMJob() == JOB_THF && m_isFirstSwing && m_attackRound->GetTAEntity() != nullptr)
+        if (attackhelpers::ShouldApplyTrickAttack(
+                m_attacker->GetMJob() == JOB_THF,
+                m_isFirstSwing,
+                m_attackRound->GetTAEntity() != nullptr))
         {
             m_isTA = true;
         }
 
         // Set attack type to Samba if the attack type is normal.  Don't overwrite other types.  Used for Samba double damage.
-        if (m_attackType == PHYSICAL_ATTACK_TYPE::NORMAL && (m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DrainSamba) ||
-                                                             m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AspirSamba) ||
-                                                             m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::HasteSamba)))
+        if (attackhelpers::ShouldPromoteNormalToSamba(
+                static_cast<uint8>(m_attackType),
+                m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DrainSamba),
+                m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AspirSamba),
+                m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::HasteSamba)))
         {
             SetAttackType(PHYSICAL_ATTACK_TYPE::SAMBA);
         }
@@ -571,13 +580,13 @@ void CAttack::ProcessDamage()
             m_damage = result.get<int32>(0);
 
             // Try skill up.
-            if (m_damage > 0)
+            if (attackhelpers::ShouldTrySkillUp(m_damage))
             {
                 if (m_attacker->objtype == TYPE_PC)
                 {
                     auto* PChar = static_cast<CCharEntity*>(m_attacker);
 
-                    if (m_attackType == PHYSICAL_ATTACK_TYPE::DAKEN)
+                    if (attackhelpers::ShouldSkillUpThrowing(static_cast<uint8>(m_attackType)))
                     {
                         charutils::TrySkillUP(PChar, SKILLTYPE::SKILL_THROWING, m_victim->GetMLevel());
                     }
@@ -604,23 +613,34 @@ void CAttack::ProcessDamage()
     }
 
     // Sneak attack.
-    if (m_attacker->GetMJob() == JOB_THF && m_isFirstSwing && m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SneakAttack) &&
-        (behind(m_attacker->loc.p, m_victim->loc.p, 64) || m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hide) ||
-         m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Doubt)))
+    if (attackhelpers::ShouldApplySneakAttack(
+            m_attacker->GetMJob() == JOB_THF,
+            m_isFirstSwing,
+            m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SneakAttack),
+            behind(m_attacker->loc.p, m_victim->loc.p, 64),
+            m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hide),
+            m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Doubt)))
     {
-        m_bonusBasePhysicalDamage += static_cast<float>(m_attacker->DEX()) * (1.0f + std::max(m_attacker->getMod(Mod::SNEAK_ATK_DEX) / 100.0f, 0.f));
+        m_bonusBasePhysicalDamage += attackhelpers::SneakAttackDexBonus(
+            m_attacker->DEX(),
+            m_attacker->getMod(Mod::SNEAK_ATK_DEX));
         m_isSA = true;
     }
 
     // Trick attack.
-    if (m_attacker->GetMJob() == JOB_THF && m_isFirstSwing && m_attackRound->GetTAEntity() != nullptr)
+    if (attackhelpers::ShouldApplyTrickAttack(
+            m_attacker->GetMJob() == JOB_THF,
+            m_isFirstSwing,
+            m_attackRound->GetTAEntity() != nullptr))
     {
-        m_bonusBasePhysicalDamage += static_cast<float>(m_attacker->AGI()) * (1.0f + std::max(m_attacker->getMod(Mod::TRICK_ATK_AGI) / 100.0f, 0.f));
+        m_bonusBasePhysicalDamage += attackhelpers::TrickAttackAgiBonus(
+            m_attacker->AGI(),
+            m_attacker->getMod(Mod::TRICK_ATK_AGI));
         m_isTA = true;
     }
 
     // Consume mana
-    if (m_attacker->objtype == TYPE_PC)
+    if (attackhelpers::ShouldApplyConsumeMana(m_attacker->objtype == TYPE_PC))
     {
         m_bonusBasePhysicalDamage += battleutils::doConsumeManaEffect(static_cast<CCharEntity*>(m_attacker));
     }
@@ -628,7 +648,7 @@ void CAttack::ProcessDamage()
     SLOTTYPE slot = static_cast<SLOTTYPE>(GetWeaponSlot());
     if (m_attackRound->IsH2H())
     {
-        m_naturalH2hDamage = std::floor<int32>(m_attacker->GetSkill(SKILL_HAND_TO_HAND) * 0.11f) + 3;
+        m_naturalH2hDamage = attackhelpers::NaturalH2HDamage(m_attacker->GetSkill(SKILL_HAND_TO_HAND));
         m_baseDamage       = m_attacker->GetMainWeaponDmg();
         int32 kickDamage   = 0;
 

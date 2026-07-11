@@ -516,6 +516,8 @@ set(SOURCES
     test_attackround_followup_1375.cpp
     test_attack_checks_1376.h
     test_attack_checks_1376.cpp
+    test_attack_damage_1377.h
+    test_attack_damage_1377.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

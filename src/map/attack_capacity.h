@@ -157,4 +157,113 @@ inline auto ClampZanshinRate(const uint16 rate) -> uint16
     return rate > 100 ? static_cast<uint16>(100) : rate;
 }
 
+// --- Slice 1377: ProcessDamage SA/TA/Samba pure gates ---
+
+// PHYSICAL_ATTACK_TYPE::NORMAL and SAMBA.
+constexpr uint8 AttackTypeNormal = 0;
+constexpr uint8 AttackTypeSamba  = 7;
+
+// ShouldApplySneakAttack mirrors THF main + first swing + SA effect + position/hide/doubt.
+inline auto ShouldApplySneakAttack(
+    const bool isTHFMain,
+    const bool isFirstSwing,
+    const bool hasSneakAttack,
+    const bool behindTarget,
+    const bool hasHide,
+    const bool victimHasDoubt) -> bool
+{
+    return isTHFMain && isFirstSwing && hasSneakAttack && (behindTarget || hasHide || victimHasDoubt);
+}
+
+// ShouldApplyTrickAttack mirrors THF main + first swing + TA entity present.
+inline auto ShouldApplyTrickAttack(
+    const bool isTHFMain,
+    const bool isFirstSwing,
+    const bool hasTAEntity) -> bool
+{
+    return isTHFMain && isFirstSwing && hasTAEntity;
+}
+
+// SneakAttackDexBonus mirrors DEX * (1 + max(SNEAK_ATK_DEX/100, 0)).
+inline auto SneakAttackDexBonus(const int16 dex, const int16 sneakAtkDexMod) -> float
+{
+    float bonusPct = static_cast<float>(sneakAtkDexMod) / 100.0f;
+    if (bonusPct < 0.0f)
+    {
+        bonusPct = 0.0f;
+    }
+    return static_cast<float>(dex) * (1.0f + bonusPct);
+}
+
+// TrickAttackAgiBonus mirrors AGI * (1 + max(TRICK_ATK_AGI/100, 0)).
+inline auto TrickAttackAgiBonus(const int16 agi, const int16 trickAtkAgiMod) -> float
+{
+    float bonusPct = static_cast<float>(trickAtkAgiMod) / 100.0f;
+    if (bonusPct < 0.0f)
+    {
+        bonusPct = 0.0f;
+    }
+    return static_cast<float>(agi) * (1.0f + bonusPct);
+}
+
+// ShouldPromoteNormalToSamba mirrors NORMAL attack type + any Samba effect.
+inline auto ShouldPromoteNormalToSamba(
+    const uint8 attackType,
+    const bool hasDrainSamba,
+    const bool hasAspirSamba,
+    const bool hasHasteSamba) -> bool
+{
+    return attackType == AttackTypeNormal && (hasDrainSamba || hasAspirSamba || hasHasteSamba);
+}
+
+// ShouldTrySkillUp mirrors damage > 0.
+inline auto ShouldTrySkillUp(const int32 damage) -> bool
+{
+    return damage > 0;
+}
+
+// ShouldSkillUpThrowing mirrors Daken attack type for PC skillup.
+inline auto ShouldSkillUpThrowing(const uint8 attackType) -> bool
+{
+    return attackType == AttackTypeDaken;
+}
+
+// ShouldSkillUpAutomaton mirrors pet + master PC + automaton type.
+inline auto ShouldSkillUpAutomaton(
+    const bool isPet,
+    const bool masterIsPC,
+    const bool isAutomaton) -> bool
+{
+    return isPet && masterIsPC && isAutomaton;
+}
+
+// NaturalH2HDamage mirrors floor(skill * 0.11) + 3.
+inline auto NaturalH2HDamage(const uint16 h2hSkill) -> int32
+{
+    return static_cast<int32>(h2hSkill * 0.11f) + 3;
+}
+
+// MobH2HPenaltyPreToAU mirrors 0.425 for region <= LIMBUS.
+constexpr float MobH2HPenaltyPreToAU = 0.425f;
+// MobH2HPenaltyToAUOnward mirrors 0.650 for later regions.
+constexpr float MobH2HPenaltyToAUOnward = 0.650f;
+
+// SelectMobH2HPenalty mirrors pre-TOAU vs later region penalty when no NO_H2H_PENALTY.
+// isPreToAURegion: regionID <= LIMBUS.
+inline auto SelectMobH2HPenalty(const bool noH2HPenaltyMod, const bool isPreToAURegion) -> float
+{
+    if (noH2HPenaltyMod)
+    {
+        return 1.0f;
+    }
+    return isPreToAURegion ? MobH2HPenaltyPreToAU : MobH2HPenaltyToAUOnward;
+}
+
+// ShouldApplyConsumeMana mirrors TYPE_PC.
+inline auto ShouldApplyConsumeMana(const bool isPC) -> bool
+{
+    return isPC;
+}
+
+
 } // namespace attackhelpers
