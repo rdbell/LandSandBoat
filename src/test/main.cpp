@@ -314,6 +314,7 @@ auto runRangedActorFinalize1394SelfTests() -> bool;
 auto runDisengage1395SelfTests() -> bool;
 auto runAttackEntry1396SelfTests() -> bool;
 auto runAttackSwingGate1397SelfTests() -> bool;
+auto runAttackHitPath1398SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -838,6 +839,7 @@ namespace
         ok = runDisengage1395SelfTests() && ok;
         ok = runAttackEntry1396SelfTests() && ok;
         ok = runAttackSwingGate1397SelfTests() && ok;
+        ok = runAttackHitPath1398SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

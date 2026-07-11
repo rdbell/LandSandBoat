@@ -31,6 +31,7 @@
 #include "disengage_capacity.h"
 #include "attack_entry_capacity.h"
 #include "attack_swing_gate_capacity.h"
+#include "attack_hit_path_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3637,8 +3638,15 @@ bool CBattleEntity::OnAttack(CAttackState& state, action_t& action)
         }
         else if (swingGate == attackswinggatehelpers::SwingGateOutcome::HitPath)
         {
+            const auto hitPath = attackhitpathhelpers::ResolveHitPath(
+                [&]() { return attack.CheckParried(); },
+                [&]() { return attackRound.GetSATAOccured(); },
+                [&]() { return battleutils::IsAbsorbByShadow(PTarget, this); },
+                [&]() { return attack.CheckAnticipated(); },
+                [&]() { return attack.CheckCounter(); });
+
             // Check parry.
-            if (attack.CheckParried())
+            if (hitPath == attackhitpathhelpers::HitPathOutcome::Parried)
             {
                 actionResult.messageID  = MsgBasic::TargetParries;
                 actionResult.resolution = ActionResolution::Parry;
@@ -3646,14 +3654,14 @@ bool CBattleEntity::OnAttack(CAttackState& state, action_t& action)
                 battleutils::HandleIssekiganEnmityBonus(PTarget, this);
             }
             // attack hit, try to be absorbed by shadow unless it is a SATA attack round
-            else if (!(attackRound.GetSATAOccured()) && battleutils::IsAbsorbByShadow(PTarget, this))
+            else if (hitPath == attackhitpathhelpers::HitPathOutcome::ShadowAbsorbed)
             {
                 actionResult.messageID  = MsgBasic::ShadowAbsorb;
                 actionResult.param      = 1;
                 actionResult.resolution = ActionResolution::Miss;
                 attack.SetEvaded(true);
             }
-            else if (attack.CheckAnticipated() || attack.CheckCounter())
+            else if (hitPath == attackhitpathhelpers::HitPathOutcome::Reactive)
             {
                 if (attack.IsAnticipated())
                 {
