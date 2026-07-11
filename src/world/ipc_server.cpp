@@ -39,6 +39,7 @@
 #include "chat_message_unity.h"
 #include "chat_message_yell.h"
 #include "linkshell_rank_change.h"
+#include "linkshell_remove.h"
 #include "message_standard.h"
 #include "message_system.h"
 #include "party_invite.h"
@@ -702,7 +703,12 @@ void IPCServer::handleMessage_LinkshellRemove(const IPP& ipp, const ipc::Linkshe
 {
     TracyZoneScoped;
 
-    rerouteMessageToCharName(message.victimName, message);
+    worldipc::HandleLinkshellRemove(
+        message,
+        [this](const std::string& victimName, const ipc::LinkshellRemove& removal)
+        {
+            rerouteMessageToCharName(victimName, removal);
+        });
 }
 
 void IPCServer::handleMessage_LinkshellSetMessage(const IPP& ipp, const ipc::LinkshellSetMessage& message)

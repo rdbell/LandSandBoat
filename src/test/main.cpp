@@ -183,6 +183,7 @@ auto runWorldPlayerKick1273SelfTests() -> bool;
 auto runWorldMessageStandard1274SelfTests() -> bool;
 auto runWorldMessageSystem1275SelfTests() -> bool;
 auto runWorldLinkshellRankChange1276SelfTests() -> bool;
+auto runWorldLinkshellRemove1277SelfTests() -> bool;
 auto runIPCRegionalPayloadSelfTests() -> bool;
 auto runIPCStandardMessagePayloadSelfTests() -> bool;
 auto runIPCMessageFramingSelfTests() -> bool;
@@ -587,6 +588,7 @@ namespace
         ok = runWorldMessageStandard1274SelfTests() && ok;
         ok = runWorldMessageSystem1275SelfTests() && ok;
         ok = runWorldLinkshellRankChange1276SelfTests() && ok;
+        ok = runWorldLinkshellRemove1277SelfTests() && ok;
         ok = runIPCRegionalPayloadSelfTests() && ok;
         ok = runIPCStandardMessagePayloadSelfTests() && ok;
         ok = runIPCMessageFramingSelfTests() && ok;
