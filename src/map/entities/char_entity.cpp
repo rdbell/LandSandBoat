@@ -24,6 +24,7 @@
 #include "can_attack_capacity.h"
 #include "char_automaton_capacity.h"
 #include "char_bazaar_capacity.h"
+#include "char_equipment_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_playtime_capacity.h"
@@ -900,7 +901,7 @@ auto CCharEntity::getEquip(const SLOTTYPE slot) const -> CItemEquipment*
         return nullptr;
     }
 
-    return static_cast<CItemEquipment*>(equipped_[slot]);
+    return static_cast<CItemEquipment*>(charequipmenthelpers::Get(equipped_, slot));
 }
 
 auto CCharEntity::equipLocation(const uint8 equipSlot) const -> std::optional<ItemLocation>
@@ -911,15 +912,16 @@ auto CCharEntity::equipLocation(const uint8 equipSlot) const -> std::optional<It
         return std::nullopt;
     }
 
-    if (!equipped_[equipSlot])
-    {
-        return std::nullopt;
-    }
-
-    return ItemLocation{
-        static_cast<CONTAINER_ID>(equipped_[equipSlot]->getLocationID()),
-        equipped_[equipSlot]->getSlotID(),
-    };
+    return charequipmenthelpers::Location(
+        equipped_,
+        equipSlot,
+        [](CItem* item)
+        {
+            return ItemLocation{
+                static_cast<CONTAINER_ID>(item->getLocationID()),
+                item->getSlotID(),
+            };
+        });
 }
 
 auto CCharEntity::bindEquip(const uint8 equipSlot, CItem* item) -> bool
@@ -936,14 +938,12 @@ auto CCharEntity::bindEquip(const uint8 equipSlot, CItem* item) -> bool
         return false;
     }
 
-    if (!xi::items::mark(item, ItemState::Equipped))
-    {
-        return false;
-    }
-
-    clearEquip(equipSlot);
-    equipped_[equipSlot] = item;
-    return true;
+    return charequipmenthelpers::Bind(
+        equipped_,
+        equipSlot,
+        item,
+        [](CItem* toEquip) { return xi::items::mark(toEquip, ItemState::Equipped); },
+        [](CItem* toFree) { return xi::items::mark(toFree, ItemState::Free); });
 }
 
 void CCharEntity::clearEquip(const uint8 equipSlot)
@@ -953,15 +953,8 @@ void CCharEntity::clearEquip(const uint8 equipSlot)
         return;
     }
 
-    if (auto* item = equipped_[equipSlot]; item != nullptr)
-    {
-        if (!xi::items::mark(item, ItemState::Free))
-        {
-            return;
-        }
-
-        equipped_[equipSlot] = nullptr;
-    }
+    charequipmenthelpers::Clear(
+        equipped_, equipSlot, [](CItem* item) { return xi::items::mark(item, ItemState::Free); });
 }
 
 void CCharEntity::ReloadPartyInc()
