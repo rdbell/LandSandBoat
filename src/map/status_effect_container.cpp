@@ -2155,23 +2155,25 @@ void CStatusEffectContainer::TickRegen(timer::time_point tick)
 
 bool CStatusEffectContainer::HasPreventActionEffect(bool ignoreCharm)
 {
-    if (ignoreCharm)
+    for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        return HasStatusEffect(
-            { xi::StatusEffect::SleepI, xi::StatusEffect::SleepIi, xi::StatusEffect::Petrification, xi::StatusEffect::Lullaby, xi::StatusEffect::Penalty, xi::StatusEffect::Stun, xi::StatusEffect::Terror });
+        if (!PStatusEffect->isDeleted() &&
+            statuseffecthelpers::IsPreventActionEffectID(static_cast<uint16>(PStatusEffect->GetStatusID()), ignoreCharm))
+        {
+            return true;
+        }
     }
-
-    return HasStatusEffect(
-        { xi::StatusEffect::SleepI, xi::StatusEffect::SleepIi, xi::StatusEffect::Petrification, xi::StatusEffect::Lullaby, xi::StatusEffect::CharmI, xi::StatusEffect::CharmIi, xi::StatusEffect::Penalty, xi::StatusEffect::Stun, xi::StatusEffect::Terror });
+    return false;
 }
 
 uint16 CStatusEffectContainer::GetConfrontationEffect()
 {
     for (const auto& PEffect : m_StatusEffectSet)
     {
-        if (PEffect->HasEffectFlag(xi::StatusEffectFlag::Confrontation))
+        if (statuseffecthelpers::IsConfrontationFlag(
+                PEffect->HasEffectFlag(xi::StatusEffectFlag::Confrontation)))
         {
-            return PEffect->GetPower();
+            return statuseffecthelpers::ConfrontationPowerOrZero(true, PEffect->GetPower());
         }
     }
     return 0;
@@ -2181,7 +2183,8 @@ void CStatusEffectContainer::CopyConfrontationEffect(CBattleEntity* PEntity)
 {
     for (const auto& PEffect : m_StatusEffectSet)
     {
-        if (PEffect->HasEffectFlag(xi::StatusEffectFlag::Confrontation))
+        if (statuseffecthelpers::ShouldCopyConfrontation(
+                PEffect->HasEffectFlag(xi::StatusEffectFlag::Confrontation)))
         {
             PEntity->StatusEffectContainer->AddStatusEffect(*PEffect);
         }
@@ -2207,7 +2210,15 @@ bool CStatusEffectContainer::CheckForElevenRoll()
 
 bool CStatusEffectContainer::IsAsleep()
 {
-    return HasStatusEffect({ xi::StatusEffect::SleepI, xi::StatusEffect::SleepIi, xi::StatusEffect::Lullaby });
+    for (const auto& PStatusEffect : m_StatusEffectSet)
+    {
+        if (!PStatusEffect->isDeleted() &&
+            statuseffecthelpers::IsAsleepEffectID(static_cast<uint16>(PStatusEffect->GetStatusID())))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void CStatusEffectContainer::WakeUp()

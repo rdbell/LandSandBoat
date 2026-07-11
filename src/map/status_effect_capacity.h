@@ -508,4 +508,63 @@ inline auto WeatherMatchesPetStrong(const uint16 weather, const uint16 weatherSt
 }
 
 
+// --- Slice 1368: prevent-action / sleep / confrontation pure lists ---
+
+// Stable status IDs for prevent-action and sleep families.
+constexpr uint16 StatusIDSleepI        = 2;
+constexpr uint16 StatusIDPetrification = 7;
+constexpr uint16 StatusIDStun          = 10;
+constexpr uint16 StatusIDCharmI        = 14;
+constexpr uint16 StatusIDCharmIi       = 17;
+constexpr uint16 StatusIDSleepIi       = 19;
+constexpr uint16 StatusIDTerror        = 28;
+constexpr uint16 StatusIDPenalty       = 159;
+constexpr uint16 StatusIDLullaby       = 193;
+
+// IsPreventActionEffectID (ignoreCharm=false) includes charm IDs.
+inline auto IsPreventActionEffectID(const uint16 id, const bool ignoreCharm) -> bool
+{
+    switch (id)
+    {
+        case StatusIDSleepI:
+        case StatusIDSleepIi:
+        case StatusIDPetrification:
+        case StatusIDLullaby:
+        case StatusIDPenalty:
+        case StatusIDStun:
+        case StatusIDTerror:
+            return true;
+        case StatusIDCharmI:
+        case StatusIDCharmIi:
+            return !ignoreCharm;
+        default:
+            return false;
+    }
+}
+
+// IsAsleepEffectID mirrors SleepI/SleepIi/Lullaby set.
+inline auto IsAsleepEffectID(const uint16 id) -> bool
+{
+    return id == StatusIDSleepI || id == StatusIDSleepIi || id == StatusIDLullaby;
+}
+
+// IsConfrontationFlag mirrors HasEffectFlag(Confrontation).
+inline auto IsConfrontationFlag(const bool hasConfrontationFlag) -> bool
+{
+    return hasConfrontationFlag;
+}
+
+// ConfrontationPowerOrZero returns power when confrontation, else 0.
+inline auto ConfrontationPowerOrZero(const bool hasConfrontationFlag, const uint16 power) -> uint16
+{
+    return hasConfrontationFlag ? power : 0;
+}
+
+// ShouldCopyConfrontation mirrors confrontation flag for CopyConfrontationEffect.
+inline auto ShouldCopyConfrontation(const bool hasConfrontationFlag) -> bool
+{
+    return hasConfrontationFlag;
+}
+
+
 } // namespace statuseffecthelpers
