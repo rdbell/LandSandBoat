@@ -440,6 +440,8 @@ set(SOURCES
     test_party_group_effects_1336.cpp
     test_map_gm_console_1337.h
     test_map_gm_console_1337.cpp
+    test_map_engine_config_1338.h
+    test_map_engine_config_1338.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

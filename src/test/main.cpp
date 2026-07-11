@@ -255,6 +255,7 @@ auto runPartySetSyncTarget1334SelfTests() -> bool;
 auto runPartyPushPacket1335SelfTests() -> bool;
 auto runPartyGroupEffects1336SelfTests() -> bool;
 auto runMapGMConsole1337SelfTests() -> bool;
+auto runMapEngineConfig1338SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -720,6 +721,7 @@ namespace
         ok = runPartyPushPacket1335SelfTests() && ok;
         ok = runPartyGroupEffects1336SelfTests() && ok;
         ok = runMapGMConsole1337SelfTests() && ok;
+        ok = runMapEngineConfig1338SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

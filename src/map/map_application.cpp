@@ -49,23 +49,38 @@ auto appConfig() -> ApplicationConfig
 MapApplication::MapApplication(const int argc, char** argv)
 : Application(appConfig(), argc, argv)
 {
-    auto ip   = 0;
-    auto port = 0;
+    uint32 ip   = 0;
+    uint16 port = 0;
 
     if (const auto maybeIP = args().present(std::string(mapapp::MapCLIArguments[0].name)))
     {
-        ip = str2ip(*maybeIP);
+        ip = mapapp::ResolveMapBindIP(true, str2ip(*maybeIP));
+    }
+    else
+    {
+        ip = mapapp::ResolveMapBindIP(false, 0);
     }
 
     if (const auto maybePort = args().present(std::string(mapapp::MapCLIArguments[1].name)))
     {
-        port = std::stoi(*maybePort);
+        port = mapapp::ResolveMapBindPort(true, std::stoi(*maybePort));
+    }
+    else
+    {
+        port = mapapp::ResolveMapBindPort(false, 0);
     }
 
-    engineConfig_.ipp              = IPP(ip, port);
-    engineConfig_.inCI             = Application::isRunningInCI();
-    engineConfig_.lazyZones        = args().get<bool>(std::string(mapapp::MapCLIArguments[2].name));
-    engineConfig_.rebuildNavmeshes = args().get<bool>(std::string(mapapp::MapCLIArguments[3].name));
+    const auto pure = mapapp::BuildMapEngineConfigInputs(
+        ip,
+        port,
+        Application::isRunningInCI(),
+        args().get<bool>(std::string(mapapp::MapCLIArguments[2].name)),
+        args().get<bool>(std::string(mapapp::MapCLIArguments[3].name)));
+
+    engineConfig_.ipp              = IPP(pure.ip, pure.port);
+    engineConfig_.inCI             = pure.inCI;
+    engineConfig_.lazyZones        = pure.lazyZones;
+    engineConfig_.rebuildNavmeshes = pure.rebuildNavmeshes;
 }
 
 MapApplication::~MapApplication()

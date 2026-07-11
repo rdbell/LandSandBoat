@@ -61,4 +61,59 @@ inline auto BuildArgumentDefinitions() -> std::vector<ArgumentDefinition>
     return arguments;
 }
 
+// MapEngineConfigInputs are the pure values read from CLI/settings before
+// constructing MapConfig / IPP for MapEngine.
+struct MapEngineConfigInputs
+{
+    uint32 ip{};               // network-order from str2ip; 0 when --ip absent
+    uint16 port{};             // 0 when --port absent
+    bool   inCI{};             // Application::isRunningInCI()
+    bool   lazyZones{};        // --lazy
+    bool   rebuildNavmeshes{}; // --rebuild-navmeshes
+};
+
+// ResolveMapBindIP mirrors: present(--ip) ? str2ip(*maybe) : 0.
+// hasIP is whether --ip was present; parsedIP is host-evaluated str2ip result.
+inline auto ResolveMapBindIP(const bool hasIP, const uint32 parsedIP) -> uint32
+{
+    return hasIP ? parsedIP : 0;
+}
+
+// ResolveMapBindPort mirrors: present(--port) ? stoi(*maybe) : 0.
+// hasPort is whether --port was present; parsedPort is host-evaluated stoi result
+// (truncated/clamped by the host before inject if needed).
+inline auto ResolveMapBindPort(const bool hasPort, const int parsedPort) -> uint16
+{
+    if (!hasPort)
+    {
+        return 0;
+    }
+    if (parsedPort < 0)
+    {
+        return 0;
+    }
+    if (parsedPort > 65535)
+    {
+        return 65535;
+    }
+    return static_cast<uint16>(parsedPort);
+}
+
+// BuildMapEngineConfigInputs assembles the pure config inputs tuple.
+inline auto BuildMapEngineConfigInputs(
+    const uint32 ip,
+    const uint16 port,
+    const bool   inCI,
+    const bool   lazyZones,
+    const bool   rebuildNavmeshes) -> MapEngineConfigInputs
+{
+    return MapEngineConfigInputs{
+        .ip               = ip,
+        .port             = port,
+        .inCI             = inCI,
+        .lazyZones        = lazyZones,
+        .rebuildNavmeshes = rebuildNavmeshes,
+    };
+}
+
 } // namespace mapapp
