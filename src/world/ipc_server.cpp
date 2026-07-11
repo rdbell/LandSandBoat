@@ -21,6 +21,8 @@
 
 #include "ipc_server.h"
 
+#include "account_login.h"
+
 #include "besieged_system.h"
 #include "campaign_system.h"
 #include "character_cache.h"
@@ -387,11 +389,14 @@ void IPCServer::handleMessage_AccountLogin(const IPP& ipp, const ipc::AccountLog
 
     DebugIPCFmt("Received AccountLogin message from {} for account {}", ipp.toString(), message.accountId);
 
-    for (const auto& zoneIIP : getIPPsForAllZones())
-    {
-        DebugIPCFmt("Message: -> rerouting to all zones on {}", ipp.toString());
-        sendMessage(zoneIIP, message);
-    }
+    worldipc::HandleAccountLogin(
+        message,
+        getIPPsForAllZones(),
+        [this, &ipp](const IPP& endpoint, const ipc::AccountLogin& accountLogin)
+        {
+            DebugIPCFmt("Message: -> rerouting to all zones on {}", ipp.toString());
+            sendMessage(endpoint, accountLogin);
+        });
 }
 
 void IPCServer::handleMessage_CharZone(const IPP& ipp, const ipc::CharZone& message)
