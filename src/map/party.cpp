@@ -628,34 +628,38 @@ std::vector<CParty::partyInfo_t> CParty::GetPartyInfo() const
 
 void CParty::AddMember(CBattleEntity* PEntity)
 {
-    if (PEntity == nullptr || PEntity->PParty != nullptr)
-    {
-        ShowWarning("CParty::AddMember() - PEntity was null, or PParty not null.");
-        return;
-    }
+    const bool alreadyInList = PEntity != nullptr && std::find(members.begin(), members.end(), PEntity) != members.end();
+    const auto gate          = partyhelpers::ClassifyAddMember(
+        PEntity == nullptr,
+        PEntity != nullptr && PEntity->PParty != nullptr,
+        alreadyInList,
+        PEntity != nullptr && PEntity->objtype == TYPE_PC,
+        m_PartyType == PARTY_PCS,
+        IsFull(),
+        HasTrusts());
 
-    if (std::find(members.begin(), members.end(), PEntity) != members.end())
+    switch (gate)
     {
-        ShowWarning("CParty::AddMember() - PEntity was already in the member list!");
-        return;
-    }
-
-    if (partyhelpers::ShouldRejectPCAddFull(PEntity->objtype == TYPE_PC, m_PartyType == PARTY_PCS, IsFull()))
-    {
-        ShowWarning("CParty::AddMember() - Party was full when trying to add a member.");
-        return;
-    }
-
-    if (partyhelpers::ShouldRejectPCAddTrusts(PEntity->objtype == TYPE_PC, m_PartyType == PARTY_PCS, HasTrusts()))
-    {
-        ShowWarning("CParty::AddMember() - Party had summoned trusts when trying to add a member.");
-        return;
+        case partyhelpers::add_member_gate::REJECT_NULL_OR_HAS_PARTY:
+            ShowWarning("%s", partyhelpers::FormatAddMemberNullWarning());
+            return;
+        case partyhelpers::add_member_gate::REJECT_ALREADY_MEMBER:
+            ShowWarning("%s", partyhelpers::FormatAddMemberAlreadyInListWarning());
+            return;
+        case partyhelpers::add_member_gate::REJECT_FULL:
+            ShowWarning("%s", partyhelpers::FormatAddMemberFullWarning());
+            return;
+        case partyhelpers::add_member_gate::REJECT_TRUSTS:
+            ShowWarning("%s", partyhelpers::FormatAddMemberTrustsWarning());
+            return;
+        case partyhelpers::add_member_gate::PROCEED:
+            break;
     }
 
     PEntity->PParty = this;
     members.emplace_back(PEntity);
 
-    if (PEntity->objtype == TYPE_PC && this->members.size() > 1)
+    if (partyhelpers::ShouldStampLeaderCreatedPartyTime(PEntity->objtype == TYPE_PC, members.size()))
     {
         auto* PLeader = dynamic_cast<CCharEntity*>(CParty::GetLeader());
 
@@ -665,13 +669,13 @@ void CParty::AddMember(CBattleEntity* PEntity)
         }
     }
 
-    if (m_PartyType == PARTY_PCS)
+    if (partyhelpers::ShouldRunPCAddPostProcess(m_PartyType == PARTY_PCS))
     {
         CCharEntity* PChar = dynamic_cast<CCharEntity*>(PEntity);
 
         if (!PChar)
         {
-            ShowWarning("Non-Player passed into function (%s).", PEntity->getName());
+            ShowWarning("%s", partyhelpers::FormatAddMemberNonPlayerWarning(PEntity->getName()));
             return;
         }
 
@@ -687,7 +691,7 @@ void CParty::AddMember(CBattleEntity* PEntity)
                          allianceid,
                          GetMemberFlags(PChar));
 
-        if (m_PAlliance)
+        if (partyhelpers::ShouldNotifyAllianceReloadOnRole(m_PAlliance != nullptr))
         {
             message::send(ipc::AllianceReload{
                 .allianceId = m_PAlliance->m_AllianceID,
@@ -702,7 +706,7 @@ void CParty::AddMember(CBattleEntity* PEntity)
 
         ReloadTreasurePool(PChar);
 
-        if (PChar->isSeekingParty())
+        if (partyhelpers::ShouldClearSeekingParty(PChar->isSeekingParty()))
         {
             PChar->playerConfig.InviteFlg = false;
             PChar->updatemask |= UPDATE_HP;
@@ -718,7 +722,7 @@ void CParty::AddMember(CBattleEntity* PEntity)
         PChar->PTreasurePool->updatePool(PChar);
 
         // Apply level sync if the party is level synced
-        if (m_PSyncTarget != nullptr)
+        if (partyhelpers::ShouldApplyPartyLevelSyncOnJoin(m_PSyncTarget != nullptr))
         {
             if (PChar->getZone() == m_PSyncTarget->getZone())
             {

@@ -659,4 +659,99 @@ inline auto ShouldRunPCRemoveCleanup(const bool isPCParty, const bool isPCEntity
     return isPCParty && isPCEntity;
 }
 
+// add_member_gate is the pure outcome of AddMember admission before mutation.
+enum class add_member_gate : uint8_t
+{
+    REJECT_NULL_OR_HAS_PARTY, // PEntity null or already has PParty
+    REJECT_ALREADY_MEMBER,    // already in members list
+    REJECT_FULL,              // PC party full
+    REJECT_TRUSTS,            // PC party has trusts
+    PROCEED,                  // append member
+};
+
+// ClassifyAddMember mirrors AddMember's ordered rejection gates.
+// alreadyHasParty is PEntity->PParty != nullptr; alreadyInList is find result.
+// partyFull/hasTrusts are host-evaluated IsFull/HasTrusts results.
+inline auto ClassifyAddMember(
+    const bool entityNull,
+    const bool alreadyHasParty,
+    const bool alreadyInList,
+    const bool isPCEntity,
+    const bool isPCParty,
+    const bool partyFull,
+    const bool hasTrusts) -> add_member_gate
+{
+    if (entityNull || alreadyHasParty)
+    {
+        return add_member_gate::REJECT_NULL_OR_HAS_PARTY;
+    }
+    if (alreadyInList)
+    {
+        return add_member_gate::REJECT_ALREADY_MEMBER;
+    }
+    if (ShouldRejectPCAddFull(isPCEntity, isPCParty, partyFull))
+    {
+        return add_member_gate::REJECT_FULL;
+    }
+    if (ShouldRejectPCAddTrusts(isPCEntity, isPCParty, hasTrusts))
+    {
+        return add_member_gate::REJECT_TRUSTS;
+    }
+    return add_member_gate::PROCEED;
+}
+
+// FormatAddMemberNullWarning mirrors null/has-party warning.
+inline auto FormatAddMemberNullWarning() -> std::string
+{
+    return "CParty::AddMember() - PEntity was null, or PParty not null.";
+}
+
+// FormatAddMemberAlreadyInListWarning mirrors duplicate member warning.
+inline auto FormatAddMemberAlreadyInListWarning() -> std::string
+{
+    return "CParty::AddMember() - PEntity was already in the member list!";
+}
+
+// FormatAddMemberFullWarning mirrors full-party warning.
+inline auto FormatAddMemberFullWarning() -> std::string
+{
+    return "CParty::AddMember() - Party was full when trying to add a member.";
+}
+
+// FormatAddMemberTrustsWarning mirrors trusts-present warning.
+inline auto FormatAddMemberTrustsWarning() -> std::string
+{
+    return "CParty::AddMember() - Party had summoned trusts when trying to add a member.";
+}
+
+// FormatAddMemberNonPlayerWarning mirrors non-player into PC path.
+inline auto FormatAddMemberNonPlayerWarning(const std::string& name) -> std::string
+{
+    return fmt::format("Non-Player passed into function ({}).", name);
+}
+
+// ShouldStampLeaderCreatedPartyTime mirrors TYPE_PC && members.size() > 1 after add.
+inline auto ShouldStampLeaderCreatedPartyTime(const bool isPCEntity, const std::size_t memberCountAfterAdd) -> bool
+{
+    return isPCEntity && memberCountAfterAdd > 1;
+}
+
+// ShouldRunPCAddPostProcess mirrors m_PartyType == PARTY_PCS after append.
+inline auto ShouldRunPCAddPostProcess(const bool isPCParty) -> bool
+{
+    return isPCParty;
+}
+
+// ShouldClearSeekingParty mirrors isSeekingParty() after join.
+inline auto ShouldClearSeekingParty(const bool isSeekingParty) -> bool
+{
+    return isSeekingParty;
+}
+
+// ShouldApplyPartyLevelSyncOnJoin mirrors m_PSyncTarget != nullptr after join.
+inline auto ShouldApplyPartyLevelSyncOnJoin(const bool hasSyncTarget) -> bool
+{
+    return hasSyncTarget;
+}
+
 } // namespace partyhelpers
