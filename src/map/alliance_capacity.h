@@ -148,4 +148,38 @@ inline auto ShouldSkipDelPartyWhenEmpty(const bool hasAlliance, const bool party
     return !hasAlliance || partyListEmpty;
 }
 
+// assign_alliance_leader_gate is the pure outcome of the charname+alliance
+// leader lookup in assignAllianceLeader.
+enum class assign_alliance_leader_gate : uint8_t
+{
+    NOT_FOUND, // query fail or no row — no-op
+    FOUND,     // rewrite alliance id to charid and set ALLIANCE_LEADER flag
+};
+
+// ClassifyAssignAllianceLeader mirrors rset success with a row.
+inline auto ClassifyAssignAllianceLeader(const bool queryOk, const bool rowFound) -> assign_alliance_leader_gate
+{
+    if (queryOk && rowFound)
+    {
+        return assign_alliance_leader_gate::FOUND;
+    }
+    return assign_alliance_leader_gate::NOT_FOUND;
+}
+
+// AllianceLeaderFlag is PARTYFLAG ALLIANCE_LEADER (0x0008).
+constexpr uint16 AllianceLeaderFlag = 0x0008;
+
+// ShouldSetLocalMainParty mirrors finding GetMemberByName on this process.
+// When false, aLeader stays nullptr (leader on another server).
+inline auto ShouldSetLocalMainParty(const bool memberFoundOnThisServer) -> bool
+{
+    return memberFoundOnThisServer;
+}
+
+// NewAllianceIDFromLeaderChar mirrors m_AllianceID = charid after promote.
+inline auto NewAllianceIDFromLeaderChar(const uint32 leaderCharID) -> uint32
+{
+    return leaderCharID;
+}
+
 } // namespace alliancehelpers

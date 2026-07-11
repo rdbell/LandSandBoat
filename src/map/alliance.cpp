@@ -383,27 +383,35 @@ void CAlliance::assignAllianceLeader(const std::string& name)
                                        m_AllianceID,
                                        PARTY_LEADER);
 
-    if (rset && rset->rowsCount() && rset->next())
+    if (alliancehelpers::ClassifyAssignAllianceLeader(
+            static_cast<bool>(rset),
+            rset && rset->rowsCount() && rset->next()) ==
+        alliancehelpers::assign_alliance_leader_gate::FOUND)
     {
         const auto charid = rset->get<uint32>("charid");
 
-        db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag & ~? WHERE allianceid = ? AND partyflag & ?", ALLIANCE_LEADER, m_AllianceID, ALLIANCE_LEADER);
+        db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag & ~? WHERE allianceid = ? AND partyflag & ?",
+                         alliancehelpers::AllianceLeaderFlag,
+                         m_AllianceID,
+                         alliancehelpers::AllianceLeaderFlag);
         db::preparedStmt("UPDATE accounts_parties SET allianceid = ? WHERE allianceid = ?", charid, m_AllianceID);
 
-        m_AllianceID = charid;
+        m_AllianceID = alliancehelpers::NewAllianceIDFromLeaderChar(charid);
 
         // in case leader's on another server
         this->aLeader = nullptr;
 
         for (auto* PParty : partyList)
         {
-            if (PParty->GetMemberByName(name))
+            if (alliancehelpers::ShouldSetLocalMainParty(PParty->GetMemberByName(name) != nullptr))
             {
                 this->aLeader = PParty;
                 break;
             }
         }
 
-        db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag | ? WHERE charid = ?", ALLIANCE_LEADER, charid);
+        db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag | ? WHERE charid = ?",
+                         alliancehelpers::AllianceLeaderFlag,
+                         charid);
     }
 }

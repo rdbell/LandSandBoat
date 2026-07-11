@@ -456,6 +456,8 @@ set(SOURCES
     test_search_main_exit_1344.cpp
     test_party_disband_1345.h
     test_party_disband_1345.cpp
+    test_alliance_assign_leader_1346.h
+    test_alliance_assign_leader_1346.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
