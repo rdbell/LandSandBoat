@@ -13,3 +13,7 @@ struct SearchConsoleCommandDescriptor
 
 auto SearchApplicationServerName() -> std::string;
 auto SearchApplicationConsoleCommandDescriptors(uint16 expiryDays) -> std::array<SearchConsoleCommandDescriptor, 2>;
+
+// SearchMainExitCode is the fixed process exit code after searchApp->run().
+// Production always returns 0 regardless of run outcome (same polarity as world/connect).
+inline constexpr int SearchMainExitCode = 0;

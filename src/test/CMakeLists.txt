@@ -452,6 +452,10 @@ set(SOURCES
     test_map_main_exit_1342.cpp
     test_fixed_main_exit_1343.h
     test_fixed_main_exit_1343.cpp
+    test_search_main_exit_1344.h
+    test_search_main_exit_1344.cpp
+    test_party_disband_1345.h
+    test_party_disband_1345.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

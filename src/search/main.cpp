@@ -20,6 +20,7 @@
 */
 
 #include "search_application.h"
+#include "search_application_config.h"
 #include "search_engine.h"
 
 int main(int argc, char** argv)
@@ -28,5 +29,5 @@ int main(int argc, char** argv)
 
     searchApp->run();
 
-    return 0;
+    return SearchMainExitCode;
 }

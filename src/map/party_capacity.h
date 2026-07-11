@@ -358,4 +358,49 @@ inline auto FormatRemovePartyLeaderEmptyWarning() -> std::string
     return "CParty::RemovePartyLeader - called when \"member\" list was empty";
 }
 
+// disband_party_member_path is the pure type branch inside DisbandParty after
+// alliance detach and pointer clears.
+enum class disband_party_member_path : uint8_t
+{
+    PC_FULL,   // PARTY_PCS: packets, trusts, latents, treasure, sync, DB delete, optional IPC
+    MOB_CLEAR, // PARTY_MOBS: clear PParty only
+    NONE,      // neither PC nor MOB type (should not occur)
+};
+
+// ClassifyDisbandPartyMemberPath mirrors m_PartyType == PARTY_PCS / PARTY_MOBS.
+inline auto ClassifyDisbandPartyMemberPath(const bool isPCParty, const bool isMobParty) -> disband_party_member_path
+{
+    if (isPCParty)
+    {
+        return disband_party_member_path::PC_FULL;
+    }
+    if (isMobParty)
+    {
+        return disband_party_member_path::MOB_CLEAR;
+    }
+    return disband_party_member_path::NONE;
+}
+
+// ShouldDetachAllianceOnDisband mirrors if (m_PAlliance) removeParty(this).
+inline auto ShouldDetachAllianceOnDisband(const bool hasAlliance) -> bool
+{
+    return hasAlliance;
+}
+
+// ShouldNotifyPartyDisbandIPC mirrors playerInitiated inside the PC path only.
+// Host should only call when ClassifyDisbandPartyMemberPath is PC_FULL.
+inline auto ShouldNotifyPartyDisbandIPC(const bool playerInitiated) -> bool
+{
+    return playerInitiated;
+}
+
+// ShouldReplaceSoloTreasurePool mirrors treasure pool != Zone type when non-null.
+inline auto ShouldReplaceSoloTreasurePool(const bool hasTreasurePool, const bool isZonePool) -> bool
+{
+    return hasTreasurePool && !isZonePool;
+}
+
+// MsgLevelSyncRemoveLeftParty is MsgStd::LevelSyncRemoveLeftParty (553).
+constexpr uint16 MsgLevelSyncRemoveLeftParty = 553;
+
 } // namespace partyhelpers

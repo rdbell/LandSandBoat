@@ -113,7 +113,7 @@ CParty::~CParty()
 
 void CParty::DisbandParty(bool playerInitiated)
 {
-    if (m_PAlliance)
+    if (partyhelpers::ShouldDetachAllianceOnDisband(m_PAlliance != nullptr))
     {
         m_PAlliance->removeParty(this);
     }
@@ -122,7 +122,11 @@ void CParty::DisbandParty(bool playerInitiated)
     m_PLeader     = nullptr;
     m_PAlliance   = nullptr;
 
-    if (m_PartyType == PARTY_PCS)
+    const auto memberPath = partyhelpers::ClassifyDisbandPartyMemberPath(
+        m_PartyType == PARTY_PCS,
+        m_PartyType == PARTY_MOBS);
+
+    if (memberPath == partyhelpers::disband_party_member_path::PC_FULL)
     {
         SetQuarterMaster("");
 
@@ -141,7 +145,9 @@ void CParty::DisbandParty(bool playerInitiated)
 
             // TODO: TreasurePool should stay with the last character, but now it is not critical
 
-            if (PChar->PTreasurePool != nullptr && PChar->PTreasurePool->getPoolType() != TreasurePoolType::Zone)
+            if (partyhelpers::ShouldReplaceSoloTreasurePool(
+                    PChar->PTreasurePool != nullptr,
+                    PChar->PTreasurePool != nullptr && PChar->PTreasurePool->getPoolType() == TreasurePoolType::Zone))
             {
                 PChar->PTreasurePool->delMember(PChar);
                 PChar->PTreasurePool = new CTreasurePool(TreasurePoolType::Solo);
@@ -149,25 +155,25 @@ void CParty::DisbandParty(bool playerInitiated)
                 PChar->PTreasurePool->updatePool(PChar);
             }
             CStatusEffect* sync = PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
-            if (sync && sync->GetDuration() == 0s)
+            if (partyhelpers::ShouldStartSyncDisableCountdown(sync != nullptr, sync != nullptr && sync->GetDuration() == 0s))
             {
-                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 30, MsgStd::LevelSyncRemoveLeftParty);
+                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, partyhelpers::LevelSyncDisableDurationSeconds, MsgStd::LevelSyncRemoveLeftParty);
                 sync->SetStartTime(timer::now());
-                sync->SetDuration(30s);
+                sync->SetDuration(std::chrono::seconds(partyhelpers::LevelSyncDisableDurationSeconds));
             }
 
             db::preparedStmt("DELETE FROM accounts_parties WHERE charid = ?", PChar->id);
         }
 
         // make sure message server isn't notified of a disband if this came from the message server already
-        if (playerInitiated)
+        if (partyhelpers::ShouldNotifyPartyDisbandIPC(playerInitiated))
         {
             message::send(ipc::PartyDisband{
                 .partyId = m_PartyID,
             });
         }
     }
-    else if (m_PartyType == PARTY_MOBS)
+    else if (memberPath == partyhelpers::disband_party_member_path::MOB_CLEAR)
     {
         for (auto& member : members) // this should really only trigger when a dynamic entity dies and nothing else qualifies for it's party anymore (such as !fafnir in zones without dragons)
         {
