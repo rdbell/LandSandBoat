@@ -20,6 +20,7 @@
 */
 
 #include "battlefield.h"
+#include "battlefield_capacity.h"
 
 #include "common/settings.h"
 #include "common/timer.h"
@@ -270,17 +271,16 @@ void CBattlefield::setArmouryCrate(uint32 entityId)
 void CBattlefield::ApplyLevelRestrictions(CCharEntity* PChar) const
 {
     // Adjust player's level to the appropriate cap and remove buffs
-    auto cap = GetLevelCap();
+    const auto rawCap = GetLevelCap();
 
-    if (cap > 0)
+    if (battlefieldhelpers::ShouldApplyLevelCap(rawCap))
     {
-        cap += settings::get<int8>("map.BATTLE_CAP_TWEAK"); // We wait till here to do this because we don't want to modify uncapped battles.
-
-        // Check if it's a mission and if config setting applies.
-        if (!settings::get<bool>("map.LV_CAP_MISSION_BCNM") && m_isMission == 1)
-        {
-            cap = settings::get<uint8>("main.MAX_LEVEL"); // Cap to server max level to strip buffs - this is the retail diff between uncapped and capped to max lv.
-        }
+        const uint8 cap = battlefieldhelpers::ResolveLevelCap(
+            rawCap,
+            settings::get<int8>("map.BATTLE_CAP_TWEAK"),
+            settings::get<bool>("map.LV_CAP_MISSION_BCNM"),
+            m_isMission == 1,
+            settings::get<uint8>("main.MAX_LEVEL"));
 
         PChar->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Dispelable, EffectNotice::Silent);
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Reraise);
@@ -292,7 +292,7 @@ void CBattlefield::ApplyLevelRestrictions(CCharEntity* PChar) const
     }
 
     // Check if we should remove SJ, whether or not there is a lv cap.
-    if (!(m_Rules & BCRULES::RULES_ALLOW_SUBJOBS))
+    if (battlefieldhelpers::ShouldAddSjRestriction(m_Rules))
     {
         PChar->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::SjRestriction, static_cast<uint16>(xi::StatusEffect::SjRestriction), 0, 0s, 0s);
     }
@@ -300,51 +300,51 @@ void CBattlefield::ApplyLevelRestrictions(CCharEntity* PChar) const
 
 bool CBattlefield::IsOccupied() const
 {
-    return !m_EnteredPlayers.empty();
+    return battlefieldhelpers::IsOccupied(m_EnteredPlayers.empty());
 }
 
 bool CBattlefield::isEntered(CCharEntity* PChar) const
 {
-    return m_EnteredPlayers.find(PChar->id) != m_EnteredPlayers.end();
+    return battlefieldhelpers::IsEntered(m_EnteredPlayers.find(PChar->id) != m_EnteredPlayers.end());
 }
 
 bool CBattlefield::InsertEntity(CBaseEntity* PEntity, bool enter, BATTLEFIELDMOBCONDITION conditions, bool ally)
 {
-    if (PEntity == nullptr)
+    if (battlefieldhelpers::ShouldRejectNullInsert(PEntity == nullptr))
     {
-        ShowWarning("CBattlefield::InsertEntity() - PEntity is null.");
+        ShowWarning("%s", battlefieldhelpers::FormatInsertEntityNullWarning());
         return false;
     }
 
-    if (PEntity->PBattlefield)
+    if (battlefieldhelpers::ShouldRejectAlreadyInBattlefield(PEntity->PBattlefield != nullptr))
     {
         return false;
     }
 
     if (PEntity->objtype == TYPE_PC)
     {
-        if (GetPlayerCount() < GetMaxParticipants())
+        if (battlefieldhelpers::ShouldAcceptPCUnderCapacity(GetPlayerCount(), GetMaxParticipants()))
         {
             CCharEntity* PChar = static_cast<CCharEntity*>(PEntity);
-            if (enter)
+            if (battlefieldhelpers::ShouldEnterPC(enter))
             {
                 ApplyLevelRestrictions(PChar);
                 m_EnteredPlayers.emplace(PEntity->id);
                 PChar->ClearTrusts();
                 luautils::OnBattlefieldEnter(PChar, this);
 
-                if (m_showTimer)
+                if (battlefieldhelpers::ShouldSendTimerPacket(m_showTimer))
                 {
                     charutils::SendTimerPacket(PChar, GetRemainingTime());
                 }
 
                 // Try to add the player's pet in case they have one that can
-                if (PChar->PPet != nullptr)
+                if (battlefieldhelpers::ShouldInsertPetWithPC(true, PChar->PPet != nullptr))
                 {
                     InsertEntity(PChar->PPet, true);
                 }
             }
-            else if (!IsRegistered(PChar))
+            else if (battlefieldhelpers::ShouldRegisterPC(enter, IsRegistered(PChar)))
             {
                 m_RegisteredPlayers.emplace(PEntity->id);
                 return true;
@@ -357,7 +357,9 @@ bool CBattlefield::InsertEntity(CBaseEntity* PEntity, bool enter, BATTLEFIELDMOB
     }
     else if (PEntity->objtype == TYPE_NPC)
     {
-        PEntity->status = (conditions & CONDITION_DISAPPEAR_AT_START) == CONDITION_DISAPPEAR_AT_START ? STATUS_TYPE::DISAPPEAR : STATUS_TYPE::NORMAL;
+        PEntity->status = battlefieldhelpers::ShouldNPCDisappearAtStart(static_cast<uint8>(conditions))
+                              ? STATUS_TYPE::DISAPPEAR
+                              : STATUS_TYPE::NORMAL;
         PEntity->loc.zone->UpdateEntityPacket(PEntity, ENTITY_SPAWN, UPDATE_ALL_MOB);
         m_NpcList.emplace_back(static_cast<CNpcEntity*>(PEntity));
     }
@@ -513,7 +515,8 @@ CBaseEntity* CBattlefield::GetEntity(CBaseEntity* PEntity)
 
 bool CBattlefield::IsRegistered(CCharEntity* PChar)
 {
-    return PChar && m_RegisteredPlayers.find(PChar->id) != m_RegisteredPlayers.end();
+    return PChar != nullptr &&
+           battlefieldhelpers::IsRegistered(m_RegisteredPlayers.find(PChar->id) != m_RegisteredPlayers.end());
 }
 
 bool CBattlefield::RemoveEntity(CBaseEntity* PEntity, uint8 leavecode)
@@ -708,17 +711,23 @@ void CBattlefield::onTick(timer::time_point time)
 {
     TracyZoneScoped;
 
-    if (!m_Attacked)
+    if (battlefieldhelpers::ShouldCheckInProgress(m_Attacked))
     {
         CheckInProgress();
     }
 
-    if (time > m_Tick + 1s)
+    if (battlefieldhelpers::ShouldAdvanceBattlefieldTick(time > m_Tick + 1s))
     {
         // todo : bcnm - update tick, fight tick, end if time is up
-        m_Tick       = time;
-        m_FightTick  = m_Status == BATTLEFIELD_STATUS_LOCKED ? m_FightTick : time;
-        m_FinishTime = m_Status >= BATTLEFIELD_STATUS_WON ? m_FightTick - m_StartTime : m_FinishTime;
+        m_Tick = time;
+        if (!battlefieldhelpers::ShouldHoldFightTick(m_Status))
+        {
+            m_FightTick = time;
+        }
+        if (battlefieldhelpers::ShouldCaptureFinishTime(m_Status))
+        {
+            m_FinishTime = m_FightTick - m_StartTime;
+        }
 
         luautils::OnBattlefieldTick(this);
     }
@@ -726,18 +735,18 @@ void CBattlefield::onTick(timer::time_point time)
 
 bool CBattlefield::CanCleanup(bool cleanup)
 {
-    if (cleanup)
+    if (battlefieldhelpers::ShouldSetCleanupSticky(cleanup))
     {
         m_Cleanup = cleanup;
     }
 
-    return m_Cleanup || m_EnteredPlayers.empty();
+    return battlefieldhelpers::CanCleanupResult(m_Cleanup, m_EnteredPlayers.empty());
 }
 
 bool CBattlefield::Cleanup(timer::time_point time, bool force)
 {
     // Wait until
-    if (!force && !m_EnteredPlayers.empty() && m_cleanupTime > time)
+    if (battlefieldhelpers::ShouldDeferCleanup(force, m_EnteredPlayers.empty(), m_cleanupTime > time))
     {
         return false;
     }
@@ -745,7 +754,7 @@ bool CBattlefield::Cleanup(timer::time_point time, bool force)
     // First cleanup the players if they haven't been cleaned up yet
     if (!m_cleanedPlayers)
     {
-        uint8 leavecode = m_Status == BATTLEFIELD_STATUS_WON ? BATTLEFIELD_LEAVE_CODE_WIN : BATTLEFIELD_LEAVE_CODE_LOSE;
+        const uint8 leavecode = battlefieldhelpers::LeaveCodeFromStatus(m_Status);
         for (auto id : m_EnteredPlayers)
         {
             auto* PChar = GetZone()->GetCharByID(id);
@@ -753,7 +762,7 @@ bool CBattlefield::Cleanup(timer::time_point time, bool force)
         }
 
         m_cleanedPlayers = true;
-        if (!force)
+        if (battlefieldhelpers::ShouldSchedulePlayerCleanupDelay(force))
         {
             m_cleanupTime = time + 10s;
             return false;
@@ -763,12 +772,12 @@ bool CBattlefield::Cleanup(timer::time_point time, bool force)
     for (const auto& mob : m_RequiredEnemyList)
     {
         // Negate the no despawn bit to allow mobs that may use no despawn mechanics to despawn properly
-        if (mob.PMob->m_Behavior & BEHAVIOR_NO_DESPAWN)
+        if (battlefieldhelpers::ShouldClearNoDespawnBehavior(mob.PMob->m_Behavior & BEHAVIOR_NO_DESPAWN))
         {
             mob.PMob->m_Behavior &= ~BEHAVIOR_NO_DESPAWN;
         }
 
-        if (mob.PMob->isAlive() && mob.PMob->PAI->IsSpawned())
+        if (battlefieldhelpers::ShouldDespawnMobOnCleanup(mob.PMob->isAlive(), mob.PMob->PAI->IsSpawned()))
         {
             mob.PMob->PAI->Despawn();
         }
@@ -777,18 +786,18 @@ bool CBattlefield::Cleanup(timer::time_point time, bool force)
     for (const auto& mob : m_AdditionalEnemyList)
     {
         // Negate the no despawn bit to allow mobs that may use no despawn mechanics to despawn properly
-        if (mob.PMob->m_Behavior & BEHAVIOR_NO_DESPAWN)
+        if (battlefieldhelpers::ShouldClearNoDespawnBehavior(mob.PMob->m_Behavior & BEHAVIOR_NO_DESPAWN))
         {
             mob.PMob->m_Behavior &= ~BEHAVIOR_NO_DESPAWN;
         }
 
-        if (mob.PMob->isAlive() && mob.PMob->PAI->IsSpawned())
+        if (battlefieldhelpers::ShouldDespawnMobOnCleanup(mob.PMob->isAlive(), mob.PMob->PAI->IsSpawned()))
         {
             mob.PMob->PAI->Despawn();
         }
     }
 
-    if (GetStatus() == BATTLEFIELD_STATUS_WON && GetRecord().time > m_FinishTime)
+    if (battlefieldhelpers::ShouldUpdateRecordOnWin(GetStatus(), GetRecord().time > m_FinishTime))
     {
         SetRecord(m_Initiator.name, m_FinishTime, m_EnteredPlayers.size());
     }
