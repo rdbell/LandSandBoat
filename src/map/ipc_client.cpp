@@ -31,6 +31,7 @@
 #include "group_chat_delivery.h"
 #include "kill_session.h"
 #include "linkshell_updates.h"
+#include "lua_function.h"
 #include "party_alliance_updates.h"
 #include "party_invite.h"
 #include "party_invite_response.h"
@@ -734,14 +735,23 @@ void IPCClient::handleMessage_LuaFunction(const IPP& ipp, const ipc::LuaFunction
 {
     TracyZoneScoped;
 
-    auto result = lua.safe_script(message.funcString);
-    if (!result.valid())
-    {
-        sol::error err = result;
-        ShowError("IPCClient::handleMessage_LuaFunction: error: %s: %s", err.what(), message.funcString.c_str());
-    }
-
-    // TODO: Handle a return value from result, and send back to message.requesterZoneId
+    mapipc::HandleLuaFunction(
+        message,
+        [](const std::string& funcString) -> std::optional<std::string>
+        {
+            auto result = lua.safe_script(funcString);
+            if (result.valid())
+            {
+                // TODO: Handle a return value from result, and send back to message.requesterZoneId
+                return std::nullopt;
+            }
+            sol::error err = result;
+            return std::string{ err.what() };
+        },
+        [](const std::string& line)
+        {
+            ShowError("%s", line.c_str());
+        });
 }
 
 void IPCClient::handleMessage_KillSession(const IPP& ipp, const ipc::KillSession& message)

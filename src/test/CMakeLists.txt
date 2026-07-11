@@ -304,6 +304,8 @@ set(SOURCES
     test_map_regional_event_dispatch_1302.cpp
     test_map_party_invite_response_1303.h
     test_map_party_invite_response_1303.cpp
+    test_map_lua_function_1304.h
+    test_map_lua_function_1304.cpp
     test_trade_container.h
     test_trade_container.cpp
     test_universal_container.h
