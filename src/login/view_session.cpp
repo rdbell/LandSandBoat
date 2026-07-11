@@ -21,6 +21,7 @@
 
 #include "view_session.h"
 
+#include "character_delete.h"
 #include "character_name.h"
 #include "character_select.h"
 #include "data_session.h"
@@ -114,26 +115,31 @@ void view_session::read_func()
             lpkt_deletechr deleteCharPacket = {};
             std::memcpy(&deleteCharPacket, buffer_.data(), sizeof(lpkt_deletechr));
 
+            // Ack is sent before ownership checks (LSB order).
             loginHelpers::GenerateViewLobbyAckPacket(buffer_.data());
             do_write(loginHelpers::ViewLobbyAckPacketSize);
 
             uint32 charID = deleteCharPacket.ffxi_id;
 
-            ShowInfo(fmt::format("attempt to delete char:<{}> from ip:<{}>",
-                                 charID,
-                                 ipAddress));
+            ShowInfo(loginHelpers::FormatCharacterDeleteAttemptInfo(charID, ipAddress));
 
-            uint32 accountID = 0;
-
-            const auto rset = db::preparedStmt("SELECT accid FROM chars WHERE charid = ? LIMIT 1", charID);
+            bool       rowFound  = false;
+            uint32     rowAccid  = 0;
+            const auto rset      = db::preparedStmt("SELECT accid FROM chars WHERE charid = ? LIMIT 1", charID);
             if (rset && rset->rowsCount() != 0 && rset->next())
             {
-                accountID = rset->get<uint32>("accid");
+                rowAccid = rset->get<uint32>("accid");
+                rowFound = true;
             }
 
-            if (accountID != session.accountID)
+            const uint32 lookedUpAccountID = loginHelpers::LookedUpAccountIDFromDeleteQuery(
+                static_cast<bool>(rset),
+                rowFound,
+                rowAccid);
+            if (loginHelpers::ClassifyCharacterDeleteOwnership(lookedUpAccountID, session.accountID) ==
+                loginHelpers::character_delete_ownership_gate::DENIED)
             {
-                ShowError(fmt::format("Account ID {} tried to delete character not in their account.", session.accountID));
+                ShowError(loginHelpers::FormatCharacterDeleteWrongAccount(session.accountID));
                 socket_.lowest_layer().close();
                 return;
             }

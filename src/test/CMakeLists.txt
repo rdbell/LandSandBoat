@@ -402,6 +402,8 @@ set(SOURCES
     test_login_view_lobby_ack_1317.cpp
     test_login_character_select_1318.h
     test_login_character_select_1318.cpp
+    test_login_character_delete_1319.h
+    test_login_character_delete_1319.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
