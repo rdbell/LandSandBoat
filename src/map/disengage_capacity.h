@@ -1,13 +1,13 @@
 #pragma once
 
-#include "common/cbasetypes.h"
+#include "battle_transition_capacity.h"
 
 namespace disengagehelpers
 {
 
-constexpr uint8 AnimationNone   = 0;
-constexpr uint8 AnimationAttack = 1;
-constexpr uint8 UpdateHP        = 0x04;
+constexpr uint8 AnimationNone   = battletransitionhelpers::AnimationNone;
+constexpr uint8 AnimationAttack = battletransitionhelpers::AnimationAttack;
+constexpr uint8 UpdateHP        = battletransitionhelpers::UpdateHP;
 
 struct DisengageState
 {

@@ -36,6 +36,7 @@
 #include "zanshin_capacity.h"
 #include "daken_sange_ammo_capacity.h"
 #include "attack_loop_capacity.h"
+#include "engage_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3966,9 +3967,13 @@ void CBattleEntity::OnEngage(CAttackState& state)
 {
     TracyZoneScoped;
 
-    animation = ANIMATION_ATTACK;
-    updatemask |= UPDATE_HP;
-    PAI->EventHandler.triggerListener("ENGAGE", this, state.GetTarget());
+    engagehelpers::Apply(
+        updatemask,
+        [&](const engagehelpers::EngageState engageState) {
+            animation  = engageState.animation;
+            updatemask = engageState.updateMask;
+        },
+        [&]() { PAI->EventHandler.triggerListener("ENGAGE", this, state.GetTarget()); });
 }
 
 void CBattleEntity::TryHitInterrupt(CBattleEntity* PAttacker)
