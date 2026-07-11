@@ -22,6 +22,7 @@
 #include <map/entities/trust_entity.h>
 #include <map/trust_death_capacity.h>
 #include <map/trust_fade_out_capacity.h>
+#include <map/trust_post_tick_capacity.h>
 #include <map/trust_spawn_capacity.h>
 
 #include "action/action.h"
@@ -110,26 +111,28 @@ auto CTrustEntity::passiveTrust() -> IsPassiveTrust
 
 void CTrustEntity::PostTick()
 {
-    // NOTE: This is purposefully calling CBattleEntity's impl.
-    // TODO: Calling a grand-parent's impl. of an overridden function is bad
-    CBattleEntity::PostTick();
-    timer::time_point now = timer::now();
-    if (loc.zone && updatemask && status != STATUS_TYPE::DISAPPEAR && now > m_nextUpdateTimer)
-    {
-        m_nextUpdateTimer = now + 250ms;
-        loc.zone->UpdateEntityPacket(this, ENTITY_UPDATE, updatemask);
-
-        if (PMaster && PMaster->PParty && updatemask & UPDATE_HP)
+    trustposttickhelpers::Apply(
+        // Purposefully skip CMobEntity::PostTick.
+        [&]() { CBattleEntity::PostTick(); },
+        [&]() { return timer::now(); },
+        [&]() { return loc.zone != nullptr; },
+        [&]() { return updatemask != 0; },
+        [&]() { return status == STATUS_TYPE::DISAPPEAR; },
+        [&]() { return m_nextUpdateTimer; },
+        [&](timer::time_point next) { m_nextUpdateTimer = next; },
+        [&]() { loc.zone->UpdateEntityPacket(this, ENTITY_UPDATE, updatemask); },
+        [&]() { return PMaster != nullptr; },
+        [&]() { return PMaster->PParty != nullptr; },
+        [&]() { return (updatemask & UPDATE_HP) != 0; },
+        [&]()
         {
             PMaster->ForParty(
                 [this](auto PMember)
                 {
                     static_cast<CCharEntity*>(PMember)->pushPacket<GP_SERV_COMMAND_GROUP_ATTR>(this);
                 });
-        }
-
-        updatemask = 0;
-    }
+        },
+        [&]() { updatemask = 0; });
 }
 
 void CTrustEntity::FadeOut()
