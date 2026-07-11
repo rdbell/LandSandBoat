@@ -444,6 +444,8 @@ set(SOURCES
     test_world_chat_message_assist_1264.cpp
     test_world_chat_message_server_message_1265.h
     test_world_chat_message_server_message_1265.cpp
+    test_world_chat_message_custom_1266.h
+    test_world_chat_message_custom_1266.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h

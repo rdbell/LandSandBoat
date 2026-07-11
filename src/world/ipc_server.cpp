@@ -27,6 +27,7 @@
 #include "char_zone.h"
 #include "chat_message_alliance.h"
 #include "chat_message_assist.h"
+#include "chat_message_custom.h"
 #include "chat_message_linkshell.h"
 #include "chat_message_party.h"
 #include "chat_message_server_message.h"
@@ -515,7 +516,12 @@ void IPCServer::handleMessage_ChatMessageCustom(const IPP& ipp, const ipc::ChatM
 {
     TracyZoneScoped;
 
-    rerouteMessageToCharId(message.recipientId, message);
+    worldipc::HandleChatMessageCustom(
+        message,
+        [this](const uint32 recipientId, const ipc::ChatMessageCustom& customMessage)
+        {
+            rerouteMessageToCharId(recipientId, customMessage);
+        });
 }
 
 void IPCServer::handleMessage_PartyInvite(const IPP& ipp, const ipc::PartyInvite& message)
