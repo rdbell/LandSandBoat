@@ -19,6 +19,8 @@ namespace
 
 constexpr auto responseQuery = "UPDATE help_desk SET response = ?, responded_at = NOW() WHERE id = ?";
 constexpr auto endpointQuery = "SELECT server_addr, server_port FROM accounts_sessions WHERE charid = ? LIMIT 1";
+constexpr auto nameEndpointQuery = "SELECT server_addr, server_port FROM accounts_sessions LEFT JOIN chars ON "
+                                   "accounts_sessions.charid = chars.charid WHERE charname = ? LIMIT 1";
 
 class FakeDatabase final : public db::Database
 {
@@ -69,7 +71,8 @@ auto updateResult(const std::size_t affected = 1) -> std::unique_ptr<db::ResultS
     return std::make_unique<db::LibMariaDBResultSet>(affected, responseQuery);
 }
 
-auto endpointResult(const bool found, const uint32_t ip = 0, const uint16_t port = 0) -> std::unique_ptr<db::ResultSet>
+auto endpointResultFor(const std::string& query, const bool found, const uint32_t ip = 0, const uint16_t port = 0)
+    -> std::unique_ptr<db::ResultSet>
 {
     auto schema                  = std::make_shared<db::ColumnSchema>();
     schema->names                = { "server_addr", "server_port" };
@@ -80,7 +83,12 @@ auto endpointResult(const bool found, const uint32_t ip = 0, const uint16_t port
     {
         rows.push_back({ static_cast<uint64>(ip), static_cast<uint64>(port) });
     }
-    return std::make_unique<db::LibMariaDBResultSet>(endpointQuery, std::move(schema), std::move(rows));
+    return std::make_unique<db::LibMariaDBResultSet>(query, std::move(schema), std::move(rows));
+}
+
+auto endpointResult(const bool found, const uint32_t ip = 0, const uint16_t port = 0) -> std::unique_ptr<db::ResultSet>
+{
+    return endpointResultFor(endpointQuery, found, ip, port);
 }
 
 auto expect(const bool condition, const char* label) -> bool
@@ -155,6 +163,32 @@ auto testCharacterEndpointLookup() -> bool
                   "endpoint bindings");
 }
 
+auto testCharacterNameEndpointLookup() -> bool
+{
+    DatabaseGuard guard;
+    FakeDatabase  fake;
+    fake.results.push_back(endpointResultFor(nameEndpointQuery, true, 0x04030201, 54321));
+    fake.results.push_back(endpointResultFor(nameEndpointQuery, true));
+    fake.results.push_back(endpointResultFor(nameEndpointQuery, false));
+    fake.results.push_back(nullptr);
+    db::setDatabase(&fake);
+
+    const auto found   = world::ipc::LookupCharacterNameEndpoint("");
+    const auto zero    = world::ipc::LookupCharacterNameEndpoint("Zero");
+    const auto missing = world::ipc::LookupCharacterNameEndpoint("Missing");
+    const auto failed  = world::ipc::LookupCharacterNameEndpoint("Failed");
+
+    return expect(found && found->getIP() == 0x04030201 && found->getPort() == 54321, "name endpoint row") &&
+           expect(zero && zero->getRawIPP() == 0, "zero name endpoint row remains present") &&
+           expect(!missing, "empty name endpoint result") &&
+           expect(!failed, "failed name endpoint query") &&
+           expect(fake.queries == std::vector<std::string>{ nameEndpointQuery, nameEndpointQuery, nameEndpointQuery, nameEndpointQuery },
+                  "name endpoint queries") &&
+           expect(boundString(fake.bindings[0][0], "") && boundString(fake.bindings[1][0], "Zero") &&
+                      boundString(fake.bindings[2][0], "Missing") && boundString(fake.bindings[3][0], "Failed"),
+                  "name endpoint bindings");
+}
+
 } // namespace
 
 auto runWorldGMCallDatabase1245SelfTests() -> bool
@@ -162,5 +196,6 @@ auto runWorldGMCallDatabase1245SelfTests() -> bool
     bool ok = true;
     ok      = testResponsePersistence() && ok;
     ok      = testCharacterEndpointLookup() && ok;
+    ok      = testCharacterNameEndpointLookup() && ok;
     return ok;
 }

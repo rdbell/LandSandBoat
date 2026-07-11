@@ -25,6 +25,7 @@
 #include "char_id_reroute.h"
 #include "char_var_update.h"
 #include "char_zone.h"
+#include "chat_message_tell.h"
 
 #include "besieged_system.h"
 #include "campaign_system.h"
@@ -86,17 +87,7 @@ auto IPCServer::getIPPForCharName(const std::string& charName) -> Maybe<IPP>
 
     // TODO: We know when chars move, we could be caching this info
 
-    const auto rset = db::preparedStmt("SELECT server_addr, server_port FROM accounts_sessions LEFT JOIN chars ON "
-                                       "accounts_sessions.charid = chars.charid WHERE charname = ? LIMIT 1",
-                                       charName);
-    if (rset && rset->rowsCount() && rset->next())
-    {
-        const auto ip   = rset->get<uint32>("server_addr");
-        const auto port = rset->get<uint16>("server_port");
-        return IPP(ip, port);
-    }
-
-    return std::nullopt;
+    return world::ipc::LookupCharacterNameEndpoint(charName);
 }
 
 auto IPCServer::getIPPForZoneId(uint16 zoneId) -> Maybe<IPP>
@@ -448,17 +439,21 @@ void IPCServer::handleMessage_ChatMessageTell(const IPP& ipp, const ipc::ChatMes
 {
     TracyZoneScoped;
 
-    const auto charIPP = getIPPForCharName(message.recipientName);
-    if (!charIPP)
-    {
-        sendMessage(ipp, ipc::MessageStandard{
-                             .recipientId = message.senderId,
-                             .message     = MsgStd::TellNotReceivedOffline,
-                         });
-        return;
-    }
-
-    sendMessage(charIPP.value(), message);
+    worldipc::HandleChatMessageTell(
+        ipp,
+        message,
+        [this](const std::string& recipientName)
+        {
+            return getIPPForCharName(recipientName);
+        },
+        [this](const IPP& endpoint, const ipc::ChatMessageTell& tell)
+        {
+            this->sendMessage(endpoint, tell);
+        },
+        [this](const IPP& endpoint, const ipc::MessageStandard& offline)
+        {
+            this->sendMessage(endpoint, offline);
+        });
 }
 
 void IPCServer::handleMessage_ChatMessageParty(const IPP& ipp, const ipc::ChatMessageParty& message)

@@ -195,6 +195,7 @@ auto runWorldGMCallDatabase1245SelfTests() -> bool;
 auto runWorldAccountLogin1252SelfTests() -> bool;
 auto runWorldCharZone1255SelfTests() -> bool;
 auto runWorldCharVarUpdate1256SelfTests() -> bool;
+auto runWorldChatMessageTell1257SelfTests() -> bool;
 auto runWorldZoneSettingsSelfTests() -> bool;
 auto runC2SPacketValidationScalarSelfTests() -> bool;
 auto runC2SPacketIDEnumSelfTests() -> bool;
@@ -516,6 +517,7 @@ namespace
         ok = runWorldAccountLogin1252SelfTests() && ok;
         ok = runWorldCharZone1255SelfTests() && ok;
         ok = runWorldCharVarUpdate1256SelfTests() && ok;
+        ok = runWorldChatMessageTell1257SelfTests() && ok;
         ok = runWorldZoneSettingsSelfTests() && ok;
         ok = runMariaDBConnectionLossSelfTests() && ok;
         ok = runMariaDBResultCellConversionsSelfTests() && ok;

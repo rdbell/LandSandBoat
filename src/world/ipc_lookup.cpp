@@ -11,3 +11,15 @@ auto world::ipc::LookupCharacterEndpoint(const uint32_t charId) -> Maybe<IPP>
     }
     return std::nullopt;
 }
+
+auto world::ipc::LookupCharacterNameEndpoint(const std::string& charName) -> Maybe<IPP>
+{
+    const auto rset = db::preparedStmt("SELECT server_addr, server_port FROM accounts_sessions LEFT JOIN chars ON "
+                                       "accounts_sessions.charid = chars.charid WHERE charname = ? LIMIT 1",
+                                       charName);
+    if (rset && rset->rowsCount() && rset->next())
+    {
+        return IPP(rset->get<uint32>("server_addr"), rset->get<uint16>("server_port"));
+    }
+    return std::nullopt;
+}
