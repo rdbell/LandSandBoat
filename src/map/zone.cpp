@@ -33,6 +33,7 @@ constexpr std::uint16_t WeatherCycle = 2160;
 // Each of these zones has special behavior
 
 #include "zone.h"
+#include "zone_capacity.h"
 
 #include "common/logging.h"
 #include "common/settings.h"
@@ -318,7 +319,7 @@ void CZone::ResetLocalVars()
 
 bool CZone::CanUseMisc(uint16 misc) const
 {
-    return (m_miscMask & misc) == misc;
+    return zonehelpers::CanUseMisc(m_miscMask, misc);
 }
 
 zoneLine_t* CZone::GetZoneLine(uint32 zoneLineID)
@@ -646,19 +647,26 @@ void CZone::updateCharLevelRestriction(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LevelRestriction))
+    const bool hasRestriction = PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LevelRestriction);
+    if (hasRestriction)
     {
         // If the level restriction is already the same then no need to change it
         CStatusEffect* statusEffect = PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelRestriction);
-        if (statusEffect == nullptr || statusEffect->GetPower() == m_levelRestriction)
+        if (zonehelpers::ShouldSkipLevelRestrictionUpdate(
+                true,
+                statusEffect == nullptr,
+                statusEffect != nullptr && statusEffect->GetPower() == m_levelRestriction))
         {
             return;
         }
 
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::LevelRestriction);
+        if (zonehelpers::ShouldDeleteExistingLevelRestriction(true, false))
+        {
+            PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::LevelRestriction);
+        }
     }
 
-    if (m_levelRestriction != 0)
+    if (zonehelpers::ShouldApplyZoneLevelRestriction(m_levelRestriction))
     {
         // remove buffs in level cap zones as well (such as riverne sites)
         PChar->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Dispelable, EffectNotice::Silent);
@@ -678,13 +686,13 @@ void CZone::SetWeather(const Weather weather)
 {
     TracyZoneScoped;
 
-    if (!magic_enum::enum_contains<Weather>(weather))
+    if (zonehelpers::ShouldRejectInvalidWeather(magic_enum::enum_contains<Weather>(weather)))
     {
-        ShowWarningFmt("Weather value ({}) invalid.", static_cast<uint16_t>(weather));
+        ShowWarningFmt("{}", zonehelpers::FormatInvalidWeatherWarning(static_cast<uint16_t>(weather)));
         return;
     }
 
-    if (weather_.current() == weather)
+    if (zonehelpers::ShouldSkipSameWeather(weather_.current() == weather))
     {
         return;
     }
@@ -694,7 +702,13 @@ void CZone::SetWeather(const Weather weather)
     const uint32 changeTime = earth_time::vanadiel_timestamp();
     weather_.set(weather, changeTime);
 
-    m_zoneEntities->PushPacket(nullptr, CHAR_INZONE, std::make_unique<GP_SERV_COMMAND_WEATHER>(changeTime, weather, xirand::GetRandomNumber(4, 28)));
+    m_zoneEntities->PushPacket(
+        nullptr,
+        CHAR_INZONE,
+        std::make_unique<GP_SERV_COMMAND_WEATHER>(
+            changeTime,
+            weather,
+            xirand::GetRandomNumber(zonehelpers::WeatherPacketOffsetMin, zonehelpers::WeatherPacketOffsetMaxExclusive)));
 }
 
 void CZone::UpdateWeather()
@@ -710,13 +724,15 @@ void CZone::UpdateWeather()
     uint8                     WeatherChance     = 0;
 
     // Random time between 3 minutes and 30 minutes for the next weather change
-    WeatherNextUpdate = std::chrono::seconds(xirand::GetRandomNumber(180, 1801));
+    WeatherNextUpdate = std::chrono::seconds(xirand::GetRandomNumber(
+        zonehelpers::WeatherUpdateDelayMinSeconds,
+        zonehelpers::WeatherUpdateDelayMaxExclusiveSeconds));
 
     // Calculate what day we are on since the start of vanadiel time
     WeatherDay = vanadiel_time::count_days(CurrentVanaDate.time_since_epoch());
 
     // The weather starts over again every 2160 days
-    WeatherDay = WeatherDay % WeatherCycle;
+    WeatherDay = WeatherDay % zonehelpers::WeatherCycleDays;
 
     // Get a random number to determine which weather effect we will use
     WeatherChance = xirand::GetRandomNumber(100);
@@ -727,25 +743,25 @@ void CZone::UpdateWeather()
 
     // 15% chance for rare weather, 35% chance for common weather, 50% chance for normal weather
     // * Percentages were generated from a 6 hour sample and rounded down to closest multiple of 5*
-    if (WeatherChance < 15) // 15% chance to have the weather_rare
+    switch (zonehelpers::SelectWeatherBand(WeatherChance))
     {
-        selectedWeather = weatherType.rare;
-    }
-    else if (WeatherChance < 50) // 35% chance to have weather_common
-    {
-        selectedWeather = weatherType.common;
-    }
-    else
-    {
-        selectedWeather = weatherType.normal;
+        case 0:
+            selectedWeather = weatherType.rare;
+            break;
+        case 1:
+            selectedWeather = weatherType.common;
+            break;
+        default:
+            selectedWeather = weatherType.normal;
+            break;
     }
 
     // This check is incorrect, fog is not simply a time of day, though it may consistently happen in SOME zones
     // (Al'Taieu likely has it every morning, while Atohwa Chasm can have it at random any time of day)
-    if ((CurrentVanaDate >= StartFogVanaDate) &&
-        (CurrentVanaDate < EndFogVanaDate) &&
-        (selectedWeather < Weather::HotSpell) &&
-        !(GetTypeMask() & ZONE_TYPE::CITY))
+    if (zonehelpers::ShouldForceMorningFog(
+            (CurrentVanaDate >= StartFogVanaDate) && (CurrentVanaDate < EndFogVanaDate),
+            selectedWeather < Weather::HotSpell,
+            (GetTypeMask() & ZONE_TYPE::CITY) != 0))
     {
         selectedWeather = Weather::Fog;
         // Force the weather to change by 7 am
@@ -759,7 +775,7 @@ void CZone::UpdateWeather()
         [this, duration = std::chrono::duration_cast<earth_time::duration>(WeatherNextUpdate)]() -> Task<void>
         {
             co_await scheduler_.yieldFor(duration);
-            if (!this->weather().isStatic())
+            if (zonehelpers::ShouldRescheduleDynamicWeather(this->weather().isStatic()))
             {
                 this->UpdateWeather();
             }
@@ -768,7 +784,7 @@ void CZone::UpdateWeather()
 
 bool CZone::CheckMobsPathedBack()
 {
-    bool allMobsHomeAndHealed = true;
+    bool anyAway = false;
     if (m_zoneEntities && m_zoneEntities->GetMobList().size() > 0)
     {
         const auto& mobListMap = m_zoneEntities->GetMobList();
@@ -776,16 +792,17 @@ bool CZone::CheckMobsPathedBack()
         {
             CMobEntity* mob = dynamic_cast<CMobEntity*>(pair.second);
             // if the mob is (not dead/despawned AND it is not fully healed) OR it is pathing home
-            if (mob && ((!mob->isDead() && !mob->isFullyHealed()) || mob->m_IsPathingHome))
+            if (mob && zonehelpers::IsMobAwayFromHome(mob->isDead(), mob->isFullyHealed(), mob->m_IsPathingHome))
             {
                 // at least one mob is away from home or not fully healed
-                allMobsHomeAndHealed = false;
+                anyAway = true;
                 break;
             }
         }
+        return zonehelpers::ShouldReportAllMobsHomeAndHealed(true, anyAway);
     }
 
-    return allMobsHomeAndHealed;
+    return zonehelpers::ShouldReportAllMobsHomeAndHealed(false, false);
 }
 
 /************************************************************************
@@ -801,11 +818,12 @@ void CZone::DecreaseZoneCounter(CCharEntity* PChar)
 
     m_zoneEntities->DecreaseZoneCounter(PChar);
 
-    if (m_zoneEntities->CharListEmpty())
+    const bool charListEmpty = m_zoneEntities->CharListEmpty();
+    if (zonehelpers::ShouldStampZoneEmptyTime(charListEmpty))
     {
         m_timeZoneEmpty = timer::now();
     }
-    else
+    else if (zonehelpers::ShouldDespawnPCOnLeave(charListEmpty))
     {
         m_zoneEntities->DespawnPC(PChar);
     }
@@ -825,23 +843,26 @@ void CZone::IncreaseZoneCounter(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar == nullptr || PChar->loc.zone != nullptr || PChar->PTreasurePool != nullptr)
+    if (zonehelpers::ShouldRejectIncreaseZoneCounter(
+            PChar == nullptr,
+            PChar != nullptr && PChar->loc.zone != nullptr,
+            PChar != nullptr && PChar->PTreasurePool != nullptr))
     {
-        ShowWarning("CZone::IncreaseZoneCounter() - PChar is null, or Player zone or Treasure Pools is not null.");
+        ShowWarning("%s", zonehelpers::FormatIncreaseZoneCounterWarning());
         return;
     }
 
     PChar->targid = m_zoneEntities->GetNewCharTargID();
 
-    if (PChar->targid >= 0x700)
+    if (zonehelpers::ShouldRejectHighCharTargid(PChar->targid))
     {
-        ShowError("CZone::InsertChar : targid is high (03hX), update packets will be ignored", PChar->targid);
+        ShowError("%s", zonehelpers::FormatInsertCharTargidHighErrorPrefix());
         return;
     }
 
     m_zoneEntities->InsertPC(PChar);
 
-    if (!zoneTimerToken_.has_value() && !m_zoneEntities->CharListEmpty())
+    if (zonehelpers::ShouldCreateZoneTimers(zoneTimerToken_.has_value(), m_zoneEntities->CharListEmpty()))
     {
         createZoneTimers();
     }

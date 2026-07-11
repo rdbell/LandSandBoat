@@ -279,6 +279,7 @@ auto runLatentConditionEval1359SelfTests() -> bool;
 auto runLatentConditionEval1360SelfTests() -> bool;
 auto runBattlefieldPolicy1361SelfTests() -> bool;
 auto runSpawnCanSpawn1362SelfTests() -> bool;
+auto runZonePolicy1363SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -768,6 +769,7 @@ namespace
         ok = runLatentConditionEval1360SelfTests() && ok;
         ok = runBattlefieldPolicy1361SelfTests() && ok;
         ok = runSpawnCanSpawn1362SelfTests() && ok;
+        ok = runZonePolicy1363SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
