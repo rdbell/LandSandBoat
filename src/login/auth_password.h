@@ -145,4 +145,32 @@ inline auto classifyLoginAttemptAccountStatus(const uint32 status) -> login_atte
     return login_attempt_account_gate::REJECT;
 }
 
+// change_password_status_plan is the pure dual-flag outcome of the
+// LOGIN_CHANGE_PASSWORD status checks after password/OTP validation.
+// LSB checks BANNED and NORMAL independently: a banned emit does not return,
+// so NORMAL accounts that are also BANNED still enter the update path after
+// an early LOGIN_ERROR_CHANGE_PASSWORD reply.
+struct change_password_status_plan
+{
+    bool emitBannedError{}; // status & BANNED — send LOGIN_ERROR_CHANGE_PASSWORD (no return)
+    bool attemptUpdate{};   // status & NORMAL — enter empty-password / UPDATE path
+};
+
+// PlanChangePasswordStatus mirrors the two independent bit tests in
+// LOGIN_CHANGE_PASSWORD.
+inline auto PlanChangePasswordStatus(const uint32 status) -> change_password_status_plan
+{
+    return change_password_status_plan{
+        .emitBannedError = (status & ACCOUNT_STATUS_CODE::BANNED) != 0,
+        .attemptUpdate   = (status & ACCOUNT_STATUS_CODE::NORMAL) != 0,
+    };
+}
+
+// IsEmptyUpdatedPassword mirrors the updated_password == "" check before
+// hashing and writing a new password on LOGIN_CHANGE_PASSWORD.
+inline auto IsEmptyUpdatedPassword(const std::string& updatedPassword) -> bool
+{
+    return updatedPassword == "";
+}
+
 } // namespace loginHelpers

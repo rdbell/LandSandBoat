@@ -378,17 +378,20 @@ void auth_session::read_func()
                 }
             }
 
-            if (status & ACCOUNT_STATUS_CODE::BANNED)
+            const auto changePlan = loginHelpers::PlanChangePasswordStatus(status);
+
+            // Banned emit does not return — LSB falls through to the NORMAL check.
+            if (changePlan.emitBannedError)
             {
                 ShowInfoFmt("login_parse: banned user <{}> detected. Aborting.", username);
 
                 sendLoginResult(login_result::LOGIN_ERROR_CHANGE_PASSWORD);
             }
 
-            if (status & ACCOUNT_STATUS_CODE::NORMAL)
+            if (changePlan.attemptUpdate)
             {
                 // Account info verified, update password
-                if (updated_password == "")
+                if (loginHelpers::IsEmptyUpdatedPassword(updated_password))
                 {
                     ShowWarningFmt("login_parse: Empty password: Could not update password for user <{}>.", username);
                     sendLoginResult(login_result::LOGIN_ERROR_CHANGE_PASSWORD);
