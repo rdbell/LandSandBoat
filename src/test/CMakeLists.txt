@@ -564,6 +564,8 @@ set(SOURCES
     test_attack_post_swing_1399.cpp
     test_zanshin_1400.h
     test_zanshin_1400.cpp
+    test_daken_sange_ammo_1401.h
+    test_daken_sange_ammo_1401.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

@@ -34,6 +34,7 @@
 #include "attack_hit_path_capacity.h"
 #include "attack_post_swing_capacity.h"
 #include "zanshin_capacity.h"
+#include "daken_sange_ammo_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3914,21 +3915,22 @@ bool CBattleEntity::OnAttack(CAttackState& state, action_t& action)
         }
 
         // Remove shuriken if Daken proc and Sange is up
-        if (currentAttackType == PHYSICAL_ATTACK_TYPE::DAKEN)
-        {
-            if (StatusEffectContainer && StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sange))
-            {
-                auto* PChar = dynamic_cast<CCharEntity*>(this);
-                if (PChar)
-                {
+        CCharEntity* PChar = nullptr;
+        if (dakensangeammohelpers::ShouldRemoveShuriken(
+                static_cast<uint8>(currentAttackType),
+                StatusEffectContainer != nullptr,
+                [&]() { return StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sange); },
+                [&]() {
+                    PChar = dynamic_cast<CCharEntity*>(this);
+                    return PChar != nullptr;
+                },
+                [&]() {
                     const auto* PAmmo = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO));
-                    if (PAmmo && PAmmo->isShuriken())
-                    {
-                        // Removing ammo here is safe because you can only create one Daken attack per attack round
-                        battleutils::RemoveAmmo(PChar, 1);
-                    }
-                }
-            }
+                    return PAmmo != nullptr && PAmmo->isShuriken();
+                }))
+        {
+            // Removing ammo here is safe because you can only create one Daken attack per attack round
+            battleutils::RemoveAmmo(PChar, 1);
         }
 
         attackRound.DeleteAttackSwing();
