@@ -24,6 +24,7 @@
 #include "can_attack_capacity.h"
 #include "ranged_hit_count_capacity.h"
 #include "ranged_ammo_capacity.h"
+#include "camouflage_retain_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3488,64 +3489,21 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
     {
         battleutils::RemoveAmmo(PChar, ammoConsumed);
 
-        if (getMod(Mod::RETAIN_CAMOUFLAGE) > 0)
+        using namespace camouflageretainhelpers;
+
+        const int16 retainMod = getMod(Mod::RETAIN_CAMOUFLAGE);
+        if (ShouldEvaluateCamouflageRetain(retainMod))
         {
-            int16 retainChance     = 40;
-            uint8 rotAllowance     = 25;
-            float distanceToTarget = distance(loc.p, PTarget->loc.p);
-            float meleeRange       = PTarget->GetMeleeRange(PTarget);
+            const float distanceToTarget = distance(loc.p, PTarget->loc.p);
+            // Original uses PTarget->GetMeleeRange(PTarget) (target vs self hitboxes).
+            const float meleeRange = PTarget->GetMeleeRange(PTarget);
+            const auto  zone       = ResolveCamouflageFacingZone(
+                behind(loc.p, PTarget->loc.p, RotAllowance),
+                beside(loc.p, PTarget->loc.p, RotAllowance));
+            const int16 retainChance = ResolveCamouflageRetainChance(
+                isBarrage, zone, distanceToTarget, meleeRange);
 
-            if (isBarrage)
-            {
-                retainChance = 0;
-            }
-            else if (behind(loc.p, PTarget->loc.p, rotAllowance))
-            {
-                if (distanceToTarget > meleeRange + .6)
-                {
-                    retainChance = 100;
-                }
-                else if (distanceToTarget > meleeRange + .1)
-                {
-                    retainChance += 1.6 * distanceToTarget;
-                }
-                else
-                {
-                    retainChance = 0;
-                }
-            }
-            else if (beside(loc.p, PTarget->loc.p, rotAllowance))
-            {
-                if (distanceToTarget > meleeRange + 5)
-                {
-                    retainChance = 100;
-                }
-                else if (distanceToTarget > meleeRange + 3.3)
-                {
-                    retainChance += 1.6 * distanceToTarget;
-                }
-                else
-                {
-                    retainChance = 0;
-                }
-            }
-            else
-            {
-                if (distanceToTarget > meleeRange + 8.1)
-                {
-                    retainChance = 100;
-                }
-                else if (distanceToTarget > meleeRange + 7.1)
-                {
-                    retainChance += 1.6 * distanceToTarget;
-                }
-                else
-                {
-                    retainChance = 0;
-                }
-            }
-
-            if (xirand::GetRandomNumber(100) > retainChance)
+            if (ShouldStripAllDetectableOnFail(retainChance, xirand::GetRandomNumber(100)))
             {
                 StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Detectable);
             }
@@ -3556,7 +3514,7 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
                 StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Illusion);
             }
         }
-        else
+        else if (ShouldStripAllDetectableWithoutRetain(retainMod))
         {
             // Camouflage not up, so remove all detectable status effects
             StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Detectable);

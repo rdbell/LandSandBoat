@@ -544,6 +544,8 @@ set(SOURCES
     test_ranged_hit_count_1389.cpp
     test_ranged_ammo_1390.h
     test_ranged_ammo_1390.cpp
+    test_camouflage_retain_1391.h
+    test_camouflage_retain_1391.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

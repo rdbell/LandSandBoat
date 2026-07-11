@@ -307,6 +307,7 @@ auto runAttackState1387SelfTests() -> bool;
 auto runCanAttack1388SelfTests() -> bool;
 auto runRangedHitCount1389SelfTests() -> bool;
 auto runRangedAmmo1390SelfTests() -> bool;
+auto runCamouflageRetain1391SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -824,6 +825,7 @@ namespace
         ok = runCanAttack1388SelfTests() && ok;
         ok = runRangedHitCount1389SelfTests() && ok;
         ok = runRangedAmmo1390SelfTests() && ok;
+        ok = runCamouflageRetain1391SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
