@@ -347,6 +347,7 @@ auto runTrustValidTarget1427SelfTests() -> bool;
 auto runPetValidTarget1428SelfTests() -> bool;
 auto runPetJugTimer1429SelfTests() -> bool;
 auto runPetCanAttack1430SelfTests() -> bool;
+auto runPetAbility1431SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -904,6 +905,7 @@ namespace
         ok = runPetValidTarget1428SelfTests() && ok;
         ok = runPetJugTimer1429SelfTests() && ok;
         ok = runPetCanAttack1430SelfTests() && ok;
+        ok = runPetAbility1431SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

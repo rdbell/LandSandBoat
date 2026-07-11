@@ -20,6 +20,7 @@
 */
 
 #include "pet_entity.h"
+#include "map/pet_ability_capacity.h"
 #include "map/pet_can_attack_capacity.h"
 #include "map/pet_death_capacity.h"
 #include "map/pet_fade_out_capacity.h"
@@ -298,56 +299,48 @@ void CPetEntity::OnAbility(CAbilityState& state, action_t& action)
     auto* PTarget  = static_cast<CBattleEntity*>(state.GetTarget());
 
     std::unique_ptr<CBasicPacket> errMsg;
-    if (PTarget && IsValidTarget(PTarget->targid, PAbility->getValidTarget(), errMsg))
-    {
-        if (this != PTarget && distance(this->loc.p, PTarget->loc.p) > PAbility->getRange() + modelHitboxSize + PTarget->modelHitboxSize)
+    petabilityhelpers::Apply(
+        PTarget != nullptr,
+        [&]() { return IsValidTarget(PTarget->targid, PAbility->getValidTarget(), errMsg); },
+        [&]()
         {
-            return;
-        }
-
-        // Currently, only the Wyvern uses abilities at all as of writing, but their abilities are not instant and are mob abilities.
-        // Abilities are not subject to paralyze if they have non-zero cast time due to this corner case.
-        if (state.GetAbility()->getCastTime() == 0s && battleutils::IsParalyzed(this))
+            return this != PTarget &&
+                   distance(this->loc.p, PTarget->loc.p) > PAbility->getRange() + modelHitboxSize + PTarget->modelHitboxSize;
+        },
+        // Non-instant wyvern abilities are not subject to this paralyze gate.
+        [&]() { return state.GetAbility()->getCastTime() == 0s; },
+        [&]() { return battleutils::IsParalyzed(this); },
+        [&]()
         {
-            ActionInterrupts::AbilityParalyzed(this, PTarget);
-            return;
-        }
+            action.actorId                = this->id;
+            action.actiontype             = PAbility->getActionType();
+            action.actionid               = PAbility->getID();
+            action_target_t& actionTarget = action.addTarget(PTarget->id);
+            action_result_t& actionResult = actionTarget.addResult();
+            actionResult.resolution       = ActionResolution::Hit;
+            actionResult.animation        = PAbility->getAnimationID();
+            actionResult.param            = 0;
+            auto prevMsg                  = actionResult.messageID;
 
-        action.actorId                = this->id;
-        action.actiontype             = PAbility->getActionType();
-        action.actionid               = PAbility->getID();
-        action_target_t& actionTarget = action.addTarget(PTarget->id);
-        action_result_t& actionResult = actionTarget.addResult();
-        actionResult.resolution       = ActionResolution::Hit;
-        actionResult.animation        = PAbility->getAnimationID();
-        actionResult.param            = 0;
-        auto prevMsg                  = actionResult.messageID;
-
-        int32 value = luautils::OnUseAbility(this, PTarget, PAbility, &action);
-        if (prevMsg == actionResult.messageID)
-        {
-            actionResult.messageID = PAbility->getMessage();
-        }
-
-        if (actionResult.messageID == MsgBasic::None)
-        {
-            actionResult.messageID = MsgBasic::UsesJobAbility;
-        }
-
-        actionResult.param = value;
-
-        if (value < 0)
-        {
-            actionResult.messageID = messageutils::GetAbsorbVariant(actionResult.messageID);
-            actionResult.param     = -value;
-        }
-    }
-    else // Can't target anything, just cancel the animation.
-    {
-        ActionInterrupts::AbilityInterrupt(this);
-    }
-
-    this->processActionEffectFlags(action);
+            int32 value = luautils::OnUseAbility(this, PTarget, PAbility, &action);
+            if (prevMsg == actionResult.messageID)
+            {
+                actionResult.messageID = PAbility->getMessage();
+            }
+            if (actionResult.messageID == MsgBasic::None)
+            {
+                actionResult.messageID = MsgBasic::UsesJobAbility;
+            }
+            actionResult.param = value;
+            if (value < 0)
+            {
+                actionResult.messageID = messageutils::GetAbsorbVariant(actionResult.messageID);
+                actionResult.param     = -value;
+            }
+        },
+        [&]() { ActionInterrupts::AbilityInterrupt(this); },
+        [&]() { ActionInterrupts::AbilityParalyzed(this, PTarget); },
+        [&]() { processActionEffectFlags(action); });
 }
 
 bool CPetEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
