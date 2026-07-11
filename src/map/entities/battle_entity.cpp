@@ -29,6 +29,7 @@
 #include "ranged_outcome_capacity.h"
 #include "ranged_actor_finalize_capacity.h"
 #include "disengage_capacity.h"
+#include "attack_entry_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3570,16 +3571,20 @@ bool CBattleEntity::OnAttack(CAttackState& state, action_t& action)
 
     auto* PTarget = static_cast<CBattleEntity*>(state.GetTarget());
 
-    battleutils::ClaimMob(PTarget, this); // Mobs get claimed whether or not your attack actually is intimidated/paralyzed
-    PTarget->LastAttacked = timer::now();
+    attackentryhelpers::ApplyInitialEffects(
+        [&]() { battleutils::ClaimMob(PTarget, this); }, // Claim even when intimidated/paralyzed.
+        [&]() { PTarget->LastAttacked = timer::now(); });
 
-    if (battleutils::IsParalyzed(this))
+    const auto interrupt = attackentryhelpers::ResolveInterrupt(
+        battleutils::IsParalyzed(this),
+        [&]() { return battleutils::IsIntimidated(this, PTarget); });
+    if (interrupt == attackentryhelpers::AttackEntryInterrupt::Paralyzed)
     {
         ActionInterrupts::AttackParalyzed(this, PTarget);
         return true;
     }
 
-    if (battleutils::IsIntimidated(this, PTarget))
+    if (interrupt == attackentryhelpers::AttackEntryInterrupt::Intimidated)
     {
         ActionInterrupts::AttackIntimidated(this, PTarget);
         return true;

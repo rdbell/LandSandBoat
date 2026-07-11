@@ -554,6 +554,8 @@ set(SOURCES
     test_ranged_actor_finalize_1394.cpp
     test_disengage_1395.h
     test_disengage_1395.cpp
+    test_attack_entry_1396.h
+    test_attack_entry_1396.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
