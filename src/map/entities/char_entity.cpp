@@ -24,6 +24,7 @@
 #include "can_attack_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_automaton_capacity.h"
+#include "char_playtime_capacity.h"
 #include "char_storage_capacity.h"
 #include "common/logging.h"
 #include "common/timer.h"
@@ -897,21 +898,12 @@ void CCharEntity::setBlockingAid(bool isBlockingAid)
 
 void CCharEntity::SetPlayTime(timer::duration playTime)
 {
-    m_PlayTime = playTime;
-    m_SaveTime = timer::now();
+    charplaytimehelpers::Set(playTime, m_PlayTime, m_SaveTime, []() { return timer::now(); });
 }
 
 timer::duration CCharEntity::GetPlayTime(bool needUpdate)
 {
-    if (needUpdate)
-    {
-        auto currentTime = timer::now();
-
-        m_PlayTime += currentTime - m_SaveTime;
-        m_SaveTime = currentTime;
-    }
-
-    return m_PlayTime;
+    return charplaytimehelpers::Get(needUpdate, m_PlayTime, m_SaveTime, []() { return timer::now(); });
 }
 
 auto CCharEntity::getEquip(const SLOTTYPE slot) const -> CItemEquipment*
