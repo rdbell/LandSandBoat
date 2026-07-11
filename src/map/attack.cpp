@@ -305,54 +305,55 @@ uint16 CAttack::GetAnimationID()
  ************************************************************************/
 uint8 CAttack::GetHitRate()
 {
-    if (m_attackType == PHYSICAL_ATTACK_TYPE::KICK)
-    {
-        m_hitRate = battleutils::GetHitRate(m_attacker, m_victim, 2);
-    }
-    else if (m_attackType == PHYSICAL_ATTACK_TYPE::DAKEN)
-    {
-        int16 accBonus = 100;
+    const auto path = attackhelpers::ResolveHitRatePath(
+        static_cast<uint8>(m_attackType),
+        static_cast<uint8>(m_attackDirection));
 
-        if (m_attacker->StatusEffectContainer)
+    switch (path)
+    {
+        case attackhelpers::HitRatePath::KickMelee:
         {
-            const CStatusEffect* sangeEffect = m_attacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Sange);
-            CCharEntity*         PChar       = dynamic_cast<CCharEntity*>(m_attacker);
-            if (sangeEffect && PChar && PChar->PMeritPoints)
+            m_hitRate = battleutils::GetHitRate(
+                m_attacker,
+                m_victim,
+                attackhelpers::HitRateHandForPath(path));
+            break;
+        }
+        case attackhelpers::HitRatePath::DakenRanged:
+        {
+            int16 accBonus = attackhelpers::SangeBaseAccBonus;
+            if (m_attacker->StatusEffectContainer)
             {
-                int32 meritValue = PChar->PMeritPoints->GetMeritValue(MERIT_SANGE, PChar);
-
-                accBonus += (meritValue - 1) * 25; // add 25 acc per merit past the first (you have to merit Sange to even have the status effect, so this will never be negative acc bonus)
+                const CStatusEffect* sangeEffect = m_attacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Sange);
+                CCharEntity*         PChar       = dynamic_cast<CCharEntity*>(m_attacker);
+                const bool           hasSange    = sangeEffect != nullptr;
+                const bool           hasMerits   = PChar != nullptr && PChar->PMeritPoints != nullptr;
+                const int32          meritValue  = hasMerits ? PChar->PMeritPoints->GetMeritValue(MERIT_SANGE, PChar) : 0;
+                accBonus                         = attackhelpers::ComputeSangeAccBonus(hasSange, hasMerits, meritValue);
             }
+            m_hitRate = battleutils::GetRangedHitRate(m_attacker, m_victim, false, accBonus);
+            break;
         }
+        case attackhelpers::HitRatePath::RightMelee:
+        case attackhelpers::HitRatePath::LeftMelee:
+        {
+            const auto hand   = attackhelpers::HitRateHandForPath(path);
+            const auto accBon = attackhelpers::ZanshinAccBonusOrZero(static_cast<uint8>(m_attackType));
+            if (accBon != 0)
+            {
+                m_hitRate = battleutils::GetHitRate(m_attacker, m_victim, hand, accBon);
+            }
+            else
+            {
+                m_hitRate = battleutils::GetHitRate(m_attacker, m_victim, hand);
+            }
 
-        m_hitRate = battleutils::GetRangedHitRate(m_attacker, m_victim, false, accBonus);
-    }
-    else if (m_attackDirection == RIGHTATTACK)
-    {
-        if (m_attackType == PHYSICAL_ATTACK_TYPE::ZANSHIN)
-        {
-            m_hitRate = battleutils::GetHitRate(m_attacker, m_victim, 0, (uint8)35);
-        }
-        else
-        {
-            m_hitRate = battleutils::GetHitRate(m_attacker, m_victim, 0);
-        }
-
-        // Deciding this here because SA/TA wears on attack, before the 2nd+ hits go off.
-        if (m_hitRate == 100)
-        {
-            m_attackRound->SetSATA(true);
-        }
-    }
-    else if (m_attackDirection == LEFTATTACK)
-    {
-        if (m_attackType == PHYSICAL_ATTACK_TYPE::ZANSHIN)
-        {
-            m_hitRate = battleutils::GetHitRate(m_attacker, m_victim, 1, (uint8)35);
-        }
-        else
-        {
-            m_hitRate = battleutils::GetHitRate(m_attacker, m_victim, 1);
+            // Deciding this here because SA/TA wears on attack, before the 2nd+ hits go off.
+            if (attackhelpers::ShouldStampSATAOnPerfectHit(path, m_hitRate))
+            {
+                m_attackRound->SetSATA(true);
+            }
+            break;
         }
     }
     return m_hitRate;

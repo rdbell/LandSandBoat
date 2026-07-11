@@ -473,4 +473,110 @@ inline auto IsKickAttackType(const uint8 attackType) -> bool
 }
 
 
+// --- Slice 1379: GetHitRate path selection pure policy ---
+
+// Hit-rate path / hand indices passed to battleutils::GetHitRate.
+constexpr uint8 HitRateHandRight = 0;
+constexpr uint8 HitRateHandLeft  = 1;
+constexpr uint8 HitRateHandKick  = 2;
+
+// Zanshin accuracy bonus inject for GetHitRate optional acc parameter.
+constexpr uint8 ZanshinHitRateAccBonus = 35;
+
+// Sange base accuracy bonus and per-merit past-first increment.
+constexpr int16 SangeBaseAccBonus      = 100;
+constexpr int16 SangeAccBonusPerMerit  = 25;
+
+// PHYSICAL_ATTACK_DIRECTION pins.
+constexpr uint8 AttackDirectionLeft  = 0;
+constexpr uint8 AttackDirectionRight = 1;
+
+// PHYSICAL_ATTACK_TYPE::ZANSHIN pin.
+constexpr uint8 AttackTypeZanshin = 3;
+
+// HitRatePath identifies which battleutils hit-rate helper path to take.
+enum class HitRatePath : uint8
+{
+    KickMelee   = 0, // GetHitRate(..., hand=2)
+    DakenRanged = 1, // GetRangedHitRate with sange acc bonus
+    RightMelee  = 2, // GetHitRate hand=0, optional zanshin +35
+    LeftMelee   = 3, // GetHitRate hand=1, optional zanshin +35
+};
+
+// ResolveHitRatePath mirrors GetHitRate branching order.
+inline auto ResolveHitRatePath(const uint8 attackType, const uint8 attackDirection) -> HitRatePath
+{
+    if (attackType == AttackTypeKick)
+    {
+        return HitRatePath::KickMelee;
+    }
+    if (attackType == AttackTypeDaken)
+    {
+        return HitRatePath::DakenRanged;
+    }
+    if (attackDirection == AttackDirectionRight)
+    {
+        return HitRatePath::RightMelee;
+    }
+    return HitRatePath::LeftMelee;
+}
+
+// HitRateHandForPath returns battleutils hand index (0/1/2). Daken returns 0 unused.
+inline auto HitRateHandForPath(const HitRatePath path) -> uint8
+{
+    switch (path)
+    {
+        case HitRatePath::KickMelee:
+            return HitRateHandKick;
+        case HitRatePath::RightMelee:
+            return HitRateHandRight;
+        case HitRatePath::LeftMelee:
+            return HitRateHandLeft;
+        default:
+            return HitRateHandRight;
+    }
+}
+
+// ShouldApplyZanshinAccBonus mirrors attack type == ZANSHIN on melee paths.
+inline auto ShouldApplyZanshinAccBonus(const uint8 attackType) -> bool
+{
+    return attackType == AttackTypeZanshin;
+}
+
+// ZanshinAccBonusOrZero returns 35 when zanshin, else 0.
+inline auto ZanshinAccBonusOrZero(const uint8 attackType) -> uint8
+{
+    return ShouldApplyZanshinAccBonus(attackType) ? ZanshinHitRateAccBonus : static_cast<uint8>(0);
+}
+
+// ComputeSangeAccBonus mirrors 100 + (meritValue-1)*25 when sange active with merits.
+// When sange is inactive, base 100 is still used for Daken ranged hit rate.
+inline auto ComputeSangeAccBonus(const bool hasSange, const bool hasMeritPoints, const int32 meritValue) -> int16
+{
+    int16 accBonus = SangeBaseAccBonus;
+    if (hasSange && hasMeritPoints)
+    {
+        accBonus = static_cast<int16>(accBonus + (meritValue - 1) * SangeAccBonusPerMerit);
+    }
+    return accBonus;
+}
+
+// ShouldStampSATAOnPerfectHit mirrors right-hand path when hitRate == 100.
+inline auto ShouldStampSATAOnPerfectHit(const HitRatePath path, const uint8 hitRate) -> bool
+{
+    return path == HitRatePath::RightMelee && hitRate == 100;
+}
+
+// IsRightAttackDirection / IsLeftAttackDirection helpers.
+inline auto IsRightAttackDirection(const uint8 direction) -> bool
+{
+    return direction == AttackDirectionRight;
+}
+
+inline auto IsLeftAttackDirection(const uint8 direction) -> bool
+{
+    return direction == AttackDirectionLeft;
+}
+
+
 } // namespace attackhelpers
