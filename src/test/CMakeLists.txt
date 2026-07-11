@@ -460,6 +460,8 @@ set(SOURCES
     test_world_alliance_dissolve_1272.cpp
     test_world_player_kick_1273.h
     test_world_player_kick_1273.cpp
+    test_world_message_standard_1274.h
+    test_world_message_standard_1274.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h

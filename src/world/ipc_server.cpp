@@ -37,6 +37,7 @@
 #include "chat_message_tell.h"
 #include "chat_message_unity.h"
 #include "chat_message_yell.h"
+#include "message_standard.h"
 #include "party_invite.h"
 #include "party_invite_response.h"
 #include "party_disband.h"
@@ -656,7 +657,12 @@ void IPCServer::handleMessage_MessageStandard(const IPP& ipp, const ipc::Message
 {
     TracyZoneScoped;
 
-    rerouteMessageToCharId(message.recipientId, message);
+    worldipc::HandleMessageStandard(
+        message,
+        [this](const uint32 recipientId, const ipc::MessageStandard& standardMessage)
+        {
+            rerouteMessageToCharId(recipientId, standardMessage);
+        });
 }
 
 void IPCServer::handleMessage_MessageSystem(const IPP& ipp, const ipc::MessageSystem& message)
