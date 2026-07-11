@@ -27,6 +27,7 @@
 #include "char_zone.h"
 #include "chat_message_tell.h"
 #include "entity_information_request.h"
+#include "group_chat_delivery.h"
 #include "linkshell_updates.h"
 #include "party_alliance_updates.h"
 #include "player_kick_refresh.h"
@@ -256,90 +257,96 @@ void IPCClient::handleMessage_ChatMessageParty(const IPP& ipp, const ipc::ChatMe
 {
     TracyZoneScoped;
 
-    CParty* PParty = nullptr;
-
-    const auto partyid = message.partyId;
-
-    // TODO: When Party/Alliance gets a rewrite, make a zoneutils::ForEachParty or some other accessor to reduce the amount of iterations significantly.
-
-    // clang-format off
-    zoneutils::ForEachZone([partyid, &PParty](CZone* PZone)
-    {
-        PZone->ForEachChar([partyid, &PParty](CCharEntity* PChar)
+    mapipc::HandleChatMessageParty(
+        message,
+        [](const uint32 partyId)
         {
-            if (PChar->PParty && PChar->PParty->GetPartyID() == partyid)
-            {
-                PParty = PChar->PParty;
-                return;
-            }
+            CParty* party = nullptr;
+
+            // TODO: When Party/Alliance gets a rewrite, make a zoneutils::ForEachParty or some other accessor to reduce the amount of iterations significantly.
+            zoneutils::ForEachZone([partyId, &party](CZone* zone)
+                                   {
+                                       zone->ForEachChar([partyId, &party](CCharEntity* player)
+                                                         {
+                                                             if (player->PParty && player->PParty->GetPartyID() == partyId)
+                                                             {
+                                                                 party = player->PParty;
+                                                             }
+                                                         });
+                                       if (party)
+                                       {
+                                           return;
+                                       }
+                                   });
+            return party;
+        },
+        [](CParty* party, const ipc::ChatMessageParty& chat)
+        {
+            party->PushPacket(chat.senderId, 0, std::make_unique<GP_SERV_COMMAND_CHAT_STD>(chat.senderName, chat.zoneId, chat.messageType, chat.message, chat.gmLevel));
         });
-        if (PParty)
-        {
-            return;
-        }
-    });
-    if (PParty)
-    {
-        PParty->PushPacket(message.senderId, 0, std::make_unique<GP_SERV_COMMAND_CHAT_STD>(message.senderName, message.zoneId, message.messageType, message.message, message.gmLevel));
-    }
-    // clang-format on
 }
 
 void IPCClient::handleMessage_ChatMessageAlliance(const IPP& ipp, const ipc::ChatMessageAlliance& message)
 {
     TracyZoneScoped;
 
-    CAlliance* PAlliance = nullptr;
-
-    const auto allianceid = message.allianceId;
-
-    // TODO: When Party/Alliance gets a rewrite, make a zoneutils::ForEachParty or some other accessor to reduce the amount of iterations significantly.
-
-    // clang-format off
-    zoneutils::ForEachZone([allianceid, &PAlliance](CZone* PZone)
-    {
-        PZone->ForEachChar([allianceid, &PAlliance](CCharEntity* PChar)
+    mapipc::HandleChatMessageAlliance(
+        message,
+        [](const uint32 allianceId)
         {
-            if (PChar->PParty && PChar->PParty->m_PAlliance && PChar->PParty->m_PAlliance->m_AllianceID == allianceid)
+            CAlliance* alliance = nullptr;
+
+            // TODO: When Party/Alliance gets a rewrite, make a zoneutils::ForEachParty or some other accessor to reduce the amount of iterations significantly.
+            zoneutils::ForEachZone([allianceId, &alliance](CZone* zone)
+                                   {
+                                       zone->ForEachChar([allianceId, &alliance](CCharEntity* player)
+                                                         {
+                                                             if (player->PParty && player->PParty->m_PAlliance && player->PParty->m_PAlliance->m_AllianceID == allianceId)
+                                                             {
+                                                                 alliance = player->PParty->m_PAlliance;
+                                                             }
+                                                         });
+                                       if (alliance)
+                                       {
+                                           return;
+                                       }
+                                   });
+            return alliance;
+        },
+        [](CAlliance* alliance, const ipc::ChatMessageAlliance& chat)
+        {
+            for (const auto& currentParty : alliance->partyList)
             {
-                PAlliance = PChar->PParty->m_PAlliance;
-                return;
+                currentParty->PushPacket(chat.senderId, 0, std::make_unique<GP_SERV_COMMAND_CHAT_STD>(chat.senderName, chat.zoneId, chat.messageType, chat.message, chat.gmLevel));
             }
         });
-        if (PAlliance)
-        {
-            return;
-        }
-    });
-    if (PAlliance)
-    {
-        for (const auto& currentParty : PAlliance->partyList)
-        {
-            currentParty->PushPacket(message.senderId, 0, std::make_unique<GP_SERV_COMMAND_CHAT_STD>(message.senderName, message.zoneId, message.messageType, message.message, message.gmLevel));
-        }
-    }
-    // clang-format on
 }
 
 void IPCClient::handleMessage_ChatMessageLinkshell(const IPP& ipp, const ipc::ChatMessageLinkshell& message)
 {
     TracyZoneScoped;
 
-    if (CLinkshell* PLinkshell = linkshell::GetLinkshell(message.linkshellId))
-    {
-        // TODO: Linkshell 1 vs 2?
-        PLinkshell->PushPacket(message.senderId, std::make_unique<GP_SERV_COMMAND_CHAT_STD>(message.senderName, message.zoneId, MESSAGE_LINKSHELL, message.message, message.gmLevel));
-    }
+    mapipc::HandleChatMessageLinkshell(
+        message,
+        linkshell::GetLinkshell,
+        [](CLinkshell* linkshell, const ipc::ChatMessageLinkshell& chat, const CHAT_MESSAGE_TYPE messageType)
+        {
+            // TODO: Linkshell 1 vs 2?
+            linkshell->PushPacket(chat.senderId, std::make_unique<GP_SERV_COMMAND_CHAT_STD>(chat.senderName, chat.zoneId, messageType, chat.message, chat.gmLevel));
+        });
 }
 
 void IPCClient::handleMessage_ChatMessageUnity(const IPP& ipp, const ipc::ChatMessageUnity& message)
 {
     TracyZoneScoped;
 
-    if (CUnityChat* PUnityChat = unitychat::GetUnityChat(message.unityLeaderId))
-    {
-        PUnityChat->PushPacket(message.senderId, std::make_unique<GP_SERV_COMMAND_CHAT_STD>(message.senderName, message.zoneId, message.messageType, message.message, message.gmLevel));
-    }
+    mapipc::HandleChatMessageUnity(
+        message,
+        unitychat::GetUnityChat,
+        [](CUnityChat* unityChat, const ipc::ChatMessageUnity& chat)
+        {
+            unityChat->PushPacket(chat.senderId, std::make_unique<GP_SERV_COMMAND_CHAT_STD>(chat.senderName, chat.zoneId, chat.messageType, chat.message, chat.gmLevel));
+        });
 }
 
 void IPCClient::handleMessage_ChatMessageYell(const IPP& ipp, const ipc::ChatMessageYell& message)
