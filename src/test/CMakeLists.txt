@@ -532,6 +532,8 @@ set(SOURCES
     test_ability_state_1383.cpp
     test_weaponskill_state_1384.h
     test_weaponskill_state_1384.cpp
+    test_mobskill_state_1385.h
+    test_mobskill_state_1385.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

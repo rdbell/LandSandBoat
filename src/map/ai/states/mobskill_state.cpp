@@ -30,6 +30,7 @@
 #include "enums/action/category.h"
 #include "lua/luautils.h"
 #include "mobskill.h"
+#include "mobskill_state_capacity.h"
 #include "packets/s2c/0x028_battle2.h"
 #include "status_effect_container.h"
 #include "utils/battleutils.h"
@@ -120,7 +121,7 @@ CMobSkillState::CMobSkillState(CBattleEntity* PEntity, uint16 targid, uint16 wsi
 
     // Probably ok to do this for all skills, but there's no need
     // This allows instant mobskills to actually be instant by processing the first tick immediately
-    if (m_castTime == 0s)
+    if (mobskillstatehelpers::ShouldProcessInstantMobSkill(m_castTime == 0s))
     {
         DoUpdate(GetEntryTime());
     }
@@ -133,41 +134,52 @@ CMobSkill* CMobSkillState::GetSkill()
 
 void CMobSkillState::SpendCost()
 {
-    if (!m_PSkill->isTpFreeSkill())
+    using namespace mobskillstatehelpers;
+
+    const auto result = EvaluateMobSkillSpendCost(
+        m_PSkill->isTpFreeSkill(),
+        m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sekkanoki),
+        m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui),
+        m_PEntity->GetLocalVar("[MeikyoShisui]MobSkillCount"),
+        static_cast<int16>(m_PEntity->health.tp));
+
+    m_spentTP = result.spentTP;
+
+    if (result.deleteSekkanoki)
     {
-        if (m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sekkanoki))
-        {
-            m_spentTP = m_PEntity->addTP(-1000);
-            m_PEntity->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Sekkanoki);
-        }
-        else if (m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui) &&
-                 m_PEntity->GetLocalVar("[MeikyoShisui]MobSkillCount") > 0)
-        {
-            auto currentCount = m_PEntity->GetLocalVar("[MeikyoShisui]MobSkillCount") - 1;
-            m_PEntity->SetLocalVar("[MeikyoShisui]MobSkillCount", currentCount);
+        // Prefer addTP so UPDATE_HP mask and clamp match production for Sekkanoki.
+        m_spentTP = m_PEntity->addTP(-SekkanokiTPDrainRequest);
+        m_PEntity->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Sekkanoki);
+        return;
+    }
 
-            m_spentTP = 3000; // Unknown how mobs behave like this
-
-            if (currentCount == 0)
-            {
-                m_PEntity->health.tp = 0;
-            }
-        }
-        else
+    if (result.updateMeikyoCount)
+    {
+        m_PEntity->SetLocalVar("[MeikyoShisui]MobSkillCount", result.meikyoCountAfter);
+        // spentTP already 3000 from pure result
+        if (result.zeroTPOnMeikyoEnd)
         {
-            m_spentTP            = m_PEntity->health.tp;
             m_PEntity->health.tp = 0;
         }
+        return;
+    }
+
+    // Normal: spent = current TP, zero bar. TpFree: spent stays 0, no write.
+    if (result.newTP != static_cast<int16>(m_PEntity->health.tp))
+    {
+        m_PEntity->health.tp = result.newTP;
     }
 }
 
 bool CMobSkillState::Update(timer::time_point tick)
 {
+    using namespace mobskillstatehelpers;
+
     // Reset the state for the current skill attempt
     m_skillSuccess = false;
 
     // Rotate towards target during ability // TODO : add force param to turnTowardsTarget on certain TP moves like Petro Eyes
-    if (m_castTime > 0s && tick < GetEntryTime() + m_castTime)
+    if (ShouldTurnDuringMobSkillCast(m_castTime > 0s, tick < GetEntryTime() + m_castTime))
     {
         if (CBaseEntity* PTarget = GetTarget())
         {
@@ -175,10 +187,13 @@ bool CMobSkillState::Update(timer::time_point tick)
         }
     }
 
-    if (m_PEntity && m_PEntity->isAlive() && (tick >= GetEntryTime() + m_castTime && !IsCompleted()))
+    if (m_PEntity && m_PEntity->isAlive() &&
+        ShouldFinishMobSkill(tick >= GetEntryTime() + m_castTime, IsCompleted()))
     {
         // Check for stun/sleep/hysteria/etc at the moment of skill completion - Cleanup handles the interrupt
-        if (m_PEntity->StatusEffectContainer->HasPreventActionEffect() || m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hysteria))
+        if (ShouldInterruptMobSkillFinish(
+                m_PEntity->StatusEffectContainer->HasPreventActionEffect(),
+                m_PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hysteria)))
         {
             return true;
         }
@@ -187,7 +202,7 @@ bool CMobSkillState::Update(timer::time_point tick)
         m_PEntity->OnMobSkillFinished(*this, action);
 
         // Zero message ID
-        if (m_PSkill->getFlag() & SKILLFLAG_NO_FINISH_MSG)
+        if (ShouldClearFinishMessage((m_PSkill->getFlag() & SKILLFLAG_NO_FINISH_MSG) != 0))
         {
             action.ForEachResult(
                 [&](action_result_t& result)
@@ -197,7 +212,7 @@ bool CMobSkillState::Update(timer::time_point tick)
         }
 
         // Only send packet if action was populated (e.g. interrupts return early)
-        if (!action.targets.empty())
+        if (SkillSuccessFromAction(action.targets.empty()))
         {
             m_skillSuccess = true;
             m_PEntity->loc.zone->PushPacket(m_PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(action));
@@ -213,26 +228,37 @@ bool CMobSkillState::Update(timer::time_point tick)
         return false;
     }
 
-    if (IsCompleted() && tick > m_finishTime)
+    if (ShouldExitMobSkill(IsCompleted(), tick > m_finishTime))
     {
         auto* PTarget = GetTarget();
-        if (m_skillSuccess && PTarget && PTarget->objtype == TYPE_MOB && PTarget != m_PEntity && m_PEntity->allegiance == ALLEGIANCE_TYPE::PLAYER)
+        if (ShouldUpdateExitEnmity(
+                m_skillSuccess,
+                PTarget != nullptr,
+                PTarget && PTarget->objtype == TYPE_MOB,
+                PTarget == m_PEntity,
+                m_PEntity->allegiance == ALLEGIANCE_TYPE::PLAYER))
         {
-            bool withMaster = m_PEntity->objtype == TYPE_PET || (m_PEntity->objtype == TYPE_MOB && m_PEntity->isCharmed);
+            const bool withMaster = EnmityWithMaster(
+                m_PEntity->objtype == TYPE_PET,
+                m_PEntity->objtype == TYPE_MOB,
+                m_PEntity->isCharmed);
             static_cast<CMobEntity*>(PTarget)->PEnmityContainer->UpdateEnmity(m_PEntity, 0, 0, withMaster);
         }
 
-        if (m_PEntity->objtype == TYPE_PET && m_PEntity->PMaster && m_PEntity->PMaster->objtype == TYPE_PC && (m_PSkill->isBloodPactRage() || m_PSkill->isBloodPactWard()))
+        CCharEntity* PSummoner = dynamic_cast<CCharEntity*>(m_PEntity->PMaster);
+        const bool   hasFavor  = PSummoner && PSummoner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AvatarsFavor);
+        if (ShouldApplyAvatarsFavor(
+                m_PEntity->objtype == TYPE_PET,
+                m_PEntity->PMaster && m_PEntity->PMaster->objtype == TYPE_PC,
+                m_PSkill->isBloodPactRage(),
+                m_PSkill->isBloodPactWard(),
+                hasFavor))
         {
-            CCharEntity* PSummoner = dynamic_cast<CCharEntity*>(m_PEntity->PMaster);
-            if (PSummoner && PSummoner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AvatarsFavor))
-            {
-                auto power = PSummoner->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AvatarsFavor)->GetPower();
-                // Retail: Power is gained for BP use
-                auto levelGained = m_PSkill->isBloodPactRage() ? 3 : 2;
-                power += levelGained;
-                PSummoner->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AvatarsFavor)->SetPower(power > 11 ? power : 11);
-            }
+            auto power = PSummoner->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AvatarsFavor)->GetPower();
+            // Retail: Power is gained for BP use
+            const auto levelGained = AvatarsFavorLevelGained(m_PSkill->isBloodPactRage());
+            power                  = ApplyAvatarsFavorPower(static_cast<int16>(power), levelGained);
+            PSummoner->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AvatarsFavor)->SetPower(power);
         }
 
         return true;
