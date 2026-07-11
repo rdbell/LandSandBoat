@@ -612,6 +612,8 @@ set(SOURCES
     test_trust_fade_out_1423.cpp
     test_trust_post_tick_1424.h
     test_trust_post_tick_1424.cpp
+    test_trust_despawn_1425.h
+    test_trust_despawn_1425.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

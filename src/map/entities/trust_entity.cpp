@@ -21,6 +21,7 @@
 
 #include <map/entities/trust_entity.h>
 #include <map/trust_death_capacity.h>
+#include <map/trust_despawn_capacity.h>
 #include <map/trust_fade_out_capacity.h>
 #include <map/trust_post_tick_capacity.h>
 #include <map/trust_spawn_capacity.h>
@@ -210,13 +211,12 @@ bool CTrustEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
 
 void CTrustEntity::OnDespawn(CDespawnState& /*unused*/)
 {
-    if (GetHPP() > 0)
-    {
-        // Don't call this when despawning after being killed
-        luautils::OnMobDespawn(this);
-    }
-    FadeOut();
-    PAI->EventHandler.triggerListener("DESPAWN", this);
+    trustdespawnhelpers::Apply(
+        [&]() { return GetHPP() > 0; },
+        // Don't call this when despawning after being killed.
+        [&]() { luautils::OnMobDespawn(this); },
+        [&]() { FadeOut(); },
+        [&]() { PAI->EventHandler.triggerListener("DESPAWN", this); });
 }
 
 void CTrustEntity::OnCastFinished(CMagicState& state, action_t& action)

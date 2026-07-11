@@ -341,6 +341,7 @@ auto runAutomatonPostTick1421SelfTests() -> bool;
 auto runPetFadeOut1422SelfTests() -> bool;
 auto runTrustFadeOut1423SelfTests() -> bool;
 auto runTrustPostTick1424SelfTests() -> bool;
+auto runTrustDespawn1425SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -892,6 +893,7 @@ namespace
         ok = runPetFadeOut1422SelfTests() && ok;
         ok = runTrustFadeOut1423SelfTests() && ok;
         ok = runTrustPostTick1424SelfTests() && ok;
+        ok = runTrustDespawn1425SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
