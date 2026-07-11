@@ -29,6 +29,7 @@
 #include "chat_message_tell.h"
 #include "entity_information_request.h"
 #include "group_chat_delivery.h"
+#include "kill_session.h"
 #include "linkshell_updates.h"
 #include "party_alliance_updates.h"
 #include "party_invite.h"
@@ -753,31 +754,30 @@ void IPCClient::handleMessage_KillSession(const IPP& ipp, const ipc::KillSession
 {
     TracyZoneScoped;
 
-    if (auto sessionToDelete = networking_.sessions().getSessionByCharId(message.victimId))
-    {
-        if (sessionToDelete->blowfish.status == BLOWFISH_PENDING_ZONE)
+    mapipc::HandleKillSession(
+        message,
+        [this](const uint32 victimId)
+        {
+            return networking_.sessions().getSessionByCharId(victimId);
+        },
+        [this](const uint32 victimId)
+        {
+            return networking_.sessions().getPendingSessionByCharId(victimId);
+        },
+        [](auto* session)
+        {
+            return session->blowfish.status;
+        },
+        [this, &message](auto* session)
         {
             ShowDebugFmt("Closing session of charid {} on request of other process", message.victimId);
-            networking_.sessions().destroySession(sessionToDelete);
-        }
-        else
-        {
-            ShowDebugFmt("KillSession for charid {} not needed", message.victimId);
-        }
-    }
-
-    if (auto sessionToDelete = networking_.sessions().getPendingSessionByCharId(message.victimId))
-    {
-        if (sessionToDelete->blowfish.status == BLOWFISH_PENDING_ZONE)
+            networking_.sessions().destroySession(session);
+        },
+        [this, &message](auto* session)
         {
             ShowDebugFmt("Closing pending session of charid {} on request of other process", message.victimId);
-            networking_.sessions().destroyPendingSession(sessionToDelete);
-        }
-        else
-        {
-            // ShowDebugFmt("KillSession for charid {} not needed", message.victimId); // noisy
-        }
-    }
+            networking_.sessions().destroyPendingSession(session);
+        });
 }
 
 void IPCClient::handleMessage_ConquestEvent(const IPP& ipp, const ipc::ConquestEvent& message)
