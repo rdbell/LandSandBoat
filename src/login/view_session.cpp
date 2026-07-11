@@ -21,6 +21,7 @@
 
 #include "view_session.h"
 
+#include "character_name.h"
 #include "data_session.h"
 
 #include <common/lua.h>
@@ -29,6 +30,8 @@
 
 #include "login_packets.h"
 #include "version_lock.h"
+
+#include <vector>
 
 void view_session::read_func()
 {
@@ -200,7 +203,8 @@ void view_session::read_func()
             // block creation of character if in maintenance mode or generally disabled
             const auto maintMode               = settings::get<uint8>("login.MAINT_MODE");
             const auto enableCharacterCreation = settings::get<bool>("login.CHARACTER_CREATION");
-            if (maintMode > 0 || !enableCharacterCreation)
+            if (loginHelpers::ClassifyCharacterCreationGate(maintMode, enableCharacterCreation) ==
+                loginHelpers::character_creation_gate::DENIED)
             {
                 loginHelpers::generateErrorMessage(buffer_.data(), loginErrors::errorCode::FAILED_TO_REGISTER_WITH_THE_NAME_SERVER);
                 do_write(0x24);
@@ -212,36 +216,20 @@ void view_session::read_func()
                 char CharName[PacketNameLength] = {};
                 std::memcpy(CharName, buffer_.data() + 32, PacketNameLength - 1);
 
-                Maybe<std::string> invalidNameReason = std::nullopt;
+                std::string nameStr = loginHelpers::ExtractCharacterNameField(CharName);
 
-                // Sanitize name & check for invalid characters
-                std::string nameStr = CharName;
-                for (const auto& letters : nameStr)
-                {
-                    if (!std::isalpha(letters))
-                    {
-                        invalidNameReason = "Invalid characters present in name.";
-                        break;
-                    }
-                }
-
-                // Check for invalid length name
-                // NOTE: The client checks for this. This is to guard
-                // against packet injection
-                if (nameStr.size() < 3 || nameStr.size() > 15)
-                {
-                    invalidNameReason = "Invalid name length.";
-                }
+                // Local pure checks first (alpha then length overwrite).
+                Maybe<std::string> invalidNameReason = loginHelpers::ValidateCharacterNameLocal(nameStr);
 
                 // Check if the name is already in use by another character
                 const auto rset0 = db::preparedStmt("SELECT charname FROM chars WHERE charname LIKE ?", nameStr);
                 if (!rset0)
                 {
-                    invalidNameReason = "Internal entity name query failed.";
+                    invalidNameReason = loginHelpers::CharacterNameEntityQueryFailedReason;
                 }
                 else if (rset0 && rset0->rowsCount() != 0)
                 {
-                    invalidNameReason = "Name already in use.";
+                    invalidNameReason = loginHelpers::CharacterNameAlreadyInUseReason;
                 }
 
                 // (optional) Check if the name is in use by NPC or Mob entities
@@ -259,11 +247,11 @@ void view_session::read_func()
                     const auto rset1 = db::preparedStmt(query, nameStr, nameStr);
                     if (!rset1)
                     {
-                        invalidNameReason = "Internal entity name query failed";
+                        invalidNameReason = loginHelpers::CharacterNameEntityQueryFailedNoPeriodReason;
                     }
                     else if (rset1->rowsCount() != 0)
                     {
-                        invalidNameReason = "Name already in use.";
+                        invalidNameReason = loginHelpers::CharacterNameAlreadyInUseReason;
                     }
                 }
 
@@ -272,14 +260,15 @@ void view_session::read_func()
                 const auto loginSettingsTable = lua["xi"]["settings"]["login"].get<sol::table>();
                 if (auto badWordsList = loginSettingsTable.get_or<sol::table>("BANNED_WORDS_LIST", sol::lua_nil); badWordsList.valid())
                 {
-                    const auto potentialName = to_upper(nameStr);
+                    const auto              potentialName = to_upper(nameStr);
+                    std::vector<std::string> upperBadWords;
                     for (const auto& entry : badWordsList)
                     {
-                        const auto badWord = to_upper(entry.second.as<std::string>());
-                        if (potentialName.find(badWord) != std::string::npos)
-                        {
-                            invalidNameReason = fmt::format("Name matched with bad words list <{}>.", badWord);
-                        }
+                        upperBadWords.push_back(to_upper(entry.second.as<std::string>()));
+                    }
+                    if (auto banned = loginHelpers::FindBannedWordMatch(potentialName, upperBadWords))
+                    {
+                        invalidNameReason = *banned;
                     }
                 }
 

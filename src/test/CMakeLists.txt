@@ -396,6 +396,8 @@ set(SOURCES
     test_login_auth_login_attempt_otp_1314.cpp
     test_login_auth_success_reply_1315.h
     test_login_auth_success_reply_1315.cpp
+    test_login_character_name_1316.h
+    test_login_character_name_1316.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
