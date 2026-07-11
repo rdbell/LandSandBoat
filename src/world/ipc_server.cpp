@@ -22,6 +22,7 @@
 #include "ipc_server.h"
 
 #include "account_login.h"
+#include "char_zone.h"
 
 #include "besieged_system.h"
 #include "campaign_system.h"
@@ -403,19 +404,24 @@ void IPCServer::handleMessage_CharZone(const IPP& ipp, const ipc::CharZone& mess
 {
     TracyZoneScoped;
 
-    // Update cache
-    if (message.destinationZoneId == 0xFFFF)
-    {
-        characterCache_.removeCharacter(message.charId);
-    }
-    else
-    {
-        if (const auto maybeIPP = getIPPForZoneId(message.destinationZoneId))
+    worldipc::HandleCharZone(
+        message,
+        [this](const uint32 charId)
         {
-            characterCache_.updateCharacter(message.charId, *maybeIPP);
-            rerouteMessageToZoneId(message.destinationZoneId, message);
-        }
-    }
+            characterCache_.removeCharacter(charId);
+        },
+        [this](const uint16 zoneId)
+        {
+            return getIPPForZoneId(zoneId);
+        },
+        [this](const uint32 charId, const IPP& endpoint)
+        {
+            characterCache_.updateCharacter(charId, endpoint);
+        },
+        [this](const uint16 zoneId, const ipc::CharZone& charZone)
+        {
+            rerouteMessageToZoneId(zoneId, charZone);
+        });
 }
 
 void IPCServer::handleMessage_CharVarUpdate(const IPP& ipp, const ipc::CharVarUpdate& message)

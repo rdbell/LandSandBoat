@@ -420,6 +420,8 @@ set(SOURCES
     test_world_gmcall_database_1245.cpp
     test_world_account_login_1252.h
     test_world_account_login_1252.cpp
+    test_world_char_zone_1255.h
+    test_world_char_zone_1255.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h
