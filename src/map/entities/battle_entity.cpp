@@ -28,6 +28,7 @@
 #include "ranged_additional_effect_capacity.h"
 #include "ranged_outcome_capacity.h"
 #include "ranged_actor_finalize_capacity.h"
+#include "disengage_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3547,12 +3548,10 @@ void CBattleEntity::OnDisengage(CAttackState& s)
 {
     TracyZoneScoped;
 
-    m_battleTarget = 0;
-    if (animation == ANIMATION_ATTACK)
-    {
-        animation = ANIMATION_NONE;
-    }
-    updatemask |= UPDATE_HP;
+    const auto state = disengagehelpers::ResolveDisengageState(animation, updatemask);
+    m_battleTarget   = state.battleTarget;
+    animation        = state.animation;
+    updatemask       = state.updateMask;
     PAI->EventHandler.triggerListener("DISENGAGE", this);
 }
 
