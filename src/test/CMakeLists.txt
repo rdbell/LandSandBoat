@@ -504,6 +504,8 @@ set(SOURCES
     test_status_effect_params_1369.cpp
     test_recast_charge_1370.h
     test_recast_charge_1370.cpp
+    test_status_effect_add_remove_1371.h
+    test_status_effect_add_remove_1371.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

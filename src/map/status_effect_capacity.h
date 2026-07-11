@@ -666,4 +666,98 @@ inline auto ShouldUseItemSubTypeScript(const bool useEffectsPath, const uint32 s
 }
 
 
+// --- Slice 1371: Add/RemoveStatusEffect pure gates ---
+
+// EffectNotice numeric mirrors.
+constexpr uint8 EffectNoticeShowMessage = 0;
+constexpr uint8 EffectNoticeSilent      = 1;
+
+// ShouldRejectNullStatusEffect mirrors PStatusEffectPtr == nullptr.
+inline auto ShouldRejectNullStatusEffect(const bool isNull) -> bool
+{
+    return isNull;
+}
+
+// ShouldClampMinDuration mirrors duration < catalog MinDuration.
+inline auto ShouldClampMinDuration(const int64 durationUnits, const int64 minDurationUnits) -> bool
+{
+    return durationUnits < minDurationUnits;
+}
+
+// ShouldCheckManeuverAttachments mirrors FireManeuver..DarkManeuver on PC.
+inline auto ShouldCheckManeuverAttachments(const uint16 statusID, const bool isPC) -> bool
+{
+    return isPC && IsManeuverID(statusID);
+}
+
+// ShouldUpdateHealthOnGain mirrors health.maxhp != 0 (not mid-login).
+inline auto ShouldUpdateHealthOnGain(const bool maxHPNonzero) -> bool
+{
+    return maxHPNonzero;
+}
+
+// ShouldUpdateStatusIconsOnGain mirrors PC && icon != 0.
+inline auto ShouldUpdateStatusIconsOnGain(const bool isPC, const uint16 icon) -> bool
+{
+    return isPC && icon != 0;
+}
+
+// ShouldCheckLatentsOnGain mirrors PC && maxHPNonzero.
+inline auto ShouldCheckLatentsOnGain(const bool isPC, const bool maxHPNonzero) -> bool
+{
+    return isPC && maxHPNonzero;
+}
+
+// ShouldNotifyLossMessage mirrors notice != Silent && icon != 0 && !NoLossMessage.
+inline auto ShouldNotifyLossMessage(
+    const bool isSilent,
+    const uint16 icon,
+    const bool hasNoLossMessageFlag) -> bool
+{
+    return !isSilent && icon != 0 && !hasNoLossMessageFlag;
+}
+
+// ShouldNotifyOriginOnLoss mirrors originId != 0 (and for PC also != self).
+inline auto ShouldNotifyOriginOnLoss(const uint32 originID, const uint32 ownerID, const bool isPCOwner) -> bool
+{
+    if (originID == 0)
+    {
+        return false;
+    }
+    if (isPCOwner && originID == ownerID)
+    {
+        return false;
+    }
+    return true;
+}
+
+// WearOffMessageOrDefault mirrors effectId < MAX ? catalog WearOff : EffectWearsOff(206).
+inline auto WearOffMessageOrDefault(
+    const uint16 effectID,
+    const uint16 maxEffectID,
+    const uint16 catalogWearOff,
+    const uint16 defaultWearOff) -> uint16
+{
+    return effectID < maxEffectID ? catalogWearOff : defaultWearOff;
+}
+
+// ShouldNotifyNonPCLoss mirrors non-PC path also requires !isDead.
+inline auto ShouldNotifyNonPCLoss(const bool shouldNotifyBase, const bool isDead) -> bool
+{
+    return shouldNotifyBase && !isDead;
+}
+
+// ShouldMarkDeleted mirrors !isDeleted before RemoveStatusEffect body.
+inline auto ShouldMarkDeleted(const bool alreadyDeleted) -> bool
+{
+    return !alreadyDeleted;
+}
+
+// IsSilentNotice mirrors notice == Silent.
+inline auto IsSilentNotice(const uint8 notice, const uint8 silentValue) -> bool
+{
+    return notice == silentValue;
+}
+
+
 } // namespace statuseffecthelpers

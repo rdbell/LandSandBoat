@@ -443,7 +443,7 @@ void CStatusEffectContainer::OverwriteStatusEffect(CStatusEffect* StatusEffect)
 
 bool CStatusEffectContainer::AddStatusEffect(std::unique_ptr<CStatusEffect> PStatusEffectPtr, EffectNotice notice)
 {
-    if (PStatusEffectPtr == nullptr)
+    if (statuseffecthelpers::ShouldRejectNullStatusEffect(PStatusEffectPtr == nullptr))
     {
         ShowWarning("status_effect_container::AddStatusEffect Status effect given was nullptr!");
         return false;
@@ -457,7 +457,7 @@ bool CStatusEffectContainer::AddStatusEffect(std::unique_ptr<CStatusEffect> PSta
 
     uint16 statusId = static_cast<uint16>(PStatusEffect->GetStatusID());
 
-    if (statusId >= MAX_EFFECTID)
+    if (statuseffecthelpers::ShouldRejectEffectIDOutOfRange(statusId, statuseffecthelpers::MaxEffectID))
     {
         ShowWarning("status_effect_container::AddStatusEffect statusId given is OVER limit %d", statusId);
         return false;
@@ -466,7 +466,9 @@ bool CStatusEffectContainer::AddStatusEffect(std::unique_ptr<CStatusEffect> PSta
     if (CanGainStatusEffect(PStatusEffect))
     {
         // check for minimum duration
-        if (PStatusEffect->GetDuration() < effects::EffectsParams[static_cast<uint16>(statusId)].MinDuration)
+        if (statuseffecthelpers::ShouldClampMinDuration(
+                PStatusEffect->GetDuration().count(),
+                effects::EffectsParams[static_cast<uint16>(statusId)].MinDuration.count()))
         {
             PStatusEffect->SetDuration(effects::EffectsParams[static_cast<uint16>(statusId)].MinDuration);
         }
@@ -493,12 +495,14 @@ bool CStatusEffectContainer::AddStatusEffect(std::unique_ptr<CStatusEffect> PSta
 
         m_POwner->addModifiers(&PStatusEffect->modList());
 
-        if (PStatusEffect->GetStatusID() >= xi::StatusEffect::FireManeuver && PStatusEffect->GetStatusID() <= xi::StatusEffect::DarkManeuver && m_POwner->objtype == TYPE_PC)
+        if (statuseffecthelpers::ShouldCheckManeuverAttachments(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                m_POwner->objtype == TYPE_PC))
         {
             puppetutils::CheckAttachmentsForManeuver((CCharEntity*)m_POwner, PStatusEffect->GetStatusID(), true);
         }
 
-        if (m_POwner->health.maxhp != 0) // make sure we're not in the middle of logging in
+        if (statuseffecthelpers::ShouldUpdateHealthOnGain(m_POwner->health.maxhp != 0)) // make sure we're not in the middle of logging in
         {
             m_POwner->UpdateHealth();
         }
@@ -507,12 +511,12 @@ bool CStatusEffectContainer::AddStatusEffect(std::unique_ptr<CStatusEffect> PSta
         {
             CCharEntity* PChar = (CCharEntity*)m_POwner;
 
-            if (PStatusEffect->GetIcon() != 0)
+            if (statuseffecthelpers::ShouldUpdateStatusIconsOnGain(true, PStatusEffect->GetIcon()))
             {
                 UpdateStatusIcons();
             }
 
-            if (m_POwner->health.maxhp != 0) // make sure we're not in the middle of logging in
+            if (statuseffecthelpers::ShouldCheckLatentsOnGain(true, m_POwner->health.maxhp != 0)) // make sure we're not in the middle of logging in
             {
                 // check for latents
                 PChar->PLatentEffectContainer->CheckLatentsFoodEffect();
@@ -589,7 +593,7 @@ void CStatusEffectContainer::RemoveStatusEffect(CStatusEffect* PStatusEffect, co
 {
     TracyZoneScoped;
 
-    if (!PStatusEffect->isDeleted())
+    if (statuseffecthelpers::ShouldMarkDeleted(PStatusEffect->isDeleted()))
     {
         PStatusEffect->markDeleted();
         luautils::OnEffectLose(m_POwner, PStatusEffect);
@@ -600,46 +604,70 @@ void CStatusEffectContainer::RemoveStatusEffect(CStatusEffect* PStatusEffect, co
         {
             auto* PChar = static_cast<CCharEntity*>(m_POwner);
 
-            if (notice != EffectNotice::Silent && PStatusEffect->GetIcon() != 0 && !(PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::NoLossMessage)))
+            if (statuseffecthelpers::ShouldNotifyLossMessage(
+                    notice == EffectNotice::Silent,
+                    PStatusEffect->GetIcon(),
+                    PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::NoLossMessage)))
             {
                 const auto effectId  = PStatusEffect->GetStatusID();
-                const auto messageId = static_cast<uint16>(effectId) < MAX_EFFECTID ? effects::EffectsParams[static_cast<uint16>(effectId)].WearOffMessageId : MsgStd::EffectWearsOff;
+                const uint16 catalogWearOff = static_cast<uint16>(effectId) < MAX_EFFECTID
+                    ? static_cast<uint16>(effects::EffectsParams[static_cast<uint16>(effectId)].WearOffMessageId)
+                    : static_cast<uint16>(MsgStd::EffectWearsOff);
+                const auto messageId = statuseffecthelpers::WearOffMessageOrDefault(
+                    static_cast<uint16>(effectId),
+                    statuseffecthelpers::MaxEffectID,
+                    catalogWearOff,
+                    static_cast<uint16>(MsgStd::EffectWearsOff));
 
                 // Notify owner that they lost their buff.
-                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, PStatusEffect->GetIcon(), 0, messageId);
+                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, PStatusEffect->GetIcon(), 0, static_cast<MsgStd>(messageId));
 
                 // Notify origin entity if they are in the same zone, and we are in their spawn list.
                 const auto originId = PStatusEffect->GetOriginID();
-                if (originId != 0 && originId != PChar->id && m_POwner->loc.zone)
+                if (statuseffecthelpers::ShouldNotifyOriginOnLoss(originId, PChar->id, true) && m_POwner->loc.zone)
                 {
                     auto* POriginEntity = m_POwner->loc.zone->GetCharByID(originId);
                     if (POriginEntity && charutils::hasEntitySpawned(POriginEntity, PChar))
                     {
-                        POriginEntity->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(POriginEntity, PChar, PStatusEffect->GetIcon(), 0, messageId);
+                        POriginEntity->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(POriginEntity, PChar, PStatusEffect->GetIcon(), 0, static_cast<MsgStd>(messageId));
                     }
                 }
             }
 
-            if (PStatusEffect->GetStatusID() >= xi::StatusEffect::FireManeuver && PStatusEffect->GetStatusID() <= xi::StatusEffect::DarkManeuver)
+            if (statuseffecthelpers::ShouldCheckManeuverAttachments(
+                    static_cast<uint16>(PStatusEffect->GetStatusID()),
+                    true))
             {
                 puppetutils::CheckAttachmentsForManeuver(static_cast<CCharEntity*>(m_POwner), PStatusEffect->GetStatusID(), false);
             }
         }
         else
         {
-            if (notice != EffectNotice::Silent && PStatusEffect->GetIcon() != 0 && !(PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::NoLossMessage)) && !m_POwner->isDead())
+            if (statuseffecthelpers::ShouldNotifyNonPCLoss(
+                    statuseffecthelpers::ShouldNotifyLossMessage(
+                        notice == EffectNotice::Silent,
+                        PStatusEffect->GetIcon(),
+                        PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::NoLossMessage)),
+                    m_POwner->isDead()))
             {
                 const auto effectId  = PStatusEffect->GetStatusID();
-                const auto messageId = static_cast<uint16>(effectId) < MAX_EFFECTID ? effects::EffectsParams[static_cast<uint16>(effectId)].WearOffMessageId : MsgStd::EffectWearsOff;
+                const uint16 catalogWearOff = static_cast<uint16>(effectId) < MAX_EFFECTID
+                    ? static_cast<uint16>(effects::EffectsParams[static_cast<uint16>(effectId)].WearOffMessageId)
+                    : static_cast<uint16>(MsgStd::EffectWearsOff);
+                const auto messageId = statuseffecthelpers::WearOffMessageOrDefault(
+                    static_cast<uint16>(effectId),
+                    statuseffecthelpers::MaxEffectID,
+                    catalogWearOff,
+                    static_cast<uint16>(MsgStd::EffectWearsOff));
 
                 // Notify origin entity if they are in the same zone, and we are in their spawn list.
                 const auto originId = PStatusEffect->GetOriginID();
-                if (originId != 0 && m_POwner->loc.zone)
+                if (statuseffecthelpers::ShouldNotifyOriginOnLoss(originId, 0, false) && m_POwner->loc.zone)
                 {
                     auto* POriginEntity = m_POwner->loc.zone->GetCharByID(originId);
                     if (POriginEntity && charutils::hasEntitySpawned(POriginEntity, m_POwner))
                     {
-                        POriginEntity->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(POriginEntity, m_POwner, PStatusEffect->GetIcon(), 0, messageId);
+                        POriginEntity->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(POriginEntity, m_POwner, PStatusEffect->GetIcon(), 0, static_cast<MsgStd>(messageId));
                     }
                 }
             }
