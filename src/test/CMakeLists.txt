@@ -536,6 +536,8 @@ set(SOURCES
     test_mobskill_state_1385.cpp
     test_petskill_state_1386.h
     test_petskill_state_1386.cpp
+    test_attack_state_1387.h
+    test_attack_state_1387.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

@@ -22,6 +22,7 @@
 #include "attack_state.h"
 
 #include "action/action.h"
+#include "attack_state_capacity.h"
 #include "entities/battle_entity.h"
 
 #include "ai/ai_container.h"
@@ -37,7 +38,7 @@ CAttackState::CAttackState(CBattleEntity* PEntity, uint16 targid)
     PEntity->SetBattleStartTime(timer::now());
     CAttackState::UpdateTarget();
 
-    if (!GetTarget() || m_errorMsg)
+    if (attackstatehelpers::ShouldThrowInitNoTarget(GetTarget() != nullptr, m_errorMsg != nullptr))
     {
         PEntity->SetBattleTargetID(0);
         if (this->HasErrorMsg())
@@ -50,7 +51,7 @@ CAttackState::CAttackState(CBattleEntity* PEntity, uint16 targid)
         }
     }
 
-    if (PEntity->PAI->PathFind)
+    if (attackstatehelpers::ShouldClearPathOnEnter(PEntity->PAI->PathFind != nullptr))
     {
         PEntity->PAI->PathFind->Clear();
     }
@@ -58,8 +59,10 @@ CAttackState::CAttackState(CBattleEntity* PEntity, uint16 targid)
 
 bool CAttackState::Update(timer::time_point tick)
 {
+    using namespace attackstatehelpers;
+
     auto* PTarget = static_cast<CBattleEntity*>(GetTarget());
-    if (!PTarget || PTarget->isDead())
+    if (ShouldExitNoTarget(PTarget != nullptr, PTarget && PTarget->isDead()))
     {
         return true;
     }
@@ -68,7 +71,7 @@ bool CAttackState::Update(timer::time_point tick)
         if (CanAttack(PTarget))
         {
             // CanAttack may have set target id to 0 (disengage from out of range)
-            if (m_PEntity->GetBattleTargetID() == 0)
+            if (ShouldDisengageBattleTargetZero(m_PEntity->GetBattleTargetID() == 0))
             {
                 return true;
             }
@@ -79,7 +82,7 @@ bool CAttackState::Update(timer::time_point tick)
                 battleutils::handleKillshotEnmity(m_PEntity, PTarget);
 
                 // CMobEntity::OnAttack(...) can generate it's own action with a mobmod, and that leaves this action.actionType = 0, which is never valid. Skip sending the packet.
-                if (action.actiontype != ActionCategory::None)
+                if (ShouldSendAttackPacket(static_cast<uint8>(action.actiontype)))
                 {
                     m_PEntity->loc.zone->PushPacket(m_PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(action));
                 }
@@ -89,13 +92,14 @@ bool CAttackState::Update(timer::time_point tick)
         {
             m_PEntity->HandleErrorMessage(m_errorMsg);
         }
-        if (m_PEntity->GetBattleTargetID() == 0)
+        if (ShouldExitAfterReadyPath(m_PEntity->GetBattleTargetID() == 0))
         {
             return true;
         }
     }
     else
     {
+        // Pure gate: ShouldSubtractAttackElapsed(!AttackReady()) — always true here.
         m_attackTime -= (m_PEntity->PAI->getTick() - m_PEntity->PAI->getPrevTick());
     }
     return false;
@@ -103,7 +107,7 @@ bool CAttackState::Update(timer::time_point tick)
 
 void CAttackState::Cleanup(timer::time_point tick)
 {
-    if (!m_PEntity->isDead())
+    if (attackstatehelpers::ShouldCleanupDisengage(m_PEntity->isDead()))
     {
         m_PEntity->OnDisengage(*this);
     }
@@ -124,22 +128,26 @@ void CAttackState::UpdateTarget(CBaseEntity* target)
 
 void CAttackState::UpdateTarget(uint16 targid)
 {
+    using namespace attackstatehelpers;
+
     m_errorMsg.reset();
     auto           newTargid{ m_PEntity->GetBattleTargetID() };
     CBattleEntity* PNewTarget{ nullptr };
-    if (newTargid != 0)
+    if (ShouldResolveBattleTarget(newTargid))
     {
         PNewTarget = m_PEntity->IsValidTarget(newTargid, TARGET_ENEMY, m_errorMsg);
         if (!PNewTarget)
         {
             newTargid          = 0;
             CCharEntity* PChar = dynamic_cast<CCharEntity*>(m_PEntity);
-            if (PChar && PChar->hasAutoTargetEnabled())
+            if (ShouldTryAutoTarget(PChar != nullptr, PChar && PChar->hasAutoTargetEnabled()))
             {
                 for (auto&& PPotentialTarget : PChar->SpawnMOBList)
                 {
-                    if (PPotentialTarget.second->animation == ANIMATION_ATTACK && facing(PChar->loc.p, PPotentialTarget.second->loc.p, 64) &&
-                        distance(PChar->loc.p, PPotentialTarget.second->loc.p) <= 10)
+                    if (AutoTargetCandidate(
+                            PPotentialTarget.second->animation,
+                            facing(PChar->loc.p, PPotentialTarget.second->loc.p, AutoTargetFacingCone),
+                            distance(PChar->loc.p, PPotentialTarget.second->loc.p)))
                     {
                         std::unique_ptr<CBasicPacket> errMsg;
                         if (PChar->IsValidTarget(PPotentialTarget.second->targid, TARGET_ENEMY, errMsg))
@@ -154,13 +162,13 @@ void CAttackState::UpdateTarget(uint16 targid)
             m_PEntity->PAI->ChangeTarget(newTargid);
         }
     }
-    if (targid != newTargid)
+    if (ShouldChangeTarget(targid, newTargid))
     {
-        if (targid != 0)
+        if (ShouldNotifyChangeTarget(targid, newTargid))
         {
             m_PEntity->OnChangeTarget(PNewTarget);
             SetTarget(newTargid);
-            if (!PNewTarget)
+            if (ShouldClearErrorOnMissingNewTarget(PNewTarget != nullptr))
             {
                 m_errorMsg.reset();
                 return;
@@ -174,7 +182,7 @@ bool CAttackState::CanAttack(CBattleEntity* PTarget)
 {
     auto ret = m_PEntity->CanAttack(PTarget, m_errorMsg);
 
-    if (ret && !m_errorMsg)
+    if (attackstatehelpers::ShouldAddWeaponDelayAfterCanAttack(ret, m_errorMsg != nullptr))
     {
         m_attackTime += std::chrono::milliseconds(m_PEntity->GetWeaponDelay(false));
     }

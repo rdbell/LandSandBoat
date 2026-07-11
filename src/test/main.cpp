@@ -303,6 +303,7 @@ auto runAbilityState1383SelfTests() -> bool;
 auto runWeaponSkillState1384SelfTests() -> bool;
 auto runMobSkillState1385SelfTests() -> bool;
 auto runPetSkillState1386SelfTests() -> bool;
+auto runAttackState1387SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -816,6 +817,7 @@ namespace
         ok = runWeaponSkillState1384SelfTests() && ok;
         ok = runMobSkillState1385SelfTests() && ok;
         ok = runPetSkillState1386SelfTests() && ok;
+        ok = runAttackState1387SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

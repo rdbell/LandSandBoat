@@ -4,6 +4,7 @@ set(AI_STATE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/ability_state_capacity.h
     ${CMAKE_CURRENT_SOURCE_DIR}/attack_state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/attack_state.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/attack_state_capacity.h
     ${CMAKE_CURRENT_SOURCE_DIR}/death_state.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/death_state.h
     ${CMAKE_CURRENT_SOURCE_DIR}/despawn_state.cpp
