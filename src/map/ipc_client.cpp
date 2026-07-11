@@ -33,6 +33,7 @@
 #include "player_kick_refresh.h"
 #include "player_relocation.h"
 #include "standard_message_delivery.h"
+#include "zone_wide_chat_delivery.h"
 
 #include "common/ipp.h"
 
@@ -353,67 +354,68 @@ void IPCClient::handleMessage_ChatMessageYell(const IPP& ipp, const ipc::ChatMes
 {
     TracyZoneScoped;
 
-    // clang-format off
-    zoneutils::ForEachZone([&](CZone* PZone)
-    {
-        if (PZone->CanUseMisc(MISC_YELL))
+    mapipc::HandleChatMessageYell(
+        message,
+        [](auto&& visit)
         {
-            PZone->ForEachChar([&](CCharEntity* PChar)
-            {
-                // Don't push to sender
-                if (PChar->id != message.senderId)
-                {
-                    PChar->pushPacket(std::make_unique<GP_SERV_COMMAND_CHAT_STD>(message.senderName, message.zoneId, message.messageType, message.message, message.gmLevel));
-                }
-            });
-        }
-    });
-    // clang-format on
+            zoneutils::ForEachZone([&](CZone* zone)
+                                   {
+                                       const bool zoneAllowsYell = zone->CanUseMisc(MISC_YELL);
+                                       zone->ForEachChar([&](CCharEntity* character)
+                                                         {
+                                                             std::invoke(visit, zoneAllowsYell, character->id, character);
+                                                         });
+                                   });
+        },
+        [](CCharEntity* character, const ipc::ChatMessageYell& chat)
+        {
+            character->pushPacket(std::make_unique<GP_SERV_COMMAND_CHAT_STD>(chat.senderName, chat.zoneId, chat.messageType, chat.message, chat.gmLevel));
+        });
 }
 
 void IPCClient::handleMessage_ChatMessageAssist(const IPP& ipp, const ipc::ChatMessageAssist& message) const
 {
     TracyZoneScoped;
 
-    // clang-format off
-    zoneutils::ForEachZone([&](CZone* PZone)
-    {
-        if (PZone->CanUseMisc(MISC_ASSIST))
+    mapipc::HandleChatMessageAssist(
+        message,
+        [](auto&& visit)
         {
-            PZone->ForEachChar([&](CCharEntity* PChar)
-            {
-                // Don't push to sender
-                if (PChar->id != message.senderId)
-                {
-                    if (PChar->aman().isAssistChannelEligible())
-                    {
-                        PChar->pushPacket(std::make_unique<GP_SERV_COMMAND_CHAT_STD>(message));
-                    }
-                }
-            });
-        }
-    });
-    // clang-format on
+            zoneutils::ForEachZone([&](CZone* zone)
+                                   {
+                                       const bool zoneAllowsAssist = zone->CanUseMisc(MISC_ASSIST);
+                                       zone->ForEachChar([&](CCharEntity* character)
+                                                         {
+                                                             std::invoke(visit, zoneAllowsAssist, character->id, character->aman().isAssistChannelEligible(), character);
+                                                         });
+                                   });
+        },
+        [](CCharEntity* character, const ipc::ChatMessageAssist& chat)
+        {
+            character->pushPacket(std::make_unique<GP_SERV_COMMAND_CHAT_STD>(chat));
+        });
 }
 
 void IPCClient::handleMessage_ChatMessageServerMessage(const IPP& ipp, const ipc::ChatMessageServerMessage& message)
 {
     TracyZoneScoped;
 
-    // clang-format off
-    zoneutils::ForEachZone([&](CZone* PZone)
-    {
-        PZone->ForEachChar([&](CCharEntity* PChar)
+    mapipc::HandleChatMessageServerMessage(
+        message,
+        [](auto&& visit)
         {
-            if (PChar->id == message.senderId && message.skipSender)
-            {
-                return;
-            }
-
-            PChar->pushPacket(std::make_unique<GP_SERV_COMMAND_CHAT_STD>(message.senderName, message.zoneId, message.messageType, message.message, message.gmLevel));
+            zoneutils::ForEachZone([&](CZone* zone)
+                                   {
+                                       zone->ForEachChar([&](CCharEntity* character)
+                                                         {
+                                                             std::invoke(visit, character->id, character);
+                                                         });
+                                   });
+        },
+        [](CCharEntity* character, const ipc::ChatMessageServerMessage& chat)
+        {
+            character->pushPacket(std::make_unique<GP_SERV_COMMAND_CHAT_STD>(chat.senderName, chat.zoneId, chat.messageType, chat.message, chat.gmLevel));
         });
-    });
-    // clang-format on
 }
 
 void IPCClient::handleMessage_ChatMessageCustom(const IPP& ipp, const ipc::ChatMessageCustom& message)
