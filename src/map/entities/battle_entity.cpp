@@ -30,6 +30,7 @@
 #include "ranged_actor_finalize_capacity.h"
 #include "disengage_capacity.h"
 #include "attack_entry_capacity.h"
+#include "attack_swing_gate_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3618,18 +3619,23 @@ bool CBattleEntity::OnAttack(CAttackState& state, action_t& action)
             list.actorId = PTarget->id;
         }
 
-        if (PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::PerfectDodge, 0))
+        const auto swingGate = attackswinggatehelpers::ResolveSwingGate(
+            PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::PerfectDodge, 0),
+            attack.IsDeflected(),
+            [&]() { return xirand::GetRandomNumber(100) < attack.GetHitRate() || attackRound.GetSATAOccured(); },
+            [&]() { return PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AllMiss); });
+
+        if (swingGate == attackswinggatehelpers::SwingGateOutcome::PerfectDodge)
         {
             actionResult.messageID  = MsgBasic::TargetDodges;
             actionResult.resolution = ActionResolution::Miss;
         }
-        else if (attack.IsDeflected())
+        else if (swingGate == attackswinggatehelpers::SwingGateOutcome::Deflected)
         {
             actionResult.messageID  = MsgBasic::AttackHits;
             actionResult.resolution = ActionResolution::Parry;
         }
-        else if ((xirand::GetRandomNumber(100) < attack.GetHitRate() || attackRound.GetSATAOccured()) &&
-                 !PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AllMiss))
+        else if (swingGate == attackswinggatehelpers::SwingGateOutcome::HitPath)
         {
             // Check parry.
             if (attack.CheckParried())

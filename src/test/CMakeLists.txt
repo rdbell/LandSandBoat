@@ -556,6 +556,8 @@ set(SOURCES
     test_disengage_1395.cpp
     test_attack_entry_1396.h
     test_attack_entry_1396.cpp
+    test_attack_swing_gate_1397.h
+    test_attack_swing_gate_1397.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
