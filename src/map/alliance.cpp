@@ -72,7 +72,8 @@ CAlliance::~CAlliance()
 
 void CAlliance::dissolveAlliance(bool playerInitiated)
 {
-    if (playerInitiated)
+    if (alliancehelpers::ClassifyDissolveAlliance(playerInitiated) ==
+        alliancehelpers::dissolve_alliance_path::PLAYER_IPC)
     {
         message::send(ipc::AllianceDissolve{
             .allianceId = m_AllianceID,
@@ -97,11 +98,14 @@ void CAlliance::dissolveAlliance(bool playerInitiated)
 
         const auto ip   = mapIPP.getIP();
         const auto port = mapIPP.getPort();
+        // ShouldApplyUnfilteredDissolveServerFilter documents the SQL IF(ip=0 AND port=0)
+        // branch; the prepared statement evaluates it server-side with the same values.
+        (void)alliancehelpers::ShouldApplyUnfilteredDissolveServerFilter(ip, port);
 
         db::preparedStmt("UPDATE accounts_parties JOIN accounts_sessions USING (charid) "
                          "SET allianceid = 0, partyflag = partyflag & ~? "
                          "WHERE allianceid = ? AND IF(? = 0 AND ? = 0, true, server_addr = ? AND server_port = ?)",
-                         ALLIANCE_LEADER | PARTY_SECOND | PARTY_THIRD,
+                         alliancehelpers::DissolvePartyFlagClearMask,
                          m_AllianceID,
                          ip,
                          port,

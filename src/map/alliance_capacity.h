@@ -68,4 +68,29 @@ inline auto LoadPartyCountFromQuery(const bool queryOk, const uint32 rowsCount) 
     return rowsCount;
 }
 
+// dissolve_alliance_path is which host branch dissolveAlliance takes.
+enum class dissolve_alliance_path : uint8_t
+{
+    PLAYER_IPC, // playerInitiated: send AllianceDissolve IPC
+    SERVER_DB,  // server-side: DB clear + delParty loop + delete this
+};
+
+// ClassifyDissolveAlliance mirrors dissolveAlliance's playerInitiated branch.
+inline auto ClassifyDissolveAlliance(const bool playerInitiated) -> dissolve_alliance_path
+{
+    return playerInitiated ? dissolve_alliance_path::PLAYER_IPC : dissolve_alliance_path::SERVER_DB;
+}
+
+// DissolvePartyFlagClearMask is ALLIANCE_LEADER | PARTY_SECOND | PARTY_THIRD
+// (0x0008 | 0x0001 | 0x0002 = 0x000B) used when clearing partyflag bits.
+constexpr uint16 DissolvePartyFlagClearMask = 0x0008 | 0x0001 | 0x0002;
+
+// ShouldApplyUnfilteredDissolveServerFilter mirrors
+// IF(? = 0 AND ? = 0, true, server_addr = ? AND server_port = ?) when both
+// extracted map IPP components are zero (no session found).
+inline auto ShouldApplyUnfilteredDissolveServerFilter(const uint32 mapIP, const uint16 mapPort) -> bool
+{
+    return mapIP == 0 && mapPort == 0;
+}
+
 } // namespace alliancehelpers
