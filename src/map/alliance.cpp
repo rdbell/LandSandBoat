@@ -150,14 +150,17 @@ uint32 CAlliance::loadPartyCount() const
 
 void CAlliance::removeParty(CParty* party)
 {
-    if (party == nullptr)
+    const bool isNull      = party == nullptr;
+    const bool isMainParty = !isNull && this->getMainParty() == party;
+
+    if (isNull)
     {
-        ShowWarning("CAlliance::removeParty - party is null!");
+        ShowWarning("%s", alliancehelpers::FormatRemoveAlliancePartyNullWarning());
         return;
     }
 
     // if main party then pass alliance lead to the next (d/c fix)
-    if (this->getMainParty() == party)
+    if (alliancehelpers::ShouldAttemptAllianceLeaderPromote(isMainParty))
     {
         const auto rset = db::preparedStmt("SELECT charname FROM accounts_sessions JOIN chars ON accounts_sessions.charid = chars.charid "
                                            "JOIN accounts_parties ON accounts_parties.charid = chars.charid WHERE allianceid = ? AND partyflag & ? "
@@ -170,18 +173,22 @@ void CAlliance::removeParty(CParty* party)
             const auto newLeader = rset->get<std::string>("charname");
             assignAllianceLeader(newLeader);
         }
-
-        if (this->getMainParty() == party)
-        {
-            dissolveAlliance();
-            return;
-        }
     }
 
+    const bool stillMainAfterPromote = this->getMainParty() == party;
+    const auto plan                  = alliancehelpers::ClassifyRemoveAllianceParty(false, isMainParty, stillMainAfterPromote);
+
+    if (plan == alliancehelpers::remove_alliance_party_plan::DISSOLVE_STILL_MAIN)
+    {
+        dissolveAlliance();
+        return;
+    }
+
+    // DEL_AND_NOTIFY
     delParty(party);
 
     db::preparedStmt("UPDATE accounts_parties SET allianceid = 0, partyflag = partyflag & ~? WHERE partyid = ?",
-                     ALLIANCE_LEADER | PARTY_SECOND | PARTY_THIRD,
+                     alliancehelpers::DissolvePartyFlagClearMask,
                      party->GetPartyID());
 
     // notify alliance
@@ -199,12 +206,14 @@ void CAlliance::delParty(CParty* party)
 {
     if (party == nullptr)
     {
-        ShowWarning("CAlliance::delParty - party is null!");
+        ShowWarning("%s", alliancehelpers::FormatDelPartyNullWarning());
         return;
     }
 
     // Don't delete parties when there's no party in the alliance
-    if (!party->m_PAlliance || party->m_PAlliance->partyList.size() == 0)
+    if (alliancehelpers::ShouldSkipDelPartyWhenEmpty(
+            party->m_PAlliance != nullptr,
+            party->m_PAlliance != nullptr && party->m_PAlliance->partyList.size() == 0))
     {
         return;
     }

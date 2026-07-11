@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 // Pure CAlliance capacity gates extracted so native tests can pin policy
 // without DB, party pointers, or packets.
@@ -91,6 +92,60 @@ constexpr uint16 DissolvePartyFlagClearMask = 0x0008 | 0x0001 | 0x0002;
 inline auto ShouldApplyUnfilteredDissolveServerFilter(const uint32 mapIP, const uint16 mapPort) -> bool
 {
     return mapIP == 0 && mapPort == 0;
+}
+
+// remove_alliance_party_plan is the pure host action plan for removeParty.
+enum class remove_alliance_party_plan : uint8_t
+{
+    NULL_PARTY,         // party == nullptr — warn and return
+    DISSOLVE_STILL_MAIN, // was main and still main after promote attempt
+    DEL_AND_NOTIFY,      // delParty + DB flag clear + AllianceReload/PartyReload IPC
+};
+
+// ClassifyRemoveAllianceParty mirrors removeParty control flow after null check
+// and after any main-party assignAllianceLeader attempt.
+// isMainParty: getMainParty() == party before promote.
+// stillMainAfterPromote: getMainParty() == party after promote (or no promote).
+// For non-main parties, stillMainAfterPromote is ignored.
+inline auto ClassifyRemoveAllianceParty(
+    const bool isNull,
+    const bool isMainParty,
+    const bool stillMainAfterPromote) -> remove_alliance_party_plan
+{
+    if (isNull)
+    {
+        return remove_alliance_party_plan::NULL_PARTY;
+    }
+    if (isMainParty && stillMainAfterPromote)
+    {
+        return remove_alliance_party_plan::DISSOLVE_STILL_MAIN;
+    }
+    return remove_alliance_party_plan::DEL_AND_NOTIFY;
+}
+
+// ShouldAttemptAllianceLeaderPromote mirrors isMainParty before the DB lookup
+// for another party leader in the alliance.
+inline auto ShouldAttemptAllianceLeaderPromote(const bool isMainParty) -> bool
+{
+    return isMainParty;
+}
+
+// FormatRemoveAlliancePartyNullWarning mirrors the ShowWarning text.
+inline auto FormatRemoveAlliancePartyNullWarning() -> std::string
+{
+    return "CAlliance::removeParty - party is null!";
+}
+
+// FormatDelPartyNullWarning mirrors delParty's null warning.
+inline auto FormatDelPartyNullWarning() -> std::string
+{
+    return "CAlliance::delParty - party is null!";
+}
+
+// ShouldSkipDelPartyWhenEmpty mirrors !party->m_PAlliance || partyList.size()==0.
+inline auto ShouldSkipDelPartyWhenEmpty(const bool hasAlliance, const bool partyListEmpty) -> bool
+{
+    return !hasAlliance || partyListEmpty;
 }
 
 } // namespace alliancehelpers
