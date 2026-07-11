@@ -548,6 +548,8 @@ set(SOURCES
     test_camouflage_retain_1391.cpp
     test_ranged_additional_effect_1392.h
     test_ranged_additional_effect_1392.cpp
+    test_ranged_outcome_1393.h
+    test_ranged_outcome_1393.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

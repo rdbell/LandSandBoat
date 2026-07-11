@@ -26,6 +26,7 @@
 #include "ranged_ammo_capacity.h"
 #include "camouflage_retain_capacity.h"
 #include "ranged_additional_effect_capacity.h"
+#include "ranged_outcome_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3391,12 +3392,10 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
             .isCritical = wasCritical,
         });
 
-        // Absorb message
-        if (actionResult.param < 0)
-        {
-            actionResult.param     = -(actionResult.param);
-            actionResult.messageID = MsgBasic::RangedAttackAbsorbs;
-        }
+        const auto damageOutcome = rangedoutcomehelpers::NormalizeRangedDamage(
+            static_cast<uint16>(actionResult.messageID), actionResult.param);
+        actionResult.messageID = static_cast<MsgBasic>(damageOutcome.message);
+        actionResult.param     = damageOutcome.param;
 
         if (isChar)
         {
@@ -3453,14 +3452,13 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
                     break;
             }
 
-            if (actionResult.addEffectMessage == MsgBasic::AddEffectDamage && actionResult.addEffectParam < 0)
-            {
-                actionResult.addEffectParam   = -actionResult.addEffectParam;
-                actionResult.addEffectMessage = MsgBasic::AddEffectRecoversHP;
-            }
+            const auto additionalOutcome = rangedoutcomehelpers::NormalizeRangedAdditionalEffect(
+                static_cast<uint16>(actionResult.addEffectMessage), actionResult.addEffectParam);
+            actionResult.addEffectMessage = static_cast<MsgBasic>(additionalOutcome.message);
+            actionResult.addEffectParam   = additionalOutcome.param;
         }
     }
-    else if (shadowsTaken > 0)
+    else if (rangedoutcomehelpers::ShouldUseShadowAbsorbOutcome(hitOccured, shadowsTaken))
     {
         // shadows took damage
         actionResult.messageID  = MsgBasic::ShadowAbsorb;
