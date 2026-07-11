@@ -9,8 +9,8 @@
 #include <string>
 
 // Pure password-scheme, LOGIN_ATTEMPT account-status, AUTH diagnostic, and
-// LOGIN_CREATE account-id helpers. Extracted so native tests can pin the exact
-// predicates without SSL/DB hosts.
+// LOGIN_CREATE account-id / pre-insert gate helpers. Extracted so native tests
+// can pin the exact predicates without SSL/DB hosts.
 
 namespace loginHelpers
 {
@@ -25,6 +25,71 @@ inline auto NextAccountID(const uint32 maxExistingID) -> uint32
 {
     const uint32 candidate = maxExistingID + 1;
     return candidate < MinAccountID ? MinAccountID : candidate;
+}
+
+// account_create_settings_gate is the pure outcome of the
+// login.ACCOUNT_CREATION settings check at the top of LOGIN_CREATE.
+enum class account_create_settings_gate : uint8_t
+{
+    ALLOW,    // creation enabled — continue username lookup
+    DISABLED, // creation disabled — LOGIN_ERROR_CREATE_DISABLED
+};
+
+// ClassifyAccountCreationSettings mirrors the ACCOUNT_CREATION settings gate.
+inline auto ClassifyAccountCreationSettings(const bool creationEnabled) -> account_create_settings_gate
+{
+    return creationEnabled ? account_create_settings_gate::ALLOW : account_create_settings_gate::DISABLED;
+}
+
+// LoginResultForAccountCreateSettings maps the settings gate to a reply code.
+// Returns nullopt when creation may proceed.
+inline auto LoginResultForAccountCreateSettings(const account_create_settings_gate gate) -> Maybe<login_result>
+{
+    if (gate == account_create_settings_gate::DISABLED)
+    {
+        return login_result::LOGIN_ERROR_CREATE_DISABLED;
+    }
+    return std::nullopt;
+}
+
+// account_create_lookup_gate is the pure outcome of the username existence
+// query used by LOGIN_CREATE before allocating an ID.
+enum class account_create_lookup_gate : uint8_t
+{
+    PROCEED,      // query ok and no matching login — create
+    TAKEN,        // query ok and login already exists
+    QUERY_FAILED, // prepared statement failed
+};
+
+// ClassifyAccountCreateLookup mirrors the SELECT accounts.id by login gate.
+// rowsCount is only meaningful when queryOk is true.
+inline auto ClassifyAccountCreateLookup(const bool queryOk, const std::size_t rowsCount) -> account_create_lookup_gate
+{
+    if (!queryOk)
+    {
+        return account_create_lookup_gate::QUERY_FAILED;
+    }
+    if (rowsCount == 0)
+    {
+        return account_create_lookup_gate::PROCEED;
+    }
+    return account_create_lookup_gate::TAKEN;
+}
+
+// LoginResultForAccountCreateLookup maps the lookup gate to a reply code.
+// Returns nullopt when creation may proceed to max-id / insert.
+inline auto LoginResultForAccountCreateLookup(const account_create_lookup_gate gate) -> Maybe<login_result>
+{
+    switch (gate)
+    {
+        case account_create_lookup_gate::TAKEN:
+            return login_result::LOGIN_ERROR_CREATE_TAKEN;
+        case account_create_lookup_gate::QUERY_FAILED:
+            return login_result::LOGIN_ERROR_CREATE;
+        case account_create_lookup_gate::PROCEED:
+            return std::nullopt;
+    }
+    return login_result::LOGIN_ERROR_CREATE;
 }
 
 // FormatUnsupportedXiloaderVersionError mirrors the JSON error_message body

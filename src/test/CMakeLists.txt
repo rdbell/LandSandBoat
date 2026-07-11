@@ -384,6 +384,8 @@ set(SOURCES
     test_login_auth_version_error_1308.cpp
     test_login_auth_account_id_1309.h
     test_login_auth_account_id_1309.cpp
+    test_login_auth_account_create_1310.h
+    test_login_auth_account_create_1310.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

@@ -300,68 +300,61 @@ void auth_session::read_func()
             DebugSockets(fmt::format("LOGIN_CREATE from {}", ipAddress));
 
             // check if account creation is disabled
-            if (!settings::get<bool>("login.ACCOUNT_CREATION"))
+            if (const auto settingsResult = loginHelpers::LoginResultForAccountCreateSettings(
+                    loginHelpers::ClassifyAccountCreationSettings(settings::get<bool>("login.ACCOUNT_CREATION"))))
             {
                 ShowWarningFmt("login_parse: New account attempt <{}> but is disabled in settings.",
                                username);
-                sendLoginResult(login_result::LOGIN_ERROR_CREATE_DISABLED);
+                sendLoginResult(*settingsResult);
                 return;
             }
 
             // looking for same login
             const auto rset = db::preparedStmt("SELECT accounts.id FROM accounts WHERE accounts.login = ?", username);
-            if (!rset)
+            if (const auto lookupResult = loginHelpers::LoginResultForAccountCreateLookup(
+                    loginHelpers::ClassifyAccountCreateLookup(static_cast<bool>(rset), rset ? rset->rowsCount() : 0)))
+            {
+                sendLoginResult(*lookupResult);
+                return;
+            }
+
+            // creating new account_id
+            uint32 accid = 0;
+
+            const auto rset1 = db::preparedStmt("SELECT COALESCE(MAX(accounts.id), 0) AS max_id FROM accounts");
+            if (rset1 && rset1->rowsCount() != 0 && rset1->next())
+            {
+                accid = loginHelpers::NextAccountID(rset1->get<uint32>("max_id"));
+            }
+            else
             {
                 sendLoginResult(login_result::LOGIN_ERROR_CREATE);
                 return;
             }
 
-            if (rset->rowsCount() == 0)
+            // creating new account
+            std::tm timecreateinfo = earth_time::to_local_tm();
+
+            char strtimecreate[128];
+            strftime(strtimecreate, sizeof(strtimecreate), "%Y:%m:%d %H:%M:%S", &timecreateinfo);
+
+            const auto rset2 = db::preparedStmt(
+                "INSERT INTO accounts(id,login,password,timecreate,timelastmodify,status,priv) "
+                "VALUES(?, ?, ?, ?, NULL, ?, ?)",
+                accid,
+                username,
+                BCrypt::generateHash(password),
+                strtimecreate,
+                static_cast<uint8>(ACCOUNT_STATUS_CODE::NORMAL),
+                static_cast<uint8>(ACCOUNT_PRIVILEGE_CODE::USER));
+
+            if (!rset2)
             {
-                // creating new account_id
-                uint32 accid = 0;
-
-                const auto rset1 = db::preparedStmt("SELECT COALESCE(MAX(accounts.id), 0) AS max_id FROM accounts");
-                if (rset1 && rset1->rowsCount() != 0 && rset1->next())
-                {
-                    accid = loginHelpers::NextAccountID(rset1->get<uint32>("max_id"));
-                }
-                else
-                {
-                    sendLoginResult(login_result::LOGIN_ERROR_CREATE);
-                    return;
-                }
-
-                // creating new account
-                std::tm timecreateinfo = earth_time::to_local_tm();
-
-                char strtimecreate[128];
-                strftime(strtimecreate, sizeof(strtimecreate), "%Y:%m:%d %H:%M:%S", &timecreateinfo);
-
-                const auto rset2 = db::preparedStmt(
-                    "INSERT INTO accounts(id,login,password,timecreate,timelastmodify,status,priv) "
-                    "VALUES(?, ?, ?, ?, NULL, ?, ?)",
-                    accid,
-                    username,
-                    BCrypt::generateHash(password),
-                    strtimecreate,
-                    static_cast<uint8>(ACCOUNT_STATUS_CODE::NORMAL),
-                    static_cast<uint8>(ACCOUNT_PRIVILEGE_CODE::USER));
-
-                if (!rset2)
-                {
-                    sendLoginResult(login_result::LOGIN_ERROR_CREATE);
-                    return;
-                }
-
-                sendLoginResult(login_result::LOGIN_SUCCESS_CREATE);
+                sendLoginResult(login_result::LOGIN_ERROR_CREATE);
                 return;
             }
-            else
-            {
-                sendLoginResult(login_result::LOGIN_ERROR_CREATE_TAKEN);
-                return;
-            }
+
+            sendLoginResult(login_result::LOGIN_SUCCESS_CREATE);
             break;
         }
         case login_cmd::LOGIN_CHANGE_PASSWORD:
