@@ -454,6 +454,8 @@ set(SOURCES
     test_world_party_reload_1269.cpp
     test_world_party_disband_1270.h
     test_world_party_disband_1270.cpp
+    test_world_alliance_reload_1271.h
+    test_world_alliance_reload_1271.cpp
     test_world_zone_settings.h
     test_world_zone_settings.cpp
     test_mariadb_connection_loss.h

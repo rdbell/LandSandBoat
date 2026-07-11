@@ -32,6 +32,8 @@
 #include "chat_message_party.h"
 #include "chat_message_server_message.h"
 #include "chat_message_tell.h"
+#include "alliance_members_reroute.h"
+#include "alliance_reload.h"
 #include "chat_message_unity.h"
 #include "chat_message_yell.h"
 #include "party_invite.h"
@@ -246,11 +248,18 @@ void IPCServer::rerouteMessageToAllianceMembers(uint32 allianceId, const auto& m
 {
     TracyZoneScoped;
 
-    for (const auto& ipp : getIPPsForAlliance(allianceId))
-    {
-        DebugIPCFmt("Message: -> rerouting to alliance<{}> on {}", allianceId, ipp.toString());
-        sendMessage(ipp, message);
-    }
+    worldipc::RerouteMessageToAllianceMembers(
+        allianceId,
+        message,
+        [this](const uint32 targetId)
+        {
+            return getIPPsForAlliance(targetId);
+        },
+        [this, allianceId](const IPP& endpoint, const auto& delivered)
+        {
+            DebugIPCFmt("Message: -> rerouting to alliance<{}> on {}", allianceId, endpoint.toString());
+            this->sendMessage(endpoint, delivered);
+        });
 }
 
 void IPCServer::rerouteMessageToLinkshellMembers(uint32 linkshellId, const auto& message)
@@ -600,7 +609,12 @@ void IPCServer::handleMessage_AllianceReload(const IPP& ipp, const ipc::Alliance
 {
     TracyZoneScoped;
 
-    rerouteMessageToAllianceMembers(message.allianceId, message);
+    worldipc::HandleAllianceReload(
+        message,
+        [this](const uint32 allianceId, const ipc::AllianceReload& reload)
+        {
+            rerouteMessageToAllianceMembers(allianceId, reload);
+        });
 
     // TODO:
     // worldServer_.partySystem_->handleMessage(message);
