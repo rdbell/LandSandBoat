@@ -412,6 +412,8 @@ set(SOURCES
     test_login_session_cleanup_1322.cpp
     test_login_data_a1_1323.h
     test_login_data_a1_1323.cpp
+    test_login_data_a2_1324.h
+    test_login_data_a2_1324.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

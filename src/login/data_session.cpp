@@ -22,6 +22,7 @@
 #include "data_session.h"
 
 #include "data_a1.h"
+#include "data_a2.h"
 #include "session_cleanup.h"
 
 #include "common/database.h"
@@ -304,9 +305,10 @@ void data_session::read_func()
             characterSelectionResponse.command     = 0x0B;
             loginPackets::clearIdentifier(characterSelectionResponse);
 
-            if (session.accountID == 0)
+            if (loginHelpers::ClassifyDataA2SessionAccount(session.accountID) ==
+                loginHelpers::data_a2_session_account_gate::CORRUPT)
             {
-                ShowWarning(fmt::format("data_session: login data corrupt (0xA2). Disconnecting client {}", ipAddress));
+                ShowWarning(loginHelpers::FormatDataA2CorruptSessionWarning(ipAddress));
 
                 loginHelpers::generateErrorMessage(buffer_.data(), loginErrors::errorCode::COULD_NOT_CONNECT_TO_LOBBY_SERVER);
                 do_write(0x24);
@@ -330,7 +332,8 @@ void data_session::read_func()
                 charid,
                 session.accountID);
 
-            if (rset && rset->rowsCount() && rset->next())
+            if (loginHelpers::ClassifyDataA2CharacterRow(static_cast<bool>(rset), rset && rset->rowsCount() && rset->next()) ==
+                loginHelpers::data_a2_character_row_gate::FOUND)
             {
                 ZoneID   = rset->get<uint16>("zoneid");
                 PrevZone = rset->get<uint16>("pos_prevzone");
@@ -408,21 +411,24 @@ void data_session::read_func()
                     exceptionTime = earth_time::time_point(std::chrono::seconds(rset3->get<uint64>("UNIX_TIMESTAMP(exception)")));
                 }
 
-                const auto currentTime  = earth_time::now();
-                const auto isNotMaint   = !settings::get<bool>("login.MAINT_MODE");
-                const auto loginLimit   = settings::get<uint8>("login.LOGIN_LIMIT");
-                const auto excepted     = exceptionTime > currentTime;
-                const auto loginLimitOK = loginLimit == 0 || sessionCount < loginLimit || excepted;
-                const auto isGM         = gmlevel > 0;
+                const auto currentTime     = earth_time::now();
+                const auto maintenanceMode = settings::get<bool>("login.MAINT_MODE");
+                const auto loginLimit      = settings::get<uint8>("login.LOGIN_LIMIT");
+                const auto excepted        = exceptionTime > currentTime;
+                const auto loginLimitOK    = loginHelpers::LoginLimitOK(loginLimit, sessionCount, excepted);
+                const auto isGM            = loginHelpers::IsGMLevel(gmlevel);
+                const auto zoneAtCap       = loginHelpers::isZoneAtPlayerCap(ZoneID, isGM);
 
                 if (!loginLimitOK)
                 {
-                    ShowWarning(fmt::format("data_session: account {} attempting to login when {} already has {} active session(s), limit is {}", session.accountID, ipAddress, sessionCount, loginLimit));
+                    ShowWarning(loginHelpers::FormatDataA2LoginLimitWarning(session.accountID, ipAddress, sessionCount, loginLimit));
                 }
 
-                if (loginHelpers::isZoneAtPlayerCap(ZoneID, isGM))
+                // Zone-cap deny only applies when a view session can receive the error.
+                // Without a view peer, production continues into the maint/limit path.
+                if (zoneAtCap)
                 {
-                    ShowWarning(fmt::format("data_session: zone {} at player cap, denying charid {} (gm={})", ZoneID, charid, isGM ? 1 : 0));
+                    ShowWarning(loginHelpers::FormatDataA2ZoneCapWarning(ZoneID, charid, isGM));
                     if (auto viewSession = session.view_session.get())
                     {
                         loginHelpers::generateErrorMessage(viewSession->buffer_.data(), loginErrors::errorCode::WORLD_IS_FULL);
@@ -431,9 +437,16 @@ void data_session::read_func()
                     }
                 }
 
-                if ((isNotMaint && loginLimitOK) || isGM)
+                // Maint/login-limit admission (zone already handled above).
+                if (loginHelpers::DecideDataA2Admission(
+                        maintenanceMode,
+                        loginLimit,
+                        sessionCount,
+                        excepted,
+                        isGM,
+                        false) == loginHelpers::data_a2_admission_decision::ALLOWED)
                 {
-                    if (PrevZone == 0)
+                    if (loginHelpers::ShouldUpdatePrevZone(PrevZone))
                     {
                         db::preparedStmt("UPDATE chars SET pos_prevzone = ? WHERE charid = ?", ZoneID, charid);
                     }
@@ -446,21 +459,25 @@ void data_session::read_func()
                                                         "WHERE accid = ? LIMIT 1",
                                                         session.accountID);
 
-                    if (rset1 && rset1->rowsCount() != 0 && rset1->next())
+                    const bool   existingQueryOk = static_cast<bool>(rset1);
+                    const bool   existingRowFound = rset1 && rset1->rowsCount() != 0 && rset1->next();
+                    const uint32 sessionCharid    = existingRowFound ? rset1->get<uint32>("charid") : 0;
+
+                    if (loginHelpers::ClassifyDataA2ExistingSession(
+                            existingQueryOk,
+                            existingRowFound,
+                            sessionCharid,
+                            session.requestedCharacterID) ==
+                        loginHelpers::data_a2_existing_session_gate::ALREADY_LOGGED_IN)
                     {
                         // If character is already logged in (session still exists) kick them out
                         // TODO: Retail has POL login time so this is more restricted.
-                        uint32 sessionCharid = rset1->get<uint32>("charid");
-
-                        if (sessionCharid == session.requestedCharacterID)
+                        if (auto viewSession = session.view_session.get())
                         {
-                            if (auto viewSession = session.view_session.get())
-                            {
-                                session.incrementKeyValue += 1;
-                                loginHelpers::generateErrorMessage(viewSession->buffer_.data(), loginErrors::errorCode::CHARACTER_ALREADY_LOGGED_IN);
-                                viewSession->do_write(0x24);
-                                return;
-                            }
+                            session.incrementKeyValue += loginHelpers::DataA2AlreadyLoggedInKeyIncrement;
+                            loginHelpers::generateErrorMessage(viewSession->buffer_.data(), loginErrors::errorCode::CHARACTER_ALREADY_LOGGED_IN);
+                            viewSession->do_write(0x24);
+                            return;
                         }
                     }
 
