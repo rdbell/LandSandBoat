@@ -426,6 +426,8 @@ set(SOURCES
     test_alliance_capacity_1329.cpp
     test_party_level_sync_1330.h
     test_party_level_sync_1330.cpp
+    test_login_connect_app_1331.h
+    test_login_connect_app_1331.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

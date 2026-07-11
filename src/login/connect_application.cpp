@@ -33,7 +33,7 @@ namespace
 auto appConfig() -> ApplicationConfig
 {
     return ApplicationConfig{
-        .serverName = "connect",
+        .serverName = loginHelpers::ConnectServerName,
         .arguments  = {},
     };
 }
@@ -56,8 +56,8 @@ auto ConnectApplication::createEngine() -> std::unique_ptr<Engine>
 void ConnectApplication::registerCommands(ConsoleService& console)
 {
     console.registerCommand(
-        "stats",
-        "Print server runtime statistics",
+        loginHelpers::ConnectStatsCommandName,
+        loginHelpers::ConnectStatsCommandHelp,
         [](std::vector<std::string>& inputs)
         {
             auto&        sessions       = loginHelpers::getAuthenticatedSessions();
@@ -73,8 +73,8 @@ void ConnectApplication::registerCommands(ConsoleService& console)
         });
 
     console.registerCommand(
-        "clear",
-        "Run periodic session cleanup routine",
+        loginHelpers::ConnectClearCommandName,
+        loginHelpers::ConnectClearCommandHelp,
         [](std::vector<std::string>& inputs)
         {
             auto& sessions       = loginHelpers::getAuthenticatedSessions();

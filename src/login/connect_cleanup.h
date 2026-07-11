@@ -104,4 +104,13 @@ inline auto FormatConnectStats(const std::size_t uniqueIPs, const std::size_t un
     return fmt::format("Serving {} IP addresses with {} accounts", uniqueIPs, uniqueAccounts);
 }
 
+// ConnectServerName is ApplicationConfig.serverName for ConnectApplication.
+inline constexpr const char* ConnectServerName = "connect";
+
+// Console command registration names/help for ConnectApplication::registerCommands.
+inline constexpr const char* ConnectStatsCommandName = "stats";
+inline constexpr const char* ConnectStatsCommandHelp = "Print server runtime statistics";
+inline constexpr const char* ConnectClearCommandName = "clear";
+inline constexpr const char* ConnectClearCommandHelp = "Run periodic session cleanup routine";
+
 } // namespace loginHelpers
