@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <cstring>
 
+#include "alliance_capacity.h"
 #include "conquest_system.h"
 #include "entities/battle_entity.h"
 #include "ipc_client.h"
@@ -127,34 +128,20 @@ void CAlliance::dissolveAlliance(bool playerInitiated)
 
 bool CAlliance::hasOnlyOneParty() const
 {
-    if (partyList.size() != 1)
-    {
-        return false;
-    }
-
     // Load party count to make sure that there is only one party in the alliance across all servers
-    return loadPartyCount() == 1;
+    return alliancehelpers::HasOnlyOneAllianceParty(partyList.size(), loadPartyCount());
 }
 
 bool CAlliance::isFull() const
 {
-    if (partyList.size() == 3)
-    {
-        return true;
-    }
-
     // Load party count to make sure that that all parties are accounted for across all servers
-    return loadPartyCount() == 3;
+    return alliancehelpers::IsAllianceFull(partyList.size(), loadPartyCount());
 }
 
 uint32 CAlliance::loadPartyCount() const
 {
     const auto rset = db::preparedStmt("SELECT * FROM accounts_parties WHERE allianceid = ? GROUP BY partyid", m_AllianceID, PARTY_SECOND | PARTY_THIRD);
-    if (rset)
-    {
-        return rset->rowsCount();
-    }
-    return 0;
+    return alliancehelpers::LoadPartyCountFromQuery(static_cast<bool>(rset), rset ? rset->rowsCount() : 0);
 }
 
 void CAlliance::removeParty(CParty* party)

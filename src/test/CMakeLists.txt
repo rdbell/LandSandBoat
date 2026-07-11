@@ -422,6 +422,8 @@ set(SOURCES
     test_party_capacity_1327.cpp
     test_party_member_count_1328.h
     test_party_member_count_1328.cpp
+    test_alliance_capacity_1329.h
+    test_alliance_capacity_1329.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
