@@ -21,6 +21,7 @@
 
 #include "auth_session.h"
 
+#include "auth_password.h"
 #include "common/ipc.h"
 #include "common/utils.h"
 #include "otp_helpers.h"
@@ -29,20 +30,6 @@
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
-
-namespace
-{
-
-constexpr bool isBcryptHash(const std::string& passHash)
-{
-    return std::size(passHash) == 60 &&
-           passHash[0] == '$' &&
-           passHash[1] == '2' &&
-           (passHash[2] == 'a' || passHash[2] == 'b' || passHash[2] == 'y' || passHash[2] == 'x') && // bcrypt hash versions
-           passHash[3] == '$';
-}
-
-} // namespace
 
 void auth_session::start()
 {
@@ -191,10 +178,11 @@ void auth_session::read_func()
             auto [accountID, status] = *accountInfo;
 
             // Reject banned/non-normal accounts before processing OTP or trust tokens
-            if (!(status & ACCOUNT_STATUS_CODE::NORMAL))
+            const auto accountGate = loginHelpers::classifyLoginAttemptAccountStatus(status);
+            if (accountGate != loginHelpers::login_attempt_account_gate::ALLOW)
             {
                 // Purge any lingering trust tokens for banned accounts
-                if (status & ACCOUNT_STATUS_CODE::BANNED)
+                if (accountGate == loginHelpers::login_attempt_account_gate::REJECT_BANNED)
                 {
                     otpHelpers::removeAllTrustTokens(accountID);
                 }
@@ -607,7 +595,7 @@ Maybe<std::pair<uint32, uint32>> auth_session::validatePassword(std::string user
         return "";
     }();
 
-    if (isBcryptHash(passHash))
+    if (loginHelpers::isBcryptHash(passHash))
     {
         // It's a BCrypt hash, so we can validate it.
         if (!BCrypt::validatePassword(password, passHash))
