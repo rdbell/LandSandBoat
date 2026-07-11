@@ -38,6 +38,7 @@
 #include "attack_loop_capacity.h"
 #include "engage_capacity.h"
 #include "despawn_finalize_capacity.h"
+#include "post_tick_death_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -4028,7 +4029,11 @@ void CBattleEntity::PostTick()
 {
     TracyZoneScoped;
 
-    if (health.hp <= 0 && PAI->IsSpawned() && !PAI->IsCurrentState<CDeathState>() && !PAI->IsCurrentState<CDespawnState>())
+    if (posttickdeathhelpers::ShouldDie(
+            health.hp,
+            PAI->IsSpawned(),
+            PAI->IsCurrentState<CDeathState>(),
+            PAI->IsCurrentState<CDespawnState>()))
     {
         Die();
     }

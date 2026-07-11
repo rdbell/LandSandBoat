@@ -321,6 +321,7 @@ auto runDakenSangeAmmo1401SelfTests() -> bool;
 auto runAttackLoop1402SelfTests() -> bool;
 auto runEngage1403SelfTests() -> bool;
 auto runDespawnFinalize1404SelfTests() -> bool;
+auto runPostTickDeath1405SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -852,6 +853,7 @@ namespace
         ok = runAttackLoop1402SelfTests() && ok;
         ok = runEngage1403SelfTests() && ok;
         ok = runDespawnFinalize1404SelfTests() && ok;
+        ok = runPostTickDeath1405SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
