@@ -276,6 +276,7 @@ auto runLinkshellRegistry1355SelfTests() -> bool;
 auto runUnityChatCapacity1356SelfTests() -> bool;
 auto runGuildPointsMath1358SelfTests() -> bool;
 auto runLatentConditionEval1359SelfTests() -> bool;
+auto runLatentConditionEval1360SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -762,6 +763,7 @@ namespace
         ok = runUnityChatCapacity1356SelfTests() && ok;
         ok = runGuildPointsMath1358SelfTests() && ok;
         ok = runLatentConditionEval1359SelfTests() && ok;
+        ok = runLatentConditionEval1360SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

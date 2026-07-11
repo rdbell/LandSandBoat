@@ -932,9 +932,10 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
                     if (member->PPet != nullptr && member->PPet->objtype == TYPE_PET)
                     {
                         auto* PPet = static_cast<CPetEntity*>(member->PPet);
-                        if (
-                            !PPet->isDead() && PPet->petID() < 21 && // is a live avatar
-                            (PPet->petID() == latentEffect.GetConditionsValue() || latentEffect.GetConditionsValue() == 21))
+                        if (latenthelpers::EvaluateAvatarMatch(
+                                latenthelpers::IsLiveAvatar(PPet->isDead(), PPet->petID()),
+                                PPet->petID(),
+                                latentEffect.GetConditionsValue()))
                         {
                             expression = true;
                             break;
@@ -945,12 +946,10 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
             else if (m_POwner->PParty == nullptr && m_POwner->PPet != nullptr)
             {
                 auto* PPet = (CPetEntity*)m_POwner->PPet;
-                if (
-                    !PPet->isDead() && PPet->petID() < 21 && // is a live avatar
-                    (PPet->petID() == latentEffect.GetConditionsValue() || latentEffect.GetConditionsValue() == 21))
-                {
-                    expression = true;
-                }
+                expression = latenthelpers::EvaluateAvatarMatch(
+                    latenthelpers::IsLiveAvatar(PPet->isDead(), PPet->petID()),
+                    PPet->petID(),
+                    latentEffect.GetConditionsValue());
             }
             break;
         case xi::Latent::JobInParty:
@@ -958,13 +957,12 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
             {
                 for (auto* member : m_POwner->PParty->members)
                 {
-                    if (member->id != m_POwner->id)
+                    if (latenthelpers::EvaluateJobInPartyMember(
+                            member->id != m_POwner->id,
+                            member->GetMJob() == latentEffect.GetConditionsValue()))
                     {
-                        if (member->GetMJob() == latentEffect.GetConditionsValue())
-                        {
-                            expression = true;
-                            break;
-                        }
+                        expression = true;
+                        break;
                     }
                 }
 
@@ -987,166 +985,86 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
             }
             break;
         case xi::Latent::Zone:
-            expression = latentEffect.GetConditionsValue() == m_POwner->getZone();
+            expression = latenthelpers::EvaluateZone(m_POwner->getZone(), latentEffect.GetConditionsValue());
             break;
         case xi::Latent::SynthTrainee:
         {
-            expression = (uint16)m_POwner->RealSkills.skill[latentEffect.GetConditionsValue()] / 10 < 40 &&
-                         !m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::FishingImagery) &&
-                         !m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::WoodworkingImagery) &&
-                         !m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SmithingImagery) &&
-                         !m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::GoldsmithingImagery) &&
-                         !m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::ClothcraftImagery) &&
-                         !m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LeathercraftImagery) &&
-                         !m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::BonecraftImagery) &&
-                         !m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AlchemyImagery) &&
-                         !m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::CookingImagery);
+            const bool anyCraftImagery =
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::FishingImagery) ||
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::WoodworkingImagery) ||
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SmithingImagery) ||
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::GoldsmithingImagery) ||
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::ClothcraftImagery) ||
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LeathercraftImagery) ||
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::BonecraftImagery) ||
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AlchemyImagery) ||
+                m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::CookingImagery);
+            expression = latenthelpers::EvaluateSynthTrainee(
+                static_cast<uint16>(m_POwner->RealSkills.skill[latentEffect.GetConditionsValue()]),
+                anyCraftImagery);
             break;
         }
         case xi::Latent::SongRollActive:
-            expression = m_POwner->StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::Roll | xi::StatusEffectFlag::Song);
+            expression = latenthelpers::EvaluateSongRollActive(
+                m_POwner->StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::Roll | xi::StatusEffectFlag::Song));
             break;
         case xi::Latent::TimeOfDay:
         {
-            uint32 VanadielHour = vanadiel_time::get_hour(vanaTime);
-            switch (latentEffect.GetConditionsValue())
-            {
-                case 0:
-                    // daytime: 06:00 to 18:00
-                    expression = VanadielHour >= 6 && VanadielHour < 18;
-                    break;
-                case 1:
-                    // nighttime: 18:00 to 06:00
-                    expression = VanadielHour >= 18 || VanadielHour < 6;
-                    break;
-                case 2:
-                    // dusk - dawn: 17:00 to 7:00
-                    expression = VanadielHour >= 17 || VanadielHour < 7;
-                    break;
-            }
+            const uint32 VanadielHour = vanadiel_time::get_hour(vanaTime);
+            expression                = latenthelpers::EvaluateTimeOfDay(VanadielHour, latentEffect.GetConditionsValue());
             break;
         }
         case xi::Latent::HourOfDay:
         {
-            uint32 VanadielHour = vanadiel_time::get_hour(vanaTime);
-            switch (latentEffect.GetConditionsValue())
-            {
-                case 1:
-                    // new day
-                    expression = VanadielHour == 4;
-                    break;
-                case 2:
-                    // dawn
-                    expression = VanadielHour >= 6 && VanadielHour < 7;
-                    break;
-                case 3:
-                    // day
-                    expression = VanadielHour >= 7 && VanadielHour < 17;
-                    break;
-                case 4:
-                    // dusk
-                    expression = VanadielHour >= 16 && VanadielHour < 18;
-                    break;
-                case 5:
-                    // evening
-                    expression = VanadielHour >= 18 && VanadielHour < 20;
-                    break;
-                case 6:
-                    // dead of night
-                    expression = VanadielHour >= 20 || VanadielHour < 4;
-                    break;
-            }
+            const uint32 VanadielHour = vanadiel_time::get_hour(vanaTime);
+            expression                = latenthelpers::EvaluateHourOfDay(VanadielHour, latentEffect.GetConditionsValue());
             break;
         }
         case xi::Latent::Firesday:
-            expression = vanadiel_time::get_weekday(vanaTime) == FIRESDAY;
+            expression = latenthelpers::EvaluateWeekdayMatch(vanadiel_time::get_weekday(vanaTime), FIRESDAY);
             break;
         case xi::Latent::Earthsday:
-            expression = vanadiel_time::get_weekday(vanaTime) == EARTHSDAY;
+            expression = latenthelpers::EvaluateWeekdayMatch(vanadiel_time::get_weekday(vanaTime), EARTHSDAY);
             break;
         case xi::Latent::Watersday:
-            expression = vanadiel_time::get_weekday(vanaTime) == WATERSDAY;
+            expression = latenthelpers::EvaluateWeekdayMatch(vanadiel_time::get_weekday(vanaTime), WATERSDAY);
             break;
         case xi::Latent::Windsday:
-            expression = vanadiel_time::get_weekday(vanaTime) == WINDSDAY;
+            expression = latenthelpers::EvaluateWeekdayMatch(vanadiel_time::get_weekday(vanaTime), WINDSDAY);
             break;
         case xi::Latent::Darksday:
-            expression = vanadiel_time::get_weekday(vanaTime) == DARKSDAY;
+            expression = latenthelpers::EvaluateWeekdayMatch(vanadiel_time::get_weekday(vanaTime), DARKSDAY);
             break;
         case xi::Latent::Iceday:
-            expression = vanadiel_time::get_weekday(vanaTime) == ICEDAY;
+            expression = latenthelpers::EvaluateWeekdayMatch(vanadiel_time::get_weekday(vanaTime), ICEDAY);
             break;
         case xi::Latent::Lightningsday:
-            expression = vanadiel_time::get_weekday(vanaTime) == LIGHTNINGDAY;
+            expression = latenthelpers::EvaluateWeekdayMatch(vanadiel_time::get_weekday(vanaTime), LIGHTNINGDAY);
             break;
         case xi::Latent::Lightsday:
-            expression = vanadiel_time::get_weekday(vanaTime) == LIGHTSDAY;
+            expression = latenthelpers::EvaluateWeekdayMatch(vanadiel_time::get_weekday(vanaTime), LIGHTSDAY);
             break;
         case xi::Latent::MoonPhase:
         {
-            uint32 MoonPhase     = vanadiel_time::moon::get_phase(vanaTime);
-            uint32 MoonDirection = vanadiel_time::moon::get_direction(vanaTime); // directions: 1 = waning, 2 = waxing, 0 = neither
-            switch (latentEffect.GetConditionsValue())
-            {
-                case 0:
-                    // New Moon - 10% waning -> 5% waxing
-                    expression = MoonPhase <= 5 || (MoonPhase <= 10 && MoonDirection == 1);
-                    break;
-                case 1:
-                    // Waxing Crescent - 7% -> 38% waxing
-                    expression = MoonPhase >= 7 && MoonPhase <= 38 && MoonDirection == 2;
-                    break;
-                case 2:
-                    // First Quarter - 40%% -> 55% waxing
-                    expression = MoonPhase >= 40 && MoonPhase <= 55 && MoonDirection == 2;
-                    break;
-                case 3:
-                    // Waxing Gibbous - 57% -> 88%
-                    expression = MoonPhase >= 57 && MoonPhase <= 88 && MoonDirection == 2;
-                    break;
-                case 4:
-                    // Full Moon - waxing 90% -> waning 95%
-                    expression = MoonPhase >= 95 || (MoonPhase >= 90 && MoonDirection == 2);
-                    break;
-                case 5:
-                    // Waning Gibbous - 93% -> 62%
-                    expression = MoonPhase >= 62 && MoonPhase <= 93 && MoonDirection == 1;
-                    break;
-                case 6:
-                    // Last Quarter - 60% -> 45%
-                    expression = MoonPhase >= 45 && MoonPhase <= 60 && MoonDirection == 1;
-                    break;
-                case 7:
-                    // Waning Crescent - 43% -> 12%
-                    expression = MoonPhase >= 12 && MoonPhase <= 43 && MoonDirection == 1;
-                    break;
-            }
+            const uint32 MoonPhase     = vanadiel_time::moon::get_phase(vanaTime);
+            const uint32 MoonDirection = vanadiel_time::moon::get_direction(vanaTime); // 1 = waning, 2 = waxing, 0 = neither
+            expression                 = latenthelpers::EvaluateMoonPhase(MoonPhase, MoonDirection, latentEffect.GetConditionsValue());
             break;
         }
         case xi::Latent::JobMultiple:
-            // Check if level is odd
-            if (latentEffect.GetConditionsValue() == 0)
-            {
-                expression = m_POwner->GetMLevel() % 2 == 1;
-            }
-            // Check if level is multiple of divisor
-            else
-            {
-                expression = m_POwner->GetMLevel() % latentEffect.GetConditionsValue() == 0;
-            }
+            expression = latenthelpers::EvaluateJobMultiple(m_POwner->GetMLevel(), latentEffect.GetConditionsValue());
             break;
         case xi::Latent::JobMultipleAtNight:
-            if (latentEffect.GetConditionsValue() == 0)
-            {
-                expression = m_POwner->GetMLevel() % 2 == 1 && vanadiel_time::get_totd(vanaTime) == vanadiel_time::TOTD::NIGHT;
-            }
-            else
-            {
-                expression = m_POwner->GetMLevel() % latentEffect.GetConditionsValue() == 0 && vanadiel_time::get_totd(vanaTime) == vanadiel_time::TOTD::NIGHT;
-            }
+            expression = latenthelpers::EvaluateJobMultipleAtNight(
+                m_POwner->GetMLevel(),
+                latentEffect.GetConditionsValue(),
+                vanadiel_time::get_totd(vanaTime) == vanadiel_time::TOTD::NIGHT);
             break;
         case xi::Latent::WeaponDrawnHpUnder:
-            expression = m_POwner->health.hp < latentEffect.GetConditionsValue() && m_POwner->animation == ANIMATION_ATTACK;
+            expression = latenthelpers::EvaluateWeaponDrawnHpAbsolute(
+                m_POwner->animation == ANIMATION_ATTACK,
+                m_POwner->health.hp,
+                latentEffect.GetConditionsValue());
             break;
         case xi::Latent::MpUnderVisibleGear:
             // TODO: figure out if this is actually right
@@ -1209,22 +1127,23 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
                 case SLOT_MAIN:
                 case SLOT_SUB:
                 case SLOT_RANGED:
-                    expression = item != nullptr && item->isUnlocked();
+                    expression = latenthelpers::EvaluateWeaponBroken(true, item != nullptr, item != nullptr && item->isUnlocked());
                     break;
             }
             break;
         }
         case xi::Latent::InDynamis:
-            expression = m_POwner->isInDynamis();
+            expression = latenthelpers::EvaluateInFlag(m_POwner->isInDynamis());
             break;
         case xi::Latent::InAssault:
-            expression = m_POwner->isInAssault();
+            expression = latenthelpers::EvaluateInFlag(m_POwner->isInAssault());
             break;
         case xi::Latent::InAdoulin:
-            expression = m_POwner->isInAdoulin();
+            expression = latenthelpers::EvaluateInFlag(m_POwner->isInAdoulin());
             break;
         case xi::Latent::InGarrison:
-            expression = m_POwner->isInGarrison() && m_POwner->GetMLevel() >= latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateInGarrison(
+                m_POwner->isInGarrison(), m_POwner->GetMLevel(), latentEffect.GetConditionsValue());
             break;
         case xi::Latent::FoodActive:
             expression = latenthelpers::EvaluateFoodActive(
@@ -1240,10 +1159,14 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
             expression = latenthelpers::EvaluateJobLevelAbove(m_POwner->GetMLevel(), latentEffect.GetConditionsValue());
             break;
         case xi::Latent::WeatherCondition:
-            expression = latentEffect.GetConditionsValue() == static_cast<uint16_t>(battleutils::GetWeather((CBattleEntity*)m_POwner, false));
+            expression = latenthelpers::EvaluateWeatherMatch(
+                static_cast<uint16_t>(battleutils::GetWeather((CBattleEntity*)m_POwner, false)),
+                latentEffect.GetConditionsValue());
             break;
         case xi::Latent::WeatherElement:
-            expression = latentEffect.GetConditionsValue() == zoneutils::GetWeatherElement(battleutils::GetWeather((CBattleEntity*)m_POwner, false));
+            expression = latenthelpers::EvaluateWeatherElementMatch(
+                static_cast<uint16>(zoneutils::GetWeatherElement(battleutils::GetWeather((CBattleEntity*)m_POwner, false))),
+                latentEffect.GetConditionsValue());
             break;
         case xi::Latent::NationControl:
         {
@@ -1254,24 +1177,30 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
             auto hasSanction              = m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sanction);
             auto hasSigil                 = m_POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sigil);
             auto regionAlwaysOutOfControl = zoneutils::IsAlwaysOutOfNationControl(region);
+            const bool inConquest         = region < REGION_TYPE::WEST_AHT_URHGAN;
+            const bool hasAnySigil        = hasSignet || hasSanction || hasSigil;
             switch (latentEffect.GetConditionsValue())
             {
                 case 0:
                     // under own nation's control
-                    expression = region < REGION_TYPE::WEST_AHT_URHGAN && (conquest::GetRegionOwner(region) == m_POwner->profile.nation) &&
-                                 (hasSignet || hasSanction || hasSigil);
+                    expression = latenthelpers::EvaluateNationControlUnder(
+                        inConquest,
+                        conquest::GetRegionOwner(region) == m_POwner->profile.nation,
+                        hasAnySigil);
                     break;
                 case 1:
                     // outside of own nation's control
-                    expression = region < REGION_TYPE::WEST_AHT_URHGAN && (regionAlwaysOutOfControl || m_POwner->profile.nation != conquest::GetRegionOwner(region)) &&
-                                 (hasSignet || hasSanction || hasSigil);
+                    expression = latenthelpers::EvaluateNationControlOutside(
+                        inConquest,
+                        regionAlwaysOutOfControl || m_POwner->profile.nation != conquest::GetRegionOwner(region),
+                        hasAnySigil);
                     break;
             }
             break;
         }
         case xi::Latent::NationCitizen:
         {
-            expression = m_POwner->profile.nation == latentEffect.GetConditionsValue();
+            expression = latenthelpers::EvaluateNationCitizen(m_POwner->profile.nation, latentEffect.GetConditionsValue());
             break;
         }
         case xi::Latent::ZoneHomeNation:
@@ -1282,13 +1211,13 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
             switch (nationRegion)
             {
                 case REGION_TYPE::SANDORIA:
-                    expression = m_POwner->profile.nation == 0 && region == nationRegion;
+                    expression = latenthelpers::EvaluateZoneHomeNation(m_POwner->profile.nation, 0, region == nationRegion);
                     break;
                 case REGION_TYPE::BASTOK:
-                    expression = m_POwner->profile.nation == 1 && region == nationRegion;
+                    expression = latenthelpers::EvaluateZoneHomeNation(m_POwner->profile.nation, 1, region == nationRegion);
                     break;
                 case REGION_TYPE::WINDURST:
-                    expression = m_POwner->profile.nation == 2 && region == nationRegion;
+                    expression = latenthelpers::EvaluateZoneHomeNation(m_POwner->profile.nation, 2, region == nationRegion);
                     break;
                 default:
                     break;
@@ -1305,12 +1234,14 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
                 latentEffect.GetConditionsValue());
             break;
         case xi::Latent::ElevenRollActive:
-            expression = m_POwner->StatusEffectContainer->CheckForElevenRoll();
+            expression = latenthelpers::EvaluateElevenRollActive(
+                m_POwner->StatusEffectContainer->CheckForElevenRoll());
             break;
         case xi::Latent::VsEcosystem:
             if (CBattleEntity* PTarget = m_POwner->GetBattleTarget())
             {
-                expression = static_cast<uint16>(PTarget->m_EcoSystem) == latentEffect.GetConditionsValue();
+                expression = latenthelpers::EvaluateVsTargetValue(
+                    true, static_cast<uint16>(PTarget->m_EcoSystem), latentEffect.GetConditionsValue());
             }
             break;
         case xi::Latent::VsSpecies:
@@ -1319,7 +1250,8 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
                 CMobEntity* PMob = dynamic_cast<CMobEntity*>(PTarget);
                 if (PMob)
                 {
-                    expression = PMob->m_Species == latentEffect.GetConditionsValue();
+                    expression = latenthelpers::EvaluateVsTargetValue(
+                        true, PMob->m_Species, latentEffect.GetConditionsValue());
                 }
             }
             break;
@@ -1329,7 +1261,8 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
                 CMobEntity* PMob = dynamic_cast<CMobEntity*>(PTarget);
                 if (PMob)
                 {
-                    expression = PMob->m_Family == latentEffect.GetConditionsValue();
+                    expression = latenthelpers::EvaluateVsTargetValue(
+                        true, PMob->m_Family, latentEffect.GetConditionsValue());
                 }
             }
             break;

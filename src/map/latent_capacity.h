@@ -244,4 +244,204 @@ inline auto ProcessLatentListWantsHealthUpdate(const bool anyLatentChanged) -> b
     return anyLatentChanged;
 }
 
+// --- Slice 1360: time / moon / zone / job-multiple / nation / flags ---
+
+// EvaluateZone mirrors getZone() == value.
+inline auto EvaluateZone(const uint16 playerZoneID, const uint16 value) -> bool
+{
+    return playerZoneID == value;
+}
+
+// EvaluateSynthTrainee mirrors skill/10 < 40 and no craft imagery.
+// skillRankTenths is RealSkills.skill[value] (stored as rank*10).
+inline auto EvaluateSynthTrainee(const uint16 skillTenths, const bool anyCraftImagery) -> bool
+{
+    return (skillTenths / 10) < 40 && !anyCraftImagery;
+}
+
+// EvaluateSongRollActive mirrors HasStatusEffectByFlag(Roll|Song).
+inline auto EvaluateSongRollActive(const bool hasRollOrSong) -> bool
+{
+    return hasRollOrSong;
+}
+
+// EvaluateElevenRollActive mirrors CheckForElevenRoll().
+inline auto EvaluateElevenRollActive(const bool hasElevenRoll) -> bool
+{
+    return hasElevenRoll;
+}
+
+// TimeOfDay param: 0 daytime, 1 nighttime, 2 dusk-dawn.
+inline auto EvaluateTimeOfDay(const uint32 vanadielHour, const uint16 value) -> bool
+{
+    switch (value)
+    {
+        case 0: // daytime: 06:00 to 18:00
+            return vanadielHour >= 6 && vanadielHour < 18;
+        case 1: // nighttime: 18:00 to 06:00
+            return vanadielHour >= 18 || vanadielHour < 6;
+        case 2: // dusk-dawn: 17:00 to 7:00
+            return vanadielHour >= 17 || vanadielHour < 7;
+        default:
+            return false;
+    }
+}
+
+// HourOfDay param: 1 new day … 6 dead of night (0 unused).
+inline auto EvaluateHourOfDay(const uint32 vanadielHour, const uint16 value) -> bool
+{
+    switch (value)
+    {
+        case 1: // new day
+            return vanadielHour == 4;
+        case 2: // dawn
+            return vanadielHour >= 6 && vanadielHour < 7;
+        case 3: // day
+            return vanadielHour >= 7 && vanadielHour < 17;
+        case 4: // dusk
+            return vanadielHour >= 16 && vanadielHour < 18;
+        case 5: // evening
+            return vanadielHour >= 18 && vanadielHour < 20;
+        case 6: // dead of night
+            return vanadielHour >= 20 || vanadielHour < 4;
+        default:
+            return false;
+    }
+}
+
+// EvaluateWeekdayMatch mirrors get_weekday == expected weekday constant.
+inline auto EvaluateWeekdayMatch(const uint32 weekday, const uint32 expected) -> bool
+{
+    return weekday == expected;
+}
+
+// Moon direction: 1 = waning, 2 = waxing, 0 = neither.
+// EvaluateMoonPhase mirrors the 8-way moon phase latent switch.
+inline auto EvaluateMoonPhase(const uint32 moonPhase, const uint32 moonDirection, const uint16 value) -> bool
+{
+    switch (value)
+    {
+        case 0: // New Moon - 10% waning -> 5% waxing
+            return moonPhase <= 5 || (moonPhase <= 10 && moonDirection == 1);
+        case 1: // Waxing Crescent - 7% -> 38% waxing
+            return moonPhase >= 7 && moonPhase <= 38 && moonDirection == 2;
+        case 2: // First Quarter - 40% -> 55% waxing
+            return moonPhase >= 40 && moonPhase <= 55 && moonDirection == 2;
+        case 3: // Waxing Gibbous - 57% -> 88%
+            return moonPhase >= 57 && moonPhase <= 88 && moonDirection == 2;
+        case 4: // Full Moon - waxing 90% -> waning 95%
+            return moonPhase >= 95 || (moonPhase >= 90 && moonDirection == 2);
+        case 5: // Waning Gibbous - 93% -> 62%
+            return moonPhase >= 62 && moonPhase <= 93 && moonDirection == 1;
+        case 6: // Last Quarter - 60% -> 45%
+            return moonPhase >= 45 && moonPhase <= 60 && moonDirection == 1;
+        case 7: // Waning Crescent - 43% -> 12%
+            return moonPhase >= 12 && moonPhase <= 43 && moonDirection == 1;
+        default:
+            return false;
+    }
+}
+
+// EvaluateJobMultiple: value 0 → odd level; else level % value == 0.
+inline auto EvaluateJobMultiple(const uint8 mlevel, const uint16 value) -> bool
+{
+    if (value == 0)
+    {
+        return mlevel % 2 == 1;
+    }
+    return mlevel % value == 0;
+}
+
+// EvaluateJobMultipleAtNight mirrors JobMultiple && isNight.
+inline auto EvaluateJobMultipleAtNight(const uint8 mlevel, const uint16 value, const bool isNight) -> bool
+{
+    return EvaluateJobMultiple(mlevel, value) && isNight;
+}
+
+// EvaluateWeaponDrawnHpAbsolute mirrors hp < value && attack animation
+// (WeaponDrawnHpUnder — absolute HP, not percent).
+inline auto EvaluateWeaponDrawnHpAbsolute(const bool isAttackAnimation, const int32 hp, const uint16 value) -> bool
+{
+    return isAttackAnimation && hp < static_cast<int32>(value);
+}
+
+// EvaluateWeaponBroken mirrors item non-null && isUnlocked for main/sub/ranged.
+inline auto EvaluateWeaponBroken(const bool slotIsWeapon, const bool itemNonNull, const bool isUnlocked) -> bool
+{
+    return slotIsWeapon && itemNonNull && isUnlocked;
+}
+
+// EvaluateInFlag mirrors isInDynamis/Assault/Adoulin style bool host flags.
+inline auto EvaluateInFlag(const bool flag) -> bool
+{
+    return flag;
+}
+
+// EvaluateInGarrison mirrors isInGarrison && mlevel >= value.
+inline auto EvaluateInGarrison(const bool inGarrison, const uint8 mlevel, const uint16 value) -> bool
+{
+    return inGarrison && mlevel >= value;
+}
+
+// EvaluateNationCitizen mirrors profile.nation == value.
+inline auto EvaluateNationCitizen(const uint8 nation, const uint16 value) -> bool
+{
+    return nation == static_cast<uint8>(value);
+}
+
+// EvaluateNationControlUnder mirrors under own nation control (value 0 branch).
+inline auto EvaluateNationControlUnder(
+    const bool inConquestRegion,
+    const bool regionOwnedByPlayerNation,
+    const bool hasSignetOrSanctionOrSigil) -> bool
+{
+    return inConquestRegion && regionOwnedByPlayerNation && hasSignetOrSanctionOrSigil;
+}
+
+// EvaluateNationControlOutside mirrors outside own nation (value 1 branch).
+inline auto EvaluateNationControlOutside(
+    const bool inConquestRegion,
+    const bool regionAlwaysOutOfControlOrNotOwned,
+    const bool hasSignetOrSanctionOrSigil) -> bool
+{
+    return inConquestRegion && regionAlwaysOutOfControlOrNotOwned && hasSignetOrSanctionOrSigil;
+}
+
+// EvaluateZoneHomeNation mirrors nation match && region == nationRegion.
+inline auto EvaluateZoneHomeNation(const uint8 playerNation, const uint8 expectedNation, const bool regionMatches) -> bool
+{
+    return playerNation == expectedNation && regionMatches;
+}
+
+// EvaluateWeatherMatch mirrors weather enum equality.
+inline auto EvaluateWeatherMatch(const uint16 weatherValue, const uint16 conditionValue) -> bool
+{
+    return weatherValue == conditionValue;
+}
+
+// EvaluateWeatherElementMatch mirrors weather element equality.
+inline auto EvaluateWeatherElementMatch(const uint16 element, const uint16 conditionValue) -> bool
+{
+    return element == conditionValue;
+}
+
+// EvaluateVsTargetValue mirrors target field == value when target present.
+inline auto EvaluateVsTargetValue(const bool hasTarget, const uint16 targetValue, const uint16 conditionValue) -> bool
+{
+    return hasTarget && targetValue == conditionValue;
+}
+
+// EvaluateJobInPartyMember mirrors other member (id != owner) has job.
+// isOtherMember is member->id != owner id; jobMatches is GetMJob() == value.
+inline auto EvaluateJobInPartyMember(const bool isOtherMember, const bool jobMatches) -> bool
+{
+    return isOtherMember && jobMatches;
+}
+
+// IsLiveAvatar mirrors !dead && petID < 21.
+inline auto IsLiveAvatar(const bool isDead, const uint32 petID) -> bool
+{
+    return !isDead && petID < 21;
+}
+
 } // namespace latenthelpers

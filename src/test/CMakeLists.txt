@@ -482,6 +482,8 @@ set(SOURCES
     test_guild_points_math_1358.cpp
     test_latent_condition_eval_1359.h
     test_latent_condition_eval_1359.cpp
+    test_latent_condition_eval_1360.h
+    test_latent_condition_eval_1360.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
