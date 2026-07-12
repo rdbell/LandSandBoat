@@ -29,6 +29,7 @@
 #include "ranged_ammo_capacity.h"
 #include "paralyze_shadow_capacity.h"
 #include "combat_status_tails_capacity.h"
+#include "claim_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -4196,22 +4197,27 @@ void ClaimMob(CBattleEntity* PDefender, CBattleEntity* PAttacker, bool passing)
 {
     TracyZoneScoped;
 
-    if (PDefender == nullptr || (PDefender && PDefender->objtype != TYPE_MOB))
+    const bool defenderIsMob = PDefender != nullptr && PDefender->objtype == TYPE_MOB;
+    if (claimhelpers::ClassifyClaimMobEarly(defenderIsMob, false, true, false, claimhelpers::ClaimType::Exclusive, false) ==
+            claimhelpers::ClaimMobEarlyAction::SkipNonMob ||
+        !defenderIsMob)
     { // Do not try to claim anything but mobs (trusts, pets, players don't count)
         return;
     }
 
-    if (PDefender && PDefender->objtype == TYPE_MOB && PDefender->allegiance == PAttacker->allegiance)
+    if (PDefender->allegiance == PAttacker->allegiance)
     { // mobs that are allied with the attacker do not need to be claimed and will not update enmity
         return;
     }
 
     if (auto* mob = dynamic_cast<CMobEntity*>(PDefender))
     {
-        CBattleEntity* original = PAttacker;
-        if (PAttacker->objtype != TYPE_PC)
+        CBattleEntity* original      = PAttacker;
+        const bool     attackerIsPC  = PAttacker->objtype == TYPE_PC;
+        const bool     hasPCMaster   = PAttacker->PMaster && PAttacker->PMaster->objtype == TYPE_PC;
+        if (!attackerIsPC)
         {
-            if (PAttacker->PMaster && PAttacker->PMaster->objtype == TYPE_PC)
+            if (hasPCMaster)
             { // claim by master
                 PAttacker = PAttacker->PMaster;
             }
@@ -4221,12 +4227,14 @@ void ClaimMob(CBattleEntity* PDefender, CBattleEntity* PAttacker, bool passing)
             }
         }
         CBattleEntity* battleTarget = original->GetBattleTarget();
-        if (!passing)
+        if (claimhelpers::ShouldUpdateEnmityOnClaim(passing))
         {
             mob->PEnmityContainer->UpdateEnmity(original, 0, 0, true, true);
         }
 
-        if (mob->getMobMod(MOBMOD_CLAIM_TYPE) == static_cast<int16>(ClaimType::Unclaimable))
+        if (claimhelpers::ClassifyClaimMobEarly(
+                true, false, true, true, static_cast<claimhelpers::ClaimType>(mob->getMobMod(MOBMOD_CLAIM_TYPE)), true) ==
+            claimhelpers::ClaimMobEarlyAction::SkipUnclaimable)
         {
             return;
         }
@@ -4234,38 +4242,54 @@ void ClaimMob(CBattleEntity* PDefender, CBattleEntity* PAttacker, bool passing)
         if (PAttacker)
         {
             CCharEntity* attacker = static_cast<CCharEntity*>(PAttacker);
-            if (!passing)
+            if (claimhelpers::ShouldDirtyExpOnClaim(passing))
             {
                 battleutils::DirtyExp(PDefender, PAttacker);
             }
-            if (!battleTarget || battleTarget == PDefender || battleTarget != attacker->PClaimedMob || PDefender->isDead())
+            const bool btAllows = claimhelpers::BattleTargetAllowsClaim(
+                battleTarget != nullptr,
+                battleTarget == PDefender,
+                battleTarget != nullptr && battleTarget == attacker->PClaimedMob,
+                PDefender->isDead());
+            if (btAllows)
             {
-                if (PDefender->isAlive() && attacker->PClaimedMob && attacker->PClaimedMob != PDefender && attacker->PClaimedMob->isAlive() &&
-                    attacker->PClaimedMob->m_OwnerID.id == attacker->id)
+                if (claimhelpers::ShouldUnclaimPreviousMob(
+                        PDefender->isAlive(),
+                        attacker->PClaimedMob != nullptr,
+                        attacker->PClaimedMob == PDefender,
+                        attacker->PClaimedMob && attacker->PClaimedMob->isAlive(),
+                        attacker->PClaimedMob ? attacker->PClaimedMob->m_OwnerID.id : 0,
+                        attacker->id))
                 { // unclaim any other living mobs owned by attacker
                     static_cast<CMobController*>(attacker->PClaimedMob->PAI->GetController())->TapDeclaimTime();
                     attacker->PClaimedMob = nullptr;
                 }
-                if (!mob->GetCallForHelpFlag())
+                const auto path = claimhelpers::ClassifyClaimOwnership(
+                    true, mob->GetCallForHelpFlag(), battleutils::HasClaim(PAttacker, PDefender), PDefender->isDead());
+                switch (path)
                 {
-                    if (battleutils::HasClaim(PAttacker, PDefender))
+                    case claimhelpers::ClaimOwnershipPath::CFHBlocked:
+                    case claimhelpers::ClaimOwnershipPath::SkipBattleTarget:
+                        break;
+                    case claimhelpers::ClaimOwnershipPath::AllianceUpdate:
                     { // mob is currently claimed by your alliance, update ownership
                         mob->m_OwnerID.id     = PAttacker->id;
                         mob->m_OwnerID.targid = PAttacker->targid;
-                        if (PDefender->isAlive())
+                        if (claimhelpers::ShouldAssignPClaimedMob(PDefender->isAlive()))
                         { // ignore killing blow
                             mob->updatemask |= UPDATE_STATUS;
                             attacker->PClaimedMob = PDefender;
                         }
+                        break;
                     }
-                    else
-                    { // mob is unclaimed
-                        if (PDefender->isDead())
-                        { // always give rewards on the killing blow
-                            mob->m_OwnerID.id     = PAttacker->id;
-                            mob->m_OwnerID.targid = PAttacker->targid;
-                            return;
-                        }
+                    case claimhelpers::ClaimOwnershipPath::KillingBlowUnclaimed:
+                    { // always give rewards on the killing blow
+                        mob->m_OwnerID.id     = PAttacker->id;
+                        mob->m_OwnerID.targid = PAttacker->targid;
+                        return;
+                    }
+                    case claimhelpers::ClaimOwnershipPath::HighestEnmityScan:
+                    {
                         CBattleEntity* highestClaim = mob->PEnmityContainer->GetHighestEnmity();
                         if (highestClaim && highestClaim->objtype == TYPE_TRUST)
                         {
@@ -4274,11 +4298,12 @@ void ClaimMob(CBattleEntity* PDefender, CBattleEntity* PAttacker, bool passing)
                         // clang-format off
                             PAttacker->ForAlliance([&](CBattleEntity* PMember)
                             {
-                                if (!highestClaim || highestClaim == PMember || highestClaim == PMember->PPet)
+                                if (claimhelpers::HighestEnmityAllowsClaim(
+                                        highestClaim != nullptr, highestClaim == PMember, highestClaim == PMember->PPet))
                                 { // someone in your alliance is top of hate list, claim for your alliance
                                     mob->m_OwnerID.id     = PAttacker->id;
                                     mob->m_OwnerID.targid = PAttacker->targid;
-                                    if (PDefender->isAlive())
+                                    if (claimhelpers::ShouldAssignPClaimedMob(PDefender->isAlive()))
                                     { // ignore killing blow
                                         mob->updatemask |= UPDATE_STATUS;
                                         attacker->PClaimedMob = PDefender;
@@ -4286,6 +4311,7 @@ void ClaimMob(CBattleEntity* PDefender, CBattleEntity* PAttacker, bool passing)
                                 }
                             });
                         // clang-format on
+                        break;
                     }
                 }
             }
@@ -4316,13 +4342,14 @@ void DirtyExp(CBattleEntity* PDefender, CBattleEntity* PAttacker)
             // clang-format off
                 PAttacker->ForAlliance([&pcinzone, &maxLevel, &mob](CBattleEntity* PMember)
                 {
-                    if (PMember->getZone() == mob->getZone() && distance(PMember->loc.p, mob->loc.p) < 100)
+                    if (PMember->getZone() == mob->getZone() && distance(PMember->loc.p, mob->loc.p) < claimhelpers::DirtyExpDistance)
                     {
                         maxLevel = std::max(maxLevel, PMember->GetMLevel());
                         pcinzone++;
                     }
                 });
             // clang-format on
+            // DirtyExpMerge: max(pcinzone/maxLevel, existing hi values).
             mob->m_HiPartySize = std::max(pcinzone, mob->m_HiPartySize);
             mob->m_HiPCLvl     = std::max(maxLevel, mob->m_HiPCLvl);
         }
@@ -4332,15 +4359,20 @@ void DirtyExp(CBattleEntity* PDefender, CBattleEntity* PAttacker)
 void RelinquishClaim(CCharEntity* PChar)
 {
     CBattleEntity* mob = PChar->PClaimedMob;
-    if (mob && mob->isAlive() && mob->m_OwnerID.id == PChar->id)
+    if (claimhelpers::ShouldRelinquishOwnedMob(mob != nullptr, mob && mob->isAlive(), mob ? mob->m_OwnerID.id : 0, PChar->id))
     { // if we currently own a mob
         bool found = false;
         // clang-format off
             static_cast<CBattleEntity*>(PChar)->ForAlliance([&PChar, &mob, &found](CBattleEntity* PMember)
             {
                 CCharEntity* member = static_cast<CCharEntity*>(PMember);
-                if (member != PChar && !found && member->getZone() == PChar->getZone() && member->isAlive() &&
-                    (!member->PClaimedMob || member->PClaimedMob == mob))
+                if (claimhelpers::RelinquishPassCandidate(
+                        member == PChar,
+                        found,
+                        member->getZone() == PChar->getZone(),
+                        member->isAlive(),
+                        member->PClaimedMob == nullptr,
+                        member->PClaimedMob == mob))
                 { // check if we can pass claim to someone else
                     found = true;
                     battleutils::ClaimMob(mob, PMember, true);
@@ -5364,24 +5396,18 @@ bool HasClaim(CBattleEntity* PEntity, CBattleEntity* PTarget)
         PMaster = PEntity->PMaster;
     }
 
-    if (PTarget->m_OwnerID.id == PMaster->id)
-    {
-        return true;
-    }
-
-    bool found = false;
-
+    bool allianceHasOwner = false;
     // clang-format off
-        PMaster->ForAlliance([&PTarget, &found](CBattleEntity* PChar)
+        PMaster->ForAlliance([&PTarget, &allianceHasOwner](CBattleEntity* PChar)
         {
             if (PChar->id == PTarget->m_OwnerID.id)
             {
-                found = true;
+                allianceHasOwner = true;
             }
         });
     // clang-format on
 
-    return found;
+    return claimhelpers::HasClaim(PMaster->id, PTarget->m_OwnerID.id, allianceHasOwner);
 }
 
 timer::duration CalculateSpellCastTime(CBattleEntity* PEntity, CMagicState* PMagicState)
