@@ -73,6 +73,7 @@
 #include "skillchain_damage_capacity.h"
 #include "physical_hit_rate_capacity.h"
 #include "pdif_capacity.h"
+#include "level_correction_capacity.h"
 #include "spell_interrupt_capacity.h"
 #include "combat_status_mitigation_capacity.h"
 
@@ -1793,8 +1794,8 @@ auto IsAvatar(CBattleEntity* PEntity) -> bool
 
 auto ApplyLevelCorrection(CBattleEntity* PAttacker) -> bool
 {
-    // Zone list stays in Lua (xi.data.levelCorrection.isLevelCorrectedZone).
-    return luautils::callGlobal<bool>("xi.data.levelCorrection.isLevelCorrectedZone", PAttacker);
+    const bool useAdoulin = settings::get<bool>("main.USE_ADOULIN_WEAPON_SKILL_CHANGES");
+    return levelcorrectionhelpers::IsLevelCorrectedZone(useAdoulin, PAttacker->getZone());
 }
 
 auto ResolveRangedSweetSpotEnd(CBattleEntity* PAttacker) -> double
@@ -1875,7 +1876,7 @@ float GetRangedDamageRatio(CBattleEntity* PAttacker, CBattleEntity* PDefender, b
 
     const std::uint8_t weaponType = targ_weapon->getSkillType();
     const bool         isPC      = PAttacker->objtype == TYPE_PC;
-    bool               applyLC   = luautils::callGlobal<bool>("xi.data.levelCorrection.isLevelCorrectedZone", PAttacker);
+    bool applyLC = ApplyLevelCorrection(PAttacker);
     if (isPC && PAttacker->getMod(Mod::RA_IGNORE_LVL_DIFF) > 0)
     {
         applyLC = false;
@@ -3014,7 +3015,7 @@ float GetDamageRatio(CBattleEntity* PAttacker, CBattleEntity* PDefender, bool is
     using namespace pdifhelpers;
 
     const bool isPC    = PAttacker->objtype == TYPE_PC;
-    const bool applyLC = luautils::callGlobal<bool>("xi.data.levelCorrection.isLevelCorrectedZone", PAttacker);
+    const bool applyLC = ApplyLevelCorrection(PAttacker);
 
     // isWeaponskill=false for this call site → flourishBonus 1.0
     double tpFactor          = 0.0;
