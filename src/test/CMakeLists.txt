@@ -848,6 +848,8 @@ set(SOURCES
     test_entity_equip_1542.cpp
     test_weather_matches_1543.h
     test_weather_matches_1543.cpp
+    test_barrage_1544.h
+    test_barrage_1544.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

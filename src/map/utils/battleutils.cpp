@@ -48,6 +48,7 @@
 #include "weather_get_capacity.h"
 #include "entity_equip_capacity.h"
 #include "weather_matches_capacity.h"
+#include "barrage_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -4020,33 +4021,16 @@ uint8 getBarrageShotCount(CBattleEntity* PBattleEntity)
     */
 
     // TODO: verify all RNG trusts that use Barrage have RNG main job
-    uint16 lvl       = PBattleEntity->GetMJob() == JOB_RNG ? PBattleEntity->GetMLevel() : PBattleEntity->GetSLevel();
-    uint8  shotCount = 0;
-
+    const auto lvl = barragehelpers::BarrageLevelForJob(
+        static_cast<std::uint8_t>(PBattleEntity->GetMJob()),
+        PBattleEntity->GetMLevel(),
+        PBattleEntity->GetSLevel());
+    // Level gate before BARRAGE_COUNT (matches original early return when lvl < 30).
     if (lvl < 30)
     {
         return 0;
     }
-    else if (lvl < 50)
-    {
-        shotCount = 3;
-    }
-    else if (lvl < 75)
-    {
-        shotCount = 4;
-    }
-    else if (lvl < 90)
-    {
-        shotCount = 5;
-    }
-    else if (lvl < 99)
-    {
-        shotCount = 6;
-    }
-    else
-    {
-        shotCount = 7;
-    }
+    auto shotCount = barragehelpers::BarrageShotCount(lvl);
 
     shotCount += PBattleEntity->getMod(Mod::BARRAGE_COUNT);
 
@@ -4057,7 +4041,9 @@ uint8 getBarrageShotCount(CBattleEntity* PBattleEntity)
         {
             CItemWeapon* PItem = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED));
 
-            if (PItem && PItem->getSkillType() != SKILL_ARCHERY && PItem->getSkillType() != SKILL_MARKSMANSHIP)
+            if (!barragehelpers::BarrageSkillOK(
+                    PItem != nullptr,
+                    PItem ? static_cast<std::uint8_t>(PItem->getSkillType()) : static_cast<std::uint8_t>(0)))
             {
                 return 0;
             }
@@ -4066,10 +4052,11 @@ uint8 getBarrageShotCount(CBattleEntity* PBattleEntity)
             CItemWeapon* PAmmo = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO));
 
             // TODO: Check if this should be here. Recycle can proc and potentially allow more shots to land
-            if (PAmmo && PAmmo->getQuantity() < shotCount + 1u) // This function is additive to the first shot. So one ammo is already consumed before we get here
-            {
-                shotCount = PAmmo->getQuantity() - 1;
-            }
+            // This function is additive to the first shot. So one ammo is already consumed before we get here
+            shotCount = barragehelpers::BarrageAmmoClamp(
+                shotCount,
+                PAmmo != nullptr,
+                PAmmo ? static_cast<std::uint8_t>(PAmmo->getQuantity()) : static_cast<std::uint8_t>(0));
         }
     }
 
