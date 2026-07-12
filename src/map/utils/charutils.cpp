@@ -92,6 +92,7 @@
 #include "blueutils.h"
 #include "charutils.h"
 #include "capacity_distribute_capacity.h"
+#include "exp_distribute_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -4938,7 +4939,9 @@ void DistributeExperiencePoints(CCharEntity* PChar, CMobEntity* PMob)
     {
         if (PChar->PParty->GetSyncTarget())
         {
-            if (distance(PMob->loc.p, PChar->PParty->GetSyncTarget()->loc.p) >= 100 || PChar->PParty->GetSyncTarget()->health.hp == 0)
+            if (expdistributehelpers::IsSyncTargetBlocking(
+                    distance(PMob->loc.p, PChar->PParty->GetSyncTarget()->loc.p),
+                    PChar->PParty->GetSyncTarget()->health.hp == 0))
             {
                 // clang-format off
                     PChar->ForParty([&PMob](CBattleEntity* PMember)
@@ -4980,8 +4983,8 @@ void DistributeExperiencePoints(CCharEntity* PChar, CMobEntity* PMob)
         });
     // clang-format on
 
-    pcinzone            = std::max(pcinzone, PMob->m_HiPartySize);
-    maxlevel            = std::max(maxlevel, PMob->m_HiPCLvl);
+    pcinzone            = expdistributehelpers::MaxTrackedPartySize(pcinzone, PMob->m_HiPartySize);
+    maxlevel            = expdistributehelpers::MaxTrackedPCLevel(maxlevel, PMob->m_HiPCLvl);
     PMob->m_HiPartySize = pcinzone;
     PMob->m_HiPCLvl     = maxlevel;
 
@@ -4989,7 +4992,7 @@ void DistributeExperiencePoints(CCharEntity* PChar, CMobEntity* PMob)
         PChar->ForAlliance([&PMob, &region, &maxlevel, &pcinzone](CBattleEntity* PPartyMember)
         {
             CCharEntity* PMember = dynamic_cast<CCharEntity*>(PPartyMember);
-            if (!PMember || PMember->isDead())
+            if (!expdistributehelpers::ShouldProcessMember(PMember != nullptr, PMember != nullptr && PMember->isDead()))
             {
                 return;
             }
@@ -5009,19 +5012,13 @@ void DistributeExperiencePoints(CCharEntity* PChar, CMobEntity* PMob)
                     if (settings::get<bool>("map.EXP_PARTY_GAP_PENALTIES"))
                     {
                         uint8 partyGapNoExp = settings::get<uint8>("map.EXP_PARTY_GAP_NO_EXP");
-
-                        if (partyGapNoExp > 0 && maxlevel >= (memberlevel + partyGapNoExp))
-                        {
-                            exp = 0;
-                        }
-                        else if (maxlevel > 50 || maxlevel > (memberlevel + 7))
-                        {
-                            exp *= memberlevel / (float)maxlevel;
-                        }
-                        else
-                        {
-                            exp *= GetExpNEXTLevel(memberlevel) / (float)GetExpNEXTLevel(maxlevel);
-                        }
+                        exp = expdistributehelpers::ApplyPartyGapPenalty(
+                            exp,
+                            maxlevel,
+                            memberlevel,
+                            partyGapNoExp,
+                            GetExpNEXTLevel(memberlevel),
+                            GetExpNEXTLevel(maxlevel));
                     }
 
                     bool isInSignetZone =
@@ -5038,84 +5035,23 @@ void DistributeExperiencePoints(CCharEntity* PChar, CMobEntity* PMob)
 
                     if (PMob->getMobMod(MOBMOD_EXP_BONUS))
                     {
-                        const float monsterbonus = 1.0f + PMob->getMobMod(MOBMOD_EXP_BONUS) / 100.0f;
-                        exp *= monsterbonus;
+                        exp = expdistributehelpers::ApplyMonsterBonus(exp, PMob->getMobMod(MOBMOD_EXP_BONUS));
                     }
 
                     // Per monster caps pulled from: https://ffxiclopedia.fandom.com/wiki/Experience_Points
-                    if (PMember->GetMLevel() <= 50)
-                    {
-                        exp = std::fmin(exp, 400.0f);
-                    }
-                    else if (PMember->GetMLevel() <= 60)
-                    {
-                        exp = std::fmin(exp, 500.0f);
-                    }
-                    else
-                    {
-                        exp = std::fmin(exp, 600.0f);
-                    }
+                    exp = expdistributehelpers::CapExpByLevel(exp, PMember->GetMLevel());
 
                     if (mobCheck > EMobDifficulty::DecentChallenge)
                     {
                         if (PMember->expChain.chainTime > timer::now() || PMember->expChain.chainTime == timer::time_point::min())
                         {
                             chainactive = true;
-                            switch (PMember->expChain.chainNumber)
-                            {
-                                case 0:
-                                    exp *= 1.0f;
-                                    break;
-                                case 1:
-                                    exp *= 1.2f;
-                                    break;
-                                case 2:
-                                    exp *= 1.25f;
-                                    break;
-                                case 3:
-                                    exp *= 1.3f;
-                                    break;
-                                case 4:
-                                    exp *= 1.4f;
-                                    break;
-                                case 5:
-                                    exp *= 1.5f;
-                                    break;
-                                default:
-                                    exp *= 1.55f;
-                                    break;
-                            }
+                            exp = expdistributehelpers::ApplyChainMultiplier(exp, PMember->expChain.chainNumber);
                         }
                         else
                         {
-                            if (PMember->GetMLevel() <= 10)
-                            {
-                                PMember->expChain.chainTime = timer::now() + 50s;
-                            }
-                            else if (PMember->GetMLevel() <= 20)
-                            {
-                                PMember->expChain.chainTime = timer::now() + 100s;
-                            }
-                            else if (PMember->GetMLevel() <= 30)
-                            {
-                                PMember->expChain.chainTime = timer::now() + 150s;
-                            }
-                            else if (PMember->GetMLevel() <= 40)
-                            {
-                                PMember->expChain.chainTime = timer::now() + 200s;
-                            }
-                            else if (PMember->GetMLevel() <= 50)
-                            {
-                                PMember->expChain.chainTime = timer::now() + 250s;
-                            }
-                            else if (PMember->GetMLevel() <= 60)
-                            {
-                                PMember->expChain.chainTime = timer::now() + 300s;
-                            }
-                            else
-                            {
-                                PMember->expChain.chainTime = timer::now() + 360s;
-                            }
+                            PMember->expChain.chainTime = timer::now() + std::chrono::seconds(
+                                expdistributehelpers::ChainTimerSeconds(PMember->GetMLevel()));
                             PMember->expChain.chainNumber = 1;
                         }
 
