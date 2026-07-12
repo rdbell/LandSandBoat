@@ -30,6 +30,7 @@
 #include "char_persistence_capacity.h"
 #include "char_playtime_capacity.h"
 #include "char_post_tick_refresh_capacity.h"
+#include "char_post_tick_update_capacity.h"
 #include "char_resource_capacity.h"
 #include "char_storage_capacity.h"
 #include "char_tick_capacity.h"
@@ -1061,23 +1062,20 @@ void CCharEntity::PostTick()
         [&]() { return PParty != nullptr; },
         [&]() { PParty->PushEffectsPacket(); });
 
-    timer::time_point now = timer::now();
-
-    if (updatemask && now > m_nextUpdateTimer)
-    {
-        m_nextUpdateTimer = now + 250ms;
-
-        if (loc.zone && !m_isGMHidden)
-        {
-            loc.zone->UpdateEntityPacket(this, ENTITY_UPDATE, updatemask);
-        }
-
-        if (isCharmed)
-        {
-            updateEntityPacket(this, ENTITY_UPDATE, updatemask);
-        }
-
-        if (updatemask & UPDATE_HP)
+    charposttickupdatehelpers::Apply(
+        timer::now(),
+        m_nextUpdateTimer,
+        updatemask,
+        sendServerStatus_,
+        UPDATE_POS,
+        UPDATE_HP,
+        250ms,
+        m_isGMHidden,
+        [&]() { return loc.zone != nullptr; },
+        [&](const uint8 updateMask) { loc.zone->UpdateEntityPacket(this, ENTITY_UPDATE, updateMask); },
+        [&]() { return isCharmed; },
+        [&](const uint8 updateMask) { updateEntityPacket(this, ENTITY_UPDATE, updateMask); },
+        [&]()
         {
             // clang-format off
             ForAlliance([&](auto PEntity)
@@ -1085,20 +1083,9 @@ void CCharEntity::PostTick()
                 static_cast<CCharEntity*>(PEntity)->pushPacket<GP_SERV_COMMAND_GROUP_ATTR>(this);
             });
             // clang-format on
-        }
-        // Do not send an update packet when only the position has change
-        // Send one if the m_SendServerStatus flag is set (cutscenes will ALWAYS send one, and may also send an 0x00D!)
-        // sendServerStatus_ is essentially like a separate update mask, and acts like an "extension" of updatemask
-        if (updatemask ^ UPDATE_POS || sendServerStatus_)
-        {
-            pushPacket<CCharStatusPacket>(this);
-        }
-
-        sendServerStatus_ = false;
-        updatemask        = 0;
-    }
-
-    inventorySyncState_.flushDirtyItems(this);
+        },
+        [&]() { pushPacket<CCharStatusPacket>(this); },
+        [&]() { inventorySyncState_.flushDirtyItems(this); });
 }
 
 // Flush all pending equipment changes at end of network cycle after all SmallPackets have been processed
