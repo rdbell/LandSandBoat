@@ -834,6 +834,8 @@ set(SOURCES
     test_treasure_hunter_proc_1535.cpp
     test_enspell_handle_1536.h
     test_enspell_handle_1536.cpp
+    test_skillchain_effect_1537.h
+    test_skillchain_effect_1537.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

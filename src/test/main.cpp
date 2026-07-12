@@ -452,6 +452,7 @@ auto runTakeDamage1533SelfTests() -> bool;
 auto runTakePhysical1534SelfTests() -> bool;
 auto runTreasureHunterProc1535SelfTests() -> bool;
 auto runEnspellHandle1536SelfTests() -> bool;
+auto runSkillchainEffect1537SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1114,6 +1115,7 @@ namespace
         ok = runTakePhysical1534SelfTests() && ok;
         ok = runTreasureHunterProc1535SelfTests() && ok;
         ok = runEnspellHandle1536SelfTests() && ok;
+        ok = runSkillchainEffect1537SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

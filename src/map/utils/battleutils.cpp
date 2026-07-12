@@ -41,6 +41,7 @@
 #include "take_physical_capacity.h"
 #include "treasure_hunter_proc_capacity.h"
 #include "enspell_handle_capacity.h"
+#include "skillchain_effect_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -3348,76 +3349,70 @@ SKILLCHAIN_ELEMENT FormSkillchain(const std::list<SKILLCHAIN_ELEMENT>& resonance
 
 auto GetSkillChainEffect(const CBattleEntity* PDefender, uint8 primary, uint8 secondary, uint8 tertiary) -> ActionProcSkillChain
 {
-    CStatusEffect*     PSCEffect           = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Skillchain, 0);
-    CStatusEffect*     PCBEffect           = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Chainbound, 0);
-    SKILLCHAIN_ELEMENT skillchain          = SC_NONE;
-    const auto         combined_properties = primary | (secondary << 4) | (tertiary << 8);
+    CStatusEffect* PSCEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Skillchain, 0);
+    CStatusEffect* PCBEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Chainbound, 0);
 
-    if (PSCEffect == nullptr && PCBEffect == nullptr)
+    const bool hasSC = PSCEffect != nullptr;
+    const bool hasCB = PCBEffect != nullptr;
+    const bool cbElapsedOK = hasCB && (PCBEffect->GetStartTime() + 2s < timer::now());
+    const bool scElapsedOK = hasSC && (PSCEffect->GetStartTime() + 3s < timer::now());
+
+    const auto formFn = [](const std::list<std::uint8_t>& resonance, const std::list<std::uint8_t>& skill) -> std::uint8_t {
+        std::list<SKILLCHAIN_ELEMENT> res;
+        std::list<SKILLCHAIN_ELEMENT> sk;
+        for (const auto e : resonance)
+        {
+            res.emplace_back(static_cast<SKILLCHAIN_ELEMENT>(e));
+        }
+        for (const auto e : skill)
+        {
+            sk.emplace_back(static_cast<SKILLCHAIN_ELEMENT>(e));
+        }
+        return static_cast<std::uint8_t>(FormSkillchain(res, sk));
+    };
+    const auto tierFn = [](const std::uint8_t el) -> std::uint8_t {
+        return GetSkillchainTier(static_cast<SKILLCHAIN_ELEMENT>(el));
+    };
+
+    const auto decision = skillchaineffecthelpers::ResolveSkillChainEffect(
+        hasSC,
+        hasCB,
+        cbElapsedOK,
+        scElapsedOK,
+        hasCB ? PCBEffect->GetPower() : static_cast<std::uint16_t>(0),
+        hasSC ? PSCEffect->GetTier() : static_cast<std::uint8_t>(0),
+        hasSC ? PSCEffect->GetPower() : static_cast<std::uint16_t>(0),
+        hasSC ? PSCEffect->GetSubPower() : static_cast<std::uint16_t>(0),
+        primary,
+        secondary,
+        tertiary,
+        formFn,
+        tierFn);
+
+    if (decision.outcome == skillchaineffecthelpers::SkillChainEffectOutcome::OpenInitial)
     {
-        // No effect exists, apply an effect using the weaponskill ID as the power with a tier of 0.
-        PDefender->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Skillchain, 0, combined_properties, 0s, 10s, 0, 0, 0);
+        PDefender->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Skillchain, 0, decision.combined, 0s, 10s, 0, 0, 0);
         return ActionProcSkillChain::None;
     }
 
-    std::list<SKILLCHAIN_ELEMENT>       resonanceProperties;
-    const std::list<SKILLCHAIN_ELEMENT> skillProperties = { static_cast<SKILLCHAIN_ELEMENT>(primary), static_cast<SKILLCHAIN_ELEMENT>(secondary), static_cast<SKILLCHAIN_ELEMENT>(tertiary) };
-
-    // Chainbound active on target
-    if (PCBEffect)
+    if (decision.outcome == skillchaineffecthelpers::SkillChainEffectOutcome::EarlyNone && !decision.consumeChainbound)
     {
-        if (PCBEffect->GetStartTime() + 2s < timer::now())
+        if (hasSC && scElapsedOK && PSCEffect->GetTier() == 0 && !PSCEffect->GetPower())
         {
-            // Konzen-Ittai
-            if (PCBEffect->GetPower() > 1)
-            {
-                resonanceProperties.emplace_back(SC_LIGHT);
-                resonanceProperties.emplace_back(SC_DARKNESS);
-                resonanceProperties.emplace_back(SC_GRAVITATION);
-                resonanceProperties.emplace_back(SC_FRAGMENTATION);
-                resonanceProperties.emplace_back(SC_DISTORTION);
-                resonanceProperties.emplace_back(SC_FUSION);
-            }
-            resonanceProperties.emplace_back(SC_LIQUEFACTION);
-            resonanceProperties.emplace_back(SC_INDURATION);
-            resonanceProperties.emplace_back(SC_REVERBERATION);
-            resonanceProperties.emplace_back(SC_IMPACTION);
-            resonanceProperties.emplace_back(SC_COMPRESSION);
-
-            skillchain = FormSkillchain(resonanceProperties, skillProperties);
+            ShowWarning("PSCEffect Power was 0.");
         }
-        PDefender->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Skillchain, 0, combined_properties, 0s, 10s, 0, 0, 0);
+        return ActionProcSkillChain::None;
+    }
+
+    if (decision.ensureSkillchainEffect)
+    {
+        PDefender->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Skillchain, 0, decision.combined, 0s, 10s, 0, 0, 0);
+    }
+    if (decision.consumeChainbound)
+    {
         PDefender->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Chainbound);
-        PSCEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Skillchain, 0);
     }
-    // Previous effect exists
-    else if (PSCEffect && PSCEffect->GetStartTime() + 3s < timer::now())
-    {
-        if (PSCEffect->GetTier() == 0)
-        {
-            if (!PSCEffect->GetPower())
-            {
-                ShowWarning("PSCEffect Power was 0.");
-                return ActionProcSkillChain::None;
-            }
-
-            // Previous effect is an opening effect, meaning the power is
-            // actually the ID of the opening weaponskill.  We need all 3
-            // of the possible skillchain properties on the initial link.
-            const auto properties = PSCEffect->GetPower();
-            resonanceProperties.emplace_back(static_cast<SKILLCHAIN_ELEMENT>(properties & 0b1111));
-            resonanceProperties.emplace_back(static_cast<SKILLCHAIN_ELEMENT>((properties >> 4) & 0b1111));
-            resonanceProperties.emplace_back(static_cast<SKILLCHAIN_ELEMENT>((properties >> 8) & 0b1111));
-            skillchain = FormSkillchain(resonanceProperties, skillProperties);
-        }
-        else
-        {
-            // Previous effect is not an opening effect, meaning the power is
-            // The skill chain ID resonating.
-            resonanceProperties.emplace_back(static_cast<SKILLCHAIN_ELEMENT>(PSCEffect->GetPower()));
-            skillchain = FormSkillchain(resonanceProperties, skillProperties);
-        }
-    }
+    PSCEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Skillchain, 0);
 
     if (!PSCEffect)
     {
@@ -3432,13 +3427,19 @@ auto GetSkillChainEffect(const CBattleEntity* PDefender, uint8 primary, uint8 se
         PSCEffect->setMod(resistanceRank, 0);
     }
 
-    if (skillchain != SC_NONE)
+    if (decision.outcome == skillchaineffecthelpers::SkillChainEffectOutcome::Link)
     {
+        const auto skillchain = static_cast<SKILLCHAIN_ELEMENT>(decision.formed);
+
         PSCEffect->SetStartTime(timer::now());
-        PSCEffect->SetDuration(PSCEffect->GetDuration() - 1s);
-        PSCEffect->SetTier(GetSkillchainTier(skillchain));
-        PSCEffect->SetPower(skillchain);
-        PSCEffect->SetSubPower(std::min(PSCEffect->GetSubPower() + 1, 5)); // Linked, limited to 5
+        if (decision.shrinkDurationBy1s)
+        {
+            PSCEffect->SetDuration(PSCEffect->GetDuration() - 1s);
+        }
+        PSCEffect->SetTier(decision.newTier);
+        PSCEffect->SetPower(decision.newPower);
+        // Cap after host Add/readback so Chainbound path uses the fresh effect subPower.
+        PSCEffect->SetSubPower(skillchaineffecthelpers::CapLinkedSubPower(PSCEffect->GetSubPower()));
 
         // Set new resistance rank modifiers
         // https://www.bg-wiki.com/ffxi/Resist#Modifying_Resistance_Rank
@@ -3451,11 +3452,12 @@ auto GetSkillChainEffect(const CBattleEntity* PDefender, uint8 primary, uint8 se
         return GetSkillchainSubeffect(skillchain);
     }
 
+    // ResetOpen (and EarlyNone after chainbound consumption with no PSC readback)
     PSCEffect->SetStartTime(timer::now());
     PSCEffect->SetDuration(10s);
-    PSCEffect->SetTier(0);
-    PSCEffect->SetPower(combined_properties);
-    PSCEffect->SetSubPower(0);
+    PSCEffect->SetTier(decision.newTier);
+    PSCEffect->SetPower(decision.newPower);
+    PSCEffect->SetSubPower(decision.newSubPower);
 
     return ActionProcSkillChain::None;
 }
