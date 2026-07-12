@@ -98,6 +98,7 @@
 #include "skill_up_capacity.h"
 #include "calculate_stats_capacity.h"
 #include "distribute_gil_capacity.h"
+#include "building_skills_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -3882,9 +3883,9 @@ void BuildingCharSkillsTable(CCharEntity* PChar)
     for (int32 i = 1; i < 48; ++i)
     {
         // ignore unused skills
-        if ((i >= 13 && i <= 21) || (i >= 46 && i <= 47))
+        if (buildingskillshelpers::IsUnusedCombatSkillSlot(i))
         {
-            PChar->WorkingSkills.skill[i] = 0x8000;
+            PChar->WorkingSkills.skill[i] = buildingskillshelpers::SkillCappedBlueFlag;
             continue;
         }
         uint16 maxMainSkill = battleutils::GetMaxSkill((SKILLTYPE)i, PChar->GetMJob(), PChar->GetMLevel());
@@ -3896,7 +3897,7 @@ void BuildingCharSkillsTable(CCharEntity* PChar)
         {
             skillBonus += ArtsBonusSkill(PChar, static_cast<SKILLTYPE>(i));
         }
-        else if (i >= SKILL_AUTOMATON_MELEE && i <= SKILL_AUTOMATON_MAGIC)
+        else if (buildingskillshelpers::IsAutomatonSkill(i))
         {
             // TODO: does this need to change if you are /PUP?
             maxMainSkill = battleutils::GetMaxSkill(1, PChar->GetMLevel()); // A+ capped down to the Automaton's rating
@@ -3906,80 +3907,51 @@ void BuildingCharSkillsTable(CCharEntity* PChar)
         meritIndex++;
 
         // Add 79 to get the modifier ID
-        skillBonus += PChar->getMod(static_cast<Mod>(i + 79)); // This can be a negative value. Example: Shiva's Shotel.
+        skillBonus += PChar->getMod(static_cast<Mod>(buildingskillshelpers::SkillModID(i))); // This can be a negative value. Example: Shiva's Shotel.
 
         uint8 mainSkillRank = battleutils::GetSkillRank((SKILLTYPE)i, PChar->GetMJob());
         uint8 subSkillRank  = battleutils::GetSkillRank((SKILLTYPE)i, PChar->GetSJob());
 
         PChar->WorkingSkills.rank[i] = mainSkillRank;
 
-        if (mainSkillRank != 0)
-        {
-            PChar->RealSkills.rank[i] = mainSkillRank;
-        }
-        else
-        {
-            PChar->RealSkills.rank[i] = subSkillRank;
-        }
+        PChar->RealSkills.rank[i] = buildingskillshelpers::ResolveRealSkillRank(mainSkillRank, subSkillRank);
 
-        uint16 currentSkill = PChar->RealSkills.skill[i] / 10;
+        uint16 currentSkill = buildingskillshelpers::RealSkillLevels(PChar->RealSkills.skill[i]);
 
         // Main Job Skills.
-        if (maxMainSkill != 0)
+        if (buildingskillshelpers::IsMainJobSkillPath(maxMainSkill))
         {
-            if (currentSkill > maxMainSkill)
-            {
-                currentSkill = maxMainSkill;
-            }
+            currentSkill = buildingskillshelpers::CapCurrentSkill(currentSkill, maxMainSkill);
 
-            int16 newSkillValue = currentSkill + skillBonus;
-            if (newSkillValue < 0)
-            {
-                newSkillValue = 0;
-            }
+            PChar->WorkingSkills.skill[i] = buildingskillshelpers::WorkingSkillFromCurrentAndBonus(currentSkill, skillBonus);
 
-            PChar->WorkingSkills.skill[i] = static_cast<uint16>(newSkillValue);
-
-            if (currentSkill >= maxMainSkill)
+            if (buildingskillshelpers::ShouldSetBlueCapFlag(currentSkill, maxMainSkill))
             {
-                PChar->WorkingSkills.skill[i] |= 0x8000; // Blue text.
+                PChar->WorkingSkills.skill[i] = buildingskillshelpers::WithBlueFlag(PChar->WorkingSkills.skill[i]);
             }
         }
 
         // Sub Job Skills.
-        else if (maxSubSkill != 0)
+        else if (buildingskillshelpers::IsSubJobSkillPath(maxMainSkill, maxSubSkill))
         {
-            if (currentSkill > maxSubSkill)
-            {
-                currentSkill = maxSubSkill;
-            }
+            currentSkill = buildingskillshelpers::CapCurrentSkill(currentSkill, maxSubSkill);
 
-            int16 newSkillValue = currentSkill + skillBonus;
-            if (newSkillValue < 0)
-            {
-                newSkillValue = 0;
-            }
+            PChar->WorkingSkills.skill[i] = buildingskillshelpers::WorkingSkillFromCurrentAndBonus(currentSkill, skillBonus);
 
-            PChar->WorkingSkills.skill[i] = static_cast<uint16>(newSkillValue);
-
-            if (currentSkill >= maxSubSkill)
+            if (buildingskillshelpers::ShouldSetBlueCapFlag(currentSkill, maxSubSkill))
             {
-                PChar->WorkingSkills.skill[i] |= 0x8000; // Blue text.
+                PChar->WorkingSkills.skill[i] = buildingskillshelpers::WithBlueFlag(PChar->WorkingSkills.skill[i]);
             }
         }
 
         // Job setup doesn't have this skill.
         else
         {
-            if (skillBonus < 0)
-            {
-                skillBonus = 0;
-            }
-            PChar->WorkingSkills.skill[i] = static_cast<uint16>(skillBonus) | 0x8000; // New value AND Blue text.
+            PChar->WorkingSkills.skill[i] = buildingskillshelpers::NonJobSkillWorkingValue(skillBonus);
         }
 
         // Automaton skills are special (especially with magic...)
-        if (i >= SKILL_AUTOMATON_MELEE && i <= SKILL_AUTOMATON_MAGIC)
+        if (buildingskillshelpers::IsAutomatonSkill(i))
         {
             if (auto PAutomaton = dynamic_cast<CAutomatonEntity*>(PChar->PPet))
             {
@@ -4007,17 +3979,17 @@ void BuildingCharSkillsTable(CCharEntity* PChar)
 
     for (int32 i = 48; i < 58; ++i)
     {
-        PChar->WorkingSkills.skill[i] = (PChar->RealSkills.skill[i] / 10) * 0x20 + PChar->RealSkills.rank[i];
+        PChar->WorkingSkills.skill[i] = buildingskillshelpers::CraftWorkingSkill(PChar->RealSkills.skill[i], PChar->RealSkills.rank[i]);
 
-        if ((PChar->RealSkills.rank[i] + 1) * 100 <= PChar->RealSkills.skill[i])
+        if (buildingskillshelpers::ShouldSetCraftBlueFlag(PChar->RealSkills.rank[i], PChar->RealSkills.skill[i]))
         {
-            PChar->WorkingSkills.skill[i] += 0x8000;
+            PChar->WorkingSkills.skill[i] = buildingskillshelpers::WithBlueFlag(PChar->WorkingSkills.skill[i]);
         }
     }
 
     for (int32 i = 58; i < 64; ++i)
     {
-        PChar->WorkingSkills.skill[i] = 0xFFFF;
+        PChar->WorkingSkills.skill[i] = buildingskillshelpers::SkillUnusedFFFF;
     }
 
     // Update skills menu
