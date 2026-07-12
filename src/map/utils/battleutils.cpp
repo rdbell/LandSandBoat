@@ -69,6 +69,7 @@
 #include "tp_return_capacity.h"
 #include "tp_from_damage_capacity.h"
 #include "ninja_tool_capacity.h"
+#include "base_delay_capacity.h"
 #include "spell_interrupt_capacity.h"
 #include "combat_status_mitigation_capacity.h"
 
@@ -1772,81 +1773,78 @@ int16 CalculateBaseTP(CBattleEntity* PEntity, int32 delay)
 
 auto GetBaseDelay(CBattleEntity* PEntity) -> uint16
 {
-    CCharEntity* PCharEntity = dynamic_cast<CCharEntity*>(PEntity);
-    CMobEntity*  PMobEntity  = dynamic_cast<CMobEntity*>(PEntity);
-    uint16       baseDelay   = 480; // h2h "unequipped" base delay
+    basedelayhelpers::MeleeBaseDelayParams p{};
+    auto* PCharEntity = dynamic_cast<CCharEntity*>(PEntity);
+    auto* PMobEntity  = dynamic_cast<CMobEntity*>(PEntity);
+    p.isPC = PCharEntity != nullptr;
+    p.isMob = PMobEntity != nullptr;
 
     if (PCharEntity)
     {
-        CItemWeapon* PMainWeapon = dynamic_cast<CItemWeapon*>(PCharEntity->getEquip(SLOT_MAIN));
-        CItemWeapon* PSubWeapon  = dynamic_cast<CItemWeapon*>(PCharEntity->getEquip(SLOT_SUB));
-
+        auto* PMainWeapon = dynamic_cast<CItemWeapon*>(PCharEntity->getEquip(SLOT_MAIN));
+        auto* PSubWeapon  = dynamic_cast<CItemWeapon*>(PCharEntity->getEquip(SLOT_SUB));
         if (PMainWeapon)
         {
-            if (PMainWeapon->getSkillType() == SKILLTYPE::SKILL_HAND_TO_HAND)
+            p.hasMainWeapon = true;
+            p.mainDelay     = PMainWeapon->getBaseDelay();
+            p.isH2H         = PMainWeapon->getSkillType() == SKILLTYPE::SKILL_HAND_TO_HAND;
+            if (PSubWeapon)
             {
-                baseDelay = PMainWeapon->getBaseDelay(); // h2h items include 480 base delay
-            }
-            else
-            {
-                baseDelay = PMainWeapon->getBaseDelay();
-                if (PSubWeapon)
-                {
-                    baseDelay += PSubWeapon->getBaseDelay();
-                }
+                p.hasSubWeapon = true;
+                p.subDelay     = PSubWeapon->getBaseDelay();
             }
         }
     }
     else if (PMobEntity)
     {
-        CItemWeapon* PWeapon = dynamic_cast<CItemWeapon*>(PMobEntity->m_Weapons[SLOT_MAIN]);
+        auto* PWeapon = dynamic_cast<CItemWeapon*>(PMobEntity->m_Weapons[SLOT_MAIN]);
         if (PWeapon)
         {
-            baseDelay = PWeapon->getBaseDelay(); // there is some precision loss that results in delays of 319.98 instead of 320, etc, so round to nearest.
+            p.hasMainWeapon = true;
+            p.mainDelay     = PWeapon->getBaseDelay();
         }
     }
 
-    return baseDelay;
+    return basedelayhelpers::GetBaseDelay(p);
 }
 
 auto GetBaseRangedDelay(CBattleEntity* PEntity) -> uint16
 {
-    CCharEntity* PCharEntity = dynamic_cast<CCharEntity*>(PEntity);
-    CMobEntity*  PMobEntity  = dynamic_cast<CMobEntity*>(PEntity);
-
-    uint16 baseDelay = 0;
+    basedelayhelpers::RangedBaseDelayParams p{};
+    auto* PCharEntity = dynamic_cast<CCharEntity*>(PEntity);
+    auto* PMobEntity  = dynamic_cast<CMobEntity*>(PEntity);
+    p.isPC  = PCharEntity != nullptr;
+    p.isMob = PMobEntity != nullptr;
 
     if (PCharEntity)
     {
-        CItemWeapon* PRangedWeapon = dynamic_cast<CItemWeapon*>(PCharEntity->getEquip(SLOT_RANGED));
-        CItemWeapon* PAmmo         = dynamic_cast<CItemWeapon*>(PCharEntity->getEquip(SLOT_AMMO));
-
-        if (PRangedWeapon && PRangedWeapon->isRanged())
+        auto* PRangedWeapon = dynamic_cast<CItemWeapon*>(PCharEntity->getEquip(SLOT_RANGED));
+        auto* PAmmo         = dynamic_cast<CItemWeapon*>(PCharEntity->getEquip(SLOT_AMMO));
+        if (PRangedWeapon)
         {
-            if (PRangedWeapon->isThrowing()) // Throwing, like Chakram/Boomerang in ranged slot
-            {
-                baseDelay = PRangedWeapon->getBaseDelay();
-            }
-            else if (PAmmo) // Bow/gun etc, but only valid if Ammo is equipped.
-            {
-                baseDelay = PRangedWeapon->getBaseDelay() + PAmmo->getBaseDelay();
-            }
+            p.hasRanged        = true;
+            p.rangedDelay      = PRangedWeapon->getBaseDelay();
+            p.rangedIsRanged   = PRangedWeapon->isRanged();
+            p.rangedIsThrowing = PRangedWeapon->isThrowing();
         }
-        else if (PAmmo && PAmmo->isRanged()) // Throwing, Pebble/Shuriken in ammo slot
+        if (PAmmo)
         {
-            baseDelay = PAmmo->getBaseDelay();
+            p.hasAmmo      = true;
+            p.ammoDelay    = PAmmo->getBaseDelay();
+            p.ammoIsRanged = PAmmo->isRanged();
         }
     }
     else if (PMobEntity)
     {
-        CItemWeapon* PWeapon = dynamic_cast<CItemWeapon*>(PMobEntity->m_Weapons[SLOT_MAIN]);
+        auto* PWeapon = dynamic_cast<CItemWeapon*>(PMobEntity->m_Weapons[SLOT_MAIN]);
         if (PWeapon)
         {
-            baseDelay = PWeapon->getBaseDelay(); // there is some precision loss that results in delays of 319.98 instead of 320, etc, so round to nearest.
+            p.hasMobMain   = true;
+            p.mobMainDelay = PWeapon->getBaseDelay();
         }
     }
 
-    return baseDelay;
+    return basedelayhelpers::GetBaseRangedDelay(p);
 }
 
 
