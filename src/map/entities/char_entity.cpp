@@ -34,6 +34,7 @@
 #include "char_is_mob_owner_capacity.h"
 #include "char_ability_preflight_capacity.h"
 #include "char_ability_recast_capacity.h"
+#include "char_ability_stealth_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1671,25 +1672,18 @@ void CCharEntity::OnAbility(CAbilityState& state, action_t& action)
         }
 
         // remove invisible if aggressive
-        if (PAbility->getID() != ABILITY_TAME && PAbility->getID() != ABILITY_FIGHT && PAbility->getID() != ABILITY_DEPLOY && PAbility->getID() != ABILITY_GAUGE)
         {
-            if (PAbility->getValidTarget() & TARGET_ENEMY)
+            const auto stealth = charabilitystealthhelpers::PlanCleanup(PAbility->getID(), PAbility->getValidTarget());
+            if (stealth.removeInvisible)
             {
-                if (PAbility->getID() == ABILITY_ASSAULT)
-                {
-                    charutils::RemoveInvisible(this);
-                }
-                // generic aggressive action
-                else
-                {
-                    StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Detectable);
-                }
-                StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Illusion);
-            }
-            else if (PAbility->getID() != ABILITY_TRICK_ATTACK)
-            {
-                // remove invisible only
                 charutils::RemoveInvisible(this);
+            }
+            if (stealth.removeDetectable)
+            {
+                StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Detectable);
+            }
+            if (stealth.removeIllusion)
+            {
                 StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Illusion);
             }
         }
