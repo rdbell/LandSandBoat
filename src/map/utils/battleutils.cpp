@@ -34,6 +34,7 @@
 #include "spikes_capacity.h"
 #include "entity_action_capacity.h"
 #include "traits_enmity_capacity.h"
+#include "wildcard_randomdeal_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -5073,43 +5074,33 @@ void DoWildCardToEntity(CCharEntity* PCaster, CCharEntity* PTarget, const uint8 
     // No matter the roll, all basic abilities are reset
     PTarget->PRecastContainer->ResetAbilities();
 
-    switch (roll)
+    // Wild Card is excluded from 1HR reset.
+    // TODO: COR Job Points allow Wild Card to reset itself 1-20% of the time
+    const auto effect = wildcardrandomdealhelpers::ResolveWildCard(
+        roll,
+        PTarget->GetMJob() == JOB_COR,
+        PTarget->health.maxmp,
+        PTarget->health.mp);
+
+    if (effect.setTP)
     {
-        case 3: // 3 grants 1000 TP
-            PTarget->health.tp = 1000;
-            break;
-
-        case 4: // 4 grants 3000 TP
-            PTarget->health.tp = 3000;
-            break;
-
-        case 5: // Resets Lv1 1HRs and restores 50% MP
-            // Wild Card is excluded.
-            // TODO: COR Job Points allow Wild Card to reset itself 1-20% of the time
-            if (PTarget->GetMJob() != JOB_COR)
-            {
-                PTarget->PRecastContainer->Del(RECAST_ABILITY, Recast::Special);
-            }
-
-            if (PTarget->health.maxmp > 0 && (PTarget->health.mp < (PTarget->health.maxmp / 2)))
-            {
-                PTarget->health.mp = PTarget->health.maxmp / 2;
-            }
-            break;
-
-        case 6: // Resets Lv1/Lv96 1HRs and restores 100% MP
-            PTarget->PRecastContainer->Del(RECAST_ABILITY, Recast::Special2);
-            // Wild Card is excluded.
-            // TODO: COR Job Points allow Wild Card to reset itself 1-20% of the time
-            if (PTarget->GetMJob() != JOB_COR)
-            {
-                PTarget->PRecastContainer->Del(RECAST_ABILITY, Recast::Special);
-            }
-
-            PTarget->addMP(PTarget->health.maxmp);
-            break;
-        default:
-            break;
+        PTarget->health.tp = effect.tpValue;
+    }
+    if (effect.delSpecial2)
+    {
+        PTarget->PRecastContainer->Del(RECAST_ABILITY, Recast::Special2);
+    }
+    if (effect.delSpecial)
+    {
+        PTarget->PRecastContainer->Del(RECAST_ABILITY, Recast::Special);
+    }
+    if (effect.setMPHalfFloor)
+    {
+        PTarget->health.mp = PTarget->health.maxmp / 2;
+    }
+    if (effect.addFullMP)
+    {
+        PTarget->addMP(PTarget->health.maxmp);
     }
 
     PTarget->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PTarget);
@@ -5122,9 +5113,6 @@ void DoWildCardToEntity(CCharEntity* PCaster, CCharEntity* PTarget, const uint8 
  ************************************************************************/
 bool DoRandomDealToEntity(CCharEntity* PChar, CBattleEntity* PTarget)
 {
-    std::vector<uint16> resetCandidateList;
-    std::vector<uint16> activeCooldownList;
-
     if (PChar == nullptr || PTarget == nullptr)
     {
         // Invalid User or Target
@@ -5133,81 +5121,59 @@ bool DoRandomDealToEntity(CCharEntity* PChar, CBattleEntity* PTarget)
 
     RecastList_t* recastList = PTarget->PRecastContainer->GetRecastList(RECAST_ABILITY);
 
-    // Get position of abilites and add to the 2 lists
+    std::vector<wildcardrandomdealhelpers::RandomDealRecast> recasts;
+    recasts.reserve(recastList->size());
     for (uint8 i = 0; i < recastList->size(); ++i)
     {
         Recast_t* recast = &recastList->at(i);
-
-        // Do not reset 1hrs or Random Deal
-        if (recast->ID != Recast::Special && recast->ID != Recast::Special2 && recast->ID != Recast::RandomDeal)
-        {
-            resetCandidateList.push_back(i);
-            if (recast->RecastTime > 0s)
-            {
-                activeCooldownList.push_back(i);
-            }
-        }
+        recasts.push_back(wildcardrandomdealhelpers::RandomDealRecast{
+            static_cast<uint16>(recast->ID),
+            recast->RecastTime > 0s,
+        });
     }
 
-    if (resetCandidateList.size() == 0 || activeCooldownList.size() == 0)
+    std::vector<int> resetCandidateList;
+    std::vector<int> activeCooldownList;
+    wildcardrandomdealhelpers::BuildRandomDealLists(recasts, resetCandidateList, activeCooldownList);
+
+    if (wildcardrandomdealhelpers::ShouldEvadeRandomDeal(
+            static_cast<int>(resetCandidateList.size()), static_cast<int>(activeCooldownList.size())))
     {
         // Evade because we have no abilities that can be reset
         return false;
     }
 
-    uint8 loadedDeck       = PChar->PMeritPoints->GetMeritValue(MERIT_LOADED_DECK, PChar);
-    uint8 loadedDeckChance = 50 + loadedDeck;
-    uint8 resetTwoChance   = std::min<int8>(PChar->getMod(Mod::RANDOM_DEAL_BONUS), 50);
+    const uint8 loadedDeck     = PChar->PMeritPoints->GetMeritValue(MERIT_LOADED_DECK, PChar);
+    const uint8 resetTwoChance = wildcardrandomdealhelpers::RandomDealTwoChance(PChar->getMod(Mod::RANDOM_DEAL_BONUS));
 
+    // Host mutates lists in place for shuffle, then applies DeleteByIndex using
+    // pure path classification for chance gates (RNG still host-side, exact order).
     if (loadedDeck > 0) // Loaded Deck Merit Version
     {
         if (activeCooldownList.size() > 1)
         {
             // Shuffle active cooldowns and take first (loaded deck)
             xirand::ShuffleInPlace(activeCooldownList);
-            loadedDeckChance = 100;
         }
 
-        if (loadedDeckChance >= xirand::GetRandomNumber(100))
+        const auto chance = (activeCooldownList.size() > 1)
+                                ? static_cast<uint8>(100)
+                                : wildcardrandomdealhelpers::LoadedDeckChance(loadedDeck);
+
+        // chance >= GetRandomNumber(100)  ⇔  !(chance < roll)
+        if (chance < static_cast<uint8>(xirand::GetRandomNumber(100)))
         {
-            PTarget->PRecastContainer->DeleteByIndex(RECAST_ABILITY, activeCooldownList.at(0));
-
-            // Reset 2 abilities by chance
-            if (activeCooldownList.size() > 1 && resetTwoChance >= xirand::GetRandomNumber(100))
-            {
-                PTarget->PRecastContainer->DeleteByIndex(RECAST_ABILITY, activeCooldownList.at(1));
-            }
-            if (PChar != PTarget)
-            {
-                if (auto PCharTarget = dynamic_cast<CCharEntity*>(PTarget))
-                {
-                    // Update target's recast state: caster's will be handled in CCharEntity::OnAbility.
-                    PCharTarget->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PCharTarget);
-                }
-            }
-            return true;
+            // Evade because we failed to reset with loaded deck
+            return false;
         }
 
-        // Evade because we failed to reset with loaded deck
-        return false;
-    }
-    else // Standard Version
-    {
-        if (resetCandidateList.size() > 1)
+        PTarget->PRecastContainer->DeleteByIndex(RECAST_ABILITY, static_cast<uint8>(activeCooldownList.at(0)));
+
+        // Reset 2 abilities by chance
+        if (activeCooldownList.size() > 1 && resetTwoChance >= static_cast<uint8>(xirand::GetRandomNumber(100)))
         {
-            // Shuffle if more than 1 ability
-            xirand::ShuffleInPlace(resetCandidateList);
+            PTarget->PRecastContainer->DeleteByIndex(RECAST_ABILITY, static_cast<uint8>(activeCooldownList.at(1)));
         }
-
-        // Reset first ability (shuffled or only)
-        PTarget->PRecastContainer->DeleteByIndex(RECAST_ABILITY, resetCandidateList.at(0));
-
-        // Reset 2 abilities by chance (could be 2 abilities that don't need resets)
-        if (resetCandidateList.size() > 1 && activeCooldownList.size() > 1 && resetTwoChance >= xirand::GetRandomNumber(1, 100))
-        {
-            PTarget->PRecastContainer->DeleteByIndex(RECAST_ABILITY, resetCandidateList.at(1));
-        }
-
         if (PChar != PTarget)
         {
             if (auto PCharTarget = dynamic_cast<CCharEntity*>(PTarget))
@@ -5216,9 +5182,37 @@ bool DoRandomDealToEntity(CCharEntity* PChar, CBattleEntity* PTarget)
                 PCharTarget->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PCharTarget);
             }
         }
-
         return true;
     }
+
+    // Standard Version
+    if (resetCandidateList.size() > 1)
+    {
+        // Shuffle if more than 1 ability
+        xirand::ShuffleInPlace(resetCandidateList);
+    }
+
+    // Reset first ability (shuffled or only)
+    PTarget->PRecastContainer->DeleteByIndex(RECAST_ABILITY, static_cast<uint8>(resetCandidateList.at(0)));
+
+    // Reset 2 abilities by chance (could be 2 abilities that don't need resets)
+    // Note: GetRandomNumber(1, 100) inclusive range — differs from loaded-deck [0,100).
+    if (resetCandidateList.size() > 1 && activeCooldownList.size() > 1 &&
+        static_cast<int>(resetTwoChance) >= xirand::GetRandomNumber(1, 100))
+    {
+        PTarget->PRecastContainer->DeleteByIndex(RECAST_ABILITY, static_cast<uint8>(resetCandidateList.at(1)));
+    }
+
+    if (PChar != PTarget)
+    {
+        if (auto PCharTarget = dynamic_cast<CCharEntity*>(PTarget))
+        {
+            // Update target's recast state: caster's will be handled in CCharEntity::OnAbility.
+            PCharTarget->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PCharTarget);
+        }
+    }
+
+    return true;
 }
 
 // turn towards target unless mob behavior ignores this (but can be forced to anyway)
