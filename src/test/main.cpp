@@ -363,6 +363,7 @@ auto runCharPersistence1443SelfTests() -> bool;
 auto runCharTick1444SelfTests() -> bool;
 auto runCharPostTickRefresh1445SelfTests() -> bool;
 auto runCharPostTickUpdate1446SelfTests() -> bool;
+auto runCharEquipFlush1447SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -936,6 +937,7 @@ namespace
         ok = runCharTick1444SelfTests() && ok;
         ok = runCharPostTickRefresh1445SelfTests() && ok;
         ok = runCharPostTickUpdate1446SelfTests() && ok;
+        ok = runCharEquipFlush1447SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

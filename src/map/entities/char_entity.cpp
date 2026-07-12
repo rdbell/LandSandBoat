@@ -25,6 +25,7 @@
 #include "char_automaton_capacity.h"
 #include "char_bazaar_capacity.h"
 #include "char_equipment_capacity.h"
+#include "char_equip_flush_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
@@ -1091,58 +1092,26 @@ void CCharEntity::PostTick()
 // Flush all pending equipment changes at end of network cycle after all SmallPackets have been processed
 void CCharEntity::flushEquipChanges()
 {
-    if (!inventorySyncState_.hasPendingEquipChanges())
-    {
-        return;
-    }
-
-    // EQUIP_LIST + GRAP_LIST pairs for each change
-    for (const auto& change : inventorySyncState_.pendingEquipChanges())
-    {
-        if (change.equipping)
-        {
-            pushPacket<GP_SERV_COMMAND_EQUIP_LIST>(change.containerSlotId, change.equipSlot, change.container);
-        }
-        else
-        {
-            pushPacket<GP_SERV_COMMAND_EQUIP_LIST>(0, change.equipSlot, LOC_INVENTORY);
-        }
-
-        pushPacket<GP_SERV_COMMAND_GRAP_LIST>(this);
-    }
-
-    // For each dirty container: ITEM_LIST or ITEM_ATTR for items in that container, then ITEM_SAME pair
-    // Only send ITEM_SAME if the container has already been sent to the client during zone-in
-    for (const auto& container : inventorySyncState_.dirtyContainers())
-    {
-        for (const auto& change : inventorySyncState_.pendingEquipChanges())
-        {
-            if (static_cast<CONTAINER_ID>(change.item->getLocationID()) == container)
-            {
-                if (change.item->isSubType(ITEM_CHARGED))
-                {
-                    pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(change.item, container, change.item->getSlotID());
-                }
-                else
-                {
-                    pushPacket<GP_SERV_COMMAND_ITEM_LIST>(change.item, change.equipping ? ItemLockFlg::NoDrop : ItemLockFlg::Normal);
-                }
-            }
-        }
-
-        // Only send ITEM_SAME if container has been loaded - prevents sort reset during zone-in
-        if (inventorySyncState_.isSynced(container))
-        {
-            pushPacket<GP_SERV_COMMAND_ITEM_SAME>(container, this);
-            pushPacket<GP_SERV_COMMAND_ITEM_SAME>(this);
-        }
-    }
-
-    // Send updated list of spells, abilities and weaponskills
-    pushPacket<GP_SERV_COMMAND_MAGIC_DATA>(this);
-    pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(this);
-
-    inventorySyncState_.clearEquipChanges();
+    charequipflushhelpers::Apply(
+        inventorySyncState_.pendingEquipChanges(),
+        inventorySyncState_.dirtyContainers(),
+        LOC_INVENTORY,
+        ItemLockFlg::Normal,
+        ItemLockFlg::NoDrop,
+        [&](const CONTAINER_ID container) { return inventorySyncState_.isSynced(container); },
+        [](const CItem* item) { return item->isSubType(ITEM_CHARGED); },
+        [&](const uint8 containerSlotId, const SLOTTYPE equipSlot, const CONTAINER_ID container)
+        { pushPacket<GP_SERV_COMMAND_EQUIP_LIST>(containerSlotId, equipSlot, container); },
+        [&]() { pushPacket<GP_SERV_COMMAND_GRAP_LIST>(this); },
+        [&](CItem* item, const CONTAINER_ID container, const uint8 slotId)
+        { pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(item, container, slotId); },
+        [&](CItem* item, const ItemLockFlg lockFlag)
+        { pushPacket<GP_SERV_COMMAND_ITEM_LIST>(item, lockFlag); },
+        [&](const CONTAINER_ID container) { pushPacket<GP_SERV_COMMAND_ITEM_SAME>(container, this); },
+        [&]() { pushPacket<GP_SERV_COMMAND_ITEM_SAME>(this); },
+        [&]() { pushPacket<GP_SERV_COMMAND_MAGIC_DATA>(this); },
+        [&]() { pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(this); },
+        [&]() { inventorySyncState_.clearEquipChanges(); });
 }
 
 auto CCharEntity::inventorySyncState() -> InventorySyncState&
