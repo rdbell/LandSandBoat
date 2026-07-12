@@ -80,6 +80,9 @@
 #include "job_points.h"
 #include "items/item_equipment.h"
 #include "spell.h"
+#include "trust_battlefield_capacity.h"
+#include "battlefield.h"
+#include "enums/key_items.h"
 #include "conquest_system.h"
 #include "daily_system.h"
 #include "fishingcontest.h"
@@ -3463,22 +3466,39 @@ bool OnTrustSpellCastCheckBattlefieldTrusts(CBattleEntity* PCaster) // Check if 
 {
     TracyZoneScoped;
 
-    sol::function checkBattlefieldTrustCount = lua["xi"]["trust"]["checkBattlefieldTrustCount"];
-
-    if (!checkBattlefieldTrustCount.valid())
+    if (PCaster == nullptr)
     {
         return false;
     }
 
-    auto result = checkBattlefieldTrustCount(PCaster);
-    if (!result.valid())
+    auto* bf = PCaster->PBattlefield;
+    if (bf == nullptr)
     {
-        sol::error err = result;
-        ShowError("luautils::OnTrustSpellCastCheckBattlefieldTrusts: %s", err.what());
-        return 0;
+        return trustbattlefieldhelpers::CheckBattlefieldTrustCount(false, 0, 0, 0, false, false);
     }
 
-    return result.get_type(0) == sol::type::boolean ? result.get<bool>(0) : true;
+    const auto bfID            = static_cast<std::uint16_t>(bf->GetID());
+    const int  maxParticipants = static_cast<int>(bf->GetMaxParticipants());
+    const int  numPlayers      = static_cast<int>(bf->GetPlayerCount());
+    int        numTrusts       = 0;
+    bf->ForEachPlayer(
+        [&](CCharEntity* PChar)
+        {
+            if (PChar != nullptr)
+            {
+                numTrusts += static_cast<int>(PChar->PTrusts.size());
+            }
+        });
+
+    const bool isRoVKI = trustbattlefieldhelpers::IsRoVKIBattlefield(bfID);
+    bool       hasUmber = false;
+    if (auto* PChar = dynamic_cast<CCharEntity*>(PCaster))
+    {
+        hasUmber = charutils::hasKeyItem(PChar, KeyItem::RHAPSODY_IN_UMBER);
+    }
+
+    return trustbattlefieldhelpers::CheckBattlefieldTrustCount(
+        true, maxParticipants, numPlayers, numTrusts, isRoVKI, hasUmber);
 }
 
 // Party building is performed after this, so it's safe to set link/superlink behavior in onMobInitialize

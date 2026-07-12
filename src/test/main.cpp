@@ -496,6 +496,7 @@ auto runDefenseGates1580SelfTests() -> bool;
 auto runCombatAoeKnockback1581SelfTests() -> bool;
 auto runCanUseSpell1582SelfTests() -> bool;
 auto runGearSets1583SelfTests() -> bool;
+auto runTrustBattlefield1584SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1202,6 +1203,7 @@ namespace
         ok = runCombatAoeKnockback1581SelfTests() && ok;
         ok = runCanUseSpell1582SelfTests() && ok;
         ok = runGearSets1583SelfTests() && ok;
+        ok = runTrustBattlefield1584SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

@@ -922,6 +922,8 @@ set(SOURCES
     test_can_use_spell_1582.cpp
     test_gear_sets_1583.h
     test_gear_sets_1583.cpp
+    test_trust_battlefield_1584.h
+    test_trust_battlefield_1584.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
