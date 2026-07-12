@@ -52,6 +52,7 @@
 #include "scaled_item_modifier_capacity.h"
 #include "spell_cost_capacity.h"
 #include "dmg_taken_capacity.h"
+#include "ws_tp_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -5630,31 +5631,34 @@ timer::duration CalculateSpellRecastTime(CBattleEntity* PEntity, CSpell* PSpell)
 
 int16 CalculateWeaponSkillTP(CBattleEntity* PEntity, CWeaponSkill* PWeaponSkill, int16 spentTP)
 {
-    // apply TP Bonus
-    int16 tp = spentTP + PEntity->getMod(Mod::TP_BONUS);
+    const bool isPC       = PEntity->objtype == TYPE_PC;
+    const bool isRangedWS = wstphelpers::IsRangedWeaponskillID(PWeaponSkill->getID());
 
-    if (PEntity->objtype == TYPE_PC)
+    std::int16_t subTPBonus    = 0;
+    std::int16_t mainTPBonus   = 0;
+    std::int16_t rangedTPBonus = 0;
+    bool         fencerElig    = false;
+    std::int16_t fencerTPBonus = 0;
+
+    if (isPC)
     {
-        auto* PChar   = static_cast<CCharEntity*>(PEntity);
-        uint8 damslot = SLOT_MAIN;
-        if (PWeaponSkill->getID() >= 192 && PWeaponSkill->getID() <= 221)
-        {
-            damslot = SLOT_RANGED;
-        }
+        auto* PChar = static_cast<CCharEntity*>(PEntity);
 
         // remove TP Bonus from offhand weapon
         // TODO -- don't remove TP bonus if this TP bonus is from an augment (or perhaps add a second TP bonus stat.)
         if (PChar->m_Weapons[SLOT_SUB])
         {
-            tp -= battleutils::GetScaledItemModifier(PEntity, PChar->m_Weapons[SLOT_SUB], Mod::TP_BONUS);
+            subTPBonus = static_cast<std::int16_t>(
+                battleutils::GetScaledItemModifier(PEntity, PChar->m_Weapons[SLOT_SUB], Mod::TP_BONUS));
         }
 
         // if ranged WS, remove TP bonus from mainhand weapon
-        if (damslot == SLOT_RANGED)
+        if (isRangedWS)
         {
             if (PChar->m_Weapons[SLOT_MAIN])
             {
-                tp -= battleutils::GetScaledItemModifier(PEntity, PChar->m_Weapons[SLOT_MAIN], Mod::TP_BONUS);
+                mainTPBonus = static_cast<std::int16_t>(
+                    battleutils::GetScaledItemModifier(PEntity, PChar->m_Weapons[SLOT_MAIN], Mod::TP_BONUS));
             }
         }
         else
@@ -5663,7 +5667,8 @@ int16 CalculateWeaponSkillTP(CBattleEntity* PEntity, CWeaponSkill* PWeaponSkill,
             // TODO -- don't remove TP bonus if this TP bonus is from an augment (or perhaps add a second TP bonus stat.)
             if (PChar->m_Weapons[SLOT_RANGED])
             {
-                tp -= battleutils::GetScaledItemModifier(PEntity, PChar->m_Weapons[SLOT_RANGED], Mod::TP_BONUS);
+                rangedTPBonus = static_cast<std::int16_t>(
+                    battleutils::GetScaledItemModifier(PEntity, PChar->m_Weapons[SLOT_RANGED], Mod::TP_BONUS));
             }
 
             // Add Fencer TP Bonus
@@ -5671,15 +5676,31 @@ int16 CalculateWeaponSkillTP(CBattleEntity* PEntity, CWeaponSkill* PWeaponSkill,
             CItemEquipment* PSub       = PChar->getEquip(SLOT_SUB);
             CItemWeapon*    PSubWeapon = dynamic_cast<CItemWeapon*>(PChar->m_Weapons[SLOT_SUB]);
 
-            if (PMain && !PMain->isTwoHanded() && !PMain->isHandToHand() &&
-                (!PSub || (PSubWeapon && PSubWeapon->getSkillType() == SKILL_NONE) || PSub->IsShield()))
+            fencerElig = wstphelpers::FencerEligible(
+                PMain != nullptr,
+                PMain && PMain->isTwoHanded(),
+                PMain && PMain->isHandToHand(),
+                PSub != nullptr,
+                PSubWeapon != nullptr,
+                PSubWeapon ? static_cast<std::uint8_t>(PSubWeapon->getSkillType()) : static_cast<std::uint8_t>(0),
+                PSub && PSub->IsShield());
+            if (fencerElig)
             {
-                tp += PEntity->getMod(Mod::FENCER_TP_BONUS);
+                fencerTPBonus = PEntity->getMod(Mod::FENCER_TP_BONUS);
             }
         }
     }
 
-    return std::min(tp, (int16)3000);
+    return wstphelpers::CalculateWeaponSkillTP(
+        spentTP,
+        PEntity->getMod(Mod::TP_BONUS),
+        isPC,
+        isRangedWS,
+        subTPBonus,
+        mainTPBonus,
+        rangedTPBonus,
+        fencerElig,
+        fencerTPBonus);
 }
 
 bool RemoveAmmo(CCharEntity* PChar, int quantity)
