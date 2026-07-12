@@ -836,6 +836,8 @@ set(SOURCES
     test_enspell_handle_1536.cpp
     test_skillchain_effect_1537.h
     test_skillchain_effect_1537.cpp
+    test_trick_attack_1538.h
+    test_trick_attack_1538.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

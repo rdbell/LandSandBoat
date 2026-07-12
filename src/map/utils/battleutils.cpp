@@ -42,6 +42,7 @@
 #include "treasure_hunter_proc_capacity.h"
 #include "enspell_handle_capacity.h"
 #include "skillchain_effect_capacity.h"
+#include "trick_attack_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -3735,7 +3736,7 @@ inline bool areInLine(uint8 firstEntityWorldAngle, CBattleEntity* anchorEntity, 
     // Useful for debugging if trick attack/cover aren't reliably calculating eligability, but chatty otherwise
     // ShowDebug("InLine check angleDiff: %d", angleDiff);
 
-    return std::abs(angleDiff) <= worldAngleMaxDeviance;
+    return trickattackhelpers::AreInLineFromDiff(angleDiff);
 }
 
 /*
@@ -3750,7 +3751,8 @@ CBattleEntity* getAvailableTrickAttackChar(CBattleEntity* taUser, CBattleEntity*
 {
     TracyZoneScoped;
 
-    if (!taUser->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TrickAttack))
+    if (!trickattackhelpers::ShouldEvaluateTrickAttack(
+            taUser->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TrickAttack)))
     {
         return nullptr;
     }
@@ -3769,7 +3771,7 @@ CBattleEntity* getAvailableTrickAttackChar(CBattleEntity* taUser, CBattleEntity*
             {
                 float distTAtarget = distance(PMember->loc.p, PMob->loc.p);
                 // require closer target not be closer than .5 yalms (.5*.5=.25 distsquared) to mob
-                if (distTAtarget >= worldAngleMinDistance && distTAtarget < distTAmob)
+                if (trickattackhelpers::TrickAttackCandidateDistanceOK(distTAtarget, distTAmob))
                 {
                     taTargetList.emplace_back(distTAtarget, PMember);
                 }
@@ -3780,7 +3782,7 @@ CBattleEntity* getAvailableTrickAttackChar(CBattleEntity* taUser, CBattleEntity*
                     {
                         distTAtarget = distance(PTrust->loc.p, PMob->loc.p);
                         // require closer target not be closer than .5 yalms (.5*.5=.25 distsquared) to mob
-                        if (distTAtarget >= worldAngleMinDistance && distTAtarget < distTAmob)
+                        if (trickattackhelpers::TrickAttackCandidateDistanceOK(distTAtarget, distTAmob))
                         {
                             taTargetList.emplace_back(distTAtarget, PTrust);
                         }
@@ -3800,7 +3802,7 @@ CBattleEntity* getAvailableTrickAttackChar(CBattleEntity* taUser, CBattleEntity*
             {
                 float distTAtarget = distance(fellow->loc.p, PMob->loc.p);
                 // require closer target not be closer than .5 yalms (.5*.5=.25 distsquared) to mob
-                if (distTAtarget >= worldAngleMinDistance && distTAtarget < distTAmob)
+                if (trickattackhelpers::TrickAttackCandidateDistanceOK(distTAtarget, distTAmob))
                 {
                     taTargetList.emplace_back(distTAtarget, fellow);
                 }
@@ -3815,8 +3817,8 @@ CBattleEntity* getAvailableTrickAttackChar(CBattleEntity* taUser, CBattleEntity*
         std::sort(taTargetList.begin(), taTargetList.end());
         for (const auto& [dist, potentialTAtarget] : taTargetList)
         {
-            if (taUser->id == potentialTAtarget->id || // can't TA self
-                potentialTAtarget->isDead())           // Dead entity should not be TA-able
+            if (trickattackhelpers::TrickAttackCandidateSkip(
+                    taUser->id == potentialTAtarget->id, potentialTAtarget->isDead()))
             {
                 continue;
             }
