@@ -4040,21 +4040,22 @@ void DirtyExp(CBattleEntity* PDefender, CBattleEntity* PAttacker)
         }
         if (PAttacker)
         {
-            uint8 pcinzone = 0;
-            uint8 maxLevel = 0;
+            std::vector<claimhelpers::DirtyExpMember> members;
             // clang-format off
-                PAttacker->ForAlliance([&pcinzone, &maxLevel, &mob](CBattleEntity* PMember)
+                PAttacker->ForAlliance([&members, &mob](CBattleEntity* PMember)
                 {
-                    if (PMember->getZone() == mob->getZone() && distance(PMember->loc.p, mob->loc.p) < claimhelpers::DirtyExpDistance)
-                    {
-                        maxLevel = std::max(maxLevel, PMember->GetMLevel());
-                        pcinzone++;
-                    }
+                    claimhelpers::DirtyExpMember m{};
+                    m.sameZone = PMember->getZone() == mob->getZone();
+                    m.inRange  = distance(PMember->loc.p, mob->loc.p) < claimhelpers::DirtyExpDistance;
+                    m.mLevel   = PMember->GetMLevel();
+                    members.push_back(m);
                 });
             // clang-format on
-            // DirtyExpMerge: max(pcinzone/maxLevel, existing hi values).
-            mob->m_HiPartySize = std::max(pcinzone, mob->m_HiPartySize);
-            mob->m_HiPCLvl     = std::max(maxLevel, mob->m_HiPCLvl);
+            std::uint8_t hiParty = 0;
+            std::uint8_t hiPCLvl = 0;
+            claimhelpers::DirtyExpMerge(mob->m_HiPartySize, mob->m_HiPCLvl, members.data(), members.size(), hiParty, hiPCLvl);
+            mob->m_HiPartySize = hiParty;
+            mob->m_HiPCLvl     = hiPCLvl;
         }
     }
 }
