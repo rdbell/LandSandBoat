@@ -46,6 +46,7 @@
 #include "char_weaponskill_self_capacity.h"
 #include "char_weaponskill_primary_capacity.h"
 #include "char_cast_finish_capacity.h"
+#include "char_immanence_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1325,62 +1326,13 @@ void CCharEntity::OnCastFinished(CMagicState& state, action_t& action)
                     PSpell->getSpellGroup() == SPELLGROUP_BLACK,
                     StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Immanence)))
             {
-                auto immanenceApplies = true;
-                auto isHelix          = false;
-                auto effect           = ActionProcSkillChain::None;
-                switch (PSpell->getSpellFamily())
-                {
-                    case SPELLFAMILY_GEOHELIX:
-                        isHelix = true;
-                        [[fallthrough]];
-                    case SPELLFAMILY_STONE:
-                        effect = battleutils::GetSkillChainEffect(PTarget, SKILLCHAIN_ELEMENT::SC_SCISSION, 0, 0);
-                        break;
-                    case SPELLFAMILY_HYDROHELIX:
-                        isHelix = true;
-                        [[fallthrough]];
-                    case SPELLFAMILY_WATER:
-                        effect = battleutils::GetSkillChainEffect(PTarget, SKILLCHAIN_ELEMENT::SC_REVERBERATION, 0, 0);
-                        break;
-                    case SPELLFAMILY_ANEMOHELIX:
-                        isHelix = true;
-                        [[fallthrough]];
-                    case SPELLFAMILY_AERO:
-                        effect = battleutils::GetSkillChainEffect(PTarget, SKILLCHAIN_ELEMENT::SC_DETONATION, 0, 0);
-                        break;
-                    case SPELLFAMILY_PYROHELIX:
-                        isHelix = true;
-                        [[fallthrough]];
-                    case SPELLFAMILY_FIRE:
-                        effect = battleutils::GetSkillChainEffect(PTarget, SKILLCHAIN_ELEMENT::SC_LIQUEFACTION, 0, 0);
-                        break;
-                    case SPELLFAMILY_CRYOHELIX:
-                        isHelix = true;
-                        [[fallthrough]];
-                    case SPELLFAMILY_BLIZZARD:
-                        effect = battleutils::GetSkillChainEffect(PTarget, SKILLCHAIN_ELEMENT::SC_INDURATION, 0, 0);
-                        break;
-                    case SPELLFAMILY_IONOHELIX:
-                        isHelix = true;
-                        [[fallthrough]];
-                    case SPELLFAMILY_THUNDER:
-                        effect = battleutils::GetSkillChainEffect(PTarget, SKILLCHAIN_ELEMENT::SC_IMPACTION, 0, 0);
-                        break;
-                    case SPELLFAMILY_NOCTOHELIX:
-                        isHelix = true;
-                        effect  = battleutils::GetSkillChainEffect(PTarget, SKILLCHAIN_ELEMENT::SC_COMPRESSION, 0, 0);
-                        break;
-                    case SPELLFAMILY_LUMINOHELIX:
-                        isHelix = true;
-                        effect  = battleutils::GetSkillChainEffect(PTarget, SKILLCHAIN_ELEMENT::SC_TRANSFIXION, 0, 0);
-                        break;
-                    default:
-                        immanenceApplies = false;
-                        break;
-                }
+                const auto mapping = charimmanencehelpers::MapFamily(static_cast<uint16>(PSpell->getSpellFamily()));
+                auto       effect  = ActionProcSkillChain::None;
 
-                if (immanenceApplies)
+                if (mapping.applies)
                 {
+                    effect = battleutils::GetSkillChainEffect(
+                        PTarget, static_cast<SKILLCHAIN_ELEMENT>(mapping.skillchainElement), 0, 0);
                     StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Immanence);
                 }
 
@@ -1390,9 +1342,9 @@ void CCharEntity::OnCastFinished(CMagicState& state, action_t& action)
 
                     // Closing a skillchain with an immanence Helix will make the magic burst window longer
                     auto scEffect = PTarget->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Skillchain, 0);
-                    if (isHelix && scEffect)
+                    if (mapping.isHelix && scEffect)
                     {
-                        scEffect->SetDuration(scEffect->GetDuration() + 2s);
+                        scEffect->SetDuration(scEffect->GetDuration() + std::chrono::seconds(charimmanencehelpers::HelixDurationExtensionSeconds()));
                     }
                 }
             }
