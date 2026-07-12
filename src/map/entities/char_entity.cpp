@@ -37,6 +37,7 @@
 #include "char_ability_stealth_capacity.h"
 #include "char_ability_paralyze_capacity.h"
 #include "char_activity_capacity.h"
+#include "char_shield_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -815,30 +816,19 @@ auto CCharEntity::maze() -> maze_t&
 int8 CCharEntity::getShieldSize()
 {
     CItemEquipment* PItem = getEquip(SLOT_SUB);
-
-    if (PItem == nullptr)
-    {
-        return 0;
-    }
-
-    if (!PItem->IsShield())
-    {
-        return 0;
-    }
-
-    return PItem->getShieldSize();
+    return charshieldhelpers::ShieldSize(
+        PItem != nullptr,
+        PItem != nullptr && PItem->IsShield(),
+        PItem != nullptr ? static_cast<int8>(PItem->getShieldSize()) : 0);
 }
 
 int16 CCharEntity::getShieldDefense()
 {
     CItemEquipment* PItem = getEquip(SLOT_SUB);
-
-    if (PItem && PItem->IsShield())
-    {
-        return PItem->getModifier(Mod::DEF);
-    }
-
-    return 0;
+    return charshieldhelpers::ShieldDefense(
+        PItem != nullptr,
+        PItem != nullptr && PItem->IsShield(),
+        PItem != nullptr ? PItem->getModifier(Mod::DEF) : 0);
 }
 
 bool CCharEntity::hasBazaar()

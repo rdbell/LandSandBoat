@@ -740,6 +740,8 @@ set(SOURCES
     test_char_ability_paralyze_1487.cpp
     test_char_activity_1488.h
     test_char_activity_1488.cpp
+    test_char_shield_1489.h
+    test_char_shield_1489.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
