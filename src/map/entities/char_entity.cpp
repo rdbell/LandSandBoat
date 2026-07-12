@@ -30,6 +30,7 @@
 #include "char_death_apply_capacity.h"
 #include "char_death_homepoint_capacity.h"
 #include "char_death_plan_capacity.h"
+#include "char_raise_complete_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -2186,10 +2187,10 @@ void CCharEntity::Raise()
 {
     TracyZoneScoped;
 
-    OnRaise();
-    PAI->Accept_Raise();
-
-    SetDeathTime(timer::time_point::min());
+    charraisecompletehelpers::Complete(
+        [&]() { OnRaise(); },
+        [&]() { PAI->Accept_Raise(); },
+        [&]() { SetDeathTime(timer::time_point::min()); });
 }
 
 void CCharEntity::SetDeathTime(timer::time_point timestamp)
