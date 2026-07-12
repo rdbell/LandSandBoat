@@ -74,6 +74,7 @@
 #include "physical_hit_rate_capacity.h"
 #include "pdif_capacity.h"
 #include "level_correction_capacity.h"
+#include "attuner_capacity.h"
 #include "spell_interrupt_capacity.h"
 #include "combat_status_mitigation_capacity.h"
 
@@ -98,6 +99,7 @@
 #include "enmity_container.h"
 #include "entities/battle_entity.h"
 #include "entities/mob_entity.h"
+#include "entities/automaton_entity.h"
 #include "entities/pet_entity.h"
 #include "entities/trust_entity.h"
 #include "enums/action/hit_distortion.h"
@@ -3018,12 +3020,29 @@ float GetDamageRatio(CBattleEntity* PAttacker, CBattleEntity* PDefender, bool is
     const bool applyLC = ApplyLevelCorrection(PAttacker);
 
     // isWeaponskill=false for this call site → flourishBonus 1.0
-    double tpFactor          = 0.0;
-    bool   tpIgnoresDefense  = false;
+    double tpFactor         = 0.0;
+    bool   tpIgnoresDefense = false;
     if (PAttacker->objtype == TYPE_PET && static_cast<CPetEntity*>(PAttacker)->getPetType() == PET_TYPE::AUTOMATON)
     {
-        // Automaton Attuner defense-ignore inject (Lua host).
-        const auto defIgnore = luautils::callGlobal<double>("xi.automaton.handleAttuner", PAttacker, PDefender);
+        auto* PAuto   = static_cast<CAutomatonEntity*>(PAttacker);
+        auto* PMaster = PAttacker->PMaster;
+        const bool hasAttuner = PAuto->hasAttachment(attunerhelpers::AttunerAttachmentSlot());
+        const bool hasMaster  = PMaster != nullptr;
+        int        fireCount  = 0;
+        bool       overdrive  = false;
+        if (hasMaster)
+        {
+            fireCount = static_cast<int>(PMaster->StatusEffectContainer->GetEffectsCount(xi::StatusEffect::FireManeuver));
+            overdrive = PMaster->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Overdrive);
+        }
+        const auto defIgnore = attunerhelpers::AttunerDefIgnore(
+            true,
+            hasAttuner,
+            hasMaster,
+            PAttacker->GetMLevel(),
+            PDefender->GetMLevel(),
+            fireCount,
+            overdrive);
         tpFactor += defIgnore;
         if (tpFactor > 0.0)
         {
