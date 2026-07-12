@@ -882,6 +882,8 @@ set(SOURCES
     test_fstr_1559.cpp
     test_enmity_ws_use_1560.h
     test_enmity_ws_use_1560.cpp
+    test_skill_cap_1561.h
+    test_skill_cap_1561.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
