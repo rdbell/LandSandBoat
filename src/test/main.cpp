@@ -380,6 +380,7 @@ auto runCharHighestJob1460SelfTests() -> bool;
 auto runCharMoghancementState1461SelfTests() -> bool;
 auto runCharMoghancementFurniture1462SelfTests() -> bool;
 auto runCharMoghancementUpdate1463SelfTests() -> bool;
+auto runCharMoghancementCraft1464SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -970,6 +971,7 @@ namespace
         ok = runCharMoghancementState1461SelfTests() && ok;
         ok = runCharMoghancementFurniture1462SelfTests() && ok;
         ok = runCharMoghancementUpdate1463SelfTests() && ok;
+        ok = runCharMoghancementCraft1464SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

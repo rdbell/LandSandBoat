@@ -39,6 +39,7 @@
 #include "char_highest_job_capacity.h"
 #include "char_moghancement_state_capacity.h"
 #include "char_moghancement_furniture_capacity.h"
+#include "char_moghancement_craft_capacity.h"
 #include "char_moghancement_update_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
@@ -2387,6 +2388,14 @@ void CCharEntity::changeMoghancement(uint16 moghancementID, bool isAdding)
     TracyZoneScoped;
 
     if (moghancementID == 0)
+    {
+        return;
+    }
+
+    if (charmoghancementcrafthelpers::Apply(
+            moghancementID,
+            isAdding,
+            [&](const Mod mod, const int16 amount) { addModifier(mod, amount); }))
     {
         return;
     }

@@ -690,6 +690,8 @@ set(SOURCES
     test_char_moghancement_furniture_1462.cpp
     test_char_moghancement_update_1463.h
     test_char_moghancement_update_1463.cpp
+    test_char_moghancement_craft_1464.h
+    test_char_moghancement_craft_1464.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
