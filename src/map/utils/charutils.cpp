@@ -101,6 +101,7 @@
 #include "building_skills_capacity.h"
 #include "check_equipment_capacity.h"
 #include "capacity_award_capacity.h"
+#include "weapon_skill_roster_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -3563,7 +3564,7 @@ void BuildingCharWeaponSkills(CCharEntity* PChar)
             PItem = dynamic_cast<CItemWeapon*>(PChar->m_Weapons[std::get<0>(slot)]);
 
             // As of writing, the only unlockable weapons are: wsnm, ksnm, nyzul vigil weapons
-            if (PItem && (!PItem->isUnlockable() || PItem->isUnlocked()))
+            if (PItem && weaponskillrosterhelpers::ShouldUseUnlockableWeaponMod(true, PItem->isUnlockable(), PItem->isUnlocked()))
             {
                 std::get<1>(slot) = battleutils::GetScaledItemModifier(PChar, PItem, Mod::ADDS_WEAPONSKILL);
             }
@@ -3572,12 +3573,12 @@ void BuildingCharWeaponSkills(CCharEntity* PChar)
 
     // add in melee ws
     PItem       = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_MAIN));
-    uint8 skill = PItem ? PItem->getSkillType() : (uint8)SKILL_HAND_TO_HAND;
+    uint8 skill = weaponskillrosterhelpers::MeleeSkillTypeFromMain(PItem != nullptr, PItem ? PItem->getSkillType() : 0);
 
     const auto& MeleeWeaponSkillList = battleutils::GetWeaponSkills(skill);
     for (auto&& PSkill : MeleeWeaponSkillList)
     {
-        if (battleutils::CanUseWeaponskill(PChar, PSkill) || PSkill->getID() == main_ws)
+        if (weaponskillrosterhelpers::ShouldAddMeleeWeaponSkill(battleutils::CanUseWeaponskill(PChar, PSkill), PSkill->getID(), main_ws))
         {
             addWeaponSkill(PChar, PSkill->getID());
         }
@@ -3585,13 +3586,13 @@ void BuildingCharWeaponSkills(CCharEntity* PChar)
 
     // add in ranged ws
     PItem = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED));
-    if (PItem != nullptr && PItem->isType(ITEM_WEAPON) && PItem->getSkillType() != SKILL_THROWING)
+    if (PItem != nullptr && weaponskillrosterhelpers::ShouldConsiderRangedWeaponSkills(true, PItem->isType(ITEM_WEAPON), PItem->getSkillType()))
     {
-        skill                             = PItem ? PItem->getSkillType() : 0;
+        skill                             = weaponskillrosterhelpers::RangedSkillTypeFromItem(true, PItem->getSkillType());
         const auto& RangedWeaponSkillList = battleutils::GetWeaponSkills(skill);
         for (auto&& PSkill : RangedWeaponSkillList)
         {
-            if ((battleutils::CanUseWeaponskill(PChar, PSkill)) || PSkill->getID() == range_ws)
+            if (weaponskillrosterhelpers::ShouldAddRangedWeaponSkill(battleutils::CanUseWeaponskill(PChar, PSkill), PSkill->getID(), range_ws))
             {
                 addWeaponSkill(PChar, PSkill->getID());
             }
@@ -4188,20 +4189,20 @@ void CheckWeaponSkill(CCharEntity* PChar, uint8 skill)
     auto* weapon       = dynamic_cast<CItemWeapon*>(PChar->m_Weapons[SLOT_MAIN]);
     auto* rangedWeapon = dynamic_cast<CItemWeapon*>(PChar->m_Weapons[SLOT_RANGED]);
 
-    bool noOrInvalidMainWeapon   = !weapon || weapon->getSkillType() != skill;
-    bool noOrInvalidRangedWeapon = !rangedWeapon || rangedWeapon->getSkillType() != skill;
+    const bool mainMatches   = weaponskillrosterhelpers::IsMatchingWeaponSkill(weapon != nullptr, weapon ? weapon->getSkillType() : 0, skill);
+    const bool rangedMatches = weaponskillrosterhelpers::IsMatchingWeaponSkill(rangedWeapon != nullptr, rangedWeapon ? rangedWeapon->getSkillType() : 0, skill);
 
-    if (noOrInvalidMainWeapon && noOrInvalidRangedWeapon)
+    if (weaponskillrosterhelpers::ShouldSkipCheckWeaponSkill(mainMatches, rangedMatches))
     {
         return;
     }
 
     const auto& WeaponSkillList = battleutils::GetWeaponSkills(skill);
-    uint16      curSkill        = PChar->RealSkills.skill[skill] / 10;
+    uint16      curSkill        = weaponskillrosterhelpers::RealSkillLevels(PChar->RealSkills.skill[skill]);
 
     for (auto&& PSkill : WeaponSkillList)
     {
-        if (curSkill == PSkill->getSkillLevel() && (battleutils::CanUseWeaponskill(PChar, PSkill)))
+        if (weaponskillrosterhelpers::ShouldUnlockWeaponSkillOnSkillUp(curSkill, PSkill->getSkillLevel(), battleutils::CanUseWeaponskill(PChar, PSkill)))
         {
             addWeaponSkill(PChar, PSkill->getID());
             PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, PSkill->getID(), PSkill->getID(), MsgBasic::LearnsAbility);
@@ -6566,16 +6567,19 @@ void CheckUnarmedWeapon(CCharEntity* PChar)
     CItem* PSubslot = PChar->getEquip(SLOT_SUB);
 
     // Main or sub job provides H2H skill, and sub slot is empty.
-    if ((battleutils::GetSkillRank(SKILL_HAND_TO_HAND, PChar->GetMJob()) > 0 || battleutils::GetSkillRank(SKILL_HAND_TO_HAND, PChar->GetSJob()) > 0) &&
-        (!PSubslot || !PSubslot->isType(ITEM_EQUIPMENT)))
+    const bool mainH2H = battleutils::GetSkillRank(SKILL_HAND_TO_HAND, PChar->GetMJob()) > 0;
+    const bool subH2H  = battleutils::GetSkillRank(SKILL_HAND_TO_HAND, PChar->GetSJob()) > 0;
+    const bool subOK   = weaponskillrosterhelpers::IsSubEmptyOrNonEquipment(
+        PSubslot != nullptr, PSubslot != nullptr && PSubslot->isType(ITEM_EQUIPMENT));
+    if (weaponskillrosterhelpers::ShouldUseUnarmedH2H(mainH2H, subH2H, subOK))
     {
         PChar->m_Weapons[SLOT_MAIN] = xi::items::unarmedH2H();
-        PChar->look.main            = 21; // The secret to H2H animations.  setModelId for UnarmedH2H didn't work.
+        PChar->look.main            = weaponskillrosterhelpers::UnarmedLookMain(true); // The secret to H2H animations.  setModelId for UnarmedH2H didn't work.
     }
     else
     {
         PChar->m_Weapons[SLOT_MAIN] = xi::items::unarmed();
-        PChar->look.main            = 0;
+        PChar->look.main            = weaponskillrosterhelpers::UnarmedLookMain(false);
     }
     BuildingCharWeaponSkills(PChar);
 }
