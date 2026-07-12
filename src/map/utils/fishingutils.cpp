@@ -23,6 +23,7 @@
 
 #include "map/fishing_combat_capacity.h"
 #include "map/fishing_hook_capacity.h"
+#include "map/fishing_hookchance_capacity.h"
 #include "map/fishing_outcome_capacity.h"
 
 #include "common/database.h"
@@ -152,43 +153,11 @@ void CreateFishingPools()
 
 uint8 GetMoonPhase()
 {
-    vanadiel_time::time_point vanaTime  = vanadiel_time::now();
-    uint8                     phase     = static_cast<uint8>(vanadiel_time::moon::get_phase(vanaTime));
-    uint8                     direction = vanadiel_time::moon::get_direction(vanaTime);
-
-    if (phase <= 5 || (phase <= 10 && direction == 1)) // New Moon
-    {
-        return MOONPHASE_NEW;
-    }
-    else if (phase >= 7 && phase <= 38 && direction == 2) // Waxing Crescent
-    {
-        return MOONPHASE_WAXING_CRESCENT;
-    }
-    else if (phase >= 40 && phase <= 55 && direction == 2) // First Quarter
-    {
-        return MOONPHASE_FIRST_QUARTER;
-    }
-    else if (phase >= 57 && phase <= 88 && direction == 2) // Waxing Gibbous
-    {
-        return MOONPHASE_WAXING_GIBBOUS;
-    }
-    else if (phase >= 95 || (phase >= 90 && direction == 2)) // Full Moon
-    {
-        return MOONPHASE_FULL;
-    }
-    else if (phase >= 62 && phase <= 93 && direction == 1) // Waning Gibbous
-    {
-        return MOONPHASE_WANING_GIBBOUS;
-    }
-    else if (phase >= 45 && phase <= 60 && direction == 1) // Last Quarter
-    {
-        return MOONPHASE_LAST_QUARTER;
-    }
-    else if (phase >= 12 && phase < 43 && direction == 1) // Waning Crescent
-    {
-        return MOONPHASE_WANING_CRESCENT;
-    }
-    return 0;
+    // Pure moon phase classifier with time injects (fishing_hookchance_capacity.h; slice 1619).
+    const vanadiel_time::time_point vanaTime  = vanadiel_time::now();
+    const auto                      phase     = static_cast<uint8>(vanadiel_time::moon::get_phase(vanaTime));
+    const auto                      direction = vanadiel_time::moon::get_direction(vanaTime);
+    return fishinghookchancehelpers::GetMoonPhase(phase, direction);
 }
 
 uint8 GetHookTime(CCharEntity* PChar)
@@ -203,121 +172,30 @@ uint8 GetHookTime(CCharEntity* PChar)
 
 float GetMonthlyTidalInfluence(fish_t* fish) // 0.25 to 1.25
 {
-    float modifier = 0.5f;
-    uint8 month    = static_cast<uint8>(vanadiel_time::get_month() - 1);
-
-    switch (fish->monthPattern)
-    {
-        case 1:
-            modifier = MONTHPATTERN_1(month);
-            break;
-        case 2:
-            modifier = MONTHPATTERN_2(month);
-            break;
-        case 3:
-            modifier = MONTHPATTERN_3(month);
-            break;
-        case 4:
-            modifier = MONTHPATTERN_4(month);
-            break;
-        case 5:
-            modifier = MONTHPATTERN_5(month);
-            break;
-        case 6:
-            modifier = MONTHPATTERN_6(month);
-            break;
-        case 7:
-            modifier = MONTHPATTERN_7(month);
-            break;
-        case 8:
-            modifier = MONTHPATTERN_8(month);
-            break;
-        case 9:
-            modifier = MONTHPATTERN_9(month);
-            break;
-        case 10:
-            modifier = MONTHPATTERN_10(month);
-            break;
-    }
-
-    return modifier + 0.25f;
+    // Pure monthly tidal with month inject (fishing_hookchance_capacity.h; slice 1619).
+    return fishinghookchancehelpers::GetMonthlyTidalInfluence(
+        fish->monthPattern,
+        static_cast<uint8>(vanadiel_time::get_month() - 1));
 }
 
 float GetHourlyModifier(fish_t* fish)
 { // 0.25 to 1.25
-    float modifier = 0.5f;
-    uint8 hour     = static_cast<uint8>(vanadiel_time::get_hour());
-
-    switch (fish->hourPattern)
-    {
-        case 1:
-            modifier = HOURPATTERN_1(hour);
-            break;
-        case 2:
-            if (hour != 5 && hour != 17)
-            {
-                modifier = 1.0f;
-            }
-            break;
-        case 3:
-            if (hour == 5 || hour == 17)
-            {
-                modifier = 1.0f;
-            }
-            break;
-        case 4:
-            if (hour > 19 || hour < 4)
-            {
-                modifier = 1.0f;
-            }
-            break;
-        case 5:
-            modifier = HOURPATTERN_2(hour);
-            break;
-        case 6:
-            modifier = HOURPATTERN_3(hour);
-            break;
-        case 7:
-            modifier = HOURPATTERN_4(hour);
-            break;
-    }
-
-    return modifier + 0.25f;
+    // Pure hourly modifier with hour inject (fishing_hookchance_capacity.h; slice 1619).
+    return fishinghookchancehelpers::GetHourlyModifier(
+        fish->hourPattern,
+        static_cast<uint8>(vanadiel_time::get_hour()));
 }
 
 float GetMoonModifier(fish_t* fish) // 0.25 to 1.25
 {
-    float modifier  = 1.0f;
-    uint8 moonPhase = GetMoonPhase();
-
-    switch (fish->moonPattern)
-    {
-        case 1:
-            modifier = MOONPATTERN_1(moonPhase);
-            break;
-        case 2:
-            modifier = MOONPATTERN_2(moonPhase);
-            break;
-        case 3:
-            modifier = MOONPATTERN_3(moonPhase);
-            break;
-        case 4:
-            modifier = MOONPATTERN_4(moonPhase);
-            break;
-        case 5:
-            modifier = MOONPATTERN_4(moonPhase);
-            break;
-    }
-
-    return modifier + 0.25f;
+    // Pure moon modifier with phase inject (fishing_hookchance_capacity.h; slice 1619).
+    return fishinghookchancehelpers::GetMoonModifier(fish->moonPattern, GetMoonPhase());
 }
 
 uint8 GetLuckyMoonModifier()
 {
-    uint8 moonPhase = GetMoonPhase();
-    uint8 modifier  = 1 + (uint8)std::floor(MOONPATTERN_1(moonPhase) * 3);
-
-    return modifier;
+    // Pure lucky moon from phase (fishing_hookchance_capacity.h; slice 1619).
+    return fishinghookchancehelpers::GetLuckyMoonModifierFromPhase(GetMoonPhase());
 }
 
 auto GetWeatherModifier(const CCharEntity* PChar) -> float
@@ -397,67 +275,21 @@ uint8 CalculateLuckyTiming(CCharEntity* PChar, uint8 fishingSkill, uint8 catchSk
 
 uint16 CalculateHookChance(uint8 fishingSkill, fish_t* fish, bait_t* bait, rod_t* rod)
 {
-    uint16 hookChance    = 0;
-    float  monthModifier = GetMonthlyTidalInfluence(fish);
-    float  hourModifier  = GetHourlyModifier(fish) * 2;
-    float  moonModifier  = GetMoonModifier(fish) * 3;
-    float  modifier      = std::max<float>(0, (moonModifier + hourModifier + monthModifier) / 3);
-    hookChance           = (uint16)std::floor(25 * modifier);
-
-    // Bait power
-    uint8 baitPower = GetBaitPower(bait, fish);
-    switch (baitPower)
-    {
-        case 1:
-            hookChance += (bait->baitType == FISHINGBAITTYPE_LURE) ? 30 : 35;
-            break;
-        case 2:
-            hookChance += (bait->baitType == FISHINGBAITTYPE_LURE) ? 60 : 65;
-            break;
-        case 3:
-            hookChance += (bait->baitType == FISHINGBAITTYPE_LURE) ? 75 : 80;
-            break;
-    }
-
-    // Level penalty
-    if (fish->maxSkill > fishingSkill)
-    {
-        hookChance -= std::clamp<uint16>((uint16)std::floor((fish->maxSkill - fishingSkill) * 0.25), 0, hookChance);
-    }
-
-    // Reverse level penalty
-    if (fishingSkill - 10 > fish->maxSkill)
-    {
-        hookChance -= std::clamp<uint16>((uint16)std::floor((fishingSkill - 10 - fish->maxSkill) * 0.15), 0, hookChance);
-    }
-
-    // Rod penalty
-    if (!rod->legendary)
-    {
-        if (fish->sizeType < rod->sizeType)
-        {
-            hookChance -= std::clamp<uint16>(3, 0, hookChance);
-        }
-        else if (rod->sizeType < fish->sizeType)
-        {
-            hookChance -= std::clamp<uint16>(5, 0, hookChance);
-        }
-    }
-
-    // Bait bonus
-    if (bait->baitFlags & BAITFLAG_SHELLFISH_AFFINITY && fish->fishFlags & FISHFLAG_SHELLFISH)
-    {
-        hookChance += 50;
-    }
-
-    // Fish rarity
-    if (fish->rarity < 1000)
-    {
-        float multiplier = fish->rarity / 1000.0f;
-        hookChance       = (uint16)std::floor(hookChance * multiplier);
-    }
-
-    return std::clamp<uint16>(hookChance, 20, 120);
+    // Pure hook chance with tidal + bait-power injects (fishing_hookchance_capacity.h; slice 1619).
+    return fishinghookchancehelpers::CalculateHookChance(
+        fishingSkill,
+        fish->maxSkill,
+        fish->sizeType,
+        fish->rarity,
+        (fish->fishFlags & FISHFLAG_SHELLFISH) != 0,
+        GetBaitPower(bait, fish),
+        bait->baitType == FISHINGBAITTYPE_LURE,
+        (bait->baitFlags & BAITFLAG_SHELLFISH_AFFINITY) != 0,
+        rod->legendary,
+        rod->sizeType,
+        GetMonthlyTidalInfluence(fish),
+        GetHourlyModifier(fish),
+        GetMoonModifier(fish));
 }
 
 uint8 CalculateDelay(CCharEntity* PChar, uint8 baseDelay, uint8 sizeType, rod_t* rod, uint8 count)
