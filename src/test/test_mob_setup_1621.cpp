@@ -166,6 +166,27 @@ auto Check() -> bool
         return false;
     }
 
+    // Slice 1623: ranged setup + parry/guard gates
+    {
+        const auto p = PlanSetupRangedAttack();
+        if (p.rangedBaseDelay != 300 || p.mods.size() != 2 || p.mods[1].value != 14)
+        {
+            return false;
+        }
+    }
+    if (!ShouldAssignParrySkill(3) || ShouldAssignParrySkill(0))
+    {
+        return false;
+    }
+    if (!ShouldAssignGuardSkill(2 /*MNK*/, 0) || ShouldAssignGuardSkill(2, 1) || ShouldAssignGuardSkill(1 /*WAR*/, 0))
+    {
+        return false;
+    }
+    if (GuardSkillRank != 3)
+    {
+        return false;
+    }
+
     return true;
 }
 } // namespace

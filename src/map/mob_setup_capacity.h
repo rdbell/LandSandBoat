@@ -444,4 +444,33 @@ inline auto NotoriousNoDespawn() -> MobModEntry
     return MobModEntry{ MobModNoDespawn, 1, MobModApplyKind::Force };
 }
 
+constexpr std::int16_t MobModRangedAttackRange = 93;
+
+struct SetupRangedAttackPlan
+{
+    std::vector<MobModEntry> mods;
+    std::uint16_t            rangedBaseDelay = 300;
+};
+
+inline auto PlanSetupRangedAttack() -> SetupRangedAttackPlan
+{
+    SetupRangedAttackPlan plan;
+    PushDefault(plan.mods, MobModSpecialSkill, 0);
+    PushDefault(plan.mods, MobModRangedAttackRange, 14);
+    plan.rangedBaseDelay = 300;
+    return plan;
+}
+
+inline auto ShouldAssignParrySkill(const std::int16_t canParryMod) -> bool
+{
+    return canParryMod > 0;
+}
+
+inline auto ShouldAssignGuardSkill(const std::uint8_t mJob, const std::int16_t cannotGuardMod) -> bool
+{
+    return (mJob == 2 /*JOB_MNK*/ || mJob == JobPUP) && cannotGuardMod == 0;
+}
+
+constexpr std::uint8_t GuardSkillRank = 3;
+
 } // namespace mobsetuphelpers

@@ -403,20 +403,16 @@ void CalculateMobStats(CMobEntity* PMob, bool recover)
     PMob->addModifier(Mod::RATT, GetBaseSkill(PMob, PMob->attRank));                         // Base Ranged Attack for all mobs is Rank A+ but pull from DB for specific cases
     PMob->addModifier(Mod::RACC, GetBaseSkill(PMob, PMob->accRank));                         // Base Ranged Accuracy for all mobs is Rank A+ but pull from DB for specific cases
 
-    // Known Base Parry for all mobs is Rank C
-    // MOBMOD_CAN_PARRY uses the mod value as the rank, unknown if mobs in current retail or somewhere else have a different parry rank
-    // Known mobs to have parry rating:
-    // Dynamis beastmen mobs
-    // Fantoccini (not yet coded)
-    if (PMob->getMobMod(MOBMOD_CAN_PARRY) > 0)
+    // Parry/guard skill assignment (pure gates; slice 1623).
+    // MOBMOD_CAN_PARRY uses the mod value as the rank (Dynamis beastmen, etc.).
+    if (mobsetuphelpers::ShouldAssignParrySkill(PMob->getMobMod(MOBMOD_CAN_PARRY)))
     {
-        PMob->WorkingSkills.skill[SKILL_PARRY] = GetBaseSkill(PMob, PMob->getMobMod(MOBMOD_CAN_PARRY));
+        PMob->WorkingSkills.skill[SKILL_PARRY] = GetBaseSkill(PMob, static_cast<uint8>(PMob->getMobMod(MOBMOD_CAN_PARRY)));
     }
-
-    // Assume base guard for MNK and PUP mobs is the same as parry (Rank C)
-    if ((PMob->GetMJob() == JOB_MNK || PMob->GetMJob() == JOB_PUP) && PMob->getMobMod(MOBMOD_CANNOT_GUARD) == 0)
+    // Assume base guard for MNK and PUP mobs is the same as parry (Rank C).
+    if (mobsetuphelpers::ShouldAssignGuardSkill(static_cast<uint8>(PMob->GetMJob()), PMob->getMobMod(MOBMOD_CANNOT_GUARD)))
     {
-        PMob->WorkingSkills.skill[SKILL_GUARD] = GetBaseSkill(PMob, 3);
+        PMob->WorkingSkills.skill[SKILL_GUARD] = GetBaseSkill(PMob, mobsetuphelpers::GuardSkillRank);
     }
 
     // natural magic evasion
@@ -505,11 +501,14 @@ void CalculateMobStats(CMobEntity* PMob, bool recover)
 
 void SetupRangedAttack(CMobEntity* PMob)
 {
-    PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 0); // Need to remove the base ranged attack
-    PMob->defaultMobMod(MOBMOD_RANGED_ATTACK_RANGE, 14);
+    // Pure ranged defaults (mob_setup_capacity.h; slice 1623).
+    const auto plan = mobsetuphelpers::PlanSetupRangedAttack();
+    for (const auto& entry : plan.mods)
+    {
+        PMob->defaultMobMod(static_cast<MOBMODIFIER>(entry.mod), entry.value);
+    }
     PMob->PAI->GetController()->SetRangedAttackEnabled(true);
-
-    static_cast<CItemWeapon*>(PMob->m_Weapons[SLOT_RANGED])->setBaseDelay(300);
+    static_cast<CItemWeapon*>(PMob->m_Weapons[SLOT_RANGED])->setBaseDelay(plan.rangedBaseDelay);
 }
 
 void SetupJob(CMobEntity* PMob)
