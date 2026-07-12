@@ -806,6 +806,8 @@ set(SOURCES
     test_entity_spawn_1521.cpp
     test_zone_out_1522.h
     test_zone_out_1522.cpp
+    test_paralyze_shadow_1523.h
+    test_paralyze_shadow_1523.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

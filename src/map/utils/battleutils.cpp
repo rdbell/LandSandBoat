@@ -27,6 +27,7 @@
 #include "common/timer.h"
 #include "common/utils.h"
 #include "ranged_ammo_capacity.h"
+#include "paralyze_shadow_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -2495,26 +2496,26 @@ auto TakeSwipeLungeDamage(CBattleEntity* PDefender, CBattleEntity* PAttacker, in
 uint8 GetHitRateEx(CBattleEntity* PAttacker, CBattleEntity* PDefender, uint8 attackNumber,
                    int16 offsetAccuracy) // subWeaponAttack is for calculating acc of dual wielded sub weapon
 {
-    int32 hitrate = 75;
-
     bool hasSneakAttack      = PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SneakAttack);
     bool hasTrickAttack      = PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TrickAttack);
     bool isBehind            = behind(PAttacker->loc.p, PDefender->loc.p, 64);
     bool hasAssassin         = PAttacker->hasTrait(TRAIT_ASSASSIN);
     bool hasValidSneakAttack = hasSneakAttack && isBehind;
     bool hasValidTrickAttack = hasTrickAttack && hasAssassin;
-
-    if (hasValidSneakAttack || (hasValidTrickAttack && getAvailableTrickAttackChar(PAttacker, PDefender)))
+    // Match original || short-circuit: only resolve TA char when SA is not already valid.
+    bool hasValidTAChar = false;
+    if (!hasValidSneakAttack && hasValidTrickAttack)
     {
-        hitrate = 100; // Attack with SA active or TA/Assassin cannot miss
+        hasValidTAChar = getAvailableTrickAttackChar(PAttacker, PDefender) != nullptr;
     }
-    else
-    {
-        double luaHitRate = luautils::callGlobal<double>("xi.combat.physicalHitRate.getPhysicalHitRate", PAttacker, PDefender, offsetAccuracy, attackNumber, false);
 
-        hitrate = std::floor<uint8>(luaHitRate * 100);
+    double luaHitRate = 0.0;
+    if (!hasValidSneakAttack && !hasValidTAChar)
+    {
+        luaHitRate = luautils::callGlobal<double>("xi.combat.physicalHitRate.getPhysicalHitRate", PAttacker, PDefender, offsetAccuracy, attackNumber, false);
     }
-    return static_cast<uint8>(hitrate);
+
+    return paralyzeshadowhelpers::GetHitRateEx(hasValidSneakAttack, hasValidTAChar, luaHitRate);
 }
 
 uint8 GetHitRate(CBattleEntity* PAttacker, CBattleEntity* PDefender)
@@ -3064,7 +3065,7 @@ uint8 CheckMultiHits(CBattleEntity* PEntity, CItemWeapon* PWeapon)
 
 bool IsParalyzed(CBattleEntity* PAttacker)
 {
-    return (xirand::GetRandomNumber(100) < PAttacker->getMod(Mod::PARALYZE));
+    return paralyzeshadowhelpers::IsParalyzed(PAttacker->getMod(Mod::PARALYZE), xirand::GetRandomNumber(100));
 }
 
 /************************************************************************
@@ -3076,69 +3077,50 @@ bool IsParalyzed(CBattleEntity* PAttacker)
 bool IsAbsorbByShadow(CBattleEntity* PDefender, CBattleEntity* PAttacker)
 {
     // utsus always overwrites blink, so if utsus>0 then we know theres no blink.
-    uint16 Shadow    = PDefender->getMod(Mod::UTSUSEMI);
-    Mod    modShadow = Mod::UTSUSEMI;
-    if (Shadow == 0)
+    const uint16 utsusemi          = PDefender->getMod(Mod::UTSUSEMI);
+    const uint16 blink             = PDefender->getMod(Mod::BLINK);
+    const int    blinkFailRoll     = (utsusemi == 0) ? xirand::GetRandomNumber(100) : 0;
+    const bool   defenderIsPC      = PDefender->objtype == TYPE_PC;
+    const bool   hasCopyImage      = defenderIsPC && PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::CopyImage) != nullptr;
+    const bool   attackerIsMob     = dynamic_cast<CMobEntity*>(PAttacker) != nullptr;
+
+    const auto decision = paralyzeshadowhelpers::IsAbsorbByShadow(
+        utsusemi, blink, blinkFailRoll, defenderIsPC, hasCopyImage, attackerIsMob);
+
+    if (!decision.absorbed)
     {
-        Shadow    = PDefender->getMod(Mod::BLINK);
-        modShadow = Mod::BLINK;
-        // random chance, assume 80% proc
-        if (xirand::GetRandomNumber(100) < 20)
-        {
-            return false;
-        }
+        return false;
     }
 
-    if (Shadow > 0)
+    const Mod modShadow = (decision.usedMod == paralyzeshadowhelpers::ShadowModKind::Blink) ? Mod::BLINK : Mod::UTSUSEMI;
+    PDefender->setModifier(modShadow, decision.remaining);
+
+    if (decision.delCopyImage)
     {
-        PDefender->setModifier(modShadow, --Shadow);
-
-        if (Shadow == 0)
+        PDefender->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::CopyImage);
+    }
+    if (decision.delBlink)
+    {
+        PDefender->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Blink);
+    }
+    if (decision.setIcon)
+    {
+        if (CStatusEffect* PStatusEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::CopyImage))
         {
-            switch (modShadow)
+            if (decision.applyCEEnmity)
             {
-                case Mod::UTSUSEMI:
-                    PDefender->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::CopyImage);
-                    break;
-                case Mod::BLINK:
-                    PDefender->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Blink);
-                    break;
-                default:
-                    break;
-            }
-        }
-        else if (Shadow < 4 && Mod::UTSUSEMI == modShadow)
-        {
-            if (PDefender->objtype == TYPE_PC)
-            {
-                CStatusEffect* PStatusEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::CopyImage);
-
-                if (PStatusEffect != nullptr)
+                // player loses 25 CE if attack absorbed by utsusemi shadow
+                if (auto* PMob = dynamic_cast<CMobEntity*>(PAttacker))
                 {
-                    uint16 icon = static_cast<uint16>(xi::StatusEffect::CopyImage3);
-                    switch (Shadow)
-                    {
-                        case 1:
-                            icon = static_cast<uint16>(xi::StatusEffect::CopyImage);
-                            break;
-                        case 2:
-                            icon = static_cast<uint16>(xi::StatusEffect::CopyImage2);
-                            break;
-                    }
-                    // player loses 25 CE if attack absorbed by utsusemi shadow
-                    if (auto* PMob = dynamic_cast<CMobEntity*>(PAttacker))
-                    {
-                        PMob->PEnmityContainer->UpdateEnmity(PDefender, -25, 0);
-                    }
-                    PStatusEffect->SetIcon(icon);
-                    PDefender->StatusEffectContainer->UpdateStatusIcons();
+                    PMob->PEnmityContainer->UpdateEnmity(PDefender, paralyzeshadowhelpers::UtsusemiAbsorbCEDelta, 0);
                 }
             }
+            PStatusEffect->SetIcon(decision.icon);
+            PDefender->StatusEffectContainer->UpdateStatusIcons();
         }
-        return true;
     }
 
-    return false;
+    return true;
 }
 
 /************************************************************************
