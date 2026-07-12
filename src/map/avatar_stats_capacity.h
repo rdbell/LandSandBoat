@@ -119,4 +119,54 @@ constexpr auto BloodPactDmgBonus(const std::uint8_t jp) -> std::int16_t
     return static_cast<std::int16_t>(jp * 3);
 }
 
+// --- CalculateAvatarStats level resolution ---
+
+constexpr std::uint32_t PetIDCarbuncle = 8;
+constexpr std::uint32_t PetIDCaitSith = 20;
+constexpr std::uint8_t  FallbackLevel = 1;
+
+// Carbuncle / Cait Sith specific level-bonus inject (0 for other pets).
+constexpr auto PetSpecificLevelBonus(const std::uint32_t petID, const std::int16_t carbuncleBonus, const std::int16_t caitSithBonus) -> std::int16_t
+{
+    if (petID == PetIDCarbuncle)
+    {
+        return carbuncleBonus;
+    }
+    if (petID == PetIDCaitSith)
+    {
+        return caitSithBonus;
+    }
+    return 0;
+}
+
+// SMN main: masterMLvl + AVATAR_LVL_BONUS + pet-specific bonus (0..255 clamp).
+constexpr auto MainJobLevel(const std::uint8_t masterMLvl, const std::int16_t avatarLvlBonus, const std::int16_t petSpecificBonus) -> std::uint8_t
+{
+    const auto sum = static_cast<int>(masterMLvl) + static_cast<int>(avatarLvlBonus) + static_cast<int>(petSpecificBonus);
+    if (sum < 0)
+    {
+        return 0;
+    }
+    if (sum > 255)
+    {
+        return 255;
+    }
+    return static_cast<std::uint8_t>(sum);
+}
+
+// Resolve avatar main level from master SMN main/sub and bonuses.
+constexpr auto ResolveLevel(const bool smnMain, const bool smnSub, const std::uint8_t masterMLvl, const std::uint8_t masterSLvl,
+                            const std::int16_t avatarLvlBonus, const std::int16_t petSpecificBonus) -> std::uint8_t
+{
+    if (smnMain)
+    {
+        return MainJobLevel(masterMLvl, avatarLvlBonus, petSpecificBonus);
+    }
+    if (smnSub)
+    {
+        return masterSLvl;
+    }
+    return FallbackLevel;
+}
+
 } // namespace avatarstatshelpers

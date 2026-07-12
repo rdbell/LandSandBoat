@@ -966,6 +966,8 @@ set(SOURCES
     test_jug_level_1606.cpp
     test_finalize_pet_stats_1607.h
     test_finalize_pet_stats_1607.cpp
+    test_avatar_level_1608.h
+    test_avatar_level_1608.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

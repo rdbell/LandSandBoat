@@ -639,35 +639,27 @@ void CalculateAvatarStats(CBattleEntity* PMaster, CPetEntity* PPet)
 
     auto* PPetData = *maybePetData;
 
-    uint8 mLvl = PMaster->GetMLevel();
+    // Pure level resolution (avatar_stats_capacity.h; slice 1608).
+    const bool smnMain = PMaster->GetMJob() == JOB_SMN;
+    const bool smnSub  = PMaster->GetSJob() == JOB_SMN;
+    const auto petBonus = avatarstatshelpers::PetSpecificLevelBonus(
+        petID,
+        PMaster->getMod(Mod::CARBUNCLE_LVL_BONUS),
+        PMaster->getMod(Mod::CAIT_SITH_LVL_BONUS));
+    const uint8 mLvl = avatarstatshelpers::ResolveLevel(
+        smnMain,
+        smnSub,
+        PMaster->GetMLevel(),
+        PMaster->GetSLevel(),
+        PMaster->getMod(Mod::AVATAR_LVL_BONUS),
+        petBonus);
 
-    if (PMaster->GetMJob() == JOB_SMN)
-    {
-        mLvl += PMaster->getMod(Mod::AVATAR_LVL_BONUS);
-
-        if (petID == PETID_CARBUNCLE)
-        {
-            mLvl += PMaster->getMod(Mod::CARBUNCLE_LVL_BONUS);
-        }
-        else if (petID == PETID_CAIT_SITH)
-        {
-            mLvl += PMaster->getMod(Mod::CAIT_SITH_LVL_BONUS);
-        }
-        PPet->SetMLevel(mLvl);
-    }
-    else if (PMaster->GetSJob() == JOB_SMN)
-    {
-        mLvl = PMaster->GetSLevel();
-
-        PPet->SetMLevel(mLvl);
-    }
-    else
+    if (!smnMain && !smnSub)
     { // TODO: How does this interact since all jobs can use it?
       // https://www.bg-wiki.com/ffxi/Poseidon%27s_Ring
-
         ShowDebug("%s summoned an avatar but is not SMN main or SMN sub! Please report. ", PMaster->getName());
-        PPet->SetMLevel(1);
     }
+    PPet->SetMLevel(mLvl);
 
     LoadAvatarStats(PMaster, PPet); // follows PC calcs (w/o SJ)
 
