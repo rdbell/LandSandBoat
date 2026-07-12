@@ -798,6 +798,8 @@ set(SOURCES
     test_trade_item_1517.cpp
     test_style_update_1518.h
     test_style_update_1518.cpp
+    test_inventory_move_1519.h
+    test_inventory_move_1519.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

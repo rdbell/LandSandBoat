@@ -108,6 +108,7 @@
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
+#include "inventory_move_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -1819,13 +1820,13 @@ auto AddItem(CCharEntity* PChar, uint8 LocationID, std::unique_ptr<CItem> PItem,
 
 bool HasItem(CCharEntity* PChar, uint16 ItemID)
 {
-    if (ItemID == 0)
+    if (inventorymovehelpers::ShouldRejectZeroItemID(ItemID))
     {
         return false;
     }
-    for (uint8 LocID = 0; LocID < CONTAINER_ID::MAX_CONTAINER_ID; ++LocID)
+    for (uint8 LocID = 0; inventorymovehelpers::IsContainerLoopID(LocID); ++LocID)
     {
-        if (PChar->getStorage(LocID)->SearchItem(ItemID) != ERROR_SLOTID)
+        if (inventorymovehelpers::FoundInStorage(PChar->getStorage(LocID)->SearchItem(ItemID)))
         {
             return true;
         }
@@ -1835,22 +1836,19 @@ bool HasItem(CCharEntity* PChar, uint16 ItemID)
 
 uint32 getItemCount(CCharEntity* PChar, uint16 ItemID)
 {
-    if (ItemID == 0)
+    if (inventorymovehelpers::ShouldRejectZeroItemID(ItemID))
     {
         return 0;
     }
 
     uint32 itemCount = 0;
-    for (uint8 LocID = 0; LocID < CONTAINER_ID::MAX_CONTAINER_ID; ++LocID)
+    for (uint8 LocID = 0; inventorymovehelpers::IsContainerLoopID(LocID); ++LocID)
     {
         CItemContainer* PItemContainer = PChar->getStorage(LocID);
         // clang-format off
             PItemContainer->ForEachItem([&ItemID, &itemCount](CItem* PItem)
             {
-                if (PItem->getID() == ItemID)
-                {
-                    itemCount += PItem->getQuantity();
-                }
+                itemCount = inventorymovehelpers::AccumulateItemCount(itemCount, ItemID, PItem->getID(), PItem->getQuantity());
             });
         // clang-format on
     }
@@ -1899,30 +1897,32 @@ uint8 MoveItem(CCharEntity* PChar, uint8 LocationID, uint8 SlotID, uint8 NewSlot
 {
     CItemContainer* PItemContainer = PChar->getStorage(LocationID);
 
-    if (PItemContainer->GetFreeSlotsCount() == 0)
+    if (inventorymovehelpers::ShouldRejectMoveNoFreeSlots(PItemContainer->GetFreeSlotsCount()))
     {
         ShowError("charutils::MoveItem: item can't be moved");
         return ERROR_SLOTID;
     }
 
-    if (NewSlotID != ERROR_SLOTID && PItemContainer->GetItem(NewSlotID) != nullptr)
+    if (inventorymovehelpers::ShouldRejectMoveTargetOccupied(
+            NewSlotID,
+            NewSlotID != ERROR_SLOTID && PItemContainer->GetItem(NewSlotID) != nullptr))
     {
         ShowError("charutils::MoveItem: item can't be moved");
         return ERROR_SLOTID;
     }
 
     auto PMoving = PItemContainer->RemoveItem(SlotID);
-    if (PMoving == nullptr)
+    if (inventorymovehelpers::ShouldRejectMoveRemoveFailed(PMoving != nullptr))
     {
         ShowError("charutils::MoveItem: item can't be moved");
         return ERROR_SLOTID;
     }
 
-    NewSlotID = (NewSlotID == ERROR_SLOTID)
+    NewSlotID = inventorymovehelpers::ShouldAutoAssignMoveSlot(NewSlotID)
                     ? PItemContainer->InsertItem(std::move(PMoving))
                     : PItemContainer->InsertItem(std::move(PMoving), NewSlotID);
 
-    if (NewSlotID == ERROR_SLOTID)
+    if (inventorymovehelpers::ShouldRejectMoveInsertFailed(NewSlotID))
     {
         ShowError("charutils::MoveItem: item can't be moved");
         return ERROR_SLOTID;
@@ -1936,7 +1936,7 @@ uint8 MoveItem(CCharEntity* PChar, uint8 LocationID, uint8 SlotID, uint8 NewSlot
                                        LocationID,
                                        SlotID);
 
-    if (!rset || !rset->rowsAffected())
+    if (inventorymovehelpers::ShouldRollbackMoveDBFailure(rset != nullptr, rset && rset->rowsAffected()))
     {
         PItemContainer->MoveItemTo(NewSlotID, *PItemContainer, SlotID);
         ShowError("charutils::MoveItem: item can't be moved");
@@ -2069,7 +2069,8 @@ uint32 UpdateItem(CCharEntity* PChar, uint8 LocationID, uint8 slotID, int32 quan
 // A wrapper around UpdateItem, with some packets
 void DropItem(CCharEntity* PChar, uint8 container, uint8 slotID, int32 quantity, uint16 ItemID)
 {
-    if (charutils::UpdateItem(PChar, container, slotID, -quantity) != 0)
+    if (inventorymovehelpers::ShouldEmitDropMessages(
+            charutils::UpdateItem(PChar, container, slotID, inventorymovehelpers::DropQuantityDelta(quantity))))
     {
         ShowInfo("Player %s DROPPING itemID: %s (%u) quantity: %u", PChar->getName(), xi::items::lookup(ItemID)->getName(), ItemID, quantity);
         PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(nullptr, ItemID, quantity, MsgStd::ThrowAway);
@@ -2966,12 +2967,12 @@ void AddItemToRecycleBin(CCharEntity* PChar, uint32 container, uint8 slotID, uin
     auto* OtherContainer = PChar->getStorage(container);
 
     auto* PSrcItem = OtherContainer->GetItem(slotID);
-    if (PSrcItem == nullptr)
+    if (inventorymovehelpers::ShouldRejectRecycleNullSource(PSrcItem != nullptr))
     {
         return;
     }
 
-    if (PSrcItem->isBusy())
+    if (inventorymovehelpers::ShouldRejectRecycleBusy(PSrcItem->isBusy()))
     {
         ShowWarningFmt("AddItemToRecycleBin: refusing to move busy item {} (state={}, char={})",
                        PSrcItem->getID(),
@@ -2983,10 +2984,10 @@ void AddItemToRecycleBin(CCharEntity* PChar, uint32 container, uint8 slotID, uin
     const uint16 itemID   = PSrcItem->getID();
     const auto   itemName = PSrcItem->getName();
 
-    if (RecycleBin->GetFreeSlotsCount() > 0)
+    if (inventorymovehelpers::ShouldUseSimpleRecycleMove(RecycleBin->GetFreeSlotsCount()))
     {
         const uint8 NewSlotID = OtherContainer->MoveItemTo(slotID, *RecycleBin);
-        if (NewSlotID == ERROR_SLOTID)
+        if (inventorymovehelpers::ShouldRejectRecycleMoveFailed(NewSlotID))
         {
             return;
         }
@@ -2997,7 +2998,7 @@ void AddItemToRecycleBin(CCharEntity* PChar, uint32 container, uint8 slotID, uin
                                            PChar->id,
                                            container,
                                            slotID);
-        if (!rset || !rset->rowsAffected())
+        if (inventorymovehelpers::ShouldRollbackRecycleDBFailure(rset != nullptr, rset && rset->rowsAffected()))
         {
             RecycleBin->MoveItemTo(NewSlotID, *OtherContainer, slotID);
             return;
@@ -3012,11 +3013,11 @@ void AddItemToRecycleBin(CCharEntity* PChar, uint32 container, uint8 slotID, uin
     else // Bin is full
     {
         // Evict recycle bin slot 1
-        auto PEvictedItem = RecycleBin->RemoveItem(1);
+        auto PEvictedItem = RecycleBin->RemoveItem(inventorymovehelpers::RecycleBinEvictSlot);
         db::preparedStmt("DELETE FROM char_inventory WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
                          PChar->id,
                          LOC_RECYCLEBIN,
-                         1);
+                         inventorymovehelpers::RecycleBinEvictSlot);
 
         if (PEvictedItem)
         {
@@ -3024,38 +3025,43 @@ void AddItemToRecycleBin(CCharEntity* PChar, uint32 container, uint8 slotID, uin
         }
 
         // Slide slots 2..10 down to 1..9
-        for (int i = 2; i <= 10; ++i)
+        for (int i = 2; i <= inventorymovehelpers::RecycleBinLast; ++i)
         {
-            if (RecycleBin->GetItem(i) == nullptr)
+            if (inventorymovehelpers::ShouldSkipEmptySlideSlot(RecycleBin->GetItem(i) != nullptr))
             {
                 continue;
             }
-            RecycleBin->MoveItemTo(i, *RecycleBin, i - 1);
+            RecycleBin->MoveItemTo(i, *RecycleBin, inventorymovehelpers::RecycleBinSlideTarget(i));
 
-            const auto rset = db::preparedStmt("UPDATE char_inventory SET location = ?, slot = ? WHERE charid = ? AND location = ? AND slot = ? LIMIT 1", LOC_RECYCLEBIN, i - 1, PChar->id, LOC_RECYCLEBIN, i);
-            if (!rset || !rset->rowsAffected())
+            const auto rset = db::preparedStmt("UPDATE char_inventory SET location = ?, slot = ? WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
+                                               LOC_RECYCLEBIN,
+                                               inventorymovehelpers::RecycleBinSlideTarget(i),
+                                               PChar->id,
+                                               LOC_RECYCLEBIN,
+                                               i);
+            if (inventorymovehelpers::ShouldRollbackRecycleDBFailure(rset != nullptr, rset && rset->rowsAffected()))
             {
                 ShowError("Problem moving Recycle Bin items! (%s - %s)", PChar->getName(), itemName);
             }
         }
 
         // Move new item from source container into freed slot 10
-        OtherContainer->MoveItemTo(slotID, *RecycleBin, 10);
-        auto* PInserted = RecycleBin->GetItem(10);
+        OtherContainer->MoveItemTo(slotID, *RecycleBin, inventorymovehelpers::RecycleBinFullInsertSlot);
+        auto* PInserted = RecycleBin->GetItem(inventorymovehelpers::RecycleBinFullInsertSlot);
 
         const auto rset = db::preparedStmt("UPDATE char_inventory SET location = ?, slot = ? WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
                                            LOC_RECYCLEBIN,
-                                           10,
+                                           inventorymovehelpers::RecycleBinFullInsertSlot,
                                            PChar->id,
                                            container,
                                            slotID);
-        if (!rset || !rset->rowsAffected())
+        if (inventorymovehelpers::ShouldRollbackRecycleDBFailure(rset != nullptr, rset && rset->rowsAffected()))
         {
             ShowError("Problem moving Recycle Bin items! (%s - %s)", PChar->getName(), itemName);
         }
 
         PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(nullptr, static_cast<CONTAINER_ID>(container), slotID);
-        for (int i = 1; i <= 10; ++i)
+        for (int i = inventorymovehelpers::RecycleBinFirst; i <= inventorymovehelpers::RecycleBinLast; ++i)
         {
             CItem* PUpdatedItem = RecycleBin->GetItem(i);
             PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PUpdatedItem, LOC_RECYCLEBIN, i);
@@ -3072,7 +3078,7 @@ void EmptyRecycleBin(CCharEntity* PChar)
 
     CItemContainer* recycleBin = PChar->getStorage(LOC_RECYCLEBIN);
 
-    for (uint8 slotID = 1; slotID <= recycleBin->GetSize(); ++slotID)
+    for (uint8 slotID = 1; inventorymovehelpers::IsEmptyRecycleBinSlot(slotID, recycleBin->GetSize()); ++slotID)
     {
         if (CItem* PItem = recycleBin->GetItem(slotID))
         {
@@ -3080,7 +3086,7 @@ void EmptyRecycleBin(CCharEntity* PChar)
         }
     }
 
-    db::preparedStmt("DELETE FROM char_inventory WHERE charid = ? AND location = 17", PChar->id);
+    db::preparedStmt("DELETE FROM char_inventory WHERE charid = ? AND location = ?", PChar->id, inventorymovehelpers::RecycleBinLocationForDelete);
     recycleBin->Clear();
 }
 
