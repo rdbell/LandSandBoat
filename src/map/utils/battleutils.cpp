@@ -36,6 +36,7 @@
 #include "traits_enmity_capacity.h"
 #include "wildcard_randomdeal_capacity.h"
 #include "can_afford_spell_capacity.h"
+#include "spikes_status_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -1179,38 +1180,38 @@ auto HandleSpikesEquip(CBattleEntity* PAttacker, CBattleEntity* PDefender, actio
 
 void HandleSpikesStatusEffect(const CBattleEntity* PAttacker, const CBattleEntity* PDefender, const action_result_t* Action)
 {
-    int lvlDiff = 0;
-    if (PDefender)
+    // Preserve original RNG: only roll for ice/shock arms.
+    const bool hasCurseI    = PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::CurseI);
+    const bool hasParalysis = PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Paralysis);
+    const bool hasStun      = PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Stun);
+
+    int roll = 0;
+    if (Action->spikesEffect == ActionReactKind::IceSpikes || Action->spikesEffect == ActionReactKind::ShockSpikes)
     {
-        lvlDiff = std::clamp((PDefender->GetMLevel() - PAttacker->GetMLevel()), -5, 5) * 2;
+        roll = xirand::GetRandomNumber(100);
     }
 
-    switch (Action->spikesEffect)
+    const auto action = spikesstatushelpers::ResolveSpikesStatusEffect(
+        static_cast<uint8>(Action->spikesEffect),
+        PDefender != nullptr,
+        PDefender ? PDefender->GetMLevel() : static_cast<uint8>(0),
+        PAttacker->GetMLevel(),
+        hasCurseI,
+        hasParalysis,
+        hasStun,
+        roll);
+
+    switch (action)
     {
-        case ActionReactKind::CurseSpikes:
-        {
-            if (!PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::CurseI))
-            {
-                PAttacker->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::CurseI, static_cast<uint16>(xi::StatusEffect::CurseI), 15, 0s, 3min);
-            }
+        case spikesstatushelpers::SpikesStatusAction::ApplyCurse:
+            PAttacker->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::CurseI, static_cast<uint16>(xi::StatusEffect::CurseI), 15, 0s, 3min);
             break;
-        }
-        case ActionReactKind::IceSpikes:
-        {
-            if (xirand::GetRandomNumber(100) < 20 + lvlDiff && !PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Paralysis))
-            {
-                PAttacker->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Paralysis, static_cast<uint16>(xi::StatusEffect::Paralysis), 20, 0s, 30s);
-            }
+        case spikesstatushelpers::SpikesStatusAction::ApplyParalysis:
+            PAttacker->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Paralysis, static_cast<uint16>(xi::StatusEffect::Paralysis), 20, 0s, 30s);
             break;
-        }
-        case ActionReactKind::ShockSpikes:
-        {
-            if (xirand::GetRandomNumber(100) < 30 + lvlDiff && !PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Stun))
-            {
-                PAttacker->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Stun, static_cast<uint16>(xi::StatusEffect::Stun), 1, 0s, 3s);
-            }
+        case spikesstatushelpers::SpikesStatusAction::ApplyStun:
+            PAttacker->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Stun, static_cast<uint16>(xi::StatusEffect::Stun), 1, 0s, 3s);
             break;
-        }
         default:
             break;
     }

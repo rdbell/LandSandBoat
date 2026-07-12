@@ -447,6 +447,7 @@ auto runEntityAction1528SelfTests() -> bool;
 auto runTraitsEnmity1529SelfTests() -> bool;
 auto runWildCardRandomDeal1530SelfTests() -> bool;
 auto runCanAffordSpell1531SelfTests() -> bool;
+auto runSpikesStatus1532SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1104,6 +1105,7 @@ namespace
         ok = runTraitsEnmity1529SelfTests() && ok;
         ok = runWildCardRandomDeal1530SelfTests() && ok;
         ok = runCanAffordSpell1531SelfTests() && ok;
+        ok = runSpikesStatus1532SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
