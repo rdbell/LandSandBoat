@@ -31,6 +31,7 @@
 #include "char_equip_flush_capacity.h"
 #include "char_error_delivery_capacity.h"
 #include "char_event_lock_capacity.h"
+#include "char_event_queue_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
@@ -2725,27 +2726,24 @@ bool CCharEntity::isNpcLocked()
 
 void CCharEntity::endCurrentEvent()
 {
-    currentEvent->reset();
-    eventPreparation->reset();
-    setLocked(false);
-    m_zoneInCutscene = false;
-    m_Substate       = CHAR_SUBSTATE::SUBSTATE_NONE;
-    tryStartNextEvent();
+    chareventqueuehelpers::EndCurrent(
+        [&]() { currentEvent->reset(); },
+        [&]() { eventPreparation->reset(); },
+        [&]() { setLocked(false); },
+        [&]() { m_zoneInCutscene = false; },
+        [&]() { m_Substate = CHAR_SUBSTATE::SUBSTATE_NONE; },
+        [&]() { tryStartNextEvent(); });
 }
 
 void CCharEntity::queueEvent(EventInfo* eventToQueue)
 {
-    for (auto& eventElement : eventQueue)
-    {
-        if (eventElement->eventId == eventToQueue->eventId)
-        {
-            ShowError("CCharEntity::queueEvent: Character attempted to start multiple of the same event.");
-            return;
-        }
-    }
-
-    eventQueue.emplace_back(eventToQueue);
-    tryStartNextEvent();
+    chareventqueuehelpers::QueueEvent(
+        eventQueue,
+        eventToQueue,
+        [](const EventInfo* event) { return event->eventId; },
+        [&]() { ShowError("CCharEntity::queueEvent: Character attempted to start multiple of the same event."); },
+        [&](EventInfo* event) { eventQueue.emplace_back(event); },
+        [&]() { tryStartNextEvent(); });
 }
 
 void CCharEntity::tryStartNextEvent()

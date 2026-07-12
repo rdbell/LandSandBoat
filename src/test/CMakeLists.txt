@@ -672,6 +672,8 @@ set(SOURCES
     test_char_trigger_area_1453.cpp
     test_char_event_lock_1454.h
     test_char_event_lock_1454.cpp
+    test_char_event_queue_1455.h
+    test_char_event_queue_1455.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
