@@ -60,6 +60,7 @@
 #include "char_resource_capacity.h"
 #include "char_runtime_state_capacity.h"
 #include "char_start_synth_capacity.h"
+#include "char_target_resolver_capacity.h"
 #include "char_storage_capacity.h"
 #include "char_tick_capacity.h"
 #include "char_trait_sync_capacity.h"
@@ -2077,44 +2078,36 @@ CBattleEntity* CCharEntity::IsValidTarget(uint16 targid, uint16 validTargetFlags
     TracyZoneScoped;
 
     auto* PTarget = CBattleEntity::IsValidTarget(targid, validTargetFlags, errMsg);
-    if (PTarget)
-    {
-        if (PTarget->objtype == TYPE_PC && charutils::IsAidBlocked(this, static_cast<CCharEntity*>(PTarget)))
+    const auto decision = chartargetresolverhelpers::Apply(
+        PTarget != nullptr,
+        PTarget != nullptr && PTarget->objtype == TYPE_PC,
+        PTarget != nullptr && PTarget->isAlive(),
+        validTargetFlags,
+        [&]() { return charutils::IsAidBlocked(this, static_cast<CCharEntity*>(PTarget)); },
+        [&]() { return IsMobOwner(PTarget); },
+        [&]()
         {
-            // Target is blocking assistance
+            auto* PEntity = GetEntity(targid, TYPE_MOB | TYPE_PC | TYPE_PET | TYPE_TRUST);
+            return PEntity && PEntity->objtype == TYPE_MOB && static_cast<CMobEntity*>(PEntity)->allegiance == ALLEGIANCE_TYPE::PLAYER &&
+                   (static_cast<CMobEntity*>(PEntity)->m_Behavior & BEHAVIOR_NO_ASSIST);
+        });
+    switch (decision)
+    {
+        case chartargetresolverhelpers::Decision::Accept:
+            return PTarget;
+        case chartargetresolverhelpers::Decision::Blocked:
             errMsg = std::make_unique<GP_SERV_COMMAND_SYSTEMMES>(0, 0, MsgStd::TargetIsCurrentlyBlocking);
-            // Interaction was blocked
             static_cast<CCharEntity*>(PTarget)->pushPacket<GP_SERV_COMMAND_SYSTEMMES>(0, 0, MsgStd::BlockedByBlockaid);
-        }
-        else if (IsMobOwner(PTarget))
-        {
-            if (PTarget->isAlive() || (validTargetFlags & TARGET_PLAYER_DEAD) != 0)
-            {
-                return PTarget;
-            }
-            else
-            {
-                errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::CannotOnThatTarget);
-            }
-        }
-        else
-        {
-            errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, PTarget, 0, 0, MsgBasic::AlreadyClaimed);
-        }
-    }
-    else
-    {
-        // Check if target is a BEHAVIOR_NO_ASSIST mob with player allegiance
-        auto* PEntity = GetEntity(targid, TYPE_MOB | TYPE_PC | TYPE_PET | TYPE_TRUST);
-        if (PEntity && PEntity->objtype == TYPE_MOB && static_cast<CMobEntity*>(PEntity)->allegiance == ALLEGIANCE_TYPE::PLAYER &&
-            (static_cast<CMobEntity*>(PEntity)->m_Behavior & BEHAVIOR_NO_ASSIST))
-        {
+            break;
+        case chartargetresolverhelpers::Decision::CannotOnThatTarget:
             errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::CannotOnThatTarget);
-        }
-        else
-        {
+            break;
+        case chartargetresolverhelpers::Decision::AlreadyClaimed:
+            errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, PTarget, 0, 0, MsgBasic::AlreadyClaimed);
+            break;
+        case chartargetresolverhelpers::Decision::CannotAttack:
             errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::CannotAttackTarget);
-        }
+            break;
     }
     return nullptr;
 }

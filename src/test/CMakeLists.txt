@@ -718,6 +718,8 @@ set(SOURCES
     test_char_item_finish_targets_1476.cpp
     test_char_item_finish_complete_1477.h
     test_char_item_finish_complete_1477.cpp
+    test_char_target_resolver_1478.h
+    test_char_target_resolver_1478.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
