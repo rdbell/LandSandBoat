@@ -62,4 +62,22 @@ constexpr auto DualWieldFromCmbSkill(const std::uint8_t cmbSkill) -> bool
     return cmbSkill == SkillHandToHand;
 }
 
+// SC_GRAVITATION pin (skillchain.h); elements >= this form Lv3 skillchains.
+constexpr std::uint8_t SkillchainGravitation = 9;
+
+// Min main level for unrestricted Lv3 SC TP skills.
+constexpr std::uint8_t MinLv3SkillchainLevel = 60;
+
+// LoadTrustStatsAndSkills TP skill filter:
+// canFormLv3 = any SC element >= Gravitation
+// onlyHasLv3 = canFormLv3 && existingTPSkills == 0
+// allow when !canFormLv3 || mLvl >= 60 || onlyHasLv3
+constexpr auto CanUseTPSkill(const std::uint8_t mLvl, const std::uint8_t primary, const std::uint8_t secondary, const std::uint8_t tertiary,
+                             const int existingTPSkills) -> bool
+{
+    const bool canFormLv3 = primary >= SkillchainGravitation || secondary >= SkillchainGravitation || tertiary >= SkillchainGravitation;
+    const bool onlyHasLv3 = canFormLv3 && existingTPSkills == 0;
+    return !canFormLv3 || mLvl >= MinLv3SkillchainLevel || onlyHasLv3;
+}
+
 } // namespace trustloadhelpers

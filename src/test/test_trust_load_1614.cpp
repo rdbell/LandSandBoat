@@ -47,6 +47,27 @@ auto Check() -> bool
     {
         return false;
     }
+    // Lv3 TP skill gate (slice 1615, same capacity).
+    // Gravitation = 9; non-Lv3 always allowed.
+    if (!CanUseTPSkill(1, 1, 0, 0, 0))
+    {
+        return false;
+    }
+    // Lv3 at low level with empty list: special case onlyHasLv3
+    if (!CanUseTPSkill(30, SkillchainGravitation, 0, 0, 0))
+    {
+        return false;
+    }
+    // Lv3 at low level with existing skills: blocked
+    if (CanUseTPSkill(30, SkillchainGravitation, 0, 0, 1))
+    {
+        return false;
+    }
+    // Lv3 at 60+ always allowed
+    if (!CanUseTPSkill(60, SkillchainGravitation, 0, 0, 5))
+    {
+        return false;
+    }
     return true;
 }
 } // namespace

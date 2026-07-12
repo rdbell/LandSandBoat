@@ -755,13 +755,14 @@ void LoadTrustStatsAndSkills(CTrustEntity* PTrust)
             controller->m_GambitsContainer->tp_skills.emplace_back(skill);
         }
 
-        // Only get access to skills that produce Lv3 SCs after Lv60
-        bool canFormLv3Skillchain = skill.primary >= SC_GRAVITATION || skill.secondary >= SC_GRAVITATION || skill.tertiary >= SC_GRAVITATION;
-
-        // Special case for Zeid II and others who only have Lv3+ skills
-        bool onlyHasLv3Skillchains = canFormLv3Skillchain && controller->m_GambitsContainer->tp_skills.empty();
-
-        if (!canFormLv3Skillchain || PTrust->GetMLevel() >= 60 || onlyHasLv3Skillchains)
+        // Pure Lv3 SC TP skill gate (trust_load_capacity.h; slice 1615).
+        // Note: MS path may have already emplaced above; existing count is post-MS size.
+        if (trustloadhelpers::CanUseTPSkill(
+                PTrust->GetMLevel(),
+                skill.primary,
+                skill.secondary,
+                skill.tertiary,
+                static_cast<int>(controller->m_GambitsContainer->tp_skills.size())))
         {
             controller->m_GambitsContainer->tp_skills.emplace_back(skill);
         }
