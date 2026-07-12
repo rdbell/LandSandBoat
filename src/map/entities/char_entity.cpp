@@ -32,6 +32,7 @@
 #include "char_death_plan_capacity.h"
 #include "char_raise_complete_capacity.h"
 #include "char_is_mob_owner_capacity.h"
+#include "char_ability_preflight_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1585,32 +1586,28 @@ void CCharEntity::OnAbility(CAbilityState& state, action_t& action)
     TracyZoneScoped;
 
     auto* PAbility = state.GetAbility();
-    if (this->PRecastContainer->HasRecast(RECAST_ABILITY, PAbility->getRecastId(), PAbility->getRecastTime()))
+    auto* PTarget  = static_cast<CBattleEntity*>(state.GetTarget());
+    const auto preflight = charabilitypreflighthelpers::Evaluate(
+        this->PRecastContainer->HasRecast(RECAST_ABILITY, PAbility->getRecastId(), PAbility->getRecastTime()),
+        this->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Amnesia),
+        PAbility->getValidTarget(),
+        [&]() { pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::WaitLonger); },
+        [&]() { pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::UnableToUseJobAbility2); },
+        [&]() { PAI->TargetFind->reset(); },
+        [&](const uint8 findFlags, const uint16 validTarget) {
+            PAI->TargetFind->findSingleTarget(PTarget, findFlags, validTarget);
+            return static_cast<int>(PAI->TargetFind->m_targets.size());
+        });
+    if (preflight != charabilitypreflighthelpers::Result::Proceed)
     {
-        pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::WaitLonger);
-        return;
-    }
-    if (this->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Amnesia))
-    {
-        pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::UnableToUseJobAbility2);
         return;
     }
 
+    // Retained for later AoE target-find (same TARGET_PLAYER_DEAD → FINDFLAGS_DEAD policy).
     uint8 findFlags = 0;
-
     if ((PAbility->getValidTarget() & TARGET_PLAYER_DEAD) == TARGET_PLAYER_DEAD)
     {
         findFlags |= FINDFLAGS_DEAD;
-    }
-
-    auto* PTarget = static_cast<CBattleEntity*>(state.GetTarget());
-    PAI->TargetFind->reset();
-    PAI->TargetFind->findSingleTarget(PTarget, findFlags, PAbility->getValidTarget());
-
-    // Check if target is untargetable
-    if (PAI->TargetFind->m_targets.size() == 0)
-    {
-        return;
     }
 
     std::unique_ptr<CBasicPacket> errMsg;
