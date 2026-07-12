@@ -4534,21 +4534,19 @@ void LoadExpTable()
         }
     }
 
-    // run the function to fetch the /check difficulty curve.
-    auto expDifficultyCurveFunction = lua["xi"]["expDifficultyCurve"]["loadExpDifficultyCurve"];
-
-    if (!expDifficultyCurveFunction.valid())
-    {
-        ShowCritical("xi.expDifficultyCurve.loadExpDifficultyCurve function is not valid. Terminating.");
-        std::terminate();
-    }
-
-    auto res = expDifficultyCurveFunction();
-    if (!res.valid())
-    {
-        ShowCritical("xi.expDifficultyCurve.loadExpDifficultyCurve function failed to execute. Terminating.");
-        std::terminate();
-    }
+    // Retail /check EXP difficulty curve (internal/expdifficulty; pure defaults).
+    // Highest EXP first — matches LoadExpDifficultyCurves descending sort.
+    std::vector<std::pair<uint16, EMobDifficulty>> retailCurve = {
+        { 400, EMobDifficulty::IncrediblyTough },
+        { 350, EMobDifficulty::VeryTough },
+        { 220, EMobDifficulty::Tough },
+        { 200, EMobDifficulty::EvenMatch },
+        { 160, EMobDifficulty::DecentChallenge },
+        { 60, EMobDifficulty::EasyPrey },
+    };
+    // pair: (IEP min mob level, IEP min base EXP) — matches LoadExpDifficultyCurves args.
+    std::pair<uint16, uint8> iep = { 56, 1 };
+    SetExpDifficultyCurve(retailCurve, iep);
 }
 
 void SetExpDifficultyCurve(std::vector<std::pair<uint16, EMobDifficulty>>& curve, std::pair<uint16, uint8>& incrediblyEasyPreyData)
