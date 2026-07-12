@@ -39,6 +39,7 @@
 #include "char_highest_job_capacity.h"
 #include "char_moghancement_state_capacity.h"
 #include "char_moghancement_furniture_capacity.h"
+#include "char_moghancement_update_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
@@ -2361,49 +2362,16 @@ void CCharEntity::UpdateMoghancement()
 
     const auto newMoghancementID = charmoghancementfurniturehelpers::Select(furniture);
 
-    // Always show which moghancement the player has if they have one at all
-    if (newMoghancementID != 0)
-    {
-        pushPacket<GP_SERV_COMMAND_TALKNUMWORK>(this, luautils::GetTextIDVariable(getZone(), "KEYITEM_OBTAINED"), newMoghancementID, 0, 0, 0, false);
-    }
-
-    if (newMoghancementID != m_moghancementID)
-    {
-        // Remove the previous moghancement
-        if (m_moghancementID != 0)
-        {
-            charutils::delKeyItem(this, static_cast<KeyItem>(m_moghancementID));
-        }
-
-        // Add the new moghancement
-        if (newMoghancementID != 0)
-        {
-            charutils::addKeyItem(this, static_cast<KeyItem>(newMoghancementID));
-        }
-
-        // Send only one key item packet if they are in the same key item table
-        uint8 newTable     = newMoghancementID >> 9;
-        uint8 currentTable = m_moghancementID >> 9;
-        if (newTable == currentTable)
-        {
-            pushPacket<GP_SERV_COMMAND_SCENARIOITEM>(this, newTable);
-        }
-        else
-        {
-            if (newTable != 0)
-            {
-                pushPacket<GP_SERV_COMMAND_SCENARIOITEM>(this, newTable);
-            }
-            if (currentTable != 0)
-            {
-                pushPacket<GP_SERV_COMMAND_SCENARIOITEM>(this, currentTable);
-            }
-        }
-        charutils::SaveKeyItems(this);
-
-        SetMoghancement(newMoghancementID);
-        charutils::SaveCharMoghancement(this);
-    }
+    charmoghancementupdatehelpers::Update(
+        newMoghancementID,
+        m_moghancementID,
+        [&](const uint16 id) { pushPacket<GP_SERV_COMMAND_TALKNUMWORK>(this, luautils::GetTextIDVariable(getZone(), "KEYITEM_OBTAINED"), id, 0, 0, 0, false); },
+        [&](const uint16 id) { charutils::delKeyItem(this, static_cast<KeyItem>(id)); },
+        [&](const uint16 id) { charutils::addKeyItem(this, static_cast<KeyItem>(id)); },
+        [&](const uint8 table) { pushPacket<GP_SERV_COMMAND_SCENARIOITEM>(this, table); },
+        [&]() { charutils::SaveKeyItems(this); },
+        [&](const uint16 id) { SetMoghancement(id); },
+        [&]() { charutils::SaveCharMoghancement(this); });
 }
 
 void CCharEntity::SetMoghancement(uint16 moghancementID)
