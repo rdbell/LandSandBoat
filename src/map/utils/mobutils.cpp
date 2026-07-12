@@ -27,6 +27,7 @@
 
 #include "map/base_to_rank_capacity.h"
 #include "map/mob_base_capacity.h"
+#include "map/mob_base_skill_capacity.h"
 #include "map/sub_job_stats_capacity.h"
 
 #include "action/action.h"
@@ -190,38 +191,23 @@ uint16 GetBaseWeaponDamage(CMobEntity* PMob, uint16 slot)
 // Get base skill rankings for ACC/ATT/EVA/MEVA
 uint16 GetBaseSkill(CMobEntity* PMob, uint8 rank)
 {
-    int8 mlvl = PMob->GetMLevel();
-
-    switch (rank)
+    // Pure rank→skill/job proxy (mob_base_skill_capacity.h; slice 1599).
+    std::uint16_t skillType = 0;
+    std::uint8_t  job       = 0;
+    if (!mobbaseskillhelpers::BaseSkillProxy(rank, skillType, job))
     {
-        case 1:
-            return battleutils::GetMaxSkill(SKILL_GREAT_AXE, JOB_WAR, mlvl); // A+ Skill (1)
-        case 2:
-            return battleutils::GetMaxSkill(SKILL_STAFF, JOB_WAR, mlvl); // B Skill (2)
-        case 3:
-            return battleutils::GetMaxSkill(SKILL_EVASION, JOB_WAR, mlvl); // C Skill (3)
-        case 4:
-            return battleutils::GetMaxSkill(SKILL_ARCHERY, JOB_WAR, mlvl); // D Skill (4)
-        case 5:
-            return battleutils::GetMaxSkill(SKILL_THROWING, JOB_MNK, mlvl); // E Skill (5)
+        ShowError("mobutils::GetBaseSkill rank (%d) is out of bounds for mob (%u) ", rank, PMob->id);
+        return 0;
     }
-
-    ShowError("mobutils::GetBaseSkill rank (%d) is out of bounds for mob (%u) ", rank, PMob->id);
-    return 0;
+    return battleutils::GetMaxSkill(static_cast<SKILLTYPE>(skillType), static_cast<JOBTYPE>(job), PMob->GetMLevel());
 }
 
 uint16 GetMagicEvasion(CMobEntity* PMob)
 {
-    uint8 mlvl = std::min<uint8>(PMob->GetMLevel(), 99);
-
-    // Assume trusts have G rank meva like players
-    if (PMob->objtype == TYPE_TRUST)
-    {
-        return battleutils::GetMaxSkill(12, mlvl);
-    }
-
-    // Mobs have rank C magic evasion
-    return battleutils::GetMaxSkill(7, mlvl);
+    // Pure trust/mob cap rank + level clamp (slice 1599).
+    const auto mlvl = mobbaseskillhelpers::CapMagicEvasionLevel(PMob->GetMLevel());
+    const auto rank = mobbaseskillhelpers::MagicEvasionCapRank(PMob->objtype == TYPE_TRUST);
+    return battleutils::GetMaxSkill(rank, mlvl);
 }
 
 /************************************************************************
@@ -998,38 +984,17 @@ void SetupPetSkills(CMobEntity* PMob)
 
 uint8 JobSkillRankToBaseEvaRank(JOBTYPE mjob, JOBTYPE sjob)
 {
-    // Pick the best rank between the two jobs
-    // Lower is better
-    uint8 mainEvasionSkillRank = battleutils::GetSkillRank(SKILL_EVASION, mjob);
-    uint8 subEvasionSkillRank  = battleutils::GetSkillRank(SKILL_EVASION, sjob);
-
-    if (sjob == JOB_NON)
+    // Pure skill-rank → base eva rank map (mob_base_skill_capacity.h; slice 1599).
+    const uint8 mainEvasionSkillRank = battleutils::GetSkillRank(SKILL_EVASION, mjob);
+    const uint8 subEvasionSkillRank  = battleutils::GetSkillRank(SKILL_EVASION, sjob);
+    const auto  best                 = mobbaseskillhelpers::BestEvasionSkillRank(mainEvasionSkillRank, subEvasionSkillRank, sjob == JOB_NON);
+    const auto  mapped               = mobbaseskillhelpers::JobSkillRankToBaseEvaRank(best);
+    if (mapped == 0)
     {
-        subEvasionSkillRank = mainEvasionSkillRank;
+        ShowError("JobSkillRankToBaseEvaRank: rank not implemented. Job SKILL_EVASION rank is likely not valid or no longer exists (A- rank in particular.)");
+        return 3; // Give them C rank as a fallback.
     }
-
-    switch (std::min(mainEvasionSkillRank, subEvasionSkillRank))
-    {
-        case 1:
-        case 2:
-            return 1; // A, A+; A- doesnt exist anymore
-        case 3:
-        case 4:
-        case 5:
-            return 2; // B+, B, B-
-        case 6:
-        case 7:
-        case 8:
-            return 3; // C+, C, C-
-        case 9:
-            return 4; // D
-        case 10:
-            return 5; // E
-        default:
-            ShowError("JobSkillRankToBaseEvaRank: rank not implemented. Job SKILL_EVASION rank is likely not valid or no longer exists (A- rank in particular.)");
-    }
-
-    return 3; // Give them C rank as a fallback.
+    return mapped;
 };
 
 void SetupBattlefieldMob(CMobEntity* PMob)
