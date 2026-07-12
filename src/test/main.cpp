@@ -378,6 +378,7 @@ auto runCharEventActivation1458SelfTests() -> bool;
 auto runCharEventPacket1459SelfTests() -> bool;
 auto runCharHighestJob1460SelfTests() -> bool;
 auto runCharMoghancementState1461SelfTests() -> bool;
+auto runCharMoghancementFurniture1462SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -966,6 +967,7 @@ namespace
         ok = runCharEventPacket1459SelfTests() && ok;
         ok = runCharHighestJob1460SelfTests() && ok;
         ok = runCharMoghancementState1461SelfTests() && ok;
+        ok = runCharMoghancementFurniture1462SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

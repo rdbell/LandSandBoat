@@ -38,6 +38,7 @@
 #include "char_event_skip_capacity.h"
 #include "char_highest_job_capacity.h"
 #include "char_moghancement_state_capacity.h"
+#include "char_moghancement_furniture_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
@@ -2336,8 +2337,7 @@ void CCharEntity::UpdateMoghancement()
 {
     TracyZoneScoped;
 
-    // Add up all of the installed furniture auras
-    std::array<uint16, 8> elements = { 0 };
+    std::vector<charmoghancementfurniturehelpers::Furniture> furniture;
     for (auto containerID : { LOC_MOGSAFE, LOC_MOGSAFE2 })
     {
         CItemContainer* PContainer = getStorage(containerID);
@@ -2347,60 +2347,19 @@ void CCharEntity::UpdateMoghancement()
             if (PItem != nullptr && PItem->isType(ITEM_FURNISHING))
             {
                 CItemFurnishing* PFurniture = static_cast<CItemFurnishing*>(PItem);
-                if (PFurniture->isInstalled() && !PFurniture->getOn2ndFloor())
-                {
-                    elements[PFurniture->getElement() - 1] += PFurniture->getAura();
-                }
+                furniture.emplace_back(charmoghancementfurniturehelpers::Furniture{
+                    .installed     = PFurniture->isInstalled(),
+                    .secondFloor   = PFurniture->getOn2ndFloor(),
+                    .element       = PFurniture->getElement(),
+                    .aura          = PFurniture->getAura(),
+                    .order         = PFurniture->getOrder(),
+                    .moghancement  = PFurniture->getMoghancement(),
+                });
             }
         }
     }
 
-    // Determine the dominant aura
-    uint8  dominantElement = 0;
-    uint16 dominantAura    = 0;
-    bool   hasTiedElements = false;
-    for (uint8 elementID = 1; elementID < 9; ++elementID)
-    {
-        uint16 aura = elements[elementID - 1];
-        if (aura > dominantAura)
-        {
-            dominantElement = elementID;
-            dominantAura    = aura;
-            hasTiedElements = false;
-        }
-        else if (aura == dominantAura)
-        {
-            hasTiedElements = true;
-        }
-    }
-
-    // Determine which moghancement to use from the dominant element
-    uint8  bestAura          = 0;
-    uint8  bestOrder         = 255;
-    uint16 newMoghancementID = 0;
-    if (!hasTiedElements && dominantAura > 0)
-    {
-        for (auto containerID : { LOC_MOGSAFE, LOC_MOGSAFE2 })
-        {
-            CItemContainer* PContainer = getStorage(containerID);
-            for (int slotID = 1; slotID <= PContainer->GetSize(); ++slotID)
-            {
-                CItem* PItem = PContainer->GetItem(slotID);
-                if (PItem != nullptr && PItem->isType(ITEM_FURNISHING))
-                {
-                    CItemFurnishing* PFurniture = static_cast<CItemFurnishing*>(PItem);
-                    // If aura is tied then use whichever furniture was placed most recently
-                    if (PFurniture->isInstalled() && !PFurniture->getOn2ndFloor() && PFurniture->getElement() == dominantElement &&
-                        (PFurniture->getAura() > bestAura || (PFurniture->getAura() == bestAura && PFurniture->getOrder() < bestOrder)))
-                    {
-                        bestAura          = PFurniture->getAura();
-                        bestOrder         = PFurniture->getOrder();
-                        newMoghancementID = PFurniture->getMoghancement();
-                    }
-                }
-            }
-        }
-    }
+    const auto newMoghancementID = charmoghancementfurniturehelpers::Select(furniture);
 
     // Always show which moghancement the player has if they have one at all
     if (newMoghancementID != 0)
