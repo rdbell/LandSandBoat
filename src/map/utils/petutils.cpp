@@ -54,6 +54,7 @@
 #include "map/jug_stats_capacity.h"
 #include "map/luopan_stats_capacity.h"
 #include "map/perpetuation_capacity.h"
+#include "map/pet_mod_tandem_capacity.h"
 #include "map/pet_weapon_damage_capacity.h"
 #include "map/wyvern_stats_capacity.h"
 #include "puppetutils.h"
@@ -1274,14 +1275,12 @@ Extends a charmed pet's charm duration between by a random number between minSec
 */
 void ExtendCharm(CBattleEntity* PPet, uint16 minSeconds, uint16 maxSeconds)
 {
-    // only increase time for charmed mobs
-    if (!(PPet->objtype == TYPE_MOB && PPet->isCharmed))
+    // Pure eligibility + range gates (pet_mod_tandem_capacity.h; slice 1624).
+    if (!petmodtandemhelpers::CanExtendCharm(PPet->objtype == TYPE_MOB, PPet->isCharmed))
     {
         return;
     }
-
-    // Sanity check range
-    if (minSeconds > maxSeconds || maxSeconds == 0)
+    if (!petmodtandemhelpers::CharmSecondsRangeValid(minSeconds, maxSeconds))
     {
         return;
     }
@@ -1508,76 +1507,54 @@ void LoadPet(CBattleEntity* PMaster, uint32 PetID, bool spawningFromZone)
 
 bool CheckPetModType(CBattleEntity* PPet, PetModType petmod)
 {
-    if (petmod == PetModType::All)
-    {
-        return true;
-    }
-
+    // Pure match with host injects (pet_mod_tandem_capacity.h; slice 1624).
     if (auto* PPetEntity = dynamic_cast<CPetEntity*>(PPet))
     {
-        if (petmod == PetModType::Avatar && PPetEntity->getPetType() == PET_TYPE::AVATAR)
+        std::uint16_t frame = 0;
+        if (PPetEntity->getPetType() == PET_TYPE::AUTOMATON)
         {
-            return true;
+            frame = static_cast<std::uint16_t>(static_cast<CAutomatonEntity*>(PPetEntity)->frame());
         }
-        if (petmod == PetModType::Wyvern && PPetEntity->getPetType() == PET_TYPE::WYVERN)
-        {
-            return true;
-        }
-        if (petmod >= PetModType::Automaton && petmod <= PetModType::Stormwaker && PPetEntity->getPetType() == PET_TYPE::AUTOMATON)
-        {
-            if (petmod == PetModType::Automaton || (uint16)petmod + 28 == (uint16) static_cast<CAutomatonEntity*>(PPetEntity)->frame())
-            {
-                return true;
-            }
-        }
-        if (petmod == PetModType::Luopan && PPetEntity->getPetType() == PET_TYPE::LUOPAN)
-        {
-            return true;
-        }
+        return petmodtandemhelpers::CheckPetModType(
+            static_cast<std::uint8_t>(petmod),
+            true,
+            static_cast<std::uint8_t>(PPetEntity->getPetType()),
+            frame);
     }
-    else
-    {
-        return true;
-    }
-    return false;
+    return petmodtandemhelpers::CheckPetModType(static_cast<std::uint8_t>(petmod), false, 0, 0);
 }
 
 bool IsTandemActive(CBattleEntity* PAttacker)
 {
-    /*  This is used for Tandem Strike (acc/m.acc+) and Tandem Blow (subtle blow II+).
-        To get the bonus, both pet and master must be engaged in combat with the same target.
-        Inspired by TiberonKalkaz's approach in ASB.
-        https://github.com/AirSkyBoat/AirSkyBoat/pull/3134/files#diff-dea0a7c8d005d1e7507dcb2370aff3a46df84ab53d87ba50beeab376c3082621
-    */
-    CBattleEntity* tandemPartner = nullptr;
-    if (PAttacker->objtype == TYPE_PC)
-    {
-        if (PAttacker->PPet == nullptr)
-        {
-            return false;
-        }
+    // Pure tandem gates with host partner injects (pet_mod_tandem_capacity.h; slice 1624).
+    const bool isPC      = PAttacker->objtype == TYPE_PC;
+    const bool hasPet    = PAttacker->PPet != nullptr;
+    const bool hasMaster = PAttacker->PMaster != nullptr;
+    const bool masterIsPC = hasMaster && PAttacker->PMaster->objtype == TYPE_PC;
 
+    CBattleEntity* tandemPartner = nullptr;
+    if (isPC)
+    {
         tandemPartner = PAttacker->PPet;
     }
-    else
+    else if (hasMaster && masterIsPC)
     {
-        if (PAttacker->PMaster == nullptr || PAttacker->PMaster->objtype != TYPE_PC)
-        {
-            return false;
-        }
-
         tandemPartner = PAttacker->PMaster;
     }
 
-    if (
-        tandemPartner->PAI->IsEngaged() &&
-        tandemPartner->GetBattleTarget() != nullptr &&
-        tandemPartner->GetBattleTargetID() == PAttacker->GetBattleTargetID())
-    {
-        return true;
-    }
+    const bool partnerEngaged   = tandemPartner != nullptr && tandemPartner->PAI->IsEngaged();
+    const bool partnerHasTarget = tandemPartner != nullptr && tandemPartner->GetBattleTarget() != nullptr;
+    const auto partnerTargetID  = tandemPartner != nullptr ? tandemPartner->GetBattleTargetID() : static_cast<uint16>(0);
 
-    return false;
+    return petmodtandemhelpers::IsTandemActiveValues(
+        isPC,
+        hasPet,
+        hasMaster,
+        masterIsPC,
+        partnerEngaged,
+        partnerHasTarget,
+        partnerTargetID,
+        PAttacker->GetBattleTargetID());
 }
 
 Pet_t* GetPetInfo(uint32 PetID)

@@ -992,6 +992,8 @@ set(SOURCES
     test_mob_stats_product_1620.cpp
     test_mob_setup_1621.h
     test_mob_setup_1621.cpp
+    test_pet_mod_tandem_1624.h
+    test_pet_mod_tandem_1624.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
