@@ -97,6 +97,7 @@
 #include "exp_loss_capacity.h"
 #include "skill_up_capacity.h"
 #include "calculate_stats_capacity.h"
+#include "distribute_gil_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -4713,33 +4714,34 @@ void DistributeGil(CCharEntity* PChar, CMobEntity* PMob)
     uint32 gil    = PMob->GetRandomGil();
     uint32 gBonus = 0;
 
-    if (gil && settings::get<float>("map.MOB_GIL_MULTIPLIER") >= 0.0f)
+    const auto mobGilMultiplier = settings::get<float>("map.MOB_GIL_MULTIPLIER");
+    if (distributegilhelpers::ShouldApplyMobGilMultiplier(gil, mobGilMultiplier))
     {
-        gil = static_cast<uint32>(gil * settings::get<float>("map.MOB_GIL_MULTIPLIER"));
+        gil = distributegilhelpers::ApplyMobGilMultiplier(gil, mobGilMultiplier);
     }
 
-    if (settings::get<uint8>("map.ALL_MOBS_GIL_BONUS"))
+    const auto allMobsGilBonus = settings::get<uint8>("map.ALL_MOBS_GIL_BONUS");
+    if (distributegilhelpers::ShouldApplyAllMobsGilBonus(allMobsGilBonus))
     {
-        gBonus = settings::get<uint8>("map.ALL_MOBS_GIL_BONUS") * PMob->GetMLevel();
-        gil += std::clamp<uint32>(gBonus, 1, settings::get<uint32>("map.MAX_GIL_BONUS"));
+        gBonus = distributegilhelpers::AllMobsGilBonusAmount(allMobsGilBonus, PMob->GetMLevel());
+        gil    = distributegilhelpers::ApplyAllMobsGilBonus(
+            gil, distributegilhelpers::ClampAllMobsGilBonus(gBonus, settings::get<uint32>("map.MAX_GIL_BONUS")));
     }
 
     // TODO: pin down moghancement money which seems to be a % bonus applied individually?
     // Gilfinder bonus is 1 + (128 + 0..GF level * 16)/256
     // https://docs.google.com/spreadsheets/d/134YjiVWoqn9UKOFrJFXZPHZChNa6heWzY0xXOGIteC8/edit
-    if (PMob->m_GilfinderLevel > 0)
+    if (distributegilhelpers::ShouldApplyGilfinder(PMob->m_GilfinderLevel))
     {
-        double multiplier = 1 + ((128 + xirand::GetRandomNumber<uint16_t>(0, PMob->m_GilfinderLevel * 16)) / 256.);
-
-        gil = gil * multiplier;
+        const auto roll       = xirand::GetRandomNumber<uint16_t>(0, distributegilhelpers::GilfinderRollMax(PMob->m_GilfinderLevel));
+        const auto multiplier = distributegilhelpers::GilfinderMultiplier(roll);
+        gil                   = distributegilhelpers::ApplyGilfinder(gil, multiplier);
     }
 
-    int16 killshotBonus = PChar->getMod(Mod::MOGHANCEMENT_GIL_BONUS_P);
-    if (killshotBonus > 0)
+    const int16 killshotBonus = PChar->getMod(Mod::MOGHANCEMENT_GIL_BONUS_P);
+    if (distributegilhelpers::ShouldApplyKillshotGilBonus(killshotBonus))
     {
-        double multiplier = (100.0 + killshotBonus) / 100.0;
-
-        gil = gil * multiplier;
+        gil = distributegilhelpers::ApplyKillshotGil(gil, distributegilhelpers::KillshotGilMultiplier(killshotBonus));
     }
 
     // Distribute gil to player/party/alliance
@@ -4751,7 +4753,9 @@ void DistributeGil(CCharEntity* PChar, CMobEntity* PMob)
         // clang-format off
             PChar->ForAlliance([PMob, &members](CBattleEntity* PPartyMember)
             {
-                if (PPartyMember->getZone() == PMob->getZone() && isWithinDistance(PPartyMember->loc.p, PMob->loc.p, 100.0f)) // TODO: verify range
+                if (distributegilhelpers::IsGilShareMemberEligible(
+                        PPartyMember->getZone() == PMob->getZone(),
+                        isWithinDistance(PPartyMember->loc.p, PMob->loc.p, distributegilhelpers::GilShareDistance))) // TODO: verify range
                 {
                     members.emplace_back((CCharEntity*)PPartyMember);
                 }
@@ -4762,7 +4766,7 @@ void DistributeGil(CCharEntity* PChar, CMobEntity* PMob)
         if (!members.empty())
         {
             // Calculate gil for each party member.
-            uint32 gilPerPerson = static_cast<uint32>(gil / members.size());
+            uint32 gilPerPerson = distributegilhelpers::GilPerPerson(gil, members.size());
 
             for (auto PMember : members)
             {
@@ -4771,7 +4775,7 @@ void DistributeGil(CCharEntity* PChar, CMobEntity* PMob)
             }
         }
     }
-    else if (isWithinDistance(PChar->loc.p, PMob->loc.p, 100.0f))
+    else if (distributegilhelpers::ShouldAwardSoloGil(false, isWithinDistance(PChar->loc.p, PMob->loc.p, distributegilhelpers::GilShareDistance)))
     {
         UpdateItem(PChar, LOC_INVENTORY, 0, static_cast<int32>(gil));
         PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, static_cast<int32>(gil), 0, MsgBasic::Obtains);

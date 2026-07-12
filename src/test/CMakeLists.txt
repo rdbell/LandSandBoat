@@ -776,6 +776,8 @@ set(SOURCES
     test_skill_up_1506.cpp
     test_calculate_stats_1507.h
     test_calculate_stats_1507.cpp
+    test_distribute_gil_1508.h
+    test_distribute_gil_1508.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
