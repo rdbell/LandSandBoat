@@ -924,6 +924,8 @@ set(SOURCES
     test_gear_sets_1583.cpp
     test_trust_battlefield_1584.h
     test_trust_battlefield_1584.cpp
+    test_treasure_hunter_drop_1585.h
+    test_treasure_hunter_drop_1585.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

@@ -46,6 +46,7 @@
 #include "battle_spawn_capacity.h"
 #include "magic_aoe_capacity.h"
 #include "knockback_capacity.h"
+#include "physical_hit_rate_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -3423,20 +3424,34 @@ void CBattleEntity::OnRangedAttack(CRangeState& state, action_t& action)
         // TODO: Check if mobs and trusts have penalties and messages
         if (ShouldApplyDistancePenaltyMessage(isChar, actionResult.messageID == MsgBasic::RangedAttackCrit))
         {
-            auto rangedPenaltyFunction = lua["xi"]["combat"]["ranged"]["attackDistancePenalty"];
-            auto distancePenaltyResult = rangedPenaltyFunction(this, PTarget);
-            int  distancePenalty       = 0;
-
-            if (!distancePenaltyResult.valid())
+            // Pure attackDistancePenalty (physical_hit_rate_capacity / rangeddist).
+            int distancePenalty = 0;
+            if (isChar)
             {
-                sol::error err = distancePenaltyResult;
-                ShowError("battleentity::OnRangedAttack: %s", err.what());
+                using namespace physicalhitratehelpers;
+                double     dist       = distance(this->loc.p, PTarget->loc.p);
+                bool         hasWeapon = false;
+                std::uint16_t weaponID  = 0;
+                std::uint8_t  skillType = 0;
+                std::uint8_t  subSkill  = 0;
+                if (auto* weapon = dynamic_cast<CItemWeapon*>(m_Weapons[SLOT_RANGED]))
+                {
+                    hasWeapon = true;
+                    weaponID  = weapon->getID();
+                    skillType = static_cast<std::uint8_t>(weapon->getSkillType());
+                    subSkill  = static_cast<std::uint8_t>(weapon->getSubSkillType());
+                }
+                const auto sweet = ResolveSweetSpot(hasWeapon, weaponID, skillType, subSkill);
+                const int  cSkillMax = battleutils::GetMaxSkill(SKILL_EVASION, JOB_WAR, GetMLevel());
+                distancePenalty      = AttackDistancePenalty(
+                    true,
+                    dist,
+                    sweet.start,
+                    sweet.end,
+                    static_cast<double>(PTarget->modelSize),
+                    static_cast<double>(modelSize),
+                    cSkillMax);
             }
-            else
-            {
-                distancePenalty = distancePenaltyResult.get_type() == sol::type::number ? distancePenaltyResult.get<int16>(0) : 0;
-            }
-
             actionResult.messageID = static_cast<MsgBasic>(RangedDistanceMsgID(ResolveRangedDistanceMessage(distancePenalty)));
         }
 

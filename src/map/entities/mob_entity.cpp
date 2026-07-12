@@ -22,6 +22,7 @@
 #include "mob_entity.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
+#include "treasure_hunter_drop_capacity.h"
 
 #include "can_attack_capacity.h"
 #include "ai/ai_container.h"
@@ -971,9 +972,7 @@ void CMobEntity::DropItems(CCharEntity* PChar)
 
     if (!getMobMod(MOBMOD_NO_DROPS) && dropList != nullptr && (!dropList->Items.empty() || !dropList->Groups.empty() || PAI->EventHandler.hasListener("ITEM_DROPS")))
     {
-        // THLvl determines the drop rate.
-        auto thDropRateFunction = lua["xi"]["combat"]["treasureHunter"]["getDropRate"];
-
+        // THLvl determines the drop rate (pure treasure_hunter_drop_capacity).
         LootContainer loot(dropList);
 
         PAI->EventHandler.triggerListener("ITEM_DROPS", this, &loot);
@@ -991,7 +990,7 @@ void CMobEntity::DropItems(CCharEntity* PChar)
 
             if (!group.hasFixedRate)
             {
-                groupDropRate = thDropRateFunction(m_THLvl, groupDropRate);
+                groupDropRate = treasurehunterhelpers::GetDropRate(static_cast<int>(m_THLvl), static_cast<int>(groupDropRate));
             }
 
             // Determine if this group should drop an item.
@@ -1021,7 +1020,7 @@ void CMobEntity::DropItems(CCharEntity* PChar)
 
             if (!item.hasFixedRate)
             {
-                itemDropRate = thDropRateFunction(m_THLvl, itemDropRate);
+                itemDropRate = treasurehunterhelpers::GetDropRate(static_cast<int>(m_THLvl), static_cast<int>(itemDropRate));
             }
 
             if (itemDropRate > 0 && (1 + xirand::GetRandomNumber(10000)) <= itemDropRate * settings::get<float>("map.DROP_RATE_MULTIPLIER"))

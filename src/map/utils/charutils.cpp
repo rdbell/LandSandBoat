@@ -98,6 +98,7 @@
 #include "skill_up_capacity.h"
 #include "calculate_stats_capacity.h"
 #include "distribute_gil_capacity.h"
+#include "treasure_hunter_drop_capacity.h"
 #include "building_skills_capacity.h"
 #include "check_equipment_capacity.h"
 #include "capacity_award_capacity.h"
@@ -4719,12 +4720,11 @@ void DistributeItem(CCharEntity* PChar, CBaseEntity* PEntity, uint16 itemid, uin
 {
     TracyZoneScoped;
 
-    auto   thDropRateFunction = lua["xi"]["combat"]["treasureHunter"]["getDropRate"];
-    uint16 thDropRate         = dropRate * 10;
+    uint16 thDropRate = dropRate * 10;
 
     if (auto* PMob = dynamic_cast<CMobEntity*>(PEntity))
     {
-        thDropRate = thDropRateFunction(PMob->m_THLvl, thDropRate);
+        thDropRate = treasurehunterhelpers::GetDropRate(static_cast<int>(PMob->m_THLvl), static_cast<int>(thDropRate));
     }
 
     if (thDropRate > 0 && (1 + xirand::GetRandomNumber(10000)) <= thDropRate * settings::get<float>("map.DROP_RATE_MULTIPLIER"))
