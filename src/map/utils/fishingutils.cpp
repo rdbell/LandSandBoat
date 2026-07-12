@@ -22,6 +22,7 @@
 #include "fishingutils.h"
 
 #include "map/fishing_combat_capacity.h"
+#include "map/fishing_hook_capacity.h"
 #include "map/fishing_outcome_capacity.h"
 
 #include "common/database.h"
@@ -192,27 +193,12 @@ uint8 GetMoonPhase()
 
 uint8 GetHookTime(CCharEntity* PChar)
 {
-    uint8          waitTime  = 13;
-    uint8          moonPhase = GetMoonPhase();
-    uint8          hour      = static_cast<uint8>(vanadiel_time::get_hour());
-    fishing_gear_t gear      = GetFishingGear(PChar);
-
-    if (moonPhase == MOONPHASE_NEW || moonPhase == MOONPHASE_FULL)
-    {
-        waitTime -= 4;
-    }
-
-    if (hour == 5 || hour == 17)
-    {
-        waitTime -= 1;
-    }
-
-    if (gear.waist == FISHERS_ROPE)
-    {
-        waitTime -= 1;
-    }
-
-    return std::max<uint16>(7, waitTime);
+    // Pure wait with moon/hour/rope injects (fishing_hook_capacity.h; slice 1618).
+    const fishing_gear_t gear = GetFishingGear(PChar);
+    return fishinghookhelpers::GetHookTimeWait(
+        GetMoonPhase(),
+        static_cast<uint8>(vanadiel_time::get_hour()),
+        gear.waist == FISHERS_ROPE);
 }
 
 float GetMonthlyTidalInfluence(fish_t* fish) // 0.25 to 1.25
@@ -336,19 +322,9 @@ uint8 GetLuckyMoonModifier()
 
 auto GetWeatherModifier(const CCharEntity* PChar) -> float
 {
-    const auto weather    = zoneutils::GetZone(PChar->getZone())->weather().current();
-    float      weatherMod = 1.0f;
-
-    if (weather == Weather::Rain)
-    {
-        weatherMod = 1.1f;
-    }
-    else if (weather == Weather::Squall)
-    {
-        weatherMod = 1.2f;
-    }
-
-    return weatherMod;
+    // Pure weather modifier (fishing_hook_capacity.h; slice 1618).
+    const auto weather = zoneutils::GetZone(PChar->getZone())->weather().current();
+    return fishinghookhelpers::GetWeatherModifier(static_cast<std::uint16_t>(weather));
 }
 
 uint16 CalculateStamina(int skill, uint8 count)
@@ -382,47 +358,19 @@ uint8 CalculateRegen(uint8 fishingSkill, rod_t* rod, FISHINGCATCHTYPE catchType,
 
 uint8 CalculateHookTime(CCharEntity* PChar, Legendary legendary, uint32 legendary_flags, uint8 sizeType, rod_t* rod, bait_t* bait)
 {
-    uint8 hookTime = rod->fishTime;
-
-    if ((sizeType == FISHINGSIZETYPE_LARGE && rod->rodFlags & RODFLAG_LARGEPENALTY) || (sizeType == FISHINGSIZETYPE_SMALL && rod->rodFlags & RODFLAG_SMALLPENALTY))
-    {
-        hookTime -= 10;
-    }
-
-    if (legendary && rod->rodFlags & RODFLAG_LEGENDARYBONUS)
-    {
-        hookTime += 10;
-    }
-
-    if (charutils::hasKeyItem(PChar, KeyItem::MOOCHING) && (bait->baitID == DRILL_CALAMARY || bait->baitID == DWARF_PUGIL))
-    {
-        hookTime += 30;
-    }
-
-    if (PChar->getMod(Mod::ALBATROSS_RING_EFFECT) > 0)
-    {
-        hookTime += 30;
-    }
-
-    if (legendary)
-    {
-        if ((legendary_flags & FISHINGLEGENDARY_NORODTIMEBONUS) || (legendary_flags & FISHINGLEGENDARY_EBISU_TIME_BONUS_ONLY && rod->rodID == EBISU))
-        {
-            hookTime += rod->lgdBonusTime;
-        }
-
-        if (legendary_flags & FISHINGLEGENDARY_HALFTIME)
-        {
-            hookTime -= (uint8)std::floor(rod->fishTime / 2);
-        }
-
-        if (legendary_flags & FISHINGLEGENDARY_ADDTIMEBONUS)
-        {
-            hookTime += (rod->multiplier & 10);
-        }
-    }
-
-    return hookTime;
+    // Pure hook time with host injects (fishing_hook_capacity.h; slice 1618).
+    return fishinghookhelpers::CalculateHookTime(
+        rod->fishTime,
+        rod->lgdBonusTime,
+        rod->multiplier,
+        rod->rodFlags,
+        rod->rodID,
+        sizeType,
+        static_cast<bool>(legendary),
+        legendary_flags,
+        charutils::hasKeyItem(PChar, KeyItem::MOOCHING),
+        fishinghookhelpers::IsLiveBait(bait->baitID),
+        PChar->getMod(Mod::ALBATROSS_RING_EFFECT) > 0);
 }
 
 uint8 CalculateLuckyTiming(CCharEntity* PChar, uint8 fishingSkill, uint8 catchSkill, uint8 sizeType, rod_t* rod, bait_t* bait, Legendary legendary)
@@ -573,8 +521,7 @@ lsbret_t CalculateBreakChance(uint8 catchType, uint8 fishingSkill, uint8 maxSkil
 
 uint8 CalculateFishSense(CCharEntity* PChar, fishresponse_t* response, uint8 fishingSkill, uint8 catchType, uint8 sizeType, uint8 maxSkill, Legendary legendary, uint16 minLength, uint16 maxLength, uint8 ranking, rod_t* rod)
 {
-    uint8 sense = FISHINGSENSETYPE_GOOD;
-
+    // Host: big-fish side effects + lose/snap/break, then pure sense selection.
     if (catchType == FISHINGCATCHTYPE_BIGFISH)
     {
         big_fish_stats_t bigfishStats = CalculateBigFishStats(minLength, maxLength);
@@ -587,43 +534,29 @@ uint8 CalculateFishSense(CCharEntity* PChar, fishresponse_t* response, uint8 fis
     lsbret_t lsnap  = CalculateSnapChance(catchType, fishingSkill, maxSkill, sizeType, legendary, ranking, rod);
     lsbret_t rbreak = CalculateBreakChance(catchType, fishingSkill, maxSkill, sizeType, legendary, ranking, rod);
 
+    fishinghookhelpers::LsbRet pureLose{ lose.failReason, lose.chance };
+    fishinghookhelpers::LsbRet pureSnap{ lsnap.failReason, lsnap.chance };
+    fishinghookhelpers::LsbRet pureBrk{ rbreak.failReason, rbreak.chance };
+
+    // Preserve LSB branch-local RNG: only roll when the pure path consumes it.
+    std::uint8_t roll02    = 0;
+    std::uint8_t rollBad02 = 0;
     if (lose.chance > 0 && lsnap.chance == 0 && rbreak.chance == 0)
     {
-        if (lose.failReason == FISHINGFAILTYPE_LOST_TOOSMALL)
+        if (lose.failReason != FISHINGFAILTYPE_LOST_TOOSMALL && lose.chance < 20)
         {
-            sense = FISHINGSENSETYPE_GOOD;
-        }
-        else
-        {
-            if (lose.chance < 20)
-            {
-                sense = FISHINGSENSETYPE_NOSKILL_FEELING + (uint8)xirand::GetRandomNumber<uint16>(2);
-            }
-            else if (lose.chance < 45)
-            {
-                sense = FISHINGSENSETYPE_NOSKILL_SURE_FEELING;
-            }
-            else
-            {
-                sense = FISHINGSENSETYPE_NOSKILL_POSITIVEFEELING;
-            }
+            roll02 = static_cast<std::uint8_t>(xirand::GetRandomNumber<uint16>(2));
         }
     }
     else if (lsnap.chance > 0 || rbreak.chance > 0)
     {
-        if (lsnap.chance < 30 && rbreak.chance < 30)
+        if (!(lsnap.chance < 30 && rbreak.chance < 30) && lsnap.chance < 45 && rbreak.chance < 45)
         {
-            sense = FISHINGSENSETYPE_BAD;
-        }
-        else if (lsnap.chance < 45 && rbreak.chance < 45)
-        {
-            sense = FISHINGSENSETYPE_BAD + (uint8)xirand::GetRandomNumber<uint16>(2);
-        }
-        else
-        {
-            sense = FISHINGSENSETYPE_TERRIBLE;
+            rollBad02 = static_cast<std::uint8_t>(xirand::GetRandomNumber<uint16>(2));
         }
     }
+
+    const auto sense = fishinghookhelpers::CalculateFishSense(pureLose, pureSnap, pureBrk, roll02, rollBad02);
 
     response->lose   = lose;
     response->lsnap  = lsnap;
@@ -633,95 +566,61 @@ uint8 CalculateFishSense(CCharEntity* PChar, fishresponse_t* response, uint8 fis
 
 uint16 CalculateCriticalBite(uint8 fishingSkill, uint8 fishSkill, rod_t* rod)
 {
-    // TODO: Does gear discerment really help with this?
-    // https://wiki.ffo.jp/html/24002.html
-    uint16 chance     = 0;
-    uint8  ebisuBonus = 0;
-
-    if (rod->rodID == EBISU)
-    {
-        ebisuBonus = 40;
-    }
-
-    if (fishSkill - 4 > fishingSkill + ebisuBonus)
-    {
-        return 0;
-    }
-
-    uint16 fishSkillCheck = (uint16)std::max(0, fishSkill - 4);
-
-    // Base chance
-    chance = 5 + (uint16)std::max((fishingSkill + ebisuBonus) - fishSkillCheck, 0) * 2;
-
-    // Moon mod (max + 20)
-    float moonModifier = 2 * MOONPATTERN_3(GetMoonPhase());
-    chance += (uint16)(10 * (2 - moonModifier));
-
-    return std::clamp<uint16>(chance, 0, 70);
+    // Pure critical bite with moon phase inject (fishing_hook_capacity.h; slice 1618).
+    return fishinghookhelpers::CalculateCriticalBite(fishingSkill, fishSkill, rod->rodID, GetMoonPhase());
 }
 
 big_fish_stats_t CalculateBigFishStats(uint16 minLength, uint16 maxLength)
 {
-    big_fish_stats_t stats;
-    stats.epic   = false;
-    stats.length = 0;
-    stats.weight = 0;
-
-    if (maxLength > 1)
+    // Pure big-fish stats with host RNG injects (fishing_hook_capacity.h; slice 1618).
+    if (maxLength <= 1)
     {
-        float weightRandomizer = xirand::GetRandomNumber<float>(4.65f, 5.15f);
-        stats.length           = (xirand::GetRandomNumber<uint16>(minLength, maxLength) + xirand::GetRandomNumber<uint16>(minLength, maxLength)) / 2;
-        stats.weight           = (int16)std::floor(stats.length * weightRandomizer);
-
-        if (stats.length > (minLength + maxLength) / 2 && weightRandomizer >= 5)
-        {
-            stats.epic = true;
-        }
+        return big_fish_stats_t{};
     }
-
+    const auto weightRandomizer = xirand::GetRandomNumber<float>(4.65f, 5.15f);
+    const auto lengthRoll1      = xirand::GetRandomNumber<uint16>(minLength, maxLength);
+    const auto lengthRoll2      = xirand::GetRandomNumber<uint16>(minLength, maxLength);
+    const auto pure             = fishinghookhelpers::CalculateBigFishStats(minLength, maxLength, lengthRoll1, lengthRoll2, weightRandomizer);
+    big_fish_stats_t stats;
+    stats.length = pure.length;
+    stats.weight = pure.weight;
+    stats.epic   = pure.epic;
     return stats;
 }
 
 fishmob_modifiers_t CalculateMobModifiers(fishmob_t* mob)
 {
-    fishmob_modifiers_t modifiers;
-    modifiers.attackPenalty = 0;
-    modifiers.healBonus     = 0;
-    modifiers.regenBonus    = 0;
-
-    // regen bonus
+    // Pure mob modifiers with host RNG injects (fishing_hook_capacity.h; slice 1618).
+    fishinghookhelpers::MobModifierRolls rolls{};
     if (mob->nmFlags & FISHINGNM_RANDOM_REGEN_EASY)
     {
-        modifiers.regenBonus += xirand::GetRandomNumber<uint16>(0, 1);
+        rolls.regenEasy = xirand::GetRandomNumber<uint16>(0, 1);
     }
-
     if (mob->nmFlags & FISHINGNM_RANDOM_REGEN_DIFFICULT)
     {
-        modifiers.regenBonus += xirand::GetRandomNumber<uint16>(1, 2);
+        rolls.regenDifficult = xirand::GetRandomNumber<uint16>(1, 2);
     }
-
-    // heal bonus
     if (mob->nmFlags & FISHINGNM_RANDOM_HEAL_EASY)
     {
-        modifiers.healBonus += xirand::GetRandomNumber<uint16>(0, 10);
+        rolls.healEasy = xirand::GetRandomNumber<uint16>(0, 10);
     }
-
     if (mob->nmFlags & FISHINGNM_RANDOM_HEAL_DIFFICULT)
     {
-        modifiers.healBonus += xirand::GetRandomNumber<uint16>(15, 30);
+        rolls.healDifficult = xirand::GetRandomNumber<uint16>(15, 30);
     }
-
-    // attack penalty
     if (mob->nmFlags & FISHINGNM_RANDOM_ATTACK_EASY)
     {
-        modifiers.attackPenalty += xirand::GetRandomNumber<uint16>(0, 10);
+        rolls.attackEasy = xirand::GetRandomNumber<uint16>(0, 10);
     }
-
     if (mob->nmFlags & FISHINGNM_RANDOM_ATTACK_DIFFICULT)
     {
-        modifiers.attackPenalty += xirand::GetRandomNumber<uint16>(15, 30);
+        rolls.attackDifficult = xirand::GetRandomNumber<uint16>(15, 30);
     }
-
+    const auto pure = fishinghookhelpers::CalculateMobModifiers(mob->nmFlags, rolls);
+    fishmob_modifiers_t modifiers;
+    modifiers.regenBonus    = pure.regenBonus;
+    modifiers.healBonus     = pure.healBonus;
+    modifiers.attackPenalty = pure.attackPenalty;
     return modifiers;
 }
 
@@ -757,7 +656,8 @@ fishing_gear_t GetFishingGear(CCharEntity* PChar)
 
 bool IsLiveBait(bait_t* bait)
 {
-    return (bait->baitID == DRILL_CALAMARY || bait->baitID == DWARF_PUGIL);
+    // Pure live-bait ID check (fishing_hook_capacity.h; slice 1618).
+    return fishinghookhelpers::IsLiveBait(bait->baitID);
 }
 
 uint8 GetFishingSkill(CCharEntity* PChar)

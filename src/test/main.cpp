@@ -527,6 +527,7 @@ auto runPerpetuation1613SelfTests() -> bool;
 auto runTrustLoad1614SelfTests() -> bool;
 auto runFishingCombat1616SelfTests() -> bool;
 auto runFishingOutcome1617SelfTests() -> bool;
+auto runFishingHook1618SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1264,6 +1265,7 @@ namespace
         ok = runTrustLoad1614SelfTests() && ok;
         ok = runFishingCombat1616SelfTests() && ok;
         ok = runFishingOutcome1617SelfTests() && ok;
+        ok = runFishingHook1618SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
