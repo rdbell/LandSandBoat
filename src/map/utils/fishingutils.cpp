@@ -21,6 +21,8 @@
 
 #include "fishingutils.h"
 
+#include "map/fishing_combat_capacity.h"
+
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -350,24 +352,18 @@ auto GetWeatherModifier(const CCharEntity* PChar) -> float
 
 uint16 CalculateStamina(int skill, uint8 count)
 {
-    float multiplier = 1.0f + (0.1f * (count - 1));
-    int   modSkill   = (int)std::floor(multiplier * skill);
-
-    return (uint16)std::floor(xirand::GetRandomNumber(95, 105) * ((modSkill + 36) / 2));
+    // Pure stamina with host RNG inject (fishing_combat_capacity.h; slice 1616).
+    return fishingcombathelpers::CalculateStamina(skill, count, xirand::GetRandomNumber(95, 105));
 }
 
 uint16 CalculateAttack(Legendary legendary, uint8 difficulty, rod_t* rod)
 {
-    uint8 bonusAdd = (legendary) ? rod->lgdBonusAtk : 0;
-
-    return (uint16)std::floor(difficulty * (((static_cast<float>(rod->fishAttack) + bonusAdd) / 100.0f)) * 20.0f);
+    return fishingcombathelpers::CalculateAttack(static_cast<bool>(legendary), difficulty, rod->fishAttack, rod->lgdBonusAtk);
 }
 
 uint16 CalculateHeal(Legendary legendary, uint8 difficulty, rod_t* rod)
 {
-    uint16 attack = CalculateAttack(legendary, difficulty, rod);
-
-    return (uint16)std::floor((static_cast<float>(attack) / 20.0f) * (static_cast<float>(rod->fishRecovery) / 100.0f)) * 10.0f;
+    return fishingcombathelpers::CalculateHeal(static_cast<bool>(legendary), difficulty, rod->fishAttack, rod->lgdBonusAtk, rod->fishRecovery);
 }
 
 uint8 CalculateRegen(uint8 fishingSkill, rod_t* rod, FISHINGCATCHTYPE catchType, uint8 sizeType, uint8 catchSkill, Legendary legendaryCatch, IsNM NM)
@@ -492,120 +488,24 @@ uint8 CalculateHookTime(CCharEntity* PChar, Legendary legendary, uint32 legendar
 
 uint8 CalculateLuckyTiming(CCharEntity* PChar, uint8 fishingSkill, uint8 catchSkill, uint8 sizeType, rod_t* rod, bait_t* bait, Legendary legendary)
 {
-    uint8          luckyTiming  = 10;
-    float          penalty      = 0;
-    float          bonus        = 0;
-    fishing_gear_t gear         = GetFishingGear(PChar);
-    uint8          moonModifier = GetLuckyMoonModifier();
+    // Pure lucky timing with host injects (fishing_combat_capacity.h; slice 1616).
+    const fishing_gear_t gear         = GetFishingGear(PChar);
+    const uint8          moonModifier = GetLuckyMoonModifier();
+    const auto           gearBonus    = fishingcombathelpers::LuckyTimingGearBonus(gear.body, gear.hands, gear.legs, gear.feet);
 
-    // Skill modifier
-    if (catchSkill > fishingSkill + 7)
-    {
-        penalty += (uint8)std::floor((catchSkill - (fishingSkill + 7)));
-    }
-    else if (fishingSkill + 10 > catchSkill)
-    {
-        bonus += (uint8)std::floor(((fishingSkill + 10) - catchSkill) / 20);
-    }
-
-    // Moon modifier
-    bonus += (moonModifier * 5) + (moonModifier * xirand::GetRandomNumber(1, 5));
-
-    // Time of Day modifier
-    uint32 gameHour = vanadiel_time::get_hour();
-
-    if ((gameHour == 6 || gameHour == 7) || (gameHour >= 16 && gameHour <= 18))
-    {
-        bonus += 9;
-    }
-    else if ((gameHour >= 8 && gameHour <= 15))
-    {
-        bonus += 3;
-    }
-    else
-    {
-        bonus += 6;
-    }
-
-    // Rod modifier
-    if (legendary && rod->legendary)
-    {
-        if (rod->rodID == LU_SHANG)
-        {
-            bonus += 6;
-        }
-        else if (rod->rodID == EBISU)
-        {
-            bonus += 8;
-        }
-        else if (rod->sizeType == sizeType)
-        {
-            bonus += 4;
-        }
-        else if (rod->sizeType > sizeType)
-        {
-            bonus += 2;
-        }
-    }
-
-    // Gear modifier
-    switch (gear.body)
-    {
-        case FISHERMANS_TUNICA:
-            bonus += 0.5f;
-            break;
-        case ANGLERS_TUNICA:
-            bonus += 1;
-            break;
-        case FISHERMANS_APRON:
-        case FISHERMANS_SMOCK:
-            bonus += 3;
-            break;
-    }
-
-    switch (gear.hands)
-    {
-        case FISHERMANS_GLOVES:
-            bonus += 0.5f;
-            break;
-        case ANGLERS_GLOVES:
-            bonus += 1;
-            break;
-    }
-
-    switch (gear.legs)
-    {
-        case FISHERMANS_HOSE:
-            bonus += 0.5f;
-            break;
-        case ANGLERS_HOSE:
-            bonus += 1;
-            break;
-    }
-
-    switch (gear.feet)
-    {
-        case FISHERMANS_BOOTS:
-            bonus += 0.5f;
-            break;
-        case ANGLERS_BOOTS:
-            bonus += 1;
-            break;
-        case WADERS:
-            bonus += 2;
-            break;
-    }
-
-    // Bait modifier
-    if (bait->baitFlags & BAITFLAG_GOLD_ARROW_BONUS)
-    {
-        bonus *= 1.25;
-    }
-
-    luckyTiming += (uint8)std::floor(bonus);
-    luckyTiming -= (uint8)std::floor((penalty > luckyTiming) ? luckyTiming : penalty);
-
-    return std::max<uint8>(5, luckyTiming);
+    return fishingcombathelpers::CalculateLuckyTiming(
+        fishingSkill,
+        catchSkill,
+        sizeType,
+        rod->rodID,
+        rod->sizeType,
+        rod->legendary,
+        static_cast<bool>(legendary),
+        bait->baitFlags,
+        gearBonus,
+        moonModifier,
+        static_cast<uint8>(vanadiel_time::get_hour()),
+        static_cast<uint8>(xirand::GetRandomNumber(1, 5)));
 }
 
 uint16 CalculateHookChance(uint8 fishingSkill, fish_t* fish, bait_t* bait, rod_t* rod)

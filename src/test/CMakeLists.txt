@@ -980,6 +980,8 @@ set(SOURCES
     test_perpetuation_1613.cpp
     test_trust_load_1614.h
     test_trust_load_1614.cpp
+    test_fishing_combat_1616.h
+    test_fishing_combat_1616.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
