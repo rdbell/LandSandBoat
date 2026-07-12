@@ -35,6 +35,7 @@
 #include "entity_action_capacity.h"
 #include "traits_enmity_capacity.h"
 #include "wildcard_randomdeal_capacity.h"
+#include "can_afford_spell_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -5647,30 +5648,21 @@ bool CanAffordSpell(CBattleEntity* PEntity, CSpell* PSpell, uint8 flags)
         return false;
     }
 
-    // Check if entity bypasses MP costs
-    if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Manafont) ||
-        (flags & MAGICFLAGS_IGNORE_MP))
-    {
-        return true;
-    }
+    const bool  hasManafont = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Manafont);
+    auto*       PMob        = dynamic_cast<CMobEntity*>(PEntity);
+    const bool  isMob       = PMob != nullptr;
+    const int16 noSpellCost = isMob ? PMob->getMobMod(MOBMOD_NO_SPELL_COST) : static_cast<int16>(0);
+    const bool  hasMPCost   = PSpell->hasMPCost();
+    const auto  spellCost   = hasMPCost ? CalculateSpellCost(PEntity, PSpell) : static_cast<uint16>(0);
 
-    // Special handling for mobs with NO_SPELL_COST modifier
-    if (auto PMob = dynamic_cast<CMobEntity*>(PEntity))
-    {
-        if (PMob->getMobMod(MOBMOD_NO_SPELL_COST) > 0)
-        {
-            return true;
-        }
-    }
-
-    // Check if spell has MP cost and if entity has enough MP
-    if (PSpell->hasMPCost())
-    {
-        uint16 spellCost = CalculateSpellCost(PEntity, PSpell);
-        return PEntity->health.mp >= spellCost;
-    }
-
-    return true; // No MP cost required
+    return canaffordspellhelpers::CanAffordSpell(
+        hasManafont,
+        flags,
+        isMob,
+        noSpellCost,
+        hasMPCost,
+        spellCost,
+        PEntity->health.mp);
 }
 
 timer::duration CalculateSpellRecastTime(CBattleEntity* PEntity, CSpell* PSpell)

@@ -822,6 +822,8 @@ set(SOURCES
     test_traits_enmity_1529.cpp
     test_wildcard_randomdeal_1530.h
     test_wildcard_randomdeal_1530.cpp
+    test_can_afford_spell_1531.h
+    test_can_afford_spell_1531.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
