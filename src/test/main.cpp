@@ -390,6 +390,7 @@ auto runCharRuntimeState1470SelfTests() -> bool;
 auto runCharTraitSync1471SelfTests() -> bool;
 auto runCharAMANHost1472SelfTests() -> bool;
 auto runCharRaisePlan1473SelfTests() -> bool;
+auto runCharRaiseApply1474SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -990,6 +991,7 @@ namespace
         ok = runCharTraitSync1471SelfTests() && ok;
         ok = runCharAMANHost1472SelfTests() && ok;
         ok = runCharRaisePlan1473SelfTests() && ok;
+        ok = runCharRaiseApply1474SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

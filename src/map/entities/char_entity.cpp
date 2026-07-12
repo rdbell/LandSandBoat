@@ -50,6 +50,7 @@
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
 #include "char_playtime_capacity.h"
+#include "char_raise_apply_capacity.h"
 #include "char_raise_plan_capacity.h"
 #include "char_post_tick_refresh_capacity.h"
 #include "char_post_tick_update_capacity.h"
@@ -1947,22 +1948,6 @@ void CCharEntity::OnRaise()
                    .mainLevel     = GetMLevel(),
                    .expRetain     = settings::get<uint8>("map.EXP_RETAIN"),
         });
-        m_weaknessLvl = plan.weaknessLevel;
-
-        // add weakness effect (75% reduction in HP/MP)
-        if (plan.applyWeakness)
-        {
-            StatusEffectContainer->AddStatusEffect(
-                xi::StatusEffect::Weakness,
-                static_cast<uint16>(xi::StatusEffect::Weakness),
-                m_weaknessLvl,
-                0s,
-                plan.weaknessDuration);
-        }
-
-        const double ratioReturned = plan.expReturnRatio;
-        const uint16 hpReturned    = plan.hpReturned;
-
         action_t action{
             .actorId    = id,
             .actiontype = ActionCategory::MagicFinish,
@@ -1970,33 +1955,29 @@ void CCharEntity::OnRaise()
 
         auto& actionTarget = action.addTarget(id);
         auto& actionResult = actionTarget.addResult();
-        actionResult.animation = plan.animation;
-
-        addHP(hpReturned);
-        updatemask |= UPDATE_HP;
-
-        loc.zone->PushPacket(this, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(action));
-
-        // Do not return EXP to the player if they do not have experienceLost variable.
-        uint16 expLost = charutils::GetCharVar(this, "expLost");
-
-        if (expLost != 0)
-        {
-            uint16 xpReturned = (uint16)(ceil(expLost * ratioReturned));
-            charutils::AddExperiencePoints(true, false, false, this, this, xpReturned);
-
-            charutils::SetCharVar(this, "expLost", 0);
-        }
-
-        // If Arise was used then apply a reraise 3 effect on the target
-        if (m_hasArise)
-        {
-            StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Reraise, static_cast<uint16>(xi::StatusEffect::Reraise), 3, 0s, 1h);
-        }
-
-        SetLocalVar("MijinGakure", 0);
-        m_hasArise = false;
-        m_hasRaise = 0;
+        charraiseapplyhelpers::Apply(
+            plan,
+            [&](const uint8 level) { m_weaknessLvl = level; },
+            [&](const uint8 level, const std::chrono::minutes duration)
+            {
+                StatusEffectContainer->AddStatusEffect(
+                    xi::StatusEffect::Weakness,
+                    static_cast<uint16>(xi::StatusEffect::Weakness),
+                    level,
+                    0s,
+                    duration);
+            },
+            [&](const ActionAnimation animation) { actionResult.animation = animation; },
+            [&](const uint16 hp) { addHP(hp); },
+            [&]() { updatemask |= UPDATE_HP; },
+            [&]() { loc.zone->PushPacket(this, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(action)); },
+            [&]() -> uint16 { return charutils::GetCharVar(this, "expLost"); },
+            [&](const uint16 xp) { charutils::AddExperiencePoints(true, false, false, this, this, xp); },
+            [&]() { charutils::SetCharVar(this, "expLost", 0); },
+            [&]() { StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Reraise, static_cast<uint16>(xi::StatusEffect::Reraise), 3, 0s, 1h); },
+            [&]() { SetLocalVar("MijinGakure", 0); },
+            [&]() { m_hasArise = false; },
+            [&]() { m_hasRaise = 0; });
     }
 }
 
