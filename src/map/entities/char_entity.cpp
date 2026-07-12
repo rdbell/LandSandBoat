@@ -27,6 +27,7 @@
 #include "char_automaton_capacity.h"
 #include "char_bazaar_capacity.h"
 #include "char_combat_transition_capacity.h"
+#include "char_death_apply_capacity.h"
 #include "char_death_homepoint_capacity.h"
 #include "char_death_plan_capacity.h"
 #include "char_entity_update_capacity.h"
@@ -2129,36 +2130,27 @@ void CCharEntity::Die()
         .expRetain            = settings::get<uint8>("map.EXP_RETAIN"),
         .experienceRetainedMod = getMod(Mod::EXPERIENCE_RETAINED),
     });
-    if (plan.message == chardeathplanhelpers::Message::DefeatedBy)
-    {
-        loc.zone->PushPacket(this, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PLastAttacker, this, 0, 0, MsgBasic::PlayerDefeatedBy));
-    }
-    else
-    {
-        loc.zone->PushPacket(this, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::FallsToGround));
-    }
-
-    battleutils::RelinquishClaim(this);
-
-    if (plan.despawnPet)
-    {
-        petutils::DespawnPet(this);
-    }
-
-    Die(death_duration);
-    SetDeathTime(timer::now());
-
-    setBlockingAid(false);
-
-    // influence for conquest system
-    conquest::LoseInfluencePoints(this);
-
-    if (plan.loseEXP)
-    {
-        charutils::DelExperiencePoints(this, plan.retainPercent, 0);
-    }
-
-    luautils::OnPlayerDeath(this);
+    chardeathapplyhelpers::Apply(
+        plan,
+        [&](const chardeathplanhelpers::Message message)
+        {
+            if (message == chardeathplanhelpers::Message::DefeatedBy)
+            {
+                loc.zone->PushPacket(this, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PLastAttacker, this, 0, 0, MsgBasic::PlayerDefeatedBy));
+            }
+            else
+            {
+                loc.zone->PushPacket(this, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, 0, 0, MsgBasic::FallsToGround));
+            }
+        },
+        [&]() { battleutils::RelinquishClaim(this); },
+        [&]() { petutils::DespawnPet(this); },
+        [&]() { Die(death_duration); },
+        [&]() { SetDeathTime(timer::now()); },
+        [&]() { setBlockingAid(false); },
+        [&]() { conquest::LoseInfluencePoints(this); },
+        [&](const float retainPercent) { charutils::DelExperiencePoints(this, retainPercent, 0); },
+        [&]() { luautils::OnPlayerDeath(this); });
 }
 
 void CCharEntity::Die(timer::duration _duration)

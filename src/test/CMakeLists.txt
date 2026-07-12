@@ -722,6 +722,8 @@ set(SOURCES
     test_char_target_resolver_1478.cpp
     test_char_death_plan_1479.h
     test_char_death_plan_1479.cpp
+    test_char_death_apply_1480.h
+    test_char_death_apply_1480.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
