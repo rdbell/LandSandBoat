@@ -678,6 +678,8 @@ set(SOURCES
     test_char_event_skip_1456.cpp
     test_char_event_idle_1457.h
     test_char_event_idle_1457.cpp
+    test_char_event_activation_1458.h
+    test_char_event_activation_1458.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

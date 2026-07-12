@@ -30,6 +30,7 @@
 #include "char_equipment_capacity.h"
 #include "char_equip_flush_capacity.h"
 #include "char_error_delivery_capacity.h"
+#include "char_event_activation_capacity.h"
 #include "char_event_lock_capacity.h"
 #include "char_event_idle_capacity.h"
 #include "char_event_queue_capacity.h"
@@ -2780,32 +2781,24 @@ void CCharEntity::tryStartNextEvent()
         return;
     }
 
-    EventInfo* oldEvent = currentEvent;
-    currentEvent        = eventQueue.front();
-    eventQueue.pop_front();
-    destroy(oldEvent);
-
-    eventPreparation->reset();
-
-    m_Substate = CHAR_SUBSTATE::SUBSTATE_IN_CS;
-    if (animation == ANIMATION_HEALING)
-    {
-        StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Healing);
-    }
-
-    if (PPet)
-    {
-        PPet->PAI->Disengage();
-    }
-
-    auto PNpc = currentEvent->targetEntity;
-    if (PNpc && PNpc->objtype == TYPE_NPC)
-    {
-        PNpc->SetLocalVar("pauseNPCPathing", 1);
-    }
-
-    // If it's a cutscene, we lock the player immediately
-    setLocked(currentEvent->type == CUTSCENE);
+    chareventactivationhelpers::ActivateState(
+        [&]()
+        {
+            EventInfo* oldEvent = currentEvent;
+            currentEvent        = eventQueue.front();
+            eventQueue.pop_front();
+            destroy(oldEvent);
+        },
+        [&]() { eventPreparation->reset(); },
+        [&]() { m_Substate = CHAR_SUBSTATE::SUBSTATE_IN_CS; },
+        [&]() { return animation == ANIMATION_HEALING; },
+        [&]() { StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Healing); },
+        [&]() { return PPet != nullptr; },
+        [&]() { PPet->PAI->Disengage(); },
+        [&]() { return currentEvent->targetEntity && currentEvent->targetEntity->objtype == TYPE_NPC; },
+        [&]() { currentEvent->targetEntity->SetLocalVar("pauseNPCPathing", 1); },
+        [&]() { return currentEvent->type == CUTSCENE; },
+        [&](const bool locked) { setLocked(locked); });
 
     if (currentEvent->strings.empty())
     {
