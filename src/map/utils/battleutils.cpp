@@ -57,6 +57,7 @@
 #include "spell_cast_capacity.h"
 #include "multi_hits_capacity.h"
 #include "crit_hit_rate_capacity.h"
+#include "intimidate_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -3105,78 +3106,28 @@ bool IsAbsorbByShadow(CBattleEntity* PDefender, CBattleEntity* PAttacker)
 
 auto IsIntimidated(CBattleEntity* PAttacker, CBattleEntity* PDefender) -> bool
 {
-    // cannot intimidate yourself!
-    if (PAttacker == PDefender)
+    std::int16_t killerEffect = 0;
+    if (const auto killerMod = intimidatehelpers::IntimidateKillerMod(PAttacker->m_EcoSystem))
     {
-        return false;
+        killerEffect = PDefender->getMod(*killerMod);
     }
 
-    int16 KillerEffect = 0;
-
-    switch (PAttacker->m_EcoSystem)
-    {
-        case xi::Ecosystem::Amorph:
-            KillerEffect = PDefender->getMod(Mod::AMORPH_KILLER);
-            break;
-        case xi::Ecosystem::Aquan:
-            KillerEffect = PDefender->getMod(Mod::AQUAN_KILLER);
-            break;
-        case xi::Ecosystem::Arcana:
-            KillerEffect = PDefender->getMod(Mod::ARCANA_KILLER);
-            break;
-        case xi::Ecosystem::Beast:
-            KillerEffect = PDefender->getMod(Mod::BEAST_KILLER);
-            break;
-        case xi::Ecosystem::Bird:
-            KillerEffect = PDefender->getMod(Mod::BIRD_KILLER);
-            break;
-        case xi::Ecosystem::Demon:
-            KillerEffect = PDefender->getMod(Mod::DEMON_KILLER);
-            break;
-        case xi::Ecosystem::Dragon:
-            KillerEffect = PDefender->getMod(Mod::DRAGON_KILLER);
-            break;
-        case xi::Ecosystem::Empty:
-            KillerEffect = PDefender->getMod(Mod::EMPTY_KILLER);
-            break;
-        case xi::Ecosystem::Humanoid:
-            KillerEffect = PDefender->getMod(Mod::HUMANOID_KILLER);
-            break;
-        case xi::Ecosystem::Lizard:
-            KillerEffect = PDefender->getMod(Mod::LIZARD_KILLER);
-            break;
-        case xi::Ecosystem::Luminion:
-            KillerEffect = PDefender->getMod(Mod::LUMINION_KILLER);
-            break;
-        case xi::Ecosystem::Luminian:
-            KillerEffect = PDefender->getMod(Mod::LUMINIAN_KILLER);
-            break;
-        case xi::Ecosystem::Plantoid:
-            KillerEffect = PDefender->getMod(Mod::PLANTOID_KILLER);
-            break;
-        case xi::Ecosystem::Undead:
-            KillerEffect = PDefender->getMod(Mod::UNDEAD_KILLER);
-            break;
-        case xi::Ecosystem::Vermin:
-            KillerEffect = PDefender->getMod(Mod::VERMIN_KILLER);
-            break;
-        default:
-            break;
-    }
-
-    // Add intimidation rate from Bully
+    std::int16_t doubtPower = 0;
     if (CStatusEffect* PDoubtEffect = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Doubt))
     {
-        KillerEffect += PDoubtEffect->GetPower();
+        doubtPower = PDoubtEffect->GetPower();
     }
 
-    // Add intimidation rate from Intimidate status effect
+    std::int16_t intimidatePower = 0;
     if (CStatusEffect* PIntimidateEffect = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Intimidate))
     {
-        KillerEffect += PIntimidateEffect->GetPower();
+        intimidatePower = PIntimidateEffect->GetPower();
     }
 
-    return (xirand::GetRandomNumber(100) < KillerEffect);
+    const auto chance = intimidatehelpers::IntimidateChance(
+        PAttacker == PDefender, killerEffect, doubtPower, intimidatePower);
+    return intimidatehelpers::IsIntimidated(
+        chance, static_cast<std::uint8_t>(xirand::GetRandomNumber(100)));
 }
 
 /************************************************************************

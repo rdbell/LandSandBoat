@@ -866,6 +866,8 @@ set(SOURCES
     test_multi_hits_1551.cpp
     test_crit_hit_rate_1552.h
     test_crit_hit_rate_1552.cpp
+    test_is_intimidated_1553.h
+    test_is_intimidated_1553.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
