@@ -61,6 +61,7 @@
 #include "hit_count_capacity.h"
 #include "skillchain_tables_capacity.h"
 #include "combat_bonus_tails_capacity.h"
+#include "damage_affinity_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -5207,115 +5208,22 @@ int32 GetScaledItemModifier(CBattleEntity* PEntity, CItemEquipment* PItem, Mod m
 
 auto GetSpikesDamageType(const ActionReactKind spikesType) -> xi::DamageType
 {
-    switch (spikesType)
-    {
-        // Action packet animation string order
-        case ActionReactKind::BlazeSpikes:
-            return xi::DamageType::Fire;
-        case ActionReactKind::IceSpikes:
-            return xi::DamageType::Ice;
-        case ActionReactKind::DreadSpikes:
-            return xi::DamageType::Dark;
-        case ActionReactKind::CurseSpikes:
-            return xi::DamageType::None;
-        case ActionReactKind::ShockSpikes:
-            return xi::DamageType::Thunder;
-        case ActionReactKind::ReprisalSpikes:
-            return xi::DamageType::Light;
-        case ActionReactKind::WindSpikes:
-            return xi::DamageType::Wind;
-        case ActionReactKind::EarthSpikes:
-            return xi::DamageType::Earth;
-        case ActionReactKind::WaterSpikes:
-            return xi::DamageType::Water;
-        case ActionReactKind::DeathSpikes:
-            return xi::DamageType::Dark;
-        default:
-            return xi::DamageType::None;
-    }
+    return damageaffinityhelpers::GetSpikesDamageType(spikesType);
 }
 
 auto GetEnspellDamageType(ENSPELL enspellType) -> xi::DamageType
 {
-    switch (enspellType)
-    {
-        case ENSPELL_I_FIRE:
-        case ENSPELL_II_FIRE:
-            return xi::DamageType::Fire;
-        case ENSPELL_I_ICE:
-        case ENSPELL_II_ICE:
-            return xi::DamageType::Ice;
-        case ENSPELL_I_WIND:
-        case ENSPELL_II_WIND:
-            return xi::DamageType::Wind;
-        case ENSPELL_I_EARTH:
-        case ENSPELL_II_EARTH:
-            return xi::DamageType::Earth;
-        case ENSPELL_I_THUNDER:
-        case ENSPELL_II_THUNDER:
-            return xi::DamageType::Thunder;
-        case ENSPELL_I_WATER:
-        case ENSPELL_II_WATER:
-            return xi::DamageType::Water;
-        case ENSPELL_I_LIGHT:
-        case ENSPELL_II_LIGHT:
-            return xi::DamageType::Light;
-        case ENSPELL_I_DARK:
-        case ENSPELL_II_DARK:
-            return xi::DamageType::Dark;
-        default:
-            return xi::DamageType::None;
-    }
+    return damageaffinityhelpers::GetEnspellDamageType(static_cast<std::uint8_t>(enspellType));
 }
 
 auto GetRuneEnhancementDamageType(xi::StatusEffect runeEffect) -> xi::DamageType
 {
-    switch (runeEffect)
-    {
-        case xi::StatusEffect::Ignis:
-            return xi::DamageType::Fire;
-        case xi::StatusEffect::Gelus:
-            return xi::DamageType::Ice;
-        case xi::StatusEffect::Flabra:
-            return xi::DamageType::Wind;
-        case xi::StatusEffect::Tellus:
-            return xi::DamageType::Earth;
-        case xi::StatusEffect::Sulpor:
-            return xi::DamageType::Thunder;
-        case xi::StatusEffect::Unda:
-            return xi::DamageType::Water;
-        case xi::StatusEffect::Lux:
-            return xi::DamageType::Light;
-        case xi::StatusEffect::Tenebrae:
-            return xi::DamageType::Dark;
-        default:
-            return xi::DamageType::None;
-    }
+    return damageaffinityhelpers::GetRuneEnhancementDamageType(runeEffect);
 }
 
 auto GetRuneEnhancementElement(xi::StatusEffect runeEffect) -> ELEMENT
 {
-    switch (runeEffect)
-    {
-        case xi::StatusEffect::Ignis:
-            return ELEMENT_FIRE;
-        case xi::StatusEffect::Gelus:
-            return ELEMENT_ICE;
-        case xi::StatusEffect::Flabra:
-            return ELEMENT_WIND;
-        case xi::StatusEffect::Tellus:
-            return ELEMENT_EARTH;
-        case xi::StatusEffect::Sulpor:
-            return ELEMENT_THUNDER;
-        case xi::StatusEffect::Unda:
-            return ELEMENT_WATER;
-        case xi::StatusEffect::Lux:
-            return ELEMENT_LIGHT;
-        case xi::StatusEffect::Tenebrae:
-            return ELEMENT_DARK;
-        default:
-            return ELEMENT_NONE;
-    }
+    return static_cast<ELEMENT>(damageaffinityhelpers::GetRuneEnhancementElement(runeEffect));
 }
 
 CBattleEntity* GetCoverAbilityUser(CBattleEntity* PCoverAbilityTarget, CBattleEntity* PMob)
@@ -5384,38 +5292,28 @@ void ConvertDmgToMP(CBattleEntity* PDefender, int32 damage, bool IsCovered)
 
 auto CheckLiementAbsorb(CBattleEntity* PBattleEntity, xi::DamageType DamageType) -> float
 {
-    if (PBattleEntity)
+    if (!PBattleEntity)
     {
-        auto* liementEffect = PBattleEntity->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Liement, 0);
-
-        if (liementEffect)
-        {
-            uint16 absorbPower    = liementEffect->GetPower();
-            uint16 absorbTypeBits = liementEffect->GetSubPower();
-            uint16 numBits        = sizeof(absorbTypeBits) * 8;
-
-            uint8 runeAbsorbCount = 0;
-
-            for (int i = 0; i < numBits / 4; i++) // unpacking is limited to the size of the return value of GetPower/GetSubPower. If this ever expands more Runes can be packed.
-            {
-                xi::DamageType packedDamageType = static_cast<xi::DamageType>((absorbTypeBits >> i * 4) & 0xF); // unpack damage type 4 bits at a time
-
-                if (packedDamageType == DamageType)
-                {
-                    runeAbsorbCount++;
-                }
-            }
-
-            if (runeAbsorbCount > 0)
-            {
-                PBattleEntity->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Liement); // Liement absorbs once and disappears.
-                float absorbMultiplier = (85 + runeAbsorbCount * absorbPower) / 100.0;
-
-                return absorbMultiplier * -1;
-            }
-        }
+        return 1.0f;
     }
-    return 1.0;
+
+    auto* liementEffect = PBattleEntity->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Liement, 0);
+    const bool active = liementEffect != nullptr;
+    const std::uint16_t absorbPower    = active ? liementEffect->GetPower() : 0;
+    const std::uint16_t absorbTypeBits = active ? liementEffect->GetSubPower() : 0;
+
+    const auto result = damageaffinityhelpers::CheckLiementAbsorb(
+        active,
+        absorbPower,
+        absorbTypeBits,
+        static_cast<std::uint16_t>(DamageType));
+
+    if (result.consume)
+    {
+        // Liement absorbs once and disappears.
+        PBattleEntity->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Liement);
+    }
+    return result.multiplier;
 }
 
 void addEcosystemKillerEffects(CBattleEntity* PBattleEntity)

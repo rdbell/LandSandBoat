@@ -874,6 +874,8 @@ set(SOURCES
     test_skillchain_tables_1555.cpp
     test_combat_bonus_tails_1556.h
     test_combat_bonus_tails_1556.cpp
+    test_damage_affinity_1557.h
+    test_damage_affinity_1557.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
