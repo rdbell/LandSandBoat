@@ -63,6 +63,8 @@
 #include "combat_bonus_tails_capacity.h"
 #include "damage_affinity_capacity.h"
 #include "fstr_capacity.h"
+#include "enmity_mod_capacity.h"
+#include "weaponskill_use_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -422,24 +424,22 @@ uint16 GetMaxSkill(uint8 rank, uint8 level)
 
 bool isValidSelfTargetWeaponskill(int wsid)
 {
-    switch (wsid)
-    {
-        case 163: // starlight
-        case 164: // moonlight
-        case 173: // dagan
-        case 190: // myrkr
-            return true;
-    }
-    return false;
+    return weaponskillusehelpers::IsValidSelfTargetWeaponskill(wsid);
 }
 
 bool CanUseWeaponskill(CCharEntity* PChar, CWeaponSkill* PSkill)
 {
-    return ((PSkill->getSkillLevel() > 0 && PChar->GetSkill(PSkill->getType()) >= PSkill->getSkillLevel() &&
-             (PSkill->getUnlockId() == 0 || charutils::hasLearnedWeaponskill(PChar, PSkill->getUnlockId()))) ||
-            (PSkill->getSkillLevel() == 0 && (PSkill->getUnlockId() == 0 ||
-                                              (charutils::hasLearnedWeaponskill(PChar, PSkill->getUnlockId()) && PChar->GetMLevel() >= 75)))) &&
-           (PSkill->getJob(PChar->GetMJob()) > 0 || (PSkill->getJob(PChar->GetSJob()) > 0 && !PSkill->mainOnly()));
+    const auto unlockID = PSkill->getUnlockId();
+    return weaponskillusehelpers::CanUseWeaponskill({
+        .skillLevel = PSkill->getSkillLevel(),
+        .unlockID   = unlockID,
+        .mainOnly   = PSkill->mainOnly(),
+        .mainJobReq = PSkill->getJob(PChar->GetMJob()),
+        .subJobReq  = PSkill->getJob(PChar->GetSJob()),
+        .charSkill  = PChar->GetSkill(PSkill->getType()),
+        .hasLearned = unlockID != 0 && charutils::hasLearnedWeaponskill(PChar, unlockID),
+        .mLevel     = PChar->GetMLevel(),
+    });
 }
 
 /************************************************************************
@@ -450,21 +450,12 @@ bool CanUseWeaponskill(CCharEntity* PChar, CWeaponSkill* PSkill)
 
 int32 GetEnmityModDamage(int16 level)
 {
-    return level * 31 / 50 + 6;
+    return enmitymodhelpers::GetEnmityModDamage(level);
 }
 
 int32 GetEnmityModCure(int16 level)
 {
-    if (level <= 10)
-    {
-        return level + 10;
-    }
-    else if (level <= 50)
-    {
-        return 20 + (level - 10) / 2;
-    }
-
-    return (int16)(40 + (level - 50) * 0.6);
+    return enmitymodhelpers::GetEnmityModCure(level);
 }
 
 /************************************************************************

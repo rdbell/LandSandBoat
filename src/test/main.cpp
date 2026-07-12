@@ -475,6 +475,7 @@ auto runCombatBonusTails1556SelfTests() -> bool;
 auto runDamageAffinity1557SelfTests() -> bool;
 auto runSkillchainForm1558SelfTests() -> bool;
 auto runFSTR1559SelfTests() -> bool;
+auto runEnmityWSUse1560SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1160,6 +1161,7 @@ namespace
         ok = runDamageAffinity1557SelfTests() && ok;
         ok = runSkillchainForm1558SelfTests() && ok;
         ok = runFSTR1559SelfTests() && ok;
+        ok = runEnmityWSUse1560SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

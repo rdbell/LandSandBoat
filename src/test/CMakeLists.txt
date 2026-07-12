@@ -880,6 +880,8 @@ set(SOURCES
     test_skillchain_form_1558.cpp
     test_fstr_1559.h
     test_fstr_1559.cpp
+    test_enmity_ws_use_1560.h
+    test_enmity_ws_use_1560.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
