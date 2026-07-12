@@ -384,6 +384,7 @@ auto runCharMoghancementCraft1464SelfTests() -> bool;
 auto runCharMoghancementGeneral1465SelfTests() -> bool;
 auto runCharMoghancementResistance1466SelfTests() -> bool;
 auto runCharStartSynth1467SelfTests() -> bool;
+auto runCharPacketQueue1468SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -978,6 +979,7 @@ namespace
         ok = runCharMoghancementGeneral1465SelfTests() && ok;
         ok = runCharMoghancementResistance1466SelfTests() && ok;
         ok = runCharStartSynth1467SelfTests() && ok;
+        ok = runCharPacketQueue1468SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

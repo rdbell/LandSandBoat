@@ -44,6 +44,7 @@
 #include "char_moghancement_resistance_capacity.h"
 #include "char_moghancement_update_capacity.h"
 #include "char_name_capacity.h"
+#include "char_packet_queue_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
 #include "char_playtime_capacity.h"
@@ -469,13 +470,11 @@ void CCharEntity::pushPacket(std::unique_ptr<CBasicPacket>&& packet)
 
     moduleutils::OnPushPacket(this, packet);
 
-    if (packet->getType() == 0x5B)
-    {
-        if (packet->ref<uint32>(0x10) == this->id)
-        {
-            pendingPositionUpdate = true;
-        }
-    }
+    charpacketqueuehelpers::OnPush(
+        packet->getType(),
+        packet->getType() == 0x5B ? packet->ref<uint32>(0x10) : 0,
+        this->id,
+        [&](const bool pending) { pendingPositionUpdate = pending; });
 
     PacketList.emplace_back(std::move(packet));
 }
@@ -531,23 +530,22 @@ auto CCharEntity::popPacket() -> std::unique_ptr<CBasicPacket>
     auto PPacket = std::move(PacketList.front());
     PacketList.pop_front();
 
-    // Clean up pending
-    switch (PPacket->getType())
+    const auto packetType = PPacket->getType();
+    uint32     packetEntityID{};
+    if (packetType == 0x0D || packetType == 0x0E)
     {
-        case 0x0D: // Char update
-            [[fallthrough]];
-        case 0x0E: // Entity update
-            EntityUpdatePackets.erase(PPacket->ref<uint32>(0x04));
-            break;
-        case 0x5B: // Position update
-            if (PPacket->ref<uint32>(0x10) == this->id)
-            {
-                pendingPositionUpdate = false;
-            }
-            break;
-        default:
-            break;
+        packetEntityID = PPacket->ref<uint32>(0x04);
     }
+    else if (packetType == 0x5B)
+    {
+        packetEntityID = PPacket->ref<uint32>(0x10);
+    }
+    charpacketqueuehelpers::OnPop(
+        packetType,
+        packetEntityID,
+        this->id,
+        [&](const uint32 entityID) { EntityUpdatePackets.erase(entityID); },
+        [&](const bool pending) { pendingPositionUpdate = pending; });
 
     return PPacket;
 }
@@ -567,13 +565,7 @@ void CCharEntity::erasePackets(uint8 num)
 
 bool CCharEntity::isPacketFiltered(std::unique_ptr<CBasicPacket>& packet)
 {
-    // Filter others synthesis results
-    if (packet->getType() == 0x70 && playerConfig.MessageFilter.others_synthesis_and_fishing_results)
-    {
-        return true;
-    }
-
-    return false;
+    return charpacketqueuehelpers::Filtered(packet->getType(), playerConfig.MessageFilter.others_synthesis_and_fishing_results);
 }
 
 bool CCharEntity::isNewPlayer() const

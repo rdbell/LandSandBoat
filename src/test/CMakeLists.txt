@@ -698,6 +698,8 @@ set(SOURCES
     test_char_moghancement_resistance_1466.cpp
     test_char_start_synth_1467.h
     test_char_start_synth_1467.cpp
+    test_char_packet_queue_1468.h
+    test_char_packet_queue_1468.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
