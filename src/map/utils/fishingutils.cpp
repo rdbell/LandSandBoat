@@ -21,6 +21,7 @@
 
 #include "fishingutils.h"
 
+#include "map/fishing_area_capacity.h"
 #include "map/fishing_combat_capacity.h"
 #include "map/fishing_hook_capacity.h"
 #include "map/fishing_hookchance_capacity.h"
@@ -595,127 +596,50 @@ auto GetFish(const uint32 fishId) -> fish_t*
  ************************************************************************/
 #define MAX_POINTS 10000
 
+// Geometry wrappers: pure capacity (fishing_area_capacity.h; slice 1628).
+namespace
+{
+inline auto ToVec(const areavector_t& v) -> fishingareahelpers::AreaVector
+{
+    return fishingareahelpers::AreaVector{ v.x, v.y, v.z };
+}
+} // namespace
+
 // Given three colinear areavector_ts p, q, r, the function checks if
 // areavector_t q lies on line segment 'pr'
 bool onSegment(areavector_t p, areavector_t q, areavector_t r)
 {
-    return q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) && q.z <= std::max(p.z, r.z) && q.z >= std::min(p.z, r.z);
+    return fishingareahelpers::OnSegment(ToVec(p), ToVec(q), ToVec(r));
 }
 
 // To find orientation of ordered triplet (p, q, r).
 int orientation(areavector_t p, areavector_t q, areavector_t r)
 {
-    float val = std::round(q.z - p.z) * (r.x - q.x) - (q.x - p.x) * (r.z - q.z);
-
-    if (val == 0)
-    {
-        return 0;
-    }
-
-    return (val > 0) ? 1 : 2;
+    return fishingareahelpers::Orientation(ToVec(p), ToVec(q), ToVec(r));
 }
 
 // The function that returns true if line segment 'p1q1' and 'p2q2' intersect.
 bool doIntersect(areavector_t p1, areavector_t q1, areavector_t p2, areavector_t q2)
 {
-    int o1 = orientation(p1, q1, p2);
-    int o2 = orientation(p1, q1, q2);
-    int o3 = orientation(p2, q2, p1);
-    int o4 = orientation(p2, q2, q1);
-
-    if (o1 != o2 && o3 != o4)
-    {
-        return true;
-    }
-
-    if (o1 == 0 && onSegment(p1, p2, q1))
-    {
-        return true;
-    }
-
-    if (o2 == 0 && onSegment(p1, q2, q1))
-    {
-        return true;
-    }
-
-    if (o3 == 0 && onSegment(p2, p1, q2))
-    {
-        return true;
-    }
-
-    if (o4 == 0 && onSegment(p2, q1, q2))
-    {
-        return true;
-    }
-
-    return false;
+    return fishingareahelpers::DoIntersect(ToVec(p1), ToVec(q1), ToVec(p2), ToVec(q2));
 }
 
 // Returns true if the areavector_t p lies inside the polygon[] with n vertices
 bool isInsidePoly(areavector_t polygon[], int n, areavector_t p, float posy, uint8 height)
 {
-    if (p.y < (posy - (height / 2)) || p.y > (posy + (height / 2)))
-    {
-        return false;
-    }
-
-    if (n < 3)
-    {
-        return false;
-    }
-
-    areavector_t extreme = { MAX_POINTS, p.z, 0 }; // TODO: Verify this "extreme" variable, X = MAX_POINTS, Y = p.z and Z = 0.
-    int          count = 0, i = 0;
-    do
-    {
-        int next = (i + 1) % n;
-        if (doIntersect(polygon[i], polygon[next], p, extreme))
-        {
-            if (orientation(polygon[i], p, polygon[next]) == 0)
-            {
-                return onSegment(polygon[i], p, polygon[next]);
-            }
-
-            count++;
-        }
-        i = next;
-    } while (i != 0);
-
-    return count & 1;
+    // Capacity expects const AreaVector*; stack-convert via pointer cast of layout-compatible floats.
+    return fishingareahelpers::IsInsidePoly(reinterpret_cast<const fishingareahelpers::AreaVector*>(polygon), n, ToVec(p), posy, height);
 }
 
 bool isInsideCylinder(areavector_t center, areavector_t p, uint16 radius, uint8 height)
 {
-    if (p.y < (center.y - (height / 2)) || p.y > (center.y + (height / 2)))
-    {
-        return false;
-    }
-
-    float dx = std::abs(p.x - center.x);
-
-    if (dx > radius)
-    {
-        return false;
-    }
-
-    float dz = std::abs(p.z - center.z);
-
-    if (dz > radius)
-    {
-        return false;
-    }
-
-    if (dx + dz <= radius)
-    {
-        return true;
-    }
-
-    return (dx * dx + dz * dz <= radius * radius);
+    return fishingareahelpers::IsInsideCylinder(ToVec(center), ToVec(p), radius, height);
 }
 
 fishingarea_t* GetFishingArea(CCharEntity* PChar)
 {
-    if (PChar->inMogHouse())
+    // Pure mog-house reject (fishing_area_capacity.h; slice 1628).
+    if (fishingareahelpers::RejectFishingAreaInMogHouse(PChar->inMogHouse()))
     {
         ShowWarning("fishingutils::GetFishingArea() - Player %s is attempting to fish from Mog House", PChar->name);
         return nullptr;
@@ -729,23 +653,12 @@ fishingarea_t* GetFishingArea(CCharEntity* PChar)
     {
         fishingarea_t* fishingArea = FishingAreaList[zoneId][area.first];
 
-        switch (fishingArea->areatype)
+        const bool insideCylinder = fishingArea->areatype == 1 && isInsideCylinder(fishingArea->center, loc, fishingArea->radius, fishingArea->height);
+        const bool insidePoly     = fishingArea->areatype == 2 && isInsidePoly(fishingArea->areaBounds, fishingArea->numBounds, loc, fishingArea->center.y, fishingArea->height);
+
+        if (fishingareahelpers::AreaTypeMatches(static_cast<uint8>(fishingArea->areatype), insideCylinder, insidePoly))
         {
-            case 0: // Whole Zone
-                return fishingArea;
-                break;
-            case 1: // Radial Boundary
-                if (isInsideCylinder(fishingArea->center, loc, fishingArea->radius, fishingArea->height))
-                {
-                    return fishingArea;
-                }
-                break;
-            case 2: // Poly Boundary
-                if (isInsidePoly(fishingArea->areaBounds, fishingArea->numBounds, loc, fishingArea->center.y, fishingArea->height))
-                {
-                    return fishingArea;
-                }
-                break;
+            return fishingArea;
         }
     }
 
