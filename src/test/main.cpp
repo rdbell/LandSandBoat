@@ -510,6 +510,7 @@ auto runChocoboDig1595SelfTests() -> bool;
 auto runSubJobStats1597SelfTests() -> bool;
 auto runMobBase1598SelfTests() -> bool;
 auto runMobBaseSkill1599SelfTests() -> bool;
+auto runMobHP1600SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1230,6 +1231,7 @@ namespace
         ok = runSubJobStats1597SelfTests() && ok;
         ok = runMobBase1598SelfTests() && ok;
         ok = runMobBaseSkill1599SelfTests() && ok;
+        ok = runMobHP1600SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

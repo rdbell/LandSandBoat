@@ -28,6 +28,7 @@
 #include "map/base_to_rank_capacity.h"
 #include "map/mob_base_capacity.h"
 #include "map/mob_base_skill_capacity.h"
+#include "map/mob_hp_capacity.h"
 #include "map/sub_job_stats_capacity.h"
 
 #include "action/action.h"
@@ -264,55 +265,8 @@ bool CheckSubJobZone(CMobEntity* PMob)
  ************************************************************************/
 static uint32 CalculateBaseMobHP(uint8 mLvl, uint8 baseHP, uint8 jobScale, uint8 scaleXHP)
 {
-    // HP formula has multiple parts based on level ranges:
-    // Levels 1-5: Base HP + scaling per level
-    // Levels 5-30: Additional scaling with conditional multiplier
-    // Levels 30+: Increased scaling with special modifiers
-    if (mLvl == 0)
-    {
-        return 0;
-    }
-
-    const uint8 level5Scaling  = std::min(mLvl, static_cast<uint8>(5));
-    const uint8 level30Scaling = std::min(mLvl, static_cast<uint8>(30));
-
-    uint32 hp = baseHP + (level5Scaling - 1) * (jobScale + 5);
-
-    // Additional bonuses based on scaling thresholds
-    uint32 riBonus = 0;
-    switch (level5Scaling)
-    {
-        case 0:
-        case 1:
-        case 2:
-            riBonus = 0;
-            break;
-        case 3:
-            riBonus = 3;
-            break;
-        case 4:
-            riBonus = 7;
-            break;
-        default: // 5
-            riBonus = 14;
-            break;
-    }
-
-    hp += riBonus;
-
-    if (mLvl > 5)
-    {
-        uint32 level5Bonus = (level30Scaling - 5) * (2 * jobScale + level30Scaling + 6) / 2;
-        hp += level5Bonus;
-    }
-
-    if (mLvl > 30)
-    {
-        uint32 level30Bonus = (mLvl - 30) * (63 + scaleXHP) + (mLvl - 31) * (jobScale + 6);
-        hp += level30Bonus;
-    }
-
-    return hp;
+    // Pure main-job HP ladder (mob_hp_capacity.h; slice 1600).
+    return mobhphelpers::CalculateBaseMobHP(mLvl, baseHP, jobScale, scaleXHP);
 }
 
 /************************************************************************
@@ -322,38 +276,8 @@ static uint32 CalculateBaseMobHP(uint8 mLvl, uint8 baseHP, uint8 jobScale, uint8
  ************************************************************************/
 static uint32 CalculateSubjobHP(uint8 mLvl, uint8 sjJobScale, uint8 sjScaleXHP)
 {
-    // Subjob HP contribution varies by main job level:
-    // 50+   = 100% of subjob stats
-    // 40-49 = 75% of subjob stats
-    // 31-39 = 50% of subjob stats
-    // 25-30 = 25% of subjob stats
-    // 1-24  = 0% of subjob stats
-    int sjScale = 0;
-    if (mLvl > 49)
-    {
-        sjScale = mLvl;
-    }
-    else if (mLvl > 39)
-    {
-        sjScale = (mLvl * 3) / 4;
-    }
-    else if (mLvl > 30)
-    {
-        sjScale = mLvl / 2;
-    }
-    else if (mLvl > 24)
-    {
-        sjScale = mLvl / 4;
-    }
-
-    const double sjHp =
-        sjJobScale * std::max(sjScale - 1, 0) +
-        (0.5 + 0.5 * sjScaleXHP) * std::max(sjScale - 10, 0) +
-        std::max(sjScale - 30, 0) +
-        std::max(sjScale - 50, 0) +
-        std::max(sjScale - 70, 0);
-
-    return static_cast<uint32>(std::ceil(sjHp / 2.0));
+    // Pure subjob HP contribution (mob_hp_capacity.h; slice 1600).
+    return mobhphelpers::CalculateSubjobHP(mLvl, sjJobScale, sjScaleXHP);
 }
 
 /************************************************************************
