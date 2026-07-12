@@ -96,6 +96,7 @@
 #include "exp_award_capacity.h"
 #include "exp_loss_capacity.h"
 #include "skill_up_capacity.h"
+#include "calculate_stats_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -221,14 +222,6 @@ void CalculateStats(CCharEntity* PChar)
     float sJobStat  = 0; // HP final number for a level based on a secondary profession.
     int32 bonusStat = 0; // HP bonus number that is added subject to some conditions.
 
-    int32 baseValueColumn   = 0; // Column number with base number HP
-    int32 scaleTo60Column   = 1; // Column number with modifier up to 60 levels
-    int32 scaleOver30Column = 2; // Column number with modifier after level 30
-    int32 scaleOver60Column = 3; // Column number with modifier after level 60
-    int32 scaleOver75Column = 4; // Column number with modifier after level 75
-    int32 scaleOver60       = 2; // Column number with modifier for MP calculation after level 60
-    int32 scaleOver75       = 3; // The speaker number with the modifier to calculate the stats after the 75th level
-
     uint8 grade = 0;
 
     uint8      mlvl        = PChar->GetMLevel();
@@ -238,10 +231,10 @@ void CalculateStats(CCharEntity* PChar)
     MERIT_TYPE statMerit[] = { MERIT_STR, MERIT_DEX, MERIT_VIT, MERIT_AGI, MERIT_INT, MERIT_MND, MERIT_CHR };
 
     // We have to make sure we don't leave the job as JOB_MON - we CANNOT generate stats for it.
-    if (mjob == JOB_MON || sjob == JOB_MON)
     {
-        mjob = JOB_WAR;
-        sjob = JOB_WAR;
+        const auto [nm, ns] = calculatestatshelpers::NormalizeMonJob(static_cast<uint8>(mjob), static_cast<uint8>(sjob));
+        mjob               = static_cast<JOBTYPE>(nm);
+        sjob               = static_cast<JOBTYPE>(ns);
     }
 
     // NOTE: Monstrosity (MON) is treated as its own job, but each species is it's own
@@ -254,82 +247,75 @@ void CalculateStats(CCharEntity* PChar)
         slvl = mlvl;
     }
 
-    uint8 race = 0; // Hume
-
-    switch (static_cast<CharRace>(PChar->look.race))
-    {
-        case CharRace::HumeMale:
-        case CharRace::HumeFemale:
-            race = 0;
-            break;
-        case CharRace::ElvaanMale:
-        case CharRace::ElvaanFemale:
-            race = 1;
-            break;
-        case CharRace::TarutaruMale:
-        case CharRace::TarutaruFemale:
-            race = 2;
-            break;
-        case CharRace::Mithra:
-            race = 3;
-            break;
-        case CharRace::Galka:
-            race = 4;
-            break;
-        default:
-            race = 0;
-            break;
-    }
+    const uint8 race = calculatestatshelpers::RaceGroupFromCharRace(PChar->look.race);
 
     // HP Calculation from Main Job
 
-    int32 mainLevelOver30     = std::clamp(mlvl - 30, 0, 30); // Calculation of the condition + 1HP each LVL after level 30
-    int32 mainLevelUpTo60     = (mlvl < 60 ? mlvl - 1 : 59);  // The first time spent up to level 60 (is also used for MP)
-    int32 mainLevelOver60To75 = std::clamp(mlvl - 60, 0, 15); // The second calculation mode after level 60
-    int32 mainLevelOver75     = (mlvl < 75 ? 0 : mlvl - 75);  // Third Calculation Mode after level 75
+    const int32 mainLevelOver30     = calculatestatshelpers::MainLevelOver30(mlvl);
+    const int32 mainLevelUpTo60     = calculatestatshelpers::MainLevelUpTo60(mlvl);
+    const int32 mainLevelOver60To75 = calculatestatshelpers::MainLevelOver60To75(mlvl);
+    const int32 mainLevelOver75     = calculatestatshelpers::MainLevelOver75(mlvl);
 
     // Calculation of the bonus amount of HP
 
-    int32 mainLevelOver10           = (mlvl < 10 ? 0 : mlvl - 10);  // + 2hp at each level after 10
-    int32 mainLevelOver50andUnder60 = std::clamp(mlvl - 50, 0, 10); // + 2hp at each level between 50 to 60 level
-    int32 mainLevelOver60           = (mlvl < 60 ? 0 : mlvl - 60);
+    const int32 mainLevelOver10           = calculatestatshelpers::MainLevelOver10(mlvl);
+    const int32 mainLevelOver50andUnder60 = calculatestatshelpers::MainLevelOver50AndUnder60(mlvl);
+    const int32 mainLevelOver60           = calculatestatshelpers::MainLevelOver60(mlvl);
 
     // HP calculation of an additional profession
 
-    int32 subLevelOver10 = std::clamp(slvl - 10, 0, 20); // + 1HP for each level after 10 (/ 2)
-    int32 subLevelOver30 = (slvl < 30 ? 0 : slvl - 30);  // + 1HP for each level after 30
+    const int32 subLevelOver10 = calculatestatshelpers::SubLevelOver10(slvl);
+    const int32 subLevelOver30 = calculatestatshelpers::SubLevelOver30(slvl);
 
     // Calculate Racestat Jobstat Bonusstat Sjobstat
     // Calculation of race
 
     grade = grade::GetRaceGrades(race, 0);
 
-    raceStat = grade::GetHPScale(grade, baseValueColumn) + (grade::GetHPScale(grade, scaleTo60Column) * mainLevelUpTo60) +
-               (grade::GetHPScale(grade, scaleOver30Column) * mainLevelOver30) + (grade::GetHPScale(grade, scaleOver60Column) * mainLevelOver60To75) +
-               (grade::GetHPScale(grade, scaleOver75Column) * mainLevelOver75);
+    raceStat = calculatestatshelpers::ComposeHPScale(
+        grade::GetHPScale(grade, calculatestatshelpers::BaseValueColumn),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleTo60Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver30Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver60Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver75Column),
+        mainLevelUpTo60,
+        mainLevelOver30,
+        mainLevelOver60To75,
+        mainLevelOver75);
 
     // Calculation on Main Job
     grade = grade::GetJobGrade(mjob, 0);
 
-    jobStat = grade::GetHPScale(grade, baseValueColumn) + (grade::GetHPScale(grade, scaleTo60Column) * mainLevelUpTo60) +
-              (grade::GetHPScale(grade, scaleOver30Column) * mainLevelOver30) + (grade::GetHPScale(grade, scaleOver60Column) * mainLevelOver60To75) +
-              (grade::GetHPScale(grade, scaleOver75Column) * mainLevelOver75);
+    jobStat = calculatestatshelpers::ComposeHPScale(
+        grade::GetHPScale(grade, calculatestatshelpers::BaseValueColumn),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleTo60Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver30Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver60Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver75Column),
+        mainLevelUpTo60,
+        mainLevelOver30,
+        mainLevelOver60To75,
+        mainLevelOver75);
 
     // Calculation of bonus HP.
-    bonusStat = (mainLevelOver10 + mainLevelOver50andUnder60) * 2;
+    bonusStat = calculatestatshelpers::BonusHPStat(mainLevelOver10, mainLevelOver50andUnder60);
 
     // Calculation on Support Job
     if (slvl > 0)
     {
         grade = grade::GetJobGrade(sjob, 0);
 
-        sJobStat = grade::GetHPScale(grade, baseValueColumn) + (grade::GetHPScale(grade, scaleTo60Column) * (slvl - 1)) +
-                   (grade::GetHPScale(grade, scaleOver30Column) * subLevelOver30) + subLevelOver30 + subLevelOver10;
-        sJobStat = sJobStat / 2;
+        sJobStat = calculatestatshelpers::ComposeSubJobHP(
+            grade::GetHPScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetHPScale(grade, calculatestatshelpers::ScaleTo60Column),
+            grade::GetHPScale(grade, calculatestatshelpers::ScaleOver30Column),
+            slvl,
+            subLevelOver30,
+            subLevelOver10);
     }
 
     uint16 MeritBonus   = PChar->PMeritPoints->GetMeritValue(MERIT_MAX_HP, PChar);
-    PChar->health.maxhp = (int16)(raceStat + jobStat + bonusStat + sJobStat + MeritBonus);
+    PChar->health.maxhp = calculatestatshelpers::FinalMaxHP(raceStat, jobStat, bonusStat, sJobStat, MeritBonus);
 
     // The beginning of the MP
 
@@ -341,38 +327,50 @@ void CalculateStats(CCharEntity* PChar)
     grade = grade::GetRaceGrades(race, 1);
 
     // If Main Job has no MP rating, we calculate a racial bonus based on the level of the subjob level (provided that he has a MP rating)
-    if (grade::GetJobGrade(mjob, 1) == 0)
+    if (calculatestatshelpers::ShouldUseSubLevelForRaceMP(grade::GetJobGrade(mjob, 1), grade::GetJobGrade(sjob, 1), slvl))
     {
-        if (grade::GetJobGrade(sjob, 1) != 0 && slvl > 0) // TODO: In this expression, an error
-        {
-            raceStat =
-                (grade::GetMPScale(grade, 0) + grade::GetMPScale(grade, scaleTo60Column) * (slvl - 1)) / settings::get<float>("map.SJ_MP_DIVISOR"); // TODO: Here is a mistake
-        }
+        raceStat = calculatestatshelpers::ComposeSubJobMP(
+            grade::GetMPScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetMPScale(grade, calculatestatshelpers::ScaleTo60Column),
+            slvl,
+            settings::get<float>("map.SJ_MP_DIVISOR")); // TODO: Here is a mistake (parity note retained)
     }
-    else
+    else if (grade::GetJobGrade(mjob, 1) != 0)
     {
         // Calculation of a normal racial bonus
-        raceStat = grade::GetMPScale(grade, 0) + grade::GetMPScale(grade, scaleTo60Column) * mainLevelUpTo60 +
-                   grade::GetMPScale(grade, scaleOver60) * mainLevelOver60;
+        raceStat = calculatestatshelpers::ComposeMPScale(
+            grade::GetMPScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetMPScale(grade, calculatestatshelpers::ScaleTo60Column),
+            grade::GetMPScale(grade, calculatestatshelpers::MPScaleOver60),
+            mainLevelUpTo60,
+            mainLevelOver60);
     }
 
     // Main Job
     grade = grade::GetJobGrade(mjob, 1);
     if (grade > 0)
     {
-        jobStat = grade::GetMPScale(grade, 0) + grade::GetMPScale(grade, scaleTo60Column) * mainLevelUpTo60 +
-                  grade::GetMPScale(grade, scaleOver60) * mainLevelOver60;
+        jobStat = calculatestatshelpers::ComposeMPScale(
+            grade::GetMPScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetMPScale(grade, calculatestatshelpers::ScaleTo60Column),
+            grade::GetMPScale(grade, calculatestatshelpers::MPScaleOver60),
+            mainLevelUpTo60,
+            mainLevelOver60);
     }
 
     // Subjob
     if (slvl > 0)
     {
         grade    = grade::GetJobGrade(sjob, 1);
-        sJobStat = (grade::GetMPScale(grade, 0) + grade::GetMPScale(grade, scaleTo60Column) * (slvl - 1)) / settings::get<float>("map.SJ_MP_DIVISOR");
+        sJobStat = calculatestatshelpers::ComposeSubJobMP(
+            grade::GetMPScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetMPScale(grade, calculatestatshelpers::ScaleTo60Column),
+            slvl,
+            settings::get<float>("map.SJ_MP_DIVISOR"));
     }
 
     MeritBonus          = PChar->PMeritPoints->GetMeritValue(MERIT_MAX_MP, PChar);
-    PChar->health.maxmp = (int16)(raceStat + jobStat + sJobStat + MeritBonus); // MP calculation result
+    PChar->health.maxmp = calculatestatshelpers::FinalMaxMP(raceStat, jobStat, sJobStat, MeritBonus); // MP calculation result
 
     // Start calculating Stats
 
@@ -382,37 +380,36 @@ void CalculateStats(CCharEntity* PChar)
     {
         // Calculation of race
         grade    = grade::GetRaceGrades(race, StatIndex);
-        raceStat = grade::GetStatScale(grade, 0) + grade::GetStatScale(grade, scaleTo60Column) * mainLevelUpTo60;
-
-        if (mainLevelOver60 > 0)
-        {
-            raceStat += grade::GetStatScale(grade, scaleOver60) * mainLevelOver60;
-
-            if (mainLevelOver75 > 0)
-            {
-                raceStat += grade::GetStatScale(grade, scaleOver75) * mainLevelOver75 - (mlvl >= 75 ? 0.01f : 0);
-            }
-        }
+        raceStat = calculatestatshelpers::ComposeStatScale(
+            grade::GetStatScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetStatScale(grade, calculatestatshelpers::ScaleTo60Column),
+            grade::GetStatScale(grade, calculatestatshelpers::MPScaleOver60),
+            grade::GetStatScale(grade, calculatestatshelpers::StatScaleOver75),
+            mainLevelUpTo60,
+            mainLevelOver60,
+            mainLevelOver75,
+            mlvl);
 
         // Calculation by profession
         grade   = grade::GetJobGrade(mjob, StatIndex);
-        jobStat = grade::GetStatScale(grade, 0) + grade::GetStatScale(grade, scaleTo60Column) * mainLevelUpTo60;
-
-        if (mainLevelOver60 > 0)
-        {
-            jobStat += grade::GetStatScale(grade, scaleOver60) * mainLevelOver60;
-
-            if (mainLevelOver75 > 0)
-            {
-                jobStat += grade::GetStatScale(grade, scaleOver75) * mainLevelOver75 - (mlvl >= 75 ? 0.01f : 0);
-            }
-        }
+        jobStat = calculatestatshelpers::ComposeStatScale(
+            grade::GetStatScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetStatScale(grade, calculatestatshelpers::ScaleTo60Column),
+            grade::GetStatScale(grade, calculatestatshelpers::MPScaleOver60),
+            grade::GetStatScale(grade, calculatestatshelpers::StatScaleOver75),
+            mainLevelUpTo60,
+            mainLevelOver60,
+            mainLevelOver75,
+            mlvl);
 
         // Calculation for an additional profession
         if (slvl > 0)
         {
             grade    = grade::GetJobGrade(sjob, StatIndex);
-            sJobStat = (grade::GetStatScale(grade, 0) + grade::GetStatScale(grade, scaleTo60Column) * (slvl - 1)) / 2;
+            sJobStat = calculatestatshelpers::ComposeSubJobStat(
+                grade::GetStatScale(grade, calculatestatshelpers::BaseValueColumn),
+                grade::GetStatScale(grade, calculatestatshelpers::ScaleTo60Column),
+                slvl);
         }
         else
         {
@@ -423,7 +420,7 @@ void CalculateStats(CCharEntity* PChar)
         MeritBonus = PChar->PMeritPoints->GetMeritValue(statMerit[StatIndex - 2], PChar);
 
         // Value output
-        ref<uint16>(&PChar->stats, counter) = (uint16)(raceStat + jobStat + sJobStat + MeritBonus);
+        ref<uint16>(&PChar->stats, counter) = calculatestatshelpers::FinalBaseStat(raceStat, jobStat, sJobStat, MeritBonus);
         counter += 2;
     }
 }

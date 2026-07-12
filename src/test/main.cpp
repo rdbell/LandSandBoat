@@ -422,6 +422,7 @@ auto runExpDistribute1502SelfTests() -> bool;
 auto runExpAward1504SelfTests() -> bool;
 auto runExpLoss1505SelfTests() -> bool;
 auto runSkillUp1506SelfTests() -> bool;
+auto runCalculateStats1507SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1054,6 +1055,7 @@ namespace
         ok = runExpAward1504SelfTests() && ok;
         ok = runExpLoss1505SelfTests() && ok;
         ok = runSkillUp1506SelfTests() && ok;
+        ok = runCalculateStats1507SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
