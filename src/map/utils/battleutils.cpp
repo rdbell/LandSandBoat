@@ -49,6 +49,7 @@
 #include "entity_equip_capacity.h"
 #include "weather_matches_capacity.h"
 #include "barrage_capacity.h"
+#include "scaled_item_modifier_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -5729,53 +5730,17 @@ int32 GetMeritValue(CBattleEntity* PEntity, MERIT_TYPE merit)
 
 int32 GetScaledItemModifier(CBattleEntity* PEntity, CItemEquipment* PItem, Mod mod)
 {
-    if (!PEntity || !PItem)
+    if (scaleditemmodifierhelpers::ShouldRejectNull(PEntity == nullptr, PItem == nullptr))
     {
         ShowWarning("battleutils::GetScaledItemModifier() - PEntity or PItem received as null.");
         return 0;
     }
 
-    if (PEntity->GetMLevel() < PItem->getReqLvl())
-    {
-        auto modAmount = PItem->getModifier(mod);
-        switch (mod)
-        {
-            case Mod::DEF:
-            case Mod::MAIN_DMG_RATING:
-            case Mod::SUB_DMG_RATING:
-            case Mod::RANGED_DMG_RATING:
-                modAmount *= 3;
-                modAmount /= 4;
-                break;
-            case Mod::HP:
-            case Mod::MP:
-                modAmount /= 2;
-                break;
-            case Mod::STR:
-            case Mod::DEX:
-            case Mod::VIT:
-            case Mod::AGI:
-            case Mod::INT:
-            case Mod::MND:
-            case Mod::CHR:
-            case Mod::ATT:
-            case Mod::RATT:
-            case Mod::ACC:
-            case Mod::RACC:
-            case Mod::MATT:
-            case Mod::MACC:
-                modAmount /= 3;
-                break;
-            default:
-                modAmount = 0;
-                break;
-        }
-        return modAmount / PItem->getReqLvl();
-    }
-    else
-    {
-        return PItem->getModifier(mod);
-    }
+    return scaleditemmodifierhelpers::ScaledItemModifier(
+        PEntity->GetMLevel(),
+        PItem->getReqLvl(),
+        mod,
+        PItem->getModifier(mod));
 }
 
 auto GetSpikesDamageType(const ActionReactKind spikesType) -> xi::DamageType

@@ -850,6 +850,8 @@ set(SOURCES
     test_weather_matches_1543.cpp
     test_barrage_1544.h
     test_barrage_1544.cpp
+    test_scaled_item_modifier_1545.h
+    test_scaled_item_modifier_1545.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
