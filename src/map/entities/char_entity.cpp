@@ -36,6 +36,7 @@
 #include "char_ability_recast_capacity.h"
 #include "char_ability_stealth_capacity.h"
 #include "char_ability_paralyze_capacity.h"
+#include "char_activity_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -602,14 +603,12 @@ bool CCharEntity::hasAutoTargetEnabled() const
 
 auto CCharEntity::isCrafting() const -> bool
 {
-    return animation == ANIMATION_SYNTH || this->activeTransaction<SynthTransaction>();
+    return charactivityhelpers::IsCrafting(animation, this->activeTransaction<SynthTransaction>() != nullptr);
 }
 
 auto CCharEntity::isFishing() const -> bool
 {
-    return (animation >= ANIMATION_FISHING_FISH && animation <= ANIMATION_FISHING_STOP) ||
-           animation == ANIMATION_FISHING_START_OLD ||
-           animation == ANIMATION_FISHING_START;
+    return charactivityhelpers::IsFishing(animation);
 }
 
 void CCharEntity::setPetZoningInfo()
