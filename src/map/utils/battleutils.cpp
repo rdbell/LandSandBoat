@@ -45,6 +45,7 @@
 #include "trick_attack_capacity.h"
 #include "draw_in_capacity.h"
 #include "enspell_damage_tails_capacity.h"
+#include "weather_get_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -4808,7 +4809,8 @@ ELEMENT GetDayElement()
 
 auto GetWeather(CBattleEntity* PEntity, bool ignoreScholar) -> Weather
 {
-    if (PEntity == nullptr || zoneutils::GetZone(PEntity->getZone()) == nullptr)
+    if (weathergethelpers::ShouldReturnNoneWeather(
+            PEntity != nullptr, zoneutils::GetZone(PEntity ? PEntity->getZone() : 0) != nullptr))
     {
         return Weather::None;
     }
@@ -4818,7 +4820,7 @@ auto GetWeather(CBattleEntity* PEntity, bool ignoreScholar) -> Weather
 
 auto GetWeather(CBattleEntity* PEntity, bool ignoreScholar, Weather zoneWeather) -> Weather
 {
-    if (PEntity == nullptr)
+    if (weathergethelpers::ShouldReturnNoneWeather(PEntity != nullptr, true))
     {
         return Weather::None;
     }
@@ -4827,52 +4829,19 @@ auto GetWeather(CBattleEntity* PEntity, bool ignoreScholar, Weather zoneWeather)
 
     if (!ignoreScholar) // Do not need to check for status effects if we're ignoring scholar spells
     {
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Firestorm))
-        {
-            scholarSpell = Weather::HotSpell;
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Rainstorm))
-        {
-            scholarSpell = Weather::Rain;
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sandstorm))
-        {
-            scholarSpell = Weather::DustStorm;
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Windstorm))
-        {
-            scholarSpell = Weather::Wind;
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hailstorm))
-        {
-            scholarSpell = Weather::Snow;
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Thunderstorm))
-        {
-            scholarSpell = Weather::Thunder;
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Aurorastorm))
-        {
-            scholarSpell = Weather::Auroras;
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Voidstorm))
-        {
-            scholarSpell = Weather::Gloom;
-        }
+        weathergethelpers::ScholarStorms storms{};
+        storms.firestorm    = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Firestorm);
+        storms.rainstorm    = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Rainstorm);
+        storms.sandstorm    = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sandstorm);
+        storms.windstorm    = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Windstorm);
+        storms.hailstorm    = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hailstorm);
+        storms.thunderstorm = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Thunderstorm);
+        storms.aurorastorm  = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Aurorastorm);
+        storms.voidstorm    = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Voidstorm);
+        scholarSpell        = weathergethelpers::ScholarWeatherFromStorms(storms);
     }
 
-    if (ignoreScholar || scholarSpell == Weather::None || static_cast<uint16_t>(zoneWeather) == (static_cast<uint16_t>(scholarSpell) + 1))
-    { // Strong weather overwrites scholar spell weak weather
-        return zoneWeather;
-    }
-    else if (scholarSpell == zoneWeather)
-    {
-        return static_cast<Weather>(static_cast<uint16_t>(zoneWeather) + 1); // Storm spells stack with weather
-    }
-    else
-    {
-        return scholarSpell;
-    }
+    return weathergethelpers::ResolveWeather(zoneWeather, scholarSpell, ignoreScholar);
 }
 
 auto WeatherMatchesElement(const Weather weather, const uint8 element) -> bool
