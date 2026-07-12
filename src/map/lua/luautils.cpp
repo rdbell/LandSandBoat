@@ -76,6 +76,7 @@
 #include "action/action.h"
 #include "battlefield.h"
 #include "can_use_spell_capacity.h"
+#include "chocobo_dig_capacity.h"
 #include "garrison_membership_capacity.h"
 #include "gear_sets_capacity.h"
 #include "job_points.h"
@@ -372,6 +373,8 @@ void init(IPP mapIPP, bool smokeLuaFiles)
     lua.set_function("SetGarrisonZonePlayers", &luautils::SetGarrisonZonePlayers);
     lua.set_function("ClearGarrisonZonePlayers", &luautils::ClearGarrisonZonePlayers);
     lua.set_function("IsPlayerInGarrison", &luautils::IsPlayerInGarrison);
+    lua.set_function("DigIsAllowedZone", &luautils::DigIsAllowedZone);
+    lua.set_function("DigCooldownsReady", &luautils::DigCooldownsReady);
     lua.set_function("JstMidnight", &luautils::JstMidnight);
     lua.set_function("JstDayOfTheYear", &luautils::JstDayOfTheYear);
     lua.set_function("JstDayOfTheMonth", &luautils::JstDayOfTheMonth);
@@ -2006,6 +2009,16 @@ void ClearGarrisonZonePlayers(uint16 zoneId)
 auto IsPlayerInGarrison(uint16 zoneId, uint32 playerId) -> bool
 {
     return garrisonmembershiphelpers::IsPlayerInGarrison(zoneId, playerId);
+}
+
+auto DigIsAllowedZone(uint16 zoneId) -> bool
+{
+    return chocobodighelpers::IsDiggingZone(zoneId);
+}
+
+auto DigCooldownsReady(int64 currentTime, int64 zoneInTime, int64 lastDigTime, uint8 skillRank) -> bool
+{
+    return chocobodighelpers::CooldownsReady(currentTime, zoneInTime, lastDigTime, skillRank);
 }
 
 /************************************************************************

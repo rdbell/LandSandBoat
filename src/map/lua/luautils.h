@@ -240,6 +240,10 @@ void SetGarrisonZonePlayers(uint16 zoneId, const sol::table& playerIds);
 void ClearGarrisonZonePlayers(uint16 zoneId);
 auto IsPlayerInGarrison(uint16 zoneId, uint32 playerId) -> bool;
 
+// Chocobo dig pure gates (slice 1595).
+auto DigIsAllowedZone(uint16 zoneId) -> bool;
+auto DigCooldownsReady(int64 currentTime, int64 zoneInTime, int64 lastDigTime, uint8 skillRank) -> bool;
+
 uint32 JstDayOfTheYear();
 uint32 JstDayOfTheMonth();
 uint32 JstDayOfTheWeek();

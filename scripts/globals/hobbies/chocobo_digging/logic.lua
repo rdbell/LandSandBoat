@@ -122,26 +122,22 @@ local diggingDayTable =
 }
 
 -- This function handles zone and cooldown checks before digging can be attempted, before any animation is sent.
+-- Pure capacity: DigIsAllowedZone / DigCooldownsReady (chocobo_dig_capacity.h; slice 1595).
 local function checkDiggingCooldowns(player)
-    -- Check if current zone has digging enabled.
-    local isAllowedZone = diggingZoneList[player:getZoneID()] or false
+    local zoneID = player:getZoneID()
 
-    if not isAllowedZone then
+    if not DigIsAllowedZone(zoneID) then
         player:messageBasic(xi.msg.basic.WAIT_LONGER, 0, 0)
 
         return false
     end
 
-    -- Check digging cooldowns.
-    local currentTime  = GetSystemTime()
-    local skillRank    = player:getSkillRank(xi.skill.DIG)
-    local zoneCooldown = player:getLocalVar('ZoneInTime') + utils.clamp(60 - skillRank * 5, 10, 60)
-    local digCooldown  = player:getLocalVar('[DIG]LastDigTime') + utils.clamp(15 - skillRank * 5, 3, 16)
+    local currentTime = GetSystemTime()
+    local skillRank   = player:getSkillRank(xi.skill.DIG)
+    local zoneInTime  = player:getLocalVar('ZoneInTime')
+    local lastDigTime = player:getLocalVar('[DIG]LastDigTime')
 
-    if
-        currentTime < zoneCooldown or
-        currentTime < digCooldown
-    then
+    if not DigCooldownsReady(currentTime, zoneInTime, lastDigTime, skillRank) then
         player:messageBasic(xi.msg.basic.WAIT_LONGER, 0, 0)
 
         return false
