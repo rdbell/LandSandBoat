@@ -401,6 +401,7 @@ auto runCharTimedDeath1481SelfTests() -> bool;
 auto runCharRaiseComplete1482SelfTests() -> bool;
 auto runCharIsMobOwner1483SelfTests() -> bool;
 auto runCharAbilityPreflight1484SelfTests() -> bool;
+auto runCharAbilityRecast1485SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1012,6 +1013,7 @@ namespace
         ok = runCharRaiseComplete1482SelfTests() && ok;
         ok = runCharIsMobOwner1483SelfTests() && ok;
         ok = runCharAbilityPreflight1484SelfTests() && ok;
+        ok = runCharAbilityRecast1485SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

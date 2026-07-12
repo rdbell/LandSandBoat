@@ -33,6 +33,7 @@
 #include "char_raise_complete_capacity.h"
 #include "char_is_mob_owner_capacity.h"
 #include "char_ability_preflight_capacity.h"
+#include "char_ability_recast_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1613,70 +1614,46 @@ void CCharEntity::OnAbility(CAbilityState& state, action_t& action)
     std::unique_ptr<CBasicPacket> errMsg;
     if (IsValidTarget(PTarget->targid, PAbility->getValidTarget(), errMsg))
     {
-        // get any available recast reduction
-        // TODO: this is DIFFERENT than gear reduction mod which is a static reduction for the entire ability!
-        auto recastReduction = 0s;
+        // Recast planning pure half (merit/charge/tabula/BP). Charge pointer retained for ApplyAbilityRecast.
+        // TODO: gear Recast- mod is a separate static reduction path not covered here.
+        auto* charge = ability::GetCharge(this, static_cast<uint16>(PAbility->getRecastId()));
 
+        std::int32_t meritRecastReductionSec = 0;
         if (PAbility->getMeritModID() > 0 && !(PAbility->getAddType() & ADDTYPE_MERIT))
         {
-            recastReduction = std::chrono::seconds(PMeritPoints->GetMeritValue((MERIT_TYPE)PAbility->getMeritModID(), this));
+            meritRecastReductionSec = PMeritPoints->GetMeritValue(static_cast<MERIT_TYPE>(PAbility->getMeritModID()), this);
         }
 
-        auto* charge         = ability::GetCharge(this, static_cast<uint16>(PAbility->getRecastId()));
-        auto  baseChargeTime = 0ns; // this can be reduced with merits/job point gifts. NOT the same as Recast- gear (so far...)
-
-        if (charge && PAbility->getID() != ABILITY_SIC)
+        std::int16_t avatarsFavorPower = 0;
+        if (CStatusEffect* avatarsFavor = this->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AvatarsFavor))
         {
-            auto chargesUsed = timer::count_seconds(PAbility->getRecastTime()); // charge cost is stored in the recast...
-
-            //  Can't assign merits via ability ID for Sic/Ready due to shenanigans
-            if (PAbility->getRecastId() == Recast::Sic) // Sic/Ready recast ID
-            {
-                recastReduction = std::chrono::seconds(PMeritPoints->GetMeritValue(MERIT_SIC_RECAST, this));
-            }
-            else if (PAbility->getRecastId() == Recast::Strategems)
-            {
-                recastReduction += std::chrono::seconds(this->getMod(Mod::STRATAGEM_RECAST));
-            }
-
-            baseChargeTime = charge->chargeTime - recastReduction;
-
-            action.recast = baseChargeTime * chargesUsed;
-        }
-        else
-        {
-            action.recast = PAbility->getRecastTime() - recastReduction;
+            avatarsFavorPower = avatarsFavor->GetPower();
         }
 
-        if (PAbility->getID() == ABILITY_LIGHT_ARTS || PAbility->getID() == ABILITY_DARK_ARTS || PAbility->getRecastId() == Recast::Strategems)
+        const auto recastPlan = charabilityrecasthelpers::BuildInitial({
+            .abilityID               = PAbility->getID(),
+            .recastID                = static_cast<uint16>(PAbility->getRecastId()),
+            .addType                 = PAbility->getAddType(),
+            .meritModID              = PAbility->getMeritModID(),
+            .meritRecastReductionSec = meritRecastReductionSec,
+            .hasCharge               = charge != nullptr,
+            .chargeTimeSec           = charge != nullptr ? timer::count_seconds(charge->chargeTime) : 0,
+            .abilityRecastSec        = timer::count_seconds(PAbility->getRecastTime()),
+            .sicMeritReductionSec    = PMeritPoints->GetMeritValue(MERIT_SIC_RECAST, this),
+            .strategemRecastModSec   = this->getMod(Mod::STRATAGEM_RECAST),
+            .hasTabulaRasa           = this->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TabulaRasa),
+            .bpDelayMod              = this->getMod(Mod::BP_DELAY),
+            .bpDelayIIMod            = this->getMod(Mod::BP_DELAY_II),
+            .avatarsFavorPower       = avatarsFavorPower,
+        });
+
+        auto baseChargeTime = std::chrono::seconds(recastPlan.baseChargeTimeSec);
+        action.recast       = std::chrono::seconds(recastPlan.recastSec);
+        if (recastPlan.setBPRecastTime)
         {
-            if (this->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TabulaRasa))
-            {
-                action.recast  = 0s;
-                baseChargeTime = 0s;
-            }
-        }
-        else if (PAbility->getRecastId() == Recast::BloodPactRage || PAbility->getRecastId() == Recast::BloodPactWard)
-        {
-            uint16 favorReduction          = 0;
-            uint16 bloodPact_I_Reduction   = std::min<int16>(getMod(Mod::BP_DELAY), 15);
-            uint16 bloodPact_II_Reduction  = std::min<int16>(getMod(Mod::BP_DELAY_II), 15);
-            uint16 bloodPact_III_Reduction = 0; // std::min<int16>(getMod(Mod::BP_DELAY_III, 10); TODO: BP Delay III (SMN JP gift) not implemented
-
-            CStatusEffect* avatarsFavor = this->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AvatarsFavor);
-            if (avatarsFavor)
-            {
-                favorReduction = std::min<int16>(avatarsFavor->GetPower(), 10);
-            }
-
-            int16 bloodPactDelayReduction = favorReduction + std::min<int16>(bloodPact_I_Reduction + bloodPact_II_Reduction + bloodPact_III_Reduction, 30);
-
             // Localvar will set the BP ability timer when the move consumes MP
             // The delay is snapshot when the player uses the ability: https://www.bg-wiki.com/ffxi/Blood_Pact_Ability_Delay
-            this->SetLocalVar("bpRecastTime", static_cast<uint16>(timer::count_seconds(std::max<timer::duration>(0s, action.recast - std::chrono::seconds(bloodPactDelayReduction)))));
-
-            // Recast is actually triggered when the bp goes off (no recast packet at all on using a bp and the target moving out of range of the pet)
-            action.recast = 0s;
+            this->SetLocalVar("bpRecastTime", recastPlan.bpRecastTime);
         }
 
         // Check paralysis and consume recast for non-SP abilities
@@ -1717,19 +1694,14 @@ void CCharEntity::OnAbility(CAbilityState& state, action_t& action)
             }
         }
 
-        if (PAbility->getID() == ABILITY_REWARD)
         {
             CItem* PItem = getEquip(SLOT_HEAD);
-            if (PItem && (PItem->getID() == 15157 || PItem->getID() == 15158 || PItem->getID() == 16104 || PItem->getID() == 16105))
-            {
-                // TODO: Transform this into an item Mod::REWARD_RECAST perhaps ?
-                // The Bison/Brave's Warbonnet & Khimaira/Stout Bonnet reduces recast time by 10 seconds.
-                action.recast -= 10s; // remove 10 seconds
-            }
-        }
-        else if (PAbility->getID() == ABILITY_READY || PAbility->getID() == ABILITY_SIC)
-        {
-            action.recast = std::max<timer::duration>(0s, action.recast - std::chrono::seconds(getMod(Mod::SIC_READY_RECAST)));
+            const bool rewardHead = PItem != nullptr && charabilityrecasthelpers::IsRewardRecastHead(PItem->getID());
+            action.recast = std::chrono::seconds(charabilityrecasthelpers::AdjustPostParalysis(
+                timer::count_seconds(action.recast),
+                PAbility->getID(),
+                rewardHead,
+                this->getMod(Mod::SIC_READY_RECAST)));
         }
 
         action.actorId    = this->id;
