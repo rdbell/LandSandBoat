@@ -52,6 +52,7 @@
 #include "char_post_tick_refresh_capacity.h"
 #include "char_post_tick_update_capacity.h"
 #include "char_resource_capacity.h"
+#include "char_runtime_state_capacity.h"
 #include "char_start_synth_capacity.h"
 #include "char_storage_capacity.h"
 #include "char_tick_capacity.h"
@@ -776,17 +777,17 @@ auto CCharEntity::aman() -> CAMANContainer&
 
 auto CCharEntity::lastProposalCloseTime() const -> timer::time_point
 {
-    return lastProposalCloseTime_;
+    return charruntimestatehelpers::Get(lastProposalCloseTime_);
 }
 
 void CCharEntity::setLastProposalCloseTime(timer::time_point t)
 {
-    lastProposalCloseTime_ = t;
+    charruntimestatehelpers::Set(lastProposalCloseTime_, t);
 }
 
 auto CCharEntity::inMogHouse() const -> bool
 {
-    return m_moghouseID != 0;
+    return charruntimestatehelpers::InMogHouse(m_moghouseID);
 }
 
 auto CCharEntity::gmCallContainer() -> GMCallContainer&
@@ -872,22 +873,22 @@ int32 CCharEntity::addMP(int32 mp)
 
 bool CCharEntity::getStyleLocked() const
 {
-    return m_isStyleLocked;
+    return charruntimestatehelpers::Get(m_isStyleLocked);
 }
 
 void CCharEntity::setStyleLocked(bool isStyleLocked)
 {
-    m_isStyleLocked = isStyleLocked;
+    charruntimestatehelpers::Set(m_isStyleLocked, isStyleLocked);
 }
 
 bool CCharEntity::getBlockingAid() const
 {
-    return m_isBlockingAid;
+    return charruntimestatehelpers::Get(m_isBlockingAid);
 }
 
 void CCharEntity::setBlockingAid(bool isBlockingAid)
 {
-    m_isBlockingAid = isBlockingAid;
+    charruntimestatehelpers::Set(m_isBlockingAid, isBlockingAid);
 }
 
 void CCharEntity::SetPlayTime(timer::duration playTime)

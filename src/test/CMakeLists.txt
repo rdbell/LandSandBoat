@@ -702,6 +702,8 @@ set(SOURCES
     test_char_packet_queue_1468.cpp
     test_char_entity_update_1469.h
     test_char_entity_update_1469.cpp
+    test_char_runtime_state_1470.h
+    test_char_runtime_state_1470.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
