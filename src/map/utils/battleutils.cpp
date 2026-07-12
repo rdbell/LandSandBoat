@@ -43,6 +43,7 @@
 #include "enspell_handle_capacity.h"
 #include "skillchain_effect_capacity.h"
 #include "trick_attack_capacity.h"
+#include "draw_in_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -5026,22 +5027,20 @@ auto WeatherMatchesElement(const Weather weather, const uint8 element) -> bool
 
 void DrawIn(CBattleEntity* PTarget, const position_t pos, const float offset, const float degrees)
 {
-    const float radian     = degrees * (M_PI / 180.0f);
+    const float radian     = drawinhelpers::DegreesToRadians(degrees);
     position_t  nearEntity = nearPosition(pos, offset, radian);
 
     // Target may be in the middle of zoning (Alliance-based Draw-In)
-    if (!PTarget->loc.zone)
+    if (drawinhelpers::ShouldAbortDrawInNoZone(PTarget->loc.zone != nullptr))
     {
         return;
     }
 
     // If geometry blocks the path from the source eyeline to the draw-in point, abort the
     // draw-in - navmesh snapToValidPosition below will handle snapping to a valid position.
-    constexpr float ENTITY_HEIGHT = 2.0f;
-
-    const auto src = Vector3{ pos.x, pos.y - ENTITY_HEIGHT, pos.z };
+    const auto src = Vector3{ pos.x, drawinhelpers::DrawInRaySourceY(pos.y), pos.z };
     const auto dst = Vector3{ nearEntity.x, nearEntity.y, nearEntity.z };
-    if (PTarget->loc.zone->xiMesh()->rayIntersect(src, dst))
+    if (drawinhelpers::ShouldAbortDrawInRayBlock(PTarget->loc.zone->xiMesh()->rayIntersect(src, dst)))
     {
         return;
     }
@@ -5050,22 +5049,16 @@ void DrawIn(CBattleEntity* PTarget, const position_t pos, const float offset, co
     PTarget->loc.zone->navMesh()->snapToValidPosition(nearEntity);
 
     // Move the target a little higher, just in case
-    nearEntity.y -= 1.0f;
+    nearEntity.y = drawinhelpers::DrawInAfterSnapY(nearEntity.y);
 
-    if (PTarget->status != STATUS_TYPE::CUTSCENE_ONLY)
+    if (drawinhelpers::ShouldApplyDrawInMove(
+            PTarget->status == STATUS_TYPE::CUTSCENE_ONLY,
+            PTarget->isDead(),
+            PTarget->isMounted()))
     {
-        // don't draw in dead players for now!
-        // see tractor
-        if (PTarget->isDead() || PTarget->isMounted())
-        {
-            // don't do anything
-        }
-        else
-        {
-            // draw in!
-            PTarget->loc.zone->PushPacket(PTarget, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_WPOS>(PTarget, nearEntity));
-            PTarget->loc.zone->PushPacket(PTarget, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PTarget, PTarget, 0, 0, MsgBasic::DrawnIn));
-        }
+        // draw in!
+        PTarget->loc.zone->PushPacket(PTarget, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_WPOS>(PTarget, nearEntity));
+        PTarget->loc.zone->PushPacket(PTarget, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PTarget, PTarget, 0, 0, MsgBasic::DrawnIn));
     }
 }
 

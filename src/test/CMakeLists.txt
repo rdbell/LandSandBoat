@@ -838,6 +838,8 @@ set(SOURCES
     test_skillchain_effect_1537.cpp
     test_trick_attack_1538.h
     test_trick_attack_1538.cpp
+    test_draw_in_1539.h
+    test_draw_in_1539.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
