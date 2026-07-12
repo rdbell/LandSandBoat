@@ -852,6 +852,8 @@ set(SOURCES
     test_barrage_1544.cpp
     test_scaled_item_modifier_1545.h
     test_scaled_item_modifier_1545.cpp
+    test_spell_cost_1546.h
+    test_spell_cost_1546.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

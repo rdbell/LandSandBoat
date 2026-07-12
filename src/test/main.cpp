@@ -461,6 +461,7 @@ auto runEntityEquip1542SelfTests() -> bool;
 auto runWeatherMatches1543SelfTests() -> bool;
 auto runBarrage1544SelfTests() -> bool;
 auto runScaledItemModifier1545SelfTests() -> bool;
+auto runSpellCost1546SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1132,6 +1133,7 @@ namespace
         ok = runWeatherMatches1543SelfTests() && ok;
         ok = runBarrage1544SelfTests() && ok;
         ok = runScaledItemModifier1545SelfTests() && ok;
+        ok = runSpellCost1546SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

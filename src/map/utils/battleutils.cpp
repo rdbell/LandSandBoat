@@ -50,6 +50,7 @@
 #include "weather_matches_capacity.h"
 #include "barrage_capacity.h"
 #include "scaled_item_modifier_capacity.h"
+#include "spell_cost_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -5364,73 +5365,34 @@ timer::duration CalculateSpellCastTime(CBattleEntity* PEntity, CMagicState* PMag
 
 uint16 CalculateSpellCost(CBattleEntity* PEntity, CSpell* PSpell)
 {
-    if (PSpell == nullptr)
+    if (spellcosthelpers::ShouldReturnZeroNullSpell(PSpell == nullptr))
     {
         ShowWarning("battleutils::CalculateMPCost Spell is nullptr");
         return 0;
     }
 
     // ninja tools or bard song
-    if (!PSpell->hasMPCost())
+    if (spellcosthelpers::ShouldReturnZeroNoMPCost(PSpell->hasMPCost()))
     {
         return 0;
     }
 
-    bool   applyArts = true;
-    uint16 base      = PSpell->getMPCost();
-    if (PSpell->getID() == SpellID::Embrava || PSpell->getID() == SpellID::Kaustra) // Embrava/Kaustra
-    {
-        base = (uint16)(PEntity->health.maxmp * 0.2);
-    }
+    const bool noMPDepletion = xirand::GetRandomNumber(100) < PEntity->getMod(Mod::NO_SPELL_MP_DEPLETION);
 
-    int16 cost = base;
-
-    if (PSpell->getSpellGroup() == SPELLGROUP_BLACK)
-    {
-        if (PSpell->getAOE() == SPELLAOE_RADIAL_MANI && PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Manifestation))
-        {
-            cost *= 2;
-            applyArts = false;
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Parsimony))
-        {
-            cost /= 2;
-            applyArts = false;
-        }
-        else if (applyArts)
-        {
-            cost += (int16)(base * (PEntity->getMod(Mod::BLACK_MAGIC_COST) / 100.0f));
-        }
-    }
-    else if (PSpell->getSpellGroup() == SPELLGROUP_WHITE)
-    {
-        if (PSpell->getAOE() == SPELLAOE_RADIAL_ACCE && PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Accession))
-        {
-            cost *= 2;
-            applyArts = false;
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Penury))
-        {
-            cost /= 2;
-            applyArts = false;
-        }
-        else if (applyArts)
-        {
-            cost += (int16)(base * (PEntity->getMod(Mod::WHITE_MAGIC_COST) / 100.0f));
-        }
-    }
-
-    const auto mpCostReduction = PEntity->getMod(Mod::MP_COST_REDUCTION);
-    if (mpCostReduction > 0)
-    {
-        cost = cost * (1.f - static_cast<float>(mpCostReduction) / 100.f);
-    }
-
-    if (xirand::GetRandomNumber(100) < (PEntity->getMod(Mod::NO_SPELL_MP_DEPLETION)))
-    {
-        cost = 0;
-    }
-    return std::clamp<int16>(cost, 0, 9999);
+    return spellcosthelpers::CalculateSpellCost(
+        static_cast<std::uint16_t>(PSpell->getID()),
+        static_cast<std::uint16_t>(PSpell->getSpellGroup()),
+        static_cast<std::uint8_t>(PSpell->getAOE()),
+        PSpell->getMPCost(),
+        static_cast<std::uint16_t>(PEntity->health.maxmp),
+        PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Manifestation),
+        PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Parsimony),
+        PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Accession),
+        PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Penury),
+        PEntity->getMod(Mod::BLACK_MAGIC_COST),
+        PEntity->getMod(Mod::WHITE_MAGIC_COST),
+        PEntity->getMod(Mod::MP_COST_REDUCTION),
+        noMPDepletion);
 }
 
 bool CanAffordSpell(CBattleEntity* PEntity, CSpell* PSpell, uint8 flags)
