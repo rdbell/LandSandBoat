@@ -670,49 +670,33 @@ void CalculateAvatarStats(CBattleEntity* PMaster, CPetEntity* PPet)
 
     PPet->m_SpellListContainer = mobSpellList::GetMobSpellList(PPetData->spellList);
 
-    PPet->setModifier(Mod::DMGPHYS, -5000); //-50% PDT
-
-    PPet->setModifier(Mod::CRIT_DMG_INCREASE, 8); // Avatars have Crit Att Bonus II for +8 crit dmg
-
-    if (mLvl >= 70)
-    {
-        PPet->setModifier(Mod::MATT, 32);
-    }
-    else if (mLvl >= 50)
-    {
-        PPet->setModifier(Mod::MATT, 28);
-    }
-    else if (mLvl >= 30)
-    {
-        PPet->setModifier(Mod::MATT, 24);
-    }
-    else if (mLvl >= 10)
-    {
-        PPet->setModifier(Mod::MATT, 20);
-    }
+    // Pure combat tails (avatar_stats_capacity.h; slice 1604).
+    PPet->setModifier(Mod::DMGPHYS, avatarstatshelpers::PhysicalDamageTaken); //-50% PDT
+    PPet->setModifier(Mod::CRIT_DMG_INCREASE, avatarstatshelpers::CritDamageIncrease); // Crit Att Bonus II
+    PPet->setModifier(Mod::MATT, avatarstatshelpers::MagicAttack(mLvl));
 
     static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setDelay(PPetData->cmbDelay);
     static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setBaseDelay(PPetData->cmbDelay);
-    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_RANGED])->setBaseDelay(360); // Used for titan's ranged skills TP returns.
+    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_RANGED])->setBaseDelay(avatarstatshelpers::RangedBaseDelay); // Titan ranged TP returns
 
     // In a 2014 update SE updated Avatar base damage
-    uint16 weaponDamage = mLvl + 2;
+    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setDamage(avatarstatshelpers::WeaponDamage(mLvl));
 
-    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setDamage(weaponDamage);
+    const uint8 skillLvl = avatarstatshelpers::SkillCapLevel(mLvl);
 
     // Set B+ weapon skill (assumed capped for level derp)
     // attack is madly high for avatars (roughly x2)
-    PPet->setModifier(Mod::ATT, 2 * battleutils::GetMaxSkill(SKILL_CLUB, JOB_WHM, mLvl > 99 ? 99 : mLvl));
-    PPet->setModifier(Mod::ACC, battleutils::GetMaxSkill(SKILL_CLUB, JOB_WHM, mLvl > 99 ? 99 : mLvl));
+    PPet->setModifier(Mod::ATT, avatarstatshelpers::AttackFromSkill(battleutils::GetMaxSkill(SKILL_CLUB, JOB_WHM, skillLvl)));
+    PPet->setModifier(Mod::ACC, battleutils::GetMaxSkill(SKILL_CLUB, JOB_WHM, skillLvl));
 
     // Set E evasion and def
-    PPet->setModifier(Mod::EVA, battleutils::GetMaxSkill(SKILL_THROWING, JOB_WHM, mLvl > 99 ? 99 : mLvl));
-    PPet->setModifier(Mod::DEF, battleutils::GetMaxSkill(SKILL_THROWING, JOB_WHM, mLvl > 99 ? 99 : mLvl));
+    PPet->setModifier(Mod::EVA, battleutils::GetMaxSkill(SKILL_THROWING, JOB_WHM, skillLvl));
+    PPet->setModifier(Mod::DEF, battleutils::GetMaxSkill(SKILL_THROWING, JOB_WHM, skillLvl));
 
     // cap all magic skills so they play nice with spell scripts
     for (int i = SKILL_DIVINE_MAGIC; i <= SKILL_BLUE_MAGIC; i++)
     {
-        uint16 maxSkill = battleutils::GetMaxSkill((SKILLTYPE)i, PPet->GetMJob(), mLvl > 99 ? 99 : mLvl);
+        uint16 maxSkill = battleutils::GetMaxSkill((SKILLTYPE)i, PPet->GetMJob(), skillLvl);
         if (maxSkill != 0)
         {
             PPet->WorkingSkills.skill[i] = maxSkill;
@@ -720,7 +704,7 @@ void CalculateAvatarStats(CBattleEntity* PMaster, CPetEntity* PPet)
         else // if the mob is WAR/BLM and can cast spell
         {
             // set skill as high as main level, so their spells won't get resisted
-            uint16 maxSubSkill = battleutils::GetMaxSkill((SKILLTYPE)i, PPet->GetSJob(), mLvl > 99 ? 99 : mLvl);
+            uint16 maxSubSkill = battleutils::GetMaxSkill((SKILLTYPE)i, PPet->GetSJob(), skillLvl);
 
             if (maxSubSkill != 0)
             {
@@ -739,9 +723,9 @@ void CalculateAvatarStats(CBattleEntity* PMaster, CPetEntity* PPet)
 
         PPet->addModifier(Mod::ACC, PChar->PJobPoints->GetJobPointValue(JP_SUMMON_ACC_BONUS));
         PPet->addModifier(Mod::MACC, PChar->PJobPoints->GetJobPointValue(JP_SUMMON_MAGIC_ACC_BONUS));
-        PPet->addModifier(Mod::ATT, PChar->PJobPoints->GetJobPointValue(JP_SUMMON_PHYS_ATK_BONUS) * 2);
-        PPet->addModifier(Mod::MAGIC_DAMAGE, PChar->PJobPoints->GetJobPointValue(JP_SUMMON_MAGIC_DMG_BONUS) * 5);
-        PPet->addModifier(Mod::BP_DAMAGE, PChar->PJobPoints->GetJobPointValue(JP_BLOOD_PACT_DMG_BONUS) * 3);
+        PPet->addModifier(Mod::ATT, avatarstatshelpers::SummonPhysAtkBonus(PChar->PJobPoints->GetJobPointValue(JP_SUMMON_PHYS_ATK_BONUS)));
+        PPet->addModifier(Mod::MAGIC_DAMAGE, avatarstatshelpers::SummonMagicDmgBonus(PChar->PJobPoints->GetJobPointValue(JP_SUMMON_MAGIC_DMG_BONUS)));
+        PPet->addModifier(Mod::BP_DAMAGE, avatarstatshelpers::BloodPactDmgBonus(PChar->PJobPoints->GetJobPointValue(JP_BLOOD_PACT_DMG_BONUS)));
     }
 
     // SMN Job Gift Bonuses, DRG and PUP handled in their respective functions

@@ -54,4 +54,69 @@ inline auto EvasionFromSkill(const std::int16_t evaskill) -> std::int16_t
     return evaskill;
 }
 
+// --- CalculateAvatarStats combat tails ---
+
+// Fixed Mod::DMGPHYS (−50% PDT) and Crit Att Bonus II.
+constexpr std::int16_t PhysicalDamageTaken = -5000;
+constexpr std::int16_t CritDamageIncrease  = 8;
+
+// SLOT_RANGED base delay used for Titan TP returns.
+constexpr std::uint16_t RangedBaseDelay = 360;
+
+// 2014 avatar weapon damage: main level + 2.
+constexpr auto WeaponDamage(const std::uint8_t mLvl) -> std::uint16_t
+{
+    return static_cast<std::uint16_t>(mLvl) + 2;
+}
+
+// GetMaxSkill level arg: mLvl > 99 ? 99 : mLvl.
+constexpr auto SkillCapLevel(const std::uint8_t mLvl) -> std::uint8_t
+{
+    return mLvl > 99 ? 99 : mLvl;
+}
+
+// Avatar MATT ladder by main level bands.
+constexpr auto MagicAttack(const std::uint8_t mLvl) -> std::int16_t
+{
+    if (mLvl >= 70)
+    {
+        return 32;
+    }
+    if (mLvl >= 50)
+    {
+        return 28;
+    }
+    if (mLvl >= 30)
+    {
+        return 24;
+    }
+    if (mLvl >= 10)
+    {
+        return 20;
+    }
+    return 0;
+}
+
+// ATT is roughly 2× capped club skill for WHM.
+constexpr auto AttackFromSkill(const std::uint16_t maxSkill) -> std::int16_t
+{
+    return static_cast<std::int16_t>(2 * maxSkill);
+}
+
+// Job-point scaling for SMN summon bonuses.
+constexpr auto SummonPhysAtkBonus(const std::uint8_t jp) -> std::int16_t
+{
+    return static_cast<std::int16_t>(jp * 2);
+}
+
+constexpr auto SummonMagicDmgBonus(const std::uint8_t jp) -> std::int16_t
+{
+    return static_cast<std::int16_t>(jp * 5);
+}
+
+constexpr auto BloodPactDmgBonus(const std::uint8_t jp) -> std::int16_t
+{
+    return static_cast<std::int16_t>(jp * 3);
+}
+
 } // namespace avatarstatshelpers
