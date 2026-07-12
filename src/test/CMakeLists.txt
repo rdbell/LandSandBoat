@@ -658,6 +658,8 @@ set(SOURCES
     test_char_post_tick_update_1446.cpp
     test_char_equip_flush_1447.h
     test_char_equip_flush_1447.cpp
+    test_char_valid_target_1448.h
+    test_char_valid_target_1448.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

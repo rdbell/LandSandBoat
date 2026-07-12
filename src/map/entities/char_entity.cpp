@@ -36,6 +36,7 @@
 #include "char_storage_capacity.h"
 #include "char_tick_capacity.h"
 #include "char_trust_roster_capacity.h"
+#include "char_valid_target_capacity.h"
 #include "common/logging.h"
 #include "common/timer.h"
 #include "common/utils.h"
@@ -1135,59 +1136,33 @@ bool CCharEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
 {
     TracyZoneScoped;
 
-    if (StatusEffectContainer->GetConfrontationEffect() != PInitiator->StatusEffectContainer->GetConfrontationEffect())
-    {
-        return false;
-    }
-
-    if (isDead())
-    {
-        return (targetFlags & TARGET_PLAYER_DEAD) != 0;
-    }
-
-    if ((targetFlags & TARGET_PLAYER) && allegiance == PInitiator->allegiance)
-    {
-        return true;
-    }
-
-    if (CBattleEntity::ValidTarget(PInitiator, targetFlags))
-    {
-        return true;
-    }
-
-    bool isSameParty      = PParty && PInitiator->PParty && PInitiator->PParty == PParty;
-    bool isSameAlliance   = PParty && PParty->m_PAlliance && PInitiator->PParty && PInitiator->PParty->m_PAlliance && PParty->m_PAlliance == PInitiator->PParty->m_PAlliance;
-    bool isPartyPetMaster = PInitiator->PMaster && PInitiator->PMaster->PParty && PInitiator->PMaster->PParty == PParty;
-    bool isSoloPetMaster  = PParty == nullptr && PInitiator->PMaster == this;
-    bool targetsParty     = targetFlags & TARGET_PLAYER_PARTY;
-    bool targetsAlliance  = targetFlags & TARGET_PLAYER_ALLIANCE;
-    bool hasPianissimo    = (targetFlags & TARGET_PLAYER_PARTY_PIANISSIMO) && PInitiator->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Pianissimo);
-    bool hasEntrust       = (targetFlags & TARGET_PLAYER_PARTY_ENTRUST) && PInitiator->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Entrust);
-    bool isDifferentChar  = PInitiator != this;
-    bool isTrust          = PInitiator->objtype == TYPE_TRUST;
-
-    // Alliance member valid target.
-    if (targetsAlliance &&
-        isSameAlliance &&
-        isDifferentChar)
-    {
-        return true;
-    }
-
-    // Party member valid targeting.
-    if ((targetsParty || hasPianissimo) &&
-        (isSameParty || isPartyPetMaster || isSoloPetMaster) &&
-        isDifferentChar)
-    {
-        return true;
-    }
-
-    if (hasEntrust && (isSameParty || isTrust))
-    {
-        return true;
-    }
-
-    return false;
+    const charvalidtargethelpers::Context ctx{
+        .confrontationMatches = StatusEffectContainer->GetConfrontationEffect() == PInitiator->StatusEffectContainer->GetConfrontationEffect(),
+        .dead                 = isDead(),
+        .targetPlayerDead     = (targetFlags & TARGET_PLAYER_DEAD) != 0,
+        .targetPlayer         = (targetFlags & TARGET_PLAYER) != 0,
+        .sameAllegiance       = allegiance == PInitiator->allegiance,
+    };
+    return charvalidtargethelpers::Apply(
+        ctx,
+        [&]() { return CBattleEntity::ValidTarget(PInitiator, targetFlags); },
+        [&]()
+        {
+            return charvalidtargethelpers::Relations{
+                .sameParty          = PParty && PInitiator->PParty && PInitiator->PParty == PParty,
+                .sameAlliance       = PParty && PParty->m_PAlliance && PInitiator->PParty && PInitiator->PParty->m_PAlliance && PParty->m_PAlliance == PInitiator->PParty->m_PAlliance,
+                .partyPetMaster     = PInitiator->PMaster && PInitiator->PMaster->PParty && PInitiator->PMaster->PParty == PParty,
+                .soloPetMaster      = PParty == nullptr && PInitiator->PMaster == this,
+                .targetsParty       = (targetFlags & TARGET_PLAYER_PARTY) != 0,
+                .targetsAlliance    = (targetFlags & TARGET_PLAYER_ALLIANCE) != 0,
+                .pianissimoTarget   = (targetFlags & TARGET_PLAYER_PARTY_PIANISSIMO) != 0,
+                .entrustTarget      = (targetFlags & TARGET_PLAYER_PARTY_ENTRUST) != 0,
+                .differentCharacter = PInitiator != this,
+                .initiatorIsTrust   = PInitiator->objtype == TYPE_TRUST,
+            };
+        },
+        [&]() { return PInitiator->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Pianissimo); },
+        [&]() { return PInitiator->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Entrust); });
 }
 
 bool CCharEntity::CanUseSpell(CSpell* PSpell)
