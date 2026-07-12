@@ -59,6 +59,7 @@
 #include "crit_hit_rate_capacity.h"
 #include "intimidate_capacity.h"
 #include "hit_count_capacity.h"
+#include "skillchain_tables_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -2954,27 +2955,7 @@ auto GetSkillchainSubeffect(const SKILLCHAIN_ELEMENT skillchain) -> ActionProcSk
         return ActionProcSkillChain::None;
     }
 
-    static constexpr ActionProcSkillChain effects[] = {
-        ActionProcSkillChain::None,          // SC_NONE
-        ActionProcSkillChain::Transfixion,   // SC_TRANSFIXION
-        ActionProcSkillChain::Compression,   // SC_COMPRESSION
-        ActionProcSkillChain::Liquefaction,  // SC_LIQUEFACTION
-        ActionProcSkillChain::Scission,      // SC_SCISSION
-        ActionProcSkillChain::Reverberation, // SC_REVERBERATION
-        ActionProcSkillChain::Detonation,    // SC_DETONATION
-        ActionProcSkillChain::Induration,    // SC_INDURATION
-        ActionProcSkillChain::Impaction,     // SC_IMPACTION
-        ActionProcSkillChain::Gravitation,   // SC_GRAVITATION
-        ActionProcSkillChain::Distortion,    // SC_DISTORTION
-        ActionProcSkillChain::Fusion,        // SC_FUSION
-        ActionProcSkillChain::Fragmentation, // SC_FRAGMENTATION
-        ActionProcSkillChain::Light,         // SC_LIGHT
-        ActionProcSkillChain::Darkness,      // SC_DARKNESS
-        ActionProcSkillChain::Light,         // SC_LIGHT_II
-        ActionProcSkillChain::Darkness,      // SC_DARKNESS_II
-    };
-
-    return effects[skillchain];
+    return skillchaintableshelpers::GetSkillchainSubeffect(static_cast<std::uint8_t>(skillchain));
 }
 
 uint8 GetSkillchainTier(SKILLCHAIN_ELEMENT skillchain)
@@ -2985,27 +2966,7 @@ uint8 GetSkillchainTier(SKILLCHAIN_ELEMENT skillchain)
         return 0;
     }
 
-    static const uint8 tiers[] = {
-        0, // SC_NONE
-        1, // SC_TRANSFIXION
-        1, // SC_COMPRESSION
-        1, // SC_LIQUEFACTION
-        1, // SC_SCISSION
-        1, // SC_REVERBERATION
-        1, // SC_DETONATION
-        1, // SC_INDURATION
-        1, // SC_IMPACTION
-        2, // SC_GRAVITATION
-        2, // SC_DISTORTION
-        2, // SC_FUSION
-        2, // SC_FRAGMENTATION
-        3, // SC_LIGHT
-        3, // SC_DARKNESS
-        4, // SC_LIGHT_II
-        4, // SC_DARKNESS_II
-    };
-
-    return tiers[skillchain];
+    return skillchaintableshelpers::GetSkillchainTier(static_cast<std::uint8_t>(skillchain));
 }
 
 static const std::map<std::pair<SKILLCHAIN_ELEMENT, SKILLCHAIN_ELEMENT>, SKILLCHAIN_ELEMENT> skillchain_map = {

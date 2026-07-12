@@ -870,6 +870,8 @@ set(SOURCES
     test_is_intimidated_1553.cpp
     test_hit_count_1554.h
     test_hit_count_1554.cpp
+    test_skillchain_tables_1555.h
+    test_skillchain_tables_1555.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
