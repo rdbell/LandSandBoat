@@ -111,6 +111,7 @@
 #include "inventory_move_capacity.h"
 #include "misc_progress_capacity.h"
 #include "entity_spawn_capacity.h"
+#include "zone_out_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -7663,7 +7664,7 @@ void forceSynthCritFail(const std::string& sourceFunction, CCharEntity* PChar)
 void removeCharFromZone(CCharEntity* PChar)
 {
     // Store old blowfish, recalculate expected new blowfish
-    if (PChar->PSession)
+    if (zoneouthelpers::ShouldMarkBlowfishPendingZone(PChar->PSession != nullptr))
     {
         PChar->PSession->blowfish.status = BLOWFISH_PENDING_ZONE;
     }
@@ -7671,61 +7672,50 @@ void removeCharFromZone(CCharEntity* PChar)
     PChar->TradePending.clean();
     PChar->InvitePending.clean();
 
-    if (PChar->loc.zone != nullptr)
+    if (zoneouthelpers::ShouldNotifyNominateOnLeave(PChar->loc.zone != nullptr))
     {
         PChar->loc.zone->nominateManager().onCharLeavingZone(PChar);
     }
 
     PChar->WideScanTarget = std::nullopt;
 
-    if (PChar->animation == ANIMATION_ATTACK)
+    if (zoneouthelpers::ShouldClearAttackAnimation(static_cast<uint8>(PChar->animation)))
     {
         PChar->animation = ANIMATION_NONE;
         PChar->updatemask |= UPDATE_HP;
     }
 
-    if (!PChar->PTrusts.empty())
+    if (zoneouthelpers::ShouldClearTrusts(!PChar->PTrusts.empty()))
     {
         PChar->ClearTrusts();
     }
 
-    if (PChar->status == STATUS_TYPE::SHUTDOWN)
+    const bool isShutdownLogout = zoneouthelpers::IsShutdownLogout(static_cast<uint8>(PChar->status));
+    if (isShutdownLogout)
     {
         if (PChar->PParty != nullptr)
         {
-            if (PChar->PParty->m_PAlliance != nullptr)
+            const bool hasAlliance = PChar->PParty->m_PAlliance != nullptr;
+            const bool isLeader    = PChar->PParty->GetLeader() == PChar;
+            const bool onlyMember  = PChar->PParty->HasOnlyOneMember();
+            const bool onlyParty   = hasAlliance && PChar->PParty->m_PAlliance->hasOnlyOneParty();
+            switch (zoneouthelpers::ClassifyZoneOutPartyLeave(true, hasAlliance, isLeader, onlyMember, onlyParty))
             {
-                if (PChar->PParty->GetLeader() == PChar)
-                {
-                    if (PChar->PParty->HasOnlyOneMember())
-                    {
-                        if (PChar->PParty->m_PAlliance->hasOnlyOneParty())
-                        {
-                            PChar->PParty->m_PAlliance->dissolveAlliance();
-                        }
-                        else
-                        {
-                            PChar->PParty->m_PAlliance->removeParty(PChar->PParty);
-                        }
-                    }
-                    else
-                    { // party leader logged off - will pass party lead
-                        PChar->PParty->RemoveMember(PChar);
-                    }
-                }
-                else
-                { // not party leader - just drop from party
+                case zoneouthelpers::ZoneOutPartyAction::DissolveAlliance:
+                    PChar->PParty->m_PAlliance->dissolveAlliance();
+                    break;
+                case zoneouthelpers::ZoneOutPartyAction::RemovePartyFromAlliance:
+                    PChar->PParty->m_PAlliance->removeParty(PChar->PParty);
+                    break;
+                case zoneouthelpers::ZoneOutPartyAction::RemoveMember:
                     PChar->PParty->RemoveMember(PChar);
-                }
-            }
-            else
-            {
-                // normal party - just drop group
-                PChar->PParty->RemoveMember(PChar);
+                    break;
+                default:
+                    break;
             }
         }
 
-        if (PChar->shouldPetPersistThroughZoning())
+        if (zoneouthelpers::ShouldSetPetZoningInfo(PChar->shouldPetPersistThroughZoning()))
         {
             PChar->setPetZoningInfo();
         }
@@ -7734,21 +7724,21 @@ void removeCharFromZone(CCharEntity* PChar)
             PChar->resetPetZoningInfo();
         }
 
-        PChar->PSession->shuttingDown = 1;
-        db::preparedStmt("UPDATE char_stats SET zoning = 0 WHERE charid = ?", PChar->id);
+        PChar->PSession->shuttingDown = zoneouthelpers::SessionShuttingDownValue(true);
+        db::preparedStmt("UPDATE char_stats SET zoning = ? WHERE charid = ?", zoneouthelpers::CharStatsZoningValue(true), PChar->id);
     }
     else
     {
-        PChar->PSession->shuttingDown = 2;
-        db::preparedStmt("UPDATE char_stats SET zoning = 1 WHERE charid = ?", PChar->id);
+        PChar->PSession->shuttingDown = zoneouthelpers::SessionShuttingDownValue(false);
+        db::preparedStmt("UPDATE char_stats SET zoning = ? WHERE charid = ?", zoneouthelpers::CharStatsZoningValue(false), PChar->id);
     }
 
-    if (PChar->loc.zone != nullptr)
+    if (zoneouthelpers::ShouldDecreaseZoneCounter(PChar->loc.zone != nullptr))
     {
         PChar->loc.zone->DecreaseZoneCounter(PChar);
     }
 
-    PChar->StatusEffectContainer->SaveStatusEffects(PChar->PSession->shuttingDown == 1);
+    PChar->StatusEffectContainer->SaveStatusEffects(zoneouthelpers::SaveStatusEffectsLogoutFlag(PChar->PSession->shuttingDown));
     PChar->PersistData();
     charutils::SavePlayTime(PChar);
     charutils::SaveCharStats(PChar);
@@ -7774,11 +7764,15 @@ void loadDeathTimestamp(CCharEntity* PChar)
     if (rset && rset->rowsCount() && rset->next())
     {
         // Update the character's death timestamp based off of how long they were previously dead
-        const auto secondsSinceDeath = std::chrono::seconds(rset->get<uint32>("death"));
-        if (PChar->health.hp == 0)
+        const auto secondsSinceDeathRaw = rset->get<uint32>("death");
+        const auto secondsSinceDeath    = std::chrono::seconds(secondsSinceDeathRaw);
+        if (zoneouthelpers::ShouldApplyDeathTimestamp(PChar->health.hp))
         {
             PChar->SetDeathTime(timer::time_point(timer::now() - secondsSinceDeath));
-            PChar->Die(CCharEntity::death_duration - secondsSinceDeath);
+            const auto remaining = zoneouthelpers::RemainingDeathDurationSeconds(
+                std::chrono::duration_cast<std::chrono::seconds>(CCharEntity::death_duration).count(),
+                secondsSinceDeathRaw);
+            PChar->Die(std::chrono::seconds(remaining));
         }
     }
 }
@@ -7788,16 +7782,16 @@ bool isOrchestrionPlaced(CCharEntity* PChar)
     for (auto safeContainerId : { LOC_MOGSAFE, LOC_MOGSAFE2 })
     {
         CItemContainer* PContainer = PChar->getStorage(safeContainerId);
-        for (int slotIndex = 1; slotIndex <= PContainer->GetSize(); ++slotIndex)
+        for (int slotIndex = 1; zoneouthelpers::IsValidMogsafeSlotIndex(slotIndex, PContainer->GetSize()); ++slotIndex)
         {
             CItem* PContainerItem = PContainer->GetItem(slotIndex);
-            if (PContainerItem != nullptr && PContainerItem->isType(ITEM_FURNISHING))
+            if (PContainerItem != nullptr &&
+                zoneouthelpers::IsOrchestrionFurniture(
+                    PContainerItem->isType(ITEM_FURNISHING),
+                    PContainerItem->isType(ITEM_FURNISHING) && static_cast<CItemFurnishing*>(PContainerItem)->isInstalled(),
+                    PContainerItem->getID()))
             {
-                CItemFurnishing* PFurniture = static_cast<CItemFurnishing*>(PContainerItem);
-                if (PFurniture->isInstalled() && PFurniture->getID() == 426)
-                {
-                    return true;
-                }
+                return true;
             }
         }
     }
@@ -7810,17 +7804,17 @@ void updateMannequins(CCharEntity* PChar)
     for (auto safeContainerId : { LOC_MOGSAFE, LOC_MOGSAFE2 })
     {
         CItemContainer* PContainer = PChar->getStorage(safeContainerId);
-        for (int slotIndex = 1; slotIndex <= PContainer->GetSize(); ++slotIndex)
+        for (int slotIndex = 1; zoneouthelpers::IsValidMogsafeSlotIndex(slotIndex, PContainer->GetSize()); ++slotIndex)
         {
             CItem* PContainerItem = PContainer->GetItem(slotIndex);
             if (PContainerItem != nullptr && PContainerItem->isType(ITEM_FURNISHING))
             {
                 auto* PFurnishing = static_cast<CItemFurnishing*>(PContainerItem);
-                if (PFurnishing->isInstalled() && PFurnishing->isMannequin())
+                if (zoneouthelpers::IsInstalledMannequin(true, PFurnishing->isInstalled(), PFurnishing->isMannequin()))
                 {
                     auto& mannequin = PFurnishing->exdata<Exdata::Mannequin>();
 
-                    if (mannequin.Race == 0)
+                    if (zoneouthelpers::ShouldWarnInvalidMannequinRace(mannequin.Race))
                     {
                         ShowWarning("Invalid Mannequin placed (race of 0 in exdata, when races start at 1). It will be unusable.");
                     }
