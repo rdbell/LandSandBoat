@@ -492,6 +492,7 @@ auto runAnticipateSeigan1575SelfTests() -> bool;
 auto runAttuner1576SelfTests() -> bool;
 auto runAttackDamage1577SelfTests() -> bool;
 auto runSkillchainInject1578SelfTests() -> bool;
+auto runDefenseGates1580SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1194,6 +1195,7 @@ namespace
         ok = runAttuner1576SelfTests() && ok;
         ok = runAttackDamage1577SelfTests() && ok;
         ok = runSkillchainInject1578SelfTests() && ok;
+        ok = runDefenseGates1580SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

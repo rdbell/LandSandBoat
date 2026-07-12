@@ -914,6 +914,8 @@ set(SOURCES
     test_attack_damage_1577.cpp
     test_skillchain_inject_1578.h
     test_skillchain_inject_1578.cpp
+    test_defense_gates_1580.h
+    test_defense_gates_1580.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
