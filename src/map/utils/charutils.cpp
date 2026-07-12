@@ -103,6 +103,7 @@
 #include "capacity_award_capacity.h"
 #include "weapon_skill_roster_capacity.h"
 #include "ability_table_capacity.h"
+#include "pet_ability_table_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -3603,7 +3604,7 @@ void BuildingCharWeaponSkills(CCharEntity* PChar)
 
 void BuildingCharPetAbilityTable(CCharEntity* PChar, CPetEntity* PPet, uint32 PetID)
 {
-    if (PPet == nullptr || PChar == nullptr)
+    if (petabilitytablehelpers::ShouldRejectNullPetOrChar(PPet == nullptr, PChar == nullptr))
     {
         ShowWarning("PPet or PChar was null.");
         return;
@@ -3611,59 +3612,53 @@ void BuildingCharPetAbilityTable(CCharEntity* PChar, CPetEntity* PPet, uint32 Pe
 
     std::memset(&PChar->m_PetCommands, 0, sizeof(PChar->m_PetCommands));
 
-    if (PetID == 0)
+    if (petabilitytablehelpers::ShouldClearPetCommandsOnly(PetID))
     { // technically Fire Spirit but we're using this to null the abilities shown
         PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
         return;
     }
 
-    if (PChar->GetMJob() == JOB_SMN || PChar->GetSJob() == JOB_SMN)
+    if (petabilitytablehelpers::IsSummonerJob(static_cast<uint8>(PChar->GetMJob()), static_cast<uint8>(PChar->GetSJob())))
     {
         std::vector<CAbility*> AbilitiesList = ability::GetAbilities(JOB_SMN);
 
         for (auto PAbility : AbilitiesList)
         {
-            if (PPet->GetMLevel() >= PAbility->getLevel() && ((PetID >= PETID_CARBUNCLE && PetID <= PETID_CAIT_SITH) || PetID == PETID_SIREN) && CheckAbilityAddtype(PChar, PAbility))
+            if (petabilitytablehelpers::ShouldConsiderSMNPetAbility(PPet->GetMLevel(), PAbility->getLevel(), PetID, CheckAbilityAddtype(PChar, PAbility)))
             {
                 if (PetID == PETID_CARBUNCLE)
                 {
-                    if (PAbility->getID() >= ABILITY_HEALING_RUBY && PAbility->getID() <= ABILITY_SOOTHING_RUBY)
+                    if (petabilitytablehelpers::IsCarbuncleAbility(PAbility->getID()))
                     {
-                        addPetAbility(PChar, PAbility->getID() - ABILITY_HEALING_RUBY);
-                    }
-                    else if (PAbility->getID() == ABILITY_PACIFYING_RUBY)
-                    {
-                        addPetAbility(PChar, 261);
+                        addPetAbility(PChar, petabilitytablehelpers::CarbunclePetAbilityBit(PAbility->getID()));
                     }
                 }
-                else if (PetID >= PETID_FENRIR && PetID <= PETID_RAMUH)
+                else if (petabilitytablehelpers::IsElementalAvatarPet(PetID))
                 {
-                    if (PAbility->getID() >= (ABILITY_HEALING_RUBY + ((PetID - 8) * 16)) && PAbility->getID() < (ABILITY_HEALING_RUBY + ((PetID - 7) * 16)))
+                    if (petabilitytablehelpers::ElementalAvatarAbilityInBand(PAbility->getID(), PetID))
                     {
-                        addPetAbility(PChar, PAbility->getID() - ABILITY_HEALING_RUBY);
+                        addPetAbility(PChar, petabilitytablehelpers::AvatarPetAbilityBit(PAbility->getID()));
                     }
                 }
                 else if (PetID == PETID_DIABOLOS)
                 {
-                    if (PAbility->getID() >= ABILITY_CAMISADO && PAbility->getID() <= ABILITY_PERFECT_DEFENSE)
+                    if (petabilitytablehelpers::IsDiabolosAbility(PAbility->getID()))
                     {
-                        addPetAbility(PChar, PAbility->getID() - ABILITY_HEALING_RUBY);
+                        addPetAbility(PChar, petabilitytablehelpers::AvatarPetAbilityBit(PAbility->getID()));
                     }
                 }
                 else if (PetID == PETID_CAIT_SITH)
                 {
-                    if (PAbility->getID() > ABILITY_SOOTHING_RUBY && PAbility->getID() < ABILITY_MOONLIT_CHARGE)
+                    if (petabilitytablehelpers::IsCaitSithAbility(PAbility->getID()))
                     {
-                        addPetAbility(PChar, PAbility->getID() - ABILITY_HEALING_RUBY);
+                        addPetAbility(PChar, petabilitytablehelpers::AvatarPetAbilityBit(PAbility->getID()));
                     }
                 }
                 else if (PetID == PETID_SIREN)
                 {
-                    if (PAbility->getID() >= ABILITY_CLARSACH_CALL && PAbility->getID() <= ABILITY_HYSTERIC_ASSAULT)
+                    if (petabilitytablehelpers::IsSirenAbility(PAbility->getID()))
                     {
-                        uint16 sirenAbilltyPacketOffset = 0x1C0;
-                        uint16 sirenAbilityPacketBit    = (PAbility->getID() - ABILITY_CLARSACH_CALL) + sirenAbilltyPacketOffset;
-                        addPetAbility(PChar, sirenAbilityPacketBit);
+                        addPetAbility(PChar, petabilitytablehelpers::SirenPetAbilityBit(PAbility->getID()));
                     }
                 }
             }
@@ -3674,18 +3669,11 @@ void BuildingCharPetAbilityTable(CCharEntity* PChar, CPetEntity* PPet, uint32 Pe
         auto skillList{ battleutils::GetMobSkillList(PPet->m_MobSkillList) };
         for (auto&& abilityid : skillList)
         {
-            addPetAbility(PChar, abilityid - ABILITY_HEALING_RUBY);
+            addPetAbility(PChar, petabilitytablehelpers::JugPetAbilityBit(static_cast<uint16>(abilityid)));
         }
     }
     PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
 }
-
-/************************************************************************
- *                                                                       *
- *  Collect the work table of the character's abilities.With zero level  *
- *  There must be 2H abilities .On this condition, sift them for SJOB    *
- *                                                                       *
- ************************************************************************/
 
 void BuildingCharAbilityTable(CCharEntity* PChar)
 {
@@ -4029,7 +4017,7 @@ void BuildingCharTraitsTable(CCharEntity* PChar)
 
     // NOTE: Monstrosity (MON) is treated as its own job, but each species is it's own
     //     : combination of main/sub job for stats, traits and abilities.
-    if (PChar->m_PMonstrosity != nullptr)
+    if (petabilitytablehelpers::ShouldApplyMonstrosityJobs(PChar->m_PMonstrosity != nullptr))
     {
         mjob = PChar->m_PMonstrosity->MainJob;
         sjob = PChar->m_PMonstrosity->SubJob;
@@ -4040,14 +4028,14 @@ void BuildingCharTraitsTable(CCharEntity* PChar)
     battleutils::AddTraits(PChar, traits::GetTraits(mjob), mlvl);
     battleutils::AddTraits(PChar, traits::GetTraits(sjob), slvl);
 
-    if (mjob == JOB_BLU || sjob == JOB_BLU)
+    if (petabilitytablehelpers::ShouldCalculateBlueTraits(static_cast<uint8>(mjob), static_cast<uint8>(sjob)))
     {
         blueutils::CalculateTraits(PChar);
     }
 
     PChar->delModifier(Mod::MEVA, PChar->m_magicEvasion);
 
-    PChar->m_magicEvasion = battleutils::GetMaxSkill(12, mlvl); // Player MEVA is Rank G
+    PChar->m_magicEvasion = battleutils::GetMaxSkill(petabilitytablehelpers::PlayerMEVASkillRank, mlvl); // Player MEVA is Rank G
     PChar->addModifier(Mod::MEVA, PChar->m_magicEvasion);
 }
 

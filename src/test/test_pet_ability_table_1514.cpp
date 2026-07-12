@@ -1,0 +1,101 @@
+#include "test_pet_ability_table_1514.h"
+
+#include "map/pet_ability_table_capacity.h"
+
+#include <iostream>
+
+namespace
+{
+using petabilitytablehelpers::AvatarPetAbilityBit;
+using petabilitytablehelpers::CarbunclePetAbilityBit;
+using petabilitytablehelpers::ElementalAvatarAbilityInBand;
+using petabilitytablehelpers::IsCaitSithAbility;
+using petabilitytablehelpers::IsCarbuncleAbility;
+using petabilitytablehelpers::IsDiabolosAbility;
+using petabilitytablehelpers::IsElementalAvatarPet;
+using petabilitytablehelpers::IsSirenAbility;
+using petabilitytablehelpers::IsSpiritOrSirenPet;
+using petabilitytablehelpers::IsSummonerJob;
+using petabilitytablehelpers::JugPetAbilityBit;
+using petabilitytablehelpers::ShouldCalculateBlueTraits;
+using petabilitytablehelpers::ShouldClearPetCommandsOnly;
+using petabilitytablehelpers::ShouldConsiderSMNPetAbility;
+using petabilitytablehelpers::ShouldRejectNullPetOrChar;
+using petabilitytablehelpers::SirenPetAbilityBit;
+
+auto Check() -> bool
+{
+    if (!ShouldRejectNullPetOrChar(true, false) || !ShouldRejectNullPetOrChar(false, true) || ShouldRejectNullPetOrChar(false, false))
+    {
+        return false;
+    }
+    if (!ShouldClearPetCommandsOnly(0) || ShouldClearPetCommandsOnly(8))
+    {
+        return false;
+    }
+    if (!IsSummonerJob(15, 1) || !IsSummonerJob(1, 15) || IsSummonerJob(1, 2))
+    {
+        return false;
+    }
+    if (!IsSpiritOrSirenPet(8) || !IsSpiritOrSirenPet(20) || !IsSpiritOrSirenPet(76) || IsSpiritOrSirenPet(7))
+    {
+        return false;
+    }
+    if (!ShouldConsiderSMNPetAbility(50, 10, 8, true) || ShouldConsiderSMNPetAbility(5, 10, 8, true) || ShouldConsiderSMNPetAbility(50, 10, 8, false))
+    {
+        return false;
+    }
+    if (!IsCarbuncleAbility(512) || !IsCarbuncleAbility(773) || IsCarbuncleAbility(521))
+    {
+        return false;
+    }
+    if (CarbunclePetAbilityBit(512) != 0 || CarbunclePetAbilityBit(773) != 261)
+    {
+        return false;
+    }
+    if (!IsElementalAvatarPet(9) || !IsElementalAvatarPet(15) || IsElementalAvatarPet(8))
+    {
+        return false;
+    }
+    // Fenrir petID=9 → lo = 512+(1)*16=528, hi=512+2*16=544
+    if (!ElementalAvatarAbilityInBand(528, 9) || ElementalAvatarAbilityInBand(544, 9) || ElementalAvatarAbilityInBand(527, 9))
+    {
+        return false;
+    }
+    if (AvatarPetAbilityBit(528) != 16)
+    {
+        return false;
+    }
+    if (!IsDiabolosAbility(656) || !IsDiabolosAbility(671) || IsDiabolosAbility(655))
+    {
+        return false;
+    }
+    if (!IsCaitSithAbility(521) || IsCaitSithAbility(520) || IsCaitSithAbility(528))
+    {
+        return false;
+    }
+    if (!IsSirenAbility(960) || !IsSirenAbility(970) || IsSirenAbility(959))
+    {
+        return false;
+    }
+    if (SirenPetAbilityBit(960) != 0x1C0 || JugPetAbilityBit(520) != 8)
+    {
+        return false;
+    }
+    if (!ShouldCalculateBlueTraits(16, 1) || !ShouldCalculateBlueTraits(1, 16) || ShouldCalculateBlueTraits(1, 2))
+    {
+        return false;
+    }
+    return true;
+}
+} // namespace
+
+auto runPetAbilityTable1514SelfTests() -> bool
+{
+    const bool ok = Check();
+    if (!ok)
+    {
+        std::cerr << "pet ability table 1514 self-test failed\n";
+    }
+    return ok;
+}
