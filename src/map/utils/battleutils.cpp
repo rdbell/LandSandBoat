@@ -2971,69 +2971,19 @@ uint8 GetSkillchainTier(SKILLCHAIN_ELEMENT skillchain)
     return skillchaintableshelpers::GetSkillchainTier(static_cast<std::uint8_t>(skillchain));
 }
 
-static const std::map<std::pair<SKILLCHAIN_ELEMENT, SKILLCHAIN_ELEMENT>, SKILLCHAIN_ELEMENT> skillchain_map = {
-    // Level 3 Pairs
-    { { SC_LIGHT, SC_LIGHT }, SC_LIGHT_II },
-    { { SC_DARKNESS, SC_DARKNESS }, SC_DARKNESS_II },
-
-    // Level 2 Pairs
-    { { SC_DISTORTION, SC_GRAVITATION }, SC_DARKNESS },
-    { { SC_FRAGMENTATION, SC_GRAVITATION }, SC_FRAGMENTATION },
-
-    { { SC_GRAVITATION, SC_DISTORTION }, SC_DARKNESS },
-    { { SC_FUSION, SC_DISTORTION }, SC_FUSION },
-
-    { { SC_GRAVITATION, SC_FUSION }, SC_GRAVITATION },
-    { { SC_FRAGMENTATION, SC_FUSION }, SC_LIGHT },
-
-    { { SC_DISTORTION, SC_FRAGMENTATION }, SC_DISTORTION },
-    { { SC_FUSION, SC_FRAGMENTATION }, SC_LIGHT },
-
-    // Level 1 Pairs > Level 2 Skillchain
-
-    { { SC_SCISSION, SC_TRANSFIXION }, SC_DISTORTION },
-    { { SC_IMPACTION, SC_LIQUEFACTION }, SC_FUSION },
-    { { SC_COMPRESSION, SC_DETONATION }, SC_GRAVITATION },
-    { { SC_REVERBERATION, SC_INDURATION }, SC_FRAGMENTATION },
-
-    // Level 1 Pairs
-    { { SC_COMPRESSION, SC_TRANSFIXION }, SC_COMPRESSION },
-    { { SC_REVERBERATION, SC_TRANSFIXION }, SC_REVERBERATION },
-
-    { { SC_TRANSFIXION, SC_COMPRESSION }, SC_TRANSFIXION },
-    { { SC_DETONATION, SC_COMPRESSION }, SC_DETONATION },
-
-    { { SC_SCISSION, SC_LIQUEFACTION }, SC_SCISSION },
-
-    { { SC_LIQUEFACTION, SC_SCISSION }, SC_LIQUEFACTION },
-    { { SC_REVERBERATION, SC_SCISSION }, SC_REVERBERATION },
-    { { SC_DETONATION, SC_SCISSION }, SC_DETONATION },
-
-    { { SC_INDURATION, SC_REVERBERATION }, SC_INDURATION },
-    { { SC_IMPACTION, SC_REVERBERATION }, SC_IMPACTION },
-
-    { { SC_SCISSION, SC_DETONATION }, SC_SCISSION },
-
-    { { SC_COMPRESSION, SC_INDURATION }, SC_COMPRESSION },
-    { { SC_IMPACTION, SC_INDURATION }, SC_IMPACTION },
-
-    { { SC_LIQUEFACTION, SC_IMPACTION }, SC_LIQUEFACTION },
-    { { SC_DETONATION, SC_IMPACTION }, SC_DETONATION }
-};
-
 SKILLCHAIN_ELEMENT FormSkillchain(const std::list<SKILLCHAIN_ELEMENT>& resonance, const std::list<SKILLCHAIN_ELEMENT>& skill)
 {
-    for (const auto& resonance_element : resonance)
+    std::list<std::uint8_t> res;
+    std::list<std::uint8_t> sk;
+    for (const auto& e : resonance)
     {
-        for (const auto& skill_element : skill)
-        {
-            if (auto skillchain = skillchain_map.find({ skill_element, resonance_element }); skillchain != skillchain_map.end())
-            {
-                return skillchain->second;
-            }
-        }
+        res.push_back(static_cast<std::uint8_t>(e));
     }
-    return SC_NONE;
+    for (const auto& e : skill)
+    {
+        sk.push_back(static_cast<std::uint8_t>(e));
+    }
+    return static_cast<SKILLCHAIN_ELEMENT>(skillchaintableshelpers::FormSkillchain(res, sk));
 }
 
 auto GetSkillChainEffect(const CBattleEntity* PDefender, uint8 primary, uint8 secondary, uint8 tertiary) -> ActionProcSkillChain
@@ -3153,45 +3103,26 @@ auto GetSkillChainEffect(const CBattleEntity* PDefender, uint8 primary, uint8 se
 
 std::vector<ELEMENT> GetSkillchainMagicElement(SKILLCHAIN_ELEMENT skillchain)
 {
-    static const std::unordered_map<SKILLCHAIN_ELEMENT, std::vector<ELEMENT>> resonanceToElement = {
-        { SC_NONE, {} },
-        { SC_TRANSFIXION, { ELEMENT_LIGHT } },
-        { SC_COMPRESSION, { ELEMENT_DARK } },
-        { SC_LIQUEFACTION, { ELEMENT_FIRE } },
-        { SC_SCISSION, { ELEMENT_EARTH } },
-        { SC_REVERBERATION, { ELEMENT_WATER } },
-        { SC_DETONATION, { ELEMENT_WIND } },
-        { SC_INDURATION, { ELEMENT_ICE } },
-        { SC_IMPACTION, { ELEMENT_THUNDER } },
-
-        { SC_GRAVITATION, { ELEMENT_DARK, ELEMENT_EARTH } },
-        { SC_DISTORTION, { ELEMENT_WATER, ELEMENT_ICE } },
-        { SC_FUSION, { ELEMENT_LIGHT, ELEMENT_FIRE } },
-        { SC_FRAGMENTATION, { ELEMENT_WIND, ELEMENT_THUNDER } },
-
-        { SC_LIGHT, { ELEMENT_LIGHT, ELEMENT_FIRE, ELEMENT_WIND, ELEMENT_THUNDER } },
-        { SC_DARKNESS, { ELEMENT_DARK, ELEMENT_EARTH, ELEMENT_WATER, ELEMENT_ICE } },
-        { SC_LIGHT_II, { ELEMENT_LIGHT, ELEMENT_FIRE, ELEMENT_WIND, ELEMENT_THUNDER } },
-        { SC_DARKNESS_II, { ELEMENT_DARK, ELEMENT_EARTH, ELEMENT_WATER, ELEMENT_ICE } }
-    };
-
-    return resonanceToElement.at(skillchain);
+    const auto elems = skillchaintableshelpers::GetSkillchainMagicElement(static_cast<std::uint8_t>(skillchain));
+    std::vector<ELEMENT> out;
+    out.reserve(elems.size());
+    for (const auto e : elems)
+    {
+        out.push_back(static_cast<ELEMENT>(e));
+    }
+    return out;
 }
 
 Mod GetResistanceRankModFromElement(ELEMENT& element)
 {
-    static const std::unordered_map<ELEMENT, Mod> elementToMod = {
-        { ELEMENT_FIRE, Mod::FIRE_RES_RANK },
-        { ELEMENT_WATER, Mod::WATER_RES_RANK },
-        { ELEMENT_WIND, Mod::WIND_RES_RANK },
-        { ELEMENT_EARTH, Mod::EARTH_RES_RANK },
-        { ELEMENT_THUNDER, Mod::THUNDER_RES_RANK },
-        { ELEMENT_ICE, Mod::ICE_RES_RANK },
-        { ELEMENT_LIGHT, Mod::LIGHT_RES_RANK },
-        { ELEMENT_DARK, Mod::DARK_RES_RANK },
-    };
-
-    return elementToMod.at(element);
+    if (const auto mod = skillchaintableshelpers::GetResistanceRankModFromElement(static_cast<std::uint8_t>(element)))
+    {
+        return *mod;
+    }
+    // LSB used unordered_map::at — invalid element would throw. Preserve fire as safe fallback
+    // only if pure table misses (should not happen for valid ELEMENT_*).
+    ShowWarning("battleutils::GetResistanceRankModFromElement() - Invalid element.");
+    return Mod::FIRE_RES_RANK;
 }
 
 auto TakeSkillchainDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, int32 lastSkillDamage, CBattleEntity* taChar) -> int32
