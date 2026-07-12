@@ -51,6 +51,7 @@
 #include "barrage_capacity.h"
 #include "scaled_item_modifier_capacity.h"
 #include "spell_cost_capacity.h"
+#include "dmg_taken_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -4387,40 +4388,59 @@ auto MagicDmgTaken(CBattleEntity* PDefender, int32 damage, ELEMENT element) -> i
 
     // Liement here
     float liement = CheckLiementAbsorb(PDefender, damageType);
-    if (liement < 0) // Liement absorbed, short circuit early before MDT/DT
+    if (dmgtakenhelpers::ShouldLiementShortCircuit(liement))
     {
-        return (int32)(damage * liement);
+        return dmgtakenhelpers::ApplyLiement(damage, liement);
     }
 
-    float resist = 1.0f + PDefender->getMod(Mod::UDMGMAGIC) / 10000.0f;
-    resist       = std::max(resist, 0.0f);
-    damage       = (int32)(damage * resist);
+    damage = dmgtakenhelpers::MagicResist(
+        damage,
+        PDefender->getMod(Mod::UDMGMAGIC),
+        PDefender->getMod(Mod::DMGMAGIC),
+        PDefender->getMod(Mod::DMG),
+        PDefender->getMod(Mod::DMGMAGIC_II));
 
-    resist = 1.0f + PDefender->getMod(Mod::DMGMAGIC) / 10000.0f + PDefender->getMod(Mod::DMG) / 10000.0f;
-    resist = std::max(resist, 0.5f);
-
-    resist += PDefender->getMod(Mod::DMGMAGIC_II) / 10000.0f;
-    resist = std::max(resist, 0.125f); // Total cap with MDT-% II included is 87.5%
-    damage = (int32)(damage * resist);
-
-    // Handle damage absorption.
-    if (xirand::GetRandomNumber(100) < PDefender->getMod(Mod::ABSORB_DMG_CHANCE) ||         // All damage.
-        xirand::GetRandomNumber(100) < PDefender->getMod(Mod::MAGIC_ABSORB) ||              // Magical damage
-        (element && xirand::GetRandomNumber(100) < PDefender->getMod(absorb[element - 1]))) // Elemental damage.
+    // Absorb/null with short-circuit RNG order matching original || chain.
+    bool absorbAll     = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::ABSORB_DMG_CHANCE);
+    bool absorbMagic   = false;
+    bool absorbElement = false;
+    if (!absorbAll)
     {
-        damage = -damage;
+        absorbMagic = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::MAGIC_ABSORB);
+        if (!absorbMagic && element)
+        {
+            absorbElement = xirand::GetRandomNumber(100) < PDefender->getMod(absorb[element - 1]);
+        }
     }
 
-    // Handle damage nullification.
-    else if (xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_DAMAGE) ||                  // All damage.
-             xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_MAGICAL_DAMAGE) ||          // Magical damage
-             (element && xirand::GetRandomNumber(100) < PDefender->getMod(nullarray[element - 1]))) // Elemental damage.
+    bool nullAll     = false;
+    bool nullMagic   = false;
+    bool nullElement = false;
+    const auto absorbOutcome = dmgtakenhelpers::MagicalOutcome(
+        absorbAll, absorbMagic, absorbElement, element != 0, false, false, false);
+    if (absorbOutcome == dmgtakenhelpers::AbsorbNullOutcome::Pass)
     {
-        damage = 0;
+        nullAll = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_DAMAGE);
+        if (!nullAll)
+        {
+            nullMagic = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_MAGICAL_DAMAGE);
+            if (!nullMagic && element)
+            {
+                nullElement = xirand::GetRandomNumber(100) < PDefender->getMod(nullarray[element - 1]);
+            }
+        }
+    }
+
+    const auto outcome = dmgtakenhelpers::MagicalOutcome(
+        absorbAll, absorbMagic, absorbElement, element != 0, nullAll, nullMagic, nullElement);
+
+    if (outcome == dmgtakenhelpers::AbsorbNullOutcome::Pass)
+    {
+        damage = HandleSevereDamage(PDefender, damage, false);
     }
     else
     {
-        damage = HandleSevereDamage(PDefender, damage, false);
+        damage = dmgtakenhelpers::ApplyAbsorbNull(damage, outcome);
     }
 
     damage = CheckAndApplyDamageCap(damage, PDefender);
@@ -4430,42 +4450,45 @@ auto MagicDmgTaken(CBattleEntity* PDefender, int32 damage, ELEMENT element) -> i
 
 auto PhysicalDmgTaken(CBattleEntity* PDefender, int32 damage, xi::DamageType damageType, bool IsCovered) -> int32
 {
-    float resist = 1.0f + PDefender->getMod(Mod::UDMGPHYS) / 10000.0f;
-    resist       = std::max(resist, 0.0f);
-    damage       = (int32)(damage * resist);
+    damage = dmgtakenhelpers::PhysicalResist(
+        damage,
+        PDefender->getMod(Mod::UDMGPHYS),
+        PDefender->getMod(Mod::DMGPHYS),
+        PDefender->getMod(Mod::DMG),
+        PDefender->getMod(Mod::DMGPHYS_II),
+        PDefender->getMod(Mod::AUTO_EQUALIZER),
+        PDefender->GetMaxHP());
 
-    resist = 1.0f + PDefender->getMod(Mod::DMGPHYS) / 10000.0f + PDefender->getMod(Mod::DMG) / 10000.0f;
-    resist = std::max(resist, 0.5f);                         // PDT caps at -50%
-    resist += PDefender->getMod(Mod::DMGPHYS_II) / 10000.0f; // Add Burtgang reduction after 50% cap. Extends cap to -68%
-    damage = (int32)(damage * resist);
-
-    if (damage > 0 && PDefender->getMod(Mod::AUTO_EQUALIZER) > 0)
+    bool absorbAll  = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::ABSORB_DMG_CHANCE);
+    bool absorbPhys = false;
+    if (!absorbAll)
     {
-        const auto reductionRate = std::floor(damage / static_cast<float>(PDefender->GetMaxHP()) * PDefender->getMod(Mod::AUTO_EQUALIZER)) / 100.0f;
-        damage                   = static_cast<int32>(std::floor(damage * (1.0f - std::min(reductionRate, 0.90f))));
+        absorbPhys = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::PHYS_ABSORB);
     }
 
-    // Handle damage absorption.
-    if (xirand::GetRandomNumber(100) < PDefender->getMod(Mod::ABSORB_DMG_CHANCE) || // All damage.
-        xirand::GetRandomNumber(100) < PDefender->getMod(Mod::PHYS_ABSORB))         // Physical damage.
+    bool nullAll  = false;
+    bool nullPhys = false;
+    if (dmgtakenhelpers::PhysicalOutcome(absorbAll, absorbPhys, false, false) == dmgtakenhelpers::AbsorbNullOutcome::Pass)
     {
-        damage = -damage;
+        nullAll = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_DAMAGE);
+        if (!nullAll)
+        {
+            nullPhys = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_PHYSICAL_DAMAGE);
+        }
     }
 
-    // Handle damage nullification.
-    else if (xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_DAMAGE) ||        // All damage.
-             xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_PHYSICAL_DAMAGE)) // Physical damage.
-    {
-        damage = 0;
-    }
-
-    else
+    const auto outcome = dmgtakenhelpers::PhysicalOutcome(absorbAll, absorbPhys, nullAll, nullPhys);
+    if (outcome == dmgtakenhelpers::AbsorbNullOutcome::Pass)
     {
         damage = HandleSevereDamage(PDefender, damage, true);
 
         ConvertDmgToMP(PDefender, damage, IsCovered);
 
         damage = HandleFanDance(PDefender, damage);
+    }
+    else
+    {
+        damage = dmgtakenhelpers::ApplyAbsorbNull(damage, outcome);
     }
 
     damage = CheckAndApplyDamageCap(damage, PDefender);
@@ -4475,40 +4498,45 @@ auto PhysicalDmgTaken(CBattleEntity* PDefender, int32 damage, xi::DamageType dam
 
 auto RangedDmgTaken(CBattleEntity* PDefender, int32 damage, xi::DamageType damageType, bool IsCovered) -> int32
 {
-    float resist = 1.0f + PDefender->getMod(Mod::UDMGRANGE) / 10000.0f;
-    resist       = std::max(resist, 0.0f);
-    damage       = (int32)(damage * resist);
+    damage = dmgtakenhelpers::RangedResist(
+        damage,
+        PDefender->getMod(Mod::UDMGRANGE),
+        PDefender->getMod(Mod::DMGRANGE),
+        PDefender->getMod(Mod::DMG),
+        PDefender->getMod(Mod::AUTO_EQUALIZER),
+        PDefender->GetMaxHP());
 
-    resist = 1.0f + PDefender->getMod(Mod::DMGRANGE) / 10000.0f + PDefender->getMod(Mod::DMG) / 10000.0f;
-    resist = std::max(resist, 0.5f);
-    damage = (int32)(damage * resist);
-
-    if (damage > 0 && PDefender->getMod(Mod::AUTO_EQUALIZER) > 0)
+    // TODO: Consider new modifier for ranged specific absorb (PHYS_ABSORB used today).
+    bool absorbAll  = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::ABSORB_DMG_CHANCE);
+    bool absorbPhys = false;
+    if (!absorbAll)
     {
-        const auto reductionRate = std::floor(damage / static_cast<float>(PDefender->GetMaxHP()) * PDefender->getMod(Mod::AUTO_EQUALIZER)) / 100.0f;
-        damage                   = static_cast<int32>(std::floor(damage * (1.0f - std::min(reductionRate, 0.90f))));
+        absorbPhys = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::PHYS_ABSORB);
     }
 
-    // Handle damage absorption.
-    if (xirand::GetRandomNumber(100) < PDefender->getMod(Mod::ABSORB_DMG_CHANCE) || // All damage.
-        xirand::GetRandomNumber(100) < PDefender->getMod(Mod::PHYS_ABSORB))         // Physical damage. TODO: Consider new modifier for ranged specific.
+    bool nullAll    = false;
+    bool nullRanged = false;
+    if (dmgtakenhelpers::RangedOutcome(absorbAll, absorbPhys, false, false) == dmgtakenhelpers::AbsorbNullOutcome::Pass)
     {
-        damage = -damage;
+        nullAll = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_DAMAGE);
+        if (!nullAll)
+        {
+            nullRanged = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_RANGED_DAMAGE);
+        }
     }
 
-    // Handle damage nullification.
-    else if (xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_DAMAGE) ||      // All damage.
-             xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_RANGED_DAMAGE)) // Ranged damage.
-    {
-        damage = 0;
-    }
-    else
+    const auto outcome = dmgtakenhelpers::RangedOutcome(absorbAll, absorbPhys, nullAll, nullRanged);
+    if (outcome == dmgtakenhelpers::AbsorbNullOutcome::Pass)
     {
         damage = HandleSevereDamage(PDefender, damage, true);
 
         ConvertDmgToMP(PDefender, damage, IsCovered);
 
         damage = HandleFanDance(PDefender, damage);
+    }
+    else
+    {
+        damage = dmgtakenhelpers::ApplyAbsorbNull(damage, outcome);
     }
 
     damage = CheckAndApplyDamageCap(damage, PDefender);

@@ -462,6 +462,7 @@ auto runWeatherMatches1543SelfTests() -> bool;
 auto runBarrage1544SelfTests() -> bool;
 auto runScaledItemModifier1545SelfTests() -> bool;
 auto runSpellCost1546SelfTests() -> bool;
+auto runDmgTaken1547SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1134,6 +1135,7 @@ namespace
         ok = runBarrage1544SelfTests() && ok;
         ok = runScaledItemModifier1545SelfTests() && ok;
         ok = runSpellCost1546SelfTests() && ok;
+        ok = runDmgTaken1547SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

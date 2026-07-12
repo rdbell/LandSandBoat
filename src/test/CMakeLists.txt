@@ -854,6 +854,8 @@ set(SOURCES
     test_scaled_item_modifier_1545.cpp
     test_spell_cost_1546.h
     test_spell_cost_1546.cpp
+    test_dmg_taken_1547.h
+    test_dmg_taken_1547.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
