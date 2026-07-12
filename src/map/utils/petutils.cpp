@@ -45,6 +45,7 @@
 #include "map/automaton_weapon_damage_capacity.h"
 #include "map/base_to_rank_capacity.h"
 #include "map/jug_base_capacity.h"
+#include "map/jug_stats_capacity.h"
 #include "map/pet_weapon_damage_capacity.h"
 #include "puppetutils.h"
 #include "status_effect_container.h"
@@ -255,56 +256,14 @@ uint16 GetBaseToRank(uint8 rank, uint16 lvl)
 void LoadJugStats(CPetEntity* PMob, Pet_t* petStats)
 {
     // follows monster formulas but jugs have no subjob
+    // Pure growth/HP/MP/stat blend (jug_stats_capacity.h; slice 1602).
+    const uint8 lvl = PMob->GetMLevel();
 
-    float growth = 1.0;
-    uint8 lvl    = PMob->GetMLevel();
+    PMob->health.maxhp = jugstatshelpers::JugMaxHP(lvl, petStats->HPscale);
 
-    // give hp boost every 10 levels after 25
-    // special boosts at 25 and 50
-    if (lvl > 75)
+    if (jugstatshelpers::IsJugCasterJob(static_cast<uint8>(PMob->GetMJob())))
     {
-        growth = 1.22f;
-    }
-    else if (lvl > 65)
-    {
-        growth = 1.20f;
-    }
-    else if (lvl > 55)
-    {
-        growth = 1.18f;
-    }
-    else if (lvl > 50)
-    {
-        growth = 1.16f;
-    }
-    else if (lvl > 45)
-    {
-        growth = 1.12f;
-    }
-    else if (lvl > 35)
-    {
-        growth = 1.09f;
-    }
-    else if (lvl > 25)
-    {
-        growth = 1.07f;
-    }
-
-    PMob->health.maxhp = (int16)(17.0 * pow(lvl, growth) * petStats->HPscale);
-
-    switch (PMob->GetMJob())
-    {
-        case JOB_PLD:
-        case JOB_WHM:
-        case JOB_BLM:
-        case JOB_RDM:
-        case JOB_DRK:
-        case JOB_BLU:
-        case JOB_SCH:
-            PMob->health.maxmp = (int16)(15.2 * pow(lvl, 1.1075) * petStats->MPscale);
-            break;
-        default:
-            break;
+        PMob->health.maxmp = jugstatshelpers::JugMaxMP(lvl, petStats->MPscale);
     }
 
     PMob->baseSpeed      = petStats->speed;
@@ -345,13 +304,13 @@ void LoadJugStats(CPetEntity* PMob, Pet_t* petStats)
     uint16 mMND = GetBaseToRank(grade::GetJobGrade(PMob->GetMJob(), 7), PMob->GetMLevel());
     uint16 mCHR = GetBaseToRank(grade::GetJobGrade(PMob->GetMJob(), 8), PMob->GetMLevel());
 
-    PMob->stats.STR = (uint16)((fSTR + mSTR) * 0.9f);
-    PMob->stats.DEX = (uint16)((fDEX + mDEX) * 0.9f);
-    PMob->stats.VIT = (uint16)((fVIT + mVIT) * 0.9f);
-    PMob->stats.AGI = (uint16)((fAGI + mAGI) * 0.9f);
-    PMob->stats.INT = (uint16)((fINT + mINT) * 0.9f);
-    PMob->stats.MND = (uint16)((fMND + mMND) * 0.9f);
-    PMob->stats.CHR = (uint16)((fCHR + mCHR) * 0.9f);
+    PMob->stats.STR = jugstatshelpers::JugStatBlend(fSTR, mSTR);
+    PMob->stats.DEX = jugstatshelpers::JugStatBlend(fDEX, mDEX);
+    PMob->stats.VIT = jugstatshelpers::JugStatBlend(fVIT, mVIT);
+    PMob->stats.AGI = jugstatshelpers::JugStatBlend(fAGI, mAGI);
+    PMob->stats.INT = jugstatshelpers::JugStatBlend(fINT, mINT);
+    PMob->stats.MND = jugstatshelpers::JugStatBlend(fMND, mMND);
+    PMob->stats.CHR = jugstatshelpers::JugStatBlend(fCHR, mCHR);
 }
 
 void LoadAutomatonStats(CCharEntity* PMaster, CPetEntity* PPet, Pet_t* petStats, uint8 mlvl)
