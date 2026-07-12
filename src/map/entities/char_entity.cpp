@@ -50,6 +50,7 @@
 #include "char_post_tick_refresh_capacity.h"
 #include "char_post_tick_update_capacity.h"
 #include "char_resource_capacity.h"
+#include "char_start_synth_capacity.h"
 #include "char_storage_capacity.h"
 #include "char_tick_capacity.h"
 #include "char_trigger_area_capacity.h"
@@ -2914,9 +2915,5 @@ void CCharEntity::clearCharVarsWithPrefix(const std::string& prefix)
 
 bool CCharEntity::startSynth(SKILLTYPE synthSkill)
 {
-    if (PAI)
-    {
-        return PAI->Internal_Synth(synthSkill);
-    }
-    return false;
+    return charstartsynthhelpers::Apply(PAI != nullptr, [&]() { return PAI->Internal_Synth(synthSkill); });
 }
