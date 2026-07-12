@@ -49,6 +49,7 @@
 #include "physical_hit_rate_capacity.h"
 #include "ecosystem_strength_capacity.h"
 #include "garrison_membership_capacity.h"
+#include "automaton_weapon_damage_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -695,7 +696,9 @@ uint16 CBattleEntity::GetMainWeaponDmg()
 
         if (PPetEntity->getPetType() == PET_TYPE::AUTOMATON)
         {
-            return std::floor((GetSkill(SKILL_AUTOMATON_MELEE) / 8.7f) * 2.0f + 3.0f) + getMod(Mod::MAIN_DMG_RATING);
+            // Pure automaton weapon damage + MAIN_DMG_RATING (slice 1592).
+            return automatonweapondamagehelpers::WeaponDamageWithRating(
+                GetSkill(SKILL_AUTOMATON_MELEE), getMod(Mod::MAIN_DMG_RATING));
         }
         else if (PPetEntity->getPetType() == PET_TYPE::WYVERN)
         {
@@ -847,7 +850,9 @@ uint16 CBattleEntity::GetRangedWeaponDmg()
 
         if (PPetEntity->getPetType() == PET_TYPE::AUTOMATON)
         {
-            return std::floor((GetSkill(SKILL_AUTOMATON_RANGED) / 8.7f) * 2.0f + 3.0f) + getMod(Mod::RANGED_DMG_RATING);
+            // Pure automaton weapon damage + RANGED_DMG_RATING (slice 1592).
+            return automatonweapondamagehelpers::WeaponDamageWithRating(
+                GetSkill(SKILL_AUTOMATON_RANGED), getMod(Mod::RANGED_DMG_RATING));
         }
         else if (PPetEntity->getPetType() == PET_TYPE::WYVERN)
         {
