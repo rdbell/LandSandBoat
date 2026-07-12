@@ -40,6 +40,7 @@
 #include "take_damage_capacity.h"
 #include "take_physical_capacity.h"
 #include "treasure_hunter_proc_capacity.h"
+#include "enspell_handle_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -1288,25 +1289,39 @@ void HandleEnspell(CBattleEntity* PAttacker, CBattleEntity* PDefender, action_re
     xi::StatusEffect previous_daze       = xi::StatusEffect::None;
     uint16           previous_daze_power = 0;
 
-    if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DrainSamba) && PDefender->m_EcoSystem != xi::Ecosystem::Undead)
+    const auto sambaDaze = enspellhandlehelpers::SelectPreviousDaze(
+        PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DrainSamba),
+        PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AspirSamba),
+        PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::HasteSamba),
+        PDefender->m_EcoSystem == xi::Ecosystem::Undead);
+
+    switch (sambaDaze)
     {
-        previous_daze       = xi::StatusEffect::DrainDaze;
-        previous_daze_power = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::DrainSamba)->GetPower();
-    }
-    else if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AspirSamba))
-    {
-        previous_daze       = xi::StatusEffect::AspirDaze;
-        previous_daze_power = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AspirSamba)->GetPower();
-    }
-    else if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::HasteSamba))
-    {
-        previous_daze       = xi::StatusEffect::HasteDaze;
-        previous_daze_power = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::HasteSamba)->GetPower();
+        case enspellhandlehelpers::SambaDaze::Drain:
+            previous_daze       = xi::StatusEffect::DrainDaze;
+            previous_daze_power = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::DrainSamba)->GetPower();
+            break;
+        case enspellhandlehelpers::SambaDaze::Aspir:
+            previous_daze       = xi::StatusEffect::AspirDaze;
+            previous_daze_power = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AspirSamba)->GetPower();
+            break;
+        case enspellhandlehelpers::SambaDaze::Haste:
+            previous_daze       = xi::StatusEffect::HasteDaze;
+            previous_daze_power = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::HasteSamba)->GetPower();
+            break;
+        default:
+            break;
     }
 
     if (previous_daze != xi::StatusEffect::None)
     {
-        if (PAttacker->objtype == TYPE_PC && PAttacker->PParty != nullptr)
+        const auto clearPath = enspellhandlehelpers::ClassifyDazeClearPath(
+            PAttacker->objtype == TYPE_PC,
+            PAttacker->PParty != nullptr,
+            PAttacker->objtype == TYPE_TRUST,
+            PAttacker->PMaster != nullptr);
+
+        if (clearPath == enspellhandlehelpers::DazeClearPath::Party)
         {
             for (auto* PMember : PAttacker->PParty->members)
             {
@@ -1315,7 +1330,7 @@ void HandleEnspell(CBattleEntity* PAttacker, CBattleEntity* PDefender, action_re
                 PDefender->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::AspirDaze, PMember->id);
             }
         }
-        else if (PAttacker->objtype == TYPE_TRUST && PAttacker->PMaster)
+        else if (clearPath == enspellhandlehelpers::DazeClearPath::TrustMasterParty)
         {
             // clang-format off
                 static_cast<CCharEntity*>(PAttacker->PMaster)->ForPartyWithTrusts(
@@ -1364,7 +1379,8 @@ void HandleEnspell(CBattleEntity* PAttacker, CBattleEntity* PDefender, action_re
 
             if (hasGlobalAdditionalEffect && luautils::additionalEffectAttack(PAttacker, PDefender, weapon, Action, finaldamage) == 0 && Action->hasAdditionalEffect())
             {
-                if (Action->addEffectMessage == MsgBasic::AddEffectDamage && Action->addEffectParam < 0)
+                if (enspellhandlehelpers::ShouldRewriteAddEffectToRecoverHP(
+                        static_cast<std::uint16_t>(Action->addEffectMessage), Action->addEffectParam))
                 {
                     Action->addEffectMessage = MsgBasic::AddEffectRecoversHP;
                 }
@@ -1373,7 +1389,8 @@ void HandleEnspell(CBattleEntity* PAttacker, CBattleEntity* PDefender, action_re
 
             if (hasItemScriptAdditionalEffect && luautils::OnItemAdditionalEffect(PAttacker, PDefender, weapon, Action, finaldamage) == 0 && Action->hasAdditionalEffect())
             {
-                if (Action->addEffectMessage == MsgBasic::AddEffectDamage && Action->addEffectParam < 0)
+                if (enspellhandlehelpers::ShouldRewriteAddEffectToRecoverHP(
+                        static_cast<std::uint16_t>(Action->addEffectMessage), Action->addEffectParam))
                 {
                     Action->addEffectMessage = MsgBasic::AddEffectRecoversHP;
                 }
@@ -1387,7 +1404,9 @@ void HandleEnspell(CBattleEntity* PAttacker, CBattleEntity* PDefender, action_re
     bool checkedPriorityWeaponAddEffect = false;
 
     // TODO: grip priority too?
-    if (PAttacker->objtype == TYPE_PC && battleutils::GetScaledItemModifier(PAttacker, weapon, Mod::ITEM_ADDEFFECT_PRIORITY) > 0)
+    if (enspellhandlehelpers::WeaponAddEffectPriority(
+            PAttacker->objtype == TYPE_PC,
+            battleutils::GetScaledItemModifier(PAttacker, weapon, Mod::ITEM_ADDEFFECT_PRIORITY)))
     {
         if (checkWeaponAdditionalEffect())
         {
@@ -1397,300 +1416,299 @@ void HandleEnspell(CBattleEntity* PAttacker, CBattleEntity* PDefender, action_re
         checkedPriorityWeaponAddEffect = true;
     }
 
-    if ((PAttacker->getMod(Mod::ENSPELL) > 0 && // Enspell overwrites weapon effects
-         (PAttacker->getMod(Mod::ENSPELL_CHANCE) == 0 || PAttacker->getMod(Mod::ENSPELL_CHANCE) > xirand::GetRandomNumber(100))) ||
-        PAttacker->StatusEffectContainer->GetActiveRuneCount() > 0) // Rune Enhancement means we deal enspell damage
     {
-        static ActionProcAddEffect enspell_subeffects[8] = {
-            ActionProcAddEffect::FireDamage,
-            ActionProcAddEffect::IceDamage,
-            ActionProcAddEffect::WindDamage,
-            ActionProcAddEffect::EarthDamage,
-            ActionProcAddEffect::LightningDamage,
-            ActionProcAddEffect::WaterDamage,
-            ActionProcAddEffect::LightDamage,
-            ActionProcAddEffect::DarkDamage,
-        };
+        const auto enspell     = static_cast<uint8>(PAttacker->getMod(Mod::ENSPELL));
+        const auto enspellChance = static_cast<uint8>(PAttacker->getMod(Mod::ENSPELL_CHANCE));
+        const auto activeRunes = static_cast<int>(PAttacker->StatusEffectContainer->GetActiveRuneCount());
+        // RNG order: roll only when enspell>0 and chance!=0 (matches short-circuit; advances RNG before runes short-circuit).
+        const int  enspellRoll = (enspell > 0 && enspellChance != 0) ? xirand::GetRandomNumber(100) : 0;
 
-        uint8 enspell = (uint8)PAttacker->getMod(Mod::ENSPELL);
-
-        if (enspell == ENSPELL_BLOOD_WEAPON && PDefender->m_EcoSystem != xi::Ecosystem::Undead)
+        if (enspellhandlehelpers::EnspellShouldProc(enspell, enspellChance, enspellRoll, activeRunes))
         {
-            Action->additionalEffect = ActionProcAddEffect::HPDrain;
-            Action->addEffectMessage = MsgBasic::AddEffectHPDrained;
+            static ActionProcAddEffect enspell_subeffects[8] = {
+                ActionProcAddEffect::FireDamage,
+                ActionProcAddEffect::IceDamage,
+                ActionProcAddEffect::WindDamage,
+                ActionProcAddEffect::EarthDamage,
+                ActionProcAddEffect::LightningDamage,
+                ActionProcAddEffect::WaterDamage,
+                ActionProcAddEffect::LightDamage,
+                ActionProcAddEffect::DarkDamage,
+            };
 
-            // Increase HP Absorbed by 2% per JP
-            int32 absorbed = Action->param;
-            if (PAttacker->objtype == TYPE_PC)
+            const auto path = enspellhandlehelpers::ClassifyEnspellPath(
+                enspell,
+                PDefender->m_EcoSystem == xi::Ecosystem::Undead,
+                activeRunes > 0,
+                isFirstSwing);
+
+            if (path == enspellhandlehelpers::EnspellPath::BloodWeapon)
             {
-                absorbed += (int32)floor(
-                    absorbed * 0.02f * static_cast<CCharEntity*>(PAttacker)->PJobPoints->GetJobPointValue(JP_BLOOD_WEAPON_EFFECT));
-            }
+                Action->additionalEffect = ActionProcAddEffect::HPDrain;
+                Action->addEffectMessage = MsgBasic::AddEffectHPDrained;
 
-            Action->addEffectParam = PAttacker->addHP(absorbed);
+                const auto jp = (PAttacker->objtype == TYPE_PC)
+                                    ? static_cast<CCharEntity*>(PAttacker)->PJobPoints->GetJobPointValue(JP_BLOOD_WEAPON_EFFECT)
+                                    : static_cast<std::uint8_t>(0);
+                const int32 absorbed = enspellhandlehelpers::BloodWeaponAbsorbed(
+                    Action->param, PAttacker->objtype == TYPE_PC, jp);
 
-            if (PChar != nullptr)
-            {
-                PChar->updatemask |= UPDATE_HP;
-            }
-        }
-        else if (PAttacker->StatusEffectContainer->GetActiveRuneCount() > 0) // Rune Enhancement enspell damage, takes priority over all but blood weapon.
-        {
-            xi::StatusEffect highestRuneEffect = PAttacker->StatusEffectContainer->GetHighestRuneEffect();
-            xi::StatusEffect newestRuneEffect  = PAttacker->StatusEffectContainer->GetNewestRuneEffect();
-            int              highestRuneCount  = PAttacker->StatusEffectContainer->GetEffectsCount(highestRuneEffect);
+                Action->addEffectParam = PAttacker->addHP(absorbed);
 
-            xi::DamageType damageType = xi::DamageType::None;
-            int            element    = 0;
-
-            if (highestRuneCount == 1) // only have unique or one rune, set element to newest.
-            {
-                element                  = GetRuneEnhancementElement(newestRuneEffect);
-                Action->additionalEffect = enspell_subeffects[static_cast<uint16>(newestRuneEffect) - static_cast<uint16>(xi::StatusEffect::Ignis)];
-                damageType               = GetRuneEnhancementDamageType(newestRuneEffect);
-            }
-            else // set element to strongest rune
-            {
-                element                  = GetRuneEnhancementElement(highestRuneEffect);
-                Action->additionalEffect = enspell_subeffects[static_cast<uint16>(highestRuneEffect) - static_cast<uint16>(xi::StatusEffect::Ignis)];
-                damageType               = GetRuneEnhancementDamageType(highestRuneEffect);
-            }
-
-            Action->addEffectParam = CalculateEnspellDamage(PAttacker, PDefender, 4, element, weapon);
-
-            if (Action->addEffectParam < 0)
-            {
-                Action->addEffectParam   = -Action->addEffectParam;
-                Action->addEffectMessage = MsgBasic::AddEffectRecoversHP;
-            }
-            else
-            {
-                Action->addEffectMessage = MsgBasic::AddEffectAdditionalDamage;
-            }
-
-            PDefender->takeDamage(Action->addEffectParam, PAttacker, ATTACK_TYPE::MAGICAL, damageType);
-        }
-        else if (enspell == ENSPELL_AUSPICE && isFirstSwing)
-        {
-            Action->additionalEffect = ActionProcAddEffect::LightDamage;
-            Action->addEffectMessage = MsgBasic::AddEffectAdditionalDamage;
-            Action->addEffectParam   = CalculateEnspellDamage(PAttacker, PDefender, 2, 7, weapon);
-
-            if (Action->addEffectParam < 0)
-            {
-                Action->addEffectParam   = -Action->addEffectParam;
-                Action->addEffectMessage = MsgBasic::AddEffectRecoversHP;
-            }
-
-            PDefender->takeDamage(Action->addEffectParam, PAttacker, ATTACK_TYPE::MAGICAL, GetEnspellDamageType((ENSPELL)enspell));
-        }
-        else if (enspell <= ENSPELL_II_DARK) // Elemental enspells
-        {
-            if (enspell > ENSPELL_I_DARK && isFirstSwing) // Tier II elemental enspell
-            {
-                // Enlight II and Endark II currently not implemented; may vary
-                Action->additionalEffect = enspell_subeffects[enspell - 9];
-                Action->addEffectParam   = CalculateEnspellDamage(PAttacker, PDefender, 2, enspell - 8, weapon);
-            }
-            else if (enspell <= ENSPELL_I_DARK) // Tier I elemental enspell
-            {
-                Action->additionalEffect = enspell_subeffects[enspell - 1];
-                if (enspell >= ENSPELL_I_LIGHT) // Enlight or Endark
+                if (PChar != nullptr)
                 {
-                    Action->addEffectParam = CalculateEnspellDamage(PAttacker, PDefender, 3, enspell, weapon);
+                    PChar->updatemask |= UPDATE_HP;
+                }
+            }
+            else if (path == enspellhandlehelpers::EnspellPath::Rune)
+            {
+                xi::StatusEffect highestRuneEffect = PAttacker->StatusEffectContainer->GetHighestRuneEffect();
+                xi::StatusEffect newestRuneEffect  = PAttacker->StatusEffectContainer->GetNewestRuneEffect();
+                int              highestRuneCount  = PAttacker->StatusEffectContainer->GetEffectsCount(highestRuneEffect);
+
+                xi::DamageType damageType = xi::DamageType::None;
+                int            element    = 0;
+
+                if (enspellhandlehelpers::RuneUsesNewest(highestRuneCount))
+                {
+                    element                  = GetRuneEnhancementElement(newestRuneEffect);
+                    Action->additionalEffect = enspell_subeffects[static_cast<uint16>(newestRuneEffect) - static_cast<uint16>(xi::StatusEffect::Ignis)];
+                    damageType               = GetRuneEnhancementDamageType(newestRuneEffect);
                 }
                 else
                 {
-                    Action->addEffectParam = CalculateEnspellDamage(PAttacker, PDefender, 1, enspell, weapon);
+                    element                  = GetRuneEnhancementElement(highestRuneEffect);
+                    Action->additionalEffect = enspell_subeffects[static_cast<uint16>(highestRuneEffect) - static_cast<uint16>(xi::StatusEffect::Ignis)];
+                    damageType               = GetRuneEnhancementDamageType(highestRuneEffect);
                 }
-            }
 
-            if (Action->hasAdditionalEffect())
+                Action->addEffectParam = CalculateEnspellDamage(PAttacker, PDefender, 4, element, weapon);
+
+                {
+                    std::int32_t  normParam = 0;
+                    std::uint16_t normMsg   = 0;
+                    enspellhandlehelpers::NormalizeEnspellDamageParam(Action->addEffectParam, normParam, normMsg);
+                    Action->addEffectParam   = normParam;
+                    Action->addEffectMessage = static_cast<MsgBasic>(normMsg);
+                }
+
+                PDefender->takeDamage(Action->addEffectParam, PAttacker, ATTACK_TYPE::MAGICAL, damageType);
+            }
+            else if (path == enspellhandlehelpers::EnspellPath::Auspice)
             {
+                std::uint8_t tier = 0;
+                std::uint8_t el   = 0;
+                enspellhandlehelpers::ElementalEnspellTierAndElement(enspell, path, tier, el);
+
+                Action->additionalEffect = ActionProcAddEffect::LightDamage;
+                Action->addEffectMessage = MsgBasic::AddEffectAdditionalDamage;
+                Action->addEffectParam   = CalculateEnspellDamage(PAttacker, PDefender, tier, el, weapon);
+
                 if (Action->addEffectParam < 0)
                 {
-                    Action->addEffectParam   = -Action->addEffectParam;
-                    Action->addEffectMessage = MsgBasic::AddEffectRecoversHP;
-                }
-                else
-                {
-                    Action->addEffectMessage = MsgBasic::AddEffectAdditionalDamage;
+                    std::int32_t  normParam = 0;
+                    std::uint16_t normMsg   = 0;
+                    enspellhandlehelpers::NormalizeEnspellDamageParam(Action->addEffectParam, normParam, normMsg);
+                    Action->addEffectParam   = normParam;
+                    Action->addEffectMessage = static_cast<MsgBasic>(normMsg);
                 }
 
                 PDefender->takeDamage(Action->addEffectParam, PAttacker, ATTACK_TYPE::MAGICAL, GetEnspellDamageType((ENSPELL)enspell));
             }
-        }
-    }
-    // check weapon for additional effects only if priority hasn't been checked already
-    else if (!checkedPriorityWeaponAddEffect && checkWeaponAdditionalEffect())
-    {
-        return; // Lambda handled the function
-    }
-    // check script for grip if main failed
-    else if (PAttacker->objtype == TYPE_PC && static_cast<CCharEntity*>(PAttacker)->getEquip(SLOT_SUB) && weapon == PAttacker->m_Weapons[SLOT_MAIN] &&
-             static_cast<CItemWeapon*>(static_cast<CCharEntity*>(PAttacker)->getEquip(SLOT_SUB))->getSkillType() == SKILL_NONE &&
-             battleutils::GetScaledItemModifier(PAttacker, static_cast<CCharEntity*>(PAttacker)->getEquip(SLOT_SUB), Mod::ITEM_ADDEFFECT_TYPE) > 0 &&
-             luautils::additionalEffectAttack(PAttacker, PDefender, static_cast<CItemWeapon*>(static_cast<CCharEntity*>(PAttacker)->getEquip(SLOT_SUB)), Action, finaldamage) == 0 &&
-             Action->hasAdditionalEffect())
-    {
-        if (Action->addEffectMessage == MsgBasic::AddEffectDamage && Action->addEffectParam < 0)
-        {
-            Action->addEffectMessage = MsgBasic::AddEffectRecoversHP;
-        }
-    }
-    else if ((PAttacker->objtype == TYPE_MOB || PAttacker->objtype == TYPE_PET) && static_cast<CMobEntity*>(PAttacker)->getMobMod(MOBMOD_ADD_EFFECT) > 0)
-    {
-        luautils::OnAdditionalEffect(PAttacker, PDefender, Action, finaldamage);
-        if (Action->addEffectMessage == MsgBasic::AddEffectDamage && Action->addEffectParam < 0)
-        {
-            Action->addEffectMessage = MsgBasic::AddEffectRecoversHP;
-        }
-    }
-    else
-    {
-        bool hasDrainDaze = PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DrainDaze);
-        bool hasAspirDaze = PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AspirDaze);
-        bool hasHasteDaze = PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::HasteDaze);
-
-        if (hasDrainDaze || hasAspirDaze || hasHasteDaze)
-        {
-            int32 delay = PAttacker->GetWeaponDelay(false) / 10; // TODO: What kind of value did this ACTUALLY expect?
-
-            xi::StatusEffect daze       = xi::StatusEffect::None;
-            uint32           attackerID = 0;
-            uint16           power      = 0;
-
-            if (hasDrainDaze)
+            else if (path == enspellhandlehelpers::EnspellPath::ElementalII || path == enspellhandlehelpers::EnspellPath::ElementalI)
             {
-                daze = xi::StatusEffect::DrainDaze;
-            }
-            else if (hasAspirDaze)
-            {
-                daze = xi::StatusEffect::AspirDaze;
-            }
-            else if (hasHasteDaze)
-            {
-                daze = xi::StatusEffect::HasteDaze;
-            }
+                std::uint8_t tier = 0;
+                std::uint8_t el   = 0;
+                enspellhandlehelpers::ElementalEnspellTierAndElement(enspell, path, tier, el);
 
-            attackerID = PDefender->StatusEffectContainer->GetStatusEffect(daze)->GetSubID();
-
-            if (PAttacker->objtype == TYPE_PC && PAttacker->PParty != nullptr)
-            {
-                if (PChar)
+                if (path == enspellhandlehelpers::EnspellPath::ElementalII)
                 {
-                    // clang-format off
+                    Action->additionalEffect = static_cast<ActionProcAddEffect>(
+                        enspellhandlehelpers::ElementalEnspellSubEffect(enspell, true));
+                }
+                else
+                {
+                    Action->additionalEffect = static_cast<ActionProcAddEffect>(
+                        enspellhandlehelpers::ElementalEnspellSubEffect(enspell, false));
+                }
+                Action->addEffectParam = CalculateEnspellDamage(PAttacker, PDefender, tier, el, weapon);
+
+                if (Action->hasAdditionalEffect())
+                {
+                    {
+                        std::int32_t  normParam = 0;
+                        std::uint16_t normMsg   = 0;
+                        enspellhandlehelpers::NormalizeEnspellDamageParam(Action->addEffectParam, normParam, normMsg);
+                        Action->addEffectParam   = normParam;
+                        Action->addEffectMessage = static_cast<MsgBasic>(normMsg);
+                    }
+
+                    PDefender->takeDamage(Action->addEffectParam, PAttacker, ATTACK_TYPE::MAGICAL, GetEnspellDamageType((ENSPELL)enspell));
+                }
+            }
+            // ElementalIISkip / None: no effect this hit (matches original fall-through).
+        }
+        // check weapon for additional effects only if priority hasn't been checked already
+        else if (!checkedPriorityWeaponAddEffect && checkWeaponAdditionalEffect())
+        {
+            return; // Lambda handled the function
+        }
+        // check script for grip if main failed
+        else if ([&]() -> bool {
+                     if (PAttacker->objtype != TYPE_PC)
+                     {
+                         return false;
+                     }
+                     auto* PSub = static_cast<CCharEntity*>(PAttacker)->getEquip(SLOT_SUB);
+                     if (PSub == nullptr || weapon != PAttacker->m_Weapons[SLOT_MAIN])
+                     {
+                         return false;
+                     }
+                     auto* PSubWeapon = static_cast<CItemWeapon*>(PSub);
+                     return enspellhandlehelpers::GripAddEffectGate(
+                                true,
+                                true,
+                                PSubWeapon->getSkillType() == SKILL_NONE,
+                                battleutils::GetScaledItemModifier(PAttacker, PSub, Mod::ITEM_ADDEFFECT_TYPE) > 0) &&
+                            luautils::additionalEffectAttack(PAttacker, PDefender, PSubWeapon, Action, finaldamage) == 0 &&
+                            Action->hasAdditionalEffect();
+                 }())
+        {
+            if (enspellhandlehelpers::ShouldRewriteAddEffectToRecoverHP(
+                    static_cast<std::uint16_t>(Action->addEffectMessage), Action->addEffectParam))
+            {
+                Action->addEffectMessage = MsgBasic::AddEffectRecoversHP;
+            }
+        }
+        else if (enspellhandlehelpers::MobPetAddEffectGate(
+                     PAttacker->objtype == TYPE_MOB || PAttacker->objtype == TYPE_PET,
+                     (PAttacker->objtype == TYPE_MOB || PAttacker->objtype == TYPE_PET)
+                         ? static_cast<CMobEntity*>(PAttacker)->getMobMod(MOBMOD_ADD_EFFECT)
+                         : static_cast<std::int16_t>(0)))
+        {
+            luautils::OnAdditionalEffect(PAttacker, PDefender, Action, finaldamage);
+            if (enspellhandlehelpers::ShouldRewriteAddEffectToRecoverHP(
+                    static_cast<std::uint16_t>(Action->addEffectMessage), Action->addEffectParam))
+            {
+                Action->addEffectMessage = MsgBasic::AddEffectRecoversHP;
+            }
+        }
+        else
+        {
+            bool hasDrainDaze = PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DrainDaze);
+            bool hasAspirDaze = PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AspirDaze);
+            bool hasHasteDaze = PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::HasteDaze);
+
+            if (hasDrainDaze || hasAspirDaze || hasHasteDaze)
+            {
+                int32 delay = PAttacker->GetWeaponDelay(false) / 10; // TODO: What kind of value did this ACTUALLY expect?
+
+                xi::StatusEffect daze       = xi::StatusEffect::None;
+                uint32           attackerID = 0;
+                uint16           power      = 0;
+
+                if (hasDrainDaze)
+                {
+                    daze = xi::StatusEffect::DrainDaze;
+                }
+                else if (hasAspirDaze)
+                {
+                    daze = xi::StatusEffect::AspirDaze;
+                }
+                else if (hasHasteDaze)
+                {
+                    daze = xi::StatusEffect::HasteDaze;
+                }
+
+                attackerID = PDefender->StatusEffectContainer->GetStatusEffect(daze)->GetSubID();
+
+                if (PAttacker->objtype == TYPE_PC && PAttacker->PParty != nullptr)
+                {
+                    if (PChar)
+                    {
+                        // clang-format off
                         PChar->ForPartyWithTrusts([&](CBattleEntity* PMember)
                         {
                             if (attackerID == PMember->id)
                             {
-                                power = PDefender->StatusEffectContainer->GetStatusEffect(daze)->GetPower();
+                                power = enspellhandlehelpers::DazePowerFromMembership(
+                                    true, PDefender->StatusEffectContainer->GetStatusEffect(daze)->GetPower());
                             }
                         });
-                    // clang-format on
+                        // clang-format on
+                    }
                 }
-            }
-            else if (PAttacker->objtype == TYPE_TRUST)
-            {
-                if (auto* PMaster = dynamic_cast<CCharEntity*>(PAttacker->PMaster))
+                else if (PAttacker->objtype == TYPE_TRUST)
                 {
-                    // clang-format off
+                    if (auto* PMaster = dynamic_cast<CCharEntity*>(PAttacker->PMaster))
+                    {
+                        // clang-format off
                         PMaster->ForPartyWithTrusts([&](CBattleEntity* PMember)
                         {
                             if (attackerID == PMember->id)
                             {
-                                power = PDefender->StatusEffectContainer->GetStatusEffect(daze)->GetPower();
+                                power = enspellhandlehelpers::DazePowerFromMembership(
+                                    true, PDefender->StatusEffectContainer->GetStatusEffect(daze)->GetPower());
                             }
                         });
-                    // clang-format on
-                }
-            }
-            else if (PAttacker->PMaster == nullptr)
-            {
-                if (attackerID == PAttacker->id)
-                {
-                    power = PDefender->StatusEffectContainer->GetStatusEffect(daze)->GetPower();
-                }
-            }
-
-            if (daze == xi::StatusEffect::DrainDaze && power > 0)
-            {
-                uint16 multiplier = (uint16)(3 + 5.5f * (power - 1));
-                int8   Samba      = xirand::GetRandomNumber(1, (delay * multiplier) / 100 + 1);
-
-                // vary damage based on lvl diff
-                int8 lvlDiff = (PDefender->GetMLevel() - PAttacker->GetMLevel());
-
-                if (lvlDiff > 0)
-                {
-                    if (lvlDiff > 10)
-                    {
-                        lvlDiff = 10;
+                        // clang-format on
                     }
-                    Samba -= ceil(Samba * lvlDiff * .04); // 4% penalty per level
                 }
-
-                if (finaldamage <= 2)
+                else if (PAttacker->PMaster == nullptr)
                 {
-                    Samba = 0;
+                    power = enspellhandlehelpers::DazePowerFromMembership(
+                        attackerID == PAttacker->id,
+                        PDefender->StatusEffectContainer->GetStatusEffect(daze)->GetPower());
                 }
-                else if (Samba > (finaldamage / 2))
+
+                const auto drainDaze  = (daze == xi::StatusEffect::DrainDaze) ? enspellhandlehelpers::SambaDaze::Drain : enspellhandlehelpers::SambaDaze::None;
+                const auto aspirDaze  = (daze == xi::StatusEffect::AspirDaze) ? enspellhandlehelpers::SambaDaze::Aspir : enspellhandlehelpers::SambaDaze::None;
+                const auto hasteDazeK = (daze == xi::StatusEffect::HasteDaze) ? enspellhandlehelpers::SambaDaze::Haste : enspellhandlehelpers::SambaDaze::None;
+
+                if (enspellhandlehelpers::ShouldApplyDrainSamba(drainDaze, power))
                 {
-                    Samba = finaldamage / 2;
+                    const int upper = enspellhandlehelpers::DrainSambaRollUpper(power, delay);
+                    const int8 roll = xirand::GetRandomNumber(1, upper);
+                    const int8 lvlDiff = static_cast<int8>(PDefender->GetMLevel() - PAttacker->GetMLevel());
+                    const int8 Samba = enspellhandlehelpers::DrainSambaAmount(power, delay, roll, lvlDiff, finaldamage);
+
+                    Action->additionalEffect = ActionProcAddEffect::HPDrain;
+                    Action->addEffectMessage = MsgBasic::AddEffectHPDrained;
+                    Action->addEffectParam   = Samba;
+
+                    PAttacker->addHP(Samba); // does not do any additional damage to targets HP, only heals the attacker
+
+                    if (PChar != nullptr)
+                    {
+                        PChar->updatemask |= UPDATE_HP;
+                    }
                 }
-                else if (Samba < 0)
+                else if (enspellhandlehelpers::ShouldApplyAspirSamba(aspirDaze, power, PDefender->GetMaxMP()))
                 {
-                    Samba = 0;
+                    const int upper = enspellhandlehelpers::AspirSambaRollUpper(power, delay);
+                    const int8 roll = xirand::GetRandomNumber(1, upper);
+                    const int8 Samba = enspellhandlehelpers::AspirSambaAmount(power, delay, roll, finaldamage);
+
+                    Action->additionalEffect = ActionProcAddEffect::MPDrain;
+                    Action->addEffectMessage = MsgBasic::AddEffectMPDrained;
+
+                    int16 mpDrained = PDefender->addMP(-Samba);
+
+                    PAttacker->addMP(mpDrained);
+                    Action->addEffectParam = mpDrained;
+
+                    if (PChar != nullptr)
+                    {
+                        PChar->updatemask |= UPDATE_HP;
+                    }
                 }
-
-                Action->additionalEffect = ActionProcAddEffect::HPDrain;
-                Action->addEffectMessage = MsgBasic::AddEffectHPDrained;
-                Action->addEffectParam   = Samba;
-
-                PAttacker->addHP(Samba); // does not do any additional damage to targets HP, only heals the attacker
-
-                if (PChar != nullptr)
+                else if (enspellhandlehelpers::ShouldApplyHasteSamba(hasteDazeK, power))
                 {
-                    PChar->updatemask |= UPDATE_HP;
+                    Action->additionalEffect = ActionProcAddEffect::Haste;
+                    // Ability haste added in scripts\globals\effects\haste_samba_haste_effect.lua
+                    PAttacker->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::HasteSambaHaste, 0, power, 0s, 10s);
+                    // Status effect removed in CAttackRound constructor (i.e. after next attack round is calculated)
                 }
-            }
-            else if (daze == xi::StatusEffect::AspirDaze && power > 0 && PDefender->GetMaxMP() > 0)
-            {
-                uint16 multiplier = 1 + 2 * (power - 1);
-                int8   Samba      = xirand::GetRandomNumber(1, (delay * multiplier) / 100 + 1);
-
-                if (finaldamage <= 2)
-                {
-                    Samba = 0;
-                }
-                else if (Samba >= finaldamage / 4)
-                {
-                    Samba = finaldamage / 4;
-                }
-                else if (Samba < 0)
-                {
-                    Samba = 0;
-                }
-
-                Action->additionalEffect = ActionProcAddEffect::MPDrain;
-                Action->addEffectMessage = MsgBasic::AddEffectMPDrained;
-
-                int16 mpDrained = PDefender->addMP(-Samba);
-
-                PAttacker->addMP(mpDrained);
-                Action->addEffectParam = mpDrained;
-
-                if (PChar != nullptr)
-                {
-                    PChar->updatemask |= UPDATE_HP;
-                }
-            }
-            else if (daze == xi::StatusEffect::HasteDaze && power > 0)
-            {
-                Action->additionalEffect = ActionProcAddEffect::Haste;
-                // Ability haste added in scripts\globals\effects\haste_samba_haste_effect.lua
-                PAttacker->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::HasteSambaHaste, 0, power, 0s, 10s);
-                // Status effect removed in CAttackRound constructor (i.e. after next attack round is calculated)
             }
         }
     }
