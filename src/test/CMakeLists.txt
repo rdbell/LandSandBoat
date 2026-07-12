@@ -826,6 +826,8 @@ set(SOURCES
     test_can_afford_spell_1531.cpp
     test_spikes_status_1532.h
     test_spikes_status_1532.cpp
+    test_take_damage_1533.h
+    test_take_damage_1533.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

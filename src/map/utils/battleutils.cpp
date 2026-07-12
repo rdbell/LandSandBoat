@@ -37,6 +37,7 @@
 #include "wildcard_randomdeal_capacity.h"
 #include "can_afford_spell_capacity.h"
 #include "spikes_status_capacity.h"
+#include "take_damage_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -2303,56 +2304,64 @@ auto TakePhysicalDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, PHYS
 
 auto TakeWeaponskillDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, int32 damage, ATTACK_TYPE attackType, xi::DamageType damageType, uint8 slot, bool primary, float tpMultiplier, uint16 bonusTP, float targetTPMultiplier) -> int32
 {
-    bool isRanged = (slot == SLOT_AMMO || slot == SLOT_RANGED);
+    const bool isRanged = takedamagehelpers::IsWSRangedSlot(slot);
 
-    if (attackType == ATTACK_TYPE::PHYSICAL &&
-        PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DefenseBoost) &&
-        PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::DefenseBoost)->GetSubPower() != 0 &&
-        infront(PAttacker->loc.p, PDefender->loc.p, PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::DefenseBoost)->GetSubPower()))
+    // DefenseBoost infront nullification + null damage rolls.
+    uint16 defenseSubPower = 0;
+    bool   inFrontDefBoost = false;
+    const bool hasDefenseBoost =
+        PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DefenseBoost);
+    if (hasDefenseBoost)
     {
-        damage = 0;
+        defenseSubPower  = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::DefenseBoost)->GetSubPower();
+        inFrontDefBoost  = infront(PAttacker->loc.p, PDefender->loc.p, defenseSubPower);
     }
+    // Preserve null RNG only for the matching attack type arm (short-circuit else-if).
+    bool nullRangedProc = false;
+    bool nullPhysProc   = false;
+    if (attackType == ATTACK_TYPE::RANGED)
+    {
+        nullRangedProc = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_RANGED_DAMAGE);
+    }
+    else if (attackType == ATTACK_TYPE::PHYSICAL)
+    {
+        nullPhysProc = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_PHYSICAL_DAMAGE);
+    }
+    damage = takedamagehelpers::ApplyWSDefenseAndNull(
+        damage,
+        takedamagehelpers::WSDefenseBoostNullifies(
+            static_cast<uint8>(attackType), hasDefenseBoost, defenseSubPower, inFrontDefBoost),
+        static_cast<uint8>(attackType),
+        nullRangedProc,
+        nullPhysProc);
 
-    // Handle damage nullification.
-    if (attackType == ATTACK_TYPE::RANGED && xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_RANGED_DAMAGE))
+    if (takedamagehelpers::ShouldApplyWSPhalanxStoneskin(damage))
     {
-        damage = 0;
-    }
-    else if (attackType == ATTACK_TYPE::PHYSICAL && xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_PHYSICAL_DAMAGE))
-    {
-        damage = 0;
-    }
-
-    if (damage > 0)
-    {
-        damage = std::max(damage - PDefender->getMod(Mod::PHALANX), 0);
+        damage = takedamagehelpers::ApplyPhalanx(damage, PDefender->getMod(Mod::PHALANX));
         damage = HandleStoneskin(PDefender, damage);
     }
 
-    if (!isRanged)
+    if (takedamagehelpers::ShouldApplyOverwhelm(isRanged))
     {
         damage = getOverWhelmDamageBonus(PAttacker, PDefender, damage);
     }
 
     HandleAfflatusMiseryDamage(PDefender, damage);
-    damage = std::clamp(damage, -99999, 99999);
+    damage = takedamagehelpers::ClampWSDamage(damage);
 
     damage = CheckAndApplyDamageCap(damage, PDefender);
 
     int32 corrected = PDefender->takeDamage(damage, PAttacker, attackType, damageType);
-    if (damage < 0)
-    {
-        damage = -corrected;
-    }
+    damage          = takedamagehelpers::CorrectedDamageAfterTake(damage, corrected);
 
-    if (PAttacker->objtype == TYPE_PC)
+    if (takedamagehelpers::ShouldClaimOnWSDamage(PAttacker->objtype == TYPE_PC))
     {
         battleutils::ClaimMob(PDefender, PAttacker);
     }
 
     int16 standbyTp = 0;
 
-    if (damage > 0)
+    if (takedamagehelpers::ShouldProcessWSHitEffects(damage))
     {
         PDefender->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Damage);
 
@@ -2363,13 +2372,14 @@ auto TakeWeaponskillDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, i
         {
             case TYPE_MOB:
                 // if the mob is charmed by player
-                if (PDefender->PMaster != nullptr && PDefender->PMaster->objtype == TYPE_PC)
+                if (takedamagehelpers::ShouldUpdateCharmedMobPacket(
+                        true, PDefender->PMaster != nullptr, PDefender->PMaster && PDefender->PMaster->objtype == TYPE_PC))
                 {
                     ((CPetEntity*)PDefender)
                         ->loc.zone->UpdateEntityPacket(PDefender, ENTITY_UPDATE, UPDATE_COMBAT);
                 }
 
-                if (((CMobEntity*)PDefender)->m_HiPCLvl < PAttacker->GetMLevel())
+                if (takedamagehelpers::ShouldUpdateMobHiPCLvl(((CMobEntity*)PDefender)->m_HiPCLvl, PAttacker->GetMLevel()))
                 {
                     ((CMobEntity*)PDefender)->m_HiPCLvl = PAttacker->GetMLevel();
                 }
@@ -2377,7 +2387,10 @@ auto TakeWeaponskillDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, i
                 break;
 
             case TYPE_PET:
-                ((CPetEntity*)PDefender)->loc.zone->UpdateEntityPacket(PDefender, ENTITY_UPDATE, UPDATE_COMBAT);
+                if (takedamagehelpers::ShouldUpdatePetCombatPacket(true))
+                {
+                    ((CPetEntity*)PDefender)->loc.zone->UpdateEntityPacket(PDefender, ENTITY_UPDATE, UPDATE_COMBAT);
+                }
                 break;
 
             default:
@@ -2387,15 +2400,13 @@ auto TakeWeaponskillDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, i
         // try to interrupt spell
         PDefender->TryHitInterrupt(PAttacker);
 
-        int16 baseTp = 0;
-
         // Add tp to attacker
-        if (primary)
         // Calculate TP Return from WS
         {
-            int16 baseTp = CalculateTPFromDamageDealt(PAttacker, false, static_cast<SLOTTYPE>(slot));
-
-            standbyTp = bonusTP + (int16)((tpMultiplier * baseTp));
+            const int16 baseTpFromDealt = primary
+                                              ? CalculateTPFromDamageDealt(PAttacker, false, static_cast<SLOTTYPE>(slot))
+                                              : static_cast<int16>(0);
+            standbyTp = takedamagehelpers::WSStandbyTP(primary, bonusTP, tpMultiplier, baseTpFromDealt);
         }
 
         // Add TP to defender
@@ -2410,20 +2421,21 @@ auto TakeWeaponskillDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, i
             delay = GetBaseDelay(PAttacker);
         }
 
-        baseTp = CalculateTPFromDamageTaken(PAttacker, PDefender, damage, delay);
+        const int16 baseTp = CalculateTPFromDamageTaken(PAttacker, PDefender, damage, delay);
 
-        PDefender->addTP((int16)(tpMultiplier * targetTPMultiplier * baseTp));
+        PDefender->addTP(takedamagehelpers::WSDefenderTP(tpMultiplier, targetTPMultiplier, baseTp));
     }
-    else if (PDefender->objtype == TYPE_MOB)
+    else if (takedamagehelpers::ShouldUpdateEnmityFromZeroWS(damage, PDefender->objtype == TYPE_MOB))
     {
         ((CMobEntity*)PDefender)->PEnmityContainer->UpdateEnmityFromDamage(PAttacker, 0);
     }
 
     // Apply TP
-    PAttacker->addTP(std::max((PAttacker->getMod(Mod::SAVETP)), standbyTp));
+    PAttacker->addTP(takedamagehelpers::WSAttackerAddTP(PAttacker->getMod(Mod::SAVETP), standbyTp));
 
     // Remove Hagakure Effect if present
-    if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hagakure))
+    if (takedamagehelpers::ShouldRemoveHagakure(
+            PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hagakure)))
     {
         PAttacker->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Hagakure);
     }
@@ -2445,7 +2457,7 @@ void TakeSpellDamage(CBattleEntity* PDefender, CBattleEntity* PAttacker, CSpell*
     PDefender->takeDamage(damage, PAttacker, attackType, damageType);
 
     // Remove effects from damage
-    if (PSpell->canTargetEnemy() && damage > 0)
+    if (takedamagehelpers::ShouldApplySpellDamageEffects(PSpell->canTargetEnemy(), damage))
     {
         PDefender->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Damage);
 
@@ -2481,7 +2493,7 @@ auto TakeSwipeLungeDamage(CBattleEntity* PDefender, CBattleEntity* PAttacker, in
     PDefender->takeDamage(damage, PAttacker, attackType, damageType);
 
     // Remove effects from damage
-    if (damage > 0)
+    if (takedamagehelpers::ShouldApplySwipeLungeHitEffects(damage))
     {
         PDefender->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Damage);
         // Check for bind breaking
