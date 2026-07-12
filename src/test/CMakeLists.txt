@@ -664,6 +664,8 @@ set(SOURCES
     test_char_combat_transition_1449.cpp
     test_char_action_boundary_1450.h
     test_char_action_boundary_1450.cpp
+    test_char_error_delivery_1451.h
+    test_char_error_delivery_1451.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

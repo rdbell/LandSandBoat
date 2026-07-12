@@ -28,6 +28,7 @@
 #include "char_combat_transition_capacity.h"
 #include "char_equipment_capacity.h"
 #include "char_equip_flush_capacity.h"
+#include "char_error_delivery_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
@@ -1912,10 +1913,10 @@ void CCharEntity::HandleErrorMessage(std::unique_ptr<CBasicPacket>& msg)
 {
     TracyZoneScoped;
 
-    if (msg && !isCharmed)
-    {
-        pushPacket(std::move(msg));
-    }
+    charerrordeliveryhelpers::DeliverError(
+        msg,
+        [&]() { return isCharmed; },
+        [&](std::unique_ptr<CBasicPacket> message) { pushPacket(std::move(message)); });
 }
 
 void CCharEntity::OnDeathTimer()
@@ -2675,12 +2676,11 @@ bool CCharEntity::OnAttackError(CAttackState& state)
     TracyZoneScoped;
 
     auto* controller{ static_cast<CPlayerController*>(PAI->GetController()) };
-    if (controller->getLastErrMsgTime() + std::chrono::milliseconds(this->GetWeaponDelay(false)) < PAI->getTick())
-    {
-        controller->setLastErrMsgTime(PAI->getTick());
-        return true;
-    }
-    return false;
+    return charerrordeliveryhelpers::AttackError(
+        [&]() { return controller->getLastErrMsgTime(); },
+        [&]() { return std::chrono::milliseconds(this->GetWeaponDelay(false)); },
+        [&]() { return PAI->getTick(); },
+        [&](const timer::time_point errorTime) { controller->setLastErrMsgTime(errorTime); });
 }
 
 bool CCharEntity::isInTriggerArea(uint32 triggerAreaID)

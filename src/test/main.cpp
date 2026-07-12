@@ -367,6 +367,7 @@ auto runCharEquipFlush1447SelfTests() -> bool;
 auto runCharValidTarget1448SelfTests() -> bool;
 auto runCharCombatTransition1449SelfTests() -> bool;
 auto runCharActionBoundary1450SelfTests() -> bool;
+auto runCharErrorDelivery1451SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -944,6 +945,7 @@ namespace
         ok = runCharValidTarget1448SelfTests() && ok;
         ok = runCharCombatTransition1449SelfTests() && ok;
         ok = runCharActionBoundary1450SelfTests() && ok;
+        ok = runCharErrorDelivery1451SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
