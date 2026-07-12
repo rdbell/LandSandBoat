@@ -48,6 +48,7 @@
 #include "char_cast_finish_capacity.h"
 #include "char_immanence_capacity.h"
 #include "char_cast_skillup_capacity.h"
+#include "char_var_cache_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -2570,13 +2571,14 @@ void CCharEntity::setLocked(bool locked)
 
 auto CCharEntity::getCharVar(const std::string& varName) const -> int32
 {
+    const auto now = earth_time::timestamp();
     if (auto charVar = charVarCache.find(varName); charVar != charVarCache.end())
     {
-        std::pair cachedVarData = charVar->second;
+        const auto& cachedVarData = charVar->second;
 
         // If the cached variable is not expired, return it.  Else, fall through so that the
         // database can be cleaned up.
-        if (cachedVarData.second == 0 || cachedVarData.second > earth_time::timestamp())
+        if (charvarcachehelpers::ShouldUseCacheHit(true, cachedVarData.second, now))
         {
             return cachedVarData.first;
         }
@@ -2584,7 +2586,7 @@ auto CCharEntity::getCharVar(const std::string& varName) const -> int32
 
     const auto value = charutils::FetchCharVar(this->id, varName);
 
-    charVarCache[varName] = value;
+    charVarCache[varName] = charvarcachehelpers::MakeEntry(value.first, value.second);
     return value.first;
 }
 
@@ -2605,9 +2607,9 @@ auto CCharEntity::getCharVarsWithPrefix(const std::string& prefix) -> std::vecto
             const auto value   = rset->get<int32>("value");
             const auto expiry  = rset->get<uint32>("expiry");
 
-            if (expiry == 0 || expiry > currentTimestamp)
+            if (charvarcachehelpers::ShouldIncludeRow(expiry, currentTimestamp))
             {
-                charVarCache[varname] = { value, expiry };
+                charVarCache[varname] = charvarcachehelpers::MakeEntry(value, expiry);
 
                 charVars.emplace_back(varname, value);
             }
@@ -2634,9 +2636,9 @@ auto CCharEntity::getCharVarsWithSuffix(const std::string& suffix) -> std::vecto
             const auto value   = rset->get<int32>("value");
             const auto expiry  = rset->get<uint32>("expiry");
 
-            if (expiry == 0 || expiry > currentTimestamp)
+            if (charvarcachehelpers::ShouldIncludeRow(expiry, currentTimestamp))
             {
-                charVarCache[varname] = { value, expiry };
+                charVarCache[varname] = charvarcachehelpers::MakeEntry(value, expiry);
 
                 charVars.emplace_back(varname, value);
             }
@@ -2648,19 +2650,19 @@ auto CCharEntity::getCharVarsWithSuffix(const std::string& suffix) -> std::vecto
 
 void CCharEntity::setCharVar(const std::string& charVarName, int32 value, uint32 expiry /* = 0 */)
 {
-    charVarCache[charVarName] = { value, expiry };
+    charVarCache[charVarName] = charvarcachehelpers::MakeEntry(value, expiry);
     charutils::PersistCharVar(this->id, charVarName, value, expiry);
 }
 
 void CCharEntity::setVolatileCharVar(const std::string& charVarName, int32 value, uint32 expiry /* = 0 */)
 {
-    charVarCache[charVarName] = { value, expiry };
+    charVarCache[charVarName] = charvarcachehelpers::MakeEntry(value, expiry);
     charVarChanges.insert(charVarName);
 }
 
 void CCharEntity::updateCharVarCache(const std::string& charVarName, int32 value, uint32 expiry /* = 0 */)
 {
-    charVarCache[charVarName] = { value, expiry };
+    charVarCache[charVarName] = charvarcachehelpers::MakeEntry(value, expiry);
 }
 
 void CCharEntity::removeFromCharVarCache(const std::string& varName)
@@ -2670,7 +2672,7 @@ void CCharEntity::removeFromCharVarCache(const std::string& varName)
 
 void CCharEntity::clearCharVarsWithPrefix(const std::string& prefix)
 {
-    if (prefix.size() < 5)
+    if (charvarcachehelpers::ShouldRejectClearPrefix(prefix.size()))
     {
         ShowError("Prefix too short to clear with: '%s'", prefix);
         return;
@@ -2679,9 +2681,9 @@ void CCharEntity::clearCharVarsWithPrefix(const std::string& prefix)
     auto iter = charVarCache.begin();
     while (iter != charVarCache.end())
     {
-        if (iter->first.rfind(prefix, 0) == 0)
+        if (charvarcachehelpers::StartsWithPrefix(iter->first, prefix))
         {
-            iter->second = { 0, 0 };
+            iter->second = charvarcachehelpers::ClearedEntry();
         }
         ++iter;
     }
