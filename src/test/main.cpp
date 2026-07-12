@@ -532,6 +532,7 @@ auto runFishingHookChance1619SelfTests() -> bool;
 auto runMobStatsProduct1620SelfTests() -> bool;
 auto runMobSetup1621SelfTests() -> bool;
 auto runPetModTandem1624SelfTests() -> bool;
+auto runPetSpawn1625SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1274,6 +1275,7 @@ namespace
         ok = runMobStatsProduct1620SelfTests() && ok;
         ok = runMobSetup1621SelfTests() && ok;
         ok = runPetModTandem1624SelfTests() && ok;
+        ok = runPetSpawn1625SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

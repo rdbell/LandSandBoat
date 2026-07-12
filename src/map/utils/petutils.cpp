@@ -55,6 +55,7 @@
 #include "map/luopan_stats_capacity.h"
 #include "map/perpetuation_capacity.h"
 #include "map/pet_mod_tandem_capacity.h"
+#include "map/pet_spawn_capacity.h"
 #include "map/pet_weapon_damage_capacity.h"
 #include "map/wyvern_stats_capacity.h"
 #include "puppetutils.h"
@@ -955,8 +956,8 @@ void FinalizePetStatistics(CBattleEntity* PMaster, CPetEntity* PPet)
 
 void SetupPetWithMaster(CBattleEntity* PMaster, CPetEntity* PPet)
 {
-    // automaton gets theirs by attachment only
-    if (PPet->getPetType() != PET_TYPE::AUTOMATON)
+    // Pure traits gate (pet_spawn_capacity.h; slice 1625).
+    if (petspawnhelpers::ShouldAddPetTraits(static_cast<uint8>(PPet->getPetType())))
     {
         battleutils::AddTraits(PPet, traits::GetTraits(PPet->GetMJob()), PPet->GetMLevel());
         battleutils::AddTraits(PPet, traits::GetTraits(PPet->GetSJob()), PPet->GetSLevel());
@@ -984,23 +985,23 @@ void SetupPetWithMaster(CBattleEntity* PMaster, CPetEntity* PPet)
         // clang-format on
     }
 
-    if (PMaster->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Debilitation))
+    // Pure ordered status-copy list for Debilitation/Omerta/Impairment (slice 1625).
+    const auto statusIDs = petspawnhelpers::ActivePropagatedStatuses(
+        PMaster->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Debilitation),
+        PMaster->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Omerta),
+        PMaster->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Impairment));
+    for (const auto effectID : statusIDs)
     {
-        PPet->StatusEffectContainer->AddStatusEffectSilent(xi::StatusEffect::Debilitation, static_cast<uint16>(xi::StatusEffect::Debilitation), PMaster->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Debilitation)->GetPower(), 0s, PMaster->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Debilitation)->GetDuration());
-    }
-    if (PMaster->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Omerta))
-    {
-        PPet->StatusEffectContainer->AddStatusEffectSilent(xi::StatusEffect::Omerta, static_cast<uint16>(xi::StatusEffect::Omerta), PMaster->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Omerta)->GetPower(), 0s, PMaster->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Omerta)->GetDuration());
-    }
-    if (PMaster->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Impairment))
-    {
-        PPet->StatusEffectContainer->AddStatusEffectSilent(xi::StatusEffect::Impairment, static_cast<uint16>(xi::StatusEffect::Impairment), PMaster->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Impairment)->GetPower(), 0s, PMaster->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Impairment)->GetDuration());
+        const auto effect = static_cast<xi::StatusEffect>(effectID);
+        const auto* e     = PMaster->StatusEffectContainer->GetStatusEffect(effect);
+        PPet->StatusEffectContainer->AddStatusEffectSilent(effect, static_cast<uint16>(effect), e->GetPower(), 0s, e->GetDuration());
     }
 }
 
 void SpawnPet(CBattleEntity* PMaster, uint32 PetID, bool spawningFromZone)
 {
-    if (PMaster->PPet != nullptr)
+    // Pure already-has-pet gate (pet_spawn_capacity.h; slice 1625).
+    if (petspawnhelpers::SpawnPetBlocked(PMaster->PPet != nullptr))
     {
         ShowWarning("Pet was not null for %s.", PMaster->getName());
         return;
@@ -1027,7 +1028,7 @@ void SpawnPet(CBattleEntity* PMaster, uint32 PetID, bool spawningFromZone)
             PPet->PInstance = PMaster->PInstance;
         }
 
-        if (spawningFromZone)
+        if (petspawnhelpers::UseNormalSpawnAnimation(spawningFromZone))
         {
             PPet->spawnAnimation = SPAWN_ANIMATION::NORMAL; // Don't play special spawn animation on zone in
         }
@@ -1035,13 +1036,13 @@ void SpawnPet(CBattleEntity* PMaster, uint32 PetID, bool spawningFromZone)
         PMaster->loc.zone->InsertPET(PPet);
 
         PPet->Spawn();
-        if (PMaster->objtype == TYPE_PC)
+        if (petspawnhelpers::ShouldSetupPetWithMaster(PMaster->objtype == TYPE_PC))
         {
             SetupPetWithMaster(PMaster, PPet);
         }
 
         // apply stats from previous zone if this pet is being transferred
-        if (spawningFromZone)
+        if (petspawnhelpers::ShouldLoadZoningInfo(spawningFromZone))
         {
             PPet->loadPetZoningInfo();
         }
@@ -1297,7 +1298,8 @@ void LoadPet(CBattleEntity* PMaster, uint32 PetID, bool spawningFromZone)
         return;
     }
 
-    if (PetID >= MAX_PETID)
+    // Pure PetID bound (pet_spawn_capacity.h; slice 1625).
+    if (!petspawnhelpers::LoadPetIDValid(PetID))
     {
         ShowWarning("PetID (%d) exceeds MAX_PETID", PetID);
         return;
