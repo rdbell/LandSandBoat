@@ -38,6 +38,7 @@
 #include "char_ability_paralyze_capacity.h"
 #include "char_activity_capacity.h"
 #include "char_shield_capacity.h"
+#include "char_gender_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -446,7 +447,7 @@ CCharEntity::~CCharEntity()
 
 uint8 CCharEntity::GetGender()
 {
-    return (look.race) % 2 ^ (look.race > 6);
+    return chargenderhelpers::FromRace(look.race);
 }
 
 bool CCharEntity::isPacketListEmpty()

@@ -742,6 +742,8 @@ set(SOURCES
     test_char_activity_1488.cpp
     test_char_shield_1489.h
     test_char_shield_1489.cpp
+    test_char_gender_1490.h
+    test_char_gender_1490.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
