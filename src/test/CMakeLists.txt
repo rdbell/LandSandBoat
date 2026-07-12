@@ -938,6 +938,8 @@ set(SOURCES
     test_garrison_membership_1591.cpp
     test_automaton_weapon_damage_1592.h
     test_automaton_weapon_damage_1592.cpp
+    test_pet_weapon_damage_1593.h
+    test_pet_weapon_damage_1593.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

@@ -50,6 +50,7 @@
 #include "ecosystem_strength_capacity.h"
 #include "garrison_membership_capacity.h"
 #include "automaton_weapon_damage_capacity.h"
+#include "pet_weapon_damage_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -702,9 +703,8 @@ uint16 CBattleEntity::GetMainWeaponDmg()
         }
         else if (PPetEntity->getPetType() == PET_TYPE::WYVERN)
         {
-            // Accurate for lvl 75 circa 2006~2008ish
-            // Unknown if this ever changed
-            return std::floor(GetMLevel() / 2) + 3 + getMod(Mod::MAIN_DMG_RATING);
+            // Accurate for lvl 75 circa 2006~2008ish (pet_weapon_damage_capacity; slice 1593).
+            return petweapondamagehelpers::WyvernWeaponDamageWithRating(GetMLevel(), getMod(Mod::MAIN_DMG_RATING));
         }
         else if (PPetEntity->getPetType() == PET_TYPE::AVATAR)
         {
@@ -720,8 +720,9 @@ uint16 CBattleEntity::GetMainWeaponDmg()
         }
         else // jugs
         {
-            // Formula looks fake...
-            return petutils::GetJugWeaponDamage(PPetEntity) + getMod(Mod::MAIN_DMG_RATING);
+            // Pure jug damage + MAIN_DMG_RATING (slice 1593).
+            return petweapondamagehelpers::JugWeaponDamageWithRating(
+                static_cast<float>(GetMLevel()), getMod(Mod::MAIN_DMG_RATING));
         }
     }
 
@@ -856,9 +857,8 @@ uint16 CBattleEntity::GetRangedWeaponDmg()
         }
         else if (PPetEntity->getPetType() == PET_TYPE::WYVERN)
         {
-            // Accurate for lvl 75 circa 2006~2008ish
-            // Unknown if this ever changed
-            return std::floor(GetMLevel() / 2) + 3 + getMod(Mod::RANGED_DMG_RATING);
+            // Accurate for lvl 75 circa 2006~2008ish (pet_weapon_damage_capacity; slice 1593).
+            return petweapondamagehelpers::WyvernWeaponDamageWithRating(GetMLevel(), getMod(Mod::RANGED_DMG_RATING));
         }
         else if (PPetEntity->getPetType() == PET_TYPE::AVATAR)
         {
@@ -874,8 +874,9 @@ uint16 CBattleEntity::GetRangedWeaponDmg()
         }
         else // jugs
         {
-            // Formula looks fake...
-            return petutils::GetJugWeaponDamage(PPetEntity) + getMod(Mod::RANGED_DMG_RATING);
+            // Pure jug damage + RANGED_DMG_RATING (slice 1593).
+            return petweapondamagehelpers::JugWeaponDamageWithRating(
+                static_cast<float>(GetMLevel()), getMod(Mod::RANGED_DMG_RATING));
         }
     }
 

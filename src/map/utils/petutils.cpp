@@ -43,6 +43,7 @@
 #include "map/automaton_frame_stats_capacity.h"
 #include "map/automaton_repair_mana_capacity.h"
 #include "map/automaton_weapon_damage_capacity.h"
+#include "map/pet_weapon_damage_capacity.h"
 #include "puppetutils.h"
 #include "status_effect_container.h"
 #include "zone_instance.h"
@@ -233,8 +234,8 @@ void RetreatToMaster(CBattleEntity* PMaster)
 
 uint16 GetJugWeaponDamage(CPetEntity* PPet)
 {
-    float MainLevel = PPet->GetMLevel();
-    return (uint16)(MainLevel * (MainLevel < 40 ? 1.4 - MainLevel / 100 : 1));
+    // Pure jug damage (pet_weapon_damage_capacity.h; slice 1593).
+    return petweapondamagehelpers::JugWeaponDamage(static_cast<float>(PPet->GetMLevel()));
 }
 
 uint16 GetJugBase(CPetEntity* PMob, uint8 rank)
