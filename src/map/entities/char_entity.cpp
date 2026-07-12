@@ -44,6 +44,7 @@
 #include "char_ability_response_capacity.h"
 #include "char_weaponskill_range_capacity.h"
 #include "char_weaponskill_self_capacity.h"
+#include "char_weaponskill_primary_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1504,7 +1505,10 @@ void CCharEntity::OnWeaponSkillFinished(CWeaponSkillState& state, action_t& acti
 
             if (!battleutils::isValidSelfTargetWeaponskill(PWeaponSkill->getID()))
             {
-                if (primary && PBattleTarget->objtype == TYPE_MOB)
+                if (charweaponskillprimaryhelpers::ShouldNotifyHit(
+                        false,
+                        primary,
+                        PBattleTarget->objtype == TYPE_MOB))
                 {
                     luautils::OnWeaponskillHit(PBattleTarget, this, PWeaponSkill->getID());
                 }
@@ -1523,10 +1527,12 @@ void CCharEntity::OnWeaponSkillFinished(CWeaponSkillState& state, action_t& acti
                 // On retail, weaponskills will contain 0x08, 0x10 (HIT, ABILITY) on hit and may include the following:
                 // 0x01, 0x02, 0x04 (MISS, GUARDED, BLOCK)
                 // TODO: refactor this so lua returns the number of hits so we don't have to check the reaction bits.
-                bool isNegated = actionResult.resolution == ActionResolution::Miss || actionResult.resolution == ActionResolution::Parry;
+                const bool isNegated = charweaponskillprimaryhelpers::IsNegatedResolution(
+                    actionResult.resolution == ActionResolution::Miss,
+                    actionResult.resolution == ActionResolution::Parry);
                 if (!isNegated)
                 {
-                    int wspoints = settings::get<uint8>("map.WS_POINTS_BASE");
+                    auto wspoints = settings::get<uint8>("map.WS_POINTS_BASE");
 
                     if (PBattleTarget->health.hp > 0 && PWeaponSkill->getPrimarySkillchain() != 0)
                     {
@@ -1543,18 +1549,11 @@ void CCharEntity::OnWeaponSkillFinished(CWeaponSkillState& state, action_t& acti
 
                             // Despite appearances, ws_points_skillchain is not a multiplier it is just an amount "per skillchain level"
                             const auto wsPointsSkillchain = settings::get<uint8>("map.WS_POINTS_SKILLCHAIN");
-                            if (effect >= ActionProcSkillChain::Compression && effect < ActionProcSkillChain::Radiance)
-                            {
-                                wspoints += (1 * wsPointsSkillchain); // Level 1
-                            }
-                            else if (effect >= ActionProcSkillChain::Gravitation)
-                            {
-                                wspoints += (2 * wsPointsSkillchain); // Level 2
-                            }
-                            else
-                            {
-                                wspoints += (3 * wsPointsSkillchain); // Level 3
-                            }
+                            wspoints = charweaponskillprimaryhelpers::TotalWSPoints(
+                                wspoints,
+                                true,
+                                static_cast<uint8>(effect),
+                                wsPointsSkillchain);
                         }
                     }
                     // check for ws points
@@ -1562,7 +1561,10 @@ void CCharEntity::OnWeaponSkillFinished(CWeaponSkillState& state, action_t& acti
                     // The following exceptions apply:
                     // - PC targeted weaponskills always give WSP
                     // - A handful of content: Besieged, DI
-                    if (charutils::CheckMob(this->GetMLevel(), PTarget) > EMobDifficulty::TooWeak)
+                    if (charweaponskillprimaryhelpers::ShouldAwardWSPoints(
+                            true,
+                            false,
+                            charutils::CheckMob(this->GetMLevel(), PTarget) > EMobDifficulty::TooWeak))
                     {
                         charutils::AddWeaponSkillPoints(this, damslot, wspoints);
                     }
