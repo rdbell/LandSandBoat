@@ -652,6 +652,8 @@ set(SOURCES
     test_char_persistence_1443.cpp
     test_char_tick_1444.h
     test_char_tick_1444.cpp
+    test_char_post_tick_refresh_1445.h
+    test_char_post_tick_refresh_1445.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

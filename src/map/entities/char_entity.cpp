@@ -29,6 +29,7 @@
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
 #include "char_playtime_capacity.h"
+#include "char_post_tick_refresh_capacity.h"
 #include "char_resource_capacity.h"
 #include "char_storage_capacity.h"
 #include "char_tick_capacity.h"
@@ -1048,25 +1049,17 @@ void CCharEntity::PostTick()
 {
     TracyZoneScoped;
 
-    CBattleEntity::PostTick();
-
-    if (ReloadParty())
-    {
-        charutils::ReloadParty(this);
-    }
-
-    if (m_EffectsChanged)
-    {
-        pushPacket<CCharStatusPacket>(this);
-        pushPacket<CCharSyncPacket>(this);
-        charutils::SendExtendedJobPackets(this);
-        pushPacket<GP_SERV_COMMAND_MISCDATA::STATUS_ICONS>(this);
-        if (PParty)
-        {
-            PParty->PushEffectsPacket();
-        }
-        m_EffectsChanged = false;
-    }
+    charposttickrefreshhelpers::Apply(
+        m_EffectsChanged,
+        [&]() { CBattleEntity::PostTick(); },
+        [&]() { return ReloadParty(); },
+        [&]() { charutils::ReloadParty(this); },
+        [&]() { pushPacket<CCharStatusPacket>(this); },
+        [&]() { pushPacket<CCharSyncPacket>(this); },
+        [&]() { charutils::SendExtendedJobPackets(this); },
+        [&]() { pushPacket<GP_SERV_COMMAND_MISCDATA::STATUS_ICONS>(this); },
+        [&]() { return PParty != nullptr; },
+        [&]() { PParty->PushEffectsPacket(); });
 
     timer::time_point now = timer::now();
 
