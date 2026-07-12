@@ -100,6 +100,7 @@
 #include "distribute_gil_capacity.h"
 #include "building_skills_capacity.h"
 #include "check_equipment_capacity.h"
+#include "capacity_award_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -5146,17 +5147,18 @@ void AddCapacityPoints(CCharEntity* PChar, CBaseEntity* PMob, uint32 capacityPoi
 {
     TracyZoneScoped;
 
-    if (PChar->isDead())
+    if (capacityawardhelpers::ShouldRejectDead(PChar->isDead()))
     {
         return;
     }
 
-    capacityPoints = (uint32)(capacityPoints * settings::get<float>("map.EXP_RATE"));
+    capacityPoints = capacityawardhelpers::ApplyExpRate(capacityPoints, settings::get<float>("map.EXP_RATE"));
 
-    if (capacityPoints > 0)
+    if (capacityawardhelpers::ShouldAwardCapacityPoints(capacityPoints))
     {
         // Capacity Chains start at lv100 mobs
-        if (capacitydistributehelpers::ShouldSendChainMessage(levelDiff, isCapacityChain))
+        const bool sendChainMessage = capacitydistributehelpers::ShouldSendChainMessage(levelDiff, isCapacityChain);
+        if (sendChainMessage)
         {
             if (capacitydistributehelpers::HasNonZeroChainNumber(PChar->capacityChain.chainNumber))
             {
@@ -5166,7 +5168,10 @@ void AddCapacityPoints(CCharEntity* PChar, CBaseEntity* PMob, uint32 capacityPoi
             {
                 PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PChar, capacityPoints, 0, MsgBasic::CapacityPointsGained);
             }
-            PChar->capacityChain.chainNumber = capacitydistributehelpers::NextChainNumberAfterAward(PChar->capacityChain.chainNumber);
+            if (capacityawardhelpers::ShouldAdvanceChainNumber(sendChainMessage))
+            {
+                PChar->capacityChain.chainNumber = capacitydistributehelpers::NextChainNumberAfterAward(PChar->capacityChain.chainNumber);
+            }
         }
         else
         {
@@ -5180,7 +5185,7 @@ void AddCapacityPoints(CCharEntity* PChar, CBaseEntity* PMob, uint32 capacityPoi
         }
         PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::JOB_POINTS>(PChar);
 
-        if (PMob != PChar) // Only mob kills count for gain EXP records
+        if (capacityawardhelpers::ShouldFireRoeCapacity(PMob == PChar)) // Only mob kills count for gain EXP records
         {
             roeutils::event(ROE_EXPGAIN, PChar, RoeDatagram("capacity", capacityPoints));
         }
