@@ -71,6 +71,7 @@
 #include "ninja_tool_capacity.h"
 #include "base_delay_capacity.h"
 #include "skillchain_damage_capacity.h"
+#include "skillchain_inject_capacity.h"
 #include "physical_hit_rate_capacity.h"
 #include "pdif_capacity.h"
 #include "level_correction_capacity.h"
@@ -3538,31 +3539,75 @@ auto TakeSkillchainDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, in
             });
     }
 
-    // Nullification inject (Lua): 0 → nullified short-circuit.
+    // Nullification pure (isMagic=true, isBreath=false).
     if (pp.element != 0)
     {
-        const auto nullif = luautils::callGlobal<double>(
-            "xi.spells.damage.calculateNullification", PDefender, pp.element, true, false);
-        pp.nullified = (nullif == 0.0);
+        using namespace skillchaininjecthelpers;
+        const int rollAll = xirand::GetRandomNumber(1, 101);
+        const int rollMag = xirand::GetRandomNumber(1, 101);
+        const int rollEl  = xirand::GetRandomNumber(1, 101);
+        const bool nullAll = RollProc1to100(rollAll, PDefender->getMod(Mod::NULL_DAMAGE));
+        const bool nullMag = RollProc1to100(rollMag, PDefender->getMod(Mod::NULL_MAGICAL_DAMAGE));
+        const auto nullMod = NullModForElement(pp.element);
+        const bool nullEl  = (nullMod != Mod::NONE) && RollProc1to100(rollEl, PDefender->getMod(nullMod));
+        pp.nullified       = (NullificationFactor(nullAll, nullMag, nullEl) == 0.0);
     }
 
-    // Multiplier injects from mods + remaining Lua helpers (parity with skillchain.lua).
-    pp.bonusMult  = 1.0 + static_cast<double>(PAttacker->getMod(Mod::SKILLCHAINBONUS)) / 100.0;
-    pp.damageMult = 1.0 + static_cast<double>(PAttacker->getMod(Mod::SKILLCHAINDMG)) / 10000.0;
+    // Multiplier injects pure (parity with skillchain.lua).
+    pp.bonusMult   = 1.0 + static_cast<double>(PAttacker->getMod(Mod::SKILLCHAINBONUS)) / 100.0;
+    pp.damageMult  = 1.0 + static_cast<double>(PAttacker->getMod(Mod::SKILLCHAINDMG)) / 10000.0;
     pp.magicDamage = PAttacker->getMod(Mod::MAGIC_DAMAGE);
 
     if (pp.element != 0 && !pp.nullified)
     {
-        pp.dayWeatherMult = luautils::callGlobal<double>(
-            "xi.spells.damage.calculateDayAndWeather", PAttacker, pp.element, false);
-        pp.staffMult = luautils::callGlobal<double>(
-            "xi.spells.damage.calculateElementalStaffBonus", PAttacker, pp.element);
-        pp.affinityMult = luautils::callGlobal<double>(
-            "xi.spells.damage.calculateElementalAffinityBonus", PAttacker, pp.element);
-        pp.magicTakenMult = luautils::callGlobal<double>(
-            "xi.combat.damage.calculateDamageAdjustment", PDefender, false, true, false, false);
-        pp.absorbMult = luautils::callGlobal<double>(
-            "xi.spells.damage.calculateAbsorption", PDefender, pp.element, true);
+        using namespace skillchaininjecthelpers;
+
+        // Day/weather (alwaysApply=false; 33% random proc or force mods).
+        {
+            DayWeatherParams dwp{};
+            dwp.spellElement         = pp.element;
+            dwp.weather              = static_cast<std::uint8_t>(GetWeather(PAttacker, false));
+            dwp.dayElement           = static_cast<std::uint8_t>(GetDayElement());
+            dwp.alwaysApply          = false;
+            dwp.randomProc           = xirand::GetRandomNumber(1, 101) <= 33;
+            dwp.forceDWBonusPenalty  = PAttacker->getMod(Mod::FORCE_DW_BONUS_PENALTY) > 0;
+            const auto forceMod      = ForceDWBonusModForElement(pp.element);
+            dwp.forceElementBonus    = (forceMod != Mod::NONE) && PAttacker->getMod(forceMod) > 0;
+            dwp.iridescence          = PAttacker->getMod(Mod::IRIDESCENCE);
+            dwp.dayWeatherProcBonus  = PAttacker->getMod(Mod::DAY_WEATHER_PROC_BONUS);
+            dwp.dayNukeBonus         = PAttacker->getMod(Mod::DAY_NUKE_BONUS);
+            pp.dayWeatherMult        = DayWeatherMultiplier(dwp);
+        }
+
+        // Staff / affinity
+        {
+            const auto staffMod = StaffModForElement(pp.element);
+            const auto affMod   = AffinityModForElement(pp.element);
+            pp.staffMult    = StaffBonus(pp.element, staffMod != Mod::NONE ? PAttacker->getMod(staffMod) : 0);
+            pp.affinityMult = AffinityBonus(pp.element, affMod != Mod::NONE ? PAttacker->getMod(affMod) : 0);
+        }
+
+        // Magical damage taken adjustment
+        pp.magicTakenMult = MagicalDamageAdjustment(
+            PDefender->getMod(Mod::DMG),
+            PDefender->getMod(Mod::DMGMAGIC),
+            PDefender->getMod(Mod::DMGMAGIC_II),
+            PDefender->getMod(Mod::UDMGMAGIC));
+
+        // Absorption (Liement + chance ladder)
+        {
+            const auto dmgType = static_cast<xi::DamageType>(
+                static_cast<std::uint8_t>(xi::DamageType::Elemental) + pp.element);
+            const double liement = CheckLiementAbsorb(PDefender, dmgType);
+            const int    rollAll = xirand::GetRandomNumber(1, 101);
+            const int    rollMag = xirand::GetRandomNumber(1, 101);
+            const int    rollEl  = xirand::GetRandomNumber(1, 101);
+            const bool   absAll  = RollProc1to100(rollAll, PDefender->getMod(Mod::ABSORB_DMG_CHANCE));
+            const bool   absMag  = RollProc1to100(rollMag, PDefender->getMod(Mod::MAGIC_ABSORB));
+            const auto   absMod  = AbsorbModForElement(pp.element);
+            const bool   absEl   = (absMod != Mod::NONE) && RollProc1to100(rollEl, PDefender->getMod(absMod));
+            pp.absorbMult        = AbsorptionFactor(liement, absAll, absMag, absEl);
+        }
 
         // Res-rank for selected element.
         {
