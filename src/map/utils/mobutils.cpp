@@ -29,6 +29,7 @@
 #include "map/mob_base_capacity.h"
 #include "map/mob_base_skill_capacity.h"
 #include "map/mob_hp_capacity.h"
+#include "map/mob_stats_product_capacity.h"
 #include "map/mob_weapon_damage_capacity.h"
 #include "map/sub_job_stats_capacity.h"
 
@@ -230,77 +231,25 @@ void CalculateMobStats(CMobEntity* PMob, bool recover)
             uint8 sjJobScale = grade::GetMobHPScale(sJobGrade, 1);
             uint8 sjScaleXHP = grade::GetMobHPScale(sJobGrade, 2);
 
-            // 2. Calculate base HP from main job
-            uint32 baseMobHP = CalculateBaseMobHP(mLvl, BaseHP, JobScale, ScaleXHP);
-
-            // 3. Calculate subjob HP contribution scaled by level range
-            uint32 sjHP = CalculateSubjobHP(mLvl, sjJobScale, sjScaleXHP);
-
-            // 4. Final mob HP before traits/family modifiers
-            uint32 mobHP = baseMobHP + sjHP;
-
-            // 5. Apply pet multiplier (pets are 30% of base mob HP)
-            if (PMob->PMaster != nullptr)
-            {
-                mobHP = (uint32)(mobHP * 0.30f);
-            }
-
-            PMob->health.maxhp = (int16)(mobHP);
+            // 2–5. Pure base+sub HP combine and optional pet scale (mob_stats_product_capacity.h; slice 1620).
+            const uint32 baseMobHP = CalculateBaseMobHP(mLvl, BaseHP, JobScale, ScaleXHP);
+            const uint32 sjHP      = CalculateSubjobHP(mLvl, sjJobScale, sjScaleXHP);
+            const uint32 mobHP     = mobstatsproducthelpers::CombineMobHP(baseMobHP, sjHP, PMob->PMaster != nullptr);
+            PMob->health.maxhp     = static_cast<int16>(mobHP);
         }
         else
         {
             PMob->health.maxhp = PMob->HPmodifier;
         }
 
-        // Apply NM/Mob HP multiplier from settings
-        if (isNM)
+        // Apply NM/Mob HP multiplier from settings (pure clamp+product; slice 1620).
         {
-            float hpMultiplierNM = settings::get<float>("map.NM_HP_MULTIPLIER");
-            hpMultiplierNM       = (hpMultiplierNM >= 0.1f && hpMultiplierNM <= 2.0f) ? hpMultiplierNM : 1.0f;
-            PMob->health.maxhp   = (int32)(PMob->health.maxhp * hpMultiplierNM);
-        }
-        else
-        {
-            float hpMultiplierMob = settings::get<float>("map.MOB_HP_MULTIPLIER");
-            hpMultiplierMob       = (hpMultiplierMob >= 0.1f && hpMultiplierMob <= 2.0f) ? hpMultiplierMob : 1.0f;
-            PMob->health.maxhp    = (int32)(PMob->health.maxhp * hpMultiplierMob);
+            const auto key = isNM ? "map.NM_HP_MULTIPLIER" : "map.MOB_HP_MULTIPLIER";
+            PMob->health.maxhp = mobstatsproducthelpers::ApplyHPMultiplier(PMob->health.maxhp, settings::get<float>(key));
         }
 
-        // MP Calculations
-        bool hasMp = false;
-
-        switch (mJob)
-        {
-            case JOB_PLD:
-            case JOB_WHM:
-            case JOB_BLM:
-            case JOB_RDM:
-            case JOB_DRK:
-            case JOB_BLU:
-            case JOB_SCH:
-            case JOB_SMN:
-                hasMp = true;
-                break;
-            default:
-                break;
-        }
-
-        switch (sJob)
-        {
-            case JOB_PLD:
-            case JOB_WHM:
-            case JOB_BLM:
-            case JOB_RDM:
-            case JOB_DRK:
-            case JOB_BLU:
-            case JOB_SCH:
-            case JOB_SMN:
-                hasMp = true;
-                break;
-            default:
-                break;
-        }
-
+        // MP Calculations (pure job gate + formula; slice 1620).
+        bool hasMp = mobstatsproducthelpers::JobHasMP(static_cast<uint8>(mJob), static_cast<uint8>(sJob));
         if (PMob->getMobMod(MOBMOD_MP_BASE))
         {
             hasMp = true;
@@ -308,34 +257,19 @@ void CalculateMobStats(CMobEntity* PMob, bool recover)
 
         if (hasMp)
         {
-            float scale = PMob->MPscale;
-
-            if (PMob->getMobMod(MOBMOD_MP_BASE))
-            {
-                scale = (float)PMob->getMobMod(MOBMOD_MP_BASE) / 100.0f;
-            }
+            const auto scale = mobstatsproducthelpers::ResolveMPScale(PMob->MPscale, static_cast<int16>(PMob->getMobMod(MOBMOD_MP_BASE)));
 
             if (PMob->MPmodifier == 0)
             {
-                PMob->health.maxmp = (int16)(18.2 * pow(mLvl, 1.1075) * scale) + 10;
+                PMob->health.maxmp = mobstatsproducthelpers::CalculateMobMaxMP(mLvl, scale);
             }
             else
             {
                 PMob->health.maxmp = PMob->MPmodifier;
             }
 
-            if (isNM)
-            {
-                auto mpMultiplierNM = settings::get<float>("map.NM_MP_MULTIPLIER");
-                mpMultiplierNM      = (mpMultiplierNM >= 0.1f && mpMultiplierNM <= 2.0f) ? mpMultiplierNM : 1.0f;
-                PMob->health.maxmp  = (int32)(PMob->health.maxmp * mpMultiplierNM);
-            }
-            else
-            {
-                auto mpMultiplierMob = settings::get<float>("map.MOB_MP_MULTIPLIER");
-                mpMultiplierMob      = (mpMultiplierMob >= 0.1f && mpMultiplierMob <= 2.0f) ? mpMultiplierMob : 1.0f;
-                PMob->health.maxmp   = (int32)(PMob->health.maxmp * mpMultiplierMob);
-            }
+            const auto mpKey = isNM ? "map.NM_MP_MULTIPLIER" : "map.MOB_MP_MULTIPLIER";
+            PMob->health.maxmp = mobstatsproducthelpers::ApplyMPMultiplier(PMob->health.maxmp, settings::get<float>(mpKey));
         }
     }
 
@@ -388,33 +322,34 @@ void CalculateMobStats(CMobEntity* PMob, bool recover)
     }
     else
     {
-        sSTR /= 2;
-        sDEX /= 2;
-        sAGI /= 2;
-        sINT /= 2;
-        sMND /= 2;
-        sCHR /= 2;
-        sVIT /= 2;
+        // Pure subjob half for non-CoP path (mob_stats_product_capacity.h; slice 1620).
+        sSTR = mobstatsproducthelpers::HalveSubJobStat(sSTR);
+        sDEX = mobstatsproducthelpers::HalveSubJobStat(sDEX);
+        sAGI = mobstatsproducthelpers::HalveSubJobStat(sAGI);
+        sINT = mobstatsproducthelpers::HalveSubJobStat(sINT);
+        sMND = mobstatsproducthelpers::HalveSubJobStat(sMND);
+        sCHR = mobstatsproducthelpers::HalveSubJobStat(sCHR);
+        sVIT = mobstatsproducthelpers::HalveSubJobStat(sVIT);
     }
 
-    // [stat] = floor[family Stat] + floor[main job Stat] + floor[sub job Stat]
-    PMob->stats.STR = fSTR + mSTR + sSTR;
-    PMob->stats.DEX = fDEX + mDEX + sDEX;
-    PMob->stats.VIT = fVIT + mVIT + sVIT;
-    PMob->stats.AGI = fAGI + mAGI + sAGI;
-    PMob->stats.INT = fINT + mINT + sINT;
-    PMob->stats.MND = fMND + mMND + sMND;
-    PMob->stats.CHR = fCHR + mCHR + sCHR;
+    // [stat] = floor[family] + floor[main] + floor[sub] then settings mult (slice 1620).
+    PMob->stats.STR = mobstatsproducthelpers::SumStat(fSTR, mSTR, sSTR);
+    PMob->stats.DEX = mobstatsproducthelpers::SumStat(fDEX, mDEX, sDEX);
+    PMob->stats.VIT = mobstatsproducthelpers::SumStat(fVIT, mVIT, sVIT);
+    PMob->stats.AGI = mobstatsproducthelpers::SumStat(fAGI, mAGI, sAGI);
+    PMob->stats.INT = mobstatsproducthelpers::SumStat(fINT, mINT, sINT);
+    PMob->stats.MND = mobstatsproducthelpers::SumStat(fMND, mMND, sMND);
+    PMob->stats.CHR = mobstatsproducthelpers::SumStat(fCHR, mCHR, sCHR);
 
-    auto statMultiplier = isNM ? settings::get<float>("map.NM_STAT_MULTIPLIER") : settings::get<float>("map.MOB_STAT_MULTIPLIER");
-    statMultiplier      = (statMultiplier >= 0.1f && statMultiplier <= 2.0f) ? statMultiplier : 1.0f;
-    PMob->stats.STR     = (uint16)(PMob->stats.STR * statMultiplier);
-    PMob->stats.DEX     = (uint16)(PMob->stats.DEX * statMultiplier);
-    PMob->stats.VIT     = (uint16)(PMob->stats.VIT * statMultiplier);
-    PMob->stats.AGI     = (uint16)(PMob->stats.AGI * statMultiplier);
-    PMob->stats.INT     = (uint16)(PMob->stats.INT * statMultiplier);
-    PMob->stats.MND     = (uint16)(PMob->stats.MND * statMultiplier);
-    PMob->stats.CHR     = (uint16)(PMob->stats.CHR * statMultiplier);
+    const auto statKey        = isNM ? "map.NM_STAT_MULTIPLIER" : "map.MOB_STAT_MULTIPLIER";
+    const auto statMultiplier = settings::get<float>(statKey);
+    PMob->stats.STR           = mobstatsproducthelpers::ApplyStatMultiplier(PMob->stats.STR, statMultiplier);
+    PMob->stats.DEX           = mobstatsproducthelpers::ApplyStatMultiplier(PMob->stats.DEX, statMultiplier);
+    PMob->stats.VIT           = mobstatsproducthelpers::ApplyStatMultiplier(PMob->stats.VIT, statMultiplier);
+    PMob->stats.AGI           = mobstatsproducthelpers::ApplyStatMultiplier(PMob->stats.AGI, statMultiplier);
+    PMob->stats.INT           = mobstatsproducthelpers::ApplyStatMultiplier(PMob->stats.INT, statMultiplier);
+    PMob->stats.MND           = mobstatsproducthelpers::ApplyStatMultiplier(PMob->stats.MND, statMultiplier);
+    PMob->stats.CHR           = mobstatsproducthelpers::ApplyStatMultiplier(PMob->stats.CHR, statMultiplier);
 
     // special case, give spell list to my pet
     if (PMob->getMobMod(MOBMOD_PET_SPELL_LIST) && PMob->PPet != nullptr)
