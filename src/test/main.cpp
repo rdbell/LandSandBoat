@@ -410,6 +410,7 @@ auto runCharGender1490SelfTests() -> bool;
 auto runCharAbilityResult1491SelfTests() -> bool;
 auto runCharAbilityPet1492SelfTests() -> bool;
 auto runCharAbilityResponse1493SelfTests() -> bool;
+auto runCharWeaponSkillRange1494SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1030,6 +1031,7 @@ namespace
         ok = runCharAbilityResult1491SelfTests() && ok;
         ok = runCharAbilityPet1492SelfTests() && ok;
         ok = runCharAbilityResponse1493SelfTests() && ok;
+        ok = runCharWeaponSkillRange1494SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

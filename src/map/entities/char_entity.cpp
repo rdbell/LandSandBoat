@@ -42,6 +42,7 @@
 #include "char_ability_result_capacity.h"
 #include "char_ability_pet_capacity.h"
 #include "char_ability_response_capacity.h"
+#include "char_weaponskill_range_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1459,12 +1460,13 @@ void CCharEntity::OnWeaponSkillFinished(CWeaponSkillState& state, action_t& acti
 
     SLOTTYPE damslot = SLOT_MAIN;
 
-    if (distance(loc.p, PBattleTarget->loc.p) <= (PWeaponSkill->getRange() + this->modelHitboxSize + PBattleTarget->modelHitboxSize))
+    if (charweaponskillrangehelpers::InRange(
+            distance(loc.p, PBattleTarget->loc.p),
+            PWeaponSkill->getRange(),
+            this->modelHitboxSize,
+            PBattleTarget->modelHitboxSize))
     {
-        if (PWeaponSkill->getID() >= 192 && PWeaponSkill->getID() <= 221)
-        {
-            damslot = SLOT_RANGED;
-        }
+        damslot = static_cast<SLOTTYPE>(charweaponskillrangehelpers::DamageSlot(PWeaponSkill->getID()));
 
         PAI->TargetFind->reset();
         // TODO: revise parameters
