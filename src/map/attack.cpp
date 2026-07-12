@@ -21,9 +21,15 @@
 
 #include "attack.h"
 #include "attack_capacity.h"
+#include "physical_hit_rate_capacity.h"
+#include "seigan_counter_capacity.h"
 #include "ai/ai_container.h"
 #include "attackround.h"
+#include "common/timer.h"
+#include "common/utils.h"
+#include "common/xirand.h"
 #include "entities/battle_entity.h"
+#include "entities/char_entity.h"
 #include "items/item_weapon.h"
 #include "job_points.h"
 #include "mob_modifier.h"
@@ -386,32 +392,81 @@ bool CAttack::CheckAnticipated()
         return false;
     }
 
-    // bail out before hitting lua if we dont have TE
+    // bail out before product if we dont have TE
     CStatusEffect* thirdEyeEffect = m_victim->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::ThirdEye, 0);
     if (!attackhelpers::HasThirdEyeForAnticipate(thirdEyeEffect != nullptr))
     {
         return false;
     }
 
-    auto checkSeiganCounter = lua["xi"]["combat"]["counter"]["checkSeiganCounter"];
-    if (auto result = checkSeiganCounter(m_attacker, m_victim); result.valid())
+    const bool isPC = m_victim->objtype == TYPE_PC;
+    bool       isTwoHanded = false;
+    if (auto* weapon = dynamic_cast<CItemWeapon*>(m_victim->m_Weapons[SLOT_MAIN]))
     {
-        m_isCountered = result.get<bool>(0);
+        isTwoHanded = weapon->isTwoHanded();
+    }
+
+    // Seigan+Third Eye counter (checkSeiganCounter pure).
+    {
+        const bool hasSeigan   = m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Seigan, 0);
+        const bool isFacing64  = facing(m_victim->loc.p, m_attacker->loc.p, seigancounterhelpers::FacingCone);
+        const bool isEngaged   = m_victim->PAI->IsEngaged();
+        // Hit-rate factor: defender attacking original attacker (main hand).
+        // Use GetHitRate percent / 100 to match getPhysicalHitRate scale after floor.
+        const double hitRateFactor = static_cast<double>(battleutils::GetHitRate(m_victim, m_attacker, 0, 0)) / 100.0;
+        const int    teCounterMod  = m_victim->getMod(Mod::THIRD_EYE_COUNTER_RATE);
+        const int    roll          = xirand::GetRandomNumber(1, 101); // [1,100]
+
+        m_isCountered = seigancounterhelpers::CheckSeiganCounter(
+            true, // hasThirdEye — already gated
+            hasSeigan,
+            isFacing64,
+            isEngaged,
+            isPC,
+            isTwoHanded,
+            teCounterMod,
+            hitRateFactor,
+            roll);
         if (m_isCountered)
         {
             m_isCritical = (xirand::GetRandomNumber(100) < battleutils::GetCritHitRate(m_victim, m_attacker, false));
         }
     }
 
-    auto checkAnticipated = lua["xi"]["combat"]["physicalHitRate"]["checkAnticipated"];
-    if (auto result = checkAnticipated(m_attacker, m_victim); result.valid())
+    // checkAnticipated retention: always anticipates when TE present; may delete TE.
     {
-        m_anticipated = result.get<bool>(0);
+        const bool hasSeigan = m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Seigan, 0);
+        const bool canRetain = physicalhitratehelpers::CanRetainThirdEye(isPC, isTwoHanded);
 
-        return true;
+        std::int64_t timeInEffectMs = 0;
+        if (hasSeigan && canRetain && thirdEyeEffect != nullptr)
+        {
+            const auto durationMs = static_cast<std::int64_t>(timer::count_milliseconds(thirdEyeEffect->GetDuration()));
+            std::int64_t remainingMs = 0;
+            if (thirdEyeEffect->GetDuration() > 0s)
+            {
+                const auto remaining = thirdEyeEffect->GetStartTime() - timer::now() + thirdEyeEffect->GetDuration();
+                remainingMs          = std::max<std::int64_t>(timer::count_milliseconds(remaining), 0);
+            }
+            timeInEffectMs = durationMs - remainingMs;
+            if (timeInEffectMs < 0)
+            {
+                timeInEffectMs = 0;
+            }
+        }
+
+        const int retentionMod = m_victim->getMod(Mod::THIRD_EYE_RETENTION_RATE);
+        const int roll         = xirand::GetRandomNumber(1, 10001); // [1,10000]
+        const auto result      = physicalhitratehelpers::CheckAnticipatedRetention(
+            hasSeigan, canRetain, timeInEffectMs, retentionMod, roll);
+
+        m_anticipated = result.anticipated;
+        if (result.shouldDeleteThirdEye)
+        {
+            m_victim->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::ThirdEye);
+        }
+        return m_anticipated;
     }
-
-    return false;
 }
 
 bool CAttack::IsSneakAttack() const

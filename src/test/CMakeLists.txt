@@ -906,6 +906,8 @@ set(SOURCES
     test_pdif_1572.cpp
     test_level_correction_1574.h
     test_level_correction_1574.cpp
+    test_anticipate_seigan_1575.h
+    test_anticipate_seigan_1575.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

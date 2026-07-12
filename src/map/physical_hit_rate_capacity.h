@@ -429,4 +429,64 @@ inline auto ResolveSweetSpot(const bool hasWeapon, const std::uint16_t weaponID,
     return SweetThrowing;
 }
 
+
+// Third Eye retention (checkAnticipated pure half). Parity: physhitrate.
+constexpr double ThirdEyeRetentionLossPerMs   = 1.0 / 300.0;
+constexpr int    ThirdEyeRetentionScale       = 100;
+constexpr double ThirdEyeRetentionMaxPercent  = 100.0;
+
+// canRetain: !isPC || isTwoHanded
+constexpr auto CanRetainThirdEye(const bool isPC, const bool isWeaponTwoHanded) -> bool
+{
+    return !isPC || isWeaponTwoHanded;
+}
+
+// Scaled chance 0..10000 for math.random(1,10000); 0 when Seigan/retain gates fail (caller).
+inline auto ThirdEyeRetentionScaledChance(const std::int64_t timeInEffectMs, const int retentionRateMod) -> int
+{
+    auto t = timeInEffectMs;
+    if (t < 0)
+    {
+        t = 0;
+    }
+    const double retentionModifier = ClampFloat(1.0 - static_cast<double>(retentionRateMod) / 100.0, 0.0, 1.0);
+    double percent = ThirdEyeRetentionMaxPercent - static_cast<double>(t) * ThirdEyeRetentionLossPerMs * retentionModifier;
+    percent        = ClampFloat(percent, 0.0, ThirdEyeRetentionMaxPercent);
+    return static_cast<int>(std::floor(percent * static_cast<double>(ThirdEyeRetentionScale)));
+}
+
+// Retains when scaledChance > 0 and roll1to10000 <= scaledChance.
+constexpr auto RetainsThirdEye(const int scaledChance, const int roll1to10000) -> bool
+{
+    if (scaledChance == 0)
+    {
+        return false;
+    }
+    return roll1to10000 <= scaledChance;
+}
+
+// checkAnticipated after TE presence is known:
+// if seigan && canRetain: scaled = ThirdEyeRetentionScaledChance(...)
+// else scaled = 0
+// if !RetainsThirdEye(scaled, roll): shouldDeleteTE = true
+// always returns anticipated=true when TE was present (caller checked).
+struct AnticipateResult
+{
+    bool anticipated{ true };
+    bool shouldDeleteThirdEye{ false };
+};
+
+inline auto CheckAnticipatedRetention(const bool hasSeigan, const bool canRetain, const std::int64_t timeInEffectMs, const int retentionRateMod, const int roll1to10000) -> AnticipateResult
+{
+    int scaled = 0;
+    if (hasSeigan && canRetain)
+    {
+        scaled = ThirdEyeRetentionScaledChance(timeInEffectMs, retentionRateMod);
+    }
+    AnticipateResult r{};
+    r.anticipated           = true;
+    r.shouldDeleteThirdEye  = !RetainsThirdEye(scaled, roll1to10000);
+    return r;
+}
+
 } // namespace physicalhitratehelpers
