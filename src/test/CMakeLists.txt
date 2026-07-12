@@ -712,6 +712,8 @@ set(SOURCES
     test_char_raise_plan_1473.cpp
     test_char_raise_apply_1474.h
     test_char_raise_apply_1474.cpp
+    test_char_item_finish_preflight_1475.h
+    test_char_item_finish_preflight_1475.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

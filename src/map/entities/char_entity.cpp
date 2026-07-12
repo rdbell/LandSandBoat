@@ -39,6 +39,7 @@
 #include "char_event_queue_capacity.h"
 #include "char_event_skip_capacity.h"
 #include "char_highest_job_capacity.h"
+#include "char_item_finish_preflight_capacity.h"
 #include "char_moghancement_state_capacity.h"
 #include "char_moghancement_furniture_capacity.h"
 #include "char_moghancement_craft_capacity.h"
@@ -1988,35 +1989,32 @@ auto CCharEntity::OnItemFinish(CItemState& state, action_t& action) -> bool
     auto* PTarget = static_cast<CBattleEntity*>(state.GetTarget());
     auto* PItem   = state.GetItem();
 
-    if (!PItem->isType(ITEM_EQUIPMENT) && (PItem->getQuantity() < 1 || PItem->getReserve() > 0))
+    uint8 findFlags{};
+    if (!charitemfinishpreflighthelpers::Apply(
+            PItem->isType(ITEM_EQUIPMENT),
+            PItem->getQuantity(),
+            PItem->getReserve(),
+            PItem->getValidTarget(),
+            this->id,
+            PItem->getID(),
+            [&]() { ShowWarning("OnItemFinish: %s attempted to use reserved/insufficient %s (%u).", this->getName(), PItem->getName(), PItem->getID()); },
+            [&]() { this->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, PItem->getID(), 0, MsgBasic::ItemFailsToActivate); },
+            [&]() { PAI->TargetFind->reset(); },
+            [&](const uint8 flags, const uint16 validTarget)
+            {
+                findFlags = flags;
+                PAI->TargetFind->findSingleTarget(PTarget, flags, validTarget);
+                return PAI->TargetFind->m_targets.size();
+            },
+            [&](const uint32 actorID, const uint16 itemID)
+            {
+                action.actorId    = actorID;
+                action.actiontype = ActionCategory::ItemFinish;
+                action.actionid   = itemID;
+            }))
     {
-        ShowWarning("OnItemFinish: %s attempted to use reserved/insufficient %s (%u).", this->getName(), PItem->getName(), PItem->getID());
-        this->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(this, this, PItem->getID(), 0, MsgBasic::ItemFailsToActivate);
-
         return false;
     }
-
-    uint8 findFlags = 0;
-
-    // Raise Rod, Raise Rod II, Shobuhouou Kabuto at time of writing
-    if ((PItem->getValidTarget() & TARGET_PLAYER_DEAD) == TARGET_PLAYER_DEAD)
-    {
-        findFlags |= FINDFLAGS_DEAD;
-    }
-
-    PAI->TargetFind->reset();
-    PAI->TargetFind->findSingleTarget(PTarget, findFlags, PItem->getValidTarget());
-
-    // Check if target is untargetable
-    if (PAI->TargetFind->m_targets.size() == 0)
-    {
-        // TODO: interrupt action packet?
-        return false;
-    }
-
-    action.actorId    = this->id;
-    action.actiontype = ActionCategory::ItemFinish;
-    action.actionid   = PItem->getID();
 
     auto processAction = [&](CBaseEntity* PTargetFound) -> void
     {
