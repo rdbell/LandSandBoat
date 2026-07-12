@@ -33,6 +33,7 @@
 #include "enmity_combat_capacity.h"
 #include "spikes_capacity.h"
 #include "entity_action_capacity.h"
+#include "traits_enmity_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -3835,7 +3836,7 @@ CBattleEntity* getAvailableTrickAttackChar(CBattleEntity* taUser, CBattleEntity*
 
 void GenerateCureEnmity(CBattleEntity* PSource, CBattleEntity* PTarget, int32 amount, int32 fixedCE, int32 fixedVE)
 {
-    if (!PSource || !PTarget)
+    if (!traitsenmityhelpers::ShouldGenerateCureEnmity(PSource != nullptr, PTarget != nullptr))
     {
         ShowWarning("battleutils::GenerateCureEnmity - PSource or PTarget was null.");
         return;
@@ -3843,12 +3844,13 @@ void GenerateCureEnmity(CBattleEntity* PSource, CBattleEntity* PTarget, int32 am
 
     for (auto* PEntity : *PTarget->PNotorietyContainer)
     {
-        if (CMobEntity* PCurrentMob = dynamic_cast<CMobEntity*>(PEntity))
+        CMobEntity* PCurrentMob = dynamic_cast<CMobEntity*>(PEntity);
+        if (traitsenmityhelpers::ShouldUpdateCureEnmity(
+                PCurrentMob != nullptr,
+                PCurrentMob ? PCurrentMob->m_HiPCLvl : static_cast<uint8>(0),
+                PCurrentMob && PCurrentMob->PEnmityContainer->HasID(PTarget->id)))
         {
-            if (PCurrentMob->m_HiPCLvl > 0 && PCurrentMob->PEnmityContainer->HasID(PTarget->id))
-            {
-                PCurrentMob->PEnmityContainer->UpdateEnmityFromCure(PSource, PTarget->GetMLevel(), amount, fixedCE, fixedVE);
-            }
+            PCurrentMob->PEnmityContainer->UpdateEnmityFromCure(PSource, PTarget->GetMLevel(), amount, fixedCE, fixedVE);
         }
     }
 }
@@ -3856,31 +3858,37 @@ void GenerateCureEnmity(CBattleEntity* PSource, CBattleEntity* PTarget, int32 am
 // Generate enmity for all targets in range
 void GenerateInRangeEnmity(CBattleEntity* PSource, int32 CE, int32 VE)
 {
-    if (PSource == nullptr)
+    if (!traitsenmityhelpers::ShouldGenerateInRangeEnmity(PSource != nullptr))
     {
         ShowWarning("battleutils::GenerateInRangeEnmity() - PSource received as null.");
         return;
     }
 
-    CCharEntity* PIterSource = nullptr;
+    bool useSource = false;
+    bool useMaster = false;
+    traitsenmityhelpers::ResolveInRangeEnmitySource(
+        PSource->objtype == TYPE_PC,
+        PSource->PMaster != nullptr,
+        PSource->PMaster && PSource->PMaster->objtype == TYPE_PC,
+        useSource,
+        useMaster);
 
-    if (PSource->objtype != TYPE_PC)
-    {
-        if (PSource->PMaster && PSource->PMaster->objtype == TYPE_PC)
-        {
-            PIterSource = static_cast<CCharEntity*>(PSource->PMaster);
-        }
-    }
-    else
+    CCharEntity* PIterSource = nullptr;
+    if (useSource)
     {
         PIterSource = static_cast<CCharEntity*>(PSource);
+    }
+    else if (useMaster)
+    {
+        PIterSource = static_cast<CCharEntity*>(PSource->PMaster);
     }
 
     if (PIterSource)
     {
         FOR_EACH_PAIR_CAST_SECOND(CMobEntity*, PCurrentMob, PIterSource->SpawnMOBList)
         {
-            if (PCurrentMob->m_HiPCLvl > 0 && PCurrentMob->PEnmityContainer->HasID(PSource->id))
+            if (traitsenmityhelpers::ShouldUpdateInRangeEnmity(
+                    PCurrentMob->m_HiPCLvl, PCurrentMob->PEnmityContainer->HasID(PSource->id)))
             {
                 PCurrentMob->PEnmityContainer->UpdateEnmity(PSource, CE, VE, false, false, false);
             }
@@ -5295,65 +5303,49 @@ void AddTraits(CBattleEntity* PEntity, TraitList_t* traitList, uint8 level)
 
     for (auto&& PTrait : *traitList)
     {
-        if (level >= PTrait->getLevel() && PTrait->getLevel() > 0)
+        traitsenmityhelpers::TraitCandidate candidate{
+            PTrait->getID(),
+            PTrait->getLevel(),
+            PTrait->getRank(),
+            static_cast<uint16>(PTrait->getMod()),
+            static_cast<uint16>(PTrait->getMeritID()),
+        };
+
+        std::vector<traitsenmityhelpers::ExistingTrait> existing;
+        existing.reserve(PEntity->TraitList.size());
+        for (auto* PExistingTrait : PEntity->TraitList)
         {
-            bool add = true;
+            existing.push_back(traitsenmityhelpers::ExistingTrait{
+                PExistingTrait->getID(),
+                PExistingTrait->getRank(),
+                static_cast<uint16>(PExistingTrait->getMod()),
+                static_cast<uint16>(PExistingTrait->getMeritID()),
+            });
+        }
 
-            for (std::size_t j = 0; j < PEntity->TraitList.size(); ++j)
+        auto meritCount = [PChar](uint16 meritID) -> uint8 {
+            if (!PChar || meritID == 0)
             {
-                CTrait* PExistingTrait = PEntity->TraitList.at(j);
-
-                if (PExistingTrait->getID() == PTrait->getID())
-                {
-                    // Check if we still have the merit required for this trait
-                    if (PChar)
-                    {
-                        if (PExistingTrait->getMeritID() > 0)
-                        {
-                            if (PChar->PMeritPoints->GetMerit((MERIT_TYPE)PExistingTrait->getMeritID())->count == 0)
-                            {
-                                PEntity->delTrait(PExistingTrait);
-                                break;
-                            }
-                            else if (PExistingTrait->getMeritID() == PTrait->getMeritID())
-                            {
-                                add = false;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (PExistingTrait->getRank() < PTrait->getRank())
-                    {
-                        PEntity->delTrait(PExistingTrait);
-                        break;
-                    }
-                    else if (PExistingTrait->getRank() > PTrait->getRank())
-                    {
-                        add = false;
-                        break;
-                    }
-                    else if (PExistingTrait->getMod() == PTrait->getMod())
-                    {
-                        add = false;
-                        break;
-                    }
-                }
+                return 0;
             }
+            return PChar->PMeritPoints->GetMerit(static_cast<MERIT_TYPE>(meritID))->count;
+        };
 
-            // Don't add traits that aren't merited yet
-            if (PChar)
-            {
-                if (PTrait->getMeritID() > 0 && PChar->PMeritPoints->GetMerit((MERIT_TYPE)PTrait->getMeritID())->count == 0)
-                {
-                    add = false;
-                }
-            }
+        const auto decision = traitsenmityhelpers::ResolveTraitAdd(
+            level, candidate, existing, PChar != nullptr, meritCount, meritCount);
 
-            if (add)
-            {
-                PEntity->addTrait(PTrait);
-            }
+        if (!decision.eligible)
+        {
+            continue;
+        }
+        if (decision.delExistingIndex >= 0)
+        {
+            // Check if we still have the merit required for this trait / rank upgrade
+            PEntity->delTrait(PEntity->TraitList.at(static_cast<std::size_t>(decision.delExistingIndex)));
+        }
+        if (decision.shouldAdd)
+        {
+            PEntity->addTrait(PTrait);
         }
     }
 }
