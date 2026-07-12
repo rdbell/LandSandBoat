@@ -55,6 +55,7 @@
 #include "ws_tp_capacity.h"
 #include "spell_recast_capacity.h"
 #include "spell_cast_capacity.h"
+#include "multi_hits_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -2962,69 +2963,79 @@ uint8 getHitCount(uint8 hits)
 
 uint8 CheckMultiHits(CBattleEntity* PEntity, CItemWeapon* PWeapon)
 {
-    if (!PWeapon)
+    if (multihitshelpers::ShouldRejectNullWeapon(PWeapon == nullptr))
     {
         return 0;
     }
 
     // checking players weapon hit count
-    uint8 num = PWeapon->getHitCount();
+    const uint8 baseHits = PWeapon->getHitCount();
 
-    int16 tripleAttack = PEntity->getMod(Mod::TRIPLE_ATTACK);
-    int16 doubleAttack = PEntity->getMod(Mod::DOUBLE_ATTACK);
-    int16 quadAttack   = PEntity->getMod(Mod::QUAD_ATTACK);
+    std::int16_t tripleAttack = PEntity->getMod(Mod::TRIPLE_ATTACK);
+    std::int16_t doubleAttack = PEntity->getMod(Mod::DOUBLE_ATTACK);
+    std::int16_t quadAttack   = PEntity->getMod(Mod::QUAD_ATTACK);
+
+    std::int16_t tripleMerit = 0;
+    std::int16_t doubleMerit = 0;
+    bool         hasTriple   = false;
+    bool         hasDouble   = false;
 
     // check for merit upgrades
     if (PEntity->objtype == TYPE_PC)
     {
-        CCharEntity* PChar = (CCharEntity*)PEntity;
-
-        // merit chance only applies if player has the job trait
-        if (charutils::hasTrait(PChar, TRAIT_TRIPLE_ATTACK))
+        auto* PChar = static_cast<CCharEntity*>(PEntity);
+        hasTriple   = charutils::hasTrait(PChar, TRAIT_TRIPLE_ATTACK);
+        hasDouble   = charutils::hasTrait(PChar, TRAIT_DOUBLE_ATTACK);
+        if (hasTriple)
         {
-            tripleAttack += PChar->PMeritPoints->GetMeritValue(MERIT_TRIPLE_ATTACK_RATE, (CCharEntity*)PEntity);
+            tripleMerit = static_cast<std::int16_t>(PChar->PMeritPoints->GetMeritValue(MERIT_TRIPLE_ATTACK_RATE, PChar));
         }
-        if (charutils::hasTrait(PChar, TRAIT_DOUBLE_ATTACK))
+        if (hasDouble)
         {
-            doubleAttack += PChar->PMeritPoints->GetMeritValue(MERIT_DOUBLE_ATTACK_RATE, (CCharEntity*)PEntity);
+            doubleMerit = static_cast<std::int16_t>(PChar->PMeritPoints->GetMeritValue(MERIT_DOUBLE_ATTACK_RATE, PChar));
         }
     }
 
-    quadAttack   = std::clamp<int16>(quadAttack, 0, 100);
-    doubleAttack = std::clamp<int16>(doubleAttack, 0, 100);
-    tripleAttack = std::clamp<int16>(tripleAttack, 0, 100);
+    std::int16_t doubleRate = 0;
+    std::int16_t tripleRate = 0;
+    std::int16_t quadRate   = 0;
+    multihitshelpers::StackMultiHitRates(
+        doubleAttack, tripleAttack, quadAttack, doubleMerit, tripleMerit, hasDouble, hasTriple, doubleRate, tripleRate, quadRate);
 
-    if (xirand::GetRandomNumber(100) < quadAttack)
+    // Exclusive QA/TA/DA with short-circuit RNG order.
+    std::uint8_t quadRoll   = 0;
+    std::uint8_t tripleRoll = 0;
+    std::uint8_t doubleRoll = 0;
+    quadRoll                = static_cast<std::uint8_t>(xirand::GetRandomNumber(100));
+    if (static_cast<std::int16_t>(quadRoll) >= quadRate)
     {
-        num += 3;
+        tripleRoll = static_cast<std::uint8_t>(xirand::GetRandomNumber(100));
+        if (static_cast<std::int16_t>(tripleRoll) >= tripleRate)
+        {
+            doubleRoll = static_cast<std::uint8_t>(xirand::GetRandomNumber(100));
+        }
     }
-    else if (xirand::GetRandomNumber(100) < tripleAttack)
-    {
-        num += 2;
-    }
-    else if (xirand::GetRandomNumber(100) < doubleAttack)
-    {
-        num += 1;
-    }
+
+    auto num = multihitshelpers::ExpandMultiHits(baseHits, doubleRate, tripleRate, quadRate, quadRoll, tripleRoll, doubleRoll);
 
     // Hasso Zanshin bonus: requires HASSO_ZANSHIN_BONUS mod (applied by Hasso effect when SAM is main job)
-    if (PEntity->getMod(Mod::HASSO_ZANSHIN_BONUS) > 0)
+    const auto hassoBonus = PEntity->getMod(Mod::HASSO_ZANSHIN_BONUS);
+    const auto hasHasso   = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hasso);
+    if (hassoBonus > 0 && hasHasso)
     {
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hasso))
+        std::int16_t zanshinMerit = 0;
+        if (PEntity->objtype == TYPE_PC)
         {
-            uint16 zanshin = PEntity->getMod(Mod::ZANSHIN);
-            if (PEntity->objtype == TYPE_PC)
-            {
-                zanshin += ((CCharEntity*)PEntity)->PMeritPoints->GetMeritValue(MERIT_ZASHIN_ATTACK_RATE, (CCharEntity*)PEntity);
-            }
-
-            if (xirand::GetRandomNumber(100) < (zanshin / 4))
-            {
-                num++;
-            }
+            zanshinMerit = static_cast<std::int16_t>(
+                static_cast<CCharEntity*>(PEntity)->PMeritPoints->GetMeritValue(MERIT_ZASHIN_ATTACK_RATE, static_cast<CCharEntity*>(PEntity)));
         }
+        const auto chance = multihitshelpers::HassoZanshinChance(
+            PEntity->getMod(Mod::ZANSHIN), zanshinMerit, PEntity->objtype == TYPE_PC);
+        const auto roll = static_cast<std::uint8_t>(xirand::GetRandomNumber(100));
+        num             = multihitshelpers::ApplyHassoZanshinHit(num, hassoBonus, true, chance, roll);
     }
-    return std::min<uint8>(num, 8);
+
+    return multihitshelpers::CapMultiHits(num);
 }
 
 /************************************************************************

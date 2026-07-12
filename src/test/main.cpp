@@ -466,6 +466,7 @@ auto runDmgTaken1547SelfTests() -> bool;
 auto runWSTP1548SelfTests() -> bool;
 auto runSpellRecast1549SelfTests() -> bool;
 auto runSpellCast1550SelfTests() -> bool;
+auto runMultiHits1551SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1142,6 +1143,7 @@ namespace
         ok = runWSTP1548SelfTests() && ok;
         ok = runSpellRecast1549SelfTests() && ok;
         ok = runSpellCast1550SelfTests() && ok;
+        ok = runMultiHits1551SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
