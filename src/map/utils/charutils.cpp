@@ -91,6 +91,7 @@
 #include "battleutils.h"
 #include "blueutils.h"
 #include "charutils.h"
+#include "capacity_distribute_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -5344,50 +5345,50 @@ void DistributeCapacityPoints(CCharEntity* PChar, CMobEntity* PMob)
         {
             CCharEntity* PMember = dynamic_cast<CCharEntity*>(PPartyMember);
 
-            if (!PMember || PMember->isDead() || (PMember->loc.zone->GetID() != zone))
+            if (!capacitydistributehelpers::ShouldAwardMember(
+                    PMember != nullptr,
+                    PMember != nullptr && PMember->isDead(),
+                    PMember != nullptr && PMember->loc.zone->GetID() == zone,
+                    PMember != nullptr && hasKeyItem(PMember, KeyItem::JOB_BREAKER),
+                    PMember != nullptr ? PMember->GetMLevel() : 0))
             {
-                // Do not grant Capacity points if null, Dead, or in a different area
-                return;
-            }
-
-            if (!hasKeyItem(PMember, KeyItem::JOB_BREAKER) || PMember->GetMLevel() < 99)
-            {
-                // Do not grant Capacity points without Job Breaker or Level 99
+                // Do not grant Capacity points if null, Dead, different area, no Job Breaker, or below 99
                 return;
             }
 
             bool  chainActive = false;
-            int16 levelDiff   = mobLevel - 99; // Passed previous 99 check, no need to calculate
+            int16 levelDiff   = capacitydistributehelpers::LevelDiff(mobLevel);
 
             // Capacity Chains are only granted for Mobs level 100+
             // Ref: https://www.bg-wiki.com/ffxi/Job_Points
             float capacityPoints = 0;
 
-            if (mobLevel > 99)
+            if (capacitydistributehelpers::ShouldComputeCapacity(mobLevel))
             {
                 // Base Capacity Point formula derived from the table located at:
                 // https://ffxiclopedia.fandom.com/wiki/Job_Points#Capacity_Points
-                capacityPoints = 0.0089 * std::pow(levelDiff, 3) + 0.0533 * std::pow(levelDiff, 2) + 3.7439 * levelDiff + 89.7;
+                capacityPoints = capacitydistributehelpers::BaseCapacityPoints(levelDiff);
 
-                if (PMember->capacityChain.chainTime > timer::now() || PMember->capacityChain.chainTime == timer::time_point::min())
+                if (capacitydistributehelpers::IsChainActive(
+                        PMember->capacityChain.chainTime, timer::now(), timer::time_point::min()))
                 {
                     chainActive = true;
 
                     // TODO: Needs verification, pulled from: https://www.bluegartr.com/threads/120445-Job-Points-discussion?p=6138288&viewfull=1#post6138288
                     // Assumption: Chain0 is no bonus, Chains 10+ capped at 1.5 value, f(chain) = 1 + 0.05 * chain
-                    float chainModifier = std::min(1 + 0.05 * PMember->capacityChain.chainNumber, 1.5);
-                    capacityPoints *= chainModifier;
+                    capacityPoints = capacitydistributehelpers::ApplyChainModifier(
+                        capacityPoints, PMember->capacityChain.chainNumber);
                 }
                 else
                 {
                     // TODO: Capacity Chain Timer is reduced after Chain 30
-                    PMember->capacityChain.chainTime   = timer::now() + 30s;
+                    PMember->capacityChain.chainTime   = timer::now() + std::chrono::seconds(capacitydistributehelpers::ChainTimerSeconds);
                     PMember->capacityChain.chainNumber = 1;
                 }
 
                 if (chainActive)
                 {
-                    PMember->capacityChain.chainTime = timer::now() + 30s;
+                    PMember->capacityChain.chainTime = timer::now() + std::chrono::seconds(capacitydistributehelpers::ChainTimerSeconds);
                 }
 
                 capacityPoints = AddCapacityBonus(PMember, capacityPoints);
@@ -5478,9 +5479,9 @@ void AddCapacityPoints(CCharEntity* PChar, CBaseEntity* PMob, uint32 capacityPoi
     if (capacityPoints > 0)
     {
         // Capacity Chains start at lv100 mobs
-        if (levelDiff >= 1 && isCapacityChain)
+        if (capacitydistributehelpers::ShouldSendChainMessage(levelDiff, isCapacityChain))
         {
-            if (PChar->capacityChain.chainNumber != 0)
+            if (capacitydistributehelpers::HasNonZeroChainNumber(PChar->capacityChain.chainNumber))
             {
                 PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PChar, capacityPoints, PChar->capacityChain.chainNumber, MsgBasic::CapacityChain);
             }
@@ -5488,7 +5489,7 @@ void AddCapacityPoints(CCharEntity* PChar, CBaseEntity* PMob, uint32 capacityPoi
             {
                 PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PChar, capacityPoints, 0, MsgBasic::CapacityPointsGained);
             }
-            PChar->capacityChain.chainNumber++;
+            PChar->capacityChain.chainNumber = capacitydistributehelpers::NextChainNumberAfterAward(PChar->capacityChain.chainNumber);
         }
         else
         {
