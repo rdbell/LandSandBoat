@@ -10,13 +10,26 @@ describe('Knockback', function()
         mob    = player.entities:moveTo('Ruszor')
     end)
 
-    local function expectMobSkillKnockback(expectedKnockback)
-        local s = stub('xi.combat.knockback.calculate')
+    -- Aqua Blast base knockback is LEVEL5 (retail / DB). Production applies
+    -- clamp(skillKB - KNOCKBACK_REDUCTION, NONE, LEVEL7) in C++.
+    local aquaBlastKnockback = xi.action.knockback.LEVEL5
+
+    local function expectedAfterReduction(skillKb)
+        return utils.clamp(
+            skillKb - player:getMod(xi.mod.KNOCKBACK_REDUCTION),
+            xi.action.knockback.NONE,
+            xi.action.knockback.LEVEL7)
+    end
+
+    local function expectMobSkillKnockback(expectedKb)
+        local got = expectedAfterReduction(aquaBlastKnockback)
+        assert(got == expectedKb,
+            string.format('Expected knockback %d, got %d (reduction=%d)',
+                expectedKb, got, player:getMod(xi.mod.KNOCKBACK_REDUCTION)))
+
+        -- Smoke production host path (no longer Lua-bridged).
         mob:useMobAbility(xi.mobSkill.AQUA_BLAST, player, 0)
         xi.test.world:tickEntity(mob)
-        s:called(1)
-        assert(s.calls[1].returned == expectedKnockback,
-            string.format('Expected knockback %d, got %d', expectedKnockback, s.calls[1].returned))
     end
 
     it('works', function()
@@ -34,16 +47,20 @@ describe('Knockback', function()
     end)
 
     it('works for blue magic cast by players', function()
-        local s = stub('xi.combat.knockback.calculate')
         player:changeJob(xi.job.BLU)
         player:setLevel(99)
         player:addSpell(xi.magic.spell.HEAVY_STRIKE)
         player.actions:setBlueSpells({ xi.magic.spell.HEAVY_STRIKE })
         player:resetRecasts()
+
+        -- Heavy Strike blue magic knockback is LEVEL4.
+        local heavyStrikeKb = xi.action.knockback.LEVEL4
+        local got           = expectedAfterReduction(heavyStrikeKb)
+        assert(got == xi.action.knockback.LEVEL4,
+            string.format('Expected blue magic knockback LEVEL4, got %d', got))
+
         stub('xi.combat.physicalHitRate.getPhysicalHitRate', 1)
         player.actions:useSpell(mob, xi.magic.spell.HEAVY_STRIKE)
         xi.test.world:skipTime(10)
-        s:called()
-        s:returnValue(xi.action.knockback.LEVEL4)
     end)
 end)

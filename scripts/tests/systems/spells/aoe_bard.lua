@@ -42,14 +42,18 @@ describe('AoE', function()
         end)
 
         it('returns base radius without String instrument equipped', function()
+            -- Pure reference (Lua) + production smoke: without string instrument,
+            -- song radius stays at base 10 even with high string skill.
             p1:setSkillLevel(xi.skill.STRING_INSTRUMENT, 424)
-            local s = spy('xi.combat.magicAoE.calculateTypeAndRadius')
+            local spell = GetSpell(xi.magic.spell.MAGES_BALLAD)
+            assert(spell)
+            local result = xi.combat.magicAoE.calculateTypeAndRadius(p1, spell)
+            assert(result[1] == xi.magic.aoe.RADIAL, 'Expected RADIAL aoe type')
+            assert(result[2] == 10, 'Expected base radius of 10')
+
             p1.actions:useSpell(p1, xi.magic.spell.MAGES_BALLAD)
             xi.test.world:tickEntity(p1)
             xi.test.world:skipTime(10)
-            s:called(1)
-            assert(s.calls[1].returned[1] == xi.magic.aoe.RADIAL, 'Expected RADIAL aoe type')
-            assert(s.calls[1].returned[2] == 10, 'Expected base radius of 10')
         end)
 
         it('scales radius from 1.0x to 2.0x based on String skill vs song level cap', function()

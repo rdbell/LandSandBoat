@@ -42,6 +42,7 @@
 #include "char_ability_result_capacity.h"
 #include "char_ability_pet_capacity.h"
 #include "char_ability_response_capacity.h"
+#include "ability_aoe_capacity.h"
 #include "char_weaponskill_range_capacity.h"
 #include "char_weaponskill_self_capacity.h"
 #include "char_weaponskill_primary_capacity.h"
@@ -1638,10 +1639,17 @@ void CCharEntity::OnAbility(CAbilityState& state, action_t& action)
         action.actiontype = PAbility->getActionType();
         action.actionid   = PAbility->getID();
 
-        // Calculate ability AoE type and radius via Lua
-        const auto  aoeResult = luautils::callGlobal<sol::table>("xi.combat.abilityAoE.calculateTypeAndRadius", this, PAbility);
-        const auto  aoeType   = static_cast<AOE_TYPE>(aoeResult.get_or(1, 0));
-        const float aoeRadius = aoeResult.get_or(2, 0.0f);
+        // Calculate ability AoE type and radius (pure ability_aoe_capacity).
+        const auto aoeResult = abilityaoehelpers::TypeAndRadius(
+            PAbility->getID(),
+            static_cast<std::uint16_t>(PAbility->getRecastId()),
+            PAbility->getAOE(),
+            static_cast<int>(PAbility->getRadius()),
+            this->getMod(Mod::LIEMENT_EXTENDS_TO_AREA),
+            StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Contradance),
+            this->getMod(Mod::ROLL_RANGE));
+        const auto  aoeType   = static_cast<AOE_TYPE>(aoeResult.type);
+        const float aoeRadius = static_cast<float>(aoeResult.radius);
 
         // TODO: get rid of this to script, too
         if (PAbility->isPetAbility())

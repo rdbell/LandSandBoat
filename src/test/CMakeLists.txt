@@ -916,6 +916,8 @@ set(SOURCES
     test_skillchain_inject_1578.cpp
     test_defense_gates_1580.h
     test_defense_gates_1580.cpp
+    test_combat_aoe_knockback_1581.h
+    test_combat_aoe_knockback_1581.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

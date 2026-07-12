@@ -44,6 +44,8 @@
 #include "enmity_presence_capacity.h"
 #include "death_finalize_capacity.h"
 #include "battle_spawn_capacity.h"
+#include "magic_aoe_capacity.h"
+#include "knockback_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -64,9 +66,12 @@
 #include "attack.h"
 #include "attackround.h"
 #include "entities/char_entity.h"
+#include "blue_spell.h"
+#include "common/xirand.h"
 #include "items/item_weapon.h"
 #include "job_points.h"
 #include "lua/luautils.h"
+#include "trait.h"
 #include "mob_modifier.h"
 #include "notoriety_container.h"
 #include "packets/s2c/0x029_battle_message.h"
@@ -2477,9 +2482,50 @@ void CBattleEntity::OnCastFinished(CMagicState& state, action_t& action)
         flags |= FINDFLAGS_DEAD;
     }
 
-    const auto     result    = luautils::callGlobal<sol::table>("xi.combat.magicAoE.calculateTypeAndRadius", this, PSpell);
-    const SPELLAOE aoeType   = result.get_or(1, SPELLAOE_NONE);
-    const float    aoeRadius = result.get_or(2, 0.0f);
+    // Magic AoE type/radius pure host (magic_aoe_capacity); Pianissimo consume side effect.
+    magicaoehelpers::Params aoeParams{};
+    aoeParams.baseType    = PSpell->getAOE();
+    aoeParams.baseRadius  = static_cast<int>(PSpell->getRadius());
+    aoeParams.spellFamily = static_cast<std::uint16_t>(PSpell->getSpellFamily());
+    aoeParams.spellGroup  = static_cast<std::uint8_t>(PSpell->getSpellGroup());
+    aoeParams.spellID     = static_cast<std::uint16_t>(PSpell->getID());
+    aoeParams.element     = static_cast<std::uint8_t>(PSpell->getElement());
+    aoeParams.isPC        = objtype == TYPE_PC;
+    aoeParams.isTrust    = objtype == TYPE_TRUST;
+    aoeParams.hasMajesty  = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Majesty);
+    aoeParams.hasAccession = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Accession);
+    aoeParams.hasManifestation = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Manifestation);
+    aoeParams.hasTheurgicFocus = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TheurgicFocus);
+    aoeParams.hasPianissimo    = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Pianissimo);
+    aoeParams.hasDiffusion     = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Diffusion);
+    aoeParams.hasConvergence   = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Convergence);
+    aoeParams.utsusemiAOEMod   = getMod(Mod::UTSUSEMI_AOE);
+    aoeParams.mainJob          = static_cast<std::uint8_t>(GetMJob());
+    {
+        // Ranged weapon skill type (0 if empty / non-weapon).
+        if (auto* weapon = dynamic_cast<CItemWeapon*>(m_Weapons[SLOT_RANGED]))
+        {
+            aoeParams.rangedSkillType = static_cast<std::uint8_t>(weapon->getSkillType());
+        }
+        aoeParams.stringSkill = GetSkill(SKILL_STRING_INSTRUMENT);
+        const uint8 songLevel = PSpell->getJob(JOB_BRD);
+        aoeParams.skillCap    = battleutils::GetMaxSkill(magicaoehelpers::SkillRankC, songLevel);
+    }
+    // Divine Veil: trait + (Divine Seal or d100 <= AOE_NA).
+    {
+        const bool hasDivineVeil = this->hasTrait(TRAIT_DIVINE_VEIL);
+        const bool hasSeal       = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DivineSeal);
+        const int  aoeNa         = getMod(Mod::AOE_NA);
+        const int  roll          = xirand::GetRandomNumber(1, 101); // [1,100]
+        aoeParams.divineVeilProc = magicaoehelpers::DivineVeilProc(hasDivineVeil, hasSeal, aoeNa, roll);
+    }
+    const auto aoeResult = magicaoehelpers::TypeAndRadius(aoeParams);
+    if (aoeResult.consumePianissimo)
+    {
+        StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Pianissimo);
+    }
+    const SPELLAOE aoeType   = static_cast<SPELLAOE>(aoeResult.type);
+    const float    aoeRadius = static_cast<float>(aoeResult.radius);
     switch (aoeType)
     {
         case SPELLAOE_RADIAL:
@@ -2599,7 +2645,13 @@ void CBattleEntity::OnCastFinished(CMagicState& state, action_t& action)
             }
             else if (PSpell->getSpellGroup() == SPELLGROUP_BLUE)
             {
-                actionResult.knockback = luautils::callGlobal<Knockback>("xi.combat.knockback.calculate", PTarget, this, PSpell, &action);
+                int skillKb = 0;
+                if (auto* blue = dynamic_cast<CBlueSpell*>(PSpell))
+                {
+                    skillKb = static_cast<int>(blue->getKnockback());
+                }
+                actionResult.knockback = static_cast<Knockback>(knockbackhelpers::Calculate(
+                    skillKb, PTarget->getMod(Mod::KNOCKBACK_REDUCTION)));
             }
         }
 
@@ -3014,7 +3066,9 @@ void CBattleEntity::OnMobSkillFinished(CMobSkillState& state, action_t& action)
         result.resolution = ActionResolution::Hit;
         result.animation  = PSkill->getAnimationID();
         result.messageID  = PSkill->getMsg();
-        result.knockback  = luautils::callGlobal<Knockback>("xi.combat.knockback.calculate", PTargetFound, this, PSkill, &action);
+        result.knockback = static_cast<Knockback>(knockbackhelpers::Calculate(
+            static_cast<int>(PSkill->getKnockback()),
+            PTargetFound->getMod(Mod::KNOCKBACK_REDUCTION)));
 
         // reset the skill's message back to default
         PSkill->setMsg(defaultMessage);
