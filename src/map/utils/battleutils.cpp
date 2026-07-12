@@ -62,6 +62,7 @@
 #include "skillchain_tables_capacity.h"
 #include "combat_bonus_tails_capacity.h"
 #include "damage_affinity_capacity.h"
+#include "fstr_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -2731,22 +2732,32 @@ float GetDamageRatio(CBattleEntity* PAttacker, CBattleEntity* PDefender, bool is
 
 auto GetFSTR(CBattleEntity* PAttacker, CBattleEntity* PDefender, uint8 SlotID) -> int32
 {
-    int32 fSTR = 0;
+    if (SlotID != SLOT_RANGED && SlotID != SLOT_AMMO && SlotID != SLOT_MAIN && SlotID != SLOT_SUB)
+    {
+        ShowError("battleutils::GetFSTR() failed to run lua calls");
+        return 0;
+    }
 
+    const auto actor = fstrhelpers::ClassifyActor(
+        PAttacker->objtype == TYPE_MOB,
+        PAttacker->objtype == TYPE_PET);
+
+    const std::int32_t mainLvl      = PAttacker->GetMLevel();
+    const std::int32_t attackerSTR  = PAttacker->STR();
+    const std::int32_t defenderVIT  = PDefender->VIT();
+
+    std::int32_t weaponRank = 0;
     if (SlotID == SLOT_RANGED || SlotID == SLOT_AMMO)
     {
-        fSTR = luautils::callGlobal<int32>("xi.combat.physical.calculateRangedStatFactor", PAttacker, PDefender);
-    }
-    else if (SlotID == SLOT_MAIN || SlotID == SLOT_SUB)
-    {
-        fSTR = luautils::callGlobal<int32>("xi.combat.physical.calculateMeleeStatFactor", PAttacker, PDefender);
+        weaponRank = PAttacker->GetRangedWeaponRank();
     }
     else
     {
-        ShowError("battleutils::GetFSTR() failed to run lua calls");
+        weaponRank = PAttacker->GetMainWeaponRank();
     }
 
-    return fSTR;
+    return fstrhelpers::GetFSTR(
+        SlotID, actor, mainLvl, attackerSTR, defenderVIT, weaponRank);
 }
 
 /************************************************************************

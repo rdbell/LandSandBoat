@@ -1,0 +1,103 @@
+#include "test_fstr_1559.h"
+
+#include "map/fstr_capacity.h"
+
+#include <iostream>
+
+namespace
+{
+using fstrhelpers::GetFSTR;
+using fstrhelpers::MeleeStatFactor;
+using fstrhelpers::RangedStatFactor;
+using fstrhelpers::SlotAmmo;
+using fstrhelpers::SlotMain;
+using fstrhelpers::SlotRanged;
+using fstrhelpers::SlotSub;
+using fstrhelpers::StatFactorActor;
+
+auto Check() -> bool
+{
+    // PC baseline: STR=VIT=50, rank=3, lvl=75 → melee 2, ranged 4
+    if (MeleeStatFactor(StatFactorActor::PC, 75, 50, 50, 3) != 2)
+    {
+        return false;
+    }
+    if (RangedStatFactor(StatFactorActor::PC, 75, 50, 50, 3) != 4)
+    {
+        return false;
+    }
+
+    // Slot dispatch
+    if (GetFSTR(SlotMain, StatFactorActor::PC, 75, 50, 50, 3) != 2 ||
+        GetFSTR(SlotSub, StatFactorActor::PC, 75, 50, 50, 3) != 2 ||
+        GetFSTR(SlotRanged, StatFactorActor::PC, 75, 50, 50, 3) != 4 ||
+        GetFSTR(SlotAmmo, StatFactorActor::PC, 75, 50, 50, 3) != 4 ||
+        GetFSTR(4, StatFactorActor::PC, 75, 50, 50, 3) != 0)
+    {
+        return false;
+    }
+
+    // Mob early return
+    if (MeleeStatFactor(StatFactorActor::Mob, 1, 100, 0, 0) != 1 ||
+        MeleeStatFactor(StatFactorActor::Mob, 0, 100, 0, 0) != 1)
+    {
+        return false;
+    }
+    // Pet lvl 1 high STR → upper clamp 5
+    if (MeleeStatFactor(StatFactorActor::Pet, 1, 100, 0, 0) != 5)
+    {
+        return false;
+    }
+    // PC ignores early return: dSTR0 rank0 → 2
+    if (MeleeStatFactor(StatFactorActor::PC, 1, 50, 50, 0) != 2)
+    {
+        return false;
+    }
+
+    // Mob melee ladder clamp pins (lvl 75 → [14, 20])
+    if (MeleeStatFactor(StatFactorActor::Mob, 75, 200, 0, 0) != 20 ||
+        MeleeStatFactor(StatFactorActor::Mob, 75, 0, 200, 0) != 14 ||
+        MeleeStatFactor(StatFactorActor::Mob, 75, 64, 0, 0) != 15 ||
+        MeleeStatFactor(StatFactorActor::Mob, 75, 84, 0, 0) != 20)
+    {
+        return false;
+    }
+
+    // Ranged mob early
+    if (RangedStatFactor(StatFactorActor::Mob, 1, 100, 0, 0) != 1)
+    {
+        return false;
+    }
+    // PC ranged dSTR0: raw 8 / 2 = 4 (rank0 or rank3 both allow 4)
+    if (RangedStatFactor(StatFactorActor::PC, 75, 50, 50, 0) != 4 ||
+        RangedStatFactor(StatFactorActor::PC, 75, 50, 50, 3) != 4)
+    {
+        return false;
+    }
+
+    // ClassifyActor
+    if (fstrhelpers::ClassifyActor(true, false) != StatFactorActor::Mob ||
+        fstrhelpers::ClassifyActor(false, true) != StatFactorActor::Pet ||
+        fstrhelpers::ClassifyActor(false, false) != StatFactorActor::PC)
+    {
+        return false;
+    }
+    // isMob takes priority over isPet if both true (shouldn't happen)
+    if (fstrhelpers::ClassifyActor(true, true) != StatFactorActor::Mob)
+    {
+        return false;
+    }
+
+    return true;
+}
+} // namespace
+
+auto runFSTR1559SelfTests() -> bool
+{
+    if (!Check())
+    {
+        std::cerr << "fstr_1559 self-tests failed\n";
+        return false;
+    }
+    return true;
+}

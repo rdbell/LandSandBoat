@@ -878,6 +878,8 @@ set(SOURCES
     test_damage_affinity_1557.cpp
     test_skillchain_form_1558.h
     test_skillchain_form_1558.cpp
+    test_fstr_1559.h
+    test_fstr_1559.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
