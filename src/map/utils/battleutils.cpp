@@ -71,6 +71,7 @@
 #include "ninja_tool_capacity.h"
 #include "base_delay_capacity.h"
 #include "skillchain_damage_capacity.h"
+#include "physical_hit_rate_capacity.h"
 #include "spell_interrupt_capacity.h"
 #include "combat_status_mitigation_capacity.h"
 
@@ -1684,19 +1685,169 @@ void HandleEnspell(CBattleEntity* PAttacker, CBattleEntity* PDefender, action_re
     }
 }
 
+namespace
+{
+// Shared injects for getHitRateModifiers (melee or ranged).
+auto BuildHitRateModParams(CBattleEntity* PAttacker, CBattleEntity* PDefender, const bool isRanged, const bool isWeaponskill)
+    -> physicalhitratehelpers::HitRateModParams
+{
+    using namespace physicalhitratehelpers;
+    HitRateModParams m{};
+    m.isRanged      = isRanged;
+    m.isWeaponskill = isWeaponskill;
+
+    m.isBehind23       = behind(PAttacker->loc.p, PDefender->loc.p, BehindAngle);
+    m.isFacing64       = facing(PAttacker->loc.p, PDefender->loc.p, FacingConeYonin);
+    m.attackerIsFacing = facing(PAttacker->loc.p, PDefender->loc.p, FacingDefault);
+    m.targetIsFacing   = facing(PDefender->loc.p, PAttacker->loc.p, FacingDefault);
+    m.attackerIsPC     = PAttacker->objtype == TYPE_PC;
+    m.targetIsPC       = PDefender->objtype == TYPE_PC;
+
+    if (!isRanged)
+    {
+        if (auto* flourish = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::BuildingFlourish))
+        {
+            m.hasBuildingFlourish      = true;
+            m.buildingFlourishPower    = flourish->GetPower();
+            m.buildingFlourishSubPower = flourish->GetSubPower();
+        }
+        if (auto* innin = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Innin))
+        {
+            m.hasInnin   = true;
+            m.inninPower = innin->GetPower();
+        }
+        if (m.attackerIsPC)
+        {
+            auto* PChar = static_cast<CCharEntity*>(PAttacker);
+            m.attackerClosedPositionMerit = PChar->PMeritPoints->GetMeritValue(MERIT_CLOSED_POSITION, PChar);
+        }
+    }
+
+    // Ambush trait (melee + ranged).
+    if (m.attackerIsPC)
+    {
+        auto* PChar = static_cast<CCharEntity*>(PAttacker);
+        m.hasAmbushTrait = charutils::hasTrait(PChar, TRAIT_AMBUSH);
+        if (m.hasAmbushTrait)
+        {
+            m.ambushMerit = PChar->PMeritPoints->GetMeritValue(MERIT_AMBUSH, PChar);
+        }
+    }
+
+    if (auto* yonin = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Yonin))
+    {
+        m.hasYonin   = true;
+        m.yoninPower = yonin->GetPower();
+    }
+
+    // LSB reads Innin/Yonin JP levels from the *target*.
+    if (m.targetIsPC)
+    {
+        auto* PTargetChar = static_cast<CCharEntity*>(PDefender);
+        m.inninJP         = PTargetChar->PJobPoints->GetJobPointValue(JP_INNIN_EFFECT);
+        m.yoninJP         = PTargetChar->PJobPoints->GetJobPointValue(JP_YONIN_EFFECT);
+        m.targetClosedPositionMerit = PTargetChar->PMeritPoints->GetMeritValue(MERIT_CLOSED_POSITION, PTargetChar);
+    }
+
+    if (auto* flash = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Flash))
+    {
+        // Mirror CLuaStatusEffect::getTimeRemaining (milliseconds).
+        std::int64_t remainingMs = 0;
+        if (flash->GetDuration() > 0s)
+        {
+            const auto duration = flash->GetStartTime() - timer::now() + flash->GetDuration();
+            remainingMs         = std::max<std::int64_t>(timer::count_milliseconds(duration), 0);
+        }
+        m.flashPenalty = FlashPenalty(remainingMs);
+    }
+
+    return m;
+}
+
+auto IsUsingH2H(CBattleEntity* PEntity) -> bool
+{
+    auto* weapon = dynamic_cast<CItemWeapon*>(PEntity->m_Weapons[SLOT_MAIN]);
+    if (PEntity->objtype == TYPE_PC)
+    {
+        if (weapon == nullptr)
+        {
+            return true; // bare handed
+        }
+        return weapon->getSkillType() == SKILLTYPE::SKILL_HAND_TO_HAND;
+    }
+    return weapon != nullptr && weapon->getSkillType() == SKILLTYPE::SKILL_HAND_TO_HAND;
+}
+
+auto IsWeaponTwoHanded(CBattleEntity* PEntity) -> bool
+{
+    auto* weapon = dynamic_cast<CItemWeapon*>(PEntity->m_Weapons[SLOT_MAIN]);
+    return weapon != nullptr && weapon->isTwoHanded();
+}
+
+auto IsAvatar(CBattleEntity* PEntity) -> bool
+{
+    return PEntity->objtype == TYPE_PET &&
+           static_cast<CPetEntity*>(PEntity)->getPetType() == PET_TYPE::AVATAR;
+}
+
+auto ApplyLevelCorrection(CBattleEntity* PAttacker) -> bool
+{
+    // Zone list stays in Lua (xi.data.levelCorrection.isLevelCorrectedZone).
+    return luautils::callGlobal<bool>("xi.data.levelCorrection.isLevelCorrectedZone", PAttacker);
+}
+
+auto ResolveRangedSweetSpotEnd(CBattleEntity* PAttacker) -> double
+{
+    using namespace physicalhitratehelpers;
+    auto* weapon = dynamic_cast<CItemWeapon*>(PAttacker->m_Weapons[SLOT_RANGED]);
+    if (weapon == nullptr)
+    {
+        return ResolveSweetSpot(false, 0, 0, 0).end;
+    }
+    return ResolveSweetSpot(true, weapon->getID(), weapon->getSkillType(), weapon->getSubSkillType()).end;
+}
+} // namespace
+
 uint8 GetRangedHitRate(CBattleEntity* PAttacker, CBattleEntity* PDefender, bool isBarrage, int16 accBonus)
 {
-    // Check to see if distance is greater than 25 and force hitrate to be 0
-    if (distance(PAttacker->loc.p, PDefender->loc.p) > 25)
+    // isBarrage is unused by production Lua (parity).
+    (void)isBarrage;
+
+    using namespace physicalhitratehelpers;
+
+    const double dist = distance(PAttacker->loc.p, PDefender->loc.p);
+    if (dist > MaxRangedDistance)
     {
         return 0;
     }
 
-    double luaHitRate = luautils::callGlobal<double>("xi.combat.physicalHitRate.getRangedHitRate", PAttacker, PDefender, accBonus, false);
+    const auto mods = HitRateModifiers(BuildHitRateModParams(PAttacker, PDefender, true, false));
 
-    uint8 hitrate = std::floor<uint8>(luaHitRate * 100.0);
+    const bool isPC = PAttacker->objtype == TYPE_PC;
+    const auto sweetEnd = ResolveRangedSweetSpotEnd(PAttacker);
+    const int  distPenalty = AccuracyDistancePenalty(
+        isPC,
+        dist,
+        sweetEnd,
+        static_cast<double>(PDefender->modelSize),
+        static_cast<double>(PAttacker->modelSize),
+        PAttacker->GetMLevel());
 
-    return hitrate;
+    RangedHitRateParams p{};
+    p.acc                    = PAttacker->RACC(0);
+    p.eva                    = PDefender->EVA();
+    p.bonus                  = accBonus;
+    p.accBonus               = mods.accBonus;
+    p.evaBonus               = mods.evaBonus;
+    p.distancePenalty        = distPenalty;
+    p.distance               = dist;
+    p.applyLevelCorrection   = ApplyLevelCorrection(PAttacker);
+    p.attackerLevel          = PAttacker->GetMLevel();
+    p.defenderLevel          = PDefender->GetMLevel();
+    p.attackerIsPC           = isPC;
+    p.attackerIsAvatar       = IsAvatar(PAttacker);
+
+    return HitRateToPercent(RangedHitRate(p));
 }
 
 uint8 GetRangedHitRate(CBattleEntity* PAttacker, CBattleEntity* PDefender, bool isBarrage)
@@ -2616,13 +2767,34 @@ uint8 GetHitRateEx(CBattleEntity* PAttacker, CBattleEntity* PDefender, uint8 att
         hasValidTAChar = getAvailableTrickAttackChar(PAttacker, PDefender) != nullptr;
     }
 
-    double luaHitRate = 0.0;
+    double hitRate = 0.0;
     if (!hasValidSneakAttack && !hasValidTAChar)
     {
-        luaHitRate = luautils::callGlobal<double>("xi.combat.physicalHitRate.getPhysicalHitRate", PAttacker, PDefender, offsetAccuracy, attackNumber, false);
+        using namespace physicalhitratehelpers;
+
+        const bool isPC   = PAttacker->objtype == TYPE_PC;
+        const bool isPet  = PAttacker->objtype == TYPE_PET;
+        const bool slotLeftOrHigher = attackNumber >= AttackSlotLeft;
+
+        const auto mods = HitRateModifiers(BuildHitRateModParams(PAttacker, PDefender, false, false));
+
+        MeleeHitRateParams p{};
+        p.acc                  = PAttacker->ACC(attackNumber, 0);
+        p.eva                  = PDefender->EVA();
+        p.bonus                = offsetAccuracy;
+        p.accBonus             = mods.accBonus;
+        p.evaBonus             = mods.evaBonus;
+        p.cap                  = HitRateCap(isPet, isPC, IsUsingH2H(PAttacker), IsWeaponTwoHanded(PAttacker), slotLeftOrHigher);
+        p.applyLevelCorrection = ApplyLevelCorrection(PAttacker);
+        p.attackerLevel        = PAttacker->GetMLevel();
+        p.defenderLevel        = PDefender->GetMLevel();
+        p.attackerIsPC         = isPC;
+        p.attackerIsAvatar     = IsAvatar(PAttacker);
+
+        hitRate = MeleeHitRate(p);
     }
 
-    return paralyzeshadowhelpers::GetHitRateEx(hasValidSneakAttack, hasValidTAChar, luaHitRate);
+    return paralyzeshadowhelpers::GetHitRateEx(hasValidSneakAttack, hasValidTAChar, hitRate);
 }
 
 uint8 GetHitRate(CBattleEntity* PAttacker, CBattleEntity* PDefender)
