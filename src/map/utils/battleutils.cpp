@@ -31,6 +31,7 @@
 #include "combat_status_tails_capacity.h"
 #include "claim_capacity.h"
 #include "enmity_combat_capacity.h"
+#include "spikes_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -872,9 +873,24 @@ auto HandleSpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, acti
     Action->spikesMessage = MsgBasic::SpikesEffectDmg;
     Action->spikesParam   = std::max<int16>(PDefender->getMod(Mod::SPIKES_DMG), 0);
 
+    // Preserve original && short-circuit: only roll hit-rate RNG when Retaliation is up and engaged.
+    bool retaliationProc = false;
+    if (PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Retaliation) && PDefender->PAI->IsEngaged())
+    {
+        retaliationProc = spikeshelpers::RetaliationProc(
+            true,
+            true,
+            battleutils::GetHitRate(PDefender, PAttacker),
+            xirand::GetRandomNumber(100),
+            facing(PDefender->loc.p, PAttacker->loc.p, 64));
+    }
+    const auto spikesPath = spikeshelpers::ClassifySpikesPath(
+        retaliationProc,
+        Action->spikesEffect != ActionReactKind::None,
+        PDefender->getMod(Mod::ITEM_SUBEFFECT) > 0);
+
     // Handle Retaliation
-    if (PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Retaliation) && PDefender->PAI->IsEngaged() &&
-        battleutils::GetHitRate(PDefender, PAttacker) / 2 > xirand::GetRandomNumber(100) && facing(PDefender->loc.p, PAttacker->loc.p, 64))
+    if (spikesPath == spikeshelpers::SpikesPath::Retaliation)
     {
         // Retaliation rate is based on player acc vs mob evasion. Missed retaliations do not even display in log.
         // Other theories exist but were not proven or reliably tested (I have to assume too many things to even consider JP translations about weapon
@@ -913,8 +929,7 @@ auto HandleSpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, acti
             const float DamageRatio = GetDamageRatio(PDefender, PAttacker, crit, 1.0f, skilltype, SLOT_MAIN, false);
             uint16      dmg         = static_cast<uint32>((PDefender->GetMainWeaponDmg() + battleutils::GetFSTR(PDefender, PAttacker, SLOT_MAIN)) * DamageRatio);
             dmg                     = attackutils::CheckForDamageMultiplier(static_cast<CCharEntity*>(PDefender), dynamic_cast<CItemWeapon*>(PDefender->m_Weapons[SLOT_MAIN]), dmg, PHYSICAL_ATTACK_TYPE::NORMAL, SLOT_MAIN);
-            const uint16 bonus      = std::floor<uint16>(static_cast<float>(dmg) * (static_cast<float>(PDefender->getMod(Mod::RETALIATION)) / 100.f));
-            dmg                     = dmg + bonus;
+            dmg                     = spikeshelpers::RetaliationDamage(dmg, PDefender->getMod(Mod::RETALIATION));
 
             // TP and stoneskin are handled inside TakePhysicalDamage
             Action->spikesMessage = MsgBasic::RetaliateDamage;
@@ -924,10 +939,11 @@ auto HandleSpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, acti
     }
 
     // Handle spikes from spells or auto-spikes (scripted) effects
-    else if (Action->spikesEffect != ActionReactKind::None)
+    else if (spikesPath == spikeshelpers::SpikesPath::SpellOrAuto)
     {
+        const int16 autoSpikes = PDefender->objtype == TYPE_MOB ? static_cast<CMobEntity*>(PDefender)->getMobMod(MOBMOD_AUTO_SPIKES) : 0;
         // check if spikes are handled in mobs script
-        if (PDefender->objtype == TYPE_MOB && static_cast<CMobEntity*>(PDefender)->getMobMod(MOBMOD_AUTO_SPIKES) > 0)
+        if (spikeshelpers::ShouldCallOnSpikesDamage(PDefender->objtype == TYPE_MOB, autoSpikes))
         {
             luautils::OnSpikesDamage(PDefender, PAttacker, Action, Action->spikesParam);
         }
@@ -941,16 +957,10 @@ auto HandleSpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, acti
             spikesDamage = HandleStoneskin(PAttacker, spikesDamage);
         }
 
-        if (spikesDamage < 0) // because spikes damage in action packet is uint16, we have to change the healed amount to a positive number and cast to uint16
-        {
-            Action->spikesParam = static_cast<uint16>(std::clamp(spikesDamage * -1, 0, PAttacker->GetMaxHP() - PAttacker->health.hp));
-        }
-        else
-        {
-            Action->spikesParam = static_cast<uint16>(spikesDamage);
-        }
+        Action->spikesParam = spikeshelpers::SpikesPacketParam(
+            spikesDamage, PAttacker->GetMaxHP(), PAttacker->health.hp);
 
-        if (PDefender->objtype != TYPE_MOB || static_cast<CMobEntity*>(PDefender)->getMobMod(MOBMOD_AUTO_SPIKES) == 0)
+        if (spikeshelpers::ShouldRunSpellSpikeSwitch(PDefender->objtype == TYPE_MOB, autoSpikes))
         {
             switch (static_cast<SPIKES>(Action->spikesEffect))
             {
@@ -961,7 +971,7 @@ auto HandleSpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, acti
                     break;
 
                 case SPIKE_DREAD:
-                    if (PAttacker->m_EcoSystem == xi::Ecosystem::Undead)
+                    if (spikeshelpers::DreadSpikesOnUndeadNull(true, PAttacker->m_EcoSystem == xi::Ecosystem::Undead))
                     {
                         // is undead no effect
                         Action->spikesEffect = ActionReactKind::None;
@@ -1000,7 +1010,7 @@ auto HandleSpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, acti
                     break;
 
                 case SPIKE_REPRISAL:
-                    if (Action->resolution == ActionResolution::Block)
+                    if (spikeshelpers::ReprisalApplies(true, Action->resolution == ActionResolution::Block))
                     {
                         PAttacker->takeDamage(spikesDamage, PDefender, ATTACK_TYPE::MAGICAL, xi::DamageType::Light);
                     }
@@ -1029,7 +1039,7 @@ auto HandleSpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, acti
     }
 
     // Deal with spikesEffect effect gear
-    else if (PDefender->getMod(Mod::ITEM_SUBEFFECT) > 0)
+    else if (spikesPath == spikeshelpers::SpikesPath::ItemGear)
     {
         if (CCharEntity* PCharDef = dynamic_cast<CCharEntity*>(PDefender))
         {
@@ -1042,7 +1052,7 @@ auto HandleSpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, acti
 
                     Action->spikesEffect = ActionReactKind::None;
                     auto spikes_type     = battleutils::GetScaledItemModifier(PDefender, PItem, Mod::ITEM_SUBEFFECT);
-                    if (spikes_type > 0 && spikes_type < 7)
+                    if (spikeshelpers::ItemSubEffectIsSpikeType(spikes_type))
                     {
                         Action->spikesEffect = static_cast<ActionReactKind>(spikes_type);
                     }
@@ -1063,7 +1073,7 @@ auto HandleSpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, acti
             }
         }
     }
-    else if (Action->spikesEffect == ActionReactKind::None)
+    else if (spikesPath == spikeshelpers::SpikesPath::ClearNone)
     {
         Action->spikesParam   = 0;
         Action->spikesMessage = MsgBasic::None;
@@ -1077,7 +1087,7 @@ auto HandleParrySpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
     Action->spikesMessage = MsgBasic::SpikesEffectDmg;
     Action->spikesParam   = std::max<int16>(PDefender->getMod(Mod::PARRY_SPIKES_DMG), 0);
 
-    if (Action->spikesEffect != ActionReactKind::None)
+    if (spikeshelpers::ParrySpikesActive(Action->spikesEffect == ActionReactKind::None))
     {
         // calculate damage
         int32 spikesDamage = CalculateSpikeDamage(PAttacker, PDefender, Action, static_cast<uint16>(abs(damage)));
@@ -1088,19 +1098,13 @@ auto HandleParrySpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
             spikesDamage = HandleStoneskin(PAttacker, spikesDamage);
         }
 
-        if (spikesDamage < 0) // fit healed spikes into uint16
-        {
-            Action->spikesParam = static_cast<uint16>(std::clamp(spikesDamage * -1, 0, PAttacker->GetMaxHP() - PAttacker->health.hp));
-        }
-        else
-        {
-            Action->spikesParam = static_cast<uint16>(spikesDamage);
-        }
+        Action->spikesParam = spikeshelpers::SpikesPacketParam(
+            spikesDamage, PAttacker->GetMaxHP(), PAttacker->health.hp);
 
         PAttacker->takeDamage(spikesDamage, PDefender, ATTACK_TYPE::MAGICAL, GetSpikesDamageType(Action->spikesEffect));
 
         battleutils::DirtyExp(PAttacker, PDefender);
-        if (PAttacker->isDead())
+        if (spikeshelpers::ShouldClaimOnSpikeKill(PAttacker->isDead()))
         {
             battleutils::ClaimMob(PAttacker, PDefender);
         }
@@ -1112,9 +1116,9 @@ auto HandleParrySpikesDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
 
 auto HandleSpikesEquip(CBattleEntity* PAttacker, CBattleEntity* PDefender, action_result_t* Action, const uint8 damage, const ActionReactKind spikesType, const uint8 chance) -> bool
 {
-    int lvlDiff = std::clamp((PDefender->GetMLevel() - PAttacker->GetMLevel()), -5, 5) * 2;
+    const int lvlDiff = spikeshelpers::SpikesEquipLevelDiff(PDefender->GetMLevel(), PAttacker->GetMLevel());
 
-    if (xirand::GetRandomNumber(100) < chance + lvlDiff)
+    if (spikeshelpers::SpikesEquipProcs(chance, lvlDiff, xirand::GetRandomNumber(100)))
     {
         if (spikesType == ActionReactKind::CurseSpikes)
         {
@@ -1131,7 +1135,7 @@ auto HandleSpikesEquip(CBattleEntity* PAttacker, CBattleEntity* PDefender, actio
         */
         else
         {
-            auto ratio = std::clamp<uint8>(damage / 4, 1, 255);
+            auto ratio = spikeshelpers::SpikesEquipRatio(damage);
 
             // calculate damage
             int32 spikesDamage = CalculateSpikeDamage(PAttacker, PDefender, Action, damage - xirand::GetRandomNumber<uint16>(ratio) + xirand::GetRandomNumber<uint16>(ratio));
@@ -1141,13 +1145,12 @@ auto HandleSpikesEquip(CBattleEntity* PAttacker, CBattleEntity* PDefender, actio
                 spikesDamage = HandleOneForAll(PAttacker, spikesDamage);
                 spikesDamage = HandleStoneskin(PAttacker, spikesDamage);
             }
-            else if (spikesDamage < 0) // fit healed spikes into uint16
+            // Note: original only wrote Action->spikesParam on <=0 path here; positive path left prior param.
+            // Preserve that quirk for non-positive damage only.
+            if (spikesDamage <= 0)
             {
-                Action->spikesParam = static_cast<uint16>(std::clamp(spikesDamage * -1, 0, PAttacker->GetMaxHP() - PAttacker->health.hp));
-            }
-            else
-            {
-                Action->spikesParam = static_cast<uint16>(spikesDamage);
+                Action->spikesParam = spikeshelpers::SpikesPacketParam(
+                    spikesDamage, PAttacker->GetMaxHP(), PAttacker->health.hp);
             }
 
             PAttacker->takeDamage(spikesDamage, PDefender, ATTACK_TYPE::MAGICAL, GetSpikesDamageType(spikesType));
