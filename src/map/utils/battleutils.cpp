@@ -72,6 +72,7 @@
 #include "base_delay_capacity.h"
 #include "skillchain_damage_capacity.h"
 #include "physical_hit_rate_capacity.h"
+#include "pdif_capacity.h"
 #include "spell_interrupt_capacity.h"
 #include "combat_status_mitigation_capacity.h"
 
@@ -1857,7 +1858,7 @@ uint8 GetRangedHitRate(CBattleEntity* PAttacker, CBattleEntity* PDefender, bool 
 
 float GetRangedDamageRatio(CBattleEntity* PAttacker, CBattleEntity* PDefender, bool isCritical, int16 bonusRangedAttack)
 {
-    float pDIF = 1.0;
+    using namespace pdifhelpers;
 
     auto* targ_weapon = dynamic_cast<CItemWeapon*>(PAttacker->m_Weapons[SLOT_RANGED]);
     if (!targ_weapon)
@@ -1868,40 +1869,45 @@ float GetRangedDamageRatio(CBattleEntity* PAttacker, CBattleEntity* PDefender, b
         if (!targ_weapon)
         {
             ShowError("battleutils::GetRangedDamageRatio(): No ranged weapon or ammo");
-            return pDIF;
+            return 1.0f;
         }
     }
 
-    uint8 weaponType = targ_weapon->getSkillType();
-
-    auto levelCorrectionFunc = lua["xi"]["data"]["levelCorrection"]["isLevelCorrectedZone"];
-    auto rangedPDIFFunc      = lua["xi"]["combat"]["physical"]["calculateRangedPDIF"];
-
-    if (rangedPDIFFunc.valid() && levelCorrectionFunc.valid())
+    const std::uint8_t weaponType = targ_weapon->getSkillType();
+    const bool         isPC      = PAttacker->objtype == TYPE_PC;
+    bool               applyLC   = luautils::callGlobal<bool>("xi.data.levelCorrection.isLevelCorrectedZone", PAttacker);
+    if (isPC && PAttacker->getMod(Mod::RA_IGNORE_LVL_DIFF) > 0)
     {
-        auto levelCorrectionResult = levelCorrectionFunc(PAttacker);
-        if (!levelCorrectionResult.valid())
-        {
-            sol::error err = levelCorrectionResult;
-            ShowError("battleutils::GetRangedDamageRatio(): %s", err.what());
-            return pDIF;
-        }
-
-        auto rangedPDIFFuncResult = rangedPDIFFunc(PAttacker, PDefender, weaponType, 1.0, isCritical, levelCorrectionResult.get<bool>(0), false, 0.0, false, bonusRangedAttack);
-        if (!rangedPDIFFuncResult.valid())
-        {
-            sol::error err = rangedPDIFFuncResult;
-            ShowError("battleutils::GetRangedDamageRatio(): %s", err.what());
-            return pDIF;
-        }
-        pDIF = rangedPDIFFuncResult.get<float>(0);
+        applyLC = false;
     }
-    else
+
+    // Distance attack penalty (non-mobs only), pure accuracy sweet-spot path for ATT.
+    int distancePenalty = 0;
+    if (PAttacker->objtype != TYPE_MOB)
     {
-        ShowError("battleutils::GetRangedDamageRatio() failed to run lua calls");
+        distancePenalty = luautils::callGlobal<int>("xi.combat.ranged.attackDistancePenalty", PAttacker, PDefender);
     }
 
-    return std::max(pDIF, 0.f);
+    const double flourishBonus = 1.0; // isWeaponskill=false for this call site
+    const double actorAttack   = std::max(1.0, std::floor((static_cast<double>(PAttacker->RATT(0)) + bonusRangedAttack - distancePenalty) * 1.0 * flourishBonus));
+    const double targetDefense = EffectiveDefense(static_cast<double>(PDefender->DEF()), false, 0.0);
+
+    double lower = 0.0;
+    double upper = 0.0;
+    RangedBounds(actorAttack, targetDefense, applyLC, isPC, PAttacker->GetMLevel(), PDefender->GetMLevel(), WeaponCap(weaponType), PAttacker->getMod(Mod::DAMAGE_LIMIT), PAttacker->getMod(Mod::DAMAGE_LIMITP), lower, upper);
+
+    int lo = 0;
+    int hi = 0;
+    double ratio = 0.0;
+    if (RatioRollRange(lower, upper, lo, hi))
+    {
+        ratio = static_cast<double>(xirand::GetRandomNumber(lo, hi + 1)) / 1000.0;
+    }
+
+    const int critInc = PAttacker->getMod(Mod::CRIT_DMG_INCREASE) + PAttacker->getMod(Mod::RANGED_CRIT_DMG_INCREASE);
+    const int critDef = PDefender->getMod(Mod::CRIT_DEF_BONUS);
+    const double pDif = FinishRangedPDIF(ratio, isCritical, critInc, critDef);
+    return static_cast<float>(std::max(pDif, 0.0));
 }
 
 int16 CalculateBaseTP(CBattleEntity* PEntity, int32 delay)
@@ -2993,36 +2999,64 @@ int8 GetAGICritBonus(CBattleEntity* PAttacker, CBattleEntity* PDefender)
 
 float GetDamageRatio(CBattleEntity* PAttacker, CBattleEntity* PDefender, bool isCritical, float bonusAttPercent, SKILLTYPE weaponType, SLOTTYPE weaponSlot, bool isCannonball)
 {
-    float pDIF = 1.0f;
+    using namespace pdifhelpers;
 
-    auto levelCorrectionFunc = lua["xi"]["data"]["levelCorrection"]["isLevelCorrectedZone"];
-    auto meleePDIFFunc       = lua["xi"]["combat"]["physical"]["calculateMeleePDIF"];
+    const bool isPC    = PAttacker->objtype == TYPE_PC;
+    const bool applyLC = luautils::callGlobal<bool>("xi.data.levelCorrection.isLevelCorrectedZone", PAttacker);
 
-    if (meleePDIFFunc.valid() && levelCorrectionFunc.valid())
+    // isWeaponskill=false for this call site → flourishBonus 1.0
+    double tpFactor          = 0.0;
+    bool   tpIgnoresDefense  = false;
+    if (PAttacker->objtype == TYPE_PET && static_cast<CPetEntity*>(PAttacker)->getPetType() == PET_TYPE::AUTOMATON)
     {
-        auto levelCorrectionResult = levelCorrectionFunc(PAttacker);
-        if (!levelCorrectionResult.valid())
+        // Automaton Attuner defense-ignore inject (Lua host).
+        const auto defIgnore = luautils::callGlobal<double>("xi.automaton.handleAttuner", PAttacker, PDefender);
+        tpFactor += defIgnore;
+        if (tpFactor > 0.0)
         {
-            sol::error err = levelCorrectionResult;
-            ShowError("battleutils::GetDamageRatio(): %s", err.what());
-            return pDIF;
+            tpIgnoresDefense = true;
         }
+    }
 
-        auto meleePDIFFuncResult = meleePDIFFunc(PAttacker, PDefender, weaponType, bonusAttPercent, isCritical, levelCorrectionResult.get<bool>(0), false, 0.0, false, weaponSlot, false);
-        if (!meleePDIFFuncResult.valid())
-        {
-            sol::error err = meleePDIFFuncResult;
-            ShowError("battleutils::GetDamageRatio(): %s", err.what());
-            return pDIF;
-        }
-        pDIF = meleePDIFFuncResult.get<float>(0);
+    double actorAttack = 0.0;
+    if (isCannonball)
+    {
+        actorAttack = static_cast<double>(PAttacker->DEF());
     }
     else
     {
-        ShowError("battleutils::GetDamageRatio() failed to run lua calls");
+        const double flourishBonus = 1.0;
+        actorAttack                = std::max(1.0, std::floor(static_cast<double>(PAttacker->ATT(weaponSlot)) * static_cast<double>(bonusAttPercent) * flourishBonus));
+    }
+    const double targetDefense = EffectiveDefense(static_cast<double>(PDefender->DEF()), tpIgnoresDefense, tpFactor);
+
+    const int spikeRoll    = xirand::GetRandomNumber(1, 10001); // [1,10000]
+    const int upperMaxCoin = xirand::GetRandomNumber(0, 2);    // 0 or 1
+
+    double lower  = 0.0;
+    double upper  = 0.0;
+    bool   spiked = false;
+    MeleeBounds(actorAttack, targetDefense, isCritical, applyLC, isPC, PAttacker->GetMLevel(), PDefender->GetMLevel(), WeaponCap(static_cast<std::uint8_t>(weaponType)), PAttacker->getMod(Mod::DAMAGE_LIMIT), PAttacker->getMod(Mod::DAMAGE_LIMITP), spikeRoll, upperMaxCoin, lower, upper, spiked);
+    if (spiked)
+    {
+        return 1.0f;
+    }
+    if (upper == 0.0)
+    {
+        return 0.0f;
     }
 
-    return std::max(pDIF, 0.f);
+    int lo = 0;
+    int hi = 0;
+    int ratioRoll = 0;
+    if (RatioRollRange(lower, upper, lo, hi))
+    {
+        ratioRoll = xirand::GetRandomNumber(lo, hi + 1); // inclusive
+    }
+    const int meleeRandStep = xirand::GetRandomNumber(0, 6); // 0..5
+
+    const double pDif = FinishMeleePDIF(static_cast<double>(ratioRoll) / 1000.0, meleeRandStep, isCritical, PAttacker->getMod(Mod::CRIT_DMG_INCREASE), PDefender->getMod(Mod::CRIT_DEF_BONUS));
+    return static_cast<float>(std::max(pDif, 0.0));
 }
 
 /************************************************************************

@@ -902,6 +902,8 @@ set(SOURCES
     test_skillchain_damage_1570.cpp
     test_physical_hit_rate_1571.h
     test_physical_hit_rate_1571.cpp
+    test_pdif_1572.h
+    test_pdif_1572.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

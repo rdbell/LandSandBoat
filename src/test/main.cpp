@@ -486,6 +486,7 @@ auto runBaseDelay1567SelfTests() -> bool;
 auto runMagicalSpellTP1568SelfTests() -> bool;
 auto runSkillchainDamage1570SelfTests() -> bool;
 auto runPhysicalHitRate1571SelfTests() -> bool;
+auto runPDIF1572SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1182,6 +1183,7 @@ namespace
         ok = runMagicalSpellTP1568SelfTests() && ok;
         ok = runSkillchainDamage1570SelfTests() && ok;
         ok = runPhysicalHitRate1571SelfTests() && ok;
+        ok = runPDIF1572SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
