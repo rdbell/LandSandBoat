@@ -40,6 +40,7 @@
 #include "char_event_skip_capacity.h"
 #include "char_highest_job_capacity.h"
 #include "char_item_finish_preflight_capacity.h"
+#include "char_item_finish_targets_capacity.h"
 #include "char_moghancement_state_capacity.h"
 #include "char_moghancement_furniture_capacity.h"
 #include "char_moghancement_craft_capacity.h"
@@ -2036,23 +2037,18 @@ auto CCharEntity::OnItemFinish(CItemState& state, action_t& action) -> bool
         }*/
     };
 
-    if (PItem->getAoE())
-    {
-        PAI->TargetFind->reset();
-
-        float distance = 10; // TODO: ask the item for its range
-
-        PAI->TargetFind->findWithinArea(this, AOE_RADIUS::ATTACKER, distance, findFlags, PItem->getValidTarget());
-
-        for (auto&& PTargetFound : PAI->TargetFind->m_targets)
+    charitemfinishtargetshelpers::Apply(
+        PItem->getAoE(),
+        PTarget,
+        findFlags,
+        PItem->getValidTarget(),
+        [&]() { PAI->TargetFind->reset(); },
+        [&](const float distance, const uint8 flags, const uint16 validTarget) -> const auto&
         {
-            processAction(PTargetFound);
-        }
-    }
-    else
-    {
-        processAction(PTarget);
-    }
+            PAI->TargetFind->findWithinArea(this, AOE_RADIUS::ATTACKER, distance, flags, validTarget);
+            return PAI->TargetFind->m_targets;
+        },
+        processAction);
 
     if (PItem->isType(ITEM_EQUIPMENT))
     {
