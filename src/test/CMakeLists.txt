@@ -946,6 +946,8 @@ set(SOURCES
     test_chocobo_dig_1595.cpp
     test_sub_job_stats_1597.h
     test_sub_job_stats_1597.cpp
+    test_mob_base_1598.h
+    test_mob_base_1598.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
