@@ -23,6 +23,7 @@
 
 #include "can_attack_capacity.h"
 #include "char_action_boundary_capacity.h"
+#include "char_aman_host_capacity.h"
 #include "char_automaton_capacity.h"
 #include "char_bazaar_capacity.h"
 #include "char_combat_transition_capacity.h"
@@ -769,11 +770,7 @@ auto CCharEntity::getStorage(const uint8 locationId) const -> CItemContainer*
 
 auto CCharEntity::aman() -> CAMANContainer&
 {
-    if (!m_AMAN)
-    {
-        m_AMAN = CAMANContainer(this);
-    }
-    return *m_AMAN;
+    return charamanhosthelpers::Get(m_AMAN, [&]() { return CAMANContainer(this); });
 }
 
 auto CCharEntity::lastProposalCloseTime() const -> timer::time_point

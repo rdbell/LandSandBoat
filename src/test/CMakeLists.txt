@@ -706,6 +706,8 @@ set(SOURCES
     test_char_runtime_state_1470.cpp
     test_char_trait_sync_1471.h
     test_char_trait_sync_1471.cpp
+    test_char_aman_host_1472.h
+    test_char_aman_host_1472.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
