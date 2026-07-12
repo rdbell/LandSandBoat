@@ -898,6 +898,8 @@ set(SOURCES
     test_base_delay_1567.cpp
     test_magical_spell_tp_1568.h
     test_magical_spell_tp_1568.cpp
+    test_skillchain_damage_1570.h
+    test_skillchain_damage_1570.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

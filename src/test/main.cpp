@@ -484,6 +484,7 @@ auto runTPFromDamage1565SelfTests() -> bool;
 auto runNinjaTool1566SelfTests() -> bool;
 auto runBaseDelay1567SelfTests() -> bool;
 auto runMagicalSpellTP1568SelfTests() -> bool;
+auto runSkillchainDamage1570SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1178,6 +1179,7 @@ namespace
         ok = runNinjaTool1566SelfTests() && ok;
         ok = runBaseDelay1567SelfTests() && ok;
         ok = runMagicalSpellTP1568SelfTests() && ok;
+        ok = runSkillchainDamage1570SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

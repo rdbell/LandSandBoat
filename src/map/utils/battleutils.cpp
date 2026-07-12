@@ -70,6 +70,7 @@
 #include "tp_from_damage_capacity.h"
 #include "ninja_tool_capacity.h"
 #include "base_delay_capacity.h"
+#include "skillchain_damage_capacity.h"
 #include "spell_interrupt_capacity.h"
 #include "combat_status_mitigation_capacity.h"
 
@@ -3272,8 +3273,107 @@ auto TakeSkillchainDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, in
         return 0;
     }
 
-    // Call out to lua for all damage functions. Also processes actual damage application.
-    int32 damage = luautils::callGlobal<int32>("xi.combat.skillchain.calculateSkillchainDamage", PAttacker, PDefender, lastSkillDamage);
+    // Pure product floors (skillchain.lua); complex multipliers still Lua-injected.
+    skillchaindamagehelpers::ProductParams pp{};
+    auto* PSCEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Skillchain, 0);
+    pp.hasEffect    = PSCEffect != nullptr;
+    if (PSCEffect)
+    {
+        pp.type  = static_cast<std::uint8_t>(PSCEffect->GetPower());
+        pp.level = static_cast<std::uint8_t>(PSCEffect->GetTier());
+        pp.count = static_cast<std::uint8_t>(PSCEffect->GetSubPower());
+    }
+    pp.baseDamage = lastSkillDamage;
+
+    // Element selection: lowest resistance rank among SC magic elements.
+    if (pp.hasEffect && pp.type != 0)
+    {
+        pp.element = skillchaindamagehelpers::SelectElement(
+            pp.type,
+            [PDefender](std::uint8_t el) -> int {
+                const auto elem = static_cast<ELEMENT>(el);
+                if (const auto mod = skillchaintableshelpers::GetResistanceRankModFromElement(static_cast<std::uint8_t>(elem)))
+                {
+                    return PDefender->getMod(*mod);
+                }
+                return 0;
+            });
+    }
+
+    // Nullification inject (Lua): 0 → nullified short-circuit.
+    if (pp.element != 0)
+    {
+        const auto nullif = luautils::callGlobal<double>(
+            "xi.spells.damage.calculateNullification", PDefender, pp.element, true, false);
+        pp.nullified = (nullif == 0.0);
+    }
+
+    // Multiplier injects from mods + remaining Lua helpers (parity with skillchain.lua).
+    pp.bonusMult  = 1.0 + static_cast<double>(PAttacker->getMod(Mod::SKILLCHAINBONUS)) / 100.0;
+    pp.damageMult = 1.0 + static_cast<double>(PAttacker->getMod(Mod::SKILLCHAINDMG)) / 10000.0;
+    pp.magicDamage = PAttacker->getMod(Mod::MAGIC_DAMAGE);
+
+    if (pp.element != 0 && !pp.nullified)
+    {
+        pp.dayWeatherMult = luautils::callGlobal<double>(
+            "xi.spells.damage.calculateDayAndWeather", PAttacker, pp.element, false);
+        pp.staffMult = luautils::callGlobal<double>(
+            "xi.spells.damage.calculateElementalStaffBonus", PAttacker, pp.element);
+        pp.affinityMult = luautils::callGlobal<double>(
+            "xi.spells.damage.calculateElementalAffinityBonus", PAttacker, pp.element);
+        pp.magicTakenMult = luautils::callGlobal<double>(
+            "xi.combat.damage.calculateDamageAdjustment", PDefender, false, true, false, false);
+        pp.absorbMult = luautils::callGlobal<double>(
+            "xi.spells.damage.calculateAbsorption", PDefender, pp.element, true);
+
+        // Res-rank for selected element.
+        {
+            const auto elem = static_cast<ELEMENT>(pp.element);
+            if (const auto mod = skillchaintableshelpers::GetResistanceRankModFromElement(static_cast<std::uint8_t>(elem)))
+            {
+                pp.resRank = PDefender->getMod(*mod);
+            }
+        }
+
+        // Innin merit on attacker (PC).
+        std::int32_t inninMerit = 0;
+        if (PAttacker->objtype == TYPE_PC)
+        {
+            auto* PChar = static_cast<CCharEntity*>(PAttacker);
+            inninMerit  = PChar->PMeritPoints->GetMeritValue(MERIT_INNIN_EFFECT, PChar);
+        }
+        pp.inninMult     = 1.0 + static_cast<double>(inninMerit) / 100.0;
+        pp.sengikoriMult = 1.0 + static_cast<double>(PDefender->getMod(Mod::SENGIKORI_SC_DMG_DEBUFF)) / 100.0;
+    }
+
+    const auto product = skillchaindamagehelpers::Product(pp);
+    int32      damage  = product.damage;
+
+    if (product.consumeSengikori)
+    {
+        PDefender->setModifier(Mod::SENGIKORI_SC_DMG_DEBUFF, 0);
+    }
+
+    if (product.applied)
+    {
+        if (damage > 0)
+        {
+            damage = skillchaindamagehelpers::ClampSCDamage(
+                skillchaindamagehelpers::ApplyPhalanx(damage, PDefender->getMod(Mod::PHALANX)));
+            damage = skillchaindamagehelpers::ClampSCDamage(HandleOneForAll(PDefender, damage));
+            damage = skillchaindamagehelpers::ClampSCDamage(HandleStoneskin(PDefender, damage));
+            damage = CheckAndApplyDamageCap(damage, PDefender);
+
+            const auto dmgType = static_cast<xi::DamageType>(
+                static_cast<std::uint8_t>(xi::DamageType::Elemental) + product.element);
+            PDefender->takeDamage(damage, PAttacker, ATTACK_TYPE::SPECIAL, dmgType);
+        }
+        else
+        {
+            // Absorb path: addHP of positive amount (Lua: addHP(-finalDamage) with finalDamage ≤ 0).
+            PDefender->addHP(-damage);
+        }
+    }
 
     battleutils::ClaimMob(PDefender, PAttacker);
     PDefender->updatemask |= UPDATE_STATUS;
@@ -3294,7 +3394,7 @@ auto TakeSkillchainDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, in
 
         case TYPE_MOB:
         {
-            static_cast<CMobEntity*>(PDefender)->PEnmityContainer->UpdateEnmityFromDamage(taChar ? taChar : PAttacker, std::abs(damage)); // assume negative damage (healing) deals the same enmity as dealing damage
+            static_cast<CMobEntity*>(PDefender)->PEnmityContainer->UpdateEnmityFromDamage(taChar ? taChar : PAttacker, std::abs(damage));
             break;
         }
 
