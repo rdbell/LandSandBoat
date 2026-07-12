@@ -956,6 +956,8 @@ set(SOURCES
     test_mob_weapon_damage_1601.cpp
     test_jug_stats_1602.h
     test_jug_stats_1602.cpp
+    test_avatar_stats_1603.h
+    test_avatar_stats_1603.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
