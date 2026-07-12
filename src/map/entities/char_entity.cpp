@@ -30,6 +30,7 @@
 #include "char_death_apply_capacity.h"
 #include "char_death_homepoint_capacity.h"
 #include "char_death_plan_capacity.h"
+#include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
 #include "char_equip_flush_capacity.h"
@@ -2157,52 +2158,28 @@ void CCharEntity::Die(timer::duration _duration)
 {
     TracyZoneScoped;
 
-    this->ClearTrusts();
-
-    if (StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Weakness))
-    {
-        // Remove weakness effect as per retail but keep track of weakness
-        StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Weakness);
-        // Increase the weakness counter if previously weakened
-        m_weaknessLvl++;
-    }
-    else
-    {
-        // Reset weakness here, then +1 it on raise as we had no weakness prior
-        m_weaknessLvl = 0;
-    }
-
-    m_deathSyncTime = timer::now() + death_update_frequency;
-    PAI->ClearStateStack();
-    PAI->Internal_Die(_duration);
-
-    // If player allegiance is not reset on death they will auto-homepoint
-    allegiance = ALLEGIANCE_TYPE::PLAYER;
-
-    // reraise modifiers
-    if (this->getMod(Mod::RERAISE_I) > 0)
-    {
-        m_hasRaise = 1;
-    }
-
-    if (this->getMod(Mod::RERAISE_II) > 0)
-    {
-        m_hasRaise = 2;
-    }
-
-    if (this->getMod(Mod::RERAISE_III) > 0)
-    {
-        m_hasRaise = 3;
-    }
-    // MIJIN_RERAISE checks
-    if (m_hasRaise == 0 && this->getMod(Mod::MIJIN_RERAISE) > 0)
-    {
-        m_hasRaise = 1;
-    }
-
-    this->m_charHistory.timesKnockedOut++;
-
-    CBattleEntity::Die();
+    const auto plan = chartimeddeathhelpers::Build({
+        .hasWeakness  = StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Weakness),
+        .weaknessLevel = m_weaknessLvl,
+        .hasRaise      = m_hasRaise,
+        .reraiseI      = getMod(Mod::RERAISE_I) > 0,
+        .reraiseII     = getMod(Mod::RERAISE_II) > 0,
+        .reraiseIII    = getMod(Mod::RERAISE_III) > 0,
+        .mijinReraise  = getMod(Mod::MIJIN_RERAISE) > 0,
+    });
+    chartimeddeathhelpers::Apply(
+        plan,
+        _duration,
+        [&]() { ClearTrusts(); },
+        [&]() { StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Weakness); },
+        [&](const uint8 level) { m_weaknessLvl = level; },
+        [&]() { m_deathSyncTime = timer::now() + death_update_frequency; },
+        [&]() { PAI->ClearStateStack(); },
+        [&](const timer::duration duration) { PAI->Internal_Die(duration); },
+        [&]() { allegiance = ALLEGIANCE_TYPE::PLAYER; },
+        [&](const uint8 level) { m_hasRaise = level; },
+        [&]() { m_charHistory.timesKnockedOut++; },
+        [&]() { CBattleEntity::Die(); });
 }
 
 void CCharEntity::Raise()

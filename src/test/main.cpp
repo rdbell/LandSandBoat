@@ -397,6 +397,7 @@ auto runCharItemFinishComplete1477SelfTests() -> bool;
 auto runCharTargetResolver1478SelfTests() -> bool;
 auto runCharDeathPlan1479SelfTests() -> bool;
 auto runCharDeathApply1480SelfTests() -> bool;
+auto runCharTimedDeath1481SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1004,6 +1005,7 @@ namespace
         ok = runCharTargetResolver1478SelfTests() && ok;
         ok = runCharDeathPlan1479SelfTests() && ok;
         ok = runCharDeathApply1480SelfTests() && ok;
+        ok = runCharTimedDeath1481SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
