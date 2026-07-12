@@ -469,6 +469,7 @@ auto runSpellCast1550SelfTests() -> bool;
 auto runMultiHits1551SelfTests() -> bool;
 auto runCritHitRate1552SelfTests() -> bool;
 auto runIsIntimidated1553SelfTests() -> bool;
+auto runHitCount1554SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1148,6 +1149,7 @@ namespace
         ok = runMultiHits1551SelfTests() && ok;
         ok = runCritHitRate1552SelfTests() && ok;
         ok = runIsIntimidated1553SelfTests() && ok;
+        ok = runHitCount1554SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
