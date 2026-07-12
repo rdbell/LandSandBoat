@@ -808,6 +808,8 @@ set(SOURCES
     test_zone_out_1522.cpp
     test_paralyze_shadow_1523.h
     test_paralyze_shadow_1523.cpp
+    test_combat_status_tails_1524.h
+    test_combat_status_tails_1524.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

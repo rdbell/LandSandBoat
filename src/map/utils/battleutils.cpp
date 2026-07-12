@@ -28,6 +28,7 @@
 #include "common/utils.h"
 #include "ranged_ammo_capacity.h"
 #include "paralyze_shadow_capacity.h"
+#include "combat_status_tails_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -837,21 +838,17 @@ int32 CalculateEnspellDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
 
 auto CalculateSpikeDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, action_result_t* Action, uint16 damageTaken) -> int32
 {
-    auto  spikeElement = static_cast<ELEMENT>(static_cast<uint8>(GetSpikesDamageType(Action->spikesEffect)) - (uint8)xi::DamageType::Elemental);
-    int32 damage       = Action->spikesParam;
+    auto       spikeElement = static_cast<ELEMENT>(static_cast<uint8>(GetSpikesDamageType(Action->spikesEffect)) - (uint8)xi::DamageType::Elemental);
+    const bool elementOOR   = static_cast<uint8>(Action->spikesEffect) > static_cast<uint8>(ELEMENT::ELEMENT_DARK);
+    const auto preMDT       = combatstatustailshelpers::CalculateSpikeDamagePreMDT(
+        Action->spikesParam,
+        PDefender->getMod(Mod::SPIKES_DMG_BONUS),
+        static_cast<SPIKES>(Action->spikesEffect) == SPIKES::SPIKE_DREAD,
+        damageTaken,
+        elementOOR);
 
-    if (PDefender->getMod(Mod::SPIKES_DMG_BONUS) > 0)
-    {
-        damage *= 1 + (PDefender->getMod(Mod::SPIKES_DMG_BONUS) / 100.0f);
-    }
-
-    if (static_cast<SPIKES>(Action->spikesEffect) == SPIKES::SPIKE_DREAD)
-    {
-        // drain same as damage taken
-        damage = damageTaken;
-    }
-
-    if (static_cast<uint8>(Action->spikesEffect) > static_cast<uint8>(ELEMENT::ELEMENT_DARK))
+    int32 damage = preMDT.damage;
+    if (preMDT.clampElementToFire)
     {
         ShowWarningFmt("CalculateSpikeDamage: Spike Element from PDefender ({}, id {}) out of range, got {}. Setting to Fire.", PDefender->getName(), PDefender->id, static_cast<int32>(spikeElement));
         spikeElement = ELEMENT::ELEMENT_FIRE;
@@ -859,7 +856,7 @@ auto CalculateSpikeDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, ac
 
     damage = MagicDmgTaken(PAttacker, damage, spikeElement); // apply MDT/MDT2/DT, liement to whoever is taking damage
 
-    if (damage < 0) // apply heal message
+    if (combatstatustailshelpers::ShouldApplySpikeHealMessage(damage)) // apply heal message
     {
         Action->spikesMessage = MsgBasic::SpikesEffectHeal;
     }
@@ -4540,29 +4537,27 @@ void HandleIssekiganEnmityBonus(CBattleEntity* PDefender, CBattleEntity* PAttack
 
 void HandleAfflatusMiseryAccuracyBonus(CBattleEntity* PAttacker)
 {
-    if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AfflatusMisery) && PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Auspice))
+    const bool hasMisery  = PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AfflatusMisery);
+    const bool hasAuspice = PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Auspice);
+    // We keep track of the running total of Accuracy Bonus as part of the Sub Power of the Effect
+    // This is used to re-adjust Mod::ACC when the effect wears off
+    const uint16 accBonus = hasMisery
+                                ? PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AfflatusMisery)->GetSubPower()
+                                : 0;
+    const auto   decision = combatstatustailshelpers::AfflatusMiseryAccuracyBonus(hasMisery, hasAuspice, accBonus);
+    if (decision.applied)
     {
-        // We keep track of the running total of Accuracy Bonus as part of the Sub Power of the Effect
-        // This is used to re-adjust Mod::ACC when the effect wears off
-
-        uint16 accBonus = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AfflatusMisery)->GetSubPower();
-
         // Per BGWiki, this bonus is thought to cap at +30
-        if (accBonus < 30)
-        {
-            accBonus = accBonus + 10;
-            PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AfflatusMisery)->SetSubPower(accBonus);
-
-            // Update the Accuracy Modifer as well, so that this is reflected
-            // throughout the battle system
-            PAttacker->addModifier(Mod::ACC, 10);
-        }
+        PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::AfflatusMisery)->SetSubPower(decision.newSubPower);
+        // Update the Accuracy Modifer as well, so that this is reflected throughout the battle system
+        PAttacker->addModifier(Mod::ACC, decision.accDelta);
     }
 }
 
 void HandleAfflatusMiseryDamage(CBattleEntity* PDefender, int32 damage)
 {
-    if (PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AfflatusMisery) && damage > 0)
+    if (combatstatustailshelpers::ShouldSetAfflatusMiseryDamage(
+            PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AfflatusMisery), damage))
     {
         PDefender->setModifier(Mod::AFFLATUS_MISERY, damage);
     }
@@ -4570,25 +4565,29 @@ void HandleAfflatusMiseryDamage(CBattleEntity* PDefender, int32 damage)
 
 void HandleTacticalParry(CBattleEntity* PEntity)
 {
-    if (CCharEntity* PChar = dynamic_cast<CCharEntity*>(PEntity))
+    CCharEntity* PChar = dynamic_cast<CCharEntity*>(PEntity);
+    int16        tpBonus = 0;
+    if (combatstatustailshelpers::TacticalTPBonus(
+            PChar != nullptr,
+            PChar != nullptr && charutils::hasTrait(PChar, TRAIT_TACTICAL_PARRY),
+            PChar != nullptr ? PChar->getMod(Mod::TACTICAL_PARRY) : static_cast<int16>(0),
+            tpBonus))
     {
-        if (charutils::hasTrait(PChar, TRAIT_TACTICAL_PARRY))
-        {
-            int16 tpBonus = PChar->getMod(Mod::TACTICAL_PARRY);
-            PChar->addTP(tpBonus);
-        }
+        PChar->addTP(tpBonus);
     }
 }
 
 void HandleTacticalGuard(CBattleEntity* PEntity)
 {
-    if (CCharEntity* PChar = dynamic_cast<CCharEntity*>(PEntity))
+    CCharEntity* PChar = dynamic_cast<CCharEntity*>(PEntity);
+    int16        tpBonus = 0;
+    if (combatstatustailshelpers::TacticalTPBonus(
+            PChar != nullptr,
+            PChar != nullptr && charutils::hasTrait(PChar, TRAIT_TACTICAL_GUARD),
+            PChar != nullptr ? PChar->getMod(Mod::TACTICAL_GUARD) : static_cast<int16>(0),
+            tpBonus))
     {
-        if (charutils::hasTrait(PChar, TRAIT_TACTICAL_GUARD))
-        {
-            int16 tpBonus = PChar->getMod(Mod::TACTICAL_GUARD);
-            PChar->addTP(tpBonus);
-        }
+        PChar->addTP(tpBonus);
     }
 }
 

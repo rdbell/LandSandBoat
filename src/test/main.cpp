@@ -439,6 +439,7 @@ auto runMiscProgress1520SelfTests() -> bool;
 auto runEntitySpawn1521SelfTests() -> bool;
 auto runZoneOut1522SelfTests() -> bool;
 auto runParalyzeShadow1523SelfTests() -> bool;
+auto runCombatStatusTails1524SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1088,6 +1089,7 @@ namespace
         ok = runEntitySpawn1521SelfTests() && ok;
         ok = runZoneOut1522SelfTests() && ok;
         ok = runParalyzeShadow1523SelfTests() && ok;
+        ok = runCombatStatusTails1524SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
