@@ -370,6 +370,7 @@ auto runCharActionBoundary1450SelfTests() -> bool;
 auto runCharErrorDelivery1451SelfTests() -> bool;
 auto runCharDeathHomepoint1452SelfTests() -> bool;
 auto runCharTriggerArea1453SelfTests() -> bool;
+auto runCharEventLock1454SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -950,6 +951,7 @@ namespace
         ok = runCharErrorDelivery1451SelfTests() && ok;
         ok = runCharDeathHomepoint1452SelfTests() && ok;
         ok = runCharTriggerArea1453SelfTests() && ok;
+        ok = runCharEventLock1454SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

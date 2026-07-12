@@ -30,6 +30,7 @@
 #include "char_equipment_capacity.h"
 #include "char_equip_flush_capacity.h"
 #include "char_error_delivery_capacity.h"
+#include "char_event_lock_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
@@ -2714,12 +2715,12 @@ void CCharEntity::clearTriggerAreas()
 
 auto CCharEntity::isInEvent() const -> bool
 {
-    return currentEvent->eventId != -1;
+    return chareventlockhelpers::IsInEvent(currentEvent->eventId);
 }
 
 bool CCharEntity::isNpcLocked()
 {
-    return isInEvent() || inSequence;
+    return chareventlockhelpers::IsNpcLocked(isInEvent(), inSequence);
 }
 
 void CCharEntity::endCurrentEvent()
@@ -2857,18 +2858,15 @@ void CCharEntity::setLocked(bool locked)
 {
     TracyZoneScoped;
 
-    m_Locked = locked;
-    if (locked)
-    {
-        // Player and pet enmity are handled in mobcontroler.cpp, CheckLock() fucntion.
-        // Mob casting interruption handled in magic_state.cpp, CMagicState::Update boolean.
-        PAI->Disengage();
-        if (PPet)
-        {
-            PPet->PAI->Disengage();
-        }
-        battleutils::RelinquishClaim(this);
-    }
+    // Player and pet enmity are handled in mobcontroler.cpp, CheckLock() fucntion.
+    // Mob casting interruption handled in magic_state.cpp, CMagicState::Update boolean.
+    chareventlockhelpers::SetLocked(
+        m_Locked,
+        locked,
+        [&]() { PAI->Disengage(); },
+        [&]() { return PPet != nullptr; },
+        [&]() { PPet->PAI->Disengage(); },
+        [&]() { battleutils::RelinquishClaim(this); });
 }
 
 auto CCharEntity::getCharVar(const std::string& varName) const -> int32
