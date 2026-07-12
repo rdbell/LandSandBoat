@@ -56,6 +56,7 @@
 #include "spell_recast_capacity.h"
 #include "spell_cast_capacity.h"
 #include "multi_hits_capacity.h"
+#include "crit_hit_rate_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -2512,121 +2513,118 @@ uint8 GetHitRate(CBattleEntity* PAttacker, CBattleEntity* PDefender, uint8 attac
 
 uint8 GetCritHitRate(CBattleEntity* PAttacker, CBattleEntity* PDefender, bool ignoreSneakTrickAttack, SLOTTYPE weaponSlot)
 {
-    int32 critHitRate = 5;
     if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MightyStrikes, 0) ||
         PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MightyStrikes))
     {
         return 100;
     }
-    else if (PAttacker->objtype == TYPE_PC && (!ignoreSneakTrickAttack) && PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SneakAttack))
+
+    const bool isPC = PAttacker->objtype == TYPE_PC;
+    const bool hasSneakAttack =
+        PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SneakAttack);
+    const bool behindOrHide =
+        behind(PAttacker->loc.p, PDefender->loc.p, 64) ||
+        PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hide);
+    const bool isTHFMain   = isPC && PAttacker->GetMJob() == JOB_THF;
+    const bool hasAssassin = isPC && charutils::hasTrait(static_cast<CCharEntity*>(PAttacker), TRAIT_ASSASSIN);
+    const bool hasTrickAttack =
+        PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TrickAttack);
+    // TA char only resolved when the TA arm would be considered (preserve getAvailableTrickAttackChar call order).
+    const bool taArmEligible =
+        isPC && isTHFMain && hasAssassin && !ignoreSneakTrickAttack && hasTrickAttack;
+    CBattleEntity* taChar =
+        taArmEligible ? battleutils::getAvailableTrickAttackChar(PAttacker, PDefender) : nullptr;
+
+    // SA is evaluated before TA in LSB (else-if chain). When SA arm matches entity
+    // conditions, TA is not considered even if ignore would only apply to one.
+    const bool saArmEligible = isPC && !ignoreSneakTrickAttack && hasSneakAttack;
+
+    const auto path = saArmEligible
+                          ? (behindOrHide ? crithitratehelpers::MeleeCritPath::Forced100
+                                          : crithitratehelpers::MeleeCritPath::BareFive)
+                          : (taArmEligible
+                                 ? (taChar != nullptr ? crithitratehelpers::MeleeCritPath::Forced100
+                                                     : crithitratehelpers::MeleeCritPath::BareFive)
+                                 : crithitratehelpers::MeleeCritPath::Assembly);
+
+    if (path == crithitratehelpers::MeleeCritPath::Forced100)
     {
-        if (behind(PAttacker->loc.p, PDefender->loc.p, 64) || PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hide))
+        return 100;
+    }
+    if (path == crithitratehelpers::MeleeCritPath::BareFive)
+    {
+        // LSB quirk: SA/TA arm entered but position/TA-char failed → bare 5, no assembly.
+        return 5;
+    }
+
+    std::int32_t attackerMerit = 0;
+    std::int32_t fencerRate    = 0;
+    if (isPC)
+    {
+        auto* PCharAttacker = static_cast<CCharEntity*>(PAttacker);
+        attackerMerit       = PCharAttacker->PMeritPoints->GetMeritValue(MERIT_CRIT_HIT_RATE, PCharAttacker);
+
+        CItemWeapon*    PMain      = dynamic_cast<CItemWeapon*>(PCharAttacker->m_Weapons[SLOT_MAIN]);
+        CItemEquipment* PSub       = PCharAttacker->getEquip(SLOT_SUB);
+        CItemWeapon*    PSubWeapon = dynamic_cast<CItemWeapon*>(PCharAttacker->m_Weapons[SLOT_SUB]);
+        if (crithitratehelpers::FencerCritEligible(
+                PMain != nullptr,
+                PMain && PMain->isTwoHanded(),
+                PMain && PMain->isHandToHand(),
+                PSub != nullptr,
+                PSubWeapon != nullptr,
+                PSubWeapon ? static_cast<std::uint8_t>(PSubWeapon->getSkillType()) : static_cast<std::uint8_t>(0),
+                PSub && PSub->IsShield()))
         {
-            critHitRate = 100;
+            fencerRate = PCharAttacker->getMod(Mod::FENCER_CRITHITRATE);
         }
     }
-    else if (PAttacker->objtype == TYPE_PC && PAttacker->GetMJob() == JOB_THF && charutils::hasTrait((CCharEntity*)PAttacker, TRAIT_ASSASSIN) &&
-             (!ignoreSneakTrickAttack) && PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TrickAttack))
+
+    std::int32_t defenderMerit = 0;
+    if (PDefender->objtype == TYPE_PC)
     {
-        CBattleEntity* taChar = battleutils::getAvailableTrickAttackChar(PAttacker, PDefender);
-        if (taChar != nullptr)
+        defenderMerit = static_cast<CCharEntity*>(PDefender)->PMeritPoints->GetMeritValue(
+            MERIT_ENEMY_CRIT_RATE, static_cast<CCharEntity*>(PDefender));
+    }
+
+    std::int32_t inninPower = 0;
+    if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Innin) &&
+        behind(PAttacker->loc.p, PDefender->loc.p, 64))
+    {
+        inninPower = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Innin)->GetPower();
+    }
+    std::int32_t yoninPower = 0;
+    if (PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Yonin) &&
+        infront(PDefender->loc.p, PAttacker->loc.p, 64))
+    {
+        yoninPower = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Yonin)->GetPower();
+    }
+
+    std::int32_t weaponOnly = 0;
+    if (auto* player = dynamic_cast<CCharEntity*>(PAttacker))
+    {
+        auto* weapon = dynamic_cast<CItemWeapon*>(player->getEquip(weaponSlot));
+        if (weapon && weapon->getModifier(Mod::CRITHITRATE_ONLY_WEP) > 0)
         {
-            critHitRate = 100;
+            weaponOnly = weapon->getModifier(Mod::CRITHITRATE_ONLY_WEP);
         }
     }
-    else
-    {
-        // apply merit mods and traits
-        if (PAttacker->objtype == TYPE_PC)
-        {
-            CCharEntity* PCharAttacker = static_cast<CCharEntity*>(PAttacker);
-            critHitRate += PCharAttacker->PMeritPoints->GetMeritValue(MERIT_CRIT_HIT_RATE, PCharAttacker);
 
-            // Add Fencer crit hit rate
-            CItemWeapon*    PMain      = dynamic_cast<CItemWeapon*>(PCharAttacker->m_Weapons[SLOT_MAIN]);
-            CItemEquipment* PSub       = PCharAttacker->getEquip(SLOT_SUB);
-            CItemWeapon*    PSubWeapon = dynamic_cast<CItemWeapon*>(PCharAttacker->m_Weapons[SLOT_SUB]);
-
-            if (PMain && !PMain->isTwoHanded() && !PMain->isHandToHand() &&
-                (!PSub || (PSubWeapon && PSubWeapon->getSkillType() == SKILL_NONE) || PSub->IsShield()))
-            {
-                critHitRate += PCharAttacker->getMod(Mod::FENCER_CRITHITRATE);
-            }
-        }
-
-        if (PDefender->objtype == TYPE_PC)
-        {
-            critHitRate -= ((CCharEntity*)PDefender)->PMeritPoints->GetMeritValue(MERIT_ENEMY_CRIT_RATE, (CCharEntity*)PDefender);
-        }
-
-        // Check for Innin crit rate bonus from behind target
-        if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Innin) && behind(PAttacker->loc.p, PDefender->loc.p, 64))
-        {
-            critHitRate += PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Innin)->GetPower();
-        }
-        // Check for Yonin enemy crit rate reduction while in front of target
-        if (PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Yonin) && infront(PDefender->loc.p, PAttacker->loc.p, 64))
-        {
-            critHitRate -= PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Yonin)->GetPower();
-        }
-
-        critHitRate += GetDexCritBonus(PAttacker, PDefender);
-        critHitRate += PAttacker->getMod(Mod::CRITHITRATE);
-        critHitRate -= PDefender->getMod(Mod::CRITICAL_HIT_EVASION); // Similar to merits. However, it can be possitive or negative. When mod is negative, it raises crit-hit-rate.
-
-        // need to check for mods that only impact attacks with a specific weapon (like Senjuinrikio)
-        if (auto* player = dynamic_cast<CCharEntity*>(PAttacker))
-        {
-            auto* weapon = dynamic_cast<CItemWeapon*>(player->getEquip(weaponSlot));
-            if (weapon && weapon->getModifier(Mod::CRITHITRATE_ONLY_WEP) > 0)
-            {
-                critHitRate += weapon->getModifier(Mod::CRITHITRATE_ONLY_WEP);
-            }
-        }
-
-        critHitRate = std::clamp(critHitRate, 0, 100);
-    }
-    return (uint8)critHitRate;
+    return crithitratehelpers::MeleeCritHitRate(
+        attackerMerit,
+        fencerRate,
+        defenderMerit,
+        inninPower,
+        yoninPower,
+        GetDexCritBonus(PAttacker, PDefender),
+        PAttacker->getMod(Mod::CRITHITRATE),
+        PDefender->getMod(Mod::CRITICAL_HIT_EVASION),
+        weaponOnly);
 }
 
 int8 GetDexCritBonus(CBattleEntity* PAttacker, CBattleEntity* PDefender)
 {
-    // https://www.bg-wiki.com/bg/Critical_Hit_Rate
-    int32 attackerDex = PAttacker->DEX();
-    int32 defenderAgi = PDefender->AGI();
-    int32 dDex        = attackerDex - defenderAgi;
-    // only care for values between 0 and 50
-    int32 dDexClamp = std::clamp(dDex, 0, 50);
-
-    // Default to +0 crit rate for a delta of 0-6
-    int32 critRate = 0;
-    if (dDexClamp > 39)
-    {
-        // 40-50: (dDEX-35)
-        critRate = dDexClamp - 35;
-    }
-    else if (dDexClamp > 29)
-    {
-        // 30-39: +4
-        critRate = 4;
-    }
-    else if (dDexClamp > 19)
-    {
-        // 20-29: +3
-        critRate = 3;
-    }
-    else if (dDexClamp > 13)
-    {
-        // 14-19: +2
-        critRate = 2;
-    }
-    else if (dDexClamp > 6)
-    {
-        critRate = 1;
-    }
-
-    // Crit rate delta from stats caps at 15
-    return std::min(critRate, 15);
+    return crithitratehelpers::DexCritBonus(PAttacker->DEX(), PDefender->AGI());
 }
 
 /************************************************************************
@@ -2637,52 +2635,47 @@ int8 GetDexCritBonus(CBattleEntity* PAttacker, CBattleEntity* PDefender)
 
 uint8 GetRangedCritHitRate(CBattleEntity* PAttacker, CBattleEntity* PDefender)
 {
-    int32 critHitRate = 5;
-    // apply merit mods and traits
+    std::int32_t attackerMerit = 0;
     if (PAttacker->objtype == TYPE_PC)
     {
-        CCharEntity* PCharAttacker = static_cast<CCharEntity*>(PAttacker);
-        critHitRate += PCharAttacker->PMeritPoints->GetMeritValue(MERIT_CRIT_HIT_RATE, PCharAttacker);
+        auto* PCharAttacker = static_cast<CCharEntity*>(PAttacker);
+        attackerMerit       = PCharAttacker->PMeritPoints->GetMeritValue(MERIT_CRIT_HIT_RATE, PCharAttacker);
     }
 
+    std::int32_t defenderMerit = 0;
     if (PDefender->objtype == TYPE_PC)
     {
-        critHitRate -= ((CCharEntity*)PDefender)->PMeritPoints->GetMeritValue(MERIT_ENEMY_CRIT_RATE, (CCharEntity*)PDefender);
+        defenderMerit = static_cast<CCharEntity*>(PDefender)->PMeritPoints->GetMeritValue(
+            MERIT_ENEMY_CRIT_RATE, static_cast<CCharEntity*>(PDefender));
     }
 
-    // Check for Innin crit rate bonus from behind target
-    if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Innin) && behind(PAttacker->loc.p, PDefender->loc.p, 64))
+    std::int32_t inninPower = 0;
+    if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Innin) &&
+        behind(PAttacker->loc.p, PDefender->loc.p, 64))
     {
-        critHitRate += PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Innin)->GetPower();
+        inninPower = PAttacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Innin)->GetPower();
     }
-    // Check for Yonin enemy crit rate reduction while in front of target
-    if (PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Yonin) && infront(PDefender->loc.p, PAttacker->loc.p, 64))
+    std::int32_t yoninPower = 0;
+    if (PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Yonin) &&
+        infront(PDefender->loc.p, PAttacker->loc.p, 64))
     {
-        critHitRate -= PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Yonin)->GetPower();
+        yoninPower = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Yonin)->GetPower();
     }
 
-    // Check for Mighty Strikes since Ranged Attacks do not get the crit bonus
-    critHitRate += PAttacker->getMod(Mod::CRITHITRATE) - (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MightyStrikes) ? 100 : 0);
-
-    critHitRate += GetAGICritBonus(PAttacker, PDefender);
-    critHitRate -= PDefender->getMod(Mod::CRITICAL_HIT_EVASION); // Similar to merits. However, it can be possitive or negative. When mod is negative, it raises crit-hit-rate.
-    critHitRate = std::clamp(critHitRate, 0, 100);
-
-    return (uint8)critHitRate;
+    return crithitratehelpers::RangedCritHitRate(
+        attackerMerit,
+        defenderMerit,
+        inninPower,
+        yoninPower,
+        PAttacker->getMod(Mod::CRITHITRATE),
+        PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MightyStrikes),
+        GetAGICritBonus(PAttacker, PDefender),
+        PDefender->getMod(Mod::CRITICAL_HIT_EVASION));
 }
 
 int8 GetAGICritBonus(CBattleEntity* PAttacker, CBattleEntity* PDefender)
 {
-    // https://www.bg-wiki.com/bg/Critical_Hit_Rate
-    int32 attackerAgi = PAttacker->AGI();
-    int32 defenderAgi = PDefender->AGI();
-    int32 dAgi        = attackerAgi - defenderAgi;
-    // Only consider positive dAgi
-    int32 dAgiPositive = std::max(0, dAgi);
-
-    int32 critRate = dAgiPositive / 10;
-
-    return critRate;
+    return crithitratehelpers::AgiCritBonus(PAttacker->AGI(), PDefender->AGI());
 }
 
 /************************************************************************
