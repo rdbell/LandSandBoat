@@ -104,6 +104,7 @@
 #include "weapon_skill_roster_capacity.h"
 #include "ability_table_capacity.h"
 #include "pet_ability_table_capacity.h"
+#include "keyitem_spell_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -4202,10 +4203,10 @@ void CheckWeaponSkill(CCharEntity* PChar, uint8 skill)
 
 auto hasKeyItem(const CCharEntity* PChar, const KeyItem keyItemId) -> bool
 {
-    const auto keyItemTable = static_cast<uint16_t>(keyItemId) / 512;
-    const auto keyItemIndex = static_cast<uint16_t>(keyItemId) % 512;
+    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
 
-    if (keyItemTable >= PChar->keys.tables.size())
+    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
     {
         ShowErrorFmt("charutils::hasKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
         return false;
@@ -4216,10 +4217,10 @@ auto hasKeyItem(const CCharEntity* PChar, const KeyItem keyItemId) -> bool
 
 auto seenKeyItem(CCharEntity* PChar, KeyItem keyItemId) -> bool
 {
-    const auto keyItemTable = static_cast<uint16_t>(keyItemId) / 512;
-    const auto keyItemIndex = static_cast<uint16_t>(keyItemId) % 512;
+    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
 
-    if (keyItemTable >= PChar->keys.tables.size())
+    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
     {
         ShowErrorFmt("charutils::seenKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
         return false;
@@ -4230,10 +4231,10 @@ auto seenKeyItem(CCharEntity* PChar, KeyItem keyItemId) -> bool
 
 void markSeenKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 {
-    const auto keyItemTable = static_cast<uint16_t>(keyItemId) / 512;
-    const auto keyItemIndex = static_cast<uint16_t>(keyItemId) % 512;
+    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
 
-    if (keyItemTable >= PChar->keys.tables.size())
+    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
     {
         ShowErrorFmt("charutils::markSeenKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
         return;
@@ -4244,10 +4245,10 @@ void markSeenKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 
 void unseenKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 {
-    const auto keyItemTable = static_cast<uint16_t>(keyItemId) / 512;
-    const auto keyItemIndex = static_cast<uint16_t>(keyItemId) % 512;
+    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
 
-    if (keyItemTable >= PChar->keys.tables.size())
+    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
     {
         ShowErrorFmt("charutils::unseenKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
         return;
@@ -4258,10 +4259,10 @@ void unseenKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 
 void addKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 {
-    const auto keyItemTable = static_cast<uint16_t>(keyItemId) / 512;
-    const auto keyItemIndex = static_cast<uint16_t>(keyItemId) % 512;
+    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
 
-    if (keyItemTable >= PChar->keys.tables.size())
+    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
     {
         ShowErrorFmt("charutils::addKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
         return;
@@ -4272,10 +4273,10 @@ void addKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 
 void delKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 {
-    const auto keyItemTable = static_cast<uint16_t>(keyItemId) / 512;
-    const auto keyItemIndex = static_cast<uint16_t>(keyItemId) % 512;
+    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
 
-    if (keyItemTable >= PChar->keys.tables.size())
+    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
     {
         ShowErrorFmt("charutils::delKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
         return;
@@ -4298,23 +4299,23 @@ int32 hasSpell(CCharEntity* PChar, uint16 SpellID)
 int32 addSpell(CCharEntity* PChar, uint16 spellID)
 {
     auto* PSpell = spell::GetSpell(static_cast<SpellID>(spellID));
-    if (PSpell && !hasSpell(PChar, spellID))
+    if (keyitemspellhelpers::ShouldAddSpell(PSpell != nullptr, hasSpell(PChar, spellID) != 0))
     {
         PChar->m_SpellList[spellID] = true;
-        return 1;
+        return keyitemspellhelpers::SpellMutationSuccess();
     }
-    return 0;
+    return keyitemspellhelpers::SpellMutationNoOp();
 }
 
 int32 delSpell(CCharEntity* PChar, uint16 spellID)
 {
     auto* PSpell = spell::GetSpell(static_cast<SpellID>(spellID));
-    if (PSpell && hasSpell(PChar, spellID))
+    if (keyitemspellhelpers::ShouldDelSpell(PSpell != nullptr, hasSpell(PChar, spellID) != 0))
     {
         PChar->m_SpellList[spellID] = false;
-        return 1;
+        return keyitemspellhelpers::SpellMutationSuccess();
     }
-    return 0;
+    return keyitemspellhelpers::SpellMutationNoOp();
 }
 
 /************************************************************************
@@ -4346,13 +4347,13 @@ int32 delLearnedAbility(CCharEntity* PChar, uint16 AbilityID)
 
 bool hasLearnedWeaponskill(CCharEntity* PChar, uint8 wsUnlockId)
 {
-    if (PChar == nullptr)
+    if (keyitemspellhelpers::ShouldRejectNullChar(PChar == nullptr))
     {
         ShowError("PChar is null.");
         return false;
     }
 
-    if (wsUnlockId > PChar->m_LearnedWeaponskills.size() - 1)
+    if (!keyitemspellhelpers::LearnedWeaponskillInRange(wsUnlockId, PChar->m_LearnedWeaponskills.size()))
     {
         ShowError("wsUnlockId is greater than learned weaponskill bitset.");
         return false;
@@ -4363,13 +4364,13 @@ bool hasLearnedWeaponskill(CCharEntity* PChar, uint8 wsUnlockId)
 
 void addLearnedWeaponskill(CCharEntity* PChar, uint8 wsUnlockId)
 {
-    if (PChar == nullptr)
+    if (keyitemspellhelpers::ShouldRejectNullChar(PChar == nullptr))
     {
         ShowError("PChar is null.");
         return;
     }
 
-    if (wsUnlockId > PChar->m_LearnedWeaponskills.size() - 1)
+    if (!keyitemspellhelpers::LearnedWeaponskillInRange(wsUnlockId, PChar->m_LearnedWeaponskills.size()))
     {
         ShowError("wsUnlockId is greater than learned weaponskill bitset.");
         return;
@@ -4380,13 +4381,13 @@ void addLearnedWeaponskill(CCharEntity* PChar, uint8 wsUnlockId)
 
 void delLearnedWeaponskill(CCharEntity* PChar, uint8 wsUnlockId)
 {
-    if (PChar == nullptr)
+    if (keyitemspellhelpers::ShouldRejectNullChar(PChar == nullptr))
     {
         ShowError("PChar is null.");
         return;
     }
 
-    if (wsUnlockId > PChar->m_LearnedWeaponskills.size() - 1)
+    if (!keyitemspellhelpers::LearnedWeaponskillInRange(wsUnlockId, PChar->m_LearnedWeaponskills.size()))
     {
         ShowError("wsUnlockId is greater than learned weaponskill bitset.");
         return;
@@ -4395,11 +4396,6 @@ void delLearnedWeaponskill(CCharEntity* PChar, uint8 wsUnlockId)
     PChar->m_LearnedWeaponskills[wsUnlockId] = false;
 }
 
-/************************************************************************
- *                                                                       *
- *  Methods for working with titles                                      *
- *                                                                       *
- ************************************************************************/
 
 int32 hasTitle(CCharEntity* PChar, uint16 Title)
 {
