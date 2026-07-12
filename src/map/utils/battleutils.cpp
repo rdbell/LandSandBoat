@@ -32,6 +32,7 @@
 #include "claim_capacity.h"
 #include "enmity_combat_capacity.h"
 #include "spikes_capacity.h"
+#include "entity_action_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -3576,27 +3577,31 @@ void MakeEntityStandUp(CBattleEntity* PEntity)
         return;
     }
 
-    if (PEntity->objtype == TYPE_PC)
+    const auto action = entityactionhelpers::ClassifyStandUp(
+        PEntity->objtype == TYPE_PC, static_cast<uint8>(PEntity->animation));
+    if (action == entityactionhelpers::StandUpAction::None)
     {
-        CCharEntity* PPlayer = ((CCharEntity*)PEntity);
+        return;
+    }
 
-        if (PPlayer->animation == ANIMATION_HEALING)
-        {
-            PPlayer->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Healing);
-            PPlayer->updatemask |= UPDATE_HP;
-        }
-        else if (PPlayer->animation == ANIMATION_SIT || (PPlayer->animation >= ANIMATION_SITCHAIR_0 && PPlayer->animation <= ANIMATION_SITCHAIR_10))
-        {
-            PPlayer->animation = ANIMATION_NONE;
-            PPlayer->updatemask |= UPDATE_HP;
+    CCharEntity* PPlayer = static_cast<CCharEntity*>(PEntity);
+    if (action == entityactionhelpers::StandUpAction::CancelHealing)
+    {
+        PPlayer->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Healing);
+        PPlayer->updatemask |= UPDATE_HP;
+        return;
+    }
 
-            CPetEntity* PPet = dynamic_cast<CPetEntity*>(PPlayer->PPet);
-            if (PPet && (PPet->getPetType() == PET_TYPE::WYVERN || PPet->getPetType() == PET_TYPE::AUTOMATON))
-            {
-                PPet->animation = ANIMATION_NONE;
-                PPet->updatemask |= UPDATE_HP;
-            }
-        }
+    // LeaveSit
+    PPlayer->animation = ANIMATION_NONE;
+    PPlayer->updatemask |= UPDATE_HP;
+
+    CPetEntity* PPet = dynamic_cast<CPetEntity*>(PPlayer->PPet);
+    if (entityactionhelpers::ShouldStandUpPet(
+            PPet != nullptr, PPet ? static_cast<uint8>(PPet->getPetType()) : static_cast<uint8>(0)))
+    {
+        PPet->animation = ANIMATION_NONE;
+        PPet->updatemask |= UPDATE_HP;
     }
 }
 
@@ -4791,22 +4796,20 @@ void assistTarget(CCharEntity* PChar, uint16 TargID)
 {
     // get the entity we want to assist
     CBattleEntity* EntityToAssist = (CBattleEntity*)PChar->GetEntity(TargID, TYPE_MOB | TYPE_PC);
-    if (EntityToAssist != nullptr)
+    const bool     hasEntity      = EntityToAssist != nullptr;
+    const bool     targetIsPC     = hasEntity && EntityToAssist->objtype == TYPE_PC;
+    const bool     hasBTID        = hasEntity && EntityToAssist->GetBattleTargetID() != 0;
+    CBattleEntity* EntityToLockon = hasEntity ? EntityToAssist->GetBattleTarget() : nullptr;
+    const auto     lockOn         = entityactionhelpers::ClassifyAssistTarget(
+        hasEntity, targetIsPC, hasBTID, EntityToLockon != nullptr);
+    if (lockOn == entityactionhelpers::AssistLockOn::LockOnResolved)
     {
-        if (EntityToAssist->objtype == TYPE_PC && EntityToAssist->GetBattleTargetID() != 0)
-        {
-            // get that players engaged target
-            CBattleEntity* EntityToLockon = EntityToAssist->GetBattleTarget();
-            if (EntityToLockon != nullptr)
-            {
-                // lock on to the new target!
-                PChar->pushPacket<GP_SERV_COMMAND_ASSIST>(PChar, EntityToLockon);
-            }
-        }
-        else if (EntityToAssist->GetBattleTargetID() != 0)
+        // PC path uses resolved battle target; non-PC path uses GetBattleTarget() as LSB did.
+        CBattleEntity* target = targetIsPC ? EntityToLockon : EntityToAssist->GetBattleTarget();
+        if (target != nullptr)
         {
             // lock on to the new target!
-            PChar->pushPacket<GP_SERV_COMMAND_ASSIST>(PChar, EntityToAssist->GetBattleTarget());
+            PChar->pushPacket<GP_SERV_COMMAND_ASSIST>(PChar, target);
         }
     }
 }
@@ -5213,17 +5216,15 @@ bool DoRandomDealToEntity(CCharEntity* PChar, CBattleEntity* PTarget)
 // turn towards target unless mob behavior ignores this (but can be forced to anyway)
 void turnTowardsTarget(CBaseEntity* PEntity, CBaseEntity* PTarget, bool force)
 {
-    // Quick rejects
-    if (!PEntity || !PTarget)
-    {
-        return;
-    }
-
     CMobEntity* PMob = dynamic_cast<CMobEntity*>(PEntity);
-
     // Big mobs typically should ignore this -- Such as dragons/wyrms or other big things.
     // Some TP moves like Petro Eyes from normal dragons _also_ ignore their standard behavior, so we must allow it sometimes.
-    if (PMob && (PMob->m_Behavior & BEHAVIOR_NO_TURN) && !force)
+    if (!entityactionhelpers::ShouldTurnTowardsTarget(
+            PEntity != nullptr,
+            PTarget != nullptr,
+            PMob != nullptr,
+            PMob ? static_cast<uint16>(PMob->m_Behavior) : static_cast<uint16>(0),
+            force))
     {
         return;
     }
@@ -5251,16 +5252,13 @@ int16 GetRangedDelayReduction(CBattleEntity* battleEntity, int16 delay)
         }
     }
 
-    // https://www.bg-wiki.com/ffxi/Snapshot
-    SnapShotReductionPercent = std::min<int16>(SnapShotReductionPercent, 70); // Cap of 70%
-
-    auto VelocityShotReductionPercent = 0;
-    if (battleEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::VelocityShot))
-    {
-        VelocityShotReductionPercent = 15 + battleEntity->getMod(Mod::VELOCITY_SNAPSHOT_BONUS);
-    }
-
-    return (int16)(delay * ((100 - SnapShotReductionPercent) / 100.0f) * ((100 - VelocityShotReductionPercent) / 100.0f));
+    // https://www.bg-wiki.com/ffxi/Snapshot — cap + velocity applied in pure helper
+    const bool hasVelocity = battleEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::VelocityShot);
+    return entityactionhelpers::RangedDelayReduction(
+        delay,
+        SnapShotReductionPercent,
+        hasVelocity,
+        hasVelocity ? battleEntity->getMod(Mod::VELOCITY_SNAPSHOT_BONUS) : static_cast<int16>(0));
 }
 
 /************************************************************************
@@ -5271,20 +5269,10 @@ int16 GetRangedDelayReduction(CBattleEntity* battleEntity, int16 delay)
 
 int32 GetRangedAttackBonuses(CBattleEntity* battleEntity)
 {
-    if (battleEntity->objtype != TYPE_PC)
-    {
-        return 0;
-    }
-
-    int32 bonus = 0;
-
-    // bonus from velocity shot mod
-    if (battleEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::VelocityShot))
-    {
-        bonus += battleEntity->getMod(Mod::VELOCITY_RATT_BONUS);
-    }
-
-    return bonus;
+    return entityactionhelpers::RangedAttackBonuses(
+        battleEntity->objtype == TYPE_PC,
+        battleEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::VelocityShot),
+        battleEntity->getMod(Mod::VELOCITY_RATT_BONUS));
 }
 
 /************************************************************************
@@ -5295,20 +5283,10 @@ int32 GetRangedAttackBonuses(CBattleEntity* battleEntity)
 
 int32 GetRangedAccuracyBonuses(CBattleEntity* battleEntity)
 {
-    if (battleEntity->objtype != TYPE_PC)
-    {
-        return 0;
-    }
-
-    int32 bonus = 0;
-
-    // Bonus from barrage mod
-    if (battleEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Barrage))
-    {
-        bonus += battleEntity->getMod(Mod::BARRAGE_ACC);
-    }
-
-    return bonus;
+    return entityactionhelpers::RangedAccuracyBonuses(
+        battleEntity->objtype == TYPE_PC,
+        battleEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Barrage),
+        battleEntity->getMod(Mod::BARRAGE_ACC));
 }
 
 void AddTraits(CBattleEntity* PEntity, TraitList_t* traitList, uint8 level)
@@ -6150,13 +6128,14 @@ CBattleEntity* GetCoverAbilityUser(CBattleEntity* PCoverAbilityTarget, CBattleEn
     uint32         coverAbilityTargetID = PCoverAbilityTarget->id;
 
     // If the cover ability target is in a party, try to find a cover ability user
-    if (PCoverAbilityTarget->PParty != nullptr)
+    if (entityactionhelpers::ShouldSearchCoverParty(PCoverAbilityTarget->PParty != nullptr))
     {
         for (auto* PMember : PCoverAbilityTarget->PParty->members)
         {
-            if (coverAbilityTargetID == PMember->GetLocalVar("COVER_ABILITY_TARGET") &&
-                PMember->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Cover) &&
-                PMember->isAlive())
+            if (entityactionhelpers::CoverMemberEligible(
+                    coverAbilityTargetID == PMember->GetLocalVar("COVER_ABILITY_TARGET"),
+                    PMember->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Cover),
+                    PMember->isAlive()))
             {
                 PCoverAbilityUser = PMember;
                 break;
@@ -6170,10 +6149,12 @@ CBattleEntity* GetCoverAbilityUser(CBattleEntity* PCoverAbilityTarget, CBattleEn
             float distTAmob  = distance(PCoverAbilityUser->loc.p, PMob->loc.p);
 
             // check if cover user is within melee range and that cover target is in-line behind
-            if (distTAmob <= PMob->GetMeleeRange(PCoverAbilityUser) &&           // make sure cover user is within melee range
-                distTAmob >= worldAngleMinDistance &&                            // require closer target not be closer than .5 yalms (.5*.5=.25 distsquared) to mob
-                distTAmob < distance(PCoverAbilityTarget->loc.p, PMob->loc.p) && // make sure cover user is closer to the mob than cover target
-                areInLine(angleTAmob, PMob, PCoverAbilityTarget))
+            if (entityactionhelpers::CoverGeometryOK(
+                    distTAmob,
+                    PMob->GetMeleeRange(PCoverAbilityUser),
+                    worldAngleMinDistance,
+                    distance(PCoverAbilityTarget->loc.p, PMob->loc.p),
+                    areInLine(angleTAmob, PMob, PCoverAbilityTarget)))
             {
                 return PCoverAbilityUser;
             }
@@ -6184,26 +6165,22 @@ CBattleEntity* GetCoverAbilityUser(CBattleEntity* PCoverAbilityTarget, CBattleEn
 
 bool IsMagicCovered(CCharEntity* PCoverAbilityUser)
 {
-    return PCoverAbilityUser != nullptr && PCoverAbilityUser->getMod(Mod::COVER_MAGIC_AND_RANGED) == 1;
+    return entityactionhelpers::IsMagicCovered(
+        PCoverAbilityUser != nullptr,
+        PCoverAbilityUser ? PCoverAbilityUser->getMod(Mod::COVER_MAGIC_AND_RANGED) : static_cast<int16>(0));
 }
 
 void ConvertDmgToMP(CBattleEntity* PDefender, int32 damage, bool IsCovered)
 {
-    double dmgToMPMods = 0.0;
-
     // If attack was covered, get cover ability user's COVER_TO_MP mod
-    if (IsCovered)
-    {
-        dmgToMPMods += PDefender->getMod(Mod::COVER_TO_MP);
-    }
-
     // Get ABSORB_PHYSDMG_TO_MP mod
-    dmgToMPMods += PDefender->getMod(Mod::ABSORB_PHYSDMG_TO_MP);
+    const int16 absorbedMP = entityactionhelpers::AbsorbedPhysDmgToMP(
+        damage,
+        IsCovered,
+        IsCovered ? PDefender->getMod(Mod::COVER_TO_MP) : static_cast<int16>(0),
+        PDefender->getMod(Mod::ABSORB_PHYSDMG_TO_MP));
 
-    // Calculate final absorbed MP
-    int16 absorbedMP = static_cast<int16>(damage * (dmgToMPMods / 100.0));
-
-    if (absorbedMP > 0)
+    if (entityactionhelpers::ShouldApplyAbsorbedMP(absorbedMP))
     {
         PDefender->addMP(absorbedMP);
     }

@@ -816,6 +816,8 @@ set(SOURCES
     test_enmity_combat_1526.cpp
     test_spikes_1527.h
     test_spikes_1527.cpp
+    test_entity_action_1528.h
+    test_entity_action_1528.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
