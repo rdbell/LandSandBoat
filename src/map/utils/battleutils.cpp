@@ -46,6 +46,7 @@
 #include "draw_in_capacity.h"
 #include "enspell_damage_tails_capacity.h"
 #include "weather_get_capacity.h"
+#include "entity_equip_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -3503,13 +3504,13 @@ auto TakeSkillchainDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, in
 
 CItemEquipment* GetEntityArmor(CBattleEntity* PEntity, SLOTTYPE Slot)
 {
-    if (Slot < SLOT_HEAD || Slot > SLOT_LINK2)
+    if (!entityequiphelpers::IsValidArmorSlot(static_cast<std::uint8_t>(Slot)))
     {
         ShowWarning("Invalid Slot Type (%d) passed to function.", static_cast<uint8>(Slot));
         return nullptr;
     }
 
-    if (PEntity->objtype == TYPE_PC)
+    if (entityequiphelpers::ShouldReturnPCArmor(PEntity->objtype == TYPE_PC))
     {
         return (((CCharEntity*)PEntity)->getEquip(Slot));
     }
@@ -3519,7 +3520,7 @@ CItemEquipment* GetEntityArmor(CBattleEntity* PEntity, SLOTTYPE Slot)
 
 CItemWeapon* GetEntityWeapon(CBattleEntity* PEntity, SLOTTYPE Slot)
 {
-    if (Slot < SLOT_MAIN || Slot > SLOT_AMMO)
+    if (!entityequiphelpers::IsValidWeaponSlot(static_cast<std::uint8_t>(Slot)))
     {
         ShowWarning("battleutils::GetEntityWeapon() - Received invalid slot type.");
         return nullptr;
@@ -4783,28 +4784,8 @@ void assistTarget(CCharEntity* PChar, uint16 TargID)
 
 ELEMENT GetDayElement()
 {
-    DAYTYPE weekday = static_cast<DAYTYPE>(vanadiel_time::get_weekday());
-    switch (weekday)
-    {
-        case FIRESDAY:
-            return ELEMENT_FIRE;
-        case EARTHSDAY:
-            return ELEMENT_EARTH;
-        case WATERSDAY:
-            return ELEMENT_WATER;
-        case WINDSDAY:
-            return ELEMENT_WIND;
-        case ICEDAY:
-            return ELEMENT_ICE;
-        case LIGHTNINGDAY:
-            return ELEMENT_THUNDER;
-        case LIGHTSDAY:
-            return ELEMENT_LIGHT;
-        case DARKSDAY:
-            return ELEMENT_DARK;
-        default:
-            return ELEMENT_NONE;
-    }
+    const auto weekday = static_cast<std::uint8_t>(vanadiel_time::get_weekday());
+    return static_cast<ELEMENT>(entityequiphelpers::DayElementFromWeekday(weekday));
 }
 
 auto GetWeather(CBattleEntity* PEntity, bool ignoreScholar) -> Weather
