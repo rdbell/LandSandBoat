@@ -27,6 +27,7 @@
 #include "char_equipment_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
+#include "char_persistence_capacity.h"
 #include "char_playtime_capacity.h"
 #include "char_resource_capacity.h"
 #include "char_storage_capacity.h"
@@ -993,69 +994,33 @@ void CCharEntity::ClearTrusts()
 
 void CCharEntity::RequestPersist(CHAR_PERSIST toPersist)
 {
-    dataToPersist |= toPersist;
+    charpersistencehelpers::Request(dataToPersist, static_cast<uint8>(toPersist));
 }
 
 bool CCharEntity::PersistData()
 {
-    bool didPersist = false;
-
-    if (!charVarChanges.empty())
-    {
-        for (auto&& charVarName : charVarChanges)
+    // TODO: Add a SaveCharLinkshells callback if CHAR_PERSIST::LINKSHELL is introduced.
+    return charpersistencehelpers::Flush(
+        charVarChanges,
+        dataToPersist,
+        static_cast<uint8>(CHAR_PERSIST::EQUIP),
+        static_cast<uint8>(CHAR_PERSIST::POSITION),
+        static_cast<uint8>(CHAR_PERSIST::EFFECTS),
+        [&](const std::string& name)
         {
-            charutils::PersistCharVar(this->id, charVarName.c_str(), charVarCache[charVarName].first, charVarCache[charVarName].second);
-        }
-
-        charVarChanges.clear();
-        didPersist = true;
-    }
-
-    if (!dataToPersist)
-    {
-        return didPersist;
-    }
-    else
-    {
-        didPersist = true;
-    }
-
-    if (dataToPersist & CHAR_PERSIST::EQUIP)
-    {
-        charutils::SaveCharEquip(this);
-        charutils::SaveCharLook(this);
-    }
-
-    if (dataToPersist & CHAR_PERSIST::POSITION)
-    {
-        charutils::SaveCharPosition(this);
-    }
-
-    if (dataToPersist & CHAR_PERSIST::EFFECTS)
-    {
-        StatusEffectContainer->SaveStatusEffects(true);
-    }
-
-    /* TODO
-    if (dataToPersist & CHAR_PERSIST::LINKSHELL)
-    {
-        charutils::SaveCharLinkshells(this);
-    }
-    */
-
-    dataToPersist = 0;
-    return didPersist;
+            const auto& [value, expiry] = charVarCache[name];
+            charutils::PersistCharVar(this->id, name.c_str(), value, expiry);
+        },
+        [&]() { charutils::SaveCharEquip(this); },
+        [&]() { charutils::SaveCharLook(this); },
+        [&]() { charutils::SaveCharPosition(this); },
+        [&]() { StatusEffectContainer->SaveStatusEffects(true); });
 }
 
 bool CCharEntity::PersistData(timer::time_point tick)
 {
-    if (tick < nextDataPersistTime || !PersistData())
-    {
-        return false;
-    }
-
-    nextDataPersistTime = tick + TIME_BETWEEN_PERSIST;
-    return true;
+    return charpersistencehelpers::FlushAt(
+        tick, nextDataPersistTime, TIME_BETWEEN_PERSIST, [&]() { return PersistData(); });
 }
 
 auto CCharEntity::Tick(timer::time_point tick) -> Task<void>
