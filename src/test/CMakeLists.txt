@@ -918,6 +918,8 @@ set(SOURCES
     test_defense_gates_1580.cpp
     test_combat_aoe_knockback_1581.h
     test_combat_aoe_knockback_1581.cpp
+    test_can_use_spell_1582.h
+    test_can_use_spell_1582.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

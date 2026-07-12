@@ -126,7 +126,7 @@ local packets =
     ['Parried hits'] =
     {
         test = function(player, mob)
-            stub('xi.combat.physical.isParried', true)
+            -- Production isParried (C++ pure): force canParry + rate via INQUARTATA.
             player:gotoZone(xi.zone.DYNAMIS_SAN_DORIA)
             player:changeJob(xi.job.BRD)
             player:setLevel(99)
@@ -134,6 +134,8 @@ local packets =
             player:addItem(xi.item.BRONZE_DAGGER)
             player:equipItem(xi.item.BRONZE_DAGGER, nil, xi.slot.MAIN)
             local warMob = player.entities:moveTo('Vanguard_Footsoldier')
+            warMob:setMobMod(xi.mobMod.CAN_PARRY, 1)
+            warMob:setMod(xi.mod.INQUARTATA, 100) -- rate always beats d10000 roll
             player.actions:engage(warMob)
             warMob:updateEnmity(player)
 
@@ -187,8 +189,7 @@ local packets =
             player:addItem(xi.item.BRONZE_DAGGER)
             player:equipItem(xi.item.BRONZE_DAGGER, nil, xi.slot.MAIN)
             local mnkMob = player.entities:moveTo('Vanguard_Grappler')
-            -- Not all paths use the lua function? Need the MOD for now.
-            stub('xi.combat.physical.isGuarded', true)
+            -- Production isGuarded: MNK canGuard + ADDITIVE_GUARD over-cap rate.
             mnkMob:setMod(xi.mod.ADDITIVE_GUARD, 100)
 
             player.actions:engage(mnkMob)

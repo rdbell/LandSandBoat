@@ -170,7 +170,7 @@ local packets =
             player:equipItem(xi.item.TERPSICHORE_99, nil, xi.slot.MAIN)
             player:setTP(3000)
             local mnkMob = player.entities:moveTo('Vanguard_Grappler')
-            stub('xi.combat.physical.isGuarded', true)
+            -- Production isGuarded: ADDITIVE_GUARD over-cap (no Lua stub).
             mnkMob:setMod(xi.mod.ADDITIVE_GUARD, 100)
 
             player.actions:engage(mnkMob)

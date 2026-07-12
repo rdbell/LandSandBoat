@@ -75,6 +75,9 @@
 #include "ability.h"
 #include "action/action.h"
 #include "battlefield.h"
+#include "can_use_spell_capacity.h"
+#include "job_points.h"
+#include "spell.h"
 #include "conquest_system.h"
 #include "daily_system.h"
 #include "fishingcontest.h"
@@ -4853,22 +4856,27 @@ bool OnCanUseSpell(CBattleEntity* PChar, CSpell* PSpell) // triggers when CanUse
 {
     TracyZoneScoped;
 
-    sol::function canUseSpellOverride = lua["xi"]["spells"]["canUseSpellOverride"];
-
-    if (!canUseSpellOverride.valid())
+    // Pure JP gift override (can_use_spell_capacity); host injects job/spell/spent JP.
+    if (PChar == nullptr || PSpell == nullptr || PChar->objtype != TYPE_PC)
     {
         return false;
     }
 
-    auto result = canUseSpellOverride(PChar, PSpell);
-    if (!result.valid())
+    auto* charEntity = static_cast<CCharEntity*>(PChar);
+    int   rawSpent   = 0;
+    if (charEntity->PJobPoints != nullptr)
     {
-        sol::error err = result;
-        ShowError("luautils::OnCanUseSpell: %s", err.what());
-        return false;
+        rawSpent = static_cast<int>(charEntity->PJobPoints->GetJobPointsSpent());
     }
+    const int spent = canusespellhelpers::SpentJobPointsForOverride(
+        true,
+        charEntity->GetMLevel(),
+        rawSpent);
 
-    return result.get_type(0) == sol::type::boolean ? result.get<bool>(0) : true;
+    return canusespellhelpers::CanUseOverride(
+        static_cast<std::uint8_t>(charEntity->GetMJob()),
+        static_cast<std::uint16_t>(PSpell->getID()),
+        spent);
 }
 
 void Terminate()
