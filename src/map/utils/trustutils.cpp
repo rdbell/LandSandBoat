@@ -34,6 +34,7 @@
 
 #include "grades.h"
 #include "map/calculate_stats_capacity.h"
+#include "map/trust_load_capacity.h"
 #include "map/trust_stats_capacity.h"
 #include "mob_spell_list.h"
 
@@ -367,8 +368,9 @@ auto LoadTrust(CCharEntity* PMaster, uint32 TrustID) -> CTrustEntity*
     PTrust->m_OwnerID.id     = PMaster->id;
     PTrust->m_OwnerID.targid = PMaster->targid;
 
+    // Pure load policy (trust_load_capacity.h; slice 1614).
     // spawn me randomly around master
-    PTrust->loc.p = nearPosition(PMaster->loc.p, CTrustController::SpawnDistance + (PMaster->PTrusts.size() * CTrustController::SpawnDistance), (float)M_PI);
+    PTrust->loc.p = nearPosition(PMaster->loc.p, trustloadhelpers::SpawnRadius(static_cast<int>(PMaster->PTrusts.size())), (float)M_PI);
     PTrust->look  = trustData->look;
     PTrust->name  = trustData->name;
 
@@ -393,18 +395,15 @@ auto LoadTrust(CCharEntity* PMaster, uint32 TrustID) -> CTrustEntity*
     PTrust->SetSJob(trustData->sJob);
 
     // assume level matches master
-    PTrust->SetMLevel(PMaster->GetMLevel());
-    PTrust->SetSLevel(std::floor(PMaster->GetMLevel() / 2));
+    const uint8 masterMLvl = PMaster->GetMLevel();
+    PTrust->SetMLevel(trustloadhelpers::MainLevel(masterMLvl));
+    PTrust->SetSLevel(trustloadhelpers::SubLevel(masterMLvl));
 
     LoadTrustStatsAndSkills(PTrust);
 
     // Use Mob formulas to work out base "weapon" damage, but scale down to reasonable values.
     // TODO: Verify trust base damage.
-    const float  mobStyleDamage   = static_cast<float>(mobutils::GetBaseWeaponDamage(PTrust, SLOT_MAIN));
-    const float  baseDamage       = mobStyleDamage * 0.5f;
-    const float  damageMultiplier = static_cast<float>(trustData->cmbDmgMult) / 100.0f;
-    const float  adjustedDamage   = baseDamage * damageMultiplier;
-    const uint16 finalDamage      = static_cast<uint16>(std::max(adjustedDamage, 1.0f));
+    const uint16 finalDamage = trustloadhelpers::WeaponDamage(mobutils::GetBaseWeaponDamage(PTrust, SLOT_MAIN), trustData->cmbDmgMult);
 
     // Trust do not really have weapons, but they are modelled internally as
     // if they do.
@@ -418,10 +417,8 @@ auto LoadTrust(CCharEntity* PMaster, uint32 TrustID) -> CTrustEntity*
         mainWeapon->setBaseDelay(trustData->cmbDelay);
 
         // Compute DPS so rune/enchantment calculations that rely on getDPS() return meaningful values for trusts.
-        // Use damage per second: damage / (delay_seconds). Delay is stored in ms.
-        if (mainWeapon->getDelay() > 0)
+        if (const auto dps = trustloadhelpers::WeaponDPS(mainWeapon->getDamage(), mainWeapon->getDelay()); dps > 0.0)
         {
-            double dps = static_cast<double>(mainWeapon->getDamage()) / (static_cast<double>(mainWeapon->getDelay()) / 1000.0);
             mainWeapon->setDPS(dps);
         }
     }
@@ -432,9 +429,8 @@ auto LoadTrust(CCharEntity* PMaster, uint32 TrustID) -> CTrustEntity*
         subWeapon->setDelay(trustData->cmbDelay);
         subWeapon->setBaseDelay(trustData->cmbDelay);
 
-        if (subWeapon->getDelay() > 0)
+        if (const auto dps = trustloadhelpers::WeaponDPS(subWeapon->getDamage(), subWeapon->getDelay()); dps > 0.0)
         {
-            double dps = static_cast<double>(subWeapon->getDamage()) / (static_cast<double>(subWeapon->getDelay()) / 1000.0);
             subWeapon->setDPS(dps);
         }
     }
@@ -445,9 +441,8 @@ auto LoadTrust(CCharEntity* PMaster, uint32 TrustID) -> CTrustEntity*
         rangedWeapon->setDelay(trustData->cmbDelay);
         rangedWeapon->setBaseDelay(trustData->cmbDelay);
 
-        if (rangedWeapon->getDelay() > 0)
+        if (const auto dps = trustloadhelpers::WeaponDPS(rangedWeapon->getDamage(), rangedWeapon->getDelay()); dps > 0.0)
         {
-            double dps = static_cast<double>(rangedWeapon->getDamage()) / (static_cast<double>(rangedWeapon->getDelay()) / 1000.0);
             rangedWeapon->setDPS(dps);
         }
     }
@@ -458,9 +453,8 @@ auto LoadTrust(CCharEntity* PMaster, uint32 TrustID) -> CTrustEntity*
         ammoWeapon->setDelay(trustData->cmbDelay);
         ammoWeapon->setBaseDelay(trustData->cmbDelay);
 
-        if (ammoWeapon->getDelay() > 0)
+        if (const auto dps = trustloadhelpers::WeaponDPS(ammoWeapon->getDamage(), ammoWeapon->getDelay()); dps > 0.0)
         {
-            double dps = static_cast<double>(ammoWeapon->getDamage()) / (static_cast<double>(ammoWeapon->getDelay()) / 1000.0);
             ammoWeapon->setDPS(dps);
         }
     }
@@ -468,7 +462,7 @@ auto LoadTrust(CCharEntity* PMaster, uint32 TrustID) -> CTrustEntity*
     // NOTE: Trusts don't really have weapons, and they don't really have combat skills. They only have
     // a damage type, and whether or not they are multi-hit. We handle this wrong everywhere.
     // To give any Trust multi-hit, you need to give them cmbSkill == SKILL_HAND_TO_HAND (1).
-    if (trustData->cmbSkill == SKILL_HAND_TO_HAND)
+    if (trustloadhelpers::DualWieldFromCmbSkill(trustData->cmbSkill))
     {
         PTrust->m_dualWield = true;
     }

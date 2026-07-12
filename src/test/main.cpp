@@ -524,6 +524,7 @@ auto runLuopanStats1610SelfTests() -> bool;
 auto runTrustStats1611SelfTests() -> bool;
 auto runAutomatonFrameSkill1612SelfTests() -> bool;
 auto runPerpetuation1613SelfTests() -> bool;
+auto runTrustLoad1614SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1258,6 +1259,7 @@ namespace
         ok = runTrustStats1611SelfTests() && ok;
         ok = runAutomatonFrameSkill1612SelfTests() && ok;
         ok = runPerpetuation1613SelfTests() && ok;
+        ok = runTrustLoad1614SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
