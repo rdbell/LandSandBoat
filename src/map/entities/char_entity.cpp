@@ -28,6 +28,7 @@
 #include "char_bazaar_capacity.h"
 #include "char_combat_transition_capacity.h"
 #include "char_death_homepoint_capacity.h"
+#include "char_death_plan_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
 #include "char_equip_flush_capacity.h"
@@ -2116,7 +2117,19 @@ void CCharEntity::Die()
 {
     TracyZoneScoped;
 
-    if (auto* PLastAttacker = GetEntity(lastAttackerId_.targid); PLastAttacker && PLastAttacker->id == lastAttackerId_.id)
+    auto* PLastAttacker = GetEntity(lastAttackerId_.targid);
+    const auto plan = chardeathplanhelpers::Build({
+        .lastAttackerMatches   = PLastAttacker && PLastAttacker->id == lastAttackerId_.id,
+        .hasPet               = this->PPet != nullptr,
+        .mijinGakure          = GetLocalVar("MijinGakure") != 0,
+        .hasBattlefield       = PBattlefield != nullptr,
+        .battlefieldLosesEXP  = PBattlefield != nullptr && (PBattlefield->GetRuleMask() & RULES_LOSE_EXP) == RULES_LOSE_EXP,
+        .mainLevel            = GetMLevel(),
+        .expLossLevel         = settings::get<uint8>("map.EXP_LOSS_LEVEL"),
+        .expRetain            = settings::get<uint8>("map.EXP_RETAIN"),
+        .experienceRetainedMod = getMod(Mod::EXPERIENCE_RETAINED),
+    });
+    if (plan.message == chardeathplanhelpers::Message::DefeatedBy)
     {
         loc.zone->PushPacket(this, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PLastAttacker, this, 0, 0, MsgBasic::PlayerDefeatedBy));
     }
@@ -2127,7 +2140,7 @@ void CCharEntity::Die()
 
     battleutils::RelinquishClaim(this);
 
-    if (this->PPet)
+    if (plan.despawnPet)
     {
         petutils::DespawnPet(this);
     }
@@ -2140,12 +2153,9 @@ void CCharEntity::Die()
     // influence for conquest system
     conquest::LoseInfluencePoints(this);
 
-    if (GetLocalVar("MijinGakure") == 0 &&
-        (PBattlefield == nullptr || (PBattlefield->GetRuleMask() & RULES_LOSE_EXP) == RULES_LOSE_EXP) &&
-        GetMLevel() >= settings::get<uint8>("map.EXP_LOSS_LEVEL"))
+    if (plan.loseEXP)
     {
-        float retainPercent = std::clamp(settings::get<uint8>("map.EXP_RETAIN") + getMod(Mod::EXPERIENCE_RETAINED) / 100.0f, 0.0f, 1.0f);
-        charutils::DelExperiencePoints(this, retainPercent, 0);
+        charutils::DelExperiencePoints(this, plan.retainPercent, 0);
     }
 
     luautils::OnPlayerDeath(this);
