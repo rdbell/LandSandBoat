@@ -800,6 +800,8 @@ set(SOURCES
     test_style_update_1518.cpp
     test_inventory_move_1519.h
     test_inventory_move_1519.cpp
+    test_misc_progress_1520.h
+    test_misc_progress_1520.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

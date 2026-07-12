@@ -109,6 +109,7 @@
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
 #include "inventory_move_capacity.h"
+#include "misc_progress_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -7079,9 +7080,12 @@ bool AddWeaponSkillPoints(CCharEntity* PChar, SLOTTYPE slotid, int wspoints)
 
     CItemWeapon* PWeapon = dynamic_cast<CItemWeapon*>(PChar->m_Weapons[slotid]);
 
-    if (PWeapon && PWeapon->isUnlockable() && !PWeapon->isUnlocked())
+    if (miscprogresshelpers::ShouldAddWeaponSkillPoints(
+            PWeapon != nullptr,
+            PWeapon != nullptr && PWeapon->isUnlockable(),
+            PWeapon != nullptr && PWeapon->isUnlocked()))
     {
-        if (PWeapon->addWsPoints(wspoints))
+        if (miscprogresshelpers::ShouldRebuildAfterWSPoints(PWeapon->addWsPoints(wspoints)))
         {
             // weapon is now broken
             charutils::BuildingCharWeaponSkills(PChar);
@@ -7364,7 +7368,7 @@ uint32 getAvailableTraverserStones(CCharEntity* PChar)
         traverserClaimed = rset->get<uint32>("traverser_claimed");
     }
 
-    if (traverserEpoch == earth_time::time_point(std::chrono::seconds(0)))
+    if (miscprogresshelpers::IsTraverserEpochUnset(static_cast<uint32>(std::chrono::duration_cast<std::chrono::seconds>(traverserEpoch.time_since_epoch()).count())))
     {
         // Players cannot accrue Traverser Stones until the epoch has been set.  This is not possible
         // in quests, but is always displayed in player currencies.
@@ -7372,19 +7376,21 @@ uint32 getAvailableTraverserStones(CCharEntity* PChar)
     }
 
     // Handle reduction for Celerity Key Items
-    earth_time::duration stoneWaitHours = 20h;
+    uint8 celerityCount = 0;
     for (const auto traverserStoneReductionKeyItem : traverserStoneReductionKeyItems)
     {
         if (hasKeyItem(PChar, traverserStoneReductionKeyItem))
         {
-            stoneWaitHours -= 4h;
+            celerityCount += 1;
         }
     }
 
+    const auto waitHours = miscprogresshelpers::TraverserWaitHours(celerityCount);
     earth_time::duration elapsedSinceEpoch = earth_time::now() - traverserEpoch;
-    uint32               stonesGenerated   = std::chrono::floor<std::chrono::hours>(elapsedSinceEpoch) / stoneWaitHours;
+    const auto elapsedHours = static_cast<uint32>(std::chrono::floor<std::chrono::hours>(elapsedSinceEpoch).count());
+    const auto stonesGenerated = miscprogresshelpers::TraverserStonesGenerated(elapsedHours, waitHours);
 
-    return stonesGenerated - traverserClaimed;
+    return miscprogresshelpers::AvailableTraverserStones(stonesGenerated, traverserClaimed);
 }
 
 void ReadHistory(CCharEntity* PChar)
@@ -7867,7 +7873,7 @@ bool raceChange(CCharEntity* PChar, CharRace newRace, CharFace newFace, CharSize
 
 void ApplyAbilityRecast(CCharEntity* PChar, const CAbility* PAbility, const Charge_t* charge, const timer::duration baseChargeTime, const timer::duration recastTime)
 {
-    if (charge)
+    if (miscprogresshelpers::HasChargeAdd(charge != nullptr))
     {
         PChar->PRecastContainer->Add(RECAST_ABILITY, PAbility->getRecastId(), recastTime, baseChargeTime, charge->maxCharges);
     }
@@ -7876,17 +7882,17 @@ void ApplyAbilityRecast(CCharEntity* PChar, const CAbility* PAbility, const Char
         PChar->PRecastContainer->Add(RECAST_ABILITY, PAbility->getRecastId(), recastTime);
     }
 
-    const auto recastId = PAbility->getRecastId();
-    if (settings::get<bool>("map.BLOOD_PACT_SHARED_TIMER") && (recastId == Recast::BloodPactRage || recastId == Recast::BloodPactWard))
+    const auto recastId = static_cast<uint16>(PAbility->getRecastId());
+    if (miscprogresshelpers::ShouldShareBloodPactTimer(settings::get<bool>("map.BLOOD_PACT_SHARED_TIMER"), recastId))
     {
-        PChar->PRecastContainer->Add(RECAST_ABILITY, (recastId == Recast::BloodPactRage ? Recast::BloodPactWard : Recast::BloodPactRage), recastTime);
+        PChar->PRecastContainer->Add(RECAST_ABILITY, static_cast<Recast>(miscprogresshelpers::PairedBloodPactRecast(recastId)), recastTime);
     }
 
     // Yonin (recastId 146) and Innin share a server-side timer via the SQL recastId update.
     // Also add Innin's original client-facing recast ID (147) so the client greys out Innin.
-    if (recastId == static_cast<Recast>(146))
+    if (miscprogresshelpers::ShouldMirrorYoninToInnin(recastId))
     {
-        PChar->PRecastContainer->Add(RECAST_ABILITY, static_cast<Recast>(147), recastTime);
+        PChar->PRecastContainer->Add(RECAST_ABILITY, static_cast<Recast>(miscprogresshelpers::RecastInnin), recastTime);
     }
 
     PChar->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PChar);
@@ -7896,28 +7902,31 @@ void TrackArrowUsageForScavenge(CCharEntity* PChar, CItemWeapon* PAmmo)
 {
     TracyZoneScoped;
 
+    const auto arrowsUsed = static_cast<uint32>(PChar->GetLocalVar("ArrowsUsed"));
+    const auto ammoID     = PAmmo->getID();
+
     // Check if local has been set yet
-    if (PChar->GetLocalVar("ArrowsUsed") == 0)
+    if (miscprogresshelpers::ShouldInitArrowsUsed(arrowsUsed))
     {
         // Local not set yet so set
-        PChar->SetLocalVar("ArrowsUsed", PAmmo->getID() * 10000 + 1);
+        PChar->SetLocalVar("ArrowsUsed", miscprogresshelpers::EncodeArrowsUsed(ammoID));
     }
     else
     {
         // Local exists now check if arrow used is same as last time
-        if ((floor(PChar->GetLocalVar("ArrowsUsed") / 10000)) == PAmmo->getID())
+        if (miscprogresshelpers::IsSameArrowAsLast(arrowsUsed, ammoID))
         {
             // Same arrow used as last time now check that arrows used do not go above 1980
-            if (!(floor(PChar->GetLocalVar("ArrowsUsed") % 10000) >= 1980))
+            if (miscprogresshelpers::ShouldIncrementArrowsUsed(arrowsUsed))
             {
                 // Safe to increment arrows used
-                PChar->SetLocalVar("ArrowsUsed", PChar->GetLocalVar("ArrowsUsed") + 1);
+                PChar->SetLocalVar("ArrowsUsed", miscprogresshelpers::IncrementArrowsUsed(arrowsUsed));
             }
         }
         else
         {
             // Different arrow is being used so remake local
-            PChar->SetLocalVar("ArrowsUsed", PAmmo->getID() * 10000 + 1);
+            PChar->SetLocalVar("ArrowsUsed", miscprogresshelpers::EncodeArrowsUsed(ammoID));
         }
     }
 }
