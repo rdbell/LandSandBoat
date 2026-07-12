@@ -471,6 +471,7 @@ auto runCritHitRate1552SelfTests() -> bool;
 auto runIsIntimidated1553SelfTests() -> bool;
 auto runHitCount1554SelfTests() -> bool;
 auto runSkillchainTables1555SelfTests() -> bool;
+auto runCombatBonusTails1556SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1152,6 +1153,7 @@ namespace
         ok = runIsIntimidated1553SelfTests() && ok;
         ok = runHitCount1554SelfTests() && ok;
         ok = runSkillchainTables1555SelfTests() && ok;
+        ok = runCombatBonusTails1556SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

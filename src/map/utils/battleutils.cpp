@@ -60,6 +60,7 @@
 #include "intimidate_capacity.h"
 #include "hit_count_capacity.h"
 #include "skillchain_tables_capacity.h"
+#include "combat_bonus_tails_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -3646,24 +3647,19 @@ uint16 doSoulEaterEffect(CCharEntity* m_PChar, uint32 damage)
 {
     if (m_PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Souleater))
     {
-        // Souleater's HP consumed is 10% (base) + x% from gear (ONLY HIGHEST) + x% from gear augments.
-        float souleaterBonus    = m_PChar->getMaxGearMod(Mod::SOULEATER_EFFECT) * 0.01;
-        float souleaterBonusII  = m_PChar->getMod(Mod::SOULEATER_EFFECT_II) * 0.01;
-        float stalwartSoulBonus = 1.f - std::max(static_cast<float>(m_PChar->getMod(Mod::STALWART_SOUL)) / 100, 0.f);
-        float bonusDamage       = m_PChar->health.hp * (0.1f + std::max(souleaterBonus + souleaterBonusII, 0.f));
+        const float bonusDamage = combatbonustailshelpers::SoulEaterBonusDamage(
+            m_PChar->health.hp,
+            m_PChar->getMaxGearMod(Mod::SOULEATER_EFFECT),
+            m_PChar->getMod(Mod::SOULEATER_EFFECT_II));
 
         if (bonusDamage >= 1)
         {
-            m_PChar->addHP(-HandleStoneskin(m_PChar, (int32)(bonusDamage * stalwartSoulBonus)));
+            const float costScale = combatbonustailshelpers::SoulEaterHPCostScale(
+                m_PChar->getMod(Mod::STALWART_SOUL));
+            m_PChar->addHP(-HandleStoneskin(m_PChar, static_cast<int32>(bonusDamage * costScale)));
 
-            if (m_PChar->GetMJob() == JOB_DRK)
-            {
-                damage += bonusDamage;
-            }
-            else
-            {
-                damage += bonusDamage / 2;
-            }
+            damage = combatbonustailshelpers::ApplySoulEaterToDamage(
+                damage, bonusDamage, m_PChar->GetMJob() == JOB_DRK);
         }
     }
     return damage;
@@ -3671,14 +3667,14 @@ uint16 doSoulEaterEffect(CCharEntity* m_PChar, uint32 damage)
 
 uint16 doConsumeManaEffect(CCharEntity* m_PChar)
 {
-    auto bonusDmg = 0;
-    if (m_PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::ConsumeMana))
+    const bool hasEffect = m_PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::ConsumeMana);
+    const auto bonusDmg  = combatbonustailshelpers::ConsumeManaBonus(hasEffect, m_PChar->health.mp);
+    if (hasEffect)
     {
-        bonusDmg += (uint32)(floor(m_PChar->health.mp / 10));
         m_PChar->health.mp = 0;
         m_PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::ConsumeMana);
     }
-    return bonusDmg;
+    return static_cast<uint16>(bonusDmg);
 }
 
 /************************************************************************
@@ -3709,34 +3705,9 @@ int32 getOverWhelmDamageBonus(CBattleEntity* PAttacker, CBattleEntity* PDefender
 {
     if (auto PChar = dynamic_cast<CCharEntity*>(PAttacker)) // Some mobskills use TakeWeaponskillDamage function, which calls upon this one.
     {
-        // must be in front of mob
-        if (infront(PChar->loc.p, PDefender->loc.p, 64))
-        {
-            uint8 meritCount = PChar->PMeritPoints->GetMeritValue(MERIT_OVERWHELM, PChar);
-            float tmpDamage  = static_cast<float>(damage);
-
-            switch (meritCount)
-            {
-                case 1:
-                    tmpDamage += tmpDamage * 0.05f;
-                    break;
-                case 2:
-                    tmpDamage += tmpDamage * 0.10f;
-                    break;
-                case 3:
-                    tmpDamage += tmpDamage * 0.15f;
-                    break;
-                case 4:
-                    tmpDamage += tmpDamage * 0.17f;
-                    break;
-                case 5:
-                    tmpDamage += tmpDamage * 0.19f;
-                    break;
-                default:
-                    break;
-            }
-            damage = static_cast<int32>(floor(tmpDamage));
-        }
+        const bool inFront   = infront(PChar->loc.p, PDefender->loc.p, 64);
+        const uint8 meritCount = PChar->PMeritPoints->GetMeritValue(MERIT_OVERWHELM, PChar);
+        damage = combatbonustailshelpers::OverwhelmDamageBonus(damage, meritCount, inFront);
     }
     return damage;
 }
@@ -4349,38 +4320,23 @@ void HandleTacticalGuard(CBattleEntity* PEntity)
 
 float HandleTranquilHeart(CBattleEntity* PEntity)
 {
-    float reductionPercent = 0.0f;
-
-    if (PEntity->objtype == TYPE_PC && charutils::hasTrait((CCharEntity*)PEntity, TRAIT_TRANQUIL_HEART))
-    {
-        int16 healingSkill = PEntity->GetSkill(SKILL_HEALING_MAGIC);
-        reductionPercent   = ((healingSkill / 10.0f) * 0.5f);
-
-        // Reduction Percent Caps at 25%
-        if (reductionPercent > 25)
-        {
-            reductionPercent = 25;
-        }
-
-        reductionPercent = reductionPercent / 100.0f;
-    }
-
-    return reductionPercent;
+    const bool hasTrait = PEntity->objtype == TYPE_PC &&
+                          charutils::hasTrait(static_cast<CCharEntity*>(PEntity), TRAIT_TRANQUIL_HEART);
+    const int16 healingSkill = hasTrait ? PEntity->GetSkill(SKILL_HEALING_MAGIC) : 0;
+    return combatbonustailshelpers::TranquilHeartReduction(hasTrait, healingSkill);
 }
 
 void BindBreakCheck(CBattleEntity* PAttacker, CBattleEntity* PDefender)
 {
     if (PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bind))
     {
-        uint16 BindBreakChance = 950; // 0-1000 (100.0%) scale. Maybe change to a float later..
-
         // Previously there was a tiered comparative level check here which gave different rates
         // depending on the level difference between the attacker and the defender.
         // These rates seemed very low, and have been removed, absent true research on retail.
         // EMobDifficulty mobCheck = charutils::CheckMob(PAttacker->GetMLevel(), PDefender->GetMLevel());
         // The level comparison and switch has been removed.
 
-        if (BindBreakChance > xirand::GetRandomNumber(1000))
+        if (combatbonustailshelpers::BindBreaks(static_cast<std::uint16_t>(xirand::GetRandomNumber(1000))))
         {
             PDefender->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Bind);
         }
@@ -5464,50 +5420,9 @@ auto CheckLiementAbsorb(CBattleEntity* PBattleEntity, xi::DamageType DamageType)
 
 void addEcosystemKillerEffects(CBattleEntity* PBattleEntity)
 {
-    // Killer Effect
-    switch (PBattleEntity->m_EcoSystem)
+    if (const auto killerMod = combatbonustailshelpers::KillerMod(PBattleEntity->m_EcoSystem))
     {
-        case xi::Ecosystem::Amorph:
-            PBattleEntity->addModifier(Mod::BIRD_KILLER, 5);
-            break;
-        case xi::Ecosystem::Aquan:
-            PBattleEntity->addModifier(Mod::AMORPH_KILLER, 5);
-            break;
-        case xi::Ecosystem::Arcana:
-            PBattleEntity->addModifier(Mod::UNDEAD_KILLER, 5);
-            break;
-        case xi::Ecosystem::Beast:
-            PBattleEntity->addModifier(Mod::LIZARD_KILLER, 5);
-            break;
-        case xi::Ecosystem::Bird:
-            PBattleEntity->addModifier(Mod::AQUAN_KILLER, 5);
-            break;
-        case xi::Ecosystem::Demon:
-            PBattleEntity->addModifier(Mod::DRAGON_KILLER, 5);
-            break;
-        case xi::Ecosystem::Dragon:
-            PBattleEntity->addModifier(Mod::DEMON_KILLER, 5);
-            break;
-        case xi::Ecosystem::Lizard:
-            PBattleEntity->addModifier(Mod::VERMIN_KILLER, 5);
-            break;
-        case xi::Ecosystem::Luminion:
-            PBattleEntity->addModifier(Mod::LUMINIAN_KILLER, 5);
-            break;
-        case xi::Ecosystem::Luminian:
-            PBattleEntity->addModifier(Mod::LUMINION_KILLER, 5);
-            break;
-        case xi::Ecosystem::Plantoid:
-            PBattleEntity->addModifier(Mod::BEAST_KILLER, 5);
-            break;
-        case xi::Ecosystem::Undead:
-            PBattleEntity->addModifier(Mod::ARCANA_KILLER, 5);
-            break;
-        case xi::Ecosystem::Vermin:
-            PBattleEntity->addModifier(Mod::PLANTOID_KILLER, 5);
-            break;
-        default:
-            break;
+        PBattleEntity->addModifier(*killerMod, combatbonustailshelpers::KillerBonus);
     }
 }
 
