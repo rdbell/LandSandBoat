@@ -68,6 +68,7 @@
 #include "skill_cap_capacity.h"
 #include "tp_return_capacity.h"
 #include "spell_interrupt_capacity.h"
+#include "combat_status_mitigation_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -3600,14 +3601,13 @@ uint16 doConsumeManaEffect(CCharEntity* m_PChar)
 
 uint8 getStoreTPbonusFromMerit(CBattleEntity* PEntity)
 {
-    if (PEntity->objtype == TYPE_PC)
-    {
-        if (((CCharEntity*)PEntity)->GetMJob() == JOB_SAM)
-        {
-            return ((CCharEntity*)PEntity)->PMeritPoints->GetMeritValue(MERIT_STORE_TP_EFFECT, (CCharEntity*)PEntity);
-        }
-    }
-    return 0;
+    const bool isPC      = PEntity->objtype == TYPE_PC;
+    const bool isSAMMain = isPC && static_cast<CCharEntity*>(PEntity)->GetMJob() == JOB_SAM;
+    const std::int16_t merit = isSAMMain
+        ? static_cast<std::int16_t>(static_cast<CCharEntity*>(PEntity)->PMeritPoints->GetMeritValue(
+              MERIT_STORE_TP_EFFECT, static_cast<CCharEntity*>(PEntity)))
+        : 0;
+    return combatstatusmitigationhelpers::StoreTPBonusFromMerit(isPC, isSAMMain, merit);
 }
 
 /************************************************************************
@@ -3967,29 +3967,23 @@ void RelinquishClaim(CCharEntity* PChar)
 // This is used for instances like Suttung, Antaeus, Crustacean Conundrum bcnm, Colonization reives
 int32 CheckAndApplyDamageCap(int32 damage, CBattleEntity* PDefender)
 {
-    int32 damageCap     = PDefender->getMod(Mod::RECEIVED_DAMAGE_CAP);     // The max damage cap
-    int32 damageVariant = PDefender->getMod(Mod::RECEIVED_DAMAGE_VARIANT); // The value you want the damage to have a variance by
+    const int32 damageCap     = PDefender->getMod(Mod::RECEIVED_DAMAGE_CAP);
+    int32       damageVariant = PDefender->getMod(Mod::RECEIVED_DAMAGE_VARIANT);
 
-    // If the target has no mod or the damage is less than the cap return normal damage
     if (damageCap == 0 || damage < damageCap)
     {
         return damage;
     }
 
-    damage = std::clamp(damage, 0, damageCap);
-
-    // If for whatever reason your damage variant is set too high set the variant to 0 as a fail safe
     if (damageVariant > damageCap)
     {
         ShowWarning("battleutils::CheckAndApplyDamageCap - RECEIVED_DAMAGE_VARIANT is > than RECEIVED_DAMAGE_CAP");
         damageVariant = 0;
     }
 
-    // see https://bugs.llvm.org/show_bug.cgi?id=18767#c1 ; essentially, [min, max) range on this RNG call excludes the max
-    // so we must add +1 to our max to achieve the range we want
-    damage -= xirand::GetRandomNumber<int32>(0, damageVariant + 1);
-
-    return std::clamp(damage, damageCap - damageVariant, damageCap);
+    // [min, max) on RNG excludes max → add +1 for inclusive variant range
+    const int32 subtract = xirand::GetRandomNumber<int32>(0, damageVariant + 1);
+    return combatstatusmitigationhelpers::CheckAndApplyDamageCap(damage, damageCap, damageVariant, subtract);
 }
 
 // TODO: Study using lua functions.
@@ -4260,33 +4254,26 @@ void BindBreakCheck(CBattleEntity* PAttacker, CBattleEntity* PDefender)
 
 int32 HandleOneForAll(CBattleEntity* PDefender, int32 damage)
 {
-    if (damage > 0)
-    {
-        auto* PEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::OneForAll);
-        if (PEffect != nullptr)
-        {
-            damage = std::max(damage - PEffect->GetPower(), 0);
-        }
-    }
-    return damage;
+    auto* PEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::OneForAll);
+    const bool has = PEffect != nullptr;
+    const auto power = has ? PEffect->GetPower() : 0;
+    return combatstatusmitigationhelpers::HandleOneForAll(damage, power, has);
 }
 
 int32 HandleStoneskin(CBattleEntity* PDefender, int32 damage)
 {
-    int16 skin = PDefender->getMod(Mod::STONESKIN);
-    if (damage > 0 && skin > 0)
+    const int16 skin = PDefender->getMod(Mod::STONESKIN);
+    const auto  r    = combatstatusmitigationhelpers::HandleStoneskin(damage, skin);
+    if (r.removeEffect)
     {
-        if (skin > damage)
-        {
-            PDefender->delModifier(Mod::STONESKIN, damage);
-            return 0;
-        }
-
         PDefender->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Stoneskin);
-        return damage - skin;
     }
-
-    return damage;
+    else if (skin > 0 && r.skinLeft != skin)
+    {
+        // Partial absorb: delModifier(STONESKIN, damage absorbed)
+        PDefender->delModifier(Mod::STONESKIN, skin - r.skinLeft);
+    }
+    return r.remainingDamage;
 }
 
 auto HandleSevereDamage(CBattleEntity* PDefender, int32 damage, bool isPhysical) -> int32
@@ -4295,11 +4282,19 @@ auto HandleSevereDamage(CBattleEntity* PDefender, int32 damage, bool isPhysical)
     // TODO: Earthen Armor effect
     // TODO: Sentinel's Scherzo effect
 
-    if (isPhysical && PDefender->objtype == TYPE_PET && PDefender->getMod(Mod::AUTO_SCHURZEN) != 0 && damage >= PDefender->health.hp &&
-        ((CPetEntity*)PDefender)->PMaster->StatusEffectContainer->GetEffectsCount(xi::StatusEffect::EarthManeuver) >= 1)
+    if (isPhysical && PDefender->objtype == TYPE_PET && PDefender->getMod(Mod::AUTO_SCHURZEN) != 0 &&
+        damage >= PDefender->health.hp)
     {
-        damage = PDefender->health.hp - 1;
-        ((CPetEntity*)PDefender)->PMaster->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::EarthManeuver);
+        auto* master = static_cast<CPetEntity*>(PDefender)->PMaster;
+        const bool hasEarth = master != nullptr &&
+                              master->StatusEffectContainer->GetEffectsCount(xi::StatusEffect::EarthManeuver) >= 1;
+        const auto rewritten = combatstatusmitigationhelpers::ApplySchurzenCap(
+            damage, PDefender->health.hp, true, true, hasEarth);
+        if (hasEarth)
+        {
+            master->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::EarthManeuver);
+            damage = rewritten;
+        }
     }
 
     return damage;
@@ -4307,68 +4302,52 @@ auto HandleSevereDamage(CBattleEntity* PDefender, int32 damage, bool isPhysical)
 
 int32 HandleFanDance(CBattleEntity* PDefender, int32 damage)
 {
-    // Handle Fan Dance
-    if (PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::FanDance))
+    auto* PEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::FanDance);
+    const bool has = PEffect != nullptr;
+    const auto power = has ? PEffect->GetPower() : 0;
+    const auto r = combatstatusmitigationhelpers::HandleFanDance(damage, power, has);
+    if (has && r.newPower != power)
     {
-        int   power  = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::FanDance)->GetPower();
-        float resist = 1.0f - (power / 10000.0f);
-        damage       = (int32)(damage * resist);
-        if (power > 2000)
-        {
-            // reduce fan dance effectiveness by 10% each hit, to a min of 20%
-            PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::FanDance)->SetPower(power - 1000);
-        }
+        PEffect->SetPower(r.newPower);
     }
-    return damage;
+    return r.newDamage;
 }
 
 void HandleScarletDelirium(CBattleEntity* PDefender, int32 damage)
 {
-    // Check for Scarlet Delirium and update Effect Power with bonus from damage
     CStatusEffect* effectScarDel = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::ScarletDelirium);
 
     // Damage bonus calculation, update Effect Power
     if (effectScarDel && effectScarDel->GetPower() == 0)
     {
-        // Damage to Max HP Ratio
-        float  hppRatio = std::clamp<float>(static_cast<float>(damage) / static_cast<float>(PDefender->GetMaxHP()) / 2.0f, 0.0f, 0.5f);
-        uint16 power    = std::floor(hppRatio * 1000);
-        uint16 jpValue  = effectScarDel->GetSubPower();
-        auto   duration = 90s + std::chrono::seconds(jpValue);
+        const auto power   = combatstatusmitigationhelpers::ScarletDeliriumPower(damage, PDefender->GetMaxHP());
+        const auto jpValue = effectScarDel->GetSubPower();
+        const auto duration = std::chrono::seconds(combatstatusmitigationhelpers::ScarletDeliriumDurationSec(jpValue));
 
         // Convert status effect from "Absorb damage" mode to "Provide damage bonus" mode
         PDefender->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::ScarletDelirium);
-        PDefender->StatusEffectContainer->AddStatusEffectSilent(xi::StatusEffect::ScarletDelirium1, static_cast<uint16>(xi::StatusEffect::ScarletDelirium1), power, 0s, duration);
+        PDefender->StatusEffectContainer->AddStatusEffectSilent(
+            xi::StatusEffect::ScarletDelirium1,
+            static_cast<uint16>(xi::StatusEffect::ScarletDelirium1),
+            power,
+            0s,
+            duration);
     }
 }
 
 auto HandleSevereDamageEffect(CBattleEntity* PDefender, xi::StatusEffect effect, int32 damage, bool removeEffect) -> int32
 {
-    if (PDefender->StatusEffectContainer->HasStatusEffect(effect))
+    auto* PEffect = PDefender->StatusEffectContainer->GetStatusEffect(effect);
+    const bool has = PEffect != nullptr;
+    const auto power = has ? PEffect->GetPower() : 0;
+    const auto sub   = has ? PEffect->GetSubPower() : 0;
+    const auto r = combatstatusmitigationhelpers::HandleSevereDamageEffect(
+        damage, PDefender->GetMaxHP(), power, sub, has);
+    if (r.triggered && removeEffect)
     {
-        int32 maxHp = PDefender->GetMaxHP();
-
-        // The Threshold for Damage is Stored in the Effect Power
-        float threshold = (PDefender->StatusEffectContainer->GetStatusEffect(effect)->GetPower() / 100.00f);
-
-        // We calcluate the Damage Threshold off of Max HP & the Threshold Percentage
-        float damageThreshold = maxHp * threshold;
-
-        // Severe Damage is when the Attack's Damage Exceeds a Certain Threshold
-        if (damage > damageThreshold)
-        {
-            uint16 severeReduction = PDefender->StatusEffectContainer->GetStatusEffect(effect)->GetSubPower();
-            severeReduction        = std::clamp((100 - severeReduction), 0, 100) / 100;
-            damage                 = damage * severeReduction;
-
-            if (removeEffect)
-            {
-                PDefender->StatusEffectContainer->DelStatusEffect(effect);
-            }
-        }
+        PDefender->StatusEffectContainer->DelStatusEffect(effect);
     }
-
-    return damage;
+    return r.newDamage;
 }
 
 /************************************************************************
