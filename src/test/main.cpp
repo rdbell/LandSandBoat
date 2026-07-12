@@ -455,6 +455,7 @@ auto runEnspellHandle1536SelfTests() -> bool;
 auto runSkillchainEffect1537SelfTests() -> bool;
 auto runTrickAttack1538SelfTests() -> bool;
 auto runDrawIn1539SelfTests() -> bool;
+auto runEnspellDamageTails1540SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1120,6 +1121,7 @@ namespace
         ok = runSkillchainEffect1537SelfTests() && ok;
         ok = runTrickAttack1538SelfTests() && ok;
         ok = runDrawIn1539SelfTests() && ok;
+        ok = runEnspellDamageTails1540SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

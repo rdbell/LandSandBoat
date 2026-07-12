@@ -44,6 +44,7 @@
 #include "skillchain_effect_capacity.h"
 #include "trick_attack_capacity.h"
 #include "draw_in_capacity.h"
+#include "enspell_damage_tails_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -552,7 +553,7 @@ int32 CalculateEnspellDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
             }
         }
     }
-    int32 bonus = totalMod - exclude;
+    int32 bonus = enspelldamagetailshelpers::EnspellBonusFromExclude(totalMod, exclude);
 
     // Tier 1 enspells have their damaged pre-calculated AT CAST TIME and is stored in Mod::ENSPELL_DMG
     if (Tier == 1)
@@ -599,13 +600,16 @@ int32 CalculateEnspellDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
     }
     else if (Tier == 3) // enlight or endark
     {
-        damage = PAttacker->getMod(Mod::ENSPELL_DMG);
+        bool decayMod     = false;
+        bool removeStatus = false;
+        damage            = enspelldamagetailshelpers::CalculateEnspellTier3Damage(
+            PAttacker->getMod(Mod::ENSPELL_DMG), decayMod, removeStatus);
 
-        if (damage > 1)
+        if (decayMod)
         {
             PAttacker->delModifier(Mod::ENSPELL_DMG, 1);
         }
-        else
+        else if (removeStatus)
         {
             if (element == ELEMENT_DARK)
             {
@@ -622,13 +626,12 @@ int32 CalculateEnspellDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
     else if (Tier == 4) // Rune Enhancement
     {
         // see https://www.ffxiah.com/forum/topic/56613/rune-enhancement-damage-formula-testing/ for data and comments
-        double       runeDPS = 0.0;
         CItemWeapon* PWeapon = nullptr;
 
         // Prefer player equip if attacker is a player
-        if (auto* PChar = dynamic_cast<CCharEntity*>(PAttacker))
+        if (auto* PCharAtk = dynamic_cast<CCharEntity*>(PAttacker))
         {
-            if (auto* equip = PChar->getEquip(SLOT_MAIN))
+            if (auto* equip = PCharAtk->getEquip(SLOT_MAIN))
             {
                 PWeapon = dynamic_cast<CItemWeapon*>(equip);
             }
@@ -640,47 +643,20 @@ int32 CalculateEnspellDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
             PWeapon = dynamic_cast<CItemWeapon*>(PAttacker->m_Weapons[SLOT_MAIN]);
         }
 
-        if (PWeapon == nullptr) // h2h or no weapon; base DPS is small
-        {
-            runeDPS = 3.0 / 240.0;
-        }
-        else
-        {
-            runeDPS = PWeapon->getDPS();
-        }
-
-        if (PAttacker->IsDualWielding())
-        {
-            runeDPS /= 2; // DPS is divided evenly between hands derived from mainhand only
-        }
-
-        runeDPS = std::fmin(21, runeDPS); // max DPS currently known is 21.
-
-        double min = 0.0;
-        double max = 0.0;
+        const double weaponDPS = PWeapon ? PWeapon->getDPS() : 0.0;
+        const double runeDPS   = enspelldamagetailshelpers::EnspellRuneDPS(
+            weaponDPS, PWeapon != nullptr, PAttacker->IsDualWielding());
 
         xi::StatusEffect highestRuneEffect = PAttacker->StatusEffectContainer->GetHighestRuneEffect();
         int              runeBonus         = PAttacker->StatusEffectContainer->GetEffectsCount(highestRuneEffect);
 
-        if (runeBonus == 1)
-        {
-            min = std::floor(runeDPS * 0.97);
-            max = std::floor(runeDPS * 1.30);
-        }
-        else if (runeBonus == 2)
-        {
-            min = std::floor(runeDPS * 1.40);
-            max = std::floor(runeDPS * 1.70);
-        }
-        else if (runeBonus == 3)
-        {
-            min = std::floor(runeDPS * 1.90);
-            max = std::floor(runeDPS * 2.20);
-        }
+        double min = 0.0;
+        double max = 0.0;
+        enspelldamagetailshelpers::EnspellRuneMinMax(runeDPS, runeBonus, min, max);
 
         if (max == 0.0)
         {
-            damage = 0.0;
+            damage = 0;
         }
         else
         {
@@ -720,40 +696,18 @@ int32 CalculateEnspellDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
         }
     }
 
-    // pctApplicable includes: non-weapon % + this-hand weapon %
-    int32 pctApplicable = totalPctMod - excludePct;
-
-    // Split into non-weapon vs weapon
-    int32 nonWeaponPct = pctApplicable - weaponPct;
-    if (nonWeaponPct < 0)
-    {
-        nonWeaponPct = 0; // safety clamp, shouldn't happen unless data is weird
-    }
-
-    float mult = 1.0f;
-
-    // 1) all NON-weapon enspell dmg % (armor/etc)
-    mult += (float)nonWeaponPct / 100.0f;
-
-    // 2) Composure bonus: only RDM main, only Tier I/II elemental (Fire..Water)
-    if (PChar &&
-        PChar->GetMJob() == JOB_RDM &&
-        PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Composure) &&
-        (Tier == 1 || Tier == 2) &&
-        (element >= 1 && element <= 6))
-    {
-        mult += 2.0f; // +200% => triple
-    }
-
-    // 3) This hand's weapon-only enspell dmg % (Crocea Mors Path C etc)
-    mult += (float)weaponPct / 100.0f;
-
-    // 4) Apply multiplier exactly once
-    damage = (int32)std::floor(damage * mult);
+    const int32 pctApplicable = enspelldamagetailshelpers::EnspellPctApplicable(totalPctMod, excludePct);
+    const int32 nonWeaponPct  = enspelldamagetailshelpers::EnspellNonWeaponPct(pctApplicable, weaponPct);
+    const bool  composure     = enspelldamagetailshelpers::ShouldApplyComposureEnspellBonus(
+        PChar != nullptr,
+        PChar && PChar->GetMJob() == JOB_RDM,
+        PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Composure),
+        Tier,
+        element);
+    const float mult = enspelldamagetailshelpers::EnspellDamageMultiplier(nonWeaponPct, weaponPct, composure);
+    damage           = enspelldamagetailshelpers::ApplyEnspellDamageMultiplier(damage, mult);
 
     // matching day 10% bonus, matching weather 10% or 25% for double weather
-    float  dBonus  = 1.0;
-    float  resist  = 1.0;
     uint32 WeekDay = static_cast<uint8>(vanadiel_time::get_weekday());
     auto   weather = GetWeather(PAttacker, false);
 
@@ -767,29 +721,8 @@ int32 CalculateEnspellDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
     Mod     resistarray[8]         = { Mod::FIRE_MEVA, Mod::ICE_MEVA, Mod::WIND_MEVA, Mod::EARTH_MEVA, Mod::THUNDER_MEVA, Mod::WATER_MEVA, Mod::LIGHT_MEVA, Mod::DARK_MEVA };
     bool    obiBonus               = false;
 
-    double half      = (double)(PDefender->getMod(resistarray[element - 1])) / 100;
-    double quart     = pow(half, 2);
-    double eighth    = pow(half, 3);
-    double sixteenth = pow(half, 4);
-    double resvar    = xirand::GetRandomNumber(1.);
-
-    // Determine resist based on which thresholds have been crossed.
-    if (resvar <= sixteenth)
-    {
-        resist = 0.0625f;
-    }
-    else if (resvar <= eighth)
-    {
-        resist = 0.125f;
-    }
-    else if (resvar <= quart)
-    {
-        resist = 0.25f;
-    }
-    else if (resvar <= half)
-    {
-        resist = 0.5f;
-    }
+    const float resist = enspelldamagetailshelpers::EnspellResistLadder(
+        PDefender->getMod(resistarray[element - 1]), xirand::GetRandomNumber(1.));
 
     if (PAttacker->objtype == TYPE_PC)
     {
@@ -799,38 +732,55 @@ int32 CalculateEnspellDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
             obiBonus = true;
         }
     }
-    else
+
+    float       mobExtra     = 0.0f;
+    std::int8_t dayArm       = 0;
+    std::int8_t weatherArm   = 0;
+    bool        dayChanceOK  = false;
+    bool        weatherChanceOK = false;
+
+    if (PAttacker->objtype != TYPE_PC)
     {
-        // mobs random multiplier
-        dBonus += xirand::GetRandomNumber(100) / 1000.0f;
-    }
-    if (WeekDay == strongDay[element - 1] && (obiBonus || xirand::GetRandomNumber(100) < 33))
-    {
-        dBonus += 0.1f;
-    }
-    else if (WeekDay == weakDay[element - 1] && (obiBonus || xirand::GetRandomNumber(100) < 33))
-    {
-        dBonus -= 0.1f;
-    }
-    if (weather == strongWeatherSingle[element - 1] && (obiBonus || xirand::GetRandomNumber(100) < 33))
-    {
-        dBonus += 0.1f;
-    }
-    else if (weather == strongWeatherDouble[element - 1] && (obiBonus || xirand::GetRandomNumber(100) < 33))
-    {
-        dBonus += 0.25f;
-    }
-    else if (weather == weakWeatherSingle[element - 1] && (obiBonus || xirand::GetRandomNumber(100) < 33))
-    {
-        dBonus -= 0.1f;
-    }
-    else if (weather == weakWeatherDouble[element - 1] && (obiBonus || xirand::GetRandomNumber(100) < 33))
-    {
-        dBonus -= 0.25f;
+        // mobs random multiplier — roll preserved before day/weather chance rolls
+        mobExtra = xirand::GetRandomNumber(100) / 1000.0f;
     }
 
-    damage = (int32)(damage * resist);
-    damage = (int32)(damage * dBonus);
+    if (WeekDay == strongDay[element - 1])
+    {
+        dayArm      = 1;
+        dayChanceOK = obiBonus || xirand::GetRandomNumber(100) < 33;
+    }
+    else if (WeekDay == weakDay[element - 1])
+    {
+        dayArm      = -1;
+        dayChanceOK = obiBonus || xirand::GetRandomNumber(100) < 33;
+    }
+
+    if (weather == strongWeatherSingle[element - 1])
+    {
+        weatherArm      = 1;
+        weatherChanceOK = obiBonus || xirand::GetRandomNumber(100) < 33;
+    }
+    else if (weather == strongWeatherDouble[element - 1])
+    {
+        weatherArm      = 2;
+        weatherChanceOK = obiBonus || xirand::GetRandomNumber(100) < 33;
+    }
+    else if (weather == weakWeatherSingle[element - 1])
+    {
+        weatherArm      = -1;
+        weatherChanceOK = obiBonus || xirand::GetRandomNumber(100) < 33;
+    }
+    else if (weather == weakWeatherDouble[element - 1])
+    {
+        weatherArm      = -2;
+        weatherChanceOK = obiBonus || xirand::GetRandomNumber(100) < 33;
+    }
+
+    const float dBonus = enspelldamagetailshelpers::EnspellDayWeatherBonus(
+        PAttacker->objtype == TYPE_PC, mobExtra, dayArm, weatherArm, dayChanceOK, weatherChanceOK);
+
+    damage = enspelldamagetailshelpers::ApplyEnspellResistAndDayBonus(damage, resist, dBonus);
     damage = MagicDmgTaken(PDefender, damage, (ELEMENT)(element));
 
     if (damage > 0)
@@ -840,7 +790,7 @@ int32 CalculateEnspellDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
         damage = HandleStoneskin(PDefender, damage);
     }
 
-    damage = std::clamp(damage, -99999, 99999);
+    damage = enspelldamagetailshelpers::ClampEnspellFinalDamage(damage);
 
     return damage;
 }
