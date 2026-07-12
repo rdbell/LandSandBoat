@@ -40,6 +40,7 @@
 #include "petutils.h"
 
 #include "map_engine.h"
+#include "map/automaton_frame_stats_capacity.h"
 #include "map/automaton_repair_mana_capacity.h"
 #include "puppetutils.h"
 #include "status_effect_container.h"
@@ -454,43 +455,21 @@ void LoadAutomatonStats(CCharEntity* PMaster, CPetEntity* PPet, Pet_t* petStats,
     }
 
     const auto frame      = static_cast<uint8>(PMaster->getAutomatonFrame());
-    const auto statsLevel = std::min<uint8>(mlvl, 99);
+    const auto statsLevel = automatonframestatshelpers::CapStatsLevel(mlvl);
 
-    const auto maybeFrameStats = lua["xi"]["pets"]["automaton"]["frameStats"].get<sol::optional<sol::table>>();
-    if (!maybeFrameStats)
-    {
-        ShowError("LoadAutomatonStats: Missing xi.pets.automaton.frameStats");
-        return;
-    }
-
-    const auto& frameStats = *maybeFrameStats;
-
-    const auto maybeFrameData = frameStats[frame].get<sol::optional<sol::table>>();
-    if (!maybeFrameData)
-    {
-        ShowErrorFmt("LoadAutomatonStats: Missing automaton frame stats for frame {}", static_cast<uint16>(frame));
-        return;
-    }
-
-    const auto& frameData = *maybeFrameData;
-
-    const auto maybeLevelData = frameData[statsLevel].get<sol::optional<sol::table>>();
-    if (!maybeLevelData)
+    // Pure frameStats tables (automaton_frame_stats_capacity.h; parity internal/automaton; slice 1589).
+    const auto maybeLevelStats = automatonframestatshelpers::StatsAtLevel(frame, statsLevel);
+    if (!maybeLevelStats)
     {
         ShowErrorFmt("LoadAutomatonStats: Missing automaton frame stats for frame {} level {}", static_cast<uint16>(frame), static_cast<uint16>(statsLevel));
         return;
     }
 
-    const auto& levelData = *maybeLevelData;
+    const auto& levelStats = *maybeLevelStats;
 
-    const auto getLevelStat = [&levelData](const char* key) -> uint16
-    {
-        return levelData[key].get<uint16>();
-    };
-
-    tempHealth.maxhp = getLevelStat("maxHP");
+    tempHealth.maxhp = levelStats.maxHP;
     tempHealth.hp    = tempHealth.maxhp;
-    tempHealth.maxmp = getLevelStat("maxMP");
+    tempHealth.maxmp = levelStats.maxMP;
     tempHealth.mp    = tempHealth.maxmp;
 
     // Handle Auto-Repair Kits, HP boost provided is shown in the automaton equipment menu, which means it needs to be calculated here.
@@ -537,13 +516,13 @@ void LoadAutomatonStats(CCharEntity* PMaster, CPetEntity* PPet, Pet_t* petStats,
     }
 
     tempStats = {
-        getLevelStat("STR"),
-        getLevelStat("DEX"),
-        getLevelStat("VIT"),
-        getLevelStat("AGI"),
-        getLevelStat("INT"),
-        getLevelStat("MND"),
-        getLevelStat("CHR"),
+        levelStats.STR,
+        levelStats.DEX,
+        levelStats.VIT,
+        levelStats.AGI,
+        levelStats.INT,
+        levelStats.MND,
+        levelStats.CHR,
     };
 
     if (PPet)

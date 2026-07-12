@@ -930,6 +930,8 @@ set(SOURCES
     test_automaton_repair_mana_1587.cpp
     test_automaton_skill_cap_1588.h
     test_automaton_skill_cap_1588.cpp
+    test_automaton_frame_stats_1589.h
+    test_automaton_frame_stats_1589.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
