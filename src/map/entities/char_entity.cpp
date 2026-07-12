@@ -40,6 +40,7 @@
 #include "char_shield_capacity.h"
 #include "char_gender_capacity.h"
 #include "char_ability_result_capacity.h"
+#include "char_ability_pet_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1705,26 +1706,20 @@ void CCharEntity::OnAbility(CAbilityState& state, action_t& action)
             // and has pet ability in the pet_skills sql table
             if (PPetEntity && PPetSkill) // don't display msg and notify pet
             {
+                const bool isJugPet = PPetEntity->getPetType() == PET_TYPE::JUG_PET;
                 // For jug pet abilities, the JobAbility FINISH packet targets the player, not the pet
-                action_target_t& actionTarget = action.addTarget((PPetEntity->getPetType() == PET_TYPE::JUG_PET) ? this->id : PTarget->id);
+                action_target_t& actionTarget = action.addTarget(charabilitypethelpers::ActionPacketTargetID(isJugPet, this->id, PTarget->id));
                 action_result_t& actionResult = actionTarget.addResult();
                 actionResult.animation        = ActionAnimation::PetSkillStart;
                 actionResult.resolution       = ActionResolution::Hit;
 
-                auto PPetTarget = PTarget->targid;
-
                 // set primary target for jug ready abilities (JA targets the player, but the pet acts like a mob and makes its own decision on the skill target)
-                if (PPetEntity->getPetType() == PET_TYPE::JUG_PET)
-                {
-                    if (PPetSkill->getValidTargets() & TARGET_ENEMY)
-                    {
-                        PPetTarget = PPetEntity->GetBattleTargetID();
-                    }
-                    else
-                    {
-                        PPetTarget = PPetEntity->targid;
-                    }
-                }
+                const auto PPetTarget = charabilitypethelpers::PetSkillTargetID(
+                    isJugPet,
+                    (PPetSkill->getValidTargets() & TARGET_ENEMY) != 0,
+                    PTarget->targid,
+                    PPetEntity->GetBattleTargetID(),
+                    PPetEntity->targid);
 
                 // OnAbilityCheck succeeded and petskill is found, tell pet to perform it
                 // TODO: This ends up sending the pet action packet before PC...
