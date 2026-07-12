@@ -31,6 +31,7 @@
 #include "char_equip_flush_capacity.h"
 #include "char_error_delivery_capacity.h"
 #include "char_event_lock_capacity.h"
+#include "char_event_idle_capacity.h"
 #include "char_event_queue_capacity.h"
 #include "char_event_skip_capacity.h"
 #include "char_name_capacity.h"
@@ -2751,35 +2752,31 @@ void CCharEntity::tryStartNextEvent()
 {
     TracyZoneScoped;
 
-    if (isInEvent())
+    if (chareventidlehelpers::ShouldDeferStart(isInEvent()))
     {
         return;
     }
 
     if (eventQueue.empty())
     {
-        updatemask |= UPDATE_POS; // TODO: decouple from this. We want the 250ms post-tick processing
-
-        // Chocobo NPC (outside, gives you a mount) edge case
-        if (auto PStatusEffect = StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Mounted))
-        {
-            switch (PStatusEffect->GetPower())
+        chareventidlehelpers::RestoreIdle(
+            [&]() { updatemask |= UPDATE_POS; }, // TODO: decouple from this. We want the 250ms post-tick processing
+            [&]() -> std::optional<uint16>
             {
-                case MOUNT_CHOCOBO:
-                case MOUNT_NOBLE_CHOCOBO:
-                    animation = ANIMATION_CHOCOBO;
-                    break;
-                default:
-                    animation = ANIMATION_MOUNT;
-                    break;
-            }
-        }
-        else
-        {
-            animation = this->isDead() ? ANIMATION_DEATH : ANIMATION_NONE;
-        }
-
-        sendServerStatus_ = true;
+                if (auto PStatusEffect = StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Mounted))
+                {
+                    return PStatusEffect->GetPower();
+                }
+                return std::nullopt;
+            },
+            [&](const uint16 power)
+            {
+                // Chocobo NPC (outside, gives you a mount) edge case
+                animation = power == MOUNT_CHOCOBO || power == MOUNT_NOBLE_CHOCOBO ? ANIMATION_CHOCOBO : ANIMATION_MOUNT;
+            },
+            [&]() { return this->isDead(); },
+            [&](const bool dead) { animation = dead ? ANIMATION_DEATH : ANIMATION_NONE; },
+            [&]() { sendServerStatus_ = true; });
         return;
     }
 
