@@ -511,6 +511,7 @@ auto runSubJobStats1597SelfTests() -> bool;
 auto runMobBase1598SelfTests() -> bool;
 auto runMobBaseSkill1599SelfTests() -> bool;
 auto runMobHP1600SelfTests() -> bool;
+auto runMobWeaponDamage1601SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1232,6 +1233,7 @@ namespace
         ok = runMobBase1598SelfTests() && ok;
         ok = runMobBaseSkill1599SelfTests() && ok;
         ok = runMobHP1600SelfTests() && ok;
+        ok = runMobWeaponDamage1601SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

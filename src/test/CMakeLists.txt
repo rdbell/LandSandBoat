@@ -952,6 +952,8 @@ set(SOURCES
     test_mob_base_skill_1599.cpp
     test_mob_hp_1600.h
     test_mob_hp_1600.cpp
+    test_mob_weapon_damage_1601.h
+    test_mob_weapon_damage_1601.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

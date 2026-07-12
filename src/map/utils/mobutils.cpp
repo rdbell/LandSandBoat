@@ -29,6 +29,7 @@
 #include "map/mob_base_capacity.h"
 #include "map/mob_base_skill_capacity.h"
 #include "map/mob_hp_capacity.h"
+#include "map/mob_weapon_damage_capacity.h"
 #include "map/sub_job_stats_capacity.h"
 
 #include "action/action.h"
@@ -72,121 +73,25 @@ uint16 GetBaseWeaponDamage(CMobEntity* PMob, uint16 slot)
     // "Special" MNK mobs  : (Level + Offset) * Multiplier(1.6667) (Auto attacks get a penalty multiplier)
 
     // NOTE: Multipliers and damage modifiers are handled in battlentity::GetMainWeaponDmg(), battlentity::GetRangedWeaponDmg().
-    // Things such as auto attacks and skills reference these functions so the modifiers will be applied through there
-    // rather than when the mob's damage is initially set. This will allow us to use the mob:setDamage() lua binding
-    // without double dipping damage modifiers while also being able to see updated damage values with prints/getstats commands.
+    // Pure region/beginner offset plan (mob_weapon_damage_capacity.h; slice 1601).
+    // setDamage returns level only; offsets stored as MOBMOD for later application.
+    (void)slot;
 
-    auto   mobZoneId    = PMob->getZone();
-    uint16 mobLvl       = PMob->GetMLevel();
-    int8   offset       = 0;
-    int8   rangedOffset = 0;
-    uint16 damage       = mobLvl;
+    const auto regionID  = static_cast<std::uint8_t>(PMob->loc.zone->GetRegionID());
+    const auto mobZoneId = static_cast<std::uint16_t>(PMob->getZone());
+    const auto mobLvl    = static_cast<std::uint16_t>(PMob->GetMLevel());
+    // Exact equality matches upstream (Voidwatch etc. may combine type bits).
+    const bool isNM = PMob->m_Type == MOBTYPE_NOTORIOUS;
 
-    // Zones from base game/expansions have different base offsets, multipliers, etc.
-    REGION_TYPE regionID = PMob->loc.zone->GetRegionID();
-
-    switch (regionID)
-    {
-        // Vanilla, ROTZ, COP Regions
-        case REGION_TYPE::RONFAURE:
-        case REGION_TYPE::ZULKHEIM:
-        case REGION_TYPE::NORVALLEN:
-        case REGION_TYPE::GUSTABERG:
-        case REGION_TYPE::DERFLAND:
-        case REGION_TYPE::SARUTABARUTA:
-        case REGION_TYPE::KOLSHUSHU:
-        case REGION_TYPE::ARAGONEU:
-        case REGION_TYPE::FAUREGANDI:
-        case REGION_TYPE::VALDEAUNIA:
-        case REGION_TYPE::QUFIMISLAND:
-        case REGION_TYPE::LITELOR:
-        case REGION_TYPE::KUZOTZ:
-        case REGION_TYPE::VOLLBOW:
-        case REGION_TYPE::ELSHIMO_LOWLANDS:
-        case REGION_TYPE::ELSHIMO_UPLANDS:
-        case REGION_TYPE::TULIA:
-        case REGION_TYPE::MOVALPOLOS:
-        case REGION_TYPE::TAVNAZIA:
-        case REGION_TYPE::SANDORIA:
-        case REGION_TYPE::BASTOK:
-        case REGION_TYPE::WINDURST:
-        case REGION_TYPE::JEUNO:
-        case REGION_TYPE::DYNAMIS:
-        case REGION_TYPE::TAVNAZIAN_MARQ:
-        case REGION_TYPE::PROMYVION:
-        case REGION_TYPE::LUMORIA:
-        case REGION_TYPE::LIMBUS:
-            offset       = 2;
-            rangedOffset = 5;
-            break;
-        // TOAU Regions
-        case REGION_TYPE::WEST_AHT_URHGAN:
-        case REGION_TYPE::MAMOOL_JA_SAVAGE:
-        case REGION_TYPE::HALVUNG:
-        case REGION_TYPE::ARRAPAGO:
-        case REGION_TYPE::ALZADAAL:
-            offset       = 10;
-            rangedOffset = 12;
-            break;
-
-        // WOTG Regions
-        case REGION_TYPE::RONFAURE_FRONT:
-        case REGION_TYPE::NORVALLEN_FRONT:
-        case REGION_TYPE::GUSTABERG_FRONT:
-        case REGION_TYPE::DERFLAND_FRONT:
-        case REGION_TYPE::SARUTA_FRONT:
-        case REGION_TYPE::ARAGONEAU_FRONT:
-        case REGION_TYPE::FAUREGANDI_FRONT:
-        case REGION_TYPE::VALDEAUNIA_FRONT:
-            offset       = 11;
-            rangedOffset = 13;
-            break;
-
-        // Other
-        case REGION_TYPE::ABYSSEA:
-        case REGION_TYPE::THE_THRESHOLD:
-        case REGION_TYPE::ABDHALJS: // TODO: Need data for ABDHALJS zones.
-            offset       = 11;
-            rangedOffset = 13;
-            break;
-
-        // SOA Regions
-        case REGION_TYPE::ADOULIN_ISLANDS:
-        case REGION_TYPE::EAST_ULBUKA:
-            offset       = 11; // TODO: Need more data for Lvl 100+ mobs.
-            rangedOffset = 13;
-            break;
-
-        // Default Fallback
-        default:
-            offset       = 2;
-            rangedOffset = 5;
-            break;
-    }
-
-    // Normal mobs in beginner zones have the offset lowered by 1.
-    // Excluded NMs for now for things like Voidwatch Mobs.
-    if (mobZoneId != 0 && PMob->m_Type != MOBTYPE_NOTORIOUS && (mobZoneId == ZONE_WEST_RONFAURE || mobZoneId == ZONE_EAST_RONFAURE || mobZoneId == ZONE_NORTH_GUSTABERG || mobZoneId == ZONE_SOUTH_GUSTABERG || mobZoneId == ZONE_WEST_SARUTABARUTA || mobZoneId == ZONE_EAST_SARUTABARUTA))
-    {
-        offset -= 1;
-        rangedOffset -= 1;
-    }
-
-    // Clamp to 0 for edge cases that might cause the offset go negative.
-    if (offset < 0)
-    {
-        offset = 0;
-    }
-
-    if (rangedOffset < 0)
-    {
-        rangedOffset = 0;
-    }
+    const auto plan = mobweapondamagehelpers::PlanBaseWeaponDamage(regionID, mobLvl, mobZoneId, isNM);
+    const auto damage       = std::get<0>(plan);
+    const auto offset       = std::get<1>(plan);
+    const auto rangedOffset = std::get<2>(plan);
 
     // Set default offsets. Will be calculated in battlentity::GetMainWeaponDmg()
     PMob->setMobMod(MOBMOD_DAMAGE_OFFSET, offset);
     PMob->setMobMod(MOBMOD_RANGED_DAMAGE_OFFSET, rangedOffset);
-    return static_cast<uint16>(damage);
+    return damage;
 }
 
 // Get base skill rankings for ACC/ATT/EVA/MEVA
