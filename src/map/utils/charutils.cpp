@@ -107,6 +107,7 @@
 #include "keyitem_spell_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
+#include "style_update_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -1957,7 +1958,7 @@ uint32 UpdateItem(CCharEntity* PChar, uint8 LocationID, uint8 slotID, int32 quan
 {
     CItem* PItem = PChar->getStorage(LocationID)->GetItem(slotID);
 
-    if (PItem == nullptr)
+    if (styleupdatehelpers::ShouldRejectNullUpdateItem(PItem != nullptr))
     {
         ShowDebug("UpdateItem: No item in slot %u", slotID);
         PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(nullptr, static_cast<CONTAINER_ID>(LocationID), slotID);
@@ -1966,7 +1967,7 @@ uint32 UpdateItem(CCharEntity* PChar, uint8 LocationID, uint8 slotID, int32 quan
 
     uint16 ItemID = PItem->getID();
 
-    if ((int32)(PItem->getQuantity() - PItem->getReserve() + quantity) < 0)
+    if (styleupdatehelpers::ShouldRejectInvalidQuantity(PItem->getQuantity(), PItem->getReserve(), quantity))
     {
         ShowDebug("UpdateItem: %s trying to move invalid quantity %u of itemID %u", PChar->getName(), quantity, ItemID);
         return 0;
@@ -1977,16 +1978,20 @@ uint32 UpdateItem(CCharEntity* PChar, uint8 LocationID, uint8 slotID, int32 quan
     {
         CItem* item = PState->GetItem();
 
-        if (item && item->getSlotID() == PItem->getSlotID() && item->getLocationID() == PItem->getLocationID() && !force)
+        if (styleupdatehelpers::ShouldRejectBusyItemInUse(
+                item != nullptr,
+                item != nullptr && item->getSlotID() == PItem->getSlotID() && item->getLocationID() == PItem->getLocationID(),
+                force))
         {
             return 0;
         }
     }
 
     // Equipped ammo decrements its stack on consumption without leaving the slot.
-    const bool isEquippedAmmo = PItem->state() == ItemState::Equipped &&
-                                PChar->getEquip(SLOT_AMMO) == PItem;
-    if (PItem->isBusy() && !isEquippedAmmo && !force)
+    const bool isEquippedAmmo = styleupdatehelpers::IsEquippedAmmoConsumption(
+        PItem->state() == ItemState::Equipped,
+        PChar->getEquip(SLOT_AMMO) == PItem);
+    if (styleupdatehelpers::ShouldRejectBusyNonAmmo(PItem->isBusy(), isEquippedAmmo, force))
     {
         ShowWarningFmt("UpdateItem: refusing to mutate busy item {} in state {} (loc={}, slot={}, char={})",
                        ItemID,
@@ -1997,14 +2002,9 @@ uint32 UpdateItem(CCharEntity* PChar, uint8 LocationID, uint8 slotID, int32 quan
         return 0;
     }
 
-    uint32 newQuantity = PItem->getQuantity() + quantity;
+    uint32 newQuantity = styleupdatehelpers::CapQuantityToStack(PItem->getQuantity(), quantity, PItem->getStackSize());
 
-    if (newQuantity > PItem->getStackSize())
-    {
-        newQuantity = PItem->getStackSize();
-    }
-
-    if (newQuantity > 0 || PItem->isType(ITEM_CURRENCY))
+    if (styleupdatehelpers::ShouldKeepItemOnUpdate(newQuantity, PItem->isType(ITEM_CURRENCY)))
     {
         db::preparedStmt("UPDATE char_inventory "
                          "SET quantity = ? "
@@ -2016,7 +2016,7 @@ uint32 UpdateItem(CCharEntity* PChar, uint8 LocationID, uint8 slotID, int32 quan
         PItem->setQuantity(newQuantity);
         PChar->pushPacket<GP_SERV_COMMAND_ITEM_NUM>(static_cast<CONTAINER_ID>(LocationID), slotID, newQuantity);
     }
-    else if (newQuantity == 0)
+    else if (styleupdatehelpers::ShouldDeleteItemOnUpdate(newQuantity))
     {
         db::preparedStmt("DELETE FROM char_inventory "
                          "WHERE charid = ? AND location = ? AND slot = ?",
@@ -2027,7 +2027,7 @@ uint32 UpdateItem(CCharEntity* PChar, uint8 LocationID, uint8 slotID, int32 quan
         auto PRemoved = PChar->getStorage(LocationID)->RemoveItem(slotID);
         PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(nullptr, static_cast<CONTAINER_ID>(LocationID), slotID);
 
-        if (PChar->getStyleLocked() && !HasItem(PChar, ItemID))
+        if (styleupdatehelpers::ShouldRefreshStyleOnDrop(PChar->getStyleLocked(), HasItem(PChar, ItemID)))
         {
             if (PItem->isType(ITEM_WEAPON))
             {
@@ -2679,14 +2679,14 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
 
 auto canEquipItemOnAnyJob(CCharEntity* PChar, const CItemEquipment* PItem) -> bool
 {
-    if (PItem == nullptr)
+    if (styleupdatehelpers::CanEquipItemOnAnyJobNullOK(PItem == nullptr))
     {
         return true;
     }
 
-    for (uint8 i = 1; i < MAX_JOBTYPE; i++)
+    for (uint8 i = 1; i < styleupdatehelpers::MaxJobType; i++)
     {
-        if (PItem->getJobs() & (1 << (i - 1)) && PItem->getReqLvl() <= PChar->jobs.job[i])
+        if (styleupdatehelpers::JobMeetsItemReqs(PItem->getJobs(), i, PItem->getReqLvl(), PChar->jobs.job[i]))
         {
             // TODO: Check for Su level for the player's job, and apply to the condition.
             return true;
@@ -2697,40 +2697,28 @@ auto canEquipItemOnAnyJob(CCharEntity* PChar, const CItemEquipment* PItem) -> bo
 
 auto hasValidStyle(CCharEntity* PChar, const CItemEquipment* PItem, const CItemEquipment* AItem) -> bool
 {
-    if (AItem && PItem)
-    {
-        // Shield special case
-        if (AItem->IsShield() && PItem->IsShield())
-        {
-            return HasItem(PChar, AItem->getID()) && canEquipItemOnAnyJob(PChar, AItem);
-        }
-
-        const auto* PWeapon = dynamic_cast<const CItemWeapon*>(PItem);
-        const auto* AWeapon = dynamic_cast<const CItemWeapon*>(AItem);
-
-        // Marvelous Cheer special case
-        // It is not technically a Wind Instrument, but it can lockstyle one.
-        if (PWeapon && AItem->getID() == MARVELOUS_CHEER && PWeapon->getSkillType() == SKILL_WIND_INSTRUMENT)
-        {
-            return HasItem(PChar, AItem->getID());
-        }
-
-        if (PWeapon && AWeapon && PWeapon->getSkillType() == AWeapon->getSkillType())
-        {
-            return HasItem(PChar, AItem->getID()) && canEquipItemOnAnyJob(PChar, AItem);
-        }
-    }
-    return false;
+    const auto* PWeapon = dynamic_cast<const CItemWeapon*>(PItem);
+    const auto* AWeapon = dynamic_cast<const CItemWeapon*>(AItem);
+    return styleupdatehelpers::HasValidStyle(
+        AItem != nullptr && PItem != nullptr,
+        AItem != nullptr && PItem != nullptr && AItem->IsShield() && PItem->IsShield(),
+        AItem != nullptr && HasItem(PChar, AItem->getID()),
+        AItem != nullptr && canEquipItemOnAnyJob(PChar, AItem),
+        AItem != nullptr && AItem->getID() == styleupdatehelpers::MarvelousCheer,
+        PWeapon != nullptr,
+        PWeapon ? PWeapon->getSkillType() : 0,
+        PWeapon != nullptr && AWeapon != nullptr,
+        AWeapon ? AWeapon->getSkillType() : 0);
 }
 
 void SetStyleLock(CCharEntity* PChar, bool isStyleLocked)
 {
-    if (isStyleLocked)
+    if (styleupdatehelpers::ShouldApplyStyleLockSnapshot(isStyleLocked))
     {
-        for (uint8 i = 0; i < SLOT_LINK1; i++)
+        for (uint8 i = 0; i < styleupdatehelpers::SlotLink1; i++)
         {
             auto* PItem          = PChar->getEquip((SLOTTYPE)i);
-            PChar->styleItems[i] = (PItem == nullptr) ? 0 : PItem->getID();
+            PChar->styleItems[i] = styleupdatehelpers::StyleItemFromEquip(PItem != nullptr, PItem ? PItem->getID() : 0);
         }
         std::memcpy(&PChar->mainlook, &PChar->look, sizeof(PChar->look));
     }
@@ -2742,7 +2730,7 @@ void SetStyleLock(CCharEntity* PChar, bool isStyleLocked)
         }
     }
 
-    if (PChar->getStyleLocked() != isStyleLocked)
+    if (styleupdatehelpers::ShouldNotifyStyleLockChange(PChar->getStyleLocked(), isStyleLocked))
     {
         PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(isStyleLocked ? MsgStd::StyleLockOn : MsgStd::StyleLockOff);
     }
@@ -2751,17 +2739,13 @@ void SetStyleLock(CCharEntity* PChar, bool isStyleLocked)
 
 void UpdateWeaponStyle(CCharEntity* PChar, uint8 equipSlotID, CItemEquipment* PItem)
 {
-    if (!PChar->getStyleLocked())
+    if (styleupdatehelpers::ShouldSkipStyleUpdateWhenUnlocked(PChar->getStyleLocked()))
     {
         return;
     }
 
     const CItemEquipment* appearance      = xi::items::lookup<CItemEquipment>(PChar->styleItems[equipSlotID]);
-    uint16                appearanceModel = 0;
-    if (appearance)
-    {
-        appearanceModel = appearance->getModelId();
-    }
+    uint16                appearanceModel = styleupdatehelpers::AppearanceModelOrZero(appearance != nullptr, appearance ? appearance->getModelId() : 0);
 
     switch (equipSlotID)
     {
@@ -2787,7 +2771,7 @@ void UpdateWeaponStyle(CCharEntity* PChar, uint8 equipSlotID, CItemEquipment* PI
                     switch (PWeapon->getSkillType())
                     {
                         case SKILL_HAND_TO_HAND:
-                            PChar->mainlook.sub = appearanceModel + 0x1000;
+                            PChar->mainlook.sub = styleupdatehelpers::H2HSubLookModel(appearanceModel);
                             break;
                         case SKILL_GREAT_SWORD:
                         case SKILL_GREAT_AXE:
@@ -2829,21 +2813,19 @@ void UpdateWeaponStyle(CCharEntity* PChar, uint8 equipSlotID, CItemEquipment* PI
 
 void UpdateArmorStyle(CCharEntity* PChar, uint8 equipSlotID)
 {
-    if (!PChar->getStyleLocked())
+    if (styleupdatehelpers::ShouldSkipStyleUpdateWhenUnlocked(PChar->getStyleLocked()))
     {
         return;
     }
 
     uint16                itemID          = PChar->styleItems[equipSlotID];
     const CItemEquipment* appearance      = xi::items::lookup<CItemEquipment>(itemID);
-    uint16                appearanceModel = 0;
+    uint16                appearanceModel = styleupdatehelpers::ArmorStyleAppearanceModel(
+        appearance != nullptr,
+        HasItem(PChar, itemID),
+        appearance ? appearance->getModelId() : 0);
 
-    if (appearance && HasItem(PChar, itemID))
-    {
-        appearanceModel = appearance->getModelId();
-    }
-
-    if (!canEquipItemOnAnyJob(PChar, appearance))
+    if (!styleupdatehelpers::ShouldApplyArmorStyle(canEquipItemOnAnyJob(PChar, appearance)))
     {
         return;
     }
