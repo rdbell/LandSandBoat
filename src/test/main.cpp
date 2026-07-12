@@ -480,6 +480,7 @@ auto runSkillCap1561SelfTests() -> bool;
 auto runTPReturn1562SelfTests() -> bool;
 auto runSpellInterrupt1563SelfTests() -> bool;
 auto runCombatStatusMitigation1564SelfTests() -> bool;
+auto runTPFromDamage1565SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1170,6 +1171,7 @@ namespace
         ok = runTPReturn1562SelfTests() && ok;
         ok = runSpellInterrupt1563SelfTests() && ok;
         ok = runCombatStatusMitigation1564SelfTests() && ok;
+        ok = runTPFromDamage1565SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

@@ -890,6 +890,8 @@ set(SOURCES
     test_spell_interrupt_1563.cpp
     test_combat_status_mitigation_1564.h
     test_combat_status_mitigation_1564.cpp
+    test_tp_from_damage_1565.h
+    test_tp_from_damage_1565.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

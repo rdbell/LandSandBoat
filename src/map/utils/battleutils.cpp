@@ -67,6 +67,7 @@
 #include "weaponskill_use_capacity.h"
 #include "skill_cap_capacity.h"
 #include "tp_return_capacity.h"
+#include "tp_from_damage_capacity.h"
 #include "spell_interrupt_capacity.h"
 #include "combat_status_mitigation_capacity.h"
 
@@ -1847,6 +1848,76 @@ auto GetBaseRangedDelay(CBattleEntity* PEntity) -> uint16
     return baseDelay;
 }
 
+
+namespace
+{
+auto BattleEntityUsesPCOrPetTPFormula(CBattleEntity* PEntity) -> bool
+{
+    if (PEntity == nullptr)
+    {
+        return true;
+    }
+    if (PEntity->objtype != TYPE_MOB)
+    {
+        return true;
+    }
+    const bool hasPCMaster = PEntity->PMaster != nullptr && PEntity->PMaster->objtype == TYPE_PC;
+    return tpreturnhelpers::IsCharmedPCPet(true, PEntity->isCharmed, hasPCMaster);
+}
+
+auto BattleEntityIsUsingH2H(CBattleEntity* PEntity) -> bool
+{
+    if (auto* PChar = dynamic_cast<CCharEntity*>(PEntity))
+    {
+        auto* PMain = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_MAIN));
+        if (PMain)
+        {
+            return PMain->getSkillType() == SKILLTYPE::SKILL_HAND_TO_HAND;
+        }
+        return true; // bare handed
+    }
+    if (auto* PMob = dynamic_cast<CMobEntity*>(PEntity))
+    {
+        auto* PWeapon = dynamic_cast<CItemWeapon*>(PMob->m_Weapons[SLOT_MAIN]);
+        return PWeapon != nullptr && PWeapon->getSkillType() == SKILLTYPE::SKILL_HAND_TO_HAND;
+    }
+    if (auto* PPet = dynamic_cast<CPetEntity*>(PEntity))
+    {
+        auto* PWeapon = dynamic_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN]);
+        return PWeapon != nullptr && PWeapon->getSkillType() == SKILLTYPE::SKILL_HAND_TO_HAND;
+    }
+    return false;
+}
+
+auto BuildModifiedDelayParams(CBattleEntity* PEntity, const std::int32_t delay) -> tpfromdamagehelpers::ModifiedDelayParams
+{
+    tpfromdamagehelpers::ModifiedDelayParams p{};
+    p.delay     = delay;
+    p.dualWield = PEntity->IsDualWielding();
+    p.dualWieldMod = PEntity->getMod(Mod::DUAL_WIELD);
+    p.usingH2H  = BattleEntityIsUsingH2H(PEntity);
+    p.martialArtsMod = PEntity->getMod(Mod::MARTIAL_ARTS);
+    p.delayP    = PEntity->getMod(Mod::DELAYP);
+
+    if (PEntity->objtype == TYPE_PC)
+    {
+        p.actor = tpfromdamagehelpers::ModifiedDelayActor::PC;
+        auto* PChar = static_cast<CCharEntity*>(PEntity);
+        p.subEquipped = PChar->getEquip(SLOT_SUB) != nullptr;
+        p.h2hSkillRankZero = PChar->RealSkills.rank[SKILL_HAND_TO_HAND] == 0;
+    }
+    else if (PEntity->objtype == TYPE_MOB)
+    {
+        p.actor = tpfromdamagehelpers::ModifiedDelayActor::Mob;
+    }
+    else
+    {
+        p.actor = tpfromdamagehelpers::ModifiedDelayActor::Other;
+    }
+    return p;
+}
+} // namespace
+
 auto CalculateTPFromDamageDealt(CBattleEntity* PAttacker, const bool& isZanshin, const SLOTTYPE& slot) -> int32
 {
     if (PAttacker == nullptr)
@@ -1855,14 +1926,29 @@ auto CalculateTPFromDamageDealt(CBattleEntity* PAttacker, const bool& isZanshin,
         return 0;
     }
 
+    const bool hasMeikyo = PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui);
+    const bool usePC     = BattleEntityUsesPCOrPetTPFormula(PAttacker);
+    const auto storeTP   = PAttacker->getMod(Mod::STORETP);
+
     if (slot == SLOT_RANGED || slot == SLOT_AMMO)
     {
-        return luautils::callGlobal<int32>("xi.combat.tp.getSingleRangedHitTPReturn", PAttacker);
+        const auto baseRanged = static_cast<std::int32_t>(GetBaseRangedDelay(PAttacker));
+        return tpfromdamagehelpers::SingleRangedHitTPReturn(hasMeikyo, usePC, baseRanged, storeTP);
     }
-    else
+
+    const auto baseDelay = static_cast<std::int32_t>(GetBaseDelay(PAttacker));
+    const auto modParams = BuildModifiedDelayParams(PAttacker, baseDelay);
+    const auto modOut    = tpfromdamagehelpers::GetModifiedDelayAndCanZanshin(modParams);
+
+    std::int32_t ikishoten = 0;
+    if (PAttacker->objtype == TYPE_PC)
     {
-        return luautils::callGlobal<int32>("xi.combat.tp.getSingleMeleeHitTPReturn", PAttacker, isZanshin);
+        auto* PChar = static_cast<CCharEntity*>(PAttacker);
+        ikishoten   = PChar->PMeritPoints->GetMeritValue(MERIT_IKISHOTEN, PChar);
     }
+
+    return tpfromdamagehelpers::SingleMeleeHitTPReturn(
+        hasMeikyo, isZanshin, usePC, modOut.delay, modOut.canZanshin, ikishoten, storeTP);
 }
 
 auto CalculateTPFromDamageTaken(CBattleEntity* PAttacker, CBattleEntity* PDefender, int32 damage, uint16 delay) -> int32
@@ -1873,9 +1959,47 @@ auto CalculateTPFromDamageTaken(CBattleEntity* PAttacker, CBattleEntity* PDefend
         return 0;
     }
 
-    int32 tpReturn = luautils::callGlobal<int32>("xi.combat.tp.calculateTPGainOnPhysicalDamage", PAttacker, PDefender, damage, delay);
+    if (tpfromdamagehelpers::ShouldZeroPhysicalTPGain(
+            false, damage, PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui)))
+    {
+        return 0;
+    }
 
-    return tpReturn;
+    const auto modParams = BuildModifiedDelayParams(PAttacker, static_cast<std::int32_t>(delay));
+    const auto modOut    = tpfromdamagehelpers::GetModifiedDelayAndCanZanshin(modParams);
+    const bool usePC     = BattleEntityUsesPCOrPetTPFormula(PAttacker);
+    const auto baseTP    = static_cast<std::int32_t>(tpreturnhelpers::CalculateTPReturn(usePC, modOut.delay));
+
+    std::int32_t subtleMerit = 0;
+    if (PAttacker->objtype == TYPE_PC)
+    {
+        auto* PChar  = static_cast<CCharEntity*>(PAttacker);
+        subtleMerit  = PChar->PMeritPoints->GetMeritValue(MERIT_SUBTLE_BLOW_EFFECT, PChar);
+    }
+
+    const bool tandemActive = petutils::IsTandemActive(PAttacker);
+    std::int32_t tandemBonus = 0;
+    if (tandemActive)
+    {
+        const bool hasMasterPC = PAttacker->PMaster != nullptr && PAttacker->PMaster->objtype == TYPE_PC;
+        const auto masterPower = hasMasterPC ? PAttacker->PMaster->getMod(Mod::TANDEM_BLOW_POWER) : 0;
+        const auto selfPower   = PAttacker->getMod(Mod::TANDEM_BLOW_POWER);
+        tandemBonus            = tpfromdamagehelpers::TandemBlowBonus(true, hasMasterPC, masterPower, selfPower);
+    }
+
+    tpfromdamagehelpers::PhysicalTPGainParams gain{};
+    gain.baseTPGain      = baseTP;
+    gain.targetIsMob     = PDefender->objtype == TYPE_MOB;
+    gain.actorIsMob      = PAttacker->objtype == TYPE_MOB;
+    gain.dAGI            = static_cast<std::int32_t>(PAttacker->AGI()) - static_cast<std::int32_t>(PDefender->AGI());
+    gain.inhibitTP       = PDefender->getMod(Mod::INHIBIT_TP);
+    gain.storeTP         = PDefender->getMod(Mod::STORETP);
+    gain.subtleBlow      = PAttacker->getMod(Mod::SUBTLE_BLOW);
+    gain.subtleBlowMerit = subtleMerit;
+    gain.subtleBlowII    = PAttacker->getMod(Mod::SUBTLE_BLOW_II);
+    gain.tandemBlowBonus = tandemBonus;
+
+    return tpfromdamagehelpers::PhysicalTPGain(gain);
 }
 
 bool TryInterruptSpell(CBattleEntity* PAttacker, CBattleEntity* PDefender, CSpell* PSpell)
