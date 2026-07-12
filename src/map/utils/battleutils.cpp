@@ -68,6 +68,7 @@
 #include "skill_cap_capacity.h"
 #include "tp_return_capacity.h"
 #include "tp_from_damage_capacity.h"
+#include "ninja_tool_capacity.h"
 #include "spell_interrupt_capacity.h"
 #include "combat_status_mitigation_capacity.h"
 
@@ -3354,96 +3355,68 @@ bool HasNinjaTool(CBattleEntity* PEntity, CSpell* PSpell, bool ConsumeTool)
         return false;
     }
 
-    if (PEntity->objtype == TYPE_PC)
+    if (PEntity->objtype != TYPE_PC)
     {
-        CCharEntity* PChar = ((CCharEntity*)PEntity);
+        return ninjatoolhelpers::NonPCAlwaysHasTool();
+    }
 
-        uint8  SlotID = 0;
-        uint16 toolID = PSpell->getMPCost();
+    CCharEntity* PChar = static_cast<CCharEntity*>(PEntity);
 
-        if (ERROR_SLOTID == (SlotID = PChar->getStorage(LOC_INVENTORY)->SearchItem(toolID)))
+    const uint16 preferred = PSpell->getMPCost();
+    uint8        SlotID    = 0;
+    const bool   preferredAvailable =
+        ERROR_SLOTID != (SlotID = PChar->getStorage(LOC_INVENTORY)->SearchItem(preferred));
+
+    bool         substituteAvailable = false;
+    std::uint16_t substituteID       = 0;
+    if (!preferredAvailable && PChar->GetMJob() == JOB_NIN)
+    {
+        if (const auto sub = ninjatoolhelpers::Substitute(preferred))
         {
-            if (PChar->GetMJob() == JOB_NIN)
-            {
-                switch (toolID)
-                {
-                    case ITEMID::UCHITAKE:
-                    case ITEMID::TSURARA:
-                    case ITEMID::KAWAHORI_OGI:
-                    case ITEMID::MAKIBISHI:
-                    case ITEMID::HIRAISHIN:
-                    case ITEMID::MIZU_DEPPO:
-                        toolID = ITEMID::INOSHISHINOFUDA;
-                        break;
-
-                    case ITEMID::RYUNO:
-                    case ITEMID::MOKUJIN:
-                    case ITEMID::SANJAKU_TENUGUI:
-                    case ITEMID::KABENRO:
-                    case ITEMID::SHINOBI_TABI:
-                    case ITEMID::SHIHEI:
-                    case ITEMID::RANKA:
-                    case ITEMID::FURUSUMI:
-
-                        toolID = ITEMID::SHIKANOFUDA;
-                        break;
-
-                    case ITEMID::SOSHI:
-                    case ITEMID::KODOKU:
-                    case ITEMID::KAGINAWA:
-                    case ITEMID::JUSATSU:
-                    case ITEMID::SAIRUI_RAN:
-                    case ITEMID::JINKO:
-                        toolID = ITEMID::CHONOFUDA;
-                        break;
-
-                    default:
-                        return false;
-                }
-                if (ERROR_SLOTID == (SlotID = PChar->getStorage(LOC_INVENTORY)->SearchItem(toolID)))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        // Should only make it to this point if a ninja tool was found.
-
-        // Check For Futae Effect
-        bool hasFutae = PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Futae);
-        // Futae only applies to Elemental Wheel Tools
-        bool useFutae = (toolID == ITEMID::UCHITAKE || toolID == ITEMID::TSURARA || toolID == ITEMID::KAWAHORI_OGI || toolID == ITEMID::MAKIBISHI ||
-                         toolID == ITEMID::HIRAISHIN || toolID == ITEMID::MIZU_DEPPO);
-
-        // If you have Futae active, Ninja Tool Expertise does not apply.
-        if (ConsumeTool && hasFutae && useFutae)
-        {
-            // Futae Takes 2 of Your Tools
-            charutils::UpdateItem(PChar, LOC_INVENTORY, SlotID, -2);
-            PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
-        }
-        else
-        {
-            uint16 meritBonus = 0;
-
-            if (charutils::hasTrait(PChar, TRAIT_NINJA_TOOL_EXPERT))
-            {
-                meritBonus = PChar->PMeritPoints->GetMeritValue(MERIT_NINJA_TOOL_EXPERTISE, PChar);
-            }
-
-            uint16 chance = (PChar->getMod(Mod::NINJA_TOOL) + meritBonus);
-
-            if (ConsumeTool && xirand::GetRandomNumber(100) > chance)
-            {
-                charutils::UpdateItem(PChar, LOC_INVENTORY, SlotID, -1);
-                PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
-            }
+            substituteID = *sub;
+            substituteAvailable =
+                ERROR_SLOTID != (SlotID = PChar->getStorage(LOC_INVENTORY)->SearchItem(substituteID));
         }
     }
+
+    const auto resolved = ninjatoolhelpers::ResolveWithSubstitute(
+        preferred,
+        preferredAvailable,
+        PChar->GetMJob() == JOB_NIN,
+        substituteAvailable);
+
+    if (!resolved.ok)
+    {
+        return false;
+    }
+
+    // SlotID already holds the inventory slot of the resolved tool.
+    const uint16 toolID = resolved.toolID;
+
+    const bool hasFutae = PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Futae);
+
+    std::uint16_t meritBonus = 0;
+    if (charutils::hasTrait(PChar, TRAIT_NINJA_TOOL_EXPERT))
+    {
+        meritBonus = static_cast<std::uint16_t>(
+            PChar->PMeritPoints->GetMeritValue(MERIT_NINJA_TOOL_EXPERTISE, PChar));
+    }
+    const auto chance = ninjatoolhelpers::ExpertiseChance(
+        static_cast<std::uint16_t>(PChar->getMod(Mod::NINJA_TOOL)), meritBonus);
+
+    if (ConsumeTool)
+    {
+        const int roll = xirand::GetRandomNumber(100);
+        // Futae path ignores expertise roll; expertise path uses roll.
+        // ConsumeQty handles both: for Futae+wheel returns 2 without consulting roll.
+        const int qty = ninjatoolhelpers::ConsumeQty(toolID, hasFutae, chance, roll);
+        if (qty > 0)
+        {
+            charutils::UpdateItem(PChar, LOC_INVENTORY, SlotID, static_cast<int16>(-qty));
+            PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
+        }
+    }
+
     return true;
 }
 

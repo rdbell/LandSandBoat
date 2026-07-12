@@ -892,6 +892,8 @@ set(SOURCES
     test_combat_status_mitigation_1564.cpp
     test_tp_from_damage_1565.h
     test_tp_from_damage_1565.cpp
+    test_ninja_tool_1566.h
+    test_ninja_tool_1566.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
