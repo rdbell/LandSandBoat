@@ -794,6 +794,8 @@ set(SOURCES
     test_keyitem_spell_1515.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
+    test_trade_item_1517.h
+    test_trade_item_1517.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

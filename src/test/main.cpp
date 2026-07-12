@@ -432,6 +432,7 @@ auto runAbilityTable1513SelfTests() -> bool;
 auto runPetAbilityTable1514SelfTests() -> bool;
 auto runKeyItemSpell1515SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
+auto runTradeItem1517SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1074,6 +1075,7 @@ namespace
         ok = runPetAbilityTable1514SelfTests() && ok;
         ok = runKeyItemSpell1515SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
+        ok = runTradeItem1517SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

@@ -106,6 +106,7 @@
 #include "pet_ability_table_capacity.h"
 #include "keyitem_spell_capacity.h"
 #include "equip_policy_capacity.h"
+#include "trade_item_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -1736,13 +1737,13 @@ void SendLocalPlayerPackets(CCharEntity* PChar)
 
 uint8 AddItem(CCharEntity* PChar, uint8 LocationID, uint16 ItemID, uint32 quantity, bool silence)
 {
-    if (PChar->getStorage(LocationID)->GetFreeSlotsCount() == 0 || quantity == 0)
+    if (tradeitemhelpers::ShouldRejectAddItemEmptyOrZero(PChar->getStorage(LocationID)->GetFreeSlotsCount(), quantity))
     {
         return ERROR_SLOTID;
     }
 
     auto PItem = xi::items::spawn(ItemID);
-    if (PItem == nullptr)
+    if (tradeitemhelpers::ShouldRejectAddItemMissingDB(PItem != nullptr))
     {
         ShowWarning("AddItem: Item <%i> is not found in a database", ItemID);
         return ERROR_SLOTID;
@@ -1760,13 +1761,13 @@ uint8 AddItem(CCharEntity* PChar, uint8 LocationID, uint16 ItemID, uint32 quanti
 
 auto AddItem(CCharEntity* PChar, uint8 LocationID, std::unique_ptr<CItem> PItem, bool silence) -> uint8
 {
-    if (PItem->isType(ITEM_CURRENCY))
+    if (tradeitemhelpers::ShouldUpdateCurrencyInstead(PItem->isType(ITEM_CURRENCY)))
     {
-        UpdateItem(PChar, LocationID, 0, PItem->getQuantity());
+        UpdateItem(PChar, LocationID, tradeitemhelpers::CurrencyInventorySlot, PItem->getQuantity());
         return 0;
     }
 
-    if (PItem->hasFlag(ItemFlag::Rare) && HasItem(PChar, PItem->getID()))
+    if (tradeitemhelpers::ShouldRejectRareAddItem(PItem->hasFlag(ItemFlag::Rare), HasItem(PChar, PItem->getID())))
     {
         if (!silence)
         {
@@ -2084,28 +2085,25 @@ void DropItem(CCharEntity* PChar, uint8 container, uint8 slotID, int32 quantity,
 
 bool CanTrade(CCharEntity* PChar, CCharEntity* PTarget)
 {
-    if (PChar->m_PMonstrosity != nullptr || PTarget->m_PMonstrosity != nullptr)
+    if (tradeitemhelpers::ShouldRejectMonstrosityTrade(PChar->m_PMonstrosity != nullptr, PTarget->m_PMonstrosity != nullptr))
     {
         return false;
     }
 
-    if (PTarget->getStorage(LOC_INVENTORY)->GetFreeSlotsCount() < PChar->UContainer->GetItemsCount())
+    if (tradeitemhelpers::ShouldRejectTradeForSpace(PTarget->getStorage(LOC_INVENTORY)->GetFreeSlotsCount(), PChar->UContainer->GetItemsCount()))
     {
         ShowDebug("Unable to trade, %s doesn't have enough inventory space", PTarget->getName());
         return false;
     }
 
-    for (uint8 slotid = 0; slotid <= 8; ++slotid)
+    for (uint8 slotid = 0; slotid <= tradeitemhelpers::TradeSlotMax; ++slotid)
     {
         CItem* PItem = PChar->UContainer->GetItem(slotid);
 
-        if (PItem != nullptr && PItem->hasFlag(ItemFlag::Rare))
+        if (PItem != nullptr && tradeitemhelpers::ShouldRejectRareDuplicate(PItem->hasFlag(ItemFlag::Rare), HasItem(PTarget, PItem->getID())))
         {
-            if (HasItem(PTarget, PItem->getID()))
-            {
-                ShowDebug("Unable to trade, %s has the rare item already (%s)", PTarget->getName(), PItem->getName());
-                return false;
-            }
+            ShowDebug("Unable to trade, %s has the rare item already (%s)", PTarget->getName(), PItem->getName());
+            return false;
         }
     }
 
@@ -2121,13 +2119,13 @@ bool CanTrade(CCharEntity* PChar, CCharEntity* PTarget)
 void DoTrade(CCharEntity* PChar, CCharEntity* PTarget)
 {
     ShowDebug("%s->%s trade item movement started", PChar->getName(), PTarget->getName());
-    for (uint8 slotid = 0; slotid <= 8; ++slotid)
+    for (uint8 slotid = 0; slotid <= tradeitemhelpers::TradeSlotMax; ++slotid)
     {
         CItem* PItem = PChar->UContainer->GetItem(slotid);
 
         if (PItem != nullptr)
         {
-            if (PItem->getStackSize() == 1 && PItem->getReserve() == 1)
+            if (tradeitemhelpers::ShouldCloneSingleStackTrade(PItem->getStackSize(), PItem->getReserve()))
             {
                 auto PNewItem = xi::items::clone(*PItem);
                 ShowDebug("Adding %s to %s inventory stacksize 1", PNewItem->getName(), PTarget->getName());
@@ -2142,7 +2140,7 @@ void DoTrade(CCharEntity* PChar, CCharEntity* PTarget)
             ShowDebug("Removing %s from %s's inventory", PItem->getName(), PChar->getName());
             auto amount = PItem->getReserve();
             PItem->setReserve(0);
-            UpdateItem(PChar, LOC_INVENTORY, PItem->getSlotID(), (int32)(0 - amount));
+            UpdateItem(PChar, LOC_INVENTORY, PItem->getSlotID(), tradeitemhelpers::TradeRemoveQuantity(amount));
             PChar->UContainer->ClearSlot(slotid);
         }
     }
