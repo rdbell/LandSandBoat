@@ -43,6 +43,8 @@
 #include "map/automaton_frame_stats_capacity.h"
 #include "map/automaton_repair_mana_capacity.h"
 #include "map/automaton_weapon_damage_capacity.h"
+#include "map/base_to_rank_capacity.h"
+#include "map/jug_base_capacity.h"
 #include "map/pet_weapon_damage_capacity.h"
 #include "puppetutils.h"
 #include "status_effect_container.h"
@@ -240,70 +242,14 @@ uint16 GetJugWeaponDamage(CPetEntity* PPet)
 
 uint16 GetJugBase(CPetEntity* PMob, uint8 rank)
 {
-    uint8 lvl = PMob->GetMLevel();
-    if (lvl > 50)
-    {
-        switch (rank)
-        {
-            case 1:
-                return (uint16)(153 + (lvl - 50) * 5.0f);
-            case 2:
-                return (uint16)(147 + (lvl - 50) * 4.9f);
-            case 3:
-                return (uint16)(136 + (lvl - 50) * 4.8f);
-            case 4:
-                return (uint16)(126 + (lvl - 50) * 4.7f);
-            case 5:
-                return (uint16)(116 + (lvl - 50) * 4.5f);
-            case 6:
-                return (uint16)(106 + (lvl - 50) * 4.4f);
-            case 7:
-                return (uint16)(96 + (lvl - 50) * 4.3f);
-        }
-    }
-    else
-    {
-        switch (rank)
-        {
-            case 1:
-                return (uint16)(6 + (lvl - 1) * 3.0f);
-            case 2:
-                return (uint16)(5 + (lvl - 1) * 2.9f);
-            case 3:
-                return (uint16)(5 + (lvl - 1) * 2.8f);
-            case 4:
-                return (uint16)(4 + (lvl - 1) * 2.7f);
-            case 5:
-                return (uint16)(4 + (lvl - 1) * 2.5f);
-            case 6:
-                return (uint16)(3 + (lvl - 1) * 2.4f);
-            case 7:
-                return (uint16)(3 + (lvl - 1) * 2.3f);
-        }
-    }
-    return 0;
+    // Pure jug base (jug_base_capacity.h; slice 1594).
+    return jugbasehelpers::JugBase(rank, PMob->GetMLevel());
 }
 
 uint16 GetBaseToRank(uint8 rank, uint16 lvl)
 {
-    switch (rank)
-    {
-        case 1:
-            return (5 + ((lvl - 1) * 50) / 100);
-        case 2:
-            return (4 + ((lvl - 1) * 45) / 100);
-        case 3:
-            return (4 + ((lvl - 1) * 40) / 100);
-        case 4:
-            return (3 + ((lvl - 1) * 35) / 100);
-        case 5:
-            return (3 + ((lvl - 1) * 30) / 100);
-        case 6:
-            return (2 + ((lvl - 1) * 25) / 100);
-        case 7:
-            return (2 + ((lvl - 1) * 20) / 100);
-    }
-    return 0;
+    // Pure shared base-to-rank (base_to_rank_capacity.h; slice 1594).
+    return basetorankhelpers::GetBaseToRank(rank, lvl);
 }
 
 void LoadJugStats(CPetEntity* PMob, Pet_t* petStats)

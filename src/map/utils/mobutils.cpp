@@ -25,6 +25,8 @@
 #include "common/logging.h"
 #include "common/utils.h"
 
+#include "map/base_to_rank_capacity.h"
+
 #include "action/action.h"
 #include "ai/ai_container.h"
 #include "battlefield.h"
@@ -278,25 +280,8 @@ uint16 GetBaseDefEva(CMobEntity* PMob, uint8 rank)
 
 uint16 GetBaseToRank(uint8 rank, uint16 lvl)
 {
-    switch (rank)
-    {
-        case 1:
-            return (5 + ((lvl - 1) * 50) / 100); // A
-        case 2:
-            return (4 + ((lvl - 1) * 45) / 100); // B
-        case 3:
-            return (4 + ((lvl - 1) * 40) / 100); // C
-        case 4:
-            return (3 + ((lvl - 1) * 35) / 100); // D
-        case 5:
-            return (3 + ((lvl - 1) * 30) / 100); // E
-        case 6:
-            return (2 + ((lvl - 1) * 25) / 100); // F
-        case 7:
-            return (2 + ((lvl - 1) * 20) / 100); // G
-    }
-
-    return 0;
+    // Pure shared base-to-rank (base_to_rank_capacity.h; slice 1594).
+    return basetorankhelpers::GetBaseToRank(rank, lvl);
 }
 
 /************************************************************************

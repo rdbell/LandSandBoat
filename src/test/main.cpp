@@ -505,6 +505,7 @@ auto runEcosystemStrength1590SelfTests() -> bool;
 auto runGarrisonMembership1591SelfTests() -> bool;
 auto runAutomatonWeaponDamage1592SelfTests() -> bool;
 auto runPetWeaponDamage1593SelfTests() -> bool;
+auto runJugBaseRank1594SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1220,6 +1221,7 @@ namespace
         ok = runGarrisonMembership1591SelfTests() && ok;
         ok = runAutomatonWeaponDamage1592SelfTests() && ok;
         ok = runPetWeaponDamage1593SelfTests() && ok;
+        ok = runJugBaseRank1594SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
