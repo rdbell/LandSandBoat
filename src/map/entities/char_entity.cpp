@@ -50,6 +50,7 @@
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
 #include "char_playtime_capacity.h"
+#include "char_raise_plan_capacity.h"
 #include "char_post_tick_refresh_capacity.h"
 #include "char_post_tick_update_capacity.h"
 #include "char_resource_capacity.h"
@@ -1935,28 +1936,32 @@ void CCharEntity::OnRaise()
     // TODO: Moghancement Experience needs to be factored in here somewhere.
     if (m_hasRaise > 0)
     {
-        // Player had no weakness prior, so set this to 1
-        if (m_weaknessLvl == 0)
-        {
-            m_weaknessLvl = 1;
-        }
+        const bool mijinGakure = GetLocalVar("MijinGakure") != 0;
+        const auto plan        = charraiseplanhelpers::Build({
+                   .hasRaise      = m_hasRaise,
+                   .weaknessLevel = m_weaknessLvl,
+                   .hasArise      = m_hasArise,
+                   .mijinGakure   = mijinGakure,
+                   .mijinReraise  = mijinGakure && getMod(Mod::MIJIN_RERAISE) != 0,
+                   .maxHP         = GetMaxHP(),
+                   .mainLevel     = GetMLevel(),
+                   .expRetain     = settings::get<uint8>("map.EXP_RETAIN"),
+        });
+        m_weaknessLvl = plan.weaknessLevel;
 
         // add weakness effect (75% reduction in HP/MP)
-        if (GetLocalVar("MijinGakure") == 0)
+        if (plan.applyWeakness)
         {
-            auto weaknessTime = 5min;
-
-            // Arise has a reduced weakness time of 3 mins
-            if (m_hasArise)
-            {
-                weaknessTime = 3min;
-            }
-
-            StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Weakness, static_cast<uint16>(xi::StatusEffect::Weakness), m_weaknessLvl, 0s, weaknessTime);
+            StatusEffectContainer->AddStatusEffect(
+                xi::StatusEffect::Weakness,
+                static_cast<uint16>(xi::StatusEffect::Weakness),
+                m_weaknessLvl,
+                0s,
+                plan.weaknessDuration);
         }
 
-        double ratioReturned = 0.0f;
-        uint16 hpReturned    = 1;
+        const double ratioReturned = plan.expReturnRatio;
+        const uint16 hpReturned    = plan.hpReturned;
 
         action_t action{
             .actorId    = id,
@@ -1965,39 +1970,9 @@ void CCharEntity::OnRaise()
 
         auto& actionTarget = action.addTarget(id);
         auto& actionResult = actionTarget.addResult();
+        actionResult.animation = plan.animation;
 
-        // Mijin Gakure used with MIJIN_RERAISE MOD
-        if (GetLocalVar("MijinGakure") != 0 && getMod(Mod::MIJIN_RERAISE) != 0)
-        {
-            actionResult.animation = ActionAnimation::Raise;
-            hpReturned             = (uint16)(GetMaxHP());
-        }
-        else if (m_hasRaise == 1)
-        {
-            actionResult.animation = ActionAnimation::Raise;
-            hpReturned             = static_cast<uint16>((GetLocalVar("MijinGakure") != 0) ? GetMaxHP() * 0.5 : GetMaxHP() * 0.1);
-            ratioReturned          = 0.50f * static_cast<double>(1 - settings::get<uint8>("map.EXP_RETAIN"));
-        }
-        else if (m_hasRaise == 2)
-        {
-            actionResult.animation = ActionAnimation::Raise2;
-            hpReturned             = static_cast<uint16>((GetLocalVar("MijinGakure") != 0) ? GetMaxHP() * 0.5 : GetMaxHP() * 0.25);
-            ratioReturned          = ((GetMLevel() <= 50) ? 0.50f : 0.75f) * static_cast<double>(1 - settings::get<uint8>("map.EXP_RETAIN"));
-        }
-        else if (m_hasRaise == 3)
-        {
-            actionResult.animation = ActionAnimation::Raise3;
-            hpReturned             = static_cast<uint16>(GetMaxHP() * 0.5);
-            ratioReturned          = ((GetMLevel() <= 50) ? 0.50f : 0.90f) * static_cast<double>(1 - settings::get<uint8>("map.EXP_RETAIN"));
-        }
-        else if (m_hasRaise == 4) // Used for spell "Arise" and Arise from the spell "Reraise IV"
-        {
-            actionResult.animation = ActionAnimation::Arise;
-            hpReturned             = static_cast<uint16>(GetMaxHP());
-            ratioReturned          = ((GetMLevel() <= 50) ? 0.50f : 0.90f) * static_cast<double>(1 - settings::get<uint8>("map.EXP_RETAIN"));
-        }
-
-        addHP(((hpReturned < 1) ? 1 : hpReturned));
+        addHP(hpReturned);
         updatemask |= UPDATE_HP;
 
         loc.zone->PushPacket(this, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(action));
