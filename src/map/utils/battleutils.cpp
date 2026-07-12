@@ -47,6 +47,7 @@
 #include "enspell_damage_tails_capacity.h"
 #include "weather_get_capacity.h"
 #include "entity_equip_capacity.h"
+#include "weather_matches_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -4827,102 +4828,7 @@ auto GetWeather(CBattleEntity* PEntity, bool ignoreScholar, Weather zoneWeather)
 
 auto WeatherMatchesElement(const Weather weather, const uint8 element) -> bool
 {
-    switch (element)
-    {
-        case ELEMENT_NONE:
-            return false; // Can't match with no element...
-            break;
-        case ELEMENT_FIRE:
-            switch (weather)
-            {
-                case Weather::HotSpell:
-                case Weather::HeatWave:
-                    return true;
-                    break;
-                default:
-                    return false;
-            }
-            break;
-        case ELEMENT_ICE:
-            switch (weather)
-            {
-                case Weather::Snow:
-                case Weather::Blizzards:
-                    return true;
-                    break;
-                default:
-                    return false;
-            }
-            break;
-        case ELEMENT_WIND:
-            switch (weather)
-            {
-                case Weather::Wind:
-                case Weather::Gales:
-                    return true;
-                    break;
-                default:
-                    return false;
-            }
-            break;
-        case ELEMENT_EARTH:
-            switch (weather)
-            {
-                case Weather::DustStorm:
-                case Weather::SandStorm:
-                    return true;
-                    break;
-                default:
-                    return false;
-            }
-            break;
-        case ELEMENT_THUNDER:
-            switch (weather)
-            {
-                case Weather::Thunder:
-                case Weather::Thunderstorms:
-                    return true;
-                    break;
-                default:
-                    return false;
-            }
-            break;
-        case ELEMENT_WATER:
-            switch (weather)
-            {
-                case Weather::Rain:
-                case Weather::Squall:
-                    return true;
-                    break;
-                default:
-                    return false;
-            }
-            break;
-        case ELEMENT_LIGHT:
-            switch (weather)
-            {
-                case Weather::Auroras:
-                case Weather::StellarGlare:
-                    return true;
-                    break;
-                default:
-                    return false;
-            }
-            break;
-        case ELEMENT_DARK:
-            switch (weather)
-            {
-                case Weather::Gloom:
-                case Weather::Darkness:
-                    return true;
-                    break;
-                default:
-                    return false;
-            }
-            break;
-        default:
-            return false;
-    }
+    return weathermatcheshelpers::WeatherMatchesElement(weather, element);
 }
 
 void DrawIn(CBattleEntity* PTarget, const position_t pos, const float offset, const float degrees)
