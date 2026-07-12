@@ -47,6 +47,7 @@
 #include "magic_aoe_capacity.h"
 #include "knockback_capacity.h"
 #include "physical_hit_rate_capacity.h"
+#include "ecosystem_strength_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -1215,20 +1216,19 @@ uint16 CBattleEntity::ATT(SLOTTYPE slot)
     }
     else if (this->objtype == TYPE_PET)
     {
-        auto getEcoStrBonusFunc = lua["utils"]["getEcosystemStrengthBonus"];
-
-        if (getEcoStrBonusFunc.valid())
+        // Pure ecosystem strength (ecosystem_strength_capacity.h; slice 1590).
+        CBattleEntity* thisTarget = nullptr;
+        if (this->PAI->IsEngaged())
         {
-            CBattleEntity* thisTarget = nullptr;
-            if (this->PAI->IsEngaged())
-            {
-                thisTarget = this->GetBattleTarget();
-            }
+            thisTarget = this->GetBattleTarget();
+        }
 
-            if (thisTarget != nullptr && (int8)getEcoStrBonusFunc(this->m_EcoSystem, thisTarget->m_EcoSystem) > 0)
-            {
-                ATTP += this->getMod(Mod::ENHANCES_MONSTER_CORRELATION);
-            }
+        if (thisTarget != nullptr &&
+            ecosystemstrengthhelpers::HasMonsterCorrelationAdvantage(
+                static_cast<uint8>(this->m_EcoSystem),
+                static_cast<uint8>(thisTarget->m_EcoSystem)))
+        {
+            ATTP += this->getMod(Mod::ENHANCES_MONSTER_CORRELATION);
         }
     }
     // use max to prevent underflow
@@ -1417,20 +1417,19 @@ auto CBattleEntity::RACC(uint16 bonusAcc) -> uint16
         // TODO: does this work for ranged accuracy?
         if (this->objtype == TYPE_PET)
         {
-            auto getEcoStrBonusFunc = lua["utils"]["getEcosystemStrengthBonus"];
-
-            if (getEcoStrBonusFunc.valid())
+            // Pure ecosystem strength (ecosystem_strength_capacity.h; slice 1590).
+            CBattleEntity* thisTarget = nullptr;
+            if (this->PAI->IsEngaged())
             {
-                CBattleEntity* thisTarget = nullptr;
-                if (this->PAI->IsEngaged())
-                {
-                    thisTarget = this->GetBattleTarget();
-                }
+                thisTarget = this->GetBattleTarget();
+            }
 
-                if (thisTarget != nullptr && (int8)getEcoStrBonusFunc(this->m_EcoSystem, thisTarget->m_EcoSystem) > 0)
-                {
-                    RACC += this->getMod(Mod::ENHANCES_MONSTER_CORRELATION);
-                }
+            if (thisTarget != nullptr &&
+                ecosystemstrengthhelpers::HasMonsterCorrelationAdvantage(
+                    static_cast<uint8>(this->m_EcoSystem),
+                    static_cast<uint8>(thisTarget->m_EcoSystem)))
+            {
+                RACC += this->getMod(Mod::ENHANCES_MONSTER_CORRELATION);
             }
         }
 
@@ -1577,20 +1576,19 @@ uint16 CBattleEntity::ACC(uint8 attackNumber, uint16 offsetAccuracy)
         }
         if (this->objtype == TYPE_PET)
         {
-            auto getEcoStrBonusFunc = lua["utils"]["getEcosystemStrengthBonus"];
-
-            if (getEcoStrBonusFunc.valid())
+            // Pure ecosystem strength (ecosystem_strength_capacity.h; slice 1590).
+            CBattleEntity* thisTarget = nullptr;
+            if (this->PAI->IsEngaged())
             {
-                CBattleEntity* thisTarget = nullptr;
-                if (this->PAI->IsEngaged())
-                {
-                    thisTarget = this->GetBattleTarget();
-                }
+                thisTarget = this->GetBattleTarget();
+            }
 
-                if (thisTarget != nullptr && (int8)getEcoStrBonusFunc(this->m_EcoSystem, thisTarget->m_EcoSystem) > 0)
-                {
-                    ACC += this->getMod(Mod::ENHANCES_MONSTER_CORRELATION);
-                }
+            if (thisTarget != nullptr &&
+                ecosystemstrengthhelpers::HasMonsterCorrelationAdvantage(
+                    static_cast<uint8>(this->m_EcoSystem),
+                    static_cast<uint8>(thisTarget->m_EcoSystem)))
+            {
+                ACC += this->getMod(Mod::ENHANCES_MONSTER_CORRELATION);
             }
         }
         ACC = ACC + std::floor(DEX() / 2);
