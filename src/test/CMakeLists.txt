@@ -728,6 +728,8 @@ set(SOURCES
     test_char_timed_death_1481.cpp
     test_char_raise_complete_1482.h
     test_char_raise_complete_1482.cpp
+    test_char_is_mob_owner_1483.h
+    test_char_is_mob_owner_1483.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

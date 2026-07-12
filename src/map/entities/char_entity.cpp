@@ -31,6 +31,7 @@
 #include "char_death_homepoint_capacity.h"
 #include "char_death_plan_capacity.h"
 #include "char_raise_complete_capacity.h"
+#include "char_is_mob_owner_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1891,32 +1892,31 @@ bool CCharEntity::IsMobOwner(CBattleEntity* PBattleTarget)
         return false;
     }
 
-    if (PBattleTarget->m_OwnerID.id == 0 || PBattleTarget->m_OwnerID.id == this->id || PBattleTarget->objtype == TYPE_PC)
-    {
-        return true;
-    }
-
+    bool nonExclusiveClaim = false;
     if (auto* PMob = dynamic_cast<CMobEntity*>(PBattleTarget))
     {
-        if (PMob->getMobMod(MOBMOD_CLAIM_TYPE) == static_cast<int16>(ClaimType::NonExclusive))
-        {
-            return true;
-        }
+        nonExclusiveClaim = PMob->getMobMod(MOBMOD_CLAIM_TYPE) == static_cast<int16>(ClaimType::NonExclusive);
     }
 
-    bool found = false;
-
-    // clang-format off
-    ForAlliance([&PBattleTarget, &found](CBattleEntity* PEntity)
-    {
-        if (PEntity->id == PBattleTarget->m_OwnerID.id)
+    return charismobownerhelpers::Evaluate(
+        PBattleTarget->m_OwnerID.id,
+        this->id,
+        PBattleTarget->objtype == TYPE_PC,
+        nonExclusiveClaim,
+        [&]()
         {
-            found = true;
-        }
-    });
-    // clang-format on
-
-    return found;
+            bool found = false;
+            // clang-format off
+            ForAlliance([&PBattleTarget, &found](CBattleEntity* PEntity)
+            {
+                if (PEntity->id == PBattleTarget->m_OwnerID.id)
+                {
+                    found = true;
+                }
+            });
+            // clang-format on
+            return found;
+        });
 }
 
 void CCharEntity::HandleErrorMessage(std::unique_ptr<CBasicPacket>& msg)
