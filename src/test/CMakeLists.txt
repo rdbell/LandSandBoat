@@ -998,6 +998,8 @@ set(SOURCES
     test_pet_spawn_1625.cpp
     test_pet_detach_1626.h
     test_pet_detach_1626.cpp
+    test_pet_engage_1627.h
+    test_pet_engage_1627.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

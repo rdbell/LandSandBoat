@@ -55,6 +55,7 @@
 #include "map/luopan_stats_capacity.h"
 #include "map/perpetuation_capacity.h"
 #include "map/pet_detach_capacity.h"
+#include "map/pet_engage_capacity.h"
 #include "map/pet_mod_tandem_capacity.h"
 #include "map/pet_spawn_capacity.h"
 #include "map/pet_weapon_damage_capacity.h"
@@ -217,7 +218,8 @@ void FreePetList()
 
 void AttackTarget(CBattleEntity* PMaster, CBattleEntity* PTarget)
 {
-    if (PMaster == nullptr || PMaster->PPet == nullptr || PTarget == nullptr)
+    // Pure null + prevent-action gates (pet_engage_capacity.h; slice 1627).
+    if (!petengagehelpers::CanAttackTarget(PMaster != nullptr, PMaster != nullptr && PMaster->PPet != nullptr, PTarget != nullptr))
     {
         ShowWarning("petutils::AttackTarget() - Null master, pet, or target passed to function.");
         return;
@@ -225,7 +227,7 @@ void AttackTarget(CBattleEntity* PMaster, CBattleEntity* PTarget)
 
     CBattleEntity* PPet = PMaster->PPet;
 
-    if (!PPet->StatusEffectContainer->HasPreventActionEffect())
+    if (petengagehelpers::ShouldPetEngage(PPet->StatusEffectContainer->HasPreventActionEffect()))
     {
         PPet->PAI->Engage(PTarget->targid);
     }
@@ -233,7 +235,8 @@ void AttackTarget(CBattleEntity* PMaster, CBattleEntity* PTarget)
 
 void RetreatToMaster(CBattleEntity* PMaster)
 {
-    if (PMaster == nullptr || PMaster->PPet == nullptr)
+    // Pure null + prevent-action gates (pet_engage_capacity.h; slice 1627).
+    if (!petengagehelpers::CanRetreatToMaster(PMaster != nullptr, PMaster != nullptr && PMaster->PPet != nullptr))
     {
         ShowWarning("petutils::RetreatToMaster() - Null master or pet passed to function.");
         return;
@@ -241,7 +244,7 @@ void RetreatToMaster(CBattleEntity* PMaster)
 
     CBattleEntity* PPet = PMaster->PPet;
 
-    if (!PPet->StatusEffectContainer->HasPreventActionEffect())
+    if (petengagehelpers::ShouldPetDisengage(PPet->StatusEffectContainer->HasPreventActionEffect()))
     {
         PPet->PAI->Disengage();
     }

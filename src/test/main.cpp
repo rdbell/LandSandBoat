@@ -534,6 +534,7 @@ auto runMobSetup1621SelfTests() -> bool;
 auto runPetModTandem1624SelfTests() -> bool;
 auto runPetSpawn1625SelfTests() -> bool;
 auto runPetDetach1626SelfTests() -> bool;
+auto runPetEngage1627SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1278,6 +1279,7 @@ namespace
         ok = runPetModTandem1624SelfTests() && ok;
         ok = runPetSpawn1625SelfTests() && ok;
         ok = runPetDetach1626SelfTests() && ok;
+        ok = runPetEngage1627SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
