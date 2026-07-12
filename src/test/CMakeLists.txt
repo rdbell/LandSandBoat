@@ -772,6 +772,8 @@ set(SOURCES
     test_exp_award_1504.cpp
     test_exp_loss_1505.h
     test_exp_loss_1505.cpp
+    test_skill_up_1506.h
+    test_skill_up_1506.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

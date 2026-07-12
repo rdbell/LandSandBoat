@@ -95,6 +95,7 @@
 #include "exp_distribute_capacity.h"
 #include "exp_award_capacity.h"
 #include "exp_loss_capacity.h"
+#include "skill_up_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -4079,98 +4080,55 @@ void TrySkillUP(CCharEntity* PChar, SKILLTYPE SkillID, uint8 lvl, bool forceSkil
 
     // This usually happens after a crash
     uint8 rawSkillID = static_cast<uint8>(SkillID);
-    if (rawSkillID >= MAX_SKILLTYPE)
+    if (!skilluphelpers::IsSkillIDValid(rawSkillID))
     {
         ShowWarning("SkillID (%d) exceeds MAX_SKILLTYPE.", rawSkillID);
         return;
     }
 
-    if (((PChar->WorkingSkills.rank[rawSkillID] != 0) && !(PChar->WorkingSkills.skill[rawSkillID] & 0x8000)) || useSubSkill)
+    if (skilluphelpers::ShouldConsiderSkillUp(PChar->WorkingSkills.rank[rawSkillID], PChar->WorkingSkills.skill[rawSkillID], useSubSkill))
     {
         uint16 CurSkill     = PChar->RealSkills.skill[rawSkillID];
         uint16 MainCapSkill = battleutils::GetMaxSkill(SkillID, PChar->GetMJob(), PChar->GetMLevel());
         uint16 SubCapSkill  = battleutils::GetMaxSkill(SkillID, PChar->GetSJob(), PChar->GetSLevel());
         uint16 MainMaxSkill = battleutils::GetMaxSkill(SkillID, PChar->GetMJob(), std::min(PChar->GetMLevel(), lvl));
         uint16 SubMaxSkill  = battleutils::GetMaxSkill(SkillID, PChar->GetSJob(), std::min(PChar->GetSLevel(), lvl));
-        uint16 MaxSkill     = 0;
-        uint16 CapSkill     = 0;
-
-        if (useSubSkill)
-        {
-            if (MainCapSkill > SubCapSkill)
-            {
-                CapSkill = MainCapSkill;
-                MaxSkill = MainMaxSkill;
-            }
-            else
-            {
-                CapSkill = SubCapSkill;
-                MaxSkill = SubMaxSkill;
-            }
-        }
-        else
-        {
-            CapSkill = MainCapSkill;
-            MaxSkill = MainMaxSkill;
-        }
+        uint16 CapSkill     = skilluphelpers::ResolveCapSkill(MainCapSkill, SubCapSkill, useSubSkill);
+        uint16 MaxSkill     = skilluphelpers::ResolveMaxSkill(MainCapSkill, SubCapSkill, MainMaxSkill, SubMaxSkill, useSubSkill);
         // Max skill this victim level will allow.
         // Note this is no longer retail accurate, since now 'decent challenge' mobs allow to cap any skill.
 
-        int16  Diff          = MaxSkill - CurSkill / 10;
-        double SkillUpChance = Diff / 5.0 + settings::get<double>("map.SKILLUP_CHANCE_MULTIPLIER") * (2.0 - log10(1.0 + CurSkill / 100));
+        int16  Diff          = skilluphelpers::SkillDiff(MaxSkill, CurSkill);
+        double SkillUpChance = skilluphelpers::BaseSkillUpChance(Diff, CurSkill, settings::get<double>("map.SKILLUP_CHANCE_MULTIPLIER"));
 
         double random = xirand::GetRandomNumber(1.);
 
-        if (SkillUpChance > 0.5)
-        {
-            SkillUpChance = 0.5;
-        }
+        SkillUpChance = skilluphelpers::ClampSkillUpChance(SkillUpChance);
 
         // Check for skillup% bonus. https://www.bg-wiki.com/bg/Category:Skill_Up_Food
         // Assuming multiplicative even though rate is already a % because 0.5 + 0.8 would be > 1.
-        if ((SkillID >= 1 && SkillID <= 12) || (SkillID >= 25 && SkillID <= 31))
+        if (skilluphelpers::IsCombatSkillUpSkill(static_cast<uint8>(SkillID)))
         // if should effect automaton replace the above with: (SkillID >= 1 && SkillID <= 31)
         {
-            SkillUpChance *= ((100.0f + PChar->getMod(Mod::COMBAT_SKILLUP_RATE)) / 100.0f);
+            SkillUpChance = skilluphelpers::ApplySkillUpRateMod(SkillUpChance, PChar->getMod(Mod::COMBAT_SKILLUP_RATE));
         }
-        else if (SkillID >= 32 && SkillID <= 44)
+        else if (skilluphelpers::IsMagicSkillUpSkill(static_cast<uint8>(SkillID)))
         {
-            SkillUpChance *= ((100.0f + PChar->getMod(Mod::MAGIC_SKILLUP_RATE)) / 100.0f);
+            SkillUpChance = skilluphelpers::ApplySkillUpRateMod(SkillUpChance, PChar->getMod(Mod::MAGIC_SKILLUP_RATE));
         }
 
-        if (Diff > 0 && (random < SkillUpChance || forceSkillUp))
+        if (skilluphelpers::ShouldGainSkillUp(Diff, random, SkillUpChance, forceSkillUp))
         {
             double chance      = 0;
             uint8  SkillAmount = 1;
-            uint8  tier        = std::min(1 + (Diff / 5), 5);
+            uint8  tier        = skilluphelpers::SkillUpTier(Diff);
 
             for (uint8 i = 0; i < 4; ++i) // 1 + 4 possible additional ones (maximum 5)
             {
                 random = xirand::GetRandomNumber(1.);
+                chance = skilluphelpers::ExtraSkillUpTierChance(tier);
 
-                switch (tier)
-                {
-                    case 5:
-                        chance = 0.900;
-                        break;
-                    case 4:
-                        chance = 0.700;
-                        break;
-                    case 3:
-                        chance = 0.500;
-                        break;
-                    case 2:
-                        chance = 0.300;
-                        break;
-                    case 1:
-                        chance = 0.200;
-                        break;
-                    default:
-                        chance = 0.000;
-                        break;
-                }
-
-                if (chance < random || SkillAmount == 5)
+                if (skilluphelpers::ShouldStopExtraSkillUp(chance, random, SkillAmount))
                 {
                     break;
                 }
@@ -4179,39 +4137,25 @@ void TrySkillUP(CCharEntity* PChar, SKILLTYPE SkillID, uint8 lvl, bool forceSkil
                 SkillAmount += 1;
             }
             // convert to 10th units
-            CapSkill = CapSkill * 10;
+            CapSkill = skilluphelpers::CapSkillTenths(CapSkill);
 
-            int16 rovBonus = 1;
-
+            uint8 rovKeyItemCount = 0;
             for (const auto skillupIncreaseKeyItem : skillupIncreaseKeyItems)
             {
                 if (hasKeyItem(PChar, skillupIncreaseKeyItem))
                 {
-                    rovBonus += 1;
+                    rovKeyItemCount += 1;
                 }
             }
 
-            SkillAmount *= rovBonus;
-            if (SkillAmount > 9)
-            {
-                SkillAmount = 9;
-            }
+            SkillAmount = skilluphelpers::ApplyRovSkillAmount(SkillAmount, rovKeyItemCount);
+            SkillAmount = skilluphelpers::ApplySkillAmountMultiplier(SkillAmount, settings::get<uint8>("map.SKILLUP_AMOUNT_MULTIPLIER"));
 
-            // Do skill amount multiplier (Will only be applied if default setting is changed)
-            if (settings::get<uint8>("map.SKILLUP_AMOUNT_MULTIPLIER") > 1)
-            {
-                SkillAmount += (uint8)(SkillAmount * settings::get<uint8>("map.SKILLUP_AMOUNT_MULTIPLIER"));
-                if (SkillAmount > 9)
-                {
-                    SkillAmount = 9;
-                }
-            }
-
-            if (SkillAmount + CurSkill >= CapSkill)
+            if (skilluphelpers::HitsSkillCap(SkillAmount, CurSkill, CapSkill))
             {
                 // skill is capped. set blue flag
-                SkillAmount = CapSkill - CurSkill;
-                PChar->WorkingSkills.skill[SkillID] |= 0x8000;
+                SkillAmount = skilluphelpers::CapSkillAmountToCeiling(SkillAmount, CurSkill, CapSkill);
+                PChar->WorkingSkills.skill[SkillID] |= skilluphelpers::SkillCappedBlueFlag;
             }
 
             // check if skillup changed the bonus from sch arts
@@ -4224,19 +4168,14 @@ void TrySkillUP(CCharEntity* PChar, SKILLTYPE SkillID, uint8 lvl, bool forceSkil
             PChar->RealSkills.skill[SkillID] += SkillAmount;
             PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, SkillID, SkillAmount, MsgBasic::SkillGain);
 
-            if ((CurSkill / 10) < (CurSkill + SkillAmount) / 10) // if gone up a level
+            if (skilluphelpers::CrossedSkillLevel(CurSkill, SkillAmount)) // if gone up a level
             {
                 // Light/Dark Arts artificially boost certain skills
                 // if skillup happens when real skill is below the base for active arts, don't increment the shown skill
-                if (isArtsBonusActive(PChar, SkillID))
-                {
-                    // if the bonus is the same, our real skill was already past the base bonus, so increment the shown skill from skillup
-                    if (skillBonus == ArtsBonusSkill(PChar, SkillID))
-                    {
-                        PChar->WorkingSkills.skill[SkillID] += 1;
-                    }
-                }
-                else
+                if (skilluphelpers::ShouldIncrementWorkingSkill(
+                        isArtsBonusActive(PChar, SkillID),
+                        skillBonus,
+                        isArtsBonusActive(PChar, SkillID) ? ArtsBonusSkill(PChar, SkillID) : skillBonus))
                 {
                     PChar->WorkingSkills.skill[SkillID] += 1;
                 }
@@ -4256,12 +4195,6 @@ void TrySkillUP(CCharEntity* PChar, SKILLTYPE SkillID, uint8 lvl, bool forceSkil
         }
     }
 }
-
-/************************************************************************
- *                                                                       *
- *  When skill level gained check for weapon skill                       *
- *                                                                       *
- ************************************************************************/
 
 void CheckWeaponSkill(CCharEntity* PChar, uint8 skill)
 {
