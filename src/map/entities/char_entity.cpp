@@ -24,6 +24,7 @@
 #include "can_attack_capacity.h"
 #include "char_automaton_capacity.h"
 #include "char_bazaar_capacity.h"
+#include "char_combat_transition_capacity.h"
 #include "char_equipment_capacity.h"
 #include "char_equip_flush_capacity.h"
 #include "char_name_capacity.h"
@@ -1176,31 +1177,32 @@ void CCharEntity::OnChangeTarget(CBattleEntity* PNewTarget)
 {
     TracyZoneScoped;
 
-    battleutils::RelinquishClaim(this);
-    pushPacket<GP_SERV_COMMAND_ASSIST>(this, PNewTarget);
-    PLatentEffectContainer->CheckLatentsTargetChange();
+    charcombattransitionhelpers::ChangeTarget(
+        [&]() { battleutils::RelinquishClaim(this); },
+        [&]() { pushPacket<GP_SERV_COMMAND_ASSIST>(this, PNewTarget); },
+        [&]() { PLatentEffectContainer->CheckLatentsTargetChange(); });
 }
 
 void CCharEntity::OnEngage(CAttackState& state)
 {
     TracyZoneScoped;
 
-    CBattleEntity::OnEngage(state);
-    PLatentEffectContainer->CheckLatentsTargetChange();
-    this->m_charHistory.battlesFought++;
+    charcombattransitionhelpers::Engage(
+        m_charHistory.battlesFought,
+        [&]() { CBattleEntity::OnEngage(state); },
+        [&]() { PLatentEffectContainer->CheckLatentsTargetChange(); });
 }
 
 void CCharEntity::OnDisengage(CAttackState& state)
 {
     TracyZoneScoped;
 
-    battleutils::RelinquishClaim(this);
-    CBattleEntity::OnDisengage(state);
-    if (state.HasErrorMsg())
-    {
-        pushPacket(state.GetErrorMsg());
-    }
-    PLatentEffectContainer->CheckLatentsWeaponDraw(false);
+    charcombattransitionhelpers::Disengage(
+        [&]() { battleutils::RelinquishClaim(this); },
+        [&]() { CBattleEntity::OnDisengage(state); },
+        [&]() { return state.HasErrorMsg(); },
+        [&]() { pushPacket(state.GetErrorMsg()); },
+        [&](const bool weaponDrawn) { PLatentEffectContainer->CheckLatentsWeaponDraw(weaponDrawn); });
 }
 
 bool CCharEntity::CanAttack(CBattleEntity* PTarget, std::unique_ptr<CBasicPacket>& errMsg)
