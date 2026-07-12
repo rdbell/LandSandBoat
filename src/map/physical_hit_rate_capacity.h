@@ -307,6 +307,52 @@ inline auto AccuracyDistancePenalty(const bool isPC, const double distance, cons
     return static_cast<int>(std::fabs(std::floor(penaltyPercentage * (static_cast<double>(mainLvl) / 2.0))));
 }
 
+// Attack distance penalty pure (rangeddist.AttackPenalty).
+// sweetSpotStart/End before hitbox pad; cSkillMax is getMaxSkillLevel(mainLvl, WAR, EVASION).
+constexpr double MaxInnerAttackPenalty = 25.0;
+constexpr double MaxOuterAttackPenalty = 20.0;
+
+inline auto AttackDistancePenalty(const bool isPC, const double distance, const double sweetSpotStart, const double sweetSpotEnd, const double defenderHitbox, const double attackerHitbox, const int cSkillMax) -> int
+{
+    if (!isPC)
+    {
+        return 0;
+    }
+    const double pad           = defenderHitbox + attackerHitbox;
+    const double centroidStart = sweetSpotStart + pad;
+    const double centroidEnd   = sweetSpotEnd + pad;
+    double       penaltyPct    = 0.0;
+    if (distance < centroidStart)
+    {
+        // Linear from -maxInner at 0 to 0 at centroidStart
+        if (centroidStart <= 0.0)
+        {
+            penaltyPct = -MaxInnerAttackPenalty;
+        }
+        else
+        {
+            penaltyPct = -MaxInnerAttackPenalty + (MaxInnerAttackPenalty * (distance / centroidStart));
+        }
+    }
+    else if (distance <= centroidEnd)
+    {
+        penaltyPct = 0.0;
+    }
+    else
+    {
+        const double denom = MaxRangedDistance - centroidEnd;
+        if (denom <= 0.0)
+        {
+            penaltyPct = MaxOuterAttackPenalty;
+        }
+        else
+        {
+            penaltyPct = MaxOuterAttackPenalty * (distance - centroidEnd) / denom;
+        }
+    }
+    return static_cast<int>(std::fabs(std::ceil((penaltyPct / 100.0) * static_cast<double>(cSkillMax))));
+}
+
 // Sweet-spot defaults (yalms) matching xi.combat.ranged.sweetSpotDefaults + Yoichi.
 struct SweetSpot
 {

@@ -1881,11 +1881,23 @@ float GetRangedDamageRatio(CBattleEntity* PAttacker, CBattleEntity* PDefender, b
         applyLC = false;
     }
 
-    // Distance attack penalty (non-mobs only), pure accuracy sweet-spot path for ATT.
+    // Distance attack penalty (PC only in pure helper; Lua gates non-PC via isPC).
     int distancePenalty = 0;
-    if (PAttacker->objtype != TYPE_MOB)
+    if (isPC)
     {
-        distancePenalty = luautils::callGlobal<int>("xi.combat.ranged.attackDistancePenalty", PAttacker, PDefender);
+        const double dist     = distance(PAttacker->loc.p, PDefender->loc.p);
+        const auto   sweet    = physicalhitratehelpers::ResolveSweetSpot(
+            true, targ_weapon->getID(), weaponType, targ_weapon->getSubSkillType());
+        // cSkillMax = getMaxSkillLevel(mainLvl, WAR, EVASION)
+        const int cSkillMax = GetMaxSkill(SKILL_EVASION, JOB_WAR, PAttacker->GetMLevel());
+        distancePenalty     = physicalhitratehelpers::AttackDistancePenalty(
+            true,
+            dist,
+            sweet.start,
+            sweet.end,
+            static_cast<double>(PDefender->modelSize),
+            static_cast<double>(PAttacker->modelSize),
+            cSkillMax);
     }
 
     const double flourishBonus = 1.0; // isWeaponskill=false for this call site

@@ -195,6 +195,26 @@ auto Check() -> bool
         return false;
     }
 
+    // Attack distance penalty: PC outer edge at dist 25, centroidEnd 5, cSkill 200 → 20% of 200 = 40
+    if (AttackDistancePenalty(false, 25, 0, 5, 0, 0, 200) != 0)
+    {
+        return false;
+    }
+    if (AttackDistancePenalty(true, 5, 0, 5, 0, 0, 200) != 0) // sweet spot
+    {
+        return false;
+    }
+    // distance 25, centroidEnd 5 → full outer 20% → ceil(0.2*200)=40
+    if (AttackDistancePenalty(true, 25, 0, 5, 0, 0, 200) != 40)
+    {
+        return false;
+    }
+    // too close: distance 0, centroidStart 3 → -25% → abs(ceil(-0.25*200))=50
+    if (AttackDistancePenalty(true, 0, 3, 6, 0, 0, 200) != 50)
+    {
+        return false;
+    }
+
     return true;
 }
 } // namespace
