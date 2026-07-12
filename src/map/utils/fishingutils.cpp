@@ -22,6 +22,7 @@
 #include "fishingutils.h"
 
 #include "map/fishing_combat_capacity.h"
+#include "map/fishing_outcome_capacity.h"
 
 #include "common/database.h"
 #include "common/logging.h"
@@ -368,77 +369,15 @@ uint16 CalculateHeal(Legendary legendary, uint8 difficulty, rod_t* rod)
 
 uint8 CalculateRegen(uint8 fishingSkill, rod_t* rod, FISHINGCATCHTYPE catchType, uint8 sizeType, uint8 catchSkill, Legendary legendaryCatch, IsNM NM)
 {
-    uint8 regen     = 128;
-    uint8 drainDiff = 12;
-    uint8 regenDiff = 24;
-    uint8 regenMod  = 0;
-
-    if (rod->rodID == EBISU)
-    {
-        regenMod = 11;
-    }
-
-    // +1 for large fish/items/mobs if not using Ebisu
-    regen += (sizeType > FISHINGSIZETYPE_SMALL && rod->rodID != EBISU) ? 1 : 0;
-
-    // legendary rod bonuses
-    if (rod->rodID == LU_SHANG || rod->rodID == EBISU || rod->rodID == LU_SHANG_1 || rod->rodID == EBISU_1)
-    {
-        if (legendaryCatch)
-        {
-            regen -= (rod->rodID == LU_SHANG || rod->rodID == LU_SHANG_1) ? 1 : 2;
-        }
-
-        regen -= (catchType == FISHINGCATCHTYPE_MOB) ? 3 : 0;
-    }
-
-    // skill bonus/penalty
-    if (catchType <= FISHINGCATCHTYPE_MOB && !NM)
-    {
-        if (catchSkill <= (fishingSkill + regenMod - drainDiff))
-        {
-            float divMod = 1.5f;
-
-            if (rod->rodID == LU_SHANG || rod->rodID == LU_SHANG_1)
-            {
-                divMod = 1.4f;
-            }
-
-            if (rod->rodID == EBISU || rod->rodID == EBISU_1)
-            {
-                divMod = 1.3f;
-            }
-
-            regen -= std::min<uint8>((1 + (uint8)std::floor(((fishingSkill + regenMod) - drainDiff - catchSkill) / divMod)), regen);
-        }
-
-        if (catchType < FISHINGCATCHTYPE_ITEM && catchSkill - regenMod >= (fishingSkill + regenDiff))
-        {
-            float multMod = 0.5f;
-
-            if (rod->rodID == LU_SHANG || rod->rodID == LU_SHANG_1)
-            {
-                multMod = 0.45f;
-            }
-
-            if (rod->rodID == EBISU || rod->rodID == EBISU_1)
-            {
-                multMod = 0.4f;
-            }
-
-            regen += (1 + (uint8)std::floor((catchSkill - regenMod - (fishingSkill + regenDiff)) * multMod));
-        }
-    }
-
-    if (catchType == FISHINGCATCHTYPE_CHEST)
-    {
-        if (fishingSkill > catchSkill)
-        {
-            regen -= (uint8)std::floor((fishingSkill - catchSkill) / 5);
-        }
-    }
-
-    return std::clamp<uint8>(regen, 0, 182);
+    // Pure regen with rod ID inject (fishing_outcome_capacity.h; slice 1617).
+    return fishingoutcomehelpers::CalculateRegen(
+        fishingSkill,
+        rod->rodID,
+        static_cast<uint8>(catchType),
+        sizeType,
+        catchSkill,
+        static_cast<bool>(legendaryCatch),
+        static_cast<bool>(NM));
 }
 
 uint8 CalculateHookTime(CCharEntity* PChar, Legendary legendary, uint32 legendary_flags, uint8 sizeType, rod_t* rod, bait_t* bait)
@@ -575,197 +514,58 @@ uint16 CalculateHookChance(uint8 fishingSkill, fish_t* fish, bait_t* bait, rod_t
 
 uint8 CalculateDelay(CCharEntity* PChar, uint8 baseDelay, uint8 sizeType, rod_t* rod, uint8 count)
 {
-    float multiplier = 1.0f + (0.1f * (count - 1.0f));
-    uint8 delay      = (uint8)std::floor(baseDelay * multiplier);
-
-    if (sizeType == FISHINGSIZETYPE_SMALL)
-    {
-        delay += rod->smDelayBonus;
-    }
-    else
-    {
-        delay += rod->lgDelayBonus;
-    }
-
-    if (PChar->getMod(Mod::PENGUIN_RING_EFFECT) > 0)
-    {
-        delay += 2;
-    }
-
-    return std::min<uint8>(15, delay);
+    // Pure delay with penguin-ring inject (fishing_outcome_capacity.h; slice 1617).
+    const auto rodView = fishingoutcomehelpers::MakeRodView(
+        rod->rodID, rod->sizeType, rod->minRank, rod->maxRank, rod->smDelayBonus, rod->smMoveBonus, rod->lgDelayBonus, rod->lgMoveBonus, rod->legendary,
+        rod->breakable);
+    return fishingoutcomehelpers::CalculateDelay(baseDelay, sizeType, rodView, count, PChar->getMod(Mod::PENGUIN_RING_EFFECT) > 0);
 }
 
 uint8 CalculateMovement(CCharEntity* PChar, uint8 baseMove, uint8 sizeType, rod_t* rod, uint8 count)
 {
-    float multiplier = 1.0f + (0.1f * (count - 1.0f));
-    uint8 movement   = (uint8)std::floor(baseMove * multiplier);
-
-    if (sizeType == FISHINGSIZETYPE_SMALL)
-    {
-        movement += rod->smMoveBonus;
-    }
-    else
-    {
-        movement += rod->lgMoveBonus;
-    }
-
-    if (PChar->getMod(Mod::PENGUIN_RING_EFFECT) > 0)
-    {
-        movement += 2;
-    }
-
-    return std::min<uint8>(15, movement);
+    // Pure movement with penguin-ring inject (fishing_outcome_capacity.h; slice 1617).
+    const auto rodView = fishingoutcomehelpers::MakeRodView(
+        rod->rodID, rod->sizeType, rod->minRank, rod->maxRank, rod->smDelayBonus, rod->smMoveBonus, rod->lgDelayBonus, rod->lgMoveBonus, rod->legendary,
+        rod->breakable);
+    return fishingoutcomehelpers::CalculateMovement(baseMove, sizeType, rodView, count, PChar->getMod(Mod::PENGUIN_RING_EFFECT) > 0);
 }
 
 lsbret_t CalculateLoseChance(uint8 catchType, uint8 fishingSkill, uint8 maxSkill, uint8 sizeType, bool legendary, uint8 ranking, rod_t* rod)
 {
-    lsbret_t lsb;
-    uint8    tooBigChance   = 0;
-    uint8    tooSmallChance = 0;
-    uint8    lowSkillChance = 0;
-    lsb.failReason          = FISHINGFAILTYPE_NONE;
-    lsb.chance              = 0;
-
-    if (!rod->legendary)
-    {
-        if (sizeType > rod->sizeType && ranking > rod->maxRank)
-        {
-            tooBigChance = 50;
-            if (fishingSkill < maxSkill)
-            {
-                tooBigChance += maxSkill - fishingSkill;
-            }
-
-            if (fishingSkill > maxSkill)
-            {
-                tooBigChance -= fishingSkill - maxSkill;
-            }
-        }
-        else if (sizeType < rod->sizeType && ranking < rod->minRank)
-        {
-            tooSmallChance = 50;
-            if (fishingSkill < maxSkill)
-            {
-                tooSmallChance += maxSkill - fishingSkill;
-            }
-
-            if (fishingSkill > maxSkill)
-            {
-                tooSmallChance -= std::min<uint8>(fishingSkill - maxSkill, tooSmallChance);
-            }
-        }
-    }
-
-    if (catchType < FISHINGCATCHTYPE_ITEM && fishingSkill + 7 < maxSkill)
-    {
-        uint8 diff     = maxSkill - (fishingSkill + 7);
-        float diffAdd  = diff * 0.8f;
-        lowSkillChance = (uint8)std::floor(diffAdd); // min 5, max 85
-    }
-
-    if (tooBigChance > 0 && tooBigChance > lowSkillChance)
-    {
-        lsb.failReason = FISHINGFAILTYPE_LOST_TOOBIG;
-        lsb.chance     = std::clamp<uint8>(tooBigChance, 0, 50);
-    }
-    else if (tooSmallChance > 0 && tooSmallChance > lowSkillChance)
-    {
-        lsb.failReason = FISHINGFAILTYPE_LOST_TOOSMALL;
-        lsb.chance     = std::clamp<uint8>(tooSmallChance, 0, 50);
-    }
-    else if (catchType < FISHINGCATCHTYPE_ITEM && lowSkillChance > 0)
-    {
-        lsb.failReason = FISHINGFAILTYPE_LOST_LOWSKILL;
-        lsb.chance     = std::clamp<uint8>(lowSkillChance, 0, 55);
-    }
-
+    // Pure lose chance (fishing_outcome_capacity.h; slice 1617).
+    const auto rodView = fishingoutcomehelpers::MakeRodView(
+        rod->rodID, rod->sizeType, rod->minRank, rod->maxRank, rod->smDelayBonus, rod->smMoveBonus, rod->lgDelayBonus, rod->lgMoveBonus, rod->legendary,
+        rod->breakable);
+    const auto pure = fishingoutcomehelpers::CalculateLoseChance(catchType, fishingSkill, maxSkill, sizeType, legendary, ranking, rodView);
+    lsbret_t   lsb;
+    lsb.failReason = pure.failReason;
+    lsb.chance     = pure.chance;
     return lsb;
 }
 
 lsbret_t CalculateSnapChance(uint8 catchType, uint8 fishingSkill, uint8 maxSkill, uint8 sizeType, bool legendary, uint8 ranking, rod_t* rod)
 {
-    lsbret_t lsb;
-    uint8    levelDiffBonus  = 0;
-    uint8    sizePenalty     = 0;
-    uint8    legendaryBonus  = 0;
-    uint8    totalDurability = 0;
-    lsb.failReason           = FISHINGFAILTYPE_NONE;
-    lsb.chance               = 0;
-
-    if (fishingSkill + 10 > maxSkill)
-    {
-        levelDiffBonus = 2;
-    }
-
-    if (!rod->legendary && sizeType > rod->sizeType)
-    {
-        sizePenalty = 2;
-    }
-
-    if (legendary)
-    {
-        if (!rod->legendary)
-        {
-            sizePenalty += 3;
-        }
-        else
-        {
-            legendaryBonus = 1;
-        }
-    }
-
-    totalDurability = rod->maxRank + levelDiffBonus + legendaryBonus - sizePenalty;
-
-    if (ranking > totalDurability)
-    {
-        uint8 strDuraDiff = ranking - totalDurability;
-        lsb.failReason    = FISHINGFAILTYPE_LINESNAP;
-        lsb.chance        = std::clamp<uint8>((uint8)std::floor(strDuraDiff * 8.5f), 0, 55);
-    }
-
+    // Pure snap chance (fishing_outcome_capacity.h; slice 1617).
+    const auto rodView = fishingoutcomehelpers::MakeRodView(
+        rod->rodID, rod->sizeType, rod->minRank, rod->maxRank, rod->smDelayBonus, rod->smMoveBonus, rod->lgDelayBonus, rod->lgMoveBonus, rod->legendary,
+        rod->breakable);
+    const auto pure = fishingoutcomehelpers::CalculateSnapChance(catchType, fishingSkill, maxSkill, sizeType, legendary, ranking, rodView);
+    lsbret_t   lsb;
+    lsb.failReason = pure.failReason;
+    lsb.chance     = pure.chance;
     return lsb;
 }
 
 lsbret_t CalculateBreakChance(uint8 catchType, uint8 fishingSkill, uint8 maxSkill, uint8 sizeType, bool legendary, uint8 ranking, rod_t* rod)
 {
-    lsbret_t lsb;
-    uint8    levelDiffBonus = 0;
-    uint8    legendaryBonus = 0;
-    uint8    sizePenalty    = 0;
-    lsb.failReason          = FISHINGFAILTYPE_NONE;
-    lsb.chance              = 0;
-
-    if (!rod->breakable)
-    {
-        return lsb;
-    }
-
-    if (fishingSkill + 10 > maxSkill)
-    {
-        levelDiffBonus = 2;
-    }
-
-    if (!rod->legendary && sizeType > rod->sizeType)
-    {
-        sizePenalty = 2;
-    }
-    else if (rod->legendary && sizeType == FISHINGSIZETYPE_LARGE)
-    {
-        legendaryBonus = 1;
-    }
-
-    if (!rod->legendary && legendary)
-    {
-        sizePenalty = 5;
-    }
-
-    if (ranking > rod->maxRank + levelDiffBonus + legendaryBonus)
-    {
-        uint8 strDuraDiff = ranking - (rod->maxRank + levelDiffBonus + legendaryBonus);
-        lsb.failReason    = FISHINGFAILTYPE_RODBREAK;
-        lsb.chance        = std::clamp<uint8>((uint8)std::floor((strDuraDiff + sizePenalty) * 1.3f), 0, 55);
-    }
-
+    // Pure break chance (fishing_outcome_capacity.h; slice 1617).
+    const auto rodView = fishingoutcomehelpers::MakeRodView(
+        rod->rodID, rod->sizeType, rod->minRank, rod->maxRank, rod->smDelayBonus, rod->smMoveBonus, rod->lgDelayBonus, rod->lgMoveBonus, rod->legendary,
+        rod->breakable);
+    const auto pure = fishingoutcomehelpers::CalculateBreakChance(catchType, fishingSkill, maxSkill, sizeType, legendary, ranking, rodView);
+    lsbret_t   lsb;
+    lsb.failReason = pure.failReason;
+    lsb.chance     = pure.chance;
     return lsb;
 }
 
