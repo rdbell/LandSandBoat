@@ -792,6 +792,8 @@ set(SOURCES
     test_pet_ability_table_1514.cpp
     test_keyitem_spell_1515.h
     test_keyitem_spell_1515.cpp
+    test_equip_policy_1516.h
+    test_equip_policy_1516.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

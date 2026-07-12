@@ -105,6 +105,7 @@
 #include "ability_table_capacity.h"
 #include "pet_ability_table_capacity.h"
 #include "keyitem_spell_capacity.h"
+#include "equip_policy_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -2156,13 +2157,13 @@ void DoTrade(CCharEntity* PChar, CCharEntity* PTarget)
 
 void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
 {
-    if (PChar == nullptr)
+    if (equippolicyhelpers::ShouldRejectNullChar(PChar == nullptr))
     {
         ShowWarning("PChar was null.");
         return;
     }
 
-    if (equipSlotID > 15)
+    if (!equippolicyhelpers::IsEquipSlotIDValid(equipSlotID))
     {
         ShowWarning("Invalid slot ID. Must be between 0 and 15.");
         return;
@@ -2170,18 +2171,18 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
 
     CItem* PItem = PChar->getEquip((SLOTTYPE)equipSlotID);
 
-    if ((PItem != nullptr) && PItem->isType(ITEM_EQUIPMENT))
+    if (equippolicyhelpers::HasSlotEquipped(PItem != nullptr, PItem != nullptr && PItem->isType(ITEM_EQUIPMENT)))
     {
         // if removeSlotLookID is available it should be prioritized as it will encompass a larger set of slots
         auto removeSlotLookID = ((CItemEquipment*)PItem)->getRemoveSlotLookId();
-        auto removeSlotID     = removeSlotLookID > 0 ? removeSlotLookID : ((CItemEquipment*)PItem)->getRemoveSlotId();
+        auto removeSlotID     = equippolicyhelpers::PreferRemoveSlotLookID(removeSlotLookID, ((CItemEquipment*)PItem)->getRemoveSlotId());
 
         // When unequipping an item, revert all associated look slots to either default or the item which is equipped
         for (auto i = 0u; i < sizeof(removeSlotID) * 8; ++i)
         {
             if (removeSlotID & (1 << i))
             {
-                if (i >= SLOT_HEAD && i <= SLOT_FEET)
+                if (equippolicyhelpers::IsArmorLookSlot(static_cast<uint8>(i)))
                 {
                     int             itemLook     = 0;
                     CItemEquipment* equippedItem = PChar->getEquip((SLOTTYPE)i);
@@ -2358,14 +2359,14 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
 bool hasSlotEquipped(CCharEntity* PChar, uint8 equipSlotID)
 {
     CItem* PItem = PChar->getEquip((SLOTTYPE)equipSlotID);
-    return PItem != nullptr && PItem->isType(ITEM_EQUIPMENT);
+    return equippolicyhelpers::HasSlotEquipped(PItem != nullptr, PItem != nullptr && PItem->isType(ITEM_EQUIPMENT));
 }
 
 void RemoveSub(CCharEntity* PChar)
 {
     CItemEquipment* PItem = PChar->getEquip(SLOT_SUB);
 
-    if (PItem != nullptr && PItem->isType(ITEM_EQUIPMENT))
+    if (equippolicyhelpers::RemoveSubShouldUnequip(PItem != nullptr, PItem != nullptr && PItem->isType(ITEM_EQUIPMENT)))
     {
         UnequipItem(PChar, SLOT_SUB);
     }
@@ -2388,25 +2389,35 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
         return false;
     }
 
-    if ((PChar->m_EquipBlock & (1 << equipSlotID)) || !(PItem->getJobs() & (1 << (PChar->GetMJob() - 1))) ||
-        (PItem->getSuperiorLevel() > PChar->getMod(Mod::SUPERIOR_LEVEL)) ||
-        (PItem->getReqLvl() > (settings::get<bool>("map.DISABLE_GEAR_SCALING") ? PChar->GetMLevel() : PChar->jobs.job[PChar->GetMJob()])) ||
-        !PItem->isEquippableByRace(PChar->look.race))
     {
-        return false;
+        const auto effectiveLevel = checkequipmenthelpers::EffectiveLevelForGearReq(
+            settings::get<bool>("map.DISABLE_GEAR_SCALING"),
+            PChar->GetMLevel(),
+            PChar->jobs.job[PChar->GetMJob()]);
+        if (!equippolicyhelpers::IsEquipArmorEligible(
+                equippolicyhelpers::IsEquipSlotBlocked(PChar->m_EquipBlock, equipSlotID),
+                equippolicyhelpers::IsJobAllowedForItem(PItem->getJobs(), static_cast<uint8>(PChar->GetMJob())),
+                equippolicyhelpers::IsSuperiorLevelOK(PItem->getSuperiorLevel(), PChar->getMod(Mod::SUPERIOR_LEVEL)),
+                equippolicyhelpers::IsReqLevelOK(PItem->getReqLvl(), effectiveLevel),
+                PItem->isEquippableByRace(PChar->look.race)))
+        {
+            return false;
+        }
     }
 
     if (equipSlotID == SLOT_MAIN)
     {
-        if (!(slotID == PItem->getSlotID() && oldItem && (oldItem->isType(ITEM_WEAPON) && PItem->isType(ITEM_WEAPON)) &&
-              (static_cast<CItemWeapon*>(PItem)->isTwoHanded() && static_cast<CItemWeapon*>(oldItem)->isTwoHanded())))
+        CItemEquipment* PSubItem = PChar->getEquip(SLOT_SUB);
+        if (equippolicyhelpers::ShouldRemoveSubOnMainEquip(
+                slotID == PItem->getSlotID(),
+                oldItem != nullptr && oldItem->isType(ITEM_WEAPON),
+                PItem->isType(ITEM_WEAPON),
+                oldItem != nullptr && oldItem->isType(ITEM_WEAPON) && static_cast<CItemWeapon*>(oldItem)->isTwoHanded(),
+                PItem->isType(ITEM_WEAPON) && static_cast<CItemWeapon*>(PItem)->isTwoHanded(),
+                PSubItem != nullptr && PSubItem->isType(ITEM_EQUIPMENT),
+                PSubItem != nullptr && PSubItem->IsShield()))
         {
-            CItemEquipment* PSubItem = PChar->getEquip(SLOT_SUB);
-
-            if (PSubItem != nullptr && PSubItem->isType(ITEM_EQUIPMENT) && (!PSubItem->IsShield()))
-            {
-                RemoveSub(PChar);
-            }
+            RemoveSub(PChar);
         }
     }
 
@@ -3250,91 +3261,40 @@ void LoadJobChangeGear(CCharEntity* PChar)
 
 void EquipItem(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 containerID)
 {
-    if (PChar == nullptr || PChar->getStorage(containerID) == nullptr)
+    if (equippolicyhelpers::ShouldRejectNullCharOrStorage(PChar == nullptr, PChar == nullptr || PChar->getStorage(containerID) == nullptr))
     {
         return;
     }
 
     CItemEquipment* PItem = dynamic_cast<CItemEquipment*>(PChar->getStorage(containerID)->GetItem(slotID));
 
-    if (PItem && PItem == PChar->getEquip(static_cast<SLOTTYPE>(equipSlotID)))
+    if (equippolicyhelpers::IsAlreadyEquippedInSlot(PItem != nullptr, PItem != nullptr && PItem == PChar->getEquip(static_cast<SLOTTYPE>(equipSlotID))))
     {
         return;
     }
 
-    // slotID of zero = unequip
-    if (slotID > 0)
+    // slotID of zero = unequip; skip if equipping same item already in paired dual slot
+    if (!equippolicyhelpers::IsUnequipRequest(slotID))
     {
-        // skip the rest of the function if we are trying to equip the same item to a different slot
-        switch (static_cast<SLOTTYPE>(equipSlotID))
+        const auto paired = equippolicyhelpers::PairedSlotForDuplicateCheck(equipSlotID);
+        if (paired != 0xFF)
         {
-            case SLOT_MAIN:
+            auto* PPaired = PChar->getEquip(static_cast<SLOTTYPE>(paired));
+            if (equippolicyhelpers::ShouldSkipCrossSlotSameItem(slotID, equipSlotID, PItem != nullptr && PItem == PPaired))
             {
-                auto PSub = PChar->getEquip(SLOT_SUB);
-                if (PItem == PSub)
-                {
-                    return;
-                }
-                break;
+                return;
             }
-            case SLOT_SUB:
-            {
-                auto PMain = PChar->getEquip(SLOT_MAIN);
-                if (PItem == PMain)
-                {
-                    return;
-                }
-                break;
-            }
-            case SLOT_EAR1:
-            {
-                auto PEar2 = PChar->getEquip(SLOT_EAR2);
-                if (PItem == PEar2)
-                {
-                    return;
-                }
-                break;
-            }
-            case SLOT_EAR2:
-            {
-                auto PEar1 = PChar->getEquip(SLOT_EAR1);
-                if (PItem == PEar1)
-                {
-                    return;
-                }
-                break;
-            }
-            case SLOT_RING1:
-            {
-                auto PRing2 = PChar->getEquip(SLOT_RING2);
-                if (PItem == PRing2)
-                {
-                    return;
-                }
-                break;
-            }
-            case SLOT_RING2:
-            {
-                auto PRing1 = PChar->getEquip(SLOT_RING1);
-                if (PItem == PRing1)
-                {
-                    return;
-                }
-                break;
-            }
-            default:
-                break;
         }
     }
 
     // if player attempts to change their ranged weapon during a ranged state then prevent equip
     // this prevents players from starting a RA with short delay x-bow and ending with high dmg longbow
-    if (equipSlotID == SLOT_RANGED || (equipSlotID == SLOT_AMMO && !PChar->getEquip(SLOT_RANGED)))
+    if (equippolicyhelpers::ShouldBlockRangedEquipDuringRA(
+            equipSlotID,
+            PChar->getEquip(SLOT_RANGED) != nullptr,
+            PChar->PAI && PChar->PAI->IsCurrentState<CRangeState>()))
     {
-        if (PChar->PAI && PChar->PAI->IsCurrentState<CRangeState>())
-        {
-            return;
-        }
+        return;
     }
 
     if (equipSlotID == SLOT_SUB && PItem && !PItem->IsShield())
@@ -3342,7 +3302,12 @@ void EquipItem(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 contai
         auto PItemWeapon = dynamic_cast<CItemWeapon*>(PItem);
         auto PMainItem   = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_MAIN));
 
-        if (PItemWeapon && PItemWeapon->getSkillType() == SKILL_NONE && (!PMainItem || !PMainItem->isTwoHanded()))
+        if (equippolicyhelpers::ShouldRequire2HForGrip(
+                true,
+                false,
+                PItemWeapon != nullptr,
+                PItemWeapon ? PItemWeapon->getSkillType() : 0,
+                PMainItem != nullptr && PMainItem->isTwoHanded()))
         {
             PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::Requires2HForGrip);
             return;
@@ -3351,7 +3316,7 @@ void EquipItem(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 contai
         if (PItemWeapon && PItemWeapon->getSkillType() != SKILL_NONE)
         {
             // Don't attempt to equip item in equip menu if you don't have dual wield trait (client sees BLU, THF, DNC, NIN, /DNC or /NIN etc as able to equip sub weapons even if sub is too low or no trait on BLU)
-            if (!PChar->hasTrait(TRAIT_DUAL_WIELD))
+            if (equippolicyhelpers::ShouldRequireDualWield(true, false, true, PItemWeapon->getSkillType(), PChar->hasTrait(TRAIT_DUAL_WIELD)))
             {
                 PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, PItemWeapon->getID(), 0, MsgBasic::NeedDualWield);
                 return;
@@ -3359,7 +3324,13 @@ void EquipItem(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 contai
 
             // Don't allow Dual Wield injections to offhand when you dont have a mainahdn (this was visual only)
             // Don't allow non-shields in offhand with no weapon
-            if ((PMainItem && PMainItem->isTwoHanded()) || !PMainItem)
+            if (equippolicyhelpers::ShouldBlockOffhandDualWield(
+                    true,
+                    false,
+                    true,
+                    PItemWeapon->getSkillType(),
+                    PMainItem != nullptr,
+                    PMainItem != nullptr && PMainItem->isTwoHanded()))
             {
                 return;
             }
@@ -3367,19 +3338,19 @@ void EquipItem(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 contai
 
         // Disallow everything but shields if you're using H2H
         // Equipping a shield will unequip the H2H weapon and you will go barefisted with a shield
-        if (PMainItem && PMainItem->getSkillType() == SKILL_HAND_TO_HAND)
+        if (equippolicyhelpers::ShouldBlockSubWithH2HMain(true, false, PMainItem != nullptr && PMainItem->getSkillType() == SKILL_HAND_TO_HAND))
         {
             return;
         }
     }
 
-    if (slotID == 0)
+    if (equippolicyhelpers::IsUnequipRequest(slotID))
     {
         CItemEquipment* PSubItem = PChar->getEquip(SLOT_SUB);
 
         UnequipItem(PChar, equipSlotID);
 
-        if (equipSlotID == 0 && PSubItem && !PSubItem->IsShield())
+        if (equippolicyhelpers::ShouldRemoveSubOnMainUnequip(equipSlotID, PSubItem != nullptr, PSubItem != nullptr && PSubItem->IsShield()))
         {
             RemoveSub(PChar);
         }
@@ -3434,10 +3405,14 @@ void EquipItem(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 contai
         }
     }
 
-    if (equipSlotID == SLOT_MAIN || equipSlotID == SLOT_RANGED || equipSlotID == SLOT_SUB)
+    if (equippolicyhelpers::ShouldClearTPOnWeaponEquip(
+            equipSlotID,
+            PItem != nullptr,
+            PItem != nullptr && PItem->isType(ITEM_EQUIPMENT),
+            (PItem != nullptr && PItem->isType(ITEM_EQUIPMENT)) ? static_cast<CItemWeapon*>(PItem)->getSkillType() : 0,
+            SKILL_STRING_INSTRUMENT,
+            SKILL_WIND_INSTRUMENT))
     {
-        if (!PItem || !PItem->isType(ITEM_EQUIPMENT) ||
-            (((CItemWeapon*)PItem)->getSkillType() != SKILL_STRING_INSTRUMENT && ((CItemWeapon*)PItem)->getSkillType() != SKILL_WIND_INSTRUMENT))
         {
             // If the weapon ISN'T a wind based instrument or a string based instrument
             PChar->health.tp = 0;
@@ -4473,7 +4448,7 @@ bool canUseWeaponSkill(CCharEntity* PChar, uint16 wsid)
         return false;
     }
 
-    return PChar->GetSkill(PWeaponSkill->getType()) >= PWeaponSkill->getSkillLevel();
+    return equippolicyhelpers::CanUseWeaponSkillByLevel(PChar->GetSkill(PWeaponSkill->getType()), PWeaponSkill->getSkillLevel());
 }
 
 /************************************************************************
@@ -4484,7 +4459,7 @@ bool canUseWeaponSkill(CCharEntity* PChar, uint16 wsid)
 
 int32 hasTrait(CCharEntity* PChar, uint16 TraitID)
 {
-    if (PChar->objtype != TYPE_PC)
+    if (equippolicyhelpers::ShouldRejectNonPCTrait(PChar->objtype == TYPE_PC))
     {
         ShowError("charutils::hasTrait Attempt to reference a trait from a non-character entity: %s %i", PChar->name.c_str(), PChar->id);
         return 0;
@@ -4494,7 +4469,7 @@ int32 hasTrait(CCharEntity* PChar, uint16 TraitID)
 
 int32 addTrait(CCharEntity* PChar, uint16 TraitID)
 {
-    if (PChar->objtype != TYPE_PC)
+    if (equippolicyhelpers::ShouldRejectNonPCTrait(PChar->objtype == TYPE_PC))
     {
         ShowError("charutils::addTrait Attempt to reference a trait from a non-character entity: %s %i", PChar->name.c_str(), PChar->id);
         return 0;
@@ -4504,7 +4479,7 @@ int32 addTrait(CCharEntity* PChar, uint16 TraitID)
 
 int32 delTrait(CCharEntity* PChar, uint16 TraitID)
 {
-    if (PChar->objtype != TYPE_PC)
+    if (equippolicyhelpers::ShouldRejectNonPCTrait(PChar->objtype == TYPE_PC))
     {
         ShowError("charutils::delTrait Attempt to reference a trait from a non-character entity: %s %i", PChar->name.c_str(), PChar->id);
         return 0;
