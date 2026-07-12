@@ -47,6 +47,7 @@
 #include "char_weaponskill_primary_capacity.h"
 #include "char_cast_finish_capacity.h"
 #include "char_immanence_capacity.h"
+#include "char_cast_skillup_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1361,22 +1362,9 @@ void CCharEntity::OnCastFinished(CMagicState& state, action_t& action)
         {
             SKILLTYPE Skilltype = (SKILLTYPE)PItem->getSkillType();
 
-            switch (PSpell->getSkillType())
+            if (charcastskilluphelpers::ShouldSkillUpRanged(static_cast<uint8>(PSpell->getSkillType()), static_cast<uint8>(Skilltype)))
             {
-                case SKILL_GEOMANCY:
-                    if (Skilltype == SKILL_HANDBELL)
-                    {
-                        charutils::TrySkillUP(this, Skilltype, PTarget->GetMLevel());
-                    }
-                    break;
-                case SKILL_SINGING:
-                    if (Skilltype == SKILL_STRING_INSTRUMENT || Skilltype == SKILL_WIND_INSTRUMENT || Skilltype == SKILL_SINGING)
-                    {
-                        charutils::TrySkillUP(this, Skilltype, PTarget->GetMLevel());
-                    }
-                    break;
-                default:
-                    break;
+                charutils::TrySkillUP(this, Skilltype, PTarget->GetMLevel());
             }
         }
     }
