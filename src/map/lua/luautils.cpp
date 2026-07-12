@@ -76,7 +76,9 @@
 #include "action/action.h"
 #include "battlefield.h"
 #include "can_use_spell_capacity.h"
+#include "gear_sets_capacity.h"
 #include "job_points.h"
+#include "items/item_equipment.h"
 #include "spell.h"
 #include "conquest_system.h"
 #include "daily_system.h"
@@ -3208,18 +3210,41 @@ void CheckForGearSet(CBaseEntity* PTarget)
 {
     TracyZoneScoped;
 
-    auto checkForGearSet = lua["xi"]["gear_sets"]["checkForGearSet"];
-    if (!checkForGearSet.valid())
+    auto* PChar = dynamic_cast<CCharEntity*>(PTarget);
+    if (PChar == nullptr)
     {
         return;
     }
 
-    auto result = checkForGearSet(PTarget);
-    if (!result.valid())
+    // clearGearSetMods
+    for (const auto& gearSetMod : PChar->m_GearSetMods)
     {
-        sol::error err = result;
-        ShowError("luautils::CheckForGearSet: %s", err.what());
-        ReportErrorToPlayer(PTarget, err.what());
+        PChar->delModifier(gearSetMod.modId, gearSetMod.modValue);
+    }
+    PChar->m_GearSetMods.clear();
+
+    std::vector<gearsethelpers::EquippedPiece> pieces;
+    pieces.reserve(gearsethelpers::MaxSlotID + 1);
+    for (std::uint8_t slot = 0; slot <= gearsethelpers::MaxSlotID; ++slot)
+    {
+        if (auto* equip = dynamic_cast<CItemEquipment*>(PChar->getEquip(static_cast<SLOTTYPE>(slot))))
+        {
+            pieces.push_back(gearsethelpers::EquippedPiece{
+                static_cast<std::uint16_t>(equip->getID()),
+                equip->getReqLvl(),
+            });
+        }
+    }
+
+    const auto grants = gearsethelpers::PlanFromEquipped(pieces, PChar->GetMLevel());
+    for (const auto& g : grants)
+    {
+        GearSetMod_t gearSetMod{};
+        gearSetMod.setId    = g.setID;
+        gearSetMod.modId    = static_cast<Mod>(g.modID);
+        gearSetMod.modValue = static_cast<uint16>(g.value);
+        PChar->m_GearSetMods.emplace_back(gearSetMod);
+        PChar->addModifier(gearSetMod.modId, gearSetMod.modValue);
     }
 }
 
