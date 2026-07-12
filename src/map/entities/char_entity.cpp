@@ -37,6 +37,7 @@
 #include "char_event_queue_capacity.h"
 #include "char_event_skip_capacity.h"
 #include "char_highest_job_capacity.h"
+#include "char_moghancement_state_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
@@ -2328,7 +2329,7 @@ uint8 CCharEntity::getHighestJobLevel()
 
 bool CCharEntity::hasMoghancement(uint16 moghancementID) const
 {
-    return m_moghancementID == moghancementID;
+    return charmoghancementstatehelpers::Has(m_moghancementID, moghancementID);
 }
 
 void CCharEntity::UpdateMoghancement()
@@ -2448,10 +2449,10 @@ void CCharEntity::UpdateMoghancement()
 
 void CCharEntity::SetMoghancement(uint16 moghancementID)
 {
-    // Remove the previous Moghancement first
-    changeMoghancement(m_moghancementID, false);
-    changeMoghancement(moghancementID, true);
-    m_moghancementID = moghancementID;
+    charmoghancementstatehelpers::Set(
+        m_moghancementID,
+        moghancementID,
+        [&](const uint16 id, const bool adding) { changeMoghancement(id, adding); });
 }
 
 void CCharEntity::changeMoghancement(uint16 moghancementID, bool isAdding)
