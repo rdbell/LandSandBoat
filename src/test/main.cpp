@@ -477,6 +477,7 @@ auto runSkillchainForm1558SelfTests() -> bool;
 auto runFSTR1559SelfTests() -> bool;
 auto runEnmityWSUse1560SelfTests() -> bool;
 auto runSkillCap1561SelfTests() -> bool;
+auto runTPReturn1562SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1164,6 +1165,7 @@ namespace
         ok = runFSTR1559SelfTests() && ok;
         ok = runEnmityWSUse1560SelfTests() && ok;
         ok = runSkillCap1561SelfTests() && ok;
+        ok = runTPReturn1562SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

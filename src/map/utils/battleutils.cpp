@@ -66,6 +66,7 @@
 #include "enmity_mod_capacity.h"
 #include "weaponskill_use_capacity.h"
 #include "skill_cap_capacity.h"
+#include "tp_return_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -1748,15 +1749,21 @@ float GetRangedDamageRatio(CBattleEntity* PAttacker, CBattleEntity* PDefender, b
 
 int16 CalculateBaseTP(CBattleEntity* PEntity, int32 delay)
 {
-    int16 baseTPReturn = 0;
-
-    auto calculateBaseTPGainFunc = lua["xi"]["combat"]["tp"]["calculateTPReturn"];
-    if (calculateBaseTPGainFunc.valid())
+    // Mirrors xi.combat.tp.calculateTPReturn entity classification + delay bands.
+    bool isMob          = false;
+    bool isCharmedPCPet = false;
+    if (PEntity != nullptr)
     {
-        baseTPReturn = calculateBaseTPGainFunc(PEntity, delay);
+        isMob = PEntity->objtype == TYPE_MOB;
+        if (isMob)
+        {
+            const bool hasPCMaster = PEntity->PMaster != nullptr && PEntity->PMaster->objtype == TYPE_PC;
+            isCharmedPCPet         = tpreturnhelpers::IsCharmedPCPet(true, PEntity->isCharmed, hasPCMaster);
+        }
     }
 
-    return baseTPReturn;
+    const bool usePC = tpreturnhelpers::UsePCOrPetTPFormula(isMob, isCharmedPCPet);
+    return tpreturnhelpers::CalculateTPReturn(usePC, delay);
 }
 
 auto GetBaseDelay(CBattleEntity* PEntity) -> uint16
