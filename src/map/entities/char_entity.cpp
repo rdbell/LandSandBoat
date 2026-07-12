@@ -26,6 +26,7 @@
 #include "char_automaton_capacity.h"
 #include "char_bazaar_capacity.h"
 #include "char_combat_transition_capacity.h"
+#include "char_death_homepoint_capacity.h"
 #include "char_equipment_capacity.h"
 #include "char_equip_flush_capacity.h"
 #include "char_error_delivery_capacity.h"
@@ -1923,8 +1924,9 @@ void CCharEntity::OnDeathTimer()
 {
     TracyZoneScoped;
 
-    charutils::SetCharVar(this, "expLost", 0);
-    requestedWarp = true; // zone entities will warp us on the next tick
+    chardeathhomepointhelpers::Expire(
+        [&]() { charutils::SetCharVar(this, "expLost", 0); },
+        [&]() { requestedWarp = true; }); // zone entities will warp us on the next tick
 }
 
 void CCharEntity::OnRaise()
@@ -2278,17 +2280,23 @@ void CCharEntity::Raise()
 
 void CCharEntity::SetDeathTime(timer::time_point timestamp)
 {
-    m_DeathTimestamp = timestamp;
+    chardeathhomepointhelpers::SetDeathTime(m_DeathTimestamp, timestamp);
 }
 
 timer::duration CCharEntity::GetTimeSinceDeath() const
 {
-    return m_DeathTimestamp > timer::time_point::min() ? timer::now() - m_DeathTimestamp : 0s;
+    return chardeathhomepointhelpers::TimeSinceDeath(
+        m_DeathTimestamp,
+        timer::time_point::min(),
+        []() { return timer::now(); },
+        timer::duration{ 0 });
 }
 
 timer::duration CCharEntity::GetTimeUntilDeathHomepoint() const
 {
-    return 60min - GetTimeSinceDeath();
+    return chardeathhomepointhelpers::TimeUntilDeathHomepoint(
+        death_duration,
+        [&]() { return GetTimeSinceDeath(); });
 }
 
 earth_time::time_point CCharEntity::GetTimeCreated()
