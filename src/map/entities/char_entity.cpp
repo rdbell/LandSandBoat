@@ -27,6 +27,7 @@
 #include "char_bazaar_capacity.h"
 #include "char_combat_transition_capacity.h"
 #include "char_death_homepoint_capacity.h"
+#include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
 #include "char_equip_flush_capacity.h"
 #include "char_error_delivery_capacity.h"
@@ -494,35 +495,23 @@ void CCharEntity::updateEntityPacket(CBaseEntity* PEntity, ENTITYUPDATE type, ui
         return nullptr;
     }();
 
-    if (hasPendingPacket)
-    {
-        // Found existing packet update for the given entity, so we update it instead of pushing new
-        auto& packet = itr->second;
-        if (PChar)
-        {
-            static_cast<CCharUpdatePacket*>(packet)->updateWith(PChar, type, updatemask);
-        }
-        else
-        {
-            static_cast<CEntityUpdatePacket*>(packet)->updateWith(PEntity, type, updatemask);
-        }
-    }
-    else
-    {
-        // No existing packet update for the given entity, so we push new packet
-        if (PChar)
+    charentityupdatehelpers::Apply(
+        hasPendingPacket,
+        PChar != nullptr,
+        [&]() { static_cast<CCharUpdatePacket*>(itr->second)->updateWith(PChar, type, updatemask); },
+        [&]() { static_cast<CEntityUpdatePacket*>(itr->second)->updateWith(PEntity, type, updatemask); },
+        [&]()
         {
             auto packet                    = std::make_unique<CCharUpdatePacket>(PChar, type, updatemask);
             EntityUpdatePackets[PChar->id] = packet.get();
             PacketList.emplace_back(std::move(packet));
-        }
-        else
+        },
+        [&]()
         {
             auto packet                      = std::make_unique<CEntityUpdatePacket>(PEntity, type, updatemask);
             EntityUpdatePackets[PEntity->id] = packet.get();
             PacketList.emplace_back(std::move(packet));
-        }
-    }
+        });
 }
 
 auto CCharEntity::popPacket() -> std::unique_ptr<CBasicPacket>
