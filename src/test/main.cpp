@@ -520,6 +520,7 @@ auto runJugLevel1606SelfTests() -> bool;
 auto runFinalizePetStats1607SelfTests() -> bool;
 auto runAvatarLevel1608SelfTests() -> bool;
 auto runAutomatonLevel1609SelfTests() -> bool;
+auto runLuopanStats1610SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1250,6 +1251,7 @@ namespace
         ok = runFinalizePetStats1607SelfTests() && ok;
         ok = runAvatarLevel1608SelfTests() && ok;
         ok = runAutomatonLevel1609SelfTests() && ok;
+        ok = runLuopanStats1610SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

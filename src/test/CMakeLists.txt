@@ -970,6 +970,8 @@ set(SOURCES
     test_avatar_level_1608.cpp
     test_automaton_level_1609.h
     test_automaton_level_1609.cpp
+    test_luopan_stats_1610.h
+    test_luopan_stats_1610.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

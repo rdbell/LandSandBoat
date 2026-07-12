@@ -51,6 +51,7 @@
 #include "map/jug_base_capacity.h"
 #include "map/jug_level_capacity.h"
 #include "map/jug_stats_capacity.h"
+#include "map/luopan_stats_capacity.h"
 #include "map/pet_weapon_damage_capacity.h"
 #include "map/wyvern_stats_capacity.h"
 #include "puppetutils.h"
@@ -910,23 +911,23 @@ void CalculateAutomatonStats(CBattleEntity* PMaster, CBattleEntity* PPet)
 
 void CalculateLuopanStats(CBattleEntity* PMaster, CPetEntity* PPet)
 {
+    // Pure HP / visual pins (luopan_stats_capacity.h; slice 1610).
     PPet->SetMLevel(PMaster->GetMLevel());
-    PPet->health.maxhp = (uint32)floor((250 * PPet->GetMLevel()) / 15);
 
-    if (PMaster->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bolster))
+    const bool hasBolster = PMaster->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bolster);
+    uint8      bolsterJP  = 0;
+    if (hasBolster)
     {
-        uint8 bolsterJPVal = static_cast<CCharEntity*>(PMaster)->PJobPoints->GetJobPointValue(JP_BOLSTER_EFFECT);
-        PPet->health.maxhp += (uint32)floor(PPet->health.maxhp * (0.03 * bolsterJPVal));
+        bolsterJP = static_cast<CCharEntity*>(PMaster)->PJobPoints->GetJobPointValue(JP_BOLSTER_EFFECT);
     }
-
-    PPet->health.hp = PPet->health.maxhp;
+    PPet->health.maxhp = luopanstatshelpers::MaxHP(PPet->GetMLevel(), hasBolster, bolsterJP);
+    PPet->health.hp    = PPet->health.maxhp;
 
     // This sets the correct visual size for the luopan as pets currently
     // do not make use of the entity flags in the database
     // TODO: make pets use entity flags
-    PPet->m_flags = 0x0000008B;
-    // Just sit, do nothing
-    PPet->baseSpeed = 0;
+    PPet->m_flags   = luopanstatshelpers::EntityFlags;
+    PPet->baseSpeed = luopanstatshelpers::BaseSpeed; // Just sit, do nothing
     PPet->UpdateSpeed();
 
     FinalizePetStatistics(PMaster, PPet);
