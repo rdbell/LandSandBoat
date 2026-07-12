@@ -736,6 +736,8 @@ set(SOURCES
     test_char_ability_recast_1485.cpp
     test_char_ability_stealth_1486.h
     test_char_ability_stealth_1486.cpp
+    test_char_ability_paralyze_1487.h
+    test_char_ability_paralyze_1487.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

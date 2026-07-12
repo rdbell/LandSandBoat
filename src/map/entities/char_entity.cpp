@@ -35,6 +35,7 @@
 #include "char_ability_preflight_capacity.h"
 #include "char_ability_recast_capacity.h"
 #include "char_ability_stealth_capacity.h"
+#include "char_ability_paralyze_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1658,16 +1659,12 @@ void CCharEntity::OnAbility(CAbilityState& state, action_t& action)
         }
 
         // Check paralysis and consume recast for non-SP abilities
-        if (battleutils::IsParalyzed(this))
+        if (charabilityparalyzehelpers::Apply(
+                battleutils::IsParalyzed(this),
+                static_cast<uint16>(PAbility->getRecastId()),
+                [&]() { charutils::ApplyAbilityRecast(this, PAbility, charge, baseChargeTime, action.recast); },
+                [&]() { ActionInterrupts::AbilityParalyzed(this, PTarget); }))
         {
-            // SP abilities don't consume recast when paralyzed
-            const auto recastId = PAbility->getRecastId();
-            if (recastId != Recast::Special && recastId != Recast::Special2)
-            {
-                charutils::ApplyAbilityRecast(this, PAbility, charge, baseChargeTime, action.recast);
-            }
-
-            ActionInterrupts::AbilityParalyzed(this, PTarget);
             return;
         }
 
