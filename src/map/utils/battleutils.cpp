@@ -38,6 +38,7 @@
 #include "can_afford_spell_capacity.h"
 #include "spikes_status_capacity.h"
 #include "take_damage_capacity.h"
+#include "take_physical_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -2010,51 +2011,48 @@ bool TryInterruptSpell(CBattleEntity* PAttacker, CBattleEntity* PDefender, CSpel
 
 auto TakePhysicalDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, PHYSICAL_ATTACK_TYPE physicalAttackType, int32 damage, bool isBlocked, uint8 slot, uint16 tpMultiplier, CBattleEntity* taChar, bool giveTPtoVictim, bool giveTPtoAttacker, bool isCounter, bool isCovered, CBattleEntity* POriginalTarget) -> int32
 {
-    auto* weapon              = GetEntityWeapon(PAttacker, (SLOTTYPE)slot);
-    giveTPtoAttacker          = giveTPtoAttacker && !PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui);
-    giveTPtoVictim            = giveTPtoVictim && physicalAttackType != PHYSICAL_ATTACK_TYPE::DAKEN;
-    bool           isRanged   = (slot == SLOT_AMMO || slot == SLOT_RANGED);
+    auto* weapon     = GetEntityWeapon(PAttacker, (SLOTTYPE)slot);
+    giveTPtoAttacker = takephysicalhelpers::GiveTPToAttacker(
+        giveTPtoAttacker, PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui));
+    giveTPtoVictim = takephysicalhelpers::GiveTPToVictim(
+        giveTPtoVictim, static_cast<uint8>(physicalAttackType));
+    bool           isRanged   = takedamagehelpers::IsWSRangedSlot(slot);
     int32          baseDamage = damage;
     ATTACK_TYPE    attackType = ATTACK_TYPE::PHYSICAL;
     xi::DamageType damageType = xi::DamageType::None;
-    if (PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::FormlessStrikes) && !isCounter)
+    if (takephysicalhelpers::ShouldUseFormlessStrikesPath(
+            PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::FormlessStrikes), isCounter))
     {
-        attackType        = ATTACK_TYPE::SPECIAL;
-        uint8 formlessMod = 55; // Start at 55
-
+        attackType = ATTACK_TYPE::SPECIAL;
         // https://www.bg-wiki.com/ffxi/Formless_Strikes
         // Merit value of 1 is +5%, so 60% normal power
-        if (PAttacker->objtype == TYPE_PC)
-        {
-            formlessMod += ((CCharEntity*)PAttacker)->PMeritPoints->GetMeritValue(MERIT_FORMLESS_STRIKES, (CCharEntity*)PAttacker);
-        }
+        const uint8 formlessMerit = (PAttacker->objtype == TYPE_PC)
+                                        ? static_cast<CCharEntity*>(PAttacker)->PMeritPoints->GetMeritValue(MERIT_FORMLESS_STRIKES, static_cast<CCharEntity*>(PAttacker))
+                                        : static_cast<uint8>(0);
+        const uint8 formlessMod   = takephysicalhelpers::FormlessStrikesMod(PAttacker->objtype == TYPE_PC, formlessMerit);
 
-        damage = damage * formlessMod / 100;
-
-        float resist = 1.0f + PDefender->getMod(Mod::UDMGBREATH) / 10000.0f;
-        resist       = std::max(resist, 0.0f);
-        damage       = (int32)(damage * resist);
-
-        resist = 1.0f + PDefender->getMod(Mod::DMGBREATH) / 10000.0f + PDefender->getMod(Mod::DMG) / 10000.0f;
-        resist = std::clamp(resist, 0.5f, 1.5f); // assuming if its floored at .5f its capped at 1.5f but who's stacking +dmgtaken equip anyway???
-        damage = (int32)(damage * resist);
+        damage = takephysicalhelpers::ApplyFormlessPower(damage, formlessMod);
+        damage = takephysicalhelpers::ApplyUDMGBreath(damage, PDefender->getMod(Mod::UDMGBREATH));
+        damage = takephysicalhelpers::ApplyDMGBreath(damage, PDefender->getMod(Mod::DMGBREATH), PDefender->getMod(Mod::DMG));
 
         // TODO: Breaths can have elements. Where are those handled for absorption and nullification.
 
-        // Handle damage absorption.
-        if (xirand::GetRandomNumber(100) < PDefender->getMod(Mod::ABSORB_DMG_CHANCE)) // All damage.
+        // Preserve absorb-then-null else-if RNG order.
+        const bool absorbProc = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::ABSORB_DMG_CHANCE);
+        bool       nullAll    = false;
+        bool       nullBreath = false;
+        if (!absorbProc)
         {
-            damage = -damage;
+            nullAll = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_DAMAGE);
+            if (!nullAll)
+            {
+                nullBreath = xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_BREATH_DAMAGE);
+            }
         }
-
-        // Handle damage nullification.
-        else if (xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_DAMAGE) ||      // All damage.
-                 xirand::GetRandomNumber(100) < PDefender->getMod(Mod::NULL_BREATH_DAMAGE)) // Breath damage.
-        {
-            damage = 0;
-        }
-
-        else
+        std::int32_t formlessOut = damage;
+        const auto   formlessRes = takephysicalhelpers::FormlessAbsorbNull(damage, absorbProc, nullAll, nullBreath, formlessOut);
+        damage                   = formlessOut;
+        if (formlessRes == takephysicalhelpers::FormlessAbsorbNullResult::PassThrough)
         {
             damage = HandleSevereDamage(PDefender, damage, false);
         }
@@ -2077,27 +2075,24 @@ auto TakePhysicalDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, PHYS
 
         // absorb mods are handled in the above functions, but they do not affect counters
         // this is a little hacky, but will work for now
-        if (damage < 0 && isCounter)
-        {
-            damage = -damage;
-        }
+        damage = takephysicalhelpers::FlipCounterAbsorb(damage, isCounter);
 
-        if (!isCounter || giveTPtoAttacker) // counters are always considered blunt (assuming h2h) damage, except retaliation (which is the only counter
+        if (takephysicalhelpers::UseTypeSpecificSDT(isCounter, giveTPtoAttacker)) // counters are always considered blunt (assuming h2h) damage, except retaliation (which is the only counter
                                             // that gives TP to the attacker)
         {
             switch (damageType)
             {
                 case xi::DamageType::Piercing:
-                    damage = damage * (1 + PDefender->getMod(Mod::PIERCE_SDT) / 10000.0f);
+                    damage = takephysicalhelpers::ApplySDT(damage, PDefender->getMod(Mod::PIERCE_SDT));
                     break;
                 case xi::DamageType::Slashing:
-                    damage = damage * (1 + PDefender->getMod(Mod::SLASH_SDT) / 10000.0f);
+                    damage = takephysicalhelpers::ApplySDT(damage, PDefender->getMod(Mod::SLASH_SDT));
                     break;
                 case xi::DamageType::Blunt:
-                    damage = damage * (1 + PDefender->getMod(Mod::IMPACT_SDT) / 10000.0f);
+                    damage = takephysicalhelpers::ApplySDT(damage, PDefender->getMod(Mod::IMPACT_SDT));
                     break;
                 case xi::DamageType::HandToHand:
-                    damage = damage * (1 + PDefender->getMod(Mod::HTH_SDT) / 10000.0f);
+                    damage = takephysicalhelpers::ApplySDT(damage, PDefender->getMod(Mod::HTH_SDT));
                     break;
                 default:
                     break;
@@ -2105,74 +2100,71 @@ auto TakePhysicalDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, PHYS
         }
         else
         {
-            damage = damage * (1 + PDefender->getMod(Mod::HTH_SDT) / 10000.0f);
+            damage = takephysicalhelpers::ApplySDT(damage, PDefender->getMod(Mod::HTH_SDT));
         }
 
         if (isBlocked)
         {
-            uint8 absorb = 50; // TODO: get trust/pet/etc absorb percents
-
+            // TODO: get trust/pet/etc absorb percents
             // shield def bonus is a flat raw damage reduction that occurs before absorb
             // however do not reduce below 0 or if damage is negative
-            if (damage > 0)
-            {
-                damage = std::max(0, damage - PDefender->getMod(Mod::SHIELD_DEF_BONUS));
-            }
+            damage = takephysicalhelpers::ApplyShieldDefBonus(damage, PDefender->getMod(Mod::SHIELD_DEF_BONUS));
 
             // Shield Mastery
-            if (std::max(damage - PDefender->getMod(Mod::STONESKIN), 0) > 0 &&
-                PDefender->getMod(Mod::SHIELD_MASTERY_TP))
+            if (takephysicalhelpers::ShouldAddShieldMasteryTP(
+                    damage, PDefender->getMod(Mod::STONESKIN), PDefender->getMod(Mod::SHIELD_MASTERY_TP)))
             {
                 // If the attack was blocked and has shield mastery, add shield mastery TP bonus
                 // unblocked damage (before block but as if affected by phalanx) must be greater than zero
                 PDefender->addTP(PDefender->getMod(Mod::SHIELD_MASTERY_TP));
             }
 
-            if (const auto PChar = dynamic_cast<CCharEntity*>(PDefender))
+            bool    hasShield         = false;
+            uint8   shieldAbsorption  = 0;
+            const auto* PCharDefender = dynamic_cast<CCharEntity*>(PDefender);
+            if (PCharDefender)
             {
-                CItemEquipment* slotSub = PChar->getEquip(SLOT_SUB);
+                CItemEquipment* slotSub = PCharDefender->getEquip(SLOT_SUB);
                 if (slotSub && slotSub->IsShield())
                 {
-                    absorb = std::clamp(100 - slotSub->getShieldAbsorption(), 0, 100);
+                    hasShield        = true;
+                    shieldAbsorption = slotSub->getShieldAbsorption();
                 }
             }
+            const uint8 absorb = takephysicalhelpers::ShieldBlockAbsorb(
+                PCharDefender != nullptr, hasShield, shieldAbsorption);
 
             // Reprisal
-            if (damage > 0 && PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Reprisal))
+            if (takephysicalhelpers::ShouldApplyReprisalSpikes(
+                    damage, PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Reprisal)))
             {
                 // Reflect a portion of the blocked damage back. This is calculated before Stoneskin, Phalanx, Sentinel or Invincible
                 CStatusEffect* reprisalEffect = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Reprisal);
 
                 if (reprisalEffect != nullptr)
                 {
-                    float spikesBonus   = 1.0f + (PDefender->getMod(Mod::REPRISAL_SPIKES_BONUS) / 100.0f);
-                    int16 effectPower   = (int16)(reprisalEffect->GetPower() * spikesBonus);
-                    int32 blockedDamage = (damage * (100 - absorb)) / 100;
-                    int32 spikesDamage  = 0;
-
-                    if (PDefender->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Invincible, xi::StatusEffect::Sentinel }))
-                    {
-                        blockedDamage = (baseDamage * (100.0f - absorb)) / 100.0f;
-                    }
-
-                    spikesDamage = blockedDamage * (effectPower / 100.0f);
+                    const int16 effectPower = takephysicalhelpers::ReprisalEffectPower(
+                        static_cast<int16>(reprisalEffect->GetPower()), PDefender->getMod(Mod::REPRISAL_SPIKES_BONUS));
+                    const bool invOrSent = PDefender->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Invincible, xi::StatusEffect::Sentinel });
+                    const int32 blockedDamage = takephysicalhelpers::ReprisalBlockedDamage(damage, baseDamage, absorb, invOrSent);
+                    const int32 spikesDamage  = takephysicalhelpers::ReprisalSpikesDamage(blockedDamage, effectPower);
 
                     // Set Reprisal spike damage
                     PDefender->setModifier(Mod::SPIKES_DMG, spikesDamage);
                 }
             }
-            damage = (damage * absorb) / 100;
+            damage = takephysicalhelpers::ApplyBlockAbsorb(damage, absorb);
         }
     }
 
-    if (damage > 0)
+    if (takedamagehelpers::ShouldApplyWSPhalanxStoneskin(damage))
     {
-        damage = std::max(damage - PDefender->getMod(Mod::PHALANX), 0);
+        damage = takedamagehelpers::ApplyPhalanx(damage, PDefender->getMod(Mod::PHALANX));
 
         damage = HandleStoneskin(PDefender, damage);
         HandleAfflatusMiseryDamage(PDefender, damage);
     }
-    damage = std::clamp(damage, -99999, 99999);
+    damage = takedamagehelpers::ClampWSDamage(damage);
 
     damage = CheckAndApplyDamageCap(damage, PDefender);
 
@@ -2180,13 +2172,11 @@ auto TakePhysicalDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, PHYS
     battleutils::HandleScarletDelirium(PDefender, damage);
 
     int32 corrected = PDefender->takeDamage(damage, PAttacker, attackType, damageType);
-    if (damage < 0)
-    {
-        damage = -corrected;
-    }
+    damage          = takedamagehelpers::CorrectedDamageAfterTake(damage, corrected);
 
     // Only claim a mob and if the allegiance is not PLAYER. This prevents mobs from calling ClaimMob on other mobs or themselves.
-    if (PDefender->objtype == TYPE_MOB && PDefender->allegiance != PAttacker->allegiance)
+    if (takephysicalhelpers::ShouldClaimOnPhysicalDamage(
+            PDefender->objtype == TYPE_MOB, PDefender->allegiance == PAttacker->allegiance))
     {
         battleutils::ClaimMob(PDefender, PAttacker);
     }
@@ -2256,7 +2246,11 @@ auto TakePhysicalDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender, PHYS
         }
 
         // try to interrupt spell if not a ranged attack and not blocked by Shield Mastery
-        if ((!isRanged) && !((isBlocked) && (PDefender->objtype == TYPE_PC) && (charutils::hasTrait((CCharEntity*)PDefender, TRAIT_SHIELD_MASTERY))))
+        if (takephysicalhelpers::ShouldTryHitInterruptPhysical(
+                isRanged,
+                isBlocked,
+                PDefender->objtype == TYPE_PC,
+                PDefender->objtype == TYPE_PC && charutils::hasTrait(static_cast<CCharEntity*>(PDefender), TRAIT_SHIELD_MASTERY)))
         {
             PDefender->TryHitInterrupt(PAttacker);
         }
