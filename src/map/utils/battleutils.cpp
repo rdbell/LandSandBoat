@@ -2520,17 +2520,49 @@ void TakeSpellDamage(CBattleEntity* PDefender, CBattleEntity* PAttacker, CSpell*
         BindBreakCheck(PAttacker, PDefender);
 
         // Add TP for damaging spells (Only player chars who have the Occult Accumen trait)
-        auto spellTpFunc = lua["xi"]["combat"]["tp"]["calculateSpellTP"];
-        if (spellTpFunc.valid())
         {
-            PAttacker->addTP(spellTpFunc(PAttacker, PSpell));
+            const bool isPC = PAttacker->objtype == TYPE_PC;
+            const bool meikyo = PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui);
+            const auto skillType = static_cast<std::uint8_t>(PSpell->getSkillType());
+            const auto mpCost = static_cast<std::int32_t>(PSpell->getMPCost());
+            const auto occult = PAttacker->getMod(Mod::OCCULT_ACUMEN);
+            const auto store  = PAttacker->getMod(Mod::STORETP);
+            PAttacker->addTP(tpfromdamagehelpers::SpellTP(isPC, meikyo, skillType, mpCost, occult, store));
         }
 
         // Targets of damaging spells gain TP
-        auto tpGainFunc = lua["xi"]["combat"]["tp"]["calculateTPGainOnMagicalDamage"];
-        if (tpGainFunc.valid())
         {
-            PDefender->addTP(tpGainFunc(PAttacker, PDefender, damage));
+            if (!tpfromdamagehelpers::ShouldZeroMagicalTPGain(
+                    false, damage, PAttacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui)))
+            {
+                std::int32_t subtleMerit = 0;
+                if (PAttacker->objtype == TYPE_PC)
+                {
+                    auto* PChar = static_cast<CCharEntity*>(PAttacker);
+                    subtleMerit = PChar->PMeritPoints->GetMeritValue(MERIT_SUBTLE_BLOW_EFFECT, PChar);
+                }
+
+                const bool tandemActive = petutils::IsTandemActive(PAttacker);
+                std::int32_t tandemBonus = 0;
+                if (tandemActive)
+                {
+                    const bool hasMasterPC = PAttacker->PMaster != nullptr && PAttacker->PMaster->objtype == TYPE_PC;
+                    const auto masterPower = hasMasterPC ? PAttacker->PMaster->getMod(Mod::TANDEM_BLOW_POWER) : 0;
+                    const auto selfPower   = PAttacker->getMod(Mod::TANDEM_BLOW_POWER);
+                    tandemBonus            = tpfromdamagehelpers::TandemBlowBonus(true, hasMasterPC, masterPower, selfPower);
+                }
+
+                tpfromdamagehelpers::MagicalTPGainParams gain{};
+                gain.targetIsMob     = PDefender->objtype == TYPE_MOB;
+                gain.dAGI            = static_cast<std::int32_t>(PAttacker->AGI()) - static_cast<std::int32_t>(PDefender->AGI());
+                gain.inhibitTP       = PDefender->getMod(Mod::INHIBIT_TP);
+                gain.storeTP         = PDefender->getMod(Mod::STORETP);
+                gain.subtleBlow      = PAttacker->getMod(Mod::SUBTLE_BLOW);
+                gain.subtleBlowMerit = subtleMerit;
+                gain.subtleBlowII    = PAttacker->getMod(Mod::SUBTLE_BLOW_II);
+                gain.tandemBlowBonus = tandemBonus;
+                PDefender->addTP(tpfromdamagehelpers::MagicalTPGain(gain));
+            }
         }
     }
 }

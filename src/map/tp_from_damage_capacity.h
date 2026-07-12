@@ -237,4 +237,71 @@ constexpr auto TandemBlowBonus(const bool tandemActive, const bool hasMasterPC, 
     return selfPower;
 }
 
+// --- Magical TP gain on damage taken ---
+
+constexpr std::int32_t MagicBaseMob    = 100;
+constexpr std::int32_t MagicBaseNonMob = 50;
+
+// SKILL_ELEMENTAL_MAGIC / SKILL_DARK_MAGIC pins
+constexpr std::uint8_t SkillElementalMagic = 36;
+constexpr std::uint8_t SkillDarkMagic      = 37;
+
+struct MagicalTPGainParams
+{
+    bool         targetIsMob{};
+    std::int32_t dAGI{};
+    std::int32_t inhibitTP{};
+    std::int32_t storeTP{};
+    std::int32_t subtleBlow{};
+    std::int32_t subtleBlowMerit{};
+    std::int32_t subtleBlowII{};
+    std::int32_t tandemBlowBonus{};
+};
+
+inline auto MagicalTPGain(const MagicalTPGainParams& p) -> std::int32_t
+{
+    const auto inhibit = InhibitTPModifier(p.inhibitTP);
+    const auto sbi     = SubtleBlowI(p.subtleBlow, p.subtleBlowMerit);
+    const auto sbii    = p.subtleBlowII + p.tandemBlowBonus;
+    const auto subtle  = SubtleBlowModifier(sbi, sbii);
+    const auto store   = StoreTPModifier(p.storeTP);
+
+    if (p.targetIsMob)
+    {
+        const auto dagi = DAGIModifierLua(p.dAGI);
+        return static_cast<std::int32_t>(
+            std::floor(static_cast<double>(MagicBaseMob) * inhibit * dagi * subtle * store));
+    }
+    return static_cast<std::int32_t>(
+        std::floor(static_cast<double>(MagicBaseNonMob) * inhibit * subtle * store));
+}
+
+constexpr auto ShouldZeroMagicalTPGain(const bool nullEntity, const std::int32_t damage, const bool hasMeikyo) -> bool
+{
+    return nullEntity || damage <= 0 || hasMeikyo;
+}
+
+// --- Occult Acumen spell TP ---
+
+constexpr auto OccultSkillEligible(const std::uint8_t skillType) -> bool
+{
+    return skillType == SkillElementalMagic || skillType == SkillDarkMagic;
+}
+
+inline auto SpellTP(const bool         isPC,
+                    const bool         hasMeikyo,
+                    const std::uint8_t skillType,
+                    const std::int32_t mpCost,
+                    const std::int32_t occultAcumen,
+                    const std::int32_t storeTP) -> std::int32_t
+{
+    if (!isPC || hasMeikyo || !OccultSkillEligible(skillType))
+    {
+        return 0;
+    }
+    const double occult = static_cast<double>(occultAcumen) / 100.0;
+    const double store  = StoreTPModifier(storeTP);
+    return static_cast<std::int32_t>(std::floor(static_cast<double>(mpCost) * occult * store));
+}
+
 } // namespace tpfromdamagehelpers

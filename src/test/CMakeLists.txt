@@ -896,6 +896,8 @@ set(SOURCES
     test_ninja_tool_1566.cpp
     test_base_delay_1567.h
     test_base_delay_1567.cpp
+    test_magical_spell_tp_1568.h
+    test_magical_spell_tp_1568.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
