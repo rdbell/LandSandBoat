@@ -376,6 +376,7 @@ auto runCharEventSkip1456SelfTests() -> bool;
 auto runCharEventIdle1457SelfTests() -> bool;
 auto runCharEventActivation1458SelfTests() -> bool;
 auto runCharEventPacket1459SelfTests() -> bool;
+auto runCharHighestJob1460SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -962,6 +963,7 @@ namespace
         ok = runCharEventIdle1457SelfTests() && ok;
         ok = runCharEventActivation1458SelfTests() && ok;
         ok = runCharEventPacket1459SelfTests() && ok;
+        ok = runCharHighestJob1460SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

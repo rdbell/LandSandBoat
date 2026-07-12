@@ -36,6 +36,7 @@
 #include "char_event_packet_capacity.h"
 #include "char_event_queue_capacity.h"
 #include "char_event_skip_capacity.h"
+#include "char_highest_job_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
@@ -2322,17 +2323,7 @@ earth_time::time_point CCharEntity::GetTimeCreated()
 
 uint8 CCharEntity::getHighestJobLevel()
 {
-    uint8 maxJobLevel = 0;
-
-    for (uint8 jobId = 0; jobId < MAX_JOBTYPE; jobId++)
-    {
-        if (jobs.job[jobId] > maxJobLevel)
-        {
-            maxJobLevel = jobs.job[jobId];
-        }
-    }
-
-    return maxJobLevel;
+    return charhighestjobhelpers::HighestLevel(jobs.job);
 }
 
 bool CCharEntity::hasMoghancement(uint16 moghancementID) const
