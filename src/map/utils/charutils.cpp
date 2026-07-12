@@ -94,6 +94,7 @@
 #include "capacity_distribute_capacity.h"
 #include "exp_distribute_capacity.h"
 #include "exp_award_capacity.h"
+#include "exp_loss_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -5276,19 +5277,20 @@ void DelExperiencePoints(CCharEntity* PChar, float retainPercent, uint16 forcedX
 {
     TracyZoneScoped;
 
-    if (retainPercent > 1.0f || retainPercent < 0.0f)
+    if (!explosshelpers::IsRetainPercentValid(retainPercent))
     {
         ShowWarning("Invalid retainPercent value (%f) received.", retainPercent);
         return;
     }
 
-    if (settings::get<uint8>("map.EXP_LOSS_LEVEL") > 99 || settings::get<uint8>("map.EXP_LOSS_LEVEL") < 1)
+    const auto expLossLevel = settings::get<uint8>("map.EXP_LOSS_LEVEL");
+    if (!explosshelpers::IsExpLossLevelSettingValid(expLossLevel))
     {
-        ShowWarning("Invalid EXP_LOSS_LEVEL setting value was obtained (%d).", settings::get<uint8>("map.EXP_LOSS_LEVEL"));
+        ShowWarning("Invalid EXP_LOSS_LEVEL setting value was obtained (%d).", expLossLevel);
         return;
     }
 
-    if (PChar->GetMLevel() < settings::get<uint8>("map.EXP_LOSS_LEVEL") && forcedXpLoss == 0)
+    if (explosshelpers::ShouldSkipByLevel(PChar->GetMLevel(), expLossLevel, forcedXpLoss))
     {
         return;
     }
@@ -5299,87 +5301,78 @@ void DelExperiencePoints(CCharEntity* PChar, float retainPercent, uint16 forcedX
         return;
     }
 
-    uint8  mLevel  = (PChar->m_LevelRestriction != 0 && PChar->m_LevelRestriction < PChar->GetMLevel()) ? PChar->m_LevelRestriction : PChar->GetMLevel();
-    uint16 exploss = mLevel <= 67 ? (GetExpNEXTLevel(mLevel) * 8) / 100 : 2400;
-
-    if (forcedXpLoss > 0)
-    {
-        // Override normal XP loss with specified value.
-        exploss = forcedXpLoss;
-    }
-    else
-    {
-        // Apply retention percent
-        exploss = (uint16)(exploss * (1 - retainPercent));
-        exploss = (uint16)(exploss * settings::get<float>("map.EXP_LOSS_RATE"));
-    }
+    const uint8 mLevel = explosshelpers::EffectiveLossLevel(PChar->GetMLevel(), PChar->m_LevelRestriction);
+    uint16      exploss = explosshelpers::ResolveLossAmount(
+        explosshelpers::BaseLossAmount(mLevel, GetExpNEXTLevel(mLevel)),
+        forcedXpLoss,
+        retainPercent,
+        settings::get<float>("map.EXP_LOSS_RATE"));
 
     // Save exp lost.
     PChar->setCharVar("expLost", exploss);
 
     // Handle deleveling
-    if (PChar->jobs.exp[PChar->GetMJob()] < exploss)
+    const uint16 currentExp = PChar->jobs.exp[PChar->GetMJob()];
+    const uint8  jobLevel   = PChar->jobs.job[PChar->GetMJob()];
+    if (explosshelpers::ShouldDelevel(currentExp, exploss, jobLevel))
     {
-        if (PChar->jobs.job[PChar->GetMJob()] > 1)
+        // de-level!
+        int32 lowerLevelMaxExp = GetExpNEXTLevel(jobLevel - 1);
+        PChar->jobs.exp[PChar->GetMJob()] = static_cast<uint16>(explosshelpers::DelevelResidualExp(
+            lowerLevelMaxExp, exploss, currentExp));
+        PChar->jobs.job[PChar->GetMJob()] -= 1;
+
+        if (explosshelpers::ShouldApplyDelevelToEntity(PChar->m_LevelRestriction, PChar->jobs.job[PChar->GetMJob()]))
         {
-            // de-level!
-            int32 lowerLevelMaxExp = GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()] - 1);
-            exploss -= PChar->jobs.exp[PChar->GetMJob()];
-            PChar->jobs.exp[PChar->GetMJob()] = std::max(0, lowerLevelMaxExp - exploss);
-            PChar->jobs.job[PChar->GetMJob()] -= 1;
-
-            if (PChar->m_LevelRestriction == 0 || PChar->jobs.job[PChar->GetMJob()] < PChar->m_LevelRestriction)
-            {
-                PChar->SetMLevel(PChar->jobs.job[PChar->GetMJob()]);
-                PChar->SetSLevel(PChar->jobs.job[PChar->GetSJob()]);
-            }
-
-            jobpointutils::RefreshGiftMods(PChar);
-            BuildingCharSkillsTable(PChar);
-            CalculateStats(PChar);
-            CheckValidEquipment(PChar);
-
-            BuildingCharAbilityTable(PChar);
-            BuildingCharTraitsTable(PChar);
-            BuildingCharWeaponSkills(PChar);
-
-            PChar->pushPacket<GP_SERV_COMMAND_JOB_INFO>(PChar);
-            PChar->pushPacket<CCharStatusPacket>(PChar);
-            PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS2>(PChar);
-            PChar->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PChar);
-            PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
-            PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MERITS>(PChar);
-            PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY1>(PChar);
-            PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY2>(PChar);
-            charutils::SendExtendedJobPackets(PChar);
-            PChar->pushPacket<CCharSyncPacket>(PChar);
-
-            PChar->UpdateHealth();
-
-            SaveCharStats(PChar);
-            SaveCharJob(PChar, PChar->GetMJob());
-
-            if (PChar->PParty != nullptr)
-            {
-                if (PChar->PParty->GetSyncTarget() == PChar)
-                {
-                    PChar->PParty->RefreshSync();
-                }
-                PChar->PParty->ReloadParty();
-            }
-
-            PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PChar, PChar->jobs.job[PChar->GetMJob()], 0, MsgBasic::LevelDown));
-            luautils::OnPlayerLevelDown(PChar);
-            PChar->updatemask |= UPDATE_HP;
+            PChar->SetMLevel(PChar->jobs.job[PChar->GetMJob()]);
+            PChar->SetSLevel(PChar->jobs.job[PChar->GetSJob()]);
         }
-        else
+
+        jobpointutils::RefreshGiftMods(PChar);
+        BuildingCharSkillsTable(PChar);
+        CalculateStats(PChar);
+        CheckValidEquipment(PChar);
+
+        BuildingCharAbilityTable(PChar);
+        BuildingCharTraitsTable(PChar);
+        BuildingCharWeaponSkills(PChar);
+
+        PChar->pushPacket<GP_SERV_COMMAND_JOB_INFO>(PChar);
+        PChar->pushPacket<CCharStatusPacket>(PChar);
+        PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS2>(PChar);
+        PChar->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PChar);
+        PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+        PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MERITS>(PChar);
+        PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY1>(PChar);
+        PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY2>(PChar);
+        charutils::SendExtendedJobPackets(PChar);
+        PChar->pushPacket<CCharSyncPacket>(PChar);
+
+        PChar->UpdateHealth();
+
+        SaveCharStats(PChar);
+        SaveCharJob(PChar, PChar->GetMJob());
+
+        if (PChar->PParty != nullptr)
         {
-            PChar->jobs.exp[PChar->GetMJob()] = 0;
+            if (PChar->PParty->GetSyncTarget() == PChar)
+            {
+                PChar->PParty->RefreshSync();
+            }
+            PChar->PParty->ReloadParty();
         }
+
+        PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PChar, PChar->jobs.job[PChar->GetMJob()], 0, MsgBasic::LevelDown));
+        luautils::OnPlayerLevelDown(PChar);
+        PChar->updatemask |= UPDATE_HP;
+    }
+    else if (explosshelpers::ShouldZeroExpAtLevel1(currentExp, exploss, jobLevel))
+    {
+        PChar->jobs.exp[PChar->GetMJob()] = 0;
     }
     else
     {
-        PChar->jobs.exp[PChar->GetMJob()] -= exploss;
+        PChar->jobs.exp[PChar->GetMJob()] = explosshelpers::RemainingExpAfterLoss(currentExp, exploss);
     }
 
     SaveCharExp(PChar, PChar->GetMJob());
