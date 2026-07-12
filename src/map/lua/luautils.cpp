@@ -76,6 +76,7 @@
 #include "action/action.h"
 #include "battlefield.h"
 #include "can_use_spell_capacity.h"
+#include "garrison_membership_capacity.h"
 #include "gear_sets_capacity.h"
 #include "job_points.h"
 #include "items/item_equipment.h"
@@ -368,6 +369,9 @@ void init(IPP mapIPP, bool smokeLuaFiles)
     lua.set_function("SetLinkshellConciergeSlot", &luautils::SetLinkshellConciergeSlot);
     lua.set_function("DeleteLinkshellConciergeSlot", &luautils::DeleteLinkshellConciergeSlot);
     lua.set_function("DecrementLinkshellConciergeMembersGoal", &luautils::DecrementLinkshellConciergeMembersGoal);
+    lua.set_function("SetGarrisonZonePlayers", &luautils::SetGarrisonZonePlayers);
+    lua.set_function("ClearGarrisonZonePlayers", &luautils::ClearGarrisonZonePlayers);
+    lua.set_function("IsPlayerInGarrison", &luautils::IsPlayerInGarrison);
     lua.set_function("JstMidnight", &luautils::JstMidnight);
     lua.set_function("JstDayOfTheYear", &luautils::JstDayOfTheYear);
     lua.set_function("JstDayOfTheMonth", &luautils::JstDayOfTheMonth);
@@ -1972,6 +1976,36 @@ void DecrementLinkshellConciergeMembersGoal(uint16 zoneId, uint32 linkshellid)
                      "AND members_goal = 0",
                      zoneId,
                      linkshellid);
+}
+
+void SetGarrisonZonePlayers(uint16 zoneId, const sol::table& playerIds)
+{
+    TracyZoneScoped;
+
+    std::vector<uint32> ids;
+    for (const auto& entry : playerIds)
+    {
+        if (entry.second.is<uint32>())
+        {
+            ids.push_back(entry.second.as<uint32>());
+        }
+        else if (entry.second.is<int>())
+        {
+            ids.push_back(static_cast<uint32>(entry.second.as<int>()));
+        }
+    }
+    garrisonmembershiphelpers::SetZonePlayers(zoneId, ids);
+}
+
+void ClearGarrisonZonePlayers(uint16 zoneId)
+{
+    TracyZoneScoped;
+    garrisonmembershiphelpers::ClearZonePlayers(zoneId);
+}
+
+auto IsPlayerInGarrison(uint16 zoneId, uint32 playerId) -> bool
+{
+    return garrisonmembershiphelpers::IsPlayerInGarrison(zoneId, playerId);
 }
 
 /************************************************************************

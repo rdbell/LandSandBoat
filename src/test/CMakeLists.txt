@@ -934,6 +934,8 @@ set(SOURCES
     test_automaton_frame_stats_1589.cpp
     test_ecosystem_strength_1590.h
     test_ecosystem_strength_1590.cpp
+    test_garrison_membership_1591.h
+    test_garrison_membership_1591.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

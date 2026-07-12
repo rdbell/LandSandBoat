@@ -863,6 +863,9 @@ xi.garrison.start = function(player, npc)
         end
     end
 
+    -- Sync C++ membership host used by CBattleEntity::isInGarrison (latents).
+    SetGarrisonZonePlayers(zone:getID(), zoneData.players)
+
     -- The starting NPC is the 'anchor' for all timers and logic for this Garrison
     -- Kick off the watchdog to guarantee state consistency
     garrisonWatchdog(npc)
@@ -880,6 +883,8 @@ xi.garrison.stop = function(zone)
 
     local playerIDs  = { unpack(zoneData.players) } -- make a copy
     zoneData.players = {} -- players table must be empty before level restriction status wears off for latent effects
+    -- Clear C++ membership host before removing level restriction (latents).
+    ClearGarrisonZonePlayers(zone:getID())
 
     for _, entityId in pairs(playerIDs or {}) do
         local entity = GetPlayerByID(entityId)
@@ -908,17 +913,13 @@ xi.garrison.win = function(zone)
     zoneData.state = xi.garrison.state.GRANT_LOOT
 end
 
+-- Membership host is authoritative for latents (CBattleEntity::isInGarrison).
+-- Keep this Lua entry point for scripts/GM tooling; it reads the same host.
 xi.garrison.isInGarrison = function(player)
     local zoneID = player:getZoneID()
     if not zoneID then
         return false
     end
 
-    local zoneData = xi.garrison.zoneData[zoneID]
-    if not zoneData then
-        return false
-    end
-
-    local players = zoneData.players or {}
-    return utils.contains(player:getID(), players)
+    return IsPlayerInGarrison(zoneID, player:getID())
 end

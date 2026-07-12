@@ -235,6 +235,11 @@ void SetLinkshellConciergeSlot(uint16 zoneId, uint8 slotIndex, const sol::table&
 void DeleteLinkshellConciergeSlot(uint16 zoneId, uint8 slotIndex);
 void DecrementLinkshellConciergeMembersGoal(uint16 zoneId, uint32 linkshellid);
 
+// Garrison membership host (synced from xi.garrison.start/stop; slice 1591).
+void SetGarrisonZonePlayers(uint16 zoneId, const sol::table& playerIds);
+void ClearGarrisonZonePlayers(uint16 zoneId);
+auto IsPlayerInGarrison(uint16 zoneId, uint32 playerId) -> bool;
+
 uint32 JstDayOfTheYear();
 uint32 JstDayOfTheMonth();
 uint32 JstDayOfTheWeek();

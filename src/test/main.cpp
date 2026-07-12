@@ -502,6 +502,7 @@ auto runAutomatonRepairMana1587SelfTests() -> bool;
 auto runAutomatonSkillCap1588SelfTests() -> bool;
 auto runAutomatonFrameStats1589SelfTests() -> bool;
 auto runEcosystemStrength1590SelfTests() -> bool;
+auto runGarrisonMembership1591SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1214,6 +1215,7 @@ namespace
         ok = runAutomatonSkillCap1588SelfTests() && ok;
         ok = runAutomatonFrameStats1589SelfTests() && ok;
         ok = runEcosystemStrength1590SelfTests() && ok;
+        ok = runGarrisonMembership1591SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

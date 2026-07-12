@@ -48,6 +48,7 @@
 #include "knockback_capacity.h"
 #include "physical_hit_rate_capacity.h"
 #include "ecosystem_strength_capacity.h"
+#include "garrison_membership_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -214,7 +215,13 @@ bool CBattleEntity::isInAdoulin()
 
 bool CBattleEntity::isInGarrison()
 {
-    return luautils::callGlobal<bool>("xi.garrison.isInGarrison", this);
+    // Pure host membership (garrison_membership_capacity.h; slice 1591).
+    // Roster synced from xi.garrison.start / stop via Set/ClearGarrisonZonePlayers.
+    if (loc.zone == nullptr)
+    {
+        return false;
+    }
+    return garrisonmembershiphelpers::IsPlayerInGarrison(static_cast<uint16>(loc.zone->GetID()), this->id);
 }
 
 bool CBattleEntity::inMogHouse()
