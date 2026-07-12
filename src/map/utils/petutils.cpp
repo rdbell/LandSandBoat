@@ -54,6 +54,7 @@
 #include "map/jug_stats_capacity.h"
 #include "map/luopan_stats_capacity.h"
 #include "map/perpetuation_capacity.h"
+#include "map/pet_detach_capacity.h"
 #include "map/pet_mod_tandem_capacity.h"
 #include "map/pet_spawn_capacity.h"
 #include "map/pet_weapon_damage_capacity.h"
@@ -1128,37 +1129,51 @@ void SpawnMobPet(CBattleEntity* PMaster, uint32 PetID)
 
 void DetachPet(CBattleEntity* PMaster)
 {
-    if (PMaster == nullptr)
+    // Pure preflight (pet_detach_capacity.h; slice 1626).
+    const auto reject = petdetachhelpers::ValidateDetachPet(
+        PMaster != nullptr,
+        PMaster != nullptr && PMaster->PPet != nullptr,
+        PMaster != nullptr && PMaster->objtype == TYPE_PC);
+    switch (reject)
     {
-        ShowWarning("PMaster is null.");
-        return;
-    }
-
-    if (PMaster->PPet == nullptr)
-    {
-        ShowWarning("Pet is null for %s.", PMaster->getName());
-        return;
-    }
-
-    if (PMaster->objtype != TYPE_PC)
-    {
-        ShowWarning("Non-PC passed into function (%s)", PMaster->getName());
-        return;
+        case petdetachhelpers::DetachReject::MasterNull:
+            ShowWarning("PMaster is null.");
+            return;
+        case petdetachhelpers::DetachReject::PetNull:
+            ShowWarning("Pet is null for %s.", PMaster->getName());
+            return;
+        case petdetachhelpers::DetachReject::MasterNotPC:
+            ShowWarning("Non-PC passed into function (%s)", PMaster->getName());
+            return;
+        case petdetachhelpers::DetachReject::OK:
+            break;
     }
 
     CBattleEntity* PPet  = PMaster->PPet;
     CCharEntity*   PChar = static_cast<CCharEntity*>(PMaster);
+    const auto     kind  = petdetachhelpers::ClassifyDetachPet(static_cast<uint8>(PPet->objtype));
 
-    if (PPet->objtype == TYPE_MOB)
+    if (kind == petdetachhelpers::DetachKind::CharmedMob)
     {
         CMobEntity* PMob = static_cast<CMobEntity*>(PPet);
 
         if (!PMob->isDead())
         {
-            PMob->PAI->Disengage();
+            auto*      state        = dynamic_cast<CAbilityState*>(PMaster->PAI->GetCurrentState());
+            const bool leaveAbility = state && state->GetAbility()->getID() == ABILITY_LEAVE;
+            const auto plan         = petdetachhelpers::PlanCharmedMobAlive(
+                PMob->PEnmityContainer->IsWithinEnmityRange(PMob->PMaster),
+                leaveAbility,
+                PChar->isDead(),
+                PMob->GetHPP() == 100);
+
+            if (plan.disengage)
+            {
+                PMob->PAI->Disengage();
+            }
 
             // charm time is up, mob attacks player now
-            if (PMob->PEnmityContainer->IsWithinEnmityRange(PMob->PMaster))
+            if (plan.withinEnmityRange)
             {
                 PMob->PEnmityContainer->UpdateEnmity(PChar, 0, 0);
                 // need to set battle target to prevent mob enmity clear if in attack state when uncharming
@@ -1171,11 +1186,10 @@ void DetachPet(CBattleEntity* PMaster)
             }
 
             // dirty exp if not full
-            PMob->m_giveExp = PMob->GetHPP() == 100;
+            PMob->m_giveExp = plan.giveExp;
 
             // master using leave command
-            auto* state = dynamic_cast<CAbilityState*>(PMaster->PAI->GetCurrentState());
-            if ((state && state->GetAbility()->getID() == ABILITY_LEAVE) || PChar->isDead())
+            if (plan.clearEnmityLeaveOrDead)
             {
                 PMob->PEnmityContainer->Clear();
                 PMob->SetBattleTargetID(0);
@@ -1214,15 +1228,15 @@ void DetachPet(CBattleEntity* PMaster)
             mobToPacify->PEnmityContainer->Clear(PMob->id);
         }
     }
-    else if (PPet->objtype == TYPE_PET)
+    else if (kind == petdetachhelpers::DetachKind::OwnedPet)
     {
-        if (!PPet->isDead())
+        if (petdetachhelpers::ShouldDieOwnedPet(PPet->isDead()))
         {
             PPet->Die();
         }
         CPetEntity* PPetEnt = static_cast<CPetEntity*>(PPet);
 
-        if (PPetEnt->getPetType() == PET_TYPE::AVATAR)
+        if (petdetachhelpers::ShouldClearAvatarPerpetuation(static_cast<uint8>(PPetEnt->getPetType())))
         {
             PMaster->setModifier(Mod::AVATAR_PERPETUATION, 0);
         }
@@ -1250,16 +1264,20 @@ void DetachPet(CBattleEntity* PMaster)
 
 void DespawnPet(CBattleEntity* PMaster)
 {
-    if (PMaster == nullptr)
+    // Pure preflight (pet_detach_capacity.h; slice 1626) — null checks only.
+    const auto reject = petdetachhelpers::ValidateDetachMaster(
+        PMaster != nullptr,
+        PMaster != nullptr && PMaster->PPet != nullptr);
+    switch (reject)
     {
-        ShowWarning("PMaster is null.");
-        return;
-    }
-
-    if (PMaster->PPet == nullptr)
-    {
-        ShowWarning("Pet is null for %s.", PMaster->getName());
-        return;
+        case petdetachhelpers::DetachReject::MasterNull:
+            ShowWarning("PMaster is null.");
+            return;
+        case petdetachhelpers::DetachReject::PetNull:
+            ShowWarning("Pet is null for %s.", PMaster->getName());
+            return;
+        default:
+            break;
     }
 
     petutils::DetachPet(PMaster);
