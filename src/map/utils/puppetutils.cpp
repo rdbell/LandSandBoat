@@ -28,6 +28,7 @@
 #include "itemutils.h"
 #include "job_points.h"
 #include "lua/luautils.h"
+#include "map/automaton_skill_cap_capacity.h"
 #include "packets/s2c/0x029_battle_message.h"
 #include "petutils.h"
 #include "status_effect_container.h"
@@ -466,76 +467,24 @@ auto getSkillCap(const CCharEntity* PChar, const SKILLTYPE skill, const uint8 le
         return 0;
     }
 
-    if (skill < SKILL_AUTOMATON_MELEE || skill > SKILL_AUTOMATON_MAGIC)
-    {
-        return 0;
-    }
-
-    const auto frame    = static_cast<uint8>(PChar->getAutomatonFrame());
-    const auto head     = static_cast<uint8>(PChar->getAutomatonHead());
     const auto skillKey = static_cast<uint8>(skill);
-
-    const auto maybeSkillCaps = lua["xi"]["pets"]["automaton"]["skillCaps"].get<sol::optional<sol::table>>();
-    if (!maybeSkillCaps)
+    if (!automatonskillcaphelpers::IsAutomatonSkill(skillKey))
     {
-        ShowError("puppetutils::getSkillCap() - Missing xi.pets.automaton.skillCaps");
         return 0;
     }
 
-    const auto& skillCaps = *maybeSkillCaps;
+    const auto frame = static_cast<uint8>(PChar->getAutomatonFrame());
+    const auto head  = static_cast<uint8>(PChar->getAutomatonHead());
 
-    const auto maybeFrames = skillCaps["frames"].get<sol::optional<sol::table>>();
-    if (!maybeFrames)
-    {
-        ShowError("puppetutils::getSkillCap() - Missing xi.pets.automaton.skillCaps.frames");
-        return 0;
-    }
-
-    const auto& frames = *maybeFrames;
-
-    const auto maybeFrameCaps = frames[frame].get<sol::optional<sol::table>>();
-    if (!maybeFrameCaps)
+    // Pure skillCaps tables (automaton_skill_cap_capacity.h; parity internal/automaton SkillCapRank; slice 1588).
+    if (!automatonskillcaphelpers::IsKnownFrame(frame))
     {
         ShowErrorFmt("puppetutils::getSkillCap() - Missing automaton skill caps for frame {}", static_cast<uint16>(frame));
         return 0;
     }
 
-    const auto& frameCaps = *maybeFrameCaps;
-
-    // Grab the skill cap for the frame, then apply the bonus from the head if applicable.
-    int8 rank = 0;
-
-    const auto maybeFrameRank = frameCaps[skillKey].get<sol::optional<int8>>();
-    if (maybeFrameRank)
-    {
-        rank = *maybeFrameRank;
-    }
-
-    const auto maybeHeads = skillCaps["heads"].get<sol::optional<sol::table>>();
-    if (maybeHeads)
-    {
-        const auto& heads = *maybeHeads;
-
-        const auto maybeHeadCaps = heads[head].get<sol::optional<sol::table>>();
-        if (maybeHeadCaps)
-        {
-            const auto& headCaps = *maybeHeadCaps;
-
-            const auto maybeHeadRank = headCaps[skillKey].get<sol::optional<int8>>();
-            if (maybeHeadRank)
-            {
-                rank += *maybeHeadRank;
-            }
-        }
-    }
-
-    // Handle automaton frames with no native skill being combined with heads that give a bonus to that rank.
-    if (rank < 0)
-    {
-        rank = 13 + rank;
-    }
-
-    return battleutils::GetMaxSkill(rank, level > 99 ? 99 : level);
+    const auto rank = automatonskillcaphelpers::SkillCapRank(frame, head, skillKey);
+    return battleutils::GetMaxSkill(rank, automatonskillcaphelpers::CapLevel(level));
 }
 
 void TrySkillUP(CAutomatonEntity* PAutomaton, SKILLTYPE SkillID, uint8 lvl)
