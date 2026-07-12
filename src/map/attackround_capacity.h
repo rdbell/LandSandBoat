@@ -201,6 +201,33 @@ constexpr uint8 AttackTypeQuad      = 8;
 constexpr uint8 AttackTypeDaken     = 9;
 constexpr uint8 AttackTypeFollowUp  = 10;
 
+// ExclusiveMultiHitAttackType returns PHYSICAL_ATTACK_TYPE for the exclusive ladder
+// (QA/TA/DA use their type; mythic/occasional use NORMAL).
+inline auto ExclusiveMultiHitAttackType(const MultiHitPreference pref) -> uint8
+{
+    switch (pref)
+    {
+        case MultiHitPreference::Quad:
+            return AttackTypeQuad;
+        case MultiHitPreference::Triple:
+            return AttackTypeTriple;
+        case MultiHitPreference::Double:
+            return AttackTypeDouble;
+        case MultiHitPreference::MythicThrice:
+        case MultiHitPreference::MythicTwice:
+        case MultiHitPreference::OccasionalExtra:
+            return AttackTypeNormal;
+        default:
+            return AttackTypeNormal;
+    }
+}
+
+// ShouldApplyExclusiveMultiHitSwings: any exclusive preference except None.
+inline auto ShouldApplyExclusiveMultiHitSwings(const MultiHitPreference pref) -> bool
+{
+    return pref != MultiHitPreference::None;
+}
+
 // Virtue Stone item ID for ammo-swing follow-up.
 constexpr uint16 VirtueStoneItemID = 18244;
 

@@ -63,5 +63,15 @@ auto runAttackRoundMultihit1374SelfTests() -> bool
     ok = expect(AmbushRotationInWindow(22) && !AmbushRotationInWindow(23), "ambush rot") && ok;
     ok = expect(ShouldApplyAmbushTripleBonus(true, true, true) && !ShouldApplyAmbushTripleBonus(true, false, true), "ambush bonus") && ok;
 
+    // Slice 1579: exclusive preference → attack type + apply gate
+    ok = expectEq(ExclusiveMultiHitAttackType(MultiHitPreference::Quad), AttackTypeQuad, "type quad") && ok;
+    ok = expectEq(ExclusiveMultiHitAttackType(MultiHitPreference::Triple), AttackTypeTriple, "type triple") && ok;
+    ok = expectEq(ExclusiveMultiHitAttackType(MultiHitPreference::Double), AttackTypeDouble, "type double") && ok;
+    ok = expectEq(ExclusiveMultiHitAttackType(MultiHitPreference::MythicThrice), AttackTypeNormal, "type myth") && ok;
+    ok = expect(ShouldApplyExclusiveMultiHitSwings(MultiHitPreference::OccasionalExtra) &&
+                    !ShouldApplyExclusiveMultiHitSwings(MultiHitPreference::None),
+                "apply exclusive") &&
+         ok;
+
     return ok;
 }

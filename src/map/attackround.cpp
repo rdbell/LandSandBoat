@@ -269,15 +269,15 @@ void CAttackRound::CreateAttacks(CItemWeapon* PWeapon, PHYSICAL_ATTACK_DIRECTION
     }
 
     // Checking the players triple, double and quadruple attack
-    int16 tripleAttack     = m_attacker->getMod(Mod::TRIPLE_ATTACK);
-    int16 doubleAttack     = m_attacker->getMod(Mod::DOUBLE_ATTACK);
-    int16 quadAttack       = m_attacker->getMod(Mod::QUAD_ATTACK);
-    bool  multiHitOccurred = false;
-    bool  isMainHand       = (IsH2H() && !m_attackSwings.empty()) || direction == RIGHTATTACK;
+    int16 tripleAttack = m_attacker->getMod(Mod::TRIPLE_ATTACK);
+    int16 doubleAttack = m_attacker->getMod(Mod::DOUBLE_ATTACK);
+    int16 quadAttack   = m_attacker->getMod(Mod::QUAD_ATTACK);
+    const bool isMainHand = attackroundhelpers::IsMainHandForMultiHit(
+        IsH2H(), m_attackSwings.empty(), direction == RIGHTATTACK);
 
     // Checking for Mythic Weapon Aftermath
-    int16 occAttThriceRate = std::clamp<int16>(m_attacker->getMod(Mod::MYTHIC_OCC_ATT_THRICE), 0, 100);
-    int16 occAttTwiceRate  = std::clamp<int16>(m_attacker->getMod(Mod::MYTHIC_OCC_ATT_TWICE), 0, 100);
+    int16 occAttThriceRate = attackroundhelpers::ClampAttackRate(m_attacker->getMod(Mod::MYTHIC_OCC_ATT_THRICE));
+    int16 occAttTwiceRate  = attackroundhelpers::ClampAttackRate(m_attacker->getMod(Mod::MYTHIC_OCC_ATT_TWICE));
 
     // Checking for merit upgrades
     if (isPC)
@@ -291,10 +291,16 @@ void CAttackRound::CreateAttacks(CItemWeapon* PWeapon, PHYSICAL_ATTACK_DIRECTION
         }
 
         // Ambush Augment adds +1% Triple Attack per merit (need to satisfy conditions for Ambush)
-        if (charutils::hasTrait(PChar, TRAIT_AMBUSH) && PChar->getMod(Mod::AUGMENTS_AMBUSH) > 0 &&
-            abs(m_defender->loc.p.rotation - m_attacker->loc.p.rotation) < 23)
         {
-            tripleAttack += PChar->PMeritPoints->GetMerit(MERIT_AMBUSH)->count;
+            const int16 rotDiff = static_cast<int16>(std::abs(
+                static_cast<int>(m_defender->loc.p.rotation) - static_cast<int>(m_attacker->loc.p.rotation)));
+            if (attackroundhelpers::ShouldApplyAmbushTripleBonus(
+                    charutils::hasTrait(PChar, TRAIT_AMBUSH),
+                    PChar->getMod(Mod::AUGMENTS_AMBUSH) > 0,
+                    attackroundhelpers::AmbushRotationInWindow(rotDiff)))
+            {
+                tripleAttack += PChar->PMeritPoints->GetMerit(MERIT_AMBUSH)->count;
+            }
         }
 
         if (charutils::hasTrait(PChar, TRAIT_DOUBLE_ATTACK))
@@ -304,8 +310,7 @@ void CAttackRound::CreateAttacks(CItemWeapon* PWeapon, PHYSICAL_ATTACK_DIRECTION
         // TODO: Quadruple attack merits when SE release them.
 
         // Iga Garb +2 Set augment: possibility to add another swing while using Dual Wield
-        // TODO: Double check correct priority for Empyrian armor modifiers? Outsource? Lua function?
-        if (!isMainHand)
+        if (attackroundhelpers::ShouldAddOffhandExtraDualWield(isMainHand))
         {
             doubleAttack += m_attacker->getMod(Mod::EXTRA_DUAL_WIELD_ATTACK);
         }
@@ -315,57 +320,54 @@ void CAttackRound::CreateAttacks(CItemWeapon* PWeapon, PHYSICAL_ATTACK_DIRECTION
     doubleAttack = attackroundhelpers::ClampAttackRate(doubleAttack);
     tripleAttack = attackroundhelpers::ClampAttackRate(tripleAttack);
 
-    // Preference matters! The following are additional hits to the default hit that don't stack up
-    // Mikage > Quad > Triple > Double > Mythic Aftermath > Occasionally Attacks > Hasso + Zanshin
-    // Daken is handled separately in CreateDakenAttack() and Zanshin in src/map/entities/battle_entity.cpp#L1768
+    // Preference: Mikage > exclusive ladder (QA/TA/DA/mythic/occasional) > default.
+    // Daken is CreateDakenAttack(); Zanshin is battle_entity.
+    const bool weaponIsMain = m_attacker->m_Weapons[SLOT_MAIN] != nullptr &&
+                              m_attacker->m_Weapons[SLOT_MAIN]->getID() == PWeapon->getID();
+    const bool hasMikage = m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Mikage);
 
-    // Checking Mikage Effect - Hits Vary With Num of Utsusemi Shadows for Main Weapon
-    if (m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Mikage) && m_attacker->m_Weapons[SLOT_MAIN] && m_attacker->m_Weapons[SLOT_MAIN]->getID() == PWeapon->getID())
+    bool multiHitOccurred = false;
+
+    if (attackroundhelpers::ShouldAddMikageSwings(hasMikage, weaponIsMain))
     {
-        auto shadows = (uint8)m_attacker->getMod(Mod::UTSUSEMI);
+        auto shadows = static_cast<uint8>(m_attacker->getMod(Mod::UTSUSEMI));
         AddAttackSwing(PHYSICAL_ATTACK_TYPE::NORMAL, direction, shadows);
     }
-    // Quad/Triple/Double Attack
-    else if (xirand::GetRandomNumber(100) < quadAttack)
+    else
     {
-        AddAttackSwing(PHYSICAL_ATTACK_TYPE::QUAD, direction, 4);
-        multiHitOccurred = true;
-    }
-    else if (xirand::GetRandomNumber(100) < tripleAttack)
-    {
-        AddAttackSwing(PHYSICAL_ATTACK_TYPE::TRIPLE, direction, 3);
-        multiHitOccurred = true;
-    }
-    else if (xirand::GetRandomNumber(100) < doubleAttack)
-    {
-        AddAttackSwing(PHYSICAL_ATTACK_TYPE::DOUBLE, direction, 2);
-        multiHitOccurred = true;
-    }
-    // Mythic Weapons Aftermath, only main hand
-    else if (isMainHand && xirand::GetRandomNumber(100) < occAttThriceRate)
-    {
-        AddAttackSwing(PHYSICAL_ATTACK_TYPE::NORMAL, direction, 2);
-    }
-    else if (isMainHand && xirand::GetRandomNumber(100) < occAttTwiceRate)
-    {
-        AddAttackSwing(PHYSICAL_ATTACK_TYPE::NORMAL, direction, 1);
-    }
-    // "Occasionally attacks X times" and regular multiple hits
-    else if (num > 1)
-    {
-        // Deduct the final default hit!
-        AddAttackSwing(PHYSICAL_ATTACK_TYPE::NORMAL, direction, (num - 1));
+        // Host rolls for exclusive ladder (order preserved: QA then TA then DA then mythic thrice/twice).
+        // Preserve original short-circuit roll order and isMainHand mythic gate
+        // so RNG consumption matches retail path (else-if chain).
+        const bool quadProcs   = xirand::GetRandomNumber(100) < quadAttack;
+        const bool tripleProcs = !quadProcs && xirand::GetRandomNumber(100) < tripleAttack;
+        const bool doubleProcs = !quadProcs && !tripleProcs && xirand::GetRandomNumber(100) < doubleAttack;
+        const bool mythicThriceProcs = isMainHand && !quadProcs && !tripleProcs && !doubleProcs &&
+                                       xirand::GetRandomNumber(100) < occAttThriceRate;
+        const bool mythicTwiceProcs  = isMainHand && !quadProcs && !tripleProcs && !doubleProcs &&
+                                       !mythicThriceProcs && xirand::GetRandomNumber(100) < occAttTwiceRate;
+
+        const auto pref = attackroundhelpers::ResolveExclusiveMultiHitPreference(
+            quadProcs, tripleProcs, doubleProcs, isMainHand, mythicThriceProcs, mythicTwiceProcs, num);
+
+        if (attackroundhelpers::ShouldApplyExclusiveMultiHitSwings(pref))
+        {
+            const auto swings = attackroundhelpers::ExclusiveMultiHitSwingCount(pref, num);
+            const auto atype  = static_cast<PHYSICAL_ATTACK_TYPE>(
+                attackroundhelpers::ExclusiveMultiHitAttackType(pref));
+            AddAttackSwing(atype, direction, swings);
+            multiHitOccurred = attackroundhelpers::MultiHitOccurred(pref);
+        }
     }
 
     // Additional swing modifier (stacks!), mostly for Amood weapons
-    if (isPC && xirand::GetRandomNumber(100) < m_attacker->getMod(Mod::ADDITIONAL_SWING_CHANCE))
+    if (attackroundhelpers::ShouldAddAdditionalSwing(
+            isPC, xirand::GetRandomNumber(100) < m_attacker->getMod(Mod::ADDITIONAL_SWING_CHANCE)))
     {
         AddAttackSwing(PHYSICAL_ATTACK_TYPE::NORMAL, direction, 1);
     }
 
-    // Default hit, necessary to check for multi hits as the hits are assigned as PHYSICAL_ATTACK_TYPE
-    // Double and Triple Attack Damage + mods are assigned to hits based on attack type
-    if (multiHitOccurred == false)
+    // Default hit when exclusive QA/TA/DA did not consume the preference path.
+    if (attackroundhelpers::ShouldAddDefaultHit(multiHitOccurred))
     {
         AddAttackSwing(PHYSICAL_ATTACK_TYPE::NORMAL, direction, 1);
     }
