@@ -33,6 +33,7 @@
 #include "char_event_activation_capacity.h"
 #include "char_event_lock_capacity.h"
 #include "char_event_idle_capacity.h"
+#include "char_event_packet_capacity.h"
 #include "char_event_queue_capacity.h"
 #include "char_event_skip_capacity.h"
 #include "char_name_capacity.h"
@@ -2800,25 +2801,16 @@ void CCharEntity::tryStartNextEvent()
         [&]() { return currentEvent->type == CUTSCENE; },
         [&](const bool locked) { setLocked(locked); });
 
-    if (currentEvent->strings.empty())
-    {
-        if (currentEvent->params.size() > 0 || currentEvent->textTable != -1)
-        {
-            pushPacket<GP_SERV_COMMAND_EVENTNUM>(this, currentEvent);
-        }
-        else
-        {
-            pushPacket<GP_SERV_COMMAND_EVENT>(this, currentEvent);
-        }
-    }
-    else
-    {
-        pushPacket<GP_SERV_COMMAND_EVENTSTR>(this, currentEvent);
-    }
-
-    animation = ANIMATION_EVENT;
-    updatemask |= UPDATE_POS; // TODO: decouple from this. We want the 250ms post-tick processing.
-    sendServerStatus_ = true; // sendServerStatus_ is somewhat like an update mask on its own
+    chareventpackethelpers::SendAndFinalize(
+        [&]() { return currentEvent->strings.empty(); },
+        [&]() { return !currentEvent->params.empty(); },
+        [&]() { return currentEvent->textTable != -1; },
+        [&]() { pushPacket<GP_SERV_COMMAND_EVENT>(this, currentEvent); },
+        [&]() { pushPacket<GP_SERV_COMMAND_EVENTNUM>(this, currentEvent); },
+        [&]() { pushPacket<GP_SERV_COMMAND_EVENTSTR>(this, currentEvent); },
+        [&]() { animation = ANIMATION_EVENT; },
+        [&]() { updatemask |= UPDATE_POS; }, // TODO: decouple from this. We want the 250ms post-tick processing.
+        [&]() { sendServerStatus_ = true; }); // sendServerStatus_ is somewhat like an update mask on its own
 }
 
 void CCharEntity::skipEvent()

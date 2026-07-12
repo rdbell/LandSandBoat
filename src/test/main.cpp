@@ -375,6 +375,7 @@ auto runCharEventQueue1455SelfTests() -> bool;
 auto runCharEventSkip1456SelfTests() -> bool;
 auto runCharEventIdle1457SelfTests() -> bool;
 auto runCharEventActivation1458SelfTests() -> bool;
+auto runCharEventPacket1459SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -960,6 +961,7 @@ namespace
         ok = runCharEventSkip1456SelfTests() && ok;
         ok = runCharEventIdle1457SelfTests() && ok;
         ok = runCharEventActivation1458SelfTests() && ok;
+        ok = runCharEventPacket1459SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
