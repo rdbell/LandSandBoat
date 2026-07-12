@@ -315,4 +315,133 @@ inline auto PetSkillListID(const std::uint16_t species) -> std::int16_t
     }
 }
 
+// Additional MOBMOD pins (battlefield/event/dungeon/spell defaults).
+constexpr std::int16_t MobModNoDespawn    = 17;
+constexpr std::int16_t MobModGilMax       = 2;
+constexpr std::int16_t MobModMugGil       = 15;
+constexpr std::int16_t MobModExpBonus     = 28;
+constexpr std::int16_t MobModSuperlink    = 26;
+constexpr std::int16_t MobModCharmable    = 64;
+constexpr std::int16_t MobModCheckAsNM    = 49;
+constexpr std::int16_t MobModHealChance   = 8;
+constexpr std::int16_t MobModHPHealChance = 9;
+constexpr std::int16_t MobModNAChance     = 22;
+
+constexpr std::uint16_t ZoneZhayolmRemnants = 73;
+constexpr std::uint16_t ZoneNyzulIsle       = 77;
+
+constexpr std::uint16_t BCNMDesiresOfEmptiness = 864;
+constexpr std::uint16_t BCNMDarknessNamed      = 704;
+constexpr std::uint16_t BCNMWakingDreams       = 706;
+
+inline auto DualWieldSubDamage(const bool isDualWielding, const std::uint16_t mainWeaponDamage) -> std::uint16_t
+{
+    return isDualWielding ? mainWeaponDamage : static_cast<std::uint16_t>(0);
+}
+
+inline auto CapSkillLevel(const std::uint8_t mLvl) -> std::uint8_t
+{
+    return mLvl > 99 ? static_cast<std::uint8_t>(99) : mLvl;
+}
+
+struct SetupBattlefieldPlan
+{
+    std::vector<MobModEntry> alwaysMods;
+    std::vector<MobModEntry> notInBFMods;
+    float                    maxRoamDistance = 0.0f;
+    bool                     setMaxRoam      = false;
+    bool                     superlink       = false;
+};
+
+inline auto PlanSetupBattlefield(const bool notInBattlefield, const std::uint16_t bcnmID, const std::int16_t battlefieldID) -> SetupBattlefieldPlan
+{
+    SetupBattlefieldPlan plan;
+    PushForce(plan.alwaysMods, MobModNoDespawn, 1);
+    PushForce(plan.alwaysMods, MobModGilMax, -1);
+    PushForce(plan.alwaysMods, MobModMugGil, -1);
+    PushForce(plan.alwaysMods, MobModExpBonus, -100);
+    if (!notInBattlefield)
+    {
+        return plan;
+    }
+    PushForce(plan.notInBFMods, MobModRoamResetFacing, 1);
+    PushForce(plan.notInBFMods, MobModRoamDistance, 0);
+    plan.maxRoamDistance = 0.0f;
+    plan.setMaxRoam      = true;
+    if (bcnmID != BCNMDesiresOfEmptiness && bcnmID != BCNMDarknessNamed && bcnmID != BCNMWakingDreams)
+    {
+        plan.superlink = true;
+        PushForce(plan.notInBFMods, MobModSuperlink, battlefieldID);
+    }
+    return plan;
+}
+
+struct SetupEventPlan
+{
+    std::uint16_t            roamFlagsOR = 0;
+    std::vector<MobModEntry> mods;
+    float                    maxRoamDistance = 0.0f;
+    bool                     setMaxRoam      = false;
+};
+
+inline auto PlanSetupEvent() -> SetupEventPlan
+{
+    SetupEventPlan plan;
+    plan.roamFlagsOR     = RoamFlagScripted;
+    plan.maxRoamDistance = 0.5f;
+    plan.setMaxRoam      = true;
+    PushForce(plan.mods, MobModRoamResetFacing, 1);
+    PushForce(plan.mods, MobModNoDespawn, 1);
+    return plan;
+}
+
+struct SetupDungeonPlan
+{
+    std::vector<MobModEntry> mods;
+    bool                     resetPosToSpawn  = false;
+    bool                     clearDespawnTime = false;
+};
+
+inline auto PlanSetupDungeon(const std::uint16_t zoneID) -> SetupDungeonPlan
+{
+    SetupDungeonPlan plan;
+    PushForce(plan.mods, MobModGilMax, 0);
+    PushForce(plan.mods, MobModMugGil, 0);
+    PushForce(plan.mods, MobModNoDespawn, 1);
+    plan.resetPosToSpawn  = true;
+    plan.clearDespawnTime = true;
+    if (zoneID >= ZoneZhayolmRemnants && zoneID <= ZoneNyzulIsle)
+    {
+        PushForce(plan.mods, MobModCharmable, 0);
+        if (zoneID != ZoneNyzulIsle)
+        {
+            PushForce(plan.mods, MobModCheckAsNM, 1);
+        }
+    }
+    return plan;
+}
+
+inline auto AvailableSpellsDefaultMods() -> std::vector<MobModEntry>
+{
+    std::vector<MobModEntry> mods;
+    PushDefault(mods, MobModMagicCool, 35);
+    PushDefault(mods, MobModGAChance, 35);
+    PushDefault(mods, MobModNAChance, 40);
+    PushDefault(mods, MobModSevereSpellChance, 20);
+    PushDefault(mods, MobModBuffChance, 35);
+    PushDefault(mods, MobModHealChance, 40);
+    PushDefault(mods, MobModHPHealChance, 40);
+    return mods;
+}
+
+inline auto BeastmenGilBonusDefault() -> MobModEntry
+{
+    return MobModEntry{ MobModGilBonus, 100, MobModApplyKind::Default };
+}
+
+inline auto NotoriousNoDespawn() -> MobModEntry
+{
+    return MobModEntry{ MobModNoDespawn, 1, MobModApplyKind::Force };
+}
+
 } // namespace mobsetuphelpers

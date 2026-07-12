@@ -112,6 +112,60 @@ auto Check() -> bool
         }
     }
 
+    // Slice 1622 extensions (battlefield/event/dungeon/spell defaults)
+    if (DualWieldSubDamage(true, 42) != 42 || DualWieldSubDamage(false, 42) != 0)
+    {
+        return false;
+    }
+    if (CapSkillLevel(100) != 99 || CapSkillLevel(50) != 50)
+    {
+        return false;
+    }
+    {
+        const auto early = PlanSetupBattlefield(false, 0, 0);
+        if (early.alwaysMods.size() != 4 || early.superlink || !early.notInBFMods.empty())
+        {
+            return false;
+        }
+        const auto noLink = PlanSetupBattlefield(true, BCNMDarknessNamed, 5);
+        if (noLink.superlink || noLink.notInBFMods.size() != 2)
+        {
+            return false;
+        }
+        const auto link = PlanSetupBattlefield(true, 1, 9);
+        if (!link.superlink || !HasMod(link.notInBFMods, MobModSuperlink, 9, MobModApplyKind::Force))
+        {
+            return false;
+        }
+    }
+    {
+        const auto p = PlanSetupEvent();
+        if (p.roamFlagsOR != RoamFlagScripted || p.maxRoamDistance != 0.5f || !HasMod(p.mods, MobModNoDespawn, 1, MobModApplyKind::Force))
+        {
+            return false;
+        }
+    }
+    {
+        const auto nyzul = PlanSetupDungeon(ZoneNyzulIsle);
+        if (!HasMod(nyzul.mods, MobModCharmable, 0, MobModApplyKind::Force) || HasMod(nyzul.mods, MobModCheckAsNM, 1, MobModApplyKind::Force))
+        {
+            return false;
+        }
+        const auto salvage = PlanSetupDungeon(ZoneZhayolmRemnants);
+        if (!HasMod(salvage.mods, MobModCheckAsNM, 1, MobModApplyKind::Force))
+        {
+            return false;
+        }
+    }
+    if (AvailableSpellsDefaultMods().size() != 7)
+    {
+        return false;
+    }
+    if (BeastmenGilBonusDefault().value != 100 || NotoriousNoDespawn().value != 1)
+    {
+        return false;
+    }
+
     return true;
 }
 } // namespace

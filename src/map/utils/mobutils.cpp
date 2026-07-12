@@ -367,10 +367,11 @@ void CalculateMobStats(CMobEntity* PMob, bool recover)
         PMob->m_SpellListContainer = mobSpellList::GetMobSpellList(PMob->getMobMod(MOBMOD_SPELL_LIST));
     }
 
-    // cap all stats for mLvl / job
+    // cap all stats for mLvl / job (level clamp pure; slice 1622)
+    const auto skillLvl = mobsetuphelpers::CapSkillLevel(mLvl);
     for (int i = SKILL_DIVINE_MAGIC; i <= SKILL_BLUE_MAGIC; i++)
     {
-        uint16 maxSkill = battleutils::GetMaxSkill((SKILLTYPE)i, PMob->GetMJob(), mLvl > 99 ? 99 : mLvl);
+        uint16 maxSkill = battleutils::GetMaxSkill((SKILLTYPE)i, PMob->GetMJob(), skillLvl);
         if (maxSkill != 0)
         {
             PMob->WorkingSkills.skill[i] = maxSkill;
@@ -378,7 +379,7 @@ void CalculateMobStats(CMobEntity* PMob, bool recover)
         else // if the mob is WAR/BLM and can cast spell
         {
             // set skill as high as main level, so their spells won't get resisted
-            uint16 maxSubSkill = battleutils::GetMaxSkill((SKILLTYPE)i, PMob->GetSJob(), mLvl > 99 ? 99 : mLvl);
+            uint16 maxSubSkill = battleutils::GetMaxSkill((SKILLTYPE)i, PMob->GetSJob(), skillLvl);
 
             if (maxSubSkill != 0)
             {
@@ -388,7 +389,7 @@ void CalculateMobStats(CMobEntity* PMob, bool recover)
     }
     for (int i = SKILL_HAND_TO_HAND; i <= SKILL_STAFF; i++)
     {
-        uint16 maxSkill = battleutils::GetMaxSkill(3, mLvl > 99 ? 99 : mLvl);
+        uint16 maxSkill = battleutils::GetMaxSkill(3, skillLvl);
         if (maxSkill != 0)
         {
             PMob->WorkingSkills.skill[i] = maxSkill;
@@ -439,15 +440,17 @@ void CalculateMobStats(CMobEntity* PMob, bool recover)
 
     // If a mob is going to dual wield, then it needs to have a sub slot.
     // Assume it is the same damage as the main slot.
-    // Ordering matters. This has to come after SetupJob
-    static_cast<CItemWeapon*>(PMob->m_Weapons[SLOT_SUB])->setDamage(PMob->IsDualWielding() ? GetBaseWeaponDamage(PMob, SLOT_MAIN) : 0);
+    // Ordering matters. This has to come after SetupJob (slice 1622 pure product).
+    static_cast<CItemWeapon*>(PMob->m_Weapons[SLOT_SUB])
+        ->setDamage(mobsetuphelpers::DualWieldSubDamage(PMob->IsDualWielding(), GetBaseWeaponDamage(PMob, SLOT_MAIN)));
 
     SetupRoaming(PMob);
 
-    // All beastmen drop gil
+    // All beastmen drop gil (pure default entry; slice 1622).
     if (PMob->m_EcoSystem == xi::Ecosystem::Beastmen)
     {
-        PMob->defaultMobMod(MOBMOD_GIL_BONUS, 100);
+        const auto gil = mobsetuphelpers::BeastmenGilBonusDefault();
+        PMob->defaultMobMod(static_cast<MOBMODIFIER>(gil.mod), gil.value);
     }
 
     if (PMob->PMaster != nullptr)
@@ -464,7 +467,8 @@ void CalculateMobStats(CMobEntity* PMob, bool recover)
 
     if (PMob->m_Type & MOBTYPE_NOTORIOUS)
     {
-        PMob->setMobMod(MOBMOD_NO_DESPAWN, 1);
+        const auto nm = mobsetuphelpers::NotoriousNoDespawn();
+        PMob->setMobMod(static_cast<MOBMODIFIER>(nm.mod), nm.value);
     }
 
     if (zoneType & ZONE_TYPE::INSTANCED)
@@ -587,62 +591,58 @@ uint8 JobSkillRankToBaseEvaRank(JOBTYPE mjob, JOBTYPE sjob)
 
 void SetupBattlefieldMob(CMobEntity* PMob)
 {
-    PMob->setMobMod(MOBMOD_NO_DESPAWN, 1);
-
-    // Battlefield mobs don't drop gil
-    PMob->setMobMod(MOBMOD_GIL_MAX, -1);
-    PMob->setMobMod(MOBMOD_MUG_GIL, -1);
-    PMob->setMobMod(MOBMOD_EXP_BONUS, -100);
-
-    // never despawn
+    // Pure battlefield plan (mob_setup_capacity.h; slice 1622).
+    const auto plan = mobsetuphelpers::PlanSetupBattlefield(
+        PMob->PBattlefield == nullptr, PMob->m_bcnmID, static_cast<int16>(PMob->m_battlefieldID));
+    for (const auto& entry : plan.alwaysMods)
+    {
+        PMob->setMobMod(static_cast<MOBMODIFIER>(entry.mod), entry.value);
+    }
     PMob->SetDespawnTime(0s);
-
-    // Stop early if this is a new battlefield
     if (PMob->PBattlefield != nullptr)
     {
         return;
     }
-
-    // do not roam around
-    PMob->setMobMod(MOBMOD_ROAM_RESET_FACING, 1);
-    PMob->setMobMod(MOBMOD_ROAM_DISTANCE, 0);
-    PMob->m_maxRoamDistance = 0.0f;
-    if ((PMob->m_bcnmID != 864) && (PMob->m_bcnmID != 704) && (PMob->m_bcnmID != 706))
+    for (const auto& entry : plan.notInBFMods)
     {
-        // bcnmID 864 (desires of emptiness), 704 (darkness named), and 706 (waking dreams) don't superlink
-        // force all mobs in same instance to superlink
-        // plus one in case id is zero
-        PMob->setMobMod(MOBMOD_SUPERLINK, PMob->m_battlefieldID);
+        PMob->setMobMod(static_cast<MOBMODIFIER>(entry.mod), entry.value);
+    }
+    if (plan.setMaxRoam)
+    {
+        PMob->m_maxRoamDistance = plan.maxRoamDistance;
     }
 }
 
 void SetupEventMob(CMobEntity* PMob)
 {
-    // event mob types will always have scripted roaming (any mob can have it scripted, but these ALWAYS do)
-    PMob->m_roamFlags |= ROAMFLAG_SCRIPTED;
-    PMob->setMobMod(MOBMOD_ROAM_RESET_FACING, 1);
-    PMob->m_maxRoamDistance = 0.5f; // always go back to spawn
-
-    PMob->setMobMod(MOBMOD_NO_DESPAWN, 1);
+    // Pure event plan (mob_setup_capacity.h; slice 1622).
+    const auto plan = mobsetuphelpers::PlanSetupEvent();
+    PMob->m_roamFlags |= plan.roamFlagsOR;
+    for (const auto& entry : plan.mods)
+    {
+        PMob->setMobMod(static_cast<MOBMODIFIER>(entry.mod), entry.value);
+    }
+    if (plan.setMaxRoam)
+    {
+        PMob->m_maxRoamDistance = plan.maxRoamDistance;
+    }
 }
 
 void SetupDungeonInstanceMob(CMobEntity* PMob)
 {
-    PMob->setMobMod(MOBMOD_GIL_MAX, 0);
-    PMob->setMobMod(MOBMOD_MUG_GIL, 0);
-    PMob->loc.p = PMob->m_SpawnPoint;
-    // never despawn
-    PMob->SetDespawnTime(0s);
-    PMob->setMobMod(MOBMOD_NO_DESPAWN, 1);
-    // Salvage and Nyzul
-    if (PMob->getZone() >= ZONE_ZHAYOLM_REMNANTS && PMob->getZone() <= ZONE_NYZUL_ISLE)
+    // Pure dungeon plan (mob_setup_capacity.h; slice 1622).
+    const auto plan = mobsetuphelpers::PlanSetupDungeon(static_cast<uint16>(PMob->getZone()));
+    for (const auto& entry : plan.mods)
     {
-        // Salvage and Nyzul mobs can not be charmed
-        PMob->setMobMod(MOBMOD_CHARMABLE, 0);
-        if (PMob->getZone() != ZONE_NYZUL_ISLE)
-        {
-            PMob->setMobMod(MOBMOD_CHECK_AS_NM, 1);
-        }
+        PMob->setMobMod(static_cast<MOBMODIFIER>(entry.mod), entry.value);
+    }
+    if (plan.resetPosToSpawn)
+    {
+        PMob->loc.p = PMob->m_SpawnPoint;
+    }
+    if (plan.clearDespawnTime)
+    {
+        PMob->SetDespawnTime(0s);
     }
 }
 
@@ -668,14 +668,11 @@ void GetAvailableSpells(CMobEntity* PMob)
         return;
     }
 
-    // catch all non-defaulted spell chances
-    PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-    PMob->defaultMobMod(MOBMOD_GA_CHANCE, 35);
-    PMob->defaultMobMod(MOBMOD_NA_CHANCE, 40);
-    PMob->defaultMobMod(MOBMOD_SEVERE_SPELL_CHANCE, 20);
-    PMob->defaultMobMod(MOBMOD_BUFF_CHANCE, 35);
-    PMob->defaultMobMod(MOBMOD_HEAL_CHANCE, 40);
-    PMob->defaultMobMod(MOBMOD_HP_HEAL_CHANCE, 40);
+    // catch all non-defaulted spell chances (pure defaults; slice 1622)
+    for (const auto& entry : mobsetuphelpers::AvailableSpellsDefaultMods())
+    {
+        PMob->defaultMobMod(static_cast<MOBMODIFIER>(entry.mod), entry.value);
+    }
 
     RecalculateSpellContainer(PMob);
 
