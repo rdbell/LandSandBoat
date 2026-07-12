@@ -860,6 +860,8 @@ set(SOURCES
     test_ws_tp_1548.cpp
     test_spell_recast_1549.h
     test_spell_recast_1549.cpp
+    test_spell_cast_1550.h
+    test_spell_cast_1550.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

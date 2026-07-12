@@ -54,6 +54,7 @@
 #include "dmg_taken_capacity.h"
 #include "ws_tp_capacity.h"
 #include "spell_recast_capacity.h"
+#include "spell_cast_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -5206,191 +5207,77 @@ bool HasClaim(CBattleEntity* PEntity, CBattleEntity* PTarget)
 timer::duration CalculateSpellCastTime(CBattleEntity* PEntity, CMagicState* PMagicState)
 {
     CSpell* PSpell = PMagicState->GetSpell();
-    if (PSpell == nullptr)
+    if (spellcasthelpers::ShouldReturnZeroNullSpell(PSpell == nullptr))
     {
         return 0s;
     }
 
-    // Check Quick Magic procs
-    int16 quickMagicRate = PEntity->getMod(Mod::QUICK_MAGIC);
-    if (xirand::GetRandomNumber(100) < quickMagicRate)
+    // Check Quick Magic procs (host RNG + SetInstantCast side effect)
+    const int16 quickMagicRate = PEntity->getMod(Mod::QUICK_MAGIC);
+    const bool  quickMagicProc = xirand::GetRandomNumber(100) < quickMagicRate;
+    if (quickMagicProc)
     {
         PMagicState->SetInstantCast(true);
-        return 0s;
     }
 
-    bool applyArts = true;
-    auto base      = PSpell->getCastTime();
-    auto cast      = base;
+    spellcasthelpers::SpellCastParams p{};
+    p.baseMs     = std::chrono::duration_cast<std::chrono::milliseconds>(PSpell->getCastTime()).count();
+    p.spellGroup = static_cast<std::uint16_t>(PSpell->getSpellGroup());
+    p.aoe        = static_cast<std::uint8_t>(PSpell->getAOE());
+    p.skillType  = static_cast<std::uint8_t>(PSpell->getSkillType());
+    p.isCure     = PSpell->isCure();
+    p.isNa       = PSpell->isNa();
+    p.isPC       = PEntity->objtype == TYPE_PC;
+    p.quickMagicProc = quickMagicProc;
 
-    if (PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Hasso, xi::StatusEffect::Seigan }))
-    {
-        cast = std::chrono::floor<std::chrono::milliseconds>(cast * 1.5);
-    }
+    p.hassoOrSeigan =
+        PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Hasso, xi::StatusEffect::Seigan });
+    p.alacrity = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Alacrity);
+    p.celerity = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Celerity);
+    p.darkArtsOrAddendumBlack =
+        PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::DarkArts, xi::StatusEffect::AddendumBlack });
+    p.lightArtsOrAddendumWhite =
+        PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::LightArts, xi::StatusEffect::AddendumWhite });
+    p.pianissimo  = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Pianissimo);
+    p.nightingale = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Nightingale);
+    p.troubadour  = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Troubadour);
 
-    if (PSpell->getSpellGroup() == SPELLGROUP_BLACK)
-    {
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Alacrity))
-        {
-            uint16 bonus = 0;
-            // Only apply Alacrity/celerity mod if the spell element matches the weather.
-            if (battleutils::WeatherMatchesElement(battleutils::GetWeather(PEntity, false), (uint8)PSpell->getElement()))
-            {
-                bonus += PEntity->getMod(Mod::ALACRITY_CELERITY_EFFECT);
-            }
-
-            // SCH JP: Stratagem II - 1% reduction in cast time per point
-            if (PEntity->objtype == TYPE_PC)
-            {
-                auto* PChar = static_cast<CCharEntity*>(PEntity);
-
-                bonus += PChar->PJobPoints->GetJobPointValue(JP_STRATEGEM_EFFECT_II);
-            }
-
-            cast -= std::chrono::floor<std::chrono::milliseconds>(base * ((100 - (50 + bonus)) / 100.0f));
-            applyArts = false;
-        }
-        // Add Black & Dark Magic Casting Time -% bonus to Bio, Absorbs, Drain, Aspir, Dread Spikes, Stun, Tractor, Endark
-        // https://www.bg-wiki.com/ffxi/Abs._Burgeonet_%2B2
-        // https://www.bg-wiki.com/ffxi/Fallen%27s_Burgeonet
-        else if (PSpell->getSkillType() == SKILLTYPE::SKILL_DARK_MAGIC)
-        {
-            cast      = std::chrono::floor<std::chrono::milliseconds>(cast * (1.0f + ((PEntity->getMod(Mod::BLACK_MAGIC_CAST) + PEntity->getMod(Mod::DARK_MAGIC_CAST)) / 100.0f)));
-            applyArts = false;
-        }
-        else if (applyArts)
-        {
-            if (PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::DarkArts, xi::StatusEffect::AddendumBlack }))
-            {
-                // Add any "Grimoire: Reduces spellcasting time" bonuses
-                cast = std::chrono::floor<std::chrono::milliseconds>(cast * (1.0f + (PEntity->getMod(Mod::BLACK_MAGIC_CAST) + PEntity->getMod(Mod::GRIMOIRE_SPELLCASTING)) / 100.0f));
-            }
-            else
-            {
-                cast = std::chrono::floor<std::chrono::milliseconds>(cast * (1.0f + PEntity->getMod(Mod::BLACK_MAGIC_CAST) / 100.0f));
-            }
-        }
-    }
-    else if (PSpell->getSpellGroup() == SPELLGROUP_WHITE)
-    {
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Celerity))
-        {
-            uint16 bonus = 0;
-            // Only apply Alacrity/celerity mod if the spell element matches the weather.
-            if (battleutils::WeatherMatchesElement(battleutils::GetWeather(PEntity, false), (uint8)PSpell->getElement()))
-            {
-                bonus += PEntity->getMod(Mod::ALACRITY_CELERITY_EFFECT);
-            }
-
-            // SCH JP: Stratagem II - 1% reduction in cast time per point
-            if (PEntity->objtype == TYPE_PC)
-            {
-                auto* PChar = static_cast<CCharEntity*>(PEntity);
-
-                bonus += PChar->PJobPoints->GetJobPointValue(JP_STRATEGEM_EFFECT_II);
-            }
-
-            cast -= std::chrono::floor<std::chrono::milliseconds>(base * ((100 - (50 + bonus)) / 100.0f));
-            applyArts = false;
-        }
-        else if (applyArts)
-        {
-            if (PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::LightArts, xi::StatusEffect::AddendumWhite }))
-            {
-                // Add any "Grimoire: Reduces spellcasting time" bonuses
-                cast = std::chrono::floor<std::chrono::milliseconds>(cast * (1.0f + (PEntity->getMod(Mod::WHITE_MAGIC_CAST) + PEntity->getMod(Mod::GRIMOIRE_SPELLCASTING)) / 100.0f));
-            }
-            else
-            {
-                cast = std::chrono::floor<std::chrono::milliseconds>(cast * (1.0f + PEntity->getMod(Mod::WHITE_MAGIC_CAST) / 100.0f));
-            }
-        }
-    }
-    else if (PSpell->getSpellGroup() == SPELLGROUP_SUMMONING)
-    {
-        auto amount = 1000ms * PEntity->getMod(Mod::SUMMONING_MAGIC_CAST);
-
-        if (PEntity->objtype == TYPE_PC)
-        {
-            auto* PChar = static_cast<CCharEntity*>(PEntity);
-            amount += std::chrono::floor<std::chrono::milliseconds>(base * 0.01 * PChar->PMeritPoints->GetMeritValue(MERIT_SUMMONING_MAGIC_CAST_TIME, PChar));
-        }
-
-        if (cast > amount)
-        {
-            cast -= std::max<timer::duration>(amount, 0s);
-        }
-        else
-        {
-            cast = 0s;
-        }
-    }
-    else if (PSpell->getSpellGroup() == SPELLGROUP_SONG)
-    {
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Pianissimo))
-        {
-            if (PSpell->getAOE() == SPELLAOE_PIANISSIMO)
-            {
-                cast = base / 2;
-            }
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Nightingale))
-        {
-            if (PEntity->objtype == TYPE_PC &&
-                xirand::GetRandomNumber(100) < ((CCharEntity*)PEntity)->PMeritPoints->GetMeritValue(MERIT_NIGHTINGALE, (CCharEntity*)PEntity) - 25)
-            {
-                return 0s;
-            }
-            cast = std::chrono::floor<std::chrono::milliseconds>(cast * 0.5f);
-        }
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Troubadour))
-        {
-            cast = std::chrono::floor<std::chrono::milliseconds>(cast * 1.5f);
-        }
-        uint16 songcasting = PEntity->getMod(Mod::SONG_SPELLCASTING_TIME);
-        cast               = std::chrono::floor<std::chrono::milliseconds>(cast * (1.0f - ((songcasting > 50 ? 50 : songcasting) / 100.0f)));
-    }
-    else if (PSpell->getSpellGroup() == SPELLGROUP_NINJUTSU)
-    {
-        if (PEntity->objtype == TYPE_PC)
-        {
-            uint8 jpValue = static_cast<CCharEntity*>(PEntity)->PJobPoints->GetJobPointValue(JP_NINJITSU_CAST_TIME_BONUS);
-            cast          = std::chrono::floor<std::chrono::milliseconds>(cast * (1.0f - (0.03f * jpValue)));
-        }
-    }
-
-    int16 fastCast = std::clamp<int16>(PEntity->getMod(Mod::FASTCAST), -100, 50);
-    if (PSpell->getSkillType() == SKILLTYPE::SKILL_ELEMENTAL_MAGIC) // Elemental Celerity reductions
-    {
-        fastCast += PEntity->getMod(Mod::ELEMENTAL_CELERITY);
-    }
-    else if (PSpell->isCure()) // Cure cast time reductions
-    {
-        fastCast += PEntity->getMod(Mod::CURE_CAST_TIME);
-        if (PEntity->objtype == TYPE_PC)
-        {
-            fastCast += ((CCharEntity*)PEntity)->PMeritPoints->GetMeritValue(MERIT_CURE_CAST_TIME, (CCharEntity*)PEntity);
-        }
-    }
-    else if (PSpell->getSkillType() == SKILLTYPE::SKILL_GEOMANCY && PEntity->objtype == TYPE_PC)
+    if (p.nightingale && p.isPC)
     {
         auto* PChar = static_cast<CCharEntity*>(PEntity);
-        fastCast += PChar->PJobPoints->GetJobPointValue(JP_WIDENED_COMPASS_EFFECT);
+        p.nightingaleInstant =
+            xirand::GetRandomNumber(100) < (PChar->PMeritPoints->GetMeritValue(MERIT_NIGHTINGALE, PChar) - 25);
     }
 
-    fastCast                  = std::clamp<int16>(fastCast, -100, 80);
-    int16 uncappedFastCast    = std::clamp<int16>(PEntity->getMod(Mod::UFASTCAST), -100, 100);
-    int16 inspirationFastCast = std::clamp<int16>(PEntity->getMod(Mod::INSPIRATION_FAST_CAST), -100, 100);
+    p.blackMagicCast         = PEntity->getMod(Mod::BLACK_MAGIC_CAST);
+    p.whiteMagicCast         = PEntity->getMod(Mod::WHITE_MAGIC_CAST);
+    p.darkMagicCast          = PEntity->getMod(Mod::DARK_MAGIC_CAST);
+    p.grimoireSpellcasting   = PEntity->getMod(Mod::GRIMOIRE_SPELLCASTING);
+    p.alacrityCelerityEffect = static_cast<std::uint16_t>(PEntity->getMod(Mod::ALACRITY_CELERITY_EFFECT));
+    p.weatherMatchesElement =
+        battleutils::WeatherMatchesElement(battleutils::GetWeather(PEntity, false), static_cast<uint8>(PSpell->getElement()));
 
-    // Add in fast cast from Divine Benison
-    if (PSpell->isNa())
+    if (p.isPC)
     {
-        uncappedFastCast = std::clamp<int16>(uncappedFastCast + PEntity->getMod(Mod::DIVINE_BENISON), -100, 100);
+        auto* PChar = static_cast<CCharEntity*>(PEntity);
+        p.strategemEffectII           = PChar->PJobPoints->GetJobPointValue(JP_STRATEGEM_EFFECT_II);
+        p.summoningMagicCastTimeMerit = PChar->PMeritPoints->GetMeritValue(MERIT_SUMMONING_MAGIC_CAST_TIME, PChar);
+        p.ninjutsuCastTimeBonus       = PChar->PJobPoints->GetJobPointValue(JP_NINJITSU_CAST_TIME_BONUS);
+        p.cureCastTimeMerit           = static_cast<std::int16_t>(PChar->PMeritPoints->GetMeritValue(MERIT_CURE_CAST_TIME, PChar));
+        p.widenedCompassJP            = static_cast<std::int16_t>(PChar->PJobPoints->GetJobPointValue(JP_WIDENED_COMPASS_EFFECT));
     }
 
-    float sumFastCast = std::clamp<float>((float)(fastCast + uncappedFastCast + inspirationFastCast), -100.0f, 100.0f);
+    p.summoningMagicCast     = PEntity->getMod(Mod::SUMMONING_MAGIC_CAST);
+    p.songSpellcastingTime   = static_cast<std::uint16_t>(PEntity->getMod(Mod::SONG_SPELLCASTING_TIME));
+    p.fastCast               = PEntity->getMod(Mod::FASTCAST);
+    p.uFastCast              = PEntity->getMod(Mod::UFASTCAST);
+    p.inspirationFastCast    = PEntity->getMod(Mod::INSPIRATION_FAST_CAST);
+    p.elementalCelerity      = PEntity->getMod(Mod::ELEMENTAL_CELERITY);
+    p.cureCastTime           = PEntity->getMod(Mod::CURE_CAST_TIME);
+    p.divineBenison          = PEntity->getMod(Mod::DIVINE_BENISON);
 
-    return std::chrono::floor<std::chrono::milliseconds>(cast * ((100.0f - sumFastCast) / 100.0f));
+    const auto ms = spellcasthelpers::CalculateSpellCastMs(p);
+    return std::chrono::milliseconds(ms);
 }
 
 uint16 CalculateSpellCost(CBattleEntity* PEntity, CSpell* PSpell)
