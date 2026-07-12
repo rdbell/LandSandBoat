@@ -26,6 +26,7 @@
 #include "common/utils.h"
 
 #include "map/base_to_rank_capacity.h"
+#include "map/sub_job_stats_capacity.h"
 
 #include "action/action.h"
 #include "ai/ai_container.h"
@@ -291,149 +292,8 @@ uint16 GetBaseToRank(uint8 rank, uint16 lvl)
  ************************************************************************/
 uint16 GetSubJobStats(uint8 rank, uint16 level, uint16 stat)
 {
-    // These ranks A through G are used by all known JP sources. Please note this is equivalent to the US usage of A+ through F
-    // https://w.atwiki.jp/studiogobli/pages/27.html
-    float sJobStat = 0;
-
-    switch (rank)
-    {
-        case 1: // A
-            if (level <= 30)
-            {
-                sJobStat = std::max((std::floor(stat / (4.0f - 0.225f * (level - 30)))), 2.0f);
-            }
-            else if (level <= 40)
-            {
-                sJobStat = std::floor(stat / (3.25f - 0.073f * (level - 30)));
-            }
-            else if (level <= 46)
-            {
-                sJobStat = std::floor(stat / (2.55f - 0.001f * (level - 41)));
-            }
-            else
-            {
-                sJobStat = std::floor(stat / (2.7f - 0.001f * (level - 45)));
-            }
-            break;
-
-        case 2: // B
-            if (level <= 30)
-            {
-                sJobStat = std::max((std::floor(stat / (3.1f - 0.075f * (level - 32)))), 2.0f);
-            }
-            else if (level <= 40)
-            {
-                sJobStat = std::floor(stat / (3.1f - 0.075f * (level - 32)));
-            }
-            else if (level <= 45)
-            {
-                sJobStat = std::floor(stat / (2.5f - 0.025f * (level - 40)));
-            }
-            else
-            {
-                sJobStat = std::floor(stat / (2.35f - 0.04f * (level - 44)));
-            }
-            break;
-
-        case 3: // C
-            if (level <= 30)
-            {
-                sJobStat = std::max((std::floor(stat / (4.5f - 0.15f * (level - 26)))), 2.0f);
-            }
-            else if (level <= 40)
-            {
-                sJobStat = std::floor(stat / (3.28f - 0.001f * (level - 30)));
-            }
-            else if (level <= 45)
-            {
-                sJobStat = std::floor(stat / (2.6f - 0.025f * (level - 40)));
-            }
-            else
-            {
-                sJobStat = std::floor(stat / (2.1f - 0.2f * (level - 49)));
-            }
-            break;
-
-        case 4: // D
-            if (level <= 30)
-            {
-                sJobStat = std::max((std::floor(stat / (5.0f - 0.05f * (level - 21)))), 1.0f);
-            }
-            else if (level <= 40)
-            {
-                sJobStat = std::floor(stat / (3.2f - 0.001f * (level - 29)));
-            }
-            else if (level <= 45)
-            {
-                sJobStat = std::floor(stat / (3.5f - 0.08f * (level - 32)));
-            }
-            else
-            {
-                sJobStat = std::floor(stat / (3.25f - 0.045f * (level - 32)));
-            }
-            break;
-
-        case 5: // E
-            if (level <= 30)
-            {
-                sJobStat = std::max((std::floor(stat / (3.8f - 0.1f * (level - 32)))), 1.0f);
-            }
-            else if (level <= 40)
-            {
-                sJobStat = std::floor(stat / (3.8f - 0.15f * (level - 32)));
-            }
-            else if (level <= 45)
-            {
-                sJobStat = std::floor(stat / (2.7f - 0.075f * (level - 40)));
-            }
-            else
-            {
-                sJobStat = std::floor(stat / (2.7f - 0.05f * (level - 45)));
-            }
-            break;
-
-        case 6: // F
-            if (level <= 30)
-            {
-                sJobStat = std::max((std::floor(stat / (4.0f - 0.15f * (level - 35)))), 1.0f);
-            }
-            else if (level <= 40)
-            {
-                sJobStat = std::floor(stat / (4.0f - 0.15f * (level - 30)));
-            }
-            else if (level <= 46)
-            {
-                sJobStat = std::floor(stat / (3.0f - 0.1125f * (level - 40)));
-            }
-            else
-            {
-                sJobStat = std::floor(stat / (3.0f - 0.07f * (level - 40)));
-            }
-            break;
-
-        case 7: // G
-            if (level <= 30)
-            {
-                sJobStat = std::max((std::floor(stat / (4.0f - 0.15f * (level - 35)))), 1.0f);
-            }
-            else if (level <= 40)
-            {
-                sJobStat = std::floor(stat / (4.0f - 0.2f * (level - 31)));
-            }
-            else if (level <= 46)
-            {
-                sJobStat = std::floor(stat / (2.5f - 0.09f * (level - 40)));
-            }
-            else
-            {
-                sJobStat = std::floor(stat / 2);
-            }
-            break;
-        default:
-            sJobStat = stat / 2.0f;
-            break;
-    }
-    return sJobStat;
+    // Pure subjob stat scaling (sub_job_stats_capacity.h; slice 1597).
+    return subjobstatshelpers::GetSubJobStats(rank, level, stat);
 }
 
 /************************************************************************

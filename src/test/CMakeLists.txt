@@ -944,6 +944,8 @@ set(SOURCES
     test_jug_base_rank_1594.cpp
     test_chocobo_dig_1595.h
     test_chocobo_dig_1595.cpp
+    test_sub_job_stats_1597.h
+    test_sub_job_stats_1597.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

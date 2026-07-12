@@ -507,6 +507,7 @@ auto runAutomatonWeaponDamage1592SelfTests() -> bool;
 auto runPetWeaponDamage1593SelfTests() -> bool;
 auto runJugBaseRank1594SelfTests() -> bool;
 auto runChocoboDig1595SelfTests() -> bool;
+auto runSubJobStats1597SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1224,6 +1225,7 @@ namespace
         ok = runPetWeaponDamage1593SelfTests() && ok;
         ok = runJugBaseRank1594SelfTests() && ok;
         ok = runChocoboDig1595SelfTests() && ok;
+        ok = runSubJobStats1597SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
