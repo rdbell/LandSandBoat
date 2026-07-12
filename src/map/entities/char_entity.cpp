@@ -39,6 +39,7 @@
 #include "char_resource_capacity.h"
 #include "char_storage_capacity.h"
 #include "char_tick_capacity.h"
+#include "char_trigger_area_capacity.h"
 #include "char_trust_roster_capacity.h"
 #include "char_valid_target_capacity.h"
 #include "common/logging.h"
@@ -2693,22 +2694,22 @@ bool CCharEntity::OnAttackError(CAttackState& state)
 
 bool CCharEntity::isInTriggerArea(uint32 triggerAreaID)
 {
-    return charTriggerAreaIDs.find(triggerAreaID) != charTriggerAreaIDs.end();
+    return chartriggerareahelpers::Contains(charTriggerAreaIDs, triggerAreaID);
 }
 
 void CCharEntity::onTriggerAreaEnter(uint32 triggerAreaID)
 {
-    charTriggerAreaIDs.insert(triggerAreaID);
+    chartriggerareahelpers::Enter(charTriggerAreaIDs, triggerAreaID);
 }
 
 void CCharEntity::onTriggerAreaLeave(uint32 triggerAreaID)
 {
-    charTriggerAreaIDs.erase(triggerAreaID);
+    chartriggerareahelpers::Leave(charTriggerAreaIDs, triggerAreaID);
 }
 
 void CCharEntity::clearTriggerAreas()
 {
-    charTriggerAreaIDs.clear();
+    chartriggerareahelpers::Clear(charTriggerAreaIDs);
 }
 
 auto CCharEntity::isInEvent() const -> bool

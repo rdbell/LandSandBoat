@@ -668,6 +668,8 @@ set(SOURCES
     test_char_error_delivery_1451.cpp
     test_char_death_homepoint_1452.h
     test_char_death_homepoint_1452.cpp
+    test_char_trigger_area_1453.h
+    test_char_trigger_area_1453.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
