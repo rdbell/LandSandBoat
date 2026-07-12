@@ -30,6 +30,7 @@
 #include "paralyze_shadow_capacity.h"
 #include "combat_status_tails_capacity.h"
 #include "claim_capacity.h"
+#include "enmity_combat_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -3883,36 +3884,30 @@ void GenerateInRangeEnmity(CBattleEntity* PSource, int32 CE, int32 VE)
 void handleKillshotEnmity(CBattleEntity* PAttacker, CBattleEntity* PTarget)
 {
     // Handle killshot enmity reset if applicable
-    if (PAttacker->objtype == TYPE_MOB && PTarget)
+    if (PAttacker->objtype == TYPE_MOB && PTarget && PTarget->isDead())
     {
-        if (PTarget->isDead())
+        auto* PMob     = static_cast<CMobEntity*>(PAttacker);
+        auto* PHighest = PMob->PEnmityContainer->GetHighestEnmity();
+        if (enmitycombathelpers::ShouldClearKillshotEnmity(
+                true, true, true, PHighest != nullptr, PHighest && PHighest->targid == PTarget->targid))
         {
-            auto* PMob = static_cast<CMobEntity*>(PAttacker);
-
-            if (auto* PHighest = PMob->PEnmityContainer->GetHighestEnmity(); PHighest && PHighest->targid == PTarget->targid)
-            {
-                PMob->PEnmityContainer->Clear(PTarget->id);
-            }
+            PMob->PEnmityContainer->Clear(PTarget->id);
         }
     }
 }
 
 void handleSecondaryTargetEnmity(CBattleEntity* PAttacker, CBattleEntity* PTarget)
 {
-    if (PAttacker->objtype == TYPE_MOB && PTarget)
+    const auto action = enmitycombathelpers::ClassifySecondaryTargetEnmity(
+        PAttacker->objtype == TYPE_MOB, PTarget != nullptr, PTarget && PTarget->isDead());
+    if (action == enmitycombathelpers::SecondaryTargetEnmityAction::None)
     {
-        auto* PMob = static_cast<CMobEntity*>(PAttacker);
-
-        // Secondary targets won't get targeted anymore if they were killed from this action
-        if (PTarget->isDead())
-        {
-            PMob->PEnmityContainer->SetActive(PTarget->id, false);
-        }
-        else // Inactive targets will get set back to active if hit (and not dead)
-        {
-            PMob->PEnmityContainer->SetActive(PTarget->id, true);
-        }
+        return;
     }
+    auto* PMob = static_cast<CMobEntity*>(PAttacker);
+    // Secondary targets won't get targeted anymore if they were killed from this action
+    // Inactive targets will get set back to active if hit (and not dead)
+    PMob->PEnmityContainer->SetActive(PTarget->id, action == enmitycombathelpers::SecondaryTargetEnmityAction::Activate);
 }
 
 /************************************************************************
@@ -3924,7 +3919,7 @@ void handleSecondaryTargetEnmity(CBattleEntity* PAttacker, CBattleEntity* PTarge
 void TransferEnmity(CBattleEntity* PHateReceiver, CBattleEntity* PHateGiver, CMobEntity* PMob, uint8 percentToTransfer)
 {
     // Ensure the players have a battle target..
-    if (PMob == nullptr || (PMob)->PEnmityContainer == nullptr)
+    if (!enmitycombathelpers::ShouldTransferEnmity(PMob != nullptr, PMob && PMob->PEnmityContainer != nullptr))
     {
         return;
     }
@@ -4557,13 +4552,20 @@ auto RangedDmgTaken(CBattleEntity* PDefender, int32 damage, xi::DamageType damag
 
 void HandleIssekiganEnmityBonus(CBattleEntity* PDefender, CBattleEntity* PAttacker)
 {
-    if (PAttacker->objtype == TYPE_MOB && PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Issekigan))
+    // Issekigan is Known to Grant 300 CE per parry, but unknown how it effects VE (per bgwiki). So VE is left alone for now.
+    // JP is known to give 10 VE per point
+    // Only give jpBonus if the defender is a player, as mobs don't have job points.
+    const uint8 issekiganJP = (PDefender->objtype == TYPE_PC)
+                                  ? static_cast<CCharEntity*>(PDefender)->PJobPoints->GetJobPointValue(JP_ISSEKIGAN_EFFECT)
+                                  : static_cast<uint8>(0);
+    const auto  decision    = enmitycombathelpers::IssekiganEnmityBonus(
+        PAttacker->objtype == TYPE_MOB,
+        PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Issekigan),
+        PDefender->objtype == TYPE_PC,
+        issekiganJP);
+    if (decision.applied)
     {
-        // Issekigan is Known to Grant 300 CE per parry, but unknown how it effects VE (per bgwiki). So VE is left alone for now.
-        // JP is known to give 10 VE per point
-        // Only give jpBonus if the defender is a player, as mobs don't have job points.
-        uint16 jpBonus = PDefender->objtype == TYPE_PC ? static_cast<CCharEntity*>(PDefender)->PJobPoints->GetJobPointValue(JP_ISSEKIGAN_EFFECT) * 10 : 0;
-        static_cast<CMobEntity*>(PAttacker)->PEnmityContainer->UpdateEnmity(PDefender, 300, 0 + jpBonus, false, false);
+        static_cast<CMobEntity*>(PAttacker)->PEnmityContainer->UpdateEnmity(PDefender, decision.ce, decision.ve, false, false);
     }
 }
 

@@ -812,6 +812,8 @@ set(SOURCES
     test_combat_status_tails_1524.cpp
     test_claim_1525.h
     test_claim_1525.cpp
+    test_enmity_combat_1526.h
+    test_enmity_combat_1526.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
