@@ -36,4 +36,10 @@ constexpr auto SubLevel(const std::uint8_t mainLevel) -> std::uint8_t
     return mainLevel / 2;
 }
 
+// GetMaxSkill level arg: mLvl > 99 ? 99 : mLvl.
+constexpr auto SkillCapLevel(const std::uint8_t mLvl) -> std::uint8_t
+{
+    return mLvl > 99 ? 99 : mLvl;
+}
+
 } // namespace automatonlevelhelpers

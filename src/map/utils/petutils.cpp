@@ -43,6 +43,7 @@
 #include "map/automaton_frame_stats_capacity.h"
 #include "map/automaton_repair_mana_capacity.h"
 #include "map/automaton_weapon_damage_capacity.h"
+#include "map/automaton_frame_skill_capacity.h"
 #include "map/automaton_level_capacity.h"
 #include "map/avatar_stats_capacity.h"
 #include "map/base_to_rank_capacity.h"
@@ -466,27 +467,13 @@ void LoadAutomatonStats(CCharEntity* PMaster, CPetEntity* PPet, Pet_t* petStats,
         static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_RANGED])->setDmgType(xi::DamageType::Piercing);
 
         // Automatons are hard to interrupt
-        PPet->addModifier(Mod::SPELLINTERRUPT, 85);
+        PPet->addModifier(Mod::SPELLINTERRUPT, automatonframeskillhelpers::SpellInterrupt);
 
-        switch (PAutomaton->frame())
-        {
-            default: // case AutomatonFrame::Harlequin:
-                PPet->WorkingSkills.evasion = battleutils::GetMaxSkill(4, mlvl > 99 ? 99 : mlvl);
-                PPet->setModifier(Mod::DEF, battleutils::GetMaxSkill(11, mlvl > 99 ? 99 : mlvl));
-                break;
-            case AutomatonFrame::Valoredge:
-                PPet->WorkingSkills.evasion = battleutils::GetMaxSkill(7, mlvl > 99 ? 99 : mlvl);
-                PPet->setModifier(Mod::DEF, battleutils::GetMaxSkill(8, mlvl > 99 ? 99 : mlvl));
-                break;
-            case AutomatonFrame::Sharpshot:
-                PPet->WorkingSkills.evasion = battleutils::GetMaxSkill(2, mlvl > 99 ? 99 : mlvl);
-                PPet->setModifier(Mod::DEF, battleutils::GetMaxSkill(12, mlvl > 99 ? 99 : mlvl));
-                break;
-            case AutomatonFrame::Stormwaker:
-                PPet->WorkingSkills.evasion = battleutils::GetMaxSkill(10, mlvl > 99 ? 99 : mlvl);
-                PPet->setModifier(Mod::DEF, battleutils::GetMaxSkill(12, mlvl > 99 ? 99 : mlvl));
-                break;
-        }
+        // Pure frame → skill-rank pins (automaton_frame_skill_capacity.h; slice 1612).
+        const uint8 frame  = static_cast<uint8>(PAutomaton->frame());
+        const uint8 capLvl = automatonlevelhelpers::SkillCapLevel(mlvl);
+        PPet->WorkingSkills.evasion = battleutils::GetMaxSkill(automatonframeskillhelpers::EvasionSkillRank(frame), capLvl);
+        PPet->setModifier(Mod::DEF, battleutils::GetMaxSkill(automatonframeskillhelpers::DefenseSkillRank(frame), capLvl));
 
         // Add Job Point Stat Bonuses
         if (PMaster->GetMJob() == JOB_PUP)
