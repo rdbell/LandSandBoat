@@ -32,6 +32,7 @@
 #include "char_error_delivery_capacity.h"
 #include "char_event_lock_capacity.h"
 #include "char_event_queue_capacity.h"
+#include "char_event_skip_capacity.h"
 #include "char_name_capacity.h"
 #include "char_pet_zoning_capacity.h"
 #include "char_persistence_capacity.h"
@@ -2834,22 +2835,16 @@ void CCharEntity::skipEvent()
 {
     TracyZoneScoped;
 
-    // Locked players are untargetable and can not skip events.
-    if (!isInEvent() || m_Locked || !currentEvent->canSkip)
-    {
-        return;
-    }
-
-    pushPacket<GP_SERV_COMMAND_SYSTEMMES>(0, 0, MsgStd::EventSkipped);
-    pushPacket<GP_SERV_COMMAND_EVENTUCOFF>(this, GP_SERV_COMMAND_EVENTUCOFF_MODE::CancelEvent);
-    m_Substate = CHAR_SUBSTATE::SUBSTATE_NONE;
-
-    if (currentEvent->interruptText != 0)
-    {
-        pushPacket<GP_SERV_COMMAND_TALKNUM>(currentEvent->targetEntity, currentEvent->interruptText, false);
-    }
-
-    endCurrentEvent();
+    chareventskiphelpers::Skip(
+        [&]() { return isInEvent(); },
+        [&]() { return m_Locked; },
+        [&]() { return currentEvent->canSkip; },
+        [&]() { pushPacket<GP_SERV_COMMAND_SYSTEMMES>(0, 0, MsgStd::EventSkipped); },
+        [&]() { pushPacket<GP_SERV_COMMAND_EVENTUCOFF>(this, GP_SERV_COMMAND_EVENTUCOFF_MODE::CancelEvent); },
+        [&]() { m_Substate = CHAR_SUBSTATE::SUBSTATE_NONE; },
+        [&]() { return currentEvent->interruptText; },
+        [&](const uint16 text) { pushPacket<GP_SERV_COMMAND_TALKNUM>(currentEvent->targetEntity, text, false); },
+        [&]() { endCurrentEvent(); });
 }
 
 void CCharEntity::setLocked(bool locked)
