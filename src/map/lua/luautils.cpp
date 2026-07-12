@@ -375,6 +375,15 @@ void init(IPP mapIPP, bool smokeLuaFiles)
     lua.set_function("IsPlayerInGarrison", &luautils::IsPlayerInGarrison);
     lua.set_function("DigIsAllowedZone", &luautils::DigIsAllowedZone);
     lua.set_function("DigCooldownsReady", &luautils::DigCooldownsReady);
+    lua.set_function("DigSkillCap", &luautils::DigSkillCap);
+    lua.set_function("DigSkillUpIncrement", &luautils::DigSkillUpIncrement);
+    lua.set_function("DigSkillUpRollSucceeds", &luautils::DigSkillUpRollSucceeds);
+    lua.set_function("DigRankIncreases", &luautils::DigRankIncreases);
+    lua.set_function("DigFatigueBlocks", &luautils::DigFatigueBlocks);
+    lua.set_function("DigPositionTooClose", &luautils::DigPositionTooClose);
+    lua.set_function("DigRareRateAdjust", &luautils::DigRareRateAdjust);
+    lua.set_function("DigMoonAdjustedRoll", &luautils::DigMoonAdjustedRoll);
+    lua.set_function("DigMoonRollMultiplier", &luautils::DigMoonRollMultiplier);
     lua.set_function("JstMidnight", &luautils::JstMidnight);
     lua.set_function("JstDayOfTheYear", &luautils::JstDayOfTheYear);
     lua.set_function("JstDayOfTheMonth", &luautils::JstDayOfTheMonth);
@@ -2019,6 +2028,51 @@ auto DigIsAllowedZone(uint16 zoneId) -> bool
 auto DigCooldownsReady(int64 currentTime, int64 zoneInTime, int64 lastDigTime, uint8 skillRank) -> bool
 {
     return chocobodighelpers::CooldownsReady(currentTime, zoneInTime, lastDigTime, skillRank);
+}
+
+auto DigSkillCap(uint8 skillRank) -> int
+{
+    return chocobodighelpers::DigSkillCap(skillRank);
+}
+
+auto DigSkillUpIncrement(int realSkill, int maxSkill, int increment) -> int
+{
+    return chocobodighelpers::DigSkillUpIncrement(realSkill, maxSkill, increment);
+}
+
+auto DigSkillUpRollSucceeds(int roll) -> bool
+{
+    return chocobodighelpers::DigSkillUpRollSucceeds(roll);
+}
+
+auto DigRankIncreases(int realSkill, int increment, uint8 skillRank) -> bool
+{
+    return chocobodighelpers::DigRankIncreases(realSkill, increment, skillRank);
+}
+
+auto DigFatigueBlocks(int digFatigueSetting, int todayDigCount) -> bool
+{
+    return chocobodighelpers::FatigueBlocksDig(digFatigueSetting, todayDigCount);
+}
+
+auto DigPositionTooClose(float distance) -> bool
+{
+    return chocobodighelpers::PositionTooClose(distance);
+}
+
+auto DigRareRateAdjust(int digRate, bool hasRareAbility) -> int
+{
+    return chocobodighelpers::DigRareRateAdjust(digRate, hasRareAbility);
+}
+
+auto DigMoonAdjustedRoll(int rawRoll, double moonMultiplier) -> int
+{
+    return chocobodighelpers::MoonAdjustedRoll(rawRoll, moonMultiplier);
+}
+
+auto DigMoonRollMultiplier(int moonPhase) -> double
+{
+    return chocobodighelpers::MoonRollMultiplier(moonPhase);
 }
 
 /************************************************************************

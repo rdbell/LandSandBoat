@@ -58,6 +58,10 @@ auto Check() -> bool
     {
         return false;
     }
+    if (MoonRollMultiplier(0) != 0.5 || MoonRollMultiplier(50) != 1.5 || MoonRollMultiplier(25) != 1.0)
+    {
+        return false;
+    }
     return true;
 }
 } // namespace

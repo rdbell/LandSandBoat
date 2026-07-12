@@ -149,4 +149,11 @@ inline auto MoonAdjustedRoll(const int rawRoll, const double moonMultiplier) -> 
     return v;
 }
 
+// 1.5 - abs(moonPhase-50)/50
+constexpr auto MoonRollMultiplier(const int moonPhase) -> double
+{
+    const int absDelta = moonPhase >= 50 ? moonPhase - 50 : 50 - moonPhase;
+    return 1.5 - static_cast<double>(absDelta) / 50.0;
+}
+
 } // namespace chocobodighelpers

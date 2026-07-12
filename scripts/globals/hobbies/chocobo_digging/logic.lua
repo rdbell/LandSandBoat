@@ -146,9 +146,10 @@ local function checkDiggingCooldowns(player)
     return true
 end
 
+-- Pure skill-up injects (DigSkillCap / DigSkillUp*; slice 1596).
 local function calculateSkillUp(player)
     local skillRank = player:getSkillRank(xi.skill.DIG)
-    local maxSkill  = utils.clamp((skillRank + 1) * 100, 0, 1000)
+    local maxSkill  = DigSkillCap(skillRank)
     local realSkill = player:getCharSkillLevel(xi.skill.DIG)
     local increment = 1
 
@@ -156,21 +157,14 @@ local function calculateSkillUp(player)
     local roll = math.random(1, 100)
 
     -- make sure our skill isn't capped
-    if realSkill < maxSkill then
-        -- can we skill up?
-        if roll <= 15 then
-            if (increment + realSkill) > maxSkill then
-                increment = maxSkill - realSkill
-            end
+    increment = DigSkillUpIncrement(realSkill, maxSkill, increment)
+    if increment > 0 and DigSkillUpRollSucceeds(roll) then
+        -- skill up!
+        player:setSkillLevel(xi.skill.DIG, realSkill + increment)
 
-            -- skill up!
-            player:setSkillLevel(xi.skill.DIG, realSkill + increment)
-
-            -- update the skill rank
-            -- Digging does not have test items, so increment rank once player hits 10.0, 20.0, .. 100.0
-            if (realSkill + increment) >= (skillRank * 100) + 100 then
-                player:setSkillRank(xi.skill.DIG, skillRank + 1)
-            end
+        -- Digging does not have test items, so increment rank once player hits 10.0, 20.0, .. 100.0
+        if DigRankIncreases(realSkill, increment, skillRank) then
+            player:setSkillRank(xi.skill.DIG, skillRank + 1)
         end
     end
 end
@@ -189,9 +183,9 @@ local function handleDiggingLayer(player, zoneId, currentLayer)
     local dTableItemIds = {}
     local rewardItem    = 0
 
-    -- Determine moon multiplier.
+    -- Determine moon multiplier (DigMoonRollMultiplier pure; slice 1596).
     local moon           = VanadielMoonPhase()
-    local rollMultiplier = 1.5 - math.abs(moon - 50) / 50 -- The lower the multiplier, the better for the player.
+    local rollMultiplier = DigMoonRollMultiplier(moon)
     -- Moon phase 0 and 100 -> multiplier = 0.5
     -- Moon phase 50        -> multiplier = 1.5
     -- Moon phase 25 and 75 -> multiplier = 1
@@ -202,17 +196,8 @@ local function handleDiggingLayer(player, zoneId, currentLayer)
     local digRate    = 0
 
     for i = 1, #digTable do
-        randomRoll = utils.clamp(math.floor(math.random(1, 1000) * rollMultiplier), 1, 1000)
-        digRate    = digTable[i][2]
-
-        -- Denim Pants +1 and Black Chocobo Suit
-        if player:getMod(xi.mod.DIG_RARE_ABILITY) > 0 then
-            if digRate >= 100 then
-                digRate = math.floor(digRate / 2)
-            else
-                digRate = digRate * 2
-            end
-        end
+        randomRoll = DigMoonAdjustedRoll(math.random(1, 1000), rollMultiplier)
+        digRate    = DigRareRateAdjust(digTable[i][2], player:getMod(xi.mod.DIG_RARE_ABILITY) > 0)
 
         if
             randomRoll <= digRate and    -- Roll check
@@ -328,11 +313,8 @@ xi.chocoboDig.start = function(player)
         return true
     end
 
-    -- Handle auto-fail from fatigue.
-    if
-        xi.settings.main.DIG_FATIGUE > 0 and
-        xi.settings.main.DIG_FATIGUE <= todayDigCount
-    then
+    -- Handle auto-fail from fatigue (DigFatigueBlocks pure; slice 1596).
+    if DigFatigueBlocks(xi.settings.main.DIG_FATIGUE, todayDigCount) then
         player:messageText(player, text.FIND_NOTHING)
         player:setLocalVar('[DIG]LastDigTime', GetSystemTime())
 
@@ -344,7 +326,7 @@ xi.chocoboDig.start = function(player)
     local lastY = player:getLocalVar('[DIG]LastYPos') * (1 - player:getLocalVar('[DIG]LastYPosSign'))
     local lastZ = player:getLocalVar('[DIG]LastZPos') * (1 - player:getLocalVar('[DIG]LastZPosSign'))
 
-    if player:checkDistance(lastX, lastY, lastZ) < 5 then
+    if DigPositionTooClose(player:checkDistance(lastX, lastY, lastZ)) then
         player:messageText(player, text.FIND_NOTHING)
         player:setLocalVar('[DIG]LastDigTime', GetSystemTime())
 

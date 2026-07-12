@@ -240,9 +240,18 @@ void SetGarrisonZonePlayers(uint16 zoneId, const sol::table& playerIds);
 void ClearGarrisonZonePlayers(uint16 zoneId);
 auto IsPlayerInGarrison(uint16 zoneId, uint32 playerId) -> bool;
 
-// Chocobo dig pure gates (slice 1595).
+// Chocobo dig pure gates (slice 1595/1596).
 auto DigIsAllowedZone(uint16 zoneId) -> bool;
 auto DigCooldownsReady(int64 currentTime, int64 zoneInTime, int64 lastDigTime, uint8 skillRank) -> bool;
+auto DigSkillCap(uint8 skillRank) -> int;
+auto DigSkillUpIncrement(int realSkill, int maxSkill, int increment) -> int;
+auto DigSkillUpRollSucceeds(int roll) -> bool;
+auto DigRankIncreases(int realSkill, int increment, uint8 skillRank) -> bool;
+auto DigFatigueBlocks(int digFatigueSetting, int todayDigCount) -> bool;
+auto DigPositionTooClose(float distance) -> bool;
+auto DigRareRateAdjust(int digRate, bool hasRareAbility) -> int;
+auto DigMoonAdjustedRoll(int rawRoll, double moonMultiplier) -> int;
+auto DigMoonRollMultiplier(int moonPhase) -> double;
 
 uint32 JstDayOfTheYear();
 uint32 JstDayOfTheMonth();
