@@ -46,6 +46,7 @@
 #include "map/avatar_stats_capacity.h"
 #include "map/base_to_rank_capacity.h"
 #include "map/calculate_stats_capacity.h"
+#include "map/finalize_pet_stats_capacity.h"
 #include "map/jug_base_capacity.h"
 #include "map/jug_level_capacity.h"
 #include "map/jug_stats_capacity.h"
@@ -935,8 +936,12 @@ void CalculateLuopanStats(CBattleEntity* PMaster, CPetEntity* PPet)
 
 void FinalizePetStatistics(CBattleEntity* PMaster, CPetEntity* PPet)
 {
+    // Pure MEVA / Stout Servant (finalize_pet_stats_capacity.h; slice 1607).
     // set C magic evasion, add MEVA that may have come from other sources (Automaton, Wyvern, Avatar bonus meva in their respective CalculateXStats function)
-    PPet->setModifier(Mod::MEVA, battleutils::GetMaxSkill(7, std::min<uint8>(99, PPet->GetMLevel())) + PPet->getMod(Mod::MEVA));
+    PPet->setModifier(Mod::MEVA,
+                      finalizepetstatshelpers::ComposeMEVA(
+                          battleutils::GetMaxSkill(finalizepetstatshelpers::MEVASkillRank, finalizepetstatshelpers::MEVALevel(PPet->GetMLevel())),
+                          PPet->getMod(Mod::MEVA)));
     PPet->health.tp = 0;
     PMaster->applyPetModifiers(PPet);
     PPet->UpdateHealth();
@@ -952,7 +957,7 @@ void FinalizePetStatistics(CBattleEntity* PMaster, CPetEntity* PPet)
             {
                 if (trait->getID() == TRAIT_STOUT_SERVANT)
                 {
-                    PPet->addModifier(Mod::DMG, -(trait->getValue() * 100));
+                    PPet->addModifier(Mod::DMG, finalizepetstatshelpers::StoutServantDamage(trait->getValue()));
                     break;
                 }
             }

@@ -964,6 +964,8 @@ set(SOURCES
     test_wyvern_stats_1605.cpp
     test_jug_level_1606.h
     test_jug_level_1606.cpp
+    test_finalize_pet_stats_1607.h
+    test_finalize_pet_stats_1607.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
