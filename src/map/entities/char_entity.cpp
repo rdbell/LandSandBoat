@@ -22,6 +22,7 @@
 #include "char_entity.h"
 
 #include "can_attack_capacity.h"
+#include "char_action_boundary_capacity.h"
 #include "char_automaton_capacity.h"
 #include "char_bazaar_capacity.h"
 #include "char_combat_transition_capacity.h"
@@ -1170,7 +1171,9 @@ bool CCharEntity::CanUseSpell(CSpell* PSpell)
 {
     TracyZoneScoped;
 
-    return charutils::hasSpell(this, static_cast<uint16>(PSpell->getID())) && CBattleEntity::CanUseSpell(PSpell);
+    return charactionboundaryhelpers::CanUseSpell(
+        [&]() { return charutils::hasSpell(this, static_cast<uint16>(PSpell->getID())); },
+        [&]() { return CBattleEntity::CanUseSpell(PSpell); });
 }
 
 void CCharEntity::OnChangeTarget(CBattleEntity* PNewTarget)
@@ -1245,10 +1248,10 @@ bool CCharEntity::OnAttack(CAttackState& state, action_t& action)
     TracyZoneScoped;
 
     auto* controller{ static_cast<CPlayerController*>(PAI->GetController()) };
-    controller->setLastAttackTime(timer::now());
-    auto ret = CBattleEntity::OnAttack(state, action);
-
-    return ret;
+    return charactionboundaryhelpers::Attack(
+        [&]() { return timer::now(); },
+        [&](const timer::time_point attackTime) { controller->setLastAttackTime(attackTime); },
+        [&]() { return CBattleEntity::OnAttack(state, action); });
 }
 
 void CCharEntity::OnCastFinished(CMagicState& state, action_t& action)
@@ -1419,18 +1422,15 @@ void CCharEntity::OnCastInterrupted(CMagicState& state, action_t& action, MsgBas
 {
     TracyZoneScoped;
 
-    CBattleEntity::OnCastInterrupted(state, action, msg, blockedCast);
-
-    if (state.HasErrorMsg())
-    {
-        auto message = state.GetErrorMsg();
-
-        // TODO: May need special handling if interrupt was handled elsewhere
-        if (message)
+    charactionboundaryhelpers::CastInterrupted(
+        [&]() { CBattleEntity::OnCastInterrupted(state, action, msg, blockedCast); },
+        [&]() { return state.HasErrorMsg(); },
+        [&]() { return state.GetErrorMsg(); },
+        [&](std::unique_ptr<CBasicPacket> message)
         {
+            // TODO: May need special handling if interrupt was handled elsewhere
             pushPacket(std::move(message));
-        }
-    }
+        });
 }
 
 void CCharEntity::OnWeaponSkillFinished(CWeaponSkillState& state, action_t& action)
