@@ -93,6 +93,7 @@
 #include "charutils.h"
 #include "capacity_distribute_capacity.h"
 #include "exp_distribute_capacity.h"
+#include "exp_award_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -5395,13 +5396,13 @@ void AddExperiencePoints(bool expFromRaise, bool awardRegionPoints, bool fromScr
 {
     TracyZoneScoped;
 
-    if (PChar->isDead() && !expFromRaise)
+    if (expawardhelpers::ShouldRejectDead(PChar->isDead(), expFromRaise))
     {
         return;
     }
 
     // Scripts have their own settings in main.lua settings. This is for exp from combat.
-    if (!expFromRaise && !fromScripts)
+    if (expawardhelpers::ShouldApplyExpRate(expFromRaise, fromScripts))
     {
         exp = (uint32)(exp * settings::get<float>("map.EXP_RATE"));
     }
@@ -5409,46 +5410,50 @@ void AddExperiencePoints(bool expFromRaise, bool awardRegionPoints, bool fromScr
     bool   onLimitMode = false;
 
     // Incase player de-levels to 74 on the field
-    if (PChar->MeritMode && PChar->jobs.job[PChar->GetMJob()] > 74 && !expFromRaise)
+    if (expawardhelpers::IsLimitModeFromMerit(PChar->MeritMode, PChar->jobs.job[PChar->GetMJob()], expFromRaise))
     {
         onLimitMode = true;
     }
 
     // we check if the player is level capped and max exp..
-    if (PChar->jobs.job[PChar->GetMJob()] > 74 && PChar->jobs.job[PChar->GetMJob()] >= PChar->jobs.genkai &&
-        PChar->jobs.exp[PChar->GetMJob()] == GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()]) - 1)
+    if (expawardhelpers::IsLimitModeFromCap(
+            PChar->jobs.job[PChar->GetMJob()],
+            PChar->jobs.genkai,
+            PChar->jobs.exp[PChar->GetMJob()],
+            GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()])))
     {
         onLimitMode = true;
     }
 
     // exp added from raise shouldn't display a message. Don't need a message for zero exp either
-    if (!expFromRaise && exp > 0)
+    if (expawardhelpers::ShouldShowExpMessage(expFromRaise, exp))
     {
-        if (mobCheck >= EMobDifficulty::EvenMatch && isexpchain)
+        const bool useChain = expawardhelpers::ShouldUseChainMessage(
+            mobCheck >= EMobDifficulty::EvenMatch, isexpchain);
+        if (useChain)
         {
-            if (PChar->expChain.chainNumber != 0)
+            const auto msgClass = expawardhelpers::SelectMessage(
+                onLimitMode, true, PChar->expChain.chainNumber != 0);
+            switch (msgClass)
             {
-                if (onLimitMode)
-                {
-                    PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PChar, exp, PChar->expChain.chainNumber, MsgBasic::LimitChain);
-                }
-                else
-                {
+                case expawardhelpers::ExpMessage::ExpChain:
                     PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PChar, exp, PChar->expChain.chainNumber, MsgBasic::ExpChain);
-                }
-            }
-            else
-            {
-                if (onLimitMode)
-                {
+                    break;
+                case expawardhelpers::ExpMessage::LimitChain:
+                    PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PChar, exp, PChar->expChain.chainNumber, MsgBasic::LimitChain);
+                    break;
+                case expawardhelpers::ExpMessage::LimitGained:
                     PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PChar, exp, 0, MsgBasic::LimitPointsGained);
-                }
-                else
-                {
+                    break;
+                case expawardhelpers::ExpMessage::ExpGained:
+                default:
                     PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PChar, exp, 0, MsgBasic::ExperiencePointsGained);
-                }
+                    break;
             }
-            PChar->expChain.chainNumber++;
+            if (expawardhelpers::ShouldIncrementChainNumber(true))
+            {
+                PChar->expChain.chainNumber++;
+            }
         }
         else
         {
@@ -5522,11 +5527,13 @@ void AddExperiencePoints(bool expFromRaise, bool awardRegionPoints, bool fromScr
     PChar->PAI->EventHandler.triggerListener("EXPERIENCE_POINTS", PChar, PMob, exp);
 
     // Player levels up
-    if ((currentExp + exp) >= GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()]) && !onLimitMode)
+    if (expawardhelpers::ShouldLevelUp(
+            currentExp, exp, GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()]), onLimitMode))
     {
-        if (PChar->jobs.job[PChar->GetMJob()] >= PChar->jobs.genkai)
+        if (expawardhelpers::IsAtGenkaiCap(PChar->jobs.job[PChar->GetMJob()], PChar->jobs.genkai))
         {
-            PChar->jobs.exp[PChar->GetMJob()] = GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()]) - 1;
+            PChar->jobs.exp[PChar->GetMJob()] = static_cast<uint16>(expawardhelpers::CapExpAtNextMinusOne(
+                GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()])));
             if (PChar->PParty && PChar->PParty->GetSyncTarget() == PChar)
             {
                 PChar->PParty->SetSyncTarget("", MsgStd::LevelSyncRemoveIneligibleExp);
@@ -5535,13 +5542,12 @@ void AddExperiencePoints(bool expFromRaise, bool awardRegionPoints, bool fromScr
         else
         {
             PChar->jobs.exp[PChar->GetMJob()] -= GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()]);
-            if (PChar->jobs.exp[PChar->GetMJob()] >= GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()] + 1))
-            {
-                PChar->jobs.exp[PChar->GetMJob()] = GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()] + 1) - 1;
-            }
+            PChar->jobs.exp[PChar->GetMJob()] = static_cast<uint16>(expawardhelpers::PostLevelResidualExp(
+                PChar->jobs.exp[PChar->GetMJob()],
+                GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()] + 1)));
             PChar->jobs.job[PChar->GetMJob()] += 1;
 
-            if (PChar->m_LevelRestriction == 0 || PChar->m_LevelRestriction > PChar->GetMLevel())
+            if (expawardhelpers::ShouldApplyLevelToEntity(PChar->m_LevelRestriction, PChar->GetMLevel()))
             {
                 PChar->SetMLevel(PChar->jobs.job[PChar->GetMJob()]);
                 PChar->SetSLevel(PChar->jobs.job[PChar->GetSJob()]);
@@ -5567,7 +5573,7 @@ void AddExperiencePoints(bool expFromRaise, bool awardRegionPoints, bool fromScr
 
             PChar->UpdateHealth();
 
-            if (!expFromRaise)
+            if (expawardhelpers::ShouldShowLevelUpAnimation(expFromRaise))
             {
                 // Level up animation and message
                 PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE2>(PChar, PMob, PChar->jobs.job[PChar->GetMJob()], 0, MsgBasic::LevelUp));

@@ -768,6 +768,8 @@ set(SOURCES
     test_capacity_distribute_1501.cpp
     test_exp_distribute_1502.h
     test_exp_distribute_1502.cpp
+    test_exp_award_1504.h
+    test_exp_award_1504.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
