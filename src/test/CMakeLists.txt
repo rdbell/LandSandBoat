@@ -972,6 +972,8 @@ set(SOURCES
     test_automaton_level_1609.cpp
     test_luopan_stats_1610.h
     test_luopan_stats_1610.cpp
+    test_trust_stats_1611.h
+    test_trust_stats_1611.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

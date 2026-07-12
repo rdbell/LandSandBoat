@@ -33,6 +33,8 @@
 #include "zoneutils.h"
 
 #include "grades.h"
+#include "map/calculate_stats_capacity.h"
+#include "map/trust_stats_capacity.h"
 #include "mob_spell_list.h"
 
 #include "ai/ai_container.h"
@@ -481,11 +483,12 @@ auto LoadTrust(CCharEntity* PMaster, uint32 TrustID) -> CTrustEntity*
 
 void LoadTrustStatsAndSkills(CTrustEntity* PTrust)
 {
+    // Pure policy via truststatshelpers + calculatestatshelpers (slice 1611).
     if (settings::get<uint8>("main.ENABLE_TRUST_ALTER_EGO_EXPO") > 0) // Alter Ego Expo HPP/MPP +50%, All Status Resistance +25%
     {
-        PTrust->addModifier(Mod::HPP, 50);
-        PTrust->addModifier(Mod::MPP, 50);
-        PTrust->addModifier(Mod::STATUSRES, 25);
+        PTrust->addModifier(Mod::HPP, truststatshelpers::ExpoHPP);
+        PTrust->addModifier(Mod::MPP, truststatshelpers::ExpoMPP);
+        PTrust->addModifier(Mod::STATUSRES, truststatshelpers::ExpoStatusRes);
     }
 
     // add mob pool mods ahead of applying stats
@@ -496,124 +499,124 @@ void LoadTrustStatsAndSkills(CTrustEntity* PTrust)
     uint8   mLvl = PTrust->GetMLevel();
     uint8   sLvl = PTrust->GetSLevel();
 
-    // Helpers to map HP/MPScale around 100 to 1-7 grades
-    // std::clamp doesn't play nice with uint8, so -> unsigned int
-    auto mapRanges = [](unsigned int inputStart, unsigned int inputEnd, unsigned int outputStart, unsigned int outputEnd, unsigned int inputVal) -> unsigned int
-    {
-        unsigned int inputRange  = inputEnd - inputStart;
-        unsigned int outputRange = outputEnd - outputStart;
-
-        unsigned int output = (inputVal - inputStart) * outputRange / inputRange + outputStart;
-
-        return std::clamp(output, outputStart, outputEnd);
-    };
-
-    auto scaleToGrade = [mapRanges](float input) -> unsigned int
-    {
-        unsigned int multipliedInput    = static_cast<unsigned int>(input * 100U);
-        unsigned int reverseMappedGrade = mapRanges(70U, 140U, 1U, 7U, multipliedInput);
-        unsigned int outputGrade        = std::clamp(7U - reverseMappedGrade, 1U, 7U);
-        return outputGrade;
-    };
-
     // HP/MP ========================
-    // This is the same system as used in charutils.cpp, but modified
-    // to use parts from mob_species_system instead of hardcoded player
-    // race tables.
-
+    // Same system as charutils, modified for mob_species HPscale/MPscale grades.
     // http://ffxi-stat-calc.sourceforge.net/cgi-bin/ffxistats.cgi?mode=document
 
-    // HP
     float raceStat  = 0;
     float jobStat   = 0;
     float sJobStat  = 0;
     int32 bonusStat = 0;
 
-    int32 baseValueColumn   = 0;
-    int32 scaleTo60Column   = 1;
-    int32 scaleOver30Column = 2;
-    int32 scaleOver60Column = 3;
-    int32 scaleOver75Column = 4;
-    int32 scaleOver60       = 2;
-    // int32 scaleOver75       = 3;
-
     uint8 grade = 0;
 
-    int32 mainLevelOver30     = std::clamp(mLvl - 30, 0, 30);
-    int32 mainLevelUpTo60     = (mLvl < 60 ? mLvl - 1 : 59);
-    int32 mainLevelOver60To75 = std::clamp(mLvl - 60, 0, 15);
-    int32 mainLevelOver75     = (mLvl < 75 ? 0 : mLvl - 75);
+    const int32 mainLevelOver30     = calculatestatshelpers::MainLevelOver30(mLvl);
+    const int32 mainLevelUpTo60     = calculatestatshelpers::MainLevelUpTo60(mLvl);
+    const int32 mainLevelOver60To75 = calculatestatshelpers::MainLevelOver60To75(mLvl);
+    const int32 mainLevelOver75     = calculatestatshelpers::MainLevelOver75(mLvl);
+    const int32 mainLevelOver10           = calculatestatshelpers::MainLevelOver10(mLvl);
+    const int32 mainLevelOver50andUnder60 = calculatestatshelpers::MainLevelOver50AndUnder60(mLvl);
+    const int32 mainLevelOver60           = calculatestatshelpers::MainLevelOver60(mLvl);
+    const int32 subLevelOver10            = calculatestatshelpers::SubLevelOver10(sLvl);
+    const int32 subLevelOver30            = calculatestatshelpers::SubLevelOver30(sLvl);
 
-    int32 mainLevelOver10           = (mLvl < 10 ? 0 : mLvl - 10);
-    int32 mainLevelOver50andUnder60 = std::clamp(mLvl - 50, 0, 10);
-    int32 mainLevelOver60           = (mLvl < 60 ? 0 : mLvl - 60);
-
-    int32 subLevelOver10 = std::clamp(sLvl - 10, 0, 20);
-    int32 subLevelOver30 = (sLvl < 30 ? 0 : sLvl - 30);
-
-    grade = scaleToGrade(PTrust->HPscale);
-
-    raceStat = grade::GetHPScale(grade, baseValueColumn) + (grade::GetHPScale(grade, scaleTo60Column) * mainLevelUpTo60) +
-               (grade::GetHPScale(grade, scaleOver30Column) * mainLevelOver30) + (grade::GetHPScale(grade, scaleOver60Column) * mainLevelOver60To75) +
-               (grade::GetHPScale(grade, scaleOver75Column) * mainLevelOver75);
+    grade = truststatshelpers::ScaleToGrade(PTrust->HPscale);
+    raceStat = calculatestatshelpers::ComposeHPScale(
+        grade::GetHPScale(grade, calculatestatshelpers::BaseValueColumn),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleTo60Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver30Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver60Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver75Column),
+        mainLevelUpTo60,
+        mainLevelOver30,
+        mainLevelOver60To75,
+        mainLevelOver75);
 
     grade = grade::GetJobGrade(mJob, 0);
+    jobStat = calculatestatshelpers::ComposeHPScale(
+        grade::GetHPScale(grade, calculatestatshelpers::BaseValueColumn),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleTo60Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver30Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver60Column),
+        grade::GetHPScale(grade, calculatestatshelpers::ScaleOver75Column),
+        mainLevelUpTo60,
+        mainLevelOver30,
+        mainLevelOver60To75,
+        mainLevelOver75);
 
-    jobStat = grade::GetHPScale(grade, baseValueColumn) + (grade::GetHPScale(grade, scaleTo60Column) * mainLevelUpTo60) +
-              (grade::GetHPScale(grade, scaleOver30Column) * mainLevelOver30) + (grade::GetHPScale(grade, scaleOver60Column) * mainLevelOver60To75) +
-              (grade::GetHPScale(grade, scaleOver75Column) * mainLevelOver75);
-
-    bonusStat = (mainLevelOver10 + mainLevelOver50andUnder60) * 2;
+    bonusStat = calculatestatshelpers::BonusHPStat(mainLevelOver10, mainLevelOver50andUnder60);
 
     if (sLvl > 0)
     {
         grade = grade::GetJobGrade(sJob, 0);
-
-        sJobStat = grade::GetHPScale(grade, baseValueColumn) + (grade::GetHPScale(grade, scaleTo60Column) * (sLvl - 1)) +
-                   (grade::GetHPScale(grade, scaleOver30Column) * subLevelOver30) + subLevelOver30 + subLevelOver10;
+        sJobStat = truststatshelpers::ComposeTrustSubJobHP(
+            grade::GetHPScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetHPScale(grade, calculatestatshelpers::ScaleTo60Column),
+            grade::GetHPScale(grade, calculatestatshelpers::ScaleOver30Column),
+            sLvl,
+            subLevelOver30,
+            subLevelOver10);
     }
 
-    auto hpMultiplierTrust = settings::get<float>("map.ALTER_EGO_HP_MULTIPLIER");
-    hpMultiplierTrust      = (hpMultiplierTrust >= 0.1f && hpMultiplierTrust <= 2.0f) ? hpMultiplierTrust : 1.0f;
-    PTrust->health.maxhp   = (int16)((raceStat + jobStat + bonusStat + sJobStat) * hpMultiplierTrust);
+    PTrust->health.maxhp = truststatshelpers::FinalTrustMaxHP(
+        raceStat,
+        jobStat,
+        bonusStat,
+        sJobStat,
+        truststatshelpers::ClampAlterEgoMultiplier(settings::get<float>("map.ALTER_EGO_HP_MULTIPLIER")));
 
     // MP
     raceStat = 0;
     jobStat  = 0;
     sJobStat = 0;
 
-    grade = scaleToGrade(PTrust->MPscale);
+    grade = truststatshelpers::ScaleToGrade(PTrust->MPscale);
 
     if (grade::GetJobGrade(mJob, 1) == 0)
     {
         if (grade::GetJobGrade(sJob, 1) != 0 && sLvl > 0)
         {
-            raceStat = (grade::GetMPScale(grade, 0) + grade::GetMPScale(grade, scaleTo60Column) * (sLvl - 1)) / settings::get<uint8>("map.SJ_MP_DIVISOR");
+            raceStat = calculatestatshelpers::ComposeSubJobMP(
+                grade::GetMPScale(grade, calculatestatshelpers::BaseValueColumn),
+                grade::GetMPScale(grade, calculatestatshelpers::ScaleTo60Column),
+                sLvl,
+                static_cast<float>(settings::get<uint8>("map.SJ_MP_DIVISOR")));
         }
     }
     else
     {
-        raceStat = grade::GetMPScale(grade, 0) + grade::GetMPScale(grade, scaleTo60Column) * mainLevelUpTo60 +
-                   grade::GetMPScale(grade, scaleOver60) * mainLevelOver60;
+        raceStat = calculatestatshelpers::ComposeMPScale(
+            grade::GetMPScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetMPScale(grade, calculatestatshelpers::ScaleTo60Column),
+            grade::GetMPScale(grade, calculatestatshelpers::MPScaleOver60),
+            mainLevelUpTo60,
+            mainLevelOver60);
     }
 
     grade = grade::GetJobGrade(mJob, 1);
-
     if (grade > 0)
     {
-        jobStat = grade::GetMPScale(grade, 0) + grade::GetMPScale(grade, scaleTo60Column) * mainLevelUpTo60 +
-                  grade::GetMPScale(grade, scaleOver60) * mainLevelOver60;
+        jobStat = calculatestatshelpers::ComposeMPScale(
+            grade::GetMPScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetMPScale(grade, calculatestatshelpers::ScaleTo60Column),
+            grade::GetMPScale(grade, calculatestatshelpers::MPScaleOver60),
+            mainLevelUpTo60,
+            mainLevelOver60);
     }
 
     if (sLvl > 0)
     {
         grade    = grade::GetJobGrade(sJob, 1);
-        sJobStat = grade::GetMPScale(grade, 0) + grade::GetMPScale(grade, scaleTo60Column);
+        sJobStat = truststatshelpers::ComposeTrustSubJobMP(
+            grade::GetMPScale(grade, calculatestatshelpers::BaseValueColumn),
+            grade::GetMPScale(grade, calculatestatshelpers::ScaleTo60Column));
     }
 
-    auto mpMultiplierTrust = settings::get<float>("map.ALTER_EGO_MP_MULTIPLIER");
-    mpMultiplierTrust      = (mpMultiplierTrust >= 0.1f && mpMultiplierTrust <= 2.0f) ? mpMultiplierTrust : 1.0f;
-    PTrust->health.maxmp   = (int16)((raceStat + jobStat + sJobStat) * mpMultiplierTrust);
+    PTrust->health.maxmp = truststatshelpers::FinalTrustMaxMP(
+        raceStat,
+        jobStat,
+        sJobStat,
+        truststatshelpers::ClampAlterEgoMultiplier(settings::get<float>("map.ALTER_EGO_MP_MULTIPLIER")));
 
     PTrust->health.tp = 0;
     PTrust->UpdateHealth();
@@ -621,87 +624,67 @@ void LoadTrustStatsAndSkills(CTrustEntity* PTrust)
     PTrust->health.mp = PTrust->GetMaxMP();
 
     // Stats ========================
-    uint16 fSTR = mobutils::GetBaseToRank(PTrust->strRank, mLvl);
-    uint16 fDEX = mobutils::GetBaseToRank(PTrust->dexRank, mLvl);
-    uint16 fVIT = mobutils::GetBaseToRank(PTrust->vitRank, mLvl);
-    uint16 fAGI = mobutils::GetBaseToRank(PTrust->agiRank, mLvl);
-    uint16 fINT = mobutils::GetBaseToRank(PTrust->intRank, mLvl);
-    uint16 fMND = mobutils::GetBaseToRank(PTrust->mndRank, mLvl);
-    uint16 fCHR = mobutils::GetBaseToRank(PTrust->chrRank, mLvl);
+    const uint16 fSTR = mobutils::GetBaseToRank(PTrust->strRank, mLvl);
+    const uint16 fDEX = mobutils::GetBaseToRank(PTrust->dexRank, mLvl);
+    const uint16 fVIT = mobutils::GetBaseToRank(PTrust->vitRank, mLvl);
+    const uint16 fAGI = mobutils::GetBaseToRank(PTrust->agiRank, mLvl);
+    const uint16 fINT = mobutils::GetBaseToRank(PTrust->intRank, mLvl);
+    const uint16 fMND = mobutils::GetBaseToRank(PTrust->mndRank, mLvl);
+    const uint16 fCHR = mobutils::GetBaseToRank(PTrust->chrRank, mLvl);
 
-    uint16 mSTR = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 2), mLvl);
-    uint16 mDEX = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 3), mLvl);
-    uint16 mVIT = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 4), mLvl);
-    uint16 mAGI = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 5), mLvl);
-    uint16 mINT = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 6), mLvl);
-    uint16 mMND = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 7), mLvl);
-    uint16 mCHR = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 8), mLvl);
+    const uint16 mSTR = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 2), mLvl);
+    const uint16 mDEX = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 3), mLvl);
+    const uint16 mVIT = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 4), mLvl);
+    const uint16 mAGI = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 5), mLvl);
+    const uint16 mINT = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 6), mLvl);
+    const uint16 mMND = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 7), mLvl);
+    const uint16 mCHR = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetMJob(), 8), mLvl);
 
-    uint16 sSTR = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 2), sLvl);
-    uint16 sDEX = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 3), sLvl);
-    uint16 sVIT = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 4), sLvl);
-    uint16 sAGI = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 5), sLvl);
-    uint16 sINT = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 6), sLvl);
-    uint16 sMND = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 7), sLvl);
-    uint16 sCHR = mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 8), sLvl);
+    const uint16 sSTR = truststatshelpers::ScaleSubJobStat(mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 2), sLvl), sLvl);
+    const uint16 sDEX = truststatshelpers::ScaleSubJobStat(mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 3), sLvl), sLvl);
+    const uint16 sVIT = truststatshelpers::ScaleSubJobStat(mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 4), sLvl), sLvl);
+    const uint16 sAGI = truststatshelpers::ScaleSubJobStat(mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 5), sLvl), sLvl);
+    const uint16 sINT = truststatshelpers::ScaleSubJobStat(mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 6), sLvl), sLvl);
+    const uint16 sMND = truststatshelpers::ScaleSubJobStat(mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 7), sLvl), sLvl);
+    const uint16 sCHR = truststatshelpers::ScaleSubJobStat(mobutils::GetBaseToRank(grade::GetJobGrade(PTrust->GetSJob(), 8), sLvl), sLvl);
 
-    if (sLvl > 15)
-    {
-        sSTR /= 2;
-        sDEX /= 2;
-        sAGI /= 2;
-        sINT /= 2;
-        sMND /= 2;
-        sCHR /= 2;
-        sVIT /= 2;
-    }
-    else
-    {
-        sSTR = 0;
-        sDEX = 0;
-        sAGI = 0;
-        sINT = 0;
-        sMND = 0;
-        sCHR = 0;
-        sVIT = 0;
-    }
-
-    auto statMultiplier = settings::get<float>("map.ALTER_EGO_STAT_MULTIPLIER");
-    statMultiplier      = (statMultiplier >= 0.1f && statMultiplier <= 2.0f) ? statMultiplier : 1.0f;
-    PTrust->stats.STR   = static_cast<uint16>((fSTR + mSTR + sSTR) * statMultiplier);
-    PTrust->stats.DEX   = static_cast<uint16>((fDEX + mDEX + sDEX) * statMultiplier);
-    PTrust->stats.VIT   = static_cast<uint16>((fVIT + mVIT + sVIT) * statMultiplier);
-    PTrust->stats.AGI   = static_cast<uint16>((fAGI + mAGI + sAGI) * statMultiplier);
-    PTrust->stats.INT   = static_cast<uint16>((fINT + mINT + sINT) * statMultiplier);
-    PTrust->stats.MND   = static_cast<uint16>((fMND + mMND + sMND) * statMultiplier);
-    PTrust->stats.CHR   = static_cast<uint16>((fCHR + mCHR + sCHR) * statMultiplier);
+    const float statMultiplier = truststatshelpers::ClampAlterEgoMultiplier(settings::get<float>("map.ALTER_EGO_STAT_MULTIPLIER"));
+    PTrust->stats.STR          = truststatshelpers::FinalTrustStat(fSTR, mSTR, sSTR, statMultiplier);
+    PTrust->stats.DEX          = truststatshelpers::FinalTrustStat(fDEX, mDEX, sDEX, statMultiplier);
+    PTrust->stats.VIT          = truststatshelpers::FinalTrustStat(fVIT, mVIT, sVIT, statMultiplier);
+    PTrust->stats.AGI          = truststatshelpers::FinalTrustStat(fAGI, mAGI, sAGI, statMultiplier);
+    PTrust->stats.INT          = truststatshelpers::FinalTrustStat(fINT, mINT, sINT, statMultiplier);
+    PTrust->stats.MND          = truststatshelpers::FinalTrustStat(fMND, mMND, sMND, statMultiplier);
+    PTrust->stats.CHR          = truststatshelpers::FinalTrustStat(fCHR, mCHR, sCHR, statMultiplier);
 
     // Skills =======================
+    const uint8  skillLvl   = truststatshelpers::SkillCapLevel(mLvl);
+    const float  skillMult  = settings::get<float>("map.ALTER_EGO_SKILL_MULTIPLIER");
     for (int i = SKILL_DIVINE_MAGIC; i <= SKILL_BLUE_MAGIC; i++)
     {
-        uint16 maxSkill = battleutils::GetMaxSkill((SKILLTYPE)i, mJob, mLvl > 99 ? 99 : mLvl);
+        uint16 maxSkill = battleutils::GetMaxSkill((SKILLTYPE)i, mJob, skillLvl);
         if (maxSkill != 0)
         {
-            PTrust->WorkingSkills.skill[i] = static_cast<uint16>(maxSkill * settings::get<float>("map.ALTER_EGO_SKILL_MULTIPLIER"));
+            PTrust->WorkingSkills.skill[i] = truststatshelpers::ApplySkillMultiplier(maxSkill, skillMult);
         }
         else // if the mob is WAR/BLM and can cast spell
         {
             // set skill as high as main level, so their spells won't get resisted
-            uint16 maxSubSkill = battleutils::GetMaxSkill((SKILLTYPE)i, sJob, mLvl > 99 ? 99 : mLvl);
+            uint16 maxSubSkill = battleutils::GetMaxSkill((SKILLTYPE)i, sJob, skillLvl);
 
             if (maxSubSkill != 0)
             {
-                PTrust->WorkingSkills.skill[i] = static_cast<uint16>(maxSubSkill * settings::get<float>("map.ALTER_EGO_SKILL_MULTIPLIER"));
+                PTrust->WorkingSkills.skill[i] = truststatshelpers::ApplySkillMultiplier(maxSubSkill, skillMult);
             }
         }
     }
 
     for (int i = SKILL_HAND_TO_HAND; i <= SKILL_STAFF; i++)
     {
-        uint16 maxSkill = battleutils::GetMaxSkill((SKILLTYPE)i, mLvl > 99 ? 99 : mLvl);
+        uint16 maxSkill = battleutils::GetMaxSkill((SKILLTYPE)i, skillLvl);
         if (maxSkill != 0)
         {
-            PTrust->WorkingSkills.skill[i] = static_cast<uint16>(maxSkill * settings::get<float>("map.ALTER_EGO_SKILL_MULTIPLIER"));
+            PTrust->WorkingSkills.skill[i] = truststatshelpers::ApplySkillMultiplier(maxSkill, skillMult);
         }
     }
 
