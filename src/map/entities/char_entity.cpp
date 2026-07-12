@@ -56,6 +56,7 @@
 #include "char_start_synth_capacity.h"
 #include "char_storage_capacity.h"
 #include "char_tick_capacity.h"
+#include "char_trait_sync_capacity.h"
 #include "char_trigger_area_capacity.h"
 #include "char_trust_roster_capacity.h"
 #include "char_valid_target_capacity.h"
@@ -1123,14 +1124,18 @@ auto CCharEntity::inventorySyncState() -> InventorySyncState&
 
 void CCharEntity::addTrait(CTrait* PTrait)
 {
-    CBattleEntity::addTrait(PTrait);
-    charutils::addTrait(this, PTrait->getID());
+    chartraitsynchelpers::Apply(
+        PTrait->getID(),
+        [&]() { CBattleEntity::addTrait(PTrait); },
+        [&](const uint16 traitID) { charutils::addTrait(this, traitID); });
 }
 
 void CCharEntity::delTrait(CTrait* PTrait)
 {
-    CBattleEntity::delTrait(PTrait);
-    charutils::delTrait(this, PTrait->getID());
+    chartraitsynchelpers::Apply(
+        PTrait->getID(),
+        [&]() { CBattleEntity::delTrait(PTrait); },
+        [&](const uint16 traitID) { charutils::delTrait(this, traitID); });
 }
 
 bool CCharEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
