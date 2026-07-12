@@ -786,6 +786,8 @@ set(SOURCES
     test_capacity_award_1511.cpp
     test_weapon_skill_roster_1512.h
     test_weapon_skill_roster_1512.cpp
+    test_ability_table_1513.h
+    test_ability_table_1513.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

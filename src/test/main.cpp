@@ -428,6 +428,7 @@ auto runBuildingSkills1509SelfTests() -> bool;
 auto runCheckEquipment1510SelfTests() -> bool;
 auto runCapacityAward1511SelfTests() -> bool;
 auto runWeaponSkillRoster1512SelfTests() -> bool;
+auto runAbilityTable1513SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1066,6 +1067,7 @@ namespace
         ok = runCheckEquipment1510SelfTests() && ok;
         ok = runCapacityAward1511SelfTests() && ok;
         ok = runWeaponSkillRoster1512SelfTests() && ok;
+        ok = runAbilityTable1513SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

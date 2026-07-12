@@ -102,6 +102,7 @@
 #include "check_equipment_capacity.h"
 #include "capacity_award_capacity.h"
 #include "weapon_skill_roster_capacity.h"
+#include "ability_table_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -3688,7 +3689,7 @@ void BuildingCharPetAbilityTable(CCharEntity* PChar, CPetEntity* PPet, uint32 Pe
 
 void BuildingCharAbilityTable(CCharEntity* PChar)
 {
-    if (PChar == nullptr)
+    if (abilitytablehelpers::ShouldRejectNullChar(PChar == nullptr))
     {
         ShowWarning("charutils::BuildingCharAbilityTable() - PChar was null.");
         return;
@@ -3703,33 +3704,32 @@ void BuildingCharAbilityTable(CCharEntity* PChar)
             continue;
         }
 
-        if (PChar->GetMLevel() >= PAbility->getLevel())
-        {
-            if (PAbility->getID() < ABILITY_HEALING_RUBY && PAbility->getID() != ABILITY_PET_COMMANDS && CheckAbilityAddtype(PChar, PAbility))
-            {
-                addAbility(PChar, PAbility->getID());
-                Charge_t*       charge     = ability::GetCharge(PChar, static_cast<uint16>(PAbility->getRecastId()));
-                timer::duration chargeTime = 0s;
-                auto            maxCharges = 0;
-                if (charge)
-                {
-                    chargeTime = charge->chargeTime - std::chrono::seconds(PChar->PMeritPoints->GetMeritValue((MERIT_TYPE)charge->merit, PChar));
-                    maxCharges = charge->maxCharges;
-                }
-                if (!PChar->PRecastContainer->Has(RECAST_ABILITY, PAbility->getRecastId()))
-                {
-                    PChar->PRecastContainer->Add(RECAST_ABILITY, PAbility->getRecastId(), 0s, chargeTime, maxCharges);
-                }
-            }
-        }
-        else
+        if (abilitytablehelpers::ShouldStopMainAbilityLoop(PChar->GetMLevel(), PAbility->getLevel()))
         {
             break;
+        }
+
+        if (abilitytablehelpers::ShouldAddMainAbility(PAbility->getID(), CheckAbilityAddtype(PChar, PAbility)))
+        {
+            addAbility(PChar, PAbility->getID());
+            Charge_t*       charge     = ability::GetCharge(PChar, static_cast<uint16>(PAbility->getRecastId()));
+            timer::duration chargeTime = 0s;
+            auto            maxCharges = 0;
+            if (charge)
+            {
+                const auto meritSecs = PChar->PMeritPoints->GetMeritValue((MERIT_TYPE)charge->merit, PChar);
+                chargeTime           = charge->chargeTime - std::chrono::seconds(meritSecs);
+                maxCharges           = charge->maxCharges;
+            }
+            if (abilitytablehelpers::ShouldInitAbilityRecast(PChar->PRecastContainer->Has(RECAST_ABILITY, PAbility->getRecastId())))
+            {
+                PChar->PRecastContainer->Add(RECAST_ABILITY, PAbility->getRecastId(), 0s, chargeTime, maxCharges);
+            }
         }
     }
 
     // To stop a character with no SJob to receive the traits with job = 0 in the DB.
-    if (PChar->GetSJob() == JOB_NON)
+    if (abilitytablehelpers::ShouldSkipSubJobAbilities(static_cast<uint8>(PChar->GetSJob())))
     {
         return;
     }
@@ -3741,36 +3741,31 @@ void BuildingCharAbilityTable(CCharEntity* PChar)
             continue;
         }
 
-        if (PChar->GetSLevel() >= PAbility->getLevel())
-        {
-            if (PAbility->getLevel() != 0 && PAbility->getID() < ABILITY_HEALING_RUBY)
-            {
-                if (PAbility->getID() != ABILITY_PET_COMMANDS && CheckAbilityAddtype(PChar, PAbility) && !(PAbility->getAddType() & ADDTYPE_MAIN_ONLY))
-                {
-                    addAbility(PChar, PAbility->getID());
-                    Charge_t*       charge     = ability::GetCharge(PChar, static_cast<uint16>(PAbility->getRecastId()));
-                    timer::duration chargeTime = 0s;
-                    auto            maxCharges = 0;
-                    if (charge)
-                    {
-                        chargeTime = charge->chargeTime - std::chrono::seconds(PChar->PMeritPoints->GetMeritValue((MERIT_TYPE)charge->merit, PChar));
-                        maxCharges = charge->maxCharges;
-                    }
-                    if (!PChar->PRecastContainer->Has(RECAST_ABILITY, PAbility->getRecastId()))
-                    {
-                        PChar->PRecastContainer->Add(RECAST_ABILITY, PAbility->getRecastId(), 0s, chargeTime, maxCharges);
-                    }
-                }
-            }
-        }
-        else
+        if (abilitytablehelpers::ShouldStopSubAbilityLoop(PChar->GetSLevel(), PAbility->getLevel()))
         {
             break;
+        }
+
+        if (abilitytablehelpers::ShouldAddSubAbility(PAbility->getLevel(), PAbility->getID(), PAbility->getAddType(), CheckAbilityAddtype(PChar, PAbility)))
+        {
+            addAbility(PChar, PAbility->getID());
+            Charge_t*       charge     = ability::GetCharge(PChar, static_cast<uint16>(PAbility->getRecastId()));
+            timer::duration chargeTime = 0s;
+            auto            maxCharges = 0;
+            if (charge)
+            {
+                const auto meritSecs = PChar->PMeritPoints->GetMeritValue((MERIT_TYPE)charge->merit, PChar);
+                chargeTime           = charge->chargeTime - std::chrono::seconds(meritSecs);
+                maxCharges           = charge->maxCharges;
+            }
+            if (abilitytablehelpers::ShouldInitAbilityRecast(PChar->PRecastContainer->Has(RECAST_ABILITY, PAbility->getRecastId())))
+            {
+                PChar->PRecastContainer->Add(RECAST_ABILITY, PAbility->getRecastId(), 0s, chargeTime, maxCharges);
+            }
         }
     }
 }
 
-// determines if this player has bonus for this skill based on the active sch arts
 bool isArtsBonusActive(CCharEntity* PChar, SKILLTYPE SkillID)
 {
     return (SkillID >= SKILL_DIVINE_MAGIC && SkillID <= SKILL_ENFEEBLING_MAGIC &&
@@ -6586,92 +6581,65 @@ void CheckUnarmedWeapon(CCharEntity* PChar)
 
 auto CheckAbilityAddtype(CCharEntity* PChar, const CAbility* PAbility) -> bool
 {
-    if (PAbility->getAddType() & ADDTYPE_MERIT)
+    const auto addType = PAbility->getAddType();
+
+    bool meritExists         = false;
+    bool meritCountPositive  = false;
+    if (addType & ADDTYPE_MERIT)
     {
-        if (!PChar->PMeritPoints->GetMerit(static_cast<MERIT_TYPE>(PAbility->getMeritModID())))
+        auto* merit = PChar->PMeritPoints->GetMerit(static_cast<MERIT_TYPE>(PAbility->getMeritModID()));
+        if (!merit)
         {
             ShowWarning("charutils::CheckAbilityAddtype: Attempt to add invalid Merit Ability (%d).", PAbility->getMeritModID());
             return false;
         }
+        meritExists        = true;
+        meritCountPositive = merit->count > 0;
+    }
 
-        if (!(PChar->PMeritPoints->GetMerit(static_cast<MERIT_TYPE>(PAbility->getMeritModID()))->count > 0))
-        {
-            return false;
-        }
-    }
-    if (PAbility->getAddType() & ADDTYPE_ASTRAL_FLOW)
-    {
-        if (!PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AstralFlow))
-        {
-            return false;
-        }
-    }
-    if (PAbility->getAddType() & ADDTYPE_LEARNED)
-    {
-        if (!hasLearnedAbility(PChar, PAbility->getID()))
-        {
-            return false;
-        }
-    }
-    if (PAbility->getAddType() & ADDTYPE_LIGHT_ARTS)
-    {
-        if (!PChar->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::LightArts, xi::StatusEffect::AddendumWhite }))
-        {
-            return false;
-        }
-    }
-    if (PAbility->getAddType() & ADDTYPE_DARK_ARTS)
-    {
-        if (!PChar->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::DarkArts, xi::StatusEffect::AddendumBlack }))
-        {
-            return false;
-        }
-    }
-    if ((PAbility->getAddType() & (ADDTYPE_JUGPET | ADDTYPE_CHARMPET)) == (ADDTYPE_JUGPET | ADDTYPE_CHARMPET))
-    {
-        if (!PChar->PPet || !(PChar->PPet->objtype == TYPE_MOB ||
-                              (PChar->PPet->objtype == TYPE_PET && static_cast<CPetEntity*>(PChar->PPet)->getPetType() == PET_TYPE::JUG_PET)))
-        {
-            return false;
-        }
-    }
-    if ((PAbility->getAddType() & (ADDTYPE_JUGPET | ADDTYPE_CHARMPET)) == ADDTYPE_JUGPET)
-    {
-        if (!PChar->PPet || PChar->PPet->objtype != TYPE_PET || static_cast<CPetEntity*>(PChar->PPet)->getPetType() != PET_TYPE::JUG_PET)
-        {
-            return false;
-        }
-    }
-    if ((PAbility->getAddType() & (ADDTYPE_JUGPET | ADDTYPE_CHARMPET)) == ADDTYPE_CHARMPET)
-    {
-        if (!PChar->PPet || PChar->PPet->objtype != TYPE_MOB)
-        {
-            return false;
-        }
-    }
-    if (PAbility->getAddType() & ADDTYPE_AVATAR)
-    {
-        if (!PChar->PPet || PChar->PPet->objtype != TYPE_PET || static_cast<CPetEntity*>(PChar->PPet)->getPetType() != PET_TYPE::AVATAR)
-        {
-            return false;
-        }
+    const bool hasAstralFlow = PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AstralFlow);
+    const bool hasLearned    = hasLearnedAbility(PChar, PAbility->getID());
+    const bool hasLightArts  = PChar->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::LightArts, xi::StatusEffect::AddendumWhite });
+    const bool hasDarkArts   = PChar->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::DarkArts, xi::StatusEffect::AddendumBlack });
 
-        // Alexander, Odin and Atomos grant no abilities (Assault, Release...) to the master.
-        const auto* petEntity = static_cast<CPetEntity*>(PChar->PPet);
-        if (petEntity->petID() == PETID_ALEXANDER || petEntity->petID() == PETID_ODIN || petEntity->petID() == PETID_ATOMOS)
-        {
-            return false;
-        }
-    }
-    if (PAbility->getAddType() & ADDTYPE_AUTOMATON)
+    const bool hasPet = PChar->PPet != nullptr;
+    bool petIsMob     = false;
+    bool petIsJugPet  = false;
+    bool petIsAvatar  = false;
+    bool petIsAutomaton = false;
+    bool petIsMobOrJugPet = false;
+    uint32 petID = 0;
+    if (hasPet)
     {
-        if (!PChar->PPet || PChar->PPet->objtype != TYPE_PET || static_cast<CPetEntity*>(PChar->PPet)->getPetType() != PET_TYPE::AUTOMATON)
+        petIsMob = PChar->PPet->objtype == TYPE_MOB;
+        if (PChar->PPet->objtype == TYPE_PET)
         {
-            return false;
+            auto* petEntity = static_cast<CPetEntity*>(PChar->PPet);
+            petIsJugPet     = petEntity->getPetType() == PET_TYPE::JUG_PET;
+            petIsAvatar     = petEntity->getPetType() == PET_TYPE::AVATAR;
+            petIsAutomaton  = petEntity->getPetType() == PET_TYPE::AUTOMATON;
+            petID           = petEntity->petID();
         }
+        petIsMobOrJugPet = petIsMob || (PChar->PPet->objtype == TYPE_PET && petIsJugPet);
     }
-    return true;
+
+    return abilitytablehelpers::CheckAbilityAddtype(
+        addType,
+        meritExists,
+        meritCountPositive,
+        hasAstralFlow,
+        hasLearned,
+        hasLightArts,
+        hasDarkArts,
+        hasPet,
+        petIsMobOrJugPet,
+        petIsJugPet,
+        petIsMob,
+        petIsAvatar,
+        petID,
+        petIsAutomaton);
 }
+
 
 void RemoveInvisible(const CCharEntity* PChar)
 {
