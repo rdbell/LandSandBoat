@@ -515,6 +515,7 @@ auto runMobWeaponDamage1601SelfTests() -> bool;
 auto runJugStats1602SelfTests() -> bool;
 auto runAvatarStats1603SelfTests() -> bool;
 auto runAvatarCombat1604SelfTests() -> bool;
+auto runWyvernStats1605SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1240,6 +1241,7 @@ namespace
         ok = runJugStats1602SelfTests() && ok;
         ok = runAvatarStats1603SelfTests() && ok;
         ok = runAvatarCombat1604SelfTests() && ok;
+        ok = runWyvernStats1605SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

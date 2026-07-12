@@ -49,6 +49,7 @@
 #include "map/jug_base_capacity.h"
 #include "map/jug_stats_capacity.h"
 #include "map/pet_weapon_damage_capacity.h"
+#include "map/wyvern_stats_capacity.h"
 #include "puppetutils.h"
 #include "status_effect_container.h"
 #include "zone_instance.h"
@@ -756,32 +757,36 @@ void CalculateWyvernStats(CBattleEntity* PMaster, CPetEntity* PPet)
 
     PPet->SetMJob(JOB_DRG);
     // https://www.bg-wiki.com/ffxi/Wyvern_(Dragoon_Pet)#About_the_Wyvern
-    uint8 mLvl = PMaster->GetMLevel();
-    uint8 iLvl = std::clamp(charutils::getMainhandItemLevel(static_cast<CCharEntity*>(PMaster)) - 99, 0, 20);
+    // Pure level / combat pins (wyvern_stats_capacity.h; slice 1605).
+    const uint8 mLvl = PMaster->GetMLevel();
+    const uint8 iLvl = wyvernstatshelpers::ILvlBonus(charutils::getMainhandItemLevel(static_cast<CCharEntity*>(PMaster)));
 
-    PPet->SetMLevel(mLvl + iLvl + PMaster->getMod(Mod::WYVERN_LVL_BONUS));
+    PPet->SetMLevel(wyvernstatshelpers::PetMainLevel(mLvl, iLvl, PMaster->getMod(Mod::WYVERN_LVL_BONUS)));
 
-    LoadAvatarStats(PMaster, PPet);                                       // follows PC calcs (w/o SJ)
-    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setDelay(320); // 320 delay
-    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setBaseDelay(320);
-    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setDamage((uint16)(floor(mLvl / 2) + 3));
+    LoadAvatarStats(PMaster, PPet); // follows PC calcs (w/o SJ)
+    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setDelay(wyvernstatshelpers::WeaponDelay);
+    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setBaseDelay(wyvernstatshelpers::WeaponDelay);
+    // Damage uses master mLvl (not pet level after iLvl/bonus).
+    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setDamage(petweapondamagehelpers::WyvernWeaponDamage(mLvl));
+
+    const uint8 skillLvl = wyvernstatshelpers::SkillCapLevel(mLvl);
     // Set A+ weapon skill
-    PPet->setModifier(Mod::ATT, battleutils::GetMaxSkill(SKILL_GREAT_AXE, JOB_WAR, mLvl > 99 ? 99 : mLvl));
-    PPet->setModifier(Mod::ACC, battleutils::GetMaxSkill(SKILL_GREAT_AXE, JOB_WAR, mLvl > 99 ? 99 : mLvl));
+    PPet->setModifier(Mod::ATT, battleutils::GetMaxSkill(SKILL_GREAT_AXE, JOB_WAR, skillLvl));
+    PPet->setModifier(Mod::ACC, battleutils::GetMaxSkill(SKILL_GREAT_AXE, JOB_WAR, skillLvl));
     // Set D evasion and def
-    PPet->setModifier(Mod::EVA, battleutils::GetMaxSkill(SKILL_HAND_TO_HAND, JOB_WAR, mLvl > 99 ? 99 : mLvl));
-    PPet->setModifier(Mod::DEF, battleutils::GetMaxSkill(SKILL_HAND_TO_HAND, JOB_WAR, mLvl > 99 ? 99 : mLvl));
+    PPet->setModifier(Mod::EVA, battleutils::GetMaxSkill(SKILL_HAND_TO_HAND, JOB_WAR, skillLvl));
+    PPet->setModifier(Mod::DEF, battleutils::GetMaxSkill(SKILL_HAND_TO_HAND, JOB_WAR, skillLvl));
 
     // https://www.bg-wiki.com/ffxi/Wyvern_(Dragoon_Pet)#Combat_Stats
     // innate -40 % DT, which does not contribute to the -50 % cap (this is a unique attribute to pets having a "higher" DT cap)
     // TODO: need "UDMG" modifier or equivalent
-    PPet->setModifier(Mod::DMG, -4000);
+    PPet->setModifier(Mod::DMG, wyvernstatshelpers::DamageTaken);
 
     // innate + 40 subtle blow
-    PPet->setModifier(Mod::SUBTLE_BLOW, 40);
+    PPet->setModifier(Mod::SUBTLE_BLOW, wyvernstatshelpers::SubtleBlow);
 
     // Wyverns can parry... yes really.
-    PPet->setMobMod(MOBMOD_CAN_PARRY, 1);
+    PPet->setMobMod(MOBMOD_CAN_PARRY, wyvernstatshelpers::CanParry);
 
     // Job Point: Wyvern Max HP
     if (PMaster->objtype == TYPE_PC)
@@ -789,7 +794,7 @@ void CalculateWyvernStats(CBattleEntity* PMaster, CPetEntity* PPet)
         uint8 jpValue = static_cast<CCharEntity*>(PMaster)->PJobPoints->GetJobPointValue(JP_WYVERN_MAX_HP_BONUS);
         if (jpValue > 0)
         {
-            PPet->addModifier(Mod::HP, jpValue * 10);
+            PPet->addModifier(Mod::HP, wyvernstatshelpers::MaxHPJobPointBonus(jpValue));
         }
 
         if (PMaster->GetMJob() == JOBTYPE::JOB_DRG)
