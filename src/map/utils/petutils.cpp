@@ -47,6 +47,7 @@
 #include "map/base_to_rank_capacity.h"
 #include "map/calculate_stats_capacity.h"
 #include "map/jug_base_capacity.h"
+#include "map/jug_level_capacity.h"
 #include "map/jug_stats_capacity.h"
 #include "map/pet_weapon_damage_capacity.h"
 #include "map/wyvern_stats_capacity.h"
@@ -828,26 +829,23 @@ void CalculateJugPetStats(CBattleEntity* PMaster, CPetEntity* PPet)
 
     auto* PPetData = *maybePetData;
 
-    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setDelay(240);
-    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setBaseDelay(240);
-    // Get the Jug pet cap level
-    uint8 highestLvl = PPetData->maxLevel;
+    // Pure level policy (jug_level_capacity.h; slice 1606).
+    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setDelay(juglevelhelpers::WeaponDelay);
+    static_cast<CItemWeapon*>(PPet->m_Weapons[SLOT_MAIN])->setBaseDelay(juglevelhelpers::WeaponDelay);
 
-    // Increase the pet's level cal by the bonus given by BEAST AFFINITY merits.
     CCharEntity* PChar = static_cast<CCharEntity*>(PMaster);
-    highestLvl += PChar->PMeritPoints->GetMeritValue(MERIT_BEAST_AFFINITY, PChar);
+    uint8 highestLvl   = juglevelhelpers::RaiseWithBeastAffinity(
+        PPetData->maxLevel,
+        PChar->PMeritPoints->GetMeritValue(MERIT_BEAST_AFFINITY, PChar));
 
-    // And cap it to the master's level or weapon ilvl, whichever is greater
-    auto capLevel = std::max(PMaster->GetMLevel(), PMaster->m_Weapons[SLOT_MAIN]->getILvl());
-    if (highestLvl > capLevel)
-    {
-        highestLvl = capLevel;
-    }
+    const uint8 capLevel = juglevelhelpers::CapLevel(PMaster->GetMLevel(), PMaster->m_Weapons[SLOT_MAIN]->getILvl());
+    highestLvl           = juglevelhelpers::CapHighestLevel(highestLvl, capLevel);
 
     // Randomize: 0-2 lvls lower, less Monster Gloves(+1/+2) bonus
-    highestLvl -= xirand::GetRandomNumber(3 - std::clamp<int16>(PChar->getMod(Mod::JUG_LEVEL_RANGE), 0, 2));
+    const uint8 rangeWidth = juglevelhelpers::LevelRangeWidth(PChar->getMod(Mod::JUG_LEVEL_RANGE));
+    highestLvl             = juglevelhelpers::ApplyLevelRandom(highestLvl, xirand::GetRandomNumber(rangeWidth));
 
-    PPet->SetMLevel(std::min(PPet->getSpawnLevel(), highestLvl));
+    PPet->SetMLevel(juglevelhelpers::FinalJugLevel(highestLvl, PPet->getSpawnLevel()));
     LoadJugStats(PPet, PPetData); // follow monster calcs (w/o SJ)
 
     FinalizePetStatistics(PMaster, PPet);

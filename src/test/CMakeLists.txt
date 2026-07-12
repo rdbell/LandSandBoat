@@ -962,6 +962,8 @@ set(SOURCES
     test_avatar_combat_1604.cpp
     test_wyvern_stats_1605.h
     test_wyvern_stats_1605.cpp
+    test_jug_level_1606.h
+    test_jug_level_1606.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
