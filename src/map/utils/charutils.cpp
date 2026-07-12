@@ -99,6 +99,7 @@
 #include "calculate_stats_capacity.h"
 #include "distribute_gil_capacity.h"
 #include "building_skills_capacity.h"
+#include "check_equipment_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -3464,31 +3465,40 @@ void CheckValidEquipment(CCharEntity* PChar)
 {
     CItemEquipment* PItem = nullptr;
 
-    for (uint8 slotID = 0; slotID < 16; ++slotID)
+    for (uint8 slotID = 0; slotID < checkequipmenthelpers::EquipSlotCount; ++slotID)
     {
         PItem = PChar->getEquip((SLOTTYPE)slotID);
-        if (PItem == nullptr || !PItem->isType(ITEM_EQUIPMENT))
+        if (checkequipmenthelpers::ShouldSkipNonEquipment(PItem != nullptr, PItem != nullptr && PItem->isType(ITEM_EQUIPMENT)))
         {
             continue;
         }
 
-        if (PItem->getReqLvl() > (settings::get<bool>("map.DISABLE_GEAR_SCALING") ? PChar->GetMLevel() : PChar->jobs.job[PChar->GetMJob()]))
+        const auto effectiveLevel = checkequipmenthelpers::EffectiveLevelForGearReq(
+            settings::get<bool>("map.DISABLE_GEAR_SCALING"),
+            PChar->GetMLevel(),
+            PChar->jobs.job[PChar->GetMJob()]);
+        if (checkequipmenthelpers::ShouldUnequipByLevel(PItem->getReqLvl(), effectiveLevel))
         {
             UnequipItem(PChar, slotID);
             continue;
         }
 
-        if (slotID == SLOT_SUB && !PItem->IsShield())
+        if (checkequipmenthelpers::IsSubSlot(slotID) && !PItem->IsShield())
         {
             // Unequip if no main weapon or a non-grip subslot without DW
-            if (!PChar->getEquip(SLOT_MAIN) || (!charutils::hasTrait(PChar, TRAIT_DUAL_WIELD) && !(((CItemWeapon*)PItem)->getSkillType() == SKILL_NONE)))
+            const bool hasMain  = PChar->getEquip(SLOT_MAIN) != nullptr;
+            const bool hasDW    = charutils::hasTrait(PChar, TRAIT_DUAL_WIELD);
+            const bool isGrip   = ((CItemWeapon*)PItem)->getSkillType() == SKILL_NONE;
+            if (checkequipmenthelpers::ShouldUnequipInvalidSub(false, hasMain, hasDW, isGrip))
             {
                 UnequipItem(PChar, SLOT_SUB);
                 continue;
             }
         }
 
-        if ((PItem->getJobs() & (1 << (PChar->GetMJob() - 1))) && (PItem->getEquipSlotId() & (1 << slotID)))
+        const auto jobBit  = checkequipmenthelpers::JobBitForMainJob(static_cast<uint8>(PChar->GetMJob()));
+        const auto slotBit = checkequipmenthelpers::SlotBitForEquipSlot(slotID);
+        if (checkequipmenthelpers::ShouldKeepEquipment(PItem->getJobs(), jobBit, PItem->getEquipSlotId(), slotBit))
         {
             continue;
         }
@@ -3496,9 +3506,15 @@ void CheckValidEquipment(CCharEntity* PChar)
         UnequipItem(PChar, slotID);
     }
     // Unarmed H2H weapon check
-    if (!PChar->getEquip(SLOT_MAIN) || !PChar->getEquip(SLOT_MAIN)->isType(ITEM_EQUIPMENT) || PChar->m_Weapons[SLOT_MAIN] == xi::items::unarmedH2H())
     {
-        CheckUnarmedWeapon(PChar);
+        auto* mainEquip = PChar->getEquip(SLOT_MAIN);
+        if (checkequipmenthelpers::ShouldCheckUnarmedWeapon(
+                mainEquip != nullptr,
+                mainEquip != nullptr && mainEquip->isType(ITEM_EQUIPMENT),
+                PChar->m_Weapons[SLOT_MAIN] == xi::items::unarmedH2H()))
+        {
+            CheckUnarmedWeapon(PChar);
+        }
     }
 
     BuildingCharWeaponSkills(PChar);

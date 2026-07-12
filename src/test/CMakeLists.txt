@@ -780,6 +780,8 @@ set(SOURCES
     test_distribute_gil_1508.cpp
     test_building_skills_1509.h
     test_building_skills_1509.cpp
+    test_check_equipment_1510.h
+    test_check_equipment_1510.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
