@@ -886,6 +886,8 @@ set(SOURCES
     test_skill_cap_1561.cpp
     test_tp_return_1562.h
     test_tp_return_1562.cpp
+    test_spell_interrupt_1563.h
+    test_spell_interrupt_1563.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

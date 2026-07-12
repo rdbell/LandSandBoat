@@ -67,6 +67,7 @@
 #include "weaponskill_use_capacity.h"
 #include "skill_cap_capacity.h"
 #include "tp_return_capacity.h"
+#include "spell_interrupt_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -1890,81 +1891,53 @@ bool TryInterruptSpell(CBattleEntity* PAttacker, CBattleEntity* PDefender, CSpel
         return false;
     }
 
-    // Calculate level ratio.
-    int   baseRate   = (PDefender->objtype == TYPE_MOB) ? 5 : 50;
-    float levelRatio = (float)(baseRate + PAttacker->GetMLevel() - PDefender->GetMLevel()) / 100.0f;
+    spellinterrupthelpers::Params params{};
+    params.attackerLevel     = PAttacker->GetMLevel();
+    params.defenderLevel     = PDefender->GetMLevel();
+    params.defenderIsMob     = PDefender->objtype == TYPE_MOB;
+    params.defenderIsPC      = PDefender->objtype == TYPE_PC;
+    params.spellInterruptMod = PDefender->getMod(Mod::SPELLINTERRUPT);
+    params.roll              = xirand::GetRandomNumber<float>(1.0f);
 
-    if (levelRatio < 0.01)
+    if (params.defenderIsPC)
     {
-        levelRatio = 0.01f;
-    }
-
-    // Calculate skill ratio.
-    float skillRatio     = 1.0f;
-    uint8 meritReduction = 0;
-
-    if (PDefender->objtype == TYPE_PC)
-    {
-        CCharEntity* PChar      = (CCharEntity*)PDefender;
-        float        skillCap   = GetMaxSkill((SKILLTYPE)PSpell->getSkillType(), PChar->GetMJob(), PChar->GetMLevel());
-        float        skillLevel = PChar->GetSkill(PSpell->getSkillType());
+        auto* PChar = static_cast<CCharEntity*>(PDefender);
+        float skillCap   = GetMaxSkill((SKILLTYPE)PSpell->getSkillType(), PChar->GetMJob(), PChar->GetMLevel());
+        float skillLevel = PChar->GetSkill(PSpell->getSkillType());
 
         // If skill cap is 0, player may be using a spell from their subjob.
         if (skillCap == 0)
         {
-            skillCap = GetMaxSkill((SKILLTYPE)PSpell->getSkillType(), PChar->GetSJob(), PChar->GetMLevel()); // This may need to be re-investigated in the future.
+            skillCap = GetMaxSkill((SKILLTYPE)PSpell->getSkillType(), PChar->GetSJob(), PChar->GetMLevel());
         }
 
-        // If skill level is 0, set ratio to 10.
-        if (skillLevel <= 0)
+        params.skillCap       = skillCap;
+        params.skillLevel     = skillLevel;
+        params.meritReduction = static_cast<std::uint8_t>(
+            PChar->PMeritPoints->GetMeritValue(MERIT_SPELL_INTERUPTION_RATE, PChar));
+    }
+
+    if (CStatusEffect* PAqua = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Aquaveil))
+    {
+        params.hasAquaveil   = true;
+        params.aquaveilPower = PAqua->GetPower();
+    }
+
+    const auto result = spellinterrupthelpers::Evaluate(params);
+
+    if (result.aquaveilConsumed)
+    {
+        if (result.aquaveilDelete)
         {
-            skillRatio = 10.0f;
+            PDefender->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Aquaveil);
         }
-        else
+        else if (CStatusEffect* PAqua = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Aquaveil))
         {
-            skillRatio = skillCap / skillLevel;
+            PAqua->SetPower(result.aquaveilNewPower);
         }
-
-        // Fetch player-only interruption rate reduction from merits.
-        meritReduction = ((CCharEntity*)PDefender)->PMeritPoints->GetMeritValue(MERIT_SPELL_INTERUPTION_RATE, (CCharEntity*)PDefender);
     }
 
-    // SIRD reduces the interrupt after all the calculations are done -- as evidenced by the infamous "102% SIRD" builds.
-    // Anything less than 102% interrupt results in the ability to be interrupted.
-    // Note: the 102% is probably an x/256 x/1024 nonsense -- sometimes 101% works.
-    float SIRDRatio = (100.0f - meritReduction - (float)PDefender->getMod(Mod::SPELLINTERRUPT)) / 100.0f;
-    float chance    = xirand::GetRandomNumber<float>(1.0f);
-
-    // This are all ratios.
-    // levelRatio : 0.01 to infinity.
-    // skillRatio:  1.0 to infinity.
-    // SIRDRatio:   No limits. Can be negative. A negative value will guarantee NOT being interrupted.
-    float finalRatio = levelRatio * skillRatio * SIRDRatio; // TL;DR Higher = Worse = More chances to get interrupted.
-
-    // Early return: You don't get interrupted.
-    if (chance >= finalRatio)
-    {
-        return false;
-    }
-
-    // Early return: You can't prevent interruption via Aquaveil effect.
-    if (!PDefender->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Aquaveil))
-    {
-        return true;
-    }
-
-    // Handle aquaveil.
-    auto aquaCount = PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Aquaveil)->GetPower();
-    if (aquaCount - 1 == 0) // removes the status, but still prevents the interrupt
-    {
-        PDefender->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Aquaveil);
-    }
-    else
-    {
-        PDefender->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Aquaveil)->SetPower(aquaCount - 1);
-    }
-
-    return false;
+    return result.interrupted;
 }
 
 /************************************************************************
