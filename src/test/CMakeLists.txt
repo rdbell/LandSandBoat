@@ -748,6 +748,8 @@ set(SOURCES
     test_char_ability_result_1491.cpp
     test_char_ability_pet_1492.h
     test_char_ability_pet_1492.cpp
+    test_char_ability_response_1493.h
+    test_char_ability_response_1493.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

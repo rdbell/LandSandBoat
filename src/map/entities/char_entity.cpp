@@ -41,6 +41,7 @@
 #include "char_gender_capacity.h"
 #include "char_ability_result_capacity.h"
 #include "char_ability_pet_capacity.h"
+#include "char_ability_response_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1790,12 +1791,13 @@ void CCharEntity::OnAbility(CAbilityState& state, action_t& action)
         // Some mobs respond to abilities (ex. Absolute Virtue / Ob)
         for (CBattleEntity* PBattleEntity : *PNotorietyContainer)
         {
-            if (auto* PMob = dynamic_cast<CMobEntity*>(PBattleEntity))
+            auto* PMob = dynamic_cast<CMobEntity*>(PBattleEntity);
+            if (charabilityresponsehelpers::ShouldNotify(
+                    PMob != nullptr,
+                    PMob != nullptr && PMob->getMobMod(MOBMOD_ABILITY_RESPONSE) != 0,
+                    PMob != nullptr && PMob->getZone() == this->getZone()))
             {
-                if (PMob->getMobMod(MOBMOD_ABILITY_RESPONSE) && PMob->getZone() == this->getZone())
-                {
-                    luautils::OnPlayerAbilityUse(PMob, this, PAbility);
-                }
+                luautils::OnPlayerAbilityUse(PMob, this, PAbility);
             }
         }
 
