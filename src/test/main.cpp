@@ -490,6 +490,7 @@ auto runPDIF1572SelfTests() -> bool;
 auto runLevelCorrection1574SelfTests() -> bool;
 auto runAnticipateSeigan1575SelfTests() -> bool;
 auto runAttuner1576SelfTests() -> bool;
+auto runAttackDamage1577SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1190,6 +1191,7 @@ namespace
         ok = runLevelCorrection1574SelfTests() && ok;
         ok = runAnticipateSeigan1575SelfTests() && ok;
         ok = runAttuner1576SelfTests() && ok;
+        ok = runAttackDamage1577SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

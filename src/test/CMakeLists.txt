@@ -910,6 +910,8 @@ set(SOURCES
     test_anticipate_seigan_1575.cpp
     test_attuner_1576.h
     test_attuner_1576.cpp
+    test_attack_damage_1577.h
+    test_attack_damage_1577.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

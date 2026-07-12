@@ -596,77 +596,9 @@ bool CAttack::CheckCover()
  ************************************************************************/
 void CAttack::ProcessDamage()
 {
-    if (settings::get<bool>("map.ENABLE_AUTO_ATTACK_LUA"))
-    {
-        // Sneak attack.
-        if (attackhelpers::ShouldApplySneakAttack(
-                m_attacker->GetMJob() == JOB_THF,
-                m_isFirstSwing,
-                m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::SneakAttack),
-                behind(m_attacker->loc.p, m_victim->loc.p, 64),
-                m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hide),
-                m_victim->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Doubt)))
-        {
-            m_isSA = true;
-        }
-
-        // Trick attack.
-        if (attackhelpers::ShouldApplyTrickAttack(
-                m_attacker->GetMJob() == JOB_THF,
-                m_isFirstSwing,
-                m_attackRound->GetTAEntity() != nullptr))
-        {
-            m_isTA = true;
-        }
-
-        // Set attack type to Samba if the attack type is normal.  Don't overwrite other types.  Used for Samba double damage.
-        if (attackhelpers::ShouldPromoteNormalToSamba(
-                static_cast<uint8>(m_attackType),
-                m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::DrainSamba),
-                m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AspirSamba),
-                m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::HasteSamba)))
-        {
-            SetAttackType(PHYSICAL_ATTACK_TYPE::SAMBA);
-        }
-
-        auto calculateAttackDamage = lua["xi"]["combat"]["physical"]["calculateAttackDamage"];
-        auto result                = calculateAttackDamage(m_attacker, m_victim, GetWeaponSlot(), m_attackType, m_attackRound->IsH2H(), m_isFirstSwing, m_isSA, m_isTA, m_damageRatio);
-        if (result.valid())
-        {
-            m_damage = result.get<int32>(0);
-
-            // Try skill up.
-            if (attackhelpers::ShouldTrySkillUp(m_damage))
-            {
-                if (m_attacker->objtype == TYPE_PC)
-                {
-                    auto* PChar = static_cast<CCharEntity*>(m_attacker);
-
-                    if (attackhelpers::ShouldSkillUpThrowing(static_cast<uint8>(m_attackType)))
-                    {
-                        charutils::TrySkillUP(PChar, SKILLTYPE::SKILL_THROWING, m_victim->GetMLevel());
-                    }
-                    else if (auto* weapon = dynamic_cast<CItemWeapon*>(m_attacker->m_Weapons[static_cast<SLOTTYPE>(GetWeaponSlot())]))
-                    {
-                        charutils::TrySkillUP(PChar, static_cast<SKILLTYPE>(weapon->getSkillType()), m_victim->GetMLevel());
-                    }
-                }
-                else if (m_attacker->objtype == TYPE_PET && m_attacker->PMaster && m_attacker->PMaster->objtype == TYPE_PC &&
-                         static_cast<CPetEntity*>(m_attacker)->getPetType() == PET_TYPE::AUTOMATON)
-                {
-                    puppetutils::TrySkillUP(static_cast<CAutomatonEntity*>(m_attacker), SKILL_AUTOMATON_MELEE, m_victim->GetMLevel());
-                }
-            }
-            m_isBlocked = attackutils::IsBlocked(m_attacker, m_victim);
-        }
-        else
-        {
-            sol::error err = result;
-            ShowError("attack.cpp::ProcessDamage(): %s", err.what());
-        }
-
-        return;
-    }
+    // Pure attackhelpers assembly is production (slice 1577).
+    // map.ENABLE_AUTO_ATTACK_LUA no longer routes to Lua calculateAttackDamage;
+    // the pure path is the single retail-accurate implementation.
 
     // Sneak attack.
     if (attackhelpers::ShouldApplySneakAttack(

@@ -472,6 +472,131 @@ inline auto IsKickAttackType(const uint8 attackType) -> bool
     return attackType == AttackTypeKick;
 }
 
+// --- Slice 1577: CalculateAttackDamage pure product ---
+
+constexpr uint8 SlotMain = 0;
+constexpr uint8 SlotSub  = 1;
+constexpr uint8 SlotAmmo = 3;
+
+struct AttackDamageParams
+{
+    bool  isSneakAttack{};
+    bool  isTrickAttack{};
+    int16 dex{};
+    int16 sneakAtkDex{};
+    int16 agi{};
+    int16 trickAtkAgi{};
+    int32 consumeMana{};
+
+    bool  isH2H{};
+    bool  isMob{};
+    bool  isKick{};
+    uint8 slot{};
+
+    int32 weaponDmg{};
+    int32 naturalH2H{};
+    int32 kickDamageMod{};
+    int32 fSTR{};
+    float mobH2HPenalty{ 1.0f };
+    float damageRatio{ 1.0f };
+
+    float scarletMult{ 1.0f };
+
+    uint8 attackType{};
+    bool  isPC{};
+    int16 doubleAttackDmg{};
+    int16 tripleAttackDmg{};
+
+    int32 soulEater{};
+
+    bool  useDamageMultipliers{};
+    int32 damageAfterMultipliers{};
+
+    int16 augmentsSA{};
+    bool  hasSneakAttackEffect{};
+    int16 augmentsTA{};
+    bool  hasTrickAttackEffect{};
+};
+
+// CalculateAttackDamage pure product (parity: internal/attack CalculateAttackDamage).
+inline auto CalculateAttackDamage(const AttackDamageParams& p) -> int32
+{
+    int32 bonus = 0;
+    if (p.isSneakAttack)
+    {
+        bonus += static_cast<int32>(std::floor(SneakAttackDexBonus(p.dex, p.sneakAtkDex)));
+    }
+    if (p.isTrickAttack)
+    {
+        bonus += static_cast<int32>(std::floor(TrickAttackAgiBonus(p.agi, p.trickAtkAgi)));
+    }
+    bonus += p.consumeMana;
+
+    int32 damage = 0;
+    if (p.isH2H && p.isMob)
+    {
+        const float pre = AssembleMobH2HDamagePreRatio(
+            p.weaponDmg + bonus, p.isKick, p.kickDamageMod, p.fSTR, p.mobH2HPenalty);
+        damage = ApplyDamageRatio(FloorAtZero(static_cast<int32>(pre)), p.damageRatio);
+    }
+    else if (p.isH2H && p.isKick)
+    {
+        damage = AssemblePlayerH2HKickPreRatio(p.naturalH2H, p.kickDamageMod, bonus, p.fSTR);
+        damage = ApplyDamageRatio(damage, p.damageRatio);
+    }
+    else if (p.isH2H)
+    {
+        damage = AssemblePlayerH2HPunchPreRatio(p.weaponDmg, p.naturalH2H, bonus, p.fSTR);
+        damage = ApplyDamageRatio(damage, p.damageRatio);
+    }
+    else if (p.slot == SlotMain)
+    {
+        damage = AssembleMainHandPreRatio(p.weaponDmg, bonus, p.fSTR);
+        damage = ApplyDamageRatio(damage, p.damageRatio);
+    }
+    else if (p.slot == SlotSub)
+    {
+        damage = AssembleSubHandPreRatio(p.weaponDmg, bonus, p.fSTR);
+        damage = ApplyDamageRatio(damage, p.damageRatio);
+    }
+    else if (p.slot == SlotAmmo)
+    {
+        damage = AssembleRangedAmmoPreRatio(p.weaponDmg, p.fSTR);
+        damage = ApplyDamageRatio(damage, p.damageRatio);
+    }
+
+    if (p.scarletMult > 0.0f && p.scarletMult != 1.0f)
+    {
+        damage = FloorProduct(damage, p.scarletMult);
+    }
+
+    if (ShouldApplyDoubleAttackDamage(p.attackType, p.isPC))
+    {
+        damage = ApplyDoubleTripleAttackDamage(damage, p.doubleAttackDmg);
+    }
+    else if (ShouldApplyTripleAttackDamage(p.attackType, p.isPC))
+    {
+        damage = ApplyDoubleTripleAttackDamage(damage, p.tripleAttackDmg);
+    }
+
+    damage += p.soulEater;
+
+    if (p.useDamageMultipliers)
+    {
+        damage = p.damageAfterMultipliers;
+    }
+
+    if (ShouldApplySAAugment(p.augmentsSA, p.isSneakAttack, p.hasSneakAttackEffect))
+    {
+        damage = FloorProduct(damage, AugmentDamageMultiplier(p.augmentsSA));
+    }
+    if (ShouldApplyTAAugment(p.augmentsTA, p.isTrickAttack, p.hasTrickAttackEffect))
+    {
+        damage = FloorProduct(damage, AugmentDamageMultiplier(p.augmentsTA));
+    }
+
+    return ClampNonNegativeDamage(damage);
+}
 
 // --- Slice 1379: GetHitRate path selection pure policy ---
 
