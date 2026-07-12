@@ -53,6 +53,7 @@
 #include "spell_cost_capacity.h"
 #include "dmg_taken_capacity.h"
 #include "ws_tp_capacity.h"
+#include "spell_recast_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -5450,183 +5451,65 @@ bool CanAffordSpell(CBattleEntity* PEntity, CSpell* PSpell, uint8 flags)
 
 timer::duration CalculateSpellRecastTime(CBattleEntity* PEntity, CSpell* PSpell)
 {
-    if (PSpell == nullptr)
+    if (spellrecasthelpers::ShouldReturnZeroNullSpell(PSpell == nullptr))
     {
         return 0s;
     }
 
-    auto base   = PSpell->getRecastTime();
-    auto recast = base;
+    spellrecasthelpers::SpellRecastParams p{};
+    p.baseMs     = std::chrono::duration_cast<std::chrono::milliseconds>(PSpell->getRecastTime()).count();
+    p.spellID    = static_cast<std::uint16_t>(PSpell->getID());
+    p.spellGroup = static_cast<std::uint16_t>(PSpell->getSpellGroup());
+    p.aoe        = static_cast<std::uint8_t>(PSpell->getAOE());
+    p.skillType  = static_cast<std::uint8_t>(PSpell->getSkillType());
 
-    const auto recastReductionCap                 = settings::get<float>("map.SPELL_RECAST_REDUCTION_CAP");
-    const auto alacrityCelerityRecastReductionCap = recastReductionCap + 10.0f;
+    p.recastReductionCap = settings::get<float>("map.SPELL_RECAST_REDUCTION_CAP");
 
-    const auto recastCapFloor = [base](float reductionCap)
+    p.fastCast            = PEntity->getMod(Mod::FASTCAST);
+    p.inspirationFastCast = PEntity->getMod(Mod::INSPIRATION_FAST_CAST);
+    p.hasteMagic          = PEntity->getMod(Mod::HASTE_MAGIC);
+    p.hasteGear           = PEntity->getMod(Mod::HASTE_GEAR);
+
+    p.elementalMagicRecast  = PEntity->getMod(Mod::ELEMENTAL_MAGIC_RECAST);
+    p.blueMagicRecast       = PEntity->getMod(Mod::BLUE_MAGIC_RECAST);
+    p.healingMagicRecast    = PEntity->getMod(Mod::HEALING_MAGIC_RECAST);
+    p.enfeeblingMagicRecast = PEntity->getMod(Mod::ENFEEBLING_MAGIC_RECAST);
+    p.enhancingMagicRecast  = PEntity->getMod(Mod::ENHANCING_MAGIC_RECAST);
+
+    p.blackMagicRecast     = PEntity->getMod(Mod::BLACK_MAGIC_RECAST);
+    p.whiteMagicRecast     = PEntity->getMod(Mod::WHITE_MAGIC_RECAST);
+    p.grimoireSpellcasting = PEntity->getMod(Mod::GRIMOIRE_SPELLCASTING);
+
+    p.songRecastDelaySec = PEntity->getMod(Mod::SONG_RECAST_DELAY);
+    p.isPC               = PEntity->objtype == TYPE_PC;
+    if (p.isPC)
     {
-        return std::chrono::floor<std::chrono::milliseconds>(base * (1.0f - (reductionCap / 100.0f)));
-    };
-
-    // get Fast Cast reduction, caps at 80%/2 = 40% reduction in recast -- https://www.bg-wiki.com/ffxi/Fast_Cast
-    float fastCastReduction = std::clamp(static_cast<float>(PEntity->getMod(Mod::FASTCAST)) / 2.0f, 0.0f, 40.0f);
-    // no known cap (limited by Inspiration merits + Futhark Trousers augment for a total retail cap value of 60%/2 = 30%)
-    float inspirationRecastReduction = static_cast<float>(PEntity->getMod(Mod::INSPIRATION_FAST_CAST)) / 2.0f;
-
-    // Apply Fast Cast & Inspiration
-    recast = std::chrono::floor<std::chrono::milliseconds>(recast * ((100.0f - (fastCastReduction + inspirationRecastReduction)) / 100.0f));
-
-    // Apply Haste (Magic and Gear)
-    int32 hasteMagic = std::clamp<int32>(PEntity->getMod(Mod::HASTE_MAGIC), -10000, 4375); // 43.75% cap -- handle 100% slow for weakness
-    int32 hasteGear  = std::clamp<int32>(PEntity->getMod(Mod::HASTE_GEAR), -2500, 2500);   // 25%
-    int32 haste      = hasteMagic + hasteGear;
-    recast           = std::chrono::floor<std::chrono::milliseconds>(recast * ((10000.0f - haste) / 10000.0f));
-
-    if (PSpell->getSpellGroup() == SPELLGROUP_SONG)
-    {
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Nightingale))
-        {
-            recast = std::chrono::floor<std::chrono::milliseconds>(recast * 0.5f);
-        }
-
-        // The following modifiers are not multiplicative - as such they must be applied last.
-        if (PEntity->objtype == TYPE_PC)
-        {
-            auto* PChar = static_cast<CCharEntity*>(PEntity);
-            if (PSpell->getID() == SpellID::Magic_Finale) // apply Finale recast merits
-            {
-                recast -= std::chrono::seconds(PChar->PMeritPoints->GetMeritValue(MERIT_FINALE_RECAST, PChar));
-            }
-
-            if (PSpell->getID() == SpellID::Foe_Lullaby || PSpell->getID() == SpellID::Foe_Lullaby_II || PSpell->getID() == SpellID::Horde_Lullaby ||
-                PSpell->getID() == SpellID::Horde_Lullaby_II) // apply Lullaby recast merits
-            {
-                recast -= std::chrono::seconds(PChar->PMeritPoints->GetMeritValue(MERIT_LULLABY_RECAST, PChar));
-            }
-        }
-        recast -= std::chrono::seconds(PEntity->getMod(Mod::SONG_RECAST_DELAY));
+        auto* PChar = static_cast<CCharEntity*>(PEntity);
+        p.finaleRecastMeritSec  = PChar->PMeritPoints->GetMeritValue(MERIT_FINALE_RECAST, PChar);
+        p.lullabyRecastMeritSec = PChar->PMeritPoints->GetMeritValue(MERIT_LULLABY_RECAST, PChar);
     }
 
-    if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Composure))
-    {
-        recast = std::chrono::floor<std::chrono::milliseconds>(recast * 1.25f);
-    }
+    p.alacrityCelerityEffect = static_cast<std::uint16_t>(PEntity->getMod(Mod::ALACRITY_CELERITY_EFFECT));
 
-    if (PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Hasso, xi::StatusEffect::Seigan }))
-    {
-        recast = std::chrono::floor<std::chrono::milliseconds>(recast * 1.5f);
-    }
+    p.nightingale = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Nightingale);
+    p.composure   = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Composure);
+    p.hassoOrSeigan =
+        PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Hasso, xi::StatusEffect::Seigan });
+    p.manifestation = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Manifestation);
+    p.accession     = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Accession);
+    p.darkArtsOrAddendumBlack =
+        PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::DarkArts, xi::StatusEffect::AddendumBlack });
+    p.lightArtsOrAddendumWhite =
+        PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::LightArts, xi::StatusEffect::AddendumWhite });
+    p.alacrity = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Alacrity);
+    p.celerity = PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Celerity);
 
-    recast = std::max<timer::duration>(recast, recastCapFloor(recastReductionCap));
+    p.mainJob = static_cast<std::uint8_t>(PEntity->GetMJob());
+    p.weatherMatchesElement =
+        battleutils::WeatherMatchesElement(battleutils::GetWeather(PEntity, false), static_cast<uint8>(PSpell->getElement()));
 
-    int32 recastMod = 0;
-    switch (PSpell->getSkillType())
-    {
-        case SKILLTYPE::SKILL_ELEMENTAL_MAGIC:
-            recastMod = PEntity->getMod(Mod::ELEMENTAL_MAGIC_RECAST);
-            break;
-        case SKILLTYPE::SKILL_BLUE_MAGIC:
-            recastMod = PEntity->getMod(Mod::BLUE_MAGIC_RECAST);
-            break;
-        case SKILLTYPE::SKILL_HEALING_MAGIC:
-            recastMod = PEntity->getMod(Mod::HEALING_MAGIC_RECAST);
-            break;
-        case SKILLTYPE::SKILL_ENFEEBLING_MAGIC:
-            recastMod = PEntity->getMod(Mod::ENFEEBLING_MAGIC_RECAST);
-            break;
-        case SKILLTYPE::SKILL_ENHANCING_MAGIC:
-            recastMod = PEntity->getMod(Mod::ENHANCING_MAGIC_RECAST);
-            break;
-    }
-
-    recast = std::chrono::floor<std::chrono::milliseconds>(recast * ((100.0f + recastMod) / 100.0f));
-
-    // Light/Dark arts recast bonus/penalties applies after other bonuses
-    if (PSpell->getSpellGroup() == SPELLGROUP_BLACK)
-    {
-        if (PSpell->getAOE() == SPELLAOE_RADIAL_MANI && PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Manifestation))
-        {
-            if (PEntity->GetMJob() == JOB_SCH)
-            {
-                recast *= 2;
-            }
-            else
-            {
-                recast *= 3;
-            }
-        }
-        else if (PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::DarkArts, xi::StatusEffect::AddendumBlack }))
-        {
-            // Add any "Grimoire: Reduces spellcasting time" bonuses + Dark Arts bonus
-            recast = std::chrono::floor<std::chrono::milliseconds>(recast * ((100.0f + PEntity->getMod(Mod::BLACK_MAGIC_RECAST) + PEntity->getMod(Mod::GRIMOIRE_SPELLCASTING)) / 100.0f));
-        }
-        else
-        {
-            recast = std::chrono::floor<std::chrono::milliseconds>(recast * ((100.0f + PEntity->getMod(Mod::BLACK_MAGIC_RECAST)) / 100.0f));
-        }
-
-        recast = std::max<timer::duration>(recast, recastCapFloor(recastReductionCap));
-
-        // https://www.bg-wiki.com/ffxi/Alacrity
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Alacrity))
-        {
-            recast = std::chrono::floor<std::chrono::milliseconds>(recast * 0.60); // 40% reduction from Alacrity alone
-            recast = std::max<timer::duration>(recast, recastCapFloor(alacrityCelerityRecastReductionCap));
-
-            // Only apply bonus mod if the spell element matches the weather, this is allowed to go over the 80% cap to a 90% cap.
-            if (battleutils::WeatherMatchesElement(battleutils::GetWeather(PEntity, false), static_cast<uint8>(PSpell->getElement())))
-            {
-                uint16 bonus = PEntity->getMod(Mod::ALACRITY_CELERITY_EFFECT);
-
-                recast = std::chrono::floor<std::chrono::milliseconds>(recast * ((100 - bonus) / 100.0f));
-                recast = std::max<timer::duration>(recast, recastCapFloor(alacrityCelerityRecastReductionCap));
-            }
-        }
-    }
-    else if (PSpell->getSpellGroup() == SPELLGROUP_WHITE)
-    {
-        if (PSpell->getAOE() == SPELLAOE_RADIAL_ACCE && PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Accession))
-        {
-            if (PEntity->GetMJob() == JOB_SCH)
-            {
-                recast *= 2;
-            }
-            else
-            {
-                recast *= 3;
-            }
-        }
-
-        if (PEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::LightArts, xi::StatusEffect::AddendumWhite }))
-        {
-            // Add any "Grimoire: Reduces spellcasting time" bonuses + Light Arts bonus
-            recast = std::chrono::floor<std::chrono::milliseconds>(recast * ((100.0f + PEntity->getMod(Mod::WHITE_MAGIC_RECAST) + PEntity->getMod(Mod::GRIMOIRE_SPELLCASTING)) / 100.0f));
-        }
-        else
-        {
-            recast = std::chrono::floor<std::chrono::milliseconds>(recast * ((100.0f + PEntity->getMod(Mod::WHITE_MAGIC_RECAST)) / 100.0f));
-        }
-
-        recast = std::max<timer::duration>(recast, recastCapFloor(recastReductionCap));
-
-        // https://www.bg-wiki.com/ffxi/Celerity
-        if (PEntity->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Celerity))
-        {
-            recast = std::chrono::floor<std::chrono::milliseconds>(recast * 0.60); // 40% reduction from Celerity alone
-            recast = std::max<timer::duration>(recast, recastCapFloor(alacrityCelerityRecastReductionCap));
-
-            // Only apply bonus mod if the spell element matches the weather.
-            if (battleutils::WeatherMatchesElement(battleutils::GetWeather(PEntity, false), static_cast<uint8>(PSpell->getElement())))
-            {
-                uint16 bonus = PEntity->getMod(Mod::ALACRITY_CELERITY_EFFECT);
-
-                recast = std::chrono::floor<std::chrono::milliseconds>(recast * ((100 - bonus) / 100.0f));
-                recast = std::max<timer::duration>(recast, recastCapFloor(alacrityCelerityRecastReductionCap));
-            }
-        }
-    }
-
-    recast = std::max<timer::duration>(recast, 0s);
-
-    return recast;
+    const auto ms = spellrecasthelpers::CalculateSpellRecastMs(p);
+    return std::chrono::milliseconds(ms);
 }
 
 int16 CalculateWeaponSkillTP(CBattleEntity* PEntity, CWeaponSkill* PWeaponSkill, int16 spentTP)
