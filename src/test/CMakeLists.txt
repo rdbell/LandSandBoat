@@ -830,6 +830,8 @@ set(SOURCES
     test_take_damage_1533.cpp
     test_take_physical_1534.h
     test_take_physical_1534.cpp
+    test_treasure_hunter_proc_1535.h
+    test_treasure_hunter_proc_1535.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

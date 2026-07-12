@@ -39,6 +39,7 @@
 #include "spikes_status_capacity.h"
 #include "take_damage_capacity.h"
 #include "take_physical_capacity.h"
+#include "treasure_hunter_proc_capacity.h"
 
 #include <algorithm>
 #include <array>
@@ -1233,65 +1234,40 @@ void HandleEnspell(CBattleEntity* PAttacker, CBattleEntity* PDefender, action_re
     {
         PChar = dynamic_cast<CCharEntity*>(PAttacker);
 
-        if (!settings::get<bool>("map.DISABLE_TREASURE_HUNTER_PROCS"))
+        // TODO: cleanup lua further so we can handle all this add effect stuff somewhere else
+        // Treasure hunter takes priority over enspells
+        if (treasurehunterprochelpers::ShouldEvaluateTreasureHunterProc(
+                PChar != nullptr,
+                settings::get<bool>("map.DISABLE_TREASURE_HUNTER_PROCS"),
+                finaldamage,
+                isFirstSwing,
+                PDefender->objtype == TYPE_MOB,
+                PChar && PChar->GetMJob() == JOB_THF,
+                PChar && PChar->hasTrait(TRAITTYPE::TRAIT_TREASURE_HUNTER)))
         {
-            // TODO: cleanup lua further so we can handle all this add effect stuff somewhere else
-            // Treasure hunter takes priority over enspells
-            if (PChar &&
-                finaldamage > 0 &&
-                isFirstSwing &&
-                PDefender->objtype == TYPE_MOB &&
-                PChar->GetMJob() == JOB_THF &&
-                PChar->hasTrait(TRAITTYPE::TRAIT_TREASURE_HUNTER)) // TH trait as a requirement is assumed, but likely. Could this just be a level 15 check instead?
+            auto* PMob = dynamic_cast<CMobEntity*>(PDefender);
+            if (PMob && treasurehunterprochelpers::CanUpgradeTreasureHunter(
+                            static_cast<int16>(PMob->m_THLvl), PChar->getMod(Mod::TREASURE_HUNTER_CAP)))
             {
-                auto PMob = dynamic_cast<CMobEntity*>(PDefender);
-                if (PMob && PMob->m_THLvl < (12 + PChar->getMod(Mod::TREASURE_HUNTER_CAP))) // TH proc cap is 12 + job gifts
+                // Roll only when upgrade path is open (matches original control flow).
+                const auto thResult = treasurehunterprochelpers::ResolveTreasureHunterProc(
+                    static_cast<int16>(PMob->m_THLvl),
+                    PChar->getMod(Mod::TREASURE_HUNTER),
+                    PChar->getMod(Mod::TREASURE_HUNTER_CAP),
+                    PChar->getMod(Mod::TREASURE_HUNTER_PROC),
+                    PMob->getMod(Mod::TREASURE_HUNTER_PROC),
+                    attack.IsSneakAttack(),
+                    attack.IsTrickAttack(),
+                    xirand::GetRandomNumber<float>(0.0f, 1.0f));
+
+                if (thResult.eligible)
                 {
-                    int16 playerTH = PChar->getMod(Mod::TREASURE_HUNTER);
-
-                    int16 THdiff = PMob->m_THLvl - playerTH;
-
-                    // Auto upgrade TH to mod level up to TH8
-                    if (THdiff < 0 && PMob->m_THLvl < 8)
+                    // Apply auto-upgrade before proc increment (mirrors production order).
+                    if (thResult.autoUpgraded)
                     {
-                        PMob->m_THLvl = std::min<int16>(8, playerTH);
-
-                        // Recalculate diff
-                        THdiff = PMob->m_THLvl - playerTH;
+                        PMob->m_THLvl = thResult.newMobTH;
                     }
-
-                    float procRate = 0.04f / std::pow<float>(2.0f, std::max<int16>(0, THdiff)); // Numbers below diff of -1 (i.e. TH 10 vs mobs TH8 level) are not known. Assume no extra bonus for now.
-
-                    // Not known if Feint and Gifts are multiplicative or additive. Currently assuming additive
-                    // The mob has an evasion down from feint that applies this mod.
-                    // The player has job point gifts that apply this mod.
-                    float procRateBonus = 1.0f + (PChar->getMod(Mod::TREASURE_HUNTER_PROC) + PMob->getMod(Mod::TREASURE_HUNTER_PROC)) / 100.0f;
-
-                    // It's unlikely that SATA bonus is multiplicative SA * TA bonus -- the rate would be astronomically higher if it was
-                    // Add the two together if they exist
-                    float sneakAttackTrickAttackBonus = 0.0f;
-
-                    // BG wiki claims 10x bonus for SA
-                    if (attack.IsSneakAttack())
-                    {
-                        sneakAttackTrickAttackBonus += 10.0f;
-                    }
-
-                    // BG wiki claims 10x bonus for TA
-                    if (attack.IsTrickAttack())
-                    {
-                        sneakAttackTrickAttackBonus += 10.0f;
-                    }
-
-                    // way greater than epsilon just in case...
-                    if (sneakAttackTrickAttackBonus > 1.0f)
-                    {
-                        procRateBonus *= sneakAttackTrickAttackBonus;
-                    }
-
-                    procRate *= procRateBonus;
-
-                    if (xirand::GetRandomNumber<float>(0.0f, 1.0f) <= procRate)
+                    if (thResult.procced)
                     {
                         PMob->m_THLvl++;
 

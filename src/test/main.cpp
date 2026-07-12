@@ -450,6 +450,7 @@ auto runCanAffordSpell1531SelfTests() -> bool;
 auto runSpikesStatus1532SelfTests() -> bool;
 auto runTakeDamage1533SelfTests() -> bool;
 auto runTakePhysical1534SelfTests() -> bool;
+auto runTreasureHunterProc1535SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1110,6 +1111,7 @@ namespace
         ok = runSpikesStatus1532SelfTests() && ok;
         ok = runTakeDamage1533SelfTests() && ok;
         ok = runTakePhysical1534SelfTests() && ok;
+        ok = runTreasureHunterProc1535SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
