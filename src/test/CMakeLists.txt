@@ -756,6 +756,8 @@ set(SOURCES
     test_char_weaponskill_self_1495.cpp
     test_char_weaponskill_primary_1496.h
     test_char_weaponskill_primary_1496.cpp
+    test_char_cast_finish_1497.h
+    test_char_cast_finish_1497.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

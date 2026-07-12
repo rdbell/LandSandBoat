@@ -45,6 +45,7 @@
 #include "char_weaponskill_range_capacity.h"
 #include "char_weaponskill_self_capacity.h"
 #include "char_weaponskill_primary_capacity.h"
+#include "char_cast_finish_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1277,9 +1278,10 @@ void CCharEntity::OnCastFinished(CMagicState& state, action_t& action)
     // Only blue spells that act as a physical WS can TA.
     CBattleEntity* taChar = nullptr;
 
-    if (StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TrickAttack) &&
-        PSpell->getSpellGroup() == SPELLGROUP_BLUE &&
-        PSpell->dealsDamage())
+    if (charcastfinishhelpers::ShouldResolveTrickAttack(
+            StatusEffectContainer->HasStatusEffect(xi::StatusEffect::TrickAttack),
+            PSpell->getSpellGroup() == SPELLGROUP_BLUE,
+            PSpell->dealsDamage()))
     {
         taChar = battleutils::getAvailableTrickAttackChar(this, PTarget);
     }
@@ -1293,11 +1295,13 @@ void CCharEntity::OnCastFinished(CMagicState& state, action_t& action)
     {
         for (auto&& actionResult : actionTarget.results)
         {
-            if (actionResult.param > 0 &&
-                PSpell->dealsDamage() &&
-                PSpell->getSpellGroup() == SPELLGROUP_BLUE &&
-                (StatusEffectContainer->HasStatusEffect(xi::StatusEffect::ChainAffinity) || StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AzureLore)) &&
-                static_cast<CBlueSpell*>(PSpell)->getPrimarySkillchain() != 0)
+            if (charcastfinishhelpers::ShouldApplyBlueSkillchain(
+                    actionResult.param,
+                    PSpell->dealsDamage(),
+                    PSpell->getSpellGroup() == SPELLGROUP_BLUE,
+                    StatusEffectContainer->HasStatusEffect(xi::StatusEffect::ChainAffinity) ||
+                        StatusEffectContainer->HasStatusEffect(xi::StatusEffect::AzureLore),
+                    static_cast<CBlueSpell*>(PSpell)->getPrimarySkillchain() != 0))
             {
                 auto*      PBlueSpell = static_cast<CBlueSpell*>(PSpell);
                 const auto effect     = battleutils::GetSkillChainEffect(PTarget, PBlueSpell->getPrimarySkillchain(), PBlueSpell->getSecondarySkillchain(), 0);
@@ -1306,24 +1310,20 @@ void CCharEntity::OnCastFinished(CMagicState& state, action_t& action)
                     actionResult.recordSkillchain(effect, battleutils::TakeSkillchainDamage(this, PTarget, actionResult.param, taChar));
                 }
 
-                if (StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Sekkanoki, xi::StatusEffect::MeikyoShisui }))
-                {
-                    health.tp = (health.tp > 1000 ? health.tp - 1000 : 0);
-                }
-                else
-                {
-                    health.tp = 0;
-                }
+                health.tp = charcastfinishhelpers::RemainingTPAfterBlueSkillchain(
+                    health.tp,
+                    StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Sekkanoki, xi::StatusEffect::MeikyoShisui }));
 
                 StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::ChainAffinity);
             }
 
             // Immanence will create or extend a skillchain for elemental spells
-            if (PTarget->health.hp > 0 &&
-                actionResult.param >= 0 &&
-                PSpell->dealsDamage() &&
-                PSpell->getSpellGroup() == SPELLGROUP_BLACK &&
-                (StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Immanence)))
+            if (charcastfinishhelpers::ShouldApplyImmanenceSkillchain(
+                    PTarget->health.hp > 0,
+                    actionResult.param,
+                    PSpell->dealsDamage(),
+                    PSpell->getSpellGroup() == SPELLGROUP_BLACK,
+                    StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Immanence)))
             {
                 auto immanenceApplies = true;
                 auto isHelix          = false;
