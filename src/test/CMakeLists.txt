@@ -976,6 +976,8 @@ set(SOURCES
     test_trust_stats_1611.cpp
     test_automaton_frame_skill_1612.h
     test_automaton_frame_skill_1612.cpp
+    test_perpetuation_1613.h
+    test_perpetuation_1613.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
