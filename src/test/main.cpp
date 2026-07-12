@@ -407,6 +407,7 @@ auto runCharAbilityParalyze1487SelfTests() -> bool;
 auto runCharActivity1488SelfTests() -> bool;
 auto runCharShield1489SelfTests() -> bool;
 auto runCharGender1490SelfTests() -> bool;
+auto runCharAbilityResult1491SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1024,6 +1025,7 @@ namespace
         ok = runCharActivity1488SelfTests() && ok;
         ok = runCharShield1489SelfTests() && ok;
         ok = runCharGender1490SelfTests() && ok;
+        ok = runCharAbilityResult1491SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

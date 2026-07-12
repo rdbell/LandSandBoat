@@ -39,6 +39,7 @@
 #include "char_activity_capacity.h"
 #include "char_shield_capacity.h"
 #include "char_gender_capacity.h"
+#include "char_ability_result_capacity.h"
 #include "char_timed_death_capacity.h"
 #include "char_entity_update_capacity.h"
 #include "char_equipment_capacity.h"
@@ -1747,22 +1748,14 @@ void CCharEntity::OnAbility(CAbilityState& state, action_t& action)
 
                 int32 value = luautils::OnUseAbility(this, PTargetFound, PAbility, &action);
 
-                if (prevMsg == MsgBasic::None) // get default message for the first target
-                {
-                    actionResult.messageID = PAbility->getMessage();
-                }
-                else // get AoE message for secondary targets
-                {
-                    actionResult.messageID = messageutils::GetAoEVariant(PAbility->getMessage());
-                }
-
-                actionResult.param = value;
-
-                if (value < 0)
-                {
-                    actionResult.messageID = messageutils::GetAbsorbVariant(actionResult.messageID);
-                    actionResult.param     = -actionResult.param;
-                }
+                const auto resolved = charabilityresulthelpers::ResolveAoETarget(
+                    prevMsg == MsgBasic::None,
+                    static_cast<uint16>(PAbility->getMessage()),
+                    value,
+                    [](const uint16 message) { return static_cast<uint16>(messageutils::GetAoEVariant(static_cast<MsgBasic>(message))); },
+                    [](const uint16 message) { return static_cast<uint16>(messageutils::GetAbsorbVariant(static_cast<MsgBasic>(message))); });
+                actionResult.messageID = static_cast<MsgBasic>(resolved.messageID);
+                actionResult.param     = resolved.param;
 
                 prevMsg = actionResult.messageID;
 
@@ -1786,24 +1779,15 @@ void CCharEntity::OnAbility(CAbilityState& state, action_t& action)
 
             int32 value = luautils::OnUseAbility(this, PTarget, PAbility, &action);
 
-            if (prevMsg == actionResult.messageID)
-            {
-                actionResult.messageID = PAbility->getMessage();
-            }
-
             // TODO: Some abilities legitimately have no message (e.g., Full Circle)
-            if (actionResult.messageID == MsgBasic::None)
-            {
-                actionResult.messageID = MsgBasic::UsesJobAbility;
-            }
-
-            actionResult.param = value;
-
-            if (value < 0)
-            {
-                actionResult.messageID = messageutils::GetAbsorbVariant(actionResult.messageID);
-                actionResult.param     = -value;
-            }
+            const auto resolved = charabilityresulthelpers::ResolveSingle(
+                static_cast<uint16>(prevMsg),
+                static_cast<uint16>(actionResult.messageID),
+                static_cast<uint16>(PAbility->getMessage()),
+                value,
+                [](const uint16 message) { return static_cast<uint16>(messageutils::GetAbsorbVariant(static_cast<MsgBasic>(message))); });
+            actionResult.messageID = static_cast<MsgBasic>(resolved.messageID);
+            actionResult.param     = resolved.param;
 
             state.ApplyEnmity();
         }
