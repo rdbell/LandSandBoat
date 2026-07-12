@@ -990,6 +990,8 @@ set(SOURCES
     test_fishing_hookchance_1619.cpp
     test_mob_stats_product_1620.h
     test_mob_stats_product_1620.cpp
+    test_mob_setup_1621.h
+    test_mob_setup_1621.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

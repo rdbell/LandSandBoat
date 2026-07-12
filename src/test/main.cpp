@@ -530,6 +530,7 @@ auto runFishingOutcome1617SelfTests() -> bool;
 auto runFishingHook1618SelfTests() -> bool;
 auto runFishingHookChance1619SelfTests() -> bool;
 auto runMobStatsProduct1620SelfTests() -> bool;
+auto runMobSetup1621SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1270,6 +1271,7 @@ namespace
         ok = runFishingHook1618SelfTests() && ok;
         ok = runFishingHookChance1619SelfTests() && ok;
         ok = runMobStatsProduct1620SelfTests() && ok;
+        ok = runMobSetup1621SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

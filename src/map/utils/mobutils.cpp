@@ -29,6 +29,7 @@
 #include "map/mob_base_capacity.h"
 #include "map/mob_base_skill_capacity.h"
 #include "map/mob_hp_capacity.h"
+#include "map/mob_setup_capacity.h"
 #include "map/mob_stats_product_capacity.h"
 #include "map/mob_weapon_damage_capacity.h"
 #include "map/sub_job_stats_capacity.h"
@@ -509,237 +510,60 @@ void SetupRangedAttack(CMobEntity* PMob)
 
 void SetupJob(CMobEntity* PMob)
 {
-    JOBTYPE mJob = PMob->GetMJob();
-    JOBTYPE sJob = PMob->GetSJob();
-    JOBTYPE job{};
+    // Pure job/family mod plan (mob_setup_capacity.h; slice 1621).
+    const auto mJob           = static_cast<uint8>(PMob->GetMJob());
+    const auto sJob           = static_cast<uint8>(PMob->GetSJob());
+    const auto mainJobMPGrade = grade::GetJobGrade(PMob->GetMJob(), 1);
+    const auto plan           = mobsetuphelpers::BuildSetupJobPlan(
+        mJob, sJob, mainJobMPGrade, PMob->m_Family, PMob->m_EcoSystem == xi::Ecosystem::Beastmen);
 
-    if (grade::GetJobGrade(mJob, 1) > 0 || mJob == JOB_NIN) // check if mainjob gives mp or is NIN
+    for (const auto& entry : plan.mods)
     {
-        job = mJob;
+        if (entry.kind == mobsetuphelpers::MobModApplyKind::Force)
+        {
+            PMob->setMobMod(static_cast<MOBMODIFIER>(entry.mod), entry.value);
+        }
+        else
+        {
+            PMob->defaultMobMod(static_cast<MOBMODIFIER>(entry.mod), entry.value);
+        }
     }
-    else // if mainjob had no MP (and isn't NIN), use subjob in switch cases.
+    if (plan.callSetupRangedAttack)
     {
-        job = sJob;
-    }
-
-    // This switch falls back to a subjob if a mainjob isn't matched, and is mainly magic stuff
-    switch (job)
-    {
-        case JOB_BLM:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            PMob->defaultMobMod(MOBMOD_GA_CHANCE, 40);
-            PMob->defaultMobMod(MOBMOD_BUFF_CHANCE, 15);
-            PMob->defaultMobMod(MOBMOD_SEVERE_SPELL_CHANCE, 20);
-            break;
-        case JOB_PLD:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            PMob->defaultMobMod(MOBMOD_MAGIC_DELAY, 7);
-            break;
-        case JOB_DRK:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            PMob->defaultMobMod(MOBMOD_MAGIC_DELAY, 7);
-            break;
-        case JOB_WHM:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            PMob->defaultMobMod(MOBMOD_MAGIC_DELAY, 10);
-            break;
-        case JOB_BRD:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            PMob->defaultMobMod(MOBMOD_GA_CHANCE, 25);
-            PMob->defaultMobMod(MOBMOD_BUFF_CHANCE, 60);
-            PMob->defaultMobMod(MOBMOD_MAGIC_DELAY, 10);
-            break;
-        case JOB_RDM:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            PMob->defaultMobMod(MOBMOD_GA_CHANCE, 15);
-            PMob->defaultMobMod(MOBMOD_BUFF_CHANCE, 40);
-            PMob->defaultMobMod(MOBMOD_MAGIC_DELAY, 10);
-            break;
-        case JOB_SMN:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 70);
-            PMob->defaultMobMod(MOBMOD_BUFF_CHANCE, 100); // SMN only has "buffs"
-            break;
-        case JOB_NIN:
-            PMob->defaultMobMod(MOBMOD_SPECIAL_COOL, 9);
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            PMob->defaultMobMod(MOBMOD_BUFF_CHANCE, 20);
-            PMob->defaultMobMod(MOBMOD_MAGIC_DELAY, 7);
-            break;
-        case JOB_BLU:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            break;
-        case JOB_SCH:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            break;
-        case JOB_GEO:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            break;
-        case JOB_RUN:
-            PMob->defaultMobMod(MOBMOD_MAGIC_COOL, 35);
-            break;
-        default:
-            break;
-    }
-
-    // This switch is mainjob only and contains mainly non magic related stuff
-    switch (mJob)
-    {
-        case JOB_THF:
-            // thfs drop more gil
-            if (PMob->m_EcoSystem == xi::Ecosystem::Beastmen)
-            {
-                // 50% bonus
-                PMob->defaultMobMod(MOBMOD_GIL_BONUS, 150);
-            }
-            break;
-        case JOB_RNG:
-            if (PMob->m_Family == 57) // Gigas
-            {
-                PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 658); // Catapult only used while at range
-            }
-            else if (PMob->m_Family == 72) // Trolls
-            {
-                PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 1747); // Zarraqa only used while at range
-                PMob->defaultMobMod(MOBMOD_STANDBACK_COOL, 0);
-                PMob->defaultMobMod(MOBMOD_SPECIAL_COOL, 14);
-                PMob->defaultMobMod(MOBMOD_HP_STANDBACK, 70);
-                break;
-            }
-            else if (PMob->m_Family == 131) // Aern
-            {
-                PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 1388);
-            }
-            else if (PMob->m_Family == 67) // Quadav
-            {
-                PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 1123); // Quadav
-            }
-            else if (PMob->m_Family == 88) // Demon
-            {
-                PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 1152); // Hecatomb Wave
-            }
-            else if (PMob->m_Family == 172) // Fomor Ranged use player ranged attack
-            {
-                SetupRangedAttack(PMob);
-            }
-            else
-            {
-                // All other rangers
-                PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 272);
-            }
-
-            PMob->defaultMobMod(MOBMOD_STANDBACK_COOL, 6);
-            PMob->defaultMobMod(MOBMOD_SPECIAL_COOL, 12);
-            PMob->defaultMobMod(MOBMOD_HP_STANDBACK, 70);
-            break;
-        case JOB_NIN:
-            if (PMob->m_Family == 131) // Aern
-            {
-                PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 1388);
-                PMob->defaultMobMod(MOBMOD_SPECIAL_COOL, 12);
-            }
-            else if (PMob->m_Family == 67) // Quadav
-            {
-                PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 1123); // Quadav
-            }
-            else if (PMob->m_Family == 88) // Demon
-            {
-                PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 1152); // Hecatomb Wave
-            }
-            else if (PMob->m_Family == 172) // Fomor Ranged use player ranged attack
-            {
-                PMob->setMobMod(MOBMOD_DUAL_WIELD, 1);
-                SetupRangedAttack(PMob);
-            }
-            else if (PMob->m_Family != 119) // exclude NIN Maat
-            {
-                PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 272);
-                PMob->defaultMobMod(MOBMOD_SPECIAL_COOL, 12);
-            }
-
-            PMob->defaultMobMod(MOBMOD_HP_STANDBACK, 70);
-            break;
-        case JOB_BST:
-            PMob->defaultMobMod(MOBMOD_SPECIAL_COOL, 70);
-            PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 1017);
-            break;
-        case JOB_PUP:
-            PMob->defaultMobMod(MOBMOD_SPECIAL_SKILL, 1901);
-            PMob->defaultMobMod(MOBMOD_SPECIAL_COOL, 720);
-            break;
-        case JOB_BLM:
-            // We don't want to do the mages stand-back part from subjob, so we have it here
-            PMob->defaultMobMod(MOBMOD_STANDBACK_COOL, 12);
-            PMob->defaultMobMod(MOBMOD_HP_STANDBACK, 70);
-        default:
-            break;
+        SetupRangedAttack(PMob);
     }
 }
 
 void SetupRoaming(CMobEntity* PMob)
 {
-    uint16 distance = 10;
-    uint16 turns    = 1;
-    uint16 cool     = 20;
-    uint16 rate     = 15;
-
-    if (PMob->m_EcoSystem == xi::Ecosystem::Beastmen)
+    // Pure roaming plan (mob_setup_capacity.h; slice 1621).
+    const auto plan = mobsetuphelpers::PlanSetupRoaming(
+        PMob->m_EcoSystem == xi::Ecosystem::Beastmen, static_cast<uint16>(PMob->m_roamFlags));
+    for (const auto& entry : plan.mods)
     {
-        distance = 20;
-        turns    = 5;
-        cool     = 45;
+        if (entry.kind == mobsetuphelpers::MobModApplyKind::Force)
+        {
+            PMob->setMobMod(static_cast<MOBMODIFIER>(entry.mod), entry.value);
+        }
+        else
+        {
+            PMob->defaultMobMod(static_cast<MOBMODIFIER>(entry.mod), entry.value);
+        }
     }
-
-    // default mob roaming mods
-    PMob->defaultMobMod(MOBMOD_ROAM_DISTANCE, distance);
-    PMob->defaultMobMod(MOBMOD_ROAM_TURNS, turns);
-    PMob->defaultMobMod(MOBMOD_ROAM_COOL, cool);
-    PMob->defaultMobMod(MOBMOD_ROAM_RATE, rate);
-
-    if (PMob->m_roamFlags & ROAMFLAG_AMBUSH)
+    if (plan.specialFlagsOR != 0)
     {
-        PMob->m_specialFlags |= SPECIALFLAG_HIDDEN;
-        // always stay close to spawn
-        PMob->m_maxRoamDistance = 2.0f;
-        PMob->setMobMod(MOBMOD_ROAM_DISTANCE, 5);
-        PMob->setMobMod(MOBMOD_ROAM_TURNS, 1);
+        PMob->m_specialFlags |= plan.specialFlagsOR;
     }
-
-    if (PMob->m_roamFlags & ROAMFLAG_SCRIPTED)
+    if (plan.setMaxRoam)
     {
-        PMob->setMobMod(MOBMOD_ROAM_RESET_FACING, 1);
+        PMob->m_maxRoamDistance = plan.maxRoamDistance;
     }
 }
 
 void SetupPetSkills(CMobEntity* PMob)
 {
-    int16 skillListId = 0;
-    // same mob can spawn as different species
-    // can't set this from the database
-    switch (PMob->m_Species)
-    {
-        case 248: // ifrit
-            skillListId = 715;
-            break;
-        case 255: // titan
-            skillListId = 716;
-            break;
-        case 249: // levi
-            skillListId = 717;
-            break;
-        case 247: // garuda
-            skillListId = 718;
-            break;
-        case 253: // shiva
-            skillListId = 719;
-            break;
-        case 252: // ramuh
-            skillListId = 720;
-            break;
-        case 243: // carbuncle
-            skillListId = 721;
-            break;
-    }
-
+    // Pure species → skill list (mob_setup_capacity.h; slice 1621).
+    const auto skillListId = mobsetuphelpers::PetSkillListID(PMob->m_Species);
     if (skillListId != 0)
     {
         PMob->setMobMod(MOBMOD_SKILL_LIST, skillListId);
