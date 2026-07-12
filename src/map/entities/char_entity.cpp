@@ -40,6 +40,7 @@
 #include "char_event_skip_capacity.h"
 #include "char_highest_job_capacity.h"
 #include "char_item_finish_preflight_capacity.h"
+#include "char_item_finish_complete_capacity.h"
 #include "char_item_finish_targets_capacity.h"
 #include "char_moghancement_state_capacity.h"
 #include "char_moghancement_furniture_capacity.h"
@@ -2050,33 +2051,25 @@ auto CCharEntity::OnItemFinish(CItemState& state, action_t& action) -> bool
         },
         processAction);
 
-    if (PItem->isType(ITEM_EQUIPMENT))
-    {
-        if (PItem->getMaxCharges() > 1)
+    return charitemfinishcompletehelpers::Apply(
+        PItem->isType(ITEM_EQUIPMENT),
+        PItem->getMaxCharges(),
+        PItem->getCurrentCharges(),
+        PItem->getSlotID(),
+        PItem->getLocationID(),
+        [&](const uint8 charges) { PItem->setCurrentCharges(charges); },
+        [&]() { PItem->setLastUseTime(timer::now()); },
+        [&]()
         {
-            PItem->setCurrentCharges(PItem->getCurrentCharges() - 1);
-        }
-        PItem->setLastUseTime(timer::now());
-
-        db::preparedStmt("UPDATE char_inventory "
-                         "SET extra = ? "
-                         "WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
-                         PItem->m_extra,
-                         this->id,
-                         PItem->getLocationID(),
-                         PItem->getSlotID());
-
-        if (PItem->getCurrentCharges() != 0)
-        {
-            // add recast timer to Recast List from any bag
-            this->PRecastContainer->Add(RECAST_ITEM, static_cast<Recast>(PItem->getSlotID() << 8 | PItem->getLocationID()), PItem->getReuseTime());
-        }
-        return false;
-    }
-
-    // Consumable items: signal CItemState::FinishItem to commit the ItemUseTransaction
-    // TODO: Some non-equipment items should not be consumed on use
-    return true;
+            db::preparedStmt("UPDATE char_inventory "
+                             "SET extra = ? "
+                             "WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
+                             PItem->m_extra,
+                             this->id,
+                             PItem->getLocationID(),
+                             PItem->getSlotID());
+        },
+        [&](const uint16 key) { this->PRecastContainer->Add(RECAST_ITEM, static_cast<Recast>(key), PItem->getReuseTime()); });
 }
 
 CBattleEntity* CCharEntity::IsValidTarget(uint16 targid, uint16 validTargetFlags, std::unique_ptr<CBasicPacket>& errMsg)
