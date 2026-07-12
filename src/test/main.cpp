@@ -537,6 +537,7 @@ auto runPetDetach1626SelfTests() -> bool;
 auto runPetEngage1627SelfTests() -> bool;
 auto runFishingArea1628SelfTests() -> bool;
 auto runFishingBaitRod1629SelfTests() -> bool;
+auto runFishingSkillup1630SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1284,6 +1285,7 @@ namespace
         ok = runPetEngage1627SelfTests() && ok;
         ok = runFishingArea1628SelfTests() && ok;
         ok = runFishingBaitRod1629SelfTests() && ok;
+        ok = runFishingSkillup1630SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

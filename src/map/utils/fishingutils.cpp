@@ -24,6 +24,7 @@
 #include "map/fishing_area_capacity.h"
 #include "map/fishing_bait_rod_capacity.h"
 #include "map/fishing_combat_capacity.h"
+#include "map/fishing_skillup_capacity.h"
 #include "map/fishing_hook_capacity.h"
 #include "map/fishing_hookchance_capacity.h"
 #include "map/fishing_outcome_capacity.h"
@@ -1079,137 +1080,50 @@ bool SendHookResponse(CCharEntity* PChar, fishresponse_t* response, CancelOnMobL
 
 void FishingSkillup(CCharEntity* PChar, uint8 catchLevel, uint8 successType)
 {
-    if (successType == FISHINGSUCCESSTYPE_NONE)
+    // Pure skill-up plan with host injects (fishing_skillup_capacity.h; slice 1630).
+    CItemWeapon* Rod = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED));
+    const auto   vanaTime = vanadiel_time::now();
+    CZone*       PZone    = zoneutils::GetZone(PChar->getZone());
+
+    fishingskilluphelpers::FishingSkillupParams params{};
+    params.successType    = successType;
+    params.catchLevel     = catchLevel;
+    params.charSkill      = PChar->RealSkills.skill[SKILL_FISHING];
+    params.charSkillLevel = static_cast<int>(std::floor(PChar->RealSkills.skill[SKILL_FISHING] / 10));
+    params.skillRank      = PChar->RealSkills.rank[SKILL_FISHING];
+    params.hasLuShangRod  = Rod != nullptr && Rod->getID() == LU_SHANG;
+    params.inCity         = PZone && (PZone->GetTypeMask() & ZONE_TYPE::CITY);
+    params.moonPhase      = static_cast<uint8>(vanadiel_time::moon::get_phase(vanaTime));
+    params.moonDirection  = vanadiel_time::moon::get_direction(vanaTime);
+    params.multiplier     = settings::get<float>("map.FISHING_SKILL_MULTIPLIER");
+
+    const auto plan = fishingskilluphelpers::PlanFishingSkillup(params);
+    if (!plan.eligible)
     {
         return;
     }
 
-    uint8        skillRank       = PChar->RealSkills.rank[SKILL_FISHING];
-    uint16       maxSkill        = (skillRank + 1) * 100;
-    int32        charSkill       = PChar->RealSkills.skill[SKILL_FISHING];
-    int32        charSkillLevel  = (uint32)std::floor(PChar->RealSkills.skill[SKILL_FISHING] / 10);
-    uint8        levelDifference = 0;
-    int          maxSkillAmount  = 1;
-    CItemWeapon* Rod             = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED));
+    const int32 charSkill = params.charSkill;
+    const int   maxSkill  = plan.maxSkill;
 
-    if (catchLevel > charSkillLevel)
-    {
-        levelDifference = catchLevel - charSkillLevel;
-    }
-
-    // No skillup if fish level not between char level and 50 levels higher
-    if (catchLevel <= charSkillLevel || (levelDifference > 50))
-    {
-        return;
-    }
-
-    int skillRoll       = 90;
-    int maxChance       = 0;
-    int bonusChanceRoll = 8;
-
-    // Lu shang rod under level 50 penalty
-    if (Rod != nullptr && charSkillLevel < 50 && Rod->getID() == LU_SHANG)
-    {
-        skillRoll += 20;
-    }
-
-    // Generate a normal distribution favoring fish 10 levels higher in skill
-    // with 5 levels of deviation on either side
-    double normDist          = exp(-0.5 * log(2 * M_PI) - log(5) - pow(levelDifference - 11, 2) / 50);
-    int    distMod           = (int)std::floor(normDist * 200);
-    int    lowerLevelBonus   = (int)std::floor((100 - charSkillLevel) / 10);
-    int    skillLevelPenalty = (int)std::floor(charSkillLevel / 10);
-
-    // Minimum 4% chance
-    maxChance = std::max(4, distMod + lowerLevelBonus - skillLevelPenalty);
-
-    // Configuration multiplier.
-    maxChance = maxChance * settings::get<float>("map.FISHING_SKILL_MULTIPLIER");
-
-    vanadiel_time::time_point vanaTime = vanadiel_time::now();
-
-    // Moon phase skillup modifiers
-    uint8 phase         = static_cast<uint8>(vanadiel_time::moon::get_phase(vanaTime));
-    uint8 moonDirection = vanadiel_time::moon::get_direction(vanaTime);
-
-    switch (moonDirection)
-    {
-        case 0: // None
-            if (phase == 0)
-            {
-                skillRoll -= 20;
-                bonusChanceRoll -= 3;
-            }
-            else if (phase == 100)
-            {
-                skillRoll += 10;
-                bonusChanceRoll += 3;
-            }
-            break;
-
-        case 1: // Waning (decending)
-            if (phase <= 10)
-            {
-                skillRoll -= 15;
-                bonusChanceRoll -= 2;
-            }
-            else if (phase >= 95 && phase <= 100)
-            {
-                skillRoll += 5;
-                bonusChanceRoll += 2;
-            }
-            break;
-
-        case 2: // Waxing (increasing)
-            if (phase <= 5)
-            {
-                skillRoll -= 10;
-                bonusChanceRoll -= 1;
-            }
-            else if (phase >= 90 && phase <= 100)
-            {
-                bonusChanceRoll += 1;
-            }
-            break;
-    }
-
-    // Not in City bonus
-    CZone* PZone = zoneutils::GetZone(PChar->getZone());
-    if (!(PZone && PZone->GetTypeMask() & ZONE_TYPE::CITY))
-    {
-        skillRoll -= 10;
-    }
-
-    if (charSkillLevel < 50)
-    {
-        skillRoll -= (20 - (uint8)std::floor(charSkillLevel / 3));
-    }
-
-    // Max skill amount increases as level difference gets higher
-    const int skillAmountAdd = 1 + (int)std::floor(levelDifference / 5);
-    maxSkillAmount           = std::min(skillAmountAdd, 3);
-
-    if (xirand::GetRandomNumber(skillRoll) < maxChance)
+    if (xirand::GetRandomNumber(plan.skillRoll) < plan.maxChance)
     {
         int32 skillAmount = 1;
 
         // Bonus points
-        if (xirand::GetRandomNumber(bonusChanceRoll) == 1)
+        if (xirand::GetRandomNumber(plan.bonusChanceRoll) == 1)
         {
-            skillAmount = xirand::GetRandomNumber(1, maxSkillAmount);
+            skillAmount = xirand::GetRandomNumber(1, plan.maxSkillAmount);
         }
 
-        if ((skillAmount + charSkill) > maxSkill)
-        {
-            skillAmount = maxSkill - charSkill;
-        }
+        skillAmount = fishingskilluphelpers::ClampSkillAmount(skillAmount, charSkill, static_cast<int32>(maxSkill));
 
         if (skillAmount > 0)
         {
             PChar->RealSkills.skill[SKILL_FISHING] += skillAmount;
             PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, SKILL_FISHING, skillAmount, MsgBasic::SkillGain);
 
-            if ((charSkill / 10) < (charSkill + skillAmount) / 10)
+            if (fishingskilluphelpers::SkillLevelCrossed(charSkill, skillAmount))
             {
                 PChar->WorkingSkills.skill[SKILL_FISHING] += 0x20;
 

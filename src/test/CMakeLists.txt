@@ -1004,6 +1004,8 @@ set(SOURCES
     test_fishing_area_1628.cpp
     test_fishing_bait_rod_1629.h
     test_fishing_bait_rod_1629.cpp
+    test_fishing_skillup_1630.h
+    test_fishing_skillup_1630.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
