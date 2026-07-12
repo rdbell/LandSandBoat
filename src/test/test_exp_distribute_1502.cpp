@@ -7,6 +7,7 @@
 
 namespace
 {
+using expdistributehelpers::ActiveChainTimerSeconds;
 using expdistributehelpers::ApplyChainMultiplier;
 using expdistributehelpers::ApplyMonsterBonus;
 using expdistributehelpers::ApplyPartyGapPenalty;
@@ -71,6 +72,14 @@ auto Check() -> bool
     }
 
     if (ChainTimerSeconds(10) != 50 || ChainTimerSeconds(11) != 100 || ChainTimerSeconds(61) != 360)
+    {
+        return false;
+    }
+
+    // Active chain refresh table samples.
+    if (ActiveChainTimerSeconds(10, 0) != 50 || ActiveChainTimerSeconds(10, 5) != 6 ||
+        ActiveChainTimerSeconds(10, 9) != 2 || ActiveChainTimerSeconds(25, 1) != 120 ||
+        ActiveChainTimerSeconds(70, 3) != 165)
     {
         return false;
     }

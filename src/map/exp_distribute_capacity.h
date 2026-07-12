@@ -168,4 +168,50 @@ constexpr auto ShouldApplyChain(const bool aboveDecentChallenge) -> bool
     return aboveDecentChallenge;
 }
 
+
+// ActiveChainTimerSeconds returns the refresh duration after an active-chain kill,
+// keyed by member main level band and chain number (0..5, default).
+inline auto ActiveChainTimerSeconds(const std::uint8_t memberLevel, const std::uint8_t chainNumber) -> std::int64_t
+{
+    // Tables from DistributeExperiencePoints chainactive refresh ladder.
+    // Rows: level bands <=10,20,30,40,50,60,>60; cols chain 0..5, default.
+    static constexpr std::int64_t table[7][7] = {
+        // 0    1    2    3    4    5   def
+        { 50,  40,  30,  20,  10,   6,   2 }, // <=10
+        {100,  80,  60,  40,  20,   8,   4 }, // <=20
+        {150, 120,  90,  60,  30,  10,   5 }, // <=30
+        {200, 160, 120,  80,  40,  40,  30 }, // <=40
+        {250, 200, 150, 100,  50,  50,  50 }, // <=50
+        {300, 240, 180, 120,  90,  60,  60 }, // <=60
+        {360, 300, 240, 165, 105,  60,  60 }, // >60
+    };
+    std::size_t band = 6;
+    if (memberLevel <= 10)
+    {
+        band = 0;
+    }
+    else if (memberLevel <= 20)
+    {
+        band = 1;
+    }
+    else if (memberLevel <= 30)
+    {
+        band = 2;
+    }
+    else if (memberLevel <= 40)
+    {
+        band = 3;
+    }
+    else if (memberLevel <= 50)
+    {
+        band = 4;
+    }
+    else if (memberLevel <= 60)
+    {
+        band = 5;
+    }
+    const std::size_t col = chainNumber <= 5 ? chainNumber : 6;
+    return table[band][col];
+}
+
 } // namespace expdistributehelpers
