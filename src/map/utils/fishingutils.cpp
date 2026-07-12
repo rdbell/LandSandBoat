@@ -22,6 +22,7 @@
 #include "fishingutils.h"
 
 #include "map/fishing_area_capacity.h"
+#include "map/fishing_bait_rod_capacity.h"
 #include "map/fishing_combat_capacity.h"
 #include "map/fishing_hook_capacity.h"
 #include "map/fishing_hookchance_capacity.h"
@@ -667,46 +668,50 @@ fishingarea_t* GetFishingArea(CCharEntity* PChar)
 
 bool BaitLoss(CCharEntity* PChar, RemoveFly removeFly, SendUpdate sendUpdate)
 {
+    // Pure validation + consume plan (fishing_bait_rod_capacity.h; slice 1629).
     CItemWeapon* PBait = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO));
 
-    if (PBait != nullptr)
+    const auto reject = fishingbaitrodhelpers::ClassifyBaitLoss(
+        PBait != nullptr,
+        PBait != nullptr && PBait->isType(ITEM_WEAPON),
+        PBait != nullptr ? static_cast<uint8>(PBait->getSkillType()) : static_cast<uint8>(0),
+        static_cast<bool>(removeFly),
+        PBait != nullptr ? PBait->getStackSize() : static_cast<uint8>(0));
+
+    switch (reject)
     {
-        if (!PBait->isType(ITEM_WEAPON))
-        {
+        case fishingbaitrodhelpers::BaitLossReject::NotWeapon:
             ShowWarning("PBait is not of Weapon Type.");
             return false;
-        }
-
-        if (PBait->getSkillType() != SKILL_FISHING)
-        {
+        case fishingbaitrodhelpers::BaitLossReject::NotFishingSkill:
             ShowWarning("PBait Skilltype is not Fishing.");
             return false;
-        }
-
-        if (!removeFly && (PBait->getStackSize() == 1))
-        {
+        case fishingbaitrodhelpers::BaitLossReject::KeepFly:
             return false;
-        }
+        case fishingbaitrodhelpers::BaitLossReject::OK:
+            break;
+    }
 
-        if (PChar->hookedFish == nullptr)
-        {
-            ShowWarning("PChar->hookedFish was null.");
-        }
-        else
-        {
-            if (PChar->hookedFish->successtype != FISHINGSUCCESSTYPE_CATCHITEM)
-            {
-                if (PBait->getQuantity() == 1)
-                {
-                    charutils::UnequipItem(PChar, SLOT_AMMO);
-                }
-                charutils::UpdateItem(PChar, PBait->getLocationID(), PBait->getSlotID(), -1);
+    if (PBait == nullptr)
+    {
+        return true;
+    }
 
-                if (sendUpdate)
-                {
-                    PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
-                }
-            }
+    if (PChar->hookedFish == nullptr)
+    {
+        ShowWarning("PChar->hookedFish was null.");
+    }
+    else if (fishingbaitrodhelpers::BaitLossShouldConsume(true, PChar->hookedFish->successtype))
+    {
+        if (fishingbaitrodhelpers::BaitLossShouldUnequip(static_cast<uint8>(PBait->getQuantity())))
+        {
+            charutils::UnequipItem(PChar, SLOT_AMMO);
+        }
+        charutils::UpdateItem(PChar, PBait->getLocationID(), PBait->getSlotID(), -1);
+
+        if (sendUpdate)
+        {
+            PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
         }
     }
 
@@ -715,6 +720,7 @@ bool BaitLoss(CCharEntity* PChar, RemoveFly removeFly, SendUpdate sendUpdate)
 
 void RodBreak(CCharEntity* PChar)
 {
+    // Pure break gate after equip/catalog injects (fishing_bait_rod_capacity.h; slice 1629).
     CItemWeapon* PRanged = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED));
     if (PRanged == nullptr)
     {
@@ -729,7 +735,7 @@ void RodBreak(CCharEntity* PChar)
         return;
     }
 
-    if (PRod->breakable && PRod->brokenRodId > 0)
+    if (fishingbaitrodhelpers::ShouldBreakRod(PRod->breakable, PRod->brokenRodId))
     {
         BaitLoss(PChar, RemoveFly::Yes, SendUpdate::No);
         charutils::UnequipItem(PChar, SLOT_RANGED);
@@ -742,27 +748,12 @@ void RodBreak(CCharEntity* PChar)
 
 bool CanFishMob(CMobEntity* PMob)
 {
-    if (PMob == nullptr)
-    {
-        return false;
-    }
-
-    if (PMob->isAlive())
-    {
-        return false;
-    }
-
-    if (PMob->status != STATUS_TYPE::DISAPPEAR)
-    {
-        return false;
-    }
-
-    if (PMob->GetLocalVar("hooked") != 1)
-    {
-        return false;
-    }
-
-    return true;
+    // Pure CanFishMob injects (fishing_bait_rod_capacity.h; slice 1629).
+    return fishingbaitrodhelpers::CanFishMob(
+        PMob != nullptr,
+        PMob != nullptr && PMob->isAlive(),
+        PMob != nullptr ? static_cast<uint8>(PMob->status) : static_cast<uint8>(0),
+        PMob != nullptr ? PMob->GetLocalVar("hooked") : 0);
 }
 
 int32 LoseCatch(CCharEntity* PChar, uint8 FailType)
