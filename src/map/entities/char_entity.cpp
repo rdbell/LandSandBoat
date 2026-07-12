@@ -31,6 +31,7 @@
 #include "char_playtime_capacity.h"
 #include "char_resource_capacity.h"
 #include "char_storage_capacity.h"
+#include "char_tick_capacity.h"
 #include "char_trust_roster_capacity.h"
 #include "common/logging.h"
 #include "common/timer.h"
@@ -1029,17 +1030,16 @@ auto CCharEntity::Tick(timer::time_point tick) -> Task<void>
 
     co_await CBattleEntity::Tick(tick);
 
-    if (m_DeathTimestamp > timer::time_point::min() && tick >= m_deathSyncTime)
-    {
-        // Send an update packet at a regular interval to keep the player's death variables synced
-        updatemask |= UPDATE_STATUS;
-        m_deathSyncTime = tick + death_update_frequency;
-    }
-
-    if (inMogHouse())
-    {
-        gardenutils::UpdateGardening(this, SendPacket::Yes);
-    }
+    // Send an update packet at a regular interval to keep the player's death variables synced.
+    chartickhelpers::AfterBase(
+        tick,
+        chartickhelpers::HasDeathTimestamp(m_DeathTimestamp, timer::time_point::min()),
+        m_deathSyncTime,
+        updatemask,
+        UPDATE_STATUS,
+        death_update_frequency,
+        [&]() { return inMogHouse(); },
+        [&]() { gardenutils::UpdateGardening(this, SendPacket::Yes); });
 
     co_return;
 }
