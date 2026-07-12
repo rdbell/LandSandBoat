@@ -110,6 +110,7 @@
 #include "style_update_capacity.h"
 #include "inventory_move_capacity.h"
 #include "misc_progress_capacity.h"
+#include "entity_spawn_capacity.h"
 #include "enums/item_lockflg.h"
 #include "items/transactions/synth.h"
 #include "itemutils.h"
@@ -7042,7 +7043,8 @@ auto HomePoint(CCharEntity* PChar, bool resetHPMP) -> bool
 {
     TracyZoneScoped;
 
-    if (zoneutils::IsZoneAtPlayerCap(PChar->profile.home_point.destination, PChar->m_GMlevel > 0))
+    if (entityspawnhelpers::ShouldRejectHomePointAtCap(
+            zoneutils::IsZoneAtPlayerCap(PChar->profile.home_point.destination, PChar->m_GMlevel > 0)))
     {
         PChar->pushPacket<GP_SERV_COMMAND_SYSTEMMES>(0, 0, MsgStd::CouldNotEnter);
         PChar->requestedWarp = false;
@@ -7050,7 +7052,7 @@ auto HomePoint(CCharEntity* PChar, bool resetHPMP) -> bool
     }
 
     // player initiated warp/warp 2 or otherwise
-    if (resetHPMP)
+    if (entityspawnhelpers::ShouldResetHPMPOnHomePoint(resetHPMP))
     {
         // remove weakness on homepoint
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Weakness);
@@ -7572,37 +7574,39 @@ bool hasEntitySpawned(CCharEntity* PChar, CBaseEntity* entity)
 {
     SpawnIDList_t* spawnlist = nullptr;
 
-    if (!entity)
+    if (entityspawnhelpers::ShouldRejectNullEntity(entity != nullptr))
     {
         return false;
     }
 
-    if (entity->objtype == TYPE_MOB)
+    switch (entityspawnhelpers::SpawnListKindFromObjType(
+        static_cast<uint8>(entity->objtype),
+        static_cast<uint8>(TYPE_MOB),
+        static_cast<uint8>(TYPE_NPC),
+        static_cast<uint8>(TYPE_PC),
+        static_cast<uint8>(TYPE_PET),
+        static_cast<uint8>(TYPE_TRUST)))
     {
-        spawnlist = &PChar->SpawnMOBList;
-    }
-    else if (entity->objtype == TYPE_NPC)
-    {
-        spawnlist = &PChar->SpawnNPCList;
-    }
-    else if (entity->objtype == TYPE_PC)
-    {
-        spawnlist = &PChar->SpawnPCList;
-    }
-    else if (entity->objtype == TYPE_PET)
-    {
-        spawnlist = &PChar->SpawnPETList;
-    }
-    else if (entity->objtype == TYPE_TRUST)
-    {
-        spawnlist = &PChar->SpawnTRUSTList;
-    }
-    else
-    {
-        return false;
+        case entityspawnhelpers::SpawnListKind::Mob:
+            spawnlist = &PChar->SpawnMOBList;
+            break;
+        case entityspawnhelpers::SpawnListKind::NPC:
+            spawnlist = &PChar->SpawnNPCList;
+            break;
+        case entityspawnhelpers::SpawnListKind::PC:
+            spawnlist = &PChar->SpawnPCList;
+            break;
+        case entityspawnhelpers::SpawnListKind::Pet:
+            spawnlist = &PChar->SpawnPETList;
+            break;
+        case entityspawnhelpers::SpawnListKind::Trust:
+            spawnlist = &PChar->SpawnTRUSTList;
+            break;
+        default:
+            return false;
     }
 
-    return spawnlist->find(entity->id) != spawnlist->end();
+    return entityspawnhelpers::IsSpawnedInList(spawnlist->find(entity->id) != spawnlist->end());
 }
 
 uint32 getCharIdFromName(const std::string& name)
@@ -7830,15 +7834,19 @@ void updateMannequins(CCharEntity* PChar)
 
 bool raceChange(CCharEntity* PChar, CharRace newRace, CharFace newFace, CharSize newSize)
 {
-    if (!PChar)
+    if (entityspawnhelpers::ShouldRejectNullCharRaceChange(PChar != nullptr))
     {
         return false;
     }
 
-    if (newRace < CharRace::HumeMale ||
-        newRace > CharRace::Galka ||
-        newFace > CharFace::Face8B ||
-        newSize > CharSize::Large)
+    if (!entityspawnhelpers::IsRaceChangeArgsInBounds(
+            static_cast<uint8>(newRace),
+            static_cast<uint8>(newFace),
+            static_cast<uint8>(newSize),
+            static_cast<uint8>(CharRace::HumeMale),
+            static_cast<uint8>(CharRace::Galka),
+            static_cast<uint8>(CharFace::Face8B),
+            static_cast<uint8>(CharSize::Large)))
     {
         ShowError("charutils::raceChange: Arguments out of bounds for charid: %u", PChar->id);
         return false;
@@ -7856,11 +7864,11 @@ bool raceChange(CCharEntity* PChar, CharRace newRace, CharFace newFace, CharSize
         return false;
     }
 
-    for (uint8 slotId = SLOT_MAIN; slotId <= SLOT_BACK; ++slotId)
+    for (uint8 slotId = SLOT_MAIN; entityspawnhelpers::IsRaceChangeEquipSlotInRange(slotId, SLOT_MAIN, SLOT_BACK); ++slotId)
     {
         if (auto* PItem = PChar->getEquip(static_cast<SLOTTYPE>(slotId)))
         {
-            if (!PItem->isEquippableByRace(static_cast<uint8>(newRace)))
+            if (entityspawnhelpers::ShouldUnequipOnRaceChange(PItem->isEquippableByRace(static_cast<uint8>(newRace))))
             {
                 charutils::UnequipItem(PChar, slotId);
             }

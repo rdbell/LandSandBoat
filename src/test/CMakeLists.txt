@@ -802,6 +802,8 @@ set(SOURCES
     test_inventory_move_1519.cpp
     test_misc_progress_1520.h
     test_misc_progress_1520.cpp
+    test_entity_spawn_1521.h
+    test_entity_spawn_1521.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
