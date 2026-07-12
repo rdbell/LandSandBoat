@@ -43,6 +43,7 @@
 #include "map/automaton_frame_stats_capacity.h"
 #include "map/automaton_repair_mana_capacity.h"
 #include "map/automaton_weapon_damage_capacity.h"
+#include "map/automaton_level_capacity.h"
 #include "map/avatar_stats_capacity.h"
 #include "map/base_to_rank_capacity.h"
 #include "map/calculate_stats_capacity.h"
@@ -852,7 +853,12 @@ void CalculateAutomatonStats(CBattleEntity* PMaster, CBattleEntity* PPet)
     if (CCharEntity* PChar = dynamic_cast<CCharEntity*>(PMaster))
     {
         // TODO: AUTOMATON_LEVEL_BONUS will raise the level of the automaton, but stats will be capped to 99. Needs retail captures.
-        uint8 mainLevel = PMaster->GetMJob() == JOB_PUP ? PMaster->GetMLevel() + PMaster->getMod(Mod::AUTOMATON_LVL_BONUS) : PMaster->GetSLevel();
+        // Pure level (automaton_level_capacity.h; slice 1609).
+        const uint8 mainLevel = automatonlevelhelpers::MainLevel(
+            PMaster->GetMJob() == JOB_PUP,
+            PMaster->GetMLevel(),
+            PMaster->GetSLevel(),
+            PMaster->getMod(Mod::AUTOMATON_LVL_BONUS));
 
         uint32 petID = 0;
         if (PAutomaton)
@@ -860,7 +866,7 @@ void CalculateAutomatonStats(CBattleEntity* PMaster, CBattleEntity* PPet)
             petID = PAutomaton->petID();
             // TEMP: should be MLevel when unsummoned, and PUP level when summoned
             PPet->SetMLevel(mainLevel);
-            PPet->SetSLevel(mainLevel / 2); // Todo: SetSLevel() already reduces the level?
+            PPet->SetSLevel(automatonlevelhelpers::SubLevel(mainLevel)); // Todo: SetSLevel() already reduces the level?
         }
         else
         {
