@@ -1055,6 +1055,10 @@ set(SOURCES
     test_battle_animation_1658.cpp
     test_battle_life_1659.h
     test_battle_life_1659.cpp
+    test_subjob_restriction_1661.h
+    test_subjob_restriction_1661.cpp
+    test_dual_wield_1662.h
+    test_dual_wield_1662.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

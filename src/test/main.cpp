@@ -563,6 +563,8 @@ auto runBattleTrait1655SelfTests() -> bool;
 auto runSubjobLevel1657SelfTests() -> bool;
 auto runBattleAnimation1658SelfTests() -> bool;
 auto runBattleLife1659SelfTests() -> bool;
+auto runSubjobRestriction1661SelfTests() -> bool;
+auto runDualWield1662SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1336,6 +1338,8 @@ namespace
         ok = runSubjobLevel1657SelfTests() && ok;
         ok = runBattleAnimation1658SelfTests() && ok;
         ok = runBattleLife1659SelfTests() && ok;
+        ok = runSubjobRestriction1661SelfTests() && ok;
+        ok = runDualWield1662SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
