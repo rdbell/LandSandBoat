@@ -1063,6 +1063,8 @@ set(SOURCES
     test_set_job_1665.cpp
     test_using_h2h_1666.h
     test_using_h2h_1666.cpp
+    test_in_moghouse_1670.h
+    test_in_moghouse_1670.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
