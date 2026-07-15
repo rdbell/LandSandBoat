@@ -544,6 +544,10 @@ auto runRangedWeaponDelay1633SelfTests() -> bool;
 auto runUpdateSpeed1634SelfTests() -> bool;
 auto runBattleRest1635SelfTests() -> bool;
 auto runBattleAddTP1636SelfTests() -> bool;
+auto runPrimaryStat1637SelfTests() -> bool;
+auto runDefEva1638SelfTests() -> bool;
+auto runAttackStat1639SelfTests() -> bool;
+
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1298,6 +1302,10 @@ namespace
         ok = runUpdateSpeed1634SelfTests() && ok;
         ok = runBattleRest1635SelfTests() && ok;
         ok = runBattleAddTP1636SelfTests() && ok;
+        ok = runPrimaryStat1637SelfTests() && ok;
+        ok = runDefEva1638SelfTests() && ok;
+        ok = runAttackStat1639SelfTests() && ok;
+
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

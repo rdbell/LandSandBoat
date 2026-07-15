@@ -1018,6 +1018,13 @@ set(SOURCES
     test_battle_rest_1635.cpp
     test_battle_add_tp_1636.h
     test_battle_add_tp_1636.cpp
+    test_primary_stat_1637.h
+    test_primary_stat_1637.cpp
+    test_def_eva_1638.h
+    test_def_eva_1638.cpp
+    test_attack_stat_1639.h
+    test_attack_stat_1639.cpp
+
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
