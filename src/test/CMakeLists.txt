@@ -1059,6 +1059,10 @@ set(SOURCES
     test_subjob_restriction_1661.cpp
     test_dual_wield_1662.h
     test_dual_wield_1662.cpp
+    test_set_job_1665.h
+    test_set_job_1665.cpp
+    test_using_h2h_1666.h
+    test_using_h2h_1666.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
