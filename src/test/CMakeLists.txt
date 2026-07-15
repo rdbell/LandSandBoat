@@ -1065,6 +1065,8 @@ set(SOURCES
     test_using_h2h_1666.cpp
     test_in_moghouse_1670.h
     test_in_moghouse_1670.cpp
+    test_battle_asleep_1674.h
+    test_battle_asleep_1674.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

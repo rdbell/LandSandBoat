@@ -568,6 +568,7 @@ auto runDualWield1662SelfTests() -> bool;
 auto runSetJob1665SelfTests() -> bool;
 auto runUsingH2H1666SelfTests() -> bool;
 auto runInMogHouse1670SelfTests() -> bool;
+auto runBattleAsleep1674SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1346,6 +1347,7 @@ namespace
         ok = runSetJob1665SelfTests() && ok;
         ok = runUsingH2H1666SelfTests() && ok;
         ok = runInMogHouse1670SelfTests() && ok;
+        ok = runBattleAsleep1674SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
