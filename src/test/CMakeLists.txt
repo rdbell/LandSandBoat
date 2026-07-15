@@ -1067,6 +1067,12 @@ set(SOURCES
     test_in_moghouse_1670.cpp
     test_battle_asleep_1674.h
     test_battle_asleep_1674.cpp
+    test_max_gear_mod_1675.h
+    test_max_gear_mod_1675.cpp
+    test_mod_stat_1676.h
+    test_mod_stat_1676.cpp
+    test_equip_mod_1677.h
+    test_equip_mod_1677.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
