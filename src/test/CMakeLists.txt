@@ -1095,6 +1095,8 @@ set(SOURCES
     test_set_mod_list_1693.cpp
     test_take_damage_gates_1697.h
     test_take_damage_gates_1697.cpp
+    test_update_health_1711.h
+    test_update_health_1711.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
