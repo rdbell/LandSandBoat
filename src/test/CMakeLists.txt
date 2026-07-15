@@ -1025,6 +1025,12 @@ set(SOURCES
     test_attack_stat_1639.h
     test_attack_stat_1639.cpp
 
+    test_acc_stat_1640.h
+    test_acc_stat_1640.cpp
+    test_ranged_att_1641.h
+    test_ranged_att_1641.cpp
+    test_ranged_acc_1642.h
+    test_ranged_acc_1642.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

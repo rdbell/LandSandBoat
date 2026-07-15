@@ -548,6 +548,9 @@ auto runPrimaryStat1637SelfTests() -> bool;
 auto runDefEva1638SelfTests() -> bool;
 auto runAttackStat1639SelfTests() -> bool;
 
+auto runAccStat1640SelfTests() -> bool;
+auto runRangedAtt1641SelfTests() -> bool;
+auto runRangedAcc1642SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1306,6 +1309,9 @@ namespace
         ok = runDefEva1638SelfTests() && ok;
         ok = runAttackStat1639SelfTests() && ok;
 
+        ok = runAccStat1640SelfTests() && ok;
+        ok = runRangedAtt1641SelfTests() && ok;
+        ok = runRangedAcc1642SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
