@@ -1089,6 +1089,10 @@ set(SOURCES
     test_death_type_1685.cpp
     test_pet_mod_apply_1688.h
     test_pet_mod_apply_1688.cpp
+    test_add_mod_list_1692.h
+    test_add_mod_list_1692.cpp
+    test_set_mod_list_1693.h
+    test_set_mod_list_1693.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
