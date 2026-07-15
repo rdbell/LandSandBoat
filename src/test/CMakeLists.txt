@@ -1045,6 +1045,10 @@ set(SOURCES
     test_sub_weapon_dmg_1649.cpp
     test_ranged_weapon_dmg_1650.h
     test_ranged_weapon_dmg_1650.cpp
+    test_get_skill_1654.h
+    test_get_skill_1654.cpp
+    test_battle_trait_1655.h
+    test_battle_trait_1655.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
