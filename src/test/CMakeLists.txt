@@ -1031,6 +1031,12 @@ set(SOURCES
     test_ranged_att_1641.cpp
     test_ranged_acc_1642.h
     test_ranged_acc_1642.cpp
+    test_battle_zone_1643.h
+    test_battle_zone_1643.cpp
+    test_battle_resource_1644.h
+    test_battle_resource_1644.cpp
+    test_weapon_rank_1645.h
+    test_weapon_rank_1645.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
