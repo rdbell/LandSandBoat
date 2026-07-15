@@ -1041,6 +1041,10 @@ set(SOURCES
     test_battle_immunity_1646.cpp
     test_main_weapon_dmg_1647.h
     test_main_weapon_dmg_1647.cpp
+    test_sub_weapon_dmg_1649.h
+    test_sub_weapon_dmg_1649.cpp
+    test_ranged_weapon_dmg_1650.h
+    test_ranged_weapon_dmg_1650.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
