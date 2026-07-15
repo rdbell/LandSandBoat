@@ -1073,6 +1073,10 @@ set(SOURCES
     test_mod_stat_1676.cpp
     test_equip_mod_1677.h
     test_equip_mod_1677.cpp
+    test_pet_mod_save_1678.h
+    test_pet_mod_save_1678.cpp
+    test_get_mod_1679.h
+    test_get_mod_1679.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

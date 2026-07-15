@@ -572,6 +572,8 @@ auto runBattleAsleep1674SelfTests() -> bool;
 auto runMaxGearMod1675SelfTests() -> bool;
 auto runModStat1676SelfTests() -> bool;
 auto runEquipMod1677SelfTests() -> bool;
+auto runPetModSave1678SelfTests() -> bool;
+auto runGetMod1679SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1354,6 +1356,8 @@ namespace
         ok = runMaxGearMod1675SelfTests() && ok;
         ok = runModStat1676SelfTests() && ok;
         ok = runEquipMod1677SelfTests() && ok;
+        ok = runPetModSave1678SelfTests() && ok;
+        ok = runGetMod1679SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
