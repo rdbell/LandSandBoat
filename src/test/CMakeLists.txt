@@ -1037,6 +1037,10 @@ set(SOURCES
     test_battle_resource_1644.cpp
     test_weapon_rank_1645.h
     test_weapon_rank_1645.cpp
+    test_battle_immunity_1646.h
+    test_battle_immunity_1646.cpp
+    test_main_weapon_dmg_1647.h
+    test_main_weapon_dmg_1647.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

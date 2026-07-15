@@ -554,6 +554,8 @@ auto runRangedAcc1642SelfTests() -> bool;
 auto runBattleZone1643SelfTests() -> bool;
 auto runBattleResource1644SelfTests() -> bool;
 auto runWeaponRank1645SelfTests() -> bool;
+auto runBattleImmunity1646SelfTests() -> bool;
+auto runMainWeaponDmg1647SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1318,6 +1320,8 @@ namespace
         ok = runBattleZone1643SelfTests() && ok;
         ok = runBattleResource1644SelfTests() && ok;
         ok = runWeaponRank1645SelfTests() && ok;
+        ok = runBattleImmunity1646SelfTests() && ok;
+        ok = runMainWeaponDmg1647SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
