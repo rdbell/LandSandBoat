@@ -273,7 +273,7 @@ inline auto MeleePDIF(const double actorAttack, const double targetDefense, cons
 
     const double upperMax  = (upperMaxCoin == 0) ? 0.5 : 0.0;
     const double upperBound = std::max(upper + levelDif, upperMax);
-    const double lowerBound = std::max(lower + levelDif, 0.0);
+    // lowerBound (max(lower + levelDif, 0)) reserved for future host RNG bounds
     if (upperBound == 0.0)
     {
         out = 0.0;

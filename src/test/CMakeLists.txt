@@ -1006,6 +1006,18 @@ set(SOURCES
     test_fishing_bait_rod_1629.cpp
     test_fishing_skillup_1630.h
     test_fishing_skillup_1630.cpp
+    test_action_effect_flags_1631.h
+    test_action_effect_flags_1631.cpp
+    test_battle_valid_target_1632.h
+    test_battle_valid_target_1632.cpp
+    test_ranged_weapon_delay_1633.h
+    test_ranged_weapon_delay_1633.cpp
+    test_update_speed_1634.h
+    test_update_speed_1634.cpp
+    test_battle_rest_1635.h
+    test_battle_rest_1635.cpp
+    test_battle_add_tp_1636.h
+    test_battle_add_tp_1636.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h

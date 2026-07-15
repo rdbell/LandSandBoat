@@ -51,6 +51,12 @@
 #include "garrison_membership_capacity.h"
 #include "automaton_weapon_damage_capacity.h"
 #include "pet_weapon_damage_capacity.h"
+#include "action_effect_flags_capacity.h"
+#include "battle_valid_target_capacity.h"
+#include "ranged_weapon_delay_capacity.h"
+#include "update_speed_capacity.h"
+#include "battle_rest_capacity.h"
+#include "battle_add_tp_capacity.h"
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/utils.h"
@@ -331,12 +337,7 @@ void CBattleEntity::UpdateHealth()
 
 uint8 CBattleEntity::GetHPP() const
 {
-    if (health.hp == 0)
-    {
-        return 0;
-    }
-
-    return static_cast<uint8>(std::max<uint8>(1, std::floor((static_cast<float>(health.hp) / static_cast<float>(GetMaxHP())) * 100.0f)));
+    return battleresthelpers::ResolveResourcePercent(health.hp, GetMaxHP());
 }
 
 int32 CBattleEntity::GetMaxHP() const
@@ -352,12 +353,7 @@ int32 CBattleEntity::GetMaxHP() const
 
 uint8 CBattleEntity::GetMPP() const
 {
-    if (health.mp == 0)
-    {
-        return 0;
-    }
-
-    return static_cast<uint8>(std::max<uint8>(1, std::floor((static_cast<float>(health.mp) / static_cast<float>(GetMaxMP())) * 100.0f)));
+    return battleresthelpers::ResolveResourcePercent(health.mp, GetMaxMP());
 }
 
 int32 CBattleEntity::GetMaxMP() const
@@ -375,133 +371,65 @@ int32 CBattleEntity::GetMaxMP() const
 
 uint8 CBattleEntity::UpdateSpeed(bool run)
 {
-    int16 outputSpeed = 0;
+    auto* mobEntity = dynamic_cast<CMobEntity*>(this);
 
-    // Mount speed. Independent from regular speed and unaffected by most things.
-    if (isMounted())
-    {
-        outputSpeed = settings::get<uint8>("map.MOUNT_SPEED") / 2;
-        outputSpeed *= 1.0f + static_cast<float>(getMod(Mod::MOUNT_MOVE)) / 100.0f;
-    }
-    else if (baseSpeed == 0 || getMod(Mod::MOVE_SPEED_OVERRIDE) < 0)
-    {
-        outputSpeed = 0;
-    }
-    else if (getMod(Mod::MOVE_SPEED_OVERRIDE) > 0)
-    {
-        // GM speed bypass.
-        // Speed cap can be bypassed. Ex. Feast of swords. GM speed.
-        // TODO: Find exceptions. Add them here.
-        outputSpeed = getMod(Mod::MOVE_SPEED_OVERRIDE);
-    }
-    else
-    {
-        // Gear penalties.
-        int8 additiveMods = static_cast<int8>(getMod(Mod::MOVE_SPEED_STACKABLE));
+    updatespeedhelpers::UpdateSpeedParams params{
+        .isMounted           = isMounted(),
+        .mountSpeedSetting   = settings::get<uint8>("map.MOUNT_SPEED"),
+        .mountMoveMod        = getMod(Mod::MOUNT_MOVE),
+        .baseSpeed           = baseSpeed,
+        .moveSpeedOverride   = getMod(Mod::MOVE_SPEED_OVERRIDE),
+        .stackableMod        = static_cast<int8>(getMod(Mod::MOVE_SPEED_STACKABLE)),
+        .weightPenaltyMod    = getMod(Mod::MOVE_SPEED_WEIGHT_PENALTY),
+        .fleeMod             = getMod(Mod::MOVE_SPEED_FLEE),
+        .cheerMod            = getMod(Mod::MOVE_SPEED_CHEER),
+        .boltersRoll         = static_cast<uint8>(getMod(Mod::MOVE_SPEED_BOLTERS_ROLL)),
+        .isPC                = objtype == TYPE_PC,
+        .gearBonusMod        = objtype == TYPE_PC ? getMaxGearMod(Mod::MOVE_SPEED_GEAR_BONUS) : static_cast<int16>(0),
+        .quickeningMod       = getMod(Mod::MOVE_SPEED_QUICKENING),
+        .mazurkaMod          = getMod(Mod::MOVE_SPEED_MAZURKA),
+        .speedLimit          = settings::get<uint8>("map.SPEED_LIMIT"),
+        .run                 = run,
+        .isMob               = mobEntity != nullptr,
+        .mobRunMultiplier    = settings::get<float>("map.MOB_RUN_SPEED_MULTIPLIER"),
+        .mobRunSpeedMultMod  = mobEntity != nullptr ? static_cast<int16>(mobEntity->getMobMod(MOBMOD_RUN_SPEED_MULT)) : static_cast<int16>(0),
+        .mobWeightPenaltyMod = mobEntity != nullptr ? mobEntity->getMod(Mod::MOVE_SPEED_WEIGHT_PENALTY) : static_cast<int16>(0),
+    };
 
-        // Gravity and Curse. They seem additive to each other and the sum seems to be multiplicative.
-        float weightFactor = std::clamp<float>(1.0f - static_cast<float>(getMod(Mod::MOVE_SPEED_WEIGHT_PENALTY)) / 100.0f, 0.1f, 1.0f);
-
-        // Flee.
-        float fleeFactor = std::clamp<float>(1.0f + static_cast<float>(getMod(Mod::MOVE_SPEED_FLEE)) / 10000.0f, 1.0f, 2.0f);
-
-        // Cheer KI's
-        float cheerFactor = (99.0f + static_cast<float>(getMod(Mod::MOVE_SPEED_CHEER))) / 99.0f;
-
-        // Bolter's Roll. Additive
-        uint8 boltersRollEffect = static_cast<uint8>(getMod(Mod::MOVE_SPEED_BOLTERS_ROLL));
-
-        // Positive movement speed from gear and from Atmas. Only highest applies. Multiplicative to base speed.
-        float gearFactor = 1.0f;
-
-        if (objtype == TYPE_PC)
-        {
-            gearFactor = std::clamp<float>(1.0f + static_cast<float>(getMaxGearMod(Mod::MOVE_SPEED_GEAR_BONUS)) / 100.0f, 1.0f, 1.25f);
-        }
-
-        // Quickening and Mazurka. They share a cap. Additive.
-        uint8 mazurkaQuickeningEffect = std::clamp<uint8>(getMod(Mod::MOVE_SPEED_QUICKENING) + getMod(Mod::MOVE_SPEED_MAZURKA), 0, 10);
-
-        // We have all the modifiers needed. Calculate final speed.
-        // This MUST BE DONE IN THIS ORDER. Using int8 data type, we use that to floor.
-        outputSpeed = baseSpeed + additiveMods;
-        outputSpeed = outputSpeed * weightFactor;
-        outputSpeed = outputSpeed * fleeFactor;
-        outputSpeed = outputSpeed * cheerFactor;
-        outputSpeed = outputSpeed + boltersRollEffect;
-        outputSpeed = outputSpeed * gearFactor;
-        if (outputSpeed > 0)
-        {
-            outputSpeed = outputSpeed + mazurkaQuickeningEffect;
-        }
-
-        // Set cap if a PC (Default 80).
-        if (objtype == TYPE_PC)
-        {
-            outputSpeed = std::clamp<int16>(outputSpeed, 0, settings::get<uint8>("map.SPEED_LIMIT"));
-        }
-
-        if (run && outputSpeed > 0)
-        {
-            float multiplier = settings::get<float>("map.MOB_RUN_SPEED_MULTIPLIER");
-            if (multiplier > 1.0f)
-            {
-                if (auto* mobEntity = dynamic_cast<CMobEntity*>(this))
-                {
-                    // mob has a custom multiplier
-                    if (mobEntity->getMobMod(MOBMOD_RUN_SPEED_MULT) > 0)
-                    {
-                        multiplier = mobEntity->getMobMod(MOBMOD_RUN_SPEED_MULT) / 100.0f;
-                    }
-
-                    // if some weight penalty (like gravity) then cut the multiplier
-                    // (for mobs with default boost of 2.5 then boost becomes 1.20)
-                    if (mobEntity->getMod(Mod::MOVE_SPEED_WEIGHT_PENALTY) > 0)
-                    {
-                        multiplier *= 0.48f;
-                    }
-
-                    // Ensure the multiplier is at least 1.0 so that multiplier never decreases speed
-                    multiplier = std::max<float>(multiplier, 1.0f);
-
-                    outputSpeed *= multiplier;
-                }
-            }
-        }
-    }
-
-    speed = static_cast<uint8>(std::clamp<int16>(outputSpeed, std::numeric_limits<uint8>::min(), std::numeric_limits<uint8>::max()));
-
+    // GM speed bypass path documents Feast of swords / GM exceptions (TODO upstream).
+    speed = updatespeedhelpers::ResolveUpdateSpeed(params);
     return speed;
 }
 
 bool CBattleEntity::CanRest()
 {
-    return !getMod(Mod::REGEN_DOWN) && !StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::NoRest);
+    return battleresthelpers::CanRest(
+        getMod(Mod::REGEN_DOWN) != 0,
+        StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::NoRest));
 }
 
 bool CBattleEntity::Rest(float rate)
 {
-    bool didRest = false;
+    const auto plan = battleresthelpers::ResolveRestPlan(
+        health.hp,
+        health.maxhp,
+        health.mp,
+        health.maxmp,
+        health.tp,
+        rate);
 
-    if (health.hp != health.maxhp || health.mp != health.maxmp)
+    if (plan.recoverResources)
     {
-        // recover some HP and MP
-        uint32 recoverHP = (uint32)(health.maxhp * rate);
-        uint32 recoverMP = (uint32)(health.maxmp * rate);
-        addHP(recoverHP);
-        addMP(recoverMP);
-        didRest = true;
+        addHP(plan.recoverHP);
+        addMP(plan.recoverMP);
     }
 
-    if (health.tp > 0)
+    if (plan.drainTP)
     {
-        // lower TP
-        addTP((int16)(rate * -500));
-        didRest = true;
+        addTP(plan.tpDelta);
     }
 
-    return didRest;
+    return plan.didRest;
 }
 
 auto CBattleEntity::GetWeaponDelay(bool tp) -> uint32
@@ -611,46 +539,26 @@ int16 CBattleEntity::GetRangedWeaponDelay(bool forTPCalc)
     CItemWeapon* PRange = dynamic_cast<CItemWeapon*>(m_Weapons[SLOT_RANGED]);
     CItemWeapon* PAmmo  = dynamic_cast<CItemWeapon*>(m_Weapons[SLOT_AMMO]);
 
-    // base delay
-    int16 delay = 0;
-
-    if (PRange && PRange->getDamage() != 0)
-    {
-        delay = PRange->getBaseDelay();
-
-        if (PAmmo && forTPCalc)
-        {
-            delay += PAmmo->getBaseDelay();
-        }
-    }
-    else if (PAmmo && PAmmo->getDamage() != 0)
-    {
-        delay = PAmmo->getBaseDelay();
-    }
-
-    // multiple the base delays by 1000 so final delays are in ms
-    // divide by 120 to convert the delays to actual times
-    delay = (delay - getMod(Mod::RANGED_DELAY)) * 1000 / 120;
-
-    // apply haste and delay reductions that don't affect tp
-    if (!forTPCalc)
-    {
-        delay = delay * ((100.0f + getMod(Mod::RANGED_DELAYP)) / 100.0f);
-    }
-    return delay;
+    return rangedweapondelayhelpers::ResolveRangedWeaponDelay(
+        PRange != nullptr,
+        PRange != nullptr && PRange->getDamage() != 0,
+        PRange != nullptr ? PRange->getBaseDelay() : static_cast<int16>(0),
+        PAmmo != nullptr,
+        PAmmo != nullptr && PAmmo->getDamage() != 0,
+        PAmmo != nullptr ? PAmmo->getBaseDelay() : static_cast<int16>(0),
+        getMod(Mod::RANGED_DELAY),
+        getMod(Mod::RANGED_DELAYP),
+        forTPCalc);
 }
 
 int16 CBattleEntity::GetAmmoDelay()
 {
     CItemWeapon* PAmmo = dynamic_cast<CItemWeapon*>(m_Weapons[SLOT_AMMO]);
 
-    int delay = 0;
-    if (PAmmo != nullptr && PAmmo->getDamage() != 0)
-    {
-        delay = PAmmo->getDelay() / 2;
-    }
-
-    return delay;
+    return rangedweapondelayhelpers::ResolveAmmoDelay(
+        PAmmo != nullptr,
+        PAmmo != nullptr && PAmmo->getDamage() != 0,
+        PAmmo != nullptr ? PAmmo->getDelay() : static_cast<int16>(0));
 }
 
 uint16 CBattleEntity::GetMainWeaponDmg()
@@ -983,45 +891,24 @@ uint16 CBattleEntity::GetRangedWeaponRank()
 
 int16 CBattleEntity::addTP(int16 tp)
 {
-    // When adding TP, we must adjust for Inhibit TP effect, which reduces TP gain.
-    if (tp > 0)
-    {
-        float tpReducePercent = this->getMod(Mod::INHIBIT_TP) / 100.0f;
-        tp                    = (int16)(tp - (tp * tpReducePercent));
+    const auto result = battleaddtphelpers::ResolveFullAddTP(
+        health.tp,
+        tp,
+        getMod(Mod::INHIBIT_TP),
+        static_cast<uint8>(objtype),
+        objtype == TYPE_MOB && this->PMaster != nullptr,
+        settings::get<float>("map.PLAYER_TP_MULTIPLIER"),
+        settings::get<float>("map.PET_TP_MULTIPLIER"),
+        settings::get<float>("map.MOB_TP_MULTIPLIER"),
+        settings::get<float>("map.TRUST_TP_MULTIPLIER"),
+        settings::get<float>("map.FELLOW_TP_MULTIPLIER"));
 
-        float TPMulti = 1.0;
-
-        if (objtype == TYPE_PC)
-        {
-            TPMulti = settings::get<float>("map.PLAYER_TP_MULTIPLIER");
-        }
-        else if (objtype == TYPE_PET || (objtype == TYPE_MOB && this->PMaster)) // normal pet or charmed pet
-        {
-            TPMulti = settings::get<float>("map.PET_TP_MULTIPLIER");
-        }
-        else if (objtype == TYPE_MOB)
-        {
-            TPMulti = settings::get<float>("map.MOB_TP_MULTIPLIER");
-        }
-        else if (objtype == TYPE_TRUST)
-        {
-            TPMulti = settings::get<float>("map.TRUST_TP_MULTIPLIER");
-        }
-        else if (objtype == TYPE_FELLOW)
-        {
-            TPMulti = settings::get<float>("map.FELLOW_TP_MULTIPLIER");
-        }
-
-        tp = (int16)(tp * TPMulti);
-    }
-    if (tp != 0)
+    if (result.setUpdateHP)
     {
         updatemask |= UPDATE_HP;
     }
-    int16 cap = std::clamp(health.tp + tp, 0, 3000);
-    tp        = health.tp - cap;
-    health.tp = cap;
-    return abs(tp);
+    health.tp = result.newTP;
+    return result.returnedAbsDelta;
 }
 
 int32 CBattleEntity::addHP(int32 hp)
@@ -2310,48 +2197,23 @@ bool CBattleEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
 {
     TracyZoneScoped;
 
-    if (targetFlags & TARGET_ENEMY)
-    {
-        if (!isDead())
-        {
-            // Teams PVP
-            if (allegiance >= ALLEGIANCE_TYPE::WYVERNS && PInitiator->allegiance >= ALLEGIANCE_TYPE::WYVERNS)
-            {
-                return allegiance != PInitiator->allegiance;
-            }
+    auto*      PMobInitiator = dynamic_cast<CMobEntity*>(PInitiator);
+    auto*      PPetInitiator = dynamic_cast<CPetEntity*>(PInitiator);
+    const bool isAutomatonMaster =
+        battlevalidtargethelpers::IsAutomatonMasterTarget(
+            PInitiator->objtype == TYPE_PET,
+            PPetInitiator != nullptr ? static_cast<uint8>(PPetInitiator->getPetType()) : static_cast<uint8>(0),
+            this == PInitiator->PMaster);
 
-            // Nation PVP
-            if ((allegiance >= ALLEGIANCE_TYPE::SAN_DORIA && allegiance <= ALLEGIANCE_TYPE::WINDURST) &&
-                (PInitiator->allegiance >= ALLEGIANCE_TYPE::SAN_DORIA && PInitiator->allegiance <= ALLEGIANCE_TYPE::WINDURST))
-            {
-                return allegiance != PInitiator->allegiance;
-            }
-
-            // PVE
-            if (allegiance <= ALLEGIANCE_TYPE::PLAYER && PInitiator->allegiance <= ALLEGIANCE_TYPE::PLAYER)
-            {
-                bool haveDiffAllegiances = allegiance != PInitiator->allegiance;
-
-                if (haveDiffAllegiances)
-                {
-                    return true;
-                }
-                // if seems like an invalid target due to allegiances then check for special mob mod
-                // this is needed for mobs that heal themselves with TARGET_ENEMY spells
-                // like fire-absorbing mobs casting Fire IV on themselves
-                else if (auto* PMobInitiator = dynamic_cast<CMobEntity*>(PInitiator))
-                {
-                    return PMobInitiator->getMobMod(MOBMODIFIER::MOBMOD_SKIP_ALLEGIANCE_CHECK) == 1;
-                }
-            }
-
-            return false;
-        }
-    }
-
-    return (targetFlags & TARGET_SELF) &&
-           (this == PInitiator ||
-            (PInitiator->objtype == TYPE_PET && static_cast<CPetEntity*>(PInitiator)->getPetType() == PET_TYPE::AUTOMATON && this == PInitiator->PMaster));
+    return battlevalidtargethelpers::ResolveValidTarget(
+        targetFlags,
+        isDead(),
+        static_cast<uint8>(allegiance),
+        static_cast<uint8>(PInitiator->allegiance),
+        PMobInitiator != nullptr,
+        PMobInitiator != nullptr && PMobInitiator->getMobMod(MOBMODIFIER::MOBMOD_SKIP_ALLEGIANCE_CHECK) == 1,
+        this == PInitiator,
+        isAutomatonMaster);
 }
 
 bool CBattleEntity::CanUseSpell(CSpell* PSpell)
@@ -2400,7 +2262,7 @@ void CBattleEntity::Die()
 void CBattleEntity::processActionEffectFlags(const action_t& action) const
 {
     bool emittedHostile = false;
-    bool isMainTarget   = true;
+    bool isMainTarget   = actioneffectflagshelpers::InitialIsMainTarget();
     for (auto& target : action.targets)
     {
         auto* PTarget = dynamic_cast<CBattleEntity*>(zoneutils::GetEntity(target.actorId));
@@ -2409,48 +2271,59 @@ void CBattleEntity::processActionEffectFlags(const action_t& action) const
             PTarget = loc.zone->GetCharByID(target.actorId);
         }
 
+        auto*      PChar = dynamic_cast<CCharEntity*>(PTarget);
+        const auto plan  = actioneffectflagshelpers::ResolveTargetEffectPlan(
+            PTarget != nullptr,
+            PChar != nullptr,
+            PChar != nullptr && PChar->isInEvent(),
+            PChar != nullptr && PChar->isFishing(),
+            PTarget != nullptr && this->allegiance != PTarget->allegiance,
+            isMainTarget);
+
         // Event action can cancel a skippable event on PC targets
-        if (auto* PChar = dynamic_cast<CCharEntity*>(PTarget); PChar && PChar->isInEvent())
+        if (plan.skipEvent)
         {
             // Checks for if an event is skippable is handled in skipEvent
             PChar->skipEvent();
         }
 
-        if (PTarget && this->allegiance != PTarget->allegiance)
+        if (plan.countAsHostileEmit)
         {
             emittedHostile = true;
-            if (isMainTarget)
+            if (plan.delDetectable)
             {
                 // Main hostile target loses DETECTABLE
                 PTarget->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Detectable);
             }
 
             // Every hostile target loses ON_ATTACK
-            PTarget->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::OnAttack);
+            if (plan.delOnAttack)
+            {
+                PTarget->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::OnAttack);
+            }
 
             // Hostile action cancels fishing on PC targets
-            if (auto* PChar = dynamic_cast<CCharEntity*>(PTarget); PChar && PChar->isFishing())
+            if (plan.interruptFishing)
             {
                 fishingutils::InterruptFishing(PChar);
             }
         }
 
-        isMainTarget = false;
+        isMainTarget = actioneffectflagshelpers::NextIsMainTarget();
     }
 
-    if (emittedHostile)
+    if (actioneffectflagshelpers::ShouldDelActorOnAttack(emittedHostile))
     {
         // Hostile emit drops actor's ON_ATTACK
         this->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::OnAttack);
+    }
 
-        // ATTACK drops on physical hostile actions: melee/WS confirmed; mobskill/petskill unverified
-        if (action.actiontype == ActionCategory::BasicAttack ||
-            action.actiontype == ActionCategory::SkillFinish ||
-            action.actiontype == ActionCategory::MobSkillFinish ||
-            action.actiontype == ActionCategory::PetSkillFinish)
-        {
-            this->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Attack);
-        }
+    // ATTACK drops on physical hostile actions: melee/WS confirmed; mobskill/petskill unverified
+    if (actioneffectflagshelpers::ShouldDelActorAttackFlag(
+            emittedHostile,
+            static_cast<uint8>(action.actiontype)))
+    {
+        this->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Attack);
     }
 }
 
