@@ -1049,6 +1049,12 @@ set(SOURCES
     test_get_skill_1654.cpp
     test_battle_trait_1655.h
     test_battle_trait_1655.cpp
+    test_subjob_level_1657.h
+    test_subjob_level_1657.cpp
+    test_battle_animation_1658.h
+    test_battle_animation_1658.cpp
+    test_battle_life_1659.h
+    test_battle_life_1659.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
