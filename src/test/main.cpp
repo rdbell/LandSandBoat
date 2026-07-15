@@ -584,6 +584,8 @@ auto runAddModList1692SelfTests() -> bool;
 auto runSetModList1693SelfTests() -> bool;
 auto runTakeDamageGates1697SelfTests() -> bool;
 auto runUpdateHealth1711SelfTests() -> bool;
+auto runCanUseSpellWith1731SelfTests() -> bool;
+auto runCanUseSpellJobGates1732SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1378,6 +1380,8 @@ namespace
         ok = runSetModList1693SelfTests() && ok;
         ok = runTakeDamageGates1697SelfTests() && ok;
         ok = runUpdateHealth1711SelfTests() && ok;
+        ok = runCanUseSpellWith1731SelfTests() && ok;
+        ok = runCanUseSpellJobGates1732SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;

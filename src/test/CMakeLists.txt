@@ -1097,6 +1097,10 @@ set(SOURCES
     test_take_damage_gates_1697.cpp
     test_update_health_1711.h
     test_update_health_1711.cpp
+    test_can_use_spell_with_1731.h
+    test_can_use_spell_with_1731.cpp
+    test_can_use_spell_job_gates_1732.h
+    test_can_use_spell_job_gates_1732.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
