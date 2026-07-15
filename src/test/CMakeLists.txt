@@ -1087,6 +1087,8 @@ set(SOURCES
     test_pet_mod_map_1684.cpp
     test_death_type_1685.h
     test_death_type_1685.cpp
+    test_pet_mod_apply_1688.h
+    test_pet_mod_apply_1688.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
