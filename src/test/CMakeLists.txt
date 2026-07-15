@@ -1077,6 +1077,12 @@ set(SOURCES
     test_pet_mod_save_1678.cpp
     test_get_mod_1679.h
     test_get_mod_1679.cpp
+    test_del_mod_list_1681.h
+    test_del_mod_list_1681.cpp
+    test_trait_mod_1682.h
+    test_trait_mod_1682.cpp
+    test_mod_snapshot_1683.h
+    test_mod_snapshot_1683.cpp
     test_login_cert_helpers.h
     test_login_cert_helpers.cpp
     test_login_display_bitmasks.h
