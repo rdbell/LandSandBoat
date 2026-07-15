@@ -4,18 +4,21 @@
 
 #include <cstdint>
 
-// Pure CBattleEntity::addEquipModifiers scaling and SLOT_SUB MAIN_DMG_RANK remap.
-// Parity: internal/equipmod (slice 1677).
+// Pure CBattleEntity::addEquipModifiers / delEquipModifiers scaling and
+// SLOT_SUB MAIN_DMG_RANK remap.
+// Parity: internal/equipmod (slice 1677 add / 1698 del).
 //
 // Reference: src/map/entities/battle_entity.cpp
 //   CBattleEntity::addEquipModifiers (~1832–1914)
+//   CBattleEntity::delEquipModifiers (~2028–2108)
 //
 // Host retains m_modStat application, mod-list iteration, GetMLevel / item
 // req level / slot reads; pure helpers take injected values only.
+// del uses the same TargetMod/Amount plan; host subtracts Amount.
 //
 // Distinct from scaled_item_modifier_capacity (GetScaledItemModifier / 0828),
-// which does NOT multiply by mLevel before the family scale. addEquipModifiers
-// always multiplies by GetMLevel() first when under-level.
+// which does NOT multiply by mLevel before the family scale. add/del
+// EquipModifiers always multiply by GetMLevel() first when under-level.
 
 namespace equipmodhelpers
 {
@@ -95,7 +98,8 @@ inline auto ScaleUnderlevelAmount(const Mod          modID,
     return modAmount;
 }
 
-// ApplyEquipModPlan: pure plan for one mod-list entry in addEquipModifiers.
+// ApplyEquipModPlan: pure plan for one mod-list entry in addEquipModifiers
+// (and the shared scale/remap for delEquipModifiers).
 // Host then does m_modStat[target] += amount (add) or -= amount (del).
 inline auto ApplyEquipModPlan(const Mod          modID,
                               const std::int16_t amount,
@@ -114,6 +118,28 @@ inline auto ApplyEquipModPlan(const Mod          modID,
         target = RemapModForSubSlot(modID);
     }
     return EquipModPlan{ target, applied };
+}
+
+// ApplyDelEquipModPlan: pure plan for one delEquipModifiers entry (slice 1698).
+// Same TargetMod/Amount as ApplyEquipModPlan; host subtracts Amount:
+//   m_modStat[plan.targetMod] -= plan.amount
+inline auto ApplyDelEquipModPlan(const Mod          modID,
+                                 const std::int16_t amount,
+                                 const std::uint8_t mLevel,
+                                 const std::uint8_t itemLevel,
+                                 const std::uint8_t slotID) -> EquipModPlan
+{
+    return ApplyEquipModPlan(modID, amount, mLevel, itemLevel, slotID);
+}
+
+// PlanDelEquipModifier: alias of ApplyDelEquipModPlan for call-site intent.
+inline auto PlanDelEquipModifier(const Mod          modID,
+                                 const std::int16_t amount,
+                                 const std::uint8_t mLevel,
+                                 const std::uint8_t itemLevel,
+                                 const std::uint8_t slotID) -> EquipModPlan
+{
+    return ApplyDelEquipModPlan(modID, amount, mLevel, itemLevel, slotID);
 }
 
 } // namespace equipmodhelpers

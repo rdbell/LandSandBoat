@@ -582,6 +582,7 @@ auto runDeathType1685SelfTests() -> bool;
 auto runPetModApply1688SelfTests() -> bool;
 auto runAddModList1692SelfTests() -> bool;
 auto runSetModList1693SelfTests() -> bool;
+auto runTakeDamageGates1697SelfTests() -> bool;
 auto runLoginPacketHelperSelfTests() -> bool;
 auto runLoginWorldListPacketSelfTests() -> bool;
 auto runMapActionEnumPrimitiveSelfTests() -> bool;
@@ -1374,6 +1375,7 @@ namespace
         ok = runPetModApply1688SelfTests() && ok;
         ok = runAddModList1692SelfTests() && ok;
         ok = runSetModList1693SelfTests() && ok;
+        ok = runTakeDamageGates1697SelfTests() && ok;
         ok = runLoginPacketHelperSelfTests() && ok;
         ok = runLoginWorldListPacketSelfTests() && ok;
         ok = runMapActionEnumPrimitiveSelfTests() && ok;
