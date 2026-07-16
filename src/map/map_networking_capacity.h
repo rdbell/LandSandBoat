@@ -169,4 +169,12 @@ inline auto PlanIncomingDecryption(const bool primaryDecrypted, const bool pendi
     return IncomingDecryptionPlan::Reject;
 }
 
+// ShouldMarkCurrentKeyDecryption identifies packets successfully decrypted by
+// the current key. recv_parse uses zero for that result and one for a
+// previous-key zone-transition fallback.
+inline auto ShouldMarkCurrentKeyDecryption(const int decryptCount) -> bool
+{
+    return decryptCount == 0;
+}
+
 } // namespace mapnetworkinghelpers

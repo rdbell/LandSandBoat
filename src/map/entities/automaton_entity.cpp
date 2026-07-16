@@ -22,6 +22,7 @@
 #include "automaton_entity.h"
 #include "automaton_valid_target_policy.h"
 #include "automaton_overload_chance.h"
+#include "automaton_burden_decay.h"
 #include "map/automaton_death_capacity.h"
 #include "map/automaton_post_tick_capacity.h"
 
@@ -86,13 +87,7 @@ void CAutomatonEntity::setEquip(const AutomatonEquip& equip)
 
 void CAutomatonEntity::burdenTick()
 {
-    for (auto&& burden : burden_)
-    {
-        if (burden > 0)
-        {
-            burden -= std::clamp<uint8>(1 + PMaster->getMod(Mod::BURDEN_DECAY) + this->getMod(Mod::BURDEN_DECAY), 1, burden);
-        }
-    }
+    automatonburdenhelpers::Decay(burden_, PMaster->getMod(Mod::BURDEN_DECAY), this->getMod(Mod::BURDEN_DECAY));
 }
 
 auto CAutomatonEntity::burden() const -> const std::array<uint8, 8>&

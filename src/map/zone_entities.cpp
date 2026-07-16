@@ -63,6 +63,7 @@
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
 #include "zone_pc_despawn_gate.h"
+#include "zone_pc_distance_gate.h"
 
 #include <map/ximesh/ximesh.h>
 
@@ -73,7 +74,6 @@ constexpr auto DYNAMIC_ENTITY_TARGID_RANGE_START      = 0x700;
 constexpr auto DYNAMIC_ENTITY_TARGID_RANGE_MAX        = 0x8FF;
 constexpr auto ENTITY_RENDER_DISTANCE                 = 50.0f;
 constexpr auto CHARACTER_SYNC_DISTANCE                = 45.0f;
-constexpr auto CHARACTER_DESPAWN_DISTANCE             = 50.0f;
 constexpr auto CHARACTER_SWAP_MAX                     = 5U;
 constexpr auto CHARACTER_SYNC_LIMIT_MAX               = 32U;
 constexpr auto CHARACTER_SYNC_DISTANCE_SWAP_THRESHOLD = 30U;
@@ -1055,7 +1055,7 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
 
         // Despawn character if it's currently spawned and is far away
         float charDistance = distance(PChar->loc.p, PCurrentChar->loc.p);
-        if (charDistance >= CHARACTER_DESPAWN_DISTANCE)
+        if (zoneentityvisibility::ShouldDespawnDistantPC(charDistance))
         {
             toRemove.emplace_back(PCurrentChar);
             continue;

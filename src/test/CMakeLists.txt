@@ -1440,6 +1440,8 @@ set(SOURCES
     test_map_networking_packet_append_2705.cpp
     test_map_networking_decryption_plan_2708.h
     test_map_networking_decryption_plan_2708.cpp
+    test_map_networking_current_key_2711.h
+    test_map_networking_current_key_2711.cpp
     test_map_socket_receive_2654.h
     test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h
@@ -1936,6 +1938,8 @@ set(SOURCES
     test_automaton_valid_target_policy_2704.cpp
     test_automaton_overload_chance_2707.h
     test_automaton_overload_chance_2707.cpp
+    test_automaton_burden_decay_2710.h
+    test_automaton_burden_decay_2710.cpp
     test_search_social_packets.h
     test_search_social_packets.cpp
     test_settings_number_helper.h
@@ -2009,6 +2013,8 @@ set(SOURCES
     test_zone_pc_spawn_gate_2703.cpp
     test_zone_pc_despawn_gate_2706.h
     test_zone_pc_despawn_gate_2706.cpp
+    test_zone_pc_distance_gate_2709.h
+    test_zone_pc_distance_gate_2709.cpp
     test_typed_flags.h
     test_typed_flags.cpp
     test_uuid_generation.h
