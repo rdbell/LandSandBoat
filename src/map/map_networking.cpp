@@ -752,7 +752,9 @@ void MapNetworking::finalizePacket(uint8* buff, size_t* buffsize, size_t PacketS
 
     blowfish_t* pbfkey = nullptr;
 
-    if (PSession->blowfish.status == BLOWFISH_PENDING_ZONE && usePreviousKey == UsePreviousKey::Yes)
+    if (mapnetworkinghelpers::ShouldUsePreviousKeyForOutgoingPacket(
+            PSession->blowfish.status == BLOWFISH_PENDING_ZONE,
+            usePreviousKey == UsePreviousKey::Yes))
     {
         pbfkey = &PSession->prev_blowfish;
     }

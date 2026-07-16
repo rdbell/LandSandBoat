@@ -1444,6 +1444,8 @@ set(SOURCES
     test_map_networking_decryption_plan_2708.cpp
     test_map_networking_current_key_2711.h
     test_map_networking_current_key_2711.cpp
+    test_map_networking_outgoing_key_2723.h
+    test_map_networking_outgoing_key_2723.cpp
     test_map_networking_last_update_2714.h
     test_map_networking_last_update_2714.cpp
     test_map_networking_zone_packet_2717.h

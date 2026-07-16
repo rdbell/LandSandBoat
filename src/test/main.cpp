@@ -160,6 +160,7 @@ auto runMapNetworkingCompressionFailure2720SelfTests() -> bool;
 auto runMapNetworkingPacketAppend2705SelfTests() -> bool;
 auto runMapNetworkingDecryptionPlan2708SelfTests() -> bool;
 auto runMapNetworkingCurrentKey2711SelfTests() -> bool;
+auto runMapNetworkingOutgoingKey2723SelfTests() -> bool;
 auto runMapNetworkingLastUpdate2714SelfTests() -> bool;
 auto runMapNetworkingZonePacket2717SelfTests() -> bool;
 auto runMapSocketReceive2654SelfTests() -> bool;
@@ -1160,6 +1161,7 @@ namespace
         ok = runMapNetworkingPacketAppend2705SelfTests() && ok;
         ok = runMapNetworkingDecryptionPlan2708SelfTests() && ok;
         ok = runMapNetworkingCurrentKey2711SelfTests() && ok;
+        ok = runMapNetworkingOutgoingKey2723SelfTests() && ok;
         ok = runMapNetworkingLastUpdate2714SelfTests() && ok;
         ok = runMapNetworkingZonePacket2717SelfTests() && ok;
         ok = runMapSocketReceive2654SelfTests() && ok;

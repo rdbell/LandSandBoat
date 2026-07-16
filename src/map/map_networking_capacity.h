@@ -218,4 +218,12 @@ inline auto PlanCompressionFailure(const bool hasQueuedPackets) -> CompressionFa
     return hasQueuedPackets ? CompressionFailurePlan::DropOldestPacketAndRetry : CompressionFailurePlan::ClearOutputAndFail;
 }
 
+// ShouldUsePreviousKeyForOutgoingPacket mirrors finalizePacket's key choice.
+// A previous key is valid only for an explicitly requested send while the
+// session is pending its zone transition.
+inline auto ShouldUsePreviousKeyForOutgoingPacket(const bool pendingZone, const bool usePreviousKey) -> bool
+{
+    return pendingZone && usePreviousKey;
+}
+
 } // namespace mapnetworkinghelpers
