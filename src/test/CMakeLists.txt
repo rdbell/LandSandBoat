@@ -116,6 +116,8 @@ set(SOURCES
     test_c2s_config_packets.cpp
     test_c2s_currency_request_packets.h
     test_c2s_currency_request_packets.cpp
+    test_c2s_currencies_1_runtime.h
+    test_c2s_currencies_1_runtime.cpp
     test_c2s_currencies_2_runtime.h
     test_c2s_currencies_2_runtime.cpp
     test_c2s_dice_packet.h

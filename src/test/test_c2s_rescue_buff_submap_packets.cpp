@@ -32,6 +32,7 @@
 #include "map/packets/c2s/0x0f0_rescue.h"
 #include "map/packets/c2s/0x0f1_buffcancel.h"
 #include "map/packets/c2s/0x0f2_submapchange.h"
+#include "map/status_effect_capacity.h"
 #include "map/status_effect.h"
 
 namespace
@@ -229,11 +230,24 @@ auto testRescueBuffSubmapValidation() -> bool
     return ok;
 }
 
+auto testBuffCancelEffectSelection() -> bool
+{
+    bool ok = true;
+
+    // BUFFCANCEL delegates to DelStatusEffectsByIcon, whose predicate removes
+    // only matching icons that are not protected by the NoCancel effect flag.
+    ok = expectTrue(statuseffecthelpers::CanClientCancelIcon(0x0123, 0x0123, false), "BUFFCANCEL matching cancellable icon") && ok;
+    ok = expectFalse(statuseffecthelpers::CanClientCancelIcon(0x0124, 0x0123, false), "BUFFCANCEL preserves other icon") && ok;
+    ok = expectFalse(statuseffecthelpers::CanClientCancelIcon(0x0123, 0x0123, true), "BUFFCANCEL preserves no-cancel icon") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SRescueBuffSubmapPacketSelfTests() -> bool
 {
     return testRescueBuffSubmapLayoutsAndMetadata() &&
            testRescueBuffSubmapEncodedBytesAndPayloads() &&
-           testRescueBuffSubmapValidation();
+           testRescueBuffSubmapValidation() &&
+           testBuffCancelEffectSelection();
 }
