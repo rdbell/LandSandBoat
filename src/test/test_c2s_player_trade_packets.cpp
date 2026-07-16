@@ -347,6 +347,37 @@ auto testTradeListPureValidationFacts() -> bool
     return ok;
 }
 
+auto testTradeListRuntimePlan() -> bool
+{
+    using namespace tradelisthelpers;
+
+    const auto validItem = ItemFacts{
+        .exists             = true,
+        .matchesRequestedID = true,
+        .requestedQuantity  = 2,
+        .reservedQuantity   = 1,
+        .availableQuantity  = 3,
+    };
+
+    bool ok = true;
+    ok      = expectTrue(makePlan(false, true, validItem).outcome == Outcome::InvalidTarget, "TRADE_LIST rejects mismatched targets") && ok;
+    ok      = expectTrue(!makePlan(false, true, validItem).releaseExistingOffer, "TRADE_LIST preserves offer when targets mismatch") && ok;
+    ok      = expectTrue(makePlan(true, true, ItemFacts{}).outcome == Outcome::InvalidItem, "TRADE_LIST rejects missing item") && ok;
+    ok      = expectTrue(makePlan(true, true, ItemFacts{}).releaseExistingOffer, "TRADE_LIST releases existing offer before item rejection") && ok;
+    ok      = expectTrue(makePlan(true, false, ItemFacts{ .exists = true, .matchesRequestedID = true, .exclusive = true }).outcome == Outcome::InvalidItem,
+                         "TRADE_LIST rejects exclusive item") && ok;
+    ok      = expectTrue(makePlan(true, false, ItemFacts{ .exists = true, .matchesRequestedID = true, .locked = true }).outcome == Outcome::InvalidItem,
+                         "TRADE_LIST rejects locked item") && ok;
+    ok      = expectTrue(makePlan(true, false, ItemFacts{ .exists = true, .matchesRequestedID = true, .requestedQuantity = 3, .reservedQuantity = 1, .availableQuantity = 3 }).outcome == Outcome::InvalidItem,
+                         "TRADE_LIST rejects insufficient quantity") && ok;
+    ok      = expectTrue(makePlan(true, false, ItemFacts{ .exists = true, .matchesRequestedID = true, .linkshell = true }).outcome == Outcome::LinkshellNotEquipped,
+                         "TRADE_LIST requires equipped linkshell") && ok;
+    ok      = expectTrue(makePlan(true, false, ItemFacts{ .exists = true, .matchesRequestedID = true, .linkshell = true, .linkshellEquipped = true }).outcome == Outcome::Update,
+                         "TRADE_LIST accepts equipped linkshell") && ok;
+    ok      = expectTrue(makePlan(true, false, validItem).outcome == Outcome::Update, "TRADE_LIST accepts valid item") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SPlayerTradePacketSelfTests() -> bool
@@ -363,6 +394,7 @@ auto runC2SPlayerTradePacketSelfTests() -> bool
     ok = testTradeListLayoutAndMetadata() && ok;
     ok = testTradeListPayloadStorage() && ok;
     ok = testTradeListPureValidationFacts() && ok;
+    ok = testTradeListRuntimePlan() && ok;
 
     return ok;
 }

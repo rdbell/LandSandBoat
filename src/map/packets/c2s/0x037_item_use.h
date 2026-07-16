@@ -23,6 +23,62 @@
 
 #include "base.h"
 
+namespace itemusehelpers
+{
+
+enum class Action : uint8
+{
+    NoOp,
+    TooFarAway,
+    InvalidItem,
+    BeginUse,
+    UnableToUseItem,
+};
+
+struct RuntimeFacts
+{
+    bool  targetResolved;
+    float targetDistance;
+    bool  itemResolved;
+    bool  itemIsEquipment;
+    bool  itemLocked;
+    bool  itemEquipped;
+    bool  itemReserved;
+    bool  itemBazaared;
+    bool  useItemContainerActive;
+};
+
+// DecideAction mirrors the host-independent branch ordering in process.
+// Entity lookup, distance calculation, storage access, and action dispatch
+// remain map-host responsibilities.
+[[nodiscard]] constexpr auto DecideAction(const RuntimeFacts& facts) -> Action
+{
+    if (!facts.targetResolved)
+    {
+        return Action::NoOp;
+    }
+
+    if (facts.targetDistance > 12.0f)
+    {
+        return Action::TooFarAway;
+    }
+
+    if (!facts.itemResolved)
+    {
+        return Action::NoOp;
+    }
+
+    const bool itemLocked = facts.itemLocked && !(facts.itemIsEquipment && facts.itemEquipped);
+    if (itemLocked || facts.itemReserved || facts.itemBazaared)
+    {
+        return Action::InvalidItem;
+    }
+
+    return facts.useItemContainerActive ? Action::UnableToUseItem : Action::BeginUse;
+}
+
+} // namespace itemusehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0037
 // This packet is sent by the client when using an item.
 GP_CLI_PACKET(GP_CLI_COMMAND_ITEM_USE,

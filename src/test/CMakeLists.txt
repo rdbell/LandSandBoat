@@ -140,6 +140,8 @@ set(SOURCES
     test_c2s_trade_res_runtime.cpp
     test_c2s_itemsearch_runtime.h
     test_c2s_itemsearch_runtime.cpp
+    test_c2s_item_use_runtime.h
+    test_c2s_item_use_runtime.cpp
     test_c2s_gameok_packet.h
     test_c2s_gameok_packet.cpp
     test_c2s_gameok_runtime.h
@@ -182,6 +184,8 @@ set(SOURCES
     test_c2s_item_action_packets.cpp
     test_c2s_item_container_ops_packets.h
     test_c2s_item_container_ops_packets.cpp
+    test_c2s_item_stack_runtime.h
+    test_c2s_item_stack_runtime.cpp
     test_c2s_item_dump_move_packets.h
     test_c2s_item_dump_move_packets.cpp
     test_c2s_item_lookup_packets.h
