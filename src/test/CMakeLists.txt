@@ -80,6 +80,10 @@ set(SOURCES
     test_c2s_charreq_runtime.cpp
     test_c2s_chat_assist_packets.h
     test_c2s_chat_assist_packets.cpp
+    test_c2s_assist_channel_runtime.h
+    test_c2s_assist_channel_runtime.cpp
+    test_c2s_chat_name_runtime.h
+    test_c2s_chat_name_runtime.cpp
     test_c2s_chocobo_race_req_packet.h
     test_c2s_chocobo_race_req_packet.cpp
     test_c2s_clistatus_packet.h
@@ -184,6 +188,8 @@ set(SOURCES
     test_c2s_guild_packets.cpp
     test_c2s_guild_buylist_runtime.h
     test_c2s_guild_buylist_runtime.cpp
+    test_c2s_guild_selllist_runtime.h
+    test_c2s_guild_selllist_runtime.cpp
     test_c2s_header_only_request_packets.h
     test_c2s_header_only_request_packets.cpp
     test_c2s_helpdesk_map_packets.h

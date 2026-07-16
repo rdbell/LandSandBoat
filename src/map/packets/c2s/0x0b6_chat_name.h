@@ -21,7 +21,50 @@
 
 #pragma once
 
+#include <algorithm>
+#include <cstddef>
+
 #include "base.h"
+
+// Keeps CHAT_NAME's process-time routing and variable payload bound testable.
+// Validation of unknown04 and unknown05 remains packet-owned.
+namespace chatnamehelpers
+{
+enum class Action : uint8
+{
+    RejectJailed,
+    HandleCustomMenu,
+    ForwardTell,
+};
+
+constexpr auto MaxMessageLength = std::size_t{ 128 };
+constexpr auto MessageOffset    = std::size_t{ 0x15 };
+
+constexpr auto BoundedMessageLength(const std::size_t reportedPacketSize) -> std::size_t
+{
+    if (reportedPacketSize <= MessageOffset)
+    {
+        return 0;
+    }
+
+    return std::min(reportedPacketSize - MessageOffset, MaxMessageLength);
+}
+
+constexpr auto SelectAction(const bool jailed, const bool isCustomMenuTarget, const bool hasCustomMenuContext) -> Action
+{
+    if (jailed)
+    {
+        return Action::RejectJailed;
+    }
+
+    if (isCustomMenuTarget && hasCustomMenuContext)
+    {
+        return Action::HandleCustomMenu;
+    }
+
+    return Action::ForwardTell;
+}
+} // namespace chatnamehelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00B6
 // This packet is sent by the client when sending tells to another player.

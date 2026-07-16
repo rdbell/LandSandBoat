@@ -27,6 +27,37 @@
 #include "ipc_client.h"
 #include "utils/charutils.h"
 
+auto assistchannelhelpers::SelectAction(const GP_CLI_COMMAND_ASSIST_CHANNEL_KIND kind, const bool targetFound, const bool authorized, const bool cooldownReady) -> AssistChannelAction
+{
+    // Name resolution precedes the action switch in process, including for an
+    // unexpected kind which validation normally rejects.
+    if (!targetFound)
+    {
+        return AssistChannelAction::Error;
+    }
+
+    switch (kind)
+    {
+        case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::GiveThumbsUp:
+            if (!authorized)
+            {
+                return AssistChannelAction::Error;
+            }
+            return cooldownReady ? AssistChannelAction::Forward : AssistChannelAction::ThumbsUpCooldown;
+        case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::IssueWarning:
+            if (!authorized)
+            {
+                return AssistChannelAction::Error;
+            }
+            return cooldownReady ? AssistChannelAction::Forward : AssistChannelAction::WarningCooldown;
+        case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::AddToMuteList:
+        case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::RemoveFromMuteList:
+            return authorized ? AssistChannelAction::Forward : AssistChannelAction::Error;
+        default:
+            return AssistChannelAction::None;
+    }
+}
+
 auto GP_CLI_COMMAND_ASSIST_CHANNEL::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -45,89 +76,52 @@ void GP_CLI_COMMAND_ASSIST_CHANNEL::process(MapSession* PSession, CCharEntity* P
         PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::AnErrorHasOccured);
         return;
     }
-    // TODO: If char is offline, this is an automatic fail.
 
-    switch (static_cast<GP_CLI_COMMAND_ASSIST_CHANNEL_KIND>(this->Kind))
+    const auto kind = static_cast<GP_CLI_COMMAND_ASSIST_CHANNEL_KIND>(this->Kind);
+    auto       action = AssistChannelAction::None;
+    switch (kind)
     {
         case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::GiveThumbsUp:
         {
-            if (PChar->aman().isMuted())
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::AnErrorHasOccured);
-                return;
-            }
-
-            // Anyone can Thumbs Up, but only once a real life day.
-            if (!PChar->aman().canThumbsUp())
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::ThumbsUpCooldown);
-                return;
-            }
-
-            message::send(ipc::AssistChannelEvent{
-                .senderId   = PChar->id,
-                .receiverId = victimId,
-                .action     = static_cast<uint8>(GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::GiveThumbsUp),
-            });
+            const auto muted = PChar->aman().isMuted();
+            action = assistchannelhelpers::SelectAction(kind, true, !muted, !muted && PChar->aman().canThumbsUp());
         }
         break;
         case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::IssueWarning:
         {
-            // Must be a Mentor and not under cooldown to issue warnings (once a day).
-            if (!PChar->aman().isMentor() || PChar->aman().isMuted())
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::AnErrorHasOccured);
-                return;
-            }
-
-            if (!PChar->aman().canIssueWarning())
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::WarningCooldown);
-                return;
-            }
-
-            message::send(ipc::AssistChannelEvent{
-                .senderId   = PChar->id,
-                .receiverId = victimId,
-                .action     = static_cast<uint8>(GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::IssueWarning),
-            });
+            const auto authorized = PChar->aman().isMentor() && !PChar->aman().isMuted();
+            action = assistchannelhelpers::SelectAction(kind, true, authorized, authorized && PChar->aman().canIssueWarning());
         }
         break;
         case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::AddToMuteList:
-        {
-            // Must be a Mentor with Mastery Rank 6 or higher to mute players. Cannot mute if you're muted yourself.
-            if (!PChar->aman().isMentor() ||
-                PChar->aman().getMasteryRank() < 6 ||
-                PChar->aman().isMuted())
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::AnErrorHasOccured);
-                return;
-            }
-
-            message::send(ipc::AssistChannelEvent{
-                .senderId   = PChar->id,
-                .receiverId = victimId,
-                .action     = static_cast<uint8>(GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::AddToMuteList),
-            });
-        }
-        break;
         case GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::RemoveFromMuteList:
         {
-            // Must be a Mentor with Mastery Rank 6 or higher to unmute players. Cannot unmute if you're muted yourself.
-            if (!PChar->aman().isMentor() ||
-                PChar->aman().getMasteryRank() < 6 ||
-                PChar->aman().isMuted())
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::AnErrorHasOccured);
-                return;
-            }
+            const auto authorized = PChar->aman().isMentor() && PChar->aman().getMasteryRank() >= 6 && !PChar->aman().isMuted();
+            action = assistchannelhelpers::SelectAction(kind, true, authorized, true);
+        }
+        break;
+    }
 
+    switch (action)
+    {
+        case AssistChannelAction::Error:
+            PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::AnErrorHasOccured);
+            return;
+        case AssistChannelAction::ThumbsUpCooldown:
+            PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::ThumbsUpCooldown);
+            return;
+        case AssistChannelAction::WarningCooldown:
+            PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::WarningCooldown);
+            return;
+        case AssistChannelAction::Forward:
+            // TODO: If char is offline, this is an automatic fail.
             message::send(ipc::AssistChannelEvent{
                 .senderId   = PChar->id,
                 .receiverId = victimId,
-                .action     = static_cast<uint8>(GP_CLI_COMMAND_ASSIST_CHANNEL_KIND::RemoveFromMuteList),
+                .action     = static_cast<uint8>(kind),
             });
-        }
-        break;
+            return;
+        case AssistChannelAction::None:
+            return;
     }
 }

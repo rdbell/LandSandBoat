@@ -31,6 +31,28 @@ enum class GP_CLI_COMMAND_ASSIST_CHANNEL_KIND : uint8_t
     RemoveFromMuteList = 0x27,
 };
 
+// Pure post-lookup processing result. Database name lookup, escaping, AMAN
+// state access, packet delivery, and standard-message emission remain owned by
+// the map runtime.
+enum class AssistChannelAction
+{
+    None,
+    Error,
+    ThumbsUpCooldown,
+    WarningCooldown,
+    Forward,
+};
+
+namespace assistchannelhelpers
+{
+
+// SelectAction mirrors ASSIST_CHANNEL's process branches after the target name
+// has been resolved. authorized and cooldownReady are the action-specific AMAN
+// facts for kind; unknown kinds preserve process' switch-default no-op.
+auto SelectAction(GP_CLI_COMMAND_ASSIST_CHANNEL_KIND kind, bool targetFound, bool authorized, bool cooldownReady) -> AssistChannelAction;
+
+} // namespace assistchannelhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00B7
 // This packet is sent by the client when interacting with the newer Assist channel mentor features. (Thumbs Up, Warning, Mute, Unmute)
 GP_CLI_PACKET(GP_CLI_COMMAND_ASSIST_CHANNEL,
