@@ -21,7 +21,11 @@
 
 #pragma once
 
+#include <array>
+#include <vector>
+
 #include "base.h"
+#include "map/item_container.h"
 
 enum class GP_CLI_COMMAND_SUBCONTAINER_KIND : uint32_t
 {
@@ -41,6 +45,82 @@ enum class GP_CLI_COMMAND_SUBCONTAINER_CONTAINERINDEX : uint32_t
     Legs         = 6,
     Feet         = 7,
 };
+
+namespace subcontainerhelpers
+{
+
+enum class ItemLock : uint8
+{
+    Normal,
+    Mannequin,
+};
+
+struct LockUpdate
+{
+    uint8_t  slot = 0;
+    ItemLock lock = ItemLock::Normal;
+};
+
+struct Transition
+{
+    bool                  accepted = true;
+    std::array<uint8, 8>  equipment{};
+    std::vector<LockUpdate> lockUpdates{};
+};
+
+// BuildTransition mirrors SUBCONTAINER's mannequin equipment mutation. It
+// leaves storage lookup, database persistence, and packet delivery to the map
+// host. Replacing an occupied equipment slot deliberately does not unlock the
+// former item, matching the native packet handler.
+[[nodiscard]] inline auto BuildTransition(const GP_CLI_COMMAND_SUBCONTAINER_KIND kind, const CONTAINER_ID category2, const uint8 containerIndex,
+                                          std::array<uint8, 8> equipment, const uint8 itemIndex2) -> Transition
+{
+    Transition transition{ .equipment = equipment };
+    const uint8 equipmentIndex = containerIndex < transition.equipment.size() ? containerIndex : 0;
+    const auto addLockUpdate = [&transition](const uint8 slot, const ItemLock lock) {
+        if (slot != 0)
+        {
+            transition.lockUpdates.push_back({ slot, lock });
+        }
+    };
+
+    switch (kind)
+    {
+        case GP_CLI_COMMAND_SUBCONTAINER_KIND::Equip:
+            if (category2 != LOC_STORAGE)
+            {
+                transition.accepted = false;
+                return transition;
+            }
+
+            if (transition.equipment[equipmentIndex] == itemIndex2)
+            {
+                addLockUpdate(itemIndex2, ItemLock::Normal);
+                transition.equipment[equipmentIndex] = 0;
+            }
+            else
+            {
+                addLockUpdate(itemIndex2, ItemLock::Mannequin);
+                transition.equipment[equipmentIndex] = itemIndex2;
+            }
+            break;
+        case GP_CLI_COMMAND_SUBCONTAINER_KIND::Unequip:
+            addLockUpdate(itemIndex2, ItemLock::Normal);
+            transition.equipment[equipmentIndex] = 0;
+            break;
+        case GP_CLI_COMMAND_SUBCONTAINER_KIND::UnequipAll:
+            for (auto& slot : transition.equipment)
+            {
+                addLockUpdate(slot, ItemLock::Normal);
+                slot = 0;
+            }
+            break;
+    }
+
+    return transition;
+}
+
+} // namespace subcontainerhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x003B
 // This packet is sent by the client when interacting with a sub-container item. (ie. Mannequins)

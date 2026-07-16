@@ -21,7 +21,103 @@
 
 #pragma once
 
+#include <array>
+
 #include "base.h"
+
+namespace itemtransferhelpers
+{
+
+enum class Action : uint8
+{
+    CannotWhileInvisible,
+    NoOp,
+    InvalidItem,
+    ReservedItem,
+    LockedItem,
+    BeginTrade,
+};
+
+struct ItemFacts
+{
+    bool validQuantity;
+    bool reserved;
+    bool locked;
+};
+
+struct RuntimeFacts
+{
+    bool                    invisible;
+    bool                    entityResolved;
+    bool                    entityIdMatches;
+    float                   entityDistance;
+    bool                    entityIsMob;
+    bool                    mobStatusNormal;
+    std::array<ItemFacts, 9> items{};
+    uint8                   itemCount;
+};
+
+struct Plan
+{
+    Action action;
+    bool   sendCannotWhileInvisible;
+    bool   cleanTrade;
+    uint8  reservedItemCount;
+    bool   invokeOnTrade;
+    bool   unreserveUnconfirmed;
+};
+
+// MakePlan mirrors process's host-independent branch ordering. In particular,
+// it retains reservations made before a later bad item causes an early return.
+// Entity/storage access, auditing, trade-container mutation, Lua dispatch, and
+// event/crafting side effects remain map-host responsibilities.
+[[nodiscard]] constexpr auto MakePlan(const RuntimeFacts& facts) -> Plan
+{
+    if (facts.invisible)
+    {
+        return { Action::CannotWhileInvisible, true, false, 0, false, false };
+    }
+
+    if (!facts.entityResolved || !facts.entityIdMatches || facts.entityDistance > 6.0f ||
+        (facts.entityIsMob && !facts.mobStatusNormal))
+    {
+        return { Action::NoOp, false, false, 0, false, false };
+    }
+
+    auto plan = Plan{ Action::BeginTrade, false, true, 0, false, false };
+    for (uint8 slotId = 0; slotId < facts.itemCount; ++slotId)
+    {
+        if (slotId >= facts.items.size())
+        {
+            plan.action = Action::InvalidItem;
+            return plan;
+        }
+        const auto& item = facts.items[slotId];
+        if (!item.validQuantity)
+        {
+            plan.action = Action::InvalidItem;
+            return plan;
+        }
+        if (item.reserved)
+        {
+            plan.action = Action::ReservedItem;
+            return plan;
+        }
+        if (item.locked)
+        {
+            plan.action = Action::LockedItem;
+            return plan;
+        }
+
+        ++plan.reservedItemCount;
+    }
+
+    plan.invokeOnTrade         = true;
+    plan.unreserveUnconfirmed = true;
+    return plan;
+}
+
+} // namespace itemtransferhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0036
 // This packet is sent by the client when completing a trade with an NPC.

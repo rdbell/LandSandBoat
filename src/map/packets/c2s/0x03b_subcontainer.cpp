@@ -87,75 +87,30 @@ void GP_CLI_COMMAND_SUBCONTAINER::process(MapSession* PSession, CCharEntity* PCh
     auto* PFurnishing = static_cast<CItemFurnishing*>(PItem);
     auto& mannequin   = PFurnishing->exdata<Exdata::Mannequin>();
 
-    const auto getEquipSlot = [&mannequin](uint8 index) -> uint8&
+    const auto transition = subcontainerhelpers::BuildTransition(
+        static_cast<GP_CLI_COMMAND_SUBCONTAINER_KIND>(this->Kind),
+        static_cast<CONTAINER_ID>(this->Category2),
+        this->ContainerIndex,
+        { mannequin.EquipMain, mannequin.EquipSub, mannequin.EquipRanged, mannequin.EquipHead, mannequin.EquipBody, mannequin.EquipHands, mannequin.EquipLegs, mannequin.EquipFeet },
+        this->ItemIndex2);
+    if (!transition.accepted)
     {
-        switch (index)
-        {
-            case 0:
-                return mannequin.EquipMain;
-            case 1:
-                return mannequin.EquipSub;
-            case 2:
-                return mannequin.EquipRanged;
-            case 3:
-                return mannequin.EquipHead;
-            case 4:
-                return mannequin.EquipBody;
-            case 5:
-                return mannequin.EquipHands;
-            case 6:
-                return mannequin.EquipLegs;
-            case 7:
-                return mannequin.EquipFeet;
-            default:
-                return mannequin.EquipMain;
-        }
-    };
-
-    switch (static_cast<GP_CLI_COMMAND_SUBCONTAINER_KIND>(this->Kind))
-    {
-        case GP_CLI_COMMAND_SUBCONTAINER_KIND::Equip:
-        {
-            if (this->Category2 != LOC_STORAGE) // Only valid for direct equip/unequip
-            {
-                ShowWarning("GP_CLI_COMMAND_SUBCONTAINER: Invalid item location passed to Mannequin Equip packet %u by %s", this->Category2, PChar->getName());
-                return;
-            }
-
-            // Action 1 Unequip Hack: Does this need to exist?
-            if (getEquipSlot(this->ContainerIndex) == this->ItemIndex2)
-            {
-                setStatusOfStorageItemAtSlot(PChar, this->ItemIndex2, ItemLockFlg::Normal);
-                getEquipSlot(this->ContainerIndex) = 0;
-            }
-            else // Regular Logic
-            {
-                setStatusOfStorageItemAtSlot(PChar, this->ItemIndex2, ItemLockFlg::Mannequin);
-                getEquipSlot(this->ContainerIndex) = this->ItemIndex2;
-            }
-        }
-        break;
-        case GP_CLI_COMMAND_SUBCONTAINER_KIND::Unequip:
-        {
-            setStatusOfStorageItemAtSlot(PChar, this->ItemIndex2, ItemLockFlg::Normal);
-            getEquipSlot(this->ContainerIndex) = 0;
-        }
-        break;
-        case GP_CLI_COMMAND_SUBCONTAINER_KIND::UnequipAll:
-        {
-            for (uint8 i = 0; i < 8; ++i)
-            {
-                auto& slot = getEquipSlot(i);
-                if (slot > 0)
-                {
-                    setStatusOfStorageItemAtSlot(PChar, slot, ItemLockFlg::Normal);
-                }
-
-                slot = 0;
-            }
-        }
-        break;
+        ShowWarning("GP_CLI_COMMAND_SUBCONTAINER: Invalid item location passed to Mannequin Equip packet %u by %s", this->Category2, PChar->getName());
+        return;
     }
+
+    for (const auto& update : transition.lockUpdates)
+    {
+        setStatusOfStorageItemAtSlot(PChar, update.slot, update.lock == subcontainerhelpers::ItemLock::Normal ? ItemLockFlg::Normal : ItemLockFlg::Mannequin);
+    }
+    mannequin.EquipMain   = transition.equipment[0];
+    mannequin.EquipSub    = transition.equipment[1];
+    mannequin.EquipRanged = transition.equipment[2];
+    mannequin.EquipHead   = transition.equipment[3];
+    mannequin.EquipBody   = transition.equipment[4];
+    mannequin.EquipHands  = transition.equipment[5];
+    mannequin.EquipLegs   = transition.equipment[6];
+    mannequin.EquipFeet   = transition.equipment[7];
 
     const auto rset = db::preparedStmt("UPDATE char_inventory "
                                        "SET "

@@ -68,6 +68,8 @@ set(SOURCES
     test_c2s_bazaar_seller_packets.cpp
     test_c2s_blacklist_packets.h
     test_c2s_blacklist_packets.cpp
+    test_c2s_black_edit_runtime.h
+    test_c2s_black_edit_runtime.cpp
     test_c2s_charreq2_packet.h
     test_c2s_charreq2_packet.cpp
     test_c2s_charreq_packet.h
@@ -142,6 +144,8 @@ set(SOURCES
     test_c2s_itemsearch_runtime.cpp
     test_c2s_item_use_runtime.h
     test_c2s_item_use_runtime.cpp
+    test_c2s_item_transfer_runtime.h
+    test_c2s_item_transfer_runtime.cpp
     test_c2s_gameok_packet.h
     test_c2s_gameok_packet.cpp
     test_c2s_gameok_runtime.h
@@ -186,6 +190,8 @@ set(SOURCES
     test_c2s_item_container_ops_packets.cpp
     test_c2s_item_stack_runtime.h
     test_c2s_item_stack_runtime.cpp
+    test_c2s_subcontainer_runtime.h
+    test_c2s_subcontainer_runtime.cpp
     test_c2s_item_dump_move_packets.h
     test_c2s_item_dump_move_packets.cpp
     test_c2s_item_lookup_packets.h

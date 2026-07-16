@@ -48,37 +48,43 @@ void GP_CLI_COMMAND_BLACK_EDIT::process(MapSession* PSession, CCharEntity* PChar
     const auto name = db::escapeString(asStringFromUntrustedSource(this->Data.Name, 15));
 
     const auto [charid, accid] = charutils::getCharIdAndAccountIdFromName(name);
+    const auto operation       = blackedithelpers::OperationFor(static_cast<GP_CLI_COMMAND_BLACK_EDIT_MODE>(this->Mode));
+    const auto sendResponse    = [&](const blackedithelpers::Response response)
+    {
+        switch (response)
+        {
+            case blackedithelpers::Response::Error:
+                sendFailPacket(PChar);
+                break;
+            case blackedithelpers::Response::Add:
+                PChar->pushPacket<GP_SERV_COMMAND_BLACK_EDIT>(accid, name, GP_SERV_COMMAND_BLACK_EDIT_MODE::Add);
+                break;
+            case blackedithelpers::Response::Delete:
+                PChar->pushPacket<GP_SERV_COMMAND_BLACK_EDIT>(accid, name, GP_SERV_COMMAND_BLACK_EDIT_MODE::Delete);
+                break;
+            case blackedithelpers::Response::None:
+                break;
+        }
+    };
+
     if (!charid)
     {
-        sendFailPacket(PChar);
+        sendResponse(blackedithelpers::ResponseFor(false, operation, false));
         return;
     }
 
-    switch (static_cast<GP_CLI_COMMAND_BLACK_EDIT_MODE>(this->Mode))
+    bool mutationSucceeded = false;
+    switch (operation)
     {
-        case GP_CLI_COMMAND_BLACK_EDIT_MODE::Add:
-        {
-            if (blacklistutils::AddBlacklisted(PChar->id, charid))
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_BLACK_EDIT>(accid, name, GP_SERV_COMMAND_BLACK_EDIT_MODE::Add);
-            }
-            else
-            {
-                sendFailPacket(PChar);
-            }
-        }
-        break;
-        case GP_CLI_COMMAND_BLACK_EDIT_MODE::Remove:
-        {
-            if (blacklistutils::DeleteBlacklisted(PChar->id, charid))
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_BLACK_EDIT>(accid, name, GP_SERV_COMMAND_BLACK_EDIT_MODE::Delete);
-            }
-            else
-            {
-                sendFailPacket(PChar);
-            }
-        }
-        break;
+        case blackedithelpers::Operation::Add:
+            mutationSucceeded = blacklistutils::AddBlacklisted(PChar->id, charid);
+            break;
+        case blackedithelpers::Operation::Remove:
+            mutationSucceeded = blacklistutils::DeleteBlacklisted(PChar->id, charid);
+            break;
+        case blackedithelpers::Operation::None:
+            break;
     }
+
+    sendResponse(blackedithelpers::ResponseFor(true, operation, mutationSucceeded));
 }
