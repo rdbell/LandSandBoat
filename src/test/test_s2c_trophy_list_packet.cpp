@@ -114,10 +114,10 @@ auto expectZeroRange(CBasicPacket& packet, std::size_t offset, std::size_t end, 
 
 auto makeItem(std::uint16_t itemId, std::uint8_t slotId, std::uint32_t ageMilliseconds) -> TreasurePoolItem
 {
-    auto item       = TreasurePoolItem{};
-    item.ID         = itemId;
-    item.SlotID     = slotId;
-    item.TimeStamp  = timer::start_time + std::chrono::milliseconds(ageMilliseconds);
+    auto item      = TreasurePoolItem{};
+    item.ID        = itemId;
+    item.SlotID    = slotId;
+    item.TimeStamp = timer::start_time + std::chrono::milliseconds(ageMilliseconds);
     return item;
 }
 
@@ -197,6 +197,20 @@ auto testConstructorWithoutEntity() -> bool
     return ok;
 }
 
+auto testConstructorWithNonNpcEntity() -> bool
+{
+    auto item   = makeItem(0x4321, 0x07, 0);
+    auto entity = CCharEntity{};
+    populateEntity(entity, 0xAABBCCDD, 0x1122, TYPE_PC);
+    auto packet = GP_SERV_COMMAND_TROPHY_LIST(&item, &entity, false);
+
+    bool ok = true;
+    ok      = expectBytes(packet, trophyListTargetUniqueNoOffset, std::array<uint8, 4>{ 0xDD, 0xCC, 0xBB, 0xAA }, "non-NPC TargetUniqueNo") && ok;
+    ok      = expectBytes(packet, trophyListTargetActIndexOffset, std::array<uint8, 2>{ 0x22, 0x11 }, "non-NPC TargetActIndex") && ok;
+    ok      = expectBytes(packet, trophyListTrophyItemIndexOffset, std::array<uint8, 3>{ 0x07, 0x00, 0x00 }, "non-NPC slot entry container") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CTrophyListPacketSelfTests() -> bool
@@ -205,5 +219,6 @@ auto runS2CTrophyListPacketSelfTests() -> bool
     ok      = testLayoutAndEnums() && ok;
     ok      = testConstructorWithNpcContainer() && ok;
     ok      = testConstructorWithoutEntity() && ok;
+    ok      = testConstructorWithNonNpcEntity() && ok;
     return ok;
 }

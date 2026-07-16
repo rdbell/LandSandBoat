@@ -117,6 +117,30 @@ auto testPacketDataBytes() -> bool
     return expectStructBytes(data, expected, "INSPECT_MESSAGE PacketData bytes");
 }
 
+auto testRuntimePlanCopiesBoundedProfileFields() -> bool
+{
+    const auto packet = inspectmessageserverhelpers::PlanFor({
+        .bazaarMessage = std::string(126, 'M'),
+        .name          = std::string(19, 'N'),
+        .designationNo = 0x11223344,
+    });
+
+    bool ok = true;
+    ok      = expectEqualUInt(packet.BazaarFlag, 1, "runtime BazaarFlag") && ok;
+    ok      = expectEqualUInt(packet.MyFlag, 1, "runtime MyFlag") && ok;
+    ok      = expectEqualUInt(packet.Race, 1, "runtime Race") && ok;
+    ok      = expectEqualUInt(packet.DesignationNo, 0x11223344, "runtime DesignationNo") && ok;
+    for (std::size_t i = 0; i < sizeof(packet.sInspectMessage); ++i)
+    {
+        ok = expectEqualUInt(packet.sInspectMessage[i], 'M', "runtime bounded message") && ok;
+    }
+    for (std::size_t i = 0; i < sizeof(packet.sName); ++i)
+    {
+        ok = expectEqualUInt(packet.sName[i], 'N', "runtime bounded name") && ok;
+    }
+    return ok;
+}
+
 } // namespace
 
 auto runS2CInspectMessagePacketSelfTests() -> bool
@@ -124,5 +148,6 @@ auto runS2CInspectMessagePacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testRuntimePlanCopiesBoundedProfileFields() && ok;
     return ok;
 }

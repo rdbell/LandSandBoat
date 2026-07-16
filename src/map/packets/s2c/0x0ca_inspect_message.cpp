@@ -23,17 +23,23 @@
 
 #include "entities/char_entity.h"
 
+auto inspectmessageserverhelpers::PlanFor(const Facts& facts) -> GP_SERV_COMMAND_INSPECT_MESSAGE::PacketData
+{
+    auto packet = GP_SERV_COMMAND_INSPECT_MESSAGE::PacketData{};
+    std::memcpy(packet.sInspectMessage, facts.bazaarMessage.data(), std::min(facts.bazaarMessage.size(), sizeof(packet.sInspectMessage)));
+    packet.BazaarFlag    = 1;
+    packet.MyFlag        = 1;
+    packet.Race          = 1;
+    packet.DesignationNo = facts.designationNo;
+    std::memcpy(packet.sName, facts.name.data(), std::min(facts.name.size(), sizeof(packet.sName)));
+    return packet;
+}
+
 GP_SERV_COMMAND_INSPECT_MESSAGE::GP_SERV_COMMAND_INSPECT_MESSAGE(const CCharEntity* PChar)
 {
-    auto& packet = this->data();
-
-    std::memcpy(packet.sInspectMessage, PChar->bazaar.message.c_str(), std::min<size_t>(PChar->bazaar.message.size(), sizeof(packet.sInspectMessage)));
-
-    packet.BazaarFlag = 1;
-    packet.MyFlag     = 1;
-    packet.Race       = 1;
-
-    packet.DesignationNo = PChar->profile.title;
-
-    std::memcpy(packet.sName, PChar->getName().c_str(), std::min<size_t>(PChar->getName().size(), sizeof(packet.sName)));
+    this->data() = inspectmessageserverhelpers::PlanFor({
+        .bazaarMessage = PChar->bazaar.message,
+        .name          = PChar->getName(),
+        .designationNo = PChar->profile.title,
+    });
 }

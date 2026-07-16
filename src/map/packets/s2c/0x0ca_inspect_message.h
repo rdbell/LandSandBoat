@@ -25,6 +25,8 @@
 
 #include "base.h"
 
+#include <string>
+
 class CCharEntity;
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x00CA
@@ -44,3 +46,17 @@ public:
 
     GP_SERV_COMMAND_INSPECT_MESSAGE(const CCharEntity* PChar);
 };
+
+namespace inspectmessageserverhelpers
+{
+
+struct Facts
+{
+    std::string bazaarMessage;
+    std::string name;
+    uint32_t    designationNo{};
+};
+
+[[nodiscard]] auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_INSPECT_MESSAGE::PacketData;
+
+} // namespace inspectmessageserverhelpers

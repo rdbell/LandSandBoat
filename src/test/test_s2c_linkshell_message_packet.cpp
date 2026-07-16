@@ -35,20 +35,20 @@ namespace
 
 using LinkshellMessagePacket = GP_SERV_COMMAND_LINKSHELL_MESSAGE;
 
-constexpr auto linkshellMessageFlags0Offset       = sizeof(GP_SERV_HEADER);
-constexpr auto linkshellMessageFlags1Offset       = linkshellMessageFlags0Offset + 1;
-constexpr auto linkshellMessageSeqIDOffset        = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, seqId);
-constexpr auto linkshellMessageTextOffset         = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, sMessage);
-constexpr auto linkshellMessageTextSize           = sizeof(LinkshellMessagePacket::PacketData{}.sMessage);
-constexpr auto linkshellMessageUpdateTimeOffset   = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, updateTime);
-constexpr auto linkshellMessageModifierOffset     = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, modifier);
-constexpr auto linkshellMessageModifierSize       = sizeof(LinkshellMessagePacket::PacketData{}.modifier);
-constexpr auto linkshellMessageOpTypeOffset       = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, opType);
-constexpr auto linkshellMessagePadding9EOffset    = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, padding9E);
-constexpr auto linkshellMessageEncodedNameOffset  = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, encodedLsName);
-constexpr auto linkshellMessageEncodedNameSize    = sizeof(LinkshellMessagePacket::PacketData{}.encodedLsName);
-constexpr auto linkshellMessagePacketDataSize     = sizeof(LinkshellMessagePacket::PacketData);
-constexpr auto linkshellMessagePacketSize         = sizeof(GP_SERV_HEADER) + linkshellMessagePacketDataSize;
+constexpr auto linkshellMessageFlags0Offset      = sizeof(GP_SERV_HEADER);
+constexpr auto linkshellMessageFlags1Offset      = linkshellMessageFlags0Offset + 1;
+constexpr auto linkshellMessageSeqIDOffset       = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, seqId);
+constexpr auto linkshellMessageTextOffset        = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, sMessage);
+constexpr auto linkshellMessageTextSize          = sizeof(LinkshellMessagePacket::PacketData{}.sMessage);
+constexpr auto linkshellMessageUpdateTimeOffset  = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, updateTime);
+constexpr auto linkshellMessageModifierOffset    = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, modifier);
+constexpr auto linkshellMessageModifierSize      = sizeof(LinkshellMessagePacket::PacketData{}.modifier);
+constexpr auto linkshellMessageOpTypeOffset      = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, opType);
+constexpr auto linkshellMessagePadding9EOffset   = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, padding9E);
+constexpr auto linkshellMessageEncodedNameOffset = sizeof(GP_SERV_HEADER) + offsetof(LinkshellMessagePacket::PacketData, encodedLsName);
+constexpr auto linkshellMessageEncodedNameSize   = sizeof(LinkshellMessagePacket::PacketData{}.encodedLsName);
+constexpr auto linkshellMessagePacketDataSize    = sizeof(LinkshellMessagePacket::PacketData);
+constexpr auto linkshellMessagePacketSize        = sizeof(GP_SERV_HEADER) + linkshellMessagePacketDataSize;
 
 auto packetData(CBasicPacket& packet) -> uint8*
 {
@@ -173,6 +173,27 @@ auto testConstructorBytes() -> bool
     return ok;
 }
 
+auto testConstructorTruncatesRawStrings() -> bool
+{
+    auto poster  = std::string(17, 'p');
+    auto message = std::string(129, 'm');
+    auto lsname  = std::string(17, 'l');
+    poster[15]   = 'P';
+    poster[16]   = 'x';
+    message[127] = 'M';
+    message[128] = 'x';
+    lsname[15]   = 'L';
+    lsname[16]   = 'x';
+    auto packet  = LinkshellMessagePacket(poster, message, lsname, 0, LinkshellSlot::LS1);
+
+    const auto* data = packetData(packet);
+    bool        ok   = true;
+    ok               = expectEqualUInt(data[linkshellMessageTextOffset + 127], static_cast<uint8>('M'), "constructor message final byte") && ok;
+    ok               = expectEqualUInt(data[linkshellMessageModifierOffset + 15], static_cast<uint8>('P'), "constructor poster final byte") && ok;
+    ok               = expectEqualUInt(data[linkshellMessageEncodedNameOffset + 15], static_cast<uint8>('L'), "constructor linkshell final byte") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CLinkshellMessagePacketSelfTests() -> bool
@@ -181,5 +202,6 @@ auto runS2CLinkshellMessagePacketSelfTests() -> bool
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
     ok      = testConstructorBytes() && ok;
+    ok      = testConstructorTruncatesRawStrings() && ok;
     return ok;
 }
