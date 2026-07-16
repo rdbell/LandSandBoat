@@ -62,6 +62,7 @@
 #include "zone_char_sync_significance.h"
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
+#include "zone_pc_despawn_gate.h"
 
 #include <map/ximesh/ximesh.h>
 
@@ -1042,9 +1043,11 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
     FOR_EACH_PAIR_CAST_SECOND(CCharEntity*, PCurrentChar, PChar->SpawnPCList)
     {
         // Despawn character if it's a hidden GM that isn't PChar, is in a different mog house, or if player is in a conflict while other is not, or too far up/down
-        if (((PChar != PCurrentChar) && PCurrentChar->m_isGMHidden) ||
-            PChar->m_moghouseID != PCurrentChar->m_moghouseID ||
-            !isWithinVerticalDistance(PChar, PCurrentChar))
+        if (zoneentityvisibility::ShouldDespawnSpawnedPC(
+                PChar == PCurrentChar,
+                PCurrentChar->m_isGMHidden,
+                PChar->m_moghouseID == PCurrentChar->m_moghouseID,
+                isWithinVerticalDistance(PChar, PCurrentChar)))
         {
             toRemove.emplace_back(PCurrentChar);
             continue;

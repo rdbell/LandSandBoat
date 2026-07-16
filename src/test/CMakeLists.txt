@@ -1438,6 +1438,8 @@ set(SOURCES
     test_map_networking_compression_retry_2702.cpp
     test_map_networking_packet_append_2705.h
     test_map_networking_packet_append_2705.cpp
+    test_map_networking_decryption_plan_2708.h
+    test_map_networking_decryption_plan_2708.cpp
     test_map_socket_receive_2654.h
     test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h
@@ -1932,6 +1934,8 @@ set(SOURCES
     test_mob_geode_element_2701.cpp
     test_automaton_valid_target_policy_2704.h
     test_automaton_valid_target_policy_2704.cpp
+    test_automaton_overload_chance_2707.h
+    test_automaton_overload_chance_2707.cpp
     test_search_social_packets.h
     test_search_social_packets.cpp
     test_settings_number_helper.h
@@ -2003,6 +2007,8 @@ set(SOURCES
     test_zone_char_sync_significance_2700.cpp
     test_zone_pc_spawn_gate_2703.h
     test_zone_pc_spawn_gate_2703.cpp
+    test_zone_pc_despawn_gate_2706.h
+    test_zone_pc_despawn_gate_2706.cpp
     test_typed_flags.h
     test_typed_flags.cpp
     test_uuid_generation.h

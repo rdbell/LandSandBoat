@@ -21,6 +21,7 @@
 
 #include "automaton_entity.h"
 #include "automaton_valid_target_policy.h"
+#include "automaton_overload_chance.h"
 #include "map/automaton_death_capacity.h"
 #include "map/automaton_post_tick_capacity.h"
 
@@ -138,9 +139,7 @@ auto CAutomatonEntity::addBurden(const uint8 element, int8 burden) -> uint8
 
 auto CAutomatonEntity::overloadChance(const uint8 element) const -> uint8
 {
-    const int16 thresh = 30 + PMaster->getMod(Mod::OVERLOAD_THRESH);
-
-    return std::clamp(burden_[element] - thresh + 5, 0, 255);
+    return automatonoverloadhelpers::OverloadChance(burden_[element], PMaster->getMod(Mod::OVERLOAD_THRESH));
 }
 
 void CAutomatonEntity::PostTick()

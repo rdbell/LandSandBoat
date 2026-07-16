@@ -368,18 +368,27 @@ int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSess
 
         int decryptCount = 0;
 
-        if (map_decipher_packet(buff, *buffsize, PSession, &PSession->blowfish) == -1)
+        const bool primaryDecrypted  = map_decipher_packet(buff, *buffsize, PSession, &PSession->blowfish) != -1;
+        bool       previousDecrypted = false;
+        if (!primaryDecrypted && PSession->blowfish.status == BLOWFISH_PENDING_ZONE)
         {
             // If the client is pending zone, they might not have received 0x00B, and thus not incremented their key
             // Check old blowfish data
-            if (PSession->blowfish.status == BLOWFISH_PENDING_ZONE &&
-                map_decipher_packet(PBuffCopy.data(), *buffsize, PSession, &PSession->prev_blowfish) != -1)
+            previousDecrypted = map_decipher_packet(PBuffCopy.data(), *buffsize, PSession, &PSession->prev_blowfish) != -1;
+        }
+
+        switch (mapnetworkinghelpers::PlanIncomingDecryption(primaryDecrypted, PSession->blowfish.status == BLOWFISH_PENDING_ZONE, previousDecrypted))
+        {
+            case mapnetworkinghelpers::IncomingDecryptionPlan::UsePrimary:
+                break;
+            case mapnetworkinghelpers::IncomingDecryptionPlan::UsePrevious:
             {
                 // Copy decrypted bytes back into buffer
                 std::memcpy(buff, PBuffCopy.data(), *buffsize);
                 decryptCount++;
+                break;
             }
-            else
+            case mapnetworkinghelpers::IncomingDecryptionPlan::Reject:
             {
                 *buffsize = 0;
                 return -1;

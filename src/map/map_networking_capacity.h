@@ -146,4 +146,27 @@ inline auto CanAppendPacketToCompression(const std::size_t bufferSize, const std
     return bufferSize + packetSize < maximumBufferSize && appendedPackets < packetBudget;
 }
 
+enum class IncomingDecryptionPlan : uint8
+{
+    UsePrimary,
+    UsePrevious,
+    Reject,
+};
+
+// PlanIncomingDecryption mirrors recv_parse's key-rollover fallback. A
+// successfully decrypted primary packet always wins. A failed primary packet
+// may use the prior key only while zoning and only if that decryption succeeds.
+inline auto PlanIncomingDecryption(const bool primaryDecrypted, const bool pendingZone, const bool previousDecrypted) -> IncomingDecryptionPlan
+{
+    if (primaryDecrypted)
+    {
+        return IncomingDecryptionPlan::UsePrimary;
+    }
+    if (pendingZone && previousDecrypted)
+    {
+        return IncomingDecryptionPlan::UsePrevious;
+    }
+    return IncomingDecryptionPlan::Reject;
+}
+
 } // namespace mapnetworkinghelpers
