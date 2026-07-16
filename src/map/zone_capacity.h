@@ -236,6 +236,7 @@ inline auto ShouldDismountOnZoneIn(const bool mounted, const bool canUseMount) -
 {
     return mounted && !canUseMount;
 }
+inline auto ShouldClearCostumeOnZoneIn(const bool hasCostume) -> bool { return hasCostume; }
 
 // WeatherCycleDays mirrors zone WeatherCycle constant used in UpdateWeather.
 constexpr uint32 WeatherCycleDays = 2160;

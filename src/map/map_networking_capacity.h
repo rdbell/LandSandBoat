@@ -60,4 +60,11 @@ inline auto IsUnencryptedLoginPacketID(const uint16 packetID) -> bool
     return packetID == 0x00A;
 }
 
+// MapPacketID extracts the low nine-bit map packet identifier from its wire
+// header word.
+inline auto MapPacketID(const uint16 headerWord) -> uint16
+{
+    return headerWord & 0x1FF;
+}
+
 } // namespace mapnetworkinghelpers

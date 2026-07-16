@@ -1114,7 +1114,7 @@ void CZone::CharZoneIn(CCharEntity* PChar)
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Mounted);
     }
 
-    if (PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Costume))
+    if (zonehelpers::ShouldClearCostumeOnZoneIn(PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Costume)))
     {
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Costume);
     }

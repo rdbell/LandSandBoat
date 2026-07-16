@@ -254,7 +254,7 @@ int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSess
 
     if (checksumResult == 0)
     {
-        uint16 packetID = ref<uint16>(buff, FFXI_HEADER_SIZE) & 0x1FF;
+        const auto packetID = mapnetworkinghelpers::MapPacketID(ref<uint16>(buff, FFXI_HEADER_SIZE));
 
         if (!mapnetworkinghelpers::IsUnencryptedLoginPacketID(packetID))
         {

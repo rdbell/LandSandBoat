@@ -30,6 +30,7 @@
 #include "mob_tp_move_policy.h"
 #include "mob_roam_rate.h"
 #include "mob_roam_distance.h"
+#include "mob_ranged_range_policy.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -583,7 +584,7 @@ float CMobEntity::GetRangedAttackRange()
     // Defaulted range is 14 as observed on all retail fomor.
     // In the case this changes for other ranger/ninja types use mobmod
     const int16 rangedAttackRange = getMobMod(MOBMOD_RANGED_ATTACK_RANGE);
-    return rangedAttackRange > 0 ? static_cast<float>(rangedAttackRange) : 14.0f;
+    return mobrangedrangehelpers::GetRangedAttackRange(rangedAttackRange);
 }
 
 bool CMobEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
