@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 
-  Copyright (c) 2025 LandSandBoat Dev Teams
+  Copyright (c) 2026 LandSandBoat Dev Teams
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,13 +19,6 @@
 ===========================================================================
 */
 
-#include "0x058_assist.h"
-#include "assist_runtime.h"
+#pragma once
 
-#include "entities/battle_entity.h"
-#include "entities/char_entity.h"
-
-GP_SERV_COMMAND_ASSIST::GP_SERV_COMMAND_ASSIST(const CCharEntity* PChar, const CBattleEntity* PTarget)
-{
-    this->data() = assisthelpers::PlanFor({ .uniqueNo = PChar->id, .actIndex = PChar->targid, .hasTarget = PTarget != nullptr, .targetID = PTarget ? PTarget->id : 0 });
-}
+auto runS2CFriendPassRuntimeSelfTests() -> bool;

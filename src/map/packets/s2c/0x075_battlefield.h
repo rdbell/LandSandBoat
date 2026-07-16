@@ -23,6 +23,9 @@
 
 #include "base.h"
 
+#include <algorithm>
+#include <cstddef>
+
 struct scoreboard_data_t
 {
     int32_t  MarchlandScore;
@@ -55,6 +58,21 @@ enum OBJECTIVEUTILITY_TYPE : uint8
     OBJECTIVEUTILITY_HELP      = 0x04,
     OBJECTIVEUTILITY_FENCE     = 0x08
 };
+
+namespace battlefieldhelpers
+{
+
+[[nodiscard]] constexpr auto HelpDescription(const uint16 description) -> uint16
+{
+    return description > 18 ? description - 19 : 0;
+}
+
+[[nodiscard]] constexpr auto FenceValue(const float value) -> uint32
+{
+    return static_cast<uint32>(value * 1000);
+}
+
+} // namespace battlefieldhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x0075
 // This packet is sent by the server to inform the client of extra data used for certain battlefield content.

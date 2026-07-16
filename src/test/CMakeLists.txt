@@ -1476,6 +1476,8 @@ set(SOURCES
     test_s2c_battle2_packet.cpp
     test_s2c_battlefield_packet.h
     test_s2c_battlefield_packet.cpp
+    test_s2c_battlefield_runtime.h
+    test_s2c_battlefield_runtime.cpp
     test_s2c_battle_message_packets.h
     test_s2c_battle_message_packets.cpp
     test_s2c_black_edit_packet.h
@@ -1578,6 +1580,8 @@ set(SOURCES
     test_s2c_fish_packet.cpp
     test_s2c_friendpass_packet.h
     test_s2c_friendpass_packet.cpp
+    test_s2c_friendpass_runtime.h
+    test_s2c_friendpass_runtime.cpp
     test_s2c_gm_packets.h
     test_s2c_gm_packets.cpp
     test_s2c_gm_support_packets.h

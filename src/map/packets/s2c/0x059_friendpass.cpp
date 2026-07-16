@@ -21,9 +21,9 @@
 
 #include "0x059_friendpass.h"
 
-GP_SERV_COMMAND_FRIENDPASS::GP_SERV_COMMAND_FRIENDPASS(uint32_t worldPass)
+auto friendpasshelpers::PlanFor(const uint32 worldPass) -> GP_SERV_COMMAND_FRIENDPASS::PacketData
 {
-    auto& packet = this->data();
+    auto packet = GP_SERV_COMMAND_FRIENDPASS::PacketData{};
 
     // TODO: All of this is wrong
     packet.passPop   = 10000; // price
@@ -41,4 +41,11 @@ GP_SERV_COMMAND_FRIENDPASS::GP_SERV_COMMAND_FRIENDPASS(uint32_t worldPass)
 
         std::memcpy(packet.String, strbuff.c_str(), strbuff.length());
     }
+
+    return packet;
+}
+
+GP_SERV_COMMAND_FRIENDPASS::GP_SERV_COMMAND_FRIENDPASS(const uint32 worldPass)
+{
+    this->data() = friendpasshelpers::PlanFor(worldPass);
 }

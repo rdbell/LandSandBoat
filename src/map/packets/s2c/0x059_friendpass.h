@@ -41,3 +41,10 @@ public:
 
     GP_SERV_COMMAND_FRIENDPASS(uint32_t worldPass);
 };
+
+namespace friendpasshelpers
+{
+
+[[nodiscard]] auto PlanFor(uint32 worldPass) -> GP_SERV_COMMAND_FRIENDPASS::PacketData;
+
+} // namespace friendpasshelpers

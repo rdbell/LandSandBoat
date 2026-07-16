@@ -80,8 +80,8 @@ void GP_SERV_COMMAND_BATTLEFIELD::addFence(const float x, const float z, const f
     packet.Flags |= OBJECTIVEUTILITY_FENCE;
     packet.FenceX        = static_cast<int32>(x * 1000);
     packet.FenceY        = static_cast<int32>(z * 1000);
-    packet.FenceRadius   = static_cast<uint32>(radius * 1000);
-    packet.FenceRotation = static_cast<uint32>(render * 1000);
+    packet.FenceRadius   = battlefieldhelpers::FenceValue(radius);
+    packet.FenceRotation = battlefieldhelpers::FenceValue(render);
     packet.FenceColor    = blue;
 }
 
@@ -93,6 +93,6 @@ void GP_SERV_COMMAND_BATTLEFIELD::addHelpText(const uint16 title, const uint16 d
     // These translate to a real table index of 0x1A, which is the mini-game string DAT file.
     //  JP: 55559 - ROM\333\15.DAT
     //  NA: 55679 - ROM\333\16.DAT
-    packet.MesNumTitle       = title;                                   // String index. (String table 26.)
-    packet.MesNumDescription = description > 18 ? description - 19 : 0; // Same as 0xA8. Client adds 19 to this value.
+    packet.MesNumTitle       = title;                                            // String index. (String table 26.)
+    packet.MesNumDescription = battlefieldhelpers::HelpDescription(description); // Same as 0xA8. Client adds 19 to this value.
 }
