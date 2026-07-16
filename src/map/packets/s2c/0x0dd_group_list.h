@@ -22,6 +22,8 @@
 #pragma once
 
 #include "base.h"
+#include <algorithm>
+#include <cstring>
 #include <string>
 
 class CCharEntity;
@@ -74,3 +76,137 @@ public:
     GP_SERV_COMMAND_GROUP_LIST(const CTrustEntity* PTrust, uint8_t MemberNumber);
     GP_SERV_COMMAND_GROUP_LIST(uint32_t id, const std::string& name, uint16_t memberFlags, uint8_t MemberNumber, uint16_t ZoneID);
 };
+
+namespace grouplisthelpers
+{
+
+struct CommonFacts
+{
+    uint32      uniqueNo{};
+    uint32      hp{};
+    uint32      mp{};
+    uint32      tp{};
+    uint16      actIndex{};
+    uint8       hpp{};
+    uint8       mpp{};
+    uint8       mjobNo{};
+    uint8       mjobLv{};
+    uint8       sjobNo{};
+    uint8       sjobLv{};
+    std::string name{};
+};
+
+struct CharacterFacts
+{
+    CommonFacts common{};
+    uint16      memberFlags{};
+    uint8       memberNumber{};
+    uint16      entityZone{};
+    uint16      requestedZone{};
+    bool        anonymous{};
+};
+
+struct TrustFacts
+{
+    CommonFacts common{};
+    uint8       memberNumber{};
+    std::string packetName{};
+};
+
+struct DatabaseFacts
+{
+    uint32      uniqueNo{};
+    std::string name{};
+    uint16      memberFlags{};
+    uint16      zoneNo{};
+};
+
+struct PacketPlan
+{
+    GP_SERV_COMMAND_GROUP_LIST::PacketData data{};
+    std::size_t                            nameSize{};
+};
+
+inline void SetGroupAttr(GP_GROUP_ATTR& attr, const uint16 memberFlags)
+{
+    attr.PartyNo           = (memberFlags >> 0) & 0x03;
+    attr.PartyLeaderFlg    = (memberFlags >> 2) & 0x01;
+    attr.AllianceLeaderFlg = (memberFlags >> 3) & 0x01;
+    attr.PartyRFlg         = (memberFlags >> 4) & 0x01;
+    attr.AllianceRFlg      = (memberFlags >> 5) & 0x01;
+    attr.unknown06         = (memberFlags >> 6) & 0x01;
+    attr.unknown07         = (memberFlags >> 7) & 0x01;
+    attr.LevelSyncFlg      = (memberFlags >> 8) & 0x01;
+}
+
+[[nodiscard]] inline auto NameSize(const std::string& name) -> std::size_t
+{
+    return std::min(name.size(), sizeof(GP_SERV_COMMAND_GROUP_LIST::PacketData::Name));
+}
+
+[[nodiscard]] inline auto PacketSizeForNameSize(const std::size_t nameSize) -> std::size_t
+{
+    return sizeof(GP_SERV_HEADER) + sizeof(GP_SERV_COMMAND_GROUP_LIST::PacketData) - 16 + roundUpToNearestFour(static_cast<uint32>(nameSize)) + 4;
+}
+
+[[nodiscard]] inline auto CharacterPlanFor(const CharacterFacts& facts) -> PacketPlan
+{
+    auto plan          = PacketPlan{};
+    plan.data.UniqueNo = facts.common.uniqueNo;
+    SetGroupAttr(plan.data.GAttr, facts.memberFlags);
+    plan.nameSize = NameSize(facts.common.name);
+    std::memcpy(plan.data.Name, facts.common.name.data(), plan.nameSize);
+    if (facts.entityZone != facts.requestedZone)
+    {
+        plan.data.ZoneNo = facts.entityZone;
+        return plan;
+    }
+    plan.data.Hp           = facts.common.hp;
+    plan.data.Mp           = facts.common.mp;
+    plan.data.Tp           = facts.common.tp;
+    plan.data.ActIndex     = facts.common.actIndex;
+    plan.data.MemberNumber = facts.memberNumber;
+    plan.data.Hpp          = facts.common.hpp;
+    plan.data.Mpp          = facts.common.mpp;
+    if (!facts.anonymous)
+    {
+        plan.data.mjob_no = facts.common.mjobNo;
+        plan.data.mjob_lv = facts.common.mjobLv;
+        plan.data.sjob_no = facts.common.sjobNo;
+        plan.data.sjob_lv = facts.common.sjobLv;
+    }
+    return plan;
+}
+
+[[nodiscard]] inline auto TrustPlanFor(const TrustFacts& facts) -> PacketPlan
+{
+    auto plan              = PacketPlan{};
+    plan.data.UniqueNo     = facts.common.uniqueNo;
+    plan.data.Hp           = facts.common.hp;
+    plan.data.Mp           = facts.common.mp;
+    plan.data.Tp           = facts.common.tp;
+    plan.data.ActIndex     = facts.common.actIndex;
+    plan.data.MemberNumber = facts.memberNumber;
+    plan.data.Hpp          = facts.common.hpp;
+    plan.data.Mpp          = facts.common.mpp;
+    plan.data.mjob_no      = facts.common.mjobNo;
+    plan.data.mjob_lv      = facts.common.mjobLv;
+    plan.data.sjob_no      = facts.common.sjobNo;
+    plan.data.sjob_lv      = facts.common.sjobLv;
+    plan.nameSize          = NameSize(facts.common.name);
+    std::memcpy(plan.data.Name, facts.packetName.data(), std::min(plan.nameSize, facts.packetName.size()));
+    return plan;
+}
+
+[[nodiscard]] inline auto DatabasePlanFor(const DatabaseFacts& facts) -> PacketPlan
+{
+    auto plan          = PacketPlan{};
+    plan.data.UniqueNo = facts.uniqueNo;
+    SetGroupAttr(plan.data.GAttr, facts.memberFlags);
+    plan.data.ZoneNo = facts.zoneNo;
+    plan.nameSize    = NameSize(facts.name);
+    std::memcpy(plan.data.Name, facts.name.data(), plan.nameSize);
+    return plan;
+}
+
+} // namespace grouplisthelpers

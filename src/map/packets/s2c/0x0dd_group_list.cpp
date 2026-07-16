@@ -34,48 +34,17 @@ GP_SERV_COMMAND_GROUP_LIST::GP_SERV_COMMAND_GROUP_LIST(const CCharEntity* PChar,
         return;
     }
 
-    auto& packet = this->data();
-
-    packet.UniqueNo                = PChar->id;
-    packet.GAttr.PartyNo           = (memberflags >> 0) & 0x03; // Bits 0-1: Party number (0-2 for parties, 3 for no party)
-    packet.GAttr.PartyLeaderFlg    = (memberflags >> 2) & 0x01; // Bit 2: Party leader flag
-    packet.GAttr.AllianceLeaderFlg = (memberflags >> 3) & 0x01; // Bit 3: Alliance leader flag
-    packet.GAttr.PartyRFlg         = (memberflags >> 4) & 0x01; // Bit 4: Party recruiter flag
-    packet.GAttr.AllianceRFlg      = (memberflags >> 5) & 0x01; // Bit 5: Alliance recruiter flag
-    packet.GAttr.unknown06         = (memberflags >> 6) & 0x01; // Bit 6: MasterComFlg
-    packet.GAttr.unknown07         = (memberflags >> 7) & 0x01; // Bit 7: SubMasterComFlg
-    packet.GAttr.LevelSyncFlg      = (memberflags >> 8) & 0x01; // Bit 8: LevelSyncFlg
-
-    if (PChar->getZone() != ZoneID)
-    {
-        packet.ZoneNo = PChar->getZone();
-    }
-    else
-    {
-        packet.Hp           = PChar->health.hp;
-        packet.Mp           = PChar->health.mp;
-        packet.Tp           = PChar->health.tp;
-        packet.ActIndex     = PChar->targid;
-        packet.MemberNumber = MemberNumber;
-        packet.Hpp          = PChar->GetHPP();
-        packet.Mpp          = PChar->GetMPP();
-
-        if (!PChar->isAnon())
-        {
-            packet.mjob_no = PChar->GetMJob();
-            packet.mjob_lv = PChar->GetMLevel();
-            packet.sjob_no = PChar->GetSJob();
-            packet.sjob_lv = PChar->GetSLevel();
-        }
-    }
-
-    const auto nameSize       = std::min<size_t>(PChar->getName().size(), sizeof(packet.Name));
-    const auto packetNameSize = roundUpToNearestFour(static_cast<uint32_t>(nameSize)) + 4; // Always 4 bytes of padding after name
-    std::memcpy(packet.Name, PChar->getName().c_str(), nameSize);
-
-    // Resize packets to match name length + the 4 bytes of padding the client expects.
-    // Header + struct - max name size + effective packet name size
-    this->setSize(sizeof(GP_SERV_HEADER) + sizeof(PacketData) - 16 + packetNameSize);
+    auto&      packet = this->data();
+    const auto plan   = grouplisthelpers::CharacterPlanFor({
+        .common        = { .uniqueNo = PChar->id, .hp = PChar->health.hp, .mp = PChar->health.mp, .tp = PChar->health.tp, .actIndex = PChar->targid, .hpp = PChar->GetHPP(), .mpp = PChar->GetMPP(), .mjobNo = PChar->GetMJob(), .mjobLv = PChar->GetMLevel(), .sjobNo = PChar->GetSJob(), .sjobLv = PChar->GetSLevel(), .name = PChar->getName() },
+        .memberFlags   = memberflags,
+        .memberNumber  = MemberNumber,
+        .entityZone    = PChar->getZone(),
+        .requestedZone = ZoneID,
+        .anonymous     = PChar->isAnon(),
+    });
+    packet            = plan.data;
+    this->setSize(grouplisthelpers::PacketSizeForNameSize(plan.nameSize));
 }
 
 GP_SERV_COMMAND_GROUP_LIST::GP_SERV_COMMAND_GROUP_LIST(const CTrustEntity* PTrust, const uint8_t MemberNumber)
@@ -86,50 +55,20 @@ GP_SERV_COMMAND_GROUP_LIST::GP_SERV_COMMAND_GROUP_LIST(const CTrustEntity* PTrus
         return;
     }
 
-    auto& packet = this->data();
-
-    packet.UniqueNo     = PTrust->id;
-    packet.Hp           = PTrust->health.hp;
-    packet.Mp           = PTrust->health.mp;
-    packet.Tp           = PTrust->health.tp;
-    packet.ActIndex     = PTrust->targid;
-    packet.MemberNumber = MemberNumber;
-    packet.Hpp          = PTrust->GetHPP();
-    packet.Mpp          = PTrust->GetMPP();
-    packet.mjob_no      = PTrust->GetMJob();
-    packet.mjob_lv      = PTrust->GetMLevel();
-    packet.sjob_no      = PTrust->GetSJob();
-    packet.sjob_lv      = PTrust->GetSLevel();
-
-    const auto nameSize       = std::min<size_t>(PTrust->getName().size(), sizeof(packet.Name));
-    const auto packetNameSize = roundUpToNearestFour(static_cast<uint32_t>(nameSize)) + 4; // Always 4 bytes of padding after name
-    std::memcpy(packet.Name, PTrust->packetName.c_str(), nameSize);
-
-    // Resize packets to match name length + the 4 bytes of padding the client expects.
-    // Header + struct - max name size + effective packet name size
-    this->setSize(sizeof(GP_SERV_HEADER) + sizeof(PacketData) - 16 + packetNameSize);
+    auto&      packet = this->data();
+    const auto plan   = grouplisthelpers::TrustPlanFor({
+        .common       = { .uniqueNo = PTrust->id, .hp = PTrust->health.hp, .mp = PTrust->health.mp, .tp = PTrust->health.tp, .actIndex = PTrust->targid, .hpp = PTrust->GetHPP(), .mpp = PTrust->GetMPP(), .mjobNo = PTrust->GetMJob(), .mjobLv = PTrust->GetMLevel(), .sjobNo = PTrust->GetSJob(), .sjobLv = PTrust->GetSLevel(), .name = PTrust->getName() },
+        .memberNumber = MemberNumber,
+        .packetName   = PTrust->packetName,
+    });
+    packet            = plan.data;
+    this->setSize(grouplisthelpers::PacketSizeForNameSize(plan.nameSize));
 }
 
 GP_SERV_COMMAND_GROUP_LIST::GP_SERV_COMMAND_GROUP_LIST(const uint32_t id, const std::string& name, const uint16_t memberFlags, const uint8_t MemberNumber, const uint16_t ZoneID)
 {
-    auto& packet = this->data();
-
-    packet.UniqueNo                = id;
-    packet.GAttr.PartyNo           = (memberFlags >> 0) & 0x03; // Bits 0-1: Party number (0-2 for parties, 3 for no party)
-    packet.GAttr.PartyLeaderFlg    = (memberFlags >> 2) & 0x01; // Bit 2: Party leader flag
-    packet.GAttr.AllianceLeaderFlg = (memberFlags >> 3) & 0x01; // Bit 3: Alliance leader flag
-    packet.GAttr.PartyRFlg         = (memberFlags >> 4) & 0x01; // Bit 4: Party recruiter flag
-    packet.GAttr.AllianceRFlg      = (memberFlags >> 5) & 0x01; // Bit 5: Alliance recruiter flag
-    packet.GAttr.unknown06         = (memberFlags >> 6) & 0x01; // Bit 6: MasterComFlg
-    packet.GAttr.unknown07         = (memberFlags >> 7) & 0x01; // Bit 7: SubMasterComFlg
-    packet.GAttr.LevelSyncFlg      = (memberFlags >> 8) & 0x01; // Bit 8: LevelSyncFlg
-    packet.ZoneNo                  = ZoneID;
-
-    const auto nameSize       = std::min<size_t>(name.size(), sizeof(packet.Name));
-    const auto packetNameSize = roundUpToNearestFour(static_cast<uint32_t>(nameSize)) + 4; // Always 4 bytes of padding after name
-    std::memcpy(packet.Name, name.c_str(), nameSize);
-
-    // Resize packets to match name length + the 4 bytes of padding the client expects.
-    // Header + struct - max name size + effective packet name size
-    this->setSize(sizeof(GP_SERV_HEADER) + sizeof(PacketData) - 16 + packetNameSize);
+    auto&      packet = this->data();
+    const auto plan   = grouplisthelpers::DatabasePlanFor({ .uniqueNo = id, .name = name, .memberFlags = memberFlags, .zoneNo = ZoneID });
+    packet            = plan.data;
+    this->setSize(grouplisthelpers::PacketSizeForNameSize(plan.nameSize));
 }

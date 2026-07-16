@@ -36,17 +36,17 @@ namespace
 
 using GroupSolicitReqPacket = GP_SERV_COMMAND_GROUP_SOLICIT_REQ;
 
-constexpr auto groupSolicitReqUniqueNoOffset   = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, UniqueNo);
-constexpr auto groupSolicitReqActIndexOffset   = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, ActIndex);
-constexpr auto groupSolicitReqAnonFlagOffset   = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, AnonFlag);
-constexpr auto groupSolicitReqKindOffset       = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, Kind);
-constexpr auto groupSolicitReqNameOffset       = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, sName);
-constexpr auto groupSolicitReqNameSize         = sizeof(GroupSolicitReqPacket::PacketData{}.sName);
-constexpr auto groupSolicitReqRaceNoOffset     = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, RaceNo);
-constexpr auto groupSolicitReqPadding1EOffset  = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, padding1E);
-constexpr auto groupSolicitReqPadding1ESize    = sizeof(GroupSolicitReqPacket::PacketData{}.padding1E);
-constexpr auto groupSolicitReqPacketDataSize   = sizeof(GroupSolicitReqPacket::PacketData);
-constexpr auto groupSolicitReqPacketSize       = sizeof(GP_SERV_HEADER) + groupSolicitReqPacketDataSize;
+constexpr auto groupSolicitReqUniqueNoOffset  = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, UniqueNo);
+constexpr auto groupSolicitReqActIndexOffset  = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, ActIndex);
+constexpr auto groupSolicitReqAnonFlagOffset  = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, AnonFlag);
+constexpr auto groupSolicitReqKindOffset      = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, Kind);
+constexpr auto groupSolicitReqNameOffset      = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, sName);
+constexpr auto groupSolicitReqNameSize        = sizeof(GroupSolicitReqPacket::PacketData{}.sName);
+constexpr auto groupSolicitReqRaceNoOffset    = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, RaceNo);
+constexpr auto groupSolicitReqPadding1EOffset = sizeof(GP_SERV_HEADER) + offsetof(GroupSolicitReqPacket::PacketData, padding1E);
+constexpr auto groupSolicitReqPadding1ESize   = sizeof(GroupSolicitReqPacket::PacketData{}.padding1E);
+constexpr auto groupSolicitReqPacketDataSize  = sizeof(GroupSolicitReqPacket::PacketData);
+constexpr auto groupSolicitReqPacketSize      = sizeof(GP_SERV_HEADER) + groupSolicitReqPacketDataSize;
 
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
 {
@@ -100,16 +100,16 @@ auto testLayout() -> bool
 
 auto testPacketDataBytes() -> bool
 {
-    auto data          = GroupSolicitReqPacket::PacketData{};
-    data.UniqueNo      = 0x11223344;
-    data.ActIndex      = 0x5566;
-    data.AnonFlag      = 0x77;
-    data.Kind          = PartyKind::Alliance;
-    data.sName[0]      = 0x88;
-    data.sName[15]     = 0x99;
-    data.RaceNo        = 0xAABB;
-    data.padding1E[0]  = 0xCC;
-    data.padding1E[1]  = 0xDD;
+    auto data         = GroupSolicitReqPacket::PacketData{};
+    data.UniqueNo     = 0x11223344;
+    data.ActIndex     = 0x5566;
+    data.AnonFlag     = 0x77;
+    data.Kind         = PartyKind::Alliance;
+    data.sName[0]     = 0x88;
+    data.sName[15]    = 0x99;
+    data.RaceNo       = 0xAABB;
+    data.padding1E[0] = 0xCC;
+    data.padding1E[1] = 0xDD;
 
     auto expected = std::array<uint8, 28>{};
     expected[0]   = 0x44;
@@ -144,6 +144,15 @@ auto testConstructorBytes() -> bool
     return ok;
 }
 
+auto testConstructorTruncatesInviterName() -> bool
+{
+    auto name   = std::string(17, 'n');
+    name[15]    = 'N';
+    name[16]    = 'x';
+    auto packet = GroupSolicitReqPacket(1, 2, name, PartyKind::Party);
+    return expectEqualUInt(packet.ref<uint8>(groupSolicitReqNameOffset + 15), static_cast<uint8>('N'), "constructor inviter name final byte");
+}
+
 } // namespace
 
 auto runS2CGroupSolicitReqPacketSelfTests() -> bool
@@ -152,5 +161,6 @@ auto runS2CGroupSolicitReqPacketSelfTests() -> bool
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
     ok      = testConstructorBytes() && ok;
+    ok      = testConstructorTruncatesInviterName() && ok;
     return ok;
 }

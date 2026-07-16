@@ -156,18 +156,58 @@ auto testConstructorBytes() -> bool
     packet.setSequence(0xBEEF);
 
     const auto expected = std::array<uint8, 52>{
-        0xDD, 0x1A, 0xEF, 0xBE,
-        0x44, 0x33, 0x22, 0x11,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00,
-        0xFE, 0x01, 0x00, 0x00,
-        0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x68, 0x24,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x50, 0x61, 0x72, 0x74, 0x79, 0x50, 0x61, 0x6C,
-        0x00, 0x00, 0x00, 0x00,
+        0xDD,
+        0x1A,
+        0xEF,
+        0xBE,
+        0x44,
+        0x33,
+        0x22,
+        0x11,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0xFE,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x68,
+        0x24,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x50,
+        0x61,
+        0x72,
+        0x74,
+        0x79,
+        0x50,
+        0x61,
+        0x6C,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
     };
 
     bool ok = true;
@@ -184,10 +224,22 @@ auto testNameSizing() -> bool
     auto longName    = GroupListPacket(0x01020304, "abcdefghijklmnopQ", 0, 0x09, 0x0506);
 
     const auto expectedLongName = std::array<uint8, 16>{
-        0x61, 0x62, 0x63, 0x64,
-        0x65, 0x66, 0x67, 0x68,
-        0x69, 0x6A, 0x6B, 0x6C,
-        0x6D, 0x6E, 0x6F, 0x70,
+        0x61,
+        0x62,
+        0x63,
+        0x64,
+        0x65,
+        0x66,
+        0x67,
+        0x68,
+        0x69,
+        0x6A,
+        0x6B,
+        0x6C,
+        0x6D,
+        0x6E,
+        0x6F,
+        0x70,
     };
 
     bool ok = true;
@@ -195,6 +247,39 @@ auto testNameSizing() -> bool
     ok      = expectEqualUInt(longName.getSize(), expectedPacketSize(17), "truncated long-name packet size") && ok;
     ok      = expectBytes(longName, groupListNameOffset, expectedLongName, "truncated name bytes") && ok;
     ok      = expectZeroRange(longName, groupListNameOffset + expectedLongName.size(), longName.getSize(), "long-name padding") && ok;
+    return ok;
+}
+
+auto testRuntimePlans() -> bool
+{
+    using namespace grouplisthelpers;
+    const auto common = CommonFacts{ .uniqueNo = 0x11223344, .hp = 1000, .mp = 200, .tp = 3000, .actIndex = 0x1234, .hpp = 75, .mpp = 50, .mjobNo = 6, .mjobLv = 99, .sjobNo = 3, .sjobLv = 49, .name = "Member" };
+    bool       ok     = true;
+
+    auto character = CharacterFacts{ .common = common, .memberFlags = 0x01FE, .memberNumber = 2, .entityZone = 100, .requestedZone = 100 };
+    auto plan      = CharacterPlanFor(character);
+    ok             = expectEqualUInt(plan.data.Hp, 1000, "same-zone character HP") && ok;
+    ok             = expectEqualUInt(plan.data.MemberNumber, 2, "same-zone character member number") && ok;
+    ok             = expectEqualUInt(plan.data.mjob_no, 6, "same-zone character main job") && ok;
+
+    character.anonymous = true;
+    plan                = CharacterPlanFor(character);
+    ok                  = expectEqualUInt(plan.data.mjob_no, 0, "anonymous character hides main job") && ok;
+    ok                  = expectEqualUInt(plan.data.sjob_no, 0, "anonymous character hides support job") && ok;
+
+    character.anonymous     = false;
+    character.requestedZone = 101;
+    plan                    = CharacterPlanFor(character);
+    ok                      = expectEqualUInt(plan.data.ZoneNo, 100, "different-zone character zone") && ok;
+    ok                      = expectEqualUInt(plan.data.Hp, 0, "different-zone character hides HP") && ok;
+    ok                      = expectEqualUInt(plan.data.MemberNumber, 0, "different-zone character hides member number") && ok;
+
+    auto trustPlan = TrustPlanFor({ .common = common, .memberNumber = 3, .packetName = "Trust" });
+    ok             = expectEqualUInt(trustPlan.data.Hp, 1000, "trust HP") && ok;
+    ok             = expectEqualUInt(trustPlan.data.MemberNumber, 3, "trust member number") && ok;
+    ok             = expectEqualUInt(trustPlan.data.mjob_no, 6, "trust main job") && ok;
+    ok             = expectEqualUInt(trustPlan.nameSize, 6, "trust uses entity name length for packet size") && ok;
+    ok             = expectEqualUInt(trustPlan.data.Name[0], 'T', "trust uses packet name bytes") && ok;
     return ok;
 }
 
@@ -206,5 +291,6 @@ auto runS2CGroupListPacketSelfTests() -> bool
     ok      = testLayout() && ok;
     ok      = testConstructorBytes() && ok;
     ok      = testNameSizing() && ok;
+    ok      = testRuntimePlans() && ok;
     return ok;
 }
