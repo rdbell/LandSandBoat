@@ -77,5 +77,6 @@ auto GP_CLI_COMMAND_FISHING_2::validate(MapSession* PSession, const CCharEntity*
 
 void GP_CLI_COMMAND_FISHING_2::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    fishingutils::FishingAction(PChar, static_cast<GP_CLI_COMMAND_FISHING_2_MODE>(this->mode), this->para, this->para2);
+    const auto plan = fishingActionPlanFor(*this);
+    fishingutils::FishingAction(PChar, plan.mode, plan.para, plan.para2);
 }

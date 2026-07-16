@@ -22,6 +22,32 @@
 #pragma once
 #include "base.h"
 
+// Keeps MYROOM_PLANT_STOP's post-validation eligibility and effects
+// independently testable. Container lookup and packet/database ownership
+// remain in GP_CLI_COMMAND_MYROOM_PLANT_STOP::process.
+namespace myroomplantstophelpers
+{
+struct RuntimeFacts
+{
+    bool    hasFlowerpot;
+    bool    planted;
+    uint8_t stage;
+    bool    dried;
+};
+
+struct RuntimePlan
+{
+    bool sendMoogleDriesPlant;
+    bool sendMyRoomOperation;
+    bool setDried;
+    bool persistExtra;
+    bool sendItemAttr;
+    bool sendItemSame;
+};
+
+[[nodiscard]] auto MakeRuntimePlan(const RuntimeFacts& facts) -> RuntimePlan;
+} // namespace myroomplantstophelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00FF
 // This packet is sent by the client when drying out a plant within their mog house.
 GP_CLI_PACKET(GP_CLI_COMMAND_MYROOM_PLANT_STOP,

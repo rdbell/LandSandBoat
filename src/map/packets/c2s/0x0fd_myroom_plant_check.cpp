@@ -34,6 +34,38 @@ const std::set<uint8_t> validPlantCategories = { LOC_MOGSAFE, LOC_MOGSAFE2 };
 
 }
 
+auto myroomplantcheck::PlanFor(const Facts& facts) -> Plan
+{
+    if (!facts.isFlowerpot)
+    {
+        return {};
+    }
+
+    auto plan = Plan{
+        .sendMyRoomOperation = true,
+    };
+
+    if (!facts.isPlanted)
+    {
+        return plan;
+    }
+
+    plan.outputs.push_back({ Message::SeedSown, facts.seedItemID });
+
+    if (facts.isTree && facts.stage > FLOWERPOT_STAGE_FIRST_SPROUTS_CRYSTAL)
+    {
+        plan.outputs.push_back({ facts.extraCrystalItemID != 0 ? Message::CrystalUsed : Message::CrystalNone, facts.extraCrystalItemID });
+    }
+
+    if (facts.stage > FLOWERPOT_STAGE_SECOND_SPROUTS_CRYSTAL)
+    {
+        plan.outputs.push_back({ facts.commonCrystalItemID != 0 ? Message::CrystalUsed : Message::CrystalNone, facts.commonCrystalItemID });
+    }
+
+    plan.markExamined = !facts.wasExamined;
+    return plan;
+}
+
 auto GP_CLI_COMMAND_MYROOM_PLANT_CHECK::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -68,46 +100,51 @@ void GP_CLI_COMMAND_MYROOM_PLANT_CHECK::process(MapSession* PSession, CCharEntit
         return;
     }
 
-    if (PPotItem->isPlanted())
+    const auto crystalItemID = [](const FLOWERPOT_ELEMENT_TYPE element) -> uint16
     {
-        PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, CItemFlowerpot::getSeedID(PPotItem->getPlant()), 0, MsgBasic::GardeningSeedSown);
-        if (PPotItem->isTree())
+        return element == FLOWERPOT_ELEMENT_NONE ? 0 : static_cast<uint16>(CItemFlowerpot::getItemFromElement(element));
+    };
+
+    const auto plan = myroomplantcheck::PlanFor({
+        .isFlowerpot          = true,
+        .isPlanted            = PPotItem->isPlanted(),
+        .isTree               = PPotItem->isTree(),
+        .wasExamined          = PPotItem->wasExamined(),
+        .stage                = static_cast<uint8_t>(PPotItem->getStage()),
+        .seedItemID           = CItemFlowerpot::getSeedID(PPotItem->getPlant()),
+        .extraCrystalItemID   = crystalItemID(PPotItem->getExtraCrystalFeed()),
+        .commonCrystalItemID  = crystalItemID(PPotItem->getCommonCrystalFeed()),
+    });
+
+    for (const auto& output : plan.outputs)
+    {
+        switch (output.message)
         {
-            if (PPotItem->getStage() > FLOWERPOT_STAGE_FIRST_SPROUTS_CRYSTAL)
-            {
-                if (PPotItem->getExtraCrystalFeed() != FLOWERPOT_ELEMENT_NONE)
-                {
-                    PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, CItemFlowerpot::getItemFromElement(PPotItem->getExtraCrystalFeed()), 0, MsgBasic::GardeningCrystalUsed);
-                }
-                else
-                {
-                    PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::GardeningCrystalNone);
-                }
-            }
-        }
-        if (PPotItem->getStage() > FLOWERPOT_STAGE_SECOND_SPROUTS_CRYSTAL)
-        {
-            if (PPotItem->getCommonCrystalFeed() != FLOWERPOT_ELEMENT_NONE)
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, CItemFlowerpot::getItemFromElement(PPotItem->getCommonCrystalFeed()), 0, MsgBasic::GardeningCrystalUsed);
-            }
-            else
-            {
+            case myroomplantcheck::Message::SeedSown:
+                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, output.itemID, 0, MsgBasic::GardeningSeedSown);
+                break;
+            case myroomplantcheck::Message::CrystalUsed:
+                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, output.itemID, 0, MsgBasic::GardeningCrystalUsed);
+                break;
+            case myroomplantcheck::Message::CrystalNone:
                 PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::GardeningCrystalNone);
-            }
-        }
-
-        if (!PPotItem->wasExamined())
-        {
-            PPotItem->markExamined();
-
-            db::preparedStmt("UPDATE char_inventory SET extra = ? WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
-                             PPotItem->m_extra,
-                             PChar->id,
-                             PPotItem->getLocationID(),
-                             PPotItem->getSlotID());
+                break;
         }
     }
 
-    PChar->pushPacket<GP_SERV_COMMAND_MYROOM_OPERATION>(PPotItem, static_cast<CONTAINER_ID>(this->MyroomPlantCategory), this->MyroomPlantItemIndex);
+    if (plan.markExamined)
+    {
+        PPotItem->markExamined();
+
+        db::preparedStmt("UPDATE char_inventory SET extra = ? WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
+                         PPotItem->m_extra,
+                         PChar->id,
+                         PPotItem->getLocationID(),
+                         PPotItem->getSlotID());
+    }
+
+    if (plan.sendMyRoomOperation)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_MYROOM_OPERATION>(PPotItem, static_cast<CONTAINER_ID>(this->MyroomPlantCategory), this->MyroomPlantItemIndex);
+    }
 }

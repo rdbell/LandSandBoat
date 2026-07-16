@@ -264,6 +264,21 @@ auto testFishingValidation() -> bool
     return ok;
 }
 
+auto testFishingActionPlan() -> bool
+{
+    auto packet = GP_CLI_COMMAND_FISHING_2{};
+    packet.mode = static_cast<std::int8_t>(GP_CLI_COMMAND_FISHING_2_MODE::RequestPotentialTimeout);
+    packet.para = -1;
+    packet.para2 = -2;
+
+    const auto plan = fishingActionPlanFor(packet);
+    bool       ok   = true;
+    ok              = expectEqualUInt(static_cast<std::uint8_t>(plan.mode), static_cast<std::uint8_t>(GP_CLI_COMMAND_FISHING_2_MODE::RequestPotentialTimeout), "action plan mode") && ok;
+    ok              = expectEqualUInt(plan.para, 0xFFFFFFFFU, "action plan para unsigned forwarding") && ok;
+    ok              = expectEqualUInt(plan.para2, 0xFFFFFFFEU, "action plan para2 unsigned forwarding") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SFishingPacketSelfTests() -> bool
@@ -272,5 +287,6 @@ auto runC2SFishingPacketSelfTests() -> bool
     ok      = testFishingLayoutsAndMetadata() && ok;
     ok      = testFishingEncodedBytes() && ok;
     ok      = testFishingValidation() && ok;
+    ok      = testFishingActionPlan() && ok;
     return ok;
 }

@@ -120,6 +120,8 @@ set(SOURCES
     test_c2s_currencies_1_runtime.cpp
     test_c2s_currencies_2_runtime.h
     test_c2s_currencies_2_runtime.cpp
+    test_c2s_myroom_plant_check_runtime.h
+    test_c2s_myroom_plant_check_runtime.cpp
     test_c2s_dice_packet.h
     test_c2s_dice_packet.cpp
     test_c2s_dig_runtime.h

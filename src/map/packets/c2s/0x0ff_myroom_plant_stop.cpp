@@ -37,6 +37,19 @@ const std::set<uint8_t> validPlantCategories = { LOC_MOGSAFE, LOC_MOGSAFE2 };
 
 }
 
+auto myroomplantstophelpers::MakeRuntimePlan(const RuntimeFacts& facts) -> RuntimePlan
+{
+    const auto eligible = facts.hasFlowerpot && facts.planted && facts.stage > FLOWERPOT_STAGE_INITIAL && facts.stage < FLOWERPOT_STAGE_WILTED && !facts.dried;
+    return {
+        .sendMoogleDriesPlant = eligible,
+        .sendMyRoomOperation  = eligible,
+        .setDried             = eligible,
+        .persistExtra         = eligible,
+        .sendItemAttr         = eligible,
+        .sendItemSame         = eligible,
+    };
+}
+
 auto GP_CLI_COMMAND_MYROOM_PLANT_STOP::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -50,7 +63,14 @@ void GP_CLI_COMMAND_MYROOM_PLANT_STOP::process(MapSession* PSession, CCharEntity
     CItemContainer* PItemContainer = PChar->getStorage(this->MyroomPlantCategory);
     CItemFlowerpot* PItem          = dynamic_cast<CItemFlowerpot*>(PItemContainer->GetItem(this->MyroomPlantItemIndex));
 
-    if (PItem != nullptr && PItem->isPlanted() && PItem->getStage() > FLOWERPOT_STAGE_INITIAL && PItem->getStage() < FLOWERPOT_STAGE_WILTED && !PItem->isDried())
+    const auto plan = myroomplantstophelpers::MakeRuntimePlan({
+        .hasFlowerpot = PItem != nullptr,
+        .planted       = PItem != nullptr && PItem->isPlanted(),
+        .stage         = PItem != nullptr ? static_cast<uint8_t>(PItem->getStage()) : uint8_t{},
+        .dried         = PItem != nullptr && PItem->isDried(),
+    });
+
+    if (plan.setDried)
     {
         PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(this->MyroomPlantItemNo, MsgStd::MoogleDriesPlant);
         PChar->pushPacket<GP_SERV_COMMAND_MYROOM_OPERATION>(PItem, static_cast<CONTAINER_ID>(this->MyroomPlantCategory), this->MyroomPlantItemIndex);

@@ -31,6 +31,7 @@
 #include <string_view>
 
 #include "map/item_container.h"
+#include "map/items/item_flowerpot.h"
 #include "map/packets/c2s/0x0fc_myroom_plant_add.h"
 #include "map/packets/c2s/0x0fd_myroom_plant_check.h"
 #include "map/packets/c2s/0x0fe_myroom_plant_crop.h"
@@ -284,11 +285,58 @@ auto testMyRoomPlantValidation() -> bool
     return ok;
 }
 
+auto testMyRoomPlantStopRuntimePlan() -> bool
+{
+    const auto isNoop = [](const myroomplantstophelpers::RuntimePlan& plan) {
+        return !plan.sendMoogleDriesPlant && !plan.sendMyRoomOperation && !plan.setDried && !plan.persistExtra && !plan.sendItemAttr && !plan.sendItemSame;
+    };
+    const auto eligible = myroomplantstophelpers::MakeRuntimePlan({
+        .hasFlowerpot = true,
+        .planted       = true,
+        .stage         = FLOWERPOT_STAGE_FIRST_SPROUTS,
+        .dried         = false,
+    });
+    const auto noFlowerpot = myroomplantstophelpers::MakeRuntimePlan({
+        .hasFlowerpot = false,
+        .planted       = true,
+        .stage         = FLOWERPOT_STAGE_FIRST_SPROUTS,
+        .dried         = false,
+    });
+    const auto unplanted = myroomplantstophelpers::MakeRuntimePlan({
+        .hasFlowerpot = true,
+        .planted       = false,
+        .stage         = FLOWERPOT_STAGE_FIRST_SPROUTS,
+        .dried         = false,
+    });
+    const auto initial = myroomplantstophelpers::MakeRuntimePlan({
+        .hasFlowerpot = true,
+        .planted       = true,
+        .stage         = FLOWERPOT_STAGE_INITIAL,
+        .dried         = false,
+    });
+    const auto wilted = myroomplantstophelpers::MakeRuntimePlan({
+        .hasFlowerpot = true,
+        .planted       = true,
+        .stage         = FLOWERPOT_STAGE_WILTED,
+        .dried         = false,
+    });
+    const auto dried = myroomplantstophelpers::MakeRuntimePlan({
+        .hasFlowerpot = true,
+        .planted       = true,
+        .stage         = FLOWERPOT_STAGE_MATURE_PLANT,
+        .dried         = true,
+    });
+
+    return expectTrue(eligible.sendMoogleDriesPlant && eligible.sendMyRoomOperation && eligible.setDried && eligible.persistExtra && eligible.sendItemAttr && eligible.sendItemSame, "MYROOM_PLANT_STOP eligible plan") &&
+           expectTrue(isNoop(noFlowerpot) && isNoop(unplanted) && isNoop(initial) && isNoop(wilted) && isNoop(dried), "MYROOM_PLANT_STOP ineligible plans");
+}
+
 } // namespace
 
 auto runC2SMyRoomPlantPacketSelfTests() -> bool
 {
     return testMyRoomPlantLayoutsAndMetadata() &&
            testMyRoomPlantEncodedBytesAndPayloads() &&
-           testMyRoomPlantValidation();
+           testMyRoomPlantValidation() &&
+           testMyRoomPlantStopRuntimePlan();
 }

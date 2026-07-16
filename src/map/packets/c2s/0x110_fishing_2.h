@@ -30,6 +30,15 @@ enum class GP_CLI_COMMAND_FISHING_2_MODE : uint8_t
     RequestPotentialTimeout = 5,
 };
 
+// FishingActionPlan preserves the arguments forwarded by FISHING_2's
+// post-validation process step. FishingAction owns the game-state behavior.
+struct FishingActionPlan
+{
+    GP_CLI_COMMAND_FISHING_2_MODE mode;
+    uint32                        para;
+    uint32                        para2;
+};
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0110
 // This packet is sent by the client when interacting with the fishing mini-game system.
 // Note: 0x066 handles the old fishing system, while 0x110 handles the new fishing mini-game.
@@ -43,3 +52,12 @@ GP_CLI_PACKET(GP_CLI_COMMAND_FISHING_2,
               uint8_t  unknown00; // PS2: dammy
               int32_t  para2;     // PS2: (New; did not exist.)
 );
+
+constexpr auto fishingActionPlanFor(const GP_CLI_COMMAND_FISHING_2& packet) -> FishingActionPlan
+{
+    return {
+        .mode  = static_cast<GP_CLI_COMMAND_FISHING_2_MODE>(packet.mode),
+        .para  = static_cast<uint32>(packet.para),
+        .para2 = static_cast<uint32>(packet.para2),
+    };
+}

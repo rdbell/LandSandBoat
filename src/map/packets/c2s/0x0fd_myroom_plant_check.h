@@ -22,6 +22,47 @@
 #pragma once
 #include "base.h"
 
+#include <vector>
+
+// Keeps gardening examine decisions testable without entities, packets, or
+// persistence. The caller resolves flowerpot state and item IDs first.
+namespace myroomplantcheck
+{
+enum class Message : uint8
+{
+    SeedSown,
+    CrystalUsed,
+    CrystalNone,
+};
+
+struct Output
+{
+    Message  message;
+    uint16_t itemID;
+};
+
+struct Facts
+{
+    bool     isFlowerpot;
+    bool     isPlanted;
+    bool     isTree;
+    bool     wasExamined;
+    uint8_t  stage;
+    uint16_t seedItemID;
+    uint16_t extraCrystalItemID;
+    uint16_t commonCrystalItemID;
+};
+
+struct Plan
+{
+    bool                sendMyRoomOperation;
+    bool                markExamined;
+    std::vector<Output> outputs;
+};
+
+auto PlanFor(const Facts& facts) -> Plan;
+} // namespace myroomplantcheck
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00FD
 // This packet is sent by the client when examining a plant within their mog house.
 GP_CLI_PACKET(GP_CLI_COMMAND_MYROOM_PLANT_CHECK,
