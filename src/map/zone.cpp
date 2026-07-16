@@ -1228,13 +1228,9 @@ void CZone::CharZoneOut(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    for (const auto& triggerArea : m_triggerAreaList)
+    if (const auto triggerArea = zonehelpers::FirstZoneOutTriggerArea(m_triggerAreaList, [PChar](const auto id) { return PChar->isInTriggerArea(id); }); triggerArea != m_triggerAreaList.end())
     {
-        if (PChar->isInTriggerArea(triggerArea->getTriggerAreaID()))
-        {
-            luautils::OnTriggerAreaLeave(PChar, triggerArea);
-            break;
-        }
+        luautils::OnTriggerAreaLeave(PChar, *triggerArea);
     }
 
     // Save seal recast timer if enabled

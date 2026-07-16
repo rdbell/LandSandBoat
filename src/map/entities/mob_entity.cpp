@@ -24,6 +24,7 @@
 #include "mob_gil_policy.h"
 #include "mob_roam_policy.h"
 #include "mob_roam_home_policy.h"
+#include "mob_force_link_policy.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -423,25 +424,7 @@ bool CMobEntity::CanLink(position_t* pos, int16 superLink)
 
 bool CMobEntity::ShouldForceLink()
 {
-    // There are certain cases where mobs should always be able
-    // to link with other mobs, even if their families or sublinks
-    // do not align
-    if (loc.zone->GetTypeMask() & ZONE_TYPE::DYNAMIS)
-    {
-        return true;
-    }
-
-    if (m_Type & MOBTYPE_BATTLEFIELD)
-    {
-        return true;
-    }
-
-    if (getMobMod(MOBMOD_SUPERLINK))
-    {
-        return true;
-    }
-
-    return false;
+    return mobforcelinkhelpers::ShouldForceLink(loc.zone->GetTypeMask() & ZONE_TYPE::DYNAMIS, m_Type & MOBTYPE_BATTLEFIELD, getMobMod(MOBMOD_SUPERLINK) != 0);
 }
 
 bool CMobEntity::CanDeaggro() const

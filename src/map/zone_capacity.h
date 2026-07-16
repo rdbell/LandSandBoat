@@ -141,6 +141,13 @@ inline auto PlanSealTimerRestore(const bool persistEnabled, const uint32 expiry,
     return { remaining > 0 && remaining <= 300, remaining, true };
 }
 
+template <typename Areas, typename IsMember>
+auto FirstZoneOutTriggerArea(const Areas& areas, IsMember&& isMember) -> typename Areas::const_iterator
+{
+    for (auto it = areas.begin(); it != areas.end(); ++it) if (isMember((*it)->getTriggerAreaID())) return it;
+    return areas.end();
+}
+
 // --- updateCharLevelRestriction ---
 
 // ShouldSkipLevelRestrictionUpdate mirrors already has LevelRestriction with

@@ -197,7 +197,7 @@ int32 MapNetworking::map_decipher_packet(uint8* buff, size_t buffsize, MapSessio
 bool MapNetworking::decodeIncomingPacket(ByteSpan packet, NetworkBuffer& output, size_t& outputSize, blowfish_t* pbfkey)
 {
     outputSize = 0;
-    if (pbfkey == nullptr || packet.size() < FFXI_HEADER_SIZE + 1 + sizeof(uint32) + 16 || packet.size() > output.size())
+    if (pbfkey == nullptr || !mapnetworkinghelpers::HasValidIncomingPacketSize(packet.size(), output.size()))
     {
         return false;
     }

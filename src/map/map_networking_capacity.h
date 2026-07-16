@@ -27,4 +27,13 @@ inline auto IncomingEncryptedBlockCount(const std::size_t packetSize) -> std::si
     return (packetSize - FFXI_HEADER_SIZE) / 8;
 }
 
+// HasValidIncomingPacketSize mirrors the envelope bounds guard before inbound
+// packet decryption. A frame needs the header, compression marker, bit-count,
+// and MD5 trailer, and must fit the caller's fixed output buffer.
+inline auto HasValidIncomingPacketSize(const std::size_t packetSize, const std::size_t outputCapacity) -> bool
+{
+    constexpr auto minimumPacketSize = FFXI_HEADER_SIZE + 1 + sizeof(uint32) + 16;
+    return packetSize >= minimumPacketSize && packetSize <= outputCapacity;
+}
+
 } // namespace mapnetworkinghelpers
