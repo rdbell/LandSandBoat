@@ -2,6 +2,14 @@
 
 #include <fmt/format.h>
 
+auto SearchApplicationConfig() -> ApplicationConfig
+{
+    return ApplicationConfig{
+        .serverName = SearchApplicationServerName(),
+        .arguments  = {},
+    };
+}
+
 auto SearchApplicationServerName() -> std::string
 {
     return "search";

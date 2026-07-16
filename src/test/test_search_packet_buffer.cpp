@@ -133,6 +133,16 @@ auto testSearchApplicationServerName() -> bool
     return expectEqualString(SearchApplicationServerName(), "search", "search application server name");
 }
 
+auto testSearchApplicationConfig() -> bool
+{
+    const auto config = SearchApplicationConfig();
+
+    bool ok = true;
+    ok      = expectEqualString(config.serverName, "search", "search application config server name") && ok;
+    ok      = expectEqualInt(config.arguments.size(), 0, "search application config argument count") && ok;
+    return ok;
+}
+
 auto testSearchApplicationConsoleCommandDescriptors() -> bool
 {
     const auto commands = SearchApplicationConsoleCommandDescriptors(14);
@@ -1150,6 +1160,7 @@ auto runSearchPacketBufferSelfTests() -> bool
 {
     return testRequestTypeConstants() &&
            testSearchApplicationServerName() &&
+           testSearchApplicationConfig() &&
            testSearchApplicationConsoleCommandDescriptors() &&
            testSearchAuctionExpirationPlanDisabled() &&
            testSearchAuctionExpirationPlanEnabled() &&

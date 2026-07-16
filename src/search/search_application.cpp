@@ -25,21 +25,8 @@
 #include "search_application_config.h"
 #include "search_engine.h"
 
-namespace
-{
-
-auto appConfig() -> ApplicationConfig
-{
-    return ApplicationConfig{
-        .serverName = SearchApplicationServerName(),
-        .arguments  = {},
-    };
-}
-
-} // namespace
-
 SearchApplication::SearchApplication(const int argc, char** argv)
-: Application(appConfig(), argc, argv)
+: Application(SearchApplicationConfig(), argc, argv)
 {
 }
 

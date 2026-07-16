@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/application.h"
 #include "common/cbasetypes.h"
 
 #include <array>
@@ -11,6 +12,7 @@ struct SearchConsoleCommandDescriptor
     std::string description;
 };
 
+auto SearchApplicationConfig() -> ApplicationConfig;
 auto SearchApplicationServerName() -> std::string;
 auto SearchApplicationConsoleCommandDescriptors(uint16 expiryDays) -> std::array<SearchConsoleCommandDescriptor, 2>;
 
