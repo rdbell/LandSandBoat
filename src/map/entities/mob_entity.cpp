@@ -29,6 +29,7 @@
 #include "mob_valid_target_policy.h"
 #include "mob_seal_pool.h"
 #include "mob_geode_element.h"
+#include "mob_geode_pool.h"
 #include "mob_widescan_policy.h"
 #include "mob_home_distance_policy.h"
 #include "mob_tp_move_policy.h"
@@ -84,30 +85,6 @@
 
 namespace
 {
-
-// clang-format off
-    std::map<uint8, uint16> geodeMap = {
-        { ELEMENT_FIRE,    FLAME_GEODE   },
-        { ELEMENT_ICE,     SNOW_GEODE    },
-        { ELEMENT_WIND,    BREEZE_GEODE  },
-        { ELEMENT_EARTH,   SOIL_GEODE    },
-        { ELEMENT_THUNDER, THUNDER_GEODE },
-        { ELEMENT_WATER,   AQUA_GEODE    },
-        { ELEMENT_LIGHT,   LIGHT_GEODE   },
-        { ELEMENT_DARK,    SHADOW_GEODE  }
-    };
-
-    std::map<uint8, uint16> avatariteMap = {
-        { ELEMENT_FIRE,    IFRITITE  },
-        { ELEMENT_ICE,     SHIVITE   },
-        { ELEMENT_WIND,    GARUDITE  },
-        { ELEMENT_EARTH,   TITANITE  },
-        { ELEMENT_THUNDER, RAMUITE   },
-        { ELEMENT_WATER,   LEVIATITE },
-        { ELEMENT_LIGHT,   CARBITE   },
-        { ELEMENT_DARK,    FENRITE   }
-    };
-// clang-format on
 
 constexpr timer::duration SPECIAL_DROP_COOLDOWN = 5min; // 5 minutes between special drops
 
@@ -737,24 +714,8 @@ auto CMobEntity::GetEligibleSeals() -> std::vector<uint16>
 // - Mob >= 80: Avatarites of matching weather/day can also drop. Weather takes priority.
 auto CMobEntity::GetEligibleGeodes() const -> std::vector<uint16>
 {
-    if (!luautils::IsContentEnabled("ABYSSEA"))
-    {
-        return {};
-    }
-
     const uint8 element = mobgeodehelpers::ResolveElement(loc.zone->weather().current(), [] { return battleutils::GetDayElement(); });
-
-    if (GetMLevel() >= 80)
-    {
-        return { geodeMap[element], avatariteMap[element] };
-    }
-
-    if (GetMLevel() >= 50)
-    {
-        return { geodeMap[element] };
-    }
-
-    return {};
+    return mobgeodepoolhelpers::EligibleGeodes(luautils::IsContentEnabled("ABYSSEA"), GetMLevel(), element);
 }
 
 void CMobEntity::DropItems(CCharEntity* PChar)

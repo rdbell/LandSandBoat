@@ -444,7 +444,9 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
     // TODO: figure out what exactly the client sends when you're not in a CS. there's no C2S packets being sent via the client,
     // and yet we receive something here. It doesnt look like a valid packet, as it has no size and the type is 0x001 which is not valid.
     // TODO: Should unencrypted 0x00As not tap the timer?
-    if (PSession->blowfish.status != BLOWFISH_PENDING_ZONE && PSession->blowfish.status != BLOWFISH_WAITING)
+    if (mapnetworkinghelpers::ShouldTapLastUpdate(
+            PSession->blowfish.status == BLOWFISH_PENDING_ZONE,
+            PSession->blowfish.status == BLOWFISH_WAITING))
     {
         // Update the time we last got a char sync packet
         // The client can spam some other packets when trying to zone, preventing timely session deletions

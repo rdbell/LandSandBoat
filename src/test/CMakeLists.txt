@@ -1442,6 +1442,8 @@ set(SOURCES
     test_map_networking_decryption_plan_2708.cpp
     test_map_networking_current_key_2711.h
     test_map_networking_current_key_2711.cpp
+    test_map_networking_last_update_2714.h
+    test_map_networking_last_update_2714.cpp
     test_map_socket_receive_2654.h
     test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h
@@ -1940,6 +1942,8 @@ set(SOURCES
     test_automaton_overload_chance_2707.cpp
     test_automaton_burden_decay_2710.h
     test_automaton_burden_decay_2710.cpp
+    test_mob_geode_pool_2713.h
+    test_mob_geode_pool_2713.cpp
     test_search_social_packets.h
     test_search_social_packets.cpp
     test_settings_number_helper.h
@@ -2015,6 +2019,8 @@ set(SOURCES
     test_zone_pc_despawn_gate_2706.cpp
     test_zone_pc_distance_gate_2709.h
     test_zone_pc_distance_gate_2709.cpp
+    test_zone_pc_candidate_gate_2712.h
+    test_zone_pc_candidate_gate_2712.cpp
     test_typed_flags.h
     test_typed_flags.cpp
     test_uuid_generation.h

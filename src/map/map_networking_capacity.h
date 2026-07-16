@@ -177,4 +177,12 @@ inline auto ShouldMarkCurrentKeyDecryption(const int decryptCount) -> bool
     return decryptCount == 0;
 }
 
+// ShouldTapLastUpdate mirrors recv_parse's session-liveness gate. Packets
+// received while zoning or waiting for zone entry must not keep an old
+// character session alive.
+inline auto ShouldTapLastUpdate(const bool pendingZone, const bool waitingForZone) -> bool
+{
+    return !pendingZone && !waitingForZone;
+}
+
 } // namespace mapnetworkinghelpers

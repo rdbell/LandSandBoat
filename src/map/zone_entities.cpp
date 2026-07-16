@@ -64,6 +64,7 @@
 #include "zone_pc_spawn_gate.h"
 #include "zone_pc_despawn_gate.h"
 #include "zone_pc_distance_gate.h"
+#include "zone_pc_candidate_gate.h"
 
 #include <map/ximesh/ximesh.h>
 
@@ -73,7 +74,6 @@ namespace
 constexpr auto DYNAMIC_ENTITY_TARGID_RANGE_START      = 0x700;
 constexpr auto DYNAMIC_ENTITY_TARGID_RANGE_MAX        = 0x8FF;
 constexpr auto ENTITY_RENDER_DISTANCE                 = 50.0f;
-constexpr auto CHARACTER_SYNC_DISTANCE                = 45.0f;
 constexpr auto CHARACTER_SWAP_MAX                     = 5U;
 constexpr auto CHARACTER_SYNC_LIMIT_MAX               = 32U;
 constexpr auto CHARACTER_SYNC_DISTANCE_SWAP_THRESHOLD = 30U;
@@ -1102,7 +1102,7 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
             }
 
             float charDistance = distance(PChar->loc.p, PCurrentChar->loc.p);
-            if (charDistance > CHARACTER_SYNC_DISTANCE || !isWithinVerticalDistance(PChar, PCurrentChar))
+            if (!zoneentityvisibility::ShouldConsiderPC(charDistance) || !isWithinVerticalDistance(PChar, PCurrentChar))
             {
                 return;
             }
@@ -1131,7 +1131,7 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
     // Only score players in the 3x3 cell block instead of every player in the zone.
     spatialGrid_.forEachInRange(
         PChar->loc.p,
-        CHARACTER_SYNC_DISTANCE,
+        zoneentityvisibility::CharacterSyncDistance,
         [&](CBaseEntity* entity)
         {
             if (entity->objtype == TYPE_PC)
