@@ -20,7 +20,10 @@
 */
 
 #pragma once
+#include <optional>
+
 #include "base.h"
+#include "packets/s2c/0x031_recipe.h"
 
 enum class GP_CLI_COMMAND_RECIPE_MODE : uint8
 {
@@ -30,6 +33,38 @@ enum class GP_CLI_COMMAND_RECIPE_MODE : uint8
     RequestCampaignOpsRecipe      = 4, // Not implemented
     SubmitCampaignOpsMaterialList = 5, // Not implemented
 };
+
+// RECIPE's entity-independent response selection. The host owns response
+// packet construction and delivery.
+namespace recipehelpers
+{
+
+struct ResponsePlan
+{
+    GP_SERV_COMMAND_RECIPE_TYPE type;
+    uint16                      skill;
+    uint16                      level;
+    uint8                       skillRank;
+    uint16                      offset;
+};
+
+[[nodiscard]] constexpr auto BuildResponsePlan(const uint16 mode, const uint16 skill, const uint16 level, const uint16 param1, const uint16 param3, const uint16 param4) -> std::optional<ResponsePlan>
+{
+    switch (static_cast<GP_CLI_COMMAND_RECIPE_MODE>(mode))
+    {
+        case GP_CLI_COMMAND_RECIPE_MODE::RequestAvailableRankList:
+            return ResponsePlan{ GP_SERV_COMMAND_RECIPE_TYPE::RecipeDetail1, skill, level, 0, 0 };
+        case GP_CLI_COMMAND_RECIPE_MODE::RequestAvailableRecipeList:
+            // The client paginates in ranges of 16: 0..16, 16..32, and so on.
+            return ResponsePlan{ GP_SERV_COMMAND_RECIPE_TYPE::RecipeList, skill, level, static_cast<uint8>(param4), param1 };
+        case GP_CLI_COMMAND_RECIPE_MODE::RequestRecipeMaterials:
+            return ResponsePlan{ GP_SERV_COMMAND_RECIPE_TYPE::RecipeDetail2, skill, level, static_cast<uint8>(param4), param3 };
+        default:
+            return std::nullopt;
+    }
+}
+
+} // namespace recipehelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0058
 // This packet is sent by the client when interacting with a

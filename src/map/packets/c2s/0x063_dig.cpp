@@ -21,6 +21,11 @@
 
 #include "0x063_dig.h"
 
+auto dighelpers::MakeDispatchPlan() -> DispatchPlan
+{
+    return {};
+}
+
 auto GP_CLI_COMMAND_DIG::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // Packet explicitly ignored.
@@ -30,5 +35,5 @@ auto GP_CLI_COMMAND_DIG::validate(MapSession* PSession, const CCharEntity* PChar
 
 void GP_CLI_COMMAND_DIG::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    // Do nothing.
+    (void)dighelpers::MakeDispatchPlan(); // Intentionally ignored.
 }

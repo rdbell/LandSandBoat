@@ -56,29 +56,9 @@ auto GP_CLI_COMMAND_RECIPE::validate(MapSession* PSession, const CCharEntity* PC
 
 void GP_CLI_COMMAND_RECIPE::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    uint16 skillRank           = 0;
-    uint16 pagination          = 0;
-    uint16 selectedRecipeIndex = 0;
-
-    switch (static_cast<GP_CLI_COMMAND_RECIPE_MODE>(this->Mode))
+    const auto responsePlan = recipehelpers::BuildResponsePlan(this->Mode, this->skill, this->level, this->Param1, this->Param3, this->Param4);
+    if (responsePlan)
     {
-        case GP_CLI_COMMAND_RECIPE_MODE::RequestAvailableRankList:
-            PChar->pushPacket<GP_SERV_COMMAND_RECIPE>(GP_SERV_COMMAND_RECIPE_TYPE::RecipeDetail1, this->skill, this->level, skillRank, selectedRecipeIndex);
-            break;
-        case GP_CLI_COMMAND_RECIPE_MODE::RequestAvailableRecipeList:
-            // For pagination, the client sends the range in increments of 16. (0..0x10, 0x10..0x20, etc)
-            skillRank  = this->Param4;
-            pagination = this->Param1;
-
-            PChar->pushPacket<GP_SERV_COMMAND_RECIPE>(GP_SERV_COMMAND_RECIPE_TYPE::RecipeList, this->skill, this->level, skillRank, pagination);
-            break;
-        case GP_CLI_COMMAND_RECIPE_MODE::RequestRecipeMaterials:
-            skillRank           = this->Param4;
-            selectedRecipeIndex = this->Param3;
-
-            PChar->pushPacket<GP_SERV_COMMAND_RECIPE>(GP_SERV_COMMAND_RECIPE_TYPE::RecipeDetail2, this->skill, this->level, skillRank, selectedRecipeIndex);
-            break;
-        default:
-            break;
+        PChar->pushPacket<GP_SERV_COMMAND_RECIPE>(responsePlan->type, responsePlan->skill, responsePlan->level, responsePlan->skillRank, responsePlan->offset);
     }
 }

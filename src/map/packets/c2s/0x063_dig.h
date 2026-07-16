@@ -23,6 +23,18 @@
 
 #include "base.h"
 
+namespace dighelpers
+{
+
+struct DispatchPlan
+{
+    bool ignored = true;
+};
+
+auto MakeDispatchPlan() -> DispatchPlan;
+
+} // namespace dighelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0063
 // This packet is sent by the client when it has completed the chocobo digging animation; informing the server it is ready for the results.
 GP_CLI_PACKET(GP_CLI_COMMAND_DIG,

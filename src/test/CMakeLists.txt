@@ -90,6 +90,8 @@ set(SOURCES
     test_c2s_currency_request_packets.cpp
     test_c2s_dice_packet.h
     test_c2s_dice_packet.cpp
+    test_c2s_dig_runtime.h
+    test_c2s_dig_runtime.cpp
     test_c2s_dungeon_inspect_packets.h
     test_c2s_dungeon_inspect_packets.cpp
     test_c2s_equipment_packets.h
@@ -134,6 +136,8 @@ set(SOURCES
     test_c2s_group_solicit_plan.cpp
     test_c2s_group_solicit_response_plan.h
     test_c2s_group_solicit_response_plan.cpp
+    test_c2s_pbx_plan.h
+    test_c2s_pbx_plan.cpp
     ../map/packets/c2s/group_solicit_response_plan.cpp
     ../map/packets/c2s/group_solicit_response_plan.h
     ../map/packets/c2s/group_solicit_plan.cpp
@@ -194,6 +198,8 @@ set(SOURCES
     test_c2s_pos_packet.cpp
     test_c2s_recipe_misc_packets.h
     test_c2s_recipe_misc_packets.cpp
+    test_c2s_recipe_runtime.h
+    test_c2s_recipe_runtime.cpp
     test_c2s_rescue_buff_submap_packets.h
     test_c2s_rescue_buff_submap_packets.cpp
     test_c2s_roe_packets.h
