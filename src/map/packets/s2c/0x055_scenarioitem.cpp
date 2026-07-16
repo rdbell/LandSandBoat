@@ -24,15 +24,11 @@
 
 GP_SERV_COMMAND_SCENARIOITEM::GP_SERV_COMMAND_SCENARIOITEM(const CCharEntity* PChar, const uint8_t keyTable)
 {
-    auto& packet = this->data();
     if (keyTable >= PChar->keys.tables.size())
     {
         ShowErrorFmt("Index {} exceeds key items table capacity.", keyTable);
         return;
     }
 
-    std::memcpy(packet.GetItemFlag, &PChar->keys.tables[keyTable].keyList, sizeof(packet.GetItemFlag));
-    std::memcpy(packet.LookItemFlag, &PChar->keys.tables[keyTable].seenList, sizeof(packet.LookItemFlag));
-
-    packet.TableIndex = keyTable;
+    this->data() = scenarioitemhelpers::PlanFor(PChar->keys, keyTable);
 }

@@ -21,7 +21,10 @@
 
 #pragma once
 
+#include <cstring>
+
 #include "base.h"
+#include "common/mmo.h"
 
 class CCharEntity;
 
@@ -40,3 +43,22 @@ public:
 
     GP_SERV_COMMAND_SCENARIOITEM(const CCharEntity* PChar, uint8_t keyTable);
 };
+
+namespace scenarioitemhelpers
+{
+
+[[nodiscard]] inline auto PlanFor(const keyitems_t& keys, const uint8 keyTable) -> GP_SERV_COMMAND_SCENARIOITEM::PacketData
+{
+    auto plan = GP_SERV_COMMAND_SCENARIOITEM::PacketData{};
+    if (keyTable >= keys.tables.size())
+    {
+        return plan;
+    }
+
+    std::memcpy(plan.GetItemFlag, &keys.tables[keyTable].keyList, sizeof(plan.GetItemFlag));
+    std::memcpy(plan.LookItemFlag, &keys.tables[keyTable].seenList, sizeof(plan.LookItemFlag));
+    plan.TableIndex = keyTable;
+    return plan;
+}
+
+} // namespace scenarioitemhelpers

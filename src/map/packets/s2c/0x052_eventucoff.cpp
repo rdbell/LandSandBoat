@@ -19,19 +19,19 @@
 ===========================================================================
 */
 
-#include "0x052_eventucoff.h"
+#include "eventucoff_runtime.h"
+
 #include "entities/char_entity.h"
 
 GP_SERV_COMMAND_EVENTUCOFF::GP_SERV_COMMAND_EVENTUCOFF(CCharEntity* PChar, const GP_SERV_COMMAND_EVENTUCOFF_MODE mode)
 {
-    auto& packet = this->data();
-
-    packet.Mode = mode;
-    // For Mode 2, pack the event ID.
-    if (mode == GP_SERV_COMMAND_EVENTUCOFF_MODE::CancelEvent && PChar->currentEvent)
+    const auto plan   = eventucoffhelpers::PlanFor(mode, {
+                                                             .hasCurrentEvent = PChar->currentEvent != nullptr,
+                                                             .eventID         = PChar->currentEvent ? PChar->currentEvent->eventId : 0,
+                                                         });
+    this->data().Mode = static_cast<GP_SERV_COMMAND_EVENTUCOFF_MODE>(plan.mode);
+    if (plan.resetSubstate)
     {
-        packet.Mode = static_cast<GP_SERV_COMMAND_EVENTUCOFF_MODE>(static_cast<uint32_t>(packet.Mode) | PChar->currentEvent->eventId << 8);
+        PChar->m_Substate = CHAR_SUBSTATE::SUBSTATE_NONE;
     }
-
-    PChar->m_Substate = CHAR_SUBSTATE::SUBSTATE_NONE;
 }

@@ -134,6 +134,19 @@ auto testItemLocationConstructor() -> bool
     return ok;
 }
 
+auto testConstructorsShapeEquivalentPayloads() -> bool
+{
+    const auto loc      = ItemLocation{ LOC_WARDROBE3, 0x22 };
+    auto       scalar   = GP_SERV_COMMAND_EQUIP_LIST(0x22, SLOT_RING2, LOC_WARDROBE3);
+    auto       location = GP_SERV_COMMAND_EQUIP_LIST(loc, SLOT_RING2);
+    const auto expected = std::array<uint8, 4>{ 0x22, 0x0E, 0x0B, 0x00 };
+
+    bool ok = true;
+    ok      = expectBytes(scalar, equipListPropertyItemIndexOffset, expected, "scalar equivalent payload") && ok;
+    ok      = expectBytes(location, equipListPropertyItemIndexOffset, expected, "ItemLocation equivalent payload") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CEquipListPacketSelfTests() -> bool
@@ -142,5 +155,6 @@ auto runS2CEquipListPacketSelfTests() -> bool
     ok      = testLayout() && ok;
     ok      = testScalarConstructor() && ok;
     ok      = testItemLocationConstructor() && ok;
+    ok      = testConstructorsShapeEquivalentPayloads() && ok;
     return ok;
 }

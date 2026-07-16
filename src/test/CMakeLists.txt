@@ -1552,6 +1552,8 @@ set(SOURCES
     test_s2c_event_packet.cpp
     test_s2c_eventucoff_packet.h
     test_s2c_eventucoff_packet.cpp
+    test_s2c_eventucoff_runtime.h
+    test_s2c_eventucoff_runtime.cpp
     test_s2c_entity_set_name_packet.h
     test_s2c_entity_set_name_packet.cpp
     test_s2c_entity_vis_packet.h
@@ -1734,6 +1736,8 @@ set(SOURCES
     test_s2c_roe_log_packet.cpp
     test_s2c_scenarioitem_packet.h
     test_s2c_scenarioitem_packet.cpp
+    test_s2c_scenarioitem_runtime.h
+    test_s2c_scenarioitem_runtime.cpp
     test_s2c_unity_packet.h
     test_s2c_unity_packet.cpp
     test_s2c_schedulor_packet.h
