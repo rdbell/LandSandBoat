@@ -98,6 +98,8 @@ set(SOURCES
     test_c2s_dungeon_inspect_packets.cpp
     test_c2s_equipment_packets.h
     test_c2s_equipment_packets.cpp
+    test_c2s_equipset_check_runtime.h
+    test_c2s_equipset_check_runtime.cpp
     test_c2s_equip_set_runtime.h
     test_c2s_equip_set_runtime.cpp
     test_c2s_event_update_packets.h

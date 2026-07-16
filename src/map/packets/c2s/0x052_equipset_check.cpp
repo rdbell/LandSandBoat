@@ -41,5 +41,10 @@ void GP_CLI_COMMAND_EQUIPSET_CHECK::process(MapSession* PSession, CCharEntity* P
     // in this list the slot of whats being updated is old value, replace with new in 116
     // Should Push 0x116 (size 68) in responce
     // 0x04 is start, contains 16 4 byte parts repersently each slot in order
-    PChar->pushPacket<GP_SERV_COMMAND_EQUIPSET_VALID>(PChar, *this);
+    switch (equipsetcheckhelpers::SelectReply())
+    {
+        case equipsetcheckhelpers::Reply::EquipSetValid:
+            PChar->pushPacket<GP_SERV_COMMAND_EQUIPSET_VALID>(PChar, *this);
+            break;
+    }
 }

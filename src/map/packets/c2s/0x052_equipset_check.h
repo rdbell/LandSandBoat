@@ -23,6 +23,23 @@
 
 #include "base.h"
 
+// EQUIPSET_CHECK's post-validation reply selection. The map host owns the
+// character-dependent EQUIPSET_VALID packet construction and delivery.
+namespace equipsetcheckhelpers
+{
+
+enum class Reply : uint8
+{
+    EquipSetValid,
+};
+
+[[nodiscard]] constexpr auto SelectReply() -> Reply
+{
+    return Reply::EquipSetValid;
+}
+
+} // namespace equipsetcheckhelpers
+
 struct equipsetrequestitem_t
 {
     uint8_t  HasItemFlg : 1;    // PS2: (New; did not exist.)
