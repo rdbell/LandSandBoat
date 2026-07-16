@@ -29,6 +29,7 @@
 #include <string>
 
 #include "map/packets/s2c/0x0c8_group_tbl.h"
+#include "map/packets/s2c/group_tbl_runtime.h"
 #include "enums/party_kind.h"
 
 namespace
@@ -113,6 +114,9 @@ auto testLayoutAndEnums() -> bool
     ok      = expectEqualUInt(sizeof(GP_SERV_HEADER), 4, "sizeof(GP_SERV_HEADER)") && ok;
     ok      = expectEqualUInt(groupTblEntrySize, 12, "sizeof(GROUP_TBL)") && ok;
     ok      = expectEqualUInt(groupTblEntryCount, 20, "GroupTbl entry count") && ok;
+    ok      = expectEqualUInt(grouptblhelpers::MaxEntries, groupTblEntryCount, "runtime entry cap") && ok;
+    ok      = expectEqualUInt(grouptblhelpers::HasCapacity(groupTblEntryCount - 1), 1, "runtime capacity before cap") && ok;
+    ok      = expectEqualUInt(grouptblhelpers::HasCapacity(groupTblEntryCount), 0, "runtime capacity at cap") && ok;
     ok      = expectEqualUInt(groupTblPacketDataSize, 244, "sizeof(PacketData)") && ok;
     ok      = expectEqualUInt(groupTblPacketSize, 248, "packet size") && ok;
 

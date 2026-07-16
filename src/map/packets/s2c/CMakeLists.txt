@@ -224,6 +224,7 @@ set(PACKET_S2C_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0bf_registration.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0c8_group_tbl.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0c8_group_tbl.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/group_tbl_runtime.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0c9_equip_inspect_equipment.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0c9_equip_inspect_equipment.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0c9_equip_inspect_general.h

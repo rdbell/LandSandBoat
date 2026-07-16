@@ -20,6 +20,7 @@
 */
 
 #include "0x0c8_group_tbl.h"
+#include "group_tbl_runtime.h"
 
 #include "alliance.h"
 #include "common/database.h"
@@ -57,6 +58,11 @@ GP_SERV_COMMAND_GROUP_TBL::GP_SERV_COMMAND_GROUP_TBL(CParty* PParty, const bool 
                                            PARTY_SECOND | PARTY_THIRD);
         FOR_DB_MULTIPLE_RESULTS(rset)
         {
+            if (!grouptblhelpers::HasCapacity(i))
+            {
+                break;
+            }
+
             uint16 targid = 0;
             if (const auto* PChar = zoneutils::GetChar(rset->get<uint32>("charid")))
             {
@@ -86,6 +92,11 @@ GP_SERV_COMMAND_GROUP_TBL::GP_SERV_COMMAND_GROUP_TBL(CParty* PParty, const bool 
             {
                 for (const auto* PTrust : PLeader->PTrusts)
                 {
+                    if (!grouptblhelpers::HasCapacity(i))
+                    {
+                        break;
+                    }
+
                     packet.GroupTbl[i].UniqueNo          = PTrust->id;
                     packet.GroupTbl[i].ActIndex          = PTrust->targid;
                     packet.GroupTbl[i].PartyNo           = 0; // Trusts are in main party
