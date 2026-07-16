@@ -27,13 +27,40 @@
 #include "magic_enum/magic_enum.hpp"
 #include "zone.h"
 #include <fmt/ranges.h>
+#include <array>
 #include <format>
+#include <optional>
 #include <set>
 #include <type_traits>
 
 enum LSTYPE : std::uint8_t;
 enum class KeyItem : uint16_t;
 class CCharEntity;
+
+// PacketValidationSnapshot is the entity-independent input for C2S state
+// validation. It contains only state consumed by PacketValidator's stateful
+// helpers, allowing a session adapter and tests to avoid entity construction.
+struct PacketValidationSnapshot
+{
+    uint16                blockedStates{};
+    bool                  inEvent{};
+    std::optional<uint16> eventId{};
+    std::array<bool, 2>   linkshellPresent{};
+    std::array<bool, 2>   linkshellItems{};
+    std::array<uint8, 2>  linkshellRanks{};
+    uint8                 gmLevel{};
+    uint16                zoneMiscMask{};
+    std::string           zoneName{};
+    bool                  hasParty{};
+    bool                  isPartyLeader{};
+    bool                  hasAlliance{};
+    bool                  hasAllianceMainParty{};
+    bool                  isAllianceLeader{};
+    bool                  engaged{};
+    bool                  inMogHouse{};
+    std::set<uint16>      keyItems{};
+    uint16                lastPacketType{};
+};
 
 class PacketValidationResult
 {
@@ -71,6 +98,11 @@ class PacketValidator
 public:
     explicit PacketValidator(const CCharEntity* PChar)
     : PChar_(PChar)
+    {
+    }
+
+    explicit PacketValidator(const PacketValidationSnapshot& snapshot)
+    : snapshot_(&snapshot)
     {
     }
 
@@ -272,7 +304,8 @@ private:
         }
     }
 
-    const CCharEntity*     PChar_;
+    const CCharEntity*     PChar_{};
+    const PacketValidationSnapshot* snapshot_{};
     PacketValidationResult result_;
 };
 

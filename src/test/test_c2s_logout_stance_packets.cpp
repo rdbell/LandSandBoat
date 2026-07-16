@@ -22,6 +22,7 @@
 #include "test_c2s_logout_stance_packets.h"
 
 #include <array>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -269,11 +270,81 @@ auto testLogoutStanceConstantsAndValidation() -> bool
     return ok;
 }
 
+auto expectLeaveGameTransition(
+    const reqlogout::LeaveGameTransition& actual,
+    reqlogout::LeaveGameAction            expectedAction,
+    uint16_t                               expectedPower,
+    std::chrono::seconds                   expectedDuration,
+    std::chrono::seconds                   expectedTick,
+    const std::string&                     label) -> bool
+{
+    bool ok = true;
+    ok      = expectEqualInt(static_cast<uint8_t>(actual.action), static_cast<uint8_t>(expectedAction), label + " action") && ok;
+    ok      = expectEqualInt(actual.power, expectedPower, label + " power") && ok;
+    ok      = expectEqualInt(actual.duration.count(), expectedDuration.count(), label + " duration") && ok;
+    ok      = expectEqualInt(actual.tick.count(), expectedTick.count(), label + " tick") && ok;
+    return ok;
+}
+
+auto testReqLogoutLeaveGameTransitions() -> bool
+{
+    using namespace std::chrono_literals;
+    using Action = reqlogout::LeaveGameAction;
+
+    struct TestCase
+    {
+        uint16_t                    mode;
+        uint16_t                    kind;
+        bool                        hasExistingEffect;
+        Action                      action;
+        uint16_t                    power;
+        std::chrono::seconds        duration;
+        std::chrono::seconds        tick;
+        const char*                 label;
+    };
+
+    const auto cases = std::array{
+        TestCase{ 0, 1, false, Action::Add,         1, 5s, 0s, "logout toggle adds" },
+        TestCase{ 0, 1, true,  Action::Remove,      0, 0s, 0s, "logout toggle removes" },
+        TestCase{ 1, 1, false, Action::Add,         1, 5s, 0s, "logout on adds" },
+        TestCase{ 1, 1, true,  Action::UpdatePower, 1, 0s, 0s, "logout on updates" },
+        TestCase{ 2, 1, false, Action::None,        0, 0s, 0s, "logout off absent no-op" },
+        TestCase{ 2, 1, true,  Action::Remove,      0, 0s, 0s, "logout off removes" },
+        TestCase{ 3, 1, false, Action::None,        0, 0s, 0s, "logout shutdown-on absent no-op" },
+        TestCase{ 3, 1, true,  Action::None,        0, 0s, 0s, "logout shutdown-on existing no-op" },
+        TestCase{ 0, 3, false, Action::Add,         3, 5s, 0s, "shutdown toggle adds" },
+        TestCase{ 0, 3, true,  Action::Remove,      0, 0s, 0s, "shutdown toggle removes" },
+        TestCase{ 1, 3, false, Action::None,        0, 0s, 0s, "shutdown logout-on absent no-op" },
+        TestCase{ 1, 3, true,  Action::None,        0, 0s, 0s, "shutdown logout-on existing no-op" },
+        TestCase{ 2, 3, false, Action::None,        0, 0s, 0s, "shutdown off absent no-op" },
+        TestCase{ 2, 3, true,  Action::Remove,      0, 0s, 0s, "shutdown off removes" },
+        TestCase{ 3, 3, false, Action::Add,         3, 5s, 0s, "shutdown on adds" },
+        TestCase{ 3, 3, true,  Action::UpdatePower, 3, 0s, 0s, "shutdown on updates" },
+        TestCase{ 4, 1, false, Action::None,        0, 0s, 0s, "invalid mode no-op" },
+        TestCase{ 0, 2, true,  Action::None,        0, 0s, 0s, "invalid kind no-op" },
+    };
+
+    bool ok = true;
+    for (const auto& test : cases)
+    {
+        ok = expectLeaveGameTransition(
+                 reqlogout::LeaveGameTransitionFor(test.mode, test.kind, test.hasExistingEffect),
+                 test.action,
+                 test.power,
+                 test.duration,
+                 test.tick,
+                 test.label) &&
+             ok;
+    }
+    return ok;
+}
+
 } // namespace
 
 auto runC2SLogoutStancePacketSelfTests() -> bool
 {
     return testLogoutStanceLayoutsAndMetadata() &&
            testLogoutStanceEncodedBytesAndPayloads() &&
-           testLogoutStanceConstantsAndValidation();
+           testLogoutStanceConstantsAndValidation() &&
+           testReqLogoutLeaveGameTransitions();
 }

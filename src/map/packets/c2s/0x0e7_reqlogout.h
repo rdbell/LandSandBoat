@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <chrono>
+
 #include "base.h"
 
 enum class GP_CLI_COMMAND_REQLOGOUT_MODE : uint16_t
@@ -36,6 +38,34 @@ enum class GP_CLI_COMMAND_REQLOGOUT_KIND : uint16_t
     Logout   = 0x01,
     Shutdown = 0x03,
 };
+
+namespace reqlogout
+{
+
+// The status-effect mutation selected by a REQLOGOUT packet.  Keeping this
+// decision separate from CCharEntity makes the packet semantics testable and
+// prevents crafted, invalid combinations from reaching the effect container.
+enum class LeaveGameAction : uint8_t
+{
+    None,
+    Add,
+    UpdatePower,
+    Remove,
+};
+
+struct LeaveGameTransition
+{
+    LeaveGameAction     action{ LeaveGameAction::None };
+    uint16_t            power{};
+    std::chrono::seconds duration{};
+    std::chrono::seconds tick{};
+};
+
+// Selects the Leavegame effect mutation for a validated REQLOGOUT packet.
+// Invalid and client-impossible kind/mode pairs are harmless no-ops.
+auto LeaveGameTransitionFor(uint16_t mode, uint16_t kind, bool hasExistingEffect) -> LeaveGameTransition;
+
+} // namespace reqlogout
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00E7
 // This packet is sent by the client when requesting to logout or shutdown.

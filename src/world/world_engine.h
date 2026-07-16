@@ -23,11 +23,11 @@
 
 #include <common/application.h>
 #include <common/ipp_message.h>
-#include <common/scheduler.h>
 #include <common/types/flag.h>
 #include <common/zmq/zmq_service.h>
 
 #include "http_server.h"
+#include "world_engine_tasks.h"
 
 //
 // Forward declarations
@@ -63,6 +63,5 @@ public:
     std::unique_ptr<HTTPServer> httpServer_;
 
 private:
-    Maybe<Scheduler::Token> timeServerToken_;
-    Maybe<Scheduler::Token> pumpQueuesToken_;
+    Maybe<WorldEngineRecurringTasks> recurringTasks_;
 };

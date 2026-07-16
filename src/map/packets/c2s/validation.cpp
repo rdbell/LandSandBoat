@@ -35,6 +35,26 @@ auto PacketValidator::blockedBy(const magic_enum::containers::bitset<BlockedStat
         return *this;
     }
 
+    if (snapshot_)
+    {
+        // Keep this order aligned with the live entity path below: callers
+        // observe the first blocking state only.
+        CHECK_BLOCKED(BlockedState::Jailed,         snapshot_->blockedStates & static_cast<uint16>(BlockedState::Jailed))
+        CHECK_BLOCKED(BlockedState::Dead,           snapshot_->blockedStates & static_cast<uint16>(BlockedState::Dead))
+        CHECK_BLOCKED(BlockedState::Crafting,       snapshot_->blockedStates & static_cast<uint16>(BlockedState::Crafting))
+        CHECK_BLOCKED(BlockedState::Fishing,        snapshot_->blockedStates & static_cast<uint16>(BlockedState::Fishing))
+        CHECK_BLOCKED(BlockedState::Sitting,        snapshot_->blockedStates & static_cast<uint16>(BlockedState::Sitting))
+        CHECK_BLOCKED(BlockedState::Mounted,        snapshot_->blockedStates & static_cast<uint16>(BlockedState::Mounted))
+        CHECK_BLOCKED(BlockedState::InEvent,        snapshot_->blockedStates & static_cast<uint16>(BlockedState::InEvent))
+        CHECK_BLOCKED(BlockedState::Engaged,        snapshot_->blockedStates & static_cast<uint16>(BlockedState::Engaged))
+        CHECK_BLOCKED(BlockedState::AbnormalStatus, snapshot_->blockedStates & static_cast<uint16>(BlockedState::AbnormalStatus))
+        CHECK_BLOCKED(BlockedState::Monstrosity,    snapshot_->blockedStates & static_cast<uint16>(BlockedState::Monstrosity))
+        CHECK_BLOCKED(BlockedState::Healing,        snapshot_->blockedStates & static_cast<uint16>(BlockedState::Healing))
+        CHECK_BLOCKED(BlockedState::Charmed,        snapshot_->blockedStates & static_cast<uint16>(BlockedState::Charmed))
+        CHECK_BLOCKED(BlockedState::PreventAction,  snapshot_->blockedStates & static_cast<uint16>(BlockedState::PreventAction))
+        return *this;
+    }
+
     // Checks do short-circuit, keep more expensive ones at the tail end
     // clang-format off
     CHECK_BLOCKED(BlockedState::Jailed,         jailutils::InPrison(PChar_))
@@ -62,6 +82,19 @@ auto PacketValidator::isInEvent(Maybe<uint16_t> eventId) -> PacketValidator&
         return *this;
     }
 
+    if (snapshot_)
+    {
+        if (!snapshot_->inEvent)
+        {
+            result_.addError("Not in an event.");
+        }
+        else if (eventId.has_value() && snapshot_->eventId != eventId)
+        {
+            result_.addError(std::format("Event ID mismatch {} != {}.", snapshot_->eventId.value_or(0), eventId.value()));
+        }
+        return *this;
+    }
+
     if (!PChar_->isInEvent())
     {
         result_.addError("Not in an event.");
@@ -84,6 +117,31 @@ auto PacketValidator::hasLinkshellRank(const uint8_t slot, const LSTYPE rank) ->
 {
     if (!result_.valid())
     {
+        return *this;
+    }
+
+    if (snapshot_)
+    {
+        if (slot < 1 || slot > 2)
+        {
+            result_.addError("Invalid linkshell slot.");
+            return *this;
+        }
+        const auto index = slot - 1;
+        if (!snapshot_->linkshellPresent[index] || !snapshot_->linkshellItems[index])
+        {
+            result_.addError("Invalid linkshell item.");
+            return *this;
+        }
+        const auto actualRank = snapshot_->linkshellRanks[index];
+        const auto required   = static_cast<uint8>(rank);
+        const auto matchingRank = required == static_cast<uint8>(LSTYPE_LINKSHELL) ? actualRank == static_cast<uint8>(LSTYPE_LINKSHELL) :
+                                  required == static_cast<uint8>(LSTYPE_PEARLSACK) ? actualRank == static_cast<uint8>(LSTYPE_LINKSHELL) || actualRank == static_cast<uint8>(LSTYPE_PEARLSACK) :
+                                  required == static_cast<uint8>(LSTYPE_LINKPEARL) ? actualRank == static_cast<uint8>(LSTYPE_LINKSHELL) || actualRank == static_cast<uint8>(LSTYPE_PEARLSACK) || actualRank == static_cast<uint8>(LSTYPE_LINKPEARL) : false;
+        if (!matchingRank)
+        {
+            result_.addError("Invalid linkshell rank.");
+        }
         return *this;
     }
 
@@ -145,6 +203,15 @@ auto PacketValidator::hasZoneMiscFlag(const ZONEMISC flag) -> PacketValidator&
         return *this;
     }
 
+    if (snapshot_)
+    {
+        if (snapshot_->gmLevel == 0 && (snapshot_->zoneMiscMask & static_cast<uint16>(flag)) != static_cast<uint16>(flag))
+        {
+            result_.addError(std::format("Zone {} does not allow misc flag {}.", snapshot_->zoneName, static_cast<uint16>(flag)));
+        }
+        return *this;
+    }
+
     if (PChar_->m_GMlevel == 0 && !PChar_->loc.zone->CanUseMisc(flag))
     {
         result_.addError(std::format("Zone {} does not allow misc flag {}.", PChar_->loc.zone->getName(), static_cast<uint16_t>(flag)));
@@ -157,6 +224,19 @@ auto PacketValidator::isPartyLeader() -> PacketValidator&
 {
     if (!result_.valid())
     {
+        return *this;
+    }
+
+    if (snapshot_)
+    {
+        if (!snapshot_->hasParty)
+        {
+            result_.addError("Not in a party.");
+        }
+        else if (!snapshot_->isPartyLeader)
+        {
+            result_.addError("Not the party leader.");
+        }
         return *this;
     }
 
@@ -176,6 +256,27 @@ auto PacketValidator::isAllianceLeader() -> PacketValidator&
 {
     if (!result_.valid())
     {
+        return *this;
+    }
+
+    if (snapshot_)
+    {
+        if (!snapshot_->hasParty)
+        {
+            result_.addError("Not in a party.");
+        }
+        else if (!snapshot_->hasAlliance)
+        {
+            result_.addError("Not in an alliance.");
+        }
+        else if (!snapshot_->hasAllianceMainParty)
+        {
+            result_.addError("No alliance main party.");
+        }
+        else if (!snapshot_->isAllianceLeader)
+        {
+            result_.addError("Not the alliance leader.");
+        }
         return *this;
     }
 
@@ -206,6 +307,15 @@ auto PacketValidator::isEngaged() -> PacketValidator&
         return *this;
     }
 
+    if (snapshot_)
+    {
+        if (!snapshot_->engaged)
+        {
+            result_.addError("Character is not engaged.");
+        }
+        return *this;
+    }
+
     if (!PChar_->PAI->IsEngaged())
     {
         result_.addError("Character is not engaged.");
@@ -218,6 +328,15 @@ auto PacketValidator::isInMogHouse() -> PacketValidator&
 {
     if (!result_.valid())
     {
+        return *this;
+    }
+
+    if (snapshot_)
+    {
+        if (!snapshot_->inMogHouse)
+        {
+            result_.addError("Character is not in Mog House.");
+        }
         return *this;
     }
 
@@ -236,6 +355,15 @@ auto PacketValidator::hasKeyItem(const KeyItem keyItemId) -> PacketValidator&
         return *this;
     }
 
+    if (snapshot_)
+    {
+        if (!snapshot_->keyItems.contains(static_cast<uint16>(keyItemId)))
+        {
+            result_.addError(std::format("Missing Key Item {}.", static_cast<uint16>(keyItemId)));
+        }
+        return *this;
+    }
+
     if (!charutils::hasKeyItem(PChar_, keyItemId))
     {
         result_.addError(std::format("Missing Key Item {}.", static_cast<uint16_t>(keyItemId)));
@@ -248,6 +376,15 @@ auto PacketValidator::requiresPriorPacket(PacketC2S expectedPacketId) -> PacketV
 {
     if (!result_.valid())
     {
+        return *this;
+    }
+
+    if (snapshot_)
+    {
+        if (snapshot_->lastPacketType != static_cast<uint16>(expectedPacketId))
+        {
+            result_.addError(std::format("Expected prior packet {:#05x}, got {:#05x}.", static_cast<uint16>(expectedPacketId), snapshot_->lastPacketType));
+        }
         return *this;
     }
 

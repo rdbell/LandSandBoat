@@ -146,6 +146,8 @@ set(SOURCES
     test_c2s_packet_rate_limiter.cpp
     test_c2s_packet_validation_scalars.h
     test_c2s_packet_validation_scalars.cpp
+    test_c2s_packet_validation_state.h
+    test_c2s_packet_validation_state.cpp
     test_c2s_pbx_packet.h
     test_c2s_pbx_packet.cpp
     test_c2s_player_points_packets.h
@@ -1182,6 +1184,8 @@ set(SOURCES
     test_world_time_server_effects.cpp
     test_world_http_server_api.h
     test_world_http_server_api.cpp
+    test_world_engine_tasks.h
+    test_world_engine_tasks.cpp
     test_world_gmcall_response_1240.h
     test_world_gmcall_response_1240.cpp
     test_world_gmcall_request_1244.h

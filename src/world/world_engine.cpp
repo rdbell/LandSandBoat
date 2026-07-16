@@ -35,6 +35,45 @@
 #include "party_system.h"
 #include "time_server.h"
 
+namespace
+{
+
+class SchedulerTaskToken final : public WorldEngineTaskToken
+{
+public:
+    explicit SchedulerTaskToken(Scheduler::Token token)
+    : token_(std::move(token))
+    {
+    }
+
+private:
+    Scheduler::Token token_;
+};
+
+class SchedulerWorldEngineTaskRegistrar final : public WorldEngineTaskRegistrar
+{
+public:
+    explicit SchedulerWorldEngineTaskRegistrar(Scheduler& scheduler)
+    : scheduler_(scheduler)
+    {
+    }
+
+    auto registerTimeServer(std::chrono::steady_clock::duration interval, std::function<Task<void>()> callback) -> std::unique_ptr<WorldEngineTaskToken> override
+    {
+        return std::make_unique<SchedulerTaskToken>(scheduler_.intervalOnMainThread(interval, std::move(callback)));
+    }
+
+    auto registerIncomingIPCPump(std::chrono::steady_clock::duration interval, std::function<void()> callback) -> std::unique_ptr<WorldEngineTaskToken> override
+    {
+        return std::make_unique<SchedulerTaskToken>(scheduler_.intervalOnMainThread(interval, std::move(callback)));
+    }
+
+private:
+    Scheduler& scheduler_;
+};
+
+} // namespace
+
 WorldEngine::WorldEngine(Scheduler& scheduler, ZMQService& zmqService, EnableHTTPServer enableHTTPServer)
 : scheduler_(scheduler)
 , ipcServer_(std::make_unique<IPCServer>(*this, zmqService))
@@ -45,18 +84,18 @@ WorldEngine::WorldEngine(Scheduler& scheduler, ZMQService& zmqService, EnableHTT
 , colonizationSystem_(std::make_unique<ColonizationSystem>(*this))
 , httpServer_(enableHTTPServer ? std::make_unique<HTTPServer>(scheduler_) : nullptr)
 {
-    timeServerToken_ = scheduler_.intervalOnMainThread(
-        kTimeServerTickInterval,
-        [this]() -> Task<void>
+    SchedulerWorldEngineTaskRegistrar registrar(scheduler_);
+    recurringTasks_ = registerWorldEngineRecurringTasks(
+        registrar,
         {
-            co_await time_server(this);
-        });
-
-    pumpQueuesToken_ = scheduler_.intervalOnMainThread(
-        kIPCPumpInterval,
-        [this]()
-        {
-            ipcServer_->handleIncomingMessages();
+            .timeServer = [this]() -> Task<void>
+            {
+                co_await time_server(this);
+            },
+            .incomingIPCPump = [this]()
+            {
+                ipcServer_->handleIncomingMessages();
+            },
         });
 }
 

@@ -32,6 +32,8 @@ set(SOURCES
     world_application.h
     world_engine.cpp
     world_engine.h
+    world_engine_tasks.cpp
+    world_engine_tasks.h
     zone_settings.h
 )
 
