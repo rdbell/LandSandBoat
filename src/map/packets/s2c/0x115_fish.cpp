@@ -32,15 +32,15 @@ GP_SERV_COMMAND_FISH::GP_SERV_COMMAND_FISH(
     const uint8  sense,
     const uint32 special)
 {
-    auto& packet = this->data();
-
-    packet.stamina        = stamina;
-    packet.arrow_delay    = arrowDelay;
-    packet.regen          = regen;
-    packet.move_frequency = response;
-    packet.arrow_damage   = hitDmg;
-    packet.arrow_regen    = missRegen;
-    packet.time           = gameTime;
-    packet.angler_sense   = sense;
-    packet.intuition      = special;
+    this->data() = fishhelpers::PlanFor({
+        .stamina     = stamina,
+        .regen       = regen,
+        .response    = response,
+        .hitDmg      = hitDmg,
+        .arrowDelay  = arrowDelay,
+        .missRegen   = missRegen,
+        .gameTime    = gameTime,
+        .sense       = sense,
+        .special     = special,
+    });
 }

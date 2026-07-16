@@ -147,6 +147,34 @@ auto testConstructor() -> bool
     return ok;
 }
 
+auto testRuntimePlan() -> bool
+{
+    const auto plan = fishhelpers::PlanFor({
+        .stamina     = 0x1122,
+        .regen       = 0x3344,
+        .response    = 0x5566,
+        .hitDmg      = 0x7788,
+        .arrowDelay  = 0x99AA,
+        .missRegen   = 0xBBCC,
+        .gameTime    = 0xDDEE,
+        .sense       = 0x7F,
+        .special     = 0x01020304,
+    });
+
+    bool ok = true;
+    ok = expectEqualUInt(plan.stamina, 0x1122, "runtime plan stamina") && ok;
+    ok = expectEqualUInt(plan.arrow_delay, 0x99AA, "runtime plan arrow delay") && ok;
+    ok = expectEqualUInt(plan.regen, 0x3344, "runtime plan regen") && ok;
+    ok = expectEqualUInt(plan.move_frequency, 0x5566, "runtime plan response") && ok;
+    ok = expectEqualUInt(plan.arrow_damage, 0x7788, "runtime plan hit damage") && ok;
+    ok = expectEqualUInt(plan.arrow_regen, 0xBBCC, "runtime plan miss regen") && ok;
+    ok = expectEqualUInt(plan.time, 0xDDEE, "runtime plan time") && ok;
+    ok = expectEqualUInt(plan.angler_sense, 0x7F, "runtime plan sense") && ok;
+    ok = expectEqualUInt(plan.padding13, 0, "runtime plan padding") && ok;
+    ok = expectEqualUInt(plan.intuition, 0x01020304, "runtime plan intuition") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CFishPacketSelfTests() -> bool
@@ -154,5 +182,6 @@ auto runS2CFishPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testConstructor() && ok;
+    ok      = testRuntimePlan() && ok;
     return ok;
 }

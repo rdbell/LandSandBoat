@@ -53,3 +53,34 @@ public:
         uint8  sense,
         uint32 special);
 };
+
+namespace fishhelpers
+{
+struct Facts
+{
+    uint16 stamina;
+    uint16 regen;
+    uint16 response;
+    uint16 hitDmg;
+    uint16 arrowDelay;
+    uint16 missRegen;
+    uint16 gameTime;
+    uint8  sense;
+    uint32 special;
+};
+
+constexpr auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_FISH::PacketData
+{
+    return {
+        .stamina        = facts.stamina,
+        .arrow_delay    = facts.arrowDelay,
+        .regen          = facts.regen,
+        .move_frequency = facts.response,
+        .arrow_damage   = facts.hitDmg,
+        .arrow_regen    = facts.missRegen,
+        .time           = facts.gameTime,
+        .angler_sense   = facts.sense,
+        .intuition      = facts.special,
+    };
+}
+} // namespace fishhelpers
