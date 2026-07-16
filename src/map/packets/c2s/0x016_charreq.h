@@ -23,6 +23,40 @@
 
 #include "base.h"
 
+namespace charreqhelpers
+{
+
+enum class Action : uint8
+{
+    None,
+    RefreshSelfAndStatus,
+    RefreshCharacter,
+    RefreshMob,
+    RefreshMogHouseNPC
+};
+
+struct Facts
+{
+    bool isSelf;
+    bool found;
+    bool isPlayer;
+    bool isGMHidden;
+    bool isMogHouseNPC;
+};
+
+[[nodiscard]] constexpr auto SelectAction(const Facts facts) -> Action
+{
+    if (facts.isSelf)
+        return Action::RefreshSelfAndStatus;
+    if (!facts.found || (facts.isPlayer && facts.isGMHidden))
+        return Action::None;
+    if (facts.isPlayer)
+        return Action::RefreshCharacter;
+    return facts.isMogHouseNPC ? Action::RefreshMogHouseNPC : Action::RefreshMob;
+}
+
+} // namespace charreqhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0016
 // This packet is sent by the client if it is attempting to access an entity it does not have valid data for yet.
 GP_CLI_PACKET(GP_CLI_COMMAND_CHARREQ,

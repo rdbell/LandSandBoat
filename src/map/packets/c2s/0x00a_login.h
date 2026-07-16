@@ -21,6 +21,9 @@
 
 #pragma once
 
+#include <array>
+namespace loginhelpers { struct ZonePresentPlan { std::array<uint8, 16> equipSlots{}; uint8 equipCount = 0; }; constexpr auto MakeZonePresentPlan(const std::array<bool,16>& present) -> ZonePresentPlan { ZonePresentPlan p; for(uint8 i=0;i<16;i++) if(present[i]) p.equipSlots[p.equipCount++]=i; return p; } }
+
 #include "base.h"
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x000A

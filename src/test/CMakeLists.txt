@@ -72,6 +72,8 @@ set(SOURCES
     test_c2s_charreq2_packet.cpp
     test_c2s_charreq_packet.h
     test_c2s_charreq_packet.cpp
+    test_c2s_charreq_runtime.h
+    test_c2s_charreq_runtime.cpp
     test_c2s_chat_assist_packets.h
     test_c2s_chat_assist_packets.cpp
     test_c2s_chocobo_race_req_packet.h
@@ -82,6 +84,8 @@ set(SOURCES
     test_c2s_clistatus_runtime.cpp
     test_c2s_clstat_packet.h
     test_c2s_clstat_packet.cpp
+    test_c2s_clstat_runtime.h
+    test_c2s_clstat_runtime.cpp
     test_c2s_combine_ask_packet.h
     test_c2s_combine_ask_packet.cpp
     test_c2s_comlink_myroom_packets.h
@@ -176,6 +180,8 @@ set(SOURCES
     test_c2s_lockstyle_runtime_plan.cpp
     test_c2s_login_packet.h
     test_c2s_login_packet.cpp
+    test_c2s_login_zone_present_runtime.h
+    test_c2s_login_zone_present_runtime.cpp
     test_c2s_logout_stance_packets.h
     test_c2s_logout_stance_packets.cpp
     test_c2s_motion_maprect_packets.h
