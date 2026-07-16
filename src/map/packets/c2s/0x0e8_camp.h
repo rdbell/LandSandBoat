@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <chrono>
+
 #include "base.h"
 
 enum class GP_CLI_COMMAND_CAMP_MODE : uint32_t
@@ -29,6 +31,34 @@ enum class GP_CLI_COMMAND_CAMP_MODE : uint32_t
     On     = 0x01,
     Off    = 0x02,
 };
+
+namespace camp
+{
+
+// The state mutations selected by a CAMP packet. Keeping this decision
+// independent of CCharEntity makes it possible to test the packet behavior
+// without constructing map-server entities.
+enum class HealingAction : uint8_t
+{
+    None,
+    Add,
+    Remove,
+};
+
+struct HealingTransition
+{
+    HealingAction       action{ HealingAction::None };
+    bool                clearStateStack{};
+    bool                disengageAutomatonPet{};
+    std::chrono::seconds tick{};
+};
+
+// Selects the healing state mutation for a CAMP packet. Invalid modes are
+// harmless no-ops, including values accepted by CAMP's legacy validation
+// quirk but not handled by its process switch.
+auto HealingTransitionFor(uint32_t mode, bool isHealing, bool hasAutomatonPet, uint8_t healingTickDelay) -> HealingTransition;
+
+} // namespace camp
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00E8
 // This packet is sent by the client when requesting to heal. (/heal)

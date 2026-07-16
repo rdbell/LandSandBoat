@@ -21,6 +21,8 @@
 
 #include "0x0f4_tracking_list.h"
 
+#include "tracking_transitions.h"
+
 #include "entities/char_entity.h"
 #include "utils/charutils.h"
 
@@ -33,5 +35,5 @@ auto GP_CLI_COMMAND_TRACKING_LIST::validate(MapSession* PSession, const CCharEnt
 
 void GP_CLI_COMMAND_TRACKING_LIST::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    PChar->loc.zone->WideScan(PChar, charutils::getWideScanRange(PChar));
+    PChar->loc.zone->WideScan(PChar, tracking::WideScanRangeFor(charutils::getWideScanRange(PChar)));
 }

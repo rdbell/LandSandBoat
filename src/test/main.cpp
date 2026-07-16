@@ -666,6 +666,7 @@ auto runC2SUserLinkshellMessagePacketSelfTests() -> bool;
 auto runC2SLogoutStancePacketSelfTests() -> bool;
 auto runC2SRescueBuffSubmapPacketSelfTests() -> bool;
 auto runC2STrackingPacketSelfTests() -> bool;
+auto runC2STrackingTransitionSelfTests() -> bool;
 auto runC2SMyRoomFurniturePacketSelfTests() -> bool;
 auto runC2SMyRoomPlantPacketSelfTests() -> bool;
 auto runC2SMyRoomJobPacketSelfTests() -> bool;
@@ -1458,6 +1459,7 @@ namespace
         ok = runC2SLogoutStancePacketSelfTests() && ok;
         ok = runC2SRescueBuffSubmapPacketSelfTests() && ok;
         ok = runC2STrackingPacketSelfTests() && ok;
+        ok = runC2STrackingTransitionSelfTests() && ok;
         ok = runC2SMyRoomFurniturePacketSelfTests() && ok;
         ok = runC2SMyRoomPlantPacketSelfTests() && ok;
         ok = runC2SMyRoomJobPacketSelfTests() && ok;

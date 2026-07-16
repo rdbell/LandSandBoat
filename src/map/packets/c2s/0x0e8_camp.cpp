@@ -26,6 +26,31 @@
 #include "entities/char_entity.h"
 #include "status_effect_container.h"
 
+auto camp::HealingTransitionFor(uint32_t mode, bool isHealing, bool hasAutomatonPet, uint8_t healingTickDelay) -> HealingTransition
+{
+    const auto enableHealing = [hasAutomatonPet, healingTickDelay]
+    {
+        return HealingTransition{
+            .action                = HealingAction::Add,
+            .clearStateStack       = true,
+            .disengageAutomatonPet = hasAutomatonPet,
+            .tick                  = std::chrono::seconds{ healingTickDelay },
+        };
+    };
+
+    switch (static_cast<GP_CLI_COMMAND_CAMP_MODE>(mode))
+    {
+        case GP_CLI_COMMAND_CAMP_MODE::Toggle:
+            return isHealing ? HealingTransition{ .action = HealingAction::Remove } : enableHealing();
+        case GP_CLI_COMMAND_CAMP_MODE::On:
+            return enableHealing();
+        case GP_CLI_COMMAND_CAMP_MODE::Off:
+            return { .action = HealingAction::Remove };
+    }
+
+    return {};
+}
+
 auto GP_CLI_COMMAND_CAMP::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -45,41 +70,34 @@ auto GP_CLI_COMMAND_CAMP::validate(MapSession* PSession, const CCharEntity* PCha
 
 void GP_CLI_COMMAND_CAMP::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    auto enableHealing = [&]()
+    const auto hasAutomatonPet = PChar->PPet &&
+                                 PChar->PPet->objtype == TYPE_PET &&
+                                 static_cast<CPetEntity*>(PChar->PPet)->getPetType() == PET_TYPE::AUTOMATON;
+    const auto transition = camp::HealingTransitionFor(
+        this->Mode,
+        PChar->animation == ANIMATION_HEALING,
+        hasAutomatonPet,
+        settings::get<uint8>("map.HEALING_TICK_DELAY"));
+
+    if (transition.clearStateStack)
     {
         PChar->PAI->ClearStateStack();
-        if (PChar->PPet && PChar->PPet->objtype == TYPE_PET && static_cast<CPetEntity*>(PChar->PPet)->getPetType() == PET_TYPE::AUTOMATON)
-        {
-            PChar->PPet->PAI->Disengage();
-        }
-
-        const auto healingTickDelay = std::chrono::seconds(settings::get<uint8>("map.HEALING_TICK_DELAY"));
-        PChar->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Healing, 0, 0, healingTickDelay, 0s);
-    };
-
-    auto disableHealing = [&]()
+    }
+    if (transition.disengageAutomatonPet)
     {
-        PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Healing);
-    };
+        PChar->PPet->PAI->Disengage();
+    }
 
     // Note: The status effect lua takes care of changing the animation.
-    switch (static_cast<GP_CLI_COMMAND_CAMP_MODE>(this->Mode))
+    switch (transition.action)
     {
-        case GP_CLI_COMMAND_CAMP_MODE::Toggle:
-            if (PChar->animation == ANIMATION_HEALING)
-            {
-                disableHealing();
-            }
-            else
-            {
-                enableHealing();
-            }
+        case camp::HealingAction::Add:
+            PChar->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Healing, 0, 0, transition.tick, 0s);
             break;
-        case GP_CLI_COMMAND_CAMP_MODE::On:
-            enableHealing();
+        case camp::HealingAction::Remove:
+            PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Healing);
             break;
-        case GP_CLI_COMMAND_CAMP_MODE::Off:
-            disableHealing();
+        case camp::HealingAction::None:
             break;
     }
 }

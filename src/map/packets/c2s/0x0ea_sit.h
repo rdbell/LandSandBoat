@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "base.h"
 
 enum class GP_CLI_COMMAND_SIT_MODE : uint32_t
@@ -29,6 +31,34 @@ enum class GP_CLI_COMMAND_SIT_MODE : uint32_t
     On     = 0x01,
     Off    = 0x02,
 };
+
+namespace sit
+{
+
+// PetKind is the subset of pet identity relevant to /sit animation mirroring.
+enum class PetKind : uint8_t
+{
+    None,
+    Other,
+    WYVERN,
+    AUTOMATON,
+};
+
+// Transition is the entity-independent state change requested by /sit.
+struct Transition
+{
+    bool    removeHealingSilently = true;
+    uint8_t characterAnimation    = 0;
+    bool    updateCharacterHP     = true;
+    bool    updatePet             = false;
+};
+
+// TransitionFor mirrors GP_CLI_COMMAND_SIT::process without entity ownership.
+// Unknown modes preserve the current animation, matching the packet handler's
+// switch behavior when called without prior validation.
+auto TransitionFor(uint32_t mode, uint8_t currentAnimation, PetKind petKind) -> Transition;
+
+} // namespace sit
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00EA
 // This packet is sent by the client when requesting to sit. (/sit)

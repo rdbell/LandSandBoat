@@ -21,6 +21,8 @@
 
 #include "0x0f5_tracking_start.h"
 
+#include "tracking_transitions.h"
+
 #include "entities/char_entity.h"
 #include "utils/charutils.h"
 
@@ -34,21 +36,37 @@ auto GP_CLI_COMMAND_TRACKING_START::validate(MapSession* PSession, const CCharEn
 void GP_CLI_COMMAND_TRACKING_START::process(MapSession* PSession, CCharEntity* PChar) const
 {
     CBaseEntity* target = PChar->GetEntity(this->ActIndex, TYPE_MOB | TYPE_NPC);
-    if (target == nullptr)
-    {
-        // Target not found
-        PChar->WideScanTarget = std::nullopt;
-        return;
-    }
+    Maybe<tracking::TargetIdentity> requestedTarget;
+    bool                            isWideScannable{};
+    bool                            isWithinRange{};
 
-    const float dist = distance(PChar->loc.p, target->loc.p);
-
-    // Only allow players to track targets that are actually scannable, and within their wide scan range
-    if (target->isWideScannable() && dist <= charutils::getWideScanRange(PChar))
+    if (target != nullptr)
     {
-        PChar->WideScanTarget = EntityID_t{
+        const float dist = distance(PChar->loc.p, target->loc.p);
+        requestedTarget = tracking::TargetIdentity{
             .id     = target->id,
             .targid = target->targid
         };
+        isWideScannable = target->isWideScannable();
+        isWithinRange   = dist <= charutils::getWideScanRange(PChar);
+    }
+
+    Maybe<tracking::TargetIdentity> currentTarget;
+    if (PChar->WideScanTarget)
+    {
+        currentTarget = tracking::TargetIdentity{
+            .id     = PChar->WideScanTarget->id,
+            .targid = PChar->WideScanTarget->targid
+        };
+    }
+
+    const auto nextTarget = tracking::StartTargetFor(currentTarget, requestedTarget, isWideScannable, isWithinRange);
+    if (nextTarget)
+    {
+        PChar->WideScanTarget = EntityID_t{ .id = nextTarget->id, .targid = nextTarget->targid };
+    }
+    else
+    {
+        PChar->WideScanTarget = std::nullopt;
     }
 }

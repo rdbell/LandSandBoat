@@ -21,6 +21,8 @@
 
 #include "0x0f6_tracking_end.h"
 
+#include "tracking_transitions.h"
+
 #include "entities/char_entity.h"
 
 auto GP_CLI_COMMAND_TRACKING_END::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
@@ -32,5 +34,6 @@ auto GP_CLI_COMMAND_TRACKING_END::validate(MapSession* PSession, const CCharEnti
 
 void GP_CLI_COMMAND_TRACKING_END::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    PChar->WideScanTarget = std::nullopt;
+    const auto nextTarget = tracking::EndTargetFor();
+    PChar->WideScanTarget = nextTarget ? Maybe<EntityID_t>{ EntityID_t{ .id = nextTarget->id, .targid = nextTarget->targid } } : std::nullopt;
 }

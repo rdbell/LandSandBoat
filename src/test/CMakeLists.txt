@@ -172,6 +172,8 @@ set(SOURCES
     test_c2s_tail_misc_packets.cpp
     test_c2s_tracking_packets.h
     test_c2s_tracking_packets.cpp
+    test_c2s_tracking_transitions.h
+    test_c2s_tracking_transitions.cpp
     test_c2s_trophy_packets.h
     test_c2s_trophy_packets.cpp
     test_c2s_unity_packets.h

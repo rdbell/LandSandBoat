@@ -25,6 +25,27 @@
 #include "entities/pet_entity.h"
 #include "status_effect_container.h"
 
+auto sit::TransitionFor(const uint32_t mode, const uint8_t currentAnimation, const PetKind petKind) -> Transition
+{
+    auto transition = Transition{ .characterAnimation = currentAnimation };
+
+    switch (static_cast<GP_CLI_COMMAND_SIT_MODE>(mode))
+    {
+        case GP_CLI_COMMAND_SIT_MODE::Toggle:
+            transition.characterAnimation = currentAnimation == ANIMATION_SIT ? ANIMATION_NONE : ANIMATION_SIT;
+            break;
+        case GP_CLI_COMMAND_SIT_MODE::On:
+            transition.characterAnimation = ANIMATION_SIT;
+            break;
+        case GP_CLI_COMMAND_SIT_MODE::Off:
+            transition.characterAnimation = ANIMATION_NONE;
+            break;
+    }
+
+    transition.updatePet = petKind == PetKind::WYVERN || petKind == PetKind::AUTOMATON;
+    return transition;
+}
+
 auto GP_CLI_COMMAND_SIT::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -34,30 +55,41 @@ auto GP_CLI_COMMAND_SIT::validate(MapSession* PSession, const CCharEntity* PChar
 
 void GP_CLI_COMMAND_SIT::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    // Retail accurate: Can inject /sit while healing/logging out, but it cancels the effect.
-    PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Healing);
-
-    switch (static_cast<GP_CLI_COMMAND_SIT_MODE>(this->Mode))
+    auto petKind = sit::PetKind::None;
+    auto* PPet   = dynamic_cast<CPetEntity*>(PChar->PPet);
+    if (PPet)
     {
-        case GP_CLI_COMMAND_SIT_MODE::Toggle:
-            PChar->animation = PChar->animation == ANIMATION_SIT ? ANIMATION_NONE : ANIMATION_SIT;
-            break;
-        case GP_CLI_COMMAND_SIT_MODE::On:
-            PChar->animation = ANIMATION_SIT;
-            break;
-        case GP_CLI_COMMAND_SIT_MODE::Off:
-            PChar->animation = ANIMATION_NONE;
-            break;
+        switch (PPet->getPetType())
+        {
+            case PET_TYPE::WYVERN:
+                petKind = sit::PetKind::WYVERN;
+                break;
+            case PET_TYPE::AUTOMATON:
+                petKind = sit::PetKind::AUTOMATON;
+                break;
+            default:
+                petKind = sit::PetKind::Other;
+                break;
+        }
     }
 
-    PChar->updatemask |= UPDATE_HP;
+    const auto transition = sit::TransitionFor(this->Mode, PChar->animation, petKind);
 
-    if (auto* PPet = dynamic_cast<CPetEntity*>(PChar->PPet))
+    // Retail accurate: Can inject /sit while healing/logging out, but it cancels the effect.
+    if (transition.removeHealingSilently)
     {
-        if (PPet->getPetType() == PET_TYPE::WYVERN || PPet->getPetType() == PET_TYPE::AUTOMATON)
-        {
-            PPet->animation = PChar->animation;
-            PPet->updatemask |= UPDATE_HP;
-        }
+        PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Healing);
+    }
+
+    PChar->animation = transition.characterAnimation;
+    if (transition.updateCharacterHP)
+    {
+        PChar->updatemask |= UPDATE_HP;
+    }
+
+    if (PPet && transition.updatePet)
+    {
+        PPet->animation = PChar->animation;
+        PPet->updatemask |= UPDATE_HP;
     }
 }
