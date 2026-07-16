@@ -1108,7 +1108,7 @@ void CZone::CharZoneIn(CCharEntity* PChar)
     PChar->loc.destination = 0;
     PChar->clearTriggerAreas();
 
-    if (PChar->isMounted() && !CanUseMisc(MISC_MOUNT))
+    if (zonehelpers::ShouldDismountOnZoneIn(PChar->isMounted(), CanUseMisc(MISC_MOUNT)))
     {
         PChar->animation = ANIMATION_NONE;
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Mounted);

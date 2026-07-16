@@ -22,6 +22,7 @@
 #include "data_session.h"
 
 #include "data_a1.h"
+#include "data_a1_capacity.h"
 #include "data_a2.h"
 #include "data_session_hash.h"
 #include "session_cleanup.h"
@@ -220,7 +221,7 @@ void data_session::read_func()
                     if (allowCharacterCreation)
                     {
                         // make extra char slots available if no characters are occupying the slots and their max content IDs supports it
-                        while (characterInfoResponse.characters < numContentIds)
+                        while (loginHelpers::CanAddCharacterCreationSlot(characterInfoResponse.characters, numContentIds))
                         {
                             characterInfoResponse.character_info[characterInfoResponse.characters].status            = 0x01; // Available
                             characterInfoResponse.character_info[characterInfoResponse.characters].character_name[0] = 0x20; // space to display empty character slot, NULL displays a hume in a slot.

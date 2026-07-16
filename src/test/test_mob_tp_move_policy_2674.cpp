@@ -1,0 +1,4 @@
+#include "test_mob_tp_move_policy_2674.h"
+#include "map/entities/mob_tp_move_policy.h"
+#include <iostream>
+auto runMobTPMovePolicy2674SelfTests() -> bool { bool ok = true; const auto test=[&](bool got,bool want){ok=ok&&(got==want);}; test(mobtpmovehelpers::ShouldUseTPMove(999,true,true,1,true,1,1000),false); test(mobtpmovehelpers::ShouldUseTPMove(1000,false,true,1,true,1,1000),false); test(mobtpmovehelpers::ShouldUseTPMove(1000,true,false,1,true,1,1000),false); test(mobtpmovehelpers::ShouldUseTPMove(3000,true,true,100, false,0,4000),true); test(mobtpmovehelpers::ShouldUseTPMove(1000,true,true,24,false,0,4000),true); test(mobtpmovehelpers::ShouldUseTPMove(1000,true,true,100,true,1,4000),true); test(mobtpmovehelpers::ShouldUseTPMove(1500,true,true,100,false,0,1500),true); if(!ok)std::cerr<<"mob TP move 2674 failed\n"; return ok; }

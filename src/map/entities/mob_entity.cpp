@@ -27,6 +27,7 @@
 #include "mob_force_link_policy.h"
 #include "mob_widescan_policy.h"
 #include "mob_home_distance_policy.h"
+#include "mob_tp_move_policy.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -447,24 +448,8 @@ bool CMobEntity::CanBeNeutral() const
 bool CMobEntity::shouldUseTPMove(uint16 tpThreshold)
 {
     const auto& MobSkillList = battleutils::GetMobSkillList(getMobMod(MOBMOD_SKILL_LIST));
-
-    if (health.tp < 1000 || MobSkillList.empty() || !static_cast<CMobController*>(PAI->GetController())->IsWeaponSkillEnabled())
-    {
-        return false;
-    }
-
-    if (health.tp == 3000 || (GetHPP() < 25 && health.tp >= 1000))
-    {
-        return true;
-    }
-
-    // mobs use three mob skills in a row under Meikyo Shisui
-    if (StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui) && GetLocalVar("[MeikyoShisui]MobSkillCount") > 0)
-    {
-        return true;
-    }
-
-    return health.tp >= tpThreshold;
+    return mobtpmovehelpers::ShouldUseTPMove(health.tp, !MobSkillList.empty(), static_cast<CMobController*>(PAI->GetController())->IsWeaponSkillEnabled(), GetHPP(),
+                                              StatusEffectContainer->HasStatusEffect(xi::StatusEffect::MeikyoShisui), GetLocalVar("[MeikyoShisui]MobSkillCount"), tpThreshold);
 }
 
 void CMobEntity::setMobMod(uint16 type, int16 value)

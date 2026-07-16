@@ -721,6 +721,8 @@ set(SOURCES
     test_zone_seal_restore_2661.cpp
     test_zone_out_trigger_2664.h
     test_zone_out_trigger_2664.cpp
+    test_zone_mount_gate_2673.h
+    test_zone_mount_gate_2673.cpp
     test_zone_query_by_name_2647.h
     test_zone_query_by_name_2647.cpp
     test_zone_char_update_2656.h
@@ -1251,6 +1253,8 @@ set(SOURCES
     test_mob_widescan_policy_2668.cpp
     test_mob_home_distance_policy_2671.h
     test_mob_home_distance_policy_2671.cpp
+    test_mob_tp_move_policy_2674.h
+    test_mob_tp_move_policy_2674.cpp
     test_pet_mod_tandem_1624.h
     test_pet_mod_tandem_1624.cpp
     test_pet_spawn_1625.h
@@ -1386,6 +1390,8 @@ set(SOURCES
     test_login_world_list_packet.cpp
     test_data_session_hash_2672.h
     test_data_session_hash_2672.cpp
+    test_data_a1_creation_slot_2675.h
+    test_data_a1_creation_slot_2675.cpp
     test_los_cache.h
     test_los_cache.cpp
     test_linkshell.h

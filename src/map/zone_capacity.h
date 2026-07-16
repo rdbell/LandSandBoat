@@ -232,6 +232,11 @@ inline auto CanUseMisc(const uint16 miscMask, const uint16 misc) -> bool
     return (miscMask & misc) == misc;
 }
 
+inline auto ShouldDismountOnZoneIn(const bool mounted, const bool canUseMount) -> bool
+{
+    return mounted && !canUseMount;
+}
+
 // WeatherCycleDays mirrors zone WeatherCycle constant used in UpdateWeather.
 constexpr uint32 WeatherCycleDays = 2160;
 
