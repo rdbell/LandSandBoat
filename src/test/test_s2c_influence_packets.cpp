@@ -165,6 +165,65 @@ auto testCampaignBitPacking() -> bool
     return ok;
 }
 
+auto testCampaignRuntimePlan() -> bool
+{
+    auto facts             = influencecampaignhelpers::Facts{};
+    facts.alliedNotes      = -7;
+    facts.controlSandoria  = 0x21;
+    facts.controlBastok    = 2;
+    facts.controlWindurst  = 3;
+    facts.controlBeastman  = 4;
+    facts.nations[0]       = { .reconnaissance = 0x15, .morale = 0x82, .prosperity = 0x83 };
+    facts.regions[0]       = {
+        .owner                 = 0x0D,
+        .currentFortifications = 0x455,
+        .currentResources      = 0x6AA,
+        .heroism               = 0xBC,
+        .influenceSandoria     = 0x11,
+        .influenceBastok       = 0x22,
+        .influenceWindurst     = 0x33,
+        .influenceBeastman     = 0x44,
+        .maxFortifications     = 0x6AB,
+        .maxResources          = 0x555,
+    };
+    facts.regions[13] = {
+        .owner                 = 2,
+        .currentFortifications = 8,
+        .currentResources      = 9,
+        .heroism               = 10,
+        .influenceSandoria     = 11,
+        .influenceBastok       = 12,
+        .influenceWindurst     = 13,
+        .influenceBeastman     = 14,
+        .maxFortifications     = 15,
+        .maxResources          = 16,
+    };
+
+    const auto first = influencecampaignhelpers::PlanFor(facts);
+    facts.number     = 9;
+    const auto second = influencecampaignhelpers::PlanFor(facts);
+
+    bool ok = true;
+    ok      = expectEqualUInt(static_cast<uint8>(first.Mode), static_cast<uint8>(GP_SERV_COMMAND_INFLUENCE_MODE::Campaign), "campaign plan Mode") && ok;
+    ok      = expectEqualUInt(first.Length, 0xC4, "campaign plan Length") && ok;
+    ok      = expectEqualUInt(static_cast<uint32>(first.AlliedNotes), static_cast<uint32>(-7), "campaign plan AlliedNotes") && ok;
+    ok      = expectEqualUInt(first.ZoneOffset, 0, "campaign first ZoneOffset") && ok;
+    ok      = expectEqualUInt(first.ControlledAreas.Sandoria, 1, "campaign plan Sandoria mask") && ok;
+    ok      = expectEqualUInt(first.Nations.Sandoria.Reconnaissance, 5, "campaign plan reconnaissance mask") && ok;
+    ok      = expectEqualUInt(first.Nations.Sandoria.Morale, 2, "campaign plan morale mask") && ok;
+    ok      = expectEqualUInt(first.Nations.Sandoria.Prosperity, 3, "campaign plan prosperity mask") && ok;
+    ok      = expectEqualUInt(first.Zones[0].Owner, 5, "campaign first owner mask") && ok;
+    ok      = expectEqualUInt(first.Zones[0].CurrentFortifications, 0x55, "campaign first fortifications mask") && ok;
+    ok      = expectEqualUInt(first.Zones[0].CurrentResources, 0x2AA, "campaign first resources mask") && ok;
+    ok      = expectEqualUInt(first.Zones[0].MaxFortifications, 0x2AB, "campaign first max fortifications mask") && ok;
+    ok      = expectEqualUInt(first.Zones[0].MaxResources, 0x155, "campaign first max resources mask") && ok;
+    ok      = expectEqualUInt(second.ZoneOffset, 13, "campaign second ZoneOffset") && ok;
+    ok      = expectEqualUInt(second.Zones[0].Owner, 2, "campaign second page region") && ok;
+    ok      = expectEqualUInt(second.Zones[0].CurrentFortifications, 8, "campaign second page fortifications") && ok;
+    ok      = expectEqualUInt(second.Zones[0].MaxResources, 16, "campaign second page max resources") && ok;
+    return ok;
+}
+
 auto testColonizationBitPacking() -> bool
 {
     auto ranks          = coalitionranks_t{};
@@ -196,6 +255,7 @@ auto runS2CInfluencePacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testCampaignBitPacking() && ok;
+    ok      = testCampaignRuntimePlan() && ok;
     ok      = testColonizationBitPacking() && ok;
     return ok;
 }

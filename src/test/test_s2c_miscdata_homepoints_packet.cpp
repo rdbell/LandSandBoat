@@ -173,8 +173,8 @@ auto testConstructorCopiesActiveMasksAndZerosUnsupportedFields() -> bool
     data.waypoint[0]      = 0x41424344;
     data.waypoint[1]      = 0x51525354;
 
-    const auto* packetBytes = reinterpret_cast<const uint8*>(&packet);
-    return expectStructBytes(data, *reinterpret_cast<const std::array<uint8, homepointsPacketDataSize>*>(packetBytes + sizeof(GP_SERV_HEADER)), "constructor active masks and zeroed unsupported fields");
+    const auto* packetData = static_cast<uint8*>(packet) + sizeof(GP_SERV_HEADER);
+    return expectStructBytes(*reinterpret_cast<const std::array<uint8, homepointsPacketDataSize>*>(packetData), *reinterpret_cast<const std::array<uint8, homepointsPacketDataSize>*>(&data), "constructor active masks and zeroed unsupported fields");
 }
 
 } // namespace

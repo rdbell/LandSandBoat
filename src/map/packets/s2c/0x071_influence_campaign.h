@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "common/cbasetypes.h"
 
 #include "base.h"
@@ -100,3 +102,43 @@ public:
 };
 
 } // namespace GP_SERV_COMMAND_INFLUENCE
+
+namespace influencecampaignhelpers
+{
+
+struct NationFacts
+{
+    uint8_t reconnaissance{};
+    uint8_t morale{};
+    uint8_t prosperity{};
+};
+
+struct RegionFacts
+{
+    uint8_t  owner{};
+    uint16_t currentFortifications{};
+    uint16_t currentResources{};
+    uint8_t  heroism{};
+    uint8_t  influenceSandoria{};
+    uint8_t  influenceBastok{};
+    uint8_t  influenceWindurst{};
+    uint8_t  influenceBeastman{};
+    uint16_t maxFortifications{};
+    uint16_t maxResources{};
+};
+
+struct Facts
+{
+    int32_t                    alliedNotes{};
+    uint8_t                    controlSandoria{};
+    uint8_t                    controlBastok{};
+    uint8_t                    controlWindurst{};
+    uint8_t                    controlBeastman{};
+    std::array<NationFacts, 7> nations{};
+    std::array<RegionFacts, 26> regions{};
+    uint8_t                    number{};
+};
+
+[[nodiscard]] auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_INFLUENCE::CAMPAIGN::PacketData;
+
+} // namespace influencecampaignhelpers
