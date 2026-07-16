@@ -21,10 +21,8 @@
 
 #include "0x05a_reqconquest.h"
 
-#include "campaign_system.h"
 #include "entities/char_entity.h"
 #include "packets/s2c/0x05e_conquest.h"
-#include "packets/s2c/0x071_influence_campaign.h"
 #include "packets/s2c/0x071_influence_colonization.h"
 
 auto GP_CLI_COMMAND_REQCONQUEST::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
@@ -35,12 +33,20 @@ auto GP_CLI_COMMAND_REQCONQUEST::validate(MapSession* PSession, const CCharEntit
 
 void GP_CLI_COMMAND_REQCONQUEST::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    PChar->pushPacket<GP_SERV_COMMAND_CONQUEST>(PChar);
-
-    // TODO: This does not work reliably with multiple process.
-    // World server needs to stream updates to all map servers.
-    // CampaignState state = campaign::GetCampaignState();
-    // PChar->pushPacket<GP_SERV_COMMAND_INFLUENCE::CAMPAIGN>(PChar, state, 0);
-    // PChar->pushPacket<GP_SERV_COMMAND_INFLUENCE::CAMPAIGN>(PChar, state, 1);
-    PChar->pushPacket<GP_SERV_COMMAND_INFLUENCE::COLONIZATION>(PChar);
+    for (const auto response : reqconquesthelpers::MakeResponsePlan())
+    {
+        switch (response)
+        {
+            case reqconquesthelpers::Response::Conquest:
+                PChar->pushPacket<GP_SERV_COMMAND_CONQUEST>(PChar);
+                break;
+            case reqconquesthelpers::Response::Colonization:
+                PChar->pushPacket<GP_SERV_COMMAND_INFLUENCE::COLONIZATION>(PChar);
+                break;
+            case reqconquesthelpers::Response::Campaign:
+                // World-server campaign state is not reliably streamed to all
+                // map servers, so the plan deliberately never emits it.
+                break;
+        }
+    }
 }

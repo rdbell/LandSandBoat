@@ -76,6 +76,8 @@ set(SOURCES
     test_c2s_chocobo_race_req_packet.cpp
     test_c2s_clistatus_packet.h
     test_c2s_clistatus_packet.cpp
+    test_c2s_clistatus_runtime.h
+    test_c2s_clistatus_runtime.cpp
     test_c2s_clstat_packet.h
     test_c2s_clstat_packet.cpp
     test_c2s_combine_ask_packet.h
@@ -94,12 +96,16 @@ set(SOURCES
     test_c2s_equipment_packets.cpp
     test_c2s_event_update_packets.h
     test_c2s_event_update_packets.cpp
+    test_c2s_maprect_moghouse_exit.h
+    test_c2s_maprect_moghouse_exit.cpp
     test_c2s_passwards_runtime.h
     test_c2s_passwards_runtime.cpp
     test_c2s_eventend_transition.h
     test_c2s_eventend_transition.cpp
     test_c2s_eventendxzy_transition.h
     test_c2s_eventendxzy_transition.cpp
+    test_c2s_reqconquest_transition.h
+    test_c2s_reqconquest_transition.cpp
     test_c2s_extended_job_packet.h
     test_c2s_extended_job_packet.cpp
     test_c2s_fishing_packets.h

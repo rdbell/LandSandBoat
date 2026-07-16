@@ -25,6 +25,11 @@
 #include "packets/s2c/0x061_clistatus.h"
 #include "utils/charutils.h"
 
+auto clistatushelpers::MakeDispatchPlan() -> DispatchPlan
+{
+    return { .refreshLocalPlayerPackets = true };
+}
+
 auto GP_CLI_COMMAND_CLISTATUS::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -33,5 +38,9 @@ auto GP_CLI_COMMAND_CLISTATUS::validate(MapSession* PSession, const CCharEntity*
 
 void GP_CLI_COMMAND_CLISTATUS::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    charutils::SendLocalPlayerPackets(PChar);
+    const auto plan = clistatushelpers::MakeDispatchPlan();
+    if (plan.refreshLocalPlayerPackets)
+    {
+        charutils::SendLocalPlayerPackets(PChar);
+    }
 }

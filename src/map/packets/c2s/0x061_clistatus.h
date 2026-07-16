@@ -23,6 +23,24 @@
 
 #include "base.h"
 
+namespace clistatushelpers
+{
+
+// DispatchPlan identifies the live host operation chosen after CLISTATUS has
+// passed packet validation. charutils owns the individual local-player packet
+// bundle and its delivery order.
+struct DispatchPlan
+{
+    bool refreshLocalPlayerPackets = false;
+};
+
+// MakeDispatchPlan mirrors GP_CLI_COMMAND_CLISTATUS::process. The process
+// path is reached only after validate accepts unknown00 values 0 or 1; both
+// values select the same local-player refresh.
+auto MakeDispatchPlan() -> DispatchPlan;
+
+} // namespace clistatushelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0061
 // This packet is sent by the client when requesting the current clients local player information.
 GP_CLI_PACKET(GP_CLI_COMMAND_CLISTATUS,

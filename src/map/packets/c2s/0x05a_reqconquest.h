@@ -23,6 +23,29 @@
 
 #include "base.h"
 
+#include <array>
+
+// REQCONQUEST's entity-independent reply sequence. Campaign is intentionally
+// omitted because its cross-map-server state stream is not reliable yet.
+namespace reqconquesthelpers
+{
+
+enum class Response
+{
+    Conquest,
+    Campaign,
+    Colonization,
+};
+
+using ResponsePlan = std::array<Response, 2>;
+
+[[nodiscard]] constexpr auto MakeResponsePlan() -> ResponsePlan
+{
+    return { Response::Conquest, Response::Colonization };
+}
+
+} // namespace reqconquesthelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x005A
 // This packet is sent by the client when requesting the current Conquest map information.
 GP_CLI_PACKET(GP_CLI_COMMAND_REQCONQUEST);
