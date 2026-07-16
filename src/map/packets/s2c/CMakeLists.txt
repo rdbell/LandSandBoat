@@ -143,6 +143,7 @@ set(PACKET_S2C_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/0x060_musicvolume.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x061_clistatus.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x061_clistatus.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/clistatus_runtime.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x062_clistatus2.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x062_clistatus2.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/0x063_miscdata.h
