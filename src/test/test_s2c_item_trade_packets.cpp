@@ -45,12 +45,12 @@ constexpr auto tradeListPacketDataSize         = sizeof(GP_SERV_COMMAND_ITEM_TRA
 constexpr auto tradeListUnroundedPacketSize    = sizeof(GP_SERV_HEADER) + tradeListPacketDataSize;
 constexpr auto tradeListRoundedPacketSize      = 40U;
 
-constexpr auto myListItemNumOffset       = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_ITEM_TRADE_MYLIST::PacketData, ItemNum);
-constexpr auto myListItemNoOffset        = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_ITEM_TRADE_MYLIST::PacketData, ItemNo);
-constexpr auto myListTradeIndexOffset    = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_ITEM_TRADE_MYLIST::PacketData, TradeIndex);
-constexpr auto myListItemIndexOffset     = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_ITEM_TRADE_MYLIST::PacketData, ItemIndex);
-constexpr auto myListPacketDataSize      = sizeof(GP_SERV_COMMAND_ITEM_TRADE_MYLIST::PacketData);
-constexpr auto myListFullPacketSize      = sizeof(GP_SERV_HEADER) + myListPacketDataSize;
+constexpr auto myListItemNumOffset    = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_ITEM_TRADE_MYLIST::PacketData, ItemNum);
+constexpr auto myListItemNoOffset     = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_ITEM_TRADE_MYLIST::PacketData, ItemNo);
+constexpr auto myListTradeIndexOffset = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_ITEM_TRADE_MYLIST::PacketData, TradeIndex);
+constexpr auto myListItemIndexOffset  = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_ITEM_TRADE_MYLIST::PacketData, ItemIndex);
+constexpr auto myListPacketDataSize   = sizeof(GP_SERV_COMMAND_ITEM_TRADE_MYLIST::PacketData);
+constexpr auto myListFullPacketSize   = sizeof(GP_SERV_HEADER) + myListPacketDataSize;
 
 auto packetData(CBasicPacket& packet) -> uint8*
 {
@@ -145,14 +145,44 @@ auto testTradeListConstructor() -> bool
     packet.setSequence(0xBEEF);
 
     const auto expected = std::array<uint8, 38>{
-        0x23, 0x14, 0xEF, 0xBE,
-        0x03, 0x02, 0x01, 0x00,
-        0x00, 0x00,
-        0x56, 0x34,
-        0x00, 0x07,
-        0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
-        0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF,
-        0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7,
+        0x23,
+        0x14,
+        0xEF,
+        0xBE,
+        0x03,
+        0x02,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x56,
+        0x34,
+        0x00,
+        0x07,
+        0xA0,
+        0xA1,
+        0xA2,
+        0xA3,
+        0xA4,
+        0xA5,
+        0xA6,
+        0xA7,
+        0xA8,
+        0xA9,
+        0xAA,
+        0xAB,
+        0xAC,
+        0xAD,
+        0xAE,
+        0xAF,
+        0xB0,
+        0xB1,
+        0xB2,
+        0xB3,
+        0xB4,
+        0xB5,
+        0xB6,
+        0xB7,
     };
 
     bool ok = true;
@@ -188,6 +218,23 @@ auto testMyListZeroReserveConstructor() -> bool
     return ok;
 }
 
+auto testMyListRuntimePlanReserveBranches() -> bool
+{
+    const auto present = itemtrademylisthelpers::PlanFor(0x00010203, 0x3456, 0x07, 0x22);
+    const auto empty   = itemtrademylisthelpers::PlanFor(0, 0x3456, 0x07, 0x22);
+
+    bool ok = true;
+    ok      = expectEqualUInt(present.ItemNum, 0x00010203, "ITEM_TRADE_MYLIST present reserve") && ok;
+    ok      = expectEqualUInt(present.ItemNo, 0x3456, "ITEM_TRADE_MYLIST present item ID") && ok;
+    ok      = expectEqualUInt(present.TradeIndex, 0x07, "ITEM_TRADE_MYLIST present trade index") && ok;
+    ok      = expectEqualUInt(present.ItemIndex, 0x22, "ITEM_TRADE_MYLIST present item slot") && ok;
+    ok      = expectEqualUInt(empty.ItemNum, 0, "ITEM_TRADE_MYLIST empty reserve") && ok;
+    ok      = expectEqualUInt(empty.ItemNo, 0, "ITEM_TRADE_MYLIST empty item ID") && ok;
+    ok      = expectEqualUInt(empty.TradeIndex, 0x07, "ITEM_TRADE_MYLIST empty trade index retained") && ok;
+    ok      = expectEqualUInt(empty.ItemIndex, 0, "ITEM_TRADE_MYLIST empty item slot") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CItemTradePacketSelfTests() -> bool
@@ -197,5 +244,6 @@ auto runS2CItemTradePacketSelfTests() -> bool
     ok      = testTradeListConstructor() && ok;
     ok      = testMyListConstructor() && ok;
     ok      = testMyListZeroReserveConstructor() && ok;
+    ok      = testMyListRuntimePlanReserveBranches() && ok;
     return ok;
 }

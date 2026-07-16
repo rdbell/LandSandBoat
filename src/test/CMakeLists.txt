@@ -1748,12 +1748,16 @@ set(SOURCES
     test_s2c_systemmes_packet.cpp
     test_s2c_talknum_packet.h
     test_s2c_talknum_packet.cpp
+    test_s2c_talknum_runtime.h
+    test_s2c_talknum_runtime.cpp
     test_s2c_talknumwork_packet.h
     test_s2c_talknumwork_packet.cpp
     test_s2c_talknumwork2_packet.h
     test_s2c_talknumwork2_packet.cpp
     test_s2c_talknumname_packet.h
     test_s2c_talknumname_packet.cpp
+    test_s2c_talknumname_runtime.h
+    test_s2c_talknumname_runtime.cpp
     test_s2c_trophy_list_packet.h
     test_s2c_trophy_list_packet.cpp
     test_s2c_trophy_solution_packet.h

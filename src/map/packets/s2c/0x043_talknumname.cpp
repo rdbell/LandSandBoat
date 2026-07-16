@@ -27,11 +27,5 @@
 
 GP_SERV_COMMAND_TALKNUMNAME::GP_SERV_COMMAND_TALKNUMNAME(const CCharEntity* PChar, const uint16_t msgId)
 {
-    auto& packet = this->data();
-
-    packet.UniqueNo = PChar->id;
-    packet.ActIndex = PChar->targid;
-    packet.MesNum   = msgId + 0x8000; // TODO: This needs to be reworked
-
-    std::memcpy(packet.sName, PChar->getName().c_str(), std::min<size_t>(PChar->getName().size(), sizeof(packet.sName)));
+    this->data() = talknumnamehelpers::PlanFor({ .id = PChar->id, .targid = PChar->targid, .messageId = msgId, .name = PChar->getName() });
 }

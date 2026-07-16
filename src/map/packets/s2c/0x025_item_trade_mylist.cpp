@@ -27,10 +27,10 @@ GP_SERV_COMMAND_ITEM_TRADE_MYLIST::GP_SERV_COMMAND_ITEM_TRADE_MYLIST(const CItem
 {
     auto& packet = this->data();
 
-    const uint32 amount = PItem->getReserve();
+    const auto plan = itemtrademylisthelpers::PlanFor(PItem->getReserve(), PItem->getID(), slot, PItem->getSlotID());
 
-    packet.ItemNum    = amount == 0 ? 0 : amount;
-    packet.ItemNo     = amount == 0 ? 0 : PItem->getID();
-    packet.TradeIndex = slot;
-    packet.ItemIndex  = amount == 0 ? 0 : PItem->getSlotID();
+    packet.ItemNum    = plan.ItemNum;
+    packet.ItemNo     = plan.ItemNo;
+    packet.TradeIndex = plan.TradeIndex;
+    packet.ItemIndex  = plan.ItemIndex;
 }

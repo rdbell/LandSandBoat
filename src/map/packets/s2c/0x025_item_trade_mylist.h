@@ -27,6 +27,24 @@
 
 class CItem;
 
+namespace itemtrademylisthelpers
+{
+
+struct Plan
+{
+    uint32_t ItemNum;
+    uint16_t ItemNo;
+    uint8_t  TradeIndex;
+    uint8_t  ItemIndex;
+};
+
+[[nodiscard]] constexpr auto PlanFor(const uint32_t reserve, const uint16_t itemNo, const uint8_t tradeIndex, const uint8_t itemIndex) -> Plan
+{
+    return reserve == 0 ? Plan{ 0, 0, tradeIndex, 0 } : Plan{ reserve, itemNo, tradeIndex, itemIndex };
+}
+
+} // namespace itemtrademylisthelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x0025
 // This packet is sent by the server to inform the player of a trade item update.
 // (This update is related to the local player's items.)

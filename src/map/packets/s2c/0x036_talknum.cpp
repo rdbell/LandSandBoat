@@ -20,15 +20,11 @@
 */
 
 #include "0x036_talknum.h"
+#include "talknum_runtime.h"
 
 #include "entities/base_entity.h"
 
 GP_SERV_COMMAND_TALKNUM::GP_SERV_COMMAND_TALKNUM(CBaseEntity* PEntity, const uint16 messageID, const bool showName, const uint8 mode)
 {
-    auto& packet = this->data();
-
-    packet.UniqueNo = PEntity->id;
-    packet.ActIndex = PEntity->targid;
-    packet.MesNum   = (PEntity->objtype == TYPE_PC || !showName) ? (messageID + 0x8000) : messageID;
-    packet.Type     = mode;
+    this->data() = talknumhelpers::PlanFor({ .uniqueNo = PEntity->id, .actIndex = PEntity->targid, .playerCharacter = PEntity->objtype == TYPE_PC }, messageID, showName, mode);
 }

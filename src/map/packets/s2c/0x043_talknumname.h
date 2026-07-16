@@ -21,6 +21,10 @@
 
 #pragma once
 
+#include <algorithm>
+#include <cstring>
+#include <string_view>
+
 #include "base.h"
 
 // TODO: Figure out appropriate names
@@ -58,3 +62,30 @@ public:
 
     GP_SERV_COMMAND_TALKNUMNAME(const CCharEntity* PChar, uint16_t msgId);
 };
+
+namespace talknumnamehelpers
+{
+
+struct Facts
+{
+    uint32           id;
+    uint16           targid;
+    uint16           messageId;
+    std::string_view name;
+};
+
+[[nodiscard]] inline auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_TALKNUMNAME::PacketData
+{
+    auto plan           = GP_SERV_COMMAND_TALKNUMNAME::PacketData{};
+    plan.UniqueNo       = facts.id;
+    plan.ActIndex       = facts.targid;
+    plan.MesNum         = static_cast<uint16>(facts.messageId + 0x8000);
+    const auto nameSize = std::min<size_t>(facts.name.size(), sizeof(plan.sName));
+    if (nameSize != 0)
+    {
+        std::memcpy(plan.sName, facts.name.data(), nameSize);
+    }
+    return plan;
+}
+
+} // namespace talknumnamehelpers
