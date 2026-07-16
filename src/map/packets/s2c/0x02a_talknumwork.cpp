@@ -33,25 +33,13 @@ GP_SERV_COMMAND_TALKNUMWORK::GP_SERV_COMMAND_TALKNUMWORK(
     const uint32       param3,
     const bool         ShowName)
 {
-    auto& packet = this->data();
-
-    packet.UniqueNo = PEntity->id;
-    packet.num[0]   = param0;
-    packet.num[1]   = param1;
-    packet.num[2]   = param2;
-    packet.num[3]   = param3;
-    packet.ActIndex = PEntity->targid;
-    packet.Type     = 0;
-    packet.Flag     = 0;
-
-    if (ShowName)
-    {
-        std::memcpy(packet.String, PEntity->getName().c_str(), std::min<size_t>(PEntity->getName().size(), sizeof(packet.String) - 1));
-    }
-    else if (PEntity->objtype == TYPE_PC)
-    {
-        messageID += 0x8000;
-    }
-
-    packet.MesNum = messageID;
+    this->data() = talknumworkhelpers::PlanFor({
+        .id       = PEntity->id,
+        .targid   = PEntity->targid,
+        .isPC     = PEntity->objtype == TYPE_PC,
+        .message  = messageID,
+        .params   = { param0, param1, param2, param3 },
+        .showName = ShowName,
+        .name     = PEntity->getName(),
+    });
 }

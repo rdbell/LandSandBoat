@@ -87,7 +87,7 @@ auto makeStoredEntity(std::uint32_t id, std::uint16_t targid, ENTITYTYPE objtype
 
 void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid, std::string name)
 {
-    character.id    = id;
+    character.id     = id;
     character.targid = targid;
     character.name   = std::move(name);
 }
@@ -236,6 +236,32 @@ auto testShowNameCopiesAndTruncatesRawName() -> bool
     return ok;
 }
 
+auto testRuntimePlanBranches() -> bool
+{
+    const auto hidden = talknumworkhelpers::PlanFor({
+        .id      = 1,
+        .targid  = 2,
+        .isPC    = true,
+        .message = 0x9001,
+        .params  = { 1, 2, 3, 4 },
+    });
+    const auto named  = talknumworkhelpers::PlanFor({
+        .message  = 0x9001,
+        .showName = true,
+        .name     = std::string_view("abcdefghijklmnopqrstuvwxyz012345", 32),
+    });
+
+    bool ok = true;
+    ok      = expectEqualUInt(hidden.UniqueNo, 1, "runtime hidden UniqueNo") && ok;
+    ok      = expectEqualUInt(hidden.ActIndex, 2, "runtime hidden ActIndex") && ok;
+    ok      = expectEqualUInt(hidden.MesNum, 0x1001, "runtime hidden MesNum") && ok;
+    ok      = expectEqualUInt(hidden.num[3], 4, "runtime hidden num[3]") && ok;
+    ok      = expectEqualUInt(named.MesNum, 0x9001, "runtime named MesNum") && ok;
+    ok      = expectEqualInt(named.String[30], '4', "runtime named String[30]") && ok;
+    ok      = expectEqualInt(named.String[31], 0, "runtime named String[31]") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CTalkNumWorkPacketSelfTests() -> bool
@@ -245,5 +271,6 @@ auto runS2CTalkNumWorkPacketSelfTests() -> bool
     ok      = testNPCNoNameConstructor() && ok;
     ok      = testPCHidesNameWhenShowNameFalse() && ok;
     ok      = testShowNameCopiesAndTruncatesRawName() && ok;
+    ok      = testRuntimePlanBranches() && ok;
     return ok;
 }

@@ -129,6 +129,17 @@ auto testConstructor() -> bool
     return ok;
 }
 
+auto testRuntimePlan() -> bool
+{
+    const auto plan = dighelpers::PlanFor(0x11223344, 0x5566);
+
+    bool ok = true;
+    ok      = expectEqualUInt(plan.tarUniqueNo, 0x11223344, "plan character ID") && ok;
+    ok      = expectEqualUInt(plan.tarActIndex, 0x5566, "plan targid") && ok;
+    ok      = expectEqualUInt(plan.flags, 0x01, "plan fixed Flags") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CDigPacketSelfTests() -> bool
@@ -136,5 +147,6 @@ auto runS2CDigPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testConstructor() && ok;
+    ok      = testRuntimePlan() && ok;
     return ok;
 }

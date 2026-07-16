@@ -27,6 +27,23 @@
 
 class CCharEntity;
 
+namespace dighelpers
+{
+
+struct Plan
+{
+    uint32_t tarUniqueNo;
+    uint16_t tarActIndex;
+    uint8_t  flags;
+};
+
+[[nodiscard]] constexpr auto PlanFor(const uint32_t characterId, const uint16_t targid) -> Plan
+{
+    return Plan{ characterId, targid, 0x01 };
+}
+
+} // namespace dighelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x002F
 // This packet is sent by the server to inform the client to play a digging animation on the given entity.
 class GP_SERV_COMMAND_DIG final : public GP_SERV_PACKET<PacketS2C::GP_SERV_COMMAND_DIG, GP_SERV_COMMAND_DIG>

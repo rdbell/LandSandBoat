@@ -21,6 +21,10 @@
 
 #pragma once
 
+#include <algorithm>
+#include <cstring>
+#include <string_view>
+
 #include "base.h"
 
 class CBaseEntity;
@@ -51,3 +55,46 @@ public:
         uint32             param3   = 0,
         bool               ShowName = false);
 };
+
+namespace talknumworkhelpers
+{
+
+struct Facts
+{
+    uint32           id{};
+    uint16           targid{};
+    bool             isPC{};
+    uint16           message{};
+    uint32           params[4]{};
+    bool             showName{};
+    std::string_view name;
+};
+
+[[nodiscard]] inline auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_TALKNUMWORK::PacketData
+{
+    auto plan     = GP_SERV_COMMAND_TALKNUMWORK::PacketData{};
+    plan.UniqueNo = facts.id;
+    for (std::size_t index = 0; index < 4; ++index)
+    {
+        plan.num[index] = static_cast<int32>(facts.params[index]);
+    }
+    plan.ActIndex = facts.targid;
+    plan.MesNum   = facts.message;
+
+    if (facts.showName)
+    {
+        const auto nameSize = std::min<std::size_t>(facts.name.size(), sizeof(plan.String) - 1);
+        if (nameSize != 0)
+        {
+            std::memcpy(plan.String, facts.name.data(), nameSize);
+        }
+    }
+    else if (facts.isPC)
+    {
+        plan.MesNum = static_cast<uint16>(facts.message + 0x8000);
+    }
+
+    return plan;
+}
+
+} // namespace talknumworkhelpers

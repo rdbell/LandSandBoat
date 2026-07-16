@@ -27,7 +27,9 @@ GP_SERV_COMMAND_DIG::GP_SERV_COMMAND_DIG(const CCharEntity* PChar)
 {
     auto& packet = this->data();
 
-    packet.TarUniqueNo = PChar->id;
-    packet.TarActIndex = PChar->targid;
-    packet.Flags       = 0x01;
+    const auto plan = dighelpers::PlanFor(PChar->id, PChar->targid);
+
+    packet.TarUniqueNo = plan.tarUniqueNo;
+    packet.TarActIndex = plan.tarActIndex;
+    packet.Flags       = plan.flags;
 }
