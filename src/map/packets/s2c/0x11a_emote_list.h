@@ -25,6 +25,9 @@
 
 #include "base.h"
 
+#include <array>
+#include <cstddef>
+
 class CCharEntity;
 
 // PS2: (New; did not exist.)
@@ -71,6 +74,42 @@ struct chairemotes_t
     uint16_t Chair11 : 1; // Chair: Chocobo Chair II
     uint16_t unused : 5;
 };
+
+// The packet constructor resolves key-item ownership into these fixed-order
+// facts. The helper produces only the defined job-emote and chair bits.
+namespace emotelisthelpers
+{
+
+constexpr std::size_t JobEmoteCount = 22;
+constexpr std::size_t ChairCount    = 11;
+
+struct Ownership
+{
+    std::array<bool, JobEmoteCount> jobEmotes{};
+    std::array<bool, ChairCount>    chairs{};
+};
+
+struct Plan
+{
+    uint32 jobEmotes{};
+    uint16 chairs{};
+};
+
+[[nodiscard]] constexpr auto PlanFor(const Ownership& ownership) -> Plan
+{
+    Plan plan{};
+    for (std::size_t index = 0; index < ownership.jobEmotes.size(); ++index)
+    {
+        plan.jobEmotes |= static_cast<uint32>(ownership.jobEmotes[index]) << index;
+    }
+    for (std::size_t index = 0; index < ownership.chairs.size(); ++index)
+    {
+        plan.chairs |= static_cast<uint16>(ownership.chairs[index]) << index;
+    }
+    return plan;
+}
+
+} // namespace emotelisthelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x011A
 // This packet is sent by the server to update the clients unlocked job emotes (/jobemote) and chairs (/sitchair).

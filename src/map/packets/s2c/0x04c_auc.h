@@ -28,6 +28,63 @@ enum class GP_CLI_COMMAND_AUC_COMMAND : uint8_t;
 class CCharEntity;
 class CItem;
 
+// AUC AskCommit derives a posting fee from host-provided settings, then fills
+// a fixed subset of the response. Item and settings lookups remain host work.
+namespace auchelpters
+{
+
+constexpr uint32 AuctionHouseId = 4; // Jeuno linked AH
+
+struct AskCommitFacts
+{
+    uint8  command{};
+    uint16 itemId{};
+    uint16 itemWorkIndex{};
+    uint8  itemStacks{};
+    uint32 price{};
+    uint32 stackBaseFee{};
+    float  stackTaxRate{};
+    uint32 singleBaseFee{};
+    float  singleTaxRate{};
+    uint32 maxFee{};
+};
+
+struct AskCommitPlan
+{
+    uint8  command{};
+    int8   aucWorkIndex{-1};
+    int8   result{1};
+    int8   resultStatus{2};
+    uint32 commission{};
+    uint16 itemId{};
+    uint16 itemWorkIndex{};
+    uint8  itemStacks{};
+    uint32 marketNo{AuctionHouseId};
+};
+
+[[nodiscard]] inline auto AskCommitPlanFor(const AskCommitFacts facts) -> AskCommitPlan
+{
+    const auto baseFee = facts.itemStacks == 0 ? facts.stackBaseFee : facts.singleBaseFee;
+    const auto taxRate = facts.itemStacks == 0 ? facts.stackTaxRate : facts.singleTaxRate;
+    const auto fee     = static_cast<uint32>(static_cast<float>(baseFee) + (static_cast<float>(facts.price) * taxRate / 100.0F));
+
+    const auto commission = fee > facts.maxFee ? facts.maxFee : fee;
+
+    return {
+        facts.command,
+        -1,
+        1,
+        2,
+        commission,
+        facts.itemId,
+        facts.itemWorkIndex,
+        facts.itemStacks,
+        AuctionHouseId,
+    };
+}
+
+} // namespace auchelpters
+
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x004C
 // This packet is sent by the server when the client is interacting with the auction house.
 class GP_SERV_COMMAND_AUC final : public GP_SERV_PACKET<PacketS2C::GP_SERV_COMMAND_AUC, GP_SERV_COMMAND_AUC>

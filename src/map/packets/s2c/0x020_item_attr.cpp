@@ -20,6 +20,7 @@
 */
 
 #include "0x020_item_attr.h"
+#include "item_attr_runtime.h"
 
 #include "common/vana_time.h"
 #include "entities/char_entity.h"
@@ -27,97 +28,52 @@
 #include "items/item_linkshell.h"
 #include "utils/itemutils.h"
 
-#include <cstring>
-
 GP_SERV_COMMAND_ITEM_ATTR::GP_SERV_COMMAND_ITEM_ATTR(CItem* PItem, const CONTAINER_ID locationId, const uint8_t slotId, CItem* staleItem)
 {
     auto& packet = this->data();
+    auto facts       = itemattrhelpers::Facts{};
 
-    packet.Category  = locationId;
-    packet.ItemIndex = slotId;
-
-    if (PItem != nullptr)
+    if (PItem)
     {
-        packet.ItemNum = PItem->getQuantity();
-        packet.Price   = PItem->getCharPrice();
-        packet.ItemNo  = PItem->getID();
-        std::memcpy(packet.Attr, PItem->m_extra, sizeof(PItem->m_extra));
+        facts.hasItem = true;
+        facts.quantity = PItem->getQuantity();
+        facts.price = PItem->getCharPrice();
+        facts.itemID = PItem->getID();
+        facts.extra = std::to_array(PItem->m_extra);
+        facts.charged = PItem->isSubType(ITEM_CHARGED);
+        facts.unlockableWeapon = PItem->isType(ITEM_WEAPON) && static_cast<CItemWeapon*>(PItem)->isUnlockable();
+        facts.locked = PItem->isSubType(ITEM_LOCKED);
+        facts.linkshell = PItem->isType(ITEM_LINKSHELL);
 
-        if (PItem->isSubType(ITEM_CHARGED))
+        if (facts.charged)
         {
-            packet.Attr[0] = 0x01;
-
-            uint8 flags = 0x80; // Tests showed high bit always set.
-            if (static_cast<CItemUsable*>(PItem)->getCurrentCharges() < static_cast<CItemUsable*>(PItem)->getMaxCharges())
+            auto* usable = static_cast<CItemUsable*>(PItem);
+            facts.currentCharges = usable->getCurrentCharges();
+            facts.maxCharges = usable->getMaxCharges();
+            if (facts.currentCharges > 0)
             {
-                flags |= 0x10; // Partial charges mask
-            }
-
-            if (static_cast<CItemUsable*>(PItem)->getCurrentCharges() > 0)
-            {
-                if (static_cast<CItemUsable*>(PItem)->getReuseTime() == 0s)
+                facts.reuseReady = usable->getReuseTime() == 0s;
+                if (!facts.reuseReady)
                 {
-                    flags |= 0x40; // Ready to use
-                }
-                else
-                {
-                    const timer::time_point nextUseTime = static_cast<CItemUsable*>(PItem)->getNextUseTime();
-                    const uint32_t          timestamp   = earth_time::vanadiel_timestamp(timer::to_utc(nextUseTime));
-                    packet.Attr[4]                      = timestamp & 0xFF;
-                    packet.Attr[5]                      = (timestamp >> 8) & 0xFF;
-                    packet.Attr[6]                      = (timestamp >> 16) & 0xFF;
-                    packet.Attr[7]                      = (timestamp >> 24) & 0xFF;
-
-                    // Not sent if the item is unequipped.
-                    const uint32_t delayTimestamp = static_cast<uint32_t>(timer::count_seconds(static_cast<CItemUsable*>(PItem)->getUseDelay()) + earth_time::vanadiel_timestamp());
-                    packet.Attr[8]                = delayTimestamp & 0xFF;
-                    packet.Attr[9]                = (delayTimestamp >> 8) & 0xFF;
-                    packet.Attr[10]               = (delayTimestamp >> 16) & 0xFF;
-                    packet.Attr[11]               = (delayTimestamp >> 24) & 0xFF;
+                    facts.nextUseTimestamp = earth_time::vanadiel_timestamp(timer::to_utc(usable->getNextUseTime()));
+                    facts.delayTimestamp = static_cast<uint32_t>(timer::count_seconds(usable->getUseDelay()) + earth_time::vanadiel_timestamp());
                 }
             }
-            else
-            {
-                flags |= 0x20; // Empty charges
-            }
-            packet.Attr[3] = flags;
         }
 
-        if (PItem->isType(ITEM_WEAPON) && static_cast<CItemWeapon*>(PItem)->isUnlockable())
+        if (facts.linkshell)
         {
-            packet.Attr[0] = 0;
-            packet.Attr[1] = 0;
-        }
-
-        if (PItem->getCharPrice() != 0)
-        {
-            packet.LockFlg = ItemLockFlg::Unknown0;
-        }
-        else if (PItem->isSubType(ITEM_LOCKED))
-        {
-            if (PItem->isType(ITEM_LINKSHELL))
-            {
-                packet.LockFlg = ItemLockFlg::Linkshell;
-            }
-            else
-            {
-                packet.LockFlg = ItemLockFlg::NoDrop;
-            }
-        }
-        else
-        {
-            packet.LockFlg = ItemLockFlg::Normal;
-        }
-
-        if (PItem->isType(ITEM_LINKSHELL))
-        {
-            packet.Attr[8] = static_cast<CItemLinkshell*>(PItem)->GetLSType();
+            facts.linkshellType = static_cast<CItemLinkshell*>(PItem)->GetLSType();
         }
     }
-    else if (staleItem && settings::get<bool>("map.LEAK_EXT_DATA_ON_ITEM_MOVE")) // Yes, retail copies the previously moved item's extdata which leaks information about weaponskill points.
+    else if (staleItem)
     {
-        std::memcpy(packet.Attr, staleItem->m_extra, sizeof(staleItem->m_extra));
+        facts.hasStaleItem = true;
+        facts.staleExtra = std::to_array(staleItem->m_extra);
+        facts.leakStaleExtra = settings::get<bool>("map.LEAK_EXT_DATA_ON_ITEM_MOVE");
     }
+
+    packet = itemattrhelpers::PlanFor(locationId, slotId, facts);
 }
 
 GP_SERV_COMMAND_ITEM_ATTR::GP_SERV_COMMAND_ITEM_ATTR(CItem* PItem, const ItemLocation& loc, CItem* staleItem)

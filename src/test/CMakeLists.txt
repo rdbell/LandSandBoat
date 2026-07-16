@@ -1460,6 +1460,8 @@ set(SOURCES
     test_s2c_assist_packet.cpp
     test_s2c_auc_packet.h
     test_s2c_auc_packet.cpp
+    test_s2c_auc_runtime.h
+    test_s2c_auc_runtime.cpp
     test_s2c_alter_ego_points_packet.h
     test_s2c_alter_ego_points_packet.cpp
     test_s2c_abil_recast_packet.h
@@ -1558,6 +1560,8 @@ set(SOURCES
     test_s2c_faq_gmparam_packet.cpp
     test_s2c_emote_list_packet.h
     test_s2c_emote_list_packet.cpp
+    test_s2c_emote_list_runtime.h
+    test_s2c_emote_list_runtime.cpp
     test_s2c_fish_packet.h
     test_s2c_fish_packet.cpp
     test_s2c_friendpass_packet.h
@@ -1596,6 +1600,8 @@ set(SOURCES
     test_s2c_inspect_message_packet.cpp
     test_s2c_item_attr_packet.h
     test_s2c_item_attr_packet.cpp
+    test_s2c_item_attr_runtime.h
+    test_s2c_item_attr_runtime.cpp
     test_s2c_itemsearch_packet.h
     test_s2c_itemsearch_packet.cpp
     test_s2c_item_max_packet.h

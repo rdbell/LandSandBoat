@@ -24,13 +24,6 @@
 #include "entities/char_entity.h"
 #include "packets/c2s/0x04e_auc.h"
 
-namespace
-{
-
-constexpr uint8_t AuctionHouseId = 4; // Jeuno linked AH
-
-}
-
 GP_SERV_COMMAND_AUC::GP_SERV_COMMAND_AUC(const GP_CLI_COMMAND_AUC_COMMAND action)
 {
     auto& packet = this->data();
@@ -44,27 +37,28 @@ GP_SERV_COMMAND_AUC::GP_SERV_COMMAND_AUC(const GP_CLI_COMMAND_AUC_COMMAND action
 {
     auto& packet = this->data();
 
-    uint32 auctionFee = 0;
-    if (quantity == 0) // This is a stack..Yes, zero for stacks.. Why is this being called quantity?
-    {
-        auctionFee = static_cast<uint32>(settings::get<uint32>("map.AH_BASE_FEE_STACKS") + (price * settings::get<float>("map.AH_TAX_RATE_STACKS") / 100));
-    }
-    else // This is a single item.
-    {
-        auctionFee = static_cast<uint32>(settings::get<uint32>("map.AH_BASE_FEE_SINGLE") + (price * settings::get<float>("map.AH_TAX_RATE_SINGLE") / 100));
-    }
+    const auto plan = auchelpters::AskCommitPlanFor({
+        .command       = static_cast<uint8>(action),
+        .itemId        = PItem->getID(),
+        .itemWorkIndex = PItem->getSlotID(),
+        .itemStacks    = quantity,
+        .price         = price,
+        .stackBaseFee  = settings::get<uint32>("map.AH_BASE_FEE_STACKS"),
+        .stackTaxRate  = settings::get<float>("map.AH_TAX_RATE_STACKS"),
+        .singleBaseFee = settings::get<uint32>("map.AH_BASE_FEE_SINGLE"),
+        .singleTaxRate = settings::get<float>("map.AH_TAX_RATE_SINGLE"),
+        .maxFee        = settings::get<uint32>("map.AH_MAX_FEE"),
+    });
 
-    auctionFee = std::clamp<uint32>(auctionFee, 0, settings::get<uint32>("map.AH_MAX_FEE"));
-
-    packet.Command                       = action;
-    packet.AucWorkIndex                  = -1;
-    packet.Result                        = 1;
-    packet.ResultStatus                  = 0x02;
-    packet.Param.AskCommit.Commission    = auctionFee;
-    packet.Param.AskCommit.ItemNo        = PItem->getID();
-    packet.Param.AskCommit.ItemWorkIndex = PItem->getSlotID();
-    packet.Param.AskCommit.ItemStacks    = quantity;
-    packet.Parcel.MarketNo               = AuctionHouseId;
+    packet.Command                       = static_cast<GP_CLI_COMMAND_AUC_COMMAND>(plan.command);
+    packet.AucWorkIndex                  = plan.aucWorkIndex;
+    packet.Result                        = plan.result;
+    packet.ResultStatus                  = plan.resultStatus;
+    packet.Param.AskCommit.Commission    = plan.commission;
+    packet.Param.AskCommit.ItemNo        = plan.itemId;
+    packet.Param.AskCommit.ItemWorkIndex = plan.itemWorkIndex;
+    packet.Param.AskCommit.ItemStacks    = plan.itemStacks;
+    packet.Parcel.MarketNo               = plan.marketNo;
 }
 
 // e.g. client history, client probes a slot number which you give the correct itemId+price
@@ -84,7 +78,7 @@ GP_SERV_COMMAND_AUC::GP_SERV_COMMAND_AUC(const GP_CLI_COMMAND_AUC_COMMAND action
         packet.Parcel.ItemQuantity = 1 - PChar->m_ah_history.at(slot).stack; // Number of items stack size
         packet.Parcel.ItemCategory = 0x02;                                   // Number of items stack size?
         packet.Parcel.Price        = PChar->m_ah_history.at(slot).price;     // Selling price
-        packet.Parcel.MarketNo     = AuctionHouseId;
+        packet.Parcel.MarketNo     = auchelpters::AuctionHouseId;
     }
 }
 
@@ -117,7 +111,7 @@ GP_SERV_COMMAND_AUC::GP_SERV_COMMAND_AUC(const GP_CLI_COMMAND_AUC_COMMAND action
         packet.Parcel.ItemQuantity = 1 - PChar->m_ah_history.at(slot).stack; // Number of items stack size
         packet.Parcel.ItemCategory = 0x02;                                   // Number of items stack size?
         packet.Parcel.Price        = PChar->m_ah_history.at(slot).price;     // Price selling price
-        packet.Parcel.MarketNo     = AuctionHouseId;
+        packet.Parcel.MarketNo     = auchelpters::AuctionHouseId;
 
         std::memcpy(packet.Parcel.Name, PChar->getName().c_str(), std::min(PChar->getName().size(), sizeof(packet.Parcel.Name)));
     }
