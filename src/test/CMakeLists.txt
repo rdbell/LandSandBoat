@@ -801,6 +801,8 @@ set(SOURCES
     test_trust_cast_finished_1426.cpp
     test_trust_valid_target_1427.h
     test_trust_valid_target_1427.cpp
+    test_trust_mob_skill_finished_2595.h
+    test_trust_mob_skill_finished_2595.cpp
     test_pet_valid_target_1428.h
     test_pet_valid_target_1428.cpp
     test_pet_jug_timer_1429.h
@@ -1794,6 +1796,8 @@ set(SOURCES
     test_search_packet_buffer.cpp
     test_search_request_parser.h
     test_search_request_parser.cpp
+    test_npc_entity_2593.h
+    test_npc_entity_2593.cpp
     test_search_social_packets.h
     test_search_social_packets.cpp
     test_settings_number_helper.h

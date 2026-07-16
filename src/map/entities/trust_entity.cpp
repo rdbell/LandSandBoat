@@ -24,6 +24,7 @@
 #include <map/trust_death_capacity.h>
 #include <map/trust_despawn_capacity.h>
 #include <map/trust_fade_out_capacity.h>
+#include <map/trust_mob_skill_finished_capacity.h>
 #include <map/trust_post_tick_capacity.h>
 #include <map/trust_spawn_capacity.h>
 #include <map/trust_valid_target_capacity.h>
@@ -214,7 +215,7 @@ void CTrustEntity::OnCastFinished(CMagicState& state, action_t& action)
 
 void CTrustEntity::OnMobSkillFinished(CMobSkillState& state, action_t& action)
 {
-    CMobEntity::OnMobSkillFinished(state, action);
+    trustmobskillfinishedhelpers::Apply([&]() { CMobEntity::OnMobSkillFinished(state, action); });
 }
 
 void CTrustEntity::OnWeaponSkillFinished(CWeaponSkillState& state, action_t& action)
