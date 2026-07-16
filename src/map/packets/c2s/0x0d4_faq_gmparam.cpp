@@ -35,5 +35,6 @@ void GP_CLI_COMMAND_FAQ_GMPARAM::process(MapSession* PSession, CCharEntity* PCha
 {
     // Respond to the player opening the Help Desk menu
     // The client mostly ignores the response.
-    PChar->pushPacket<GP_SERV_COMMAND_FAQ_GMPARAM>(this->Id);
+    const auto response = faqgmparampackethelpers::ResponseFor(this->Id, this->Option);
+    PChar->pushPacket<GP_SERV_COMMAND_FAQ_GMPARAM>(response.Id);
 }

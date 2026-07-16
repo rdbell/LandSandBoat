@@ -29,6 +29,52 @@ enum class GP_CLI_COMMAND_GROUP_COMLINK_MAKE_LINKSHELLID : uint8_t
     Linkshell2 = 2,
 };
 
+// GROUP_COMLINK_MAKE chooses one of the two equipped linkshell slots, then
+// tries to spawn a linkpearl from that linkshell's data. Character inventory
+// ownership remains in the packet handler.
+namespace groupcomlinkmakehelpers
+{
+
+enum class SourceSlot : uint8
+{
+    None,
+    Linkshell1,
+    Linkshell2,
+};
+
+struct Plan
+{
+    SourceSlot sourceSlot{};
+    bool       attemptLinkpearlSpawn{};
+    bool       createLinkpearl{};
+};
+
+[[nodiscard]] constexpr auto SelectSourceSlot(const uint8 linkshellId) -> SourceSlot
+{
+    switch (static_cast<GP_CLI_COMMAND_GROUP_COMLINK_MAKE_LINKSHELLID>(linkshellId))
+    {
+        case GP_CLI_COMMAND_GROUP_COMLINK_MAKE_LINKSHELLID::Linkshell1:
+            return SourceSlot::Linkshell1;
+        case GP_CLI_COMMAND_GROUP_COMLINK_MAKE_LINKSHELLID::Linkshell2:
+            return SourceSlot::Linkshell2;
+    }
+
+    return SourceSlot::None;
+}
+
+[[nodiscard]] constexpr auto PlanFor(const uint8 linkshellId, const bool hasEquippedLinkshell, const bool linkpearlSpawned) -> Plan
+{
+    const auto sourceSlot = SelectSourceSlot(linkshellId);
+    if (sourceSlot == SourceSlot::None || !hasEquippedLinkshell)
+    {
+        return { sourceSlot, false, false };
+    }
+
+    return { sourceSlot, true, linkpearlSpawned };
+}
+
+} // namespace groupcomlinkmakehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00C3
 // This packet is sent by the client when requesting to create a link pearl for an equipped linkshell.
 GP_CLI_PACKET(GP_CLI_COMMAND_GROUP_COMLINK_MAKE,

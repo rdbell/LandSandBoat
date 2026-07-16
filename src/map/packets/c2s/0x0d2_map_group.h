@@ -21,7 +21,47 @@
 
 #pragma once
 
+#include <cstddef>
+#include <span>
+#include <vector>
+
 #include "base.h"
+
+// MAP_GROUP's host-independent member filter. ForAlliance supplies the input
+// sequence, including any requester entry it chooses to provide; matching
+// entries are deliberately retained in that order.
+namespace mapgrouppackethelpers
+{
+
+struct Member
+{
+    bool   present;
+    uint16 zone;
+    uint32 moghouseId;
+};
+
+[[nodiscard]] constexpr auto IsEligible(const uint16 requesterZone, const uint32 requesterMoghouseId, const Member& member) -> bool
+{
+    return member.present && member.zone == requesterZone && member.moghouseId == requesterMoghouseId;
+}
+
+[[nodiscard]] inline auto SelectEligible(const uint16 requesterZone, const uint32 requesterMoghouseId, const std::span<const Member> members) -> std::vector<std::size_t>
+{
+    auto selected = std::vector<std::size_t>{};
+    selected.reserve(members.size());
+
+    for (std::size_t index = 0; index < members.size(); ++index)
+    {
+        if (IsEligible(requesterZone, requesterMoghouseId, members[index]))
+        {
+            selected.push_back(index);
+        }
+    }
+
+    return selected;
+}
+
+} // namespace mapgrouppackethelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00D2
 // This packet is sent by the client when requesting party member map marker information.

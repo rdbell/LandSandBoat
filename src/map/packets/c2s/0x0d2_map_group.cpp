@@ -39,7 +39,12 @@ void GP_CLI_COMMAND_MAP_GROUP::process(MapSession* PSession, CCharEntity* PChar)
         if (PPartyMember)
         {
             auto* partyMember = static_cast<CCharEntity*>(PPartyMember);
-            if (partyMember->getZone() == PChar->getZone() && partyMember->m_moghouseID == PChar->m_moghouseID)
+            const auto member = mapgrouppackethelpers::Member{
+                .present    = true,
+                .zone       = partyMember->getZone(),
+                .moghouseId = partyMember->m_moghouseID,
+            };
+            if (mapgrouppackethelpers::IsEligible(PChar->getZone(), PChar->m_moghouseID, member))
             {
                 PChar->pushPacket<GP_SERV_COMMAND_MAP_GROUP>(partyMember);
             }

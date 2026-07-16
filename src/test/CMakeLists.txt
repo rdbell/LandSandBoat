@@ -112,6 +112,8 @@ set(SOURCES
     test_c2s_combine_ask_packet.cpp
     test_c2s_comlink_myroom_packets.h
     test_c2s_comlink_myroom_packets.cpp
+    test_c2s_group_comlink_make_runtime.h
+    test_c2s_group_comlink_make_runtime.cpp
     test_c2s_config_packets.h
     test_c2s_config_packets.cpp
     test_c2s_currency_request_packets.h
@@ -222,6 +224,10 @@ set(SOURCES
     test_c2s_header_only_request_packets.cpp
     test_c2s_map_markers_runtime.h
     test_c2s_map_markers_runtime.cpp
+    test_c2s_map_group_runtime.h
+    test_c2s_map_group_runtime.cpp
+    test_c2s_faq_gmparam_runtime.h
+    test_c2s_faq_gmparam_runtime.cpp
     test_c2s_helpdesk_map_packets.h
     test_c2s_helpdesk_map_packets.cpp
     test_c2s_item_action_packets.h

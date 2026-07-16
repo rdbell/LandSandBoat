@@ -23,6 +23,25 @@
 
 #include "base.h"
 
+// FAQ_GMPARAM always reflects the request Id in its Help Desk response. Option
+// is deliberately not part of the response selection; validation owns its
+// required zero-value constraint.
+namespace faqgmparampackethelpers
+{
+
+struct Response
+{
+    uint16_t Id;
+};
+
+[[nodiscard]] constexpr auto ResponseFor(const uint16_t id, const uint16_t option) -> Response
+{
+    static_cast<void>(option);
+    return { id };
+}
+
+} // namespace faqgmparampackethelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00D4
 // This packet is sent by the client when interacting with the Help Desk system. More specifically, when opening the inner Help Desk menu.
 GP_CLI_PACKET(GP_CLI_COMMAND_FAQ_GMPARAM,

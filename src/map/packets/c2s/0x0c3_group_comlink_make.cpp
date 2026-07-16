@@ -40,13 +40,15 @@ void GP_CLI_COMMAND_GROUP_COMLINK_MAKE::process(MapSession* PSession, CCharEntit
 {
     const CItemLinkshell* PItemLinkshell = nullptr;
 
-    switch (static_cast<GP_CLI_COMMAND_GROUP_COMLINK_MAKE_LINKSHELLID>(this->LinkshellId))
+    switch (groupcomlinkmakehelpers::SelectSourceSlot(this->LinkshellId))
     {
-        case GP_CLI_COMMAND_GROUP_COMLINK_MAKE_LINKSHELLID::Linkshell1:
+        case groupcomlinkmakehelpers::SourceSlot::Linkshell1:
             PItemLinkshell = reinterpret_cast<CItemLinkshell*>(PChar->getEquip(SLOT_LINK1));
             break;
-        case GP_CLI_COMMAND_GROUP_COMLINK_MAKE_LINKSHELLID::Linkshell2:
+        case groupcomlinkmakehelpers::SourceSlot::Linkshell2:
             PItemLinkshell = reinterpret_cast<CItemLinkshell*>(PChar->getEquip(SLOT_LINK2));
+            break;
+        case groupcomlinkmakehelpers::SourceSlot::None:
             break;
     }
 
@@ -57,7 +59,8 @@ void GP_CLI_COMMAND_GROUP_COMLINK_MAKE::process(MapSession* PSession, CCharEntit
 
     // Make a new Linkpearl
     auto PItem = xi::items::spawn(ITEMID::LINKPEARL);
-    if (PItem)
+    const auto plan = groupcomlinkmakehelpers::PlanFor(this->LinkshellId, true, static_cast<bool>(PItem));
+    if (plan.createLinkpearl)
     {
         auto* PItemLinkPearl = static_cast<CItemLinkshell*>(PItem.get());
         PItemLinkPearl->setQuantity(1);
