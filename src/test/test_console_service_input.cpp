@@ -23,6 +23,9 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
+
+#include "common/console_service.h"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -96,6 +99,24 @@ auto expectLine(const std::string& expected, const std::string& label) -> bool
     return true;
 }
 
+auto testTokenize() -> bool
+{
+    const auto inputs = consolehelpers::Tokenize("  lua   1 + 2\t\tfoo  ");
+    const auto expected = std::vector<std::string>{ "lua", "1", "+", "2", "foo" };
+    if (inputs != expected)
+    {
+        std::cerr << "console service input self-test failed: tokenize whitespace\n";
+        return false;
+    }
+    if (!consolehelpers::Tokenize(" \t ").empty())
+    {
+        return false;
+    }
+
+    const auto nonAsciiWhitespace = consolehelpers::Tokenize("lua\xC2\xA0" "arg");
+    return nonAsciiWhitespace == std::vector<std::string>{ "lua\xC2\xA0" "arg" };
+}
+
 } // namespace
 #endif
 
@@ -114,6 +135,7 @@ auto runConsoleServiceInputSelfTests() -> bool
     }
 
     bool ok = true;
+    ok      = testTokenize() && ok;
     ok      = expectLine("first command", "first complete line") && ok;
     ok      = expectLine("second command", "second complete line") && ok;
     ok      = expectLine("partial command", "EOF-terminated line") && ok;

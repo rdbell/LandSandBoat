@@ -29,10 +29,16 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
+#include <vector>
 
 #include <common/scheduler.h>
 
 class Application;
+
+namespace consolehelpers
+{
+auto Tokenize(const std::string& line) -> std::vector<std::string>;
+} // namespace consolehelpers
 
 class ConsoleService final
 {

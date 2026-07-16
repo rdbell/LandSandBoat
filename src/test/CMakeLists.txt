@@ -1857,6 +1857,8 @@ set(SOURCES
     test_zlib_codec.cpp
     test_zmq_endpoint_opened.h
     test_zmq_endpoint_opened.cpp
+    test_zmq_endpoint_lifecycle.h
+    test_zmq_endpoint_lifecycle.cpp
 )
 
 if(UNIX)

@@ -102,9 +102,46 @@ auto testHex32ToString() -> bool
     return ok;
 }
 
+auto testDisabledWrapperArgumentsAreEvaluated() -> bool
+{
+#ifdef TRACY_ENABLE
+    // Enabled macro output belongs to the external Tracy profiler, not xi_test.
+    return true;
+#else
+    auto evaluations = 0;
+    auto makeString  = [&evaluations]() -> std::string
+    {
+        ++evaluations;
+        return "evaluated";
+    };
+    auto makeCString = [&evaluations]() -> const char*
+    {
+        ++evaluations;
+        return "evaluated";
+    };
+    auto makeLength = [&evaluations]() -> std::size_t
+    {
+        ++evaluations;
+        return 9;
+    };
+
+    TracyFrameMark;
+    TracyZoneScopedN(makeString());
+    TracyZoneNamed(testZone, makeString());
+    TracyZoneText(makeCString(), makeLength());
+    TracyZoneScopedC(++evaluations);
+    TracyZoneString(makeString());
+    TracyZoneCString(makeCString());
+    TracyMessageStr(makeString());
+    TracySetThreadName(makeString());
+
+    return expectEqualString(std::to_string(evaluations), "9", "disabled wrappers evaluate arguments");
+#endif
+}
+
 } // namespace
 
 auto runTracyHexHelperSelfTests() -> bool
 {
-    return testHex8ToString() && testHex16ToString() && testHex32ToString();
+    return testHex8ToString() && testHex16ToString() && testHex32ToString() && testDisabledWrapperArgumentsAreEvaluated();
 }

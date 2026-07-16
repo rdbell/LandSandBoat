@@ -105,6 +105,23 @@ bool getLine(std::string& line)
 #endif
 }
 
+auto consolehelpers::Tokenize(const std::string& line) -> std::vector<std::string>
+{
+    std::istringstream       stream(line);
+    std::string              part;
+    std::vector<std::string> inputs;
+
+    while (stream >> part)
+    {
+        for (auto& value : split(part))
+        {
+            inputs.emplace_back(value);
+        }
+    }
+
+    return inputs;
+}
+
 ConsoleService::ConsoleService(Application& application)
 : application_(application)
 {
@@ -243,17 +260,7 @@ auto ConsoleService::consoleLoop() -> Task<void>
 
         if (hasLine)
         {
-            std::istringstream       stream(line);
-            std::string              part;
-            std::vector<std::string> inputs;
-
-            while (stream >> part)
-            {
-                for (auto& s : split(part))
-                {
-                    inputs.emplace_back(s);
-                }
-            }
+            auto inputs = consolehelpers::Tokenize(line);
 
             if (!inputs.empty())
             {

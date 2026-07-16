@@ -148,6 +148,7 @@ auto runDatabaseConvenienceHelpersSelfTests() -> bool;
 auto runCachingDatabaseSelfTests() -> bool;
 auto runIPCChannelSelfTests() -> bool;
 auto runZmqEndpointOpenedSelfTests() -> bool;
+auto runZmqEndpointLifecycleSelfTests() -> bool;
 auto runFilewatcherQueueSelfTests() -> bool;
 auto runGardenResultRuntimeSelfTests() -> bool;
 auto runLoggingJsonRendererSelfTests() -> bool;
@@ -1067,6 +1068,7 @@ namespace
         ok = runCachingDatabaseSelfTests() && ok;
         ok = runIPCChannelSelfTests() && ok;
         ok = runZmqEndpointOpenedSelfTests() && ok;
+        ok = runZmqEndpointLifecycleSelfTests() && ok;
         ok = runFilewatcherQueueSelfTests() && ok;
         ok = runGardenResultRuntimeSelfTests() && ok;
         ok = runLoggingJsonRendererSelfTests() && ok;
