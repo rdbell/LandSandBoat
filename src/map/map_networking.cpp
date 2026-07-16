@@ -272,18 +272,9 @@ int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSess
         std::memcpy(&loginPacket, buff + FFXI_HEADER_SIZE, sizeof(GP_CLI_LOGIN));
 
         // See LoginPacketCheck from https://github.com/atom0s/XiPackets/tree/main/world/client/0x000A
-        uint8 checksum = 0;
-
         const auto checksumOffset = offsetof(GP_CLI_LOGIN, unknown01);
-        const auto checksumLength = sizeof(GP_CLI_LOGIN) - checksumOffset;
-
-        for (int i = 0; i < checksumLength; i++)
-        {
-            checksum += ref<uint8>(&loginPacket, checksumOffset + i);
-        }
-
-        // Failed checksum
-        if (checksum != loginPacket.LoginPacketCheck)
+        const auto loginPacketBytes = std::span<const uint8>{ reinterpret_cast<const uint8*>(&loginPacket), sizeof(loginPacket) };
+        if (!mapnetworkinghelpers::HasValidUnencryptedLoginPacketChecksum(loginPacketBytes, checksumOffset, loginPacket.LoginPacketCheck))
         {
             return -1;
         }

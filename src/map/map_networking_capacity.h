@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <span>
 
 #include <common/mmo.h>
 
@@ -79,6 +80,24 @@ inline auto HasUnencryptedLoginPacketSize(const std::size_t packetSize, const st
 inline auto IsChecksumValid(const int32 checksumResult) -> bool
 {
     return checksumResult == 0;
+}
+
+// HasValidUnencryptedLoginPacketChecksum mirrors the byte-sum validation for
+// the unencrypted 0x00A login packet. The sum starts at the packet's MyIP
+// field and wraps naturally at eight bits.
+inline auto HasValidUnencryptedLoginPacketChecksum(const std::span<const uint8> packet, const std::size_t checksumOffset, const uint8 expectedChecksum) -> bool
+{
+    if (checksumOffset > packet.size())
+    {
+        return false;
+    }
+
+    uint8 checksum = 0;
+    for (const auto byte : packet.subspan(checksumOffset))
+    {
+        checksum += byte;
+    }
+    return checksum == expectedChecksum;
 }
 
 } // namespace mapnetworkinghelpers

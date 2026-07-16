@@ -25,6 +25,7 @@
 #include "mob_roam_policy.h"
 #include "mob_roam_home_policy.h"
 #include "mob_force_link_policy.h"
+#include "mob_link_policy.h"
 #include "mob_widescan_policy.h"
 #include "mob_home_distance_policy.h"
 #include "mob_tp_move_policy.h"
@@ -382,51 +383,17 @@ bool CMobEntity::CanLink(position_t* pos, int16 superLink)
 {
     TracyZoneScoped;
 
-    // handle super linking
-    if (superLink && getMobMod(MOBMOD_SUPERLINK) == superLink)
-    {
-        return true;
-    }
-
-    // can't link right now
-    if (m_neutral)
-    {
-        return false;
-    }
-
-    // Don't link I'm an underground worm
-    if ((m_roamFlags & ROAMFLAG_WORM) && IsNameHidden())
-    {
-        return false;
-    }
-
-    // Don't link I'm an underground antlion
-    if ((m_roamFlags & ROAMFLAG_AMBUSH) && IsNameHidden())
-    {
-        return false;
-    }
-
-    // If a mob detects by both sight and hearing it only needs to meet one check.
-    if ((getMobMod(MOBMOD_DETECTION) & DETECT_SIGHT) && !(getMobMod(MOBMOD_DETECTION) & DETECT_HEARING) && !facing(loc.p, *pos, 64))
-    {
-        return false;
-    }
-
-    if (distance(loc.p, *pos) > getMobMod(MOBMOD_LINK_RADIUS))
-    {
-        return false;
-    }
-
-    if (getMobMod(MOBMOD_NO_LINK) > 0)
-    {
-        return false;
-    }
-
-    if (!CanSeeTarget(*pos))
-    {
-        return false;
-    }
-    return true;
+    const auto detection = getMobMod(MOBMOD_DETECTION);
+    return moblinkhelpers::CanLink(
+        superLink && getMobMod(MOBMOD_SUPERLINK) == superLink,
+        m_neutral,
+        (m_roamFlags & ROAMFLAG_WORM) && IsNameHidden(),
+        (m_roamFlags & ROAMFLAG_AMBUSH) && IsNameHidden(),
+        (detection & DETECT_SIGHT) && !(detection & DETECT_HEARING),
+        [&] { return facing(loc.p, *pos, 64); },
+        [&] { return distance(loc.p, *pos) <= getMobMod(MOBMOD_LINK_RADIUS); },
+        getMobMod(MOBMOD_NO_LINK) > 0,
+        [&] { return CanSeeTarget(*pos); });
 }
 
 bool CMobEntity::ShouldForceLink()

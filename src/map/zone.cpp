@@ -37,6 +37,7 @@ constexpr std::uint16_t WeatherCycle = 2160;
 #include "trigger_area_dispatch.h"
 #include "zone_capacity.h"
 #include "zone_query_by_name_capacity.h"
+#include "zone_mesh_name.h"
 #include "zone_weather_decoder.h"
 
 #include "common/logging.h"
@@ -531,45 +532,7 @@ void CZone::LoadXiMesh()
     TracyZoneScoped;
 
     // TODO: Align ximesh filenames with zone_settings names so this isn't needed.
-    auto meshName = std::string(getName());
-
-    // Rala_Waterways_U -> Rala_Waterways_[U]
-    // Yorcia_Weald_U -> Yorcia_Weald_[U]
-    // Cirdas_Caverns_U -> Cirdas_Caverns_[U]
-    if (meshName.size() >= 2 && meshName.substr(meshName.size() - 2) == "_U")
-    {
-        meshName.replace(meshName.size() - 2, 2, "_[U]");
-    }
-
-    // Escha_ZiTah -> Escha-ZiTah
-    // Escha_RuAun -> Escha-RuAun
-    if (meshName.starts_with("Escha_"))
-    {
-        meshName.replace(5, 1, "-");
-    }
-
-    // Desuetia_Empyreal_Paradox -> Desuetia-Empyreal_Paradox
-    if (meshName.starts_with("Desuetia_"))
-    {
-        meshName.replace(8, 1, "-");
-    }
-
-    // Ship_bound_for_Selbina_Pirates -> Ship_bound_for_Selbina_ID-227, Ship_bound_for_Mhaura_Pirates -> Ship_bound_for_Mhaura_ID-228
-    if (meshName == "Ship_bound_for_Selbina_Pirates")
-    {
-        meshName = "Ship_bound_for_Selbina_ID-227";
-    }
-    else if (meshName == "Ship_bound_for_Mhaura_Pirates")
-    {
-        meshName = "Ship_bound_for_Mhaura_ID-228";
-    }
-
-    // Maquette_Abdhaljs-Legion_A -> Maquette_Abdhaljs-LegionA
-    // Maquette_Abdhaljs-Legion_B -> Maquette_Abdhaljs-LegionB
-    if (meshName.starts_with("Maquette_Abdhaljs-Legion_"))
-    {
-        meshName.erase(meshName.size() - 2, 1);
-    }
+    const auto meshName = zonemeshhelpers::ResolveXiMeshName(getName());
 
     const auto file = fmt::format("ximeshes/{}.ximesh", meshName);
     if (std::filesystem::exists(file))
