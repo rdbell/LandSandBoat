@@ -247,6 +247,8 @@ auto runAutotranslate2617SelfTests() -> bool;
 auto runConquestData2620SelfTests() -> bool;
 auto runCommandHandler2630SelfTests() -> bool;
 auto runActionInterrupt2633SelfTests() -> bool;
+auto runActionInterrupt2634SelfTests() -> bool;
+auto runItemDump2635SelfTests() -> bool;
 auto runFishingContestState2623SelfTests() -> bool;
 auto runBlueSpell2625SelfTests() -> bool;
 auto runAMAN2624SelfTests() -> bool;
@@ -1185,6 +1187,8 @@ namespace
         ok = runConquestData2620SelfTests() && ok;
         ok = runCommandHandler2630SelfTests() && ok;
         ok = runActionInterrupt2633SelfTests() && ok;
+        ok = runActionInterrupt2634SelfTests() && ok;
+        ok = runItemDump2635SelfTests() && ok;
         ok = runFishingContestState2623SelfTests() && ok;
         ok = runBlueSpell2625SelfTests() && ok;
         ok = runAMAN2624SelfTests() && ok;

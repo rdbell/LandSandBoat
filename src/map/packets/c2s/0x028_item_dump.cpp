@@ -54,6 +54,17 @@ const std::set validContainers = {
 
 } // namespace
 
+auto itemdump::PlanFor(const uint8_t category, const uint8_t index, const uint32_t quantity, const bool itemPresent, const bool locked, const uint32_t available, const bool storedSlip, const bool mainLinkshell, const bool recycleEnabled, const bool noRecycle) -> Plan
+{
+    if (category == LOC_INVENTORY && index == 0)
+        return { .action = Action::Message };
+    if (!itemPresent || locked || available < quantity)
+        return {};
+    if (storedSlip)
+        return { .action = Action::Message };
+    return { .action = (!recycleEnabled || category != LOC_INVENTORY || noRecycle) ? Action::Drop : Action::Recycle, .breakLinkshell = mainLinkshell };
+}
+
 auto GP_CLI_COMMAND_ITEM_DUMP::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -64,62 +75,89 @@ auto GP_CLI_COMMAND_ITEM_DUMP::validate(MapSession* PSession, const CCharEntity*
 
 void GP_CLI_COMMAND_ITEM_DUMP::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    // Gil cannot be dropped.
-    if (this->Category == LOC_INVENTORY && this->ItemIndex == 0)
-    {
-        PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(ITEMID::GIL, MsgStd::UnableToThrowAway);
-        return;
-    }
+    CItem* PItem          = nullptr;
+    bool   locked         = false;
+    uint32 available      = 0;
+    bool   storedSlip     = false;
+    bool   mainLinkshell  = false;
+    bool   recycleEnabled = false;
+    bool   noRecycle      = false;
 
-    CItem* PItem = PChar->getStorage(this->Category)->GetItem(this->ItemIndex);
-
-    if (!PItem || PItem->isSubType(ITEM_LOCKED))
+    // The gil slot returns before storage lookup in the original handler.
+    const bool gil = this->Category == LOC_INVENTORY && this->ItemIndex == 0;
+    if (!gil)
     {
-        ShowWarning("GP_CLI_COMMAND_ITEM_DUMP: Attempt of removal of invalid item from slot %u", this->ItemIndex);
-        return;
-    }
-
-    if (PItem->getQuantity() - PItem->getReserve() < this->ItemNum)
-    {
-        ShowWarning("GP_CLI_COMMAND_ITEM_DUMP: Trying to drop too much quantity from location %u slot %u", this->Category, this->ItemIndex);
-        return;
-    }
-
-    // Retail accurate: Slips with stored items cannot be thrown away.
-    if (PItem->isStorageSlip())
-    {
-        int slipData = 0;
-        for (int i = 0; i < CItem::extra_size; i++)
+        PItem = PChar->getStorage(this->Category)->GetItem(this->ItemIndex);
+        locked = PItem && PItem->isSubType(ITEM_LOCKED);
+        if (PItem && !locked)
         {
-            slipData += PItem->m_extra[i];
-        }
+            available = PItem->getQuantity() - PItem->getReserve();
+            if (available >= this->ItemNum && PItem->isStorageSlip())
+            {
+                // Retail accurate: Slips with stored items cannot be thrown away.
+                int slipData = 0;
+                for (int i = 0; i < CItem::extra_size; i++)
+                {
+                    slipData += PItem->m_extra[i];
+                }
 
-        if (slipData != 0)
+                storedSlip = slipData != 0;
+            }
+
+            if (available >= this->ItemNum && !storedSlip)
+            {
+                auto* itemLinkshell = dynamic_cast<CItemLinkshell*>(PItem);
+                mainLinkshell       = itemLinkshell && itemLinkshell->GetLSType() == LSTYPE_LINKSHELL;
+                recycleEnabled      = settings::get<bool>("map.ENABLE_ITEM_RECYCLE_BIN");
+                noRecycle           = PItem->hasFlag(ItemFlag::NoRecycle);
+            }
+        }
+    }
+
+    const auto plan = itemdump::PlanFor(this->Category, this->ItemIndex, this->ItemNum, PItem != nullptr, locked, available, storedSlip, mainLinkshell, recycleEnabled, noRecycle);
+
+    if (plan.action == itemdump::Action::Message)
+    {
+        if (gil)
+        {
+            PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(ITEMID::GIL, MsgStd::UnableToThrowAway);
+        }
+        else
         {
             PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(PItem->getID(), MsgStd::UnableToThrowAway);
-            return;
         }
+        return;
     }
 
-    // Break linkshell if the main shell was disposed of.
-    if (auto* itemLinkshell = dynamic_cast<CItemLinkshell*>(PItem))
+    if (plan.action == itemdump::Action::Reject)
     {
-        if (itemLinkshell->GetLSType() == LSTYPE_LINKSHELL)
+        if (!PItem || locked)
         {
-            const uint32 lsid       = itemLinkshell->GetLSID();
-            CLinkshell*  PLinkshell = linkshell::GetLinkshell(lsid);
-            if (!PLinkshell)
-            {
-                PLinkshell = linkshell::LoadLinkshell(lsid);
-            }
-            PLinkshell->BreakLinkshell();
-            linkshell::UnloadLinkshell(lsid);
+            ShowWarning("GP_CLI_COMMAND_ITEM_DUMP: Attempt of removal of invalid item from slot %u", this->ItemIndex);
         }
+        else
+        {
+            ShowWarning("GP_CLI_COMMAND_ITEM_DUMP: Trying to drop too much quantity from location %u slot %u", this->Category, this->ItemIndex);
+        }
+        return;
+    }
+
+    auto* itemLinkshell = dynamic_cast<CItemLinkshell*>(PItem);
+
+    // Break linkshell if the main shell was disposed of.
+    if (plan.breakLinkshell)
+    {
+        const uint32 lsid       = itemLinkshell->GetLSID();
+        CLinkshell*  PLinkshell = linkshell::GetLinkshell(lsid);
+        if (!PLinkshell)
+            PLinkshell = linkshell::LoadLinkshell(lsid);
+        PLinkshell->BreakLinkshell();
+        linkshell::UnloadLinkshell(lsid);
     }
 
     // Retail accurate: Any item dropped from a container other than inventory skips the recycle bin.
     // Items with the NoRecycle flag bypass the recycle bin entirely (e.g. linkshells).
-    if (!settings::get<bool>("map.ENABLE_ITEM_RECYCLE_BIN") || this->Category != CONTAINER_ID::LOC_INVENTORY || PItem->hasFlag(ItemFlag::NoRecycle))
+    if (plan.action == itemdump::Action::Drop)
     {
         charutils::DropItem(PChar, this->Category, this->ItemIndex, this->ItemNum, PItem->getID());
         return;

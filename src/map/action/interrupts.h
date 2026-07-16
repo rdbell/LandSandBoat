@@ -38,6 +38,10 @@ namespace detail
 // interrupted. Packet delivery remains owned by AbilityInterrupt.
 auto AbilityInterruptAction(uint32 actorId) -> action_t;
 
+// RangedInterruptAction builds the BATTLE2 action emitted when a ranged attack
+// is interrupted. Packet delivery remains owned by RangedInterrupt.
+auto RangedInterruptAction(uint32 actorId) -> action_t;
+
 } // namespace detail
 
 void AbilityInterrupt(CBattleEntity* PEntity);

@@ -46,6 +46,25 @@ auto detail::AbilityInterruptAction(const uint32 actorId) -> action_t
     };
 }
 
+auto detail::RangedInterruptAction(const uint32 actorId) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::RangedStart,
+        .actionid   = static_cast<uint32_t>(FourCC::RangedInterrupt),
+        .targets    = {
+            {
+                .actorId = actorId,
+                .results = {
+                    {
+                        .animation = ActionAnimation::SkillInterrupt,
+                    },
+                },
+            },
+        },
+    };
+}
+
 void AvatarOutOfRange(CBattleEntity* PAvatar, const CPetSkill* PSkill, const CBattleEntity* PTarget)
 {
     // Avatars using BP against an enemy out of range use a specific set of BATTLE2 packets:
@@ -167,21 +186,7 @@ void AbilityInterrupt(CBattleEntity* PEntity)
 
 void RangedInterrupt(CBattleEntity* PEntity)
 {
-    auto interruptAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::RangedStart,
-        .actionid   = static_cast<uint32_t>(FourCC::RangedInterrupt),
-        .targets    = {
-            {
-                .actorId = PEntity->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                    },
-                },
-            },
-        },
-    };
+    auto interruptAction = detail::RangedInterruptAction(PEntity->id);
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(interruptAction));
 }

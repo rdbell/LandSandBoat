@@ -40,6 +40,10 @@ set(SOURCES
     test_command_handler_2630.cpp
     test_action_interrupt_2633.h
     test_action_interrupt_2633.cpp
+    test_action_interrupt_2634.h
+    test_action_interrupt_2634.cpp
+    test_item_dump_2635.h
+    test_item_dump_2635.cpp
     test_conquest_data_2620.h
     test_conquest_data_2620.cpp
     test_aman_2624.h

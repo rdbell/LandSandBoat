@@ -23,6 +23,27 @@
 
 #include "base.h"
 
+namespace itemdump
+{
+
+enum class Action : uint8_t
+{
+    Reject,
+    Message,
+    Drop,
+    Recycle
+};
+
+struct Plan
+{
+    Action action{ Action::Reject };
+    bool   breakLinkshell{};
+};
+
+auto PlanFor(uint8_t category, uint8_t index, uint32_t quantity, bool itemPresent, bool locked, uint32_t available, bool storedSlip, bool mainLinkshell, bool recycleEnabled, bool noRecycle) -> Plan;
+
+} // namespace itemdump
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0028
 // This packet is sent by the client when it drops an item.
 GP_CLI_PACKET(GP_CLI_COMMAND_ITEM_DUMP,
