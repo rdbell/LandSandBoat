@@ -36,18 +36,18 @@ namespace
 using Monstrosity1Packet = GP_SERV_COMMAND_MISCDATA::MONSTROSITY1;
 using Monstrosity2Packet = GP_SERV_COMMAND_MISCDATA::MONSTROSITY2;
 
-constexpr auto monstrosity1PacketDataSize      = sizeof(Monstrosity1Packet::PacketData);
-constexpr auto monstrosity1PacketSize          = sizeof(GP_SERV_HEADER) + monstrosity1PacketDataSize;
-constexpr auto monstrosity1TypeOffset          = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, type);
-constexpr auto monstrosity1Unknown06Offset     = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, unknown06);
-constexpr auto monstrosity1SpeciesOffset       = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, species);
-constexpr auto monstrosity1FlagsOffset         = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, flags);
-constexpr auto monstrosity1RankOffset          = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, rank);
-constexpr auto monstrosity1Unknown1Offset      = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, unknown1);
-constexpr auto monstrosity1InfamyOffset        = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, infamy);
-constexpr auto monstrosity1Unknown2Offset      = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, unknown2);
-constexpr auto monstrosity1InstinctsOffset     = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, instincts);
-constexpr auto monstrosity1LevelsOffset        = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, levels);
+constexpr auto monstrosity1PacketDataSize  = sizeof(Monstrosity1Packet::PacketData);
+constexpr auto monstrosity1PacketSize      = sizeof(GP_SERV_HEADER) + monstrosity1PacketDataSize;
+constexpr auto monstrosity1TypeOffset      = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, type);
+constexpr auto monstrosity1Unknown06Offset = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, unknown06);
+constexpr auto monstrosity1SpeciesOffset   = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, species);
+constexpr auto monstrosity1FlagsOffset     = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, flags);
+constexpr auto monstrosity1RankOffset      = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, rank);
+constexpr auto monstrosity1Unknown1Offset  = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, unknown1);
+constexpr auto monstrosity1InfamyOffset    = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, infamy);
+constexpr auto monstrosity1Unknown2Offset  = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, unknown2);
+constexpr auto monstrosity1InstinctsOffset = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, instincts);
+constexpr auto monstrosity1LevelsOffset    = sizeof(GP_SERV_HEADER) + offsetof(Monstrosity1Packet::PacketData, levels);
 
 constexpr auto monstrosity2PacketDataSize      = sizeof(Monstrosity2Packet::PacketData);
 constexpr auto monstrosity2PacketSize          = sizeof(GP_SERV_HEADER) + monstrosity2PacketDataSize;
@@ -143,14 +143,14 @@ auto testMonstrosity1PacketDataBytes() -> bool
 {
     auto data = Monstrosity1Packet::PacketData{};
 
-    data.type        = GP_SERV_COMMAND_MISCDATA_TYPE::Monstrosity1;
-    data.unknown06   = monstrosity1PacketDataSize - 8;
-    data.species     = 0x0102;
-    data.flags       = 0x0304;
-    data.rank        = 0x05;
-    data.unknown1[0] = 0xEC;
-    data.infamy      = 0x1112;
-    data.unknown2    = 0x2C;
+    data.type          = GP_SERV_COMMAND_MISCDATA_TYPE::Monstrosity1;
+    data.unknown06     = monstrosity1PacketDataSize - 8;
+    data.species       = 0x0102;
+    data.flags         = 0x0304;
+    data.rank          = 0x05;
+    data.unknown1[0]   = 0xEC;
+    data.infamy        = 0x1112;
+    data.unknown2      = 0x2C;
     data.instincts[0]  = 0x21;
     data.instincts[63] = 0x63;
     data.levels[0]     = 0x31;
@@ -205,6 +205,48 @@ auto testMonstrosity2PacketDataBytes() -> bool
     return expectStructBytes(data, expected, "MONSTROSITY2 PacketData bytes");
 }
 
+auto testRuntimePlans() -> bool
+{
+    auto facts           = miscdatamonstrosityhelpers::Facts{};
+    facts.hasMonstrosity = true;
+    facts.species        = 0x0102;
+    facts.flags          = 0x0304;
+    facts.infamy         = 10001;
+    facts.instincts[0]   = 0x11;
+    facts.instincts[20]  = 0x21;
+    facts.instincts[23]  = 0x24;
+    facts.levels[0]      = 0x31;
+    facts.levels[126]    = 0x7E;
+    facts.levels[127]    = 0x7F;
+    facts.variants[0]    = 0x41;
+    facts.variants[31]   = 0x5F;
+
+    const auto part1  = miscdatamonstrosityhelpers::Plan1(facts);
+    const auto part2  = miscdatamonstrosityhelpers::Plan2(facts);
+    const auto empty1 = miscdatamonstrosityhelpers::Plan1({});
+    const auto empty2 = miscdatamonstrosityhelpers::Plan2({});
+
+    bool ok = true;
+    ok      = expectEqualUInt(part1.species, 0x0102, "runtime species") && ok;
+    ok      = expectEqualUInt(part1.flags, 0x0304, "runtime flags") && ok;
+    ok      = expectEqualUInt(part1.rank, 1, "runtime NM rank") && ok;
+    ok      = expectEqualUInt(part1.unknown1[0], 0xEC, "runtime unknown1") && ok;
+    ok      = expectEqualUInt(part1.infamy, 10001, "runtime infamy") && ok;
+    ok      = expectEqualUInt(part1.unknown2, 0x2C, "runtime unknown2") && ok;
+    ok      = expectEqualUInt(part1.instincts[0], 0x11, "runtime instincts") && ok;
+    ok      = expectEqualUInt(part1.levels[0], 0x31, "runtime levels") && ok;
+    ok      = expectEqualUInt(part2.slimeLevel, 0x7E, "runtime slime") && ok;
+    ok      = expectEqualUInt(part2.sprigganLevel, 0x7F, "runtime spriggan") && ok;
+    ok      = expectEqualUInt(part2.instincts2[0], 0x21, "runtime instincts2 first") && ok;
+    ok      = expectEqualUInt(part2.instincts2[3], 0x24, "runtime instincts2 last") && ok;
+    ok      = expectEqualUInt(part2.variants[0], 0x41, "runtime variants first") && ok;
+    ok      = expectEqualUInt(part2.variants[31], 0x5F, "runtime variants last") && ok;
+    ok      = expectEqualUInt(empty1.species, 0, "runtime empty part1") && ok;
+    ok      = expectEqualUInt(empty2.slimeLevel, 0, "runtime empty part2") && ok;
+    ok      = expectEqualUInt(miscdatamonstrosityhelpers::Plan1({ .hasMonstrosity = true, .infamy = 20001 }).rank, 2, "runtime HNM rank") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CMiscDataMonstrosityPacketSelfTests() -> bool
@@ -213,5 +255,6 @@ auto runS2CMiscDataMonstrosityPacketSelfTests() -> bool
     ok      = testLayout() && ok;
     ok      = testMonstrosity1PacketDataBytes() && ok;
     ok      = testMonstrosity2PacketDataBytes() && ok;
+    ok      = testRuntimePlans() && ok;
     return ok;
 }

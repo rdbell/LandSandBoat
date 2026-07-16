@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "0x063_miscdata.h"
 #include "base.h"
 
@@ -75,3 +77,22 @@ public:
 };
 
 } // namespace GP_SERV_COMMAND_MISCDATA
+
+namespace miscdatamonstrosityhelpers
+{
+
+struct Facts
+{
+    bool                     hasMonstrosity{};
+    uint16_t                 species{};
+    uint16_t                 flags{};
+    int32_t                  infamy{};
+    std::array<uint8_t, 64>  instincts{};
+    std::array<uint8_t, 128> levels{};
+    std::array<uint8_t, 32>  variants{};
+};
+
+[[nodiscard]] auto Plan1(const Facts& facts) -> GP_SERV_COMMAND_MISCDATA::MONSTROSITY1::PacketData;
+[[nodiscard]] auto Plan2(const Facts& facts) -> GP_SERV_COMMAND_MISCDATA::MONSTROSITY2::PacketData;
+
+} // namespace miscdatamonstrosityhelpers
