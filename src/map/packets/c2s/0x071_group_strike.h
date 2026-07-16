@@ -31,6 +31,47 @@ enum class GP_CLI_COMMAND_GROUP_STRIKE_KIND : uint8_t
     Alliance   = 5,
 };
 
+// GROUP_STRIKE's local party/alliance graph mutations. Database and IPC work
+// for cross-process victims remains in the packet host.
+namespace groupstrikehelpers
+{
+
+enum class AllianceAction : uint8
+{
+    None,
+    RemoveParty,
+    Dissolve,
+};
+
+struct MutationPlan
+{
+    AllianceAction allianceAction = AllianceAction::None;
+    bool           removeVictim   = false;
+};
+
+// MakeLocalPartyPlan selects the local PARTY branch. A local victim is always
+// removed; kicking oneself from a one-member alliance party first removes that
+// party or dissolves its singleton alliance.
+[[nodiscard]] auto MakeLocalPartyPlan(
+    bool localVictim,
+    bool victimIsRequester,
+    bool hasAlliance,
+    bool partyHasOnlyOneMember,
+    bool allianceHasOnlyOneParty) -> MutationPlan;
+
+// MakeLocalAlliancePlan selects the local ALLIANCE branch. Only the victim
+// themselves or the main-party leader targeting another party leader can
+// remove a party from an alliance.
+[[nodiscard]] auto MakeLocalAlliancePlan(
+    bool localVictim,
+    bool victimInAlliance,
+    bool victimIsRequester,
+    bool requesterIsMainParty,
+    bool victimIsPartyLeader,
+    bool allianceHasOnlyOneParty) -> MutationPlan;
+
+} // namespace groupstrikehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0071
 // This packet is sent by the client when kicking a member from a party, alliance or linkshell.
 GP_CLI_PACKET(GP_CLI_COMMAND_GROUP_STRIKE,

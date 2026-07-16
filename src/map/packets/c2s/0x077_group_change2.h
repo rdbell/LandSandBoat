@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "base.h"
 
 enum class GP_CLI_COMMAND_GROUP_CHANGE2_CHANGEKIND : uint8_t
@@ -42,6 +44,37 @@ enum class GP_CLI_COMMAND_GROUP_CHANGE2_KIND : uint8_t
     Linkshell2 = 2,
     Alliance   = 5,
 };
+
+namespace groupchange2helpers
+{
+
+enum class Action : uint8
+{
+    None,
+    AssignPartyRole,
+    SendLinkshellRankChange,
+    AssignAllianceLeaderAndReload,
+};
+
+struct RuntimeState
+{
+    bool hasParty;
+    bool hasAlliance;
+    bool linkshell1Ready;
+    bool linkshell2Ready;
+};
+
+struct DispatchPlan
+{
+    Action action        = Action::None;
+    uint8  linkshellSlot = 0;
+};
+
+// MakeDispatchPlan mirrors GROUP_CHANGE2's post-validation dispatch and
+// treats malformed kinds or missing live prerequisites as no-ops.
+auto MakeDispatchPlan(uint8 kind, uint8 changeKind, const RuntimeState& state) -> DispatchPlan;
+
+} // namespace groupchange2helpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0077
 // This packet is sent by the client when changing group system settings. (ie. Party, Alliance, Linkshell)

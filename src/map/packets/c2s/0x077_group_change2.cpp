@@ -38,6 +38,22 @@ const std::set validLinkshellOperations = {
 
 } // namespace
 
+auto groupchange2helpers::MakeDispatchPlan(const uint8 kind, const uint8 changeKind, const RuntimeState& state) -> DispatchPlan
+{
+    switch (static_cast<GP_CLI_COMMAND_GROUP_CHANGE2_KIND>(kind))
+    {
+        case GP_CLI_COMMAND_GROUP_CHANGE2_KIND::Party:
+            return state.hasParty && (changeKind == 0 || (changeKind >= 4 && changeKind <= 7)) ? DispatchPlan{ Action::AssignPartyRole } : DispatchPlan{};
+        case GP_CLI_COMMAND_GROUP_CHANGE2_KIND::Linkshell1:
+            return state.linkshell1Ready && (changeKind == 2 || changeKind == 3) ? DispatchPlan{ Action::SendLinkshellRankChange, 1 } : DispatchPlan{};
+        case GP_CLI_COMMAND_GROUP_CHANGE2_KIND::Linkshell2:
+            return state.linkshell2Ready && (changeKind == 2 || changeKind == 3) ? DispatchPlan{ Action::SendLinkshellRankChange, 2 } : DispatchPlan{};
+        case GP_CLI_COMMAND_GROUP_CHANGE2_KIND::Alliance:
+            return state.hasParty && state.hasAlliance && changeKind == 1 ? DispatchPlan{ Action::AssignAllianceLeaderAndReload } : DispatchPlan{};
+    }
+    return {};
+}
+
 auto GP_CLI_COMMAND_GROUP_CHANGE2::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     auto pv = PacketValidator(PChar)
@@ -81,20 +97,27 @@ auto GP_CLI_COMMAND_GROUP_CHANGE2::validate(MapSession* PSession, const CCharEnt
 void GP_CLI_COMMAND_GROUP_CHANGE2::process(MapSession* PSession, CCharEntity* PChar) const
 {
     const auto memberName = db::escapeString(asStringFromUntrustedSource(this->sName, sizeof(this->sName)));
-    switch (static_cast<GP_CLI_COMMAND_GROUP_CHANGE2_KIND>(this->Kind))
+    const auto item1      = reinterpret_cast<CItemLinkshell*>(PChar->getEquip(SLOT_LINK1));
+    const auto item2      = reinterpret_cast<CItemLinkshell*>(PChar->getEquip(SLOT_LINK2));
+    const auto plan       = groupchange2helpers::MakeDispatchPlan(this->Kind, this->ChangeKind, {
+                                                                                                    .hasParty        = PChar->PParty != nullptr,
+                                                                                                    .hasAlliance     = PChar->PParty != nullptr && PChar->PParty->m_PAlliance != nullptr,
+                                                                                                    .linkshell1Ready = PChar->PLinkshell1 != nullptr && item1 != nullptr,
+                                                                                                    .linkshell2Ready = PChar->PLinkshell2 != nullptr && item2 != nullptr,
+                                                                                                });
+    switch (plan.action)
     {
-        case GP_CLI_COMMAND_GROUP_CHANGE2_KIND::Party:
+        case groupchange2helpers::Action::AssignPartyRole:
         {
             ShowDebug(fmt::format("(Party) Altering permissions of {} to {}", memberName, this->ChangeKind));
             PChar->PParty->AssignPartyRole(memberName, static_cast<GP_CLI_COMMAND_GROUP_CHANGE2_CHANGEKIND>(this->ChangeKind));
         }
         break;
-        case GP_CLI_COMMAND_GROUP_CHANGE2_KIND::Linkshell1:
-        case GP_CLI_COMMAND_GROUP_CHANGE2_KIND::Linkshell2:
+        case groupchange2helpers::Action::SendLinkshellRankChange:
         {
             CItemLinkshell*   PItemLinkshell = nullptr;
             const CLinkshell* PLinkshell     = nullptr;
-            switch (this->Kind)
+            switch (plan.linkshellSlot)
             {
                 case 1:
                 {
@@ -125,7 +148,7 @@ void GP_CLI_COMMAND_GROUP_CHANGE2::process(MapSession* PSession, CCharEntity* PC
             }
         }
         break;
-        case GP_CLI_COMMAND_GROUP_CHANGE2_KIND::Alliance:
+        case groupchange2helpers::Action::AssignAllianceLeaderAndReload:
         {
             ShowDebug(fmt::format("(Alliance) Changing leader to {}", memberName));
             PChar->PParty->m_PAlliance->assignAllianceLeader(memberName);
@@ -135,5 +158,7 @@ void GP_CLI_COMMAND_GROUP_CHANGE2::process(MapSession* PSession, CCharEntity* PC
             });
         }
         break;
+        case groupchange2helpers::Action::None:
+            break;
     }
 }

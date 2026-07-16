@@ -31,6 +31,40 @@
 #include "party.h"
 #include "utils/charutils.h"
 
+auto groupstrikehelpers::MakeLocalPartyPlan(
+    const bool localVictim,
+    const bool victimIsRequester,
+    const bool hasAlliance,
+    const bool partyHasOnlyOneMember,
+    const bool allianceHasOnlyOneParty) -> MutationPlan
+{
+    if (!localVictim)
+    {
+        return {};
+    }
+    if (victimIsRequester && hasAlliance && partyHasOnlyOneMember)
+    {
+        return { allianceHasOnlyOneParty ? AllianceAction::Dissolve : AllianceAction::RemoveParty, true };
+    }
+    return { AllianceAction::None, true };
+}
+
+auto groupstrikehelpers::MakeLocalAlliancePlan(
+    const bool localVictim,
+    const bool victimInAlliance,
+    const bool victimIsRequester,
+    const bool requesterIsMainParty,
+    const bool victimIsPartyLeader,
+    const bool allianceHasOnlyOneParty) -> MutationPlan
+{
+    if (!localVictim || !victimInAlliance ||
+        !(victimIsRequester || (requesterIsMainParty && victimIsPartyLeader)))
+    {
+        return {};
+    }
+    return { allianceHasOnlyOneParty ? AllianceAction::Dissolve : AllianceAction::RemoveParty, false };
+}
+
 auto GP_CLI_COMMAND_GROUP_STRIKE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     auto pv = PacketValidator(PChar)
@@ -74,28 +108,30 @@ void GP_CLI_COMMAND_GROUP_STRIKE::process(MapSession* PSession, CCharEntity* PCh
             {
                 // This block executes if PChar and PVictim are on the same process.
                 ShowDebug("%s is trying to kick %s from party", PChar->getName(), PVictim->getName());
-                if (PVictim == PChar) // using kick on yourself, let's borrow the logic from /pcmd leave to prevent alliance crash
+                const auto plan = groupstrikehelpers::MakeLocalPartyPlan(
+                    true,
+                    PVictim == PChar,
+                    PChar->PParty->m_PAlliance != nullptr,
+                    PChar->PParty->HasOnlyOneMember(),
+                    PChar->PParty->m_PAlliance != nullptr && PChar->PParty->m_PAlliance->hasOnlyOneParty());
+                if (plan.allianceAction == groupstrikehelpers::AllianceAction::Dissolve)
                 {
-                    if (PChar->PParty->m_PAlliance &&
-                        PChar->PParty->HasOnlyOneMember()) // single member alliance parties must be removed from alliance before disband
-                    {
-                        if (PChar->PParty->m_PAlliance->hasOnlyOneParty()) // if there is only 1 party then dissolve alliance
-                        {
-                            ShowDebug("One party in alliance, %s wants to dissolve the alliance", PChar->getName());
-                            PChar->PParty->m_PAlliance->dissolveAlliance();
-                            ShowDebug("%s has dissolved the alliance", PChar->getName());
-                        }
-                        else
-                        {
-                            ShowDebug("%s wants to remove their party from the alliance", PChar->getName());
-                            PChar->PParty->m_PAlliance->removeParty(PChar->PParty);
-                            ShowDebug("%s party is removed from the alliance", PChar->getName());
-                        }
-                    }
+                    ShowDebug("One party in alliance, %s wants to dissolve the alliance", PChar->getName());
+                    PChar->PParty->m_PAlliance->dissolveAlliance();
+                    ShowDebug("%s has dissolved the alliance", PChar->getName());
+                }
+                else if (plan.allianceAction == groupstrikehelpers::AllianceAction::RemoveParty)
+                {
+                    ShowDebug("%s wants to remove their party from the alliance", PChar->getName());
+                    PChar->PParty->m_PAlliance->removeParty(PChar->PParty);
+                    ShowDebug("%s party is removed from the alliance", PChar->getName());
                 }
 
-                PChar->PParty->RemoveMember(PVictim);
-                ShowDebug("%s has removed %s from party", PChar->getName(), PVictim->getName());
+                if (plan.removeVictim)
+                {
+                    PChar->PParty->RemoveMember(PVictim);
+                    ShowDebug("%s has removed %s from party", PChar->getName(), PVictim->getName());
+                }
             }
             else
             {
@@ -176,20 +212,23 @@ void GP_CLI_COMMAND_GROUP_STRIKE::process(MapSession* PSession, CCharEntity* PCh
                 if (PVictim && PVictim->PParty && PVictim->PParty->m_PAlliance) // victim is in this party
                 {
                     ShowDebug("%s is trying to kick %s party from alliance", PChar->getName(), PVictim->getName());
-                    // if using kick on yourself, or alliance leader using kick on another party leader - remove the party
-                    if (PVictim == PChar || (PChar->PParty->m_PAlliance->getMainParty() == PChar->PParty && PVictim->PParty->GetLeader() == PVictim))
+                    const auto plan = groupstrikehelpers::MakeLocalAlliancePlan(
+                        true,
+                        true,
+                        PVictim == PChar,
+                        PChar->PParty->m_PAlliance->getMainParty() == PChar->PParty,
+                        PVictim->PParty->GetLeader() == PVictim,
+                        PVictim->PParty->m_PAlliance->hasOnlyOneParty());
+                    if (plan.allianceAction == groupstrikehelpers::AllianceAction::Dissolve)
                     {
-                        if (PVictim->PParty->m_PAlliance->hasOnlyOneParty()) // if there is only 1 party then dissolve alliance
-                        {
-                            ShowDebug("One party in alliance, %s wants to dissolve the alliance", PChar->getName());
-                            PVictim->PParty->m_PAlliance->dissolveAlliance();
-                            ShowDebug("%s has dissolved the alliance", PChar->getName());
-                        }
-                        else
-                        {
-                            PVictim->PParty->m_PAlliance->removeParty(PVictim->PParty);
-                            ShowDebug("%s has removed %s party from alliance", PChar->getName(), PVictim->getName());
-                        }
+                        ShowDebug("One party in alliance, %s wants to dissolve the alliance", PChar->getName());
+                        PVictim->PParty->m_PAlliance->dissolveAlliance();
+                        ShowDebug("%s has dissolved the alliance", PChar->getName());
+                    }
+                    else if (plan.allianceAction == groupstrikehelpers::AllianceAction::RemoveParty)
+                    {
+                        PVictim->PParty->m_PAlliance->removeParty(PVictim->PParty);
+                        ShowDebug("%s has removed %s party from alliance", PChar->getName(), PVictim->getName());
                     }
                     break; // we're done, break the for
                 }

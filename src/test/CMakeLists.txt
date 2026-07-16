@@ -120,8 +120,16 @@ set(SOURCES
     test_c2s_gm_packets.cpp
     test_c2s_group_packets.h
     test_c2s_group_packets.cpp
+    test_c2s_group_strike_transition.h
+    test_c2s_group_strike_transition.cpp
+    test_c2s_group_change2_runtime.h
+    test_c2s_group_change2_runtime.cpp
     test_c2s_group_breakup_dispatch.h
     test_c2s_group_breakup_dispatch.cpp
+    test_c2s_group_solicit_plan.h
+    test_c2s_group_solicit_plan.cpp
+    ../map/packets/c2s/group_solicit_plan.cpp
+    ../map/packets/c2s/group_solicit_plan.h
     test_c2s_group_leave_transition.h
     test_c2s_group_leave_transition.cpp
     test_c2s_guild_packets.h
