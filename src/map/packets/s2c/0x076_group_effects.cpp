@@ -29,18 +29,25 @@ GP_SERV_COMMAND_GROUP_EFFECTS::GP_SERV_COMMAND_GROUP_EFFECTS(const std::vector<C
 {
     auto& packet = this->data();
 
-    // Check for valid party size to prevent buffer being overrun (244 bytes).
-    // When using multiple map processes across different IPs, the latency
-    // in communication combined with players joining/leaving at the same time
-    // can cause the party size to be larger than the packet size.
-    for (std::size_t idx = 0; idx < membersList.size() && idx < 5; ++idx)
+    auto facts = std::vector<groupeffectshelpers::MemberFacts>{};
+    facts.reserve(groupeffectshelpers::MemberCount);
+    for (std::size_t index = 0; index < membersList.size() && index < groupeffectshelpers::MemberCount; ++index)
     {
-        const CCharEntity* PMember = membersList[idx];
+        const auto* member = membersList[index];
+        auto        fact   = groupeffectshelpers::MemberFacts{};
+        fact.uniqueNo      = member->id;
+        fact.actIndex      = member->targid;
+        fact.statusBits    = member->StatusEffectContainer->statusBits();
+        std::memcpy(fact.buffs.data(), member->StatusEffectContainer->statusIcons(), fact.buffs.size());
+        facts.push_back(fact);
+    }
+    const auto plan = groupeffectshelpers::PlanFor(facts);
 
-        packet.Members[idx].UniqueNo = PMember->id;
-        packet.Members[idx].ActIndex = PMember->targid;
-        packet.Members[idx].Bits     = PMember->StatusEffectContainer->statusBits();
-
-        std::memcpy(packet.Members[idx].Buffs, PMember->StatusEffectContainer->statusIcons(), sizeof(packet.Members[idx].Buffs));
+    for (std::size_t idx = 0; idx < plan.members.size(); ++idx)
+    {
+        packet.Members[idx].UniqueNo = plan.members[idx].uniqueNo;
+        packet.Members[idx].ActIndex = plan.members[idx].actIndex;
+        packet.Members[idx].Bits     = plan.members[idx].statusBits;
+        std::memcpy(packet.Members[idx].Buffs, plan.members[idx].buffs.data(), plan.members[idx].buffs.size());
     }
 }

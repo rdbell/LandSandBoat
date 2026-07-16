@@ -63,7 +63,12 @@ auto runS2CEquipInspectRuntimeSelfTests() -> bool
 
     charged.augmented  = true;
     charged.augments   = augmented.augments;
-    auto bothWanted    = augmentWanted;
+    auto bothWanted    = chargedWanted;
+    bothWanted.data[0] = 2;
+    for (std::size_t index = 0; index < charged.augments.size(); ++index)
+    {
+        PutUint16LE(bothWanted.data, 2 + index * 2, charged.augments[index]);
+    }
     bothWanted.data[1] = 7;
     ok                 = expectPlan(CheckItemPlanFor(charged), bothWanted, "augment precedence retains charged byte") && ok;
     return ok;

@@ -1594,6 +1594,8 @@ set(SOURCES
     test_s2c_group_comlink_runtime.cpp
     test_s2c_group_effects_packet.h
     test_s2c_group_effects_packet.cpp
+    test_s2c_group_effects_runtime.h
+    test_s2c_group_effects_runtime.cpp
     test_s2c_group_list_packet.h
     test_s2c_group_list_packet.cpp
     test_s2c_group_solicit_req_packet.h
@@ -1628,6 +1630,8 @@ set(SOURCES
     test_s2c_item_trade_session_packets.cpp
     test_s2c_item_trade_packets.h
     test_s2c_item_trade_packets.cpp
+    test_s2c_item_trade_list_runtime.h
+    test_s2c_item_trade_list_runtime.cpp
     test_s2c_item_subcontainer_packet.h
     test_s2c_item_subcontainer_packet.cpp
     test_s2c_link_concierge_header_packet.h

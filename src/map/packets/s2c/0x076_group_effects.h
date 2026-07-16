@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "base.h"
 #include <vector>
 
@@ -38,6 +40,36 @@ struct partymemberbuffs_t
 };
 
 #pragma pack(pop)
+
+namespace groupeffectshelpers
+{
+
+constexpr std::size_t MemberCount = 5;
+
+struct MemberFacts
+{
+    uint32                uniqueNo{};
+    uint16                actIndex{};
+    uint64                statusBits{};
+    std::array<uint8, 32> buffs{};
+};
+
+struct Plan
+{
+    std::array<MemberFacts, MemberCount> members{};
+};
+
+[[nodiscard]] inline auto PlanFor(const std::vector<MemberFacts>& members) -> Plan
+{
+    auto plan = Plan{};
+    for (std::size_t index = 0; index < members.size() && index < plan.members.size(); ++index)
+    {
+        plan.members[index] = members[index];
+    }
+    return plan;
+}
+
+} // namespace groupeffectshelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x0076
 // This packet is sent by the server to update party members' buff information

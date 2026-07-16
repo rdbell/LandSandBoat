@@ -7,6 +7,9 @@
 
 namespace messagehelpers
 {
+
+constexpr std::size_t CharacterMessageDataSize = 24;
+
 struct CharacterFacts
 {
     bool             present{};
@@ -17,7 +20,7 @@ struct CharacterFacts
 
 struct Plan
 {
-    uint16                                  size{};
+    uint16                              size{};
     GP_SERV_COMMAND_MESSAGE::PacketData packet{};
 };
 
@@ -33,9 +36,9 @@ struct Plan
         return plan;
     }
 
-    plan.packet.UniqueNo  = character.uniqueNo;
-    plan.packet.ActIndex  = character.actIndex;
-    const auto setName = [&plan, &character]
+    plan.packet.UniqueNo = character.uniqueNo;
+    plan.packet.ActIndex = character.actIndex;
+    const auto setName   = [&plan, &character]
     {
         constexpr std::string_view prefix = "string2 ";
         auto                       index  = std::size_t{};
@@ -45,7 +48,7 @@ struct Plan
         }
         for (const auto character : character.name)
         {
-            if (character == '\0' || index + 1 >= std::size(plan.packet.Data))
+            if (character == '\0' || index + 1 >= CharacterMessageDataSize)
             {
                 break;
             }
@@ -65,4 +68,5 @@ struct Plan
     }
     return plan;
 }
+
 } // namespace messagehelpers

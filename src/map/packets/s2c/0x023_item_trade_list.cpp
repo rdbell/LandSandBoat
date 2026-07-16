@@ -20,6 +20,7 @@
 */
 
 #include "0x023_item_trade_list.h"
+#include "item_trade_list_runtime.h"
 
 #include "common/utils.h"
 #include "items/item_linkshell.h"
@@ -27,36 +28,25 @@
 
 GP_SERV_COMMAND_ITEM_TRADE_LIST::GP_SERV_COMMAND_ITEM_TRADE_LIST(CItem* PItem, const uint8 slotId)
 {
-    auto& packet = this->data();
+    auto facts      = itemtradelisthelpers::Facts{};
+    facts.reserve   = PItem->getReserve();
+    facts.itemID    = PItem->getID();
+    facts.charged   = PItem->isSubType(ITEM_CHARGED);
+    facts.linkshell = PItem->isType(ITEM_LINKSHELL);
+    facts.extra     = std::to_array(PItem->m_extra);
 
-    const uint32 amount = PItem->getReserve();
-
-    packet.ItemNum    = amount;
-    packet.ItemNo     = amount == 0 ? 0 : PItem->getID();
-    packet.TradeIndex = slotId;
-
-    if (PItem->isSubType(ITEM_CHARGED))
+    if (facts.charged)
     {
-        packet.Attr[0] = 0x01;
-
-        if (static_cast<CItemUsable*>(PItem)->getCurrentCharges() > 0)
-        {
-            packet.Attr[1] = static_cast<CItemUsable*>(PItem)->getCurrentCharges();
-        }
+        facts.charges = static_cast<CItemUsable*>(PItem)->getCurrentCharges();
     }
-    else if (PItem->isType(ITEM_LINKSHELL))
+    else if (facts.linkshell)
     {
-        const uint32 lsid    = static_cast<CItemLinkshell*>(PItem)->GetLSID();
-        const uint16 lscolor = static_cast<CItemLinkshell*>(PItem)->GetLSRawColor();
-
-        std::memcpy(&packet.Attr[0], &lsid, 4);
-        std::memcpy(&packet.Attr[6], &lscolor, 2);
-        packet.Attr[8] = static_cast<CItemLinkshell*>(PItem)->GetLSType();
-
-        std::memcpy(&packet.Attr[9], static_cast<CItemLinkshell*>(PItem)->exdata<Exdata::Linkshell>().Name, sizeof(Exdata::Linkshell::Name));
+        auto* linkshell = static_cast<CItemLinkshell*>(PItem);
+        facts.lsID      = linkshell->GetLSID();
+        facts.lsColor   = linkshell->GetLSRawColor();
+        facts.lsType    = linkshell->GetLSType();
+        std::copy_n(linkshell->exdata<Exdata::Linkshell>().Name, facts.lsName.size(), facts.lsName.begin());
     }
-    else
-    {
-        std::memcpy(&packet.Attr[0], PItem->m_extra, std::min<size_t>(CItem::extra_size, 24));
-    }
+
+    this->data() = itemtradelisthelpers::PlanFor(slotId, facts);
 }
