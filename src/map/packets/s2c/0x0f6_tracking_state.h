@@ -32,6 +32,14 @@ enum class GP_TRACKING_STATE : uint8_t
     ErrEtc    = 0x0A,
 };
 
+namespace trackingstatehelpers
+{
+struct Facts
+{
+    GP_TRACKING_STATE state;
+};
+} // namespace trackingstatehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x00F6
 // This packet is sent by the server to inform the client of the start or end of a wide scan list request.
 class GP_SERV_COMMAND_TRACKING_STATE final : public GP_SERV_PACKET<PacketS2C::GP_SERV_COMMAND_TRACKING_STATE, GP_SERV_COMMAND_TRACKING_STATE>
@@ -44,3 +52,13 @@ public:
 
     GP_SERV_COMMAND_TRACKING_STATE(GP_TRACKING_STATE state);
 };
+
+namespace trackingstatehelpers
+{
+constexpr auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_TRACKING_STATE::PacketData
+{
+    return {
+        .State = facts.state,
+    };
+}
+} // namespace trackingstatehelpers

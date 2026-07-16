@@ -142,6 +142,27 @@ auto testConstructorStateValues() -> bool
     return ok;
 }
 
+auto testRuntimePlan() -> bool
+{
+    const auto states = std::array<GP_TRACKING_STATE, 5>{
+        GP_TRACKING_STATE::None,
+        GP_TRACKING_STATE::ListStart,
+        GP_TRACKING_STATE::ListEnd,
+        GP_TRACKING_STATE::End,
+        GP_TRACKING_STATE::ErrEtc,
+    };
+
+    bool ok = true;
+    for (const auto state : states)
+    {
+        const auto plan = trackingstatehelpers::PlanFor({
+            .state = state,
+        });
+        ok = expectEqualUInt(static_cast<std::uint8_t>(plan.State), static_cast<std::uint8_t>(state), "runtime plan state") && ok;
+    }
+    return ok;
+}
+
 } // namespace
 
 auto runS2CTrackingStatePacketSelfTests() -> bool
@@ -150,5 +171,6 @@ auto runS2CTrackingStatePacketSelfTests() -> bool
     ok      = testLayout() && ok;
     ok      = testConstructor() && ok;
     ok      = testConstructorStateValues() && ok;
+    ok      = testRuntimePlan() && ok;
     return ok;
 }

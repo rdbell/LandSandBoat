@@ -23,7 +23,7 @@
 
 GP_SERV_COMMAND_TRACKING_STATE::GP_SERV_COMMAND_TRACKING_STATE(const GP_TRACKING_STATE state)
 {
-    auto& packet = this->data();
-
-    packet.State = state;
+    this->data() = trackingstatehelpers::PlanFor({
+        .state = state,
+    });
 }
