@@ -240,6 +240,26 @@ auto testPureValidationFacts() -> bool
     return ok;
 }
 
+auto testEntryRuntimePlan() -> bool
+{
+    bool ok = true;
+    ok = expectTrue(trophyentryhelpers::MakePlan(false).action == trophyentryhelpers::Action::LotItem,
+                    "TROPHY_ENTRY unlotted item starts lot") && ok;
+    ok = expectTrue(trophyentryhelpers::MakePlan(true).action == trophyentryhelpers::Action::NoOp,
+                    "TROPHY_ENTRY duplicate lot is no-op") && ok;
+    return ok;
+}
+
+auto testAbsenceRuntimePlan() -> bool
+{
+    bool ok = true;
+    ok = expectTrue(trophyabsencehelpers::MakePlan(false).action == trophyabsencehelpers::Action::PassItem,
+                    "TROPHY_ABSENCE unpassed item passes") && ok;
+    ok = expectTrue(trophyabsencehelpers::MakePlan(true).action == trophyabsencehelpers::Action::NoOp,
+                    "TROPHY_ABSENCE duplicate pass is no-op") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2STrophyPacketSelfTests() -> bool
@@ -251,6 +271,8 @@ auto runC2STrophyPacketSelfTests() -> bool
     ok = testAbsenceLayoutAndMetadata() && ok;
     ok = testAbsencePayloadStorage() && ok;
     ok = testPureValidationFacts() && ok;
+    ok = testEntryRuntimePlan() && ok;
+    ok = testAbsenceRuntimePlan() && ok;
 
     return ok;
 }

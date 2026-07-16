@@ -22,6 +22,32 @@
 #pragma once
 #include "base.h"
 
+namespace trophyentryhelpers
+{
+
+// Action is the host-independent terminal branch of TROPHY_ENTRY::process.
+// The treasure-pool lookup and random lot value are deliberately supplied by
+// the map host.
+enum class Action : uint8
+{
+    NoOp,
+    LotItem,
+};
+
+struct Plan
+{
+    Action action;
+};
+
+// MakePlan mirrors process's duplicate-lot guard. A character can lot an item
+// once; a repeat request makes no state change.
+[[nodiscard]] constexpr auto MakePlan(const bool hasLottedItem) -> Plan
+{
+    return { hasLottedItem ? Action::NoOp : Action::LotItem };
+}
+
+} // namespace trophyentryhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0041
 // This packet is sent by the client when casting lots on treasure pool items.
 GP_CLI_PACKET(GP_CLI_COMMAND_TROPHY_ENTRY,
