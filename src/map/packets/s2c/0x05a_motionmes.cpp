@@ -20,6 +20,7 @@
 */
 
 #include "0x05a_motionmes.h"
+#include "motionmes_runtime.h"
 
 #include "entities/char_entity.h"
 #include "entities/npc_entity.h"
@@ -30,67 +31,56 @@ GP_SERV_COMMAND_MOTIONMES::GP_SERV_COMMAND_MOTIONMES(const CCharEntity* PChar, c
 {
     auto& packet = this->data();
 
-    packet.CasUniqueNo = PChar->id;
-    packet.CasActIndex = PChar->targid;
-    packet.TarUniqueNo = targetId;
-    packet.TarActIndex = targetIndex;
-    packet.MesNum      = emoteId == Emote::Job ? static_cast<uint8>(emoteId) + (extra - 0x1F) : static_cast<uint8>(emoteId);
-
-    if (emoteId == Emote::Salute)
+    auto facts = motionmeshelpers::CharacterFacts{ .nation = PChar->profile.nation };
+    if (emoteId == Emote::Hurray)
     {
-        packet.Param = PChar->profile.nation;
-    }
-    else if (emoteId == Emote::Hurray)
-    {
-        const auto* PWeapon = PChar->getEquip(SLOT_MAIN);
-        if (PWeapon && PWeapon->getID() != 65535)
+        if (const auto* mainWeapon = PChar->getEquip(SLOT_MAIN))
         {
-            packet.Param = PWeapon->getID();
+            facts.hasMainWeapon = true;
+            facts.mainWeaponID  = mainWeapon->getID();
         }
     }
     else if (emoteId == Emote::Aim)
     {
-        packet.Param               = 65535;
-        const CItemWeapon* PWeapon = static_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED));
-        if (PWeapon && PWeapon->getID() != 65535)
+        if (const auto* rangedWeapon = static_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED)))
         {
-            if (PWeapon->getSkillType() == SKILL_THROWING)
+            facts.hasRangedWeapon                     = true;
+            facts.rangedWeaponID                      = rangedWeapon->getID();
+            facts.rangedWeaponIsThrowing              = rangedWeapon->getSkillType() == SKILL_THROWING;
+            facts.rangedWeaponIsArcheryOrMarksmanship = rangedWeapon->getSkillType() == SKILL_MARKSMANSHIP || rangedWeapon->getSkillType() == SKILL_ARCHERY;
+        }
+
+        if (facts.hasRangedWeapon && facts.rangedWeaponID != 65535 && facts.rangedWeaponIsArcheryOrMarksmanship)
+        {
+            if (const auto* ammoWeapon = static_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO)))
             {
-                packet.Param = PWeapon->getID();
-            }
-            else if (PWeapon->getSkillType() == SKILL_MARKSMANSHIP || PWeapon->getSkillType() == SKILL_ARCHERY)
-            {
-                const CItemWeapon* PAmmo = static_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO));
-                if (PAmmo && PAmmo->getID() != 65535)
-                {
-                    packet.Param = PWeapon->getID();
-                }
+                facts.hasAmmoWeapon = true;
+                facts.ammoWeaponID  = ammoWeapon->getID();
             }
         }
     }
-    else if (emoteId == Emote::Bell)
-    {
-        // No emote text for /bell
-        emoteMode = EmoteMode::Motion;
 
-        packet.Param = (extra - 0x06);
-    }
-    else if (emoteId == Emote::Job)
-    {
-        packet.Param = (extra - 0x1F);
-    }
+    const auto plan = motionmeshelpers::CharacterPlanFor(emoteId, emoteMode, extra, facts);
 
-    packet.Mode = emoteMode;
+    packet.CasUniqueNo = PChar->id;
+    packet.CasActIndex = PChar->targid;
+    packet.TarUniqueNo = targetId;
+    packet.TarActIndex = targetIndex;
+    packet.MesNum      = plan.messageNumber;
+    packet.Param       = plan.parameter;
+    packet.Mode        = plan.mode;
 }
 
 GP_SERV_COMMAND_MOTIONMES::GP_SERV_COMMAND_MOTIONMES(const CNpcEntity* PEntity, const uint32 targetId, const uint16 targetIndex, Emote emoteId, EmoteMode emoteMode)
 {
     auto& packet = this->data();
+    const auto plan = motionmeshelpers::NPCPlanFor(emoteId, emoteMode);
 
     packet.CasUniqueNo = PEntity->id;
     packet.TarUniqueNo = targetId;
     packet.CasActIndex = PEntity->targid;
     packet.TarActIndex = targetIndex;
-    packet.MesNum      = static_cast<uint8>(emoteId);
-    packet.Mode        = emoteMode;
+    packet.MesNum      = plan.messageNumber;
+    packet.Param       = plan.parameter;
+    packet.Mode        = plan.mode;
 }

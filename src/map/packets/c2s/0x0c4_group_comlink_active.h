@@ -35,6 +35,45 @@ enum class GP_CLI_COMMAND_GROUP_COMLINK_ACTIVE_LINKSHELLID : uint8_t
     Linkshell2 = 2,
 };
 
+// GROUP_COMLINK_ACTIVE's first production routing decision. Item lookup is
+// host-owned; all later item, linkshell, database, and packet effects remain
+// in the map server helpers selected by this branch.
+namespace groupcomlinkactive
+{
+
+enum class Branch : uint8_t
+{
+    None,
+    Create,
+    Equip,
+    Unequip,
+};
+
+[[nodiscard]] inline auto BranchFor(const bool hasItem,
+                                    const bool itemIsLinkshell,
+                                    const bool itemIsNewLinkshell,
+                                    const GP_CLI_COMMAND_GROUP_COMLINK_ACTIVE_ACTIVEFLG activeFlag) -> Branch
+{
+    if (!hasItem || !itemIsLinkshell)
+    {
+        return Branch::None;
+    }
+
+    if (activeFlag == GP_CLI_COMMAND_GROUP_COMLINK_ACTIVE_ACTIVEFLG::Unequip)
+    {
+        return Branch::Unequip;
+    }
+
+    if (itemIsNewLinkshell)
+    {
+        return Branch::Create;
+    }
+
+    return Branch::Equip;
+}
+
+} // namespace groupcomlinkactive
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00C4
 // This packet is sent by the client when requesting to create a linkshell or when equipping/unequipping a linkshell item.
 GP_CLI_PACKET(GP_CLI_COMMAND_GROUP_COMLINK_ACTIVE,

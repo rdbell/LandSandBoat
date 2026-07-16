@@ -25,6 +25,49 @@
 
 class CCharEntity;
 
+// GROUP_COMLINK selects the first linkshell only for number 1. Every other
+// number uses the second linkshell; the entity lookup itself remains host work.
+namespace groupcomlinkhelpers
+{
+
+enum class SourceSlot : uint8
+{
+    Linkshell1,
+    Linkshell2,
+};
+
+struct EquipmentLocation
+{
+    bool  present{};
+    uint8 itemIndex{};
+    uint8 category{};
+};
+
+struct Plan
+{
+    SourceSlot sourceSlot{};
+    uint8      linkshellNumber{};
+    uint8      itemIndex{};
+    uint8      category{};
+};
+
+[[nodiscard]] constexpr auto SelectSourceSlot(const uint8 linkshellNumber) -> SourceSlot
+{
+    return linkshellNumber == 1 ? SourceSlot::Linkshell1 : SourceSlot::Linkshell2;
+}
+
+[[nodiscard]] constexpr auto PlanFor(const uint8 linkshellNumber, const EquipmentLocation location) -> Plan
+{
+    return {
+        SelectSourceSlot(linkshellNumber),
+        linkshellNumber,
+        static_cast<uint8>(location.present ? location.itemIndex : 0),
+        static_cast<uint8>(location.present ? location.category : 0),
+    };
+}
+
+} // namespace groupcomlinkhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x00E0
 // This packet is sent by the server to update the clients equipped linkshell information.
 class GP_SERV_COMMAND_GROUP_COMLINK final : public GP_SERV_PACKET<PacketS2C::GP_SERV_COMMAND_GROUP_COMLINK, GP_SERV_COMMAND_GROUP_COMLINK>

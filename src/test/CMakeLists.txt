@@ -116,6 +116,8 @@ set(SOURCES
     test_c2s_myroom_is_runtime.cpp
     test_c2s_group_comlink_make_runtime.h
     test_c2s_group_comlink_make_runtime.cpp
+    test_c2s_group_comlink_active_runtime.h
+    test_c2s_group_comlink_active_runtime.cpp
     test_c2s_get_lsmsg_runtime.h
     test_c2s_get_lsmsg_runtime.cpp
     test_c2s_config_packets.h
@@ -1568,6 +1570,8 @@ set(SOURCES
     test_s2c_group_checkid_packet.cpp
     test_s2c_group_comlink_packet.h
     test_s2c_group_comlink_packet.cpp
+    test_s2c_group_comlink_runtime.h
+    test_s2c_group_comlink_runtime.cpp
     test_s2c_group_effects_packet.h
     test_s2c_group_effects_packet.cpp
     test_s2c_group_list_packet.h
@@ -1646,6 +1650,8 @@ set(SOURCES
     test_s2c_musicvolume_packet.cpp
     test_s2c_motionmes_packet.h
     test_s2c_motionmes_packet.cpp
+    test_s2c_motionmes_runtime.h
+    test_s2c_motionmes_runtime.cpp
     test_s2c_mission_packet.h
     test_s2c_mission_packet.cpp
     test_s2c_myroom_packets.h

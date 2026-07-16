@@ -27,23 +27,15 @@ GP_SERV_COMMAND_GROUP_COMLINK::GP_SERV_COMMAND_GROUP_COMLINK(const CCharEntity* 
 {
     auto& packet = this->data();
 
-    packet.LinkshellNum = linkshellNumber;
-    if (linkshellNumber == 1)
-    {
-        auto eloc = PChar->equipLocation(SLOT_LINK1);
-        if (eloc)
-        {
-            packet.ItemIndex = eloc->Slot;
-            packet.Category  = static_cast<uint8>(eloc->Container);
-        }
-    }
-    else
-    {
-        auto eloc = PChar->equipLocation(SLOT_LINK2);
-        if (eloc)
-        {
-            packet.ItemIndex = eloc->Slot;
-            packet.Category  = static_cast<uint8>(eloc->Container);
-        }
-    }
+    const auto sourceSlot = groupcomlinkhelpers::SelectSourceSlot(linkshellNumber);
+    const auto eloc       = PChar->equipLocation(sourceSlot == groupcomlinkhelpers::SourceSlot::Linkshell1 ? SLOT_LINK1 : SLOT_LINK2);
+    const auto plan       = groupcomlinkhelpers::PlanFor(linkshellNumber, {
+        .present   = eloc.has_value(),
+        .itemIndex = static_cast<uint8>(eloc ? eloc->Slot : 0),
+        .category  = static_cast<uint8>(eloc ? static_cast<uint8>(eloc->Container) : 0),
+    });
+
+    packet.LinkshellNum = plan.linkshellNumber;
+    packet.ItemIndex    = plan.itemIndex;
+    packet.Category     = plan.category;
 }

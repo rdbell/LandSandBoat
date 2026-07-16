@@ -198,32 +198,35 @@ void GP_CLI_COMMAND_GROUP_COMLINK_ACTIVE::process(MapSession* PSession, CCharEnt
 {
     auto* PItemLinkshell = static_cast<CItemLinkshell*>(PChar->getStorage(this->Category)->GetItem(this->ItemIndex));
 
-    if (!PItemLinkshell || !PItemLinkshell->isType(ITEM_LINKSHELL))
+    const auto branch = groupcomlinkactive::BranchFor(PItemLinkshell != nullptr,
+                                                       PItemLinkshell != nullptr && PItemLinkshell->isType(ITEM_LINKSHELL),
+                                                       PItemLinkshell != nullptr && PItemLinkshell->getID() == ITEMID::NEW_LINKSHELL,
+                                                       static_cast<GP_CLI_COMMAND_GROUP_COMLINK_ACTIVE_ACTIVEFLG>(this->ActiveFlg));
+
+    if (branch == groupcomlinkactive::Branch::None)
     {
         return;
     }
 
-    switch (static_cast<GP_CLI_COMMAND_GROUP_COMLINK_ACTIVE_ACTIVEFLG>(this->ActiveFlg))
+    switch (branch)
     {
-        case GP_CLI_COMMAND_GROUP_COMLINK_ACTIVE_ACTIVEFLG::EquipOrCreate:
+        case groupcomlinkactive::Branch::Create:
         {
-            if (PItemLinkshell->getID() == ITEMID::NEW_LINKSHELL)
-            {
-                // Case 1. New Linkshell, create it.
-                createLinkshell(PChar, PItemLinkshell, *this);
-            }
-            else
-            {
-                // Case 2. Existing LS, equip it.
-                equipLinkshell(PChar, PItemLinkshell, *this);
-            }
+            createLinkshell(PChar, PItemLinkshell, *this);
         }
         break;
-        case GP_CLI_COMMAND_GROUP_COMLINK_ACTIVE_ACTIVEFLG::Unequip:
+        case groupcomlinkactive::Branch::Equip:
+        {
+            equipLinkshell(PChar, PItemLinkshell, *this);
+        }
+        break;
+        case groupcomlinkactive::Branch::Unequip:
         {
             unequipLinkshell(PChar, PItemLinkshell, *this);
         }
         break;
+        case groupcomlinkactive::Branch::None:
+            break;
     }
 
     PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
