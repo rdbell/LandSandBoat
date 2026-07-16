@@ -25,15 +25,17 @@
 
 GP_SERV_COMMAND_EXTENDED_JOB::MON::MON(const CCharEntity* PChar)
 {
-    auto& packet = this->data();
+    auto&      packet = this->data();
+    const auto plan   = extendedjobmonhelpers::PlanFor({
+        .hasMonstrosity    = PChar->m_PMonstrosity != nullptr,
+        .species           = PChar->m_PMonstrosity != nullptr ? PChar->m_PMonstrosity->Species : uint16{},
+        .equippedInstincts = PChar->m_PMonstrosity != nullptr ? PChar->m_PMonstrosity->EquippedInstincts : std::array<uint16, 12>{},
+    });
 
-    packet.Job = JOB_MON;
-    if (PChar->m_PMonstrosity)
+    packet.Job     = plan.job;
+    packet.Species = plan.species;
+    for (std::size_t idx = 0; idx < plan.equippedInstincts.size(); ++idx)
     {
-        packet.Species = PChar->m_PMonstrosity->Species;
-        for (std::size_t idx = 0; idx < 12; ++idx)
-        {
-            packet.EquippedInstincts[idx] = PChar->m_PMonstrosity->EquippedInstincts[idx];
-        }
+        packet.EquippedInstincts[idx] = plan.equippedInstincts[idx];
     }
 }

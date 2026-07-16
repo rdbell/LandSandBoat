@@ -20,6 +20,7 @@
 */
 
 #include "0x009_message.h"
+#include "message_runtime.h"
 
 #include "entities/char_entity.h"
 #include "enums/msg_std.h"
@@ -71,33 +72,10 @@ GP_SERV_COMMAND_MESSAGE::GP_SERV_COMMAND_MESSAGE(const uint32 param0, const uint
 
 GP_SERV_COMMAND_MESSAGE::GP_SERV_COMMAND_MESSAGE(CCharEntity* PChar, const uint32 param0, const uint32 param1, const MsgStd messageID)
 {
-    this->setSize(0x24);
-    auto& packet = this->data();
-
-    packet.MesNo = static_cast<uint16>(messageID);
-    if (PChar != nullptr)
-    {
-        packet.UniqueNo = PChar->id;
-        packet.ActIndex = PChar->targid;
-
-        if (messageID == MsgStd::Examine)
-        {
-            this->setSize(0x60);
-            packet.Attr = 0x10;
-
-            snprintf(packet.Data, 24, "string2 %s", PChar->getName().c_str());
-        }
-        else if (messageID == MsgStd::MonstrosityCheckIn || messageID == MsgStd::MonstrosityCheckOut)
-        {
-            this->setSize(0x20);
-
-            snprintf(packet.Data, 24, "string2 %s", PChar->getName().c_str());
-        }
-    }
-    else
-    {
-        snprintf(packet.Data, 24, "Para0 %u Para1 %u", param0, param1);
-    }
+    const auto facts = PChar ? messagehelpers::CharacterFacts{ .present = true, .uniqueNo = PChar->id, .actIndex = PChar->targid, .name = PChar->getName() } : messagehelpers::CharacterFacts{};
+    const auto plan  = messagehelpers::CharacterParams2PlanFor(facts, param0, param1, messageID);
+    this->setSize(plan.size);
+    this->data() = plan.packet;
 }
 
 GP_SERV_COMMAND_MESSAGE::GP_SERV_COMMAND_MESSAGE(const uint32 param0, const uint32 param1, const uint32 param2, const uint32 param3, const MsgStd messageID)

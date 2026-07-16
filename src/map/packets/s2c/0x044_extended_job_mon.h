@@ -21,11 +21,45 @@
 
 #pragma once
 
+#include <array>
+
 #include "common/cbasetypes.h"
 
 #include "base.h"
 
 class CCharEntity;
+
+namespace extendedjobmonhelpers
+{
+
+constexpr uint8 JobMon = 23;
+
+struct Facts
+{
+    bool                   hasMonstrosity{};
+    uint16                 species{};
+    std::array<uint16, 12> equippedInstincts{};
+};
+
+struct Plan
+{
+    uint8                  job{ JobMon };
+    uint16                 species{};
+    std::array<uint16, 12> equippedInstincts{};
+};
+
+[[nodiscard]] inline auto PlanFor(const Facts& facts) -> Plan
+{
+    auto plan = Plan{};
+    if (facts.hasMonstrosity)
+    {
+        plan.species           = facts.species;
+        plan.equippedInstincts = facts.equippedInstincts;
+    }
+    return plan;
+}
+
+} // namespace extendedjobmonhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x0044
 // This packet is sent by the server to populate the clients extended job information.
