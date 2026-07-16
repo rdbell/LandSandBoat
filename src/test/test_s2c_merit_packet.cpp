@@ -156,6 +156,29 @@ auto testPacketDataBytes() -> bool
     return expectStructBytes(data, expected, "MERIT PacketData bytes");
 }
 
+auto testRuntimePlans() -> bool
+{
+    auto merits      = meritpackethelpers::Page{};
+    merits[0]        = { .index = 0x0040, .next = 0x01, .count = 0x02 };
+    merits[60]       = { .index = 0x0D86, .next = 0x05, .count = 0x06 };
+    const auto inMog = meritpackethelpers::PlanFullPage(merits, true);
+    const auto away  = meritpackethelpers::PlanFullPage(merits, false);
+    const auto one   = meritpackethelpers::PlanSingleUpdate(merits[60]);
+
+    bool ok = true;
+    ok      = expectEqualUInt(inMog.merit_count, MAX_MERITS_IN_PACKET, "full plan merit count") && ok;
+    ok      = expectEqualUInt(inMog.merits[0].index, 0x0040, "full plan first index") && ok;
+    ok      = expectEqualUInt(inMog.merits[0].next, 0x01, "Mog House preserves next") && ok;
+    ok      = expectEqualUInt(inMog.merits[60].count, 0x06, "full plan last count") && ok;
+    ok      = expectEqualUInt(away.merits[0].next, 0, "non-Mog-House resets first next") && ok;
+    ok      = expectEqualUInt(away.merits[60].next, 0, "non-Mog-House resets last next") && ok;
+    ok      = expectEqualUInt(one.merit_count, 1, "single plan merit count") && ok;
+    ok      = expectEqualUInt(one.merits[0].index, 0x0D86, "single plan index") && ok;
+    ok      = expectEqualUInt(one.merits[0].next, 0x05, "single plan next") && ok;
+    ok      = expectEqualUInt(one.merits[1].index, 0, "single plan trailing entry") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CMeritPacketSelfTests() -> bool
@@ -164,5 +187,6 @@ auto runS2CMeritPacketSelfTests() -> bool
     ok      = testLayout() && ok;
     ok      = testMeritEntryBytes() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testRuntimePlans() && ok;
     return ok;
 }

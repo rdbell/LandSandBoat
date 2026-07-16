@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "base.h"
 #include "merit.h"
 
@@ -55,3 +57,13 @@ public:
     // Constructor for single merit update
     GP_SERV_COMMAND_MERIT(const CCharEntity* PChar, MERIT_TYPE merit);
 };
+
+namespace meritpackethelpers
+{
+
+using Page = std::array<merit_t, MAX_MERITS_IN_PACKET>;
+
+[[nodiscard]] auto PlanFullPage(const Page& merits, bool inMogHouse) -> GP_SERV_COMMAND_MERIT::PacketData;
+[[nodiscard]] auto PlanSingleUpdate(const merit_t& merit) -> GP_SERV_COMMAND_MERIT::PacketData;
+
+} // namespace meritpackethelpers

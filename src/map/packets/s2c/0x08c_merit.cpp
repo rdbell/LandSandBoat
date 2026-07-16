@@ -23,33 +23,46 @@
 
 #include "entities/char_entity.h"
 
+auto meritpackethelpers::PlanFullPage(const Page& merits, const bool inMogHouse) -> GP_SERV_COMMAND_MERIT::PacketData
+{
+    auto packet       = GP_SERV_COMMAND_MERIT::PacketData{};
+    packet.merit_count = MAX_MERITS_IN_PACKET;
+
+    for (std::size_t i = 0; i < merits.size(); ++i)
+    {
+        packet.merits[i] = merits[i];
+        if (!inMogHouse)
+        {
+            packet.merits[i].next = 0;
+        }
+    }
+    return packet;
+}
+
+auto meritpackethelpers::PlanSingleUpdate(const merit_t& merit) -> GP_SERV_COMMAND_MERIT::PacketData
+{
+    auto packet       = GP_SERV_COMMAND_MERIT::PacketData{};
+    packet.merit_count = 1;
+    packet.merits[0]  = merit;
+    return packet;
+}
+
 // Constructor for full merit categories (multiple packets)
 GP_SERV_COMMAND_MERIT::GP_SERV_COMMAND_MERIT(CCharEntity* PChar)
 {
-    auto& packet       = this->data();
-    packet.merit_count = MAX_MERITS_IN_PACKET;
-
     // TODO: This code assumes 5 packets of 61 merits each (305 total) which is absolutely wrong.
     // Retail sends 219 when in a Mog House, 109 when not.
     for (uint8 packetNum = 0; packetNum < 5; ++packetNum)
     {
         const uint8 offset = packetNum * MAX_MERITS_IN_PACKET;
+        auto        merits = meritpackethelpers::Page{};
 
         for (uint8 i = 0; i < MAX_MERITS_IN_PACKET; ++i)
         {
-            const Merit_t* PMerit  = PChar->PMeritPoints->GetMeritByIndex(offset + i);
-            packet.merits[i].index = PMerit->id;
-            packet.merits[i].count = PMerit->count;
-            packet.merits[i].next  = PMerit->next;
+            const Merit_t* PMerit = PChar->PMeritPoints->GetMeritByIndex(offset + i);
+            merits[i]             = { .index = PMerit->id, .next = PMerit->next, .count = PMerit->count };
         }
-
-        if (!PChar->inMogHouse())
-        {
-            for (uint8 i = 0; i < MAX_MERITS_IN_PACKET; ++i)
-            {
-                packet.merits[i].next = 0; // Reset the next value for all merits
-            }
-        }
+        this->data() = meritpackethelpers::PlanFullPage(merits, PChar->inMogHouse());
 
         if (packetNum < 4)
         {
@@ -64,19 +77,16 @@ GP_SERV_COMMAND_MERIT::GP_SERV_COMMAND_MERIT(CCharEntity* PChar)
 // Constructor for single merit update
 GP_SERV_COMMAND_MERIT::GP_SERV_COMMAND_MERIT(const CCharEntity* PChar, const MERIT_TYPE merit)
 {
-    auto& packet = this->data();
-
     // XiPackets claim this is set to 1 when updating a single merit
     // but values of 4 have been observed on retail
     // This may have a different meaning when updating a single merit
-    packet.merit_count = 1;
-
     const Merit_t* PMerit = PChar->PMeritPoints->GetMerit(merit);
-    packet.merits[0]      = {
+    const auto    entry   = merit_t{
         .index = PMerit->id,
         .next  = PMerit->next,
         .count = PMerit->count
     };
+    this->data() = meritpackethelpers::PlanSingleUpdate(entry);
 
     // Set size for single merit update: header + count/padding + 2 merits (retail sends padding)
     this->setSize(0x08 + (2 * sizeof(merit_t)));
