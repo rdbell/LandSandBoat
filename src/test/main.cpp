@@ -716,6 +716,7 @@ auto runC2SGuildPacketSelfTests() -> bool;
 auto runC2SGuildBuyListRuntimeSelfTests() -> bool;
 auto runC2SGuildSellListRuntimeSelfTests() -> bool;
 auto runC2SSwitchNominatePacketSelfTests() -> bool;
+auto runNominateParseFormat2614SelfTests() -> bool;
 auto runC2SSwitchVoteRuntimeSelfTests() -> bool;
 auto runC2SSwitchProposalRuntimeSelfTests() -> bool;
 auto runC2SAssistChannelRuntimeSelfTests() -> bool;
@@ -1631,6 +1632,7 @@ namespace
         ok = runC2SGuildBuyListRuntimeSelfTests() && ok;
         ok = runC2SGuildSellListRuntimeSelfTests() && ok;
         ok = runC2SSwitchNominatePacketSelfTests() && ok;
+        ok = runNominateParseFormat2614SelfTests() && ok;
         ok = runC2SSwitchVoteRuntimeSelfTests() && ok;
         ok = runC2SSwitchProposalRuntimeSelfTests() && ok;
         ok = runC2SAssistChannelRuntimeSelfTests() && ok;

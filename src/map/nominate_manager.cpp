@@ -49,8 +49,10 @@ const std::unordered_map<GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND, uint16> scopeCapac
     { GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Shout, 512 },
 };
 
+} // namespace
+
 // Splits raw on whitespace, honoring quotes. First token is the question, rest are options. "" is a valid token.
-auto parseInput(const std::string& raw) -> std::pair<std::string, std::vector<std::string>>
+auto ParseNominateInput(const std::string& raw) -> std::pair<std::string, std::vector<std::string>>
 {
     std::vector<std::string> tokens;
     std::string              cur;
@@ -105,7 +107,7 @@ auto parseInput(const std::string& raw) -> std::pair<std::string, std::vector<st
 //   withTallies=false: "[question]\n1:opt1\n2:opt2\n..."
 //   withTallies=true:  "[question]\n1[N]:opt1\n2[N]:opt2\n..."
 // Tally is 1-indexed
-auto formatBody(const NominateProposal& proposal, const bool withTallies) -> std::string
+auto FormatNominateBody(const NominateProposal& proposal, const bool withTallies) -> std::string
 {
     std::string out;
     out.reserve(80);
@@ -124,9 +126,12 @@ auto formatBody(const NominateProposal& proposal, const bool withTallies) -> std
     return out;
 }
 
+namespace
+{
+
 auto buildProposal(const CCharEntity* PChar, const GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND kind, const std::string& rawStr) -> NominateProposal
 {
-    auto [question, options] = parseInput(rawStr);
+    auto [question, options] = ParseNominateInput(rawStr);
 
     NominateProposal p{
         .proposerId       = PChar->id,
@@ -245,7 +250,7 @@ auto NominateProposal::inScope(const CCharEntity* PChar) const -> bool
 void NominateProposal::deliverProc(CCharEntity* PChar, const bool isFinal) const
 {
     const auto state = isFinal ? GP_SERV_COMMAND_SWITCH_PROC_STATE::Closed : GP_SERV_COMMAND_SWITCH_PROC_STATE::Active;
-    const auto body  = isFinal ? formatBody(*this, true) : std::string{};
+    const auto body  = isFinal ? FormatNominateBody(*this, true) : std::string{};
     PChar->pushPacket<GP_SERV_COMMAND_SWITCH_PROC>(*this, state, body);
 }
 
@@ -257,7 +262,7 @@ void NominateManager::broadcastStart(const NominateProposal& proposal) const
         return;
     }
 
-    const std::unique_ptr<CBasicPacket> packet = std::make_unique<GP_SERV_COMMAND_SWITCH_START>(proposal, formatBody(proposal, false));
+    const std::unique_ptr<CBasicPacket> packet = std::make_unique<GP_SERV_COMMAND_SWITCH_START>(proposal, FormatNominateBody(proposal, false));
     const auto                          zoneId = PProposer->getZone();
 
     switch (proposal.kind)

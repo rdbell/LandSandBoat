@@ -55,6 +55,9 @@ struct NominateProposal
     void deliverProc(CCharEntity* PChar, bool isFinal) const;
 };
 
+auto ParseNominateInput(const std::string& raw) -> std::pair<std::string, std::vector<std::string>>;
+auto FormatNominateBody(const NominateProposal& proposal, bool withTallies) -> std::string;
+
 class NominateManager
 {
 public:
