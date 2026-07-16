@@ -20,7 +20,46 @@
 */
 
 #pragma once
+#include <algorithm>
+
 #include "base.h"
+
+namespace bazaarexithelpers
+{
+struct StateTransition
+{
+    bool removeBuyerCustomer;
+    bool notifySeller;
+    bool cleanBazaarID;
+};
+
+// SelectStateTransition keeps the process-time lookup and identity ordering
+// explicit. A missing target returns before BazaarID is cleaned; a resolved
+// target with a reused identity still cleans BazaarID but changes nothing on
+// the target.
+inline auto SelectStateTransition(const bool sellerResolved, const bool sellerIDMatches, const bool buyerGMHidden, const uint8_t buyerGMLevel, const uint8_t sellerGMLevel) -> StateTransition
+{
+    if (!sellerResolved)
+    {
+        return { false, false, false };
+    }
+
+    if (!sellerIDMatches)
+    {
+        return { false, false, true };
+    }
+
+    return { true, !buyerGMHidden || sellerGMLevel >= buyerGMLevel, true };
+}
+
+template <typename CustomerEntries>
+inline void RemoveBuyerCustomers(CustomerEntries& customers, const uint32_t buyerID)
+{
+    std::erase_if(customers, [buyerID](const auto& customer) {
+        return customer.id == buyerID;
+    });
+}
+} // namespace bazaarexithelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0104
 // This packet is sent by the client when exiting a bazaar.

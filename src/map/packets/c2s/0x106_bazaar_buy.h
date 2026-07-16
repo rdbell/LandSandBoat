@@ -20,7 +20,96 @@
 */
 
 #pragma once
+#include <limits>
+
 #include "base.h"
+
+// Keeps BAZAAR_BUY's process-time guards and price calculation independently
+// testable. Entity/storage lookup, item transfer, persistence, and packet
+// delivery remain owned by GP_CLI_COMMAND_BAZAAR_BUY::process.
+namespace bazaarbuyhelpers
+{
+enum class Action : uint8
+{
+    None,
+    SendError,
+    Purchase,
+};
+
+enum class Error : uint8
+{
+    None,
+    SelfOrInventoryFull,
+    NoUsableGil,
+    UnavailableItem,
+    PriceOverflow,
+    InsufficientGil,
+};
+
+struct Facts
+{
+    bool   hasTarget;
+    bool   targetMatchesBazaarID;
+    bool   hasBazaarInventory;
+    bool   hasBuyerInventory;
+    bool   hasBazaarItem;
+    bool   bazaarItemReserved;
+    bool   buyerIsSeller;
+    bool   buyerInventoryFull;
+    bool   hasUsableGil;
+    uint32 itemPrice;
+    uint32 itemQuantity;
+    uint32 buyerGil;
+    uint16 tax;
+};
+
+struct Decision
+{
+    Action action;
+    Error  error;
+    uint32 sellerCredit;
+    uint32 buyerDebit;
+};
+
+constexpr auto SelectDecision(const Facts& facts, const uint32 buyNum) -> Decision
+{
+    if (!facts.hasTarget || !facts.targetMatchesBazaarID || !facts.hasBazaarInventory || !facts.hasBuyerInventory ||
+        !facts.hasBazaarItem || facts.bazaarItemReserved)
+    {
+        return { Action::None, Error::None, 0, 0 };
+    }
+
+    if (facts.buyerIsSeller || facts.buyerInventoryFull)
+    {
+        return { Action::SendError, Error::SelfOrInventoryFull, 0, 0 };
+    }
+
+    if (!facts.hasUsableGil)
+    {
+        return { Action::SendError, Error::NoUsableGil, 0, 0 };
+    }
+
+    if (facts.itemPrice == 0 || facts.itemQuantity < buyNum)
+    {
+        return { Action::SendError, Error::UnavailableItem, 0, 0 };
+    }
+
+    const uint64 basePrice  = static_cast<uint64>(facts.itemPrice) * buyNum;
+    const uint64 totalPrice = (static_cast<uint64>(facts.tax) * basePrice) / 10000 + basePrice;
+    if (totalPrice > std::numeric_limits<uint32>::max())
+    {
+        return { Action::SendError, Error::PriceOverflow, 0, 0 };
+    }
+
+    const auto priceWithTax = static_cast<uint32>(totalPrice);
+    if (facts.buyerGil < priceWithTax)
+    {
+        return { Action::SendError, Error::InsufficientGil, 0, 0 };
+    }
+
+    return { Action::Purchase, Error::None, static_cast<uint32>(basePrice), priceWithTax };
+}
+} // namespace bazaarbuyhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0106
 // This packet is sent by the client when requesting to purchase an item from a bazaar.

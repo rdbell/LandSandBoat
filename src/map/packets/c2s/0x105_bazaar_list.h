@@ -22,6 +22,38 @@
 #pragma once
 #include "base.h"
 
+// Keeps BAZAAR_LIST's process-time lookup, access, and packet predicates
+// independently testable. Entity lookup, state mutation, and packet delivery
+// remain owned by GP_CLI_COMMAND_BAZAAR_LIST::process.
+namespace bazaarlisthelpers
+{
+enum class Lookup : uint8
+{
+    CurrentTarget,
+    UniqueNo,
+};
+
+constexpr auto SelectLookup(const uint32 uniqueNo) -> Lookup
+{
+    return uniqueNo == 0 ? Lookup::CurrentTarget : Lookup::UniqueNo;
+}
+
+constexpr auto CanOpenBazaar(const bool sellerResolved, const uint32 sellerID, const uint32 uniqueNo, const bool sellerHasBazaar) -> bool
+{
+    return sellerResolved && sellerID == uniqueNo && sellerHasBazaar;
+}
+
+constexpr auto ShouldNotifySeller(const bool buyerGMHidden, const uint8 buyerGMLevel, const uint8 sellerGMLevel) -> bool
+{
+    return !buyerGMHidden || sellerGMLevel >= buyerGMLevel;
+}
+
+constexpr auto ShouldListItem(const bool itemPresent, const uint32 price) -> bool
+{
+    return itemPresent && price != 0;
+}
+} // namespace bazaarlisthelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0105
 // This packet is sent by the client when requesting to view a bazaar.
 GP_CLI_PACKET(GP_CLI_COMMAND_BAZAAR_LIST,

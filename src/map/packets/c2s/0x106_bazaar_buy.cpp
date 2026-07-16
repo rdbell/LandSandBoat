@@ -69,7 +69,26 @@ void GP_CLI_COMMAND_BAZAAR_BUY::process(MapSession* PSession, CCharEntity* PChar
         return;
     }
 
-    if (PChar->id == PTarget->id || PBuyerInventory->GetFreeSlotsCount() == 0)
+    const CItem* PCharGil = PBuyerInventory->GetItem(0);
+    const auto decision = bazaarbuyhelpers::SelectDecision(
+        {
+            true,
+            true,
+            true,
+            true,
+            true,
+            false,
+            PChar->id == PTarget->id,
+            PBuyerInventory->GetFreeSlotsCount() == 0,
+            PCharGil != nullptr && PCharGil->isType(ITEM_CURRENCY) && PCharGil->getReserve() == 0,
+            PBazaarItem->getCharPrice(),
+            PBazaarItem->getQuantity(),
+            PCharGil != nullptr ? PCharGil->getQuantity() : 0,
+            PChar->loc.zone->GetTax(),
+        },
+        this->BuyNum);
+
+    if (decision.action == bazaarbuyhelpers::Action::SendError)
     {
         PChar->pushPacket<GP_SERV_COMMAND_BAZAAR_BUY>(PTarget, GP_BAZAAR_BUY_STATE::ERR);
 
@@ -85,43 +104,24 @@ void GP_CLI_COMMAND_BAZAAR_BUY::process(MapSession* PSession, CCharEntity* PChar
             }
         }
 
-        return;
-    }
-
-    // Obtain the players gil
-    const CItem* PCharGil = PBuyerInventory->GetItem(0);
-    if (PCharGil == nullptr || !PCharGil->isType(ITEM_CURRENCY) || PCharGil->getReserve() > 0)
-    {
-        // Player has no gil
-        PChar->pushPacket<GP_SERV_COMMAND_BAZAAR_BUY>(PTarget, GP_BAZAAR_BUY_STATE::ERR);
-        return;
-    }
-
-    if ((PBazaarItem->getCharPrice() != 0) && (PBazaarItem->getQuantity() >= this->BuyNum))
-    {
-        const uint64 basePrice  = static_cast<uint64>(PBazaarItem->getCharPrice()) * this->BuyNum;
-        const uint64 totalPrice = (PChar->loc.zone->GetTax() * basePrice) / 10000 + basePrice;
-
-        if (totalPrice > std::numeric_limits<uint32>::max())
+        if (decision.error == bazaarbuyhelpers::Error::PriceOverflow)
         {
+            const uint64 basePrice  = static_cast<uint64>(PBazaarItem->getCharPrice()) * this->BuyNum;
+            const uint64 totalPrice = (static_cast<uint64>(PChar->loc.zone->GetTax()) * basePrice) / 10000 + basePrice;
             ShowWarningFmt("Bazaar Interaction [Price Overflow] - Buyer: {}, Seller: {}, Price: {}", PChar->name, PTarget->name, totalPrice);
-            PChar->pushPacket<GP_SERV_COMMAND_BAZAAR_BUY>(PTarget, GP_BAZAAR_BUY_STATE::ERR);
-            return;
         }
-
-        const uint32 Price        = static_cast<uint32>(basePrice);
-        uint32       PriceWithTax = static_cast<uint32>(totalPrice);
-
-        // Validate this player can afford said item
-        if (PCharGil->getQuantity() < PriceWithTax)
+        else if (decision.error == bazaarbuyhelpers::Error::InsufficientGil)
         {
-            PChar->pushPacket<GP_SERV_COMMAND_BAZAAR_BUY>(PTarget, GP_BAZAAR_BUY_STATE::ERR);
-
-            // Exploit attempt
-            ShowWarningFmt("Bazaar Interaction [Insufficient Gil] - Buyer: {}, Seller: {}, Buyer Gil: {}, Price: {}", PChar->name, PTarget->name, PCharGil->getQuantity(), PriceWithTax);
-
-            return;
+            ShowWarningFmt("Bazaar Interaction [Insufficient Gil] - Buyer: {}, Seller: {}, Buyer Gil: {}, Price: {}", PChar->name, PTarget->name, PCharGil->getQuantity(), decision.buyerDebit);
         }
+
+        return;
+    }
+
+    if (decision.action == bazaarbuyhelpers::Action::Purchase)
+    {
+        const uint32 Price        = decision.sellerCredit;
+        uint32       PriceWithTax = decision.buyerDebit;
 
         auto PItemOwn = xi::items::clone(*PBazaarItem);
         PItemOwn->setCharPrice(0);

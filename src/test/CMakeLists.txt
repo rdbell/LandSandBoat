@@ -64,6 +64,12 @@ set(SOURCES
     test_c2s_battlefield_sitchair_packets.cpp
     test_c2s_bazaar_buyer_packets.h
     test_c2s_bazaar_buyer_packets.cpp
+    test_c2s_bazaar_buy_runtime.h
+    test_c2s_bazaar_buy_runtime.cpp
+    test_c2s_bazaar_exit_runtime.h
+    test_c2s_bazaar_exit_runtime.cpp
+    test_c2s_bazaar_list_runtime.h
+    test_c2s_bazaar_list_runtime.cpp
     test_c2s_bazaar_seller_packets.h
     test_c2s_bazaar_seller_packets.cpp
     test_c2s_bazaar_itemset_runtime.h

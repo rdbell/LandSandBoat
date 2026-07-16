@@ -35,16 +35,18 @@ auto GP_CLI_COMMAND_BAZAAR_LIST::validate(MapSession* PSession, const CCharEntit
 
 void GP_CLI_COMMAND_BAZAAR_LIST::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    CCharEntity* PTarget = this->UniqueNo != 0 ? PChar->loc.zone->GetCharByID(this->UniqueNo) : static_cast<CCharEntity*>(PChar->GetEntity(PChar->m_TargID, TYPE_PC));
+    CCharEntity* PTarget = bazaarlisthelpers::SelectLookup(this->UniqueNo) == bazaarlisthelpers::Lookup::UniqueNo
+        ? PChar->loc.zone->GetCharByID(this->UniqueNo)
+        : static_cast<CCharEntity*>(PChar->GetEntity(PChar->m_TargID, TYPE_PC));
 
-    if (PTarget != nullptr && PTarget->id == this->UniqueNo && PTarget->hasBazaar())
+    if (bazaarlisthelpers::CanOpenBazaar(PTarget != nullptr, PTarget != nullptr ? PTarget->id : 0, this->UniqueNo, PTarget != nullptr && PTarget->hasBazaar()))
     {
         PChar->BazaarID.id     = PTarget->id;
         PChar->BazaarID.targid = PTarget->targid;
 
         EntityID_t EntityID = { PChar->id, PChar->targid };
 
-        if (!PChar->m_isGMHidden || (PChar->m_isGMHidden && PTarget->m_GMlevel >= PChar->m_GMlevel))
+        if (bazaarlisthelpers::ShouldNotifySeller(PChar->m_isGMHidden, PChar->m_GMlevel, PTarget->m_GMlevel))
         {
             PTarget->pushPacket<GP_SERV_COMMAND_BAZAAR_SHOPPING>(PChar, GP_SERV_COMMAND_BAZAAR_SHOPPING_STATE::Enter);
         }
@@ -57,7 +59,7 @@ void GP_CLI_COMMAND_BAZAAR_LIST::process(MapSession* PSession, CCharEntity* PCha
         {
             CItem* PItem = PBazaar->GetItem(SlotID);
 
-            if ((PItem != nullptr) && (PItem->getCharPrice() != 0))
+            if (bazaarlisthelpers::ShouldListItem(PItem != nullptr, PItem != nullptr ? PItem->getCharPrice() : 0))
             {
                 PChar->pushPacket<GP_SERV_COMMAND_BAZAAR_LIST>(PItem, SlotID, PChar->loc.zone->GetTax());
             }

@@ -34,21 +34,22 @@ auto GP_CLI_COMMAND_BAZAAR_EXIT::validate(MapSession* PSession, const CCharEntit
 void GP_CLI_COMMAND_BAZAAR_EXIT::process(MapSession* PSession, CCharEntity* PChar) const
 {
     auto* PEntity = PChar->GetEntity(PChar->BazaarID.targid, TYPE_PC);
-    if (!PEntity)
+    const auto transition = bazaarexithelpers::SelectStateTransition(
+        PEntity != nullptr,
+        PEntity && static_cast<CCharEntity*>(PEntity)->id == PChar->BazaarID.id,
+        PChar->m_isGMHidden,
+        PChar->m_GMlevel,
+        PEntity ? static_cast<CCharEntity*>(PEntity)->m_GMlevel : 0);
+
+    if (!transition.cleanBazaarID)
     {
         return;
     }
 
-    if (auto* PTarget = static_cast<CCharEntity*>(PEntity); PTarget->id == PChar->BazaarID.id)
+    if (auto* PTarget = static_cast<CCharEntity*>(PEntity); transition.removeBuyerCustomer)
     {
-        for (std::size_t i = 0; i < PTarget->BazaarCustomers.size(); ++i)
-        {
-            if (PTarget->BazaarCustomers[i].id == PChar->id)
-            {
-                PTarget->BazaarCustomers.erase(PTarget->BazaarCustomers.begin() + i--);
-            }
-        }
-        if (!PChar->m_isGMHidden || (PChar->m_isGMHidden && PTarget->m_GMlevel >= PChar->m_GMlevel))
+        bazaarexithelpers::RemoveBuyerCustomers(PTarget->BazaarCustomers, PChar->id);
+        if (transition.notifySeller)
         {
             PTarget->pushPacket<GP_SERV_COMMAND_BAZAAR_SHOPPING>(PChar, GP_SERV_COMMAND_BAZAAR_SHOPPING_STATE::Exit);
         }
