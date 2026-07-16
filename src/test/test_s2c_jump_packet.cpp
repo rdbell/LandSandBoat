@@ -74,6 +74,28 @@ auto expectStructBytes(const T& value, const std::array<uint8, Size>& expected, 
 }
 
 template <std::size_t Size>
+auto expectPacketBytes(CBasicPacket& packet, const std::array<uint8, Size>& expected, const std::string& label) -> bool
+{
+    const auto* data = static_cast<uint8*>(packet);
+    if (std::memcmp(data, expected.data(), expected.size()) != 0)
+    {
+        std::cerr << "s2c JUMP packet self-test failed: " << label << " got";
+        for (std::size_t i = 0; i < expected.size(); ++i)
+        {
+            std::cerr << ' ' << static_cast<unsigned>(data[i]);
+        }
+        std::cerr << " expected";
+        for (const auto valueByte : expected)
+        {
+            std::cerr << ' ' << static_cast<unsigned>(valueByte);
+        }
+        std::cerr << '\n';
+        return false;
+    }
+    return true;
+}
+
+template <std::size_t Size>
 void putLE16(std::array<uint8, Size>& buffer, std::size_t offset, std::uint16_t value)
 {
     buffer[offset]     = static_cast<uint8>(value & 0xFF);
@@ -111,12 +133,12 @@ auto testConstructor() -> bool
 {
     auto packet = JumpPacket(nullptr, 0x1234);
     packet.setSequence(0xBEEF);
-    const auto expected = std::array<uint8, 8>{ 0x1E, 0x02, 0xEF, 0xBE, 0x34, 0x12, 0x00, 0x00 };
+    const auto expected = std::array<uint8, 8>{ 0x1E, 0x05, 0xEF, 0xBE, 0x34, 0x12, 0x00, 0x00 };
 
     bool ok = true;
     ok      = expectEqualUInt(packet.getType(), 0x11E, "constructor type") && ok;
     ok      = expectEqualUInt(packet.getSize(), jumpPacketSize, "constructor size") && ok;
-    ok      = expectStructBytes(packet, expected, "constructor bytes") && ok;
+    ok      = expectPacketBytes(packet, expected, "constructor bytes") && ok;
     return ok;
 }
 

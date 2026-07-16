@@ -51,40 +51,6 @@ constexpr auto talkNumWorkNumElementSize  = sizeof(GP_SERV_COMMAND_TALKNUMWORK::
 constexpr auto talkNumWorkStringLen       = sizeof(GP_SERV_COMMAND_TALKNUMWORK::PacketData::String);
 constexpr auto talkNumWorkPadding3ELen    = sizeof(GP_SERV_COMMAND_TALKNUMWORK::PacketData::padding3E);
 
-struct EntityStorage
-{
-    alignas(CBaseEntity) std::array<std::byte, sizeof(CBaseEntity)> bytes{};
-
-    auto entity() -> CBaseEntity*
-    {
-        return reinterpret_cast<CBaseEntity*>(bytes.data());
-    }
-};
-
-template <typename T>
-void writeEntityField(EntityStorage& storage, std::size_t offset, const T& value)
-{
-    std::memcpy(storage.bytes.data() + offset, &value, sizeof(value));
-}
-
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Winvalid-offsetof"
-#endif
-
-auto makeStoredEntity(std::uint32_t id, std::uint16_t targid, ENTITYTYPE objtype) -> EntityStorage
-{
-    auto storage = EntityStorage{};
-    writeEntityField(storage, offsetof(CBaseEntity, id), id);
-    writeEntityField(storage, offsetof(CBaseEntity, targid), targid);
-    writeEntityField(storage, offsetof(CBaseEntity, objtype), objtype);
-    return storage;
-}
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
-
 void makeChar(CCharEntity& character, std::uint32_t id, std::uint16_t targid, std::string name)
 {
     character.id     = id;
@@ -187,8 +153,10 @@ auto testLayout() -> bool
 
 auto testNPCNoNameConstructor() -> bool
 {
-    auto entity = makeStoredEntity(0x11223344, 0x5566, ENTITYTYPE::TYPE_NPC);
-    auto packet = GP_SERV_COMMAND_TALKNUMWORK(entity.entity(), 0x1234, 0x01020304, 0xA0B0C0D0, 3, 0xFFFFFFFF);
+    auto entity = CCharEntity{};
+    makeChar(entity, 0x11223344, 0x5566, "NPC");
+    entity.objtype = TYPE_NPC;
+    auto packet    = GP_SERV_COMMAND_TALKNUMWORK(&entity, 0x1234, 0x01020304, 0xA0B0C0D0, 3, 0xFFFFFFFF);
     packet.setSequence(0xBEEF);
 
     bool ok = true;

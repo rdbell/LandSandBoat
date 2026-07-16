@@ -42,6 +42,10 @@ set(SOURCES
     test_aman_2624.cpp
     test_daily_system_2621.h
     test_daily_system_2621.cpp
+    test_petskill_2628.h
+    test_petskill_2628.cpp
+    test_mobskill_2627.h
+    test_mobskill_2627.cpp
     test_action_model.h
     test_action_model.cpp
     test_action_queue.h

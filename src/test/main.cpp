@@ -249,6 +249,8 @@ auto runFishingContestState2623SelfTests() -> bool;
 auto runBlueSpell2625SelfTests() -> bool;
 auto runAMAN2624SelfTests() -> bool;
 auto runDailySystem2621SelfTests() -> bool;
+auto runPetSkill2628SelfTests() -> bool;
+auto runMobSkill2627SelfTests() -> bool;
 auto runLoginCharacterSelect1318SelfTests() -> bool;
 auto runMerit2619SelfTests() -> bool;
 auto runMobSpellContainer2609SelfTests() -> bool;
@@ -1182,6 +1184,8 @@ namespace
         ok = runBlueSpell2625SelfTests() && ok;
         ok = runAMAN2624SelfTests() && ok;
         ok = runDailySystem2621SelfTests() && ok;
+        ok = runPetSkill2628SelfTests() && ok;
+        ok = runMobSkill2627SelfTests() && ok;
         ok = runLoginCharacterSelect1318SelfTests() && ok;
         ok = runMerit2619SelfTests() && ok;
         ok = runMobSpellContainer2609SelfTests() && ok;
