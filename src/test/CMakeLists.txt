@@ -1498,6 +1498,8 @@ set(SOURCES
     test_s2c_clistatus2_packet.cpp
     test_s2c_combine_packets.h
     test_s2c_combine_packets.cpp
+    test_s2c_combine_ans_runtime.h
+    test_s2c_combine_ans_runtime.cpp
     test_s2c_command_data_packet.h
     test_s2c_command_data_packet.cpp
     test_s2c_conquest_packet.h
@@ -1538,6 +1540,8 @@ set(SOURCES
     test_s2c_equip_list_packet.cpp
     test_s2c_equip_inspect_packet.h
     test_s2c_equip_inspect_packet.cpp
+    test_s2c_equip_inspect_runtime.h
+    test_s2c_equip_inspect_runtime.cpp
     test_s2c_equipset_valid_packet.h
     test_s2c_equipset_valid_packet.cpp
     test_s2c_event_packet.h

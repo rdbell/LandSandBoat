@@ -42,44 +42,38 @@ GP_SERV_COMMAND_EQUIP_INSPECT::EQUIPMENT::EQUIPMENT(CCharEntity* PChar, CCharEnt
     {
         if (CItem* PItem = PTarget->getEquip(static_cast<SLOTTYPE>(i)))
         {
-            auto& item = packet.Equip[count];
+            auto facts = equipinspecthelpers::CheckItemFacts{
+                .itemNo    = PItem->getID(),
+                .equipKind = static_cast<uint8>(i),
+                .charged   = PItem->isSubType(ITEM_CHARGED),
+                .augmented = PItem->isSubType(ITEM_AUGMENTED),
+            };
 
-            item.ItemNo    = PItem->getID();
-            item.EquipKind = static_cast<SAVE_EQUIP_KIND>(i);
-
-            if (PItem->isSubType(ITEM_CHARGED))
+            if (facts.charged)
             {
                 timer::time_point currentTime = timer::now();
                 timer::time_point nextUseTime = static_cast<CItemUsable*>(PItem)->getNextUseTime();
 
-                item.Data[0] = 0x01; // Type
-                item.Data[1] = static_cast<CItemUsable*>(PItem)->getCurrentCharges();
-                item.Data[3] = nextUseTime > currentTime ? 0x90 : 0xD0; // ChargeFlag
-
-                uint32 vNextUseTime = earth_time::vanadiel_timestamp(timer::to_utc(nextUseTime));
-                uint32 vUseDelay    = static_cast<uint32>(timer::count_seconds(static_cast<CItemUsable*>(PItem)->getUseDelay()) + earth_time::vanadiel_timestamp());
-
-                std::memcpy(&item.Data[4], &vNextUseTime, sizeof(uint32));
-                std::memcpy(&item.Data[8], &vUseDelay, sizeof(uint32));
+                facts.currentCharges    = static_cast<CItemUsable*>(PItem)->getCurrentCharges();
+                facts.nextUseIsFuture   = nextUseTime > currentTime;
+                facts.nextUseTimestamp  = earth_time::vanadiel_timestamp(timer::to_utc(nextUseTime));
+                facts.useDelayTimestamp = static_cast<uint32>(timer::count_seconds(static_cast<CItemUsable*>(PItem)->getUseDelay()) + earth_time::vanadiel_timestamp());
             }
 
-            if (PItem->isSubType(ITEM_AUGMENTED))
+            if (facts.augmented)
             {
-                item.Data[0] = 0x02; // Type
-
-                uint16 aug0 = static_cast<CItemEquipment*>(PItem)->getAugment(0);
-                uint16 aug1 = static_cast<CItemEquipment*>(PItem)->getAugment(1);
-                uint16 aug2 = static_cast<CItemEquipment*>(PItem)->getAugment(2);
-                uint16 aug3 = static_cast<CItemEquipment*>(PItem)->getAugment(3);
-
-                std::memcpy(&item.Data[2], &aug0, sizeof(uint16));
-                std::memcpy(&item.Data[4], &aug1, sizeof(uint16));
-                std::memcpy(&item.Data[6], &aug2, sizeof(uint16));
-                std::memcpy(&item.Data[8], &aug3, sizeof(uint16));
+                for (std::size_t index = 0; index < facts.augments.size(); ++index)
+                {
+                    facts.augments[index] = static_cast<CItemEquipment*>(PItem)->getAugment(index);
+                }
             }
 
-            // All equipment exdata types have Signature at offset 0x0C; struct choice is irrelevant.
-            std::memcpy(&item.Data[12], PItem->exdata<Exdata::AugmentStandard>().Signature, sizeof(Exdata::AugmentStandard::Signature));
+            std::memcpy(facts.signature.data(), PItem->exdata<Exdata::AugmentStandard>().Signature, facts.signature.size());
+            const auto plan = equipinspecthelpers::CheckItemPlanFor(facts);
+            auto&      item = packet.Equip[count];
+            item.ItemNo     = plan.itemNo;
+            item.EquipKind  = static_cast<SAVE_EQUIP_KIND>(plan.equipKind);
+            std::memcpy(item.Data, plan.data.data(), plan.data.size());
 
             count++;
 

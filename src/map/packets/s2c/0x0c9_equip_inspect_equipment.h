@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "base.h"
 
 class CCharEntity;
@@ -54,6 +56,78 @@ struct checkitem_t
     uint8_t         padding03; // PS2: (New; did not exist.)
     uint8_t         Data[24];  // PS2: (New; did not exist.)
 };
+
+namespace equipinspecthelpers
+{
+
+constexpr std::size_t CheckItemDataSize = 24;
+constexpr std::size_t SignatureSize     = 12;
+
+struct CheckItemFacts
+{
+    uint16                           itemNo{};
+    uint8                            equipKind{};
+    bool                             charged{};
+    uint8                            currentCharges{};
+    bool                             nextUseIsFuture{};
+    uint32                           nextUseTimestamp{};
+    uint32                           useDelayTimestamp{};
+    bool                             augmented{};
+    std::array<uint16, 4>            augments{};
+    std::array<uint8, SignatureSize> signature{};
+};
+
+struct CheckItemPlan
+{
+    uint16                               itemNo{};
+    uint8                                equipKind{};
+    std::array<uint8, CheckItemDataSize> data{};
+};
+
+inline void PutUint16LE(std::array<uint8, CheckItemDataSize>& buffer, const std::size_t offset, const uint16 value)
+{
+    buffer[offset]     = static_cast<uint8>(value);
+    buffer[offset + 1] = static_cast<uint8>(value >> 8);
+}
+
+inline void PutUint32LE(std::array<uint8, CheckItemDataSize>& buffer, const std::size_t offset, const uint32 value)
+{
+    buffer[offset]     = static_cast<uint8>(value);
+    buffer[offset + 1] = static_cast<uint8>(value >> 8);
+    buffer[offset + 2] = static_cast<uint8>(value >> 16);
+    buffer[offset + 3] = static_cast<uint8>(value >> 24);
+}
+
+[[nodiscard]] inline auto CheckItemPlanFor(const CheckItemFacts& facts) -> CheckItemPlan
+{
+    auto plan = CheckItemPlan{ .itemNo = facts.itemNo, .equipKind = facts.equipKind };
+
+    if (facts.charged)
+    {
+        plan.data[0] = 0x01;
+        plan.data[1] = facts.currentCharges;
+        plan.data[3] = facts.nextUseIsFuture ? 0x90 : 0xD0;
+        PutUint32LE(plan.data, 4, facts.nextUseTimestamp);
+        PutUint32LE(plan.data, 8, facts.useDelayTimestamp);
+    }
+
+    if (facts.augmented)
+    {
+        plan.data[0] = 0x02;
+        for (std::size_t index = 0; index < facts.augments.size(); ++index)
+        {
+            PutUint16LE(plan.data, 2 + index * 2, facts.augments[index]);
+        }
+    }
+
+    for (std::size_t index = 0; index < facts.signature.size(); ++index)
+    {
+        plan.data[12 + index] = facts.signature[index];
+    }
+    return plan;
+}
+
+} // namespace equipinspecthelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x00C9
 // This packet is sent by the server in response to the client checking another player.

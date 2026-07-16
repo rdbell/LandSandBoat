@@ -20,6 +20,7 @@
 */
 
 #include "0x06f_combine_ans.h"
+#include "combine_ans_runtime.h"
 
 #include "entities/char_entity.h"
 #include "items/craft_state.h"
@@ -37,40 +38,17 @@ GP_SERV_COMMAND_COMBINE_ANS::GP_SERV_COMMAND_COMBINE_ANS(const CCharEntity* PCha
         packet.ItemNo = item.itemId;
     }
 
-    if (!PChar->activeTransaction<SynthTransaction>())
+    auto facts = combineanshelpers::Facts{};
+    facts.hasActiveSynth = PChar->activeTransaction<SynthTransaction>();
+    if (facts.hasActiveSynth)
     {
-        return;
-    }
-
-    const auto& craftState = PChar->craftState();
-
-    for (uint8 i = 0; i < 4; i++)
-    {
-        uint8 skillValue = 0;
-        for (uint8 skillID = 49; skillID < 57; skillID++)
+        const auto& craftState = PChar->craftState();
+        facts.crystalID = craftState.crystalItemId();
+        for (uint8 i = 0; i < SynthMaxIngredients; ++i)
         {
-            if (skillID == packet.UpKind[0] || skillID == packet.UpKind[1] || skillID == packet.UpKind[2] || skillID == packet.UpKind[3])
-            {
-                continue;
-            }
-
-            const uint8 required = craftState.skillRequired(skillID - SKILL_WOODWORKING);
-            if (required > skillValue)
-            {
-                skillValue       = required;
-                packet.UpKind[i] = skillID;
-            }
+            facts.requiredSkills[i] = craftState.skillRequired(i);
+            facts.ingredients[i] = { .itemID = craftState.ingredientItemId(i), .broken = craftState.isBroken(i) };
         }
     }
-
-    packet.CrystalNo = craftState.crystalItemId();
-
-    for (uint8 idx = 0; idx < SynthMaxIngredients; ++idx)
-    {
-        packet.MaterialNo[idx] = craftState.ingredientItemId(idx);
-        if (craftState.isBroken(idx))
-        {
-            packet.BreakNo[idx] = craftState.ingredientItemId(idx);
-        }
-    }
+    combineanshelpers::ApplyActiveSynth(packet, facts);
 }
