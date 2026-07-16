@@ -35,6 +35,9 @@ auto GP_CLI_COMMAND_ROE_CLAIM::validate(MapSession* PSession, const CCharEntity*
 
 void GP_CLI_COMMAND_ROE_CLAIM::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    roeutils::onRecordClaim(PChar, this->ObjectiveId);
-    PChar->pushPacket<GP_SERV_COMMAND_CURRENCIES_1>(PChar);
+    const auto result = roeclaimhelpers::SelectResult(roeutils::onRecordClaim(PChar, this->ObjectiveId));
+    if (result.sendCurrencies1)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_CURRENCIES_1>(PChar);
+    }
 }

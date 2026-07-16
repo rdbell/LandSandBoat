@@ -22,6 +22,29 @@
 #pragma once
 #include "base.h"
 
+// Captures ROE_CLAIM's post-validation ordering without coupling tests to the
+// RoE script runtime or packet transport. onRecordClaim returns whether its
+// claim trigger ran; CURRENCIES_1 is sent regardless of that result.
+namespace roeclaimhelpers
+{
+enum class ClaimAction : uint8
+{
+    NoRecord,
+    TriggerClaim,
+};
+
+struct Result
+{
+    ClaimAction action;
+    bool        sendCurrencies1;
+};
+
+constexpr auto SelectResult(const bool recordClaimed) -> Result
+{
+    return { recordClaimed ? ClaimAction::TriggerClaim : ClaimAction::NoRecord, true };
+}
+} // namespace roeclaimhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x010E
 // This packet is sent by the client when requesting to claim a completed Records of Eminence objectives reward.
 GP_CLI_PACKET(GP_CLI_COMMAND_ROE_CLAIM,

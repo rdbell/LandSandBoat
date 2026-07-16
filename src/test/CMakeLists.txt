@@ -74,6 +74,8 @@ set(SOURCES
     test_c2s_bazaar_seller_packets.cpp
     test_c2s_bazaar_itemset_runtime.h
     test_c2s_bazaar_itemset_runtime.cpp
+    test_c2s_roe_claim_runtime.h
+    test_c2s_roe_claim_runtime.cpp
     test_c2s_blacklist_packets.h
     test_c2s_blacklist_packets.cpp
     test_c2s_bazaar_close_runtime.h
@@ -270,6 +272,10 @@ set(SOURCES
     test_c2s_rescue_buff_submap_packets.cpp
     test_c2s_roe_packets.h
     test_c2s_roe_packets.cpp
+    test_c2s_roe_start_runtime.h
+    test_c2s_roe_start_runtime.cpp
+    test_c2s_roe_remove_runtime.h
+    test_c2s_roe_remove_runtime.cpp
     test_c2s_scenarioitem_packet.h
     test_c2s_scenarioitem_packet.cpp
     test_c2s_scenarioitem_transition.h

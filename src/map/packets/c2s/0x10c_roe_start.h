@@ -22,6 +22,22 @@
 #pragma once
 #include "base.h"
 
+namespace roestarthelpers
+{
+enum class Action
+{
+    SendUnityAndTakeRecord,
+    SendROEUnable,
+};
+
+// SelectAction keeps the AddEminenceRecord result as the single decision for
+// the process-time side effects.
+inline auto SelectAction(const bool recordAdded) -> Action
+{
+    return recordAdded ? Action::SendUnityAndTakeRecord : Action::SendROEUnable;
+}
+} // namespace roestarthelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x010C
 // This packet is sent by the client when requesting to start a Records of Eminence objective.
 GP_CLI_PACKET(GP_CLI_COMMAND_ROE_START,

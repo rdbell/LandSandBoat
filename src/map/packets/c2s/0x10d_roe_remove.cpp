@@ -35,6 +35,14 @@ auto GP_CLI_COMMAND_ROE_REMOVE::validate(MapSession* PSession, const CCharEntity
 
 void GP_CLI_COMMAND_ROE_REMOVE::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    roeutils::DelEminenceRecord(PChar, this->ObjectiveId);
-    PChar->pushPacket<GP_SERV_COMMAND_UNITY>(PChar);
+    const auto plan = roeremovehelpers::SelectProcessPlan();
+    if (plan.deleteEminenceRecord)
+    {
+        roeutils::DelEminenceRecord(PChar, this->ObjectiveId);
+    }
+
+    if (plan.sendUnityResponse)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_UNITY>(PChar);
+    }
 }

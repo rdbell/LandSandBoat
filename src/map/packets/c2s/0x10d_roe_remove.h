@@ -22,6 +22,23 @@
 #pragma once
 #include "base.h"
 
+namespace roeremovehelpers
+{
+struct ProcessPlan
+{
+    bool deleteEminenceRecord;
+    bool sendUnityResponse;
+};
+
+// SelectProcessPlan documents the fixed ordering of ROE_REMOVE's successful
+// process path. It deliberately has no conditional branch: a valid packet
+// always removes the requested record and refreshes the Unity response.
+inline constexpr auto SelectProcessPlan() -> ProcessPlan
+{
+    return { true, true };
+}
+} // namespace roeremovehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x010D
 // This packet is sent by the client when requesting to remove an active Records of Eminence objective.
 GP_CLI_PACKET(GP_CLI_COMMAND_ROE_REMOVE,

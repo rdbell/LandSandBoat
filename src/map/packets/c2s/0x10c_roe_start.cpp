@@ -40,7 +40,8 @@ auto GP_CLI_COMMAND_ROE_START::validate(MapSession* PSession, const CCharEntity*
 
 void GP_CLI_COMMAND_ROE_START::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    if (roeutils::AddEminenceRecord(PChar, this->ObjectiveId))
+    const auto action = roestarthelpers::SelectAction(roeutils::AddEminenceRecord(PChar, this->ObjectiveId));
+    if (action == roestarthelpers::Action::SendUnityAndTakeRecord)
     {
         PChar->pushPacket<GP_SERV_COMMAND_UNITY>(PChar);
         roeutils::onRecordTake(PChar, this->ObjectiveId);
