@@ -35,11 +35,11 @@ namespace
 
 using JumpPacket = GP_SERV_COMMAND_JUMP;
 
-constexpr auto jumpPacketDataSize    = sizeof(JumpPacket::PacketData);
-constexpr auto jumpPacketSize        = sizeof(GP_SERV_HEADER) + jumpPacketDataSize;
-constexpr auto jumpActIndexOffset    = sizeof(GP_SERV_HEADER) + offsetof(JumpPacket::PacketData, ActIndex);
-constexpr auto jumpPadding00Offset   = sizeof(GP_SERV_HEADER) + offsetof(JumpPacket::PacketData, padding00);
-constexpr auto jumpPadding00Size     = sizeof(JumpPacket::PacketData::padding00);
+constexpr auto jumpPacketDataSize  = sizeof(JumpPacket::PacketData);
+constexpr auto jumpPacketSize      = sizeof(GP_SERV_HEADER) + jumpPacketDataSize;
+constexpr auto jumpActIndexOffset  = sizeof(GP_SERV_HEADER) + offsetof(JumpPacket::PacketData, ActIndex);
+constexpr auto jumpPadding00Offset = sizeof(GP_SERV_HEADER) + offsetof(JumpPacket::PacketData, padding00);
+constexpr auto jumpPadding00Size   = sizeof(JumpPacket::PacketData::padding00);
 
 auto expectEqualUInt(std::uint64_t actual, std::uint64_t expected, const std::string& label) -> bool
 {
@@ -94,10 +94,10 @@ auto testLayout() -> bool
 
 auto testPacketDataBytes() -> bool
 {
-    auto data             = JumpPacket::PacketData{};
-    data.ActIndex         = 0x1234;
-    data.padding00[0]     = 0x56;
-    data.padding00[1]     = 0x78;
+    auto data         = JumpPacket::PacketData{};
+    data.ActIndex     = 0x1234;
+    data.padding00[0] = 0x56;
+    data.padding00[1] = 0x78;
 
     auto expected = std::array<uint8, jumpPacketDataSize>{};
     putLE16(expected, 0, 0x1234);
@@ -107,6 +107,19 @@ auto testPacketDataBytes() -> bool
     return expectStructBytes(data, expected, "JUMP PacketData bytes");
 }
 
+auto testConstructor() -> bool
+{
+    auto packet = JumpPacket(nullptr, 0x1234);
+    packet.setSequence(0xBEEF);
+    const auto expected = std::array<uint8, 8>{ 0x1E, 0x02, 0xEF, 0xBE, 0x34, 0x12, 0x00, 0x00 };
+
+    bool ok = true;
+    ok      = expectEqualUInt(packet.getType(), 0x11E, "constructor type") && ok;
+    ok      = expectEqualUInt(packet.getSize(), jumpPacketSize, "constructor size") && ok;
+    ok      = expectStructBytes(packet, expected, "constructor bytes") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CJumpPacketSelfTests() -> bool
@@ -114,5 +127,6 @@ auto runS2CJumpPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testConstructor() && ok;
     return ok;
 }

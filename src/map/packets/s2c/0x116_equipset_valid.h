@@ -21,11 +21,31 @@
 
 #pragma once
 
+#include <array>
+
 #include "base.h"
 #include "packets/c2s/0x052_equipset_check.h"
 
 struct GP_CLI_COMMAND_EQUIPSET_CHECK;
 class CCharEntity;
+
+namespace equipsetvalidhelpers
+{
+struct ResolvedSlot
+{
+    bool   hasItem;
+    bool   canEquipInSlot;
+    bool   disabled;
+    uint8  bag;
+    uint8  bagIndex;
+    uint16 itemID;
+};
+
+struct Facts
+{
+    std::array<ResolvedSlot, 16> slots;
+};
+} // namespace equipsetvalidhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x0116
 // This packet is sent by the server to confirm (or deny) a clients equipment set item change.
@@ -39,3 +59,29 @@ public:
 
     GP_SERV_COMMAND_EQUIPSET_VALID(const CCharEntity* PChar, const GP_CLI_COMMAND_EQUIPSET_CHECK& data);
 };
+
+namespace equipsetvalidhelpers
+{
+inline auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_EQUIPSET_VALID::PacketData
+{
+    auto packet = GP_SERV_COMMAND_EQUIPSET_VALID::PacketData{};
+
+    for (std::size_t i = 0; i < facts.slots.size(); ++i)
+    {
+        const auto& slot = facts.slots[i];
+        if (slot.hasItem && slot.canEquipInSlot)
+        {
+            packet.Items[i].HasItemFlg = 1;
+            packet.Items[i].Category   = slot.bag;
+            packet.Items[i].ItemIndex  = slot.bagIndex;
+            packet.Items[i].ItemNo     = slot.itemID;
+        }
+        else if (slot.disabled)
+        {
+            packet.Items[i].RemoveItemFlg = 1;
+        }
+    }
+
+    return packet;
+}
+} // namespace equipsetvalidhelpers

@@ -181,6 +181,60 @@ auto testPacketDataEncoding() -> bool
     return ok;
 }
 
+auto testRuntimePlan() -> bool
+{
+    auto facts = equipsetvalidhelpers::Facts{};
+    facts.slots[0] = {
+        .hasItem        = true,
+        .canEquipInSlot = true,
+        .disabled       = false,
+        .bag            = 0x03,
+        .bagIndex       = 0x44,
+        .itemID         = 0x1234,
+    };
+    facts.slots[1] = {
+        .hasItem        = true,
+        .canEquipInSlot = false,
+        .disabled       = true,
+        .bag            = 0x15,
+        .bagIndex       = 0x55,
+        .itemID         = 0x2001,
+    };
+    facts.slots[2] = {
+        .hasItem        = false,
+        .canEquipInSlot = false,
+        .disabled       = true,
+        .bag            = 0x3F,
+        .bagIndex       = 0x66,
+        .itemID         = 0xBEEF,
+    };
+    facts.slots[3] = {
+        .hasItem        = true,
+        .canEquipInSlot = true,
+        .disabled       = true,
+        .bag            = 0x02,
+        .bagIndex       = 0x77,
+        .itemID         = 0x4321,
+    };
+
+    const auto plan = equipsetvalidhelpers::PlanFor(facts);
+    bool       ok   = true;
+    ok = expectEqualUInt(plan.Items[0].HasItemFlg, 1, "runtime plan eligible has item") && ok;
+    ok = expectEqualUInt(plan.Items[0].Category, 0x03, "runtime plan eligible category") && ok;
+    ok = expectEqualUInt(plan.Items[0].ItemIndex, 0x44, "runtime plan eligible index") && ok;
+    ok = expectEqualUInt(plan.Items[0].ItemNo, 0x1234, "runtime plan eligible ID") && ok;
+    ok = expectEqualUInt(plan.Items[1].HasItemFlg, 0, "runtime plan ineligible has item") && ok;
+    ok = expectEqualUInt(plan.Items[1].RemoveItemFlg, 1, "runtime plan ineligible disabled") && ok;
+    ok = expectEqualUInt(plan.Items[1].ItemIndex, 0, "runtime plan disabled index") && ok;
+    ok = expectEqualUInt(plan.Items[1].ItemNo, 0, "runtime plan disabled ID") && ok;
+    ok = expectEqualUInt(plan.Items[2].RemoveItemFlg, 1, "runtime plan empty disabled") && ok;
+    ok = expectEqualUInt(plan.Items[3].HasItemFlg, 1, "runtime plan eligible wins over disabled") && ok;
+    ok = expectEqualUInt(plan.Items[3].RemoveItemFlg, 0, "runtime plan eligible does not remove") && ok;
+    ok = expectEqualUInt(plan.Items[16].HasItemFlg, 0, "runtime plan spare item empty") && ok;
+    ok = expectEqualUInt(plan.Items[16].RemoveItemFlg, 0, "runtime plan spare item no remove") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CEquipSetValidPacketSelfTests() -> bool
@@ -188,5 +242,6 @@ auto runS2CEquipSetValidPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayoutAndMetadata() && ok;
     ok      = testPacketDataEncoding() && ok;
+    ok      = testRuntimePlan() && ok;
     return ok;
 }

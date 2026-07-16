@@ -172,22 +172,18 @@ GP_SERV_COMMAND_EQUIPSET_VALID::GP_SERV_COMMAND_EQUIPSET_VALID(const CCharEntity
         equipSetDisabled[equippedIndex] = true;
     }
 
+    auto facts = equipsetvalidhelpers::Facts{};
     for (int i = 0; i < 0x10; i++)
     {
-        // If the item exists and it can be equipped in that slot
-        if (equipSet[i] && equipSet[i]->getEquipSlotId() & (1 << i))
-        {
-            // set HasItemFlg=1, pack in Category in upper 6 bits
-            packet.Items[i].HasItemFlg = 1;
-            packet.Items[i].Category   = equipSetBag[i];
-            packet.Items[i].ItemIndex  = equipSetBagIndex[i];
-            packet.Items[i].ItemNo     = equipSet[i]->getID();
-        }
-        else if (equipSetDisabled[i])
-        {
-            packet.Items[i].RemoveItemFlg = 1;
-            packet.Items[i].ItemIndex     = 0;
-            packet.Items[i].ItemNo        = 0;
-        }
+        facts.slots[i] = {
+            .hasItem        = equipSet[i] != nullptr,
+            .canEquipInSlot = equipSet[i] && (equipSet[i]->getEquipSlotId() & (1 << i)),
+            .disabled       = equipSetDisabled[i],
+            .bag            = equipSetBag[i],
+            .bagIndex       = equipSetBagIndex[i],
+            .itemID         = equipSet[i] ? static_cast<uint16>(equipSet[i]->getID()) : uint16{},
+        };
     }
+
+    packet = equipsetvalidhelpers::PlanFor(facts);
 }
