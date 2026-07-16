@@ -27,6 +27,7 @@
 #include "mob_force_link_policy.h"
 #include "mob_link_policy.h"
 #include "mob_valid_target_policy.h"
+#include "mob_seal_pool.h"
 #include "mob_widescan_policy.h"
 #include "mob_home_distance_policy.h"
 #include "mob_tp_move_policy.h"
@@ -726,22 +727,7 @@ void CMobEntity::DistributeRewards()
 // If Abyssea is not enabled, pool is limited to Beastmen's Seal and Kindred's Seal.
 auto CMobEntity::GetEligibleSeals() -> std::vector<uint16>
 {
-    if (GetMLevel() >= 80 && luautils::IsContentEnabled("ABYSSEA"))
-    {
-        return { BEASTMENS_SEAL, KINDREDS_SEAL, KINDREDS_CREST, HIGH_KINDREDS_CREST };
-    }
-
-    if (GetMLevel() >= 70 && luautils::IsContentEnabled("ABYSSEA"))
-    {
-        return { BEASTMENS_SEAL, KINDREDS_SEAL, KINDREDS_CREST };
-    }
-
-    if (GetMLevel() >= 50)
-    {
-        return { BEASTMENS_SEAL, KINDREDS_SEAL };
-    }
-
-    return { BEASTMENS_SEAL };
+    return mobsealpoolhelpers::EligibleSeals(GetMLevel(), luautils::IsContentEnabled("ABYSSEA"));
 }
 
 // Return the list of Geode and Avatarites that can drop based on the mob's level.

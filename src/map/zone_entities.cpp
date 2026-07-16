@@ -59,6 +59,7 @@
 #include "utils/zoneutils.h"
 
 #include "zone_entity_visibility.h"
+#include "zone_npc_visibility.h"
 
 #include <map/ximesh/ximesh.h>
 
@@ -966,16 +967,11 @@ void CZoneEntities::SpawnNPCs(CCharEntity* PChar)
         UPDATE_ALL_MOB,
         /*Fn: visible*/ [&](CBaseEntity* PEntity)
         {
-            if (PEntity->look.size == MODEL_SHIP)
-            {
-                return !static_cast<CNpcEntity*>(PEntity)->alwaysRelevant() &&
-                       isWithinDistance(PChar->loc.p, PEntity->loc.p, ENTITY_RENDER_DISTANCE);
-            }
-
+            const bool isShip        = PEntity->look.size == MODEL_SHIP;
             const bool visibleStatus = PEntity->status == STATUS_TYPE::NORMAL || PEntity->status == STATUS_TYPE::UPDATE;
             const bool inRange       = isWithinDistance(PChar->loc.p, PEntity->loc.p, ENTITY_RENDER_DISTANCE);
             const bool alwaysRel     = static_cast<CNpcEntity*>(PEntity)->alwaysRelevant();
-            return visibleStatus && (inRange || alwaysRel);
+            return zoneentityvisibility::ShouldSpawnNPC(isShip, visibleStatus, inRange, alwaysRel);
         },
         /*Fn: onAdd (empty)*/ {},
         /*Fn: onUpdate (empty)*/ {},

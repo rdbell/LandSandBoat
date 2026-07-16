@@ -502,29 +502,24 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
     // here we check if the client received the previous package
     // if not received, then we do not create a new one, but send the previous one
 
-    if (ref<uint16>(buff, 2) != PSession->server_packet_id)
+    switch (mapnetworkinghelpers::PlanOutgoingPacketAcknowledgement(ref<uint16>(buff, 2), PSession->server_packet_id, SmallPD_Type))
     {
-        // If the client and server have become out of sync, then caching takes place. However, caching
-        // zone packets will result in the client never properly connecting. Ignore those specifically.
-        if (SmallPD_Type == static_cast<uint16>(PacketC2S::GP_CLI_COMMAND_LOGIN))
-        {
+        case mapnetworkinghelpers::AcknowledgementPlan::IncrementServerPacketID:
+            PSession->server_packet_id += 1;
             return 0;
-        }
+        case mapnetworkinghelpers::AcknowledgementPlan::IgnoreLoginMismatch:
+            return 0;
+        case mapnetworkinghelpers::AcknowledgementPlan::ReplayCachedPacket:
+            // If the client and server have become out of sync, then caching takes place.
+            ref<uint16>(PSession->server_packet_data.data(), 2) = SmallPD_Code;
+            ref<uint16>(PSession->server_packet_data.data(), 8) = earth_time::timestamp();
 
-        ref<uint16>(PSession->server_packet_data.data(), 2) = SmallPD_Code;
-        ref<uint16>(PSession->server_packet_data.data(), 8) = earth_time::timestamp();
+            PBuff     = PSession->server_packet_data;
+            *buffsize = PSession->server_packet_size;
 
-        PBuff     = PSession->server_packet_data;
-        *buffsize = PSession->server_packet_size;
-
-        std::memcpy(PSession->server_packet_data.data(), buff, *buffsize);
-
-        return -1;
+            std::memcpy(PSession->server_packet_data.data(), buff, *buffsize);
+            return -1;
     }
-
-    // GT: increase the number of the sent packet only if new data is sent
-
-    PSession->server_packet_id += 1;
 
     return 0;
 }

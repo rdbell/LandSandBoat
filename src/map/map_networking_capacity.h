@@ -109,4 +109,25 @@ inline auto ShouldDispatchIncomingSmallPacket(const uint16 packetSequence, const
     return packetSequence > lastClientPacketSequence && packetSequence <= datagramSequence;
 }
 
+enum class AcknowledgementPlan : uint8
+{
+    IncrementServerPacketID,
+    IgnoreLoginMismatch,
+    ReplayCachedPacket,
+};
+
+// PlanOutgoingPacketAcknowledgement mirrors the post-parse acknowledgement
+// handling. Acknowledged packets advance the server sequence; a mismatched
+// login packet is ignored to avoid caching zone login traffic; other
+// mismatches resend the cached outgoing packet.
+inline auto PlanOutgoingPacketAcknowledgement(const uint16 acknowledgedServerPacketID, const uint16 serverPacketID, const uint16 lastPacketType) -> AcknowledgementPlan
+{
+    if (acknowledgedServerPacketID == serverPacketID)
+    {
+        return AcknowledgementPlan::IncrementServerPacketID;
+    }
+
+    return lastPacketType == 0x00A ? AcknowledgementPlan::IgnoreLoginMismatch : AcknowledgementPlan::ReplayCachedPacket;
+}
+
 } // namespace mapnetworkinghelpers
