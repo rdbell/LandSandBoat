@@ -22,6 +22,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "common/cbasetypes.h"
 #include "common/database.h"
@@ -50,6 +51,7 @@ class ConquestData
 {
 public:
     ConquestData();
+    ConquestData(std::vector<region_control_t> regionControls, std::vector<influence_t> influences);
 
     //
     // Gets the influence points for a given nation in a given region.

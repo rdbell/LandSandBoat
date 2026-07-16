@@ -64,6 +64,11 @@ const auto calculateAssistExpiry = [](CCharEntity* PChar, const uint32 playtimeE
 
 } // namespace
 
+auto AMANMentorRankFromEvaluations(const int32 evaluations) -> uint8_t
+{
+    return static_cast<uint8_t>(std::clamp((evaluations / 50) + 1, 1, 3));
+}
+
 CAMANContainer::CAMANContainer(CCharEntity* PChar)
 : m_player(PChar)
 {
@@ -203,7 +208,7 @@ auto CAMANContainer::getMentorRank() const -> uint8_t
     // 50 "Thumbs Up" evaluations reward the Silver flag. (2)
     // 50 additional "Thumbs Up" evaluations reward the Gold flag. (3)
 
-    return std::clamp((m_player->getCharVar(evaluationsCountVar) / 50) + 1, 1, 3);
+    return AMANMentorRankFromEvaluations(m_player->getCharVar(evaluationsCountVar));
 }
 
 auto CAMANContainer::hasMentorUnlocked() const -> bool

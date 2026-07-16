@@ -25,6 +25,8 @@
 
 class CCharEntity;
 
+auto AMANMentorRankFromEvaluations(int32 evaluations) -> uint8_t;
+
 class CAMANContainer
 {
 public:

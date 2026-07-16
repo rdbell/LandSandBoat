@@ -50,6 +50,12 @@ ConquestData::ConquestData()
     }
 }
 
+ConquestData::ConquestData(std::vector<region_control_t> regionControls, std::vector<influence_t> influences)
+: regionControls(std::move(regionControls))
+, influences(std::move(influences))
+{
+}
+
 int32 ConquestData::getInfluence(REGION_TYPE region, NATION_TYPE nation) const
 {
     if (static_cast<std::size_t>(region) > influences.size() - 1U)

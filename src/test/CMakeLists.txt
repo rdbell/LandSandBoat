@@ -38,6 +38,8 @@ set(SOURCES
     test_console_service_input.cpp
     test_conquest_data_2620.h
     test_conquest_data_2620.cpp
+    test_aman_2624.h
+    test_aman_2624.cpp
     test_daily_system_2621.h
     test_daily_system_2621.cpp
     test_action_model.h
@@ -1183,6 +1185,8 @@ set(SOURCES
     test_fishing_outcome_1617.cpp
     test_fishing_hook_1618.h
     test_fishing_hook_1618.cpp
+    test_fishingcontest_state_2623.h
+    test_fishingcontest_state_2623.cpp
     test_fishing_hookchance_1619.h
     test_fishing_hookchance_1619.cpp
     test_mob_stats_product_1620.h
