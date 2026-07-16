@@ -122,6 +122,17 @@ auto testConstructorCopiesShortNameAndZerosTail() -> bool
     return ok;
 }
 
+auto testConstructorPreservesEmbeddedNulNameBytes() -> bool
+{
+    auto packet = GP_SERV_COMMAND_ITEMSEARCH(0x4321, std::string("ab\0cd", 5));
+
+    bool ok = true;
+    ok      = expectBytes(packet, itemSearchItemNoOffset, std::array<uint8, 4>{ 0x21, 0x43, 0x00, 0x00 }, "embedded nul scalar fields") && ok;
+    ok      = expectBytes(packet, itemSearchItemNameOffset, std::array<uint8, 5>{ 'a', 'b', 0, 'c', 'd' }, "embedded nul name bytes") && ok;
+    ok      = expectRepeatedByte(packet, itemSearchItemNameOffset + 5, itemSearchItemNameFieldSize - 5, 0, "embedded nul name tail") && ok;
+    return ok;
+}
+
 auto testConstructorTruncatesLongName() -> bool
 {
     const auto name   = std::string(itemSearchItemNameFieldSize + 9, 'Z');
@@ -141,6 +152,7 @@ auto runS2CItemSearchPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testConstructorCopiesShortNameAndZerosTail() && ok;
+    ok      = testConstructorPreservesEmbeddedNulNameBytes() && ok;
     ok      = testConstructorTruncatesLongName() && ok;
     return ok;
 }
