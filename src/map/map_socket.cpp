@@ -20,6 +20,7 @@
 */
 
 #include "map_socket.h"
+#include "map_socket_capacity.h"
 
 #include <common/logging.h>
 
@@ -68,20 +69,22 @@ void MapSocket::receive()
 
             DebugPacketsFmt("Received {} bytes from {}", sizedBuffer.size(), ipp.toString());
 
-            if (ec)
+            const auto plan = mapsockethelpers::PlanReceive(static_cast<bool>(ec), sizedBuffer.empty(), scheduler_.closeRequested(), socket_.is_open());
+
+            if (plan.reportError)
             {
                 ShowErrorFmt("Receive error from {}: {}", ipp.toString(), ec.message());
             }
-            else if (sizedBuffer.empty())
+            else if (plan.reportEmpty)
             {
                 ShowErrorFmt("Received empty buffer from {}", ipp.toString());
             }
-            else // Everything is OK
+            else if (plan.dispatch)
             {
                 onReceiveFn_(sizedBuffer, ipp);
             }
 
-            if (!scheduler_.closeRequested() && socket_.is_open())
+            if (plan.receiveAgain)
             {
                 receive(); // Queue up more work
             }

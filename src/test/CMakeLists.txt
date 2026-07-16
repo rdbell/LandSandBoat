@@ -711,6 +711,8 @@ set(SOURCES
     test_zone_policy_1363.cpp
     test_zone_char_targid_2650.h
     test_zone_char_targid_2650.cpp
+    test_zone_idle_shutdown_2652.h
+    test_zone_idle_shutdown_2652.cpp
     test_zone_query_by_name_2647.h
     test_zone_query_by_name_2647.cpp
     test_status_effect_can_gain_1364.h
@@ -1225,6 +1227,8 @@ set(SOURCES
     test_mob_stats_product_1620.cpp
     test_mob_setup_1621.h
     test_mob_setup_1621.cpp
+    test_mob_gil_policy_2653.h
+    test_mob_gil_policy_2653.cpp
     test_pet_mod_tandem_1624.h
     test_pet_mod_tandem_1624.cpp
     test_pet_spawn_1625.h
@@ -1366,6 +1370,8 @@ set(SOURCES
     test_map_statistics.cpp
     test_map_network_packet_building.h
     test_map_network_packet_building.cpp
+    test_map_socket_receive_2654.h
+    test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h
     test_map_session_blowfish.cpp
     test_map_session_index.h

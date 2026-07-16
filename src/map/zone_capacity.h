@@ -1,7 +1,9 @@
 #pragma once
 
 #include "common/cbasetypes.h"
+#include "common/timer.h"
 
+#include <chrono>
 #include <cstdint>
 #include <fmt/format.h>
 #include <set>
@@ -85,6 +87,19 @@ inline auto ShouldStampZoneEmptyTime(const bool charListEmpty) -> bool
 inline auto ShouldDespawnPCOnLeave(const bool charListEmpty) -> bool
 {
     return !charListEmpty;
+}
+
+// ShouldStopZoneTimers mirrors CZone::ZoneServer's idle shutdown gate. The
+// five-second delay is strict: exactly five seconds after the zone became
+// empty is still retained.
+inline auto ShouldStopZoneTimers(
+    const bool              hasZoneTimer,
+    const bool              charListEmpty,
+    const timer::time_point zoneEmptyTime,
+    const timer::time_point now,
+    const bool              allMobsHomeAndHealed) -> bool
+{
+    return hasZoneTimer && charListEmpty && zoneEmptyTime + std::chrono::seconds(5) < now && allMobsHomeAndHealed;
 }
 
 // --- updateCharLevelRestriction ---

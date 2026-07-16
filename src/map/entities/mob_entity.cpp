@@ -20,6 +20,7 @@
 */
 
 #include "mob_entity.h"
+#include "mob_gil_policy.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -320,18 +321,7 @@ uint32 CMobEntity::GetRandomGil()
 
 bool CMobEntity::CanDropGil()
 {
-    // smaller than 0 means drop no gil
-    if (getMobMod(MOBMOD_GIL_MAX) < 0)
-    {
-        return false;
-    }
-
-    if (getMobMod(MOBMOD_GIL_MIN) > 0 || getMobMod(MOBMOD_GIL_MAX))
-    {
-        return true;
-    }
-
-    return getMobMod(MOBMOD_GIL_BONUS) > 0;
+    return mobgilhelpers::CanDropGil(getMobMod(MOBMOD_GIL_MIN), getMobMod(MOBMOD_GIL_MAX), getMobMod(MOBMOD_GIL_BONUS));
 }
 
 bool CMobEntity::CanStealGil()
