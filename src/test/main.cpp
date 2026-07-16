@@ -645,6 +645,7 @@ auto runC2SActionPacketSelfTests() -> bool;
 auto runC2SFriendPassUnknownPacketSelfTests() -> bool;
 auto runC2SUnknownRuntimeSelfTests() -> bool;
 auto runC2SFriendPassRuntimeSelfTests() -> bool;
+auto runC2STranslateRuntimeSelfTests() -> bool;
 auto runC2SItemDumpMovePacketSelfTests() -> bool;
 auto runC2SItemLookupPacketSelfTests() -> bool;
 auto runC2SPlayerTradePacketSelfTests() -> bool;
@@ -1473,6 +1474,7 @@ namespace
         ok = runC2SFriendPassUnknownPacketSelfTests() && ok;
         ok = runC2SUnknownRuntimeSelfTests() && ok;
         ok = runC2SFriendPassRuntimeSelfTests() && ok;
+        ok = runC2STranslateRuntimeSelfTests() && ok;
         ok = runC2SItemDumpMovePacketSelfTests() && ok;
         ok = runC2SItemLookupPacketSelfTests() && ok;
         ok = runC2SPlayerTradePacketSelfTests() && ok;

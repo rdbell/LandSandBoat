@@ -21,7 +21,25 @@
 
 #pragma once
 
+#include <string_view>
+
 #include "base.h"
+
+namespace translatehelpers
+{
+
+struct ResponsePlan
+{
+    uint16           itemID;
+    std::string_view translation;
+};
+
+[[nodiscard]] constexpr auto BuildResponsePlan(const bool found, const uint16 itemID, const std::string_view translation) -> ResponsePlan
+{
+    return found ? ResponsePlan{ itemID, translation } : ResponsePlan{};
+}
+
+} // namespace translatehelpers
 
 enum class GP_CLI_COMMAND_TRANSLATE_INDEX : uint8_t
 {

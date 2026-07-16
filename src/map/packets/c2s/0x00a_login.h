@@ -22,9 +22,32 @@
 #pragma once
 
 #include <array>
-namespace loginhelpers { struct ZonePresentPlan { std::array<uint8, 16> equipSlots{}; uint8 equipCount = 0; }; constexpr auto MakeZonePresentPlan(const std::array<bool,16>& present) -> ZonePresentPlan { ZonePresentPlan p; for(uint8 i=0;i<16;i++) if(present[i]) p.equipSlots[p.equipCount++]=i; return p; } }
 
 #include "base.h"
+
+namespace loginhelpers
+{
+
+struct ZonePresentPlan
+{
+    std::array<uint8, 16> equipSlots{};
+    uint8                 equipCount = 0;
+};
+
+[[nodiscard]] constexpr auto MakeZonePresentPlan(const std::array<bool, 16>& present) -> ZonePresentPlan
+{
+    ZonePresentPlan plan;
+    for (uint8 i = 0; i < 16; ++i)
+    {
+        if (present[i])
+        {
+            plan.equipSlots[plan.equipCount++] = i;
+        }
+    }
+    return plan;
+}
+
+} // namespace loginhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x000A
 // This packet is sent by the client when requesting to log into a zone.
