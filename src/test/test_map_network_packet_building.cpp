@@ -330,6 +330,35 @@ auto testEmptyPayloadCompression(NetworkingFixture& fixture) -> bool
     return ok;
 }
 
+auto testIncomingDecoder(NetworkingFixture& fixture) -> bool
+{
+    auto packet = NetworkBuffer{};
+    MapNetworking::preparePacketHeader(packet.data(), 1, 2, 3);
+    constexpr auto payload = std::array<std::uint8_t, 8>{ 'i', 'n', 'b', 'o', 'u', 'n', 'd', '!' };
+    std::memcpy(packet.data() + HeaderSize, payload.data(), payload.size());
+    const auto compressedSize = fixture.networking.compressPacket(packet.data(), HeaderSize + payload.size());
+    if (!compressedSize)
+    {
+        return false;
+    }
+    auto session = MapSession{};
+    initTestCipher(session.blowfish);
+    auto wireSize = HeaderSize + payload.size();
+    fixture.networking.finalizePacket(packet.data(), &wireSize, *compressedSize, &session, MapNetworking::UsePreviousKey::No);
+
+    auto decoded = NetworkBuffer{};
+    size_t decodedSize{};
+    bool ok = MapNetworking::decodeIncomingPacket({ packet.data(), wireSize }, decoded, decodedSize, &session.blowfish);
+    ok = expectEqual(decodedSize, HeaderSize + payload.size(), "incoming decoded size") && ok;
+    ok = expectBytes(decoded.data() + HeaderSize, payload, "incoming decoded payload") && ok;
+
+    auto malformed = packet;
+    malformed[wireSize - 1] ^= 1;
+    ok = !MapNetworking::decodeIncomingPacket({ malformed.data(), wireSize }, decoded, decodedSize, &session.blowfish) && ok;
+    ok = !MapNetworking::decodeIncomingPacket({ packet.data(), HeaderSize + 20 }, decoded, decodedSize, &session.blowfish) && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runMapNetworkPacketBuildingSelfTests() -> bool
@@ -343,5 +372,6 @@ auto runMapNetworkPacketBuildingSelfTests() -> bool
     auto fixture = NetworkingFixture{};
     return testPrepareHeader() &&
            testCompressedAndFinalizedGoldenPacket(fixture) &&
-           testEmptyPayloadCompression(fixture);
+           testEmptyPayloadCompression(fixture) &&
+           testIncomingDecoder(fixture);
 }

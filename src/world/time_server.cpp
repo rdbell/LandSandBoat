@@ -29,6 +29,72 @@
 #include "daily_tally.h"
 #include "world_engine.h"
 
+namespace
+{
+
+class WorldTimeServerTickEffects final : public TimeServerTickEffects
+{
+public:
+    explicit WorldTimeServerTickEffects(const WorldEngine* worldServer)
+    : worldServer_(worldServer)
+    {
+    }
+
+    void updateWeeklyConquest() override
+    {
+        worldServer_->conquestSystem_->updateWeekConquest();
+    }
+
+    void updateHourlyConquest() override
+    {
+        worldServer_->conquestSystem_->updateHourlyConquest();
+    }
+
+    void updateDailyTally() override
+    {
+        dailytally::UpdateDailyTallyPoints();
+    }
+
+    void updateVanaHourlyConquest() override
+    {
+        worldServer_->conquestSystem_->updateVanaHourlyConquest();
+    }
+
+private:
+    const WorldEngine* worldServer_;
+};
+
+} // namespace
+
+void dispatchTimeServerTickEffects(const TimeServerTickInput& input, TimeServerTickEffects& effects)
+{
+    if (input.earthHourlyTick)
+    {
+        if (input.jstHour == 0)
+        {
+            if (input.jstWeekday == 1)
+            {
+                effects.updateWeeklyConquest();
+            }
+            else
+            {
+                effects.updateHourlyConquest();
+            }
+
+            effects.updateDailyTally();
+        }
+        else
+        {
+            effects.updateHourlyConquest();
+        }
+    }
+
+    if (input.vanaHourlyTick)
+    {
+        effects.updateVanaHourlyConquest();
+    }
+}
+
 auto time_server(const WorldEngine* worldServer) -> Task<void>
 {
     TracyZoneScoped;
@@ -50,7 +116,8 @@ auto time_server(const WorldEngine* worldServer) -> Task<void>
     static auto nextHourlyTick = std::chrono::ceil<std::chrono::hours>(jstTime);
 
     // Hourly ticks
-    if (jstTime >= nextHourlyTick)
+    const auto earthHourlyTick = jstTime >= nextHourlyTick;
+    if (earthHourlyTick)
     {
         ShowDebugFmt("1-hour tick... (current tick: {})", tickNum);
         if (jstHour == 0)
@@ -61,19 +128,7 @@ auto time_server(const WorldEngine* worldServer) -> Task<void>
             {
                 // Weekly tick (Monday JST)
                 ShowDebugFmt("Weekly tick... (current tick: {})", tickNum);
-                worldServer->conquestSystem_->updateWeekConquest();
             }
-            else
-            {
-                // This should happen every midnight except Monday.
-                worldServer->conquestSystem_->updateHourlyConquest();
-            }
-            dailytally::UpdateDailyTallyPoints();
-        }
-        else
-        {
-            // This should happen hourly, except midnight.
-            worldServer->conquestSystem_->updateHourlyConquest();
         }
         // 1-hour tick (including every midnight)
 
@@ -105,11 +160,9 @@ auto time_server(const WorldEngine* worldServer) -> Task<void>
     static auto nextVHourlyUpdate = std::chrono::ceil<xi::vanadiel_clock::hours>(vanaTime);
     static auto prevTotd          = vanaTotd;
 
-    if (vanaTime >= nextVHourlyUpdate)
+    const auto vanaHourlyTick = vanaTime >= nextVHourlyUpdate;
+    if (vanaHourlyTick)
     {
-        // Vana'diel Hour
-        worldServer->conquestSystem_->updateVanaHourlyConquest();
-
         if (vanaHour == 0)
         {
             // Vana'diel Day
@@ -125,6 +178,15 @@ auto time_server(const WorldEngine* worldServer) -> Task<void>
 
         nextVHourlyUpdate = std::chrono::ceil<xi::vanadiel_clock::hours>(vanaTime);
     }
+
+    WorldTimeServerTickEffects effects(worldServer);
+    dispatchTimeServerTickEffects({
+        .earthHourlyTick = earthHourlyTick,
+        .jstHour         = jstHour,
+        .jstWeekday      = jstWeekday,
+        .vanaHourlyTick  = vanaHourlyTick,
+    },
+        effects);
 
     co_return;
 }

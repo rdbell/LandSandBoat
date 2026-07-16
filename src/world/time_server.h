@@ -25,4 +25,32 @@
 
 class WorldEngine;
 
+// TimeServerTickEffects receives the side effects selected by one world time
+// server poll. Keeping this boundary independent of WorldEngine makes the
+// time-server's dispatch rules directly testable.
+class TimeServerTickEffects
+{
+public:
+    virtual ~TimeServerTickEffects() = default;
+
+    virtual void updateWeeklyConquest()     = 0;
+    virtual void updateHourlyConquest()     = 0;
+    virtual void updateDailyTally()         = 0;
+    virtual void updateVanaHourlyConquest() = 0;
+};
+
+// TimeServerTickInput contains the already-classified hourly boundaries and
+// calendar fields used by the world time server.
+struct TimeServerTickInput
+{
+    bool earthHourlyTick = false;
+    int  jstHour         = 0;
+    int  jstWeekday      = 0;
+    bool vanaHourlyTick  = false;
+};
+
+// dispatchTimeServerTickEffects maps classified earth and Vana hourly ticks to
+// their observable effects. Earth effects always dispatch before Vana effects.
+void dispatchTimeServerTickEffects(const TimeServerTickInput& input, TimeServerTickEffects& effects);
+
 auto time_server(const WorldEngine* worldServer) -> Task<void>;

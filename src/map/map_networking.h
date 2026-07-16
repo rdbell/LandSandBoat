@@ -57,6 +57,11 @@ public:
     // Decipher packet
     int32 map_decipher_packet(uint8* buff, size_t buffsize, MapSession* PSession, blowfish_t* pbfkey);
 
+    // Stateless incoming envelope decoder used by recv_parse and protocol
+    // self-tests. It owns no session/socket policy: callers provide the key
+    // and receive the header plus decompressed payload in output.
+    static bool decodeIncomingPacket(ByteSpan packet, NetworkBuffer& output, size_t& outputSize, blowfish_t* pbfkey);
+
     // main function to parse recv packets
     int32 recv_parse(uint8* buff, size_t* buffsize, MapSession* PSession, const IPP& ipp);
 

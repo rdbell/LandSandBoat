@@ -1173,6 +1173,8 @@ set(SOURCES
     test_world_character_cache.cpp
     test_world_daily_tally.h
     test_world_daily_tally.cpp
+    test_world_time_server_effects.h
+    test_world_time_server_effects.cpp
     test_world_gmcall_response_1240.h
     test_world_gmcall_response_1240.cpp
     test_world_gmcall_request_1244.h

@@ -193,6 +193,44 @@ int32 MapNetworking::map_decipher_packet(uint8* buff, size_t buffsize, MapSessio
     return -1;
 }
 
+bool MapNetworking::decodeIncomingPacket(ByteSpan packet, NetworkBuffer& output, size_t& outputSize, blowfish_t* pbfkey)
+{
+    outputSize = 0;
+    if (pbfkey == nullptr || packet.size() < FFXI_HEADER_SIZE + 1 + sizeof(uint32) + 16 || packet.size() > output.size())
+    {
+        return false;
+    }
+
+    std::memcpy(output.data(), packet.data(), packet.size());
+    const auto dataSize      = packet.size() - FFXI_HEADER_SIZE;
+    const auto encryptedSize = dataSize / 8 * 8;
+    blowfish_decipher_blocks(reinterpret_cast<uint32*>(output.data() + FFXI_HEADER_SIZE), encryptedSize / 8, pbfkey->P, pbfkey->S[0]);
+
+    const auto compressedSize = packet.size() - FFXI_HEADER_SIZE - 16;
+    auto*      compressed     = output.data() + FFXI_HEADER_SIZE;
+    if (checksum(compressed, static_cast<uint32>(compressedSize), reinterpret_cast<char*>(output.data() + packet.size() - 16)) != 0)
+    {
+        return false;
+    }
+
+    const auto bitSize = ref<uint32>(compressed, compressedSize - sizeof(uint32));
+    const auto byteSize = (static_cast<uint64>(bitSize) + 7) / 8;
+    if (compressedSize < 5 || compressed[0] != 1 || bitSize < 8 || byteSize != compressedSize - sizeof(uint32))
+    {
+        return false;
+    }
+
+    NetworkBuffer scratch{};
+    const auto decodedSize = zlib_decompress(reinterpret_cast<int8*>(compressed), bitSize - 8, reinterpret_cast<int8*>(scratch.data()), scratch.size());
+    if (decodedSize < 0)
+    {
+        return false;
+    }
+    std::memcpy(output.data() + FFXI_HEADER_SIZE, scratch.data(), decodedSize);
+    outputSize = FFXI_HEADER_SIZE + static_cast<size_t>(decodedSize);
+    return true;
+}
+
 int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSession, const IPP& ipp)
 {
     TracyZoneScoped;
