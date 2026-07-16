@@ -65,6 +65,25 @@ auto detail::RangedInterruptAction(const uint32 actorId) -> action_t
     };
 }
 
+auto detail::MobSkillNoTargetInRangeAction(const uint32 actorId) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::MagicFinish,
+        .targets    = {
+            {
+                .actorId = actorId,
+                .results = {
+                    {
+                        .animation = ActionAnimation::SkillInterrupt,
+                        .messageID = MsgBasic::NoTargetInAreaOfEffect,
+                    },
+                },
+            },
+        },
+    };
+}
+
 void AvatarOutOfRange(CBattleEntity* PAvatar, const CPetSkill* PSkill, const CBattleEntity* PTarget)
 {
     // Avatars using BP against an enemy out of range use a specific set of BATTLE2 packets:
@@ -193,21 +212,7 @@ void RangedInterrupt(CBattleEntity* PEntity)
 
 void MobSkillNoTargetInRange(CBattleEntity* PEntity)
 {
-    auto magicFinishAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .targets    = {
-            {
-                .actorId = PEntity->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .messageID = MsgBasic::NoTargetInAreaOfEffect,
-                    },
-                },
-            },
-        },
-    };
+    auto magicFinishAction = detail::MobSkillNoTargetInRangeAction(PEntity->id);
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicFinishAction));
 }

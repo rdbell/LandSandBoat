@@ -42,6 +42,11 @@ auto AbilityInterruptAction(uint32 actorId) -> action_t;
 // is interrupted. Packet delivery remains owned by RangedInterrupt.
 auto RangedInterruptAction(uint32 actorId) -> action_t;
 
+// MobSkillNoTargetInRangeAction builds the BATTLE2 action emitted when a mob
+// skill has no targets in range. Packet delivery remains owned by
+// MobSkillNoTargetInRange.
+auto MobSkillNoTargetInRangeAction(uint32 actorId) -> action_t;
+
 } // namespace detail
 
 void AbilityInterrupt(CBattleEntity* PEntity);
