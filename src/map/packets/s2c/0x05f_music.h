@@ -37,3 +37,19 @@ public:
 
     GP_SERV_COMMAND_MUSIC(MusicSlot slotId, uint16 trackId);
 };
+
+namespace musichelpers
+{
+
+struct Facts
+{
+    MusicSlot slot;
+    uint16    track;
+};
+
+[[nodiscard]] constexpr auto PlanFor(const Facts facts) -> GP_SERV_COMMAND_MUSIC::PacketData
+{
+    return { .Slot = facts.slot, .MusicNum = facts.track };
+}
+
+} // namespace musichelpers

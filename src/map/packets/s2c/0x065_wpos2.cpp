@@ -20,6 +20,7 @@
 */
 
 #include "0x065_wpos2.h"
+#include "wpos_runtime.h"
 
 #include "entities/base_entity.h"
 #include "entities/char_entity.h"
@@ -28,30 +29,13 @@ GP_SERV_COMMAND_WPOS2::GP_SERV_COMMAND_WPOS2(CBaseEntity* PEntity, const positio
 {
     auto& packet = this->data();
 
-    // Doing this here prevents conflicts when the client receives the packet.
-    auto* PChar = dynamic_cast<CCharEntity*>(PEntity);
-    if (mode == POSMODE::NORMAL ||
-        mode == POSMODE::EVENT ||
-        mode == POSMODE::POP ||
-        mode == POSMODE::RESET ||
-        mode == POSMODE::MATERIALIZE)
+    // Applying the transition first prevents conflicts when the client receives the packet.
+    auto*      PChar = dynamic_cast<CCharEntity*>(PEntity);
+    const auto plan  = wposhelpers::PlanFor({ .current = PEntity->loc.p, .character = PChar != nullptr }, position, mode);
+    PEntity->loc.p   = plan.current;
+    if (PChar && (mode == POSMODE::RESET || mode == POSMODE::LOCK || mode == POSMODE::UNLOCK))
     {
-        PEntity->loc.p.x        = position.x;
-        PEntity->loc.p.y        = position.y;
-        PEntity->loc.p.z        = position.z;
-        PEntity->loc.p.rotation = position.rotation;
-        if (PChar && mode == POSMODE::RESET)
-        {
-            PChar->setLocked(false);
-        }
-    }
-    else if (mode == POSMODE::ROTATE)
-    {
-        PEntity->loc.p.rotation = position.rotation;
-    }
-    else if (PChar && (mode == POSMODE::LOCK || mode == POSMODE::UNLOCK))
-    {
-        PChar->setLocked(mode == POSMODE::LOCK);
+        PChar->setLocked(plan.locked);
     }
 
     packet.x        = PEntity->loc.p.x;

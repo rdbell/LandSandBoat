@@ -846,6 +846,7 @@ auto runS2CWeatherRuntimeSelfTests() -> bool;
 auto runS2CShopPacketSelfTests() -> bool;
 auto runS2CReqSubmapNumPacketSelfTests() -> bool;
 auto runS2CMusicPacketSelfTests() -> bool;
+auto runS2CMusicRuntimeSelfTests() -> bool;
 auto runS2CMusicVolumePacketSelfTests() -> bool;
 auto runS2CMotionMesPacketSelfTests() -> bool;
 auto runS2CMotionMesRuntimeSelfTests() -> bool;
@@ -924,6 +925,7 @@ auto runS2CTrackingStatePacketSelfTests() -> bool;
 auto runS2CTrackingPosPacketSelfTests() -> bool;
 auto runS2CTranslatePacketSelfTests() -> bool;
 auto runS2CWPosPacketSelfTests() -> bool;
+auto runS2CWPosRuntimeSelfTests() -> bool;
 
 namespace
 {
@@ -1747,6 +1749,7 @@ namespace
         ok = runS2CShopPacketSelfTests() && ok;
         ok = runS2CReqSubmapNumPacketSelfTests() && ok;
         ok = runS2CMusicPacketSelfTests() && ok;
+        ok = runS2CMusicRuntimeSelfTests() && ok;
         ok = runS2CMusicVolumePacketSelfTests() && ok;
         ok = runS2CMotionMesPacketSelfTests() && ok;
         ok = runS2CMotionMesRuntimeSelfTests() && ok;
@@ -1825,6 +1828,7 @@ namespace
         ok = runS2CTrackingPosPacketSelfTests() && ok;
         ok = runS2CTranslatePacketSelfTests() && ok;
         ok = runS2CWPosPacketSelfTests() && ok;
+        ok = runS2CWPosRuntimeSelfTests() && ok;
 
         return ok;
     }

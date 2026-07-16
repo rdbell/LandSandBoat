@@ -1682,6 +1682,8 @@ set(SOURCES
     test_s2c_logout_packet.cpp
     test_s2c_music_packet.h
     test_s2c_music_packet.cpp
+    test_s2c_music_runtime.h
+    test_s2c_music_runtime.cpp
     test_s2c_musicvolume_packet.h
     test_s2c_musicvolume_packet.cpp
     test_s2c_motionmes_packet.h
@@ -1766,6 +1768,8 @@ set(SOURCES
     test_s2c_weather_runtime.cpp
     test_s2c_wpos_packets.h
     test_s2c_wpos_packets.cpp
+    test_s2c_wpos_runtime.h
+    test_s2c_wpos_runtime.cpp
     test_search_auction_packets.h
     test_search_auction_packets.cpp
     test_search_packet_buffer.h

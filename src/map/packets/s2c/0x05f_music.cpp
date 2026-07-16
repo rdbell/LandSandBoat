@@ -23,8 +23,5 @@
 
 GP_SERV_COMMAND_MUSIC::GP_SERV_COMMAND_MUSIC(const MusicSlot slotId, const uint16 trackId)
 {
-    auto& packet = this->data();
-
-    packet.Slot     = slotId;
-    packet.MusicNum = trackId;
+    this->data() = musichelpers::PlanFor({ .slot = slotId, .track = trackId });
 }
