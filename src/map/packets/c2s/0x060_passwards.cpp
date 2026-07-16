@@ -21,7 +21,8 @@
 
 #include "0x060_passwards.h"
 
-#include "common/logging.h"
+#include "passwards_runtime.h"
+
 #include "entities/char_entity.h"
 #include "lua/luautils.h"
 #include "packets/s2c/0x052_eventucoff.h"
@@ -35,9 +36,11 @@ auto GP_CLI_COMMAND_PASSWARDS::validate(MapSession* PSession, const CCharEntity*
 void GP_CLI_COMMAND_PASSWARDS::process(MapSession* PSession, CCharEntity* PChar) const
 {
     // !cs 199 in zone 245
-    const auto updateString = asStringFromUntrustedSource(this->String);
-    luautils::OnEventUpdate(PChar, updateString);
-
-    PChar->pushPacket<GP_SERV_COMMAND_EVENTUCOFF>(PChar, GP_SERV_COMMAND_EVENTUCOFF_MODE::EventRecvPending);
-    PChar->pushPacket<GP_SERV_COMMAND_EVENTUCOFF>(PChar, GP_SERV_COMMAND_EVENTUCOFF_MODE::CancelInput);
+    passwards::Run(this->String,
+                    {
+                        .onEventUpdate = [PChar](const std::string& updateString) { luautils::OnEventUpdate(PChar, updateString); },
+                        .sendEventUCOff = [PChar](const GP_SERV_COMMAND_EVENTUCOFF_MODE mode) {
+                            PChar->pushPacket<GP_SERV_COMMAND_EVENTUCOFF>(PChar, mode);
+                        },
+                    });
 }

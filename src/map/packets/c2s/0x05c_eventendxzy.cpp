@@ -42,44 +42,42 @@ void GP_CLI_COMMAND_EVENTENDXZY::process(MapSession* PSession, CCharEntity* PCha
     const auto result  = this->EndPara;
     const auto eventId = this->EventPara;
 
-    bool updatePosition = false;
-
     // TODO: Currently the return value for onEventUpdate in Interaction Framework is not received.  Remove
     // the localVar check when this is resolved.
 
-    const int32  updateResult     = luautils::OnEventUpdate(PChar, eventId, result);
-    const uint32 noPositionUpdate = PChar->GetLocalVar("noPosUpdate");
-    updatePosition                = noPositionUpdate == 0 ? updateResult == 1 : false;
+    const int32 updateResult = luautils::OnEventUpdate(PChar, eventId, result);
+    auto* const PPet         = PChar->PPet;
+    const auto  transition   = eventendxzyhelpers::MakeTransition(
+        updateResult,
+        PChar->GetLocalVar("noPosUpdate"),
+        PChar->loc.p,
+        this->x,
+        this->y,
+        this->z,
+        this->dir,
+        PPet != nullptr,
+        PPet != nullptr && PPet->isDead(),
+        PPet != nullptr ? PPet->id : 0);
 
-    PChar->SetLocalVar("noPosUpdate", 0);
-
-    position_t newPos = PChar->loc.p;
-
-    if (updatePosition)
+    if (transition.resetNoPositionUpdate)
     {
-        newPos = {
-            this->x,
-            this->y,
-            this->z,
-            0,
-            static_cast<uint8_t>(this->dir),
-        };
-
-        PChar->pushPacket<GP_SERV_COMMAND_WPOS2>(PChar, newPos, POSMODE::EVENT);
-        PChar->pushPacket<GP_SERV_COMMAND_WPOS>(PChar, newPos, POSMODE::NORMAL);
-    }
-    else
-    {
-        PChar->pushPacket<GP_SERV_COMMAND_WPOS2>(PChar, newPos, POSMODE::CLEAR);
+        PChar->SetLocalVar("noPosUpdate", 0);
     }
 
-    auto* PPet = PChar->PPet;
-
-    if (PPet && !PPet->isDead())
+    PChar->pushPacket<GP_SERV_COMMAND_WPOS2>(PChar, transition.newPosition, static_cast<POSMODE>(transition.wpos2Mode));
+    if (transition.emitWPos)
     {
-        PPet->loc.p = newPos;
+        PChar->pushPacket<GP_SERV_COMMAND_WPOS>(PChar, transition.newPosition, static_cast<POSMODE>(transition.wposMode));
+    }
 
-        PPet->PAI->Disengage();
+    if (transition.repositionPet && PPet)
+    {
+        PPet->loc.p = transition.newPosition;
+
+        if (transition.disengagePet)
+        {
+            PPet->PAI->Disengage();
+        }
 
         // clear all enmity towards a charmed mob when it is teleported
         // use two loops to avoid modifying the container while iterating over it
@@ -94,11 +92,17 @@ void GP_CLI_COMMAND_EVENTENDXZY::process(MapSession* PSession, CCharEntity* PCha
             }
         }
         // then remove the formerly charmed mob from those mobs enmity containers
-        for (const auto* mobToPacify : mobsToPacify)
+        if (const auto petId = transition.clearEnmityForId; petId)
         {
-            mobToPacify->PEnmityContainer->Clear(PPet->id);
+            for (const auto* mobToPacify : mobsToPacify)
+            {
+                mobToPacify->PEnmityContainer->Clear(*petId);
+            }
         }
     }
 
-    PChar->pushPacket<GP_SERV_COMMAND_EVENTUCOFF>(PChar, GP_SERV_COMMAND_EVENTUCOFF_MODE::EventRecvPending);
+    if (transition.emitEventRecvPending)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_EVENTUCOFF>(PChar, GP_SERV_COMMAND_EVENTUCOFF_MODE::EventRecvPending);
+    }
 }

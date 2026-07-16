@@ -40,6 +40,44 @@ const std::set validBells = {
 
 } // namespace
 
+auto motionhelpers::MakeDispatchPlan(const bool inPrison, const uint16 styleMainItem,
+                                     const uint16 equippedMainItem, const uint8 number,
+                                     const uint16 param, const uint32 unlockedJobs) -> DispatchPlan
+{
+    if (inPrison)
+    {
+        return {
+            .action              = DispatchAction::RejectInPrison,
+            .sendCannotUseInArea = true,
+        };
+    }
+
+    if (number == static_cast<uint8>(Emote::Bell))
+    {
+        const auto mainWeapon = styleMainItem != 0 ? styleMainItem : equippedMainItem;
+        if (!validBells.contains(static_cast<ITEMID>(mainWeapon)) || param < 0x06 || param > 0x1E)
+        {
+            return {};
+        }
+    }
+    else if (number == static_cast<uint8>(Emote::Job) && param != 0)
+    {
+        constexpr uint16 firstJobEmoteParam = 0x1E;
+        constexpr uint16 jobEmoteCount      = 32;
+        if (param < firstJobEmoteParam || param >= firstJobEmoteParam + jobEmoteCount ||
+            !(unlockedJobs & (uint32{ 1 } << (param - firstJobEmoteParam))))
+        {
+            return {};
+        }
+    }
+
+    return {
+        .action                = DispatchAction::Dispatch,
+        .broadcastMotionPacket = true,
+        .invokePlayerEmoteLua  = true,
+    };
+}
+
 auto GP_CLI_COMMAND_MOTION::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -50,43 +88,19 @@ auto GP_CLI_COMMAND_MOTION::validate(MapSession* PSession, const CCharEntity* PC
 
 void GP_CLI_COMMAND_MOTION::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    if (jailutils::InPrison(PChar))
+    const auto styleMainItem = PChar->styleItems[SLOT_MAIN];
+    const auto equippedMainItem = PChar->getEquip(SLOT_MAIN) != nullptr
+                                      ? PChar->getEquip(SLOT_MAIN)->getID()
+                                      : 0;
+    const auto plan = motionhelpers::MakeDispatchPlan(
+        jailutils::InPrison(PChar), styleMainItem, equippedMainItem, this->Number,
+        this->Param, PChar->jobs.unlocked);
+
+    if (plan.sendCannotUseInArea)
     {
         PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::CannotUseInArea);
-        return;
     }
-
-    // Attempting to use bell emote without a bell.
-    if (static_cast<Emote>(this->Number) == Emote::Bell)
-    {
-        // This is the actual observed behavior. Even with a different weapon type equipped,
-        // having a bell in the lockstyle is sufficient. On the other hand, if any other
-        // weapon is lockstyle'd over an equipped bell, the emote will be rejected.
-        // For what it's worth, geomancer bells don't count as a bell for this emote.
-
-        // Look for a bell in the style.
-        auto mainWeapon = PChar->styleItems[SLOT_MAIN];
-        if (mainWeapon == 0)
-        {
-            // Nothing equipped in the style, look at what's actually equipped.
-            mainWeapon = PChar->getEquip(SLOT_MAIN) != nullptr
-                             ? PChar->getEquip(SLOT_MAIN)->getID()
-                             : 0;
-        }
-
-        if (!validBells.contains(static_cast<ITEMID>(mainWeapon)))
-        {
-            return;
-        }
-
-        if (this->Param < 0x06 || this->Param > 0x1e)
-        {
-            // Invalid note.
-            return;
-        }
-    }
-    // Attempting to use locked job emote.
-    else if (static_cast<Emote>(this->Number) == Emote::Job && this->Param && !(PChar->jobs.unlocked & (1 << (this->Param - 0x1E))))
+    if (plan.action != motionhelpers::DispatchAction::Dispatch)
     {
         return;
     }

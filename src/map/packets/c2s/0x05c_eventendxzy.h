@@ -23,6 +23,79 @@
 
 #include "base.h"
 
+#include "common/mmo.h"
+
+#include <optional>
+
+// EVENTENDXZY's entity-independent decisions. The packet host invokes the
+// Lua callback before creating this plan, then sends the selected packets and
+// applies the pet work to the live entities.
+namespace eventendxzyhelpers
+{
+
+enum class PositionMode : uint8_t
+{
+    Normal = 0x00,
+    Event  = 0x01,
+    Clear  = 0x02,
+};
+
+struct Transition
+{
+    position_t newPosition{};
+    bool       updatePosition        = false;
+    bool       resetNoPositionUpdate = true;
+
+    bool         emitWPos2 = true;
+    PositionMode wpos2Mode = PositionMode::Clear;
+    bool         emitWPos  = false;
+    PositionMode wposMode  = PositionMode::Normal;
+
+    // These effects are selected only for a present, living pet. The host
+    // moves and disengages that pet, then clears this ID from every recorded
+    // mob enmity container without mutating one while iterating it.
+    bool                    repositionPet = false;
+    bool                    disengagePet  = false;
+    std::optional<uint32_t> clearEnmityForId;
+
+    bool emitEventRecvPending = true;
+};
+
+[[nodiscard]] inline auto MakeTransition(
+    const int32      onEventUpdateResult,
+    const uint32     noPositionUpdate,
+    const position_t currentPosition,
+    const float      x,
+    const float      y,
+    const float      z,
+    const int8       direction,
+    const bool       hasPet,
+    const bool       petIsDead,
+    const uint32     petId) -> Transition
+{
+    auto transition           = Transition{};
+    transition.newPosition    = currentPosition;
+    transition.updatePosition = noPositionUpdate == 0 && onEventUpdateResult == 1;
+
+    if (transition.updatePosition)
+    {
+        transition.newPosition = { x, y, z, 0, static_cast<uint8>(direction) };
+        transition.wpos2Mode   = PositionMode::Event;
+        transition.emitWPos    = true;
+    }
+
+    if (hasPet && !petIsDead)
+    {
+        transition.repositionPet    = true;
+        transition.disengagePet     = true;
+        transition.clearEnmityForId = petId;
+    }
+
+    return transition;
+}
+
+} // namespace eventendxzyhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x005C
 // This packet is sent by the client when updating an event that involves the clients position. (ie. Requesting to warp between telepoints.)
 GP_CLI_PACKET(GP_CLI_COMMAND_EVENTENDXZY,

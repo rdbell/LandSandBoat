@@ -6,6 +6,8 @@ set(PACKET_C2S_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/validation.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tracking_transitions.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tracking_transitions.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/passwards_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/passwards_runtime.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x00a_login.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/0x00a_login.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x00c_gameok.cpp

@@ -94,8 +94,12 @@ set(SOURCES
     test_c2s_equipment_packets.cpp
     test_c2s_event_update_packets.h
     test_c2s_event_update_packets.cpp
+    test_c2s_passwards_runtime.h
+    test_c2s_passwards_runtime.cpp
     test_c2s_eventend_transition.h
     test_c2s_eventend_transition.cpp
+    test_c2s_eventendxzy_transition.h
+    test_c2s_eventendxzy_transition.cpp
     test_c2s_extended_job_packet.h
     test_c2s_extended_job_packet.cpp
     test_c2s_fishing_packets.h
@@ -132,6 +136,8 @@ set(SOURCES
     test_c2s_logout_stance_packets.cpp
     test_c2s_motion_maprect_packets.h
     test_c2s_motion_maprect_packets.cpp
+    test_c2s_motion_transition.h
+    test_c2s_motion_transition.cpp
     test_c2s_myroom_furniture_packets.h
     test_c2s_myroom_furniture_packets.cpp
     test_c2s_myroom_job_packet.h

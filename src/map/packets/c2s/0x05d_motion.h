@@ -21,7 +21,38 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "base.h"
+
+namespace motionhelpers
+{
+
+enum class DispatchAction : uint8
+{
+    Reject,
+    RejectInPrison,
+    Dispatch,
+};
+
+// DispatchPlan separates MOTION's packet-independent eligibility decision
+// from character, zone, packet, and Lua host effects.
+struct DispatchPlan
+{
+    DispatchAction action                = DispatchAction::Reject;
+    bool           sendCannotUseInArea   = false;
+    bool           broadcastMotionPacket = false;
+    bool           invokePlayerEmoteLua  = false;
+};
+
+// MakeDispatchPlan mirrors GP_CLI_COMMAND_MOTION::process's eligibility
+// rules. For a Bell emote, a nonzero lockstyle main item overrides the
+// equipped main item. Job-emote bit shifts are evaluated only for the valid
+// packet domain Param 0x1E..0x3D; zero remains accepted as upstream does.
+auto MakeDispatchPlan(bool inPrison, uint16 styleMainItem, uint16 equippedMainItem,
+                      uint8 number, uint16 param, uint32 unlockedJobs) -> DispatchPlan;
+
+} // namespace motionhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x005D
 // This packet is sent by the client when using an emote.
