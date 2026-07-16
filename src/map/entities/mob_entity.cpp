@@ -26,6 +26,7 @@
 #include "mob_roam_home_policy.h"
 #include "mob_force_link_policy.h"
 #include "mob_widescan_policy.h"
+#include "mob_home_distance_policy.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -435,7 +436,7 @@ bool CMobEntity::CanDeaggro() const
 
 bool CMobEntity::IsFarFromHome()
 {
-    return distance(loc.p, m_SpawnPoint) > m_maxRoamDistance;
+    return mobhomedistancehelpers::IsFarFromHome(distance(loc.p, m_SpawnPoint), m_maxRoamDistance);
 }
 
 bool CMobEntity::CanBeNeutral() const

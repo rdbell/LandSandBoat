@@ -1249,6 +1249,8 @@ set(SOURCES
     test_mob_force_link_policy_2665.cpp
     test_mob_widescan_policy_2668.h
     test_mob_widescan_policy_2668.cpp
+    test_mob_home_distance_policy_2671.h
+    test_mob_home_distance_policy_2671.cpp
     test_pet_mod_tandem_1624.h
     test_pet_mod_tandem_1624.cpp
     test_pet_spawn_1625.h
@@ -1382,6 +1384,8 @@ set(SOURCES
     test_login_version_lock.cpp
     test_login_world_list_packet.h
     test_login_world_list_packet.cpp
+    test_data_session_hash_2672.h
+    test_data_session_hash_2672.cpp
     test_los_cache.h
     test_los_cache.cpp
     test_linkshell.h

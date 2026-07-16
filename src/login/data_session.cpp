@@ -23,6 +23,7 @@
 
 #include "data_a1.h"
 #include "data_a2.h"
+#include "data_session_hash.h"
 #include "session_cleanup.h"
 
 #include "common/database.h"
@@ -57,23 +58,20 @@ void data_session::addCharIntoCharInfo(const lpkt_chr_info_sub2& charInfo)
 
 void data_session::read_func()
 {
-    auto sessionHash = loginHelpers::getHashFromPacket(ipAddress, buffer_.data());
-    if (sessionHash == "")
+    const auto sessionHash = loginHelpers::ResolveDataSessionHash(
+        loginHelpers::getHashFromPacket(ipAddress, buffer_.data()),
+        this->sessionHash);
+    if (!sessionHash)
     {
-        // Attempt to use stored session hash.
-        sessionHash = this->sessionHash;
-        if (sessionHash == "")
-        {
-            ShowWarning(fmt::format("Session requested without valid sessionHash from {}", ipAddress));
-            return;
-        }
+        ShowWarning(fmt::format("Session requested without valid sessionHash from {}", ipAddress));
+        return;
     }
 
-    session_t& session = loginHelpers::get_authenticated_session(ipAddress, sessionHash);
+    session_t& session = loginHelpers::get_authenticated_session(ipAddress, *sessionHash);
     if (!session.data_session)
     {
         session.data_session              = std::make_shared<data_session>(std::forward<asio::ssl::stream<asio::ip::tcp::socket>>(socket_), dealerChannel_);
-        session.data_session->sessionHash = sessionHash;
+        session.data_session->sessionHash = *sessionHash;
     }
 
     const auto code = ref<uint8>(buffer_.data(), 0);
