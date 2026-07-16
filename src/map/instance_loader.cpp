@@ -39,6 +39,13 @@
 #include "utils/mobutils.h"
 #include "utils/zoneutils.h"
 
+auto instanceloader::SpawnQueryPlanFor(const uint32 realZoneId, const uint32 overlayId) -> SpawnQueryPlan
+{
+    const auto effectiveZoneId = overlayId != 0 ? overlayId : realZoneId;
+    const auto npcMin          = (effectiveZoneId << 12) + 0x1000000;
+    return { realZoneId, effectiveZoneId, npcMin, npcMin + 1024 };
+}
+
 CInstanceLoader::CInstanceLoader(uint32 instanceid, CCharEntity* PRequester)
 {
     TracyZoneScoped;
@@ -66,9 +73,9 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
 {
     TracyZoneScoped;
 
-    const auto realZoneId      = m_PZone->GetID();
-    const auto overlayId       = m_PInstance->overlayId();
-    const auto effectiveZoneId = (overlayId != 0) ? overlayId : static_cast<uint32>(realZoneId);
+    const auto plan            = instanceloader::SpawnQueryPlanFor(m_PZone->GetID(), m_PInstance->overlayId());
+    const auto realZoneId      = plan.realZoneId;
+    const auto effectiveZoneId = plan.effectiveZoneId;
 
     auto rset = db::preparedStmt("SELECT mobname, mobid, pos_rot, pos_x, pos_y, pos_z, "
                                  "respawntime, spawntype, dropid, mob_groups.HP, mob_groups.MP, minLevel, maxLevel, "
@@ -241,8 +248,8 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
             m_PInstance->InsertMOB(PMob);
         }
 
-        const uint32 zoneMin = (effectiveZoneId << 12) + 0x1000000;
-        const uint32 zoneMax = zoneMin + 1024;
+        const uint32 zoneMin = plan.npcMin;
+        const uint32 zoneMax = plan.npcMax;
 
         rset = db::preparedStmt("SELECT npcid, name, pos_rot, pos_x, pos_y, pos_z, "
                                 "flag, speed, speedsub, animation, animationsub, namevis, "

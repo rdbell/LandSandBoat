@@ -429,6 +429,8 @@ set(SOURCES
     test_item_access.cpp
     test_item_container.h
     test_item_container.cpp
+    test_loot_container_2641.h
+    test_loot_container_2641.cpp
     test_item_currency.h
     test_item_currency.cpp
     test_item_equipment.h
@@ -457,6 +459,8 @@ set(SOURCES
     test_item_weapon.cpp
     test_instance_lifecycle.h
     test_instance_lifecycle.cpp
+    test_instance_loader_2639.h
+    test_instance_loader_2639.cpp
     test_instance_utils_runtime.h
     test_instance_utils_runtime.cpp
     test_grades.h

@@ -27,6 +27,21 @@ class CCharEntity;
 class CInstance;
 class CZone;
 
+namespace instanceloader
+{
+
+struct SpawnQueryPlan
+{
+    uint32 realZoneId;
+    uint32 effectiveZoneId;
+    uint32 npcMin;
+    uint32 npcMax;
+};
+
+auto SpawnQueryPlanFor(uint32 realZoneId, uint32 overlayId) -> SpawnQueryPlan;
+
+} // namespace instanceloader
+
 class CInstanceLoader
 {
 public:
