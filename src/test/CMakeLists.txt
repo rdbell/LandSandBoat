@@ -128,6 +128,8 @@ set(SOURCES
     test_c2s_fragments_packet.cpp
     test_c2s_friendpass_unknown_packets.h
     test_c2s_friendpass_unknown_packets.cpp
+    test_c2s_friendpass_runtime.h
+    test_c2s_friendpass_runtime.cpp
     test_c2s_gameok_packet.h
     test_c2s_gameok_packet.cpp
     test_c2s_gameok_runtime.h

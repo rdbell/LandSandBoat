@@ -46,5 +46,6 @@ void GP_CLI_COMMAND_FRIENDPASS::process(MapSession* PSession, CCharEntity* PChar
             break;
     }
 
-    PChar->pushPacket<GP_SERV_COMMAND_FRIENDPASS>(this->Para & 1 ? static_cast<uint32>(xirand::GetRandomNumber(9999999999)) : 0);
+    const auto responsePlan = friendpasshelpers::BuildResponsePlan(this->Para);
+    PChar->pushPacket<GP_SERV_COMMAND_FRIENDPASS>(responsePlan.issuePassCode ? static_cast<uint32>(xirand::GetRandomNumber(9999999999)) : 0);
 }

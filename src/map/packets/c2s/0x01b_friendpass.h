@@ -31,6 +31,21 @@ enum class GP_CLI_COMMAND_FRIENDPASS_PARA : uint16_t
     ConfirmGoldPurchase = 3, // Client has confirmed the purchase of a gold world pass.
 };
 
+namespace friendpasshelpers
+{
+
+struct ResponsePlan
+{
+    bool issuePassCode;
+};
+
+[[nodiscard]] constexpr auto BuildResponsePlan(const uint16 para) -> ResponsePlan
+{
+    return { (para & 1) != 0 };
+}
+
+} // namespace friendpasshelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x001B
 // This packet is sent by the client when it is interacting with, and ultimately purchasing from, a world pass vendor NPC.
 GP_CLI_PACKET(GP_CLI_COMMAND_FRIENDPASS,
