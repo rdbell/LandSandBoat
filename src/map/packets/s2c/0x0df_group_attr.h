@@ -26,6 +26,97 @@
 class CCharEntity;
 class CTrustEntity;
 
+// GROUP_ATTR constructor policy is kept separate from entity lookup so it can
+// be tested without map-server state.
+namespace groupattrhelpers
+{
+
+struct CommonFacts
+{
+    uint32 uniqueNo{};
+    uint32 hp{};
+    uint32 mp{};
+    uint32 tp{};
+    uint16 actIndex{};
+    uint8  hpp{};
+    uint8  mpp{};
+    uint8  mjobNo{};
+    uint8  mjobLv{};
+    uint8  sjobNo{};
+    uint8  sjobLv{};
+};
+
+struct CharacterFacts
+{
+    CommonFacts common{};
+    bool        anonymous{};
+    bool        hasMonstrosity{};
+    uint16      monstrosityNameId{};
+};
+
+struct PacketPlan
+{
+    uint32 uniqueNo{};
+    uint32 hp{};
+    uint32 mp{};
+    uint32 tp{};
+    uint16 actIndex{};
+    uint8  hpp{};
+    uint8  mpp{};
+    uint16 monstrosityNameId{};
+    uint8  mjobNo{};
+    uint8  mjobLv{};
+    uint8  sjobNo{};
+    uint8  sjobLv{};
+};
+
+[[nodiscard]] inline auto CharacterPlanFor(const CharacterFacts& facts) -> PacketPlan
+{
+    auto plan = PacketPlan{
+        .uniqueNo = facts.common.uniqueNo,
+        .hp       = facts.common.hp,
+        .mp       = facts.common.mp,
+        .tp       = facts.common.tp,
+        .actIndex = facts.common.actIndex,
+        .hpp      = facts.common.hpp,
+        .mpp      = facts.common.mpp,
+    };
+
+    if (facts.hasMonstrosity)
+    {
+        plan.monstrosityNameId = facts.monstrosityNameId;
+    }
+
+    if (!facts.anonymous)
+    {
+        plan.mjobNo = facts.common.mjobNo;
+        plan.mjobLv = facts.common.mjobLv;
+        plan.sjobNo = facts.common.sjobNo;
+        plan.sjobLv = facts.common.sjobLv;
+    }
+
+    return plan;
+}
+
+[[nodiscard]] inline auto TrustPlanFor(const CommonFacts& facts) -> PacketPlan
+{
+    return {
+        .uniqueNo = facts.uniqueNo,
+        .hp       = facts.hp,
+        .mp       = facts.mp,
+        .tp       = facts.tp,
+        .actIndex = facts.actIndex,
+        .hpp      = facts.hpp,
+        .mpp      = facts.mpp,
+        .mjobNo   = facts.mjobNo,
+        .mjobLv   = facts.mjobLv,
+        .sjobNo   = facts.sjobNo,
+        .sjobLv   = facts.sjobLv,
+    };
+}
+
+} // namespace groupattrhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x00DF
 // This packet is sent by the server to update a party members information. This packet is similar to 0x00DD, but is used for the local client player and Trust party members.
 class GP_SERV_COMMAND_GROUP_ATTR final : public GP_SERV_PACKET<PacketS2C::GP_SERV_COMMAND_GROUP_ATTR, GP_SERV_COMMAND_GROUP_ATTR>

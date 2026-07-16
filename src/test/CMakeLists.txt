@@ -1470,6 +1470,8 @@ set(SOURCES
     test_s2c_abil_recast_runtime.cpp
     test_s2c_bazaar_packets.h
     test_s2c_bazaar_packets.cpp
+    test_s2c_bazaar_list_runtime.h
+    test_s2c_bazaar_list_runtime.cpp
     test_s2c_battle2_packet.h
     test_s2c_battle2_packet.cpp
     test_s2c_battlefield_packet.h
@@ -1514,6 +1516,8 @@ set(SOURCES
     test_s2c_job_info_runtime.cpp
     test_s2c_job_points_packet.h
     test_s2c_job_points_packet.cpp
+    test_s2c_job_points_runtime.h
+    test_s2c_job_points_runtime.cpp
     test_s2c_jump_packet.h
     test_s2c_jump_packet.cpp
     test_s2c_default_packets.h
@@ -1574,6 +1578,8 @@ set(SOURCES
     test_s2c_grap_list_packet.cpp
     test_s2c_group_attr_packet.h
     test_s2c_group_attr_packet.cpp
+    test_s2c_group_attr_runtime.h
+    test_s2c_group_attr_runtime.cpp
     test_s2c_group_checkid_packet.h
     test_s2c_group_checkid_packet.cpp
     test_s2c_group_comlink_packet.h

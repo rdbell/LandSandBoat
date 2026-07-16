@@ -30,32 +30,36 @@ GP_SERV_COMMAND_BAZAAR_LIST::GP_SERV_COMMAND_BAZAAR_LIST(CItem* PItem, const uin
 {
     auto& packet = this->data();
 
-    packet.ItemIndex = slotId;
+    bazaarlisthelpers::ItemFacts facts{};
 
     if (PItem != nullptr)
     {
-        packet.Price   = PItem->getCharPrice();
-        packet.ItemNum = PItem->getQuantity();
-        packet.TaxRate = tax;
-        packet.ItemNo  = PItem->getID();
+        facts.present  = true;
+        facts.price    = PItem->getCharPrice();
+        facts.quantity = PItem->getQuantity();
+        facts.itemId   = PItem->getID();
 
         if (PItem->isSubType(ITEM_CHARGED) && PItem->isType(ITEM_USABLE))
         {
             const timer::time_point currentTime = timer::now();
             const timer::time_point nextUseTime = static_cast<CItemUsable*>(PItem)->getNextUseTime();
 
-            packet.Attr[0] = 0x01; // ITEM_CHARGED flag
-            packet.Attr[1] = static_cast<CItemUsable*>(PItem)->getCurrentCharges();
-            packet.Attr[3] = (nextUseTime > currentTime ? 0x90 : 0xD0);
-
-            const uint32_t nextUseTimestamp = earth_time::vanadiel_timestamp(timer::to_utc(nextUseTime));
-            std::memcpy(&packet.Attr[4], &nextUseTimestamp, sizeof(uint32_t));
-            const uint32_t delayTimestamp = static_cast<uint32>(timer::count_seconds(static_cast<CItemUsable*>(PItem)->getUseDelay()) + earth_time::vanadiel_timestamp());
-            std::memcpy(&packet.Attr[8], &delayTimestamp, sizeof(uint32_t));
+            facts.chargedUsable    = true;
+            facts.charges          = static_cast<CItemUsable*>(PItem)->getCurrentCharges();
+            facts.nextUseFuture    = nextUseTime > currentTime;
+            facts.nextUseTimestamp = earth_time::vanadiel_timestamp(timer::to_utc(nextUseTime));
+            facts.delayTimestamp   = static_cast<uint32>(timer::count_seconds(static_cast<CItemUsable*>(PItem)->getUseDelay()) + earth_time::vanadiel_timestamp());
         }
         else
         {
-            std::memcpy(packet.Attr, PItem->m_extra, std::min<size_t>(CItem::extra_size, sizeof(packet.Attr)));
+            std::memcpy(facts.extra.data(), PItem->m_extra, std::min<size_t>(CItem::extra_size, facts.extra.size()));
         }
     }
+    const auto plan  = bazaarlisthelpers::PlanFor(slotId, tax, facts);
+    packet.Price     = plan.price;
+    packet.ItemNum   = plan.quantity;
+    packet.TaxRate   = plan.tax;
+    packet.ItemNo    = plan.itemId;
+    packet.ItemIndex = plan.slot;
+    std::memcpy(packet.Attr, plan.attr.data(), sizeof(packet.Attr));
 }

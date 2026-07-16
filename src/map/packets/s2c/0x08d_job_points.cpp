@@ -20,6 +20,7 @@
 */
 
 #include "0x08d_job_points.h"
+#include "job_points_runtime.h"
 
 #include "entities/char_entity.h"
 #include "job_points.h"
@@ -27,62 +28,35 @@
 // Constructor for full job point details
 GP_SERV_COMMAND_JOB_POINTS::GP_SERV_COMMAND_JOB_POINTS(CCharEntity* PChar)
 {
-    auto& packet = this->data();
-
     const JobPoints_t* PJobPoints = PChar->PJobPoints->GetAllJobPoints();
     if (!PJobPoints)
     {
         return;
     }
 
-    uint8 pointIndex = 0;
-
-    // Start at 1 for WAR
-    for (uint8 i = 1; i < MAX_JOBTYPE; i++)
+    auto jobs = jobpointshelpers::JobsFacts{};
+    for (uint8 job = 1; job < MAX_JOBTYPE; ++job)
     {
-        const JobPoints_t currentJob = PJobPoints[i];
-
-        // TODO: This is wrong, it should be up to 32 entries per job.
-        for (uint8 j = 0; j < JOBPOINTS_JPTYPE_PER_CATEGORY; j++)
+        for (uint8 type = 0; type < JOBPOINTS_JPTYPE_PER_CATEGORY; ++type)
         {
-            const JobPointType_t currentType = currentJob.job_point_types[j];
-            if (currentType.id != 0 && pointIndex < 64)
-            {
-                packet.points[pointIndex] = {
-                    .index  = static_cast<uint16_t>(currentType.id & 0x1F), // Lower 5 bits
-                    .job_no = static_cast<uint16_t>(currentType.id >> 5),   // Upper 11 bits
-                    .next   = static_cast<uint16_t>(JobPointCost(currentType.value)),
-                    .level  = static_cast<uint16_t>(currentType.value),
-                };
-                pointIndex++;
-            }
-        }
-
-        // Send a packet every 2 jobs (up to 20 entries)
-        if (i % 2 == 1)
-        {
-            PChar->pushPacket(this->copy());
-
-            // Reset for next packet
-            std::memset(&packet, 0, sizeof(packet));
-            pointIndex = 0;
+            const auto currentType = PJobPoints[job].job_point_types[type];
+            jobs[job][type]        = { .id = currentType.id, .value = currentType.value };
         }
     }
+
+    const auto plan = jobpointshelpers::FullPlanFor(jobs);
+    for (const auto& packet : plan.packets)
+    {
+        this->data() = packet;
+        PChar->pushPacket(this->copy());
+    }
+
+    this->data() = {};
 }
 
 // Constructor for single job point update
 GP_SERV_COMMAND_JOB_POINTS::GP_SERV_COMMAND_JOB_POINTS(const CCharEntity* PChar, const JOBPOINT_TYPE jpType)
 {
-    auto& packet = this->data();
-
     const JobPointType_t* PJobPoint = PChar->PJobPoints->GetJobPointType(jpType);
-    // Put the update in the first slot
-    packet.points[0] = {
-        .index  = static_cast<uint16_t>(PJobPoint->id & 0x1F), // Lower 5 bits
-        .job_no = static_cast<uint16_t>(PJobPoint->id >> 5),   // Upper 11 bits
-        .next   = static_cast<uint16_t>(JobPointCost(PJobPoint->value)),
-        .level  = static_cast<uint16_t>(PJobPoint->value),
-    };
-
-    // Retail sends full size packet even for single updates
+    this->data() = jobpointshelpers::SinglePlanFor({ .id = PJobPoint->id, .value = PJobPoint->value });
 }

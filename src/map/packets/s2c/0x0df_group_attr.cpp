@@ -27,45 +27,67 @@
 
 GP_SERV_COMMAND_GROUP_ATTR::GP_SERV_COMMAND_GROUP_ATTR(CCharEntity* PChar)
 {
-    auto& packet = this->data();
+    auto&      packet = this->data();
+    const auto plan   = groupattrhelpers::CharacterPlanFor({
+        .common = {
+            .uniqueNo = PChar->id,
+            .hp       = static_cast<uint32>(PChar->health.hp),
+            .mp       = static_cast<uint32>(PChar->health.mp),
+            .tp       = static_cast<uint32>(PChar->health.tp),
+            .actIndex = PChar->targid,
+            .hpp      = PChar->GetHPP(),
+            .mpp      = PChar->GetMPP(),
+            .mjobNo   = PChar->GetMJob(),
+            .mjobLv   = PChar->GetMLevel(),
+            .sjobNo   = PChar->GetSJob(),
+            .sjobLv   = PChar->GetSLevel(),
+        },
+        .anonymous         = PChar->isAnon(),
+        .hasMonstrosity    = PChar->m_PMonstrosity != nullptr,
+        .monstrosityNameId = PChar->m_PMonstrosity != nullptr ? static_cast<uint16>(monstrosity::GetPackedMonstrosityName(PChar)) : uint16{},
+    });
 
-    packet.UniqueNo = PChar->id;
-    packet.Hp       = PChar->health.hp;
-    packet.Mp       = PChar->health.mp;
-    packet.Tp       = PChar->health.tp;
-    packet.ActIndex = PChar->targid;
-    packet.Hpp      = PChar->GetHPP();
-    packet.Mpp      = PChar->GetMPP();
-
-    if (PChar->m_PMonstrosity != nullptr)
-    {
-        packet.MonstrosityNameId = monstrosity::GetPackedMonstrosityName(PChar);
-    }
-
-    if (!PChar->isAnon())
-    {
-        packet.mjob_no         = PChar->GetMJob();
-        packet.mjob_lv         = PChar->GetMLevel();
-        packet.sjob_no         = PChar->GetSJob();
-        packet.sjob_lv         = PChar->GetSLevel();
-        packet.masterjob_lv    = 0;
-        packet.masterjob_flags = 0;
-    }
+    packet.UniqueNo          = plan.uniqueNo;
+    packet.Hp                = plan.hp;
+    packet.Mp                = plan.mp;
+    packet.Tp                = plan.tp;
+    packet.ActIndex          = plan.actIndex;
+    packet.Hpp               = plan.hpp;
+    packet.Mpp               = plan.mpp;
+    packet.MonstrosityNameId = plan.monstrosityNameId;
+    packet.mjob_no           = plan.mjobNo;
+    packet.mjob_lv           = plan.mjobLv;
+    packet.sjob_no           = plan.sjobNo;
+    packet.sjob_lv           = plan.sjobLv;
 }
 
 GP_SERV_COMMAND_GROUP_ATTR::GP_SERV_COMMAND_GROUP_ATTR(CTrustEntity* PTrust)
 {
     auto& packet = this->data();
 
-    packet.UniqueNo = PTrust->id;
-    packet.Hp       = PTrust->health.hp;
-    packet.Mp       = PTrust->health.mp;
-    packet.Tp       = PTrust->health.tp;
-    packet.ActIndex = PTrust->targid;
-    packet.Hpp      = PTrust->GetHPP();
-    packet.Mpp      = PTrust->GetMPP();
-    packet.mjob_no  = PTrust->GetMJob();
-    packet.mjob_lv  = PTrust->GetMLevel();
-    packet.sjob_no  = PTrust->GetSJob();
-    packet.sjob_lv  = PTrust->GetSLevel();
+    const auto plan = groupattrhelpers::TrustPlanFor({
+        .uniqueNo = PTrust->id,
+        .hp       = static_cast<uint32>(PTrust->health.hp),
+        .mp       = static_cast<uint32>(PTrust->health.mp),
+        .tp       = static_cast<uint32>(PTrust->health.tp),
+        .actIndex = PTrust->targid,
+        .hpp      = PTrust->GetHPP(),
+        .mpp      = PTrust->GetMPP(),
+        .mjobNo   = PTrust->GetMJob(),
+        .mjobLv   = PTrust->GetMLevel(),
+        .sjobNo   = PTrust->GetSJob(),
+        .sjobLv   = PTrust->GetSLevel(),
+    });
+
+    packet.UniqueNo = plan.uniqueNo;
+    packet.Hp       = plan.hp;
+    packet.Mp       = plan.mp;
+    packet.Tp       = plan.tp;
+    packet.ActIndex = plan.actIndex;
+    packet.Hpp      = plan.hpp;
+    packet.Mpp      = plan.mpp;
+    packet.mjob_no  = plan.mjobNo;
+    packet.mjob_lv  = plan.mjobLv;
+    packet.sjob_no  = plan.sjobNo;
+    packet.sjob_lv  = plan.sjobLv;
 }
