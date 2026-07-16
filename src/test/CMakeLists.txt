@@ -52,6 +52,8 @@ set(SOURCES
     test_aman_2624.cpp
     test_daily_system_2621.h
     test_daily_system_2621.cpp
+    test_daily_item_classification_2643.h
+    test_daily_item_classification_2643.cpp
     test_petskill_2628.h
     test_petskill_2628.cpp
     test_blacklistutils_2629.h
@@ -1207,6 +1209,8 @@ set(SOURCES
     test_fishing_hook_1618.cpp
     test_fishingcontest_state_2623.h
     test_fishingcontest_state_2623.cpp
+    test_fishingcontest_ranking_2642.h
+    test_fishingcontest_ranking_2642.cpp
     test_fishing_hookchance_1619.h
     test_fishing_hookchance_1619.cpp
     test_mob_stats_product_1620.h

@@ -46,6 +46,73 @@ std::vector<uint16> gobbieJunk = {
     4539  // Goblin Pie
 };
 
+auto ClassifyDailyItem(const DailyItemRow& row) -> DailyItemClassification
+{
+    DailyItemClassification classification{ .special = true, .numberedDial = 0 };
+
+    switch (row.auctionHouseCategory)
+    {
+        /* Dial 1 (Materials) */
+        case 38: // Smithing
+        case 39: // Goldsmithing
+        case 40: // Clothcrafting
+        case 41: // Leathercrafting
+        case 42: // Bonecrafting
+        case 43: // Woodworking
+        case 44: // Alchemy
+        case 50: // Beast-Made
+            classification.numberedDial = 1;
+            break;
+        /* Dial 2 (Food) */
+        case 52: // Meat & Eggs
+        case 53: // Seafood
+        case 54: // Vegetables
+        case 55: // Soups
+        case 56: // Breads & Rice
+        case 57: // Sweets
+        case 58: // Drinks
+            classification.numberedDial = 2;
+            break;
+        /* Dial 3 (Medicine) */
+        case 33: // Medicine
+            classification.numberedDial = 3;
+            break;
+        /* Dial 4 (Sundries 1) */
+        case 15: // Ammunition
+        case 36: // Cards
+        case 49: // Ninja Tools
+            if ((row.flags & ItemFlag::CanUse) != ItemFlag::None) // only usable (pouch, case, quiver, etc)
+            {
+                classification.numberedDial = 4;
+            }
+            break;
+        /* Dial 5 (Sundries 2) */
+        case 47: // Fishing Gear
+        case 51: // Fish
+            if (row.itemID != 489 && row.itemID != 17386) // Lu Shang is probably only special dial
+            {
+                classification.numberedDial = 5;
+            }
+            break;
+        default:
+            switch (row.itemID)
+            {
+                case 605:   // pickaxe
+                case 1020:  // sickle
+                case 1021:  // hatchet
+                case 1022:  // thief's tools
+                case 1023:  // living key
+                case 15453: // lugworm belt
+                case 15454: // little worm belt
+                    classification.numberedDial = 5;
+                    break;
+            }
+            break;
+    }
+
+    return classification;
+}
+
 uint16 SelectItemFromPool(const std::vector<uint16>& items, const size_t index)
 {
     if (items.empty())
@@ -120,79 +187,18 @@ void LoadDailyItems()
             aH     = rset->get<uint16>("aH");
             flags  = rset->get<ItemFlag>("flags");
 
-            specialDialItems.emplace_back(itemid);
-            switch (aH)
+            const auto classification = ClassifyDailyItem({ itemid, aH, flags });
+            if (classification.special)
             {
-                /* Dial 1 (Materials) */
-                case 38: // Smithing
-                case 39: // Goldsmithing
-                case 40: // Clothcrafting
-                case 41: // Leathercrafting
-                case 42: // Bonecrafting
-                case 43: // Woodworking
-                case 44: // Alchemy
-                case 50: // Beast-Made
-                {
-                    materialsDialItems.emplace_back(itemid);
-                    break;
-                }
-                /* Dial 2 (Food) */
-                case 52: // Meat & Eggs
-                case 53: // Seafood
-                case 54: // Vegetables
-                case 55: // Soups
-                case 56: // Breads & Rice
-                case 57: // Sweets
-                case 58: // Drinks
-                {
-                    foodDialItems.emplace_back(itemid);
-                    break;
-                }
-                /* Dial 3 (Medicine) */
-                case 33: // Medicine
-                {
-                    medicineDialItems.emplace_back(itemid);
-                    break;
-                }
-                /* Dial 4 (Sundries 1) */
-                case 15: // Ammunition
-                case 36: // Cards
-                case 49: // Ninja Tools
-                {
-                    if ((flags & ItemFlag::CanUse) != ItemFlag::None) // only usable (pouch, case, quiver, etc)
-                    {
-                        sundries1DialItems.emplace_back(itemid);
-                    }
-                    break;
-                }
-                /* Dial 5 (Sundries 2) */
-                case 47: // Fishing Gear
-                case 51: // Fish
-                {
-                    if (itemid == 489 || itemid == 17386) // Lu Shang is probably only special dial
-                    {
-                        break;
-                    }
-                    sundries2DialItems.emplace_back(itemid);
-                    break;
-                }
-                default:
-                {
-                    switch (itemid)
-                    {
-                        case 605:   // pickaxe
-                        case 1020:  // sickle
-                        case 1021:  // hatchet
-                        case 1022:  // thief's tools
-                        case 1023:  // living key
-                        case 15453: // lugworm belt
-                        case 15454: // little worm belt
-                        {
-                            sundries2DialItems.emplace_back(itemid);
-                            break;
-                        }
-                    }
-                }
+                specialDialItems.emplace_back(itemid);
+            }
+            switch (classification.numberedDial)
+            {
+                case 1: materialsDialItems.emplace_back(itemid); break;
+                case 2: foodDialItems.emplace_back(itemid); break;
+                case 3: medicineDialItems.emplace_back(itemid); break;
+                case 4: sundries1DialItems.emplace_back(itemid); break;
+                case 5: sundries2DialItems.emplace_back(itemid); break;
             }
         }
     }

@@ -129,7 +129,7 @@ void ProgressContest()
     }
 
     uint32 currentTime = earth_time::timestamp();
-    if (currentTime > CurrentFishingContest.changeTime)
+    if (IsStageDue(currentTime, CurrentFishingContest.changeTime))
     {
         FISHING_CONTEST_STATUS newStatus = static_cast<FISHING_CONTEST_STATUS>((static_cast<int>(CurrentFishingContest.status) + 1) % static_cast<int>(FISHING_CONTEST_STATUS::CLOSED));
 
@@ -243,11 +243,28 @@ void ScoreContest()
 {
     TracyZoneScoped;
 
+    RankContestEntries(FishingContestEntries, CurrentFishingContest.measure);
+
+    for (auto& entry : FishingContestEntries)
+    {
+        // Update the database
+        WriteContestEntryData(&entry);
+    }
+}
+
+auto IsStageDue(const uint32 currentTime, const uint32 changeTime) -> bool
+{
+    return currentTime > changeTime;
+}
+
+void RankContestEntries(std::vector<FishingContestEntry>& entries, const FISHING_CONTEST_MEASURE measure)
+{
+
     // Sort the list first
     // clang-format off
-        std::sort(FishingContestEntries.begin(), FishingContestEntries.end(), [](auto&& a, auto&& b) -> bool
+        std::sort(entries.begin(), entries.end(), [measure](auto&& a, auto&& b) -> bool
         {
-            if (CurrentFishingContest.measure == FISHING_CONTEST_MEASURE::GREATEST)
+            if (measure == FISHING_CONTEST_MEASURE::GREATEST)
             {
                 return a.score == b.score ? a.submitTime < b.submitTime : a.score > b.score;
             }
@@ -265,7 +282,7 @@ void ScoreContest()
     uint32 score       = 0;
 
     // Apply the rank scores to the list
-    for (auto&& entry : FishingContestEntries)
+    for (auto&& entry : entries)
     {
         if (entry.score != score) // Regardless of increasing or decreasing ... Vector already sorted
         {
@@ -280,18 +297,15 @@ void ScoreContest()
 
         // Set the number of times the score appears and copy it to dataset a and b
         // clang-format off
-            entry.share   = std::count_if(FishingContestEntries.begin(), FishingContestEntries.end(), [&score](auto& a) -> bool
+            entry.share   = std::count_if(entries.begin(), entries.end(), [&score](auto& a) -> bool
             {
                 return a.score == score;
             });
         // clang-format on
 
         entry.dataset_b   = entry.share; // Duplicated.  Uncertain as to definition
-        entry.resultCount = FishingRankEntryCount();
+        entry.resultCount = static_cast<uint8>(entries.size());
         contestRank++;
-
-        // Update the database
-        WriteContestEntryData(&entry);
     }
 }
 

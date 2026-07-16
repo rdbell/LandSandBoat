@@ -115,6 +115,13 @@ struct FishingContestHistory
 namespace fishingcontest
 {
 
+// RankContestEntries applies ScoreContest's deterministic ordering and packet
+// ranking fields without database or Lua dependencies.
+void RankContestEntries(std::vector<FishingContestEntry>& entries, FISHING_CONTEST_MEASURE measure);
+
+// IsStageDue preserves ProgressContest's strict currentTime > changeTime gate.
+auto IsStageDue(uint32 currentTime, uint32 changeTime) -> bool;
+
 // Contest Data: Sets
 void SetContestStatus(FISHING_CONTEST_STATUS newStatus);
 void SetContestCriteria(FISHING_CONTEST_CRITERIA newCriteria);
