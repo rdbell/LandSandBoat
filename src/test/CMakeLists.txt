@@ -188,6 +188,8 @@ set(SOURCES
     test_c2s_myroom_plant_packets.cpp
     test_c2s_netend_packet.h
     test_c2s_netend_packet.cpp
+    test_c2s_netend_runtime.h
+    test_c2s_netend_runtime.cpp
     test_c2s_packet_base_helpers.h
     test_c2s_packet_base_helpers.cpp
     test_c2s_packet_id_enum.h

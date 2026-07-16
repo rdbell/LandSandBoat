@@ -628,6 +628,7 @@ auto runMobSpellListSelfTests() -> bool;
 auto runSchedulerCombinatorSelfTests() -> bool;
 auto runC2SGameOKPacketSelfTests() -> bool;
 auto runC2SNetEndPacketSelfTests() -> bool;
+auto runC2SNetEndRuntimeSelfTests() -> bool;
 auto runC2SCLStatPacketSelfTests() -> bool;
 auto runC2SZoneTransitionPacketSelfTests() -> bool;
 auto runC2SCharReqPacketSelfTests() -> bool;
@@ -1449,6 +1450,7 @@ namespace
         ok = runSchedulerCombinatorSelfTests() && ok;
         ok = runC2SGameOKPacketSelfTests() && ok;
         ok = runC2SNetEndPacketSelfTests() && ok;
+        ok = runC2SNetEndRuntimeSelfTests() && ok;
         ok = runC2SCLStatPacketSelfTests() && ok;
         ok = runC2SZoneTransitionPacketSelfTests() && ok;
         ok = runC2SCharReqPacketSelfTests() && ok;
