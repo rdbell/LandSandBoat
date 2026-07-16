@@ -1252,12 +1252,9 @@ void CZone::CharZoneOut(CCharEntity* PChar)
         if (recast && recast->RecastTime > 0s)
         {
             auto remaining = (recast->TimeStamp + recast->RecastTime) - timer::now();
-            // Don't save if it will expire during zoning process
-            if (remaining > 10s)
+            if (const auto expirationTimestamp = zonehelpers::PlanSealTimerExpiry(true, true, remaining, earth_time::timestamp()))
             {
-                auto remainingSeconds    = std::chrono::duration_cast<std::chrono::seconds>(remaining).count();
-                auto expirationTimestamp = earth_time::timestamp() + static_cast<uint32>(remainingSeconds);
-                PChar->setCharVar("SealTimerExpiry", static_cast<int32>(expirationTimestamp));
+                PChar->setCharVar("SealTimerExpiry", static_cast<int32>(*expirationTimestamp));
             }
         }
     }

@@ -20,6 +20,7 @@
 */
 
 #include "map_networking.h"
+#include "map_networking_capacity.h"
 
 #include <common/arguments.h>
 #include <common/md52.h>
@@ -60,7 +61,7 @@ MapNetworking::MapNetworking(Scheduler& scheduler, MapStatistics& mapStatistics,
     TracyZoneScoped;
 
     // Embedded map server for testing does not actually need to open a socket
-    if (config_.isTestServer)
+    if (!mapnetworkinghelpers::ShouldOpenSocket(config_.isTestServer))
     {
         return;
     }

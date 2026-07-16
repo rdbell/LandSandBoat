@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdint>
 #include <fmt/format.h>
+#include <optional>
 #include <set>
 #include <string>
 
@@ -120,6 +121,16 @@ inline auto PlanZoneTimers(const bool isTestServer) -> ZoneTimerPlan
         return {};
     }
     return { true, kLogicUpdateInterval, kTriggerAreaInterval };
+}
+
+// PlanSealTimerExpiry mirrors CharZoneOut's optional SealTimerExpiry save.
+inline auto PlanSealTimerExpiry(const bool persistEnabled, const bool hasRecast, const timer::duration remaining, const uint32 now) -> std::optional<uint32>
+{
+    if (!persistEnabled || !hasRecast || remaining <= std::chrono::seconds(10))
+    {
+        return std::nullopt;
+    }
+    return now + static_cast<uint32>(std::chrono::duration_cast<std::chrono::seconds>(remaining).count());
 }
 
 // --- updateCharLevelRestriction ---

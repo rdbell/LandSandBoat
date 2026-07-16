@@ -22,6 +22,7 @@
 #include "mob_entity.h"
 #include "mob_behavior_policy.h"
 #include "mob_gil_policy.h"
+#include "mob_roam_policy.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -358,7 +359,12 @@ bool CMobEntity::CanRoamHome()
 
 bool CMobEntity::CanRoam()
 {
-    return !(m_roamFlags & ROAMFLAG_SCRIPTED) && PMaster == nullptr && (speed > 0 || (m_roamFlags & ROAMFLAG_WORM)) && getMobMod(MOBMOD_NO_MOVE) == 0;
+    return mobroamhelpers::CanRoam(
+        m_roamFlags & ROAMFLAG_SCRIPTED,
+        PMaster != nullptr,
+        speed > 0,
+        m_roamFlags & ROAMFLAG_WORM,
+        getMobMod(MOBMOD_NO_MOVE) != 0);
 }
 
 void CMobEntity::TapDeaggroTime()
