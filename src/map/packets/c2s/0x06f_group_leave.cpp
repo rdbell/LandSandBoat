@@ -24,6 +24,26 @@
 #include "entities/char_entity.h"
 #include "enums/party_kind.h"
 
+auto groupleavehelpers::MakeMutationPlan(const PartyKind kind, const bool hasAlliance, const bool partyHasOnlyOneMember, const bool allianceHasOnlyOneParty, const bool isPartyLeader) -> MutationPlan
+{
+    switch (kind)
+    {
+        case PartyKind::Party:
+            if (hasAlliance && partyHasOnlyOneMember)
+            {
+                return { allianceHasOnlyOneParty ? AllianceAction::Dissolve : AllianceAction::RemoveParty, true };
+            }
+            return { AllianceAction::None, true };
+        case PartyKind::Alliance:
+            if (hasAlliance && isPartyLeader)
+            {
+                return { allianceHasOnlyOneParty ? AllianceAction::Dissolve : AllianceAction::RemoveParty, false };
+            }
+            return {};
+    }
+    return {};
+}
+
 auto GP_CLI_COMMAND_GROUP_LEAVE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -34,58 +54,19 @@ auto GP_CLI_COMMAND_GROUP_LEAVE::validate(MapSession* PSession, const CCharEntit
 
 void GP_CLI_COMMAND_GROUP_LEAVE::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    switch (this->Kind)
+    const auto plan = groupleavehelpers::MakeMutationPlan(
+        this->Kind, PChar->PParty->m_PAlliance != nullptr, PChar->PParty->HasOnlyOneMember(), PChar->PParty->m_PAlliance != nullptr && PChar->PParty->m_PAlliance->hasOnlyOneParty(), PChar->PParty->GetLeader() == PChar);
+
+    if (plan.allianceAction == groupleavehelpers::AllianceAction::Dissolve)
     {
-        case PartyKind::Party:
-        {
-            if (PChar->PParty->m_PAlliance &&
-                PChar->PParty->HasOnlyOneMember()) // single member alliance parties must be removed from alliance before disband
-            {
-                ShowDebug("%s party size is one", PChar->getName());
-
-                if (PChar->PParty->m_PAlliance->hasOnlyOneParty()) // if there is only 1 party then dissolve alliance
-                {
-                    ShowDebug("%s alliance size is one party", PChar->getName());
-
-                    PChar->PParty->m_PAlliance->dissolveAlliance();
-                    ShowDebug("%s alliance is dissolved", PChar->getName());
-                }
-                else
-                {
-                    ShowDebug("Removing %s party from alliance", PChar->getName());
-
-                    PChar->PParty->m_PAlliance->removeParty(PChar->PParty);
-                    ShowDebug("%s party is removed from alliance", PChar->getName());
-                }
-            }
-
-            ShowDebug("Removing %s from party", PChar->getName());
-
-            PChar->PParty->RemoveMember(PChar);
-            ShowDebug("%s is removed from party", PChar->getName());
-        }
-        break;
-        case PartyKind::Alliance:
-        {
-            if (PChar->PParty->m_PAlliance && PChar->PParty->GetLeader() == PChar)
-            {
-                ShowDebug("%s is leader of a party in an alliance", PChar->getName());
-                if (PChar->PParty->m_PAlliance->hasOnlyOneParty()) // if there is only 1 party then dissolve alliance
-                {
-                    ShowDebug("One party in alliance, %s wants to dissolve the alliance", PChar->getName());
-
-                    PChar->PParty->m_PAlliance->dissolveAlliance();
-                    ShowDebug("%s has dissolved the alliance", PChar->getName());
-                }
-                else
-                {
-                    ShowDebug("%s wants to remove their party from the alliance", PChar->getName());
-
-                    PChar->PParty->m_PAlliance->removeParty(PChar->PParty);
-                    ShowDebug("%s party is removed from the alliance", PChar->getName());
-                }
-            }
-        }
-        break;
+        PChar->PParty->m_PAlliance->dissolveAlliance();
+    }
+    else if (plan.allianceAction == groupleavehelpers::AllianceAction::RemoveParty)
+    {
+        PChar->PParty->m_PAlliance->removeParty(PChar->PParty);
+    }
+    if (plan.removeMember)
+    {
+        PChar->PParty->RemoveMember(PChar);
     }
 }

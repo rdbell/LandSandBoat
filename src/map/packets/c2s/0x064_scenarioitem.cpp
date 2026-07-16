@@ -35,20 +35,13 @@ auto GP_CLI_COMMAND_SCENARIOITEM::validate(MapSession* PSession, const CCharEnti
 
 void GP_CLI_COMMAND_SCENARIOITEM::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    for (int i = 0; i < 16; i++)
+    scenarioitemhelpers::ForEachMarkedKeyItem(this->TableIndex, this->LookItemFlag, [PChar](const uint16_t keyItemId)
+                                              {
+                                                  charutils::markSeenKeyItem(PChar, static_cast<KeyItem>(keyItemId));
+                                              });
+
+    if (scenarioitemhelpers::ShouldSaveKeyItems())
     {
-        const uint32_t flags = this->LookItemFlag[i];
-
-        for (int bit = 0; bit < 32; bit++)
-        {
-            const auto keyItemId = (this->TableIndex * 512) + (i * 32) + bit;
-
-            if ((flags >> bit) & 1)
-            {
-                charutils::markSeenKeyItem(PChar, static_cast<KeyItem>(keyItemId));
-            }
-        }
+        charutils::SaveKeyItems(PChar);
     }
-
-    charutils::SaveKeyItems(PChar);
 }

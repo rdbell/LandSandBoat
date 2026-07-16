@@ -23,6 +23,42 @@
 
 #include "base.h"
 
+#include <cstddef>
+#include <cstdint>
+
+// SCENARIOITEM's entity-independent key-item effects.
+namespace scenarioitemhelpers
+{
+
+constexpr std::size_t LookItemFlagWordCount = 16;
+constexpr std::size_t KeyItemsPerTable      = LookItemFlagWordCount * 32;
+
+template <typename F>
+void ForEachMarkedKeyItem(const uint16_t tableIndex,
+                          const uint32_t (&lookItemFlag)[LookItemFlagWordCount],
+                          F&& visit)
+{
+    for (std::size_t wordIndex = 0; wordIndex < LookItemFlagWordCount; ++wordIndex)
+    {
+        const auto flags = lookItemFlag[wordIndex];
+        for (uint8_t bit = 0; bit < 32; ++bit)
+        {
+            if (((flags >> bit) & 1) != 0)
+            {
+                const auto keyItemId = static_cast<uint32_t>(tableIndex) * KeyItemsPerTable + wordIndex * 32 + bit;
+                visit(static_cast<uint16_t>(keyItemId));
+            }
+        }
+    }
+}
+
+[[nodiscard]] constexpr auto ShouldSaveKeyItems() -> bool
+{
+    return true;
+}
+
+} // namespace scenarioitemhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0064
 // This packet is sent by the client when viewing a key item that has not been viewed before.
 // (This marks the key item as 'seen' by the client to remove the yellow bubble when looking at the menu in the future. ie. 'Mark as Read')

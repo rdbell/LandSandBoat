@@ -24,6 +24,29 @@
 #include "base.h"
 
 enum class PartyKind : uint8_t;
+
+namespace groupleavehelpers
+{
+
+enum class AllianceAction : uint8
+{
+    None,
+    RemoveParty,
+    Dissolve,
+};
+
+struct MutationPlan
+{
+    AllianceAction allianceAction = AllianceAction::None;
+    bool           removeMember   = false;
+};
+
+// MakeMutationPlan mirrors GROUP_LEAVE's graph-mutation ordering. The caller
+// owns applying the returned party/alliance mutations to live entities.
+auto MakeMutationPlan(PartyKind kind, bool hasAlliance, bool partyHasOnlyOneMember, bool allianceHasOnlyOneParty, bool isPartyLeader) -> MutationPlan;
+
+} // namespace groupleavehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x006F
 // This packet is sent by the client when leaving a party or alliance.
 GP_CLI_PACKET(GP_CLI_COMMAND_GROUP_LEAVE,

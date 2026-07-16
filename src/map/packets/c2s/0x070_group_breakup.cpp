@@ -20,6 +20,7 @@
 */
 
 #include "0x070_group_breakup.h"
+#include "group_breakup_dispatch.h"
 
 #include "alliance.h"
 #include "entities/char_entity.h"
@@ -52,21 +53,24 @@ auto GP_CLI_COMMAND_GROUP_BREAKUP::validate(MapSession* PSession, const CCharEnt
 
 void GP_CLI_COMMAND_GROUP_BREAKUP::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    switch (this->Kind)
+    const auto action = groupbreakup::Select({ this->Kind, PChar->PParty != nullptr, PChar->PParty && PChar->PParty->GetLeader() == PChar, PChar->PParty && PChar->PParty->m_PAlliance, PChar->PParty && PChar->PParty->m_PAlliance && PChar->PParty->m_PAlliance->getMainParty()->GetLeader() == PChar });
+    switch (action)
     {
-        case PartyKind::Party:
+        case groupbreakup::Action::DisbandParty:
         {
             ShowDebug("%s is disbanding the party (pcmd breakup)", PChar->getName());
             PChar->PParty->DisbandParty();
             ShowDebug("%s party has been disbanded (pcmd breakup)", PChar->getName());
         }
         break;
-        case PartyKind::Alliance:
+        case groupbreakup::Action::DissolveAlliance:
         {
             ShowDebug("%s is disbanding the alliance (acmd breakup)", PChar->getName());
             PChar->PParty->m_PAlliance->dissolveAlliance();
             ShowDebug("%s alliance has been disbanded (acmd breakup)", PChar->getName());
         }
         break;
+        case groupbreakup::Action::None:
+            break;
     }
 }

@@ -120,6 +120,10 @@ set(SOURCES
     test_c2s_gm_packets.cpp
     test_c2s_group_packets.h
     test_c2s_group_packets.cpp
+    test_c2s_group_breakup_dispatch.h
+    test_c2s_group_breakup_dispatch.cpp
+    test_c2s_group_leave_transition.h
+    test_c2s_group_leave_transition.cpp
     test_c2s_guild_packets.h
     test_c2s_guild_packets.cpp
     test_c2s_header_only_request_packets.h
@@ -180,6 +184,8 @@ set(SOURCES
     test_c2s_roe_packets.cpp
     test_c2s_scenarioitem_packet.h
     test_c2s_scenarioitem_packet.cpp
+    test_c2s_scenarioitem_transition.h
+    test_c2s_scenarioitem_transition.cpp
     test_c2s_shop_packets.h
     test_c2s_shop_packets.cpp
     test_c2s_submap_transition.h
