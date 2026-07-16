@@ -687,6 +687,7 @@ auto runC2SPBXPlanSelfTests() -> bool;
 auto runC2SFragmentsServmesPlanSelfTests() -> bool;
 auto runC2SGroupLeaveTransitionSelfTests() -> bool;
 auto runC2SShopPacketSelfTests() -> bool;
+auto runC2SShopSellSetRuntimeSelfTests() -> bool;
 auto runC2SCombineAskPacketSelfTests() -> bool;
 auto runC2SChocoboRaceReqPacketSelfTests() -> bool;
 auto runC2SDicePacketSelfTests() -> bool;
@@ -1525,6 +1526,7 @@ namespace
         ok = runC2SFragmentsServmesPlanSelfTests() && ok;
         ok = runC2SGroupLeaveTransitionSelfTests() && ok;
         ok = runC2SShopPacketSelfTests() && ok;
+        ok = runC2SShopSellSetRuntimeSelfTests() && ok;
         ok = runC2SCombineAskPacketSelfTests() && ok;
         ok = runC2SChocoboRaceReqPacketSelfTests() && ok;
         ok = runC2SDicePacketSelfTests() && ok;

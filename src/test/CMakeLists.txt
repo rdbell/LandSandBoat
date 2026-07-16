@@ -258,6 +258,8 @@ set(SOURCES
     test_c2s_scenarioitem_transition.cpp
     test_c2s_shop_packets.h
     test_c2s_shop_packets.cpp
+    test_c2s_shop_sell_set_runtime.h
+    test_c2s_shop_sell_set_runtime.cpp
     test_c2s_submap_transition.h
     test_c2s_submap_transition.cpp
     test_c2s_switch_nominate_packets.h

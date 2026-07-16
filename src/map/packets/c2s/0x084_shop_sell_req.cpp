@@ -33,14 +33,16 @@ auto GP_CLI_COMMAND_SHOP_SELL_REQ::validate(MapSession* PSession, const CCharEnt
 
 void GP_CLI_COMMAND_SHOP_SELL_REQ::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    uint32 quantity = this->ItemNum;
-
     const CItem* PItem = PChar->getStorage(LOC_INVENTORY)->GetItem(this->ItemIndex);
-    if (PItem && (PItem->getID() == this->ItemNo) && !PItem->hasFlag(ItemFlag::NoSale))
+    const auto   plan  = shopsellreqhelpers::MakeAppraisalPlan(PItem != nullptr,
+                                                               PItem && PItem->getID() == this->ItemNo,
+                                                               PItem && PItem->hasFlag(ItemFlag::NoSale),
+                                                               this->ItemNum,
+                                                               PItem ? PItem->getQuantity() : 0);
+    if (plan.appraise)
     {
-        quantity = std::min(quantity, PItem->getQuantity());
         // Store item-to-sell in the last slot of the shop container
-        PChar->Container->setItem(PChar->Container->getExSize(), this->ItemNo, this->ItemIndex, quantity);
+        PChar->Container->setItem(PChar->Container->getExSize(), this->ItemNo, this->ItemIndex, plan.quantity);
         PChar->pushPacket<GP_SERV_COMMAND_SHOP_SELL>(this->ItemIndex, PItem->getBasePrice());
     }
 }

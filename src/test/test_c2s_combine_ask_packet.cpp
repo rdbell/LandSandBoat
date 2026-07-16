@@ -280,11 +280,55 @@ auto testCombineAskPureValidationFacts() -> bool
     return ok;
 }
 
+auto testCombineAskIngredientPlan() -> bool
+{
+    using namespace combineaskhelpers;
+
+    constexpr auto available = [](const uint16 itemID, const uint8 inventorySlot, const uint32 quantity) {
+        return IngredientFact{
+            .requestedID     = itemID,
+            .inventorySlot   = inventorySlot,
+            .present         = true,
+            .inventoryItemID = itemID,
+            .quantity        = quantity,
+        };
+    };
+
+    const auto accepted = BuildIngredientPlan(std::array<IngredientFact, 8>{
+                                                  available(100, 4, 1),
+                                                  available(200, 9, 2),
+                                                  available(300, 8, 1),
+                                              },
+                                              3);
+    const auto unavailable = BuildIngredientPlan(std::array<IngredientFact, 8>{
+                                                     available(100, 4, 1),
+                                                     IngredientFact{ .requestedID = 200, .inventorySlot = 5 },
+                                                     IngredientFact{ .requestedID = 300, .inventorySlot = 6, .present = true, .inventoryItemID = 301, .quantity = 1 },
+                                                     IngredientFact{ .requestedID = 400, .inventorySlot = 7, .present = true, .inventoryItemID = 400, .quantity = 1, .busy = true },
+                                                     IngredientFact{ .requestedID = 500, .inventorySlot = 8, .present = true, .inventoryItemID = 500, .quantity = 1, .locked = true },
+                                                     available(100, 4, 1),
+                                                 },
+                                                 6);
+    const auto bounded = BuildIngredientPlan(std::array<IngredientFact, 8>{ available(100, 4, 1), available(200, 5, 1) }, 1);
+
+    bool ok = true;
+    ok      = expectTrue(accepted.accepted[0] && accepted.accepted[1] && accepted.accepted[2], "COMBINE_ASK accepted ingredient order") && ok;
+    ok      = expectTrue(unavailable.accepted[0], "COMBINE_ASK keeps available ingredient") && ok;
+    ok      = expectFalse(unavailable.accepted[1], "COMBINE_ASK skips missing ingredient") && ok;
+    ok      = expectFalse(unavailable.accepted[2], "COMBINE_ASK skips mismatched ingredient") && ok;
+    ok      = expectFalse(unavailable.accepted[3], "COMBINE_ASK skips busy ingredient") && ok;
+    ok      = expectFalse(unavailable.accepted[4], "COMBINE_ASK skips locked ingredient") && ok;
+    ok      = expectFalse(unavailable.accepted[5], "COMBINE_ASK skips duplicate slot beyond quantity") && ok;
+    ok      = expectTrue(bounded.accepted[0] && !bounded.accepted[1], "COMBINE_ASK respects ingredient count") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SCombineAskPacketSelfTests() -> bool
 {
     return testCombineAskLayoutMetadataAndPayload() &&
            testCombineAskCrystalConstants() &&
-           testCombineAskPureValidationFacts();
+           testCombineAskPureValidationFacts() &&
+           testCombineAskIngredientPlan();
 }

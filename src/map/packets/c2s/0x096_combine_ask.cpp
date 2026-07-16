@@ -148,29 +148,38 @@ void GP_CLI_COMMAND_COMBINE_ASK::process(MapSession* PSession, CCharEntity* PCha
         .crystal = { this->Crystal, this->CrystalIdx },
     };
 
-    std::vector<uint8> slotQty(MAX_CONTAINER_SIZE);
+    std::array<combineaskhelpers::IngredientFact, 8> ingredientFacts;
     for (int32 slotId = 0; slotId < this->Items; ++slotId)
     {
-        const uint16 itemId    = this->ItemNo[slotId];
-        const uint8  invSlotId = this->TableNo[slotId];
-
-        slotQty[invSlotId]++;
-
+        const auto invSlotId = this->TableNo[slotId];
         const auto* PSlotItem = PChar->getStorage(LOC_INVENTORY)->GetItem(invSlotId);
+        ingredientFacts[slotId] = {
+            .requestedID     = this->ItemNo[slotId],
+            .inventorySlot   = invSlotId,
+            .present         = PSlotItem != nullptr,
+            .inventoryItemID = static_cast<uint16>(PSlotItem ? PSlotItem->getID() : 0),
+            .quantity        = PSlotItem ? PSlotItem->getQuantity() : 0,
+            .busy            = PSlotItem && PSlotItem->isBusy(),
+            .locked          = PSlotItem && PSlotItem->isSubType(ITEM_LOCKED),
+        };
+    }
 
-        if (!PSlotItem || PSlotItem->getID() != itemId)
+    const auto ingredientPlan = combineaskhelpers::BuildIngredientPlan(ingredientFacts, this->Items);
+    for (int32 slotId = 0; slotId < this->Items; ++slotId)
+    {
+        const auto& ingredient = ingredientFacts[slotId];
+        if (!ingredient.present || ingredient.inventoryItemID != ingredient.requestedID)
         {
             continue;
         }
 
-        if (PSlotItem->isBusy() || PSlotItem->isSubType(ITEM_LOCKED) ||
-            slotQty[invSlotId] > PSlotItem->getQuantity())
+        if (!ingredientPlan.accepted[slotId])
         {
             ShowWarningFmt("GP_CLI_COMMAND_COMBINE_ASK: {} trying to use unavailable ingredient", PChar->getName());
             continue;
         }
 
-        offer.ingredients[slotId] = { itemId, invSlotId };
+        offer.ingredients[slotId] = { ingredient.requestedID, ingredient.inventorySlot };
     }
 
     synthutils::startSynth(PChar, offer);

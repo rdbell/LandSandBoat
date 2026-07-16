@@ -23,6 +23,29 @@
 
 #include "base.h"
 
+namespace shopsellreqhelpers
+{
+
+struct AppraisalPlan
+{
+    bool   appraise = false;
+    uint32 quantity = 0;
+};
+
+// Keeps the host-independent part of the sell-appraisal request testable.
+// Item lookup, container staging, and packet delivery remain map-host work.
+constexpr auto MakeAppraisalPlan(bool itemFound, bool itemMatchesRequest, bool itemNoSale, uint32 requestedQuantity, uint32 itemQuantity) -> AppraisalPlan
+{
+    if (!itemFound || !itemMatchesRequest || itemNoSale)
+    {
+        return {};
+    }
+
+    return { .appraise = true, .quantity = std::min(requestedQuantity, itemQuantity) };
+}
+
+} // namespace shopsellreqhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0084
 // This packet is sent by the client when requesting to sell an item to a shop.
 // This packet is used to appraise the item to determine the price it is worth prior to actually selling it.

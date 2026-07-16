@@ -235,6 +235,25 @@ auto testShopSellReqLayoutMetadataAndPayload() -> bool
     return ok;
 }
 
+auto testShopSellReqAppraisalPlan() -> bool
+{
+    using shopsellreqhelpers::MakeAppraisalPlan;
+
+    bool ok = true;
+    ok      = expectFalse(MakeAppraisalPlan(false, true, false, 4, 2).appraise, "SHOP_SELL_REQ missing item is silent") && ok;
+    ok      = expectFalse(MakeAppraisalPlan(true, false, false, 4, 2).appraise, "SHOP_SELL_REQ mismatched item is silent") && ok;
+    ok      = expectFalse(MakeAppraisalPlan(true, true, true, 4, 2).appraise, "SHOP_SELL_REQ no-sale item is silent") && ok;
+
+    const auto clamped = MakeAppraisalPlan(true, true, false, 4, 2);
+    ok                 = expectTrue(clamped.appraise, "SHOP_SELL_REQ valid item appraises") && ok;
+    ok                 = expectEqualInt(clamped.quantity, 2, "SHOP_SELL_REQ clamps quantity to stack") && ok;
+
+    const auto exact = MakeAppraisalPlan(true, true, false, 2, 2);
+    ok               = expectTrue(exact.appraise, "SHOP_SELL_REQ exact quantity appraises") && ok;
+    ok               = expectEqualInt(exact.quantity, 2, "SHOP_SELL_REQ keeps exact quantity") && ok;
+    return ok;
+}
+
 auto testShopSellSetLayoutMetadataAndPayload() -> bool
 {
     const auto packet = makeShopSellSetPacket();
@@ -272,6 +291,7 @@ auto runC2SShopPacketSelfTests() -> bool
 {
     return testShopBuyLayoutMetadataAndPayload() &&
            testShopSellReqLayoutMetadataAndPayload() &&
+           testShopSellReqAppraisalPlan() &&
            testShopSellSetLayoutMetadataAndPayload() &&
            testShopPureValidationFacts();
 }

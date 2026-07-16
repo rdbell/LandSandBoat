@@ -21,7 +21,64 @@
 
 #pragma once
 
+#include <algorithm>
+#include <array>
+
 #include "base.h"
+
+namespace combineaskhelpers
+{
+
+// IngredientFact captures the inventory lookup result for one requested
+// synthesis ingredient. The process host remains responsible for looking up
+// the slot and for starting the transaction.
+struct IngredientFact
+{
+    uint16 requestedID{};
+    uint8  inventorySlot{};
+    bool   present{};
+    uint16 inventoryItemID{};
+    uint32 quantity{};
+    bool   busy{};
+    bool   locked{};
+};
+
+// IngredientPlan identifies which requested ingredients may enter the synth
+// offer. COMBINE_ASK deliberately skips an invalid ingredient instead of
+// rejecting the entire request.
+struct IngredientPlan
+{
+    std::array<bool, 8> accepted{};
+};
+
+[[nodiscard]] constexpr auto BuildIngredientPlan(const std::array<IngredientFact, 8>& ingredients, const uint8 ingredientCount) -> IngredientPlan
+{
+    IngredientPlan             plan;
+    std::array<uint8, 256> slotQty{};
+    const auto                 count = std::min<std::size_t>(ingredientCount, ingredients.size());
+
+    for (std::size_t slotId = 0; slotId < count; ++slotId)
+    {
+        const auto& ingredient = ingredients[slotId];
+        const auto  used       = ++slotQty[ingredient.inventorySlot];
+
+        if (!ingredient.present || ingredient.inventoryItemID != ingredient.requestedID)
+        {
+            continue;
+        }
+
+        if (ingredient.busy || ingredient.locked || used > ingredient.quantity)
+        {
+            continue;
+        }
+
+        plan.accepted[slotId] = true;
+    }
+
+    return plan;
+}
+
+} // namespace combineaskhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0096
 // This packet is sent by the client when requesting to synthesize an item.
