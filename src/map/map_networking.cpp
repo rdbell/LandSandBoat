@@ -448,7 +448,7 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
         SmallPD_Size = (ref<uint8>(SmallPD_ptr, 1) & 0x0FE);
         SmallPD_Type = (ref<uint16>(SmallPD_ptr, 0) & 0x1FF);
 
-        if ((ref<uint16>(SmallPD_ptr, 2) <= PSession->client_packet_id) || (ref<uint16>(SmallPD_ptr, 2) > SmallPD_Code))
+        if (!mapnetworkinghelpers::ShouldDispatchIncomingSmallPacket(ref<uint16>(SmallPD_ptr, 2), PSession->client_packet_id, SmallPD_Code))
         {
             continue;
         }

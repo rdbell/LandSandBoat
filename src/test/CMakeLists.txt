@@ -1430,6 +1430,8 @@ set(SOURCES
     test_map_networking_checksum_2690.cpp
     test_map_networking_login_checksum_2693.h
     test_map_networking_login_checksum_2693.cpp
+    test_map_networking_sequence_gate_2696.h
+    test_map_networking_sequence_gate_2696.cpp
     test_map_socket_receive_2654.h
     test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h
@@ -1916,6 +1918,8 @@ set(SOURCES
     test_npc_post_tick_2651.cpp
     test_mob_link_policy_2692.h
     test_mob_link_policy_2692.cpp
+    test_mob_valid_target_policy_2695.h
+    test_mob_valid_target_policy_2695.cpp
     test_search_social_packets.h
     test_search_social_packets.cpp
     test_settings_number_helper.h
@@ -1979,6 +1983,8 @@ set(SOURCES
     test_zone_weather_decoder_2649.cpp
     test_zone_mesh_name_2691.h
     test_zone_mesh_name_2691.cpp
+    test_zone_entity_visibility_2694.h
+    test_zone_entity_visibility_2694.cpp
     test_typed_flags.h
     test_typed_flags.cpp
     test_uuid_generation.h

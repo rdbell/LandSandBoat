@@ -100,4 +100,13 @@ inline auto HasValidUnencryptedLoginPacketChecksum(const std::span<const uint8> 
     return checksum == expectedChecksum;
 }
 
+// ShouldDispatchIncomingSmallPacket mirrors MapNetworking's in-order window:
+// only sequences newer than the last processed client packet and no newer than
+// the enclosing datagram sequence are dispatched. The native comparisons are
+// intentionally ordinary unsigned comparisons, not wrap-aware arithmetic.
+inline auto ShouldDispatchIncomingSmallPacket(const uint16 packetSequence, const uint16 lastClientPacketSequence, const uint16 datagramSequence) -> bool
+{
+    return packetSequence > lastClientPacketSequence && packetSequence <= datagramSequence;
+}
+
 } // namespace mapnetworkinghelpers

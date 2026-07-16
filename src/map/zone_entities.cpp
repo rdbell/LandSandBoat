@@ -58,6 +58,8 @@
 #include "utils/synthutils.h"
 #include "utils/zoneutils.h"
 
+#include "zone_entity_visibility.h"
+
 #include <map/ximesh/ximesh.h>
 
 namespace
@@ -66,8 +68,6 @@ namespace
 constexpr auto DYNAMIC_ENTITY_TARGID_RANGE_START      = 0x700;
 constexpr auto DYNAMIC_ENTITY_TARGID_RANGE_MAX        = 0x8FF;
 constexpr auto ENTITY_RENDER_DISTANCE                 = 50.0f;
-constexpr auto ENTITY_VERTICAL_RENDER_DISTANCE        = 20.0f;
-constexpr auto VERTICAL_RENDER_DISTANCE_OFFSET        = 0.5f;
 constexpr auto CHARACTER_SYNC_DISTANCE                = 45.0f;
 constexpr auto CHARACTER_DESPAWN_DISTANCE             = 50.0f;
 constexpr auto CHARACTER_SWAP_MAX                     = 5U;
@@ -78,10 +78,9 @@ constexpr auto CHARACTER_SYNC_ALLI_SIGNIFICANCE       = 10000U;
 constexpr auto PERSIST_CHECK_CHARACTERS               = 20U;
 constexpr auto INTERMEDIATE_CONTAINER_RESERVE_SIZE    = 16U;
 
-inline bool isWithinVerticalDistance(CBaseEntity* source, CBaseEntity* target)
+inline auto isWithinVerticalDistance(CBaseEntity* source, CBaseEntity* target) -> bool
 {
-    const float verticalDistance = target->loc.p.y - source->loc.p.y - VERTICAL_RENDER_DISTANCE_OFFSET;
-    return std::abs(verticalDistance) <= ENTITY_VERTICAL_RENDER_DISTANCE;
+    return zoneentityvisibility::IsWithinVerticalRenderDistance(source->loc.p.y, target->loc.p.y);
 }
 
 } // namespace

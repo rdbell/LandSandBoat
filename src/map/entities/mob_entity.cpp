@@ -26,6 +26,7 @@
 #include "mob_roam_home_policy.h"
 #include "mob_force_link_policy.h"
 #include "mob_link_policy.h"
+#include "mob_valid_target_policy.h"
 #include "mob_widescan_policy.h"
 #include "mob_home_distance_policy.h"
 #include "mob_tp_move_policy.h"
@@ -559,35 +560,17 @@ bool CMobEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
 {
     TracyZoneScoped;
 
-    if (StatusEffectContainer->GetConfrontationEffect() != PInitiator->StatusEffectContainer->GetConfrontationEffect())
-    {
-        return false;
-    }
-
-    if (CBattleEntity::ValidTarget(PInitiator, targetFlags))
-    {
-        return true;
-    }
-
-    if (targetFlags & TARGET_PLAYER_DEAD && (m_Behavior & BEHAVIOR_RAISABLE) && isDead())
-    {
-        return true;
-    }
-
-    if ((targetFlags & TARGET_PLAYER) && allegiance == PInitiator->allegiance && !(m_Behavior & BEHAVIOR_NO_ASSIST) && !isCharmed)
-    {
-        return true;
-    }
-
-    if (targetFlags & TARGET_NPC)
-    {
-        if (allegiance == PInitiator->allegiance && !(m_Behavior & BEHAVIOR_NO_ASSIST) && !isCharmed)
-        {
-            return true;
-        }
-    }
-
-    return false;
+    return mobvalidtargethelpers::ValidTarget(
+        StatusEffectContainer->GetConfrontationEffect() == PInitiator->StatusEffectContainer->GetConfrontationEffect(),
+        [&] { return CBattleEntity::ValidTarget(PInitiator, targetFlags); },
+        targetFlags & TARGET_PLAYER_DEAD,
+        m_Behavior & BEHAVIOR_RAISABLE,
+        isDead(),
+        targetFlags & TARGET_PLAYER,
+        targetFlags & TARGET_NPC,
+        allegiance == PInitiator->allegiance,
+        m_Behavior & BEHAVIOR_NO_ASSIST,
+        isCharmed);
 }
 
 void CMobEntity::Spawn()
