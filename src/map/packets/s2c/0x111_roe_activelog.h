@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "common/cbasetypes.h"
 
 #include "base.h"
@@ -32,6 +34,43 @@ struct record_t
     uint32_t Id : 12;
     uint32_t Count : 20;
 };
+
+namespace roeactiveloghelpers
+{
+
+constexpr std::size_t SourceRecordCount = 31;
+constexpr std::size_t PacketRecordCount = 64;
+constexpr std::size_t TimedRecordIndex  = 30;
+constexpr std::size_t TimedPacketIndex  = 63;
+
+struct Record
+{
+    uint32 id{};
+    uint32 count{};
+};
+
+struct Facts
+{
+    std::array<Record, SourceRecordCount> records{};
+};
+
+struct Plan
+{
+    std::array<Record, PacketRecordCount> records{};
+};
+
+[[nodiscard]] inline auto PlanFor(const Facts& facts) -> Plan
+{
+    auto plan = Plan{};
+    for (std::size_t index = 0; index < TimedRecordIndex; ++index)
+    {
+        plan.records[index] = facts.records[index];
+    }
+    plan.records[TimedPacketIndex] = facts.records[TimedRecordIndex];
+    return plan;
+}
+
+} // namespace roeactiveloghelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x0111
 // This packet is sent by the server to update the client's current set of Records of Eminence quest information.

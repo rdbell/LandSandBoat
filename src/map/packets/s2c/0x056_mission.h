@@ -45,6 +45,17 @@ struct tales_beginning_t
     uint16_t padding2 : 9; // bits 7-15 (unused)
 };
 
+namespace missionhelpers
+{
+struct Facts { uint32 nation{}, nationMission{}, rotz{}, cop{}, acp{}, amk{}, asa{}, soa{}, rov{}; uint16 copLower{}, copUpper{}; bool declinedRotz{}, declinedCop{}, declinedAcp{}, declinedAmk{}, declinedAsa{}, declinedSoa{}, declinedRov{}; };
+struct Plan { uint32 nation{}, nationMission{}, rotz{}, cop{}, cop2{}, soa{}, rov{}; expansion_addon_t addons{}; tales_beginning_t tales{}; uint16 port{ 0xFFFF }; };
+[[nodiscard]] constexpr auto PlanFor(const Facts& f) -> Plan {
+    Plan p{ .nation=f.nation, .nationMission=f.nationMission, .cop2=static_cast<uint32>(f.copUpper)<<16|f.copLower };
+    p.rotz=f.declinedRotz?0:f.rotz; p.cop=f.declinedCop?0:f.cop; p.addons.ACP=f.declinedAcp?0:f.acp; p.addons.AMK=f.declinedAmk?0:f.amk; p.addons.ASA=f.declinedAsa?0:f.asa; p.soa=f.declinedSoa?0:f.soa*2+0x6E; p.rov=f.declinedRov?0:f.rov+0x6C;
+    p.tales={ .RoTZ=f.declinedRotz, .ACP=f.declinedAcp, .ASA=f.declinedAsa, .CoP=f.declinedCop, .SoA=f.declinedSoa, .RoV=f.declinedRov }; return p;
+}
+}
+
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x0056
 // This packet is sent by the server to populate the clients mission and quest information.
 namespace GP_SERV_COMMAND_MISSION

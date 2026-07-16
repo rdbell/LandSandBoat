@@ -1680,6 +1680,8 @@ set(SOURCES
     test_s2c_motionmes_runtime.cpp
     test_s2c_mission_packet.h
     test_s2c_mission_packet.cpp
+    test_s2c_mission_runtime.h
+    test_s2c_mission_runtime.cpp
     test_s2c_myroom_packets.h
     test_s2c_myroom_packets.cpp
     test_s2c_myroom_operation_packet.h
@@ -1710,6 +1712,8 @@ set(SOURCES
     test_s2c_reqsubmapnum_packet.cpp
     test_s2c_roe_activelog_packet.h
     test_s2c_roe_activelog_packet.cpp
+    test_s2c_roe_activelog_runtime.h
+    test_s2c_roe_activelog_runtime.cpp
     test_s2c_roe_log_packet.h
     test_s2c_roe_log_packet.cpp
     test_s2c_scenarioitem_packet.h

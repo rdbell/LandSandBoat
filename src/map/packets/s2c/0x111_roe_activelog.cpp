@@ -26,16 +26,14 @@
 GP_SERV_COMMAND_ROE_ACTIVELOG::GP_SERV_COMMAND_ROE_ACTIVELOG(const CCharEntity* PChar)
 {
     auto& packet = this->data();
-
-    /*  Each 4-bit nibble in the 4-byte chunk is labeled here. The second number is it's position.
-                    (0 is the lowest order. IE the right-most bits)
-                    A1A0 B0A2 B2B1 B4B3  ||  A = Record ID B = Progress                                 */
-
-    for (uint32 i = 0; i < 31; i++)
+    auto  facts  = roeactiveloghelpers::Facts{};
+    for (std::size_t index = 0; index < facts.records.size(); ++index)
     {
-        const uint32 id          = PChar->m_eminenceLog.active[i];
-        const uint32 progress    = PChar->m_eminenceLog.progress[i];
-        const int    c_offset    = i < 30 ? i : 63; // The time-limited record is a special case, it goes at the end (index 63).
-        packet.records[c_offset] = record_t{ .Id = id, .Count = progress };
+        facts.records[index] = { .id = PChar->m_eminenceLog.active[index], .count = PChar->m_eminenceLog.progress[index] };
+    }
+    const auto plan = roeactiveloghelpers::PlanFor(facts);
+    for (std::size_t index = 0; index < plan.records.size(); ++index)
+    {
+        packet.records[index] = record_t{ .Id = plan.records[index].id, .Count = plan.records[index].count };
     }
 }

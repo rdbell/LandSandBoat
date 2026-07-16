@@ -37,29 +37,15 @@ GP_SERV_COMMAND_MISSION::MISSION::MISSION(const CCharEntity* PChar)
     auto declinedSoAStart = PChar->getCharVar("[SOA]TalesBeginning");
     auto declinedRoVStart = PChar->getCharVar("[ROV]TalesBeginning");
 
-    packet.Port           = 0xFFFF;
-    packet.Nation         = PChar->profile.nation;
-    packet.NationMission  = PChar->m_missionLog[PChar->profile.nation].current;
-    packet.Expansion_RotZ = declinedRoZStart > 0 ? 0 : PChar->m_missionLog[static_cast<uint8_t>(MissionLog::Zilart)].current;
-    packet.Expansion_CoP  = declinedCoPStart > 0 ? 0 : PChar->m_missionLog[static_cast<uint8_t>(MissionLog::CoP)].current;
-    // This updates status for multi-legged CoP missions
-    packet.Expansion_CoP2       = PChar->m_missionLog[static_cast<uint8_t>(MissionLog::CoP)].statusUpper << 16 | PChar->m_missionLog[static_cast<uint8_t>(MissionLog::CoP)].statusLower;
-    packet.Expansion_Addons.ACP = declinedACPStart > 0 ? 0 : PChar->m_missionLog[static_cast<uint8_t>(MissionLog::ACP)].current;
-    packet.Expansion_Addons.AMK = declinedAMKStart > 0 ? 0 : PChar->m_missionLog[static_cast<uint8_t>(MissionLog::AMK)].current;
-    packet.Expansion_Addons.ASA = declinedASAStart > 0 ? 0 : PChar->m_missionLog[static_cast<uint8_t>(MissionLog::ASA)].current;
-
-    // TODO: What's with the magic numbers?
-    packet.Expansion_SoA = declinedSoAStart > 0 ? 0 : (PChar->m_missionLog[static_cast<uint8_t>(MissionLog::SoA)].current * 2) + 0x6E;
-    packet.Expansion_RoV = declinedRoVStart > 0 ? 0 : PChar->m_missionLog[static_cast<uint8_t>(MissionLog::RoV)].current + 0x6C;
-
-    // This is where you set the bits indicating the player has declined starting an expansion
-    // Not all expansions make use of the system!
-    packet.TalesBeginning = {
-        .RoTZ = (declinedRoZStart > 0), // These Resolve to 0 or 1
-        .ACP  = (declinedACPStart > 0),
-        .ASA  = (declinedASAStart > 0),
-        .CoP  = (declinedCoPStart > 0),
-        .SoA  = (declinedSoAStart > 0),
-        .RoV  = (declinedRoVStart > 0)
-    };
+    const auto plan = missionhelpers::PlanFor({ PChar->profile.nation, PChar->m_missionLog[PChar->profile.nation].current, PChar->m_missionLog[static_cast<uint8_t>(MissionLog::Zilart)].current, PChar->m_missionLog[static_cast<uint8_t>(MissionLog::CoP)].current, PChar->m_missionLog[static_cast<uint8_t>(MissionLog::ACP)].current, PChar->m_missionLog[static_cast<uint8_t>(MissionLog::AMK)].current, PChar->m_missionLog[static_cast<uint8_t>(MissionLog::ASA)].current, PChar->m_missionLog[static_cast<uint8_t>(MissionLog::SoA)].current, PChar->m_missionLog[static_cast<uint8_t>(MissionLog::RoV)].current, PChar->m_missionLog[static_cast<uint8_t>(MissionLog::CoP)].statusLower, PChar->m_missionLog[static_cast<uint8_t>(MissionLog::CoP)].statusUpper, declinedRoZStart>0, declinedCoPStart>0, declinedACPStart>0, declinedAMKStart>0, declinedASAStart>0, declinedSoAStart>0, declinedRoVStart>0 });
+    packet.Port             = plan.port;
+    packet.Nation           = plan.nation;
+    packet.NationMission    = plan.nationMission;
+    packet.Expansion_RotZ   = plan.rotz;
+    packet.Expansion_CoP    = plan.cop;
+    packet.Expansion_CoP2   = plan.cop2;
+    packet.Expansion_Addons = plan.addons;
+    packet.Expansion_SoA    = plan.soa;
+    packet.Expansion_RoV    = plan.rov;
+    packet.TalesBeginning   = plan.tales;
 }
