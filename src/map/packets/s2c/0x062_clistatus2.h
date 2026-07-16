@@ -21,9 +21,40 @@
 
 #pragma once
 
+#include <array>
+
 #include "base.h"
 
 class CCharEntity;
+
+namespace clistatus2helpers
+{
+
+constexpr std::size_t                SkillBaseCount   = 64;
+constexpr uint16                     HiddenSkillValue = 0x8000;
+constexpr std::array<std::size_t, 3> AutomatonSkillIndexes{ 22, 23, 24 };
+
+struct Facts
+{
+    std::array<uint16, SkillBaseCount> workingSkills{};
+};
+
+struct Plan
+{
+    std::array<uint16, SkillBaseCount> skillBase{};
+};
+
+[[nodiscard]] inline auto PlanFor(const Facts& facts) -> Plan
+{
+    auto plan = Plan{ .skillBase = facts.workingSkills };
+    for (const auto index : AutomatonSkillIndexes)
+    {
+        plan.skillBase[index] = HiddenSkillValue;
+    }
+    return plan;
+}
+
+} // namespace clistatus2helpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x0062
 // This packet is sent by the server to update the clients skill base information.

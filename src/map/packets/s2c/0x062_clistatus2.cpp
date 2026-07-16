@@ -26,11 +26,8 @@
 GP_SERV_COMMAND_CLISTATUS2::GP_SERV_COMMAND_CLISTATUS2(const CCharEntity* PChar)
 {
     auto& packet = this->data();
-
-    std::memcpy(packet.skill_base, &PChar->WorkingSkills, sizeof(packet.skill_base));
-
-    // Remove automaton skills from this menu (they are in another packet)
-    packet.skill_base[22] = 0x8000; // Offset 0xAC - 0x80 = 0x2C, 0x2C/2 = 22
-    packet.skill_base[23] = 0x8000; // Offset 0xAE - 0x80 = 0x2E, 0x2E/2 = 23
-    packet.skill_base[24] = 0x8000; // Offset 0xB0 - 0x80 = 0x30, 0x30/2 = 24
+    auto  facts  = clistatus2helpers::Facts{};
+    std::memcpy(facts.workingSkills.data(), &PChar->WorkingSkills, facts.workingSkills.size() * sizeof(uint16));
+    const auto plan = clistatus2helpers::PlanFor(facts);
+    std::memcpy(packet.skill_base, plan.skillBase.data(), plan.skillBase.size() * sizeof(uint16));
 }

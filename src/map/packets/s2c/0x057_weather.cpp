@@ -20,12 +20,9 @@
 */
 
 #include "0x057_weather.h"
+#include "weather_runtime.h"
 
 GP_SERV_COMMAND_WEATHER::GP_SERV_COMMAND_WEATHER(const uint32_t startTime, const Weather weatherId, const uint16_t offsetTime)
 {
-    auto& packet = this->data();
-
-    packet.StartTime         = startTime;
-    packet.WeatherNumber     = weatherId;
-    packet.WeatherOffsetTime = offsetTime;
+    this->data() = weatherhelpers::PlanFor({ .startTime = startTime, .weather = weatherId, .offsetTime = offsetTime });
 }

@@ -1496,6 +1496,8 @@ set(SOURCES
     test_s2c_clistatus_packet.cpp
     test_s2c_clistatus2_packet.h
     test_s2c_clistatus2_packet.cpp
+    test_s2c_clistatus2_runtime.h
+    test_s2c_clistatus2_runtime.cpp
     test_s2c_combine_packets.h
     test_s2c_combine_packets.cpp
     test_s2c_combine_ans_runtime.h
@@ -1752,6 +1754,8 @@ set(SOURCES
     test_s2c_translate_packet.cpp
     test_s2c_weather_packet.h
     test_s2c_weather_packet.cpp
+    test_s2c_weather_runtime.h
+    test_s2c_weather_runtime.cpp
     test_s2c_wpos_packets.h
     test_s2c_wpos_packets.cpp
     test_search_auction_packets.h
