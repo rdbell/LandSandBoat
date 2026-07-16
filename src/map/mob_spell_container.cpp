@@ -23,6 +23,7 @@
 
 #include "mob_modifier.h"
 #include "mob_spell_container.h"
+#include "mob_spell_container_membership.h"
 #include "recast_container.h"
 #include "status_effect_container.h"
 #include "utils/battleutils.h"
@@ -61,67 +62,47 @@ void CMobSpellContainer::AddSpell(SpellID spellId)
 
     // add spell to correct vector
     // try to add it to ga list first
-    const uint8 aoe = spell->getAOE();
-    if (aoe > 0 && spell->canTargetEnemy())
-    {
-        m_gaList.emplace_back(spellId);
-    }
-    else if (spell->isSevere())
-    {
-        // select spells like death and impact
-        m_severeList.emplace_back(spellId);
-    }
-    else if (spell->canTargetEnemy() && !spell->isSevere())
-    {
-        // add to damage list
-        m_damageList.emplace_back(spellId);
-    }
-    else if (spell->isDebuff())
-    {
-        m_debuffList.emplace_back(spellId);
-    }
-    else if (spell->isNa())
-    {
-        // na spell and erase
-        m_naList.emplace_back(spellId);
-    }
-    else if (spell->isRaise())
-    {
-        // raise family
-        m_raiseList.emplace_back(spellId);
-    }
-    else if (spell->isHeal())
-    { // includes blue mage healing spells, wild carrot etc
-        // add to healing
-        m_healList.emplace_back(spellId);
-    }
-    else if (spell->isBuff())
-    {
-        // buff
-        m_buffList.emplace_back(spellId);
-    }
-    else
+    mob_spell_category          category{};
+    const spell_membership_info info{
+        .aoe = spell->getAOE() > 0, .targetsEnemy = spell->canTargetEnemy(), .severe = spell->isSevere(), .debuff = spell->isDebuff(), .na = spell->isNa(), .raise = spell->isRaise(), .heal = spell->isHeal(), .buff = spell->isBuff()
+    };
+    if (!ClassifyMobSpellMembership(info, category))
     {
         ShowDebug("Where does this spell go? %d", static_cast<uint16>(spellId));
+        return;
+    }
+    switch (category)
+    {
+        case mob_spell_category::GA:
+            m_gaList.emplace_back(spellId);
+            break;
+        case mob_spell_category::Damage:
+            m_damageList.emplace_back(spellId);
+            break;
+        case mob_spell_category::Buff:
+            m_buffList.emplace_back(spellId);
+            break;
+        case mob_spell_category::Debuff:
+            m_debuffList.emplace_back(spellId);
+            break;
+        case mob_spell_category::Heal:
+            m_healList.emplace_back(spellId);
+            break;
+        case mob_spell_category::Na:
+            m_naList.emplace_back(spellId);
+            break;
+        case mob_spell_category::Raise:
+            m_raiseList.emplace_back(spellId);
+            break;
+        case mob_spell_category::Severe:
+            m_severeList.emplace_back(spellId);
+            break;
     }
 }
 
 void CMobSpellContainer::RemoveSpell(SpellID spellId)
 {
-    auto findAndRemove = [](std::vector<SpellID>& list, SpellID id)
-    {
-        list.erase(std::remove(list.begin(), list.end(), id), list.end());
-    };
-
-    findAndRemove(m_gaList, spellId);
-    findAndRemove(m_damageList, spellId);
-    findAndRemove(m_buffList, spellId);
-    findAndRemove(m_debuffList, spellId);
-    findAndRemove(m_healList, spellId);
-    findAndRemove(m_naList, spellId);
-    findAndRemove(m_raiseList, spellId);
-
-    m_hasSpells = !(m_gaList.empty() && m_damageList.empty() && m_buffList.empty() && m_debuffList.empty() && m_healList.empty() && m_naList.empty() && m_raiseList.empty());
+    m_hasSpells = RemoveMobSpellMembership(spellId, m_gaList, m_damageList, m_buffList, m_debuffList, m_healList, m_naList, m_raiseList);
 }
 
 // Used in Gambits to see if the Trust can cast the spell

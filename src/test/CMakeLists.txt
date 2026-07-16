@@ -583,6 +583,8 @@ set(SOURCES
     test_login_view_lobby_ack_1317.cpp
     test_login_character_select_1318.h
     test_login_character_select_1318.cpp
+    test_mob_spell_container_2609.h
+    test_mob_spell_container_2609.cpp
     test_login_character_delete_1319.h
     test_login_character_delete_1319.cpp
     test_login_character_create_1320.h
