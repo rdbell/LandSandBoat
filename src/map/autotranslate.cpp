@@ -20,6 +20,7 @@
 */
 
 #include "autotranslate.h"
+#include "autotranslate_helpers.h"
 
 #include "common/logging.h"
 
@@ -28507,7 +28508,7 @@ const std::map<unsigned int, const char*> values = {
     { 168624659, "Raebrimm's memento" },
 };
 
-std::string doLookup(const std::string& str, std::vector<uint16>& data)
+std::string doLookup(const std::string& str, const std::vector<uint16>& data)
 {
     if (data.size() != 4)
     {
@@ -28564,35 +28565,5 @@ std::string doLookup(const std::string& str, std::vector<uint16>& data)
 
 std::string autotranslate::replaceBytes(const std::string& str)
 {
-    bool                inATBlock = false;
-    std::string         outStr    = "";
-    std::vector<uint16> data;
-
-    for (auto& ch : str)
-    {
-        auto chAsInt = static_cast<uint16>(ch);
-        if (chAsInt == 65533 && !inATBlock)
-        {
-            outStr += "{";
-            inATBlock = true;
-        }
-        else if (chAsInt == 65533 && inATBlock)
-        {
-            outStr += doLookup(str, data);
-            data.clear();
-
-            outStr += "}";
-            inATBlock = false;
-        }
-        else if (!inATBlock)
-        {
-            outStr += ch;
-        }
-        else
-        {
-            data.emplace_back(chAsInt);
-        }
-    }
-
-    return outStr;
+    return replaceBytesWithLookup(str, doLookup);
 }

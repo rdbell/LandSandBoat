@@ -243,7 +243,9 @@ auto runLoginAuthLoginAttemptOTP1314SelfTests() -> bool;
 auto runLoginAuthSuccessReply1315SelfTests() -> bool;
 auto runLoginCharacterName1316SelfTests() -> bool;
 auto runLoginViewLobbyAck1317SelfTests() -> bool;
+auto runAutotranslate2617SelfTests() -> bool;
 auto runLoginCharacterSelect1318SelfTests() -> bool;
+auto runMerit2619SelfTests() -> bool;
 auto runMobSpellContainer2609SelfTests() -> bool;
 auto runLoginCharacterDelete1319SelfTests() -> bool;
 auto runLoginCharacterCreate1320SelfTests() -> bool;
@@ -1171,6 +1173,7 @@ namespace
         ok = runLoginCharacterName1316SelfTests() && ok;
         ok = runLoginViewLobbyAck1317SelfTests() && ok;
         ok = runLoginCharacterSelect1318SelfTests() && ok;
+        ok = runMerit2619SelfTests() && ok;
         ok = runMobSpellContainer2609SelfTests() && ok;
         ok = runLoginCharacterDelete1319SelfTests() && ok;
         ok = runLoginCharacterCreate1320SelfTests() && ok;
@@ -1633,6 +1636,7 @@ namespace
         ok = runC2SGuildSellListRuntimeSelfTests() && ok;
         ok = runC2SSwitchNominatePacketSelfTests() && ok;
         ok = runNominateParseFormat2614SelfTests() && ok;
+        ok = runAutotranslate2617SelfTests() && ok;
         ok = runC2SSwitchVoteRuntimeSelfTests() && ok;
         ok = runC2SSwitchProposalRuntimeSelfTests() && ok;
         ok = runC2SAssistChannelRuntimeSelfTests() && ok;

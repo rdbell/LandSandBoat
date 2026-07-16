@@ -50,6 +50,8 @@ set(SOURCES
     test_application_lifecycle_2554.cpp
     test_arguments_parser.h
     test_arguments_parser.cpp
+    test_autotranslate_2617.h
+    test_autotranslate_2617.cpp
     test_bitpack.h
     test_bitpack.cpp
     test_blowfish.h
@@ -585,6 +587,8 @@ set(SOURCES
     test_login_view_lobby_ack_1317.cpp
     test_login_character_select_1318.h
     test_login_character_select_1318.cpp
+    test_merit_2619.h
+    test_merit_2619.cpp
     test_mob_spell_container_2609.h
     test_mob_spell_container_2609.cpp
     test_login_character_delete_1319.h

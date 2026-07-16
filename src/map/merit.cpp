@@ -20,6 +20,7 @@
 */
 
 #include "merit.h"
+#include "merit_index.h"
 #include "entities/char_entity.h"
 
 #include "map_engine.h"
@@ -139,9 +140,6 @@ static const MeritCategoryInfo_t meritCatInfo[] = {
     { 4, 10, 7 }, // MCATEGORY_RUN_2       catNumber 53
 };
 // clang-format on
-
-#define GetMeritCategory(merit) (((merit) >> 6) - 1)    // get category from merit
-#define GetMeritID(merit)       (((merit) & 0x3F) >> 1) // get the offset in the category from merit
 
 CMeritPoints::CMeritPoints(CCharEntity* PChar)
 {
