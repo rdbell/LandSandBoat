@@ -28,6 +28,7 @@
 #include <iostream>
 #include <string>
 
+#include "map/entities/char_entity.h"
 #include "map/packets/s2c/0x0ad_dungeon.h"
 
 namespace
@@ -112,6 +113,30 @@ auto testPacketDataBytes() -> bool
     return expectStructBytes(data, expected, "DUNGEON PacketData bytes");
 }
 
+auto testConstructorCopiesCharacterMazeData() -> bool
+{
+    auto character = CCharEntity{};
+    character.maze().vouchers.set(0);
+    character.maze().vouchers.set(7);
+    character.maze().vouchers.set(8);
+    character.maze().vouchers.set(63);
+    character.maze().runes.set(0);
+    character.maze().runes.set(7);
+    character.maze().runes.set(8);
+    character.maze().runes.set(511);
+    auto packet = DungeonPacket(&character);
+
+    auto expected       = std::array<uint8, dungeonPacketDataSize>{};
+    expected[0]         = 0x81;
+    expected[1]         = 0x01;
+    expected[7]         = 0x80;
+    expected[8]         = 0x81;
+    expected[9]         = 0x01;
+    expected[71]        = 0x80;
+    const auto& payload = *reinterpret_cast<const DungeonPacket::PacketData*>(static_cast<uint8*>(packet) + sizeof(GP_SERV_HEADER));
+    return expectStructBytes(payload, expected, "DUNGEON constructor maze bytes");
+}
+
 } // namespace
 
 auto runS2CDungeonPacketSelfTests() -> bool
@@ -119,5 +144,6 @@ auto runS2CDungeonPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testConstructorCopiesCharacterMazeData() && ok;
     return ok;
 }

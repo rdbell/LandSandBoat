@@ -27,5 +27,5 @@ GP_SERV_COMMAND_MOUNT_DATA::GP_SERV_COMMAND_MOUNT_DATA(const CCharEntity* PChar)
 {
     auto& packet = this->data();
 
-    std::memcpy(packet.MountDataTbl, &(PChar->keys.tables[6].keyList), sizeof(packet.MountDataTbl));
+    packet = mountdatahelpers::PlanFor(PChar->keys);
 }

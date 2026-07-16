@@ -117,6 +117,34 @@ auto testPacketDataBytes() -> bool
     return expectStructBytes(data, expected, "COMMAND_DATA PacketData bytes");
 }
 
+auto testRuntimePlanCopiesSourcePrefixesAndZeroesPacketRemainders() -> bool
+{
+    auto facts                    = commanddatahelpers::Facts{};
+    facts.weaponSkills[0]         = 0x11;
+    facts.weaponSkills[31]        = 0x22;
+    facts.jobAbilities[0]         = 0x33;
+    facts.jobAbilities[63]        = 0x44;
+    facts.petAbilities[0]         = 0x55;
+    facts.petAbilities[63]        = 0x66;
+    facts.traits[0]               = 0x77;
+    facts.traits[17]              = 0x88;
+    const auto packet             = commanddatahelpers::PlanFor(facts);
+    const auto& data              = packet.CommandDataTbl;
+
+    bool ok = true;
+    ok      = expectEqualUInt(data.WeaponSkills[0], 0x11, "runtime first weapon skill") && ok;
+    ok      = expectEqualUInt(data.WeaponSkills[31], 0x22, "runtime last weapon skill") && ok;
+    ok      = expectEqualUInt(data.WeaponSkills[32], 0, "runtime weapon skill extension") && ok;
+    ok      = expectEqualUInt(data.WeaponSkills[63], 0, "runtime weapon skill extension tail") && ok;
+    ok      = expectEqualUInt(data.JobAbilities[63], 0x44, "runtime last job ability") && ok;
+    ok      = expectEqualUInt(data.PetAbilities[63], 0x66, "runtime last pet ability") && ok;
+    ok      = expectEqualUInt(data.Traits[0], 0x77, "runtime first trait") && ok;
+    ok      = expectEqualUInt(data.Traits[17], 0x88, "runtime last trait") && ok;
+    ok      = expectEqualUInt(data.Traits[18], 0, "runtime trait extension") && ok;
+    ok      = expectEqualUInt(data.Traits[31], 0, "runtime trait extension tail") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CCommandDataPacketSelfTests() -> bool
@@ -124,5 +152,6 @@ auto runS2CCommandDataPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testRuntimePlanCopiesSourcePrefixesAndZeroesPacketRemainders() && ok;
     return ok;
 }

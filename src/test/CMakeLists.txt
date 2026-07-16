@@ -1702,6 +1702,8 @@ set(SOURCES
     test_s2c_myroom_operation_packet.cpp
     test_s2c_mount_data_packet.h
     test_s2c_mount_data_packet.cpp
+    test_s2c_mount_data_runtime.h
+    test_s2c_mount_data_runtime.cpp
     test_s2c_packet_control_packet.h
     test_s2c_packet_control_packet.cpp
     test_s2c_packet_id_enum.h

@@ -21,6 +21,10 @@
 
 #pragma once
 
+#include <cstring>
+
+#include "common/mmo.h"
+
 #include "base.h"
 
 class CCharEntity;
@@ -37,3 +41,16 @@ public:
 
     GP_SERV_COMMAND_MOUNT_DATA(const CCharEntity* PChar);
 };
+
+namespace mountdatahelpers
+{
+
+// The client mount bit table is the first eight bytes of key-item table six.
+[[nodiscard]] inline auto PlanFor(const keyitems_t& keys) -> GP_SERV_COMMAND_MOUNT_DATA::PacketData
+{
+    auto plan = GP_SERV_COMMAND_MOUNT_DATA::PacketData{};
+    std::memcpy(plan.MountDataTbl, &keys.tables[6].keyList, sizeof(plan.MountDataTbl));
+    return plan;
+}
+
+} // namespace mountdatahelpers

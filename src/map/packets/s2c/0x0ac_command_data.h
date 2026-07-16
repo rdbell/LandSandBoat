@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "base.h"
 
 class CCharEntity;
@@ -47,3 +49,18 @@ public:
 
     GP_SERV_COMMAND_COMMAND_DATA(const CCharEntity* PChar);
 };
+
+namespace commanddatahelpers
+{
+
+struct Facts
+{
+    std::array<uint8_t, 32> weaponSkills{};
+    std::array<uint8_t, 64> jobAbilities{};
+    std::array<uint8_t, 64> petAbilities{};
+    std::array<uint8_t, 18> traits{};
+};
+
+[[nodiscard]] auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_COMMAND_DATA::PacketData;
+
+} // namespace commanddatahelpers
