@@ -46,6 +46,28 @@ inline auto ClassifyCharacterSelect(
     return character_select_gate::PROCEED;
 }
 
+// character_select_plan separates the pure VIEW 0x07 control-flow outcome
+// from the SQL, socket, and data-session hosts. A successful selection always
+// records the requested character ID, but only nudges a connected data peer.
+struct character_select_plan
+{
+    bool closeViewSession;
+    bool setRequestedCharacterID;
+    bool notifyDataSession;
+};
+
+// PlanCharacterSelect mirrors the gate handling following the ownership query
+// in VIEW 0x07. Both failure gates close the view socket before any session
+// mutation; PROCEED records the requested ID and conditionally notifies DATA.
+inline auto PlanCharacterSelect(const character_select_gate gate, const bool hasDataSession) -> character_select_plan
+{
+    if (gate != character_select_gate::PROCEED)
+    {
+        return { true, false, false };
+    }
+    return { false, true, hasDataSession };
+}
+
 // FormatCharacterSelectMismatchedName mirrors the ShowError text when the
 // charid+charname pair is not found (or the query fails).
 inline auto FormatCharacterSelectMismatchedName(const uint32 sessionAccountID) -> std::string

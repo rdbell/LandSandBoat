@@ -54,6 +54,23 @@ auto runLoginCharacterSelect1318SelfTests() -> bool
                 "query fail ignores row") &&
          ok;
 
+    const auto mismatchedPlan     = loginHelpers::PlanCharacterSelect(gate::MISMATCHED_NAME, true);
+    ok                            = expect(mismatchedPlan.closeViewSession && !mismatchedPlan.setRequestedCharacterID && !mismatchedPlan.notifyDataSession,
+                                           "mismatched plan closes before mutation or notify") &&
+                                    ok;
+    const auto wrongAccountPlan   = loginHelpers::PlanCharacterSelect(gate::WRONG_ACCOUNT, true);
+    ok                            = expect(wrongAccountPlan.closeViewSession && !wrongAccountPlan.setRequestedCharacterID && !wrongAccountPlan.notifyDataSession,
+                                           "wrong-account plan closes before mutation or notify") &&
+                                    ok;
+    const auto proceedWithoutData = loginHelpers::PlanCharacterSelect(gate::PROCEED, false);
+    ok                            = expect(!proceedWithoutData.closeViewSession && proceedWithoutData.setRequestedCharacterID && !proceedWithoutData.notifyDataSession,
+                                           "proceed without data records selection without notify") &&
+                                    ok;
+    const auto proceedWithData    = loginHelpers::PlanCharacterSelect(gate::PROCEED, true);
+    ok                            = expect(!proceedWithData.closeViewSession && proceedWithData.setRequestedCharacterID && proceedWithData.notifyDataSession,
+                                           "proceed with data records selection and notifies") &&
+                                    ok;
+
     ok = expect(loginHelpers::FormatCharacterSelectMismatchedName(42) ==
                     "Account ID 42 tried to select a character id with a mismatched character name.",
                 "mismatch diagnostic") &&

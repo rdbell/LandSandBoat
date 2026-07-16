@@ -81,23 +81,29 @@ void view_session::read_func()
                 rowFound,
                 accountID,
                 session.accountID);
-            if (selectGate == loginHelpers::character_select_gate::MISMATCHED_NAME)
+            const auto selectPlan = loginHelpers::PlanCharacterSelect(selectGate, session.data_session != nullptr);
+            if (selectPlan.closeViewSession)
             {
-                ShowError(loginHelpers::FormatCharacterSelectMismatchedName(session.accountID));
-                socket_.lowest_layer().close();
-                return;
-            }
-            if (selectGate == loginHelpers::character_select_gate::WRONG_ACCOUNT)
-            {
-                ShowError(loginHelpers::FormatCharacterSelectWrongAccount(session.accountID));
+                if (selectGate == loginHelpers::character_select_gate::MISMATCHED_NAME)
+                {
+                    ShowError(loginHelpers::FormatCharacterSelectMismatchedName(session.accountID));
+                }
+                else
+                {
+                    ShowError(loginHelpers::FormatCharacterSelectWrongAccount(session.accountID));
+                }
                 socket_.lowest_layer().close();
                 return;
             }
 
-            session.requestedCharacterID = requestedCharacterID;
-
-            if (auto data = session.data_session)
+            if (selectPlan.setRequestedCharacterID)
             {
+                session.requestedCharacterID = requestedCharacterID;
+            }
+
+            if (selectPlan.notifyDataSession)
+            {
+                auto data = session.data_session;
                 loginHelpers::GenerateDataSelectNotifyPacket(data->buffer_.data());
                 data->do_write(loginHelpers::DataSelectNotifyPacketSize);
             }
