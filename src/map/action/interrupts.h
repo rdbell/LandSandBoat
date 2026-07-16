@@ -31,6 +31,15 @@ class CBattleEntity;
 namespace ActionInterrupts
 {
 
+namespace detail
+{
+
+// AbilityInterruptAction builds the BATTLE2 action emitted when an ability is
+// interrupted. Packet delivery remains owned by AbilityInterrupt.
+auto AbilityInterruptAction(uint32 actorId) -> action_t;
+
+} // namespace detail
+
 void AbilityInterrupt(CBattleEntity* PEntity);
 
 void AvatarOutOfRange(CBattleEntity* PAvatar, const CPetSkill* PSkill, const CBattleEntity* PTarget);

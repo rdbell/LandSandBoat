@@ -27,6 +27,25 @@
 namespace ActionInterrupts
 {
 
+auto detail::AbilityInterruptAction(const uint32 actorId) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::SkillStart,
+        .actionid   = static_cast<uint32_t>(FourCC::SkillInterrupt),
+        .targets    = {
+            {
+                .actorId = actorId,
+                .results = {
+                    {
+                        // Empty result
+                    },
+                },
+            },
+        },
+    };
+}
+
 void AvatarOutOfRange(CBattleEntity* PAvatar, const CPetSkill* PSkill, const CBattleEntity* PTarget)
 {
     // Avatars using BP against an enemy out of range use a specific set of BATTLE2 packets:
@@ -141,21 +160,7 @@ void WyvernSkillReady(CBattleEntity* PWyvern)
 
 void AbilityInterrupt(CBattleEntity* PEntity)
 {
-    auto interruptAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::SkillStart,
-        .actionid   = static_cast<uint32_t>(FourCC::SkillInterrupt),
-        .targets    = {
-            {
-                .actorId = PEntity->id,
-                .results = {
-                    {
-                        // Empty result
-                    },
-                },
-            },
-        },
-    };
+    auto interruptAction = detail::AbilityInterruptAction(PEntity->id);
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(interruptAction));
 }

@@ -246,6 +246,7 @@ auto runLoginViewLobbyAck1317SelfTests() -> bool;
 auto runAutotranslate2617SelfTests() -> bool;
 auto runConquestData2620SelfTests() -> bool;
 auto runCommandHandler2630SelfTests() -> bool;
+auto runActionInterrupt2633SelfTests() -> bool;
 auto runFishingContestState2623SelfTests() -> bool;
 auto runBlueSpell2625SelfTests() -> bool;
 auto runAMAN2624SelfTests() -> bool;
@@ -1183,6 +1184,7 @@ namespace
         ok = runLoginViewLobbyAck1317SelfTests() && ok;
         ok = runConquestData2620SelfTests() && ok;
         ok = runCommandHandler2630SelfTests() && ok;
+        ok = runActionInterrupt2633SelfTests() && ok;
         ok = runFishingContestState2623SelfTests() && ok;
         ok = runBlueSpell2625SelfTests() && ok;
         ok = runAMAN2624SelfTests() && ok;

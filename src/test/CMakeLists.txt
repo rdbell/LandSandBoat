@@ -38,6 +38,8 @@ set(SOURCES
     test_console_service_input.cpp
     test_command_handler_2630.h
     test_command_handler_2630.cpp
+    test_action_interrupt_2633.h
+    test_action_interrupt_2633.cpp
     test_conquest_data_2620.h
     test_conquest_data_2620.cpp
     test_aman_2624.h
