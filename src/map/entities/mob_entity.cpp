@@ -20,6 +20,7 @@
 */
 
 #include "mob_entity.h"
+#include "mob_behavior_policy.h"
 #include "mob_gil_policy.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
@@ -446,7 +447,7 @@ bool CMobEntity::ShouldForceLink()
 
 bool CMobEntity::CanDeaggro() const
 {
-    return !(m_Type & MOBTYPE_NOTORIOUS || m_Type & MOBTYPE_BATTLEFIELD);
+    return mobbehaviorhelpers::CanDeaggro(m_Type & MOBTYPE_NOTORIOUS, m_Type & MOBTYPE_BATTLEFIELD);
 }
 
 bool CMobEntity::IsFarFromHome()
@@ -456,7 +457,7 @@ bool CMobEntity::IsFarFromHome()
 
 bool CMobEntity::CanBeNeutral() const
 {
-    return !(m_Type & MOBTYPE_NOTORIOUS);
+    return mobbehaviorhelpers::CanBeNeutral(m_Type & MOBTYPE_NOTORIOUS);
 }
 
 bool CMobEntity::shouldUseTPMove(uint16 tpThreshold)

@@ -1079,21 +1079,21 @@ void CZone::createZoneTimers()
 {
     TracyZoneScoped;
 
-    // We'll manually tick on while testing, don't install the timers
-    if (config_.isTestServer)
+    const auto plan = zonehelpers::PlanZoneTimers(config_.isTestServer);
+    if (!plan.install)
     {
         return;
     }
 
     zoneTimerToken_ = scheduler_.intervalOnMainThread(
-        kLogicUpdateInterval,
+        plan.logicInterval,
         [this]() -> Task<void>
         {
             co_await this->ZoneServer(timer::now());
         });
 
     zoneTimerTriggerAreasToken_ = scheduler_.intervalOnMainThread(
-        kTriggerAreaInterval,
+        plan.triggerAreaInterval,
         [this]() -> Task<void>
         {
             co_await this->CheckTriggerAreas();

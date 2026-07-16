@@ -170,44 +170,24 @@ auto GetChar(const uint32 charId) -> CCharEntity*
 
 auto GetCharToUpdate(uint32 primary, uint32 tertiary) -> CCharEntity*
 {
-    CCharEntity* PPrimary   = nullptr;
-    CCharEntity* PSecondary = nullptr;
-    CCharEntity* PTertiary  = nullptr;
+    auto selection = detail::CharUpdateSelection<CCharEntity>{};
 
     for (const auto PZone : g_PZoneList | std::views::values)
     {
         PZone->ForEachChar(
-            [primary, tertiary, &PPrimary, &PSecondary, &PTertiary](CCharEntity* PChar)
+            [primary, tertiary, &selection](CCharEntity* PChar)
             {
-                if (!PPrimary)
-                {
-                    if (PChar->id == primary)
-                    {
-                        PPrimary = PChar;
-                    }
-                    else if (PChar->PParty && PChar->PParty->GetPartyID() == primary)
-                    {
-                        PSecondary = PChar;
-                    }
-                    else if (PChar->id == tertiary)
-                    {
-                        PTertiary = PChar;
-                    }
-                }
+                const auto partyId = PChar->PParty ? PChar->PParty->GetPartyID() : 0;
+                detail::ConsiderCharToUpdate(selection, PChar, PChar->id, partyId, primary, tertiary);
             });
 
-        if (PPrimary)
+        if (selection.primary)
         {
-            return PPrimary;
+            return selection.primary;
         }
     }
 
-    if (PSecondary)
-    {
-        return PSecondary;
-    }
-
-    return PTertiary;
+    return selection.selected();
 }
 
 auto GetZonesAssignedToThisProcess(const IPP mapIPP) -> std::vector<uint16>

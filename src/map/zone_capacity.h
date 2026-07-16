@@ -3,6 +3,8 @@
 #include "common/cbasetypes.h"
 #include "common/timer.h"
 
+#include "map_constants.h"
+
 #include <chrono>
 #include <cstdint>
 #include <fmt/format.h>
@@ -100,6 +102,24 @@ inline auto ShouldStopZoneTimers(
     const bool              allMobsHomeAndHealed) -> bool
 {
     return hasZoneTimer && charListEmpty && zoneEmptyTime + std::chrono::seconds(5) < now && allMobsHomeAndHealed;
+}
+
+struct ZoneTimerPlan
+{
+    bool                      install{};
+    std::chrono::milliseconds logicInterval{};
+    std::chrono::milliseconds triggerAreaInterval{};
+};
+
+// PlanZoneTimers mirrors CZone::createZoneTimers. Test servers manually
+// advance ticks and therefore install neither recurring timer.
+inline auto PlanZoneTimers(const bool isTestServer) -> ZoneTimerPlan
+{
+    if (isTestServer)
+    {
+        return {};
+    }
+    return { true, kLogicUpdateInterval, kTriggerAreaInterval };
 }
 
 // --- updateCharLevelRestriction ---

@@ -55,6 +55,44 @@ enum class ZoneReadyDecision : uint8
 auto IsInstancedZoneType(ZONE_TYPE zoneType) -> bool;
 auto DecideZoneReady(bool loaded, bool lazyEnabled, bool managed, bool asyncMode) -> ZoneReadyDecision;
 
+template <typename T>
+struct CharUpdateSelection
+{
+    T* primary{};
+    T* secondary{};
+    T* tertiary{};
+
+    auto selected() const -> T*
+    {
+        return primary ? primary : (secondary ? secondary : tertiary);
+    }
+};
+
+// ConsiderCharToUpdate mirrors one GetCharToUpdate scan iteration. A primary
+// match wins immediately; party matches take precedence over tertiary matches
+// for the same character, and the latest non-primary fallback is retained.
+template <typename T>
+void ConsiderCharToUpdate(CharUpdateSelection<T>& selection, T* character, const uint32 characterId,
+                          const uint32 partyId, const uint32 primaryId, const uint32 tertiaryId)
+{
+    if (selection.primary)
+    {
+        return;
+    }
+    if (characterId == primaryId)
+    {
+        selection.primary = character;
+    }
+    else if (partyId == primaryId)
+    {
+        selection.secondary = character;
+    }
+    else if (characterId == tertiaryId)
+    {
+        selection.tertiary = character;
+    }
+}
+
 } // namespace detail
 
 auto LoadZones(Scheduler& scheduler, MapConfig config, const std::vector<uint16>& zoneIds) -> Task<void>;

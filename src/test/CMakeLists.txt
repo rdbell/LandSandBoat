@@ -713,8 +713,12 @@ set(SOURCES
     test_zone_char_targid_2650.cpp
     test_zone_idle_shutdown_2652.h
     test_zone_idle_shutdown_2652.cpp
+    test_zone_timer_plan_2657.h
+    test_zone_timer_plan_2657.cpp
     test_zone_query_by_name_2647.h
     test_zone_query_by_name_2647.cpp
+    test_zone_char_update_2656.h
+    test_zone_char_update_2656.cpp
     test_status_effect_can_gain_1364.h
     test_status_effect_can_gain_1364.cpp
     test_status_effect_selection_1365.h
@@ -1229,6 +1233,8 @@ set(SOURCES
     test_mob_setup_1621.cpp
     test_mob_gil_policy_2653.h
     test_mob_gil_policy_2653.cpp
+    test_mob_behavior_policy_2655.h
+    test_mob_behavior_policy_2655.cpp
     test_pet_mod_tandem_1624.h
     test_pet_mod_tandem_1624.cpp
     test_pet_spawn_1625.h
