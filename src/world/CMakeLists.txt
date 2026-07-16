@@ -18,6 +18,8 @@ set(SOURCES
     gmcall_response_persistence.h
     http_server.cpp
     http_server.h
+    http_server_api.cpp
+    http_server_api.h
     ipc_server.cpp
     ipc_server.h
     ipc_lookup.cpp

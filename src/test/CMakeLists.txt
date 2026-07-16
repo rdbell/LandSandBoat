@@ -18,6 +18,7 @@ set(SOURCES
     ../search/search_request_parser.cpp
     ../search/search_request_type.cpp
     ../search/search_session_tracker.cpp
+    ../search/search_session.cpp
     ../search/packets/auction_history.cpp
     ../search/packets/auction_list.cpp
     ../search/packets/linkshell_list.cpp
@@ -1175,6 +1176,8 @@ set(SOURCES
     test_world_daily_tally.cpp
     test_world_time_server_effects.h
     test_world_time_server_effects.cpp
+    test_world_http_server_api.h
+    test_world_http_server_api.cpp
     test_world_gmcall_response_1240.h
     test_world_gmcall_response_1240.cpp
     test_world_gmcall_request_1244.h

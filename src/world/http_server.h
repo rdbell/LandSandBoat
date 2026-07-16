@@ -24,6 +24,7 @@
 #include "common/logging.h"
 #include "common/synchronized.h"
 #include "common/timer.h"
+#include "world/http_server_api.h"
 
 #include "map/zone.h"
 
@@ -40,16 +41,11 @@ public:
     void LockingUpdate();
 
 private:
+    auto APIResponse(const std::string& path) -> HTTPServerAPIResponse;
+
     Scheduler&                     scheduler_;
     httplib::Server                httpServer_;
     std::atomic<timer::time_point> lastUpdate_;
 
-    struct APIDataCache
-    {
-        uint32                                 activeSessionCount;
-        uint32                                 activeUniqueIPCount;
-        std::array<uint32, ZONEID::MAX_ZONEID> zonePlayerCounts;
-    };
-
-    SynchronizedShared<APIDataCache> apiDataCache_;
+    SynchronizedShared<HTTPServerAPIDataCache> apiDataCache_;
 };

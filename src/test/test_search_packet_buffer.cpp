@@ -30,6 +30,7 @@
 #include <map>
 #include <string>
 #include <unordered_set>
+#include <vector>
 
 #include "common/blowfish.h"
 #include "common/logging.h"
@@ -48,6 +49,7 @@
 #include "search/search.h"
 #include "search/search_request_type.h"
 #include "search/search_session_tracker.h"
+#include "search/search_session.h"
 
 namespace
 {
@@ -1022,6 +1024,126 @@ auto testOversizedPacketIsRejected() -> bool
     return expectEqualInt(packet.getSize(), 0, "oversized packet size");
 }
 
+class TestSearchSessionTransport final : public SearchSessionTransport
+{
+public:
+    std::vector<uint8>       input;
+    std::vector<std::size_t> readSizes;
+    std::vector<uint8>       output;
+    bool                     writeSucceeds = true;
+    bool                     closed        = false;
+
+    auto read(uint8* data, const std::size_t length) -> std::size_t override
+    {
+        if (readOffset >= input.size())
+        {
+            return 0;
+        }
+
+        const auto requested = readCall < readSizes.size() ? readSizes[readCall++] : length;
+        const auto available = input.size() - readOffset;
+        const auto received  = std::min({ length, requested, available });
+        std::memcpy(data, input.data() + readOffset, received);
+        readOffset += received;
+        return received;
+    }
+
+    auto write(const uint8* data, const std::size_t length) -> bool override
+    {
+        if (!writeSucceeds)
+        {
+            return false;
+        }
+        output.insert(output.end(), data, data + length);
+        return true;
+    }
+
+    void close() override
+    {
+        closed = true;
+    }
+
+private:
+    std::size_t readOffset = 0;
+    std::size_t readCall   = 0;
+};
+
+auto searchSessionTestFrame(const uint8 marker) -> std::vector<uint8>
+{
+    auto frame = std::vector<uint8>(28);
+    frame[0]   = static_cast<uint8>(frame.size());
+    frame[8]   = marker;
+    return frame;
+}
+
+auto testSearchSessionReassemblesPartialReadsAndPreservesResponseOrder() -> bool
+{
+    auto transport     = TestSearchSessionTransport{};
+    auto firstRequest = searchSessionTestFrame(0x10);
+    auto secondRequest = searchSessionTestFrame(0x20);
+    transport.input.insert(transport.input.end(), firstRequest.begin(), firstRequest.end());
+    transport.input.insert(transport.input.end(), secondRequest.begin(), secondRequest.end());
+    transport.readSizes = { 1, 1, 3, 7, 16, 2, 26 };
+
+    auto received = std::vector<uint8>{};
+    auto cleanup = 0;
+    const auto result = ServeSearchSession(transport, [&received](const std::vector<uint8>& request) {
+        received.push_back(request[8]);
+        return std::vector<std::vector<uint8>>{ searchSessionTestFrame(static_cast<uint8>(request[8] + 1)) };
+    }, [&cleanup]() { ++cleanup; });
+
+    bool ok = true;
+    ok      = expectEqualInt(static_cast<uint8>(result), static_cast<uint8>(SearchSessionResult::EndOfFile), "search session EOF result") && ok;
+    ok      = expectTrue(received == std::vector<uint8>{ 0x10, 0x20 }, "search session request order") && ok;
+    ok      = expectEqualInt(transport.output.size(), 56, "search session response byte count") && ok;
+    if (transport.output.size() == 56)
+    {
+        ok = expectEqualInt(transport.output[8], 0x11, "first search session response") && ok;
+        ok = expectEqualInt(transport.output[36], 0x21, "second search session response") && ok;
+    }
+    ok      = expectTrue(transport.closed, "search session closes at EOF") && ok;
+    ok      = expectEqualInt(cleanup, 1, "search session cleanup at EOF") && ok;
+    return ok;
+}
+
+auto testSearchSessionRejectsTruncatedInvalidAndOversizedFrames() -> bool
+{
+    auto truncated = TestSearchSessionTransport{};
+    truncated.input = { 28 };
+    auto invalid = TestSearchSessionTransport{};
+    invalid.input = { 27, 0 };
+    auto oversized = TestSearchSessionTransport{};
+    oversized.input = { 1, 4 };
+
+    auto cleanup = 0;
+    const auto noResponses = [](const std::vector<uint8>&) { return std::vector<std::vector<uint8>>{}; };
+    bool ok = true;
+    ok      = expectEqualInt(static_cast<uint8>(ServeSearchSession(truncated, noResponses, [&cleanup]() { ++cleanup; })), static_cast<uint8>(SearchSessionResult::TruncatedFrame), "truncated search frame") && ok;
+    ok      = expectEqualInt(static_cast<uint8>(ServeSearchSession(invalid, noResponses, [&cleanup]() { ++cleanup; })), static_cast<uint8>(SearchSessionResult::InvalidFrameLength), "invalid search frame") && ok;
+    ok      = expectEqualInt(static_cast<uint8>(ServeSearchSession(oversized, noResponses, [&cleanup]() { ++cleanup; })), static_cast<uint8>(SearchSessionResult::InvalidFrameLength), "oversized search frame") && ok;
+    ok      = expectTrue(truncated.closed && invalid.closed && oversized.closed, "search session closes invalid connections") && ok;
+    ok      = expectEqualInt(cleanup, 3, "search session cleanup for rejected frames") && ok;
+    return ok;
+}
+
+auto testSearchSessionReportsWriteFailureAndCleansUp() -> bool
+{
+    auto transport = TestSearchSessionTransport{};
+    transport.input = searchSessionTestFrame(0x10);
+    transport.writeSucceeds = false;
+    auto cleanup = 0;
+
+    const auto result = ServeSearchSession(transport, [](const std::vector<uint8>&) {
+        return std::vector<std::vector<uint8>>{ searchSessionTestFrame(0x11) };
+    }, [&cleanup]() { ++cleanup; });
+
+    bool ok = true;
+    ok      = expectEqualInt(static_cast<uint8>(result), static_cast<uint8>(SearchSessionResult::WriteFailure), "search session write failure") && ok;
+    ok      = expectTrue(transport.closed, "search session closes after write failure") && ok;
+    ok      = expectEqualInt(cleanup, 1, "search session cleanup after write failure") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runSearchPacketBufferSelfTests() -> bool
@@ -1047,6 +1169,9 @@ auto runSearchPacketBufferSelfTests() -> bool
            testSearchSessionTrackerCountsActiveIP() &&
            testSearchSessionTrackerRemovesAndErasesIP() &&
            testSearchSessionTrackerIgnoresWhitelistedIP() &&
+           testSearchSessionReassemblesPartialReadsAndPreservesResponseOrder() &&
+           testSearchSessionRejectsTruncatedInvalidAndOversizedFrames() &&
+           testSearchSessionReportsWriteFailureAndCleansUp() &&
            testSearchPlayerFilterAcceptsDefaultRequest() &&
            testSearchPlayerFilterLinkshellAndAnonRules() &&
            testSearchPlayerFilterRaceRankLevelNameAndHiddenRules() &&

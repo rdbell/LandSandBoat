@@ -37,6 +37,8 @@ set(SOURCES
     search_request_type.h
     search_session_tracker.cpp
     search_session_tracker.h
+    search_session.cpp
+    search_session.h
 )
 
 if(UNIX)

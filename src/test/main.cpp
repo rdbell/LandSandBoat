@@ -601,6 +601,7 @@ auto runMapPacketBasicHeaderSelfTests() -> bool;
 auto runWorldCharacterCacheSelfTests() -> bool;
 auto runWorldDailyTallySelfTests() -> bool;
 auto runWorldTimeServerEffectsSelfTests() -> bool;
+auto runWorldHTTPServerAPISelfTests() -> bool;
 auto runWorldGMCallResponse1240SelfTests() -> bool;
 auto runWorldGMCallRequest1244SelfTests() -> bool;
 auto runWorldGMCallDatabase1245SelfTests() -> bool;
@@ -924,6 +925,7 @@ namespace
         ok = runWorldCharacterCacheSelfTests() && ok;
         ok = runWorldDailyTallySelfTests() && ok;
         ok = runWorldTimeServerEffectsSelfTests() && ok;
+        ok = runWorldHTTPServerAPISelfTests() && ok;
         ok = runWorldGMCallResponse1240SelfTests() && ok;
         ok = runWorldGMCallRequest1244SelfTests() && ok;
         ok = runWorldGMCallDatabase1245SelfTests() && ok;

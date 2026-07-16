@@ -24,17 +24,9 @@
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/settings.h"
-#include "common/utils.h"
-#include "common/xi.h"
-
-#include <unordered_set>
-
-#include <nlohmann/json.hpp>
-using json = nlohmann::json;
-
 HTTPServer::HTTPServer(Scheduler& scheduler)
 : scheduler_(scheduler)
-, apiDataCache_(APIDataCache{})
+, apiDataCache_(HTTPServerAPIDataCache{})
 {
     // NOTE: Everything registered in here happens off the main thread, so lock any global resources
     //     : you might be using.
@@ -50,120 +42,15 @@ HTTPServer::HTTPServer(Scheduler& scheduler)
         [this, host, port]()
         {
             httpServer_.Get(
-                "/api",
+                R"(/api.*)",
                 [&](const httplib::Request& req, httplib::Response& res)
                 {
-                    res.set_content("Hello LSB API", "text/plain");
-                });
-
-            httpServer_.Get(
-                "/api/sessions",
-                [&](const httplib::Request& req, httplib::Response& res)
-                {
-                    LockingUpdate();
-                    apiDataCache_.read([&](const auto& apiDataCache)
-                                       {
-                                           json j = apiDataCache.activeSessionCount;
-                                           res.set_content(j.dump(), "application/json");
-                                       });
-                });
-
-            httpServer_.Get(
-                "/api/ips",
-                [&](const httplib::Request& req, httplib::Response& res)
-                {
-                    LockingUpdate();
-                    apiDataCache_.read(
-                        [&](const auto& apiDataCache)
-                        {
-                            json j = apiDataCache.activeUniqueIPCount;
-                            res.set_content(j.dump(), "application/json");
-                        });
-                });
-
-            httpServer_.Get(
-                "/api/zones",
-                [&](const httplib::Request& req, httplib::Response& res)
-                {
-                    LockingUpdate();
-                    apiDataCache_.read(
-                        [&](const auto& apiDataCache)
-                        {
-                            json j = apiDataCache.zonePlayerCounts;
-                            res.set_content(j.dump(), "application/json");
-                        });
-                });
-
-            httpServer_.Get(
-                R"(/api/zones/(\d+))",
-                [&](const httplib::Request& req, httplib::Response& res)
-                {
-                    auto   maybeZoneId = req.matches[1].str();
-                    uint16 zoneId      = std::strtol(maybeZoneId.c_str(), nullptr, 10);
-                    if (zoneId && zoneId < ZONEID::MAX_ZONEID)
+                    const auto response = APIResponse(req.path);
+                    res.status          = response.status;
+                    if (!response.contentType.empty())
                     {
-                        LockingUpdate();
-                        apiDataCache_.read(
-                            [&](const auto& apiDataCache)
-                            {
-                                json j = apiDataCache.zonePlayerCounts[zoneId];
-                                res.set_content(j.dump(), "application/json");
-                            });
+                        res.set_content(response.body, response.contentType);
                     }
-                    else
-                    {
-                        res.status = 404;
-                    }
-                });
-
-            httpServer_.Get(
-                "/api/settings",
-                [&](const httplib::Request& req, httplib::Response& res)
-                {
-                    // TODO: Cache these
-                    json j{};
-
-                    // Filter out settings we don't want to expose
-                    std::unordered_set<std::string> textToOmit{
-                        "logging.",
-                        "network.",
-                        "password", // Just in case
-                    };
-
-                    settings::visit(
-                        [&](const auto& key, const auto& variant)
-                        {
-                            // Keys are stored verbatim (mixed case), and the omit list is lowercase,
-                            // so match case-insensitively to still catch e.g. "...PASSWORD".
-                            const auto lowerKey = to_lower(key);
-                            for (const auto& text : textToOmit)
-                            {
-                                if (lowerKey.find(text) != std::string::npos)
-                                {
-                                    return;
-                                }
-                            }
-
-                            std::visit(
-                                xi::overload{
-                                    [&](const bool& arg)
-                                    {
-                                        j[key] = arg;
-                                    },
-                                    [&](const double& arg)
-                                    {
-                                        j[key] = arg;
-                                    },
-                                    [&](const std::string& arg)
-                                    {
-                                        // JSON can't handle non-ASCII characters, so strip them out
-                                        j[key] = utils::toASCII(arg, '?');
-                                    },
-                                },
-                                variant);
-                        });
-
-                    res.set_content(j.dump(), "application/json");
                 });
 
             httpServer_.set_error_handler(
@@ -199,6 +86,24 @@ HTTPServer::HTTPServer(Scheduler& scheduler)
 
             httpServer_.listen(host, port); // blocks
         });
+}
+
+auto HTTPServer::APIResponse(const std::string& path) -> HTTPServerAPIResponse
+{
+    HTTPServerAPIDataCache cache;
+    if (path != "/api" && path != "/api/settings")
+    {
+        LockingUpdate();
+        apiDataCache_.read([&](const auto& apiDataCache) { cache = apiDataCache; });
+    }
+
+    HTTPServerAPISettings apiSettings;
+    if (path == "/api/settings")
+    {
+        settings::visit([&](const auto& key, const auto& variant) { apiSettings.emplace(key, variant); });
+    }
+
+    return makeHTTPServerAPIResponse(path, cache, apiSettings);
 }
 
 HTTPServer::~HTTPServer()
