@@ -218,6 +218,19 @@ auto testSwitchProcClamp() -> bool
     return ok;
 }
 
+auto testSwitchProcActiveEmptyBody() -> bool
+{
+    auto proposal = makeProposal();
+    auto packet   = GP_SERV_COMMAND_SWITCH_PROC(proposal, GP_SERV_COMMAND_SWITCH_PROC_STATE::Active, "");
+
+    bool ok = true;
+    ok      = expectEqualUInt(packet.getSize(), 48, "SWITCH_PROC active empty size") && ok;
+    ok      = expectBytes(packet, switchProcStateOffset, std::array<uint8, 1>{ 0x00 }, "SWITCH_PROC active state") && ok;
+    ok      = expectBytes(packet, switchProcQuestionNumOffset, std::array<uint8, 1>{ 0x03 }, "SWITCH_PROC active question count") && ok;
+    ok      = expectZeroRange(packet, switchProcStrOffset, PACKET_SIZE, "SWITCH_PROC active empty body and tail") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CSwitchPacketSelfTests() -> bool
@@ -229,5 +242,6 @@ auto runS2CSwitchPacketSelfTests() -> bool
     ok      = testSwitchProcLayout() && ok;
     ok      = testSwitchProcConstructor() && ok;
     ok      = testSwitchProcClamp() && ok;
+    ok      = testSwitchProcActiveEmptyBody() && ok;
     return ok;
 }
