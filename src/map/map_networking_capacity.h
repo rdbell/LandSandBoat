@@ -74,4 +74,11 @@ inline auto HasUnencryptedLoginPacketSize(const std::size_t packetSize, const st
     return packetSize >= FFXI_HEADER_SIZE + loginPacketSize;
 }
 
+// IsChecksumValid mirrors the common checksum convention used by map packet
+// parsing: zero denotes a valid digest.
+inline auto IsChecksumValid(const int32 checksumResult) -> bool
+{
+    return checksumResult == 0;
+}
+
 } // namespace mapnetworkinghelpers

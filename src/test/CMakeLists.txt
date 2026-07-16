@@ -1426,6 +1426,8 @@ set(SOURCES
     test_map_networking_packet_id_2684.cpp
     test_map_networking_login_size_2687.h
     test_map_networking_login_size_2687.cpp
+    test_map_networking_checksum_2690.h
+    test_map_networking_checksum_2690.cpp
     test_map_socket_receive_2654.h
     test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h

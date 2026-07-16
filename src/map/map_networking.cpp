@@ -208,7 +208,7 @@ bool MapNetworking::decodeIncomingPacket(ByteSpan packet, NetworkBuffer& output,
 
     const auto compressedSize = packet.size() - FFXI_HEADER_SIZE - 16;
     auto*      compressed     = output.data() + FFXI_HEADER_SIZE;
-    if (checksum(compressed, static_cast<uint32>(compressedSize), reinterpret_cast<char*>(output.data() + packet.size() - 16)) != 0)
+    if (!mapnetworkinghelpers::IsChecksumValid(checksum(compressed, static_cast<uint32>(compressedSize), reinterpret_cast<char*>(output.data() + packet.size() - 16))))
     {
         return false;
     }
@@ -252,7 +252,7 @@ int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSess
         return -1;
     }
 
-    if (checksumResult == 0)
+    if (mapnetworkinghelpers::IsChecksumValid(checksumResult))
     {
         const auto packetID = mapnetworkinghelpers::MapPacketID(ref<uint16>(buff, FFXI_HEADER_SIZE));
 

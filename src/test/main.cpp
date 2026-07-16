@@ -151,6 +151,7 @@ auto runMapNetworkingCompressedMarker2678SelfTests() -> bool;
 auto runMapNetworkingLoginPacket2681SelfTests() -> bool;
 auto runMapNetworkingPacketID2684SelfTests() -> bool;
 auto runMapNetworkingLoginSize2687SelfTests() -> bool;
+auto runMapNetworkingChecksum2690SelfTests() -> bool;
 auto runMapSocketReceive2654SelfTests() -> bool;
 auto runMapSessionBlowfishSelfTests() -> bool;
 auto runMapSessionIndexSelfTests() -> bool;
@@ -1122,6 +1123,7 @@ namespace
         ok = runMapNetworkingLoginPacket2681SelfTests() && ok;
         ok = runMapNetworkingPacketID2684SelfTests() && ok;
         ok = runMapNetworkingLoginSize2687SelfTests() && ok;
+        ok = runMapNetworkingChecksum2690SelfTests() && ok;
         ok = runMapSocketReceive2654SelfTests() && ok;
         ok = runMapSessionBlowfishSelfTests() && ok;
         ok = runMapSessionIndexSelfTests() && ok;
