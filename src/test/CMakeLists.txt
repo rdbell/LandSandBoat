@@ -102,6 +102,8 @@ set(SOURCES
     test_c2s_equipset_check_runtime.cpp
     test_c2s_equip_set_runtime.h
     test_c2s_equip_set_runtime.cpp
+    test_c2s_equipset_set_runtime.h
+    test_c2s_equipset_set_runtime.cpp
     test_c2s_event_update_packets.h
     test_c2s_event_update_packets.cpp
     test_c2s_maprect_moghouse_exit.h
@@ -206,6 +208,8 @@ set(SOURCES
     test_c2s_pos_packet.cpp
     test_c2s_recipe_misc_packets.h
     test_c2s_recipe_misc_packets.cpp
+    test_c2s_effectend_runtime.h
+    test_c2s_effectend_runtime.cpp
     test_c2s_recipe_runtime.h
     test_c2s_recipe_runtime.cpp
     test_c2s_rescue_buff_submap_packets.h

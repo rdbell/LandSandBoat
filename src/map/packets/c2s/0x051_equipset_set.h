@@ -22,6 +22,7 @@
 #pragma once
 
 #include "base.h"
+namespace equipsetsethelpers { struct DispatchPlan { uint8 equipCount; bool persist = true, checkGearSet = true, updateHealth = true, retriggerLatents = true; }; constexpr auto MakeDispatchPlan(uint8 count) -> DispatchPlan { return { count }; } }
 
 struct equipsetitem_t
 {

@@ -99,13 +99,14 @@ auto GP_CLI_COMMAND_EQUIPSET_SET::validate(MapSession* PSession, const CCharEnti
 
 void GP_CLI_COMMAND_EQUIPSET_SET::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    for (uint8 i = 0; i < this->Count; i++)
+    const auto plan = equipsetsethelpers::MakeDispatchPlan(this->Count);
+    for (uint8 i = 0; i < plan.equipCount; i++)
     {
         charutils::EquipItem(PChar, this->Equipment[i].ItemIndex, this->Equipment[i].EquipKind, this->Equipment[i].Category);
     }
 
-    PChar->RequestPersist(CHAR_PERSIST::EQUIP);
-    luautils::CheckForGearSet(PChar); // check for gear set on gear change
-    PChar->UpdateHealth();
-    PChar->retriggerLatents = true; // retrigger all latents later because our gear has changed
+    if (plan.persist) PChar->RequestPersist(CHAR_PERSIST::EQUIP);
+    if (plan.checkGearSet) luautils::CheckForGearSet(PChar);
+    if (plan.updateHealth) PChar->UpdateHealth();
+    if (plan.retriggerLatents) PChar->retriggerLatents = true;
 }

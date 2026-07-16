@@ -30,5 +30,10 @@ auto GP_CLI_COMMAND_EFFECTEND::validate(MapSession* PSession, const CCharEntity*
 
 void GP_CLI_COMMAND_EFFECTEND::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    // Do nothing. This is handled in synth state.
+    switch (effectendhelpers::SelectAction())
+    {
+        case effectendhelpers::Action::None:
+            // Do nothing. This is handled in synth state.
+            break;
+    }
 }

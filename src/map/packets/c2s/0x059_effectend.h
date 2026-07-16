@@ -23,6 +23,23 @@
 
 #include "base.h"
 
+// EFFECTEND's post-validation runtime action. Synthesis state consumes this
+// client notification; the map packet handler intentionally does nothing.
+namespace effectendhelpers
+{
+
+enum class Action : uint8
+{
+    None,
+};
+
+[[nodiscard]] constexpr auto SelectAction() -> Action
+{
+    return Action::None;
+}
+
+} // namespace effectendhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0059
 // This packet is sent by the client when crafting.
 GP_CLI_PACKET(GP_CLI_COMMAND_EFFECTEND,
