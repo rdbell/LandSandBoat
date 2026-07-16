@@ -153,6 +153,22 @@ auto testMapStatisticsPrintResets() -> bool
     return expectKnownZeroes(stats, "print reset known key value");
 }
 
+auto testMapStatisticsFlushResetsKnownKeysOnly() -> bool
+{
+    constexpr auto unknownKey = static_cast<Key>(9999);
+
+    MapStatistics stats;
+    stats.set(Key::ActiveMobs, 11);
+    stats.set(unknownKey, 12);
+
+    // With Tracy disabled for xi_test, flush still executes its report loop and
+    // then resets the known enum keys. An arbitrary map key is not reset.
+    stats.flush();
+
+    return expectKnownZeroes(stats, "flush reset known key value") &&
+           expectInt64(stats.get(unknownKey), 12, "flush preserves unknown key value");
+}
+
 } // namespace
 
 auto runMapStatisticsSelfTests() -> bool
@@ -162,5 +178,6 @@ auto runMapStatisticsSelfTests() -> bool
     ok      = testMapStatisticsCounters() && ok;
     ok      = testMapStatisticsTimingAggregation() && ok;
     ok      = testMapStatisticsPrintResets() && ok;
+    ok      = testMapStatisticsFlushResetsKnownKeysOnly() && ok;
     return ok;
 }
