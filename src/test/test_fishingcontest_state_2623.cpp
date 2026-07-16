@@ -20,11 +20,11 @@ auto expect(const bool condition, const char* label) -> bool
 
 auto runFishingContestState2623SelfTests() -> bool
 {
-    auto       defaults = FishingContest{};
-    bool       ok       = true;
-    ok                  = expect(defaults.status == FISHING_CONTEST_STATUS::CONTESTING && defaults.criteria == FISHING_CONTEST_CRITERIA::SIZE && defaults.measure == FISHING_CONTEST_MEASURE::GREATEST, "struct defaults") && ok;
-    ok                  = expect(defaults.fishId == 0 && defaults.startTime == 0 && defaults.changeTime == 0xFFFFFFFF, "default values") && ok;
-    ok                  = expect(!defaults.isValid(), "default requires fish and start time") && ok;
+    auto defaults = FishingContest{};
+    bool ok       = true;
+    ok            = expect(defaults.status == FISHING_CONTEST_STATUS::CONTESTING && defaults.criteria == FISHING_CONTEST_CRITERIA::SIZE && defaults.measure == FISHING_CONTEST_MEASURE::GREATEST, "struct defaults") && ok;
+    ok            = expect(defaults.fishId == 0 && defaults.startTime == 0 && defaults.changeTime == 0xFFFFFFFF, "default values") && ok;
+    ok            = expect(!defaults.isValid(), "default requires fish and start time") && ok;
     fishingcontest::SetContestStatus(FISHING_CONTEST_STATUS::ACCEPTING);
     fishingcontest::SetContestCriteria(FISHING_CONTEST_CRITERIA::BOTH);
     fishingcontest::SetContestMeasure(FISHING_CONTEST_MEASURE::SMALLEST);

@@ -1845,6 +1845,8 @@ set(SOURCES
     test_status_effect_data.h
     test_status_effect_data.cpp
     test_blue_magic_set_runtime_1233.cpp
+    test_blue_spell_2625.h
+    test_blue_spell_2625.cpp
     test_server_variable_persistence_1235.h
     test_server_variable_persistence_1235.cpp
     test_zone_catalog_runtime_1231.h
