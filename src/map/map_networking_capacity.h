@@ -46,4 +46,11 @@ inline auto HasValidCompressedBitCount(const uint32 bitSize, const std::size_t c
     return compressedSize >= minimumCompressedSize && bitSize >= 8 && byteSize == compressedSize - sizeof(uint32);
 }
 
+// HasCompressedPayloadMarker mirrors the leading marker check on a decrypted
+// map payload. Callers must ensure the payload has at least one byte.
+inline auto HasCompressedPayloadMarker(const uint8 marker) -> bool
+{
+    return marker == 1;
+}
+
 } // namespace mapnetworkinghelpers

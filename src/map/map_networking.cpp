@@ -214,7 +214,8 @@ bool MapNetworking::decodeIncomingPacket(ByteSpan packet, NetworkBuffer& output,
     }
 
     const auto bitSize = ref<uint32>(compressed, compressedSize - sizeof(uint32));
-    if (compressed[0] != 1 || !mapnetworkinghelpers::HasValidCompressedBitCount(bitSize, compressedSize))
+    if (!mapnetworkinghelpers::HasCompressedPayloadMarker(compressed[0]) ||
+        !mapnetworkinghelpers::HasValidCompressedBitCount(bitSize, compressedSize))
     {
         return false;
     }

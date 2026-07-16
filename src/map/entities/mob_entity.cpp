@@ -28,6 +28,7 @@
 #include "mob_widescan_policy.h"
 #include "mob_home_distance_policy.h"
 #include "mob_tp_move_policy.h"
+#include "mob_roam_rate.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -573,7 +574,7 @@ float CMobEntity::GetRoamDistance()
 
 float CMobEntity::GetRoamRate()
 {
-    return (float)getMobMod(MOBMOD_ROAM_RATE) / 10.0f;
+    return mobroamratehelpers::GetRoamRate(getMobMod(MOBMOD_ROAM_RATE));
 }
 
 float CMobEntity::GetRangedAttackRange()
