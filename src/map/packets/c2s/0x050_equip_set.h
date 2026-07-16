@@ -22,6 +22,7 @@
 #pragma once
 
 #include "base.h"
+namespace equipsethelpers { struct DispatchPlan { bool equip=true, persist=true, checkGearSet=true, updateHealth=true, retriggerLatents=true; }; constexpr auto MakeDispatchPlan() -> DispatchPlan { return {}; } }
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0050
 // This packet is sent by the client when changing equipment.

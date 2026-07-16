@@ -58,6 +58,8 @@ set(SOURCES
     test_c2s_action_packet.cpp
     test_c2s_auc_packet.h
     test_c2s_auc_packet.cpp
+    test_c2s_auc_runtime.h
+    test_c2s_auc_runtime.cpp
     test_c2s_battlefield_sitchair_packets.h
     test_c2s_battlefield_sitchair_packets.cpp
     test_c2s_bazaar_buyer_packets.h
@@ -96,6 +98,8 @@ set(SOURCES
     test_c2s_dungeon_inspect_packets.cpp
     test_c2s_equipment_packets.h
     test_c2s_equipment_packets.cpp
+    test_c2s_equip_set_runtime.h
+    test_c2s_equip_set_runtime.cpp
     test_c2s_event_update_packets.h
     test_c2s_event_update_packets.cpp
     test_c2s_maprect_moghouse_exit.h
@@ -138,6 +142,8 @@ set(SOURCES
     test_c2s_group_solicit_response_plan.cpp
     test_c2s_pbx_plan.h
     test_c2s_pbx_plan.cpp
+    test_c2s_fragments_servmes_plan.h
+    test_c2s_fragments_servmes_plan.cpp
     ../map/packets/c2s/group_solicit_response_plan.cpp
     ../map/packets/c2s/group_solicit_response_plan.h
     ../map/packets/c2s/group_solicit_plan.cpp

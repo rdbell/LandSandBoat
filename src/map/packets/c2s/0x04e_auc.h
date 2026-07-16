@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "base.h"
 
 struct GP_AUC_BOX
@@ -109,6 +111,54 @@ enum class GP_CLI_COMMAND_AUC_COMMAND : uint8_t
     LotCheck  = 0x0D, // Used when querying the status of items up for sale in the 'Sales Status' window.
     Bid       = 0x0E, // Used when bidding on an item.
 };
+
+// AUC's entity-independent host-operation selection. Zone and jail checks,
+// plus auction database operations, remain owned by the map host.
+namespace auchelpers
+{
+
+enum class Operation : uint8
+{
+    SellingItems,
+    OpenListOfSales,
+    RetrieveListOfItemsSoldByPlayer,
+    ProofOfPurchase,
+    PurchasingItems,
+    CancelSale,
+    UpdateSaleListByPlayer,
+};
+
+struct OperationPlan
+{
+    std::array<Operation, 2> operations{};
+    uint8                    count{};
+};
+
+[[nodiscard]] constexpr auto BuildOperationPlan(const GP_CLI_COMMAND_AUC_COMMAND command) -> OperationPlan
+{
+    switch (command)
+    {
+        case GP_CLI_COMMAND_AUC_COMMAND::AskCommit:
+            return OperationPlan{ { Operation::SellingItems }, 1 };
+        case GP_CLI_COMMAND_AUC_COMMAND::Info:
+            // Info intentionally falls through to WorkCheck in the original handler.
+            return OperationPlan{ { Operation::OpenListOfSales, Operation::RetrieveListOfItemsSoldByPlayer }, 2 };
+        case GP_CLI_COMMAND_AUC_COMMAND::WorkCheck:
+            return OperationPlan{ { Operation::RetrieveListOfItemsSoldByPlayer }, 1 };
+        case GP_CLI_COMMAND_AUC_COMMAND::LotIn:
+            return OperationPlan{ { Operation::ProofOfPurchase }, 1 };
+        case GP_CLI_COMMAND_AUC_COMMAND::Bid:
+            return OperationPlan{ { Operation::PurchasingItems }, 1 };
+        case GP_CLI_COMMAND_AUC_COMMAND::LotCancel:
+            return OperationPlan{ { Operation::CancelSale }, 1 };
+        case GP_CLI_COMMAND_AUC_COMMAND::LotCheck:
+            return OperationPlan{ { Operation::UpdateSaleListByPlayer }, 1 };
+        default:
+            return {};
+    }
+}
+
+} // namespace auchelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x004E
 // This packet is sent by the client when interacting with the auction house system.

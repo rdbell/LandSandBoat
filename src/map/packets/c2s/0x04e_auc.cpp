@@ -89,47 +89,33 @@ auto GP_CLI_COMMAND_AUC::validate(MapSession* PSession, const CCharEntity* PChar
 
 void GP_CLI_COMMAND_AUC::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    const auto playerName = PChar->getName();
-
-    switch (this->Command)
+    const auto operationPlan = auchelpers::BuildOperationPlan(this->Command);
+    for (auto index = uint8{ 0 }; index < operationPlan.count; ++index)
     {
-        case GP_CLI_COMMAND_AUC_COMMAND::AskCommit:
+        const auto operation = operationPlan.operations[index];
+        switch (operation)
         {
-            auctionutils::SellingItems(PChar, this->Param.AskCommit);
+            case auchelpers::Operation::SellingItems:
+                auctionutils::SellingItems(PChar, this->Param.AskCommit);
+                break;
+            case auchelpers::Operation::OpenListOfSales:
+                auctionutils::OpenListOfSales(PChar);
+                break;
+            case auchelpers::Operation::RetrieveListOfItemsSoldByPlayer:
+                auctionutils::RetrieveListOfItemsSoldByPlayer(PChar);
+                break;
+            case auchelpers::Operation::ProofOfPurchase:
+                auctionutils::ProofOfPurchase(PChar, this->Param.LotIn);
+                break;
+            case auchelpers::Operation::PurchasingItems:
+                auctionutils::PurchasingItems(PChar, this->Param.Bid);
+                break;
+            case auchelpers::Operation::CancelSale:
+                auctionutils::CancelSale(PChar, this->AucWorkIndex);
+                break;
+            case auchelpers::Operation::UpdateSaleListByPlayer:
+                auctionutils::UpdateSaleListByPlayer(PChar, this->AucWorkIndex);
+                break;
         }
-        break;
-        case GP_CLI_COMMAND_AUC_COMMAND::Info:
-        {
-            auctionutils::OpenListOfSales(PChar);
-            [[fallthrough]];
-        }
-        // FALLTHROUGH!
-        case GP_CLI_COMMAND_AUC_COMMAND::WorkCheck:
-        {
-            auctionutils::RetrieveListOfItemsSoldByPlayer(PChar);
-        }
-        break;
-        case GP_CLI_COMMAND_AUC_COMMAND::LotIn:
-        {
-            auctionutils::ProofOfPurchase(PChar, this->Param.LotIn);
-        }
-        break;
-        case GP_CLI_COMMAND_AUC_COMMAND::Bid:
-        {
-            auctionutils::PurchasingItems(PChar, this->Param.Bid);
-        }
-        break;
-        case GP_CLI_COMMAND_AUC_COMMAND::LotCancel:
-        {
-            auctionutils::CancelSale(PChar, this->AucWorkIndex);
-        }
-        break;
-        case GP_CLI_COMMAND_AUC_COMMAND::LotCheck:
-        {
-            auctionutils::UpdateSaleListByPlayer(PChar, this->AucWorkIndex);
-        }
-        break;
-        default:
-            break;
     }
 }

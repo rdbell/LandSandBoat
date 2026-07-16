@@ -85,11 +85,13 @@ auto GP_CLI_COMMAND_EQUIP_SET::validate(MapSession* PSession, const CCharEntity*
 
 void GP_CLI_COMMAND_EQUIP_SET::process(MapSession* PSession, CCharEntity* PChar) const
 {
+    const auto plan = equipsethelpers::MakeDispatchPlan();
+    if (!plan.equip) return;
     charutils::EquipItem(PChar, this->PropertyItemIndex, this->EquipKind, this->Category);
-    PChar->RequestPersist(CHAR_PERSIST::EQUIP);
-    luautils::CheckForGearSet(PChar); // check for gear set on gear change
-    PChar->UpdateHealth();
-    PChar->retriggerLatents = true; // retrigger all latents later because our gear has changed
+    if (plan.persist) PChar->RequestPersist(CHAR_PERSIST::EQUIP);
+    if (plan.checkGearSet) luautils::CheckForGearSet(PChar);
+    if (plan.updateHealth) PChar->UpdateHealth();
+    if (plan.retriggerLatents) PChar->retriggerLatents = true;
     // TODO: Sort out above logic and ensure the following packets are emitted synchronously as a response
     // EQUIP_LIST
     // GRAP_LIST
