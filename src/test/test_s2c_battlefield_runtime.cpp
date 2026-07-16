@@ -12,7 +12,7 @@ auto runS2CBattlefieldRuntimeSelfTests() -> bool
     packet.addScoreboard({ 4, -2 }, { 1, 2, 3, 4, 5, 6 });
     packet.addFence(1.0f, -2.0f, 3.0f, 4.0f, true);
     packet.addHelpText(55, 20);
-    const auto& data = packet.data();
+    const auto& data = *reinterpret_cast<const GP_SERV_COMMAND_BATTLEFIELD::PacketData*>(static_cast<uint8*>(packet) + sizeof(GP_SERV_HEADER));
     ok               = (data.Flags & (OBJECTIVEUTILITY_COUNTDOWN | OBJECTIVEUTILITY_PROGRESS | OBJECTIVEUTILITY_FENCE | OBJECTIVEUTILITY_HELP)) == 0x0F && data.Mode == 0x1000 && data.Duration == 60 && data.DurationWarn == 10 && data.FenceX == 1000 && data.FenceY == -2000 && data.FenceRadius == 3000 && data.FenceRotation == 4000 && data.FenceColor == 1 && data.MesNumTitle == 55 && data.MesNumDescription == 1 && data.Scoreboard.MarchlandScore == 4 && data.Scoreboard.StrongholdScore == -2 && ok;
     if (!ok)
         std::cerr << "s2c BATTLEFIELD runtime self-test failed\n";

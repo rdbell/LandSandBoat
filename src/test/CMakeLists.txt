@@ -1708,8 +1708,12 @@ set(SOURCES
     test_s2c_partyreq_packet.cpp
     test_s2c_pendingnum_packet.h
     test_s2c_pendingnum_packet.cpp
+    test_s2c_pendingnum_runtime.h
+    test_s2c_pendingnum_runtime.cpp
     test_s2c_pendingstr_packet.h
     test_s2c_pendingstr_packet.cpp
+    test_s2c_pendingstr_runtime.h
+    test_s2c_pendingstr_runtime.cpp
     test_s2c_pet_sync_packet.h
     test_s2c_pet_sync_packet.cpp
     test_s2c_recipe_packet.h

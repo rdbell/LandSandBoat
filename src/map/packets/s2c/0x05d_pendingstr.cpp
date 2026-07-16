@@ -23,7 +23,23 @@
 
 #include <cstring>
 
-// TODO: std::array
+auto pendingstrhelpers::PlanFor(const Facts& facts) -> GP_SERV_COMMAND_PENDINGSTR::PacketData
+{
+    auto packet = GP_SERV_COMMAND_PENDINGSTR::PacketData{};
+
+    for (std::size_t index = 0; index < facts.params.size(); ++index)
+    {
+        packet.num[index] = static_cast<int32_t>(facts.params[index]);
+    }
+
+    std::memcpy(packet.string1, facts.strings[0].c_str(), std::min<size_t>(facts.strings[0].size(), sizeof(packet.string1) - 1));
+    std::memcpy(packet.string2, facts.strings[1].c_str(), std::min<size_t>(facts.strings[1].size(), sizeof(packet.string2) - 1));
+    std::memcpy(packet.string3, facts.strings[2].c_str(), std::min<size_t>(facts.strings[2].size(), sizeof(packet.string3) - 1));
+    std::memcpy(packet.string4, facts.strings[3].c_str(), std::min<size_t>(facts.strings[3].size(), sizeof(packet.string4) - 1));
+
+    return packet;
+}
+
 GP_SERV_COMMAND_PENDINGSTR::GP_SERV_COMMAND_PENDINGSTR(
     const std::string& string0,
     const std::string& string1,
@@ -39,20 +55,8 @@ GP_SERV_COMMAND_PENDINGSTR::GP_SERV_COMMAND_PENDINGSTR(
     const uint32_t     param7,
     const uint32_t     param8)
 {
-    auto& packet = this->data();
-
-    packet.num[0] = static_cast<int32_t>(param0);
-    packet.num[1] = static_cast<int32_t>(param1);
-    packet.num[2] = static_cast<int32_t>(param2);
-    packet.num[3] = static_cast<int32_t>(param3);
-    packet.num[4] = static_cast<int32_t>(param4);
-    packet.num[5] = static_cast<int32_t>(param5);
-    packet.num[6] = static_cast<int32_t>(param6);
-    packet.num[7] = static_cast<int32_t>(param7);
-    packet.num[8] = static_cast<int32_t>(param8);
-
-    std::memcpy(packet.string1, string0.c_str(), std::min<size_t>(string0.size(), sizeof(packet.string1) - 1));
-    std::memcpy(packet.string2, string1.c_str(), std::min<size_t>(string1.size(), sizeof(packet.string2) - 1));
-    std::memcpy(packet.string3, string2.c_str(), std::min<size_t>(string2.size(), sizeof(packet.string3) - 1));
-    std::memcpy(packet.string4, string3.c_str(), std::min<size_t>(string3.size(), sizeof(packet.string4) - 1));
+    this->data() = pendingstrhelpers::PlanFor({
+        .strings = { string0, string1, string2, string3 },
+        .params  = { param0, param1, param2, param3, param4, param5, param6, param7, param8 },
+    });
 }

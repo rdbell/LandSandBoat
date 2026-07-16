@@ -21,8 +21,10 @@
 
 #pragma once
 
-#include "base.h"
+#include <array>
 #include <string>
+
+#include "base.h"
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x005D
 // This packet is sent by the server to update the clients event parameters.
@@ -53,3 +55,16 @@ public:
         uint32_t           param7  = 0,
         uint32_t           param8  = 0);
 };
+
+namespace pendingstrhelpers
+{
+
+struct Facts
+{
+    std::array<std::string, 4> strings;
+    std::array<uint32, 9>      params;
+};
+
+[[nodiscard]] auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_PENDINGSTR::PacketData;
+
+} // namespace pendingstrhelpers

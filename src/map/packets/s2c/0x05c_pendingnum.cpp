@@ -20,16 +20,9 @@
 */
 
 #include "0x05c_pendingnum.h"
+#include "pendingnum_runtime.h"
 
 GP_SERV_COMMAND_PENDINGNUM::GP_SERV_COMMAND_PENDINGNUM(const std::vector<std::pair<uint8_t, uint32_t>>& params)
 {
-    auto& packet = this->data();
-
-    for (const auto& [index, value] : params)
-    {
-        if (index < std::size(packet.num))
-        {
-            packet.num[index] = static_cast<int32_t>(value);
-        }
-    }
+    this->data() = pendingnumhelpers::PlanFor(params);
 }
