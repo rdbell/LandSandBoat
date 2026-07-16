@@ -551,7 +551,7 @@ int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSess
             auto packetList = PChar->getPacketListCopy();
             packets         = 0;
 
-            while (!packetList.empty() && *buffsize + packetList.front()->getSize() < kMaxBufferSize && static_cast<size_t>(packets) < PacketCount)
+            while (!packetList.empty() && mapnetworkinghelpers::CanAppendPacketToCompression(*buffsize, packetList.front()->getSize(), kMaxBufferSize, packets, PacketCount))
             {
                 PSmallPacket = std::move(packetList.front());
                 packetList.pop_front();

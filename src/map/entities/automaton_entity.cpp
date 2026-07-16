@@ -20,6 +20,7 @@
 */
 
 #include "automaton_entity.h"
+#include "automaton_valid_target_policy.h"
 #include "map/automaton_death_capacity.h"
 #include "map/automaton_post_tick_capacity.h"
 
@@ -163,11 +164,10 @@ void CAutomatonEntity::Die()
 
 bool CAutomatonEntity::ValidTarget(CBattleEntity* PInitiator, uint16 targetFlags)
 {
-    if (targetFlags & TARGET_PLAYER && this == PInitiator)
-    {
-        return true;
-    }
-    return CPetEntity::ValidTarget(PInitiator, targetFlags);
+    return automatonvalidtargethelpers::ValidTarget(
+        targetFlags & TARGET_PLAYER,
+        this == PInitiator,
+        [&] { return CPetEntity::ValidTarget(PInitiator, targetFlags); });
 }
 
 void CAutomatonEntity::OnCastFinished(CMagicState& state, action_t& action)

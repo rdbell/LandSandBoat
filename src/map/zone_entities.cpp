@@ -61,6 +61,7 @@
 #include "zone_entity_visibility.h"
 #include "zone_char_sync_significance.h"
 #include "zone_npc_visibility.h"
+#include "zone_pc_spawn_gate.h"
 
 #include <map/ximesh/ximesh.h>
 
@@ -1011,7 +1012,7 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
     TracyZoneScoped;
 
     // TODO: This is a temporary fix so that Feretory and Mog Garden _seem_ like a solo zones.
-    if (PChar->loc.zone->GetID() == ZONE_FERETORY || PChar->loc.zone->GetID() == ZONE_MOG_GARDEN)
+    if (!zoneentityvisibility::ShouldSpawnPCs(PChar->loc.zone->GetID()))
     {
         return;
     }

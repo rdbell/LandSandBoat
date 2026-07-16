@@ -138,4 +138,12 @@ inline auto NextPacketCountForCompressionRetry(const std::size_t packetCount) ->
     return packetCount - packetCount / 3;
 }
 
+// CanAppendPacketToCompression mirrors send_parse's packet aggregation gate.
+// The byte limit is deliberately strict: a packet that exactly fills the
+// buffer is deferred to a later send.
+inline auto CanAppendPacketToCompression(const std::size_t bufferSize, const std::size_t packetSize, const std::size_t maximumBufferSize, const std::size_t appendedPackets, const std::size_t packetBudget) -> bool
+{
+    return bufferSize + packetSize < maximumBufferSize && appendedPackets < packetBudget;
+}
+
 } // namespace mapnetworkinghelpers
