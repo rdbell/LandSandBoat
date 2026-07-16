@@ -39,8 +39,9 @@ void GP_CLI_COMMAND_JOB_POINTS_SPEND::process(MapSession* PSession, CCharEntity*
     auto jpType = static_cast<JOBPOINT_TYPE>(this->Index);
     PChar->PJobPoints->RaiseJobPoint(jpType);
     auto newLevel = PChar->PJobPoints->GetJobPointType(jpType)->value;
+    const auto plan = jobpointsspendpackethelpers::MakeActionPlan(this->Index, newLevel);
 
     PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::JOB_POINTS>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_JOB_POINTS>(PChar, jpType);
-    PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, this->Index, newLevel, MsgBasic::JobPointsIncrease);
+    PChar->pushPacket<GP_SERV_COMMAND_JOB_POINTS>(PChar, static_cast<JOBPOINT_TYPE>(plan.sendJobPointsIndex));
+    PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, plan.battleMessageIndex, plan.battleMessageLevel, plan.battleMessage);
 }

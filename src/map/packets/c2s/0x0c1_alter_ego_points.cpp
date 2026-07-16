@@ -52,5 +52,10 @@ void GP_CLI_COMMAND_ALTER_EGO_POINTS::process(MapSession* PSession, CCharEntity*
     // 5) Emit BATTLE_MESSAGE message 828 with Data set to CategoryIndex and Data2 set to upgrade level
     // PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, this->CategoryIndex, 1, MsgBasic::AlterEgoUpgrade);
     // 6) Send updated array to PC
-    PChar->pushPacket<GP_SERV_PACKET_ALTER_EGO_POINTS>(PChar);
+    switch (alteregopointspackethelpers::SelectAction())
+    {
+        case alteregopointspackethelpers::Action::SendAlterEgoPoints:
+            PChar->pushPacket<GP_SERV_PACKET_ALTER_EGO_POINTS>(PChar);
+            break;
+    }
 }

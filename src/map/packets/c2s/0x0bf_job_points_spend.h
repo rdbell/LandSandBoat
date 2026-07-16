@@ -22,6 +22,37 @@
 #pragma once
 
 #include "base.h"
+#include "enums/msg_basic.h"
+
+// JobPointsSpendActionPlan records JOB_POINTS_SPEND's host-facing
+// post-validation work. The job-point store owns the mutation and supplies
+// the resulting level after RaiseJobPoint completes.
+namespace jobpointsspendpackethelpers
+{
+
+struct ActionPlan
+{
+    uint16_t raiseJobPointIndex;
+    bool     sendMiscDataJobPoints;
+    uint16_t sendJobPointsIndex;
+    uint16_t battleMessageIndex;
+    uint8_t  battleMessageLevel;
+    MsgBasic battleMessage;
+};
+
+[[nodiscard]] constexpr auto MakeActionPlan(const uint16_t index, const uint8_t newLevel) -> ActionPlan
+{
+    return {
+        .raiseJobPointIndex    = index,
+        .sendMiscDataJobPoints = true,
+        .sendJobPointsIndex    = index,
+        .battleMessageIndex    = index,
+        .battleMessageLevel    = newLevel,
+        .battleMessage         = MsgBasic::JobPointsIncrease,
+    };
+}
+
+} // namespace jobpointsspendpackethelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00BF
 // This packet is sent by the client when spending job points.

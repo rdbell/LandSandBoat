@@ -23,6 +23,24 @@
 
 #include "base.h"
 
+// JOB_POINTS_REQ only responds after the player has unlocked job points with
+// JOB_BREAKER. Key-item lookup itself remains owned by the character runtime.
+namespace jobpointsreqhelpers
+{
+
+enum class Action : uint8
+{
+    None,
+    SendJobPoints,
+};
+
+[[nodiscard]] constexpr auto SelectAction(const bool hasJobBreaker) -> Action
+{
+    return hasJobBreaker ? Action::SendJobPoints : Action::None;
+}
+
+} // namespace jobpointsreqhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00C0
 // This packet is sent by the client when requesting job points information.
 GP_CLI_PACKET(GP_CLI_COMMAND_JOB_POINTS_REQ);

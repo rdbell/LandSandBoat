@@ -34,9 +34,14 @@ auto GP_CLI_COMMAND_JOB_POINTS_REQ::validate(MapSession* PSession, const CCharEn
 void GP_CLI_COMMAND_JOB_POINTS_REQ::process(MapSession* PSession, CCharEntity* PChar) const
 {
     // Move this check to the validate function once hasKeyItem becomes const
-    if (charutils::hasKeyItem(PChar, KeyItem::JOB_BREAKER))
+    switch (jobpointsreqhelpers::SelectAction(charutils::hasKeyItem(PChar, KeyItem::JOB_BREAKER)))
     {
-        // Only send Job Points Packet if the player has unlocked them
-        PChar->pushPacket<GP_SERV_COMMAND_JOB_POINTS>(PChar);
+        case jobpointsreqhelpers::Action::SendJobPoints:
+            // Only send Job Points Packet if the player has unlocked them.
+            PChar->pushPacket<GP_SERV_COMMAND_JOB_POINTS>(PChar);
+            break;
+
+        case jobpointsreqhelpers::Action::None:
+            break;
     }
 }

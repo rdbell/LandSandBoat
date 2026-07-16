@@ -276,6 +276,14 @@ auto testPlayerPointsConstantsAndValidation() -> bool
 
     ok = expectValid(validateJobPointsSpendPure(0xFFFF), "JOB_POINTS_SPEND pure validation") && ok;
     ok = expectValid(validateJobPointsReqPure(), "JOB_POINTS_REQ pure validation") && ok;
+    ok = expectEqualInt(static_cast<std::uint8_t>(jobpointsreqhelpers::SelectAction(false)),
+                        static_cast<std::uint8_t>(jobpointsreqhelpers::Action::None),
+                        "JOB_POINTS_REQ missing JOB_BREAKER action") &&
+         ok;
+    ok = expectEqualInt(static_cast<std::uint8_t>(jobpointsreqhelpers::SelectAction(true)),
+                        static_cast<std::uint8_t>(jobpointsreqhelpers::Action::SendJobPoints),
+                        "JOB_POINTS_REQ JOB_BREAKER action") &&
+         ok;
 
     ok = expectEqualInt(static_cast<std::uint8_t>(AlterEgoCategory::HP), 8, "AlterEgoCategory::HP") && ok;
     ok = expectEqualInt(static_cast<std::uint8_t>(AlterEgoCategory::MagicSkills), 18, "AlterEgoCategory::MagicSkills") && ok;
@@ -288,6 +296,20 @@ auto testPlayerPointsConstantsAndValidation() -> bool
     return ok;
 }
 
+auto testJobPointsSpendActionPlan() -> bool
+{
+    const auto plan = jobpointsspendpackethelpers::MakeActionPlan(0x1234, 20);
+    bool       ok   = true;
+
+    ok = expectEqualInt(plan.raiseJobPointIndex, 0x1234, "JOB_POINTS_SPEND action raise index") && ok;
+    ok = expectTrue(plan.sendMiscDataJobPoints, "JOB_POINTS_SPEND action sends miscdata job points") && ok;
+    ok = expectEqualInt(plan.sendJobPointsIndex, 0x1234, "JOB_POINTS_SPEND action detail index") && ok;
+    ok = expectEqualInt(plan.battleMessageIndex, 0x1234, "JOB_POINTS_SPEND action battle message index") && ok;
+    ok = expectEqualInt(plan.battleMessageLevel, 20, "JOB_POINTS_SPEND action battle message level") && ok;
+    ok = expectEqualInt(static_cast<std::uint16_t>(plan.battleMessage), static_cast<std::uint16_t>(MsgBasic::JobPointsIncrease), "JOB_POINTS_SPEND action battle message") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SPlayerPointsPacketSelfTests() -> bool
@@ -295,5 +317,6 @@ auto runC2SPlayerPointsPacketSelfTests() -> bool
     return testMeritsLayoutMetadataAndPayload() &&
            testJobPointsLayoutMetadataAndPayload() &&
            testAlterEgoPointsLayoutMetadataAndPayload() &&
-           testPlayerPointsConstantsAndValidation();
+           testPlayerPointsConstantsAndValidation() &&
+           testJobPointsSpendActionPlan();
 }

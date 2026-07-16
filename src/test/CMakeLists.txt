@@ -118,6 +118,8 @@ set(SOURCES
     test_c2s_currency_request_packets.cpp
     test_c2s_currencies_1_runtime.h
     test_c2s_currencies_1_runtime.cpp
+    test_c2s_alter_ego_points_runtime.h
+    test_c2s_alter_ego_points_runtime.cpp
     test_c2s_currencies_2_runtime.h
     test_c2s_currencies_2_runtime.cpp
     test_c2s_myroom_plant_check_runtime.h

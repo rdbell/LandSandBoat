@@ -736,6 +736,7 @@ auto runC2SROERemoveRuntimeSelfTests() -> bool;
 auto runC2SROEClaimRuntimeSelfTests() -> bool;
 auto runC2SCurrencyRequestPacketSelfTests() -> bool;
 auto runC2SCurrencies1RuntimeSelfTests() -> bool;
+auto runC2SAlterEgoPointsRuntimeSelfTests() -> bool;
 auto runC2SCurrencies2RuntimeSelfTests() -> bool;
 auto runC2SMyRoomPlantCheckRuntimeSelfTests() -> bool;
 auto runC2SMasteryDisplayRuntimeSelfTests() -> bool;
@@ -1602,6 +1603,7 @@ namespace
         ok = runC2SROEClaimRuntimeSelfTests() && ok;
         ok = runC2SCurrencyRequestPacketSelfTests() && ok;
         ok = runC2SCurrencies1RuntimeSelfTests() && ok;
+        ok = runC2SAlterEgoPointsRuntimeSelfTests() && ok;
         ok = runC2SCurrencies2RuntimeSelfTests() && ok;
         ok = runC2SMyRoomPlantCheckRuntimeSelfTests() && ok;
         ok = runC2SMasteryDisplayRuntimeSelfTests() && ok;

@@ -23,6 +23,24 @@
 
 #include "base.h"
 
+// ALTER_EGO_POINTS currently has no implemented upgrade behavior. After
+// validation accepts its request, it only refreshes the caller's alter ego
+// points packet.
+namespace alteregopointspackethelpers
+{
+
+enum class Action : uint8
+{
+    SendAlterEgoPoints,
+};
+
+[[nodiscard]] constexpr auto SelectAction() -> Action
+{
+    return Action::SendAlterEgoPoints;
+}
+
+} // namespace alteregopointspackethelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00C1
 // This packet is sent by the client when upgrading alter ego categories.
 GP_CLI_PACKET(GP_CLI_COMMAND_ALTER_EGO_POINTS,
