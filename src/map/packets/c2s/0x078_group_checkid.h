@@ -23,6 +23,18 @@
 
 #include "base.h"
 
+namespace groupcheckidhelpers
+{
+
+struct DispatchPlan
+{
+    bool sendGroupCheckID = false;
+};
+
+auto MakeDispatchPlan() -> DispatchPlan;
+
+} // namespace groupcheckidhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0078
 // This packet is sent by the client when requesting the clients server-side party id.
 GP_CLI_PACKET(GP_CLI_COMMAND_GROUP_CHECKID);

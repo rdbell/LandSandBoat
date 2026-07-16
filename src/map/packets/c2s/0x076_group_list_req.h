@@ -23,6 +23,24 @@
 
 #include "base.h"
 
+// GROUP_LIST_REQ's entity-independent response selection. The host owns the
+// party reload or construction and delivery of an empty GROUP_TBL packet.
+namespace grouplistreqhelpers
+{
+
+enum class Dispatch : uint8
+{
+    ReloadPartyMembers,
+    SendEmptyGroupTable,
+};
+
+[[nodiscard]] constexpr auto SelectDispatch(const bool hasParty) -> Dispatch
+{
+    return hasParty ? Dispatch::ReloadPartyMembers : Dispatch::SendEmptyGroupTable;
+}
+
+} // namespace grouplistreqhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0076
 // This packet is sent by the client when it has attempted to access invalid party member information.
 GP_CLI_PACKET(GP_CLI_COMMAND_GROUP_LIST_REQ,

@@ -24,6 +24,11 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x0e1_group_checkid.h"
 
+auto groupcheckidhelpers::MakeDispatchPlan() -> DispatchPlan
+{
+    return { true };
+}
+
 auto GP_CLI_COMMAND_GROUP_CHECKID::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameter to validate.
@@ -33,5 +38,6 @@ auto GP_CLI_COMMAND_GROUP_CHECKID::validate(MapSession* PSession, const CCharEnt
 
 void GP_CLI_COMMAND_GROUP_CHECKID::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    PChar->pushPacket<GP_SERV_COMMAND_GROUP_CHECKID>(PChar);
+    if (groupcheckidhelpers::MakeDispatchPlan().sendGroupCheckID)
+        PChar->pushPacket<GP_SERV_COMMAND_GROUP_CHECKID>(PChar);
 }

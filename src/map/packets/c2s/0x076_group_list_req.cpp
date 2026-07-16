@@ -33,13 +33,14 @@ auto GP_CLI_COMMAND_GROUP_LIST_REQ::validate(MapSession* PSession, const CCharEn
 
 void GP_CLI_COMMAND_GROUP_LIST_REQ::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    if (PChar->PParty)
+    switch (grouplistreqhelpers::SelectDispatch(PChar->PParty != nullptr))
     {
-        PChar->PParty->ReloadPartyMembers(PChar);
-    }
-    else
-    {
-        // previous CPartyDefine was dropped or otherwise didn't work?
-        PChar->pushPacket<GP_SERV_COMMAND_GROUP_TBL>(nullptr, false);
+        case grouplistreqhelpers::Dispatch::ReloadPartyMembers:
+            PChar->PParty->ReloadPartyMembers(PChar);
+            break;
+        case grouplistreqhelpers::Dispatch::SendEmptyGroupTable:
+            // previous CPartyDefine was dropped or otherwise didn't work?
+            PChar->pushPacket<GP_SERV_COMMAND_GROUP_TBL>(nullptr, false);
+            break;
     }
 }
