@@ -185,4 +185,23 @@ inline auto ShouldTapLastUpdate(const bool pendingZone, const bool waitingForZon
     return !pendingZone && !waitingForZone;
 }
 
+enum class IncomingPacketZonePlan : uint8
+{
+    Dispatch,
+    SkipUnexpectedPendingZone,
+    WarnAndSkipUnexpected,
+};
+
+// PlanIncomingPacketForZone mirrors parse's zone-presence gate. Packets other
+// than LOGIN cannot be dispatched before a character has a zone; packets from
+// a prior key while zoning are expected and therefore skipped without warning.
+inline auto PlanIncomingPacketForZone(const bool characterHasZone, const bool isLoginPacket, const bool pendingZone) -> IncomingPacketZonePlan
+{
+    if (characterHasZone || isLoginPacket)
+    {
+        return IncomingPacketZonePlan::Dispatch;
+    }
+    return pendingZone ? IncomingPacketZonePlan::SkipUnexpectedPendingZone : IncomingPacketZonePlan::WarnAndSkipUnexpected;
+}
+
 } // namespace mapnetworkinghelpers

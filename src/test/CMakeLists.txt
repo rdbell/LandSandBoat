@@ -1444,6 +1444,8 @@ set(SOURCES
     test_map_networking_current_key_2711.cpp
     test_map_networking_last_update_2714.h
     test_map_networking_last_update_2714.cpp
+    test_map_networking_zone_packet_2717.h
+    test_map_networking_zone_packet_2717.cpp
     test_map_socket_receive_2654.h
     test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h
@@ -1944,6 +1946,8 @@ set(SOURCES
     test_automaton_burden_decay_2710.cpp
     test_mob_geode_pool_2713.h
     test_mob_geode_pool_2713.cpp
+    test_automaton_attachment_policy_2716.h
+    test_automaton_attachment_policy_2716.cpp
     test_search_social_packets.h
     test_search_social_packets.cpp
     test_settings_number_helper.h

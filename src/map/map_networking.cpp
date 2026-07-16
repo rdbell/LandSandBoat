@@ -474,21 +474,23 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
                          PChar->getName());
         }
 
-        if (PChar->loc.zone == nullptr && SmallPD_Type != static_cast<uint16>(PacketC2S::GP_CLI_COMMAND_LOGIN))
+        switch (mapnetworkinghelpers::PlanIncomingPacketForZone(
+            PChar->loc.zone != nullptr,
+            SmallPD_Type == static_cast<uint16>(PacketC2S::GP_CLI_COMMAND_LOGIN),
+            PSession->blowfish.status == BLOWFISH_PENDING_ZONE))
         {
-            // Packets aren't unexpected from the old key under BLOWFISH_PENDING_ZONE
-            if (PSession->blowfish.status != BLOWFISH_PENDING_ZONE)
-            {
+            case mapnetworkinghelpers::IncomingPacketZonePlan::WarnAndSkipUnexpected:
                 ShowWarning("This packet is unexpected from %s - Received %03hX earlier without matching 0x0A", PChar->getName(), SmallPD_Type);
-            }
-        }
-        else
-        {
-            // Reuse one CBasicPacket (parseScratchPacket_) across the loop instead of re-allocating per inbound packet.
-            // We're copying in and bounding only exactly what we want, so it's safe.
-            std::memcpy(&parseScratchPacket_.ref<uint8>(0), SmallPD_ptr, PACKET_SIZE);
-            ShowTraceFmt("map::parse: Char: {} ({}): {}", PChar->getName(), PChar->id, hex16ToString(parseScratchPacket_.getType()));
-            packetSystem_.dispatch(SmallPD_Type, PSession, PChar, parseScratchPacket_);
+                break;
+            case mapnetworkinghelpers::IncomingPacketZonePlan::SkipUnexpectedPendingZone:
+                break;
+            case mapnetworkinghelpers::IncomingPacketZonePlan::Dispatch:
+                // Reuse one CBasicPacket (parseScratchPacket_) across the loop instead of re-allocating per inbound packet.
+                // We're copying in and bounding only exactly what we want, so it's safe.
+                std::memcpy(&parseScratchPacket_.ref<uint8>(0), SmallPD_ptr, PACKET_SIZE);
+                ShowTraceFmt("map::parse: Char: {} ({}): {}", PChar->getName(), PChar->id, hex16ToString(parseScratchPacket_.getType()));
+                packetSystem_.dispatch(SmallPD_Type, PSession, PChar, parseScratchPacket_);
+                break;
         }
     }
 

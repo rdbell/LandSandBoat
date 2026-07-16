@@ -23,6 +23,7 @@
 #include "automaton_valid_target_policy.h"
 #include "automaton_overload_chance.h"
 #include "automaton_burden_decay.h"
+#include "automaton_attachment_policy.h"
 #include "map/automaton_death_capacity.h"
 #include "map/automaton_post_tick_capacity.h"
 
@@ -70,14 +71,7 @@ uint8 CAutomatonEntity::attachment(const uint8 slotid) const
 
 auto CAutomatonEntity::hasAttachment(const uint8 attachment) const -> bool
 {
-    for (auto&& attachmentid : equip_.attachments)
-    {
-        if (attachmentid == attachment)
-        {
-            return true;
-        }
-    }
-    return false;
+    return automatonattachmenthelpers::HasAttachment(equip_.attachments, attachment);
 }
 
 void CAutomatonEntity::setEquip(const AutomatonEquip& equip)
