@@ -1263,6 +1263,8 @@ set(SOURCES
     test_mob_roam_distance_2680.cpp
     test_mob_ranged_range_policy_2683.h
     test_mob_ranged_range_policy_2683.cpp
+    test_mob_call_for_help_policy_2686.h
+    test_mob_call_for_help_policy_2686.cpp
     test_pet_mod_tandem_1624.h
     test_pet_mod_tandem_1624.cpp
     test_pet_spawn_1625.h
@@ -1422,6 +1424,8 @@ set(SOURCES
     test_map_networking_login_packet_2681.cpp
     test_map_networking_packet_id_2684.h
     test_map_networking_packet_id_2684.cpp
+    test_map_networking_login_size_2687.h
+    test_map_networking_login_size_2687.cpp
     test_map_socket_receive_2654.h
     test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h

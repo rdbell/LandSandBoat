@@ -262,7 +262,7 @@ int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSess
         }
 
         // Not big enough to be 0x00A
-        if (size < (FFXI_HEADER_SIZE + sizeof(GP_CLI_LOGIN)))
+        if (!mapnetworkinghelpers::HasUnencryptedLoginPacketSize(size, sizeof(GP_CLI_LOGIN)))
         {
             return -1;
         }

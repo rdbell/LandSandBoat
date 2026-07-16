@@ -31,6 +31,7 @@
 #include "mob_roam_rate.h"
 #include "mob_roam_distance.h"
 #include "mob_ranged_range_policy.h"
+#include "mob_call_for_help_policy.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -527,7 +528,7 @@ void CMobEntity::SetCallForHelpFlag(bool call)
 
 bool CMobEntity::GetCallForHelpFlag() const
 {
-    return m_flags & FLAG_CALL_FOR_HELP;
+    return mobcallforhelphelpers::HasCallForHelp(m_flags, FLAG_CALL_FOR_HELP);
 }
 
 void CMobEntity::SetUntargetable(bool untargetable)

@@ -67,4 +67,11 @@ inline auto MapPacketID(const uint16 headerWord) -> uint16
     return headerWord & 0x1FF;
 }
 
+// HasUnencryptedLoginPacketSize verifies that a frame can contain the FFXI
+// header plus the complete unencrypted login packet.
+inline auto HasUnencryptedLoginPacketSize(const std::size_t packetSize, const std::size_t loginPacketSize) -> bool
+{
+    return packetSize >= FFXI_HEADER_SIZE + loginPacketSize;
+}
+
 } // namespace mapnetworkinghelpers
