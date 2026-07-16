@@ -233,4 +233,11 @@ inline auto ShouldIncrementKeyAfterEncrypt(const uint16 packetType) -> bool
     return packetType == 0x00B;
 }
 
+// ShouldSendCharZoneAfterKeyIncrement mirrors send_parse's post-zone-out IPC
+// gate. A real logout rotates its key but does not announce a destination.
+inline auto ShouldSendCharZoneAfterKeyIncrement(const bool isLogout) -> bool
+{
+    return !isLogout;
+}
+
 } // namespace mapnetworkinghelpers

@@ -672,7 +672,7 @@ int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSess
 
         // see https://github.com/atom0s/XiPackets/blob/main/world/server/0x000B/README.md
         // GP_GAME_LOGOUT_STATE::GP_GAME_LOGOUT_STATE_LOGOUT = disconnect/logout/shutdown
-        if (PSession->zone_type != GP_GAME_LOGOUT_STATE::LOGOUT)
+        if (mapnetworkinghelpers::ShouldSendCharZoneAfterKeyIncrement(PSession->zone_type == GP_GAME_LOGOUT_STATE::LOGOUT))
         {
             message::send(ipc::CharZone{
                 .charId            = PChar->id,
