@@ -204,4 +204,18 @@ inline auto PlanIncomingPacketForZone(const bool characterHasZone, const bool is
     return pendingZone ? IncomingPacketZonePlan::SkipUnexpectedPendingZone : IncomingPacketZonePlan::WarnAndSkipUnexpected;
 }
 
+enum class CompressionFailurePlan : uint8
+{
+    DropOldestPacketAndRetry,
+    ClearOutputAndFail,
+};
+
+// PlanCompressionFailure mirrors send_parse's recovery after compression
+// reports failure. A queued packet is discarded one at a time to make
+// progress; an empty queue clears the outgoing buffer and terminates.
+inline auto PlanCompressionFailure(const bool hasQueuedPackets) -> CompressionFailurePlan
+{
+    return hasQueuedPackets ? CompressionFailurePlan::DropOldestPacketAndRetry : CompressionFailurePlan::ClearOutputAndFail;
+}
+
 } // namespace mapnetworkinghelpers

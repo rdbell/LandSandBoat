@@ -619,15 +619,15 @@ int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSess
 
         if (PacketSize == static_cast<uint32>(-1))
         {
-            if (PChar->getPacketCount() > 0)
+            switch (mapnetworkinghelpers::PlanCompressionFailure(PChar->getPacketCount() > 0))
             {
-                PChar->erasePackets(1);
-                PacketCount = PChar->getPacketCount();
-            }
-            else
-            {
-                *buffsize = 0;
-                return -1;
+                case mapnetworkinghelpers::CompressionFailurePlan::DropOldestPacketAndRetry:
+                    PChar->erasePackets(1);
+                    PacketCount = PChar->getPacketCount();
+                    break;
+                case mapnetworkinghelpers::CompressionFailurePlan::ClearOutputAndFail:
+                    *buffsize = 0;
+                    return -1;
             }
         }
     } while (PacketSize == static_cast<uint32>(-1));

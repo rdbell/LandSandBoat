@@ -1436,6 +1436,8 @@ set(SOURCES
     test_map_networking_acknowledgement_2699.cpp
     test_map_networking_compression_retry_2702.h
     test_map_networking_compression_retry_2702.cpp
+    test_map_networking_compression_failure_2720.h
+    test_map_networking_compression_failure_2720.cpp
     test_map_networking_packet_append_2705.h
     test_map_networking_packet_append_2705.cpp
     test_map_networking_decryption_plan_2708.h
@@ -1948,6 +1950,8 @@ set(SOURCES
     test_mob_geode_pool_2713.cpp
     test_automaton_attachment_policy_2716.h
     test_automaton_attachment_policy_2716.cpp
+    test_mob_visibility_flags_2719.h
+    test_mob_visibility_flags_2719.cpp
     test_search_social_packets.h
     test_search_social_packets.cpp
     test_settings_number_helper.h

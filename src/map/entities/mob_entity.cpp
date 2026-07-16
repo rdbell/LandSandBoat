@@ -30,6 +30,7 @@
 #include "mob_seal_pool.h"
 #include "mob_geode_element.h"
 #include "mob_geode_pool.h"
+#include "mob_visibility_flags.h"
 #include "mob_widescan_policy.h"
 #include "mob_home_distance_policy.h"
 #include "mob_tp_move_policy.h"
@@ -443,20 +444,12 @@ void CMobEntity::restoreMobModifiers()
 
 void CMobEntity::HideHP(bool hide)
 {
-    if (hide)
-    {
-        m_flags |= FLAG_HIDE_HP;
-    }
-    else
-    {
-        m_flags &= ~FLAG_HIDE_HP;
-    }
-    updatemask |= UPDATE_HP;
+    m_flags = mobvisibilityhelpers::SetFlag(m_flags, updatemask, FLAG_HIDE_HP, hide);
 }
 
 bool CMobEntity::IsHPHidden() const
 {
-    return m_flags & FLAG_HIDE_HP;
+    return mobvisibilityhelpers::Has(m_flags, FLAG_HIDE_HP);
 }
 
 void CMobEntity::SetCallForHelpFlag(bool call)
@@ -480,20 +473,12 @@ bool CMobEntity::GetCallForHelpFlag() const
 
 void CMobEntity::SetUntargetable(bool untargetable)
 {
-    if (untargetable)
-    {
-        m_flags |= FLAG_UNTARGETABLE;
-    }
-    else
-    {
-        m_flags &= ~FLAG_UNTARGETABLE;
-    }
-    updatemask |= UPDATE_HP;
+    m_flags = mobvisibilityhelpers::SetFlag(m_flags, updatemask, FLAG_UNTARGETABLE, untargetable);
 }
 
 bool CMobEntity::GetUntargetable() const
 {
-    return m_flags & FLAG_UNTARGETABLE;
+    return mobvisibilityhelpers::Has(m_flags, FLAG_UNTARGETABLE);
 }
 
 void CMobEntity::PostTick()
