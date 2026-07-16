@@ -21,11 +21,24 @@
 
 #pragma once
 
+#include <array>
+
 #include "common/regional_event.h"
 #include "world_engine.h"
 
 #include "map/conquest_system.h"
 #include "map/zone.h"
+
+namespace conquest
+{
+
+// Applies a map-server influence gain to the four-nation pool. This is the
+// bounded, database-free half of ConquestSystem::updateInfluencePoints.
+// configuredCap is constrained to the packet-safe [1, 20,000,000] range.
+// Returns false for an unknown region or invalid nation index.
+auto redistributeInfluencePoints(std::array<int32, 4>& influences, int points, unsigned int nation, REGION_TYPE region, int32 configuredCap) -> bool;
+
+} // namespace conquest
 
 //
 // Conquest System on the world server.

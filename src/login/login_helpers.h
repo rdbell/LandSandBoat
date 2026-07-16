@@ -22,6 +22,7 @@
 #pragma once
 
 #include <map>
+#include <cstddef>
 
 #include <common/md52.h>
 #include <common/mmo.h>
@@ -42,6 +43,15 @@ namespace loginHelpers
 {
 
 std::unordered_map<std::string, std::map<std::string, session_t>>& getAuthenticatedSessions();
+
+// Lookup and lifecycle operations for authenticatedSessions_.  The legacy map
+// accessor remains for connect-engine iteration, but request/error paths use
+// these operations so a failed lookup does not construct an empty IP entry.
+session_t& get_authenticated_session(const std::string& ipAddr, const std::string& sessionHash);
+session_t* find_authenticated_session(const std::string& ipAddr, const std::string& sessionHash);
+bool erase_authenticated_session(const std::string& ipAddr, const std::string& sessionHash);
+std::size_t authenticated_ip_count();
+std::size_t authenticated_session_count();
 
 // Displays expansions on main menu. // May be a 32 bit integer on the client.
 enum EXPANSION_DISPLAY : uint16
@@ -88,8 +98,6 @@ enum FEATURE_DISPLAY : uint16
 bool isStringMalformed(const std::string& str, std::size_t max_length);
 
 auto isZoneAtPlayerCap(uint16 zoneId, bool isGM) -> bool;
-
-session_t& get_authenticated_session(const std::string& ipAddr, const std::string& sessionHash);
 
 // https://github.com/atom0s/XiPackets/blob/main/lobby/S2C_0x0004_ResponseError.md
 void generateErrorMessage(uint8* packet, uint16 errorCode);

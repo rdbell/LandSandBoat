@@ -60,16 +60,9 @@ void ConnectApplication::registerCommands(ConsoleService& console)
         loginHelpers::ConnectStatsCommandHelp,
         [](std::vector<std::string>& inputs)
         {
-            auto&        sessions       = loginHelpers::getAuthenticatedSessions();
-            const size_t uniqueIPs      = sessions.size();
-            size_t       uniqueAccounts = 0;
-
-            for (const auto& ipAddrMap : sessions)
-            {
-                uniqueAccounts += ipAddrMap.second.size();
-            }
-
-            ShowInfo("%s", loginHelpers::FormatConnectStats(uniqueIPs, uniqueAccounts));
+            ShowInfo("%s", loginHelpers::FormatConnectStats(
+                               loginHelpers::authenticated_ip_count(),
+                               loginHelpers::authenticated_session_count()));
         });
 
     console.registerCommand(

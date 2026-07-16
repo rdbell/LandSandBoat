@@ -57,6 +57,62 @@ session_t& get_authenticated_session(const std::string& ipAddr, const std::strin
     return authenticatedSessions_[ipAddr][sessionHash]; // NOTE: Will construct if doesn't exist
 }
 
+session_t* find_authenticated_session(const std::string& ipAddr, const std::string& sessionHash)
+{
+    const auto ipIt = authenticatedSessions_.find(ipAddr);
+    if (ipIt == authenticatedSessions_.end())
+    {
+        return nullptr;
+    }
+
+    const auto sessionIt = ipIt->second.find(sessionHash);
+    if (sessionIt == ipIt->second.end())
+    {
+        return nullptr;
+    }
+
+    return &sessionIt->second;
+}
+
+bool erase_authenticated_session(const std::string& ipAddr, const std::string& sessionHash)
+{
+    const auto ipIt = authenticatedSessions_.find(ipAddr);
+    if (ipIt == authenticatedSessions_.end())
+    {
+        return false;
+    }
+
+    const auto sessionIt = ipIt->second.find(sessionHash);
+    if (sessionIt == ipIt->second.end())
+    {
+        return false;
+    }
+
+    ipIt->second.erase(sessionIt);
+    if (ipIt->second.empty())
+    {
+        authenticatedSessions_.erase(ipIt);
+    }
+
+    return true;
+}
+
+std::size_t authenticated_ip_count()
+{
+    return authenticatedSessions_.size();
+}
+
+std::size_t authenticated_session_count()
+{
+    std::size_t count = 0;
+    for (const auto& [ipAddr, sessions] : authenticatedSessions_)
+    {
+        static_cast<void>(ipAddr);
+        count += sessions.size();
+    }
+    return count;
+}
+
 auto isZoneAtPlayerCap(uint16 zoneId, bool isGM) -> bool
 {
     const auto cap = settings::get<uint16>("map.ZONE_PLAYER_CAP");

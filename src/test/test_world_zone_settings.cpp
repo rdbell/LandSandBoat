@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -202,6 +203,34 @@ auto testZoneSettingsIndexesRowsFromDatabase() -> bool
     return ok;
 }
 
+auto testZoneSettingsFailsWhenDatabaseReturnsNoResult() -> bool
+{
+    FakeDatabase fake;
+
+    db::setDatabase(&fake);
+    DatabaseResetGuard guard;
+
+    try
+    {
+        const ZoneSettings settings;
+        (void)settings;
+    }
+    catch (const std::runtime_error& error)
+    {
+        bool ok = true;
+        ok      = expectEqual(fake.queries.size(), std::size_t{ 1 }, "failed query count") && ok;
+        if (!fake.queries.empty())
+        {
+            ok = expectEqual(fake.queries.front(), std::string("SELECT zoneid, zoneip, zoneport, misc FROM zone_settings"), "failed query text") && ok;
+        }
+        ok = expectEqual(std::string(error.what()), std::string("Message Server: Failed to load zone settings from database"), "failed query error") && ok;
+        return ok;
+    }
+
+    std::cerr << "world zone settings self-test failed: ZoneSettings unexpectedly accepted a missing result\n";
+    return false;
+}
+
 } // namespace
 
 auto runWorldZoneSettingsSelfTests() -> bool
@@ -209,6 +238,7 @@ auto runWorldZoneSettingsSelfTests() -> bool
     bool ok = true;
 
     ok = testZoneSettingsIndexesRowsFromDatabase() && ok;
+    ok = testZoneSettingsFailsWhenDatabaseReturnsNoResult() && ok;
 
     return ok;
 }

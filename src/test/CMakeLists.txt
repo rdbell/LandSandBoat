@@ -411,6 +411,8 @@ set(SOURCES
     test_login_view_acquire_player_1321.cpp
     test_login_session_cleanup_1322.h
     test_login_session_cleanup_1322.cpp
+    test_login_authenticated_session_registry_2312.h
+    test_login_authenticated_session_registry_2312.cpp
     test_login_data_a1_1323.h
     test_login_data_a1_1323.cpp
     test_login_data_a2_1324.h
@@ -1174,6 +1176,8 @@ set(SOURCES
     test_world_character_cache.cpp
     test_world_daily_tally.h
     test_world_daily_tally.cpp
+    test_world_conquest_influence.h
+    test_world_conquest_influence.cpp
     test_world_time_server_effects.h
     test_world_time_server_effects.cpp
     test_world_http_server_api.h

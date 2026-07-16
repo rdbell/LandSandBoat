@@ -21,12 +21,61 @@
 
 #include "conquest_system.h"
 
+#include <algorithm>
+#include <array>
+
 #include "ipc_server.h"
 
 #include "common/database.h"
 #include "common/ipp.h"
 
 #include "common/settings.h"
+
+auto conquest::redistributeInfluencePoints(std::array<int32, 4>& influences, int points, unsigned int nation, REGION_TYPE region, int32 configuredCap) -> bool
+{
+    if (region == REGION_TYPE::UNKNOWN || nation >= influences.size())
+    {
+        return false;
+    }
+
+    // Restricted by a factor of 100 because of packet lines in 0x05e_conquest.cpp.
+    const int32 influenceCap = std::clamp<int32>(configuredCap, 1, 20000000);
+    const int   total        = influences[0] + influences[1] + influences[2] + influences[3];
+    const int   room         = influenceCap - total;
+
+    if (points <= room) // Pool is not capped and there is space. Straight add.
+    {
+        influences[nation] += points;
+    }
+    else // Pool is full. Gains come out of the other nations.
+    {
+        // Fill the remaining room first, then redistribute the overflow.
+        influences[nation] += room;
+        const int overflow = points - room;
+
+        // Do not adjust anything if the nation is already at the pool maximum.
+        if (influences[nation] < influenceCap)
+        {
+            auto lost = 0;
+            for (auto i = 0u; i < influences.size(); ++i)
+            {
+                if (i == nation)
+                {
+                    continue;
+                }
+
+                const int64 share = static_cast<int64>(overflow) * influences[i] / (influenceCap - influences[nation]);
+                const auto  loss  = std::min<int>(static_cast<int>(share), influences[i]);
+                influences[i] -= loss;
+                lost += loss;
+            }
+
+            influences[nation] += lost;
+        }
+    }
+
+    return true;
+}
 
 ConquestSystem::ConquestSystem(WorldEngine& worldServer)
 : worldServer_(worldServer)
@@ -117,49 +166,16 @@ bool ConquestSystem::updateInfluencePoints(int points, unsigned int nation, REGI
         return false;
     }
 
-    int influences[4] = {
+    std::array<int32, 4> influences = {
         rset->get<int>("sandoria_influence"),
         rset->get<int>("bastok_influence"),
         rset->get<int>("windurst_influence"),
         rset->get<int>("beastmen_influence"),
     };
 
-    // Read from main settings. Protect against 0 or too high of number.
-    // Restricted by a factor of 100 because of packet lines in 0x05e_conquest.cpp
-    const int32 influenceCap = std::clamp<int32>(settings::get<int32>("main.CONQUEST_INFLUENCE_CAP"), 1, 20000000);
-
-    int total = influences[0] + influences[1] + influences[2] + influences[3];
-    int room  = influenceCap - total;
-
-    if (points <= room) // Pool is not capped and there is space. Straight add.
+    if (!conquest::redistributeInfluencePoints(influences, points, nation, region, settings::get<int32>("main.CONQUEST_INFLUENCE_CAP")))
     {
-        influences[nation] += points;
-    }
-    else // Pool is full. Gains come out of the other nations.
-    {
-        // Fill the remaining room first, then redistribute the overflow.
-        influences[nation] += room;
-        int overflow = points - room;
-
-        // Do not adjust anything if the nation is already at the pool maximum.
-        if (influences[nation] < influenceCap)
-        {
-            auto lost = 0;
-            for (auto i = 0u; i < 4; ++i)
-            {
-                if (i == nation)
-                {
-                    continue;
-                }
-
-                const int64 share = static_cast<int64>(overflow) * influences[i] / (influenceCap - influences[nation]);
-                auto        loss  = std::min<int>(static_cast<int>(share), influences[i]);
-                influences[i] -= loss;
-                lost += loss;
-            }
-
-            influences[nation] += lost;
-        }
+        return false;
     }
 
     const auto rset2 = db::preparedStmt(

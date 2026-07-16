@@ -591,12 +591,9 @@ void data_session::handle_error(std::error_code ec, std::shared_ptr<handler_sess
         return;
     }
 
-    auto& map = loginHelpers::getAuthenticatedSessions()[self->ipAddress];
-    auto  it  = map.find(self->sessionHash);
-
-    const bool entryFound = it != map.end();
-    const bool otherPeerPresent =
-        entryFound && it->second.view_session != nullptr;
+    auto* session = loginHelpers::find_authenticated_session(self->ipAddress, self->sessionHash);
+    const bool entryFound = session != nullptr;
+    const bool otherPeerPresent = entryFound && session->view_session != nullptr;
     const auto plan = loginHelpers::PlanSessionErrorCleanup(
         entryFound,
         loginHelpers::session_error_peer::DATA,
@@ -604,19 +601,11 @@ void data_session::handle_error(std::error_code ec, std::shared_ptr<handler_sess
 
     if (plan.clearPeer)
     {
-        it->second.data_session = nullptr;
+        session->data_session = nullptr;
     }
 
     if (plan.eraseSessionEntry)
     {
-        map.erase(it);
-
-        // Remove IP from map if no entries remain
-        auto& sessions = loginHelpers::getAuthenticatedSessions();
-        if (auto outerIt = sessions.find(self->ipAddress); outerIt != sessions.end() &&
-            loginHelpers::ShouldEraseIPAfterSessionErase(outerIt->second.empty()))
-        {
-            sessions.erase(outerIt);
-        }
+        loginHelpers::erase_authenticated_session(self->ipAddress, self->sessionHash);
     }
 }
