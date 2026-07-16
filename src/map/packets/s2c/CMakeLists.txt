@@ -137,6 +137,7 @@ set(PACKET_S2C_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/0x05d_pendingstr.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/0x05e_conquest.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x05e_conquest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/conquest_runtime.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x05f_music.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x05f_music.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/0x060_musicvolume.h

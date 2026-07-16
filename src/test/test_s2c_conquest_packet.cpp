@@ -30,6 +30,7 @@
 
 #include "map/conquest_system.h"
 #include "map/packets/s2c/0x05e_conquest.h"
+#include "map/packets/s2c/conquest_runtime.h"
 
 namespace
 {
@@ -164,30 +165,30 @@ auto testConquestHelpers() -> bool
 
 auto testPacketDataBytes() -> bool
 {
-    auto data                               = ConquestPacket::PacketData{};
-    data.Conquest.Balance                  = 0x3A;
-    data.Conquest.Alliance                 = 0x01;
-    data.Conquest.Regions[0]               = { 0xAA, 0xBB, 0xCC, 0xDD };
-    data.Conquest.Regions[18]              = { 0x11, 0x22, 0x33, 0x44 };
-    data.Conquest.CurrentRegionSandoria    = 10;
-    data.Conquest.CurrentRegionBastok      = 20;
-    data.Conquest.CurrentRegionWindurst    = 30;
-    data.Conquest.CurrentRegionSandoriaPct = 40;
-    data.Conquest.CurrentRegionBastokPct   = 50;
-    data.Conquest.CurrentRegionWindurstPct = 60;
-    data.Conquest.NextTally                = 6;
-    data.Conquest.ConquestPoints           = 0x01020304;
-    data.Conquest.CurrentRegionBeastmen    = 70;
-    data.Conquest.Unknown9C                = 0x01;
-    data.Besieged.Overview.AstralCandescence       = 1;
-    data.Besieged.Overview.AlZahbiOrders           = 2;
-    data.Besieged.Overview.MamookLevel             = 3;
-    data.Besieged.Overview.Unknown                 = 1;
-    data.Besieged.MamookStronghold.Orders          = 4;
-    data.Besieged.MamookStronghold.Forces          = 5;
-    data.Besieged.HalvungStronghold.Level          = 6;
-    data.Besieged.ArrapagoStronghold.Prisoners     = 7;
-    data.Besieged.ImperialStanding                 = 0xA1A2A3A4;
+    auto data                                  = ConquestPacket::PacketData{};
+    data.Conquest.Balance                      = 0x3A;
+    data.Conquest.Alliance                     = 0x01;
+    data.Conquest.Regions[0]                   = { 0xAA, 0xBB, 0xCC, 0xDD };
+    data.Conquest.Regions[18]                  = { 0x11, 0x22, 0x33, 0x44 };
+    data.Conquest.CurrentRegionSandoria        = 10;
+    data.Conquest.CurrentRegionBastok          = 20;
+    data.Conquest.CurrentRegionWindurst        = 30;
+    data.Conquest.CurrentRegionSandoriaPct     = 40;
+    data.Conquest.CurrentRegionBastokPct       = 50;
+    data.Conquest.CurrentRegionWindurstPct     = 60;
+    data.Conquest.NextTally                    = 6;
+    data.Conquest.ConquestPoints               = 0x01020304;
+    data.Conquest.CurrentRegionBeastmen        = 70;
+    data.Conquest.Unknown9C                    = 0x01;
+    data.Besieged.Overview.AstralCandescence   = 1;
+    data.Besieged.Overview.AlZahbiOrders       = 2;
+    data.Besieged.Overview.MamookLevel         = 3;
+    data.Besieged.Overview.Unknown             = 1;
+    data.Besieged.MamookStronghold.Orders      = 4;
+    data.Besieged.MamookStronghold.Forces      = 5;
+    data.Besieged.HalvungStronghold.Level      = 6;
+    data.Besieged.ArrapagoStronghold.Prisoners = 7;
+    data.Besieged.ImperialStanding             = 0xA1A2A3A4;
 
     auto expected = std::array<uint8, sizeof(ConquestPacket::PacketData)>{};
     expected[0]   = 0x3A;
@@ -210,13 +211,70 @@ auto testPacketDataBytes() -> bool
     putLE32(expected, 140, 0x01020304);
     expected[144] = 70;
     expected[152] = 0x01;
-    putLE32(expected, conquestDataSize+0, 0x02000039);
-    putLE32(expected, conquestDataSize+4, 0x0000002C);
-    putLE32(expected, conquestDataSize+8, 0x00003000);
-    putLE32(expected, conquestDataSize+12, 0x00700000);
-    putLE32(expected, conquestDataSize+16, 0xA1A2A3A4);
+    putLE32(expected, conquestDataSize + 0, 0x02000039);
+    putLE32(expected, conquestDataSize + 4, 0x0000002C);
+    putLE32(expected, conquestDataSize + 8, 0x00003000);
+    putLE32(expected, conquestDataSize + 12, 0x00700000);
+    putLE32(expected, conquestDataSize + 16, 0xA1A2A3A4);
 
     return expectStructBytes(data, expected, "CONQUEST PacketData bytes");
+}
+
+auto testRuntimeShaping() -> bool
+{
+    auto facts                      = conquesthelpers::Facts{};
+    facts.currentRegion             = REGION_TYPE::ZULKHEIM;
+    facts.regionControls            = { 12, 3, 2 };
+    facts.prevRegionControls        = { 12, 3, 2 };
+    facts.nextTally                 = 9;
+    facts.conquestPoints            = 0x10203040;
+    facts.regions[0]                = { 2, 100, 50, 25, 10 };
+    facts.regions[1]                = { 4, 20, 30, 50, 100 };
+    facts.besieged.overview         = { 1, 2, 3, 4, 5, 6, 7, 0 };
+    facts.besieged.mamook           = { 2, 3, 4, true, 9, 5 };
+    facts.besieged.halvung          = { 0, 0, 0, false, 8, 0 };
+    facts.besieged.arrapago         = { 0, 0, 0, false, 7, 0 };
+    facts.besieged.imperialStanding = 0x55667788;
+
+    const auto packet = conquesthelpers::PlanFor(facts);
+
+    bool ok = true;
+    ok      = expectEqualUInt(packet.Conquest.Balance, 57, "runtime balance") && ok;
+    ok      = expectEqualUInt(packet.Conquest.Alliance, 1, "runtime alliance") && ok;
+    ok      = expectEqualUInt(packet.Conquest.Regions[0].InfluenceRankingWithBeastmen, 57, "runtime first region ranking") && ok;
+    ok      = expectEqualUInt(packet.Conquest.Regions[0].InfluenceGraphics, 6, "runtime first region graphics") && ok;
+    ok      = expectEqualUInt(packet.Conquest.Regions[0].Owner, 3, "runtime first region owner") && ok;
+    ok      = expectEqualUInt(packet.Conquest.Regions[1].InfluenceRankingWithBeastmen, 27, "runtime current region ranking") && ok;
+    ok      = expectEqualUInt(packet.Conquest.Regions[1].InfluenceGraphics, 64, "runtime current region graphics") && ok;
+    ok      = expectEqualUInt(packet.Conquest.Regions[1].Owner, 5, "runtime current region owner") && ok;
+    ok      = expectEqualUInt(packet.Conquest.CurrentRegionSandoria, 10, "runtime current Sandoria") && ok;
+    ok      = expectEqualUInt(packet.Conquest.CurrentRegionBastok, 15, "runtime current Bastok") && ok;
+    ok      = expectEqualUInt(packet.Conquest.CurrentRegionWindurst, 25, "runtime current Windurst") && ok;
+    ok      = expectEqualUInt(packet.Conquest.CurrentRegionSandoriaPct, 20, "runtime current Sandoria percent") && ok;
+    ok      = expectEqualUInt(packet.Conquest.CurrentRegionBastokPct, 30, "runtime current Bastok percent") && ok;
+    ok      = expectEqualUInt(packet.Conquest.CurrentRegionWindurstPct, 50, "runtime current Windurst percent") && ok;
+    ok      = expectEqualUInt(packet.Conquest.CurrentRegionBeastmen, 50, "runtime current beastmen") && ok;
+    ok      = expectEqualUInt(packet.Conquest.NextTally, 9, "runtime next tally") && ok;
+    ok      = expectEqualUInt(packet.Conquest.ConquestPoints, 0x10203040, "runtime conquest points") && ok;
+    ok      = expectEqualUInt(packet.Conquest.Unknown9C, 1, "runtime unknown9C") && ok;
+    ok      = expectEqualUInt(packet.Conquest.Regions[19].Owner, 0, "runtime inactive region") && ok;
+    ok      = expectEqualUInt(packet.Besieged.Overview.Unknown, 1, "runtime besieged unknown") && ok;
+    ok      = expectEqualUInt(packet.Besieged.MamookStronghold.Mirrors, 4, "runtime Mamook mirrors") && ok;
+    ok      = expectEqualUInt(packet.Besieged.HalvungStronghold.Mirrors, 4, "runtime Halvung mirrors") && ok;
+    ok      = expectEqualUInt(packet.Besieged.ArrapagoStronghold.Mirrors, 3, "runtime Arrapago mirrors") && ok;
+    ok      = expectEqualUInt(packet.Besieged.ImperialStanding, 0x55667788, "runtime imperial standing") && ok;
+
+    auto zeroFacts          = conquesthelpers::Facts{};
+    zeroFacts.currentRegion = REGION_TYPE::RONFAURE;
+    const auto zeroPacket   = conquesthelpers::PlanFor(zeroFacts);
+    ok                      = expectEqualUInt(zeroPacket.Conquest.CurrentRegionSandoria, 0, "runtime zero current Sandoria") && ok;
+    ok                      = expectEqualUInt(zeroPacket.Conquest.CurrentRegionBastok, 0, "runtime zero current Bastok") && ok;
+    ok                      = expectEqualUInt(zeroPacket.Conquest.CurrentRegionWindurst, 0, "runtime zero current Windurst") && ok;
+    ok                      = expectEqualUInt(zeroPacket.Conquest.CurrentRegionSandoriaPct, 0, "runtime zero current Sandoria percent") && ok;
+    ok                      = expectEqualUInt(zeroPacket.Conquest.CurrentRegionBastokPct, 0, "runtime zero current Bastok percent") && ok;
+    ok                      = expectEqualUInt(zeroPacket.Conquest.CurrentRegionWindurstPct, 0, "runtime zero current Windurst percent") && ok;
+    ok                      = expectEqualUInt(zeroPacket.Conquest.CurrentRegionBeastmen, 0, "runtime zero current beastmen") && ok;
+    return ok;
 }
 
 } // namespace
@@ -228,5 +286,6 @@ auto runS2CConquestPacketSelfTests() -> bool
     ok      = testBitfieldBytes() && ok;
     ok      = testConquestHelpers() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testRuntimeShaping() && ok;
     return ok;
 }
