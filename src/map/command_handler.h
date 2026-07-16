@@ -27,6 +27,24 @@
 
 #include <list>
 #include <string>
+#include <variant>
+#include <vector>
+
+namespace commandhandler::detail
+{
+
+using CommandArg = std::variant<bool, int, double, std::string>;
+
+struct ParsedCommand
+{
+    std::string             name;
+    std::vector<CommandArg> args;
+    bool                    valid{};
+};
+
+auto ParseCommandLine(const std::string& commandline, const std::string& parameters) -> ParsedCommand;
+
+} // namespace commandhandler::detail
 
 //
 // Forward declarations

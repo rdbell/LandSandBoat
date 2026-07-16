@@ -20,6 +20,24 @@ describe('Seekers of Adoulin', function()
     -- Missions
     --
 
+    describe('Geomagnetic Fount', function()
+        it('attunes the Geomagnetron only during its current mission', function()
+            player:gotoZone(xi.zone.YUGHOTT_GROTTO)
+
+            -- The fount is inert outside The Geomagnetron mission.
+            player.entities:gotoAndTrigger('Geomagnetic_Fount')
+            assert(player:getCharVar('SOA') == 0, 'fount attuned outside The Geomagnetron mission')
+
+            player:addMission(xi.mission.log_id.SOA, xi.mission.id.soa.THE_GEOMAGNETRON)
+            player.entities:gotoAndTrigger('Geomagnetic_Fount')
+            assert(player:getCharVar('SOA') == 1, 'fount did not attune the Geomagnetron')
+
+            -- A second interaction preserves the already-attuned state.
+            player.entities:gotoAndTrigger('Geomagnetic_Fount')
+            assert(player:getCharVar('SOA') == 1, 'repeat fount interaction changed attunement')
+        end)
+    end)
+
     describe('1-1 - Rumors from the West', function()
         it('Start Geomagnetron route', function()
             player:addMission(xi.mission.log_id.SOA, xi.mission.id.soa.RUMORS_FROM_THE_WEST)

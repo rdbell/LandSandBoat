@@ -40,7 +40,65 @@
 #include <variant>
 #include <vector>
 
-using CommandArg = std::variant<bool, int, double, std::string>;
+auto commandhandler::detail::ParseCommandLine(const std::string& commandline, const std::string& parameters) -> ParsedCommand
+{
+    constexpr auto trimLeft = [](std::string_view& sv)
+    {
+        sv.remove_prefix(std::min(sv.find_first_not_of(" \t"), sv.size()));
+    };
+    constexpr auto popToken = [](std::string_view& sv) -> std::string_view
+    {
+        const auto end   = sv.find_first_of(" \t");
+        const auto token = sv.substr(0, end);
+        sv.remove_prefix(end != std::string_view::npos ? end + 1 : sv.size());
+        return token;
+    };
+    auto view = std::string_view(commandline);
+    trimLeft(view);
+    if (view.empty())
+        return {};
+    auto out = ParsedCommand{ .name = std::string(popToken(view)), .valid = true };
+    out.args.reserve(parameters.size());
+    for (const auto paramType : parameters)
+    {
+        if (paramType == 'b')
+        {
+            out.args.emplace_back(commandline);
+            continue;
+        }
+        trimLeft(view);
+        if (view.empty())
+            break;
+        if (paramType == 's')
+        {
+            if (parameters.size() == 1)
+            {
+                out.args.emplace_back(std::string(view));
+                break;
+            }
+            out.args.emplace_back(std::string(popToken(view)));
+        }
+        else if (paramType == 'i')
+        {
+            auto       val   = 0;
+            const auto token = popToken(view);
+            std::from_chars(token.data(), token.data() + token.size(), val);
+            out.args.emplace_back(val);
+        }
+        else if (paramType == 'd')
+        {
+            auto       val   = 0.0;
+            const auto token = popToken(view);
+            std::from_chars(token.data(), token.data() + token.size(), val);
+            out.args.emplace_back(val);
+        }
+        else
+        {
+            ShowError("cmdhandler::call: (%s) undefined type for param: symbol: %c", out.name.c_str(), paramType);
+        }
+    }
+    return out;
+}
 
 auto CCommandHandler::call(Scheduler& scheduler, sol::state& lua, CCharEntity* const PChar, const std::string& commandline) -> CommandResult
 {
@@ -52,31 +110,14 @@ auto CCommandHandler::call(Scheduler& scheduler, sol::state& lua, CCharEntity* c
         return CommandResult::Failure;
     }
 
-    constexpr auto trimLeft = [](std::string_view& sv)
-    {
-        sv.remove_prefix(std::min(sv.find_first_not_of(" \t"), sv.size()));
-    };
-
-    constexpr auto popToken = [](std::string_view& sv) -> std::string_view
-    {
-        const auto end   = sv.find_first_of(" \t");
-        const auto token = sv.substr(0, end);
-
-        sv.remove_prefix(end != std::string_view::npos ? end + 1 : sv.size());
-
-        return token;
-    };
-
-    auto cmdView = std::string_view(commandline);
-    trimLeft(cmdView);
-
-    if (cmdView.empty())
+    const auto parsedName = commandhandler::detail::ParseCommandLine(commandline, "");
+    if (!parsedName.valid)
     {
         ShowError("cmdhandler::call: function name was empty");
         return CommandResult::Failure;
     }
 
-    const auto cmdName = std::string(popToken(cmdView));
+    const auto& cmdName = parsedName.name;
 
     TracyZoneString(PChar->name);
     TracyZoneString(commandline);
@@ -136,52 +177,7 @@ auto CCommandHandler::call(Scheduler& scheduler, sol::state& lua, CCharEntity* c
     }
     const auto& onTrigger = *maybeOnTrigger;
 
-    auto args = std::vector<CommandArg>{};
-    args.reserve(parameters.size());
-
-    for (const auto paramType : parameters)
-    {
-        if (paramType == 'b')
-        {
-            args.emplace_back(commandline);
-            continue;
-        }
-
-        trimLeft(cmdView);
-        if (cmdView.empty())
-        {
-            break;
-        }
-
-        if (paramType == 's')
-        {
-            if (parameters.size() == 1)
-            {
-                args.emplace_back(std::string(cmdView));
-                cmdView = {};
-                break;
-            }
-            args.emplace_back(std::string(popToken(cmdView)));
-        }
-        else if (paramType == 'i')
-        {
-            auto       val   = 0;
-            const auto token = popToken(cmdView);
-            std::from_chars(token.data(), token.data() + token.size(), val);
-            args.emplace_back(val);
-        }
-        else if (paramType == 'd')
-        {
-            auto       val   = 0.0;
-            const auto token = popToken(cmdView);
-            std::from_chars(token.data(), token.data() + token.size(), val);
-            args.emplace_back(val);
-        }
-        else
-        {
-            ShowError("cmdhandler::call: (%s) undefined type for param: symbol: %c", cmdName.c_str(), paramType);
-        }
-    }
+    auto args = commandhandler::detail::ParseCommandLine(commandline, parameters).args;
 
     const auto result = onTrigger(PChar, sol::as_args(args));
     if (!result.valid())
