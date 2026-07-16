@@ -930,6 +930,7 @@ auto runS2CTrackingStatePacketSelfTests() -> bool;
 auto runS2CTrackingPosPacketSelfTests() -> bool;
 auto runS2CTranslatePacketSelfTests() -> bool;
 auto runS2CWPosPacketSelfTests() -> bool;
+auto runVariantUtilitySelfTests() -> bool;
 auto runS2CWPosRuntimeSelfTests() -> bool;
 
 namespace
@@ -1838,6 +1839,7 @@ namespace
         ok = runS2CTrackingPosPacketSelfTests() && ok;
         ok = runS2CTranslatePacketSelfTests() && ok;
         ok = runS2CWPosPacketSelfTests() && ok;
+        ok = runVariantUtilitySelfTests() && ok;
         ok = runS2CWPosRuntimeSelfTests() && ok;
 
         return ok;

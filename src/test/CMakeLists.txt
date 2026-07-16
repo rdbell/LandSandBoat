@@ -1778,6 +1778,8 @@ set(SOURCES
     test_s2c_weather_runtime.cpp
     test_s2c_wpos_packets.h
     test_s2c_wpos_packets.cpp
+    test_variant_utility.h
+    test_variant_utility.cpp
     test_s2c_wpos_runtime.h
     test_s2c_wpos_runtime.cpp
     test_search_auction_packets.h
