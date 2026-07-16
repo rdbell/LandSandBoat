@@ -23,6 +23,20 @@
 
 #include "base.h"
 
+namespace switchvotehelpers
+{
+enum class Action : uint8
+{
+    NoOp,
+    OnVote,
+};
+
+constexpr auto MakePlan(bool hasZone) -> Action
+{
+    return hasZone ? Action::OnVote : Action::NoOp;
+}
+} // namespace switchvotehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00A1
 // This packet is sent by the client when voting in a proposal. (via /vote)
 GP_CLI_PACKET_VLA(GP_CLI_COMMAND_SWITCH_VOTE, Name,

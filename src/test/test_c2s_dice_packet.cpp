@@ -147,10 +147,19 @@ auto testDicePureValidationFacts() -> bool
     return ok;
 }
 
+auto testDiceRuntimePlan() -> bool
+{
+    bool ok = true;
+    ok      = expectEqualInt(dicehelpers::MakePlan(0).roll, 0, "DICE zero random roll") && ok;
+    ok      = expectEqualInt(dicehelpers::MakePlan(999).roll, 999, "DICE maximum random roll") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SDicePacketSelfTests() -> bool
 {
     return testDiceLayoutMetadataAndPayload() &&
-           testDicePureValidationFacts();
+           testDicePureValidationFacts() &&
+           testDiceRuntimePlan();
 }

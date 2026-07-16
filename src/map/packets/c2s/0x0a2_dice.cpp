@@ -34,7 +34,7 @@ auto GP_CLI_COMMAND_DICE::validate(MapSession* PSession, const CCharEntity* PCha
 
 void GP_CLI_COMMAND_DICE::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    uint16 diceRoll = xirand::GetRandomNumber(1000);
+    const auto plan = dicehelpers::MakePlan(xirand::GetRandomNumber<uint16>(1000));
 
-    PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_MESSAGE>(PChar, diceRoll, MsgStd::DiceRoll));
+    PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_MESSAGE>(PChar, plan.roll, MsgStd::DiceRoll));
 }

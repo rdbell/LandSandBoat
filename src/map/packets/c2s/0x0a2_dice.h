@@ -23,6 +23,23 @@
 
 #include "base.h"
 
+namespace dicehelpers
+{
+
+// DicePlan is the host-independent result of a DICE request. The random
+// source supplies a value in [0, 1000); packet payload has no effect.
+struct DicePlan
+{
+    uint16 roll;
+};
+
+constexpr auto MakePlan(uint16 roll) -> DicePlan
+{
+    return { roll };
+}
+
+} // namespace dicehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00A2
 // This packet is sent by the client when using the /random command.
 GP_CLI_PACKET(GP_CLI_COMMAND_DICE,

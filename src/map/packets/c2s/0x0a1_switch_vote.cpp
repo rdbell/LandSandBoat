@@ -33,7 +33,7 @@ auto GP_CLI_COMMAND_SWITCH_VOTE::validate(MapSession* PSession, const CCharEntit
 
 void GP_CLI_COMMAND_SWITCH_VOTE::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    if (PChar->loc.zone)
+    if (switchvotehelpers::MakePlan(PChar->loc.zone != nullptr) == switchvotehelpers::Action::OnVote)
     {
         PChar->loc.zone->nominateManager().onVote(PChar, *this);
     }
