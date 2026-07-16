@@ -23,6 +23,7 @@
 #include "mob_behavior_policy.h"
 #include "mob_gil_policy.h"
 #include "mob_roam_policy.h"
+#include "mob_roam_home_policy.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -344,17 +345,9 @@ void CMobEntity::ResetGilPurse()
 
 bool CMobEntity::CanRoamHome()
 {
-    if ((speed == 0 && !(m_roamFlags & ROAMFLAG_WORM)) || getMobMod(MOBMOD_NO_MOVE) > 0)
-    {
-        return false;
-    }
-
-    if (getMobMod(MOBMOD_NO_DESPAWN) != 0 || settings::get<bool>("map.MOB_NO_DESPAWN"))
-    {
-        return true;
-    }
-
-    return distance(m_SpawnPoint, loc.p) < roam_home_distance;
+    return mobroamhomehelpers::CanRoamHome(speed > 0, m_roamFlags & ROAMFLAG_WORM, getMobMod(MOBMOD_NO_MOVE) > 0,
+                                            getMobMod(MOBMOD_NO_DESPAWN) != 0, settings::get<bool>("map.MOB_NO_DESPAWN"),
+                                            distance(m_SpawnPoint, loc.p) < roam_home_distance);
 }
 
 bool CMobEntity::CanRoam()

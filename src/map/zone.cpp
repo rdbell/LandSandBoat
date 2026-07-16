@@ -1210,21 +1210,13 @@ void CZone::CharZoneIn(CCharEntity* PChar)
     // Restore seal recast timer if enabled
     if (settings::get<bool>("main.PERSIST_SEAL_TIMERS"))
     {
-        auto expirationTimestamp = static_cast<uint32>(PChar->getCharVar("SealTimerExpiry"));
-        if (expirationTimestamp > 0)
+        const auto plan = zonehelpers::PlanSealTimerRestore(true, static_cast<uint32>(PChar->getCharVar("SealTimerExpiry")), earth_time::timestamp());
+        if (plan.restore)
         {
-            auto currentTimestamp = earth_time::timestamp();
-            if (expirationTimestamp > currentTimestamp)
-            {
-                auto remainingSeconds = expirationTimestamp - currentTimestamp;
-                // Sanity check: seal timer should never exceed 5 minutes (300 seconds)
-                if (remainingSeconds <= 300)
-                {
-                    PChar->PRecastContainer->AddLootRecast(LootRecastID::Seal, std::chrono::seconds(remainingSeconds));
-                }
-            }
-
-            // Ensure var is wiped after zone in
+            PChar->PRecastContainer->AddLootRecast(LootRecastID::Seal, std::chrono::seconds(plan.remainingSeconds));
+        }
+        if (plan.clearStoredExpiry)
+        {
             PChar->setCharVar("SealTimerExpiry", 0);
         }
     }

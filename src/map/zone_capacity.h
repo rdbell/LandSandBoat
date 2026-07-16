@@ -133,6 +133,14 @@ inline auto PlanSealTimerExpiry(const bool persistEnabled, const bool hasRecast,
     return now + static_cast<uint32>(std::chrono::duration_cast<std::chrono::seconds>(remaining).count());
 }
 
+struct SealTimerRestorePlan { bool restore{}; uint32 remainingSeconds{}; bool clearStoredExpiry{}; };
+inline auto PlanSealTimerRestore(const bool persistEnabled, const uint32 expiry, const uint32 now) -> SealTimerRestorePlan
+{
+    if (!persistEnabled || expiry == 0) return {};
+    const auto remaining = expiry > now ? expiry - now : 0;
+    return { remaining > 0 && remaining <= 300, remaining, true };
+}
+
 // --- updateCharLevelRestriction ---
 
 // ShouldSkipLevelRestrictionUpdate mirrors already has LevelRestriction with

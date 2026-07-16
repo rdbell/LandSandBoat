@@ -717,6 +717,8 @@ set(SOURCES
     test_zone_timer_plan_2657.cpp
     test_zone_seal_timer_2658.h
     test_zone_seal_timer_2658.cpp
+    test_zone_seal_restore_2661.h
+    test_zone_seal_restore_2661.cpp
     test_zone_query_by_name_2647.h
     test_zone_query_by_name_2647.cpp
     test_zone_char_update_2656.h
@@ -1239,6 +1241,8 @@ set(SOURCES
     test_mob_behavior_policy_2655.cpp
     test_mob_roam_policy_2659.h
     test_mob_roam_policy_2659.cpp
+    test_mob_roam_home_policy_2662.h
+    test_mob_roam_home_policy_2662.cpp
     test_pet_mod_tandem_1624.h
     test_pet_mod_tandem_1624.cpp
     test_pet_spawn_1625.h
@@ -1382,6 +1386,8 @@ set(SOURCES
     test_map_network_packet_building.cpp
     test_map_networking_socket_gate_2660.h
     test_map_networking_socket_gate_2660.cpp
+    test_map_networking_incoming_blocks_2663.h
+    test_map_networking_incoming_blocks_2663.cpp
     test_map_socket_receive_2654.h
     test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h

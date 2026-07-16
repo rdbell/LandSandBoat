@@ -203,8 +203,7 @@ bool MapNetworking::decodeIncomingPacket(ByteSpan packet, NetworkBuffer& output,
     }
 
     std::memcpy(output.data(), packet.data(), packet.size());
-    const auto dataSize      = packet.size() - FFXI_HEADER_SIZE;
-    const auto encryptedSize = dataSize / 8 * 8;
+    const auto encryptedSize = mapnetworkinghelpers::IncomingEncryptedBlockCount(packet.size()) * 8;
     blowfish_decipher_blocks(reinterpret_cast<uint32*>(output.data() + FFXI_HEADER_SIZE), encryptedSize / 8, pbfkey->P, pbfkey->S[0]);
 
     const auto compressedSize = packet.size() - FFXI_HEADER_SIZE - 16;
