@@ -660,6 +660,7 @@ auto runC2SItemStackRuntimeSelfTests() -> bool;
 auto runC2SSubcontainerRuntimeSelfTests() -> bool;
 auto runC2SBlacklistPacketSelfTests() -> bool;
 auto runC2SBlackEditRuntimeSelfTests() -> bool;
+auto runC2SBlackListRuntimeSelfTests() -> bool;
 auto runC2STrophyPacketSelfTests() -> bool;
 auto runC2SEventUpdatePacketSelfTests() -> bool;
 auto runC2SMapRectMogHouseExitSelfTests() -> bool;
@@ -1496,6 +1497,7 @@ namespace
         ok = runC2SItemStackRuntimeSelfTests() && ok;
         ok = runC2SSubcontainerRuntimeSelfTests() && ok;
         ok = runC2SBlacklistPacketSelfTests() && ok;
+        ok = runC2SBlackListRuntimeSelfTests() && ok;
         ok = runC2SBlackEditRuntimeSelfTests() && ok;
         ok = runC2STrophyPacketSelfTests() && ok;
         ok = runC2SEventUpdatePacketSelfTests() && ok;

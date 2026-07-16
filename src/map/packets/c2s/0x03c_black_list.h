@@ -23,6 +23,23 @@
 
 #include "base.h"
 
+// BLACK_LIST has no payload-dependent routing: once packet validation has
+// accepted the request, it refreshes the requesting character's blacklist.
+namespace blacklistpackethelpers
+{
+
+enum class Action : uint8
+{
+    SendBlacklist,
+};
+
+[[nodiscard]] constexpr auto SelectAction() -> Action
+{
+    return Action::SendBlacklist;
+}
+
+} // namespace blacklistpackethelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x003C
 // This packet is sent by the client when it needs to request the clients blacklist.
 GP_CLI_PACKET(GP_CLI_COMMAND_BLACK_LIST,

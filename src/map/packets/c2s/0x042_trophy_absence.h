@@ -23,6 +23,31 @@
 
 #include "base.h"
 
+namespace trophyabsencehelpers
+{
+
+// Action is the host-independent terminal branch of TROPHY_ABSENCE::process.
+// Treasure-pool lookup and mutation remain map-host responsibilities.
+enum class Action : uint8
+{
+    NoOp,
+    PassItem,
+};
+
+struct Plan
+{
+    Action action;
+};
+
+// MakePlan mirrors process's duplicate-pass guard. Passing an entry twice
+// deliberately leaves the pool unchanged on the second request.
+[[nodiscard]] constexpr auto MakePlan(const bool hasPassedItem) -> Plan
+{
+    return { hasPassedItem ? Action::NoOp : Action::PassItem };
+}
+
+} // namespace trophyabsencehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0042
 // This packet is sent by the client when passing on treasure pool items.
 GP_CLI_PACKET(GP_CLI_COMMAND_TROPHY_ABSENCE,

@@ -34,7 +34,7 @@ auto GP_CLI_COMMAND_TROPHY_ABSENCE::validate(MapSession* PSession, const CCharEn
 
 void GP_CLI_COMMAND_TROPHY_ABSENCE::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    if (!PChar->PTreasurePool->hasPassedItem(PChar, this->TrophyItemIndex))
+    if (trophyabsencehelpers::MakePlan(PChar->PTreasurePool->hasPassedItem(PChar, this->TrophyItemIndex)).action == trophyabsencehelpers::Action::PassItem)
     {
         PChar->PTreasurePool->passItem(PChar, this->TrophyItemIndex);
     }

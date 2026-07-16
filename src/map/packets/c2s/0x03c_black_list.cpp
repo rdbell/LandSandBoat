@@ -32,5 +32,10 @@ auto GP_CLI_COMMAND_BLACK_LIST::validate(MapSession* PSession, const CCharEntity
 
 void GP_CLI_COMMAND_BLACK_LIST::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    blacklistutils::SendBlacklist(PChar);
+    switch (blacklistpackethelpers::SelectAction())
+    {
+        case blacklistpackethelpers::Action::SendBlacklist:
+            blacklistutils::SendBlacklist(PChar);
+            break;
+    }
 }
