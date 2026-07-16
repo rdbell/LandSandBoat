@@ -33,7 +33,10 @@ constexpr std::uint16_t WeatherCycle = 2160;
 // Each of these zones has special behavior
 
 #include "zone.h"
+
+#include "trigger_area_dispatch.h"
 #include "zone_capacity.h"
+#include "zone_query_by_name_capacity.h"
 
 #include "common/logging.h"
 #include "common/settings.h"
@@ -260,40 +263,37 @@ const QueryByNameResult_t& CZone::queryEntitiesByName(const std::string& pattern
 {
     TracyZoneScoped;
 
-    // Always ignore cache for queries explicitly looking for dynamic entities
-    // TODO: make this memoization work for dynamic entities somehow?
-    if (pattern.rfind("DE_", 0) != 0)
+    const auto plan = zonequeryhelpers::PlanQueryByName(pattern, m_queryByNameResults.contains(pattern));
+    if (plan.returnCached)
     {
-        // Use memoization since lookups are typically for the same mob names
-        auto result = m_queryByNameResults.find(pattern);
-        if (result != m_queryByNameResults.end())
-        {
-            return result->second;
-        }
+        return m_queryByNameResults.at(pattern);
     }
 
     std::vector<CBaseEntity*> entities;
 
     // TODO: Make work for instances
-    ForEachNpc(
-        [&](CNpcEntity* PNpc)
+    zonequeryhelpers::ResolveMatches(
+        [this](const auto& callback)
         {
-            if (matches(PNpc->getName(), pattern))
-            {
-                entities.emplace_back(PNpc);
-            }
+            ForEachNpc(callback);
+        },
+        [this](const auto& callback)
+        {
+            ForEachMob(callback);
+        },
+        [&](const auto* entity)
+        {
+            return matches(entity->getName(), pattern);
+        },
+        [&](auto* entity)
+        {
+            entities.emplace_back(entity);
         });
 
-    ForEachMob(
-        [&](CMobEntity* PMob)
-        {
-            if (matches(PMob->getName(), pattern))
-            {
-                entities.emplace_back(PMob);
-            }
-        });
-
-    m_queryByNameResults[pattern] = std::move(entities);
+    if (plan.cacheResult)
+    {
+        m_queryByNameResults[pattern] = std::move(entities);
+    }
     return m_queryByNameResults[pattern];
 }
 
@@ -1341,7 +1341,7 @@ auto CZone::CheckTriggerAreas() -> Task<void>
             // TODO: When we start to use octrees or spatial hashing to split up zones,
             //     : use them here to make the search domain smaller.
 
-            // Do not enter trigger areas while loading in. Set in xi.player.onGameIn
+            // Do not enter trigger areas while loading in. Set in xi.player.onGameIn.
             if (PChar->GetLocalVar("ZoningIn") > 0)
             {
                 return;
@@ -1350,20 +1350,20 @@ auto CZone::CheckTriggerAreas() -> Task<void>
             for (const auto& triggerArea : m_triggerAreaList)
             {
                 const auto triggerAreaID = triggerArea->getTriggerAreaID();
-                if (triggerArea->isPointInside(PChar->loc.p))
+                switch (triggerarea::MembershipActionFor(false, triggerArea->isPointInside(PChar->loc.p), PChar->isInTriggerArea(triggerAreaID)))
                 {
-                    if (!PChar->isInTriggerArea(triggerAreaID))
-                    {
-                        // Add the TriggerArea to the players cache of current TriggerAreas
+                    case triggerarea::MembershipAction::Enter:
+                        // Add the TriggerArea to the players cache of current TriggerAreas.
                         PChar->onTriggerAreaEnter(triggerAreaID);
                         luautils::OnTriggerAreaEnter(PChar, triggerArea);
-                    }
-                }
-                else if (PChar->isInTriggerArea(triggerAreaID))
-                {
-                    // Remove the TriggerArea from the players cache of current TriggerAreas
-                    PChar->onTriggerAreaLeave(triggerAreaID);
-                    luautils::OnTriggerAreaLeave(PChar, triggerArea);
+                        break;
+                    case triggerarea::MembershipAction::Leave:
+                        // Remove the TriggerArea from the players cache of current TriggerAreas.
+                        PChar->onTriggerAreaLeave(triggerAreaID);
+                        luautils::OnTriggerAreaLeave(PChar, triggerArea);
+                        break;
+                    case triggerarea::MembershipAction::None:
+                        break;
                 }
             }
         });

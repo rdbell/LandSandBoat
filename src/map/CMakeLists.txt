@@ -164,6 +164,7 @@ set(MAP_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/treasure_pool.h
     ${CMAKE_CURRENT_SOURCE_DIR}/trigger_area.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/trigger_area.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/trigger_area_dispatch.h
     ${CMAKE_CURRENT_SOURCE_DIR}/unitychat.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unitychat.h
     ${CMAKE_CURRENT_SOURCE_DIR}/universal_container.cpp

@@ -709,6 +709,8 @@ set(SOURCES
     test_spawn_can_spawn_1362.cpp
     test_zone_policy_1363.h
     test_zone_policy_1363.cpp
+    test_zone_query_by_name_2647.h
+    test_zone_query_by_name_2647.cpp
     test_status_effect_can_gain_1364.h
     test_status_effect_can_gain_1364.cpp
     test_status_effect_selection_1365.h
@@ -1895,6 +1897,8 @@ set(SOURCES
     test_tracy_hex_helpers.cpp
     test_trigger_area.h
     test_trigger_area.cpp
+    test_trigger_area_dispatch_2648.h
+    test_trigger_area_dispatch_2648.cpp
     test_treasure_pool_resolution.h
     test_treasure_pool_resolution.cpp
     test_weather_container.h
