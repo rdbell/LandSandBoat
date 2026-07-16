@@ -122,6 +122,10 @@ set(SOURCES
     test_c2s_dice_packet.cpp
     test_c2s_dig_runtime.h
     test_c2s_dig_runtime.cpp
+    test_c2s_jump_runtime.h
+    test_c2s_jump_runtime.cpp
+    test_c2s_emote_list_runtime.h
+    test_c2s_emote_list_runtime.cpp
     test_c2s_dungeon_inspect_packets.h
     test_c2s_dungeon_inspect_packets.cpp
     test_c2s_equipment_packets.h
@@ -136,6 +140,8 @@ set(SOURCES
     test_c2s_event_update_packets.cpp
     test_c2s_maprect_moghouse_exit.h
     test_c2s_maprect_moghouse_exit.cpp
+    test_c2s_mastery_display_runtime.h
+    test_c2s_mastery_display_runtime.cpp
     test_c2s_passwards_runtime.h
     test_c2s_passwards_runtime.cpp
     test_c2s_eventend_transition.h

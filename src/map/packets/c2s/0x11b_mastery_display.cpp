@@ -34,13 +34,26 @@ auto GP_CLI_COMMAND_MASTERY_DISPLAY::validate(MapSession* PSession, const CCharE
 
 void GP_CLI_COMMAND_MASTERY_DISPLAY::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    if (PChar->m_jobMasterDisplay != static_cast<bool>(this->Mode))
-    {
-        PChar->m_jobMasterDisplay = this->Mode;
+    const auto plan = masterydisplayhelpers::MakeRuntimePlan(PChar->m_jobMasterDisplay, static_cast<GP_CLI_COMMAND_MASTERY_DISPLAY_MODE>(this->Mode));
 
-        charutils::SaveJobMasterDisplay(PChar);
-        PChar->pushPacket<CCharStatusPacket>(PChar);
-        // TODO: This might be broadcast to other players as well
-        PChar->pushPacket<CCharSyncPacket>(PChar);
+    if (plan.updateJobMasterDisplay)
+    {
+        PChar->m_jobMasterDisplay = plan.jobMasterDisplay;
+
+        if (plan.saveJobMasterDisplay)
+        {
+            charutils::SaveJobMasterDisplay(PChar);
+        }
+
+        if (plan.sendCharStatus)
+        {
+            PChar->pushPacket<CCharStatusPacket>(PChar);
+        }
+
+        if (plan.sendCharSync)
+        {
+            // TODO: This might be broadcast to other players as well
+            PChar->pushPacket<CCharSyncPacket>(PChar);
+        }
     }
 }

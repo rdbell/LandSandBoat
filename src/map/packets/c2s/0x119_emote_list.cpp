@@ -33,5 +33,10 @@ auto GP_CLI_COMMAND_EMOTE_LIST::validate(MapSession* PSession, const CCharEntity
 
 void GP_CLI_COMMAND_EMOTE_LIST::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    PChar->pushPacket<GP_SERV_COMMAND_EMOTE_LIST>(PChar);
+    switch (emotelistpackethelpers::SelectAction())
+    {
+        case emotelistpackethelpers::Action::SendEmoteList:
+            PChar->pushPacket<GP_SERV_COMMAND_EMOTE_LIST>(PChar);
+            break;
+    }
 }

@@ -22,6 +22,23 @@
 #pragma once
 #include "base.h"
 
+// EMOTE_LIST has no payload-dependent routing: after validation accepts the
+// request, it always sends the requesting character's emote list.
+namespace emotelistpackethelpers
+{
+
+enum class Action : uint8
+{
+    SendEmoteList,
+};
+
+[[nodiscard]] constexpr auto SelectAction() -> Action
+{
+    return Action::SendEmoteList;
+}
+
+} // namespace emotelistpackethelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0119
 // This packet is sent by the client when requesting its available chairs (/sitchair) and job emotes (/jobemote).
 GP_CLI_PACKET(GP_CLI_COMMAND_EMOTE_LIST);

@@ -28,6 +28,34 @@ enum class GP_CLI_COMMAND_MASTERY_DISPLAY_MODE : uint8_t
     On  = 0x01,
 };
 
+// Keeps MASTERY_DISPLAY's process-time change detection independently
+// testable. Packet validation remains owned by
+// GP_CLI_COMMAND_MASTERY_DISPLAY::validate.
+namespace masterydisplayhelpers
+{
+struct RuntimePlan
+{
+    bool updateJobMasterDisplay;
+    bool jobMasterDisplay;
+    bool saveJobMasterDisplay;
+    bool sendCharStatus;
+    bool sendCharSync;
+};
+
+[[nodiscard]] constexpr auto MakeRuntimePlan(const bool currentJobMasterDisplay, const GP_CLI_COMMAND_MASTERY_DISPLAY_MODE mode) -> RuntimePlan
+{
+    const auto jobMasterDisplay = mode == GP_CLI_COMMAND_MASTERY_DISPLAY_MODE::On;
+    const auto changed          = currentJobMasterDisplay != jobMasterDisplay;
+    return {
+        .updateJobMasterDisplay = changed,
+        .jobMasterDisplay       = jobMasterDisplay,
+        .saveJobMasterDisplay   = changed,
+        .sendCharStatus         = changed,
+        .sendCharSync           = changed,
+    };
+}
+} // namespace masterydisplayhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x011B
 // This packet is sent by the client when changing their job mastery display. (/jobmasterdisp)
 GP_CLI_PACKET(GP_CLI_COMMAND_MASTERY_DISPLAY,

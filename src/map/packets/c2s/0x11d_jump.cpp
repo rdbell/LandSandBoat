@@ -36,11 +36,13 @@ auto GP_CLI_COMMAND_JUMP::validate(MapSession* PSession, const CCharEntity* PCha
 
 void GP_CLI_COMMAND_JUMP::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    if (jailutils::InPrison(PChar))
+    const auto plan = jumphelpers::SelectDispatchPlan(jailutils::InPrison(PChar), this->ActIndex);
+
+    if (plan.action == jumphelpers::Action::RejectInPrison)
     {
         PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::CannotUseInArea);
         return;
     }
 
-    PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_JUMP>(PChar, this->ActIndex));
+    PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_JUMP>(PChar, plan.actIndex));
 }

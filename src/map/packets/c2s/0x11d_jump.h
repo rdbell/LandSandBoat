@@ -22,6 +22,31 @@
 #pragma once
 #include "base.h"
 
+// Keeps JUMP's process-time jail gate and target propagation independently
+// testable. Scalar validation remains owned by GP_CLI_COMMAND_JUMP::validate.
+namespace jumphelpers
+{
+enum class Action : uint8
+{
+    RejectInPrison,
+    BroadcastSelfRange,
+};
+
+struct DispatchPlan
+{
+    Action   action;
+    uint16_t actIndex;
+};
+
+constexpr auto SelectDispatchPlan(const bool inPrison, const uint16_t actIndex) -> DispatchPlan
+{
+    return {
+        .action   = inPrison ? Action::RejectInPrison : Action::BroadcastSelfRange,
+        .actIndex = actIndex,
+    };
+}
+} // namespace jumphelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x011D
 // This packet is sent by the client when using the jump command.
 GP_CLI_PACKET(GP_CLI_COMMAND_JUMP,
