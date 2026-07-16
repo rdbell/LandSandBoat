@@ -129,6 +129,22 @@ auto sampleItems() -> std::vector<GP_GUILD_ITEM>
     };
 }
 
+auto numberedItems(const std::size_t count) -> std::vector<GP_GUILD_ITEM>
+{
+    auto items = std::vector<GP_GUILD_ITEM>{};
+    items.reserve(count);
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        items.push_back(GP_GUILD_ITEM{
+            .ItemNo = static_cast<uint16>(0x1000 + i),
+            .Count  = static_cast<uint8>(i + 1),
+            .Max    = static_cast<uint8>(i + 2),
+            .Price  = static_cast<int32>(1000 + i),
+        });
+    }
+    return items;
+}
+
 auto testLayout() -> bool
 {
     bool ok = true;
@@ -196,6 +212,30 @@ auto testSellListConstructor() -> bool
     return ok;
 }
 
+auto testSellListConstructorPaginates() -> bool
+{
+    auto character = CCharEntity{};
+    auto packet    = GP_SERV_COMMAND_GUILD_SELLLIST(&character, numberedItems(31));
+
+    const auto& pushedPackets = character.getPacketList();
+    bool        ok            = true;
+    ok                        = expectEqualUInt(pushedPackets.size(), 1, "GUILD_SELLLIST full page count") && ok;
+    if (!pushedPackets.empty())
+    {
+        auto& first = *pushedPackets.front();
+        ok          = expectEqualUInt(first.getType(), 0x085, "GUILD_SELLLIST pushed page type") && ok;
+        ok          = expectBytes(first, guildSellListCountOffset, std::array<uint8, 2>{ 30, 0x40 }, "GUILD_SELLLIST pushed page count/stat") && ok;
+        ok          = expectBytes(first, guildSellListListOffset, std::array<uint8, 8>{ 0x00, 0x10, 0x01, 0x02, 0xE8, 0x03, 0x00, 0x00 }, "GUILD_SELLLIST pushed first item") && ok;
+        ok          = expectZeroTail(first, guildSellListPacketSize, "GUILD_SELLLIST pushed page tail") && ok;
+    }
+
+    ok = expectEqualUInt(packet.getType(), 0x085, "GUILD_SELLLIST final page type") && ok;
+    ok = expectBytes(packet, guildSellListCountOffset, std::array<uint8, 2>{ 0x01, 0x81 }, "GUILD_SELLLIST final page count/stat") && ok;
+    ok = expectBytes(packet, guildSellListListOffset, std::array<uint8, 8>{ 0x1E, 0x10, 0x1F, 0x20, 0x06, 0x04, 0x00, 0x00 }, "GUILD_SELLLIST final item") && ok;
+    ok = expectZeroTail(packet, guildSellListPacketSize, "GUILD_SELLLIST final page tail") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CGuildListPacketSelfTests() -> bool
@@ -204,5 +244,6 @@ auto runS2CGuildListPacketSelfTests() -> bool
     ok      = testLayout() && ok;
     ok      = testBuyListConstructor() && ok;
     ok      = testSellListConstructor() && ok;
+    ok      = testSellListConstructorPaginates() && ok;
     return ok;
 }

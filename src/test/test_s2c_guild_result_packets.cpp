@@ -152,6 +152,14 @@ auto testBuyAndSellConstructors() -> bool
     return ok;
 }
 
+auto testSellConstructorPreservesTradeByte() -> bool
+{
+    auto character = CCharEntity{};
+    auto sell      = GP_SERV_COMMAND_GUILD_SELL(&character, 0, 0, static_cast<uint8>(-4));
+
+    return expectBytes(sell, guildSellTradeOffset, std::array<uint8, 1>{ 0xFC }, "GUILD_SELL signed trade byte");
+}
+
 auto testGuildOpenConstructors() -> bool
 {
     auto open = GP_SERV_COMMAND_GUILD_OPEN(GP_SERV_COMMAND_GUILD_OPEN_STAT::Open, 6, 18, 0);
@@ -177,6 +185,7 @@ auto runS2CGuildResultPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testBuyAndSellConstructors() && ok;
+    ok      = testSellConstructorPreservesTradeByte() && ok;
     ok      = testGuildOpenConstructors() && ok;
     return ok;
 }
