@@ -47,18 +47,28 @@ void GP_CLI_COMMAND_BAZAAR_ITEMSET::process(MapSession* PSession, CCharEntity* P
         return;
     }
 
+    const auto decision = bazaaritemsethelpers::SelectDecision(
+        true,
+        true,
+        PItem->getReserve() > 0,
+        PItem->isBusy(),
+        PItem->hasFlag(ItemFlag::Exclusive),
+        PItem->isSubType(ITEM_LOCKED),
+        PItem->getCharPrice(),
+        this->Price);
+
     if (PItem->getReserve() > 0 || PItem->isBusy())
     {
         ShowError("Player %s trying to bazaar a busy/reserved item! [Item: %i | Slot ID: %i] ", PChar->getName(), PItem->getID(), this->ItemIndex);
         return;
     }
 
-    if (!PItem->hasFlag(ItemFlag::Exclusive) && (!PItem->isSubType(ITEM_LOCKED) || PItem->getCharPrice() != 0))
+    if (decision.action == bazaaritemsethelpers::Action::ApplyPrice)
     {
         db::preparedStmt("UPDATE char_inventory SET bazaar = ? WHERE charid = ? AND location = 0 AND slot = ?", this->Price, PChar->id, this->ItemIndex);
 
-        PItem->setCharPrice(this->Price);
-        PItem->setSubType((this->Price == 0 ? ITEM_UNLOCKED : ITEM_LOCKED));
+        PItem->setCharPrice(decision.price);
+        PItem->setSubType(decision.subType == bazaaritemsethelpers::SubType::Locked ? ITEM_LOCKED : ITEM_UNLOCKED);
 
         PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PItem, LOC_INVENTORY, this->ItemIndex);
         PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);

@@ -22,6 +22,60 @@
 #pragma once
 #include "base.h"
 
+// Keeps BAZAAR_ITEMSET's process-time guards and effects independently
+// testable. Inventory lookup, persistence, and packet delivery remain owned by
+// GP_CLI_COMMAND_BAZAAR_ITEMSET::process.
+namespace bazaaritemsethelpers
+{
+enum class Action : uint8
+{
+    None,
+    ApplyPrice,
+};
+
+enum class SubType : uint8
+{
+    Unchanged,
+    Locked,
+    Unlocked,
+};
+
+struct Decision
+{
+    Action  action;
+    uint32  price;
+    SubType subType;
+    bool    persistPrice;
+    bool    sendItemAttr;
+    bool    sendItemSame;
+};
+
+constexpr auto SelectDecision(
+    const bool   hasStorage,
+    const bool   hasItem,
+    const bool   isReserved,
+    const bool   isBusy,
+    const bool   isExclusive,
+    const bool   isLocked,
+    const uint32 currentPrice,
+    const uint32 requestedPrice) -> Decision
+{
+    if (!hasStorage || !hasItem || isReserved || isBusy || isExclusive || (isLocked && currentPrice == 0))
+    {
+        return { Action::None, 0, SubType::Unchanged, false, false, false };
+    }
+
+    return {
+        Action::ApplyPrice,
+        requestedPrice,
+        requestedPrice == 0 ? SubType::Unlocked : SubType::Locked,
+        true,
+        true,
+        true,
+    };
+}
+} // namespace bazaaritemsethelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x010A
 // This packet is sent by the client when setting an items sale price within the players personal bazaar.
 GP_CLI_PACKET(GP_CLI_COMMAND_BAZAAR_ITEMSET,

@@ -23,6 +23,13 @@
 
 #include "entities/char_entity.h"
 
+auto bazaaropenhelpers::applyRuntimeState(RuntimeState state) -> RuntimeState
+{
+    state.isSettingBazaarPrices = false;
+    state.updateMask |= UPDATE_HP;
+    return state;
+}
+
 auto GP_CLI_COMMAND_BAZAAR_OPEN::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -32,6 +39,10 @@ auto GP_CLI_COMMAND_BAZAAR_OPEN::validate(MapSession* PSession, const CCharEntit
 
 void GP_CLI_COMMAND_BAZAAR_OPEN::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    PChar->isSettingBazaarPrices = false;
-    PChar->updatemask |= UPDATE_HP;
+    const auto state = bazaaropenhelpers::applyRuntimeState({
+        .isSettingBazaarPrices = PChar->isSettingBazaarPrices,
+        .updateMask            = PChar->updatemask,
+    });
+    PChar->isSettingBazaarPrices = state.isSettingBazaarPrices;
+    PChar->updatemask            = state.updateMask;
 }

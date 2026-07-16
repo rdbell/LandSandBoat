@@ -22,6 +22,26 @@
 #pragma once
 #include "base.h"
 
+namespace bazaarclosehelpers
+{
+struct StateTransition
+{
+    bool clearCustomers;
+    bool settingBazaarPrices;
+    bool setUpdateHP;
+};
+
+inline auto ShouldNotifyCustomer(const bool targetResolved, const uint32_t resolvedID, const uint32_t expectedID) -> bool
+{
+    return targetResolved && resolvedID == expectedID;
+}
+
+inline auto SelectStateTransition() -> StateTransition
+{
+    return { true, true, true };
+}
+} // namespace bazaarclosehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x010B
 // This packet is sent by the client when entering the bazaar 'Set Prices' menu.
 GP_CLI_PACKET(GP_CLI_COMMAND_BAZAAR_CLOSE,

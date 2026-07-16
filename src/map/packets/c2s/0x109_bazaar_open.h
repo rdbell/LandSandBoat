@@ -20,7 +20,22 @@
 */
 
 #pragma once
+#include <cstdint>
+
 #include "base.h"
+
+// The character mutation is deliberately kept independent of CCharEntity so
+// the packet's portable state transition can be pinned by the self-test.
+namespace bazaaropenhelpers
+{
+struct RuntimeState
+{
+    bool          isSettingBazaarPrices;
+    std::uint32_t updateMask;
+};
+
+auto applyRuntimeState(RuntimeState state) -> RuntimeState;
+} // namespace bazaaropenhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0109
 // This packet is sent by the client when exiting the bazaar 'Set Prices' menu with at least one item having a sale price set.

@@ -29,6 +29,7 @@
 #include <string>
 #include <string_view>
 
+#include "map/entities/base_entity.h"
 #include "map/packets/c2s/0x109_bazaar_open.h"
 #include "map/packets/c2s/0x10a_bazaar_itemset.h"
 #include "map/packets/c2s/0x10b_bazaar_close.h"
@@ -229,11 +230,32 @@ auto testBazaarSellerValidation() -> bool
     return ok;
 }
 
+auto testBazaarOpenRuntime() -> bool
+{
+    bool ok = true;
+
+    const auto transitioned = bazaaropenhelpers::applyRuntimeState({
+        .isSettingBazaarPrices = true,
+        .updateMask            = 0x80,
+    });
+    ok = expectFalse(transitioned.isSettingBazaarPrices, "BAZAAR_OPEN clears isSettingBazaarPrices") && ok;
+    ok = expectEqualInt(transitioned.updateMask, 0x80 | UPDATE_HP, "BAZAAR_OPEN preserves update mask and sets UPDATE_HP") && ok;
+
+    const auto idempotent = bazaaropenhelpers::applyRuntimeState({
+        .isSettingBazaarPrices = false,
+        .updateMask            = UPDATE_HP,
+    });
+    ok = expectFalse(idempotent.isSettingBazaarPrices, "BAZAAR_OPEN keeps prices flag clear") && ok;
+    ok = expectEqualInt(idempotent.updateMask, UPDATE_HP, "BAZAAR_OPEN does not alter an existing UPDATE_HP bit") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SBazaarSellerPacketSelfTests() -> bool
 {
     return testBazaarSellerLayoutsAndMetadata() &&
            testBazaarSellerEncodedBytes() &&
-           testBazaarSellerValidation();
+           testBazaarSellerValidation() &&
+           testBazaarOpenRuntime();
 }

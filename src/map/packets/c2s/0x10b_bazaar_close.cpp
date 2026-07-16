@@ -33,6 +33,8 @@ auto GP_CLI_COMMAND_BAZAAR_CLOSE::validate(MapSession* PSession, const CCharEnti
 
 void GP_CLI_COMMAND_BAZAAR_CLOSE::process(MapSession* PSession, CCharEntity* PChar) const
 {
+    const auto transition = bazaarclosehelpers::SelectStateTransition();
+
     for (std::size_t i = 0; i < PChar->BazaarCustomers.size(); ++i)
     {
         auto* PEntity = PChar->GetEntity(PChar->BazaarCustomers[i].targid, TYPE_PC);
@@ -41,7 +43,7 @@ void GP_CLI_COMMAND_BAZAAR_CLOSE::process(MapSession* PSession, CCharEntity* PCh
             continue;
         }
 
-        if (auto* PCustomer = static_cast<CCharEntity*>(PEntity); PCustomer->id == PChar->BazaarCustomers[i].id)
+        if (auto* PCustomer = static_cast<CCharEntity*>(PEntity); bazaarclosehelpers::ShouldNotifyCustomer(true, PCustomer->id, PChar->BazaarCustomers[i].id))
         {
             PCustomer->pushPacket<GP_SERV_COMMAND_BAZAAR_CLOSE>(PChar);
 
@@ -49,10 +51,16 @@ void GP_CLI_COMMAND_BAZAAR_CLOSE::process(MapSession* PSession, CCharEntity* PCh
         }
     }
 
-    PChar->BazaarCustomers.clear();
+    if (transition.clearCustomers)
+    {
+        PChar->BazaarCustomers.clear();
+    }
 
-    PChar->isSettingBazaarPrices = true;
-    PChar->updatemask |= UPDATE_HP;
+    PChar->isSettingBazaarPrices = transition.settingBazaarPrices;
+    if (transition.setUpdateHP)
+    {
+        PChar->updatemask |= UPDATE_HP;
+    }
 
     DebugBazaarsFmt("Bazaar Interaction [Setting Prices] - Character: {}", PChar->name);
 }

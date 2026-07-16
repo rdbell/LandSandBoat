@@ -66,8 +66,12 @@ set(SOURCES
     test_c2s_bazaar_buyer_packets.cpp
     test_c2s_bazaar_seller_packets.h
     test_c2s_bazaar_seller_packets.cpp
+    test_c2s_bazaar_itemset_runtime.h
+    test_c2s_bazaar_itemset_runtime.cpp
     test_c2s_blacklist_packets.h
     test_c2s_blacklist_packets.cpp
+    test_c2s_bazaar_close_runtime.h
+    test_c2s_bazaar_close_runtime.cpp
     test_c2s_black_list_runtime.h
     test_c2s_black_list_runtime.cpp
     test_c2s_black_edit_runtime.h
