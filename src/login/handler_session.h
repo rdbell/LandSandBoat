@@ -28,6 +28,44 @@
 #include <asio/ts/buffer.hpp>
 #include <asio/ts/internet.hpp>
 
+constexpr std::size_t HandlerSessionBufferSize              = 4096;
+constexpr int         HandlerSessionKeepaliveIdleSeconds    = 5 * 60;
+constexpr int         HandlerSessionKeepaliveIntervalSeconds = 5 * 60;
+constexpr int         HandlerSessionKeepaliveProbeCount     = 10;
+
+enum class handler_session_start_action : uint8
+{
+    NOOP,
+    CONFIGURE_KEEPALIVE_AND_READ,
+};
+
+enum class handler_session_read_completion_action : uint8
+{
+    DISPATCH_READ,
+    HANDLE_ERROR,
+};
+
+enum class handler_session_write_completion_action : uint8
+{
+    DISPATCH_WRITE,
+    REPORT_ERROR,
+};
+
+constexpr auto handlerSessionStartAction(bool socketOpen) -> handler_session_start_action
+{
+    return socketOpen ? handler_session_start_action::CONFIGURE_KEEPALIVE_AND_READ : handler_session_start_action::NOOP;
+}
+
+constexpr auto handlerSessionReadCompletionAction(bool hasError) -> handler_session_read_completion_action
+{
+    return hasError ? handler_session_read_completion_action::HANDLE_ERROR : handler_session_read_completion_action::DISPATCH_READ;
+}
+
+constexpr auto handlerSessionWriteCompletionAction(bool hasError) -> handler_session_write_completion_action
+{
+    return hasError ? handler_session_write_completion_action::REPORT_ERROR : handler_session_write_completion_action::DISPATCH_WRITE;
+}
+
 class handler_session
 : public std::enable_shared_from_this<handler_session>
 {
@@ -52,5 +90,5 @@ public:
 
     asio::ssl::stream<asio::ip::tcp::socket> socket_;
 
-    std::array<uint8, 4096> buffer_ = {};
+    std::array<uint8, HandlerSessionBufferSize> buffer_ = {};
 };

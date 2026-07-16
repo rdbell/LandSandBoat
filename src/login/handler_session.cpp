@@ -37,18 +37,18 @@ handler_session::handler_session(asio::ssl::stream<asio::ip::tcp::socket> socket
 
 void handler_session::start()
 {
-    if (socket_.lowest_layer().is_open())
+    if (handlerSessionStartAction(socket_.lowest_layer().is_open()) == handler_session_start_action::CONFIGURE_KEEPALIVE_AND_READ)
     {
         // Enable keepalives for long sessions (view_session in particular)
         socket_.lowest_layer().set_option(asio::socket_base::keep_alive(true));
 
-        socket_.lowest_layer().set_option(asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPINTVL>(5 * 60)); // interval between keepalive
-        socket_.lowest_layer().set_option(asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPCNT>(10));       // failed keepalives before declaring dead
+        socket_.lowest_layer().set_option(asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPINTVL>(HandlerSessionKeepaliveIntervalSeconds)); // interval between keepalive
+        socket_.lowest_layer().set_option(asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPCNT>(HandlerSessionKeepaliveProbeCount));       // failed keepalives before declaring dead
 
 #ifdef __APPLE__
-        socket_.lowest_layer().set_option(asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPALIVE>(5 * 60)); // secs before keepalive probes
+        socket_.lowest_layer().set_option(asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPALIVE>(HandlerSessionKeepaliveIdleSeconds)); // secs before keepalive probes
 #else
-        socket_.lowest_layer().set_option(asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPIDLE>(5 * 60)); // secs before keepalive probes
+        socket_.lowest_layer().set_option(asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPIDLE>(HandlerSessionKeepaliveIdleSeconds)); // secs before keepalive probes
 #endif
 
         do_read();
@@ -63,7 +63,7 @@ void handler_session::do_read()
         asio::buffer(buffer_.data(), buffer_.size()),
         [this, self = shared_from_this()](std::error_code ec, std::size_t length)
         {
-            if (!ec)
+            if (handlerSessionReadCompletionAction(static_cast<bool>(ec)) == handler_session_read_completion_action::DISPATCH_READ)
             {
                 read_func();
             }
@@ -82,7 +82,7 @@ void handler_session::do_write(std::size_t length)
         asio::buffer(buffer_.data(), length),
         [this, self = shared_from_this()](std::error_code ec, std::size_t /*length*/)
         {
-            if (!ec)
+            if (handlerSessionWriteCompletionAction(static_cast<bool>(ec)) == handler_session_write_completion_action::DISPATCH_WRITE)
             {
                 write_func();
             }

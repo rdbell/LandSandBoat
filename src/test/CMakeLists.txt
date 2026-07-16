@@ -557,6 +557,8 @@ set(SOURCES
     test_logging_untrusted_strings.cpp
     test_login_auth_constants.h
     test_login_auth_constants.cpp
+    test_login_handler_session_2581.h
+    test_login_handler_session_2581.cpp
     test_login_auth_password_1307.h
     test_login_auth_password_1307.cpp
     test_login_auth_version_error_1308.h
