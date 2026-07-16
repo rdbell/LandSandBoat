@@ -36,4 +36,14 @@ inline auto HasValidIncomingPacketSize(const std::size_t packetSize, const std::
     return packetSize >= minimumPacketSize && packetSize <= outputCapacity;
 }
 
+// HasValidCompressedBitCount checks the bit-count trailer against the decoded
+// compressed payload length. The marker byte is intentionally checked by the
+// caller because it is a distinct protocol rule.
+inline auto HasValidCompressedBitCount(const uint32 bitSize, const std::size_t compressedSize) -> bool
+{
+    constexpr auto minimumCompressedSize = std::size_t{ 1 } + sizeof(uint32);
+    const auto     byteSize              = (static_cast<uint64>(bitSize) + 7) / 8;
+    return compressedSize >= minimumCompressedSize && bitSize >= 8 && byteSize == compressedSize - sizeof(uint32);
+}
+
 } // namespace mapnetworkinghelpers

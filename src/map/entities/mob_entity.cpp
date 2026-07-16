@@ -25,6 +25,7 @@
 #include "mob_roam_policy.h"
 #include "mob_roam_home_policy.h"
 #include "mob_force_link_policy.h"
+#include "mob_widescan_policy.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -1328,5 +1329,5 @@ bool CMobEntity::OnAttack(CAttackState& state, action_t& action)
 
 bool CMobEntity::isWideScannable()
 {
-    return CBaseEntity::isWideScannable() && !getMobMod(MOBMOD_NO_WIDESCAN);
+    return mobwidescanhelpers::IsWideScannable(CBaseEntity::isWideScannable(), getMobMod(MOBMOD_NO_WIDESCAN) != 0);
 }

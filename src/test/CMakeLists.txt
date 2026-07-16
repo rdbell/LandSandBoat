@@ -1247,6 +1247,8 @@ set(SOURCES
     test_mob_roam_home_policy_2662.cpp
     test_mob_force_link_policy_2665.h
     test_mob_force_link_policy_2665.cpp
+    test_mob_widescan_policy_2668.h
+    test_mob_widescan_policy_2668.cpp
     test_pet_mod_tandem_1624.h
     test_pet_mod_tandem_1624.cpp
     test_pet_spawn_1625.h
@@ -1394,6 +1396,8 @@ set(SOURCES
     test_map_networking_incoming_blocks_2663.cpp
     test_map_networking_incoming_size_2666.h
     test_map_networking_incoming_size_2666.cpp
+    test_map_networking_compressed_bits_2669.h
+    test_map_networking_compressed_bits_2669.cpp
     test_map_socket_receive_2654.h
     test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h
