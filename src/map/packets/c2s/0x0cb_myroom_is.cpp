@@ -28,12 +28,6 @@
 namespace
 {
 
-const std::map<uint8, GP_CLI_COMMAND_MYROOM_IS_PARAM2> default2fStyles = {
-    { NATION_SANDORIA, GP_CLI_COMMAND_MYROOM_IS_PARAM2::SandorianStyle },
-    { NATION_BASTOK, GP_CLI_COMMAND_MYROOM_IS_PARAM2::BastokanStyle },
-    { NATION_WINDURST, GP_CLI_COMMAND_MYROOM_IS_PARAM2::WindurstianStyle },
-};
-
 const auto isRentARoom = [](const CCharEntity* PChar)
 {
     switch (PChar->profile.nation)
@@ -81,45 +75,30 @@ void GP_CLI_COMMAND_MYROOM_IS::process(MapSession* PSession, CCharEntity* PChar)
             break;
         case GP_CLI_COMMAND_MYROOM_IS_KIND::Remodel:
         {
-            auto newStyle = this->Param2;
+            const auto plan = myroomishelpers::PlanRemodel(this->Param2, {
+                .nation                       = PChar->profile.nation,
+                .mhflag                       = PChar->profile.mhflag,
+                .hasMogPatioDesignDocument    = charutils::hasKeyItem(PChar, KeyItem::MOG_PATIO_DESIGN_DOCUMENT),
+            });
 
-            // Retail forces you to nation default style on invalid Param2.
-            auto default2fStyle = GP_CLI_COMMAND_MYROOM_IS_PARAM2::SandorianStyle;
-            if (default2fStyles.contains(PChar->profile.nation))
-            {
-                default2fStyle = default2fStyles.at(PChar->profile.nation);
-            }
-
-            if (!(PChar->profile.mhflag & 0x0020))
+            if (plan.warnSecondFloorLocked)
             {
                 ShowWarning(fmt::format("Player {} remodeling MH2F without it unlocked.", PChar->getName()));
             }
 
-            if (this->Param2 == static_cast<uint16_t>(GP_CLI_COMMAND_MYROOM_IS_PARAM2::MogPatio) && !charutils::hasKeyItem(PChar, KeyItem::MOG_PATIO_DESIGN_DOCUMENT))
+            if (plan.warnMogPatioLocked)
             {
                 ShowWarning(fmt::format("Player {} remodeling MH2F to Patio without owning the KI to unlock it.", PChar->getName()));
-                newStyle = static_cast<uint16_t>(default2fStyle);
             }
 
-            // 0x0080: This bit and the next track which 2F decoration style is being used (0: SANDORIA, 1: BASTOK, 2: WINDURST, 3: PATIO)
-            // 0x0100: ^ As above
-
-            // Extract original model and add 615 so it's in line with what comes in with the packet.
-            const uint16 oldType = static_cast<uint16_t>(((PChar->profile.mhflag & 0x0100) + (PChar->profile.mhflag & 0x0080)) >> 7) + 615;
-
-            // Clear bits first
-            PChar->profile.mhflag &= ~(0x0080);
-            PChar->profile.mhflag &= ~(0x0100);
-
-            // Write new model bits
-            PChar->profile.mhflag |= ((newStyle - 615) << 7);
+            PChar->profile.mhflag = plan.mhflag;
             charutils::SaveCharStats(PChar);
 
             // Note: The forced zone may bypass this message.
             PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::SuccessfulRemodel);
 
             // If the model changes AND you're on MH2F; force a rezone so the model change can take effect.
-            if (this->Param2 != oldType && PChar->profile.mhflag & 0x0040)
+            if (plan.requestZoneTransition)
             {
                 const auto zoneid = PChar->getZone();
 

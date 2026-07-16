@@ -21,6 +21,10 @@
 
 #pragma once
 
+#include <algorithm>
+#include <span>
+#include <string>
+
 #include "base.h"
 
 enum class GP_CLI_COMMAND_SET_LSMSG_WRITELEVEL : uint8_t
@@ -29,6 +33,100 @@ enum class GP_CLI_COMMAND_SET_LSMSG_WRITELEVEL : uint8_t
     Pearlsack = 1, // Pearlsack owners can set the message.
     Linkpearl = 2, // Linkpearl owners can set the message.
 };
+
+// SET_LSMSG's host-independent post-validation routing. Item lookup,
+// linkshell mutation, database execution, and packet queue ownership remain
+// in the map server.
+namespace setlsmsgpackethelpers
+{
+
+// ItemType mirrors the LSTYPE values stored in CItemLinkshell. They are
+// intentionally distinct from WriteLevel: process compensates for the known
+// native off-by-one mismatch by subtracting one from postRights.
+enum class ItemType : uint8_t
+{
+    NewLinkshell = 0,
+    Linkshell    = 1,
+    Pearlsack    = 2,
+    Linkpearl    = 3,
+    Broken       = 4,
+};
+
+struct Facts
+{
+    bool     hasEquippedLS1;
+    bool     equippedItemIsLinkshell;
+    ItemType equippedItemType;
+    uint8_t  postRights;
+};
+
+struct Plan
+{
+    bool                                  setPostRights;
+    GP_CLI_COMMAND_SET_LSMSG_WRITELEVEL   postRights;
+    bool                                  setMessage;
+    std::string                           message;
+    bool                                  sendLinkshellNoAccess;
+};
+
+[[nodiscard]] inline auto BoundedMessage(const std::span<const uint8_t> source) -> std::string
+{
+    const auto end = std::find(source.begin(), source.end(), uint8_t{});
+    return { reinterpret_cast<const char*>(source.data()), static_cast<std::size_t>(end - source.begin()) };
+}
+
+[[nodiscard]] inline auto CanEditMessage(const ItemType itemType, const uint8_t postRights) -> bool
+{
+    // Preserve GP_CLI_COMMAND_SET_LSMSG::process's temporary compensation for
+    // the mismatched LSTYPE definition, including uint8_t underflow for 0.
+    switch (static_cast<GP_CLI_COMMAND_SET_LSMSG_WRITELEVEL>(postRights - 1U))
+    {
+        case GP_CLI_COMMAND_SET_LSMSG_WRITELEVEL::Linkshell:
+            return itemType == ItemType::Linkshell;
+        case GP_CLI_COMMAND_SET_LSMSG_WRITELEVEL::Pearlsack:
+            return itemType == ItemType::Linkshell || itemType == ItemType::Pearlsack;
+        case GP_CLI_COMMAND_SET_LSMSG_WRITELEVEL::Linkpearl:
+            return true;
+    }
+
+    return false;
+}
+
+[[nodiscard]] inline auto PlanFor(const Facts& facts,
+                                  const bool changeAccess,
+                                  const bool changeMessage,
+                                  const GP_CLI_COMMAND_SET_LSMSG_WRITELEVEL requestedWriteLevel,
+                                  const std::span<const uint8_t> message) -> Plan
+{
+    if (!facts.hasEquippedLS1 || !facts.equippedItemIsLinkshell)
+    {
+        return {};
+    }
+
+    // Native makes this an if/else-if: changing access wins when both flags
+    // are supplied, even if message editing would otherwise be permitted.
+    if (changeAccess)
+    {
+        if (facts.equippedItemType == ItemType::Linkshell)
+        {
+            return { .setPostRights = true, .postRights = requestedWriteLevel };
+        }
+        return { .sendLinkshellNoAccess = true };
+    }
+
+    if (changeMessage)
+    {
+        if (CanEditMessage(facts.equippedItemType, facts.postRights))
+        {
+            return { .setMessage = true, .message = BoundedMessage(message) };
+        }
+        return { .sendLinkshellNoAccess = true };
+    }
+
+    return {};
+}
+
+} // namespace setlsmsgpackethelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00E2
 // This packet is sent by the client when altering the linkshell message or linkshell message access level.

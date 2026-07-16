@@ -20,6 +20,7 @@
 */
 
 #include "0x0e1_get_lsmsg.h"
+#include "get_lsmsg_dispatch.h"
 
 #include "common/utils.h"
 #include "entities/char_entity.h"
@@ -46,7 +47,13 @@ auto GP_CLI_COMMAND_GET_LSMSG::validate(MapSession* PSession, const CCharEntity*
 
 void GP_CLI_COMMAND_GET_LSMSG::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    switch (static_cast<LinkshellSlot>(this->LinkshellId))
+    const auto plan = getlsmsgdispatch::PlanFor(static_cast<LinkshellSlot>(this->LinkshellId));
+    if (!plan.pushLinkshellMessage)
+    {
+        return;
+    }
+
+    switch (plan.slot)
     {
         case LinkshellSlot::LS1:
             PChar->PLinkshell1->PushLinkshellMessage(PChar, LinkshellSlot::LS1);

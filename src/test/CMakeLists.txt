@@ -112,8 +112,12 @@ set(SOURCES
     test_c2s_combine_ask_packet.cpp
     test_c2s_comlink_myroom_packets.h
     test_c2s_comlink_myroom_packets.cpp
+    test_c2s_myroom_is_runtime.h
+    test_c2s_myroom_is_runtime.cpp
     test_c2s_group_comlink_make_runtime.h
     test_c2s_group_comlink_make_runtime.cpp
+    test_c2s_get_lsmsg_runtime.h
+    test_c2s_get_lsmsg_runtime.cpp
     test_c2s_config_packets.h
     test_c2s_config_packets.cpp
     test_c2s_currency_request_packets.h
@@ -342,6 +346,8 @@ set(SOURCES
     test_c2s_user_linkshell_message_packets.cpp
     test_c2s_set_usermsg_runtime.h
     test_c2s_set_usermsg_runtime.cpp
+    test_c2s_set_lsmsg_runtime.h
+    test_c2s_set_lsmsg_runtime.cpp
     test_c2s_zone_transition_packet.h
     test_c2s_zone_transition_packet.cpp
     test_caching_database.h
