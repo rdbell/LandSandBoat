@@ -42,3 +42,19 @@ public:
 
     GP_SERV_COMMAND_MAP_GROUP(const CCharEntity* PChar);
 };
+
+namespace mapgroupserverhelpers
+{
+
+struct Facts
+{
+    uint32_t uniqueId{};
+    int16_t  zone{};
+    float    x{};
+    float    y{};
+    float    z{};
+};
+
+[[nodiscard]] auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_MAP_GROUP::PacketData;
+
+} // namespace mapgroupserverhelpers

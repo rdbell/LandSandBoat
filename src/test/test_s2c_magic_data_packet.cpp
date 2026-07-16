@@ -28,6 +28,7 @@
 #include <iostream>
 #include <string>
 
+#include "map/entities/char_entity.h"
 #include "map/packets/s2c/0x0aa_magic_data.h"
 
 namespace
@@ -100,6 +101,23 @@ auto testPacketDataBytes() -> bool
     return expectStructBytes(data, expected, "MAGIC_DATA PacketData bytes");
 }
 
+auto testConstructorCopiesCharacterSpellList() -> bool
+{
+    auto character = CCharEntity{};
+    character.m_SpellList.set(0);
+    character.m_SpellList.set(7);
+    character.m_SpellList.set(8);
+    character.m_SpellList.set(1023);
+    auto packet = MagicDataPacket(&character);
+
+    auto expected       = std::array<uint8, magicDataTblSize>{};
+    expected[0]         = 0x81;
+    expected[1]         = 0x01;
+    expected[127]       = 0x80;
+    const auto& payload = *reinterpret_cast<const MagicDataPacket::PacketData*>(static_cast<uint8*>(packet) + sizeof(GP_SERV_HEADER));
+    return expectStructBytes(payload, expected, "MAGIC_DATA constructor spell list bytes");
+}
+
 } // namespace
 
 auto runS2CMagicDataPacketSelfTests() -> bool
@@ -107,5 +125,6 @@ auto runS2CMagicDataPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testConstructorCopiesCharacterSpellList() && ok;
     return ok;
 }

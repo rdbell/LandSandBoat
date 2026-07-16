@@ -111,6 +111,31 @@ auto testPacketDataBytes() -> bool
                              "MAP_GROUP PacketData bytes");
 }
 
+auto testRuntimePlan() -> bool
+{
+    const auto packet = mapgroupserverhelpers::PlanFor({
+        .uniqueId = 0x11223344,
+        .zone     = -1234,
+        .x        = 1.5F,
+        .y        = -2.25F,
+        .z        = 3.75F,
+    });
+
+    bool ok = true;
+    ok      = expectEqualUInt(packet.UniqueID, 0x11223344, "runtime UniqueID") && ok;
+    ok      = expectEqualUInt(static_cast<uint16>(packet.zone), static_cast<uint16>(-1234), "runtime zone") && ok;
+    ok      = expectEqualUInt(packet.padding0A, 0, "runtime padding") && ok;
+    ok      = expectStructBytes(packet, std::array<uint8, 20>{
+                                          0x44, 0x33, 0x22, 0x11,
+                                          0x2E, 0xFB, 0x00, 0x00,
+                                          0x00, 0x00, 0xC0, 0x3F,
+                                          0x00, 0x00, 0x10, 0xC0,
+                                          0x00, 0x00, 0x70, 0x40,
+                                      },
+                             "runtime packet bytes") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CMapGroupPacketSelfTests() -> bool
@@ -118,5 +143,6 @@ auto runS2CMapGroupPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testRuntimePlan() && ok;
     return ok;
 }

@@ -24,6 +24,17 @@
 #include "common/logging.h"
 #include "entities/char_entity.h"
 
+auto mapgroupserverhelpers::PlanFor(const Facts& facts) -> GP_SERV_COMMAND_MAP_GROUP::PacketData
+{
+    return {
+        .UniqueID = facts.uniqueId,
+        .zone     = facts.zone,
+        .x        = facts.x,
+        .y        = facts.y,
+        .z        = facts.z,
+    };
+}
+
 GP_SERV_COMMAND_MAP_GROUP::GP_SERV_COMMAND_MAP_GROUP(const CCharEntity* PChar)
 {
     if (PChar == nullptr)
@@ -32,11 +43,11 @@ GP_SERV_COMMAND_MAP_GROUP::GP_SERV_COMMAND_MAP_GROUP(const CCharEntity* PChar)
         return;
     }
 
-    auto& packet = this->data();
-
-    packet.UniqueID = PChar->id;
-    packet.zone     = PChar->getZone();
-    packet.x        = PChar->loc.p.x;
-    packet.y        = PChar->loc.p.y;
-    packet.z        = PChar->loc.p.z;
+    this->data() = mapgroupserverhelpers::PlanFor({
+        .uniqueId = PChar->id,
+        .zone     = static_cast<int16>(PChar->getZone()),
+        .x        = PChar->loc.p.x,
+        .y        = PChar->loc.p.y,
+        .z        = PChar->loc.p.z,
+    });
 }
