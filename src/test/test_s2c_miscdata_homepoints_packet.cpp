@@ -28,6 +28,7 @@
 #include <iostream>
 #include <string>
 
+#include "map/entities/char_entity.h"
 #include "map/packets/s2c/0x063_miscdata_homepoints.h"
 
 namespace
@@ -151,6 +152,31 @@ auto testPacketDataBytes() -> bool
     return expectStructBytes(data, expected, "HOMEPOINTS PacketData bytes");
 }
 
+auto testConstructorCopiesActiveMasksAndZerosUnsupportedFields() -> bool
+{
+    auto character                         = CCharEntity{};
+    character.teleport.homepoint.access[0] = 0x01020304;
+    character.teleport.homepoint.access[3] = 0x11121314;
+    character.teleport.survival.access[0]  = 0x21222324;
+    character.teleport.survival.access[3]  = 0x31323334;
+    character.teleport.waypoints.access[0] = 0x41424344;
+    character.teleport.waypoints.access[1] = 0x51525354;
+
+    auto packet           = MiscDataHomepointsPacket(&character);
+    auto data             = MiscDataHomepointsPacket::PacketData{};
+    data.type             = GP_SERV_COMMAND_MISCDATA_TYPE::Homepoints;
+    data.unknown06        = homepointsPacketDataSize;
+    data.homePoint[0]     = 0x01020304;
+    data.homePoint[3]     = 0x11121314;
+    data.survivalGuide[0] = 0x21222324;
+    data.survivalGuide[3] = 0x31323334;
+    data.waypoint[0]      = 0x41424344;
+    data.waypoint[1]      = 0x51525354;
+
+    const auto* packetBytes = reinterpret_cast<const uint8*>(&packet);
+    return expectStructBytes(data, *reinterpret_cast<const std::array<uint8, homepointsPacketDataSize>*>(packetBytes + sizeof(GP_SERV_HEADER)), "constructor active masks and zeroed unsupported fields");
+}
+
 } // namespace
 
 auto runS2CMiscDataHomepointsPacketSelfTests() -> bool
@@ -158,5 +184,6 @@ auto runS2CMiscDataHomepointsPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testConstructorCopiesActiveMasksAndZerosUnsupportedFields() && ok;
     return ok;
 }

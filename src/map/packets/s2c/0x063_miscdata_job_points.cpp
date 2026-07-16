@@ -20,6 +20,7 @@
 */
 
 #include "0x063_miscdata_job_points.h"
+#include "miscdata_job_points_runtime.h"
 
 #include "entities/char_entity.h"
 #include "enums/key_items.h"
@@ -28,20 +29,18 @@
 
 GP_SERV_COMMAND_MISCDATA::JOB_POINTS::JOB_POINTS(const CCharEntity* PChar)
 {
-    auto& packet = this->data();
-
-    packet.type      = GP_SERV_COMMAND_MISCDATA_TYPE::JobPoints;
-    packet.unknown06 = sizeof(PacketData);
-
-    packet.access = charutils::hasKeyItem(PChar, KeyItem::JOB_BREAKER);
+    auto facts   = miscdatajobpointshelpers::Facts{};
+    facts.access = charutils::hasKeyItem(PChar, KeyItem::JOB_BREAKER);
 
     const JobPoints_t* PJobPoints = PChar->PJobPoints->GetAllJobPoints();
 
     // Start at WAR (1) since NON (0) is unused
     for (uint8 i = 1; i < MAX_JOBTYPE; i++)
     {
-        packet.jobs[i].capacityPoints = PJobPoints[i].capacityPoints;
-        packet.jobs[i].currentJp      = PJobPoints[i].currentJp;
-        packet.jobs[i].totalJpSpent   = PJobPoints[i].totalJpSpent;
+        facts.jobs[i].capacityPoints = PJobPoints[i].capacityPoints;
+        facts.jobs[i].currentJp      = PJobPoints[i].currentJp;
+        facts.jobs[i].totalJpSpent   = PJobPoints[i].totalJpSpent;
     }
+
+    this->data() = miscdatajobpointshelpers::PlanFor(facts);
 }

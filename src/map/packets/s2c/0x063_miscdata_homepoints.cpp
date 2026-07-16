@@ -33,7 +33,10 @@ GP_SERV_COMMAND_MISCDATA::HOMEPOINTS::HOMEPOINTS(const CCharEntity* PChar)
     // Copy teleport masks directly
     std::memcpy(packet.homePoint, PChar->teleport.homepoint.access, sizeof(packet.homePoint));
     std::memcpy(packet.survivalGuide, PChar->teleport.survival.access, sizeof(packet.survivalGuide));
-    std::memcpy(packet.waypoint, PChar->teleport.waypoints.access, sizeof(packet.waypoint));
+    // waypoint_t currently exposes two access words while the wire field has
+    // four. Keep the remaining zero-initialized words rather than reading past
+    // the source object.
+    std::memcpy(packet.waypoint, PChar->teleport.waypoints.access, sizeof(PChar->teleport.waypoints.access));
 
     // Everything below is untested/unimplemented
     // packet.atmos        = PChar->teleport.pastMaw;

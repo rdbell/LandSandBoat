@@ -151,6 +151,7 @@ set(PACKET_S2C_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/0x063_miscdata_homepoints.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/0x063_miscdata_job_points.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x063_miscdata_job_points.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/miscdata_job_points_runtime.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x063_miscdata_merits.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x063_miscdata_merits.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/0x063_miscdata_monstrosity.h

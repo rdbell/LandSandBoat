@@ -29,6 +29,7 @@
 #include <string>
 
 #include "map/packets/s2c/0x063_miscdata_job_points.h"
+#include "map/packets/s2c/miscdata_job_points_runtime.h"
 
 namespace
 {
@@ -113,15 +114,15 @@ auto testPacketDataBytes() -> bool
 {
     auto data = MiscDataJobPointsPacket::PacketData{};
 
-    data.type                       = GP_SERV_COMMAND_MISCDATA_TYPE::JobPoints;
-    data.unknown06                  = jobPointsPacketDataSize;
-    data.access                     = 1;
-    data.jobs[1].capacityPoints     = 0x0102;
-    data.jobs[1].currentJp          = 0x0304;
-    data.jobs[1].totalJpSpent       = 0x0506;
-    data.jobs[23].capacityPoints    = 0x2122;
-    data.jobs[23].currentJp         = 0x2324;
-    data.jobs[23].totalJpSpent      = 0x2526;
+    data.type                    = GP_SERV_COMMAND_MISCDATA_TYPE::JobPoints;
+    data.unknown06               = jobPointsPacketDataSize;
+    data.access                  = 1;
+    data.jobs[1].capacityPoints  = 0x0102;
+    data.jobs[1].currentJp       = 0x0304;
+    data.jobs[1].totalJpSpent    = 0x0506;
+    data.jobs[23].capacityPoints = 0x2122;
+    data.jobs[23].currentJp      = 0x2324;
+    data.jobs[23].totalJpSpent   = 0x2526;
 
     auto expected = std::array<uint8, jobPointsPacketDataSize>{};
     putLE16(expected, 0, 0x05);
@@ -137,6 +138,25 @@ auto testPacketDataBytes() -> bool
     return expectStructBytes(data, expected, "JOB_POINTS PacketData bytes");
 }
 
+auto testRuntimeShaping() -> bool
+{
+    auto facts        = miscdatajobpointshelpers::Facts{};
+    facts.access      = true;
+    facts.jobs[0]     = { 1, 2, 3 };
+    facts.jobs[1]     = { 0x0102, 0x0304, 0x0506 };
+    facts.jobs[23]    = { 0x2122, 0x2324, 0x2526 };
+    const auto packet = miscdatajobpointshelpers::PlanFor(facts);
+
+    bool ok = true;
+    ok      = expectEqualUInt(static_cast<uint16>(packet.type), 0x05, "runtime type") && ok;
+    ok      = expectEqualUInt(packet.unknown06, jobPointsPacketDataSize, "runtime size marker") && ok;
+    ok      = expectEqualUInt(packet.access, 1, "runtime access") && ok;
+    ok      = expectEqualUInt(packet.jobs[0].capacityPoints, 0, "runtime job zero remains unused") && ok;
+    ok      = expectEqualUInt(packet.jobs[1].currentJp, 0x0304, "runtime job one") && ok;
+    ok      = expectEqualUInt(packet.jobs[23].totalJpSpent, 0x2526, "runtime last job") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CMiscDataJobPointsPacketSelfTests() -> bool
@@ -144,5 +164,6 @@ auto runS2CMiscDataJobPointsPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testRuntimeShaping() && ok;
     return ok;
 }
