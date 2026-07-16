@@ -33,5 +33,10 @@ auto GP_CLI_COMMAND_CURRENCIES_2::validate(MapSession* PSession, const CCharEnti
 
 void GP_CLI_COMMAND_CURRENCIES_2::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    PChar->pushPacket<GP_SERV_COMMAND_CURRENCIES_2>(PChar);
+    switch (currencies2packethelpers::SelectAction())
+    {
+        case currencies2packethelpers::Action::SendCurrencies2:
+            PChar->pushPacket<GP_SERV_COMMAND_CURRENCIES_2>(PChar);
+            break;
+    }
 }

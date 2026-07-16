@@ -22,6 +22,24 @@
 #pragma once
 #include "base.h"
 
+// CURRENCIES_2 has no payload-dependent routing: after validation accepts the
+// request, it always refreshes the requesting character's second currency
+// window.
+namespace currencies2packethelpers
+{
+
+enum class Action : uint8
+{
+    SendCurrencies2,
+};
+
+[[nodiscard]] constexpr auto SelectAction() -> Action
+{
+    return Action::SendCurrencies2;
+}
+
+} // namespace currencies2packethelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0115
 // This packet is sent by the client when requesting the information to populate the Currencies 2 window.
 GP_CLI_PACKET(GP_CLI_COMMAND_CURRENCIES_2);

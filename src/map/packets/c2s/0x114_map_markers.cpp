@@ -32,5 +32,8 @@ auto GP_CLI_COMMAND_MAP_MARKERS::validate(MapSession* PSession, const CCharEntit
 
 void GP_CLI_COMMAND_MAP_MARKERS::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::HOMEPOINTS>(PChar);
+    if (mapmarkershelpers::SelectAction() == mapmarkershelpers::Action::SendHomepoints)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::HOMEPOINTS>(PChar);
+    }
 }

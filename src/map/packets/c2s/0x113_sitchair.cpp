@@ -36,24 +36,13 @@ auto GP_CLI_COMMAND_SITCHAIR::validate(MapSession* PSession, const CCharEntity* 
 
 void GP_CLI_COMMAND_SITCHAIR::process(MapSession* PSession, CCharEntity* PChar) const
 {
+    const auto chairAnimation = static_cast<uint8_t>(this->ChairId + ANIMATION_SITCHAIR_0);
+    const auto hasRequiredChairKeyItem = !sitchairhelpers::RequiresChairKeyItem(chairAnimation) ||
+                                         charutils::hasKeyItem(PChar, static_cast<KeyItem>(sitchairhelpers::ChairKeyItemID(chairAnimation)));
+    const auto transition = sitchairhelpers::SelectTransition(this->Mode, chairAnimation, PChar->animation, hasRequiredChairKeyItem);
+
     // Retail accurate: Can inject /sitchair while healing/logging out, but it cancels the effect.
     PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Healing);
-
-    if (this->Mode == static_cast<uint8>(GP_CLI_COMMAND_SITCHAIR_MODE::Off))
-    {
-        PChar->animation = ANIMATION_NONE;
-        PChar->updatemask |= UPDATE_HP;
-        return;
-    }
-
-    uint8 chairId = this->ChairId + ANIMATION_SITCHAIR_0;
-
-    // Validate key item ownership for 64 through 83
-    if (chairId != ANIMATION_SITCHAIR_0 && !charutils::hasKeyItem(PChar, static_cast<KeyItem>(chairId + 0xACA)))
-    {
-        chairId = ANIMATION_SITCHAIR_0;
-    }
-
-    PChar->animation = PChar->animation == chairId ? static_cast<uint8>(ANIMATION_NONE) : chairId;
+    PChar->animation = transition.animation;
     PChar->updatemask |= UPDATE_HP;
 }

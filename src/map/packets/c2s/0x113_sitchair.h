@@ -29,6 +29,50 @@ enum class GP_CLI_COMMAND_SITCHAIR_MODE : uint8
     Off    = 2,
 };
 
+namespace sitchairhelpers
+{
+constexpr uint8_t AnimationNone      = 0;
+constexpr uint8_t AnimationSitchair0 = 63;
+constexpr uint16_t ChairKeyItemBase  = 0xACA;
+
+struct Transition
+{
+    uint8_t animation;
+    bool    removeHealingSilently;
+    bool    setUpdateHP;
+};
+
+inline auto RequiresChairKeyItem(const uint8_t chairAnimation) -> bool
+{
+    // SITCHAIR_0 is always available. IDs 64 through 83 are key-item chairs,
+    // including the reserved chair slots accepted by packet validation.
+    return chairAnimation != AnimationSitchair0;
+}
+
+inline auto ChairKeyItemID(const uint8_t chairAnimation) -> uint16_t
+{
+    return static_cast<uint16_t>(chairAnimation + ChairKeyItemBase);
+}
+
+// SelectTransition mirrors process after its live status-effect and key-item
+// lookups. Mode On intentionally has the same toggle behavior as Toggle.
+inline auto SelectTransition(const uint8_t mode, uint8_t chairAnimation, const uint8_t currentAnimation, const bool hasRequiredChairKeyItem) -> Transition
+{
+    constexpr auto Off = static_cast<uint8_t>(GP_CLI_COMMAND_SITCHAIR_MODE::Off);
+    if (mode == Off)
+    {
+        return { AnimationNone, true, true };
+    }
+
+    if (RequiresChairKeyItem(chairAnimation) && !hasRequiredChairKeyItem)
+    {
+        chairAnimation = AnimationSitchair0;
+    }
+
+    return { currentAnimation == chairAnimation ? AnimationNone : chairAnimation, true, true };
+}
+} // namespace sitchairhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0113
 // This packet is sent by the client when requesting to sit in a chair.
 GP_CLI_PACKET(GP_CLI_COMMAND_SITCHAIR,

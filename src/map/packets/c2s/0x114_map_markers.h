@@ -22,6 +22,21 @@
 #pragma once
 #include "base.h"
 
+// Captures MAP_MARKERS' fixed post-validation response without coupling tests
+// to the map session or packet transport.
+namespace mapmarkershelpers
+{
+enum class Action : uint8
+{
+    SendHomepoints,
+};
+
+constexpr auto SelectAction() -> Action
+{
+    return Action::SendHomepoints;
+}
+} // namespace mapmarkershelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0114
 // This packet is sent by the client when requesting the current maps markers. (ie. Homepoint Crystals, Abyssea Maws, Survival Guides, Waypoints, Telepoints, etc.)
 GP_CLI_PACKET(GP_CLI_COMMAND_MAP_MARKERS);

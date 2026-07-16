@@ -62,6 +62,8 @@ set(SOURCES
     test_c2s_auc_runtime.cpp
     test_c2s_battlefield_sitchair_packets.h
     test_c2s_battlefield_sitchair_packets.cpp
+    test_c2s_sitchair_runtime.h
+    test_c2s_sitchair_runtime.cpp
     test_c2s_bazaar_buyer_packets.h
     test_c2s_bazaar_buyer_packets.cpp
     test_c2s_bazaar_buy_runtime.h
@@ -114,6 +116,8 @@ set(SOURCES
     test_c2s_config_packets.cpp
     test_c2s_currency_request_packets.h
     test_c2s_currency_request_packets.cpp
+    test_c2s_currencies_2_runtime.h
+    test_c2s_currencies_2_runtime.cpp
     test_c2s_dice_packet.h
     test_c2s_dice_packet.cpp
     test_c2s_dig_runtime.h
@@ -204,6 +208,8 @@ set(SOURCES
     test_c2s_guild_selllist_runtime.cpp
     test_c2s_header_only_request_packets.h
     test_c2s_header_only_request_packets.cpp
+    test_c2s_map_markers_runtime.h
+    test_c2s_map_markers_runtime.cpp
     test_c2s_helpdesk_map_packets.h
     test_c2s_helpdesk_map_packets.cpp
     test_c2s_item_action_packets.h
