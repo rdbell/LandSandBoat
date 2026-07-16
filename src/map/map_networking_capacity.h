@@ -226,4 +226,11 @@ inline auto ShouldUsePreviousKeyForOutgoingPacket(const bool pendingZone, const 
     return pendingZone && usePreviousKey;
 }
 
+// ShouldIncrementKeyAfterEncrypt mirrors send_parse's zone-out trigger. The
+// key must advance only after the 0x00B packet has been encrypted and sent.
+inline auto ShouldIncrementKeyAfterEncrypt(const uint16 packetType) -> bool
+{
+    return packetType == 0x00B;
+}
+
 } // namespace mapnetworkinghelpers

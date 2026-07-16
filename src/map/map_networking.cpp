@@ -573,7 +573,7 @@ int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSess
                 auto type = PSmallPacket->getType();
 
                 // Store zoneout packet in case we need to re-send this
-                if (type == 0x00B)
+                if (mapnetworkinghelpers::ShouldIncrementKeyAfterEncrypt(type))
                 {
                     const auto IPPacket = static_cast<GP_SERV_COMMAND_LOGOUT*>(PSmallPacket.get());
 
