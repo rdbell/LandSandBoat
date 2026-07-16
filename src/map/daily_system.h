@@ -23,10 +23,14 @@
 
 #include "entities/char_entity.h"
 
+#include <cstddef>
+#include <vector>
+
 namespace daily
 {
 
 uint16 SelectItem(CCharEntity* player, uint8 dial);
+uint16 SelectItemFromPool(const std::vector<uint16>& items, size_t index);
 void   LoadDailyItems();
 
 } // namespace daily

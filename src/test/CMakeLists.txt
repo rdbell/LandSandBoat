@@ -36,6 +36,10 @@ set(SOURCES
     test_active_database_dispatch.cpp
     test_console_service_input.h
     test_console_service_input.cpp
+    test_conquest_data_2620.h
+    test_conquest_data_2620.cpp
+    test_daily_system_2621.h
+    test_daily_system_2621.cpp
     test_action_model.h
     test_action_model.cpp
     test_action_queue.h

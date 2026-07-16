@@ -244,6 +244,8 @@ auto runLoginAuthSuccessReply1315SelfTests() -> bool;
 auto runLoginCharacterName1316SelfTests() -> bool;
 auto runLoginViewLobbyAck1317SelfTests() -> bool;
 auto runAutotranslate2617SelfTests() -> bool;
+auto runConquestData2620SelfTests() -> bool;
+auto runDailySystem2621SelfTests() -> bool;
 auto runLoginCharacterSelect1318SelfTests() -> bool;
 auto runMerit2619SelfTests() -> bool;
 auto runMobSpellContainer2609SelfTests() -> bool;
@@ -1172,6 +1174,8 @@ namespace
         ok = runLoginAuthSuccessReply1315SelfTests() && ok;
         ok = runLoginCharacterName1316SelfTests() && ok;
         ok = runLoginViewLobbyAck1317SelfTests() && ok;
+        ok = runConquestData2620SelfTests() && ok;
+        ok = runDailySystem2621SelfTests() && ok;
         ok = runLoginCharacterSelect1318SelfTests() && ok;
         ok = runMerit2619SelfTests() && ok;
         ok = runMobSpellContainer2609SelfTests() && ok;

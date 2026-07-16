@@ -46,6 +46,16 @@ std::vector<uint16> gobbieJunk = {
     4539  // Goblin Pie
 };
 
+uint16 SelectItemFromPool(const std::vector<uint16>& items, const size_t index)
+{
+    if (items.empty())
+    {
+        return 0;
+    }
+
+    return items[index % items.size()];
+}
+
 uint16 SelectItem(CCharEntity* player, uint8 dial)
 {
     std::reference_wrapper<std::vector<uint16>> dialItems = gobbieJunk;
@@ -83,13 +93,13 @@ uint16 SelectItem(CCharEntity* player, uint8 dial)
             break;
         }
     }
-    uint16 selection = xirand::GetRandomElement(dialItems.get());
+    uint16 selection = SelectItemFromPool(dialItems.get(), xirand::GetRandomNumber<size_t>(dialItems.get().size()));
 
     // Check if Rare item is already owned and substitute with Goblin trash item.
-    if (xi::items::lookup(selection)->hasFlag(ItemFlag::Rare) && charutils::HasItem(player, selection))
+    if (const auto* item = xi::items::lookup(selection); item != nullptr && item->hasFlag(ItemFlag::Rare) && charutils::HasItem(player, selection))
     {
         dialItems = gobbieJunk;
-        selection = xirand::GetRandomElement(dialItems.get());
+        selection = SelectItemFromPool(dialItems.get(), xirand::GetRandomNumber<size_t>(dialItems.get().size()));
     }
 
     return selection;
