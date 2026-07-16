@@ -205,6 +205,22 @@ auto testThirteenEntriesReportsFullCountButOnlyEncodesFirstTwelve() -> bool
     return ok;
 }
 
+auto testWrappedInt8CountControlsEncodingLoop() -> bool
+{
+    auto entries = makeEntries(128);
+    auto packet  = GP_SERV_COMMAND_BLACK_LIST(entries, GP_SERV_COMMAND_BLACK_LIST::ResetClientBlacklist::No, GP_SERV_COMMAND_BLACK_LIST::LastBlacklistPacket::No);
+
+    bool ok = true;
+    ok      = expectEqualInt(static_cast<int8_t>(packetData(packet)[blackListNumOffset]), -128, "wrapped-negative Num") && ok;
+    ok      = expectBytes(packet, blackListListOffset + 11 * sizeof(SAVE_BLACK), listEntryBytes(0x100B, "name11"), "wrapped-negative twelfth entry") && ok;
+
+    entries         = makeEntries(256);
+    auto zeroPacket = GP_SERV_COMMAND_BLACK_LIST(entries, GP_SERV_COMMAND_BLACK_LIST::ResetClientBlacklist::No, GP_SERV_COMMAND_BLACK_LIST::LastBlacklistPacket::No);
+    ok              = expectEqualInt(static_cast<int8_t>(packetData(zeroPacket)[blackListNumOffset]), 0, "wrapped-zero Num") && ok;
+    ok              = expectZeroRange(zeroPacket, blackListListOffset, blackListStatOffset, "wrapped-zero entries") && ok;
+    return ok;
+}
+
 auto testLongNameTruncatesWithoutTerminator() -> bool
 {
     auto packet = GP_SERV_COMMAND_BLACK_LIST({ { 0xAABBCCDD, "abcdefghijklmnopZ" } }, GP_SERV_COMMAND_BLACK_LIST::ResetClientBlacklist::Yes, GP_SERV_COMMAND_BLACK_LIST::LastBlacklistPacket::No);
@@ -225,6 +241,7 @@ auto runS2CBlackListPacketSelfTests() -> bool
     ok      = testEmptyConstructor() && ok;
     ok      = testFlaggedEntriesConstructor() && ok;
     ok      = testThirteenEntriesReportsFullCountButOnlyEncodesFirstTwelve() && ok;
+    ok      = testWrappedInt8CountControlsEncodingLoop() && ok;
     ok      = testLongNameTruncatesWithoutTerminator() && ok;
     return ok;
 }
