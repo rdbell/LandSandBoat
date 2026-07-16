@@ -32,6 +32,34 @@
 #include "utils/zoneutils.h"
 #include "zone.h"
 
+namespace transporthelpers
+{
+
+auto BuildTownSchedule(const TransportScheduleInput& input, bool& valid) -> Transport_Time
+{
+    Transport_Time schedule{};
+    schedule.timeOffset      = xi::vanadiel_clock::minutes(input.timeOffset);
+    schedule.timeInterval    = xi::vanadiel_clock::minutes(input.timeInterval);
+    schedule.timeArriveDock  = xi::vanadiel_clock::minutes(input.timeAnimArrive);
+    schedule.timeDepartDock  = schedule.timeArriveDock + xi::vanadiel_clock::minutes(input.timeWaiting);
+    schedule.timeVoyageStart = schedule.timeDepartDock + xi::vanadiel_clock::minutes(input.timeAnimDepart - 1);
+    valid                    = schedule.timeArriveDock >= xi::vanadiel_clock::minutes(10) && schedule.timeInterval >= schedule.timeVoyageStart;
+    return schedule;
+}
+
+auto BuildVoyageSchedule(const TransportScheduleInput& input) -> Transport_Time
+{
+    Transport_Time schedule{};
+    schedule.timeOffset      = xi::vanadiel_clock::minutes(input.timeOffset);
+    schedule.timeInterval    = xi::vanadiel_clock::minutes(input.timeInterval);
+    schedule.timeArriveDock  = xi::vanadiel_clock::minutes(input.timeAnimArrive);
+    schedule.timeDepartDock  = schedule.timeArriveDock + xi::vanadiel_clock::minutes(input.timeWaiting);
+    schedule.timeVoyageStart = schedule.timeDepartDock + xi::vanadiel_clock::minutes(input.timeAnimDepart);
+    return schedule;
+}
+
+} // namespace transporthelpers
+
 void Transport_Ship::setVisible(bool visible) const
 {
     if (visible)
@@ -174,11 +202,19 @@ void CTransportHandler::InitializeTransport(IPP mapIPP)
         zoneTown.ship.animationArrive = rset->get<uint8>("anim_arrive");
         zoneTown.ship.animationDepart = rset->get<uint8>("anim_depart");
 
-        zoneTown.ship.timeOffset      = xi::vanadiel_clock::minutes(rset->get<uint32>("time_offset"));
-        zoneTown.ship.timeInterval    = xi::vanadiel_clock::minutes(rset->get<uint32>("time_interval"));
-        zoneTown.ship.timeArriveDock  = xi::vanadiel_clock::minutes(rset->get<uint32>("time_anim_arrive"));
-        zoneTown.ship.timeDepartDock  = zoneTown.ship.timeArriveDock + xi::vanadiel_clock::minutes(rset->get<uint32>("time_waiting"));
-        zoneTown.ship.timeVoyageStart = zoneTown.ship.timeDepartDock + xi::vanadiel_clock::minutes(rset->get<uint32>("time_anim_depart") - 1);
+        bool scheduleValid = false;
+        const auto schedule = transporthelpers::BuildTownSchedule({
+            rset->get<uint32>("time_offset"),
+            rset->get<uint32>("time_interval"),
+            rset->get<uint32>("time_waiting"),
+            rset->get<uint32>("time_anim_arrive"),
+            rset->get<uint32>("time_anim_depart"),
+        }, scheduleValid);
+        zoneTown.ship.timeOffset      = schedule.timeOffset;
+        zoneTown.ship.timeInterval    = schedule.timeInterval;
+        zoneTown.ship.timeArriveDock  = schedule.timeArriveDock;
+        zoneTown.ship.timeDepartDock  = schedule.timeDepartDock;
+        zoneTown.ship.timeVoyageStart = schedule.timeVoyageStart;
 
         zoneTown.ship.state = STATE_TRANSPORT_INIT;
         zoneTown.ship.setVisible(false);
@@ -190,13 +226,13 @@ void CTransportHandler::InitializeTransport(IPP mapIPP)
             continue;
         }
 
-        if (zoneTown.ship.timeArriveDock < xi::vanadiel_clock::minutes(10))
+        if (!scheduleValid && zoneTown.ship.timeArriveDock < xi::vanadiel_clock::minutes(10))
         {
             ShowErrorFmt("Transport {}: time_anim_arrive must be > 10", zoneTown.ship.transportId);
             continue;
         }
 
-        if (zoneTown.ship.timeInterval < zoneTown.ship.timeVoyageStart)
+        if (!scheduleValid)
         {
             ShowErrorFmt("Transport {}: time_interval must be > time_anim_arrive + time_waiting + time_anim_depart", zoneTown.ship.transportId);
             continue;
@@ -225,12 +261,18 @@ void CTransportHandler::InitializeTransport(IPP mapIPP)
 
         if (voyageZone.voyageZone != nullptr)
         {
-            voyageZone.timeOffset   = xi::vanadiel_clock::minutes(rset->get<uint32>("time_offset"));
-            voyageZone.timeInterval = xi::vanadiel_clock::minutes(rset->get<uint32>("time_interval"));
-
-            voyageZone.timeArriveDock  = xi::vanadiel_clock::minutes(rset->get<uint32>("time_anim_arrive"));
-            voyageZone.timeDepartDock  = voyageZone.timeArriveDock + xi::vanadiel_clock::minutes(rset->get<uint32>("time_waiting"));
-            voyageZone.timeVoyageStart = voyageZone.timeDepartDock + xi::vanadiel_clock::minutes(rset->get<uint32>("time_anim_depart"));
+            const auto schedule = transporthelpers::BuildVoyageSchedule({
+                rset->get<uint32>("time_offset"),
+                rset->get<uint32>("time_interval"),
+                rset->get<uint32>("time_waiting"),
+                rset->get<uint32>("time_anim_arrive"),
+                rset->get<uint32>("time_anim_depart"),
+            });
+            voyageZone.timeOffset      = schedule.timeOffset;
+            voyageZone.timeInterval    = schedule.timeInterval;
+            voyageZone.timeArriveDock  = schedule.timeArriveDock;
+            voyageZone.timeDepartDock  = schedule.timeDepartDock;
+            voyageZone.timeVoyageStart = schedule.timeVoyageStart;
 
             voyageZone.state = STATE_TRANSPORTZONE_INIT;
 

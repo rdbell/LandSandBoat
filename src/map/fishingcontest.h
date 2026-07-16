@@ -115,6 +115,8 @@ struct FishingContestHistory
 namespace fishingcontest
 {
 
+auto GeneratePlaceholderEntries(FISHING_CONTEST_STATUS status, FISHING_CONTEST_MEASURE measure, uint8 maxEntries, uint8 realEntries) -> std::vector<FishingContestEntry>;
+
 // RankContestEntries applies ScoreContest's deterministic ordering and packet
 // ranking fields without database or Lua dependencies.
 void RankContestEntries(std::vector<FishingContestEntry>& entries, FISHING_CONTEST_MEASURE measure);

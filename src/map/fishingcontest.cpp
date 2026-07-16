@@ -815,35 +815,37 @@ void BuildPlaceholderEntries()
         return;
     }
 
-    uint8 entriesNeeded = maxFakeEntries - numRealEntries;
-    int   jobLevels[]   = { 75, 60, 50, 40, 30 };
+    const auto generated = GeneratePlaceholderEntries(CurrentFishingContest.status, CurrentFishingContest.measure, maxFakeEntries, numRealEntries);
+    FakeContestEntries.insert(FakeContestEntries.end(), generated.begin(), generated.end());
+}
 
-    // Fake entry number always starts at 1 and stops at # entries needed
-    // The fake entries always score the worst possible values of either 1 or 9999 and work inwards
-    // Fake Entry #1 always has the "best" possible score of these values
-    // Smallest: (worst possible score - entries needed) + entry number
-    // Largest:  (entries needed + 1) - entry number
-    for (int fakeEntryNumber = 1; fakeEntryNumber <= maxFakeEntries; fakeEntryNumber++)
+auto GeneratePlaceholderEntries(FISHING_CONTEST_STATUS status, FISHING_CONTEST_MEASURE measure, uint8 maxEntries, uint8 realEntries) -> std::vector<FishingContestEntry>
+{
+    if (status != FISHING_CONTEST_STATUS::PRESENTING || realEntries >= maxEntries)
     {
-        FishingContestEntry fakeEntry;
-
-        // Build the entry based on generated data
-        std::string fakeName = fmt::format(" SmallFisher{:02d} ", fakeEntryNumber);
-
-        std::strncpy(fakeEntry.name, fakeName.c_str(), fakeName.size());
-        fakeEntry.mjob        = ((fakeEntryNumber - 1) % 18) + 1;
-        fakeEntry.sjob        = 0;
-        fakeEntry.mlvl        = jobLevels[(fakeEntryNumber - 1) % 5];
-        fakeEntry.slvl        = 0;
-        fakeEntry.race        = ((fakeEntryNumber - 1) % 7) + 1;
-        fakeEntry.allegiance  = ((fakeEntryNumber - 1) % 3);
-        fakeEntry.fishRank    = 1; // Recruit
-        fakeEntry.score       = CurrentFishingContest.measure == FISHING_CONTEST_MEASURE::SMALLEST ? (9999 - entriesNeeded + fakeEntryNumber) : (entriesNeeded + 1) - fakeEntryNumber;
-        fakeEntry.submitTime  = 0;
-        fakeEntry.contestRank = numRealEntries + fakeEntryNumber;
-
-        FakeContestEntries.push_back(fakeEntry);
+        return {};
     }
+
+    const uint8 needed = maxEntries - realEntries;
+    const int levels[] = { 75, 60, 50, 40, 30 };
+    std::vector<FishingContestEntry> out;
+    out.reserve(maxEntries);
+
+    for (int n = 1; n <= maxEntries; ++n)
+    {
+        FishingContestEntry entry{};
+        const auto name = fmt::format(" SmallFisher{:02d} ", n);
+        std::strncpy(entry.name, name.c_str(), name.size());
+        entry.mjob        = ((n - 1) % 18) + 1;
+        entry.mlvl        = levels[(n - 1) % 5];
+        entry.race        = ((n - 1) % 7) + 1;
+        entry.allegiance  = (n - 1) % 3;
+        entry.fishRank    = 1;
+        entry.score       = measure == FISHING_CONTEST_MEASURE::SMALLEST ? (9999 - needed + n) : (needed + 1) - n;
+        entry.contestRank = realEntries + n;
+        out.push_back(entry);
+    }
+    return out;
 }
 
 void InitializeFishingContestSystem()

@@ -15,11 +15,16 @@
 
 #include "map/zone.h"
 
+#include "common/timer.h"
+
 #include <array>
 #include <cstdint>
 #include <string>
+#include <optional>
+#include <utility>
 #include <unordered_map>
 #include <variant>
+#include <vector>
 
 struct HTTPServerAPIDataCache
 {
@@ -36,6 +41,20 @@ struct HTTPServerAPIResponse
     std::string contentType;
     std::string body;
 };
+
+// HTTPServerAPIRefresh is one attempted cache refresh. Missing scalar values
+// model failed/empty database queries; zone rows update only their own slots.
+struct HTTPServerAPIRefresh
+{
+    std::optional<uint32>                    activeSessionCount;
+    std::optional<uint32>                    activeUniqueIPCount;
+    std::vector<std::pair<uint16, uint32>> zonePlayerCounts;
+};
+
+// ApplyHTTPServerAPIRefresh updates cache fields supplied by refresh and
+// returns attemptTime for HTTPServer's last-update timestamp.
+auto ApplyHTTPServerAPIRefresh(HTTPServerAPIDataCache& cache, const HTTPServerAPIRefresh& refresh,
+                               timer::time_point attemptTime) -> timer::time_point;
 
 // Returns the response body and status for a GET path registered by
 // HTTPServer. Cache and settings snapshots are supplied by the host so this

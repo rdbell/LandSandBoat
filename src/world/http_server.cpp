@@ -24,6 +24,24 @@
 #include "common/database.h"
 #include "common/logging.h"
 #include "common/settings.h"
+
+auto ApplyHTTPServerAPIRefresh(HTTPServerAPIDataCache& cache, const HTTPServerAPIRefresh& refresh,
+                               const timer::time_point attemptTime) -> timer::time_point
+{
+    if (refresh.activeSessionCount)
+    {
+        cache.activeSessionCount = *refresh.activeSessionCount;
+    }
+    if (refresh.activeUniqueIPCount)
+    {
+        cache.activeUniqueIPCount = *refresh.activeUniqueIPCount;
+    }
+    for (const auto& [zoneId, count] : refresh.zonePlayerCounts)
+    {
+        cache.zonePlayerCounts[zoneId] = count;
+    }
+    return attemptTime;
+}
 HTTPServer::HTTPServer(Scheduler& scheduler)
 : scheduler_(scheduler)
 , apiDataCache_(HTTPServerAPIDataCache{})
@@ -124,12 +142,14 @@ void HTTPServer::LockingUpdate()
         {
             ShowInfoFmt("API data is stale. Updating...");
 
+            HTTPServerAPIRefresh refresh;
+
             // Total active sessions
             {
                 auto rset = db::preparedStmt("SELECT COUNT(*) AS `count` FROM accounts_sessions");
                 if (rset && rset->next())
                 {
-                    apiDataCache.activeSessionCount = rset->get<uint32>("count");
+                    refresh.activeSessionCount = rset->get<uint32>("count");
                 }
             }
 
@@ -138,7 +158,7 @@ void HTTPServer::LockingUpdate()
                 auto rset = db::preparedStmt("SELECT COUNT(DISTINCT client_addr) AS `count` FROM accounts_sessions");
                 if (rset && rset->next())
                 {
-                    apiDataCache.activeUniqueIPCount = rset->get<uint32>("count");
+                    refresh.activeUniqueIPCount = rset->get<uint32>("count");
                 }
             }
 
@@ -156,11 +176,11 @@ void HTTPServer::LockingUpdate()
                         auto zoneId = rset->get<uint16>("pos_zone");
                         auto count  = rset->get<uint32>("count");
 
-                        apiDataCache.zonePlayerCounts[zoneId] = count;
+                        refresh.zonePlayerCounts.emplace_back(zoneId, count);
                     }
                 }
             }
 
-            lastUpdate_.store(now);
+            lastUpdate_.store(ApplyHTTPServerAPIRefresh(apiDataCache, refresh, now));
         });
 }

@@ -65,6 +65,31 @@ struct Transport_Time
     vanadiel_time::duration timeVoyageStart;
 };
 
+// TransportScheduleInput is the minute-valued transport table subset used to
+// derive a runtime schedule during CTransportHandler::InitializeTransport.
+struct TransportScheduleInput
+{
+    uint32 timeOffset;
+    uint32 timeInterval;
+    uint32 timeWaiting;
+    uint32 timeAnimArrive;
+    uint32 timeAnimDepart;
+};
+
+namespace transporthelpers
+{
+
+// BuildTownSchedule mirrors town-transport schedule construction. Town
+// schedules start their voyage animation one Vana'diel minute early. valid
+// mirrors InitializeTransport's arrival and interval admission checks.
+auto BuildTownSchedule(const TransportScheduleInput& input, bool& valid) -> Transport_Time;
+
+// BuildVoyageSchedule mirrors voyage-zone schedule construction. Unlike town
+// schedules, voyage zones do not subtract one minute from departure animation.
+auto BuildVoyageSchedule(const TransportScheduleInput& input) -> Transport_Time;
+
+} // namespace transporthelpers
+
 struct Transport_Ship : Transport_Time
 {
     uint16 transportId;

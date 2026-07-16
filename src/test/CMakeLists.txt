@@ -1211,6 +1211,10 @@ set(SOURCES
     test_fishingcontest_state_2623.cpp
     test_fishingcontest_ranking_2642.h
     test_fishingcontest_ranking_2642.cpp
+    test_fishingcontest_placeholders_2645.h
+    test_fishingcontest_placeholders_2645.cpp
+    test_world_http_server_cache_2644.h
+    test_world_http_server_cache_2644.cpp
     test_fishing_hookchance_1619.h
     test_fishing_hookchance_1619.cpp
     test_mob_stats_product_1620.h
@@ -1885,6 +1889,8 @@ set(SOURCES
     test_time_triggers.cpp
     test_transport_runtime.h
     test_transport_runtime.cpp
+    test_transport_schedule_2646.h
+    test_transport_schedule_2646.cpp
     test_tracy_hex_helpers.h
     test_tracy_hex_helpers.cpp
     test_trigger_area.h
