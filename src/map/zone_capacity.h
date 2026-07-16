@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <fmt/format.h>
+#include <set>
 #include <string>
 
 // Pure CZone admission / level-restriction / counter policy for native tests.
@@ -14,6 +15,29 @@ namespace zonehelpers
 // CharTargidHighThreshold is the exclusive upper bound for player targids
 // (0x700). At or above this value, insert packets are ignored.
 constexpr uint16 CharTargidHighThreshold = 0x700;
+
+struct CharTargidAllocation
+{
+    uint16 targid;
+    bool   high;
+};
+
+// AllocateCharTargid mirrors CZoneEntities::GetNewCharTargID. The supplied
+// set is ordered like m_charTargIds; allocation starts at 0x400 and stops at
+// the first value that does not equal the current candidate.
+inline auto AllocateCharTargid(const std::set<uint16>& usedTargids) -> CharTargidAllocation
+{
+    uint16 targid = 0x400;
+    for (const auto used : usedTargids)
+    {
+        if (targid != used)
+        {
+            break;
+        }
+        ++targid;
+    }
+    return { targid, targid >= CharTargidHighThreshold };
+}
 
 // FormatIncreaseZoneCounterWarning mirrors IncreaseZoneCounter ShowWarning text.
 inline auto FormatIncreaseZoneCounterWarning() -> std::string

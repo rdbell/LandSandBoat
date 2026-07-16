@@ -37,6 +37,7 @@ constexpr std::uint16_t WeatherCycle = 2160;
 #include "trigger_area_dispatch.h"
 #include "zone_capacity.h"
 #include "zone_query_by_name_capacity.h"
+#include "zone_weather_decoder.h"
 
 #include "common/logging.h"
 #include "common/settings.h"
@@ -411,16 +412,9 @@ void CZone::LoadZoneWeather()
         uint16_t weatherBlob[WeatherCycle]{};
 
         db::extractFromBlob(rset, "weather", weatherBlob);
-        for (uint16 i = 0; i < WeatherCycle; i++)
-        {
-            if (weatherBlob[i])
-            {
-                const auto w_normal = static_cast<Weather>(weatherBlob[i] >> 10);
-                const auto w_common = static_cast<Weather>((weatherBlob[i] >> 5) & 0x1F);
-                const auto w_rare   = static_cast<Weather>(weatherBlob[i] & 0x1F);
-                weather_.addEntry(i, ZoneWeather(w_normal, w_common, w_rare));
-            }
-        }
+        zoneweatherhelpers::DecodeBlob(weatherBlob, [this](const uint16 day, const ZoneWeather entry) {
+            weather_.addEntry(day, entry);
+        });
     }
 }
 

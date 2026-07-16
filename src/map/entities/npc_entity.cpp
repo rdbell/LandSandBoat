@@ -21,6 +21,8 @@
 
 #include "npc_entity.h"
 
+#include "npc_post_tick.h"
+
 #include "ai/ai_container.h"
 
 #include "packets/entity_update.h"
@@ -130,10 +132,11 @@ bool CNpcEntity::isWideScannable()
 
 void CNpcEntity::PostTick()
 {
-    timer::time_point now = timer::now();
-    if (loc.zone && updatemask && status != STATUS_TYPE::DISAPPEAR && now > m_nextUpdateTimer)
+    const auto now  = timer::now();
+    const auto plan = npcentity::PlanPostTick(loc.zone != nullptr, updatemask, status == STATUS_TYPE::DISAPPEAR, now, m_nextUpdateTimer);
+    if (plan.sendUpdate)
     {
-        m_nextUpdateTimer = now + 250ms;
+        m_nextUpdateTimer = plan.nextUpdateTimer;
         loc.zone->UpdateEntityPacket(this, ENTITY_UPDATE, updatemask);
         updatemask = 0;
     }

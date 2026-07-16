@@ -13,6 +13,7 @@ set(ENTITY_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/mob_entity.h
     ${CMAKE_CURRENT_SOURCE_DIR}/npc_entity.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/npc_entity.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/npc_post_tick.h
     ${CMAKE_CURRENT_SOURCE_DIR}/pet_entity.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/pet_entity.h
     ${CMAKE_CURRENT_SOURCE_DIR}/trust_entity.cpp

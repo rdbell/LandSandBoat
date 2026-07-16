@@ -709,6 +709,8 @@ set(SOURCES
     test_spawn_can_spawn_1362.cpp
     test_zone_policy_1363.h
     test_zone_policy_1363.cpp
+    test_zone_char_targid_2650.h
+    test_zone_char_targid_2650.cpp
     test_zone_query_by_name_2647.h
     test_zone_query_by_name_2647.cpp
     test_status_effect_can_gain_1364.h
@@ -1844,6 +1846,8 @@ set(SOURCES
     test_search_request_parser.cpp
     test_npc_entity_2593.h
     test_npc_entity_2593.cpp
+    test_npc_post_tick_2651.h
+    test_npc_post_tick_2651.cpp
     test_search_social_packets.h
     test_search_social_packets.cpp
     test_settings_number_helper.h
@@ -1903,6 +1907,8 @@ set(SOURCES
     test_treasure_pool_resolution.cpp
     test_weather_container.h
     test_weather_container.cpp
+    test_zone_weather_decoder_2649.h
+    test_zone_weather_decoder_2649.cpp
     test_typed_flags.h
     test_typed_flags.cpp
     test_uuid_generation.h

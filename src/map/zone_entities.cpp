@@ -20,6 +20,7 @@
 */
 
 #include "zone_entities.h"
+#include "zone_capacity.h"
 #include "common/utils.h"
 #include "enmity_container.h"
 #include "instance.h"
@@ -593,21 +594,12 @@ void CZoneEntities::DecreaseZoneCounter(CCharEntity* PChar)
 
 uint16 CZoneEntities::GetNewCharTargID()
 {
-    // NOTE: 0x0D (char_update) entity updates are valid for 1024 to 1791
-    uint16 targid = 0x400;
-    for (auto it : m_charTargIds)
+    const auto allocation = zonehelpers::AllocateCharTargid(m_charTargIds);
+    if (allocation.high)
     {
-        if (targid != it)
-        {
-            break;
-        }
-        ++targid;
+        ShowError("targid is high (03hX), update packets will be ignored!", allocation.targid);
     }
-    if (targid >= 0x700)
-    {
-        ShowError("targid is high (03hX), update packets will be ignored!", targid);
-    }
-    return targid;
+    return allocation.targid;
 }
 
 // Handles the generation and/or assignment of:
