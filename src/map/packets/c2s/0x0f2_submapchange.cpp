@@ -20,6 +20,7 @@
 */
 
 #include "0x0f2_submapchange.h"
+#include "submap_transition.h"
 
 #include "entities/char_entity.h"
 #include "utils/charutils.h"
@@ -40,7 +41,12 @@ auto GP_CLI_COMMAND_SUBMAPCHANGE::validate(MapSession* PSession, const CCharEnti
 
 void GP_CLI_COMMAND_SUBMAPCHANGE::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    PChar->loc.boundary = this->SubMapNumber;
+    const auto transition = submap::ChangeTransitionFor(this->SubMapNumber);
 
-    charutils::SaveCharPosition(PChar);
+    PChar->loc.boundary = transition.boundary;
+
+    if (transition.savePosition)
+    {
+        charutils::SaveCharPosition(PChar);
+    }
 }

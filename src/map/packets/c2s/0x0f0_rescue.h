@@ -21,7 +21,37 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "base.h"
+
+namespace rescue
+{
+
+// The externally visible actions selected by a self-unstuck request. Keeping
+// this decision separate from CCharEntity makes the cooldown behavior testable
+// without map-server state.
+enum class Action : uint8_t
+{
+    None,
+    SendCooldownMessage,
+    WarpHomePoint,
+};
+
+struct Transition
+{
+    Action   action{ Action::None };
+    bool     setCooldown{};
+    uint32_t cooldownExpiry{};
+};
+
+// Selects the self-unstuck mutation. A disabled feature or active cooldown is
+// non-mutating; successful warps set the character-variable expiry to now plus
+// the configured cooldown (with the uint32 timestamp wrap behavior used by
+// the live handler).
+auto TransitionFor(bool selfUnstuckEnabled, bool cooldownActive, uint32_t now, uint32_t cooldown) -> Transition;
+
+} // namespace rescue
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00F0
 // This packet is sent by the client when requesting to be unstuck via the GM Help Desk system.

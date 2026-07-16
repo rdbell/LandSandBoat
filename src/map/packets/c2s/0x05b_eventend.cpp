@@ -35,38 +35,43 @@ auto GP_CLI_COMMAND_EVENTEND::validate(MapSession* PSession, const CCharEntity* 
 
 void GP_CLI_COMMAND_EVENTEND::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    auto       result  = this->EndPara;
-    const auto eventId = this->EventPara;
+    const auto mode = static_cast<GP_CLI_COMMAND_EVENTEND_MODE>(this->Mode);
+    const auto result = PChar->currentEvent->option == 0
+                            ? this->EndPara
+                            : static_cast<uint32>(PChar->currentEvent->option);
+    const auto transition = eventendhelpers::MakeTransition(
+        mode,
+        this->EventPara,
+        this->EndPara,
+        PChar->currentEvent->option,
+        mode == GP_CLI_COMMAND_EVENTEND_MODE::UpdatePending && result != UINT32_MAX &&
+            PChar->currentEvent->hasCutsceneOption(static_cast<int32>(result)));
 
-    if (PChar->currentEvent->option != 0)
+    if (transition.lockCharacter)
     {
-        result = PChar->currentEvent->option;
+        // If an optional cutscene starts, its selected option locks the player.
+        PChar->setLocked(true);
+    }
+    if (transition.disableEventSkipping)
+    {
+        PChar->currentEvent->canSkip = false;
     }
 
-    switch (static_cast<GP_CLI_COMMAND_EVENTEND_MODE>(this->Mode))
+    switch (transition.callback)
     {
-        case GP_CLI_COMMAND_EVENTEND_MODE::UpdatePending:
-        {
-            // If optional cutscene is started, we check to see if the selected option should lock the player
-            if (result != -1 && PChar->currentEvent->hasCutsceneOption(result))
-            {
-                PChar->setLocked(true);
-                PChar->currentEvent->canSkip = false;
-            }
-
-            luautils::OnEventUpdate(PChar, eventId, result);
-        }
-        break;
-        case GP_CLI_COMMAND_EVENTEND_MODE::End:
-        {
-            luautils::OnEventFinish(PChar, eventId, result);
-            // reset if this event did not initiate another event
-            if (PChar->currentEvent->eventId == eventId)
+        case eventendhelpers::Callback::Update:
+            luautils::OnEventUpdate(PChar, transition.eventId, transition.result);
+            break;
+        case eventendhelpers::Callback::Finish:
+            luautils::OnEventFinish(PChar, transition.eventId, transition.result);
+            // Reset only when OnEventFinish did not start another event.
+            if (transition.shouldEndCurrentEvent(PChar->currentEvent->eventId))
             {
                 PChar->endCurrentEvent();
             }
-        }
-        break;
+            break;
+        case eventendhelpers::Callback::None:
+            break;
     }
 
     PChar->pushPacket<GP_SERV_COMMAND_EVENTUCOFF>(PChar, GP_SERV_COMMAND_EVENTUCOFF_MODE::EventRecvPending);

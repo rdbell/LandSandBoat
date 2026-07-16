@@ -199,6 +199,8 @@ set(PACKET_C2S_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0f1_buffcancel.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0f2_submapchange.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0f2_submapchange.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/submap_transition.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/submap_transition.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0f4_tracking_list.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0f4_tracking_list.h
     ${CMAKE_CURRENT_SOURCE_DIR}/0x0f5_tracking_start.cpp

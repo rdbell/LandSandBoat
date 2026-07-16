@@ -94,6 +94,8 @@ set(SOURCES
     test_c2s_equipment_packets.cpp
     test_c2s_event_update_packets.h
     test_c2s_event_update_packets.cpp
+    test_c2s_eventend_transition.h
+    test_c2s_eventend_transition.cpp
     test_c2s_extended_job_packet.h
     test_c2s_extended_job_packet.cpp
     test_c2s_fishing_packets.h
@@ -148,6 +150,8 @@ set(SOURCES
     test_c2s_packet_validation_scalars.cpp
     test_c2s_packet_validation_state.h
     test_c2s_packet_validation_state.cpp
+    test_c2s_rescue_transition.h
+    test_c2s_rescue_transition.cpp
     test_c2s_pbx_packet.h
     test_c2s_pbx_packet.cpp
     test_c2s_player_points_packets.h
@@ -166,6 +170,8 @@ set(SOURCES
     test_c2s_scenarioitem_packet.cpp
     test_c2s_shop_packets.h
     test_c2s_shop_packets.cpp
+    test_c2s_submap_transition.h
+    test_c2s_submap_transition.cpp
     test_c2s_switch_nominate_packets.h
     test_c2s_switch_nominate_packets.cpp
     test_c2s_tail_misc_packets.h

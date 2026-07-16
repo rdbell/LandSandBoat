@@ -1,7 +1,7 @@
 /*
 ===========================================================================
 
-  Copyright (c) 2025 LandSandBoat Dev Teams
+  Copyright (c) 2026 LandSandBoat Dev Teams
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,27 +19,6 @@
 ===========================================================================
 */
 
-#include "0x0eb_reqsubmapnum.h"
-#include "submap_transition.h"
+#pragma once
 
-#include "entities/char_entity.h"
-#include "packets/s2c/0x10e_reqsubmapnum.h"
-
-auto GP_CLI_COMMAND_REQSUBMAPNUM::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
-{
-    // No parameter to validate.
-    return PacketValidator(PChar)
-        .blockedBy({ BlockedState::InEvent });
-}
-
-void GP_CLI_COMMAND_REQSUBMAPNUM::process(MapSession* PSession, CCharEntity* PChar) const
-{
-    // TODO: Highly doubt that's the correct implementation.
-    const auto reply = submap::NumberReplyPlanFor(PChar->isNpcLocked());
-    if (!reply.sendReply)
-    {
-        return;
-    }
-
-    PChar->pushPacket<GP_SERV_COMMAND_REQSUBMAPNUM>(reply.mapNumber);
-}
+auto runC2SSubmapTransitionSelfTests() -> bool;

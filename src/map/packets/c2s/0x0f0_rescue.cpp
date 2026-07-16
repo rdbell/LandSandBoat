@@ -28,6 +28,24 @@
 #include "packets/s2c/0x017_chat_std.h"
 #include "utils/charutils.h"
 
+auto rescue::TransitionFor(const bool selfUnstuckEnabled, const bool cooldownActive, const uint32_t now, const uint32_t cooldown) -> Transition
+{
+    if (!selfUnstuckEnabled)
+    {
+        return {};
+    }
+    if (cooldownActive)
+    {
+        return { .action = Action::SendCooldownMessage };
+    }
+
+    return {
+        .action         = Action::WarpHomePoint,
+        .setCooldown    = true,
+        .cooldownExpiry = now + cooldown,
+    };
+}
+
 auto GP_CLI_COMMAND_RESCUE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
@@ -42,15 +60,24 @@ void GP_CLI_COMMAND_RESCUE::process(MapSession* PSession, CCharEntity* PChar) co
         return;
     }
 
-    if (charutils::GetCharVar(PChar, "[GM]SelfUnstuck") != 0)
-    {
-        ShowInfoFmt("{} requested self-unstuck but is still on cooldown.", PChar->getName());
-        PChar->pushPacket<GP_SERV_COMMAND_CHAT_STD>(PChar, CHAT_MESSAGE_TYPE::MESSAGE_SYSTEM_1, "Self-unstuck is on cooldown.");
-        return;
-    }
+    const auto transition = rescue::TransitionFor(
+        true,
+        charutils::GetCharVar(PChar, "[GM]SelfUnstuck") != 0,
+        earth_time::timestamp(),
+        settings::get<uint32>("map.SELF_UNSTUCK_COOLDOWN"));
 
-    ShowInfoFmt("{} requested self-unstuck, warping them to their Home Point.", PChar->getName());
-    const auto cooldown = settings::get<uint32>("map.SELF_UNSTUCK_COOLDOWN");
-    charutils::SetCharVar(PChar, "[GM]SelfUnstuck", 1, earth_time::timestamp() + cooldown);
-    PChar->requestedWarp = true;
+    switch (transition.action)
+    {
+        case rescue::Action::None:
+            break;
+        case rescue::Action::SendCooldownMessage:
+            ShowInfoFmt("{} requested self-unstuck but is still on cooldown.", PChar->getName());
+            PChar->pushPacket<GP_SERV_COMMAND_CHAT_STD>(PChar, CHAT_MESSAGE_TYPE::MESSAGE_SYSTEM_1, "Self-unstuck is on cooldown.");
+            break;
+        case rescue::Action::WarpHomePoint:
+            ShowInfoFmt("{} requested self-unstuck, warping them to their Home Point.", PChar->getName());
+            charutils::SetCharVar(PChar, "[GM]SelfUnstuck", 1, transition.cooldownExpiry);
+            PChar->requestedWarp = true;
+            break;
+    }
 }
