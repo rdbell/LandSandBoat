@@ -235,7 +235,7 @@ void Application::markLoaded()
 
 auto Application::isRunning() const -> bool
 {
-    return !scheduler_.closeRequested();
+    return applicationhelpers::IsRunning(scheduler_.closeRequested());
 }
 
 void Application::requestExit()

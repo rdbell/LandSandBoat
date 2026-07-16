@@ -45,6 +45,14 @@ struct ApplicationConfig
 class Arguments;
 class ConsoleService;
 
+namespace applicationhelpers
+{
+constexpr auto IsRunning(const bool closeRequested) -> bool
+{
+    return !closeRequested;
+}
+} // namespace applicationhelpers
+
 //
 // Globally exposed variables
 //

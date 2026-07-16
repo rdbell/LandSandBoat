@@ -46,6 +46,8 @@ set(SOURCES
     test_battlefield.cpp
     test_application.h
     test_application.cpp
+    test_application_lifecycle_2554.h
+    test_application_lifecycle_2554.cpp
     test_arguments_parser.h
     test_arguments_parser.cpp
     test_bitpack.h
@@ -381,6 +383,8 @@ set(SOURCES
     test_earth_time.cpp
     test_engine.h
     test_engine.cpp
+    test_engine_lifecycle_base.h
+    test_engine_lifecycle_base.cpp
     test_event_info.h
     test_event_info.cpp
     test_latent_effect.h
