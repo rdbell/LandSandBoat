@@ -23,6 +23,22 @@
 
 #include "base.h"
 
+// Keeps the process-time zone guard independently testable. Packet validation
+// (InEvent and Kind) remains owned by GP_CLI_COMMAND_SWITCH_PROPOSAL::validate.
+namespace switchproposalhelpers
+{
+enum class Action : uint8
+{
+    None,
+    SubmitProposal,
+};
+
+constexpr auto SelectAction(const bool hasZone) -> Action
+{
+    return hasZone ? Action::SubmitProposal : Action::None;
+}
+} // namespace switchproposalhelpers
+
 enum class GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND : uint8_t
 {
     Party      = 0x01,

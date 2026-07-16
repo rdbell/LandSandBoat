@@ -694,6 +694,8 @@ auto runC2SDicePacketSelfTests() -> bool;
 auto runC2SDigRuntimeSelfTests() -> bool;
 auto runC2SGuildPacketSelfTests() -> bool;
 auto runC2SSwitchNominatePacketSelfTests() -> bool;
+auto runC2SSwitchVoteRuntimeSelfTests() -> bool;
+auto runC2SSwitchProposalRuntimeSelfTests() -> bool;
 auto runC2SChatAssistPacketSelfTests() -> bool;
 auto runC2SPlayerPointsPacketSelfTests() -> bool;
 auto runC2SComlinkMyRoomPacketSelfTests() -> bool;
@@ -1533,6 +1535,8 @@ namespace
         ok = runC2SDigRuntimeSelfTests() && ok;
         ok = runC2SGuildPacketSelfTests() && ok;
         ok = runC2SSwitchNominatePacketSelfTests() && ok;
+        ok = runC2SSwitchVoteRuntimeSelfTests() && ok;
+        ok = runC2SSwitchProposalRuntimeSelfTests() && ok;
         ok = runC2SChatAssistPacketSelfTests() && ok;
         ok = runC2SPlayerPointsPacketSelfTests() && ok;
         ok = runC2SComlinkMyRoomPacketSelfTests() && ok;

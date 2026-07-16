@@ -264,6 +264,10 @@ set(SOURCES
     test_c2s_submap_transition.cpp
     test_c2s_switch_nominate_packets.h
     test_c2s_switch_nominate_packets.cpp
+    test_c2s_switch_vote_runtime.h
+    test_c2s_switch_vote_runtime.cpp
+    test_c2s_switch_proposal_runtime.h
+    test_c2s_switch_proposal_runtime.cpp
     test_c2s_tail_misc_packets.h
     test_c2s_tail_misc_packets.cpp
     test_c2s_tracking_packets.h
