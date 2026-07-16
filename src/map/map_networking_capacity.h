@@ -130,4 +130,12 @@ inline auto PlanOutgoingPacketAcknowledgement(const uint16 acknowledgedServerPac
     return lastPacketType == 0x00A ? AcknowledgementPlan::IgnoreLoginMismatch : AcknowledgementPlan::ReplayCachedPacket;
 }
 
+// NextPacketCountForCompressionRetry mirrors send_parse's retry backoff after
+// each compression attempt. It removes one integer third of the current
+// candidate count, so counts below three intentionally remain unchanged.
+inline auto NextPacketCountForCompressionRetry(const std::size_t packetCount) -> std::size_t
+{
+    return packetCount - packetCount / 3;
+}
+
 } // namespace mapnetworkinghelpers

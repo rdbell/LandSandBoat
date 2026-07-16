@@ -59,6 +59,7 @@
 #include "utils/zoneutils.h"
 
 #include "zone_entity_visibility.h"
+#include "zone_char_sync_significance.h"
 #include "zone_npc_visibility.h"
 
 #include <map/ximesh/ximesh.h>
@@ -74,8 +75,6 @@ constexpr auto CHARACTER_DESPAWN_DISTANCE             = 50.0f;
 constexpr auto CHARACTER_SWAP_MAX                     = 5U;
 constexpr auto CHARACTER_SYNC_LIMIT_MAX               = 32U;
 constexpr auto CHARACTER_SYNC_DISTANCE_SWAP_THRESHOLD = 30U;
-constexpr auto CHARACTER_SYNC_PARTY_SIGNIFICANCE      = 100000U;
-constexpr auto CHARACTER_SYNC_ALLI_SIGNIFICANCE       = 10000U;
 constexpr auto PERSIST_CHECK_CHARACTERS               = 20U;
 constexpr auto INTERMEDIATE_CONTAINER_RESERVE_SIZE    = 16U;
 
@@ -997,26 +996,14 @@ void CZoneEntities::SpawnTRUSTs(CCharEntity* PChar)
 
 float getSignificanceScore(CCharEntity* originChar, CCharEntity* targetChar)
 {
-    if (targetChar->m_GMlevel > 0 && !targetChar->m_isGMHidden)
-    {
-        return CHARACTER_SYNC_ALLI_SIGNIFICANCE;
-    }
-
+    bool sameParty    = false;
+    bool sameAlliance = false;
     if (originChar->PParty && targetChar->PParty)
     {
-        if (originChar->PParty->GetPartyID() == targetChar->PParty->GetPartyID())
-        {
-            // Same party
-            return CHARACTER_SYNC_PARTY_SIGNIFICANCE;
-        }
-        else if (originChar->PParty->m_PAlliance && targetChar->PParty->m_PAlliance && originChar->PParty->m_PAlliance->m_AllianceID == targetChar->PParty->m_PAlliance->m_AllianceID)
-        {
-            // Same alliance
-            return CHARACTER_SYNC_ALLI_SIGNIFICANCE;
-        }
+        sameParty    = originChar->PParty->GetPartyID() == targetChar->PParty->GetPartyID();
+        sameAlliance = originChar->PParty->m_PAlliance && targetChar->PParty->m_PAlliance && originChar->PParty->m_PAlliance->m_AllianceID == targetChar->PParty->m_PAlliance->m_AllianceID;
     }
-
-    return 0;
+    return zoneentityvisibility::CharacterSyncSignificance(targetChar->m_GMlevel > 0 && !targetChar->m_isGMHidden, sameParty, sameAlliance);
 }
 
 void CZoneEntities::SpawnPCs(CCharEntity* PChar)
@@ -1077,7 +1064,7 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
         auto  bonus             = bonusIter == scoreBonus.end() ? 0 : bonusIter->second;
         float totalScore        = significanceScore + bonus - charDistance + CHARACTER_SYNC_DISTANCE_SWAP_THRESHOLD;
 
-        if (significanceScore < CHARACTER_SYNC_ALLI_SIGNIFICANCE)
+        if (significanceScore < zoneentityvisibility::CharacterSyncAllianceSignificance)
         {
             // Is spawned and should be considered for removal if necessary
             if (spawnedCharacters.size() < CHARACTER_SYNC_LIMIT_MAX)

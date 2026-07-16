@@ -28,6 +28,7 @@
 #include "mob_link_policy.h"
 #include "mob_valid_target_policy.h"
 #include "mob_seal_pool.h"
+#include "mob_geode_element.h"
 #include "mob_widescan_policy.h"
 #include "mob_home_distance_policy.h"
 #include "mob_tp_move_policy.h"
@@ -741,59 +742,7 @@ auto CMobEntity::GetEligibleGeodes() const -> std::vector<uint16>
         return {};
     }
 
-    uint8 element = 0;
-
-    // Set element by weather
-    if (const Weather weather = loc.zone->weather().current(); weather >= Weather::HotSpell && weather <= Weather::Darkness)
-    {
-        /*
-        element = zoneutils::GetWeatherElement(weather);
-        Can't use this because of the TODO in zoneutils about broken element order >.<
-        So we have this ugly switch until then.
-        */
-        switch (weather)
-        {
-            case Weather::HotSpell:
-            case Weather::HeatWave:
-                element = ELEMENT_FIRE;
-                break;
-            case Weather::Rain:
-            case Weather::Squall:
-                element = ELEMENT_WATER;
-                break;
-            case Weather::DustStorm:
-            case Weather::SandStorm:
-                element = ELEMENT_EARTH;
-                break;
-            case Weather::Wind:
-            case Weather::Gales:
-                element = ELEMENT_WIND;
-                break;
-            case Weather::Snow:
-            case Weather::Blizzards:
-                element = ELEMENT_ICE;
-                break;
-            case Weather::Thunder:
-            case Weather::Thunderstorms:
-                element = ELEMENT_THUNDER;
-                break;
-            case Weather::Auroras:
-            case Weather::StellarGlare:
-                element = ELEMENT_LIGHT;
-                break;
-            case Weather::Gloom:
-            case Weather::Darkness:
-                element = ELEMENT_DARK;
-                break;
-            default:
-                break;
-        }
-    }
-    // Set element from day instead
-    else
-    {
-        element = battleutils::GetDayElement();
-    }
+    const uint8 element = mobgeodehelpers::ResolveElement(loc.zone->weather().current(), [] { return battleutils::GetDayElement(); });
 
     if (GetMLevel() >= 80)
     {

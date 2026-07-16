@@ -591,7 +591,7 @@ int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSess
                 packets++;
             }
 
-            PacketCount -= PacketCount / 3;
+            PacketCount = mapnetworkinghelpers::NextPacketCountForCompressionRetry(PacketCount);
 
             // Compress the data without regard to the header
             // The returned size is 8 times the real data
