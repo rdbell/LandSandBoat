@@ -704,6 +704,7 @@ auto runC2SUnityPacketSelfTests() -> bool;
 auto runC2STailMiscPacketSelfTests() -> bool;
 auto runC2SGMPacketSelfTests() -> bool;
 auto runC2SLockstylePacketSelfTests() -> bool;
+auto runC2SLockstyleRuntimePlanSelfTests() -> bool;
 auto runC2SEquipmentPacketSelfTests() -> bool;
 auto runC2SEquipSetCheckRuntimeSelfTests() -> bool;
 auto runC2SEquipSetRuntimeSelfTests() -> bool;
@@ -1524,6 +1525,7 @@ namespace
         ok = runC2STailMiscPacketSelfTests() && ok;
         ok = runC2SGMPacketSelfTests() && ok;
         ok = runC2SLockstylePacketSelfTests() && ok;
+        ok = runC2SLockstyleRuntimePlanSelfTests() && ok;
         ok = runC2SEquipmentPacketSelfTests() && ok;
         ok = runC2SEquipSetCheckRuntimeSelfTests() && ok;
         ok = runC2SEquipSetRuntimeSelfTests() && ok;

@@ -170,6 +170,8 @@ set(SOURCES
     test_c2s_item_lookup_packets.cpp
     test_c2s_lockstyle_packet.h
     test_c2s_lockstyle_packet.cpp
+    test_c2s_lockstyle_runtime_plan.h
+    test_c2s_lockstyle_runtime_plan.cpp
     test_c2s_login_packet.h
     test_c2s_login_packet.cpp
     test_c2s_logout_stance_packets.h

@@ -1,0 +1,5 @@
+#include "test_c2s_lockstyle_runtime_plan.h"
+#include <iostream>
+#include "map/packets/c2s/0x053_lockstyle.h"
+namespace { struct Plan { bool set{}, value{}, persist{}, refresh{}, removed{}, query{}; }; auto plan(GP_CLI_COMMAND_LOCKSTYLE_MODE mode,bool locked)->Plan {switch(mode){case GP_CLI_COMMAND_LOCKSTYLE_MODE::Disable:return locked?Plan{true,false,true,true}:Plan{};case GP_CLI_COMMAND_LOCKSTYLE_MODE::Continue:return {true,true};case GP_CLI_COMMAND_LOCKSTYLE_MODE::Query:return {.query=true};case GP_CLI_COMMAND_LOCKSTYLE_MODE::Enable:return {true,true,true,true,true};default:return {};}} }
+auto runC2SLockstyleRuntimePlanSelfTests() -> bool { bool ok=true; const auto c=[&](bool v){if(!v){std::cerr<<"LOCKSTYLE runtime plan self-test failed\n";ok=false;}}; c(!plan(GP_CLI_COMMAND_LOCKSTYLE_MODE::Disable,false).set); auto d=plan(GP_CLI_COMMAND_LOCKSTYLE_MODE::Disable,true);c(d.set&&!d.value&&d.persist&&d.refresh); c(plan(GP_CLI_COMMAND_LOCKSTYLE_MODE::Continue,false).value);c(plan(GP_CLI_COMMAND_LOCKSTYLE_MODE::Query,false).query);auto e=plan(GP_CLI_COMMAND_LOCKSTYLE_MODE::Enable,false);c(e.set&&e.value&&e.persist&&e.refresh&&e.removed); return ok; }
