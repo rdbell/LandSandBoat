@@ -134,6 +134,12 @@ set(SOURCES
     test_c2s_friendpass_runtime.cpp
     test_c2s_translate_runtime.h
     test_c2s_translate_runtime.cpp
+    test_c2s_trade_req_runtime.h
+    test_c2s_trade_req_runtime.cpp
+    test_c2s_trade_res_runtime.h
+    test_c2s_trade_res_runtime.cpp
+    test_c2s_itemsearch_runtime.h
+    test_c2s_itemsearch_runtime.cpp
     test_c2s_gameok_packet.h
     test_c2s_gameok_packet.cpp
     test_c2s_gameok_runtime.h

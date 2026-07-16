@@ -21,7 +21,25 @@
 
 #pragma once
 
+#include <string_view>
+
 #include "base.h"
+
+namespace itemsearchhelpers
+{
+
+struct ResponsePlan
+{
+    uint16           itemID;
+    std::string_view inputName;
+};
+
+[[nodiscard]] constexpr auto BuildResponsePlan(const bool found, const uint16 itemID, const std::string_view inputName) -> ResponsePlan
+{
+    return { found ? itemID : static_cast<uint16>(0), inputName };
+}
+
+} // namespace itemsearchhelpers
 
 enum class GP_CLI_COMMAND_ITEMSEARCH_LANGUAGE : uint8_t
 {

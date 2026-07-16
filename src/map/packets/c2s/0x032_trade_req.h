@@ -23,6 +23,69 @@
 
 #include "base.h"
 
+// The handler's entity lookup, container access, and packet delivery remain
+// host-owned.  This small plan captures the ordered, portable policy gates.
+namespace tradereqhelpers
+{
+enum class Plan
+{
+    Ignore,
+    Reject,
+    RejectAidBlocked,
+    CancelPreviousTrade,
+    SendRequest,
+};
+
+struct Facts
+{
+    bool targetMatches{};
+    bool eitherInPrison{};
+    bool eitherCrafting{};
+    bool aidBlocked{};
+    bool targetAlreadyPendingSource{};
+    bool targetContainerEmpty{};
+    bool targetHasRecentPendingTrade{};
+    bool targetTradeContainer{};
+    bool sourceHasPendingTrade{};
+    bool previousTargetMatches{};
+};
+
+constexpr auto makePlan(const Facts& facts) -> Plan
+{
+    if (!facts.targetMatches)
+    {
+        return Plan::Ignore;
+    }
+
+    if (facts.eitherInPrison || facts.eitherCrafting)
+    {
+        return Plan::Reject;
+    }
+
+    if (facts.aidBlocked)
+    {
+        return Plan::RejectAidBlocked;
+    }
+
+    if (facts.targetAlreadyPendingSource)
+    {
+        return Plan::Ignore;
+    }
+
+    if (!facts.targetContainerEmpty || facts.targetHasRecentPendingTrade || facts.targetTradeContainer)
+    {
+        return Plan::Reject;
+    }
+
+    if (facts.sourceHasPendingTrade && facts.previousTargetMatches)
+    {
+        return Plan::CancelPreviousTrade;
+    }
+
+    return Plan::SendRequest;
+}
+} // namespace tradereqhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0032
 // This packet is sent by the client when it is requesting to trade with another player.
 GP_CLI_PACKET(GP_CLI_COMMAND_TRADE_REQ,

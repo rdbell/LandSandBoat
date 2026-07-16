@@ -21,6 +21,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "base.h"
 
 enum class GP_CLI_COMMAND_TRADE_RES_KIND : uint32_t
@@ -30,6 +32,120 @@ enum class GP_CLI_COMMAND_TRADE_RES_KIND : uint32_t
     Make        = 2,
     MakeCancell = 3,
 };
+
+// The map host owns entity lookup, containers, packets, and item transfers.
+// This describes the ordered, portable decisions made once those facts are
+// available, mirroring GP_CLI_COMMAND_TRADE_RES::process.
+namespace tradereshelpers
+{
+
+enum class Action : uint8
+{
+    ClearPendingTargets,
+    SetInitiatorTradeContainer,
+    NotifyTargetStart,
+    SetTargetTradeContainer,
+    NotifyInitiatorStart,
+    CleanTargetTradeContainer,
+    CleanInitiatorTradeContainer,
+    NotifyTargetCancell,
+    LockInitiatorTradeContainer,
+    NotifyTargetMake,
+    TradeInitiatorToTarget,
+    NotifyTargetEnd,
+    TradeTargetToInitiator,
+    NotifyInitiatorEnd,
+    NotifyInitiatorCancell,
+};
+
+struct RuntimeFacts
+{
+    bool peerResolved;
+    bool initiatorContainerEmpty;
+    bool targetContainerEmpty;
+    bool withinTradeDistance;
+    bool sameMogHouse;
+    bool initiatorContainerIsTrade;
+    bool targetContainerIsTrade;
+    bool targetContainerLocked;
+    bool initiatorCanTrade;
+    bool targetCanTrade;
+};
+
+struct ActionPlan
+{
+    std::array<Action, 10> actions{};
+    uint8                  count{};
+};
+
+[[nodiscard]] constexpr auto BuildActionPlan(const GP_CLI_COMMAND_TRADE_RES_KIND kind, const RuntimeFacts facts) -> ActionPlan
+{
+    ActionPlan plan;
+    if (!facts.peerResolved)
+    {
+        return plan;
+    }
+
+    const auto append = [&plan](const Action action)
+    {
+        plan.actions[plan.count++] = action;
+    };
+
+    switch (kind)
+    {
+        case GP_CLI_COMMAND_TRADE_RES_KIND::Start:
+            if (!facts.initiatorContainerEmpty || !facts.targetContainerEmpty || !facts.withinTradeDistance || !facts.sameMogHouse)
+            {
+                append(Action::ClearPendingTargets);
+                return plan;
+            }
+            append(Action::SetInitiatorTradeContainer);
+            append(Action::NotifyTargetStart);
+            append(Action::SetTargetTradeContainer);
+            append(Action::NotifyInitiatorStart);
+            return plan;
+        case GP_CLI_COMMAND_TRADE_RES_KIND::Cancell:
+            if (facts.targetContainerIsTrade)
+            {
+                append(Action::CleanTargetTradeContainer);
+            }
+            if (facts.initiatorContainerIsTrade)
+            {
+                append(Action::CleanInitiatorTradeContainer);
+            }
+            append(Action::ClearPendingTargets);
+            append(Action::NotifyTargetCancell);
+            return plan;
+        case GP_CLI_COMMAND_TRADE_RES_KIND::Make:
+            append(Action::LockInitiatorTradeContainer);
+            append(Action::NotifyTargetMake);
+            if (!facts.targetContainerLocked)
+            {
+                return plan;
+            }
+            if (facts.initiatorCanTrade && facts.targetCanTrade)
+            {
+                append(Action::TradeInitiatorToTarget);
+                append(Action::NotifyTargetEnd);
+                append(Action::TradeTargetToInitiator);
+                append(Action::NotifyInitiatorEnd);
+            }
+            else
+            {
+                append(Action::NotifyTargetCancell);
+                append(Action::NotifyInitiatorCancell);
+            }
+            append(Action::CleanInitiatorTradeContainer);
+            append(Action::CleanTargetTradeContainer);
+            append(Action::ClearPendingTargets);
+            return plan;
+        case GP_CLI_COMMAND_TRADE_RES_KIND::MakeCancell:
+            return plan;
+    }
+    return plan;
+}
+
+} // namespace tradereshelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0033
 // This packet is sent by the client when responding to a trade request.

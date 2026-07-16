@@ -39,7 +39,8 @@ void GP_CLI_COMMAND_ITEMSEARCH::process(MapSession* PSession, CCharEntity* PChar
     // Same-language lookup against the translate map.
     const auto fromTo = static_cast<GP_CLI_COMMAND_TRANSLATE_INDEX>(this->Language);
     const auto result = itemutils::TranslateItemName(fromTo, fromTo, inputName);
-    const auto itemId = result.has_value() ? result->first : static_cast<uint16>(0);
+    const auto responsePlan = itemsearchhelpers::BuildResponsePlan(
+        result.has_value(), result.has_value() ? result->first : static_cast<uint16>(0), inputName);
 
-    PChar->pushPacket<GP_SERV_COMMAND_ITEMSEARCH>(itemId, inputName);
+    PChar->pushPacket<GP_SERV_COMMAND_ITEMSEARCH>(responsePlan.itemID, inputName);
 }
