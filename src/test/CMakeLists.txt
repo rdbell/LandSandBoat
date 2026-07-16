@@ -182,6 +182,8 @@ set(SOURCES
     test_c2s_group_leave_transition.cpp
     test_c2s_guild_packets.h
     test_c2s_guild_packets.cpp
+    test_c2s_guild_buylist_runtime.h
+    test_c2s_guild_buylist_runtime.cpp
     test_c2s_header_only_request_packets.h
     test_c2s_header_only_request_packets.cpp
     test_c2s_helpdesk_map_packets.h
@@ -260,6 +262,10 @@ set(SOURCES
     test_c2s_shop_packets.cpp
     test_c2s_shop_sell_set_runtime.h
     test_c2s_shop_sell_set_runtime.cpp
+    test_c2s_guild_buy_runtime.h
+    test_c2s_guild_buy_runtime.cpp
+    test_c2s_guild_sell_runtime.h
+    test_c2s_guild_sell_runtime.cpp
     test_c2s_submap_transition.h
     test_c2s_submap_transition.cpp
     test_c2s_switch_nominate_packets.h

@@ -23,7 +23,6 @@
 
 #include "entities/char_entity.h"
 #include "lua/luautils.h"
-#include "packets/s2c/0x083_guild_buylist.h"
 #include "utils/zoneutils.h"
 
 auto GP_CLI_COMMAND_GUILD_BUYLIST::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
@@ -39,26 +38,27 @@ void GP_CLI_COMMAND_GUILD_BUYLIST::process(MapSession* PSession, CCharEntity* PC
     {
         const auto items = luautils::callGlobal<sol::table>("xi.guildShops.onBuyList", PChar, PNpc);
 
-        std::vector<GP_GUILD_ITEM> list;
-        list.reserve(items.size());
+        std::vector<std::optional<guildbuylisthelpers::SourceEntry>> entries;
+        entries.reserve(items.size());
         for (std::size_t i = 1; i <= items.size(); ++i)
         {
             const sol::object obj = items[i];
             if (!obj.is<sol::table>())
             {
+                entries.emplace_back(std::nullopt);
                 continue;
             }
 
             const auto    entry = obj.as<sol::table>();
-            GP_GUILD_ITEM gpItem{
+            entries.emplace_back(guildbuylisthelpers::SourceEntry{
                 .ItemNo = entry.get_or("id", static_cast<uint16>(0)),
                 .Count  = entry.get_or("count", static_cast<uint8>(0)),
                 .Max    = entry.get_or("max", static_cast<uint8>(0)),
                 .Price  = entry.get_or("price", static_cast<int32>(0)),
-            };
-            list.push_back(gpItem);
+            });
         }
 
-        PChar->pushPacket<GP_SERV_COMMAND_GUILD_BUYLIST>(PChar, list);
+        const auto plan = guildbuylisthelpers::BuildResponsePlan(true, entries);
+        PChar->pushPacket<GP_SERV_COMMAND_GUILD_BUYLIST>(PChar, plan.items);
     }
 }

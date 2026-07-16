@@ -44,14 +44,15 @@ void GP_CLI_COMMAND_GUILD_BUY::process(MapSession* PSession, CCharEntity* PChar)
 {
     uint8        quantity = this->ItemNum;
     const CItem* PItem    = xi::items::lookup(this->ItemNo);
-    if (!PItem)
+    const auto    action  = guildbuyhelpers::SelectPreScriptAction(PItem != nullptr, quantity, PItem ? PItem->getStackSize() : 0);
+    if (action == guildbuyhelpers::PreScriptAction::None)
     {
         ShowWarning("User '%s' attempting to buy an invalid item from guild vendor!", PChar->getName());
         return;
     }
 
     // You can't buy more than a stack at once; retail turns this away instead of quietly clamping it.
-    if (quantity > PItem->getStackSize())
+    if (action == guildbuyhelpers::PreScriptAction::RejectStackLimit)
     {
         PChar->pushPacket<GP_SERV_COMMAND_GUILD_BUY>(PChar, 0, 0, static_cast<uint8>(-1));
         return;
@@ -62,12 +63,13 @@ void GP_CLI_COMMAND_GUILD_BUY::process(MapSession* PSession, CCharEntity* PChar)
         // onPlayerBuy returns { itemNo, count, trade }; serialize it into the 0x082 result
         // (a rejection is { 0, 0, -1 }).
         const auto result = luautils::callGlobal<sol::table>("xi.guildShops.onPlayerBuy", PChar, PNpc, this->ItemNo, quantity);
-        if (result.valid())
+        if (guildbuyhelpers::ShouldSendScriptResult(true, result.valid()))
         {
             const auto itemNo = result.get_or("itemNo", uint16{ 0 });
             const auto count  = result.get_or("count", uint8{ 0 });
             const auto trade  = result.get_or("trade", int32{ 0 });
-            PChar->pushPacket<GP_SERV_COMMAND_GUILD_BUY>(PChar, count, itemNo, static_cast<uint8>(trade));
+            const auto fields = guildbuyhelpers::MakeResultFields(itemNo, count, trade);
+            PChar->pushPacket<GP_SERV_COMMAND_GUILD_BUY>(PChar, fields.count, fields.itemNo, fields.trade);
         }
     }
 }

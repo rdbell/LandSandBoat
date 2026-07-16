@@ -23,6 +23,46 @@
 
 #include "base.h"
 
+// Keeps GUILD_BUY's host-independent processing decisions testable. Item
+// lookup, NPC lookup, Lua execution, packet delivery, and logging stay in the
+// packet handler.
+namespace guildbuyhelpers
+{
+enum class PreScriptAction : uint8
+{
+    None,
+    RejectStackLimit,
+    CallScript,
+};
+
+struct ResultFields
+{
+    uint16 itemNo;
+    uint8  count;
+    uint8  trade;
+};
+
+constexpr auto SelectPreScriptAction(const bool itemResolved, const uint8 quantity, const uint32 stackSize) -> PreScriptAction
+{
+    if (!itemResolved)
+    {
+        return PreScriptAction::None;
+    }
+
+    return quantity > stackSize ? PreScriptAction::RejectStackLimit : PreScriptAction::CallScript;
+}
+
+constexpr auto ShouldSendScriptResult(const bool npcResolved, const bool scriptResultValid) -> bool
+{
+    return npcResolved && scriptResultValid;
+}
+
+constexpr auto MakeResultFields(const uint16 itemNo, const uint8 count, const int32 trade) -> ResultFields
+{
+    return { itemNo, count, static_cast<uint8>(trade) };
+}
+} // namespace guildbuyhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00AA
 // This packet is sent by the client when buying items from a guild shop.
 GP_CLI_PACKET(GP_CLI_COMMAND_GUILD_BUY,

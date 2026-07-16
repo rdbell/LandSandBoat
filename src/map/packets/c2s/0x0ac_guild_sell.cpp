@@ -77,10 +77,15 @@ void GP_CLI_COMMAND_GUILD_SELL::process(MapSession* PSession, CCharEntity* PChar
         return;
     }
 
+    const auto preScriptPlan = guildsellhelpers::MakePlan(this->ItemNum, {
+        .itemFound = true,
+        .itemStackSize = PItem->getStackSize(),
+    });
+
     // A guild shop never buys more than a single stack of an item per transaction.
-    if (this->ItemNum > PItem->getStackSize())
+    if (preScriptPlan.action == guildsellhelpers::Action::RejectOverStack)
     {
-        PChar->pushPacket<GP_SERV_COMMAND_GUILD_SELL>(PChar, 0, 0, static_cast<uint8>(-4));
+        PChar->pushPacket<GP_SERV_COMMAND_GUILD_SELL>(PChar, preScriptPlan.stock, preScriptPlan.itemNo, preScriptPlan.trade);
         return;
     }
 
@@ -94,11 +99,23 @@ void GP_CLI_COMMAND_GUILD_SELL::process(MapSession* PSession, CCharEntity* PChar
             const auto trade  = result.get_or("trade", int32{ 0 });
             const auto sold   = result.get_or("sold", uint8{ 0 });
             const auto price  = result.get_or("price", uint32{ 0 });
-            PChar->pushPacket<GP_SERV_COMMAND_GUILD_SELL>(PChar, count, itemNo, static_cast<uint8>(trade));
+            const auto plan = guildsellhelpers::MakePlan(this->ItemNum, {
+                .itemFound = true,
+                .itemStackSize = PItem->getStackSize(),
+                .guildShopNpcFound = true,
+                .scriptResultValid = true,
+                .auditPlayerVendor = settings::get<bool>("map.AUDIT_PLAYER_VENDOR"),
+                .scriptItemNo = itemNo,
+                .scriptCount = count,
+                .scriptTrade = trade,
+                .scriptSold = sold,
+                .scriptPrice = price,
+            });
+            PChar->pushPacket<GP_SERV_COMMAND_GUILD_SELL>(PChar, plan.stock, plan.itemNo, plan.trade);
 
-            if (sold > 0)
+            if (plan.auditSale)
             {
-                auditSale(*PSession->scheduler, PChar, itemNo, price, sold);
+                auditSale(*PSession->scheduler, PChar, plan.auditItemNo, plan.auditBasePrice, plan.auditQuantity);
             }
         }
     }

@@ -23,6 +23,74 @@
 
 #include "base.h"
 
+namespace guildsellhelpers
+{
+
+enum class Action : uint8
+{
+    None,
+    RejectOverStack,
+    SendScriptResult,
+};
+
+// RuntimeFacts are the host-owned lookup and script callback facts consumed by
+// process. NPC lookup, Lua execution, packet delivery, and audit persistence
+// remain map-host responsibilities.
+struct RuntimeFacts
+{
+    bool   itemFound;
+    uint32 itemStackSize;
+    bool   guildShopNpcFound;
+    bool   scriptResultValid;
+    bool   auditPlayerVendor;
+    uint16 scriptItemNo;
+    uint8  scriptCount;
+    int32  scriptTrade;
+    uint8  scriptSold;
+    uint32 scriptPrice;
+};
+
+struct Plan
+{
+    Action action;
+    uint8  stock;
+    uint16 itemNo;
+    uint8  trade;
+    bool   auditSale;
+    uint16 auditItemNo;
+    uint32 auditBasePrice;
+    uint8  auditQuantity;
+};
+
+// MakePlan mirrors GP_CLI_COMMAND_GUILD_SELL::process's ordered item, stack,
+// NPC, and Lua-result branches. scriptTrade deliberately converts to uint8,
+// matching the S2C packet constructor's quantity parameter.
+[[nodiscard]] constexpr auto MakePlan(uint8 itemNum, const RuntimeFacts& facts) -> Plan
+{
+    if (!facts.itemFound)
+    {
+        return { Action::None, 0, 0, 0, false, 0, 0, 0 };
+    }
+    if (itemNum > facts.itemStackSize)
+    {
+        return { Action::RejectOverStack, 0, 0, static_cast<uint8>(-4), false, 0, 0, 0 };
+    }
+    if (!facts.guildShopNpcFound || !facts.scriptResultValid)
+    {
+        return { Action::None, 0, 0, 0, false, 0, 0, 0 };
+    }
+    return { Action::SendScriptResult,
+             facts.scriptCount,
+             facts.scriptItemNo,
+             static_cast<uint8>(facts.scriptTrade),
+             facts.auditPlayerVendor && facts.scriptSold > 0,
+             facts.scriptItemNo,
+             facts.scriptPrice,
+             facts.scriptSold };
+}
+
+} // namespace guildsellhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x00AC
 // This packet is sent by the client when selling items to a guild shop.
 GP_CLI_PACKET(GP_CLI_COMMAND_GUILD_SELL,
