@@ -28,6 +28,28 @@ enum class GP_CLI_COMMAND_UNITY_TOGGLE_MODE : uint8_t
     Active   = 0x01,
 };
 
+// Keeps UNITY_TOGGLE's process-time membership transition independently
+// testable. Packet validation (InEvent and Mode) remains owned by
+// GP_CLI_COMMAND_UNITY_TOGGLE::validate.
+namespace unitytogglehelpers
+{
+struct RuntimePlan
+{
+    bool removeOnlineMember;
+    bool addOnlineMember;
+    bool sendLocalPlayerPackets;
+};
+
+[[nodiscard]] constexpr auto MakeRuntimePlan(const bool hasOnlineMember, const GP_CLI_COMMAND_UNITY_TOGGLE_MODE mode) -> RuntimePlan
+{
+    return {
+        .removeOnlineMember      = hasOnlineMember,
+        .addOnlineMember         = mode == GP_CLI_COMMAND_UNITY_TOGGLE_MODE::Active,
+        .sendLocalPlayerPackets = true,
+    };
+}
+} // namespace unitytogglehelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0118
 // This packet is sent by the client when changing their Unity chat setting. (Active or Inactive)
 GP_CLI_PACKET(GP_CLI_COMMAND_UNITY_TOGGLE,

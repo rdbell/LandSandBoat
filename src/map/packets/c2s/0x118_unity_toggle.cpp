@@ -33,15 +33,20 @@ auto GP_CLI_COMMAND_UNITY_TOGGLE::validate(MapSession* PSession, const CCharEnti
 
 void GP_CLI_COMMAND_UNITY_TOGGLE::process(MapSession* PSession, CCharEntity* PChar) const
 {
-    if (PChar->PUnityChat)
+    const auto plan = unitytogglehelpers::MakeRuntimePlan(PChar->PUnityChat != nullptr, static_cast<GP_CLI_COMMAND_UNITY_TOGGLE_MODE>(this->Mode));
+
+    if (plan.removeOnlineMember)
     {
         unitychat::DelOnlineMember(PChar, PChar->PUnityChat->getLeader());
     }
 
-    if (this->Mode == static_cast<uint8>(GP_CLI_COMMAND_UNITY_TOGGLE_MODE::Active))
+    if (plan.addOnlineMember)
     {
         unitychat::AddOnlineMember(PChar, PChar->profile.unity_leader);
     }
 
-    charutils::SendLocalPlayerPackets(PChar);
+    if (plan.sendLocalPlayerPackets)
+    {
+        charutils::SendLocalPlayerPackets(PChar);
+    }
 }

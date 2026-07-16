@@ -36,6 +36,11 @@ void GP_CLI_COMMAND_UNITY_QUEST::process(MapSession* PSession, CCharEntity* PCha
 {
     // TODO: Incomplete implementation.
     // This stub only handles the needed RoE updates.
-    PChar->pushPacket<GP_SERV_COMMAND_UNITY>(PChar);
-    charutils::SendUnityPackets(PChar);
+    switch (unityquesthelpers::SelectAction())
+    {
+        case unityquesthelpers::Action::SendUnityAndUnityPackets:
+            PChar->pushPacket<GP_SERV_COMMAND_UNITY>(PChar);
+            charutils::SendUnityPackets(PChar);
+            break;
+    }
 }

@@ -22,6 +22,23 @@
 #pragma once
 #include "base.h"
 
+namespace unitymenuhelpers
+{
+struct ProcessPlan
+{
+    bool sendUnityResponse;
+    bool sendUnityPackets;
+};
+
+// SelectProcessPlan documents the fixed ordering of UNITY_MENU's accepted
+// process path. Packet page selection is currently not implemented upstream:
+// both valid Kind values refresh the Unity response and Unity packet set.
+inline constexpr auto SelectProcessPlan() -> ProcessPlan
+{
+    return { true, true };
+}
+} // namespace unitymenuhelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0116
 // This packet is sent by the client when opening the Unity menu. (Main Menu -> Status -> Unity)
 GP_CLI_PACKET(GP_CLI_COMMAND_UNITY_MENU,

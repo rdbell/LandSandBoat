@@ -22,6 +22,24 @@
 #pragma once
 #include "base.h"
 
+// UNITY_QUEST has no payload-dependent process branch: after validation
+// accepts the request, it refreshes both the UNITY packet and Unity packet
+// collection for the requesting character.
+namespace unityquesthelpers
+{
+
+enum class Action : uint8
+{
+    SendUnityAndUnityPackets,
+};
+
+[[nodiscard]] constexpr auto SelectAction() -> Action
+{
+    return Action::SendUnityAndUnityPackets;
+}
+
+} // namespace unityquesthelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0117
 // This packet is sent by the client when requesting its Unity quest information.
 GP_CLI_PACKET(GP_CLI_COMMAND_UNITY_QUEST,

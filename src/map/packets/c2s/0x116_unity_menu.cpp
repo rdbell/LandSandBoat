@@ -36,6 +36,14 @@ void GP_CLI_COMMAND_UNITY_MENU::process(MapSession* PSession, CCharEntity* PChar
 {
     // TODO: Incomplete implementation.
     // This stub only handles the needed RoE updates.
-    PChar->pushPacket<GP_SERV_COMMAND_UNITY>(PChar);
-    charutils::SendUnityPackets(PChar);
+    const auto plan = unitymenuhelpers::SelectProcessPlan();
+    if (plan.sendUnityResponse)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_UNITY>(PChar);
+    }
+
+    if (plan.sendUnityPackets)
+    {
+        charutils::SendUnityPackets(PChar);
+    }
 }

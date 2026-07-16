@@ -312,6 +312,12 @@ set(SOURCES
     test_c2s_trophy_packets.cpp
     test_c2s_unity_packets.h
     test_c2s_unity_packets.cpp
+    test_c2s_unity_menu_runtime.h
+    test_c2s_unity_menu_runtime.cpp
+    test_c2s_unity_quest_runtime.h
+    test_c2s_unity_quest_runtime.cpp
+    test_c2s_unity_toggle_runtime.h
+    test_c2s_unity_toggle_runtime.cpp
     test_c2s_user_linkshell_message_packets.h
     test_c2s_user_linkshell_message_packets.cpp
     test_c2s_zone_transition_packet.h
