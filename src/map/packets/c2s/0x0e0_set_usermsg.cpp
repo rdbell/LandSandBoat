@@ -35,22 +35,25 @@ void GP_CLI_COMMAND_SET_USERMSG::process(MapSession* PSession, CCharEntity* PCha
     // NOTE: As with the bazaar message, we aren't going to escape this because we need the
     //     : exact message to be stored to be displayed correctly. We're storing through a prepared statement so
     //     : this is safe from injection.
-    const auto message = asStringFromUntrustedSource(this->sMessage, sizeof(this->sMessage));
+    const auto current = setusermsgpackethelpers::SearchState{
+        .message     = PChar->search.message,
+        .messageType = PChar->search.messagetype,
+    };
+    const auto request = setusermsgpackethelpers::PlanFor(this->sMessage, this->msgType, current, false);
 
-    auto type = message.empty() ? GP_CLI_COMMAND_SET_USERMSG_MSGTYPE::Default : static_cast<GP_CLI_COMMAND_SET_USERMSG_MSGTYPE>(this->msgType);
-
-    if (static_cast<uint8_t>(type) == PChar->search.messagetype && strcmp(message.c_str(), PChar->search.message.c_str()) == 0)
+    if (!request.persist)
     {
         return;
     }
 
     if (db::preparedStmt("UPDATE accounts_sessions SET seacom_type = ?, seacom_message = ? WHERE charid = ? LIMIT 1",
-                         type,
-                         message,
+                         request.type,
+                         request.message,
                          PChar->id))
     {
-        PChar->search.message     = message;
-        PChar->search.messagetype = static_cast<uint8_t>(type);
+        const auto result = setusermsgpackethelpers::PlanFor(this->sMessage, this->msgType, current, true);
+        PChar->search.message     = result.message;
+        PChar->search.messagetype = static_cast<uint8_t>(result.type);
     }
 
     PChar->pushPacket<CCharStatusPacket>(PChar);

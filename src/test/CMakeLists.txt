@@ -152,6 +152,8 @@ set(SOURCES
     test_c2s_mastery_display_runtime.cpp
     test_c2s_passwards_runtime.h
     test_c2s_passwards_runtime.cpp
+    test_c2s_inspect_message_runtime.h
+    test_c2s_inspect_message_runtime.cpp
     test_c2s_eventend_transition.h
     test_c2s_eventend_transition.cpp
     test_c2s_eventendxzy_transition.h
@@ -338,6 +340,8 @@ set(SOURCES
     test_c2s_unity_toggle_runtime.cpp
     test_c2s_user_linkshell_message_packets.h
     test_c2s_user_linkshell_message_packets.cpp
+    test_c2s_set_usermsg_runtime.h
+    test_c2s_set_usermsg_runtime.cpp
     test_c2s_zone_transition_packet.h
     test_c2s_zone_transition_packet.cpp
     test_caching_database.h

@@ -21,6 +21,8 @@
 
 #include "0x0db_config_language.h"
 
+#include "config_language_runtime.h"
+
 #include "entities/char_entity.h"
 #include "packets/char_status.h"
 #include "packets/s2c/0x0b4_config.h"
@@ -44,36 +46,34 @@ void GP_CLI_COMMAND_CONFIG_LANGUAGE::process(MapSession* PSession, CCharEntity* 
     std::memcpy(&oldChatFilter1, &PChar->playerConfig.MessageFilter, sizeof(uint32_t));
     std::memcpy(&oldChatFilter2, &PChar->playerConfig.MessageFilter2, sizeof(uint32_t));
 
-    switch (static_cast<GP_CLI_COMMAND_CONFIG_LANGUAGE_KIND>(this->Kind))
-    {
-        case GP_CLI_COMMAND_CONFIG_LANGUAGE_KIND::SearchLanguage:
-        {
-            // Player is updating chat filters
-            if (oldPlayerConfig != this->ConfigSys[0])
-            {
-                std::memcpy(&PChar->playerConfig, &this->ConfigSys[0], sizeof(uint32_t));
-                charutils::SavePlayerSettings(PChar);
-            }
+    const auto plan = configlanguage::PlanFor(this->Kind,
+                                              this->ConfigSys,
+                                              this->Param,
+                                              configlanguage::RuntimeState{
+                                                  .playerConfig   = oldPlayerConfig,
+                                                  .chatFilter1    = oldChatFilter1,
+                                                  .chatFilter2    = oldChatFilter2,
+                                                  .partyLanguages = PChar->search.language,
+                                              });
 
-            if (oldChatFilter1 != this->ConfigSys[1] || oldChatFilter2 != this->ConfigSys[2])
-            {
-                std::memcpy(&PChar->playerConfig.MessageFilter, &this->ConfigSys[1], sizeof(uint32_t));
-                std::memcpy(&PChar->playerConfig.MessageFilter2, &this->ConfigSys[2], sizeof(uint32_t));
-                // It's probably not necessary to save the flags as they are sent by the client on login.
-                charutils::SaveChatFilterFlags(PChar);
-            }
-        }
-        break;
-        case GP_CLI_COMMAND_CONFIG_LANGUAGE_KIND::PartyLanguages:
-        {
-            // Player is updating party search languages
-            if (PChar->search.language != this->Param)
-            {
-                PChar->search.language = static_cast<uint8_t>(this->Param);
-                charutils::SaveLanguages(PChar);
-            }
-        }
-        break;
+    if (plan.updatePlayerConfig)
+    {
+        std::memcpy(&PChar->playerConfig, &plan.playerConfig, sizeof(uint32_t));
+        charutils::SavePlayerSettings(PChar);
+    }
+
+    if (plan.updateChatFilters)
+    {
+        std::memcpy(&PChar->playerConfig.MessageFilter, &plan.chatFilter1, sizeof(uint32_t));
+        std::memcpy(&PChar->playerConfig.MessageFilter2, &plan.chatFilter2, sizeof(uint32_t));
+        // It's probably not necessary to save the flags as they are sent by the client on login.
+        charutils::SaveChatFilterFlags(PChar);
+    }
+
+    if (plan.updatePartyLanguages)
+    {
+        PChar->search.language = plan.partyLanguages;
+        charutils::SaveLanguages(PChar);
     }
 
     PChar->pushPacket<GP_SERV_COMMAND_CONFIG>(PChar);

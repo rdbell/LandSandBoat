@@ -31,6 +31,7 @@
 
 #include "map/packets/c2s/0x0db_config_language.h"
 #include "map/packets/c2s/0x0dc_config.h"
+#include "map/packets/c2s/config_language_runtime.h"
 
 namespace
 {
@@ -282,11 +283,72 @@ auto testConfigConstantsAndValidation() -> bool
     return ok;
 }
 
+auto testConfigLanguageRuntimePlan() -> bool
+{
+    bool ok = true;
+
+    auto state = configlanguage::RuntimeState{
+        .playerConfig   = 1,
+        .chatFilter1    = 2,
+        .chatFilter2    = 3,
+        .partyLanguages = 4,
+    };
+
+    auto search = GP_CLI_COMMAND_CONFIG_LANGUAGE{};
+    search.Kind = static_cast<std::uint8_t>(GP_CLI_COMMAND_CONFIG_LANGUAGE_KIND::SearchLanguage);
+    search.ConfigSys[0] = 1;
+    search.ConfigSys[1] = 2;
+    search.ConfigSys[2] = 3;
+    auto plan = configlanguage::PlanFor(search.Kind, search.ConfigSys, search.Param, state);
+    ok        = expectFalse(plan.updatePlayerConfig, "CONFIG_LANGUAGE unchanged search player config") && ok;
+    ok        = expectFalse(plan.updateChatFilters, "CONFIG_LANGUAGE unchanged search chat filters") && ok;
+    ok        = expectTrue(plan.sendConfig, "CONFIG_LANGUAGE unchanged search sends config") && ok;
+    ok        = expectTrue(plan.sendCharStatus, "CONFIG_LANGUAGE unchanged search sends status") && ok;
+
+    search.ConfigSys[0] = 9;
+    plan                = configlanguage::PlanFor(search.Kind, search.ConfigSys, search.Param, state);
+    ok                  = expectTrue(plan.updatePlayerConfig, "CONFIG_LANGUAGE changed search updates player config") && ok;
+    ok                  = expectTrue(plan.savePlayerSettings, "CONFIG_LANGUAGE changed search saves player settings") && ok;
+    ok                  = expectFalse(plan.updateChatFilters, "CONFIG_LANGUAGE player-only search does not update chat filters") && ok;
+    ok                  = expectEqualInt(plan.playerConfig, 9, "CONFIG_LANGUAGE changed search player config value") && ok;
+
+    search.ConfigSys[0] = 1;
+    search.ConfigSys[1] = 8;
+    plan                = configlanguage::PlanFor(search.Kind, search.ConfigSys, search.Param, state);
+    ok                  = expectFalse(plan.updatePlayerConfig, "CONFIG_LANGUAGE filter-only search does not update player config") && ok;
+    ok                  = expectTrue(plan.updateChatFilters, "CONFIG_LANGUAGE changed search updates both chat filters") && ok;
+    ok                  = expectTrue(plan.saveChatFilterFlags, "CONFIG_LANGUAGE changed search saves chat filters") && ok;
+    ok                  = expectEqualInt(plan.chatFilter1, 8, "CONFIG_LANGUAGE changed search chat filter one value") && ok;
+    ok                  = expectEqualInt(plan.chatFilter2, 3, "CONFIG_LANGUAGE changed search chat filter two value") && ok;
+
+    auto party  = GP_CLI_COMMAND_CONFIG_LANGUAGE{};
+    party.Kind  = static_cast<std::uint8_t>(GP_CLI_COMMAND_CONFIG_LANGUAGE_KIND::PartyLanguages);
+    party.Param = 4;
+    plan        = configlanguage::PlanFor(party.Kind, party.ConfigSys, party.Param, state);
+    ok          = expectFalse(plan.updatePartyLanguages, "CONFIG_LANGUAGE unchanged party languages") && ok;
+    ok          = expectTrue(plan.sendConfig, "CONFIG_LANGUAGE unchanged party sends config") && ok;
+    ok          = expectTrue(plan.sendCharStatus, "CONFIG_LANGUAGE unchanged party sends status") && ok;
+
+    party.Param = 7;
+    plan        = configlanguage::PlanFor(party.Kind, party.ConfigSys, party.Param, state);
+    ok          = expectTrue(plan.updatePartyLanguages, "CONFIG_LANGUAGE changed party updates languages") && ok;
+    ok          = expectTrue(plan.saveLanguages, "CONFIG_LANGUAGE changed party saves languages") && ok;
+    ok          = expectEqualInt(plan.partyLanguages, 7, "CONFIG_LANGUAGE changed party language value") && ok;
+
+    party.Param = 0x01000004;
+    plan        = configlanguage::PlanFor(party.Kind, party.ConfigSys, party.Param, state);
+    ok          = expectTrue(plan.updatePartyLanguages, "CONFIG_LANGUAGE party high bits trigger update") && ok;
+    ok          = expectTrue(plan.saveLanguages, "CONFIG_LANGUAGE party high bits trigger save") && ok;
+    ok          = expectEqualInt(plan.partyLanguages, 4, "CONFIG_LANGUAGE party high bits narrow to byte") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SConfigPacketSelfTests() -> bool
 {
     return testConfigLayoutsAndMetadata() &&
            testConfigEncodedBytesAndPayloads() &&
-           testConfigConstantsAndValidation();
+           testConfigConstantsAndValidation() &&
+           testConfigLanguageRuntimePlan();
 }

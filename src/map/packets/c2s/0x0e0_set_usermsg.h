@@ -21,6 +21,10 @@
 
 #pragma once
 
+#include <algorithm>
+#include <span>
+#include <string>
+
 #include "base.h"
 
 enum class GP_CLI_COMMAND_SET_USERMSG_MSGTYPE : uint32_t
@@ -44,6 +48,50 @@ enum class GP_CLI_COMMAND_SET_USERMSG_MSGTYPE : uint32_t
     LookingForFriends       = 0x61,
     Others                  = 0x73,
 };
+
+// SET_USERMSG's host-independent post-validation plan. Database execution and
+// packet queue ownership remain in the map server.
+namespace setusermsgpackethelpers
+{
+
+struct SearchState
+{
+    std::string message;
+    uint8_t     messageType;
+};
+
+struct Plan
+{
+    GP_CLI_COMMAND_SET_USERMSG_MSGTYPE type;
+    std::string                        message;
+    bool                               persist;
+    bool                               updateSearchState;
+    bool                               sendCharStatus;
+};
+
+[[nodiscard]] inline auto BoundedMessage(const std::span<const uint8_t> source) -> std::string
+{
+    const auto end = std::find(source.begin(), source.end(), uint8_t{});
+    return { reinterpret_cast<const char*>(source.data()), static_cast<std::size_t>(end - source.begin()) };
+}
+
+[[nodiscard]] inline auto PlanFor(const std::span<const uint8_t> source,
+                                  const uint32_t requestedType,
+                                  const SearchState& current,
+                                  const bool persistenceSucceeded) -> Plan
+{
+    const auto message = BoundedMessage(source);
+    const auto type    = message.empty() ? GP_CLI_COMMAND_SET_USERMSG_MSGTYPE::Default : static_cast<GP_CLI_COMMAND_SET_USERMSG_MSGTYPE>(requestedType);
+
+    if (static_cast<uint8_t>(type) == current.messageType && message == current.message)
+    {
+        return { .type = type, .message = message, .persist = false, .updateSearchState = false, .sendCharStatus = false };
+    }
+
+    return { .type = type, .message = message, .persist = true, .updateSearchState = persistenceSucceeded, .sendCharStatus = true };
+}
+
+} // namespace setusermsgpackethelpers
 
 struct expansions_t
 {
