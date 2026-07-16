@@ -1464,6 +1464,8 @@ set(SOURCES
     test_s2c_alter_ego_points_packet.cpp
     test_s2c_abil_recast_packet.h
     test_s2c_abil_recast_packet.cpp
+    test_s2c_abil_recast_runtime.h
+    test_s2c_abil_recast_runtime.cpp
     test_s2c_bazaar_packets.h
     test_s2c_bazaar_packets.cpp
     test_s2c_battle2_packet.h
@@ -1506,6 +1508,8 @@ set(SOURCES
     test_s2c_influence_packets.cpp
     test_s2c_job_info_packet.h
     test_s2c_job_info_packet.cpp
+    test_s2c_job_info_runtime.h
+    test_s2c_job_info_runtime.cpp
     test_s2c_job_points_packet.h
     test_s2c_job_points_packet.cpp
     test_s2c_jump_packet.h
@@ -1626,6 +1630,8 @@ set(SOURCES
     test_s2c_merit_packet.cpp
     test_s2c_miscdata_merits_packet.h
     test_s2c_miscdata_merits_packet.cpp
+    test_s2c_miscdata_merits_runtime.h
+    test_s2c_miscdata_merits_runtime.cpp
     test_s2c_miscdata_job_points_packet.h
     test_s2c_miscdata_job_points_packet.cpp
     test_s2c_miscdata_homepoints_packet.h

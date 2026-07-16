@@ -20,8 +20,7 @@
 */
 
 #include "0x01b_job_info.h"
-
-#include <cstring>
+#include "job_info_runtime.h"
 
 #include "aman.h"
 #include "entities/char_entity.h"
@@ -30,28 +29,20 @@
 GP_SERV_COMMAND_JOB_INFO::GP_SERV_COMMAND_JOB_INFO(CCharEntity* PChar)
 {
     auto& packet = this->data();
-
-    packet.dancer.face_no      = PChar->look.race;
-    packet.dancer.mjob_no      = PChar->GetMJob();
-    packet.dancer.sjob_no      = PChar->GetSJob();
-    packet.dancer.get_job_flag = PChar->jobs.unlocked;
-
-    std::memcpy(packet.dancer.job_lev, &PChar->jobs.job, sizeof(packet.dancer.job_lev));
-    std::memcpy(packet.dancer.bp_base, &PChar->stats, sizeof(packet.dancer.bp_base));
-    std::memcpy(packet.dancer.job_lev2, &PChar->jobs.job, sizeof(packet.dancer.job_lev2));
-
-    packet.dancer.hpmax   = PChar->health.maxhp;
-    packet.dancer.mpmax   = PChar->health.maxmp;
-    packet.dancer.sjobflg = PChar->jobs.unlocked & 1;
-
-    packet.encumbrance          = (PChar->m_EquipBlock) | (PChar->m_StatsDebilitation << 16);
-    packet.can_thumbs_up_mentor = PChar->aman().canThumbsUp();
-    packet.mentor_rank          = PChar->aman().getMentorRank();
-    packet.mastery_rank         = PChar->aman().getMasteryRank();
-
-    if (PChar->m_PMonstrosity != nullptr)
-    {
-        packet.dancer.mjob_no = JOB_MON;
-        packet.dancer.sjob_no = JOB_MON;
-    }
+    packet = jobinfohelpers::PlanFor({
+        .race                = PChar->look.race,
+        .mainJob             = static_cast<uint8>(PChar->GetMJob()),
+        .subJob              = static_cast<uint8>(PChar->GetSJob()),
+        .unlockedJobs        = PChar->jobs.unlocked,
+        .jobLevels           = std::to_array(PChar->jobs.job),
+        .baseStats           = std::to_array({ PChar->stats.STR, PChar->stats.DEX, PChar->stats.VIT, PChar->stats.AGI, PChar->stats.INT, PChar->stats.MND, PChar->stats.CHR }),
+        .maxHP               = PChar->health.maxhp,
+        .maxMP               = PChar->health.maxmp,
+        .equipBlock          = PChar->m_EquipBlock,
+        .statsDebilitation   = PChar->m_StatsDebilitation,
+        .canThumbsUpMentor   = PChar->aman().canThumbsUp(),
+        .mentorRank          = PChar->aman().getMentorRank(),
+        .masteryRank         = PChar->aman().getMasteryRank(),
+        .hasMonstrosity      = PChar->m_PMonstrosity != nullptr,
+    });
 }

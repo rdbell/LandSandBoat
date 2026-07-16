@@ -34,33 +34,30 @@ GP_SERV_COMMAND_MISCDATA::MERITS::MERITS(CCharEntity* PChar)
     packet.type      = GP_SERV_COMMAND_MISCDATA_TYPE::Merits;
     packet.unknown06 = sizeof(PacketData);
 
-    packet.limitPoints = PChar->PMeritPoints->GetLimitPoints();
-    packet.meritPoints = PChar->PMeritPoints->GetMeritPoints();
-    packet.bluBonus    = 0;
+    const auto mainJob      = PChar->GetMJob();
+    const auto mainJobLevel = PChar->GetMLevel();
+    const auto plan = miscdatameritshelpers::PlanFor({
+        .limitPoints                = PChar->PMeritPoints->GetLimitPoints(),
+        .meritPoints                = PChar->PMeritPoints->GetMeritPoints(),
+        .mainJobIsBlueMage          = mainJob == JOB_BLU,
+        .mainJobLevel               = mainJobLevel,
+        .hasLimitBreaker            = charutils::hasKeyItem(PChar, KeyItem::LIMIT_BREAKER),
+        .meritMode                  = PChar->MeritMode,
+        .blueAssimilationBonus      = mainJob == JOB_BLU && mainJobLevel >= 75 ? PChar->PMeritPoints->GetMeritValue(MERIT_ASSIMILATION, PChar) : 0,
+        .blueJobPointBonus          = mainJob == JOB_BLU && mainJobLevel >= 99 ? PChar->PJobPoints->GetJobPointValue(JP_BLUE_MAGIC_POINT_BONUS) : 0,
+        .currentJobLevel            = PChar->jobs.job[mainJob],
+        .levelLimit                 = PChar->jobs.genkai,
+        .currentExperience          = PChar->jobs.exp[mainJob],
+        .experienceForNextLevel     = charutils::GetExpNEXTLevel(PChar->jobs.job[mainJob]),
+        .configuredMaxMeritPoints   = settings::get<uint8>("map.MAX_MERIT_POINTS"),
+        .maxMeritBonus              = PChar->PMeritPoints->GetMeritValue(MERIT_MAX_MERIT, PChar),
+    });
 
-    // Add BLU spell point bonus
-    if (PChar->GetMJob() == JOB_BLU)
-    {
-        uint8 bluePointBonus = 0;
-
-        if (PChar->GetMLevel() >= 75)
-        {
-            bluePointBonus += PChar->PMeritPoints->GetMeritValue(MERIT_ASSIMILATION, PChar);
-        }
-
-        if (PChar->GetMLevel() >= 99)
-        {
-            bluePointBonus += PChar->PJobPoints->GetJobPointValue(JP_BLUE_MAGIC_POINT_BONUS);
-        }
-
-        packet.bluBonus = bluePointBonus;
-    }
-
-    const bool atMaxLevelLimit = PChar->jobs.job[PChar->GetMJob()] >= PChar->jobs.genkai;
-    const bool hasCappedXp     = PChar->jobs.exp[PChar->GetMJob()] == (charutils::GetExpNEXTLevel(PChar->jobs.job[PChar->GetMJob()]) - 1);
-
-    packet.canUseMeritMode     = PChar->jobs.job[PChar->GetMJob()] >= 75 && charutils::hasKeyItem(PChar, KeyItem::LIMIT_BREAKER);
-    packet.xpCappedOrMeritMode = (atMaxLevelLimit && hasCappedXp) || PChar->MeritMode;
-    packet.meritModeEnabled    = packet.canUseMeritMode && PChar->MeritMode;
-    packet.maxMeritPoints      = settings::get<uint8>("map.MAX_MERIT_POINTS") + PChar->PMeritPoints->GetMeritValue(MERIT_MAX_MERIT, PChar);
+    packet.limitPoints          = plan.limitPoints;
+    packet.meritPoints          = plan.meritPoints;
+    packet.bluBonus             = plan.bluBonus;
+    packet.canUseMeritMode      = plan.canUseMeritMode;
+    packet.xpCappedOrMeritMode  = plan.xpCappedOrMeritMode;
+    packet.meritModeEnabled     = plan.meritModeEnabled;
+    packet.maxMeritPoints       = plan.maxMeritPoints;
 }

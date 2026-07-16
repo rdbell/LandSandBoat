@@ -22,6 +22,10 @@
 #pragma once
 
 #include "base.h"
+#include "common/timer.h"
+#include "enums/recast.h"
+
+#include <cstddef>
 
 class CCharEntity;
 
@@ -33,6 +37,37 @@ struct recasttimer_t
     uint16_t Calc2;     // PS2: (New; did not exist.)
     uint16_t padding06; // PS2: (New; did not exist.)
 };
+
+// The packet constructor resolves character recasts and charge catalog entries
+// into these facts. Keeping the packet selection here makes its placement and
+// timer arithmetic independently testable.
+namespace abilrecasthelpers
+{
+
+struct RecastFact
+{
+    Recast            id{};
+    timer::time_point timestamp{};
+    timer::duration   recastTime{};
+    timer::duration   chargeTime{};
+    uint8             maxCharges{};
+    bool              hasBaseCharge{};
+    timer::duration   baseChargeTime{};
+};
+
+struct Plan
+{
+    recasttimer_t timers[31]{};
+    uint32        mountRecast{};
+    uint32        mountRecastId{};
+};
+
+// Apply appends one native ability recast fact to plan. normalCount must start
+// at one because slot zero is reserved for the special ability recast. It
+// returns true when the native constructor must reject further normal entries.
+[[nodiscard]] auto Apply(Plan& plan, uint8& normalCount, const RecastFact& recast, timer::time_point now) -> bool;
+
+} // namespace abilrecasthelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x0119
 // This packet is sent by the server to update the clients ability (and mount) recast information.

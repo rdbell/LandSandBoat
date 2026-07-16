@@ -26,6 +26,73 @@
 
 class CCharEntity;
 
+// MISCDATA MERITS derives its payload from character, merit, job-point, and
+// server-setting facts. Entity and service lookups remain in the constructor.
+namespace miscdatameritshelpers
+{
+
+struct Facts
+{
+    uint16 limitPoints{};
+    uint8  meritPoints{};
+    bool   mainJobIsBlueMage{};
+    uint8  mainJobLevel{};
+    bool   hasLimitBreaker{};
+    bool   meritMode{};
+    uint8  blueAssimilationBonus{};
+    uint8  blueJobPointBonus{};
+    uint8  currentJobLevel{};
+    uint8  levelLimit{};
+    uint32 currentExperience{};
+    uint32 experienceForNextLevel{};
+    uint8  configuredMaxMeritPoints{};
+    uint8  maxMeritBonus{};
+};
+
+struct Plan
+{
+    uint16 limitPoints{};
+    uint8  meritPoints{};
+    uint8  bluBonus{};
+    bool   canUseMeritMode{};
+    bool   xpCappedOrMeritMode{};
+    bool   meritModeEnabled{};
+    uint8  maxMeritPoints{};
+};
+
+[[nodiscard]] constexpr auto PlanFor(const Facts facts) -> Plan
+{
+    uint8 bluBonus = 0;
+    if (facts.mainJobIsBlueMage)
+    {
+        if (facts.mainJobLevel >= 75)
+        {
+            bluBonus += facts.blueAssimilationBonus;
+        }
+
+        if (facts.mainJobLevel >= 99)
+        {
+            bluBonus += facts.blueJobPointBonus;
+        }
+    }
+
+    const bool canUseMeritMode = facts.currentJobLevel >= 75 && facts.hasLimitBreaker;
+    const bool atLevelLimit    = facts.currentJobLevel >= facts.levelLimit;
+    const bool hasCappedXp     = facts.currentExperience == facts.experienceForNextLevel - 1;
+
+    return {
+        facts.limitPoints,
+        facts.meritPoints,
+        bluBonus,
+        canUseMeritMode,
+        (atLevelLimit && hasCappedXp) || facts.meritMode,
+        canUseMeritMode && facts.meritMode,
+        static_cast<uint8>(facts.configuredMaxMeritPoints + facts.maxMeritBonus),
+    };
+}
+
+} // namespace miscdatameritshelpers
+
 // https://github.com/atom0s/XiPackets/tree/main/world/server/0x0063
 // This packet is sent by the server to inform the client of multiple different kinds of information.
 namespace GP_SERV_COMMAND_MISCDATA
