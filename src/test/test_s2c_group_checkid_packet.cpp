@@ -101,6 +101,17 @@ auto testNullConstructorBytes() -> bool
     return expectEqualUInt(packet.ref<uint32>(groupCheckIDGroupIDOffset), 0, "nullptr constructor GroupID");
 }
 
+auto testRuntimePlanPartyBoundary() -> bool
+{
+    const auto noParty = groupcheckidserverhelpers::PlanFor({});
+    const auto party   = groupcheckidserverhelpers::PlanFor({ .hasParty = true, .groupId = 0x11223344 });
+
+    bool ok = true;
+    ok      = expectEqualUInt(noParty.GroupID, 0, "runtime no-party GroupID") && ok;
+    ok      = expectEqualUInt(party.GroupID, 0x11223344, "runtime party GroupID") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CGroupCheckIDPacketSelfTests() -> bool
@@ -109,5 +120,6 @@ auto runS2CGroupCheckIDPacketSelfTests() -> bool
     ok      = testLayout() && ok;
     ok      = testPacketDataBytes() && ok;
     ok      = testNullConstructorBytes() && ok;
+    ok      = testRuntimePlanPartyBoundary() && ok;
     return ok;
 }

@@ -26,10 +26,11 @@
 
 GP_SERV_COMMAND_GROUP_CHECKID::GP_SERV_COMMAND_GROUP_CHECKID(const CCharEntity* PChar)
 {
-    auto& packet = this->data();
-
+    auto facts = groupcheckidserverhelpers::Facts{};
     if (PChar != nullptr && PChar->PParty != nullptr)
     {
-        packet.GroupID = PChar->PParty->GetPartyID();
+        facts.hasParty = true;
+        facts.groupId  = PChar->PParty->GetPartyID();
     }
+    this->data() = groupcheckidserverhelpers::PlanFor(facts);
 }

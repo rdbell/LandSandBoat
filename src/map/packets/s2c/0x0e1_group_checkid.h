@@ -37,3 +37,19 @@ public:
 
     GP_SERV_COMMAND_GROUP_CHECKID(const CCharEntity* PChar);
 };
+
+namespace groupcheckidserverhelpers
+{
+
+struct Facts
+{
+    bool     hasParty{};
+    uint32_t groupId{};
+};
+
+[[nodiscard]] constexpr auto PlanFor(const Facts& facts) -> GP_SERV_COMMAND_GROUP_CHECKID::PacketData
+{
+    return { .GroupID = facts.hasParty ? facts.groupId : 0 };
+}
+
+} // namespace groupcheckidserverhelpers
