@@ -53,4 +53,11 @@ inline auto HasCompressedPayloadMarker(const uint8 marker) -> bool
     return marker == 1;
 }
 
+// IsUnencryptedLoginPacketID identifies the map protocol's unencrypted login
+// packet accepted before a session has a Blowfish key.
+inline auto IsUnencryptedLoginPacketID(const uint16 packetID) -> bool
+{
+    return packetID == 0x00A;
+}
+
 } // namespace mapnetworkinghelpers

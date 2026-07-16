@@ -29,6 +29,7 @@
 #include "mob_home_distance_policy.h"
 #include "mob_tp_move_policy.h"
 #include "mob_roam_rate.h"
+#include "mob_roam_distance.h"
 #include "map/mob_death_capacity.h"
 #include "map/mob_death_reward_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -569,7 +570,7 @@ void CMobEntity::PostTick()
 
 float CMobEntity::GetRoamDistance()
 {
-    return (float)getMobMod(MOBMOD_ROAM_DISTANCE);
+    return mobroamdistancehelpers::GetRoamDistance(getMobMod(MOBMOD_ROAM_DISTANCE));
 }
 
 float CMobEntity::GetRoamRate()
