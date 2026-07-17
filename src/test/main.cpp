@@ -1659,6 +1659,11 @@ auto runBattlefieldRegisterPC3365SelfTests() -> bool;
 auto runUnityLoadOnlineAdd3366SelfTests() -> bool;
 auto runTreasureLotInventory3367SelfTests() -> bool;
 auto runGuildpointsCanAfford3368SelfTests() -> bool;
+auto runAicontainerCanDispatch3369SelfTests() -> bool;
+auto runAvatarpetCanApplyBuff3370SelfTests() -> bool;
+auto runJobpointsApplyRaise3371SelfTests() -> bool;
+auto runTradeBumpItemsCount3372SelfTests() -> bool;
+auto runMeritLowerMerit3373SelfTests() -> bool;
 
 namespace
 {
@@ -3295,6 +3300,11 @@ namespace
         ok = runUnityLoadOnlineAdd3366SelfTests() && ok;
         ok = runTreasureLotInventory3367SelfTests() && ok;
         ok = runGuildpointsCanAfford3368SelfTests() && ok;
+        ok = runAicontainerCanDispatch3369SelfTests() && ok;
+        ok = runAvatarpetCanApplyBuff3370SelfTests() && ok;
+        ok = runJobpointsApplyRaise3371SelfTests() && ok;
+        ok = runTradeBumpItemsCount3372SelfTests() && ok;
+        ok = runMeritLowerMerit3373SelfTests() && ok;
 
         return ok;
     }

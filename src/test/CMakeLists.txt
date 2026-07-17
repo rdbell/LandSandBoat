@@ -3311,6 +3311,16 @@ set(SOURCES
     test_treasure_lot_inventory_3367.cpp
     test_guildpoints_can_afford_3368.h
     test_guildpoints_can_afford_3368.cpp
+    test_aicontainer_can_dispatch_3369.h
+    test_aicontainer_can_dispatch_3369.cpp
+    test_avatarpet_can_apply_buff_3370.h
+    test_avatarpet_can_apply_buff_3370.cpp
+    test_jobpoints_apply_raise_3371.h
+    test_jobpoints_apply_raise_3371.cpp
+    test_trade_bump_items_count_3372.h
+    test_trade_bump_items_count_3372.cpp
+    test_merit_lower_merit_3373.h
+    test_merit_lower_merit_3373.cpp
 )
 
 if(UNIX)

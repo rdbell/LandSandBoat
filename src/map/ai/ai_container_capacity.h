@@ -10,13 +10,16 @@
 //           RangedAttack and typed MobSkill/PetSkill/UseItem)
 //   - 2952: CanChangeState residual dual-wire expand
 //           (current-state change gate for external means)
-//   - 3222: CanDispatch dedicated dual-wire
+//   - 3222: CanDispatch prior dedicated dual-wire expand residual 2947
 //           (hasController identity; residual expand 2947 / pure 1189)
 //   - 3272: CanChangeState prior dedicated dual-wire expand residual 2952
 //           (!hasCurrentState || currentCanChange; pure 1189)
 //   - 3303: CanChangeState dedicated dual-wire
 //           (!hasCurrentState || currentCanChange; residual expand 2952;
 //           prior dedicated 3272; pure 1189)
+//   - 3369: CanDispatch dedicated dual-wire expand residual 2947
+//           (hasController identity; residual expand 2947; prior dedicated
+//           3222; pure 1189)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -34,8 +37,8 @@ namespace aicontainerhelpers
 //   if (Controller) { return Controller->X(...); }
 //   return false;
 //
-// Formula (slice 3222 dedicated dual-wire; residual expand 2947 / pure 1189 —
-// formula unchanged):
+// Formula (slice 3369 dedicated dual-wire expand residual 2947; prior dedicated
+// 3222 / residual 2947 / pure 1189 — formula unchanged):
 //   hasController
 //
 // hasController — host-evaluated controller presence:
@@ -48,9 +51,10 @@ namespace aicontainerhelpers
 // (internal/aicontainer/can_dispatch.go).
 // Call site: CAIContainer public controller-forward methods.
 // Prior pure port: slice 1189. Residual dual-wire suite: 2947 /
-// test_aicontainer_can_dispatch_2947. Dedicated dual-wire suite is
-// test_aicontainer_can_dispatch_3222. Formula is unchanged; this slice
-// only expands dual-wire docs + index + dedicated suite.
+// test_aicontainer_can_dispatch_2947. Prior dedicated dual-wire suite:
+// 3222 / test_aicontainer_can_dispatch_3222 (retained). Dedicated dual-wire
+// suite is test_aicontainer_can_dispatch_3369. Formula is unchanged; this
+// slice only expands dual-wire docs + index + dedicated suite.
 // Sibling dual-wire left alone: 2952 / 3272 / 3303 CanChangeState.
 inline auto CanDispatch(const bool hasController) -> bool
 {
@@ -81,7 +85,7 @@ inline auto CanDispatch(const bool hasController) -> bool
 // 3272 / test_aicontainer_can_change_state_3272 (retained). Dedicated dual-wire
 // suite is test_aicontainer_can_change_state_3303. Formula is unchanged; this
 // slice only expands dual-wire docs + index + dedicated suite.
-// Sibling dual-wire left alone: 2947 / 3222 CanDispatch.
+// Sibling dual-wire left alone: 2947 / 3222 / 3369 CanDispatch.
 inline auto CanChangeState(const bool hasCurrentState, const bool currentCanChange) -> bool
 {
     return !hasCurrentState || currentCanChange;
