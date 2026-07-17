@@ -259,6 +259,42 @@ inline auto ShouldApplyExclusiveMultiHitSwings(const MultiHitPreference pref) ->
     return pref != MultiHitPreference::None;
 }
 
+// CreateAttacksPlan is the final pure assembly of CreateAttacks swing adds,
+// after entity lookups and RNG have selected the preference inputs.
+struct CreateAttacksPlan
+{
+    uint8 initialAttackType{ AttackTypeNormal };
+    uint8 initialSwingCount{};
+    bool  addAdditionalSwing{};
+    bool  addDefaultHit{};
+};
+
+inline auto ResolveCreateAttacksPlan(
+    const bool hasMikageSwings,
+    const uint8 mikageShadows,
+    const MultiHitPreference preference,
+    const uint8 weaponSwingCount,
+    const bool addAdditionalSwing) -> CreateAttacksPlan
+{
+    CreateAttacksPlan plan{};
+    plan.addAdditionalSwing = addAdditionalSwing;
+
+    if (hasMikageSwings)
+    {
+        plan.initialSwingCount = mikageShadows;
+        plan.addDefaultHit     = true;
+        return plan;
+    }
+
+    if (ShouldApplyExclusiveMultiHitSwings(preference))
+    {
+        plan.initialAttackType = ExclusiveMultiHitAttackType(preference);
+        plan.initialSwingCount = ExclusiveMultiHitSwingCount(preference, weaponSwingCount);
+    }
+    plan.addDefaultHit = ShouldAddDefaultHit(MultiHitOccurred(preference));
+    return plan;
+}
+
 // Virtue Stone item ID for ammo-swing follow-up.
 constexpr uint16 VirtueStoneItemID = 18244;
 

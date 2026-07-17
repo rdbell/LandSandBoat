@@ -324,48 +324,46 @@ void CAttackRound::CreateAttacks(CItemWeapon* PWeapon, PHYSICAL_ATTACK_DIRECTION
                               m_attacker->m_Weapons[SLOT_MAIN]->getID() == PWeapon->getID();
     const bool hasMikage = m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Mikage);
 
-    bool multiHitOccurred = false;
+    bool quadProcs         = false;
+    bool tripleProcs       = false;
+    bool doubleProcs       = false;
+    bool mythicThriceProcs = false;
+    bool mythicTwiceProcs  = false;
 
-    if (attackroundhelpers::ShouldAddMikageSwings(hasMikage, weaponIsMain))
-    {
-        auto shadows = static_cast<uint8>(m_attacker->getMod(Mod::UTSUSEMI));
-        AddAttackSwing(PHYSICAL_ATTACK_TYPE::NORMAL, direction, shadows);
-    }
-    else
+    if (!attackroundhelpers::ShouldAddMikageSwings(hasMikage, weaponIsMain))
     {
         // Host rolls for exclusive ladder (order preserved: QA then TA then DA then mythic thrice/twice).
         // Preserve original short-circuit roll order and isMainHand mythic gate
         // so RNG consumption matches retail path (else-if chain).
-        const bool quadProcs   = xirand::GetRandomNumber(100) < quadAttack;
-        const bool tripleProcs = !quadProcs && xirand::GetRandomNumber(100) < tripleAttack;
-        const bool doubleProcs = !quadProcs && !tripleProcs && xirand::GetRandomNumber(100) < doubleAttack;
-        const bool mythicThriceProcs = isMainHand && !quadProcs && !tripleProcs && !doubleProcs &&
-                                       xirand::GetRandomNumber(100) < occAttThriceRate;
-        const bool mythicTwiceProcs  = isMainHand && !quadProcs && !tripleProcs && !doubleProcs &&
-                                       !mythicThriceProcs && xirand::GetRandomNumber(100) < occAttTwiceRate;
-
-        const auto pref = attackroundhelpers::ResolveExclusiveMultiHitPreference(
-            quadProcs, tripleProcs, doubleProcs, isMainHand, mythicThriceProcs, mythicTwiceProcs, num);
-
-        if (attackroundhelpers::ShouldApplyExclusiveMultiHitSwings(pref))
-        {
-            const auto swings = attackroundhelpers::ExclusiveMultiHitSwingCount(pref, num);
-            const auto atype  = static_cast<PHYSICAL_ATTACK_TYPE>(
-                attackroundhelpers::ExclusiveMultiHitAttackType(pref));
-            AddAttackSwing(atype, direction, swings);
-            multiHitOccurred = attackroundhelpers::MultiHitOccurred(pref);
-        }
+        quadProcs         = xirand::GetRandomNumber(100) < quadAttack;
+        tripleProcs       = !quadProcs && xirand::GetRandomNumber(100) < tripleAttack;
+        doubleProcs       = !quadProcs && !tripleProcs && xirand::GetRandomNumber(100) < doubleAttack;
+        mythicThriceProcs = isMainHand && !quadProcs && !tripleProcs && !doubleProcs &&
+                            xirand::GetRandomNumber(100) < occAttThriceRate;
+        mythicTwiceProcs  = isMainHand && !quadProcs && !tripleProcs && !doubleProcs &&
+                            !mythicThriceProcs && xirand::GetRandomNumber(100) < occAttTwiceRate;
     }
 
-    // Additional swing modifier (stacks!), mostly for Amood weapons
-    if (attackroundhelpers::ShouldAddAdditionalSwing(
-            isPC, xirand::GetRandomNumber(100) < m_attacker->getMod(Mod::ADDITIONAL_SWING_CHANCE)))
+    const auto preference = attackroundhelpers::ResolveExclusiveMultiHitPreference(
+        quadProcs, tripleProcs, doubleProcs, isMainHand, mythicThriceProcs, mythicTwiceProcs, num);
+    const bool addAdditionalSwing = attackroundhelpers::ShouldAddAdditionalSwing(
+        isPC, xirand::GetRandomNumber(100) < m_attacker->getMod(Mod::ADDITIONAL_SWING_CHANCE));
+    const auto plan = attackroundhelpers::ResolveCreateAttacksPlan(
+        attackroundhelpers::ShouldAddMikageSwings(hasMikage, weaponIsMain),
+        static_cast<uint8>(m_attacker->getMod(Mod::UTSUSEMI)),
+        preference,
+        num,
+        addAdditionalSwing);
+
+    if (plan.initialSwingCount > 0)
+    {
+        AddAttackSwing(static_cast<PHYSICAL_ATTACK_TYPE>(plan.initialAttackType), direction, plan.initialSwingCount);
+    }
+    if (plan.addAdditionalSwing)
     {
         AddAttackSwing(PHYSICAL_ATTACK_TYPE::NORMAL, direction, 1);
     }
-
-    // Default hit when exclusive QA/TA/DA did not consume the preference path.
-    if (attackroundhelpers::ShouldAddDefaultHit(multiHitOccurred))
+    if (plan.addDefaultHit)
     {
         AddAttackSwing(PHYSICAL_ATTACK_TYPE::NORMAL, direction, 1);
     }
