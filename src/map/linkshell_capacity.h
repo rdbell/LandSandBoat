@@ -58,6 +58,10 @@
 //           (charNull identity; prior dedicated expands 3195 / 3489 / 3548 /
 //            3592 / 3637 / 3682 / 3727 / residual dual-wire 2929 / pure 1354; formula unchanged;
 //            free==inline==pin==pin3727; dense 2¹)
+//   - 3817: ShouldRejectNullAddMember dedicated dual-wire expand residual 2929
+//           (charNull identity; prior dedicated expands 3195 / 3489 / 3548 /
+//            3592 / 3637 / 3682 / 3727 / 3772 / residual dual-wire 2929 / pure 1354; formula unchanged;
+//            free==inline==pin==pin3772; dense 2¹)
 //   - 3215: ShouldRejectDuplicateAddMember dedicated dual-wire
 //           (alreadyInList identity; residual expand 2958 / pure 1354)
 //   - 3264: ShouldBreakInventoryPearl dedicated dual-wire
@@ -148,8 +152,8 @@ namespace linkshellhelpers
 
 // ShouldRejectNullAddMember mirrors PChar == nullptr.
 //
-// Formula (slice 3772 dedicated dual-wire; residual expand 2929 / pure 1354 —
-// prior dedicated expands 3195 / 3489 / 3548 / 3592 / 3637 / 3682 / 3727; formula unchanged):
+// Formula (slice 3817 dedicated dual-wire; residual expand 2929 / pure 1354 —
+// prior dedicated expands 3195 / 3489 / 3548 / 3592 / 3637 / 3682 / 3727 / 3772; formula unchanged):
 //   charNull
 //
 // charNull — host-evaluated PChar == nullptr
@@ -167,9 +171,10 @@ namespace linkshellhelpers
 // test_linkshell_reject_null_add_member_3592 (RETAINED), 3637 /
 // test_linkshell_reject_null_add_member_3637 (RETAINED), 3682 /
 // test_linkshell_reject_null_add_member_3682 (RETAINED), 3727 /
-// test_linkshell_reject_null_add_member_3727 (RETAINED). Dedicated dual-wire
-// suite is test_linkshell_reject_null_add_member_3772 (free == inline == pin ==
-// pin3727 residual pins; dense 2¹). Formula is unchanged; this slice only
+// test_linkshell_reject_null_add_member_3727 (RETAINED), 3772 /
+// test_linkshell_reject_null_add_member_3772 (RETAINED). Dedicated dual-wire
+// suite is test_linkshell_reject_null_add_member_3817 (free == inline == pin ==
+// pin3772 residual pins; dense 2¹). Formula is unchanged; this slice only
 // expands dual-wire docs + index + dedicated suite.
 inline auto ShouldRejectNullAddMember(const bool charNull) -> bool
 {
