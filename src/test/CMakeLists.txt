@@ -3791,6 +3791,16 @@ set(SOURCES
     test_status_reject_null_3607.cpp
     test_voidwalker_should_upgrade_ki_3608.h
     test_voidwalker_should_upgrade_ki_3608.cpp
+    test_recast_update_max_charges_3609.h
+    test_recast_update_max_charges_3609.cpp
+    test_treasure_force_check_full_3610.h
+    test_treasure_force_check_full_3610.cpp
+    test_universal_clear_slot_3611.h
+    test_universal_clear_slot_3611.cpp
+    test_ranger_strip_partial_retain_3612.h
+    test_ranger_strip_partial_retain_3612.cpp
+    test_portermoogle_can_retrieve_item_3613.h
+    test_portermoogle_can_retrieve_item_3613.cpp
 )
 
 if(UNIX)
