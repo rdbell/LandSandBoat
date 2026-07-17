@@ -1569,6 +1569,11 @@ auto runJobpointsApplyRaise3275SelfTests() -> bool;
 auto runMobtypeCanBeNeutral3276SelfTests() -> bool;
 auto runBesiegedAffordSanction3277SelfTests() -> bool;
 auto runAmanThumbsUp3278SelfTests() -> bool;
+auto runMobutilsCanDropGil3279SelfTests() -> bool;
+auto runAuctionutilsCanAffordFee3280SelfTests() -> bool;
+auto runNyzulClaimRune3281SelfTests() -> bool;
+auto runArtisanCanBuySack3282SelfTests() -> bool;
+auto runSynthutilsCanSynthesizeHQ3283SelfTests() -> bool;
 
 namespace
 {
@@ -3115,6 +3120,11 @@ namespace
         ok = runMobtypeCanBeNeutral3276SelfTests() && ok;
         ok = runBesiegedAffordSanction3277SelfTests() && ok;
         ok = runAmanThumbsUp3278SelfTests() && ok;
+        ok = runMobutilsCanDropGil3279SelfTests() && ok;
+        ok = runAuctionutilsCanAffordFee3280SelfTests() && ok;
+        ok = runNyzulClaimRune3281SelfTests() && ok;
+        ok = runArtisanCanBuySack3282SelfTests() && ok;
+        ok = runSynthutilsCanSynthesizeHQ3283SelfTests() && ok;
 
         return ok;
     }
