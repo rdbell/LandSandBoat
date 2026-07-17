@@ -8,6 +8,14 @@
 #include <cstdint>
 
 // Pure SpawnHandler canSpawnNow / TOTD / weather despawn policy for native tests.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1362: canSpawnNow / TOTD / weather despawn / tick / register policy
+//   - 2923: ShouldRejectFogSpawn (FOG spawnType flag && weather is not fog)
+//
+// Production host: SpawnHandler::canSpawnNow (spawn_handler.cpp) injects
+// isFog = zone_->weather().current() == Weather::Fog before CanSpawnNowPure.
+// Go dual-wire: spawnslot.ShouldRejectFogSpawn (internal/spawnslot/reject_fog.go).
 
 namespace spawnhelpers
 {
@@ -60,6 +68,16 @@ inline auto ShouldRejectAtEveningSpawn(const uint8 spawnType, const vanadiel_tim
 
 // ShouldRejectFogSpawn mirrors FOG flag && weather is not fog.
 // isFog is host-evaluated weather == Weather::Fog.
+//
+// Formula (slice 2923 dual-wire):
+//   HasSpawnTypeFlag(spawnType, SpawnTypeFog) && !isFog
+//   // SpawnTypeFog = 0x08
+//
+// true  → reject spawn (FOG-type mob outside fog weather)
+// false → fog gate passes (no FOG flag, or weather is fog)
+//
+// Dual-wire of Go spawnslot.ShouldRejectFogSpawn.
+// Call site: CanSpawnNowPure (and SpawnHandler::canSpawnNow host inject).
 inline auto ShouldRejectFogSpawn(const uint8 spawnType, const bool isFog) -> bool
 {
     return HasSpawnTypeFlag(spawnType, SpawnTypeFog) && !isFog;

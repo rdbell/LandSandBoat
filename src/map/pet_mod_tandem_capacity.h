@@ -110,4 +110,13 @@ inline auto CharmSecondsRangeValid(const std::uint16_t minSeconds, const std::ui
     return minSeconds <= maxSeconds && maxSeconds != 0;
 }
 
+// Combined ExtendCharm early-return gate (slice 2922 dual-wire):
+// CanExtendCharm && CharmSecondsRangeValid. Host still owns RNG and charmTime.
+// Parity: internal/petutils.ShouldExtendCharm.
+inline auto ShouldExtendCharm(const bool isMob, const bool isCharmed, const std::uint16_t minSeconds,
+                              const std::uint16_t maxSeconds) -> bool
+{
+    return CanExtendCharm(isMob, isCharmed) && CharmSecondsRangeValid(minSeconds, maxSeconds);
+}
+
 } // namespace petmodtandemhelpers

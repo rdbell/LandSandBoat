@@ -25,4 +25,18 @@ inline auto IsPartiallyUsed(const bool isCharged, const uint8 currentCharges, co
     return currentCharges < maxCharges;
 }
 
+// CanCancelSale mirrors CancelSale's history index gate (slice 2920):
+//   AucWorkIndex < history.size()
+// Negative indexes (LSB packet handler should already reject -1) fail here too.
+// Host injects AucWorkIndex and history length only (no CCharEntity* / vector).
+inline auto CanCancelSale(const int aucWorkIndex, const int historyLen) -> bool
+{
+    if (aucWorkIndex < 0)
+    {
+        return false;
+    }
+
+    return aucWorkIndex < historyLen;
+}
+
 } // namespace auctionutilshelpers

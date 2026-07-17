@@ -1007,6 +1007,16 @@ set(SOURCES
     test_ambuscade_start_exit_2917.cpp
     test_nyzul_gear_engage_penalty_2918.h
     test_nyzul_gear_engage_penalty_2918.cpp
+    test_mobtype_can_deaggro_2919.h
+    test_mobtype_can_deaggro_2919.cpp
+    test_auction_cancel_sale_2920.h
+    test_auction_cancel_sale_2920.cpp
+    test_dynamis_unlock_sj_2921.h
+    test_dynamis_unlock_sj_2921.cpp
+    test_petutils_extend_charm_2922.h
+    test_petutils_extend_charm_2922.cpp
+    test_spawn_reject_fog_2923.h
+    test_spawn_reject_fog_2923.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h
