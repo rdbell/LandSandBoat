@@ -3291,6 +3291,16 @@ set(SOURCES
     test_campaign_debit_bonus_3357.cpp
     test_salvage_can_open_door_3358.h
     test_salvage_can_open_door_3358.cpp
+    test_synergy_trade_furnace_3359.h
+    test_synergy_trade_furnace_3359.cpp
+    test_recast_update_charge_time_3360.h
+    test_recast_update_charge_time_3360.cpp
+    test_mobutils_assign_parry_3361.h
+    test_mobutils_assign_parry_3361.cpp
+    test_command_reject_empty_line_3362.h
+    test_command_reject_empty_line_3362.cpp
+    test_artisan_can_expand_3363.h
+    test_artisan_can_expand_3363.cpp
 )
 
 if(UNIX)

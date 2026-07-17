@@ -29,6 +29,9 @@
 //   - 3323: ShouldAllowCommandPermission dedicated dual-wire expand residual 2940
 //           (permission <= m_GMlevel after int promotions; prior dedicated expand 3293 / 3263 /
 //            residual expand 2940 / pure 2792; formula unchanged)
+//   - 3362: ShouldRejectEmptyCommandLine dedicated dual-wire expand residual 2836
+//           (viewEmptyAfterTrim identity; prior dual-wire 3005 / residual 2836;
+//            formula unchanged)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
@@ -180,7 +183,8 @@ inline auto PlanCommandCallPostProps(const uint8 gmLevel, const int8 permission,
 
 // ShouldRejectEmptyCommandLine mirrors ParseCommandLine after trimLeft:
 //
-// Formula (slice 3005 dual-wire; residual 2836):
+// Formula (slice 3362 dedicated dual-wire; residual expand 2836 / prior dual-wire
+// 3005 — formula unchanged):
 //   viewEmptyAfterTrim
 //
 // true  → host returns {} (invalid parse) before name/arg token extraction
@@ -191,6 +195,10 @@ inline auto PlanCommandCallPostProps(const uint8 gmLevel, const int8 permission,
 //   if (ShouldRejectEmptyCommandLine(view.empty())) return {};
 // viewEmptyAfterTrim is view.empty() after space/tab left-trim.
 // Identity pure on the post-trim empty flag (true → empty commandline reject).
+// Prior pure port: slice 2836. Residual dual-wire suite: 3005 /
+// test_command_reject_empty_line_3005. Dedicated dual-wire suite is
+// test_command_reject_empty_line_3362. Formula is unchanged; this slice only
+// expands dual-wire docs + index + dedicated suite (free == inline == pin).
 inline auto ShouldRejectEmptyCommandLine(const bool viewEmptyAfterTrim) -> bool
 {
     return viewEmptyAfterTrim;

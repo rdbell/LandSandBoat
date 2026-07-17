@@ -12,7 +12,9 @@
 //   - 3312: CanBuySack dedicated dual-wire expand residual 2879
 //           (prior dedicated 3282 / 3242 / 3090; formula unchanged)
 //   - 2890: CanExpand residual dual-wire suite (can_expand)
-//   - 3106: CanExpand dedicated dual-wire (can_expand.go)
+//   - 3106: CanExpand prior dedicated dual-wire (can_expand.go)
+//   - 3363: CanExpand dedicated dual-wire expand residual 2890
+//           (prior dedicated 3106; formula unchanged)
 //   - 2912: GobbieCanUpgradeFlag residual dual-wire suite (gobbie_upgrade)
 //   - 3147: GobbieCanUpgradeFlag dedicated dual-wire (gobbie_upgrade.go)
 //   - 2916: CanClaimScroll residual dual-wire suite (claim_scroll)
@@ -28,7 +30,9 @@
 //   - 3312: CanBuySack = gil >= BuySackGilCost && sackSize == 0
 //     dedicated dual-wire expand residual 2879 (prior dedicated 3282 / 3242 / 3090)
 //   - 2890: CanExpand residual dual-wire suite
-//   - 3106: CanExpand = sackSize < gobbieSize && sackSize > 0
+//   - 3106: CanExpand prior dedicated dual-wire
+//   - 3363: CanExpand = sackSize < gobbieSize && sackSize > 0
+//     dedicated dual-wire expand residual 2890 (prior dedicated 3106)
 //   - 2912: GobbieCanUpgradeFlag residual dual-wire suite
 //   - 3147: GobbieCanUpgradeFlag = gobbieSize < GobbieUpgradeCap ? 1 : 0
 //   - 2916: CanClaimScroll residual dual-wire suite
@@ -52,12 +56,17 @@
 // prior dedicated 3242).
 // Dedicated dual-wire expand residual: 3312 (CanBuySack residual 2879;
 // prior dedicated 3282).
+// Dedicated dual-wire expand residual: 3363 (CanExpand residual 2890;
+// prior dedicated 3106).
 //
 // Coverage: test_artisan_buy_sack_2879 (residual),
 // test_artisan_can_buy_sack_3090 (prior dedicated dual-wire; not in CMake/main),
 // test_artisan_can_buy_sack_3242 (prior expand residual 2879; not in CMake/main),
 // test_artisan_can_buy_sack_3282 (prior expand residual 2879; not in CMake/main),
 // test_artisan_can_buy_sack_3312 (dedicated expand residual 2879; not in CMake/main).
+// test_artisan_can_expand_2890 (residual),
+// test_artisan_can_expand_3106 (prior dedicated dual-wire; not in CMake/main),
+// test_artisan_can_expand_3363 (dedicated expand residual 2890; not in CMake/main).
 //
 //   if option == 1 then -- Buy sack (2879 residual / 3090 prior / 3242 / 3282 / 3312 expand)
 //       if player:getGil() >= 9980
@@ -66,7 +75,7 @@
 //           player:changeContainerSize(xi.inv.MOGSACK, 30)
 //           ...
 //       end
-//   elseif option == 2 then -- Expand sack
+//   elseif option == 2 then -- Expand sack (2890 residual / 3106 prior / 3363 expand)
 //       local sackSize = player:getContainerSize(xi.inv.MOGSACK)
 //       local gobbieSize = player:getContainerSize(xi.inv.INVENTORY)
 //       local gobbieCanUpgrade = gobbieSize < 80 and 1 or 0
@@ -138,22 +147,26 @@ inline auto CanBuySack(const int32 gil, const int32 sackSize) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2890 / 3106 — moogleOnUpdate option 2 expand-sack gate
+// Slice 2890 residual / 3106 prior dedicated / 3363 dedicated expand residual
+// 2890 — moogleOnUpdate option 2 expand-sack gate
 // ---------------------------------------------------------------------------
 
 // CanExpand is the pure gate for option 2 (Expand sack):
 //
-// Formula (slice 3106 dedicated dual-wire; residual expand 2890 / pure 0948 —
-// formula unchanged):
+// Formula (slice 3363 dedicated dual-wire expand residual 2890; prior
+// dedicated 3106 / pure 0948 — formula unchanged):
 //   CanExpand(sackSize, gobbieSize) = sackSize < gobbieSize && sackSize > 0
 //
 // Future Lua host injects scalars into this helper instead of re-inlining
 // the sack / inventory size comparison. Dual-wire of Go artisan.CanExpand
 // (can_expand.go). Call site: future Lua moogleOnUpdate option 2 inject.
 // Prior pure port: slice 0948. Residual dual-wire suite: 2890 /
-// test_artisan_can_expand_2890. Dedicated dual-wire suite is
-// test_artisan_can_expand_3106. Host still owns changeContainerSize,
+// test_artisan_can_expand_2890. Prior dedicated dual-wire suite is
+// test_artisan_can_expand_3106. Dedicated expand residual suite is
+// test_artisan_can_expand_3363. Host still owns changeContainerSize,
 // updateEvent, and the gobbieCanUpgrade failure param after a true/false gate.
+// Coverage: test_artisan_can_expand_3363 (not in CMake/main); residual 2890 /
+// prior dedicated 3106 suites retained.
 inline auto CanExpand(const int32 sackSize, const int32 gobbieSize) -> bool
 {
     return sackSize < gobbieSize && sackSize > 0;

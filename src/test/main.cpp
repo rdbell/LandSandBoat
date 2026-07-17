@@ -1649,6 +1649,11 @@ auto runAllianceSetLocalMain3355SelfTests() -> bool;
 auto runAmbuscadeWarpExit3356SelfTests() -> bool;
 auto runCampaignDebitBonus3357SelfTests() -> bool;
 auto runSalvageCanOpenDoor3358SelfTests() -> bool;
+auto runSynergyTradeFurnace3359SelfTests() -> bool;
+auto runRecastUpdateChargeTime3360SelfTests() -> bool;
+auto runMobutilsAssignParry3361SelfTests() -> bool;
+auto runCommandRejectEmptyLine3362SelfTests() -> bool;
+auto runArtisanCanExpand3363SelfTests() -> bool;
 
 namespace
 {
@@ -3275,6 +3280,11 @@ namespace
         ok = runAmbuscadeWarpExit3356SelfTests() && ok;
         ok = runCampaignDebitBonus3357SelfTests() && ok;
         ok = runSalvageCanOpenDoor3358SelfTests() && ok;
+        ok = runSynergyTradeFurnace3359SelfTests() && ok;
+        ok = runRecastUpdateChargeTime3360SelfTests() && ok;
+        ok = runMobutilsAssignParry3361SelfTests() && ok;
+        ok = runCommandRejectEmptyLine3362SelfTests() && ok;
+        ok = runArtisanCanExpand3363SelfTests() && ok;
 
         return ok;
     }

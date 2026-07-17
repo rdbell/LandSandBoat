@@ -14,11 +14,12 @@
 //   - 2931: ShouldStampOnZeroRecast residual dual-wire (expanded 3193)
 //   - 3052: ShouldExpireRecast (now >= TimeStamp + RecastTime Check gate)
 //   - 3070: ShouldEraseOnExpire residual dual-wire (expanded 3255)
-//   - 3104: ShouldUpdateChargeTime (chargeTime != 0 update gate on Load existing)
+//   - 3104: ShouldUpdateChargeTime residual dual-wire (expanded 3360)
 //   - 3122: ShouldUpdateMaxCharges (maxCharges != 0 update gate on Load existing)
 //   - 3136: IsSimpleRecast (chargeTime == 0 simple full-replace gate on Load)
 //   - 3193: ShouldStampOnZeroRecast (RecastTime == 0 stamp gate on charged Load)
 //   - 3255: ShouldEraseOnExpire (!isAbility erase vs ability zero-retain)
+//   - 3360: ShouldUpdateChargeTime (chargeTime != 0 update gate on Load existing)
 //
 // Production host: CRecastContainer::Load (recast_container.cpp) injects
 // RecastTime == 0s into ShouldStampOnZeroRecast on the charged path (slice 3193).
@@ -26,7 +27,8 @@
 // Check host injects type==RECAST_ABILITY into ShouldEraseOnExpire (slice 3255;
 // residual dual-wire 3070).
 // Go dual-wire: recast.ShouldEraseOnExpire (internal/recast/erase_on_expire.go).
-// Load host injects chargeTime != 0s into ShouldUpdateChargeTime (slice 3104).
+// Load host injects chargeTime != 0s into ShouldUpdateChargeTime (slice 3360;
+// residual dual-wire 3104).
 // Go dual-wire: recast.ShouldUpdateChargeTime (internal/recast/update_charge_time.go).
 // Load host injects maxCharges != 0 into ShouldUpdateMaxCharges (slice 3122).
 // Go dual-wire: recast.ShouldUpdateMaxCharges (internal/recast/update_max_charges.go).
@@ -38,7 +40,7 @@ namespace recasthelpers
 
 // ShouldUpdateChargeTime mirrors chargeTime != 0 on existing entry.
 //
-// Formula (slice 3104 dual-wire):
+// Formula (slice 3360 dual-wire; residual 3104):
 //   chargeTimeNonzero
 //
 // chargeTimeNonzero — host-evaluated chargeTime != 0s
@@ -48,7 +50,8 @@ namespace recasthelpers
 // Dual-wire of Go recast.ShouldUpdateChargeTime.
 // Call site: CRecastContainer::Load on existing entry before maxCharges /
 // simple / charged branches.
-// Prior pure port: slice 1370. Siblings 3052/3070 left alone this slice.
+// Prior pure port: slice 1370. Residual dual-wire: 3104. Siblings 3052/3070/
+// 3255 left alone this slice.
 inline auto ShouldUpdateChargeTime(const bool chargeTimeNonzero) -> bool
 {
     return chargeTimeNonzero;
