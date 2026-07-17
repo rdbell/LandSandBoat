@@ -4,18 +4,22 @@
 
 // Pure DetachPet / DespawnPet gates from petutils.
 // Parity: internal/petutils/detach.go (slice 1626 residual suite);
-// internal/petutils/die_owned_pet.go (slice 3119 dual-wire ShouldDieOwnedPet).
+// internal/petutils/die_owned_pet.go (slice 3119 dual-wire ShouldDieOwnedPet);
+// internal/petutils/clear_avatar_perpetuation.go (slice 3137 dual-wire
+// ShouldClearAvatarPerpetuation).
 //
 // Dual-wire index:
 //   - 3119: ShouldDieOwnedPet (!isDead on DetachPet TYPE_PET / OwnedPet branch)
+//   - 3137: ShouldClearAvatarPerpetuation (petType == AVATAR on OwnedPet branch)
 //
 // Production host: petutils::DetachPet (petutils.cpp) injects master/pet/PC
 // into ValidateDetachPet; classifies pet objtype via ClassifyDetachPet; on
 // OwnedPet branch injects PPet->isDead() into ShouldDieOwnedPet; on true
-// PPet->Die(); then optionally clears AVATAR_PERPETUATION via
-// ShouldClearAvatarPerpetuation. Go dual-wire: petutils.ShouldDieOwnedPet
-// (internal/petutils/die_owned_pet.go). Residual Validate*/Classify/
-// PlanCharmedMobAlive/ShouldClearAvatarPerpetuation remain 1626 residual.
+// PPet->Die(); then injects getPetType() into ShouldClearAvatarPerpetuation;
+// on true clears AVATAR_PERPETUATION. Go dual-wire:
+// petutils.ShouldDieOwnedPet (die_owned_pet.go),
+// petutils.ShouldClearAvatarPerpetuation (clear_avatar_perpetuation.go).
+// Residual Validate*/Classify/PlanCharmedMobAlive remain 1626 residual.
 
 namespace petdetachhelpers
 {
@@ -108,7 +112,8 @@ inline auto PlanCharmedMobAlive(const bool withinEnmity, const bool leaveAbility
 // gates). Go dual-wire: petutils.ShouldDieOwnedPet
 // (internal/petutils/die_owned_pet.go).
 // Sibling residual helpers left alone this slice: ValidateDetach*,
-// ClassifyDetachPet, PlanCharmedMobAlive, ShouldClearAvatarPerpetuation.
+// ClassifyDetachPet, PlanCharmedMobAlive. Sibling dual-wire 3137:
+// ShouldClearAvatarPerpetuation (clear gate after Die on OwnedPet).
 //
 // Formula (slice 3119 dual-wire):
 //   !isDead
@@ -127,6 +132,29 @@ inline auto ShouldDieOwnedPet(const bool isDead) -> bool
     return !isDead;
 }
 
+// --- Slice 3137: ShouldClearAvatarPerpetuation pure dual-wire ---
+//
+// TYPE_PET / OwnedPet branch AVATAR_PERPETUATION clear gate on DetachPet after
+// ClassifyDetachPet selects OwnedPet and after ShouldDieOwnedPet Die gate.
+// Prior pure port: slice 1626 (DetachPet / DespawnPet pure gates). Go
+// dual-wire: petutils.ShouldClearAvatarPerpetuation
+// (internal/petutils/clear_avatar_perpetuation.go).
+// Sibling residual helpers left alone this slice: ValidateDetach*,
+// ClassifyDetachPet, PlanCharmedMobAlive. Sibling dual-wire 3119:
+// ShouldDieOwnedPet (Die gate before avatar clear on OwnedPet).
+//
+// Formula (slice 3137 dual-wire):
+//   petType == PetTypeAvatar
+//
+// petType — host-evaluated PPetEnt->getPetType() (PET_TYPE)
+// true  → clear master's Mod::AVATAR_PERPETUATION (set to 0)
+// false → leave perpetuation mod alone
+//
+// Dual-wire of Go petutils.ShouldClearAvatarPerpetuation.
+// Call site: petutils::DetachPet — host injects getPetType() on the OwnedPet
+// branch; on true PMaster->setModifier(Mod::AVATAR_PERPETUATION, 0). Residual
+// pins remain in test_pet_detach_1626; dedicated dual-wire suite is
+// test_pet_clear_avatar_3137.
 inline auto ShouldClearAvatarPerpetuation(const std::uint8_t petType) -> bool
 {
     return petType == PetTypeAvatar;

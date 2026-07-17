@@ -1424,6 +1424,11 @@ auto runUnityReturnCached3130SelfTests() -> bool;
 auto runMobutilsAssignGuard3131SelfTests() -> bool;
 auto runArtisanCanClaimScroll3132SelfTests() -> bool;
 auto runSalvageCanOpenDoor3133SelfTests() -> bool;
+auto runPartyReplaceSoloPool3134SelfTests() -> bool;
+auto runStatusCanGainNoExisting3135SelfTests() -> bool;
+auto runRecastIsSimple3136SelfTests() -> bool;
+auto runPetClearAvatar3137SelfTests() -> bool;
+auto runAttackutilsTATriple3138SelfTests() -> bool;
 
 namespace
 {
@@ -2825,6 +2830,11 @@ namespace
         ok = runMobutilsAssignGuard3131SelfTests() && ok;
         ok = runArtisanCanClaimScroll3132SelfTests() && ok;
         ok = runSalvageCanOpenDoor3133SelfTests() && ok;
+        ok = runPartyReplaceSoloPool3134SelfTests() && ok;
+        ok = runStatusCanGainNoExisting3135SelfTests() && ok;
+        ok = runRecastIsSimple3136SelfTests() && ok;
+        ok = runPetClearAvatar3137SelfTests() && ok;
+        ok = runAttackutilsTATriple3138SelfTests() && ok;
 
         return ok;
     }

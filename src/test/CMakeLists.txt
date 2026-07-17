@@ -2841,6 +2841,16 @@ set(SOURCES
     test_artisan_can_claim_scroll_3132.cpp
     test_salvage_can_open_door_3133.h
     test_salvage_can_open_door_3133.cpp
+    test_party_replace_solo_pool_3134.h
+    test_party_replace_solo_pool_3134.cpp
+    test_status_can_gain_no_existing_3135.h
+    test_status_can_gain_no_existing_3135.cpp
+    test_recast_is_simple_3136.h
+    test_recast_is_simple_3136.cpp
+    test_pet_clear_avatar_3137.h
+    test_pet_clear_avatar_3137.cpp
+    test_attackutils_ta_triple_3138.h
+    test_attackutils_ta_triple_3138.cpp
 )
 
 if(UNIX)

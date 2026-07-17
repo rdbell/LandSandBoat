@@ -692,6 +692,21 @@ inline auto ShouldNotifyPartyDisbandIPC(const bool playerInitiated) -> bool
 }
 
 // ShouldReplaceSoloTreasurePool mirrors treasure pool != Zone type when non-null.
+//
+// Formula (slice 3134 dual-wire):
+//   hasTreasurePool && !isZonePool
+//
+// hasTreasurePool — host-evaluated PTreasurePool != nullptr
+// isZonePool      — host-evaluated pool present and getPoolType() == Zone
+// true  → host delMember, new Solo pool, addMember, updatePool
+// false → keep existing pool (null or Zone type)
+//
+// Dual-wire of Go party.ShouldReplaceSoloTreasurePool
+// (internal/party/replace_solo_treasure_pool.go). Prior pure port: slice 1345.
+// Call site: CParty::DisbandParty (party.cpp:~148) host inject on PC_FULL
+// member loop.
+// Residual suite: test_party_disband_1345 (classify / detach / IPC / MsgStd).
+// Coverage: test_party_replace_solo_pool_3134 (not in CMake/main).
 inline auto ShouldReplaceSoloTreasurePool(const bool hasTreasurePool, const bool isZonePool) -> bool
 {
     return hasTreasurePool && !isZonePool;

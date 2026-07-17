@@ -16,6 +16,7 @@
 //   - 3070: ShouldEraseOnExpire (!isAbility erase vs ability zero-retain)
 //   - 3104: ShouldUpdateChargeTime (chargeTime != 0 update gate on Load existing)
 //   - 3122: ShouldUpdateMaxCharges (maxCharges != 0 update gate on Load existing)
+//   - 3136: IsSimpleRecast (chargeTime == 0 simple full-replace gate on Load)
 //
 // Production host: CRecastContainer::Load (recast_container.cpp) injects
 // RecastTime == 0s into ShouldStampOnZeroRecast on the charged path.
@@ -26,6 +27,8 @@
 // Go dual-wire: recast.ShouldUpdateChargeTime (internal/recast/update_charge_time.go).
 // Load host injects maxCharges != 0 into ShouldUpdateMaxCharges (slice 3122).
 // Go dual-wire: recast.ShouldUpdateMaxCharges (internal/recast/update_max_charges.go).
+// Load host injects recast->chargeTime == 0s into IsSimpleRecast (slice 3136).
+// Go dual-wire: recast.IsSimpleRecast (internal/recast/is_simple_recast.go).
 
 namespace recasthelpers
 {
@@ -67,6 +70,18 @@ inline auto ShouldUpdateMaxCharges(const bool maxChargesNonzero) -> bool
 }
 
 // IsSimpleRecast mirrors chargeTime == 0 (no charges — full replace).
+//
+// Formula (slice 3136 dual-wire):
+//   chargeTimeIsZero
+//
+// chargeTimeIsZero — host-evaluated recast->chargeTime == 0s
+// true  → simple path: stamp TimeStamp = now and replace RecastTime with duration
+// false → charged path: ShouldStampOnZeroRecast / charge-cap accumulate
+//
+// Dual-wire of Go recast.IsSimpleRecast.
+// Call site: CRecastContainer::Load on existing entry after chargeTime /
+// maxCharges updates, before stamp / charged branches.
+// Prior pure port: slice 1370. Siblings 3052/3070/3104/3122 left alone this slice.
 inline auto IsSimpleRecast(const bool chargeTimeIsZero) -> bool
 {
     return chargeTimeIsZero;

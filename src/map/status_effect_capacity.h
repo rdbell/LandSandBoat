@@ -237,7 +237,34 @@ inline auto ShouldRejectSimpleImmunity(const bool hasImmunity) -> bool
     return hasImmunity;
 }
 
-// CanGainWhenNoExisting returns true (default allow when no same-id effect).
+// --- Slice 3135: CanGainWhenNoExisting pure dual-wire ---
+// Residual pure port: slice 1364 (CanGain overwrite / negative / immunity suite).
+// Production host: CStatusEffectContainer::CanGainStatusEffect returns
+// CanGainWhenNoExisting() when GetStatusEffect(statusId) is null (no same-ID
+// existing effect); default allow (true).
+// Go dual-wire: statuseffect.CanGainWhenNoExisting
+// (internal/statuseffect/can_gain_when_no_existing.go).
+// Sibling dual-wires 3049 / 3069 / 3080 / 3100 / 3113 (expire / tick /
+// null-add / charm-on-pet / simple-immunity) left alone.
+// Index 3135: statuseffect.CanGainWhenNoExisting pure dual-wire.
+
+// CanGainWhenNoExisting returns true when no same-ID effect is present.
+//
+// Formula (slice 3135 dual-wire):
+//   true
+//
+// Host reaches this residual only after GetStatusEffect(statusId) == nullptr
+// (no same-ID existing effect). Default allow for CanGainStatusEffect.
+//
+// Dual-wire of Go statuseffect.CanGainWhenNoExisting.
+// Call site: CStatusEffectContainer::CanGainStatusEffect — after existing
+// same-ID lookup is null, return CanGainWhenNoExisting() (true).
+// Prior pure port: slice 1364 (can-gain pure policy suite).
+// Residual pins remain in test_status_effect_can_gain_1364; dedicated
+// dual-wire suite is test_status_can_gain_no_existing_3135.
+// Sibling dual-wires: ShouldExpireEffect (3049) / ShouldTickEffect (3069) /
+// ShouldRejectNullStatusEffect (3080) / ShouldBlockCharmOnPet (3100) /
+// ShouldRejectSimpleImmunity (3113) are orthogonal.
 inline auto CanGainWhenNoExisting() -> bool
 {
     return true;
