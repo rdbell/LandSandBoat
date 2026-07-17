@@ -1818,24 +1818,45 @@ void CStatusEffectContainer::HandleAura(CStatusEffect* PStatusEffect)
             PChar->ForPartyWithTrusts(
                 [&](CBattleEntity* PMember)
                 {
-                    if (PMember != nullptr &&
-                        m_POwner->loc.zone &&
-                        PMember->loc.zone &&
-                        m_POwner->loc.zone->GetID() == PMember->loc.zone->GetID() &&
-                        distance(m_POwner->loc.p, PMember->loc.p) <= aura_range + PMember->modelHitboxSize &&
-                        !PMember->isDead())
+                    // Pure ally eligibility (slice 2796). Distance host-injected.
+                    const bool   memberNull        = PMember == nullptr;
+                    const bool   ownerZonePresent  = m_POwner->loc.zone != nullptr;
+                    const bool   memberZonePresent = !memberNull && PMember->loc.zone != nullptr;
+                    const uint16 ownerZoneID       = ownerZonePresent ? static_cast<uint16>(m_POwner->loc.zone->GetID()) : 0;
+                    const uint16 memberZoneID      = memberZonePresent ? static_cast<uint16>(PMember->loc.zone->GetID()) : 0;
+                    const bool   sameZone          = statuseffecthelpers::IsSameZoneForAura(
+                        ownerZoneID, memberZoneID, ownerZonePresent, memberZonePresent);
+                    const bool inRange = !memberNull && statuseffecthelpers::IsInAuraRange(
+                                                           distance(m_POwner->loc.p, PMember->loc.p),
+                                                           aura_range,
+                                                           PMember->modelHitboxSize);
+                    const bool isDead = !memberNull && PMember->isDead();
+
+                    if (statuseffecthelpers::ShouldAcceptAuraAlly(memberNull, sameZone, inRange, isDead))
                     {
                         CStatusEffect* PEffect = PMember->StatusEffectContainer->GetStatusEffect(static_cast<xi::StatusEffect>(PStatusEffect->GetSubID()));
 
-                        if (PEffect && (PEffect->GetEffectFlags() & xi::StatusEffectFlag::AlwaysExpiring) != xi::StatusEffectFlag::None)
+                        const bool hasAlwaysExpiringFlag =
+                            PEffect != nullptr &&
+                            (PEffect->GetEffectFlags() & xi::StatusEffectFlag::AlwaysExpiring) != xi::StatusEffectFlag::None;
+                        if (statuseffecthelpers::ShouldRefreshAlwaysExpiringAura(PEffect != nullptr, hasAlwaysExpiringFlag))
                         {
-                            PEffect->SetStartTime(timer::now());
+                            // Pure plan (slice 2798). Host owns timer refresh + Lua power update.
+                            const auto plan = statuseffecthelpers::PlanAuraExistingAlwaysExpiring(
+                                hasAlwaysExpiringFlag,
+                                PEffect->GetPower(),
+                                PStatusEffect->GetSubPower());
+
+                            if (plan.refreshStartTime)
+                            {
+                                PEffect->SetStartTime(timer::now());
+                            }
 
                             // Effect updated, probably from Ecliptic Attrition
                             // Update status effect with new potency.
                             // Take care to design your "owning" effects such as the xi::StatusEffect::ColureActive to control the subpower, rather than the resulting effect ticking down.
                             // Otherwise odd things may happen
-                            if (PEffect->GetPower() != PStatusEffect->GetSubPower())
+                            if (plan.updatePower)
                             {
                                 luautils::OnEffectLose(PMember, PEffect);
                                 PEffect->SetPower(PStatusEffect->GetSubPower());
@@ -1844,7 +1865,7 @@ void CStatusEffectContainer::HandleAura(CStatusEffect* PStatusEffect)
                         }
                         else
                         {
-                            uint16 icon = PStatusEffect->GetSubIcon() > 0 ? PStatusEffect->GetSubIcon() : PStatusEffect->GetSubID();
+                            uint16 icon = statuseffecthelpers::ResolveAuraSubIcon(PStatusEffect->GetSubIcon(), PStatusEffect->GetSubID());
 
                             PEffect = new CStatusEffect(static_cast<xi::StatusEffect>(PStatusEffect->GetSubID()), // Effect ID
                                                         icon,                                                     // Effect Icon
@@ -1870,15 +1891,27 @@ void CStatusEffectContainer::HandleAura(CStatusEffect* PStatusEffect)
                 {
                     CStatusEffect* PEffect = PTarget->StatusEffectContainer->GetStatusEffect(static_cast<xi::StatusEffect>(PStatusEffect->GetSubID()));
 
-                    if (PEffect && (PEffect->GetEffectFlags() & xi::StatusEffectFlag::AlwaysExpiring) != xi::StatusEffectFlag::None)
+                    const bool hasAlwaysExpiringFlag =
+                        PEffect != nullptr &&
+                        (PEffect->GetEffectFlags() & xi::StatusEffectFlag::AlwaysExpiring) != xi::StatusEffectFlag::None;
+                    if (statuseffecthelpers::ShouldRefreshAlwaysExpiringAura(PEffect != nullptr, hasAlwaysExpiringFlag))
                     {
-                        PEffect->SetStartTime(timer::now());
+                        // Pure plan (slice 2798). Host owns timer refresh + Lua power update.
+                        const auto plan = statuseffecthelpers::PlanAuraExistingAlwaysExpiring(
+                            hasAlwaysExpiringFlag,
+                            PEffect->GetPower(),
+                            PStatusEffect->GetSubPower());
+
+                        if (plan.refreshStartTime)
+                        {
+                            PEffect->SetStartTime(timer::now());
+                        }
 
                         // Effect updated, probably from Ecliptic Attrition
                         // Update status effect with new potency.
                         // Take care to design your "owning" effects such as the xi::StatusEffect::ColureActive to control the subpower, rather than the resulting effect ticking down.
                         // Otherwise odd things may happen
-                        if (PEffect->GetPower() != PStatusEffect->GetSubPower())
+                        if (plan.updatePower)
                         {
                             luautils::OnEffectLose(PTarget, PEffect);
                             PEffect->SetPower(PStatusEffect->GetSubPower());
@@ -1887,7 +1920,7 @@ void CStatusEffectContainer::HandleAura(CStatusEffect* PStatusEffect)
                     }
                     else
                     {
-                        uint16 icon = PStatusEffect->GetSubIcon() > 0 ? PStatusEffect->GetSubIcon() : PStatusEffect->GetSubID();
+                        uint16 icon = statuseffecthelpers::ResolveAuraSubIcon(PStatusEffect->GetSubIcon(), PStatusEffect->GetSubID());
 
                         PEffect = new CStatusEffect(static_cast<xi::StatusEffect>(PStatusEffect->GetSubID()), // Effect ID
                                                     icon,                                                     // Effect Icon
@@ -1909,23 +1942,46 @@ void CStatusEffectContainer::HandleAura(CStatusEffect* PStatusEffect)
             PEntity->ForParty(
                 [&](CBattleEntity* PMember)
                 {
-                    if (PMember != nullptr &&
-                        m_POwner->loc.zone &&
-                        PMember->loc.zone &&
-                        PEntity->loc.zone->GetID() == PMember->loc.zone->GetID() && distance(m_POwner->loc.p, PMember->loc.p) <= aura_range + PMember->modelHitboxSize &&
-                        !PMember->isDead())
+                    // Pure ally eligibility (slice 2796). Production compares
+                    // PEntity zone ID after null-checking m_POwner zone; distance host-injected.
+                    const bool   memberNull        = PMember == nullptr;
+                    const bool   ownerZonePresent  = m_POwner->loc.zone != nullptr;
+                    const bool   memberZonePresent = !memberNull && PMember->loc.zone != nullptr;
+                    const uint16 ownerZoneID       = PEntity->loc.zone != nullptr ? static_cast<uint16>(PEntity->loc.zone->GetID()) : 0;
+                    const uint16 memberZoneID      = memberZonePresent ? static_cast<uint16>(PMember->loc.zone->GetID()) : 0;
+                    const bool   sameZone          = statuseffecthelpers::IsSameZoneForAura(
+                        ownerZoneID, memberZoneID, ownerZonePresent, memberZonePresent);
+                    const bool inRange = !memberNull && statuseffecthelpers::IsInAuraRange(
+                                                           distance(m_POwner->loc.p, PMember->loc.p),
+                                                           aura_range,
+                                                           PMember->modelHitboxSize);
+                    const bool isDead = !memberNull && PMember->isDead();
+
+                    if (statuseffecthelpers::ShouldAcceptAuraAlly(memberNull, sameZone, inRange, isDead))
                     {
                         CStatusEffect* PEffect = PMember->StatusEffectContainer->GetStatusEffect(static_cast<xi::StatusEffect>(PStatusEffect->GetSubID()));
 
-                        if (PEffect && (PEffect->GetEffectFlags() & xi::StatusEffectFlag::AlwaysExpiring) != xi::StatusEffectFlag::None)
+                        const bool hasAlwaysExpiringFlag =
+                            PEffect != nullptr &&
+                            (PEffect->GetEffectFlags() & xi::StatusEffectFlag::AlwaysExpiring) != xi::StatusEffectFlag::None;
+                        if (statuseffecthelpers::ShouldRefreshAlwaysExpiringAura(PEffect != nullptr, hasAlwaysExpiringFlag))
                         {
-                            PEffect->SetStartTime(timer::now());
+                            // Pure plan (slice 2798). Host owns timer refresh + Lua power update.
+                            const auto plan = statuseffecthelpers::PlanAuraExistingAlwaysExpiring(
+                                hasAlwaysExpiringFlag,
+                                PEffect->GetPower(),
+                                PStatusEffect->GetSubPower());
+
+                            if (plan.refreshStartTime)
+                            {
+                                PEffect->SetStartTime(timer::now());
+                            }
 
                             // Effect updated, probably from Ecliptic Attrition
                             // Update status effect with new potency.
                             // Take care to design your "owning" effects such as the xi::StatusEffect::ColureActive to control the subpower, rather than the resulting effect ticking down.
                             // Otherwise odd things may happen
-                            if (PEffect->GetPower() != PStatusEffect->GetSubPower())
+                            if (plan.updatePower)
                             {
                                 luautils::OnEffectLose(PMember, PEffect);
                                 PEffect->SetPower(PStatusEffect->GetSubPower());
@@ -1934,7 +1990,7 @@ void CStatusEffectContainer::HandleAura(CStatusEffect* PStatusEffect)
                         }
                         else
                         {
-                            uint16 icon = PStatusEffect->GetSubIcon() > 0 ? PStatusEffect->GetSubIcon() : PStatusEffect->GetSubID();
+                            uint16 icon = statuseffecthelpers::ResolveAuraSubIcon(PStatusEffect->GetSubIcon(), PStatusEffect->GetSubID());
 
                             PEffect = new CStatusEffect(static_cast<xi::StatusEffect>(PStatusEffect->GetSubID()), // Effect ID
                                                         icon,                                                     // Effect Icon
@@ -1963,15 +2019,27 @@ void CStatusEffectContainer::HandleAura(CStatusEffect* PStatusEffect)
                 {
                     CStatusEffect* PEffect = PTarget->StatusEffectContainer->GetStatusEffect(static_cast<xi::StatusEffect>(PStatusEffect->GetSubID()));
 
-                    if (PEffect && (PEffect->GetEffectFlags() & xi::StatusEffectFlag::AlwaysExpiring) != xi::StatusEffectFlag::None)
+                    const bool hasAlwaysExpiringFlag =
+                        PEffect != nullptr &&
+                        (PEffect->GetEffectFlags() & xi::StatusEffectFlag::AlwaysExpiring) != xi::StatusEffectFlag::None;
+                    if (statuseffecthelpers::ShouldRefreshAlwaysExpiringAura(PEffect != nullptr, hasAlwaysExpiringFlag))
                     {
-                        PEffect->SetStartTime(timer::now());
+                        // Pure plan (slice 2798). Host owns timer refresh + Lua power update.
+                        const auto plan = statuseffecthelpers::PlanAuraExistingAlwaysExpiring(
+                            hasAlwaysExpiringFlag,
+                            PEffect->GetPower(),
+                            PStatusEffect->GetSubPower());
+
+                        if (plan.refreshStartTime)
+                        {
+                            PEffect->SetStartTime(timer::now());
+                        }
 
                         // Effect updated, probably from Ecliptic Attrition
                         // Update status effect with new potency.
                         // Take care to design your "owning" effects such as the xi::StatusEffect::ColureActive to control the subpower, rather than the resulting effect ticking down.
                         // Otherwise odd things may happen
-                        if (PEffect->GetPower() != PStatusEffect->GetSubPower())
+                        if (plan.updatePower)
                         {
                             luautils::OnEffectLose(PTarget, PEffect);
                             PEffect->SetPower(PStatusEffect->GetSubPower());
@@ -1980,7 +2048,7 @@ void CStatusEffectContainer::HandleAura(CStatusEffect* PStatusEffect)
                     }
                     else
                     {
-                        uint16 icon = PStatusEffect->GetSubIcon() > 0 ? PStatusEffect->GetSubIcon() : PStatusEffect->GetSubID();
+                        uint16 icon = statuseffecthelpers::ResolveAuraSubIcon(PStatusEffect->GetSubIcon(), PStatusEffect->GetSubID());
 
                         PEffect = new CStatusEffect(static_cast<xi::StatusEffect>(PStatusEffect->GetSubID()), // Effect ID
                                                     icon,                                                     // Effect Icon

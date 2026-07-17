@@ -103,4 +103,122 @@ inline auto InScope(
     return false;
 }
 
+// --- Slice 2794: onProposal / onVote pure preflight plans ---
+// Host injects membership/presence scalars and owns MsgStd packet delivery.
+
+// ProposerScopeDisposition is the pure outcome of validateProposerScope.
+// Fail* variants map to host MsgStd messages; Fail is silent (unknown kind).
+enum class ProposerScopeDisposition : uint8
+{
+    Allow = 0,
+    FailNoPartyMembers,       // MsgStd::NoPartyMembers
+    FailNoLinkshellEquipped,  // MsgStd::NoLinkshellEquipped
+    Fail,                     // unknown kind; no message
+};
+
+// PlanProposerScope mirrors validateProposerScope once the host injects
+// hasParty / hasLS1 / hasLS2 from entity pointers.
+inline auto PlanProposerScope(
+    const GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND kind,
+    const bool                               hasParty,
+    const bool                               hasLS1,
+    const bool                               hasLS2) -> ProposerScopeDisposition
+{
+    switch (kind)
+    {
+        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Party:
+            return hasParty ? ProposerScopeDisposition::Allow : ProposerScopeDisposition::FailNoPartyMembers;
+        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Linkshell1:
+            return hasLS1 ? ProposerScopeDisposition::Allow : ProposerScopeDisposition::FailNoLinkshellEquipped;
+        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Linkshell2:
+            return hasLS2 ? ProposerScopeDisposition::Allow : ProposerScopeDisposition::FailNoLinkshellEquipped;
+        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Say:
+        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Shout:
+            return ProposerScopeDisposition::Allow;
+    }
+
+    return ProposerScopeDisposition::Fail;
+}
+
+// OnProposalDisposition is the pure early-gate disposition of
+// NominateManager::onProposal before scope validation / build / broadcast.
+// Scope check remains a separate host step after CreateNew (PlanProposerScope).
+enum class OnProposalDisposition : uint8
+{
+    Ignore = 0,       // null char
+    CloseActive,      // active proposal exists → finalize + erase
+    CannotUseCommand, // cooldown blocked → MsgStd::CannotUseCommandAtTheMoment
+    CreateNew,        // proceed to scope check + create
+};
+
+// PlanOnProposal short-circuits in production onProposal order:
+// 1) null char → Ignore
+// 2) hasActiveProposal → CloseActive
+// 3) cooldownBlocked → CannotUseCommand
+// 4) else CreateNew
+inline auto PlanOnProposal(
+    const bool charNull,
+    const bool hasActiveProposal,
+    const bool cooldownBlocked) -> OnProposalDisposition
+{
+    if (charNull)
+    {
+        return OnProposalDisposition::Ignore;
+    }
+    if (hasActiveProposal)
+    {
+        return OnProposalDisposition::CloseActive;
+    }
+    if (cooldownBlocked)
+    {
+        return OnProposalDisposition::CannotUseCommand;
+    }
+    return OnProposalDisposition::CreateNew;
+}
+
+// OnVoteDisposition is the pure early-gate disposition of
+// NominateManager::onVote before tally mutation / deliverProc.
+enum class OnVoteDisposition : uint8
+{
+    Ignore = 0,    // null char
+    NotProposed,   // !pollFound || !inScope → MsgStd::NotProposedAnything
+    AlreadyVoted,  // MsgStd::AlreadyVotedOnProposal
+    InvalidChoice, // numChoices==0 || index out of 1..numChoices → MsgStd::OnlyChooseFromGivenChoices
+    AcceptVote,    // proceed to tally + deliver
+};
+
+// PlanOnVote short-circuits in production onVote order:
+// 1) null char → Ignore
+// 2) !pollFound || !inScope → NotProposed
+// 3) alreadyVoted → AlreadyVoted
+// 4) numChoices==0 || index < 1 || index > numChoices → InvalidChoice
+// 5) else AcceptVote
+// inScope is host-precomputed (InScope / NominateProposal::inScope).
+inline auto PlanOnVote(
+    const bool  charNull,
+    const bool  pollFound,
+    const bool  inScope,
+    const bool  alreadyVoted,
+    const uint8 numChoices,
+    const uint8 index) -> OnVoteDisposition
+{
+    if (charNull)
+    {
+        return OnVoteDisposition::Ignore;
+    }
+    if (!pollFound || !inScope)
+    {
+        return OnVoteDisposition::NotProposed;
+    }
+    if (alreadyVoted)
+    {
+        return OnVoteDisposition::AlreadyVoted;
+    }
+    if (numChoices == 0 || index < 1 || index > numChoices)
+    {
+        return OnVoteDisposition::InvalidChoice;
+    }
+    return OnVoteDisposition::AcceptVote;
+}
+
 } // namespace nominatehelpers

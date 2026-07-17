@@ -173,38 +173,32 @@ auto buildProposal(const CCharEntity* PChar, const GP_CLI_COMMAND_SWITCH_PROPOSA
     return p;
 }
 
-// Ensure PC can actually submit a proposal of the given kind
+// Ensure PC can actually submit a proposal of the given kind.
+// Host injects membership scalars; pure disposition is PlanProposerScope.
+// MsgStd packet delivery stays host-owned.
 auto validateProposerScope(CCharEntity* PChar, const GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND kind) -> bool
 {
-    switch (kind)
+    using nominatehelpers::PlanProposerScope;
+    using nominatehelpers::ProposerScopeDisposition;
+
+    const auto disposition = PlanProposerScope(
+        kind,
+        PChar->PParty != nullptr,
+        PChar->PLinkshell1 != nullptr,
+        PChar->PLinkshell2 != nullptr);
+
+    switch (disposition)
     {
-        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Party:
-            if (PChar->PParty == nullptr)
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::NoPartyMembers);
-                return false;
-            }
+        case ProposerScopeDisposition::Allow:
             return true;
-
-        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Linkshell1:
-            if (PChar->PLinkshell1 == nullptr)
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::NoLinkshellEquipped);
-                return false;
-            }
-            return true;
-
-        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Linkshell2:
-            if (PChar->PLinkshell2 == nullptr)
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::NoLinkshellEquipped);
-                return false;
-            }
-            return true;
-
-        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Say:
-        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Shout:
-            return true;
+        case ProposerScopeDisposition::FailNoPartyMembers:
+            PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::NoPartyMembers);
+            return false;
+        case ProposerScopeDisposition::FailNoLinkshellEquipped:
+            PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::NoLinkshellEquipped);
+            return false;
+        case ProposerScopeDisposition::Fail:
+            return false;
     }
 
     return false;
@@ -334,26 +328,34 @@ void NominateManager::finalize(CCharEntity* PChar, const NominateProposal& propo
 }
 
 // /nominate received. Create new poll or close current.
+// Pure preflight is PlanOnProposal; scope validation stays a separate host step.
 void NominateManager::onProposal(CCharEntity* PChar, const GP_CLI_COMMAND_SWITCH_PROPOSAL& packet)
 {
-    if (!PChar)
-    {
-        return;
-    }
+    using nominatehelpers::OnProposalDisposition;
+    using nominatehelpers::PlanOnProposal;
 
-    // /nominate while a poll is active closes it and returns. Never resubmits.
-    const auto activeIt = this->activeProposals_.find(PChar->getName());
-    if (activeIt != this->activeProposals_.end())
-    {
-        this->finalize(PChar, activeIt->second);
-        this->activeProposals_.erase(activeIt);
-        return;
-    }
+    const bool charNull          = PChar == nullptr;
+    const bool hasActiveProposal = !charNull && this->activeProposals_.contains(PChar->getName());
+    const bool cooldownBlocked   = !charNull && !hasActiveProposal &&
+                                 (timer::now() - PChar->lastProposalCloseTime() < cooldown);
 
-    if (timer::now() - PChar->lastProposalCloseTime() < cooldown) // 60s cooldown on making a new poll
+    switch (PlanOnProposal(charNull, hasActiveProposal, cooldownBlocked))
     {
-        PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::CannotUseCommandAtTheMoment);
-        return;
+        case OnProposalDisposition::Ignore:
+            return;
+        case OnProposalDisposition::CloseActive:
+        {
+            // /nominate while a poll is active closes it and returns. Never resubmits.
+            const auto activeIt = this->activeProposals_.find(PChar->getName());
+            this->finalize(PChar, activeIt->second);
+            this->activeProposals_.erase(activeIt);
+            return;
+        }
+        case OnProposalDisposition::CannotUseCommand:
+            PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(MsgStd::CannotUseCommandAtTheMoment);
+            return;
+        case OnProposalDisposition::CreateNew:
+            break;
     }
 
     const auto kind = static_cast<GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND>(packet.Kind);
@@ -368,37 +370,40 @@ void NominateManager::onProposal(CCharEntity* PChar, const GP_CLI_COMMAND_SWITCH
     this->activeProposals_.emplace(PChar->getName(), std::move(proposal));
 }
 
-// /vote received, find the live poll and add to tally
+// /vote received, find the live poll and add to tally.
+// Pure preflight is PlanOnVote; MsgStd messages and deliverProc stay host-owned.
 void NominateManager::onVote(CCharEntity* PChar, const GP_CLI_COMMAND_SWITCH_VOTE& packet)
 {
-    if (!PChar)
-    {
-        return;
-    }
+    using nominatehelpers::OnVoteDisposition;
+    using nominatehelpers::PlanOnVote;
 
+    const bool charNull     = PChar == nullptr;
     const auto proposerName = asStringFromUntrustedSource(packet.Name, sizeof(packet.Name));
     const auto it           = this->activeProposals_.find(proposerName);
 
-    // Poll not found or not part of alliance/LS
-    if (it == this->activeProposals_.end() || !it->second.inScope(PChar))
+    const bool pollFound     = it != this->activeProposals_.end();
+    const bool inScope       = !charNull && pollFound && it->second.inScope(PChar);
+    const bool alreadyVoted  = !charNull && pollFound && it->second.voters.contains(PChar->id);
+    const auto numChoices    = pollFound ? static_cast<uint8>(it->second.options.size()) : uint8{ 0 };
+
+    switch (PlanOnVote(charNull, pollFound, inScope, alreadyVoted, numChoices, packet.Index))
     {
-        PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(proposerName, MsgStd::NotProposedAnything);
-        return;
+        case OnVoteDisposition::Ignore:
+            return;
+        case OnVoteDisposition::NotProposed:
+            PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(proposerName, MsgStd::NotProposedAnything);
+            return;
+        case OnVoteDisposition::AlreadyVoted:
+            PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(proposerName, MsgStd::AlreadyVotedOnProposal);
+            return;
+        case OnVoteDisposition::InvalidChoice:
+            PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(uint32{ numChoices }, MsgStd::OnlyChooseFromGivenChoices);
+            return;
+        case OnVoteDisposition::AcceptVote:
+            break;
     }
 
     auto& proposal = it->second;
-    if (proposal.voters.contains(PChar->id))
-    {
-        PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(proposerName, MsgStd::AlreadyVotedOnProposal);
-        return;
-    }
-
-    const auto numChoices = static_cast<uint8>(proposal.options.size());
-    if (numChoices == 0 || packet.Index < 1 || packet.Index > numChoices) // Packet injection out of bounds
-    {
-        PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(uint32{ numChoices }, MsgStd::OnlyChooseFromGivenChoices);
-        return;
-    }
 
     // Increment tally and track new voter
     proposal.voteTbl[packet.Index]++;

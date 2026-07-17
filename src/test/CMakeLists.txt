@@ -360,6 +360,8 @@ set(SOURCES
     test_nominate_parse_format_2614.cpp
     test_nominate_inscope_2784.h
     test_nominate_inscope_2784.cpp
+    test_nominate_proposal_vote_plan_2794.h
+    test_nominate_proposal_vote_plan_2794.cpp
     test_c2s_switch_vote_runtime.h
     test_c2s_switch_vote_runtime.cpp
     test_c2s_switch_proposal_runtime.h
@@ -799,6 +801,10 @@ set(SOURCES
     test_status_effect_save_1373.cpp
     test_status_save_plan_2793.h
     test_status_save_plan_2793.cpp
+    test_status_aura_eligibility_2796.h
+    test_status_aura_eligibility_2796.cpp
+    test_status_aura_refresh_2798.h
+    test_status_aura_refresh_2798.cpp
     test_attackround_multihit_1374.h
     test_attackround_multihit_1374.cpp
     test_attackround_create_attacks_plan_2756.h
@@ -1560,6 +1566,8 @@ set(SOURCES
     test_map_session_destroy_pending_2787.cpp
     test_map_session_lookup_2790.h
     test_map_session_lookup_2790.cpp
+    test_map_session_replace_create_2795.h
+    test_map_session_replace_create_2795.cpp
     test_map_session_index.h
     test_map_session_index.cpp
     test_look_parser.h
@@ -2117,6 +2125,8 @@ set(SOURCES
     test_transport_visibility_2741.cpp
     test_transport_door_animate_2789.h
     test_transport_door_animate_2789.cpp
+    test_transport_ship_spawn_2797.h
+    test_transport_ship_spawn_2797.cpp
     test_tracy_hex_helpers.h
     test_tracy_hex_helpers.cpp
     test_trigger_area.h

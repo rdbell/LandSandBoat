@@ -86,6 +86,14 @@ auto PlanTransportDoor(const bool hasDoor, const bool sendPacket, const bool ope
     };
 }
 
+auto PlanShipSpawn() -> ShipSpawnPlan
+{
+    return ShipSpawnPlan{
+        .copyDockToNpcLoc = true,
+        .setVisible       = true,
+    };
+}
+
 } // namespace transporthelpers
 
 void Transport_Ship::setVisible(bool visible) const
@@ -111,8 +119,16 @@ void Transport_Ship::animateSetup(uint8 animationID, vanadiel_time::time_point h
 
 void Transport_Ship::spawn() const
 {
-    this->npc->loc = this->dock;
-    this->setVisible(true);
+    const auto plan = transporthelpers::PlanShipSpawn();
+    if (plan.copyDockToNpcLoc)
+    {
+        this->npc->loc = this->dock;
+    }
+
+    if (plan.setVisible)
+    {
+        this->setVisible(true);
+    }
 }
 
 void TransportZone_Town::updateShip() const

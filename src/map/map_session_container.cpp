@@ -184,7 +184,9 @@ auto MapSessionContainer::createSession(IPP ipp) -> MapSession*
     map_session_data->client_ipp = ipp;
     map_session_data->tapLastUpdate();
 
-    if (auto* previous = index_.getSessionByIPP(ipp))
+    // Same-key index replace: pure gate; host owns removeSession.
+    auto* previous = index_.getSessionByIPP(ipp);
+    if (mapsessionhelpers::ShouldReplaceExistingSession(previous != nullptr))
     {
         index_.removeSession(previous);
     }
@@ -213,7 +215,9 @@ auto MapSessionContainer::createPendingSession(uint32 charId) -> MapSession*
     map_session_data->charID    = charId;
     map_session_data->tapLastUpdate();
 
-    if (auto* previous = index_.getPendingSessionByCharId(charId))
+    // Same-key index replace: pure gate; host owns removePendingSession.
+    auto* previous = index_.getPendingSessionByCharId(charId);
+    if (mapsessionhelpers::ShouldReplaceExistingSession(previous != nullptr))
     {
         index_.removePendingSession(previous);
     }

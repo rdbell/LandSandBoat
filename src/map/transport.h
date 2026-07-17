@@ -102,6 +102,15 @@ struct TransportDoorPlan
     bool  sendEntityUpdate;
 };
 
+// ShipSpawnPlan is the pure side-effect selection for Transport_Ship::spawn.
+// Dock location assignment and setVisible remain host-side; visibility status
+// and movement use VisibilityFor(true) via setVisible.
+struct ShipSpawnPlan
+{
+    bool copyDockToNpcLoc;
+    bool setVisible;
+};
+
 namespace transporthelpers
 {
 
@@ -128,6 +137,11 @@ auto PlanShipAnimateSetup(uint8 animationID) -> ShipAnimateSetupPlan;
 // ANIMATION_CLOSE_DOOR (9); the entity update is sent only when hasDoor and
 // sendPacket are both true.
 auto PlanTransportDoor(bool hasDoor, bool sendPacket, bool open) -> TransportDoorPlan;
+
+// PlanShipSpawn mirrors spawn's pure decisions. Production always copies dock
+// into npc->loc and makes the ship visible; both flags are therefore always true.
+// Production does not null-check npc, so there is no hasNpc gate.
+auto PlanShipSpawn() -> ShipSpawnPlan;
 
 } // namespace transporthelpers
 

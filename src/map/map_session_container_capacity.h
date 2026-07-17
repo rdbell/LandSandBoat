@@ -28,6 +28,17 @@ inline auto ShouldCreatePendingSession(const bool queryOK) -> bool
     return queryOK;
 }
 
+// ShouldReplaceExistingSession mirrors the same-key index replace step in
+// createSession (by IPP) and createPendingSession (by charId) after the new
+// MapSession is built. previousPresent is whether getSessionByIPP /
+// getPendingSessionByCharId returned a non-null owner. Host owns
+// removeSession / removePendingSession when this returns true; the ownership
+// unique_ptr map overwrite remains host-owned either way.
+inline auto ShouldReplaceExistingSession(const bool previousPresent) -> bool
+{
+    return previousPresent;
+}
+
 // ShouldDestroyPendingByPointer mirrors destroyPendingSession(MapSession*)
 // after the null check and pending lookup by session->charID. found is whether
 // a pending owner exists for that charID; pointerMatches is whether that owner

@@ -408,6 +408,13 @@ inline auto ResolveAuraEffectIcon(const uint16 subIcon, const uint16 subID) -> u
     return subIcon > 0 ? subIcon : subID;
 }
 
+// ResolveAuraSubIcon mirrors new-effect path icon selection in HandleAura
+// (subIcon > 0 ? subIcon : subID). Same pure rule as ResolveAuraEffectIcon.
+inline auto ResolveAuraSubIcon(const uint16 subIcon, const uint16 subID) -> uint16
+{
+    return ResolveAuraEffectIcon(subIcon, subID);
+}
+
 // ShouldRefreshAlwaysExpiringAura mirrors existing effect with AlwaysExpiring flag.
 inline auto ShouldRefreshAlwaysExpiringAura(const bool hasEffect, const bool hasAlwaysExpiringFlag) -> bool
 {
@@ -418,6 +425,38 @@ inline auto ShouldRefreshAlwaysExpiringAura(const bool hasEffect, const bool has
 inline auto ShouldUpdateAuraPower(const uint16 existingPower, const uint16 auraSubPower) -> bool
 {
     return existingPower != auraSubPower;
+}
+
+// --- Slice 2798: HandleAura AlwaysExpiring existing-effect refresh plan ---
+
+// AuraExistingEffectPlan is the pure disposition for an existing AlwaysExpiring
+// aura effect on a member. Host owns SetStartTime / OnEffectLose / SetPower /
+// OnEffectGain. Host decides AlwaysExpiring vs add-new path before calling
+// PlanAuraExistingAlwaysExpiring (when !hasAlwaysExpiringFlag the host takes
+// the add-new path instead).
+struct AuraExistingEffectPlan
+{
+    bool refreshStartTime; // always true on AlwaysExpiring path
+    bool updatePower;      // currentPower != newSubPower
+};
+
+// PlanAuraExistingAlwaysExpiring returns refresh/power-update flags for the
+// existing AlwaysExpiring branch of HandleAura.
+// When hasAlwaysExpiringFlag is false, returns an inert plan (host should have
+// taken the add-new path instead).
+inline auto PlanAuraExistingAlwaysExpiring(
+    const bool   hasAlwaysExpiringFlag,
+    const uint16 currentPower,
+    const uint16 newSubPower) -> AuraExistingEffectPlan
+{
+    if (!hasAlwaysExpiringFlag)
+    {
+        return AuraExistingEffectPlan{ false, false };
+    }
+    return AuraExistingEffectPlan{
+        true,
+        ShouldUpdateAuraPower(currentPower, newSubPower),
+    };
 }
 
 // IsElevenRollEffect mirrors FightersRoll..NaturalistsRoll or RuneistsRoll with subPower 11.
@@ -1050,6 +1089,45 @@ inline auto PlanSaveStatusEffect(
         return plan;
     }
     return SaveStatusEffectPlan{ SaveEffectAction::DropNoPersist, false, false, false };
+}
+
+
+// --- Slice 2796: HandleAura ally member eligibility pure plan ---
+
+// ShouldRejectNullAuraMember mirrors PMember == nullptr reject.
+inline auto ShouldRejectNullAuraMember(const bool memberNull) -> bool
+{
+    return memberNull;
+}
+
+// IsSameZoneForAura mirrors both zone pointers present and equal zone IDs.
+// Host supplies zone IDs (0 when absent) and pointer-present flags.
+inline auto IsSameZoneForAura(
+    const uint16 ownerZoneID,
+    const uint16 memberZoneID,
+    const bool   ownerZonePresent,
+    const bool   memberZonePresent) -> bool
+{
+    return ownerZonePresent && memberZonePresent && ownerZoneID == memberZoneID;
+}
+
+// IsInAuraRange mirrors distance <= auraRange + modelHitboxSize (slice 2796 name).
+// Same semantics as IsWithinAuraRange (slice 1366). Distance is host-injected.
+inline auto IsInAuraRange(const float distance, const float auraRange, const float modelHitboxSize) -> bool
+{
+    return IsWithinAuraRange(distance, auraRange, modelHitboxSize);
+}
+
+// ShouldAcceptAuraAlly composes the HandleAura allies member filter:
+// !null && sameZone && inRange && !dead.
+// Host injects sameZone / inRange / isDead (safe defaults when memberNull).
+inline auto ShouldAcceptAuraAlly(
+    const bool memberNull,
+    const bool sameZone,
+    const bool inRange,
+    const bool isDead) -> bool
+{
+    return !ShouldRejectNullAuraMember(memberNull) && sameZone && inRange && !isDead;
 }
 
 } // namespace statuseffecthelpers
