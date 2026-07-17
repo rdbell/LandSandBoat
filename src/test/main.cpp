@@ -1804,6 +1804,11 @@ auto runMapwireOpenSocket3511SelfTests() -> bool;
 auto runMobutilsCanDropGil3513SelfTests() -> bool;
 auto runPortermoogleCanRetrieveItem3512SelfTests() -> bool;
 auto runRangerStripPartialRetain3510SelfTests() -> bool;
+auto runGarrisonFailByDeath3514SelfTests() -> bool;
+auto runLatentRejectProcess3515SelfTests() -> bool;
+auto runPetDetachPlayerMaster3516SelfTests() -> bool;
+auto runEinherjarShouldCycleWave3517SelfTests() -> bool;
+auto runCommandRejectEmptyLine3518SelfTests() -> bool;
 
 namespace
 {
@@ -3585,6 +3590,11 @@ namespace
         ok = runMobutilsCanDropGil3513SelfTests() && ok;
         ok = runPortermoogleCanRetrieveItem3512SelfTests() && ok;
         ok = runRangerStripPartialRetain3510SelfTests() && ok;
+        ok = runGarrisonFailByDeath3514SelfTests() && ok;
+        ok = runLatentRejectProcess3515SelfTests() && ok;
+        ok = runPetDetachPlayerMaster3516SelfTests() && ok;
+        ok = runEinherjarShouldCycleWave3517SelfTests() && ok;
+        ok = runCommandRejectEmptyLine3518SelfTests() && ok;
 
         return ok;
     }

@@ -3601,6 +3601,16 @@ set(SOURCES
     test_portermoogle_can_retrieve_item_3512.cpp
     test_ranger_strip_partial_retain_3510.h
     test_ranger_strip_partial_retain_3510.cpp
+    test_command_reject_empty_line_3518.h
+    test_command_reject_empty_line_3518.cpp
+    test_einherjar_should_cycle_wave_3517.h
+    test_einherjar_should_cycle_wave_3517.cpp
+    test_garrison_fail_by_death_3514.h
+    test_garrison_fail_by_death_3514.cpp
+    test_latent_reject_process_3515.h
+    test_latent_reject_process_3515.cpp
+    test_pet_detach_player_master_3516.h
+    test_pet_detach_player_master_3516.cpp
 )
 
 if(UNIX)

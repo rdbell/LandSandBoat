@@ -10,7 +10,8 @@
 //   - 2987: ShouldDetachPlayerMaster residual dual-wire suite
 //   - 3337: ShouldDetachPlayerMaster prior dedicated dual-wire expand residual 2987
 //   - 3414: ShouldDetachPlayerMaster prior dedicated dual-wire expand residual 2987
-//   - 3468: ShouldDetachPlayerMaster dedicated dual-wire expand residual 2987
+//   - 3468: ShouldDetachPlayerMaster prior dedicated dual-wire expand residual 2987
+//   - 3516: ShouldDetachPlayerMaster dedicated dual-wire expand residual 2987
 //   - residual 1414: Apply orchestration
 //
 // Dual-wire index:
@@ -21,7 +22,8 @@
 //   - 2987: ShouldDetachPlayerMaster residual dual-wire suite
 //   - 3337: ShouldDetachPlayerMaster prior dedicated dual-wire expand residual 2987
 //   - 3414: ShouldDetachPlayerMaster prior dedicated dual-wire expand residual 2987
-//   - 3468: ShouldDetachPlayerMaster =
+//   - 3468: ShouldDetachPlayerMaster prior dedicated dual-wire expand residual 2987
+//   - 3516: ShouldDetachPlayerMaster =
 //           hasMaster && masterPetIsSelf && masterIsPlayer
 //
 // Production host: CPetEntity::Die (entities/pet_entity.cpp) injects health /
@@ -35,8 +37,9 @@
 // Dedicated dual-wire suite: 3233 (test_petentity_despawn_zoning_3233).
 // Residual dual-wire suite: 2987 (test_pet_detach_player_master_2987).
 // Prior dedicated dual-wire suites: 3337 (test_pet_detach_player_master_3337),
-// 3414 (test_pet_detach_player_master_3414).
-// Dedicated dual-wire suite: 3468 (test_pet_detach_player_master_3468).
+// 3414 (test_pet_detach_player_master_3414),
+// 3468 (test_pet_detach_player_master_3468).
+// Dedicated dual-wire suite: 3516 (test_pet_detach_player_master_3516).
 // Prior pure port: slices 1414 / 2261 / 2262.
 
 namespace petdeathhelpers
@@ -71,7 +74,7 @@ namespace petdeathhelpers
 // Prior dedicated dual-wire suite: 3170 / test_petentity_despawn_zoning_3170.
 // Dedicated dual-wire suite: 3233 / test_petentity_despawn_zoning_3233.
 // Sibling residual only under 3233 (not re-expanded):
-// ShouldDetachPlayerMaster (3468 dedicated; prior 3414 / 3337; residual 2987).
+// ShouldDetachPlayerMaster (3516 dedicated; prior 3468 / 3414 / 3337; residual 2987).
 // Coverage: test_petentity_despawn_zoning_3233 (not in CMake/main).
 inline auto ShouldDespawnForZoning(
     const bool hpPositive,
@@ -83,15 +86,15 @@ inline auto ShouldDespawnForZoning(
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3468 — CPetEntity::Die player-master detach gate
-// (dedicated expand residual 2987; prior dedicated 3414 / 3337)
+// Slice 3516 — CPetEntity::Die player-master detach gate
+// (dedicated expand residual 2987; prior dedicated 3468 / 3414 / 3337)
 // ---------------------------------------------------------------------------
 
 // ShouldDetachPlayerMaster reports whether the dying pet still occupies its
 // player master's active pet slot so Die can call DetachPet.
 //
-// Formula (slice 3468 dedicated dual-wire; residual expand 2987 / pure 1414 /
-// 2262 / prior dedicated 3414 / 3337 — formula unchanged):
+// Formula (slice 3516 dedicated dual-wire; residual expand 2987 / pure 1414 /
+// 2262 / prior dedicated 3468 / 3414 / 3337 — formula unchanged):
 //   hasMaster && masterPetIsSelf && masterIsPlayer
 //
 // Host-injected scalars (no entity pointers):
@@ -107,11 +110,12 @@ inline auto ShouldDespawnForZoning(
 // Call site: CPetEntity::Die (pet_entity.cpp).
 // Residual dual-wire suite: 2987 / test_pet_detach_player_master_2987.
 // Prior dedicated dual-wire suites: 3337 / test_pet_detach_player_master_3337,
-// 3414 / test_pet_detach_player_master_3414.
-// Dedicated dual-wire suite: 3468 / test_pet_detach_player_master_3468.
+// 3414 / test_pet_detach_player_master_3414,
+// 3468 / test_pet_detach_player_master_3468.
+// Dedicated dual-wire suite: 3516 / test_pet_detach_player_master_3516.
 // Sibling zoning-despawn dual-wire: ShouldDespawnForZoning (3233 dedicated;
-// residual 2951 / prior 3170) — not re-expanded under 3468.
-// Coverage: test_pet_detach_player_master_3468 (not in CMake/main).
+// residual 2951 / prior 3170) — not re-expanded under 3516.
+// Coverage: test_pet_detach_player_master_3516 (not in CMake/main).
 inline auto ShouldDetachPlayerMaster(
     const bool hasMaster,
     const bool masterPetIsSelf,

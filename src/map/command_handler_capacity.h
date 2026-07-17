@@ -38,6 +38,9 @@
 //   - 3452: ShouldAuditGMCommand dedicated dual-wire expand residual 3011
 //           (auditLevel <= permission && auditLevel > 0; prior dedicated expand 3400 / 3161 /
 //            residual expand 3011 / pure 2792; formula unchanged)
+//   - 3518: ShouldRejectEmptyCommandLine dedicated dual-wire expand residual 2836
+//           (viewEmptyAfterTrim identity; prior dedicated expand 3362 / prior dual-wire
+//            3005 / residual 2836; formula unchanged)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
@@ -190,8 +193,8 @@ inline auto PlanCommandCallPostProps(const uint8 gmLevel, const int8 permission,
 
 // ShouldRejectEmptyCommandLine mirrors ParseCommandLine after trimLeft:
 //
-// Formula (slice 3362 dedicated dual-wire; residual expand 2836 / prior dual-wire
-// 3005 — formula unchanged):
+// Formula (slice 3518 dedicated dual-wire; residual expand 2836 / prior dual-wire
+// 3005 / prior dedicated expand 3362 — formula unchanged):
 //   viewEmptyAfterTrim
 //
 // true  → host returns {} (invalid parse) before name/arg token extraction
@@ -203,8 +206,9 @@ inline auto PlanCommandCallPostProps(const uint8 gmLevel, const int8 permission,
 // viewEmptyAfterTrim is view.empty() after space/tab left-trim.
 // Identity pure on the post-trim empty flag (true → empty commandline reject).
 // Prior pure port: slice 2836. Residual dual-wire suite: 3005 /
-// test_command_reject_empty_line_3005. Dedicated dual-wire suite is
-// test_command_reject_empty_line_3362. Formula is unchanged; this slice only
+// test_command_reject_empty_line_3005. Prior dedicated dual-wire suite: 3362 /
+// test_command_reject_empty_line_3362. Dedicated dual-wire suite is
+// test_command_reject_empty_line_3518. Formula is unchanged; this slice only
 // expands dual-wire docs + index + dedicated suite (free == inline == pin).
 inline auto ShouldRejectEmptyCommandLine(const bool viewEmptyAfterTrim) -> bool
 {
