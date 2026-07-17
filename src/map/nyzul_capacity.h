@@ -10,11 +10,15 @@
 //   - 2905: spawnChest regular-mob casket roll (spawnChest)
 //   - 2909: non-floor-100 NM vigil weapon roll (vigilWeaponDrop)
 //   - 2913: activateRuneOfTransfer NORMAL status gate
+//   - 2914: clearChests present + not-DISAPPEAR status gate
+//   - 2918: onGearEngage AVOID_AGRO penalty-trigger gate (pathos)
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
 // local pickSetPoint, scripts/globals/nyzul.lua xi.nyzul.vigilWeaponDrop /
-// xi.nyzul.spawnChest / xi.nyzul.activateRuneOfTransfer, and
+// xi.nyzul.spawnChest / xi.nyzul.activateRuneOfTransfer /
+// xi.nyzul.clearChests, scripts/globals/nyzul/pathos.lua
+// xi.nyzul.onGearEngage, and
 // scripts/zones/Nyzul_Isle/npcs/Rune_of_Transfer.lua onEventUpdate:
 //
 //   elseif math.random(1, 30) == 1 and instance:getLocalVar('freeFloor') == 0 then
@@ -57,14 +61,37 @@
 //     end
 //   end
 //
+//   for cofferID = TREASURE_COFFER_OFFSET, TREASURE_COFFER_OFFSET + 2 do
+//     local coffer = GetNPCByID(cofferID, instance)
+//     if coffer and coffer:getStatus() ~= xi.status.DISAPPEAR then
+//       coffer:setStatus(xi.status.DISAPPEAR)
+//       coffer:setAnimationSub(0)
+//       coffer:resetLocalVars()
+//     end
+//   end
+//   -- same present + not-DISAPPEAR gate for caskets when ENABLE_NYZUL_CASKETS
+//
+//   if
+//       instance:getLocalVar('gearObjective') == xi.nyzul.gearObjective.AVOID_AGRO and
+//       mob:getCE(target) == 0 and
+//       mob:getVE(target) == 0 and
+//       mob:getLocalVar('initialAgro') == 0
+//   then
+//     mob:setLocalVar('initialAgro', 1)
+//     addGearPenalty(mob)
+//   end
+//
 // Capacity is for future Lua/C++ inject so hosts dual-wire pure free
-// functions instead of re-inlining roll/localVar/floor/settings/status
-// comparisons. Helpers take host-injected scalars only (no instance /
-// entity / NPC pointers). Side effects (setStage FREE_FLOOR, freeFloor /
-// gearObjective / runeHandler localVar, Rune of Transfer timer / setProgress,
-// gear objective type pick, treasure grants, casket NPC activate, release of
-// other in-event chars, setAnimationSub on NORMAL rune) remain host-owned.
-// Prior pure port: OmegaXI slice 1088 (internal/nyzul floorflow / drops).
+// functions instead of re-inlining roll/localVar/floor/settings/status/
+// CE/VE/objective comparisons. Helpers take host-injected scalars only (no
+// instance / entity / NPC pointers). Side effects (setStage FREE_FLOOR,
+// freeFloor / gearObjective / runeHandler / initialAgro localVar, Rune of
+// Transfer timer / setProgress, gear objective type pick, treasure grants,
+// casket NPC activate, release of other in-event chars, setAnimationSub on
+// NORMAL rune, clearChests setStatus/setAnimationSub/resetLocalVars,
+// addGearPenalty entity apply) remain host-owned.
+// Prior pure port: OmegaXI slice 1088 (internal/nyzul floorflow / drops /
+// progress).
 
 namespace nyzulhelpers
 {
@@ -201,6 +228,45 @@ inline constexpr uint8 kStatusDisappear = 2;
 inline auto ShouldActivateRuneOfTransfer(const uint8 status) -> bool
 {
     return status == kStatusNormal;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2914 — clearChests present + not-DISAPPEAR status gate
+// ---------------------------------------------------------------------------
+
+// ShouldClearChestNPC mirrors clearChests status gate before DISAPPEAR reset:
+//   npc and npc:getStatus() ~= xi.status.DISAPPEAR
+//   ≡ present && status != kStatusDisappear
+// present is whether GetNPCByID returned a non-nil entity; status is the
+// host-injected NPC status scalar. Host still owns coffer/casket offset
+// loops, ENABLE_NYZUL_CASKETS gating, and setStatus(DISAPPEAR) /
+// setAnimationSub(0) / resetLocalVars side effects.
+inline auto ShouldClearChestNPC(const bool present, const uint8 status) -> bool
+{
+    return present && status != kStatusDisappear;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2918 — onGearEngage AVOID_AGRO penalty-trigger gate
+// ---------------------------------------------------------------------------
+
+// GearObjectiveAvoidAgro is xi.nyzul.gearObjective.AVOID_AGRO (pathos.lua /
+// nyzul.lua catalog pin). Match Go nyzul.GearObjectiveAvoidAgro.
+inline constexpr int32 GearObjectiveAvoidAgro = 1;
+
+// ShouldApplyGearEngagePenalty mirrors onGearEngage penalty-trigger gate:
+//   gearObjective == AVOID_AGRO and CE == 0 and VE == 0 and initialAgro == 0
+// gearObjective is the host-injected instance gearObjective localVar.
+// ce / ve are host-injected mob:getCE(target) / getVE(target).
+// initialAgro is mob:getLocalVar('initialAgro') (0 = first clean engage).
+// Host still sets initialAgro = 1 and calls addGearPenalty. Sibling
+// onGearDeath / DO_NOT_DESTROY residual gate is not dual-wired here.
+inline auto ShouldApplyGearEngagePenalty(const int32 gearObjective, const int32 ce, const int32 ve, const int32 initialAgro) -> bool
+{
+    return gearObjective == GearObjectiveAvoidAgro &&
+           ce == 0 &&
+           ve == 0 &&
+           initialAgro == 0;
 }
 
 } // namespace nyzulhelpers

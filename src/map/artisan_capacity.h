@@ -6,8 +6,10 @@
 //   - 2879: CanBuySack (artisan.lua moogleOnUpdate option 1 gate)
 //   - 2890: CanExpand (artisan.lua moogleOnUpdate option 2 expand gate)
 //   - 2912: GobbieCanUpgradeFlag (option 2 expand-failure event param)
+//   - 2916: CanClaimScroll (artisan.lua moogleOnFinish option 99 gate)
 //
-// Lua production host: scripts/globals/artisan.lua moogleOnUpdate:
+// Lua production host: scripts/globals/artisan.lua moogleOnUpdate /
+// moogleOnFinish:
 //
 //   if option == 1 then -- Buy sack
 //       if player:getGil() >= 9980
@@ -27,14 +29,24 @@
 //           player:updateEvent(0, 0, 0, 0, 0, 0, gobbieCanUpgrade, 0)
 //       end
 //   end
+//   -- moogleOnFinish option 99 Get Scroll:
+//   if option == 99 then
+//       if player:getCharVar('[artisan]nextScroll') < JstMidnight() then
+//           if npcUtil.giveItem(player, xi.item.SCROLL_OF_INSTANT_WARP) then
+//               player:setCharVar('[artisan]nextScroll', JstMidnight())
+//           end
+//       end
+//   end
 //
 // Host injects scalars only (no player / entity pointers):
-//   gil        — player:getGil()
-//   sackSize   — player:getContainerSize(xi.inv.MOGSACK)
-//   gobbieSize — player:getContainerSize(xi.inv.INVENTORY)
+//   gil         — player:getGil()
+//   sackSize    — player:getContainerSize(xi.inv.MOGSACK)
+//   gobbieSize  — player:getContainerSize(xi.inv.INVENTORY)
+//   nextScroll  — player:getCharVar('[artisan]nextScroll')
+//   jstMidnight — JstMidnight()
 //
-// delGil, changeContainerSize, setCharVar, and updateEvent remain host-owned.
-// Prior pure port: OmegaXI slice 0948 (internal/artisan).
+// delGil, changeContainerSize, setCharVar, giveItem, and updateEvent remain
+// host-owned. Prior pure port: OmegaXI slice 0948 (internal/artisan).
 
 namespace artisanhelpers
 {
@@ -80,6 +92,19 @@ inline constexpr int32 GobbieUpgradeCap = 80;
 inline auto GobbieCanUpgradeFlag(const int32 gobbieSize) -> int32
 {
     return gobbieSize < GobbieUpgradeCap ? 1 : 0;
+}
+
+// CanClaimScroll is the pure gate for option 99 (Get Scroll):
+//
+//   nextScroll < jstMidnight
+//
+// nextScroll is getCharVar('[artisan]nextScroll'); jstMidnight is JstMidnight().
+// Future Lua host injects both timestamps into this helper instead of
+// re-inlining the comparison. giveItem(SCROLL_OF_INSTANT_WARP) and
+// setCharVar('[artisan]nextScroll', JstMidnight()) remain host-owned.
+inline auto CanClaimScroll(const int64 nextScroll, const int64 jstMidnight) -> bool
+{
+    return nextScroll < jstMidnight;
 }
 
 } // namespace artisanhelpers

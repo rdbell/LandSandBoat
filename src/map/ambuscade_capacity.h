@@ -9,19 +9,23 @@
 //   - 2901: Ambuscade Tome onEventFinish enter CSID (378) gate
 //   - 2906: Gorpa-Masorpa onEventFinish intro CSID (385) → RoE 499 gate
 //   - 2910: Ambuscade Tome onEventFinish Intense VE createInstance gate
+//   - 2917: onInstanceComplete / onInstanceFailure always-start exit CS gate
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
 // (onInstanceTimeUpdate, onEventFinish) and scripts/globals/ambuscade.lua
-// (onTradeGorpaMasorpa, onEventFinishTome, onEventFinishGorpaMasorpa).
+// (onTradeGorpaMasorpa, onEventFinishTome, onEventFinishGorpaMasorpa,
+// onInstanceComplete, onInstanceFailure).
 // Capacity is for future Lua/C++ inject so hosts dual-wire pure free
 // functions instead of re-inlining comparisons. Helpers take host-injected
 // scalars only (no entity / instance / mob pointers). Side effects
 // (instance:complete, currency/KI writeback, setPos, trade body, tome
-// enter body, RoE onRecordTrigger, createInstance) remain host-owned.
+// enter body, RoE onRecordTrigger, createInstance, startEvent) remain
+// host-owned.
 //
 // Parity: internal/ambuscade complete_instance.go, warp_exit.go,
-// gorpa_trade.go, tome_enter.go, roe_intro.go, intense_ve.go
+// gorpa_trade.go, tome_enter.go, roe_intro.go, intense_ve.go,
+// start_exit.go
 
 namespace ambuscadehelpers
 {
@@ -134,6 +138,20 @@ inline constexpr int32 InstanceIntenseVE = 30000;
 inline auto ShouldCreateIntenseVEInstance(const int32 csid, const int32 option) -> bool
 {
     return csid == EventCSIDTomeRegister && option == TomeOptionIntenseVE;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2917 — onInstanceComplete / onInstanceFailure always-start exit CS
+// ---------------------------------------------------------------------------
+
+// ShouldStartExitEvent mirrors ambuscade.lua onInstanceComplete and
+// onInstanceFailure: both paths always call player:startEvent(10001) for
+// every char (no additional gate). Host still calls
+// startEvent(EventCSIDExit) after a true gate.
+// Parity: Go ShouldStartExitEvent.
+inline auto ShouldStartExitEvent() -> bool
+{
+    return true;
 }
 
 } // namespace ambuscadehelpers

@@ -7,6 +7,7 @@
 //   - 2893: CanRestoreHorn (Damsel Memento pure gate before 25% roll)
 //   - 2907: HornBreakRoll (checkHornBreak 5% roll after CanBreakHorn)
 //   - 2911: HornRestoreRoll (Damsel Memento 25% roll after CanRestoreHorn)
+//   - 2915: ShouldDoubleGlowSkill (DI_GLOW double-up pure gate)
 //
 // Lua production host: scripts/globals/dark_ixion.lua
 //   local checkHornBreak = function(mob, attacker)
@@ -35,18 +36,31 @@
 //       end
 //     end
 //
+//   xi.darkixion.onMobWeaponSkill (DI_GLOW double-up):
+//     elseif skillID == xi.mobSkill.DI_GLOW then
+//       local chosenSkill = utils.randomEntry(skillList)
+//       mob:setBehavior(...)
+//       mob:setAutoAttackEnabled(false)
+//       mob:useMobAbility(chosenSkill)
+//       if mob:getAnimationSub() == animationSubs.GLOWING then
+//           mob:useMobAbility(chosenSkill)
+//       end
+//     end
+//
 // Host injects scalars only (no mob / attacker pointers):
 //   busy            — xi.combat.behavior.isEntityBusy(mob)   [CanBreakHorn]
 //   animSub         — mob:getAnimationSub()
 //   attackerInFront — attacker ~= nil and attacker:isInfront(mob)  [CanBreakHorn]
 //   roll1to100      — math.random(1, 100)  [HornBreakRoll / HornRestoreRoll]
 //
-// RNG generation (math.random) and changeHornState writeback remain host-owned.
+// RNG generation (math.random), useMobAbility / setBehavior writeback, and
+// changeHornState writeback remain host-owned.
 // Prior pure port: OmegaXI slice 0985 (internal/darkixion).
 // Dual-wire of Go darkixion.CanBreakHorn (slice 2885).
 // Dual-wire of Go darkixion.CanRestoreHorn (slice 2893).
 // Dual-wire of Go darkixion.HornBreakRoll (slice 2907).
 // Dual-wire of Go darkixion.HornRestoreRoll (slice 2911).
+// Dual-wire of Go darkixion.ShouldDoubleGlowSkill (slice 2915).
 
 namespace darkixionhelpers
 {
@@ -58,6 +72,7 @@ namespace darkixionhelpers
 //   GLOWING     = 3 — doubles up mobskills; brief horn regrowth
 // CanBreakHorn only accepts NORMAL or GLOWING.
 // CanRestoreHorn only accepts HORN_BROKEN.
+// ShouldDoubleGlowSkill only accepts GLOWING.
 inline constexpr int32 kAnimNormal     = 0;
 inline constexpr int32 kAnimTrample    = 1;
 inline constexpr int32 kAnimHornBroken = 2;
@@ -126,6 +141,20 @@ inline constexpr int32 HornRestoreChancePercent = 25;
 inline auto HornRestoreRoll(const int32 roll1to100) -> bool
 {
     return roll1to100 >= 1 && roll1to100 <= HornRestoreChancePercent;
+}
+
+// ShouldDoubleGlowSkill is the pure gate for DI_GLOW double-up of the
+// follow-up TP move:
+//
+//   animSub == AnimGlowing
+//
+// Host still owns getAnimationSub inject, skill-list pick (randomEntry),
+// setBehavior / setAutoAttackEnabled, and useMobAbility writeback (first and
+// optional second queue of the chosen skill).
+// Dual-wire of Go darkixion.ShouldDoubleGlowSkill.
+inline auto ShouldDoubleGlowSkill(const int32 animSub) -> bool
+{
+    return animSub == kAnimGlowing;
 }
 
 } // namespace darkixionhelpers

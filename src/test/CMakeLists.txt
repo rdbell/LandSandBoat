@@ -997,6 +997,16 @@ set(SOURCES
     test_artisan_gobbie_upgrade_2912.cpp
     test_nyzul_activate_rune_2913.h
     test_nyzul_activate_rune_2913.cpp
+    test_nyzul_clear_chest_2914.h
+    test_nyzul_clear_chest_2914.cpp
+    test_darkixion_double_glow_2915.h
+    test_darkixion_double_glow_2915.cpp
+    test_artisan_claim_scroll_2916.h
+    test_artisan_claim_scroll_2916.cpp
+    test_ambuscade_start_exit_2917.h
+    test_ambuscade_start_exit_2917.cpp
+    test_nyzul_gear_engage_penalty_2918.h
+    test_nyzul_gear_engage_penalty_2918.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h
