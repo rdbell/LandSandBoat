@@ -65,4 +65,14 @@ inline auto PlanCommandCallPostProps(const uint8 gmLevel, const int8 permission,
     return CommandCallPostPropsPlan{ false, ShouldAuditGMCommand(auditLevel, permission) };
 }
 
+// ShouldRejectEmptyCommandLine mirrors ParseCommandLine after trimLeft:
+//   if (view.empty()) return {};
+// Host dual-wires:
+//   if (ShouldRejectEmptyCommandLine(view.empty())) return {};
+// Identity pure on the post-trim empty flag (true → empty commandline reject).
+inline auto ShouldRejectEmptyCommandLine(const bool viewEmptyAfterTrim) -> bool
+{
+    return viewEmptyAfterTrim;
+}
+
 } // namespace commandhandlerhelpers

@@ -21,6 +21,8 @@
 
 #include "blacklistutils.h"
 
+#include "blacklist_capacity.h"
+
 #include "common/database.h"
 #include "common/utils.h"
 
@@ -38,7 +40,8 @@ auto detail::IsNameCharactersOnly(const std::string& name) -> bool
 
 auto detail::FullChunkFlags(const int totalCount, const int rowCount) -> std::pair<bool, bool>
 {
-    return { totalCount <= 12, totalCount == rowCount };
+    // Dual-wire pure capacity helper (default chunkSize 12).
+    return blacklistutilshelpers::FullChunkFlags(totalCount, rowCount);
 }
 
 auto IsBlacklisted(uint32 ownerId, uint32 targetId) -> bool

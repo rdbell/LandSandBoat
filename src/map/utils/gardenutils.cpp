@@ -22,6 +22,7 @@
 */
 
 #include "gardenutils.h"
+#include "garden_capacity.h"
 
 #include "common/database.h"
 #include "common/logging.h"
@@ -56,13 +57,15 @@ namespace gardenutils
 
 auto detail::ResultKey(const uint8 seed, const uint8 element1, const uint8 element2) -> uint32
 {
-    return (seed << 8) + (element1 << 4) + element2;
+    // Dual-wire pure packing helper (slice 2838).
+    return gardenutilshelpers::ResultKey(seed, element1, element2);
 }
 
 void detail::AppendResult(ResultMap& results, const uint8 seed, const uint8 element1, const uint8 element2,
                           const uint16 itemId, const uint8 minQuantity, const uint8 maxQuantity, const uint8 weight)
 {
-    results[ResultKey(seed, element1, element2)].emplace_back(itemId, minQuantity, maxQuantity, weight);
+    // Dual-wire pure packing helper used by LoadResultList (slice 2838).
+    results[gardenutilshelpers::ResultKey(seed, element1, element2)].emplace_back(itemId, minQuantity, maxQuantity, weight);
 }
 
 void LoadResultList()
@@ -289,7 +292,8 @@ std::tuple<uint16, uint8> CalculateResults(CCharEntity* PChar, CItemFlowerpot* P
 
     strength += (int16)((100 - strength) * (PItem->getStrength() / 32.0f));
 
-    uint32 resultUid = detail::ResultKey(PItem->getPlant(), PItem->getCommonCrystalFeed(), PItem->getExtraCrystalFeed());
+    // Dual-wire pure packing helper for result-map lookup (slice 2838).
+    uint32 resultUid = gardenutilshelpers::ResultKey(PItem->getPlant(), PItem->getCommonCrystalFeed(), PItem->getExtraCrystalFeed());
 
     GardenResult_t      item;
     int8                cumulativeWeight = 0;

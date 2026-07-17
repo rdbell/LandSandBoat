@@ -56,7 +56,8 @@ auto commandhandler::detail::ParseCommandLine(const std::string& commandline, co
     };
     auto view = std::string_view(commandline);
     trimLeft(view);
-    if (view.empty())
+    // Pure empty-commandline gate after trimLeft (slice 2836).
+    if (commandhandlerhelpers::ShouldRejectEmptyCommandLine(view.empty()))
         return {};
     auto out = ParsedCommand{ .name = std::string(popToken(view)), .valid = true };
     out.args.reserve(parameters.size());

@@ -21,6 +21,8 @@
 
 #include "jailutils.h"
 
+#include "utils/jailutils_capacity.h"
+
 #include "conquest_system.h"
 #include "entities/char_entity.h"
 
@@ -34,7 +36,8 @@ auto InPrison(const CCharEntity* PChar) -> bool
 {
     TracyZoneScoped;
 
-    return PChar->m_GMlevel == 0 && PChar->getZone() == ZONE_MORDION_GAOL;
+    // Pure policy dual-wire: jailutilshelpers::InPrison (slice 2837).
+    return jailutilshelpers::InPrison(PChar->m_GMlevel, PChar->getZone(), ZONE_MORDION_GAOL);
 }
 
 void Add(CCharEntity* PChar)

@@ -869,6 +869,16 @@ set(SOURCES
     test_status_is_asleep_2825.cpp
     test_status_eleven_roll_2833.h
     test_status_eleven_roll_2833.cpp
+    test_garden_result_key_2838.h
+    test_garden_result_key_2838.cpp
+    test_jail_in_prison_2837.h
+    test_jail_in_prison_2837.cpp
+    test_blacklist_chunk_flags_2834.h
+    test_blacklist_chunk_flags_2834.cpp
+    test_latent_all_active_2835.h
+    test_latent_all_active_2835.cpp
+    test_command_empty_line_2836.h
+    test_command_empty_line_2836.cpp
     test_attackround_multihit_1374.h
     test_attackround_multihit_1374.cpp
     test_attackround_create_attacks_plan_2756.h

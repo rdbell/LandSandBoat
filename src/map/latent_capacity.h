@@ -444,4 +444,22 @@ inline auto IsLiveAvatar(const bool isDead, const uint32 petID) -> bool
     return !isDead && petID < 21;
 }
 
+// --- Slice 2835: HasAllLatentsActive pure slot-inactive gate ---
+
+// ShouldMarkNotAllActive mirrors the loop body predicate in
+// CLatentEffectContainer::HasAllLatentsActive:
+//   !latent.IsActivated() && latent.GetSlot() == slot
+// Host injects isActivated and slotMatches (GetSlot() == slot). When true,
+// production sets allActive = false (continues scanning; does not early-return).
+inline auto ShouldMarkNotAllActive(const bool isActivated, const bool slotMatches) -> bool
+{
+    return !isActivated && slotMatches;
+}
+
+// DoesInactiveLatentDisqualifyAllActive is an alias of ShouldMarkNotAllActive.
+inline auto DoesInactiveLatentDisqualifyAllActive(const bool isActivated, const bool slotMatches) -> bool
+{
+    return ShouldMarkNotAllActive(isActivated, slotMatches);
+}
+
 } // namespace latenthelpers

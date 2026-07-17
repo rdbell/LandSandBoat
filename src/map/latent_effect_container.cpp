@@ -89,7 +89,9 @@ bool CLatentEffectContainer::HasAllLatentsActive(uint8 slot)
     for (auto iter = m_LatentEffectList.begin(); iter != m_LatentEffectList.end(); ++iter)
     {
         CLatentEffect& latent = *iter;
-        if (!latent.IsActivated() && latent.GetSlot() == slot)
+        // Dual-wire pure slot-inactive gate (slice 2835). Production continues
+        // scanning after finding inactive (does not early-return).
+        if (latenthelpers::ShouldMarkNotAllActive(latent.IsActivated(), latent.GetSlot() == slot))
         {
             allActive = false;
         }
