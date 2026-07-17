@@ -3151,6 +3151,16 @@ set(SOURCES
     test_apkallu_can_run_away_3287.cpp
     test_universalcontainer_set_item_3288.h
     test_universalcontainer_set_item_3288.cpp
+    test_attackutils_da_double_damage_3289.h
+    test_attackutils_da_double_damage_3289.cpp
+    test_salvage_claim_transport_3290.h
+    test_salvage_claim_transport_3290.cpp
+    test_treasurepool_lot_rare_3291.h
+    test_treasurepool_lot_rare_3291.cpp
+    test_extravaganza_can_afford_cipher_3292.h
+    test_extravaganza_can_afford_cipher_3292.cpp
+    test_command_permission_3293.h
+    test_command_permission_3293.cpp
 )
 
 if(UNIX)

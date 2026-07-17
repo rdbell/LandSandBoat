@@ -1579,6 +1579,11 @@ auto runSynergyClaimFurnace3285SelfTests() -> bool;
 auto runPortermoogleCanRetrieveItem3286SelfTests() -> bool;
 auto runApkalluCanRunAway3287SelfTests() -> bool;
 auto runUniversalcontainerSetItem3288SelfTests() -> bool;
+auto runAttackutilsDADoubleDamage3289SelfTests() -> bool;
+auto runSalvageClaimTransport3290SelfTests() -> bool;
+auto runTreasurepoolLotRare3291SelfTests() -> bool;
+auto runExtravaganzaCanAffordCipher3292SelfTests() -> bool;
+auto runCommandPermission3293SelfTests() -> bool;
 
 namespace
 {
@@ -3135,6 +3140,11 @@ namespace
         ok = runPortermoogleCanRetrieveItem3286SelfTests() && ok;
         ok = runApkalluCanRunAway3287SelfTests() && ok;
         ok = runUniversalcontainerSetItem3288SelfTests() && ok;
+        ok = runAttackutilsDADoubleDamage3289SelfTests() && ok;
+        ok = runSalvageClaimTransport3290SelfTests() && ok;
+        ok = runTreasurepoolLotRare3291SelfTests() && ok;
+        ok = runExtravaganzaCanAffordCipher3292SelfTests() && ok;
+        ok = runCommandPermission3293SelfTests() && ok;
 
         return ok;
     }

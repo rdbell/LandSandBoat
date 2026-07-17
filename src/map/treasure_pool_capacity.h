@@ -20,13 +20,15 @@
 //   - 3112: ShouldUpdatePoolForChar (!isDisappear UpdatePool visibility gate)
 //   - 3127: ShouldFlushPool (itemCount != 0 flush entry gate)
 //   - 3201: ShouldAutoResolveSolo dedicated dual-wire (auto_solo.go; expand residual 2938)
-//   - 3260: CanLotRareItem dedicated dual-wire (lot_rare.go; expand residual 2998)
+//   - 3260: CanLotRareItem prior dedicated dual-wire (lot_rare.go; expand residual 2998)
+//   - 3291: CanLotRareItem dedicated dual-wire expand residual 2998 (prior ~3260)
 //
 // Dual-wire index:
 //   - 2938: ShouldAutoResolveSolo residual dual-wire suite
 //   - 2998: CanLotRareItem residual dual-wire suite
 //   - 3201: ShouldAutoResolveSolo = memberCount == 1
-//   - 3260: CanLotRareItem = !itemIsRare || !alreadyHasItem
+//   - 3260: CanLotRareItem prior dedicated (!itemIsRare || !alreadyHasItem)
+//   - 3291: CanLotRareItem = !itemIsRare || !alreadyHasItem
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -51,7 +53,8 @@
 // Go dual-wire: treasurepool.CanLotRareItem
 // (internal/treasurepool/lot_rare.go).
 // Residual dual-wire suite: 2998 (test_treasure_lot_rare_2998).
-// Dedicated dual-wire suite: 3260 (test_treasurepool_lot_rare_3260).
+// Prior dedicated dual-wire suite: 3260 (test_treasurepool_lot_rare_3260).
+// Dedicated dual-wire suite: 3291 (test_treasurepool_lot_rare_3291).
 //
 // Production host: CTreasurePool::{lotItem,passItem,UpdatePool} /
 // PlanLotItemPreflight / PlanPassItemPreflight / PlanUpdatePool inject
@@ -242,13 +245,13 @@ inline auto CanLotWithInventory(const uint8 freeSlots) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3260 — lot rare-owned gate (dedicated expand residual 2998)
+// Slice 3291 — lot rare-owned gate (dedicated expand residual 2998; prior ~3260)
 // ---------------------------------------------------------------------------
 
 // CanLotRareItem mirrors !(rare && alreadyHas).
 //
-// Formula (slice 3260 dedicated dual-wire; residual expand 2998 / pure 1367 —
-// formula unchanged):
+// Formula (slice 3291 dedicated dual-wire expand residual 2998; prior dedicated
+// ~3260 / pure 1367 — formula unchanged):
 //   !itemIsRare || !alreadyHasItem
 //   // equivalent pin form: !(itemIsRare && alreadyHasItem)
 //
@@ -261,8 +264,9 @@ inline auto CanLotWithInventory(const uint8 freeSlots) -> bool
 // Dual-wire of Go treasurepool.CanLotRareItem.
 // Call site: PlanLotItemPreflight / CTreasurePool::lotItem after inventory gate.
 // Prior pure port: slice 1367. Residual dual-wire suite: 2998 /
-// test_treasure_lot_rare_2998. Dedicated dual-wire suite is
-// test_treasurepool_lot_rare_3260. Sibling dual-wire gates:
+// test_treasure_lot_rare_2998. Prior dedicated dual-wire suite: 3260 /
+// test_treasurepool_lot_rare_3260. Dedicated dual-wire suite is
+// test_treasurepool_lot_rare_3291. Sibling dual-wire gates:
 // CanLotWithInventory (2957), ShouldForceCheckOnFullPoolInsert (2981),
 // ShouldAutoResolveSolo (3201), ShouldRejectNullMember (3060),
 // ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094),

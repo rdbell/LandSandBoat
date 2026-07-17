@@ -23,6 +23,9 @@
 //           (!valid identity-not; residual expand 2990 / pure 2792)
 //   - 3263: ShouldAllowCommandPermission dedicated dual-wire
 //           (permission <= m_GMlevel after int promotions; residual expand 2940 / pure 2792)
+//   - 3293: ShouldAllowCommandPermission dedicated dual-wire expand residual 2940
+//           (permission <= m_GMlevel after int promotions; prior dedicated expand 3263 /
+//            residual expand 2940 / pure 2792; formula unchanged)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
@@ -101,8 +104,8 @@ inline auto ShouldRejectEmptyCommandName(const bool valid) -> bool
 
 // ShouldAllowCommandPermission mirrors !(permission > PChar->m_GMlevel).
 //
-// Formula (slice 3263 dedicated dual-wire; residual expand 2940 / pure 2792 —
-// formula unchanged):
+// Formula (slice 3293 dedicated dual-wire; residual expand 2940 / pure 2792 —
+// prior dedicated expand 3263; formula unchanged):
 //   static_cast<int>(permission) <= static_cast<int>(gmLevel)
 // which is equivalent to !(permission > gmLevel) after usual arithmetic
 // conversions promote int8 / uint8 to int.
@@ -114,8 +117,9 @@ inline auto ShouldRejectEmptyCommandName(const bool valid) -> bool
 // Dual-wire of Go command.ShouldAllowCommandPermission.
 // Call site: CCommandHandler::call via PlanCommandCallPostProps after cmdprops load.
 // Prior pure port: slice 2792. Residual dual-wire suite: 2940 /
-// test_command_permission_2940. Dedicated dual-wire suite is
-// test_command_permission_3263. Formula is unchanged; this slice only
+// test_command_permission_2940. Prior dedicated dual-wire suite: 3263 /
+// test_command_permission_3263. Dedicated dual-wire suite is
+// test_command_permission_3293. Formula is unchanged; this slice only
 // expands dual-wire docs + index + dedicated suite.
 inline auto ShouldAllowCommandPermission(const uint8 gmLevel, const int8 permission) -> bool
 {
