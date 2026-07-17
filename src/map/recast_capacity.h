@@ -121,6 +121,14 @@ inline auto IsNewRecastEntry(const bool entryMissing) -> bool
     return entryMissing;
 }
 
+// RecastIDFromLootRecast mirrors static_cast<Recast>(LootRecastID) for loot
+// thin wrappers (HasLootRecast / AddLootRecast). Identity cast of uint16
+// (slice 2827). Host still owns Has(RECAST_LOOT, id) lookup.
+inline auto RecastIDFromLootRecast(const uint16 lootRecastID) -> uint16
+{
+    return lootRecastID;
+}
+
 // DurationSecondsFloor mirrors timer::count_seconds for HasRecast request.
 // For non-negative durations this is units / 1s; host supplies already-floored seconds.
 inline auto RequestSecondsAsCharges(const int64 durationSeconds) -> int64

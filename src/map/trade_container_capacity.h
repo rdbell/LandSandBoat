@@ -59,4 +59,11 @@ inline auto TradeSlotTotalContribution(const std::uint16_t itemID, const std::ui
     return itemID == TradeCurrencyItemID ? 1u : quantity;
 }
 
+// TradeSlotCountsTowardSlotCount mirrors getSlotCount occupancy:
+//   m_itemID[slot] != 0  (slice 2824). Gil 0xFFFF still counts as occupied.
+inline auto TradeSlotCountsTowardSlotCount(const std::uint16_t itemID) -> bool
+{
+    return itemID != 0;
+}
+
 } // namespace tradecontainerhelpers

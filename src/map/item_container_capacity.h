@@ -109,4 +109,11 @@ inline auto MatchesSearchItemWithSpace(
     return slotOccupied && idMatches && HasSpaceForQuantity(quantity, stackSize, requestQuantity);
 }
 
+// FreeSlotsCount mirrors GetFreeSlotsCount: unsigned size-minus-count.
+// When count > size, the subtraction wraps (uint8 underflow).
+inline auto FreeSlotsCount(const std::uint8_t size, const std::uint8_t count) -> std::uint8_t
+{
+    return size - count;
+}
+
 } // namespace itemcontainerhelpers

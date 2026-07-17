@@ -16,6 +16,7 @@
 #include <array>
 
 #include "0x08d_job_points.h"
+#include "job_points_capacity.h"
 
 namespace jobpointshelpers
 {
@@ -40,10 +41,13 @@ struct FullPlan
 
 [[nodiscard]] inline auto EntryFor(const TypeFacts facts) -> jobpoint_t
 {
+    // next is the raise cost for the current value (display path). Dual-wired
+    // through GetJobPointCost (slice 2828); host JobPointCost macro is in
+    // scope via job_points.h so the macro-safe alias is required.
     return {
         .index  = static_cast<uint16>(facts.id & 0x1F),
         .job_no = static_cast<uint16>(facts.id >> 5),
-        .next   = static_cast<uint16>((facts.value + 1) % 21),
+        .next   = static_cast<uint16>(GetJobPointCost(facts.value)),
         .level  = static_cast<uint16>(facts.value),
     };
 }

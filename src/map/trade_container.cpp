@@ -101,10 +101,11 @@ uint32 CTradeContainer::getTotalQuantity()
 
 uint8 CTradeContainer::getSlotCount()
 {
+    // Pure occupancy: tradecontainerhelpers::TradeSlotCountsTowardSlotCount (slice 2824).
     uint8 count = 0;
     for (std::size_t slotID = 0; slotID < m_PItem.size(); ++slotID)
     {
-        if (m_itemID[slotID] != 0)
+        if (tradecontainerhelpers::TradeSlotCountsTowardSlotCount(m_itemID[slotID]))
         {
             count += 1;
         }

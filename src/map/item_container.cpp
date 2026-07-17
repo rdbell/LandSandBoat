@@ -49,7 +49,7 @@ uint8 CItemContainer::GetSize() const
 
 uint8 CItemContainer::GetFreeSlotsCount() const
 {
-    return m_size - m_count;
+    return itemcontainerhelpers::FreeSlotsCount(m_size, m_count);
 }
 
 /************************************************************************

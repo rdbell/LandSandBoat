@@ -239,7 +239,8 @@ bool CRecastContainer::Has(RECASTTYPE type, Recast id)
 
 bool CRecastContainer::HasLootRecast(LootRecastID id)
 {
-    return Has(RECAST_LOOT, static_cast<Recast>(id));
+    // Pure identity cast: RecastIDFromLootRecast (slice 2827); host owns Has.
+    return Has(RECAST_LOOT, static_cast<Recast>(recasthelpers::RecastIDFromLootRecast(static_cast<uint16>(id))));
 }
 
 /************************************************************************

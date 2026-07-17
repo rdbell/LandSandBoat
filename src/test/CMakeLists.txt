@@ -447,6 +447,8 @@ set(SOURCES
     test_item_search_space_2808.cpp
     test_item_search_match_2823.h
     test_item_search_match_2823.cpp
+    test_item_free_slots_2826.h
+    test_item_free_slots_2826.cpp
     test_notoriety_prune_2807.h
     test_notoriety_prune_2807.cpp
     test_notoriety_add_2818.h
@@ -561,6 +563,8 @@ set(SOURCES
     test_trade_setitem_entry_2812.cpp
     test_trade_total_quantity_2821.h
     test_trade_total_quantity_2821.cpp
+    test_trade_slot_count_2824.h
+    test_trade_slot_count_2824.cpp
     test_recast_container.h
     test_recast_container.cpp
     test_trait.h
@@ -579,6 +583,8 @@ set(SOURCES
     test_jobpoints_raise_plan_2803.cpp
     test_jobpoints_exist_2815.h
     test_jobpoints_exist_2815.cpp
+    test_jobpoints_cost_2828.h
+    test_jobpoints_cost_2828.cpp
     test_enmity_container.h
     test_enmity_container.cpp
     test_modifier.h
@@ -833,6 +839,8 @@ set(SOURCES
     test_recast_reset_ability_2800.cpp
     test_recast_change_job_2814.h
     test_recast_change_job_2814.cpp
+    test_recast_loot_2827.h
+    test_recast_loot_2827.cpp
     test_status_effect_add_remove_1371.h
     test_status_effect_add_remove_1371.cpp
     test_status_effect_delete_1372.h
@@ -849,6 +857,8 @@ set(SOURCES
     test_status_bust_effect_2817.cpp
     test_status_wakeup_2820.h
     test_status_wakeup_2820.cpp
+    test_status_is_asleep_2825.h
+    test_status_is_asleep_2825.cpp
     test_attackround_multihit_1374.h
     test_attackround_multihit_1374.cpp
     test_attackround_create_attacks_plan_2756.h

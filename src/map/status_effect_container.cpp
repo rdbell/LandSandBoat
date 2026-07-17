@@ -2318,10 +2318,11 @@ bool CStatusEffectContainer::CheckForElevenRoll()
 
 bool CStatusEffectContainer::IsAsleep()
 {
+    // Pure membership: IsAsleepStatusID (slice 2825; alias of IsAsleepEffectID).
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
         if (!PStatusEffect->isDeleted() &&
-            statuseffecthelpers::IsAsleepEffectID(static_cast<uint16>(PStatusEffect->GetStatusID())))
+            statuseffecthelpers::IsAsleepStatusID(static_cast<uint16>(PStatusEffect->GetStatusID())))
         {
             return true;
         }

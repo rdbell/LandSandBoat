@@ -51,6 +51,7 @@
 #include "item_container.h"
 #include "items.h"
 #include "job_points.h"
+#include "job_points_capacity.h"
 #include "latent_effect_container.h"
 #include "linkshell.h"
 #include "mob_modifier.h"
@@ -9532,7 +9533,9 @@ void CLuaBaseEntity::masterJob()
 
         for (auto x = 0; x < pointsNeeded; x++)
         {
-            auto cost = JobPointCost(points->value);
+            // Dual-wired through GetJobPointCost (slice 2828); host macro would
+            // expand JobPointCost even under jobpointshelpers:: qualification.
+            auto cost = jobpointshelpers::GetJobPointCost(points->value);
             PChar->PJobPoints->SetJobPoints(currentJP + cost);
             PChar->PJobPoints->RaiseJobPoint((JOBPOINT_TYPE)i);
         }

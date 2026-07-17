@@ -2,13 +2,16 @@
 
 #include "common/cbasetypes.h"
 
-// Pure CJobPoints helpers dual-wired from job_points.cpp:
+// Pure CJobPoints helpers dual-wired from job_points.cpp / host call sites:
 // - RaiseJobPoint admission/spend plan (slice 2803)
 // - IsJobPointExist pure bounds (slice 2815)
+// - JobPointCost display/query dual-wire (slice 2828)
 // SQL UPDATE and jobpointutils::RefreshGiftMods stay host-side.
 //
 // JobPointCost may already be a host macro from job_points.h; clear it while
 // defining the pure helper so the shared name stays testable, then restore.
+// Call sites that still have the host macro in scope must use GetJobPointCost
+// (macro-safe alias) rather than JobPointCost, which would expand the macro.
 
 #ifdef JobPointCost
 #pragma push_macro("JobPointCost")
@@ -21,9 +24,18 @@ namespace jobpointshelpers
 
 // JobPointCost is the pure form of the JobPointCost macro: (value + 1) % 21.
 // Cost is 0 when value is 20, which blocks further raises (cap at 20).
+// Prefer GetJobPointCost at production sites that include job_points.h (macro).
 inline auto JobPointCost(const uint8 value) -> uint8
 {
     return static_cast<uint8>((value + 1) % 21);
+}
+
+// GetJobPointCost is the dual-wire-friendly alias of JobPointCost for call
+// sites that still have the host JobPointCost macro in scope (function-like
+// macros expand even under namespace qualification).
+inline auto GetJobPointCost(const uint8 value) -> uint8
+{
+    return JobPointCost(value);
 }
 
 // RaiseJobPointPlan is the pure admission/spend outcome for RaiseJobPoint.
@@ -39,6 +51,14 @@ struct RaiseJobPointPlan
 inline auto ShouldApplyRaiseJobPoint(const uint8 cost, const uint16 currentJp) -> bool
 {
     return cost != 0 && currentJp >= cost;
+}
+
+// ShouldRaiseAffordable is the display/query form of the spend gate:
+// cost = JobPointCost(currentValue); return cost != 0 && currentJp >= cost.
+// Does not check type presence (unlike PlanRaiseJobPoint).
+inline auto ShouldRaiseAffordable(const uint8 currentValue, const uint16 currentJp) -> bool
+{
+    return ShouldApplyRaiseJobPoint(JobPointCost(currentValue), currentJp);
 }
 
 // PlanRaiseJobPoint short-circuits in production RaiseJobPoint order:
@@ -70,6 +90,20 @@ inline auto PlanRaiseJobPoint(
 inline constexpr uint16 kCategoryCount     = 22;
 inline constexpr uint16 kCategoryStart     = 0x020;
 inline constexpr uint16 kJPTypePerCategory = 10;
+// kMaxTypeLevel matches Cost(20)==0 raise cap / Lua MaxTypeLevel (slice 2828).
+inline constexpr uint8 kMaxTypeLevel = 20;
+
+// TotalCostToLevel is the pure sum of raise costs from level 0 to level:
+//   sum_{i=0}^{level-1} JobPointCost(i) = level*(level+1)/2 for level <= 20.
+// Levels above kMaxTypeLevel clamp to kMaxTypeLevel (210 JP). Level 0 → 0.
+inline auto TotalCostToLevel(uint8 level) -> uint16
+{
+    if (level > kMaxTypeLevel)
+    {
+        level = kMaxTypeLevel;
+    }
+    return static_cast<uint16>(static_cast<uint16>(level) * static_cast<uint16>(level + 1) / 2);
+}
 
 // CategoryIndexByType mirrors JobPointsCategoryIndexByJpType: jpType >> 5.
 // Named to avoid clashing with the host macro of the same shape.

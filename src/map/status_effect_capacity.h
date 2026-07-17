@@ -589,6 +589,12 @@ inline auto IsAsleepEffectID(const uint16 id) -> bool
     return id == StatusIDSleepI || id == StatusIDSleepIi || id == StatusIDLullaby;
 }
 
+// IsAsleepStatusID is the slice-2825 name for IsAsleepEffectID (same membership).
+inline auto IsAsleepStatusID(const uint16 id) -> bool
+{
+    return IsAsleepEffectID(id);
+}
+
 // IsConfrontationFlag mirrors HasEffectFlag(Confrontation).
 inline auto IsConfrontationFlag(const bool hasConfrontationFlag) -> bool
 {
