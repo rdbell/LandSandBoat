@@ -2851,6 +2851,16 @@ set(SOURCES
     test_pet_clear_avatar_3137.cpp
     test_attackutils_ta_triple_3138.h
     test_attackutils_ta_triple_3138.cpp
+    test_spawn_despawn_new_day_3139.h
+    test_spawn_despawn_new_day_3139.cpp
+    test_battlefield_advance_tick_3140.h
+    test_battlefield_advance_tick_3140.cpp
+    test_campaign_debit_selected_3141.h
+    test_campaign_debit_selected_3141.cpp
+    test_besieged_standing_event_3142.h
+    test_besieged_standing_event_3142.cpp
+    test_ambuscade_intense_ve_3143.h
+    test_ambuscade_intense_ve_3143.cpp
 )
 
 if(UNIX)

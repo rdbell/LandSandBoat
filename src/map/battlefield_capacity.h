@@ -18,6 +18,7 @@
 //   - 3087: ShouldAddSjRestriction ((rules & ALLOW_SUBJOBS) == 0)
 //   - 3102: ShouldClearLevelRestriction (levelCap == 0)
 //   - 3123: ShouldCheckInProgress (!attacked)
+//   - 3140: ShouldAdvanceBattlefieldTick (pastTickPlusOneSecond identity)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -70,6 +71,11 @@
 // ShouldCheckInProgress; on true calls CheckInProgress().
 // Go dual-wire: battlefield.ShouldCheckInProgress
 // (internal/battlefield/check_in_progress.go).
+//
+// Production host: CBattlefield::onTick injects time > m_Tick + 1s into
+// ShouldAdvanceBattlefieldTick; on true advances m_Tick / fight tick path.
+// Go dual-wire: battlefield.ShouldAdvanceBattlefieldTick
+// (internal/battlefield/advance_battlefield_tick.go).
 
 namespace battlefieldhelpers
 {
@@ -378,16 +384,38 @@ inline auto ShouldUpdateRecordOnWin(const uint8 status, const bool recordTimeWor
 //   }
 // Prior pure port: slice 1361 (battlefield policy suite). Residual pins remain
 // in test_battlefield_policy_1361; dedicated dual-wire suite is
-// test_battlefield_check_in_progress_3123. Sibling residual tick halves
-// (ShouldAdvanceBattlefieldTick / ShouldHoldFightTick /
-// ShouldCaptureFinishTime) remain in this header (1361). Sibling dual-wires
-// 3059 / 3087 / 3102 (ApplyLevelRestrictions) left alone.
+// test_battlefield_check_in_progress_3123. Sibling dual-wire
+// ShouldAdvanceBattlefieldTick remains in this header (3140). Sibling residual
+// tick halves (ShouldHoldFightTick / ShouldCaptureFinishTime) remain in this
+// header (1361). Sibling dual-wires 3059 / 3087 / 3102 (ApplyLevelRestrictions)
+// left alone.
 inline auto ShouldCheckInProgress(const bool attacked) -> bool
 {
     return !attacked;
 }
 
 // ShouldAdvanceBattlefieldTick mirrors time > m_Tick + 1s.
+//
+// Formula (slice 3140 dual-wire):
+//   pastTickPlusOneSecond
+//
+// pastTickPlusOneSecond — host-injected time > m_Tick + 1s
+// true  → host advances m_Tick / fight tick / finish capture / OnBattlefieldTick
+// false → skip 1s tick advance this onTick
+//
+// Dual-wire of Go battlefield.ShouldAdvanceBattlefieldTick.
+// Call site: CBattlefield::onTick — host injects time > m_Tick + 1s:
+//   if (ShouldAdvanceBattlefieldTick(time > m_Tick + 1s)) {
+//       m_Tick = time;
+//       // fight tick / finish / OnBattlefieldTick ...
+//   }
+// Prior pure port: slice 1361 (battlefield policy suite). Residual pins remain
+// in test_battlefield_policy_1361; dedicated dual-wire suite is
+// test_battlefield_advance_tick_3140. Sibling residual tick halves
+// (ShouldHoldFightTick / ShouldCaptureFinishTime) remain in this header
+// (1361; ShouldHoldFightTick not dual-wired in this slice). Sibling dual-wire
+// ShouldCheckInProgress remains in this header (3123; left alone). Sibling
+// dual-wires 3059 / 3087 / 3102 (ApplyLevelRestrictions) left alone.
 inline auto ShouldAdvanceBattlefieldTick(const bool pastTickPlusOneSecond) -> bool
 {
     return pastTickPlusOneSecond;

@@ -5,12 +5,16 @@
 // Pure campaign helpers shared by dual-wire slices:
 //   - 2858: ShouldDebitBonusCost residual dual-wire suite
 //   - 3103: ShouldDebitBonusCost dedicated dual-wire (debit_bonus_cost.go)
+//   - 3141: ShouldDebitSelectedEffects dedicated dual-wire
+//           (debit_selected_effects.go)
 //   - 2946: CanAffordAlliedNotes residual dual-wire suite
 //   - 3072: CanAffordAlliedNotes dedicated dual-wire (afford_notes.go)
 //
 // Dual-wire index:
 //   - 2858: ShouldDebitBonusCost residual dual-wire suite
 //   - 3103: ShouldDebitBonusCost (bonusCost > 0)
+//   - 3141: ShouldDebitSelectedEffects
+//           (ShouldDebitBonusCost(SigilBonusCost(selectedEffects)))
 //   - 2946: CanAffordAlliedNotes residual dual-wire suite
 //   - 3072: CanAffordAlliedNotes (notes >= price)
 //
@@ -20,9 +24,10 @@
 // scalars only (no entity / currency pointers). Side effects (giveItem,
 // delCurrency) remain host-owned.
 // Go dual-wire: campaign.ShouldDebitBonusCost
-// (internal/campaign/debit_bonus_cost.go) and campaign.CanAffordAlliedNotes
-// (internal/campaign/afford_notes.go). Future Lua host injects free
-// functions then giveItem / delCurrency.
+// (internal/campaign/debit_bonus_cost.go), campaign.ShouldDebitSelectedEffects
+// (internal/campaign/debit_selected_effects.go), and
+// campaign.CanAffordAlliedNotes (internal/campaign/afford_notes.go). Future
+// Lua host injects free functions then giveItem / delCurrency.
 //
 // Prior pure port: OmegaXI slice 1115 (internal/campaign flow.go).
 
@@ -47,9 +52,58 @@ namespace campaignhelpers
 // Prior pure port: slice 1115. Residual dual-wire suite: 2858 /
 // test_campaign_debit_bonus_2858. Dedicated dual-wire suite is
 // test_campaign_debit_bonus_3103. Host still owns delCurrency after a true gate.
+// Sibling 3141 ShouldDebitSelectedEffects composes this gate; leave alone.
 inline auto ShouldDebitBonusCost(const int32 bonusCost) -> bool
 {
     return bonusCost > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 1115 residual / 3141 compose dependency — selected-effect bonus cost
+// ---------------------------------------------------------------------------
+
+// SigilBonusCost mirrors the Lua bits-1..4 × 50 loop (slice 1115 pure):
+//   bonusCost = 0
+//   for i = 1, 4:
+//     if selectedEffects bit i set: bonusCost += 50
+// Bit 0 (Regen per comments) is intentionally not billed.
+// Dual-wire dependency for ShouldDebitSelectedEffects (3141); formula
+// unchanged from Go campaign.SigilBonusCost (flow.go).
+inline auto SigilBonusCost(const int32 selectedEffects) -> int32
+{
+    int32 cost = 0;
+    for (int32 i = 1; i <= 4; ++i)
+    {
+        if ((selectedEffects & (1 << i)) != 0)
+        {
+            cost += 50;
+        }
+    }
+    return cost;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 3141 — apply-path selected-effects debit compose
+// ---------------------------------------------------------------------------
+
+// ShouldDebitSelectedEffects dual-wires the apply-path debit gate from
+// selectedEffects (option>>11):
+//
+// Formula (slice 3141 dual-wire; residual compose 2858 / pure 1115 —
+// formula unchanged):
+//   ShouldDebitSelectedEffects(selectedEffects) =
+//     ShouldDebitBonusCost(SigilBonusCost(selectedEffects))
+//
+// Which means debit when SigilBonusCost(selectedEffects) > 0.
+// Sibling ShouldDebitBonusCost (3103) is called, not reimplemented.
+//
+// Dual-wire of Go campaign.ShouldDebitSelectedEffects
+// (debit_selected_effects.go). Call site: future Lua sigilOnEventFinish
+// inject. Dedicated dual-wire suite: test_campaign_debit_selected_3141.
+// Host still owns delCurrency after a true gate.
+inline auto ShouldDebitSelectedEffects(const int32 selectedEffects) -> bool
+{
+    return ShouldDebitBonusCost(SigilBonusCost(selectedEffects));
 }
 
 // ---------------------------------------------------------------------------

@@ -15,15 +15,18 @@
 //   - 3092: ShouldRejectAtNightSpawn (ATNIGHT flag && not NIGHT/MIDNIGHT TOTD)
 //   - 3107: ShouldRejectAtEveningSpawn (ATEVENING flag && not evening TOTD window)
 //   - 3124: ShouldRejectSpawnNullOrDisabled (mobNull || !allowRespawn)
+//   - 3139: ShouldDespawnOnNewDay (SPAWNTYPE_ATNIGHT flag on NEWDAY TOTD)
 //
 // Production host: SpawnHandler::canSpawnNow (spawn_handler.cpp) injects
 // isFog = zone_->weather().current() == Weather::Fog and current TOTD before
-// CanSpawnNowPure.
+// CanSpawnNowPure. SpawnHandler::onTOTDChange NEWDAY injects m_SpawnType into
+// ShouldDespawnOnNewDay.
 // Go dual-wire: spawnslot.ShouldRejectFogSpawn (internal/spawnslot/reject_fog.go),
 // spawnslot.ShouldRejectAtNightSpawn (internal/spawnslot/reject_night_spawn.go),
 // spawnslot.ShouldRejectAtEveningSpawn (internal/spawnslot/reject_evening_spawn.go),
 // spawnslot.ShouldRejectSpawnNullOrDisabled
-// (internal/spawnslot/reject_spawn_null_disabled.go).
+// (internal/spawnslot/reject_spawn_null_disabled.go),
+// spawnslot.ShouldDespawnOnNewDay (internal/spawnslot/despawn_on_new_day.go).
 
 namespace spawnhelpers
 {
@@ -189,12 +192,27 @@ inline auto CanSpawnNowPure(
 // --- TOTD despawn policy ---
 
 // ShouldDespawnOnNewDay mirrors SPAWNTYPE_ATNIGHT on NEWDAY.
+// spawnType is host-injected m_SpawnType bitfield.
+//
+// Formula (slice 3139 dual-wire):
+//   HasSpawnTypeFlag(spawnType, SpawnTypeAtNight)
+//   // SpawnTypeAtNight = 0x01 (SPAWNTYPE_ATNIGHT)
+//
+// true  → despawn ATNIGHT-type mob at NEWDAY TOTD
+// false → keep (no ATNIGHT flag)
+//
+// Dual-wire of Go spawnslot.ShouldDespawnOnNewDay.
+// Call site: SpawnHandler::onTOTDChange NEWDAY branch host inject.
+// Sibling residual (leave alone): ShouldDespawnOnDawn (ATEVENING on DAWN).
+// Sibling dual-wires (leave alone): ShouldRejectAtNightSpawn (3092),
+// ShouldRejectAtEveningSpawn (3107), ShouldRejectSpawnNullOrDisabled (3124).
 inline auto ShouldDespawnOnNewDay(const uint8 spawnType) -> bool
 {
     return HasSpawnTypeFlag(spawnType, SpawnTypeAtNight);
 }
 
 // ShouldDespawnOnDawn mirrors SPAWNTYPE_ATEVENING on DAWN.
+// Residual only (not dual-wired by slice 3139).
 inline auto ShouldDespawnOnDawn(const uint8 spawnType) -> bool
 {
     return HasSpawnTypeFlag(spawnType, SpawnTypeAtEvening);

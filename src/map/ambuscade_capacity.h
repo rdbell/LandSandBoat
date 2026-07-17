@@ -8,12 +8,13 @@
 //   - 2895: Gorpa-Masorpa onTrade eminence-completed(499) gate
 //   - 2901: Ambuscade Tome onEventFinish enter CSID (378) gate
 //   - 2906: Gorpa-Masorpa onEventFinish intro CSID (385) → RoE 499 residual
-//   - 2910: Ambuscade Tome onEventFinish Intense VE createInstance gate
+//   - 2910: Ambuscade Tome onEventFinish Intense VE createInstance residual
 //   - 2917: onInstanceComplete / onInstanceFailure always-start exit CS residual
 //   - 3062: ShouldCompleteInstance dedicated dual-wire (complete_instance.go)
 //   - 3088: ShouldWarpOnExitEvent dedicated dual-wire (warp_exit.go)
 //   - 3109: ShouldStartExitEvent dedicated dual-wire (start_exit.go)
 //   - 3129: ShouldTriggerRoEIntro dedicated dual-wire (roe_intro.go)
+//   - 3143: ShouldCreateIntenseVEInstance dedicated dual-wire (intense_ve.go)
 //
 // Dual-wire index:
 //   - 2875: ShouldCompleteInstance residual dual-wire suite
@@ -21,12 +22,13 @@
 //   - 2895: ShouldProcessGorpaTrade (eminenceCompleted 499)
 //   - 2901: ShouldHandleTomeEnterFinish (csid 378)
 //   - 2906: ShouldTriggerRoEIntro residual dual-wire suite
-//   - 2910: ShouldCreateIntenseVEInstance (csid 374 + option 5)
+//   - 2910: ShouldCreateIntenseVEInstance residual dual-wire suite
 //   - 2917: ShouldStartExitEvent residual dual-wire suite
 //   - 3062: ShouldCompleteInstance (!anyMobAlive on onInstanceTimeUpdate)
 //   - 3088: ShouldWarpOnExitEvent (csid == EventCSIDExit / 10001)
 //   - 3109: ShouldStartExitEvent (always true / startEvent 10001)
 //   - 3129: ShouldTriggerRoEIntro (csid == EventCSIDIntro / 385 → RoE 499)
+//   - 3143: ShouldCreateIntenseVEInstance (csid 374 + option 5 → createInstance 30000)
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
@@ -174,7 +176,7 @@ inline auto ShouldTriggerRoEIntro(const int32 csid) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2910 — Ambuscade Tome onEventFinish Intense VE createInstance gate
+// Slice 2910 / 3143 — Ambuscade Tome onEventFinish Intense VE createInstance gate
 // ---------------------------------------------------------------------------
 
 // EventCSIDTomeRegister is the Ambuscade Tome register cutscene CSID
@@ -192,8 +194,24 @@ inline constexpr int32 InstanceIntenseVE = 30000;
 
 // ShouldCreateIntenseVEInstance mirrors ambuscade.lua onEventFinishTome:
 //   if csid == 374 and option == 5 then player:createInstance(30000) end
-// csid and option are host-injected event scalars. Host still calls
-// createInstance(InstanceIntenseVE) after a true gate.
+//
+// Formula (slice 3143 dual-wire; residual expand 2910):
+//   ShouldCreateIntenseVEInstance(csid, option) =
+//     csid == EventCSIDTomeRegister && option == TomeOptionIntenseVE
+//   // EventCSIDTomeRegister = 374
+//   // TomeOptionIntenseVE   = 5
+//
+// csid, option — host-injected event scalars from onEventFinishTome
+// true  → host calls createInstance(InstanceIntenseVE) (30000)
+// false → no hard-coded createInstance
+//
+// Dual-wire of Go ambuscade.ShouldCreateIntenseVEInstance.
+// Call site: future Lua onEventFinishTome inject.
+// Prior pure port: slice 1005. Residual dual-wire suite: 2910 /
+// test_ambuscade_intense_ve_2910. Dedicated dual-wire suite is
+// test_ambuscade_intense_ve_3143. Host still calls
+// createInstance(InstanceIntenseVE) after a true gate. Other tome options
+// do not take this hard-coded createInstance path upstream.
 inline auto ShouldCreateIntenseVEInstance(const int32 csid, const int32 option) -> bool
 {
     return csid == EventCSIDTomeRegister && option == TomeOptionIntenseVE;

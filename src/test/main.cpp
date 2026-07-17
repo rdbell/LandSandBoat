@@ -1429,6 +1429,11 @@ auto runStatusCanGainNoExisting3135SelfTests() -> bool;
 auto runRecastIsSimple3136SelfTests() -> bool;
 auto runPetClearAvatar3137SelfTests() -> bool;
 auto runAttackutilsTATriple3138SelfTests() -> bool;
+auto runSpawnDespawnNewDay3139SelfTests() -> bool;
+auto runBattlefieldAdvanceTick3140SelfTests() -> bool;
+auto runCampaignDebitSelected3141SelfTests() -> bool;
+auto runBesiegedStandingEvent3142SelfTests() -> bool;
+auto runAmbuscadeIntenseVE3143SelfTests() -> bool;
 
 namespace
 {
@@ -2835,6 +2840,11 @@ namespace
         ok = runRecastIsSimple3136SelfTests() && ok;
         ok = runPetClearAvatar3137SelfTests() && ok;
         ok = runAttackutilsTATriple3138SelfTests() && ok;
+        ok = runSpawnDespawnNewDay3139SelfTests() && ok;
+        ok = runBattlefieldAdvanceTick3140SelfTests() && ok;
+        ok = runCampaignDebitSelected3141SelfTests() && ok;
+        ok = runBesiegedStandingEvent3142SelfTests() && ok;
+        ok = runAmbuscadeIntenseVE3143SelfTests() && ok;
 
         return ok;
     }

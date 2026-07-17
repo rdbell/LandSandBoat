@@ -3,13 +3,17 @@
 #include "common/cbasetypes.h"
 
 // Pure Besieged free-function dual-wire helpers shared by slices:
-//   - 2859: ShouldUpdateStandingEvent / IsItemOptionPath (onEventUpdate gate)
+//   - 2859: ShouldUpdateStandingEvent / IsItemOptionPath residual dual-wire
+//           (onEventUpdate gate)
+//   - 3142: ShouldUpdateStandingEvent / IsItemOptionPath dedicated dual-wire
+//           (flow.go; formula unchanged)
 //   - 2945: CanAffordSanction / SanctionAffordCost residual dual-wire suite
 //   - 3093: CanAffordSanction / SanctionAffordCost dedicated dual-wire
 //           (afford_sanction.go)
 //
 // Dual-wire index:
-//   - 2859: ShouldUpdateStandingEvent (option < 0x40000000 item-path)
+//   - 2859: ShouldUpdateStandingEvent residual (option < 0x40000000 item-path)
+//   - 3142: ShouldUpdateStandingEvent (IsItemOptionPath / option < 0x40000000)
 //   - 2945: CanAffordSanction residual dual-wire suite
 //   - 3093: CanAffordSanction (imperialStanding >= SanctionAffordCost(option))
 //
@@ -33,7 +37,8 @@
 // addStatusEffect / messageSpecial writeback remains host-owned.
 //
 // Go dual-wire:
-//   - ShouldUpdateStandingEvent → internal/besieged (flow.go)
+//   - ShouldUpdateStandingEvent → internal/besieged (flow.go / 3142;
+//     residual 2859)
 //   - CanAffordSanction / SanctionAffordCost → internal/besieged/afford_sanction.go
 //
 // Note: namespace is besiegedhelpers (not besieged) to avoid clashing with the
@@ -54,9 +59,20 @@ inline auto IsItemOptionPath(const uint32 option) -> bool
 
 // ShouldUpdateStandingEvent is the pure free-function form of the onEventUpdate
 // option gate:
-//   option < 0x40000000
+//
+// Formula (slice 3142 dual-wire; residual expand 2859):
+//   ShouldUpdateStandingEvent(option) = IsItemOptionPath(option)
+//   // option < 0x40000000   // ItemOptionCeiling
+//
 // Dual-wires IsItemOptionPath. Host looks up the catalog entry first; missing
 // rows return early without calling this gate.
+// Dual-wires Go besieged.ShouldUpdateStandingEvent (flow.go / 3142).
+// Call site: future Lua onEventUpdate inject.
+// Prior pure port: slice 1120. Residual dual-wire suite: 2859 /
+// test_besieged_standing_event_2859. Dedicated dual-wire suite is
+// test_besieged_standing_event_3142. Host still owns catalog lookup and
+// updateEvent payload after a true gate.
+// Sibling 3093 CanAffordSanction is independent (left alone this slice).
 inline auto ShouldUpdateStandingEvent(const uint32 option) -> bool
 {
     return IsItemOptionPath(option);
