@@ -14,6 +14,7 @@
 //   - 2957: CanLotWithInventory (freeSlots != 0 inventory lot gate)
 //   - 2981: ShouldForceCheckOnFullPoolInsert (SlotID == PoolSize after free scan)
 //   - 2998: CanLotRareItem (!(rare && alreadyHas) rare-owned lot gate)
+//   - 3060: ShouldRejectNullMember (charNull || poolMismatch null-member gate)
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -35,6 +36,14 @@
 // item rare flag + already-has lookup into CanLotRareItem.
 // Go dual-wire: treasurepool.CanLotRareItem
 // (internal/treasurepool/lot_rare.go).
+//
+// Production host: CTreasurePool::{lotItem,passItem,UpdatePool} /
+// PlanLotItemPreflight / PlanPassItemPreflight / PlanUpdatePool inject
+// (PChar == nullptr) and (PChar->PTreasurePool != this) into
+// ShouldRejectNullMember.
+// Go dual-wire: treasurepool.ShouldRejectNullMember
+// (internal/treasurepool/reject_null_member.go).
+// Sibling residual (not dual-wired in 3060): ShouldRejectNullItem.
 
 namespace treasurepoolhelpers
 {
@@ -226,6 +235,19 @@ inline auto IsPassedLot(const uint16 lot) -> bool
 }
 
 // ShouldRejectNullMember mirrors PChar null || pool mismatch.
+//
+// Formula (slice 3060 dual-wire):
+//   charNull || poolMismatch
+//
+// charNull     — host-evaluated (PChar == nullptr)
+// poolMismatch — host-evaluated (PChar->PTreasurePool != this)
+// true  → host rejects (warn / return) before slot / item / inventory gates
+// false → host may proceed past the null-member early gate
+//
+// Dual-wire of Go treasurepool.ShouldRejectNullMember.
+// Call sites: PlanLotItemPreflight / PlanPassItemPreflight / PlanUpdatePool
+// and CTreasurePool::{lotItem,passItem,UpdatePool}.
+// Sibling residual (not dual-wired in 3060): ShouldRejectNullItem.
 inline auto ShouldRejectNullMember(const bool charNull, const bool poolMismatch) -> bool
 {
     return charNull || poolMismatch;

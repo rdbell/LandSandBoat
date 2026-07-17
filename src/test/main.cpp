@@ -1349,6 +1349,11 @@ auto runLinkshellLoadOnlineAdd3055SelfTests() -> bool;
 auto runMapsessionDestroyPendingPtr3056SelfTests() -> bool;
 auto runAssaultAutoComplete3057SelfTests() -> bool;
 auto runRangerStripDetectableFail3058SelfTests() -> bool;
+auto runBattlefieldApplyLevelCap3059SelfTests() -> bool;
+auto runTreasureRejectNullMember3060SelfTests() -> bool;
+auto runNyzulClearChestNPC3061SelfTests() -> bool;
+auto runAmbuscadeCompleteInstance3062SelfTests() -> bool;
+auto runMobtypeCanDeaggro3063SelfTests() -> bool;
 
 namespace
 {
@@ -2675,6 +2680,11 @@ namespace
         ok = runMapsessionDestroyPendingPtr3056SelfTests() && ok;
         ok = runAssaultAutoComplete3057SelfTests() && ok;
         ok = runRangerStripDetectableFail3058SelfTests() && ok;
+        ok = runBattlefieldApplyLevelCap3059SelfTests() && ok;
+        ok = runTreasureRejectNullMember3060SelfTests() && ok;
+        ok = runNyzulClearChestNPC3061SelfTests() && ok;
+        ok = runAmbuscadeCompleteInstance3062SelfTests() && ok;
+        ok = runMobtypeCanDeaggro3063SelfTests() && ok;
 
         return ok;
     }

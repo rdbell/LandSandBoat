@@ -10,8 +10,9 @@
 //   - 2905: spawnChest regular-mob casket roll (spawnChest)
 //   - 2909: non-floor-100 NM vigil weapon roll (vigilWeaponDrop)
 //   - 2913: activateRuneOfTransfer NORMAL status gate
-//   - 2914: clearChests present + not-DISAPPEAR status gate
+//   - 2914: clearChests present + not-DISAPPEAR status gate (prior dual-wire)
 //   - 2918: onGearEngage AVOID_AGRO penalty-trigger gate (pathos)
+//   - 3061: clearChests present + not-DISAPPEAR status gate (ShouldClearChestNPC)
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
@@ -231,16 +232,32 @@ inline auto ShouldActivateRuneOfTransfer(const uint8 status) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2914 — clearChests present + not-DISAPPEAR status gate
+// Slice 3061 — clearChests present + not-DISAPPEAR status gate
+// (prior dual-wire expansion: slice 2914; residual pure port: 1088)
 // ---------------------------------------------------------------------------
+// Dual-wire notes (slice 3061):
+//   Formula unchanged from residual 1088 / prior 2914 dual-wire:
+//     ShouldClearChestNPC(present, status) = present && status != kStatusDisappear
+//   Go dual-wire: nyzul.ShouldClearChestNPC (internal/nyzul/clear_chest.go).
+//   Production host is Lua xi.nyzul.clearChests (no map-server C++ call site);
+//   future Lua host injects present + status instead of re-inlining
+//   `coffer and coffer:getStatus() ~= xi.status.DISAPPEAR`.
+//   Host still owns coffer/casket offset loops, ENABLE_NYZUL_CASKETS gating,
+//   and setStatus(DISAPPEAR) / setAnimationSub(0) / resetLocalVars side effects.
+//   Status pin constants: kStatusNormal / kStatusDisappear (shared with 2913).
 
 // ShouldClearChestNPC mirrors clearChests status gate before DISAPPEAR reset:
 //   npc and npc:getStatus() ~= xi.status.DISAPPEAR
 //   ≡ present && status != kStatusDisappear
+//
+// Formula (slice 3061 dual-wire; unchanged):
+//   ShouldClearChestNPC(present, status) = present && status != kStatusDisappear
+//
 // present is whether GetNPCByID returned a non-nil entity; status is the
 // host-injected NPC status scalar. Host still owns coffer/casket offset
 // loops, ENABLE_NYZUL_CASKETS gating, and setStatus(DISAPPEAR) /
 // setAnimationSub(0) / resetLocalVars side effects.
+// Dual-wire of Go nyzul.ShouldClearChestNPC (clear_chest.go / slice 3061).
 inline auto ShouldClearChestNPC(const bool present, const uint8 status) -> bool
 {
     return present && status != kStatusDisappear;

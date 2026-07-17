@@ -2691,6 +2691,16 @@ set(SOURCES
     test_assault_auto_complete_3057.cpp
     test_ranger_strip_detectable_fail_3058.h
     test_ranger_strip_detectable_fail_3058.cpp
+    test_battlefield_apply_level_cap_3059.h
+    test_battlefield_apply_level_cap_3059.cpp
+    test_treasure_reject_null_member_3060.h
+    test_treasure_reject_null_member_3060.cpp
+    test_nyzul_clear_chest_npc_3061.h
+    test_nyzul_clear_chest_npc_3061.cpp
+    test_ambuscade_complete_instance_3062.h
+    test_ambuscade_complete_instance_3062.cpp
+    test_mobtype_can_deaggro_3063.h
+    test_mobtype_can_deaggro_3063.cpp
 )
 
 if(UNIX)

@@ -14,6 +14,7 @@
 //   - 3002: ShouldRejectAlreadyInBattlefield (hasBattlefield identity)
 //   - 3014: ShouldRegisterPC (!enter && !alreadyRegistered)
 //   - 3024: ShouldEnterPC (enter identity)
+//   - 3059: ShouldApplyLevelCap (levelCap > 0)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -43,6 +44,12 @@
 // ShouldRegisterPC after ShouldEnterPC(enter) is declined (else-if).
 // Go dual-wire: battlefield.ShouldRegisterPC
 // (internal/battlefield/register_pc.go).
+//
+// Production host: CBattlefield::ApplyLevelRestrictions injects
+// GetLevelCap() into ShouldApplyLevelCap; on true ResolveLevelCap +
+// LevelRestriction path, else DelStatusEffect(LevelRestriction).
+// Go dual-wire: battlefield.ShouldApplyLevelCap
+// (internal/battlefield/apply_level_cap.go).
 
 namespace battlefieldhelpers
 {
@@ -188,7 +195,28 @@ inline auto IsMobOrPetEntity(const bool isMob, const bool isPet) -> bool
 
 // --- ApplyLevelRestrictions pure cap resolution ---
 
-// ShouldApplyLevelCap mirrors cap > 0.
+// ShouldApplyLevelCap mirrors levelCap > 0.
+//
+// Formula (slice 3059 dual-wire):
+//   levelCap > 0
+//
+// levelCap — host-evaluated GetLevelCap() / raw battlefield level cap
+// true  → apply ResolveLevelCap + LevelRestriction status / dispel path
+// false → clear LevelRestriction (uncapped battlefield)
+//
+// Dual-wire of Go battlefield.ShouldApplyLevelCap.
+// Call site: CBattlefield::ApplyLevelRestrictions — host injects GetLevelCap():
+//   if (ShouldApplyLevelCap(rawCap)) {
+//       const uint8 cap = ResolveLevelCap(...);
+//       // DelStatusEffectsByFlag(Dispelable), DelStatusEffectSilent(Reraise),
+//       // AddStatusEffect(LevelRestriction, ..., cap, ...)
+//   } else {
+//       DelStatusEffect(LevelRestriction);
+//   }
+// Prior pure port: slice 1361 (battlefield policy suite). Residual pins remain
+// in test_battlefield_policy_1361; dedicated dual-wire suite is
+// test_battlefield_apply_level_cap_3059. Sibling residual ResolveLevelCap
+// remains in this header (1361; not dual-wired in slice 3059).
 inline auto ShouldApplyLevelCap(const uint8 levelCap) -> bool
 {
     return levelCap > 0;
