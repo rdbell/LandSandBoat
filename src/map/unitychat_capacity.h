@@ -43,9 +43,12 @@
 //   - 3768: ShouldRejectNullOnlineMember prior dedicated expand residual 3075
 //           (same formula; prior 3723/3678/3633/3588/3544/3487/3436/3386 retained;
 //            free==inline==pin==pin3723; dense 2¹)
-//   - 3813: ShouldRejectNullOnlineMember dedicated expand residual 3075
+//   - 3813: ShouldRejectNullOnlineMember prior dedicated expand residual 3075
 //           (same formula; prior 3768/3723/3678/3633/3588/3544/3487/3436/3386 retained;
 //            free==inline==pin==pin3768; dense 2¹)
+//   - 3858: ShouldRejectNullOnlineMember dedicated expand residual 3075
+//           (same formula; prior 3813/3768/3723/3678/3633/3588/3544/3487/3436/3386 retained;
+//            free==inline==pin==pin3813; dense 2¹)
 //   - 3096: ShouldAddMemberAfterOnlineLookup residual dual-wire
 //           (unityLoaded identity post-lookup gate)
 //   - 3254: ShouldAddMemberAfterOnlineLookup dedicated expand residual 3096
@@ -70,7 +73,7 @@
 // (internal/unitychat/reject_null_online_member.go; residual 3075 + prior
 // dedicated 3386 + prior dedicated 3436 + prior dedicated 3487 + prior
 // dedicated 3544 + prior dedicated 3588 + prior dedicated 3633 + prior
-// dedicated 3678 + prior dedicated 3723 + prior dedicated 3768 + dedicated 3813).
+// dedicated 3678 + prior dedicated 3723 + prior dedicated 3768 + prior dedicated 3813 + dedicated 3858).
 // Production host: unitychat::AddOnlineMember injects (PUnity != nullptr) into
 // ShouldAddMemberAfterOnlineLookup; on true PUnity->AddMember(PChar).
 // Go dual-wire: unitychat.ShouldAddMemberAfterOnlineLookup
@@ -136,7 +139,7 @@ inline auto FormatOnlineMemberNullWarning() -> std::string
 // DelOnlineMember before load / roster work.
 //
 // Formula (slice 3075 residual dual-wire; slice 3386 / 3436 / 3487 / 3544 /
-// 3588 / 3633 / 3678 / 3723 / 3768 prior dedicated expand; slice 3813 dedicated expand residual 3075):
+// 3588 / 3633 / 3678 / 3723 / 3768 / 3813 prior dedicated expand; slice 3858 dedicated expand residual 3075):
 //   charNull
 //
 // charNull — host-evaluated (PChar == nullptr)
@@ -153,10 +156,11 @@ inline auto FormatOnlineMemberNullWarning() -> std::string
 // test_unity_reject_null_online_3436, test_unity_reject_null_online_3487,
 // test_unity_reject_null_online_3544, test_unity_reject_null_online_3588,
 // test_unity_reject_null_online_3633, test_unity_reject_null_online_3678,
-// and test_unity_reject_null_online_3723, test_unity_reject_null_online_3768;
-// dedicated dual-wire suite is test_unity_reject_null_online_3813
-// (free == inline == pin == pin3768 residual pins; dense 2¹). Formula
-// unchanged from 1356 / 3075 / 3386 / 3436 / 3487 / 3544 / 3588 / 3633 / 3678 / 3723 / 3768.
+// and test_unity_reject_null_online_3723, test_unity_reject_null_online_3768,
+// test_unity_reject_null_online_3813;
+// dedicated dual-wire suite is test_unity_reject_null_online_3858
+// (free == inline == pin == pin3813 residual pins; dense 2¹). Formula
+// unchanged from 1356 / 3075 / 3386 / 3436 / 3487 / 3544 / 3588 / 3633 / 3678 / 3723 / 3768 / 3813.
 // Free / pin / inline all use direct return of charNull.
 // Sibling dual-wires (leave alone): ShouldLoadUnityChatOnOnlineAdd
 // (3050 residual / 3366 dedicated expand — do not thrash),
@@ -190,8 +194,8 @@ inline auto ShouldRejectNullOnlineMember(const bool charNull) -> bool
 // foundInCache × leader edges). Formula unchanged from 1356 / 3050.
 // Free / pin / inline all use direct return of !foundInCache && leader != 0.
 // Sibling dual-wires (leave alone): ShouldRejectNullOnlineMember
-// (3075 residual / 3386 / 3436 / 3487 / 3544 / 3588 / 3633 / 3678 / 3723 / 3768 prior dedicated /
-// 3813 dedicated expand), ShouldAddMemberAfterOnlineLookup (3096/3254),
+// (3075 residual / 3386 / 3436 / 3487 / 3544 / 3588 / 3633 / 3678 / 3723 / 3768 / 3813 prior dedicated /
+// 3858 dedicated expand), ShouldAddMemberAfterOnlineLookup (3096/3254),
 // ShouldReceiveUnityPacket (2933/3190), ShouldEraseUnityChatAfterDelOnline (3116),
 // ShouldReturnCachedUnityChat (3130). Residual siblings: always-false return,
 // null warning string, exception format (still 1356 residual).

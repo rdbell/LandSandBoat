@@ -28,7 +28,11 @@
 //           (can_apply_buff.go)
 //   - 3722: CanApplyBuff prior dedicated dual-wire expand residual 2968
 //           (can_apply_buff.go)
-//   - 3767: CanApplyBuff dedicated dual-wire expand residual 2968
+//   - 3767: CanApplyBuff prior dedicated dual-wire expand residual 2968
+//           (can_apply_buff.go)
+//   - 3812: CanApplyBuff prior dedicated dual-wire expand residual 2968
+//           (can_apply_buff.go)
+//   - 3857: CanApplyBuff dedicated dual-wire expand residual 2968
 //           (can_apply_buff.go)
 //
 // Dual-wire index:
@@ -43,7 +47,9 @@
 //   - 3632: CanApplyBuff prior dedicated dual-wire expand residual 2968
 //   - 3677: CanApplyBuff prior dedicated dual-wire expand residual 2968
 //   - 3722: CanApplyBuff prior dedicated dual-wire expand residual 2968
-//   - 3767: CanApplyBuff =
+//   - 3767: CanApplyBuff prior dedicated dual-wire expand residual 2968
+//   - 3812: CanApplyBuff prior dedicated dual-wire expand residual 2968
+//   - 3857: CanApplyBuff =
 //       !hasStatusEffect || (spellHasTier && statusTier < spellTier)
 //     (positive form: no status → true; status + !spellHasTier → false;
 //      else statusTier < spellTier)
@@ -87,8 +93,12 @@
 // test_avatarpet_can_apply_buff_3677.
 // Prior dedicated dual-wire expand residual 2968: 3722 /
 // test_avatarpet_can_apply_buff_3722.
-// Dedicated dual-wire expand residual 2968: 3767 /
+// Prior dedicated dual-wire expand residual 2968: 3767 /
 // test_avatarpet_can_apply_buff_3767.
+// Prior dedicated dual-wire expand residual 2968: 3812 /
+// test_avatarpet_can_apply_buff_3812.
+// Dedicated dual-wire expand residual 2968: 3857 /
+// test_avatarpet_can_apply_buff_3857.
 //
 // This capacity dual-wires the free-function form used by OmegaXI
 // internal/avatarpet (can_apply_buff.go) so hosts call CanApplyBuff instead
@@ -111,19 +121,22 @@ namespace avatarpethelpers
 // 3632 prior dedicated expand residual 2968 /
 // 3677 prior dedicated expand residual 2968 /
 // 3722 prior dedicated expand residual 2968 /
-// 3767 dedicated expand residual 2968
+// 3767 prior dedicated expand residual 2968 /
+// 3812 prior dedicated expand residual 2968 /
+// 3857 dedicated expand residual 2968
 // — tryBuffSpell canApplyBuff tier overwrite
 // ---------------------------------------------------------------------------
 
 // CanApplyBuff mirrors tryBuffSpell's canApplyBuff pure half:
 //
-// Formula (slice 3767 dedicated dual-wire; residual expand 2968 / pure 1043 /
+// Formula (slice 3857 dedicated dual-wire; residual expand 2968 / pure 1043 /
 // prior dedicated 3152 / prior dedicated expand residual 2968 3230 /
 // prior dedicated expand residual 2968 3370 / prior dedicated expand residual
 // 2968 3425 / prior dedicated expand residual 2968 3479 / prior dedicated
 // expand residual 2968 3543 / prior dedicated expand residual 2968 3587 /
 // prior dedicated expand residual 2968 3632 / prior dedicated expand residual
-// 2968 3677 / prior dedicated expand residual 2968 3722 —
+// 2968 3677 / prior dedicated expand residual 2968 3722 / prior dedicated
+// expand residual 2968 3767 / prior dedicated expand residual 2968 3812 —
 // formula unchanged):
 //   if !hasStatusEffect → true
 //   if !spellHasTier    → false  (Haste/Regen never reapply while active)
@@ -151,12 +164,13 @@ namespace avatarpethelpers
 // 2968 suite: test_avatarpet_can_apply_buff_3632. Prior dedicated dual-wire
 // expand residual 2968 suite: test_avatarpet_can_apply_buff_3677. Prior
 // dedicated dual-wire expand residual 2968 suite:
-// test_avatarpet_can_apply_buff_3722. Dedicated dual-wire expand residual 2968
-// suite is test_avatarpet_can_apply_buff_3767. Prior dedicated dual-wire expand residual
-// 2968 suite: test_avatarpet_can_apply_buff_3767. Dedicated dual-wire expand residual 2968
-// suite is test_avatarpet_can_apply_buff_3812.
+// test_avatarpet_can_apply_buff_3722. Prior dedicated dual-wire expand residual
+// 2968 suite: test_avatarpet_can_apply_buff_3767. Prior dedicated dual-wire
+// expand residual 2968 suite: test_avatarpet_can_apply_buff_3812. Dedicated
+// dual-wire expand residual 2968 suite is test_avatarpet_can_apply_buff_3857.
 // Matches Go avatarpet.CanApplyBuff (1043 residual / 2968 / 3152 / 3230 /
-// 3370 / 3425 / 3479 / 3543 / 3587 / 3632 / 3677 / 3722 / 3767 / 3812 dual-wire).
+// 3370 / 3425 / 3479 / 3543 / 3587 / 3632 / 3677 / 3722 / 3767 / 3812 / 3857
+// dual-wire).
 inline auto CanApplyBuff(const bool hasStatusEffect, const uint8 statusTier, const bool spellHasTier, const uint8 spellTier) -> bool
 {
     if (!hasStatusEffect)
