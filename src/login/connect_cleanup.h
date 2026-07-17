@@ -19,13 +19,19 @@
 //   - 1326: ShouldEraseOnClearCommand, authorized-time / stats helpers
 //   - 2963: ShouldEraseIdleSession (!hasDataSession && !hasViewSession &&
 //           nowAfterExpiry) dual-wire expansion
+//   - 2973: ShouldEraseEmptyIPEntry (ipMapEmpty) dual-wire expansion
 //
 // Production host: ConnectEngine::periodicCleanup (connect_engine.cpp) injects
 // session.data_session != nullptr, session.view_session != nullptr, and
 // IsSessionExpired(timer::now(), authorizedTime) into ShouldEraseIdleSession
-// before erasing map[ip][hash].
+// before erasing map[ip][hash]. After inner erases, injects
+// ipAddrIterator->second.size() == 0 into ShouldEraseEmptyIPEntry before
+// erasing the outer IP entry. ConnectApplication clear console path uses the
+// same empty-IP free function after ShouldEraseOnClearCommand erases.
 // Go dual-wire: loginsession.ShouldEraseIdleSession
-// (internal/loginsession/erase_idle.go).
+// (internal/loginsession/erase_idle.go);
+// loginsession.ShouldEraseEmptyIPEntry
+// (internal/loginsession/erase_empty_ip.go).
 
 namespace loginHelpers
 {
@@ -70,7 +76,22 @@ inline auto IsSessionExpired(
 }
 
 // ShouldEraseEmptyIPEntry mirrors ipAddrIterator->second.size() == 0 after
-// inner-map session erases in periodicCleanup.
+// inner-map session erases in periodicCleanup and the clear console path.
+//
+// Formula (slice 2973 dual-wire):
+//   ShouldEraseEmptyIPEntry(ipMapEmpty) = ipMapEmpty
+//
+// ipMapEmpty — host-evaluated ipAddrIterator->second.size() == 0
+//              (inner session map for this IP is empty after session erases)
+// true  → erase outer sessions map entry for that IP
+// false → keep outer IP entry (still has remaining session hashes)
+//
+// Dual-wire of Go loginsession.ShouldEraseEmptyIPEntry.
+// Call sites: ConnectEngine::periodicCleanup and ConnectApplication clear —
+// host injects size()==0 after inner erases.
+// Sibling session-error path (1322): ShouldEraseIPAfterSessionErase
+// (same polarity, different host; not this dual-wire).
+// Sibling idle erase (2963): ShouldEraseIdleSession.
 inline auto ShouldEraseEmptyIPEntry(const bool ipMapEmpty) -> bool
 {
     return ipMapEmpty;

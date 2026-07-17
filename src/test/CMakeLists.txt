@@ -2511,6 +2511,16 @@ set(SOURCES
     test_aman_thumbs_up_2967.cpp
     test_avatarpet_apply_buff_2968.h
     test_avatarpet_apply_buff_2968.cpp
+    test_spell_no_mp_cost_2969.h
+    test_spell_no_mp_cost_2969.cpp
+    test_spell_can_use_with_2970.h
+    test_spell_can_use_with_2970.cpp
+    test_notoriety_remove_member_2971.h
+    test_notoriety_remove_member_2971.cpp
+    test_mobutils_assign_parry_2972.h
+    test_mobutils_assign_parry_2972.cpp
+    test_login_erase_empty_ip_2973.h
+    test_login_erase_empty_ip_2973.cpp
 )
 
 if(UNIX)

@@ -1259,6 +1259,11 @@ auto runUniversalSetItem2965SelfTests() -> bool;
 auto runPorterRetrieveItem2966SelfTests() -> bool;
 auto runAmanThumbsUp2967SelfTests() -> bool;
 auto runAvatarpetApplyBuff2968SelfTests() -> bool;
+auto runSpellNoMPCost2969SelfTests() -> bool;
+auto runSpellCanUseWith2970SelfTests() -> bool;
+auto runNotorietyRemoveMember2971SelfTests() -> bool;
+auto runMobutilsAssignParry2972SelfTests() -> bool;
+auto runLoginEraseEmptyIP2973SelfTests() -> bool;
 
 namespace
 {
@@ -2495,6 +2500,11 @@ namespace
         ok = runPorterRetrieveItem2966SelfTests() && ok;
         ok = runAmanThumbsUp2967SelfTests() && ok;
         ok = runAvatarpetApplyBuff2968SelfTests() && ok;
+        ok = runSpellNoMPCost2969SelfTests() && ok;
+        ok = runSpellCanUseWith2970SelfTests() && ok;
+        ok = runNotorietyRemoveMember2971SelfTests() && ok;
+        ok = runMobutilsAssignParry2972SelfTests() && ok;
+        ok = runLoginEraseEmptyIP2973SelfTests() && ok;
 
         return ok;
     }

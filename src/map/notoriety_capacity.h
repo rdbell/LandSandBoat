@@ -6,15 +6,18 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2959: ShouldAddNotorietyMember (add admission three-bool AND)
+//   - 2971: ShouldRemoveNotorietyMember (remove admission two-bool AND)
 //   - residual 2807: hasEnmity stale-mob prune gates
 //   - residual 2818: add admission (prior pure port of ShouldAddNotorietyMember)
-//   - residual 2819: remove admission
+//   - residual 2819: remove admission (prior pure port of ShouldRemoveNotorietyMember)
 //   - residual 2832: hasEnmity / size pure reporting
 //
 // Production host: CNotorietyContainer in notoriety_container.cpp.
 // Helpers take host-injected scalars/bools only (no entity/enmity pointers).
 // Go dual-wire: notoriety.ShouldAddNotorietyMember
 // (internal/notoriety/add_member.go). Prior pure port: slice 2818.
+// Go dual-wire: notoriety.ShouldRemoveNotorietyMember
+// (internal/notoriety/remove_member.go). Prior pure port: slice 2819.
 
 namespace notorietyhelpers
 {
@@ -78,8 +81,19 @@ inline auto ShouldAddNotorietyMember(
 // ShouldRemoveNotorietyMember mirrors CNotorietyContainer::remove admission (~60):
 //   m_POwner && entity
 //
-// Host injects presence bools only (no entity pointers). When true, the host
-// may find/erase the entity from m_Lookup; when false, remove is a no-op.
+// Formula (slice 2971 dual-wire):
+//   ownerPresent && entityPresent
+//
+// Host-injected scalars (no entity pointers):
+//   ownerPresent  — m_POwner != nullptr
+//   entityPresent — entity != nullptr
+// true  → host may find/erase the entity from m_Lookup (std::set pointer
+//         identity; absent keys are no-ops)
+// false → remove is a no-op (nil owner or nil entity)
+//
+// Dual-wire of Go notoriety.ShouldRemoveNotorietyMember
+// (internal/notoriety/remove_member.go). Prior pure port: slice 2819.
+// Call site: CNotorietyContainer::remove (notoriety_container.cpp).
 inline auto ShouldRemoveNotorietyMember(const bool ownerPresent, const bool entityPresent) -> bool
 {
     return ownerPresent && entityPresent;

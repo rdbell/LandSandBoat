@@ -4,30 +4,38 @@
 
 #include <cstdint>
 
-// Pure mobutils / CMobEntity gil-eligibility dual-wire helpers.
+// Pure mobutils dual-wire helpers (OmegaXI internal/mobutils).
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2653: residual pure port (entities/mob_gil_policy.h mobgilhelpers)
 //   - 2960: CanDropGil (gilMin/gilMax/gilBonus eligibility gate)
+//   - 2972: ShouldAssignParrySkill (MOBMOD_CAN_PARRY > 0 gate)
 //
-// Production host: CMobEntity::CanDropGil / CanStealGil in mob_entity.cpp
-// injects getMobMod(MOBMOD_GIL_MIN/MAX/BONUS) into
-// mobgilhelpers::CanDropGil (same formula; residual 2653 surface).
+// Production hosts:
+//   - CMobEntity::CanDropGil / CanStealGil in mob_entity.cpp injects
+//     getMobMod(MOBMOD_GIL_MIN/MAX/BONUS) into mobgilhelpers::CanDropGil
+//     (same formula; residual 2653 surface).
+//   - CalculateMobStats in utils/mobutils.cpp injects
+//     getMobMod(MOBMOD_CAN_PARRY) into mobsetuphelpers::ShouldAssignParrySkill
+//     (same formula; residual 1623 surface in mob_setup_capacity.h).
 //
-// This capacity dual-wires the free-function form used by OmegaXI
-// internal/mobutils (gil_policy.go) so hosts call CanDropGil instead of
-// re-inlining:
+// This capacity dual-wires free-function forms used by OmegaXI
+// internal/mobutils so hosts call capacity helpers instead of re-inlining.
 //
+// CanDropGil:
 //   gilMax >= 0 && (gilMin > 0 || gilMax != 0 || gilBonus > 0)
-//
 // CanStealGil dual-wires through the same free function (production
 // CMobEntity::CanStealGil delegates to CanDropGil).
 //
-// Hosts inject the three gil mobmod scalars only (no CMobEntity*).
-// Gil drop amount / steal amount writeback remains host-owned.
+// ShouldAssignParrySkill:
+//   canParryMod > 0
 //
-// Go dual-wire: mobutils.CanDropGil / mobutils.CanStealGil
-// (internal/mobutils/gil_policy.go).
+// Hosts inject scalars only (no CMobEntity*). Gil drop amount / steal
+// amount / GetBaseSkill + WorkingSkills writeback remain host-owned.
+//
+// Go dual-wire:
+//   - mobutils.CanDropGil / mobutils.CanStealGil (gil_policy.go)
+//   - mobutils.ShouldAssignParrySkill (assign_parry.go)
 
 namespace mobutilshelpers
 {
@@ -49,6 +57,20 @@ inline auto CanDropGil(const int16 gilMin, const int16 gilMax, const int16 gilBo
 inline auto CanStealGil(const int16 gilMin, const int16 gilMax, const int16 gilBonus) -> bool
 {
     return CanDropGil(gilMin, gilMax, gilBonus);
+}
+
+// ShouldAssignParrySkill mirrors CalculateMobStats parry skill assignment
+// pure half (slice 2972):
+//
+//   canParryMod > 0
+//
+// canParryMod is host-evaluated getMobMod(MOBMOD_CAN_PARRY). When true the
+// host assigns WorkingSkills.skill[SKILL_PARRY] from GetBaseSkill using the
+// mod value as rank. Matches Go mobutils.ShouldAssignParrySkill and residual
+// mobsetuphelpers::ShouldAssignParrySkill (1623 / mob_setup_capacity.h).
+inline auto ShouldAssignParrySkill(const int16 canParryMod) -> bool
+{
+    return canParryMod > 0;
 }
 
 } // namespace mobutilshelpers

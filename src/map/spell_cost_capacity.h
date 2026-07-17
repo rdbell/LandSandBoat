@@ -9,14 +9,14 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 0813 / 1546 / 2104: CalculateSpellCost + zero gates residual suite
 //   - 2964: ShouldReturnZeroNullSpell (spellNull identity)
+//   - 2969: ShouldReturnZeroNoMPCost (!hasMPCost)
 //
 // Production host: battleutils::CalculateSpellCost injects
-// PSpell == nullptr into ShouldReturnZeroNullSpell before hasMPCost / cost.
+// PSpell == nullptr into ShouldReturnZeroNullSpell before hasMPCost / cost,
+// then PSpell->hasMPCost() into ShouldReturnZeroNoMPCost before pure cost body.
 // Go dual-wire: spell.ShouldReturnZeroNullSpell
-// (internal/spell/null_spell_cost.go).
-//
-// Sibling residual: ShouldReturnZeroNoMPCost (!hasMPCost) remains 2104 and is
-// not dual-wired in slice 2964.
+// (internal/spell/null_spell_cost.go) and spell.ShouldReturnZeroNoMPCost
+// (internal/spell/no_mp_cost.go).
 
 namespace spellcosthelpers
 {
@@ -48,14 +48,28 @@ constexpr std::int16_t SpellCostMax = 9999;
 // Host inject (battleutils::CalculateSpellCost):
 //   if (ShouldReturnZeroNullSpell(PSpell == nullptr)) return 0;
 //
-// ShouldReturnZeroNoMPCost remains 2104 residual sibling (not dual-wired here).
+// Sibling dual-wire: ShouldReturnZeroNoMPCost (slice 2969).
 constexpr auto ShouldReturnZeroNullSpell(const bool spellNull) -> bool
 {
     return spellNull;
 }
 
-// ShouldReturnZeroNoMPCost mirrors hasMPCost short-circuit after the null gate.
-// Residual 2104; evaluated only when ShouldReturnZeroNullSpell passes (2964).
+// ShouldReturnZeroNoMPCost mirrors CalculateSpellCost's hasMPCost short-circuit
+// after the null-spell gate. Host returns 0 (ninja tools / bard songs / trusts)
+// before stratagem / mod injects and the pure cost body when true.
+//
+// Formula (slice 2969 dual-wire):
+//   !hasMPCost
+//
+// hasMPCost — host-evaluated PSpell->hasMPCost() (only after non-null)
+// true  → has MP cost; gate passes; host continues to pure cost body
+// false → return 0 (no-MP-cost short-circuit)
+//
+// Dual-wire of Go spell.ShouldReturnZeroNoMPCost.
+// Host inject (battleutils::CalculateSpellCost):
+//   if (ShouldReturnZeroNoMPCost(PSpell->hasMPCost())) return 0;
+//
+// Evaluated only when ShouldReturnZeroNullSpell passes (2964).
 constexpr auto ShouldReturnZeroNoMPCost(const bool hasMPCost) -> bool
 {
     return !hasMPCost;
