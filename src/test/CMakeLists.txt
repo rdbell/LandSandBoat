@@ -3521,6 +3521,16 @@ set(SOURCES
     test_besieged_afford_sanction_3472.cpp
     test_aman_thumbs_up_3473.h
     test_aman_thumbs_up_3473.cpp
+    test_trade_bump_items_count_3474.h
+    test_trade_bump_items_count_3474.cpp
+    test_jobpoints_apply_raise_3475.h
+    test_jobpoints_apply_raise_3475.cpp
+    test_dynamis_can_unlock_sj_3476.h
+    test_dynamis_can_unlock_sj_3476.cpp
+    test_treasure_force_check_full_3477.h
+    test_treasure_force_check_full_3477.cpp
+    test_merit_lower_merit_3478.h
+    test_merit_lower_merit_3478.cpp
 )
 
 if(UNIX)

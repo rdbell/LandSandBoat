@@ -25,7 +25,8 @@
 //   - 3321: CanLotRareItem dedicated dual-wire expand residual 2998 (prior ~3291)
 //   - 3367: CanLotWithInventory dedicated dual-wire expand residual 2957
 //   - 3379: ShouldForceCheckOnFullPoolInsert prior dedicated dual-wire expand residual 2981
-//   - 3423: ShouldForceCheckOnFullPoolInsert dedicated dual-wire expand residual 2981 (prior 3379)
+//   - 3423: ShouldForceCheckOnFullPoolInsert prior dedicated dual-wire expand residual 2981 (prior 3379)
+//   - 3477: ShouldForceCheckOnFullPoolInsert dedicated dual-wire expand residual 2981 (prior 3423 / 3379)
 //
 // Dual-wire index:
 //   - 2938: ShouldAutoResolveSolo residual dual-wire suite
@@ -38,7 +39,8 @@
 //   - 3321: CanLotRareItem = !itemIsRare || !alreadyHasItem
 //   - 3367: CanLotWithInventory = freeSlots != 0
 //   - 3379: ShouldForceCheckOnFullPoolInsert prior dedicated = slotAfterFreeScan == PoolSize
-//   - 3423: ShouldForceCheckOnFullPoolInsert = slotAfterFreeScan == PoolSize
+//   - 3423: ShouldForceCheckOnFullPoolInsert prior dedicated = slotAfterFreeScan == PoolSize
+//   - 3477: ShouldForceCheckOnFullPoolInsert = slotAfterFreeScan == PoolSize
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -60,8 +62,9 @@
 // Go dual-wire: treasurepool.ShouldForceCheckOnFullPoolInsert
 // (internal/treasurepool/force_check_full.go).
 // Residual dual-wire suite: 2981 (test_treasure_force_check_full_2981).
-// Prior dedicated dual-wire suite: 3379 (test_treasure_force_check_full_3379).
-// Dedicated dual-wire suite: 3423 (test_treasure_force_check_full_3423).
+// Prior dedicated dual-wire suites: 3379 (test_treasure_force_check_full_3379),
+// 3423 (test_treasure_force_check_full_3423).
+// Dedicated dual-wire suite: 3477 (test_treasure_force_check_full_3477).
 //
 // Production host: CTreasurePool::lotItem / PlanLotItemPreflight injects
 // item rare flag + already-has lookup into CanLotRareItem.
@@ -193,14 +196,14 @@ inline auto DefaultFallbackSlot() -> uint8
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3423 — addItem full-pool force-check gate (dedicated expand residual 2981;
-// prior dedicated 3379 retained)
+// Slice 3477 — addItem full-pool force-check gate (dedicated expand residual 2981;
+// prior dedicated 3423 / 3379 retained)
 // ---------------------------------------------------------------------------
 
 // ShouldForceCheckOnFullPoolInsert mirrors SlotID == 10 after free-slot scan.
 //
-// Formula (slice 3423 dedicated dual-wire expand residual 2981; prior dedicated
-// 3379 / pure 1367 — formula unchanged):
+// Formula (slice 3477 dedicated dual-wire expand residual 2981; prior dedicated
+// 3423 / 3379 / pure 1367 — formula unchanged):
 //   slotAfterFreeScan == PoolSize
 //
 // slotAfterFreeScan — host-evaluated SlotID after free-slot scan
@@ -211,10 +214,10 @@ inline auto DefaultFallbackSlot() -> uint8
 // Dual-wire of Go treasurepool.ShouldForceCheckOnFullPoolInsert.
 // Call site: CTreasurePool::addItem after free-slot / eviction selection.
 // Prior pure port: slice 1367. Residual dual-wire suite: 2981 /
-// test_treasure_force_check_full_2981. Prior dedicated dual-wire suite: 3379 /
-// test_treasure_force_check_full_3379. Dedicated dual-wire suite is
-// test_treasure_force_check_full_3423. Sibling dual-wire gates:
-// CanLotWithInventory (3367), CanLotRareItem (3321),
+// test_treasure_force_check_full_2981. Prior dedicated dual-wire suites: 3379 /
+// test_treasure_force_check_full_3379, 3423 / test_treasure_force_check_full_3423.
+// Dedicated dual-wire suite is test_treasure_force_check_full_3477. Sibling
+// dual-wire gates: CanLotWithInventory (3367), CanLotRareItem (3321),
 // ShouldAutoResolveSolo (3201), ShouldRejectNullMember (3060),
 // ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094),
 // ShouldUpdatePoolForChar (3112), ShouldFlushPool (3127) — left residual.

@@ -10,7 +10,8 @@
 // - ShouldApplyRaiseJobPoint prior dedicated dual-wire expand residual 3012 (slice 3219)
 // - ShouldApplyRaiseJobPoint prior dedicated dual-wire expand residual 3012 (slice 3275)
 // - ShouldApplyRaiseJobPoint prior dedicated dual-wire expand residual 3012 (slice 3371)
-// - ShouldApplyRaiseJobPoint dedicated dual-wire expand residual 3012 (slice 3421)
+// - ShouldApplyRaiseJobPoint prior dedicated dual-wire expand residual 3012 (slice 3421)
+// - ShouldApplyRaiseJobPoint dedicated dual-wire expand residual 3012 (slice 3475)
 // SQL UPDATE and jobpointutils::RefreshGiftMods stay host-side.
 //
 // Dual-wire index (ShouldApplyRaiseJobPoint):
@@ -22,8 +23,10 @@
 //           (test_jobpoints_apply_raise_3275; formula unchanged; retained)
 //   - 3371: prior dedicated dual-wire expand residual 3012
 //           (test_jobpoints_apply_raise_3371; formula unchanged; retained)
-//   - 3421: dedicated dual-wire expand residual 3012
-//           (test_jobpoints_apply_raise_3421; formula unchanged)
+//   - 3421: prior dedicated dual-wire expand residual 3012
+//           (test_jobpoints_apply_raise_3421; formula unchanged; retained)
+//   - 3475: dedicated dual-wire expand residual 3012
+//           (test_jobpoints_apply_raise_3475; formula unchanged)
 //
 // JobPointCost may already be a host macro from job_points.h; clear it while
 // defining the pure helper so the shared name stays testable, then restore.
@@ -64,29 +67,31 @@ struct RaiseJobPointPlan
     uint8 cost{};
 };
 
-// --- Slice 3421: ShouldApplyRaiseJobPoint dedicated dual-wire expand residual 3012 ---
+// --- Slice 3475: ShouldApplyRaiseJobPoint dedicated dual-wire expand residual 3012 ---
 // Residual pure port: slice 2803 (PlanRaiseJobPoint admission/spend plan suite).
 // Residual dual-wire: slice 3012 (test_jobpoints_apply_raise_3012).
 // Prior dedicated dual-wire: slice 3219 (test_jobpoints_apply_raise_3219 retained).
 // Prior dedicated dual-wire: slice 3275 (test_jobpoints_apply_raise_3275 retained).
 // Prior dedicated dual-wire: slice 3371 (test_jobpoints_apply_raise_3371 retained).
-// Dedicated dual-wire: slice 3421 (test_jobpoints_apply_raise_3421; formula unchanged).
+// Prior dedicated dual-wire: slice 3421 (test_jobpoints_apply_raise_3421 retained).
+// Dedicated dual-wire: slice 3475 (test_jobpoints_apply_raise_3475; formula unchanged).
 // Production host: CJobPoints::RaiseJobPoint injects cost = JobPointCost(value)
 // and currentJp into PlanRaiseJobPoint, which dual-wires apply through
 // ShouldApplyRaiseJobPoint (job_points.cpp). Display/query path dual-wires the
 // same predicate via ShouldRaiseAffordable after JobPointCost(currentValue).
 // Go dual-wire: jobpoints.ShouldApplyRaiseJobPoint
 // (internal/jobpoints/apply_raise.go; residual 3012 + prior dedicated 3219 +
-// prior dedicated 3275 + prior dedicated 3371 + dedicated 3421 suites).
+// prior dedicated 3275 + prior dedicated 3371 + prior dedicated 3421 +
+// dedicated 3475 suites).
 // Sibling residual: PlanRaiseJobPoint / RaiseJobPointPlan / Cost (2803 suite);
 // ShouldRaiseAffordable / GetJobPointCost (2828 suite) — not re-expanded here.
 
 // ShouldApplyRaiseJobPoint mirrors the RaiseJobPoint spend gate half after
 // cost is computed.
 //
-// Formula (slice 3421 dedicated dual-wire; residual expand 3012 / prior
-// dedicated 3219 / prior dedicated 3275 / prior dedicated 3371 / pure 2803 —
-// formula unchanged):
+// Formula (slice 3475 dedicated dual-wire; residual expand 3012 / prior
+// dedicated 3219 / prior dedicated 3275 / prior dedicated 3371 / prior
+// dedicated 3421 / pure 2803 — formula unchanged):
 //   cost != 0 && currentJp >= cost
 //
 // cost      — host-injected JobPointCost(currentValue)
@@ -101,7 +106,8 @@ struct RaiseJobPointPlan
 // Prior dedicated dual-wire suite: 3219 / test_jobpoints_apply_raise_3219.
 // Prior dedicated dual-wire suite: 3275 / test_jobpoints_apply_raise_3275.
 // Prior dedicated dual-wire suite: 3371 / test_jobpoints_apply_raise_3371.
-// Dedicated dual-wire suite: 3421 / test_jobpoints_apply_raise_3421.
+// Prior dedicated dual-wire suite: 3421 / test_jobpoints_apply_raise_3421.
+// Dedicated dual-wire suite: 3475 / test_jobpoints_apply_raise_3475.
 inline auto ShouldApplyRaiseJobPoint(const uint8 cost, const uint16 currentJp) -> bool
 {
     return cost != 0 && currentJp >= cost;
