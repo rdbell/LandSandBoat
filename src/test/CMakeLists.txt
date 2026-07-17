@@ -2981,6 +2981,16 @@ set(SOURCES
     test_spawnslot_reject_fog_spawn_3202.cpp
     test_ranger_short_circuit_additional_effects_3203.h
     test_ranger_short_circuit_additional_effects_3203.cpp
+    test_attack_skip_counter_daken_3204.h
+    test_attack_skip_counter_daken_3204.cpp
+    test_command_reject_empty_command_name_3205.h
+    test_command_reject_empty_command_name_3205.cpp
+    test_darkixion_horn_break_roll_3206.h
+    test_darkixion_horn_break_roll_3206.cpp
+    test_mapsession_create_pending_session_3207.h
+    test_mapsession_create_pending_session_3207.cpp
+    test_notoriety_prune_mob_3208.h
+    test_notoriety_prune_mob_3208.cpp
 )
 
 if(UNIX)

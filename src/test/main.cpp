@@ -1494,6 +1494,11 @@ auto runPartyRejectPCAddFull3200SelfTests() -> bool;
 auto runTreasurepoolAutoResolveSolo3201SelfTests() -> bool;
 auto runSpawnslotRejectFogSpawn3202SelfTests() -> bool;
 auto runRangerShortCircuitAdditionalEffects3203SelfTests() -> bool;
+auto runAttackSkipCounterDaken3204SelfTests() -> bool;
+auto runCommandRejectEmptyCommandName3205SelfTests() -> bool;
+auto runDarkixionHornBreakRoll3206SelfTests() -> bool;
+auto runMapsessionCreatePendingSession3207SelfTests() -> bool;
+auto runNotorietyPruneMob3208SelfTests() -> bool;
 
 namespace
 {
@@ -2965,6 +2970,11 @@ namespace
         ok = runTreasurepoolAutoResolveSolo3201SelfTests() && ok;
         ok = runSpawnslotRejectFogSpawn3202SelfTests() && ok;
         ok = runRangerShortCircuitAdditionalEffects3203SelfTests() && ok;
+        ok = runAttackSkipCounterDaken3204SelfTests() && ok;
+        ok = runCommandRejectEmptyCommandName3205SelfTests() && ok;
+        ok = runDarkixionHornBreakRoll3206SelfTests() && ok;
+        ok = runMapsessionCreatePendingSession3207SelfTests() && ok;
+        ok = runNotorietyPruneMob3208SelfTests() && ok;
 
         return ok;
     }

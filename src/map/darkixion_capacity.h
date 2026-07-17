@@ -7,7 +7,8 @@
 //   - 3154: CanBreakHorn dedicated dual-wire (can_break_horn.go)
 //   - 2893: CanRestoreHorn residual dual-wire suite (Damsel Memento pure gate)
 //   - 3187: CanRestoreHorn dedicated dual-wire (can_restore_horn.go)
-//   - 2907: HornBreakRoll (checkHornBreak 5% roll after CanBreakHorn)
+//   - 2907: HornBreakRoll residual dual-wire suite (checkHornBreak 5% roll)
+//   - 3206: HornBreakRoll dedicated dual-wire (horn_break_roll.go)
 //   - 2911: HornRestoreRoll (Damsel Memento 25% roll after CanRestoreHorn)
 //   - 2915: ShouldDoubleGlowSkill (DI_GLOW double-up pure gate)
 //
@@ -16,7 +17,8 @@
 //   - 3154: CanBreakHorn (!busy && (NORMAL||GLOWING) && attackerInFront)
 //   - 2893: CanRestoreHorn residual dual-wire suite
 //   - 3187: CanRestoreHorn (animSub == HORN_BROKEN)
-//   - 2907: HornBreakRoll
+//   - 2907: HornBreakRoll residual dual-wire suite
+//   - 3206: HornBreakRoll (roll1to100 >= 1 && roll1to100 <= 5)
 //   - 2911: HornRestoreRoll
 //   - 2915: ShouldDoubleGlowSkill
 //
@@ -73,7 +75,9 @@
 // Residual dual-wire suite: slice 2893 / test_darkixion_restore_horn_2893.
 // Dedicated dual-wire suite: slice 3187 / test_darkixion_can_restore_horn_3187.
 // Dual-wire of Go darkixion.CanRestoreHorn (slice 3187 dedicated; residual 2893).
-// Dual-wire of Go darkixion.HornBreakRoll (slice 2907).
+// Residual dual-wire suite: slice 2907 / test_darkixion_horn_break_roll_2907.
+// Dedicated dual-wire suite: slice 3206 / test_darkixion_horn_break_roll_3206.
+// Dual-wire of Go darkixion.HornBreakRoll (slice 3206 dedicated; residual 2907).
 // Dual-wire of Go darkixion.HornRestoreRoll (slice 2911).
 // Dual-wire of Go darkixion.ShouldDoubleGlowSkill (slice 2915).
 
@@ -152,6 +156,22 @@ inline auto CanRestoreHorn(const int32 animSub) -> bool
     return animSub == kAnimHornBroken;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 2907 / 3206 — HornBreakRoll pure dual-wire
+//
+// Formula (slice 3206 dedicated dual-wire; residual expand 2907; pure inject
+// 0985 — formula unchanged):
+//   HornBreakRoll(roll1to100) =
+//     roll1to100 >= 1 && roll1to100 <= HornBreakChancePercent
+//
+// Dual-wire of Go darkixion.HornBreakRoll.
+// Call site: future Lua checkHornBreak inject after CanBreakHorn gate.
+// Prior pure port: slice 0985. Residual dual-wire suite: 2907 /
+// test_darkixion_horn_break_roll_2907. Dedicated dual-wire suite is
+// test_darkixion_horn_break_roll_3206. Host still owns CanBreakHorn gate
+// inject, math.random(1, 100), and changeHornState(mob, 2) writeback.
+// ---------------------------------------------------------------------------
+
 // HornBreakChancePercent is the 5% roll ceiling on critical / weaponskill hit
 // (math.random(1, 100) <= 5 → ~5%).
 // Dual-wire of Go darkixion.HornBreakChancePercent.
@@ -159,13 +179,14 @@ inline constexpr int32 HornBreakChancePercent = 5;
 
 // HornBreakRoll is the pure roll half of checkHornBreak after CanBreakHorn:
 //
-//   math.random(1, 100) <= 5
+//   roll1to100 >= 1 && roll1to100 <= HornBreakChancePercent
 //
-// Implemented as roll >= 1 && roll <= HornBreakChancePercent so out-of-range
+// Formula (slice 3206 dedicated dual-wire; residual expand 2907 / pure 0985 —
+// formula unchanged). Implemented with a defensive lower bound so out-of-range
 // rolls do not spuriously succeed. roll1to100 is the host-injected
 // math.random(1, 100) result. Host still owns CanBreakHorn gate inject, RNG
 // generation, and changeHornState(mob, 2) writeback.
-// Dual-wire of Go darkixion.HornBreakRoll.
+// Dual-wire of Go darkixion.HornBreakRoll (slice 3206 dedicated; residual 2907).
 inline auto HornBreakRoll(const int32 roll1to100) -> bool
 {
     return roll1to100 >= 1 && roll1to100 <= HornBreakChancePercent;

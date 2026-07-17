@@ -11,7 +11,8 @@
 //   - 2783: create policy (ShouldCreateSession, ShouldCreatePendingSession)
 //   - 2925: ShouldCreateSession (queryOK && hasAccountsSessionRow; residual dual-wire)
 //   - 3191: ShouldCreateSession (queryOK && hasAccountsSessionRow; dedicated expand residual 2925)
-//   - 2936: ShouldCreatePendingSession (queryOK identity; no rowsCount gate)
+//   - 2936: ShouldCreatePendingSession (queryOK identity; residual dual-wire)
+//   - 3207: ShouldCreatePendingSession (queryOK identity; dedicated expand residual 2936)
 //   - 2787: destroy-pending pure gates (ShouldDestroyPendingByPointer residual)
 //   - 3056: ShouldDestroyPendingByPointer (found && pointerMatches)
 //   - 3066: ShouldDestroyPendingByCharID (found identity)
@@ -31,7 +32,9 @@
 // Production host: MapSessionContainer::createPendingSession injects queryOK
 // after the accounts_sessions SELECT by charid (static_cast<bool>(rset) only).
 // Go dual-wire: mapsession.ShouldCreatePendingSession
-// (internal/mapsession/pending_session.go).
+// (internal/mapsession/pending_session.go). Prior pure: 2783; residual dual-wire:
+// 2936; dedicated expand residual: 3207. Sibling dual-wire: 3191
+// ShouldCreateSession (row-count gate; left alone).
 //
 // Production host: MapSessionContainer::destroyPendingSession(MapSession*)
 // injects found / pointerMatches after null check and pending lookup by
@@ -85,8 +88,9 @@ namespace mapsessionhelpers
 // Dual-wire of Go mapsession.ShouldCreateSession
 // (internal/mapsession/create_session.go). Prior pure port: slice 2783.
 // Prior dual-wire expand: slice 2925. Dedicated expand residual: slice 3191.
-// Sibling dual-wire: ShouldCreatePendingSession (queryOK identity; slice 2936;
-// left alone — no rowsCount gate; intentional LSB asymmetry).
+// Sibling dual-wire: ShouldCreatePendingSession (queryOK identity; slice 3207
+// dedicated expand residual 2936; left alone — no rowsCount gate; intentional
+// LSB asymmetry).
 // Call site: MapSessionContainer::createSession (map_session_container.cpp)
 // already injects queryOK / hasAccountsSessionRow after SELECT.
 //
@@ -105,11 +109,24 @@ inline auto ShouldCreateSession(const bool queryOK, const bool hasAccountsSessio
 // the row is fully visible to a follow-up path, and LSB does not check
 // rowsCount here).
 //
-// Formula (slice 2936 dual-wire):
+// Formula (slice 3207 dual-wire; residual expand 2936 / pure 2783 — formula
+// unchanged):
 //   queryOK
+//
+// Host-injected scalar (no DB / charId / session entity):
+//   queryOK — static_cast<bool>(rset) after SELECT by charid
 //
 // true  → host may allocate MapSession (charID set) and proceed to index replace
 // false → host returns nullptr (SQL error log only; no invalid-login empty path)
+//
+// Dual-wire of Go mapsession.ShouldCreatePendingSession
+// (internal/mapsession/pending_session.go). Prior pure port: slice 2783.
+// Prior dual-wire expand: slice 2936. Dedicated expand residual: slice 3207.
+// Sibling dual-wire: ShouldCreateSession (queryOK && hasAccountsSessionRow;
+// slice 3191; left alone — intentional LSB asymmetry: pending has no
+// rowsCount gate).
+// Call site: MapSessionContainer::createPendingSession (map_session_container.cpp)
+// already injects queryOK after SELECT.
 //
 // Host inject (createPendingSession):
 //   if (!ShouldCreatePendingSession(static_cast<bool>(rset))) return nullptr;

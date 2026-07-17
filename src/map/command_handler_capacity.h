@@ -12,13 +12,15 @@
 //   - 2836: ShouldRejectEmptyCommandLine residual (ParseCommandLine empty after trim)
 //   - 2940: ShouldAllowCommandPermission (permission <= m_GMlevel)
 //   - 2982: ShouldRejectNullChar residual dual-wire expand
-//   - 2990: ShouldRejectEmptyCommandName (!valid after name parse)
+//   - 2990: ShouldRejectEmptyCommandName residual dual-wire expand
 //   - 3005: ShouldRejectEmptyCommandLine (viewEmptyAfterTrim identity dual-wire)
 //   - 3011: ShouldAuditGMCommand residual dual-wire expand
 //   - 3161: ShouldAuditGMCommand dedicated dual-wire
 //           (auditLevel <= permission && auditLevel > 0; residual expand 3011 / pure 2792)
 //   - 3185: ShouldRejectNullChar dedicated dual-wire
 //           (charNull identity; residual expand 2982 / pure 2792)
+//   - 3205: ShouldRejectEmptyCommandName dedicated dual-wire
+//           (!valid identity-not; residual expand 2990 / pure 2792)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
@@ -72,7 +74,8 @@ inline auto ShouldRejectNullChar(const bool charNull) -> bool
 
 // ShouldRejectEmptyCommandName mirrors !parsedName.valid after name-only parse.
 //
-// Formula (slice 2990 dual-wire):
+// Formula (slice 3205 dedicated dual-wire; residual expand 2990 / pure 2792 —
+// formula unchanged):
 //   !valid
 //
 // true  → host logs error and returns CommandResult::Failure
@@ -82,6 +85,13 @@ inline auto ShouldRejectNullChar(const bool charNull) -> bool
 // Call site: CCommandHandler::call after name-only ParseCommandLine.
 //   if (ShouldRejectEmptyCommandName(parsedName.valid)) return Failure;
 // valid is ParseCommandLine(...).valid; reject when the name parse failed.
+// Prior pure port: slice 2792. Residual dual-wire suite: 2990 /
+// test_command_reject_empty_name_2990. Dedicated dual-wire suite is
+// test_command_reject_empty_command_name_3205. Formula is unchanged; this
+// slice only expands dual-wire docs + index + dedicated suite.
+// Production keeps `return !valid` (simple identity-not). Dual-wire pin may
+// use positive early-return form for lint-stable cross-checks:
+//   if (valid) { return false; } return true;
 inline auto ShouldRejectEmptyCommandName(const bool valid) -> bool
 {
     return !valid;
