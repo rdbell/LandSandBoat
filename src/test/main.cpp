@@ -1249,6 +1249,11 @@ auto runPartyClearSeeking2955SelfTests() -> bool;
 auto runEnmityRejectNonMob2956SelfTests() -> bool;
 auto runTreasureLotInventory2957SelfTests() -> bool;
 auto runLinkshellRejectDuplicate2958SelfTests() -> bool;
+auto runNotorietyAddMember2959SelfTests() -> bool;
+auto runMobutilsCanDropGil2960SelfTests() -> bool;
+auto runLatentRejectProcess2961SelfTests() -> bool;
+auto runTradeSetConfirmed2962SelfTests() -> bool;
+auto runLoginEraseIdle2963SelfTests() -> bool;
 
 namespace
 {
@@ -2475,6 +2480,11 @@ namespace
         ok = runEnmityRejectNonMob2956SelfTests() && ok;
         ok = runTreasureLotInventory2957SelfTests() && ok;
         ok = runLinkshellRejectDuplicate2958SelfTests() && ok;
+        ok = runNotorietyAddMember2959SelfTests() && ok;
+        ok = runMobutilsCanDropGil2960SelfTests() && ok;
+        ok = runLatentRejectProcess2961SelfTests() && ok;
+        ok = runTradeSetConfirmed2962SelfTests() && ok;
+        ok = runLoginEraseIdle2963SelfTests() && ok;
 
         return ok;
     }

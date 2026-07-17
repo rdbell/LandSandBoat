@@ -182,7 +182,26 @@ inline auto EvaluateWeaponDrawnMPOver(const bool isAttackAnimation, const int32 
     return isAttackAnimation && EvaluateMpStrictlyOver(mp, value);
 }
 
+// --- Slice 2961: ShouldRejectProcessLatent pure dual-wire ---
+// Residual pure port: slice 1359 (ProcessLatentEffect condition eval suite).
+// Production host: CLatentEffectContainer::ProcessLatentEffect injects
+// (m_POwner == nullptr) and (playerZoneID == 0) into ShouldRejectProcessLatent.
+// Go dual-wire: latenteffect.ShouldRejectProcessLatent
+// (internal/latenteffect/reject_process.go).
+
 // ShouldRejectProcessLatent mirrors owner null or zone id 0.
+//
+// Formula (slice 2961 dual-wire):
+//   ownerNull || zoneIsZero
+//
+// ownerNull  — host-evaluated (m_POwner == nullptr)
+// zoneIsZero — host-evaluated (playerZoneID == 0) where
+//              playerZoneID = m_POwner != nullptr ? m_POwner->getZone() : 0
+// true  → reject ProcessLatentEffect early (return false)
+// false → continue condition evaluation
+//
+// Dual-wire of Go latenteffect.ShouldRejectProcessLatent.
+// Call site: CLatentEffectContainer::ProcessLatentEffect.
 inline auto ShouldRejectProcessLatent(const bool ownerNull, const bool zoneIsZero) -> bool
 {
     return ownerNull || zoneIsZero;

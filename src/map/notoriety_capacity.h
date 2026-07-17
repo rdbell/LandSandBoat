@@ -4,13 +4,17 @@
 
 // Pure CNotorietyContainer policy helpers.
 //
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 2959: ShouldAddNotorietyMember (add admission three-bool AND)
+//   - residual 2807: hasEnmity stale-mob prune gates
+//   - residual 2818: add admission (prior pure port of ShouldAddNotorietyMember)
+//   - residual 2819: remove admission
+//   - residual 2832: hasEnmity / size pure reporting
+//
 // Production host: CNotorietyContainer in notoriety_container.cpp.
 // Helpers take host-injected scalars/bools only (no entity/enmity pointers).
-//
-//   2807 — hasEnmity stale-mob prune gates
-//   2818 — add admission
-//   2819 — remove admission
-//   2832 — hasEnmity / size pure reporting
+// Go dual-wire: notoriety.ShouldAddNotorietyMember
+// (internal/notoriety/add_member.go). Prior pure port: slice 2818.
 
 namespace notorietyhelpers
 {
@@ -48,9 +52,21 @@ inline auto ShouldPruneMobFromNotoriety(
 // ShouldAddNotorietyMember mirrors CNotorietyContainer::add admission (~48):
 //   m_POwner && entity && entity->allegiance != m_POwner->allegiance
 //
-// Host injects presence and the allegiance-inequality bool only (no entity
-// pointers). differentAllegiance is host-safe: false when either pointer is
-// null, otherwise entity->allegiance != m_POwner->allegiance.
+// Formula (slice 2959 dual-wire):
+//   ownerPresent && entityPresent && differentAllegiance
+//
+// Host-injected scalars (no entity pointers):
+//   ownerPresent        — m_POwner != nullptr
+//   entityPresent       — entity != nullptr
+//   differentAllegiance — host-safe: false when either pointer is null,
+//                         otherwise entity->allegiance != m_POwner->allegiance
+// true  → host may insert entity into m_Lookup (std::set pointer identity;
+//         duplicates are no-ops)
+// false → add is a no-op (nil owner/entity or same allegiance)
+//
+// Dual-wire of Go notoriety.ShouldAddNotorietyMember
+// (internal/notoriety/add_member.go). Prior pure port: slice 2818.
+// Call site: CNotorietyContainer::add (notoriety_container.cpp).
 inline auto ShouldAddNotorietyMember(
     const bool ownerPresent,
     const bool entityPresent,

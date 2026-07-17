@@ -2491,6 +2491,16 @@ set(SOURCES
     test_treasure_lot_inventory_2957.cpp
     test_linkshell_reject_duplicate_2958.h
     test_linkshell_reject_duplicate_2958.cpp
+    test_notoriety_add_member_2959.h
+    test_notoriety_add_member_2959.cpp
+    test_mobutils_can_drop_gil_2960.h
+    test_mobutils_can_drop_gil_2960.cpp
+    test_latent_reject_process_2961.h
+    test_latent_reject_process_2961.cpp
+    test_trade_set_confirmed_2962.h
+    test_trade_set_confirmed_2962.cpp
+    test_login_erase_idle_2963.h
+    test_login_erase_idle_2963.cpp
 )
 
 if(UNIX)

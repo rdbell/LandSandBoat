@@ -12,6 +12,20 @@
 
 // Pure ConnectEngine periodic cleanup and ZMQ dealer setup helpers extracted so
 // native tests can pin policy without sockets/scheduler hosts.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1325: SessionCleanInterval, ShouldEraseIdleSession, IsSessionExpired,
+//           ShouldEraseEmptyIPEntry, ZMQ endpoint / routing ID
+//   - 1326: ShouldEraseOnClearCommand, authorized-time / stats helpers
+//   - 2963: ShouldEraseIdleSession (!hasDataSession && !hasViewSession &&
+//           nowAfterExpiry) dual-wire expansion
+//
+// Production host: ConnectEngine::periodicCleanup (connect_engine.cpp) injects
+// session.data_session != nullptr, session.view_session != nullptr, and
+// IsSessionExpired(timer::now(), authorizedTime) into ShouldEraseIdleSession
+// before erasing map[ip][hash].
+// Go dual-wire: loginsession.ShouldEraseIdleSession
+// (internal/loginsession/erase_idle.go).
 
 namespace loginHelpers
 {
@@ -23,7 +37,20 @@ constexpr auto SessionCleanInterval = std::chrono::minutes(15);
 // ShouldEraseIdleSession mirrors periodicCleanup's per-session erase condition:
 // both data and view peers are null and authorizedTime + SessionCleanInterval
 // has elapsed (strict greater-than against timer::now()).
-// nowAfterExpiry is host-evaluated: now > authorizedTime + SessionCleanInterval.
+//
+// Formula (slice 2963 dual-wire):
+//   !hasDataSession && !hasViewSession && nowAfterExpiry
+//
+// hasDataSession  — host-evaluated session.data_session != nullptr
+// hasViewSession  — host-evaluated session.view_session != nullptr
+// nowAfterExpiry  — host-evaluated now > authorizedTime + SessionCleanInterval
+//                   (production injects IsSessionExpired(timer::now(), authorizedTime))
+// true  → erase map[ip][hash] entry
+// false → keep session (any live peer, or not yet past idle TTL)
+//
+// Dual-wire of Go loginsession.ShouldEraseIdleSession.
+// Call site: ConnectEngine::periodicCleanup host inject (peer nulls + expiry).
+// Sibling clear-console path (no +15min offset): ShouldEraseOnClearCommand (1326).
 inline auto ShouldEraseIdleSession(
     const bool hasDataSession,
     const bool hasViewSession,
