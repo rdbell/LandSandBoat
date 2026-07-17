@@ -24,6 +24,7 @@ set(SOURCES
     view_session.cpp
     version_lock.h
     version_lock.cpp
+    view_version_response.h
 )
 
 if(UNIX)

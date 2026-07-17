@@ -21,6 +21,8 @@
 
 #include "view_session.h"
 
+#include "view_version_response.h"
+
 #include "character_delete.h"
 #include "character_name.h"
 #include "character_select.h"
@@ -333,24 +335,32 @@ void view_session::read_func()
                 }
             }
 
-            if (versionFlow.responseLength == login::version_lock::ResponseLength::VersionError)
+            const auto responsePlan = login::PlanViewVersionResponse(
+                versionFlow.responseLength,
+                session.view_session != nullptr);
+            if (responsePlan.writeVersionError)
             {
-                if (auto data = session.view_session.get())
-                {
-                    loginHelpers::generateErrorMessage(data->buffer_.data(), loginErrors::errorCode::GAMES_DATA_HAS_BEEN_UPDATED); // "The games data has been updated"
-                    data->do_write(static_cast<std::size_t>(versionFlow.responseLength));
-                    return;
-                }
+                auto data = session.view_session.get();
+                loginHelpers::generateErrorMessage(data->buffer_.data(), loginErrors::errorCode::GAMES_DATA_HAS_BEEN_UPDATED); // "The games data has been updated"
+                data->do_write(static_cast<std::size_t>(versionFlow.responseLength));
+            }
+            if (responsePlan.returnFromRead)
+            {
+                return;
             }
 
-            const auto packet = loginPackets::generateKeyPacket(
-                loginHelpers::generateExpansionBitmask(),
-                loginHelpers::generateFeatureBitmask());
-            std::memcpy(buffer_.data(), &packet, sizeof(lpkt_key));
-            DebugSockets("view_session: Sending version and expansions info to account %d", session.accountID);
-
-            if (auto data = session.view_session.get())
+            if (responsePlan.shapeKeyPacket)
             {
+                const auto packet = loginPackets::generateKeyPacket(
+                    loginHelpers::generateExpansionBitmask(),
+                    loginHelpers::generateFeatureBitmask());
+                std::memcpy(buffer_.data(), &packet, sizeof(lpkt_key));
+                DebugSockets("view_session: Sending version and expansions info to account %d", session.accountID);
+            }
+
+            if (responsePlan.writeKeyPacket)
+            {
+                auto data = session.view_session.get();
                 std::memcpy(data->buffer_.data(), buffer_.data(), 0x28);
                 data->do_write(static_cast<std::size_t>(versionFlow.responseLength));
             }
