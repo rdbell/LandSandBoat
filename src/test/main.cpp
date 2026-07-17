@@ -1704,6 +1704,11 @@ auto runInteractionlookupSkipPriority3410SelfTests() -> bool;
 auto runColonizationreiveSpawnOnEnable3411SelfTests() -> bool;
 auto runMapwireOpenSocket3412SelfTests() -> bool;
 auto runLatentRejectProcess3413SelfTests() -> bool;
+auto runPetDetachPlayerMaster3414SelfTests() -> bool;
+auto runUniversalClearSlot3415SelfTests() -> bool;
+auto runAicontainerCanDispatch3416SelfTests() -> bool;
+auto runMobtypeCanDeaggro3417SelfTests() -> bool;
+auto runBesiegedAffordSanction3418SelfTests() -> bool;
 
 namespace
 {
@@ -3385,6 +3390,11 @@ namespace
         ok = runColonizationreiveSpawnOnEnable3411SelfTests() && ok;
         ok = runMapwireOpenSocket3412SelfTests() && ok;
         ok = runLatentRejectProcess3413SelfTests() && ok;
+        ok = runPetDetachPlayerMaster3414SelfTests() && ok;
+        ok = runUniversalClearSlot3415SelfTests() && ok;
+        ok = runAicontainerCanDispatch3416SelfTests() && ok;
+        ok = runMobtypeCanDeaggro3417SelfTests() && ok;
+        ok = runBesiegedAffordSanction3418SelfTests() && ok;
 
         return ok;
     }

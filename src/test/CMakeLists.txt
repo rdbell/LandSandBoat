@@ -3401,6 +3401,16 @@ set(SOURCES
     test_mapwire_open_socket_3412.cpp
     test_latent_reject_process_3413.h
     test_latent_reject_process_3413.cpp
+    test_pet_detach_player_master_3414.h
+    test_pet_detach_player_master_3414.cpp
+    test_universal_clear_slot_3415.h
+    test_universal_clear_slot_3415.cpp
+    test_aicontainer_can_dispatch_3416.h
+    test_aicontainer_can_dispatch_3416.cpp
+    test_mobtype_can_deaggro_3417.h
+    test_mobtype_can_deaggro_3417.cpp
+    test_besieged_afford_sanction_3418.h
+    test_besieged_afford_sanction_3418.cpp
 )
 
 if(UNIX)
