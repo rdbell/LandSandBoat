@@ -1989,6 +1989,11 @@ auto runGarrisonFailByDeath3695SelfTests() -> bool;
 auto runSpawnRejectNight3696SelfTests() -> bool;
 auto runStatusRejectNull3697SelfTests() -> bool;
 auto runVoidwalkerShouldUpgradeKI3698SelfTests() -> bool;
+auto runRecastUpdateMaxCharges3699SelfTests() -> bool;
+auto runTreasureForceCheckFull3700SelfTests() -> bool;
+auto runUniversalClearSlot3701SelfTests() -> bool;
+auto runRangerStripPartialRetain3702SelfTests() -> bool;
+auto runPortermoogleCanRetrieveItem3703SelfTests() -> bool;
 
 namespace
 {
@@ -3955,6 +3960,11 @@ namespace
         ok = runSpawnRejectNight3696SelfTests() && ok;
         ok = runStatusRejectNull3697SelfTests() && ok;
         ok = runVoidwalkerShouldUpgradeKI3698SelfTests() && ok;
+        ok = runRecastUpdateMaxCharges3699SelfTests() && ok;
+        ok = runTreasureForceCheckFull3700SelfTests() && ok;
+        ok = runUniversalClearSlot3701SelfTests() && ok;
+        ok = runRangerStripPartialRetain3702SelfTests() && ok;
+        ok = runPortermoogleCanRetrieveItem3703SelfTests() && ok;
 
         return ok;
     }
