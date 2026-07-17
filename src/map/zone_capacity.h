@@ -22,6 +22,7 @@
 //   - 2949: ShouldRejectHighCharTargid (targid >= CharTargidHighThreshold / 0x700)
 //   - 2975: ShouldDespawnPCOnLeave (!charListEmpty after DecreaseZoneCounter)
 //   - 2992: ShouldCreateZoneTimers (!hasZoneTimerToken && !charListEmpty after InsertPC)
+//   - 3019: ShouldRejectInvalidWeather (!isValidEnum / !enum_contains on SetWeather)
 //
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty;
@@ -35,6 +36,11 @@
 // zoneTimerToken_.has_value() and CharListEmpty() into ShouldCreateZoneTimers
 // after InsertPC; on true calls createZoneTimers().
 // Go dual-wire: zone.ShouldCreateZoneTimers (internal/zone/create_zone_timers.go).
+// Production host: CZone::SetWeather (zone.cpp) injects
+// magic_enum::enum_contains<Weather>(weather) into ShouldRejectInvalidWeather;
+// on true ShowWarningFmt(FormatInvalidWeatherWarning) + return.
+// Go dual-wire: zone.ShouldRejectInvalidWeather
+// (internal/zone/reject_invalid_weather.go).
 
 namespace zonehelpers
 {
@@ -269,8 +275,23 @@ inline auto FormatInvalidWeatherWarning(const uint16 weatherValue) -> std::strin
     return fmt::format("Weather value ({}) invalid.", weatherValue);
 }
 
-// ShouldRejectInvalidWeather mirrors !magic_enum::enum_contains.
-// isValidEnum is host-evaluated enum_contains result.
+// ShouldRejectInvalidWeather mirrors !magic_enum::enum_contains<Weather>(weather)
+// on CZone::SetWeather admission.
+//
+// Formula (slice 3019 dual-wire):
+//
+//   !isValidEnum
+//
+// isValidEnum — host-evaluated magic_enum::enum_contains<Weather>(weather)
+// true  → ShowWarningFmt(FormatInvalidWeatherWarning) + return (reject set)
+// false → continue (may still ShouldSkipSameWeather / WeatherChange)
+//
+// Dual-wire of Go zone.ShouldRejectInvalidWeather.
+// Call site: CZone::SetWeather — host injects enum_contains result.
+// Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
+// suite is test_zone_reject_invalid_weather_3019.
+// Sibling SetWeather gates (residual 1363): ShouldSkipSameWeather,
+// FormatInvalidWeatherWarning.
 inline auto ShouldRejectInvalidWeather(const bool isValidEnum) -> bool
 {
     return !isValidEnum;

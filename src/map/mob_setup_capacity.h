@@ -461,16 +461,35 @@ inline auto PlanSetupRangedAttack() -> SetupRangedAttackPlan
     return plan;
 }
 
+// ShouldAssignParrySkill: residual pure half for CalculateMobStats parry
+// skill assignment (slice 1623). Dual-wire free function under
+// mobutilshelpers lives in mobutils_capacity.h (slice 2972). Formula:
+// canParryMod > 0. Production injects getMobMod(MOBMOD_CAN_PARRY).
 inline auto ShouldAssignParrySkill(const std::int16_t canParryMod) -> bool
 {
     return canParryMod > 0;
 }
 
+// ShouldAssignGuardSkill: residual pure half for CalculateMobStats guard
+// skill assignment (slice 1623). Dual-wire free function under
+// mobutilshelpers lives in mobutils_capacity.h (slice 3022). Formula:
+//
+//   (mJob == 2 /*JOB_MNK*/ || mJob == 18 /*JOB_PUP*/) && cannotGuardMod == 0
+//
+// Production CalculateMobStats (utils/mobutils.cpp ~413) injects:
+//   GetMJob() + getMobMod(MOBMOD_CANNOT_GUARD)
+// into this residual helper. When true, host assigns
+// WorkingSkills.skill[SKILL_GUARD] = GetBaseSkill(PMob, GuardSkillRank).
+// Go pure: mobutils.ShouldAssignGuardSkill (assign_guard.go; residual was
+// setup_policy.go). Same formula as mobutilshelpers::ShouldAssignGuardSkill.
 inline auto ShouldAssignGuardSkill(const std::uint8_t mJob, const std::int16_t cannotGuardMod) -> bool
 {
     return (mJob == 2 /*JOB_MNK*/ || mJob == JobPUP) && cannotGuardMod == 0;
 }
 
+// GuardSkillRank is fixed rank C (3) for MNK/PUP guard skill assignment.
+// Dual-wire: mobutilshelpers::GuardSkillRank (mobutils_capacity.h, 3022);
+// Go: mobutils.GuardSkillRank.
 constexpr std::uint8_t GuardSkillRank = 3;
 
 } // namespace mobsetuphelpers

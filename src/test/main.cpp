@@ -1309,6 +1309,11 @@ auto runPartyApplySyncEnable3015SelfTests() -> bool;
 auto runPartySyncDisableCountdown3016SelfTests() -> bool;
 auto runLinkshellReceivePacket3017SelfTests() -> bool;
 auto runRangedDeleteBarrage3018SelfTests() -> bool;
+auto runZoneRejectInvalidWeather3019SelfTests() -> bool;
+auto runNotorietyScanPrune3020SelfTests() -> bool;
+auto runItemIncrementCountInsert3021SelfTests() -> bool;
+auto runMobutilsAssignGuard3022SelfTests() -> bool;
+auto runRangedDamageMultiplier3023SelfTests() -> bool;
 
 namespace
 {
@@ -2595,6 +2600,11 @@ namespace
         ok = runPartySyncDisableCountdown3016SelfTests() && ok;
         ok = runLinkshellReceivePacket3017SelfTests() && ok;
         ok = runRangedDeleteBarrage3018SelfTests() && ok;
+        ok = runZoneRejectInvalidWeather3019SelfTests() && ok;
+        ok = runNotorietyScanPrune3020SelfTests() && ok;
+        ok = runItemIncrementCountInsert3021SelfTests() && ok;
+        ok = runMobutilsAssignGuard3022SelfTests() && ok;
+        ok = runRangedDamageMultiplier3023SelfTests() && ok;
 
         return ok;
     }

@@ -279,7 +279,31 @@ inline auto ShouldForceBarrageSangeHitResolution(
     return hitOccured && !resolutionIsHit && (isBarrage || isSange);
 }
 
+// --- Slice 3023: ShouldApplyRangedDamageMultiplier pure dual-wire ---
+// Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects isChar and
+// (slot == SLOT_RANGED) into ShouldApplyRangedDamageMultiplier before
+// CheckForDamageMultiplier(PChar, PItem, totalDamage, attackType, slot, true)
+// with ResolveRangedPhysicalAttackType(isRapidShot) (~3352).
+// Go dual-wire: attackutils.ShouldApplyRangedDamageMultiplier
+// (internal/attackutils/ranged_damage_multiplier.go).
+// Sibling dual-wires: ShouldConsumeAmmo (2986), ShouldDeleteUnlimitedShot (3000),
+// ShouldDeleteFlashyAndStealthShot (3007), ShouldTruncateHitCountOnAmmoDeplete (3010),
+// ShouldApplyDistancePenaltyMessage (3013), ShouldDeleteBarrageStatus (3018).
+
 // ShouldApplyRangedDamageMultiplier mirrors isChar && slot == SLOT_RANGED.
+//
+// Formula (slice 3023 dual-wire):
+//   return isChar && slotIsRanged
+//
+// isChar       — host-evaluated entity is a character (PC ranged path)
+// slotIsRanged — host-evaluated slot == SLOT_RANGED (not ammo/throwing-only)
+// true  → host CheckForDamageMultiplier(PChar, PItem, totalDamage, attackType,
+//         slot, true) with ResolveRangedPhysicalAttackType(isRapidShot)
+// false → skip damage-multiplier adjustment (non-char, or non-ranged slot)
+//
+// Dual-wire of Go attackutils.ShouldApplyRangedDamageMultiplier.
+// Call site: CBattleEntity::OnRangedAttack (~3352).
 inline auto ShouldApplyRangedDamageMultiplier(const bool isChar, const bool slotIsRanged) -> bool
 {
     return isChar && slotIsRanged;

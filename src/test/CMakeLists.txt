@@ -2611,6 +2611,16 @@ set(SOURCES
     test_linkshell_receive_packet_3017.cpp
     test_ranged_delete_barrage_3018.h
     test_ranged_delete_barrage_3018.cpp
+    test_zone_reject_invalid_weather_3019.h
+    test_zone_reject_invalid_weather_3019.cpp
+    test_notoriety_scan_prune_3020.h
+    test_notoriety_scan_prune_3020.cpp
+    test_item_increment_count_insert_3021.h
+    test_item_increment_count_insert_3021.cpp
+    test_mobutils_assign_guard_3022.h
+    test_mobutils_assign_guard_3022.cpp
+    test_ranged_damage_multiplier_3023.h
+    test_ranged_damage_multiplier_3023.cpp
 )
 
 if(UNIX)

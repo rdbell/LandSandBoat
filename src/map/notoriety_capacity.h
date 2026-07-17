@@ -7,7 +7,9 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2959: ShouldAddNotorietyMember (add admission three-bool AND)
 //   - 2971: ShouldRemoveNotorietyMember (remove admission two-bool AND)
+//   - 3020: ShouldScanNotorietyForPrune (hasEnmity outer gate two-bool AND)
 //   - residual 2807: hasEnmity stale-mob prune gates
+//     (ShouldScanNotorietyForPrune dual-wired as 3020; ShouldPruneMobFromNotoriety residual)
 //   - residual 2818: add admission (prior pure port of ShouldAddNotorietyMember)
 //   - residual 2819: remove admission (prior pure port of ShouldRemoveNotorietyMember)
 //   - residual 2832: hasEnmity / size pure reporting
@@ -18,13 +20,27 @@
 // (internal/notoriety/add_member.go). Prior pure port: slice 2818.
 // Go dual-wire: notoriety.ShouldRemoveNotorietyMember
 // (internal/notoriety/remove_member.go). Prior pure port: slice 2819.
+// Go dual-wire: notoriety.ShouldScanNotorietyForPrune
+// (internal/notoriety/scan_prune.go). Prior pure port: slice 2807.
 
 namespace notorietyhelpers
 {
 
-// ShouldScanNotorietyForPrune mirrors the hasEnmity outer gate:
+// ShouldScanNotorietyForPrune mirrors the hasEnmity outer gate (~81):
 //   m_POwner && !m_Lookup.empty()
-// When false, the host skips the prune walk and reports !lookup.empty().
+//
+// Formula (slice 3020 dual-wire):
+//   ownerPresent && lookupNonEmpty
+//
+// Host-injected scalars (no entity / set pointers):
+//   ownerPresent    — m_POwner != nullptr
+//   lookupNonEmpty  — !m_Lookup.empty()
+// true  → host may walk m_Lookup and prune stale mobs
+// false → host skips the prune walk and reports !lookup.empty()
+//
+// Dual-wire of Go notoriety.ShouldScanNotorietyForPrune
+// (internal/notoriety/scan_prune.go). Prior pure port: slice 2807.
+// Call site: CNotorietyContainer::hasEnmity (notoriety_container.cpp).
 inline auto ShouldScanNotorietyForPrune(const bool ownerPresent, const bool lookupNonEmpty) -> bool
 {
     return ownerPresent && lookupNonEmpty;

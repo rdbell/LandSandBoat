@@ -10,6 +10,7 @@
 //   - 2653: residual pure port (entities/mob_gil_policy.h mobgilhelpers)
 //   - 2960: CanDropGil (gilMin/gilMax/gilBonus eligibility gate)
 //   - 2972: ShouldAssignParrySkill (MOBMOD_CAN_PARRY > 0 gate)
+//   - 3022: ShouldAssignGuardSkill (MNK/PUP + MOBMOD_CANNOT_GUARD == 0 gate)
 //
 // Production hosts:
 //   - CMobEntity::CanDropGil / CanStealGil in mob_entity.cpp injects
@@ -17,6 +18,9 @@
 //     (same formula; residual 2653 surface).
 //   - CalculateMobStats in utils/mobutils.cpp injects
 //     getMobMod(MOBMOD_CAN_PARRY) into mobsetuphelpers::ShouldAssignParrySkill
+//     (same formula; residual 1623 surface in mob_setup_capacity.h).
+//   - CalculateMobStats in utils/mobutils.cpp injects GetMJob +
+//     getMobMod(MOBMOD_CANNOT_GUARD) into mobsetuphelpers::ShouldAssignGuardSkill
 //     (same formula; residual 1623 surface in mob_setup_capacity.h).
 //
 // This capacity dual-wires free-function forms used by OmegaXI
@@ -30,12 +34,17 @@
 // ShouldAssignParrySkill:
 //   canParryMod > 0
 //
+// ShouldAssignGuardSkill:
+//   (mJob == 2 /*MNK*/ || mJob == 18 /*PUP*/) && cannotGuardMod == 0
+// GuardSkillRank = 3 (fixed rank C when assign is true)
+//
 // Hosts inject scalars only (no CMobEntity*). Gil drop amount / steal
 // amount / GetBaseSkill + WorkingSkills writeback remain host-owned.
 //
 // Go dual-wire:
 //   - mobutils.CanDropGil / mobutils.CanStealGil (gil_policy.go)
 //   - mobutils.ShouldAssignParrySkill (assign_parry.go)
+//   - mobutils.ShouldAssignGuardSkill / mobutils.GuardSkillRank (assign_guard.go)
 
 namespace mobutilshelpers
 {
@@ -72,5 +81,25 @@ inline auto ShouldAssignParrySkill(const int16 canParryMod) -> bool
 {
     return canParryMod > 0;
 }
+
+// ShouldAssignGuardSkill mirrors CalculateMobStats guard skill assignment
+// pure half (slice 3022):
+//
+//   (mJob == 2 /*JOB_MNK*/ || mJob == 18 /*JOB_PUP*/) && cannotGuardMod == 0
+//
+// mJob is host-evaluated GetMJob(); cannotGuardMod is host-evaluated
+// getMobMod(MOBMOD_CANNOT_GUARD). When true the host assigns
+// WorkingSkills.skill[SKILL_GUARD] from GetBaseSkill using GuardSkillRank
+// (fixed rank C / 3). Matches Go mobutils.ShouldAssignGuardSkill and residual
+// mobsetuphelpers::ShouldAssignGuardSkill (1623 / mob_setup_capacity.h).
+inline auto ShouldAssignGuardSkill(const uint8 mJob, const int16 cannotGuardMod) -> bool
+{
+    return (mJob == 2 /*JOB_MNK*/ || mJob == 18 /*JOB_PUP*/) && cannotGuardMod == 0;
+}
+
+// GuardSkillRank is the fixed rank C used for MNK/PUP guard assignment when
+// ShouldAssignGuardSkill is true. Matches Go mobutils.GuardSkillRank and
+// residual mobsetuphelpers::GuardSkillRank (1623 / mob_setup_capacity.h).
+constexpr uint8 GuardSkillRank = 3;
 
 } // namespace mobutilshelpers
