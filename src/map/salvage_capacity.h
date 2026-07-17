@@ -7,7 +7,8 @@
 //   - 3085: CanClaimTransport prior dedicated dual-wire (claim_transport.go)
 //   - 3259: CanClaimTransport prior dedicated dual-wire expand residual 2871
 //   - 3290: CanClaimTransport prior dedicated dual-wire expand residual 2871
-//   - 3318: CanClaimTransport dedicated dual-wire expand residual 2871
+//   - 3318: CanClaimTransport prior dedicated dual-wire expand residual 2871
+//   - 3495: CanClaimTransport dedicated dual-wire expand residual 2871
 //   - 2892: CanOpenDoor residual dual-wire suite (onDoorOpen CLOSE_DOOR + unSealed)
 //   - 3133: CanOpenDoor prior dedicated dual-wire (open_door.go)
 //   - 3358: CanOpenDoor dedicated dual-wire expand residual 2892
@@ -25,7 +26,8 @@
 //   - 3085: CanClaimTransport prior dedicated dual-wire suite
 //   - 3259: CanClaimTransport prior dedicated dual-wire expand residual 2871
 //   - 3290: CanClaimTransport prior dedicated dual-wire expand residual 2871
-//   - 3318: CanClaimTransport = !TransportUserBusy(transportUserID)
+//   - 3318: CanClaimTransport prior dedicated dual-wire expand residual 2871
+//   - 3495: CanClaimTransport = !TransportUserBusy(transportUserID)
 //   - 2892: CanOpenDoor residual dual-wire suite
 //   - 3133: CanOpenDoor prior dedicated dual-wire suite
 //   - 3358: CanOpenDoor = animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue
@@ -52,9 +54,9 @@
 // ShouldResetTempBox / ShouldSpawnOnTempChestCasket). Residual dual-wire
 // suites: 2871 (claim), 2892 (open door), 2894 (open boss door), 2898
 // (reset temp box), 2904 (spawn temp chest). Dedicated dual-wire: 3085,
-// 3133, 3146, 3188, 3209, 3259, 3290, 3318, 3358, 3398, 3442.
+// 3133, 3146, 3188, 3209, 3259, 3290, 3318, 3358, 3398, 3442, 3495.
 //
-// onTransportUpdate (2871 residual / 3085+3259+3290 prior dedicated / 3318 dedicated):
+// onTransportUpdate (2871 residual / 3085+3259+3290+3318 prior dedicated / 3495 dedicated):
 //   if instance:getLocalVar('transportUser') == 0 then
 //     -- claim path: set transportUser, stageComplete=0, resetTempBoxes, ...
 //   else
@@ -93,7 +95,7 @@ namespace salvagehelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2871 residual / 3085+3259+3290 prior dedicated / 3318 dedicated —
+// Slice 2871 residual / 3085+3259+3290+3318 prior dedicated / 3495 dedicated —
 // onTransportUpdate transportUser claim gate
 // ---------------------------------------------------------------------------
 
@@ -109,7 +111,7 @@ inline auto TransportUserBusy(const uint32 transportUserID) -> bool
 // CanClaimTransport is the pure free-function form of the onTransportUpdate
 // claim gate: transportUser local var must be free before the claim path runs.
 //
-// Formula (slice 3318 dedicated dual-wire; residual expand 2871 / pure 1083 —
+// Formula (slice 3495 dedicated dual-wire; residual expand 2871 / pure 1083 —
 // formula unchanged):
 //   CanClaimTransport(transportUserID) = !TransportUserBusy(transportUserID)
 //   ≡ transportUserID == 0
@@ -121,8 +123,8 @@ inline auto TransportUserBusy(const uint32 transportUserID) -> bool
 // Prior pure port: slice 1083. Residual dual-wire suite: 2871 /
 // test_salvage_claim_transport_2871. Prior dedicated dual-wire suites are
 // test_salvage_claim_transport_3085 / test_salvage_claim_transport_3259 /
-// test_salvage_claim_transport_3290.
-// Dedicated dual-wire suite is test_salvage_claim_transport_3318. Host still
+// test_salvage_claim_transport_3290 / test_salvage_claim_transport_3318.
+// Dedicated dual-wire suite is test_salvage_claim_transport_3495. Host still
 // owns claim writeback, stageComplete reset, timer clear, deSpawnStage,
 // release, resetTempBoxes.
 inline auto CanClaimTransport(const uint32 transportUserID) -> bool

@@ -1784,6 +1784,11 @@ auto runAllianceAttemptLeaderPromote3490SelfTests() -> bool;
 auto runAbysseaCanGiveNMKI3491SelfTests() -> bool;
 auto runNotorietyAddMember3492SelfTests() -> bool;
 auto runArtisanCanBuySack3493SelfTests() -> bool;
+auto runSynergyClaimFurnace3494SelfTests() -> bool;
+auto runSalvageClaimTransport3495SelfTests() -> bool;
+auto runCampaignAffordNotes3496SelfTests() -> bool;
+auto runBattlefieldEnterPC3497SelfTests() -> bool;
+auto runPartyRejectPCAddFull3498SelfTests() -> bool;
 
 namespace
 {
@@ -3545,6 +3550,11 @@ namespace
         ok = runAbysseaCanGiveNMKI3491SelfTests() && ok;
         ok = runNotorietyAddMember3492SelfTests() && ok;
         ok = runArtisanCanBuySack3493SelfTests() && ok;
+        ok = runSynergyClaimFurnace3494SelfTests() && ok;
+        ok = runSalvageClaimTransport3495SelfTests() && ok;
+        ok = runCampaignAffordNotes3496SelfTests() && ok;
+        ok = runBattlefieldEnterPC3497SelfTests() && ok;
+        ok = runPartyRejectPCAddFull3498SelfTests() && ok;
 
         return ok;
     }

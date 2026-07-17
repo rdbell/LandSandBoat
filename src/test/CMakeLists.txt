@@ -3561,6 +3561,16 @@ set(SOURCES
     test_notoriety_add_member_3492.cpp
     test_artisan_can_buy_sack_3493.h
     test_artisan_can_buy_sack_3493.cpp
+    test_synergy_claim_furnace_3494.h
+    test_synergy_claim_furnace_3494.cpp
+    test_salvage_claim_transport_3495.h
+    test_salvage_claim_transport_3495.cpp
+    test_campaign_afford_notes_3496.h
+    test_campaign_afford_notes_3496.cpp
+    test_battlefield_enter_pc_3497.h
+    test_battlefield_enter_pc_3497.cpp
+    test_party_reject_pc_add_full_3498.h
+    test_party_reject_pc_add_full_3498.cpp
 )
 
 if(UNIX)
