@@ -29,8 +29,10 @@
 //           (retained)
 //   - 3657: ShouldStripPartialStealthOnRetain prior dedicated dual-wire expand residual 3082
 //           (retained)
-//   - 3702: ShouldStripPartialStealthOnRetain dedicated dual-wire
-//           (!stripAllDetectable partial gate; expand residual 3082; prior 3657 / 3612 / 3567 / 3510 / 3445 / 3394 retained)
+//   - 3702: ShouldStripPartialStealthOnRetain prior dedicated dual-wire expand residual 3082
+//           (retained)
+//   - 3747: ShouldStripPartialStealthOnRetain dedicated dual-wire
+//           (!stripAllDetectable partial gate; expand residual 3082; prior 3702 / 3657 / 3612 / 3567 / 3510 / 3445 / 3394 retained)
 //   - 3118: ShouldStripAllDetectableWithoutRetain (mod <= 0 without-retain strip)
 //
 // Production host:
@@ -217,10 +219,10 @@ inline auto ShouldStripAllDetectableOnFail(const int16 retainChance, const int r
     return roll0to99 > retainChance;
 }
 
-// --- Slice 3082 residual / 3394·3445·3510·3567·3612·3657 prior dedicated / 3702 dedicated —
+// --- Slice 3082 residual / 3394·3445·3510·3567·3612·3657·3702 prior dedicated / 3747 dedicated —
 // ShouldStripPartialStealthOnRetain pure dual-wire ---
 // Residual dual-wire expand: slice 3082.
-// Prior dedicated dual-wire expand residual 3082: slices 3394 / 3445 / 3510 / 3567 / 3612 / 3657 (retained).
+// Prior dedicated dual-wire expand residual 3082: slices 3394 / 3445 / 3510 / 3567 / 3612 / 3657 / 3702 (retained).
 // Residual pure port: slice 1391 (OnRangedAttack RETAIN_CAMOUFLAGE policy suite).
 // Production host: CBattleEntity::OnRangedAttack injects false into
 // ShouldStripPartialStealthOnRetain when ShouldStripAllDetectableOnFail returns
@@ -235,8 +237,9 @@ inline auto ShouldStripAllDetectableOnFail(const int16 retainChance, const int r
 // 3510 / test_ranger_strip_partial_retain_3510,
 // 3567 / test_ranger_strip_partial_retain_3567,
 // 3612 / test_ranger_strip_partial_retain_3612,
-// 3657 / test_ranger_strip_partial_retain_3657 (retained).
-// Dedicated dual-wire suite: 3702 / test_ranger_strip_partial_retain_3702.
+// 3657 / test_ranger_strip_partial_retain_3657,
+// 3702 / test_ranger_strip_partial_retain_3702 (retained).
+// Dedicated dual-wire suite: 3747 / test_ranger_strip_partial_retain_3747.
 // Formula is unchanged; this slice only expands dual-wire docs + index +
 // dedicated suite. Sibling residual gates remain on this header
 // (facing / chance / strip). Siblings left alone: evaluate_camouflage_retain /
@@ -244,8 +247,8 @@ inline auto ShouldStripAllDetectableOnFail(const int16 retainChance, const int r
 
 // When retain succeeds (not strip all), host deletes Sneak/Deodorize/Illusion only.
 //
-// Formula (slice 3702 dedicated dual-wire expand residual 3082; prior dedicated
-// 3657 / 3612 / 3567 / 3510 / 3445 / 3394 / pure 1391 — formula unchanged):
+// Formula (slice 3747 dedicated dual-wire expand residual 3082; prior dedicated
+// 3702 / 3657 / 3612 / 3567 / 3510 / 3445 / 3394 / pure 1391 — formula unchanged):
 //   ShouldStripPartialStealthOnRetain(stripAllDetectable) = !stripAllDetectable
 //
 // stripAllDetectable — host-resolved ShouldStripAllDetectableOnFail result
@@ -260,8 +263,9 @@ inline auto ShouldStripAllDetectableOnFail(const int16 retainChance, const int r
 // 3510 / test_ranger_strip_partial_retain_3510,
 // 3567 / test_ranger_strip_partial_retain_3567,
 // 3612 / test_ranger_strip_partial_retain_3612,
-// 3657 / test_ranger_strip_partial_retain_3657 (retained). Dedicated dual-wire
-// suite is test_ranger_strip_partial_retain_3702.
+// 3657 / test_ranger_strip_partial_retain_3657,
+// 3702 / test_ranger_strip_partial_retain_3702 (retained). Dedicated dual-wire
+// suite is test_ranger_strip_partial_retain_3747.
 // Formula is unchanged; this slice only expands dual-wire docs + index +
 // dedicated suite.
 // Call site: CBattleEntity::OnRangedAttack (retain-success else-if after strip-all gate).
