@@ -2921,6 +2921,16 @@ set(SOURCES
     test_seals_pack_stored_plus_trade_3172.cpp
     test_voidwalker_should_upgrade_ki_3173.h
     test_voidwalker_should_upgrade_ki_3173.cpp
+    test_ranger_evaluate_camouflage_retain_3174.h
+    test_ranger_evaluate_camouflage_retain_3174.cpp
+    test_tradecontainer_set_confirmed_3175.h
+    test_tradecontainer_set_confirmed_3175.cpp
+    test_universalcontainer_allow_set_item_3176.h
+    test_universalcontainer_allow_set_item_3176.cpp
+    test_zone_apply_level_restriction_3177.h
+    test_zone_apply_level_restriction_3177.cpp
+    test_aistate_del_actor_on_attack_3178.h
+    test_aistate_del_actor_on_attack_3178.cpp
 )
 
 if(UNIX)

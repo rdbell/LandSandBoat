@@ -12,15 +12,25 @@
 //   - 2821: TradeSlotTotalContribution (getTotalQuantity per-slot term)
 //   - 2824: TradeSlotCountsTowardSlotCount (getSlotCount occupancy)
 //   - 2830: TradeSlotMatchesItemID (getItemQuantity match gate)
-//   - 2962: ShouldAllowSetConfirmedStatus (setConfirmedStatus outer gate)
+//   - 2962: ShouldAllowSetConfirmedStatus residual dual-wire suite
 //   - 2984: ShouldSetTradeItemEntry (multi-arg setItem outer gate)
 //   - 2997: ShouldBumpItemsCountOnSetEntry (multi-arg setItem ItemsCount bump)
+//   - 3175: ShouldAllowSetConfirmedStatus dedicated dual-wire
+//           (set_confirmed.go; expand residual 2962)
+//
+// Dual-wire index:
+//   - 2962: ShouldAllowSetConfirmedStatus residual dual-wire suite
+//   - 3175: ShouldAllowSetConfirmedStatus =
+//           slotInRange && itemNonNull && quantityGteAmount
 //
 // Production host: CTradeContainer::setConfirmedStatus (trade_container.cpp)
 // injects slotInRange / itemNonNull / quantityGteAmount into
 // ShouldAllowSetConfirmedStatus, then ConfirmedStatusAmount on admit.
 // Go dual-wire: tradecontainer.ShouldAllowSetConfirmedStatus
-// (internal/tradecontainer/set_confirmed.go). Prior pure port: slice 2806.
+// (internal/tradecontainer/set_confirmed.go).
+// Residual dual-wire suite: 2962 (test_trade_set_confirmed_2962).
+// Dedicated dual-wire suite: 3175 (test_tradecontainer_set_confirmed_3175).
+// Prior pure port: slice 2806.
 //
 // Production host: CTradeContainer::setItem multi-arg (trade_container.cpp)
 // injects slotId < m_PItem.size() into ShouldSetTradeItemEntry, then
@@ -33,10 +43,15 @@
 namespace tradecontainerhelpers
 {
 
+// ---------------------------------------------------------------------------
+// Slice 3175 — setConfirmedStatus outer gate (dedicated expand residual 2962)
+// ---------------------------------------------------------------------------
+
 // ShouldAllowSetConfirmedStatus mirrors the setConfirmedStatus outer gate:
 //   slotID < m_PItem.size() && m_PItem[slotID] && quantity >= amount
 //
-// Formula (slice 2962 dual-wire):
+// Formula (slice 3175 dedicated dual-wire; residual expand 2962 / pure 2806 —
+// formula unchanged):
 //   slotInRange && itemNonNull && quantityGteAmount
 //
 // slotInRange       — host-evaluated slotID < m_PItem.size()
@@ -49,6 +64,10 @@ namespace tradecontainerhelpers
 // Dual-wire of Go tradecontainer.ShouldAllowSetConfirmedStatus
 // (internal/tradecontainer/set_confirmed.go).
 // Call site: CTradeContainer::setConfirmedStatus before confirmed write.
+// Prior pure port: slice 2806. Residual dual-wire suite: 2962 /
+// test_trade_set_confirmed_2962. Dedicated dual-wire suite is
+// test_tradecontainer_set_confirmed_3175. Sibling dual-wire gates:
+// ShouldSetTradeItemEntry (2984), ShouldBumpItemsCountOnSetEntry (2997).
 // Host injects each conjunct after short-circuit-safe probes.
 inline auto ShouldAllowSetConfirmedStatus(
     const bool slotInRange,

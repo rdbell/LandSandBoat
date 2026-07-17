@@ -10,7 +10,9 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1391: residual pure port (full retain / strip / facing / chance suite)
-//   - 3047: ShouldEvaluateCamouflageRetain (RETAIN_CAMOUFLAGE > 0 evaluate gate)
+//   - 3047: ShouldEvaluateCamouflageRetain residual dual-wire expand
+//   - 3174: ShouldEvaluateCamouflageRetain dedicated dual-wire
+//           (retainCamouflageMod > 0; residual expand 3047 / pure 1391)
 //   - 3058: ShouldStripAllDetectableOnFail (roll > retainChance strip-all gate)
 //   - 3082: ShouldStripPartialStealthOnRetain (!stripAllDetectable partial gate)
 //   - 3118: ShouldStripAllDetectableWithoutRetain (mod <= 0 without-retain strip)
@@ -60,7 +62,8 @@ enum class CamouflageFacingZone : uint8
     Behind = 2,
 };
 
-// --- Slice 3047: ShouldEvaluateCamouflageRetain pure dual-wire ---
+// --- Slice 3174: ShouldEvaluateCamouflageRetain dedicated pure dual-wire ---
+// Residual dual-wire expand: slice 3047.
 // Residual pure port: slice 1391 (OnRangedAttack RETAIN_CAMOUFLAGE policy suite).
 // Production host: CBattleEntity::OnRangedAttack injects
 // getMod(Mod::RETAIN_CAMOUFLAGE) into ShouldEvaluateCamouflageRetain before
@@ -68,19 +71,29 @@ enum class CamouflageFacingZone : uint8
 // ShouldStripAllDetectableWithoutRetain (else-if strip-all Detectable).
 // Go dual-wire: ranger.ShouldEvaluateCamouflageRetain
 // (internal/ranger/evaluate_camouflage_retain.go).
-// Sibling residual gates remain on this header (facing / chance / strip).
+// Residual dual-wire suite: 3047 / test_ranger_evaluate_camouflage_retain_3047.
+// Dedicated dual-wire suite: 3174 / test_ranger_evaluate_camouflage_retain_3174.
+// Formula is unchanged; this slice only expands dual-wire docs + index +
+// dedicated suite. Sibling residual gates remain on this header
+// (facing / chance / strip). Siblings left alone: 3058, 3082, 3118.
 
 // ShouldEvaluateCamouflageRetain is the RETAIN_CAMOUFLAGE mod gate before
 // retain roll / strip logic.
 //
-// Formula (slice 3047 dual-wire):
+// Formula (slice 3174 dedicated dual-wire; residual expand 3047 / pure 1391 —
+// formula unchanged):
 //   ShouldEvaluateCamouflageRetain(retainCamouflageMod) = retainCamouflageMod > 0
 //
 // retainCamouflageMod — host-evaluated getMod(Mod::RETAIN_CAMOUFLAGE)
 // true  → evaluate retain chance / strip Detectable or partial stealth
 // false → fall through to ShouldStripAllDetectableWithoutRetain (strip all)
 //
-// Dual-wire of Go ranger.ShouldEvaluateCamouflageRetain.
+// Dual-wire of Go ranger.ShouldEvaluateCamouflageRetain
+// (internal/ranger/evaluate_camouflage_retain.go). Prior pure port: slice 1391.
+// Residual dual-wire suite: 3047 / test_ranger_evaluate_camouflage_retain_3047.
+// Dedicated dual-wire suite is test_ranger_evaluate_camouflage_retain_3174.
+// Formula is unchanged; this slice only expands dual-wire docs + index +
+// dedicated suite.
 // Call site: CBattleEntity::OnRangedAttack (~3472).
 inline auto ShouldEvaluateCamouflageRetain(const int16 retainCamouflageMod) -> bool
 {
@@ -211,7 +224,7 @@ inline auto ShouldStripPartialStealthOnRetain(const bool stripAllDetectable) -> 
 // getMod(Mod::RETAIN_CAMOUFLAGE) into ShouldStripAllDetectableWithoutRetain on
 // the else-if after ShouldEvaluateCamouflageRetain returns false. When true,
 // host deletes all Detectable flags (no RETAIN_CAMOUFLAGE active). Complement of
-// dual-wire ShouldEvaluateCamouflageRetain (3047).
+// dual-wire ShouldEvaluateCamouflageRetain (3174 dedicated / 3047 residual).
 // Go dual-wire: ranger.ShouldStripAllDetectableWithoutRetain
 // (internal/ranger/strip_without_retain.go).
 // Sibling dual-wires left alone this slice: 3058, 3082.

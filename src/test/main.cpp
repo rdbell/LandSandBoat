@@ -1464,6 +1464,11 @@ auto runPetentityDespawnZoning3170SelfTests() -> bool;
 auto runPortermoogleCanRetrieveItem3171SelfTests() -> bool;
 auto runSealsPackStoredPlusTrade3172SelfTests() -> bool;
 auto runVoidwalkerShouldUpgradeKI3173SelfTests() -> bool;
+auto runRangerEvaluateCamouflageRetain3174SelfTests() -> bool;
+auto runTradecontainerSetConfirmed3175SelfTests() -> bool;
+auto runUniversalcontainerAllowSetItem3176SelfTests() -> bool;
+auto runZoneApplyLevelRestriction3177SelfTests() -> bool;
+auto runAistateDelActorOnAttack3178SelfTests() -> bool;
 
 namespace
 {
@@ -2905,6 +2910,11 @@ namespace
         ok = runPortermoogleCanRetrieveItem3171SelfTests() && ok;
         ok = runSealsPackStoredPlusTrade3172SelfTests() && ok;
         ok = runVoidwalkerShouldUpgradeKI3173SelfTests() && ok;
+        ok = runRangerEvaluateCamouflageRetain3174SelfTests() && ok;
+        ok = runTradecontainerSetConfirmed3175SelfTests() && ok;
+        ok = runUniversalcontainerAllowSetItem3176SelfTests() && ok;
+        ok = runZoneApplyLevelRestriction3177SelfTests() && ok;
+        ok = runAistateDelActorOnAttack3178SelfTests() && ok;
 
         return ok;
     }

@@ -24,8 +24,10 @@
 //   - 2992: ShouldCreateZoneTimers (!hasZoneTimerToken && !charListEmpty after InsertPC)
 //   - 3019: ShouldRejectInvalidWeather (!isValidEnum / !enum_contains on SetWeather)
 //   - 3028: ShouldSkipSameWeather (alreadyCurrent on SetWeather)
-//   - 3032: ShouldApplyZoneLevelRestriction (zoneLevelRestriction != 0 on
-//           updateCharLevelRestriction)
+//   - 3032: ShouldApplyZoneLevelRestriction residual dual-wire suite
+//           (zoneLevelRestriction != 0 on updateCharLevelRestriction)
+//   - 3177: ShouldApplyZoneLevelRestriction dedicated dual-wire
+//           (apply_level_restriction.go; expand residual 3032)
 //   - 3037: ShouldRejectIncreaseZoneCounter (charNull || alreadyInZone ||
 //           hasTreasurePool on IncreaseZoneCounter entry)
 //   - 3042: ShouldSkipLevelRestrictionUpdate (!hasRestriction → false; else
@@ -334,7 +336,8 @@ auto FirstZoneOutTriggerArea(const Areas& areas, IsMember&& isMember) -> typenam
 // Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
 // suite is test_zone_skip_level_restriction_3042.
 // Sibling level-restriction gates: ShouldDeleteExistingLevelRestriction
-// (3043 dual-wire), ShouldApplyZoneLevelRestriction (3032 dual-wire).
+// (3043 dual-wire), ShouldApplyZoneLevelRestriction (3177 dual-wire;
+// residual 3032).
 inline auto ShouldSkipLevelRestrictionUpdate(
     const bool hasRestriction,
     const bool statusNull,
@@ -369,11 +372,11 @@ inline auto ShouldSkipLevelRestrictionUpdate(
 // Dual-wire of Go zone.ShouldDeleteExistingLevelRestriction.
 // Call site: CZone::updateCharLevelRestriction — after
 // ShouldSkipLevelRestrictionUpdate (sibling 3042); host then optionally
-// applies zone cap via ShouldApplyZoneLevelRestriction (3032).
+// applies zone cap via ShouldApplyZoneLevelRestriction (3177 / residual 3032).
 // Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
 // suite is test_zone_delete_level_restriction_3043.
 // Sibling level-restriction gates: ShouldSkipLevelRestrictionUpdate (3042),
-// ShouldApplyZoneLevelRestriction (3032).
+// ShouldApplyZoneLevelRestriction (3177 dual-wire; residual 3032).
 inline auto ShouldDeleteExistingLevelRestriction(
     const bool hasRestriction,
     const bool shouldSkip) -> bool
@@ -385,7 +388,8 @@ inline auto ShouldDeleteExistingLevelRestriction(
 // CZone::updateCharLevelRestriction admission (apply LevelRestriction when
 // the zone has a non-zero cap).
 //
-// Formula (slice 3032 dual-wire):
+// Formula (slice 3177 dedicated dual-wire; residual expand 3032 / pure 1363 —
+// formula unchanged):
 //
 //   zoneLevelRestriction != 0
 //
@@ -393,11 +397,13 @@ inline auto ShouldDeleteExistingLevelRestriction(
 // true  → DelStatusEffectsByFlag (dispelable/erasable/…) + AddStatusEffect LevelRestriction
 // false → no apply (zone has no level cap)
 //
-// Dual-wire of Go zone.ShouldApplyZoneLevelRestriction.
+// Dual-wire of Go zone.ShouldApplyZoneLevelRestriction
+// (residual 1363 / residual dual-wire 3032 / dedicated dual-wire 3177).
 // Call site: CZone::updateCharLevelRestriction — after optional skip/delete
 // of an existing LevelRestriction; host injects m_levelRestriction.
-// Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
-// suite is test_zone_apply_level_restriction_3032.
+// Residual 1363 pins remain in test_zone_policy_1363.
+// Residual dual-wire suite: 3032 (test_zone_apply_level_restriction_3032).
+// Dedicated dual-wire suite: 3177 (test_zone_apply_level_restriction_3177).
 // Sibling level-restriction gates: ShouldSkipLevelRestrictionUpdate
 // (3042 dual-wire), ShouldDeleteExistingLevelRestriction (3043 dual-wire).
 inline auto ShouldApplyZoneLevelRestriction(const uint8 zoneLevelRestriction) -> bool

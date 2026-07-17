@@ -12,14 +12,22 @@
 //   - 2813: ClearSlot range gate + no-count-adjust quirk
 //   - 2822: PlanIsSlotEmpty
 //   - 2829: IsContainerTypeEmpty
-//   - 2965: ShouldAllowSetItem (SetItem outer gate)
+//   - 2965: ShouldAllowSetItem residual dual-wire suite (SetItem outer gate)
 //   - 2980: ShouldClearSlot (ClearSlot range gate)
+//   - 3176: ShouldAllowSetItem dedicated dual-wire (set_item.go; expand residual 2965)
+//
+// Dual-wire index:
+//   - 2965: ShouldAllowSetItem residual dual-wire suite
+//   - 3176: ShouldAllowSetItem = slotInRange && !locked
+//   - 2980: ShouldClearSlot = slotInRange
 //
 // Production host: CUContainer::SetItem (universal_container.cpp) injects
 // slotID < m_PItem.size() and m_lock into ShouldAllowSetItem, then
 // PlanSetItemCountDelta on admit.
 // Go dual-wire: universalcontainer.ShouldAllowSetItem
 // (internal/universalcontainer/set_item.go). Prior pure port: slice 2801.
+// Residual dual-wire suite: 2965 (test_universal_set_item_2965).
+// Dedicated dual-wire suite: 3176 (test_universalcontainer_allow_set_item_3176).
 //
 // Production host: CUContainer::ClearSlot (universal_container.cpp) injects
 // slotID < m_PItem.size() into ShouldClearSlot (does not inject m_lock).
@@ -29,10 +37,15 @@
 namespace ucontainerhelpers
 {
 
+// ---------------------------------------------------------------------------
+// Slice 3176 — SetItem outer gate (dedicated expand residual 2965)
+// ---------------------------------------------------------------------------
+
 // ShouldAllowSetItem mirrors the SetItem outer gate:
 //   slotID < m_PItem.size() && !m_lock
 //
-// Formula (slice 2965 dual-wire):
+// Formula (slice 3176 dedicated dual-wire; residual expand 2965 / pure 2801 —
+// formula unchanged):
 //   slotInRange && !locked
 //
 // slotInRange — host-evaluated slotID < m_PItem.size()
@@ -44,6 +57,10 @@ namespace ucontainerhelpers
 // (internal/universalcontainer/set_item.go).
 // Call site: CUContainer::SetItem before count delta / assignment.
 // Host injects each conjunct after size/lock probes.
+// Prior pure port: slice 2801. Residual dual-wire suite: 2965 /
+// test_universal_set_item_2965. Dedicated dual-wire suite is
+// test_universalcontainer_allow_set_item_3176. Sibling dual-wire:
+// ShouldClearSlot (2980).
 inline auto ShouldAllowSetItem(const bool slotInRange, const bool locked) -> bool
 {
     return slotInRange && !locked;
