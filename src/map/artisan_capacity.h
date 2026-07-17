@@ -3,15 +3,29 @@
 #include "common/cbasetypes.h"
 
 // Pure Artisan Moogle helpers shared by dual-wire slices:
-//   - 2879: CanBuySack (artisan.lua moogleOnUpdate option 1 gate)
+//   - 2879: CanBuySack residual dual-wire suite (buy_sack)
+//   - 3090: CanBuySack dedicated dual-wire (buy_sack.go)
 //   - 2890: CanExpand (artisan.lua moogleOnUpdate option 2 expand gate)
 //   - 2912: GobbieCanUpgradeFlag (option 2 expand-failure event param)
 //   - 2916: CanClaimScroll (artisan.lua moogleOnFinish option 99 gate)
 //
+// Dual-wire index:
+//   - 2879: CanBuySack residual dual-wire suite
+//   - 3090: CanBuySack = gil >= BuySackGilCost && sackSize == 0
+//   - 2890: CanExpand
+//   - 2912: GobbieCanUpgradeFlag
+//   - 2916: CanClaimScroll
+//
 // Lua production host: scripts/globals/artisan.lua moogleOnUpdate /
 // moogleOnFinish:
+// Go dual-wire: artisan.CanBuySack / artisan.BuySackGilCost
+// (internal/artisan/buy_sack.go). Future Lua host injects CanBuySack then
+// delGil / changeContainerSize / setCharVar / updateEvent.
 //
-//   if option == 1 then -- Buy sack
+// Prior pure port: OmegaXI slice 0948 (internal/artisan).
+// Residual dual-wire suite: 2879. Dedicated dual-wire suite: 3090.
+//
+//   if option == 1 then -- Buy sack (2879 residual / 3090 dedicated)
 //       if player:getGil() >= 9980
 //          and player:getContainerSize(xi.inv.MOGSACK) == 0 then
 //           player:delGil(9980)
@@ -51,16 +65,29 @@
 namespace artisanhelpers
 {
 
+// ---------------------------------------------------------------------------
+// Slice 2879 / 3090 — moogleOnUpdate option 1 buy-sack gate
+// ---------------------------------------------------------------------------
+
 // BuySackGilCost is the gil required to purchase a Mog Sack.
 // Documented from artisan.lua option 1: getGil() >= 9980 / delGil(9980).
+// Prior pure port: slice 0948. Residual dual-wire suite: 2879.
+// Dedicated dual-wire suite: 3090.
 inline constexpr int32 BuySackGilCost = 9980;
 
 // CanBuySack is the pure gate for option 1 (Buy sack):
 //
-//   gil >= BuySackGilCost && sackSize == 0
+// Formula (slice 3090 dedicated dual-wire; residual expand 2879 / pure 0948 —
+// formula unchanged):
+//   CanBuySack(gil, sackSize) = gil >= BuySackGilCost && sackSize == 0
 //
 // Future Lua host injects scalars into this helper instead of re-inlining
-// the gil / empty-sack comparison.
+// the gil / empty-sack comparison. Dual-wire of Go artisan.CanBuySack
+// (buy_sack.go). Call site: future Lua moogleOnUpdate option 1 inject.
+// Prior pure port: slice 0948. Residual dual-wire suite: 2879 /
+// test_artisan_buy_sack_2879. Dedicated dual-wire suite is
+// test_artisan_can_buy_sack_3090. Host still owns delGil, changeContainerSize,
+// setCharVar, and updateEvent after a true gate.
 inline auto CanBuySack(const int32 gil, const int32 sackSize) -> bool
 {
     return gil >= BuySackGilCost && sackSize == 0;

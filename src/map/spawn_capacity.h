@@ -12,10 +12,13 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1362: canSpawnNow / TOTD / weather despawn / tick / register policy
 //   - 2923: ShouldRejectFogSpawn (FOG spawnType flag && weather is not fog)
+//   - 3092: ShouldRejectAtNightSpawn (ATNIGHT flag && not NIGHT/MIDNIGHT TOTD)
 //
 // Production host: SpawnHandler::canSpawnNow (spawn_handler.cpp) injects
-// isFog = zone_->weather().current() == Weather::Fog before CanSpawnNowPure.
-// Go dual-wire: spawnslot.ShouldRejectFogSpawn (internal/spawnslot/reject_fog.go).
+// isFog = zone_->weather().current() == Weather::Fog and current TOTD before
+// CanSpawnNowPure.
+// Go dual-wire: spawnslot.ShouldRejectFogSpawn (internal/spawnslot/reject_fog.go),
+// spawnslot.ShouldRejectAtNightSpawn (internal/spawnslot/reject_night_spawn.go).
 
 namespace spawnhelpers
 {
@@ -55,6 +58,20 @@ inline auto IsEveningTotdWindow(const vanadiel_time::TOTD totd) -> bool
 }
 
 // ShouldRejectAtNightSpawn mirrors ATNIGHT flag && not night window.
+// totd is host-evaluated vanadiel_time::TOTD.
+//
+// Formula (slice 3092 dual-wire):
+//   HasSpawnTypeFlag(spawnType, SpawnTypeAtNight) && !IsNightTotdWindow(totd)
+//   // SpawnTypeAtNight = 0x01 (SPAWNTYPE_ATNIGHT)
+//   // IsNightTotdWindow: totd == NIGHT || totd == MIDNIGHT
+//   // TOTD pins: NONE=0 MIDNIGHT=1 NEWDAY=2 DAWN=3 DAY=4 DUSK=5 EVENING=6 NIGHT=7
+//
+// true  → reject spawn (ATNIGHT-type mob outside NIGHT/MIDNIGHT window)
+// false → night gate passes (no ATNIGHT flag, or totd is night window)
+//
+// Dual-wire of Go spawnslot.ShouldRejectAtNightSpawn.
+// Call site: CanSpawnNowPure (and SpawnHandler::canSpawnNow host inject).
+// Sibling residual: ShouldRejectAtEveningSpawn (ATEVENING + evening window).
 inline auto ShouldRejectAtNightSpawn(const uint8 spawnType, const vanadiel_time::TOTD totd) -> bool
 {
     return HasSpawnTypeFlag(spawnType, SpawnTypeAtNight) && !IsNightTotdWindow(totd);

@@ -2751,6 +2751,16 @@ set(SOURCES
     test_battlefield_add_sj_3087.cpp
     test_ambuscade_warp_exit_3088.h
     test_ambuscade_warp_exit_3088.cpp
+    test_abyssea_can_give_nmki_3089.h
+    test_abyssea_can_give_nmki_3089.cpp
+    test_artisan_can_buy_sack_3090.h
+    test_artisan_can_buy_sack_3090.cpp
+    test_attackutils_reject_null_weapon_3091.h
+    test_attackutils_reject_null_weapon_3091.cpp
+    test_spawn_reject_night_3092.h
+    test_spawn_reject_night_3092.cpp
+    test_besieged_afford_sanction_3093.h
+    test_besieged_afford_sanction_3093.cpp
 )
 
 if(UNIX)

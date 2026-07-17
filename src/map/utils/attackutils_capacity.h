@@ -5,6 +5,10 @@
 #include <cstdint>
 
 // Pure attackutils::CheckForDamageMultiplier policy halves.
+//
+// Dual-wire index (append-only notes on existing free functions):
+//   - 1380: CheckForDamageMultiplier residual pure-gate suite
+//   - 3091: ShouldRejectNullWeapon (weaponNull identity null-PWeapon gate)
 
 namespace attackutilshelpers
 {
@@ -21,7 +25,36 @@ constexpr uint8 AttackTypeSamba     = 7;
 // SLOT_MAIN pin.
 constexpr uint8 SlotMain = 0;
 
+// --- Slice 3091: ShouldRejectNullWeapon pure dual-wire ---
+// Residual pure port: slice 1380 (CheckForDamageMultiplier pure-gate suite).
+// Production host: attackutils::CheckForDamageMultiplier injects
+// (PWeapon == nullptr) into ShouldRejectNullWeapon; on true return damage
+// unchanged before REM occ / allowProc ladder / type rates.
+// Go dual-wire: attackutils.ShouldRejectNullWeapon
+// (internal/attackutils/reject_null_weapon.go).
+// Residual siblings (ranged/main rem occ, occ chance ladder, type double
+// rates) remain in the 1380 residual suite. Multi-hits residual reuses the
+// same Go free function for its null-weapon pin; multihitshelpers twin is a
+// separate C++ namespace and is left alone.
+// Index 3091: attackutils.ShouldRejectNullWeapon pure dual-wire.
+
 // ShouldRejectNullWeapon mirrors PWeapon == nullptr early return.
+//
+// Formula (slice 3091 dual-wire):
+//   weaponNull
+//
+// weaponNull — host-injected (PWeapon == nullptr)
+// true  → host returns original damage (passthrough, no multiplier work)
+// false → proceed to REM occ selection / allowProc ladder / type rates
+//
+// Dual-wire of Go attackutils.ShouldRejectNullWeapon.
+// Call site: attackutils::CheckForDamageMultiplier — host injects
+// PWeapon == nullptr; on true return damage unchanged.
+// Prior pure port: slice 1380 (damage multiplier residual pure-gate suite).
+// Residual pins remain in test_attackutils_multiplier_1380; dedicated
+// dual-wire suite is test_attackutils_reject_null_weapon_3091.
+// Residual siblings: ShouldUseRangedRemOcc / ShouldUseMainHandRemOcc /
+// occ ladder / type rates (still 1380).
 inline auto ShouldRejectNullWeapon(const bool weaponNull) -> bool
 {
     return weaponNull;

@@ -3,11 +3,19 @@
 #include "common/cbasetypes.h"
 
 // Pure Abyssea helpers shared by dual-wire slices:
-//   - 2861: canGiveNMKI / normal+atma compose
+//   - 2861: canGiveNMKI residual dual-wire suite / normal+atma compose
 //   - 2866: BuffPower (visions cruor prospector enhance)
 //   - 2868: DecodeSurveyorOption (Conflux Surveyor finish option parse)
+//   - 3089: CanGiveNMKI dedicated dual-wire (can_give_nmki.go)
 //
-// Lua production host (2861): scripts/globals/abyssea.lua xi.abyssea.canGiveNMKI:
+// Dual-wire index:
+//   - 2861: CanGiveNMKI residual dual-wire suite
+//   - 2866: BuffPower
+//   - 2868: DecodeSurveyorOption
+//   - 3089: CanGiveNMKI (roll1to100 <= dropChance || redProc)
+//
+// Lua production host (2861 / 3089): scripts/globals/abyssea.lua
+// xi.abyssea.canGiveNMKI:
 //
 //   local redProcValue = mob:getLocalVar('[AbysseaRedProc]')
 //   if math.random(1, 100) <= dropChance or redProcValue == 1 then
@@ -24,30 +32,55 @@
 //   redProc    — true when [AbysseaRedProc] local var == 1
 //
 // Key-item grant writeback remains host-owned.
+// Go dual-wire: abyssea.CanGiveNMKI (internal/abyssea/can_give_nmki.go).
+// Future Lua host injects CanGiveNMKI then npcUtil.giveKeyItem.
 
 namespace abysseahelpers
 {
 
+// ---------------------------------------------------------------------------
+// Slice 2861 / 3089 — canGiveNMKI roll / red-proc gate
+// ---------------------------------------------------------------------------
+
 // Normal / atma drop-chance pins from giveNMDrops.
+// Parity: Go NormalNMKIDropChance / AtmaNMKIDropChance.
 inline constexpr int32 NormalNMKIDropChance = 20;
 inline constexpr int32 AtmaNMKIDropChance   = 10;
 
-// CanGiveNMKI is the pure free-function form of xi.abyssea.canGiveNMKI:
-//   roll1to100 <= dropChance || redProc
-// Future Lua host injects scalars into this helper instead of re-inlining
-// the comparison.
+// CanGiveNMKI mirrors xi.abyssea.canGiveNMKI:
+//   if math.random(1, 100) <= dropChance or redProcValue == 1 then return true end
+//
+// Formula (slice 3089 dual-wire; residual expand 2861; pure inject 1041):
+//   CanGiveNMKI(roll1to100, dropChance, redProc)
+//     = roll1to100 <= dropChance || redProc
+//
+// roll1to100 — host-injected math.random(1, 100) result
+// dropChance — percentage chance (20 normal / 10 atma)
+// redProc    — true when [AbysseaRedProc] local var == 1 (forces drop)
+// true  → host grants KI (npcUtil.giveKeyItem)
+// false → no KI from this roll
+//
+// Dual-wire of Go abyssea.CanGiveNMKI.
+// Call site: future Lua canGiveNMKI / giveNMDrops inject.
+// Prior pure port: slice 1041. Residual dual-wire suite: 2861 /
+// test_abyssea_can_give_nmki_2861. Dedicated dual-wire suite is
+// test_abyssea_can_give_nmki_3089. Host still owns math.random,
+// getLocalVar, and KI grant writeback. Red proc is pre-normalized to bool
+// before the pure gate.
 inline auto CanGiveNMKI(const int32 roll1to100, const int32 dropChance, const bool redProc) -> bool
 {
     return roll1to100 <= dropChance || redProc;
 }
 
-// CanGiveNormalNMKI dual-wires giveNMDrops normal-drop chance 20.
+// CanGiveNormalNMKI dual-wires giveNMDrops normal-drop chance 20 through
+// CanGiveNMKI (production compose for deferred giveNMDrops host).
 inline auto CanGiveNormalNMKI(const int32 roll1to100, const bool redProc) -> bool
 {
     return CanGiveNMKI(roll1to100, NormalNMKIDropChance, redProc);
 }
 
-// CanGiveAtmaNMKI dual-wires giveNMDrops atma-drop chance 10.
+// CanGiveAtmaNMKI dual-wires giveNMDrops atma-drop chance 10 through
+// CanGiveNMKI (production compose for deferred giveNMDrops host).
 inline auto CanGiveAtmaNMKI(const int32 roll1to100, const bool redProc) -> bool
 {
     return CanGiveNMKI(roll1to100, AtmaNMKIDropChance, redProc);

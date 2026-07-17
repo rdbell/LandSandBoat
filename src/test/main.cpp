@@ -1379,6 +1379,11 @@ auto runSalvageClaimTransport3085SelfTests() -> bool;
 auto runMapsessionReplaceSession3086SelfTests() -> bool;
 auto runBattlefieldAddSj3087SelfTests() -> bool;
 auto runAmbuscadeWarpExit3088SelfTests() -> bool;
+auto runAbysseaCanGiveNMKI3089SelfTests() -> bool;
+auto runArtisanCanBuySack3090SelfTests() -> bool;
+auto runAttackutilsRejectNullWeapon3091SelfTests() -> bool;
+auto runSpawnRejectNight3092SelfTests() -> bool;
+auto runBesiegedAffordSanction3093SelfTests() -> bool;
 
 namespace
 {
@@ -2735,6 +2740,11 @@ namespace
         ok = runMapsessionReplaceSession3086SelfTests() && ok;
         ok = runBattlefieldAddSj3087SelfTests() && ok;
         ok = runAmbuscadeWarpExit3088SelfTests() && ok;
+        ok = runAbysseaCanGiveNMKI3089SelfTests() && ok;
+        ok = runArtisanCanBuySack3090SelfTests() && ok;
+        ok = runAttackutilsRejectNullWeapon3091SelfTests() && ok;
+        ok = runSpawnRejectNight3092SelfTests() && ok;
+        ok = runBesiegedAffordSanction3093SelfTests() && ok;
 
         return ok;
     }
