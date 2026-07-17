@@ -1709,6 +1709,11 @@ auto runUniversalClearSlot3415SelfTests() -> bool;
 auto runAicontainerCanDispatch3416SelfTests() -> bool;
 auto runMobtypeCanDeaggro3417SelfTests() -> bool;
 auto runBesiegedAffordSanction3418SelfTests() -> bool;
+auto runAmanThumbsUp3419SelfTests() -> bool;
+auto runTradeBumpItemsCount3420SelfTests() -> bool;
+auto runJobpointsApplyRaise3421SelfTests() -> bool;
+auto runDynamisCanUnlockSJ3422SelfTests() -> bool;
+auto runTreasureForceCheckFull3423SelfTests() -> bool;
 
 namespace
 {
@@ -3395,6 +3400,11 @@ namespace
         ok = runAicontainerCanDispatch3416SelfTests() && ok;
         ok = runMobtypeCanDeaggro3417SelfTests() && ok;
         ok = runBesiegedAffordSanction3418SelfTests() && ok;
+        ok = runAmanThumbsUp3419SelfTests() && ok;
+        ok = runTradeBumpItemsCount3420SelfTests() && ok;
+        ok = runJobpointsApplyRaise3421SelfTests() && ok;
+        ok = runDynamisCanUnlockSJ3422SelfTests() && ok;
+        ok = runTreasureForceCheckFull3423SelfTests() && ok;
 
         return ok;
     }

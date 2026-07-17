@@ -3411,6 +3411,16 @@ set(SOURCES
     test_mobtype_can_deaggro_3417.cpp
     test_besieged_afford_sanction_3418.h
     test_besieged_afford_sanction_3418.cpp
+    test_aman_thumbs_up_3419.h
+    test_aman_thumbs_up_3419.cpp
+    test_trade_bump_items_count_3420.h
+    test_trade_bump_items_count_3420.cpp
+    test_jobpoints_apply_raise_3421.h
+    test_jobpoints_apply_raise_3421.cpp
+    test_dynamis_can_unlock_sj_3422.h
+    test_dynamis_can_unlock_sj_3422.cpp
+    test_treasure_force_check_full_3423.h
+    test_treasure_force_check_full_3423.cpp
 )
 
 if(UNIX)
