@@ -27,6 +27,7 @@ set(SOURCES
     view_version_response.h
     view_world_list_response.h
     view_acquire_player_response.h
+    view_character_delete_response.h
 )
 
 if(UNIX)

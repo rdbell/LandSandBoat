@@ -24,6 +24,7 @@
 #include "view_version_response.h"
 #include "view_world_list_response.h"
 #include "view_acquire_player_response.h"
+#include "view_character_delete_response.h"
 
 #include "character_delete.h"
 #include "character_name.h"
@@ -115,62 +116,91 @@ void view_session::read_func()
         break;
         case 0x14: // 20: "Deleting from lobby server"
         {
-            if (loginHelpers::ClassifyCharacterDeletionGate(settings::get<bool>("login.CHARACTER_DELETION")) ==
-                loginHelpers::character_deletion_gate::DENIED)
+            const auto enablePlan = login::PlanViewCharacterDeleteEnableResponse(
+                loginHelpers::ClassifyCharacterDeletionGate(settings::get<bool>("login.CHARACTER_DELETION")));
+            if (enablePlan.writeLobbyError)
             {
                 loginHelpers::generateErrorMessage(buffer_.data(), loginErrors::errorCode::COULD_NOT_CONNECT_TO_LOBBY_SERVER);
                 do_write(0x24);
+            }
+            if (enablePlan.returnFromRead)
+            {
                 return;
             }
 
             lpkt_deletechr deleteCharPacket = {};
             std::memcpy(&deleteCharPacket, buffer_.data(), sizeof(lpkt_deletechr));
-
-            // Ack is sent before ownership checks (LSB order).
-            loginHelpers::GenerateViewLobbyAckPacket(buffer_.data());
-            do_write(loginHelpers::ViewLobbyAckPacketSize);
-
             uint32 charID = deleteCharPacket.ffxi_id;
 
-            ShowInfo(loginHelpers::FormatCharacterDeleteAttemptInfo(charID, ipAddress));
-
-            bool       rowFound  = false;
-            uint32     rowAccid  = 0;
-            const auto rset      = db::preparedStmt("SELECT accid FROM chars WHERE charid = ? LIMIT 1", charID);
-            if (rset && rset->rowsCount() != 0 && rset->next())
+            // Ack is sent before ownership checks (LSB order).
+            if (enablePlan.writeLobbyAck)
             {
-                rowAccid = rset->get<uint32>("accid");
-                rowFound = true;
+                loginHelpers::GenerateViewLobbyAckPacket(buffer_.data());
+                do_write(loginHelpers::ViewLobbyAckPacketSize);
             }
 
-            const uint32 lookedUpAccountID = loginHelpers::LookedUpAccountIDFromDeleteQuery(
-                static_cast<bool>(rset),
-                rowFound,
-                rowAccid);
-            if (loginHelpers::ClassifyCharacterDeleteOwnership(lookedUpAccountID, session.accountID) ==
-                loginHelpers::character_delete_ownership_gate::DENIED)
+            if (enablePlan.logDeleteAttempt)
             {
-                ShowError(loginHelpers::FormatCharacterDeleteWrongAccount(session.accountID));
-                socket_.lowest_layer().close();
-                return;
+                ShowInfo(loginHelpers::FormatCharacterDeleteAttemptInfo(charID, ipAddress));
             }
 
-            if (auto data = dynamic_cast<data_session*>(session.data_session.get()))
+            bool       rowFound = false;
+            uint32     rowAccid = 0;
+            if (enablePlan.runOwnershipQuery)
             {
-                data->deleteCharFromCharInfo(charID);
+                const auto rset = db::preparedStmt("SELECT accid FROM chars WHERE charid = ? LIMIT 1", charID);
+                if (rset && rset->rowsCount() != 0 && rset->next())
+                {
+                    rowAccid = rset->get<uint32>("accid");
+                    rowFound = true;
+                }
+
+                const uint32 lookedUpAccountID = loginHelpers::LookedUpAccountIDFromDeleteQuery(
+                    static_cast<bool>(rset),
+                    rowFound,
+                    rowAccid);
+                const auto ownershipPlan = login::PlanViewCharacterDeleteOwnershipResponse(
+                    loginHelpers::ClassifyCharacterDeleteOwnership(lookedUpAccountID, session.accountID),
+                    session.data_session != nullptr);
+
+                if (ownershipPlan.logWrongAccount)
+                {
+                    ShowError(loginHelpers::FormatCharacterDeleteWrongAccount(session.accountID));
+                }
+                if (ownershipPlan.closeViewSocket)
+                {
+                    socket_.lowest_layer().close();
+                }
+                if (ownershipPlan.returnFromRead)
+                {
+                    return;
+                }
+
+                if (ownershipPlan.clearCharFromDataSession)
+                {
+                    if (auto data = dynamic_cast<data_session*>(session.data_session.get()))
+                    {
+                        data->deleteCharFromCharInfo(charID);
+                    }
+                }
+
+                // Perform character deletion.
+                // Instead of performing an actual character deletion, we simply set accid to 0, and original_accid to old accid.
+                // This allows character recovery.
+                if (ownershipPlan.softDeleteCharacter)
+                {
+                    db::preparedStmt("UPDATE chars SET accid = 0, original_accid = ? WHERE charid = ? AND accid = ?",
+                                     session.accountID,
+                                     charID,
+                                     session.accountID);
+                }
+
+                // Increment key after delete
+                if (ownershipPlan.bumpDeleteKey)
+                {
+                    session.incrementKeyValue += loginHelpers::DeleteKeyIncrement;
+                }
             }
-
-            // Perform character deletion.
-            // Instead of performing an actual character deletion, we simply set accid to 0, and original_accid to old accid.
-            // This allows character recovery.
-
-            db::preparedStmt("UPDATE chars SET accid = 0, original_accid = ? WHERE charid = ? AND accid = ?",
-                             session.accountID,
-                             charID,
-                             session.accountID);
-
-            // Increment key after delete
-            session.incrementKeyValue += loginHelpers::DeleteKeyIncrement;
         }
         break;
         case 0x21: // 33: Registering character name onto the lobby server
