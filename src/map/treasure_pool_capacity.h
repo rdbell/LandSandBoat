@@ -16,6 +16,7 @@
 //   - 2998: CanLotRareItem (!(rare && alreadyHas) rare-owned lot gate)
 //   - 3060: ShouldRejectNullMember (charNull || poolMismatch null-member gate)
 //   - 3067: ShouldRejectNullItem (itemNull identity null-item gate)
+//   - 3094: ShouldSkipRareCheck (!isSoloPool && itemHasNoRareCheck skip-rare gate)
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -49,6 +50,14 @@
 // (PItem / PNewItem == nullptr) into ShouldRejectNullItem.
 // Go dual-wire: treasurepool.ShouldRejectNullItem
 // (internal/treasurepool/reject_null_item.go).
+//
+// Production host: CTreasurePool::addItem injects
+// (m_TreasurePoolType == Solo) and PNewItem->hasFlag(NoRareCheck) into
+// ShouldSkipRareCheck before ShouldApplyRareMemberCheck.
+// Go dual-wire: treasurepool.ShouldSkipRareCheck
+// (internal/treasurepool/skip_rare_check.go).
+// Sibling dual-wires (leave alone): ShouldRejectNullMember (3060),
+// ShouldRejectNullItem (3067).
 
 namespace treasurepoolhelpers
 {
@@ -78,6 +87,20 @@ inline auto IsValidFreeSlot(const uint8 freeSlotID) -> bool
 }
 
 // ShouldSkipRareCheck mirrors non-solo pool + NoRareCheck item flag.
+//
+// Formula (slice 3094 dual-wire):
+//   !isSoloPool && itemHasNoRareCheck
+//
+// isSoloPool         — host-evaluated (m_TreasurePoolType == TreasurePoolType::Solo)
+// itemHasNoRareCheck — host-evaluated PNewItem->hasFlag(ItemFlag::NoRareCheck)
+// true  → host skips the rare-member ownership scan on addItem
+// false → host may still apply rare-member check via ShouldApplyRareMemberCheck
+//
+// Dual-wire of Go treasurepool.ShouldSkipRareCheck.
+// Call site: CTreasurePool::addItem before ShouldApplyRareMemberCheck /
+// ShouldRejectRareAllHave.
+// Sibling dual-wires (leave alone): ShouldRejectNullMember (3060),
+// ShouldRejectNullItem (3067).
 inline auto ShouldSkipRareCheck(const bool isSoloPool, const bool itemHasNoRareCheck) -> bool
 {
     return !isSoloPool && itemHasNoRareCheck;

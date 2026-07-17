@@ -2761,6 +2761,16 @@ set(SOURCES
     test_spawn_reject_night_3092.cpp
     test_besieged_afford_sanction_3093.h
     test_besieged_afford_sanction_3093.cpp
+    test_treasure_skip_rare_3094.h
+    test_treasure_skip_rare_3094.cpp
+    test_nyzul_grant_free_floor_3095.h
+    test_nyzul_grant_free_floor_3095.cpp
+    test_unity_add_member_lookup_3096.h
+    test_unity_add_member_lookup_3096.cpp
+    test_pet_can_retreat_master_3097.h
+    test_pet_can_retreat_master_3097.cpp
+    test_synergy_trade_furnace_3098.h
+    test_synergy_trade_furnace_3098.cpp
 )
 
 if(UNIX)

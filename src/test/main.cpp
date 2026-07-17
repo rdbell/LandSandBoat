@@ -1384,6 +1384,11 @@ auto runArtisanCanBuySack3090SelfTests() -> bool;
 auto runAttackutilsRejectNullWeapon3091SelfTests() -> bool;
 auto runSpawnRejectNight3092SelfTests() -> bool;
 auto runBesiegedAffordSanction3093SelfTests() -> bool;
+auto runTreasureSkipRare3094SelfTests() -> bool;
+auto runNyzulGrantFreeFloor3095SelfTests() -> bool;
+auto runUnityAddMemberLookup3096SelfTests() -> bool;
+auto runPetCanRetreatMaster3097SelfTests() -> bool;
+auto runSynergyTradeFurnace3098SelfTests() -> bool;
 
 namespace
 {
@@ -2745,6 +2750,11 @@ namespace
         ok = runAttackutilsRejectNullWeapon3091SelfTests() && ok;
         ok = runSpawnRejectNight3092SelfTests() && ok;
         ok = runBesiegedAffordSanction3093SelfTests() && ok;
+        ok = runTreasureSkipRare3094SelfTests() && ok;
+        ok = runNyzulGrantFreeFloor3095SelfTests() && ok;
+        ok = runUnityAddMemberLookup3096SelfTests() && ok;
+        ok = runPetCanRetreatMaster3097SelfTests() && ok;
+        ok = runSynergyTradeFurnace3098SelfTests() && ok;
 
         return ok;
     }

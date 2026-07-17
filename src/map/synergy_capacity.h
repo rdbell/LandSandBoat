@@ -4,15 +4,17 @@
 
 // Pure Synergy furnace helpers shared by dual-wire slices:
 //   - 2877: CanClaimFurnace residual dual-wire suite (AVAILABLE gate)
-//   - 2896: CanTradeIntoFurnace (synergyFurnaceOnTrade CLAIMED+owner gate)
+//   - 2896: CanTradeIntoFurnace residual dual-wire suite (CLAIMED+owner)
 //   - 2899: CanOperateFurnace (synergyFurnaceOnTrigger claimedByYou gate)
 //   - 3065: CanClaimFurnace dedicated dual-wire (claim_furnace.go)
+//   - 3098: CanTradeIntoFurnace dedicated dual-wire (trade_furnace.go)
 //
 // Dual-wire index:
 //   - 2877: CanClaimFurnace residual dual-wire suite
-//   - 2896: CanTradeIntoFurnace (CLAIMED + IsClaimedBy)
+//   - 2896: CanTradeIntoFurnace residual dual-wire suite
 //   - 2899: CanOperateFurnace (IsClaimedBy alias)
 //   - 3065: CanClaimFurnace (state == FurnaceAvailable)
+//   - 3098: CanTradeIntoFurnace (state == FurnaceClaimed && IsClaimedBy)
 //
 // Production hosts are Lua under scripts/globals/synergy.lua
 // (furnaceStates + synergyFurnaceOnTrigger / synergyFurnaceOnTrade).
@@ -25,6 +27,9 @@
 // Go dual-wire: synergy.CanClaimFurnace
 // (internal/synergy/claim_furnace.go). Future Lua host injects
 // CanClaimFurnace then CLAIM_SET + attachToSynergyFurnace.
+// Go dual-wire: synergy.CanTradeIntoFurnace
+// (internal/synergy/trade_furnace.go). Future Lua host injects
+// CanTradeIntoFurnace then recipe lookup / fewell / startEvent 4521.
 //
 // Prior pure port: OmegaXI slice 1149 (internal/synergy furnace.go).
 
@@ -76,14 +81,32 @@ inline auto IsClaimedBy(const uint32 furnacePlayerID, const uint32 playerID) -> 
     return furnacePlayerID != 0 && furnacePlayerID == playerID;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 2896 / 3098 — synergyFurnaceOnTrade CLAIMED+owner gate
+// ---------------------------------------------------------------------------
+
 // CanTradeIntoFurnace mirrors the pure CLAIMED+owner gate of
 // synergyFurnaceOnTrade after ENABLE_SYNERGY is checked by the host:
 //   if furnaceState ~= furnaceStates.CLAIMED then return end
 //   local claimedByYou = furnacePlayerID == player:getID()
 //   if not claimedByYou then return end
-// state / furnacePlayerID are host-injected npc local vars.
-// Host still owns recipe lookup / trade consume / fewell packing /
-// startEvent 4521.
+//   -- recipe lookup / fewell packing / startEvent 4521 ...
+//
+// Formula (slice 3098 dual-wire; residual expand 2896):
+//   CanTradeIntoFurnace(state, furnacePlayerID, playerID)
+//     = state == FurnaceClaimed && IsClaimedBy(furnacePlayerID, playerID)
+//
+// state / furnacePlayerID are host-injected npc local vars
+// (synergyFurnaceState / synergyFurnacePlayerID).
+// true  → host recipe lookup / fewell packing / startEvent 4521
+// false → early return (wrong state / not owner)
+//
+// Dual-wire of Go synergy.CanTradeIntoFurnace.
+// Call site: future Lua synergyFurnaceOnTrade inject.
+// Prior pure port: slice 1149. Residual dual-wire suite: 2896 /
+// test_synergy_trade_furnace_2896. Dedicated dual-wire suite is
+// test_synergy_trade_furnace_3098. Host still owns ENABLE_SYNERGY /
+// recipe / trade consume / fewell / startEvent after a true gate.
 inline auto CanTradeIntoFurnace(const uint8 state, const uint32 furnacePlayerID, const uint32 playerID) -> bool
 {
     return state == FurnaceClaimed && IsClaimedBy(furnacePlayerID, playerID);

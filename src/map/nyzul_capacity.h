@@ -3,7 +3,7 @@
 #include "common/cbasetypes.h"
 
 // Pure Nyzul Isle helpers shared by dual-wire slices:
-//   - 2874: free-floor selection gate (pickSetPoint)
+//   - 2874: free-floor selection gate (pickSetPoint; prior dual-wire)
 //   - 2891: gear-objective chance gate (pickSetPoint)
 //   - 2900: floor-100 vigil weapon drop gate (vigilWeaponDrop)
 //   - 2902: Rune of Transfer first-claimer gate (onEventUpdate)
@@ -13,6 +13,7 @@
 //   - 2914: clearChests present + not-DISAPPEAR status gate (prior dual-wire)
 //   - 2918: onGearEngage AVOID_AGRO penalty-trigger gate (pathos)
 //   - 3061: clearChests present + not-DISAPPEAR status gate (ShouldClearChestNPC)
+//   - 3095: free-floor selection gate (ShouldGrantFreeFloor / pickSetPoint)
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
@@ -98,8 +99,20 @@ namespace nyzulhelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2874 — pickSetPoint free-floor selection gate
+// Slice 3095 — pickSetPoint free-floor selection gate
+// (prior dual-wire expansion: slice 2874; residual pure port: 1088)
 // ---------------------------------------------------------------------------
+// Dual-wire notes (slice 3095):
+//   Formula unchanged from residual 1088 / prior 2874 dual-wire:
+//     ShouldGrantFreeFloor(roll1to30, freeFloorVar) =
+//       freeFloorVar == 0 && roll1to30 == FreeFloorRollHit
+//   Go dual-wire: nyzul.ShouldGrantFreeFloor (internal/nyzul/free_floor.go).
+//   Production host is Lua pickSetPoint (no map-server C++ call site);
+//   future Lua host injects roll + freeFloor localVar instead of re-inlining
+//   `math.random(1, 30) == 1 and freeFloor == 0`.
+//   Host still owns setStage FREE_FLOOR, freeFloor writeback, and the
+//   9000 ms setProgress(15) timer. Sibling clear-chest dual-wire (3061)
+//   is a separate surface — leave alone.
 
 // FreeFloorRollHit is the free-floor success value for math.random(1, 30)
 // (== 1 → ~3.33%).
@@ -107,9 +120,15 @@ inline constexpr int32 FreeFloorRollHit = 1;
 
 // ShouldGrantFreeFloor mirrors pickSetPoint free-floor selection:
 //   math.random(1, 30) == 1 and freeFloor == 0
+//
+// Formula (slice 3095 dual-wire; unchanged):
+//   ShouldGrantFreeFloor(roll1to30, freeFloorVar) =
+//     freeFloorVar == 0 && roll1to30 == FreeFloorRollHit
+//
 // roll1to30 is the host-injected math.random(1, 30) result.
 // freeFloorVar is instance:getLocalVar('freeFloor') (0 = never granted this
 // run). Host still owns setStage / freeFloor writeback / timer.
+// Dual-wire of Go nyzul.ShouldGrantFreeFloor (free_floor.go / slice 3095).
 inline auto ShouldGrantFreeFloor(const int32 roll1to30, const int32 freeFloorVar) -> bool
 {
     return freeFloorVar == 0 && roll1to30 == FreeFloorRollHit;

@@ -13,6 +13,7 @@
 //   - 2933: ShouldReceiveUnityPacket (!isSender && !isDisappear && !inPrison)
 //   - 3050: ShouldLoadUnityChatOnOnlineAdd (!foundInCache && leader != 0)
 //   - 3075: ShouldRejectNullOnlineMember (charNull identity null-PChar gate)
+//   - 3096: ShouldAddMemberAfterOnlineLookup (unityLoaded identity post-lookup gate)
 //
 // Production host: CUnityChat::PushPacket (unitychat.cpp) injects
 // member->id == senderID / STATUS_TYPE::DISAPPEAR / jailutils::InPrison(member)
@@ -29,6 +30,10 @@
 // return OnlineMemberAlwaysReturnsFalse.
 // Go dual-wire: unitychat.ShouldRejectNullOnlineMember
 // (internal/unitychat/reject_null_online_member.go).
+// Production host: unitychat::AddOnlineMember injects (PUnity != nullptr) into
+// ShouldAddMemberAfterOnlineLookup; on true PUnity->AddMember(PChar).
+// Go dual-wire: unitychat.ShouldAddMemberAfterOnlineLookup
+// (internal/unitychat/add_member_after_lookup.go).
 
 namespace unitychathelpers
 {
@@ -118,7 +123,25 @@ inline auto ShouldLoadUnityChatOnOnlineAdd(const bool foundInCache, const uint32
     return !foundInCache && leader != 0;
 }
 
-// ShouldAddMemberAfterOnlineLookup mirrors PUnity != nullptr.
+// ShouldAddMemberAfterOnlineLookup mirrors PUnity != nullptr after load/cache
+// lookup on AddOnlineMember before AddMember.
+//
+// Formula (slice 3096 dual-wire):
+//   unityLoaded
+//
+// unityLoaded — host-evaluated (PUnity != nullptr) after cache reuse or
+//               LoadUnityChat(leader)
+// true  → host calls PUnity->AddMember(PChar)
+// false → skip AddMember (null unity after miss + leader 0 or load failure)
+//
+// Dual-wire of Go unitychat.ShouldAddMemberAfterOnlineLookup.
+// Call site: unitychat::AddOnlineMember — host injects (PUnity != nullptr);
+// on true AddMember(PChar). Prior pure port: slice 1356 (unitychat capacity
+// residual). Residual pins remain in test_unitychat_capacity_1356; dedicated
+// dual-wire suite is test_unity_add_member_lookup_3096. Sibling dual-wires
+// (leave alone): ShouldLoadUnityChatOnOnlineAdd (3050),
+// ShouldRejectNullOnlineMember (3075). Residual siblings: always-false return,
+// erase-after-del, null warning string (still 1356).
 inline auto ShouldAddMemberAfterOnlineLookup(const bool unityLoaded) -> bool
 {
     return unityLoaded;
