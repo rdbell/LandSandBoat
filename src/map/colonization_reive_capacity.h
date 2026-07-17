@@ -4,20 +4,24 @@
 
 // Pure colonization reive helpers shared by dual-wire slices:
 //   - 2882: enableReive spawn gate (ShouldSpawnOnEnable)
+//   - 2889: disableReive despawn gate (ShouldDespawnOnDisable)
 //
 // Production host is Lua under scripts/globals/colonization_reives.lua
-// xi.reives.enableReive for both defenders (reiveData.mob) and obstacles
-// (reiveData.obstacles):
+// xi.reives.enableReive / disableReive for both defenders (reiveData.mob)
+// and obstacles (reiveData.obstacles):
 //
 //   if not mob:isAlive() then
 //     SpawnMob(entryId)  -- Spawn the reive defenders / obstacles
 //   end
+//   if mob:isSpawned() then
+//     DespawnMob(entryId)  -- Despawn defender / obstacle mobs on reive end
+//   end
 //
 // Capacity is for future Lua/C++ inject so hosts dual-wire pure free
-// functions instead of re-inlining `not isAlive`. Helpers take
+// functions instead of re-inlining `not isAlive` / `isSpawned`. Helpers take
 // host-injected scalars only (no mob / zone / entity pointers).
-// Side effects (GetMobByID, SpawnMob, setRespawnTime, setAnimation,
-// obstacle combat flags) remain host-owned.
+// Side effects (GetMobByID, SpawnMob, DespawnMob, setRespawnTime,
+// setAnimation, obstacle combat flags) remain host-owned.
 // Prior pure port: OmegaXI slice 1038 (internal/colonizationreive).
 
 namespace reivehelpers
@@ -37,6 +41,22 @@ namespace reivehelpers
 inline auto ShouldSpawnOnEnable(const bool isAlive) -> bool
 {
     return !isAlive;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2889 — disableReive despawn gate
+// ---------------------------------------------------------------------------
+
+// ShouldDespawnOnDisable mirrors disableReive despawn gate for defenders and
+// obstacles:
+//
+//   if mob:isSpawned() then DespawnMob(entryId) end
+//
+// isSpawned is the host-injected mob:isSpawned() result. Host still owns
+// GetMobByID, DespawnMob, and any post-despawn configuration.
+inline auto ShouldDespawnOnDisable(const bool isSpawned) -> bool
+{
+    return isSpawned;
 }
 
 } // namespace reivehelpers

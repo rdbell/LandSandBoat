@@ -4,6 +4,7 @@
 
 // Pure Artisan Moogle helpers shared by dual-wire slices:
 //   - 2879: CanBuySack (artisan.lua moogleOnUpdate option 1 gate)
+//   - 2890: CanExpand (artisan.lua moogleOnUpdate option 2 expand gate)
 //
 // Lua production host: scripts/globals/artisan.lua moogleOnUpdate:
 //
@@ -14,11 +15,19 @@
 //           player:changeContainerSize(xi.inv.MOGSACK, 30)
 //           ...
 //       end
+//   elseif option == 2 then -- Expand sack
+//       local sackSize = player:getContainerSize(xi.inv.MOGSACK)
+//       local gobbieSize = player:getContainerSize(xi.inv.INVENTORY)
+//       if sackSize < gobbieSize and sackSize > 0 then
+//           player:changeContainerSize(xi.inv.MOGSACK, gobbieSize - sackSize)
+//           ...
+//       end
 //   end
 //
 // Host injects scalars only (no player / entity pointers):
-//   gil      — player:getGil()
-//   sackSize — player:getContainerSize(xi.inv.MOGSACK)
+//   gil        — player:getGil()
+//   sackSize   — player:getContainerSize(xi.inv.MOGSACK)
+//   gobbieSize — player:getContainerSize(xi.inv.INVENTORY)
 //
 // delGil, changeContainerSize, setCharVar, and updateEvent remain host-owned.
 // Prior pure port: OmegaXI slice 0948 (internal/artisan).
@@ -39,6 +48,18 @@ inline constexpr int32 BuySackGilCost = 9980;
 inline auto CanBuySack(const int32 gil, const int32 sackSize) -> bool
 {
     return gil >= BuySackGilCost && sackSize == 0;
+}
+
+// CanExpand is the pure gate for option 2 (Expand sack):
+//
+//   sackSize < gobbieSize && sackSize > 0
+//
+// Future Lua host injects scalars into this helper instead of re-inlining
+// the sack / inventory size comparison. changeContainerSize and updateEvent
+// remain host-owned after a true gate.
+inline auto CanExpand(const int32 sackSize, const int32 gobbieSize) -> bool
+{
+    return sackSize < gobbieSize && sackSize > 0;
 }
 
 } // namespace artisanhelpers

@@ -947,6 +947,16 @@ set(SOURCES
     test_manaclipper_remaining_minutes_2887.cpp
     test_ambuscade_warp_exit_2888.h
     test_ambuscade_warp_exit_2888.cpp
+    test_reive_despawn_on_disable_2889.h
+    test_reive_despawn_on_disable_2889.cpp
+    test_artisan_can_expand_2890.h
+    test_artisan_can_expand_2890.cpp
+    test_nyzul_gear_objective_2891.h
+    test_nyzul_gear_objective_2891.cpp
+    test_salvage_open_door_2892.h
+    test_salvage_open_door_2892.cpp
+    test_darkixion_restore_horn_2893.h
+    test_darkixion_restore_horn_2893.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h
