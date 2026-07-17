@@ -1724,6 +1724,11 @@ auto runPartyRemoveSyncLow3430SelfTests() -> bool;
 auto runBattlefieldEnterPC3431SelfTests() -> bool;
 auto runItemIncrementCountInsert3432SelfTests() -> bool;
 auto runVoidwalkerShouldUpgradeKI3433SelfTests() -> bool;
+auto runAbysseaCanGiveNMKI3434SelfTests() -> bool;
+auto runSpawnRejectNight3435SelfTests() -> bool;
+auto runUnityRejectNullOnline3436SelfTests() -> bool;
+auto runNotorietyScanPrune3437SelfTests() -> bool;
+auto runAmbuscadeStartExit3438SelfTests() -> bool;
 
 namespace
 {
@@ -3425,6 +3430,11 @@ namespace
         ok = runBattlefieldEnterPC3431SelfTests() && ok;
         ok = runItemIncrementCountInsert3432SelfTests() && ok;
         ok = runVoidwalkerShouldUpgradeKI3433SelfTests() && ok;
+        ok = runAbysseaCanGiveNMKI3434SelfTests() && ok;
+        ok = runSpawnRejectNight3435SelfTests() && ok;
+        ok = runUnityRejectNullOnline3436SelfTests() && ok;
+        ok = runNotorietyScanPrune3437SelfTests() && ok;
+        ok = runAmbuscadeStartExit3438SelfTests() && ok;
 
         return ok;
     }

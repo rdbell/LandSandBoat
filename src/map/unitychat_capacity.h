@@ -20,8 +20,10 @@
 //           (same formula; free==inline==pin residual pins + dense found×leader)
 //   - 3075: ShouldRejectNullOnlineMember residual dual-wire
 //           (charNull identity null-PChar gate)
-//   - 3386: ShouldRejectNullOnlineMember dedicated expand residual 3075
+//   - 3386: ShouldRejectNullOnlineMember prior dedicated expand residual 3075
 //           (same formula; free==inline==pin residual pins; dense 2¹ suite)
+//   - 3436: ShouldRejectNullOnlineMember dedicated expand residual 3075
+//           (same formula; prior 3386 retained; free==inline==pin; dense 2¹)
 //   - 3096: ShouldAddMemberAfterOnlineLookup residual dual-wire
 //           (unityLoaded identity post-lookup gate)
 //   - 3254: ShouldAddMemberAfterOnlineLookup dedicated expand residual 3096
@@ -43,7 +45,8 @@
 // (PChar == nullptr) into ShouldRejectNullOnlineMember; on true ShowWarning +
 // return OnlineMemberAlwaysReturnsFalse.
 // Go dual-wire: unitychat.ShouldRejectNullOnlineMember
-// (internal/unitychat/reject_null_online_member.go; residual 3075 + dedicated 3386).
+// (internal/unitychat/reject_null_online_member.go; residual 3075 + prior
+// dedicated 3386 + dedicated 3436).
 // Production host: unitychat::AddOnlineMember injects (PUnity != nullptr) into
 // ShouldAddMemberAfterOnlineLookup; on true PUnity->AddMember(PChar).
 // Go dual-wire: unitychat.ShouldAddMemberAfterOnlineLookup
@@ -108,7 +111,8 @@ inline auto FormatOnlineMemberNullWarning() -> std::string
 // ShouldRejectNullOnlineMember mirrors PChar == nullptr on AddOnlineMember /
 // DelOnlineMember before load / roster work.
 //
-// Formula (slice 3075 residual dual-wire; slice 3386 dedicated expand):
+// Formula (slice 3075 residual dual-wire; slice 3386 prior dedicated expand;
+// slice 3436 dedicated expand residual 3075):
 //   charNull
 //
 // charNull — host-evaluated (PChar == nullptr)
@@ -120,14 +124,15 @@ inline auto FormatOnlineMemberNullWarning() -> std::string
 // Call sites: unitychat::AddOnlineMember / DelOnlineMember — host injects
 // (PChar == nullptr); on true ShowWarning + return OnlineMemberAlwaysReturnsFalse.
 // Prior pure port: slice 1356 (unitychat capacity residual). Residual dual-wire
-// pins remain in test_unity_reject_null_online_3075; dedicated dual-wire suite is
-// test_unity_reject_null_online_3386 (free == inline == pin residual pins; dense
-// 2¹). Formula unchanged from 1356 / 3075.
+// pins remain in test_unity_reject_null_online_3075; prior dedicated dual-wire
+// suite remains in test_unity_reject_null_online_3386; dedicated dual-wire suite
+// is test_unity_reject_null_online_3436 (free == inline == pin residual pins;
+// dense 2¹). Formula unchanged from 1356 / 3075 / 3386.
 // Free / pin / inline all use direct return of charNull.
 // Sibling dual-wires (leave alone): ShouldLoadUnityChatOnOnlineAdd
 // (3050 residual / 3366 dedicated expand — do not thrash),
-// ShouldAddMemberAfterOnlineLookup (3096/3254), ShouldReceiveUnityPacket
-// (2933/3190), ShouldEraseUnityChatAfterDelOnline (3116),
+// ShouldAddMemberAfterOnlineLookup (3096/3254 — do not thrash),
+// ShouldReceiveUnityPacket (2933/3190), ShouldEraseUnityChatAfterDelOnline (3116),
 // ShouldReturnCachedUnityChat (3130). Residual siblings: always-false return,
 // null warning string, exception format (still 1356 residual).
 inline auto ShouldRejectNullOnlineMember(const bool charNull) -> bool
@@ -156,11 +161,11 @@ inline auto ShouldRejectNullOnlineMember(const bool charNull) -> bool
 // foundInCache × leader edges). Formula unchanged from 1356 / 3050.
 // Free / pin / inline all use direct return of !foundInCache && leader != 0.
 // Sibling dual-wires (leave alone): ShouldRejectNullOnlineMember
-// (3075 residual / 3386 dedicated expand), ShouldAddMemberAfterOnlineLookup
-// (3096/3254), ShouldReceiveUnityPacket (2933/3190),
-// ShouldEraseUnityChatAfterDelOnline (3116), ShouldReturnCachedUnityChat (3130).
-// Residual siblings: always-false return, null warning string, exception format
-// (still 1356 residual).
+// (3075 residual / 3386 prior dedicated / 3436 dedicated expand),
+// ShouldAddMemberAfterOnlineLookup (3096/3254), ShouldReceiveUnityPacket
+// (2933/3190), ShouldEraseUnityChatAfterDelOnline (3116),
+// ShouldReturnCachedUnityChat (3130). Residual siblings: always-false return,
+// null warning string, exception format (still 1356 residual).
 inline auto ShouldLoadUnityChatOnOnlineAdd(const bool foundInCache, const uint32 leader) -> bool
 {
     return !foundInCache && leader != 0;

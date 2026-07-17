@@ -3441,6 +3441,16 @@ set(SOURCES
     test_item_increment_count_insert_3432.cpp
     test_voidwalker_should_upgrade_ki_3433.h
     test_voidwalker_should_upgrade_ki_3433.cpp
+    test_abyssea_can_give_nmki_3434.h
+    test_abyssea_can_give_nmki_3434.cpp
+    test_spawn_reject_night_3435.h
+    test_spawn_reject_night_3435.cpp
+    test_unity_reject_null_online_3436.h
+    test_unity_reject_null_online_3436.cpp
+    test_notoriety_scan_prune_3437.h
+    test_notoriety_scan_prune_3437.cpp
+    test_ambuscade_start_exit_3438.h
+    test_ambuscade_start_exit_3438.cpp
 )
 
 if(UNIX)
