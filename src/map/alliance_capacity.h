@@ -24,6 +24,7 @@
 //   - 3355: ShouldSetLocalMainParty dedicated dual-wire expand residual 2988
 //   - 3393: ShouldAttemptAllianceLeaderPromote dedicated dual-wire expand residual 2979
 //   - 3447: ShouldAttemptAllianceLeaderPromote dedicated dual-wire expand residual 2979
+//   - 3490: ShouldAttemptAllianceLeaderPromote dedicated dual-wire expand residual 2979
 //
 // Production host: CAlliance::delParty (alliance.cpp) injects
 // party->m_PAlliance != nullptr and partyList.empty() into
@@ -40,7 +41,8 @@
 // (internal/alliance/attempt_leader_promote.go). Prior pure port: 1341 / 1346;
 // prior dual-wire: 2979; prior dual-wire expansion: 3144;
 // prior dedicated dual-wire expand residual 2979: 3393;
-// dedicated dual-wire expand residual 2979: 3447.
+// prior dedicated dual-wire expand residual 2979: 3447;
+// dedicated dual-wire expand residual 2979: 3490.
 //
 // Production host: CAlliance::assignAllianceLeader (alliance.cpp) injects
 // PParty->GetMemberByName(name) != nullptr into ShouldSetLocalMainParty while
@@ -167,9 +169,10 @@ inline auto ClassifyRemoveAllianceParty(
 // ShouldAttemptAllianceLeaderPromote mirrors isMainParty before the DB lookup
 // for another party leader in the alliance (CAlliance::removeParty promote gate).
 //
-// Formula (slice 3447 dedicated dual-wire expand residual 2979; prior 3393
-// dedicated dual-wire expand residual 2979; prior 3144 dual-wire expansion;
-// prior 2979 dual-wire; residual 1341 / 1346):
+// Formula (slice 3490 dedicated dual-wire expand residual 2979; prior 3447
+// dedicated dual-wire expand residual 2979; prior 3393 dedicated dual-wire
+// expand residual 2979; prior 3144 dual-wire expansion; prior 2979 dual-wire;
+// residual 1341 / 1346):
 //   isMainParty
 //
 // isMainParty — host-evaluated getMainParty() == party (after null check)
@@ -183,7 +186,8 @@ inline auto ClassifyRemoveAllianceParty(
 // Prior dual-wire packaging: slice 2979.
 // Prior dual-wire expansion: slice 3144.
 // Prior dedicated dual-wire expand residual 2979: slice 3393.
-// Dedicated dual-wire expand residual 2979: slice 3447.
+// Prior dedicated dual-wire expand residual 2979: slice 3447.
+// Dedicated dual-wire expand residual 2979: slice 3490.
 inline auto ShouldAttemptAllianceLeaderPromote(const bool isMainParty) -> bool
 {
     return isMainParty;

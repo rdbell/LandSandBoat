@@ -1779,6 +1779,11 @@ auto runEnmityZeroOutOfRange3485SelfTests() -> bool;
 auto runItemIncrementCountInsert3486SelfTests() -> bool;
 auto runUnityRejectNullOnline3487SelfTests() -> bool;
 auto runAmbuscadeStartExit3488SelfTests() -> bool;
+auto runLinkshellRejectNullAddMember3489SelfTests() -> bool;
+auto runAllianceAttemptLeaderPromote3490SelfTests() -> bool;
+auto runAbysseaCanGiveNMKI3491SelfTests() -> bool;
+auto runNotorietyAddMember3492SelfTests() -> bool;
+auto runArtisanCanBuySack3493SelfTests() -> bool;
 
 namespace
 {
@@ -3535,6 +3540,11 @@ namespace
         ok = runItemIncrementCountInsert3486SelfTests() && ok;
         ok = runUnityRejectNullOnline3487SelfTests() && ok;
         ok = runAmbuscadeStartExit3488SelfTests() && ok;
+        ok = runLinkshellRejectNullAddMember3489SelfTests() && ok;
+        ok = runAllianceAttemptLeaderPromote3490SelfTests() && ok;
+        ok = runAbysseaCanGiveNMKI3491SelfTests() && ok;
+        ok = runNotorietyAddMember3492SelfTests() && ok;
+        ok = runArtisanCanBuySack3493SelfTests() && ok;
 
         return ok;
     }

@@ -9,9 +9,12 @@
 //   - 3165: ShouldAddNotorietyMember prior dedicated dual-wire
 //   - 3267: ShouldAddNotorietyMember prior dedicated dual-wire
 //   - 3297: ShouldAddNotorietyMember prior dedicated dual-wire
-//   - 3327: ShouldAddNotorietyMember dedicated dual-wire
+//   - 3327: ShouldAddNotorietyMember prior dedicated dual-wire
 //           (ownerPresent && entityPresent && differentAllegiance;
 //            residual expand 2959 / pure 2818; prior dedicated 3297 / 3267 / 3165)
+//   - 3492: ShouldAddNotorietyMember dedicated dual-wire
+//           (ownerPresent && entityPresent && differentAllegiance;
+//            residual expand 2959 / pure 2818; prior dedicated 3327 / 3297 / 3267 / 3165)
 //   - 2971: ShouldRemoveNotorietyMember residual dual-wire expand
 //   - 3192: ShouldRemoveNotorietyMember dedicated dual-wire
 //           (ownerPresent && entityPresent;
@@ -44,8 +47,9 @@
 // (internal/notoriety/add_member.go). Prior pure port: slice 2818.
 // Residual dual-wire suite: 2959 / test_notoriety_add_member_2959.
 // Prior dedicated dual-wire suites: 3165 / test_notoriety_add_member_3165,
-// 3267 / test_notoriety_add_member_3267, 3297 / test_notoriety_add_member_3297.
-// Dedicated dual-wire suite: 3327 / test_notoriety_add_member_3327.
+// 3267 / test_notoriety_add_member_3267, 3297 / test_notoriety_add_member_3297,
+// 3327 / test_notoriety_add_member_3327.
+// Dedicated dual-wire suite: 3492 / test_notoriety_add_member_3492.
 // Go dual-wire: notoriety.ShouldRemoveNotorietyMember
 // (internal/notoriety/remove_member.go). Prior pure port: slice 2819.
 // Residual dual-wire suite: 2971 / test_notoriety_remove_member_2971.
@@ -86,8 +90,8 @@ namespace notorietyhelpers
 // unchanged; this slice only expands dual-wire docs + index + dedicated suite
 // (free == inline == pin residual pins).
 // Call site: CNotorietyContainer::hasEnmity (notoriety_container.cpp).
-// Sibling left alone: ShouldAddNotorietyMember (3327; prior dedicated 3297 /
-// 3267 / 3165), ShouldRemoveNotorietyMember (3192),
+// Sibling left alone: ShouldAddNotorietyMember (3492; prior dedicated 3327 /
+// 3297 / 3267 / 3165), ShouldRemoveNotorietyMember (3192),
 // ShouldPruneMobFromNotoriety (3208; residual 3029), HasEnmityAfterPrune (3034).
 // Do not thrash add_member / prune_mob.
 inline auto ShouldScanNotorietyForPrune(const bool ownerPresent, const bool lookupNonEmpty) -> bool
@@ -126,7 +130,7 @@ inline auto ShouldScanNotorietyForPrune(const bool ownerPresent, const bool look
 // Call site: CNotorietyContainer::hasEnmity (notoriety_container.cpp).
 // Sibling outer gate: ShouldScanNotorietyForPrune (dedicated 3437; prior dedicated
 // 3385; residual 3020).
-// Sibling left alone: ShouldAddNotorietyMember (3327; prior dedicated 3297 / 3267 / 3165),
+// Sibling left alone: ShouldAddNotorietyMember (3492; prior dedicated 3327 / 3297 / 3267 / 3165),
 // ShouldRemoveNotorietyMember (3192), ShouldScanNotorietyForPrune (3437; prior 3385;
 // residual 3020).
 inline auto ShouldPruneMobFromNotoriety(
@@ -145,8 +149,8 @@ inline auto ShouldPruneMobFromNotoriety(
 // ShouldAddNotorietyMember mirrors CNotorietyContainer::add admission (~48):
 //   m_POwner && entity && entity->allegiance != m_POwner->allegiance
 //
-// Formula (slice 3327 dedicated dual-wire; residual expand 2959 / pure 2818 —
-// prior dedicated expand 3297 / 3267 / 3165 — formula unchanged):
+// Formula (slice 3492 dedicated dual-wire; residual expand 2959 / pure 2818 —
+// prior dedicated expand 3327 / 3297 / 3267 / 3165 — formula unchanged):
 //   ownerPresent && entityPresent && differentAllegiance
 //
 // Host-injected scalars (no entity pointers):
@@ -162,9 +166,11 @@ inline auto ShouldPruneMobFromNotoriety(
 // (internal/notoriety/add_member.go). Prior pure port: slice 2818.
 // Residual dual-wire suite: 2959 / test_notoriety_add_member_2959.
 // Prior dedicated dual-wire suites: 3165 / test_notoriety_add_member_3165,
-// 3267 / test_notoriety_add_member_3267, 3297 / test_notoriety_add_member_3297.
-// Dedicated dual-wire suite is test_notoriety_add_member_3327. Formula is
-// unchanged; this slice only expands dual-wire docs + index + dedicated suite.
+// 3267 / test_notoriety_add_member_3267, 3297 / test_notoriety_add_member_3297,
+// 3327 / test_notoriety_add_member_3327.
+// Dedicated dual-wire suite is test_notoriety_add_member_3492. Formula is
+// unchanged; this slice only expands dual-wire docs + index + dedicated suite
+// (free == inline == pin residual pins + prior 3327 independence).
 // Call site: CNotorietyContainer::add (notoriety_container.cpp).
 inline auto ShouldAddNotorietyMember(
     const bool ownerPresent,
@@ -194,7 +200,7 @@ inline auto ShouldAddNotorietyMember(
 // Dedicated dual-wire suite is test_notoriety_remove_member_3192. Formula is
 // unchanged; this slice only expands dual-wire docs + index + dedicated suite.
 // Call site: CNotorietyContainer::remove (notoriety_container.cpp).
-// Sibling left alone: ShouldAddNotorietyMember (3327; prior dedicated 3297 / 3267 / 3165).
+// Sibling left alone: ShouldAddNotorietyMember (3492; prior dedicated 3327 / 3297 / 3267 / 3165).
 inline auto ShouldRemoveNotorietyMember(const bool ownerPresent, const bool entityPresent) -> bool
 {
     return ownerPresent && entityPresent;

@@ -3551,6 +3551,16 @@ set(SOURCES
     test_unity_reject_null_online_3487.cpp
     test_ambuscade_start_exit_3488.h
     test_ambuscade_start_exit_3488.cpp
+    test_linkshell_reject_null_add_member_3489.h
+    test_linkshell_reject_null_add_member_3489.cpp
+    test_alliance_attempt_leader_promote_3490.h
+    test_alliance_attempt_leader_promote_3490.cpp
+    test_abyssea_can_give_nmki_3491.h
+    test_abyssea_can_give_nmki_3491.cpp
+    test_notoriety_add_member_3492.h
+    test_notoriety_add_member_3492.cpp
+    test_artisan_can_buy_sack_3493.h
+    test_artisan_can_buy_sack_3493.cpp
 )
 
 if(UNIX)
