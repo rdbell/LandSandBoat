@@ -122,4 +122,38 @@ inline auto PlanMountPacketDefinition(const bool mounted, const uint16_t mountPo
     };
 }
 
+// ---------------------------------------------------------------------------
+// Pure Dismount decision policy (slice 2852).
+//
+// Production host: GP_CLI_COMMAND_ACTION_ACTIONID::Dismount in
+// packets/c2s/0x01a_action.cpp. Host injects mounted (typically
+// CBattleEntity::isMounted()). No entity / status pointers.
+//
+// Matches OmegaXI mount.Decision / PlanDismount:
+//   !mounted → empty (no mutations)
+//   mounted  → remove Mounted status, animation=None, updateHP
+// ---------------------------------------------------------------------------
+
+struct DismountDecision
+{
+    bool           removeStatus{ false };
+    MountAnimation animation{ MountAnimation::None };
+    bool           updateHP{ false };
+};
+
+// PlanDismount is the fully scalar form of the Dismount entity plan.
+inline auto PlanDismount(const bool mounted) -> DismountDecision
+{
+    if (!mounted)
+    {
+        return DismountDecision{};
+    }
+
+    return DismountDecision{
+        .removeStatus = true,
+        .animation    = MountAnimation::None,
+        .updateHP     = true,
+    };
+}
+
 } // namespace mountutilshelpers

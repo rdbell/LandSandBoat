@@ -2,10 +2,11 @@
 
 #include "common/cbasetypes.h"
 
-// Pure fishing contest stage-due gate (slice 2846).
+// Pure fishing contest helpers (slices 2846, 2851).
 //
-// Production host: fishingcontest::IsStageDue / ProgressContest in fishingcontest.cpp.
-// Helpers take host-injected time scalars only (no contest globals or earth_time).
+// Production hosts: fishingcontest::IsStageDue / ProgressContest,
+// fishingcontest::ScoreFish (future Lua host bridge) in fishingcontest.cpp.
+// Helpers take host-injected scalars only (no contest globals, earth_time, or Lua).
 
 namespace fishingcontesthelpers
 {
@@ -16,6 +17,24 @@ namespace fishingcontesthelpers
 inline auto IsStageDue(const uint32 currentTime, const uint32 changeTime) -> bool
 {
     return currentTime > changeTime;
+}
+
+// ScoreFish mirrors Lua local scoreFish (scripts/globals/fishing_contest.lua):
+//   SIZE   (0) → length
+//   WEIGHT (1) → weight
+//   else       → length + weight   (BOTH and any other criteria value)
+// criteria is FISHING_CONTEST_CRITERIA as uint8 (SIZE=0, WEIGHT=1, BOTH=2).
+inline auto ScoreFish(const uint32 length, const uint32 weight, const uint8 criteria) -> uint32
+{
+    if (criteria == 0) // SIZE
+    {
+        return length;
+    }
+    if (criteria == 1) // WEIGHT
+    {
+        return weight;
+    }
+    return length + weight;
 }
 
 } // namespace fishingcontesthelpers

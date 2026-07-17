@@ -262,6 +262,14 @@ auto IsStageDue(const uint32 currentTime, const uint32 changeTime) -> bool
     return fishingcontesthelpers::IsStageDue(currentTime, changeTime);
 }
 
+auto ScoreFish(const uint32 length, const uint32 weight, const FISHING_CONTEST_CRITERIA criteria) -> uint32
+{
+    // Pure dual-wire: fishingcontesthelpers::ScoreFish (slice 2851).
+    // Lua local scoreFish remains the live path; this free function is for
+    // future host/Lua bridge and native self-tests.
+    return fishingcontesthelpers::ScoreFish(length, weight, static_cast<uint8>(criteria));
+}
+
 void RankContestEntries(std::vector<FishingContestEntry>& entries, const FISHING_CONTEST_MEASURE measure)
 {
     // Sort the list first (dual-wire pure ShouldRankBefore).

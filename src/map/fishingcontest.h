@@ -125,6 +125,11 @@ void RankContestEntries(std::vector<FishingContestEntry>& entries, FISHING_CONTE
 // Dual-wires fishingcontesthelpers::IsStageDue (slice 2846).
 auto IsStageDue(uint32 currentTime, uint32 changeTime) -> bool;
 
+// ScoreFish dual-wires fishingcontesthelpers::ScoreFish (slice 2851).
+// Mirrors Lua local scoreFish: SIZE→length, WEIGHT→weight, else length+weight.
+// Free function for future Lua host / C++ callers; production scoring is still Lua.
+auto ScoreFish(uint32 length, uint32 weight, FISHING_CONTEST_CRITERIA criteria) -> uint32;
+
 // Contest Data: Sets
 void SetContestStatus(FISHING_CONTEST_STATUS newStatus);
 void SetContestCriteria(FISHING_CONTEST_CRITERIA newCriteria);

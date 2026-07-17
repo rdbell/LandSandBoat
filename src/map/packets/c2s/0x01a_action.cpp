@@ -40,6 +40,7 @@
 #include "status_effect_container.h"
 #include "trade_container.h"
 #include "utils/battleutils.h"
+#include "utils/mount_capacity.h"
 
 namespace
 {
@@ -454,9 +455,19 @@ void GP_CLI_COMMAND_ACTION::process(MapSession* PSession, CCharEntity* PChar) co
         break;
         case GP_CLI_COMMAND_ACTION_ACTIONID::Dismount:
         {
-            PChar->animation = ANIMATION_NONE;
-            PChar->updatemask |= UPDATE_HP;
-            PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Mounted);
+            // Pure policy dual-wire: mountutilshelpers::PlanDismount (slice 2852).
+            // Host injects isMounted(); validation already requires mounted.
+            // onEffectLose also forces animation NONE when the status is removed.
+            const auto plan = mountutilshelpers::PlanDismount(PChar->isMounted());
+            if (plan.removeStatus)
+            {
+                PChar->animation = ANIMATION_NONE; // plan.animation == MountAnimation::None
+                if (plan.updateHP)
+                {
+                    PChar->updatemask |= UPDATE_HP;
+                }
+                PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Mounted);
+            }
         }
         break;
         case GP_CLI_COMMAND_ACTION_ACTIONID::TractorMenu:

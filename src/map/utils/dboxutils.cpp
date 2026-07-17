@@ -30,6 +30,7 @@
 #include "entities/char_entity.h"
 
 #include "utils/charutils.h"
+#include "utils/dbox_capacity.h"
 #include "utils/itemutils.h"
 #include "utils/zoneutils.h"
 
@@ -778,8 +779,13 @@ void dboxutils::OpenSendBox(CCharEntity* PChar)
 {
     DebugDeliveryBoxFmt("DBOX: OpenSendBox: player: {} ({})", PChar->name, PChar->id);
 
-    PChar->UContainer->Clean();
-    PChar->UContainer->SetType(UCONTAINER_SEND_DELIVERYBOX);
+    // Pure Clean + SetType plan dual-wire (slice 2850). DeliOpen packet remains host.
+    const auto plan = dboxutilshelpers::PlanOpenSendBox(static_cast<uint8>(UCONTAINER_SEND_DELIVERYBOX));
+    if (plan.clean)
+    {
+        PChar->UContainer->Clean();
+    }
+    PChar->UContainer->SetType(static_cast<UCONTAINERTYPE>(plan.setType));
     PChar->pushPacket<GP_SERV_COMMAND_PBX_RESULT>(GP_CLI_COMMAND_PBX_COMMAND::DeliOpen, GP_CLI_COMMAND_PBX_BOXNO::Outgoing, 0, 1);
 }
 
@@ -787,22 +793,38 @@ void dboxutils::OpenRecvBox(CCharEntity* PChar)
 {
     DebugDeliveryBoxFmt("DBOX: OpenRecvBox: player: {} ({})", PChar->name, PChar->id);
 
-    PChar->UContainer->Clean();
-    PChar->UContainer->SetType(UCONTAINER_RECV_DELIVERYBOX);
+    // Pure Clean + SetType plan dual-wire (slice 2850). PostOpen packet remains host.
+    const auto plan = dboxutilshelpers::PlanOpenRecvBox(static_cast<uint8>(UCONTAINER_RECV_DELIVERYBOX));
+    if (plan.clean)
+    {
+        PChar->UContainer->Clean();
+    }
+    PChar->UContainer->SetType(static_cast<UCONTAINERTYPE>(plan.setType));
     PChar->pushPacket<GP_SERV_COMMAND_PBX_RESULT>(GP_CLI_COMMAND_PBX_COMMAND::PostOpen, GP_CLI_COMMAND_PBX_BOXNO::Incoming, 0, 1);
 }
 
 auto dboxutils::IsSendBoxOpen(const CCharEntity* PChar) -> bool
 {
-    return PChar->UContainer->GetType() == UCONTAINER_SEND_DELIVERYBOX;
+    // Pure type gate dual-wire: dboxutilshelpers::IsSendBoxOpen (slice 2849).
+    return dboxutilshelpers::IsSendBoxOpen(
+        static_cast<uint8>(PChar->UContainer->GetType()),
+        static_cast<uint8>(UCONTAINER_SEND_DELIVERYBOX));
 }
 
 auto dboxutils::IsRecvBoxOpen(const CCharEntity* PChar) -> bool
 {
-    return PChar->UContainer->GetType() == UCONTAINER_RECV_DELIVERYBOX;
+    // Pure type gate dual-wire: dboxutilshelpers::IsRecvBoxOpen (slice 2849).
+    return dboxutilshelpers::IsRecvBoxOpen(
+        static_cast<uint8>(PChar->UContainer->GetType()),
+        static_cast<uint8>(UCONTAINER_RECV_DELIVERYBOX));
 }
 
 auto dboxutils::IsAnyDeliveryBoxOpen(CCharEntity* PChar) -> bool
 {
-    return IsSendBoxOpen(PChar) || IsRecvBoxOpen(PChar);
+    // Pure type gate dual-wire: dboxutilshelpers::IsAnyDeliveryBoxOpen (slice 2849).
+    // Composition: send || recv (matches prior host form IsSendBoxOpen || IsRecvBoxOpen).
+    return dboxutilshelpers::IsAnyDeliveryBoxOpen(
+        static_cast<uint8>(PChar->UContainer->GetType()),
+        static_cast<uint8>(UCONTAINER_SEND_DELIVERYBOX),
+        static_cast<uint8>(UCONTAINER_RECV_DELIVERYBOX));
 }

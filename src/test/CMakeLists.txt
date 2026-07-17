@@ -883,6 +883,14 @@ set(SOURCES
     test_fishing_contest_stage_due_2846.cpp
     test_zone_mob_away_2848.h
     test_zone_mob_away_2848.cpp
+    test_dbox_open_plan_2850.h
+    test_dbox_open_plan_2850.cpp
+    test_mount_dismount_2852.h
+    test_mount_dismount_2852.cpp
+    test_fishing_contest_score_2851.h
+    test_fishing_contest_score_2851.cpp
+    test_dbox_open_type_2849.h
+    test_dbox_open_type_2849.cpp
     test_char_packet_on_pop_2845.h
     test_char_packet_on_pop_2845.cpp
     test_char_packet_on_push_2842.h
