@@ -3201,6 +3201,16 @@ set(SOURCES
     test_artisan_can_buy_sack_3312.cpp
     test_synthutils_can_synthesize_hq_3313.h
     test_synthutils_can_synthesize_hq_3313.cpp
+    test_abyssea_can_give_nmki_3314.h
+    test_abyssea_can_give_nmki_3314.cpp
+    test_synergy_claim_furnace_3315.h
+    test_synergy_claim_furnace_3315.cpp
+    test_portermoogle_can_retrieve_item_3316.h
+    test_portermoogle_can_retrieve_item_3316.cpp
+    test_apkallu_can_run_away_3317.h
+    test_apkallu_can_run_away_3317.cpp
+    test_salvage_claim_transport_3318.h
+    test_salvage_claim_transport_3318.cpp
 )
 
 if(UNIX)
