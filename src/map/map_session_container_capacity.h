@@ -185,4 +185,91 @@ inline auto PlanPendingTimeoutCleanup() -> PendingTimeoutCleanupPlan
     return PendingTimeoutCleanupPlan{};
 }
 
+// --- Slice 2804: cleanupSessions confirmed-session timeout pure plan ---
+
+// TimeoutDecision describes the state read by cleanupSessions after a session
+// has crossed both the five-second outer gate and configured timeout. Host
+// owns the accounts_sessions server_addr/port lookup that sets otherMap.
+// HasCharacter / OtherMap / HasMobPet are bool; ShuttingDown is the session's
+// shuttingDown byte (save position only when 0 or 1).
+struct TimeoutDecision
+{
+    bool  hasCharacter{ false };
+    bool  otherMap{ false };
+    bool  hasMobPet{ false };
+    uint8 shuttingDown{ 0 };
+};
+
+// CleanupAction is one deferred timeout/destroy effect in exact LSB order.
+// Values match OmegaXI mapsession.CleanupAction (including DecreaseZoneCounter
+// for PlanDestroy parity; timeout planning does not emit it).
+enum class CleanupAction : uint8
+{
+    SaveStatusEffects = 0, // StatusEffectContainer->SaveStatusEffects(true)
+    DeleteDatabaseSession, // DELETE FROM accounts_sessions
+    SaveCharacterPosition, // charutils::SaveCharPosition
+    DespawnMobPet,         // petutils::DespawnPet (TYPE_MOB pet)
+    SetCharacterShutdown,  // PChar->status = SHUTDOWN
+    RemoveCharacterFromZone,
+    ReleaseCharacter,      // map_session_data->PChar.reset()
+    RemoveSessionIndex,    // index_.removeSession
+    EraseSession,          // sessions_.erase(it++)
+    DecreaseZoneCounter,   // destroySession only (not timeout path)
+};
+
+// DecisionPlan is an ordered list of deferred cleanup effects.
+// Host owns SQL, character/pet/zone mutation, index remove, and map erase.
+struct DecisionPlan
+{
+    static constexpr uint8 MaxActions = 9;
+
+    CleanupAction actions[MaxActions]{};
+    uint8         count{ 0 };
+};
+
+// PlanTimeoutCleanup returns cleanupSessions' exact deferred effect order for
+// a confirmed session that has timed out (mirrors OmegaXI PlanTimeoutCleanup):
+// - !hasCharacter && otherMap:  RemoveSessionIndex, EraseSession
+// - !hasCharacter && !otherMap: DeleteDatabaseSession, RemoveSessionIndex, EraseSession
+// - hasCharacter && !otherMap:  SaveStatusEffects, DeleteDatabaseSession,
+//                               [SaveCharacterPosition if shuttingDown == 0 || 1]
+// - hasCharacter && hasMobPet:  DespawnMobPet
+// - hasCharacter always:        SetCharacterShutdown, RemoveCharacterFromZone,
+//                               ReleaseCharacter, RemoveSessionIndex, EraseSession
+inline auto PlanTimeoutCleanup(const TimeoutDecision input) -> DecisionPlan
+{
+    DecisionPlan plan{};
+
+    if (!input.hasCharacter)
+    {
+        if (!input.otherMap)
+        {
+            plan.actions[plan.count++] = CleanupAction::DeleteDatabaseSession;
+        }
+        plan.actions[plan.count++] = CleanupAction::RemoveSessionIndex;
+        plan.actions[plan.count++] = CleanupAction::EraseSession;
+        return plan;
+    }
+
+    if (!input.otherMap)
+    {
+        plan.actions[plan.count++] = CleanupAction::SaveStatusEffects;
+        plan.actions[plan.count++] = CleanupAction::DeleteDatabaseSession;
+        if (input.shuttingDown == 0 || input.shuttingDown == 1)
+        {
+            plan.actions[plan.count++] = CleanupAction::SaveCharacterPosition;
+        }
+    }
+    if (input.hasMobPet)
+    {
+        plan.actions[plan.count++] = CleanupAction::DespawnMobPet;
+    }
+    plan.actions[plan.count++] = CleanupAction::SetCharacterShutdown;
+    plan.actions[plan.count++] = CleanupAction::RemoveCharacterFromZone;
+    plan.actions[plan.count++] = CleanupAction::ReleaseCharacter;
+    plan.actions[plan.count++] = CleanupAction::RemoveSessionIndex;
+    plan.actions[plan.count++] = CleanupAction::EraseSession;
+    return plan;
+}
+
 } // namespace mapsessionhelpers

@@ -247,8 +247,15 @@ uint8 CItemContainer::SearchItemWithSpace(uint16 ItemID, uint32 quantity)
 {
     for (uint8 SlotID = 0; SlotID <= m_size; ++SlotID)
     {
-        if ((m_ItemList[SlotID] != nullptr) && (m_ItemList[SlotID]->getID() == ItemID) &&
-            (m_ItemList[SlotID]->getQuantity() <= m_ItemList[SlotID]->getStackSize() - quantity))
+        // Host owns null short-circuit and field extraction; pure gate preserves
+        // uint32 stackSize - quantity wrap when requestQuantity > stackSize.
+        if (m_ItemList[SlotID] != nullptr &&
+            itemcontainerhelpers::MatchesSearchItemWithSpace(
+                true,
+                m_ItemList[SlotID]->getID() == ItemID,
+                m_ItemList[SlotID]->getQuantity(),
+                m_ItemList[SlotID]->getStackSize(),
+                quantity))
         {
             return SlotID;
         }

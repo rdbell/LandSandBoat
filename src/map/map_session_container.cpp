@@ -351,6 +351,7 @@ void MapSessionContainer::cleanupSessions(IPP mapIPP)
                 bool otherMap = false;
 
                 // check if session is attached to a different map server...
+                // Host owns this SQL lookup; pure plan only consumes the bool.
                 auto rset = db::preparedStmt("SELECT server_addr, server_port FROM accounts_sessions WHERE charid = ?", map_session_data->charID);
                 if (rset && rset->rowsCount() && rset->next())
                 {
@@ -365,48 +366,58 @@ void MapSessionContainer::cleanupSessions(IPP mapIPP)
                     }
                 }
 
+                // Confirmed-session timeout: pure plan; host owns SQL / char /
+                // pet / zone / index / erase. Logging remains host-side.
                 if (PChar != nullptr)
                 {
                     ShowDebugFmt("Clearing map server session for player: '{}' in zone: '{}' (On other map server = {})", PChar->name, PChar->loc.zone ? PChar->loc.zone->getName() : "None", otherMap ? "Yes" : "No");
-
-                    // Player session is attached to this map process and has stopped responding.
-                    if (!otherMap)
-                    {
-                        map_session_data->PChar->StatusEffectContainer->SaveStatusEffects(true);
-                        db::preparedStmt("DELETE FROM accounts_sessions WHERE charid = ?", map_session_data->charID);
-
-                        // Save position if d/c or logout/shutdown
-                        if (map_session_data->shuttingDown == 0 || map_session_data->shuttingDown == 1)
-                        {
-                            charutils::SaveCharPosition(PChar);
-                        }
-                    }
-
-                    // uncharm pet if player d/c
-                    if (PChar->PPet != nullptr && PChar->PPet->objtype == TYPE_MOB)
-                    {
-                        petutils::DespawnPet(PChar);
-                    }
-
-                    PChar->status = STATUS_TYPE::SHUTDOWN;
-
-                    charutils::removeCharFromZone(PChar);
-
-                    map_session_data->PChar.reset();
-
-                    index_.removeSession(map_session_data.get());
-                    sessions_.erase(it++);
                 }
                 else
                 {
                     ShowWarning("map_cleanup: WITHOUT CHAR timed out, session closed on this process");
-                    if (!otherMap)
-                    {
-                        db::preparedStmt("DELETE FROM accounts_sessions WHERE charid = ?", map_session_data->charID);
-                    }
+                }
 
-                    index_.removeSession(map_session_data.get());
-                    sessions_.erase(it++);
+                const mapsessionhelpers::TimeoutDecision timeoutInput{
+                    .hasCharacter = PChar != nullptr,
+                    .otherMap     = otherMap,
+                    .hasMobPet    = PChar != nullptr && PChar->PPet != nullptr && PChar->PPet->objtype == TYPE_MOB,
+                    .shuttingDown = map_session_data->shuttingDown,
+                };
+                const auto plan = mapsessionhelpers::PlanTimeoutCleanup(timeoutInput);
+                for (uint8 i = 0; i < plan.count; ++i)
+                {
+                    switch (plan.actions[i])
+                    {
+                        case mapsessionhelpers::CleanupAction::SaveStatusEffects:
+                            map_session_data->PChar->StatusEffectContainer->SaveStatusEffects(true);
+                            break;
+                        case mapsessionhelpers::CleanupAction::DeleteDatabaseSession:
+                            db::preparedStmt("DELETE FROM accounts_sessions WHERE charid = ?", map_session_data->charID);
+                            break;
+                        case mapsessionhelpers::CleanupAction::SaveCharacterPosition:
+                            charutils::SaveCharPosition(PChar);
+                            break;
+                        case mapsessionhelpers::CleanupAction::DespawnMobPet:
+                            petutils::DespawnPet(PChar);
+                            break;
+                        case mapsessionhelpers::CleanupAction::SetCharacterShutdown:
+                            PChar->status = STATUS_TYPE::SHUTDOWN;
+                            break;
+                        case mapsessionhelpers::CleanupAction::RemoveCharacterFromZone:
+                            charutils::removeCharFromZone(PChar);
+                            break;
+                        case mapsessionhelpers::CleanupAction::ReleaseCharacter:
+                            map_session_data->PChar.reset();
+                            break;
+                        case mapsessionhelpers::CleanupAction::RemoveSessionIndex:
+                            index_.removeSession(map_session_data.get());
+                            break;
+                        case mapsessionhelpers::CleanupAction::EraseSession:
+                            sessions_.erase(it++);
+                            break;
+                        default:
+                            break;
+                    }
                 }
 
                 continue;

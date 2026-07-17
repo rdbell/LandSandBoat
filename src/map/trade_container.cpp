@@ -22,6 +22,7 @@
 #include <cstring>
 
 #include "trade_container.h"
+#include "trade_container_capacity.h"
 #include "utils/itemutils.h"
 
 CTradeContainer::CTradeContainer()
@@ -154,9 +155,15 @@ void CTradeContainer::setQuantity(uint8 slotID, uint32 quantity)
 
 bool CTradeContainer::setConfirmedStatus(uint8 slotID, uint32 amount)
 {
-    if (slotID < m_PItem.size() && m_PItem[slotID] && m_PItem[slotID]->getQuantity() >= amount)
+    // Pure admission + stored amount: tradecontainerhelpers (slice 2806).
+    const bool        slotInRange = slotID < m_PItem.size();
+    const bool        itemNonNull = slotInRange && m_PItem[slotID] != nullptr;
+    const uint32      itemQuantity = itemNonNull ? m_PItem[slotID]->getQuantity() : 0;
+    const bool        quantityGteAmount = itemNonNull && itemQuantity >= amount;
+
+    if (tradecontainerhelpers::ShouldAllowSetConfirmedStatus(slotInRange, itemNonNull, quantityGteAmount))
     {
-        m_confirmed[slotID] = std::min<uint32>(amount, m_PItem[slotID]->getQuantity());
+        m_confirmed[slotID] = tradecontainerhelpers::ConfirmedStatusAmount(amount, itemQuantity);
         return true;
     }
     return false;

@@ -79,4 +79,27 @@ inline auto PlanMoveItemTo(
     return MoveItemToDisposition::Allow;
 }
 
+// HasSpaceForQuantity mirrors SearchItemWithSpace's unsigned stack room check:
+// quantity <= stackSize - requestQuantity. Host must keep uint32 types so
+// requestQuantity > stackSize wraps the subtraction (underflow) and can match.
+inline auto HasSpaceForQuantity(
+    const std::uint32_t quantity,
+    const std::uint32_t stackSize,
+    const std::uint32_t requestQuantity) -> bool
+{
+    return quantity <= stackSize - requestQuantity;
+}
+
+// MatchesSearchItemWithSpace is the pure loop-body gate for SearchItemWithSpace:
+// occupied slot, matching item id, and HasSpaceForQuantity.
+inline auto MatchesSearchItemWithSpace(
+    const bool          slotOccupied,
+    const bool          idMatches,
+    const std::uint32_t quantity,
+    const std::uint32_t stackSize,
+    const std::uint32_t requestQuantity) -> bool
+{
+    return slotOccupied && idMatches && HasSpaceForQuantity(quantity, stackSize, requestQuantity);
+}
+
 } // namespace itemcontainerhelpers

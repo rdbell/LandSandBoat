@@ -443,6 +443,10 @@ set(SOURCES
     test_item_container.cpp
     test_item_container_policy_2802.h
     test_item_container_policy_2802.cpp
+    test_item_search_space_2808.h
+    test_item_search_space_2808.cpp
+    test_notoriety_prune_2807.h
+    test_notoriety_prune_2807.cpp
     test_loot_container_2641.h
     test_loot_container_2641.cpp
     test_item_currency.h
@@ -541,12 +545,16 @@ set(SOURCES
     test_universal_container.cpp
     test_universal_setitem_plan_2801.h
     test_universal_setitem_plan_2801.cpp
+    test_trade_confirmed_status_2806.h
+    test_trade_confirmed_status_2806.cpp
     test_recast_container.h
     test_recast_container.cpp
     test_trait.h
     test_trait.cpp
     test_job_points.h
     test_job_points.cpp
+    test_merit_raise_plan_2805.h
+    test_merit_raise_plan_2805.cpp
     test_jobpoints_raise_plan_2803.h
     test_jobpoints_raise_plan_2803.cpp
     test_enmity_container.h
@@ -1578,6 +1586,8 @@ set(SOURCES
     test_map_session_replace_create_2795.cpp
     test_map_session_linkdead_plan_2799.h
     test_map_session_linkdead_plan_2799.cpp
+    test_map_session_timeout_plan_2804.h
+    test_map_session_timeout_plan_2804.cpp
     test_map_session_index.h
     test_map_session_index.cpp
     test_look_parser.h

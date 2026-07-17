@@ -20,6 +20,7 @@
 */
 
 #include "merit.h"
+#include "merit_capacity.h"
 #include "merit_index.h"
 #include "entities/char_entity.h"
 
@@ -351,33 +352,45 @@ void CMeritPoints::RaiseMerit(MERIT_TYPE merit)
         return;
     }
 
-    if (m_MeritPoints >= PMerit->next && PMerit->count < PMerit->upgrade && GetMeritCountInSameCategory(merit) < meritCatInfo[GetMeritCategory(merit)].MaxPoints)
+    // Pure admission/spend plan (slice 2805). NextCost, spell/WS unlocks, and
+    // BuildingCharTraitsTable stay host-side after apply.
+    const auto plan = meritshelpers::PlanRaiseMerit(
+        m_MeritPoints,
+        PMerit->next,
+        PMerit->count,
+        PMerit->upgrade,
+        GetMeritCountInSameCategory(merit),
+        meritCatInfo[GetMeritCategory(merit)].MaxPoints);
+
+    if (!plan.apply)
     {
-        m_MeritPoints -= PMerit->next;
-
-        PMerit->next = upgrade[PMerit->upgradeid][PMerit->count + 1];
-        if (PMerit->spellid != 0)
-        {
-            if (charutils::addSpell(m_PChar, PMerit->spellid))
-            {
-                charutils::SaveSpell(m_PChar, PMerit->spellid);
-                m_PChar->pushPacket<GP_SERV_COMMAND_MAGIC_DATA>(m_PChar);
-            }
-        }
-
-        if (PMerit->wsunlockid != 0 && !charutils::hasLearnedWeaponskill(m_PChar, PMerit->wsunlockid))
-        {
-            charutils::addLearnedWeaponskill(m_PChar, PMerit->wsunlockid);
-            charutils::BuildingCharWeaponSkills(m_PChar);
-            charutils::SaveLearnedAbilities(m_PChar);
-            m_PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(m_PChar);
-        }
-
-        PMerit->count++;
-
-        // Reset traits
-        charutils::BuildingCharTraitsTable(m_PChar);
+        return;
     }
+
+    m_MeritPoints -= static_cast<uint8>(plan.spend);
+
+    PMerit->next = upgrade[PMerit->upgradeid][PMerit->count + 1];
+    if (PMerit->spellid != 0)
+    {
+        if (charutils::addSpell(m_PChar, PMerit->spellid))
+        {
+            charutils::SaveSpell(m_PChar, PMerit->spellid);
+            m_PChar->pushPacket<GP_SERV_COMMAND_MAGIC_DATA>(m_PChar);
+        }
+    }
+
+    if (PMerit->wsunlockid != 0 && !charutils::hasLearnedWeaponskill(m_PChar, PMerit->wsunlockid))
+    {
+        charutils::addLearnedWeaponskill(m_PChar, PMerit->wsunlockid);
+        charutils::BuildingCharWeaponSkills(m_PChar);
+        charutils::SaveLearnedAbilities(m_PChar);
+        m_PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(m_PChar);
+    }
+
+    PMerit->count++;
+
+    // Reset traits
+    charutils::BuildingCharTraitsTable(m_PChar);
 }
 
 void CMeritPoints::LowerMerit(MERIT_TYPE merit)
