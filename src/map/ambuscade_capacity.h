@@ -25,7 +25,8 @@
 //   - 3623: ShouldStartExitEvent prior dedicated expand residual 2917 (prior 3578/3534/3488/3438/3382/3109)
 //   - 3668: ShouldStartExitEvent prior dedicated expand residual 2917 (prior 3623/3578/3534/3488/3438/3382/3109)
 //   - 3713: ShouldStartExitEvent prior dedicated expand residual 2917 (prior 3668/3623/3578/3534/3488/3438/3382/3109)
-//   - 3758: ShouldStartExitEvent dedicated expand residual 2917 (prior 3713/3668/3623/3578/3534/3488/3438/3382/3109)
+//   - 3758: ShouldStartExitEvent prior dedicated expand residual 2917 (prior 3713/3668/3623/3578/3534/3488/3438/3382/3109)
+//   - 3803: ShouldStartExitEvent dedicated expand residual 2917 (prior 3758/3713/3668/3623/3578/3534/3488/3438/3382/3109)
 //
 // Dual-wire index:
 //   - 2875: ShouldCompleteInstance residual dual-wire suite
@@ -50,7 +51,8 @@
 //   - 3623: ShouldStartExitEvent prior dedicated expand residual 2917 (prior 3578/3534/3488/3438/3382/3109)
 //   - 3668: ShouldStartExitEvent prior dedicated expand residual 2917 (prior 3623/3578/3534/3488/3438/3382/3109)
 //   - 3713: ShouldStartExitEvent prior dedicated expand residual 2917 (prior 3668/3623/3578/3534/3488/3438/3382/3109)
-//   - 3758: ShouldStartExitEvent dedicated expand residual 2917 (prior 3713/3668/3623/3578/3534/3488/3438/3382/3109)
+//   - 3758: ShouldStartExitEvent prior dedicated expand residual 2917 (prior 3713/3668/3623/3578/3534/3488/3438/3382/3109)
+//   - 3803: ShouldStartExitEvent dedicated expand residual 2917 (prior 3758/3713/3668/3623/3578/3534/3488/3438/3382/3109)
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
@@ -244,15 +246,15 @@ inline auto ShouldCreateIntenseVEInstance(const int32 csid, const int32 option) 
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2917 / 3109 / 3382 / 3438 / 3488 / 3534 / 3578 / 3623 / 3668 / 3713 / 3758 — onInstanceComplete / onInstanceFailure always-start exit CS
+// Slice 2917 / 3109 / 3382 / 3438 / 3488 / 3534 / 3578 / 3623 / 3668 / 3713 / 3758 / 3803 — onInstanceComplete / onInstanceFailure always-start exit CS
 // ---------------------------------------------------------------------------
 
 // ShouldStartExitEvent mirrors ambuscade.lua onInstanceComplete and
 // onInstanceFailure: both paths always call player:startEvent(10001) for
 // every char (no additional gate).
 //
-// Formula (slice 3758 dedicated dual-wire expand residual 2917; prior
-// dedicated 3713/3668/3623/3578/3534/3488/3438/3382/3109 — formula unchanged):
+// Formula (slice 3803 dedicated dual-wire expand residual 2917; prior
+// dedicated 3758/3713/3668/3623/3578/3534/3488/3438/3382/3109 — formula unchanged):
 //   ShouldStartExitEvent() = true
 //
 // true → host calls startEvent(EventCSIDExit) (10001) for every char
@@ -269,11 +271,13 @@ inline auto ShouldCreateIntenseVEInstance(const int32 csid, const int32 option) 
 // test_ambuscade_start_exit_3578. Prior dedicated expand residual suite:
 // test_ambuscade_start_exit_3623. Prior dedicated expand residual suite:
 // test_ambuscade_start_exit_3668. Prior dedicated expand residual suite:
-// test_ambuscade_start_exit_3713. Dedicated expand residual suite is
-// test_ambuscade_start_exit_3758. Host still calls startEvent(EventCSIDExit)
+// test_ambuscade_start_exit_3713. Prior dedicated expand residual suite:
+// test_ambuscade_start_exit_3758. Dedicated expand residual suite is
+// test_ambuscade_start_exit_3803. Host still calls startEvent(EventCSIDExit)
 // after a true gate. Pure surface is unconditional so hosts dual-wire one
 // free function instead of re-inlining "always start exit CS".
 // Parity: Go ShouldStartExitEvent.
+// (No C++ body redef this slice — formula unchanged from residual 2917 / prior dedicated expands.)
 inline auto ShouldStartExitEvent() -> bool
 {
     return true;
