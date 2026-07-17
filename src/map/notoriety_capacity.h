@@ -9,7 +9,10 @@
 //   - 3165: ShouldAddNotorietyMember dedicated dual-wire
 //           (ownerPresent && entityPresent && differentAllegiance;
 //            residual expand 2959 / pure 2818)
-//   - 2971: ShouldRemoveNotorietyMember (remove admission two-bool AND)
+//   - 2971: ShouldRemoveNotorietyMember residual dual-wire expand
+//   - 3192: ShouldRemoveNotorietyMember dedicated dual-wire
+//           (ownerPresent && entityPresent;
+//            residual expand 2971 / pure 2819)
 //   - 3020: ShouldScanNotorietyForPrune (hasEnmity outer gate two-bool AND)
 //   - 3029: ShouldPruneMobFromNotoriety (hasEnmity per-entry prune four-bool)
 //   - 3034: HasEnmityAfterPrune (hasEnmity final empty report NOT empty)
@@ -29,6 +32,8 @@
 // Dedicated dual-wire suite: 3165 / test_notoriety_add_member_3165.
 // Go dual-wire: notoriety.ShouldRemoveNotorietyMember
 // (internal/notoriety/remove_member.go). Prior pure port: slice 2819.
+// Residual dual-wire suite: 2971 / test_notoriety_remove_member_2971.
+// Dedicated dual-wire suite: 3192 / test_notoriety_remove_member_3192.
 // Go dual-wire: notoriety.ShouldScanNotorietyForPrune
 // (internal/notoriety/scan_prune.go). Prior pure port: slice 2807.
 // Go dual-wire: notoriety.ShouldPruneMobFromNotoriety
@@ -131,7 +136,8 @@ inline auto ShouldAddNotorietyMember(
 // ShouldRemoveNotorietyMember mirrors CNotorietyContainer::remove admission (~60):
 //   m_POwner && entity
 //
-// Formula (slice 2971 dual-wire):
+// Formula (slice 3192 dedicated dual-wire; residual expand 2971 / pure 2819 —
+// formula unchanged):
 //   ownerPresent && entityPresent
 //
 // Host-injected scalars (no entity pointers):
@@ -143,7 +149,11 @@ inline auto ShouldAddNotorietyMember(
 //
 // Dual-wire of Go notoriety.ShouldRemoveNotorietyMember
 // (internal/notoriety/remove_member.go). Prior pure port: slice 2819.
+// Residual dual-wire suite: 2971 / test_notoriety_remove_member_2971.
+// Dedicated dual-wire suite is test_notoriety_remove_member_3192. Formula is
+// unchanged; this slice only expands dual-wire docs + index + dedicated suite.
 // Call site: CNotorietyContainer::remove (notoriety_container.cpp).
+// Sibling left alone: ShouldAddNotorietyMember (3165).
 inline auto ShouldRemoveNotorietyMember(const bool ownerPresent, const bool entityPresent) -> bool
 {
     return ownerPresent && entityPresent;

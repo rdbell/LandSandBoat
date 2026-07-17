@@ -9,7 +9,8 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2783: create policy (ShouldCreateSession, ShouldCreatePendingSession)
-//   - 2925: ShouldCreateSession (queryOK && hasAccountsSessionRow)
+//   - 2925: ShouldCreateSession (queryOK && hasAccountsSessionRow; residual dual-wire)
+//   - 3191: ShouldCreateSession (queryOK && hasAccountsSessionRow; dedicated expand residual 2925)
 //   - 2936: ShouldCreatePendingSession (queryOK identity; no rowsCount gate)
 //   - 2787: destroy-pending pure gates (ShouldDestroyPendingByPointer residual)
 //   - 3056: ShouldDestroyPendingByPointer (found && pointerMatches)
@@ -24,7 +25,8 @@
 // Production host: MapSessionContainer::createSession injects queryOK /
 // hasAccountsSessionRow after the accounts_sessions SELECT by client_addr.
 // Go dual-wire: mapsession.ShouldCreateSession
-// (internal/mapsession/create_session.go).
+// (internal/mapsession/create_session.go). Prior pure: 2783; residual dual-wire:
+// 2925; dedicated expand residual: 3191.
 //
 // Production host: MapSessionContainer::createPendingSession injects queryOK
 // after the accounts_sessions SELECT by charid (static_cast<bool>(rset) only).
@@ -69,11 +71,29 @@ namespace mapsessionhelpers
 // by client_addr. A failed query or empty result rejects creation (invalid
 // login / SQL error). hasAccountsSessionRow is only meaningful when queryOK.
 //
-// Formula (slice 2925 dual-wire):
+// Formula (slice 3191 dual-wire; residual expand 2925 / pure 2783 — formula
+// unchanged):
 //   queryOK && hasAccountsSessionRow
+//
+// Host-injected scalars (no DB / IPP / session entity):
+//   queryOK               — static_cast<bool>(rset) after SELECT
+//   hasAccountsSessionRow — queryOK && rset->rowsCount() != 0
 //
 // true  → host may allocate MapSession and proceed to index replace
 // false → host returns nullptr (SQL error log or invalid-login debug)
+//
+// Dual-wire of Go mapsession.ShouldCreateSession
+// (internal/mapsession/create_session.go). Prior pure port: slice 2783.
+// Prior dual-wire expand: slice 2925. Dedicated expand residual: slice 3191.
+// Sibling dual-wire: ShouldCreatePendingSession (queryOK identity; slice 2936;
+// left alone — no rowsCount gate; intentional LSB asymmetry).
+// Call site: MapSessionContainer::createSession (map_session_container.cpp)
+// already injects queryOK / hasAccountsSessionRow after SELECT.
+//
+// Host inject (createSession):
+//   queryOK = static_cast<bool>(rset);
+//   hasAccountsSessionRow = queryOK && rset->rowsCount() != 0;
+//   if (!ShouldCreateSession(queryOK, hasAccountsSessionRow)) return nullptr;
 inline auto ShouldCreateSession(const bool queryOK, const bool hasAccountsSessionRow) -> bool
 {
     return queryOK && hasAccountsSessionRow;

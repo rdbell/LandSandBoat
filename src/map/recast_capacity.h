@@ -11,15 +11,16 @@
 //   - 2800: ShouldResetAbilityRecast / IsOneHourSpecialRecast
 //   - 2814: ShouldEraseAbilityOnChangeJob
 //   - 2827: RecastIDFromLootRecast
-//   - 2931: ShouldStampOnZeroRecast (RecastTime == 0 stamp gate on charged Load)
+//   - 2931: ShouldStampOnZeroRecast residual dual-wire (expanded 3193)
 //   - 3052: ShouldExpireRecast (now >= TimeStamp + RecastTime Check gate)
 //   - 3070: ShouldEraseOnExpire (!isAbility erase vs ability zero-retain)
 //   - 3104: ShouldUpdateChargeTime (chargeTime != 0 update gate on Load existing)
 //   - 3122: ShouldUpdateMaxCharges (maxCharges != 0 update gate on Load existing)
 //   - 3136: IsSimpleRecast (chargeTime == 0 simple full-replace gate on Load)
+//   - 3193: ShouldStampOnZeroRecast (RecastTime == 0 stamp gate on charged Load)
 //
 // Production host: CRecastContainer::Load (recast_container.cpp) injects
-// RecastTime == 0s into ShouldStampOnZeroRecast on the charged path.
+// RecastTime == 0s into ShouldStampOnZeroRecast on the charged path (slice 3193).
 // Go dual-wire: recast.ShouldStampOnZeroRecast (internal/recast/stamp_zero.go).
 // Check host injects type==RECAST_ABILITY into ShouldEraseOnExpire (slice 3070).
 // Go dual-wire: recast.ShouldEraseOnExpire (internal/recast/erase_on_expire.go).
@@ -89,7 +90,7 @@ inline auto IsSimpleRecast(const bool chargeTimeIsZero) -> bool
 
 // ShouldStampOnZeroRecast mirrors RecastTime == 0 before adding charged duration.
 //
-// Formula (slice 2931 dual-wire):
+// Formula (slice 3193 dual-wire; residual 2931):
 //   recastTimeIsZero
 //
 // recastTimeIsZero — host-evaluated RecastTime == 0s
@@ -98,6 +99,8 @@ inline auto IsSimpleRecast(const bool chargeTimeIsZero) -> bool
 //
 // Dual-wire of Go recast.ShouldStampOnZeroRecast.
 // Call site: CRecastContainer::Load charged branch after IsSimpleRecast is false.
+// Prior pure port: slice 1370. Residual dual-wire: 2931. Siblings 3052/3070/
+// 3104/3122/3136 left alone this slice.
 inline auto ShouldStampOnZeroRecast(const bool recastTimeIsZero) -> bool
 {
     return recastTimeIsZero;

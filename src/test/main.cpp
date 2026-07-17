@@ -1479,6 +1479,11 @@ auto runCommandRejectNullChar3185SelfTests() -> bool;
 auto runManaclipperArrivalEventID3186SelfTests() -> bool;
 auto runDarkixionCanRestoreHorn3187SelfTests() -> bool;
 auto runSalvageCanOpenBossDoor3188SelfTests() -> bool;
+auto runColonizationreiveDespawnOnDisable3189SelfTests() -> bool;
+auto runUnitychatReceivePacket3190SelfTests() -> bool;
+auto runMapsessionCreateSession3191SelfTests() -> bool;
+auto runNotorietyRemoveMember3192SelfTests() -> bool;
+auto runRecastStampOnZeroRecast3193SelfTests() -> bool;
 
 namespace
 {
@@ -2935,6 +2940,11 @@ namespace
         ok = runManaclipperArrivalEventID3186SelfTests() && ok;
         ok = runDarkixionCanRestoreHorn3187SelfTests() && ok;
         ok = runSalvageCanOpenBossDoor3188SelfTests() && ok;
+        ok = runColonizationreiveDespawnOnDisable3189SelfTests() && ok;
+        ok = runUnitychatReceivePacket3190SelfTests() && ok;
+        ok = runMapsessionCreateSession3191SelfTests() && ok;
+        ok = runNotorietyRemoveMember3192SelfTests() && ok;
+        ok = runRecastStampOnZeroRecast3193SelfTests() && ok;
 
         return ok;
     }

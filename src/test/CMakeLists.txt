@@ -2951,6 +2951,16 @@ set(SOURCES
     test_darkixion_can_restore_horn_3187.cpp
     test_salvage_can_open_boss_door_3188.h
     test_salvage_can_open_boss_door_3188.cpp
+    test_colonizationreive_despawn_on_disable_3189.h
+    test_colonizationreive_despawn_on_disable_3189.cpp
+    test_unitychat_receive_packet_3190.h
+    test_unitychat_receive_packet_3190.cpp
+    test_mapsession_create_session_3191.h
+    test_mapsession_create_session_3191.cpp
+    test_notoriety_remove_member_3192.h
+    test_notoriety_remove_member_3192.cpp
+    test_recast_stamp_on_zero_recast_3193.h
+    test_recast_stamp_on_zero_recast_3193.cpp
 )
 
 if(UNIX)

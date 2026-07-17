@@ -10,7 +10,10 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1356: DelMemberRemaining, registry / online-member gates, residual capacity
-//   - 2933: ShouldReceiveUnityPacket (!isSender && !isDisappear && !inPrison)
+//   - 2933: ShouldReceiveUnityPacket residual dual-wire
+//           (!isSender && !isDisappear && !inPrison)
+//   - 3190: ShouldReceiveUnityPacket dedicated expand residual 2933
+//           (same formula; free==inline==pin + dense 2³ suite)
 //   - 3050: ShouldLoadUnityChatOnOnlineAdd (!foundInCache && leader != 0)
 //   - 3075: ShouldRejectNullOnlineMember (charNull identity null-PChar gate)
 //   - 3096: ShouldAddMemberAfterOnlineLookup (unityLoaded identity post-lookup gate)
@@ -21,7 +24,7 @@
 // member->id == senderID / STATUS_TYPE::DISAPPEAR / jailutils::InPrison(member)
 // into ShouldReceiveUnityPacket.
 // Go dual-wire: unitychat.ShouldReceiveUnityPacket
-// (internal/unitychat/receive_packet.go).
+// (internal/unitychat/receive_packet.go; residual 2933 + dedicated 3190).
 // Production host: unitychat::AddOnlineMember (unitychat.cpp) injects
 // UnityChatList.find(leader) != end and leader into
 // ShouldLoadUnityChatOnOnlineAdd; on true LoadUnityChat(leader).
@@ -58,7 +61,7 @@ inline auto DelMemberRemaining(const std::size_t memberCountAfter) -> bool
 // ShouldReceiveUnityPacket mirrors CUnityChat::PushPacket member filter:
 // id != sender && not disappear && not prison.
 //
-// Formula (slice 2933 dual-wire):
+// Formula (slice 2933 residual dual-wire; slice 3190 dedicated expand):
 //   !isSender && !isDisappear && !inPrison
 //
 // isSender    — host-evaluated member->id == senderID
@@ -69,6 +72,13 @@ inline auto DelMemberRemaining(const std::size_t memberCountAfter) -> bool
 //
 // Dual-wire of Go unitychat.ShouldReceiveUnityPacket.
 // Call site: CUnityChat::PushPacket host inject.
+// Prior pure port: slice 1356 (unitychat capacity residual). Residual dual-wire
+// pins remain in test_unitychat_receive_packet_2933; dedicated dual-wire suite
+// is test_unitychat_receive_packet_3190 (free == inline == positive if/else pin;
+// dense 2³). Formula unchanged from 1356 / 2933.
+// Free keeps compound conjunction; dedicated pin uses sequential rejects
+// (if isSender / isDisappear / inPrison return false; else true) to avoid
+// De Morgan rewrites of !a && !b && !c.
 inline auto ShouldReceiveUnityPacket(const bool isSender, const bool isDisappear, const bool inPrison) -> bool
 {
     return !isSender && !isDisappear && !inPrison;
