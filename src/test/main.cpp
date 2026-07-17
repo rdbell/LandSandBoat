@@ -1629,6 +1629,11 @@ auto runColonizationreiveSpawnOnEnable3335SelfTests() -> bool;
 auto runMapwireMarkCurrentKey3336SelfTests() -> bool;
 auto runPetDetachPlayerMaster3337SelfTests() -> bool;
 auto runMobtypeCanDeaggro3338SelfTests() -> bool;
+auto runGardenShouldWilt3339SelfTests() -> bool;
+auto runCharEraseEntityPop3340SelfTests() -> bool;
+auto runSpawnRejectEvening3341SelfTests() -> bool;
+auto runSpellCanUseSpellWith3342SelfTests() -> bool;
+auto runLatentRejectProcess3343SelfTests() -> bool;
 
 namespace
 {
@@ -3235,6 +3240,11 @@ namespace
         ok = runMapwireMarkCurrentKey3336SelfTests() && ok;
         ok = runPetDetachPlayerMaster3337SelfTests() && ok;
         ok = runMobtypeCanDeaggro3338SelfTests() && ok;
+        ok = runGardenShouldWilt3339SelfTests() && ok;
+        ok = runCharEraseEntityPop3340SelfTests() && ok;
+        ok = runSpawnRejectEvening3341SelfTests() && ok;
+        ok = runSpellCanUseSpellWith3342SelfTests() && ok;
+        ok = runLatentRejectProcess3343SelfTests() && ok;
 
         return ok;
     }

@@ -182,8 +182,12 @@ inline auto EvaluateWeaponDrawnMPOver(const bool isAttackAnimation, const int32 
     return isAttackAnimation && EvaluateMpStrictlyOver(mp, value);
 }
 
-// --- Slice 2961: ShouldRejectProcessLatent pure dual-wire ---
+// --- Slice 3343: ShouldRejectProcessLatent pure dual-wire ---
+// (dedicated expand residual 2961 / pure 1359)
 // Residual pure port: slice 1359 (ProcessLatentEffect condition eval suite).
+// Residual dual-wire expand: slice 2961 (test_latent_reject_process_2961).
+// Dedicated dual-wire suite: slice 3343
+//   (test_latent_reject_process_3343).
 // Production host: CLatentEffectContainer::ProcessLatentEffect injects
 // (m_POwner == nullptr) and (playerZoneID == 0) into ShouldRejectProcessLatent.
 // Go dual-wire: latenteffect.ShouldRejectProcessLatent
@@ -191,7 +195,8 @@ inline auto EvaluateWeaponDrawnMPOver(const bool isAttackAnimation, const int32 
 
 // ShouldRejectProcessLatent mirrors owner null or zone id 0.
 //
-// Formula (slice 2961 dual-wire):
+// Formula (slice 3343 dedicated dual-wire; residual expand 2961 / pure 1359 —
+// formula unchanged):
 //   ownerNull || zoneIsZero
 //
 // ownerNull  — host-evaluated (m_POwner == nullptr)
@@ -200,8 +205,11 @@ inline auto EvaluateWeaponDrawnMPOver(const bool isAttackAnimation, const int32 
 // true  → reject ProcessLatentEffect early (return false)
 // false → continue condition evaluation
 //
-// Dual-wire of Go latenteffect.ShouldRejectProcessLatent.
+// Dual-wire of Go latenteffect.ShouldRejectProcessLatent
+// (residual 1359 / residual dual-wire 2961 / dedicated dual-wire 3343).
 // Call site: CLatentEffectContainer::ProcessLatentEffect.
+// Residual dual-wire suite: 2961 (test_latent_reject_process_2961).
+// Dedicated dual-wire suite: 3343 (test_latent_reject_process_3343).
 inline auto ShouldRejectProcessLatent(const bool ownerNull, const bool zoneIsZero) -> bool
 {
     return ownerNull || zoneIsZero;

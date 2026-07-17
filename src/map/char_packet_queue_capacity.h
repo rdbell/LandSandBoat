@@ -17,6 +17,8 @@
 //           (clear_pending_pop.go; expand residual 2943)
 //   - 3105: ShouldEraseEntityUpdateOnPop residual dual-wire
 //           (packetType == 0x0D || packetType == 0x0E)
+//   - 3340: ShouldEraseEntityUpdateOnPop dedicated dual-wire
+//           (erase_entity_update_pop.go; expand residual 3105)
 //   - 3125: ShouldSetPendingPositionOnPush residual dual-wire
 //           (packetType == 0x5B && packetEntityID == ownerID)
 //
@@ -84,7 +86,8 @@ inline void OnPush(const std::uint16_t packetType, const std::uint32_t packetEnt
 // ShouldEraseEntityUpdateOnPop is the pure gate for OnPop entity-update
 // cleanup: true when the packet is a char/entity update (0x0D or 0x0E).
 //
-// Formula (slice 3105 dual-wire; residual pure port from slice 2845):
+// Formula (slice 3340 dedicated dual-wire; residual expand 3105 / pure 2845 —
+// formula unchanged):
 //   packetType == 0x0D || packetType == 0x0E
 //
 // packetType — host-evaluated packet->getType()
@@ -96,10 +99,15 @@ inline void OnPush(const std::uint16_t packetType, const std::uint32_t packetEnt
 //       eraseEntityUpdate(packetEntityID);
 //
 // Dual-wire of Go charentity.ShouldEraseEntityUpdateOnPop
-// (internal/charentity/erase_entity_update_pop.go).
+// (internal/charentity/erase_entity_update_pop.go;
+// residual 2845 / residual dual-wire 3105 / dedicated dual-wire 3340).
 // Call site: CCharEntity::popPacket → OnPop after entity-id extract
-// (0x0D/0x0E → ref 0x04). Mutual exclusion with ShouldClearPendingPositionOnPop:
-// erase types never also clear pending (if / else if).
+// (0x0D/0x0E → ref 0x04). Residual dual-wire suite: 3105
+// (test_char_erase_entity_pop_3105). Dedicated dual-wire suite: 3340
+// (test_char_erase_entity_pop_3340). Mutual exclusion with
+// ShouldClearPendingPositionOnPop: erase types never also clear pending
+// (if / else if). Sibling dual-wire left alone: ShouldClearPendingPositionOnPop
+// (3179 / residual 2943).
 inline bool ShouldEraseEntityUpdateOnPop(const std::uint16_t packetType)
 {
     return packetType == 0x0D || packetType == 0x0E;

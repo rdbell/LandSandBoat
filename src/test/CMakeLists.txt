@@ -3251,6 +3251,16 @@ set(SOURCES
     test_pet_detach_player_master_3337.cpp
     test_mobtype_can_deaggro_3338.h
     test_mobtype_can_deaggro_3338.cpp
+    test_garden_should_wilt_3339.h
+    test_garden_should_wilt_3339.cpp
+    test_char_erase_entity_pop_3340.h
+    test_char_erase_entity_pop_3340.cpp
+    test_spawn_reject_evening_3341.h
+    test_spawn_reject_evening_3341.cpp
+    test_spell_can_use_spell_with_3342.h
+    test_spell_can_use_spell_with_3342.cpp
+    test_latent_reject_process_3343.h
+    test_latent_reject_process_3343.cpp
 )
 
 if(UNIX)

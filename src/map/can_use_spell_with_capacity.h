@@ -11,6 +11,8 @@
 //           (!hasSpell → false; else level > jobLevel)
 //   - 3159: CanUseSpellWith dedicated dual-wire (can_use_spell_with.go)
 //           (hasSpell && level > jobLevel; STRICT >; formula unchanged)
+//   - 3342: CanUseSpellWith dedicated expand residual 2970
+//           (hasSpell && level > jobLevel; STRICT >; formula unchanged)
 //
 // Production host: spell::CanUseSpellWith / mobutils injects
 // GetSpell(spellId) != nullptr and getJob(job) into CanUseSpellWith.
@@ -38,15 +40,15 @@ namespace canusespellwithhelpers
 // injected. hasSpell mirrors GetSpell(spellId) != nullptr. jobLevel is the
 // value returned by getJob (0→255 mapping already applied by the host).
 //
-// Formula (slice 3159 dedicated dual-wire; residual expand 2970 / pure 1731 —
-// formula unchanged):
+// Formula (slice 3342 dedicated expand residual 2970; prior dedicated 3159 /
+// residual expand 2970 / pure 1731 — formula unchanged):
 //   if !hasSpell → false
 //   else         → level > jobLevel   // STRICT greater-than, not >=
 //
 // Equivalent one-liner:
 //   hasSpell && level > jobLevel
 //
-// Positive if/else pin (production + 3159 tests; avoid QF1001 De Morgan):
+// Positive if/else pin (production + 3159 / 3342 tests; avoid QF1001 De Morgan):
 //   if (hasSpell) { return level > jobLevel; }
 //   return false;
 //
@@ -56,15 +58,17 @@ namespace canusespellwithhelpers
 // true  → mobutils may assign the spell to the odd-job monster
 // false → do not assign
 //
-// Dual-wire of Go spell.CanUseSpellWith (slice 3159 dedicated; residual 2970).
-// Prior pure port: slice 1731. Residual dual-wire suite: 2970 /
-// test_spell_can_use_with_2970. Dedicated dual-wire suite is
-// test_spell_can_use_spell_with_3159. Host still owns GetSpell / getJob /
+// Dual-wire of Go spell.CanUseSpellWith (slice 3342 dedicated expand residual
+// 2970; prior dedicated 3159). Prior pure port: slice 1731. Residual dual-wire
+// suite: 2970 / test_spell_can_use_with_2970. Prior dedicated dual-wire suite
+// is test_spell_can_use_spell_with_3159. Dedicated expand residual suite is
+// test_spell_can_use_spell_with_3342. Host still owns GetSpell / getJob /
 // mobutils assignment.
 // Host inject (spell.cpp / mobutils):
 //   if (CanUseSpellWith(GetSpell(id) != nullptr, getJob(...), level)) ...
 //
-// Matches Go spell.CanUseSpellWith (1731 residual / 2970 dual-wire / 3159 dedicated).
+// Matches Go spell.CanUseSpellWith (1731 residual / 2970 dual-wire / 3159
+// dedicated / 3342 dedicated expand residual).
 // (*Spell).CanUseWithJob dual-wires through the same free function.
 constexpr auto CanUseSpellWith(const bool hasSpell, const std::uint8_t jobLevel, const std::uint8_t level) -> bool
 {
