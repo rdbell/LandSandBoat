@@ -3851,6 +3851,16 @@ set(SOURCES
     test_linkshell_reject_null_add_member_3637.cpp
     test_colonizationreive_spawn_on_enable_3638.h
     test_colonizationreive_spawn_on_enable_3638.cpp
+    test_abyssea_can_give_nmki_3639.h
+    test_abyssea_can_give_nmki_3639.cpp
+    test_artisan_can_buy_sack_3640.h
+    test_artisan_can_buy_sack_3640.cpp
+    test_synergy_claim_furnace_3641.h
+    test_synergy_claim_furnace_3641.cpp
+    test_salvage_claim_transport_3642.h
+    test_salvage_claim_transport_3642.cpp
+    test_campaign_afford_notes_3643.h
+    test_campaign_afford_notes_3643.cpp
 )
 
 if(UNIX)
