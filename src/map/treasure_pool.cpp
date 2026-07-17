@@ -296,13 +296,20 @@ uint8 CTreasurePool::addItem(uint16 ItemID, CBaseEntity* PEntity)
 
 void CTreasurePool::updatePool(CCharEntity* PChar)
 {
-    if (PChar == nullptr || PChar->PTreasurePool != this)
+    using treasurepoolhelpers::PlanUpdatePool;
+
+    const bool charNull     = PChar == nullptr;
+    const bool poolMismatch = !charNull && PChar->PTreasurePool != this;
+    const bool isDisappear  = !charNull && PChar->status == STATUS_TYPE::DISAPPEAR;
+
+    const auto plan = PlanUpdatePool(charNull, poolMismatch, isDisappear);
+    if (plan.reject)
     {
         ShowWarning("CTreasurePool::UpdatePool() - PChar was null, or PTreasurePool mismatched.");
         return;
     }
 
-    if (PChar->status != STATUS_TYPE::DISAPPEAR)
+    if (plan.pushTrophyLists)
     {
         for (auto& m_PoolItem : m_PoolItems)
         {

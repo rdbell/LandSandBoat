@@ -2,6 +2,9 @@
 
 #include <cstddef>
 #include <span>
+#include <string>
+
+#include <fmt/format.h>
 
 #include <common/mmo.h>
 
@@ -270,6 +273,19 @@ inline auto ShouldResetCharacterForUnencryptedLogin(const bool pendingZone) -> b
     return pendingZone;
 }
 
+// MD5DigestSize is the digest length appended after the compressed payload in
+// finalizePacket. The host writes the digest at PacketSize, then advances
+// PacketSize by this constant before the overflow check and Blowfish step.
+constexpr std::size_t MD5DigestSize = 16;
+
+// PacketSizeAfterMD5 returns the payload length after the MD5 trailer is
+// accounted for: compressedPayloadSize + MD5DigestSize. MD5 computation and
+// byte copy remain host-owned; this is only the size bump.
+inline auto PacketSizeAfterMD5(const std::size_t compressedPayloadSize) -> std::size_t
+{
+    return compressedPayloadSize + MD5DigestSize;
+}
+
 // OutgoingCypherWordCount mirrors finalizePacket's even word count for Blowfish
 // encryption of the payload (post-MD5 size, excluding the FFXI header). The
 // floor to an even number of 4-byte words drops any trailing partial 8-byte block.
@@ -283,6 +299,28 @@ inline auto OutgoingCypherWordCount(const uint32 packetSize) -> uint32
 inline auto OutgoingCypherBlockCount(const uint32 wordCount) -> uint32
 {
     return wordCount / 2;
+}
+
+// ShouldReportScratchBufferOverflow mirrors finalizePacket's post-MD5
+// overflow guard. True when the payload (including the 16-byte MD5 trailer)
+// exceeds the fixed scratch buffer; finalizePacket still continues either way.
+inline auto ShouldReportScratchBufferOverflow(const std::size_t packetSize, const std::size_t maxBufferSize) -> bool
+{
+    return packetSize > maxBufferSize;
+}
+
+// FormatScratchBufferOverflowCritical mirrors ShowCritical's overflow text
+// after MD5 is appended: "Network: PScratchBuffer is overflowed (%u)".
+inline auto FormatScratchBufferOverflowCritical(const std::size_t packetSize) -> std::string
+{
+    return fmt::format("Network: PScratchBuffer is overflowed ({})", packetSize);
+}
+
+// FinalOutgoingPacketSize returns the full wire length assigned to *buffsize
+// after encryption: post-MD5 payload size plus the FFXI header.
+inline auto FinalOutgoingPacketSize(const std::size_t payloadSize, const std::size_t headerSize) -> std::size_t
+{
+    return payloadSize + headerSize;
 }
 
 // DynamicTargIdCapacityPerZone is the dynamic targid pool size counted per

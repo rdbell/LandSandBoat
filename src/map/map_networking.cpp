@@ -745,11 +745,11 @@ void MapNetworking::finalizePacket(uint8* buff, size_t* buffsize, size_t PacketS
     uint8 hash[16];
     md5(PScratchBuffer.data(), hash, static_cast<int32>(PacketSize));
     std::memcpy(PScratchBuffer.data() + PacketSize, hash, 16);
-    PacketSize += 16;
+    PacketSize = mapnetworkinghelpers::PacketSizeAfterMD5(PacketSize);
 
-    if (PacketSize > kMaxBufferSize)
+    if (mapnetworkinghelpers::ShouldReportScratchBufferOverflow(PacketSize, kMaxBufferSize))
     {
-        ShowCritical("Network: PScratchBuffer is overflowed (%u)", PacketSize);
+        ShowCritical("%s", mapnetworkinghelpers::FormatScratchBufferOverflowCritical(PacketSize).c_str());
     }
 
     // Making total outgoing packet
@@ -777,7 +777,7 @@ void MapNetworking::finalizePacket(uint8* buff, size_t* buffsize, size_t PacketS
         pbfkey->P,
         pbfkey->S[0]);
 
-    *buffsize = PacketSize + FFXI_HEADER_SIZE;
+    *buffsize = mapnetworkinghelpers::FinalOutgoingPacketSize(PacketSize, FFXI_HEADER_SIZE);
 }
 
 void MapNetworking::flushStatistics()

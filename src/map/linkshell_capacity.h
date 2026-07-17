@@ -87,9 +87,53 @@ inline auto ResolveLSTypeFromRankItemID(const uint16 newId) -> uint8
 }
 
 // FormatChangeMemberRankError mirrors invalid rank/requester error text shape.
+// Host uses this for RejectInvalidNewRank / RejectInvalidRequester dispositions.
 inline auto FormatChangeMemberRankError(const std::string& memberName, const uint32 linkshellId) -> std::string
 {
     return fmt::format("CLinkshell::ChangeMemberRank: Invalid rank change request for member '{}' in linkshell {}.", memberName, linkshellId);
+}
+
+// ChangeMemberRankPreflight is the pure early-gate disposition of
+// CLinkshell::ChangeMemberRank before the online-member inventory loop.
+enum class ChangeMemberRankPreflight : uint8
+{
+    RejectInvalidNewRank   = 0, // newRank not in [2, 3]; host logs error
+    RejectInvalidRequester = 1, // requesterRank != LSTYPE_LINKSHELL; host logs error
+    SkipInvalidItemID      = 2, // resolved item id not PEARLSACK/LINKPEARL; silent skip
+    Proceed                = 3, // enter member loop with newItemID
+};
+
+// ChangeMemberRankPlan is the pure preflight outcome for ChangeMemberRank.
+// newItemID is set when disposition == Proceed.
+struct ChangeMemberRankPlan
+{
+    ChangeMemberRankPreflight disposition{};
+    uint16                    newItemID{};
+};
+
+// PlanChangeMemberRank short-circuits in production ChangeMemberRank order:
+// 1) !IsValidRankChangeNewRank(newRank) -> RejectInvalidNewRank
+// 2) !IsValidRankChangeRequester(requesterRank) -> RejectInvalidRequester
+// 3) ResolveRankChangeItemID; !IsValidRankChangeItemID -> SkipInvalidItemID
+// 4) Proceed with newItemID
+// Composes IsValidRankChangeNewRank / IsValidRankChangeRequester /
+// ResolveRankChangeItemID / IsValidRankChangeItemID. Logging stays host-side.
+inline auto PlanChangeMemberRank(const uint8 newRank, const uint8 requesterRank) -> ChangeMemberRankPlan
+{
+    if (!IsValidRankChangeNewRank(newRank))
+    {
+        return ChangeMemberRankPlan{ ChangeMemberRankPreflight::RejectInvalidNewRank, 0 };
+    }
+    if (!IsValidRankChangeRequester(requesterRank))
+    {
+        return ChangeMemberRankPlan{ ChangeMemberRankPreflight::RejectInvalidRequester, 0 };
+    }
+    const auto newId = ResolveRankChangeItemID(newRank);
+    if (!IsValidRankChangeItemID(newId))
+    {
+        return ChangeMemberRankPlan{ ChangeMemberRankPreflight::SkipInvalidItemID, 0 };
+    }
+    return ChangeMemberRankPlan{ ChangeMemberRankPreflight::Proceed, newId };
 }
 
 // IsLinkshell2Attachment mirrors PMember->PLinkshell2 == this.

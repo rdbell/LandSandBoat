@@ -476,11 +476,20 @@ void data_session::read_func()
                     {
                         // If character is already logged in (session still exists) kick them out
                         // TODO: Retail has POL login time so this is more restricted.
-                        if (auto viewSession = session.view_session.get())
+                        // Without a view peer, production falls through into the INSERT path.
+                        const auto alreadyPlan = loginHelpers::PlanDataA2AlreadyLoggedInResponse(session.view_session != nullptr);
+                        if (alreadyPlan.incrementKey)
                         {
                             session.incrementKeyValue += loginHelpers::DataA2AlreadyLoggedInKeyIncrement;
+                        }
+                        if (alreadyPlan.writeAlreadyLoggedInError)
+                        {
+                            auto viewSession = session.view_session.get();
                             loginHelpers::generateErrorMessage(viewSession->buffer_.data(), loginErrors::errorCode::CHARACTER_ALREADY_LOGGED_IN);
                             viewSession->do_write(0x24);
+                        }
+                        if (alreadyPlan.returnFromRead)
+                        {
                             return;
                         }
                     }

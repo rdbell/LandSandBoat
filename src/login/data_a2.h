@@ -82,6 +82,29 @@ inline auto ClassifyDataA2ExistingSession(
 // the same character is already present in accounts_sessions.
 constexpr uint8 DataA2AlreadyLoggedInKeyIncrement = 1;
 
+// data_a2_already_logged_in_plan is the pure already-logged-in control flow for
+// DATA 0xA2 after ClassifyDataA2ExistingSession returns ALREADY_LOGGED_IN.
+// CHARACTER_ALREADY_LOGGED_IN packet bytes remain host-owned.
+struct data_a2_already_logged_in_plan
+{
+    bool incrementKey{};
+    bool writeAlreadyLoggedInError{}; // needs view session
+    bool returnFromRead{};
+};
+
+// PlanDataA2AlreadyLoggedInResponse mirrors the view-session branch when the
+// existing-session gate is ALREADY_LOGGED_IN. Call only for that gate:
+// hasViewSession true: bump key, write CHARACTER_ALREADY_LOGGED_IN, return;
+// false: all flags clear (fall through to INSERT).
+inline auto PlanDataA2AlreadyLoggedInResponse(const bool hasViewSession) -> data_a2_already_logged_in_plan
+{
+    if (hasViewSession)
+    {
+        return { .incrementKey = true, .writeAlreadyLoggedInError = true, .returnFromRead = true };
+    }
+    return {};
+}
+
 // ShouldUpdatePrevZone mirrors PrevZone == 0 (first login from character create).
 inline auto ShouldUpdatePrevZone(const uint16 prevZone) -> bool
 {

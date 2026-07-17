@@ -168,91 +168,92 @@ bool CLinkshell::DelMember(CCharEntity* PChar)
 // Promotes or demotes the target member (pearlsack/linkpearl)
 void CLinkshell::ChangeMemberRank(const std::string& MemberName, const uint8 requesterRank, const uint8 newRank)
 {
-    // 2 = Pearl to sack
-    // 3 = Sack to pearl
-    if (!linkshellhelpers::IsValidRankChangeNewRank(newRank))
+    using linkshellhelpers::ChangeMemberRankPreflight;
+    using linkshellhelpers::PlanChangeMemberRank;
+
+    // Pure preflight: newRank / requesterRank / resolved item id (slice 2774).
+    // 2 = Pearl to sack; 3 = Sack to pearl.
+    const auto plan = PlanChangeMemberRank(newRank, requesterRank);
+    switch (plan.disposition)
     {
-        ShowErrorFmt("{}", linkshellhelpers::FormatChangeMemberRankError(MemberName, m_id));
-        return;
+        case ChangeMemberRankPreflight::RejectInvalidNewRank:
+        case ChangeMemberRankPreflight::RejectInvalidRequester:
+            ShowErrorFmt("{}", linkshellhelpers::FormatChangeMemberRankError(MemberName, m_id));
+            return;
+        case ChangeMemberRankPreflight::SkipInvalidItemID:
+            return;
+        case ChangeMemberRankPreflight::Proceed:
+            break;
     }
 
-    if (!linkshellhelpers::IsValidRankChangeRequester(requesterRank))
-    {
-        ShowErrorFmt("{}", linkshellhelpers::FormatChangeMemberRankError(MemberName, m_id));
-        return;
-    }
+    const auto newId = plan.newItemID;
 
-    const auto newId = linkshellhelpers::ResolveRankChangeItemID(newRank);
-
-    if (linkshellhelpers::IsValidRankChangeItemID(newId))
+    for (auto& member : members)
     {
-        for (auto& member : members)
+        if (strcmpi(MemberName.c_str(), member->getName().c_str()) == 0)
         {
-            if (strcmpi(MemberName.c_str(), member->getName().c_str()) == 0)
+            CCharEntity* PMember = member;
+
+            SLOTTYPE slot = SLOT_LINK1;
+            int      lsID = 1;
+            if (linkshellhelpers::IsLinkshell2Attachment(PMember->PLinkshell2 == this))
             {
-                CCharEntity* PMember = member;
-
-                SLOTTYPE slot = SLOT_LINK1;
-                int      lsID = 1;
-                if (linkshellhelpers::IsLinkshell2Attachment(PMember->PLinkshell2 == this))
-                {
-                    lsID = 2;
-                    slot = SLOT_LINK2;
-                }
-
-                CItemLinkshell* PItemLinkshell = (CItemLinkshell*)PMember->getEquip(slot);
-
-                if (PItemLinkshell != nullptr && PItemLinkshell->isType(ITEM_LINKSHELL) && PItemLinkshell->GetLSID() == m_id)
-                {
-                    auto PNewItem = xi::items::spawn(newId);
-                    if (PNewItem == nullptr)
-                    {
-                        return;
-                    }
-                    auto* newShellItem = static_cast<CItemLinkshell*>(PNewItem.get());
-                    newShellItem->setQuantity(1);
-                    std::memcpy(newShellItem->m_extra, PItemLinkshell->m_extra, 24);
-                    newShellItem->SetLSType(static_cast<LSTYPE>(linkshellhelpers::ResolveLSTypeFromRankItemID(newId)));
-                    newShellItem->setSubType(ITEM_LOCKED);
-                    uint8 LocationID = PItemLinkshell->getLocationID();
-                    uint8 SlotID     = PItemLinkshell->getSlotID();
-                    PMember->getStorage(LocationID)->RemoveItem(SlotID);
-
-                    PItemLinkshell = newShellItem;
-                    PMember->getStorage(LocationID)->InsertItem(std::move(PNewItem), SlotID);
-                    db::preparedStmt("UPDATE char_inventory SET itemid = ?, extra = ? WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
-                                     PItemLinkshell->getID(),
-                                     PItemLinkshell->m_extra,
-                                     PMember->id,
-                                     LocationID,
-                                     SlotID);
-                    if (lsID == 1)
-                    {
-                        db::preparedStmt("UPDATE accounts_sessions SET linkshellid1 = ?, linkshellrank1 = ? WHERE charid = ? LIMIT 1",
-                                         m_id,
-                                         static_cast<uint8>(PItemLinkshell->GetLSType()),
-                                         PMember->id);
-                    }
-                    else if (lsID == 2)
-                    {
-                        db::preparedStmt("UPDATE accounts_sessions SET linkshellid2 = ?, linkshellrank2 = ? WHERE charid = ?",
-                                         m_id,
-                                         static_cast<uint8>(PItemLinkshell->GetLSType()),
-                                         PMember->id);
-                    }
-
-                    PMember->pushPacket<GP_SERV_COMMAND_ITEM_LIST>(PItemLinkshell, ItemLockFlg::Normal);
-                    PMember->pushPacket<GP_SERV_COMMAND_GROUP_COMLINK>(PMember, lsID);
-                    PMember->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PItemLinkshell, static_cast<CONTAINER_ID>(LocationID), SlotID);
-                }
-
-                charutils::SaveCharStats(PMember);
-                charutils::SaveCharEquip(PMember);
-
-                PMember->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PMember);
-                PMember->pushPacket<CCharStatusPacket>(PMember);
-                return;
+                lsID = 2;
+                slot = SLOT_LINK2;
             }
+
+            CItemLinkshell* PItemLinkshell = (CItemLinkshell*)PMember->getEquip(slot);
+
+            if (PItemLinkshell != nullptr && PItemLinkshell->isType(ITEM_LINKSHELL) && PItemLinkshell->GetLSID() == m_id)
+            {
+                auto PNewItem = xi::items::spawn(newId);
+                if (PNewItem == nullptr)
+                {
+                    return;
+                }
+                auto* newShellItem = static_cast<CItemLinkshell*>(PNewItem.get());
+                newShellItem->setQuantity(1);
+                std::memcpy(newShellItem->m_extra, PItemLinkshell->m_extra, 24);
+                newShellItem->SetLSType(static_cast<LSTYPE>(linkshellhelpers::ResolveLSTypeFromRankItemID(newId)));
+                newShellItem->setSubType(ITEM_LOCKED);
+                uint8 LocationID = PItemLinkshell->getLocationID();
+                uint8 SlotID     = PItemLinkshell->getSlotID();
+                PMember->getStorage(LocationID)->RemoveItem(SlotID);
+
+                PItemLinkshell = newShellItem;
+                PMember->getStorage(LocationID)->InsertItem(std::move(PNewItem), SlotID);
+                db::preparedStmt("UPDATE char_inventory SET itemid = ?, extra = ? WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
+                                 PItemLinkshell->getID(),
+                                 PItemLinkshell->m_extra,
+                                 PMember->id,
+                                 LocationID,
+                                 SlotID);
+                if (lsID == 1)
+                {
+                    db::preparedStmt("UPDATE accounts_sessions SET linkshellid1 = ?, linkshellrank1 = ? WHERE charid = ? LIMIT 1",
+                                     m_id,
+                                     static_cast<uint8>(PItemLinkshell->GetLSType()),
+                                     PMember->id);
+                }
+                else if (lsID == 2)
+                {
+                    db::preparedStmt("UPDATE accounts_sessions SET linkshellid2 = ?, linkshellrank2 = ? WHERE charid = ?",
+                                     m_id,
+                                     static_cast<uint8>(PItemLinkshell->GetLSType()),
+                                     PMember->id);
+                }
+
+                PMember->pushPacket<GP_SERV_COMMAND_ITEM_LIST>(PItemLinkshell, ItemLockFlg::Normal);
+                PMember->pushPacket<GP_SERV_COMMAND_GROUP_COMLINK>(PMember, lsID);
+                PMember->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PItemLinkshell, static_cast<CONTAINER_ID>(LocationID), SlotID);
+            }
+
+            charutils::SaveCharStats(PMember);
+            charutils::SaveCharEquip(PMember);
+
+            PMember->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PMember);
+            PMember->pushPacket<CCharStatusPacket>(PMember);
+            return;
         }
     }
 }

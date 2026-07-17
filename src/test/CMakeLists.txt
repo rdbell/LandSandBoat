@@ -615,6 +615,8 @@ set(SOURCES
     test_login_success_response_2767.cpp
     test_login_data_a2_zone_cap_response_2770.h
     test_login_data_a2_zone_cap_response_2770.cpp
+    test_login_data_a2_already_logged_in_2776.h
+    test_login_data_a2_already_logged_in_2776.cpp
     test_login_auth_password_1307.h
     test_login_auth_password_1307.cpp
     test_login_auth_version_error_1308.h
@@ -719,6 +721,8 @@ set(SOURCES
     test_linkshell_capacity_1354.cpp
     test_linkshell_registry_1355.h
     test_linkshell_registry_1355.cpp
+    test_linkshell_rank_change_plan_2774.h
+    test_linkshell_rank_change_plan_2774.cpp
     test_unitychat_capacity_1356.h
     test_unitychat_capacity_1356.cpp
     test_guild_points_math_1358.h
@@ -763,6 +767,8 @@ set(SOURCES
     test_treasure_pool_policy_1367.cpp
     test_treasure_lot_preflight_2772.h
     test_treasure_lot_preflight_2772.cpp
+    test_treasure_update_pool_plan_2777.h
+    test_treasure_update_pool_plan_2777.cpp
     test_status_effect_prevent_1368.h
     test_status_effect_prevent_1368.cpp
     test_status_effect_params_1369.h
@@ -1480,6 +1486,10 @@ set(SOURCES
     test_map_dynamic_targid_percent_2769.cpp
     test_map_outgoing_cypher_size_2771.h
     test_map_outgoing_cypher_size_2771.cpp
+    test_map_finalize_packet_size_2775.h
+    test_map_finalize_packet_size_2775.cpp
+    test_map_finalize_md5_size_2778.h
+    test_map_finalize_md5_size_2778.cpp
     test_attack_guard_resolution_2739.h
     test_attack_guard_resolution_2739.cpp
     test_attackround_initial_weapon_2742.h

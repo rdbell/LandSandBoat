@@ -191,6 +191,28 @@ inline auto ShouldUpdatePoolForChar(const bool isDisappear) -> bool
     return !isDisappear;
 }
 
+// UpdatePoolPlan is the pure visibility disposition of CTreasurePool::UpdatePool
+// before host warns or pushes trophy list packets.
+struct UpdatePoolPlan
+{
+    bool reject;          // null char or pool mismatch
+    bool pushTrophyLists; // !reject && status != DISAPPEAR
+};
+
+// PlanUpdatePool composes ShouldRejectNullMember and ShouldUpdatePoolForChar.
+// Host keeps warning and packet push; plan is pure disposition only.
+inline auto PlanUpdatePool(
+    const bool charNull,
+    const bool poolMismatch,
+    const bool isDisappear) -> UpdatePoolPlan
+{
+    if (ShouldRejectNullMember(charNull, poolMismatch))
+    {
+        return UpdatePoolPlan{ true, false };
+    }
+    return UpdatePoolPlan{ false, ShouldUpdatePoolForChar(isDisappear) };
+}
+
 // ShouldFlushPool mirrors m_count != 0.
 inline auto ShouldFlushPool(const uint8 itemCount) -> bool
 {
