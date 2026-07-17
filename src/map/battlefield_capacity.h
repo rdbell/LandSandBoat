@@ -6,6 +6,16 @@
 #include <string>
 
 // Pure CBattlefield policy helpers for level cap, insert, cleanup, and tick.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1361: level cap, insert, cleanup, tick policy suite
+//   - 2930: ShouldAcceptPCUnderCapacity (playerCount < maxParticipants)
+//
+// Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
+// GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
+// for the TYPE_PC capacity gate.
+// Go dual-wire: battlefield.ShouldAcceptPCUnderCapacity
+// (internal/battlefield/under_capacity.go).
 
 namespace battlefieldhelpers
 {
@@ -47,6 +57,18 @@ inline auto ShouldRejectAlreadyInBattlefield(const bool hasBattlefield) -> bool
 }
 
 // ShouldAcceptPCUnderCapacity mirrors GetPlayerCount() < GetMaxParticipants().
+//
+// Formula (slice 2930 dual-wire):
+//   playerCount < maxParticipants
+//
+// playerCount     — host-evaluated GetPlayerCount() (entered PCs)
+// maxParticipants — host-evaluated GetMaxParticipants() / m_MaxParticipants
+// true  → accept PC insert (room under cap; enter or register path may proceed)
+// false → reject PC insert (at or above capacity)
+//
+// Dual-wire of Go battlefield.ShouldAcceptPCUnderCapacity.
+// Call site: CBattlefield::InsertEntity TYPE_PC branch host inject.
+// Strict less-than: equal counts reject (full). Empty field with max 0 rejects.
 inline auto ShouldAcceptPCUnderCapacity(const uint8 playerCount, const uint8 maxParticipants) -> bool
 {
     return playerCount < maxParticipants;

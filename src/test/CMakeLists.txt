@@ -2431,6 +2431,16 @@ set(SOURCES
     test_enmity_zero_out_of_range_2927.cpp
     test_party_reject_full_2928.h
     test_party_reject_full_2928.cpp
+    test_linkshell_reject_null_2929.h
+    test_linkshell_reject_null_2929.cpp
+    test_battlefield_under_capacity_2930.h
+    test_battlefield_under_capacity_2930.cpp
+    test_recast_stamp_zero_2931.h
+    test_recast_stamp_zero_2931.cpp
+    test_status_effect_id_range_2932.h
+    test_status_effect_id_range_2932.cpp
+    test_unitychat_receive_packet_2933.h
+    test_unitychat_receive_packet_2933.cpp
 )
 
 if(UNIX)

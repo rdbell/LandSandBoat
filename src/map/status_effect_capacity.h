@@ -662,9 +662,30 @@ constexpr uint16 SourceTypeFood         = 4;
 constexpr uint16 StatusIDNoneEffect  = 255; // xi::StatusEffect::None
 constexpr uint16 StatusIDFood        = 251;
 constexpr uint16 StatusIDEnchantment = 162;
-constexpr uint16 MaxEffectID         = 814; // MAX_EFFECTID
+
+// --- Slice 2932: ShouldRejectEffectIDOutOfRange pure dual-wire ---
+// Residual pure port: slice 1369 (SetEffectParams path selection suite).
+// Production host: CStatusEffectContainer::AddStatusEffect / SetEffectParams
+// inject GetStatusID() + MaxEffectID into ShouldRejectEffectIDOutOfRange.
+// Go dual-wire: statuseffect.ShouldRejectEffectIDOutOfRange
+// (internal/statuseffect/id_range.go).
+
+// MaxEffectID pins MAX_EFFECTID (768 real + 46 custom).
+// Dual-wire of Go statuseffect.MaxEffectID (slice 2932; residual 1369).
+constexpr uint16 MaxEffectID = 814; // MAX_EFFECTID
 
 // ShouldRejectEffectIDOutOfRange mirrors statusID >= MAX_EFFECTID.
+//
+// Formula (slice 2932 dual-wire):
+//   statusID >= maxEffectID
+//
+// statusID    — host-evaluated StatusEffect->GetStatusID()
+// maxEffectID — production pin MaxEffectID (814 / MAX_EFFECTID)
+// true  → reject AddStatusEffect / SetEffectParams (ID out of range)
+// false → range gate passes
+//
+// Dual-wire of Go statuseffect.ShouldRejectEffectIDOutOfRange.
+// Call sites: CStatusEffectContainer::AddStatusEffect / SetEffectParams.
 inline auto ShouldRejectEffectIDOutOfRange(const uint16 statusID, const uint16 maxEffectID) -> bool
 {
     return statusID >= maxEffectID;

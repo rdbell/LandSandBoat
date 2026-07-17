@@ -10,6 +10,15 @@
 
 // Pure CLinkshell admission / rank / push policy extracted so native tests can
 // pin behavior without DB, packets, or entity pointers.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1354: AddMember / rank / push / DelMember capacity suite
+//   - 2929: ShouldRejectNullAddMember (charNull identity)
+//
+// Production host: CLinkshell::AddMember (linkshell.cpp) injects
+// PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work.
+// Go dual-wire: linkshell.ShouldRejectNullAddMember
+// (internal/linkshell/reject_null_add_member.go).
 
 namespace linkshellhelpers
 {
@@ -17,6 +26,16 @@ namespace linkshellhelpers
 // --- AddMember ---
 
 // ShouldRejectNullAddMember mirrors PChar == nullptr.
+//
+// Formula (slice 2929 dual-wire):
+//   charNull
+//
+// charNull — host-evaluated PChar == nullptr
+// true  → reject AddMember (early return; no roster/DB work)
+// false → null gate passes; host continues to duplicate-member checks
+//
+// Dual-wire of Go linkshell.ShouldRejectNullAddMember.
+// Call site: CLinkshell::AddMember host inject (PChar == nullptr).
 inline auto ShouldRejectNullAddMember(const bool charNull) -> bool
 {
     return charNull;

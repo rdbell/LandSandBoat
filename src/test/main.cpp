@@ -1219,6 +1219,11 @@ auto runMapsessionCreateSession2925SelfTests() -> bool;
 auto runGardenShouldWilt2926SelfTests() -> bool;
 auto runEnmityZeroOutOfRange2927SelfTests() -> bool;
 auto runPartyRejectFull2928SelfTests() -> bool;
+auto runLinkshellRejectNull2929SelfTests() -> bool;
+auto runBattlefieldUnderCapacity2930SelfTests() -> bool;
+auto runRecastStampZero2931SelfTests() -> bool;
+auto runStatusEffectIDRange2932SelfTests() -> bool;
+auto runUnitychatReceivePacket2933SelfTests() -> bool;
 
 namespace
 {
@@ -2415,6 +2420,11 @@ namespace
         ok = runGardenShouldWilt2926SelfTests() && ok;
         ok = runEnmityZeroOutOfRange2927SelfTests() && ok;
         ok = runPartyRejectFull2928SelfTests() && ok;
+        ok = runLinkshellRejectNull2929SelfTests() && ok;
+        ok = runBattlefieldUnderCapacity2930SelfTests() && ok;
+        ok = runRecastStampZero2931SelfTests() && ok;
+        ok = runStatusEffectIDRange2932SelfTests() && ok;
+        ok = runUnitychatReceivePacket2933SelfTests() && ok;
 
         return ok;
     }

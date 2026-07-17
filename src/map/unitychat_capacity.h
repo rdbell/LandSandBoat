@@ -7,6 +7,16 @@
 #include <string>
 
 // Pure CUnityChat / unitychat namespace policy extracted for native tests.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1356: DelMemberRemaining, registry / online-member gates, residual capacity
+//   - 2933: ShouldReceiveUnityPacket (!isSender && !isDisappear && !inPrison)
+//
+// Production host: CUnityChat::PushPacket (unitychat.cpp) injects
+// member->id == senderID / STATUS_TYPE::DISAPPEAR / jailutils::InPrison(member)
+// into ShouldReceiveUnityPacket.
+// Go dual-wire: unitychat.ShouldReceiveUnityPacket
+// (internal/unitychat/receive_packet.go).
 
 namespace unitychathelpers
 {
@@ -17,7 +27,20 @@ inline auto DelMemberRemaining(const std::size_t memberCountAfter) -> bool
     return memberCountAfter != 0;
 }
 
-// ShouldReceiveUnityPacket mirrors id != sender && not disappear && not prison.
+// ShouldReceiveUnityPacket mirrors CUnityChat::PushPacket member filter:
+// id != sender && not disappear && not prison.
+//
+// Formula (slice 2933 dual-wire):
+//   !isSender && !isDisappear && !inPrison
+//
+// isSender    — host-evaluated member->id == senderID
+// isDisappear — host-evaluated member->status == STATUS_TYPE::DISAPPEAR
+// inPrison    — host-evaluated jailutils::InPrison(member)
+// true  → push a packet copy to this online member
+// false → skip member (sender, disappeared, or jailed)
+//
+// Dual-wire of Go unitychat.ShouldReceiveUnityPacket.
+// Call site: CUnityChat::PushPacket host inject.
 inline auto ShouldReceiveUnityPacket(const bool isSender, const bool isDisappear, const bool inPrison) -> bool
 {
     return !isSender && !isDisappear && !inPrison;

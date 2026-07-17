@@ -5,6 +5,17 @@
 #include <cstdint>
 
 // Pure CRecastContainer::Load charge accumulation and HasRecast charge gates.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1370: charge Load / HasRecast / expire policy suite
+//   - 2800: ShouldResetAbilityRecast / IsOneHourSpecialRecast
+//   - 2814: ShouldEraseAbilityOnChangeJob
+//   - 2827: RecastIDFromLootRecast
+//   - 2931: ShouldStampOnZeroRecast (RecastTime == 0 stamp gate on charged Load)
+//
+// Production host: CRecastContainer::Load (recast_container.cpp) injects
+// RecastTime == 0s into ShouldStampOnZeroRecast on the charged path.
+// Go dual-wire: recast.ShouldStampOnZeroRecast (internal/recast/stamp_zero.go).
 
 namespace recasthelpers
 {
@@ -27,6 +38,16 @@ inline auto IsSimpleRecast(const bool chargeTimeIsZero) -> bool
 }
 
 // ShouldStampOnZeroRecast mirrors RecastTime == 0 before adding charged duration.
+//
+// Formula (slice 2931 dual-wire):
+//   recastTimeIsZero
+//
+// recastTimeIsZero — host-evaluated RecastTime == 0s
+// true  → stamp TimeStamp to timer::now() before adding charged duration
+// false → keep TimeStamp and apply charge-cap overflow adjustment path
+//
+// Dual-wire of Go recast.ShouldStampOnZeroRecast.
+// Call site: CRecastContainer::Load charged branch after IsSimpleRecast is false.
 inline auto ShouldStampOnZeroRecast(const bool recastTimeIsZero) -> bool
 {
     return recastTimeIsZero;
