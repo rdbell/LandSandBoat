@@ -2531,6 +2531,16 @@ set(SOURCES
     test_linkshell_send_message_ipc_2977.cpp
     test_mapsession_mark_link_dead_2978.h
     test_mapsession_mark_link_dead_2978.cpp
+    test_alliance_attempt_leader_promote_2979.h
+    test_alliance_attempt_leader_promote_2979.cpp
+    test_universal_clear_slot_2980.h
+    test_universal_clear_slot_2980.cpp
+    test_treasure_force_check_full_2981.h
+    test_treasure_force_check_full_2981.cpp
+    test_command_reject_null_char_2982.h
+    test_command_reject_null_char_2982.cpp
+    test_latent_apply_expression_2983.h
+    test_latent_apply_expression_2983.cpp
 )
 
 if(UNIX)

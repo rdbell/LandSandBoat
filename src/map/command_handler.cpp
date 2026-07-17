@@ -106,7 +106,7 @@ auto CCommandHandler::call(Scheduler& scheduler, sol::state& lua, CCharEntity* c
 {
     TracyZoneScoped;
 
-    // Pure null-char gate (slice 2792).
+    // Pure null-char gate dual-wire (slice 2982; residual 2792).
     if (commandhandlerhelpers::ShouldRejectNullChar(PChar == nullptr))
     {
         ShowError("cmdhandler::call: nullptr character attempted to use command");

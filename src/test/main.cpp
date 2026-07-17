@@ -1269,6 +1269,11 @@ auto runZoneDespawnPCLeave2975SelfTests() -> bool;
 auto runItemRemoveSlot2976SelfTests() -> bool;
 auto runLinkshellSendMessageIPC2977SelfTests() -> bool;
 auto runMapsessionMarkLinkDead2978SelfTests() -> bool;
+auto runAllianceAttemptLeaderPromote2979SelfTests() -> bool;
+auto runUniversalClearSlot2980SelfTests() -> bool;
+auto runTreasureForceCheckFull2981SelfTests() -> bool;
+auto runCommandRejectNullChar2982SelfTests() -> bool;
+auto runLatentApplyExpression2983SelfTests() -> bool;
 
 namespace
 {
@@ -2515,6 +2520,11 @@ namespace
         ok = runItemRemoveSlot2976SelfTests() && ok;
         ok = runLinkshellSendMessageIPC2977SelfTests() && ok;
         ok = runMapsessionMarkLinkDead2978SelfTests() && ok;
+        ok = runAllianceAttemptLeaderPromote2979SelfTests() && ok;
+        ok = runUniversalClearSlot2980SelfTests() && ok;
+        ok = runTreasureForceCheckFull2981SelfTests() && ok;
+        ok = runCommandRejectNullChar2982SelfTests() && ok;
+        ok = runLatentApplyExpression2983SelfTests() && ok;
 
         return ok;
     }

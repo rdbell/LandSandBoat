@@ -207,7 +207,27 @@ inline auto ShouldRejectProcessLatent(const bool ownerNull, const bool zoneIsZer
     return ownerNull || zoneIsZero;
 }
 
+// --- Slice 2983: ShouldApplyLatentExpression pure dual-wire ---
+// Residual pure port: slice 1359 (ProcessLatentEffect condition eval suite).
+// Production host: CLatentEffectContainer::ProcessLatentEffect injects
+// latentFound (post condition-switch; false only on unhandled default) into
+// ShouldApplyLatentExpression before ApplyLatentEffect.
+// Go dual-wire: latenteffect.ShouldApplyLatentExpression
+// (internal/latenteffect/apply_expression.go).
+
 // ShouldApplyLatentExpression mirrors latentFound before ApplyLatentEffect.
+//
+// Formula (slice 2983 dual-wire):
+//   latentFound
+//
+// latentFound — host-evaluated after the ProcessLatentEffect condition switch:
+//               true  when a known latent condition branch set expression
+//               false when the switch hit the unhandled-default case
+// true  → call ApplyLatentEffect(latentEffect, expression)
+// false → skip ApplyLatentEffect and return false
+//
+// Dual-wire of Go latenteffect.ShouldApplyLatentExpression.
+// Call site: CLatentEffectContainer::ProcessLatentEffect (~1287).
 inline auto ShouldApplyLatentExpression(const bool latentFound) -> bool
 {
     return latentFound;

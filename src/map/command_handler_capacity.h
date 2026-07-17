@@ -11,16 +11,32 @@
 //   - 2792: permission / audit plan suite (null/name/perm/audit + post-props)
 //   - 2836: ShouldRejectEmptyCommandLine (ParseCommandLine empty after trim)
 //   - 2940: ShouldAllowCommandPermission (permission <= m_GMlevel)
+//   - 2982: ShouldRejectNullChar (charNull identity)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
 // Go dual-wire: command.ShouldAllowCommandPermission
 // (internal/command/permission.go).
+//
+// Production host: CCommandHandler::call injects charNull = (PChar == nullptr)
+// before name parse / Lua table lookup.
+// Go dual-wire: command.ShouldRejectNullChar
+// (internal/command/reject_null_char.go).
 
 namespace commandhandlerhelpers
 {
 
 // ShouldRejectNullChar mirrors !PChar early Failure.
+//
+// Formula (slice 2982 dual-wire):
+//   charNull
+//
+// true  → host logs error and returns CommandResult::Failure
+// false → proceed to name parse / empty-name gate
+//
+// Dual-wire of Go command.ShouldRejectNullChar.
+// Call site: CCommandHandler::call before ParseCommandLine.
+//   if (ShouldRejectNullChar(PChar == nullptr)) return Failure;
 inline auto ShouldRejectNullChar(const bool charNull) -> bool
 {
     return charNull;

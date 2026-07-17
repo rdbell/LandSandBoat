@@ -13,12 +13,18 @@
 //   - 2822: PlanIsSlotEmpty
 //   - 2829: IsContainerTypeEmpty
 //   - 2965: ShouldAllowSetItem (SetItem outer gate)
+//   - 2980: ShouldClearSlot (ClearSlot range gate)
 //
 // Production host: CUContainer::SetItem (universal_container.cpp) injects
 // slotID < m_PItem.size() and m_lock into ShouldAllowSetItem, then
 // PlanSetItemCountDelta on admit.
 // Go dual-wire: universalcontainer.ShouldAllowSetItem
 // (internal/universalcontainer/set_item.go). Prior pure port: slice 2801.
+//
+// Production host: CUContainer::ClearSlot (universal_container.cpp) injects
+// slotID < m_PItem.size() into ShouldClearSlot (does not inject m_lock).
+// Go dual-wire: universalcontainer.ShouldClearSlot
+// (internal/universalcontainer/clear_slot.go). Prior pure port: slice 2813.
 
 namespace ucontainerhelpers
 {
@@ -68,7 +74,21 @@ inline auto PlanSetItemCountDelta(const bool newItemNonNull, const bool slotOccu
 // ShouldClearSlot mirrors the ClearSlot range gate:
 //   slotID < m_PItem.size()
 //
+// Formula (slice 2980 dual-wire):
+//   slotInRange
+//
+// slotInRange — host-evaluated slotID < m_PItem.size()
+// true  → host may assign m_PItem[slotID] = nullptr
+// false → host leaves state unchanged
+//
 // Unlike SetItem, ClearSlot does not consult m_lock.
+// ClearSlot also does not adjust m_count (ShouldAdjustCountOnClearSlot is
+// false; residual 2813).
+//
+// Dual-wire of Go universalcontainer.ShouldClearSlot
+// (internal/universalcontainer/clear_slot.go).
+// Call site: CUContainer::ClearSlot before null assignment.
+// Host injects the range flag after the size probe.
 inline auto ShouldClearSlot(const bool slotInRange) -> bool
 {
     return slotInRange;
@@ -76,6 +96,7 @@ inline auto ShouldClearSlot(const bool slotInRange) -> bool
 
 // ShouldAdjustCountOnClearSlot documents that ClearSlot does NOT change m_count
 // (parity quirk vs SetItem(nullptr), which decrements when the slot was occupied).
+// Residual pure port: slice 2813 (paired with ShouldClearSlot dual-wire 2980).
 inline auto ShouldAdjustCountOnClearSlot() -> bool
 {
     return false;

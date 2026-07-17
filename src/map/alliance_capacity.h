@@ -15,12 +15,19 @@
 //   - 1341: removeParty plan, delParty null warning, ShouldSkipDelPartyWhenEmpty
 //   - 1346: assignAllianceLeader gate / leader flag / local main party
 //   - 2941: ShouldSkipDelPartyWhenEmpty (!hasAlliance || partyListEmpty)
+//   - 2979: ShouldAttemptAllianceLeaderPromote (isMainParty)
 //
 // Production host: CAlliance::delParty (alliance.cpp) injects
 // party->m_PAlliance != nullptr and partyList.empty() into
 // ShouldSkipDelPartyWhenEmpty before erasing from partyList.
 // Go dual-wire: alliance.ShouldSkipDelPartyWhenEmpty
 // (internal/alliance/skip_del_party.go).
+//
+// Production host: CAlliance::removeParty (alliance.cpp) injects isMainParty
+// (getMainParty() == party after null check) into
+// ShouldAttemptAllianceLeaderPromote before DB lookup for another party leader.
+// Go dual-wire: alliance.ShouldAttemptAllianceLeaderPromote
+// (internal/alliance/attempt_leader_promote.go).
 
 namespace alliancehelpers
 {
@@ -137,7 +144,18 @@ inline auto ClassifyRemoveAllianceParty(
 }
 
 // ShouldAttemptAllianceLeaderPromote mirrors isMainParty before the DB lookup
-// for another party leader in the alliance.
+// for another party leader in the alliance (CAlliance::removeParty promote gate).
+//
+// Formula (slice 2979 dual-wire):
+//   isMainParty
+//
+// isMainParty — host-evaluated getMainParty() == party (after null check)
+// true  → attempt DB lookup for another party leader and assignAllianceLeader
+// false → skip promote; re-check still-main and classify remove plan only
+//
+// Dual-wire of Go alliance.ShouldAttemptAllianceLeaderPromote.
+// Call site: CAlliance::removeParty after null-party check.
+// Residual pure port: slice 1341 (removeParty plan) / 1346 (assignAllianceLeader).
 inline auto ShouldAttemptAllianceLeaderPromote(const bool isMainParty) -> bool
 {
     return isMainParty;

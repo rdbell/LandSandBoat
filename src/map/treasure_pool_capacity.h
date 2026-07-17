@@ -12,6 +12,7 @@
 //   - 2772 / 2777 / 2779 / 2780 / 2781: lot/pass/update/post-lot/flush plans
 //   - 2938: ShouldAutoResolveSolo (memberCount == 1 after insert)
 //   - 2957: CanLotWithInventory (freeSlots != 0 inventory lot gate)
+//   - 2981: ShouldForceCheckOnFullPoolInsert (SlotID == PoolSize after free scan)
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -22,6 +23,12 @@
 // getStorage(LOC_INVENTORY)->GetFreeSlotsCount() into CanLotWithInventory.
 // Go dual-wire: treasurepool.CanLotWithInventory
 // (internal/treasurepool/lot_inventory.go).
+//
+// Production host: CTreasurePool::addItem injects SlotID after free-slot /
+// eviction selection into ShouldForceCheckOnFullPoolInsert (SlotID ends at
+// PoolSize when free-slot loop completes without break).
+// Go dual-wire: treasurepool.ShouldForceCheckOnFullPoolInsert
+// (internal/treasurepool/force_check_full.go).
 
 namespace treasurepoolhelpers
 {
@@ -94,7 +101,17 @@ inline auto DefaultFallbackSlot() -> uint8
 }
 
 // ShouldForceCheckOnFullPoolInsert mirrors SlotID == 10 after free-slot scan.
-// SlotID ends at PoolSize when the free-slot loop completes without break.
+//
+// Formula (slice 2981 dual-wire):
+//   slotAfterFreeScan == PoolSize
+//
+// slotAfterFreeScan — host-evaluated SlotID after free-slot scan
+// (SlotID ends at PoolSize when free-slot loop completes without break)
+// true  → force checkTreasureItem on FreeSlotID before insert
+// false → skip force-check; proceed to normal insert bookkeeping
+//
+// Dual-wire of Go treasurepool.ShouldForceCheckOnFullPoolInsert.
+// Call site: CTreasurePool::addItem after free-slot / eviction selection.
 inline auto ShouldForceCheckOnFullPoolInsert(const uint8 slotAfterFreeScan) -> bool
 {
     return slotAfterFreeScan == PoolSize;
