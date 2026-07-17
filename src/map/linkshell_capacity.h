@@ -46,6 +46,10 @@
 //           (charNull identity; prior dedicated expands 3195 / 3489 / 3548 /
 //            3592 / residual dual-wire 2929 / pure 1354; formula unchanged;
 //            free==inline==pin==pin3592; dense 2¹)
+//   - 3682: ShouldRejectNullAddMember dedicated dual-wire expand residual 2929
+//           (charNull identity; prior dedicated expands 3195 / 3489 / 3548 /
+//            3592 / 3637 / residual dual-wire 2929 / pure 1354; formula unchanged;
+//            free==inline==pin==pin3637; dense 2¹)
 //   - 3215: ShouldRejectDuplicateAddMember dedicated dual-wire
 //           (alreadyInList identity; residual expand 2958 / pure 1354)
 //   - 3264: ShouldBreakInventoryPearl dedicated dual-wire
@@ -136,8 +140,8 @@ namespace linkshellhelpers
 
 // ShouldRejectNullAddMember mirrors PChar == nullptr.
 //
-// Formula (slice 3637 dedicated dual-wire; residual expand 2929 / pure 1354 —
-// prior dedicated expands 3195 / 3489 / 3548 / 3592; formula unchanged):
+// Formula (slice 3682 dedicated dual-wire; residual expand 2929 / pure 1354 —
+// prior dedicated expands 3195 / 3489 / 3548 / 3592 / 3637; formula unchanged):
 //   charNull
 //
 // charNull — host-evaluated PChar == nullptr
@@ -152,9 +156,10 @@ namespace linkshellhelpers
 // test_linkshell_reject_null_add_member_3195 (RETAINED), 3489 /
 // test_linkshell_reject_null_add_member_3489 (RETAINED), 3548 /
 // test_linkshell_reject_null_add_member_3548 (RETAINED), 3592 /
-// test_linkshell_reject_null_add_member_3592 (RETAINED). Dedicated dual-wire
-// suite is test_linkshell_reject_null_add_member_3637 (free == inline == pin ==
-// pin3592 residual pins; dense 2¹). Formula is unchanged; this slice only
+// test_linkshell_reject_null_add_member_3592 (RETAINED), 3637 /
+// test_linkshell_reject_null_add_member_3637 (RETAINED). Dedicated dual-wire
+// suite is test_linkshell_reject_null_add_member_3682 (free == inline == pin ==
+// pin3637 residual pins; dense 2¹). Formula is unchanged; this slice only
 // expands dual-wire docs + index + dedicated suite.
 inline auto ShouldRejectNullAddMember(const bool charNull) -> bool
 {
