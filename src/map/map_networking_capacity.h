@@ -17,7 +17,8 @@
 //   - 2948: ShouldOpenSocket residual dual-wire suite
 //   - 3169: ShouldOpenSocket prior dedicated dual-wire (socket_gate.go)
 //   - 3232: ShouldOpenSocket prior dedicated dual-wire expand residual 2948
-//   - 3412: ShouldOpenSocket dedicated dual-wire expand residual 2948
+//   - 3412: ShouldOpenSocket prior dedicated dual-wire expand residual 2948
+//   - 3466: ShouldOpenSocket dedicated dual-wire expand residual 2948
 //   - 2711: ShouldMarkCurrentKeyDecryption (decryptCount == 0) — residual pure port
 //   - 2995: ShouldMarkCurrentKeyDecryption (decryptCount == 0) dual-wire expansion
 //   - 3336: ShouldMarkCurrentKeyDecryption dedicated dual-wire expand residual 2995
@@ -27,7 +28,8 @@
 //   - 2948: ShouldOpenSocket residual dual-wire suite
 //   - 3169: ShouldOpenSocket prior dedicated dual-wire
 //   - 3232: ShouldOpenSocket prior dedicated dual-wire
-//   - 3412: ShouldOpenSocket = !isTestServer
+//   - 3412: ShouldOpenSocket prior dedicated dual-wire
+//   - 3466: ShouldOpenSocket = !isTestServer
 //   - 2711: ShouldMarkCurrentKeyDecryption residual pure port
 //   - 2995: ShouldMarkCurrentKeyDecryption residual dual-wire suite
 //   - 3336: ShouldMarkCurrentKeyDecryption = decryptCount == 0
@@ -38,7 +40,8 @@
 // Residual dual-wire suite: 2948 (test_mapwire_open_socket_2948).
 // Prior dedicated dual-wire suite: 3169 (test_mapwire_open_socket_3169).
 // Prior dedicated dual-wire suite: 3232 (test_mapwire_open_socket_3232).
-// Dedicated dual-wire suite: 3412 (test_mapwire_open_socket_3412).
+// Prior dedicated dual-wire suite: 3412 (test_mapwire_open_socket_3412).
+// Dedicated dual-wire suite: 3466 (test_mapwire_open_socket_3466).
 //
 // Production host: MapNetworking::recv_parse (map_networking.cpp ~400) injects
 // local decryptCount into ShouldMarkCurrentKeyDecryption before setting
@@ -51,14 +54,14 @@ namespace mapnetworkinghelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 3412 — MapNetworking constructor socket open gate
+// Slice 3466 — MapNetworking constructor socket open gate
 // (dedicated expand residual 2948)
 // ---------------------------------------------------------------------------
 
 // ShouldOpenSocket mirrors MapNetworking construction: embedded test servers
 // skip UDP socket creation.
 //
-// Formula (slice 3412 dedicated dual-wire; residual expand 2948 / pure 2660 —
+// Formula (slice 3466 dedicated dual-wire; residual expand 2948 / pure 2660 —
 // formula unchanged):
 //   ShouldOpenSocket(isTestServer) = !isTestServer
 //
@@ -71,8 +74,9 @@ namespace mapnetworkinghelpers
 // Prior pure port: slice 2660. Residual dual-wire suite: 2948 /
 // test_mapwire_open_socket_2948. Prior dedicated dual-wire suite: 3169 /
 // test_mapwire_open_socket_3169. Prior dedicated dual-wire suite: 3232 /
-// test_mapwire_open_socket_3232. Dedicated dual-wire suite is
-// test_mapwire_open_socket_3412. Host still owns MapSocket construction,
+// test_mapwire_open_socket_3232. Prior dedicated dual-wire suite: 3412 /
+// test_mapwire_open_socket_3412. Dedicated dual-wire suite is
+// test_mapwire_open_socket_3466. Host still owns MapSocket construction,
 // port selection, and failure exit. Formula is unchanged; this slice only
 // expands dual-wire docs + index + dedicated suite.
 inline auto ShouldOpenSocket(const bool isTestServer) -> bool

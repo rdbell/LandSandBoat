@@ -1754,6 +1754,11 @@ auto runApkalluCanRunAway3460SelfTests() -> bool;
 auto runGarrisonFailByDeath3461SelfTests() -> bool;
 auto runExtravaganzaCanAffordCipher3462SelfTests() -> bool;
 auto runPortermoogleCanRetrieveItem3463SelfTests() -> bool;
+auto runInteractionlookupSkipPriority3464SelfTests() -> bool;
+auto runColonizationreiveSpawnOnEnable3465SelfTests() -> bool;
+auto runMapwireOpenSocket3466SelfTests() -> bool;
+auto runLatentRejectProcess3467SelfTests() -> bool;
+auto runPetDetachPlayerMaster3468SelfTests() -> bool;
 
 namespace
 {
@@ -3485,6 +3490,11 @@ namespace
         ok = runGarrisonFailByDeath3461SelfTests() && ok;
         ok = runExtravaganzaCanAffordCipher3462SelfTests() && ok;
         ok = runPortermoogleCanRetrieveItem3463SelfTests() && ok;
+        ok = runInteractionlookupSkipPriority3464SelfTests() && ok;
+        ok = runColonizationreiveSpawnOnEnable3465SelfTests() && ok;
+        ok = runMapwireOpenSocket3466SelfTests() && ok;
+        ok = runLatentRejectProcess3467SelfTests() && ok;
+        ok = runPetDetachPlayerMaster3468SelfTests() && ok;
 
         return ok;
     }

@@ -11,15 +11,18 @@
 //           (empty || firstIsNumber; residual expand 2953 / prior 3167)
 //   - 3332: ShouldSkipPrioritySelection prior dedicated dual-wire
 //           (empty || firstIsNumber; residual expand 2953 / prior 3246 / 3167)
-//   - 3410: ShouldSkipPrioritySelection dedicated dual-wire
+//   - 3410: ShouldSkipPrioritySelection prior dedicated dual-wire
 //           (empty || firstIsNumber; residual expand 2953 / prior 3332 / 3246 / 3167)
+//   - 3464: ShouldSkipPrioritySelection dedicated dual-wire
+//           (empty || firstIsNumber; residual expand 2953 / prior 3410 / 3332 / 3246 / 3167)
 //
 // Dual-wire index:
 //   - 2953: ShouldSkipPrioritySelection residual dual-wire suite
 //   - 3167: ShouldSkipPrioritySelection prior dedicated dual-wire suite
 //   - 3246: ShouldSkipPrioritySelection prior dedicated dual-wire suite
 //   - 3332: ShouldSkipPrioritySelection prior dedicated dual-wire suite
-//   - 3410: ShouldSkipPrioritySelection = empty || firstIsNumber
+//   - 3410: ShouldSkipPrioritySelection prior dedicated dual-wire suite
+//   - 3464: ShouldSkipPrioritySelection = empty || firstIsNumber
 //
 // Production host is Lua under
 // scripts/globals/interaction/interaction_lookup.lua
@@ -41,12 +44,13 @@
 // remain host-owned.
 // Prior pure port: OmegaXI slice 1094 (internal/interactionlookup
 // handler_policy.go). Residual dual-wire extract: slice 2953 (skip_priority.go).
-// Prior dedicated dual-wire suites: slices 3167 / 3246 / 3332
+// Prior dedicated dual-wire suites: slices 3167 / 3246 / 3332 / 3410
 // (test_interactionlookup_skip_priority_3167 /
 // test_interactionlookup_skip_priority_3246 /
-// test_interactionlookup_skip_priority_3332).
-// Dedicated dual-wire suite: slice 3410
-// (test_interactionlookup_skip_priority_3410).
+// test_interactionlookup_skip_priority_3332 /
+// test_interactionlookup_skip_priority_3410).
+// Dedicated dual-wire suite: slice 3464
+// (test_interactionlookup_skip_priority_3464).
 // Go dual-wire: interactionlookup.ShouldSkipPrioritySelection
 //   (internal/interactionlookup/skip_priority.go).
 
@@ -54,23 +58,23 @@ namespace interactionlookuphelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 3410 — getHighestPriorityActions early-return gate
-//              (dedicated expand residual 2953; prior 3332 / 3246 / 3167)
+// Slice 3464 — getHighestPriorityActions early-return gate
+//              (dedicated expand residual 2953; prior 3410 / 3332 / 3246 / 3167)
 // ---------------------------------------------------------------------------
 
 // SkipPriorityMaxPriority is the maxPriority returned when
 // ShouldSkipPrioritySelection is true (Action.Priority.Progress == 1000).
 // Mirrors Go interactionlookup.SkipPriorityMaxPriority /
 // interactionaction.PriorityProgress.
-// Residual pin under 2953 / 1094; prior dedicated dual-wire suites: slices 3167 / 3246 / 3332;
-// dedicated dual-wire suite: slice 3410.
+// Residual pin under 2953 / 1094; prior dedicated dual-wire suites: slices 3167 / 3246 / 3332 / 3410;
+// dedicated dual-wire suite: slice 3464.
 inline constexpr int32 SkipPriorityMaxPriority = 1000;
 
 // ShouldSkipPrioritySelection mirrors getHighestPriorityActions early return:
 //   empty || firstIsNumber
 //
-// Formula (slice 3410 dedicated dual-wire; residual expand 2953 / prior 3332 /
-// 3246 / 3167 / pure 1094 — formula unchanged):
+// Formula (slice 3464 dedicated dual-wire; residual expand 2953 / prior 3410 /
+// 3332 / 3246 / 3167 / pure 1094 — formula unchanged):
 //   ShouldSkipPrioritySelection(empty, firstIsNumber) = empty || firstIsNumber
 //
 // empty is #possibleActions == 0; firstIsNumber is
@@ -92,8 +96,9 @@ inline constexpr int32 SkipPriorityMaxPriority = 1000;
 // test_interaction_skip_priority_2953. Prior dedicated dual-wire suites:
 // test_interactionlookup_skip_priority_3167 /
 // test_interactionlookup_skip_priority_3246 /
-// test_interactionlookup_skip_priority_3332. Dedicated dual-wire suite is
-// test_interactionlookup_skip_priority_3410. Formula is unchanged; this slice
+// test_interactionlookup_skip_priority_3332 /
+// test_interactionlookup_skip_priority_3410. Dedicated dual-wire suite is
+// test_interactionlookup_skip_priority_3464. Formula is unchanged; this slice
 // only expands dual-wire docs + index + dedicated suite. Future Lua host
 // injects empty / firstIsNumber into this helper instead of re-inlining.
 inline auto ShouldSkipPrioritySelection(const bool empty, const bool firstIsNumber) -> bool
