@@ -47,16 +47,17 @@ inline auto CanCancelSale(const int aucWorkIndex, const int historyLen) -> bool
 }
 
 // CanAffordFee mirrors ProofOfPurchase's gil fee gate
-// (slice 3310 dedicated dual-wire; residual expand 2924 / prior dedicated
-// 3280 / pure 1135 — formula unchanged):
+// (slice 3503 dedicated dual-wire; residual expand 2924 / prior dedicated
+// 3310 / 3280 / pure 1135 — formula unchanged):
 //   gilQuantity >= fee && gilReserve == 0
 // Production rejects when quantity < fee || reserve > 0 (LotIn result 197).
 // Host injects inventory slot-0 gil quantity/reserve and computed auctionFee
 // only (no CItem* / CCharEntity* pointers).
-// Dual-wire index: 3310 (dedicated expand residual 2924). Prior pure: 1135.
+// Dual-wire index: 3503 (dedicated expand residual 2924). Prior pure: 1135.
 // Residual dual-wire suite: test_auction_afford_fee_2924.
-// Prior dedicated dual-wire suite: test_auctionutils_can_afford_fee_3280.
-// Dedicated dual-wire suite: test_auctionutils_can_afford_fee_3310.
+// Prior dedicated dual-wire suites: test_auctionutils_can_afford_fee_3280,
+// test_auctionutils_can_afford_fee_3310.
+// Dedicated dual-wire suite: test_auctionutils_can_afford_fee_3503.
 inline auto CanAffordFee(const uint32 gilQuantity, const uint32 gilReserve, const uint32 fee) -> bool
 {
     return gilQuantity >= fee && gilReserve == 0;

@@ -3571,6 +3571,16 @@ set(SOURCES
     test_battlefield_enter_pc_3497.cpp
     test_party_reject_pc_add_full_3498.h
     test_party_reject_pc_add_full_3498.cpp
+    test_auctionutils_can_afford_fee_3503.h
+    test_auctionutils_can_afford_fee_3503.cpp
+    test_colonizationreive_spawn_on_enable_3499.h
+    test_colonizationreive_spawn_on_enable_3499.cpp
+    test_darkixion_double_glow_3501.h
+    test_darkixion_double_glow_3501.cpp
+    test_nyzul_floor100_vigil_3502.h
+    test_nyzul_floor100_vigil_3502.cpp
+    test_ranged_delete_unlimited_shot_3500.h
+    test_ranged_delete_unlimited_shot_3500.cpp
 )
 
 if(UNIX)

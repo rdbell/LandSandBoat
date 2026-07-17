@@ -1789,6 +1789,11 @@ auto runSalvageClaimTransport3495SelfTests() -> bool;
 auto runCampaignAffordNotes3496SelfTests() -> bool;
 auto runBattlefieldEnterPC3497SelfTests() -> bool;
 auto runPartyRejectPCAddFull3498SelfTests() -> bool;
+auto runColonizationreiveSpawnOnEnable3499SelfTests() -> bool;
+auto runRangedDeleteUnlimitedShot3500SelfTests() -> bool;
+auto runDarkixionDoubleGlow3501SelfTests() -> bool;
+auto runNyzulFloor100Vigil3502SelfTests() -> bool;
+auto runAuctionutilsCanAffordFee3503SelfTests() -> bool;
 
 namespace
 {
@@ -3555,6 +3560,11 @@ namespace
         ok = runCampaignAffordNotes3496SelfTests() && ok;
         ok = runBattlefieldEnterPC3497SelfTests() && ok;
         ok = runPartyRejectPCAddFull3498SelfTests() && ok;
+        ok = runColonizationreiveSpawnOnEnable3499SelfTests() && ok;
+        ok = runRangedDeleteUnlimitedShot3500SelfTests() && ok;
+        ok = runDarkixionDoubleGlow3501SelfTests() && ok;
+        ok = runNyzulFloor100Vigil3502SelfTests() && ok;
+        ok = runAuctionutilsCanAffordFee3503SelfTests() && ok;
 
         return ok;
     }
