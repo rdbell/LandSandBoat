@@ -32,7 +32,8 @@
 //   - 3610: ShouldForceCheckOnFullPoolInsert prior dedicated dual-wire expand residual 2981 (prior 3565 / 3533 / 3477 / 3423 / 3379)
 //   - 3655: ShouldForceCheckOnFullPoolInsert prior dedicated dual-wire expand residual 2981 (prior 3610 / 3565 / 3533 / 3477 / 3423 / 3379)
 //   - 3700: ShouldForceCheckOnFullPoolInsert prior dedicated dual-wire expand residual 2981 (prior 3655 / 3610 / 3565 / 3533 / 3477 / 3423 / 3379)
-//   - 3745: ShouldForceCheckOnFullPoolInsert dedicated dual-wire expand residual 2981 (prior 3700 / 3655 / 3610 / 3565 / 3533 / 3477 / 3423 / 3379)
+//   - 3745: ShouldForceCheckOnFullPoolInsert prior dedicated dual-wire expand residual 2981 (prior 3700 / 3655 / 3610 / 3565 / 3533 / 3477 / 3423 / 3379)
+//   - 3790: ShouldForceCheckOnFullPoolInsert dedicated dual-wire expand residual 2981 (prior 3745 / 3700 / 3655 / 3610 / 3565 / 3533 / 3477 / 3423 / 3379)
 //
 // Dual-wire index:
 //   - 2938: ShouldAutoResolveSolo residual dual-wire suite
@@ -52,7 +53,8 @@
 //   - 3610: ShouldForceCheckOnFullPoolInsert prior dedicated = slotAfterFreeScan == PoolSize
 //   - 3655: ShouldForceCheckOnFullPoolInsert prior dedicated = slotAfterFreeScan == PoolSize
 //   - 3700: ShouldForceCheckOnFullPoolInsert prior dedicated = slotAfterFreeScan == PoolSize
-//   - 3745: ShouldForceCheckOnFullPoolInsert = slotAfterFreeScan == PoolSize
+//   - 3745: ShouldForceCheckOnFullPoolInsert prior dedicated = slotAfterFreeScan == PoolSize
+//   - 3790: ShouldForceCheckOnFullPoolInsert = slotAfterFreeScan == PoolSize
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -81,8 +83,9 @@
 // 3565 (test_treasure_force_check_full_3565),
 // 3610 (test_treasure_force_check_full_3610),
 // 3655 (test_treasure_force_check_full_3655),
-// 3700 (test_treasure_force_check_full_3700).
-// Dedicated dual-wire suite: 3745 (test_treasure_force_check_full_3745).
+// 3700 (test_treasure_force_check_full_3700),
+// 3745 (test_treasure_force_check_full_3745).
+// Dedicated dual-wire suite: 3790 (test_treasure_force_check_full_3790).
 //
 // Production host: CTreasurePool::lotItem / PlanLotItemPreflight injects
 // item rare flag + already-has lookup into CanLotRareItem.
@@ -214,14 +217,14 @@ inline auto DefaultFallbackSlot() -> uint8
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3745 — addItem full-pool force-check gate (dedicated expand residual 2981;
-// prior dedicated 3700 / 3655 / 3610 / 3565 / 3533 / 3477 / 3423 / 3379 retained)
+// Slice 3790 — addItem full-pool force-check gate (dedicated expand residual 2981;
+// prior dedicated 3745 / 3700 / 3655 / 3610 / 3565 / 3533 / 3477 / 3423 / 3379 retained)
 // ---------------------------------------------------------------------------
 
 // ShouldForceCheckOnFullPoolInsert mirrors SlotID == 10 after free-slot scan.
 //
-// Formula (slice 3745 dedicated dual-wire expand residual 2981; prior dedicated
-// 3700 / 3655 / 3610 / 3565 / 3533 / 3477 / 3423 / 3379 / pure 1367 — formula unchanged):
+// Formula (slice 3790 dedicated dual-wire expand residual 2981; prior dedicated
+// 3745 / 3700 / 3655 / 3610 / 3565 / 3533 / 3477 / 3423 / 3379 / pure 1367 — formula unchanged):
 //   slotAfterFreeScan == PoolSize
 //
 // slotAfterFreeScan — host-evaluated SlotID after free-slot scan
@@ -239,12 +242,14 @@ inline auto DefaultFallbackSlot() -> uint8
 // test_treasure_force_check_full_3565, 3610 /
 // test_treasure_force_check_full_3610, 3655 /
 // test_treasure_force_check_full_3655, 3700 /
-// test_treasure_force_check_full_3700.
-// Dedicated dual-wire suite is test_treasure_force_check_full_3745. Sibling
+// test_treasure_force_check_full_3700, 3745 /
+// test_treasure_force_check_full_3745.
+// Dedicated dual-wire suite is test_treasure_force_check_full_3790. Sibling
 // dual-wire gates: CanLotWithInventory (3367), CanLotRareItem (3321),
 // ShouldAutoResolveSolo (3201), ShouldRejectNullMember (3060),
 // ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094),
 // ShouldUpdatePoolForChar (3112), ShouldFlushPool (3127) — left residual.
+// Body UNCHANGED (no C++ pin redefs): slotAfterFreeScan == PoolSize.
 inline auto ShouldForceCheckOnFullPoolInsert(const uint8 slotAfterFreeScan) -> bool
 {
     return slotAfterFreeScan == PoolSize;
