@@ -7,7 +7,8 @@
 //   - 3085: CanClaimTransport dedicated dual-wire (claim_transport.go)
 //   - 2892: CanOpenDoor residual dual-wire suite (onDoorOpen CLOSE_DOOR + unSealed)
 //   - 3133: CanOpenDoor dedicated dual-wire (open_door.go)
-//   - 2894: CanOpenBossDoor (openBossDoor CLOSE_DOOR gate; no unSealed)
+//   - 2894: CanOpenBossDoor residual dual-wire suite (openBossDoor CLOSE_DOOR gate)
+//   - 3188: CanOpenBossDoor dedicated dual-wire (open_boss_door.go)
 //   - 2898: ShouldResetTempBox residual dual-wire suite (resetTempBoxes NORMAL)
 //   - 3146: ShouldResetTempBox dedicated dual-wire (reset_temp_box.go)
 //   - 2904: ShouldSpawnOnTempChestCasket (spawnTempChest status == DISAPPEAR)
@@ -17,7 +18,8 @@
 //   - 3085: CanClaimTransport = !TransportUserBusy(transportUserID)
 //   - 2892: CanOpenDoor residual dual-wire suite
 //   - 3133: CanOpenDoor = animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue
-//   - 2894: CanOpenBossDoor
+//   - 2894: CanOpenBossDoor residual dual-wire suite
+//   - 3188: CanOpenBossDoor = animation == kAnimCloseDoor
 //   - 2898: ShouldResetTempBox residual dual-wire suite
 //   - 3146: ShouldResetTempBox = status == kStatusNormal
 //   - 2904: ShouldSpawnOnTempChestCasket
@@ -25,14 +27,16 @@
 // Lua production host: scripts/globals/salvage.lua
 // Go dual-wire: salvage.CanClaimTransport / salvage.TransportUserBusy
 // (internal/salvage/claim_transport.go); salvage.CanOpenDoor
-// (internal/salvage/open_door.go); salvage.ShouldResetTempBox
+// (internal/salvage/open_door.go); salvage.CanOpenBossDoor
+// (internal/salvage/open_boss_door.go); salvage.ShouldResetTempBox
 // (internal/salvage/reset_temp_box.go). Future Lua host injects free
 // functions then claim/open/reset writeback.
 //
-// Prior pure ports: OmegaXI slices 0977 (TransportUserBusy / CanOpenDoor),
-// 1083 (CanClaimTransport / DoorUnsealedValue / ShouldResetTempBox). Residual
-// dual-wire suites: 2871 (claim), 2892 (open door), 2898 (reset temp box).
-// Dedicated dual-wire: 3085, 3133, 3146.
+// Prior pure ports: OmegaXI slices 0977 (TransportUserBusy / CanOpenDoor /
+// CanOpenBossDoor), 1083 (CanClaimTransport / DoorUnsealedValue /
+// ShouldResetTempBox). Residual dual-wire suites: 2871 (claim), 2892 (open
+// door), 2894 (open boss door), 2898 (reset temp box). Dedicated dual-wire:
+// 3085, 3133, 3146, 3188.
 //
 // onTransportUpdate (2871 residual / 3085 dedicated):
 //   if instance:getLocalVar('transportUser') == 0 then
@@ -49,7 +53,7 @@
 //     -- host: clear unSealed, optional setStage/setProgress, OPEN_DOOR, untargetable
 //   end
 //
-// openBossDoor (2894):
+// openBossDoor (2894 residual / 3188 dedicated):
 //   if npc:getAnimation() == xi.anim.CLOSE_DOOR then
 //     -- host: openDoor(15), queue(3000) arch openDoor(10)
 //   end
@@ -174,18 +178,24 @@ inline auto ShouldResetTempBox(const uint8 status) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// 2894 — openBossDoor CLOSE_DOOR gate (no unSealed)
+// 2894 residual / 3188 dedicated — openBossDoor CLOSE_DOOR gate (no unSealed)
 // ---------------------------------------------------------------------------
 
 // CanOpenBossDoor is the pure free-function form of the openBossDoor gate:
 //
-//   animation == CLOSE_DOOR
-//   ≡ animation == kAnimCloseDoor
+// Formula (slice 3188 dedicated dual-wire; residual expand 2894 / pure 0977 —
+// formula unchanged):
+//   CanOpenBossDoor(animation) = animation == kAnimCloseDoor
+//   ≡ animation == CLOSE_DOOR (9)
 //
 // Host injects npc:getAnimation() only. Unlike CanOpenDoor there is no
 // unSealed check. Host still owns openDoor(15), queue(3000), and arch NPC
 // openDoor(10) via bossDoorID - 1.
-// Dual-wire of Go salvage.CanOpenBossDoor (slice 2894 / residual 0977).
+// Dual-wire of Go salvage.CanOpenBossDoor (open_boss_door.go).
+// Call site: future Lua openBossDoor inject.
+// Prior pure port: slice 0977. Residual dual-wire suite: 2894 /
+// test_salvage_open_boss_door_2894. Dedicated dual-wire suite is
+// test_salvage_can_open_boss_door_3188.
 inline auto CanOpenBossDoor(const uint8 animation) -> bool
 {
     return animation == kAnimCloseDoor;

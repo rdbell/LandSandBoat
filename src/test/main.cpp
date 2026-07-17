@@ -1474,6 +1474,11 @@ auto runClammingBucketOverloaded3180SelfTests() -> bool;
 auto runEinherjarShouldCycleWave3181SelfTests() -> bool;
 auto runEnmityRejectNonMobHolder3182SelfTests() -> bool;
 auto runSpellReturnZeroNoMPCost3183SelfTests() -> bool;
+auto runAttackroundCreateDakenAttack3184SelfTests() -> bool;
+auto runCommandRejectNullChar3185SelfTests() -> bool;
+auto runManaclipperArrivalEventID3186SelfTests() -> bool;
+auto runDarkixionCanRestoreHorn3187SelfTests() -> bool;
+auto runSalvageCanOpenBossDoor3188SelfTests() -> bool;
 
 namespace
 {
@@ -2925,6 +2930,11 @@ namespace
         ok = runEinherjarShouldCycleWave3181SelfTests() && ok;
         ok = runEnmityRejectNonMobHolder3182SelfTests() && ok;
         ok = runSpellReturnZeroNoMPCost3183SelfTests() && ok;
+        ok = runAttackroundCreateDakenAttack3184SelfTests() && ok;
+        ok = runCommandRejectNullChar3185SelfTests() && ok;
+        ok = runManaclipperArrivalEventID3186SelfTests() && ok;
+        ok = runDarkixionCanRestoreHorn3187SelfTests() && ok;
+        ok = runSalvageCanOpenBossDoor3188SelfTests() && ok;
 
         return ok;
     }

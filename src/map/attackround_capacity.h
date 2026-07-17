@@ -15,7 +15,9 @@
 //   - 2757: ResolveCreateKickAttacksPlan
 //   - 2758: ResolveCreateDakenAttackPlan
 //   - 2768: post-build plan helpers
-//   - 3045: ShouldCreateDakenAttack (isPC identity / TYPE_PC gate)
+//   - 3045: ShouldCreateDakenAttack residual dual-wire suite (isPC identity)
+//   - 3184: ShouldCreateDakenAttack dedicated dual-wire
+//           (create_daken_attack.go; expand residual 3045 / pure 1375)
 //
 // Production host: CAttackRound::CreateDakenAttack (attackround.cpp ~541)
 // injects (m_attacker->objtype == TYPE_PC) into ShouldCreateDakenAttack before
@@ -378,22 +380,31 @@ inline auto ResolveCreateKickAttacksPlan(
     return plan;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3184 — CreateDakenAttack TYPE_PC gate
+// (dedicated expand residual 3045 / pure 1375)
+// ---------------------------------------------------------------------------
+
 // ShouldCreateDakenAttack mirrors TYPE_PC gate before daken throw ammo/proc work.
 //
-// Formula (slice 3045 dual-wire):
+// Formula (slice 3184 dedicated dual-wire; residual expand 3045 / pure 1375 —
+// formula unchanged):
 //   isPC
 //
 // isPC — host-evaluated (m_attacker->objtype == TYPE_PC)
 // true  → host may inspect shuriken ammo and roll DAKEN (then plan throw)
 // false → skip ammo/proc RNG consumption for the TYPE_PC path
 //
-// Dual-wire of Go attackround.ShouldCreateDakenAttack.
+// Dual-wire of Go attackround.ShouldCreateDakenAttack
+// (residual 1375 / residual dual-wire 3045 / dedicated dual-wire 3184).
 // Call site: CAttackRound::CreateDakenAttack before ammo / DAKEN roll:
 //   if (ShouldCreateDakenAttack(m_attacker->objtype == TYPE_PC)) {
 //       // ammo isShuriken + rolled < DAKEN
 //   }
-// Prior pure port: slice 1375. Residual throw gate: ShouldProcDakenThrow.
-// Residual plan assembly: ResolveCreateDakenAttackPlan (slice 2758).
+// Residual dual-wire suite: 3045 (test_attackround_create_daken_3045).
+// Dedicated dual-wire suite: 3184 (test_attackround_create_daken_attack_3184).
+// Sibling residual only (not re-expanded under 3184):
+// ShouldProcDakenThrow (1375), ResolveCreateDakenAttackPlan (2758).
 inline auto ShouldCreateDakenAttack(const bool isPC) -> bool
 {
     return isPC;

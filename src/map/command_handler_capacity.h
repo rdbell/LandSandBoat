@@ -11,12 +11,14 @@
 //   - 2792: permission / audit plan suite (null/name/perm/audit + post-props)
 //   - 2836: ShouldRejectEmptyCommandLine residual (ParseCommandLine empty after trim)
 //   - 2940: ShouldAllowCommandPermission (permission <= m_GMlevel)
-//   - 2982: ShouldRejectNullChar (charNull identity)
+//   - 2982: ShouldRejectNullChar residual dual-wire expand
 //   - 2990: ShouldRejectEmptyCommandName (!valid after name parse)
 //   - 3005: ShouldRejectEmptyCommandLine (viewEmptyAfterTrim identity dual-wire)
 //   - 3011: ShouldAuditGMCommand residual dual-wire expand
 //   - 3161: ShouldAuditGMCommand dedicated dual-wire
 //           (auditLevel <= permission && auditLevel > 0; residual expand 3011 / pure 2792)
+//   - 3185: ShouldRejectNullChar dedicated dual-wire
+//           (charNull identity; residual expand 2982 / pure 2792)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
@@ -49,7 +51,8 @@ namespace commandhandlerhelpers
 
 // ShouldRejectNullChar mirrors !PChar early Failure.
 //
-// Formula (slice 2982 dual-wire):
+// Formula (slice 3185 dedicated dual-wire; residual expand 2982 / pure 2792 —
+// formula unchanged):
 //   charNull
 //
 // true  → host logs error and returns CommandResult::Failure
@@ -58,6 +61,10 @@ namespace commandhandlerhelpers
 // Dual-wire of Go command.ShouldRejectNullChar.
 // Call site: CCommandHandler::call before ParseCommandLine.
 //   if (ShouldRejectNullChar(PChar == nullptr)) return Failure;
+// Prior pure port: slice 2792. Residual dual-wire suite: 2982 /
+// test_command_reject_null_char_2982. Dedicated dual-wire suite is
+// test_command_reject_null_char_3185. Formula is unchanged; this slice only
+// expands dual-wire docs + index + dedicated suite.
 inline auto ShouldRejectNullChar(const bool charNull) -> bool
 {
     return charNull;

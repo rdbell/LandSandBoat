@@ -2941,6 +2941,16 @@ set(SOURCES
     test_enmity_reject_non_mob_holder_3182.cpp
     test_spell_return_zero_no_mp_cost_3183.h
     test_spell_return_zero_no_mp_cost_3183.cpp
+    test_attackround_create_daken_attack_3184.h
+    test_attackround_create_daken_attack_3184.cpp
+    test_command_reject_null_char_3185.h
+    test_command_reject_null_char_3185.cpp
+    test_manaclipper_arrival_event_id_3186.h
+    test_manaclipper_arrival_event_id_3186.cpp
+    test_darkixion_can_restore_horn_3187.h
+    test_darkixion_can_restore_horn_3187.cpp
+    test_salvage_can_open_boss_door_3188.h
+    test_salvage_can_open_boss_door_3188.cpp
 )
 
 if(UNIX)

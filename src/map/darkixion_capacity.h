@@ -5,7 +5,8 @@
 // Pure Dark Ixion helpers for dual-wire slices:
 //   - 2885: CanBreakHorn residual dual-wire suite (checkHornBreak pure gate)
 //   - 3154: CanBreakHorn dedicated dual-wire (can_break_horn.go)
-//   - 2893: CanRestoreHorn (Damsel Memento pure gate before 25% roll)
+//   - 2893: CanRestoreHorn residual dual-wire suite (Damsel Memento pure gate)
+//   - 3187: CanRestoreHorn dedicated dual-wire (can_restore_horn.go)
 //   - 2907: HornBreakRoll (checkHornBreak 5% roll after CanBreakHorn)
 //   - 2911: HornRestoreRoll (Damsel Memento 25% roll after CanRestoreHorn)
 //   - 2915: ShouldDoubleGlowSkill (DI_GLOW double-up pure gate)
@@ -13,7 +14,8 @@
 // Dual-wire index:
 //   - 2885: CanBreakHorn residual dual-wire suite
 //   - 3154: CanBreakHorn (!busy && (NORMAL||GLOWING) && attackerInFront)
-//   - 2893: CanRestoreHorn
+//   - 2893: CanRestoreHorn residual dual-wire suite
+//   - 3187: CanRestoreHorn (animSub == HORN_BROKEN)
 //   - 2907: HornBreakRoll
 //   - 2911: HornRestoreRoll
 //   - 2915: ShouldDoubleGlowSkill
@@ -68,7 +70,9 @@
 // Residual dual-wire suite: slice 2885 / test_darkixion_break_horn_2885.
 // Dedicated dual-wire suite: slice 3154 / test_darkixion_can_break_horn_3154.
 // Dual-wire of Go darkixion.CanBreakHorn (slice 3154 dedicated; residual 2885).
-// Dual-wire of Go darkixion.CanRestoreHorn (slice 2893).
+// Residual dual-wire suite: slice 2893 / test_darkixion_restore_horn_2893.
+// Dedicated dual-wire suite: slice 3187 / test_darkixion_can_restore_horn_3187.
+// Dual-wire of Go darkixion.CanRestoreHorn (slice 3187 dedicated; residual 2893).
 // Dual-wire of Go darkixion.HornBreakRoll (slice 2907).
 // Dual-wire of Go darkixion.HornRestoreRoll (slice 2911).
 // Dual-wire of Go darkixion.ShouldDoubleGlowSkill (slice 2915).
@@ -118,6 +122,23 @@ inline auto CanBreakHorn(const bool busy, const int32 animSub, const bool attack
     return !busy && (animSub == kAnimNormal || animSub == kAnimGlowing) && attackerInFront;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 2893 / 3187 — CanRestoreHorn pure dual-wire
+//
+// Formula (slice 3187 dedicated dual-wire; residual expand 2893; pure inject
+// 0985 — formula unchanged):
+//   CanRestoreHorn(animSub) =
+//     animSub == kAnimHornBroken
+//
+// Dual-wire of Go darkixion.CanRestoreHorn.
+// Call site: future Lua Damsel Memento inject before 25% roll.
+// Prior pure port: slice 0985. Residual dual-wire suite: 2893 /
+// test_darkixion_restore_horn_2893. Dedicated dual-wire suite is
+// test_darkixion_can_restore_horn_3187. Host still owns getAnimationSub inject,
+// the 25% math.random roll, setFinalAnimationSub(3), stun(500), and
+// changeHornState(mob, 1) writeback.
+// ---------------------------------------------------------------------------
+
 // CanRestoreHorn is the pure gate half of Damsel Memento horn restore before
 // the 25% roll:
 //
@@ -125,7 +146,7 @@ inline auto CanBreakHorn(const bool busy, const int32 animSub, const bool attack
 //
 // Host still owns getAnimationSub inject, the 25% math.random roll,
 // setFinalAnimationSub(3), stun(500), and changeHornState(mob, 1) writeback.
-// Dual-wire of Go darkixion.CanRestoreHorn.
+// Dual-wire of Go darkixion.CanRestoreHorn (slice 3187 dedicated; residual 2893).
 inline auto CanRestoreHorn(const int32 animSub) -> bool
 {
     return animSub == kAnimHornBroken;
