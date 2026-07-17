@@ -1749,6 +1749,11 @@ auto runLinkshellSendMessageIPC3455SelfTests() -> bool;
 auto runAttackRunEnspell3456SelfTests() -> bool;
 auto runZoneHighTargid3457SelfTests() -> bool;
 auto runGuildpointsCanAfford3458SelfTests() -> bool;
+auto runFollowCanFollow3459SelfTests() -> bool;
+auto runApkalluCanRunAway3460SelfTests() -> bool;
+auto runGarrisonFailByDeath3461SelfTests() -> bool;
+auto runExtravaganzaCanAffordCipher3462SelfTests() -> bool;
+auto runPortermoogleCanRetrieveItem3463SelfTests() -> bool;
 
 namespace
 {
@@ -3475,6 +3480,11 @@ namespace
         ok = runAttackRunEnspell3456SelfTests() && ok;
         ok = runZoneHighTargid3457SelfTests() && ok;
         ok = runGuildpointsCanAfford3458SelfTests() && ok;
+        ok = runFollowCanFollow3459SelfTests() && ok;
+        ok = runApkalluCanRunAway3460SelfTests() && ok;
+        ok = runGarrisonFailByDeath3461SelfTests() && ok;
+        ok = runExtravaganzaCanAffordCipher3462SelfTests() && ok;
+        ok = runPortermoogleCanRetrieveItem3463SelfTests() && ok;
 
         return ok;
     }

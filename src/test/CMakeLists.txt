@@ -3491,6 +3491,16 @@ set(SOURCES
     test_zone_high_targid_3457.cpp
     test_guildpoints_can_afford_3458.h
     test_guildpoints_can_afford_3458.cpp
+    test_follow_can_follow_3459.h
+    test_follow_can_follow_3459.cpp
+    test_apkallu_can_run_away_3460.h
+    test_apkallu_can_run_away_3460.cpp
+    test_garrison_fail_by_death_3461.h
+    test_garrison_fail_by_death_3461.cpp
+    test_extravaganza_can_afford_cipher_3462.h
+    test_extravaganza_can_afford_cipher_3462.cpp
+    test_portermoogle_can_retrieve_item_3463.h
+    test_portermoogle_can_retrieve_item_3463.cpp
 )
 
 if(UNIX)

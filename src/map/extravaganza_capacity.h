@@ -11,7 +11,9 @@
 //           (retained)
 //   - 3322: CanAffordCipher prior dedicated dual-wire expand residual 2881
 //           (retained)
-//   - 3408: CanAffordCipher dedicated dual-wire (afford_cipher.go;
+//   - 3408: CanAffordCipher prior dedicated dual-wire expand residual 2881
+//           (retained)
+//   - 3462: CanAffordCipher dedicated dual-wire (afford_cipher.go;
 //           expand residual 2881)
 //
 // Dual-wire index:
@@ -23,7 +25,9 @@
 //           (retained)
 //   - 3322: CanAffordCipher prior dedicated dual-wire expand residual 2881
 //           (retained)
-//   - 3408: CanAffordCipher = notes >= CipherPurchaseNotes  // 1000
+//   - 3408: CanAffordCipher prior dedicated dual-wire expand residual 2881
+//           (retained)
+//   - 3462: CanAffordCipher = notes >= CipherPurchaseNotes  // 1000
 //
 // Lua production host: scripts/globals/extravaganza.lua
 //   xi.extravaganza.shadowEraFinish (~82–105):
@@ -52,8 +56,10 @@
 //   (test_extravaganza_can_afford_cipher_3292; retained).
 // Prior dedicated dual-wire expand residual 2881: 3322
 //   (test_extravaganza_can_afford_cipher_3322; retained).
-// Dedicated dual-wire expand residual 2881: 3408
-//   (test_extravaganza_can_afford_cipher_3408).
+// Prior dedicated dual-wire expand residual 2881: 3408
+//   (test_extravaganza_can_afford_cipher_3408; retained).
+// Dedicated dual-wire expand residual 2881: 3462
+//   (test_extravaganza_can_afford_cipher_3462).
 // Go dual-wire: extravaganza.CanAffordCipher (internal/extravaganza/afford_cipher.go).
 // Future Lua host injects free function then grant/debit/message writeback.
 
@@ -62,8 +68,8 @@ namespace extravaganzahelpers
 
 // ---------------------------------------------------------------------------
 // Slice 2881 residual / 3153 prior dedicated / 3262 prior expand residual /
-// 3292 prior expand residual / 3322 prior expand residual / 3408 dedicated —
-// shadowEraFinish allied_notes gate
+// 3292 prior expand residual / 3322 prior expand residual / 3408 prior expand
+// residual / 3462 dedicated — shadowEraFinish allied_notes gate
 // ---------------------------------------------------------------------------
 
 // Allied_notes cost of one Shadow Era cipher (shadowEraFinish).
@@ -75,8 +81,8 @@ inline constexpr int32 CipherPurchaseNotes = 1000;
 //
 //   notes >= CipherPurchaseNotes  // 1000
 //
-// Formula (slice 3408 dedicated dual-wire expand residual 2881; prior
-// dedicated 3322 / 3292 / 3262 / 3153 / pure 0949 — formula unchanged):
+// Formula (slice 3462 dedicated dual-wire expand residual 2881; prior
+// dedicated 3408 / 3322 / 3292 / 3262 / 3153 / pure 0949 — formula unchanged):
 //
 //   CanAffordCipher(notes) = notes >= CipherPurchaseNotes
 //
@@ -86,8 +92,9 @@ inline constexpr int32 CipherPurchaseNotes = 1000;
 // 3153 / test_extravaganza_can_afford_cipher_3153 (retained);
 // 3262 / test_extravaganza_can_afford_cipher_3262 (retained);
 // 3292 / test_extravaganza_can_afford_cipher_3292 (retained);
-// 3322 / test_extravaganza_can_afford_cipher_3322 (retained). Dedicated
-// dual-wire suite is test_extravaganza_can_afford_cipher_3408.
+// 3322 / test_extravaganza_can_afford_cipher_3322 (retained);
+// 3408 / test_extravaganza_can_afford_cipher_3408 (retained). Dedicated
+// dual-wire suite is test_extravaganza_can_afford_cipher_3462.
 inline auto CanAffordCipher(const int32 notes) -> bool
 {
     return notes >= CipherPurchaseNotes;
