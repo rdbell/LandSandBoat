@@ -153,6 +153,7 @@ auto runMapNetworkingPacketID2684SelfTests() -> bool;
 auto runMapNetworkingLoginSize2687SelfTests() -> bool;
 auto runMapNetworkingChecksum2690SelfTests() -> bool;
 auto runMapNetworkingLoginChecksum2693SelfTests() -> bool;
+auto runMapNetworkingLoginCharacterReset2735SelfTests() -> bool;
 auto runMapNetworkingSequenceGate2696SelfTests() -> bool;
 auto runMapNetworkingAcknowledgement2699SelfTests() -> bool;
 auto runMapNetworkingCompressionRetry2702SelfTests() -> bool;
@@ -1156,6 +1157,7 @@ namespace
         ok = runMapNetworkingLoginSize2687SelfTests() && ok;
         ok = runMapNetworkingChecksum2690SelfTests() && ok;
         ok = runMapNetworkingLoginChecksum2693SelfTests() && ok;
+        ok = runMapNetworkingLoginCharacterReset2735SelfTests() && ok;
         ok = runMapNetworkingSequenceGate2696SelfTests() && ok;
         ok = runMapNetworkingAcknowledgement2699SelfTests() && ok;
         ok = runMapNetworkingCompressionRetry2702SelfTests() && ok;

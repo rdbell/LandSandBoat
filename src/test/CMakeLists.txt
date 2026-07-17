@@ -1430,6 +1430,8 @@ set(SOURCES
     test_map_networking_checksum_2690.cpp
     test_map_networking_login_checksum_2693.h
     test_map_networking_login_checksum_2693.cpp
+    test_map_networking_login_character_reset_2735.h
+    test_map_networking_login_character_reset_2735.cpp
     test_map_networking_sequence_gate_2696.h
     test_map_networking_sequence_gate_2696.cpp
     test_map_networking_acknowledgement_2699.h

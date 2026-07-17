@@ -240,4 +240,11 @@ inline auto ShouldSendCharZoneAfterKeyIncrement(const bool isLogout) -> bool
     return !isLogout;
 }
 
+// ShouldResetCharacterForUnencryptedLogin mirrors recv_parse's 0x00A cleanup
+// of the old character during a pending zone transition.
+inline auto ShouldResetCharacterForUnencryptedLogin(const bool pendingZone) -> bool
+{
+    return pendingZone;
+}
+
 } // namespace mapnetworkinghelpers

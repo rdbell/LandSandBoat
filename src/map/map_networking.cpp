@@ -302,7 +302,7 @@ int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSess
 
         // We can only get here if an 0x00A (not encrypted) packet was here.
         // If we were pending zones, delete our old char
-        if (PSession->blowfish.status == BLOWFISH_PENDING_ZONE)
+        if (mapnetworkinghelpers::ShouldResetCharacterForUnencryptedLogin(PSession->blowfish.status == BLOWFISH_PENDING_ZONE))
         {
             PSession->PChar.reset();
         }
