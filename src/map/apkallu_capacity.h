@@ -14,7 +14,8 @@
 //   - 3558: CanRunAway prior dedicated dual-wire expand residual 2880 (prior ~3505)
 //   - 3603: CanRunAway prior dedicated dual-wire expand residual 2880 (prior ~3558)
 //   - 3648: CanRunAway prior dedicated dual-wire expand residual 2880 (prior ~3603)
-//   - 3693: CanRunAway dedicated dual-wire expand residual 2880 (prior ~3648)
+//   - 3693: CanRunAway prior dedicated dual-wire expand residual 2880 (prior ~3648)
+//   - 3738: CanRunAway dedicated dual-wire expand residual 2880 (prior ~3693)
 //
 // Dual-wire index:
 //   - 2880: CanRunAway residual dual-wire suite
@@ -28,7 +29,8 @@
 //   - 3558: CanRunAway prior dedicated (GetHateTier(hate) >= 3 ≡ hate >= 45)
 //   - 3603: CanRunAway prior dedicated (GetHateTier(hate) >= 3 ≡ hate >= 45)
 //   - 3648: CanRunAway prior dedicated (GetHateTier(hate) >= 3 ≡ hate >= 45)
-//   - 3693: CanRunAway (GetHateTier(hate) >= 3 ≡ hate >= 45)
+//   - 3693: CanRunAway prior dedicated (GetHateTier(hate) >= 3 ≡ hate >= 45)
+//   - 3738: CanRunAway (GetHateTier(hate) >= 3 ≡ hate >= 45)
 //
 // Lua production host: scripts/globals/apkallu.lua
 //   xi.apkallu.canRunAway = function(mob)
@@ -53,7 +55,8 @@
 // Prior dedicated dual-wire suite: slice 3558 / test_apkallu_can_run_away_3558.
 // Prior dedicated dual-wire suite: slice 3603 / test_apkallu_can_run_away_3603.
 // Prior dedicated dual-wire suite: slice 3648 / test_apkallu_can_run_away_3648.
-// Dedicated dual-wire suite: slice 3693 / test_apkallu_can_run_away_3693.
+// Prior dedicated dual-wire suite: slice 3693 / test_apkallu_can_run_away_3693.
+// Dedicated dual-wire suite: slice 3738 / test_apkallu_can_run_away_3738.
 // Dual-wire of Go apkallu.CanRunAway / GetHateTier.
 
 namespace apkalluhelpers
@@ -86,10 +89,10 @@ inline auto GetHateTier(const int32 hate) -> int32
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2880 / 3149 / 3245 / 3287 / 3317 / 3407 / 3460 / 3505 / 3558 / 3603 / 3648 / 3693 — CanRunAway pure dual-wire
+// Slice 2880 / 3149 / 3245 / 3287 / 3317 / 3407 / 3460 / 3505 / 3558 / 3603 / 3648 / 3693 / 3738 — CanRunAway pure dual-wire
 //
-// Formula (slice 3693 dedicated dual-wire expand residual 2880; prior
-// dedicated ~3648 / 3603 / 3558 / 3505 / 3460 / 3407 / 3317 / 3287 / 3245 / 3149; pure inject 0925 — formula unchanged):
+// Formula (slice 3738 dedicated dual-wire expand residual 2880; prior
+// dedicated ~3693 / 3648 / 3603 / 3558 / 3505 / 3460 / 3407 / 3317 / 3287 / 3245 / 3149; pure inject 0925 — formula unchanged):
 //   CanRunAway(hate) = GetHateTier(hate) >= 3
 //   // ≡ hate >= kHateTier3Min (45)
 //
@@ -105,9 +108,10 @@ inline auto GetHateTier(const int32 hate) -> int32
 // test_apkallu_can_run_away_3460, 3505 /
 // test_apkallu_can_run_away_3505, 3558 /
 // test_apkallu_can_run_away_3558, 3603 /
-// test_apkallu_can_run_away_3603, and 3648 /
-// test_apkallu_can_run_away_3648. Dedicated dual-wire suite is
-// test_apkallu_can_run_away_3693. Host still owns getZoneID, server-variable
+// test_apkallu_can_run_away_3603, 3648 /
+// test_apkallu_can_run_away_3648, and 3693 /
+// test_apkallu_can_run_away_3693. Dedicated dual-wire suite is
+// test_apkallu_can_run_away_3738. Host still owns getZoneID, server-variable
 // load/store, and setLocalVar('RunAway') writeback.
 // ---------------------------------------------------------------------------
 
