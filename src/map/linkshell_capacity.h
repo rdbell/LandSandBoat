@@ -16,18 +16,23 @@
 //   - 2929: ShouldRejectNullAddMember (charNull identity)
 //   - 2958: ShouldRejectDuplicateAddMember (alreadyInList identity)
 //   - 2977: ShouldSendLinkshellMessageIPC (messageNonEmpty identity)
+//   - 2993: ShouldPushStoredLinkshellMessage (messageNonEmpty identity)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
 // then injects find-hit into ShouldRejectDuplicateAddMember.
 // CLinkshell::setMessage injects message.size() != 0 into
 // ShouldSendLinkshellMessageIPC after DB update before IPC send.
+// CLinkshell::PushLinkshellMessage injects !message.empty() into
+// ShouldPushStoredLinkshellMessage after DB load before packet push.
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
 // (internal/linkshell/reject_null_add_member.go),
 // linkshell.ShouldRejectDuplicateAddMember
 // (internal/linkshell/reject_duplicate_add_member.go),
 // linkshell.ShouldSendLinkshellMessageIPC
-// (internal/linkshell/send_message_ipc.go).
+// (internal/linkshell/send_message_ipc.go),
+// linkshell.ShouldPushStoredLinkshellMessage
+// (internal/linkshell/push_stored_message.go).
 
 namespace linkshellhelpers
 {
@@ -247,6 +252,18 @@ inline auto ApplyLinkshellMessageLS2Flag(const uint8 existingByte) -> uint8
 }
 
 // ShouldPushStoredLinkshellMessage mirrors !message.empty() after DB load.
+//
+// Formula (slice 2993 dual-wire):
+//   messageNonEmpty
+//
+// messageNonEmpty — host-evaluated !message.empty()
+// true  → host may push GP_SERV_COMMAND_LINKSHELL_MESSAGE after DB load
+// false → skip push (empty stored motd; TODO residual "No linkshell message set.")
+//
+// Dual-wire of Go linkshell.ShouldPushStoredLinkshellMessage.
+// Call site: CLinkshell::PushLinkshellMessage host inject (!message.empty()).
+// Prior pure port: slice 1354 (capacity suite push gate).
+// Sibling setMessage IPC gate: slice 2977 (same identity formula; different host).
 inline auto ShouldPushStoredLinkshellMessage(const bool messageNonEmpty) -> bool
 {
     return messageNonEmpty;

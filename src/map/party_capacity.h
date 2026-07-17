@@ -18,17 +18,21 @@
 //   - 2937: ShouldRejectPCAddTrusts (TYPE_PC + PARTY_PCS + partyHasTrusts)
 //   - 2955: ShouldClearSeekingParty (isSeekingParty after join)
 //   - 2974: ShouldRemoveSyncForLowLevel (RefreshSync syncLevel < 10)
+//   - 2991: ShouldStampLeaderCreatedPartyTime (TYPE_PC && members.size() > 1)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
-// isPCEntity / isPCParty / HasTrusts() into ShouldRejectPCAddTrusts, and
-// PChar->isSeekingParty() into ShouldClearSeekingParty (PC post-process).
+// isPCEntity / isPCParty / HasTrusts() into ShouldRejectPCAddTrusts,
+// PChar->isSeekingParty() into ShouldClearSeekingParty (PC post-process), and
+// (objtype == TYPE_PC, members.size()) into ShouldStampLeaderCreatedPartyTime
+// after append before stamping PLeader->m_LeaderCreatedPartyTime.
 // Production host: CParty::RefreshSync (party.cpp) injects syncLevel into
 // ShouldRemoveSyncForLowLevel before SetSyncTarget clear.
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
-// party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go).
+// party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go),
+// party.ShouldStampLeaderCreatedPartyTime (internal/party/stamp_leader_created.go).
 
 namespace partyhelpers
 {
@@ -788,6 +792,20 @@ inline auto FormatAddMemberNonPlayerWarning(const std::string& name) -> std::str
 }
 
 // ShouldStampLeaderCreatedPartyTime mirrors TYPE_PC && members.size() > 1 after add.
+//
+// Formula (slice 2991 dual-wire):
+//   isPCEntity && memberCountAfterAdd > 1
+//
+// isPCEntity          — host-evaluated objtype == TYPE_PC
+// memberCountAfterAdd — host-evaluated members.size() after emplace_back
+// true  → host stamps PLeader->m_LeaderCreatedPartyTime = timer::now()
+// false → leave leader created-party time unchanged
+//
+// Dual-wire of Go party.ShouldStampLeaderCreatedPartyTime
+// (internal/party/stamp_leader_created.go). Prior pure port: slice 1350.
+// Call site: CParty::AddMember (party.cpp) host inject after members.emplace_back.
+// Edges: memberCount 0, 1, 2; isPC true/false.
+// Coverage: test_party_stamp_leader_created_2991 (not in CMake/main).
 inline auto ShouldStampLeaderCreatedPartyTime(const bool isPCEntity, const std::size_t memberCountAfterAdd) -> bool
 {
     return isPCEntity && memberCountAfterAdd > 1;

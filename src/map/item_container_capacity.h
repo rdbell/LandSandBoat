@@ -13,6 +13,7 @@
 //   - 2831: CanSearchSlotID (GetItem / search inclusive range)
 //   - 2942: CanInsertAtSlot (InsertItem(PItem, SlotID) range gate)
 //   - 2976: CanRemoveSlot (RemoveItem range gate)
+//   - 2989: ShouldDecrementCountOnRemove (RemoveItem count drop)
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
@@ -21,6 +22,10 @@
 // Production host: CItemContainer::RemoveItem injects SlotID and m_size into
 // CanRemoveSlot. Go dual-wire: itemcontainer.CanRemoveSlot
 // (internal/itemcontainer/remove_slot.go).
+// Production host: CItemContainer::RemoveItem injects occupancy and SlotID into
+// ShouldDecrementCountOnRemove after CanRemoveSlot admits.
+// Go dual-wire: itemcontainer.ShouldDecrementCountOnRemove
+// (internal/itemcontainer/decrement_count_remove.go).
 
 namespace itemcontainerhelpers
 {
@@ -42,6 +47,20 @@ inline auto ShouldIncrementCountOnInsertAt(const bool slotEmpty, const std::uint
 
 // ShouldDecrementCountOnRemove mirrors RemoveItem count drop: only occupied
 // nonzero slots contribute to m_count.
+//
+// Formula (slice 2989 dual-wire):
+//   slotOccupied && slotID != 0
+//
+// slotOccupied — host-evaluated occupancy (m_ItemList[SlotID] != nullptr)
+// slotID       — host-evaluated RemoveItem SlotID
+// true  → host decrements m_count
+// false → leave m_count unchanged (empty slot or slot 0)
+//
+// Dual-wire of Go itemcontainer.ShouldDecrementCountOnRemove.
+// Call site: CItemContainer::RemoveItem after CanRemoveSlot admits.
+// Prior pure port: slice 2802. Sibling dual-wire range gate: CanRemoveSlot
+// (slice 2976). Mirror increment gate: ShouldIncrementCountOnInsertAt
+// (residual 2802; slotEmpty && slotID != 0).
 inline auto ShouldDecrementCountOnRemove(const bool slotOccupied, const std::uint8_t slotID) -> bool
 {
     return slotOccupied && slotID != 0;

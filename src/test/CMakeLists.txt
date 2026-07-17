@@ -2551,6 +2551,16 @@ set(SOURCES
     test_pet_detach_player_master_2987.cpp
     test_alliance_set_local_main_2988.h
     test_alliance_set_local_main_2988.cpp
+    test_item_decrement_count_remove_2989.h
+    test_item_decrement_count_remove_2989.cpp
+    test_command_reject_empty_name_2990.h
+    test_command_reject_empty_name_2990.cpp
+    test_party_stamp_leader_created_2991.h
+    test_party_stamp_leader_created_2991.cpp
+    test_zone_create_timers_2992.h
+    test_zone_create_timers_2992.cpp
+    test_linkshell_push_stored_message_2993.h
+    test_linkshell_push_stored_message_2993.cpp
 )
 
 if(UNIX)

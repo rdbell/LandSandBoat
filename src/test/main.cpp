@@ -1279,6 +1279,11 @@ auto runMapsessionRecoverLinkDead2985SelfTests() -> bool;
 auto runRangedConsumeAmmo2986SelfTests() -> bool;
 auto runPetDetachPlayerMaster2987SelfTests() -> bool;
 auto runAllianceSetLocalMain2988SelfTests() -> bool;
+auto runItemDecrementCountRemove2989SelfTests() -> bool;
+auto runCommandRejectEmptyName2990SelfTests() -> bool;
+auto runPartyStampLeaderCreated2991SelfTests() -> bool;
+auto runZoneCreateTimers2992SelfTests() -> bool;
+auto runLinkshellPushStoredMessage2993SelfTests() -> bool;
 
 namespace
 {
@@ -2535,6 +2540,11 @@ namespace
         ok = runRangedConsumeAmmo2986SelfTests() && ok;
         ok = runPetDetachPlayerMaster2987SelfTests() && ok;
         ok = runAllianceSetLocalMain2988SelfTests() && ok;
+        ok = runItemDecrementCountRemove2989SelfTests() && ok;
+        ok = runCommandRejectEmptyName2990SelfTests() && ok;
+        ok = runPartyStampLeaderCreated2991SelfTests() && ok;
+        ok = runZoneCreateTimers2992SelfTests() && ok;
+        ok = runLinkshellPushStoredMessage2993SelfTests() && ok;
 
         return ok;
     }

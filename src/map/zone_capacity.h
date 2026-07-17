@@ -21,6 +21,7 @@
 //   - 2939: ShouldStampZoneEmptyTime (charListEmpty after DecreaseZoneCounter)
 //   - 2949: ShouldRejectHighCharTargid (targid >= CharTargidHighThreshold / 0x700)
 //   - 2975: ShouldDespawnPCOnLeave (!charListEmpty after DecreaseZoneCounter)
+//   - 2992: ShouldCreateZoneTimers (!hasZoneTimerToken && !charListEmpty after InsertPC)
 //
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty;
@@ -30,6 +31,10 @@
 // Production host: CZone::IncreaseZoneCounter (zone.cpp) injects
 // GetNewCharTargID() into ShouldRejectHighCharTargid; on true ShowError + return.
 // Go dual-wire: zone.ShouldRejectHighCharTargid (internal/zone/high_targid.go).
+// Production host: CZone::IncreaseZoneCounter (zone.cpp) injects
+// zoneTimerToken_.has_value() and CharListEmpty() into ShouldCreateZoneTimers
+// after InsertPC; on true calls createZoneTimers().
+// Go dual-wire: zone.ShouldCreateZoneTimers (internal/zone/create_zone_timers.go).
 
 namespace zonehelpers
 {
@@ -104,6 +109,23 @@ inline auto ShouldRejectHighCharTargid(const uint16 targid) -> bool
 }
 
 // ShouldCreateZoneTimers mirrors !zoneTimerToken && !CharListEmpty after insert.
+//
+// Formula (slice 2992 dual-wire):
+//   !hasZoneTimerToken && !charListEmpty
+//
+// hasZoneTimerToken — host-evaluated zoneTimerToken_.has_value() after InsertPC
+// charListEmpty     — host-evaluated m_zoneEntities->CharListEmpty() after InsertPC
+// true  → createZoneTimers() (first PC joined with no active zone timer)
+// false → timers already running, or char list still empty
+//
+// Dense 2² space: only (token=false, empty=false) is true; all other poles false.
+//
+// Dual-wire of Go zone.ShouldCreateZoneTimers.
+// Call site: CZone::IncreaseZoneCounter after m_zoneEntities->InsertPC —
+// host injects zoneTimerToken_.has_value() and CharListEmpty().
+// Prior pure port: slice 1363 (zone policy suite). Residual pins remain in
+// test_zone_policy_1363; dedicated dual-wire suite is test_zone_create_timers_2992.
+// Sibling leave gates: ShouldStampZoneEmptyTime (2939), ShouldDespawnPCOnLeave (2975).
 inline auto ShouldCreateZoneTimers(const bool hasZoneTimerToken, const bool charListEmpty) -> bool
 {
     return !hasZoneTimerToken && !charListEmpty;

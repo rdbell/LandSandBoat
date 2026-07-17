@@ -12,6 +12,7 @@
 //   - 2836: ShouldRejectEmptyCommandLine (ParseCommandLine empty after trim)
 //   - 2940: ShouldAllowCommandPermission (permission <= m_GMlevel)
 //   - 2982: ShouldRejectNullChar (charNull identity)
+//   - 2990: ShouldRejectEmptyCommandName (!valid after name parse)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
@@ -22,6 +23,11 @@
 // before name parse / Lua table lookup.
 // Go dual-wire: command.ShouldRejectNullChar
 // (internal/command/reject_null_char.go).
+//
+// Production host: CCommandHandler::call injects valid = parsedName.valid after
+// name-only ParseCommandLine before Lua table lookup.
+// Go dual-wire: command.ShouldRejectEmptyCommandName
+// (internal/command/reject_empty_command_name.go).
 
 namespace commandhandlerhelpers
 {
@@ -43,6 +49,16 @@ inline auto ShouldRejectNullChar(const bool charNull) -> bool
 }
 
 // ShouldRejectEmptyCommandName mirrors !parsedName.valid after name-only parse.
+//
+// Formula (slice 2990 dual-wire):
+//   !valid
+//
+// true  → host logs error and returns CommandResult::Failure
+// false → proceed to Lua table lookup / permission
+//
+// Dual-wire of Go command.ShouldRejectEmptyCommandName.
+// Call site: CCommandHandler::call after name-only ParseCommandLine.
+//   if (ShouldRejectEmptyCommandName(parsedName.valid)) return Failure;
 // valid is ParseCommandLine(...).valid; reject when the name parse failed.
 inline auto ShouldRejectEmptyCommandName(const bool valid) -> bool
 {
