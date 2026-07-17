@@ -4261,6 +4261,16 @@ set(SOURCES
     test_besieged_afford_sanction_3842.cpp
     test_latent_reject_process_3843.h
     test_latent_reject_process_3843.cpp
+    test_auctionutils_can_afford_fee_3844.h
+    test_auctionutils_can_afford_fee_3844.cpp
+    test_ranged_delete_unlimited_shot_3845.h
+    test_ranged_delete_unlimited_shot_3845.cpp
+    test_aistate_del_actor_on_attack_3846.h
+    test_aistate_del_actor_on_attack_3846.cpp
+    test_zone_high_targid_3847.h
+    test_zone_high_targid_3847.cpp
+    test_ambuscade_start_exit_3848.h
+    test_ambuscade_start_exit_3848.cpp
 )
 
 if(UNIX)
