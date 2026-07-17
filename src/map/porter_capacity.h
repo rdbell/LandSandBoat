@@ -19,8 +19,10 @@
 //           expand residual 2966 / prior ~3286)
 //   - 3409: CanRetrieveItem prior dedicated dual-wire (can_retrieve_item.go;
 //           expand residual 2966 / prior ~3316)
-//   - 3463: CanRetrieveItem dedicated dual-wire (can_retrieve_item.go;
+//   - 3463: CanRetrieveItem prior dedicated dual-wire (can_retrieve_item.go;
 //           expand residual 2966 / prior ~3409)
+//   - 3512: CanRetrieveItem dedicated dual-wire (can_retrieve_item.go;
+//           expand residual 2966 / prior ~3463)
 //
 // Dual-wire index:
 //   - 2966: CanRetrieveItem residual dual-wire suite
@@ -29,7 +31,8 @@
 //   - 3286: CanRetrieveItem = !hasItem && freeSlots > 0 (prior dedicated)
 //   - 3316: CanRetrieveItem = !hasItem && freeSlots > 0 (prior dedicated)
 //   - 3409: CanRetrieveItem = !hasItem && freeSlots > 0 (prior dedicated)
-//   - 3463: CanRetrieveItem = !hasItem && freeSlots > 0
+//   - 3463: CanRetrieveItem = !hasItem && freeSlots > 0 (prior dedicated)
+//   - 3512: CanRetrieveItem = !hasItem && freeSlots > 0
 //
 // Lua production host: scripts/globals/porter_moogle.lua
 //   onEventUpdate retrieve path:
@@ -59,21 +62,22 @@
 // (test_portermoogle_can_retrieve_item_3243), 3286
 // (test_portermoogle_can_retrieve_item_3286), 3316
 // (test_portermoogle_can_retrieve_item_3316), 3409
-// (test_portermoogle_can_retrieve_item_3409).
-// Dedicated dual-wire suite: 3463 (test_portermoogle_can_retrieve_item_3463).
+// (test_portermoogle_can_retrieve_item_3409), 3463
+// (test_portermoogle_can_retrieve_item_3463).
+// Dedicated dual-wire suite: 3512 (test_portermoogle_can_retrieve_item_3512).
 
 namespace portermooglehelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 3463 — CanRetrieveItem (dedicated expand residual 2966 / prior ~3409)
+// Slice 3512 — CanRetrieveItem (dedicated expand residual 2966 / prior ~3463)
 // ---------------------------------------------------------------------------
 
 // CanRetrieveItem mirrors the Lua porter_moogle free-slot / already-owned
 // gate pure half.
 //
-// Formula (slice 3463 dedicated dual-wire; residual expand 2966 / prior
-// dedicated ~3409 / 3316 / 3286 / 3243 / 3171 / pure 1144 — formula unchanged):
+// Formula (slice 3512 dedicated dual-wire; residual expand 2966 / prior
+// dedicated ~3463 / 3409 / 3316 / 3286 / 3243 / 3171 / pure 1144 — formula unchanged):
 //
 //   !hasItem && freeSlots > 0
 //
@@ -81,8 +85,8 @@ namespace portermooglehelpers
 // non-negative free-slot counts (production getFreeSlotsCount is >= 0;
 // freeSlots > 0 rejects zero and negatives). Matches Go
 // portermoogle.CanRetrieveItem (residual 1144 / residual dual-wire 2966 /
-// prior dedicated dual-wire 3171 / 3243 / 3286 / 3316 / 3409 / dedicated
-// dual-wire 3463).
+// prior dedicated dual-wire 3171 / 3243 / 3286 / 3316 / 3409 / 3463 / dedicated
+// dual-wire 3512).
 //
 // hasItem   — host-injected player:hasItem(itemId)
 // freeSlots — host-injected player:getFreeSlotsCount()
@@ -95,9 +99,10 @@ namespace portermooglehelpers
 // test_portermoogle_can_retrieve_item_3171,
 // test_portermoogle_can_retrieve_item_3243,
 // test_portermoogle_can_retrieve_item_3286,
-// test_portermoogle_can_retrieve_item_3316, and
-// test_portermoogle_can_retrieve_item_3409. Dedicated dual-wire suite is
-// test_portermoogle_can_retrieve_item_3463.
+// test_portermoogle_can_retrieve_item_3316,
+// test_portermoogle_can_retrieve_item_3409, and
+// test_portermoogle_can_retrieve_item_3463. Dedicated dual-wire suite is
+// test_portermoogle_can_retrieve_item_3512.
 inline auto CanRetrieveItem(const bool hasItem, const int32 freeSlots) -> bool
 {
     return !hasItem && freeSlots > 0;

@@ -3591,6 +3591,16 @@ set(SOURCES
     test_guildpoints_can_afford_3507.cpp
     test_synthutils_can_synthesize_hq_3508.h
     test_synthutils_can_synthesize_hq_3508.cpp
+    test_interactionlookup_skip_priority_3509.h
+    test_interactionlookup_skip_priority_3509.cpp
+    test_mapwire_open_socket_3511.h
+    test_mapwire_open_socket_3511.cpp
+    test_mobutils_can_drop_gil_3513.h
+    test_mobutils_can_drop_gil_3513.cpp
+    test_portermoogle_can_retrieve_item_3512.h
+    test_portermoogle_can_retrieve_item_3512.cpp
+    test_ranger_strip_partial_retain_3510.h
+    test_ranger_strip_partial_retain_3510.cpp
 )
 
 if(UNIX)

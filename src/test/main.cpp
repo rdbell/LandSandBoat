@@ -1799,6 +1799,11 @@ auto runExtravaganzaCanAffordCipher3504SelfTests() -> bool;
 auto runFollowCanFollow3506SelfTests() -> bool;
 auto runGuildpointsCanAfford3507SelfTests() -> bool;
 auto runSynthutilsCanSynthesizeHQ3508SelfTests() -> bool;
+auto runInteractionlookupSkipPriority3509SelfTests() -> bool;
+auto runMapwireOpenSocket3511SelfTests() -> bool;
+auto runMobutilsCanDropGil3513SelfTests() -> bool;
+auto runPortermoogleCanRetrieveItem3512SelfTests() -> bool;
+auto runRangerStripPartialRetain3510SelfTests() -> bool;
 
 namespace
 {
@@ -3575,6 +3580,11 @@ namespace
         ok = runFollowCanFollow3506SelfTests() && ok;
         ok = runGuildpointsCanAfford3507SelfTests() && ok;
         ok = runSynthutilsCanSynthesizeHQ3508SelfTests() && ok;
+        ok = runInteractionlookupSkipPriority3509SelfTests() && ok;
+        ok = runMapwireOpenSocket3511SelfTests() && ok;
+        ok = runMobutilsCanDropGil3513SelfTests() && ok;
+        ok = runPortermoogleCanRetrieveItem3512SelfTests() && ok;
+        ok = runRangerStripPartialRetain3510SelfTests() && ok;
 
         return ok;
     }
