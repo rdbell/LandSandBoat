@@ -603,6 +603,8 @@ set(SOURCES
     test_login_view_version_response_2755.cpp
     test_login_view_world_list_response_2759.h
     test_login_view_world_list_response_2759.cpp
+    test_login_view_acquire_player_response_2760.h
+    test_login_view_acquire_player_response_2760.cpp
     test_login_auth_password_1307.h
     test_login_auth_password_1307.cpp
     test_login_auth_version_error_1308.h

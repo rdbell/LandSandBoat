@@ -23,6 +23,7 @@
 
 #include "view_version_response.h"
 #include "view_world_list_response.h"
+#include "view_acquire_player_response.h"
 
 #include "character_delete.h"
 #include "character_name.h"
@@ -369,20 +370,24 @@ void view_session::read_func()
         break;
         case 0x1F: // 31: "Acquiring Player Data"
         {
-            if (loginHelpers::ClassifyDataSessionPresence(session.data_session != nullptr) ==
-                loginHelpers::data_session_presence_gate::PRESENT)
+            const auto presence = loginHelpers::ClassifyDataSessionPresence(session.data_session != nullptr);
+            const auto responsePlan = login::PlanViewAcquirePlayerResponse(presence);
+            if (responsePlan.writeAcquireNotify)
             {
                 auto data = session.data_session.get();
                 loginHelpers::GenerateDataAcquirePlayerNotifyPacket(data->buffer_.data());
                 data->do_write(loginHelpers::DataSessionNotifyPacketSize);
             }
-            else
+            if (responsePlan.writeLobbyError)
             {
                 // "Could not connect to lobby server.\nPlease check this title's news for announcements."
                 // This used to error, but this case is probably not valid after sessionHash.
                 // TODO: is this this else block still needed?
                 loginHelpers::generateErrorMessage(buffer_.data(), loginErrors::errorCode::COULD_NOT_CONNECT_TO_LOBBY_SERVER);
                 do_write(0x24);
+            }
+            if (responsePlan.returnFromRead)
+            {
                 return;
             }
         }

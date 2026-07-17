@@ -26,6 +26,7 @@ set(SOURCES
     version_lock.cpp
     view_version_response.h
     view_world_list_response.h
+    view_acquire_player_response.h
 )
 
 if(UNIX)
