@@ -152,9 +152,11 @@ namespace avatarpethelpers
 // expand residual 2968 suite: test_avatarpet_can_apply_buff_3677. Prior
 // dedicated dual-wire expand residual 2968 suite:
 // test_avatarpet_can_apply_buff_3722. Dedicated dual-wire expand residual 2968
-// suite is test_avatarpet_can_apply_buff_3767.
+// suite is test_avatarpet_can_apply_buff_3767. Prior dedicated dual-wire expand residual
+// 2968 suite: test_avatarpet_can_apply_buff_3767. Dedicated dual-wire expand residual 2968
+// suite is test_avatarpet_can_apply_buff_3812.
 // Matches Go avatarpet.CanApplyBuff (1043 residual / 2968 / 3152 / 3230 /
-// 3370 / 3425 / 3479 / 3543 / 3587 / 3632 / 3677 / 3722 / 3767 dual-wire).
+// 3370 / 3425 / 3479 / 3543 / 3587 / 3632 / 3677 / 3722 / 3767 / 3812 dual-wire).
 inline auto CanApplyBuff(const bool hasStatusEffect, const uint8 statusTier, const bool spellHasTier, const uint8 spellTier) -> bool
 {
     if (!hasStatusEffect)
