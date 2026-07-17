@@ -12,7 +12,8 @@
 //   - 3160: ShouldRaiseMerit (points/upgrade/category RaiseMerit admission gate half)
 //   - 2810: PlanLowerMerit (LowerMerit admission plan; uses ShouldLowerMerit)
 //   - 2811: PlanAddLimitPoints (AddLimitPoints conversion plan)
-//   - 2816: IsMeritExist (IsMeritExist bounds gate)
+//   - 2816: IsMeritExist (IsMeritExist bounds gate residual pure port)
+//   - 3196: IsMeritExist (range + MeritsInCat bounds gate dual-wire expand of 2816)
 //   - 3054: ShouldLowerMerit (count > 0 LowerMerit count-decrement gate half)
 //
 // Production host: CMeritPoints::RaiseMerit (merit.cpp) injects m_MeritPoints,
@@ -23,10 +24,14 @@
 // (PMerit != nullptr) and PMerit->count into PlanLowerMerit / ShouldLowerMerit;
 // on apply decrements count, refreshes next from upgrade tables, optional
 // spell/WS del hosts.
+// Production host: CMeritPoints::IsMeritExist (merit.cpp) injects
+// MCATEGORY_START/COUNT, GetMeritID(merit), and meritCatInfo[cat].MeritsInCat
+// into IsMeritExist; pure range + MeritsInCat only (no GMeritsTemplate).
 // Go dual-wire: merit.ShouldRaiseMerit (internal/merit/raise_merit.go);
 // merit.PlanRaiseMerit (internal/merit/entry.go residual 2805);
 // merit.ShouldLowerMerit (internal/merit/lower_merit.go);
-// merit.PlanLowerMerit (internal/merit/entry.go residual 2810).
+// merit.PlanLowerMerit (internal/merit/entry.go residual 2810);
+// merit.IsMeritExistBounds / merit.IsMeritExist (internal/merit/catinfo.go).
 
 namespace meritshelpers
 {
@@ -223,15 +228,35 @@ inline auto PlanAddLimitPoints(
     };
 }
 
-// IsMeritExist mirrors CMeritPoints::IsMeritExist pure bounds gate (slice 2816):
+// IsMeritExist mirrors CMeritPoints::IsMeritExist pure bounds gate.
+//
+// Formula (slice 3196 dual-wire; residual pure port 2816):
 //   merit < categoryStart          → false
 //   merit >= categoryCount         → false
 //   meritID >= meritsInCat         → false
 //   else true
-// Hosts inject categoryStart=MCATEGORY_START, categoryCount=MCATEGORY_COUNT,
-// meritID=GetMeritID(merit), and meritsInCat from meritCatInfo[cat].MeritsInCat
-// (only after the merit is known to be inside the category range so the table
-// index is valid; out-of-range injects 0).
+//
+// Compound form (equivalent):
+//   merit >= categoryStart && merit < categoryCount && meritID < meritsInCat
+//
+// merit          — host-evaluated MERIT_TYPE as int16
+// categoryStart  — host-evaluated MCATEGORY_START (0x0040)
+// categoryCount  — host-evaluated MCATEGORY_COUNT (0x0DC0)
+// meritID        — host-evaluated GetMeritID(merit) (((merit) & 0x3F) >> 1)
+// meritsInCat    — host-evaluated meritCatInfo[cat].MeritsInCat (0 when out of range)
+// true  → merit type is inside category range with a valid id for that category
+// false → below start, at/past categoryCount, or meritID overflows MeritsInCat
+//
+// Isolated three-way bounds gate of CMeritPoints::IsMeritExist. Does not
+// consult the full merits[] / GMeritsTemplate table — only range + MeritsInCat.
+//
+// Dual-wire of Go merit.IsMeritExistBounds.
+// Call site: CMeritPoints::IsMeritExist — host injects CategoryStart/Count,
+// GetMeritID, and MeritsInCat (category table only when merit is in range;
+// else 0). Prior pure port: slice 2816 (IsMeritExist residual suite). Residual
+// pins remain in test_merit_exist_2816; dedicated dual-wire suite is
+// test_merit_is_merit_exist_3196. Sibling dual-wires left alone:
+// ShouldRaiseMerit (3160), ShouldLowerMerit (3054).
 inline auto IsMeritExist(
     const int16 merit,
     const int16 categoryStart,

@@ -14,7 +14,7 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1354: AddMember / rank / push / DelMember capacity suite
 //   - 1355: registry load / online / register residual capacity
-//   - 2929: ShouldRejectNullAddMember (charNull identity)
+//   - 2929: ShouldRejectNullAddMember residual dual-wire expand
 //   - 2958: ShouldRejectDuplicateAddMember (alreadyInList identity)
 //   - 2977: ShouldSendLinkshellMessageIPC (messageNonEmpty identity)
 //   - 2993: ShouldPushStoredLinkshellMessage (messageNonEmpty identity)
@@ -28,6 +28,8 @@
 //   - 3099: ShouldProcessLinkshellItem (itemNonNull && isLinkshellType)
 //   - 3111: ShouldUnloadLinkshell (foundInList identity)
 //   - 3126: ShouldReturnCachedLinkshell (foundInList identity)
+//   - 3195: ShouldRejectNullAddMember dedicated dual-wire
+//           (charNull identity; residual expand 2929 / pure 1354)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -99,7 +101,8 @@ namespace linkshellhelpers
 
 // ShouldRejectNullAddMember mirrors PChar == nullptr.
 //
-// Formula (slice 2929 dual-wire):
+// Formula (slice 3195 dedicated dual-wire; residual expand 2929 / pure 1354 —
+// formula unchanged):
 //   charNull
 //
 // charNull — host-evaluated PChar == nullptr
@@ -108,6 +111,11 @@ namespace linkshellhelpers
 //
 // Dual-wire of Go linkshell.ShouldRejectNullAddMember.
 // Call site: CLinkshell::AddMember host inject (PChar == nullptr).
+//   if (ShouldRejectNullAddMember(PChar == nullptr)) return;
+// Prior pure port: slice 1354. Residual dual-wire suite: 2929 /
+// test_linkshell_reject_null_2929. Dedicated dual-wire suite is
+// test_linkshell_reject_null_add_member_3195. Formula is unchanged; this slice
+// only expands dual-wire docs + index + dedicated suite.
 inline auto ShouldRejectNullAddMember(const bool charNull) -> bool
 {
     return charNull;
@@ -125,7 +133,7 @@ inline auto ShouldRejectNullAddMember(const bool charNull) -> bool
 //
 // Dual-wire of Go linkshell.ShouldRejectDuplicateAddMember.
 // Call site: CLinkshell::AddMember host inject (find hit in members).
-// Evaluated only after ShouldRejectNullAddMember passes (slice 2929).
+// Evaluated only after ShouldRejectNullAddMember passes (slice 3195 / residual 2929).
 inline auto ShouldRejectDuplicateAddMember(const bool alreadyInList) -> bool
 {
     return alreadyInList;

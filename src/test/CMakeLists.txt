@@ -2961,6 +2961,16 @@ set(SOURCES
     test_notoriety_remove_member_3192.cpp
     test_recast_stamp_on_zero_recast_3193.h
     test_recast_stamp_on_zero_recast_3193.cpp
+    test_itemcontainer_can_insert_at_slot_3194.h
+    test_itemcontainer_can_insert_at_slot_3194.cpp
+    test_linkshell_reject_null_add_member_3195.h
+    test_linkshell_reject_null_add_member_3195.cpp
+    test_merit_is_merit_exist_3196.h
+    test_merit_is_merit_exist_3196.cpp
+    test_dynamis_at_origin_3197.h
+    test_dynamis_at_origin_3197.cpp
+    test_battlefield_reject_null_insert_3198.h
+    test_battlefield_reject_null_insert_3198.cpp
 )
 
 if(UNIX)

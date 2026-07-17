@@ -11,7 +11,7 @@
 //   - 2808 / 2823: SearchItemWithSpace / MatchesSearchItem gates
 //   - 2826: FreeSlotsCount (unsigned size-minus-count)
 //   - 2831: CanSearchSlotID (GetItem / search inclusive range; residual)
-//   - 2942: CanInsertAtSlot (InsertItem(PItem, SlotID) range gate)
+//   - 2942: CanInsertAtSlot residual dual-wire suite (InsertItem range gate)
 //   - 2976: CanRemoveSlot (RemoveItem range gate)
 //   - 2989: ShouldDecrementCountOnRemove (RemoveItem count drop)
 //   - 3021: ShouldIncrementCountOnInsertAt (InsertItem count bump)
@@ -20,15 +20,20 @@
 //   - 3038: MatchesSearchItem (SearchItem / SearchItems loop-body dual-wire)
 //   - 3039: FreeSlotsCount (GetFreeSlotsCount size-minus-count dual-wire)
 //   - 3164: CanSetSize dedicated dual-wire (can_set_size.go; expand residual 3027)
+//   - 3194: CanInsertAtSlot dedicated dual-wire (insert_slot.go; expand residual 2942)
 //
 // Dual-wire index:
+//   - 2942: CanInsertAtSlot residual dual-wire suite
 //   - 3027: CanSetSize residual dual-wire suite
 //   - 3164: CanSetSize = newSize <= maxSize && newSize >= itemCount
+//   - 3194: CanInsertAtSlot = slotID <= size
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
 // Go dual-wire: itemcontainer.CanInsertAtSlot
 // (internal/itemcontainer/insert_slot.go).
+// Residual dual-wire suite: 2942 (test_itemcontainer_insert_slot_2942).
+// Dedicated dual-wire suite: 3194 (test_itemcontainer_can_insert_at_slot_3194).
 // Production host: CItemContainer::InsertItem injects emptiness and SlotID into
 // ShouldIncrementCountOnInsertAt after CanInsertAtSlot admits.
 // Go dual-wire: itemcontainer.ShouldIncrementCountOnInsertAt
@@ -133,10 +138,15 @@ inline auto ShouldDecrementCountOnRemove(const bool slotOccupied, const std::uin
     return slotOccupied && slotID != 0;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3194 — InsertItem(PItem, SlotID) range gate (dedicated expand residual 2942)
+// ---------------------------------------------------------------------------
+
 // CanInsertAtSlot mirrors InsertItem(PItem, SlotID) range gate: reject when
 // SlotID > size, so slotID <= size is accepted (including slot 0).
 //
-// Formula (slice 2942 dual-wire):
+// Formula (slice 3194 dedicated dual-wire; residual expand 2942 / pure 2802 —
+// formula unchanged):
 //   slotID <= size
 //
 // slotID — host-evaluated explicit InsertItem SlotID
@@ -146,6 +156,11 @@ inline auto ShouldDecrementCountOnRemove(const bool slotOccupied, const std::uin
 //
 // Dual-wire of Go itemcontainer.CanInsertAtSlot.
 // Call site: CItemContainer::InsertItem(PItem, SlotID) before ownership move.
+// Prior pure port: slice 2802. Residual dual-wire suite: 2942 /
+// test_itemcontainer_insert_slot_2942. Dedicated dual-wire suite is
+// test_itemcontainer_can_insert_at_slot_3194. Sibling dual-wire gates:
+// CanSetSize (3164), CanRemoveSlot (2976),
+// ShouldIncrementCountOnInsertAt (3021) — left residual under this slice.
 inline auto CanInsertAtSlot(const std::uint8_t slotID, const std::uint8_t size) -> bool
 {
     return slotID <= size;

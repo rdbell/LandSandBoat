@@ -2,12 +2,14 @@
 
 // Pure Dynamis helpers shared by dual-wire slices:
 //   - 2857 residual: AtOrigin (zoneOnZoneIn origin equality half)
+//   - 3197: AtOrigin dedicated dual-wire (at_origin.go)
 //   - 3078: ShouldSnapToEntryPos (zoneOnZoneIn origin snap gate)
 //   - 2921 residual: CanUnlockSJ (somnial threshold startEvent param)
 //   - 3151: CanUnlockSJ dedicated dual-wire (unlock_sj.go)
 //
 // Dual-wire index:
 //   - 2857: AtOrigin residual dual-wire notes
+//   - 3197: AtOrigin = x == 0 && y == 0 && z == 0
 //   - 3078: ShouldSnapToEntryPos = hasDynamisEffect && AtOrigin(x, y, z)
 //   - 2921: CanUnlockSJ residual dual-wire suite
 //   - 3151: CanUnlockSJ = hasSJRestriction ? 1 : 0
@@ -15,7 +17,8 @@
 // Lua production hosts: scripts/globals/dynamis.lua
 //   - xi.dynamis.zoneOnZoneIn (origin snap elseif after DYNAMIS check)
 //   - xi.dynamis.somnialThresholdOnTrigger (canUnlockSJ event param)
-// Go dual-wire: dynamis.ShouldSnapToEntryPos (internal/dynamis/snap_entry.go);
+// Go dual-wire: dynamis.AtOrigin (internal/dynamis/at_origin.go);
+// dynamis.ShouldSnapToEntryPos (internal/dynamis/snap_entry.go);
 // dynamis.CanUnlockSJ (internal/dynamis/unlock_sj.go). Future Lua host
 // injects free functions then setPos / startEvent / delStatusEffectSilent.
 //
@@ -24,27 +27,46 @@
 //
 // Prior pure ports: OmegaXI slices 1119 (zone), 1077 (somnial).
 // Residual dual-wire suite: 2857 / 2921.
-// Dedicated dual-wire suite: 3078 / 3151.
+// Dedicated dual-wire suite: 3078 / 3151 / 3197.
 //
 // Index 3078: dynamis.ShouldSnapToEntryPos pure dual-wire.
 // Index 3151: dynamis.CanUnlockSJ pure dual-wire.
-// Go dual-wire: dynamis.ShouldSnapToEntryPos (internal/dynamis/snap_entry.go);
+// Index 3197: dynamis.AtOrigin pure dual-wire.
+// Go dual-wire: dynamis.AtOrigin (internal/dynamis/at_origin.go);
+// dynamis.ShouldSnapToEntryPos (internal/dynamis/snap_entry.go);
 // dynamis.CanUnlockSJ (internal/dynamis/unlock_sj.go).
 
 namespace dynamishelpers
 {
 
 // ---------------------------------------------------------------------------
-// Origin-snap (AtOrigin residual 2857; ShouldSnapToEntryPos slice 3078)
+// Origin equality half (AtOrigin residual 2857; dedicated dual-wire 3197)
 // ---------------------------------------------------------------------------
 
 // AtOrigin reports exact float equality of position to (0, 0, 0).
 // Matches LSB Lua `getXPos()==0 and getYPos()==0 and getZPos()==0`.
-// Residual pure helper (slice 2857); used by ShouldSnapToEntryPos (3078).
+//
+// Formula (slice 3197 dedicated dual-wire; residual expand 2857 / pure 1119 —
+// formula unchanged):
+//   AtOrigin(x, y, z) = x == 0.0f && y == 0.0f && z == 0.0f
+//
+// Exact float equality (no epsilon). IEEE −0.0f equals +0.0f.
+// Dual-wire of OmegaXI internal/dynamis AtOrigin (at_origin.go).
+// Used by ShouldSnapToEntryPos (3078). Call site: future Lua host inject of
+// zoneOnZoneIn origin equality half; hosts share one pure surface.
+// Prior pure port: slice 1119. Residual dual-wire suite: 2857 /
+// test_dynamis_snap_entry_2857. Dedicated dual-wire suite is
+// test_dynamis_at_origin_3197.
+// Sibling left alone: ShouldSnapToEntryPos (3078); CanUnlockSJ (3151).
+// Index 3197: dynamis.AtOrigin pure dual-wire.
 inline auto AtOrigin(const float x, const float y, const float z) -> bool
 {
     return x == 0.0f && y == 0.0f && z == 0.0f;
 }
+
+// ---------------------------------------------------------------------------
+// Origin-snap gate (ShouldSnapToEntryPos slice 3078; composes AtOrigin)
+// ---------------------------------------------------------------------------
 
 // ShouldSnapToEntryPos is the pure free-function form of the origin-snap gate.
 //
@@ -63,6 +85,7 @@ inline auto AtOrigin(const float x, const float y, const float z) -> bool
 // Prior pure port: slice 1119; residual dual-wire notes: slice 2857.
 // Index 3078: dynamis.ShouldSnapToEntryPos pure dual-wire.
 // Sibling left alone this slice: CanUnlockSJ (3151 / residual 2921).
+// Composes AtOrigin (3197 dedicated dual-wire; residual 2857).
 inline auto ShouldSnapToEntryPos(const bool hasDynamisEffect, const float x, const float y, const float z) -> bool
 {
     return hasDynamisEffect && AtOrigin(x, y, z);

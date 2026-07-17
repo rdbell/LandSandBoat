@@ -10,7 +10,7 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1361: level cap, insert, cleanup, tick policy suite
 //   - 2930: ShouldAcceptPCUnderCapacity (playerCount < maxParticipants)
-//   - 2994: ShouldRejectNullInsert (entityNull identity)
+//   - 2994: ShouldRejectNullInsert residual dual-wire expand
 //   - 3002: ShouldRejectAlreadyInBattlefield (hasBattlefield identity)
 //   - 3014: ShouldRegisterPC (!enter && !alreadyRegistered)
 //   - 3024: ShouldEnterPC (enter identity)
@@ -19,6 +19,8 @@
 //   - 3102: ShouldClearLevelRestriction (levelCap == 0)
 //   - 3123: ShouldCheckInProgress (!attacked)
 //   - 3140: ShouldAdvanceBattlefieldTick (pastTickPlusOneSecond identity)
+//   - 3198: ShouldRejectNullInsert dedicated dual-wire
+//           (entityNull identity; residual expand 2994 / pure 1361)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -106,7 +108,8 @@ inline auto FormatInsertEntityNullWarning() -> std::string
 
 // ShouldRejectNullInsert mirrors PEntity == nullptr.
 //
-// Formula (slice 2994 dual-wire):
+// Formula (slice 3198 dedicated dual-wire; residual expand 2994 / pure 1361 —
+// formula unchanged):
 //   entityNull
 //
 // true  → host logs FormatInsertEntityNullWarning and returns false
@@ -118,6 +121,12 @@ inline auto FormatInsertEntityNullWarning() -> std::string
 //       ShowWarning("%s", FormatInsertEntityNullWarning());
 //       return false;
 //   }
+// Prior pure port: slice 1361. Residual dual-wire suite: 2994 /
+// test_battlefield_reject_null_insert_2994. Dedicated dual-wire suite is
+// test_battlefield_reject_null_insert_3198. Formula is unchanged; this slice
+// only expands dual-wire docs + index + dedicated suite.
+// Sibling dual-wires left alone: 3002 already-in, 2930 under-capacity,
+// 3014 register, 3024 enter, 3140 advance-tick, etc.
 inline auto ShouldRejectNullInsert(const bool entityNull) -> bool
 {
     return entityNull;

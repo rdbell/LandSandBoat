@@ -1484,6 +1484,11 @@ auto runUnitychatReceivePacket3190SelfTests() -> bool;
 auto runMapsessionCreateSession3191SelfTests() -> bool;
 auto runNotorietyRemoveMember3192SelfTests() -> bool;
 auto runRecastStampOnZeroRecast3193SelfTests() -> bool;
+auto runItemcontainerCanInsertAtSlot3194SelfTests() -> bool;
+auto runLinkshellRejectNullAddMember3195SelfTests() -> bool;
+auto runMeritIsMeritExist3196SelfTests() -> bool;
+auto runDynamisAtOrigin3197SelfTests() -> bool;
+auto runBattlefieldRejectNullInsert3198SelfTests() -> bool;
 
 namespace
 {
@@ -2945,6 +2950,11 @@ namespace
         ok = runMapsessionCreateSession3191SelfTests() && ok;
         ok = runNotorietyRemoveMember3192SelfTests() && ok;
         ok = runRecastStampOnZeroRecast3193SelfTests() && ok;
+        ok = runItemcontainerCanInsertAtSlot3194SelfTests() && ok;
+        ok = runLinkshellRejectNullAddMember3195SelfTests() && ok;
+        ok = runMeritIsMeritExist3196SelfTests() && ok;
+        ok = runDynamisAtOrigin3197SelfTests() && ok;
+        ok = runBattlefieldRejectNullInsert3198SelfTests() && ok;
 
         return ok;
     }
