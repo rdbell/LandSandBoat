@@ -3301,6 +3301,16 @@ set(SOURCES
     test_command_reject_empty_line_3362.cpp
     test_artisan_can_expand_3363.h
     test_artisan_can_expand_3363.cpp
+    test_ranged_consume_ammo_3364.h
+    test_ranged_consume_ammo_3364.cpp
+    test_battlefield_register_pc_3365.h
+    test_battlefield_register_pc_3365.cpp
+    test_unity_load_online_add_3366.h
+    test_unity_load_online_add_3366.cpp
+    test_treasure_lot_inventory_3367.h
+    test_treasure_lot_inventory_3367.cpp
+    test_guildpoints_can_afford_3368.h
+    test_guildpoints_can_afford_3368.cpp
 )
 
 if(UNIX)

@@ -1654,6 +1654,11 @@ auto runRecastUpdateChargeTime3360SelfTests() -> bool;
 auto runMobutilsAssignParry3361SelfTests() -> bool;
 auto runCommandRejectEmptyLine3362SelfTests() -> bool;
 auto runArtisanCanExpand3363SelfTests() -> bool;
+auto runRangedConsumeAmmo3364SelfTests() -> bool;
+auto runBattlefieldRegisterPC3365SelfTests() -> bool;
+auto runUnityLoadOnlineAdd3366SelfTests() -> bool;
+auto runTreasureLotInventory3367SelfTests() -> bool;
+auto runGuildpointsCanAfford3368SelfTests() -> bool;
 
 namespace
 {
@@ -3285,6 +3290,11 @@ namespace
         ok = runMobutilsAssignParry3361SelfTests() && ok;
         ok = runCommandRejectEmptyLine3362SelfTests() && ok;
         ok = runArtisanCanExpand3363SelfTests() && ok;
+        ok = runRangedConsumeAmmo3364SelfTests() && ok;
+        ok = runBattlefieldRegisterPC3365SelfTests() && ok;
+        ok = runUnityLoadOnlineAdd3366SelfTests() && ok;
+        ok = runTreasureLotInventory3367SelfTests() && ok;
+        ok = runGuildpointsCanAfford3368SelfTests() && ok;
 
         return ok;
     }

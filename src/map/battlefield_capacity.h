@@ -12,7 +12,8 @@
 //   - 2930: ShouldAcceptPCUnderCapacity (playerCount < maxParticipants)
 //   - 2994: ShouldRejectNullInsert residual dual-wire expand
 //   - 3002: ShouldRejectAlreadyInBattlefield residual dual-wire expand
-//   - 3014: ShouldRegisterPC (!enter && !alreadyRegistered)
+//   - 3014: ShouldRegisterPC prior dual-wire
+//           (!enter && !alreadyRegistered; pure 1361)
 //   - 3024: ShouldEnterPC (enter identity)
 //   - 3059: ShouldApplyLevelCap (levelCap > 0)
 //   - 3087: ShouldAddSjRestriction ((rules & ALLOW_SUBJOBS) == 0)
@@ -28,6 +29,8 @@
 //   - 3302: ShouldAcceptPCUnderCapacity dedicated dual-wire
 //           (playerCount < maxParticipants; residual expand 2930 /
 //            prior dedicated 3271 / pure 1361)
+//   - 3365: ShouldRegisterPC dedicated dual-wire
+//           (!enter && !alreadyRegistered; residual expand 3014 / pure 1361)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -197,8 +200,12 @@ inline auto ShouldAcceptPCUnderCapacity(const uint8 playerCount, const uint8 max
 
 // ShouldRegisterPC mirrors !enter && !IsRegistered.
 //
-// Formula (slice 3014 dual-wire):
+// Formula (slice 3365 dedicated dual-wire; residual expand 3014 / pure 1361 —
+// formula unchanged):
 //   !enter && !alreadyRegistered
+//
+// Positive form only — do not De Morgan rewrite to !(enter || alreadyRegistered)
+// (QF1001).
 //
 // enter             — host InsertEntity enter flag
 // alreadyRegistered — host-evaluated IsRegistered(PChar)
@@ -212,6 +219,13 @@ inline auto ShouldAcceptPCUnderCapacity(const uint8 playerCount, const uint8 max
 //       m_RegisteredPlayers.emplace(PEntity->id);
 //       return true;
 //   }
+// Prior pure port: slice 1361. Prior dual-wire suite: 3014 /
+// test_battlefield_register_pc_3014. Dedicated dual-wire suite is
+// test_battlefield_register_pc_3365. Formula is unchanged; this slice
+// only expands dual-wire docs + index + dedicated suite
+// (free == inline == pin residual pins).
+// Sibling dual-wires left alone: 3198 null-insert, 3216 already-in,
+// 3302 under-capacity, 3024 enter, 3140 advance-tick, etc.
 inline auto ShouldRegisterPC(const bool enter, const bool alreadyRegistered) -> bool
 {
     return !enter && !alreadyRegistered;

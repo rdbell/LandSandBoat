@@ -162,11 +162,13 @@ inline auto NewDailyPointsTotal(const uint16 curPoints, const uint16 pointsToAdd
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1016: CanAfford pure port (CanBuy* compose; internal/guildpoints)
 //   - 2944: CanAfford residual dual-wire suite (getCurrency >= cost)
-//   - 3221: CanAfford dedicated dual-wire (can_afford.go; expand residual 2944)
+//   - 3221: CanAfford prior dedicated dual-wire (retained; expand residual 2944)
+//   - 3368: CanAfford dedicated dual-wire (can_afford.go; expand residual 2944)
 //
 // Dual-wire index:
 //   - 2944: CanAfford residual dual-wire suite
-//   - 3221: CanAfford = currency >= cost
+//   - 3221: CanAfford prior dedicated dual-wire (retained)
+//   - 3368: CanAfford = currency >= cost
 //
 // Lua production host: scripts/globals/hobbies/crafting/guild_points.lua
 //   player:getCurrency(currency) >= keyItem.cost / cost  (purchase gates)
@@ -178,7 +180,8 @@ inline auto NewDailyPointsTotal(const uint16 curPoints, const uint16 pointsToAdd
 // delCurrency / giveKeyItem / addItem writeback remains host-owned.
 // Prior pure port: OmegaXI slice 1016 (internal/guildpoints).
 // Residual dual-wire suite: 2944 (test_guildpoints_can_afford_2944).
-// Dedicated dual-wire suite: 3221 (test_guildpoints_can_afford_3221).
+// Prior dedicated dual-wire suite: 3221 (test_guildpoints_can_afford_3221).
+// Dedicated dual-wire suite: 3368 (test_guildpoints_can_afford_3368).
 // Go dual-wire: guildpoints.CanAfford (internal/guildpoints/can_afford.go).
 // Future Lua host injects free function then delCurrency / give writeback.
 // ---------------------------------------------------------------------------
@@ -187,8 +190,9 @@ namespace guildpointshelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2944 residual / 3221 dedicated — guild_points getCurrency afford gate
-// (dedicated expand residual 2944 / pure 1016)
+// Slice 2944 residual / 3221 prior dedicated / 3368 dedicated —
+// guild_points getCurrency afford gate
+// (dedicated expand residual 2944; prior dedicated 3221 / pure 1016)
 // ---------------------------------------------------------------------------
 
 // CanAfford is the pure free-function form of the Lua guild_points currency
@@ -196,15 +200,16 @@ namespace guildpointshelpers
 //
 //   currency >= cost
 //
-// Formula (slice 3221 dedicated dual-wire; residual expand 2944 / pure 1016 —
-// formula unchanged):
+// Formula (slice 3368 dedicated dual-wire expand residual 2944; prior
+// dedicated 3221 / pure 1016 — formula unchanged):
 //
 //   CanAfford(currency, cost) = currency >= cost
 //
 // Future Lua host injects getCurrency / catalog cost scalars into this helper
 // instead of re-inlining the comparison. Matches Go guildpoints.CanAfford.
 // Residual dual-wire suite: 2944 / test_guildpoints_can_afford_2944.
-// Dedicated dual-wire suite is test_guildpoints_can_afford_3221.
+// Prior dedicated dual-wire suite: 3221 / test_guildpoints_can_afford_3221.
+// Dedicated dual-wire suite is test_guildpoints_can_afford_3368.
 inline auto CanAfford(const int32 currency, const int32 cost) -> bool
 {
     return currency >= cost;

@@ -11,7 +11,7 @@
 //   - 1367: free-slot / rare / eviction / lot policy suite
 //   - 2772 / 2777 / 2779 / 2780 / 2781: lot/pass/update/post-lot/flush plans
 //   - 2938: ShouldAutoResolveSolo residual dual-wire suite (memberCount == 1)
-//   - 2957: CanLotWithInventory (freeSlots != 0 inventory lot gate)
+//   - 2957: CanLotWithInventory residual dual-wire suite (freeSlots != 0 inventory lot gate)
 //   - 2981: ShouldForceCheckOnFullPoolInsert (SlotID == PoolSize after free scan)
 //   - 2998: CanLotRareItem residual dual-wire suite (!(rare && alreadyHas))
 //   - 3060: ShouldRejectNullMember (charNull || poolMismatch null-member gate)
@@ -23,14 +23,17 @@
 //   - 3260: CanLotRareItem prior dedicated dual-wire (lot_rare.go; expand residual 2998)
 //   - 3291: CanLotRareItem prior dedicated dual-wire expand residual 2998 (prior ~3260)
 //   - 3321: CanLotRareItem dedicated dual-wire expand residual 2998 (prior ~3291)
+//   - 3367: CanLotWithInventory dedicated dual-wire expand residual 2957
 //
 // Dual-wire index:
 //   - 2938: ShouldAutoResolveSolo residual dual-wire suite
+//   - 2957: CanLotWithInventory residual dual-wire suite
 //   - 2998: CanLotRareItem residual dual-wire suite
 //   - 3201: ShouldAutoResolveSolo = memberCount == 1
 //   - 3260: CanLotRareItem prior dedicated (!itemIsRare || !alreadyHasItem)
 //   - 3291: CanLotRareItem prior dedicated (!itemIsRare || !alreadyHasItem)
 //   - 3321: CanLotRareItem = !itemIsRare || !alreadyHasItem
+//   - 3367: CanLotWithInventory = freeSlots != 0
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -43,6 +46,8 @@
 // getStorage(LOC_INVENTORY)->GetFreeSlotsCount() into CanLotWithInventory.
 // Go dual-wire: treasurepool.CanLotWithInventory
 // (internal/treasurepool/lot_inventory.go).
+// Residual dual-wire suite: 2957 (test_treasure_lot_inventory_2957).
+// Dedicated dual-wire suite: 3367 (test_treasure_lot_inventory_3367).
 //
 // Production host: CTreasurePool::addItem injects SlotID after free-slot /
 // eviction selection into ShouldForceCheckOnFullPoolInsert (SlotID ends at
@@ -230,9 +235,14 @@ inline auto IsSlotOutOfRange(const uint8 slotID) -> bool
     return slotID >= PoolSize;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3367 — lot free-inventory gate (dedicated expand residual 2957)
+// ---------------------------------------------------------------------------
+
 // CanLotWithInventory mirrors freeSlots != 0.
 //
-// Formula (slice 2957 dual-wire):
+// Formula (slice 3367 dedicated dual-wire expand residual 2957; prior pure
+// 1367 — formula unchanged):
 //   freeSlots != 0
 //
 // freeSlots — host-evaluated GetFreeSlotsCount() on the lotting character's
@@ -242,6 +252,13 @@ inline auto IsSlotOutOfRange(const uint8 slotID) -> bool
 //
 // Dual-wire of Go treasurepool.CanLotWithInventory.
 // Call site: PlanLotItemPreflight / CTreasurePool::lotItem after item lookup.
+// Prior pure port: slice 1367. Residual dual-wire suite: 2957 /
+// test_treasure_lot_inventory_2957. Dedicated dual-wire suite is
+// test_treasure_lot_inventory_3367. Sibling dual-wire gates:
+// ShouldForceCheckOnFullPoolInsert (2981), CanLotRareItem (3321),
+// ShouldAutoResolveSolo (3201), ShouldRejectNullMember (3060),
+// ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094),
+// ShouldUpdatePoolForChar (3112), ShouldFlushPool (3127) — left residual.
 inline auto CanLotWithInventory(const uint8 freeSlots) -> bool
 {
     return freeSlots != 0;

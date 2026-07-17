@@ -46,7 +46,8 @@ inline auto ApplyUnlimitedShotToRecycleChance(const int16 recycleChance, const b
     return recycleChance;
 }
 
-// --- Slice 2986: ShouldConsumeAmmo pure dual-wire ---
+// --- Slice 3364: ShouldConsumeAmmo pure dual-wire (dedicated expand residual 2986) ---
+// Residual dual-wire: slice 2986 (ShouldConsumeAmmo pure dual-wire suite retained).
 // Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
 // Production host: CBattleEntity::OnRangedAttack injects
 // (PAmmo != nullptr), recycleChance (post ResolveRecycleChance +
@@ -54,12 +55,26 @@ inline auto ApplyUnlimitedShotToRecycleChance(const int16 recycleChance, const b
 // ShouldConsumeAmmo before ++ammoConsumed / scavenge track / hitCount truncate.
 // Go dual-wire: attackutils.ShouldConsumeAmmo
 // (internal/attackutils/consume_ammo.go).
+//
+// Dual-wire notes (slice 3364 dedicated expand residual 2986):
+//   Formula unchanged from residual 1390 / residual dual-wire 2986:
+//     if !hasAmmo → false
+//     else → roll0to99 > recycleChance
+//   Early-return form (production free function + 3364 / 2986 inline/pin):
+//     if (!hasAmmo) return false; return roll0to99 > recycleChance;
+//   Index 3364: attackutils.ShouldConsumeAmmo pure dual-wire
+//     (dedicated expand residual 2986).
+//   Residual dual-wire suite: test_ranged_consume_ammo_2986 (retained).
+//   Dedicated dual-wire suite: test_ranged_consume_ammo_3364.
+//
+// Sibling dual-wires (ShouldDeleteUnlimitedShot, truncate, etc.) left alone.
 
 // ShouldConsumeAmmo mirrors:
 //   PAmmo != nullptr && xirand::GetRandomNumber(100) > recycleChance
 // Host injects roll in [0, 100).
 //
-// Formula (slice 2986 dual-wire):
+// Formula (slice 3364 dedicated dual-wire expand residual 2986; prior
+// residual 2986 / pure 1390 — formula unchanged):
 //   if !hasAmmo → false
 //   else → roll0to99 > recycleChance
 //
@@ -69,7 +84,7 @@ inline auto ApplyUnlimitedShotToRecycleChance(const int16 recycleChance, const b
 // true  → consume ammo for this shot
 // false → skip consume (no ammo, or recycle succeeds; strict >)
 //
-// Dual-wire of Go attackutils.ShouldConsumeAmmo.
+// Dual-wire of Go attackutils.ShouldConsumeAmmo (consume_ammo.go / slice 3364).
 // Call site: CBattleEntity::OnRangedAttack (~3291).
 inline auto ShouldConsumeAmmo(const bool hasAmmo, const int16 recycleChance, const int roll0to99) -> bool
 {
