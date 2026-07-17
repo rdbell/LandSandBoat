@@ -37,6 +37,9 @@
 //           (shell holder OR equipped item; residual expand 3001 / pure 1354)
 //   - 3294: ShouldAddMemberAfterOnlineLookup dedicated dual-wire
 //           (linkshellLoaded identity; residual expand 3050 / pure 1355)
+//   - 3324: ShouldAddMemberAfterOnlineLookup dedicated dual-wire expand residual 3050
+//           (linkshellLoaded identity; prior dedicated expand 3294 /
+//            residual expand 3050 / pure 1355; formula unchanged)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -607,8 +610,8 @@ inline auto ShouldLoadLinkshellOnOnlineAdd(const bool foundInCache) -> bool
 // ShouldAddMemberAfterOnlineLookup mirrors PLinkshell != nullptr after
 // load/cache lookup on AddOnlineMember before AddMember.
 //
-// Formula (slice 3294 dedicated dual-wire; residual expand 3050 / pure 1355 —
-// formula unchanged):
+// Formula (slice 3324 dedicated dual-wire; residual expand 3050 / pure 1355 —
+// prior dedicated expand 3294; formula unchanged):
 //   linkshellLoaded
 //
 // linkshellLoaded — host-evaluated (PLinkshell != nullptr) after cache reuse or
@@ -621,10 +624,11 @@ inline auto ShouldLoadLinkshellOnOnlineAdd(const bool foundInCache) -> bool
 // (PLinkshell != nullptr); on true AddMember(PChar, lsType, lsNum).
 // Prior pure port: slice 1355 (linkshell registry residual). Residual 3050
 // online-add residual batch left this gate pure; residual pins remain in
-// test_linkshell_registry_1355. Dedicated dual-wire suite is
-// test_linkshell_add_member_after_lookup_3294 (free == inline == pin direct
-// return; dense 2¹). Formula is unchanged from 1355 / residual 3050. Free /
-// pin / inline all use direct return of linkshellLoaded.
+// test_linkshell_registry_1355. Prior dedicated dual-wire suite: 3294 /
+// test_linkshell_add_member_after_lookup_3294. Dedicated dual-wire suite is
+// test_linkshell_add_member_after_lookup_3324 (free == inline == pin direct
+// return; dense 2¹). Formula is unchanged from 1355 / residual 3050 / 3294.
+// Free / pin / inline all use direct return of linkshellLoaded.
 // Sibling dual-wires (leave alone): ShouldLoadLinkshellOnOnlineAdd (3055),
 // ShouldRejectNullOnlineMember (3079), ShouldProcessLinkshellItem (3099),
 // ShouldUnloadLinkshell (3111), ShouldReturnCachedLinkshell (3126). Residual

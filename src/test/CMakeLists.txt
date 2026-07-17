@@ -3221,6 +3221,16 @@ set(SOURCES
     test_extravaganza_can_afford_cipher_3322.cpp
     test_command_permission_3323.h
     test_command_permission_3323.cpp
+    test_linkshell_add_member_after_lookup_3324.h
+    test_linkshell_add_member_after_lookup_3324.cpp
+    test_darkixion_can_break_horn_3325.h
+    test_darkixion_can_break_horn_3325.cpp
+    test_aistate_can_rest_3326.h
+    test_aistate_can_rest_3326.cpp
+    test_notoriety_add_member_3327.h
+    test_notoriety_add_member_3327.cpp
+    test_petutils_can_attack_target_3328.h
+    test_petutils_can_attack_target_3328.cpp
 )
 
 if(UNIX)

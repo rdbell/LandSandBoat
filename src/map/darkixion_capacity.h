@@ -6,7 +6,8 @@
 //   - 2885: CanBreakHorn residual dual-wire suite (checkHornBreak pure gate)
 //   - 3154: CanBreakHorn prior dedicated dual-wire (retained)
 //   - 3266: CanBreakHorn prior dedicated dual-wire expand residual 2885 (retained)
-//   - 3295: CanBreakHorn dedicated dual-wire (can_break_horn.go;
+//   - 3295: CanBreakHorn prior dedicated dual-wire expand residual 2885 (retained)
+//   - 3325: CanBreakHorn dedicated dual-wire (can_break_horn.go;
 //           expand residual 2885)
 //   - 2893: CanRestoreHorn residual dual-wire suite (Damsel Memento pure gate)
 //   - 3187: CanRestoreHorn dedicated dual-wire (can_restore_horn.go)
@@ -19,7 +20,8 @@
 //   - 2885: CanBreakHorn residual dual-wire suite
 //   - 3154: CanBreakHorn prior dedicated dual-wire (retained)
 //   - 3266: CanBreakHorn prior dedicated dual-wire expand residual 2885 (retained)
-//   - 3295: CanBreakHorn (!busy && (NORMAL||GLOWING) && attackerInFront)
+//   - 3295: CanBreakHorn prior dedicated dual-wire expand residual 2885 (retained)
+//   - 3325: CanBreakHorn (!busy && (NORMAL||GLOWING) && attackerInFront)
 //   - 2893: CanRestoreHorn residual dual-wire suite
 //   - 3187: CanRestoreHorn (animSub == HORN_BROKEN)
 //   - 2907: HornBreakRoll residual dual-wire suite
@@ -78,10 +80,12 @@
 // Prior dedicated dual-wire: slice 3154 / test_darkixion_can_break_horn_3154.
 // Prior dedicated dual-wire expand residual 2885: slice 3266 /
 //   test_darkixion_can_break_horn_3266 (retained).
-// Dedicated dual-wire expand residual 2885: slice 3295 /
-//   test_darkixion_can_break_horn_3295.
-// Dual-wire of Go darkixion.CanBreakHorn (slice 3295 dedicated expand residual
-// 2885; prior dedicated 3266 / 3154 retained).
+// Prior dedicated dual-wire expand residual 2885: slice 3295 /
+//   test_darkixion_can_break_horn_3295 (retained).
+// Dedicated dual-wire expand residual 2885: slice 3325 /
+//   test_darkixion_can_break_horn_3325.
+// Dual-wire of Go darkixion.CanBreakHorn (slice 3325 dedicated expand residual
+// 2885; prior dedicated 3295 / 3266 / 3154 retained).
 // Residual dual-wire suite: slice 2893 / test_darkixion_restore_horn_2893.
 // Dedicated dual-wire suite: slice 3187 / test_darkixion_can_restore_horn_3187.
 // Dual-wire of Go darkixion.CanRestoreHorn (slice 3187 dedicated; residual 2893).
@@ -109,10 +113,10 @@ inline constexpr int32 kAnimGlowing    = 3;
 
 // ---------------------------------------------------------------------------
 // Slice 2885 residual / 3154 prior dedicated / 3266 prior dedicated expand /
-// 3295 dedicated — CanBreakHorn pure dual-wire
+// 3295 prior dedicated expand / 3325 dedicated — CanBreakHorn pure dual-wire
 //
-// Formula (slice 3295 dedicated dual-wire expand residual 2885; prior
-// dedicated 3266 / 3154 / pure inject 0985 — formula unchanged):
+// Formula (slice 3325 dedicated dual-wire expand residual 2885; prior
+// dedicated 3295 / 3266 / 3154 / pure inject 0985 — formula unchanged):
 //   CanBreakHorn(busy, animSub, attackerInFront) =
 //     !busy && (animSub == kAnimNormal || animSub == kAnimGlowing) && attackerInFront
 //
@@ -121,26 +125,27 @@ inline constexpr int32 kAnimGlowing    = 3;
 // Prior pure port: slice 0985. Residual dual-wire suite: 2885 /
 // test_darkixion_break_horn_2885. Prior dedicated dual-wire suite: 3154 /
 // test_darkixion_can_break_horn_3154 (retained). Prior dedicated expand residual
-// suite: 3266 / test_darkixion_can_break_horn_3266 (retained). Dedicated
-// dual-wire suite is test_darkixion_can_break_horn_3295. Host still owns
-// isEntityBusy / getAnimationSub / isInfront inject, the 5% math.random roll,
-// and changeHornState(mob, 2) writeback.
+// suite: 3266 / test_darkixion_can_break_horn_3266 (retained). Prior dedicated
+// expand residual suite: 3295 / test_darkixion_can_break_horn_3295 (retained).
+// Dedicated dual-wire suite is test_darkixion_can_break_horn_3325. Host still
+// owns isEntityBusy / getAnimationSub / isInfront inject, the 5% math.random
+// roll, and changeHornState(mob, 2) writeback.
 // ---------------------------------------------------------------------------
 
 // CanBreakHorn is the pure gate half of checkHornBreak before the 5% roll:
 //
 //   !busy && (animSub == AnimNormal || animSub == AnimGlowing) && attackerInFront
 //
-// Formula (slice 3295 dedicated dual-wire expand residual 2885; prior
-// dedicated 3266 / 3154 / pure 0985 — formula unchanged):
+// Formula (slice 3325 dedicated dual-wire expand residual 2885; prior
+// dedicated 3295 / 3266 / 3154 / pure 0985 — formula unchanged):
 //
 //   CanBreakHorn(busy, animSub, attackerInFront) =
 //     !busy && (animSub == kAnimNormal || animSub == kAnimGlowing) && attackerInFront
 //
 // Host still owns isEntityBusy / getAnimationSub / isInfront inject, the 5%
 // math.random roll, and changeHornState(mob, 2) writeback.
-// Dual-wire of Go darkixion.CanBreakHorn (slice 3295 dedicated expand residual
-// 2885; prior dedicated 3266 / 3154 retained).
+// Dual-wire of Go darkixion.CanBreakHorn (slice 3325 dedicated expand residual
+// 2885; prior dedicated 3295 / 3266 / 3154 retained).
 inline auto CanBreakHorn(const bool busy, const int32 animSub, const bool attackerInFront) -> bool
 {
     return !busy && (animSub == kAnimNormal || animSub == kAnimGlowing) && attackerInFront;
