@@ -927,6 +927,16 @@ set(SOURCES
     test_synergy_claim_furnace_2877.cpp
     test_casket_drop_chance_2878.h
     test_casket_drop_chance_2878.cpp
+    test_artisan_buy_sack_2879.h
+    test_artisan_buy_sack_2879.cpp
+    test_apkallu_can_run_away_2880.h
+    test_apkallu_can_run_away_2880.cpp
+    test_extravaganza_afford_cipher_2881.h
+    test_extravaganza_afford_cipher_2881.cpp
+    test_reive_spawn_on_enable_2882.h
+    test_reive_spawn_on_enable_2882.cpp
+    test_follow_can_follow_2883.h
+    test_follow_can_follow_2883.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h
