@@ -17,9 +17,12 @@
 //   - 3465: ShouldSpawnOnEnable prior dedicated dual-wire expand residual 2882
 //           (prior dedicated 3411 / prior dedicated 3335 / prior dedicated 3163;
 //            spawn_on_enable.go)
-//   - 3499: ShouldSpawnOnEnable dedicated dual-wire expand residual 2882
+//   - 3499: ShouldSpawnOnEnable prior dedicated dual-wire expand residual 2882
 //           (prior dedicated 3465 / prior dedicated 3411 / prior dedicated 3335 /
 //            prior dedicated 3163; spawn_on_enable.go)
+//   - 3593: ShouldSpawnOnEnable dedicated dual-wire expand residual 2882
+//           (prior dedicated 3499 / prior dedicated 3465 / prior dedicated 3411 /
+//            prior dedicated 3335 / prior dedicated 3163; spawn_on_enable.go)
 //
 // Dual-wire index:
 //   - 2882: ShouldSpawnOnEnable residual dual-wire suite
@@ -30,7 +33,8 @@
 //   - 3335: ShouldSpawnOnEnable = !isAlive (prior dedicated expand residual 2882)
 //   - 3411: ShouldSpawnOnEnable = !isAlive (prior dedicated expand residual 2882)
 //   - 3465: ShouldSpawnOnEnable = !isAlive (prior dedicated expand residual 2882)
-//   - 3499: ShouldSpawnOnEnable = !isAlive (dedicated expand residual 2882)
+//   - 3499: ShouldSpawnOnEnable = !isAlive (prior dedicated expand residual 2882)
+//   - 3593: ShouldSpawnOnEnable = !isAlive (dedicated expand residual 2882)
 //
 // Production host is Lua under scripts/globals/colonization_reives.lua
 // xi.reives.enableReive / disableReive for both defenders (reiveData.mob)
@@ -58,8 +62,10 @@
 //   (test_colonizationreive_spawn_on_enable_3411).
 // Prior dedicated dual-wire expand residual suite: 3465
 //   (test_colonizationreive_spawn_on_enable_3465).
-// Dedicated dual-wire expand residual suite: 3499
+// Prior dedicated dual-wire expand residual suite: 3499
 //   (test_colonizationreive_spawn_on_enable_3499).
+// Dedicated dual-wire expand residual suite: 3593
+//   (test_colonizationreive_spawn_on_enable_3593).
 // Go dual-wire: colonizationreive.ShouldDespawnOnDisable
 //   (internal/colonizationreive/despawn_on_disable.go).
 // Residual dual-wire suite: 2889 (test_reive_despawn_on_disable_2889).
@@ -72,9 +78,10 @@ namespace reivehelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 3499 — enableReive spawn gate
-// (dedicated dual-wire expand residual 2882 / prior dedicated 3465 /
-// prior dedicated 3411 / prior dedicated 3335 / prior dedicated 3163)
+// Slice 3593 — enableReive spawn gate
+// (dedicated dual-wire expand residual 2882 / prior dedicated 3499 /
+// prior dedicated 3465 / prior dedicated 3411 / prior dedicated 3335 /
+// prior dedicated 3163)
 // ---------------------------------------------------------------------------
 
 // ShouldSpawnOnEnable mirrors enableReive spawn gate for defenders and
@@ -82,8 +89,9 @@ namespace reivehelpers
 //
 //   if not mob:isAlive() then SpawnMob(entryId) end
 //
-// Formula (slice 3499 dedicated dual-wire expand residual 2882 / prior 3465 /
-// prior 3411 / prior 3335 / prior 3163 / pure 1038 — formula unchanged):
+// Formula (slice 3593 dedicated dual-wire expand residual 2882 / prior 3499 /
+// prior 3465 / prior 3411 / prior 3335 / prior 3163 / pure 1038 — formula
+// unchanged):
 //   ShouldSpawnOnEnable(isAlive) = !isAlive
 //
 // isAlive is the host-injected mob:isAlive() result. Host still owns
@@ -97,8 +105,9 @@ namespace reivehelpers
 // Prior dedicated dual-wire expand residual suite: 3411 /
 // test_colonizationreive_spawn_on_enable_3411. Prior dedicated dual-wire
 // expand residual suite: 3465 / test_colonizationreive_spawn_on_enable_3465.
-// Dedicated dual-wire expand residual suite is
-// test_colonizationreive_spawn_on_enable_3499.
+// Prior dedicated dual-wire expand residual suite: 3499 /
+// test_colonizationreive_spawn_on_enable_3499. Dedicated dual-wire expand
+// residual suite is test_colonizationreive_spawn_on_enable_3593.
 // Host still owns GetMobByID, SpawnMob, setRespawnTime, obstacle combat
 // flags, and door animation.
 // Future Lua host injects isAlive into this helper instead of re-inlining
@@ -134,8 +143,8 @@ inline auto ShouldSpawnOnEnable(const bool isAlive) -> bool
 // Host still owns GetMobByID, DespawnMob, setRespawnTime, and door animation.
 // Future Lua host injects isSpawned into this helper instead of re-inlining
 // `isSpawned`.
-// Sibling ShouldSpawnOnEnable left alone under 3499 / prior 3465 / prior 3411
-// / prior 3335 / prior 3163 / residual 2882 (not re-expanded here).
+// Sibling ShouldSpawnOnEnable left alone under 3593 / prior 3499 / prior 3465 /
+// prior 3411 / prior 3335 / prior 3163 / residual 2882 (not re-expanded here).
 inline auto ShouldDespawnOnDisable(const bool isSpawned) -> bool
 {
     return isSpawned;

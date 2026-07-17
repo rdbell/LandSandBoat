@@ -3751,6 +3751,16 @@ set(SOURCES
     test_avatarpet_can_apply_buff_3587.cpp
     test_unity_reject_null_online_3588.h
     test_unity_reject_null_online_3588.cpp
+    test_enmity_zero_out_of_range_3589.h
+    test_enmity_zero_out_of_range_3589.cpp
+    test_notoriety_add_member_3590.h
+    test_notoriety_add_member_3590.cpp
+    test_alliance_attempt_leader_promote_3591.h
+    test_alliance_attempt_leader_promote_3591.cpp
+    test_linkshell_reject_null_add_member_3592.h
+    test_linkshell_reject_null_add_member_3592.cpp
+    test_colonizationreive_spawn_on_enable_3593.h
+    test_colonizationreive_spawn_on_enable_3593.cpp
 )
 
 if(UNIX)
