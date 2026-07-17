@@ -917,6 +917,16 @@ set(SOURCES
     test_monstrosity_instinct_loadout_2872.cpp
     test_dominion_xp_multiplier_2873.h
     test_dominion_xp_multiplier_2873.cpp
+    test_nyzul_free_floor_2874.h
+    test_nyzul_free_floor_2874.cpp
+    test_ambuscade_complete_instance_2875.h
+    test_ambuscade_complete_instance_2875.cpp
+    test_synthutils_can_hq_2876.h
+    test_synthutils_can_hq_2876.cpp
+    test_synergy_claim_furnace_2877.h
+    test_synergy_claim_furnace_2877.cpp
+    test_casket_drop_chance_2878.h
+    test_casket_drop_chance_2878.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h

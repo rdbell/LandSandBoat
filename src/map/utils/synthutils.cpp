@@ -21,6 +21,8 @@
 
 #include "synthutils.h"
 
+#include "utils/synthutils_capacity.h"
+
 #include "charutils.h"
 #include "common/database.h"
 #include "common/logging.h"
@@ -489,7 +491,9 @@ auto canSynthesizeHQ(CCharEntity* PChar, uint8 skillID) -> bool
             break;
     }
 
-    return (PChar->getMod(ModID) == 0);
+    // Pure dual-wire: synthutilshelpers::CanSynthesizeHQ (slice 2876).
+    // Host resolves skillID → Mod and injects getMod(ModID).
+    return synthutilshelpers::CanSynthesizeHQ(PChar->getMod(ModID));
 }
 
 auto calculateSynthResult(CCharEntity* PChar) -> uint8
