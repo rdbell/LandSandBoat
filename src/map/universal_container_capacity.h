@@ -23,7 +23,8 @@
 //   - 3469: ShouldClearSlot prior dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980 / prior 3354 / prior 3415)
 //   - 3532: ShouldClearSlot prior dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469)
 //   - 3566: ShouldClearSlot prior dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469 / prior 3532)
-//   - 3611: ShouldClearSlot dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469 / prior 3532 / prior 3566)
+//   - 3611: ShouldClearSlot prior dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469 / prior 3532 / prior 3566)
+//   - 3656: ShouldClearSlot dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469 / prior 3532 / prior 3566 / prior 3611)
 //
 // Dual-wire index:
 //   - 2965: ShouldAllowSetItem residual dual-wire suite
@@ -37,7 +38,8 @@
 //   - 3469: ShouldClearSlot prior dedicated dual-wire (expand residual 2813 / prior 2980 / prior 3354 / prior 3415)
 //   - 3532: ShouldClearSlot prior dedicated dual-wire (expand residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469)
 //   - 3566: ShouldClearSlot prior dedicated dual-wire (expand residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469 / prior 3532)
-//   - 3611: ShouldClearSlot = slotInRange
+//   - 3611: ShouldClearSlot prior dedicated dual-wire (expand residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469 / prior 3532 / prior 3566)
+//   - 3656: ShouldClearSlot = slotInRange
 //
 // Production host: CUContainer::SetItem (universal_container.cpp) injects
 // slotID < m_PItem.size() and m_lock into ShouldAllowSetItem, then
@@ -57,8 +59,9 @@
 // Residual dual-wire suite: 2980 (test_universal_clear_slot_2980).
 // Prior dedicated dual-wire suites: 3354 (test_universal_clear_slot_3354),
 // 3415 (test_universal_clear_slot_3415), 3469 (test_universal_clear_slot_3469),
-// 3532 (test_universal_clear_slot_3532), 3566 (test_universal_clear_slot_3566).
-// Dedicated dual-wire suite: 3611 (test_universal_clear_slot_3611).
+// 3532 (test_universal_clear_slot_3532), 3566 (test_universal_clear_slot_3566),
+// 3611 (test_universal_clear_slot_3611).
+// Dedicated dual-wire suite: 3656 (test_universal_clear_slot_3656).
 
 namespace ucontainerhelpers
 {
@@ -89,7 +92,7 @@ namespace ucontainerhelpers
 // test_universalcontainer_set_item_3248, 3288 /
 // test_universalcontainer_set_item_3288. Dedicated dual-wire suite is
 // test_universalcontainer_set_item_3319. Sibling dual-wire:
-// ShouldClearSlot (3611 / prior 3566 / prior 3532 / prior 3469 / prior 3415 / prior 3354 / prior 2980).
+// ShouldClearSlot (3656 / prior 3611 / prior 3566 / prior 3532 / prior 3469 / prior 3415 / prior 3354 / prior 2980).
 inline auto ShouldAllowSetItem(const bool slotInRange, const bool locked) -> bool
 {
     return slotInRange && !locked;
@@ -118,14 +121,15 @@ inline auto PlanSetItemCountDelta(const bool newItemNonNull, const bool slotOccu
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3611 — ClearSlot range gate (dedicated expand residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469 / prior 3532 / prior 3566)
+// Slice 3656 — ClearSlot range gate (dedicated expand residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469 / prior 3532 / prior 3566 / prior 3611)
 // ---------------------------------------------------------------------------
 
 // ShouldClearSlot mirrors the ClearSlot range gate:
 //   slotID < m_PItem.size()
 //
-// Formula (slice 3611 dedicated dual-wire; residual expand 2813 / prior 2980 /
-// prior 3354 / prior 3415 / prior 3469 / prior 3532 / prior 3566 — formula unchanged):
+// Formula (slice 3656 dedicated dual-wire; residual expand 2813 / prior 2980 /
+// prior 3354 / prior 3415 / prior 3469 / prior 3532 / prior 3566 / prior 3611 —
+// formula unchanged):
 //   slotInRange
 //
 // slotInRange — host-evaluated slotID < m_PItem.size()
@@ -144,8 +148,8 @@ inline auto PlanSetItemCountDelta(const bool newItemNonNull, const bool slotOccu
 // test_universal_clear_slot_2980. Prior dedicated dual-wire suites: 3354 /
 // test_universal_clear_slot_3354, 3415 / test_universal_clear_slot_3415,
 // 3469 / test_universal_clear_slot_3469, 3532 / test_universal_clear_slot_3532,
-// 3566 / test_universal_clear_slot_3566.
-// Dedicated dual-wire suite is test_universal_clear_slot_3611. Sibling
+// 3566 / test_universal_clear_slot_3566, 3611 / test_universal_clear_slot_3611.
+// Dedicated dual-wire suite is test_universal_clear_slot_3656. Sibling
 // dual-wire: ShouldAllowSetItem (3319; leave residual — do not thrash set_item).
 inline auto ShouldClearSlot(const bool slotInRange) -> bool
 {
@@ -154,8 +158,9 @@ inline auto ShouldClearSlot(const bool slotInRange) -> bool
 
 // ShouldAdjustCountOnClearSlot documents that ClearSlot does NOT change m_count
 // (parity quirk vs SetItem(nullptr), which decrements when the slot was occupied).
-// Residual pure port: slice 2813 (paired with ShouldClearSlot dual-wire 3611 /
-// prior 3566 / prior 3532 / prior 3469 / prior 3415 / prior 3354 / prior 2980).
+// Residual pure port: slice 2813 (paired with ShouldClearSlot dual-wire 3656 /
+// prior 3611 / prior 3566 / prior 3532 / prior 3469 / prior 3415 / prior 3354 /
+// prior 2980).
 inline auto ShouldAdjustCountOnClearSlot() -> bool
 {
     return false;
