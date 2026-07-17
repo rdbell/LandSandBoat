@@ -2661,6 +2661,16 @@ set(SOURCES
     test_zone_skip_level_restriction_3042.cpp
     test_zone_delete_level_restriction_3043.h
     test_zone_delete_level_restriction_3043.cpp
+    test_action_del_actor_on_attack_3044.h
+    test_action_del_actor_on_attack_3044.cpp
+    test_attackround_create_daken_3045.h
+    test_attackround_create_daken_3045.cpp
+    test_attack_run_enspell_3046.h
+    test_attack_run_enspell_3046.cpp
+    test_ranger_evaluate_camouflage_retain_3047.h
+    test_ranger_evaluate_camouflage_retain_3047.cpp
+    test_zone_clear_costume_3048.h
+    test_zone_clear_costume_3048.cpp
 )
 
 if(UNIX)

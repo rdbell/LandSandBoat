@@ -32,6 +32,7 @@
 //           statusNull || powerMatches on updateCharLevelRestriction)
 //   - 3043: ShouldDeleteExistingLevelRestriction (hasRestriction && !shouldSkip
 //           on updateCharLevelRestriction)
+//   - 3048: ShouldClearCostumeOnZoneIn (hasCostume identity on CharZoneIn)
 //
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty;
@@ -71,6 +72,11 @@
 // (internal/zone/delete_level_restriction.go);
 // zone.ShouldApplyZoneLevelRestriction
 // (internal/zone/apply_level_restriction.go).
+// Production host: CZone::CharZoneIn (zone.cpp) injects
+// HasStatusEffect(Costume) into ShouldClearCostumeOnZoneIn; on true
+// DelStatusEffectSilent(Costume). Sibling ShouldDismountOnZoneIn runs just
+// before (residual 2673).
+// Go dual-wire: zone.ShouldClearCostumeOnZoneIn (internal/zone/costume_gate.go).
 
 namespace zonehelpers
 {
@@ -467,7 +473,28 @@ inline auto ShouldDismountOnZoneIn(const bool mounted, const bool canUseMount) -
 {
     return mounted && !canUseMount;
 }
-inline auto ShouldClearCostumeOnZoneIn(const bool hasCostume) -> bool { return hasCostume; }
+
+// ShouldClearCostumeOnZoneIn mirrors HasStatusEffect(Costume) on CharZoneIn.
+//
+// Formula (slice 3048 dual-wire):
+//   hasCostume
+//
+// hasCostume — host-evaluated StatusEffectContainer->HasStatusEffect(Costume)
+// true  → DelStatusEffectSilent(Costume) during zone-in
+// false → no costume clear (effect absent)
+//
+// Identity gate: clear costume status on zone-in when present.
+//
+// Dual-wire of Go zone.ShouldClearCostumeOnZoneIn.
+// Call site: CZone::CharZoneIn — host injects HasStatusEffect(Costume).
+// Prior pure port: slice 2682 (zone-in Costume gate). Residual pins remain in
+// test_zone_costume_gate_2682; dedicated dual-wire suite is
+// test_zone_clear_costume_3048. Sibling zone-in gate: ShouldDismountOnZoneIn
+// (residual 2673) runs just before this clear.
+inline auto ShouldClearCostumeOnZoneIn(const bool hasCostume) -> bool
+{
+    return hasCostume;
+}
 
 // WeatherCycleDays mirrors zone WeatherCycle constant used in UpdateWeather.
 constexpr uint32 WeatherCycleDays = 2160;

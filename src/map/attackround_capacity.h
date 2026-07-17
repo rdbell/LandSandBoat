@@ -6,7 +6,22 @@
 #include <cstddef>
 #include <cstdint>
 
-// Pure CAttackRound::CreateAttacks multi-hit preference and clamp policy.
+// Pure CAttackRound multi-hit / kick / daken / follow-up preference and clamp policy.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1374 / 1375: multi-hit + kick / daken / follow-up pure policy suite
+//   - 2742: PlanInitialWeaponAttacks
+//   - 2756: ResolveCreateAttacksPlan
+//   - 2757: ResolveCreateKickAttacksPlan
+//   - 2758: ResolveCreateDakenAttackPlan
+//   - 2768: post-build plan helpers
+//   - 3045: ShouldCreateDakenAttack (isPC identity / TYPE_PC gate)
+//
+// Production host: CAttackRound::CreateDakenAttack (attackround.cpp ~541)
+// injects (m_attacker->objtype == TYPE_PC) into ShouldCreateDakenAttack before
+// shuriken ammo lookup and DAKEN roll.
+// Go dual-wire: attackround.ShouldCreateDakenAttack
+// (internal/attackround/create_daken_attack.go).
 
 namespace attackroundhelpers
 {
@@ -363,7 +378,22 @@ inline auto ResolveCreateKickAttacksPlan(
     return plan;
 }
 
-// ShouldCreateDakenAttack mirrors TYPE_PC.
+// ShouldCreateDakenAttack mirrors TYPE_PC gate before daken throw ammo/proc work.
+//
+// Formula (slice 3045 dual-wire):
+//   isPC
+//
+// isPC — host-evaluated (m_attacker->objtype == TYPE_PC)
+// true  → host may inspect shuriken ammo and roll DAKEN (then plan throw)
+// false → skip ammo/proc RNG consumption for the TYPE_PC path
+//
+// Dual-wire of Go attackround.ShouldCreateDakenAttack.
+// Call site: CAttackRound::CreateDakenAttack before ammo / DAKEN roll:
+//   if (ShouldCreateDakenAttack(m_attacker->objtype == TYPE_PC)) {
+//       // ammo isShuriken + rolled < DAKEN
+//   }
+// Prior pure port: slice 1375. Residual throw gate: ShouldProcDakenThrow.
+// Residual plan assembly: ResolveCreateDakenAttackPlan (slice 2758).
 inline auto ShouldCreateDakenAttack(const bool isPC) -> bool
 {
     return isPC;

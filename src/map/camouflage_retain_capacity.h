@@ -7,6 +7,19 @@
 // Pure Camouflage retain-chance policy from CBattleEntity::OnRangedAttack
 // after RemoveAmmo (RETAIN_CAMOUFLAGE > 0 branch). Host injects behind/beside
 // geometry, distances, and RNG.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1391: residual pure port (full retain / strip / facing / chance suite)
+//   - 3047: ShouldEvaluateCamouflageRetain (RETAIN_CAMOUFLAGE > 0 evaluate gate)
+//
+// Production host:
+//   - CBattleEntity::OnRangedAttack (~3472) injects getMod(Mod::RETAIN_CAMOUFLAGE)
+//     into ShouldEvaluateCamouflageRetain before retain roll / strip logic.
+//
+// Go dual-wire:
+//   - ranger.ShouldEvaluateCamouflageRetain (evaluate_camouflage_retain.go)
+// Residual Go surface: internal/ranger/camouflage_retain.go (facing / chance /
+// strip helpers).
 
 namespace camouflageretainhelpers
 {
@@ -36,7 +49,28 @@ enum class CamouflageFacingZone : uint8
     Behind = 2,
 };
 
-// ShouldEvaluateCamouflageRetain mirrors RETAIN_CAMOUFLAGE > 0.
+// --- Slice 3047: ShouldEvaluateCamouflageRetain pure dual-wire ---
+// Residual pure port: slice 1391 (OnRangedAttack RETAIN_CAMOUFLAGE policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects
+// getMod(Mod::RETAIN_CAMOUFLAGE) into ShouldEvaluateCamouflageRetain before
+// retain roll / strip logic (~3472). When false, host falls through to
+// ShouldStripAllDetectableWithoutRetain (else-if strip-all Detectable).
+// Go dual-wire: ranger.ShouldEvaluateCamouflageRetain
+// (internal/ranger/evaluate_camouflage_retain.go).
+// Sibling residual gates remain on this header (facing / chance / strip).
+
+// ShouldEvaluateCamouflageRetain is the RETAIN_CAMOUFLAGE mod gate before
+// retain roll / strip logic.
+//
+// Formula (slice 3047 dual-wire):
+//   ShouldEvaluateCamouflageRetain(retainCamouflageMod) = retainCamouflageMod > 0
+//
+// retainCamouflageMod — host-evaluated getMod(Mod::RETAIN_CAMOUFLAGE)
+// true  → evaluate retain chance / strip Detectable or partial stealth
+// false → fall through to ShouldStripAllDetectableWithoutRetain (strip all)
+//
+// Dual-wire of Go ranger.ShouldEvaluateCamouflageRetain.
+// Call site: CBattleEntity::OnRangedAttack (~3472).
 inline auto ShouldEvaluateCamouflageRetain(const int16 retainCamouflageMod) -> bool
 {
     return retainCamouflageMod > 0;

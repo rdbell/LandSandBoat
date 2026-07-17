@@ -1334,6 +1334,11 @@ auto runRangedUseSangeMessage3040SelfTests() -> bool;
 auto runPartyPushEffectsPacket3041SelfTests() -> bool;
 auto runZoneSkipLevelRestriction3042SelfTests() -> bool;
 auto runZoneDeleteLevelRestriction3043SelfTests() -> bool;
+auto runActionDelActorOnAttack3044SelfTests() -> bool;
+auto runAttackroundCreateDaken3045SelfTests() -> bool;
+auto runAttackRunEnspell3046SelfTests() -> bool;
+auto runRangerEvaluateCamouflageRetain3047SelfTests() -> bool;
+auto runZoneClearCostume3048SelfTests() -> bool;
 
 namespace
 {
@@ -2645,6 +2650,11 @@ namespace
         ok = runPartyPushEffectsPacket3041SelfTests() && ok;
         ok = runZoneSkipLevelRestriction3042SelfTests() && ok;
         ok = runZoneDeleteLevelRestriction3043SelfTests() && ok;
+        ok = runActionDelActorOnAttack3044SelfTests() && ok;
+        ok = runAttackroundCreateDaken3045SelfTests() && ok;
+        ok = runAttackRunEnspell3046SelfTests() && ok;
+        ok = runRangerEvaluateCamouflageRetain3047SelfTests() && ok;
+        ok = runZoneClearCostume3048SelfTests() && ok;
 
         return ok;
     }

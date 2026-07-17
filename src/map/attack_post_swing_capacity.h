@@ -2,6 +2,21 @@
 
 #include "common/cbasetypes.h"
 
+// Pure post-swing effect-gate helpers (slice 1399 residual).
+// Dual-wire residual expansions:
+//   - 3046: ShouldRunEnspell (live-target gate before HandleEnspell)
+//
+// Production host: CBattleEntity::OnAttack (battle_entity.cpp ~3844) injects
+// PTarget->GetHPP() into ShouldRunEnspell after ShouldRunEnspellAndSpikes
+// admits hit/guard/block (non-Daken). When false, host skips
+// battleutils::HandleEnspell while still calling HandleSpikesDamage under the
+// outer gate.
+// Go dual-wire: attack.ShouldRunEnspell (internal/attack/run_enspell.go).
+//
+// Sibling residual gates in this header:
+//   - ShouldRunEnspellAndSpikes (resolution + Daken outer gate)
+//   - ShouldRunParrySpikes (parry + lazy Battuta)
+
 namespace attackpostswinghelpers
 {
 
@@ -24,6 +39,30 @@ inline auto ShouldRunEnspellAndSpikes(const uint8 resolution, const uint8 attack
     return resolution != ResolutionMiss && resolution != ResolutionParry && attackType != AttackTypeDaken;
 }
 
+// ShouldRunEnspell suppresses enspell handling after the target dies.
+//
+// Formula (slice 3046 dual-wire):
+//   targetHPP > 0
+//   // suppresses enspell after target dies
+//
+// targetHPP — host-evaluated PTarget->GetHPP()
+// true  → host may call battleutils::HandleEnspell
+// false → host skips HandleEnspell (ordinary spikes still run under outer gate)
+//
+// Dual-wire of Go attack.ShouldRunEnspell.
+// Call site: CBattleEntity::OnAttack host inject (targetHPP) ~3844:
+//   if (ShouldRunEnspellAndSpikes(resolution, attackType))
+//   {
+//       if (ShouldRunEnspell(PTarget->GetHPP()))
+//       {
+//           battleutils::HandleEnspell(...);
+//       }
+//       battleutils::HandleSpikesDamage(...);
+//   }
+// Prior pure port: slice 1399 (melee post-swing effect gates residual).
+// Sibling residual gates: ShouldRunEnspellAndSpikes / ShouldRunParrySpikes.
+// Coverage: test_attack_run_enspell_3046 (not in CMake/main).
+// Edges: 0 (dead/skip), 1 / 50 / 100 / 255 (live/run).
 inline auto ShouldRunEnspell(const uint8 targetHPP) -> bool
 {
     return targetHPP > 0;

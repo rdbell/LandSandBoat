@@ -1,5 +1,22 @@
 #pragma once
 
+// Pure free-function capacity for CBattleEntity::processActionEffectFlags
+// (battle_entity.cpp). Residual pure ports: slices 1631 / 1709 / 2306.
+//
+// Dual-wire expansions of individual free functions (OmegaXI pure dual-wire):
+//   - 3044: ShouldDelActorOnAttack (emittedHostile identity → actor OnAttack strip)
+//
+// Residual sibling not dual-wired in 3044: ShouldDelActorAttackFlag (physical
+// hostile action categories → actor ATTACK strip).
+//
+// Production host: CBattleEntity::processActionEffectFlags (battle_entity.cpp)
+// accumulates emittedHostile from plan.countAsHostileEmit across targets; after
+// the loop injects into ShouldDelActorOnAttack; on true DelStatusEffectsByFlag
+// (OnAttack) on actor. Sibling ShouldDelActorAttackFlag still gates physical
+// ATTACK strip.
+// Go dual-wire: aistate.ShouldDelActorOnAttack
+// (internal/aistate/del_actor_on_attack.go).
+
 #include "common/cbasetypes.h"
 
 #include <cstdint>
@@ -60,13 +77,32 @@ inline auto ResolveTargetEffectPlan(
     return plan;
 }
 
-// ShouldDelActorOnAttack mirrors emittedHostile → DelStatusEffectsByFlag(OnAttack) on actor.
+// ShouldDelActorOnAttack mirrors emittedHostile → DelStatusEffectsByFlag(OnAttack)
+// on the action actor after processActionEffectFlags target loop.
+//
+// Formula (slice 3044 dual-wire):
+//   emittedHostile
+//
+// emittedHostile — host-accumulated OR of plan.countAsHostileEmit across targets
+// true  → DelStatusEffectsByFlag(OnAttack) on actor
+// false → no actor ON_ATTACK strip
+//
+// Dual-wire of Go aistate.ShouldDelActorOnAttack
+// (internal/aistate/del_actor_on_attack.go).
+// Call site: CBattleEntity::processActionEffectFlags after the target loop —
+// host injects emittedHostile.
+// Prior pure port: slices 1631 / 1709 / 2306 (action-effect-flags pure + wire +
+// target effect policy). Residual pins remain in test_action_effect_flags_1631;
+// dedicated dual-wire suite is test_action_del_actor_on_attack_3044.
+// Residual sibling: ShouldDelActorAttackFlag (physical ATTACK strip; not dual-
+// wired in 3044).
 inline auto ShouldDelActorOnAttack(const bool emittedHostile) -> bool
 {
     return emittedHostile;
 }
 
 // ShouldDelActorAttackFlag mirrors physical hostile action categories stripping ATTACK.
+// Residual pure surface (not dual-wired in 3044; sibling of ShouldDelActorOnAttack).
 inline auto ShouldDelActorAttackFlag(const bool emittedHostile, const uint8 actionType) -> bool
 {
     if (!emittedHostile)
