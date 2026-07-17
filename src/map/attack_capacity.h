@@ -200,6 +200,20 @@ inline auto IsCoverActive(const bool coverUserPresent, const bool coverUserAlive
     return coverUserPresent && coverUserAlive;
 }
 
+// CoverResolution is CAttack::CheckCover's post-lookup mutation plan. A live
+// cover user both marks the swing covered and replaces its victim.
+struct CoverResolution
+{
+    bool covered{};
+    bool replaceVictim{};
+};
+
+inline auto ResolveCoverCheck(const bool coverUserPresent, const bool coverUserAlive) -> CoverResolution
+{
+    const bool active = IsCoverActive(coverUserPresent, coverUserAlive);
+    return { active, active };
+}
+
 // HasThirdEyeForAnticipate mirrors third eye effect present.
 inline auto HasThirdEyeForAnticipate(const bool hasThirdEye) -> bool
 {

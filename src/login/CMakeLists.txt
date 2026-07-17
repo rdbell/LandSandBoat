@@ -11,6 +11,7 @@ set(SOURCES
     data_session.cpp
     handler.h
     handler_session.h
+    handler_session_peer.h
     handler_session.cpp
     login_errors.h
     login_helpers.h

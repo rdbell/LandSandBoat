@@ -588,16 +588,14 @@ bool CAttack::IsCovered() const
 bool CAttack::CheckCover()
 {
     CBattleEntity* PCoverAbilityUser = m_attackRound->GetCoverAbilityUserEntity();
-    if (attackhelpers::IsCoverActive(PCoverAbilityUser != nullptr, PCoverAbilityUser != nullptr && PCoverAbilityUser->isAlive()))
+    const auto resolution = attackhelpers::ResolveCoverCheck(
+        PCoverAbilityUser != nullptr,
+        PCoverAbilityUser != nullptr && PCoverAbilityUser->isAlive());
+    m_isCovered = resolution.covered;
+    if (resolution.replaceVictim)
     {
-        m_isCovered = true;
         m_victim    = PCoverAbilityUser;
     }
-    else
-    {
-        m_isCovered = false;
-    }
-
     return m_isCovered;
 }
 

@@ -20,17 +20,19 @@
 */
 
 #include "handler_session.h"
+#include "handler_session_peer.h"
 
 handler_session::handler_session(asio::ssl::stream<asio::ip::tcp::socket> socket)
 : socket_(std::move(socket))
 {
     asio::error_code ec = {};
     socket_.lowest_layer().set_option(asio::socket_base::reuse_address(true));
-    ipAddress = socket_.lowest_layer().remote_endpoint(ec).address().to_string();
+    const auto remoteAddress = socket_.lowest_layer().remote_endpoint(ec).address().to_string();
+    const auto peerPlan      = planHandlerSessionPeer(remoteAddress, static_cast<bool>(ec));
+    ipAddress                = peerPlan.ipAddress;
 
-    if (ec)
+    if (peerPlan.closeSocket)
     {
-        ipAddress = "error";
         socket_.lowest_layer().close();
     }
 }

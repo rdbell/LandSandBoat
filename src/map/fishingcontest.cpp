@@ -20,6 +20,7 @@
 */
 
 #include "fishingcontest.h"
+#include "fishingcontest_rank_entry.h"
 
 #include <algorithm>
 #include <cstring>
@@ -336,20 +337,7 @@ FishingContestEntry* GetFishRankEntry(uint8 position)
     // We should only return a valid entry to a player if the contest is in a state of releasing results
     // But we can also return them for GMs or support requests if we want to see the current table entries
 
-    // If we have an entry already included, use it
-    if (position < FishingContestEntries.size())
-    {
-        return &FishingContestEntries[position];
-    }
-    else if (position >= FishingContestEntries.size() &&
-             !FakeContestEntries.empty())
-    {
-        // This entire block is used to pad the fishing entries table if there are fewer than 15 entries
-        // Used modulo as a failsafe in case entry number exceeds the number of fake entries (should never happen)
-        return &FakeContestEntries[(position - FishingContestEntries.size()) % FakeContestEntries.size()];
-    }
-
-    return nullptr;
+    return RankEntryAt(FishingContestEntries, FakeContestEntries, position);
 }
 
 FishingContestEntry* GetPlayerEntry(CCharEntity* PChar)

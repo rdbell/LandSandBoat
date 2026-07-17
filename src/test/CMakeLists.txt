@@ -595,6 +595,8 @@ set(SOURCES
     test_login_auth_constants.cpp
     test_login_handler_session_2581.h
     test_login_handler_session_2581.cpp
+    test_login_handler_session_peer_2749.h
+    test_login_handler_session_peer_2749.cpp
     test_login_auth_password_1307.h
     test_login_auth_password_1307.cpp
     test_login_auth_version_error_1308.h
@@ -1235,6 +1237,8 @@ set(SOURCES
     test_fishingcontest_state_2623.cpp
     test_fishingcontest_ranking_2642.h
     test_fishingcontest_ranking_2642.cpp
+    test_fishingcontest_rank_entry_2750.h
+    test_fishingcontest_rank_entry_2750.cpp
     test_fishingcontest_placeholders_2645.h
     test_fishingcontest_placeholders_2645.cpp
     test_world_http_server_cache_2644.h
@@ -1448,6 +1452,8 @@ set(SOURCES
     test_attackround_initial_weapon_2742.cpp
     test_attack_critical_ratio_2745.h
     test_attack_critical_ratio_2745.cpp
+    test_attack_cover_resolution_2748.h
+    test_attack_cover_resolution_2748.cpp
     test_map_networking_sequence_gate_2696.h
     test_map_networking_sequence_gate_2696.cpp
     test_map_networking_acknowledgement_2699.h
