@@ -3081,6 +3081,16 @@ set(SOURCES
     test_colonizationreive_despawn_on_disable_3252.cpp
     test_aistate_can_rest_3253.h
     test_aistate_can_rest_3253.cpp
+    test_unitychat_add_member_after_lookup_3254.h
+    test_unitychat_add_member_after_lookup_3254.cpp
+    test_recast_erase_on_expire_3255.h
+    test_recast_erase_on_expire_3255.cpp
+    test_merit_lower_merit_3256.h
+    test_merit_lower_merit_3256.cpp
+    test_dynamis_snap_entry_3257.h
+    test_dynamis_snap_entry_3257.cpp
+    test_assault_issue_tag_3258.h
+    test_assault_issue_tag_3258.cpp
 )
 
 if(UNIX)

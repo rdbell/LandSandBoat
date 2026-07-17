@@ -1544,6 +1544,11 @@ auto runEnmityRejectNonMob3250SelfTests() -> bool;
 auto runAttackroundCreateDaken3251SelfTests() -> bool;
 auto runColonizationreiveDespawnOnDisable3252SelfTests() -> bool;
 auto runAistateCanRest3253SelfTests() -> bool;
+auto runUnitychatAddMemberAfterLookup3254SelfTests() -> bool;
+auto runRecastEraseOnExpire3255SelfTests() -> bool;
+auto runMeritLowerMerit3256SelfTests() -> bool;
+auto runDynamisSnapEntry3257SelfTests() -> bool;
+auto runAssaultIssueTag3258SelfTests() -> bool;
 
 namespace
 {
@@ -3065,6 +3070,11 @@ namespace
         ok = runAttackroundCreateDaken3251SelfTests() && ok;
         ok = runColonizationreiveDespawnOnDisable3252SelfTests() && ok;
         ok = runAistateCanRest3253SelfTests() && ok;
+        ok = runUnitychatAddMemberAfterLookup3254SelfTests() && ok;
+        ok = runRecastEraseOnExpire3255SelfTests() && ok;
+        ok = runMeritLowerMerit3256SelfTests() && ok;
+        ok = runDynamisSnapEntry3257SelfTests() && ok;
+        ok = runAssaultIssueTag3258SelfTests() && ok;
 
         return ok;
     }

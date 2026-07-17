@@ -3,14 +3,17 @@
 // Pure Dynamis helpers shared by dual-wire slices:
 //   - 2857 residual: AtOrigin (zoneOnZoneIn origin equality half)
 //   - 3197: AtOrigin dedicated dual-wire (at_origin.go)
-//   - 3078: ShouldSnapToEntryPos (zoneOnZoneIn origin snap gate)
+//   - 3078: ShouldSnapToEntryPos residual dual-wire suite
+//   - 3257: ShouldSnapToEntryPos dedicated dual-wire expand residual 3197
 //   - 2921 residual: CanUnlockSJ (somnial threshold startEvent param)
 //   - 3151: CanUnlockSJ dedicated dual-wire (unlock_sj.go)
 //
 // Dual-wire index:
 //   - 2857: AtOrigin residual dual-wire notes
 //   - 3197: AtOrigin = x == 0 && y == 0 && z == 0
-//   - 3078: ShouldSnapToEntryPos = hasDynamisEffect && AtOrigin(x, y, z)
+//   - 3078: ShouldSnapToEntryPos residual dual-wire suite
+//   - 3257: ShouldSnapToEntryPos = hasDynamisEffect && AtOrigin(x, y, z)
+//     dedicated dual-wire expand residual 3197
 //   - 2921: CanUnlockSJ residual dual-wire suite
 //   - 3151: CanUnlockSJ = hasSJRestriction ? 1 : 0
 //
@@ -26,12 +29,14 @@
 // (setPos / startEvent / delStatusEffectSilent) remains host-owned.
 //
 // Prior pure ports: OmegaXI slices 1119 (zone), 1077 (somnial).
-// Residual dual-wire suite: 2857 / 2921.
-// Dedicated dual-wire suite: 3078 / 3151 / 3197.
+// Residual dual-wire suite: 2857 / 2921 / 3078.
+// Dedicated dual-wire suite: 3078 / 3151 / 3197 / 3257.
 //
-// Index 3078: dynamis.ShouldSnapToEntryPos pure dual-wire.
+// Index 3078: dynamis.ShouldSnapToEntryPos residual dual-wire suite.
 // Index 3151: dynamis.CanUnlockSJ pure dual-wire.
 // Index 3197: dynamis.AtOrigin pure dual-wire.
+// Index 3257: dynamis.ShouldSnapToEntryPos dedicated dual-wire expand
+// residual 3197.
 // Go dual-wire: dynamis.AtOrigin (internal/dynamis/at_origin.go);
 // dynamis.ShouldSnapToEntryPos (internal/dynamis/snap_entry.go);
 // dynamis.CanUnlockSJ (internal/dynamis/unlock_sj.go).
@@ -52,12 +57,13 @@ namespace dynamishelpers
 //
 // Exact float equality (no epsilon). IEEE −0.0f equals +0.0f.
 // Dual-wire of OmegaXI internal/dynamis AtOrigin (at_origin.go).
-// Used by ShouldSnapToEntryPos (3078). Call site: future Lua host inject of
-// zoneOnZoneIn origin equality half; hosts share one pure surface.
+// Used by ShouldSnapToEntryPos (3257 expand residual 3197; residual 3078).
+// Call site: future Lua host inject of zoneOnZoneIn origin equality half;
+// hosts share one pure surface.
 // Prior pure port: slice 1119. Residual dual-wire suite: 2857 /
 // test_dynamis_snap_entry_2857. Dedicated dual-wire suite is
 // test_dynamis_at_origin_3197.
-// Sibling left alone: ShouldSnapToEntryPos (3078); CanUnlockSJ (3151).
+// Sibling left alone: CanUnlockSJ (3151).
 // Index 3197: dynamis.AtOrigin pure dual-wire.
 inline auto AtOrigin(const float x, const float y, const float z) -> bool
 {
@@ -65,12 +71,14 @@ inline auto AtOrigin(const float x, const float y, const float z) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Origin-snap gate (ShouldSnapToEntryPos slice 3078; composes AtOrigin)
+// Origin-snap gate (ShouldSnapToEntryPos slice 3257 expand residual 3197;
+// residual suite 3078; composes AtOrigin)
 // ---------------------------------------------------------------------------
 
 // ShouldSnapToEntryPos is the pure free-function form of the origin-snap gate.
 //
-// Formula (slice 3078 dual-wire):
+// Formula (slice 3257 dedicated dual-wire expand residual 3197; prior
+// dedicated 3078 / residual 2857 / pure 1119 — formula unchanged):
 //   hasDynamisEffect && AtOrigin(x, y, z)
 //
 // hasDynamisEffect — host-evaluated effective DYNAMIS status
@@ -79,13 +87,18 @@ inline auto AtOrigin(const float x, const float y, const float z) -> bool
 // true  → host setPos(unpack(info.entryPos))
 // false → leave position alone (or eject CS when no DYNAMIS)
 //
-// Dual-wire of Go dynamis.ShouldSnapToEntryPos (snap_entry.go).
+// Dual-wire of Go dynamis.ShouldSnapToEntryPos (snap_entry.go / slice 3257).
 // Call site: future Lua host inject of zoneOnZoneIn origin-snap branch;
 // OmegaXI ResolveZoneIn.SnapToEntryPos dual-wires this free function.
-// Prior pure port: slice 1119; residual dual-wire notes: slice 2857.
-// Index 3078: dynamis.ShouldSnapToEntryPos pure dual-wire.
+// Prior pure port: slice 1119; residual dual-wire notes: slice 2857;
+// prior dedicated dual-wire suite: slice 3078 / test_dynamis_snap_entry_3078.
+// Dedicated dual-wire suite is test_dynamis_snap_entry_3257.
+// Index 3257: dynamis.ShouldSnapToEntryPos dedicated dual-wire expand
+// residual 3197.
 // Sibling left alone this slice: CanUnlockSJ (3151 / residual 2921).
 // Composes AtOrigin (3197 dedicated dual-wire; residual 2857).
+// Coverage: free == inline == pin; residual poles (effect on/off, origin vs
+// non-origin); dense hasDynamis × positions. Residual 3078 suite retained.
 inline auto ShouldSnapToEntryPos(const bool hasDynamisEffect, const float x, const float y, const float z) -> bool
 {
     return hasDynamisEffect && AtOrigin(x, y, z);
@@ -113,7 +126,7 @@ inline auto ShouldSnapToEntryPos(const bool hasDynamisEffect, const float x, con
 // test_dynamis_unlock_sj_2921. Dedicated dual-wire suite is
 // test_dynamis_can_unlock_sj_3151. startEvent / menuBits / finish
 // delStatusEffectSilent remain host-owned.
-// Sibling left alone: ShouldSnapToEntryPos (3078).
+// Sibling left alone: ShouldSnapToEntryPos (3257 / residual 3078).
 inline auto CanUnlockSJ(const bool hasSJRestriction) -> int
 {
     return hasSJRestriction ? 1 : 0;

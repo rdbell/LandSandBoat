@@ -13,16 +13,18 @@
 //   - 2827: RecastIDFromLootRecast
 //   - 2931: ShouldStampOnZeroRecast residual dual-wire (expanded 3193)
 //   - 3052: ShouldExpireRecast (now >= TimeStamp + RecastTime Check gate)
-//   - 3070: ShouldEraseOnExpire (!isAbility erase vs ability zero-retain)
+//   - 3070: ShouldEraseOnExpire residual dual-wire (expanded 3255)
 //   - 3104: ShouldUpdateChargeTime (chargeTime != 0 update gate on Load existing)
 //   - 3122: ShouldUpdateMaxCharges (maxCharges != 0 update gate on Load existing)
 //   - 3136: IsSimpleRecast (chargeTime == 0 simple full-replace gate on Load)
 //   - 3193: ShouldStampOnZeroRecast (RecastTime == 0 stamp gate on charged Load)
+//   - 3255: ShouldEraseOnExpire (!isAbility erase vs ability zero-retain)
 //
 // Production host: CRecastContainer::Load (recast_container.cpp) injects
 // RecastTime == 0s into ShouldStampOnZeroRecast on the charged path (slice 3193).
 // Go dual-wire: recast.ShouldStampOnZeroRecast (internal/recast/stamp_zero.go).
-// Check host injects type==RECAST_ABILITY into ShouldEraseOnExpire (slice 3070).
+// Check host injects type==RECAST_ABILITY into ShouldEraseOnExpire (slice 3255;
+// residual dual-wire 3070).
 // Go dual-wire: recast.ShouldEraseOnExpire (internal/recast/erase_on_expire.go).
 // Load host injects chargeTime != 0s into ShouldUpdateChargeTime (slice 3104).
 // Go dual-wire: recast.ShouldUpdateChargeTime (internal/recast/update_charge_time.go).
@@ -189,7 +191,7 @@ inline auto IsAbilityRecastType(const bool isAbility) -> bool
 //
 // Dual-wire of Go recast.ShouldExpireRecast.
 // Call site: CRecastContainer::Check expiry gate.
-// Sibling dual-wire: ShouldEraseOnExpire (slice 3070).
+// Sibling dual-wire: ShouldEraseOnExpire (slice 3255; residual 3070).
 inline auto ShouldExpireRecast(const int64 nowUnits, const int64 timeStampUnits, const int64 recastTimeUnits) -> bool
 {
     return nowUnits >= timeStampUnits + recastTimeUnits;
@@ -197,7 +199,7 @@ inline auto ShouldExpireRecast(const int64 nowUnits, const int64 timeStampUnits,
 
 // ShouldEraseOnExpire mirrors magic (and non-ability) erase vs zero-retain.
 //
-// Formula (slice 3070 dual-wire):
+// Formula (slice 3255 dual-wire; residual 3070):
 //   !isAbilityType
 //
 // isAbilityType — host-evaluated type == RECAST_ABILITY
@@ -206,7 +208,8 @@ inline auto ShouldExpireRecast(const int64 nowUnits, const int64 timeStampUnits,
 //
 // Dual-wire of Go recast.ShouldEraseOnExpire.
 // Call site: CRecastContainer::Check after ShouldExpireRecast is true.
-// Prior pure port: slice 1370. Sibling dual-wire: ShouldExpireRecast (3052).
+// Prior pure port: slice 1370. Residual dual-wire: 3070. Sibling dual-wire:
+// ShouldExpireRecast (3052).
 inline auto ShouldEraseOnExpire(const bool isAbilityType) -> bool
 {
     return !isAbilityType;

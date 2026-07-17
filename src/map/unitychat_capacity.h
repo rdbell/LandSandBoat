@@ -16,7 +16,10 @@
 //           (same formula; free==inline==pin + dense 2³ suite)
 //   - 3050: ShouldLoadUnityChatOnOnlineAdd (!foundInCache && leader != 0)
 //   - 3075: ShouldRejectNullOnlineMember (charNull identity null-PChar gate)
-//   - 3096: ShouldAddMemberAfterOnlineLookup (unityLoaded identity post-lookup gate)
+//   - 3096: ShouldAddMemberAfterOnlineLookup residual dual-wire
+//           (unityLoaded identity post-lookup gate)
+//   - 3254: ShouldAddMemberAfterOnlineLookup dedicated expand residual 3096
+//           (same formula; free==inline==pin direct return + dense 2¹ suite)
 //   - 3116: ShouldEraseUnityChatAfterDelOnline (!delMemberRemaining roster-empty erase)
 //   - 3130: ShouldReturnCachedUnityChat (foundInList identity)
 //
@@ -38,7 +41,7 @@
 // Production host: unitychat::AddOnlineMember injects (PUnity != nullptr) into
 // ShouldAddMemberAfterOnlineLookup; on true PUnity->AddMember(PChar).
 // Go dual-wire: unitychat.ShouldAddMemberAfterOnlineLookup
-// (internal/unitychat/add_member_after_lookup.go).
+// (internal/unitychat/add_member_after_lookup.go; residual 3096 + dedicated 3254).
 // Production host: unitychat::DelOnlineMember injects DelMember(PChar) into
 // ShouldEraseUnityChatAfterDelOnline; on true UnityChatList.erase(leader).
 // Go dual-wire: unitychat.ShouldEraseUnityChatAfterDelOnline
@@ -147,7 +150,7 @@ inline auto ShouldLoadUnityChatOnOnlineAdd(const bool foundInCache, const uint32
 // ShouldAddMemberAfterOnlineLookup mirrors PUnity != nullptr after load/cache
 // lookup on AddOnlineMember before AddMember.
 //
-// Formula (slice 3096 dual-wire):
+// Formula (slice 3096 residual dual-wire; slice 3254 dedicated expand):
 //   unityLoaded
 //
 // unityLoaded — host-evaluated (PUnity != nullptr) after cache reuse or
@@ -158,11 +161,15 @@ inline auto ShouldLoadUnityChatOnOnlineAdd(const bool foundInCache, const uint32
 // Dual-wire of Go unitychat.ShouldAddMemberAfterOnlineLookup.
 // Call site: unitychat::AddOnlineMember — host injects (PUnity != nullptr);
 // on true AddMember(PChar). Prior pure port: slice 1356 (unitychat capacity
-// residual). Residual pins remain in test_unitychat_capacity_1356; dedicated
-// dual-wire suite is test_unity_add_member_lookup_3096. Sibling dual-wires
-// (leave alone): ShouldLoadUnityChatOnOnlineAdd (3050),
-// ShouldRejectNullOnlineMember (3075). Residual siblings: always-false return,
-// erase-after-del, null warning string (still 1356).
+// residual). Residual dual-wire pins remain in test_unity_add_member_lookup_3096;
+// dedicated dual-wire suite is test_unitychat_add_member_after_lookup_3254
+// (free == inline == pin direct return; dense 2¹). Formula unchanged from
+// 1356 / 3096. Free / pin / inline all use direct return of unityLoaded.
+// Sibling dual-wires (leave alone): ShouldLoadUnityChatOnOnlineAdd (3050),
+// ShouldRejectNullOnlineMember (3075), ShouldReceiveUnityPacket (2933/3190),
+// ShouldEraseUnityChatAfterDelOnline (3116), ShouldReturnCachedUnityChat (3130).
+// Residual siblings: always-false return, null warning string, exception format
+// (still 1356).
 inline auto ShouldAddMemberAfterOnlineLookup(const bool unityLoaded) -> bool
 {
     return unityLoaded;
