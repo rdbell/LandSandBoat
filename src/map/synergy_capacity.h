@@ -23,8 +23,10 @@
 //           (prior dedicated expand 3383; prior dedicated 3117; formula unchanged)
 //   - 3494: CanClaimFurnace prior dedicated dual-wire expand residual 2877
 //           (prior dedicated expand 3315; formula unchanged)
-//   - 3551: CanClaimFurnace dedicated dual-wire expand residual 2877
+//   - 3551: CanClaimFurnace prior dedicated dual-wire expand residual 2877
 //           (prior dedicated expand 3494; formula unchanged)
+//   - 3596: CanClaimFurnace dedicated dual-wire expand residual 2877
+//           (prior dedicated expand 3551; formula unchanged)
 //
 // Dual-wire index:
 //   - 2877: CanClaimFurnace residual dual-wire suite
@@ -50,7 +52,9 @@
 //   - 3494: CanClaimFurnace = state == FurnaceAvailable
 //           prior dedicated dual-wire expand residual 2877 (prior dedicated expand 3315)
 //   - 3551: CanClaimFurnace = state == FurnaceAvailable
-//           dedicated dual-wire expand residual 2877 (prior dedicated expand 3494)
+//           prior dedicated dual-wire expand residual 2877 (prior dedicated expand 3494)
+//   - 3596: CanClaimFurnace = state == FurnaceAvailable
+//           dedicated dual-wire expand residual 2877 (prior dedicated expand 3551)
 //
 // Production hosts are Lua under scripts/globals/synergy.lua
 // (furnaceStates + synergyFurnaceOnTrigger / synergyFurnaceOnTrade).
@@ -77,7 +81,8 @@
 // test_synergy_claim_furnace_3285 (prior dedicated expand residual 2877; not in CMake/main),
 // test_synergy_claim_furnace_3315 (prior dedicated expand residual 2877; not in CMake/main),
 // test_synergy_claim_furnace_3494 (prior dedicated expand residual 2877; not in CMake/main),
-// test_synergy_claim_furnace_3551 (dedicated expand residual 2877; not in CMake/main),
+// test_synergy_claim_furnace_3551 (prior dedicated expand residual 2877; not in CMake/main),
+// test_synergy_claim_furnace_3596 (dedicated expand residual 2877; not in CMake/main),
 // test_synergy_trade_furnace_2896 (residual),
 // test_synergy_trade_furnace_3098 (prior dedicated dual-wire; not in CMake/main),
 // test_synergy_trade_furnace_3359 (dedicated expand residual 2896; not in CMake/main),
@@ -100,7 +105,8 @@ constexpr uint8 FurnaceClaimed = 1;
 // ---------------------------------------------------------------------------
 // Slice 2877 residual / 3065 prior dedicated / 3239 prior expand residual 2877
 // / 3285 prior expand residual 2877 / 3315 prior expand residual 2877
-// / 3494 prior expand residual 2877 / 3551 dedicated expand residual 2877
+// / 3494 prior expand residual 2877 / 3551 prior expand residual 2877
+// / 3596 dedicated expand residual 2877
 // — synergyFurnaceOnTrigger AVAILABLE claim gate
 // ---------------------------------------------------------------------------
 
@@ -111,9 +117,9 @@ constexpr uint8 FurnaceClaimed = 1;
 //     xi.synergy.attachToSynergyFurnace(player, npc)
 //   end
 //
-// Formula (slice 3551 dual-wire expand residual 2877; prior dedicated expand
-// 3494; prior dedicated expand 3315; prior dedicated expand 3285; prior
-// dedicated expand 3239; prior dedicated 3065):
+// Formula (slice 3596 dual-wire expand residual 2877; prior dedicated expand
+// 3551; prior dedicated expand 3494; prior dedicated expand 3315; prior
+// dedicated expand 3285; prior dedicated expand 3239; prior dedicated 3065):
 //   CanClaimFurnace(state) = state == FurnaceAvailable
 //
 // state is the host-injected npc:getLocalVar(synergyFurnaceState).
@@ -126,8 +132,9 @@ constexpr uint8 FurnaceClaimed = 1;
 // test_synergy_claim_furnace_2877. Prior dedicated dual-wire suite:
 // test_synergy_claim_furnace_3065. Prior dedicated expand residual suites:
 // test_synergy_claim_furnace_3239, test_synergy_claim_furnace_3285,
-// test_synergy_claim_furnace_3315, test_synergy_claim_furnace_3494.
-// Dedicated expand residual suite is test_synergy_claim_furnace_3551.
+// test_synergy_claim_furnace_3315, test_synergy_claim_furnace_3494,
+// test_synergy_claim_furnace_3551.
+// Dedicated expand residual suite is test_synergy_claim_furnace_3596.
 // Host still owns message / attach / timers after a true gate.
 // Formula is unchanged.
 inline auto CanClaimFurnace(const uint8 state) -> bool
