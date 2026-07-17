@@ -1,8 +1,39 @@
 #pragma once
 
+// Pure CPetEntity::Die death-transition gates and orchestration extracted so
+// native tests can pin policy without entity/AI/Lua instances.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 2951: ShouldDespawnForZoning (living player-pet zoning-despawn gate)
+//   - residual 1414: ShouldDetachPlayerMaster, Apply orchestration
+//
+// Production host: CPetEntity::Die (entities/pet_entity.cpp) injects health /
+// master / petZoningInfo scalars into ShouldDespawnForZoning and
+// ShouldDetachPlayerMaster before petdeathhelpers::Apply.
+// Go dual-wire: petentity.ShouldDespawnForZoning
+// (internal/petentity/despawn_zoning.go). Prior pure port: slices 1414 / 2261.
+
 namespace petdeathhelpers
 {
 
+// ShouldDespawnForZoning reports whether CPetEntity::Die should force-despawn
+// (preserve for zoning respawn) instead of entering the death state.
+//
+// Formula (slice 2951 dual-wire):
+//   hpPositive && hasMaster && masterIsPlayer && respawnPet
+//
+// Host-injected scalars (no entity pointers):
+//   hpPositive     — health.hp > 0
+//   hasMaster      — PMaster != nullptr
+//   masterIsPlayer — PMaster != nullptr && PMaster->objtype == TYPE_PC
+//   respawnPet     — masterIsPlayer &&
+//                    static_cast<CCharEntity*>(PMaster)->petZoningInfo.respawnPet
+// true  → host takes Internal_Despawn branch so the pet can be restored
+// false → host enters Internal_Die death state
+//
+// Dual-wire of Go petentity.ShouldDespawnForZoning
+// (internal/petentity/despawn_zoning.go).
+// Call site: CPetEntity::Die (pet_entity.cpp).
 inline auto ShouldDespawnForZoning(
     const bool hpPositive,
     const bool hasMaster,

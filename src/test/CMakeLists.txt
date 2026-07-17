@@ -2471,6 +2471,16 @@ set(SOURCES
     test_aicontainer_can_dispatch_2947.cpp
     test_mapwire_open_socket_2948.h
     test_mapwire_open_socket_2948.cpp
+    test_zone_high_targid_2949.h
+    test_zone_high_targid_2949.cpp
+    test_ranger_short_circuit_ae_2950.h
+    test_ranger_short_circuit_ae_2950.cpp
+    test_petentity_despawn_zoning_2951.h
+    test_petentity_despawn_zoning_2951.cpp
+    test_aicontainer_can_change_state_2952.h
+    test_aicontainer_can_change_state_2952.cpp
+    test_interaction_skip_priority_2953.h
+    test_interaction_skip_priority_2953.cpp
 )
 
 if(UNIX)

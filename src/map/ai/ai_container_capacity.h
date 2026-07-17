@@ -7,12 +7,14 @@
 //   - 2947: CanDispatch (controller presence outer gate for public
 //           Cast/Engage/ChangeTarget/Disengage/WeaponSkill/Ability/
 //           RangedAttack and typed MobSkill/PetSkill/UseItem)
+//   - 2952: CanChangeState (current-state change gate for external means)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
-// the controller method.
-// Go dual-wire: aicontainer.CanDispatch
-// (internal/aicontainer/can_dispatch.go). Prior pure port: slice 1189.
+// the controller method. CAIContainer::CanChangeState injects current-state
+// presence and current->CanChangeState() into CanChangeState.
+// Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
+// aicontainer.CanChangeState (can_change_state.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -38,6 +40,29 @@ namespace aicontainerhelpers
 inline auto CanDispatch(const bool hasController) -> bool
 {
     return hasController;
+}
+
+// CanChangeState reports whether the AI may change state from external means.
+// Mirrors CAIContainer::CanChangeState:
+//
+//   return !GetCurrentState() || GetCurrentState()->CanChangeState();
+//
+// Formula (slice 2952 dual-wire):
+//   !hasCurrentState || currentCanChange
+//
+// hasCurrentState — host-evaluated current-state presence:
+//   GetCurrentState() != nullptr
+// currentCanChange — host-injected current state's CanChangeState() result
+//   (ignored when idle / no current state)
+// true  → host may change state from external means
+// false → host must not change state (current state blocks)
+//
+// Dual-wire of Go aicontainer.CanChangeState
+// (internal/aicontainer/can_change_state.go).
+// Call site: CAIContainer::CanChangeState.
+inline auto CanChangeState(const bool hasCurrentState, const bool currentCanChange) -> bool
+{
+    return !hasCurrentState || currentCanChange;
 }
 
 } // namespace aicontainerhelpers

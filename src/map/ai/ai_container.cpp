@@ -396,7 +396,11 @@ void CAIContainer::resumeNextState()
 
 bool CAIContainer::CanChangeState()
 {
-    return !GetCurrentState() || GetCurrentState()->CanChangeState();
+    // Dual-wire: aicontainerhelpers::CanChangeState (slice 2952)
+    const auto* const current          = GetCurrentState();
+    const bool        hasCurrentState  = current != nullptr;
+    const bool        currentCanChange = hasCurrentState && current->CanChangeState();
+    return aicontainerhelpers::CanChangeState(hasCurrentState, currentCanChange);
 }
 
 bool CAIContainer::CanFollowPath()

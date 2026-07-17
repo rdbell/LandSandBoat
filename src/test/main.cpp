@@ -1239,6 +1239,11 @@ auto runBesiegedAffordSanction2945SelfTests() -> bool;
 auto runCampaignAffordNotes2946SelfTests() -> bool;
 auto runAicontainerCanDispatch2947SelfTests() -> bool;
 auto runMapwireOpenSocket2948SelfTests() -> bool;
+auto runZoneHighTargid2949SelfTests() -> bool;
+auto runRangerShortCircuitAE2950SelfTests() -> bool;
+auto runPetentityDespawnZoning2951SelfTests() -> bool;
+auto runAicontainerCanChangeState2952SelfTests() -> bool;
+auto runInteractionSkipPriority2953SelfTests() -> bool;
 
 namespace
 {
@@ -2455,6 +2460,11 @@ namespace
         ok = runCampaignAffordNotes2946SelfTests() && ok;
         ok = runAicontainerCanDispatch2947SelfTests() && ok;
         ok = runMapwireOpenSocket2948SelfTests() && ok;
+        ok = runZoneHighTargid2949SelfTests() && ok;
+        ok = runRangerShortCircuitAE2950SelfTests() && ok;
+        ok = runPetentityDespawnZoning2951SelfTests() && ok;
+        ok = runAicontainerCanChangeState2952SelfTests() && ok;
+        ok = runInteractionSkipPriority2953SelfTests() && ok;
 
         return ok;
     }

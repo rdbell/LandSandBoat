@@ -19,10 +19,14 @@
 //   - 2652: ShouldStopZoneTimers (idle shutdown)
 //   - 2848: IsMobAwayFromHome / ShouldReportAllMobsHomeAndHealed
 //   - 2939: ShouldStampZoneEmptyTime (charListEmpty after DecreaseZoneCounter)
+//   - 2949: ShouldRejectHighCharTargid (targid >= CharTargidHighThreshold / 0x700)
 //
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty.
 // Go dual-wire: zone.ShouldStampZoneEmptyTime (internal/zone/stamp_empty.go).
+// Production host: CZone::IncreaseZoneCounter (zone.cpp) injects
+// GetNewCharTargID() into ShouldRejectHighCharTargid; on true ShowError + return.
+// Go dual-wire: zone.ShouldRejectHighCharTargid (internal/zone/high_targid.go).
 
 namespace zonehelpers
 {
@@ -79,6 +83,18 @@ inline auto ShouldRejectIncreaseZoneCounter(
 }
 
 // ShouldRejectHighCharTargid mirrors targid >= 0x700 after GetNewCharTargID.
+//
+// Formula (slice 2949 dual-wire):
+//   targid >= CharTargidHighThreshold
+//
+// CharTargidHighThreshold is pinned at 0x700 (same as Go zone.CharTargidHighThreshold).
+// true  → reject insert (ShowError high-targid prefix; update packets ignored)
+// false → accept insert path (InsertPC may proceed)
+//
+// Dual-wire of Go zone.ShouldRejectHighCharTargid.
+// Call site: CZone::IncreaseZoneCounter after GetNewCharTargID assigns PChar->targid.
+// Prior pure port: slice 1363 (zone policy suite). Residual pins remain in
+// test_zone_policy_1363; dedicated dual-wire suite is test_zone_high_targid_2949.
 inline auto ShouldRejectHighCharTargid(const uint16 targid) -> bool
 {
     return targid >= CharTargidHighThreshold;
