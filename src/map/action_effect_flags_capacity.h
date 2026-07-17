@@ -5,11 +5,13 @@
 //
 // Dual-wire expansions of individual free functions (OmegaXI pure dual-wire):
 //   - 3044: ShouldDelActorOnAttack residual dual-wire expand
-//   - 3178: ShouldDelActorOnAttack dedicated dual-wire
+//   - 3178: ShouldDelActorOnAttack prior dedicated dual-wire expand residual 3044
 //           (emittedHostile identity → actor OnAttack strip;
 //            residual expand 3044 / pure 1631 / 1709 / 2306)
+//   - 3401: ShouldDelActorOnAttack dedicated dual-wire expand residual 3044
+//           (prior dedicated 3178; pure 1631 / 1709 / 2306 — formula unchanged)
 //
-// Residual sibling not dual-wired in 3178/3044: ShouldDelActorAttackFlag
+// Residual sibling not dual-wired in 3401/3178/3044: ShouldDelActorAttackFlag
 // (physical hostile action categories → actor ATTACK strip).
 //
 // Production host: CBattleEntity::processActionEffectFlags (battle_entity.cpp)
@@ -20,7 +22,8 @@
 // Go dual-wire: aistate.ShouldDelActorOnAttack
 // (internal/aistate/del_actor_on_attack.go).
 // Residual dual-wire suite: 3044 / test_action_del_actor_on_attack_3044.
-// Dedicated dual-wire suite: 3178 / test_aistate_del_actor_on_attack_3178.
+// Prior dedicated dual-wire suite: 3178 / test_aistate_del_actor_on_attack_3178.
+// Dedicated dual-wire suite: 3401 / test_aistate_del_actor_on_attack_3401.
 
 #include "common/cbasetypes.h"
 
@@ -85,8 +88,8 @@ inline auto ResolveTargetEffectPlan(
 // ShouldDelActorOnAttack mirrors emittedHostile → DelStatusEffectsByFlag(OnAttack)
 // on the action actor after processActionEffectFlags target loop.
 //
-// Formula (slice 3178 dedicated dual-wire; residual expand 3044 / pure 1631 /
-// 1709 / 2306 — formula unchanged):
+// Formula (slice 3401 dedicated dual-wire expand residual 3044; prior dedicated
+// 3178; pure 1631 / 1709 / 2306 — formula unchanged):
 //   emittedHostile
 //
 // emittedHostile — host-accumulated OR of plan.countAsHostileEmit across targets
@@ -99,18 +102,19 @@ inline auto ResolveTargetEffectPlan(
 // host injects emittedHostile.
 // Prior pure port: slices 1631 / 1709 / 2306 (action-effect-flags pure + wire +
 // target effect policy). Residual dual-wire suite: 3044 /
-// test_action_del_actor_on_attack_3044. Dedicated dual-wire suite is
-// test_aistate_del_actor_on_attack_3178. Formula is unchanged; this slice only
+// test_action_del_actor_on_attack_3044. Prior dedicated dual-wire suite: 3178 /
+// test_aistate_del_actor_on_attack_3178. Dedicated dual-wire suite is
+// test_aistate_del_actor_on_attack_3401. Formula is unchanged; this slice only
 // expands dual-wire docs + index + dedicated suite.
 // Residual sibling: ShouldDelActorAttackFlag (physical ATTACK strip; not dual-
-// wired in 3178/3044).
+// wired in 3401/3178/3044).
 inline auto ShouldDelActorOnAttack(const bool emittedHostile) -> bool
 {
     return emittedHostile;
 }
 
 // ShouldDelActorAttackFlag mirrors physical hostile action categories stripping ATTACK.
-// Residual pure surface (not dual-wired in 3178/3044; sibling of ShouldDelActorOnAttack).
+// Residual pure surface (not dual-wired in 3401/3178/3044; sibling of ShouldDelActorOnAttack).
 inline auto ShouldDelActorAttackFlag(const bool emittedHostile, const uint8 actionType) -> bool
 {
     if (!emittedHostile)

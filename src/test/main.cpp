@@ -1689,6 +1689,11 @@ auto runCharSetPendingPush3395SelfTests() -> bool;
 auto runArtisanCanClaimScroll3396SelfTests() -> bool;
 auto runCampaignDebitSelected3397SelfTests() -> bool;
 auto runSalvageResetTempBox3398SelfTests() -> bool;
+auto runRangedDeleteUnlimitedShot3399SelfTests() -> bool;
+auto runCommandAuditGMCommand3400SelfTests() -> bool;
+auto runAistateDelActorOnAttack3401SelfTests() -> bool;
+auto runSpellReturnZeroNoMPCost3402SelfTests() -> bool;
+auto runLinkshellSendMessageIPC3403SelfTests() -> bool;
 
 namespace
 {
@@ -3355,6 +3360,11 @@ namespace
         ok = runArtisanCanClaimScroll3396SelfTests() && ok;
         ok = runCampaignDebitSelected3397SelfTests() && ok;
         ok = runSalvageResetTempBox3398SelfTests() && ok;
+        ok = runRangedDeleteUnlimitedShot3399SelfTests() && ok;
+        ok = runCommandAuditGMCommand3400SelfTests() && ok;
+        ok = runAistateDelActorOnAttack3401SelfTests() && ok;
+        ok = runSpellReturnZeroNoMPCost3402SelfTests() && ok;
+        ok = runLinkshellSendMessageIPC3403SelfTests() && ok;
 
         return ok;
     }

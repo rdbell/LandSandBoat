@@ -3371,6 +3371,16 @@ set(SOURCES
     test_campaign_debit_selected_3397.cpp
     test_salvage_reset_temp_box_3398.h
     test_salvage_reset_temp_box_3398.cpp
+    test_ranged_delete_unlimited_shot_3399.h
+    test_ranged_delete_unlimited_shot_3399.cpp
+    test_command_audit_gm_command_3400.h
+    test_command_audit_gm_command_3400.cpp
+    test_aistate_del_actor_on_attack_3401.h
+    test_aistate_del_actor_on_attack_3401.cpp
+    test_spell_return_zero_no_mp_cost_3402.h
+    test_spell_return_zero_no_mp_cost_3402.cpp
+    test_linkshell_send_message_ipc_3403.h
+    test_linkshell_send_message_ipc_3403.cpp
 )
 
 if(UNIX)

@@ -16,7 +16,8 @@
 //   - 1355: registry load / online / register residual capacity
 //   - 2929: ShouldRejectNullAddMember residual dual-wire expand
 //   - 2958: ShouldRejectDuplicateAddMember (alreadyInList identity)
-//   - 2977: ShouldSendLinkshellMessageIPC (messageNonEmpty identity)
+//   - 2977: ShouldSendLinkshellMessageIPC residual dual-wire
+//           (messageNonEmpty identity; pure 1354 / 2171)
 //   - 2993: ShouldPushStoredLinkshellMessage (messageNonEmpty identity)
 //   - 3001: ShouldBreakInventoryPearl residual dual-wire expand
 //           (shell holder OR equipped item; pure 1354)
@@ -40,6 +41,9 @@
 //   - 3324: ShouldAddMemberAfterOnlineLookup dedicated dual-wire expand residual 3050
 //           (linkshellLoaded identity; prior dedicated expand 3294 /
 //            residual expand 3050 / pure 1355; formula unchanged)
+//   - 3403: ShouldSendLinkshellMessageIPC dedicated dual-wire expand residual 2977
+//           (messageNonEmpty identity; residual dual-wire 2977 /
+//            pure 1354 / 2171; formula unchanged)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -180,7 +184,8 @@ inline auto IsLinkshellSlot1(const uint8 lsNum) -> bool
 
 // ShouldSendLinkshellMessageIPC mirrors message.size() != 0 after DB update.
 //
-// Formula (slice 2977 dual-wire):
+// Formula (slice 3403 dedicated dual-wire; residual expand 2977 / pure 1354 /
+// 2171 — formula unchanged):
 //   messageNonEmpty
 //
 // messageNonEmpty — host-evaluated message.size() != 0
@@ -189,7 +194,13 @@ inline auto IsLinkshellSlot1(const uint8 lsNum) -> bool
 //
 // Dual-wire of Go linkshell.ShouldSendLinkshellMessageIPC.
 // Call site: CLinkshell::setMessage host inject (message.size() != 0).
+//   if (ShouldSendLinkshellMessageIPC(message.size() != 0))
+//       message::send(ipc::LinkshellSetMessage{...});
 // Prior pure port: slices 1354 / 2171 (capacity suite; setMessage value model).
+// Residual dual-wire suite: 2977 / test_linkshell_send_message_ipc_2977.
+// Dedicated dual-wire suite is test_linkshell_send_message_ipc_3403.
+// Formula is unchanged; this slice only expands dual-wire docs + index +
+// dedicated suite. Sibling push gate: ShouldPushStoredLinkshellMessage (2993).
 inline auto ShouldSendLinkshellMessageIPC(const bool messageNonEmpty) -> bool
 {
     return messageNonEmpty;
