@@ -2129,6 +2129,11 @@ auto runTreasureForceCheckFull3835SelfTests() -> bool;
 auto runUniversalClearSlot3836SelfTests() -> bool;
 auto runRangerStripPartialRetain3837SelfTests() -> bool;
 auto runPortermoogleCanRetrieveItem3838SelfTests() -> bool;
+auto runSynthutilsCanSynthesizeHQ3839SelfTests() -> bool;
+auto runNyzulFloor100Vigil3840SelfTests() -> bool;
+auto runAssaultIssueTag3841SelfTests() -> bool;
+auto runBesiegedAffordSanction3842SelfTests() -> bool;
+auto runLatentRejectProcess3843SelfTests() -> bool;
 
 namespace
 {
@@ -4235,6 +4240,11 @@ namespace
         ok = runUniversalClearSlot3836SelfTests() && ok;
         ok = runRangerStripPartialRetain3837SelfTests() && ok;
         ok = runPortermoogleCanRetrieveItem3838SelfTests() && ok;
+        ok = runSynthutilsCanSynthesizeHQ3839SelfTests() && ok;
+        ok = runNyzulFloor100Vigil3840SelfTests() && ok;
+        ok = runAssaultIssueTag3841SelfTests() && ok;
+        ok = runBesiegedAffordSanction3842SelfTests() && ok;
+        ok = runLatentRejectProcess3843SelfTests() && ok;
 
         return ok;
     }
