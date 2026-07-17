@@ -4321,6 +4321,16 @@ set(SOURCES
     test_follow_can_follow_3872.cpp
     test_apkallu_can_run_away_3873.h
     test_apkallu_can_run_away_3873.cpp
+    test_extravaganza_can_afford_cipher_3874.h
+    test_extravaganza_can_afford_cipher_3874.cpp
+    test_garrison_fail_by_death_3875.h
+    test_garrison_fail_by_death_3875.cpp
+    test_spawn_reject_night_3876.h
+    test_spawn_reject_night_3876.cpp
+    test_status_reject_null_3877.h
+    test_status_reject_null_3877.cpp
+    test_voidwalker_should_upgrade_ki_3878.h
+    test_voidwalker_should_upgrade_ki_3878.cpp
 )
 
 if(UNIX)
