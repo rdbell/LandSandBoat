@@ -897,6 +897,16 @@ set(SOURCES
     test_chocobo_number_to_rank_2862.cpp
     test_assault_proceed_update_2863.h
     test_assault_proceed_update_2863.cpp
+    test_einherjar_cycle_wave_2864.h
+    test_einherjar_cycle_wave_2864.cpp
+    test_abyssea_surveyor_decode_2868.h
+    test_abyssea_surveyor_decode_2868.cpp
+    test_assault_issue_tag_2867.h
+    test_assault_issue_tag_2867.cpp
+    test_abyssea_buff_power_2866.h
+    test_abyssea_buff_power_2866.cpp
+    test_einherjar_empty_timeout_2865.h
+    test_einherjar_empty_timeout_2865.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h

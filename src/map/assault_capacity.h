@@ -5,13 +5,14 @@
 // Pure Assault helpers shared by dual-wire slices:
 //   - 2860: InstanceAssault progress auto-complete
 //   - 2863: onAssaultUpdate party/alliance proceed
+//   - 2867: onRytaalEventFinish obtain new Imperial Army ID tag
 //
-// Production hosts are Lua under scripts/globals/assault/container.lua.
-// Capacity is for future Lua/C++ inject so hosts dual-wire pure free
-// functions instead of re-inlining comparisons. Helpers take host-injected
-// scalars only (no entity / instance / party / settings pointers).
-// Side effects (instance:complete, messages, instanceEntry, onEventUpdate)
-// remain host-owned.
+// Production hosts are Lua under scripts/globals/assault/ (container.lua,
+// npc_handler.lua). Capacity is for future Lua/C++ inject so hosts dual-wire
+// pure free functions instead of re-inlining comparisons. Helpers take
+// host-injected scalars only (no entity / instance / party / settings
+// pointers). Side effects (instance:complete, messages, instanceEntry,
+// onEventUpdate, giveKeyItem, setCurrency) remain host-owned.
 
 namespace assaulthelpers
 {
@@ -90,6 +91,34 @@ inline auto ShouldProceedAssaultUpdate(const int32 gmLevel,
         return false;
     }
     return true;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2867 — onRytaalEventFinish obtain new tag
+// ---------------------------------------------------------------------------
+
+// RytaalOptionObtainTag matches option == 1 (obtain Imperial Army ID tag).
+// option == 2 is end-assault / reclaim (separate pure gate).
+inline constexpr int32 kRytaalOptionObtainTag = 1;
+
+// IMPERIAL_ARMY_ID_TAG key-item id pin (scripts/enum/key_item.lua).
+// Pure gate takes has-KI bool only; pin is for host inject documentation.
+inline constexpr uint16 kKeyItemImperialArmyIDTag = 787;
+
+// ShouldIssueNewTag is the pure free-function form of the option==1 gate:
+//   option == 1 and not hasKeyItem(IMPERIAL_ARMY_ID_TAG)
+// Host still checks tagStock > 0 and currentAssault == 0, then giveKeyItem
+// and stock/timer currency writeback.
+//
+// Lua host (onRytaalEventFinish after csid == 268):
+//   if option == 1 and not hasKeyItem(IMPERIAL_ARMY_ID_TAG) then
+//     if tagStock == 0 then return end
+//     if getCurrentAssault() ~= 0 then messageSpecial(...); return end
+//     giveKeyItem(...); setCharVar/setCurrency writeback
+//   end
+inline auto ShouldIssueNewTag(const int32 option, const bool hasImperialArmyIDTag) -> bool
+{
+    return option == kRytaalOptionObtainTag && !hasImperialArmyIDTag;
 }
 
 } // namespace assaulthelpers
