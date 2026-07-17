@@ -79,6 +79,16 @@ inline auto PlanMoveItemTo(
     return MoveItemToDisposition::Allow;
 }
 
+// CanSearchSlotID is the pure addressable-slot range for GetItem and the
+// inclusive scan bound shared with SearchItem / SearchItems /
+// SearchItemWithSpace: accept when slotID <= size (including slot 0).
+// Same predicate as CanInsertAtSlot / CanRemoveSlot; named for the
+// lookup/search host path.
+inline auto CanSearchSlotID(const std::uint8_t slotID, const std::uint8_t size) -> bool
+{
+    return slotID <= size;
+}
+
 // MatchesSearchItem is the pure loop-body gate for SearchItem / SearchItems:
 // occupied slot and matching item id.
 inline auto MatchesSearchItem(const bool slotOccupied, const bool idMatches) -> bool

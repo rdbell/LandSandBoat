@@ -474,6 +474,41 @@ inline auto IsElevenRollEffect(const uint16 statusID, const uint16 subPower, con
     return statusID == runeistsRoll;
 }
 
+// --- Slice 2833: CheckForElevenRoll pure membership set scan ---
+
+// HasElevenRollInSet scans parallel statusID/subPower spans through
+// IsElevenRollEffect with production roll ID constants (pure form of
+// CStatusEffectContainer::CheckForElevenRoll host scan).
+// Scan length is min(statusIDs.size(), subPowers.size()).
+// Does not consult deleted (LSB parity with production CheckForElevenRoll).
+inline auto HasElevenRollInSet(
+    const std::span<const uint16> statusIDs,
+    const std::span<const uint16> subPowers) -> bool
+{
+    const std::size_t n = statusIDs.size() < subPowers.size() ? statusIDs.size() : subPowers.size();
+    for (std::size_t i = 0; i < n; ++i)
+    {
+        if (IsElevenRollEffect(
+                statusIDs[i],
+                subPowers[i],
+                ElevenRollIDFirst,
+                ElevenRollIDLast,
+                RuneistsRollID))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// PlanCheckForElevenRoll is the plan-named alias for HasElevenRollInSet.
+inline auto PlanCheckForElevenRoll(
+    const std::span<const uint16> statusIDs,
+    const std::span<const uint16> subPowers) -> bool
+{
+    return HasElevenRollInSet(statusIDs, subPowers);
+}
+
 // ShouldBreakSleepFromRegenDown mirrors NOT (has SleepI && tier >= 4).
 inline auto ShouldBreakSleepFromRegenDown(const bool hasSleepI, const uint8 sleepTier) -> bool
 {

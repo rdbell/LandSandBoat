@@ -107,12 +107,14 @@ bool CNotorietyContainer::hasEnmity()
         }
     }
 
-    return !m_Lookup.empty();
+    // Dual-wire final empty report (slice 2832).
+    return notorietyhelpers::HasEnmityAfterPrune(m_Lookup.empty());
 }
 
 std::size_t CNotorietyContainer::size()
 {
     TracyZoneScoped;
 
-    return m_Lookup.size();
+    // Dual-wire size report (slice 2832).
+    return notorietyhelpers::NotorietySize(m_Lookup.size());
 }

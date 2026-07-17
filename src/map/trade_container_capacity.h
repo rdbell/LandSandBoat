@@ -66,4 +66,13 @@ inline auto TradeSlotCountsTowardSlotCount(const std::uint16_t itemID) -> bool
     return itemID != 0;
 }
 
+// TradeSlotMatchesItemID is the pure per-slot match gate in getItemQuantity:
+//   m_itemID[slot] == itemID  (slice 2830).
+// When true the host contribution is m_quantity[slot]; when false, zero.
+// Host sums over slots; helper never touches container storage.
+inline auto TradeSlotMatchesItemID(const std::uint16_t slotItemID, const std::uint16_t targetID) -> bool
+{
+    return slotItemID == targetID;
+}
+
 } // namespace tradecontainerhelpers

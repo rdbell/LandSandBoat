@@ -160,7 +160,10 @@ bool CUContainer::IsLocked() const
 
 bool CUContainer::IsContainerEmpty()
 {
-    return (m_ContainerType == UCONTAINER_EMPTY);
+    // Pure type gate: ucontainerhelpers::IsContainerTypeEmpty (slice 2829).
+    return ucontainerhelpers::IsContainerTypeEmpty(
+        static_cast<uint8>(m_ContainerType),
+        static_cast<uint8>(UCONTAINER_EMPTY));
 }
 
 /************************************************************************

@@ -2,9 +2,11 @@
 
 #include <cstdint>
 
-// Pure CUContainer::SetItem / ClearSlot policy helpers (slices 2801, 2813).
+// Pure CUContainer::SetItem / ClearSlot / IsSlotEmpty / IsContainerEmpty policy
+// helpers (slices 2801, 2813, 2822, 2829).
 //
-// Production host: CUContainer::{SetItem,ClearSlot} in universal_container.cpp.
+// Production host: CUContainer::{SetItem,ClearSlot,IsSlotEmpty,IsContainerEmpty}
+// in universal_container.cpp.
 
 namespace ucontainerhelpers
 {
@@ -59,6 +61,14 @@ inline auto ShouldAdjustCountOnClearSlot() -> bool
 inline auto PlanIsSlotEmpty(const bool slotInRange, const bool itemNull) -> bool
 {
     return !slotInRange || itemNull;
+}
+
+// IsContainerTypeEmpty mirrors IsContainerEmpty type gate (slice 2829):
+//   m_ContainerType == UCONTAINER_EMPTY
+// Host injects the empty-type constant so the helper stays free of enum headers.
+inline auto IsContainerTypeEmpty(const std::uint8_t type, const std::uint8_t emptyType) -> bool
+{
+    return type == emptyType;
 }
 
 } // namespace ucontainerhelpers

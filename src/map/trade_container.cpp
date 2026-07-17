@@ -77,10 +77,12 @@ uint32 CTradeContainer::getConfirmedStatus(uint8 slotID)
 
 uint32 CTradeContainer::getItemQuantity(uint16 itemID)
 {
+    // Pure match gate: tradecontainerhelpers::TradeSlotMatchesItemID (slice 2830).
+    // Contribution is m_quantity when the slot's item id matches the target.
     uint32 quantity = 0;
     for (std::size_t slotID = 0; slotID < m_PItem.size(); ++slotID)
     {
-        if (m_itemID[slotID] == itemID)
+        if (tradecontainerhelpers::TradeSlotMatchesItemID(m_itemID[slotID], itemID))
         {
             quantity += m_quantity[slotID];
         }

@@ -449,12 +449,16 @@ set(SOURCES
     test_item_search_match_2823.cpp
     test_item_free_slots_2826.h
     test_item_free_slots_2826.cpp
+    test_item_get_item_range_2831.h
+    test_item_get_item_range_2831.cpp
     test_notoriety_prune_2807.h
     test_notoriety_prune_2807.cpp
     test_notoriety_add_2818.h
     test_notoriety_add_2818.cpp
     test_notoriety_remove_2819.h
     test_notoriety_remove_2819.cpp
+    test_notoriety_has_enmity_result_2832.h
+    test_notoriety_has_enmity_result_2832.cpp
     test_loot_container_2641.h
     test_loot_container_2641.cpp
     test_item_currency.h
@@ -557,6 +561,8 @@ set(SOURCES
     test_universal_clear_slot_2813.cpp
     test_universal_slot_empty_2822.h
     test_universal_slot_empty_2822.cpp
+    test_universal_container_empty_2829.h
+    test_universal_container_empty_2829.cpp
     test_trade_confirmed_status_2806.h
     test_trade_confirmed_status_2806.cpp
     test_trade_setitem_entry_2812.h
@@ -565,6 +571,8 @@ set(SOURCES
     test_trade_total_quantity_2821.cpp
     test_trade_slot_count_2824.h
     test_trade_slot_count_2824.cpp
+    test_trade_item_quantity_2830.h
+    test_trade_item_quantity_2830.cpp
     test_recast_container.h
     test_recast_container.cpp
     test_trait.h
@@ -859,6 +867,8 @@ set(SOURCES
     test_status_wakeup_2820.cpp
     test_status_is_asleep_2825.h
     test_status_is_asleep_2825.cpp
+    test_status_eleven_roll_2833.h
+    test_status_eleven_roll_2833.cpp
     test_attackround_multihit_1374.h
     test_attackround_multihit_1374.cpp
     test_attackround_create_attacks_plan_2756.h

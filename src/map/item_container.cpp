@@ -207,7 +207,8 @@ auto CItemContainer::MoveItemTo(uint8 fromSlot, CItemContainer& dst, std::option
 
 auto CItemContainer::GetItem(uint8 slotID) const -> CItem*
 {
-    if (slotID <= m_size)
+    // Dual-wire pure GetItem range gate (shared inclusive bound with searches).
+    if (itemcontainerhelpers::CanSearchSlotID(slotID, m_size))
     {
         return m_ItemList[slotID].get();
     }
@@ -217,6 +218,7 @@ auto CItemContainer::GetItem(uint8 slotID) const -> CItem*
 
 auto CItemContainer::SearchItem(const uint16 itemId) const -> uint8
 {
+    // Inclusive host scan; bound is CanSearchSlotID(slotId, m_size).
     for (uint8 slotId = 0; slotId <= m_size; ++slotId)
     {
         // Host owns null short-circuit and field extraction; pure gate is
@@ -235,6 +237,7 @@ auto CItemContainer::SearchItems(const uint16 itemId) const -> std::vector<uint8
 {
     std::vector<uint8> slotIds;
 
+    // Inclusive host scan; bound is CanSearchSlotID(slotId, m_size).
     for (uint8 slotId = 0; slotId <= m_size; ++slotId)
     {
         // Host owns null short-circuit and field extraction; pure gate is
@@ -251,6 +254,7 @@ auto CItemContainer::SearchItems(const uint16 itemId) const -> std::vector<uint8
 
 uint8 CItemContainer::SearchItemWithSpace(uint16 ItemID, uint32 quantity)
 {
+    // Inclusive host scan; bound is CanSearchSlotID(SlotID, m_size).
     for (uint8 SlotID = 0; SlotID <= m_size; ++SlotID)
     {
         // Host owns null short-circuit and field extraction; pure gate preserves

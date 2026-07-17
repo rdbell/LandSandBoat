@@ -1,9 +1,16 @@
 #pragma once
 
-// Pure CNotorietyContainer::hasEnmity stale-mob prune policy (slice 2807).
+#include <cstddef>
+
+// Pure CNotorietyContainer policy helpers.
 //
-// Production host: CNotorietyContainer::hasEnmity in notoriety_container.cpp.
-// Helpers take host-injected bools only (no entity/enmity pointers).
+// Production host: CNotorietyContainer in notoriety_container.cpp.
+// Helpers take host-injected scalars/bools only (no entity/enmity pointers).
+//
+//   2807 — hasEnmity stale-mob prune gates
+//   2818 — add admission
+//   2819 — remove admission
+//   2832 — hasEnmity / size pure reporting
 
 namespace notorietyhelpers
 {
@@ -60,6 +67,29 @@ inline auto ShouldAddNotorietyMember(
 inline auto ShouldRemoveNotorietyMember(const bool ownerPresent, const bool entityPresent) -> bool
 {
     return ownerPresent && entityPresent;
+}
+
+// HasEnmityAfterPrune mirrors CNotorietyContainer::hasEnmity final return (~110)
+// after the optional stale-mob prune walk:
+//   !m_Lookup.empty()
+//
+// Host injects empty-state only (no set pointers). True when the reverse list
+// still has at least one entry after pruning (or when the prune walk was
+// skipped and the lookup was already non-empty).
+inline auto HasEnmityAfterPrune(const bool lookupEmpty) -> bool
+{
+    return !lookupEmpty;
+}
+
+// NotorietySize mirrors CNotorietyContainer::size (~113):
+//   m_Lookup.size()
+//
+// Identity pure: host injects the count; helper returns it unchanged so size
+// reporting dual-wires through the same pure surface as hasEnmity's empty
+// report.
+inline auto NotorietySize(const std::size_t count) -> std::size_t
+{
+    return count;
 }
 
 } // namespace notorietyhelpers
