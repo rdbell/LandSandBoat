@@ -15,12 +15,15 @@
 //   - 1327 / 1350: capacity thresholds, trust admission, AddMember classify
 //   - 2928: ShouldRejectPCAddFull (TYPE_PC + PARTY_PCS + partyFull)
 //   - 2937: ShouldRejectPCAddTrusts (TYPE_PC + PARTY_PCS + partyHasTrusts)
+//   - 2955: ShouldClearSeekingParty (isSeekingParty after join)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
-// and isPCEntity / isPCParty / HasTrusts() into ShouldRejectPCAddTrusts.
+// isPCEntity / isPCParty / HasTrusts() into ShouldRejectPCAddTrusts, and
+// PChar->isSeekingParty() into ShouldClearSeekingParty (PC post-process).
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
-// party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go).
+// party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
+// party.ShouldClearSeekingParty (internal/party/clear_seeking.go).
 
 namespace partyhelpers
 {
@@ -778,6 +781,18 @@ inline auto ShouldRunPCAddPostProcess(const bool isPCParty) -> bool
 }
 
 // ShouldClearSeekingParty mirrors isSeekingParty() after join.
+//
+// Formula (slice 2955 dual-wire):
+//   isSeekingParty
+//
+// isSeekingParty — host-evaluated PChar->isSeekingParty()
+//                  (playerConfig.InviteFlg / LFP flag)
+// true  → clear seeking (InviteFlg = false, UPDATE_HP, SaveCharStats)
+// false → leave seeking flag unchanged
+//
+// Dual-wire of Go party.ShouldClearSeekingParty
+// (internal/party/clear_seeking.go).
+// Call site: CParty::AddMember PC post-process host inject.
 inline auto ShouldClearSeekingParty(const bool isSeekingParty) -> bool
 {
     return isSeekingParty;

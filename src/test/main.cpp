@@ -1244,6 +1244,11 @@ auto runRangerShortCircuitAE2950SelfTests() -> bool;
 auto runPetentityDespawnZoning2951SelfTests() -> bool;
 auto runAicontainerCanChangeState2952SelfTests() -> bool;
 auto runInteractionSkipPriority2953SelfTests() -> bool;
+auto runMapsessionNullChar2954SelfTests() -> bool;
+auto runPartyClearSeeking2955SelfTests() -> bool;
+auto runEnmityRejectNonMob2956SelfTests() -> bool;
+auto runTreasureLotInventory2957SelfTests() -> bool;
+auto runLinkshellRejectDuplicate2958SelfTests() -> bool;
 
 namespace
 {
@@ -2465,6 +2470,11 @@ namespace
         ok = runPetentityDespawnZoning2951SelfTests() && ok;
         ok = runAicontainerCanChangeState2952SelfTests() && ok;
         ok = runInteractionSkipPriority2953SelfTests() && ok;
+        ok = runMapsessionNullChar2954SelfTests() && ok;
+        ok = runPartyClearSeeking2955SelfTests() && ok;
+        ok = runEnmityRejectNonMob2956SelfTests() && ok;
+        ok = runTreasureLotInventory2957SelfTests() && ok;
+        ok = runLinkshellRejectDuplicate2958SelfTests() && ok;
 
         return ok;
     }

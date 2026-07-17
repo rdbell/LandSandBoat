@@ -14,11 +14,15 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1354: AddMember / rank / push / DelMember capacity suite
 //   - 2929: ShouldRejectNullAddMember (charNull identity)
+//   - 2958: ShouldRejectDuplicateAddMember (alreadyInList identity)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
-// PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work.
+// PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
+// then injects find-hit into ShouldRejectDuplicateAddMember.
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
-// (internal/linkshell/reject_null_add_member.go).
+// (internal/linkshell/reject_null_add_member.go),
+// linkshell.ShouldRejectDuplicateAddMember
+// (internal/linkshell/reject_duplicate_add_member.go).
 
 namespace linkshellhelpers
 {
@@ -42,6 +46,18 @@ inline auto ShouldRejectNullAddMember(const bool charNull) -> bool
 }
 
 // ShouldRejectDuplicateAddMember mirrors find hit in online members.
+//
+// Formula (slice 2958 dual-wire):
+//   alreadyInList
+//
+// alreadyInList — host-evaluated
+//   std::find(members.begin(), members.end(), PChar) != members.end()
+// true  → reject AddMember (warn + early return; no roster/DB work)
+// false → duplicate gate passes; host continues to slot attach / DB update
+//
+// Dual-wire of Go linkshell.ShouldRejectDuplicateAddMember.
+// Call site: CLinkshell::AddMember host inject (find hit in members).
+// Evaluated only after ShouldRejectNullAddMember passes (slice 2929).
 inline auto ShouldRejectDuplicateAddMember(const bool alreadyInList) -> bool
 {
     return alreadyInList;

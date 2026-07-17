@@ -11,6 +11,8 @@
 //   - 2783: create policy (ShouldCreateSession, ShouldCreatePendingSession)
 //   - 2925: ShouldCreateSession (queryOK && hasAccountsSessionRow)
 //   - 2936: ShouldCreatePendingSession (queryOK identity; no rowsCount gate)
+//   - 2790: lookup pure gates (ShouldRejectNullCharLookup, SessionMatches*)
+//   - 2954: ShouldRejectNullCharLookup (charNull identity)
 //
 // Production host: MapSessionContainer::createSession injects queryOK /
 // hasAccountsSessionRow after the accounts_sessions SELECT by client_addr.
@@ -21,6 +23,11 @@
 // after the accounts_sessions SELECT by charid (static_cast<bool>(rset) only).
 // Go dual-wire: mapsession.ShouldCreatePendingSession
 // (internal/mapsession/pending_session.go).
+//
+// Production host: MapSessionContainer::getSessionByChar injects
+// charNull = (PChar == nullptr) before scanning confirmed sessions.
+// Go dual-wire: mapsession.ShouldRejectNullCharLookup
+// (internal/mapsession/null_char.go).
 
 namespace mapsessionhelpers
 {
@@ -89,6 +96,18 @@ inline auto ShouldDestroyPendingByCharID(const bool found) -> bool
 
 // ShouldRejectNullCharLookup mirrors getSessionByChar's PChar == nullptr gate.
 // Host returns nullptr before scanning confirmed sessions when this is true.
+//
+// Formula (slice 2954 dual-wire):
+//   charNull
+//
+// true  → host returns nullptr before confirmed-map scan
+// false → host proceeds to SessionMatchesCharID loop match
+//
+// Host inject (getSessionByChar):
+//   if (ShouldRejectNullCharLookup(PChar == nullptr)) return nullptr;
+//
+// SessionMatchesCharID / SessionMatchesCharName remain 2790 residual siblings
+// (scan-level match helpers; not dual-wired in slice 2954).
 inline auto ShouldRejectNullCharLookup(const bool charNull) -> bool
 {
     return charNull;

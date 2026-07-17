@@ -2481,6 +2481,16 @@ set(SOURCES
     test_aicontainer_can_change_state_2952.cpp
     test_interaction_skip_priority_2953.h
     test_interaction_skip_priority_2953.cpp
+    test_mapsession_null_char_2954.h
+    test_mapsession_null_char_2954.cpp
+    test_party_clear_seeking_2955.h
+    test_party_clear_seeking_2955.cpp
+    test_enmity_reject_non_mob_2956.h
+    test_enmity_reject_non_mob_2956.cpp
+    test_treasure_lot_inventory_2957.h
+    test_treasure_lot_inventory_2957.cpp
+    test_linkshell_reject_duplicate_2958.h
+    test_linkshell_reject_duplicate_2958.cpp
 )
 
 if(UNIX)

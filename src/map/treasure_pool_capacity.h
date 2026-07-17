@@ -11,11 +11,17 @@
 //   - 1367: free-slot / rare / eviction / lot policy suite
 //   - 2772 / 2777 / 2779 / 2780 / 2781: lot/pass/update/post-lot/flush plans
 //   - 2938: ShouldAutoResolveSolo (memberCount == 1 after insert)
+//   - 2957: CanLotWithInventory (freeSlots != 0 inventory lot gate)
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
 // Go dual-wire: treasurepool.ShouldAutoResolveSolo
 // (internal/treasurepool/auto_solo.go).
+//
+// Production host: CTreasurePool::lotItem / PlanLotItemPreflight injects
+// getStorage(LOC_INVENTORY)->GetFreeSlotsCount() into CanLotWithInventory.
+// Go dual-wire: treasurepool.CanLotWithInventory
+// (internal/treasurepool/lot_inventory.go).
 
 namespace treasurepoolhelpers
 {
@@ -117,6 +123,17 @@ inline auto IsSlotOutOfRange(const uint8 slotID) -> bool
 }
 
 // CanLotWithInventory mirrors freeSlots != 0.
+//
+// Formula (slice 2957 dual-wire):
+//   freeSlots != 0
+//
+// freeSlots — host-evaluated GetFreeSlotsCount() on the lotting character's
+// inventory storage (LOC_INVENTORY)
+// true  → host may proceed past the full-inventory lot preflight gate
+// false → host rejects the lot (RejectFullInventory / packet injection)
+//
+// Dual-wire of Go treasurepool.CanLotWithInventory.
+// Call site: PlanLotItemPreflight / CTreasurePool::lotItem after item lookup.
 inline auto CanLotWithInventory(const uint8 freeSlots) -> bool
 {
     return freeSlots != 0;
