@@ -1130,4 +1130,23 @@ inline auto ShouldAcceptAuraAlly(
     return !ShouldRejectNullAuraMember(memberNull) && sameZone && inRange && !isDead;
 }
 
+
+// --- Slice 2817: HasBustEffect pure membership gate ---
+
+// Bust status effect ID (xi::StatusEffect::Bust / data/status_effects.yaml id 309).
+constexpr uint16 StatusIDBust = 309;
+
+// IsBustEffectForAbility mirrors HasBustEffect loop body:
+// statusID == Bust && subPower == abilityOrRollID.
+// Host injects bustStatusID (typically StatusIDBust / xi::StatusEffect::Bust)
+// and the queried ability/roll id. Does not consult deleted (LSB parity).
+inline auto IsBustEffectForAbility(
+    const uint16 statusID,
+    const uint16 subPower,
+    const uint16 bustStatusID,
+    const uint16 abilityOrRollID) -> bool
+{
+    return statusID == bustStatusID && subPower == abilityOrRollID;
+}
+
 } // namespace statuseffecthelpers

@@ -24,6 +24,7 @@
 #include "item_container.h"
 #include "packets/s2c/0x01d_item_same.h"
 #include "packets/s2c/0x020_item_attr.h"
+#include "recast_capacity.h"
 
 /************************************************************************
  *                                                                       *
@@ -142,7 +143,8 @@ void CCharRecastContainer::ChangeJob()
     PRecastList->erase(std::remove_if(PRecastList->begin(), PRecastList->end(),
     [](auto& recast)
     {
-        return recast.ID != Recast::Special && recast.ID != Recast::Special2;
+        return recasthelpers::ShouldEraseAbilityOnChangeJob(
+            recast.ID == Recast::Special, recast.ID == Recast::Special2);
     }), PRecastList->end());
     // clang-format on
 

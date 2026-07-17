@@ -2340,7 +2340,11 @@ bool CStatusEffectContainer::HasBustEffect(uint16 id)
 {
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetStatusID() == xi::StatusEffect::Bust && PStatusEffect->GetSubPower() == id)
+        if (statuseffecthelpers::IsBustEffectForAbility(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                PStatusEffect->GetSubPower(),
+                static_cast<uint16>(xi::StatusEffect::Bust),
+                id))
         {
             return true;
         }

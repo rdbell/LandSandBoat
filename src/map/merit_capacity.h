@@ -2,8 +2,8 @@
 
 #include "common/cbasetypes.h"
 
-// Pure CMeritPoints::RaiseMerit / LowerMerit admission plans and
-// AddLimitPoints conversion plan.
+// Pure CMeritPoints::RaiseMerit / LowerMerit admission plans,
+// AddLimitPoints conversion plan, and IsMeritExist bounds gate.
 // Spell unlocks, weaponskill unlocks, next-cost table lookup, count mutation,
 // and BuildingCharTraitsTable stay host-side after apply.
 
@@ -158,6 +158,37 @@ inline auto PlanAddLimitPoints(
         .newMerit       = currentMerit,
         .meritIncreased = false,
     };
+}
+
+// IsMeritExist mirrors CMeritPoints::IsMeritExist pure bounds gate (slice 2816):
+//   merit < categoryStart          → false
+//   merit >= categoryCount         → false
+//   meritID >= meritsInCat         → false
+//   else true
+// Hosts inject categoryStart=MCATEGORY_START, categoryCount=MCATEGORY_COUNT,
+// meritID=GetMeritID(merit), and meritsInCat from meritCatInfo[cat].MeritsInCat
+// (only after the merit is known to be inside the category range so the table
+// index is valid; out-of-range injects 0).
+inline auto IsMeritExist(
+    const int16 merit,
+    const int16 categoryStart,
+    const int16 categoryCount,
+    const uint8 meritID,
+    const uint8 meritsInCat) -> bool
+{
+    if (merit < categoryStart)
+    {
+        return false;
+    }
+    if (merit >= categoryCount)
+    {
+        return false;
+    }
+    if (meritID >= meritsInCat)
+    {
+        return false;
+    }
+    return true;
 }
 
 } // namespace meritshelpers

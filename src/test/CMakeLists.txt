@@ -447,6 +447,8 @@ set(SOURCES
     test_item_search_space_2808.cpp
     test_notoriety_prune_2807.h
     test_notoriety_prune_2807.cpp
+    test_notoriety_add_2818.h
+    test_notoriety_add_2818.cpp
     test_loot_container_2641.h
     test_loot_container_2641.cpp
     test_item_currency.h
@@ -563,8 +565,12 @@ set(SOURCES
     test_merit_lower_plan_2810.cpp
     test_merit_add_limit_points_2811.h
     test_merit_add_limit_points_2811.cpp
+    test_merit_exist_2816.h
+    test_merit_exist_2816.cpp
     test_jobpoints_raise_plan_2803.h
     test_jobpoints_raise_plan_2803.cpp
+    test_jobpoints_exist_2815.h
+    test_jobpoints_exist_2815.cpp
     test_enmity_container.h
     test_enmity_container.cpp
     test_modifier.h
@@ -817,6 +823,8 @@ set(SOURCES
     test_recast_charge_1370.cpp
     test_recast_reset_ability_2800.h
     test_recast_reset_ability_2800.cpp
+    test_recast_change_job_2814.h
+    test_recast_change_job_2814.cpp
     test_status_effect_add_remove_1371.h
     test_status_effect_add_remove_1371.cpp
     test_status_effect_delete_1372.h
@@ -829,6 +837,8 @@ set(SOURCES
     test_status_aura_eligibility_2796.cpp
     test_status_aura_refresh_2798.h
     test_status_aura_refresh_2798.cpp
+    test_status_bust_effect_2817.h
+    test_status_bust_effect_2817.cpp
     test_attackround_multihit_1374.h
     test_attackround_multihit_1374.cpp
     test_attackround_create_attacks_plan_2756.h

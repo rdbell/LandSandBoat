@@ -296,21 +296,23 @@ void CMeritPoints::SetMeritPoints(uint16 points)
 
 bool CMeritPoints::IsMeritExist(MERIT_TYPE merit)
 {
-    if ((int16)merit < MCATEGORY_START)
+    // Pure bounds gate (slice 2816). Host injects MCATEGORY_START/COUNT,
+    // GetMeritID, and meritCatInfo[cat].MeritsInCat (category table only when
+    // the merit is inside the valid category range so the index is safe).
+    const int16 m       = static_cast<int16>(merit);
+    const uint8 meritID = static_cast<uint8>(GetMeritID(merit));
+    uint8       meritsInCat = 0;
+    if (m >= static_cast<int16>(MCATEGORY_START) && m < static_cast<int16>(MCATEGORY_COUNT))
     {
-        return false;
-    }
-    if ((int16)merit >= MCATEGORY_COUNT)
-    {
-        return false;
-    }
-
-    if ((GetMeritID(merit)) >= meritCatInfo[GetMeritCategory(merit)].MeritsInCat)
-    {
-        return false;
+        meritsInCat = static_cast<uint8>(meritCatInfo[GetMeritCategory(merit)].MeritsInCat);
     }
 
-    return true;
+    return meritshelpers::IsMeritExist(
+        m,
+        static_cast<int16>(MCATEGORY_START),
+        static_cast<int16>(MCATEGORY_COUNT),
+        meritID,
+        meritsInCat);
 }
 
 const Merit_t* CMeritPoints::GetMerit(MERIT_TYPE merit)

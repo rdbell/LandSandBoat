@@ -38,4 +38,18 @@ inline auto ShouldPruneMobFromNotoriety(
     return (isAlive && notOnEnmityList) || isDead;
 }
 
+// ShouldAddNotorietyMember mirrors CNotorietyContainer::add admission (~48):
+//   m_POwner && entity && entity->allegiance != m_POwner->allegiance
+//
+// Host injects presence and the allegiance-inequality bool only (no entity
+// pointers). differentAllegiance is host-safe: false when either pointer is
+// null, otherwise entity->allegiance != m_POwner->allegiance.
+inline auto ShouldAddNotorietyMember(
+    const bool ownerPresent,
+    const bool entityPresent,
+    const bool differentAllegiance) -> bool
+{
+    return ownerPresent && entityPresent && differentAllegiance;
+}
+
 } // namespace notorietyhelpers

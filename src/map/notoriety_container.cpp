@@ -48,7 +48,10 @@ void CNotorietyContainer::add(CBattleEntity* entity)
 {
     TracyZoneScoped;
 
-    if (m_POwner && entity && entity->allegiance != m_POwner->allegiance)
+    const bool ownerPresent        = m_POwner != nullptr;
+    const bool entityPresent       = entity != nullptr;
+    const bool differentAllegiance = ownerPresent && entityPresent && entity->allegiance != m_POwner->allegiance;
+    if (notorietyhelpers::ShouldAddNotorietyMember(ownerPresent, entityPresent, differentAllegiance))
     {
         m_Lookup.insert(entity);
     }

@@ -141,4 +141,12 @@ inline auto ShouldResetAbilityRecast(const bool isSpecial, const bool isSpecial2
     return !IsOneHourSpecialRecast(isSpecial, isSpecial2);
 }
 
+// ShouldEraseAbilityOnChangeJob mirrors CCharRecastContainer::ChangeJob erase_if
+// predicate: erase when ID is not Special and not Special2 (non-one-hours).
+// Same truth table as ShouldResetAbilityRecast / !IsOneHourSpecialRecast.
+inline auto ShouldEraseAbilityOnChangeJob(const bool isSpecial, const bool isSpecial2) -> bool
+{
+    return !IsOneHourSpecialRecast(isSpecial, isSpecial2);
+}
+
 } // namespace recasthelpers
