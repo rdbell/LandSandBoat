@@ -115,6 +115,8 @@ struct FishingContestHistory
 namespace fishingcontest
 {
 
+// GeneratePlaceholderEntries dual-wires fishingcontestplaceholderhelpers
+// ShouldGeneratePlaceholderEntries + PlaceholderEntryScore (slice 2855).
 auto GeneratePlaceholderEntries(FISHING_CONTEST_STATUS status, FISHING_CONTEST_MEASURE measure, uint8 maxEntries, uint8 realEntries) -> std::vector<FishingContestEntry>;
 
 // RankContestEntries applies ScoreContest's deterministic ordering and packet

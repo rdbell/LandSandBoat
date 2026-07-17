@@ -33,6 +33,7 @@
 #include "packets/s2c/0x01d_item_same.h"
 #include "packets/s2c/0x04c_auc.h"
 
+#include "utils/auction_capacity.h"
 #include "utils/charutils.h"
 #include "utils/itemutils.h"
 #include "utils/zoneutils.h"
@@ -40,15 +41,21 @@
 namespace
 {
 
+// Pure policy dual-wire: auctionutilshelpers::IsPartiallyUsed (slice 2854).
+// Host injects ITEM_CHARGED subtype and charge counts (no CItem* in capacity).
 const auto isPartiallyUsed = [](CItem* PItem) -> bool
 {
-    if (PItem->isSubType(ITEM_CHARGED))
+    const bool isCharged = PItem->isSubType(ITEM_CHARGED);
+    uint8      currentCharges = 0;
+    uint8      maxCharges     = 0;
+    if (isCharged)
     {
-        const auto PChargedItem = static_cast<CItemUsable*>(PItem);
-        return PChargedItem->getCurrentCharges() < PChargedItem->getMaxCharges();
+        const auto* PChargedItem = static_cast<CItemUsable*>(PItem);
+        currentCharges           = PChargedItem->getCurrentCharges();
+        maxCharges               = PChargedItem->getMaxCharges();
     }
 
-    return false;
+    return auctionutilshelpers::IsPartiallyUsed(isCharged, currentCharges, maxCharges);
 };
 
 } // namespace

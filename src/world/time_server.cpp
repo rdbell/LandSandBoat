@@ -70,7 +70,9 @@ void dispatchTimeServerTickEffects(const TimeServerTickInput& input, TimeServerT
 {
     if (input.earthHourlyTick)
     {
-        if (input.jstHour == 0)
+        // Midnight JST: weekly or hourly conquest, then daily tally.
+        // Daily-tally gate dual-wires dailytallyhelpers (slice 2856).
+        if (dailytally::ShouldRunDailyTallyOnHourlyTick(input.earthHourlyTick, input.jstHour))
         {
             if (input.jstWeekday == 1)
             {
@@ -120,7 +122,8 @@ auto time_server(const WorldEngine* worldServer) -> Task<void>
     if (earthHourlyTick)
     {
         ShowDebugFmt("1-hour tick... (current tick: {})", tickNum);
-        if (jstHour == 0)
+        // Daily tick hour dual-wires IsJSTDailyTickHour (slice 2856).
+        if (dailytally::IsJSTDailyTickHour(jstHour))
         {
             // Daily tick (midnight JST)
             ShowDebugFmt("Daily tick... (current tick: {})", tickNum);

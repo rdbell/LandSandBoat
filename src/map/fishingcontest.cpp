@@ -21,6 +21,7 @@
 
 #include "fishingcontest.h"
 #include "fishing_contest_capacity.h"
+#include "fishingcontest_placeholders_capacity.h"
 #include "fishingcontest_rank_capacity.h"
 #include "fishingcontest_rank_entry.h"
 
@@ -813,13 +814,16 @@ void BuildPlaceholderEntries()
 
 auto GeneratePlaceholderEntries(FISHING_CONTEST_STATUS status, FISHING_CONTEST_MEASURE measure, uint8 maxEntries, uint8 realEntries) -> std::vector<FishingContestEntry>
 {
-    if (status != FISHING_CONTEST_STATUS::PRESENTING || realEntries >= maxEntries)
+    // Pure dual-wire: fishingcontestplaceholderhelpers gate + score (slice 2855).
+    const bool presenting = status == FISHING_CONTEST_STATUS::PRESENTING;
+    if (!fishingcontestplaceholderhelpers::ShouldGeneratePlaceholderEntries(presenting, maxEntries, realEntries))
     {
         return {};
     }
 
-    const uint8 needed = maxEntries - realEntries;
-    const int levels[] = { 75, 60, 50, 40, 30 };
+    const uint8 needed   = maxEntries - realEntries;
+    const bool  smallest = measure == FISHING_CONTEST_MEASURE::SMALLEST;
+    const int   levels[] = { 75, 60, 50, 40, 30 };
     std::vector<FishingContestEntry> out;
     out.reserve(maxEntries);
 
@@ -833,7 +837,7 @@ auto GeneratePlaceholderEntries(FISHING_CONTEST_STATUS status, FISHING_CONTEST_M
         entry.race        = ((n - 1) % 7) + 1;
         entry.allegiance  = (n - 1) % 3;
         entry.fishRank    = 1;
-        entry.score       = measure == FISHING_CONTEST_MEASURE::SMALLEST ? (9999 - needed + n) : (needed + 1) - n;
+        entry.score       = fishingcontestplaceholderhelpers::PlaceholderEntryScore(needed, n, smallest);
         entry.contestRank = realEntries + n;
         out.push_back(entry);
     }

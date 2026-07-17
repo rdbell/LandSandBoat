@@ -26,6 +26,8 @@
 #include "common/logging.h"
 #include "common/settings.h"
 
+#include "daily_tally_capacity.h"
+
 namespace dailytally
 {
 
@@ -55,6 +57,18 @@ void UpdateDailyTallyPoints()
     {
         ShowErrorFmt("Failed to delete daily tally char_vars entries");
     }
+}
+
+auto IsJSTDailyTickHour(const int jstHour) -> bool
+{
+    // Pure dual-wire: dailytallyhelpers::IsJSTDailyTickHour (slice 2856).
+    return dailytallyhelpers::IsJSTDailyTickHour(jstHour);
+}
+
+auto ShouldRunDailyTallyOnHourlyTick(const bool hourlyTickDue, const int jstHour) -> bool
+{
+    // Pure dual-wire: dailytallyhelpers::ShouldRunDailyTallyOnHourlyTick (slice 2856).
+    return dailytallyhelpers::ShouldRunDailyTallyOnHourlyTick(hourlyTickDue, jstHour);
 }
 
 } // namespace dailytally

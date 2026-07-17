@@ -885,6 +885,16 @@ set(SOURCES
     test_zone_mob_away_2848.cpp
     test_dbox_open_plan_2850.h
     test_dbox_open_plan_2850.cpp
+    test_daily_tally_hour_2856.h
+    test_daily_tally_hour_2856.cpp
+    test_fishing_contest_placeholders_2855.h
+    test_fishing_contest_placeholders_2855.cpp
+    test_auction_partially_used_2854.h
+    test_auction_partially_used_2854.cpp
+    test_campaign_debit_bonus_2858.h
+    test_campaign_debit_bonus_2858.cpp
+    test_dynamis_snap_entry_2857.h
+    test_dynamis_snap_entry_2857.cpp
     test_mount_dismount_2852.h
     test_mount_dismount_2852.cpp
     test_fishing_contest_score_2851.h

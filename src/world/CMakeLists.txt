@@ -12,6 +12,7 @@ set(SOURCES
     conquest_system.h
     daily_tally.h
     daily_tally.cpp
+    daily_tally_capacity.h
     gmcall_request.h
     gmcall_response.h
     gmcall_response_persistence.cpp

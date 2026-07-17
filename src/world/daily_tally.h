@@ -26,4 +26,10 @@ namespace dailytally
 
 void UpdateDailyTallyPoints();
 
+// Pure schedule gate dual-wires (slice 2856).
+// Production: dispatchTimeServerTickEffects / time_server midnight branch.
+// Implementations dual-wire dailytallyhelpers in daily_tally_capacity.h.
+auto IsJSTDailyTickHour(int jstHour) -> bool;
+auto ShouldRunDailyTallyOnHourlyTick(bool hourlyTickDue, int jstHour) -> bool;
+
 }
