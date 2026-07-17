@@ -22,6 +22,7 @@
 //   - 3586: ShouldDestroyPendingByPointer (found && pointerMatches; dedicated expand residual 3056; prior dedicated 3542/3480/3426/3376 retained)
 //   - 3631: ShouldDestroyPendingByPointer (found && pointerMatches; dedicated expand residual 3056; prior dedicated 3586/3542/3480/3426/3376 retained)
 //   - 3676: ShouldDestroyPendingByPointer (found && pointerMatches; dedicated expand residual 3056; prior dedicated 3631/3586/3542/3480/3426/3376 retained)
+//   - 3721: ShouldDestroyPendingByPointer (found && pointerMatches; dedicated expand residual 3056; prior dedicated 3676/3631/3586/3542/3480/3426/3376 retained)
 //   - 3066: ShouldDestroyPendingByCharID (found identity)
 //   - 2790: lookup pure gates (ShouldRejectNullCharLookup, SessionMatches*)
 //   - 2954: ShouldRejectNullCharLookup (charNull identity; prior dual-wire)
@@ -50,16 +51,16 @@
 // session->charID before erase/delete. Go dual-wire:
 // mapsession.ShouldDestroyPendingByPointer
 // (internal/mapsession/destroy_pending_pointer.go). Prior pure: 2787; residual
-// dual-wire: 3056; prior dedicated expand residual: 3376 / 3426 / 3480 / 3542 / 3586 / 3631;
-// dedicated expand residual: 3676. Sibling dual-wire: 3066
+// dual-wire: 3056; prior dedicated expand residual: 3376 / 3426 / 3480 / 3542 / 3586 / 3631 / 3676;
+// dedicated expand residual: 3721. Sibling dual-wire: 3066
 // ShouldDestroyPendingByCharID (left alone).
 //
 // Production host: MapSessionContainer::destroyPendingSession(uint32)
 // injects found after pending lookup by charId before erase/delete.
 // Go dual-wire: mapsession.ShouldDestroyPendingByCharID
 // (internal/mapsession/destroy_pending_charid.go). Prior pure port: 2787;
-// sibling dual-wire: 3056 residual / 3376 / 3426 / 3480 / 3542 / 3586 / 3631 prior dedicated /
-// 3676 dedicated ShouldDestroyPendingByPointer.
+// sibling dual-wire: 3056 residual / 3376 / 3426 / 3480 / 3542 / 3586 / 3631 / 3676 prior dedicated /
+// 3721 dedicated ShouldDestroyPendingByPointer.
 //
 // Production host: MapSessionContainer::getSessionByChar injects
 // charNull = (PChar == nullptr) before scanning confirmed sessions.
@@ -182,8 +183,8 @@ inline auto ShouldReplaceExistingSession(const bool previousPresent) -> bool
 // is the same pointer. Host erase/delete only proceeds when both hold, so a
 // stale or foreign pointer cannot drop a replacement pending session.
 //
-// Formula (slice 3676 dual-wire; prior dedicated expand 3631 / 3586 / 3542 /
-// 3480 / 3426 / 3376 / residual expand 3056 / pure 2787 — formula unchanged):
+// Formula (slice 3721 dual-wire; prior dedicated expand 3676 / 3631 / 3586 /
+// 3542 / 3480 / 3426 / 3376 / residual expand 3056 / pure 2787 — formula unchanged):
 //   found && pointerMatches
 //
 // Host-injected scalars (no session / pending-map pointers):
@@ -197,8 +198,8 @@ inline auto ShouldReplaceExistingSession(const bool previousPresent) -> bool
 // Dual-wire of Go mapsession.ShouldDestroyPendingByPointer
 // (internal/mapsession/destroy_pending_pointer.go). Prior pure port: slice 2787.
 // Prior dual-wire expand: slice 3056. Prior dedicated expand residual: slice 3376 /
-// slice 3426 / slice 3480 / slice 3542 / slice 3586 / slice 3631. Dedicated expand residual:
-// slice 3676.
+// slice 3426 / slice 3480 / slice 3542 / slice 3586 / slice 3631 / slice 3676.
+// Dedicated expand residual: slice 3721.
 // Sibling dual-wire left alone: ShouldDestroyPendingByCharID (found identity;
 // slice 3066).
 // Call site: MapSessionContainer::destroyPendingSession(MapSession*)
@@ -229,7 +230,7 @@ inline auto ShouldDestroyPendingByPointer(const bool found, const bool pointerMa
 // Dual-wire of Go mapsession.ShouldDestroyPendingByCharID
 // (internal/mapsession/destroy_pending_charid.go). Prior pure port: slice 2787.
 // Sibling dual-wire: ShouldDestroyPendingByPointer (found && pointerMatches;
-// slice 3056 residual / 3376 / 3426 / 3480 / 3542 / 3586 / 3631 prior dedicated / 3676
+// slice 3056 residual / 3376 / 3426 / 3480 / 3542 / 3586 / 3631 / 3676 prior dedicated / 3721
 // dedicated; pointer overload needs identity).
 // Call site: MapSessionContainer::destroyPendingSession(uint32)
 // (map_session_container.cpp) already injects found before erase.
