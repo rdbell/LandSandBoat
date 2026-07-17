@@ -31,8 +31,11 @@
 //           (hasSyncTarget / m_PSyncTarget != nullptr after join;
 //            residual expand 2955 / prior dedicated 3274 / pure 1350)
 //   - 2974: ShouldRemoveSyncForLowLevel residual dual-wire expand
-//   - 3378: ShouldRemoveSyncForLowLevel dedicated dual-wire
+//   - 3378: ShouldRemoveSyncForLowLevel prior dedicated dual-wire
 //           (RefreshSync syncLevel < 10; residual expand 2974 / pure 1330)
+//   - 3430: ShouldRemoveSyncForLowLevel dedicated dual-wire
+//           (RefreshSync syncLevel < 10; residual expand 2974 /
+//            prior dedicated 3378 / pure 1330)
 //   - 2991: ShouldStampLeaderCreatedPartyTime (TYPE_PC && members.size() > 1)
 //   - 2999: ShouldApplySyncToMember (RefreshSync isPC && sameZoneAsSyncTarget)
 //   - 3015: ShouldApplySyncEnableToMember (SetSyncTarget ENABLE
@@ -104,7 +107,8 @@
 // dedicated dual-wire suite: 3305 / test_party_level_sync_on_join_3305),
 // party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go;
 // residual dual-wire suite: 2974 / test_party_remove_sync_low_2974;
-// dedicated dual-wire suite: 3378 / test_party_remove_sync_low_3378),
+// prior dedicated dual-wire suite: 3378 / test_party_remove_sync_low_3378;
+// dedicated dual-wire suite: 3430 / test_party_remove_sync_low_3430),
 // party.ShouldStampLeaderCreatedPartyTime (internal/party/stamp_leader_created.go),
 // party.ShouldApplySyncToMember (internal/party/apply_sync_member.go),
 // party.ShouldApplySyncEnableToMember (internal/party/apply_sync_enable.go),
@@ -259,13 +263,13 @@ inline auto AccumulateMemberCount(const uint8 running, const uint8 contribution)
 // level in CParty::RefreshSync (syncLevel < 10 removes sync).
 // Dual-wire of Go party.LevelSyncMinLevel (internal/party/remove_sync_low.go).
 // Prior pure port: slice 1330. Residual dual-wire expand: 2974.
-// Dedicated dual-wire: 3378 (formula unchanged).
+// Prior dedicated dual-wire: 3378. Dedicated dual-wire: 3430 (formula unchanged).
 constexpr uint8 LevelSyncMinLevel = 10;
 
 // ShouldRemoveSyncForLowLevel mirrors syncLevel < 10 before SetSyncTarget clear.
 //
-// Formula (slice 3378 dedicated dual-wire; residual expand 2974 / pure 1330 —
-// formula unchanged):
+// Formula (slice 3430 dedicated dual-wire; residual expand 2974 /
+// prior dedicated 3378 / pure 1330 — formula unchanged):
 //   syncLevel < LevelSyncMinLevel  // 10
 //
 // Host-injected scalars (no entity pointers):
@@ -276,7 +280,8 @@ constexpr uint8 LevelSyncMinLevel = 10;
 // Dual-wire of Go party.ShouldRemoveSyncForLowLevel
 // (internal/party/remove_sync_low.go). Prior pure port: slice 1330.
 // Residual dual-wire suite: 2974 / test_party_remove_sync_low_2974.
-// Dedicated dual-wire suite is test_party_remove_sync_low_3378. Formula is
+// Prior dedicated dual-wire suite: 3378 / test_party_remove_sync_low_3378.
+// Dedicated dual-wire suite is test_party_remove_sync_low_3430. Formula is
 // unchanged; dedicated suite expands free==inline==pin poles + dense edges.
 // Call site: CParty::RefreshSync (party.cpp) host inject.
 inline auto ShouldRemoveSyncForLowLevel(const uint8 syncLevel) -> bool

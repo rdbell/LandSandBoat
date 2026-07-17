@@ -3431,6 +3431,16 @@ set(SOURCES
     test_enmity_zero_out_of_range_3427.cpp
     test_status_reject_null_3428.h
     test_status_reject_null_3428.cpp
+    test_petutils_pet_engage_3429.h
+    test_petutils_pet_engage_3429.cpp
+    test_party_remove_sync_low_3430.h
+    test_party_remove_sync_low_3430.cpp
+    test_battlefield_enter_pc_3431.h
+    test_battlefield_enter_pc_3431.cpp
+    test_item_increment_count_insert_3432.h
+    test_item_increment_count_insert_3432.cpp
+    test_voidwalker_should_upgrade_ki_3433.h
+    test_voidwalker_should_upgrade_ki_3433.cpp
 )
 
 if(UNIX)

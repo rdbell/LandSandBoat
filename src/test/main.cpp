@@ -1719,6 +1719,11 @@ auto runAvatarpetCanApplyBuff3425SelfTests() -> bool;
 auto runMapsessionDestroyPendingPtr3426SelfTests() -> bool;
 auto runEnmityZeroOutOfRange3427SelfTests() -> bool;
 auto runStatusRejectNull3428SelfTests() -> bool;
+auto runPetutilsPetEngage3429SelfTests() -> bool;
+auto runPartyRemoveSyncLow3430SelfTests() -> bool;
+auto runBattlefieldEnterPC3431SelfTests() -> bool;
+auto runItemIncrementCountInsert3432SelfTests() -> bool;
+auto runVoidwalkerShouldUpgradeKI3433SelfTests() -> bool;
 
 namespace
 {
@@ -3415,6 +3420,11 @@ namespace
         ok = runMapsessionDestroyPendingPtr3426SelfTests() && ok;
         ok = runEnmityZeroOutOfRange3427SelfTests() && ok;
         ok = runStatusRejectNull3428SelfTests() && ok;
+        ok = runPetutilsPetEngage3429SelfTests() && ok;
+        ok = runPartyRemoveSyncLow3430SelfTests() && ok;
+        ok = runBattlefieldEnterPC3431SelfTests() && ok;
+        ok = runItemIncrementCountInsert3432SelfTests() && ok;
+        ok = runVoidwalkerShouldUpgradeKI3433SelfTests() && ok;
 
         return ok;
     }

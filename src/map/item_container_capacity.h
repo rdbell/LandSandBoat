@@ -25,7 +25,8 @@
 //   - 3270: CanInsertAtSlot prior dedicated dual-wire (insert_slot.go; expand residual 2942)
 //   - 3301: CanInsertAtSlot dedicated dual-wire (insert_slot.go; expand residual 2942)
 //   - 3351: ShouldDecrementCountOnRemove dedicated dual-wire (decrement_count_remove.go; expand residual 2989)
-//   - 3374: ShouldIncrementCountOnInsertAt dedicated dual-wire (increment_count_insert.go; expand residual 3021)
+//   - 3374: ShouldIncrementCountOnInsertAt prior dedicated dual-wire (increment_count_insert.go; expand residual 3021)
+//   - 3432: ShouldIncrementCountOnInsertAt dedicated dual-wire (increment_count_insert.go; expand residual 3021)
 //
 // Dual-wire index:
 //   - 2942: CanInsertAtSlot residual dual-wire suite
@@ -39,7 +40,8 @@
 //   - 3270: CanInsertAtSlot = slotID <= size (prior dedicated expand residual 2942)
 //   - 3301: CanInsertAtSlot = slotID <= size
 //   - 3351: ShouldDecrementCountOnRemove = slotOccupied && slotID != 0
-//   - 3374: ShouldIncrementCountOnInsertAt = slotEmpty && slotID != 0
+//   - 3374: ShouldIncrementCountOnInsertAt = slotEmpty && slotID != 0 (prior dedicated)
+//   - 3432: ShouldIncrementCountOnInsertAt = slotEmpty && slotID != 0
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
@@ -54,7 +56,8 @@
 // Go dual-wire: itemcontainer.ShouldIncrementCountOnInsertAt
 // (internal/itemcontainer/increment_count_insert.go).
 // Residual dual-wire suite: 3021 (test_item_increment_count_insert_3021).
-// Dedicated dual-wire suite: 3374 (test_item_increment_count_insert_3374).
+// Prior dedicated dual-wire suite: 3374 (test_item_increment_count_insert_3374).
+// Dedicated dual-wire suite: 3432 (test_item_increment_count_insert_3432).
 // Production host: CItemContainer::RemoveItem injects SlotID and m_size into
 // CanRemoveSlot. Go dual-wire: itemcontainer.CanRemoveSlot
 // (internal/itemcontainer/remove_slot.go).
@@ -118,14 +121,15 @@ inline auto CanSetSize(const std::uint8_t newSize, const std::uint8_t maxSize, c
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3374 — InsertItem count bump (dedicated expand residual 3021)
+// Slice 3432 — InsertItem count bump (dedicated expand residual 3021;
+// prior dedicated 3374)
 // ---------------------------------------------------------------------------
 
 // ShouldIncrementCountOnInsertAt mirrors InsertItem(PItem, SlotID) count bump:
 // only empty nonzero slots contribute to m_count.
 //
-// Formula (slice 3374 dedicated dual-wire; residual expand 3021 / pure 2802 —
-// formula unchanged):
+// Formula (slice 3432 dedicated dual-wire expand residual 3021; prior dedicated
+// 3374 / pure 2802 — formula unchanged):
 //   slotEmpty && slotID != 0
 //
 // slotEmpty — host-evaluated emptiness (m_ItemList[SlotID] == nullptr)
@@ -136,8 +140,9 @@ inline auto CanSetSize(const std::uint8_t newSize, const std::uint8_t maxSize, c
 // Dual-wire of Go itemcontainer.ShouldIncrementCountOnInsertAt.
 // Call site: CItemContainer::InsertItem(PItem, SlotID) after CanInsertAtSlot admits.
 // Prior pure port: slice 2802. Residual dual-wire suite: 3021 /
-// test_item_increment_count_insert_3021. Dedicated dual-wire suite is
-// test_item_increment_count_insert_3374. Sibling dual-wire range gate:
+// test_item_increment_count_insert_3021. Prior dedicated dual-wire suite: 3374 /
+// test_item_increment_count_insert_3374. Dedicated dual-wire suite is
+// test_item_increment_count_insert_3432. Sibling dual-wire range gate:
 // CanInsertAtSlot (slice 3301). Mirror decrement gate:
 // ShouldDecrementCountOnRemove (slice 3351; slotOccupied && slotID != 0) —
 // left residual under this slice. Sibling dual-wire gates: CanSetSize (3164),
