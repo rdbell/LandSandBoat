@@ -21,6 +21,8 @@
 //           (erase_entity_update_pop.go; expand residual 3105)
 //   - 3125: ShouldSetPendingPositionOnPush residual dual-wire
 //           (packetType == 0x5B && packetEntityID == ownerID)
+//   - 3395: ShouldSetPendingPositionOnPush dedicated dual-wire
+//           (set_pending_position_push.go; expand residual 3125)
 //
 // Production host: CCharEntity::popPacket (char_entity.cpp) injects type /
 // entity-id / owner scalars into OnPop, which dual-wires erase through
@@ -48,7 +50,8 @@ inline bool Filtered(const std::uint16_t packetType, const bool filterOthersSynt
 // position: true when the packet is a position update (0x5B) for the owning
 // character.
 //
-// Formula (slice 3125 dual-wire; residual pure port from slice 2842):
+// Formula (slice 3395 dedicated dual-wire; residual expand 3125 / pure 2842 —
+// formula unchanged):
 //   packetType == 0x5B && packetEntityID == ownerID
 //
 // packetType     — host-evaluated packet->getType()
@@ -62,11 +65,15 @@ inline bool Filtered(const std::uint16_t packetType, const bool filterOthersSynt
 //       setPending(true);
 //
 // Dual-wire of Go charentity.ShouldSetPendingPositionOnPush
-// (internal/charentity/set_pending_position_push.go).
+// (internal/charentity/set_pending_position_push.go;
+// residual 2842 / residual dual-wire 3125 / dedicated dual-wire 3395).
 // Call site: CCharEntity::pushPacket → OnPush after entity-id extract
-// (0x5B → ref 0x10; else 0). Sibling OnPop clear-pending (2943) shares the
-// same scalar comparison but is a different free function; leave 3105 erase
-// dual-wire alone.
+// (0x5B → ref 0x10; else 0). Residual dual-wire suite: 3125
+// (test_char_set_pending_push_3125). Dedicated dual-wire suite: 3395
+// (test_char_set_pending_push_3395). Sibling OnPop clear-pending
+// (3179 / residual 2943) shares the same scalar comparison but is a different
+// free function. Sibling dual-wire left alone: ShouldEraseEntityUpdateOnPop
+// (3340 / residual 3105).
 inline bool ShouldSetPendingPositionOnPush(const std::uint16_t packetType,
                                            const std::uint32_t packetEntityID,
                                            const std::uint32_t ownerID)

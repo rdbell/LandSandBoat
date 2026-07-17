@@ -3361,6 +3361,16 @@ set(SOURCES
     test_mobutils_assign_guard_3392.cpp
     test_alliance_attempt_leader_promote_3393.h
     test_alliance_attempt_leader_promote_3393.cpp
+    test_ranger_strip_partial_retain_3394.h
+    test_ranger_strip_partial_retain_3394.cpp
+    test_char_set_pending_push_3395.h
+    test_char_set_pending_push_3395.cpp
+    test_artisan_can_claim_scroll_3396.h
+    test_artisan_can_claim_scroll_3396.cpp
+    test_campaign_debit_selected_3397.h
+    test_campaign_debit_selected_3397.cpp
+    test_salvage_reset_temp_box_3398.h
+    test_salvage_reset_temp_box_3398.cpp
 )
 
 if(UNIX)

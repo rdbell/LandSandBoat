@@ -16,7 +16,9 @@
 //   - 3058: ShouldStripAllDetectableOnFail residual dual-wire expand
 //   - 3344: ShouldStripAllDetectableOnFail dedicated dual-wire
 //           (roll0to99 > retainChance; residual expand 3058 / pure 1391)
-//   - 3082: ShouldStripPartialStealthOnRetain (!stripAllDetectable partial gate)
+//   - 3082: ShouldStripPartialStealthOnRetain residual dual-wire expand
+//   - 3394: ShouldStripPartialStealthOnRetain dedicated dual-wire
+//           (!stripAllDetectable partial gate; residual expand 3082 / pure 1391)
 //   - 3118: ShouldStripAllDetectableWithoutRetain (mod <= 0 without-retain strip)
 //
 // Production host:
@@ -203,7 +205,8 @@ inline auto ShouldStripAllDetectableOnFail(const int16 retainChance, const int r
     return roll0to99 > retainChance;
 }
 
-// --- Slice 3082: ShouldStripPartialStealthOnRetain pure dual-wire ---
+// --- Slice 3394: ShouldStripPartialStealthOnRetain dedicated pure dual-wire ---
+// Residual dual-wire expand: slice 3082.
 // Residual pure port: slice 1391 (OnRangedAttack RETAIN_CAMOUFLAGE policy suite).
 // Production host: CBattleEntity::OnRangedAttack injects false into
 // ShouldStripPartialStealthOnRetain when ShouldStripAllDetectableOnFail returns
@@ -212,19 +215,29 @@ inline auto ShouldStripAllDetectableOnFail(const int16 retainChance, const int r
 // (3344 dedicated / 3058 residual).
 // Go dual-wire: ranger.ShouldStripPartialStealthOnRetain
 // (internal/ranger/strip_partial_retain.go).
-// Sibling dual-wire (3118): ShouldStripAllDetectableWithoutRetain.
-// Sibling dual-wire 3344/3058 left alone.
+// Residual dual-wire suite: 3082 / test_ranger_strip_partial_retain_3082.
+// Dedicated dual-wire suite: 3394 / test_ranger_strip_partial_retain_3394.
+// Formula is unchanged; this slice only expands dual-wire docs + index +
+// dedicated suite. Sibling residual gates remain on this header
+// (facing / chance / strip). Siblings left alone: evaluate_camouflage_retain /
+// strip_detectable_fail / strip_without_retain (3174 / 3344·3058 / 3118).
 
 // When retain succeeds (not strip all), host deletes Sneak/Deodorize/Illusion only.
 //
-// Formula (slice 3082 dual-wire):
+// Formula (slice 3394 dedicated dual-wire; residual expand 3082 / pure 1391 —
+// formula unchanged):
 //   ShouldStripPartialStealthOnRetain(stripAllDetectable) = !stripAllDetectable
 //
 // stripAllDetectable — host-resolved ShouldStripAllDetectableOnFail result
 // true  → strip Sneak/Deodorize/Illusion only (retain succeeded; not strip-all)
 // false → strip-all Detectable path already taken; no partial-stealth strip
 //
-// Dual-wire of Go ranger.ShouldStripPartialStealthOnRetain.
+// Dual-wire of Go ranger.ShouldStripPartialStealthOnRetain
+// (internal/ranger/strip_partial_retain.go). Prior pure port: slice 1391.
+// Residual dual-wire suite: 3082 / test_ranger_strip_partial_retain_3082.
+// Dedicated dual-wire suite is test_ranger_strip_partial_retain_3394.
+// Formula is unchanged; this slice only expands dual-wire docs + index +
+// dedicated suite.
 // Call site: CBattleEntity::OnRangedAttack (retain-success else-if after strip-all gate).
 inline auto ShouldStripPartialStealthOnRetain(const bool stripAllDetectable) -> bool
 {

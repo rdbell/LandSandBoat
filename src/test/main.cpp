@@ -1684,6 +1684,11 @@ auto runAttackRunEnspell3390SelfTests() -> bool;
 auto runRecastUpdateMaxCharges3391SelfTests() -> bool;
 auto runMobutilsAssignGuard3392SelfTests() -> bool;
 auto runAllianceAttemptLeaderPromote3393SelfTests() -> bool;
+auto runRangerStripPartialRetain3394SelfTests() -> bool;
+auto runCharSetPendingPush3395SelfTests() -> bool;
+auto runArtisanCanClaimScroll3396SelfTests() -> bool;
+auto runCampaignDebitSelected3397SelfTests() -> bool;
+auto runSalvageResetTempBox3398SelfTests() -> bool;
 
 namespace
 {
@@ -3345,6 +3350,11 @@ namespace
         ok = runRecastUpdateMaxCharges3391SelfTests() && ok;
         ok = runMobutilsAssignGuard3392SelfTests() && ok;
         ok = runAllianceAttemptLeaderPromote3393SelfTests() && ok;
+        ok = runRangerStripPartialRetain3394SelfTests() && ok;
+        ok = runCharSetPendingPush3395SelfTests() && ok;
+        ok = runArtisanCanClaimScroll3396SelfTests() && ok;
+        ok = runCampaignDebitSelected3397SelfTests() && ok;
+        ok = runSalvageResetTempBox3398SelfTests() && ok;
 
         return ok;
     }
