@@ -613,6 +613,8 @@ set(SOURCES
     test_login_view_character_create_response_2763.cpp
     test_login_success_response_2767.h
     test_login_success_response_2767.cpp
+    test_login_data_a2_zone_cap_response_2770.h
+    test_login_data_a2_zone_cap_response_2770.cpp
     test_login_auth_password_1307.h
     test_login_auth_password_1307.cpp
     test_login_auth_version_error_1308.h
@@ -759,6 +761,8 @@ set(SOURCES
     test_status_effect_tick_1366.cpp
     test_treasure_pool_policy_1367.h
     test_treasure_pool_policy_1367.cpp
+    test_treasure_lot_preflight_2772.h
+    test_treasure_lot_preflight_2772.cpp
     test_status_effect_prevent_1368.h
     test_status_effect_prevent_1368.cpp
     test_status_effect_params_1369.h
@@ -1472,6 +1476,10 @@ set(SOURCES
     test_map_networking_login_character_reset_2735.cpp
     test_map_zoneout_session_update_2765.h
     test_map_zoneout_session_update_2765.cpp
+    test_map_dynamic_targid_percent_2769.h
+    test_map_dynamic_targid_percent_2769.cpp
+    test_map_outgoing_cypher_size_2771.h
+    test_map_outgoing_cypher_size_2771.cpp
     test_attack_guard_resolution_2739.h
     test_attack_guard_resolution_2739.cpp
     test_attackround_initial_weapon_2742.h
@@ -1484,6 +1492,8 @@ set(SOURCES
     test_attack_parry_resolution_2751.cpp
     test_attack_restraint_wsd_2764.h
     test_attack_restraint_wsd_2764.cpp
+    test_attack_skillup_plan_2773.h
+    test_attack_skillup_plan_2773.cpp
     test_map_networking_sequence_gate_2696.h
     test_map_networking_sequence_gate_2696.cpp
     test_map_networking_acknowledgement_2699.h

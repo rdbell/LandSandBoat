@@ -788,25 +788,55 @@ void CAttack::ProcessDamage()
     // Absorption isn't possible at this point in the calculation, so zero it.
     m_damage = attackhelpers::ClampNonNegativeDamage(m_damage);
 
-    // Try skill up.
-    if (m_damage > 0)
+    // Try skill up. Pure routing: attackhelpers::PlanAttackSkillUp (slice 2773).
     {
-        if (m_attacker->objtype == TYPE_PC)
+        const bool isPC            = m_attacker->objtype == TYPE_PC;
+        const bool isDaken         = m_attackType == PHYSICAL_ATTACK_TYPE::DAKEN;
+        const bool hasWeaponAtSlot = dynamic_cast<CItemWeapon*>(m_attacker->m_Weapons[slot]) != nullptr;
+        const bool isPet           = m_attacker->objtype == TYPE_PET;
+        const bool masterIsPC      = m_attacker->PMaster != nullptr && m_attacker->PMaster->objtype == TYPE_PC;
+        const bool isAutomaton     = isPet && static_cast<CPetEntity*>(m_attacker)->getPetType() == PET_TYPE::AUTOMATON;
+
+        const auto skillUp = attackhelpers::PlanAttackSkillUp(
+            m_damage,
+            isPC,
+            isDaken,
+            hasWeaponAtSlot,
+            isPet,
+            masterIsPC,
+            isAutomaton);
+
+        switch (skillUp.target)
         {
-            auto* PChar = static_cast<CCharEntity*>(m_attacker);
-            if (m_attackType == PHYSICAL_ATTACK_TYPE::DAKEN)
+            case attackhelpers::AttackSkillUpTarget::Throwing:
             {
-                charutils::TrySkillUP(PChar, SKILLTYPE::SKILL_THROWING, m_victim->GetMLevel());
+                charutils::TrySkillUP(
+                    static_cast<CCharEntity*>(m_attacker),
+                    SKILLTYPE::SKILL_THROWING,
+                    m_victim->GetMLevel());
+                break;
             }
-            else if (auto* weapon = dynamic_cast<CItemWeapon*>(m_attacker->m_Weapons[slot]))
+            case attackhelpers::AttackSkillUpTarget::WeaponSkillType:
             {
-                charutils::TrySkillUP(PChar, static_cast<SKILLTYPE>(weapon->getSkillType()), m_victim->GetMLevel());
+                if (auto* weapon = dynamic_cast<CItemWeapon*>(m_attacker->m_Weapons[slot]))
+                {
+                    charutils::TrySkillUP(
+                        static_cast<CCharEntity*>(m_attacker),
+                        static_cast<SKILLTYPE>(weapon->getSkillType()),
+                        m_victim->GetMLevel());
+                }
+                break;
             }
-        }
-        else if (m_attacker->objtype == TYPE_PET && m_attacker->PMaster && m_attacker->PMaster->objtype == TYPE_PC &&
-                 static_cast<CPetEntity*>(m_attacker)->getPetType() == PET_TYPE::AUTOMATON)
-        {
-            puppetutils::TrySkillUP(static_cast<CAutomatonEntity*>(m_attacker), SKILL_AUTOMATON_MELEE, m_victim->GetMLevel());
+            case attackhelpers::AttackSkillUpTarget::AutomatonMelee:
+            {
+                puppetutils::TrySkillUP(
+                    static_cast<CAutomatonEntity*>(m_attacker),
+                    SKILL_AUTOMATON_MELEE,
+                    m_victim->GetMLevel());
+                break;
+            }
+            default:
+                break;
         }
     }
     m_isBlocked = attackutils::IsBlocked(m_attacker, m_victim);

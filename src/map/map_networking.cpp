@@ -755,7 +755,7 @@ void MapNetworking::finalizePacket(uint8* buff, size_t* buffsize, size_t PacketS
     // Making total outgoing packet
     std::memcpy(buff + FFXI_HEADER_SIZE, PScratchBuffer.data(), PacketSize);
 
-    uint32 cypherSize = (PacketSize / 4) & -2;
+    const uint32 cypherSize = mapnetworkinghelpers::OutgoingCypherWordCount(static_cast<uint32>(PacketSize));
 
     blowfish_t* pbfkey = nullptr;
 
@@ -771,7 +771,11 @@ void MapNetworking::finalizePacket(uint8* buff, size_t* buffsize, size_t PacketS
     }
 
     // cypherSize is an even count of 4-byte words, i.e. 2 words (one 64-bit block) per cipher step.
-    blowfish_encipher_blocks((uint32*)(buff) + 7, cypherSize / 2, pbfkey->P, pbfkey->S[0]);
+    blowfish_encipher_blocks(
+        (uint32*)(buff) + 7,
+        mapnetworkinghelpers::OutgoingCypherBlockCount(cypherSize),
+        pbfkey->P,
+        pbfkey->S[0]);
 
     *buffsize = PacketSize + FFXI_HEADER_SIZE;
 }
@@ -780,11 +784,10 @@ void MapNetworking::flushStatistics()
 {
     // Collect statistics
     // TODO: Collect these inline
-    std::size_t activeZoneCount       = 0;
-    std::size_t playerCount           = 0;
-    std::size_t mobCount              = 0;
-    std::size_t dynamicTargIdCount    = 0;
-    std::size_t dynamicTargIdCapacity = 0;
+    std::size_t activeZoneCount    = 0;
+    std::size_t playerCount        = 0;
+    std::size_t mobCount           = 0;
+    std::size_t dynamicTargIdCount = 0;
 
     for (auto& [id, PZone] : g_PZoneList)
     {
@@ -794,20 +797,18 @@ void MapNetworking::flushStatistics()
             playerCount += PZone->GetZoneEntities()->GetCharList().size();
             mobCount += PZone->GetZoneEntities()->GetMobList().size();
             dynamicTargIdCount += PZone->GetZoneEntities()->GetUsedDynamicTargIDsCount();
-            dynamicTargIdCapacity += 511;
         }
     }
+
+    const auto dynamicTargIdCapacity = mapnetworkinghelpers::AccumulateDynamicTargIdCapacity(activeZoneCount);
 
     // Set statistics
     mapStatistics_.set(MapStatistics::Key::ActiveZones, activeZoneCount);
     mapStatistics_.set(MapStatistics::Key::ConnectedPlayers, playerCount);
     mapStatistics_.set(MapStatistics::Key::ActiveMobs, mobCount);
 
-    const auto percent = dynamicTargIdCapacity > 0
-                             ? static_cast<double>(dynamicTargIdCount) / static_cast<double>(dynamicTargIdCapacity) * 100.0
-                             : 0.0;
-
-    mapStatistics_.set(MapStatistics::Key::DynamicTargIdUsagePercent, static_cast<int64>(percent));
+    mapStatistics_.set(MapStatistics::Key::DynamicTargIdUsagePercent,
+                       mapnetworkinghelpers::DynamicTargIdUsagePercent(dynamicTargIdCount, dynamicTargIdCapacity));
 
     // This also zeroes out all the stats
     mapStatistics_.flush();

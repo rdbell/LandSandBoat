@@ -425,15 +425,20 @@ void data_session::read_func()
 
                 // Zone-cap deny only applies when a view session can receive the error.
                 // Without a view peer, production continues into the maint/limit path.
-                if (zoneAtCap)
+                const auto zoneCapPlan = loginHelpers::PlanDataA2ZoneCapResponse(zoneAtCap, session.view_session != nullptr);
+                if (zoneCapPlan.logWarning)
                 {
                     ShowWarning(loginHelpers::FormatDataA2ZoneCapWarning(ZoneID, charid, isGM));
-                    if (auto viewSession = session.view_session.get())
-                    {
-                        loginHelpers::generateErrorMessage(viewSession->buffer_.data(), loginErrors::errorCode::WORLD_IS_FULL);
-                        viewSession->do_write(0x24);
-                        return;
-                    }
+                }
+                if (zoneCapPlan.writeWorldFullError)
+                {
+                    auto viewSession = session.view_session.get();
+                    loginHelpers::generateErrorMessage(viewSession->buffer_.data(), loginErrors::errorCode::WORLD_IS_FULL);
+                    viewSession->do_write(0x24);
+                }
+                if (zoneCapPlan.returnFromRead)
+                {
+                    return;
                 }
 
                 // Maint/login-limit admission (zone already handled above).

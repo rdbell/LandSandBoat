@@ -154,4 +154,30 @@ inline auto FormatDataA2ZoneCapWarning(const uint16 zoneID, const uint32 charid,
     return fmt::format("data_session: zone {} at player cap, denying charid {} (gm={})", zoneID, charid, isGM ? 1 : 0);
 }
 
+// data_a2_zone_cap_response_plan is the pure zone-at-cap control flow for DATA 0xA2.
+// FormatDataA2ZoneCapWarning and WORLD_IS_FULL packet bytes remain host-owned.
+struct data_a2_zone_cap_response_plan
+{
+    bool logWarning{};
+    bool writeWorldFullError{}; // needs view session
+    bool returnFromRead{};
+};
+
+// PlanDataA2ZoneCapResponse mirrors data_session's zone-cap branch before
+// maint/limit admission (DecideDataA2Admission is called with zoneAtCap=false
+// after this path). zoneAtCap false: no-op; with view peer: warn+error+return;
+// without view peer: warn only (continue into maint/limit path).
+inline auto PlanDataA2ZoneCapResponse(const bool zoneAtCap, const bool hasViewSession) -> data_a2_zone_cap_response_plan
+{
+    if (!zoneAtCap)
+    {
+        return {};
+    }
+    if (hasViewSession)
+    {
+        return { .logWarning = true, .writeWorldFullError = true, .returnFromRead = true };
+    }
+    return { .logWarning = true };
+}
+
 } // namespace loginHelpers

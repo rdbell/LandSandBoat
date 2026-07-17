@@ -863,5 +863,65 @@ inline auto ResolveRestraintWSDBoost(
     return ComputeRestraintWSDBoost(weaponDelayMs, effectPower, effectSubPower, enhancesRestraint, jpBonus);
 }
 
+// --- Slice 2773: ProcessDamage skill-up routing plan ---
+
+// AttackSkillUpTarget selects which TrySkillUP the ProcessDamage host should call.
+// Host owns skill type resolution (weapon skill at slot / THROWING / AUTOMATON_MELEE)
+// and the actual charutils/puppetutils TrySkillUP side effects.
+enum class AttackSkillUpTarget : uint8
+{
+    None             = 0,
+    Throwing         = 1, // PC Daken → SKILL_THROWING
+    WeaponSkillType  = 2, // PC non-Daken with weapon at slot → weapon skill type
+    AutomatonMelee   = 3, // Pet automaton with PC master → SKILL_AUTOMATON_MELEE
+};
+
+// AttackSkillUpPlan is the pure end-of-ProcessDamage skill-up route.
+// useWeaponAtSlot is true only for WeaponSkillType (host reads skill from slot).
+struct AttackSkillUpPlan
+{
+    AttackSkillUpTarget target{};
+    bool                useWeaponAtSlot{};
+};
+
+// PlanAttackSkillUp mirrors the damage > 0 skill-up block in ProcessDamage.
+// Composes ShouldTrySkillUp / ShouldSkillUpThrowing / ShouldSkillUpAutomaton.
+// isDaken is host-injected (attack type == DAKEN); hasWeaponAtSlot is whether
+// m_Weapons[slot] is a CItemWeapon (only consulted on PC non-Daken).
+inline auto PlanAttackSkillUp(
+    const int32 damage,
+    const bool  isPC,
+    const bool  isDaken,
+    const bool  hasWeaponAtSlot,
+    const bool  isPet,
+    const bool  masterIsPC,
+    const bool  isAutomaton) -> AttackSkillUpPlan
+{
+    AttackSkillUpPlan plan{};
+    if (!ShouldTrySkillUp(damage))
+    {
+        return plan;
+    }
+    if (isPC)
+    {
+        if (ShouldSkillUpThrowing(isDaken ? AttackTypeDaken : AttackTypeNormal))
+        {
+            plan.target = AttackSkillUpTarget::Throwing;
+            return plan;
+        }
+        if (hasWeaponAtSlot)
+        {
+            plan.target          = AttackSkillUpTarget::WeaponSkillType;
+            plan.useWeaponAtSlot = true;
+            return plan;
+        }
+        return plan;
+    }
+    if (ShouldSkillUpAutomaton(isPet, masterIsPC, isAutomaton))
+    {
+        plan.target = AttackSkillUpTarget::AutomatonMelee;
+    }
+    return plan;
+}
 
 } // namespace attackhelpers

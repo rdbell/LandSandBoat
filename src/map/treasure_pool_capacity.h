@@ -132,6 +132,59 @@ inline auto ShouldRejectNullItem(const bool itemNull) -> bool
     return itemNull;
 }
 
+// LotItemPreflight is the pure early-gate disposition of CTreasurePool::lotItem
+// before LotInfo is recorded. Host keeps logging/side effects; plan is pure.
+enum class LotItemPreflight : uint8
+{
+    Proceed = 0,
+    RejectMember,
+    RejectSlot,
+    RejectItem,
+    RejectFullInventory,
+    RejectRareOwned,
+};
+
+// PlanLotItemPreflight short-circuits in production lotItem order:
+// 1) null char or pool mismatch
+// 2) slot out of range
+// 3) null item lookup
+// 4) free inventory slots == 0
+// 5) rare && already has
+// 6) proceed to record lot
+// Composes ShouldRejectNullMember / IsSlotOutOfRange host flag / ShouldRejectNullItem /
+// CanLotWithInventory / CanLotRareItem.
+inline auto PlanLotItemPreflight(
+    const bool charNull,
+    const bool poolMismatch,
+    const bool slotOutOfRange,
+    const bool itemNull,
+    const uint8 freeSlots,
+    const bool itemIsRare,
+    const bool alreadyHasItem) -> LotItemPreflight
+{
+    if (ShouldRejectNullMember(charNull, poolMismatch))
+    {
+        return LotItemPreflight::RejectMember;
+    }
+    if (slotOutOfRange)
+    {
+        return LotItemPreflight::RejectSlot;
+    }
+    if (ShouldRejectNullItem(itemNull))
+    {
+        return LotItemPreflight::RejectItem;
+    }
+    if (!CanLotWithInventory(freeSlots))
+    {
+        return LotItemPreflight::RejectFullInventory;
+    }
+    if (!CanLotRareItem(itemIsRare, alreadyHasItem))
+    {
+        return LotItemPreflight::RejectRareOwned;
+    }
+    return LotItemPreflight::Proceed;
+}
+
 // ShouldUpdatePoolForChar mirrors status != DISAPPEAR.
 inline auto ShouldUpdatePoolForChar(const bool isDisappear) -> bool
 {

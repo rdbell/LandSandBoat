@@ -332,36 +332,49 @@ void CTreasurePool::flush()
 
 void CTreasurePool::lotItem(CCharEntity* PChar, uint8 SlotID, uint16 Lot)
 {
-    if (PChar == nullptr || PChar->PTreasurePool != this)
+    using treasurepoolhelpers::LotItemPreflight;
+    using treasurepoolhelpers::PlanLotItemPreflight;
+
+    const bool charNull      = PChar == nullptr;
+    const bool poolMismatch  = !charNull && PChar->PTreasurePool != this;
+    const bool slotOutOfRange = treasurepoolhelpers::IsSlotOutOfRange(SlotID);
+
+    bool  itemNull       = true;
+    uint8 freeSlots      = 0;
+    bool  itemIsRare     = false;
+    bool  alreadyHasItem = false;
+
+    // Host only resolves slot-dependent facts when earlier gates can pass.
+    if (!charNull && !poolMismatch && !slotOutOfRange)
     {
-        ShowWarning("CTreasurePool::LotItem() - PChar was null, or PTreasurePool mismatched.");
-        return;
+        const CItem* PItem = xi::items::lookup(m_PoolItems[SlotID].ID);
+        itemNull           = PItem == nullptr;
+        if (!itemNull)
+        {
+            freeSlots      = PChar->getStorage(LOC_INVENTORY)->GetFreeSlotsCount();
+            itemIsRare     = PItem->hasFlag(ItemFlag::Rare);
+            alreadyHasItem = charutils::HasItem(PChar, m_PoolItems[SlotID].ID);
+        }
     }
 
-    if (SlotID >= TREASUREPOOL_SIZE)
+    switch (PlanLotItemPreflight(charNull, poolMismatch, slotOutOfRange, itemNull, freeSlots, itemIsRare, alreadyHasItem))
     {
-        return;
-    }
-
-    const CItem* PItem = xi::items::lookup(m_PoolItems[SlotID].ID);
-    if (PItem == nullptr)
-    {
-        ShowWarning(fmt::format("Player {} is trying to lot on an item that doesn't exist (PItem was nullptr) (Packet injection?)!", PChar->getName()).c_str());
-        return;
-    }
-
-    // Cannot lot if player's inventory is full
-    if (PChar->getStorage(LOC_INVENTORY)->GetFreeSlotsCount() == 0)
-    {
-        ShowError(fmt::format("Player {} is trying to lot on item {} while full inventory (Packet injection)!", PChar->getName(), m_PoolItems[SlotID].ID));
-        return;
-    }
-
-    // Cannot lot if item is RARE and player already has it
-    if (PItem->hasFlag(ItemFlag::Rare) && charutils::HasItem(PChar, m_PoolItems[SlotID].ID))
-    {
-        ShowError(fmt::format("Player {} is trying to lot on item {} (Rare) while already holding one (Packet injection)! ", PChar->getName(), m_PoolItems[SlotID].ID));
-        return;
+        case LotItemPreflight::RejectMember:
+            ShowWarning("CTreasurePool::LotItem() - PChar was null, or PTreasurePool mismatched.");
+            return;
+        case LotItemPreflight::RejectSlot:
+            return;
+        case LotItemPreflight::RejectItem:
+            ShowWarning(fmt::format("Player {} is trying to lot on an item that doesn't exist (PItem was nullptr) (Packet injection?)!", PChar->getName()).c_str());
+            return;
+        case LotItemPreflight::RejectFullInventory:
+            ShowError(fmt::format("Player {} is trying to lot on item {} while full inventory (Packet injection)!", PChar->getName(), m_PoolItems[SlotID].ID));
+            return;
+        case LotItemPreflight::RejectRareOwned:
+            ShowError(fmt::format("Player {} is trying to lot on item {} (Rare) while already holding one (Packet injection)! ", PChar->getName(), m_PoolItems[SlotID].ID));
+            return;
+        case LotItemPreflight::Proceed:
+            break;
     }
 
     LotInfo li;

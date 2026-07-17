@@ -270,4 +270,45 @@ inline auto ShouldResetCharacterForUnencryptedLogin(const bool pendingZone) -> b
     return pendingZone;
 }
 
+// OutgoingCypherWordCount mirrors finalizePacket's even word count for Blowfish
+// encryption of the payload (post-MD5 size, excluding the FFXI header). The
+// floor to an even number of 4-byte words drops any trailing partial 8-byte block.
+inline auto OutgoingCypherWordCount(const uint32 packetSize) -> uint32
+{
+    return (packetSize / 4) & ~1u;
+}
+
+// OutgoingCypherBlockCount converts an even word count into the number of
+// 64-bit Blowfish blocks passed to blowfish_encipher_blocks.
+inline auto OutgoingCypherBlockCount(const uint32 wordCount) -> uint32
+{
+    return wordCount / 2;
+}
+
+// DynamicTargIdCapacityPerZone is the dynamic targid pool size counted per
+// active zone in MapNetworking::flushStatistics. Matches
+// CZoneEntities' [0x700, 0x900) range (0x1FF = 511 entities).
+constexpr std::size_t DynamicTargIdCapacityPerZone = 511;
+
+// AccumulateDynamicTargIdCapacity returns the process-wide capacity used for
+// the Dynamic TargID Usage (%) statistic: activeZoneCount * 511.
+inline auto AccumulateDynamicTargIdCapacity(const std::size_t activeZoneCount) -> std::size_t
+{
+    return activeZoneCount * DynamicTargIdCapacityPerZone;
+}
+
+// DynamicTargIdUsagePercent mirrors flushStatistics' utilization formula:
+//   percent = capacity > 0 ? (double)count / (double)capacity * 100.0 : 0.0
+//   return static_cast<int64>(percent)  // truncates toward zero
+inline auto DynamicTargIdUsagePercent(const std::size_t count, const std::size_t capacity) -> int64
+{
+    if (capacity == 0)
+    {
+        return 0;
+    }
+
+    const auto percent = static_cast<double>(count) / static_cast<double>(capacity) * 100.0;
+    return static_cast<int64>(percent);
+}
+
 } // namespace mapnetworkinghelpers
