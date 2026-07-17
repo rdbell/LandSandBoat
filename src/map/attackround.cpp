@@ -529,14 +529,25 @@ void CAttackRound::CreateKickAttacks()
  ************************************************************************/
 void CAttackRound::CreateDakenAttack()
 {
+    // Preserve original RNG consumption: only roll DAKEN while TYPE_PC.
+    bool ammoIsShuriken = false;
+    bool dakenProcs     = false;
+
     if (attackroundhelpers::ShouldCreateDakenAttack(m_attacker->objtype == TYPE_PC))
     {
-        auto* PAmmo = static_cast<CItemWeapon*>(m_attacker->m_Weapons[SLOT_AMMO]);
-        const bool isShuriken = PAmmo != nullptr && PAmmo->isShuriken();
-        uint16     daken      = m_attacker->getMod(Mod::DAKEN);
-        if (attackroundhelpers::ShouldProcDakenThrow(isShuriken, xirand::GetRandomNumber(100) < daken))
-        {
-            AddAttackSwing(PHYSICAL_ATTACK_TYPE::DAKEN, RIGHTATTACK, 1);
-        }
+        auto* PAmmo     = static_cast<CItemWeapon*>(m_attacker->m_Weapons[SLOT_AMMO]);
+        ammoIsShuriken  = PAmmo != nullptr && PAmmo->isShuriken();
+        const uint16 daken = m_attacker->getMod(Mod::DAKEN);
+        dakenProcs      = xirand::GetRandomNumber(100) < daken;
+    }
+
+    const auto plan = attackroundhelpers::ResolveCreateDakenAttackPlan(
+        m_attacker->objtype == TYPE_PC,
+        ammoIsShuriken,
+        dakenProcs);
+
+    if (plan.addDakenThrow)
+    {
+        AddAttackSwing(PHYSICAL_ATTACK_TYPE::DAKEN, RIGHTATTACK, 1);
     }
 }

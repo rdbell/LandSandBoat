@@ -375,6 +375,27 @@ inline auto ShouldProcDakenThrow(const bool ammoIsShuriken, const bool dakenProc
     return ammoIsShuriken && dakenProcs;
 }
 
+// CreateDakenAttackPlan is the final pure assembly of CreateDakenAttack swing
+// adds after PC gating and shuriken/daken rolls.
+struct CreateDakenAttackPlan
+{
+    bool addDakenThrow{};
+};
+
+inline auto ResolveCreateDakenAttackPlan(
+    const bool isPC,
+    const bool ammoIsShuriken,
+    const bool dakenProcs) -> CreateDakenAttackPlan
+{
+    CreateDakenAttackPlan plan{};
+    if (!ShouldCreateDakenAttack(isPC))
+    {
+        return plan;
+    }
+    plan.addDakenThrow = ShouldProcDakenThrow(ammoIsShuriken, dakenProcs);
+    return plan;
+}
+
 // IsAmmoSwingEligibleAttackType mirrors NORMAL/DOUBLE/TRIPLE/SAMBA/QUAD.
 inline auto IsAmmoSwingEligibleAttackType(const uint8 attackType) -> bool
 {
