@@ -6,14 +6,17 @@
 
 // Pure MOBTYPE pin constants + free helpers shared by dual-wire slices:
 //   - 2919: CanDeaggro residual dual-wire suite (type-bit gate)
-//   - 2934: CanBeNeutral (type-bit gate)
+//   - 2934: CanBeNeutral residual dual-wire suite (type-bit gate)
 //   - 3063: CanDeaggro dedicated dual-wire (can_deaggro.go)
+//   - 3076: CanBeNeutral dedicated dual-wire (can_be_neutral.go)
 //
 // Dual-wire index:
 //   - 2919: CanDeaggro residual dual-wire (Type-bit form; dense suite)
-//   - 2934: CanBeNeutral (type-bit gate)
+//   - 2934: CanBeNeutral residual dual-wire (Type-bit form; dense suite)
 //   - 3063: CanDeaggro (!Has(t, Notorious) && !Has(t, Battlefield);
 //           dedicated dual-wire on can_deaggro.go)
+//   - 3076: CanBeNeutral (!Has(t, Notorious);
+//           dedicated dual-wire on can_be_neutral.go)
 //
 // Production call sites today:
 //   - CMobEntity::CanDeaggro in mob_entity.cpp routes through
@@ -24,15 +27,17 @@
 //     m_Type & MOBTYPE_NOTORIOUS.
 //
 // This capacity dual-wires the Type-bit form used by OmegaXI
-// internal/mobtype (slice 2042 residual / 2919 / 2934 / 3063 dual-wire):
+// internal/mobtype (slice 2042 residual / 2919 / 2934 / 3063 / 3076 dual-wire):
 //
 //   CanDeaggro(t)    = !Has(t, Notorious) && !Has(t, Battlefield)
 //   CanBeNeutral(t)  = !Has(t, Notorious)
 //
 // Hosts inject the raw m_Type / MOBTYPE byte. Side effects (deaggro
 // timers, controller tick, neutral timer) remain host-owned.
-// Go dual-wire: mobtype.CanDeaggro (internal/mobtype/can_deaggro.go).
-// Future host injects mobtypehelpers::CanDeaggro(m_Type) then deaggro path.
+// Go dual-wire: mobtype.CanDeaggro (internal/mobtype/can_deaggro.go),
+// mobtype.CanBeNeutral (internal/mobtype/can_be_neutral.go).
+// Future host injects mobtypehelpers::CanDeaggro(m_Type) then deaggro path,
+// or mobtypehelpers::CanBeNeutral(m_Type) then neutral path.
 //
 // Reference: src/map/entities/mob_entity.h enum MOBTYPE
 //   MOBTYPE_NORMAL      = 0x00
@@ -102,17 +107,25 @@ inline auto CanDeaggro(const uint8 t) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2934 — CanBeNeutral type-bit gate
+// Slice 2934 / 3076 — CanBeNeutral type-bit gate
 // ---------------------------------------------------------------------------
 
 // CanBeNeutral mirrors CMobEntity::CanBeNeutral's type policy:
 //
 //   !Has(t, Notorious)
 //
+// Formula (slice 3076 dual-wire; residual expand 2934):
+//   CanBeNeutral(t) = !Has(t, Notorious)
+//
 // Only notorious mobs are excluded from the neutral/killing-pause behavior.
 // Battlefield alone may still be neutral. Host still owns controller neutral
-// timer / tick. Future host inject may call this free function with raw
-// m_Type instead of splitting the notorious bool at the call site.
+// timer / tick. Dual-wire of Go mobtype.CanBeNeutral.
+// Call site: future CMobEntity::CanBeNeutral inject with raw m_Type.
+// Prior pure port: slices 2042 / 2655. Residual dual-wire suite: 2934 /
+// test_mobtype_can_be_neutral_2934. Dedicated dual-wire suite is
+// test_mobtype_can_be_neutral_3076. Future host inject may call this free
+// function with raw m_Type instead of splitting the notorious bool at the
+// call site.
 inline auto CanBeNeutral(const uint8 t) -> bool
 {
     return !Has(t, Notorious);

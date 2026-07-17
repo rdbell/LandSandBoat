@@ -2721,6 +2721,16 @@ set(SOURCES
     test_campaign_afford_notes_3072.cpp
     test_garrison_fail_by_death_3073.h
     test_garrison_fail_by_death_3073.cpp
+    test_zone_reschedule_weather_3074.h
+    test_zone_reschedule_weather_3074.cpp
+    test_unity_reject_null_online_3075.h
+    test_unity_reject_null_online_3075.cpp
+    test_mobtype_can_be_neutral_3076.h
+    test_mobtype_can_be_neutral_3076.cpp
+    test_alliance_set_local_main_3077.h
+    test_alliance_set_local_main_3077.cpp
+    test_dynamis_snap_entry_3078.h
+    test_dynamis_snap_entry_3078.cpp
 )
 
 if(UNIX)

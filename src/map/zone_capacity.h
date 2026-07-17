@@ -36,6 +36,7 @@
 //   - 3053: ShouldForceMorningFog (inFogWindow && selectedBelowHotSpell &&
 //           !isCity on UpdateWeather)
 //   - 3068: ShouldDismountOnZoneIn (mounted && !canUseMount on CharZoneIn)
+//   - 3074: ShouldRescheduleDynamicWeather (!isStatic on UpdateWeather timer wake)
 //
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty;
@@ -89,7 +90,12 @@
 // and (GetTypeMask() & ZONE_TYPE::CITY) != 0 into ShouldForceMorningFog; on true
 // forces selectedWeather = Fog and clamps WeatherNextUpdate to EndFogVanaDate.
 // Go dual-wire: zone.ShouldForceMorningFog (internal/zone/morning_fog.go).
-// Sibling residual: ShouldRescheduleDynamicWeather (timer wake; not dual-wired).
+// Production host: CZone::UpdateWeather (zone.cpp) posts a main-thread task that
+// yields for WeatherNextUpdate, then injects weather().isStatic() into
+// ShouldRescheduleDynamicWeather; on true calls UpdateWeather() again.
+// Go dual-wire: zone.ShouldRescheduleDynamicWeather
+// (internal/zone/reschedule_weather.go). Sibling weather dual-wire:
+// ShouldForceMorningFog (3053) runs earlier in UpdateWeather before SetWeather.
 
 namespace zonehelpers
 {
@@ -567,7 +573,7 @@ inline auto SelectWeatherBand(const uint8 weatherChance) -> uint8
 // injects fog-window, HotSpell comparison, and CITY mask before SetWeather.
 // Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
 // suite is test_zone_morning_fog_3053.
-// Sibling residual: ShouldRescheduleDynamicWeather (timer wake; not dual-wired).
+// Sibling dual-wire: ShouldRescheduleDynamicWeather (3074; timer wake).
 // Sibling weather dual-wires: ShouldRejectInvalidWeather (3019),
 // ShouldSkipSameWeather (3028).
 inline auto ShouldForceMorningFog(
@@ -579,6 +585,23 @@ inline auto ShouldForceMorningFog(
 }
 
 // ShouldRescheduleDynamicWeather mirrors !weather().isStatic() on timer wake.
+//
+// Formula (slice 3074 dual-wire):
+//
+//   !isStatic
+//
+// isStatic — host-evaluated weather().isStatic() for this zone
+// true  → re-arm UpdateWeather after the scheduler yield (dynamic weather)
+// false → leave weather static; do not call UpdateWeather again on wake
+//
+// Dual-wire of Go zone.ShouldRescheduleDynamicWeather.
+// Call site: CZone::UpdateWeather — after SetWeather / OnZoneWeatherChange,
+// the posted main-thread task injects weather().isStatic() on wake; on true
+// calls UpdateWeather() again.
+// Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
+// suite is test_zone_reschedule_weather_3074.
+// Sibling weather dual-wires: ShouldForceMorningFog (3053),
+// ShouldRejectInvalidWeather (3019), ShouldSkipSameWeather (3028).
 inline auto ShouldRescheduleDynamicWeather(const bool isStatic) -> bool
 {
     return !isStatic;

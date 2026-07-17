@@ -1364,6 +1364,11 @@ auto runRecastEraseOnExpire3070SelfTests() -> bool;
 auto runPetCanAttackTarget3071SelfTests() -> bool;
 auto runCampaignAffordNotes3072SelfTests() -> bool;
 auto runGarrisonFailByDeath3073SelfTests() -> bool;
+auto runZoneRescheduleWeather3074SelfTests() -> bool;
+auto runUnityRejectNullOnline3075SelfTests() -> bool;
+auto runMobtypeCanBeNeutral3076SelfTests() -> bool;
+auto runAllianceSetLocalMain3077SelfTests() -> bool;
+auto runDynamisSnapEntry3078SelfTests() -> bool;
 
 namespace
 {
@@ -2705,6 +2710,11 @@ namespace
         ok = runPetCanAttackTarget3071SelfTests() && ok;
         ok = runCampaignAffordNotes3072SelfTests() && ok;
         ok = runGarrisonFailByDeath3073SelfTests() && ok;
+        ok = runZoneRescheduleWeather3074SelfTests() && ok;
+        ok = runUnityRejectNullOnline3075SelfTests() && ok;
+        ok = runMobtypeCanBeNeutral3076SelfTests() && ok;
+        ok = runAllianceSetLocalMain3077SelfTests() && ok;
+        ok = runDynamisSnapEntry3078SelfTests() && ok;
 
         return ok;
     }

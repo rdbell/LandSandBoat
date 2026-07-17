@@ -16,7 +16,8 @@
 //   - 1346: assignAllianceLeader gate / leader flag / local main party
 //   - 2941: ShouldSkipDelPartyWhenEmpty (!hasAlliance || partyListEmpty)
 //   - 2979: ShouldAttemptAllianceLeaderPromote (isMainParty)
-//   - 2988: ShouldSetLocalMainParty (memberFoundOnThisServer)
+//   - 2988: ShouldSetLocalMainParty prior dual-wire (memberFoundOnThisServer)
+//   - 3077: ShouldSetLocalMainParty (memberFoundOnThisServer) dual-wire expansion
 //
 // Production host: CAlliance::delParty (alliance.cpp) injects
 // party->m_PAlliance != nullptr and partyList.empty() into
@@ -34,7 +35,8 @@
 // PParty->GetMemberByName(name) != nullptr into ShouldSetLocalMainParty while
 // scanning partyList after clearing aLeader.
 // Go dual-wire: alliance.ShouldSetLocalMainParty
-// (internal/alliance/set_local_main_party.go).
+// (internal/alliance/set_local_main_party.go). Prior pure port: 1346;
+// prior dual-wire: 2988; pure dual-wire expansion: 3077.
 
 namespace alliancehelpers
 {
@@ -225,17 +227,19 @@ constexpr uint16 AllianceLeaderFlag = 0x0008;
 // ShouldSetLocalMainParty mirrors finding GetMemberByName on this process
 // during assignAllianceLeader (local main-party gate).
 //
-// Formula (slice 2988 dual-wire):
+// Formula (slice 3077 dual-wire; prior 2988 dual-wire; residual 1346):
 //   memberFoundOnThisServer
 //
 // memberFoundOnThisServer — host-evaluated PParty->GetMemberByName(name) != nullptr
 // true  → set aLeader = PParty (leader present on this process)
 // false → leave aLeader nullptr for this party (leader on another server / not in party)
 //
-// Dual-wire of Go alliance.ShouldSetLocalMainParty.
+// Dual-wire of Go alliance.ShouldSetLocalMainParty
+// (internal/alliance/set_local_main_party.go).
 // Call site: CAlliance::assignAllianceLeader after clearing aLeader — host
 // injects GetMemberByName result per partyList entry.
 // Residual pure port: slice 1346 (assignAllianceLeader gate suite).
+// Prior dual-wire packaging: slice 2988.
 inline auto ShouldSetLocalMainParty(const bool memberFoundOnThisServer) -> bool
 {
     return memberFoundOnThisServer;
