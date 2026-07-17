@@ -12,6 +12,7 @@
 //   - 2814: ShouldEraseAbilityOnChangeJob
 //   - 2827: RecastIDFromLootRecast
 //   - 2931: ShouldStampOnZeroRecast (RecastTime == 0 stamp gate on charged Load)
+//   - 3052: ShouldExpireRecast (now >= TimeStamp + RecastTime Check gate)
 //
 // Production host: CRecastContainer::Load (recast_container.cpp) injects
 // RecastTime == 0s into ShouldStampOnZeroRecast on the charged path.
@@ -125,6 +126,18 @@ inline auto IsAbilityRecastType(const bool isAbility) -> bool
 }
 
 // ShouldExpireRecast mirrors now >= TimeStamp + RecastTime.
+//
+// Formula (slice 3052 dual-wire):
+//   nowUnits >= timeStampUnits + recastTimeUnits
+//
+// nowUnits / timeStampUnits / recastTimeUnits — host-evaluated epoch units
+// (timer::now / TimeStamp / RecastTime.count) sharing the same unit scale
+// true  → entry expired (Check erases magic or zeros ability RecastTime)
+// false → entry still active
+//
+// Dual-wire of Go recast.ShouldExpireRecast.
+// Call site: CRecastContainer::Check expiry gate.
+// ShouldEraseOnExpire is residual 1370 (not dual-wired in 3052).
 inline auto ShouldExpireRecast(const int64 nowUnits, const int64 timeStampUnits, const int64 recastTimeUnits) -> bool
 {
     return nowUnits >= timeStampUnits + recastTimeUnits;

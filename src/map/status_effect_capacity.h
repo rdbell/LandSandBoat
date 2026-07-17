@@ -369,7 +369,27 @@ constexpr uint8 NightmareSleepTierMin = 4;
 // Production: static_cast<int16>(perpetuationCost * 1.2) which floors.
 
 // ShouldExpireEffect mirrors duration != 0 && start+duration <= tick.
-// Times are host-normalized units (same scale).
+//
+// Formula (slice 3049 dual-wire):
+//   durationNonzero && expiryTime <= tickTime
+//
+// durationNonzero — host-evaluated GetDuration() != 0
+// expiryTime      — host-normalized start+duration (or equivalent expiry)
+// tickTime        — host-normalized current tick time
+// true  → effect expires this tick (host RemoveStatusEffect)
+// false → keep effect
+//
+// Times are host-normalized units on the same scale (production uses
+// time_since_epoch counts from timer::time_point).
+//
+// Dual-wire of Go statuseffect.ShouldExpireEffect.
+// Call site: CStatusEffectContainer::CheckEffectsExpiry — host injects
+// duration != 0s and (start+duration).count() / tick.count(); on true
+// RemoveStatusEffect.
+// Prior pure port: slice 1366 (expiry / tick / aura / eleven-roll suite).
+// Residual pins remain in test_status_effect_tick_1366; dedicated dual-wire
+// suite is test_status_expire_effect_3049. Sibling residual: ShouldTickEffect
+// (tick-period due) is orthogonal and remains in the 1366 suite.
 inline auto ShouldExpireEffect(
     const bool durationNonzero,
     const int64 expiryTime,

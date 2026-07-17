@@ -2671,6 +2671,16 @@ set(SOURCES
     test_ranger_evaluate_camouflage_retain_3047.cpp
     test_zone_clear_costume_3048.h
     test_zone_clear_costume_3048.cpp
+    test_status_expire_effect_3049.h
+    test_status_expire_effect_3049.cpp
+    test_unity_load_online_add_3050.h
+    test_unity_load_online_add_3050.cpp
+    test_pet_should_engage_3051.h
+    test_pet_should_engage_3051.cpp
+    test_recast_expire_3052.h
+    test_recast_expire_3052.cpp
+    test_zone_morning_fog_3053.h
+    test_zone_morning_fog_3053.cpp
 )
 
 if(UNIX)

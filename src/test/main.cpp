@@ -1339,6 +1339,11 @@ auto runAttackroundCreateDaken3045SelfTests() -> bool;
 auto runAttackRunEnspell3046SelfTests() -> bool;
 auto runRangerEvaluateCamouflageRetain3047SelfTests() -> bool;
 auto runZoneClearCostume3048SelfTests() -> bool;
+auto runStatusExpireEffect3049SelfTests() -> bool;
+auto runUnityLoadOnlineAdd3050SelfTests() -> bool;
+auto runPetShouldEngage3051SelfTests() -> bool;
+auto runRecastExpire3052SelfTests() -> bool;
+auto runZoneMorningFog3053SelfTests() -> bool;
 
 namespace
 {
@@ -2655,6 +2660,11 @@ namespace
         ok = runAttackRunEnspell3046SelfTests() && ok;
         ok = runRangerEvaluateCamouflageRetain3047SelfTests() && ok;
         ok = runZoneClearCostume3048SelfTests() && ok;
+        ok = runStatusExpireEffect3049SelfTests() && ok;
+        ok = runUnityLoadOnlineAdd3050SelfTests() && ok;
+        ok = runPetShouldEngage3051SelfTests() && ok;
+        ok = runRecastExpire3052SelfTests() && ok;
+        ok = runZoneMorningFog3053SelfTests() && ok;
 
         return ok;
     }

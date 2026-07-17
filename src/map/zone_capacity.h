@@ -33,6 +33,8 @@
 //   - 3043: ShouldDeleteExistingLevelRestriction (hasRestriction && !shouldSkip
 //           on updateCharLevelRestriction)
 //   - 3048: ShouldClearCostumeOnZoneIn (hasCostume identity on CharZoneIn)
+//   - 3053: ShouldForceMorningFog (inFogWindow && selectedBelowHotSpell &&
+//           !isCity on UpdateWeather)
 //
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty;
@@ -77,6 +79,12 @@
 // DelStatusEffectSilent(Costume). Sibling ShouldDismountOnZoneIn runs just
 // before (residual 2673).
 // Go dual-wire: zone.ShouldClearCostumeOnZoneIn (internal/zone/costume_gate.go).
+// Production host: CZone::UpdateWeather (zone.cpp) injects
+// (CurrentVanaDate in [StartFog, EndFog)), selectedWeather < Weather::HotSpell,
+// and (GetTypeMask() & ZONE_TYPE::CITY) != 0 into ShouldForceMorningFog; on true
+// forces selectedWeather = Fog and clamps WeatherNextUpdate to EndFogVanaDate.
+// Go dual-wire: zone.ShouldForceMorningFog (internal/zone/morning_fog.go).
+// Sibling residual: ShouldRescheduleDynamicWeather (timer wake; not dual-wired).
 
 namespace zonehelpers
 {
@@ -518,9 +526,27 @@ inline auto SelectWeatherBand(const uint8 weatherChance) -> uint8
     return 2;
 }
 
-// ShouldForceMorningFog mirrors fog window + non-elemental + non-city.
-// inFogWindow is [02:00, 07:00) Vana'diel; selectedBelowHotSpell is
-// selectedWeather < Weather::HotSpell; isCity is ZONE_TYPE::CITY mask.
+// ShouldForceMorningFog mirrors fog window + non-elemental + non-city
+// on CZone::UpdateWeather morning fog override.
+//
+// Formula (slice 3053 dual-wire):
+//
+//   inFogWindow && selectedBelowHotSpell && !isCity
+//
+// inFogWindow — host-evaluated Vana'diel time in [02:00, 07:00)
+// selectedBelowHotSpell — host-evaluated selectedWeather < Weather::HotSpell
+// isCity — host-evaluated ZONE_TYPE::CITY mask
+// true  → force selectedWeather = Fog + clamp next update to end of fog window
+// false → leave selected weather (band result unchanged)
+//
+// Dual-wire of Go zone.ShouldForceMorningFog.
+// Call site: CZone::UpdateWeather — after SelectWeatherBand selection; host
+// injects fog-window, HotSpell comparison, and CITY mask before SetWeather.
+// Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
+// suite is test_zone_morning_fog_3053.
+// Sibling residual: ShouldRescheduleDynamicWeather (timer wake; not dual-wired).
+// Sibling weather dual-wires: ShouldRejectInvalidWeather (3019),
+// ShouldSkipSameWeather (3028).
 inline auto ShouldForceMorningFog(
     const bool inFogWindow,
     const bool selectedBelowHotSpell,
