@@ -1449,6 +1449,11 @@ auto runCasketDropThreshold3155SelfTests() -> bool;
 auto runDominionXPMultiplier3156SelfTests() -> bool;
 auto runEnmityZeroOutOfRange3157SelfTests() -> bool;
 auto runMobutilsCanDropGil3158SelfTests() -> bool;
+auto runSpellCanUseSpellWith3159SelfTests() -> bool;
+auto runMeritShouldRaiseMerit3160SelfTests() -> bool;
+auto runCommandAuditGMCommand3161SelfTests() -> bool;
+auto runManaclipperRemainingGameMinutes3162SelfTests() -> bool;
+auto runColonizationreiveSpawnOnEnable3163SelfTests() -> bool;
 
 namespace
 {
@@ -2875,6 +2880,11 @@ namespace
         ok = runDominionXPMultiplier3156SelfTests() && ok;
         ok = runEnmityZeroOutOfRange3157SelfTests() && ok;
         ok = runMobutilsCanDropGil3158SelfTests() && ok;
+        ok = runSpellCanUseSpellWith3159SelfTests() && ok;
+        ok = runMeritShouldRaiseMerit3160SelfTests() && ok;
+        ok = runCommandAuditGMCommand3161SelfTests() && ok;
+        ok = runManaclipperRemainingGameMinutes3162SelfTests() && ok;
+        ok = runColonizationreiveSpawnOnEnable3163SelfTests() && ok;
 
         return ok;
     }

@@ -2891,6 +2891,16 @@ set(SOURCES
     test_enmity_zero_out_of_range_3157.cpp
     test_mobutils_can_drop_gil_3158.h
     test_mobutils_can_drop_gil_3158.cpp
+    test_spell_can_use_spell_with_3159.h
+    test_spell_can_use_spell_with_3159.cpp
+    test_merit_should_raise_merit_3160.h
+    test_merit_should_raise_merit_3160.cpp
+    test_command_audit_gm_command_3161.h
+    test_command_audit_gm_command_3161.cpp
+    test_manaclipper_remaining_game_minutes_3162.h
+    test_manaclipper_remaining_game_minutes_3162.cpp
+    test_colonizationreive_spawn_on_enable_3163.h
+    test_colonizationreive_spawn_on_enable_3163.cpp
 )
 
 if(UNIX)

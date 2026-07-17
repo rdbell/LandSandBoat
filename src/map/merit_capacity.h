@@ -8,24 +8,55 @@
 // and BuildingCharTraitsTable stay host-side after apply.
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
-//   - 2805: ShouldRaiseMerit / PlanRaiseMerit (RaiseMerit admission plan)
+//   - 2805: PlanRaiseMerit (RaiseMerit admission plan; uses ShouldRaiseMerit)
+//   - 3160: ShouldRaiseMerit (points/upgrade/category RaiseMerit admission gate half)
 //   - 2810: PlanLowerMerit (LowerMerit admission plan; uses ShouldLowerMerit)
 //   - 2811: PlanAddLimitPoints (AddLimitPoints conversion plan)
 //   - 2816: IsMeritExist (IsMeritExist bounds gate)
 //   - 3054: ShouldLowerMerit (count > 0 LowerMerit count-decrement gate half)
 //
+// Production host: CMeritPoints::RaiseMerit (merit.cpp) injects m_MeritPoints,
+// PMerit->next/count/upgrade, GetMeritCountInSameCategory, and
+// meritCatInfo[cat].MaxPoints into PlanRaiseMerit / ShouldRaiseMerit; on apply
+// spends points, refreshes next, optional spell/WS unlock, count++, traits.
 // Production host: CMeritPoints::LowerMerit (merit.cpp) injects
 // (PMerit != nullptr) and PMerit->count into PlanLowerMerit / ShouldLowerMerit;
 // on apply decrements count, refreshes next from upgrade tables, optional
 // spell/WS del hosts.
-// Go dual-wire: merit.ShouldLowerMerit (internal/merit/lower_merit.go);
+// Go dual-wire: merit.ShouldRaiseMerit (internal/merit/raise_merit.go);
+// merit.PlanRaiseMerit (internal/merit/entry.go residual 2805);
+// merit.ShouldLowerMerit (internal/merit/lower_merit.go);
 // merit.PlanLowerMerit (internal/merit/entry.go residual 2810).
 
 namespace meritshelpers
 {
 
-// ShouldRaiseMerit mirrors the RaiseMerit admission gate:
+// ShouldRaiseMerit mirrors the RaiseMerit admission gate.
+//
+// Formula (slice 3160 dual-wire):
 //   meritPoints >= nextCost && count < upgradeMax && categoryCount < categoryMaxPoints
+//
+// meritPoints       — host-evaluated m_MeritPoints
+// nextCost          — host-evaluated PMerit->next (upgrade table stays host-side)
+// count             — host-evaluated Merit_t.count
+// upgradeMax        — host-evaluated Merit_t.upgrade
+// categoryCount     — host GetMeritCountInSameCategory total
+// categoryMaxPoints — host meritCatInfo[cat].MaxPoints
+// true  → admit RaiseMerit spend + count++ path (host subtracts nextCost,
+//         refreshes next, optional spell/WS unlock, BuildingCharTraitsTable)
+// false → block raise (insufficient points, at upgrade max, or category full)
+//
+// Isolated three-way admission gate half of PlanRaiseMerit / CMeritPoints::RaiseMerit.
+// Merit pointer presence is a separate RaiseMerit host check (null → return);
+// this free function only checks points, upgrade max, and category cap.
+//
+// Dual-wire of Go merit.ShouldRaiseMerit.
+// Call site: CMeritPoints::RaiseMerit via PlanRaiseMerit — host injects balances,
+// entry fields, category totals, and caps; on true host spends and mutates.
+// Prior pure port: slice 2805 (RaiseMerit admission plan suite). Residual pins
+// remain in test_merit_raise_plan_2805; dedicated dual-wire suite is
+// test_merit_should_raise_merit_3160. Sibling residual: PlanRaiseMerit (2805).
+// Sibling dual-wire: ShouldLowerMerit (3054) is independent.
 inline auto ShouldRaiseMerit(
     const uint16 meritPoints,
     const uint16 nextCost,
@@ -87,8 +118,8 @@ inline auto PlanRaiseMerit(
 // PMerit->count (0 when absent); on true host decrements count and refreshes next.
 // Prior pure port: slice 2810 (LowerMerit admission plan suite). Residual pins
 // remain in test_merit_lower_plan_2810; dedicated dual-wire suite is
-// test_merit_lower_3054. Sibling residual: PlanLowerMerit / ShouldRaiseMerit
-// (2810 / 2805).
+// test_merit_lower_3054. Sibling residual: PlanLowerMerit (2810).
+// Sibling dual-wire: ShouldRaiseMerit (3160) is independent.
 inline auto ShouldLowerMerit(const uint8 count) -> bool
 {
     return count > 0;
