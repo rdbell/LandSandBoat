@@ -2881,6 +2881,16 @@ set(SOURCES
     test_avatarpet_can_apply_buff_3152.cpp
     test_extravaganza_can_afford_cipher_3153.h
     test_extravaganza_can_afford_cipher_3153.cpp
+    test_darkixion_can_break_horn_3154.h
+    test_darkixion_can_break_horn_3154.cpp
+    test_casket_drop_threshold_3155.h
+    test_casket_drop_threshold_3155.cpp
+    test_dominion_xp_multiplier_3156.h
+    test_dominion_xp_multiplier_3156.cpp
+    test_enmity_zero_out_of_range_3157.h
+    test_enmity_zero_out_of_range_3157.cpp
+    test_mobutils_can_drop_gil_3158.h
+    test_mobutils_can_drop_gil_3158.cpp
 )
 
 if(UNIX)

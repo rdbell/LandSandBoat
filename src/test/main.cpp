@@ -1444,6 +1444,11 @@ auto runAmanCanThumbsUp3150SelfTests() -> bool;
 auto runDynamisCanUnlockSJ3151SelfTests() -> bool;
 auto runAvatarpetCanApplyBuff3152SelfTests() -> bool;
 auto runExtravaganzaCanAffordCipher3153SelfTests() -> bool;
+auto runDarkixionCanBreakHorn3154SelfTests() -> bool;
+auto runCasketDropThreshold3155SelfTests() -> bool;
+auto runDominionXPMultiplier3156SelfTests() -> bool;
+auto runEnmityZeroOutOfRange3157SelfTests() -> bool;
+auto runMobutilsCanDropGil3158SelfTests() -> bool;
 
 namespace
 {
@@ -2865,6 +2870,11 @@ namespace
         ok = runDynamisCanUnlockSJ3151SelfTests() && ok;
         ok = runAvatarpetCanApplyBuff3152SelfTests() && ok;
         ok = runExtravaganzaCanAffordCipher3153SelfTests() && ok;
+        ok = runDarkixionCanBreakHorn3154SelfTests() && ok;
+        ok = runCasketDropThreshold3155SelfTests() && ok;
+        ok = runDominionXPMultiplier3156SelfTests() && ok;
+        ok = runEnmityZeroOutOfRange3157SelfTests() && ok;
+        ok = runMobutilsCanDropGil3158SelfTests() && ok;
 
         return ok;
     }

@@ -8,11 +8,12 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2653: residual pure port (entities/mob_gil_policy.h mobgilhelpers)
-//   - 2960: CanDropGil (gilMin/gilMax/gilBonus eligibility gate)
+//   - 2960: CanDropGil (gilMin/gilMax/gilBonus eligibility gate; prior dual-wire)
 //   - 2972: ShouldAssignParrySkill (MOBMOD_CAN_PARRY > 0 gate; prior dual-wire)
 //   - 3022: ShouldAssignGuardSkill (MNK/PUP + MOBMOD_CANNOT_GUARD == 0 gate; prior dual-wire)
 //   - 3115: ShouldAssignParrySkill (MOBMOD_CAN_PARRY > 0 gate; re-index dual-wire)
 //   - 3131: ShouldAssignGuardSkill (MNK/PUP + MOBMOD_CANNOT_GUARD == 0 gate; re-index dual-wire)
+//   - 3158: CanDropGil (gilMin/gilMax/gilBonus eligibility gate; dedicated dual-wire)
 //
 // Production hosts:
 //   - CMobEntity::CanDropGil / CanStealGil in mob_entity.cpp injects
@@ -51,20 +52,40 @@
 namespace mobutilshelpers
 {
 
-// CanDropGil mirrors CMobEntity::CanDropGil pure half (slice 2960):
+// Slice 3158 — CMobEntity gil eligibility gate
+// (prior dual-wire expansion: slice 2960; residual pure port: 2653)
+//
+// Dual-wire notes (slice 3158):
+//   Formula unchanged from residual 2653 / prior 2960 dual-wire:
+//     CanDropGil(gilMin, gilMax, gilBonus) =
+//       gilMax >= 0 && (gilMin > 0 || gilMax != 0 || gilBonus > 0)
+//   Positive if/else form (avoid QF1001 De Morgan):
+//     if gilMax < 0 → false
+//     if gilMin > 0 → true
+//     if gilMax != 0 → true
+//     else → gilBonus > 0
+//   Go dual-wire: mobutils.CanDropGil / mobutils.CanStealGil
+//   Index 3158: mobutils.CanDropGil pure dual-wire.
+//   Prior dual-wire suite: test_mobutils_can_drop_gil_2960.
+//   Dedicated dual-wire suite: test_mobutils_can_drop_gil_3158.
+//   Sibling parry dual-wire (3115) and guard dual-wire (3131) left alone.
+//
+// CanDropGil mirrors CMobEntity::CanDropGil pure half (slice 3158 dual-wire;
+// unchanged):
 //
 //   gilMax >= 0 && (gilMin > 0 || gilMax != 0 || gilBonus > 0)
 //
 // A negative gil maximum is a suppression sentinel and takes precedence
 // over minimum and bonus modifiers. Matches Go mobutils.CanDropGil and
 // residual mobgilhelpers::CanDropGil (2653).
+// Dual-wire of Go mobutils.CanDropGil (gil_policy.go / slice 3158).
 inline auto CanDropGil(const int16 gilMin, const int16 gilMax, const int16 gilBonus) -> bool
 {
     return gilMax >= 0 && (gilMin > 0 || gilMax != 0 || gilBonus > 0);
 }
 
 // CanStealGil mirrors CMobEntity::CanStealGil, which delegates to
-// CanDropGil (same free-function dual-wire; slice 2960).
+// CanDropGil (same free-function dual-wire; slice 3158; prior 2960).
 inline auto CanStealGil(const int16 gilMin, const int16 gilMax, const int16 gilBonus) -> bool
 {
     return CanDropGil(gilMin, gilMax, gilBonus);

@@ -3,11 +3,20 @@
 #include "common/cbasetypes.h"
 
 // Pure Dark Ixion helpers for dual-wire slices:
-//   - 2885: CanBreakHorn (checkHornBreak pure gate before 5% roll)
+//   - 2885: CanBreakHorn residual dual-wire suite (checkHornBreak pure gate)
+//   - 3154: CanBreakHorn dedicated dual-wire (can_break_horn.go)
 //   - 2893: CanRestoreHorn (Damsel Memento pure gate before 25% roll)
 //   - 2907: HornBreakRoll (checkHornBreak 5% roll after CanBreakHorn)
 //   - 2911: HornRestoreRoll (Damsel Memento 25% roll after CanRestoreHorn)
 //   - 2915: ShouldDoubleGlowSkill (DI_GLOW double-up pure gate)
+//
+// Dual-wire index:
+//   - 2885: CanBreakHorn residual dual-wire suite
+//   - 3154: CanBreakHorn (!busy && (NORMAL||GLOWING) && attackerInFront)
+//   - 2893: CanRestoreHorn
+//   - 2907: HornBreakRoll
+//   - 2911: HornRestoreRoll
+//   - 2915: ShouldDoubleGlowSkill
 //
 // Lua production host: scripts/globals/dark_ixion.lua
 //   local checkHornBreak = function(mob, attacker)
@@ -56,7 +65,9 @@
 // RNG generation (math.random), useMobAbility / setBehavior writeback, and
 // changeHornState writeback remain host-owned.
 // Prior pure port: OmegaXI slice 0985 (internal/darkixion).
-// Dual-wire of Go darkixion.CanBreakHorn (slice 2885).
+// Residual dual-wire suite: slice 2885 / test_darkixion_break_horn_2885.
+// Dedicated dual-wire suite: slice 3154 / test_darkixion_can_break_horn_3154.
+// Dual-wire of Go darkixion.CanBreakHorn (slice 3154 dedicated; residual 2885).
 // Dual-wire of Go darkixion.CanRestoreHorn (slice 2893).
 // Dual-wire of Go darkixion.HornBreakRoll (slice 2907).
 // Dual-wire of Go darkixion.HornRestoreRoll (slice 2911).
@@ -77,6 +88,23 @@ inline constexpr int32 kAnimNormal     = 0;
 inline constexpr int32 kAnimTrample    = 1;
 inline constexpr int32 kAnimHornBroken = 2;
 inline constexpr int32 kAnimGlowing    = 3;
+
+// ---------------------------------------------------------------------------
+// Slice 2885 / 3154 — CanBreakHorn pure dual-wire
+//
+// Formula (slice 3154 dedicated dual-wire; residual expand 2885; pure inject
+// 0985 — formula unchanged):
+//   CanBreakHorn(busy, animSub, attackerInFront) =
+//     !busy && (animSub == kAnimNormal || animSub == kAnimGlowing) && attackerInFront
+//
+// Dual-wire of Go darkixion.CanBreakHorn.
+// Call site: future Lua checkHornBreak inject before 5% roll.
+// Prior pure port: slice 0985. Residual dual-wire suite: 2885 /
+// test_darkixion_break_horn_2885. Dedicated dual-wire suite is
+// test_darkixion_can_break_horn_3154. Host still owns isEntityBusy /
+// getAnimationSub / isInfront inject, the 5% math.random roll, and
+// changeHornState(mob, 2) writeback.
+// ---------------------------------------------------------------------------
 
 // CanBreakHorn is the pure gate half of checkHornBreak before the 5% roll:
 //
