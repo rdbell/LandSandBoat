@@ -15,7 +15,8 @@
 //   - 3585: CanThumbsUp prior dedicated dual-wire expand residual 2967 (retained)
 //   - 3630: CanThumbsUp prior dedicated dual-wire expand residual 2967 (retained)
 //   - 3675: CanThumbsUp prior dedicated dual-wire expand residual 2967 (retained)
-//   - 3720: CanThumbsUp dedicated dual-wire expand residual 2967 (thumbs_up.go)
+//   - 3720: CanThumbsUp prior dedicated dual-wire expand residual 2967 (retained)
+//   - 3765: CanThumbsUp dedicated dual-wire expand residual 2967 (thumbs_up.go)
 //
 // Dual-wire index:
 //   - 2967: CanThumbsUp residual dual-wire suite
@@ -29,7 +30,8 @@
 //   - 3585: CanThumbsUp prior dedicated dual-wire expand residual 2967 (retained)
 //   - 3630: CanThumbsUp prior dedicated dual-wire expand residual 2967 (retained)
 //   - 3675: CanThumbsUp prior dedicated dual-wire expand residual 2967 (retained)
-//   - 3720: CanThumbsUp = cooldownExpired (identity; dedicated expand residual 2967)
+//   - 3720: CanThumbsUp prior dedicated dual-wire expand residual 2967 (retained)
+//   - 3765: CanThumbsUp = cooldownExpired (identity; dedicated expand residual 2967)
 //
 // Production host: CAMANContainer::canThumbsUp in aman.cpp:
 //
@@ -52,16 +54,16 @@
 //
 // Go dual-wire: aman.CanThumbsUp (internal/aman/thumbs_up.go).
 // Residual dual-wire suite: 2967.
-// Prior dedicated dual-wire suites: 3150 / 3229 / 3278 / 3308 / 3419 / 3473 / 3541 / 3585 / 3630 / 3675 (retained).
-// Dedicated dual-wire suite: 3720.
+// Prior dedicated dual-wire suites: 3150 / 3229 / 3278 / 3308 / 3419 / 3473 / 3541 / 3585 / 3630 / 3675 / 3720 (retained).
+// Dedicated dual-wire suite: 3765.
 // Prior pure port: OmegaXI slice 0698 (internal/aman).
 
 namespace amanhelpers
 {
 
 // CanThumbsUp mirrors CAMANContainer::canThumbsUp pure half
-// (slice 3720 dedicated dual-wire expand residual 2967; prior dedicated
-// 3675 / 3630 / 3585 / 3541 / 3473 / 3419 / 3308 / 3278 / 3229 / 3150 / pure 0698 — formula unchanged):
+// (slice 3765 dedicated dual-wire expand residual 2967; prior dedicated
+// 3720 / 3675 / 3630 / 3585 / 3541 / 3473 / 3419 / 3308 / 3278 / 3229 / 3150 / pure 0698 — formula unchanged):
 //
 //   CanThumbsUp(cooldownExpired) = cooldownExpired
 //
