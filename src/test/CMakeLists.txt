@@ -4001,6 +4001,16 @@ set(SOURCES
     test_zone_high_targid_3712.cpp
     test_ambuscade_start_exit_3713.h
     test_ambuscade_start_exit_3713.cpp
+    test_item_increment_count_insert_3714.h
+    test_item_increment_count_insert_3714.cpp
+    test_petutils_pet_engage_3715.h
+    test_petutils_pet_engage_3715.cpp
+    test_merit_lower_merit_3716.h
+    test_merit_lower_merit_3716.cpp
+    test_dynamis_can_unlock_sj_3717.h
+    test_dynamis_can_unlock_sj_3717.cpp
+    test_jobpoints_apply_raise_3718.h
+    test_jobpoints_apply_raise_3718.cpp
 )
 
 if(UNIX)

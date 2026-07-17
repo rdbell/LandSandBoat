@@ -2004,6 +2004,11 @@ auto runRangedDeleteUnlimitedShot3710SelfTests() -> bool;
 auto runAistateDelActorOnAttack3711SelfTests() -> bool;
 auto runZoneHighTargid3712SelfTests() -> bool;
 auto runAmbuscadeStartExit3713SelfTests() -> bool;
+auto runItemIncrementCountInsert3714SelfTests() -> bool;
+auto runPetutilsPetEngage3715SelfTests() -> bool;
+auto runMeritLowerMerit3716SelfTests() -> bool;
+auto runDynamisCanUnlockSJ3717SelfTests() -> bool;
+auto runJobpointsApplyRaise3718SelfTests() -> bool;
 
 namespace
 {
@@ -3985,6 +3990,11 @@ namespace
         ok = runAistateDelActorOnAttack3711SelfTests() && ok;
         ok = runZoneHighTargid3712SelfTests() && ok;
         ok = runAmbuscadeStartExit3713SelfTests() && ok;
+        ok = runItemIncrementCountInsert3714SelfTests() && ok;
+        ok = runPetutilsPetEngage3715SelfTests() && ok;
+        ok = runMeritLowerMerit3716SelfTests() && ok;
+        ok = runDynamisCanUnlockSJ3717SelfTests() && ok;
+        ok = runJobpointsApplyRaise3718SelfTests() && ok;
 
         return ok;
     }
