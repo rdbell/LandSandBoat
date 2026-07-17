@@ -20,7 +20,8 @@
 //   - 3319: ShouldAllowSetItem dedicated dual-wire (set_item.go; residual 2965 / prior 3288)
 //   - 3354: ShouldClearSlot prior dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980)
 //   - 3415: ShouldClearSlot prior dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980 / prior 3354)
-//   - 3469: ShouldClearSlot dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980 / prior 3354 / prior 3415)
+//   - 3469: ShouldClearSlot prior dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980 / prior 3354 / prior 3415)
+//   - 3532: ShouldClearSlot dedicated dual-wire (clear_slot.go; residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469)
 //
 // Dual-wire index:
 //   - 2965: ShouldAllowSetItem residual dual-wire suite
@@ -31,7 +32,8 @@
 //   - 2980: ShouldClearSlot residual dual-wire suite
 //   - 3354: ShouldClearSlot prior dedicated dual-wire (expand residual 2813 / prior 2980)
 //   - 3415: ShouldClearSlot prior dedicated dual-wire (expand residual 2813 / prior 2980 / prior 3354)
-//   - 3469: ShouldClearSlot = slotInRange
+//   - 3469: ShouldClearSlot prior dedicated dual-wire (expand residual 2813 / prior 2980 / prior 3354 / prior 3415)
+//   - 3532: ShouldClearSlot = slotInRange
 //
 // Production host: CUContainer::SetItem (universal_container.cpp) injects
 // slotID < m_PItem.size() and m_lock into ShouldAllowSetItem, then
@@ -50,8 +52,8 @@
 // (internal/universalcontainer/clear_slot.go). Prior pure port: slice 2813.
 // Residual dual-wire suite: 2980 (test_universal_clear_slot_2980).
 // Prior dedicated dual-wire suites: 3354 (test_universal_clear_slot_3354),
-// 3415 (test_universal_clear_slot_3415).
-// Dedicated dual-wire suite: 3469 (test_universal_clear_slot_3469).
+// 3415 (test_universal_clear_slot_3415), 3469 (test_universal_clear_slot_3469).
+// Dedicated dual-wire suite: 3532 (test_universal_clear_slot_3532).
 
 namespace ucontainerhelpers
 {
@@ -82,7 +84,7 @@ namespace ucontainerhelpers
 // test_universalcontainer_set_item_3248, 3288 /
 // test_universalcontainer_set_item_3288. Dedicated dual-wire suite is
 // test_universalcontainer_set_item_3319. Sibling dual-wire:
-// ShouldClearSlot (3469 / prior 3415 / prior 3354 / prior 2980).
+// ShouldClearSlot (3532 / prior 3469 / prior 3415 / prior 3354 / prior 2980).
 inline auto ShouldAllowSetItem(const bool slotInRange, const bool locked) -> bool
 {
     return slotInRange && !locked;
@@ -111,14 +113,14 @@ inline auto PlanSetItemCountDelta(const bool newItemNonNull, const bool slotOccu
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3469 — ClearSlot range gate (dedicated expand residual 2813 / prior 2980 / prior 3354 / prior 3415)
+// Slice 3532 — ClearSlot range gate (dedicated expand residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469)
 // ---------------------------------------------------------------------------
 
 // ShouldClearSlot mirrors the ClearSlot range gate:
 //   slotID < m_PItem.size()
 //
-// Formula (slice 3469 dedicated dual-wire; residual expand 2813 / prior 2980 /
-// prior 3354 / prior 3415 — formula unchanged):
+// Formula (slice 3532 dedicated dual-wire; residual expand 2813 / prior 2980 /
+// prior 3354 / prior 3415 / prior 3469 — formula unchanged):
 //   slotInRange
 //
 // slotInRange — host-evaluated slotID < m_PItem.size()
@@ -135,8 +137,9 @@ inline auto PlanSetItemCountDelta(const bool newItemNonNull, const bool slotOccu
 // Host injects the range flag after the size probe.
 // Prior pure port: slice 2813. Residual dual-wire suite: 2980 /
 // test_universal_clear_slot_2980. Prior dedicated dual-wire suites: 3354 /
-// test_universal_clear_slot_3354, 3415 / test_universal_clear_slot_3415.
-// Dedicated dual-wire suite is test_universal_clear_slot_3469. Sibling
+// test_universal_clear_slot_3354, 3415 / test_universal_clear_slot_3415,
+// 3469 / test_universal_clear_slot_3469.
+// Dedicated dual-wire suite is test_universal_clear_slot_3532. Sibling
 // dual-wire: ShouldAllowSetItem (3319; leave residual — do not thrash set_item).
 inline auto ShouldClearSlot(const bool slotInRange) -> bool
 {
@@ -145,8 +148,8 @@ inline auto ShouldClearSlot(const bool slotInRange) -> bool
 
 // ShouldAdjustCountOnClearSlot documents that ClearSlot does NOT change m_count
 // (parity quirk vs SetItem(nullptr), which decrements when the slot was occupied).
-// Residual pure port: slice 2813 (paired with ShouldClearSlot dual-wire 3469 /
-// prior 3415 / prior 3354 / prior 2980).
+// Residual pure port: slice 2813 (paired with ShouldClearSlot dual-wire 3532 /
+// prior 3469 / prior 3415 / prior 3354 / prior 2980).
 inline auto ShouldAdjustCountOnClearSlot() -> bool
 {
     return false;

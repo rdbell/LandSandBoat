@@ -209,8 +209,8 @@ void CUContainer::SetSize(uint8 size)
 
 void CUContainer::ClearSlot(uint8 slotID)
 {
-    // Pure range gate: ucontainerhelpers (slice 3469 dedicated dual-wire;
-    // residual 2813 / prior 2980 / prior 3354 / prior 3415). Formula unchanged: slotInRange.
+    // Pure range gate: ucontainerhelpers (slice 3532 dedicated dual-wire;
+    // residual 2813 / prior 2980 / prior 3354 / prior 3415 / prior 3469). Formula unchanged: slotInRange.
     // Does not adjust m_count (ShouldAdjustCountOnClearSlot is false).
     // Does not consult m_lock (unlike SetItem / ShouldAllowSetItem).
     if (ucontainerhelpers::ShouldClearSlot(slotID < m_PItem.size()))

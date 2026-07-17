@@ -23,9 +23,12 @@
 //   - 3416: CanDispatch prior dedicated dual-wire expand residual 2947
 //           (hasController identity; residual expand 2947; prior dedicated
 //           3369 / 3222; pure 1189)
-//   - 3470: CanDispatch dedicated dual-wire expand residual 2947
+//   - 3470: CanDispatch prior dedicated dual-wire expand residual 2947
 //           (hasController identity; residual expand 2947; prior dedicated
 //           3416 / 3369 / 3222; pure 1189)
+//   - 3531: CanDispatch dedicated dual-wire expand residual 2947
+//           (hasController identity; residual expand 2947; prior dedicated
+//           3470 / 3416 / 3369 / 3222; pure 1189)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -43,8 +46,8 @@ namespace aicontainerhelpers
 //   if (Controller) { return Controller->X(...); }
 //   return false;
 //
-// Formula (slice 3470 dedicated dual-wire expand residual 2947; prior dedicated
-// 3416 / 3369 / 3222 / residual 2947 / pure 1189 — formula unchanged):
+// Formula (slice 3531 dedicated dual-wire expand residual 2947; prior dedicated
+// 3470 / 3416 / 3369 / 3222 / residual 2947 / pure 1189 — formula unchanged):
 //   hasController
 //
 // hasController — host-evaluated controller presence:
@@ -60,8 +63,9 @@ namespace aicontainerhelpers
 // test_aicontainer_can_dispatch_2947. Prior dedicated dual-wire suites:
 // 3222 / test_aicontainer_can_dispatch_3222 (retained);
 // 3369 / test_aicontainer_can_dispatch_3369 (retained);
-// 3416 / test_aicontainer_can_dispatch_3416 (retained). Dedicated dual-wire
-// suite is test_aicontainer_can_dispatch_3470. Formula is unchanged; this
+// 3416 / test_aicontainer_can_dispatch_3416 (retained);
+// 3470 / test_aicontainer_can_dispatch_3470 (retained). Dedicated dual-wire
+// suite is test_aicontainer_can_dispatch_3531. Formula is unchanged; this
 // slice only expands dual-wire docs + index + dedicated suite.
 // Sibling dual-wire left alone: 2952 / 3272 / 3303 CanChangeState.
 inline auto CanDispatch(const bool hasController) -> bool
@@ -93,7 +97,7 @@ inline auto CanDispatch(const bool hasController) -> bool
 // 3272 / test_aicontainer_can_change_state_3272 (retained). Dedicated dual-wire
 // suite is test_aicontainer_can_change_state_3303. Formula is unchanged; this
 // slice only expands dual-wire docs + index + dedicated suite.
-// Sibling dual-wire left alone: 2947 / 3222 / 3369 / 3416 / 3470 CanDispatch.
+// Sibling dual-wire left alone: 2947 / 3222 / 3369 / 3416 / 3470 / 3531 CanDispatch.
 inline auto CanChangeState(const bool hasCurrentState, const bool currentCanChange) -> bool
 {
     return !hasCurrentState || currentCanChange;

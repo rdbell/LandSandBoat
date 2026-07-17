@@ -3631,6 +3631,16 @@ set(SOURCES
     test_status_reject_null_3526.cpp
     test_voidwalker_should_upgrade_ki_3527.h
     test_voidwalker_should_upgrade_ki_3527.cpp
+    test_aicontainer_can_dispatch_3531.h
+    test_aicontainer_can_dispatch_3531.cpp
+    test_besieged_afford_sanction_3529.h
+    test_besieged_afford_sanction_3529.cpp
+    test_mobtype_can_deaggro_3530.h
+    test_mobtype_can_deaggro_3530.cpp
+    test_treasure_force_check_full_3533.h
+    test_treasure_force_check_full_3533.cpp
+    test_universal_clear_slot_3532.h
+    test_universal_clear_slot_3532.cpp
 )
 
 if(UNIX)

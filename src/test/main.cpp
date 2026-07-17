@@ -1819,6 +1819,11 @@ auto runGardenShouldWilt3525SelfTests() -> bool;
 auto runStatusRejectNull3526SelfTests() -> bool;
 auto runVoidwalkerShouldUpgradeKI3527SelfTests() -> bool;
 auto runSpawnRejectNight3528SelfTests() -> bool;
+auto runAicontainerCanDispatch3531SelfTests() -> bool;
+auto runBesiegedAffordSanction3529SelfTests() -> bool;
+auto runMobtypeCanDeaggro3530SelfTests() -> bool;
+auto runTreasureForceCheckFull3533SelfTests() -> bool;
+auto runUniversalClearSlot3532SelfTests() -> bool;
 
 namespace
 {
@@ -3615,6 +3620,11 @@ namespace
         ok = runStatusRejectNull3526SelfTests() && ok;
         ok = runVoidwalkerShouldUpgradeKI3527SelfTests() && ok;
         ok = runSpawnRejectNight3528SelfTests() && ok;
+        ok = runAicontainerCanDispatch3531SelfTests() && ok;
+        ok = runBesiegedAffordSanction3529SelfTests() && ok;
+        ok = runMobtypeCanDeaggro3530SelfTests() && ok;
+        ok = runTreasureForceCheckFull3533SelfTests() && ok;
+        ok = runUniversalClearSlot3532SelfTests() && ok;
 
         return ok;
     }
