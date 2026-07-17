@@ -893,6 +893,16 @@ set(SOURCES
     test_auction_partially_used_2854.cpp
     test_campaign_debit_bonus_2858.h
     test_campaign_debit_bonus_2858.cpp
+    test_chocobo_number_to_rank_2862.h
+    test_chocobo_number_to_rank_2862.cpp
+    test_assault_proceed_update_2863.h
+    test_assault_proceed_update_2863.cpp
+    test_abyssea_can_give_nmki_2861.h
+    test_abyssea_can_give_nmki_2861.cpp
+    test_besieged_standing_event_2859.h
+    test_besieged_standing_event_2859.cpp
+    test_assault_auto_complete_2860.h
+    test_assault_auto_complete_2860.cpp
     test_dynamis_snap_entry_2857.h
     test_dynamis_snap_entry_2857.cpp
     test_mount_dismount_2852.h
