@@ -1664,6 +1664,11 @@ auto runAvatarpetCanApplyBuff3370SelfTests() -> bool;
 auto runJobpointsApplyRaise3371SelfTests() -> bool;
 auto runTradeBumpItemsCount3372SelfTests() -> bool;
 auto runMeritLowerMerit3373SelfTests() -> bool;
+auto runItemIncrementCountInsert3374SelfTests() -> bool;
+auto runPetutilsPetEngage3375SelfTests() -> bool;
+auto runMapsessionDestroyPendingPtr3376SelfTests() -> bool;
+auto runVoidwalkerShouldUpgradeKI3377SelfTests() -> bool;
+auto runPartyRemoveSyncLow3378SelfTests() -> bool;
 
 namespace
 {
@@ -3305,6 +3310,11 @@ namespace
         ok = runJobpointsApplyRaise3371SelfTests() && ok;
         ok = runTradeBumpItemsCount3372SelfTests() && ok;
         ok = runMeritLowerMerit3373SelfTests() && ok;
+        ok = runItemIncrementCountInsert3374SelfTests() && ok;
+        ok = runPetutilsPetEngage3375SelfTests() && ok;
+        ok = runMapsessionDestroyPendingPtr3376SelfTests() && ok;
+        ok = runVoidwalkerShouldUpgradeKI3377SelfTests() && ok;
+        ok = runPartyRemoveSyncLow3378SelfTests() && ok;
 
         return ok;
     }

@@ -3321,6 +3321,16 @@ set(SOURCES
     test_trade_bump_items_count_3372.cpp
     test_merit_lower_merit_3373.h
     test_merit_lower_merit_3373.cpp
+    test_item_increment_count_insert_3374.h
+    test_item_increment_count_insert_3374.cpp
+    test_petutils_pet_engage_3375.h
+    test_petutils_pet_engage_3375.cpp
+    test_mapsession_destroy_pending_ptr_3376.h
+    test_mapsession_destroy_pending_ptr_3376.cpp
+    test_voidwalker_should_upgrade_ki_3377.h
+    test_voidwalker_should_upgrade_ki_3377.cpp
+    test_party_remove_sync_low_3378.h
+    test_party_remove_sync_low_3378.cpp
 )
 
 if(UNIX)
