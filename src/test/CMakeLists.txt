@@ -2651,6 +2651,16 @@ set(SOURCES
     test_zone_reject_increase_counter_3037.cpp
     test_item_matches_search_item_3038.h
     test_item_matches_search_item_3038.cpp
+    test_item_free_slots_count_3039.h
+    test_item_free_slots_count_3039.cpp
+    test_ranged_use_sange_message_3040.h
+    test_ranged_use_sange_message_3040.cpp
+    test_party_push_effects_packet_3041.h
+    test_party_push_effects_packet_3041.cpp
+    test_zone_skip_level_restriction_3042.h
+    test_zone_skip_level_restriction_3042.cpp
+    test_zone_delete_level_restriction_3043.h
+    test_zone_delete_level_restriction_3043.cpp
 )
 
 if(UNIX)

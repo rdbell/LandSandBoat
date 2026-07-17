@@ -406,8 +406,35 @@ inline auto ShouldDeleteSangeStatus(const bool isSange) -> bool
     return isSange;
 }
 
-// Barrage/Sange display message selection when damage > 0.
-// Host maps to MsgBasic::UsesSangeTakesDamage vs UsesBarrageTakesDamage.
+// --- Slice 3040: ShouldUseSangeDisplayMessage pure dual-wire ---
+// Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects isSange
+// (StatusEffectContainer->HasStatusEffect(Sange, 0) captured at shot start)
+// into ShouldUseSangeDisplayMessage when (isBarrage || isSange) && hitOccured
+// before mapping messageID to UsesSangeTakesDamage vs UsesBarrageTakesDamage
+// (~3443).
+// Go dual-wire: attackutils.ShouldUseSangeDisplayMessage
+// (internal/attackutils/use_sange_display_message.go).
+// Sibling dual-wires: ShouldConsumeAmmo (2986), ShouldDeleteUnlimitedShot (3000),
+// ShouldDeleteFlashyAndStealthShot (3007), ShouldTruncateHitCountOnAmmoDeplete (3010),
+// ShouldApplyDistancePenaltyMessage (3013), ShouldDeleteBarrageStatus (3018),
+// ShouldApplyRangedDamageMultiplier (3023), ShouldDeleteSangeStatus (3030),
+// ShouldForceBarrageSangeHitResolution (3035).
+
+// ShouldUseSangeDisplayMessage selects Sange vs Barrage ability damage msg.
+//
+// Formula (slice 3040 dual-wire; identity):
+//   return isSange
+//
+// isSange — host-evaluated StatusEffect::Sange present at shot start
+// true  → host maps messageID to MsgBasic::UsesSangeTakesDamage (77)
+// false → host maps messageID to MsgBasic::UsesBarrageTakesDamage (157)
+//
+// Host gate before call: (isBarrage || isSange) && hitOccured; on a full miss
+// the existing RangedAttackMiss message is left in place.
+//
+// Dual-wire of Go attackutils.ShouldUseSangeDisplayMessage.
+// Call site: CBattleEntity::OnRangedAttack (~3443).
 inline auto ShouldUseSangeDisplayMessage(const bool isSange) -> bool
 {
     return isSange;

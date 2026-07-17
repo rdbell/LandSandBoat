@@ -1329,6 +1329,11 @@ auto runRangedForceBarrageSange3035SelfTests() -> bool;
 auto runPartyIncludeGroupEffects3036SelfTests() -> bool;
 auto runZoneRejectIncreaseCounter3037SelfTests() -> bool;
 auto runItemMatchesSearchItem3038SelfTests() -> bool;
+auto runItemFreeSlotsCount3039SelfTests() -> bool;
+auto runRangedUseSangeMessage3040SelfTests() -> bool;
+auto runPartyPushEffectsPacket3041SelfTests() -> bool;
+auto runZoneSkipLevelRestriction3042SelfTests() -> bool;
+auto runZoneDeleteLevelRestriction3043SelfTests() -> bool;
 
 namespace
 {
@@ -2635,6 +2640,11 @@ namespace
         ok = runPartyIncludeGroupEffects3036SelfTests() && ok;
         ok = runZoneRejectIncreaseCounter3037SelfTests() && ok;
         ok = runItemMatchesSearchItem3038SelfTests() && ok;
+        ok = runItemFreeSlotsCount3039SelfTests() && ok;
+        ok = runRangedUseSangeMessage3040SelfTests() && ok;
+        ok = runPartyPushEffectsPacket3041SelfTests() && ok;
+        ok = runZoneSkipLevelRestriction3042SelfTests() && ok;
+        ok = runZoneDeleteLevelRestriction3043SelfTests() && ok;
 
         return ok;
     }

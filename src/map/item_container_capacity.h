@@ -18,6 +18,7 @@
 //   - 3027: CanSetSize (SetSize / AddSize acceptance gate)
 //   - 3033: CanSearchSlotID (GetItem / search inclusive range dual-wire)
 //   - 3038: MatchesSearchItem (SearchItem / SearchItems loop-body dual-wire)
+//   - 3039: FreeSlotsCount (GetFreeSlotsCount size-minus-count dual-wire)
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
@@ -46,6 +47,10 @@
 // and id match into MatchesSearchItem after null short-circuit.
 // Go dual-wire: itemcontainer.MatchesSearchItem
 // (internal/itemcontainer/matches_search_item.go).
+// Production host: CItemContainer::GetFreeSlotsCount injects m_size and
+// m_count into FreeSlotsCount (unsigned size-minus-count; wraps when
+// count > size). Go dual-wire: itemcontainer.FreeSlotsCount
+// (internal/itemcontainer/free_slots_count.go).
 
 namespace itemcontainerhelpers
 {
@@ -253,7 +258,20 @@ inline auto MatchesSearchItemWithSpace(
 }
 
 // FreeSlotsCount mirrors GetFreeSlotsCount: unsigned size-minus-count.
-// When count > size, the subtraction wraps (uint8 underflow).
+//
+// Formula (slice 3039 dual-wire):
+//   size - count
+//
+// size  — host-evaluated m_size (usable slot count)
+// count — host-evaluated m_count (tracked occupancy)
+// result — free slots as uint8; when count > size, subtraction wraps
+//          (uint8 underflow, e.g. size 0 count 1 → 255)
+//
+// Dual-wire of Go itemcontainer.FreeSlotsCount.
+// Call site: CItemContainer::GetFreeSlotsCount — host injects m_size / m_count.
+// Prior pure port: slice 2826. Callers that pass free slots into other pure
+// helpers (e.g. PlanMoveItemTo) inject the host result; they do not re-implement
+// the formula.
 inline auto FreeSlotsCount(const std::uint8_t size, const std::uint8_t count) -> std::uint8_t
 {
     return size - count;

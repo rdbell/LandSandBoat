@@ -30,6 +30,8 @@
 //           isPC, not sender, notDisappear, !inPrison, zone filter)
 //   - 3036: ShouldIncludeInGroupEffects (PushEffectsPacket partyInfo_t filter:
 //           same party, not self, charFound, sameZone)
+//   - 3041: ShouldPushEffectsPacket (PushEffectsPacket m_EffectsChanged gate:
+//           effectsChanged identity)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
@@ -50,9 +52,10 @@
 // Production host: CParty::PushPacket (party.cpp:~1317) injects isPC /
 // member->id / senderID / status != DISAPPEAR / InPrison / ZoneID /
 // getZone() into ShouldPushPartyPacketToMember before pushPacket(copy).
-// Production host: CParty::PushEffectsPacket (party.cpp:~1350) injects
-// memberinfo.partyid / m_PartyID / memberinfo.id / PMemberChar->id /
-// charFound / sameZone into ShouldIncludeInGroupEffects before
+// Production host: CParty::PushEffectsPacket (party.cpp:~1333) injects
+// m_EffectsChanged into ShouldPushEffectsPacket before GetPartyInfo body;
+// (party.cpp:~1350) injects memberinfo.partyid / m_PartyID / memberinfo.id /
+// PMemberChar->id / charFound / sameZone into ShouldIncludeInGroupEffects before
 // sameZoneMembers.push_back(PPartyMember).
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
@@ -64,7 +67,8 @@
 // party.ShouldStartSyncDisableCountdown (internal/party/sync_disable_countdown.go),
 // party.ShouldApplySyncDisableToMember (internal/party/apply_sync_disable.go),
 // party.ShouldPushPartyPacketToMember (internal/party/push_packet_member.go),
-// party.ShouldIncludeInGroupEffects (internal/party/include_group_effects.go).
+// party.ShouldIncludeInGroupEffects (internal/party/include_group_effects.go),
+// party.ShouldPushEffectsPacket (internal/party/push_effects_packet.go).
 
 namespace partyhelpers
 {
@@ -479,7 +483,7 @@ inline auto ShouldPushPartyPacketToMember(
 // (internal/party/include_group_effects.go). Prior pure port: slice 1336.
 // Call site: CParty::PushEffectsPacket (party.cpp:~1350) host inject.
 // Sibling dual-wire: 3031 ShouldPushPartyPacketToMember (PushPacket filter).
-// Residual sibling: ShouldPushEffectsPacket (m_EffectsChanged gate; 1336).
+// Sibling dual-wire: 3041 ShouldPushEffectsPacket (m_EffectsChanged gate).
 // Coverage: test_party_include_group_effects_3036 (not in CMake/main).
 // Residual suite: test_party_group_effects_1336.
 inline auto ShouldIncludeInGroupEffects(
@@ -510,6 +514,21 @@ inline auto ShouldIncludeInGroupEffects(
 }
 
 // ShouldPushEffectsPacket mirrors PushEffectsPacket's m_EffectsChanged gate.
+//
+// Formula (slice 3041 dual-wire):
+//   effectsChanged
+//
+// effectsChanged — host-evaluated m_EffectsChanged (set by EffectsChanged())
+// true  → host continues PushEffectsPacket body (GetPartyInfo / sameZoneMembers /
+//         GROUP_EFFECTS push / m_EffectsChanged = false)
+// false → early return (no work)
+//
+// Dual-wire of Go party.ShouldPushEffectsPacket
+// (internal/party/push_effects_packet.go). Prior pure port: slice 1336.
+// Call site: CParty::PushEffectsPacket (party.cpp:~1333) host inject.
+// Sibling dual-wire: 3036 ShouldIncludeInGroupEffects (partyInfo_t filter).
+// Coverage: test_party_push_effects_packet_3041 (not in CMake/main).
+// Residual suite: test_party_group_effects_1336.
 inline auto ShouldPushEffectsPacket(const bool effectsChanged) -> bool
 {
     return effectsChanged;

@@ -28,6 +28,10 @@
 //           updateCharLevelRestriction)
 //   - 3037: ShouldRejectIncreaseZoneCounter (charNull || alreadyInZone ||
 //           hasTreasurePool on IncreaseZoneCounter entry)
+//   - 3042: ShouldSkipLevelRestrictionUpdate (!hasRestriction → false; else
+//           statusNull || powerMatches on updateCharLevelRestriction)
+//   - 3043: ShouldDeleteExistingLevelRestriction (hasRestriction && !shouldSkip
+//           on updateCharLevelRestriction)
 //
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty;
@@ -55,9 +59,17 @@
 // weather_.current() == weather into ShouldSkipSameWeather; on true return.
 // Go dual-wire: zone.ShouldSkipSameWeather (internal/zone/skip_same_weather.go).
 // Production host: CZone::updateCharLevelRestriction (zone.cpp) injects
-// m_levelRestriction into ShouldApplyZoneLevelRestriction; on true strips
-// buffs + AddStatusEffect LevelRestriction.
-// Go dual-wire: zone.ShouldApplyZoneLevelRestriction
+// hasRestriction, statusEffect==nullptr, and power==m_levelRestriction into
+// ShouldSkipLevelRestrictionUpdate; on true return early.
+// Else injects hasRestriction / shouldSkip into
+// ShouldDeleteExistingLevelRestriction; on true DelStatusEffect LevelRestriction.
+// Then injects m_levelRestriction into ShouldApplyZoneLevelRestriction; on true
+// strips buffs + AddStatusEffect LevelRestriction.
+// Go dual-wire: zone.ShouldSkipLevelRestrictionUpdate
+// (internal/zone/skip_level_restriction.go);
+// zone.ShouldDeleteExistingLevelRestriction
+// (internal/zone/delete_level_restriction.go);
+// zone.ShouldApplyZoneLevelRestriction
 // (internal/zone/apply_level_restriction.go).
 
 namespace zonehelpers
@@ -277,10 +289,27 @@ auto FirstZoneOutTriggerArea(const Areas& areas, IsMember&& isMember) -> typenam
 // --- updateCharLevelRestriction ---
 
 // ShouldSkipLevelRestrictionUpdate mirrors already has LevelRestriction with
-// same power as zone restriction (or null status effect after Has check quirk).
-// hasRestriction is HasStatusEffect(LevelRestriction).
-// statusNull is GetStatusEffect returned nullptr after Has said true (defensive).
-// powerMatches is statusEffect->GetPower() == m_levelRestriction.
+// same power as zone restriction (or null status effect after Has check quirk)
+// on CZone::updateCharLevelRestriction admission.
+//
+// Formula (slice 3042 dual-wire):
+//
+//   if (!hasRestriction) return false;
+//   return statusNull || powerMatches;
+//
+// hasRestriction — host-evaluated HasStatusEffect(LevelRestriction)
+// statusNull — GetStatusEffect returned nullptr after Has said true (defensive)
+// powerMatches — statusEffect->GetPower() == m_levelRestriction
+// true  → return early (existing restriction already matches zone / null quirk)
+// false → continue (may ShouldDeleteExistingLevelRestriction + apply)
+//
+// Dual-wire of Go zone.ShouldSkipLevelRestrictionUpdate.
+// Call site: CZone::updateCharLevelRestriction — when hasRestriction; host
+// injects statusNull and powerMatches before optional delete/apply.
+// Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
+// suite is test_zone_skip_level_restriction_3042.
+// Sibling level-restriction gates: ShouldDeleteExistingLevelRestriction
+// (3043 dual-wire), ShouldApplyZoneLevelRestriction (3032 dual-wire).
 inline auto ShouldSkipLevelRestrictionUpdate(
     const bool hasRestriction,
     const bool statusNull,
@@ -293,7 +322,33 @@ inline auto ShouldSkipLevelRestrictionUpdate(
     return statusNull || powerMatches;
 }
 
-// ShouldDeleteExistingLevelRestriction mirrors has restriction and not skip.
+// ShouldDeleteExistingLevelRestriction mirrors has restriction and not skip
+// on CZone::updateCharLevelRestriction (delete existing LevelRestriction when
+// present and the skip gate did not fire).
+//
+// Formula (slice 3043 dual-wire):
+//
+//   hasRestriction && !shouldSkip
+//
+// hasRestriction — host-evaluated HasStatusEffect(LevelRestriction)
+// shouldSkip     — host-evaluated ShouldSkipLevelRestrictionUpdate result
+// true  → DelStatusEffect(LevelRestriction) before optional apply
+// false → no delete (no existing restriction, or skip already decided)
+//
+// Dense 2² space: only (has=true, skip=false) is true (delete); all other
+// poles false. Production call site after the skip early-return injects
+// (true, false) because hasRestriction is already true in that branch and
+// shouldSkip is known false (skip would have returned). The pure helper still
+// evaluates both injected bools independently.
+//
+// Dual-wire of Go zone.ShouldDeleteExistingLevelRestriction.
+// Call site: CZone::updateCharLevelRestriction — after
+// ShouldSkipLevelRestrictionUpdate (sibling 3042); host then optionally
+// applies zone cap via ShouldApplyZoneLevelRestriction (3032).
+// Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
+// suite is test_zone_delete_level_restriction_3043.
+// Sibling level-restriction gates: ShouldSkipLevelRestrictionUpdate (3042),
+// ShouldApplyZoneLevelRestriction (3032).
 inline auto ShouldDeleteExistingLevelRestriction(
     const bool hasRestriction,
     const bool shouldSkip) -> bool
@@ -318,8 +373,8 @@ inline auto ShouldDeleteExistingLevelRestriction(
 // of an existing LevelRestriction; host injects m_levelRestriction.
 // Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
 // suite is test_zone_apply_level_restriction_3032.
-// Sibling level-restriction gates (residual 1363): ShouldSkipLevelRestrictionUpdate,
-// ShouldDeleteExistingLevelRestriction.
+// Sibling level-restriction gates: ShouldSkipLevelRestrictionUpdate
+// (3042 dual-wire), ShouldDeleteExistingLevelRestriction (3043 dual-wire).
 inline auto ShouldApplyZoneLevelRestriction(const uint8 zoneLevelRestriction) -> bool
 {
     return zoneLevelRestriction != 0;
