@@ -1359,6 +1359,11 @@ auto runSynergyClaimFurnace3065SelfTests() -> bool;
 auto runMapsessionDestroyPendingChar3066SelfTests() -> bool;
 auto runTreasureRejectNullItem3067SelfTests() -> bool;
 auto runZoneDismountZoneIn3068SelfTests() -> bool;
+auto runStatusTickEffect3069SelfTests() -> bool;
+auto runRecastEraseOnExpire3070SelfTests() -> bool;
+auto runPetCanAttackTarget3071SelfTests() -> bool;
+auto runCampaignAffordNotes3072SelfTests() -> bool;
+auto runGarrisonFailByDeath3073SelfTests() -> bool;
 
 namespace
 {
@@ -2695,6 +2700,11 @@ namespace
         ok = runMapsessionDestroyPendingChar3066SelfTests() && ok;
         ok = runTreasureRejectNullItem3067SelfTests() && ok;
         ok = runZoneDismountZoneIn3068SelfTests() && ok;
+        ok = runStatusTickEffect3069SelfTests() && ok;
+        ok = runRecastEraseOnExpire3070SelfTests() && ok;
+        ok = runPetCanAttackTarget3071SelfTests() && ok;
+        ok = runCampaignAffordNotes3072SelfTests() && ok;
+        ok = runGarrisonFailByDeath3073SelfTests() && ok;
 
         return ok;
     }

@@ -388,8 +388,8 @@ constexpr uint8 NightmareSleepTierMin = 4;
 // RemoveStatusEffect.
 // Prior pure port: slice 1366 (expiry / tick / aura / eleven-roll suite).
 // Residual pins remain in test_status_effect_tick_1366; dedicated dual-wire
-// suite is test_status_expire_effect_3049. Sibling residual: ShouldTickEffect
-// (tick-period due) is orthogonal and remains in the 1366 suite.
+// suite is test_status_expire_effect_3049. Sibling dual-wire: ShouldTickEffect
+// (tick-period due; slice 3069) is orthogonal.
 inline auto ShouldExpireEffect(
     const bool durationNonzero,
     const int64 expiryTime,
@@ -398,8 +398,29 @@ inline auto ShouldExpireEffect(
     return durationNonzero && expiryTime <= tickTime;
 }
 
-// ShouldTickEffect mirrors tickTime != 0 && elapsedTicks < (tick-start)/tickPeriod.
-// elapsedThreshold is host-computed (tick - start) / tickPeriod as integer division.
+// ShouldTickEffect mirrors tickPeriod != 0 && elapsedTicks < (tick-start)/tickPeriod.
+//
+// Formula (slice 3069 dual-wire):
+//   tickPeriodNonzero && elapsedTickCount < elapsedThreshold
+//
+// tickPeriodNonzero  — host-evaluated GetTickTime() != 0
+// elapsedTickCount   — host-supplied GetElapsedTickCount()
+// elapsedThreshold   — host-computed (tick - start) / tickPeriod as integer division
+// true  → effect is due this tick (host OnEffectTick / IncrementElapsedTickCount)
+// false → skip effect this tick
+//
+// elapsedThreshold is 0 when tickPeriod is zero (host short-circuits the
+// division); with tickPeriodNonzero false the gate is always false.
+//
+// Dual-wire of Go statuseffect.ShouldTickEffect.
+// Call site: CStatusEffectContainer::TickEffects — host injects
+// tickPeriod != 0s, GetElapsedTickCount(), and (tick-start)/tickPeriod;
+// on true HandleAura (if Aura flag) / IncrementElapsedTickCount / OnEffectTick.
+// Prior pure port: slice 1366 (expiry / tick / aura / eleven-roll suite).
+// Residual pins remain in test_status_effect_tick_1366; dedicated dual-wire
+// suite is test_status_tick_effect_3069. Sibling dual-wire: ShouldExpireEffect
+// (slice 3049) is orthogonal.
+// Index 3069: statuseffect.ShouldTickEffect pure dual-wire.
 inline auto ShouldTickEffect(const bool tickPeriodNonzero, const uint32 elapsedTickCount, const uint32 elapsedThreshold) -> bool
 {
     return tickPeriodNonzero && elapsedTickCount < elapsedThreshold;

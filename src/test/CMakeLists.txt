@@ -2711,6 +2711,16 @@ set(SOURCES
     test_treasure_reject_null_item_3067.cpp
     test_zone_dismount_zone_in_3068.h
     test_zone_dismount_zone_in_3068.cpp
+    test_status_tick_effect_3069.h
+    test_status_tick_effect_3069.cpp
+    test_recast_erase_on_expire_3070.h
+    test_recast_erase_on_expire_3070.cpp
+    test_pet_can_attack_target_3071.h
+    test_pet_can_attack_target_3071.cpp
+    test_campaign_afford_notes_3072.h
+    test_campaign_afford_notes_3072.cpp
+    test_garrison_fail_by_death_3073.h
+    test_garrison_fail_by_death_3073.cpp
 )
 
 if(UNIX)
