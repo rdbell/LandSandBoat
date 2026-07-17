@@ -3171,6 +3171,16 @@ set(SOURCES
     test_notoriety_add_member_3297.cpp
     test_petutils_can_attack_target_3298.h
     test_petutils_can_attack_target_3298.cpp
+    test_latenteffect_apply_expression_3299.h
+    test_latenteffect_apply_expression_3299.cpp
+    test_tradecontainer_set_confirmed_3300.h
+    test_tradecontainer_set_confirmed_3300.cpp
+    test_itemcontainer_can_insert_at_slot_3301.h
+    test_itemcontainer_can_insert_at_slot_3301.cpp
+    test_battlefield_under_capacity_3302.h
+    test_battlefield_under_capacity_3302.cpp
+    test_aicontainer_can_change_state_3303.h
+    test_aicontainer_can_change_state_3303.cpp
 )
 
 if(UNIX)

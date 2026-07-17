@@ -1589,6 +1589,11 @@ auto runDarkixionCanBreakHorn3295SelfTests() -> bool;
 auto runAistateCanRest3296SelfTests() -> bool;
 auto runNotorietyAddMember3297SelfTests() -> bool;
 auto runPetutilsCanAttackTarget3298SelfTests() -> bool;
+auto runLatenteffectApplyExpression3299SelfTests() -> bool;
+auto runTradecontainerSetConfirmed3300SelfTests() -> bool;
+auto runItemcontainerCanInsertAtSlot3301SelfTests() -> bool;
+auto runBattlefieldUnderCapacity3302SelfTests() -> bool;
+auto runAicontainerCanChangeState3303SelfTests() -> bool;
 
 namespace
 {
@@ -3155,6 +3160,11 @@ namespace
         ok = runAistateCanRest3296SelfTests() && ok;
         ok = runNotorietyAddMember3297SelfTests() && ok;
         ok = runPetutilsCanAttackTarget3298SelfTests() && ok;
+        ok = runLatenteffectApplyExpression3299SelfTests() && ok;
+        ok = runTradecontainerSetConfirmed3300SelfTests() && ok;
+        ok = runItemcontainerCanInsertAtSlot3301SelfTests() && ok;
+        ok = runBattlefieldUnderCapacity3302SelfTests() && ok;
+        ok = runAicontainerCanChangeState3303SelfTests() && ok;
 
         return ok;
     }

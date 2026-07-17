@@ -19,15 +19,18 @@
 //           (set_confirmed.go; expand residual 2962)
 //   - 3211: ShouldSetTradeItemEntry dedicated dual-wire
 //           (set_item_entry.go; expand residual 2984)
-//   - 3268: ShouldAllowSetConfirmedStatus dedicated dual-wire
+//   - 3268: ShouldAllowSetConfirmedStatus prior dedicated dual-wire
 //           (set_confirmed.go; expand residual 2962; prior dedicated 3175)
+//   - 3300: ShouldAllowSetConfirmedStatus dedicated dual-wire
+//           (set_confirmed.go; expand residual 2962; prior dedicated 3175 / 3268)
 //
 // Dual-wire index:
 //   - 2962: ShouldAllowSetConfirmedStatus residual dual-wire suite
 //   - 2984: ShouldSetTradeItemEntry residual dual-wire suite
 //   - 3175: ShouldAllowSetConfirmedStatus prior dedicated dual-wire
 //   - 3211: ShouldSetTradeItemEntry = slotInRange
-//   - 3268: ShouldAllowSetConfirmedStatus =
+//   - 3268: ShouldAllowSetConfirmedStatus prior dedicated dual-wire
+//   - 3300: ShouldAllowSetConfirmedStatus =
 //           slotInRange && itemNonNull && quantityGteAmount
 //
 // Production host: CTradeContainer::setConfirmedStatus (trade_container.cpp)
@@ -36,8 +39,9 @@
 // Go dual-wire: tradecontainer.ShouldAllowSetConfirmedStatus
 // (internal/tradecontainer/set_confirmed.go).
 // Residual dual-wire suite: 2962 (test_trade_set_confirmed_2962).
-// Prior dedicated dual-wire suite: 3175 (test_tradecontainer_set_confirmed_3175).
-// Dedicated dual-wire suite: 3268 (test_tradecontainer_set_confirmed_3268).
+// Prior dedicated dual-wire suite: 3175 (test_tradecontainer_set_confirmed_3175),
+// 3268 (test_tradecontainer_set_confirmed_3268).
+// Dedicated dual-wire suite: 3300 (test_tradecontainer_set_confirmed_3300).
 // Prior pure port: slice 2806.
 //
 // Production host: CTradeContainer::setItem multi-arg (trade_container.cpp)
@@ -55,13 +59,13 @@ namespace tradecontainerhelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 3268 — setConfirmedStatus outer gate (dedicated expand residual 2962)
+// Slice 3300 — setConfirmedStatus outer gate (dedicated expand residual 2962)
 // ---------------------------------------------------------------------------
 
 // ShouldAllowSetConfirmedStatus mirrors the setConfirmedStatus outer gate:
 //   slotID < m_PItem.size() && m_PItem[slotID] && quantity >= amount
 //
-// Formula (slice 3268 dedicated dual-wire; residual expand 2962 / pure 2806 —
+// Formula (slice 3300 dedicated dual-wire; residual expand 2962 / pure 2806 —
 // formula unchanged):
 //   slotInRange && itemNonNull && quantityGteAmount
 //
@@ -76,9 +80,10 @@ namespace tradecontainerhelpers
 // (internal/tradecontainer/set_confirmed.go).
 // Call site: CTradeContainer::setConfirmedStatus before confirmed write.
 // Prior pure port: slice 2806. Residual dual-wire suite: 2962 /
-// test_trade_set_confirmed_2962. Prior dedicated dual-wire suite: 3175 /
-// test_tradecontainer_set_confirmed_3175. Dedicated dual-wire suite is
-// test_tradecontainer_set_confirmed_3268. Sibling dual-wire gates:
+// test_trade_set_confirmed_2962. Prior dedicated dual-wire suites: 3175 /
+// test_tradecontainer_set_confirmed_3175, 3268 /
+// test_tradecontainer_set_confirmed_3268. Dedicated dual-wire suite is
+// test_tradecontainer_set_confirmed_3300. Sibling dual-wire gates:
 // ShouldSetTradeItemEntry (3211 / residual 2984), ShouldBumpItemsCountOnSetEntry (2997).
 // Host injects each conjunct after short-circuit-safe probes.
 inline auto ShouldAllowSetConfirmedStatus(
@@ -121,7 +126,7 @@ inline auto ConfirmedStatusAmount(const std::uint32_t amount, const std::uint32_
 // Prior pure port: slice 2812. Residual dual-wire suite: 2984 /
 // test_trade_set_item_entry_2984. Dedicated dual-wire suite is
 // test_tradecontainer_set_trade_item_entry_3211. Sibling dual-wire gates:
-// ShouldAllowSetConfirmedStatus (3268), ShouldBumpItemsCountOnSetEntry (2997).
+// ShouldAllowSetConfirmedStatus (3300), ShouldBumpItemsCountOnSetEntry (2997).
 // Host injects slotInRange only; helpers never touch CItem* or container storage.
 inline auto ShouldSetTradeItemEntry(const bool slotInRange) -> bool
 {

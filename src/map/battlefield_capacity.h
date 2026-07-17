@@ -23,8 +23,11 @@
 //           (entityNull identity; residual expand 2994 / pure 1361)
 //   - 3216: ShouldRejectAlreadyInBattlefield dedicated dual-wire
 //           (hasBattlefield identity; residual expand 3002 / pure 1361)
-//   - 3271: ShouldAcceptPCUnderCapacity dedicated dual-wire
+//   - 3271: ShouldAcceptPCUnderCapacity prior dedicated dual-wire
 //           (playerCount < maxParticipants; residual expand 2930 / pure 1361)
+//   - 3302: ShouldAcceptPCUnderCapacity dedicated dual-wire
+//           (playerCount < maxParticipants; residual expand 2930 /
+//            prior dedicated 3271 / pure 1361)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -163,8 +166,8 @@ inline auto ShouldRejectAlreadyInBattlefield(const bool hasBattlefield) -> bool
 
 // ShouldAcceptPCUnderCapacity mirrors GetPlayerCount() < GetMaxParticipants().
 //
-// Formula (slice 3271 dedicated dual-wire; residual expand 2930 / pure 1361 —
-// formula unchanged):
+// Formula (slice 3302 dedicated dual-wire; residual expand 2930 /
+// prior dedicated 3271 / pure 1361 — formula unchanged):
 //   playerCount < maxParticipants
 //
 // playerCount     — host-evaluated GetPlayerCount() (entered PCs)
@@ -180,8 +183,9 @@ inline auto ShouldRejectAlreadyInBattlefield(const bool hasBattlefield) -> bool
 //       return false; // battlefield full
 //   }
 // Prior pure port: slice 1361. Residual dual-wire suite: 2930 /
-// test_battlefield_under_capacity_2930. Dedicated dual-wire suite is
-// test_battlefield_under_capacity_3271. Formula is unchanged; this slice
+// test_battlefield_under_capacity_2930. Prior dedicated dual-wire suite: 3271 /
+// test_battlefield_under_capacity_3271. Dedicated dual-wire suite is
+// test_battlefield_under_capacity_3302. Formula is unchanged; this slice
 // only expands dual-wire docs + index + dedicated suite.
 // Sibling dual-wires left alone: 3198 null-insert, 3216 already-in,
 // 3014 register, 3024 enter, 3140 advance-tick, etc.
