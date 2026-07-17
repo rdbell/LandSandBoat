@@ -13,6 +13,8 @@
 //     (prior 3422 / 3151 retained)
 //   - 3538: CanUnlockSJ dedicated dual-wire expand residual 2921
 //     (prior 3476 / 3422 / 3151 retained)
+//   - 3582: CanUnlockSJ dedicated dual-wire expand residual 2921
+//     (prior 3538 / 3476 / 3422 / 3151 retained)
 //   - 3349: ShouldUnlockSJRestriction dedicated dual-wire expand residual
 //     2921/2857 (zone.go)
 //
@@ -30,6 +32,8 @@
 //     dedicated dual-wire expand residual 2921 (prior 3422 / 3151 retained)
 //   - 3538: CanUnlockSJ = hasSJRestriction ? 1 : 0
 //     dedicated dual-wire expand residual 2921 (prior 3476 / 3422 / 3151 retained)
+//   - 3582: CanUnlockSJ = hasSJRestriction ? 1 : 0
+//     dedicated dual-wire expand residual 2921 (prior 3538 / 3476 / 3422 / 3151 retained)
 //   - 3349: ShouldUnlockSJRestriction =
 //     hasSJRestriction && IsSubjobUnlockOption(option)
 //     dedicated dual-wire expand residual 2921/2857
@@ -50,7 +54,7 @@
 //
 // Prior pure ports: OmegaXI slices 1119 (zone), 1077 (somnial).
 // Residual dual-wire suite: 2857 / 2921 / 3078.
-// Dedicated dual-wire suite: 3078 / 3151 / 3197 / 3257 / 3349 / 3422 / 3476 / 3538.
+// Dedicated dual-wire suite: 3078 / 3151 / 3197 / 3257 / 3349 / 3422 / 3476 / 3538 / 3582.
 //
 // Index 3078: dynamis.ShouldSnapToEntryPos residual dual-wire suite.
 // Index 3151: dynamis.CanUnlockSJ pure dual-wire.
@@ -60,6 +64,8 @@
 // (prior 3422 / 3151 retained; formula unchanged).
 // Index 3538: dynamis.CanUnlockSJ dedicated dual-wire expand residual 2921
 // (prior 3476 / 3422 / 3151 retained; formula unchanged).
+// Index 3582: dynamis.CanUnlockSJ dedicated dual-wire expand residual 2921
+// (prior 3538 / 3476 / 3422 / 3151 retained; formula unchanged).
 // Index 3197: dynamis.AtOrigin pure dual-wire.
 // Index 3257: dynamis.ShouldSnapToEntryPos dedicated dual-wire expand
 // residual 3197.
@@ -135,7 +141,8 @@ inline auto ShouldSnapToEntryPos(const bool hasDynamisEffect, const float x, con
 
 // ---------------------------------------------------------------------------
 // Somnial CanUnlockSJ (slice 2921 residual / 3151 dedicated / 3422 expand
-// residual 2921 / 3476 expand residual 2921 / 3538 expand residual 2921)
+// residual 2921 / 3476 expand residual 2921 / 3538 expand residual 2921 /
+// 3582 expand residual 2921)
 // ---------------------------------------------------------------------------
 
 // CanUnlockSJ is the pure free-function form of the somnial threshold
@@ -144,8 +151,8 @@ inline auto ShouldSnapToEntryPos(const bool hasDynamisEffect, const float x, con
 //   local canUnlockSJ = player:hasStatusEffect(xi.effect.SJ_RESTRICTION) and 1 or 0
 //   player:startEvent(101, 0x27, canUnlockSJ, menuBits)
 //
-// Formula (slice 3538 dedicated dual-wire expand residual 2921; prior dedicated
-// 3476 / 3422 / 3151 / residual expand 2921 / pure 1077 — formula unchanged):
+// Formula (slice 3582 dedicated dual-wire expand residual 2921; prior dedicated
+// 3538 / 3476 / 3422 / 3151 / residual expand 2921 / pure 1077 — formula unchanged):
 //   CanUnlockSJ(hasSJRestriction) = hasSJRestriction ? 1 : 0
 //
 // Host injects hasStatusEffect(SJ_RESTRICTION) as a bool. Returns 1 when the
@@ -157,12 +164,13 @@ inline auto ShouldSnapToEntryPos(const bool hasDynamisEffect, const float x, con
 // test_dynamis_can_unlock_sj_3151 (retained). Prior dedicated dual-wire expand
 // residual 2921 suite: 3422 / test_dynamis_can_unlock_sj_3422 (retained).
 // Prior dedicated dual-wire expand residual 2921 suite: 3476 /
-// test_dynamis_can_unlock_sj_3476 (retained). Dedicated dual-wire expand
-// residual 2921 suite is test_dynamis_can_unlock_sj_3538.
+// test_dynamis_can_unlock_sj_3476 (retained). Prior dedicated dual-wire expand
+// residual 2921 suite: 3538 / test_dynamis_can_unlock_sj_3538 (retained).
+// Dedicated dual-wire expand residual 2921 suite is test_dynamis_can_unlock_sj_3582.
 // startEvent / menuBits / finish delStatusEffectSilent remain host-owned.
 // Sibling left alone: ShouldSnapToEntryPos (3257 / residual 3078);
 // ShouldUnlockSJRestriction (3349) pairs with unlock option (not thrashed).
-// Index 3538: dynamis.CanUnlockSJ dedicated dual-wire expand residual 2921.
+// Index 3582: dynamis.CanUnlockSJ dedicated dual-wire expand residual 2921.
 inline auto CanUnlockSJ(const bool hasSJRestriction) -> int
 {
     return hasSJRestriction ? 1 : 0;
