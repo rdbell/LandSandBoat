@@ -28,7 +28,9 @@ auto inlineShouldDetachPlayerMaster(const bool hasMaster, const bool masterPetIs
 } // namespace
 
 // Pure dual-wire expansion for petdeathhelpers::ShouldDetachPlayerMaster
-// (CPetEntity::Die player-master active-pet detach gate; slice 2987).
+// (CPetEntity::Die player-master active-pet detach gate; residual slice 2987 /
+// pure 1414 / 2262). Dedicated expand residual is
+// runPetDetachPlayerMaster3337SelfTests.
 auto runPetDetachPlayerMaster2987SelfTests() -> bool
 {
     using petdeathhelpers::ShouldDetachPlayerMaster;

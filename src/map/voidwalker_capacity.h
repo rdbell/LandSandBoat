@@ -13,7 +13,10 @@
 //   - 3213: ShouldRandomly dedicated dual-wire
 //           (roll <= chance && !hasEffect && now > (last + between);
 //            residual expand 2903 / pure 0987)
-//   - 2908: ShouldDoMobSkillEveryHPP (local doMobSkillEveryHPP HPP-modulo gate)
+//   - 2908: ShouldDoMobSkillEveryHPP residual dual-wire expand
+//   - 3334: ShouldDoMobSkillEveryHPP dedicated dual-wire
+//           (every/start/condition/mod/localVar gates;
+//            residual expand 2908 / pure 0987)
 //   - residual 0987: pure voidwalker helpers (prior pure port of ShouldUpgradeKI)
 //
 // Lua production host: scripts/globals/voidwalker.lua
@@ -71,7 +74,10 @@
 // (internal/voidwalker/should_randomly.go). Prior pure port: slice 0987.
 // Residual dual-wire suite: 2903 / test_voidwalker_should_randomly_2903.
 // Dedicated dual-wire suite: 3213 / test_voidwalker_should_randomly_3213.
-// Dual-wire of Go voidwalker.ShouldDoMobSkillEveryHPP / MobSkillLocalVar (slice 2908).
+// Dual-wire of Go voidwalker.ShouldDoMobSkillEveryHPP / MobSkillLocalVar
+// (internal/voidwalker/should_do_mob_skill_every_hpp.go). Prior pure port: slice 0987.
+// Residual dual-wire suite: 2908 / test_voidwalker_mob_skill_hpp_2908.
+// Dedicated dual-wire suite: 3334 / test_voidwalker_mob_skill_hpp_3334.
 
 namespace voidwalkerhelpers
 {
@@ -152,14 +158,37 @@ inline auto ShouldRandomly(const int32 roll,
 // ShouldDoMobSkillEveryHPP is the pure half of local doMobSkillEveryHPP once
 // the host supplies HPP / step / condition / local-var scalars:
 //
+// Formula (slice 3334 dedicated dual-wire; residual expand 2908 / pure 0987 —
+// formula unchanged):
 //   if every <= 0 || mobHPP > start || !condition: false
 //   if (start % every) != (mobHPP % every): false
 //   return !localVarSet
 //
+// Host-injected scalars (no player / mob pointers):
+//   mobHPP      — mob:getHPP()
+//   every       — HPP step (production: 20)
+//   start       — HPP ceiling (production: 80 or 82)
+//   condition   — status / always-true host gate
+//   localVarSet — getLocalVar('MOB_SKILL_' .. mobhpp) != 0
 // every <= 0 returns false (Lua % 0 errors; hosts never pass 0).
-// When true, the host should useMobAbility and setLocalVar('MOB_SKILL_'..hpp, 1).
+// true  → host useMobAbility + setLocalVar('MOB_SKILL_'..hpp, 1)
+// false → no skill this tick
 //
-// Dual-wire of Go voidwalker.ShouldDoMobSkillEveryHPP.
+// Dual-wire of Go voidwalker.ShouldDoMobSkillEveryHPP
+// (internal/voidwalker/should_do_mob_skill_every_hpp.go). Prior pure port: slice 0987.
+// Residual dual-wire suite: 2908 / test_voidwalker_mob_skill_hpp_2908.
+// Dedicated dual-wire suite is test_voidwalker_mob_skill_hpp_3334. Formula
+// is unchanged; this slice only expands dual-wire docs + index + dedicated suite.
+// Call site (deferred): Lua doMobSkillEveryHPP host inject after getHPP /
+// getLocalVar. Production keeps early-return guards and terminal !localVarSet.
+// Dual-wire pin may use positive if/else form for lint-stable cross-checks
+// (avoid QF1001 De Morgan rewrites of !localVarSet / !condition):
+//   if every <= 0 { return false }
+//   if mobHPP > start { return false }
+//   if !condition { return false }
+//   if (start % every) != (mobHPP % every) { return false }
+//   if localVarSet { return false }
+//   return true
 inline auto ShouldDoMobSkillEveryHPP(const int32 mobHPP,
                                      const int32 every,
                                      const int32 start,
@@ -180,7 +209,8 @@ inline auto ShouldDoMobSkillEveryHPP(const int32 mobHPP,
 // MobSkillLocalVar is the local-var name 'MOB_SKILL_' .. mobhpp used by
 // doMobSkillEveryHPP to fire once per HPP threshold.
 //
-// Dual-wire of Go voidwalker.MobSkillLocalVar.
+// Dual-wire of Go voidwalker.MobSkillLocalVar
+// (dedicated 3334; residual 2908 / pure 0987 — formula unchanged).
 inline auto MobSkillLocalVar(const int32 mobHPP) -> std::string
 {
     return "MOB_SKILL_" + std::to_string(mobHPP);

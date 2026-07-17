@@ -1624,6 +1624,11 @@ auto runGarrisonFailByDeath3330SelfTests() -> bool;
 auto runFollowCanFollow3331SelfTests() -> bool;
 auto runInteractionlookupSkipPriority3332SelfTests() -> bool;
 auto runEnmityZeroOutOfRange3333SelfTests() -> bool;
+auto runVoidwalkerMobSkillHPP3334SelfTests() -> bool;
+auto runColonizationreiveSpawnOnEnable3335SelfTests() -> bool;
+auto runMapwireMarkCurrentKey3336SelfTests() -> bool;
+auto runPetDetachPlayerMaster3337SelfTests() -> bool;
+auto runMobtypeCanDeaggro3338SelfTests() -> bool;
 
 namespace
 {
@@ -3225,6 +3230,11 @@ namespace
         ok = runFollowCanFollow3331SelfTests() && ok;
         ok = runInteractionlookupSkipPriority3332SelfTests() && ok;
         ok = runEnmityZeroOutOfRange3333SelfTests() && ok;
+        ok = runVoidwalkerMobSkillHPP3334SelfTests() && ok;
+        ok = runColonizationreiveSpawnOnEnable3335SelfTests() && ok;
+        ok = runMapwireMarkCurrentKey3336SelfTests() && ok;
+        ok = runPetDetachPlayerMaster3337SelfTests() && ok;
+        ok = runMobtypeCanDeaggro3338SelfTests() && ok;
 
         return ok;
     }

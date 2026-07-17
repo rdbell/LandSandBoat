@@ -3241,6 +3241,16 @@ set(SOURCES
     test_interactionlookup_skip_priority_3332.cpp
     test_enmity_zero_out_of_range_3333.h
     test_enmity_zero_out_of_range_3333.cpp
+    test_voidwalker_mob_skill_hpp_3334.h
+    test_voidwalker_mob_skill_hpp_3334.cpp
+    test_colonizationreive_spawn_on_enable_3335.h
+    test_colonizationreive_spawn_on_enable_3335.cpp
+    test_mapwire_mark_current_key_3336.h
+    test_mapwire_mark_current_key_3336.cpp
+    test_pet_detach_player_master_3337.h
+    test_pet_detach_player_master_3337.cpp
+    test_mobtype_can_deaggro_3338.h
+    test_mobtype_can_deaggro_3338.cpp
 )
 
 if(UNIX)

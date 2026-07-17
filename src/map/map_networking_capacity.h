@@ -19,6 +19,7 @@
 //   - 3232: ShouldOpenSocket dedicated dual-wire expand residual 2948
 //   - 2711: ShouldMarkCurrentKeyDecryption (decryptCount == 0) — residual pure port
 //   - 2995: ShouldMarkCurrentKeyDecryption (decryptCount == 0) dual-wire expansion
+//   - 3336: ShouldMarkCurrentKeyDecryption dedicated dual-wire expand residual 2995
 //
 // Dual-wire index:
 //   - 2660: ShouldOpenSocket residual pure port
@@ -26,7 +27,8 @@
 //   - 3169: ShouldOpenSocket prior dedicated dual-wire
 //   - 3232: ShouldOpenSocket = !isTestServer
 //   - 2711: ShouldMarkCurrentKeyDecryption residual pure port
-//   - 2995: ShouldMarkCurrentKeyDecryption dual-wire expansion
+//   - 2995: ShouldMarkCurrentKeyDecryption residual dual-wire suite
+//   - 3336: ShouldMarkCurrentKeyDecryption = decryptCount == 0
 //
 // Production host: MapNetworking constructor (map_networking.cpp) injects
 // config_.isTestServer into ShouldOpenSocket before MapSocket allocation.
@@ -39,6 +41,8 @@
 // local decryptCount into ShouldMarkCurrentKeyDecryption before setting
 // PSession->hasDecryptedPacket. Go dual-wire:
 // mapwire.ShouldMarkCurrentKeyDecryption (internal/mapwire/current_key.go).
+// Residual dual-wire suite: 2995 (test_mapwire_mark_current_key_2995).
+// Dedicated dual-wire suite: 3336 (test_mapwire_mark_current_key_3336).
 
 namespace mapnetworkinghelpers
 {
@@ -226,12 +230,18 @@ inline auto PlanIncomingDecryption(const bool primaryDecrypted, const bool pendi
     return IncomingDecryptionPlan::Reject;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3336 — MapNetworking recv_parse current-key decryption mark
+// (dedicated expand residual 2995)
+// ---------------------------------------------------------------------------
+
 // ShouldMarkCurrentKeyDecryption identifies packets successfully decrypted by
 // the current key. recv_parse uses zero for that result and one for a
 // previous-key zone-transition fallback.
 //
-// Formula (slice 2995 dual-wire):
-//   decryptCount == 0
+// Formula (slice 3336 dedicated dual-wire; residual expand 2995 / pure 2711 —
+// formula unchanged):
+//   ShouldMarkCurrentKeyDecryption(decryptCount) = decryptCount == 0
 //
 // decryptCount — host-injected recv_parse key-attempt result:
 //   0  → current-key success (mark hasDecryptedPacket)
@@ -243,7 +253,12 @@ inline auto PlanIncomingDecryption(const bool primaryDecrypted, const bool pendi
 // Call site: MapNetworking::recv_parse after PlanIncomingDecryption; host
 // injects local decryptCount (0 primary, ++ on UsePrevious) before
 // PSession->hasDecryptedPacket = true when the free function is true.
-// Residual pure port: slice 2711.
+// Residual pure port: slice 2711. Residual dual-wire suite: 2995 /
+// test_mapwire_mark_current_key_2995. Dedicated dual-wire suite is
+// test_mapwire_mark_current_key_3336. Host still owns PlanIncomingDecryption,
+// primary/previous decipher, buffer copy on UsePrevious, and writing
+// hasDecryptedPacket. Formula is unchanged; this slice only expands dual-wire
+// docs + index + dedicated suite.
 inline auto ShouldMarkCurrentKeyDecryption(const int decryptCount) -> bool
 {
     return decryptCount == 0;

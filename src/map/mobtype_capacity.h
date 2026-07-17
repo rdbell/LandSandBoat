@@ -12,6 +12,7 @@
 //   - 3223: CanBeNeutral dedicated dual-wire expand residual 2934
 //   - 3276: CanBeNeutral dedicated dual-wire expand residual 2934 (prior ~3223)
 //   - 3306: CanBeNeutral dedicated dual-wire expand residual 2934 (prior ~3276)
+//   - 3338: CanDeaggro dedicated dual-wire expand residual 2919 (prior ~3063)
 //
 // Dual-wire index:
 //   - 2919: CanDeaggro residual dual-wire (Type-bit form; dense suite)
@@ -28,6 +29,9 @@
 //   - 3306: CanBeNeutral (!Has(t, Notorious);
 //           dedicated dual-wire expand residual 2934 / prior ~3276 on
 //           can_be_neutral.go)
+//   - 3338: CanDeaggro (!Has(t, Notorious) && !Has(t, Battlefield);
+//           dedicated dual-wire expand residual 2919 / prior ~3063 on
+//           can_deaggro.go; positive form only)
 //
 // Production call sites today:
 //   - CMobEntity::CanDeaggro in mob_entity.cpp routes through
@@ -39,7 +43,7 @@
 //
 // This capacity dual-wires the Type-bit form used by OmegaXI
 // internal/mobtype (slice 2042 residual / 2919 / 2934 / 3063 / 3076 / 3223
-// / 3276 / 3306 dual-wire):
+// / 3276 / 3306 / 3338 dual-wire):
 //
 //   CanDeaggro(t)    = !Has(t, Notorious) && !Has(t, Battlefield)
 //   CanBeNeutral(t)  = !Has(t, Notorious)
@@ -94,14 +98,15 @@ inline auto Has(const uint8 t, const uint8 flag) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2919 / 3063 — CanDeaggro type-bit gate
+// Slice 2919 / 3063 / 3338 — CanDeaggro type-bit gate
 // ---------------------------------------------------------------------------
 
 // CanDeaggro mirrors CMobEntity::CanDeaggro's type policy:
 //
 //   !Has(t, Notorious) && !Has(t, Battlefield)
 //
-// Formula (slice 3063 dual-wire; residual expand 2919):
+// Formula (slice 3338 dedicated dual-wire expand residual 2919; prior
+// dedicated 3063 / pure 2042 / 2655 — formula unchanged; positive form only):
 //   CanDeaggro(t) = !Has(t, Notorious) && !Has(t, Battlefield)
 //
 // Notorious and battlefield mobs stay engaged; all other type combinations
@@ -109,8 +114,9 @@ inline auto Has(const uint8 t, const uint8 flag) -> bool
 // Dual-wire of Go mobtype.CanDeaggro.
 // Call site: future CMobEntity::CanDeaggro inject with raw m_Type.
 // Prior pure port: slices 2042 / 2655. Residual dual-wire suite: 2919 /
-// test_mobtype_can_deaggro_2919. Dedicated dual-wire suite is
-// test_mobtype_can_deaggro_3063. Future host inject may call this free
+// test_mobtype_can_deaggro_2919. Prior dedicated dual-wire suite: 3063 /
+// test_mobtype_can_deaggro_3063. Dedicated expand residual suite is
+// test_mobtype_can_deaggro_3338. Future host inject may call this free
 // function with raw m_Type instead of splitting notorious/battlefield
 // bools at the call site.
 inline auto CanDeaggro(const uint8 t) -> bool
