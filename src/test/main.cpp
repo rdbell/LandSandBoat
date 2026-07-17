@@ -1924,6 +1924,11 @@ auto runAmanThumbsUp3630SelfTests() -> bool;
 auto runMapsessionDestroyPendingPtr3631SelfTests() -> bool;
 auto runAvatarpetCanApplyBuff3632SelfTests() -> bool;
 auto runUnityRejectNullOnline3633SelfTests() -> bool;
+auto runEnmityZeroOutOfRange3634SelfTests() -> bool;
+auto runNotorietyAddMember3635SelfTests() -> bool;
+auto runAllianceAttemptLeaderPromote3636SelfTests() -> bool;
+auto runLinkshellRejectNullAddMember3637SelfTests() -> bool;
+auto runColonizationreiveSpawnOnEnable3638SelfTests() -> bool;
 
 namespace
 {
@@ -3825,6 +3830,11 @@ namespace
         ok = runMapsessionDestroyPendingPtr3631SelfTests() && ok;
         ok = runAvatarpetCanApplyBuff3632SelfTests() && ok;
         ok = runUnityRejectNullOnline3633SelfTests() && ok;
+        ok = runEnmityZeroOutOfRange3634SelfTests() && ok;
+        ok = runNotorietyAddMember3635SelfTests() && ok;
+        ok = runAllianceAttemptLeaderPromote3636SelfTests() && ok;
+        ok = runLinkshellRejectNullAddMember3637SelfTests() && ok;
+        ok = runColonizationreiveSpawnOnEnable3638SelfTests() && ok;
 
         return ok;
     }
