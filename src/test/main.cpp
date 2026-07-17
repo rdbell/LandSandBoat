@@ -1559,6 +1559,11 @@ auto runAttackBlockCounterState3265SelfTests() -> bool;
 auto runDarkixionCanBreakHorn3266SelfTests() -> bool;
 auto runNotorietyAddMember3267SelfTests() -> bool;
 auto runTradecontainerSetConfirmed3268SelfTests() -> bool;
+auto runPetutilsCanAttackTarget3269SelfTests() -> bool;
+auto runItemcontainerCanInsertAtSlot3270SelfTests() -> bool;
+auto runBattlefieldUnderCapacity3271SelfTests() -> bool;
+auto runAicontainerCanChangeState3272SelfTests() -> bool;
+auto runCampaignAffordNotes3273SelfTests() -> bool;
 
 namespace
 {
@@ -3095,6 +3100,11 @@ namespace
         ok = runDarkixionCanBreakHorn3266SelfTests() && ok;
         ok = runNotorietyAddMember3267SelfTests() && ok;
         ok = runTradecontainerSetConfirmed3268SelfTests() && ok;
+        ok = runPetutilsCanAttackTarget3269SelfTests() && ok;
+        ok = runItemcontainerCanInsertAtSlot3270SelfTests() && ok;
+        ok = runBattlefieldUnderCapacity3271SelfTests() && ok;
+        ok = runAicontainerCanChangeState3272SelfTests() && ok;
+        ok = runCampaignAffordNotes3273SelfTests() && ok;
 
         return ok;
     }

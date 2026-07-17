@@ -3,15 +3,19 @@
 // Pure AttackTarget / RetreatToMaster gates from petutils.
 // Parity: internal/petutils/engage.go (slice 1627 residual suite);
 // internal/petutils/pet_engage.go (slice 3051 dual-wire ShouldPetEngage);
-// internal/petutils/can_attack_target.go (slice 3071 dual-wire CanAttackTarget);
+// internal/petutils/can_attack_target.go (slice 3269 dedicated dual-wire
+// CanAttackTarget; residual expand 3071 / pure 1627);
 // internal/petutils/pet_disengage.go (slice 3081 dual-wire ShouldPetDisengage);
 // internal/petutils/can_retreat_master.go (slice 3097 dual-wire CanRetreatToMaster).
 //
 // Dual-wire index:
 //   - 3051: ShouldPetEngage (!hasPreventActionEffect on AttackTarget)
-//   - 3071: CanAttackTarget (hasMaster && hasPet && hasTarget null preflight)
+//   - 3071: CanAttackTarget residual dual-wire suite
+//           (hasMaster && hasPet && hasTarget null preflight)
 //   - 3081: ShouldPetDisengage (!hasPreventActionEffect on RetreatToMaster)
 //   - 3097: CanRetreatToMaster (hasMaster && hasPet null preflight)
+//   - 3269: CanAttackTarget dedicated dual-wire
+//           (can_attack_target.go; expand residual 3071; pure 1627)
 //
 // Production host: petutils::AttackTarget (petutils.cpp) injects master/pet/
 // target non-null into CanAttackTarget; on fail ShowWarning + return.
@@ -19,6 +23,8 @@
 // ShouldPetEngage; on true PPet->PAI->Engage(PTarget->targid).
 // Go dual-wire: petutils.CanAttackTarget (internal/petutils/can_attack_target.go);
 // petutils.ShouldPetEngage (internal/petutils/pet_engage.go).
+// Residual dual-wire suite: 3071 (test_pet_can_attack_target_3071).
+// Dedicated dual-wire suite: 3269 (test_petutils_can_attack_target_3269).
 // Production host: petutils::RetreatToMaster (petutils.cpp) injects master/pet
 // non-null into CanRetreatToMaster; on fail ShowWarning + return.
 // Then injects HasPreventActionEffect() into ShouldPetDisengage; on true
@@ -29,9 +35,14 @@
 namespace petengagehelpers
 {
 
+// ---------------------------------------------------------------------------
+// Slice 3269 — AttackTarget null preflight (dedicated expand residual 3071)
+// ---------------------------------------------------------------------------
+
 // CanAttackTarget is the null preflight for AttackTarget (master, pet, target).
 //
-// Formula (slice 3071 dual-wire):
+// Formula (slice 3269 dedicated dual-wire; residual expand 3071 / pure 1627 —
+// formula unchanged):
 //   hasMaster && hasPet && hasTarget
 //
 // hasMaster  — host-evaluated PMaster != nullptr
@@ -43,14 +54,16 @@ namespace petengagehelpers
 // Null preflight: all three presence injects must be true before the
 // prevent-action engage gate.
 //
-// Dual-wire of Go petutils.CanAttackTarget.
+// Dual-wire of Go petutils.CanAttackTarget
+// (internal/petutils/can_attack_target.go).
 // Call site: petutils::AttackTarget — host injects PMaster / PMaster->PPet /
 // PTarget non-null; on false ShowWarning + return. On true proceeds to
 // ShouldPetEngage (slice 3051 dual-wire).
 // Prior pure port: slice 1627 (AttackTarget / RetreatToMaster pure gates).
-// Residual pins remain in test_pet_engage_1627; dedicated dual-wire suite is
-// test_pet_can_attack_target_3071. Sibling dual-wire: ShouldPetEngage (3051),
-// ShouldPetDisengage (3081), CanRetreatToMaster (3097).
+// Residual dual-wire suite: 3071 / test_pet_can_attack_target_3071.
+// Dedicated dual-wire suite is test_petutils_can_attack_target_3269.
+// Residual pins remain in test_pet_engage_1627. Sibling dual-wire:
+// ShouldPetEngage (3051), ShouldPetDisengage (3081), CanRetreatToMaster (3097).
 inline auto CanAttackTarget(const bool hasMaster, const bool hasPet, const bool hasTarget) -> bool
 {
     return hasMaster && hasPet && hasTarget;
@@ -73,8 +86,8 @@ inline auto CanAttackTarget(const bool hasMaster, const bool hasPet, const bool 
 // PPet->StatusEffectContainer->HasPreventActionEffect() after CanAttackTarget.
 // Prior pure port: slice 1627 (AttackTarget / RetreatToMaster pure gates).
 // Residual pins remain in test_pet_engage_1627; dedicated dual-wire suite is
-// test_pet_should_engage_3051. Sibling dual-wire: CanAttackTarget (3071),
-// ShouldPetDisengage (3081), CanRetreatToMaster (3097).
+// test_pet_should_engage_3051. Sibling dual-wire: CanAttackTarget (3269 /
+// residual 3071), ShouldPetDisengage (3081), CanRetreatToMaster (3097).
 inline auto ShouldPetEngage(const bool hasPreventActionEffect) -> bool
 {
     return !hasPreventActionEffect;
@@ -100,7 +113,7 @@ inline auto ShouldPetEngage(const bool hasPreventActionEffect) -> bool
 // Prior pure port: slice 1627 (AttackTarget / RetreatToMaster pure gates).
 // Residual pins remain in test_pet_engage_1627; dedicated dual-wire suite is
 // test_pet_can_retreat_master_3097. Sibling dual-wire: ShouldPetEngage (3051),
-// CanAttackTarget (3071), ShouldPetDisengage (3081).
+// CanAttackTarget (3269 / residual 3071), ShouldPetDisengage (3081).
 inline auto CanRetreatToMaster(const bool hasMaster, const bool hasPet) -> bool
 {
     return hasMaster && hasPet;
@@ -125,7 +138,7 @@ inline auto CanRetreatToMaster(const bool hasMaster, const bool hasPet) -> bool
 // Prior pure port: slice 1627 (AttackTarget / RetreatToMaster pure gates).
 // Residual pins remain in test_pet_engage_1627; dedicated dual-wire suite is
 // test_pet_should_disengage_3081. Sibling dual-wire: ShouldPetEngage (3051),
-// CanAttackTarget (3071), CanRetreatToMaster (3097).
+// CanAttackTarget (3269 / residual 3071), CanRetreatToMaster (3097).
 inline auto ShouldPetDisengage(const bool hasPreventActionEffect) -> bool
 {
     return !hasPreventActionEffect;

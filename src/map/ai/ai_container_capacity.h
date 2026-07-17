@@ -8,9 +8,12 @@
 //           (controller presence outer gate for public
 //           Cast/Engage/ChangeTarget/Disengage/WeaponSkill/Ability/
 //           RangedAttack and typed MobSkill/PetSkill/UseItem)
-//   - 2952: CanChangeState (current-state change gate for external means)
+//   - 2952: CanChangeState residual dual-wire expand
+//           (current-state change gate for external means)
 //   - 3222: CanDispatch dedicated dual-wire
 //           (hasController identity; residual expand 2947 / pure 1189)
+//   - 3272: CanChangeState dedicated dual-wire
+//           (!hasCurrentState || currentCanChange; residual expand 2952 / pure 1189)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -45,7 +48,7 @@ namespace aicontainerhelpers
 // test_aicontainer_can_dispatch_2947. Dedicated dual-wire suite is
 // test_aicontainer_can_dispatch_3222. Formula is unchanged; this slice
 // only expands dual-wire docs + index + dedicated suite.
-// Sibling dual-wire left alone: 2952 CanChangeState.
+// Sibling dual-wire left alone: 2952 / 3272 CanChangeState.
 inline auto CanDispatch(const bool hasController) -> bool
 {
     return hasController;
@@ -56,7 +59,8 @@ inline auto CanDispatch(const bool hasController) -> bool
 //
 //   return !GetCurrentState() || GetCurrentState()->CanChangeState();
 //
-// Formula (slice 2952 dual-wire):
+// Formula (slice 3272 dedicated dual-wire; residual expand 2952 / pure 1189 —
+// formula unchanged):
 //   !hasCurrentState || currentCanChange
 //
 // hasCurrentState — host-evaluated current-state presence:
@@ -69,6 +73,11 @@ inline auto CanDispatch(const bool hasController) -> bool
 // Dual-wire of Go aicontainer.CanChangeState
 // (internal/aicontainer/can_change_state.go).
 // Call site: CAIContainer::CanChangeState.
+// Prior pure port: slice 1189. Residual dual-wire suite: 2952 /
+// test_aicontainer_can_change_state_2952. Dedicated dual-wire suite is
+// test_aicontainer_can_change_state_3272. Formula is unchanged; this slice
+// only expands dual-wire docs + index + dedicated suite.
+// Sibling dual-wire left alone: 2947 / 3222 CanDispatch.
 inline auto CanChangeState(const bool hasCurrentState, const bool currentCanChange) -> bool
 {
     return !hasCurrentState || currentCanChange;
