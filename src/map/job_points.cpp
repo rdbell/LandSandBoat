@@ -19,6 +19,7 @@
 #include "entities/battle_entity.h"
 #include "entities/char_entity.h"
 #include "job_points.h"
+#include "job_points_capacity.h"
 
 #include "map_engine.h"
 #include "packets/s2c/0x0aa_magic_data.h"
@@ -102,24 +103,26 @@ void CJobPoints::RaiseJobPoint(JOBPOINT_TYPE jpType)
     JobPoints_t*    job      = GetJobPointsByType(jpType);
     JobPointType_t* jobPoint = GetJobPointType(jpType);
 
-    if (!job || !jobPoint)
+    // Pure admission/spend plan (slice 2803). SQL + gift refresh stay host-side.
+    const auto plan = jobpointshelpers::PlanRaiseJobPoint(
+        job != nullptr,
+        jobPoint != nullptr,
+        jobPoint != nullptr ? jobPoint->value : uint8{ 0 },
+        job != nullptr ? job->currentJp : uint16{ 0 });
+
+    if (!plan.apply)
     {
         return;
     }
 
-    uint8 cost = JobPointCost(jobPoint->value);
+    job->currentJp -= plan.cost;
+    job->totalJpSpent += plan.cost;
+    jobPoint->value++;
 
-    if (cost != 0 && job->currentJp >= cost)
-    {
-        job->currentJp -= cost;
-        job->totalJpSpent += cost;
-        jobPoint->value++;
+    const auto query = std::format("UPDATE char_job_points SET jptype{}=?, job_points=?, job_points_spent=? WHERE charid=? AND jobid=?", JobPointTypeIndex(jobPoint->id));
+    db::preparedStmt(query, jobPoint->value, job->currentJp, job->totalJpSpent, m_PChar->id, job->jobId);
 
-        const auto query = std::format("UPDATE char_job_points SET jptype{}=?, job_points=?, job_points_spent=? WHERE charid=? AND jobid=?", JobPointTypeIndex(jobPoint->id));
-        db::preparedStmt(query, jobPoint->value, job->currentJp, job->totalJpSpent, m_PChar->id, job->jobId);
-
-        jobpointutils::RefreshGiftMods(m_PChar);
-    }
+    jobpointutils::RefreshGiftMods(m_PChar);
 }
 
 uint16 CJobPoints::GetJobPoints()

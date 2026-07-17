@@ -128,4 +128,17 @@ inline auto RequestSecondsAsCharges(const int64 durationSeconds) -> int64
     return durationSeconds;
 }
 
+// IsOneHourSpecialRecast mirrors Recast::Special || Recast::Special2 (1HR IDs).
+inline auto IsOneHourSpecialRecast(const bool isSpecial, const bool isSpecial2) -> bool
+{
+    return isSpecial || isSpecial2;
+}
+
+// ShouldResetAbilityRecast mirrors ResetAbilities skip of one-hours.
+// Returns true when Load(0s) should run (ID is not Special and not Special2).
+inline auto ShouldResetAbilityRecast(const bool isSpecial, const bool isSpecial2) -> bool
+{
+    return !IsOneHourSpecialRecast(isSpecial, isSpecial2);
+}
+
 } // namespace recasthelpers

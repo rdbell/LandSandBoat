@@ -441,6 +441,8 @@ set(SOURCES
     test_item_access.cpp
     test_item_container.h
     test_item_container.cpp
+    test_item_container_policy_2802.h
+    test_item_container_policy_2802.cpp
     test_loot_container_2641.h
     test_loot_container_2641.cpp
     test_item_currency.h
@@ -537,12 +539,16 @@ set(SOURCES
     test_trade_container.cpp
     test_universal_container.h
     test_universal_container.cpp
+    test_universal_setitem_plan_2801.h
+    test_universal_setitem_plan_2801.cpp
     test_recast_container.h
     test_recast_container.cpp
     test_trait.h
     test_trait.cpp
     test_job_points.h
     test_job_points.cpp
+    test_jobpoints_raise_plan_2803.h
+    test_jobpoints_raise_plan_2803.cpp
     test_enmity_container.h
     test_enmity_container.cpp
     test_modifier.h
@@ -793,6 +799,8 @@ set(SOURCES
     test_status_effect_params_1369.cpp
     test_recast_charge_1370.h
     test_recast_charge_1370.cpp
+    test_recast_reset_ability_2800.h
+    test_recast_reset_ability_2800.cpp
     test_status_effect_add_remove_1371.h
     test_status_effect_add_remove_1371.cpp
     test_status_effect_delete_1372.h
@@ -1568,6 +1576,8 @@ set(SOURCES
     test_map_session_lookup_2790.cpp
     test_map_session_replace_create_2795.h
     test_map_session_replace_create_2795.cpp
+    test_map_session_linkdead_plan_2799.h
+    test_map_session_linkdead_plan_2799.cpp
     test_map_session_index.h
     test_map_session_index.cpp
     test_look_parser.h

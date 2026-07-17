@@ -23,6 +23,7 @@
 
 #include "entities/base_entity.h"
 #include "universal_container.h"
+#include "universal_container_capacity.h"
 #include "utils/itemutils.h"
 
 CUContainer::CUContainer()
@@ -185,16 +186,13 @@ bool CUContainer::IsSlotEmpty(uint8 slotID)
 
 bool CUContainer::SetItem(uint8 slotID, CItem* PItem)
 {
-    if (slotID < m_PItem.size() && !m_lock)
+    // Pure admission + count delta: ucontainerhelpers (slice 2801).
+    if (ucontainerhelpers::ShouldAllowSetItem(slotID < m_PItem.size(), m_lock))
     {
-        if (PItem != nullptr && m_PItem[slotID] == nullptr)
-        {
-            m_count++;
-        }
-        if (PItem == nullptr && m_PItem[slotID] != nullptr)
-        {
-            m_count--;
-        }
+        const auto delta = ucontainerhelpers::PlanSetItemCountDelta(
+            PItem != nullptr,
+            m_PItem[slotID] != nullptr);
+        m_count = static_cast<uint8>(static_cast<std::int16_t>(m_count) + delta);
 
         m_PItem[slotID] = PItem;
         return true;

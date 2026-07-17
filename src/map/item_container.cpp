@@ -22,6 +22,7 @@
 #include "common/logging.h"
 
 #include "item_container.h"
+#include "item_container_capacity.h"
 #include "utils/itemutils.h"
 
 CItemContainer::CItemContainer(uint16 LocationID)
@@ -78,13 +79,10 @@ uint8 CItemContainer::AddBuff(int8 buff)
 
 uint8 CItemContainer::SetSize(uint8 size)
 {
-    if (size <= MAX_CONTAINER_SIZE)
+    if (itemcontainerhelpers::CanSetSize(size, MAX_CONTAINER_SIZE, m_count))
     {
-        if (size >= m_count)
-        {
-            m_size = size;
-            return m_size;
-        }
+        m_size = size;
+        return m_size;
     }
     ShowDebug("ItemContainer <%u>: Bad new container size %u", m_id, size);
     return -1;
@@ -98,15 +96,13 @@ uint8 CItemContainer::SetSize(uint8 size)
 
 uint8 CItemContainer::AddSize(int8 size)
 {
+    // Preserve uint8 intermediate wrap (m_size + size) before validation.
     uint8 newsize = m_size + size;
 
-    if (newsize <= MAX_CONTAINER_SIZE)
+    if (itemcontainerhelpers::CanSetSize(newsize, MAX_CONTAINER_SIZE, m_count))
     {
-        if (newsize >= m_count)
-        {
-            m_size = newsize;
-            return m_size;
-        }
+        m_size = newsize;
+        return m_size;
     }
     ShowDebug("ItemContainer <%u>: Bad new container size %u", m_id, newsize);
     return -1;
@@ -145,7 +141,7 @@ auto CItemContainer::InsertItem(std::unique_ptr<CItem> PItem) -> uint8
 
 auto CItemContainer::InsertItem(std::unique_ptr<CItem> PItem, uint8 SlotID) -> uint8
 {
-    if (SlotID > m_size)
+    if (!itemcontainerhelpers::CanInsertAtSlot(SlotID, m_size))
     {
         ShowDebug("ItemContainer: SlotID %i is out of range", SlotID);
         return ERROR_SLOTID;
@@ -154,7 +150,7 @@ auto CItemContainer::InsertItem(std::unique_ptr<CItem> PItem, uint8 SlotID) -> u
     PItem->setSlotID(SlotID);
     PItem->setLocationID((uint8)m_id);
 
-    if (m_ItemList[SlotID] == nullptr && SlotID != 0)
+    if (itemcontainerhelpers::ShouldIncrementCountOnInsertAt(m_ItemList[SlotID] == nullptr, SlotID))
     {
         m_count++;
     }
@@ -165,12 +161,12 @@ auto CItemContainer::InsertItem(std::unique_ptr<CItem> PItem, uint8 SlotID) -> u
 
 auto CItemContainer::RemoveItem(uint8 SlotID) -> std::unique_ptr<CItem>
 {
-    if (SlotID > m_size)
+    if (!itemcontainerhelpers::CanRemoveSlot(SlotID, m_size))
     {
         return nullptr;
     }
 
-    if (m_ItemList[SlotID] != nullptr && SlotID != 0)
+    if (itemcontainerhelpers::ShouldDecrementCountOnRemove(m_ItemList[SlotID] != nullptr, SlotID))
     {
         m_count--;
     }
@@ -180,14 +176,20 @@ auto CItemContainer::RemoveItem(uint8 SlotID) -> std::unique_ptr<CItem>
 
 auto CItemContainer::MoveItemTo(uint8 fromSlot, CItemContainer& dst, std::optional<uint8> dstSlot) -> uint8
 {
-    if (dstSlot.has_value())
-    {
-        if (*dstSlot > dst.m_size || dst.m_ItemList[*dstSlot] != nullptr)
-        {
-            return ERROR_SLOTID;
-        }
-    }
-    else if (dst.GetFreeSlotsCount() == 0)
+    const bool  hasExplicitDst = dstSlot.has_value();
+    const uint8 explicitSlot   = hasExplicitDst ? *dstSlot : 0;
+    // Only probe occupancy when the slot is addressable; out-of-range is rejected
+    // by PlanMoveItemTo via dstSlot > dstSize (mirrors short-circuit || in production).
+    const bool dstOccupied = hasExplicitDst && explicitSlot <= dst.m_size && dst.m_ItemList[explicitSlot] != nullptr;
+
+    const auto plan = itemcontainerhelpers::PlanMoveItemTo(
+        hasExplicitDst,
+        explicitSlot,
+        dst.m_size,
+        dstOccupied,
+        dst.GetFreeSlotsCount());
+
+    if (plan != itemcontainerhelpers::MoveItemToDisposition::Allow)
     {
         return ERROR_SLOTID;
     }
@@ -198,8 +200,8 @@ auto CItemContainer::MoveItemTo(uint8 fromSlot, CItemContainer& dst, std::option
         return ERROR_SLOTID;
     }
 
-    return dstSlot.has_value()
-               ? dst.InsertItem(std::move(PItem), *dstSlot)
+    return hasExplicitDst
+               ? dst.InsertItem(std::move(PItem), explicitSlot)
                : dst.InsertItem(std::move(PItem));
 }
 

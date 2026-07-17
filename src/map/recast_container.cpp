@@ -337,7 +337,7 @@ void CRecastContainer::ResetAbilities()
 
     for (auto&& recast : *PRecastList)
     {
-        if (recast.ID != Recast::Special && recast.ID != Recast::Special2)
+        if (recasthelpers::ShouldResetAbilityRecast(recast.ID == Recast::Special, recast.ID == Recast::Special2))
         {
             Load(RECAST_ABILITY, recast.ID, 0s);
         }

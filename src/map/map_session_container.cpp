@@ -317,17 +317,32 @@ void MapSessionContainer::cleanupSessions(IPP mapIPP)
 
         if (now > map_session_data->last_update + 5s)
         {
-            if (PChar != nullptr && !PChar->isLinkDead)
+            // Mark link-dead: pure gate + plan; host owns SQL / char / SpawnPCs.
+            const bool hasChar         = PChar != nullptr;
+            const bool alreadyLinkDead = hasChar && PChar->isLinkDead;
+            if (mapsessionhelpers::ShouldMarkLinkDead(hasChar, alreadyLinkDead))
             {
-                db::preparedStmt("UPDATE char_flags SET disconnecting = 1 WHERE charid = ?", map_session_data->charID);
-
-                PChar->isLinkDead = true;
-                PChar->updatemask |= UPDATE_HP;
-
-                // Is this unintentionally sending extra packets when a player is disconnecting?
-                if (PChar->status == STATUS_TYPE::NORMAL)
+                const auto plan = mapsessionhelpers::PlanLinkDeadMark(PChar->status == STATUS_TYPE::NORMAL);
+                for (uint8 i = 0; i < plan.count; ++i)
                 {
-                    PChar->loc.zone->SpawnPCs(PChar);
+                    switch (plan.actions[i])
+                    {
+                        case mapsessionhelpers::LinkDeadTransitionAction::SetDisconnectingFlag:
+                            db::preparedStmt("UPDATE char_flags SET disconnecting = 1 WHERE charid = ?", map_session_data->charID);
+                            break;
+                        case mapsessionhelpers::LinkDeadTransitionAction::SetLinkDead:
+                            PChar->isLinkDead = true;
+                            break;
+                        case mapsessionhelpers::LinkDeadTransitionAction::SetUpdateHPMask:
+                            PChar->updatemask |= UPDATE_HP;
+                            break;
+                        case mapsessionhelpers::LinkDeadTransitionAction::SpawnPCsIfNormal:
+                            // Is this unintentionally sending extra packets when a player is disconnecting?
+                            PChar->loc.zone->SpawnPCs(PChar);
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
 
@@ -397,18 +412,33 @@ void MapSessionContainer::cleanupSessions(IPP mapIPP)
                 continue;
             }
         }
-        else if (PChar != nullptr && PChar->isLinkDead)
+        else if (mapsessionhelpers::ShouldRecoverLinkDead(PChar != nullptr, PChar != nullptr && PChar->isLinkDead))
         {
-            db::preparedStmt("UPDATE char_flags SET disconnecting = 0 WHERE charid = ?", map_session_data->charID);
-
-            PChar->isLinkDead = false;
-            PChar->updatemask |= UPDATE_HP;
-
-            if (PChar->status == STATUS_TYPE::NORMAL)
+            // Recover link-dead: pure gate + plan; host owns SQL / char / SpawnPCs / SaveCharStats.
+            const auto plan = mapsessionhelpers::PlanLinkDeadRecover(PChar->status == STATUS_TYPE::NORMAL);
+            for (uint8 i = 0; i < plan.count; ++i)
             {
-                PChar->loc.zone->SpawnPCs(PChar);
+                switch (plan.actions[i])
+                {
+                    case mapsessionhelpers::LinkDeadTransitionAction::ClearDisconnectingFlag:
+                        db::preparedStmt("UPDATE char_flags SET disconnecting = 0 WHERE charid = ?", map_session_data->charID);
+                        break;
+                    case mapsessionhelpers::LinkDeadTransitionAction::ClearLinkDead:
+                        PChar->isLinkDead = false;
+                        break;
+                    case mapsessionhelpers::LinkDeadTransitionAction::SetUpdateHPMask:
+                        PChar->updatemask |= UPDATE_HP;
+                        break;
+                    case mapsessionhelpers::LinkDeadTransitionAction::SpawnPCsIfNormal:
+                        PChar->loc.zone->SpawnPCs(PChar);
+                        break;
+                    case mapsessionhelpers::LinkDeadTransitionAction::SaveCharStats:
+                        charutils::SaveCharStats(PChar);
+                        break;
+                    default:
+                        break;
+                }
             }
-            charutils::SaveCharStats(PChar);
         }
         ++it;
     }
@@ -425,10 +455,27 @@ void MapSessionContainer::cleanupSessions(IPP mapIPP)
             {
                 ShowDebugFmt("Clearing map server pending session for pending char ID: '{}'", map_session_data->charID);
 
-                db::preparedStmt("DELETE FROM accounts_sessions WHERE charid = ?", map_session_data->charID);
-
-                index_.removePendingSession(map_session_data.get());
-                return true; // Erase
+                // Pending timeout erase: pure plan; host owns SQL / index / erase.
+                const auto plan = mapsessionhelpers::PlanPendingTimeoutCleanup();
+                bool       erase = false;
+                for (uint8 i = 0; i < plan.count; ++i)
+                {
+                    switch (plan.actions[i])
+                    {
+                        case mapsessionhelpers::PendingTimeoutCleanupAction::DeleteDatabaseSession:
+                            db::preparedStmt("DELETE FROM accounts_sessions WHERE charid = ?", map_session_data->charID);
+                            break;
+                        case mapsessionhelpers::PendingTimeoutCleanupAction::RemovePendingIndex:
+                            index_.removePendingSession(map_session_data.get());
+                            break;
+                        case mapsessionhelpers::PendingTimeoutCleanupAction::ErasePending:
+                            erase = true;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                return erase;
             }
 
             return false; // Keep
