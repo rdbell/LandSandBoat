@@ -8,10 +8,12 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 0813 / 1546 / 2104: CalculateSpellCost + zero gates residual suite
-//   - 2964: ShouldReturnZeroNullSpell (spellNull identity)
+//   - 2964: ShouldReturnZeroNullSpell residual dual-wire suite (spellNull)
 //   - 2969: ShouldReturnZeroNoMPCost residual dual-wire suite (!hasMPCost)
 //   - 3183: ShouldReturnZeroNoMPCost dedicated dual-wire
 //           (no_mp_cost.go; expand residual 2969 / pure 2104)
+//   - 3210: ShouldReturnZeroNullSpell dedicated dual-wire
+//           (null_spell_cost.go; expand residual 2964 / pure 2104)
 //
 // Production host: battleutils::CalculateSpellCost injects
 // PSpell == nullptr into ShouldReturnZeroNullSpell before hasMPCost / cost,
@@ -36,22 +38,31 @@ constexpr std::uint16_t IDKaustra = 502;
 
 constexpr std::int16_t SpellCostMax = 9999;
 
+// ---------------------------------------------------------------------------
+// Slice 3210 — CalculateSpellCost null-spell gate
+// (dedicated expand residual 2964 / pure 2104)
+// ---------------------------------------------------------------------------
+
 // ShouldReturnZeroNullSpell mirrors CalculateSpellCost's PSpell == nullptr gate.
 // Host returns 0 (and logs a warning) before hasMPCost / cost work when true.
 //
-// Formula (slice 2964 dual-wire):
+// Formula (slice 3210 dedicated dual-wire; residual expand 2964 / pure 2104 —
+// formula unchanged):
 //   spellNull
 //
 // spellNull — host-evaluated PSpell == nullptr
 // true  → return 0 (null spell short-circuit)
 // false → null gate passes; host continues to hasMPCost / pure cost body
 //
-// Dual-wire of Go spell.ShouldReturnZeroNullSpell.
+// Dual-wire of Go spell.ShouldReturnZeroNullSpell
+// (residual 2104 / residual dual-wire 2964 / dedicated dual-wire 3210).
 // Host inject (battleutils::CalculateSpellCost):
 //   if (ShouldReturnZeroNullSpell(PSpell == nullptr)) return 0;
 //
-// Sibling dual-wire: ShouldReturnZeroNoMPCost (3183 dedicated; residual 2969).
-// Sibling residual only (not re-expanded under 3183): CanUseSpellWith (3159).
+// Residual dual-wire suite: 2964 (test_spell_null_cost_2964).
+// Dedicated dual-wire suite: 3210 (test_spell_return_zero_null_spell_3210).
+// Sibling residual only (not re-expanded under 3210):
+// ShouldReturnZeroNoMPCost (3183 dedicated; residual 2969).
 constexpr auto ShouldReturnZeroNullSpell(const bool spellNull) -> bool
 {
     return spellNull;

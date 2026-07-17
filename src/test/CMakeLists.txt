@@ -2991,6 +2991,16 @@ set(SOURCES
     test_mapsession_create_pending_session_3207.cpp
     test_notoriety_prune_mob_3208.h
     test_notoriety_prune_mob_3208.cpp
+    test_salvage_spawn_temp_chest_casket_3209.h
+    test_salvage_spawn_temp_chest_casket_3209.cpp
+    test_spell_return_zero_null_spell_3210.h
+    test_spell_return_zero_null_spell_3210.cpp
+    test_tradecontainer_set_trade_item_entry_3211.h
+    test_tradecontainer_set_trade_item_entry_3211.cpp
+    test_einherjar_empty_chamber_timeout_3212.h
+    test_einherjar_empty_chamber_timeout_3212.cpp
+    test_voidwalker_should_randomly_3213.h
+    test_voidwalker_should_randomly_3213.cpp
 )
 
 if(UNIX)

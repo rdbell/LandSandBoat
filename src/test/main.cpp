@@ -1499,6 +1499,11 @@ auto runCommandRejectEmptyCommandName3205SelfTests() -> bool;
 auto runDarkixionHornBreakRoll3206SelfTests() -> bool;
 auto runMapsessionCreatePendingSession3207SelfTests() -> bool;
 auto runNotorietyPruneMob3208SelfTests() -> bool;
+auto runSalvageSpawnTempChestCasket3209SelfTests() -> bool;
+auto runSpellReturnZeroNullSpell3210SelfTests() -> bool;
+auto runTradecontainerSetTradeItemEntry3211SelfTests() -> bool;
+auto runEinherjarEmptyChamberTimeout3212SelfTests() -> bool;
+auto runVoidwalkerShouldRandomly3213SelfTests() -> bool;
 
 namespace
 {
@@ -2975,6 +2980,11 @@ namespace
         ok = runDarkixionHornBreakRoll3206SelfTests() && ok;
         ok = runMapsessionCreatePendingSession3207SelfTests() && ok;
         ok = runNotorietyPruneMob3208SelfTests() && ok;
+        ok = runSalvageSpawnTempChestCasket3209SelfTests() && ok;
+        ok = runSpellReturnZeroNullSpell3210SelfTests() && ok;
+        ok = runTradecontainerSetTradeItemEntry3211SelfTests() && ok;
+        ok = runEinherjarEmptyChamberTimeout3212SelfTests() && ok;
+        ok = runVoidwalkerShouldRandomly3213SelfTests() && ok;
 
         return ok;
     }

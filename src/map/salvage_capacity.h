@@ -11,7 +11,8 @@
 //   - 3188: CanOpenBossDoor dedicated dual-wire (open_boss_door.go)
 //   - 2898: ShouldResetTempBox residual dual-wire suite (resetTempBoxes NORMAL)
 //   - 3146: ShouldResetTempBox dedicated dual-wire (reset_temp_box.go)
-//   - 2904: ShouldSpawnOnTempChestCasket (spawnTempChest status == DISAPPEAR)
+//   - 2904: ShouldSpawnOnTempChestCasket residual dual-wire suite (spawnTempChest DISAPPEAR)
+//   - 3209: ShouldSpawnOnTempChestCasket dedicated dual-wire (spawn_temp_chest.go)
 //
 // Dual-wire index:
 //   - 2871: CanClaimTransport residual dual-wire suite
@@ -22,21 +23,24 @@
 //   - 3188: CanOpenBossDoor = animation == kAnimCloseDoor
 //   - 2898: ShouldResetTempBox residual dual-wire suite
 //   - 3146: ShouldResetTempBox = status == kStatusNormal
-//   - 2904: ShouldSpawnOnTempChestCasket
+//   - 2904: ShouldSpawnOnTempChestCasket residual dual-wire suite
+//   - 3209: ShouldSpawnOnTempChestCasket = status == kStatusDisappear
 //
 // Lua production host: scripts/globals/salvage.lua
 // Go dual-wire: salvage.CanClaimTransport / salvage.TransportUserBusy
 // (internal/salvage/claim_transport.go); salvage.CanOpenDoor
 // (internal/salvage/open_door.go); salvage.CanOpenBossDoor
 // (internal/salvage/open_boss_door.go); salvage.ShouldResetTempBox
-// (internal/salvage/reset_temp_box.go). Future Lua host injects free
-// functions then claim/open/reset writeback.
+// (internal/salvage/reset_temp_box.go); salvage.ShouldSpawnOnTempChestCasket
+// (internal/salvage/spawn_temp_chest.go). Future Lua host injects free
+// functions then claim/open/reset/spawn writeback.
 //
 // Prior pure ports: OmegaXI slices 0977 (TransportUserBusy / CanOpenDoor /
 // CanOpenBossDoor), 1083 (CanClaimTransport / DoorUnsealedValue /
-// ShouldResetTempBox). Residual dual-wire suites: 2871 (claim), 2892 (open
-// door), 2894 (open boss door), 2898 (reset temp box). Dedicated dual-wire:
-// 3085, 3133, 3146, 3188.
+// ShouldResetTempBox / ShouldSpawnOnTempChestCasket). Residual dual-wire
+// suites: 2871 (claim), 2892 (open door), 2894 (open boss door), 2898
+// (reset temp box), 2904 (spawn temp chest). Dedicated dual-wire: 3085,
+// 3133, 3146, 3188, 3209.
 //
 // onTransportUpdate (2871 residual / 3085 dedicated):
 //   if instance:getLocalVar('transportUser') == 0 then
@@ -63,7 +67,7 @@
 //     -- host: setStatus(DISAPPEAR), resetLocalVars, setAnimationSub(8)
 //   end
 //
-// spawnTempChest (2904):
+// spawnTempChest (2904 residual / 3209 dedicated):
 //   if casket and casket:getStatus() == xi.status.DISAPPEAR then
 //     -- host: setPos(mob), resetLocalVars, setStatus(NORMAL), prePicked/items
 //   end
@@ -154,6 +158,7 @@ inline auto CanOpenDoor(const uint8 animation, const int32 unSealed) -> bool
 //   DISAPPEAR = 2 — residual pin (already disappeared → gate fails; also
 //                   spawnTempChest target status)
 // ShouldResetTempBox requires status == NORMAL.
+// ShouldSpawnOnTempChestCasket requires status == DISAPPEAR.
 inline constexpr uint8 kStatusNormal    = 0;
 inline constexpr uint8 kStatusDisappear = 2;
 
@@ -202,20 +207,26 @@ inline auto CanOpenBossDoor(const uint8 animation) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// 2904 — spawnTempChest status == DISAPPEAR gate
+// 2904 residual / 3209 dedicated — spawnTempChest status == DISAPPEAR gate
 // ---------------------------------------------------------------------------
 
 // ShouldSpawnOnTempChestCasket is the pure free-function form of the
 // spawnTempChest casket-search status gate:
 //
-//   status == DISAPPEAR
-//   ≡ status == kStatusDisappear
+// Formula (slice 3209 dedicated dual-wire; residual expand 2904 / pure 1083 —
+// formula unchanged):
+//   ShouldSpawnOnTempChestCasket(status) = status == kStatusDisappear
+//   ≡ status == DISAPPEAR (2)
 //
 // Host injects casket:getStatus() only. Host still owns setPos from the
 // dead mob, resetLocalVars, setStatus(NORMAL), and optional prePicked /
 // itemID_1 locals. Dual-wire of Go salvage.ShouldSpawnOnTempChestCasket
-// (slice 2904 / residual 1083).
-// Status pins: kStatusNormal / kStatusDisappear (see 2898 block above).
+// (spawn_temp_chest.go).
+// Call site: future Lua spawnTempChest inject.
+// Prior pure port: slice 1083. Residual dual-wire suite: 2904 /
+// test_salvage_spawn_temp_chest_2904. Dedicated dual-wire suite is
+// test_salvage_spawn_temp_chest_casket_3209.
+// Status pins: kStatusNormal / kStatusDisappear (see 2898/3146 block above).
 inline auto ShouldSpawnOnTempChestCasket(const uint8 status) -> bool
 {
     return status == kStatusDisappear;

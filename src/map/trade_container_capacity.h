@@ -13,15 +13,19 @@
 //   - 2824: TradeSlotCountsTowardSlotCount (getSlotCount occupancy)
 //   - 2830: TradeSlotMatchesItemID (getItemQuantity match gate)
 //   - 2962: ShouldAllowSetConfirmedStatus residual dual-wire suite
-//   - 2984: ShouldSetTradeItemEntry (multi-arg setItem outer gate)
+//   - 2984: ShouldSetTradeItemEntry residual dual-wire suite
 //   - 2997: ShouldBumpItemsCountOnSetEntry (multi-arg setItem ItemsCount bump)
 //   - 3175: ShouldAllowSetConfirmedStatus dedicated dual-wire
 //           (set_confirmed.go; expand residual 2962)
+//   - 3211: ShouldSetTradeItemEntry dedicated dual-wire
+//           (set_item_entry.go; expand residual 2984)
 //
 // Dual-wire index:
 //   - 2962: ShouldAllowSetConfirmedStatus residual dual-wire suite
+//   - 2984: ShouldSetTradeItemEntry residual dual-wire suite
 //   - 3175: ShouldAllowSetConfirmedStatus =
 //           slotInRange && itemNonNull && quantityGteAmount
+//   - 3211: ShouldSetTradeItemEntry = slotInRange
 //
 // Production host: CTradeContainer::setConfirmedStatus (trade_container.cpp)
 // injects slotInRange / itemNonNull / quantityGteAmount into
@@ -36,7 +40,10 @@
 // injects slotId < m_PItem.size() into ShouldSetTradeItemEntry, then
 // ShouldBumpItemsCountOnSetEntry + assign on admit.
 // Go dual-wire: tradecontainer.ShouldSetTradeItemEntry
-// (internal/tradecontainer/set_item_entry.go). Prior pure port: slice 2812.
+// (internal/tradecontainer/set_item_entry.go).
+// Residual dual-wire suite: 2984 (test_trade_set_item_entry_2984).
+// Dedicated dual-wire suite: 3211 (test_tradecontainer_set_trade_item_entry_3211).
+// Prior pure port: slice 2812.
 // Go dual-wire: tradecontainer.ShouldBumpItemsCountOnSetEntry
 // (internal/tradecontainer/bump_items_count.go). Prior pure port: slice 2812.
 
@@ -67,7 +74,7 @@ namespace tradecontainerhelpers
 // Prior pure port: slice 2806. Residual dual-wire suite: 2962 /
 // test_trade_set_confirmed_2962. Dedicated dual-wire suite is
 // test_tradecontainer_set_confirmed_3175. Sibling dual-wire gates:
-// ShouldSetTradeItemEntry (2984), ShouldBumpItemsCountOnSetEntry (2997).
+// ShouldSetTradeItemEntry (3211 / residual 2984), ShouldBumpItemsCountOnSetEntry (2997).
 // Host injects each conjunct after short-circuit-safe probes.
 inline auto ShouldAllowSetConfirmedStatus(
     const bool slotInRange,
@@ -87,10 +94,15 @@ inline auto ConfirmedStatusAmount(const std::uint32_t amount, const std::uint32_
     return amount < itemQuantity ? amount : itemQuantity;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3211 — multi-arg setItem outer gate (dedicated expand residual 2984)
+// ---------------------------------------------------------------------------
+
 // ShouldSetTradeItemEntry mirrors the multi-arg setItem outer gate:
 //   slotId < m_PItem.size()
 //
-// Formula (slice 2984 dual-wire):
+// Formula (slice 3211 dedicated dual-wire; residual expand 2984 / pure 2812 —
+// formula unchanged):
 //   ShouldSetTradeItemEntry(slotInRange) = slotInRange
 //
 // slotInRange — host-evaluated slotId < m_PItem.size()
@@ -99,8 +111,12 @@ inline auto ConfirmedStatusAmount(const std::uint32_t amount, const std::uint32_
 // false → host leaves state unchanged
 //
 // Dual-wire of Go tradecontainer.ShouldSetTradeItemEntry
-// (internal/tradecontainer/set_item_entry.go). Prior pure port: slice 2812.
+// (internal/tradecontainer/set_item_entry.go).
 // Call site: CTradeContainer::setItem multi-arg before count bump + assign.
+// Prior pure port: slice 2812. Residual dual-wire suite: 2984 /
+// test_trade_set_item_entry_2984. Dedicated dual-wire suite is
+// test_tradecontainer_set_trade_item_entry_3211. Sibling dual-wire gates:
+// ShouldAllowSetConfirmedStatus (3175), ShouldBumpItemsCountOnSetEntry (2997).
 // Host injects slotInRange only; helpers never touch CItem* or container storage.
 inline auto ShouldSetTradeItemEntry(const bool slotInRange) -> bool
 {
@@ -124,7 +140,7 @@ inline auto ShouldSetTradeItemEntry(const bool slotInRange) -> bool
 // Dual-wire of Go tradecontainer.ShouldBumpItemsCountOnSetEntry
 // (internal/tradecontainer/bump_items_count.go). Prior pure port: slice 2812.
 // Call site: CTradeContainer::setItem multi-arg after ShouldSetTradeItemEntry
-// admits. Sibling dual-wire: ShouldSetTradeItemEntry (slice 2984).
+// admits. Sibling dual-wire: ShouldSetTradeItemEntry (slice 3211; residual 2984).
 // Host injects slotInRange only; helpers never touch CItem* or container storage.
 inline auto ShouldBumpItemsCountOnSetEntry(const bool slotInRange) -> bool
 {

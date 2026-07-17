@@ -5,14 +5,17 @@
 // Pure Einherjar helpers shared by dual-wire slices:
 //   - 1069: residual pure port (internal/einherjar system helpers)
 //   - 2864: onMobDespawn cycleWave gate residual dual-wire suite
-//   - 2865: emptyChamberCheck expel gate (player count)
+//   - 2865: emptyChamberCheck expel gate residual dual-wire suite
 //   - 3181: ShouldCycleWave dedicated dual-wire (cycle_wave.go;
 //           expand residual 2864)
+//   - 3212: ShouldEmptyChamberTimeout dedicated dual-wire (empty_timeout.go;
+//           expand residual 2865)
 //
 // Dual-wire index:
 //   - 2864: ShouldCycleWave residual dual-wire suite
-//   - 2865: ShouldEmptyChamberTimeout
+//   - 2865: ShouldEmptyChamberTimeout residual dual-wire suite
 //   - 3181: ShouldCycleWave = remainingMobs <= 0
+//   - 3212: ShouldEmptyChamberTimeout = playerCount == 0
 //
 // Production hosts are Lua under scripts/globals/einherjar/system.lua.
 // Capacity is for future Lua/C++ inject so hosts dual-wire pure free
@@ -25,6 +28,11 @@
 // (internal/einherjar/cycle_wave.go).
 // Residual dual-wire suite: 2864 (test_einherjar_cycle_wave_2864).
 // Dedicated dual-wire suite: 3181 (test_einherjar_should_cycle_wave_3181).
+//
+// Go dual-wire: einherjar.ShouldEmptyChamberTimeout
+// (internal/einherjar/empty_timeout.go).
+// Residual dual-wire suite: 2865 (test_einherjar_empty_timeout_2865).
+// Dedicated dual-wire suite: 3212 (test_einherjar_empty_chamber_timeout_3212).
 
 namespace einherjarhelpers
 {
@@ -58,15 +66,28 @@ inline auto ShouldCycleWave(const int32 remainingMobs) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2865 — emptyChamberCheck expel gate
+// Slice 3212 — emptyChamberCheck expel gate (dedicated expand residual 2865)
 // ---------------------------------------------------------------------------
 
 // ShouldEmptyChamberTimeout mirrors local emptyChamberCheck:
 //   if playersCount(chamberData.players) == 0 then
 //     log(...); expelAllFromChamber(chamberData)
 //   end
+//
+// Formula (slice 3212 dedicated dual-wire; residual expand 2865 / pure 1069 —
+// formula unchanged):
+//
+//   playerCount == 0
+//
 // playerCount is the host-injected map/list size (PlayersCount /
 // PlayersListCount). Host still owns log + expel writeback.
+// Matches Go einherjar.ShouldEmptyChamberTimeout (residual 1069 / residual
+// dual-wire 2865 / dedicated dual-wire 3212).
+//
+// Dual-wire of Go einherjar.ShouldEmptyChamberTimeout.
+// Prior pure port: slice 1069. Residual dual-wire suite: 2865 /
+// test_einherjar_empty_timeout_2865. Dedicated dual-wire suite is
+// test_einherjar_empty_chamber_timeout_3212.
 inline auto ShouldEmptyChamberTimeout(const int32 playerCount) -> bool
 {
     return playerCount == 0;

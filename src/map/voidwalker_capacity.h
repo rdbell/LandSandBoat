@@ -9,7 +9,10 @@
 //   - 3173: ShouldUpgradeKI dedicated dual-wire
 //           (roll == UpgradeRollSuccess (5);
 //            residual expand 2884 / pure 0987)
-//   - 2903: ShouldRandomly (local randomly chance / effect / cooldown)
+//   - 2903: ShouldRandomly residual dual-wire expand
+//   - 3213: ShouldRandomly dedicated dual-wire
+//           (roll <= chance && !hasEffect && now > (last + between);
+//            residual expand 2903 / pure 0987)
 //   - 2908: ShouldDoMobSkillEveryHPP (local doMobSkillEveryHPP HPP-modulo gate)
 //   - residual 0987: pure voidwalker helpers (prior pure port of ShouldUpgradeKI)
 //
@@ -64,7 +67,10 @@
 // (internal/voidwalker/upgrade_ki.go). Prior pure port: slice 0987.
 // Residual dual-wire suite: 2884 / test_voidwalker_upgrade_ki_2884.
 // Dedicated dual-wire suite: 3173 / test_voidwalker_should_upgrade_ki_3173.
-// Dual-wire of Go voidwalker.ShouldRandomly / RandomlyRollMax (slice 2903).
+// Dual-wire of Go voidwalker.ShouldRandomly / RandomlyRollMax
+// (internal/voidwalker/should_randomly.go). Prior pure port: slice 0987.
+// Residual dual-wire suite: 2903 / test_voidwalker_should_randomly_2903.
+// Dedicated dual-wire suite: 3213 / test_voidwalker_should_randomly_3213.
 // Dual-wire of Go voidwalker.ShouldDoMobSkillEveryHPP / MobSkillLocalVar (slice 2908).
 
 namespace voidwalkerhelpers
@@ -102,19 +108,37 @@ inline auto ShouldUpgradeKI(const int32 roll) -> bool
 
 // Randomly roll range for local randomly: math.random(0, 100).
 // Host injects roll in [0, RandomlyRollMax].
+// Dual-wire constants (dedicated 3213; residual 2903 / pure 0987).
 inline constexpr int32 RandomlyRollMax = 100;
 
 // ShouldRandomly is the pure inject of local randomly once the host supplies
 // chance / status / cooldown scalars:
 //
+// Formula (slice 3213 dedicated dual-wire; residual expand 2903 / pure 0987 —
+// formula unchanged):
 //   roll <= chance
 //     and not hasEffect
 //     and now > (lastSkillTime + between)
 //
-// When true, the host should set MOBSKILL_USE=1, MOBSKILL_TIME=now, and
-// useMobAbility(skill).
+// Host-injected scalars (no player / mob pointers):
+//   roll          — math.random(0, 100)
+//   chance        — percent threshold (production: 10 or 30)
+//   hasEffect     — mob:hasStatusEffect(effect)
+//   now           — GetSystemTime()
+//   lastSkillTime — mob:getLocalVar('MOBSKILL_TIME')
+//   between       — cooldown seconds (production: 60)
+// true  → host sets MOBSKILL_USE=1, MOBSKILL_TIME=now, useMobAbility(skill)
+// false → no skill this tick
 //
-// Dual-wire of Go voidwalker.ShouldRandomly.
+// Dual-wire of Go voidwalker.ShouldRandomly
+// (internal/voidwalker/should_randomly.go). Prior pure port: slice 0987.
+// Residual dual-wire suite: 2903 / test_voidwalker_should_randomly_2903.
+// Dedicated dual-wire suite is test_voidwalker_should_randomly_3213. Formula
+// is unchanged; this slice only expands dual-wire docs + index + dedicated suite.
+// Call site (deferred): Lua randomly host inject after math.random(0, 100).
+// Production keeps the compound conjunction (including identity-not of
+// hasEffect). Dual-wire pin may use positive if/else form for lint-stable
+// cross-checks (avoid QF1001 De Morgan rewrites of !hasEffect).
 inline auto ShouldRandomly(const int32 roll,
                            const int32 chance,
                            const bool  hasEffect,
