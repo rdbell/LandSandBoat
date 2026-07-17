@@ -1,0 +1,199 @@
+#include "test_assault_auto_complete_3345.h"
+
+#include "map/assault_capacity.h"
+
+#include <iostream>
+
+namespace
+{
+
+auto expect(const bool condition, const char* const label) -> bool
+{
+    if (!condition)
+    {
+        std::cerr << "assault auto-complete 3345 self-test failed: " << label << '\n';
+    }
+    return condition;
+}
+
+// Inline Lua onInstanceProgressUpdate formula for dual-wire checks
+// (dedicated 3345 expand residual 2860 / prior 3057):
+//   requiredProgress and progress >= requiredProgress and not completed
+// requiredProgress uses Lua truthy semantics (0 → false).
+auto inlineShouldAutoComplete(const int32 requiredProgress, const int32 progress, const bool alreadyCompleted) -> bool
+{
+    return requiredProgress != 0 && progress >= requiredProgress && !alreadyCompleted;
+}
+
+// Compact dual-wire pin matching C++ capacity / Go pinShouldAutoComplete3345
+// (formula unchanged — alreadyCompleted short-circuit + ProgressMeetsRequired):
+//   if requiredProgress == 0 || alreadyCompleted: false
+//   else: progress >= requiredProgress
+auto pinShouldAutoComplete(const int32 requiredProgress, const int32 progress, const bool alreadyCompleted) -> bool
+{
+    if (requiredProgress == 0 || alreadyCompleted)
+    {
+        return false;
+    }
+    return progress >= requiredProgress;
+}
+
+// Prior dedicated 3057 pin (independence cross-check; formula identical):
+//   if requiredProgress == 0 || alreadyCompleted: false
+//   else: progress >= requiredProgress
+auto pinShouldAutoComplete3057(const int32 requiredProgress, const int32 progress, const bool alreadyCompleted) -> bool
+{
+    if (requiredProgress == 0 || alreadyCompleted)
+    {
+        return false;
+    }
+    return progress >= requiredProgress;
+}
+
+} // namespace
+
+// Pure dual-wire expansion for assaulthelpers::ShouldAutoComplete
+// (Lua InstanceAssault:onInstanceProgressUpdate complete gate; OmegaXI
+// internal/assault; dedicated slice 3345 expand residual 2860 / prior
+// dedicated 3057 — formula unchanged).
+//
+// Coverage:
+//   - free == inline == pin (alreadyCompleted short-circuit + ProgressMeetsRequired)
+//   - residual poles: required 0 / alreadyCompleted / below / meet / exceed
+//   - ProgressMeetsRequired compose after gates
+//   - residual 1078 / 2860 / prior 3057 pins still hold
+//   - dense free == inline == pin poles
+//   - host still owns instance:complete() after a true gate
+auto runAssaultAutoComplete3345SelfTests() -> bool
+{
+    using assaulthelpers::ProgressMeetsRequired;
+    using assaulthelpers::ShouldAutoComplete;
+
+    bool ok = true;
+
+    // Residual 1078 / 2860 / prior 3057 pins still hold under dual-wire.
+    ok = expect(!ShouldAutoComplete(0, 100, false), "residual: requiredProgress 0 → false always") && ok;
+    ok = expect(!ShouldAutoComplete(14, 14, true), "residual: alreadyCompleted true → false") && ok;
+    ok = expect(!ShouldAutoComplete(14, 13, false), "residual: progress < required → false") && ok;
+    ok = expect(ShouldAutoComplete(14, 14, false), "residual: progress == required → true") && ok;
+    ok = expect(ShouldAutoComplete(14, 20, false), "residual: progress > required → true") && ok;
+
+    // Boundary: unset requiredProgress never completes.
+    ok = expect(!ShouldAutoComplete(0, 0, false), "unset required zero progress") && ok;
+    ok = expect(!ShouldAutoComplete(0, 100, false), "unset required high progress") && ok;
+    ok = expect(!ShouldAutoComplete(0, 100, true), "unset required already completed") && ok;
+
+    // Leujaoam Cleansing sample (requiredProgress = 14).
+    ok = expect(!ShouldAutoComplete(14, 13, false), "Leujaoam below") && ok;
+    ok = expect(ShouldAutoComplete(14, 14, false), "Leujaoam meet") && ok;
+    ok = expect(ShouldAutoComplete(14, 20, false), "Leujaoam exceed") && ok;
+    ok = expect(!ShouldAutoComplete(14, 14, true), "Leujaoam meet already completed") && ok;
+    ok = expect(!ShouldAutoComplete(14, 20, true), "Leujaoam exceed already completed") && ok;
+
+    // ProgressMeetsRequired pure threshold (no truthy/completed gates).
+    ok = expect(!ProgressMeetsRequired(13, 14), "threshold below") && ok;
+    ok = expect(ProgressMeetsRequired(14, 14), "threshold equal") && ok;
+    ok = expect(ProgressMeetsRequired(15, 14), "threshold above") && ok;
+    ok = expect(ProgressMeetsRequired(0, 0), "threshold zero>=zero") && ok;
+
+    // Dual-wire matches inline + pin formulas across a small table.
+    const struct
+    {
+        int32       required;
+        int32       progress;
+        bool        completed;
+        bool        want;
+        const char* label;
+    } cases[] = {
+        // Residual / classic poles.
+        { 0, 0, false, false, "table unset zero" },
+        { 0, 100, false, false, "table unset high" },
+        { 14, 13, false, false, "table below" },
+        { 14, 14, false, true, "table meet" },
+        { 14, 20, false, true, "table exceed" },
+        { 14, 14, true, false, "table meet completed" },
+        { 14, 20, true, false, "table exceed completed" },
+        { 1, 0, false, false, "table req1 prog0" },
+        { 1, 1, false, true, "table req1 prog1" },
+        { -1, 0, false, true, "table negative required truthy" },
+        { 100, 99, false, false, "table large below" },
+        { 100, 100, false, true, "table large meet" },
+        // Residual 2860 re-pins.
+        { 0, 100, true, false, "residual 2860 unset completed" },
+        { 14, 14, false, true, "residual 2860 meet" },
+        { 14, 14, true, false, "residual 2860 meet completed" },
+        // Prior dedicated 3057 re-pins.
+        { 1, 1, false, true, "prior 3057 req1 meet" },
+        { 100, 100, false, true, "prior 3057 large meet" },
+        { 14, 20, true, false, "prior 3057 exceed completed" },
+    };
+
+    for (const auto& c : cases)
+    {
+        const bool got       = ShouldAutoComplete(c.required, c.progress, c.completed);
+        const bool inlineGot = inlineShouldAutoComplete(c.required, c.progress, c.completed);
+        const bool pinGot    = pinShouldAutoComplete(c.required, c.progress, c.completed);
+
+        ok = expect(got == c.want, c.label) && ok;
+        ok = expect(got == inlineGot, "dual-wire free == inline Lua formula") && ok;
+        ok = expect(got == pinGot, "dual-wire free == C++ pin formula") && ok;
+
+        // Compose dual-wire: free function uses ProgressMeetsRequired after gates.
+        if (c.required != 0 && !c.completed)
+        {
+            const bool composed = ProgressMeetsRequired(c.progress, c.required);
+            ok                  = expect(got == composed, "dual-wire free == ProgressMeetsRequired compose") && ok;
+        }
+        else
+        {
+            ok = expect(!got, "gated path must be false") && ok;
+        }
+    }
+
+    // Composition pins: free function dual-wires ProgressMeetsRequired
+    // after alreadyCompleted short-circuit.
+    ok = expect(ShouldAutoComplete(14, 14, false) == ProgressMeetsRequired(14, 14), "compose meet") && ok;
+    ok = expect(ShouldAutoComplete(14, 13, false) == ProgressMeetsRequired(13, 14), "compose below") && ok;
+    ok = expect(ShouldAutoComplete(14, 14, true) == false, "compose already completed") && ok;
+    ok = expect(ShouldAutoComplete(0, 14, false) == false, "compose unset required") && ok;
+
+    // Prior dedicated 3057 independence: free still matches prior pin.
+    for (const int32 required : { 0, 1, 14, 100 })
+    {
+        for (const int32 progress : { 0, 1, 13, 14, 15, 99, 100, 101 })
+        {
+            for (const bool completed : { false, true })
+            {
+                const bool got      = ShouldAutoComplete(required, progress, completed);
+                const bool priorPin = pinShouldAutoComplete3057(required, progress, completed);
+                ok                  = expect(got == priorPin, "prior 3057 independence free == priorPin") && ok;
+            }
+        }
+    }
+
+    // Dense host-style poles: free == inline == pin.
+    for (const int32 required : { 0, 1, 14, 100, -1 })
+    {
+        for (const int32 progress : { 0, 1, 13, 14, 15, 99, 100, 101, -1, -2 })
+        {
+            for (const bool completed : { false, true })
+            {
+                const bool got  = ShouldAutoComplete(required, progress, completed);
+                const bool want = pinShouldAutoComplete(required, progress, completed);
+                ok              = expect(got == want, "dense free == pin") && ok;
+                ok              = expect(got == inlineShouldAutoComplete(required, progress, completed),
+                           "dense free == inline") &&
+                     ok;
+            }
+        }
+    }
+
+    // Host-style inject poles (live onInstanceProgressUpdate residual).
+    ok = expect(!ShouldAutoComplete(0, 100, false), "host unset required → skip") && ok;
+    ok = expect(!ShouldAutoComplete(14, 13, false), "host below → leave running") && ok;
+    ok = expect(ShouldAutoComplete(14, 14, false), "host meet → complete") && ok;
+    ok = expect(ShouldAutoComplete(14, 20, false), "host exceed → complete") && ok;
+    ok = expect(!ShouldAutoComplete(14, 14, true), "host already completed → skip") && ok;
+
+    return ok;
+}

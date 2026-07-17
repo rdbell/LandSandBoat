@@ -6,17 +6,20 @@
 //   - 2860: InstanceAssault progress auto-complete (residual dual-wire suite)
 //   - 2863: onAssaultUpdate party/alliance proceed (residual dual-wire suite)
 //   - 2867: onRytaalEventFinish obtain new Imperial Army ID tag (residual dual-wire)
-//   - 3057: ShouldAutoComplete dedicated dual-wire (auto_complete.go)
+//   - 3057: ShouldAutoComplete prior dedicated dual-wire (auto_complete.go)
 //   - 3145: ShouldIssueNewTag prior dedicated dual-wire (issue_tag.go)
 //   - 3199: ShouldProceedAssaultUpdate dedicated dual-wire (proceed_update.go)
 //   - 3258: ShouldIssueNewTag dedicated dual-wire expand residual 2867
 //           / prior 3145 (issue_tag.go)
+//   - 3345: ShouldAutoComplete dedicated dual-wire expand residual 2860
+//           / prior 3057 (auto_complete.go)
 //
 // Dual-wire index:
 //   - 2860: ProgressMeetsRequired / ShouldAutoComplete residual dual-wire
 //   - 2863: ShouldProceedAssaultUpdate residual dual-wire (party/alliance proceed)
 //   - 2867: ShouldIssueNewTag residual dual-wire (Rytaal obtain new tag)
-//   - 3057: ShouldAutoComplete (requiredProgress==0 || alreadyCompleted → false;
+//   - 3057: ShouldAutoComplete prior dedicated dual-wire
+//           (requiredProgress==0 || alreadyCompleted → false;
 //           else ProgressMeetsRequired on onInstanceProgressUpdate)
 //   - 3145: ShouldIssueNewTag (option == kRytaalOptionObtainTag &&
 //           !hasImperialArmyIDTag; prior dedicated dual-wire suite)
@@ -24,6 +27,8 @@
 //           !IsAllianceBlocked; dedicated dual-wire suite)
 //   - 3258: ShouldIssueNewTag (option == kRytaalOptionObtainTag &&
 //           !hasImperialArmyIDTag; dedicated expand residual 2867 / prior 3145)
+//   - 3345: ShouldAutoComplete (requiredProgress==0 || alreadyCompleted → false;
+//           else ProgressMeetsRequired; dedicated expand residual 2860 / prior 3057)
 //
 // Production hosts are Lua under scripts/globals/assault/ (container.lua,
 // npc_handler.lua). Capacity is for future Lua/C++ inject so hosts dual-wire
@@ -39,7 +44,7 @@ namespace assaulthelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2860 / 3057 — onInstanceProgressUpdate auto-complete
+// Slice 2860 / 3057 / 3345 — onInstanceProgressUpdate auto-complete
 // ---------------------------------------------------------------------------
 
 // ProgressMeetsRequired mirrors progress >= requiredProgress.
@@ -54,7 +59,8 @@ inline auto ProgressMeetsRequired(const int32 progress, const int32 requiredProg
 //     instance:complete()
 //   end
 //
-// Formula (slice 3057 dual-wire; residual expand 2860):
+// Formula (slice 3345 dedicated dual-wire expand residual 2860 / prior 3057 /
+// pure 1078 — formula unchanged):
 //   if requiredProgress == 0 || alreadyCompleted: false
 //   else: ProgressMeetsRequired(progress, requiredProgress)
 //
@@ -67,9 +73,10 @@ inline auto ProgressMeetsRequired(const int32 progress, const int32 requiredProg
 // Dual-wire of Go assault.ShouldAutoComplete.
 // Call site: future Lua InstanceAssault:onInstanceProgressUpdate inject.
 // Prior pure port: slice 1078. Residual dual-wire suite: 2860 /
-// test_assault_auto_complete_2860. Dedicated dual-wire suite is
-// test_assault_auto_complete_3057. Residual ProgressMeetsRequired remains the
-// pure threshold (no truthy/completed gates).
+// test_assault_auto_complete_2860. Prior dedicated dual-wire suite: 3057 /
+// test_assault_auto_complete_3057. Dedicated dual-wire expand residual suite
+// is test_assault_auto_complete_3345. Residual ProgressMeetsRequired remains
+// the pure threshold (no truthy/completed gates).
 // requiredProgress uses Lua truthy semantics (0 → skip). Host still calls complete().
 inline auto ShouldAutoComplete(const int32 requiredProgress, const int32 progress, const bool alreadyCompleted) -> bool
 {

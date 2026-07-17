@@ -3261,6 +3261,16 @@ set(SOURCES
     test_spell_can_use_spell_with_3342.cpp
     test_latent_reject_process_3343.h
     test_latent_reject_process_3343.cpp
+    test_ranger_strip_detectable_fail_3344.h
+    test_ranger_strip_detectable_fail_3344.cpp
+    test_assault_auto_complete_3345.h
+    test_assault_auto_complete_3345.cpp
+    test_attack_skip_anticipate_daken_3346.h
+    test_attack_skip_anticipate_daken_3346.cpp
+    test_zone_stamp_empty_3347.h
+    test_zone_stamp_empty_3347.cpp
+    test_status_reject_null_3348.h
+    test_status_reject_null_3348.cpp
 )
 
 if(UNIX)

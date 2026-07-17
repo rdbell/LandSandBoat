@@ -1634,6 +1634,11 @@ auto runCharEraseEntityPop3340SelfTests() -> bool;
 auto runSpawnRejectEvening3341SelfTests() -> bool;
 auto runSpellCanUseSpellWith3342SelfTests() -> bool;
 auto runLatentRejectProcess3343SelfTests() -> bool;
+auto runRangerStripDetectableFail3344SelfTests() -> bool;
+auto runAssaultAutoComplete3345SelfTests() -> bool;
+auto runAttackSkipAnticipateDaken3346SelfTests() -> bool;
+auto runZoneStampEmpty3347SelfTests() -> bool;
+auto runStatusRejectNull3348SelfTests() -> bool;
 
 namespace
 {
@@ -3245,6 +3250,11 @@ namespace
         ok = runSpawnRejectEvening3341SelfTests() && ok;
         ok = runSpellCanUseSpellWith3342SelfTests() && ok;
         ok = runLatentRejectProcess3343SelfTests() && ok;
+        ok = runRangerStripDetectableFail3344SelfTests() && ok;
+        ok = runAssaultAutoComplete3345SelfTests() && ok;
+        ok = runAttackSkipAnticipateDaken3346SelfTests() && ok;
+        ok = runZoneStampEmpty3347SelfTests() && ok;
+        ok = runStatusRejectNull3348SelfTests() && ok;
 
         return ok;
     }

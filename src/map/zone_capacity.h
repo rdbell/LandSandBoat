@@ -18,7 +18,10 @@
 //   - 1363: zone admission / level-restriction / weather / counter policy suite
 //   - 2652: ShouldStopZoneTimers (idle shutdown)
 //   - 2848: IsMobAwayFromHome / ShouldReportAllMobsHomeAndHealed
-//   - 2939: ShouldStampZoneEmptyTime (charListEmpty after DecreaseZoneCounter)
+//   - 2939: ShouldStampZoneEmptyTime residual dual-wire suite
+//           (charListEmpty after DecreaseZoneCounter)
+//   - 3347: ShouldStampZoneEmptyTime dedicated dual-wire
+//           (stamp_empty.go; expand residual 2939)
 //   - 2949: ShouldRejectHighCharTargid (targid >= CharTargidHighThreshold / 0x700)
 //   - 2975: ShouldDespawnPCOnLeave (!charListEmpty after DecreaseZoneCounter)
 //   - 2992: ShouldCreateZoneTimers (!hasZoneTimerToken && !charListEmpty after InsertPC)
@@ -46,8 +49,10 @@
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty;
 // else if ShouldDespawnPCOnLeave calls DespawnPC.
-// Go dual-wire: zone.ShouldStampZoneEmptyTime (internal/zone/stamp_empty.go);
-// zone.ShouldDespawnPCOnLeave (internal/zone/despawn_pc_leave.go).
+// Go dual-wire: zone.ShouldStampZoneEmptyTime (internal/zone/stamp_empty.go).
+// Residual dual-wire suite: 2939 (test_zone_stamp_empty_2939).
+// Dedicated dual-wire suite: 3347 (test_zone_stamp_empty_3347).
+// Go dual-wire: zone.ShouldDespawnPCOnLeave (internal/zone/despawn_pc_leave.go).
 // Production host: CZone::IncreaseZoneCounter (zone.cpp) injects
 // PChar == nullptr, loc.zone != nullptr, PTreasurePool != nullptr into
 // ShouldRejectIncreaseZoneCounter; on true ShowWarning + return.
@@ -221,25 +226,36 @@ inline auto ShouldRejectHighCharTargid(const uint16 targid) -> bool
 // host injects zoneTimerToken_.has_value() and CharListEmpty().
 // Prior pure port: slice 1363 (zone policy suite). Residual pins remain in
 // test_zone_policy_1363; dedicated dual-wire suite is test_zone_create_timers_2992.
-// Sibling leave gates: ShouldStampZoneEmptyTime (2939), ShouldDespawnPCOnLeave (2975).
+// Sibling leave gates: ShouldStampZoneEmptyTime (3347 / residual 2939),
+// ShouldDespawnPCOnLeave (2975).
 inline auto ShouldCreateZoneTimers(const bool hasZoneTimerToken, const bool charListEmpty) -> bool
 {
     return !hasZoneTimerToken && !charListEmpty;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3347 — DecreaseZoneCounter empty-stamp (dedicated expand residual 2939)
+// ---------------------------------------------------------------------------
+
 // ShouldStampZoneEmptyTime mirrors CharListEmpty after DecreaseZoneCounter.
 //
-// Formula (slice 2939 dual-wire):
+// Formula (slice 3347 dedicated dual-wire; residual expand 2939 / pure 1363 —
+// formula unchanged):
 //   charListEmpty
 //
 // charListEmpty — host-evaluated m_zoneEntities->CharListEmpty() after decrease
 // true  → stamp m_timeZoneEmpty = timer::now() (zone idle-empty clock starts)
 // false → else-branch: ShouldDespawnPCOnLeave may DespawnPC for remaining PCs
 //
+// Dense 2¹ space: stamp iff charListEmpty is true; false leaves the despawn
+// else-branch to ShouldDespawnPCOnLeave.
+//
 // Dual-wire of Go zone.ShouldStampZoneEmptyTime.
 // Call site: CZone::DecreaseZoneCounter after DecreaseZoneCounter entities update.
-// Prior pure port: slice 1363 (zone policy suite). Residual pins remain in
-// test_zone_policy_1363; dedicated dual-wire suite is test_zone_stamp_empty_2939.
+// Prior pure port: slice 1363 (zone policy suite). Residual dual-wire suite:
+// 2939 / test_zone_stamp_empty_2939. Dedicated dual-wire suite is
+// test_zone_stamp_empty_3347. Residual pins remain in test_zone_policy_1363.
+// Sibling leave gate: ShouldDespawnPCOnLeave (2975).
 inline auto ShouldStampZoneEmptyTime(const bool charListEmpty) -> bool
 {
     return charListEmpty;
@@ -262,7 +278,8 @@ inline auto ShouldStampZoneEmptyTime(const bool charListEmpty) -> bool
 // host injects CharListEmpty(); else-branch calls DespawnPC(PChar).
 // Prior pure port: slices 1363 / 2706 residual (zone policy suite). Residual
 // pins remain in test_zone_policy_1363; dedicated dual-wire suite is
-// test_zone_despawn_pc_leave_2975. Sibling: ShouldStampZoneEmptyTime (2939).
+// test_zone_despawn_pc_leave_2975. Sibling: ShouldStampZoneEmptyTime
+// (3347 dedicated / residual 2939).
 inline auto ShouldDespawnPCOnLeave(const bool charListEmpty) -> bool
 {
     return !charListEmpty;
