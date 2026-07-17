@@ -5,13 +5,16 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2951: ShouldDespawnForZoning (living player-pet zoning-despawn gate)
-//   - residual 1414: ShouldDetachPlayerMaster, Apply orchestration
+//   - 2987: ShouldDetachPlayerMaster (player-master active-pet detach gate)
+//   - residual 1414: Apply orchestration
 //
 // Production host: CPetEntity::Die (entities/pet_entity.cpp) injects health /
 // master / petZoningInfo scalars into ShouldDespawnForZoning and
 // ShouldDetachPlayerMaster before petdeathhelpers::Apply.
 // Go dual-wire: petentity.ShouldDespawnForZoning
-// (internal/petentity/despawn_zoning.go). Prior pure port: slices 1414 / 2261.
+// (internal/petentity/despawn_zoning.go), petentity.ShouldDetachPlayerMaster
+// (internal/petentity/detach_player_master.go). Prior pure port: slices 1414 /
+// 2261 / 2262.
 
 namespace petdeathhelpers
 {
@@ -43,6 +46,23 @@ inline auto ShouldDespawnForZoning(
     return hpPositive && hasMaster && masterIsPlayer && respawnPet;
 }
 
+// ShouldDetachPlayerMaster reports whether the dying pet still occupies its
+// player master's active pet slot so Die can call DetachPet.
+//
+// Formula (slice 2987 dual-wire):
+//   hasMaster && masterPetIsSelf && masterIsPlayer
+//
+// Host-injected scalars (no entity pointers):
+//   hasMaster       — PMaster != nullptr
+//   masterPetIsSelf — PMaster != nullptr && PMaster->PPet == this
+//   masterIsPlayer  — PMaster != nullptr && PMaster->objtype == TYPE_PC
+// true  → host calls petutils::DetachPet(PMaster) after base Die
+// false → host leaves master's PPet alone
+//
+// Dual-wire of Go petentity.ShouldDetachPlayerMaster
+// (internal/petentity/detach_player_master.go).
+// Prior pure port: slices 1414 / 2262.
+// Call site: CPetEntity::Die (pet_entity.cpp).
 inline auto ShouldDetachPlayerMaster(
     const bool hasMaster,
     const bool masterPetIsSelf,

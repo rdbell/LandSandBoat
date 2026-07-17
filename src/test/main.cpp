@@ -1274,6 +1274,11 @@ auto runUniversalClearSlot2980SelfTests() -> bool;
 auto runTreasureForceCheckFull2981SelfTests() -> bool;
 auto runCommandRejectNullChar2982SelfTests() -> bool;
 auto runLatentApplyExpression2983SelfTests() -> bool;
+auto runTradeSetItemEntry2984SelfTests() -> bool;
+auto runMapsessionRecoverLinkDead2985SelfTests() -> bool;
+auto runRangedConsumeAmmo2986SelfTests() -> bool;
+auto runPetDetachPlayerMaster2987SelfTests() -> bool;
+auto runAllianceSetLocalMain2988SelfTests() -> bool;
 
 namespace
 {
@@ -2525,6 +2530,11 @@ namespace
         ok = runTreasureForceCheckFull2981SelfTests() && ok;
         ok = runCommandRejectNullChar2982SelfTests() && ok;
         ok = runLatentApplyExpression2983SelfTests() && ok;
+        ok = runTradeSetItemEntry2984SelfTests() && ok;
+        ok = runMapsessionRecoverLinkDead2985SelfTests() && ok;
+        ok = runRangedConsumeAmmo2986SelfTests() && ok;
+        ok = runPetDetachPlayerMaster2987SelfTests() && ok;
+        ok = runAllianceSetLocalMain2988SelfTests() && ok;
 
         return ok;
     }

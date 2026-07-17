@@ -46,9 +46,31 @@ inline auto ApplyUnlimitedShotToRecycleChance(const int16 recycleChance, const b
     return recycleChance;
 }
 
+// --- Slice 2986: ShouldConsumeAmmo pure dual-wire ---
+// Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects
+// (PAmmo != nullptr), recycleChance (post ResolveRecycleChance +
+// ApplyUnlimitedShotToRecycleChance), and xirand::GetRandomNumber(100) into
+// ShouldConsumeAmmo before ++ammoConsumed / scavenge track / hitCount truncate.
+// Go dual-wire: attackutils.ShouldConsumeAmmo
+// (internal/attackutils/consume_ammo.go).
+
 // ShouldConsumeAmmo mirrors:
 //   PAmmo != nullptr && xirand::GetRandomNumber(100) > recycleChance
 // Host injects roll in [0, 100).
+//
+// Formula (slice 2986 dual-wire):
+//   if !hasAmmo → false
+//   else → roll0to99 > recycleChance
+//
+// hasAmmo       — host-evaluated (PAmmo != nullptr)
+// recycleChance — host-resolved RECYCLE + trait merit + JP + UnlimitedShot
+// roll0to99     — host-injected xirand::GetRandomNumber(100) in [0, 100)
+// true  → consume ammo for this shot
+// false → skip consume (no ammo, or recycle succeeds; strict >)
+//
+// Dual-wire of Go attackutils.ShouldConsumeAmmo.
+// Call site: CBattleEntity::OnRangedAttack (~3291).
 inline auto ShouldConsumeAmmo(const bool hasAmmo, const int16 recycleChance, const int roll0to99) -> bool
 {
     if (!hasAmmo)

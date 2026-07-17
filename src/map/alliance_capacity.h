@@ -16,6 +16,7 @@
 //   - 1346: assignAllianceLeader gate / leader flag / local main party
 //   - 2941: ShouldSkipDelPartyWhenEmpty (!hasAlliance || partyListEmpty)
 //   - 2979: ShouldAttemptAllianceLeaderPromote (isMainParty)
+//   - 2988: ShouldSetLocalMainParty (memberFoundOnThisServer)
 //
 // Production host: CAlliance::delParty (alliance.cpp) injects
 // party->m_PAlliance != nullptr and partyList.empty() into
@@ -28,6 +29,12 @@
 // ShouldAttemptAllianceLeaderPromote before DB lookup for another party leader.
 // Go dual-wire: alliance.ShouldAttemptAllianceLeaderPromote
 // (internal/alliance/attempt_leader_promote.go).
+//
+// Production host: CAlliance::assignAllianceLeader (alliance.cpp) injects
+// PParty->GetMemberByName(name) != nullptr into ShouldSetLocalMainParty while
+// scanning partyList after clearing aLeader.
+// Go dual-wire: alliance.ShouldSetLocalMainParty
+// (internal/alliance/set_local_main_party.go).
 
 namespace alliancehelpers
 {
@@ -215,8 +222,20 @@ inline auto ClassifyAssignAllianceLeader(const bool queryOk, const bool rowFound
 // AllianceLeaderFlag is PARTYFLAG ALLIANCE_LEADER (0x0008).
 constexpr uint16 AllianceLeaderFlag = 0x0008;
 
-// ShouldSetLocalMainParty mirrors finding GetMemberByName on this process.
-// When false, aLeader stays nullptr (leader on another server).
+// ShouldSetLocalMainParty mirrors finding GetMemberByName on this process
+// during assignAllianceLeader (local main-party gate).
+//
+// Formula (slice 2988 dual-wire):
+//   memberFoundOnThisServer
+//
+// memberFoundOnThisServer — host-evaluated PParty->GetMemberByName(name) != nullptr
+// true  → set aLeader = PParty (leader present on this process)
+// false → leave aLeader nullptr for this party (leader on another server / not in party)
+//
+// Dual-wire of Go alliance.ShouldSetLocalMainParty.
+// Call site: CAlliance::assignAllianceLeader after clearing aLeader — host
+// injects GetMemberByName result per partyList entry.
+// Residual pure port: slice 1346 (assignAllianceLeader gate suite).
 inline auto ShouldSetLocalMainParty(const bool memberFoundOnThisServer) -> bool
 {
     return memberFoundOnThisServer;

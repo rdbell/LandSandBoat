@@ -13,12 +13,19 @@
 //   - 2824: TradeSlotCountsTowardSlotCount (getSlotCount occupancy)
 //   - 2830: TradeSlotMatchesItemID (getItemQuantity match gate)
 //   - 2962: ShouldAllowSetConfirmedStatus (setConfirmedStatus outer gate)
+//   - 2984: ShouldSetTradeItemEntry (multi-arg setItem outer gate)
 //
 // Production host: CTradeContainer::setConfirmedStatus (trade_container.cpp)
 // injects slotInRange / itemNonNull / quantityGteAmount into
 // ShouldAllowSetConfirmedStatus, then ConfirmedStatusAmount on admit.
 // Go dual-wire: tradecontainer.ShouldAllowSetConfirmedStatus
 // (internal/tradecontainer/set_confirmed.go). Prior pure port: slice 2806.
+//
+// Production host: CTradeContainer::setItem multi-arg (trade_container.cpp)
+// injects slotId < m_PItem.size() into ShouldSetTradeItemEntry, then
+// ShouldBumpItemsCountOnSetEntry + assign on admit.
+// Go dual-wire: tradecontainer.ShouldSetTradeItemEntry
+// (internal/tradecontainer/set_item_entry.go). Prior pure port: slice 2812.
 
 namespace tradecontainerhelpers
 {
@@ -60,7 +67,19 @@ inline auto ConfirmedStatusAmount(const std::uint32_t amount, const std::uint32_
 
 // ShouldSetTradeItemEntry mirrors the multi-arg setItem outer gate:
 //   slotId < m_PItem.size()
-// Host injects slotInRange; helpers never touch CItem* or container storage.
+//
+// Formula (slice 2984 dual-wire):
+//   ShouldSetTradeItemEntry(slotInRange) = slotInRange
+//
+// slotInRange — host-evaluated slotId < m_PItem.size()
+// true  → host may bump m_ItemsCount (ShouldBumpItemsCountOnSetEntry) and assign
+//         m_PItem / m_itemID / m_slotID / m_quantity at the slot
+// false → host leaves state unchanged
+//
+// Dual-wire of Go tradecontainer.ShouldSetTradeItemEntry
+// (internal/tradecontainer/set_item_entry.go). Prior pure port: slice 2812.
+// Call site: CTradeContainer::setItem multi-arg before count bump + assign.
+// Host injects slotInRange only; helpers never touch CItem* or container storage.
 inline auto ShouldSetTradeItemEntry(const bool slotInRange) -> bool
 {
     return slotInRange;
@@ -69,6 +88,7 @@ inline auto ShouldSetTradeItemEntry(const bool slotInRange) -> bool
 // ShouldBumpItemsCountOnSetEntry is the pure m_ItemsCount += 1 gate once
 // multi-arg setItem is admitted. Production always bumps when in range —
 // including slot replace / clear — which is a known parity quirk.
+// Residual pure port: slice 2812 (paired with ShouldSetTradeItemEntry dual-wire 2984).
 inline auto ShouldBumpItemsCountOnSetEntry(const bool slotInRange) -> bool
 {
     return slotInRange;

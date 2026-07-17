@@ -2541,6 +2541,16 @@ set(SOURCES
     test_command_reject_null_char_2982.cpp
     test_latent_apply_expression_2983.h
     test_latent_apply_expression_2983.cpp
+    test_trade_set_item_entry_2984.h
+    test_trade_set_item_entry_2984.cpp
+    test_mapsession_recover_link_dead_2985.h
+    test_mapsession_recover_link_dead_2985.cpp
+    test_ranged_consume_ammo_2986.h
+    test_ranged_consume_ammo_2986.cpp
+    test_pet_detach_player_master_2987.h
+    test_pet_detach_player_master_2987.cpp
+    test_alliance_set_local_main_2988.h
+    test_alliance_set_local_main_2988.cpp
 )
 
 if(UNIX)
