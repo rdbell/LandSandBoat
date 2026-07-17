@@ -19,8 +19,10 @@
 //   - 3147: GobbieCanUpgradeFlag dedicated dual-wire (gobbie_upgrade.go)
 //   - 2916: CanClaimScroll residual dual-wire suite (claim_scroll)
 //   - 3132: CanClaimScroll prior dedicated dual-wire (claim_scroll.go)
-//   - 3396: CanClaimScroll dedicated dual-wire expand residual 2916
+//   - 3396: CanClaimScroll prior dedicated dual-wire expand residual 2916
 //           (prior dedicated 3132; formula unchanged)
+//   - 3444: CanClaimScroll dedicated dual-wire expand residual 2916
+//           (prior dedicated 3396 / 3132; formula unchanged)
 //
 // Dual-wire index:
 //   - 2879: CanBuySack residual dual-wire suite
@@ -40,7 +42,9 @@
 //   - 2916: CanClaimScroll residual dual-wire suite
 //   - 3132: CanClaimScroll prior dedicated dual-wire
 //   - 3396: CanClaimScroll = nextScroll < jstMidnight
-//     dedicated dual-wire expand residual 2916 (prior dedicated 3132)
+//     prior dedicated dual-wire expand residual 2916 (prior dedicated 3132)
+//   - 3444: CanClaimScroll = nextScroll < jstMidnight
+//     dedicated dual-wire expand residual 2916 (prior dedicated 3396 / 3132)
 //
 // Lua production host: scripts/globals/artisan.lua moogleOnUpdate /
 // moogleOnFinish:
@@ -62,8 +66,10 @@
 // prior dedicated 3282).
 // Dedicated dual-wire expand residual: 3363 (CanExpand residual 2890;
 // prior dedicated 3106).
-// Dedicated dual-wire expand residual: 3396 (CanClaimScroll residual 2916;
+// Prior dedicated dual-wire expand residual: 3396 (CanClaimScroll residual 2916;
 // prior dedicated 3132).
+// Dedicated dual-wire expand residual: 3444 (CanClaimScroll residual 2916;
+// prior dedicated 3396 / 3132).
 //
 // Coverage: test_artisan_buy_sack_2879 (residual),
 // test_artisan_can_buy_sack_3090 (prior dedicated dual-wire; not in CMake/main),
@@ -75,7 +81,8 @@
 // test_artisan_can_expand_3363 (dedicated expand residual 2890; not in CMake/main).
 // test_artisan_claim_scroll_2916 (residual),
 // test_artisan_can_claim_scroll_3132 (prior dedicated dual-wire; not in CMake/main),
-// test_artisan_can_claim_scroll_3396 (dedicated expand residual 2916; not in CMake/main).
+// test_artisan_can_claim_scroll_3396 (prior expand residual 2916; not in CMake/main),
+// test_artisan_can_claim_scroll_3444 (dedicated expand residual 2916; not in CMake/main).
 //
 //   if option == 1 then -- Buy sack (2879 residual / 3090 prior / 3242 / 3282 / 3312 expand)
 //       if player:getGil() >= 9980
@@ -95,7 +102,7 @@
 //           player:updateEvent(0, 0, 0, 0, 0, 0, gobbieCanUpgrade, 0)
 //       end
 //   end
-//   -- moogleOnFinish option 99 Get Scroll (2916 residual / 3132 prior / 3396 expand):
+//   -- moogleOnFinish option 99 Get Scroll (2916 residual / 3132 prior / 3396 / 3444 expand):
 //   if option == 99 then
 //       if player:getCharVar('[artisan]nextScroll') < JstMidnight() then
 //           if npcUtil.giveItem(player, xi.item.SCROLL_OF_INSTANT_WARP) then
@@ -211,14 +218,14 @@ inline auto GobbieCanUpgradeFlag(const int32 gobbieSize) -> int32
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2916 residual / 3132 prior dedicated / 3396 dedicated expand residual
-// 2916 — moogleOnFinish option 99 Get Scroll gate
+// Slice 2916 residual / 3132 prior dedicated / 3396 prior dedicated expand /
+// 3444 dedicated expand residual 2916 — moogleOnFinish option 99 Get Scroll gate
 // ---------------------------------------------------------------------------
 
 // CanClaimScroll is the pure gate for option 99 (Get Scroll):
 //
-// Formula (slice 3396 dedicated dual-wire expand residual 2916; prior
-// dedicated 3132 / pure 0948 — formula unchanged):
+// Formula (slice 3444 dedicated dual-wire expand residual 2916; prior
+// dedicated 3396 / 3132 / pure 0948 — formula unchanged):
 //   CanClaimScroll(nextScroll, jstMidnight) = nextScroll < jstMidnight
 //
 // nextScroll is getCharVar('[artisan]nextScroll'); jstMidnight is JstMidnight().
@@ -227,11 +234,12 @@ inline auto GobbieCanUpgradeFlag(const int32 gobbieSize) -> int32
 // (claim_scroll.go). Call site: future Lua moogleOnFinish option 99 inject.
 // Prior pure port: slice 0948. Residual dual-wire suite: 2916 /
 // test_artisan_claim_scroll_2916. Prior dedicated dual-wire suite is
-// test_artisan_can_claim_scroll_3132. Dedicated expand residual suite is
-// test_artisan_can_claim_scroll_3396. giveItem(SCROLL_OF_INSTANT_WARP) and
+// test_artisan_can_claim_scroll_3132. Prior dedicated expand residual suite is
+// test_artisan_can_claim_scroll_3396. Dedicated expand residual suite is
+// test_artisan_can_claim_scroll_3444. giveItem(SCROLL_OF_INSTANT_WARP) and
 // setCharVar('[artisan]nextScroll', JstMidnight()) remain host-owned.
-// Coverage: test_artisan_can_claim_scroll_3396 (not in CMake/main); residual 2916 /
-// prior dedicated 3132 suites retained.
+// Coverage: test_artisan_can_claim_scroll_3444 (not in CMake/main); residual 2916 /
+// prior dedicated 3396 / 3132 suites retained.
 inline auto CanClaimScroll(const int64 nextScroll, const int64 jstMidnight) -> bool
 {
     return nextScroll < jstMidnight;

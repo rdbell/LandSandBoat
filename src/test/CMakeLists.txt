@@ -3461,6 +3461,16 @@ set(SOURCES
     test_salvage_reset_temp_box_3442.cpp
     test_darkixion_double_glow_3443.h
     test_darkixion_double_glow_3443.cpp
+    test_artisan_can_claim_scroll_3444.h
+    test_artisan_can_claim_scroll_3444.cpp
+    test_ranger_strip_partial_retain_3445.h
+    test_ranger_strip_partial_retain_3445.cpp
+    test_char_set_pending_push_3446.h
+    test_char_set_pending_push_3446.cpp
+    test_alliance_attempt_leader_promote_3447.h
+    test_alliance_attempt_leader_promote_3447.cpp
+    test_recast_update_max_charges_3448.h
+    test_recast_update_max_charges_3448.cpp
 )
 
 if(UNIX)
