@@ -1919,6 +1919,11 @@ auto runPetutilsPetEngage3625SelfTests() -> bool;
 auto runMeritLowerMerit3626SelfTests() -> bool;
 auto runDynamisCanUnlockSJ3627SelfTests() -> bool;
 auto runJobpointsApplyRaise3628SelfTests() -> bool;
+auto runTradeBumpItemsCount3629SelfTests() -> bool;
+auto runAmanThumbsUp3630SelfTests() -> bool;
+auto runMapsessionDestroyPendingPtr3631SelfTests() -> bool;
+auto runAvatarpetCanApplyBuff3632SelfTests() -> bool;
+auto runUnityRejectNullOnline3633SelfTests() -> bool;
 
 namespace
 {
@@ -3815,6 +3820,11 @@ namespace
         ok = runMeritLowerMerit3626SelfTests() && ok;
         ok = runDynamisCanUnlockSJ3627SelfTests() && ok;
         ok = runJobpointsApplyRaise3628SelfTests() && ok;
+        ok = runTradeBumpItemsCount3629SelfTests() && ok;
+        ok = runAmanThumbsUp3630SelfTests() && ok;
+        ok = runMapsessionDestroyPendingPtr3631SelfTests() && ok;
+        ok = runAvatarpetCanApplyBuff3632SelfTests() && ok;
+        ok = runUnityRejectNullOnline3633SelfTests() && ok;
 
         return ok;
     }
