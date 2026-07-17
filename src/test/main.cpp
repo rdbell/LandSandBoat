@@ -1284,6 +1284,11 @@ auto runCommandRejectEmptyName2990SelfTests() -> bool;
 auto runPartyStampLeaderCreated2991SelfTests() -> bool;
 auto runZoneCreateTimers2992SelfTests() -> bool;
 auto runLinkshellPushStoredMessage2993SelfTests() -> bool;
+auto runBattlefieldRejectNullInsert2994SelfTests() -> bool;
+auto runMapwireMarkCurrentKey2995SelfTests() -> bool;
+auto runAttackSkipParryDaken2996SelfTests() -> bool;
+auto runTradeBumpItemsCount2997SelfTests() -> bool;
+auto runTreasureLotRare2998SelfTests() -> bool;
 
 namespace
 {
@@ -2545,6 +2550,11 @@ namespace
         ok = runPartyStampLeaderCreated2991SelfTests() && ok;
         ok = runZoneCreateTimers2992SelfTests() && ok;
         ok = runLinkshellPushStoredMessage2993SelfTests() && ok;
+        ok = runBattlefieldRejectNullInsert2994SelfTests() && ok;
+        ok = runMapwireMarkCurrentKey2995SelfTests() && ok;
+        ok = runAttackSkipParryDaken2996SelfTests() && ok;
+        ok = runTradeBumpItemsCount2997SelfTests() && ok;
+        ok = runTreasureLotRare2998SelfTests() && ok;
 
         return ok;
     }

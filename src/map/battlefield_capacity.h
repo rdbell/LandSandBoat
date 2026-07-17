@@ -10,12 +10,19 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1361: level cap, insert, cleanup, tick policy suite
 //   - 2930: ShouldAcceptPCUnderCapacity (playerCount < maxParticipants)
+//   - 2994: ShouldRejectNullInsert (entityNull identity)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
 // for the TYPE_PC capacity gate.
 // Go dual-wire: battlefield.ShouldAcceptPCUnderCapacity
 // (internal/battlefield/under_capacity.go).
+//
+// Production host: CBattlefield::InsertEntity injects entityNull =
+// (PEntity == nullptr) before already-in-battlefield / capacity / type
+// branches.
+// Go dual-wire: battlefield.ShouldRejectNullInsert
+// (internal/battlefield/reject_null_insert.go).
 
 namespace battlefieldhelpers
 {
@@ -45,6 +52,19 @@ inline auto FormatInsertEntityNullWarning() -> std::string
 }
 
 // ShouldRejectNullInsert mirrors PEntity == nullptr.
+//
+// Formula (slice 2994 dual-wire):
+//   entityNull
+//
+// true  → host logs FormatInsertEntityNullWarning and returns false
+// false → proceed to already-in-battlefield / capacity / type branches
+//
+// Dual-wire of Go battlefield.ShouldRejectNullInsert.
+// Call site: CBattlefield::InsertEntity before other insert gates.
+//   if (ShouldRejectNullInsert(PEntity == nullptr)) {
+//       ShowWarning("%s", FormatInsertEntityNullWarning());
+//       return false;
+//   }
 inline auto ShouldRejectNullInsert(const bool entityNull) -> bool
 {
     return entityNull;

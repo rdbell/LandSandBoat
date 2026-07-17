@@ -13,6 +13,7 @@
 //   - 2938: ShouldAutoResolveSolo (memberCount == 1 after insert)
 //   - 2957: CanLotWithInventory (freeSlots != 0 inventory lot gate)
 //   - 2981: ShouldForceCheckOnFullPoolInsert (SlotID == PoolSize after free scan)
+//   - 2998: CanLotRareItem (!(rare && alreadyHas) rare-owned lot gate)
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -29,6 +30,11 @@
 // PoolSize when free-slot loop completes without break).
 // Go dual-wire: treasurepool.ShouldForceCheckOnFullPoolInsert
 // (internal/treasurepool/force_check_full.go).
+//
+// Production host: CTreasurePool::lotItem / PlanLotItemPreflight injects
+// item rare flag + already-has lookup into CanLotRareItem.
+// Go dual-wire: treasurepool.CanLotRareItem
+// (internal/treasurepool/lot_rare.go).
 
 namespace treasurepoolhelpers
 {
@@ -157,6 +163,19 @@ inline auto CanLotWithInventory(const uint8 freeSlots) -> bool
 }
 
 // CanLotRareItem mirrors !(rare && alreadyHas).
+//
+// Formula (slice 2998 dual-wire):
+//   !(itemIsRare && alreadyHasItem)
+//   // equivalent De Morgan: !itemIsRare || !alreadyHasItem
+//
+// itemIsRare     — host-evaluated item rare flag
+// alreadyHasItem — host-evaluated whether the lotting character already holds
+//                  the rare item
+// true  → host may proceed past the rare-owned lot preflight gate
+// false → host rejects the lot (RejectRareOwned / packet injection)
+//
+// Dual-wire of Go treasurepool.CanLotRareItem.
+// Call site: PlanLotItemPreflight / CTreasurePool::lotItem after inventory gate.
 inline auto CanLotRareItem(const bool itemIsRare, const bool alreadyHasItem) -> bool
 {
     return !(itemIsRare && alreadyHasItem);

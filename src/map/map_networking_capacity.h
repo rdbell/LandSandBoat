@@ -15,10 +15,17 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2660: ShouldOpenSocket (!isTestServer) — residual pure port
 //   - 2948: ShouldOpenSocket (!isTestServer) dual-wire expansion
+//   - 2711: ShouldMarkCurrentKeyDecryption (decryptCount == 0) — residual pure port
+//   - 2995: ShouldMarkCurrentKeyDecryption (decryptCount == 0) dual-wire expansion
 //
 // Production host: MapNetworking constructor (map_networking.cpp) injects
 // config_.isTestServer into ShouldOpenSocket before MapSocket allocation.
 // Go dual-wire: mapwire.ShouldOpenSocket (internal/mapwire/socket_gate.go).
+//
+// Production host: MapNetworking::recv_parse (map_networking.cpp ~400) injects
+// local decryptCount into ShouldMarkCurrentKeyDecryption before setting
+// PSession->hasDecryptedPacket. Go dual-wire:
+// mapwire.ShouldMarkCurrentKeyDecryption (internal/mapwire/current_key.go).
 
 namespace mapnetworkinghelpers
 {
@@ -198,6 +205,21 @@ inline auto PlanIncomingDecryption(const bool primaryDecrypted, const bool pendi
 // ShouldMarkCurrentKeyDecryption identifies packets successfully decrypted by
 // the current key. recv_parse uses zero for that result and one for a
 // previous-key zone-transition fallback.
+//
+// Formula (slice 2995 dual-wire):
+//   decryptCount == 0
+//
+// decryptCount — host-injected recv_parse key-attempt result:
+//   0  → current-key success (mark hasDecryptedPacket)
+//   1  → previous-key zone-transition fallback (do not mark current key)
+//  -1  → reject / decrypt failure path (host returns early; still false)
+//   2+ → out-of-band / future counts (not current-key success)
+//
+// Dual-wire of Go mapwire.ShouldMarkCurrentKeyDecryption.
+// Call site: MapNetworking::recv_parse after PlanIncomingDecryption; host
+// injects local decryptCount (0 primary, ++ on UsePrevious) before
+// PSession->hasDecryptedPacket = true when the free function is true.
+// Residual pure port: slice 2711.
 inline auto ShouldMarkCurrentKeyDecryption(const int decryptCount) -> bool
 {
     return decryptCount == 0;

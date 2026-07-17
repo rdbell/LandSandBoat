@@ -14,6 +14,7 @@
 //   - 2830: TradeSlotMatchesItemID (getItemQuantity match gate)
 //   - 2962: ShouldAllowSetConfirmedStatus (setConfirmedStatus outer gate)
 //   - 2984: ShouldSetTradeItemEntry (multi-arg setItem outer gate)
+//   - 2997: ShouldBumpItemsCountOnSetEntry (multi-arg setItem ItemsCount bump)
 //
 // Production host: CTradeContainer::setConfirmedStatus (trade_container.cpp)
 // injects slotInRange / itemNonNull / quantityGteAmount into
@@ -26,6 +27,8 @@
 // ShouldBumpItemsCountOnSetEntry + assign on admit.
 // Go dual-wire: tradecontainer.ShouldSetTradeItemEntry
 // (internal/tradecontainer/set_item_entry.go). Prior pure port: slice 2812.
+// Go dual-wire: tradecontainer.ShouldBumpItemsCountOnSetEntry
+// (internal/tradecontainer/bump_items_count.go). Prior pure port: slice 2812.
 
 namespace tradecontainerhelpers
 {
@@ -86,9 +89,24 @@ inline auto ShouldSetTradeItemEntry(const bool slotInRange) -> bool
 }
 
 // ShouldBumpItemsCountOnSetEntry is the pure m_ItemsCount += 1 gate once
-// multi-arg setItem is admitted. Production always bumps when in range —
-// including slot replace / clear — which is a known parity quirk.
-// Residual pure port: slice 2812 (paired with ShouldSetTradeItemEntry dual-wire 2984).
+// multi-arg setItem is admitted:
+//   slotId < m_PItem.size()  (same inject as outer admission)
+//
+// Formula (slice 2997 dual-wire):
+//   ShouldBumpItemsCountOnSetEntry(slotInRange) = slotInRange
+//
+// Production always bumps when in range — including slot replace / clear —
+// which is a known parity quirk.
+//
+// slotInRange — host-evaluated slotId < m_PItem.size()
+// true  → host may m_ItemsCount += 1 before assigning slot fields
+// false → host does not bump (and outer gate already rejected the write)
+//
+// Dual-wire of Go tradecontainer.ShouldBumpItemsCountOnSetEntry
+// (internal/tradecontainer/bump_items_count.go). Prior pure port: slice 2812.
+// Call site: CTradeContainer::setItem multi-arg after ShouldSetTradeItemEntry
+// admits. Sibling dual-wire: ShouldSetTradeItemEntry (slice 2984).
+// Host injects slotInRange only; helpers never touch CItem* or container storage.
 inline auto ShouldBumpItemsCountOnSetEntry(const bool slotInRange) -> bool
 {
     return slotInRange;

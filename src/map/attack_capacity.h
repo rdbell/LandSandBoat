@@ -7,6 +7,19 @@
 #include <cstdint>
 
 // Pure CAttack check-policy halves for parry/guard/deflect/counter/cover.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1376: parry/guard/deflect/counter/cover/anticipate residual suite
+//   - 2751: ResolveParryCheck (CheckParried state mutation)
+//   - 2739: ResolveGuardCheck (CheckGuarded state mutation)
+//   - 2748: ResolveCoverCheck (CheckCover state mutation)
+//   - 2996: ShouldSkipParryForDaken (CheckParried Daken early-out)
+//
+// Production host: CAttack::CheckParried (attack.cpp) injects
+// static_cast<uint8>(m_attackType) into ShouldSkipParryForDaken before
+// attackutils::IsParried, then ResolveParryCheck for state writeback.
+// Go dual-wire: attack.ShouldSkipParryForDaken
+// (internal/attack/skip_parry_daken.go).
 
 namespace attackhelpers
 {
@@ -64,6 +77,23 @@ inline auto IsDakenAttack(const uint8 attackType) -> bool
 }
 
 // ShouldSkipParryForDaken mirrors CheckParried Daken early-out.
+//
+// Formula (slice 2996 dual-wire):
+//   IsDakenAttack(attackType)
+//   // IsDakenAttack: attackType == PHYSICAL_ATTACK_TYPE::DAKEN (9)
+//
+// attackType — host-evaluated static_cast<uint8>(m_attackType)
+// true  → host skips attackutils::IsParried; ResolveParryCheck preserves state
+// false → host may call IsParried; ResolveParryCheck ORs existing || parryProcs
+//
+// Dual-wire of Go attack.ShouldSkipParryForDaken.
+// Call site: CAttack::CheckParried host inject (attackType).
+//   const bool parryProcs = !ShouldSkipParryForDaken(attackType) &&
+//                           attackutils::IsParried(m_attacker, m_victim);
+// Prior pure port: slice 1376 (attack check-policy residual).
+// Sibling Daken early-outs: ShouldSkipCounterForDaken / ShouldSkipAnticipateForDaken
+// (1376 residual; same formula, different hosts — not dual-wired in 2996).
+// Coverage: test_attack_skip_parry_daken_2996 (not in CMake/main).
 inline auto ShouldSkipParryForDaken(const uint8 attackType) -> bool
 {
     return IsDakenAttack(attackType);

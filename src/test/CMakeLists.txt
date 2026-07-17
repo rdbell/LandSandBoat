@@ -2561,6 +2561,16 @@ set(SOURCES
     test_zone_create_timers_2992.cpp
     test_linkshell_push_stored_message_2993.h
     test_linkshell_push_stored_message_2993.cpp
+    test_battlefield_reject_null_insert_2994.h
+    test_battlefield_reject_null_insert_2994.cpp
+    test_mapwire_mark_current_key_2995.h
+    test_mapwire_mark_current_key_2995.cpp
+    test_attack_skip_parry_daken_2996.h
+    test_attack_skip_parry_daken_2996.cpp
+    test_trade_bump_items_count_2997.h
+    test_trade_bump_items_count_2997.cpp
+    test_treasure_lot_rare_2998.h
+    test_treasure_lot_rare_2998.cpp
 )
 
 if(UNIX)
