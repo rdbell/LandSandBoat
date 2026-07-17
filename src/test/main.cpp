@@ -1599,6 +1599,11 @@ auto runPartyLevelSyncOnJoin3305SelfTests() -> bool;
 auto runMobtypeCanBeNeutral3306SelfTests() -> bool;
 auto runBesiegedAffordSanction3307SelfTests() -> bool;
 auto runAmanThumbsUp3308SelfTests() -> bool;
+auto runMobutilsCanDropGil3309SelfTests() -> bool;
+auto runAuctionutilsCanAffordFee3310SelfTests() -> bool;
+auto runNyzulClaimRune3311SelfTests() -> bool;
+auto runArtisanCanBuySack3312SelfTests() -> bool;
+auto runSynthutilsCanSynthesizeHQ3313SelfTests() -> bool;
 
 namespace
 {
@@ -3175,6 +3180,11 @@ namespace
         ok = runMobtypeCanBeNeutral3306SelfTests() && ok;
         ok = runBesiegedAffordSanction3307SelfTests() && ok;
         ok = runAmanThumbsUp3308SelfTests() && ok;
+        ok = runMobutilsCanDropGil3309SelfTests() && ok;
+        ok = runAuctionutilsCanAffordFee3310SelfTests() && ok;
+        ok = runNyzulClaimRune3311SelfTests() && ok;
+        ok = runArtisanCanBuySack3312SelfTests() && ok;
+        ok = runSynthutilsCanSynthesizeHQ3313SelfTests() && ok;
 
         return ok;
     }

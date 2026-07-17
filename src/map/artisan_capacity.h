@@ -7,8 +7,10 @@
 //   - 3090: CanBuySack prior dedicated dual-wire (buy_sack.go)
 //   - 3242: CanBuySack prior dedicated dual-wire expand residual 2879
 //           (prior dedicated 3090; formula unchanged)
-//   - 3282: CanBuySack dedicated dual-wire expand residual 2879
+//   - 3282: CanBuySack prior dedicated dual-wire expand residual 2879
 //           (prior dedicated 3242 / 3090; formula unchanged)
+//   - 3312: CanBuySack dedicated dual-wire expand residual 2879
+//           (prior dedicated 3282 / 3242 / 3090; formula unchanged)
 //   - 2890: CanExpand residual dual-wire suite (can_expand)
 //   - 3106: CanExpand dedicated dual-wire (can_expand.go)
 //   - 2912: GobbieCanUpgradeFlag residual dual-wire suite (gobbie_upgrade)
@@ -21,8 +23,10 @@
 //   - 3090: CanBuySack prior dedicated dual-wire
 //   - 3242: CanBuySack prior dedicated dual-wire expand residual 2879
 //     (prior dedicated 3090)
-//   - 3282: CanBuySack = gil >= BuySackGilCost && sackSize == 0
-//     dedicated dual-wire expand residual 2879 (prior dedicated 3242 / 3090)
+//   - 3282: CanBuySack prior dedicated dual-wire expand residual 2879
+//     (prior dedicated 3242 / 3090)
+//   - 3312: CanBuySack = gil >= BuySackGilCost && sackSize == 0
+//     dedicated dual-wire expand residual 2879 (prior dedicated 3282 / 3242 / 3090)
 //   - 2890: CanExpand residual dual-wire suite
 //   - 3106: CanExpand = sackSize < gobbieSize && sackSize > 0
 //   - 2912: GobbieCanUpgradeFlag residual dual-wire suite
@@ -44,15 +48,18 @@
 // Residual dual-wire suite: 2879 / 2890 / 2912 / 2916.
 // Prior dedicated dual-wire suite: 3090 / 3106 / 3132 / 3147.
 // Prior dedicated dual-wire expand residual: 3242 (CanBuySack residual 2879).
-// Dedicated dual-wire expand residual: 3282 (CanBuySack residual 2879;
+// Prior dedicated dual-wire expand residual: 3282 (CanBuySack residual 2879;
 // prior dedicated 3242).
+// Dedicated dual-wire expand residual: 3312 (CanBuySack residual 2879;
+// prior dedicated 3282).
 //
 // Coverage: test_artisan_buy_sack_2879 (residual),
 // test_artisan_can_buy_sack_3090 (prior dedicated dual-wire; not in CMake/main),
 // test_artisan_can_buy_sack_3242 (prior expand residual 2879; not in CMake/main),
-// test_artisan_can_buy_sack_3282 (dedicated expand residual 2879; not in CMake/main).
+// test_artisan_can_buy_sack_3282 (prior expand residual 2879; not in CMake/main),
+// test_artisan_can_buy_sack_3312 (dedicated expand residual 2879; not in CMake/main).
 //
-//   if option == 1 then -- Buy sack (2879 residual / 3090 prior / 3242 / 3282 expand)
+//   if option == 1 then -- Buy sack (2879 residual / 3090 prior / 3242 / 3282 / 3312 expand)
 //       if player:getGil() >= 9980
 //          and player:getContainerSize(xi.inv.MOGSACK) == 0 then
 //           player:delGil(9980)
@@ -94,7 +101,7 @@ namespace artisanhelpers
 
 // ---------------------------------------------------------------------------
 // Slice 2879 residual / 3090 prior dedicated / 3242 prior expand residual
-// 2879 / 3282 dedicated expand residual 2879
+// 2879 / 3282 prior expand residual 2879 / 3312 dedicated expand residual 2879
 // — moogleOnUpdate option 1 buy-sack gate
 // ---------------------------------------------------------------------------
 
@@ -103,13 +110,14 @@ namespace artisanhelpers
 // Prior pure port: slice 0948. Residual dual-wire suite: 2879.
 // Prior dedicated dual-wire suite: 3090.
 // Prior dedicated dual-wire expand residual 2879: 3242.
-// Dedicated dual-wire expand residual 2879: 3282.
+// Prior dedicated dual-wire expand residual 2879: 3282.
+// Dedicated dual-wire expand residual 2879: 3312.
 inline constexpr int32 BuySackGilCost = 9980;
 
 // CanBuySack is the pure gate for option 1 (Buy sack):
 //
-// Formula (slice 3282 dedicated dual-wire expand residual 2879; prior
-// dedicated 3242 / 3090 / pure 0948 — formula unchanged):
+// Formula (slice 3312 dedicated dual-wire expand residual 2879; prior
+// dedicated 3282 / 3242 / 3090 / pure 0948 — formula unchanged):
 //   CanBuySack(gil, sackSize) = gil >= BuySackGilCost && sackSize == 0
 //
 // Future Lua host injects scalars into this helper instead of re-inlining
@@ -117,12 +125,13 @@ inline constexpr int32 BuySackGilCost = 9980;
 // (buy_sack.go). Call site: future Lua moogleOnUpdate option 1 inject.
 // Prior pure port: slice 0948. Residual dual-wire suite: 2879 /
 // test_artisan_buy_sack_2879. Prior dedicated dual-wire suite is
-// test_artisan_can_buy_sack_3090. Prior dedicated expand residual suite is
-// test_artisan_can_buy_sack_3242. Dedicated expand residual suite is
-// test_artisan_can_buy_sack_3282. Host still owns delGil, changeContainerSize,
-// setCharVar, and updateEvent after a true gate.
-// Coverage: test_artisan_can_buy_sack_3282 (not in CMake/main); residual 2879 /
-// prior dedicated 3090 / prior expand 3242 suites retained.
+// test_artisan_can_buy_sack_3090. Prior dedicated expand residual suites are
+// test_artisan_can_buy_sack_3242 / test_artisan_can_buy_sack_3282.
+// Dedicated expand residual suite is test_artisan_can_buy_sack_3312.
+// Host still owns delGil, changeContainerSize, setCharVar, and updateEvent
+// after a true gate.
+// Coverage: test_artisan_can_buy_sack_3312 (not in CMake/main); residual 2879 /
+// prior dedicated 3090 / prior expand 3242 / prior expand 3282 suites retained.
 inline auto CanBuySack(const int32 gil, const int32 sackSize) -> bool
 {
     return gil >= BuySackGilCost && sackSize == 0;

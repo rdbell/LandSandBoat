@@ -3191,6 +3191,16 @@ set(SOURCES
     test_besieged_afford_sanction_3307.cpp
     test_aman_thumbs_up_3308.h
     test_aman_thumbs_up_3308.cpp
+    test_mobutils_can_drop_gil_3309.h
+    test_mobutils_can_drop_gil_3309.cpp
+    test_auctionutils_can_afford_fee_3310.h
+    test_auctionutils_can_afford_fee_3310.cpp
+    test_nyzul_claim_rune_3311.h
+    test_nyzul_claim_rune_3311.cpp
+    test_artisan_can_buy_sack_3312.h
+    test_artisan_can_buy_sack_3312.cpp
+    test_synthutils_can_synthesize_hq_3313.h
+    test_synthutils_can_synthesize_hq_3313.cpp
 )
 
 if(UNIX)

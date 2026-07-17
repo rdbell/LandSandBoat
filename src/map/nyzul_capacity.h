@@ -18,15 +18,19 @@
 //   - 3128: spawnChest regular-mob casket roll (ShouldSpawnCasket)
 //   - 3240: CanClaimRuneHandler prior dedicated dual-wire expand residual 2902
 //           (retained; formula unchanged: runeHandler == 0)
-//   - 3281: CanClaimRuneHandler dedicated dual-wire expand residual 2902
-//           (prior dedicated 3240; formula unchanged: runeHandler == 0)
+//   - 3281: CanClaimRuneHandler prior dedicated dual-wire expand residual 2902
+//           (retained; prior dedicated 3240; formula unchanged: runeHandler == 0)
+//   - 3311: CanClaimRuneHandler dedicated dual-wire expand residual 2902
+//           (prior dedicated 3281; formula unchanged: runeHandler == 0)
 //
 // Dual-wire index:
 //   - 2902: CanClaimRuneHandler residual pure dual-wire
 //   - 3240: CanClaimRuneHandler prior dedicated dual-wire expand residual 2902
 //           (retained)
-//   - 3281: CanClaimRuneHandler = runeHandler == 0
-//     dedicated dual-wire expand residual 2902 (prior dedicated 3240)
+//   - 3281: CanClaimRuneHandler prior dedicated dual-wire expand residual 2902
+//           (retained; prior dedicated 3240)
+//   - 3311: CanClaimRuneHandler = runeHandler == 0
+//     dedicated dual-wire expand residual 2902 (prior dedicated 3281)
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
@@ -168,12 +172,12 @@ inline auto ShouldRollGearObjective(const int32 roll1to30) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2902 residual / 3240 prior dedicated / 3281 expand residual 2902
+// Slice 2902 residual / 3240+3281 prior dedicated / 3311 expand residual 2902
 // — Rune of Transfer first-claimer gate (onEventUpdate)
 // ---------------------------------------------------------------------------
-// Dual-wire notes (slice 3281):
+// Dual-wire notes (slice 3311):
 //   Formula unchanged from residual 1088 / residual dual-wire 2902 /
-//   prior dedicated 3240:
+//   prior dedicated 3240 / 3281:
 //     CanClaimRuneHandler(runeHandler) = runeHandler == 0
 //   Go dual-wire: nyzul.CanClaimRuneHandler (internal/nyzul/claim_rune.go).
 //   Production host is Lua Rune_of_Transfer.lua onEventUpdate (no map-server
@@ -183,13 +187,14 @@ inline auto ShouldRollGearObjective(const int32 roll1to30) -> bool
 //   and release of other in-event chars.
 //   Sibling IsRuneHandler (event finish / pickSetPoint identity) stays
 //   residual 1088 — leave alone.
-// Coverage: test_nyzul_claim_rune_3281 (dedicated expand residual 2902;
-// not in CMake/main); residual 2902 and prior dedicated 3240 suites retained.
+// Coverage: test_nyzul_claim_rune_3311 (dedicated expand residual 2902;
+// not in CMake/main); residual 2902 and prior dedicated 3240 / 3281 suites
+// retained.
 
 // CanClaimRuneHandler mirrors Rune_of_Transfer.lua onEventUpdate first claim:
 //   instance:getLocalVar('runeHandler') == 0
 //
-// Formula (slice 3281 dual-wire expand residual 2902; prior dedicated 3240;
+// Formula (slice 3311 dual-wire expand residual 2902; prior dedicated 3281;
 // unchanged):
 //   CanClaimRuneHandler(runeHandler) = runeHandler == 0
 //
@@ -197,7 +202,7 @@ inline auto ShouldRollGearObjective(const int32 roll1to30) -> bool
 // owns csid/option gates, setLocalVar writeback to player ID, and release of
 // other in-event chars. Sibling IsRuneHandler (event finish identity) is not
 // dual-wired here.
-// Dual-wire of Go nyzul.CanClaimRuneHandler (claim_rune.go / slice 3281).
+// Dual-wire of Go nyzul.CanClaimRuneHandler (claim_rune.go / slice 3311).
 inline auto CanClaimRuneHandler(const int32 runeHandler) -> bool
 {
     return runeHandler == 0;
