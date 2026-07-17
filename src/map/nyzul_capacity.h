@@ -40,8 +40,10 @@
 //           (retained; prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705; formula unchanged: currentFloor == Floor100)
 //   - 3795: ShouldDropFloor100VigilWeapons prior dedicated dual-wire expand residual 2900
 //           (retained; prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750; formula unchanged: currentFloor == Floor100)
-//   - 3840: ShouldDropFloor100VigilWeapons dedicated dual-wire expand residual 2900
-//           (prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750 / 3795; formula unchanged: currentFloor == Floor100)
+//   - 3840: ShouldDropFloor100VigilWeapons prior dedicated dual-wire expand residual 2900
+//           (retained; prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750 / 3795; formula unchanged: currentFloor == Floor100)
+//   - 3885: ShouldDropFloor100VigilWeapons dedicated dual-wire expand residual 2900
+//           (prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750 / 3795 / 3840; formula unchanged: currentFloor == Floor100)
 //
 // Dual-wire index:
 //   - 2900: ShouldDropFloor100VigilWeapons residual pure dual-wire
@@ -70,8 +72,10 @@
 //           (retained; prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705)
 //   - 3795: ShouldDropFloor100VigilWeapons prior dedicated dual-wire expand residual 2900
 //           (retained; prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750)
-//   - 3840: ShouldDropFloor100VigilWeapons = currentFloor == Floor100
-//     dedicated dual-wire expand residual 2900 (prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750 / 3795)
+//   - 3840: ShouldDropFloor100VigilWeapons prior dedicated dual-wire expand residual 2900
+//           (retained; prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750 / 3795)
+//   - 3885: ShouldDropFloor100VigilWeapons = currentFloor == Floor100
+//     dedicated dual-wire expand residual 2900 (prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750 / 3795 / 3840)
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
@@ -250,12 +254,12 @@ inline auto CanClaimRuneHandler(const int32 runeHandler) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2900 residual / 3352+3449+3502+3570+3615+3660+3705+3750+3795 prior dedicated / 3840 expand residual 2900
+// Slice 2900 residual / 3352+3449+3502+3570+3615+3660+3705+3750+3795+3840 prior dedicated / 3885 expand residual 2900
 // — vigilWeaponDrop floor-100 guaranteed-drop gate
 // ---------------------------------------------------------------------------
-// Dual-wire notes (slice 3840):
+// Dual-wire notes (slice 3885):
 //   Formula unchanged from residual 1088 / residual dual-wire 2900 /
-//   prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750 / 3795:
+//   prior dedicated 3352 / 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750 / 3795 / 3840:
 //     ShouldDropFloor100VigilWeapons(currentFloor) = currentFloor == Floor100
 //     // Floor100 == 100
 //   Go dual-wire: nyzul.ShouldDropFloor100VigilWeapons
@@ -266,9 +270,9 @@ inline auto CanClaimRuneHandler(const int32 runeHandler) -> bool
 //   Host still owns disk-holder / random treasure grants on true and the
 //   non-100 NM 20% roll path on false (ShouldRollNMVigilWeapon / slice 2909).
 //   Sibling free_floor / claim_rune dual-wires left alone — do not thrash.
-// Coverage: test_nyzul_floor100_vigil_3840 (dedicated expand residual 2900;
+// Coverage: test_nyzul_floor100_vigil_3885 (dedicated expand residual 2900;
 // not in CMake/main); residual 2900 and prior dedicated 3352 / 3449 / 3502 /
-// 3570 / 3615 / 3660 / 3705 / 3750 / 3795 suites retained.
+// 3570 / 3615 / 3660 / 3705 / 3750 / 3795 / 3840 suites retained.
 
 // Floor100 is the floor pin for guaranteed vigil weapon drops
 // (Nyzul_Current_Floor == 100).
@@ -277,15 +281,15 @@ inline constexpr int32 Floor100 = 100;
 // ShouldDropFloor100VigilWeapons mirrors vigilWeaponDrop floor-100 gate:
 //   instance:getLocalVar('Nyzul_Current_Floor') == 100
 //
-// Formula (slice 3840 dual-wire expand residual 2900; prior dedicated 3352 /
-// 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750 / 3795; unchanged):
+// Formula (slice 3885 dual-wire expand residual 2900; prior dedicated 3352 /
+// 3449 / 3502 / 3570 / 3615 / 3660 / 3705 / 3750 / 3795 / 3840; unchanged):
 //   ShouldDropFloor100VigilWeapons(currentFloor) = currentFloor == Floor100
 //
 // currentFloor is the host-injected Nyzul_Current_Floor localVar. Host still
 // owns disk-holder / random treasure grants on true and the non-100 NM 20%
 // roll path on false (ShouldRollNMVigilWeapon / slice 2909).
 // Dual-wire of Go nyzul.ShouldDropFloor100VigilWeapons
-// (floor100_vigil.go / slice 3840).
+// (floor100_vigil.go / slice 3885).
 // No C++ pin redefs — body identical to residual 2900 / prior dedicated pins.
 inline auto ShouldDropFloor100VigilWeapons(const int32 currentFloor) -> bool
 {
