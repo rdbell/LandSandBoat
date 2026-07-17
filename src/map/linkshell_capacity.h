@@ -13,6 +13,7 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1354: AddMember / rank / push / DelMember capacity suite
+//   - 1355: registry load / online / register residual capacity
 //   - 2929: ShouldRejectNullAddMember (charNull identity)
 //   - 2958: ShouldRejectDuplicateAddMember (alreadyInList identity)
 //   - 2977: ShouldSendLinkshellMessageIPC (messageNonEmpty identity)
@@ -22,6 +23,7 @@
 //   - 3009: ShouldSendBreakMessage (breakLinkshell identity)
 //   - 3017: ShouldReceiveLinkshellPacket (!isSender && !isDisappear && !inPrison)
 //   - 3026: ShouldRewritePacketAsLinkshell2 (memberIsLS2 identity)
+//   - 3055: ShouldLoadLinkshellOnOnlineAdd (!foundInCache)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -41,6 +43,10 @@
 // ShouldReceiveLinkshellPacket before packet copy / optional LS2 rewrite / push;
 // then injects member->PLinkshell2 == this into ShouldRewritePacketAsLinkshell2
 // after receive filter, before chat_std / LS message rewrite and pushPacket.
+// linkshell::AddOnlineMember (linkshell.cpp) injects
+// LinkshellList.find(PItemLinkshell->GetLSID()) != end into
+// ShouldLoadLinkshellOnOnlineAdd; on true LoadLinkshell(id); on false reuses
+// cache entry when found.
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
 // (internal/linkshell/reject_null_add_member.go),
 // linkshell.ShouldRejectDuplicateAddMember
@@ -58,7 +64,9 @@
 // linkshell.ShouldReceiveLinkshellPacket
 // (internal/linkshell/receive_packet.go),
 // linkshell.ShouldRewritePacketAsLinkshell2
-// (internal/linkshell/rewrite_ls2.go).
+// (internal/linkshell/rewrite_ls2.go),
+// linkshell.ShouldLoadLinkshellOnOnlineAdd
+// (internal/linkshell/load_on_online_add.go).
 
 namespace linkshellhelpers
 {
@@ -447,7 +455,25 @@ inline auto ShouldProcessLinkshellItem(const bool itemNonNull, const bool isLink
     return itemNonNull && isLinkshellType;
 }
 
-// ShouldLoadLinkshellOnOnlineAdd mirrors cache miss before LoadLinkshell.
+// ShouldLoadLinkshellOnOnlineAdd mirrors cache miss before LoadLinkshell on
+// AddOnlineMember.
+//
+// Formula (slice 3055 dual-wire):
+//   !foundInCache
+//
+// foundInCache — host: LinkshellList cache hit for item LSID
+// true  → host LoadLinkshell(lsid) for online add
+// false → skip load (reuse cache entry)
+//
+// Dual-wire of Go linkshell.ShouldLoadLinkshellOnOnlineAdd.
+// Call site: linkshell::AddOnlineMember — host injects
+// LinkshellList.find(PItemLinkshell->GetLSID()) != LinkshellList.end(); on true
+// LoadLinkshell(id); on false reuses cache entry when found.
+// Prior pure port: slice 1355 (linkshell registry residual). Residual pins
+// remain in test_linkshell_registry_1355; dedicated dual-wire suite is
+// test_linkshell_load_online_add_3055. Residual siblings: null reject,
+// process item, add-after-lookup, always-false return, erase after del
+// (still 1355 residual).
 inline auto ShouldLoadLinkshellOnOnlineAdd(const bool foundInCache) -> bool
 {
     return !foundInCache;

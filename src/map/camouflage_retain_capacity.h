@@ -11,15 +11,19 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1391: residual pure port (full retain / strip / facing / chance suite)
 //   - 3047: ShouldEvaluateCamouflageRetain (RETAIN_CAMOUFLAGE > 0 evaluate gate)
+//   - 3058: ShouldStripAllDetectableOnFail (roll > retainChance strip-all gate)
 //
 // Production host:
 //   - CBattleEntity::OnRangedAttack (~3472) injects getMod(Mod::RETAIN_CAMOUFLAGE)
 //     into ShouldEvaluateCamouflageRetain before retain roll / strip logic.
+//   - Same host injects retainChance + roll into ShouldStripAllDetectableOnFail
+//     after the retain path opens.
 //
 // Go dual-wire:
 //   - ranger.ShouldEvaluateCamouflageRetain (evaluate_camouflage_retain.go)
+//   - ranger.ShouldStripAllDetectableOnFail (strip_detectable_fail.go)
 // Residual Go surface: internal/ranger/camouflage_retain.go (facing / chance /
-// strip helpers).
+// partial-stealth / without-retain helpers).
 
 namespace camouflageretainhelpers
 {
@@ -135,20 +139,46 @@ inline auto ResolveCamouflageRetainChance(
     return 0;
 }
 
+// --- Slice 3058: ShouldStripAllDetectableOnFail pure dual-wire ---
+// Residual pure port: slice 1391 (OnRangedAttack RETAIN_CAMOUFLAGE policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects host-resolved
+// retainChance + RNG roll in [0, 100) into ShouldStripAllDetectableOnFail after
+// ShouldEvaluateCamouflageRetain opens the retain path. When true, host deletes
+// all Detectable flags; when false, host uses ShouldStripPartialStealthOnRetain
+// (Sneak/Deodorize/Illusion only).
+// Go dual-wire: ranger.ShouldStripAllDetectableOnFail
+// (internal/ranger/strip_detectable_fail.go).
+// Siblings NOT dual-wired this slice: ShouldStripPartialStealthOnRetain,
+// ShouldStripAllDetectableWithoutRetain (remain residual 1391).
+
 // ShouldStripAllDetectableOnFail mirrors roll > retainChance (delete Detectable flag).
 // Host injects roll in [0, 100).
+//
+// Formula (slice 3058 dual-wire):
+//   ShouldStripAllDetectableOnFail(retainChance, roll0to99) = roll0to99 > retainChance
+//   (Go: roll0to99 > int(retainChance))
+//
+// retainChance — host-resolved ResolveCamouflageRetainChance result
+// roll0to99    — host-injected RNG roll in [0, 100)
+// true  → strip all Detectable (retain failed)
+// false → retain succeeds; host may strip partial stealth only
+//
+// Dual-wire of Go ranger.ShouldStripAllDetectableOnFail.
+// Call site: CBattleEntity::OnRangedAttack (retain path after evaluate gate).
 inline auto ShouldStripAllDetectableOnFail(const int16 retainChance, const int roll0to99) -> bool
 {
     return roll0to99 > retainChance;
 }
 
 // When retain succeeds (not strip all), host deletes Sneak/Deodorize/Illusion only.
+// Residual 1391; complement of dual-wire ShouldStripAllDetectableOnFail (3058).
 inline auto ShouldStripPartialStealthOnRetain(const bool stripAllDetectable) -> bool
 {
     return !stripAllDetectable;
 }
 
 // ShouldStripAllDetectableWithoutRetain mirrors else branch when RETAIN_CAMOUFLAGE <= 0.
+// Residual 1391; not dual-wired in slice 3058.
 inline auto ShouldStripAllDetectableWithoutRetain(const int16 retainCamouflageMod) -> bool
 {
     return retainCamouflageMod <= 0;

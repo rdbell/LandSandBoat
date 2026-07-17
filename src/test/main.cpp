@@ -1344,6 +1344,11 @@ auto runUnityLoadOnlineAdd3050SelfTests() -> bool;
 auto runPetShouldEngage3051SelfTests() -> bool;
 auto runRecastExpire3052SelfTests() -> bool;
 auto runZoneMorningFog3053SelfTests() -> bool;
+auto runMeritLower3054SelfTests() -> bool;
+auto runLinkshellLoadOnlineAdd3055SelfTests() -> bool;
+auto runMapsessionDestroyPendingPtr3056SelfTests() -> bool;
+auto runAssaultAutoComplete3057SelfTests() -> bool;
+auto runRangerStripDetectableFail3058SelfTests() -> bool;
 
 namespace
 {
@@ -2665,6 +2670,11 @@ namespace
         ok = runPetShouldEngage3051SelfTests() && ok;
         ok = runRecastExpire3052SelfTests() && ok;
         ok = runZoneMorningFog3053SelfTests() && ok;
+        ok = runMeritLower3054SelfTests() && ok;
+        ok = runLinkshellLoadOnlineAdd3055SelfTests() && ok;
+        ok = runMapsessionDestroyPendingPtr3056SelfTests() && ok;
+        ok = runAssaultAutoComplete3057SelfTests() && ok;
+        ok = runRangerStripDetectableFail3058SelfTests() && ok;
 
         return ok;
     }

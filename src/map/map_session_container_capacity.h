@@ -11,6 +11,8 @@
 //   - 2783: create policy (ShouldCreateSession, ShouldCreatePendingSession)
 //   - 2925: ShouldCreateSession (queryOK && hasAccountsSessionRow)
 //   - 2936: ShouldCreatePendingSession (queryOK identity; no rowsCount gate)
+//   - 2787: destroy-pending pure gates (ShouldDestroyPendingByPointer residual)
+//   - 3056: ShouldDestroyPendingByPointer (found && pointerMatches)
 //   - 2790: lookup pure gates (ShouldRejectNullCharLookup, SessionMatches*)
 //   - 2954: ShouldRejectNullCharLookup (charNull identity)
 //   - 2799: link-dead mark/recover pure plans (ShouldMarkLinkDead residual)
@@ -26,6 +28,13 @@
 // after the accounts_sessions SELECT by charid (static_cast<bool>(rset) only).
 // Go dual-wire: mapsession.ShouldCreatePendingSession
 // (internal/mapsession/pending_session.go).
+//
+// Production host: MapSessionContainer::destroyPendingSession(MapSession*)
+// injects found / pointerMatches after null check and pending lookup by
+// session->charID before erase/delete. Go dual-wire:
+// mapsession.ShouldDestroyPendingByPointer
+// (internal/mapsession/destroy_pending_pointer.go). Prior pure port: 2787;
+// sibling residual: ShouldDestroyPendingByCharID (not dual-wired in 3056).
 //
 // Production host: MapSessionContainer::getSessionByChar injects
 // charNull = (PChar == nullptr) before scanning confirmed sessions.
@@ -95,6 +104,24 @@ inline auto ShouldReplaceExistingSession(const bool previousPresent) -> bool
 // a pending owner exists for that charID; pointerMatches is whether that owner
 // is the same pointer. Host erase/delete only proceeds when both hold, so a
 // stale or foreign pointer cannot drop a replacement pending session.
+//
+// Formula (slice 3056 dual-wire):
+//   found && pointerMatches
+//
+// Host-injected scalars (no session / pending-map pointers):
+//   found           — pending owner exists for session->charID
+//   pointerMatches  — that owner is the same pointer as the argument
+//
+// true  → host may erase pending index entry and delete the MapSession
+// false → skip erase/delete (missing key or stale/foreign pointer)
+//
+// Caller has already rejected a null session pointer (outside pure).
+// Dual-wire of Go mapsession.ShouldDestroyPendingByPointer
+// (internal/mapsession/destroy_pending_pointer.go). Prior pure port: slice 2787.
+// Sibling residual: ShouldDestroyPendingByCharID (found identity only; not
+// dual-wired in slice 3056).
+// Call site: MapSessionContainer::destroyPendingSession(MapSession*)
+// (map_session_container.cpp) already injects the two bools before erase.
 inline auto ShouldDestroyPendingByPointer(const bool found, const bool pointerMatches) -> bool
 {
     return found && pointerMatches;
@@ -103,6 +130,8 @@ inline auto ShouldDestroyPendingByPointer(const bool found, const bool pointerMa
 // ShouldDestroyPendingByCharID mirrors destroyPendingSession(uint32) after the
 // pending lookup by charId. Host erase/delete only proceeds when an owner was
 // found; missing keys are a no-op.
+// Residual 2787 sibling of dual-wire ShouldDestroyPendingByPointer (3056);
+// not dual-wired in that slice (charID overload needs presence only).
 inline auto ShouldDestroyPendingByCharID(const bool found) -> bool
 {
     return found;

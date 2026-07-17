@@ -2681,6 +2681,16 @@ set(SOURCES
     test_recast_expire_3052.cpp
     test_zone_morning_fog_3053.h
     test_zone_morning_fog_3053.cpp
+    test_merit_lower_3054.h
+    test_merit_lower_3054.cpp
+    test_linkshell_load_online_add_3055.h
+    test_linkshell_load_online_add_3055.cpp
+    test_mapsession_destroy_pending_ptr_3056.h
+    test_mapsession_destroy_pending_ptr_3056.cpp
+    test_assault_auto_complete_3057.h
+    test_assault_auto_complete_3057.cpp
+    test_ranger_strip_detectable_fail_3058.h
+    test_ranger_strip_detectable_fail_3058.cpp
 )
 
 if(UNIX)

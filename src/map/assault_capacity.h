@@ -3,9 +3,17 @@
 #include "common/cbasetypes.h"
 
 // Pure Assault helpers shared by dual-wire slices:
-//   - 2860: InstanceAssault progress auto-complete
+//   - 2860: InstanceAssault progress auto-complete (residual dual-wire suite)
 //   - 2863: onAssaultUpdate party/alliance proceed
 //   - 2867: onRytaalEventFinish obtain new Imperial Army ID tag
+//   - 3057: ShouldAutoComplete dedicated dual-wire (auto_complete.go)
+//
+// Dual-wire index:
+//   - 2860: ProgressMeetsRequired / ShouldAutoComplete residual dual-wire
+//   - 2863: ShouldProceedAssaultUpdate (party/alliance proceed)
+//   - 2867: ShouldIssueNewTag (Rytaal obtain new tag)
+//   - 3057: ShouldAutoComplete (requiredProgress==0 || alreadyCompleted → false;
+//           else ProgressMeetsRequired on onInstanceProgressUpdate)
 //
 // Production hosts are Lua under scripts/globals/assault/ (container.lua,
 // npc_handler.lua). Capacity is for future Lua/C++ inject so hosts dual-wire
@@ -13,15 +21,19 @@
 // host-injected scalars only (no entity / instance / party / settings
 // pointers). Side effects (instance:complete, messages, instanceEntry,
 // onEventUpdate, giveKeyItem, setCurrency) remain host-owned.
+// Go dual-wire: assault.ShouldAutoComplete (internal/assault/auto_complete.go);
+// residual ProgressMeetsRequired / Content.ShouldAutoComplete in instance.go.
+// Future Lua host injects ShouldAutoComplete then instance:complete().
 
 namespace assaulthelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2860 — onInstanceProgressUpdate auto-complete
+// Slice 2860 / 3057 — onInstanceProgressUpdate auto-complete
 // ---------------------------------------------------------------------------
 
 // ProgressMeetsRequired mirrors progress >= requiredProgress.
+// Residual threshold helper (slice 1078 / 2860); composed by ShouldAutoComplete.
 inline auto ProgressMeetsRequired(const int32 progress, const int32 requiredProgress) -> bool
 {
     return progress >= requiredProgress;
@@ -31,6 +43,23 @@ inline auto ProgressMeetsRequired(const int32 progress, const int32 requiredProg
 //   if requiredProgress and progress >= requiredProgress and not completed then
 //     instance:complete()
 //   end
+//
+// Formula (slice 3057 dual-wire; residual expand 2860):
+//   if requiredProgress == 0 || alreadyCompleted: false
+//   else: ProgressMeetsRequired(progress, requiredProgress)
+//
+// requiredProgress — host-injected content requiredProgress (Lua truthy; 0 skip)
+// progress         — host-injected instance progress after update
+// alreadyCompleted — host-injected instance:completed()
+// true  → host calls instance:complete()
+// false → leave instance running
+//
+// Dual-wire of Go assault.ShouldAutoComplete.
+// Call site: future Lua InstanceAssault:onInstanceProgressUpdate inject.
+// Prior pure port: slice 1078. Residual dual-wire suite: 2860 /
+// test_assault_auto_complete_2860. Dedicated dual-wire suite is
+// test_assault_auto_complete_3057. Residual ProgressMeetsRequired remains the
+// pure threshold (no truthy/completed gates).
 // requiredProgress uses Lua truthy semantics (0 → skip). Host still calls complete().
 inline auto ShouldAutoComplete(const int32 requiredProgress, const int32 progress, const bool alreadyCompleted) -> bool
 {

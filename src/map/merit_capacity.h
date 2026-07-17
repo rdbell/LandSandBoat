@@ -6,6 +6,20 @@
 // AddLimitPoints conversion plan, and IsMeritExist bounds gate.
 // Spell unlocks, weaponskill unlocks, next-cost table lookup, count mutation,
 // and BuildingCharTraitsTable stay host-side after apply.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 2805: ShouldRaiseMerit / PlanRaiseMerit (RaiseMerit admission plan)
+//   - 2810: PlanLowerMerit (LowerMerit admission plan; uses ShouldLowerMerit)
+//   - 2811: PlanAddLimitPoints (AddLimitPoints conversion plan)
+//   - 2816: IsMeritExist (IsMeritExist bounds gate)
+//   - 3054: ShouldLowerMerit (count > 0 LowerMerit count-decrement gate half)
+//
+// Production host: CMeritPoints::LowerMerit (merit.cpp) injects
+// (PMerit != nullptr) and PMerit->count into PlanLowerMerit / ShouldLowerMerit;
+// on apply decrements count, refreshes next from upgrade tables, optional
+// spell/WS del hosts.
+// Go dual-wire: merit.ShouldLowerMerit (internal/merit/lower_merit.go);
+// merit.PlanLowerMerit (internal/merit/entry.go residual 2810).
 
 namespace meritshelpers
 {
@@ -55,8 +69,26 @@ inline auto PlanRaiseMerit(
     };
 }
 
-// ShouldLowerMerit mirrors the LowerMerit count-decrement gate:
+// ShouldLowerMerit mirrors the LowerMerit count-decrement gate.
+//
+// Formula (slice 3054 dual-wire):
 //   count > 0
+//
+// count — host-evaluated Merit_t.count (0 when merit pointer absent)
+// true  → admit LowerMerit count decrement (host refreshes next, may del spell/WS)
+// false → block lower (count already zero)
+//
+// Isolated count-decrement gate half of PlanLowerMerit / CMeritPoints::LowerMerit.
+// Points are not refunded. Presence of the merit pointer is a separate
+// PlanLowerMerit inject (meritPresent); this free function only checks count > 0.
+//
+// Dual-wire of Go merit.ShouldLowerMerit.
+// Call site: CMeritPoints::LowerMerit via PlanLowerMerit — host injects
+// PMerit->count (0 when absent); on true host decrements count and refreshes next.
+// Prior pure port: slice 2810 (LowerMerit admission plan suite). Residual pins
+// remain in test_merit_lower_plan_2810; dedicated dual-wire suite is
+// test_merit_lower_3054. Sibling residual: PlanLowerMerit / ShouldRaiseMerit
+// (2810 / 2805).
 inline auto ShouldLowerMerit(const uint8 count) -> bool
 {
     return count > 0;
