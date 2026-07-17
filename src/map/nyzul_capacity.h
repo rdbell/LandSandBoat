@@ -26,8 +26,10 @@
 //           (retained; formula unchanged: currentFloor == Floor100)
 //   - 3449: ShouldDropFloor100VigilWeapons prior dedicated dual-wire expand residual 2900
 //           (retained; prior dedicated 3352; formula unchanged: currentFloor == Floor100)
-//   - 3502: ShouldDropFloor100VigilWeapons dedicated dual-wire expand residual 2900
-//           (prior dedicated 3352 / 3449; formula unchanged: currentFloor == Floor100)
+//   - 3502: ShouldDropFloor100VigilWeapons prior dedicated dual-wire expand residual 2900
+//           (retained; prior dedicated 3352 / 3449; formula unchanged: currentFloor == Floor100)
+//   - 3570: ShouldDropFloor100VigilWeapons dedicated dual-wire expand residual 2900
+//           (prior dedicated 3352 / 3449 / 3502; formula unchanged: currentFloor == Floor100)
 //
 // Dual-wire index:
 //   - 2900: ShouldDropFloor100VigilWeapons residual pure dual-wire
@@ -42,8 +44,10 @@
 //           (retained)
 //   - 3449: ShouldDropFloor100VigilWeapons prior dedicated dual-wire expand residual 2900
 //           (retained; prior dedicated 3352)
-//   - 3502: ShouldDropFloor100VigilWeapons = currentFloor == Floor100
-//     dedicated dual-wire expand residual 2900 (prior dedicated 3352 / 3449)
+//   - 3502: ShouldDropFloor100VigilWeapons prior dedicated dual-wire expand residual 2900
+//           (retained; prior dedicated 3352 / 3449)
+//   - 3570: ShouldDropFloor100VigilWeapons = currentFloor == Floor100
+//     dedicated dual-wire expand residual 2900 (prior dedicated 3352 / 3449 / 3502)
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
@@ -222,12 +226,12 @@ inline auto CanClaimRuneHandler(const int32 runeHandler) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2900 residual / 3352+3449 prior dedicated / 3502 expand residual 2900
+// Slice 2900 residual / 3352+3449+3502 prior dedicated / 3570 expand residual 2900
 // — vigilWeaponDrop floor-100 guaranteed-drop gate
 // ---------------------------------------------------------------------------
-// Dual-wire notes (slice 3502):
+// Dual-wire notes (slice 3570):
 //   Formula unchanged from residual 1088 / residual dual-wire 2900 /
-//   prior dedicated 3352 / 3449:
+//   prior dedicated 3352 / 3449 / 3502:
 //     ShouldDropFloor100VigilWeapons(currentFloor) = currentFloor == Floor100
 //     // Floor100 == 100
 //   Go dual-wire: nyzul.ShouldDropFloor100VigilWeapons
@@ -238,9 +242,9 @@ inline auto CanClaimRuneHandler(const int32 runeHandler) -> bool
 //   Host still owns disk-holder / random treasure grants on true and the
 //   non-100 NM 20% roll path on false (ShouldRollNMVigilWeapon / slice 2909).
 //   Sibling free_floor / claim_rune dual-wires left alone — do not thrash.
-// Coverage: test_nyzul_floor100_vigil_3502 (dedicated expand residual 2900;
-// not in CMake/main); residual 2900 and prior dedicated 3352 / 3449 suites
-// retained.
+// Coverage: test_nyzul_floor100_vigil_3570 (dedicated expand residual 2900;
+// not in CMake/main); residual 2900 and prior dedicated 3352 / 3449 / 3502
+// suites retained.
 
 // Floor100 is the floor pin for guaranteed vigil weapon drops
 // (Nyzul_Current_Floor == 100).
@@ -249,15 +253,15 @@ inline constexpr int32 Floor100 = 100;
 // ShouldDropFloor100VigilWeapons mirrors vigilWeaponDrop floor-100 gate:
 //   instance:getLocalVar('Nyzul_Current_Floor') == 100
 //
-// Formula (slice 3502 dual-wire expand residual 2900; prior dedicated 3352 /
-// 3449; unchanged):
+// Formula (slice 3570 dual-wire expand residual 2900; prior dedicated 3352 /
+// 3449 / 3502; unchanged):
 //   ShouldDropFloor100VigilWeapons(currentFloor) = currentFloor == Floor100
 //
 // currentFloor is the host-injected Nyzul_Current_Floor localVar. Host still
 // owns disk-holder / random treasure grants on true and the non-100 NM 20%
 // roll path on false (ShouldRollNMVigilWeapon / slice 2909).
 // Dual-wire of Go nyzul.ShouldDropFloor100VigilWeapons
-// (floor100_vigil.go / slice 3502).
+// (floor100_vigil.go / slice 3570).
 inline auto ShouldDropFloor100VigilWeapons(const int32 currentFloor) -> bool
 {
     return currentFloor == Floor100;
