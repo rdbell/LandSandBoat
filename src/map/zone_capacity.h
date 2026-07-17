@@ -13,6 +13,16 @@
 #include <string>
 
 // Pure CZone admission / level-restriction / counter policy for native tests.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1363: zone admission / level-restriction / weather / counter policy suite
+//   - 2652: ShouldStopZoneTimers (idle shutdown)
+//   - 2848: IsMobAwayFromHome / ShouldReportAllMobsHomeAndHealed
+//   - 2939: ShouldStampZoneEmptyTime (charListEmpty after DecreaseZoneCounter)
+//
+// Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
+// CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty.
+// Go dual-wire: zone.ShouldStampZoneEmptyTime (internal/zone/stamp_empty.go).
 
 namespace zonehelpers
 {
@@ -81,6 +91,18 @@ inline auto ShouldCreateZoneTimers(const bool hasZoneTimerToken, const bool char
 }
 
 // ShouldStampZoneEmptyTime mirrors CharListEmpty after DecreaseZoneCounter.
+//
+// Formula (slice 2939 dual-wire):
+//   charListEmpty
+//
+// charListEmpty — host-evaluated m_zoneEntities->CharListEmpty() after decrease
+// true  → stamp m_timeZoneEmpty = timer::now() (zone idle-empty clock starts)
+// false → else-branch: ShouldDespawnPCOnLeave may DespawnPC for remaining PCs
+//
+// Dual-wire of Go zone.ShouldStampZoneEmptyTime.
+// Call site: CZone::DecreaseZoneCounter after DecreaseZoneCounter entities update.
+// Prior pure port: slice 1363 (zone policy suite). Residual pins remain in
+// test_zone_policy_1363; dedicated dual-wire suite is test_zone_stamp_empty_2939.
 inline auto ShouldStampZoneEmptyTime(const bool charListEmpty) -> bool
 {
     return charListEmpty;

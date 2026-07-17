@@ -1229,6 +1229,11 @@ auto runAuctionRefreshHistory2935SelfTests() -> bool;
 auto runMapsessionPendingSession2936SelfTests() -> bool;
 auto runPartyRejectTrusts2937SelfTests() -> bool;
 auto runTreasureAutoSolo2938SelfTests() -> bool;
+auto runZoneStampEmpty2939SelfTests() -> bool;
+auto runCommandPermission2940SelfTests() -> bool;
+auto runAllianceSkipDelParty2941SelfTests() -> bool;
+auto runItemcontainerInsertSlot2942SelfTests() -> bool;
+auto runCharClearPendingPop2943SelfTests() -> bool;
 
 namespace
 {
@@ -2435,6 +2440,11 @@ namespace
         ok = runMapsessionPendingSession2936SelfTests() && ok;
         ok = runPartyRejectTrusts2937SelfTests() && ok;
         ok = runTreasureAutoSolo2938SelfTests() && ok;
+        ok = runZoneStampEmpty2939SelfTests() && ok;
+        ok = runCommandPermission2940SelfTests() && ok;
+        ok = runAllianceSkipDelParty2941SelfTests() && ok;
+        ok = runItemcontainerInsertSlot2942SelfTests() && ok;
+        ok = runCharClearPendingPop2943SelfTests() && ok;
 
         return ok;
     }

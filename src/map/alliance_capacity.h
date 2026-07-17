@@ -8,6 +8,19 @@
 
 // Pure CAlliance capacity gates extracted so native tests can pin policy
 // without DB, party pointers, or packets.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1329: local/remote isFull, hasOnlyOneParty, loadPartyCount query
+//   - 1339: dissolveAlliance path / dissolve server filter / flag clear mask
+//   - 1341: removeParty plan, delParty null warning, ShouldSkipDelPartyWhenEmpty
+//   - 1346: assignAllianceLeader gate / leader flag / local main party
+//   - 2941: ShouldSkipDelPartyWhenEmpty (!hasAlliance || partyListEmpty)
+//
+// Production host: CAlliance::delParty (alliance.cpp) injects
+// party->m_PAlliance != nullptr and partyList.empty() into
+// ShouldSkipDelPartyWhenEmpty before erasing from partyList.
+// Go dual-wire: alliance.ShouldSkipDelPartyWhenEmpty
+// (internal/alliance/skip_del_party.go).
 
 namespace alliancehelpers
 {
@@ -142,7 +155,22 @@ inline auto FormatDelPartyNullWarning() -> std::string
     return "CAlliance::delParty - party is null!";
 }
 
-// ShouldSkipDelPartyWhenEmpty mirrors !party->m_PAlliance || partyList.size()==0.
+// ShouldSkipDelPartyWhenEmpty mirrors delParty's empty-alliance early return:
+// !party->m_PAlliance || partyList.size()==0.
+//
+// Formula (slice 2941 dual-wire):
+//   !hasAlliance || partyListEmpty
+//
+// hasAlliance     — host-evaluated party->m_PAlliance != nullptr
+// partyListEmpty  — host-evaluated partyList.size()==0 (when hasAlliance;
+//                   production injects hasAlliance && size==0 so false when
+//                   m_PAlliance is null)
+// true  → skip delParty body (no alliance, or alliance has no parties)
+// false → proceed (erase from partyList, clear m_PAlliance, treasure pool, …)
+//
+// Dual-wire of Go alliance.ShouldSkipDelPartyWhenEmpty.
+// Call site: CAlliance::delParty after null-party check.
+// Residual pure port: slice 1341 (removeParty / delParty plan suite).
 inline auto ShouldSkipDelPartyWhenEmpty(const bool hasAlliance, const bool partyListEmpty) -> bool
 {
     return !hasAlliance || partyListEmpty;

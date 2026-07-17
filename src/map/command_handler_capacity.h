@@ -6,6 +6,16 @@
 
 // Pure CCommandHandler::call permission / audit policy halves.
 // Lua table lookup (xi.commands / cmdprops / onTrigger) stays host-side.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 2792: permission / audit plan suite (null/name/perm/audit + post-props)
+//   - 2836: ShouldRejectEmptyCommandLine (ParseCommandLine empty after trim)
+//   - 2940: ShouldAllowCommandPermission (permission <= m_GMlevel)
+//
+// Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
+// cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
+// Go dual-wire: command.ShouldAllowCommandPermission
+// (internal/command/permission.go).
 
 namespace commandhandlerhelpers
 {
@@ -25,13 +35,20 @@ inline auto ShouldRejectEmptyCommandName(const bool valid) -> bool
 
 // ShouldAllowCommandPermission mirrors !(permission > PChar->m_GMlevel).
 //
+// Formula (slice 2940 dual-wire):
+//   static_cast<int>(permission) <= static_cast<int>(gmLevel)
+// which is equivalent to !(permission > gmLevel) after usual arithmetic
+// conversions promote int8 / uint8 to int.
+//
 // LSB types: permission is int8 from Lua cmdprops; m_GMlevel is uint8.
-// The C++ comparison uses usual arithmetic conversions (both promote to int
-// on typical platforms), so negative permission never exceeds any gmLevel.
-// Host fails the call when this returns false.
+// Negative permission never exceeds any gmLevel after signed promotion.
+// Host fails the call when this returns false (warn Failure).
+//
+// Dual-wire of Go command.ShouldAllowCommandPermission.
+// Call site: CCommandHandler::call via PlanCommandCallPostProps after cmdprops load.
 inline auto ShouldAllowCommandPermission(const uint8 gmLevel, const int8 permission) -> bool
 {
-    return !(permission > gmLevel);
+    return static_cast<int>(permission) <= static_cast<int>(gmLevel);
 }
 
 // ShouldAuditGMCommand mirrors auditLevel <= permission && auditLevel > 0

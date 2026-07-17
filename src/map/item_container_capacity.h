@@ -5,6 +5,18 @@
 // Pure CItemContainer size / insert / remove / move policy.
 // Host injects scalars (size, count, occupancy, free slots); helpers never
 // touch CItem* or container storage.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 2802: size / insert / remove / move policy suite
+//   - 2808 / 2823: SearchItemWithSpace / MatchesSearchItem gates
+//   - 2826: FreeSlotsCount (unsigned size-minus-count)
+//   - 2831: CanSearchSlotID (GetItem / search inclusive range)
+//   - 2942: CanInsertAtSlot (InsertItem(PItem, SlotID) range gate)
+//
+// Production host: CItemContainer::InsertItem(PItem, SlotID)
+// (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
+// Go dual-wire: itemcontainer.CanInsertAtSlot
+// (internal/itemcontainer/insert_slot.go).
 
 namespace itemcontainerhelpers
 {
@@ -33,6 +45,17 @@ inline auto ShouldDecrementCountOnRemove(const bool slotOccupied, const std::uin
 
 // CanInsertAtSlot mirrors InsertItem(PItem, SlotID) range gate: reject when
 // SlotID > size, so slotID <= size is accepted (including slot 0).
+//
+// Formula (slice 2942 dual-wire):
+//   slotID <= size
+//
+// slotID — host-evaluated explicit InsertItem SlotID
+// size   — host-evaluated m_size (usable slot count)
+// true  → allow InsertItem at SlotID (host still moves unique_ptr / sets location)
+// false → reject with ERROR_SLOTID (out of range)
+//
+// Dual-wire of Go itemcontainer.CanInsertAtSlot.
+// Call site: CItemContainer::InsertItem(PItem, SlotID) before ownership move.
 inline auto CanInsertAtSlot(const std::uint8_t slotID, const std::uint8_t size) -> bool
 {
     return slotID <= size;

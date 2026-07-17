@@ -2451,6 +2451,16 @@ set(SOURCES
     test_party_reject_trusts_2937.cpp
     test_treasure_auto_solo_2938.h
     test_treasure_auto_solo_2938.cpp
+    test_zone_stamp_empty_2939.h
+    test_zone_stamp_empty_2939.cpp
+    test_command_permission_2940.h
+    test_command_permission_2940.cpp
+    test_alliance_skip_del_party_2941.h
+    test_alliance_skip_del_party_2941.cpp
+    test_itemcontainer_insert_slot_2942.h
+    test_itemcontainer_insert_slot_2942.cpp
+    test_char_clear_pending_pop_2943.h
+    test_char_clear_pending_pop_2943.cpp
 )
 
 if(UNIX)
