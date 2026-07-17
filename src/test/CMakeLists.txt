@@ -2871,6 +2871,16 @@ set(SOURCES
     test_artisan_gobbie_upgrade_flag_3147.cpp
     test_abyssea_buff_power_3148.h
     test_abyssea_buff_power_3148.cpp
+    test_apkallu_can_run_away_3149.h
+    test_apkallu_can_run_away_3149.cpp
+    test_aman_can_thumbs_up_3150.h
+    test_aman_can_thumbs_up_3150.cpp
+    test_dynamis_can_unlock_sj_3151.h
+    test_dynamis_can_unlock_sj_3151.cpp
+    test_avatarpet_can_apply_buff_3152.h
+    test_avatarpet_can_apply_buff_3152.cpp
+    test_extravaganza_can_afford_cipher_3153.h
+    test_extravaganza_can_afford_cipher_3153.cpp
 )
 
 if(UNIX)

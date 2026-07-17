@@ -3,7 +3,12 @@
 #include "common/cbasetypes.h"
 
 // Pure Alter Ego Extravaganza helpers shared by dual-wire slices:
-//   - 2881: CanAffordCipher (shadowEraFinish allied_notes gate)
+//   - 2881: CanAffordCipher residual dual-wire suite (shadowEraFinish notes)
+//   - 3153: CanAffordCipher dedicated dual-wire (afford_cipher.go)
+//
+// Dual-wire index:
+//   - 2881: CanAffordCipher residual dual-wire suite
+//   - 3153: CanAffordCipher = notes >= CipherPurchaseNotes  // 1000
 //
 // Lua production host: scripts/globals/extravaganza.lua
 //   xi.extravaganza.shadowEraFinish (~82–105):
@@ -24,11 +29,20 @@
 //
 // giveItem / delCurrency / messageSpecial writeback remains host-owned.
 // Prior pure port: OmegaXI slice 0949 (internal/extravaganza).
+// Residual dual-wire suite: 2881 (test_extravaganza_afford_cipher_2881).
+// Dedicated dual-wire: 3153 (test_extravaganza_can_afford_cipher_3153).
+// Go dual-wire: extravaganza.CanAffordCipher (internal/extravaganza/afford_cipher.go).
+// Future Lua host injects free function then grant/debit/message writeback.
 
 namespace extravaganzahelpers
 {
 
+// ---------------------------------------------------------------------------
+// Slice 2881 residual / 3153 dedicated — shadowEraFinish allied_notes gate
+// ---------------------------------------------------------------------------
+
 // Allied_notes cost of one Shadow Era cipher (shadowEraFinish).
+// Same value used for delCurrency debit on success.
 inline constexpr int32 CipherPurchaseNotes = 1000;
 
 // CanAffordCipher is the pure free-function form of the shadowEraFinish
@@ -36,8 +50,15 @@ inline constexpr int32 CipherPurchaseNotes = 1000;
 //
 //   notes >= CipherPurchaseNotes  // 1000
 //
+// Formula (slice 3153 dedicated dual-wire; residual expand 2881 / pure 0949 —
+// formula unchanged):
+//
+//   CanAffordCipher(notes) = notes >= CipherPurchaseNotes
+//
 // Future Lua host injects the currency scalar into this helper instead of
-// re-inlining the comparison.
+// re-inlining the comparison. Residual dual-wire suite: 2881 /
+// test_extravaganza_afford_cipher_2881. Dedicated dual-wire suite is
+// test_extravaganza_can_afford_cipher_3153.
 inline auto CanAffordCipher(const int32 notes) -> bool
 {
     return notes >= CipherPurchaseNotes;

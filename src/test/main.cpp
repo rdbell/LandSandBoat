@@ -1439,6 +1439,11 @@ auto runAssaultIssueNewTag3145SelfTests() -> bool;
 auto runSalvageResetTempBox3146SelfTests() -> bool;
 auto runArtisanGobbieUpgradeFlag3147SelfTests() -> bool;
 auto runAbysseaBuffPower3148SelfTests() -> bool;
+auto runApkalluCanRunAway3149SelfTests() -> bool;
+auto runAmanCanThumbsUp3150SelfTests() -> bool;
+auto runDynamisCanUnlockSJ3151SelfTests() -> bool;
+auto runAvatarpetCanApplyBuff3152SelfTests() -> bool;
+auto runExtravaganzaCanAffordCipher3153SelfTests() -> bool;
 
 namespace
 {
@@ -2855,6 +2860,11 @@ namespace
         ok = runSalvageResetTempBox3146SelfTests() && ok;
         ok = runArtisanGobbieUpgradeFlag3147SelfTests() && ok;
         ok = runAbysseaBuffPower3148SelfTests() && ok;
+        ok = runApkalluCanRunAway3149SelfTests() && ok;
+        ok = runAmanCanThumbsUp3150SelfTests() && ok;
+        ok = runDynamisCanUnlockSJ3151SelfTests() && ok;
+        ok = runAvatarpetCanApplyBuff3152SelfTests() && ok;
+        ok = runExtravaganzaCanAffordCipher3153SelfTests() && ok;
 
         return ok;
     }

@@ -4,7 +4,12 @@
 
 // Pure CAMANContainer dual-wire helpers shared by OmegaXI slices:
 //   - 0698: residual pure port (internal/aman mentor/mute state)
-//   - 2967: CanThumbsUp (cooldown-expired identity gate)
+//   - 2967: CanThumbsUp residual dual-wire suite (thumbs_up)
+//   - 3150: CanThumbsUp dedicated dual-wire (thumbs_up.go)
+//
+// Dual-wire index:
+//   - 2967: CanThumbsUp residual dual-wire suite
+//   - 3150: CanThumbsUp = cooldownExpired (identity)
 //
 // Production host: CAMANContainer::canThumbsUp in aman.cpp:
 //
@@ -26,11 +31,16 @@
 // emission remain host-owned.
 //
 // Go dual-wire: aman.CanThumbsUp (internal/aman/thumbs_up.go).
+// Residual dual-wire suite: 2967.
+// Dedicated dual-wire suite: 3150.
+// Prior pure port: OmegaXI slice 0698 (internal/aman).
 
 namespace amanhelpers
 {
 
-// CanThumbsUp mirrors CAMANContainer::canThumbsUp pure half (slice 2967):
+// CanThumbsUp mirrors CAMANContainer::canThumbsUp pure half
+// (slice 3150 dedicated dual-wire; residual expand 2967 / pure 0698 —
+// formula unchanged):
 //
 //   CanThumbsUp(cooldownExpired) = cooldownExpired
 //

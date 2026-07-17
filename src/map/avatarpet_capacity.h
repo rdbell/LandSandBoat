@@ -8,7 +8,15 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1043: residual pure port (internal/avatarpet catalogs + injects)
-//   - 2968: CanApplyBuff (tryBuffSpell canApplyBuff tier overwrite inject)
+//   - 2968: CanApplyBuff residual dual-wire suite (tryBuffSpell canApplyBuff)
+//   - 3152: CanApplyBuff dedicated dual-wire (can_apply_buff.go)
+//
+// Dual-wire index:
+//   - 2968: CanApplyBuff residual dual-wire suite
+//   - 3152: CanApplyBuff =
+//       !hasStatusEffect || (spellHasTier && statusTier < spellTier)
+//     (positive form: no status → true; status + !spellHasTier → false;
+//      else statusTier < spellTier)
 //
 // Lua production host: scripts/globals/pets/avatar.lua tryBuffSpell (~121–122):
 //
@@ -28,6 +36,8 @@
 //
 // Party shuffle, distance, isAlive, and cast selection remain host-owned.
 // Prior pure port: OmegaXI slice 1043 (internal/avatarpet).
+// Residual dual-wire suite: 2968 / test_avatarpet_apply_buff_2968.
+// Dedicated dual-wire: 3152 / test_avatarpet_can_apply_buff_3152.
 //
 // This capacity dual-wires the free-function form used by OmegaXI
 // internal/avatarpet (can_apply_buff.go) so hosts call CanApplyBuff instead
@@ -41,8 +51,14 @@
 namespace avatarpethelpers
 {
 
-// CanApplyBuff mirrors tryBuffSpell's canApplyBuff pure half (slice 2968):
+// ---------------------------------------------------------------------------
+// 2968 residual / 3152 dedicated — tryBuffSpell canApplyBuff tier overwrite
+// ---------------------------------------------------------------------------
+
+// CanApplyBuff mirrors tryBuffSpell's canApplyBuff pure half:
 //
+// Formula (slice 3152 dedicated dual-wire; residual expand 2968 / pure 1043 —
+// formula unchanged):
 //   if !hasStatusEffect → true
 //   if !spellHasTier    → false  (Haste/Regen never reapply while active)
 //   else                → statusTier < spellTier
@@ -51,7 +67,14 @@ namespace avatarpethelpers
 //
 //   !hasStatusEffect || (spellHasTier && statusTier < spellTier)
 //
-// Matches Go avatarpet.CanApplyBuff (1043 residual / 2968 dual-wire).
+// Host injects status presence + tiers only. Host still owns status lookup,
+// party shuffle, distance, isAlive, and cast selection.
+// Dual-wire of Go avatarpet.CanApplyBuff (can_apply_buff.go).
+// Call site: future Lua tryBuffSpell inject.
+// Prior pure port: slice 1043. Residual dual-wire suite: 2968 /
+// test_avatarpet_apply_buff_2968. Dedicated dual-wire suite is
+// test_avatarpet_can_apply_buff_3152.
+// Matches Go avatarpet.CanApplyBuff (1043 residual / 2968 / 3152 dual-wire).
 inline auto CanApplyBuff(const bool hasStatusEffect, const uint8 statusTier, const bool spellHasTier, const uint8 spellTier) -> bool
 {
     if (!hasStatusEffect)

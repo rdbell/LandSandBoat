@@ -3,7 +3,12 @@
 #include "common/cbasetypes.h"
 
 // Pure Apkallu helpers for dual-wire slices:
-//   - 2880: CanRunAway (getHateTier(hate) >= 3)
+//   - 2880: CanRunAway residual dual-wire suite (getHateTier(hate) >= 3)
+//   - 3149: CanRunAway dedicated dual-wire (can_run_away.go)
+//
+// Dual-wire index:
+//   - 2880: CanRunAway residual dual-wire suite
+//   - 3149: CanRunAway (GetHateTier(hate) >= 3 ≡ hate >= 45)
 //
 // Lua production host: scripts/globals/apkallu.lua
 //   xi.apkallu.canRunAway = function(mob)
@@ -17,7 +22,9 @@
 //
 // Entity track / initialize / setLocalVar('RunAway') remains host-owned.
 // Prior pure port: OmegaXI slice 0925 (internal/apkallu).
-// Dual-wire of Go apkallu.CanRunAway / GetHateTier (slice 2880).
+// Residual dual-wire suite: slice 2880 / test_apkallu_can_run_away_2880.
+// Dedicated dual-wire suite: slice 3149 / test_apkallu_can_run_away_3149.
+// Dual-wire of Go apkallu.CanRunAway / GetHateTier.
 
 namespace apkalluhelpers
 {
@@ -47,6 +54,22 @@ inline auto GetHateTier(const int32 hate) -> int32
     }
     return 0;
 }
+
+// ---------------------------------------------------------------------------
+// Slice 2880 / 3149 — CanRunAway pure dual-wire
+//
+// Formula (slice 3149 dedicated dual-wire; residual expand 2880; pure inject
+// 0925 — formula unchanged):
+//   CanRunAway(hate) = GetHateTier(hate) >= 3
+//   // ≡ hate >= kHateTier3Min (45)
+//
+// Dual-wire of Go apkallu.CanRunAway.
+// Call site: future Lua canRunAway / SPAWN mixin inject.
+// Prior pure port: slice 0925. Residual dual-wire suite: 2880 /
+// test_apkallu_can_run_away_2880. Dedicated dual-wire suite is
+// test_apkallu_can_run_away_3149. Host still owns getZoneID, server-variable
+// load/store, and setLocalVar('RunAway') writeback.
+// ---------------------------------------------------------------------------
 
 // CanRunAway is the pure half of xi.apkallu.canRunAway once hate is injected:
 //   GetHateTier(hate) >= 3
