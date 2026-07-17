@@ -937,6 +937,16 @@ set(SOURCES
     test_reive_spawn_on_enable_2882.cpp
     test_follow_can_follow_2883.h
     test_follow_can_follow_2883.cpp
+    test_voidwalker_upgrade_ki_2884.h
+    test_voidwalker_upgrade_ki_2884.cpp
+    test_darkixion_break_horn_2885.h
+    test_darkixion_break_horn_2885.cpp
+    test_seals_pack_trade_2886.h
+    test_seals_pack_trade_2886.cpp
+    test_manaclipper_remaining_minutes_2887.h
+    test_manaclipper_remaining_minutes_2887.cpp
+    test_ambuscade_warp_exit_2888.h
+    test_ambuscade_warp_exit_2888.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h
