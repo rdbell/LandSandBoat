@@ -3381,6 +3381,16 @@ set(SOURCES
     test_spell_return_zero_no_mp_cost_3402.cpp
     test_linkshell_send_message_ipc_3403.h
     test_linkshell_send_message_ipc_3403.cpp
+    test_guildpoints_can_afford_3404.h
+    test_guildpoints_can_afford_3404.cpp
+    test_follow_can_follow_3405.h
+    test_follow_can_follow_3405.cpp
+    test_garrison_fail_by_death_3406.h
+    test_garrison_fail_by_death_3406.cpp
+    test_apkallu_can_run_away_3407.h
+    test_apkallu_can_run_away_3407.cpp
+    test_extravaganza_can_afford_cipher_3408.h
+    test_extravaganza_can_afford_cipher_3408.cpp
 )
 
 if(UNIX)

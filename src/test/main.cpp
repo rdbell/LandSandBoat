@@ -1694,6 +1694,11 @@ auto runCommandAuditGMCommand3400SelfTests() -> bool;
 auto runAistateDelActorOnAttack3401SelfTests() -> bool;
 auto runSpellReturnZeroNoMPCost3402SelfTests() -> bool;
 auto runLinkshellSendMessageIPC3403SelfTests() -> bool;
+auto runGuildpointsCanAfford3404SelfTests() -> bool;
+auto runFollowCanFollow3405SelfTests() -> bool;
+auto runGarrisonFailByDeath3406SelfTests() -> bool;
+auto runApkalluCanRunAway3407SelfTests() -> bool;
+auto runExtravaganzaCanAffordCipher3408SelfTests() -> bool;
 
 namespace
 {
@@ -3365,6 +3370,11 @@ namespace
         ok = runAistateDelActorOnAttack3401SelfTests() && ok;
         ok = runSpellReturnZeroNoMPCost3402SelfTests() && ok;
         ok = runLinkshellSendMessageIPC3403SelfTests() && ok;
+        ok = runGuildpointsCanAfford3404SelfTests() && ok;
+        ok = runFollowCanFollow3405SelfTests() && ok;
+        ok = runGarrisonFailByDeath3406SelfTests() && ok;
+        ok = runApkalluCanRunAway3407SelfTests() && ok;
+        ok = runExtravaganzaCanAffordCipher3408SelfTests() && ok;
 
         return ok;
     }
