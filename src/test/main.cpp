@@ -1674,6 +1674,11 @@ auto runFishingContestPlaceholders3380SelfTests() -> bool;
 auto runBattlefieldEnterPC3381SelfTests() -> bool;
 auto runAmbuscadeStartExit3382SelfTests() -> bool;
 auto runSynergyOperateFurnace3383SelfTests() -> bool;
+auto runZoneHighTargid3384SelfTests() -> bool;
+auto runNotorietyScanPrune3385SelfTests() -> bool;
+auto runUnityRejectNullOnline3386SelfTests() -> bool;
+auto runSpawnRejectNight3387SelfTests() -> bool;
+auto runAssaultIssueTag3388SelfTests() -> bool;
 
 namespace
 {
@@ -3325,6 +3330,11 @@ namespace
         ok = runBattlefieldEnterPC3381SelfTests() && ok;
         ok = runAmbuscadeStartExit3382SelfTests() && ok;
         ok = runSynergyOperateFurnace3383SelfTests() && ok;
+        ok = runZoneHighTargid3384SelfTests() && ok;
+        ok = runNotorietyScanPrune3385SelfTests() && ok;
+        ok = runUnityRejectNullOnline3386SelfTests() && ok;
+        ok = runSpawnRejectNight3387SelfTests() && ok;
+        ok = runAssaultIssueTag3388SelfTests() && ok;
 
         return ok;
     }

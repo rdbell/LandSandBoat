@@ -16,14 +16,18 @@
 //   - 3192: ShouldRemoveNotorietyMember dedicated dual-wire
 //           (ownerPresent && entityPresent;
 //            residual expand 2971 / pure 2819)
-//   - 3020: ShouldScanNotorietyForPrune (hasEnmity outer gate two-bool AND)
+//   - 3020: ShouldScanNotorietyForPrune prior dual-wire
+//           (hasEnmity outer gate two-bool AND; pure 2807)
+//   - 3385: ShouldScanNotorietyForPrune dedicated dual-wire
+//           (ownerPresent && lookupNonEmpty;
+//            residual expand 3020 / pure 2807)
 //   - 3029: ShouldPruneMobFromNotoriety residual dual-wire expand
 //   - 3208: ShouldPruneMobFromNotoriety dedicated dual-wire
 //           (if !isMob → false; else (isAlive && notOnEnmityList) || isDead;
 //            residual expand 3029 / pure 2807)
 //   - 3034: HasEnmityAfterPrune (hasEnmity final empty report NOT empty)
 //   - residual 2807: hasEnmity stale-mob prune gates
-//     (ShouldScanNotorietyForPrune dual-wired as 3020;
+//     (ShouldScanNotorietyForPrune dual-wired as 3020 / dedicated 3385;
 //      ShouldPruneMobFromNotoriety dual-wired as 3029 / dedicated 3208)
 //   - residual 2818: add admission (prior pure port of ShouldAddNotorietyMember)
 //   - residual 2819: remove admission (prior pure port of ShouldRemoveNotorietyMember)
@@ -44,6 +48,8 @@
 // Dedicated dual-wire suite: 3192 / test_notoriety_remove_member_3192.
 // Go dual-wire: notoriety.ShouldScanNotorietyForPrune
 // (internal/notoriety/scan_prune.go). Prior pure port: slice 2807.
+// Residual dual-wire suite: 3020 / test_notoriety_scan_prune_3020.
+// Dedicated dual-wire suite: 3385 / test_notoriety_scan_prune_3385.
 // Go dual-wire: notoriety.ShouldPruneMobFromNotoriety
 // (internal/notoriety/prune_mob.go). Prior pure port: slice 2807.
 // Residual dual-wire suite: 3029 / test_notoriety_prune_mob_3029.
@@ -57,7 +63,8 @@ namespace notorietyhelpers
 // ShouldScanNotorietyForPrune mirrors the hasEnmity outer gate (~81):
 //   m_POwner && !m_Lookup.empty()
 //
-// Formula (slice 3020 dual-wire):
+// Formula (slice 3385 dedicated dual-wire; residual expand 3020 / pure 2807 —
+// formula unchanged):
 //   ownerPresent && lookupNonEmpty
 //
 // Host-injected scalars (no entity / set pointers):
@@ -68,7 +75,15 @@ namespace notorietyhelpers
 //
 // Dual-wire of Go notoriety.ShouldScanNotorietyForPrune
 // (internal/notoriety/scan_prune.go). Prior pure port: slice 2807.
+// Residual dual-wire suite: 3020 / test_notoriety_scan_prune_3020.
+// Dedicated dual-wire suite is test_notoriety_scan_prune_3385. Formula is
+// unchanged; this slice only expands dual-wire docs + index + dedicated suite
+// (free == inline == pin residual pins).
 // Call site: CNotorietyContainer::hasEnmity (notoriety_container.cpp).
+// Sibling left alone: ShouldAddNotorietyMember (3327; prior dedicated 3297 /
+// 3267 / 3165), ShouldRemoveNotorietyMember (3192),
+// ShouldPruneMobFromNotoriety (3208; residual 3029), HasEnmityAfterPrune (3034).
+// Do not thrash add_member.
 inline auto ShouldScanNotorietyForPrune(const bool ownerPresent, const bool lookupNonEmpty) -> bool
 {
     return ownerPresent && lookupNonEmpty;
@@ -103,9 +118,9 @@ inline auto ShouldScanNotorietyForPrune(const bool ownerPresent, const bool look
 // Dedicated dual-wire suite is test_notoriety_prune_mob_3208. Formula is
 // unchanged; this slice only expands dual-wire docs + index + dedicated suite.
 // Call site: CNotorietyContainer::hasEnmity (notoriety_container.cpp).
-// Sibling outer gate: ShouldScanNotorietyForPrune (slice 3020).
+// Sibling outer gate: ShouldScanNotorietyForPrune (dedicated 3385; residual 3020).
 // Sibling left alone: ShouldAddNotorietyMember (3327; prior dedicated 3297 / 3267 / 3165),
-// ShouldRemoveNotorietyMember (3192), ShouldScanNotorietyForPrune (3020).
+// ShouldRemoveNotorietyMember (3192), ShouldScanNotorietyForPrune (3385; residual 3020).
 inline auto ShouldPruneMobFromNotoriety(
     const bool isMob,
     const bool isAlive,
@@ -193,9 +208,9 @@ inline auto ShouldRemoveNotorietyMember(const bool ownerPresent, const bool enti
 // Dual-wire of Go notoriety.HasEnmityAfterPrune
 // (internal/notoriety/has_enmity_after_prune.go). Prior pure port: slice 2832.
 // Call site: CNotorietyContainer::hasEnmity (notoriety_container.cpp).
-// Sibling outer scan / per-entry prune: ShouldScanNotorietyForPrune (3020) /
-// ShouldPruneMobFromNotoriety (3208; residual 3029). Residual size reporting:
-// NotorietySize (2832).
+// Sibling outer scan / per-entry prune: ShouldScanNotorietyForPrune (3385;
+// residual 3020) / ShouldPruneMobFromNotoriety (3208; residual 3029). Residual
+// size reporting: NotorietySize (2832).
 inline auto HasEnmityAfterPrune(const bool lookupEmpty) -> bool
 {
     return !lookupEmpty;

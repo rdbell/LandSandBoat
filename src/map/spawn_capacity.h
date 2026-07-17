@@ -18,7 +18,10 @@
 //   - 3261: ShouldDespawnFogMobOnWeather dedicated dual-wire
 //           (HasSpawnTypeFlag(spawnType, SpawnTypeFog) && !isFog;
 //            residual expand 2923 / pure 1362; prior spawn-gate dual-wire ~3202)
-//   - 3092: ShouldRejectAtNightSpawn (ATNIGHT flag && not NIGHT/MIDNIGHT TOTD)
+//   - 3092: ShouldRejectAtNightSpawn residual dual-wire expand
+//   - 3387: ShouldRejectAtNightSpawn dedicated dual-wire
+//           (HasSpawnTypeFlag(spawnType, SpawnTypeAtNight) && !IsNightTotdWindow(totd);
+//            residual expand 3092 / pure 1362)
 //   - 3107: ShouldRejectAtEveningSpawn residual dual-wire expand
 //   - 3341: ShouldRejectAtEveningSpawn dedicated dual-wire
 //           (HasSpawnTypeFlag(spawnType, SpawnTypeAtEvening) && !IsEveningTotdWindow(totd);
@@ -38,8 +41,11 @@
 // (internal/spawnslot/despawn_fog.go).
 // Dedicated dual-wire suite: 3261 / test_spawnslot_despawn_fog_3261.
 // Go dual-wire: spawnslot.ShouldRejectAtNightSpawn
-// (internal/spawnslot/reject_night_spawn.go),
-// spawnslot.ShouldRejectAtEveningSpawn (internal/spawnslot/reject_evening_spawn.go).
+// (internal/spawnslot/reject_night_spawn.go).
+// Residual dual-wire suite: 3092 / test_spawn_reject_night_3092.
+// Dedicated dual-wire suite: 3387 / test_spawn_reject_night_3387.
+// Go dual-wire: spawnslot.ShouldRejectAtEveningSpawn
+// (internal/spawnslot/reject_evening_spawn.go).
 // Residual dual-wire suite: 3107 / test_spawn_reject_evening_3107.
 // Dedicated dual-wire suite: 3341 / test_spawn_reject_evening_3341.
 // Go dual-wire: spawnslot.ShouldRejectSpawnNullOrDisabled
@@ -101,18 +107,25 @@ inline auto IsEveningTotdWindow(const vanadiel_time::TOTD totd) -> bool
 // ShouldRejectAtNightSpawn mirrors ATNIGHT flag && not night window.
 // totd is host-evaluated vanadiel_time::TOTD.
 //
-// Formula (slice 3092 dual-wire):
+// Formula (slice 3387 dedicated dual-wire; residual expand 3092 / pure 1362 —
+// formula unchanged):
 //   HasSpawnTypeFlag(spawnType, SpawnTypeAtNight) && !IsNightTotdWindow(totd)
 //   // SpawnTypeAtNight = 0x01 (SPAWNTYPE_ATNIGHT)
 //   // IsNightTotdWindow: totd == NIGHT || totd == MIDNIGHT
 //   // TOTD pins: NONE=0 MIDNIGHT=1 NEWDAY=2 DAWN=3 DAY=4 DUSK=5 EVENING=6 NIGHT=7
+//   // Positive form: ATNIGHT flag required AND totd is not night window
 //
 // true  → reject spawn (ATNIGHT-type mob outside NIGHT/MIDNIGHT window)
 // false → night gate passes (no ATNIGHT flag, or totd is night window)
 //
-// Dual-wire of Go spawnslot.ShouldRejectAtNightSpawn.
+// Dual-wire of Go spawnslot.ShouldRejectAtNightSpawn
+// (internal/spawnslot/reject_night_spawn.go). Prior pure port: slice 1362.
+// Residual dual-wire suite: 3092 / test_spawn_reject_night_3092.
+// Dedicated dual-wire suite is test_spawn_reject_night_3387. Formula is
+// unchanged; this slice only expands dual-wire docs + index + dedicated suite.
 // Call site: CanSpawnNowPure (and SpawnHandler::canSpawnNow host inject).
-// Sibling dual-wire: ShouldRejectAtEveningSpawn (ATEVENING + evening window; 3107).
+// Sibling dual-wires left alone: ShouldRejectAtEveningSpawn (3107 / 3341),
+// ShouldRejectFogSpawn (2923 / 3202).
 inline auto ShouldRejectAtNightSpawn(const uint8 spawnType, const vanadiel_time::TOTD totd) -> bool
 {
     return HasSpawnTypeFlag(spawnType, SpawnTypeAtNight) && !IsNightTotdWindow(totd);

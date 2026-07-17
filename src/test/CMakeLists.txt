@@ -3341,6 +3341,16 @@ set(SOURCES
     test_ambuscade_start_exit_3382.cpp
     test_synergy_operate_furnace_3383.h
     test_synergy_operate_furnace_3383.cpp
+    test_zone_high_targid_3384.h
+    test_zone_high_targid_3384.cpp
+    test_notoriety_scan_prune_3385.h
+    test_notoriety_scan_prune_3385.cpp
+    test_unity_reject_null_online_3386.h
+    test_unity_reject_null_online_3386.cpp
+    test_spawn_reject_night_3387.h
+    test_spawn_reject_night_3387.cpp
+    test_assault_issue_tag_3388.h
+    test_assault_issue_tag_3388.cpp
 )
 
 if(UNIX)

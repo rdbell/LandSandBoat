@@ -13,6 +13,8 @@
 //           / prior 3145 (issue_tag.go)
 //   - 3345: ShouldAutoComplete dedicated dual-wire expand residual 2860
 //           / prior 3057 (auto_complete.go)
+//   - 3388: CanIssueTagFromStock dedicated dual-wire expand residual 2867
+//           (npc_handler.go stock gate after ShouldIssueNewTag)
 //
 // Dual-wire index:
 //   - 2860: ProgressMeetsRequired / ShouldAutoComplete residual dual-wire
@@ -29,6 +31,8 @@
 //           !hasImperialArmyIDTag; dedicated expand residual 2867 / prior 3145)
 //   - 3345: ShouldAutoComplete (requiredProgress==0 || alreadyCompleted → false;
 //           else ProgressMeetsRequired; dedicated expand residual 2860 / prior 3057)
+//   - 3388: CanIssueTagFromStock (tagStock > 0; dedicated expand residual 2867
+//           stock gate after ShouldIssueNewTag)
 //
 // Production hosts are Lua under scripts/globals/assault/ (container.lua,
 // npc_handler.lua). Capacity is for future Lua/C++ inject so hosts dual-wire
@@ -159,6 +163,7 @@ inline auto ShouldProceedAssaultUpdate(const int32 gmLevel,
 
 // ---------------------------------------------------------------------------
 // Slice 2867 / 3145 / 3258 — onRytaalEventFinish obtain new tag
+// Slice 3388 — tagStock gate after ShouldIssueNewTag
 // ---------------------------------------------------------------------------
 
 // RytaalOptionObtainTag matches option == 1 (obtain Imperial Army ID tag).
@@ -193,9 +198,40 @@ inline constexpr uint16 kKeyItemImperialArmyIDTag = 787;
 // test_assault_issue_new_tag_3145. Dedicated dual-wire expand residual suite
 // is test_assault_issue_tag_3258. Host still owns stock / currentAssault /
 // giveKeyItem / currency writeback after this gate.
+// Stock gate dual-wires as CanIssueTagFromStock (slice 3388).
 inline auto ShouldIssueNewTag(const int32 option, const bool hasImperialArmyIDTag) -> bool
 {
     return option == kRytaalOptionObtainTag && !hasImperialArmyIDTag;
+}
+
+// CanIssueTagFromStock is the pure free-function form of the tagStock gate
+// after ShouldIssueNewTag is true:
+//   tagStock > 0
+//   // Lua early return: if tagStock == 0 then return end
+// Host still checks currentAssault == 0, then giveKeyItem and stock/timer
+// currency writeback.
+//
+// Formula (slice 3388 dedicated dual-wire expand residual 2867 / pure 1100 —
+// formula unchanged):
+//   CanIssueTagFromStock(tagStock) = tagStock > 0
+//
+// Lua host (onRytaalEventFinish after ShouldIssueNewTag path):
+//   local tagStock = player:getCurrency('id_tags')
+//   if tagStock == 0 then
+//     return
+//   end
+//   -- host: currentAssault / giveKeyItem / setCurrency writeback
+//
+// Dual-wire of Go assault.CanIssueTagFromStock
+// (internal/assault/npc_handler.go).
+// Call site: future Lua onRytaalEventFinish inject after ShouldIssueNewTag.
+// Prior pure port: slice 1100. Residual dual-wire expand (stock poles under
+// ShouldIssueNewTag suites): 2867 / 3145 / 3258. Dedicated dual-wire expand
+// residual suite is test_assault_issue_tag_3388. Host still owns
+// currentAssault / giveKeyItem / currency writeback after this gate.
+inline auto CanIssueTagFromStock(const int32 tagStock) -> bool
+{
+    return tagStock > 0;
 }
 
 } // namespace assaulthelpers
