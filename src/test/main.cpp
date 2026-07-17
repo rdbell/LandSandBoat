@@ -1299,6 +1299,11 @@ auto runCommandRejectEmptyLine3005SelfTests() -> bool;
 auto runBattleCanRest3006SelfTests() -> bool;
 auto runRangedDeleteFlashyStealth3007SelfTests() -> bool;
 auto runLinkshellMarkPearlBroken3008SelfTests() -> bool;
+auto runLinkshellSendBreakMessage3009SelfTests() -> bool;
+auto runRangedTruncateHitCount3010SelfTests() -> bool;
+auto runCommandAuditGM3011SelfTests() -> bool;
+auto runJobpointsApplyRaise3012SelfTests() -> bool;
+auto runRangedDistancePenaltyMsg3013SelfTests() -> bool;
 
 namespace
 {
@@ -2575,6 +2580,11 @@ namespace
         ok = runBattleCanRest3006SelfTests() && ok;
         ok = runRangedDeleteFlashyStealth3007SelfTests() && ok;
         ok = runLinkshellMarkPearlBroken3008SelfTests() && ok;
+        ok = runLinkshellSendBreakMessage3009SelfTests() && ok;
+        ok = runRangedTruncateHitCount3010SelfTests() && ok;
+        ok = runCommandAuditGM3011SelfTests() && ok;
+        ok = runJobpointsApplyRaise3012SelfTests() && ok;
+        ok = runRangedDistancePenaltyMsg3013SelfTests() && ok;
 
         return ok;
     }

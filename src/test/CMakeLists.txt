@@ -2591,6 +2591,16 @@ set(SOURCES
     test_ranged_delete_flashy_stealth_3007.cpp
     test_linkshell_mark_pearl_broken_3008.h
     test_linkshell_mark_pearl_broken_3008.cpp
+    test_linkshell_send_break_message_3009.h
+    test_linkshell_send_break_message_3009.cpp
+    test_ranged_truncate_hit_count_3010.h
+    test_ranged_truncate_hit_count_3010.cpp
+    test_command_audit_gm_3011.h
+    test_command_audit_gm_3011.cpp
+    test_jobpoints_apply_raise_3012.h
+    test_jobpoints_apply_raise_3012.cpp
+    test_ranged_distance_penalty_msg_3013.h
+    test_ranged_distance_penalty_msg_3013.cpp
 )
 
 if(UNIX)

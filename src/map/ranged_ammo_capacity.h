@@ -117,9 +117,35 @@ inline auto ShouldDeleteUnlimitedShot(
     return hitOccured || retainUnlimitedShotMod <= 0;
 }
 
+// --- Slice 3010: ShouldTruncateHitCountOnAmmoDeplete pure dual-wire ---
+// Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects
+// consumingThisShot = true (literal; already inside ShouldConsumeAmmo true branch),
+// ammoQuantityBeforeConsume = static_cast<uint8>(PAmmo->getQuantity()),
+// and shotIndexI = i into ShouldTruncateHitCountOnAmmoDeplete before
+// hitCount = i on true (~3295).
+// Go dual-wire: attackutils.ShouldTruncateHitCountOnAmmoDeplete
+// (internal/attackutils/truncate_hit_count.go).
+// Sibling dual-wires: ShouldConsumeAmmo (2986), ShouldDeleteUnlimitedShot (3000),
+// ShouldDeleteFlashyAndStealthShot (3007).
+
 // ShouldTruncateHitCountOnAmmoDeplete mirrors:
 //   PAmmo->getQuantity() == i  (after deciding to consume this shot)
 // When true, host sets hitCount = i to stop further shots.
+//
+// Formula (slice 3010 dual-wire):
+//   if !consumingThisShot → false
+//   else → ammoQuantityBeforeConsume == shotIndexI
+//
+// consumingThisShot         — host already decided to consume this shot
+// ammoQuantityBeforeConsume — host-read PAmmo->getQuantity() before decrement
+// shotIndexI                — current multi-shot loop index i
+// true  → host sets hitCount = i to stop further barrage/sange shots
+// false → continue remaining shots
+//
+// Dual-wire of Go attackutils.ShouldTruncateHitCountOnAmmoDeplete.
+// Call site: CBattleEntity::OnRangedAttack (~3295) injects true + qty + i
+// inside the ShouldConsumeAmmo true branch.
 inline auto ShouldTruncateHitCountOnAmmoDeplete(
     const bool consumingThisShot,
     const uint8 ammoQuantityBeforeConsume,
@@ -213,7 +239,30 @@ inline auto RangedDistanceMsgID(const RangedDistanceMsg msg) -> uint16
     }
 }
 
+// --- Slice 3013: ShouldApplyDistancePenaltyMessage pure dual-wire ---
+// Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects isChar and
+// (actionResult.messageID == MsgBasic::RangedAttackCrit) into
+// ShouldApplyDistancePenaltyMessage before resolving AttackDistancePenalty and
+// overwriting messageID via RangedDistanceMsgID (~3309).
+// Go dual-wire: attackutils.ShouldApplyDistancePenaltyMessage
+// (internal/attackutils/distance_penalty_message.go).
+// Sibling dual-wires: ShouldConsumeAmmo (2986), ShouldDeleteUnlimitedShot (3000),
+// ShouldDeleteFlashyAndStealthShot (3007).
+
 // ShouldApplyDistancePenaltyMessage mirrors isChar && messageID != Crit.
+//
+// Formula (slice 3013 dual-wire):
+//   return isChar && !isCritMessage
+//
+// isChar        — host-evaluated entity is a character (PC ranged path)
+// isCritMessage — host-evaluated actionResult.messageID == RangedAttackCrit
+// true  → host resolves AttackDistancePenalty + RangedDistanceMsg and overwrites
+//         actionResult.messageID (Pummels / Squarely / Hit)
+// false → keep existing message (non-char, or crit already selected)
+//
+// Dual-wire of Go attackutils.ShouldApplyDistancePenaltyMessage.
+// Call site: CBattleEntity::OnRangedAttack (~3309).
 inline auto ShouldApplyDistancePenaltyMessage(const bool isChar, const bool isCritMessage) -> bool
 {
     return isChar && !isCritMessage;

@@ -6,6 +6,7 @@
 // - RaiseJobPoint admission/spend plan (slice 2803)
 // - IsJobPointExist pure bounds (slice 2815)
 // - JobPointCost display/query dual-wire (slice 2828)
+// - ShouldApplyRaiseJobPoint spend gate dual-wire (slice 3012)
 // SQL UPDATE and jobpointutils::RefreshGiftMods stay host-side.
 //
 // JobPointCost may already be a host macro from job_points.h; clear it while
@@ -47,7 +48,31 @@ struct RaiseJobPointPlan
     uint8 cost{};
 };
 
-// ShouldApplyRaiseJobPoint mirrors cost != 0 && currentJp >= cost.
+// --- Slice 3012: ShouldApplyRaiseJobPoint pure dual-wire ---
+// Residual pure port: slice 2803 (PlanRaiseJobPoint admission/spend plan suite).
+// Production host: CJobPoints::RaiseJobPoint injects cost = JobPointCost(value)
+// and currentJp into PlanRaiseJobPoint, which dual-wires apply through
+// ShouldApplyRaiseJobPoint (job_points.cpp). Display/query path dual-wires the
+// same predicate via ShouldRaiseAffordable after JobPointCost(currentValue).
+// Go dual-wire: jobpoints.ShouldApplyRaiseJobPoint
+// (internal/jobpoints/apply_raise.go).
+// Sibling residual: PlanRaiseJobPoint / RaiseJobPointPlan / Cost (2803 suite);
+// ShouldRaiseAffordable / GetJobPointCost (2828 suite).
+
+// ShouldApplyRaiseJobPoint mirrors the RaiseJobPoint spend gate half after
+// cost is computed.
+//
+// Formula (slice 3012 dual-wire):
+//   cost != 0 && currentJp >= cost
+//
+// cost      — host-injected JobPointCost(currentValue)
+// currentJp — host-injected unspent job points for the category
+// true  → host may subtract cost, increment type value, SQL + gift refresh
+// false → raise blocked (cap at value 20 when cost==0, or insufficient JP)
+//
+// Dual-wire of Go jobpoints.ShouldApplyRaiseJobPoint.
+// Call sites: PlanRaiseJobPoint (2803), ShouldRaiseAffordable (2828).
+// Residual pure port: slice 2803 (raise plan suite).
 inline auto ShouldApplyRaiseJobPoint(const uint8 cost, const uint16 currentJp) -> bool
 {
     return cost != 0 && currentJp >= cost;

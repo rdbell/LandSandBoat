@@ -14,6 +14,7 @@
 //   - 2982: ShouldRejectNullChar (charNull identity)
 //   - 2990: ShouldRejectEmptyCommandName (!valid after name parse)
 //   - 3005: ShouldRejectEmptyCommandLine (viewEmptyAfterTrim identity dual-wire)
+//   - 3011: ShouldAuditGMCommand (auditLevel <= permission && auditLevel > 0)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
@@ -34,6 +35,12 @@
 // after trimLeft before name/arg token extraction.
 // Go dual-wire: command.ShouldRejectEmptyCommandLine
 // (internal/command/reject_empty_command_line.go).
+//
+// Production host: CCommandHandler::call injects auditLevel =
+// settings::get<uint8>("map.AUDIT_GM_CMD") and Lua cmdprops permission into
+// PlanCommandCallPostProps / ShouldAuditGMCommand after permission allow.
+// Go dual-wire: command.ShouldAuditGMCommand
+// (internal/command/audit_gm_command.go).
 
 namespace commandhandlerhelpers
 {
@@ -91,11 +98,24 @@ inline auto ShouldAllowCommandPermission(const uint8 gmLevel, const int8 permiss
 
 // ShouldAuditGMCommand mirrors auditLevel <= permission && auditLevel > 0
 // after settings::get<uint8>("map.AUDIT_GM_CMD").
-// auditLevel is uint8; permission is int8 — same promotion rules as above.
+//
+// Formula (slice 3011 dual-wire; residual 2792):
+//   static_cast<int>(auditLevel) <= static_cast<int>(permission) && auditLevel > 0
+// which is equivalent to (auditLevel <= permission && auditLevel > 0) after
+// usual arithmetic conversions promote uint8 / int8 to int.
+//
+// LSB types: auditLevel is uint8 from map.AUDIT_GM_CMD; permission is int8
+// from Lua cmdprops. Negative permission never schedules audit after signed
+// promotion (positive auditLevel is never <= negative permission).
+// auditLevel == 0 always returns false (audit disabled).
 // Host schedules the audit_gm INSERT when this returns true.
+//
+// Dual-wire of Go command.ShouldAuditGMCommand.
+// Call site: CCommandHandler::call via PlanCommandCallPostProps after cmdprops load
+// (only consulted for host disposition when permission is allowed).
 inline auto ShouldAuditGMCommand(const uint8 auditLevel, const int8 permission) -> bool
 {
-    return auditLevel <= permission && auditLevel > 0;
+    return static_cast<int>(auditLevel) <= static_cast<int>(permission) && auditLevel > 0;
 }
 
 // CommandCallPostPropsPlan is the pure disposition after cmdprops permission

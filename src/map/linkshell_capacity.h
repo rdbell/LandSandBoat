@@ -19,6 +19,7 @@
 //   - 2993: ShouldPushStoredLinkshellMessage (messageNonEmpty identity)
 //   - 3001: ShouldBreakInventoryPearl (shell holder OR equipped item)
 //   - 3008: ShouldMarkPearlBroken (lsType != LSTYPE_LINKSHELL)
+//   - 3009: ShouldSendBreakMessage (breakLinkshell identity)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -30,7 +31,9 @@
 // CLinkshell::RemoveMemberByName injects requesterRank and
 // (newPItemLinkshell == PItemLinkshell) into ShouldBreakInventoryPearl before
 // ShouldMarkPearlBroken / inventory break; then injects
-// GetLSType() into ShouldMarkPearlBroken before SetLSType(BROKEN).
+// GetLSType() into ShouldMarkPearlBroken before SetLSType(BROKEN);
+// then injects breakLinkshell into ShouldSendBreakMessage to select
+// LinkshellNoLongerExists vs LinkshellKicked after ITEM_SAME / CharStatus.
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
 // (internal/linkshell/reject_null_add_member.go),
 // linkshell.ShouldRejectDuplicateAddMember
@@ -42,7 +45,9 @@
 // linkshell.ShouldBreakInventoryPearl
 // (internal/linkshell/break_inventory_pearl.go),
 // linkshell.ShouldMarkPearlBroken
-// (internal/linkshell/mark_pearl_broken.go).
+// (internal/linkshell/mark_pearl_broken.go),
+// linkshell.ShouldSendBreakMessage
+// (internal/linkshell/send_break_message.go).
 
 namespace linkshellhelpers
 {
@@ -253,6 +258,19 @@ inline auto ShouldMarkPearlBroken(const uint8 lsType) -> bool
 }
 
 // ShouldSendBreakMessage mirrors breakLinkshell true → NoLongerExists else Kicked.
+//
+// Formula (slice 3009 dual-wire):
+//   breakLinkshell
+//
+// breakLinkshell — host-injected RemoveMemberByName breakLinkshell flag
+// true  → host may push MsgStd::LinkshellNoLongerExists
+// false → host may push MsgStd::LinkshellKicked
+//
+// Dual-wire of Go linkshell.ShouldSendBreakMessage.
+// Call site: CLinkshell::RemoveMemberByName host inject (breakLinkshell)
+// after inventory break / mark-broken / ITEM_SAME / CharStatus.
+// Prior pure port: slice 1354 (capacity suite RemoveMemberByName break gate).
+// Sibling dual-wire: slice 3008 (ShouldMarkPearlBroken; earlier in same path).
 inline auto ShouldSendBreakMessage(const bool breakLinkshell) -> bool
 {
     return breakLinkshell;
