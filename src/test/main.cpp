@@ -1769,6 +1769,11 @@ auto runJobpointsApplyRaise3475SelfTests() -> bool;
 auto runDynamisCanUnlockSJ3476SelfTests() -> bool;
 auto runTreasureForceCheckFull3477SelfTests() -> bool;
 auto runMeritLowerMerit3478SelfTests() -> bool;
+auto runAvatarpetCanApplyBuff3479SelfTests() -> bool;
+auto runMapsessionDestroyPendingPtr3480SelfTests() -> bool;
+auto runStatusRejectNull3481SelfTests() -> bool;
+auto runVoidwalkerShouldUpgradeKI3482SelfTests() -> bool;
+auto runSpawnRejectNight3483SelfTests() -> bool;
 
 namespace
 {
@@ -3515,6 +3520,11 @@ namespace
         ok = runDynamisCanUnlockSJ3476SelfTests() && ok;
         ok = runTreasureForceCheckFull3477SelfTests() && ok;
         ok = runMeritLowerMerit3478SelfTests() && ok;
+        ok = runAvatarpetCanApplyBuff3479SelfTests() && ok;
+        ok = runMapsessionDestroyPendingPtr3480SelfTests() && ok;
+        ok = runStatusRejectNull3481SelfTests() && ok;
+        ok = runVoidwalkerShouldUpgradeKI3482SelfTests() && ok;
+        ok = runSpawnRejectNight3483SelfTests() && ok;
 
         return ok;
     }

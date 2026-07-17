@@ -3531,6 +3531,16 @@ set(SOURCES
     test_treasure_force_check_full_3477.cpp
     test_merit_lower_merit_3478.h
     test_merit_lower_merit_3478.cpp
+    test_avatarpet_can_apply_buff_3479.h
+    test_avatarpet_can_apply_buff_3479.cpp
+    test_mapsession_destroy_pending_ptr_3480.h
+    test_mapsession_destroy_pending_ptr_3480.cpp
+    test_status_reject_null_3481.h
+    test_status_reject_null_3481.cpp
+    test_voidwalker_should_upgrade_ki_3482.h
+    test_voidwalker_should_upgrade_ki_3482.cpp
+    test_spawn_reject_night_3483.h
+    test_spawn_reject_night_3483.cpp
 )
 
 if(UNIX)
