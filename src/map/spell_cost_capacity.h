@@ -14,8 +14,12 @@
 //           (no_mp_cost.go; expand residual 2969 / pure 2104; suite retained)
 //   - 3210: ShouldReturnZeroNullSpell dedicated dual-wire
 //           (null_spell_cost.go; expand residual 2964 / pure 2104)
-//   - 3402: ShouldReturnZeroNoMPCost dedicated dual-wire
-//           (no_mp_cost.go; expand residual 2969 / prior 3183 / pure 2104)
+//   - 3402: ShouldReturnZeroNoMPCost prior dedicated dual-wire
+//           (no_mp_cost.go; expand residual 2969 / prior 3183 / pure 2104;
+//           suite retained)
+//   - 3454: ShouldReturnZeroNoMPCost dedicated dual-wire
+//           (no_mp_cost.go; expand residual 2969 / prior 3402 / prior 3183 /
+//           pure 2104)
 //
 // Production host: battleutils::CalculateSpellCost injects
 // PSpell == nullptr into ShouldReturnZeroNullSpell before hasMPCost / cost,
@@ -64,23 +68,24 @@ constexpr std::int16_t SpellCostMax = 9999;
 // Residual dual-wire suite: 2964 (test_spell_null_cost_2964).
 // Dedicated dual-wire suite: 3210 (test_spell_return_zero_null_spell_3210).
 // Sibling residual only (not re-expanded under 3210):
-// ShouldReturnZeroNoMPCost (3402 dedicated; residual 2969; prior 3183).
+// ShouldReturnZeroNoMPCost (3454 dedicated; residual 2969; prior 3402 / 3183).
 constexpr auto ShouldReturnZeroNullSpell(const bool spellNull) -> bool
 {
     return spellNull;
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3402 — CalculateSpellCost no-MP-cost gate
-// (dedicated expand residual 2969 / prior dedicated 3183 / pure 2104)
+// Slice 3454 — CalculateSpellCost no-MP-cost gate
+// (dedicated expand residual 2969 / prior dedicated 3402 / prior dedicated
+// 3183 / pure 2104)
 // ---------------------------------------------------------------------------
 
 // ShouldReturnZeroNoMPCost mirrors CalculateSpellCost's hasMPCost short-circuit
 // after the null-spell gate. Host returns 0 (ninja tools / bard songs / trusts)
 // before stratagem / mod injects and the pure cost body when true.
 //
-// Formula (slice 3402 dedicated dual-wire; residual expand 2969 / prior
-// dedicated 3183 / pure 2104 — formula unchanged):
+// Formula (slice 3454 dedicated dual-wire; residual expand 2969 / prior
+// dedicated 3402 / prior dedicated 3183 / pure 2104 — formula unchanged):
 //   !hasMPCost
 //
 // hasMPCost — host-evaluated PSpell->hasMPCost() (only after non-null)
@@ -89,7 +94,7 @@ constexpr auto ShouldReturnZeroNullSpell(const bool spellNull) -> bool
 //
 // Dual-wire of Go spell.ShouldReturnZeroNoMPCost
 // (residual 2104 / residual dual-wire 2969 / prior dedicated 3183 /
-// dedicated dual-wire 3402).
+// prior dedicated 3402 / dedicated dual-wire 3454).
 // Host inject (battleutils::CalculateSpellCost):
 //   if (ShouldReturnZeroNoMPCost(PSpell->hasMPCost())) return 0;
 //
@@ -97,8 +102,10 @@ constexpr auto ShouldReturnZeroNullSpell(const bool spellNull) -> bool
 // Residual dual-wire suite: 2969 (test_spell_no_mp_cost_2969).
 // Prior dedicated dual-wire suite: 3183
 // (test_spell_return_zero_no_mp_cost_3183; retained).
-// Dedicated dual-wire suite: 3402 (test_spell_return_zero_no_mp_cost_3402).
-// Sibling residual only (not re-expanded under 3402):
+// Prior dedicated dual-wire suite: 3402
+// (test_spell_return_zero_no_mp_cost_3402; retained).
+// Dedicated dual-wire suite: 3454 (test_spell_return_zero_no_mp_cost_3454).
+// Sibling residual only (not re-expanded under 3454):
 // ShouldReturnZeroNullSpell (2964 dual-wire), CanUseSpellWith (3159).
 constexpr auto ShouldReturnZeroNoMPCost(const bool hasMPCost) -> bool
 {

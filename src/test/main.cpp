@@ -1744,6 +1744,11 @@ auto runMobutilsAssignGuard3450SelfTests() -> bool;
 auto runRangedDeleteUnlimitedShot3451SelfTests() -> bool;
 auto runCommandAuditGMCommand3452SelfTests() -> bool;
 auto runAistateDelActorOnAttack3453SelfTests() -> bool;
+auto runSpellReturnZeroNoMPCost3454SelfTests() -> bool;
+auto runLinkshellSendMessageIPC3455SelfTests() -> bool;
+auto runAttackRunEnspell3456SelfTests() -> bool;
+auto runZoneHighTargid3457SelfTests() -> bool;
+auto runGuildpointsCanAfford3458SelfTests() -> bool;
 
 namespace
 {
@@ -3465,6 +3470,11 @@ namespace
         ok = runRangedDeleteUnlimitedShot3451SelfTests() && ok;
         ok = runCommandAuditGMCommand3452SelfTests() && ok;
         ok = runAistateDelActorOnAttack3453SelfTests() && ok;
+        ok = runSpellReturnZeroNoMPCost3454SelfTests() && ok;
+        ok = runLinkshellSendMessageIPC3455SelfTests() && ok;
+        ok = runAttackRunEnspell3456SelfTests() && ok;
+        ok = runZoneHighTargid3457SelfTests() && ok;
+        ok = runGuildpointsCanAfford3458SelfTests() && ok;
 
         return ok;
     }

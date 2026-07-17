@@ -3481,6 +3481,16 @@ set(SOURCES
     test_command_audit_gm_command_3452.cpp
     test_aistate_del_actor_on_attack_3453.h
     test_aistate_del_actor_on_attack_3453.cpp
+    test_spell_return_zero_no_mp_cost_3454.h
+    test_spell_return_zero_no_mp_cost_3454.cpp
+    test_linkshell_send_message_ipc_3455.h
+    test_linkshell_send_message_ipc_3455.cpp
+    test_attack_run_enspell_3456.h
+    test_attack_run_enspell_3456.cpp
+    test_zone_high_targid_3457.h
+    test_zone_high_targid_3457.cpp
+    test_guildpoints_can_afford_3458.h
+    test_guildpoints_can_afford_3458.cpp
 )
 
 if(UNIX)

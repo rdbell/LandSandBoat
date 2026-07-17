@@ -44,6 +44,9 @@
 //   - 3403: ShouldSendLinkshellMessageIPC dedicated dual-wire expand residual 2977
 //           (messageNonEmpty identity; residual dual-wire 2977 /
 //            pure 1354 / 2171; formula unchanged)
+//   - 3455: ShouldSendLinkshellMessageIPC dedicated dual-wire expand residual 2977
+//           (messageNonEmpty identity; prior dedicated expand 3403 /
+//            residual dual-wire 2977 / pure 1354 / 2171; formula unchanged)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -184,8 +187,8 @@ inline auto IsLinkshellSlot1(const uint8 lsNum) -> bool
 
 // ShouldSendLinkshellMessageIPC mirrors message.size() != 0 after DB update.
 //
-// Formula (slice 3403 dedicated dual-wire; residual expand 2977 / pure 1354 /
-// 2171 — formula unchanged):
+// Formula (slice 3455 dedicated dual-wire; residual expand 2977 / pure 1354 /
+// 2171 — prior dedicated expand 3403; formula unchanged):
 //   messageNonEmpty
 //
 // messageNonEmpty — host-evaluated message.size() != 0
@@ -198,7 +201,8 @@ inline auto IsLinkshellSlot1(const uint8 lsNum) -> bool
 //       message::send(ipc::LinkshellSetMessage{...});
 // Prior pure port: slices 1354 / 2171 (capacity suite; setMessage value model).
 // Residual dual-wire suite: 2977 / test_linkshell_send_message_ipc_2977.
-// Dedicated dual-wire suite is test_linkshell_send_message_ipc_3403.
+// Prior dedicated dual-wire suite: 3403 / test_linkshell_send_message_ipc_3403
+// (RETAINED). Dedicated dual-wire suite is test_linkshell_send_message_ipc_3455.
 // Formula is unchanged; this slice only expands dual-wire docs + index +
 // dedicated suite. Sibling push gate: ShouldPushStoredLinkshellMessage (2993).
 inline auto ShouldSendLinkshellMessageIPC(const bool messageNonEmpty) -> bool
