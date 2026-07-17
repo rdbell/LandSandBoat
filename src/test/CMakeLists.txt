@@ -3391,6 +3391,16 @@ set(SOURCES
     test_apkallu_can_run_away_3407.cpp
     test_extravaganza_can_afford_cipher_3408.h
     test_extravaganza_can_afford_cipher_3408.cpp
+    test_portermoogle_can_retrieve_item_3409.h
+    test_portermoogle_can_retrieve_item_3409.cpp
+    test_interactionlookup_skip_priority_3410.h
+    test_interactionlookup_skip_priority_3410.cpp
+    test_colonizationreive_spawn_on_enable_3411.h
+    test_colonizationreive_spawn_on_enable_3411.cpp
+    test_mapwire_open_socket_3412.h
+    test_mapwire_open_socket_3412.cpp
+    test_latent_reject_process_3413.h
+    test_latent_reject_process_3413.cpp
 )
 
 if(UNIX)

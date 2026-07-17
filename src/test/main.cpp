@@ -1699,6 +1699,11 @@ auto runFollowCanFollow3405SelfTests() -> bool;
 auto runGarrisonFailByDeath3406SelfTests() -> bool;
 auto runApkalluCanRunAway3407SelfTests() -> bool;
 auto runExtravaganzaCanAffordCipher3408SelfTests() -> bool;
+auto runPortermoogleCanRetrieveItem3409SelfTests() -> bool;
+auto runInteractionlookupSkipPriority3410SelfTests() -> bool;
+auto runColonizationreiveSpawnOnEnable3411SelfTests() -> bool;
+auto runMapwireOpenSocket3412SelfTests() -> bool;
+auto runLatentRejectProcess3413SelfTests() -> bool;
 
 namespace
 {
@@ -3375,6 +3380,11 @@ namespace
         ok = runGarrisonFailByDeath3406SelfTests() && ok;
         ok = runApkalluCanRunAway3407SelfTests() && ok;
         ok = runExtravaganzaCanAffordCipher3408SelfTests() && ok;
+        ok = runPortermoogleCanRetrieveItem3409SelfTests() && ok;
+        ok = runInteractionlookupSkipPriority3410SelfTests() && ok;
+        ok = runColonizationreiveSpawnOnEnable3411SelfTests() && ok;
+        ok = runMapwireOpenSocket3412SelfTests() && ok;
+        ok = runLatentRejectProcess3413SelfTests() && ok;
 
         return ok;
     }
