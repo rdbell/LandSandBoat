@@ -53,6 +53,26 @@ inline auto ApplyGuardDamageRatio(const float damageRatio) -> float
     return std::max(damageRatio - 1.0f, 0.0f);
 }
 
+// GuardResolution is the state mutation performed by CAttack::CheckGuarded
+// after its entity-dependent guard check. A failed guard intentionally leaves
+// the stored ratio untouched; a successful guard lowers it by one and floors
+// it at zero.
+struct GuardResolution
+{
+    bool  guarded{};
+    float damageRatio{};
+};
+
+// ResolveGuardCheck mirrors the pure mutation half of CAttack::CheckGuarded.
+inline auto ResolveGuardCheck(const bool guarded, const float damageRatio) -> GuardResolution
+{
+    if (!guarded)
+    {
+        return { false, damageRatio };
+    }
+    return { true, ApplyGuardDamageRatio(damageRatio) };
+}
+
 // IsDeflected mirrors DefenseBoost present + subpower > 0 + infront(host).
 // hasDefenseBoost and subpower injected; facing result injected as inFront.
 inline auto IsDeflected(const bool hasDefenseBoost, const uint16 subPower, const bool inFront) -> bool

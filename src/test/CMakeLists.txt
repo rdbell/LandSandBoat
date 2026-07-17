@@ -1235,6 +1235,8 @@ set(SOURCES
     test_fishingcontest_placeholders_2645.cpp
     test_world_http_server_cache_2644.h
     test_world_http_server_cache_2644.cpp
+    test_world_http_zone_path_2740.h
+    test_world_http_zone_path_2740.cpp
     test_fishing_hookchance_1619.h
     test_fishing_hookchance_1619.cpp
     test_mob_stats_product_1620.h
@@ -1432,6 +1434,8 @@ set(SOURCES
     test_map_networking_login_checksum_2693.cpp
     test_map_networking_login_character_reset_2735.h
     test_map_networking_login_character_reset_2735.cpp
+    test_attack_guard_resolution_2739.h
+    test_attack_guard_resolution_2739.cpp
     test_map_networking_sequence_gate_2696.h
     test_map_networking_sequence_gate_2696.cpp
     test_map_networking_acknowledgement_2699.h
@@ -2009,6 +2013,8 @@ set(SOURCES
     test_transport_runtime.cpp
     test_transport_schedule_2646.h
     test_transport_schedule_2646.cpp
+    test_transport_visibility_2741.h
+    test_transport_visibility_2741.cpp
     test_tracy_hex_helpers.h
     test_tracy_hex_helpers.cpp
     test_trigger_area.h

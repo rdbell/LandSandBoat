@@ -12,15 +12,13 @@
 */
 
 #include "http_server_api.h"
+#include "http_zone_path.h"
 
 #include "common/utils.h"
 #include "common/xi.h"
 
 #include <nlohmann/json.hpp>
 
-#include <algorithm>
-#include <cctype>
-#include <cstdlib>
 #include <string_view>
 
 namespace
@@ -42,8 +40,7 @@ auto notFoundResponse() -> HTTPServerAPIResponse
 
 } // namespace
 
-auto makeHTTPServerAPIResponse(const std::string& path, const HTTPServerAPIDataCache& cache,
-                               const HTTPServerAPISettings& settings) -> HTTPServerAPIResponse
+auto makeHTTPServerAPIResponse(const std::string& path, const HTTPServerAPIDataCache& cache, const HTTPServerAPISettings& settings) -> HTTPServerAPIResponse
 {
     if (path == "/api")
     {
@@ -68,21 +65,18 @@ auto makeHTTPServerAPIResponse(const std::string& path, const HTTPServerAPIDataC
     if (path.starts_with(ZonePathPrefix))
     {
         const auto zoneText = std::string_view(path).substr(ZonePathPrefix.size());
-        if (zoneText.empty() || !std::ranges::all_of(zoneText, [](const unsigned char character) { return std::isdigit(character); }))
+        const auto zoneId   = worldhttp::ParseZonePathID(zoneText);
+        if (!zoneId)
         {
             return notFoundResponse();
         }
 
-        // HTTPServer's original route used std::strtol and then assigned the
-        // result to uint16. Preserve that established conversion behavior in
-        // this testable response helper.
-        const uint16 zoneId = std::strtol(std::string(zoneText).c_str(), nullptr, 10);
-        if (zoneId == 0 || zoneId >= ZONEID::MAX_ZONEID)
+        if (*zoneId == 0 || *zoneId >= ZONEID::MAX_ZONEID)
         {
             return notFoundResponse();
         }
 
-        return { .contentType = "application/json", .body = nlohmann::json(cache.zonePlayerCounts[zoneId]).dump() };
+        return { .contentType = "application/json", .body = nlohmann::json(cache.zonePlayerCounts[*zoneId]).dump() };
     }
 
     if (path == "/api/settings")
@@ -97,9 +91,18 @@ auto makeHTTPServerAPIResponse(const std::string& path, const HTTPServerAPIDataC
 
             std::visit(
                 xi::overload{
-                    [&](const bool arg) { response[key] = arg; },
-                    [&](const double arg) { response[key] = arg; },
-                    [&](const std::string& arg) { response[key] = utils::toASCII(arg, '?'); },
+                    [&](const bool arg)
+                    {
+                        response[key] = arg;
+                    },
+                    [&](const double arg)
+                    {
+                        response[key] = arg;
+                    },
+                    [&](const std::string& arg)
+                    {
+                        response[key] = utils::toASCII(arg, '?');
+                    },
                 },
                 value);
         }

@@ -76,6 +76,15 @@ struct TransportScheduleInput
     uint32 timeAnimDepart;
 };
 
+// TransportVisibility is the entity state assigned by Transport_Ship::setVisible.
+// status uses STATUS_TYPE's underlying wire value so this policy stays independent
+// of the entity host.
+struct TransportVisibility
+{
+    uint8  status;
+    uint16 moving;
+};
+
 namespace transporthelpers
 {
 
@@ -87,6 +96,10 @@ auto BuildTownSchedule(const TransportScheduleInput& input, bool& valid) -> Tran
 // BuildVoyageSchedule mirrors voyage-zone schedule construction. Unlike town
 // schedules, voyage zones do not subtract one minute from departure animation.
 auto BuildVoyageSchedule(const TransportScheduleInput& input) -> Transport_Time;
+
+// VisibilityFor mirrors the magic status/movement pair used for transport
+// floors. Visible ships are solid, while hidden ships disappear.
+auto VisibilityFor(bool visible) -> TransportVisibility;
 
 } // namespace transporthelpers
 

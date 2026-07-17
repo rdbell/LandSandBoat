@@ -186,11 +186,11 @@ bool CAttack::IsGuarded() const
 
 bool CAttack::CheckGuarded()
 {
-    m_isGuarded = attackutils::IsGuarded(m_attacker, m_victim);
-    if (m_isGuarded)
-    {
-        m_damageRatio = attackhelpers::ApplyGuardDamageRatio(m_damageRatio);
-    }
+    const auto resolution = attackhelpers::ResolveGuardCheck(
+        attackutils::IsGuarded(m_attacker, m_victim),
+        m_damageRatio);
+    m_isGuarded     = resolution.guarded;
+    m_damageRatio   = resolution.damageRatio;
     return m_isGuarded;
 }
 
