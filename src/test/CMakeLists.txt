@@ -763,6 +763,8 @@ set(SOURCES
     test_attackround_multihit_1374.cpp
     test_attackround_create_attacks_plan_2756.h
     test_attackround_create_attacks_plan_2756.cpp
+    test_attackround_create_kick_plan_2757.h
+    test_attackround_create_kick_plan_2757.cpp
     test_attackround_followup_1375.h
     test_attackround_followup_1375.cpp
     test_attack_checks_1376.h

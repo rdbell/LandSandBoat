@@ -479,6 +479,11 @@ bool CAttackRound::AddFollowUpAttack(PHYSICAL_ATTACK_DIRECTION direction)
  ************************************************************************/
 void CAttackRound::CreateKickAttacks()
 {
+    // Preserve original RNG consumption: only roll kick rates while H2H.
+    // Pure plan owns swing adds and the kick-occurred flag after those rolls.
+    bool kickRateProcs  = false;
+    bool extraKickProcs = false;
+
     if (attackroundhelpers::ShouldCreateKickAttacks(IsH2H()))
     {
         // kick attack mod (All jobs)
@@ -493,19 +498,27 @@ void CAttackRound::CreateKickAttacks()
 
         kickAttack = attackroundhelpers::ClampKickAttackRate(kickAttack);
 
-        if (attackroundhelpers::ShouldProcKickAttack(xirand::GetRandomNumber(100) < kickAttack))
-        {
-            AddAttackSwing(PHYSICAL_ATTACK_TYPE::KICK, RIGHTATTACK, 1);
-            m_kickAttackOccured = true;
-        }
+        kickRateProcs  = xirand::GetRandomNumber(100) < kickAttack;
+        extraKickProcs = xirand::GetRandomNumber(100) < m_attacker->getMod(Mod::EXTRA_KICK_ATTACK);
+    }
 
-        // Tantra set mod: Try an extra left kick attack.
-        if (attackroundhelpers::ShouldProcExtraKick(
-                m_kickAttackOccured,
-                xirand::GetRandomNumber(100) < m_attacker->getMod(Mod::EXTRA_KICK_ATTACK)))
-        {
-            AddAttackSwing(PHYSICAL_ATTACK_TYPE::KICK, LEFTATTACK, 1);
-        }
+    const auto plan = attackroundhelpers::ResolveCreateKickAttacksPlan(
+        IsH2H(),
+        kickRateProcs,
+        extraKickProcs);
+
+    if (plan.addRightKick)
+    {
+        AddAttackSwing(PHYSICAL_ATTACK_TYPE::KICK, RIGHTATTACK, 1);
+    }
+    if (plan.markKickOccurred)
+    {
+        m_kickAttackOccured = true;
+    }
+    // Tantra set mod: Try an extra left kick attack.
+    if (plan.addLeftKick)
+    {
+        AddAttackSwing(PHYSICAL_ATTACK_TYPE::KICK, LEFTATTACK, 1);
     }
 }
 

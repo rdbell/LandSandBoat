@@ -331,6 +331,38 @@ inline auto ShouldProcExtraKick(const bool kickOccurred, const bool extraKickPro
     return kickOccurred && extraKickProcs;
 }
 
+// CreateKickAttacksPlan is the final pure assembly of CreateKickAttacks swing adds
+// after H2H gating and kick-rate rolls.
+struct CreateKickAttacksPlan
+{
+    bool addRightKick{};
+    bool addLeftKick{};
+    bool markKickOccurred{};
+};
+
+inline auto ResolveCreateKickAttacksPlan(
+    const bool isH2H,
+    const bool kickRateProcs,
+    const bool extraKickProcs) -> CreateKickAttacksPlan
+{
+    CreateKickAttacksPlan plan{};
+    if (!ShouldCreateKickAttacks(isH2H))
+    {
+        return plan;
+    }
+
+    if (ShouldProcKickAttack(kickRateProcs))
+    {
+        plan.addRightKick      = true;
+        plan.markKickOccurred = true;
+    }
+    if (ShouldProcExtraKick(plan.markKickOccurred, extraKickProcs))
+    {
+        plan.addLeftKick = true;
+    }
+    return plan;
+}
+
 // ShouldCreateDakenAttack mirrors TYPE_PC.
 inline auto ShouldCreateDakenAttack(const bool isPC) -> bool
 {

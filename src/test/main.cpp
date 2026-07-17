@@ -385,6 +385,7 @@ auto runStatusEffectDelete1372SelfTests() -> bool;
 auto runStatusEffectSave1373SelfTests() -> bool;
 auto runAttackRoundMultihit1374SelfTests() -> bool;
 auto runAttackRoundCreateAttacksPlan2756SelfTests() -> bool;
+auto runAttackRoundCreateKickPlan2757SelfTests() -> bool;
 auto runAttackRoundFollowUp1375SelfTests() -> bool;
 auto runAttackChecks1376SelfTests() -> bool;
 auto runAttackDamage1377SelfTests() -> bool;
@@ -1419,6 +1420,7 @@ namespace
         ok = runStatusEffectSave1373SelfTests() && ok;
         ok = runAttackRoundMultihit1374SelfTests() && ok;
         ok = runAttackRoundCreateAttacksPlan2756SelfTests() && ok;
+        ok = runAttackRoundCreateKickPlan2757SelfTests() && ok;
         ok = runAttackRoundFollowUp1375SelfTests() && ok;
         ok = runAttackChecks1376SelfTests() && ok;
         ok = runAttackDamage1377SelfTests() && ok;
