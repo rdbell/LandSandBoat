@@ -217,7 +217,7 @@ inline constexpr uint16 kKeyItemImperialArmyIDTag = 787;
 // 3388 / test_assault_issue_tag_3388. Prior dedicated dual-wire expand residual
 // suite is test_assault_issue_tag_3440. Host still owns stock /
 // currentAssault / giveKeyItem / currency writeback after this gate.
-// Stock gate dual-wires as CanIssueTagFromStock (slice 3388 / 3524 / 3571).
+// Stock gate dual-wires as CanIssueTagFromStock (slice 3388 / 3524 / 3571 / 3616).
 inline auto ShouldIssueNewTag(const int32 option, const bool hasImperialArmyIDTag) -> bool
 {
     return option == kRytaalOptionObtainTag && !hasImperialArmyIDTag;
@@ -230,8 +230,8 @@ inline auto ShouldIssueNewTag(const int32 option, const bool hasImperialArmyIDTa
 // Host still checks currentAssault == 0, then giveKeyItem and stock/timer
 // currency writeback.
 //
-// Formula (slice 3571 dedicated dual-wire expand residual 2867 / prior 3524 /
-// 3388 / pure 1100 — formula unchanged):
+// Formula (slice 3616 dedicated dual-wire expand residual 2867 / prior 3571 /
+// 3524 / 3388 / pure 1100 — formula unchanged):
 //   CanIssueTagFromStock(tagStock) = tagStock > 0
 //
 // Lua host (onRytaalEventFinish after ShouldIssueNewTag path):
@@ -249,9 +249,10 @@ inline auto ShouldIssueNewTag(const int32 option, const bool hasImperialArmyIDTa
 // expand residual suite: 3388 / test_assault_issue_tag_3388. Prior dedicated
 // dual-wire expand residual sibling (ShouldIssueNewTag): 3440 /
 // test_assault_issue_tag_3440. Prior dedicated dual-wire expand residual suite:
-// 3524 / test_assault_issue_tag_3524. Dedicated dual-wire expand residual suite
-// is test_assault_issue_tag_3571. Host still owns currentAssault / giveKeyItem /
-// currency writeback after this gate.
+// 3524 / test_assault_issue_tag_3524. Prior dedicated dual-wire expand residual
+// suite: 3571 / test_assault_issue_tag_3571. Dedicated dual-wire expand residual
+// suite is test_assault_issue_tag_3616. Host still owns currentAssault /
+// giveKeyItem / currency writeback after this gate.
 inline auto CanIssueTagFromStock(const int32 tagStock) -> bool
 {
     return tagStock > 0;

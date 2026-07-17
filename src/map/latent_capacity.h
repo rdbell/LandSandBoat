@@ -182,8 +182,8 @@ inline auto EvaluateWeaponDrawnMPOver(const bool isAttackAnimation, const int32 
     return isAttackAnimation && EvaluateMpStrictlyOver(mp, value);
 }
 
-// --- Slice 3573: ShouldRejectProcessLatent pure dual-wire ---
-// (dedicated expand residual 2961 / pure 1359; prior dedicated 3515 / 3467 / 3413 / 3343)
+// --- Slice 3618: ShouldRejectProcessLatent pure dual-wire ---
+// (dedicated expand residual 2961 / pure 1359; prior dedicated 3573 / 3515 / 3467 / 3413 / 3343)
 // Residual pure port: slice 1359 (ProcessLatentEffect condition eval suite).
 // Residual dual-wire expand: slice 2961 (test_latent_reject_process_2961).
 // Prior dedicated dual-wire suite: slice 3343
@@ -194,8 +194,10 @@ inline auto EvaluateWeaponDrawnMPOver(const bool isAttackAnimation, const int32 
 //   (test_latent_reject_process_3467).
 // Prior dedicated dual-wire suite: slice 3515
 //   (test_latent_reject_process_3515).
-// Dedicated dual-wire suite: slice 3573
+// Prior dedicated dual-wire suite: slice 3573
 //   (test_latent_reject_process_3573).
+// Dedicated dual-wire suite: slice 3618
+//   (test_latent_reject_process_3618).
 // Production host: CLatentEffectContainer::ProcessLatentEffect injects
 // (m_POwner == nullptr) and (playerZoneID == 0) into ShouldRejectProcessLatent.
 // Go dual-wire: latenteffect.ShouldRejectProcessLatent
@@ -203,8 +205,8 @@ inline auto EvaluateWeaponDrawnMPOver(const bool isAttackAnimation, const int32 
 
 // ShouldRejectProcessLatent mirrors owner null or zone id 0.
 //
-// Formula (slice 3573 dedicated dual-wire; residual expand 2961 / pure 1359 /
-// prior dedicated 3343 / 3413 / 3467 / 3515 — formula unchanged):
+// Formula (slice 3618 dedicated dual-wire; residual expand 2961 / pure 1359 /
+// prior dedicated 3343 / 3413 / 3467 / 3515 / 3573 — formula unchanged):
 //   ownerNull || zoneIsZero
 //
 // ownerNull  — host-evaluated (m_POwner == nullptr)
@@ -216,14 +218,15 @@ inline auto EvaluateWeaponDrawnMPOver(const bool isAttackAnimation, const int32 
 // Dual-wire of Go latenteffect.ShouldRejectProcessLatent
 // (residual 1359 / residual dual-wire 2961 / prior dedicated 3343 /
 // prior dedicated 3413 / prior dedicated 3467 / prior dedicated 3515 /
-// dedicated dual-wire 3573).
+// prior dedicated 3573 / dedicated dual-wire 3618).
 // Call site: CLatentEffectContainer::ProcessLatentEffect.
 // Residual dual-wire suite: 2961 (test_latent_reject_process_2961).
 // Prior dedicated dual-wire suite: 3343 (test_latent_reject_process_3343).
 // Prior dedicated dual-wire suite: 3413 (test_latent_reject_process_3413).
 // Prior dedicated dual-wire suite: 3467 (test_latent_reject_process_3467).
 // Prior dedicated dual-wire suite: 3515 (test_latent_reject_process_3515).
-// Dedicated dual-wire suite: 3573 (test_latent_reject_process_3573).
+// Prior dedicated dual-wire suite: 3573 (test_latent_reject_process_3573).
+// Dedicated dual-wire suite: 3618 (test_latent_reject_process_3618).
 inline auto ShouldRejectProcessLatent(const bool ownerNull, const bool zoneIsZero) -> bool
 {
     return ownerNull || zoneIsZero;

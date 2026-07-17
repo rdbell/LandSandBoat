@@ -3801,6 +3801,16 @@ set(SOURCES
     test_ranger_strip_partial_retain_3612.cpp
     test_portermoogle_can_retrieve_item_3613.h
     test_portermoogle_can_retrieve_item_3613.cpp
+    test_synthutils_can_synthesize_hq_3614.h
+    test_synthutils_can_synthesize_hq_3614.cpp
+    test_nyzul_floor100_vigil_3615.h
+    test_nyzul_floor100_vigil_3615.cpp
+    test_assault_issue_tag_3616.h
+    test_assault_issue_tag_3616.cpp
+    test_besieged_afford_sanction_3617.h
+    test_besieged_afford_sanction_3617.cpp
+    test_latent_reject_process_3618.h
+    test_latent_reject_process_3618.cpp
 )
 
 if(UNIX)
