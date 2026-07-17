@@ -61,7 +61,9 @@ void CNotorietyContainer::remove(CBattleEntity* entity)
 {
     TracyZoneScoped;
 
-    if (m_POwner && entity)
+    const bool ownerPresent  = m_POwner != nullptr;
+    const bool entityPresent = entity != nullptr;
+    if (notorietyhelpers::ShouldRemoveNotorietyMember(ownerPresent, entityPresent))
     {
         auto entity_itr = m_Lookup.find(entity);
         if (entity_itr != m_Lookup.end())

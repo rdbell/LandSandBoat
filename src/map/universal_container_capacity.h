@@ -53,4 +53,12 @@ inline auto ShouldAdjustCountOnClearSlot() -> bool
     return false;
 }
 
+// PlanIsSlotEmpty mirrors IsSlotEmpty: out of range is empty; in range is empty
+// only when the slot pointer is null (slice 2822).
+//   !slotInRange || itemNull
+inline auto PlanIsSlotEmpty(const bool slotInRange, const bool itemNull) -> bool
+{
+    return !slotInRange || itemNull;
+}
+
 } // namespace ucontainerhelpers

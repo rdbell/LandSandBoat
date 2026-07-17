@@ -46,4 +46,17 @@ inline auto ShouldBumpItemsCountOnSetEntry(const bool slotInRange) -> bool
     return slotInRange;
 }
 
+// TradeCurrencyItemID is the sentinel m_itemID value for gil / currency.
+// Production getTotalQuantity treats this id as contributing 1 unit.
+inline constexpr std::uint16_t TradeCurrencyItemID = 0xFFFF;
+
+// TradeSlotTotalContribution is the pure per-slot term in getTotalQuantity:
+//   m_itemID[slot] == 0xFFFF ? 1 : m_quantity[slot]
+// Currency slots always contribute one item unit regardless of stored quantity.
+// Host sums over slots; helper never touches container storage.
+inline auto TradeSlotTotalContribution(const std::uint16_t itemID, const std::uint32_t quantity) -> std::uint32_t
+{
+    return itemID == TradeCurrencyItemID ? 1u : quantity;
+}
+
 } // namespace tradecontainerhelpers

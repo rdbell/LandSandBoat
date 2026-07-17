@@ -52,4 +52,14 @@ inline auto ShouldAddNotorietyMember(
     return ownerPresent && entityPresent && differentAllegiance;
 }
 
+// ShouldRemoveNotorietyMember mirrors CNotorietyContainer::remove admission (~60):
+//   m_POwner && entity
+//
+// Host injects presence bools only (no entity pointers). When true, the host
+// may find/erase the entity from m_Lookup; when false, remove is a no-op.
+inline auto ShouldRemoveNotorietyMember(const bool ownerPresent, const bool entityPresent) -> bool
+{
+    return ownerPresent && entityPresent;
+}
+
 } // namespace notorietyhelpers

@@ -90,10 +90,11 @@ uint32 CTradeContainer::getItemQuantity(uint16 itemID)
 
 uint32 CTradeContainer::getTotalQuantity()
 {
+    // Pure per-slot contribution: tradecontainerhelpers (slice 2821).
     uint32 quantity = 0;
     for (std::size_t slotID = 0; slotID < m_PItem.size(); ++slotID)
     {
-        quantity += (m_itemID[slotID] == 0xFFFF ? 1 : m_quantity[slotID]);
+        quantity += tradecontainerhelpers::TradeSlotTotalContribution(m_itemID[slotID], m_quantity[slotID]);
     }
     return quantity;
 }

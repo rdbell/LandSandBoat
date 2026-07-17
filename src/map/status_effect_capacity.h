@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 
 // Pure CStatusEffectContainer::CanGainStatusEffect policy halves.
@@ -1147,6 +1148,33 @@ inline auto IsBustEffectForAbility(
     const uint16 abilityOrRollID) -> bool
 {
     return statusID == bustStatusID && subPower == abilityOrRollID;
+}
+
+// --- Slice 2820: WakeUp pure ordered status-ID plan ---
+
+// WakeUpStatusIDCount is the number of status IDs WakeUp deletes
+// (SleepI, SleepIi, Lullaby).
+constexpr std::size_t WakeUpStatusIDCount = 3;
+
+// WakeUpStatusIDs (PlanWakeUp) returns the fixed ordered list of status effect
+// IDs that CStatusEffectContainer::WakeUp deletes via DelStatusEffect:
+// SleepI, SleepIi, Lullaby. Host injects DelStatusEffect for each id (return
+// values ignored, matching production). Reuses StatusIDSleepI / StatusIDSleepIi
+// / StatusIDLullaby constants (slice 1368).
+inline auto WakeUpStatusIDs() -> std::span<const uint16>
+{
+    static constexpr uint16 kIDs[] = {
+        StatusIDSleepI,
+        StatusIDSleepIi,
+        StatusIDLullaby,
+    };
+    return std::span<const uint16>{ kIDs };
+}
+
+// PlanWakeUp is the plan-named alias for WakeUpStatusIDs.
+inline auto PlanWakeUp() -> std::span<const uint16>
+{
+    return WakeUpStatusIDs();
 }
 
 } // namespace statuseffecthelpers

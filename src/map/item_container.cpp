@@ -219,7 +219,10 @@ auto CItemContainer::SearchItem(const uint16 itemId) const -> uint8
 {
     for (uint8 slotId = 0; slotId <= m_size; ++slotId)
     {
-        if ((m_ItemList[slotId] != nullptr) && (m_ItemList[slotId]->getID() == itemId))
+        // Host owns null short-circuit and field extraction; pure gate is
+        // occupancy + id match only.
+        if (m_ItemList[slotId] != nullptr &&
+            itemcontainerhelpers::MatchesSearchItem(true, m_ItemList[slotId]->getID() == itemId))
         {
             return slotId;
         }
@@ -234,7 +237,10 @@ auto CItemContainer::SearchItems(const uint16 itemId) const -> std::vector<uint8
 
     for (uint8 slotId = 0; slotId <= m_size; ++slotId)
     {
-        if ((m_ItemList[slotId] != nullptr) && (m_ItemList[slotId]->getID() == itemId))
+        // Host owns null short-circuit and field extraction; pure gate is
+        // occupancy + id match only.
+        if (m_ItemList[slotId] != nullptr &&
+            itemcontainerhelpers::MatchesSearchItem(true, m_ItemList[slotId]->getID() == itemId))
         {
             slotIds.push_back(slotId);
         }

@@ -2331,9 +2331,12 @@ bool CStatusEffectContainer::IsAsleep()
 
 void CStatusEffectContainer::WakeUp()
 {
-    DelStatusEffect(xi::StatusEffect::SleepI);
-    DelStatusEffect(xi::StatusEffect::SleepIi);
-    DelStatusEffect(xi::StatusEffect::Lullaby);
+    // Production dual-wires PlanWakeUp / WakeUpStatusIDs (slice 2820) for the
+    // ordered SleepI → SleepIi → Lullaby DelStatusEffect sequence.
+    for (const auto statusID : statuseffecthelpers::WakeUpStatusIDs())
+    {
+        DelStatusEffect(static_cast<xi::StatusEffect>(statusID));
+    }
 }
 
 bool CStatusEffectContainer::HasBustEffect(uint16 id)

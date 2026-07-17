@@ -171,11 +171,10 @@ bool CUContainer::IsContainerEmpty()
 
 bool CUContainer::IsSlotEmpty(uint8 slotID)
 {
-    if (slotID < m_PItem.size())
-    {
-        return m_PItem[slotID] == nullptr;
-    }
-    return true;
+    // Pure emptiness decision: ucontainerhelpers::PlanIsSlotEmpty (slice 2822).
+    const bool slotInRange = slotID < m_PItem.size();
+    const bool itemNull    = !slotInRange || m_PItem[slotID] == nullptr;
+    return ucontainerhelpers::PlanIsSlotEmpty(slotInRange, itemNull);
 }
 
 /************************************************************************

@@ -445,10 +445,14 @@ set(SOURCES
     test_item_container_policy_2802.cpp
     test_item_search_space_2808.h
     test_item_search_space_2808.cpp
+    test_item_search_match_2823.h
+    test_item_search_match_2823.cpp
     test_notoriety_prune_2807.h
     test_notoriety_prune_2807.cpp
     test_notoriety_add_2818.h
     test_notoriety_add_2818.cpp
+    test_notoriety_remove_2819.h
+    test_notoriety_remove_2819.cpp
     test_loot_container_2641.h
     test_loot_container_2641.cpp
     test_item_currency.h
@@ -549,10 +553,14 @@ set(SOURCES
     test_universal_setitem_plan_2801.cpp
     test_universal_clear_slot_2813.h
     test_universal_clear_slot_2813.cpp
+    test_universal_slot_empty_2822.h
+    test_universal_slot_empty_2822.cpp
     test_trade_confirmed_status_2806.h
     test_trade_confirmed_status_2806.cpp
     test_trade_setitem_entry_2812.h
     test_trade_setitem_entry_2812.cpp
+    test_trade_total_quantity_2821.h
+    test_trade_total_quantity_2821.cpp
     test_recast_container.h
     test_recast_container.cpp
     test_trait.h
@@ -839,6 +847,8 @@ set(SOURCES
     test_status_aura_refresh_2798.cpp
     test_status_bust_effect_2817.h
     test_status_bust_effect_2817.cpp
+    test_status_wakeup_2820.h
+    test_status_wakeup_2820.cpp
     test_attackround_multihit_1374.h
     test_attackround_multihit_1374.cpp
     test_attackround_create_attacks_plan_2756.h
