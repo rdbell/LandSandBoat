@@ -24,6 +24,7 @@
 //   - 3017: ShouldReceiveLinkshellPacket (!isSender && !isDisappear && !inPrison)
 //   - 3026: ShouldRewritePacketAsLinkshell2 (memberIsLS2 identity)
 //   - 3055: ShouldLoadLinkshellOnOnlineAdd (!foundInCache)
+//   - 3079: ShouldRejectNullOnlineMember (charNull identity null-PChar gate)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -43,7 +44,10 @@
 // ShouldReceiveLinkshellPacket before packet copy / optional LS2 rewrite / push;
 // then injects member->PLinkshell2 == this into ShouldRewritePacketAsLinkshell2
 // after receive filter, before chat_std / LS message rewrite and pushPacket.
-// linkshell::AddOnlineMember (linkshell.cpp) injects
+// linkshell::AddOnlineMember / DelOnlineMember (linkshell.cpp) inject
+// (PChar == nullptr) into ShouldRejectNullOnlineMember; on true ShowWarning +
+// return OnlineMemberAlwaysReturnsFalse before process item / load / roster.
+// linkshell::AddOnlineMember injects
 // LinkshellList.find(PItemLinkshell->GetLSID()) != end into
 // ShouldLoadLinkshellOnOnlineAdd; on true LoadLinkshell(id); on false reuses
 // cache entry when found.
@@ -66,7 +70,9 @@
 // linkshell.ShouldRewritePacketAsLinkshell2
 // (internal/linkshell/rewrite_ls2.go),
 // linkshell.ShouldLoadLinkshellOnOnlineAdd
-// (internal/linkshell/load_on_online_add.go).
+// (internal/linkshell/load_on_online_add.go),
+// linkshell.ShouldRejectNullOnlineMember
+// (internal/linkshell/reject_null_online_member.go).
 
 namespace linkshellhelpers
 {
@@ -443,7 +449,26 @@ inline auto FormatOnlineMemberNullWarning() -> std::string
     return "PChar is null.";
 }
 
-// ShouldRejectNullOnlineMember mirrors PChar == nullptr.
+// ShouldRejectNullOnlineMember mirrors PChar == nullptr on AddOnlineMember /
+// DelOnlineMember before process item / load / roster work.
+//
+// Formula (slice 3079 dual-wire):
+//   charNull
+//
+// charNull — host-evaluated (PChar == nullptr)
+// true  → host logs FormatOnlineMemberNullWarning and returns
+//         OnlineMemberAlwaysReturnsFalse before process item / load / roster
+// false → proceed past the null-char early gate
+//
+// Dual-wire of Go linkshell.ShouldRejectNullOnlineMember.
+// Call sites: linkshell::AddOnlineMember / DelOnlineMember — host injects
+// (PChar == nullptr); on true ShowWarning + return OnlineMemberAlwaysReturnsFalse.
+// Prior pure port: slice 1355 (linkshell registry residual). Residual pins
+// remain in test_linkshell_registry_1355; dedicated dual-wire suite is
+// test_linkshell_reject_null_online_3079. Sibling dual-wire:
+// ShouldLoadLinkshellOnOnlineAdd (3055). Residual siblings: process item,
+// add-after-lookup, always-false return, erase-after-del, null warning string
+// (still 1355).
 inline auto ShouldRejectNullOnlineMember(const bool charNull) -> bool
 {
     return charNull;

@@ -1369,6 +1369,11 @@ auto runUnityRejectNullOnline3075SelfTests() -> bool;
 auto runMobtypeCanBeNeutral3076SelfTests() -> bool;
 auto runAllianceSetLocalMain3077SelfTests() -> bool;
 auto runDynamisSnapEntry3078SelfTests() -> bool;
+auto runLinkshellRejectNullOnline3079SelfTests() -> bool;
+auto runStatusRejectNull3080SelfTests() -> bool;
+auto runPetShouldDisengage3081SelfTests() -> bool;
+auto runRangerStripPartialRetain3082SelfTests() -> bool;
+auto runPartyAttemptPCLeader3083SelfTests() -> bool;
 
 namespace
 {
@@ -2715,6 +2720,11 @@ namespace
         ok = runMobtypeCanBeNeutral3076SelfTests() && ok;
         ok = runAllianceSetLocalMain3077SelfTests() && ok;
         ok = runDynamisSnapEntry3078SelfTests() && ok;
+        ok = runLinkshellRejectNullOnline3079SelfTests() && ok;
+        ok = runStatusRejectNull3080SelfTests() && ok;
+        ok = runPetShouldDisengage3081SelfTests() && ok;
+        ok = runRangerStripPartialRetain3082SelfTests() && ok;
+        ok = runPartyAttemptPCLeader3083SelfTests() && ok;
 
         return ok;
     }

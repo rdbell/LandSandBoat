@@ -32,6 +32,8 @@
 //           same party, not self, charFound, sameZone)
 //   - 3041: ShouldPushEffectsPacket (PushEffectsPacket m_EffectsChanged gate:
 //           effectsChanged identity)
+//   - 3083: ShouldAttemptPCLeaderPromote (RemovePartyLeader PC promote gate:
+//           !isMobParty)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
@@ -57,6 +59,9 @@
 // (party.cpp:~1350) injects memberinfo.partyid / m_PartyID / memberinfo.id /
 // PMemberChar->id / charFound / sameZone into ShouldIncludeInGroupEffects before
 // sameZoneMembers.push_back(PPartyMember).
+// Production host: CParty::RemovePartyLeader (party.cpp:~538) injects
+// isMobParty (m_PartyType == PARTY_MOBS) into ShouldAttemptPCLeaderPromote
+// before the accounts_sessions JOIN / SetLeader PC promote path.
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
@@ -68,7 +73,8 @@
 // party.ShouldApplySyncDisableToMember (internal/party/apply_sync_disable.go),
 // party.ShouldPushPartyPacketToMember (internal/party/push_packet_member.go),
 // party.ShouldIncludeInGroupEffects (internal/party/include_group_effects.go),
-// party.ShouldPushEffectsPacket (internal/party/push_effects_packet.go).
+// party.ShouldPushEffectsPacket (internal/party/push_effects_packet.go),
+// party.ShouldAttemptPCLeaderPromote (internal/party/attempt_pc_leader_promote.go).
 
 namespace partyhelpers
 {
@@ -546,6 +552,19 @@ enum class remove_party_leader_plan : uint8_t
 
 // ShouldAttemptPCLeaderPromote mirrors m_PartyType != PARTY_MOBS before the
 // accounts_sessions JOIN lookup for a non-leader replacement.
+//
+// Formula (slice 3083 dual-wire):
+//   !isMobParty
+//
+// isMobParty — host-evaluated m_PartyType == PARTY_MOBS
+// true  → skip PC DB promote (mob path uses member-scan promote instead)
+// false → attempt accounts_sessions JOIN for oldest non-leader SetLeader
+//
+// Dual-wire of Go party.ShouldAttemptPCLeaderPromote
+// (internal/party/attempt_pc_leader_promote.go). Prior pure port: slice 1340.
+// Call site: CParty::RemovePartyLeader (party.cpp:~538) host inject.
+// Residual suite: test_party_remove_leader_1340 (classify / return / warning).
+// Coverage: test_party_attempt_pc_leader_3083 (not in CMake/main).
 inline auto ShouldAttemptPCLeaderPromote(const bool isMobParty) -> bool
 {
     return !isMobParty;

@@ -2731,6 +2731,16 @@ set(SOURCES
     test_alliance_set_local_main_3077.cpp
     test_dynamis_snap_entry_3078.h
     test_dynamis_snap_entry_3078.cpp
+    test_linkshell_reject_null_online_3079.h
+    test_linkshell_reject_null_online_3079.cpp
+    test_status_reject_null_3080.h
+    test_status_reject_null_3080.cpp
+    test_pet_should_disengage_3081.h
+    test_pet_should_disengage_3081.cpp
+    test_ranger_strip_partial_retain_3082.h
+    test_ranger_strip_partial_retain_3082.cpp
+    test_party_attempt_pc_leader_3083.h
+    test_party_attempt_pc_leader_3083.cpp
 )
 
 if(UNIX)

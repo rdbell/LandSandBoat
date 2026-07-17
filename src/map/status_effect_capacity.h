@@ -815,7 +815,35 @@ inline auto ShouldUseItemSubTypeScript(const bool useEffectsPath, const uint32 s
 constexpr uint8 EffectNoticeShowMessage = 0;
 constexpr uint8 EffectNoticeSilent      = 1;
 
+// --- Slice 3080: ShouldRejectNullStatusEffect pure dual-wire ---
+// Residual pure port: slice 1371 (Add/Remove pure-gate suite).
+// Production host: CStatusEffectContainer::AddStatusEffect injects
+// (PStatusEffectPtr == nullptr) into ShouldRejectNullStatusEffect; on true
+// ShowWarning and return false before ID-range / CanGain.
+// Go dual-wire: statuseffect.ShouldRejectNullStatusEffect
+// (internal/statuseffect/reject_null_status.go).
+// Sibling dual-wires on same Add path: ShouldRejectEffectIDOutOfRange (2932).
+// Orthogonal expire/tick dual-wires (3049 / 3069) left alone.
+// Index 3080: statuseffect.ShouldRejectNullStatusEffect pure dual-wire.
+
 // ShouldRejectNullStatusEffect mirrors PStatusEffectPtr == nullptr.
+//
+// Formula (slice 3080 dual-wire):
+//   isNull
+//
+// isNull — host-injected (PStatusEffectPtr == nullptr)
+// true  → host logs warning and returns false from AddStatusEffect
+// false → proceed to ID-range / CanGain / insert path
+//
+// Dual-wire of Go statuseffect.ShouldRejectNullStatusEffect.
+// Call site: CStatusEffectContainer::AddStatusEffect — host injects
+// PStatusEffectPtr == nullptr; on true ShowWarning and return false.
+// Prior pure port: slice 1371 (add/remove pure-gate suite).
+// Residual pins remain in test_status_effect_add_remove_1371; dedicated
+// dual-wire suite is test_status_reject_null_3080.
+// Sibling dual-wire: ShouldRejectEffectIDOutOfRange (slice 2932) is next
+// on the same AddStatusEffect path. Orthogonal: ShouldExpireEffect (3049) /
+// ShouldTickEffect (3069).
 inline auto ShouldRejectNullStatusEffect(const bool isNull) -> bool
 {
     return isNull;
