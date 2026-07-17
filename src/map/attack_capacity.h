@@ -13,15 +13,25 @@
 //   - 2751: ResolveParryCheck (CheckParried state mutation)
 //   - 2739: ResolveGuardCheck (CheckGuarded state mutation)
 //   - 2748: ResolveCoverCheck (CheckCover state mutation)
-//   - 2996: ShouldSkipParryForDaken (CheckParried Daken early-out)
+//   - 2996: ShouldSkipParryForDaken residual dual-wire suite
+//   - 3166: ShouldSkipParryForDaken dedicated dual-wire (skip_parry_daken.go)
 //   - 3003: ShouldSkipCounterForDaken (CheckCounter Daken early-out)
 //   - 3004: ShouldSkipAnticipateForDaken (CheckAnticipated Daken early-out)
+//
+// Dual-wire index:
+//   - 2996: ShouldSkipParryForDaken residual dual-wire suite
+//   - 3166: ShouldSkipParryForDaken = IsDakenAttack(attackType)
+//   - 3003: ShouldSkipCounterForDaken
+//   - 3004: ShouldSkipAnticipateForDaken
 //
 // Production host: CAttack::CheckParried (attack.cpp) injects
 // static_cast<uint8>(m_attackType) into ShouldSkipParryForDaken before
 // attackutils::IsParried, then ResolveParryCheck for state writeback.
 // Go dual-wire: attack.ShouldSkipParryForDaken
 // (internal/attack/skip_parry_daken.go).
+// Residual dual-wire suite: 2996 (test_attack_skip_parry_daken_2996).
+// Dedicated dual-wire suite: 3166 (test_attack_skip_parry_daken_3166).
+// Prior pure port: OmegaXI slice 1376 (internal/attack/checks residual).
 //
 // Production host: CAttack::CheckCounter (attack.cpp ~499) injects
 // static_cast<uint8>(m_attackType) into ShouldSkipCounterForDaken and
@@ -90,9 +100,14 @@ inline auto IsDakenAttack(const uint8 attackType) -> bool
     return attackType == AttackTypeDaken;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3166 — CheckParried Daken early-out (dedicated expand residual 2996)
+// ---------------------------------------------------------------------------
+
 // ShouldSkipParryForDaken mirrors CheckParried Daken early-out.
 //
-// Formula (slice 2996 dual-wire):
+// Formula (slice 3166 dedicated dual-wire; residual expand 2996 / pure 1376 —
+// formula unchanged):
 //   IsDakenAttack(attackType)
 //   // IsDakenAttack: attackType == PHYSICAL_ATTACK_TYPE::DAKEN (9)
 //
@@ -105,9 +120,12 @@ inline auto IsDakenAttack(const uint8 attackType) -> bool
 //   const bool parryProcs = !ShouldSkipParryForDaken(attackType) &&
 //                           attackutils::IsParried(m_attacker, m_victim);
 // Prior pure port: slice 1376 (attack check-policy residual).
-// Sibling Daken early-outs: ShouldSkipCounterForDaken (3003 dual-wire) /
+// Residual dual-wire suite: 2996 / test_attack_skip_parry_daken_2996.
+// Dedicated dual-wire suite: 3166 / test_attack_skip_parry_daken_3166.
+// Sibling Daken early-outs residual only under 3166 (not re-expanded):
+// ShouldSkipCounterForDaken (3003 dual-wire) /
 // ShouldSkipAnticipateForDaken (3004 dual-wire; same formula, different hosts).
-// Coverage: test_attack_skip_parry_daken_2996 (not in CMake/main).
+// Coverage: test_attack_skip_parry_daken_3166 (not in CMake/main).
 inline auto ShouldSkipParryForDaken(const uint8 attackType) -> bool
 {
     return IsDakenAttack(attackType);
@@ -146,8 +164,9 @@ inline auto ResolveParryCheck(const bool alreadyParried, const uint8 attackType,
 //       return false;
 //   }
 // Prior pure port: slice 1376 (attack check-policy residual).
-// Sibling Daken early-outs: ShouldSkipParryForDaken (2996 dual-wire) /
-// ShouldSkipAnticipateForDaken (3004 dual-wire; same formula, different hosts).
+// Sibling Daken early-outs: ShouldSkipParryForDaken (3166 dedicated dual-wire;
+// residual 2996) / ShouldSkipAnticipateForDaken (3004 dual-wire; same formula,
+// different hosts).
 // Coverage: test_attack_skip_counter_daken_3003 (not in CMake/main).
 inline auto ShouldSkipCounterForDaken(const uint8 attackType) -> bool
 {
@@ -171,8 +190,9 @@ inline auto ShouldSkipCounterForDaken(const uint8 attackType) -> bool
 //       return false;
 //   }
 // Prior pure port: slice 1376 (attack check-policy residual).
-// Sibling Daken early-outs: ShouldSkipParryForDaken (2996 dual-wire) /
-// ShouldSkipCounterForDaken (3003 dual-wire; same formula, different hosts).
+// Sibling Daken early-outs: ShouldSkipParryForDaken (3166 dedicated dual-wire;
+// residual 2996) / ShouldSkipCounterForDaken (3003 dual-wire; same formula,
+// different hosts).
 // Coverage: test_attack_skip_anticipate_daken_3004 (not in CMake/main).
 inline auto ShouldSkipAnticipateForDaken(const uint8 attackType) -> bool
 {

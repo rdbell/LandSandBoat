@@ -3,8 +3,14 @@
 #include "common/cbasetypes.h"
 
 // Pure interaction_lookup helpers shared by dual-wire slices:
-//   - 2953: ShouldSkipPrioritySelection (getHighestPriorityActions early
-//           return gate — empty list or bare-number CS ID first element)
+//   - 1094: residual pure port (internal/interactionlookup ShouldSkipPrioritySelection)
+//   - 2953: ShouldSkipPrioritySelection residual dual-wire extract (skip_priority)
+//   - 3167: ShouldSkipPrioritySelection dedicated dual-wire
+//           (empty || firstIsNumber; residual expand 2953 / pure 1094)
+//
+// Dual-wire index:
+//   - 2953: ShouldSkipPrioritySelection residual dual-wire suite
+//   - 3167: ShouldSkipPrioritySelection = empty || firstIsNumber
 //
 // Production host is Lua under
 // scripts/globals/interaction/interaction_lookup.lua
@@ -25,23 +31,33 @@
 // HighestPriorityActions selection, Action.Priority.Progress as maxPriority)
 // remain host-owned.
 // Prior pure port: OmegaXI slice 1094 (internal/interactionlookup
-// handler_policy.go). Dual-wire extract: slice 2953 (skip_priority.go).
+// handler_policy.go). Residual dual-wire extract: slice 2953 (skip_priority.go).
+// Dedicated dual-wire suite: slice 3167
+// (test_interactionlookup_skip_priority_3167).
+// Go dual-wire: interactionlookup.ShouldSkipPrioritySelection
+//   (internal/interactionlookup/skip_priority.go).
 
 namespace interactionlookuphelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2953 — getHighestPriorityActions early-return gate
+// Slice 3167 — getHighestPriorityActions early-return gate
+//              (dedicated expand residual 2953)
 // ---------------------------------------------------------------------------
 
 // SkipPriorityMaxPriority is the maxPriority returned when
 // ShouldSkipPrioritySelection is true (Action.Priority.Progress == 1000).
 // Mirrors Go interactionlookup.SkipPriorityMaxPriority /
 // interactionaction.PriorityProgress.
+// Residual pin under 2953 / 1094; dedicated dual-wire suite: slice 3167.
 inline constexpr int32 SkipPriorityMaxPriority = 1000;
 
 // ShouldSkipPrioritySelection mirrors getHighestPriorityActions early return:
 //   empty || firstIsNumber
+//
+// Formula (slice 3167 dedicated dual-wire; residual expand 2953 / pure 1094 —
+// formula unchanged):
+//   ShouldSkipPrioritySelection(empty, firstIsNumber) = empty || firstIsNumber
 //
 // empty is #possibleActions == 0; firstIsNumber is
 // type(possibleActions[1]) == 'number' (onZoneIn CS ID path before
@@ -58,6 +74,11 @@ inline constexpr int32 SkipPriorityMaxPriority = 1000;
 // Dual-wire of Go interactionlookup.ShouldSkipPrioritySelection
 // (internal/interactionlookup/skip_priority.go).
 // Call site: future Lua/C++ host of getHighestPriorityActions.
+// Prior pure port: slice 1094. Residual dual-wire suite: 2953 /
+// test_interaction_skip_priority_2953. Dedicated dual-wire suite is
+// test_interactionlookup_skip_priority_3167. Formula is unchanged; this slice
+// only expands dual-wire docs + index + dedicated suite. Future Lua host
+// injects empty / firstIsNumber into this helper instead of re-inlining.
 inline auto ShouldSkipPrioritySelection(const bool empty, const bool firstIsNumber) -> bool
 {
     return empty || firstIsNumber;

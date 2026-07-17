@@ -15,10 +15,15 @@
 //   - 2976: CanRemoveSlot (RemoveItem range gate)
 //   - 2989: ShouldDecrementCountOnRemove (RemoveItem count drop)
 //   - 3021: ShouldIncrementCountOnInsertAt (InsertItem count bump)
-//   - 3027: CanSetSize (SetSize / AddSize acceptance gate)
+//   - 3027: CanSetSize residual dual-wire suite (SetSize / AddSize acceptance)
 //   - 3033: CanSearchSlotID (GetItem / search inclusive range dual-wire)
 //   - 3038: MatchesSearchItem (SearchItem / SearchItems loop-body dual-wire)
 //   - 3039: FreeSlotsCount (GetFreeSlotsCount size-minus-count dual-wire)
+//   - 3164: CanSetSize dedicated dual-wire (can_set_size.go; expand residual 3027)
+//
+// Dual-wire index:
+//   - 3027: CanSetSize residual dual-wire suite
+//   - 3164: CanSetSize = newSize <= maxSize && newSize >= itemCount
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
@@ -39,6 +44,8 @@
 // MAX_CONTAINER_SIZE, and m_count into CanSetSize.
 // Go dual-wire: itemcontainer.CanSetSize
 // (internal/itemcontainer/can_set_size.go).
+// Residual dual-wire suite: 3027 (test_item_can_set_size_3027).
+// Dedicated dual-wire suite: 3164 (test_itemcontainer_can_set_size_3164).
 // Production host: CItemContainer::GetItem injects SlotID and m_size into
 // CanSearchSlotID (shared inclusive bound with SearchItem / SearchItems /
 // SearchItemWithSpace). Go dual-wire: itemcontainer.CanSearchSlotID
@@ -55,10 +62,15 @@
 namespace itemcontainerhelpers
 {
 
+// ---------------------------------------------------------------------------
+// Slice 3164 — SetSize / AddSize acceptance (dedicated expand residual 3027)
+// ---------------------------------------------------------------------------
+
 // CanSetSize mirrors SetSize / AddSize acceptance after the host computes the
 // candidate size (AddSize must keep uint8 intermediate wrap on the host).
 //
-// Formula (slice 3027 dual-wire):
+// Formula (slice 3164 dedicated dual-wire; residual expand 3027 / pure 2802 —
+// formula unchanged):
 //   newSize <= maxSize && newSize >= itemCount
 //
 // newSize   — host-evaluated candidate size (SetSize argument / AddSize wrap)
@@ -69,9 +81,11 @@ namespace itemcontainerhelpers
 //
 // Dual-wire of Go itemcontainer.CanSetSize.
 // Call sites: CItemContainer::SetSize and CItemContainer::AddSize.
-// Prior pure port: slice 2802. Sibling dual-wire gates: CanInsertAtSlot
-// (2942), CanRemoveSlot (2976), ShouldIncrementCountOnInsertAt (3021),
-// ShouldDecrementCountOnRemove (2989).
+// Prior pure port: slice 2802. Residual dual-wire suite: 3027 /
+// test_item_can_set_size_3027. Dedicated dual-wire suite is
+// test_itemcontainer_can_set_size_3164. Sibling dual-wire gates:
+// CanInsertAtSlot (2942), CanRemoveSlot (2976),
+// ShouldIncrementCountOnInsertAt (3021), ShouldDecrementCountOnRemove (2989).
 inline auto CanSetSize(const std::uint8_t newSize, const std::uint8_t maxSize, const std::uint8_t itemCount) -> bool
 {
     return newSize <= maxSize && newSize >= itemCount;

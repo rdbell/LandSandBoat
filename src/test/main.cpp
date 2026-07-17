@@ -1454,6 +1454,11 @@ auto runMeritShouldRaiseMerit3160SelfTests() -> bool;
 auto runCommandAuditGMCommand3161SelfTests() -> bool;
 auto runManaclipperRemainingGameMinutes3162SelfTests() -> bool;
 auto runColonizationreiveSpawnOnEnable3163SelfTests() -> bool;
+auto runItemcontainerCanSetSize3164SelfTests() -> bool;
+auto runNotorietyAddMember3165SelfTests() -> bool;
+auto runAttackSkipParryDaken3166SelfTests() -> bool;
+auto runInteractionlookupSkipPriority3167SelfTests() -> bool;
+auto runMonstrosityRejectInstinctLoadout3168SelfTests() -> bool;
 
 namespace
 {
@@ -2885,6 +2890,11 @@ namespace
         ok = runCommandAuditGMCommand3161SelfTests() && ok;
         ok = runManaclipperRemainingGameMinutes3162SelfTests() && ok;
         ok = runColonizationreiveSpawnOnEnable3163SelfTests() && ok;
+        ok = runItemcontainerCanSetSize3164SelfTests() && ok;
+        ok = runNotorietyAddMember3165SelfTests() && ok;
+        ok = runAttackSkipParryDaken3166SelfTests() && ok;
+        ok = runInteractionlookupSkipPriority3167SelfTests() && ok;
+        ok = runMonstrosityRejectInstinctLoadout3168SelfTests() && ok;
 
         return ok;
     }

@@ -5,7 +5,10 @@
 // Pure CNotorietyContainer policy helpers.
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
-//   - 2959: ShouldAddNotorietyMember (add admission three-bool AND)
+//   - 2959: ShouldAddNotorietyMember residual dual-wire expand
+//   - 3165: ShouldAddNotorietyMember dedicated dual-wire
+//           (ownerPresent && entityPresent && differentAllegiance;
+//            residual expand 2959 / pure 2818)
 //   - 2971: ShouldRemoveNotorietyMember (remove admission two-bool AND)
 //   - 3020: ShouldScanNotorietyForPrune (hasEnmity outer gate two-bool AND)
 //   - 3029: ShouldPruneMobFromNotoriety (hasEnmity per-entry prune four-bool)
@@ -22,6 +25,8 @@
 // Helpers take host-injected scalars/bools only (no entity/enmity pointers).
 // Go dual-wire: notoriety.ShouldAddNotorietyMember
 // (internal/notoriety/add_member.go). Prior pure port: slice 2818.
+// Residual dual-wire suite: 2959 / test_notoriety_add_member_2959.
+// Dedicated dual-wire suite: 3165 / test_notoriety_add_member_3165.
 // Go dual-wire: notoriety.ShouldRemoveNotorietyMember
 // (internal/notoriety/remove_member.go). Prior pure port: slice 2819.
 // Go dual-wire: notoriety.ShouldScanNotorietyForPrune
@@ -96,7 +101,8 @@ inline auto ShouldPruneMobFromNotoriety(
 // ShouldAddNotorietyMember mirrors CNotorietyContainer::add admission (~48):
 //   m_POwner && entity && entity->allegiance != m_POwner->allegiance
 //
-// Formula (slice 2959 dual-wire):
+// Formula (slice 3165 dedicated dual-wire; residual expand 2959 / pure 2818 —
+// formula unchanged):
 //   ownerPresent && entityPresent && differentAllegiance
 //
 // Host-injected scalars (no entity pointers):
@@ -110,6 +116,9 @@ inline auto ShouldPruneMobFromNotoriety(
 //
 // Dual-wire of Go notoriety.ShouldAddNotorietyMember
 // (internal/notoriety/add_member.go). Prior pure port: slice 2818.
+// Residual dual-wire suite: 2959 / test_notoriety_add_member_2959.
+// Dedicated dual-wire suite is test_notoriety_add_member_3165. Formula is
+// unchanged; this slice only expands dual-wire docs + index + dedicated suite.
 // Call site: CNotorietyContainer::add (notoriety_container.cpp).
 inline auto ShouldAddNotorietyMember(
     const bool ownerPresent,

@@ -27,7 +27,8 @@ auto inlineShouldRejectInstinctLoadout(const uint16 totalCost, const uint16 maxP
 } // namespace
 
 // Pure dual-wire expansion for monstrosityhelpers::ShouldRejectInstinctLoadout
-// (HandleEquipChangePacket InstinctFlag cost/duplicate gate).
+// (HandleEquipChangePacket InstinctFlag cost/duplicate gate; residual 2872).
+// Dedicated expand residual is runMonstrosityRejectInstinctLoadout3168SelfTests.
 auto runMonstrosityInstinctLoadout2872SelfTests() -> bool
 {
     using monstrosityhelpers::ShouldRejectInstinctLoadout;

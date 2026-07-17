@@ -2901,6 +2901,16 @@ set(SOURCES
     test_manaclipper_remaining_game_minutes_3162.cpp
     test_colonizationreive_spawn_on_enable_3163.h
     test_colonizationreive_spawn_on_enable_3163.cpp
+    test_itemcontainer_can_set_size_3164.h
+    test_itemcontainer_can_set_size_3164.cpp
+    test_notoriety_add_member_3165.h
+    test_notoriety_add_member_3165.cpp
+    test_attack_skip_parry_daken_3166.h
+    test_attack_skip_parry_daken_3166.cpp
+    test_interactionlookup_skip_priority_3167.h
+    test_interactionlookup_skip_priority_3167.cpp
+    test_monstrosity_reject_instinct_loadout_3168.h
+    test_monstrosity_reject_instinct_loadout_3168.cpp
 )
 
 if(UNIX)
