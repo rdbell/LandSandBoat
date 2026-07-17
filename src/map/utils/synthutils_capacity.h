@@ -21,8 +21,10 @@
 //           (prior ~3614; formula unchanged: antiHQMod == 0)
 //   - 3704: CanSynthesizeHQ prior dedicated dual-wire expand residual 2876
 //           (prior ~3659; formula unchanged: antiHQMod == 0)
-//   - 3749: CanSynthesizeHQ dedicated dual-wire expand residual 2876
+//   - 3749: CanSynthesizeHQ prior dedicated dual-wire expand residual 2876
 //           (prior ~3704; formula unchanged: antiHQMod == 0)
+//   - 3794: CanSynthesizeHQ dedicated dual-wire expand residual 2876
+//           (prior ~3749; formula unchanged: antiHQMod == 0)
 //
 // Dual-wire index:
 //   - 2876: CanSynthesizeHQ residual pure dual-wire
@@ -43,7 +45,9 @@
 //   - 3704: CanSynthesizeHQ = antiHQMod == 0
 //     prior dedicated dual-wire expand residual 2876 (prior ~3659)
 //   - 3749: CanSynthesizeHQ = antiHQMod == 0
-//     dedicated dual-wire expand residual 2876 (prior ~3704)
+//     prior dedicated dual-wire expand residual 2876 (prior ~3704)
+//   - 3794: CanSynthesizeHQ = antiHQMod == 0
+//     dedicated dual-wire expand residual 2876 (prior ~3749)
 //
 // Production host: synthutils::canSynthesizeHQ in synthutils.cpp.
 // Host resolves skillID → Mod::SYNTH_ANTI_HQ_* then injects getMod(ModID).
@@ -52,7 +56,7 @@
 //
 // Matches OmegaXI synthutils.CanSynthesizeHQ (slice 1922 / residual 2876 /
 // prior dedicated 3244 / 3283 / 3313 / 3508 / 3569 / 3614 / 3659 / 3704 /
-// dedicated expand 3749):
+// 3749 / dedicated expand 3794):
 //   antiHQMod == 0
 //
 // Coverage: test_synthutils_can_hq_2876 (residual dual-wire),
@@ -65,39 +69,41 @@
 // (prior dedicated expand residual 2876), test_synthutils_can_synthesize_hq_3659
 // (prior dedicated expand residual 2876), test_synthutils_can_synthesize_hq_3704
 // (prior dedicated expand residual 2876), test_synthutils_can_synthesize_hq_3749
+// (prior dedicated expand residual 2876), test_synthutils_can_synthesize_hq_3794
 // (dedicated expand residual 2876; not in CMake/main).
 
 namespace synthutilshelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2876 residual / 3244 / 3283 / 3313 / 3508 / 3569 / 3614 / 3659 / 3704
-// prior dedicated / 3749 expand residual 2876 — canSynthesizeHQ pure half
+// Slice 2876 residual / 3244 / 3283 / 3313 / 3508 / 3569 / 3614 / 3659 / 3704 /
+// 3749 prior dedicated / 3794 expand residual 2876 — canSynthesizeHQ pure half
 // (anti-HQ mod gate)
 // ---------------------------------------------------------------------------
-// Dual-wire notes (slice 3749):
+// Dual-wire notes (slice 3794):
 //   Formula unchanged from pure 1922 / residual dual-wire 2876 / prior
-//   dedicated expand 3244 / 3283 / 3313 / 3508 / 3569 / 3614 / 3659 / 3704:
+//   dedicated expand 3244 / 3283 / 3313 / 3508 / 3569 / 3614 / 3659 / 3704 /
+//   3749:
 //     CanSynthesizeHQ(antiHQMod) = antiHQMod == 0
 //   Go dual-wire: synthutils.CanSynthesizeHQ (internal/synthutils/can_hq.go).
 //   Production host: synthutils::canSynthesizeHQ resolves skill→Mod then
 //   injects PChar->getMod(ModID) into this free function (not re-inlined).
 //   Skill→Mod catalog mapping remains host/mod-table work.
-// Coverage: test_synthutils_can_synthesize_hq_3749 (dedicated expand residual
+// Coverage: test_synthutils_can_synthesize_hq_3794 (dedicated expand residual
 // 2876; not in CMake/main); residual 2876 + prior dedicated 3244 / 3283 /
-// 3313 / 3508 / 3569 / 3614 / 3659 / 3704 suites retained.
+// 3313 / 3508 / 3569 / 3614 / 3659 / 3704 / 3749 suites retained.
 
 // CanSynthesizeHQ reports whether HQ is allowed given the injected anti-HQ
 // mod value for the current craft skill (getMod(SYNTH_ANTI_HQ_*)).
 //
-// Formula (slice 3749 dedicated dual-wire expand residual 2876; prior
-// dedicated 3704 / 3659 / 3614 / 3569 / 3508 / 3313 / 3283 / 3244 / pure 1922 —
+// Formula (slice 3794 dedicated dual-wire expand residual 2876; prior
+// dedicated 3749 / 3704 / 3659 / 3614 / 3569 / 3508 / 3313 / 3283 / 3244 / pure 1922 —
 // formula unchanged):
 //   CanSynthesizeHQ(antiHQMod) = antiHQMod == 0
 //
 // true when antiHQMod == 0 (no blocking ring/mod).
 // Host still owns skillID → Mod mapping and PChar->getMod.
-// Dual-wire of Go synthutils.CanSynthesizeHQ (can_hq.go / slice 3749).
+// Dual-wire of Go synthutils.CanSynthesizeHQ (can_hq.go / slice 3794).
 inline auto CanSynthesizeHQ(const int16 antiHQMod) -> bool
 {
     return antiHQMod == 0;
