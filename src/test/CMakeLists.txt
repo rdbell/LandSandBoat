@@ -3101,6 +3101,16 @@ set(SOURCES
     test_extravaganza_can_afford_cipher_3262.cpp
     test_command_permission_3263.h
     test_command_permission_3263.cpp
+    test_linkshell_break_inventory_pearl_3264.h
+    test_linkshell_break_inventory_pearl_3264.cpp
+    test_attack_block_counter_state_3265.h
+    test_attack_block_counter_state_3265.cpp
+    test_darkixion_can_break_horn_3266.h
+    test_darkixion_can_break_horn_3266.cpp
+    test_notoriety_add_member_3267.h
+    test_notoriety_add_member_3267.cpp
+    test_tradecontainer_set_confirmed_3268.h
+    test_tradecontainer_set_confirmed_3268.cpp
 )
 
 if(UNIX)

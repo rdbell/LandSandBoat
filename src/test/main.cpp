@@ -1554,6 +1554,11 @@ auto runTreasurepoolLotRare3260SelfTests() -> bool;
 auto runSpawnslotDespawnFog3261SelfTests() -> bool;
 auto runExtravaganzaCanAffordCipher3262SelfTests() -> bool;
 auto runCommandPermission3263SelfTests() -> bool;
+auto runLinkshellBreakInventoryPearl3264SelfTests() -> bool;
+auto runAttackBlockCounterState3265SelfTests() -> bool;
+auto runDarkixionCanBreakHorn3266SelfTests() -> bool;
+auto runNotorietyAddMember3267SelfTests() -> bool;
+auto runTradecontainerSetConfirmed3268SelfTests() -> bool;
 
 namespace
 {
@@ -3085,6 +3090,11 @@ namespace
         ok = runSpawnslotDespawnFog3261SelfTests() && ok;
         ok = runExtravaganzaCanAffordCipher3262SelfTests() && ok;
         ok = runCommandPermission3263SelfTests() && ok;
+        ok = runLinkshellBreakInventoryPearl3264SelfTests() && ok;
+        ok = runAttackBlockCounterState3265SelfTests() && ok;
+        ok = runDarkixionCanBreakHorn3266SelfTests() && ok;
+        ok = runNotorietyAddMember3267SelfTests() && ok;
+        ok = runTradecontainerSetConfirmed3268SelfTests() && ok;
 
         return ok;
     }

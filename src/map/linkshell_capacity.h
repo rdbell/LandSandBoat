@@ -18,7 +18,8 @@
 //   - 2958: ShouldRejectDuplicateAddMember (alreadyInList identity)
 //   - 2977: ShouldSendLinkshellMessageIPC (messageNonEmpty identity)
 //   - 2993: ShouldPushStoredLinkshellMessage (messageNonEmpty identity)
-//   - 3001: ShouldBreakInventoryPearl (shell holder OR equipped item)
+//   - 3001: ShouldBreakInventoryPearl residual dual-wire expand
+//           (shell holder OR equipped item; pure 1354)
 //   - 3008: ShouldMarkPearlBroken (lsType != LSTYPE_LINKSHELL)
 //   - 3009: ShouldSendBreakMessage (breakLinkshell identity)
 //   - 3017: ShouldReceiveLinkshellPacket (!isSender && !isDisappear && !inPrison)
@@ -32,6 +33,8 @@
 //           (charNull identity; residual expand 2929 / pure 1354)
 //   - 3215: ShouldRejectDuplicateAddMember dedicated dual-wire
 //           (alreadyInList identity; residual expand 2958 / pure 1354)
+//   - 3264: ShouldBreakInventoryPearl dedicated dual-wire
+//           (shell holder OR equipped item; residual expand 3001 / pure 1354)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -281,7 +284,8 @@ inline auto IsLinkshell2Attachment(const bool isLS2Pointer) -> bool
 
 // ShouldBreakInventoryPearl mirrors requester is shell holder OR item is equipped one.
 //
-// Formula (slice 3001 dual-wire):
+// Formula (slice 3264 dedicated dual-wire; residual expand 3001 / pure 1354 —
+// formula unchanged):
 //   requesterRank == LSTYPE_LINKSHELL || isEquippedItem
 //
 // (Go: Rank(requesterRank) == RankLinkshell || isEquippedItem)
@@ -294,7 +298,16 @@ inline auto IsLinkshell2Attachment(const bool isLS2Pointer) -> bool
 // Dual-wire of Go linkshell.ShouldBreakInventoryPearl.
 // Call site: CLinkshell::RemoveMemberByName host inject
 // (requesterRank, newPItemLinkshell == PItemLinkshell).
+//   if (ShouldBreakInventoryPearl(requesterRank,
+//           newPItemLinkshell == PItemLinkshell))
+//   {
+//       if (ShouldMarkPearlBroken(...)) { SetLSType(BROKEN); ... }
+//   }
 // Prior pure port: slice 1354 (capacity suite RemoveMemberByName break gate).
+// Residual dual-wire suite: 3001 / test_linkshell_break_inventory_pearl_3001.
+// Dedicated dual-wire suite is test_linkshell_break_inventory_pearl_3264.
+// Formula is unchanged; this slice only expands dual-wire docs + index +
+// dedicated suite.
 inline auto ShouldBreakInventoryPearl(const uint8 requesterRank, const bool isEquippedItem) -> bool
 {
     return requesterRank == LSTYPE_LINKSHELL || isEquippedItem;

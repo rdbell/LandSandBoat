@@ -17,6 +17,8 @@
 //   - 3166: ShouldSkipParryForDaken dedicated dual-wire (skip_parry_daken.go)
 //   - 3003: ShouldSkipCounterForDaken residual dual-wire suite
 //   - 3204: ShouldSkipCounterForDaken dedicated dual-wire (skip_counter_daken.go)
+//   - 3265: ShouldBlockCounterForState dedicated dual-wire (block_counter_state.go;
+//     residual pure 1376)
 //   - 3004: ShouldSkipAnticipateForDaken (CheckAnticipated Daken early-out)
 //
 // Dual-wire index:
@@ -24,6 +26,7 @@
 //   - 3166: ShouldSkipParryForDaken = IsDakenAttack(attackType)
 //   - 3003: ShouldSkipCounterForDaken residual dual-wire suite
 //   - 3204: ShouldSkipCounterForDaken = IsDakenAttack(attackType)
+//   - 3265: ShouldBlockCounterForState = !isEngaged || hasPreventActionIgnoringCharm
 //   - 3004: ShouldSkipAnticipateForDaken
 //
 // Production host: CAttack::CheckParried (attack.cpp) injects
@@ -42,6 +45,14 @@
 // (internal/attack/skip_counter_daken.go).
 // Residual dual-wire suite: 3003 (test_attack_skip_counter_daken_3003).
 // Dedicated dual-wire suite: 3204 (test_attack_skip_counter_daken_3204).
+//
+// Production host: CAttack::CheckCounter (attack.cpp ~505) injects
+// m_victim->PAI->IsEngaged() and HasPreventActionEffect(true) into
+// ShouldBlockCounterForState; when true sets m_isCountered=false and returns.
+// Go dual-wire: attack.ShouldBlockCounterForState
+// (internal/attack/block_counter_state.go).
+// Residual pure suite: 1376 (test_attack_checks_1376).
+// Dedicated dual-wire suite: 3265 (test_attack_block_counter_state_3265).
 //
 // Production host: CAttack::CheckAnticipated (attack.cpp ~399) injects
 // static_cast<uint8>(m_attackType) into ShouldSkipAnticipateForDaken and
@@ -247,7 +258,39 @@ inline auto IsDeflected(const bool hasDefenseBoost, const uint16 subPower, const
     return inFront;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3265 — CheckCounter engaged / prevent-action gate
+// (dedicated dual-wire; residual pure 1376)
+// ---------------------------------------------------------------------------
+
 // ShouldBlockCounterForState mirrors !engaged || HasPreventActionEffect(true).
+//
+// Formula (slice 3265 dedicated dual-wire; residual pure 1376 —
+// formula unchanged):
+//   !isEngaged || hasPreventActionIgnoringCharm
+//
+// isEngaged                      — host-evaluated m_victim->PAI->IsEngaged()
+// hasPreventActionIgnoringCharm  — host-evaluated
+//   m_victim->StatusEffectContainer->HasPreventActionEffect(true)
+// true  → host sets m_isCountered = false and returns (no merit/rate/facing)
+// false → host continues MNK merit / COUNTER clamp / Seigan / rate path
+//
+// Dual-wire of Go attack.ShouldBlockCounterForState.
+// Call site: CAttack::CheckCounter host inject ~505:
+//   if (ShouldBlockCounterForState(
+//           m_victim->PAI->IsEngaged(),
+//           m_victim->StatusEffectContainer->HasPreventActionEffect(true)))
+//   {
+//       m_isCountered = false;
+//       return m_isCountered;
+//   }
+// Prior pure port: slice 1376 (attack check-policy residual).
+// Residual pure suite: 1376 / test_attack_checks_1376.
+// Dedicated dual-wire suite: 3265 / test_attack_block_counter_state_3265.
+// CheckCounter path siblings residual only under 3265 (not re-expanded):
+// ShouldSkipCounterForDaken (3204 dedicated dual-wire; residual 3003) /
+// ShouldAddMNKCounterMerit / ClampCounterRate / …
+// Coverage: test_attack_block_counter_state_3265 (not in CMake/main).
 inline auto ShouldBlockCounterForState(const bool isEngaged, const bool hasPreventActionIgnoringCharm) -> bool
 {
     return !isEngaged || hasPreventActionIgnoringCharm;
