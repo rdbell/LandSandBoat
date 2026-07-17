@@ -1619,6 +1619,11 @@ auto runDarkixionCanBreakHorn3325SelfTests() -> bool;
 auto runAistateCanRest3326SelfTests() -> bool;
 auto runNotorietyAddMember3327SelfTests() -> bool;
 auto runPetutilsCanAttackTarget3328SelfTests() -> bool;
+auto runEinherjarShouldCycleWave3329SelfTests() -> bool;
+auto runGarrisonFailByDeath3330SelfTests() -> bool;
+auto runFollowCanFollow3331SelfTests() -> bool;
+auto runInteractionlookupSkipPriority3332SelfTests() -> bool;
+auto runEnmityZeroOutOfRange3333SelfTests() -> bool;
 
 namespace
 {
@@ -3215,6 +3220,11 @@ namespace
         ok = runAistateCanRest3326SelfTests() && ok;
         ok = runNotorietyAddMember3327SelfTests() && ok;
         ok = runPetutilsCanAttackTarget3328SelfTests() && ok;
+        ok = runEinherjarShouldCycleWave3329SelfTests() && ok;
+        ok = runGarrisonFailByDeath3330SelfTests() && ok;
+        ok = runFollowCanFollow3331SelfTests() && ok;
+        ok = runInteractionlookupSkipPriority3332SelfTests() && ok;
+        ok = runEnmityZeroOutOfRange3333SelfTests() && ok;
 
         return ok;
     }

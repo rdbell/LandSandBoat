@@ -3231,6 +3231,16 @@ set(SOURCES
     test_notoriety_add_member_3327.cpp
     test_petutils_can_attack_target_3328.h
     test_petutils_can_attack_target_3328.cpp
+    test_einherjar_should_cycle_wave_3329.h
+    test_einherjar_should_cycle_wave_3329.cpp
+    test_garrison_fail_by_death_3330.h
+    test_garrison_fail_by_death_3330.cpp
+    test_follow_can_follow_3331.h
+    test_follow_can_follow_3331.cpp
+    test_interactionlookup_skip_priority_3332.h
+    test_interactionlookup_skip_priority_3332.cpp
+    test_enmity_zero_out_of_range_3333.h
+    test_enmity_zero_out_of_range_3333.cpp
 )
 
 if(UNIX)

@@ -6,16 +6,20 @@
 //   - 1069: residual pure port (internal/einherjar system helpers)
 //   - 2864: onMobDespawn cycleWave gate residual dual-wire suite
 //   - 2865: emptyChamberCheck expel gate residual dual-wire suite
-//   - 3181: ShouldCycleWave dedicated dual-wire (cycle_wave.go;
-//           expand residual 2864)
+//   - 3181: ShouldCycleWave prior dedicated dual-wire (cycle_wave.go;
+//           expand residual 2864; suite retained)
 //   - 3212: ShouldEmptyChamberTimeout dedicated dual-wire (empty_timeout.go;
 //           expand residual 2865)
+//   - 3329: ShouldCycleWave dedicated dual-wire (cycle_wave.go;
+//           expand residual 2864; prior dedicated 3181 retained)
 //
 // Dual-wire index:
 //   - 2864: ShouldCycleWave residual dual-wire suite
 //   - 2865: ShouldEmptyChamberTimeout residual dual-wire suite
-//   - 3181: ShouldCycleWave = remainingMobs <= 0
+//   - 3181: ShouldCycleWave prior dedicated dual-wire expand residual 2864
 //   - 3212: ShouldEmptyChamberTimeout = playerCount == 0
+//   - 3329: ShouldCycleWave = remainingMobs <= 0
+//           dedicated dual-wire expand residual 2864
 //
 // Production hosts are Lua under scripts/globals/einherjar/system.lua.
 // Capacity is for future Lua/C++ inject so hosts dual-wire pure free
@@ -25,9 +29,12 @@
 // expelAllFromChamber, log) remain host-owned.
 //
 // Go dual-wire: einherjar.ShouldCycleWave
-// (internal/einherjar/cycle_wave.go).
+// (internal/einherjar/cycle_wave.go; slice 3329).
 // Residual dual-wire suite: 2864 (test_einherjar_cycle_wave_2864).
-// Dedicated dual-wire suite: 3181 (test_einherjar_should_cycle_wave_3181).
+// Prior dedicated dual-wire suite: 3181
+// (test_einherjar_should_cycle_wave_3181; retained).
+// Dedicated dual-wire suite: 3329
+// (test_einherjar_should_cycle_wave_3329; not in CMake/main).
 //
 // Go dual-wire: einherjar.ShouldEmptyChamberTimeout
 // (internal/einherjar/empty_timeout.go).
@@ -38,7 +45,7 @@ namespace einherjarhelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 3181 — onMobDespawn cycleWave gate (dedicated expand residual 2864)
+// Slice 3329 — onMobDespawn cycleWave gate (dedicated expand residual 2864)
 // ---------------------------------------------------------------------------
 
 // ShouldCycleWave mirrors local onMobDespawn after active-list removal:
@@ -46,20 +53,25 @@ namespace einherjarhelpers
 //     xi.einherjar.cycleWave(chamberData)
 //   end
 //
-// Formula (slice 3181 dedicated dual-wire; residual expand 2864 / pure 1069 —
-// formula unchanged):
+// Formula (slice 3329 dedicated dual-wire; residual expand 2864 / pure 1069 /
+// prior dedicated 3181 — formula unchanged):
 //
 //   remainingMobs <= 0
 //
 // remainingMobs is the host-injected live-mob count after the despawned
 // entry is removed (Lua #chamberData.mobs). Host still calls cycleWave().
 // Matches Go einherjar.ShouldCycleWave (residual 1069 / residual dual-wire
-// 2864 / dedicated dual-wire 3181).
+// 2864 / prior dedicated dual-wire 3181 / dedicated dual-wire 3329).
 //
 // Dual-wire of Go einherjar.ShouldCycleWave.
 // Prior pure port: slice 1069. Residual dual-wire suite: 2864 /
-// test_einherjar_cycle_wave_2864. Dedicated dual-wire suite is
-// test_einherjar_should_cycle_wave_3181.
+// test_einherjar_cycle_wave_2864. Prior dedicated dual-wire suite:
+// 3181 / test_einherjar_should_cycle_wave_3181 (retained). Dedicated
+// dual-wire suite is test_einherjar_should_cycle_wave_3329.
+// Dual-wire notes (slice 3329): Formula unchanged; dedicated suite expands
+// free == inline == pin (direct remainingMobs <= 0) + residual 1069/2864
+// pins + prior 3181 poles + dense remaining range. Residual 2864 / prior
+// 3181 suites retained.
 inline auto ShouldCycleWave(const int32 remainingMobs) -> bool
 {
     return remainingMobs <= 0;
