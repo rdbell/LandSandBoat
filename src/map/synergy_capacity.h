@@ -9,8 +9,10 @@
 //   - 3065: CanClaimFurnace prior dedicated dual-wire (claim_furnace.go)
 //   - 3098: CanTradeIntoFurnace dedicated dual-wire (trade_furnace.go)
 //   - 3117: CanOperateFurnace dedicated dual-wire (operate_furnace.go)
-//   - 3239: CanClaimFurnace dedicated dual-wire expand residual 2877
+//   - 3239: CanClaimFurnace prior dedicated dual-wire expand residual 2877
 //           (prior dedicated 3065; formula unchanged)
+//   - 3285: CanClaimFurnace dedicated dual-wire expand residual 2877
+//           (prior dedicated expand 3239; formula unchanged)
 //
 // Dual-wire index:
 //   - 2877: CanClaimFurnace residual dual-wire suite
@@ -20,7 +22,9 @@
 //   - 3098: CanTradeIntoFurnace (state == FurnaceClaimed && IsClaimedBy)
 //   - 3117: CanOperateFurnace (IsClaimedBy alias)
 //   - 3239: CanClaimFurnace = state == FurnaceAvailable
-//           dedicated dual-wire expand residual 2877 (prior dedicated 3065)
+//           prior dedicated dual-wire expand residual 2877 (prior dedicated 3065)
+//   - 3285: CanClaimFurnace = state == FurnaceAvailable
+//           dedicated dual-wire expand residual 2877 (prior dedicated expand 3239)
 //
 // Production hosts are Lua under scripts/globals/synergy.lua
 // (furnaceStates + synergyFurnaceOnTrigger / synergyFurnaceOnTrade).
@@ -43,7 +47,8 @@
 // Prior pure port: OmegaXI slice 1149 (internal/synergy furnace.go).
 // Coverage: test_synergy_claim_furnace_2877 (residual),
 // test_synergy_claim_furnace_3065 (prior dedicated dual-wire; not in CMake/main),
-// test_synergy_claim_furnace_3239 (dedicated expand residual 2877; not in CMake/main).
+// test_synergy_claim_furnace_3239 (prior dedicated expand residual 2877; not in CMake/main),
+// test_synergy_claim_furnace_3285 (dedicated expand residual 2877; not in CMake/main).
 
 namespace synergyhelpers
 {
@@ -57,7 +62,8 @@ constexpr uint8 FurnaceAvailable = 0;
 constexpr uint8 FurnaceClaimed = 1;
 
 // ---------------------------------------------------------------------------
-// Slice 2877 residual / 3065 prior dedicated / 3239 expand residual 2877
+// Slice 2877 residual / 3065 prior dedicated / 3239 prior expand residual 2877
+// / 3285 dedicated expand residual 2877
 // — synergyFurnaceOnTrigger AVAILABLE claim gate
 // ---------------------------------------------------------------------------
 
@@ -68,7 +74,8 @@ constexpr uint8 FurnaceClaimed = 1;
 //     xi.synergy.attachToSynergyFurnace(player, npc)
 //   end
 //
-// Formula (slice 3239 dual-wire expand residual 2877; prior dedicated 3065):
+// Formula (slice 3285 dual-wire expand residual 2877; prior dedicated expand
+// 3239; prior dedicated 3065):
 //   CanClaimFurnace(state) = state == FurnaceAvailable
 //
 // state is the host-injected npc:getLocalVar(synergyFurnaceState).
@@ -79,8 +86,9 @@ constexpr uint8 FurnaceClaimed = 1;
 // Call site: future Lua synergyFurnaceOnTrigger inject.
 // Prior pure port: slice 1149. Residual dual-wire suite: 2877 /
 // test_synergy_claim_furnace_2877. Prior dedicated dual-wire suite:
-// test_synergy_claim_furnace_3065. Dedicated expand residual suite is
-// test_synergy_claim_furnace_3239. Host still owns message / attach /
+// test_synergy_claim_furnace_3065. Prior dedicated expand residual suite:
+// test_synergy_claim_furnace_3239. Dedicated expand residual suite is
+// test_synergy_claim_furnace_3285. Host still owns message / attach /
 // timers after a true gate. Formula is unchanged.
 inline auto CanClaimFurnace(const uint8 state) -> bool
 {

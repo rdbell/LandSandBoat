@@ -1574,6 +1574,11 @@ auto runAuctionutilsCanAffordFee3280SelfTests() -> bool;
 auto runNyzulClaimRune3281SelfTests() -> bool;
 auto runArtisanCanBuySack3282SelfTests() -> bool;
 auto runSynthutilsCanSynthesizeHQ3283SelfTests() -> bool;
+auto runAbysseaCanGiveNMKI3284SelfTests() -> bool;
+auto runSynergyClaimFurnace3285SelfTests() -> bool;
+auto runPortermoogleCanRetrieveItem3286SelfTests() -> bool;
+auto runApkalluCanRunAway3287SelfTests() -> bool;
+auto runUniversalcontainerSetItem3288SelfTests() -> bool;
 
 namespace
 {
@@ -3125,6 +3130,11 @@ namespace
         ok = runNyzulClaimRune3281SelfTests() && ok;
         ok = runArtisanCanBuySack3282SelfTests() && ok;
         ok = runSynthutilsCanSynthesizeHQ3283SelfTests() && ok;
+        ok = runAbysseaCanGiveNMKI3284SelfTests() && ok;
+        ok = runSynergyClaimFurnace3285SelfTests() && ok;
+        ok = runPortermoogleCanRetrieveItem3286SelfTests() && ok;
+        ok = runApkalluCanRunAway3287SelfTests() && ok;
+        ok = runUniversalcontainerSetItem3288SelfTests() && ok;
 
         return ok;
     }

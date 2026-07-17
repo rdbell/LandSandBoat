@@ -15,12 +15,14 @@
 //   - 2965: ShouldAllowSetItem residual dual-wire suite (SetItem outer gate)
 //   - 2980: ShouldClearSlot (ClearSlot range gate)
 //   - 3176: ShouldAllowSetItem prior dedicated dual-wire (expand residual 2965)
-//   - 3248: ShouldAllowSetItem dedicated dual-wire (set_item.go; residual 2965 / prior 3176)
+//   - 3248: ShouldAllowSetItem prior dedicated dual-wire (expand residual 2965 / prior 3176)
+//   - 3288: ShouldAllowSetItem dedicated dual-wire (set_item.go; residual 2965 / prior 3248)
 //
 // Dual-wire index:
 //   - 2965: ShouldAllowSetItem residual dual-wire suite
 //   - 3176: ShouldAllowSetItem prior dedicated dual-wire (expand residual 2965)
-//   - 3248: ShouldAllowSetItem = slotInRange && !locked
+//   - 3248: ShouldAllowSetItem prior dedicated dual-wire (expand residual 2965 / prior 3176)
+//   - 3288: ShouldAllowSetItem = slotInRange && !locked
 //   - 2980: ShouldClearSlot = slotInRange
 //
 // Production host: CUContainer::SetItem (universal_container.cpp) injects
@@ -29,8 +31,9 @@
 // Go dual-wire: universalcontainer.ShouldAllowSetItem
 // (internal/universalcontainer/set_item.go). Prior pure port: slice 2801.
 // Residual dual-wire suite: 2965 (test_universal_set_item_2965).
-// Prior dedicated dual-wire suite: 3176 (test_universalcontainer_allow_set_item_3176).
-// Dedicated dual-wire suite: 3248 (test_universalcontainer_set_item_3248).
+// Prior dedicated dual-wire suites: 3176 (test_universalcontainer_allow_set_item_3176),
+// 3248 (test_universalcontainer_set_item_3248).
+// Dedicated dual-wire suite: 3288 (test_universalcontainer_set_item_3288).
 //
 // Production host: CUContainer::ClearSlot (universal_container.cpp) injects
 // slotID < m_PItem.size() into ShouldClearSlot (does not inject m_lock).
@@ -41,14 +44,14 @@ namespace ucontainerhelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 3248 — SetItem outer gate (dedicated expand residual 2965 / prior 3176)
+// Slice 3288 — SetItem outer gate (dedicated expand residual 2965 / prior 3248)
 // ---------------------------------------------------------------------------
 
 // ShouldAllowSetItem mirrors the SetItem outer gate:
 //   slotID < m_PItem.size() && !m_lock
 //
-// Formula (slice 3248 dedicated dual-wire; residual expand 2965 / prior 3176 /
-// pure 2801 — formula unchanged):
+// Formula (slice 3288 dedicated dual-wire; residual expand 2965 / prior 3248 /
+// prior 3176 / pure 2801 — formula unchanged):
 //   slotInRange && !locked
 //
 // slotInRange — host-evaluated slotID < m_PItem.size()
@@ -61,9 +64,10 @@ namespace ucontainerhelpers
 // Call site: CUContainer::SetItem before count delta / assignment.
 // Host injects each conjunct after size/lock probes.
 // Prior pure port: slice 2801. Residual dual-wire suite: 2965 /
-// test_universal_set_item_2965. Prior dedicated dual-wire suite: 3176 /
-// test_universalcontainer_allow_set_item_3176. Dedicated dual-wire suite is
-// test_universalcontainer_set_item_3248. Sibling dual-wire:
+// test_universal_set_item_2965. Prior dedicated dual-wire suites: 3176 /
+// test_universalcontainer_allow_set_item_3176, 3248 /
+// test_universalcontainer_set_item_3248. Dedicated dual-wire suite is
+// test_universalcontainer_set_item_3288. Sibling dual-wire:
 // ShouldClearSlot (2980).
 inline auto ShouldAllowSetItem(const bool slotInRange, const bool locked) -> bool
 {

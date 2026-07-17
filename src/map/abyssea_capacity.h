@@ -8,8 +8,10 @@
 //   - 2868: DecodeSurveyorOption (Conflux Surveyor finish option parse)
 //   - 3089: CanGiveNMKI dedicated dual-wire (can_give_nmki.go)
 //   - 3148: BuffPower dedicated dual-wire (prospector.go / buff_power_test.go)
-//   - 3238: CanGiveAtmaNMKI dedicated dual-wire expand residual 2861
+//   - 3238: CanGiveAtmaNMKI prior dedicated dual-wire expand residual 2861
 //           (prior dedicated 3089; formula unchanged)
+//   - 3284: CanGiveAtmaNMKI dedicated dual-wire expand residual 2861
+//           (prior ~3238/3089; formula unchanged)
 //
 // Dual-wire index:
 //   - 2861: CanGiveNMKI residual dual-wire suite
@@ -17,9 +19,10 @@
 //   - 2868: DecodeSurveyorOption
 //   - 3089: CanGiveNMKI (roll1to100 <= dropChance || redProc)
 //   - 3148: BuffPower (base + abyssiteTotal * mult)
-//   - 3238: CanGiveAtmaNMKI (CanGiveNMKI(roll, AtmaNMKIDropChance/*10*/, redProc))
+//   - 3238: CanGiveAtmaNMKI prior expand (CanGiveNMKI(roll, AtmaNMKIDropChance/*10*/, redProc))
+//   - 3284: CanGiveAtmaNMKI (CanGiveNMKI(roll, AtmaNMKIDropChance/*10*/, redProc))
 //
-// Lua production host (2861 / 3089 / 3238): scripts/globals/abyssea.lua
+// Lua production host (2861 / 3089 / 3238 / 3284): scripts/globals/abyssea.lua
 // xi.abyssea.canGiveNMKI:
 //
 //   local redProcValue = mob:getLocalVar('[AbysseaRedProc]')
@@ -45,7 +48,7 @@ namespace abysseahelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2861 / 3089 / 3238 — canGiveNMKI roll / red-proc gate
+// Slice 2861 / 3089 / 3238 / 3284 — canGiveNMKI roll / red-proc gate
 // ---------------------------------------------------------------------------
 
 // Normal / atma drop-chance pins from giveNMDrops.
@@ -57,8 +60,8 @@ inline constexpr int32 AtmaNMKIDropChance   = 10;
 //   if math.random(1, 100) <= dropChance or redProcValue == 1 then return true end
 //
 // Formula (prior dedicated 3089; residual expand 2861; pure inject 1041;
-// CanGiveAtmaNMKI dedicated expand residual 3238 leaves this free function
-// body unchanged):
+// CanGiveAtmaNMKI dedicated expand residual 3284 / prior 3238 leaves this
+// free function body unchanged):
 //   CanGiveNMKI(roll1to100, dropChance, redProc)
 //     = roll1to100 <= dropChance || redProc
 //
@@ -72,8 +75,9 @@ inline constexpr int32 AtmaNMKIDropChance   = 10;
 // Call site: future Lua canGiveNMKI / giveNMDrops inject.
 // Prior pure port: slice 1041. Residual dual-wire suite: 2861 /
 // test_abyssea_can_give_nmki_2861. Prior dedicated dual-wire suite:
-// test_abyssea_can_give_nmki_3089. CanGiveAtmaNMKI dedicated dual-wire suite
-// is test_abyssea_can_give_nmki_3238. Host still owns math.random,
+// test_abyssea_can_give_nmki_3089. Prior CanGiveAtmaNMKI expand suite:
+// test_abyssea_can_give_nmki_3238. CanGiveAtmaNMKI dedicated dual-wire suite
+// is test_abyssea_can_give_nmki_3284. Host still owns math.random,
 // getLocalVar, and KI grant writeback. Red proc is pre-normalized to bool
 // before the pure gate.
 inline auto CanGiveNMKI(const int32 roll1to100, const int32 dropChance, const bool redProc) -> bool
@@ -91,8 +95,8 @@ inline auto CanGiveNormalNMKI(const int32 roll1to100, const bool redProc) -> boo
 // CanGiveAtmaNMKI dual-wires giveNMDrops atma-drop chance 10 through
 // CanGiveNMKI (production compose for deferred giveNMDrops host).
 //
-// Formula (slice 3238 dedicated dual-wire expand residual 2861; prior
-// dedicated 3089 on free CanGiveNMKI — formula unchanged):
+// Formula (slice 3284 dedicated dual-wire expand residual 2861; prior
+// ~3238/3089 — formula unchanged):
 //   CanGiveAtmaNMKI(roll1to100, redProc)
 //     = CanGiveNMKI(roll1to100, AtmaNMKIDropChance /*10*/, redProc)
 //     = roll1to100 <= 10 || redProc
@@ -101,7 +105,8 @@ inline auto CanGiveNormalNMKI(const int32 roll1to100, const bool redProc) -> boo
 // Call site: future Lua giveNMDrops atma path inject.
 // Residual dual-wire suite: 2861 / test_abyssea_can_give_nmki_2861.
 // Prior dedicated: 3089 / test_abyssea_can_give_nmki_3089.
-// Dedicated dual-wire suite is test_abyssea_can_give_nmki_3238.
+// Prior CanGiveAtmaNMKI expand: 3238 / test_abyssea_can_give_nmki_3238.
+// Dedicated dual-wire suite is test_abyssea_can_give_nmki_3284.
 inline auto CanGiveAtmaNMKI(const int32 roll1to100, const bool redProc) -> bool
 {
     return CanGiveNMKI(roll1to100, AtmaNMKIDropChance, redProc);
