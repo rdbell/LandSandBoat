@@ -2581,6 +2581,16 @@ set(SOURCES
     test_battlefield_reject_already_in_3002.cpp
     test_attack_skip_counter_daken_3003.h
     test_attack_skip_counter_daken_3003.cpp
+    test_attack_skip_anticipate_daken_3004.h
+    test_attack_skip_anticipate_daken_3004.cpp
+    test_command_reject_empty_line_3005.h
+    test_command_reject_empty_line_3005.cpp
+    test_battle_can_rest_3006.h
+    test_battle_can_rest_3006.cpp
+    test_ranged_delete_flashy_stealth_3007.h
+    test_ranged_delete_flashy_stealth_3007.cpp
+    test_linkshell_mark_pearl_broken_3008.h
+    test_linkshell_mark_pearl_broken_3008.cpp
 )
 
 if(UNIX)

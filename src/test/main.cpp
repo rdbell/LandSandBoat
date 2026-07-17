@@ -1294,6 +1294,11 @@ auto runRangedDeleteUnlimitedShot3000SelfTests() -> bool;
 auto runLinkshellBreakInventoryPearl3001SelfTests() -> bool;
 auto runBattlefieldRejectAlreadyIn3002SelfTests() -> bool;
 auto runAttackSkipCounterDaken3003SelfTests() -> bool;
+auto runAttackSkipAnticipateDaken3004SelfTests() -> bool;
+auto runCommandRejectEmptyLine3005SelfTests() -> bool;
+auto runBattleCanRest3006SelfTests() -> bool;
+auto runRangedDeleteFlashyStealth3007SelfTests() -> bool;
+auto runLinkshellMarkPearlBroken3008SelfTests() -> bool;
 
 namespace
 {
@@ -2565,6 +2570,11 @@ namespace
         ok = runLinkshellBreakInventoryPearl3001SelfTests() && ok;
         ok = runBattlefieldRejectAlreadyIn3002SelfTests() && ok;
         ok = runAttackSkipCounterDaken3003SelfTests() && ok;
+        ok = runAttackSkipAnticipateDaken3004SelfTests() && ok;
+        ok = runCommandRejectEmptyLine3005SelfTests() && ok;
+        ok = runBattleCanRest3006SelfTests() && ok;
+        ok = runRangedDeleteFlashyStealth3007SelfTests() && ok;
+        ok = runLinkshellMarkPearlBroken3008SelfTests() && ok;
 
         return ok;
     }

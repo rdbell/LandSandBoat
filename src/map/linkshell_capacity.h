@@ -18,6 +18,7 @@
 //   - 2977: ShouldSendLinkshellMessageIPC (messageNonEmpty identity)
 //   - 2993: ShouldPushStoredLinkshellMessage (messageNonEmpty identity)
 //   - 3001: ShouldBreakInventoryPearl (shell holder OR equipped item)
+//   - 3008: ShouldMarkPearlBroken (lsType != LSTYPE_LINKSHELL)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -28,7 +29,8 @@
 // ShouldPushStoredLinkshellMessage after DB load before packet push.
 // CLinkshell::RemoveMemberByName injects requesterRank and
 // (newPItemLinkshell == PItemLinkshell) into ShouldBreakInventoryPearl before
-// ShouldMarkPearlBroken / inventory break.
+// ShouldMarkPearlBroken / inventory break; then injects
+// GetLSType() into ShouldMarkPearlBroken before SetLSType(BROKEN).
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
 // (internal/linkshell/reject_null_add_member.go),
 // linkshell.ShouldRejectDuplicateAddMember
@@ -38,7 +40,9 @@
 // linkshell.ShouldPushStoredLinkshellMessage
 // (internal/linkshell/push_stored_message.go),
 // linkshell.ShouldBreakInventoryPearl
-// (internal/linkshell/break_inventory_pearl.go).
+// (internal/linkshell/break_inventory_pearl.go),
+// linkshell.ShouldMarkPearlBroken
+// (internal/linkshell/mark_pearl_broken.go).
 
 namespace linkshellhelpers
 {
@@ -228,6 +232,21 @@ inline auto ShouldBreakInventoryPearl(const uint8 requesterRank, const bool isEq
 }
 
 // ShouldMarkPearlBroken mirrors GetLSType() != LSTYPE_LINKSHELL before break.
+//
+// Formula (slice 3008 dual-wire):
+//   lsType != LSTYPE_LINKSHELL
+//
+// (Go: Rank(lsType) != RankLinkshell)
+//
+// lsType — host-injected GetLSType() of the inventory pearl under break
+// true  → host may SetLSType(LSTYPE_BROKEN) + inventory UPDATE + ITEM_ATTR
+// false → keep shell item type intact (do not mark broken)
+//
+// Dual-wire of Go linkshell.ShouldMarkPearlBroken.
+// Call site: CLinkshell::RemoveMemberByName host inject
+// (static_cast<uint8>(newPItemLinkshell->GetLSType())).
+// Evaluated only after ShouldBreakInventoryPearl passes (slice 3001).
+// Prior pure port: slice 1354 (capacity suite RemoveMemberByName break gate).
 inline auto ShouldMarkPearlBroken(const uint8 lsType) -> bool
 {
     return lsType != LSTYPE_LINKSHELL;

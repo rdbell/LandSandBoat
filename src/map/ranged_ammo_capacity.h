@@ -132,8 +132,27 @@ inline auto ShouldTruncateHitCountOnAmmoDeplete(
     return ammoQuantityBeforeConsume == shotIndexI;
 }
 
+// --- Slice 3007: ShouldDeleteFlashyAndStealthShot pure dual-wire ---
+// Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects true on the char ammo
+// path into ShouldDeleteFlashyAndStealthShot before DelStatusEffect(FlashyShot)
+// and DelStatusEffect(StealthShot) on true (~3285).
+// Go dual-wire: attackutils.ShouldDeleteFlashyAndStealthShot
+// (internal/attackutils/delete_flashy_stealth.go).
+// Sibling dual-wires: ShouldConsumeAmmo (2986), ShouldDeleteUnlimitedShot (3000).
+
 // ShouldDeleteFlashyAndStealthShot mirrors end-of-shot status cleanup for PC.
 // Always true on the char ammo path (original always deletes both).
+//
+// Formula (slice 3007 dual-wire; identity):
+//   return isChar
+//
+// isChar — host-evaluated entity is a character (PC ammo path)
+// true  → host DelStatusEffect(FlashyShot) and DelStatusEffect(StealthShot)
+// false → skip cleanup (non-char path does not clear these effects here)
+//
+// Dual-wire of Go attackutils.ShouldDeleteFlashyAndStealthShot.
+// Call site: CBattleEntity::OnRangedAttack (~3285) injects true.
 inline auto ShouldDeleteFlashyAndStealthShot(const bool isChar) -> bool
 {
     return isChar;

@@ -9,10 +9,11 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2792: permission / audit plan suite (null/name/perm/audit + post-props)
-//   - 2836: ShouldRejectEmptyCommandLine (ParseCommandLine empty after trim)
+//   - 2836: ShouldRejectEmptyCommandLine residual (ParseCommandLine empty after trim)
 //   - 2940: ShouldAllowCommandPermission (permission <= m_GMlevel)
 //   - 2982: ShouldRejectNullChar (charNull identity)
 //   - 2990: ShouldRejectEmptyCommandName (!valid after name parse)
+//   - 3005: ShouldRejectEmptyCommandLine (viewEmptyAfterTrim identity dual-wire)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
@@ -28,6 +29,11 @@
 // name-only ParseCommandLine before Lua table lookup.
 // Go dual-wire: command.ShouldRejectEmptyCommandName
 // (internal/command/reject_empty_command_name.go).
+//
+// Production host: ParseCommandLine injects viewEmptyAfterTrim = view.empty()
+// after trimLeft before name/arg token extraction.
+// Go dual-wire: command.ShouldRejectEmptyCommandLine
+// (internal/command/reject_empty_command_line.go).
 
 namespace commandhandlerhelpers
 {
@@ -115,9 +121,17 @@ inline auto PlanCommandCallPostProps(const uint8 gmLevel, const int8 permission,
 }
 
 // ShouldRejectEmptyCommandLine mirrors ParseCommandLine after trimLeft:
-//   if (view.empty()) return {};
-// Host dual-wires:
+//
+// Formula (slice 3005 dual-wire; residual 2836):
+//   viewEmptyAfterTrim
+//
+// true  → host returns {} (invalid parse) before name/arg token extraction
+// false → proceed to popToken / parameter typing
+//
+// Dual-wire of Go command.ShouldRejectEmptyCommandLine.
+// Call site: commandhandler::detail::ParseCommandLine after trimLeft.
 //   if (ShouldRejectEmptyCommandLine(view.empty())) return {};
+// viewEmptyAfterTrim is view.empty() after space/tab left-trim.
 // Identity pure on the post-trim empty flag (true → empty commandline reject).
 inline auto ShouldRejectEmptyCommandLine(const bool viewEmptyAfterTrim) -> bool
 {

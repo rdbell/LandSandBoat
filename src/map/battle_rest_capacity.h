@@ -22,7 +22,28 @@ inline auto ResolveResourcePercent(const int32 current, const int32 maxResource)
     return static_cast<uint8>(std::max<uint8>(1, static_cast<uint8>(std::floor(ratio))));
 }
 
+// --- Slice 3006: CanRest pure dual-wire ---
+// Residual pure port: slice 1635 (GetHPP/GetMPP, CanRest, Rest policy suite).
+// Production host: CBattleEntity::CanRest injects
+// getMod(Mod::REGEN_DOWN) != 0 and
+// StatusEffectContainer->HasStatusEffectByFlag(StatusEffectFlag::NoRest)
+// into CanRest (battle_entity.cpp ~404). Controllers (mob_controller /
+// trust_controller) call CanRest before Rest(rate); Rest itself does not.
+// Go dual-wire: aistate.CanRest (internal/aistate/can_rest.go).
+// Sibling residual: ResolveResourcePercent / ResolveRestPlan (1635 suite).
+
 // CanRest mirrors !REGEN_DOWN && !NoRest status flag.
+//
+// Formula (slice 3006 dual-wire):
+//   !hasRegenDown && !hasNoRestFlag
+//
+// hasRegenDown  — host-injected getMod(Mod::REGEN_DOWN) != 0
+// hasNoRestFlag — host-injected HasStatusEffectByFlag(NoRest)
+// true  → entity is eligible to rest/heal
+// false → blocked by regen-down mod and/or NoRest status flag
+//
+// Dual-wire of Go aistate.CanRest.
+// Call site: CBattleEntity::CanRest (~404).
 inline auto CanRest(const bool hasRegenDown, const bool hasNoRestFlag) -> bool
 {
     return !hasRegenDown && !hasNoRestFlag;
