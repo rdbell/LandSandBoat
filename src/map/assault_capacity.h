@@ -23,6 +23,12 @@
 //   - 3571: CanIssueTagFromStock dedicated dual-wire expand residual 2867
 //           / prior 3524 stock / 3388 / 3440 ShouldIssueNewTag sibling
 //           (npc_handler.go stock gate after ShouldIssueNewTag)
+//   - 3616: CanIssueTagFromStock dedicated dual-wire expand residual 2867
+//           / prior 3571 stock / 3524 / 3388 / 3440 ShouldIssueNewTag sibling
+//           (npc_handler.go stock gate after ShouldIssueNewTag)
+//   - 3661: CanIssueTagFromStock dedicated dual-wire expand residual 2867
+//           / prior 3616 stock / 3571 / 3524 / 3388 / 3440 ShouldIssueNewTag sibling
+//           (npc_handler.go stock gate after ShouldIssueNewTag)
 //
 // Dual-wire index:
 //   - 2860: ProgressMeetsRequired / ShouldAutoComplete residual dual-wire
@@ -49,6 +55,12 @@
 //           stock gate after ShouldIssueNewTag)
 //   - 3571: CanIssueTagFromStock (tagStock > 0; dedicated expand residual 2867
 //           / prior 3524 stock / 3388 / 3440 ShouldIssueNewTag sibling;
+//           stock gate after ShouldIssueNewTag)
+//   - 3616: CanIssueTagFromStock (tagStock > 0; dedicated expand residual 2867
+//           / prior 3571 stock / 3524 / 3388 / 3440 ShouldIssueNewTag sibling;
+//           stock gate after ShouldIssueNewTag)
+//   - 3661: CanIssueTagFromStock (tagStock > 0; dedicated expand residual 2867
+//           / prior 3616 stock / 3571 / 3524 / 3388 / 3440 ShouldIssueNewTag sibling;
 //           stock gate after ShouldIssueNewTag)
 //
 // Production hosts are Lua under scripts/globals/assault/ (container.lua,
@@ -217,7 +229,7 @@ inline constexpr uint16 kKeyItemImperialArmyIDTag = 787;
 // 3388 / test_assault_issue_tag_3388. Prior dedicated dual-wire expand residual
 // suite is test_assault_issue_tag_3440. Host still owns stock /
 // currentAssault / giveKeyItem / currency writeback after this gate.
-// Stock gate dual-wires as CanIssueTagFromStock (slice 3388 / 3524 / 3571 / 3616).
+// Stock gate dual-wires as CanIssueTagFromStock (slice 3388 / 3524 / 3571 / 3616 / 3661).
 inline auto ShouldIssueNewTag(const int32 option, const bool hasImperialArmyIDTag) -> bool
 {
     return option == kRytaalOptionObtainTag && !hasImperialArmyIDTag;
@@ -230,8 +242,8 @@ inline auto ShouldIssueNewTag(const int32 option, const bool hasImperialArmyIDTa
 // Host still checks currentAssault == 0, then giveKeyItem and stock/timer
 // currency writeback.
 //
-// Formula (slice 3616 dedicated dual-wire expand residual 2867 / prior 3571 /
-// 3524 / 3388 / pure 1100 — formula unchanged):
+// Formula (slice 3661 dedicated dual-wire expand residual 2867 / prior 3616 /
+// 3571 / 3524 / 3388 / pure 1100 — formula unchanged):
 //   CanIssueTagFromStock(tagStock) = tagStock > 0
 //
 // Lua host (onRytaalEventFinish after ShouldIssueNewTag path):
@@ -250,9 +262,10 @@ inline auto ShouldIssueNewTag(const int32 option, const bool hasImperialArmyIDTa
 // dual-wire expand residual sibling (ShouldIssueNewTag): 3440 /
 // test_assault_issue_tag_3440. Prior dedicated dual-wire expand residual suite:
 // 3524 / test_assault_issue_tag_3524. Prior dedicated dual-wire expand residual
-// suite: 3571 / test_assault_issue_tag_3571. Dedicated dual-wire expand residual
-// suite is test_assault_issue_tag_3616. Host still owns currentAssault /
-// giveKeyItem / currency writeback after this gate.
+// suite: 3571 / test_assault_issue_tag_3571. Prior dedicated dual-wire expand
+// residual suite: 3616 / test_assault_issue_tag_3616. Dedicated dual-wire
+// expand residual suite is test_assault_issue_tag_3661. Host still owns
+// currentAssault / giveKeyItem / currency writeback after this gate.
 inline auto CanIssueTagFromStock(const int32 tagStock) -> bool
 {
     return tagStock > 0;
