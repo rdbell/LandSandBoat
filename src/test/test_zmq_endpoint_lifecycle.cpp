@@ -65,8 +65,10 @@ auto dequeueEventually(Endpoint& endpoint, Message& message) -> bool
 
 auto testDirectInprocRoutingLifecycle() -> bool
 {
-    constexpr auto   endpoint  = "inproc://lsb_zmq_endpoint_lifecycle_test";
-    constexpr uint64 routingId = 0x1122334455667788ULL;
+    constexpr auto endpoint = "inproc://lsb_zmq_endpoint_lifecycle_test";
+    // IPP stores IP:uint32 + port:uint16, so only the low 48 bits of a raw
+    // routing identity survive getRawIPP(). Keep the fixture inside that range.
+    constexpr uint64 routingId = 0x0000334455667788ULL;
 
     zmq::context_t context(1);
     RouterEndpoint router(endpoint);

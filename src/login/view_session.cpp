@@ -25,6 +25,7 @@
 #include "view_world_list_response.h"
 #include "view_acquire_player_response.h"
 #include "view_character_delete_response.h"
+#include "view_name_check_response.h"
 
 #include "character_delete.h"
 #include "character_name.h"
@@ -230,94 +231,104 @@ void view_session::read_func()
             // block creation of character if in maintenance mode or generally disabled
             const auto maintMode               = settings::get<uint8>("login.MAINT_MODE");
             const auto enableCharacterCreation = settings::get<bool>("login.CHARACTER_CREATION");
-            if (loginHelpers::ClassifyCharacterCreationGate(maintMode, enableCharacterCreation) ==
-                loginHelpers::character_creation_gate::DENIED)
+            const auto enablePlan              = login::PlanViewNameCheckEnableResponse(
+                loginHelpers::ClassifyCharacterCreationGate(maintMode, enableCharacterCreation));
+            if (enablePlan.writeRegisterError)
             {
                 loginHelpers::generateErrorMessage(buffer_.data(), loginErrors::errorCode::FAILED_TO_REGISTER_WITH_THE_NAME_SERVER);
                 do_write(0x24);
+            }
+            if (enablePlan.returnFromRead)
+            {
                 return;
             }
-            else
+
+            // creating new char
+            char CharName[PacketNameLength] = {};
+            std::memcpy(CharName, buffer_.data() + 32, PacketNameLength - 1);
+
+            std::string nameStr = loginHelpers::ExtractCharacterNameField(CharName);
+
+            // Local pure checks first (alpha then length overwrite).
+            Maybe<std::string> invalidNameReason = loginHelpers::ValidateCharacterNameLocal(nameStr);
+
+            // Check if the name is already in use by another character
+            const auto rset0 = db::preparedStmt("SELECT charname FROM chars WHERE charname LIKE ?", nameStr);
+            if (!rset0)
             {
-                // creating new char
-                char CharName[PacketNameLength] = {};
-                std::memcpy(CharName, buffer_.data() + 32, PacketNameLength - 1);
+                invalidNameReason = loginHelpers::CharacterNameEntityQueryFailedReason;
+            }
+            else if (rset0 && rset0->rowsCount() != 0)
+            {
+                invalidNameReason = loginHelpers::CharacterNameAlreadyInUseReason;
+            }
 
-                std::string nameStr = loginHelpers::ExtractCharacterNameField(CharName);
+            // (optional) Check if the name is in use by NPC or Mob entities
+            if (settings::get<bool>("login.DISABLE_MOB_NPC_CHAR_NAMES"))
+            {
+                const auto query =
+                    "SELECT polutils_name AS `name` FROM npc_list "
+                    "WHERE REPLACE(REPLACE(UPPER(polutils_name), '-', ''), '_', '') "
+                    "LIKE REPLACE(REPLACE(UPPER(?), '-', ''), '_', '') "
+                    "UNION "
+                    "SELECT packet_name AS `name` FROM mob_pools "
+                    "WHERE REPLACE(REPLACE(UPPER(packet_name), '-', ''), '_', '') "
+                    "LIKE REPLACE(REPLACE(UPPER(?), '-', ''), '_', '')";
 
-                // Local pure checks first (alpha then length overwrite).
-                Maybe<std::string> invalidNameReason = loginHelpers::ValidateCharacterNameLocal(nameStr);
-
-                // Check if the name is already in use by another character
-                const auto rset0 = db::preparedStmt("SELECT charname FROM chars WHERE charname LIKE ?", nameStr);
-                if (!rset0)
+                const auto rset1 = db::preparedStmt(query, nameStr, nameStr);
+                if (!rset1)
                 {
-                    invalidNameReason = loginHelpers::CharacterNameEntityQueryFailedReason;
+                    invalidNameReason = loginHelpers::CharacterNameEntityQueryFailedNoPeriodReason;
                 }
-                else if (rset0 && rset0->rowsCount() != 0)
+                else if (rset1->rowsCount() != 0)
                 {
                     invalidNameReason = loginHelpers::CharacterNameAlreadyInUseReason;
                 }
+            }
 
-                // (optional) Check if the name is in use by NPC or Mob entities
-                if (settings::get<bool>("login.DISABLE_MOB_NPC_CHAR_NAMES"))
+            // TODO: Don't raw-access Lua like this outside of Lua helper code.
+            // (optional) Check if the name contains any words on the bad word list
+            const auto loginSettingsTable = lua["xi"]["settings"]["login"].get<sol::table>();
+            if (auto badWordsList = loginSettingsTable.get_or<sol::table>("BANNED_WORDS_LIST", sol::lua_nil); badWordsList.valid())
+            {
+                const auto              potentialName = to_upper(nameStr);
+                std::vector<std::string> upperBadWords;
+                for (const auto& entry : badWordsList)
                 {
-                    const auto query =
-                        "SELECT polutils_name AS `name` FROM npc_list "
-                        "WHERE REPLACE(REPLACE(UPPER(polutils_name), '-', ''), '_', '') "
-                        "LIKE REPLACE(REPLACE(UPPER(?), '-', ''), '_', '') "
-                        "UNION "
-                        "SELECT packet_name AS `name` FROM mob_pools "
-                        "WHERE REPLACE(REPLACE(UPPER(packet_name), '-', ''), '_', '') "
-                        "LIKE REPLACE(REPLACE(UPPER(?), '-', ''), '_', '')";
-
-                    const auto rset1 = db::preparedStmt(query, nameStr, nameStr);
-                    if (!rset1)
-                    {
-                        invalidNameReason = loginHelpers::CharacterNameEntityQueryFailedNoPeriodReason;
-                    }
-                    else if (rset1->rowsCount() != 0)
-                    {
-                        invalidNameReason = loginHelpers::CharacterNameAlreadyInUseReason;
-                    }
+                    upperBadWords.push_back(to_upper(entry.second.as<std::string>()));
                 }
-
-                // TODO: Don't raw-access Lua like this outside of Lua helper code.
-                // (optional) Check if the name contains any words on the bad word list
-                const auto loginSettingsTable = lua["xi"]["settings"]["login"].get<sol::table>();
-                if (auto badWordsList = loginSettingsTable.get_or<sol::table>("BANNED_WORDS_LIST", sol::lua_nil); badWordsList.valid())
+                if (auto banned = loginHelpers::FindBannedWordMatch(potentialName, upperBadWords))
                 {
-                    const auto              potentialName = to_upper(nameStr);
-                    std::vector<std::string> upperBadWords;
-                    for (const auto& entry : badWordsList)
-                    {
-                        upperBadWords.push_back(to_upper(entry.second.as<std::string>()));
-                    }
-                    if (auto banned = loginHelpers::FindBannedWordMatch(potentialName, upperBadWords))
-                    {
-                        invalidNameReason = *banned;
-                    }
+                    invalidNameReason = *banned;
                 }
+            }
 
-                if (invalidNameReason.has_value())
-                {
-                    ShowWarning(loginHelpers::FormatNewCharacterNameError(nameStr, *invalidNameReason));
-
-                    // Send error code:
-                    // The character name you entered is unavailable. Please choose another name.
-                    // TODO: This message is displayed in Japanese, needs fixing.
-                    loginHelpers::generateErrorMessage(buffer_.data(), loginErrors::errorCode::CHARACTER_NAME_UNAVAILABLE);
-                    do_write(0x24);
-                    return;
-                }
-                else
-                {
-                    // copy charname
-                    session.requestedNewCharacterName = CharName;
-
-                    loginHelpers::GenerateViewLobbyAckPacket(buffer_.data());
-                    do_write(loginHelpers::ViewLobbyAckPacketSize);
-                }
+            const auto namePlan = login::PlanViewNameCheckNameResponse(!invalidNameReason.has_value());
+            if (namePlan.logInvalidName)
+            {
+                ShowWarning(loginHelpers::FormatNewCharacterNameError(nameStr, *invalidNameReason));
+            }
+            if (namePlan.writeNameUnavailableError)
+            {
+                // Send error code:
+                // The character name you entered is unavailable. Please choose another name.
+                // TODO: This message is displayed in Japanese, needs fixing.
+                loginHelpers::generateErrorMessage(buffer_.data(), loginErrors::errorCode::CHARACTER_NAME_UNAVAILABLE);
+                do_write(0x24);
+            }
+            if (namePlan.returnFromRead)
+            {
+                return;
+            }
+            if (namePlan.setRequestedNewCharacterName)
+            {
+                // copy charname
+                session.requestedNewCharacterName = CharName;
+            }
+            if (namePlan.writeLobbyAck)
+            {
+                loginHelpers::GenerateViewLobbyAckPacket(buffer_.data());
+                do_write(loginHelpers::ViewLobbyAckPacketSize);
             }
         }
         break;

@@ -607,6 +607,8 @@ set(SOURCES
     test_login_view_acquire_player_response_2760.cpp
     test_login_view_character_delete_response_2761.h
     test_login_view_character_delete_response_2761.cpp
+    test_login_view_name_check_response_2762.h
+    test_login_view_name_check_response_2762.cpp
     test_login_auth_password_1307.h
     test_login_auth_password_1307.cpp
     test_login_auth_version_error_1308.h
