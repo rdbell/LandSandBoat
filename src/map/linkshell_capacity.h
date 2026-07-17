@@ -125,8 +125,8 @@ namespace linkshellhelpers
 
 // ShouldRejectNullAddMember mirrors PChar == nullptr.
 //
-// Formula (slice 3489 dedicated dual-wire; residual expand 2929 / pure 1354 —
-// prior dedicated expand 3195; formula unchanged):
+// Formula (slice 3548 dedicated dual-wire; residual expand 2929 / pure 1354 —
+// prior dedicated expands 3195 / 3489; formula unchanged):
 //   charNull
 //
 // charNull — host-evaluated PChar == nullptr
@@ -137,9 +137,10 @@ namespace linkshellhelpers
 // Call site: CLinkshell::AddMember host inject (PChar == nullptr).
 //   if (ShouldRejectNullAddMember(PChar == nullptr)) return;
 // Prior pure port: slice 1354. Residual dual-wire suite: 2929 /
-// test_linkshell_reject_null_2929. Prior dedicated dual-wire suite: 3195 /
-// test_linkshell_reject_null_add_member_3195 (RETAINED). Dedicated dual-wire
-// suite is test_linkshell_reject_null_add_member_3489. Formula is unchanged;
+// test_linkshell_reject_null_2929. Prior dedicated dual-wire suites: 3195 /
+// test_linkshell_reject_null_add_member_3195 (RETAINED), 3489 /
+// test_linkshell_reject_null_add_member_3489 (RETAINED). Dedicated dual-wire
+// suite is test_linkshell_reject_null_add_member_3548. Formula is unchanged;
 // this slice only expands dual-wire docs + index + dedicated suite.
 inline auto ShouldRejectNullAddMember(const bool charNull) -> bool
 {

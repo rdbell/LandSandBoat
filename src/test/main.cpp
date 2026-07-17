@@ -1834,6 +1834,11 @@ auto runAvatarpetCanApplyBuff3543SelfTests() -> bool;
 auto runJobpointsApplyRaise3539SelfTests() -> bool;
 auto runMapsessionDestroyPendingPtr3542SelfTests() -> bool;
 auto runTradeBumpItemsCount3540SelfTests() -> bool;
+auto runUnityRejectNullOnline3544SelfTests() -> bool;
+auto runEnmityZeroOutOfRange3545SelfTests() -> bool;
+auto runNotorietyAddMember3546SelfTests() -> bool;
+auto runAllianceAttemptLeaderPromote3547SelfTests() -> bool;
+auto runLinkshellRejectNullAddMember3548SelfTests() -> bool;
 
 namespace
 {
@@ -3645,6 +3650,11 @@ namespace
         ok = runJobpointsApplyRaise3539SelfTests() && ok;
         ok = runMapsessionDestroyPendingPtr3542SelfTests() && ok;
         ok = runTradeBumpItemsCount3540SelfTests() && ok;
+        ok = runUnityRejectNullOnline3544SelfTests() && ok;
+        ok = runEnmityZeroOutOfRange3545SelfTests() && ok;
+        ok = runNotorietyAddMember3546SelfTests() && ok;
+        ok = runAllianceAttemptLeaderPromote3547SelfTests() && ok;
+        ok = runLinkshellRejectNullAddMember3548SelfTests() && ok;
 
         return ok;
     }

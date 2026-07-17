@@ -3661,6 +3661,16 @@ set(SOURCES
     test_mapsession_destroy_pending_ptr_3542.cpp
     test_trade_bump_items_count_3540.h
     test_trade_bump_items_count_3540.cpp
+    test_alliance_attempt_leader_promote_3547.h
+    test_alliance_attempt_leader_promote_3547.cpp
+    test_enmity_zero_out_of_range_3545.h
+    test_enmity_zero_out_of_range_3545.cpp
+    test_linkshell_reject_null_add_member_3548.h
+    test_linkshell_reject_null_add_member_3548.cpp
+    test_notoriety_add_member_3546.h
+    test_notoriety_add_member_3546.cpp
+    test_unity_reject_null_online_3544.h
+    test_unity_reject_null_online_3544.cpp
 )
 
 if(UNIX)
