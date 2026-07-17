@@ -11,6 +11,7 @@
 //   - 3091: ShouldRejectNullWeapon (weaponNull identity null-PWeapon gate)
 //   - 3120: ShouldApplyZanshinDoubleDamage (ZANSHIN && rateProcs type double)
 //   - 3138: ShouldApplyTATripleDamage (TRIPLE && rateProcs type triple)
+//   - 3249: ShouldApplyDADoubleDamage (DOUBLE && rateProcs type double)
 
 namespace attackutilshelpers
 {
@@ -189,9 +190,10 @@ inline auto ApplyOccProcDamage(
 // ApplyTypeDoubleDamage(originalDamage, 2).
 // Go dual-wire: attackutils.ShouldApplyZanshinDoubleDamage
 // (internal/attackutils/zanshin_double_damage.go).
-// Residual siblings (TA triple dual-wire 3138, DA double, Rapid Shot, Samba,
-// ApplyTypeDoubleDamage, RollRatePercent, null weapon 3091, rem occ, allowProc
-// ladder) remain in the 1380 residual suite / dual-wire siblings.
+// Residual siblings (TA triple dual-wire 3138, DA double dual-wire 3249,
+// Rapid Shot, Samba, ApplyTypeDoubleDamage, RollRatePercent, null weapon 3091,
+// rem occ, allowProc ladder) remain in the 1380 residual suite / dual-wire
+// siblings.
 // Index 3120: attackutils.ShouldApplyZanshinDoubleDamage pure dual-wire.
 //
 // ShouldApplyZanshinDoubleDamage mirrors ZANSHIN + rate proc.
@@ -211,8 +213,8 @@ inline auto ApplyOccProcDamage(
 // Residual pins remain in test_attackutils_multiplier_1380; dedicated
 // dual-wire suite is test_attackutils_zanshin_dd_3120.
 // Residual siblings: ShouldApplyTATripleDamage (3138 dual-wire) /
-// ShouldApplyDADoubleDamage / Rapid / Samba / ApplyTypeDoubleDamage /
-// RollRatePercent (still 1380 unless dual-wired).
+// ShouldApplyDADoubleDamage (3249 dual-wire) / Rapid / Samba /
+// ApplyTypeDoubleDamage / RollRatePercent (still 1380 unless dual-wired).
 inline auto ShouldApplyZanshinDoubleDamage(const uint8 attackType, const bool rateProcs) -> bool
 {
     return attackType == AttackTypeZanshin && rateProcs;
@@ -227,9 +229,10 @@ inline auto ShouldApplyZanshinDoubleDamage(const uint8 attackType, const bool ra
 // ApplyTypeDoubleDamage(originalDamage, 3).
 // Go dual-wire: attackutils.ShouldApplyTATripleDamage
 // (internal/attackutils/ta_triple_damage.go).
-// Residual siblings (Zanshin double dual-wire 3120, DA double, Rapid Shot, Samba,
-// ApplyTypeDoubleDamage, RollRatePercent, null weapon 3091, rem occ, allowProc
-// ladder) remain in the 1380 residual suite / dual-wire siblings left alone.
+// Residual siblings (Zanshin double dual-wire 3120, DA double dual-wire 3249,
+// Rapid Shot, Samba, ApplyTypeDoubleDamage, RollRatePercent, null weapon 3091,
+// rem occ, allowProc ladder) remain in the 1380 residual suite / dual-wire
+// siblings left alone.
 // Index 3138: attackutils.ShouldApplyTATripleDamage pure dual-wire.
 //
 // ShouldApplyTATripleDamage mirrors TRIPLE + rate proc.
@@ -249,13 +252,47 @@ inline auto ShouldApplyZanshinDoubleDamage(const uint8 attackType, const bool ra
 // Residual pins remain in test_attackutils_multiplier_1380; dedicated
 // dual-wire suite is test_attackutils_ta_triple_3138.
 // Residual siblings: ShouldApplyZanshinDoubleDamage (3120) /
-// ShouldApplyDADoubleDamage / Rapid / Samba / ApplyTypeDoubleDamage /
-// RollRatePercent (still 1380 unless dual-wired).
+// ShouldApplyDADoubleDamage (3249 dual-wire) / Rapid / Samba /
+// ApplyTypeDoubleDamage / RollRatePercent (still 1380 unless dual-wired).
 inline auto ShouldApplyTATripleDamage(const uint8 attackType, const bool rateProcs) -> bool
 {
     return attackType == AttackTypeTriple && rateProcs;
 }
 
+// --- Slice 3249: ShouldApplyDADoubleDamage pure dual-wire ---
+// Residual pure port: slice 1380 (CheckForDamageMultiplier pure-gate suite).
+// Production host: attackutils::CheckForDamageMultiplier switch
+// PHYSICAL_ATTACK_TYPE::DOUBLE injects attackTypeU8 and
+// RollRatePercent(Mod::DA_DOUBLE_DMG_RATE, rand) into
+// ShouldApplyDADoubleDamage; on true return
+// ApplyTypeDoubleDamage(originalDamage, 2).
+// Go dual-wire: attackutils.ShouldApplyDADoubleDamage
+// (internal/attackutils/da_double_damage.go).
+// Residual siblings (Zanshin double dual-wire 3120, TA triple dual-wire 3138,
+// Rapid Shot, Samba, ApplyTypeDoubleDamage, RollRatePercent, null weapon 3091,
+// rem occ, allowProc ladder) remain in the 1380 residual suite / dual-wire
+// siblings left alone.
+// Index 3249: attackutils.ShouldApplyDADoubleDamage pure dual-wire.
+//
+// ShouldApplyDADoubleDamage mirrors DOUBLE + rate proc.
+//
+// Formula (slice 3249 dual-wire):
+//   attackType == AttackTypeDouble && rateProcs
+//
+// attackType — host-injected physical attack type (uint8 / enum)
+// rateProcs  — host-injected RollRatePercent(DA_DOUBLE_DMG_RATE, roll)
+// true  → host ApplyTypeDoubleDamage(originalDamage, 2)
+// false → leave damage unchanged for this type arm
+//
+// Dual-wire of Go attackutils.ShouldApplyDADoubleDamage.
+// Call site: attackutils::CheckForDamageMultiplier — host injects
+// attackTypeU8 + rate roll; on true return ApplyTypeDoubleDamage(*2).
+// Prior pure port: slice 1380 (damage multiplier residual pure-gate suite).
+// Residual pins remain in test_attackutils_multiplier_1380; dedicated
+// dual-wire suite is test_attackutils_da_double_damage_3249.
+// Residual siblings: ShouldApplyZanshinDoubleDamage (3120) /
+// ShouldApplyTATripleDamage (3138) / Rapid / Samba / ApplyTypeDoubleDamage /
+// RollRatePercent (still 1380 unless dual-wired).
 inline auto ShouldApplyDADoubleDamage(const uint8 attackType, const bool rateProcs) -> bool
 {
     return attackType == AttackTypeDouble && rateProcs;

@@ -3071,6 +3071,16 @@ set(SOURCES
     test_monstrosity_instinct_loadout_3247.cpp
     test_universalcontainer_set_item_3248.h
     test_universalcontainer_set_item_3248.cpp
+    test_attackutils_da_double_damage_3249.h
+    test_attackutils_da_double_damage_3249.cpp
+    test_enmity_reject_non_mob_3250.h
+    test_enmity_reject_non_mob_3250.cpp
+    test_attackround_create_daken_3251.h
+    test_attackround_create_daken_3251.cpp
+    test_colonizationreive_despawn_on_disable_3252.h
+    test_colonizationreive_despawn_on_disable_3252.cpp
+    test_aistate_can_rest_3253.h
+    test_aistate_can_rest_3253.cpp
 )
 
 if(UNIX)

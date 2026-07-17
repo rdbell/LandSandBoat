@@ -1539,6 +1539,11 @@ auto runApkalluCanRunAway3245SelfTests() -> bool;
 auto runInteractionlookupSkipPriority3246SelfTests() -> bool;
 auto runMonstrosityInstinctLoadout3247SelfTests() -> bool;
 auto runUniversalcontainerSetItem3248SelfTests() -> bool;
+auto runAttackutilsDADoubleDamage3249SelfTests() -> bool;
+auto runEnmityRejectNonMob3250SelfTests() -> bool;
+auto runAttackroundCreateDaken3251SelfTests() -> bool;
+auto runColonizationreiveDespawnOnDisable3252SelfTests() -> bool;
+auto runAistateCanRest3253SelfTests() -> bool;
 
 namespace
 {
@@ -3055,6 +3060,11 @@ namespace
         ok = runInteractionlookupSkipPriority3246SelfTests() && ok;
         ok = runMonstrosityInstinctLoadout3247SelfTests() && ok;
         ok = runUniversalcontainerSetItem3248SelfTests() && ok;
+        ok = runAttackutilsDADoubleDamage3249SelfTests() && ok;
+        ok = runEnmityRejectNonMob3250SelfTests() && ok;
+        ok = runAttackroundCreateDaken3251SelfTests() && ok;
+        ok = runColonizationreiveDespawnOnDisable3252SelfTests() && ok;
+        ok = runAistateCanRest3253SelfTests() && ok;
 
         return ok;
     }

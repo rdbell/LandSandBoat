@@ -16,8 +16,10 @@
 //   - 2758: ResolveCreateDakenAttackPlan
 //   - 2768: post-build plan helpers
 //   - 3045: ShouldCreateDakenAttack residual dual-wire suite (isPC identity)
-//   - 3184: ShouldCreateDakenAttack dedicated dual-wire
+//   - 3184: ShouldCreateDakenAttack prior dedicated dual-wire
 //           (create_daken_attack.go; expand residual 3045 / pure 1375)
+//   - 3251: ShouldCreateDakenAttack dedicated dual-wire expand residual 3045
+//           (prior dedicated 3184)
 //
 // Production host: CAttackRound::CreateDakenAttack (attackround.cpp ~541)
 // injects (m_attacker->objtype == TYPE_PC) into ShouldCreateDakenAttack before
@@ -381,14 +383,14 @@ inline auto ResolveCreateKickAttacksPlan(
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3184 — CreateDakenAttack TYPE_PC gate
-// (dedicated expand residual 3045 / pure 1375)
+// Slice 3251 — CreateDakenAttack TYPE_PC gate
+// (dedicated expand residual 3045 / prior dedicated 3184 / pure 1375)
 // ---------------------------------------------------------------------------
 
 // ShouldCreateDakenAttack mirrors TYPE_PC gate before daken throw ammo/proc work.
 //
-// Formula (slice 3184 dedicated dual-wire; residual expand 3045 / pure 1375 —
-// formula unchanged):
+// Formula (slice 3251 dedicated dual-wire; residual expand 3045 / prior
+// dedicated 3184 / pure 1375 — formula unchanged):
 //   isPC
 //
 // isPC — host-evaluated (m_attacker->objtype == TYPE_PC)
@@ -396,14 +398,16 @@ inline auto ResolveCreateKickAttacksPlan(
 // false → skip ammo/proc RNG consumption for the TYPE_PC path
 //
 // Dual-wire of Go attackround.ShouldCreateDakenAttack
-// (residual 1375 / residual dual-wire 3045 / dedicated dual-wire 3184).
+// (residual 1375 / residual dual-wire 3045 / prior dedicated 3184 /
+// dedicated dual-wire 3251).
 // Call site: CAttackRound::CreateDakenAttack before ammo / DAKEN roll:
 //   if (ShouldCreateDakenAttack(m_attacker->objtype == TYPE_PC)) {
 //       // ammo isShuriken + rolled < DAKEN
 //   }
 // Residual dual-wire suite: 3045 (test_attackround_create_daken_3045).
-// Dedicated dual-wire suite: 3184 (test_attackround_create_daken_attack_3184).
-// Sibling residual only (not re-expanded under 3184):
+// Prior dedicated dual-wire suite: 3184 (test_attackround_create_daken_attack_3184).
+// Dedicated dual-wire suite: 3251 (test_attackround_create_daken_3251).
+// Sibling residual only (not re-expanded under 3251):
 // ShouldProcDakenThrow (1375), ResolveCreateDakenAttackPlan (2758).
 inline auto ShouldCreateDakenAttack(const bool isPC) -> bool
 {
