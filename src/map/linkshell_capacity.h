@@ -15,14 +15,19 @@
 //   - 1354: AddMember / rank / push / DelMember capacity suite
 //   - 2929: ShouldRejectNullAddMember (charNull identity)
 //   - 2958: ShouldRejectDuplicateAddMember (alreadyInList identity)
+//   - 2977: ShouldSendLinkshellMessageIPC (messageNonEmpty identity)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
 // then injects find-hit into ShouldRejectDuplicateAddMember.
+// CLinkshell::setMessage injects message.size() != 0 into
+// ShouldSendLinkshellMessageIPC after DB update before IPC send.
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
 // (internal/linkshell/reject_null_add_member.go),
 // linkshell.ShouldRejectDuplicateAddMember
-// (internal/linkshell/reject_duplicate_add_member.go).
+// (internal/linkshell/reject_duplicate_add_member.go),
+// linkshell.ShouldSendLinkshellMessageIPC
+// (internal/linkshell/send_message_ipc.go).
 
 namespace linkshellhelpers
 {
@@ -78,6 +83,17 @@ inline auto IsLinkshellSlot1(const uint8 lsNum) -> bool
 // --- setMessage ---
 
 // ShouldSendLinkshellMessageIPC mirrors message.size() != 0 after DB update.
+//
+// Formula (slice 2977 dual-wire):
+//   messageNonEmpty
+//
+// messageNonEmpty — host-evaluated message.size() != 0
+// true  → host may send ipc::LinkshellSetMessage after DB update
+// false → skip IPC (empty motd still updates poster/time in DB; no fan-out)
+//
+// Dual-wire of Go linkshell.ShouldSendLinkshellMessageIPC.
+// Call site: CLinkshell::setMessage host inject (message.size() != 0).
+// Prior pure port: slices 1354 / 2171 (capacity suite; setMessage value model).
 inline auto ShouldSendLinkshellMessageIPC(const bool messageNonEmpty) -> bool
 {
     return messageNonEmpty;

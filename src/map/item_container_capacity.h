@@ -12,11 +12,15 @@
 //   - 2826: FreeSlotsCount (unsigned size-minus-count)
 //   - 2831: CanSearchSlotID (GetItem / search inclusive range)
 //   - 2942: CanInsertAtSlot (InsertItem(PItem, SlotID) range gate)
+//   - 2976: CanRemoveSlot (RemoveItem range gate)
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
 // Go dual-wire: itemcontainer.CanInsertAtSlot
 // (internal/itemcontainer/insert_slot.go).
+// Production host: CItemContainer::RemoveItem injects SlotID and m_size into
+// CanRemoveSlot. Go dual-wire: itemcontainer.CanRemoveSlot
+// (internal/itemcontainer/remove_slot.go).
 
 namespace itemcontainerhelpers
 {
@@ -61,7 +65,20 @@ inline auto CanInsertAtSlot(const std::uint8_t slotID, const std::uint8_t size) 
     return slotID <= size;
 }
 
-// CanRemoveSlot mirrors RemoveItem range gate: same SlotID > size reject.
+// CanRemoveSlot mirrors RemoveItem range gate: reject when SlotID > size,
+// so slotID <= size is accepted (including slot 0).
+//
+// Formula (slice 2976 dual-wire):
+//   slotID <= size
+//
+// slotID — host-evaluated RemoveItem SlotID
+// size   — host-evaluated m_size (usable slot count)
+// true  → allow RemoveItem at SlotID (host still moves unique_ptr / drops count)
+// false → reject (return nullptr; out of range)
+//
+// Dual-wire of Go itemcontainer.CanRemoveSlot.
+// Call site: CItemContainer::RemoveItem before ownership move.
+// Same predicate as CanInsertAtSlot (slice 2942) and CanSearchSlotID (slice 2831).
 inline auto CanRemoveSlot(const std::uint8_t slotID, const std::uint8_t size) -> bool
 {
     return slotID <= size;

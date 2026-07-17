@@ -1264,6 +1264,11 @@ auto runSpellCanUseWith2970SelfTests() -> bool;
 auto runNotorietyRemoveMember2971SelfTests() -> bool;
 auto runMobutilsAssignParry2972SelfTests() -> bool;
 auto runLoginEraseEmptyIP2973SelfTests() -> bool;
+auto runPartyRemoveSyncLow2974SelfTests() -> bool;
+auto runZoneDespawnPCLeave2975SelfTests() -> bool;
+auto runItemRemoveSlot2976SelfTests() -> bool;
+auto runLinkshellSendMessageIPC2977SelfTests() -> bool;
+auto runMapsessionMarkLinkDead2978SelfTests() -> bool;
 
 namespace
 {
@@ -2505,6 +2510,11 @@ namespace
         ok = runNotorietyRemoveMember2971SelfTests() && ok;
         ok = runMobutilsAssignParry2972SelfTests() && ok;
         ok = runLoginEraseEmptyIP2973SelfTests() && ok;
+        ok = runPartyRemoveSyncLow2974SelfTests() && ok;
+        ok = runZoneDespawnPCLeave2975SelfTests() && ok;
+        ok = runItemRemoveSlot2976SelfTests() && ok;
+        ok = runLinkshellSendMessageIPC2977SelfTests() && ok;
+        ok = runMapsessionMarkLinkDead2978SelfTests() && ok;
 
         return ok;
     }

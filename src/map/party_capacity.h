@@ -13,17 +13,22 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1327 / 1350: capacity thresholds, trust admission, AddMember classify
+//   - 1330: level-sync refresh suite (prior pure for low-level remove)
 //   - 2928: ShouldRejectPCAddFull (TYPE_PC + PARTY_PCS + partyFull)
 //   - 2937: ShouldRejectPCAddTrusts (TYPE_PC + PARTY_PCS + partyHasTrusts)
 //   - 2955: ShouldClearSeekingParty (isSeekingParty after join)
+//   - 2974: ShouldRemoveSyncForLowLevel (RefreshSync syncLevel < 10)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
 // isPCEntity / isPCParty / HasTrusts() into ShouldRejectPCAddTrusts, and
 // PChar->isSeekingParty() into ShouldClearSeekingParty (PC post-process).
+// Production host: CParty::RefreshSync (party.cpp) injects syncLevel into
+// ShouldRemoveSyncForLowLevel before SetSyncTarget clear.
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
-// party.ShouldClearSeekingParty (internal/party/clear_seeking.go).
+// party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
+// party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go).
 
 namespace partyhelpers
 {
@@ -157,9 +162,23 @@ inline auto AccumulateMemberCount(const uint8 running, const uint8 contribution)
 
 // LevelSyncMinLevel is the exclusive lower bound for the sync target's main job
 // level in CParty::RefreshSync (syncLevel < 10 removes sync).
+// Dual-wire of Go party.LevelSyncMinLevel (internal/party/remove_sync_low.go).
+// Prior pure port: slice 1330.
 constexpr uint8 LevelSyncMinLevel = 10;
 
 // ShouldRemoveSyncForLowLevel mirrors syncLevel < 10 before SetSyncTarget clear.
+//
+// Formula (slice 2974 dual-wire):
+//   syncLevel < LevelSyncMinLevel  // 10
+//
+// Host-injected scalars (no entity pointers):
+//   syncLevel — sync target's main-job level (jobs.job[GetMJob()])
+// true  → host calls SetSyncTarget("", MsgStd::LevelSyncRemoveLowLevel)
+// false → keep sync; host continues RefreshSync per-member level apply
+//
+// Dual-wire of Go party.ShouldRemoveSyncForLowLevel
+// (internal/party/remove_sync_low.go). Prior pure port: slice 1330.
+// Call site: CParty::RefreshSync (party.cpp) host inject.
 inline auto ShouldRemoveSyncForLowLevel(const uint8 syncLevel) -> bool
 {
     return syncLevel < LevelSyncMinLevel;

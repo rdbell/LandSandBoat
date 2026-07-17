@@ -13,6 +13,9 @@
 //   - 2936: ShouldCreatePendingSession (queryOK identity; no rowsCount gate)
 //   - 2790: lookup pure gates (ShouldRejectNullCharLookup, SessionMatches*)
 //   - 2954: ShouldRejectNullCharLookup (charNull identity)
+//   - 2799: link-dead mark/recover pure plans (ShouldMarkLinkDead residual)
+//   - 2978: ShouldMarkLinkDead (hasChar && !alreadyLinkDead)
+//   - residual sibling: ShouldRecoverLinkDead (not dual-wired in 2978)
 //
 // Production host: MapSessionContainer::createSession injects queryOK /
 // hasAccountsSessionRow after the accounts_sessions SELECT by client_addr.
@@ -28,6 +31,11 @@
 // charNull = (PChar == nullptr) before scanning confirmed sessions.
 // Go dual-wire: mapsession.ShouldRejectNullCharLookup
 // (internal/mapsession/null_char.go).
+//
+// Production host: MapSessionContainer::cleanupSessions injects hasChar /
+// alreadyLinkDead into ShouldMarkLinkDead inside the >5s inactive branch
+// before the mark body. Go dual-wire: mapsession.ShouldMarkLinkDead
+// (internal/mapsession/mark_link_dead.go). Prior pure port: slice 2799.
 
 namespace mapsessionhelpers
 {
@@ -130,10 +138,26 @@ inline auto SessionMatchesCharName(const bool sessionHasChar, const std::string&
 }
 
 // --- Slice 2799: cleanupSessions link-dead mark / recover pure plans ---
+// --- Slice 2978: ShouldMarkLinkDead pure dual-wire expansion ---
 
 // ShouldMarkLinkDead mirrors the mark-link-dead gate inside the >5s inactive
-// branch: PChar != nullptr && !PChar->isLinkDead. Caller has already ensured
-// now > last_update + 5s. alreadyLinkDead is only meaningful when hasChar.
+// branch of MapSessionContainer::cleanupSessions:
+//   PChar != nullptr && !PChar->isLinkDead
+//
+// Formula (slice 2978 dual-wire):
+//   hasChar && !alreadyLinkDead
+//
+// Host-injected scalars (no session / character pointers):
+//   hasChar          — PChar != nullptr
+//   alreadyLinkDead  — hasChar && PChar->isLinkDead (only meaningful when hasChar)
+// true  → host may run PlanLinkDeadMark body (SQL disconnecting flag, set
+//         isLinkDead, UPDATE_HP mask, optional SpawnPCs)
+// false → skip mark body (no character or already link-dead)
+//
+// Caller has already ensured now > last_update + 5s (timeout gate outside pure).
+// Dual-wire of Go mapsession.ShouldMarkLinkDead
+// (internal/mapsession/mark_link_dead.go). Prior pure port: slice 2799.
+// Call site: MapSessionContainer::cleanupSessions (map_session_container.cpp).
 inline auto ShouldMarkLinkDead(const bool hasChar, const bool alreadyLinkDead) -> bool
 {
     return hasChar && !alreadyLinkDead;
@@ -142,6 +166,7 @@ inline auto ShouldMarkLinkDead(const bool hasChar, const bool alreadyLinkDead) -
 // ShouldRecoverLinkDead mirrors the recover-link-dead gate on the else-if of
 // the >5s branch: PChar != nullptr && PChar->isLinkDead. Caller has already
 // ensured the session is not past the five-second inactive gate.
+// Sibling residual to ShouldMarkLinkDead (2978 dual-wire); not dual-wired here.
 inline auto ShouldRecoverLinkDead(const bool hasChar, const bool isLinkDead) -> bool
 {
     return hasChar && isLinkDead;

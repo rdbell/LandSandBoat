@@ -2521,6 +2521,16 @@ set(SOURCES
     test_mobutils_assign_parry_2972.cpp
     test_login_erase_empty_ip_2973.h
     test_login_erase_empty_ip_2973.cpp
+    test_party_remove_sync_low_2974.h
+    test_party_remove_sync_low_2974.cpp
+    test_zone_despawn_pc_leave_2975.h
+    test_zone_despawn_pc_leave_2975.cpp
+    test_item_remove_slot_2976.h
+    test_item_remove_slot_2976.cpp
+    test_linkshell_send_message_ipc_2977.h
+    test_linkshell_send_message_ipc_2977.cpp
+    test_mapsession_mark_link_dead_2978.h
+    test_mapsession_mark_link_dead_2978.cpp
 )
 
 if(UNIX)
