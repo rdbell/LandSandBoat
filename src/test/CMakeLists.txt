@@ -3581,6 +3581,16 @@ set(SOURCES
     test_nyzul_floor100_vigil_3502.cpp
     test_ranged_delete_unlimited_shot_3500.h
     test_ranged_delete_unlimited_shot_3500.cpp
+    test_apkallu_can_run_away_3505.h
+    test_apkallu_can_run_away_3505.cpp
+    test_extravaganza_can_afford_cipher_3504.h
+    test_extravaganza_can_afford_cipher_3504.cpp
+    test_follow_can_follow_3506.h
+    test_follow_can_follow_3506.cpp
+    test_guildpoints_can_afford_3507.h
+    test_guildpoints_can_afford_3507.cpp
+    test_synthutils_can_synthesize_hq_3508.h
+    test_synthutils_can_synthesize_hq_3508.cpp
 )
 
 if(UNIX)

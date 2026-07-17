@@ -1794,6 +1794,11 @@ auto runRangedDeleteUnlimitedShot3500SelfTests() -> bool;
 auto runDarkixionDoubleGlow3501SelfTests() -> bool;
 auto runNyzulFloor100Vigil3502SelfTests() -> bool;
 auto runAuctionutilsCanAffordFee3503SelfTests() -> bool;
+auto runApkalluCanRunAway3505SelfTests() -> bool;
+auto runExtravaganzaCanAffordCipher3504SelfTests() -> bool;
+auto runFollowCanFollow3506SelfTests() -> bool;
+auto runGuildpointsCanAfford3507SelfTests() -> bool;
+auto runSynthutilsCanSynthesizeHQ3508SelfTests() -> bool;
 
 namespace
 {
@@ -3565,6 +3570,11 @@ namespace
         ok = runDarkixionDoubleGlow3501SelfTests() && ok;
         ok = runNyzulFloor100Vigil3502SelfTests() && ok;
         ok = runAuctionutilsCanAffordFee3503SelfTests() && ok;
+        ok = runApkalluCanRunAway3505SelfTests() && ok;
+        ok = runExtravaganzaCanAffordCipher3504SelfTests() && ok;
+        ok = runFollowCanFollow3506SelfTests() && ok;
+        ok = runGuildpointsCanAfford3507SelfTests() && ok;
+        ok = runSynthutilsCanSynthesizeHQ3508SelfTests() && ok;
 
         return ok;
     }

@@ -165,14 +165,16 @@ inline auto NewDailyPointsTotal(const uint16 curPoints, const uint16 pointsToAdd
 //   - 3221: CanAfford prior dedicated dual-wire (retained; expand residual 2944)
 //   - 3368: CanAfford prior dedicated dual-wire (retained; expand residual 2944)
 //   - 3404: CanAfford prior dedicated dual-wire (retained; expand residual 2944)
-//   - 3458: CanAfford dedicated dual-wire (can_afford.go; expand residual 2944)
+//   - 3458: CanAfford prior dedicated dual-wire (retained; expand residual 2944)
+//   - 3507: CanAfford dedicated dual-wire (can_afford.go; expand residual 2944)
 //
 // Dual-wire index:
 //   - 2944: CanAfford residual dual-wire suite
 //   - 3221: CanAfford prior dedicated dual-wire (retained)
 //   - 3368: CanAfford prior dedicated dual-wire (retained)
 //   - 3404: CanAfford prior dedicated dual-wire (retained)
-//   - 3458: CanAfford = currency >= cost
+//   - 3458: CanAfford prior dedicated dual-wire (retained)
+//   - 3507: CanAfford = currency >= cost
 //
 // Lua production host: scripts/globals/hobbies/crafting/guild_points.lua
 //   player:getCurrency(currency) >= keyItem.cost / cost  (purchase gates)
@@ -186,8 +188,9 @@ inline auto NewDailyPointsTotal(const uint16 curPoints, const uint16 pointsToAdd
 // Residual dual-wire suite: 2944 (test_guildpoints_can_afford_2944).
 // Prior dedicated dual-wire suites: 3221 (test_guildpoints_can_afford_3221),
 //   3368 (test_guildpoints_can_afford_3368),
-//   3404 (test_guildpoints_can_afford_3404).
-// Dedicated dual-wire suite: 3458 (test_guildpoints_can_afford_3458).
+//   3404 (test_guildpoints_can_afford_3404),
+//   3458 (test_guildpoints_can_afford_3458).
+// Dedicated dual-wire suite: 3507 (test_guildpoints_can_afford_3507).
 // Go dual-wire: guildpoints.CanAfford (internal/guildpoints/can_afford.go).
 // Future Lua host injects free function then delCurrency / give writeback.
 // ---------------------------------------------------------------------------
@@ -196,9 +199,9 @@ namespace guildpointshelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2944 residual / 3221 / 3368 / 3404 prior dedicated / 3458 dedicated —
+// Slice 2944 residual / 3221 / 3368 / 3404 / 3458 prior dedicated / 3507 dedicated —
 // guild_points getCurrency afford gate
-// (dedicated expand residual 2944; prior dedicated 3404 / 3368 / 3221 / pure 1016)
+// (dedicated expand residual 2944; prior dedicated 3458 / 3404 / 3368 / 3221 / pure 1016)
 // ---------------------------------------------------------------------------
 
 // CanAfford is the pure free-function form of the Lua guild_points currency
@@ -206,8 +209,8 @@ namespace guildpointshelpers
 //
 //   currency >= cost
 //
-// Formula (slice 3458 dedicated dual-wire expand residual 2944; prior
-// dedicated 3404 / 3368 / 3221 / pure 1016 — formula unchanged):
+// Formula (slice 3507 dedicated dual-wire expand residual 2944; prior
+// dedicated 3458 / 3404 / 3368 / 3221 / pure 1016 — formula unchanged):
 //
 //   CanAfford(currency, cost) = currency >= cost
 //
@@ -216,8 +219,9 @@ namespace guildpointshelpers
 // Residual dual-wire suite: 2944 / test_guildpoints_can_afford_2944.
 // Prior dedicated dual-wire suites: 3221 / test_guildpoints_can_afford_3221,
 //   3368 / test_guildpoints_can_afford_3368,
-//   3404 / test_guildpoints_can_afford_3404.
-// Dedicated dual-wire suite is test_guildpoints_can_afford_3458.
+//   3404 / test_guildpoints_can_afford_3404,
+//   3458 / test_guildpoints_can_afford_3458.
+// Dedicated dual-wire suite is test_guildpoints_can_afford_3507.
 inline auto CanAfford(const int32 currency, const int32 cost) -> bool
 {
     return currency >= cost;
