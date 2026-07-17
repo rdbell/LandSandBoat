@@ -14,10 +14,13 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1327 / 1350: capacity thresholds, trust admission, AddMember classify
 //   - 2928: ShouldRejectPCAddFull (TYPE_PC + PARTY_PCS + partyFull)
+//   - 2937: ShouldRejectPCAddTrusts (TYPE_PC + PARTY_PCS + partyHasTrusts)
 //
 // Production host: CParty::AddMember (party.cpp) injects
-// isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember.
-// Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go).
+// isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
+// and isPCEntity / isPCParty / HasTrusts() into ShouldRejectPCAddTrusts.
+// Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
+// party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go).
 
 namespace partyhelpers
 {
@@ -99,6 +102,18 @@ inline auto ShouldRejectPCAddFull(const bool isPCEntity, const bool isPCParty, c
 }
 
 // ShouldRejectPCAddTrusts mirrors AddMember's HasTrusts gate for TYPE_PC + PARTY_PCS.
+//
+// Formula (slice 2937 dual-wire):
+//   isPCEntity && isPCParty && partyHasTrusts
+//
+// isPCEntity     — host-evaluated objtype == TYPE_PC
+// isPCParty      — host-evaluated m_PartyType == PARTY_PCS
+// partyHasTrusts — host-evaluated HasTrusts() (any PC member has non-empty trusts)
+// true  → reject AddMember (PC into PC party that has summoned trusts)
+// false → trusts gate passes (non-PC entity, mob party, or no trusts present)
+//
+// Dual-wire of Go party.ShouldRejectPCAddTrusts.
+// Call site: ClassifyAddMember / CParty::AddMember host inject.
 inline auto ShouldRejectPCAddTrusts(const bool isPCEntity, const bool isPCParty, const bool partyHasTrusts) -> bool
 {
     return isPCEntity && isPCParty && partyHasTrusts;

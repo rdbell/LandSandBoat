@@ -6,18 +6,24 @@
 
 // Pure MOBTYPE pin constants + free helpers shared by dual-wire slices:
 //   - 2919: CanDeaggro (type-bit gate)
+//   - 2934: CanBeNeutral (type-bit gate)
 //
-// Production call site today: CMobEntity::CanDeaggro in mob_entity.cpp
-// routes through mobbehaviorhelpers::CanDeaggro(notorious, battlefield)
-// after host-extracting m_Type & MOBTYPE_NOTORIOUS / MOBTYPE_BATTLEFIELD.
+// Production call sites today:
+//   - CMobEntity::CanDeaggro in mob_entity.cpp routes through
+//     mobbehaviorhelpers::CanDeaggro(notorious, battlefield) after
+//     host-extracting m_Type & MOBTYPE_NOTORIOUS / MOBTYPE_BATTLEFIELD.
+//   - CMobEntity::CanBeNeutral in mob_entity.cpp routes through
+//     mobbehaviorhelpers::CanBeNeutral(notorious) after host-extracting
+//     m_Type & MOBTYPE_NOTORIOUS.
 //
 // This capacity dual-wires the Type-bit form used by OmegaXI
-// internal/mobtype (slice 2042 residual / 2919 dual-wire):
+// internal/mobtype (slice 2042 residual / 2919 / 2934 dual-wire):
 //
-//   CanDeaggro(t) = !Has(t, Notorious) && !Has(t, Battlefield)
+//   CanDeaggro(t)    = !Has(t, Notorious) && !Has(t, Battlefield)
+//   CanBeNeutral(t)  = !Has(t, Notorious)
 //
 // Hosts inject the raw m_Type / MOBTYPE byte. Side effects (deaggro
-// timers, controller tick) remain host-owned.
+// timers, controller tick, neutral timer) remain host-owned.
 //
 // Reference: src/map/entities/mob_entity.h enum MOBTYPE
 //   MOBTYPE_NORMAL      = 0x00
@@ -31,6 +37,9 @@
 // Reference: src/map/entities/mob_entity.cpp CMobEntity::CanDeaggro
 //   return mobbehaviorhelpers::CanDeaggro(m_Type & MOBTYPE_NOTORIOUS,
 //                                         m_Type & MOBTYPE_BATTLEFIELD);
+//
+// Reference: src/map/entities/mob_entity.cpp CMobEntity::CanBeNeutral
+//   return mobbehaviorhelpers::CanBeNeutral(m_Type & MOBTYPE_NOTORIOUS);
 
 namespace mobtypehelpers
 {
@@ -73,6 +82,23 @@ inline auto Has(const uint8 t, const uint8 flag) -> bool
 inline auto CanDeaggro(const uint8 t) -> bool
 {
     return !Has(t, Notorious) && !Has(t, Battlefield);
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2934 — CanBeNeutral type-bit gate
+// ---------------------------------------------------------------------------
+
+// CanBeNeutral mirrors CMobEntity::CanBeNeutral's type policy:
+//
+//   !Has(t, Notorious)
+//
+// Only notorious mobs are excluded from the neutral/killing-pause behavior.
+// Battlefield alone may still be neutral. Host still owns controller neutral
+// timer / tick. Future host inject may call this free function with raw
+// m_Type instead of splitting the notorious bool at the call site.
+inline auto CanBeNeutral(const uint8 t) -> bool
+{
+    return !Has(t, Notorious);
 }
 
 } // namespace mobtypehelpers

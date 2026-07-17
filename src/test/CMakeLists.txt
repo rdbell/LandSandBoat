@@ -2441,6 +2441,16 @@ set(SOURCES
     test_status_effect_id_range_2932.cpp
     test_unitychat_receive_packet_2933.h
     test_unitychat_receive_packet_2933.cpp
+    test_mobtype_can_be_neutral_2934.h
+    test_mobtype_can_be_neutral_2934.cpp
+    test_auction_refresh_history_2935.h
+    test_auction_refresh_history_2935.cpp
+    test_mapsession_pending_session_2936.h
+    test_mapsession_pending_session_2936.cpp
+    test_party_reject_trusts_2937.h
+    test_party_reject_trusts_2937.cpp
+    test_treasure_auto_solo_2938.h
+    test_treasure_auto_solo_2938.cpp
 )
 
 if(UNIX)

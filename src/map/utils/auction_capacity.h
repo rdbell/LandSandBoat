@@ -49,4 +49,19 @@ inline auto CanAffordFee(const uint32 gilQuantity, const uint32 gilReserve, cons
     return gilQuantity >= fee && gilReserve == 0;
 }
 
+// HistoryCooldownMs is the OpenListOfSales refresh gate duration (5s).
+// Dual-wire of Go auctionutils.HistoryCooldown / HistoryCooldownMs (slice 2935).
+inline constexpr int64 HistoryCooldownMs = 5000;
+
+// CanRefreshHistory mirrors OpenListOfSales cooldown pure half (slice 2935):
+//   nowMs > lastMs + HistoryCooldownMs
+// Production: curTick > m_AHHistoryTimestamp + 5s (strict greater-than).
+// Equality at the boundary is still rate-limited (Info result 246).
+// Host injects timer::now() and m_AHHistoryTimestamp as whole milliseconds
+// only (no timer types / CCharEntity* on the pure surface).
+inline auto CanRefreshHistory(const int64 nowMs, const int64 lastMs) -> bool
+{
+    return nowMs > lastMs + HistoryCooldownMs;
+}
+
 } // namespace auctionutilshelpers

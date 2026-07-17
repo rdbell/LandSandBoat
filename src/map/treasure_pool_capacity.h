@@ -6,6 +6,16 @@
 #include <cstdint>
 
 // Pure CTreasurePool add/lot/eviction policy halves.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1367: free-slot / rare / eviction / lot policy suite
+//   - 2772 / 2777 / 2779 / 2780 / 2781: lot/pass/update/post-lot/flush plans
+//   - 2938: ShouldAutoResolveSolo (memberCount == 1 after insert)
+//
+// Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
+// memberCount() into ShouldAutoResolveSolo after trophy list packets.
+// Go dual-wire: treasurepool.ShouldAutoResolveSolo
+// (internal/treasurepool/auto_solo.go).
 
 namespace treasurepoolhelpers
 {
@@ -85,6 +95,16 @@ inline auto ShouldForceCheckOnFullPoolInsert(const uint8 slotAfterFreeScan) -> b
 }
 
 // ShouldAutoResolveSolo mirrors memberCount() == 1 after insert.
+//
+// Formula (slice 2938 dual-wire):
+//   memberCount == 1
+//
+// memberCount — host-evaluated memberCount() (current pool members after insert)
+// true  → auto-resolve the inserted slot via checkTreasureItem immediately
+// false → leave the item for lot/pass/timeout resolution
+//
+// Dual-wire of Go treasurepool.ShouldAutoResolveSolo.
+// Call site: CTreasurePool::addItem after trophy list packets.
 inline auto ShouldAutoResolveSolo(const std::size_t memberCount) -> bool
 {
     return memberCount == 1;

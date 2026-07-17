@@ -1224,6 +1224,11 @@ auto runBattlefieldUnderCapacity2930SelfTests() -> bool;
 auto runRecastStampZero2931SelfTests() -> bool;
 auto runStatusEffectIDRange2932SelfTests() -> bool;
 auto runUnitychatReceivePacket2933SelfTests() -> bool;
+auto runMobtypeCanBeNeutral2934SelfTests() -> bool;
+auto runAuctionRefreshHistory2935SelfTests() -> bool;
+auto runMapsessionPendingSession2936SelfTests() -> bool;
+auto runPartyRejectTrusts2937SelfTests() -> bool;
+auto runTreasureAutoSolo2938SelfTests() -> bool;
 
 namespace
 {
@@ -2425,6 +2430,11 @@ namespace
         ok = runRecastStampZero2931SelfTests() && ok;
         ok = runStatusEffectIDRange2932SelfTests() && ok;
         ok = runUnitychatReceivePacket2933SelfTests() && ok;
+        ok = runMobtypeCanBeNeutral2934SelfTests() && ok;
+        ok = runAuctionRefreshHistory2935SelfTests() && ok;
+        ok = runMapsessionPendingSession2936SelfTests() && ok;
+        ok = runPartyRejectTrusts2937SelfTests() && ok;
+        ok = runTreasureAutoSolo2938SelfTests() && ok;
 
         return ok;
     }

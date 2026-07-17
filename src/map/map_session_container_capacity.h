@@ -10,11 +10,17 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2783: create policy (ShouldCreateSession, ShouldCreatePendingSession)
 //   - 2925: ShouldCreateSession (queryOK && hasAccountsSessionRow)
+//   - 2936: ShouldCreatePendingSession (queryOK identity; no rowsCount gate)
 //
 // Production host: MapSessionContainer::createSession injects queryOK /
 // hasAccountsSessionRow after the accounts_sessions SELECT by client_addr.
 // Go dual-wire: mapsession.ShouldCreateSession
 // (internal/mapsession/create_session.go).
+//
+// Production host: MapSessionContainer::createPendingSession injects queryOK
+// after the accounts_sessions SELECT by charid (static_cast<bool>(rset) only).
+// Go dual-wire: mapsession.ShouldCreatePendingSession
+// (internal/mapsession/pending_session.go).
 
 namespace mapsessionhelpers
 {
@@ -38,6 +44,15 @@ inline auto ShouldCreateSession(const bool queryOK, const bool hasAccountsSessio
 // an empty result set still creates a pending session (IPC may notify before
 // the row is fully visible to a follow-up path, and LSB does not check
 // rowsCount here).
+//
+// Formula (slice 2936 dual-wire):
+//   queryOK
+//
+// true  → host may allocate MapSession (charID set) and proceed to index replace
+// false → host returns nullptr (SQL error log only; no invalid-login empty path)
+//
+// Host inject (createPendingSession):
+//   if (!ShouldCreatePendingSession(static_cast<bool>(rset))) return nullptr;
 inline auto ShouldCreatePendingSession(const bool queryOK) -> bool
 {
     return queryOK;
