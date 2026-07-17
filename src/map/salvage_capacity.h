@@ -15,7 +15,8 @@
 //   - 3188: CanOpenBossDoor dedicated dual-wire (open_boss_door.go)
 //   - 2898: ShouldResetTempBox residual dual-wire suite (resetTempBoxes NORMAL)
 //   - 3146: ShouldResetTempBox prior dedicated dual-wire (reset_temp_box.go)
-//   - 3398: ShouldResetTempBox dedicated dual-wire expand residual 2898
+//   - 3398: ShouldResetTempBox prior dedicated dual-wire expand residual 2898
+//   - 3442: ShouldResetTempBox dedicated dual-wire expand residual 2898
 //   - 2904: ShouldSpawnOnTempChestCasket residual dual-wire suite (spawnTempChest DISAPPEAR)
 //   - 3209: ShouldSpawnOnTempChestCasket dedicated dual-wire (spawn_temp_chest.go)
 //
@@ -32,7 +33,8 @@
 //   - 3188: CanOpenBossDoor = animation == kAnimCloseDoor
 //   - 2898: ShouldResetTempBox residual dual-wire suite
 //   - 3146: ShouldResetTempBox prior dedicated dual-wire suite
-//   - 3398: ShouldResetTempBox = status == kStatusNormal
+//   - 3398: ShouldResetTempBox prior dedicated dual-wire suite
+//   - 3442: ShouldResetTempBox = status == kStatusNormal
 //   - 2904: ShouldSpawnOnTempChestCasket residual dual-wire suite
 //   - 3209: ShouldSpawnOnTempChestCasket = status == kStatusDisappear
 //
@@ -50,7 +52,7 @@
 // ShouldResetTempBox / ShouldSpawnOnTempChestCasket). Residual dual-wire
 // suites: 2871 (claim), 2892 (open door), 2894 (open boss door), 2898
 // (reset temp box), 2904 (spawn temp chest). Dedicated dual-wire: 3085,
-// 3133, 3146, 3188, 3209, 3259, 3290, 3318, 3358, 3398.
+// 3133, 3146, 3188, 3209, 3259, 3290, 3318, 3358, 3398, 3442.
 //
 // onTransportUpdate (2871 residual / 3085+3259+3290 prior dedicated / 3318 dedicated):
 //   if instance:getLocalVar('transportUser') == 0 then
@@ -72,7 +74,7 @@
 //     -- host: openDoor(15), queue(3000) arch openDoor(10)
 //   end
 //
-// resetTempBoxes (2898 residual / 3146 prior dedicated / 3398 dedicated):
+// resetTempBoxes (2898 residual / 3146+3398 prior dedicated / 3442 dedicated):
 //   if casket and casket:getStatus() == xi.status.NORMAL then
 //     -- host: setStatus(DISAPPEAR), resetLocalVars, setAnimationSub(8)
 //   end
@@ -166,7 +168,7 @@ inline auto CanOpenDoor(const uint8 animation, const int32 unSealed) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// 2898 residual / 3146 prior dedicated / 3398 dedicated — resetTempBoxes
+// 2898 residual / 3146+3398 prior dedicated / 3442 dedicated — resetTempBoxes
 // status == NORMAL gate
 // ---------------------------------------------------------------------------
 
@@ -182,8 +184,8 @@ inline constexpr uint8 kStatusDisappear = 2;
 // ShouldResetTempBox is the pure free-function form of the resetTempBoxes
 // status gate:
 //
-// Formula (slice 3398 dedicated dual-wire; residual expand 2898 / prior
-// dedicated 3146 / pure 1083 — formula unchanged):
+// Formula (slice 3442 dedicated dual-wire; residual expand 2898 / prior
+// dedicated 3398 / 3146 / pure 1083 — formula unchanged):
 //   ShouldResetTempBox(status) = status == kStatusNormal
 //   ≡ status == NORMAL (0)
 //
@@ -192,9 +194,9 @@ inline constexpr uint8 kStatusDisappear = 2;
 // salvage.ShouldResetTempBox (reset_temp_box.go).
 // Call site: future Lua resetTempBoxes inject.
 // Prior pure port: slice 1083. Residual dual-wire suite: 2898 /
-// test_salvage_reset_temp_box_2898. Prior dedicated dual-wire suite is
-// test_salvage_reset_temp_box_3146. Dedicated dual-wire suite is
-// test_salvage_reset_temp_box_3398.
+// test_salvage_reset_temp_box_2898. Prior dedicated dual-wire suites are
+// test_salvage_reset_temp_box_3146 / test_salvage_reset_temp_box_3398.
+// Dedicated dual-wire suite is test_salvage_reset_temp_box_3442.
 inline auto ShouldResetTempBox(const uint8 status) -> bool
 {
     return status == kStatusNormal;

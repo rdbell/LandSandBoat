@@ -3451,6 +3451,16 @@ set(SOURCES
     test_notoriety_scan_prune_3437.cpp
     test_ambuscade_start_exit_3438.h
     test_ambuscade_start_exit_3438.cpp
+    test_synergy_operate_furnace_3439.h
+    test_synergy_operate_furnace_3439.cpp
+    test_assault_issue_tag_3440.h
+    test_assault_issue_tag_3440.cpp
+    test_campaign_debit_selected_3441.h
+    test_campaign_debit_selected_3441.cpp
+    test_salvage_reset_temp_box_3442.h
+    test_salvage_reset_temp_box_3442.cpp
+    test_darkixion_double_glow_3443.h
+    test_darkixion_double_glow_3443.cpp
 )
 
 if(UNIX)

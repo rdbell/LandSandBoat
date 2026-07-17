@@ -8,7 +8,8 @@
 //   - 3357: ShouldDebitBonusCost dedicated dual-wire (debit_bonus_cost.go;
 //           expand residual 2858)
 //   - 3141: ShouldDebitSelectedEffects prior dedicated dual-wire (retained)
-//   - 3397: ShouldDebitSelectedEffects dedicated dual-wire
+//   - 3397: ShouldDebitSelectedEffects prior dedicated dual-wire (retained)
+//   - 3441: ShouldDebitSelectedEffects dedicated dual-wire
 //           (debit_selected_effects.go; expand residual 3141)
 //   - 2946: CanAffordAlliedNotes residual dual-wire suite
 //   - 3072: CanAffordAlliedNotes prior dedicated dual-wire (retained)
@@ -22,7 +23,8 @@
 //   - 3103: ShouldDebitBonusCost prior dedicated dual-wire (retained)
 //   - 3357: ShouldDebitBonusCost (bonusCost > 0)
 //   - 3141: ShouldDebitSelectedEffects prior dedicated dual-wire (retained)
-//   - 3397: ShouldDebitSelectedEffects
+//   - 3397: ShouldDebitSelectedEffects prior dedicated dual-wire (retained)
+//   - 3441: ShouldDebitSelectedEffects
 //           (ShouldDebitBonusCost(SigilBonusCost(selectedEffects)))
 //   - 2946: CanAffordAlliedNotes residual dual-wire suite
 //   - 3072: CanAffordAlliedNotes prior dedicated dual-wire (retained)
@@ -66,15 +68,15 @@ namespace campaignhelpers
 // test_campaign_debit_bonus_2858. Prior dedicated dual-wire suite: 3103 /
 // test_campaign_debit_bonus_3103 (retained). Dedicated dual-wire suite is
 // test_campaign_debit_bonus_3357. Host still owns delCurrency after a true gate.
-// Sibling 3397 / prior 3141 ShouldDebitSelectedEffects composes this gate;
-// leave alone (do not thrash debit_bonus_cost).
+// Sibling 3441 / prior 3397 / 3141 ShouldDebitSelectedEffects composes this
+// gate; leave alone (do not thrash debit_bonus_cost).
 inline auto ShouldDebitBonusCost(const int32 bonusCost) -> bool
 {
     return bonusCost > 0;
 }
 
 // ---------------------------------------------------------------------------
-// Slice 1115 residual / 3397 compose dependency — selected-effect bonus cost
+// Slice 1115 residual / 3441 compose dependency — selected-effect bonus cost
 // ---------------------------------------------------------------------------
 
 // SigilBonusCost mirrors the Lua bits-1..4 × 50 loop (slice 1115 pure):
@@ -82,8 +84,8 @@ inline auto ShouldDebitBonusCost(const int32 bonusCost) -> bool
 //   for i = 1, 4:
 //     if selectedEffects bit i set: bonusCost += 50
 // Bit 0 (Regen per comments) is intentionally not billed.
-// Dual-wire dependency for ShouldDebitSelectedEffects (3397 / prior 3141);
-// formula unchanged from Go campaign.SigilBonusCost (flow.go).
+// Dual-wire dependency for ShouldDebitSelectedEffects (3441 / prior 3397 /
+// 3141); formula unchanged from Go campaign.SigilBonusCost (flow.go).
 inline auto SigilBonusCost(const int32 selectedEffects) -> int32
 {
     int32 cost = 0;
@@ -98,15 +100,15 @@ inline auto SigilBonusCost(const int32 selectedEffects) -> int32
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3141 residual / 3397 dedicated — apply-path selected-effects debit
-// compose
+// Slice 3141 residual / 3397 prior dedicated / 3441 dedicated — apply-path
+// selected-effects debit compose
 // ---------------------------------------------------------------------------
 
 // ShouldDebitSelectedEffects dual-wires the apply-path debit gate from
 // selectedEffects (option>>11):
 //
-// Formula (slice 3397 dedicated dual-wire expand residual 3141; pure 1115 /
-// residual compose 2858 — formula unchanged):
+// Formula (slice 3441 dedicated dual-wire expand residual 3141; prior dedicated
+// 3397 / pure 1115 / residual compose 2858 — formula unchanged):
 //   ShouldDebitSelectedEffects(selectedEffects) =
 //     ShouldDebitBonusCost(SigilBonusCost(selectedEffects))
 //
@@ -115,9 +117,10 @@ inline auto SigilBonusCost(const int32 selectedEffects) -> int32
 //
 // Dual-wire of Go campaign.ShouldDebitSelectedEffects
 // (debit_selected_effects.go). Call site: future Lua sigilOnEventFinish
-// inject. Prior dedicated dual-wire suite: 3141 /
-// test_campaign_debit_selected_3141 (retained). Dedicated dual-wire suite:
-// test_campaign_debit_selected_3397. Host still owns delCurrency after a true
+// inject. Prior dedicated dual-wire suites: 3141 /
+// test_campaign_debit_selected_3141 and 3397 /
+// test_campaign_debit_selected_3397 (retained). Dedicated dual-wire suite:
+// test_campaign_debit_selected_3441. Host still owns delCurrency after a true
 // gate.
 inline auto ShouldDebitSelectedEffects(const int32 selectedEffects) -> bool
 {

@@ -1729,6 +1729,11 @@ auto runSpawnRejectNight3435SelfTests() -> bool;
 auto runUnityRejectNullOnline3436SelfTests() -> bool;
 auto runNotorietyScanPrune3437SelfTests() -> bool;
 auto runAmbuscadeStartExit3438SelfTests() -> bool;
+auto runSynergyOperateFurnace3439SelfTests() -> bool;
+auto runAssaultIssueTag3440SelfTests() -> bool;
+auto runCampaignDebitSelected3441SelfTests() -> bool;
+auto runSalvageResetTempBox3442SelfTests() -> bool;
+auto runDarkixionDoubleGlow3443SelfTests() -> bool;
 
 namespace
 {
@@ -3435,6 +3440,11 @@ namespace
         ok = runUnityRejectNullOnline3436SelfTests() && ok;
         ok = runNotorietyScanPrune3437SelfTests() && ok;
         ok = runAmbuscadeStartExit3438SelfTests() && ok;
+        ok = runSynergyOperateFurnace3439SelfTests() && ok;
+        ok = runAssaultIssueTag3440SelfTests() && ok;
+        ok = runCampaignDebitSelected3441SelfTests() && ok;
+        ok = runSalvageResetTempBox3442SelfTests() && ok;
+        ok = runDarkixionDoubleGlow3443SelfTests() && ok;
 
         return ok;
     }
