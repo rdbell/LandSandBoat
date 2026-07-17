@@ -19,7 +19,8 @@
 //   - 3461: ShouldFailByDeath prior dedicated dual-wire expand residual 2870
 //   - 3514: ShouldFailByDeath prior dedicated dual-wire expand residual 2870
 //   - 3560: ShouldFailByDeath prior dedicated dual-wire expand residual 2870
-//   - 3605: ShouldFailByDeath dedicated dual-wire expand residual 2870
+//   - 3605: ShouldFailByDeath prior dedicated dual-wire expand residual 2870
+//   - 3650: ShouldFailByDeath dedicated dual-wire expand residual 2870
 //
 // Production host (Lua BATTLE state) injects:
 //   allNPCsDead    = #zoneData.npcs == zoneData.deadNPCCount  (AllNPCsDead)
@@ -34,7 +35,8 @@
 // prior dedicated expand residual: 3461;
 // prior dedicated expand residual: 3514;
 // prior dedicated expand residual: 3560;
-// dedicated dual-wire suite: 3605 (expand residual 2870).
+// prior dedicated expand residual: 3605;
+// dedicated dual-wire suite: 3650 (expand residual 2870).
 // Residual sibling: AllNPCsDead (npcCount == deadNPCCount).
 //
 // Parity: internal/garrison fail_by_death.go
@@ -51,7 +53,8 @@ namespace garrisonhelpers
 // Slice 3461 — ShouldFailByDeath prior dedicated dual-wire expand residual 2870
 // Slice 3514 — ShouldFailByDeath prior dedicated dual-wire expand residual 2870
 // Slice 3560 — ShouldFailByDeath prior dedicated dual-wire expand residual 2870
-// Slice 3605 — ShouldFailByDeath dedicated dual-wire expand residual 2870
+// Slice 3605 — ShouldFailByDeath prior dedicated dual-wire expand residual 2870
+// Slice 3650 — ShouldFailByDeath dedicated dual-wire expand residual 2870
 // ---------------------------------------------------------------------------
 
 // AllNPCsDead mirrors #zoneData.npcs == zoneData.deadNPCCount.
@@ -60,7 +63,7 @@ namespace garrisonhelpers
 // (3073 prior dedicated / 3236 prior dedicated expand / 3330 prior dedicated expand /
 // 3406 prior dedicated expand / 3461 prior dedicated expand /
 // 3514 prior dedicated expand / 3560 prior dedicated expand /
-// 3605 dedicated expand residual).
+// 3605 prior dedicated expand / 3650 dedicated expand residual).
 inline auto AllNPCsDead(const int32 npcCount, const int32 deadNPCCount) -> bool
 {
     return npcCount == deadNPCCount;
@@ -68,10 +71,11 @@ inline auto AllNPCsDead(const int32 npcCount, const int32 deadNPCCount) -> bool
 
 // ShouldFailByDeath reports whether garrison BATTLE ends by wipe.
 //
-// Formula (slice 3605 dedicated dual-wire; residual expand 2870 / prior
+// Formula (slice 3650 dedicated dual-wire; residual expand 2870 / prior
 // dedicated 3073 / prior dedicated expand 3236 / prior dedicated expand 3330 /
 // prior dedicated expand 3406 / prior dedicated expand 3461 /
-// prior dedicated expand 3514 / prior dedicated expand 3560 — formula unchanged):
+// prior dedicated expand 3514 / prior dedicated expand 3560 /
+// prior dedicated expand 3605 — formula unchanged):
 //   allNPCsDead || allPlayersDead
 //
 // Pin form: direct return of the positive OR only (no !(a && b) De Morgan;
@@ -93,7 +97,8 @@ inline auto AllNPCsDead(const int32 npcCount, const int32 deadNPCCount) -> bool
 // Prior dedicated expand residual: slice 3461 / test_garrison_fail_by_death_3461.
 // Prior dedicated expand residual: slice 3514 / test_garrison_fail_by_death_3514.
 // Prior dedicated expand residual: slice 3560 / test_garrison_fail_by_death_3560.
-// Dedicated dual-wire suite: slice 3605 / test_garrison_fail_by_death_3605.
+// Prior dedicated expand residual: slice 3605 / test_garrison_fail_by_death_3605.
+// Dedicated dual-wire suite: slice 3650 / test_garrison_fail_by_death_3650.
 // Residual sibling: AllNPCsDead (npcCount == deadNPCCount; host pre-resolution
 // of the NPC wipe flag). Production host remains Lua until inject lands.
 inline auto ShouldFailByDeath(const bool allNPCsDead, const bool allPlayersDead) -> bool
