@@ -40,6 +40,10 @@ constexpr uint32 VANADAYS_TO_WILT           = 36;
 constexpr uint32 VANADAYS_TO_GUARANTEE_WILT = 144;
 constexpr uint32 VANATIME_FOR_WILT_STAGE    = 65535 * VANADAY_SECONDS;
 
+// Pin production wilt constants to pure dual-wire capacity (slice 2926).
+static_assert(VANADAYS_TO_WILT == gardenutilshelpers::VanaDaysToWilt);
+static_assert(VANADAYS_TO_GUARANTEE_WILT == gardenutilshelpers::VanaDaysToGuaranteeWilt);
+
 gardenutils::detail::ResultMap g_pGardenResultMap; // global map of gardening results
 
 GardenResult_t::GardenResult_t() = default;
@@ -113,10 +117,10 @@ void UpdateGardening(CCharEntity* PChar, SendPacket sendPacket)
                 {
                     uint32 stageDuration        = GetStageDuration(PPotItem);
                     uint32 daysSinceStageChange = std::floor<uint32>(std::max<float>(0.f, static_cast<float>(vanatime - PPotItem->getStageTimestamp()) / static_cast<float>(VANADAY_SECONDS)));
-                    uint32 wiltTime             = VANADAYS_TO_WILT + PChar->getMod(Mod::GARDENING_WILT_BONUS);
-                    bool   wasExamined          = PPotItem->wasExamined();
-                    if ((!wasExamined && (stageDuration > wiltTime || (stageDuration + daysSinceStageChange > wiltTime))) ||
-                        daysSinceStageChange > VANADAYS_TO_GUARANTEE_WILT + wiltTime)
+                    // Dual-wire pure ShouldWilt (slice 2926 / gardenutilshelpers::ShouldWilt).
+                    uint32 wiltBonus   = PChar->getMod(Mod::GARDENING_WILT_BONUS);
+                    bool   wasExamined = PPotItem->wasExamined();
+                    if (gardenutilshelpers::ShouldWilt(stageDuration, daysSinceStageChange, wiltBonus, wasExamined))
                     {
                         PPotItem->setStage(FLOWERPOT_STAGE_WILTED);
                         PPotItem->setStageTimestamp(vanatime + VANATIME_FOR_WILT_STAGE);

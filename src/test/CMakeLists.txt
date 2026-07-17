@@ -2421,6 +2421,16 @@ set(SOURCES
     test_zmq_endpoint_opened.cpp
     test_zmq_endpoint_lifecycle.h
     test_zmq_endpoint_lifecycle.cpp
+    test_auction_afford_fee_2924.h
+    test_auction_afford_fee_2924.cpp
+    test_mapsession_create_session_2925.h
+    test_mapsession_create_session_2925.cpp
+    test_garden_should_wilt_2926.h
+    test_garden_should_wilt_2926.cpp
+    test_enmity_zero_out_of_range_2927.h
+    test_enmity_zero_out_of_range_2927.cpp
+    test_party_reject_full_2928.h
+    test_party_reject_full_2928.cpp
 )
 
 if(UNIX)

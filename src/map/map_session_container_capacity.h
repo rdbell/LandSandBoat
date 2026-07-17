@@ -6,6 +6,15 @@
 
 // Pure MapSessionContainer create/destroy/lookup-session gates.
 // SQL, logging, ownership maps, and scheduler side effects remain host-owned.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 2783: create policy (ShouldCreateSession, ShouldCreatePendingSession)
+//   - 2925: ShouldCreateSession (queryOK && hasAccountsSessionRow)
+//
+// Production host: MapSessionContainer::createSession injects queryOK /
+// hasAccountsSessionRow after the accounts_sessions SELECT by client_addr.
+// Go dual-wire: mapsession.ShouldCreateSession
+// (internal/mapsession/create_session.go).
 
 namespace mapsessionhelpers
 {
@@ -13,6 +22,12 @@ namespace mapsessionhelpers
 // ShouldCreateSession mirrors createSession after the accounts_sessions SELECT
 // by client_addr. A failed query or empty result rejects creation (invalid
 // login / SQL error). hasAccountsSessionRow is only meaningful when queryOK.
+//
+// Formula (slice 2925 dual-wire):
+//   queryOK && hasAccountsSessionRow
+//
+// true  → host may allocate MapSession and proceed to index replace
+// false → host returns nullptr (SQL error log or invalid-login debug)
 inline auto ShouldCreateSession(const bool queryOK, const bool hasAccountsSessionRow) -> bool
 {
     return queryOK && hasAccountsSessionRow;

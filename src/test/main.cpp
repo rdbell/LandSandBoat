@@ -1214,6 +1214,11 @@ auto runS2CTranslatePacketSelfTests() -> bool;
 auto runS2CWPosPacketSelfTests() -> bool;
 auto runVariantUtilitySelfTests() -> bool;
 auto runS2CWPosRuntimeSelfTests() -> bool;
+auto runAuctionAffordFee2924SelfTests() -> bool;
+auto runMapsessionCreateSession2925SelfTests() -> bool;
+auto runGardenShouldWilt2926SelfTests() -> bool;
+auto runEnmityZeroOutOfRange2927SelfTests() -> bool;
+auto runPartyRejectFull2928SelfTests() -> bool;
 
 namespace
 {
@@ -2405,6 +2410,11 @@ namespace
         ok = runS2CWPosPacketSelfTests() && ok;
         ok = runVariantUtilitySelfTests() && ok;
         ok = runS2CWPosRuntimeSelfTests() && ok;
+        ok = runAuctionAffordFee2924SelfTests() && ok;
+        ok = runMapsessionCreateSession2925SelfTests() && ok;
+        ok = runGardenShouldWilt2926SelfTests() && ok;
+        ok = runEnmityZeroOutOfRange2927SelfTests() && ok;
+        ok = runPartyRejectFull2928SelfTests() && ok;
 
         return ok;
     }

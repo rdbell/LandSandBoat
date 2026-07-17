@@ -39,4 +39,14 @@ inline auto CanCancelSale(const int aucWorkIndex, const int historyLen) -> bool
     return aucWorkIndex < historyLen;
 }
 
+// CanAffordFee mirrors ProofOfPurchase's gil fee gate (slice 2924):
+//   gilQuantity >= fee && gilReserve == 0
+// Production rejects when quantity < fee || reserve > 0 (LotIn result 197).
+// Host injects inventory slot-0 gil quantity/reserve and computed auctionFee
+// only (no CItem* / CCharEntity* pointers).
+inline auto CanAffordFee(const uint32 gilQuantity, const uint32 gilReserve, const uint32 fee) -> bool
+{
+    return gilQuantity >= fee && gilReserve == 0;
+}
+
 } // namespace auctionutilshelpers

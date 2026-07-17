@@ -117,6 +117,10 @@ inline auto IsWithinEnmityRangePure(const bool sameZone, const bool distanceIsWi
 }
 
 // ShouldZeroEnmityOutOfRange mirrors !IsWithinEnmityRange → CE=VE=0.
+// Formula (slice 1357 residual / 2927 dual-wire):
+//   ShouldZeroEnmityOutOfRange(withinRange) = !withinRange
+// Dual-wire capacity: enmityrangehelpers::ShouldZeroEnmityOutOfRange in
+// map/enmity_zero_out_of_range_capacity.h (same formula).
 inline auto ShouldZeroEnmityOutOfRange(const bool withinRange) -> bool
 {
     return !withinRange;

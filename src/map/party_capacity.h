@@ -10,6 +10,14 @@
 
 // Pure CParty capacity / trust admission gates extracted so native tests can
 // pin policy without DB, entity pointers, or packets.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1327 / 1350: capacity thresholds, trust admission, AddMember classify
+//   - 2928: ShouldRejectPCAddFull (TYPE_PC + PARTY_PCS + partyFull)
+//
+// Production host: CParty::AddMember (party.cpp) injects
+// isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember.
+// Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go).
 
 namespace partyhelpers
 {
@@ -73,6 +81,18 @@ inline auto LoadPartySizeForType(const bool isPCParty, const std::size_t localMe
 }
 
 // ShouldRejectPCAddFull mirrors AddMember's IsFull gate for TYPE_PC + PARTY_PCS.
+//
+// Formula (slice 2928 dual-wire):
+//   isPCEntity && isPCParty && partyFull
+//
+// isPCEntity — host-evaluated objtype == TYPE_PC
+// isPCParty  — host-evaluated m_PartyType == PARTY_PCS
+// partyFull  — host-evaluated IsFull() (local/remote; see IsPartyFull)
+// true  → reject AddMember (PC into full PC party)
+// false → full gate passes (non-PC entity, mob party, or not full)
+//
+// Dual-wire of Go party.ShouldRejectPCAddFull.
+// Call site: ClassifyAddMember / CParty::AddMember host inject.
 inline auto ShouldRejectPCAddFull(const bool isPCEntity, const bool isPCParty, const bool partyFull) -> bool
 {
     return isPCEntity && isPCParty && partyFull;
