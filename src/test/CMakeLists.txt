@@ -3181,6 +3181,16 @@ set(SOURCES
     test_battlefield_under_capacity_3302.cpp
     test_aicontainer_can_change_state_3303.h
     test_aicontainer_can_change_state_3303.cpp
+    test_campaign_afford_notes_3304.h
+    test_campaign_afford_notes_3304.cpp
+    test_party_level_sync_on_join_3305.h
+    test_party_level_sync_on_join_3305.cpp
+    test_mobtype_can_be_neutral_3306.h
+    test_mobtype_can_be_neutral_3306.cpp
+    test_besieged_afford_sanction_3307.h
+    test_besieged_afford_sanction_3307.cpp
+    test_aman_thumbs_up_3308.h
+    test_aman_thumbs_up_3308.cpp
 )
 
 if(UNIX)

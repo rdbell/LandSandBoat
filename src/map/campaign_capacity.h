@@ -10,7 +10,8 @@
 //   - 2946: CanAffordAlliedNotes residual dual-wire suite
 //   - 3072: CanAffordAlliedNotes prior dedicated dual-wire (retained)
 //   - 3226: CanAffordAlliedNotes prior dedicated dual-wire (retained)
-//   - 3273: CanAffordAlliedNotes dedicated dual-wire (afford_notes.go;
+//   - 3273: CanAffordAlliedNotes prior dedicated dual-wire (retained)
+//   - 3304: CanAffordAlliedNotes dedicated dual-wire (afford_notes.go;
 //           expand residual 2946)
 //
 // Dual-wire index:
@@ -21,7 +22,8 @@
 //   - 2946: CanAffordAlliedNotes residual dual-wire suite
 //   - 3072: CanAffordAlliedNotes prior dedicated dual-wire (retained)
 //   - 3226: CanAffordAlliedNotes prior dedicated dual-wire (retained)
-//   - 3273: CanAffordAlliedNotes (notes >= price)
+//   - 3273: CanAffordAlliedNotes prior dedicated dual-wire (retained)
+//   - 3304: CanAffordAlliedNotes (notes >= price)
 //
 // Production host is Lua scripts/globals/campaign.lua sigilOnEventFinish.
 // Capacity is for future Lua/C++ inject so hosts dual-wire pure free
@@ -112,7 +114,7 @@ inline auto ShouldDebitSelectedEffects(const int32 selectedEffects) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2946 residual / 3072+3226 prior dedicated / 3273 dedicated —
+// Slice 2946 residual / 3072+3226+3273 prior dedicated / 3304 dedicated —
 // sigil shop purchase afford gate
 // ---------------------------------------------------------------------------
 
@@ -121,8 +123,8 @@ inline auto ShouldDebitSelectedEffects(const int32 selectedEffects) -> bool
 // Positive form of:
 //   if player:getCurrency('allied_notes') < itemPrice then return end
 //
-// Formula (slice 3273 dedicated dual-wire; residual expand 2946 / pure 1115 —
-// formula unchanged):
+// Formula (slice 3304 dedicated dual-wire expand residual 2946; prior dedicated
+// 3273 / pure 1115 — formula unchanged):
 //   CanAffordAlliedNotes(notes, price) = notes >= price
 //
 // Host injects notes (getCurrency) and price (itemPrice after optional *1.5).
@@ -133,8 +135,9 @@ inline auto ShouldDebitSelectedEffects(const int32 selectedEffects) -> bool
 // Call site: future Lua sigilOnEventFinish inject.
 // Prior pure port: slice 1115. Residual dual-wire suite: 2946 /
 // test_campaign_afford_notes_2946. Prior dedicated dual-wire suites: 3072 /
-// test_campaign_afford_notes_3072 and 3226 / test_campaign_afford_notes_3226
-// (retained). Dedicated dual-wire suite is test_campaign_afford_notes_3273.
+// test_campaign_afford_notes_3072, 3226 / test_campaign_afford_notes_3226, and
+// 3273 / test_campaign_afford_notes_3273 (retained). Dedicated dual-wire suite
+// is test_campaign_afford_notes_3304.
 // Host still owns giveItem / delCurrency after a true gate.
 inline auto CanAffordAlliedNotes(const int32 notes, const int32 price) -> bool
 {

@@ -1594,6 +1594,11 @@ auto runTradecontainerSetConfirmed3300SelfTests() -> bool;
 auto runItemcontainerCanInsertAtSlot3301SelfTests() -> bool;
 auto runBattlefieldUnderCapacity3302SelfTests() -> bool;
 auto runAicontainerCanChangeState3303SelfTests() -> bool;
+auto runCampaignAffordNotes3304SelfTests() -> bool;
+auto runPartyLevelSyncOnJoin3305SelfTests() -> bool;
+auto runMobtypeCanBeNeutral3306SelfTests() -> bool;
+auto runBesiegedAffordSanction3307SelfTests() -> bool;
+auto runAmanThumbsUp3308SelfTests() -> bool;
 
 namespace
 {
@@ -3165,6 +3170,11 @@ namespace
         ok = runItemcontainerCanInsertAtSlot3301SelfTests() && ok;
         ok = runBattlefieldUnderCapacity3302SelfTests() && ok;
         ok = runAicontainerCanChangeState3303SelfTests() && ok;
+        ok = runCampaignAffordNotes3304SelfTests() && ok;
+        ok = runPartyLevelSyncOnJoin3305SelfTests() && ok;
+        ok = runMobtypeCanBeNeutral3306SelfTests() && ok;
+        ok = runBesiegedAffordSanction3307SelfTests() && ok;
+        ok = runAmanThumbsUp3308SelfTests() && ok;
 
         return ok;
     }

@@ -22,9 +22,12 @@
 //           (also residual sibling pins for ShouldApplyPartyLevelSyncOnJoin)
 //   - 3217: ShouldClearSeekingParty dedicated dual-wire
 //           (isSeekingParty after join; residual expand 2955 / pure 1350)
-//   - 3274: ShouldApplyPartyLevelSyncOnJoin dedicated dual-wire
+//   - 3274: ShouldApplyPartyLevelSyncOnJoin prior dedicated dual-wire
 //           (hasSyncTarget / m_PSyncTarget != nullptr after join;
 //            residual expand 2955 / pure 1350)
+//   - 3305: ShouldApplyPartyLevelSyncOnJoin dedicated dual-wire
+//           (hasSyncTarget / m_PSyncTarget != nullptr after join;
+//            residual expand 2955 / prior dedicated 3274 / pure 1350)
 //   - 2974: ShouldRemoveSyncForLowLevel (RefreshSync syncLevel < 10)
 //   - 2991: ShouldStampLeaderCreatedPartyTime (TYPE_PC && members.size() > 1)
 //   - 2999: ShouldApplySyncToMember (RefreshSync isPC && sameZoneAsSyncTarget)
@@ -91,7 +94,8 @@
 // party.ShouldApplyPartyLevelSyncOnJoin
 // (internal/party/apply_level_sync_on_join.go;
 // residual dual-wire expand: 2955 / residual AddMember + clear-seeking sibling pins;
-// dedicated dual-wire suite: 3274 / test_party_level_sync_on_join_3274),
+// prior dedicated dual-wire suite: 3274 / test_party_level_sync_on_join_3274;
+// dedicated dual-wire suite: 3305 / test_party_level_sync_on_join_3305),
 // party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go),
 // party.ShouldStampLeaderCreatedPartyTime (internal/party/stamp_leader_created.go),
 // party.ShouldApplySyncToMember (internal/party/apply_sync_member.go),
@@ -1111,8 +1115,8 @@ inline auto ShouldClearSeekingParty(const bool isSeekingParty) -> bool
 
 // ShouldApplyPartyLevelSyncOnJoin mirrors m_PSyncTarget != nullptr after join.
 //
-// Formula (slice 3274 dedicated dual-wire; residual expand 2955 / pure 1350 —
-// formula unchanged):
+// Formula (slice 3305 dedicated dual-wire; residual expand 2955 / prior
+// dedicated 3274 / pure 1350 — formula unchanged):
 //   hasSyncTarget
 //
 // hasSyncTarget — host-evaluated m_PSyncTarget != nullptr
@@ -1125,7 +1129,8 @@ inline auto ShouldClearSeekingParty(const bool isSeekingParty) -> bool
 // Call site: CParty::AddMember PC post-process host inject.
 // Residual dual-wire expand: 2955 (sibling residual pins under
 // test_party_clear_seeking_2955 / residual AddMember suite).
-// Dedicated dual-wire suite is test_party_level_sync_on_join_3274. Formula is
+// Prior dedicated dual-wire suite: test_party_level_sync_on_join_3274.
+// Dedicated dual-wire suite is test_party_level_sync_on_join_3305. Formula is
 // unchanged; dedicated suite expands free==inline==pin poles + dense 2^1.
 inline auto ShouldApplyPartyLevelSyncOnJoin(const bool hasSyncTarget) -> bool
 {
