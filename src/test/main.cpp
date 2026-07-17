@@ -1529,6 +1529,11 @@ auto runLatenteffectApplyExpression3235SelfTests() -> bool;
 auto runGarrisonFailByDeath3236SelfTests() -> bool;
 auto runFollowCanFollow3237SelfTests() -> bool;
 auto runAbysseaCanGiveNMKI3238SelfTests() -> bool;
+auto runSynergyClaimFurnace3239SelfTests() -> bool;
+auto runNyzulClaimRune3240SelfTests() -> bool;
+auto runAmbuscadeCompleteInstance3241SelfTests() -> bool;
+auto runArtisanCanBuySack3242SelfTests() -> bool;
+auto runPortermoogleCanRetrieveItem3243SelfTests() -> bool;
 
 namespace
 {
@@ -3035,6 +3040,11 @@ namespace
         ok = runGarrisonFailByDeath3236SelfTests() && ok;
         ok = runFollowCanFollow3237SelfTests() && ok;
         ok = runAbysseaCanGiveNMKI3238SelfTests() && ok;
+        ok = runSynergyClaimFurnace3239SelfTests() && ok;
+        ok = runNyzulClaimRune3240SelfTests() && ok;
+        ok = runAmbuscadeCompleteInstance3241SelfTests() && ok;
+        ok = runArtisanCanBuySack3242SelfTests() && ok;
+        ok = runPortermoogleCanRetrieveItem3243SelfTests() && ok;
 
         return ok;
     }

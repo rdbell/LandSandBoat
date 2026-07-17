@@ -3051,6 +3051,16 @@ set(SOURCES
     test_follow_can_follow_3237.cpp
     test_abyssea_can_give_nmki_3238.h
     test_abyssea_can_give_nmki_3238.cpp
+    test_synergy_claim_furnace_3239.h
+    test_synergy_claim_furnace_3239.cpp
+    test_nyzul_claim_rune_3240.h
+    test_nyzul_claim_rune_3240.cpp
+    test_ambuscade_complete_instance_3241.h
+    test_ambuscade_complete_instance_3241.cpp
+    test_artisan_can_buy_sack_3242.h
+    test_artisan_can_buy_sack_3242.cpp
+    test_portermoogle_can_retrieve_item_3243.h
+    test_portermoogle_can_retrieve_item_3243.cpp
 )
 
 if(UNIX)

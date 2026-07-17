@@ -10,11 +10,12 @@
 //   - 2906: Gorpa-Masorpa onEventFinish intro CSID (385) → RoE 499 residual
 //   - 2910: Ambuscade Tome onEventFinish Intense VE createInstance residual
 //   - 2917: onInstanceComplete / onInstanceFailure always-start exit CS residual
-//   - 3062: ShouldCompleteInstance dedicated dual-wire (complete_instance.go)
+//   - 3062: ShouldCompleteInstance prior dedicated dual-wire (complete_instance.go)
 //   - 3088: ShouldWarpOnExitEvent dedicated dual-wire (warp_exit.go)
 //   - 3109: ShouldStartExitEvent dedicated dual-wire (start_exit.go)
 //   - 3129: ShouldTriggerRoEIntro dedicated dual-wire (roe_intro.go)
 //   - 3143: ShouldCreateIntenseVEInstance dedicated dual-wire (intense_ve.go)
+//   - 3241: ShouldCompleteInstance dedicated expand residual 2875 (prior 3062)
 //
 // Dual-wire index:
 //   - 2875: ShouldCompleteInstance residual dual-wire suite
@@ -24,11 +25,12 @@
 //   - 2906: ShouldTriggerRoEIntro residual dual-wire suite
 //   - 2910: ShouldCreateIntenseVEInstance residual dual-wire suite
 //   - 2917: ShouldStartExitEvent residual dual-wire suite
-//   - 3062: ShouldCompleteInstance (!anyMobAlive on onInstanceTimeUpdate)
+//   - 3062: ShouldCompleteInstance prior dedicated dual-wire (!anyMobAlive)
 //   - 3088: ShouldWarpOnExitEvent (csid == EventCSIDExit / 10001)
 //   - 3109: ShouldStartExitEvent (always true / startEvent 10001)
 //   - 3129: ShouldTriggerRoEIntro (csid == EventCSIDIntro / 385 → RoE 499)
 //   - 3143: ShouldCreateIntenseVEInstance (csid 374 + option 5 → createInstance 30000)
+//   - 3241: ShouldCompleteInstance dedicated expand residual 2875 (prior 3062)
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
@@ -53,13 +55,14 @@ namespace ambuscadehelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2875 / 3062 — onInstanceTimeUpdate complete gate
+// Slice 2875 / 3062 / 3241 — onInstanceTimeUpdate complete gate
 // ---------------------------------------------------------------------------
 
 // ShouldCompleteInstance mirrors ambuscade.lua onInstanceTimeUpdate:
 //   if not mobsStillAlive then instance:complete() end
 //
-// Formula (slice 3062 dual-wire; residual expand 2875):
+// Formula (slice 3241 dedicated dual-wire expand residual 2875; prior
+// dedicated 3062 — formula unchanged):
 //   ShouldCompleteInstance(anyMobAlive) = !anyMobAlive
 //
 // anyMobAlive — host inject for the per-mob isAlive OR fold result
@@ -70,8 +73,9 @@ namespace ambuscadehelpers
 // Dual-wire of Go ambuscade.ShouldCompleteInstance.
 // Call site: future Lua onInstanceTimeUpdate inject.
 // Prior pure port: slice 1089. Residual dual-wire suite: 2875 /
-// test_ambuscade_complete_instance_2875. Dedicated dual-wire suite is
-// test_ambuscade_complete_instance_3062. Host still calls complete() after
+// test_ambuscade_complete_instance_2875. Prior dedicated dual-wire suite:
+// test_ambuscade_complete_instance_3062. Dedicated expand residual suite is
+// test_ambuscade_complete_instance_3241. Host still calls complete() after
 // a true gate.
 inline auto ShouldCompleteInstance(const bool anyMobAlive) -> bool
 {
