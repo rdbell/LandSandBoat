@@ -3031,6 +3031,16 @@ set(SOURCES
     test_besieged_afford_sanction_3227.cpp
     test_alliance_skip_del_party_3228.h
     test_alliance_skip_del_party_3228.cpp
+    test_aman_thumbs_up_3229.h
+    test_aman_thumbs_up_3229.cpp
+    test_avatarpet_can_apply_buff_3230.h
+    test_avatarpet_can_apply_buff_3230.cpp
+    test_mobutils_can_drop_gil_3231.h
+    test_mobutils_can_drop_gil_3231.cpp
+    test_mapwire_open_socket_3232.h
+    test_mapwire_open_socket_3232.cpp
+    test_petentity_despawn_zoning_3233.h
+    test_petentity_despawn_zoning_3233.cpp
 )
 
 if(UNIX)

@@ -1519,6 +1519,11 @@ auto runStatuseffectExpireEffect3225SelfTests() -> bool;
 auto runCampaignAffordNotes3226SelfTests() -> bool;
 auto runBesiegedAffordSanction3227SelfTests() -> bool;
 auto runAllianceSkipDelParty3228SelfTests() -> bool;
+auto runAmanThumbsUp3229SelfTests() -> bool;
+auto runAvatarpetCanApplyBuff3230SelfTests() -> bool;
+auto runMobutilsCanDropGil3231SelfTests() -> bool;
+auto runMapwireOpenSocket3232SelfTests() -> bool;
+auto runPetentityDespawnZoning3233SelfTests() -> bool;
 
 namespace
 {
@@ -3015,6 +3020,11 @@ namespace
         ok = runCampaignAffordNotes3226SelfTests() && ok;
         ok = runBesiegedAffordSanction3227SelfTests() && ok;
         ok = runAllianceSkipDelParty3228SelfTests() && ok;
+        ok = runAmanThumbsUp3229SelfTests() && ok;
+        ok = runAvatarpetCanApplyBuff3230SelfTests() && ok;
+        ok = runMobutilsCanDropGil3231SelfTests() && ok;
+        ok = runMapwireOpenSocket3232SelfTests() && ok;
+        ok = runPetentityDespawnZoning3233SelfTests() && ok;
 
         return ok;
     }

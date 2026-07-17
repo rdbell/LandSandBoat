@@ -5,13 +5,15 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2951: ShouldDespawnForZoning residual dual-wire suite
-//   - 3170: ShouldDespawnForZoning dedicated dual-wire (despawn_zoning.go)
+//   - 3170: ShouldDespawnForZoning prior dedicated dual-wire expand residual 2951
+//   - 3233: ShouldDespawnForZoning dedicated dual-wire (despawn_zoning.go)
 //   - 2987: ShouldDetachPlayerMaster (player-master active-pet detach gate)
 //   - residual 1414: Apply orchestration
 //
 // Dual-wire index:
 //   - 2951: ShouldDespawnForZoning residual dual-wire suite
-//   - 3170: ShouldDespawnForZoning =
+//   - 3170: ShouldDespawnForZoning prior dedicated expand residual 2951
+//   - 3233: ShouldDespawnForZoning =
 //           hpPositive && hasMaster && masterIsPlayer && respawnPet
 //   - 2987: ShouldDetachPlayerMaster
 //
@@ -22,21 +24,22 @@
 // (internal/petentity/despawn_zoning.go), petentity.ShouldDetachPlayerMaster
 // (internal/petentity/detach_player_master.go).
 // Residual dual-wire suite: 2951 (test_petentity_despawn_zoning_2951).
-// Dedicated dual-wire suite: 3170 (test_petentity_despawn_zoning_3170).
+// Prior dedicated dual-wire suite: 3170 (test_petentity_despawn_zoning_3170).
+// Dedicated dual-wire suite: 3233 (test_petentity_despawn_zoning_3233).
 // Prior pure port: slices 1414 / 2261 / 2262.
 
 namespace petdeathhelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 3170 — CPetEntity::Die zoning-despawn gate
+// Slice 3233 — CPetEntity::Die zoning-despawn gate
 // (dedicated expand residual 2951)
 // ---------------------------------------------------------------------------
 
 // ShouldDespawnForZoning reports whether CPetEntity::Die should force-despawn
 // (preserve for zoning respawn) instead of entering the death state.
 //
-// Formula (slice 3170 dedicated dual-wire; residual expand 2951 / pure 1414 /
+// Formula (slice 3233 dedicated dual-wire; residual expand 2951 / pure 1414 /
 // 2261 — formula unchanged):
 //   hpPositive && hasMaster && masterIsPlayer && respawnPet
 //
@@ -54,10 +57,11 @@ namespace petdeathhelpers
 // Call site: CPetEntity::Die (pet_entity.cpp).
 // Prior pure port: slices 1414 / 2261.
 // Residual dual-wire suite: 2951 / test_petentity_despawn_zoning_2951.
-// Dedicated dual-wire suite: 3170 / test_petentity_despawn_zoning_3170.
-// Sibling residual only under 3170 (not re-expanded):
+// Prior dedicated dual-wire suite: 3170 / test_petentity_despawn_zoning_3170.
+// Dedicated dual-wire suite: 3233 / test_petentity_despawn_zoning_3233.
+// Sibling residual only under 3233 (not re-expanded):
 // ShouldDetachPlayerMaster (2987 dual-wire).
-// Coverage: test_petentity_despawn_zoning_3170 (not in CMake/main).
+// Coverage: test_petentity_despawn_zoning_3233 (not in CMake/main).
 inline auto ShouldDespawnForZoning(
     const bool hpPositive,
     const bool hasMaster,
@@ -84,8 +88,8 @@ inline auto ShouldDespawnForZoning(
 // (internal/petentity/detach_player_master.go).
 // Prior pure port: slices 1414 / 2262.
 // Call site: CPetEntity::Die (pet_entity.cpp).
-// Sibling zoning-despawn dual-wire: ShouldDespawnForZoning (3170 dedicated;
-// residual 2951).
+// Sibling zoning-despawn dual-wire: ShouldDespawnForZoning (3233 dedicated;
+// residual 2951 / prior 3170).
 inline auto ShouldDetachPlayerMaster(
     const bool hasMaster,
     const bool masterPetIsSelf,
