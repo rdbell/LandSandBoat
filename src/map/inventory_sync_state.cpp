@@ -20,6 +20,7 @@
 */
 
 #include "inventory_sync_state.h"
+#include "inventory_sync_dirty_items.h"
 
 #include "common/database.h"
 #include "entities/char_entity.h"
@@ -86,27 +87,23 @@ auto InventorySyncState::dirtyContainers() const -> const std::set<CONTAINER_ID>
 
 void InventorySyncState::flushDirtyItems(CCharEntity* PChar)
 {
-    for (uint8 loc = 0; loc < MAX_CONTAINER_ID; ++loc)
-    {
-        auto* PContainer = PChar->getStorage(loc);
-        if (!PContainer)
+    inventorysyncdirtyitems::Flush(
+        MAX_CONTAINER_ID,
+        [&](const uint8 loc) { return PChar->getStorage(loc); },
+        [](const CItemContainer* container) { return container->GetSize(); },
+        [](const CItemContainer* container, const uint8 slot) { return container->GetItem(slot); },
+        [](CItem* item) { return item->isDirty(); },
+        [&](CItem* item, const uint8 loc, const uint8 slot)
         {
-            continue;
-        }
-
-        for (uint8 slot = 0; slot <= PContainer->GetSize(); ++slot)
+            db::preparedStmt("UPDATE char_inventory SET extra = ? WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
+                             item->m_extra,
+                             PChar->id,
+                             loc,
+                             slot);
+        },
+        [&](CItem* item, const uint8 loc, const uint8 slot)
         {
-            auto* PItem = PContainer->GetItem(slot);
-            if (PItem && PItem->isDirty())
-            {
-                db::preparedStmt("UPDATE char_inventory SET extra = ? WHERE charid = ? AND location = ? AND slot = ? LIMIT 1",
-                                 PItem->m_extra,
-                                 PChar->id,
-                                 loc,
-                                 slot);
-                PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PItem, static_cast<CONTAINER_ID>(loc), slot);
-                PItem->setDirty(false);
-            }
-        }
-    }
+            PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(item, static_cast<CONTAINER_ID>(loc), slot);
+        },
+        [](CItem* item) { item->setDirty(false); });
 }

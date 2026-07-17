@@ -2,6 +2,7 @@ set(SOURCES
     ${COMMON_SOURCES}
     auth_session.h
     auth_session.cpp
+    auth_handshake.h
     connect_application.h
     connect_application.cpp
     connect_engine.h

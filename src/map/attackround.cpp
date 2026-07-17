@@ -55,29 +55,27 @@ CAttackRound::CAttackRound(CBattleEntity* attacker, CBattleEntity* defender)
     auto* PMain = dynamic_cast<CItemWeapon*>(attacker->m_Weapons[SLOT_MAIN]);
     auto* PSub  = dynamic_cast<CItemWeapon*>(attacker->m_Weapons[SLOT_SUB]);
 
-    if (PMain)
+    bool       h2hSingleSwing = false;
+    const bool isH2H          = PMain != nullptr && IsH2H();
+    if (isH2H)
     {
-        if (IsH2H()) // Build H2H attacks.
+        if (dynamic_cast<CMobEntity*>(m_attacker))
         {
-            bool h2hSingleSwing = false;
-            if (dynamic_cast<CMobEntity*>(m_attacker))
-            {
-                h2hSingleSwing = static_cast<CMobEntity*>(m_attacker)->getMobMod(MOBMOD_H2H_SINGLE_SWING) > 0;
-            }
-
-            CreateAttacks(PMain, LEFTATTACK);
-            if (!h2hSingleSwing)
-            {
-                CreateAttacks(PMain, LEFTATTACK);
-            }
-        }
-        else // Build main weapon attacks.
-        {
-            CreateAttacks(PMain, RIGHTATTACK);
+            h2hSingleSwing = static_cast<CMobEntity*>(m_attacker)->getMobMod(MOBMOD_H2H_SINGLE_SWING) > 0;
         }
     }
 
-    if (PSub && attacker->IsDualWielding())
+    const auto plan = attackroundhelpers::PlanInitialWeaponAttacks(
+        PMain != nullptr,
+        isH2H,
+        h2hSingleSwing,
+        PSub != nullptr,
+        PSub != nullptr && attacker->IsDualWielding());
+    for (uint8 i = 0; i < plan.mainAttackCalls; ++i)
+    {
+        CreateAttacks(PMain, plan.mainUsesLeftDirection ? LEFTATTACK : RIGHTATTACK);
+    }
+    if (plan.createSubAttack)
     {
         CreateAttacks(PSub, LEFTATTACK);
     }

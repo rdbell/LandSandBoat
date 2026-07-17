@@ -11,6 +11,37 @@
 namespace attackroundhelpers
 {
 
+// InitialWeaponAttackPlan is the constructor's initial main/off-hand weapon
+// creation policy. mainAttackCalls represents calls to CreateAttacks (not
+// produced swings, which depend on the weapon and multi-hit hosts).
+struct InitialWeaponAttackPlan
+{
+    uint8 mainAttackCalls{};
+    bool  mainUsesLeftDirection{};
+    bool  createSubAttack{};
+};
+
+// PlanInitialWeaponAttacks mirrors CAttackRound's initial weapon setup. H2H
+// invokes CreateAttacks once or twice with LEFTATTACK; AddAttackSwing owns the
+// second-swing right-hand flip. A sub attack is independent of a missing main
+// weapon and requires dual wielding.
+inline auto PlanInitialWeaponAttacks(
+    const bool hasMainWeapon,
+    const bool isH2H,
+    const bool h2hSingleSwing,
+    const bool hasSubWeapon,
+    const bool isDualWielding) -> InitialWeaponAttackPlan
+{
+    InitialWeaponAttackPlan plan{};
+    if (hasMainWeapon)
+    {
+        plan.mainUsesLeftDirection = isH2H;
+        plan.mainAttackCalls       = isH2H ? static_cast<uint8>(h2hSingleSwing ? 1 : 2) : static_cast<uint8>(1);
+    }
+    plan.createSubAttack = hasSubWeapon && isDualWielding;
+    return plan;
+}
+
 // MAX_SWINGS hard cap used with Occasionally Attacks X Times gear.
 constexpr uint8 MaxSwingsHardCap = 8;
 
@@ -358,6 +389,4 @@ inline auto ShouldProcFollowUpForChar(const bool isPC, const bool hasAmmoSwingMo
 {
     return isPC && hasAmmoSwingMod;
 }
-
-
 } // namespace attackroundhelpers

@@ -21,6 +21,7 @@
 
 #include "auth_session.h"
 
+#include "auth_handshake.h"
 #include "auth_password.h"
 #include "common/ipc.h"
 #include "common/utils.h"
@@ -33,27 +34,30 @@ using json = nlohmann::json;
 
 void auth_session::start()
 {
-    if (socket_.lowest_layer().is_open())
+    if (loginHelpers::ClassifyAuthHandshakeStart(socket_.lowest_layer().is_open()) == loginHelpers::auth_handshake_start_action::START_HANDSHAKE)
     {
         socket_.async_handshake(
             asio::ssl::stream_base::server,
             [this, self = shared_from_this()](std::error_code ec)
             {
-                if (!ec)
+                const auto errStr = ec ? fmt::format("Error from {}: (EC: {}), {}", ipAddress, ec.value(), ec.message()) : std::string{};
+                switch (loginHelpers::ClassifyAuthHandshakeCompletion(static_cast<bool>(ec), errStr))
                 {
-                    do_read();
-                }
-                else
-                {
-                    const auto errStr = fmt::format("Error from {}: (EC: {}), {}", ipAddress, ec.value(), ec.message());
-                    ShowWarning(errStr);
-                    ShowWarning("Failed to handshake!");
-                    if (errStr.find("wrong version number (SSL routines)") != std::string::npos)
-                    {
+                    case loginHelpers::auth_handshake_completion_action::START_READ:
+                        do_read();
+                        return;
+                    case loginHelpers::auth_handshake_completion_action::CLOSE_WITH_LEGACY_XILOADER_HINT:
+                        ShowWarning(errStr);
+                        ShowWarning("Failed to handshake!");
                         ShowWarning("This is likely due to the client using an outdated/incompatible version of xiloader.");
                         ShowWarning("Please make sure you're using the latest release: https://github.com/LandSandBoat/xiloader/releases");
-                    }
-                    socket_.next_layer().close();
+                        socket_.next_layer().close();
+                        return;
+                    case loginHelpers::auth_handshake_completion_action::CLOSE:
+                        ShowWarning(errStr);
+                        ShowWarning("Failed to handshake!");
+                        socket_.next_layer().close();
+                        return;
                 }
             });
     }
