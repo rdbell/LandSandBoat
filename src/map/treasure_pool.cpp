@@ -320,7 +320,10 @@ void CTreasurePool::updatePool(CCharEntity* PChar)
 
 void CTreasurePool::flush()
 {
-    if (m_count != 0)
+    using treasurepoolhelpers::PlanFlush;
+
+    const auto plan = PlanFlush(m_count);
+    if (plan.runChecks)
     {
         const auto tick = timer::now() + treasure_checktime + 1s;
 
@@ -395,21 +398,22 @@ void CTreasurePool::lotItem(CCharEntity* PChar, uint8 SlotID, uint16 Lot)
     uint16       highestLot    = 0;
     for (const LotInfo& lotInfo : m_PoolItems[SlotID].Lotters)
     {
-        if (lotInfo.lot > highestLot)
+        if (treasurepoolhelpers::IsHigherLot(lotInfo.lot, highestLot))
         {
             highestLotter = lotInfo.member;
-            highestLot    = lotInfo.lot;
+            highestLot    = treasurepoolhelpers::HigherLotSelection(highestLot, lotInfo.lot);
         }
     }
 
-    // Player lots Item for XXX message
+    // Player lots Item for XXX message (always host-side after a recorded lot).
     for (const auto& member : m_Members)
     {
         member->pushPacket<GP_SERV_COMMAND_TROPHY_SOLUTION>(highestLotter, highestLot, PChar, SlotID, Lot);
     }
 
     // if all lotters have lotted, evaluate immediately.
-    if (m_PoolItems[SlotID].Lotters.size() == memberCount())
+    const auto postLot = treasurepoolhelpers::PlanPostLot(m_PoolItems[SlotID].Lotters.size(), memberCount());
+    if (postLot.evaluateImmediately)
     {
         checkTreasureItem(m_Tick, SlotID);
     }
@@ -417,15 +421,22 @@ void CTreasurePool::lotItem(CCharEntity* PChar, uint8 SlotID, uint16 Lot)
 
 void CTreasurePool::passItem(CCharEntity* PChar, uint8 SlotID)
 {
-    if (PChar == nullptr || PChar->PTreasurePool != this)
-    {
-        ShowWarning("CTreasurePool::PassItem() - PChar was null, or PTreasurePool mismatched.");
-        return;
-    }
+    using treasurepoolhelpers::PassItemPreflight;
+    using treasurepoolhelpers::PlanPassItemPreflight;
 
-    if (SlotID >= TREASUREPOOL_SIZE)
+    const bool charNull       = PChar == nullptr;
+    const bool poolMismatch   = !charNull && PChar->PTreasurePool != this;
+    const bool slotOutOfRange = treasurepoolhelpers::IsSlotOutOfRange(SlotID);
+
+    switch (PlanPassItemPreflight(charNull, poolMismatch, slotOutOfRange))
     {
-        return;
+        case PassItemPreflight::RejectMember:
+            ShowWarning("CTreasurePool::PassItem() - PChar was null, or PTreasurePool mismatched.");
+            return;
+        case PassItemPreflight::RejectSlot:
+            return;
+        case PassItemPreflight::Proceed:
+            break;
     }
 
     LotInfo li;

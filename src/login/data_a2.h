@@ -154,6 +154,36 @@ inline auto DecideDataA2Admission(
     return data_a2_admission_decision::LOBBY_DENIED;
 }
 
+// data_a2_admission_response_plan is the pure ALLOWED vs LOBBY_DENIED control
+// flow for DATA 0xA2 after DecideDataA2Admission (zone-cap already handled;
+// production calls Decide with zoneAtCap=false). COULD_NOT_CONNECT_TO_LOBBY_SERVER
+// packet bytes remain host-owned.
+struct data_a2_admission_response_plan
+{
+    bool proceedWithLogin{}; // ALLOWED
+    bool writeLobbyError{};  // LOBBY_DENIED — needs view session
+    bool returnFromRead{};   // LOBBY_DENIED when a view peer can receive the error
+};
+
+// PlanDataA2AdmissionResponse mirrors the post-zone-cap maint/limit branch:
+// ALLOWED continues login; LOBBY_DENIED (and any non-ALLOWED) with a view peer
+// writes COULD_NOT_CONNECT_TO_LOBBY_SERVER and returns; without a view peer all
+// deny flags stay clear (fall through, matching production).
+inline auto PlanDataA2AdmissionResponse(
+    const data_a2_admission_decision decision,
+    const bool                       hasViewSession) -> data_a2_admission_response_plan
+{
+    if (decision == data_a2_admission_decision::ALLOWED)
+    {
+        return { .proceedWithLogin = true };
+    }
+    if (hasViewSession)
+    {
+        return { .writeLobbyError = true, .returnFromRead = true };
+    }
+    return {};
+}
+
 // FormatDataA2LoginLimitWarning mirrors the ShowWarning when loginLimitOK is false.
 // Production logs this even when a GM later proceeds.
 inline auto FormatDataA2LoginLimitWarning(

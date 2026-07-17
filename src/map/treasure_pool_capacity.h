@@ -114,6 +114,38 @@ inline auto IsHigherLot(const uint16 candidateLot, const uint16 highestLot) -> b
     return candidateLot > highestLot;
 }
 
+// HigherLotSelection returns candidateLot when it strictly exceeds currentHighestLot,
+// otherwise keeps currentHighestLot. Mirrors the highest-lot scan update in lotItem.
+inline auto HigherLotSelection(const uint16 currentHighestLot, const uint16 candidateLot) -> uint16
+{
+    if (IsHigherLot(candidateLot, currentHighestLot))
+    {
+        return candidateLot;
+    }
+    return currentHighestLot;
+}
+
+// ShouldEvaluateTreasureImmediately mirrors Lotters.size() == memberCount() after lot/pass.
+inline auto ShouldEvaluateTreasureImmediately(const std::size_t lotterCount, const std::size_t memberCount) -> bool
+{
+    return lotterCount == memberCount;
+}
+
+// PostLotPlan is the pure post-emplace disposition of CTreasurePool::lotItem after
+// LotInfo is recorded. Trophy-solution packet push is always host-side; plan only
+// gates immediate checkTreasureItem when every member has lotted.
+struct PostLotPlan
+{
+    bool evaluateImmediately; // Lotters.size() == memberCount()
+};
+
+// PlanPostLot composes ShouldEvaluateTreasureImmediately after a lotter is added.
+// Host always pushes trophy solution packets; evaluateImmediately alone is pure.
+inline auto PlanPostLot(const std::size_t lotterCountAfterAdd, const std::size_t memberCount) -> PostLotPlan
+{
+    return PostLotPlan{ ShouldEvaluateTreasureImmediately(lotterCountAfterAdd, memberCount) };
+}
+
 // IsPassedLot mirrors lot == 65535.
 inline auto IsPassedLot(const uint16 lot) -> bool
 {
@@ -185,6 +217,36 @@ inline auto PlanLotItemPreflight(
     return LotItemPreflight::Proceed;
 }
 
+// PassItemPreflight is the pure early-gate disposition of CTreasurePool::passItem
+// before LotInfo is recorded or mutated. Host keeps logging/side effects; plan is pure.
+enum class PassItemPreflight : uint8
+{
+    Proceed = 0,
+    RejectMember,
+    RejectSlot,
+};
+
+// PlanPassItemPreflight short-circuits in production passItem order:
+// 1) null char or pool mismatch
+// 2) slot out of range
+// 3) proceed to record/mutate the pass
+// Composes ShouldRejectNullMember / host slotOutOfRange (from IsSlotOutOfRange).
+inline auto PlanPassItemPreflight(
+    const bool charNull,
+    const bool poolMismatch,
+    const bool slotOutOfRange) -> PassItemPreflight
+{
+    if (ShouldRejectNullMember(charNull, poolMismatch))
+    {
+        return PassItemPreflight::RejectMember;
+    }
+    if (slotOutOfRange)
+    {
+        return PassItemPreflight::RejectSlot;
+    }
+    return PassItemPreflight::Proceed;
+}
+
 // ShouldUpdatePoolForChar mirrors status != DISAPPEAR.
 inline auto ShouldUpdatePoolForChar(const bool isDisappear) -> bool
 {
@@ -217,6 +279,20 @@ inline auto PlanUpdatePool(
 inline auto ShouldFlushPool(const uint8 itemCount) -> bool
 {
     return itemCount != 0;
+}
+
+// FlushPlan is the pure disposition of CTreasurePool::flush before the host
+// advances tick (now + treasure_checktime + 1s) and checkTreasureItem each slot.
+struct FlushPlan
+{
+    bool runChecks; // itemCount != 0
+};
+
+// PlanFlush wraps ShouldFlushPool for the flush entry gate.
+// Host keeps timer math and checkTreasureItem loop; plan is pure disposition only.
+inline auto PlanFlush(const uint8 itemCount) -> FlushPlan
+{
+    return FlushPlan{ ShouldFlushPool(itemCount) };
 }
 
 // SelectEvictionSlot: pure multi-pass selection over host-provided slot metadata.

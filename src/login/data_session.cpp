@@ -442,13 +442,17 @@ void data_session::read_func()
                 }
 
                 // Maint/login-limit admission (zone already handled above).
-                if (loginHelpers::DecideDataA2Admission(
-                        maintenanceMode,
-                        loginLimit,
-                        sessionCount,
-                        excepted,
-                        isGM,
-                        false) == loginHelpers::data_a2_admission_decision::ALLOWED)
+                const auto admissionDecision = loginHelpers::DecideDataA2Admission(
+                    maintenanceMode,
+                    loginLimit,
+                    sessionCount,
+                    excepted,
+                    isGM,
+                    false);
+                const auto admissionPlan = loginHelpers::PlanDataA2AdmissionResponse(
+                    admissionDecision,
+                    session.view_session != nullptr);
+                if (admissionPlan.proceedWithLogin)
                 {
                     if (loginHelpers::ShouldUpdatePrevZone(PrevZone))
                     {
@@ -515,11 +519,15 @@ void data_session::read_func()
                 }
                 else
                 {
-                    if (auto viewSession = session.view_session.get())
+                    if (admissionPlan.writeLobbyError)
                     {
+                        auto viewSession = session.view_session.get();
                         // Send error message to the client.
                         loginHelpers::generateErrorMessage(viewSession->buffer_.data(), loginErrors::errorCode::COULD_NOT_CONNECT_TO_LOBBY_SERVER);
                         viewSession->do_write(0x24);
+                    }
+                    if (admissionPlan.returnFromRead)
+                    {
                         return;
                     }
                 }

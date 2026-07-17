@@ -23,6 +23,7 @@
 
 #include "map_networking.h"
 #include "map_session.h"
+#include "map_session_container_capacity.h"
 #include "status_effect_container.h"
 
 #include "common/database.h"
@@ -160,17 +161,20 @@ auto MapSessionContainer::createSession(IPP ipp) -> MapSession*
 
     ShowDebugFmt("Creating session for {}", ipp.getIPString());
 
-    const auto rset = db::preparedStmt("SELECT charid FROM accounts_sessions WHERE client_addr = ? LIMIT 1", ipp.getIP());
-    if (!rset)
+    const auto rset                  = db::preparedStmt("SELECT charid FROM accounts_sessions WHERE client_addr = ? LIMIT 1", ipp.getIP());
+    const bool queryOK               = static_cast<bool>(rset);
+    const bool hasAccountsSessionRow = queryOK && rset->rowsCount() != 0;
+    if (!mapsessionhelpers::ShouldCreateSession(queryOK, hasAccountsSessionRow))
     {
-        ShowError("SQL query failed in MapSessionContainer::createSession!");
-        return nullptr;
-    }
-
-    if (rset->rowsCount() == 0)
-    {
-        // This is noisy and not really necessary
-        DebugSocketsFmt("recv_parse: Invalid login attempt from {}", ipp.getIPString());
+        if (!queryOK)
+        {
+            ShowError("SQL query failed in MapSessionContainer::createSession!");
+        }
+        else
+        {
+            // This is noisy and not really necessary
+            DebugSocketsFmt("recv_parse: Invalid login attempt from {}", ipp.getIPString());
+        }
         return nullptr;
     }
 
@@ -197,7 +201,7 @@ auto MapSessionContainer::createPendingSession(uint32 charId) -> MapSession*
     ShowDebugFmt("Creating pending session for character id {}", charId);
 
     const auto rset = db::preparedStmt("SELECT charid FROM accounts_sessions WHERE charid = ? LIMIT 1", charId);
-    if (!rset)
+    if (!mapsessionhelpers::ShouldCreatePendingSession(static_cast<bool>(rset)))
     {
         ShowError("SQL query failed in MapSessionContainer::createPendingSession");
         return nullptr;

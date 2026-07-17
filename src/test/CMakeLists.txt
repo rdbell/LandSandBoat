@@ -617,6 +617,8 @@ set(SOURCES
     test_login_data_a2_zone_cap_response_2770.cpp
     test_login_data_a2_already_logged_in_2776.h
     test_login_data_a2_already_logged_in_2776.cpp
+    test_login_data_a2_admission_response_2782.h
+    test_login_data_a2_admission_response_2782.cpp
     test_login_auth_password_1307.h
     test_login_auth_password_1307.cpp
     test_login_auth_version_error_1308.h
@@ -769,6 +771,12 @@ set(SOURCES
     test_treasure_lot_preflight_2772.cpp
     test_treasure_update_pool_plan_2777.h
     test_treasure_update_pool_plan_2777.cpp
+    test_treasure_post_lot_plan_2779.h
+    test_treasure_post_lot_plan_2779.cpp
+    test_treasure_pass_preflight_2780.h
+    test_treasure_pass_preflight_2780.cpp
+    test_treasure_flush_plan_2781.h
+    test_treasure_flush_plan_2781.cpp
     test_status_effect_prevent_1368.h
     test_status_effect_prevent_1368.cpp
     test_status_effect_params_1369.h
@@ -1532,6 +1540,8 @@ set(SOURCES
     test_map_socket_receive_2654.cpp
     test_map_session_blowfish.h
     test_map_session_blowfish.cpp
+    test_map_session_create_policy_2783.h
+    test_map_session_create_policy_2783.cpp
     test_map_session_index.h
     test_map_session_index.cpp
     test_look_parser.h
