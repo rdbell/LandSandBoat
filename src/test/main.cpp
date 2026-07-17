@@ -1894,6 +1894,11 @@ auto runPartyRejectPCAddFull3600SelfTests() -> bool;
 auto runGuildpointsCanAfford3601SelfTests() -> bool;
 auto runFollowCanFollow3602SelfTests() -> bool;
 auto runApkalluCanRunAway3603SelfTests() -> bool;
+auto runExtravaganzaCanAffordCipher3604SelfTests() -> bool;
+auto runGarrisonFailByDeath3605SelfTests() -> bool;
+auto runSpawnRejectNight3606SelfTests() -> bool;
+auto runStatusRejectNull3607SelfTests() -> bool;
+auto runVoidwalkerShouldUpgradeKI3608SelfTests() -> bool;
 
 namespace
 {
@@ -3765,6 +3770,11 @@ namespace
         ok = runGuildpointsCanAfford3601SelfTests() && ok;
         ok = runFollowCanFollow3602SelfTests() && ok;
         ok = runApkalluCanRunAway3603SelfTests() && ok;
+        ok = runExtravaganzaCanAffordCipher3604SelfTests() && ok;
+        ok = runGarrisonFailByDeath3605SelfTests() && ok;
+        ok = runSpawnRejectNight3606SelfTests() && ok;
+        ok = runStatusRejectNull3607SelfTests() && ok;
+        ok = runVoidwalkerShouldUpgradeKI3608SelfTests() && ok;
 
         return ok;
     }

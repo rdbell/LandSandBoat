@@ -903,14 +903,15 @@ inline auto ShouldUseItemSubTypeScript(const bool useEffectsPath, const uint32 s
 constexpr uint8 EffectNoticeShowMessage = 0;
 constexpr uint8 EffectNoticeSilent      = 1;
 
-// --- Slice 3080 / 3348 / 3428 / 3481 / 3526 / 3562: ShouldRejectNullStatusEffect pure dual-wire ---
+// --- Slice 3080 / 3348 / 3428 / 3481 / 3526 / 3562 / 3607: ShouldRejectNullStatusEffect pure dual-wire ---
 // Residual pure port: slice 1371 (Add/Remove pure-gate suite).
 // Residual dual-wire expand: slice 3080 (test_status_reject_null_3080).
 // Prior dedicated dual-wire expand residual: slice 3348 (test_status_reject_null_3348).
 // Prior dedicated dual-wire expand residual: slice 3428 (test_status_reject_null_3428).
 // Prior dedicated dual-wire expand residual: slice 3481 (test_status_reject_null_3481).
 // Prior dedicated dual-wire expand residual: slice 3526 (test_status_reject_null_3526).
-// Dedicated dual-wire expand residual: slice 3562 (test_status_reject_null_3562).
+// Prior dedicated dual-wire expand residual: slice 3562 (test_status_reject_null_3562).
+// Dedicated dual-wire expand residual: slice 3607 (test_status_reject_null_3607).
 // Production host: CStatusEffectContainer::AddStatusEffect injects
 // (PStatusEffectPtr == nullptr) into ShouldRejectNullStatusEffect; on true
 // ShowWarning and return false before ID-range / CanGain.
@@ -929,13 +930,15 @@ constexpr uint8 EffectNoticeSilent      = 1;
 // expand residual 3080 (formula unchanged; retained).
 // Index 3526: statuseffect.ShouldRejectNullStatusEffect prior dedicated dual-wire
 // expand residual 3080 (formula unchanged; retained).
-// Index 3562: statuseffect.ShouldRejectNullStatusEffect dedicated dual-wire
-// expand residual 3080 (formula unchanged; prior dedicated 3526 / 3481 / 3428 / 3348 retained).
+// Index 3562: statuseffect.ShouldRejectNullStatusEffect prior dedicated dual-wire
+// expand residual 3080 (formula unchanged; retained).
+// Index 3607: statuseffect.ShouldRejectNullStatusEffect dedicated dual-wire
+// expand residual 3080 (formula unchanged; prior dedicated 3562 / 3526 / 3481 / 3428 / 3348 retained).
 
 // ShouldRejectNullStatusEffect mirrors PStatusEffectPtr == nullptr.
 //
-// Formula (slice 3562 dedicated dual-wire expand residual 3080; prior dedicated
-// 3526 / 3481 / 3428 / 3348 / pure 1371 — formula unchanged):
+// Formula (slice 3607 dedicated dual-wire expand residual 3080; prior dedicated
+// 3562 / 3526 / 3481 / 3428 / 3348 / pure 1371 — formula unchanged):
 //   isNull
 //
 // isNull — host-injected (PStatusEffectPtr == nullptr)
@@ -949,9 +952,10 @@ constexpr uint8 EffectNoticeSilent      = 1;
 // Residual pins remain in test_status_effect_add_remove_1371; residual dual-wire
 // suite is test_status_reject_null_3080. Prior dedicated expand residual suites
 // are test_status_reject_null_3348 / test_status_reject_null_3428 /
-// test_status_reject_null_3481 / test_status_reject_null_3526. Dedicated expand
-// residual suite is test_status_reject_null_3562. Formula is unchanged; this
-// slice only expands dual-wire docs + index + dedicated suite.
+// test_status_reject_null_3481 / test_status_reject_null_3526 /
+// test_status_reject_null_3562. Dedicated expand residual suite is
+// test_status_reject_null_3607. Formula is unchanged; this slice only expands
+// dual-wire docs + index + dedicated suite.
 // Sibling dual-wire: ShouldRejectEffectIDOutOfRange (slice 2932) is next
 // on the same AddStatusEffect path. Orthogonal left alone: ShouldExpireEffect
 // (3049 / 3225) / ShouldTickEffect (3069) / ShouldRejectSimpleImmunity (3113) /
