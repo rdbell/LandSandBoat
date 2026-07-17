@@ -3421,6 +3421,16 @@ set(SOURCES
     test_dynamis_can_unlock_sj_3422.cpp
     test_treasure_force_check_full_3423.h
     test_treasure_force_check_full_3423.cpp
+    test_merit_lower_merit_3424.h
+    test_merit_lower_merit_3424.cpp
+    test_avatarpet_can_apply_buff_3425.h
+    test_avatarpet_can_apply_buff_3425.cpp
+    test_mapsession_destroy_pending_ptr_3426.h
+    test_mapsession_destroy_pending_ptr_3426.cpp
+    test_enmity_zero_out_of_range_3427.h
+    test_enmity_zero_out_of_range_3427.cpp
+    test_status_reject_null_3428.h
+    test_status_reject_null_3428.cpp
 )
 
 if(UNIX)

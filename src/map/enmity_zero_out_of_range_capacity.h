@@ -7,14 +7,19 @@
 //   - 2927: ShouldZeroEnmityOutOfRange residual dual-wire suite
 //   - 3157: ShouldZeroEnmityOutOfRange prior dedicated dual-wire
 //           (zero_out_of_range.go)
-//   - 3333: ShouldZeroEnmityOutOfRange dedicated dual-wire expand residual 2927
+//   - 3333: ShouldZeroEnmityOutOfRange prior dedicated dual-wire expand residual 2927
 //           (prior dedicated 3157; formula unchanged)
+//   - 3427: ShouldZeroEnmityOutOfRange dedicated dual-wire expand residual 2927
+//           (prior dedicated expand 3333 / prior dedicated 3157; formula unchanged)
 //
 // Dual-wire index:
 //   - 2927: ShouldZeroEnmityOutOfRange residual dual-wire suite
 //   - 3157: ShouldZeroEnmityOutOfRange prior dedicated dual-wire
 //   - 3333: ShouldZeroEnmityOutOfRange = !withinRange (identity-not)
-//     dedicated dual-wire expand residual 2927 (prior dedicated 3157)
+//     prior dedicated dual-wire expand residual 2927 (prior dedicated 3157)
+//   - 3427: ShouldZeroEnmityOutOfRange = !withinRange (identity-not)
+//     dedicated dual-wire expand residual 2927 (prior dedicated expand 3333 /
+//     prior dedicated 3157)
 //
 // Production host today: CEnmityContainer::UpdateEnmity in enmity_container.cpp
 // routes through enmitymath::ShouldZeroEnmityOutOfRange(IsWithinEnmityRange(PEntity))
@@ -33,12 +38,14 @@
 // Go dual-wire: enmity.ShouldZeroEnmityOutOfRange (internal/enmity/zero_out_of_range.go).
 // Residual dual-wire suite: 2927.
 // Prior dedicated dual-wire suite: 3157.
-// Dedicated dual-wire expand residual: 3333 (residual 2927 / prior 3157).
+// Prior dedicated dual-wire expand residual suite: 3333.
+// Dedicated dual-wire expand residual: 3427 (residual 2927 / prior 3333 / prior 3157).
 // Prior pure port: OmegaXI slice 1357 (internal/enmity).
 //
 // Coverage: test_enmity_zero_out_of_range_2927 (residual),
 // test_enmity_zero_out_of_range_3157 (prior dedicated dual-wire; not in CMake/main),
-// test_enmity_zero_out_of_range_3333 (dedicated expand residual 2927; not in CMake/main).
+// test_enmity_zero_out_of_range_3333 (prior dedicated expand residual 2927; not in CMake/main),
+// test_enmity_zero_out_of_range_3427 (dedicated expand residual 2927; not in CMake/main).
 //
 // Reference: src/map/enmity_container.cpp CEnmityContainer::UpdateEnmity
 //   if (enmitymath::ShouldZeroEnmityOutOfRange(IsWithinEnmityRange(PEntity)))
@@ -54,16 +61,18 @@ namespace enmityrangehelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 2927 residual / 3157 prior dedicated / 3333 expand residual 2927
+// Slice 2927 residual / 3157 prior dedicated / 3333 prior expand residual 2927
+// / 3427 dedicated expand residual 2927
 // — ShouldZeroEnmityOutOfRange out-of-range CE/VE zero gate
-// (dedicated dual-wire expand residual 2927; prior dedicated 3157 / pure 1357
-// — formula unchanged)
+// (dedicated dual-wire expand residual 2927; prior dedicated expand 3333 /
+// prior dedicated 3157 / pure 1357 — formula unchanged)
 // ---------------------------------------------------------------------------
 
 // ShouldZeroEnmityOutOfRange mirrors !IsWithinEnmityRange → CE=VE=0.
 //
-// Formula (slice 3333 dedicated dual-wire expand residual 2927; prior
-// dedicated 3157 / pure 1357 — formula unchanged):
+// Formula (slice 3427 dedicated dual-wire expand residual 2927; prior
+// dedicated expand 3333 / prior dedicated 3157 / pure 1357 — formula
+// unchanged):
 //   ShouldZeroEnmityOutOfRange(withinRange) = !withinRange
 //
 // withinRange is host-evaluated IsWithinEnmityRange(PEntity)
@@ -75,10 +84,11 @@ namespace enmityrangehelpers
 // Production call site: CEnmityContainer::UpdateEnmity (via enmitymath).
 // Residual dual-wire suite: 2927 / test_enmity_zero_out_of_range_2927.
 // Prior dedicated dual-wire suite is test_enmity_zero_out_of_range_3157.
-// Dedicated expand residual suite is test_enmity_zero_out_of_range_3333.
+// Prior dedicated expand residual suite is test_enmity_zero_out_of_range_3333.
+// Dedicated expand residual suite is test_enmity_zero_out_of_range_3427.
 // Host still owns zone + distance evaluation and CE/VE zero writeback.
-// Coverage: test_enmity_zero_out_of_range_3333 (not in CMake/main); residual 2927 /
-// prior dedicated 3157 retained.
+// Coverage: test_enmity_zero_out_of_range_3427 (not in CMake/main); residual 2927 /
+// prior dedicated expand 3333 / prior dedicated 3157 retained.
 inline auto ShouldZeroEnmityOutOfRange(const bool withinRange) -> bool
 {
     return !withinRange;

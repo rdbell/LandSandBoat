@@ -1714,6 +1714,11 @@ auto runTradeBumpItemsCount3420SelfTests() -> bool;
 auto runJobpointsApplyRaise3421SelfTests() -> bool;
 auto runDynamisCanUnlockSJ3422SelfTests() -> bool;
 auto runTreasureForceCheckFull3423SelfTests() -> bool;
+auto runMeritLowerMerit3424SelfTests() -> bool;
+auto runAvatarpetCanApplyBuff3425SelfTests() -> bool;
+auto runMapsessionDestroyPendingPtr3426SelfTests() -> bool;
+auto runEnmityZeroOutOfRange3427SelfTests() -> bool;
+auto runStatusRejectNull3428SelfTests() -> bool;
 
 namespace
 {
@@ -3405,6 +3410,11 @@ namespace
         ok = runJobpointsApplyRaise3421SelfTests() && ok;
         ok = runDynamisCanUnlockSJ3422SelfTests() && ok;
         ok = runTreasureForceCheckFull3423SelfTests() && ok;
+        ok = runMeritLowerMerit3424SelfTests() && ok;
+        ok = runAvatarpetCanApplyBuff3425SelfTests() && ok;
+        ok = runMapsessionDestroyPendingPtr3426SelfTests() && ok;
+        ok = runEnmityZeroOutOfRange3427SelfTests() && ok;
+        ok = runStatusRejectNull3428SelfTests() && ok;
 
         return ok;
     }
