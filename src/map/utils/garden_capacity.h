@@ -5,8 +5,9 @@
 // Pure gardenutils helpers dual-wired from gardenutils.cpp:
 // - detail::AppendResult / LoadResultList row insert (slice 2838)
 // - CalculateResults resultUid lookup (slice 2838)
-// - UpdateGardening wilt branch (slice 3339 dedicated dual-wire expand
-//   residual 2926; residual pure inject 0795; residual dual-wire 2926)
+// - UpdateGardening wilt branch (slice 3525 dedicated dual-wire expand
+//   residual 2926; residual pure inject 0795; residual dual-wire 2926;
+//   prior dedicated dual-wire 3339)
 //
 // Helpers take host-injected seed + crystal-feed element IDs / wilt scalars
 // only (no DB, flowerpot, or map storage).
@@ -26,29 +27,29 @@ inline auto ResultKey(const uint8 seed, const uint8 element1, const uint8 elemen
 }
 
 // Wilt timing constants from gardenutils.cpp (UpdateGardening) / Go wilt.go.
-// Pinned by residual 2926 / dedicated 3339 dual-wire tests.
+// Pinned by residual 2926 / prior dedicated 3339 / dedicated 3525 dual-wire tests.
 inline constexpr uint32 VanaDaysToWilt           = 36;
 inline constexpr uint32 VanaDaysToGuaranteeWilt = 144;
 
 // ShouldWilt is the pure wilt branch of UpdateGardening once stage duration
 // (vanadays from GetStageDuration), days since stage change, wilt bonus
 // (Mod::GARDENING_WILT_BONUS), and examined flag are known
-// (slice 3339 dedicated dual-wire expand residual 2926; residual pure 0795;
-// residual dual-wire suite 2926 — formula UNCHANGED / bit-identical):
+// (slice 3525 dedicated dual-wire expand residual 2926; residual pure 0795;
+// residual dual-wire suite 2926; prior dedicated dual-wire suite 3339 —
+// formula UNCHANGED / bit-identical early-return positive form):
 //
 //   wiltTime = VANADAYS_TO_WILT + wiltBonus
-//   wilt if:
-//     daysSince > VANADAYS_TO_GUARANTEE_WILT + wiltTime
-//     else if wasExamined: false
-//     else stageDuration > wiltTime || stageDuration + daysSince > wiltTime
+//   if daysSince > VANADAYS_TO_GUARANTEE_WILT + wiltTime → true
+//   if wasExamined → false
+//   return stageDuration > wiltTime || stageDuration + daysSince > wiltTime
 //
-// Positive early-return form only (match Go free function / pinShouldWilt3339;
+// Positive early-return form only (match Go free function / pinShouldWilt3525;
 // avoid QF1001 De Morgan rewrites of the production compound OR).
 //
 // Host injects stageDurationVanadays, daysSinceStageChange, wiltBonus, and
 // wasExamined only (no CCharEntity* / CItemFlowerpot*).
 // Production site: UpdateGardening wilt if in gardenutils.cpp.
-// Coverage: test_garden_should_wilt_3339 (dedicated); residual 2926 retained.
+// Coverage: test_garden_should_wilt_3525 (dedicated); residual 3339 / 2926 retained.
 inline auto ShouldWilt(const uint32 stageDurationVanadays, const uint32 daysSinceStageChange,
                        const uint32 wiltBonus, const bool wasExamined) -> bool
 {

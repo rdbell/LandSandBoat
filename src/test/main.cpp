@@ -1814,6 +1814,11 @@ auto runCharSetPendingPush3522SelfTests() -> bool;
 auto runFishingContestPlaceholders3523SelfTests() -> bool;
 auto runRecastUpdateMaxCharges3519SelfTests() -> bool;
 auto runZoneHighTargid3520SelfTests() -> bool;
+auto runAssaultIssueTag3524SelfTests() -> bool;
+auto runGardenShouldWilt3525SelfTests() -> bool;
+auto runStatusRejectNull3526SelfTests() -> bool;
+auto runVoidwalkerShouldUpgradeKI3527SelfTests() -> bool;
+auto runSpawnRejectNight3528SelfTests() -> bool;
 
 namespace
 {
@@ -3605,6 +3610,11 @@ namespace
         ok = runFishingContestPlaceholders3523SelfTests() && ok;
         ok = runRecastUpdateMaxCharges3519SelfTests() && ok;
         ok = runZoneHighTargid3520SelfTests() && ok;
+        ok = runAssaultIssueTag3524SelfTests() && ok;
+        ok = runGardenShouldWilt3525SelfTests() && ok;
+        ok = runStatusRejectNull3526SelfTests() && ok;
+        ok = runVoidwalkerShouldUpgradeKI3527SelfTests() && ok;
+        ok = runSpawnRejectNight3528SelfTests() && ok;
 
         return ok;
     }

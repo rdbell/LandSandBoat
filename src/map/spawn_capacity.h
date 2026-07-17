@@ -28,6 +28,9 @@
 //   - 3483: ShouldRejectAtNightSpawn dedicated dual-wire expand residual 3092
 //           (HasSpawnTypeFlag(spawnType, SpawnTypeAtNight) && !IsNightTotdWindow(totd);
 //            prior dedicated 3435/3387 retained; residual expand 3092 / pure 1362)
+//   - 3528: ShouldRejectAtNightSpawn dedicated dual-wire expand residual 3092
+//           (HasSpawnTypeFlag(spawnType, SpawnTypeAtNight) && !IsNightTotdWindow(totd);
+//            prior dedicated 3483/3435/3387 retained; residual expand 3092 / pure 1362)
 //   - 3107: ShouldRejectAtEveningSpawn residual dual-wire expand
 //   - 3341: ShouldRejectAtEveningSpawn dedicated dual-wire
 //           (HasSpawnTypeFlag(spawnType, SpawnTypeAtEvening) && !IsEveningTotdWindow(totd);
@@ -51,7 +54,8 @@
 // Residual dual-wire suite: 3092 / test_spawn_reject_night_3092.
 // Dedicated dual-wire suite: 3387 / test_spawn_reject_night_3387 (retained).
 // Prior dedicated dual-wire expand residual 3092 suite: 3435 / test_spawn_reject_night_3435 (retained).
-// Dedicated dual-wire expand residual 3092 suite: 3483 / test_spawn_reject_night_3483.
+// Prior dedicated dual-wire expand residual 3092 suite: 3483 / test_spawn_reject_night_3483 (retained).
+// Dedicated dual-wire expand residual 3092 suite: 3528 / test_spawn_reject_night_3528.
 // Go dual-wire: spawnslot.ShouldRejectAtEveningSpawn
 // (internal/spawnslot/reject_evening_spawn.go).
 // Residual dual-wire suite: 3107 / test_spawn_reject_evening_3107.
@@ -115,8 +119,8 @@ inline auto IsEveningTotdWindow(const vanadiel_time::TOTD totd) -> bool
 // ShouldRejectAtNightSpawn mirrors ATNIGHT flag && not night window.
 // totd is host-evaluated vanadiel_time::TOTD.
 //
-// Formula (slice 3483 dedicated dual-wire expand residual 3092; prior dedicated
-// 3435/3387 retained; residual expand 3092 / pure 1362 — formula unchanged):
+// Formula (slice 3528 dedicated dual-wire expand residual 3092; prior dedicated
+// 3483/3435/3387 retained; residual expand 3092 / pure 1362 — formula unchanged):
 //   HasSpawnTypeFlag(spawnType, SpawnTypeAtNight) && !IsNightTotdWindow(totd)
 //   // SpawnTypeAtNight = 0x01 (SPAWNTYPE_ATNIGHT)
 //   // IsNightTotdWindow: totd == NIGHT || totd == MIDNIGHT
@@ -131,7 +135,8 @@ inline auto IsEveningTotdWindow(const vanadiel_time::TOTD totd) -> bool
 // Residual dual-wire suite: 3092 / test_spawn_reject_night_3092.
 // Prior dedicated dual-wire suite: 3387 / test_spawn_reject_night_3387 (retained).
 // Prior dedicated dual-wire expand residual 3092 suite: 3435 / test_spawn_reject_night_3435 (retained).
-// Dedicated dual-wire expand residual 3092 suite is test_spawn_reject_night_3483.
+// Prior dedicated dual-wire expand residual 3092 suite: 3483 / test_spawn_reject_night_3483 (retained).
+// Dedicated dual-wire expand residual 3092 suite is test_spawn_reject_night_3528.
 // Formula is unchanged; this slice only expands dual-wire docs + index +
 // dedicated suite.
 // Call site: CanSpawnNowPure (and SpawnHandler::canSpawnNow host inject).

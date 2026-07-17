@@ -3621,6 +3621,16 @@ set(SOURCES
     test_recast_update_max_charges_3519.cpp
     test_zone_high_targid_3520.h
     test_zone_high_targid_3520.cpp
+    test_assault_issue_tag_3524.h
+    test_assault_issue_tag_3524.cpp
+    test_garden_should_wilt_3525.h
+    test_garden_should_wilt_3525.cpp
+    test_spawn_reject_night_3528.h
+    test_spawn_reject_night_3528.cpp
+    test_status_reject_null_3526.h
+    test_status_reject_null_3526.cpp
+    test_voidwalker_should_upgrade_ki_3527.h
+    test_voidwalker_should_upgrade_ki_3527.cpp
 )
 
 if(UNIX)
