@@ -33,10 +33,14 @@
 //           (roll == UpgradeRollSuccess (5);
 //            prior dedicated 3563 / 3527 / 3482 / 3433 / 3377 / 3173 /
 //            residual expand 2884 / pure 0987 — formula unchanged)
-//   - 3653: ShouldUpgradeKI dedicated dual-wire expand residual 2884
+//   - 3653: ShouldUpgradeKI prior dedicated dual-wire expand residual 2884
 //           (roll == UpgradeRollSuccess (5);
 //            prior dedicated 3608 / 3563 / 3527 / 3482 / 3433 / 3377 / 3173 /
 //            residual expand 2884 / pure 0987 — formula unchanged)
+//   - 3698: ShouldUpgradeKI dedicated dual-wire expand residual 2884
+//           (roll == UpgradeRollSuccess (5);
+//            prior dedicated 3653 / 3608 / 3563 / 3527 / 3482 / 3433 / 3377 /
+//            3173 / residual expand 2884 / pure 0987 — formula unchanged)
 //   - 2903: ShouldRandomly residual dual-wire expand
 //   - 3213: ShouldRandomly dedicated dual-wire
 //           (roll <= chance && !hasEffect && now > (last + between);
@@ -110,8 +114,10 @@
 // test_voidwalker_should_upgrade_ki_3563.
 // Prior dedicated dual-wire expand residual 2884 suite: 3608 /
 // test_voidwalker_should_upgrade_ki_3608.
-// Dedicated dual-wire expand residual 2884 suite: 3653 /
+// Prior dedicated dual-wire expand residual 2884 suite: 3653 /
 // test_voidwalker_should_upgrade_ki_3653.
+// Dedicated dual-wire expand residual 2884 suite: 3698 /
+// test_voidwalker_should_upgrade_ki_3698.
 // Dual-wire of Go voidwalker.ShouldRandomly / RandomlyRollMax
 // (internal/voidwalker/should_randomly.go). Prior pure port: slice 0987.
 // Residual dual-wire suite: 2903 / test_voidwalker_should_randomly_2903.
@@ -126,9 +132,9 @@ namespace voidwalkerhelpers
 
 // Upgrade-roll range for checkUpgrade: math.random(1, 10); success when
 // roll == UpgradeRollSuccess (5).
-// Dual-wire constants (dedicated expand residual 3653; prior dedicated 3608 /
-// 3563 / 3527 / 3482 / 3433 / 3377 / 3173; residual 2884 / pure 0987 — formula
-// unchanged).
+// Dual-wire constants (dedicated expand residual 3698; prior dedicated 3653 /
+// 3608 / 3563 / 3527 / 3482 / 3433 / 3377 / 3173; residual 2884 / pure 0987 —
+// formula unchanged).
 inline constexpr int32 UpgradeRollMin     = 1;
 inline constexpr int32 UpgradeRollMax     = 10;
 inline constexpr int32 UpgradeRollSuccess = 5;
@@ -136,9 +142,9 @@ inline constexpr int32 UpgradeRollSuccess = 5;
 // ShouldUpgradeKI is the pure upgrade roll half of checkUpgrade once the
 // host injects the RNG scalar:
 //
-// Formula (slice 3653 dedicated dual-wire expand residual 2884; prior
-// dedicated 3608 / 3563 / 3527 / 3482 / 3433 / 3377 / 3173 / residual expand
-// 2884 / pure 0987 — formula unchanged):
+// Formula (slice 3698 dedicated dual-wire expand residual 2884; prior
+// dedicated 3653 / 3608 / 3563 / 3527 / 3482 / 3433 / 3377 / 3173 / residual
+// expand 2884 / pure 0987 — formula unchanged):
 //   roll == UpgradeRollSuccess  // math.random(1, 10) == 5
 //
 // Host-injected scalars (no player / mob pointers):
@@ -156,9 +162,10 @@ inline constexpr int32 UpgradeRollSuccess = 5;
 // test_voidwalker_should_upgrade_ki_3482,
 // test_voidwalker_should_upgrade_ki_3527,
 // test_voidwalker_should_upgrade_ki_3563,
-// test_voidwalker_should_upgrade_ki_3608.
+// test_voidwalker_should_upgrade_ki_3608,
+// test_voidwalker_should_upgrade_ki_3653.
 // Dedicated dual-wire expand residual 2884 suite is
-// test_voidwalker_should_upgrade_ki_3653. Formula is unchanged; this slice
+// test_voidwalker_should_upgrade_ki_3698. Formula is unchanged; this slice
 // only expands dual-wire docs + index + dedicated suite.
 // Call site (deferred): Lua checkUpgrade host inject after math.random(1, 10).
 inline auto ShouldUpgradeKI(const int32 roll) -> bool
