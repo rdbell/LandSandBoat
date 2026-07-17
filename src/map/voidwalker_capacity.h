@@ -2,9 +2,12 @@
 
 #include "common/cbasetypes.h"
 
+#include <string>
+
 // Pure Voidwalker helpers for dual-wire slices:
 //   - 2884: ShouldUpgradeKI (checkUpgrade math.random(1,10)==5)
 //   - 2903: ShouldRandomly (local randomly chance / effect / cooldown)
+//   - 2908: ShouldDoMobSkillEveryHPP (local doMobSkillEveryHPP HPP-modulo gate)
 //
 // Lua production host: scripts/globals/voidwalker.lua
 //   local function checkUpgrade(player, mob, nextKeyItem)
@@ -27,6 +30,17 @@
 //     end
 //   end
 //
+//   local function doMobSkillEveryHPP(mob, every, start, mobskill, condition)
+//     local mobhpp = mob:getHPP()
+//     if mobhpp <= start and condition then
+//       local isSame = (start % every) == (mobhpp % every)
+//       if isSame and mob:getLocalVar('MOB_SKILL_' .. mobhpp) == 0 then
+//         mob:useMobAbility(mobskill)
+//         mob:setLocalVar('MOB_SKILL_' .. mobhpp, 1)
+//       end
+//     end
+//   end
+//
 // Host injects scalars only (no player / mob pointers):
 //   roll         — math.random(1, 10) for upgrade / math.random(0, 100) for randomly
 //   chance       — randomly chance percent
@@ -34,12 +48,17 @@
 //   now          — GetSystemTime()
 //   lastSkillTime — mob:getLocalVar('MOBSKILL_TIME')
 //   between      — cooldown seconds between skill uses
+//   mobHPP       — mob:getHPP()
+//   every / start — HPP step / ceiling for doMobSkillEveryHPP
+//   condition    — host status / always-true gate
+//   localVarSet  — getLocalVar('MOB_SKILL_' .. mobhpp) != 0
 //
 // Zone/player identity checks, delKeyItem / addKeyItem, messageSpecial,
 // hasStatusEffect, setLocalVar, and useMobAbility writeback remain host-owned.
 // Prior pure port: OmegaXI slice 0987 (internal/voidwalker).
 // Dual-wire of Go voidwalker.ShouldUpgradeKI / UpgradeRollSuccess (slice 2884).
 // Dual-wire of Go voidwalker.ShouldRandomly / RandomlyRollMax (slice 2903).
+// Dual-wire of Go voidwalker.ShouldDoMobSkillEveryHPP / MobSkillLocalVar (slice 2908).
 
 namespace voidwalkerhelpers
 {
@@ -84,6 +103,43 @@ inline auto ShouldRandomly(const int32 roll,
                            const int64 between) -> bool
 {
     return roll <= chance && !hasEffect && now > (lastSkillTime + between);
+}
+
+// ShouldDoMobSkillEveryHPP is the pure half of local doMobSkillEveryHPP once
+// the host supplies HPP / step / condition / local-var scalars:
+//
+//   if every <= 0 || mobHPP > start || !condition: false
+//   if (start % every) != (mobHPP % every): false
+//   return !localVarSet
+//
+// every <= 0 returns false (Lua % 0 errors; hosts never pass 0).
+// When true, the host should useMobAbility and setLocalVar('MOB_SKILL_'..hpp, 1).
+//
+// Dual-wire of Go voidwalker.ShouldDoMobSkillEveryHPP.
+inline auto ShouldDoMobSkillEveryHPP(const int32 mobHPP,
+                                     const int32 every,
+                                     const int32 start,
+                                     const bool  condition,
+                                     const bool  localVarSet) -> bool
+{
+    if (every <= 0 || mobHPP > start || !condition)
+    {
+        return false;
+    }
+    if ((start % every) != (mobHPP % every))
+    {
+        return false;
+    }
+    return !localVarSet;
+}
+
+// MobSkillLocalVar is the local-var name 'MOB_SKILL_' .. mobhpp used by
+// doMobSkillEveryHPP to fire once per HPP threshold.
+//
+// Dual-wire of Go voidwalker.MobSkillLocalVar.
+inline auto MobSkillLocalVar(const int32 mobHPP) -> std::string
+{
+    return "MOB_SKILL_" + std::to_string(mobHPP);
 }
 
 } // namespace voidwalkerhelpers

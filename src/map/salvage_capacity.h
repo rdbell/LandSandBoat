@@ -7,6 +7,7 @@
 //   - 2892: CanOpenDoor (onDoorOpen CLOSE_DOOR + unSealed gate)
 //   - 2894: CanOpenBossDoor (openBossDoor CLOSE_DOOR gate; no unSealed)
 //   - 2898: ShouldResetTempBox (resetTempBoxes status == NORMAL gate)
+//   - 2904: ShouldSpawnOnTempChestCasket (spawnTempChest status == DISAPPEAR)
 //
 // Lua production host: scripts/globals/salvage.lua
 //
@@ -35,10 +36,15 @@
 //     -- host: setStatus(DISAPPEAR), resetLocalVars, setAnimationSub(8)
 //   end
 //
+// spawnTempChest (2904):
+//   if casket and casket:getStatus() == xi.status.DISAPPEAR then
+//     -- host: setPos(mob), resetLocalVars, setStatus(NORMAL), prePicked/items
+//   end
+//
 // Host injects scalars only (no instance / npc pointers). Claim writeback,
-// door open writeback, and temp-box reset writeback remain host-owned.
-// Future Lua/C++ hosts dual-wire these free functions instead of re-inlining
-// the comparisons.
+// door open writeback, temp-box reset writeback, and temp-chest spawn
+// writeback remain host-owned. Future Lua/C++ hosts dual-wire these free
+// functions instead of re-inlining the comparisons.
 
 namespace salvagehelpers
 {
@@ -134,6 +140,26 @@ inline auto ShouldResetTempBox(const uint8 status) -> bool
 inline auto CanOpenBossDoor(const uint8 animation) -> bool
 {
     return animation == kAnimCloseDoor;
+}
+
+// ---------------------------------------------------------------------------
+// 2904 — spawnTempChest status == DISAPPEAR gate
+// ---------------------------------------------------------------------------
+
+// ShouldSpawnOnTempChestCasket is the pure free-function form of the
+// spawnTempChest casket-search status gate:
+//
+//   status == DISAPPEAR
+//   ≡ status == kStatusDisappear
+//
+// Host injects casket:getStatus() only. Host still owns setPos from the
+// dead mob, resetLocalVars, setStatus(NORMAL), and optional prePicked /
+// itemID_1 locals. Dual-wire of Go salvage.ShouldSpawnOnTempChestCasket
+// (slice 2904 / residual 1083).
+// Status pins: kStatusNormal / kStatusDisappear (see 2898 block above).
+inline auto ShouldSpawnOnTempChestCasket(const uint8 status) -> bool
+{
+    return status == kStatusDisappear;
 }
 
 } // namespace salvagehelpers

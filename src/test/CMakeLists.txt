@@ -977,6 +977,16 @@ set(SOURCES
     test_nyzul_claim_rune_2902.cpp
     test_voidwalker_should_randomly_2903.h
     test_voidwalker_should_randomly_2903.cpp
+    test_salvage_spawn_temp_chest_2904.h
+    test_salvage_spawn_temp_chest_2904.cpp
+    test_nyzul_spawn_casket_2905.h
+    test_nyzul_spawn_casket_2905.cpp
+    test_ambuscade_roe_intro_2906.h
+    test_ambuscade_roe_intro_2906.cpp
+    test_darkixion_horn_break_roll_2907.h
+    test_darkixion_horn_break_roll_2907.cpp
+    test_voidwalker_mob_skill_hpp_2908.h
+    test_voidwalker_mob_skill_hpp_2908.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h

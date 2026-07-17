@@ -7,11 +7,13 @@
 //   - 2891: gear-objective chance gate (pickSetPoint)
 //   - 2900: floor-100 vigil weapon drop gate (vigilWeaponDrop)
 //   - 2902: Rune of Transfer first-claimer gate (onEventUpdate)
+//   - 2905: spawnChest regular-mob casket roll (spawnChest)
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
-// local pickSetPoint, scripts/globals/nyzul.lua xi.nyzul.vigilWeaponDrop,
-// and scripts/zones/Nyzul_Isle/npcs/Rune_of_Transfer.lua onEventUpdate:
+// local pickSetPoint, scripts/globals/nyzul.lua xi.nyzul.vigilWeaponDrop /
+// xi.nyzul.spawnChest, and scripts/zones/Nyzul_Isle/npcs/Rune_of_Transfer.lua
+// onEventUpdate:
 //
 //   elseif math.random(1, 30) == 1 and instance:getLocalVar('freeFloor') == 0 then
 //     instance:setStage(xi.nyzul.objective.FREE_FLOOR)
@@ -40,12 +42,19 @@
 //     -- release other in-event chars; clear Register localVars
 //   end
 //
+//   elseif mobID < BOSS_OFFSET and ENABLE_NYZUL_CASKETS then
+//     if math.random(1, 100) <= 6 then
+//       -- find DISAPPEAR casket slot, setPos / NORMAL / animationSub
+//     end
+//   end
+//
 // Capacity is for future Lua/C++ inject so hosts dual-wire pure free
-// functions instead of re-inlining roll/localVar/floor comparisons. Helpers
-// take host-injected scalars only (no instance / entity / NPC pointers).
-// Side effects (setStage FREE_FLOOR, freeFloor / gearObjective / runeHandler
-// localVar, Rune of Transfer timer / setProgress, gear objective type pick,
-// treasure grants, release of other in-event chars) remain host-owned.
+// functions instead of re-inlining roll/localVar/floor/settings comparisons.
+// Helpers take host-injected scalars only (no instance / entity / NPC
+// pointers). Side effects (setStage FREE_FLOOR, freeFloor / gearObjective /
+// runeHandler localVar, Rune of Transfer timer / setProgress, gear objective
+// type pick, treasure grants, casket NPC activate, release of other in-event
+// chars) remain host-owned.
 // Prior pure port: OmegaXI slice 1088 (internal/nyzul floorflow / drops).
 
 namespace nyzulhelpers
@@ -120,6 +129,27 @@ inline constexpr int32 Floor100 = 100;
 inline auto ShouldDropFloor100VigilWeapons(const int32 currentFloor) -> bool
 {
     return currentFloor == Floor100;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2905 — spawnChest regular-mob casket roll
+// ---------------------------------------------------------------------------
+
+// CasketDropChancePercent is the regular-mob casket pop rate for
+// math.random(1, 100) (roll ≤ 6 → 6%).
+inline constexpr int32 CasketDropChancePercent = 6;
+
+// ShouldSpawnCasket mirrors spawnChest regular-mob casket roll:
+//   ENABLE_NYZUL_CASKETS and math.random(1, 100) <= 6
+// Implemented as enableCaskets && roll >= 1 && roll <= CasketDropChancePercent
+// so out-of-range rolls do not spuriously succeed. roll1to100 is the
+// host-injected math.random(1, 100) result; enableCaskets injects
+// xi.settings.main.ENABLE_NYZUL_CASKETS (default true). Host still owns
+// mob-band eligibility (mobID < BOSS_OFFSET, NM coffer short-circuit) and
+// casket NPC activate (setPos / NORMAL / animationSub).
+inline auto ShouldSpawnCasket(const int32 roll1to100, const bool enableCaskets) -> bool
+{
+    return enableCaskets && roll1to100 >= 1 && roll1to100 <= CasketDropChancePercent;
 }
 
 } // namespace nyzulhelpers

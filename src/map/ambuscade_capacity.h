@@ -7,18 +7,20 @@
 //   - 2888: instance onEventFinish exit-warp CSID gate
 //   - 2895: Gorpa-Masorpa onTrade eminence-completed(499) gate
 //   - 2901: Ambuscade Tome onEventFinish enter CSID (378) gate
+//   - 2906: Gorpa-Masorpa onEventFinish intro CSID (385) → RoE 499 gate
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
 // (onInstanceTimeUpdate, onEventFinish) and scripts/globals/ambuscade.lua
-// (onTradeGorpaMasorpa, onEventFinishTome). Capacity is for future Lua/C++
-// inject so hosts dual-wire pure free functions instead of re-inlining
-// comparisons. Helpers take host-injected scalars only (no entity /
-// instance / mob pointers). Side effects (instance:complete, currency/KI
-// writeback, setPos, trade body, tome enter body) remain host-owned.
+// (onTradeGorpaMasorpa, onEventFinishTome, onEventFinishGorpaMasorpa).
+// Capacity is for future Lua/C++ inject so hosts dual-wire pure free
+// functions instead of re-inlining comparisons. Helpers take host-injected
+// scalars only (no entity / instance / mob pointers). Side effects
+// (instance:complete, currency/KI writeback, setPos, trade body, tome
+// enter body, RoE onRecordTrigger) remain host-owned.
 //
 // Parity: internal/ambuscade complete_instance.go, warp_exit.go,
-// gorpa_trade.go, tome_enter.go
+// gorpa_trade.go, tome_enter.go, roe_intro.go
 
 namespace ambuscadehelpers
 {
@@ -86,6 +88,25 @@ inline constexpr int32 EventCSIDTomeEnter = 378;
 inline auto ShouldHandleTomeEnterFinish(const int32 csid) -> bool
 {
     return csid == EventCSIDTomeEnter;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2906 — Gorpa-Masorpa onEventFinish intro RoE CSID gate
+// ---------------------------------------------------------------------------
+
+// EventCSIDIntro is the Gorpa-Masorpa intro cutscene CSID
+// (ambuscade.lua onEventFinishGorpaMasorpa / onTrigger intro startEvent).
+// Parity: Go EventCSIDIntro.
+inline constexpr int32 EventCSIDIntro = 385;
+
+// ShouldTriggerRoEIntro mirrors ambuscade.lua onEventFinishGorpaMasorpa:
+//   if csid == 385 then xi.roe.onRecordTrigger(player, 499) end
+// csid is the host-injected event CSID. Host still calls
+// roe.onRecordTrigger(player, RoERecordSteppingIntoAnAmbuscade) after a
+// true gate.
+inline auto ShouldTriggerRoEIntro(const int32 csid) -> bool
+{
+    return csid == EventCSIDIntro;
 }
 
 } // namespace ambuscadehelpers

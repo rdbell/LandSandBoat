@@ -5,6 +5,7 @@
 // Pure Dark Ixion helpers for dual-wire slices:
 //   - 2885: CanBreakHorn (checkHornBreak pure gate before 5% roll)
 //   - 2893: CanRestoreHorn (Damsel Memento pure gate before 25% roll)
+//   - 2907: HornBreakRoll (checkHornBreak 5% roll after CanBreakHorn)
 //
 // Lua production host: scripts/globals/dark_ixion.lua
 //   local checkHornBreak = function(mob, attacker)
@@ -37,12 +38,14 @@
 //   busy            — xi.combat.behavior.isEntityBusy(mob)   [CanBreakHorn]
 //   animSub         — mob:getAnimationSub()
 //   attackerInFront — attacker ~= nil and attacker:isInfront(mob)  [CanBreakHorn]
+//   roll1to100      — math.random(1, 100)  [HornBreakRoll]
 //
-// RNG rolls (HornBreakRoll 5% / HornRestoreRoll 25%) and changeHornState
-// writeback remain host-owned.
+// RNG generation (math.random) and changeHornState writeback remain host-owned.
+// HornRestoreRoll (25%) remains residual until its dual-wire slice.
 // Prior pure port: OmegaXI slice 0985 (internal/darkixion).
 // Dual-wire of Go darkixion.CanBreakHorn (slice 2885).
 // Dual-wire of Go darkixion.CanRestoreHorn (slice 2893).
+// Dual-wire of Go darkixion.HornBreakRoll (slice 2907).
 
 namespace darkixionhelpers
 {
@@ -82,6 +85,25 @@ inline auto CanBreakHorn(const bool busy, const int32 animSub, const bool attack
 inline auto CanRestoreHorn(const int32 animSub) -> bool
 {
     return animSub == kAnimHornBroken;
+}
+
+// HornBreakChancePercent is the 5% roll ceiling on critical / weaponskill hit
+// (math.random(1, 100) <= 5 → ~5%).
+// Dual-wire of Go darkixion.HornBreakChancePercent.
+inline constexpr int32 HornBreakChancePercent = 5;
+
+// HornBreakRoll is the pure roll half of checkHornBreak after CanBreakHorn:
+//
+//   math.random(1, 100) <= 5
+//
+// Implemented as roll >= 1 && roll <= HornBreakChancePercent so out-of-range
+// rolls do not spuriously succeed. roll1to100 is the host-injected
+// math.random(1, 100) result. Host still owns CanBreakHorn gate inject, RNG
+// generation, and changeHornState(mob, 2) writeback.
+// Dual-wire of Go darkixion.HornBreakRoll.
+inline auto HornBreakRoll(const int32 roll1to100) -> bool
+{
+    return roll1to100 >= 1 && roll1to100 <= HornBreakChancePercent;
 }
 
 } // namespace darkixionhelpers
