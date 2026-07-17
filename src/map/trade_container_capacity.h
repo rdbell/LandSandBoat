@@ -30,4 +30,20 @@ inline auto ConfirmedStatusAmount(const std::uint32_t amount, const std::uint32_
     return amount < itemQuantity ? amount : itemQuantity;
 }
 
+// ShouldSetTradeItemEntry mirrors the multi-arg setItem outer gate:
+//   slotId < m_PItem.size()
+// Host injects slotInRange; helpers never touch CItem* or container storage.
+inline auto ShouldSetTradeItemEntry(const bool slotInRange) -> bool
+{
+    return slotInRange;
+}
+
+// ShouldBumpItemsCountOnSetEntry is the pure m_ItemsCount += 1 gate once
+// multi-arg setItem is admitted. Production always bumps when in range —
+// including slot replace / clear — which is a known parity quirk.
+inline auto ShouldBumpItemsCountOnSetEntry(const bool slotInRange) -> bool
+{
+    return slotInRange;
+}
+
 } // namespace tradecontainerhelpers

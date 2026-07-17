@@ -272,4 +272,45 @@ inline auto PlanTimeoutCleanup(const TimeoutDecision input) -> DecisionPlan
     return plan;
 }
 
+// DestroyDecision describes state used by destroySession after its identity-
+// safe index removal has succeeded (mirrors OmegaXI DestroyDecision).
+// HasCharacter / HasZone are bool; ShuttingDown is the session's shuttingDown
+// byte (database row deleted only when exactly 1 — explicit logout).
+struct DestroyDecision
+{
+    bool  hasCharacter{ false };
+    bool  hasZone{ false };
+    uint8 shuttingDown{ 0 };
+};
+
+// PlanDestroy returns destroySession's remaining effects in exact order after
+// index_.removeSession has already succeeded (mirrors OmegaXI PlanDestroy).
+// RemoveSessionIndex is intentionally not planned: production removes the
+// index entry before planning so a stale/foreign pointer cannot erase a
+// replacement session.
+// Order:
+// - shuttingDown == 1: DeleteDatabaseSession
+// - hasCharacter && hasZone: DecreaseZoneCounter
+// - hasCharacter: ReleaseCharacter
+// - always: EraseSession
+inline auto PlanDestroy(const DestroyDecision input) -> DecisionPlan
+{
+    DecisionPlan plan{};
+
+    if (input.shuttingDown == 1)
+    {
+        plan.actions[plan.count++] = CleanupAction::DeleteDatabaseSession;
+    }
+    if (input.hasCharacter)
+    {
+        if (input.hasZone)
+        {
+            plan.actions[plan.count++] = CleanupAction::DecreaseZoneCounter;
+        }
+        plan.actions[plan.count++] = CleanupAction::ReleaseCharacter;
+    }
+    plan.actions[plan.count++] = CleanupAction::EraseSession;
+    return plan;
+}
+
 } // namespace mapsessionhelpers

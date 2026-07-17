@@ -259,28 +259,22 @@ uint16 CMeritPoints::GetMeritCountInSameCategory(MERIT_TYPE merit)
 
 bool CMeritPoints::AddLimitPoints(uint16 points)
 {
-    m_LimitPoints += points;
+    // Pure limit→merit conversion plan (slice 2811). Host injects maxMeritCap
+    // from map.MAX_MERIT_POINTS + GetMeritValue(MERIT_MAX_MERIT) and
+    // maxLimitPoints from MAX_LIMIT_POINTS.
+    const uint8 maxMeritCap = static_cast<uint8>(
+        settings::get<uint8>("map.MAX_MERIT_POINTS") + GetMeritValue(MERIT_MAX_MERIT, m_PChar));
 
-    if (m_LimitPoints >= MAX_LIMIT_POINTS)
-    {
-        // check if player has reached cap
-        if (m_MeritPoints == settings::get<uint8>("map.MAX_MERIT_POINTS") + GetMeritValue(MERIT_MAX_MERIT, m_PChar))
-        {
-            m_LimitPoints = MAX_LIMIT_POINTS - 1;
-            return false;
-        }
+    const auto plan = meritshelpers::PlanAddLimitPoints(
+        m_LimitPoints,
+        m_MeritPoints,
+        points,
+        maxMeritCap,
+        MAX_LIMIT_POINTS);
 
-        uint8 MeritPoints = std::min(m_MeritPoints + m_LimitPoints / MAX_LIMIT_POINTS, settings::get<uint8>("map.MAX_MERIT_POINTS") + GetMeritValue(MERIT_MAX_MERIT, m_PChar));
-
-        m_LimitPoints = m_LimitPoints % MAX_LIMIT_POINTS;
-
-        if (m_MeritPoints != MeritPoints)
-        {
-            m_MeritPoints = MeritPoints;
-            return true;
-        }
-    }
-    return false;
+    m_LimitPoints = plan.newLimit;
+    m_MeritPoints = plan.newMerit;
+    return plan.meritIncreased;
 }
 
 void CMeritPoints::SetLimitPoints(uint16 points)
@@ -396,15 +390,19 @@ void CMeritPoints::RaiseMerit(MERIT_TYPE merit)
 void CMeritPoints::LowerMerit(MERIT_TYPE merit)
 {
     Merit_t* PMerit = GetMeritPointer(merit);
-    if (!PMerit)
+
+    // Pure admission plan (slice 2810). NextCost table, count--, and spell/WS
+    // del hosts stay host-side after apply.
+    const auto plan = meritshelpers::PlanLowerMerit(
+        PMerit != nullptr,
+        PMerit != nullptr ? PMerit->count : uint8{ 0 });
+
+    if (!plan.apply)
     {
         return;
     }
 
-    if (PMerit->count > 0)
-    {
-        PMerit->next = upgrade[meritCatInfo[GetMeritCategory(merit)].UpgradeID][--PMerit->count];
-    }
+    PMerit->next = upgrade[meritCatInfo[GetMeritCategory(merit)].UpgradeID][--PMerit->count];
 
     if (PMerit->spellid != 0 && PMerit->count == 0)
     {

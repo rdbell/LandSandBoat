@@ -171,9 +171,15 @@ bool CTradeContainer::setConfirmedStatus(uint8 slotID, uint32 amount)
 
 void CTradeContainer::setItem(const uint8 slotId, const uint16 itemId, const uint8 invSlotId, const uint32 quantity, CItem* item)
 {
-    if (slotId < m_PItem.size())
+    // Pure admission + always-bump count: tradecontainerhelpers (slice 2812).
+    const bool slotInRange = slotId < m_PItem.size();
+    if (tradecontainerhelpers::ShouldSetTradeItemEntry(slotInRange))
     {
-        m_ItemsCount += 1;
+        // Always increments ItemsCount when admitted (even replace) — parity quirk.
+        if (tradecontainerhelpers::ShouldBumpItemsCountOnSetEntry(slotInRange))
+        {
+            m_ItemsCount += 1;
+        }
 
         m_PItem[slotId]    = item;
         m_itemID[slotId]   = itemId;

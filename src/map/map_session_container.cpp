@@ -514,6 +514,8 @@ void MapSessionContainer::destroySession(MapSession* map_session_data)
 
     // Refuse stale or foreign pointers so a replacement session cannot be
     // erased through the owning map while the index still points elsewhere.
+    // Index removal happens before PlanDestroy so planning is identity-safe
+    // remaining effects only (RemoveSessionIndex is not part of the plan).
     if (!index_.removeSession(map_session_data))
     {
         return;
@@ -521,24 +523,35 @@ void MapSessionContainer::destroySession(MapSession* map_session_data)
 
     ShowDebugFmt("Closing session for {}", map_session_data->client_ipp.toString());
 
-    // clear accounts_sessions if character is logging out (not when zoning)
-    if (map_session_data->shuttingDown == 1)
+    // Remaining destroy effects: pure plan; host owns SQL / zone / char / erase.
+    const mapsessionhelpers::DestroyDecision destroyInput{
+        .hasCharacter = map_session_data->PChar != nullptr,
+        .hasZone      = map_session_data->PChar != nullptr && map_session_data->PChar->loc.zone != nullptr,
+        .shuttingDown = map_session_data->shuttingDown,
+    };
+    const auto plan = mapsessionhelpers::PlanDestroy(destroyInput);
+    for (uint8 i = 0; i < plan.count; ++i)
     {
-        db::preparedStmt("DELETE FROM accounts_sessions WHERE charid = ?", map_session_data->charID);
-    }
-
-    if (map_session_data->PChar)
-    {
-        CZone* PZone = map_session_data->PChar->loc.zone;
-        if (PZone)
+        switch (plan.actions[i])
         {
-            // This should already be done in removeCharFromZone, but just to be safe...
-            PZone->DecreaseZoneCounter(map_session_data->PChar.get());
+            case mapsessionhelpers::CleanupAction::DeleteDatabaseSession:
+                // clear accounts_sessions if character is logging out (not when zoning)
+                db::preparedStmt("DELETE FROM accounts_sessions WHERE charid = ?", map_session_data->charID);
+                break;
+            case mapsessionhelpers::CleanupAction::DecreaseZoneCounter:
+                // This should already be done in removeCharFromZone, but just to be safe...
+                map_session_data->PChar->loc.zone->DecreaseZoneCounter(map_session_data->PChar.get());
+                break;
+            case mapsessionhelpers::CleanupAction::ReleaseCharacter:
+                map_session_data->PChar.reset();
+                break;
+            case mapsessionhelpers::CleanupAction::EraseSession:
+                sessions_.erase(map_session_data->client_ipp);
+                break;
+            default:
+                break;
         }
-        map_session_data->PChar.reset();
     }
-
-    sessions_.erase(map_session_data->client_ipp);
 }
 
 void MapSessionContainer::destroyPendingSession(MapSession* map_session_data)

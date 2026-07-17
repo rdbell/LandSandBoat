@@ -2,9 +2,9 @@
 
 #include <cstdint>
 
-// Pure CUContainer::SetItem admission and m_count delta policy (slice 2801).
+// Pure CUContainer::SetItem / ClearSlot policy helpers (slices 2801, 2813).
 //
-// Production host: CUContainer::SetItem in universal_container.cpp.
+// Production host: CUContainer::{SetItem,ClearSlot} in universal_container.cpp.
 
 namespace ucontainerhelpers
 {
@@ -35,6 +35,22 @@ inline auto PlanSetItemCountDelta(const bool newItemNonNull, const bool slotOccu
         return -1;
     }
     return 0;
+}
+
+// ShouldClearSlot mirrors the ClearSlot range gate:
+//   slotID < m_PItem.size()
+//
+// Unlike SetItem, ClearSlot does not consult m_lock.
+inline auto ShouldClearSlot(const bool slotInRange) -> bool
+{
+    return slotInRange;
+}
+
+// ShouldAdjustCountOnClearSlot documents that ClearSlot does NOT change m_count
+// (parity quirk vs SetItem(nullptr), which decrements when the slot was occupied).
+inline auto ShouldAdjustCountOnClearSlot() -> bool
+{
+    return false;
 }
 
 } // namespace ucontainerhelpers
