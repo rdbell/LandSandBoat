@@ -10,7 +10,7 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1367: free-slot / rare / eviction / lot policy suite
 //   - 2772 / 2777 / 2779 / 2780 / 2781: lot/pass/update/post-lot/flush plans
-//   - 2938: ShouldAutoResolveSolo (memberCount == 1 after insert)
+//   - 2938: ShouldAutoResolveSolo residual dual-wire suite (memberCount == 1)
 //   - 2957: CanLotWithInventory (freeSlots != 0 inventory lot gate)
 //   - 2981: ShouldForceCheckOnFullPoolInsert (SlotID == PoolSize after free scan)
 //   - 2998: CanLotRareItem (!(rare && alreadyHas) rare-owned lot gate)
@@ -19,11 +19,18 @@
 //   - 3094: ShouldSkipRareCheck (!isSoloPool && itemHasNoRareCheck skip-rare gate)
 //   - 3112: ShouldUpdatePoolForChar (!isDisappear UpdatePool visibility gate)
 //   - 3127: ShouldFlushPool (itemCount != 0 flush entry gate)
+//   - 3201: ShouldAutoResolveSolo dedicated dual-wire (auto_solo.go; expand residual 2938)
+//
+// Dual-wire index:
+//   - 2938: ShouldAutoResolveSolo residual dual-wire suite
+//   - 3201: ShouldAutoResolveSolo = memberCount == 1
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
 // Go dual-wire: treasurepool.ShouldAutoResolveSolo
 // (internal/treasurepool/auto_solo.go).
+// Residual dual-wire suite: 2938 (test_treasure_auto_solo_2938).
+// Dedicated dual-wire suite: 3201 (test_treasurepool_auto_resolve_solo_3201).
 //
 // Production host: CTreasurePool::lotItem / PlanLotItemPreflight injects
 // getStorage(LOC_INVENTORY)->GetFreeSlotsCount() into CanLotWithInventory.
@@ -178,9 +185,14 @@ inline auto ShouldForceCheckOnFullPoolInsert(const uint8 slotAfterFreeScan) -> b
     return slotAfterFreeScan == PoolSize;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3201 — addItem solo auto-resolve gate (dedicated expand residual 2938)
+// ---------------------------------------------------------------------------
+
 // ShouldAutoResolveSolo mirrors memberCount() == 1 after insert.
 //
-// Formula (slice 2938 dual-wire):
+// Formula (slice 3201 dedicated dual-wire; residual expand 2938 / pure 1367 —
+// formula unchanged):
 //   memberCount == 1
 //
 // memberCount — host-evaluated memberCount() (current pool members after insert)
@@ -189,6 +201,13 @@ inline auto ShouldForceCheckOnFullPoolInsert(const uint8 slotAfterFreeScan) -> b
 //
 // Dual-wire of Go treasurepool.ShouldAutoResolveSolo.
 // Call site: CTreasurePool::addItem after trophy list packets.
+// Prior pure port: slice 1367. Residual dual-wire suite: 2938 /
+// test_treasure_auto_solo_2938. Dedicated dual-wire suite is
+// test_treasurepool_auto_resolve_solo_3201. Sibling dual-wire gates:
+// CanLotWithInventory (2957), ShouldForceCheckOnFullPoolInsert (2981),
+// CanLotRareItem (2998), ShouldRejectNullMember (3060),
+// ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094),
+// ShouldUpdatePoolForChar (3112), ShouldFlushPool (3127) — left residual.
 inline auto ShouldAutoResolveSolo(const std::size_t memberCount) -> bool
 {
     return memberCount == 1;

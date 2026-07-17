@@ -11,7 +11,10 @@
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1362: canSpawnNow / TOTD / weather despawn / tick / register policy
-//   - 2923: ShouldRejectFogSpawn (FOG spawnType flag && weather is not fog)
+//   - 2923: ShouldRejectFogSpawn residual dual-wire expand
+//   - 3202: ShouldRejectFogSpawn dedicated dual-wire
+//           (HasSpawnTypeFlag(spawnType, SpawnTypeFog) && !isFog;
+//            residual expand 2923 / pure 1362)
 //   - 3092: ShouldRejectAtNightSpawn (ATNIGHT flag && not NIGHT/MIDNIGHT TOTD)
 //   - 3107: ShouldRejectAtEveningSpawn (ATEVENING flag && not evening TOTD window)
 //   - 3124: ShouldRejectSpawnNullOrDisabled (mobNull || !allowRespawn)
@@ -21,8 +24,11 @@
 // isFog = zone_->weather().current() == Weather::Fog and current TOTD before
 // CanSpawnNowPure. SpawnHandler::onTOTDChange NEWDAY injects m_SpawnType into
 // ShouldDespawnOnNewDay.
-// Go dual-wire: spawnslot.ShouldRejectFogSpawn (internal/spawnslot/reject_fog.go),
-// spawnslot.ShouldRejectAtNightSpawn (internal/spawnslot/reject_night_spawn.go),
+// Go dual-wire: spawnslot.ShouldRejectFogSpawn (internal/spawnslot/reject_fog.go).
+// Residual dual-wire suite: 2923 / test_spawn_reject_fog_2923.
+// Dedicated dual-wire suite: 3202 / test_spawnslot_reject_fog_spawn_3202.
+// Go dual-wire: spawnslot.ShouldRejectAtNightSpawn
+// (internal/spawnslot/reject_night_spawn.go),
 // spawnslot.ShouldRejectAtEveningSpawn (internal/spawnslot/reject_evening_spawn.go),
 // spawnslot.ShouldRejectSpawnNullOrDisabled
 // (internal/spawnslot/reject_spawn_null_disabled.go),
@@ -123,15 +129,23 @@ inline auto ShouldRejectAtEveningSpawn(const uint8 spawnType, const vanadiel_tim
 // ShouldRejectFogSpawn mirrors FOG flag && weather is not fog.
 // isFog is host-evaluated weather == Weather::Fog.
 //
-// Formula (slice 2923 dual-wire):
+// Formula (slice 3202 dedicated dual-wire; residual expand 2923 / pure 1362 —
+// formula unchanged):
 //   HasSpawnTypeFlag(spawnType, SpawnTypeFog) && !isFog
 //   // SpawnTypeFog = 0x08
+//   // Positive form: FOG flag required AND weather is not fog
 //
 // true  → reject spawn (FOG-type mob outside fog weather)
 // false → fog gate passes (no FOG flag, or weather is fog)
 //
-// Dual-wire of Go spawnslot.ShouldRejectFogSpawn.
+// Dual-wire of Go spawnslot.ShouldRejectFogSpawn
+// (internal/spawnslot/reject_fog.go). Prior pure port: slice 1362.
+// Residual dual-wire suite: 2923 / test_spawn_reject_fog_2923.
+// Dedicated dual-wire suite is test_spawnslot_reject_fog_spawn_3202. Formula is
+// unchanged; this slice only expands dual-wire docs + index + dedicated suite.
 // Call site: CanSpawnNowPure (and SpawnHandler::canSpawnNow host inject).
+// Sibling dual-wires left alone: ShouldRejectAtNightSpawn (3092),
+// ShouldRejectAtEveningSpawn (3107), ShouldRejectSpawnNullOrDisabled (3124).
 inline auto ShouldRejectFogSpawn(const uint8 spawnType, const bool isFog) -> bool
 {
     return HasSpawnTypeFlag(spawnType, SpawnTypeFog) && !isFog;

@@ -8,8 +8,10 @@
 //   - 1392: full ranged AE dispatch policy residual pure port
 //           (ShouldShortCircuitAdditionalEffects, conflict, global/item try,
 //           ResolveRangedAdditionalEffectItem)
-//   - 2950: ShouldShortCircuitAdditionalEffects (targetIsDead) dual-wire
-//           expansion
+//   - 2950: ShouldShortCircuitAdditionalEffects residual dual-wire expand
+//           (targetIsDead identity)
+//   - 3203: ShouldShortCircuitAdditionalEffects dedicated dual-wire
+//           (targetIsDead; residual expand 2950 / pure 1392)
 //
 // Production host: CBattleEntity::OnRangedAttack checkAddEffect lambda
 // (battle_entity.cpp) injects PTarget->GetHPP() == 0 into
@@ -20,11 +22,28 @@
 namespace rangedadditionaleffecthelpers
 {
 
+// --- Slice 3203: ShouldShortCircuitAdditionalEffects dedicated pure dual-wire ---
+// Residual dual-wire expand: slice 2950.
+// Residual pure port: slice 1392 (OnRangedAttack checkAddEffect AE policy suite).
+// Production host: CBattleEntity::OnRangedAttack checkAddEffect injects
+// PTarget->GetHPP() == 0 into ShouldShortCircuitAdditionalEffects before
+// global / item-script AE attempts. When true, checkAddEffect returns early
+// (treated as handled / skipped).
+// Go dual-wire: ranger.ShouldShortCircuitAdditionalEffects
+// (internal/ranger/ranged_additional_effect.go).
+// Residual dual-wire suite: 2950 / test_ranger_short_circuit_ae_2950.
+// Dedicated dual-wire suite: 3203 /
+// test_ranger_short_circuit_additional_effects_3203.
+// Formula is unchanged; this slice only expands dual-wire docs + index +
+// dedicated suite. Sibling residual AE gates remain on this header
+// (conflict / global try / item-script try / ammo-weapon resolve).
+// Siblings left alone: camouflage retain suite (3174 etc.).
+
 // ShouldShortCircuitAdditionalEffects reports whether a dead target prevents
 // any additional-effect dispatch.
 //
-// Formula (slice 2950 dual-wire):
-//   targetIsDead → short-circuit (true)
+// Formula (slice 3203 dual-wire; residual 2950 / pure 1392):
+//   targetIsDead → short-circuit (true)  // identity
 //
 // targetIsDead — host-evaluated PTarget->GetHPP() == 0
 // true  → checkAddEffect returns early (skip AE procs; treated as handled)
@@ -32,7 +51,8 @@ namespace rangedadditionaleffecthelpers
 //
 // Dual-wire of Go ranger.ShouldShortCircuitAdditionalEffects.
 // Call site: OnRangedAttack checkAddEffect before GetScaledItemModifier AE flags.
-// Residual pure port: slice 1392.
+// Residual pure port: slice 1392. Residual dual-wire expand: slice 2950.
+// Dedicated dual-wire suite: slice 3203.
 inline auto ShouldShortCircuitAdditionalEffects(const bool targetIsDead) -> bool
 {
     return targetIsDead;

@@ -4,19 +4,22 @@
 
 // Pure Assault helpers shared by dual-wire slices:
 //   - 2860: InstanceAssault progress auto-complete (residual dual-wire suite)
-//   - 2863: onAssaultUpdate party/alliance proceed
+//   - 2863: onAssaultUpdate party/alliance proceed (residual dual-wire suite)
 //   - 2867: onRytaalEventFinish obtain new Imperial Army ID tag (residual dual-wire)
 //   - 3057: ShouldAutoComplete dedicated dual-wire (auto_complete.go)
 //   - 3145: ShouldIssueNewTag dedicated dual-wire (issue_tag.go)
+//   - 3199: ShouldProceedAssaultUpdate dedicated dual-wire (proceed_update.go)
 //
 // Dual-wire index:
 //   - 2860: ProgressMeetsRequired / ShouldAutoComplete residual dual-wire
-//   - 2863: ShouldProceedAssaultUpdate (party/alliance proceed)
+//   - 2863: ShouldProceedAssaultUpdate residual dual-wire (party/alliance proceed)
 //   - 2867: ShouldIssueNewTag residual dual-wire (Rytaal obtain new tag)
 //   - 3057: ShouldAutoComplete (requiredProgress==0 || alreadyCompleted → false;
 //           else ProgressMeetsRequired on onInstanceProgressUpdate)
 //   - 3145: ShouldIssueNewTag (option == kRytaalOptionObtainTag &&
 //           !hasImperialArmyIDTag; dedicated dual-wire suite)
+//   - 3199: ShouldProceedAssaultUpdate (!PartyTooSmallForAssault &&
+//           !IsAllianceBlocked; dedicated dual-wire suite)
 //
 // Production hosts are Lua under scripts/globals/assault/ (container.lua,
 // npc_handler.lua). Capacity is for future Lua/C++ inject so hosts dual-wire
@@ -74,7 +77,7 @@ inline auto ShouldAutoComplete(const int32 requiredProgress, const int32 progres
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2863 — onAssaultUpdate party / alliance proceed
+// Slice 2863 / 3199 — onAssaultUpdate party / alliance proceed
 // ---------------------------------------------------------------------------
 
 // AllianceBlocked matches checkSoloPartyAlliance() == 2 (full alliance).
@@ -85,6 +88,7 @@ inline constexpr int32 kAllianceBlocked = 2;
 //   gmLevel == 0 && partySize < assaultMinimum
 // GM (gmLevel != 0) bypasses the minimum. assaultMinimum is
 // settings.main.ASSAULT_MINIMUM (default 1; TOAU-era 3).
+// Residual component (slice 1100 / 2863); composed by ShouldProceedAssaultUpdate.
 inline auto PartyTooSmallForAssault(const int32 gmLevel, const int32 partySize, const int32 assaultMinimum) -> bool
 {
     return gmLevel == 0 && partySize < assaultMinimum;
@@ -92,6 +96,7 @@ inline auto PartyTooSmallForAssault(const int32 gmLevel, const int32 partySize, 
 
 // IsAllianceBlocked mirrors the second early-return gate:
 //   checkSoloPartyAlliance() == 2
+// Residual component (slice 1100 / 2863); composed by ShouldProceedAssaultUpdate.
 inline auto IsAllianceBlocked(const int32 checkSoloPartyAlliance) -> bool
 {
     return checkSoloPartyAlliance == kAllianceBlocked;
@@ -102,6 +107,13 @@ inline auto IsAllianceBlocked(const int32 checkSoloPartyAlliance) -> bool
 //   !PartyTooSmallForAssault(...) && !IsAllianceBlocked(...)
 // When true the host continues to xi.instance.onEventUpdate.
 //
+// Formula (slice 3199 dedicated dual-wire; residual expand 2863 / pure 1100
+// — formula unchanged):
+//   if PartyTooSmallForAssault(...): return false
+//   if IsAllianceBlocked(...): return false
+//   return true
+//   // ≡ !PartyTooSmallForAssault(...) && !IsAllianceBlocked(...)
+//
 // Lua host (onAssaultUpdate after setLocalVar('AssaultCap')):
 //   if getGMLevel() == 0 and getPartySize() < ASSAULT_MINIMUM then
 //     messageSpecial(...); instanceEntry(npc, 1); return
@@ -109,6 +121,15 @@ inline auto IsAllianceBlocked(const int32 checkSoloPartyAlliance) -> bool
 //     messageText(...); instanceEntry(npc, 1); return
 //   end
 //   xi.instance.onEventUpdate(...)
+//
+// Dual-wire of Go assault.ShouldProceedAssaultUpdate
+// (internal/assault/proceed_update.go).
+// Call site: future Lua onAssaultUpdate inject.
+// Prior pure port: slice 1100. Residual dual-wire suite: 2863 /
+// test_assault_proceed_update_2863. Dedicated dual-wire suite is
+// test_assault_proceed_update_3199. Residual PartyTooSmallForAssault /
+// IsAllianceBlocked remain the pure component gates.
+// Host still owns messages / instanceEntry / onEventUpdate after this gate.
 inline auto ShouldProceedAssaultUpdate(const int32 gmLevel,
                                        const int32 partySize,
                                        const int32 assaultMinimum,

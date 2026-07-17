@@ -1489,6 +1489,11 @@ auto runLinkshellRejectNullAddMember3195SelfTests() -> bool;
 auto runMeritIsMeritExist3196SelfTests() -> bool;
 auto runDynamisAtOrigin3197SelfTests() -> bool;
 auto runBattlefieldRejectNullInsert3198SelfTests() -> bool;
+auto runAssaultProceedUpdate3199SelfTests() -> bool;
+auto runPartyRejectPCAddFull3200SelfTests() -> bool;
+auto runTreasurepoolAutoResolveSolo3201SelfTests() -> bool;
+auto runSpawnslotRejectFogSpawn3202SelfTests() -> bool;
+auto runRangerShortCircuitAdditionalEffects3203SelfTests() -> bool;
 
 namespace
 {
@@ -2955,6 +2960,11 @@ namespace
         ok = runMeritIsMeritExist3196SelfTests() && ok;
         ok = runDynamisAtOrigin3197SelfTests() && ok;
         ok = runBattlefieldRejectNullInsert3198SelfTests() && ok;
+        ok = runAssaultProceedUpdate3199SelfTests() && ok;
+        ok = runPartyRejectPCAddFull3200SelfTests() && ok;
+        ok = runTreasurepoolAutoResolveSolo3201SelfTests() && ok;
+        ok = runSpawnslotRejectFogSpawn3202SelfTests() && ok;
+        ok = runRangerShortCircuitAdditionalEffects3203SelfTests() && ok;
 
         return ok;
     }

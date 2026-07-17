@@ -28,6 +28,7 @@ auto inlineShouldRejectFogSpawn(const uint8 spawnType, const bool isFog) -> bool
 
 // Pure dual-wire expansion for spawnhelpers::ShouldRejectFogSpawn
 // (FOG spawnType flag && weather is not fog; slice 2923).
+// Dedicated expand residual is runSpawnslotRejectFogSpawn3202SelfTests.
 auto runSpawnRejectFog2923SelfTests() -> bool
 {
     using spawnhelpers::CanSpawnNowPure;

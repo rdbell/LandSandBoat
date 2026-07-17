@@ -2971,6 +2971,16 @@ set(SOURCES
     test_dynamis_at_origin_3197.cpp
     test_battlefield_reject_null_insert_3198.h
     test_battlefield_reject_null_insert_3198.cpp
+    test_assault_proceed_update_3199.h
+    test_assault_proceed_update_3199.cpp
+    test_party_reject_pc_add_full_3200.h
+    test_party_reject_pc_add_full_3200.cpp
+    test_treasurepool_auto_resolve_solo_3201.h
+    test_treasurepool_auto_resolve_solo_3201.cpp
+    test_spawnslot_reject_fog_spawn_3202.h
+    test_spawnslot_reject_fog_spawn_3202.cpp
+    test_ranger_short_circuit_additional_effects_3203.h
+    test_ranger_short_circuit_additional_effects_3203.cpp
 )
 
 if(UNIX)

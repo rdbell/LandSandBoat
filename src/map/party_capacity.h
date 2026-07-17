@@ -14,7 +14,9 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 1327 / 1350: capacity thresholds, trust admission, AddMember classify
 //   - 1330: level-sync refresh suite (prior pure for low-level remove)
-//   - 2928: ShouldRejectPCAddFull (TYPE_PC + PARTY_PCS + partyFull)
+//   - 2928: ShouldRejectPCAddFull residual dual-wire expand
+//   - 3200: ShouldRejectPCAddFull dedicated dual-wire
+//           (TYPE_PC + PARTY_PCS + partyFull; residual expand 2928 / pure 1327 / 1350)
 //   - 2937: ShouldRejectPCAddTrusts (TYPE_PC + PARTY_PCS + partyHasTrusts)
 //   - 2955: ShouldClearSeekingParty (isSeekingParty after join)
 //   - 2974: ShouldRemoveSyncForLowLevel (RefreshSync syncLevel < 10)
@@ -72,7 +74,9 @@
 // Production host: CParty::DisbandParty (party.cpp:~169) injects
 // playerInitiated into ShouldNotifyPartyDisbandIPC on the PC_FULL path after
 // member cleanup / DB delete before message::send(ipc::PartyDisband).
-// Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
+// Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go;
+// residual dual-wire suite: 2928 / test_party_reject_full_2928;
+// dedicated dual-wire suite: 3200 / test_party_reject_pc_add_full_3200),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
 // party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go),
@@ -151,7 +155,8 @@ inline auto LoadPartySizeForType(const bool isPCParty, const std::size_t localMe
 
 // ShouldRejectPCAddFull mirrors AddMember's IsFull gate for TYPE_PC + PARTY_PCS.
 //
-// Formula (slice 2928 dual-wire):
+// Formula (slice 3200 dedicated dual-wire; residual expand 2928 / pure 1327 /
+// 1350 — formula unchanged):
 //   isPCEntity && isPCParty && partyFull
 //
 // isPCEntity — host-evaluated objtype == TYPE_PC
@@ -162,6 +167,9 @@ inline auto LoadPartySizeForType(const bool isPCParty, const std::size_t localMe
 //
 // Dual-wire of Go party.ShouldRejectPCAddFull.
 // Call site: ClassifyAddMember / CParty::AddMember host inject.
+// Residual dual-wire suite: 2928 / test_party_reject_full_2928.
+// Dedicated dual-wire suite is test_party_reject_pc_add_full_3200. Formula is
+// unchanged; dedicated suite expands free==inline==pin poles + dense 2^3.
 inline auto ShouldRejectPCAddFull(const bool isPCEntity, const bool isPCParty, const bool partyFull) -> bool
 {
     return isPCEntity && isPCParty && partyFull;
