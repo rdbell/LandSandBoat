@@ -3,12 +3,14 @@
 #include "common/cbasetypes.h"
 
 // Pure campaign helpers shared by dual-wire slices:
-//   - 2858: ShouldDebitBonusCost (sigil apply delCurrency gate)
+//   - 2858: ShouldDebitBonusCost residual dual-wire suite
+//   - 3103: ShouldDebitBonusCost dedicated dual-wire (debit_bonus_cost.go)
 //   - 2946: CanAffordAlliedNotes residual dual-wire suite
 //   - 3072: CanAffordAlliedNotes dedicated dual-wire (afford_notes.go)
 //
 // Dual-wire index:
-//   - 2858: ShouldDebitBonusCost (bonusCost > 0)
+//   - 2858: ShouldDebitBonusCost residual dual-wire suite
+//   - 3103: ShouldDebitBonusCost (bonusCost > 0)
 //   - 2946: CanAffordAlliedNotes residual dual-wire suite
 //   - 3072: CanAffordAlliedNotes (notes >= price)
 //
@@ -17,19 +19,34 @@
 // functions instead of re-inlining comparisons. Helpers take host-injected
 // scalars only (no entity / currency pointers). Side effects (giveItem,
 // delCurrency) remain host-owned.
-// Go dual-wire: campaign.CanAffordAlliedNotes
-// (internal/campaign/afford_notes.go). Future Lua host injects
-// CanAffordAlliedNotes then giveItem / delCurrency.
+// Go dual-wire: campaign.ShouldDebitBonusCost
+// (internal/campaign/debit_bonus_cost.go) and campaign.CanAffordAlliedNotes
+// (internal/campaign/afford_notes.go). Future Lua host injects free
+// functions then giveItem / delCurrency.
 //
 // Prior pure port: OmegaXI slice 1115 (internal/campaign flow.go).
 
 namespace campaignhelpers
 {
 
-// ShouldDebitBonusCost mirrors the sigil apply delCurrency gate (slice 2858):
+// ---------------------------------------------------------------------------
+// Slice 2858 / 3103 — sigil apply delCurrency debit gate
+// ---------------------------------------------------------------------------
+
+// ShouldDebitBonusCost mirrors the sigil apply delCurrency gate:
 //   bonusCost > 0
 // Host injects bonusCost from SigilBonusCost / selected-effect loop.
 // Zero cost skips delCurrency('allied_notes', bonusCost).
+//
+// Formula (slice 3103 dual-wire; residual expand 2858 / pure 1115 — formula
+// unchanged):
+//   ShouldDebitBonusCost(bonusCost) = bonusCost > 0
+//
+// Dual-wire of Go campaign.ShouldDebitBonusCost (debit_bonus_cost.go).
+// Call site: future Lua sigilOnEventFinish inject.
+// Prior pure port: slice 1115. Residual dual-wire suite: 2858 /
+// test_campaign_debit_bonus_2858. Dedicated dual-wire suite is
+// test_campaign_debit_bonus_3103. Host still owns delCurrency after a true gate.
 inline auto ShouldDebitBonusCost(const int32 bonusCost) -> bool
 {
     return bonusCost > 0;

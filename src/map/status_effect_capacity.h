@@ -31,7 +31,34 @@ inline auto ShouldBlockSpikesDueToAftermath(const bool hasAftermath, const uint1
     return hasAftermath && (aftermathPower == AftermathPowerSpikesBlockA || aftermathPower == AftermathPowerSpikesBlockB);
 }
 
+// --- Slice 3100: ShouldBlockCharmOnPet pure dual-wire ---
+// Residual pure port: slice 1364 (CanGain overwrite / negative / immunity suite).
+// Production host: CStatusEffectContainer::CanGainStatusEffect injects
+// (statusEffect == CharmI || CharmIi) and (m_POwner->PMaster != nullptr) into
+// ShouldBlockCharmOnPet; on true return false (pets cannot be charmed).
+// Go dual-wire: statuseffect.ShouldBlockCharmOnPet
+// (internal/statuseffect/block_charm_on_pet.go).
+// Sibling dual-wires 3049 / 3069 / 3080 (expire / tick / null-add) left alone.
+// Index 3100: statuseffect.ShouldBlockCharmOnPet pure dual-wire.
+
 // ShouldBlockCharmOnPet mirrors charm effect && PMaster != nullptr.
+//
+// Formula (slice 3100 dual-wire):
+//   isCharmEffect && hasMaster
+//
+// isCharmEffect — host-injected (status is CharmI or CharmIi)
+// hasMaster     — host-injected (m_POwner->PMaster != nullptr)
+// true  → host rejects CanGainStatusEffect (pets cannot be charmed)
+// false → proceed past charm-on-pet gate
+//
+// Dual-wire of Go statuseffect.ShouldBlockCharmOnPet.
+// Call site: CStatusEffectContainer::CanGainStatusEffect — host injects
+// CharmI/CharmIi membership and PMaster != nullptr; on true return false.
+// Prior pure port: slice 1364 (can-gain pure policy suite).
+// Residual pins remain in test_status_effect_can_gain_1364; dedicated
+// dual-wire suite is test_status_block_charm_pet_3100.
+// Sibling dual-wires: ShouldExpireEffect (3049) / ShouldTickEffect (3069) /
+// ShouldRejectNullStatusEffect (3080) are orthogonal.
 inline auto ShouldBlockCharmOnPet(const bool isCharmEffect, const bool hasMaster) -> bool
 {
     return isCharmEffect && hasMaster;

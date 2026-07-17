@@ -1389,6 +1389,11 @@ auto runNyzulGrantFreeFloor3095SelfTests() -> bool;
 auto runUnityAddMemberLookup3096SelfTests() -> bool;
 auto runPetCanRetreatMaster3097SelfTests() -> bool;
 auto runSynergyTradeFurnace3098SelfTests() -> bool;
+auto runLinkshellProcessItem3099SelfTests() -> bool;
+auto runStatusBlockCharmPet3100SelfTests() -> bool;
+auto runPartyDetachAlliance3101SelfTests() -> bool;
+auto runBattlefieldClearLevel3102SelfTests() -> bool;
+auto runCampaignDebitBonus3103SelfTests() -> bool;
 
 namespace
 {
@@ -2755,6 +2760,11 @@ namespace
         ok = runUnityAddMemberLookup3096SelfTests() && ok;
         ok = runPetCanRetreatMaster3097SelfTests() && ok;
         ok = runSynergyTradeFurnace3098SelfTests() && ok;
+        ok = runLinkshellProcessItem3099SelfTests() && ok;
+        ok = runStatusBlockCharmPet3100SelfTests() && ok;
+        ok = runPartyDetachAlliance3101SelfTests() && ok;
+        ok = runBattlefieldClearLevel3102SelfTests() && ok;
+        ok = runCampaignDebitBonus3103SelfTests() && ok;
 
         return ok;
     }

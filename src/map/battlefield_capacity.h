@@ -16,6 +16,7 @@
 //   - 3024: ShouldEnterPC (enter identity)
 //   - 3059: ShouldApplyLevelCap (levelCap > 0)
 //   - 3087: ShouldAddSjRestriction ((rules & ALLOW_SUBJOBS) == 0)
+//   - 3102: ShouldClearLevelRestriction (levelCap == 0)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -57,6 +58,12 @@
 // there is a lv cap); on true AddStatusEffect(SjRestriction, ...).
 // Go dual-wire: battlefield.ShouldAddSjRestriction
 // (internal/battlefield/add_sj_restriction.go).
+//
+// Production host: CBattlefield::ApplyLevelRestrictions else branch when
+// !ShouldApplyLevelCap(GetLevelCap()) clears LevelRestriction — that clear
+// path is dual-wired as ShouldClearLevelRestriction(levelCap == 0).
+// Go dual-wire: battlefield.ShouldClearLevelRestriction
+// (internal/battlefield/clear_level_restriction.go).
 
 namespace battlefieldhelpers
 {
@@ -286,6 +293,24 @@ inline auto ShouldAddSjRestriction(const uint16 rules) -> bool
 }
 
 // ShouldClearLevelRestriction mirrors cap == 0 path (delete LevelRestriction).
+//
+// Formula (slice 3102 dual-wire):
+//   levelCap == 0
+//
+// levelCap — host-evaluated GetLevelCap() / raw battlefield level cap
+// true  → clear / DelStatusEffect(LevelRestriction) (uncapped battlefield)
+// false → do not take the clear-only path (nonzero cap applies restriction)
+//
+// Dual-wire of Go battlefield.ShouldClearLevelRestriction.
+// Call site semantics: CBattlefield::ApplyLevelRestrictions else branch
+// when !ShouldApplyLevelCap(rawCap) — DelStatusEffect(LevelRestriction).
+// Logically inverse of ShouldApplyLevelCap (3059; left alone): clear iff
+// !apply for all uint8. Sibling dual-wire ShouldAddSjRestriction remains
+// in this header (3087; left alone). Sibling residual ResolveLevelCap
+// remains in this header (1361).
+// Prior pure port: slice 1361 (battlefield policy suite). Residual pins
+// remain in test_battlefield_policy_1361; dedicated dual-wire suite is
+// test_battlefield_clear_level_3102.
 inline auto ShouldClearLevelRestriction(const uint8 levelCap) -> bool
 {
     return levelCap == 0;

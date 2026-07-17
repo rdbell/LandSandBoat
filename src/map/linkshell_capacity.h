@@ -25,6 +25,7 @@
 //   - 3026: ShouldRewritePacketAsLinkshell2 (memberIsLS2 identity)
 //   - 3055: ShouldLoadLinkshellOnOnlineAdd (!foundInCache)
 //   - 3079: ShouldRejectNullOnlineMember (charNull identity null-PChar gate)
+//   - 3099: ShouldProcessLinkshellItem (itemNonNull && isLinkshellType)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -47,6 +48,9 @@
 // linkshell::AddOnlineMember / DelOnlineMember (linkshell.cpp) inject
 // (PChar == nullptr) into ShouldRejectNullOnlineMember; on true ShowWarning +
 // return OnlineMemberAlwaysReturnsFalse before process item / load / roster.
+// After null gate, inject
+// (PItemLinkshell != nullptr, PItemLinkshell != nullptr && isType(ITEM_LINKSHELL))
+// into ShouldProcessLinkshellItem; on true proceed to load/add or del/erase.
 // linkshell::AddOnlineMember injects
 // LinkshellList.find(PItemLinkshell->GetLSID()) != end into
 // ShouldLoadLinkshellOnOnlineAdd; on true LoadLinkshell(id); on false reuses
@@ -72,7 +76,9 @@
 // linkshell.ShouldLoadLinkshellOnOnlineAdd
 // (internal/linkshell/load_on_online_add.go),
 // linkshell.ShouldRejectNullOnlineMember
-// (internal/linkshell/reject_null_online_member.go).
+// (internal/linkshell/reject_null_online_member.go),
+// linkshell.ShouldProcessLinkshellItem
+// (internal/linkshell/process_linkshell_item.go).
 
 namespace linkshellhelpers
 {
@@ -474,7 +480,30 @@ inline auto ShouldRejectNullOnlineMember(const bool charNull) -> bool
     return charNull;
 }
 
-// ShouldProcessLinkshellItem mirrors item != null && isType(ITEM_LINKSHELL).
+// ShouldProcessLinkshellItem mirrors item != null && isType(ITEM_LINKSHELL)
+// on AddOnlineMember / DelOnlineMember after the null-PChar gate.
+//
+// Formula (slice 3099 dual-wire):
+//   itemNonNull && isLinkshellType
+//
+// itemNonNull     — host-evaluated PItemLinkshell != nullptr
+// isLinkshellType — host-evaluated item isType(ITEM_LINKSHELL)
+//                   (production also short-circuits isType when the item
+//                   pointer is null)
+// true  → host proceeds to load / add (AddOnlineMember) or del / erase
+//         (DelOnlineMember) for this linkshell item
+// false → skip item work (null or non-linkshell item)
+//
+// Dual-wire of Go linkshell.ShouldProcessLinkshellItem.
+// Call sites: linkshell::AddOnlineMember / DelOnlineMember — host injects
+// (PItemLinkshell != nullptr,
+//  PItemLinkshell != nullptr && PItemLinkshell->isType(ITEM_LINKSHELL)).
+// Prior pure port: slice 1355 (linkshell registry residual). Residual pins
+// remain in test_linkshell_registry_1355; dedicated dual-wire suite is
+// test_linkshell_process_item_3099. Sibling dual-wires (leave alone):
+// ShouldLoadLinkshellOnOnlineAdd (3055), ShouldRejectNullOnlineMember (3079).
+// Residual siblings: add-after-lookup, always-false return, erase-after-del,
+// null warning string (still 1355).
 inline auto ShouldProcessLinkshellItem(const bool itemNonNull, const bool isLinkshellType) -> bool
 {
     return itemNonNull && isLinkshellType;

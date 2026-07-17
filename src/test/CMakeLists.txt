@@ -2771,6 +2771,16 @@ set(SOURCES
     test_pet_can_retreat_master_3097.cpp
     test_synergy_trade_furnace_3098.h
     test_synergy_trade_furnace_3098.cpp
+    test_linkshell_process_item_3099.h
+    test_linkshell_process_item_3099.cpp
+    test_status_block_charm_pet_3100.h
+    test_status_block_charm_pet_3100.cpp
+    test_party_detach_alliance_3101.h
+    test_party_detach_alliance_3101.cpp
+    test_battlefield_clear_level_3102.h
+    test_battlefield_clear_level_3102.cpp
+    test_campaign_debit_bonus_3103.h
+    test_campaign_debit_bonus_3103.cpp
 )
 
 if(UNIX)

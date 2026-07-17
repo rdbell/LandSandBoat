@@ -34,6 +34,8 @@
 //           effectsChanged identity)
 //   - 3083: ShouldAttemptPCLeaderPromote (RemovePartyLeader PC promote gate:
 //           !isMobParty)
+//   - 3101: ShouldDetachAllianceOnDisband (DisbandParty alliance detach gate:
+//           hasAlliance identity)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
@@ -62,6 +64,9 @@
 // Production host: CParty::RemovePartyLeader (party.cpp:~538) injects
 // isMobParty (m_PartyType == PARTY_MOBS) into ShouldAttemptPCLeaderPromote
 // before the accounts_sessions JOIN / SetLeader PC promote path.
+// Production host: CParty::DisbandParty (party.cpp:~116) injects
+// hasAlliance (m_PAlliance != nullptr) into ShouldDetachAllianceOnDisband
+// before m_PAlliance->removeParty(this).
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
@@ -74,7 +79,8 @@
 // party.ShouldPushPartyPacketToMember (internal/party/push_packet_member.go),
 // party.ShouldIncludeInGroupEffects (internal/party/include_group_effects.go),
 // party.ShouldPushEffectsPacket (internal/party/push_effects_packet.go),
-// party.ShouldAttemptPCLeaderPromote (internal/party/attempt_pc_leader_promote.go).
+// party.ShouldAttemptPCLeaderPromote (internal/party/attempt_pc_leader_promote.go),
+// party.ShouldDetachAllianceOnDisband (internal/party/detach_alliance_disband.go).
 
 namespace partyhelpers
 {
@@ -641,6 +647,19 @@ inline auto ClassifyDisbandPartyMemberPath(const bool isPCParty, const bool isMo
 }
 
 // ShouldDetachAllianceOnDisband mirrors if (m_PAlliance) removeParty(this).
+//
+// Formula (slice 3101 dual-wire):
+//   hasAlliance
+//
+// hasAlliance — host-evaluated m_PAlliance != nullptr
+// true  → host calls m_PAlliance->removeParty(this) then clears m_PAlliance
+// false → skip alliance detach (solo party disband)
+//
+// Dual-wire of Go party.ShouldDetachAllianceOnDisband
+// (internal/party/detach_alliance_disband.go). Prior pure port: slice 1345.
+// Call site: CParty::DisbandParty (party.cpp:~116) host inject.
+// Residual suite: test_party_disband_1345 (classify / IPC / treasure / MsgStd).
+// Coverage: test_party_detach_alliance_3101 (not in CMake/main).
 inline auto ShouldDetachAllianceOnDisband(const bool hasAlliance) -> bool
 {
     return hasAlliance;
