@@ -2064,6 +2064,11 @@ auto runNotorietyAddMember3770SelfTests() -> bool;
 auto runAllianceAttemptLeaderPromote3771SelfTests() -> bool;
 auto runLinkshellRejectNullAddMember3772SelfTests() -> bool;
 auto runColonizationreiveSpawnOnEnable3773SelfTests() -> bool;
+auto runAbysseaCanGiveNMKI3774SelfTests() -> bool;
+auto runArtisanCanBuySack3775SelfTests() -> bool;
+auto runSynergyClaimFurnace3776SelfTests() -> bool;
+auto runSalvageClaimTransport3777SelfTests() -> bool;
+auto runCampaignAffordNotes3778SelfTests() -> bool;
 
 namespace
 {
@@ -4105,6 +4110,11 @@ namespace
         ok = runAllianceAttemptLeaderPromote3771SelfTests() && ok;
         ok = runLinkshellRejectNullAddMember3772SelfTests() && ok;
         ok = runColonizationreiveSpawnOnEnable3773SelfTests() && ok;
+        ok = runAbysseaCanGiveNMKI3774SelfTests() && ok;
+        ok = runArtisanCanBuySack3775SelfTests() && ok;
+        ok = runSynergyClaimFurnace3776SelfTests() && ok;
+        ok = runSalvageClaimTransport3777SelfTests() && ok;
+        ok = runCampaignAffordNotes3778SelfTests() && ok;
 
         return ok;
     }
