@@ -3671,6 +3671,16 @@ set(SOURCES
     test_notoriety_add_member_3546.cpp
     test_unity_reject_null_online_3544.h
     test_unity_reject_null_online_3544.cpp
+    test_abyssea_can_give_nmki_3549.h
+    test_abyssea_can_give_nmki_3549.cpp
+    test_artisan_can_buy_sack_3550.h
+    test_artisan_can_buy_sack_3550.cpp
+    test_campaign_afford_notes_3553.h
+    test_campaign_afford_notes_3553.cpp
+    test_salvage_claim_transport_3552.h
+    test_salvage_claim_transport_3552.cpp
+    test_synergy_claim_furnace_3551.h
+    test_synergy_claim_furnace_3551.cpp
 )
 
 if(UNIX)
