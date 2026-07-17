@@ -22,6 +22,7 @@
 #include "view_session.h"
 
 #include "view_version_response.h"
+#include "view_world_list_response.h"
 
 #include "character_delete.h"
 #include "character_name.h"
@@ -388,30 +389,36 @@ void view_session::read_func()
         break;
         case 0x24: // 36: "Acquiring FINAL FANTASY XI server data"
         {
-            std::memset(buffer_.data(), 0, 0x40);
-            const auto serverName = settings::get<std::string>("main.SERVER_NAME");
+            const auto responsePlan = login::PlanViewWorldListResponse(session.view_session != nullptr);
 
             lpkt_world_list worldList = {};
-            worldList.terminator      = loginPackets::getTerminator();
-            worldList.command         = 0x23;
-
-            loginPackets::clearIdentifier(worldList);
-
-            // Send client 1 world
-            worldList.sumofworld = 0x01;
-
-            // Setup world id 0x20 with the server name from settings
-            worldList.world_name[0].no = 0x20;
-            std::memcpy(worldList.world_name[0].name, serverName.c_str(), std::clamp<size_t>(serverName.length(), 0, 15));
-
-            if (auto data = session.view_session.get())
+            if (responsePlan.shapeWorldListPacket)
             {
+                std::memset(buffer_.data(), 0, 0x40);
+                const auto serverName = settings::get<std::string>("main.SERVER_NAME");
+
+                worldList.terminator = loginPackets::getTerminator();
+                worldList.command    = 0x23;
+
+                loginPackets::clearIdentifier(worldList);
+
+                // Send client 1 world
+                worldList.sumofworld = 0x01;
+
+                // Setup world id 0x20 with the server name from settings
+                worldList.world_name[0].no = 0x20;
+                std::memcpy(worldList.world_name[0].name, serverName.c_str(), std::clamp<size_t>(serverName.length(), 0, 15));
+
                 worldList.packet_size = sizeof(packet_t) + sizeof(uint32_t) + sizeof(lpkt_world_name) * worldList.sumofworld;
 
                 unsigned char Hash[16];
                 md5(reinterpret_cast<uint8*>(&worldList), Hash, worldList.packet_size);
                 loginPackets::copyHashIntoPacket(worldList, Hash);
+            }
 
+            if (responsePlan.writeWorldListPacket)
+            {
+                auto data = session.view_session.get();
                 std::memcpy(data->buffer_.data(), &worldList, worldList.packet_size);
                 data->do_write(worldList.packet_size);
             }

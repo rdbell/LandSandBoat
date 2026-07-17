@@ -25,6 +25,7 @@ set(SOURCES
     version_lock.h
     version_lock.cpp
     view_version_response.h
+    view_world_list_response.h
 )
 
 if(UNIX)

@@ -284,6 +284,7 @@ auto runLoginHandlerSession2581SelfTests() -> bool;
 auto runLoginHandlerSessionPeer2749SelfTests() -> bool;
 auto runLoginHandlerAccept2752SelfTests() -> bool;
 auto runLoginViewVersionResponse2755SelfTests() -> bool;
+auto runLoginViewWorldListResponse2759SelfTests() -> bool;
 auto runLoginAuthPassword1307SelfTests() -> bool;
 auto runLoginAuthVersionError1308SelfTests() -> bool;
 auto runLoginAuthAccountID1309SelfTests() -> bool;
@@ -1321,6 +1322,7 @@ namespace
         ok = runLoginHandlerSessionPeer2749SelfTests() && ok;
         ok = runLoginHandlerAccept2752SelfTests() && ok;
         ok = runLoginViewVersionResponse2755SelfTests() && ok;
+        ok = runLoginViewWorldListResponse2759SelfTests() && ok;
         ok = runLoginAuthPassword1307SelfTests() && ok;
         ok = runLoginAuthVersionError1308SelfTests() && ok;
         ok = runLoginAuthAccountID1309SelfTests() && ok;
