@@ -19,7 +19,8 @@
 // - ShouldApplyRaiseJobPoint prior dedicated dual-wire expand residual 3012 (slice 3718)
 // - ShouldApplyRaiseJobPoint prior dedicated dual-wire expand residual 3012 (slice 3763)
 // - ShouldApplyRaiseJobPoint prior dedicated dual-wire expand residual 3012 (slice 3808)
-// - ShouldApplyRaiseJobPoint dedicated dual-wire expand residual 3012 (slice 3853)
+// - ShouldApplyRaiseJobPoint prior dedicated dual-wire expand residual 3012 (slice 3853)
+// - ShouldApplyRaiseJobPoint dedicated dual-wire expand residual 3012 (slice 3898)
 // SQL UPDATE and jobpointutils::RefreshGiftMods stay host-side.
 //
 // Dual-wire index (ShouldApplyRaiseJobPoint):
@@ -49,8 +50,10 @@
 //           (test_jobpoints_apply_raise_3763; formula unchanged; retained)
 //   - 3808: prior dedicated dual-wire expand residual 3012
 //           (test_jobpoints_apply_raise_3808; formula unchanged; retained)
-//   - 3853: dedicated dual-wire expand residual 3012
-//           (test_jobpoints_apply_raise_3853; formula unchanged)
+//   - 3853: prior dedicated dual-wire expand residual 3012
+//           (test_jobpoints_apply_raise_3853; formula unchanged; retained)
+//   - 3898: dedicated dual-wire expand residual 3012
+//           (test_jobpoints_apply_raise_3898; formula unchanged)
 //
 // JobPointCost may already be a host macro from job_points.h; clear it while
 // defining the pure helper so the shared name stays testable, then restore.
@@ -91,7 +94,7 @@ struct RaiseJobPointPlan
     uint8 cost{};
 };
 
-// --- Slice 3853: ShouldApplyRaiseJobPoint dedicated dual-wire expand residual 3012 ---
+// --- Slice 3898: ShouldApplyRaiseJobPoint dedicated dual-wire expand residual 3012 ---
 // Residual pure port: slice 2803 (PlanRaiseJobPoint admission/spend plan suite).
 // Residual dual-wire: slice 3012 (test_jobpoints_apply_raise_3012).
 // Prior dedicated dual-wire: slice 3219 (test_jobpoints_apply_raise_3219 retained).
@@ -106,7 +109,8 @@ struct RaiseJobPointPlan
 // Prior dedicated dual-wire: slice 3718 (test_jobpoints_apply_raise_3718 retained).
 // Prior dedicated dual-wire: slice 3763 (test_jobpoints_apply_raise_3763 retained).
 // Prior dedicated dual-wire: slice 3808 (test_jobpoints_apply_raise_3808 retained).
-// Dedicated dual-wire: slice 3853 (test_jobpoints_apply_raise_3853; formula unchanged).
+// Prior dedicated dual-wire: slice 3853 (test_jobpoints_apply_raise_3853 retained).
+// Dedicated dual-wire: slice 3898 (test_jobpoints_apply_raise_3898; formula unchanged).
 // Production host: CJobPoints::RaiseJobPoint injects cost = JobPointCost(value)
 // and currentJp into PlanRaiseJobPoint, which dual-wires apply through
 // ShouldApplyRaiseJobPoint (job_points.cpp). Display/query path dual-wires the
@@ -116,19 +120,20 @@ struct RaiseJobPointPlan
 // prior dedicated 3275 + prior dedicated 3371 + prior dedicated 3421 +
 // prior dedicated 3475 + prior dedicated 3539 + prior dedicated 3583 +
 // prior dedicated 3628 + prior dedicated 3673 + prior dedicated 3718 +
-// prior dedicated 3763 + prior dedicated 3808 + dedicated 3853 suites).
+// prior dedicated 3763 + prior dedicated 3808 + prior dedicated 3853 +
+// dedicated 3898 suites).
 // Sibling residual: PlanRaiseJobPoint / RaiseJobPointPlan / Cost (2803 suite);
 // ShouldRaiseAffordable / GetJobPointCost (2828 suite) — not re-expanded here.
 
 // ShouldApplyRaiseJobPoint mirrors the RaiseJobPoint spend gate half after
 // cost is computed.
 //
-// Formula (slice 3853 dedicated dual-wire; residual expand 3012 / prior
+// Formula (slice 3898 dedicated dual-wire; residual expand 3012 / prior
 // dedicated 3219 / prior dedicated 3275 / prior dedicated 3371 / prior
 // dedicated 3421 / prior dedicated 3475 / prior dedicated 3539 / prior
 // dedicated 3583 / prior dedicated 3628 / prior dedicated 3673 / prior
-// dedicated 3718 / prior dedicated 3763 / prior dedicated 3808 / pure 2803
-// — formula unchanged):
+// dedicated 3718 / prior dedicated 3763 / prior dedicated 3808 / prior
+// dedicated 3853 / pure 2803 — formula unchanged):
 //   cost != 0 && currentJp >= cost
 //
 // cost      — host-injected JobPointCost(currentValue)
@@ -152,7 +157,8 @@ struct RaiseJobPointPlan
 // Prior dedicated dual-wire suite: 3718 / test_jobpoints_apply_raise_3718.
 // Prior dedicated dual-wire suite: 3763 / test_jobpoints_apply_raise_3763.
 // Prior dedicated dual-wire suite: 3808 / test_jobpoints_apply_raise_3808.
-// Dedicated dual-wire suite: 3853 / test_jobpoints_apply_raise_3853.
+// Prior dedicated dual-wire suite: 3853 / test_jobpoints_apply_raise_3853.
+// Dedicated dual-wire suite: 3898 / test_jobpoints_apply_raise_3898.
 inline auto ShouldApplyRaiseJobPoint(const uint8 cost, const uint16 currentJp) -> bool
 {
     return cost != 0 && currentJp >= cost;
@@ -198,40 +204,24 @@ inline constexpr uint16 kJPTypePerCategory = 10;
 // kMaxTypeLevel matches Cost(20)==0 raise cap / Lua MaxTypeLevel (slice 2828).
 inline constexpr uint8 kMaxTypeLevel = 20;
 
-// TotalCostToLevel is the pure sum of raise costs from level 0 to level:
-//   sum_{i=0}^{level-1} JobPointCost(i) = level*(level+1)/2 for level <= 20.
-// Levels above kMaxTypeLevel clamp to kMaxTypeLevel (210 JP). Level 0 → 0.
-inline auto TotalCostToLevel(uint8 level) -> uint16
-{
-    if (level > kMaxTypeLevel)
-    {
-        level = kMaxTypeLevel;
-    }
-    return static_cast<uint16>(static_cast<uint16>(level) * static_cast<uint16>(level + 1) / 2);
-}
-
-// CategoryIndexByType mirrors JobPointsCategoryIndexByJpType: jpType >> 5.
-// Named to avoid clashing with the host macro of the same shape.
+// CategoryIndexByType mirrors JobPointsCategoryIndexByJpType(jp_type): type >> 5.
 inline auto CategoryIndexByType(const uint16 jpType) -> uint16
 {
     return static_cast<uint16>(jpType >> 5);
 }
 
-// TypeIndex mirrors JobPointTypeIndex: id & 0x1F.
-// Named to avoid clashing with the host JobPointTypeIndex macro.
+// TypeIndex mirrors JobPointTypeIndex(id): id & 0x1F.
 inline auto TypeIndex(const uint16 id) -> uint8
 {
     return static_cast<uint8>(id & 0x1F);
 }
 
-// IsJobPointExistPure mirrors CJobPoints::IsJobPointExist pure bounds checks:
-// 1) jpType < JOBPOINTS_CATEGORY_START
-// 2) (JobPointsCategoryIndexByJpType(jpType) - 1 > JOBPOINTS_CATEGORY_COUNT)
-// 3) (JobPointTypeIndex(jpType) > JOBPOINTS_JPTYPE_PER_CATEGORY)
-//
-// Quirks preserved for parity:
-// - category index 23 is accepted ((23-1) > 22 is false); 24 is rejected
-// - type index == JPTypePerCategory (10) is accepted (check is >); 11 rejected
+// IsJobPointExistPure is the pure form of CJobPoints::IsJobPointExist (slice 2815).
+// Three-gate order matches production host dual-wire:
+//  1. jpType < JOBPOINTS_CATEGORY_START
+//  2. (JobPointsCategoryIndexByJpType(jpType) - 1 > JOBPOINTS_CATEGORY_COUNT)
+//  3. (JobPointTypeIndex(jpType) > JOBPOINTS_JPTYPE_PER_CATEGORY)
+// Parity quirks: category index 23 accepted; type index == JPTypePerCategory (10) accepted.
 inline auto IsJobPointExistPure(const uint16 jpType) -> bool
 {
     if (jpType < kCategoryStart)
@@ -247,6 +237,18 @@ inline auto IsJobPointExistPure(const uint16 jpType) -> bool
         return false;
     }
     return true;
+}
+
+// TotalCostToLevel is the closed form sum of JobPointCost(0..level-1) (slices 1002 / 2828).
+// For level in 0..kMaxTypeLevel this is level*(level+1)/2; levels above clamp to kMaxTypeLevel (210 JP).
+inline auto TotalCostToLevel(const uint8 level) -> uint16
+{
+    uint8 clamped = level;
+    if (clamped > kMaxTypeLevel)
+    {
+        clamped = kMaxTypeLevel;
+    }
+    return static_cast<uint16>(clamped) * static_cast<uint16>(clamped + 1) / 2;
 }
 
 } // namespace jobpointshelpers
