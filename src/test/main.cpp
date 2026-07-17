@@ -1319,6 +1319,11 @@ auto runPartyApplySyncDisable3025SelfTests() -> bool;
 auto runLinkshellRewriteLS23026SelfTests() -> bool;
 auto runItemCanSetSize3027SelfTests() -> bool;
 auto runZoneSkipSameWeather3028SelfTests() -> bool;
+auto runNotorietyPruneMob3029SelfTests() -> bool;
+auto runRangedDeleteSange3030SelfTests() -> bool;
+auto runPartyPushPacketMember3031SelfTests() -> bool;
+auto runZoneApplyLevelRestriction3032SelfTests() -> bool;
+auto runItemSearchSlot3033SelfTests() -> bool;
 
 namespace
 {
@@ -2615,6 +2620,11 @@ namespace
         ok = runLinkshellRewriteLS23026SelfTests() && ok;
         ok = runItemCanSetSize3027SelfTests() && ok;
         ok = runZoneSkipSameWeather3028SelfTests() && ok;
+        ok = runNotorietyPruneMob3029SelfTests() && ok;
+        ok = runRangedDeleteSange3030SelfTests() && ok;
+        ok = runPartyPushPacketMember3031SelfTests() && ok;
+        ok = runZoneApplyLevelRestriction3032SelfTests() && ok;
+        ok = runItemSearchSlot3033SelfTests() && ok;
 
         return ok;
     }

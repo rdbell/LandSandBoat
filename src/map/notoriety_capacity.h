@@ -8,8 +8,10 @@
 //   - 2959: ShouldAddNotorietyMember (add admission three-bool AND)
 //   - 2971: ShouldRemoveNotorietyMember (remove admission two-bool AND)
 //   - 3020: ShouldScanNotorietyForPrune (hasEnmity outer gate two-bool AND)
+//   - 3029: ShouldPruneMobFromNotoriety (hasEnmity per-entry prune four-bool)
 //   - residual 2807: hasEnmity stale-mob prune gates
-//     (ShouldScanNotorietyForPrune dual-wired as 3020; ShouldPruneMobFromNotoriety residual)
+//     (ShouldScanNotorietyForPrune dual-wired as 3020;
+//      ShouldPruneMobFromNotoriety dual-wired as 3029)
 //   - residual 2818: add admission (prior pure port of ShouldAddNotorietyMember)
 //   - residual 2819: remove admission (prior pure port of ShouldRemoveNotorietyMember)
 //   - residual 2832: hasEnmity / size pure reporting
@@ -22,6 +24,8 @@
 // (internal/notoriety/remove_member.go). Prior pure port: slice 2819.
 // Go dual-wire: notoriety.ShouldScanNotorietyForPrune
 // (internal/notoriety/scan_prune.go). Prior pure port: slice 2807.
+// Go dual-wire: notoriety.ShouldPruneMobFromNotoriety
+// (internal/notoriety/prune_mob.go). Prior pure port: slice 2807.
 
 namespace notorietyhelpers
 {
@@ -47,14 +51,31 @@ inline auto ShouldScanNotorietyForPrune(const bool ownerPresent, const bool look
 }
 
 // ShouldPruneMobFromNotoriety mirrors the per-entry prune condition inside the
-// hasEnmity walk after dynamic_cast<CMobEntity*>:
+// hasEnmity walk after dynamic_cast<CMobEntity*> (~98):
 //
 //   if !isMob → never prune in this loop (non-mobs retained)
 //   if isMob  → (isAlive && notOnEnmityList) || isDead
 //
+// Formula (slice 3029 dual-wire):
+//   !isMob → false
+//   else   → (isAlive && notOnEnmityList) || isDead
+//
+// Host-injected scalars (no entity / enmity pointers):
+//   isMob            — dynamic_cast<CMobEntity*>(entry) != nullptr
+//   isAlive          — mob->isAlive() when isMob; else false
+//   isDead           — mob->isDead() when isMob; else false
+//   notOnEnmityList  — enmity list missing owner id (uint16) when isMob;
+//                      else false
 // isAlive and isDead are injected separately as production does; both may be
-// false for a transitional host. notOnEnmityList is host-computed as
-// enmity list missing owner id (as uint16).
+// false for a transitional host (neither alive nor dead → retain).
+// true  → host may remove the entry from m_Lookup (stale mob)
+// false → host retains the entry (non-mob, live with owner on list, or
+//         transitional)
+//
+// Dual-wire of Go notoriety.ShouldPruneMobFromNotoriety
+// (internal/notoriety/prune_mob.go). Prior pure port: slice 2807.
+// Call site: CNotorietyContainer::hasEnmity (notoriety_container.cpp).
+// Sibling outer gate: ShouldScanNotorietyForPrune (slice 3020).
 inline auto ShouldPruneMobFromNotoriety(
     const bool isMob,
     const bool isAlive,

@@ -10,12 +10,13 @@
 //   - 2802: size / insert / remove / move policy suite
 //   - 2808 / 2823: SearchItemWithSpace / MatchesSearchItem gates
 //   - 2826: FreeSlotsCount (unsigned size-minus-count)
-//   - 2831: CanSearchSlotID (GetItem / search inclusive range)
+//   - 2831: CanSearchSlotID (GetItem / search inclusive range; residual)
 //   - 2942: CanInsertAtSlot (InsertItem(PItem, SlotID) range gate)
 //   - 2976: CanRemoveSlot (RemoveItem range gate)
 //   - 2989: ShouldDecrementCountOnRemove (RemoveItem count drop)
 //   - 3021: ShouldIncrementCountOnInsertAt (InsertItem count bump)
 //   - 3027: CanSetSize (SetSize / AddSize acceptance gate)
+//   - 3033: CanSearchSlotID (GetItem / search inclusive range dual-wire)
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
@@ -36,6 +37,10 @@
 // MAX_CONTAINER_SIZE, and m_count into CanSetSize.
 // Go dual-wire: itemcontainer.CanSetSize
 // (internal/itemcontainer/can_set_size.go).
+// Production host: CItemContainer::GetItem injects SlotID and m_size into
+// CanSearchSlotID (shared inclusive bound with SearchItem / SearchItems /
+// SearchItemWithSpace). Go dual-wire: itemcontainer.CanSearchSlotID
+// (internal/itemcontainer/search_slot.go).
 
 namespace itemcontainerhelpers
 {
@@ -135,7 +140,7 @@ inline auto CanInsertAtSlot(const std::uint8_t slotID, const std::uint8_t size) 
 //
 // Dual-wire of Go itemcontainer.CanRemoveSlot.
 // Call site: CItemContainer::RemoveItem before ownership move.
-// Same predicate as CanInsertAtSlot (slice 2942) and CanSearchSlotID (slice 2831).
+// Same predicate as CanInsertAtSlot (slice 2942) and CanSearchSlotID (slice 3033).
 inline auto CanRemoveSlot(const std::uint8_t slotID, const std::uint8_t size) -> bool
 {
     return slotID <= size;
@@ -179,7 +184,19 @@ inline auto PlanMoveItemTo(
 // CanSearchSlotID is the pure addressable-slot range for GetItem and the
 // inclusive scan bound shared with SearchItem / SearchItems /
 // SearchItemWithSpace: accept when slotID <= size (including slot 0).
-// Same predicate as CanInsertAtSlot / CanRemoveSlot; named for the
+//
+// Formula (slice 3033 dual-wire):
+//   slotID <= size
+//
+// slotID — host-evaluated GetItem SlotID (or search scan candidate)
+// size   — host-evaluated m_size (usable slot count)
+// true  → allow GetItem at SlotID (host still returns m_ItemList entry / null)
+// false → reject (return nullptr; out of range)
+//
+// Dual-wire of Go itemcontainer.CanSearchSlotID.
+// Call site: CItemContainer::GetItem before m_ItemList lookup.
+// Prior pure port: slice 2831. Sibling dual-wire range gates: CanInsertAtSlot
+// (slice 2942), CanRemoveSlot (slice 2976). Same predicate; named for the
 // lookup/search host path.
 inline auto CanSearchSlotID(const std::uint8_t slotID, const std::uint8_t size) -> bool
 {

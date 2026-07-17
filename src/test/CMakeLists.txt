@@ -2631,6 +2631,16 @@ set(SOURCES
     test_item_can_set_size_3027.cpp
     test_zone_skip_same_weather_3028.h
     test_zone_skip_same_weather_3028.cpp
+    test_notoriety_prune_mob_3029.h
+    test_notoriety_prune_mob_3029.cpp
+    test_ranged_delete_sange_3030.h
+    test_ranged_delete_sange_3030.cpp
+    test_party_push_packet_member_3031.h
+    test_party_push_packet_member_3031.cpp
+    test_zone_apply_level_restriction_3032.h
+    test_zone_apply_level_restriction_3032.cpp
+    test_item_search_slot_3033.h
+    test_item_search_slot_3033.cpp
 )
 
 if(UNIX)

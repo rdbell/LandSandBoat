@@ -289,7 +289,8 @@ inline auto ShouldForceBarrageSangeHitResolution(
 // (internal/attackutils/ranged_damage_multiplier.go).
 // Sibling dual-wires: ShouldConsumeAmmo (2986), ShouldDeleteUnlimitedShot (3000),
 // ShouldDeleteFlashyAndStealthShot (3007), ShouldTruncateHitCountOnAmmoDeplete (3010),
-// ShouldApplyDistancePenaltyMessage (3013), ShouldDeleteBarrageStatus (3018).
+// ShouldApplyDistancePenaltyMessage (3013), ShouldDeleteBarrageStatus (3018),
+// ShouldDeleteSangeStatus (3030).
 
 // ShouldApplyRangedDamageMultiplier mirrors isChar && slot == SLOT_RANGED.
 //
@@ -347,7 +348,30 @@ inline auto ShouldDeleteBarrageStatus(const bool isBarrage) -> bool
     return isBarrage;
 }
 
+// --- Slice 3030: ShouldDeleteSangeStatus pure dual-wire ---
+// Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects isSange
+// (StatusEffectContainer->HasStatusEffect(Sange, 0) captured at shot start)
+// into ShouldDeleteSangeStatus before DelStatusEffectSilent(Sange) on true
+// (~3454).
+// Go dual-wire: attackutils.ShouldDeleteSangeStatus
+// (internal/attackutils/delete_sange_status.go).
+// Sibling dual-wires: ShouldConsumeAmmo (2986), ShouldDeleteUnlimitedShot (3000),
+// ShouldDeleteFlashyAndStealthShot (3007), ShouldTruncateHitCountOnAmmoDeplete (3010),
+// ShouldApplyDistancePenaltyMessage (3013), ShouldDeleteBarrageStatus (3018),
+// ShouldApplyRangedDamageMultiplier (3023).
+
 // ShouldDeleteSangeStatus mirrors isSange after shot resolution.
+//
+// Formula (slice 3030 dual-wire; identity):
+//   return isSange
+//
+// isSange — host-evaluated StatusEffect::Sange present at shot start
+// true  → host DelStatusEffectSilent(Sange)
+// false → skip cleanup (Sange was not active for this action)
+//
+// Dual-wire of Go attackutils.ShouldDeleteSangeStatus.
+// Call site: CBattleEntity::OnRangedAttack (~3454).
 inline auto ShouldDeleteSangeStatus(const bool isSange) -> bool
 {
     return isSange;

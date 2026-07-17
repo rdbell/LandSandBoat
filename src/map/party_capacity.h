@@ -26,6 +26,8 @@
 //           hasLevelSync && durationIsZero)
 //   - 3025: ShouldApplySyncDisableToMember (SetSyncTarget DISABLE
 //           isPC && notDisappear)
+//   - 3031: ShouldPushPartyPacketToMember (PushPacket per-member filter:
+//           isPC, not sender, notDisappear, !inPrison, zone filter)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
@@ -43,6 +45,9 @@
 // Production host: CParty::SetSyncTarget DISABLE (party.cpp:~1253) injects
 // isPC / notDisappear into ShouldApplySyncDisableToMember before LevelSync
 // disable handling (optional countdown via ShouldStartSyncDisableCountdown).
+// Production host: CParty::PushPacket (party.cpp:~1317) injects isPC /
+// member->id / senderID / status != DISAPPEAR / InPrison / ZoneID /
+// getZone() into ShouldPushPartyPacketToMember before pushPacket(copy).
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
@@ -51,7 +56,8 @@
 // party.ShouldApplySyncToMember (internal/party/apply_sync_member.go),
 // party.ShouldApplySyncEnableToMember (internal/party/apply_sync_enable.go),
 // party.ShouldStartSyncDisableCountdown (internal/party/sync_disable_countdown.go),
-// party.ShouldApplySyncDisableToMember (internal/party/apply_sync_disable.go).
+// party.ShouldApplySyncDisableToMember (internal/party/apply_sync_disable.go),
+// party.ShouldPushPartyPacketToMember (internal/party/push_packet_member.go).
 
 namespace partyhelpers
 {
@@ -376,8 +382,38 @@ inline auto ShouldStartSyncDisableCountdown(const bool hasLevelSync, const bool 
 }
 
 // ShouldPushPartyPacketToMember mirrors CParty::PushPacket's per-member filter.
-// ZoneID 0 means all zones; otherwise the member must match ZoneID.
-// senderID is skipped; DISAPPEAR and prison members are skipped.
+// ZoneIDFilter 0 means all zones; otherwise the member must match ZoneIDFilter.
+// Sender is skipped; DISAPPEAR and prison members are skipped.
+//
+// Formula (order of short-circuits; slice 3031 dual-wire):
+//   !isPC                                              → false
+//   memberID == senderID                               → false
+//   !notDisappear                                      → false
+//   inPrison                                           → false
+//   zoneIDFilter != 0 && memberZoneID != zoneIDFilter  → false
+//   else                                               → true
+//
+// Equivalent pin:
+//   isPC && memberID != senderID && notDisappear && !inPrison &&
+//     (zoneIDFilter == 0 || memberZoneID == zoneIDFilter)
+//
+// isPC          — host-evaluated objtype == TYPE_PC
+// memberID      — host-evaluated member->id
+// senderID      — PushPacket senderID arg (packet originator skipped)
+// notDisappear  — host-evaluated member->status != DISAPPEAR
+// inPrison      — host-evaluated jailutils::InPrison(member)
+// zoneIDFilter  — PushPacket ZoneID arg (0 = all zones)
+// memberZoneID  — host-evaluated member->getZone()
+// true  → host pushes packet->copy() to member
+// false → continue (skip member)
+//
+// Dual-wire of Go party.ShouldPushPartyPacketToMember
+// (internal/party/push_packet_member.go). Prior pure port: slice 1335.
+// Call site: CParty::PushPacket (party.cpp:~1317) host inject.
+// Note: host null-member continue and TYPE_PC early continue sit outside
+// this free function (isPC is still the first pure short-circuit).
+// Coverage: test_party_push_packet_member_3031 (not in CMake/main).
+// Residual suite: test_party_push_packet_1335.
 inline auto ShouldPushPartyPacketToMember(
     const bool   isPC,
     const uint32 memberID,

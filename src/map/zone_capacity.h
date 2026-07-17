@@ -23,6 +23,9 @@
 //   - 2975: ShouldDespawnPCOnLeave (!charListEmpty after DecreaseZoneCounter)
 //   - 2992: ShouldCreateZoneTimers (!hasZoneTimerToken && !charListEmpty after InsertPC)
 //   - 3019: ShouldRejectInvalidWeather (!isValidEnum / !enum_contains on SetWeather)
+//   - 3028: ShouldSkipSameWeather (alreadyCurrent on SetWeather)
+//   - 3032: ShouldApplyZoneLevelRestriction (zoneLevelRestriction != 0 on
+//           updateCharLevelRestriction)
 //
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty;
@@ -41,6 +44,14 @@
 // on true ShowWarningFmt(FormatInvalidWeatherWarning) + return.
 // Go dual-wire: zone.ShouldRejectInvalidWeather
 // (internal/zone/reject_invalid_weather.go).
+// Production host: CZone::SetWeather (zone.cpp) injects
+// weather_.current() == weather into ShouldSkipSameWeather; on true return.
+// Go dual-wire: zone.ShouldSkipSameWeather (internal/zone/skip_same_weather.go).
+// Production host: CZone::updateCharLevelRestriction (zone.cpp) injects
+// m_levelRestriction into ShouldApplyZoneLevelRestriction; on true strips
+// buffs + AddStatusEffect LevelRestriction.
+// Go dual-wire: zone.ShouldApplyZoneLevelRestriction
+// (internal/zone/apply_level_restriction.go).
 
 namespace zonehelpers
 {
@@ -261,7 +272,25 @@ inline auto ShouldDeleteExistingLevelRestriction(
     return hasRestriction && !shouldSkip;
 }
 
-// ShouldApplyZoneLevelRestriction mirrors m_levelRestriction != 0.
+// ShouldApplyZoneLevelRestriction mirrors m_levelRestriction != 0 on
+// CZone::updateCharLevelRestriction admission (apply LevelRestriction when
+// the zone has a non-zero cap).
+//
+// Formula (slice 3032 dual-wire):
+//
+//   zoneLevelRestriction != 0
+//
+// zoneLevelRestriction — host-injected m_levelRestriction (uint8)
+// true  → DelStatusEffectsByFlag (dispelable/erasable/…) + AddStatusEffect LevelRestriction
+// false → no apply (zone has no level cap)
+//
+// Dual-wire of Go zone.ShouldApplyZoneLevelRestriction.
+// Call site: CZone::updateCharLevelRestriction — after optional skip/delete
+// of an existing LevelRestriction; host injects m_levelRestriction.
+// Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
+// suite is test_zone_apply_level_restriction_3032.
+// Sibling level-restriction gates (residual 1363): ShouldSkipLevelRestrictionUpdate,
+// ShouldDeleteExistingLevelRestriction.
 inline auto ShouldApplyZoneLevelRestriction(const uint8 zoneLevelRestriction) -> bool
 {
     return zoneLevelRestriction != 0;
