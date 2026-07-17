@@ -2701,6 +2701,16 @@ set(SOURCES
     test_ambuscade_complete_instance_3062.cpp
     test_mobtype_can_deaggro_3063.h
     test_mobtype_can_deaggro_3063.cpp
+    test_battle_immunity_has_3064.h
+    test_battle_immunity_has_3064.cpp
+    test_synergy_claim_furnace_3065.h
+    test_synergy_claim_furnace_3065.cpp
+    test_mapsession_destroy_pending_char_3066.h
+    test_mapsession_destroy_pending_char_3066.cpp
+    test_treasure_reject_null_item_3067.h
+    test_treasure_reject_null_item_3067.cpp
+    test_zone_dismount_zone_in_3068.h
+    test_zone_dismount_zone_in_3068.cpp
 )
 
 if(UNIX)

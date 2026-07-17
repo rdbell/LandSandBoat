@@ -1354,6 +1354,11 @@ auto runTreasureRejectNullMember3060SelfTests() -> bool;
 auto runNyzulClearChestNPC3061SelfTests() -> bool;
 auto runAmbuscadeCompleteInstance3062SelfTests() -> bool;
 auto runMobtypeCanDeaggro3063SelfTests() -> bool;
+auto runBattleImmunityHas3064SelfTests() -> bool;
+auto runSynergyClaimFurnace3065SelfTests() -> bool;
+auto runMapsessionDestroyPendingChar3066SelfTests() -> bool;
+auto runTreasureRejectNullItem3067SelfTests() -> bool;
+auto runZoneDismountZoneIn3068SelfTests() -> bool;
 
 namespace
 {
@@ -2685,6 +2690,11 @@ namespace
         ok = runNyzulClearChestNPC3061SelfTests() && ok;
         ok = runAmbuscadeCompleteInstance3062SelfTests() && ok;
         ok = runMobtypeCanDeaggro3063SelfTests() && ok;
+        ok = runBattleImmunityHas3064SelfTests() && ok;
+        ok = runSynergyClaimFurnace3065SelfTests() && ok;
+        ok = runMapsessionDestroyPendingChar3066SelfTests() && ok;
+        ok = runTreasureRejectNullItem3067SelfTests() && ok;
+        ok = runZoneDismountZoneIn3068SelfTests() && ok;
 
         return ok;
     }

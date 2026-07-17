@@ -15,6 +15,7 @@
 //   - 2981: ShouldForceCheckOnFullPoolInsert (SlotID == PoolSize after free scan)
 //   - 2998: CanLotRareItem (!(rare && alreadyHas) rare-owned lot gate)
 //   - 3060: ShouldRejectNullMember (charNull || poolMismatch null-member gate)
+//   - 3067: ShouldRejectNullItem (itemNull identity null-item gate)
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -43,7 +44,11 @@
 // ShouldRejectNullMember.
 // Go dual-wire: treasurepool.ShouldRejectNullMember
 // (internal/treasurepool/reject_null_member.go).
-// Sibling residual (not dual-wired in 3060): ShouldRejectNullItem.
+//
+// Production host: CTreasurePool::lotItem / PlanLotItemPreflight injects
+// (PItem / PNewItem == nullptr) into ShouldRejectNullItem.
+// Go dual-wire: treasurepool.ShouldRejectNullItem
+// (internal/treasurepool/reject_null_item.go).
 
 namespace treasurepoolhelpers
 {
@@ -247,13 +252,24 @@ inline auto IsPassedLot(const uint16 lot) -> bool
 // Dual-wire of Go treasurepool.ShouldRejectNullMember.
 // Call sites: PlanLotItemPreflight / PlanPassItemPreflight / PlanUpdatePool
 // and CTreasurePool::{lotItem,passItem,UpdatePool}.
-// Sibling residual (not dual-wired in 3060): ShouldRejectNullItem.
+// Sibling dual-wire (slice 3067): ShouldRejectNullItem.
 inline auto ShouldRejectNullMember(const bool charNull, const bool poolMismatch) -> bool
 {
     return charNull || poolMismatch;
 }
 
 // ShouldRejectNullItem mirrors !PNewItem / !PItem for lot.
+//
+// Formula (slice 3067 dual-wire):
+//   itemNull
+//
+// itemNull — host-evaluated (PItem / PNewItem == nullptr after slot lookup)
+// true  → host rejects (warn) before inventory / rare gates
+// false → host may proceed past the null-item early gate
+//
+// Dual-wire of Go treasurepool.ShouldRejectNullItem.
+// Call site: PlanLotItemPreflight / CTreasurePool::lotItem.
+// Sibling dual-wire (slice 3060): ShouldRejectNullMember.
 inline auto ShouldRejectNullItem(const bool itemNull) -> bool
 {
     return itemNull;

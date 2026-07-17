@@ -3,9 +3,16 @@
 #include "common/cbasetypes.h"
 
 // Pure Synergy furnace helpers shared by dual-wire slices:
-//   - 2877: CanClaimFurnace (synergyFurnaceOnTrigger AVAILABLE gate)
+//   - 2877: CanClaimFurnace residual dual-wire suite (AVAILABLE gate)
 //   - 2896: CanTradeIntoFurnace (synergyFurnaceOnTrade CLAIMED+owner gate)
 //   - 2899: CanOperateFurnace (synergyFurnaceOnTrigger claimedByYou gate)
+//   - 3065: CanClaimFurnace dedicated dual-wire (claim_furnace.go)
+//
+// Dual-wire index:
+//   - 2877: CanClaimFurnace residual dual-wire suite
+//   - 2896: CanTradeIntoFurnace (CLAIMED + IsClaimedBy)
+//   - 2899: CanOperateFurnace (IsClaimedBy alias)
+//   - 3065: CanClaimFurnace (state == FurnaceAvailable)
 //
 // Production hosts are Lua under scripts/globals/synergy.lua
 // (furnaceStates + synergyFurnaceOnTrigger / synergyFurnaceOnTrade).
@@ -15,6 +22,9 @@
 // npc / entity pointers). Side effects (CLAIM_SET message,
 // attachToSynergyFurnace, distance checker, ENABLE_SYNERGY, recipe
 // lookup, trade consume, startEvent) remain host-owned.
+// Go dual-wire: synergy.CanClaimFurnace
+// (internal/synergy/claim_furnace.go). Future Lua host injects
+// CanClaimFurnace then CLAIM_SET + attachToSynergyFurnace.
 //
 // Prior pure port: OmegaXI slice 1149 (internal/synergy furnace.go).
 
@@ -29,14 +39,30 @@ constexpr uint8 FurnaceAvailable = 0;
 // Matches Go synergy.FurnaceClaimed and Lua furnaceStates.CLAIMED.
 constexpr uint8 FurnaceClaimed = 1;
 
+// ---------------------------------------------------------------------------
+// Slice 2877 / 3065 — synergyFurnaceOnTrigger AVAILABLE claim gate
+// ---------------------------------------------------------------------------
+
 // CanClaimFurnace mirrors the pure AVAILABLE gate of synergyFurnaceOnTrigger
 // before CLAIM_SET + attachToSynergyFurnace:
 //   if furnaceState == furnaceStates.AVAILABLE then
 //     player:messageSpecial(CLAIM_SET, SYNERGY_CRUCIBLE)
 //     xi.synergy.attachToSynergyFurnace(player, npc)
 //   end
+//
+// Formula (slice 3065 dual-wire; residual expand 2877):
+//   CanClaimFurnace(state) = state == FurnaceAvailable
+//
 // state is the host-injected npc:getLocalVar(synergyFurnaceState).
-// Host still owns message / attach / timers.
+// true  → host CLAIM_SET + attachToSynergyFurnace
+// false → other handleFurnaceState branches (CLAIMED / ACTIVE / COMPLETED)
+//
+// Dual-wire of Go synergy.CanClaimFurnace.
+// Call site: future Lua synergyFurnaceOnTrigger inject.
+// Prior pure port: slice 1149. Residual dual-wire suite: 2877 /
+// test_synergy_claim_furnace_2877. Dedicated dual-wire suite is
+// test_synergy_claim_furnace_3065. Host still owns message / attach /
+// timers after a true gate.
 inline auto CanClaimFurnace(const uint8 state) -> bool
 {
     return state == FurnaceAvailable;

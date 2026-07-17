@@ -35,6 +35,7 @@
 //   - 3048: ShouldClearCostumeOnZoneIn (hasCostume identity on CharZoneIn)
 //   - 3053: ShouldForceMorningFog (inFogWindow && selectedBelowHotSpell &&
 //           !isCity on UpdateWeather)
+//   - 3068: ShouldDismountOnZoneIn (mounted && !canUseMount on CharZoneIn)
 //
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty;
@@ -75,9 +76,13 @@
 // zone.ShouldApplyZoneLevelRestriction
 // (internal/zone/apply_level_restriction.go).
 // Production host: CZone::CharZoneIn (zone.cpp) injects
+// isMounted() and CanUseMisc(MISC_MOUNT) into ShouldDismountOnZoneIn; on true
+// animation = NONE + DelStatusEffectSilent(Mounted).
+// Go dual-wire: zone.ShouldDismountOnZoneIn (internal/zone/mount_gate.go).
+// Production host: CZone::CharZoneIn (zone.cpp) injects
 // HasStatusEffect(Costume) into ShouldClearCostumeOnZoneIn; on true
-// DelStatusEffectSilent(Costume). Sibling ShouldDismountOnZoneIn runs just
-// before (residual 2673).
+// DelStatusEffectSilent(Costume). Sibling ShouldDismountOnZoneIn (3068) runs
+// just before this clear.
 // Go dual-wire: zone.ShouldClearCostumeOnZoneIn (internal/zone/costume_gate.go).
 // Production host: CZone::UpdateWeather (zone.cpp) injects
 // (CurrentVanaDate in [StartFog, EndFog)), selectedWeather < Weather::HotSpell,
@@ -477,6 +482,24 @@ inline auto CanUseMisc(const uint16 miscMask, const uint16 misc) -> bool
     return (miscMask & misc) == misc;
 }
 
+// ShouldDismountOnZoneIn mirrors isMounted && !CanUseMisc(MISC_MOUNT) on CharZoneIn.
+//
+// Formula (slice 3068 dual-wire):
+//   mounted && !canUseMount
+//
+// mounted     — host-evaluated PChar->isMounted()
+// canUseMount — host-evaluated CanUseMisc(MISC_MOUNT) for the destination zone
+// true  → force dismount (animation NONE + DelStatusEffectSilent Mounted)
+// false → keep mount state (not mounted, or zone allows mounts)
+//
+// Dense 2² space: only (mounted=true, canUseMount=false) is true; all other poles false.
+//
+// Dual-wire of Go zone.ShouldDismountOnZoneIn.
+// Call site: CZone::CharZoneIn — host injects isMounted() and CanUseMisc(MISC_MOUNT).
+// Prior pure port: slice 2673 (zone-in mount dismount gate). Residual pins remain in
+// test_zone_mount_gate_2673; dedicated dual-wire suite is
+// test_zone_dismount_zone_in_3068. Sibling zone-in gate: ShouldClearCostumeOnZoneIn
+// (3048) runs just after this dismount.
 inline auto ShouldDismountOnZoneIn(const bool mounted, const bool canUseMount) -> bool
 {
     return mounted && !canUseMount;
@@ -498,7 +521,7 @@ inline auto ShouldDismountOnZoneIn(const bool mounted, const bool canUseMount) -
 // Prior pure port: slice 2682 (zone-in Costume gate). Residual pins remain in
 // test_zone_costume_gate_2682; dedicated dual-wire suite is
 // test_zone_clear_costume_3048. Sibling zone-in gate: ShouldDismountOnZoneIn
-// (residual 2673) runs just before this clear.
+// (3068 dual-wire; residual 2673) runs just before this clear.
 inline auto ShouldClearCostumeOnZoneIn(const bool hasCostume) -> bool
 {
     return hasCostume;

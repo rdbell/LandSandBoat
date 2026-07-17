@@ -13,6 +13,7 @@
 //   - 2936: ShouldCreatePendingSession (queryOK identity; no rowsCount gate)
 //   - 2787: destroy-pending pure gates (ShouldDestroyPendingByPointer residual)
 //   - 3056: ShouldDestroyPendingByPointer (found && pointerMatches)
+//   - 3066: ShouldDestroyPendingByCharID (found identity)
 //   - 2790: lookup pure gates (ShouldRejectNullCharLookup, SessionMatches*)
 //   - 2954: ShouldRejectNullCharLookup (charNull identity)
 //   - 2799: link-dead mark/recover pure plans (ShouldMarkLinkDead residual)
@@ -34,7 +35,13 @@
 // session->charID before erase/delete. Go dual-wire:
 // mapsession.ShouldDestroyPendingByPointer
 // (internal/mapsession/destroy_pending_pointer.go). Prior pure port: 2787;
-// sibling residual: ShouldDestroyPendingByCharID (not dual-wired in 3056).
+// sibling dual-wire: 3066 ShouldDestroyPendingByCharID.
+//
+// Production host: MapSessionContainer::destroyPendingSession(uint32)
+// injects found after pending lookup by charId before erase/delete.
+// Go dual-wire: mapsession.ShouldDestroyPendingByCharID
+// (internal/mapsession/destroy_pending_charid.go). Prior pure port: 2787;
+// sibling dual-wire: 3056 ShouldDestroyPendingByPointer.
 //
 // Production host: MapSessionContainer::getSessionByChar injects
 // charNull = (PChar == nullptr) before scanning confirmed sessions.
@@ -118,8 +125,7 @@ inline auto ShouldReplaceExistingSession(const bool previousPresent) -> bool
 // Caller has already rejected a null session pointer (outside pure).
 // Dual-wire of Go mapsession.ShouldDestroyPendingByPointer
 // (internal/mapsession/destroy_pending_pointer.go). Prior pure port: slice 2787.
-// Sibling residual: ShouldDestroyPendingByCharID (found identity only; not
-// dual-wired in slice 3056).
+// Sibling dual-wire: ShouldDestroyPendingByCharID (found identity; slice 3066).
 // Call site: MapSessionContainer::destroyPendingSession(MapSession*)
 // (map_session_container.cpp) already injects the two bools before erase.
 inline auto ShouldDestroyPendingByPointer(const bool found, const bool pointerMatches) -> bool
@@ -130,8 +136,22 @@ inline auto ShouldDestroyPendingByPointer(const bool found, const bool pointerMa
 // ShouldDestroyPendingByCharID mirrors destroyPendingSession(uint32) after the
 // pending lookup by charId. Host erase/delete only proceeds when an owner was
 // found; missing keys are a no-op.
-// Residual 2787 sibling of dual-wire ShouldDestroyPendingByPointer (3056);
-// not dual-wired in that slice (charID overload needs presence only).
+//
+// Formula (slice 3066 dual-wire):
+//   found
+//
+// Host-injected scalar (no session / pending-map pointers):
+//   found — pending owner exists for charId
+//
+// true  → host may erase pending index entry and delete the MapSession
+// false → skip erase/delete (missing key is a no-op)
+//
+// Dual-wire of Go mapsession.ShouldDestroyPendingByCharID
+// (internal/mapsession/destroy_pending_charid.go). Prior pure port: slice 2787.
+// Sibling dual-wire: ShouldDestroyPendingByPointer (found && pointerMatches;
+// slice 3056; pointer overload needs identity).
+// Call site: MapSessionContainer::destroyPendingSession(uint32)
+// (map_session_container.cpp) already injects found before erase.
 inline auto ShouldDestroyPendingByCharID(const bool found) -> bool
 {
     return found;
