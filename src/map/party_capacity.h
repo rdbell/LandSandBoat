@@ -19,8 +19,12 @@
 //           (TYPE_PC + PARTY_PCS + partyFull; residual expand 2928 / pure 1327 / 1350)
 //   - 2937: ShouldRejectPCAddTrusts (TYPE_PC + PARTY_PCS + partyHasTrusts)
 //   - 2955: ShouldClearSeekingParty residual dual-wire expand
+//           (also residual sibling pins for ShouldApplyPartyLevelSyncOnJoin)
 //   - 3217: ShouldClearSeekingParty dedicated dual-wire
 //           (isSeekingParty after join; residual expand 2955 / pure 1350)
+//   - 3274: ShouldApplyPartyLevelSyncOnJoin dedicated dual-wire
+//           (hasSyncTarget / m_PSyncTarget != nullptr after join;
+//            residual expand 2955 / pure 1350)
 //   - 2974: ShouldRemoveSyncForLowLevel (RefreshSync syncLevel < 10)
 //   - 2991: ShouldStampLeaderCreatedPartyTime (TYPE_PC && members.size() > 1)
 //   - 2999: ShouldApplySyncToMember (RefreshSync isPC && sameZoneAsSyncTarget)
@@ -46,8 +50,9 @@
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
 // isPCEntity / isPCParty / HasTrusts() into ShouldRejectPCAddTrusts,
-// PChar->isSeekingParty() into ShouldClearSeekingParty (PC post-process), and
-// (objtype == TYPE_PC, members.size()) into ShouldStampLeaderCreatedPartyTime
+// PChar->isSeekingParty() into ShouldClearSeekingParty (PC post-process),
+// m_PSyncTarget != nullptr into ShouldApplyPartyLevelSyncOnJoin (PC post-process),
+// and (objtype == TYPE_PC, members.size()) into ShouldStampLeaderCreatedPartyTime
 // after append before stamping PLeader->m_LeaderCreatedPartyTime.
 // Production host: CParty::RefreshSync (party.cpp) injects syncLevel into
 // ShouldRemoveSyncForLowLevel before SetSyncTarget clear, and
@@ -83,6 +88,10 @@
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go;
 // residual dual-wire suite: 2955 / test_party_clear_seeking_2955;
 // dedicated dual-wire suite: 3217 / test_party_clear_seeking_party_3217),
+// party.ShouldApplyPartyLevelSyncOnJoin
+// (internal/party/apply_level_sync_on_join.go;
+// residual dual-wire expand: 2955 / residual AddMember + clear-seeking sibling pins;
+// dedicated dual-wire suite: 3274 / test_party_level_sync_on_join_3274),
 // party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go),
 // party.ShouldStampLeaderCreatedPartyTime (internal/party/stamp_leader_created.go),
 // party.ShouldApplySyncToMember (internal/party/apply_sync_member.go),
@@ -1101,6 +1110,23 @@ inline auto ShouldClearSeekingParty(const bool isSeekingParty) -> bool
 }
 
 // ShouldApplyPartyLevelSyncOnJoin mirrors m_PSyncTarget != nullptr after join.
+//
+// Formula (slice 3274 dedicated dual-wire; residual expand 2955 / pure 1350 —
+// formula unchanged):
+//   hasSyncTarget
+//
+// hasSyncTarget — host-evaluated m_PSyncTarget != nullptr
+// true  → apply level sync on join (host still owns same-zone LevelSync
+//         message / status / CharSync side effects)
+// false → leave level-sync state unchanged for the joiner
+//
+// Dual-wire of Go party.ShouldApplyPartyLevelSyncOnJoin
+// (internal/party/apply_level_sync_on_join.go).
+// Call site: CParty::AddMember PC post-process host inject.
+// Residual dual-wire expand: 2955 (sibling residual pins under
+// test_party_clear_seeking_2955 / residual AddMember suite).
+// Dedicated dual-wire suite is test_party_level_sync_on_join_3274. Formula is
+// unchanged; dedicated suite expands free==inline==pin poles + dense 2^1.
 inline auto ShouldApplyPartyLevelSyncOnJoin(const bool hasSyncTarget) -> bool
 {
     return hasSyncTarget;

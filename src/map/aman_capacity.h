@@ -6,12 +6,14 @@
 //   - 0698: residual pure port (internal/aman mentor/mute state)
 //   - 2967: CanThumbsUp residual dual-wire suite (thumbs_up)
 //   - 3150: CanThumbsUp prior dedicated dual-wire (retained)
-//   - 3229: CanThumbsUp dedicated dual-wire expand residual 2967 (thumbs_up.go)
+//   - 3229: CanThumbsUp prior dedicated dual-wire expand residual 2967 (retained)
+//   - 3278: CanThumbsUp dedicated dual-wire expand residual 2967 (thumbs_up.go)
 //
 // Dual-wire index:
 //   - 2967: CanThumbsUp residual dual-wire suite
 //   - 3150: CanThumbsUp prior dedicated dual-wire (retained)
-//   - 3229: CanThumbsUp = cooldownExpired (identity; dedicated expand residual 2967)
+//   - 3229: CanThumbsUp prior dedicated dual-wire expand residual 2967 (retained)
+//   - 3278: CanThumbsUp = cooldownExpired (identity; dedicated expand residual 2967)
 //
 // Production host: CAMANContainer::canThumbsUp in aman.cpp:
 //
@@ -34,16 +36,16 @@
 //
 // Go dual-wire: aman.CanThumbsUp (internal/aman/thumbs_up.go).
 // Residual dual-wire suite: 2967.
-// Prior dedicated dual-wire suite: 3150 (retained).
-// Dedicated dual-wire suite: 3229.
+// Prior dedicated dual-wire suites: 3150 / 3229 (retained).
+// Dedicated dual-wire suite: 3278.
 // Prior pure port: OmegaXI slice 0698 (internal/aman).
 
 namespace amanhelpers
 {
 
 // CanThumbsUp mirrors CAMANContainer::canThumbsUp pure half
-// (slice 3229 dedicated dual-wire; residual expand 2967 / prior dedicated
-// 3150 / pure 0698 — formula unchanged):
+// (slice 3278 dedicated dual-wire expand residual 2967; prior dedicated
+// 3229 / 3150 / pure 0698 — formula unchanged):
 //
 //   CanThumbsUp(cooldownExpired) = cooldownExpired
 //

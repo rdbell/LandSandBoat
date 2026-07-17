@@ -3121,6 +3121,16 @@ set(SOURCES
     test_aicontainer_can_change_state_3272.cpp
     test_campaign_afford_notes_3273.h
     test_campaign_afford_notes_3273.cpp
+    test_party_level_sync_on_join_3274.h
+    test_party_level_sync_on_join_3274.cpp
+    test_jobpoints_apply_raise_3275.h
+    test_jobpoints_apply_raise_3275.cpp
+    test_mobtype_can_be_neutral_3276.h
+    test_mobtype_can_be_neutral_3276.cpp
+    test_besieged_afford_sanction_3277.h
+    test_besieged_afford_sanction_3277.cpp
+    test_aman_thumbs_up_3278.h
+    test_aman_thumbs_up_3278.cpp
 )
 
 if(UNIX)
