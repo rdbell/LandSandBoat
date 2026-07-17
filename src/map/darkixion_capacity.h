@@ -14,7 +14,9 @@
 //   - 2907: HornBreakRoll residual dual-wire suite (checkHornBreak 5% roll)
 //   - 3206: HornBreakRoll dedicated dual-wire (horn_break_roll.go)
 //   - 2911: HornRestoreRoll (Damsel Memento 25% roll after CanRestoreHorn)
-//   - 2915: ShouldDoubleGlowSkill (DI_GLOW double-up pure gate)
+//   - 2915: ShouldDoubleGlowSkill residual dual-wire suite (DI_GLOW double-up)
+//   - 3389: ShouldDoubleGlowSkill dedicated dual-wire (should_double_glow_skill.go;
+//           expand residual 2915)
 //
 // Dual-wire index:
 //   - 2885: CanBreakHorn residual dual-wire suite
@@ -27,7 +29,8 @@
 //   - 2907: HornBreakRoll residual dual-wire suite
 //   - 3206: HornBreakRoll (roll1to100 >= 1 && roll1to100 <= 5)
 //   - 2911: HornRestoreRoll
-//   - 2915: ShouldDoubleGlowSkill
+//   - 2915: ShouldDoubleGlowSkill residual dual-wire suite
+//   - 3389: ShouldDoubleGlowSkill (animSub == GLOWING)
 //
 // Lua production host: scripts/globals/dark_ixion.lua
 //   local checkHornBreak = function(mob, attacker)
@@ -93,7 +96,11 @@
 // Dedicated dual-wire suite: slice 3206 / test_darkixion_horn_break_roll_3206.
 // Dual-wire of Go darkixion.HornBreakRoll (slice 3206 dedicated; residual 2907).
 // Dual-wire of Go darkixion.HornRestoreRoll (slice 2911).
-// Dual-wire of Go darkixion.ShouldDoubleGlowSkill (slice 2915).
+// Residual dual-wire suite: slice 2915 / test_darkixion_double_glow_2915.
+// Dedicated dual-wire expand residual 2915: slice 3389 /
+//   test_darkixion_double_glow_3389.
+// Dual-wire of Go darkixion.ShouldDoubleGlowSkill (slice 3389 dedicated expand
+// residual 2915; residual 2915 retained).
 
 namespace darkixionhelpers
 {
@@ -238,15 +245,34 @@ inline auto HornRestoreRoll(const int32 roll1to100) -> bool
     return roll1to100 >= 1 && roll1to100 <= HornRestoreChancePercent;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 2915 residual / 3389 dedicated — ShouldDoubleGlowSkill pure dual-wire
+//
+// Formula (slice 3389 dedicated dual-wire expand residual 2915; pure inject
+// 0985 — formula unchanged):
+//   ShouldDoubleGlowSkill(animSub) =
+//     animSub == AnimGlowing
+//
+// Dual-wire of Go darkixion.ShouldDoubleGlowSkill.
+// Call site: future Lua DI_GLOW inject after first useMobAbility(chosenSkill).
+// Prior pure port: slice 0985. Residual dual-wire suite: 2915 /
+// test_darkixion_double_glow_2915. Dedicated dual-wire suite is
+// test_darkixion_double_glow_3389. Host still owns getAnimationSub inject,
+// skill-list pick (randomEntry), setBehavior / setAutoAttackEnabled, and
+// useMobAbility writeback (first and optional second queue of the chosen skill).
+// ---------------------------------------------------------------------------
+
 // ShouldDoubleGlowSkill is the pure gate for DI_GLOW double-up of the
 // follow-up TP move:
 //
 //   animSub == AnimGlowing
 //
-// Host still owns getAnimationSub inject, skill-list pick (randomEntry),
-// setBehavior / setAutoAttackEnabled, and useMobAbility writeback (first and
-// optional second queue of the chosen skill).
-// Dual-wire of Go darkixion.ShouldDoubleGlowSkill.
+// Formula (slice 3389 dedicated dual-wire expand residual 2915 / pure 0985 —
+// formula unchanged). Host still owns getAnimationSub inject, skill-list pick
+// (randomEntry), setBehavior / setAutoAttackEnabled, and useMobAbility
+// writeback (first and optional second queue of the chosen skill).
+// Dual-wire of Go darkixion.ShouldDoubleGlowSkill (slice 3389 dedicated expand
+// residual 2915; residual 2915 retained).
 inline auto ShouldDoubleGlowSkill(const int32 animSub) -> bool
 {
     return animSub == kAnimGlowing;

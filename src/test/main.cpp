@@ -1679,6 +1679,11 @@ auto runNotorietyScanPrune3385SelfTests() -> bool;
 auto runUnityRejectNullOnline3386SelfTests() -> bool;
 auto runSpawnRejectNight3387SelfTests() -> bool;
 auto runAssaultIssueTag3388SelfTests() -> bool;
+auto runDarkixionDoubleGlow3389SelfTests() -> bool;
+auto runAttackRunEnspell3390SelfTests() -> bool;
+auto runRecastUpdateMaxCharges3391SelfTests() -> bool;
+auto runMobutilsAssignGuard3392SelfTests() -> bool;
+auto runAllianceAttemptLeaderPromote3393SelfTests() -> bool;
 
 namespace
 {
@@ -3335,6 +3340,11 @@ namespace
         ok = runUnityRejectNullOnline3386SelfTests() && ok;
         ok = runSpawnRejectNight3387SelfTests() && ok;
         ok = runAssaultIssueTag3388SelfTests() && ok;
+        ok = runDarkixionDoubleGlow3389SelfTests() && ok;
+        ok = runAttackRunEnspell3390SelfTests() && ok;
+        ok = runRecastUpdateMaxCharges3391SelfTests() && ok;
+        ok = runMobutilsAssignGuard3392SelfTests() && ok;
+        ok = runAllianceAttemptLeaderPromote3393SelfTests() && ok;
 
         return ok;
     }

@@ -4,7 +4,12 @@
 
 // Pure post-swing effect-gate helpers (slice 1399 residual).
 // Dual-wire residual expansions:
-//   - 3046: ShouldRunEnspell (live-target gate before HandleEnspell)
+//   - 3046: ShouldRunEnspell residual dual-wire suite
+//   - 3390: ShouldRunEnspell dedicated dual-wire (run_enspell.go)
+//
+// Dual-wire index:
+//   - 3046: ShouldRunEnspell residual dual-wire suite
+//   - 3390: ShouldRunEnspell = targetHPP > 0
 //
 // Production host: CBattleEntity::OnAttack (battle_entity.cpp ~3844) injects
 // PTarget->GetHPP() into ShouldRunEnspell after ShouldRunEnspellAndSpikes
@@ -12,8 +17,10 @@
 // battleutils::HandleEnspell while still calling HandleSpikesDamage under the
 // outer gate.
 // Go dual-wire: attack.ShouldRunEnspell (internal/attack/run_enspell.go).
+// Residual dual-wire suite: 3046 (test_attack_run_enspell_3046).
+// Dedicated dual-wire suite: 3390 (test_attack_run_enspell_3390).
 //
-// Sibling residual gates in this header:
+// Sibling residual gates in this header (not re-expanded under 3390):
 //   - ShouldRunEnspellAndSpikes (resolution + Daken outer gate)
 //   - ShouldRunParrySpikes (parry + lazy Battuta)
 
@@ -39,9 +46,14 @@ inline auto ShouldRunEnspellAndSpikes(const uint8 resolution, const uint8 attack
     return resolution != ResolutionMiss && resolution != ResolutionParry && attackType != AttackTypeDaken;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3390 — OnAttack live-target enspell gate (dedicated expand residual 3046)
+// ---------------------------------------------------------------------------
+
 // ShouldRunEnspell suppresses enspell handling after the target dies.
 //
-// Formula (slice 3046 dual-wire):
+// Formula (slice 3390 dedicated dual-wire; residual expand 3046 / pure 1399 —
+// formula unchanged):
 //   targetHPP > 0
 //   // suppresses enspell after target dies
 //
@@ -60,8 +72,11 @@ inline auto ShouldRunEnspellAndSpikes(const uint8 resolution, const uint8 attack
 //       battleutils::HandleSpikesDamage(...);
 //   }
 // Prior pure port: slice 1399 (melee post-swing effect gates residual).
-// Sibling residual gates: ShouldRunEnspellAndSpikes / ShouldRunParrySpikes.
-// Coverage: test_attack_run_enspell_3046 (not in CMake/main).
+// Residual dual-wire suite: 3046 / test_attack_run_enspell_3046.
+// Dedicated dual-wire suite: 3390 / test_attack_run_enspell_3390.
+// Sibling residual gates (not re-expanded under 3390):
+// ShouldRunEnspellAndSpikes / ShouldRunParrySpikes.
+// Coverage: test_attack_run_enspell_3390 (not in CMake/main).
 // Edges: 0 (dead/skip), 1 / 50 / 100 / 255 (live/run).
 inline auto ShouldRunEnspell(const uint8 targetHPP) -> bool
 {

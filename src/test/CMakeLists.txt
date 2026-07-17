@@ -3351,6 +3351,16 @@ set(SOURCES
     test_spawn_reject_night_3387.cpp
     test_assault_issue_tag_3388.h
     test_assault_issue_tag_3388.cpp
+    test_darkixion_double_glow_3389.h
+    test_darkixion_double_glow_3389.cpp
+    test_attack_run_enspell_3390.h
+    test_attack_run_enspell_3390.cpp
+    test_recast_update_max_charges_3391.h
+    test_recast_update_max_charges_3391.cpp
+    test_mobutils_assign_guard_3392.h
+    test_mobutils_assign_guard_3392.cpp
+    test_alliance_attempt_leader_promote_3393.h
+    test_alliance_attempt_leader_promote_3393.cpp
 )
 
 if(UNIX)
