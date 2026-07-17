@@ -5,9 +5,13 @@
 #include <string>
 
 // Pure Voidwalker helpers for dual-wire slices:
-//   - 2884: ShouldUpgradeKI (checkUpgrade math.random(1,10)==5)
+//   - 2884: ShouldUpgradeKI residual dual-wire expand
+//   - 3173: ShouldUpgradeKI dedicated dual-wire
+//           (roll == UpgradeRollSuccess (5);
+//            residual expand 2884 / pure 0987)
 //   - 2903: ShouldRandomly (local randomly chance / effect / cooldown)
 //   - 2908: ShouldDoMobSkillEveryHPP (local doMobSkillEveryHPP HPP-modulo gate)
+//   - residual 0987: pure voidwalker helpers (prior pure port of ShouldUpgradeKI)
 //
 // Lua production host: scripts/globals/voidwalker.lua
 //   local function checkUpgrade(player, mob, nextKeyItem)
@@ -56,7 +60,10 @@
 // Zone/player identity checks, delKeyItem / addKeyItem, messageSpecial,
 // hasStatusEffect, setLocalVar, and useMobAbility writeback remain host-owned.
 // Prior pure port: OmegaXI slice 0987 (internal/voidwalker).
-// Dual-wire of Go voidwalker.ShouldUpgradeKI / UpgradeRollSuccess (slice 2884).
+// Go dual-wire: voidwalker.ShouldUpgradeKI / UpgradeRollSuccess
+// (internal/voidwalker/upgrade_ki.go). Prior pure port: slice 0987.
+// Residual dual-wire suite: 2884 / test_voidwalker_upgrade_ki_2884.
+// Dedicated dual-wire suite: 3173 / test_voidwalker_should_upgrade_ki_3173.
 // Dual-wire of Go voidwalker.ShouldRandomly / RandomlyRollMax (slice 2903).
 // Dual-wire of Go voidwalker.ShouldDoMobSkillEveryHPP / MobSkillLocalVar (slice 2908).
 
@@ -65,6 +72,7 @@ namespace voidwalkerhelpers
 
 // Upgrade-roll range for checkUpgrade: math.random(1, 10); success when
 // roll == UpgradeRollSuccess (5).
+// Dual-wire constants (dedicated 3173; residual 2884 / pure 0987).
 inline constexpr int32 UpgradeRollMin     = 1;
 inline constexpr int32 UpgradeRollMax     = 10;
 inline constexpr int32 UpgradeRollSuccess = 5;
@@ -72,9 +80,21 @@ inline constexpr int32 UpgradeRollSuccess = 5;
 // ShouldUpgradeKI is the pure upgrade roll half of checkUpgrade once the
 // host injects the RNG scalar:
 //
+// Formula (slice 3173 dedicated dual-wire; residual expand 2884 / pure 0987 —
+// formula unchanged):
 //   roll == UpgradeRollSuccess  // math.random(1, 10) == 5
 //
-// Dual-wire of Go voidwalker.ShouldUpgradeKI.
+// Host-injected scalars (no player / mob pointers):
+//   roll — math.random(1, 10)
+// true  → checkUpgrade may del/add KI + messageSpecial
+// false → no upgrade this kill
+//
+// Dual-wire of Go voidwalker.ShouldUpgradeKI
+// (internal/voidwalker/upgrade_ki.go). Prior pure port: slice 0987.
+// Residual dual-wire suite: 2884 / test_voidwalker_upgrade_ki_2884.
+// Dedicated dual-wire suite is test_voidwalker_should_upgrade_ki_3173. Formula
+// is unchanged; this slice only expands dual-wire docs + index + dedicated suite.
+// Call site (deferred): Lua checkUpgrade host inject after math.random(1, 10).
 inline auto ShouldUpgradeKI(const int32 roll) -> bool
 {
     return roll == UpgradeRollSuccess;

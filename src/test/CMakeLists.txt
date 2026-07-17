@@ -2911,6 +2911,16 @@ set(SOURCES
     test_interactionlookup_skip_priority_3167.cpp
     test_monstrosity_reject_instinct_loadout_3168.h
     test_monstrosity_reject_instinct_loadout_3168.cpp
+    test_mapwire_open_socket_3169.h
+    test_mapwire_open_socket_3169.cpp
+    test_petentity_despawn_zoning_3170.h
+    test_petentity_despawn_zoning_3170.cpp
+    test_portermoogle_can_retrieve_item_3171.h
+    test_portermoogle_can_retrieve_item_3171.cpp
+    test_seals_pack_stored_plus_trade_3172.h
+    test_seals_pack_stored_plus_trade_3172.cpp
+    test_voidwalker_should_upgrade_ki_3173.h
+    test_voidwalker_should_upgrade_ki_3173.cpp
 )
 
 if(UNIX)

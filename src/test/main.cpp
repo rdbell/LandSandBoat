@@ -1459,6 +1459,11 @@ auto runNotorietyAddMember3165SelfTests() -> bool;
 auto runAttackSkipParryDaken3166SelfTests() -> bool;
 auto runInteractionlookupSkipPriority3167SelfTests() -> bool;
 auto runMonstrosityRejectInstinctLoadout3168SelfTests() -> bool;
+auto runMapwireOpenSocket3169SelfTests() -> bool;
+auto runPetentityDespawnZoning3170SelfTests() -> bool;
+auto runPortermoogleCanRetrieveItem3171SelfTests() -> bool;
+auto runSealsPackStoredPlusTrade3172SelfTests() -> bool;
+auto runVoidwalkerShouldUpgradeKI3173SelfTests() -> bool;
 
 namespace
 {
@@ -2895,6 +2900,11 @@ namespace
         ok = runAttackSkipParryDaken3166SelfTests() && ok;
         ok = runInteractionlookupSkipPriority3167SelfTests() && ok;
         ok = runMonstrosityRejectInstinctLoadout3168SelfTests() && ok;
+        ok = runMapwireOpenSocket3169SelfTests() && ok;
+        ok = runPetentityDespawnZoning3170SelfTests() && ok;
+        ok = runPortermoogleCanRetrieveItem3171SelfTests() && ok;
+        ok = runSealsPackStoredPlusTrade3172SelfTests() && ok;
+        ok = runVoidwalkerShouldUpgradeKI3173SelfTests() && ok;
 
         return ok;
     }
