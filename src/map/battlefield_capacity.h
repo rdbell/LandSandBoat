@@ -52,9 +52,12 @@
 //   - 3689: ShouldEnterPC prior dedicated dual-wire
 //           (enter identity; residual expand 3024 /
 //            prior dedicated 3644 / 3599 / 3554 / 3497 / 3431 / 3381 / pure 1361)
-//   - 3734: ShouldEnterPC dedicated dual-wire
+//   - 3734: ShouldEnterPC prior dedicated dual-wire
 //           (enter identity; residual expand 3024 /
 //            prior dedicated 3689 / 3644 / 3599 / 3554 / 3497 / 3431 / 3381 / pure 1361)
+//   - 3779: ShouldEnterPC dedicated dual-wire
+//           (enter identity; residual expand 3024 /
+//            prior dedicated 3734 / 3689 / 3644 / 3599 / 3554 / 3497 / 3431 / 3381 / pure 1361)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -257,8 +260,8 @@ inline auto ShouldRegisterPC(const bool enter, const bool alreadyRegistered) -> 
 
 // ShouldEnterPC mirrors enter path under capacity.
 //
-// Formula (slice 3734 dedicated dual-wire; residual expand 3024 /
-// prior dedicated 3689 / 3644 / 3599 / 3554 / 3497 / 3431 / 3381 / pure 1361 — formula unchanged):
+// Formula (slice 3779 dedicated dual-wire; residual expand 3024 /
+// prior dedicated 3734 / 3689 / 3644 / 3599 / 3554 / 3497 / 3431 / 3381 / pure 1361 — formula unchanged):
 //   enter
 //
 // enter — host InsertEntity enter flag
@@ -281,10 +284,10 @@ inline auto ShouldRegisterPC(const bool enter, const bool alreadyRegistered) -> 
 // test_battlefield_enter_pc_3381, 3431 / test_battlefield_enter_pc_3431,
 // 3497 / test_battlefield_enter_pc_3497, 3554 / test_battlefield_enter_pc_3554,
 // 3599 / test_battlefield_enter_pc_3599, 3644 / test_battlefield_enter_pc_3644,
-// 3689 / test_battlefield_enter_pc_3689.
-// Dedicated dual-wire suite is test_battlefield_enter_pc_3734. Formula is
+// 3689 / test_battlefield_enter_pc_3689, 3734 / test_battlefield_enter_pc_3734.
+// Dedicated dual-wire suite is test_battlefield_enter_pc_3779. Formula is
 // unchanged; this slice only expands dual-wire docs + index + dedicated suite
-// (free == inline == pin residual pins / free == pin3689).
+// (free == inline == pin residual pins / free == pin3734).
 // Sibling dual-wires left alone: 3198 null-insert, 3216 already-in,
 // 3302 under-capacity, 3365 register, 3140 advance-tick, etc.
 // Do not thrash register_pc.
