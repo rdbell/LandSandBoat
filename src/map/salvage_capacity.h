@@ -3,15 +3,30 @@
 #include "common/cbasetypes.h"
 
 // Pure Salvage helpers shared by dual-wire slices:
-//   - 2871: CanClaimTransport / TransportUserBusy (onTransportUpdate gate)
+//   - 2871: CanClaimTransport / TransportUserBusy residual dual-wire suite
+//   - 3085: CanClaimTransport dedicated dual-wire (claim_transport.go)
 //   - 2892: CanOpenDoor (onDoorOpen CLOSE_DOOR + unSealed gate)
 //   - 2894: CanOpenBossDoor (openBossDoor CLOSE_DOOR gate; no unSealed)
 //   - 2898: ShouldResetTempBox (resetTempBoxes status == NORMAL gate)
 //   - 2904: ShouldSpawnOnTempChestCasket (spawnTempChest status == DISAPPEAR)
 //
-// Lua production host: scripts/globals/salvage.lua
+// Dual-wire index:
+//   - 2871: CanClaimTransport residual dual-wire suite
+//   - 3085: CanClaimTransport = !TransportUserBusy(transportUserID)
+//   - 2892: CanOpenDoor
+//   - 2894: CanOpenBossDoor
+//   - 2898: ShouldResetTempBox
+//   - 2904: ShouldSpawnOnTempChestCasket
 //
-// onTransportUpdate (2871):
+// Lua production host: scripts/globals/salvage.lua
+// Go dual-wire: salvage.CanClaimTransport / salvage.TransportUserBusy
+// (internal/salvage/claim_transport.go). Future Lua host injects
+// CanClaimTransport then claim writeback / timer / deSpawn / release.
+//
+// Prior pure ports: OmegaXI slices 0977 (TransportUserBusy), 1083
+// (CanClaimTransport). Residual dual-wire suite: 2871.
+//
+// onTransportUpdate (2871 residual / 3085 dedicated):
 //   if instance:getLocalVar('transportUser') == 0 then
 //     -- claim path: set transportUser, stageComplete=0, resetTempBoxes, ...
 //   else
@@ -50,12 +65,13 @@ namespace salvagehelpers
 {
 
 // ---------------------------------------------------------------------------
-// 2871 — onTransportUpdate transportUser claim gate
+// Slice 2871 / 3085 — onTransportUpdate transportUser claim gate
 // ---------------------------------------------------------------------------
 
 // TransportUserBusy is the pure free-function form of the busy half of the
 // onTransportUpdate gate: another player already holds transportUser.
 //   transportUserID != 0
+// Prior pure port: slice 0977. Residual dual-wire suite: 2871.
 inline auto TransportUserBusy(const uint32 transportUserID) -> bool
 {
     return transportUserID != 0;
@@ -63,11 +79,23 @@ inline auto TransportUserBusy(const uint32 transportUserID) -> bool
 
 // CanClaimTransport is the pure free-function form of the onTransportUpdate
 // claim gate: transportUser local var must be free before the claim path runs.
-//   transportUserID == 0
-// Equivalent to !TransportUserBusy(transportUserID).
+//
+// Formula (slice 3085 dedicated dual-wire; residual expand 2871 / pure 1083 —
+// formula unchanged):
+//   CanClaimTransport(transportUserID) = !TransportUserBusy(transportUserID)
+//   ≡ transportUserID == 0
+//
+// Host injects transportUser (getLocalVar) only. Free (0) may claim; non-zero
+// is busy → early return.
+// Dual-wire of Go salvage.CanClaimTransport (claim_transport.go).
+// Call site: future Lua onTransportUpdate inject.
+// Prior pure port: slice 1083. Residual dual-wire suite: 2871 /
+// test_salvage_claim_transport_2871. Dedicated dual-wire suite is
+// test_salvage_claim_transport_3085. Host still owns claim writeback,
+// stageComplete reset, timer clear, deSpawnStage, release, resetTempBoxes.
 inline auto CanClaimTransport(const uint32 transportUserID) -> bool
 {
-    return transportUserID == 0;
+    return !TransportUserBusy(transportUserID);
 }
 
 // ---------------------------------------------------------------------------

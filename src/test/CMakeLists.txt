@@ -2741,6 +2741,16 @@ set(SOURCES
     test_ranger_strip_partial_retain_3082.cpp
     test_party_attempt_pc_leader_3083.h
     test_party_attempt_pc_leader_3083.cpp
+    test_follow_can_follow_3084.h
+    test_follow_can_follow_3084.cpp
+    test_salvage_claim_transport_3085.h
+    test_salvage_claim_transport_3085.cpp
+    test_mapsession_replace_session_3086.h
+    test_mapsession_replace_session_3086.cpp
+    test_battlefield_add_sj_3087.h
+    test_battlefield_add_sj_3087.cpp
+    test_ambuscade_warp_exit_3088.h
+    test_ambuscade_warp_exit_3088.cpp
 )
 
 if(UNIX)

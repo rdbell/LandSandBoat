@@ -101,6 +101,21 @@ inline auto ShouldCreatePendingSession(const bool queryOK) -> bool
 // getPendingSessionByCharId returned a non-null owner. Host owns
 // removeSession / removePendingSession when this returns true; the ownership
 // unique_ptr map overwrite remains host-owned either way.
+//
+// Formula (slice 3086 dual-wire):
+//   previousPresent
+//
+// Host-injected scalar (no session / index / ownership-map pointers):
+//   previousPresent — same-key index lookup returned a non-null owner
+//
+// true  → host may removeSession / removePendingSession for that previous
+// false → skip index remove (no same-key owner)
+//
+// Dual-wire of Go mapsession.ShouldReplaceExistingSession
+// (internal/mapsession/replace_existing_session.go). Prior pure port: slice 2795.
+// Sibling dual-wires 3056/3066 (destroy-pending gates) are left alone.
+// Call sites: MapSessionContainer::createSession / createPendingSession
+// (map_session_container.cpp) already inject previous != nullptr before remove.
 inline auto ShouldReplaceExistingSession(const bool previousPresent) -> bool
 {
     return previousPresent;

@@ -1374,6 +1374,11 @@ auto runStatusRejectNull3080SelfTests() -> bool;
 auto runPetShouldDisengage3081SelfTests() -> bool;
 auto runRangerStripPartialRetain3082SelfTests() -> bool;
 auto runPartyAttemptPCLeader3083SelfTests() -> bool;
+auto runFollowCanFollow3084SelfTests() -> bool;
+auto runSalvageClaimTransport3085SelfTests() -> bool;
+auto runMapsessionReplaceSession3086SelfTests() -> bool;
+auto runBattlefieldAddSj3087SelfTests() -> bool;
+auto runAmbuscadeWarpExit3088SelfTests() -> bool;
 
 namespace
 {
@@ -2725,6 +2730,11 @@ namespace
         ok = runPetShouldDisengage3081SelfTests() && ok;
         ok = runRangerStripPartialRetain3082SelfTests() && ok;
         ok = runPartyAttemptPCLeader3083SelfTests() && ok;
+        ok = runFollowCanFollow3084SelfTests() && ok;
+        ok = runSalvageClaimTransport3085SelfTests() && ok;
+        ok = runMapsessionReplaceSession3086SelfTests() && ok;
+        ok = runBattlefieldAddSj3087SelfTests() && ok;
+        ok = runAmbuscadeWarpExit3088SelfTests() && ok;
 
         return ok;
     }

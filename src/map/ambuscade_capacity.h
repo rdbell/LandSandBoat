@@ -4,23 +4,25 @@
 
 // Pure Ambuscade helpers shared by dual-wire slices:
 //   - 2875: onInstanceTimeUpdate complete-when-no-mobs residual dual-wire suite
-//   - 2888: instance onEventFinish exit-warp CSID gate
+//   - 2888: instance onEventFinish exit-warp CSID residual dual-wire suite
 //   - 2895: Gorpa-Masorpa onTrade eminence-completed(499) gate
 //   - 2901: Ambuscade Tome onEventFinish enter CSID (378) gate
 //   - 2906: Gorpa-Masorpa onEventFinish intro CSID (385) → RoE 499 gate
 //   - 2910: Ambuscade Tome onEventFinish Intense VE createInstance gate
 //   - 2917: onInstanceComplete / onInstanceFailure always-start exit CS gate
 //   - 3062: ShouldCompleteInstance dedicated dual-wire (complete_instance.go)
+//   - 3088: ShouldWarpOnExitEvent dedicated dual-wire (warp_exit.go)
 //
 // Dual-wire index:
 //   - 2875: ShouldCompleteInstance residual dual-wire suite
-//   - 2888: ShouldWarpOnExitEvent (exit CSID 10001)
+//   - 2888: ShouldWarpOnExitEvent residual dual-wire suite
 //   - 2895: ShouldProcessGorpaTrade (eminenceCompleted 499)
 //   - 2901: ShouldHandleTomeEnterFinish (csid 378)
 //   - 2906: ShouldTriggerRoEIntro (csid 385 → RoE 499)
 //   - 2910: ShouldCreateIntenseVEInstance (csid 374 + option 5)
 //   - 2917: ShouldStartExitEvent (always-start exit CS)
 //   - 3062: ShouldCompleteInstance (!anyMobAlive on onInstanceTimeUpdate)
+//   - 3088: ShouldWarpOnExitEvent (csid == EventCSIDExit / 10001)
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
@@ -71,7 +73,7 @@ inline auto ShouldCompleteInstance(const bool anyMobAlive) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2888 — instance onEventFinish exit-warp CSID gate
+// Slice 2888 / 3088 — instance onEventFinish exit-warp CSID gate
 // ---------------------------------------------------------------------------
 
 // EventCSIDExit is the exit cutscene CSID (ambuscade instance onEventFinish /
@@ -80,8 +82,21 @@ inline constexpr int32 EventCSIDExit = 10001;
 
 // ShouldWarpOnExitEvent mirrors ambuscade.lua instance onEventFinish:
 //   if csid == 10001 then player:setPos(...) end
-// csid is the host-injected event CSID. Host still calls setPos(ExitDest)
-// after a true gate.
+//
+// Formula (slice 3088 dual-wire; residual expand 2888):
+//   ShouldWarpOnExitEvent(csid) = csid == EventCSIDExit  // 10001
+//
+// csid — host-injected event CSID from onEventFinish
+// true  → host calls setPos(ExitDest) (Mhaura)
+// false → no exit warp
+//
+// Dual-wire of Go ambuscade.ShouldWarpOnExitEvent.
+// Call site: future Lua onEventFinish inject.
+// Prior pure port: slice 1089. Residual dual-wire suite: 2888 /
+// test_ambuscade_warp_exit_2888. Dedicated dual-wire suite is
+// test_ambuscade_warp_exit_3088. Host still calls setPos(ExitDest) after
+// a true gate. EventCSIDExit is also the complete/failure startEvent CSID;
+// this gate is the finish-side warp half only.
 inline auto ShouldWarpOnExitEvent(const int32 csid) -> bool
 {
     return csid == EventCSIDExit;

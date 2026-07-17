@@ -15,6 +15,7 @@
 //   - 3014: ShouldRegisterPC (!enter && !alreadyRegistered)
 //   - 3024: ShouldEnterPC (enter identity)
 //   - 3059: ShouldApplyLevelCap (levelCap > 0)
+//   - 3087: ShouldAddSjRestriction ((rules & ALLOW_SUBJOBS) == 0)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -50,6 +51,12 @@
 // LevelRestriction path, else DelStatusEffect(LevelRestriction).
 // Go dual-wire: battlefield.ShouldApplyLevelCap
 // (internal/battlefield/apply_level_cap.go).
+//
+// Production host: CBattlefield::ApplyLevelRestrictions injects m_Rules
+// into ShouldAddSjRestriction after the level-cap path (whether or not
+// there is a lv cap); on true AddStatusEffect(SjRestriction, ...).
+// Go dual-wire: battlefield.ShouldAddSjRestriction
+// (internal/battlefield/add_sj_restriction.go).
 
 namespace battlefieldhelpers
 {
@@ -255,6 +262,24 @@ inline auto ResolveLevelCap(
 }
 
 // ShouldAddSjRestriction mirrors !(m_Rules & RULES_ALLOW_SUBJOBS).
+//
+// Formula (slice 3087 dual-wire):
+//   (rules & RulesAllowSubjobs) == 0
+//
+// rules — host-evaluated battlefield m_Rules / BCRULES bitset
+// true  → add SjRestriction status (subjobs disallowed)
+// false → leave subjobs enabled (ALLOW_SUBJOBS set)
+//
+// Dual-wire of Go battlefield.ShouldAddSjRestriction.
+// Call site: CBattlefield::ApplyLevelRestrictions — host injects m_Rules
+// after the level-cap path (SJ restriction is independent of lv cap):
+//   if (ShouldAddSjRestriction(m_Rules)) {
+//       AddStatusEffect(SjRestriction, ...);
+//   }
+// Prior pure port: slice 1361 (battlefield policy suite). Residual pins remain
+// in test_battlefield_policy_1361; dedicated dual-wire suite is
+// test_battlefield_add_sj_3087. Sibling dual-wire ShouldApplyLevelCap remains
+// in this header (3059; left alone in this slice).
 inline auto ShouldAddSjRestriction(const uint16 rules) -> bool
 {
     return (rules & RulesAllowSubjobs) == 0;
