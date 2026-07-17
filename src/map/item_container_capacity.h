@@ -17,6 +17,7 @@
 //   - 3021: ShouldIncrementCountOnInsertAt (InsertItem count bump)
 //   - 3027: CanSetSize (SetSize / AddSize acceptance gate)
 //   - 3033: CanSearchSlotID (GetItem / search inclusive range dual-wire)
+//   - 3038: MatchesSearchItem (SearchItem / SearchItems loop-body dual-wire)
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
@@ -41,6 +42,10 @@
 // CanSearchSlotID (shared inclusive bound with SearchItem / SearchItems /
 // SearchItemWithSpace). Go dual-wire: itemcontainer.CanSearchSlotID
 // (internal/itemcontainer/search_slot.go).
+// Production host: CItemContainer::SearchItem / SearchItems inject occupancy
+// and id match into MatchesSearchItem after null short-circuit.
+// Go dual-wire: itemcontainer.MatchesSearchItem
+// (internal/itemcontainer/matches_search_item.go).
 
 namespace itemcontainerhelpers
 {
@@ -205,6 +210,20 @@ inline auto CanSearchSlotID(const std::uint8_t slotID, const std::uint8_t size) 
 
 // MatchesSearchItem is the pure loop-body gate for SearchItem / SearchItems:
 // occupied slot and matching item id.
+//
+// Formula (slice 3038 dual-wire):
+//   slotOccupied && idMatches
+//
+// slotOccupied — host-evaluated occupancy (m_ItemList[slotId] != nullptr)
+// idMatches    — host-evaluated item id equality (getID() == itemId)
+// true  → host treats the slot as a SearchItem / SearchItems hit
+// false → continue scan (empty slot or id mismatch)
+//
+// Dual-wire of Go itemcontainer.MatchesSearchItem.
+// Call sites: CItemContainer::SearchItem / SearchItems after null short-circuit.
+// Prior pure port: slice 2823. Sibling dual-wire range gate: CanSearchSlotID
+// (slice 3033). Related residual WithSpace gate: MatchesSearchItemWithSpace
+// (slice 2808; adds HasSpaceForQuantity).
 inline auto MatchesSearchItem(const bool slotOccupied, const bool idMatches) -> bool
 {
     return slotOccupied && idMatches;

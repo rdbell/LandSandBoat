@@ -1324,6 +1324,11 @@ auto runRangedDeleteSange3030SelfTests() -> bool;
 auto runPartyPushPacketMember3031SelfTests() -> bool;
 auto runZoneApplyLevelRestriction3032SelfTests() -> bool;
 auto runItemSearchSlot3033SelfTests() -> bool;
+auto runNotorietyHasEnmityAfterPrune3034SelfTests() -> bool;
+auto runRangedForceBarrageSange3035SelfTests() -> bool;
+auto runPartyIncludeGroupEffects3036SelfTests() -> bool;
+auto runZoneRejectIncreaseCounter3037SelfTests() -> bool;
+auto runItemMatchesSearchItem3038SelfTests() -> bool;
 
 namespace
 {
@@ -2625,6 +2630,11 @@ namespace
         ok = runPartyPushPacketMember3031SelfTests() && ok;
         ok = runZoneApplyLevelRestriction3032SelfTests() && ok;
         ok = runItemSearchSlot3033SelfTests() && ok;
+        ok = runNotorietyHasEnmityAfterPrune3034SelfTests() && ok;
+        ok = runRangedForceBarrageSange3035SelfTests() && ok;
+        ok = runPartyIncludeGroupEffects3036SelfTests() && ok;
+        ok = runZoneRejectIncreaseCounter3037SelfTests() && ok;
+        ok = runItemMatchesSearchItem3038SelfTests() && ok;
 
         return ok;
     }

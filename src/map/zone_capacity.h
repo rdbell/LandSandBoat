@@ -26,12 +26,19 @@
 //   - 3028: ShouldSkipSameWeather (alreadyCurrent on SetWeather)
 //   - 3032: ShouldApplyZoneLevelRestriction (zoneLevelRestriction != 0 on
 //           updateCharLevelRestriction)
+//   - 3037: ShouldRejectIncreaseZoneCounter (charNull || alreadyInZone ||
+//           hasTreasurePool on IncreaseZoneCounter entry)
 //
 // Production host: CZone::DecreaseZoneCounter (zone.cpp) injects
 // CharListEmpty() into ShouldStampZoneEmptyTime; on true stamps m_timeZoneEmpty;
 // else if ShouldDespawnPCOnLeave calls DespawnPC.
 // Go dual-wire: zone.ShouldStampZoneEmptyTime (internal/zone/stamp_empty.go);
 // zone.ShouldDespawnPCOnLeave (internal/zone/despawn_pc_leave.go).
+// Production host: CZone::IncreaseZoneCounter (zone.cpp) injects
+// PChar == nullptr, loc.zone != nullptr, PTreasurePool != nullptr into
+// ShouldRejectIncreaseZoneCounter; on true ShowWarning + return.
+// Go dual-wire: zone.ShouldRejectIncreaseZoneCounter
+// (internal/zone/reject_increase_counter.go).
 // Production host: CZone::IncreaseZoneCounter (zone.cpp) injects
 // GetNewCharTargID() into ShouldRejectHighCharTargid; on true ShowError + return.
 // Go dual-wire: zone.ShouldRejectHighCharTargid (internal/zone/high_targid.go).
@@ -99,6 +106,28 @@ inline auto FormatInsertCharTargidHighErrorPrefix() -> std::string
 
 // ShouldRejectIncreaseZoneCounter mirrors
 // PChar null || loc.zone != null || PTreasurePool != null.
+//
+// Formula (slice 3037 dual-wire):
+//   charNull || alreadyInZone || hasTreasurePool
+//
+// charNull         — host-evaluated PChar == nullptr
+// alreadyInZone    — host-evaluated PChar != nullptr && PChar->loc.zone != nullptr
+// hasTreasurePool  — host-evaluated PChar != nullptr && PChar->PTreasurePool != nullptr
+// true  → ShowWarning + return (no GetNewCharTargID / InsertPC)
+// false → admit enter path (targid assign may proceed)
+//
+// Dense 2³ space: only (false, false, false) is false (accept); any true pole
+// rejects. Production host short-circuits null injects so alreadyInZone /
+// hasTreasurePool are false when charNull is true, but the pure helper still
+// evaluates the three injected bools independently.
+//
+// Dual-wire of Go zone.ShouldRejectIncreaseZoneCounter.
+// Call site: CZone::IncreaseZoneCounter entry — host injects null / loc.zone /
+// PTreasurePool presence flags.
+// Prior pure port: slice 1363 (zone policy suite). Residual pins remain in
+// test_zone_policy_1363; dedicated dual-wire suite is
+// test_zone_reject_increase_counter_3037.
+// Sibling enter gates: ShouldRejectHighCharTargid (2949), ShouldCreateZoneTimers (2992).
 inline auto ShouldRejectIncreaseZoneCounter(
     const bool charNull,
     const bool alreadyInZone,

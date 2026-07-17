@@ -268,8 +268,37 @@ inline auto ShouldApplyDistancePenaltyMessage(const bool isChar, const bool isCr
     return isChar && !isCritMessage;
 }
 
+// --- Slice 3035: ShouldForceBarrageSangeHitResolution pure dual-wire ---
+// Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects true (literal on the
+// successful-hit path), (actionResult.resolution == ActionResolution::Hit),
+// isBarrage, and isSange into ShouldForceBarrageSangeHitResolution before
+// setting actionResult.resolution = ActionResolution::Hit on true (~3343).
+// Go dual-wire: attackutils.ShouldForceBarrageSangeHitResolution
+// (internal/attackutils/force_barrage_sange_hit.go).
+// Sibling dual-wires: ShouldConsumeAmmo (2986), ShouldDeleteUnlimitedShot (3000),
+// ShouldDeleteFlashyAndStealthShot (3007), ShouldTruncateHitCountOnAmmoDeplete (3010),
+// ShouldApplyDistancePenaltyMessage (3013), ShouldDeleteBarrageStatus (3018),
+// ShouldApplyRangedDamageMultiplier (3023), ShouldDeleteSangeStatus (3030).
+
 // ShouldForceBarrageSangeHitResolution mirrors:
-//   resolution != Hit && (isBarrage || isSange) after at least one hit
+//   hitOccured && resolution != Hit && (isBarrage || isSange)
+// Any misses with Barrage/Sange cause remaining shots to miss, so resolution
+// must be forced to Hit when at least one hit occurred.
+//
+// Formula (slice 3035 dual-wire):
+//   return hitOccured && !resolutionIsHit && (isBarrage || isSange)
+//
+// hitOccured      — host-tracked whether any ranged shot hit this action
+//                   (production injects true on the successful-hit path)
+// resolutionIsHit — host-evaluated actionResult.resolution == ActionResolution::Hit
+// isBarrage       — host-evaluated StatusEffect::Barrage present at shot start
+// isSange         — host-evaluated StatusEffect::Sange present at shot start
+// true  → host sets actionResult.resolution = ActionResolution::Hit
+// false → keep existing resolution (no hit, already Hit, or neither effect)
+//
+// Dual-wire of Go attackutils.ShouldForceBarrageSangeHitResolution.
+// Call site: CBattleEntity::OnRangedAttack (~3343).
 inline auto ShouldForceBarrageSangeHitResolution(
     const bool hitOccured,
     const bool resolutionIsHit,

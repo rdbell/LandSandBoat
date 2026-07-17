@@ -28,6 +28,8 @@
 //           isPC && notDisappear)
 //   - 3031: ShouldPushPartyPacketToMember (PushPacket per-member filter:
 //           isPC, not sender, notDisappear, !inPrison, zone filter)
+//   - 3036: ShouldIncludeInGroupEffects (PushEffectsPacket partyInfo_t filter:
+//           same party, not self, charFound, sameZone)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
@@ -48,6 +50,10 @@
 // Production host: CParty::PushPacket (party.cpp:~1317) injects isPC /
 // member->id / senderID / status != DISAPPEAR / InPrison / ZoneID /
 // getZone() into ShouldPushPartyPacketToMember before pushPacket(copy).
+// Production host: CParty::PushEffectsPacket (party.cpp:~1350) injects
+// memberinfo.partyid / m_PartyID / memberinfo.id / PMemberChar->id /
+// charFound / sameZone into ShouldIncludeInGroupEffects before
+// sameZoneMembers.push_back(PPartyMember).
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
@@ -57,7 +63,8 @@
 // party.ShouldApplySyncEnableToMember (internal/party/apply_sync_enable.go),
 // party.ShouldStartSyncDisableCountdown (internal/party/sync_disable_countdown.go),
 // party.ShouldApplySyncDisableToMember (internal/party/apply_sync_disable.go),
-// party.ShouldPushPartyPacketToMember (internal/party/push_packet_member.go).
+// party.ShouldPushPartyPacketToMember (internal/party/push_packet_member.go),
+// party.ShouldIncludeInGroupEffects (internal/party/include_group_effects.go).
 
 namespace partyhelpers
 {
@@ -448,6 +455,33 @@ inline auto ShouldPushPartyPacketToMember(
 
 // ShouldIncludeInGroupEffects mirrors PushEffectsPacket's partyInfo_t filter for
 // building sameZoneMembers: same party, not self, char resolved, same zone.
+//
+// Formula (order of short-circuits; slice 3036 dual-wire):
+//   infoPartyID != partyID   → false
+//   infoCharID == selfCharID → false
+//   !charFound               → false
+//   !sameZone                → false
+//   else                     → true
+//
+// Equivalent pin:
+//   infoPartyID == partyID && infoCharID != selfCharID && charFound && sameZone
+//
+// infoPartyID — host-evaluated partyInfo_t.partyid
+// partyID     — host-evaluated m_PartyID (recipient party)
+// infoCharID  — host-evaluated partyInfo_t.id
+// selfCharID  — host-evaluated PMemberChar->id (recipient; self skipped)
+// charFound   — host-evaluated zoneutils::GetChar(memberinfo.id) != nullptr
+// sameZone    — host-evaluated charFound && GetChar->getZone() == PMemberChar->getZone()
+// true  → host pushes PPartyMember into sameZoneMembers
+// false → continue (skip info row)
+//
+// Dual-wire of Go party.ShouldIncludeInGroupEffects
+// (internal/party/include_group_effects.go). Prior pure port: slice 1336.
+// Call site: CParty::PushEffectsPacket (party.cpp:~1350) host inject.
+// Sibling dual-wire: 3031 ShouldPushPartyPacketToMember (PushPacket filter).
+// Residual sibling: ShouldPushEffectsPacket (m_EffectsChanged gate; 1336).
+// Coverage: test_party_include_group_effects_3036 (not in CMake/main).
+// Residual suite: test_party_group_effects_1336.
 inline auto ShouldIncludeInGroupEffects(
     const uint32 infoPartyID,
     const uint32 partyID,

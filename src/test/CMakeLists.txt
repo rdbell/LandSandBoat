@@ -2641,6 +2641,16 @@ set(SOURCES
     test_zone_apply_level_restriction_3032.cpp
     test_item_search_slot_3033.h
     test_item_search_slot_3033.cpp
+    test_notoriety_has_enmity_after_prune_3034.h
+    test_notoriety_has_enmity_after_prune_3034.cpp
+    test_ranged_force_barrage_sange_3035.h
+    test_ranged_force_barrage_sange_3035.cpp
+    test_party_include_group_effects_3036.h
+    test_party_include_group_effects_3036.cpp
+    test_zone_reject_increase_counter_3037.h
+    test_zone_reject_increase_counter_3037.cpp
+    test_item_matches_search_item_3038.h
+    test_item_matches_search_item_3038.cpp
 )
 
 if(UNIX)

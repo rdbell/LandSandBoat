@@ -9,12 +9,14 @@
 //   - 2971: ShouldRemoveNotorietyMember (remove admission two-bool AND)
 //   - 3020: ShouldScanNotorietyForPrune (hasEnmity outer gate two-bool AND)
 //   - 3029: ShouldPruneMobFromNotoriety (hasEnmity per-entry prune four-bool)
+//   - 3034: HasEnmityAfterPrune (hasEnmity final empty report NOT empty)
 //   - residual 2807: hasEnmity stale-mob prune gates
 //     (ShouldScanNotorietyForPrune dual-wired as 3020;
 //      ShouldPruneMobFromNotoriety dual-wired as 3029)
 //   - residual 2818: add admission (prior pure port of ShouldAddNotorietyMember)
 //   - residual 2819: remove admission (prior pure port of ShouldRemoveNotorietyMember)
 //   - residual 2832: hasEnmity / size pure reporting
+//     (HasEnmityAfterPrune dual-wired as 3034; NotorietySize remains residual)
 //
 // Production host: CNotorietyContainer in notoriety_container.cpp.
 // Helpers take host-injected scalars/bools only (no entity/enmity pointers).
@@ -26,6 +28,8 @@
 // (internal/notoriety/scan_prune.go). Prior pure port: slice 2807.
 // Go dual-wire: notoriety.ShouldPruneMobFromNotoriety
 // (internal/notoriety/prune_mob.go). Prior pure port: slice 2807.
+// Go dual-wire: notoriety.HasEnmityAfterPrune
+// (internal/notoriety/has_enmity_after_prune.go). Prior pure port: slice 2832.
 
 namespace notorietyhelpers
 {
@@ -136,13 +140,25 @@ inline auto ShouldRemoveNotorietyMember(const bool ownerPresent, const bool enti
     return ownerPresent && entityPresent;
 }
 
-// HasEnmityAfterPrune mirrors CNotorietyContainer::hasEnmity final return (~110)
+// HasEnmityAfterPrune mirrors CNotorietyContainer::hasEnmity final return (~111)
 // after the optional stale-mob prune walk:
 //   !m_Lookup.empty()
 //
-// Host injects empty-state only (no set pointers). True when the reverse list
-// still has at least one entry after pruning (or when the prune walk was
-// skipped and the lookup was already non-empty).
+// Formula (slice 3034 dual-wire):
+//   !lookupEmpty
+//
+// Host-injected scalar (no set pointers):
+//   lookupEmpty  — m_Lookup.empty() after the optional prune walk (or when
+//                  the prune gate skipped)
+// true  → reverse list still has at least one entry (has enmity)
+// false → lookup empty after prune (or was already empty)
+//
+// Dual-wire of Go notoriety.HasEnmityAfterPrune
+// (internal/notoriety/has_enmity_after_prune.go). Prior pure port: slice 2832.
+// Call site: CNotorietyContainer::hasEnmity (notoriety_container.cpp).
+// Sibling outer scan / per-entry prune: ShouldScanNotorietyForPrune (3020) /
+// ShouldPruneMobFromNotoriety (3029). Residual size reporting: NotorietySize
+// (2832).
 inline auto HasEnmityAfterPrune(const bool lookupEmpty) -> bool
 {
     return !lookupEmpty;
