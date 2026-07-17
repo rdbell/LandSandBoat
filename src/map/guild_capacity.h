@@ -154,3 +154,36 @@ inline auto NewDailyPointsTotal(const uint16 curPoints, const uint16 pointsToAdd
 }
 
 } // namespace guildhelpers
+
+// ---------------------------------------------------------------------------
+// Guild Points (Union Representative / Lua crafting catalogs) dual-wire
+// helpers. Separate from CGuild daily-points math above (guildhelpers).
+//
+// Lua production host: scripts/globals/hobbies/crafting/guild_points.lua
+//   player:getCurrency(currency) >= keyItem.cost / cost  (purchase gates)
+//
+// Host injects scalars only (no player / entity pointers):
+//   currency — player:getCurrency(...)
+//   cost     — keyItem.cost / item.cost*qty / crystal.cost*qty
+//
+// delCurrency / giveKeyItem / addItem writeback remains host-owned.
+// Prior pure port: OmegaXI slice 1016 (internal/guildpoints).
+// Dual-wire expansion: slice 2944.
+// ---------------------------------------------------------------------------
+
+namespace guildpointshelpers
+{
+
+// CanAfford is the pure free-function form of the Lua guild_points currency
+// gate (slice 2944):
+//
+//   currency >= cost
+//
+// Future Lua host injects getCurrency / catalog cost scalars into this helper
+// instead of re-inlining the comparison. Matches Go guildpoints.CanAfford.
+inline auto CanAfford(const int32 currency, const int32 cost) -> bool
+{
+    return currency >= cost;
+}
+
+} // namespace guildpointshelpers

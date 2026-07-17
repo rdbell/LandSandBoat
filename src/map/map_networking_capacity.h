@@ -9,11 +9,33 @@
 #include <common/mmo.h>
 #include <common/zlib.h>
 
+// Pure MapNetworking capacity helpers extracted so native tests can pin policy
+// without sockets, Blowfish keys, or session tables.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 2660: ShouldOpenSocket (!isTestServer) — residual pure port
+//   - 2948: ShouldOpenSocket (!isTestServer) dual-wire expansion
+//
+// Production host: MapNetworking constructor (map_networking.cpp) injects
+// config_.isTestServer into ShouldOpenSocket before MapSocket allocation.
+// Go dual-wire: mapwire.ShouldOpenSocket (internal/mapwire/socket_gate.go).
+
 namespace mapnetworkinghelpers
 {
 
 // ShouldOpenSocket mirrors MapNetworking construction: embedded test servers
 // skip UDP socket creation.
+//
+// Formula (slice 2948 dual-wire):
+//   !isTestServer
+//
+// isTestServer — host-evaluated config_.isTestServer (MapConfig)
+// true  → open UDP MapSocket (production map process)
+// false → skip socket creation (embedded test map server)
+//
+// Dual-wire of Go mapwire.ShouldOpenSocket.
+// Call site: MapNetworking constructor before MapSocket allocation.
+// Residual pure port: slice 2660.
 inline auto ShouldOpenSocket(const bool isTestServer) -> bool
 {
     return !isTestServer;

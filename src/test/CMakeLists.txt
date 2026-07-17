@@ -2461,6 +2461,16 @@ set(SOURCES
     test_itemcontainer_insert_slot_2942.cpp
     test_char_clear_pending_pop_2943.h
     test_char_clear_pending_pop_2943.cpp
+    test_guildpoints_can_afford_2944.h
+    test_guildpoints_can_afford_2944.cpp
+    test_besieged_afford_sanction_2945.h
+    test_besieged_afford_sanction_2945.cpp
+    test_campaign_afford_notes_2946.h
+    test_campaign_afford_notes_2946.cpp
+    test_aicontainer_can_dispatch_2947.h
+    test_aicontainer_can_dispatch_2947.cpp
+    test_mapwire_open_socket_2948.h
+    test_mapwire_open_socket_2948.cpp
 )
 
 if(UNIX)

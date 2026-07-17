@@ -21,6 +21,7 @@
 
 #include "ai/ai_container.h"
 
+#include "ai/ai_container_capacity.h"
 #include "ai/controllers/mob_controller.h"
 #include "ai/controllers/pet_controller.h"
 #include "ai/controllers/player_controller.h"
@@ -65,7 +66,8 @@ CAIContainer::CAIContainer(CBaseEntity*                   _PEntity,
 
 bool CAIContainer::Cast(uint16 targid, SpellID spellid)
 {
-    if (Controller)
+    // Dual-wire: aicontainerhelpers::CanDispatch (slice 2947)
+    if (aicontainerhelpers::CanDispatch(static_cast<bool>(Controller)))
     {
         return Controller->Cast(targid, spellid);
     }
@@ -74,7 +76,8 @@ bool CAIContainer::Cast(uint16 targid, SpellID spellid)
 
 bool CAIContainer::Engage(uint16 targid)
 {
-    if (Controller)
+    // Dual-wire: aicontainerhelpers::CanDispatch (slice 2947)
+    if (aicontainerhelpers::CanDispatch(static_cast<bool>(Controller)))
     {
         return Controller->Engage(targid);
     }
@@ -83,7 +86,8 @@ bool CAIContainer::Engage(uint16 targid)
 
 bool CAIContainer::ChangeTarget(uint16 targid)
 {
-    if (Controller)
+    // Dual-wire: aicontainerhelpers::CanDispatch (slice 2947)
+    if (aicontainerhelpers::CanDispatch(static_cast<bool>(Controller)))
     {
         return Controller->ChangeTarget(targid);
     }
@@ -92,7 +96,8 @@ bool CAIContainer::ChangeTarget(uint16 targid)
 
 bool CAIContainer::Disengage()
 {
-    if (Controller)
+    // Dual-wire: aicontainerhelpers::CanDispatch (slice 2947)
+    if (aicontainerhelpers::CanDispatch(static_cast<bool>(Controller)))
     {
         return Controller->Disengage();
     }
@@ -101,7 +106,8 @@ bool CAIContainer::Disengage()
 
 bool CAIContainer::WeaponSkill(uint16 targid, uint16 wsid)
 {
-    if (Controller)
+    // Dual-wire: aicontainerhelpers::CanDispatch (slice 2947)
+    if (aicontainerhelpers::CanDispatch(static_cast<bool>(Controller)))
     {
         return Controller->WeaponSkill(targid, wsid);
     }
@@ -111,7 +117,8 @@ bool CAIContainer::WeaponSkill(uint16 targid, uint16 wsid)
 bool CAIContainer::MobSkill(uint16 targid, uint16 wsid, Maybe<timer::duration> castTimeOverride)
 {
     auto* AIController = dynamic_cast<CMobController*>(Controller.get());
-    if (AIController)
+    // Dual-wire: aicontainerhelpers::CanDispatch (slice 2947; typed inject)
+    if (aicontainerhelpers::CanDispatch(AIController != nullptr))
     {
         return AIController->MobSkill(targid, wsid, castTimeOverride);
     }
@@ -121,7 +128,8 @@ bool CAIContainer::MobSkill(uint16 targid, uint16 wsid, Maybe<timer::duration> c
 bool CAIContainer::PetSkill(uint16 targid, uint16 wsid)
 {
     auto* AIController = dynamic_cast<CPetController*>(Controller.get());
-    if (AIController)
+    // Dual-wire: aicontainerhelpers::CanDispatch (slice 2947; typed inject)
+    if (aicontainerhelpers::CanDispatch(AIController != nullptr))
     {
         return AIController->PetSkill(targid, wsid);
     }
@@ -130,7 +138,8 @@ bool CAIContainer::PetSkill(uint16 targid, uint16 wsid)
 
 bool CAIContainer::Ability(uint16 targid, uint16 abilityid)
 {
-    if (Controller)
+    // Dual-wire: aicontainerhelpers::CanDispatch (slice 2947)
+    if (aicontainerhelpers::CanDispatch(static_cast<bool>(Controller)))
     {
         return Controller->Ability(targid, abilityid);
     }
@@ -139,7 +148,8 @@ bool CAIContainer::Ability(uint16 targid, uint16 abilityid)
 
 bool CAIContainer::RangedAttack(uint16 targid)
 {
-    if (Controller)
+    // Dual-wire: aicontainerhelpers::CanDispatch (slice 2947)
+    if (aicontainerhelpers::CanDispatch(static_cast<bool>(Controller)))
     {
         return Controller->RangedAttack(targid);
     }
@@ -166,7 +176,8 @@ bool CAIContainer::Trigger(CCharEntity* player)
 bool CAIContainer::UseItem(uint16 targid, uint8 loc, uint8 slotid)
 {
     auto* PlayerController = dynamic_cast<CPlayerController*>(PEntity->PAI->GetController());
-    if (PlayerController)
+    // Dual-wire: aicontainerhelpers::CanDispatch (slice 2947; typed inject)
+    if (aicontainerhelpers::CanDispatch(PlayerController != nullptr))
     {
         return PlayerController->UseItem(targid, loc, slotid);
     }

@@ -1234,6 +1234,11 @@ auto runCommandPermission2940SelfTests() -> bool;
 auto runAllianceSkipDelParty2941SelfTests() -> bool;
 auto runItemcontainerInsertSlot2942SelfTests() -> bool;
 auto runCharClearPendingPop2943SelfTests() -> bool;
+auto runGuildpointsCanAfford2944SelfTests() -> bool;
+auto runBesiegedAffordSanction2945SelfTests() -> bool;
+auto runCampaignAffordNotes2946SelfTests() -> bool;
+auto runAicontainerCanDispatch2947SelfTests() -> bool;
+auto runMapwireOpenSocket2948SelfTests() -> bool;
 
 namespace
 {
@@ -2445,6 +2450,11 @@ namespace
         ok = runAllianceSkipDelParty2941SelfTests() && ok;
         ok = runItemcontainerInsertSlot2942SelfTests() && ok;
         ok = runCharClearPendingPop2943SelfTests() && ok;
+        ok = runGuildpointsCanAfford2944SelfTests() && ok;
+        ok = runBesiegedAffordSanction2945SelfTests() && ok;
+        ok = runCampaignAffordNotes2946SelfTests() && ok;
+        ok = runAicontainerCanDispatch2947SelfTests() && ok;
+        ok = runMapwireOpenSocket2948SelfTests() && ok;
 
         return ok;
     }
