@@ -36,6 +36,8 @@
 //           !isMobParty)
 //   - 3101: ShouldDetachAllianceOnDisband (DisbandParty alliance detach gate:
 //           hasAlliance identity)
+//   - 3114: ShouldNotifyPartyDisbandIPC (DisbandParty PC-path IPC notify gate:
+//           playerInitiated identity)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
@@ -67,6 +69,9 @@
 // Production host: CParty::DisbandParty (party.cpp:~116) injects
 // hasAlliance (m_PAlliance != nullptr) into ShouldDetachAllianceOnDisband
 // before m_PAlliance->removeParty(this).
+// Production host: CParty::DisbandParty (party.cpp:~169) injects
+// playerInitiated into ShouldNotifyPartyDisbandIPC on the PC_FULL path after
+// member cleanup / DB delete before message::send(ipc::PartyDisband).
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
@@ -80,7 +85,8 @@
 // party.ShouldIncludeInGroupEffects (internal/party/include_group_effects.go),
 // party.ShouldPushEffectsPacket (internal/party/push_effects_packet.go),
 // party.ShouldAttemptPCLeaderPromote (internal/party/attempt_pc_leader_promote.go),
-// party.ShouldDetachAllianceOnDisband (internal/party/detach_alliance_disband.go).
+// party.ShouldDetachAllianceOnDisband (internal/party/detach_alliance_disband.go),
+// party.ShouldNotifyPartyDisbandIPC (internal/party/notify_disband_ipc.go).
 
 namespace partyhelpers
 {
@@ -666,7 +672,20 @@ inline auto ShouldDetachAllianceOnDisband(const bool hasAlliance) -> bool
 }
 
 // ShouldNotifyPartyDisbandIPC mirrors playerInitiated inside the PC path only.
+//
+// Formula (slice 3114 dual-wire):
+//   playerInitiated
+//
+// playerInitiated — host-evaluated DisbandParty(playerInitiated) argument
+// true  → host sends ipc::PartyDisband { partyId } (message server notify)
+// false → skip IPC (disband already came from message server)
+//
+// Dual-wire of Go party.ShouldNotifyPartyDisbandIPC
+// (internal/party/notify_disband_ipc.go). Prior pure port: slice 1345.
+// Call site: CParty::DisbandParty (party.cpp:~169) host inject on PC_FULL.
 // Host should only call when ClassifyDisbandPartyMemberPath is PC_FULL.
+// Residual suite: test_party_disband_1345 (classify / detach / treasure / MsgStd).
+// Coverage: test_party_notify_disband_ipc_3114 (not in CMake/main).
 inline auto ShouldNotifyPartyDisbandIPC(const bool playerInitiated) -> bool
 {
     return playerInitiated;

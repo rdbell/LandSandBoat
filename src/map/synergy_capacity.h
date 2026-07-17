@@ -5,16 +5,18 @@
 // Pure Synergy furnace helpers shared by dual-wire slices:
 //   - 2877: CanClaimFurnace residual dual-wire suite (AVAILABLE gate)
 //   - 2896: CanTradeIntoFurnace residual dual-wire suite (CLAIMED+owner)
-//   - 2899: CanOperateFurnace (synergyFurnaceOnTrigger claimedByYou gate)
+//   - 2899: CanOperateFurnace residual dual-wire suite (claimedByYou gate)
 //   - 3065: CanClaimFurnace dedicated dual-wire (claim_furnace.go)
 //   - 3098: CanTradeIntoFurnace dedicated dual-wire (trade_furnace.go)
+//   - 3117: CanOperateFurnace dedicated dual-wire (operate_furnace.go)
 //
 // Dual-wire index:
 //   - 2877: CanClaimFurnace residual dual-wire suite
 //   - 2896: CanTradeIntoFurnace residual dual-wire suite
-//   - 2899: CanOperateFurnace (IsClaimedBy alias)
+//   - 2899: CanOperateFurnace residual dual-wire suite
 //   - 3065: CanClaimFurnace (state == FurnaceAvailable)
 //   - 3098: CanTradeIntoFurnace (state == FurnaceClaimed && IsClaimedBy)
+//   - 3117: CanOperateFurnace (IsClaimedBy alias)
 //
 // Production hosts are Lua under scripts/globals/synergy.lua
 // (furnaceStates + synergyFurnaceOnTrigger / synergyFurnaceOnTrade).
@@ -30,6 +32,9 @@
 // Go dual-wire: synergy.CanTradeIntoFurnace
 // (internal/synergy/trade_furnace.go). Future Lua host injects
 // CanTradeIntoFurnace then recipe lookup / fewell / startEvent 4521.
+// Go dual-wire: synergy.CanOperateFurnace
+// (internal/synergy/operate_furnace.go). Future Lua host injects
+// CanOperateFurnace then CLAIMED menu / ACTIVE operate / COMPLETED retrieve.
 //
 // Prior pure port: OmegaXI slice 1149 (internal/synergy furnace.go).
 
@@ -112,17 +117,35 @@ inline auto CanTradeIntoFurnace(const uint8 state, const uint32 furnacePlayerID,
     return state == FurnaceClaimed && IsClaimedBy(furnacePlayerID, playerID);
 }
 
+// ---------------------------------------------------------------------------
+// Slice 2899 / 3117 — synergyFurnaceOnTrigger claimedByYou operate gate
+// ---------------------------------------------------------------------------
+
 // CanOperateFurnace mirrors the pure claimedByYou gate shared by
 // synergyFurnaceOnTrigger CLAIMED / ACTIVE / COMPLETED branches:
 //   local claimedByYou = furnacePlayerID == player:getID()
 //   if not claimedByYou then return end
+//   -- CLAIMED: startEvent 4520 fewell menu
+//   -- ACTIVE: distance check then startEvent 4518
+//   -- COMPLETED: retrieve / startEvent path
+//
+// Formula (slice 3117 dual-wire; residual expand 2899):
+//   CanOperateFurnace(furnacePlayerID, playerID)
+//     = IsClaimedBy(furnacePlayerID, playerID)
+//   // furnacePlayerID != 0 && furnacePlayerID == playerID
+//
 // furnacePlayerID is the host-injected npc local-var synergyFurnacePlayerID.
 // Zero furnace player ID is never an owner (via IsClaimedBy).
-// Host still owns state branch dispatch, distance checks, startEvent
-// CSIDs, and retrieve side effects.
-// Matches Go synergy.CanOperateFurnace:
-//   IsClaimedBy(furnacePlayerID, playerID)
-//   // furnacePlayerID != 0 && furnacePlayerID == playerID
+// true  → host CLAIMED menu / ACTIVE distance+operate / COMPLETED retrieve
+// false → early return (not owner)
+//
+// Dual-wire of Go synergy.CanOperateFurnace.
+// Call site: future Lua synergyFurnaceOnTrigger inject.
+// Prior pure port: slice 1149. Residual dual-wire suite: 2899 /
+// test_synergy_operate_furnace_2899. Dedicated dual-wire suite is
+// test_synergy_operate_furnace_3117. Host still owns state branch
+// dispatch, distance checks, startEvent CSIDs, and retrieve side
+// effects after a true gate.
 inline auto CanOperateFurnace(const uint32 furnacePlayerID, const uint32 playerID) -> bool
 {
     return IsClaimedBy(furnacePlayerID, playerID);

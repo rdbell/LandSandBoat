@@ -9,8 +9,9 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2653: residual pure port (entities/mob_gil_policy.h mobgilhelpers)
 //   - 2960: CanDropGil (gilMin/gilMax/gilBonus eligibility gate)
-//   - 2972: ShouldAssignParrySkill (MOBMOD_CAN_PARRY > 0 gate)
+//   - 2972: ShouldAssignParrySkill (MOBMOD_CAN_PARRY > 0 gate; prior dual-wire)
 //   - 3022: ShouldAssignGuardSkill (MNK/PUP + MOBMOD_CANNOT_GUARD == 0 gate)
+//   - 3115: ShouldAssignParrySkill (MOBMOD_CAN_PARRY > 0 gate; re-index dual-wire)
 //
 // Production hosts:
 //   - CMobEntity::CanDropGil / CanStealGil in mob_entity.cpp injects
@@ -68,8 +69,19 @@ inline auto CanStealGil(const int16 gilMin, const int16 gilMax, const int16 gilB
     return CanDropGil(gilMin, gilMax, gilBonus);
 }
 
+// Slice 3115 — CalculateMobStats parry skill assignment gate
+// (prior dual-wire expansion: slice 2972; residual pure port: 1623)
+//
+// Dual-wire notes (slice 3115):
+//   Formula unchanged from residual 1623 / prior 2972 dual-wire:
+//     ShouldAssignParrySkill(canParryMod) = canParryMod > 0
+//   Go dual-wire: mobutils.ShouldAssignParrySkill
+//   Index 3115: mobutils.ShouldAssignParrySkill pure dual-wire.
+//   Prior dual-wire suite: test_mobutils_assign_parry_2972.
+//   Dedicated dual-wire suite: test_mobutils_assign_parry_3115.
+//
 // ShouldAssignParrySkill mirrors CalculateMobStats parry skill assignment
-// pure half (slice 2972):
+// pure half (slice 3115 dual-wire; unchanged):
 //
 //   canParryMod > 0
 //
@@ -77,6 +89,7 @@ inline auto CanStealGil(const int16 gilMin, const int16 gilMax, const int16 gilB
 // host assigns WorkingSkills.skill[SKILL_PARRY] from GetBaseSkill using the
 // mod value as rank. Matches Go mobutils.ShouldAssignParrySkill and residual
 // mobsetuphelpers::ShouldAssignParrySkill (1623 / mob_setup_capacity.h).
+// Dual-wire of Go mobutils.ShouldAssignParrySkill (assign_parry.go / slice 3115).
 inline auto ShouldAssignParrySkill(const int16 canParryMod) -> bool
 {
     return canParryMod > 0;

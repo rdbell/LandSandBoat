@@ -2801,6 +2801,16 @@ set(SOURCES
     test_treasure_update_pool_char_3112.cpp
     test_status_reject_simple_immunity_3113.h
     test_status_reject_simple_immunity_3113.cpp
+    test_party_notify_disband_ipc_3114.h
+    test_party_notify_disband_ipc_3114.cpp
+    test_mobutils_assign_parry_3115.h
+    test_mobutils_assign_parry_3115.cpp
+    test_unity_erase_after_del_3116.h
+    test_unity_erase_after_del_3116.cpp
+    test_synergy_operate_furnace_3117.h
+    test_synergy_operate_furnace_3117.cpp
+    test_ranger_strip_without_retain_3118.h
+    test_ranger_strip_without_retain_3118.cpp
 )
 
 if(UNIX)

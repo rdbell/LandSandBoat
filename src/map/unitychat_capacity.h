@@ -14,6 +14,7 @@
 //   - 3050: ShouldLoadUnityChatOnOnlineAdd (!foundInCache && leader != 0)
 //   - 3075: ShouldRejectNullOnlineMember (charNull identity null-PChar gate)
 //   - 3096: ShouldAddMemberAfterOnlineLookup (unityLoaded identity post-lookup gate)
+//   - 3116: ShouldEraseUnityChatAfterDelOnline (!delMemberRemaining roster-empty erase)
 //
 // Production host: CUnityChat::PushPacket (unitychat.cpp) injects
 // member->id == senderID / STATUS_TYPE::DISAPPEAR / jailutils::InPrison(member)
@@ -34,6 +35,10 @@
 // ShouldAddMemberAfterOnlineLookup; on true PUnity->AddMember(PChar).
 // Go dual-wire: unitychat.ShouldAddMemberAfterOnlineLookup
 // (internal/unitychat/add_member_after_lookup.go).
+// Production host: unitychat::DelOnlineMember injects DelMember(PChar) into
+// ShouldEraseUnityChatAfterDelOnline; on true UnityChatList.erase(leader).
+// Go dual-wire: unitychat.ShouldEraseUnityChatAfterDelOnline
+// (internal/unitychat/erase_after_del_online.go).
 
 namespace unitychathelpers
 {
@@ -153,7 +158,26 @@ inline auto OnlineMemberAlwaysReturnsFalse() -> bool
     return false;
 }
 
-// ShouldEraseUnityChatAfterDelOnline mirrors !DelMember (roster empty).
+// ShouldEraseUnityChatAfterDelOnline mirrors !DelMember (roster empty) after
+// DelOnlineMember removes a character from the online list.
+//
+// Formula (slice 3116 dual-wire):
+//   !delMemberRemaining
+//
+// delMemberRemaining — host: result of PUnityChat->DelMember(PChar)
+//                      (LSB DelMember returns !members.empty() after erase)
+// true  → host erases UnityChatList entry for leader (roster empty)
+// false → keep UnityChatList entry (online members remain)
+//
+// Dual-wire of Go unitychat.ShouldEraseUnityChatAfterDelOnline.
+// Call site: unitychat::DelOnlineMember — host injects DelMember(PChar);
+// on true UnityChatList.erase(leader). Prior pure port: slice 1356
+// (unitychat capacity residual). Residual pins remain in
+// test_unitychat_capacity_1356; dedicated dual-wire suite is
+// test_unity_erase_after_del_3116. Sibling dual-wires (leave alone):
+// ShouldLoadUnityChatOnOnlineAdd (3050), ShouldRejectNullOnlineMember (3075),
+// ShouldAddMemberAfterOnlineLookup (3096). Residual siblings: always-false
+// return, null warning string, exception format (still 1356).
 inline auto ShouldEraseUnityChatAfterDelOnline(const bool delMemberRemaining) -> bool
 {
     return !delMemberRemaining;

@@ -1404,6 +1404,11 @@ auto runNyzulActivateRune3110SelfTests() -> bool;
 auto runLinkshellUnload3111SelfTests() -> bool;
 auto runTreasureUpdatePoolChar3112SelfTests() -> bool;
 auto runStatusRejectSimpleImmunity3113SelfTests() -> bool;
+auto runPartyNotifyDisbandIPC3114SelfTests() -> bool;
+auto runMobutilsAssignParry3115SelfTests() -> bool;
+auto runUnityEraseAfterDel3116SelfTests() -> bool;
+auto runSynergyOperateFurnace3117SelfTests() -> bool;
+auto runRangerStripWithoutRetain3118SelfTests() -> bool;
 
 namespace
 {
@@ -2785,6 +2790,11 @@ namespace
         ok = runLinkshellUnload3111SelfTests() && ok;
         ok = runTreasureUpdatePoolChar3112SelfTests() && ok;
         ok = runStatusRejectSimpleImmunity3113SelfTests() && ok;
+        ok = runPartyNotifyDisbandIPC3114SelfTests() && ok;
+        ok = runMobutilsAssignParry3115SelfTests() && ok;
+        ok = runUnityEraseAfterDel3116SelfTests() && ok;
+        ok = runSynergyOperateFurnace3117SelfTests() && ok;
+        ok = runRangerStripWithoutRetain3118SelfTests() && ok;
 
         return ok;
     }
