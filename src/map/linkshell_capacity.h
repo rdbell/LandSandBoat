@@ -21,6 +21,7 @@
 //   - 3008: ShouldMarkPearlBroken (lsType != LSTYPE_LINKSHELL)
 //   - 3009: ShouldSendBreakMessage (breakLinkshell identity)
 //   - 3017: ShouldReceiveLinkshellPacket (!isSender && !isDisappear && !inPrison)
+//   - 3026: ShouldRewritePacketAsLinkshell2 (memberIsLS2 identity)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -37,7 +38,9 @@
 // LinkshellNoLongerExists vs LinkshellKicked after ITEM_SAME / CharStatus.
 // CLinkshell::PushPacket injects member->id == senderID,
 // member->status == DISAPPEAR, and jailutils::InPrison(member) into
-// ShouldReceiveLinkshellPacket before packet copy / optional LS2 rewrite / push.
+// ShouldReceiveLinkshellPacket before packet copy / optional LS2 rewrite / push;
+// then injects member->PLinkshell2 == this into ShouldRewritePacketAsLinkshell2
+// after receive filter, before chat_std / LS message rewrite and pushPacket.
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
 // (internal/linkshell/reject_null_add_member.go),
 // linkshell.ShouldRejectDuplicateAddMember
@@ -53,7 +56,9 @@
 // linkshell.ShouldSendBreakMessage
 // (internal/linkshell/send_break_message.go),
 // linkshell.ShouldReceiveLinkshellPacket
-// (internal/linkshell/receive_packet.go).
+// (internal/linkshell/receive_packet.go),
+// linkshell.ShouldRewritePacketAsLinkshell2
+// (internal/linkshell/rewrite_ls2.go).
 
 namespace linkshellhelpers
 {
@@ -300,12 +305,28 @@ inline auto ShouldSendBreakMessage(const bool breakLinkshell) -> bool
 // (member->id == senderID, member->status == DISAPPEAR, InPrison(member)).
 // Prior pure port: slice 1354 (capacity suite PushPacket receive gate).
 // Sibling dual-wire: slice 3009 (ShouldSendBreakMessage; same capacity header).
+// Follow-on dual-wire: slice 3026 (ShouldRewritePacketAsLinkshell2; same loop).
 inline auto ShouldReceiveLinkshellPacket(const bool isSender, const bool isDisappear, const bool inPrison) -> bool
 {
     return !isSender && !isDisappear && !inPrison;
 }
 
 // ShouldRewritePacketAsLinkshell2 mirrors member->PLinkshell2 == this.
+//
+// Formula (slice 3026 dual-wire):
+//   memberIsLS2
+//
+// memberIsLS2 — host-evaluated member->PLinkshell2 == this
+// true  → host may rewrite chat_std type / LS message flag for LS2 slot
+// false → leave packet as LS1 (no rewrite)
+//
+// Dual-wire of Go linkshell.ShouldRewritePacketAsLinkshell2.
+// Call site: CLinkshell::PushPacket host inject (member->PLinkshell2 == this)
+// after ShouldReceiveLinkshellPacket, before chat_std / LS message rewrite
+// and pushPacket.
+// Prior pure port: slice 1354 (capacity suite PushPacket LS2 rewrite gate).
+// Sibling dual-wire: slice 3017 (ShouldReceiveLinkshellPacket; earlier in same
+// PushPacket member loop).
 inline auto ShouldRewritePacketAsLinkshell2(const bool memberIsLS2) -> bool
 {
     return memberIsLS2;

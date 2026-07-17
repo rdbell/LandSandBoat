@@ -1314,6 +1314,11 @@ auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
 auto runRangedDamageMultiplier3023SelfTests() -> bool;
+auto runBattlefieldEnterPC3024SelfTests() -> bool;
+auto runPartyApplySyncDisable3025SelfTests() -> bool;
+auto runLinkshellRewriteLS23026SelfTests() -> bool;
+auto runItemCanSetSize3027SelfTests() -> bool;
+auto runZoneSkipSameWeather3028SelfTests() -> bool;
 
 namespace
 {
@@ -2605,6 +2610,11 @@ namespace
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;
         ok = runRangedDamageMultiplier3023SelfTests() && ok;
+        ok = runBattlefieldEnterPC3024SelfTests() && ok;
+        ok = runPartyApplySyncDisable3025SelfTests() && ok;
+        ok = runLinkshellRewriteLS23026SelfTests() && ok;
+        ok = runItemCanSetSize3027SelfTests() && ok;
+        ok = runZoneSkipSameWeather3028SelfTests() && ok;
 
         return ok;
     }

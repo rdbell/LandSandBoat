@@ -15,6 +15,7 @@
 //   - 2976: CanRemoveSlot (RemoveItem range gate)
 //   - 2989: ShouldDecrementCountOnRemove (RemoveItem count drop)
 //   - 3021: ShouldIncrementCountOnInsertAt (InsertItem count bump)
+//   - 3027: CanSetSize (SetSize / AddSize acceptance gate)
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
@@ -31,13 +32,31 @@
 // ShouldDecrementCountOnRemove after CanRemoveSlot admits.
 // Go dual-wire: itemcontainer.ShouldDecrementCountOnRemove
 // (internal/itemcontainer/decrement_count_remove.go).
+// Production host: CItemContainer::SetSize / AddSize inject size / newsize,
+// MAX_CONTAINER_SIZE, and m_count into CanSetSize.
+// Go dual-wire: itemcontainer.CanSetSize
+// (internal/itemcontainer/can_set_size.go).
 
 namespace itemcontainerhelpers
 {
 
 // CanSetSize mirrors SetSize / AddSize acceptance after the host computes the
 // candidate size (AddSize must keep uint8 intermediate wrap on the host).
-// Accepts when newSize <= maxSize && newSize >= itemCount.
+//
+// Formula (slice 3027 dual-wire):
+//   newSize <= maxSize && newSize >= itemCount
+//
+// newSize   — host-evaluated candidate size (SetSize argument / AddSize wrap)
+// maxSize   — host-evaluated MAX_CONTAINER_SIZE (typically 120)
+// itemCount — host-evaluated m_count (tracked occupancy)
+// true  → allow SetSize / AddSize (host assigns m_size)
+// false → reject (return -1 / ERROR_SLOTID; above max or below item count)
+//
+// Dual-wire of Go itemcontainer.CanSetSize.
+// Call sites: CItemContainer::SetSize and CItemContainer::AddSize.
+// Prior pure port: slice 2802. Sibling dual-wire gates: CanInsertAtSlot
+// (2942), CanRemoveSlot (2976), ShouldIncrementCountOnInsertAt (3021),
+// ShouldDecrementCountOnRemove (2989).
 inline auto CanSetSize(const std::uint8_t newSize, const std::uint8_t maxSize, const std::uint8_t itemCount) -> bool
 {
     return newSize <= maxSize && newSize >= itemCount;

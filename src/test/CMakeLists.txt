@@ -2621,6 +2621,16 @@ set(SOURCES
     test_mobutils_assign_guard_3022.cpp
     test_ranged_damage_multiplier_3023.h
     test_ranged_damage_multiplier_3023.cpp
+    test_battlefield_enter_pc_3024.h
+    test_battlefield_enter_pc_3024.cpp
+    test_party_apply_sync_disable_3025.h
+    test_party_apply_sync_disable_3025.cpp
+    test_linkshell_rewrite_ls2_3026.h
+    test_linkshell_rewrite_ls2_3026.cpp
+    test_item_can_set_size_3027.h
+    test_item_can_set_size_3027.cpp
+    test_zone_skip_same_weather_3028.h
+    test_zone_skip_same_weather_3028.cpp
 )
 
 if(UNIX)

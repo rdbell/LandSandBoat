@@ -22,6 +22,10 @@
 //   - 2999: ShouldApplySyncToMember (RefreshSync isPC && sameZoneAsSyncTarget)
 //   - 3015: ShouldApplySyncEnableToMember (SetSyncTarget ENABLE
 //           isPC && notDisappear && sameZoneAsDesignee)
+//   - 3016: ShouldStartSyncDisableCountdown (LevelSync disable/remove
+//           hasLevelSync && durationIsZero)
+//   - 3025: ShouldApplySyncDisableToMember (SetSyncTarget DISABLE
+//           isPC && notDisappear)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
@@ -36,13 +40,18 @@
 // Production host: CParty::SetSyncTarget ENABLE (party.cpp:~1222) injects
 // isPC / notDisappear / sameZone into ShouldApplySyncEnableToMember before
 // LevelSync message / DelStatusEffectsByFlag / AddStatusEffectSilent / CharSync.
+// Production host: CParty::SetSyncTarget DISABLE (party.cpp:~1253) injects
+// isPC / notDisappear into ShouldApplySyncDisableToMember before LevelSync
+// disable handling (optional countdown via ShouldStartSyncDisableCountdown).
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
 // party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go),
 // party.ShouldStampLeaderCreatedPartyTime (internal/party/stamp_leader_created.go),
 // party.ShouldApplySyncToMember (internal/party/apply_sync_member.go),
-// party.ShouldApplySyncEnableToMember (internal/party/apply_sync_enable.go).
+// party.ShouldApplySyncEnableToMember (internal/party/apply_sync_enable.go),
+// party.ShouldStartSyncDisableCountdown (internal/party/sync_disable_countdown.go),
+// party.ShouldApplySyncDisableToMember (internal/party/apply_sync_disable.go).
 
 namespace partyhelpers
 {
@@ -315,8 +324,27 @@ inline auto ShouldApplySyncEnableToMember(
     return isPC && notDisappear && sameZoneAsDesignee;
 }
 
-// ShouldApplySyncDisableToMember mirrors the disable-path per-member filter:
-// TYPE_PC and status != DISAPPEAR (zone is not checked on disable).
+// ShouldApplySyncDisableToMember mirrors the SetSyncTarget disable-path
+// per-member filter: TYPE_PC and status != DISAPPEAR (zone is not checked
+// on disable).
+//
+// Formula (slice 3025 dual-wire):
+//   isPC && notDisappear
+//
+// isPC         — host-evaluated objtype == TYPE_PC
+// notDisappear — host-evaluated member != nullptr && status != DISAPPEAR
+// true  → host continues disable per-member LevelSync handling
+//         (optional ShouldStartSyncDisableCountdown → battle message / SetDuration)
+// false → continue (skip non-PC or disappear members)
+//
+// Dual-wire of Go party.ShouldApplySyncDisableToMember
+// (internal/party/apply_sync_disable.go). Prior pure port: slice 1334.
+// Call site: CParty::SetSyncTarget DISABLE (party.cpp:~1253) host inject.
+// Edges: isPC × notDisappear truth table (4 poles).
+// Coverage: test_party_apply_sync_disable_3025 (not in CMake/main).
+// Sibling dual-wire: 3015 ShouldApplySyncEnableToMember (enable filter),
+// 3016 ShouldStartSyncDisableCountdown (countdown gate).
+// Note: unlike enable-path (3015), zone is not checked on disable.
 inline auto ShouldApplySyncDisableToMember(const bool isPC, const bool notDisappear) -> bool
 {
     return isPC && notDisappear;

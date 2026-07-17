@@ -290,14 +290,31 @@ inline auto FormatInvalidWeatherWarning(const uint16 weatherValue) -> std::strin
 // Call site: CZone::SetWeather — host injects enum_contains result.
 // Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
 // suite is test_zone_reject_invalid_weather_3019.
-// Sibling SetWeather gates (residual 1363): ShouldSkipSameWeather,
-// FormatInvalidWeatherWarning.
+// Sibling SetWeather gates: ShouldSkipSameWeather (3028 dual-wire),
+// FormatInvalidWeatherWarning (residual 1363).
 inline auto ShouldRejectInvalidWeather(const bool isValidEnum) -> bool
 {
     return !isValidEnum;
 }
 
-// ShouldSkipSameWeather mirrors weather_.current() == weather.
+// ShouldSkipSameWeather mirrors weather_.current() == weather on
+// CZone::SetWeather admission (already-current identity skip).
+//
+// Formula (slice 3028 dual-wire):
+//
+//   alreadyCurrent
+//
+// alreadyCurrent — host-evaluated weather_.current() == weather
+// true  → return early (no WeatherChange / set / packet)
+// false → continue (WeatherChange + weather_.set + WEATHER packet)
+//
+// Dual-wire of Go zone.ShouldSkipSameWeather.
+// Call site: CZone::SetWeather — after ShouldRejectInvalidWeather; host
+// injects current==requested comparison.
+// Residual 1363 pins remain in test_zone_policy_1363; dedicated dual-wire
+// suite is test_zone_skip_same_weather_3028.
+// Sibling SetWeather gates: ShouldRejectInvalidWeather (3019 dual-wire),
+// FormatInvalidWeatherWarning (residual 1363).
 inline auto ShouldSkipSameWeather(const bool alreadyCurrent) -> bool
 {
     return alreadyCurrent;

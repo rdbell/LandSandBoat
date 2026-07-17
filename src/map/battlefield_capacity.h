@@ -13,6 +13,7 @@
 //   - 2994: ShouldRejectNullInsert (entityNull identity)
 //   - 3002: ShouldRejectAlreadyInBattlefield (hasBattlefield identity)
 //   - 3014: ShouldRegisterPC (!enter && !alreadyRegistered)
+//   - 3024: ShouldEnterPC (enter identity)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -31,6 +32,11 @@
 // branches.
 // Go dual-wire: battlefield.ShouldRejectAlreadyInBattlefield
 // (internal/battlefield/reject_already_in.go).
+//
+// Production host: CBattlefield::InsertEntity TYPE_PC under-capacity branch
+// injects enter into ShouldEnterPC as the first branch under capacity.
+// Go dual-wire: battlefield.ShouldEnterPC
+// (internal/battlefield/enter_pc.go).
 //
 // Production host: CBattlefield::InsertEntity TYPE_PC under-capacity branch
 // injects enter and alreadyRegistered = IsRegistered(PChar) into
@@ -143,6 +149,25 @@ inline auto ShouldRegisterPC(const bool enter, const bool alreadyRegistered) -> 
 }
 
 // ShouldEnterPC mirrors enter path under capacity.
+//
+// Formula (slice 3024 dual-wire):
+//   enter
+//
+// enter — host InsertEntity enter flag
+// true  → ApplyLevelRestrictions, emplace EnteredPlayers, OnBattlefieldEnter,
+//         optional timer packet / pet insert
+// false → decline enter path (register path may own via ShouldRegisterPC)
+//
+// Dual-wire of Go battlefield.ShouldEnterPC.
+// Call site: CBattlefield::InsertEntity TYPE_PC under capacity, first branch:
+//   if (ShouldEnterPC(enter)) {
+//       ApplyLevelRestrictions(PChar);
+//       m_EnteredPlayers.emplace(PEntity->id);
+//       // ... OnBattlefieldEnter, timer, pet insert ...
+//   }
+//   else if (ShouldRegisterPC(enter, IsRegistered(PChar))) {
+//       // register path (3014)
+//   }
 inline auto ShouldEnterPC(const bool enter) -> bool
 {
     return enter;
