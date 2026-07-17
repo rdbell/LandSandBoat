@@ -3511,6 +3511,16 @@ set(SOURCES
     test_latent_reject_process_3467.cpp
     test_pet_detach_player_master_3468.h
     test_pet_detach_player_master_3468.cpp
+    test_universal_clear_slot_3469.h
+    test_universal_clear_slot_3469.cpp
+    test_aicontainer_can_dispatch_3470.h
+    test_aicontainer_can_dispatch_3470.cpp
+    test_mobtype_can_deaggro_3471.h
+    test_mobtype_can_deaggro_3471.cpp
+    test_besieged_afford_sanction_3472.h
+    test_besieged_afford_sanction_3472.cpp
+    test_aman_thumbs_up_3473.h
+    test_aman_thumbs_up_3473.cpp
 )
 
 if(UNIX)
