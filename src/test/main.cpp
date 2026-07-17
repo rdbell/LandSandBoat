@@ -1774,6 +1774,11 @@ auto runMapsessionDestroyPendingPtr3480SelfTests() -> bool;
 auto runStatusRejectNull3481SelfTests() -> bool;
 auto runVoidwalkerShouldUpgradeKI3482SelfTests() -> bool;
 auto runSpawnRejectNight3483SelfTests() -> bool;
+auto runPetutilsPetEngage3484SelfTests() -> bool;
+auto runEnmityZeroOutOfRange3485SelfTests() -> bool;
+auto runItemIncrementCountInsert3486SelfTests() -> bool;
+auto runUnityRejectNullOnline3487SelfTests() -> bool;
+auto runAmbuscadeStartExit3488SelfTests() -> bool;
 
 namespace
 {
@@ -3525,6 +3530,11 @@ namespace
         ok = runStatusRejectNull3481SelfTests() && ok;
         ok = runVoidwalkerShouldUpgradeKI3482SelfTests() && ok;
         ok = runSpawnRejectNight3483SelfTests() && ok;
+        ok = runPetutilsPetEngage3484SelfTests() && ok;
+        ok = runEnmityZeroOutOfRange3485SelfTests() && ok;
+        ok = runItemIncrementCountInsert3486SelfTests() && ok;
+        ok = runUnityRejectNullOnline3487SelfTests() && ok;
+        ok = runAmbuscadeStartExit3488SelfTests() && ok;
 
         return ok;
     }

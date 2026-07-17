@@ -3541,6 +3541,16 @@ set(SOURCES
     test_voidwalker_should_upgrade_ki_3482.cpp
     test_spawn_reject_night_3483.h
     test_spawn_reject_night_3483.cpp
+    test_petutils_pet_engage_3484.h
+    test_petutils_pet_engage_3484.cpp
+    test_enmity_zero_out_of_range_3485.h
+    test_enmity_zero_out_of_range_3485.cpp
+    test_item_increment_count_insert_3486.h
+    test_item_increment_count_insert_3486.cpp
+    test_unity_reject_null_online_3487.h
+    test_unity_reject_null_online_3487.cpp
+    test_ambuscade_start_exit_3488.h
+    test_ambuscade_start_exit_3488.cpp
 )
 
 if(UNIX)
