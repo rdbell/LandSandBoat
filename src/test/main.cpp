@@ -1434,6 +1434,11 @@ auto runBattlefieldAdvanceTick3140SelfTests() -> bool;
 auto runCampaignDebitSelected3141SelfTests() -> bool;
 auto runBesiegedStandingEvent3142SelfTests() -> bool;
 auto runAmbuscadeIntenseVE3143SelfTests() -> bool;
+auto runAllianceAttemptLeaderPromote3144SelfTests() -> bool;
+auto runAssaultIssueNewTag3145SelfTests() -> bool;
+auto runSalvageResetTempBox3146SelfTests() -> bool;
+auto runArtisanGobbieUpgradeFlag3147SelfTests() -> bool;
+auto runAbysseaBuffPower3148SelfTests() -> bool;
 
 namespace
 {
@@ -2845,6 +2850,11 @@ namespace
         ok = runCampaignDebitSelected3141SelfTests() && ok;
         ok = runBesiegedStandingEvent3142SelfTests() && ok;
         ok = runAmbuscadeIntenseVE3143SelfTests() && ok;
+        ok = runAllianceAttemptLeaderPromote3144SelfTests() && ok;
+        ok = runAssaultIssueNewTag3145SelfTests() && ok;
+        ok = runSalvageResetTempBox3146SelfTests() && ok;
+        ok = runArtisanGobbieUpgradeFlag3147SelfTests() && ok;
+        ok = runAbysseaBuffPower3148SelfTests() && ok;
 
         return ok;
     }

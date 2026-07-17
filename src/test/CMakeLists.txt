@@ -2861,6 +2861,16 @@ set(SOURCES
     test_besieged_standing_event_3142.cpp
     test_ambuscade_intense_ve_3143.h
     test_ambuscade_intense_ve_3143.cpp
+    test_alliance_attempt_leader_promote_3144.h
+    test_alliance_attempt_leader_promote_3144.cpp
+    test_assault_issue_new_tag_3145.h
+    test_assault_issue_new_tag_3145.cpp
+    test_salvage_reset_temp_box_3146.h
+    test_salvage_reset_temp_box_3146.cpp
+    test_artisan_gobbie_upgrade_flag_3147.h
+    test_artisan_gobbie_upgrade_flag_3147.cpp
+    test_abyssea_buff_power_3148.h
+    test_abyssea_buff_power_3148.cpp
 )
 
 if(UNIX)

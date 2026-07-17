@@ -5,15 +5,18 @@
 // Pure Assault helpers shared by dual-wire slices:
 //   - 2860: InstanceAssault progress auto-complete (residual dual-wire suite)
 //   - 2863: onAssaultUpdate party/alliance proceed
-//   - 2867: onRytaalEventFinish obtain new Imperial Army ID tag
+//   - 2867: onRytaalEventFinish obtain new Imperial Army ID tag (residual dual-wire)
 //   - 3057: ShouldAutoComplete dedicated dual-wire (auto_complete.go)
+//   - 3145: ShouldIssueNewTag dedicated dual-wire (issue_tag.go)
 //
 // Dual-wire index:
 //   - 2860: ProgressMeetsRequired / ShouldAutoComplete residual dual-wire
 //   - 2863: ShouldProceedAssaultUpdate (party/alliance proceed)
-//   - 2867: ShouldIssueNewTag (Rytaal obtain new tag)
+//   - 2867: ShouldIssueNewTag residual dual-wire (Rytaal obtain new tag)
 //   - 3057: ShouldAutoComplete (requiredProgress==0 || alreadyCompleted → false;
 //           else ProgressMeetsRequired on onInstanceProgressUpdate)
+//   - 3145: ShouldIssueNewTag (option == kRytaalOptionObtainTag &&
+//           !hasImperialArmyIDTag; dedicated dual-wire suite)
 //
 // Production hosts are Lua under scripts/globals/assault/ (container.lua,
 // npc_handler.lua). Capacity is for future Lua/C++ inject so hosts dual-wire
@@ -123,7 +126,7 @@ inline auto ShouldProceedAssaultUpdate(const int32 gmLevel,
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2867 — onRytaalEventFinish obtain new tag
+// Slice 2867 / 3145 — onRytaalEventFinish obtain new tag
 // ---------------------------------------------------------------------------
 
 // RytaalOptionObtainTag matches option == 1 (obtain Imperial Army ID tag).
@@ -139,12 +142,24 @@ inline constexpr uint16 kKeyItemImperialArmyIDTag = 787;
 // Host still checks tagStock > 0 and currentAssault == 0, then giveKeyItem
 // and stock/timer currency writeback.
 //
+// Formula (slice 3145 dedicated dual-wire; residual expand 2867 / pure 1100
+// — formula unchanged):
+//   ShouldIssueNewTag(option, hasImperialArmyIDTag) =
+//     option == kRytaalOptionObtainTag && !hasImperialArmyIDTag
+//
 // Lua host (onRytaalEventFinish after csid == 268):
 //   if option == 1 and not hasKeyItem(IMPERIAL_ARMY_ID_TAG) then
 //     if tagStock == 0 then return end
 //     if getCurrentAssault() ~= 0 then messageSpecial(...); return end
 //     giveKeyItem(...); setCharVar/setCurrency writeback
 //   end
+//
+// Dual-wire of Go assault.ShouldIssueNewTag (internal/assault/issue_tag.go).
+// Call site: future Lua onRytaalEventFinish inject.
+// Prior pure port: slice 1100. Residual dual-wire suite: 2867 /
+// test_assault_issue_tag_2867. Dedicated dual-wire suite is
+// test_assault_issue_new_tag_3145. Host still owns stock / currentAssault /
+// giveKeyItem / currency writeback after this gate.
 inline auto ShouldIssueNewTag(const int32 option, const bool hasImperialArmyIDTag) -> bool
 {
     return option == kRytaalOptionObtainTag && !hasImperialArmyIDTag;

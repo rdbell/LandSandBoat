@@ -8,7 +8,8 @@
 //   - 2892: CanOpenDoor residual dual-wire suite (onDoorOpen CLOSE_DOOR + unSealed)
 //   - 3133: CanOpenDoor dedicated dual-wire (open_door.go)
 //   - 2894: CanOpenBossDoor (openBossDoor CLOSE_DOOR gate; no unSealed)
-//   - 2898: ShouldResetTempBox (resetTempBoxes status == NORMAL gate)
+//   - 2898: ShouldResetTempBox residual dual-wire suite (resetTempBoxes NORMAL)
+//   - 3146: ShouldResetTempBox dedicated dual-wire (reset_temp_box.go)
 //   - 2904: ShouldSpawnOnTempChestCasket (spawnTempChest status == DISAPPEAR)
 //
 // Dual-wire index:
@@ -17,18 +18,21 @@
 //   - 2892: CanOpenDoor residual dual-wire suite
 //   - 3133: CanOpenDoor = animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue
 //   - 2894: CanOpenBossDoor
-//   - 2898: ShouldResetTempBox
+//   - 2898: ShouldResetTempBox residual dual-wire suite
+//   - 3146: ShouldResetTempBox = status == kStatusNormal
 //   - 2904: ShouldSpawnOnTempChestCasket
 //
 // Lua production host: scripts/globals/salvage.lua
 // Go dual-wire: salvage.CanClaimTransport / salvage.TransportUserBusy
 // (internal/salvage/claim_transport.go); salvage.CanOpenDoor
-// (internal/salvage/open_door.go). Future Lua host injects free functions
-// then claim/open writeback.
+// (internal/salvage/open_door.go); salvage.ShouldResetTempBox
+// (internal/salvage/reset_temp_box.go). Future Lua host injects free
+// functions then claim/open/reset writeback.
 //
 // Prior pure ports: OmegaXI slices 0977 (TransportUserBusy / CanOpenDoor),
-// 1083 (CanClaimTransport / DoorUnsealedValue). Residual dual-wire suites:
-// 2871 (claim), 2892 (open door). Dedicated dual-wire: 3085, 3133.
+// 1083 (CanClaimTransport / DoorUnsealedValue / ShouldResetTempBox). Residual
+// dual-wire suites: 2871 (claim), 2892 (open door), 2898 (reset temp box).
+// Dedicated dual-wire: 3085, 3133, 3146.
 //
 // onTransportUpdate (2871 residual / 3085 dedicated):
 //   if instance:getLocalVar('transportUser') == 0 then
@@ -50,7 +54,7 @@
 //     -- host: openDoor(15), queue(3000) arch openDoor(10)
 //   end
 //
-// resetTempBoxes (2898):
+// resetTempBoxes (2898 residual / 3146 dedicated):
 //   if casket and casket:getStatus() == xi.status.NORMAL then
 //     -- host: setStatus(DISAPPEAR), resetLocalVars, setAnimationSub(8)
 //   end
@@ -138,7 +142,7 @@ inline auto CanOpenDoor(const uint8 animation, const int32 unSealed) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// 2898 — resetTempBoxes status == NORMAL gate
+// 2898 residual / 3146 dedicated — resetTempBoxes status == NORMAL gate
 // ---------------------------------------------------------------------------
 
 // Entity status pins (xi.status.*) used by crate / temp-box reset / spawn:
@@ -152,12 +156,18 @@ inline constexpr uint8 kStatusDisappear = 2;
 // ShouldResetTempBox is the pure free-function form of the resetTempBoxes
 // status gate:
 //
-//   status == NORMAL
-//   ≡ status == kStatusNormal
+// Formula (slice 3146 dedicated dual-wire; residual expand 2898 / pure 1083 —
+// formula unchanged):
+//   ShouldResetTempBox(status) = status == kStatusNormal
+//   ≡ status == NORMAL (0)
 //
 // Host injects casket:getStatus() only. Host still owns setStatus(DISAPPEAR),
 // resetLocalVars, and setAnimationSub(8). Dual-wire of Go
-// salvage.ShouldResetTempBox (slice 2898 / residual 1083).
+// salvage.ShouldResetTempBox (reset_temp_box.go).
+// Call site: future Lua resetTempBoxes inject.
+// Prior pure port: slice 1083. Residual dual-wire suite: 2898 /
+// test_salvage_reset_temp_box_2898. Dedicated dual-wire suite is
+// test_salvage_reset_temp_box_3146.
 inline auto ShouldResetTempBox(const uint8 status) -> bool
 {
     return status == kStatusNormal;

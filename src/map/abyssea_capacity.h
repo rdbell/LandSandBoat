@@ -4,15 +4,17 @@
 
 // Pure Abyssea helpers shared by dual-wire slices:
 //   - 2861: canGiveNMKI residual dual-wire suite / normal+atma compose
-//   - 2866: BuffPower (visions cruor prospector enhance)
+//   - 2866: BuffPower residual dual-wire suite (visions cruor enhance)
 //   - 2868: DecodeSurveyorOption (Conflux Surveyor finish option parse)
 //   - 3089: CanGiveNMKI dedicated dual-wire (can_give_nmki.go)
+//   - 3148: BuffPower dedicated dual-wire (prospector.go / buff_power_test.go)
 //
 // Dual-wire index:
 //   - 2861: CanGiveNMKI residual dual-wire suite
-//   - 2866: BuffPower
+//   - 2866: BuffPower residual dual-wire suite
 //   - 2868: DecodeSurveyorOption
 //   - 3089: CanGiveNMKI (roll1to100 <= dropChance || redProc)
+//   - 3148: BuffPower (base + abyssiteTotal * mult)
 //
 // Lua production host (2861 / 3089): scripts/globals/abyssea.lua
 // xi.abyssea.canGiveNMKI:
@@ -87,7 +89,7 @@ inline auto CanGiveAtmaNMKI(const int32 roll1to100, const bool redProc) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Visions cruor prospector BuffPower (slice 2866)
+// Slice 2866 / 3148 — Visions cruor prospector BuffPower
 //
 // Lua production host: scripts/globals/abyssea.lua
 //   visionsCruorProspectorOnEventFinish ENHANCEMENT path:
@@ -100,12 +102,23 @@ inline auto CanGiveAtmaNMKI(const int32 roll1to100, const bool redProc) -> bool
 //   mult          — row multiplier (v[5]; HP×10, MP×5, stats×10)
 //
 // Entity addStatusEffect / addHP / addMP / delCurrency remains host-owned.
+// Go dual-wire: abyssea.BuffPower (internal/abyssea/prospector.go).
+// Future Lua host injects BuffPower then applies status / HP / MP / cruor.
 // ---------------------------------------------------------------------------
 
 // BuffPower is the pure free-function form of the ENHANCEMENT power formula:
 //   base + abyssiteTotal * mult
-// Future Lua host injects scalars into this helper instead of re-inlining
-// the arithmetic in visionsCruorProspectorOnEventFinish.
+//
+// Formula (slice 3148 dedicated dual-wire; residual expand 2866; pure inject
+// 1046 — formula unchanged):
+//   BuffPower(base, abyssiteTotal, mult) = base + abyssiteTotal * mult
+//
+// Dual-wire of Go abyssea.BuffPower.
+// Call site: future Lua visionsCruorProspectorOnEventFinish inject.
+// Prior pure port: slice 1046. Residual dual-wire suite: 2866 /
+// test_abyssea_buff_power_2866. Dedicated dual-wire suite is
+// test_abyssea_buff_power_3148. Host still owns getAbyssiteTotal,
+// addStatusEffect, addHP / addMP, and delCurrency writeback.
 inline auto BuffPower(const int32 base, const int32 abyssiteTotal, const int32 mult) -> int32
 {
     return base + abyssiteTotal * mult;

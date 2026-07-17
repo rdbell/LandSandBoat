@@ -7,7 +7,8 @@
 //   - 3090: CanBuySack dedicated dual-wire (buy_sack.go)
 //   - 2890: CanExpand residual dual-wire suite (can_expand)
 //   - 3106: CanExpand dedicated dual-wire (can_expand.go)
-//   - 2912: GobbieCanUpgradeFlag (option 2 expand-failure event param)
+//   - 2912: GobbieCanUpgradeFlag residual dual-wire suite (gobbie_upgrade)
+//   - 3147: GobbieCanUpgradeFlag dedicated dual-wire (gobbie_upgrade.go)
 //   - 2916: CanClaimScroll residual dual-wire suite (claim_scroll)
 //   - 3132: CanClaimScroll dedicated dual-wire (claim_scroll.go)
 //
@@ -16,7 +17,8 @@
 //   - 3090: CanBuySack = gil >= BuySackGilCost && sackSize == 0
 //   - 2890: CanExpand residual dual-wire suite
 //   - 3106: CanExpand = sackSize < gobbieSize && sackSize > 0
-//   - 2912: GobbieCanUpgradeFlag
+//   - 2912: GobbieCanUpgradeFlag residual dual-wire suite
+//   - 3147: GobbieCanUpgradeFlag = gobbieSize < GobbieUpgradeCap ? 1 : 0
 //   - 2916: CanClaimScroll residual dual-wire suite
 //   - 3132: CanClaimScroll = nextScroll < jstMidnight
 //
@@ -24,13 +26,15 @@
 // moogleOnFinish:
 // Go dual-wire: artisan.CanBuySack / artisan.BuySackGilCost
 // (internal/artisan/buy_sack.go); artisan.CanExpand
-// (internal/artisan/can_expand.go); artisan.CanClaimScroll
-// (internal/artisan/claim_scroll.go). Future Lua host injects free functions
-// then delGil / changeContainerSize / setCharVar / updateEvent / giveItem.
+// (internal/artisan/can_expand.go); artisan.GobbieCanUpgradeFlag /
+// artisan.GobbieUpgradeCap (internal/artisan/gobbie_upgrade.go);
+// artisan.CanClaimScroll (internal/artisan/claim_scroll.go). Future Lua host
+// injects free functions then delGil / changeContainerSize / setCharVar /
+// updateEvent / giveItem.
 //
 // Prior pure port: OmegaXI slice 0948 (internal/artisan).
-// Residual dual-wire suite: 2879 / 2890 / 2916.
-// Dedicated dual-wire suite: 3090 / 3106 / 3132.
+// Residual dual-wire suite: 2879 / 2890 / 2912 / 2916.
+// Dedicated dual-wire suite: 3090 / 3106 / 3132 / 3147.
 //
 //   if option == 1 then -- Buy sack (2879 residual / 3090 dedicated)
 //       if player:getGil() >= 9980
@@ -122,17 +126,30 @@ inline auto CanExpand(const int32 sackSize, const int32 gobbieSize) -> bool
     return sackSize < gobbieSize && sackSize > 0;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 2912 / 3147 — moogleOnUpdate option 2 gobbieCanUpgrade event param
+// ---------------------------------------------------------------------------
+
 // GobbieUpgradeCap is the inventory size threshold for gobbieCanUpgrade
 // (artisan.lua: gobbieSize < 80 and 1 or 0).
+// Prior pure port: slice 0948. Residual dual-wire suite: 2912.
+// Dedicated dual-wire suite: 3147.
 inline constexpr int32 GobbieUpgradeCap = 80;
 
 // GobbieCanUpgradeFlag is the pure gobbieCanUpgrade event param when expand
 // fails (option 2 else branch):
 //
-//   gobbieSize < GobbieUpgradeCap ? 1 : 0
+// Formula (slice 3147 dedicated dual-wire; residual expand 2912 / pure 0948 —
+// formula unchanged):
+//   GobbieCanUpgradeFlag(gobbieSize) = gobbieSize < GobbieUpgradeCap ? 1 : 0
 //
 // Future Lua host injects gobbieSize into this helper instead of re-inlining
-// the cap comparison. updateEvent remains host-owned.
+// the cap comparison. Dual-wire of Go artisan.GobbieCanUpgradeFlag
+// (gobbie_upgrade.go). Call site: future Lua moogleOnUpdate option 2 inject
+// expand-failure else branch. Prior pure port: slice 0948. Residual dual-wire
+// suite: 2912 / test_artisan_gobbie_upgrade_2912. Dedicated dual-wire suite is
+// test_artisan_gobbie_upgrade_flag_3147. Host still owns updateEvent after
+// CanExpand returns false.
 inline auto GobbieCanUpgradeFlag(const int32 gobbieSize) -> int32
 {
     return gobbieSize < GobbieUpgradeCap ? 1 : 0;
