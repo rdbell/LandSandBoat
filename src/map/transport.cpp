@@ -64,6 +64,28 @@ auto VisibilityFor(const bool visible) -> TransportVisibility
                      TransportVisibility{ static_cast<uint8>(STATUS_TYPE::DISAPPEAR), 0x8006 };
 }
 
+auto PlanShipAnimateSetup(const uint8 animationID) -> ShipAnimateSetupPlan
+{
+    return ShipAnimateSetupPlan{
+        .setAnimation            = animationID > 0,
+        .stampTransportTimestamp = true,
+    };
+}
+
+auto PlanTransportDoor(const bool hasDoor, const bool sendPacket, const bool open) -> TransportDoorPlan
+{
+    if (!hasDoor)
+    {
+        return TransportDoorPlan{};
+    }
+
+    return TransportDoorPlan{
+        .applyAnimation   = true,
+        .animation        = open ? static_cast<uint8>(ANIMATION_OPEN_DOOR) : static_cast<uint8>(ANIMATION_CLOSE_DOOR),
+        .sendEntityUpdate = sendPacket,
+    };
+}
+
 } // namespace transporthelpers
 
 void Transport_Ship::setVisible(bool visible) const
@@ -75,12 +97,16 @@ void Transport_Ship::setVisible(bool visible) const
 
 void Transport_Ship::animateSetup(uint8 animationID, vanadiel_time::time_point horizonTime) const
 {
-    if (animationID > 0)
+    const auto plan = transporthelpers::PlanShipAnimateSetup(animationID);
+    if (plan.setAnimation)
     {
         this->npc->animation = animationID;
     }
 
-    this->npc->SetLocalVar("TransportTimestamp", earth_time::vanadiel_timestamp(vanadiel_time::to_earth_time(horizonTime)));
+    if (plan.stampTransportTimestamp)
+    {
+        this->npc->SetLocalVar("TransportTimestamp", earth_time::vanadiel_timestamp(vanadiel_time::to_earth_time(horizonTime)));
+    }
 }
 
 void Transport_Ship::spawn() const
@@ -96,14 +122,13 @@ void TransportZone_Town::updateShip() const
 
 void TransportZone_Town::openDoor(bool sendPacket) const
 {
-    if (!this->npcDoor)
+    const auto plan = transporthelpers::PlanTransportDoor(this->npcDoor != nullptr, sendPacket, true /* open */);
+    if (plan.applyAnimation)
     {
-        return;
+        this->npcDoor->animation = plan.animation;
     }
 
-    this->npcDoor->animation = ANIMATION_OPEN_DOOR;
-
-    if (sendPacket)
+    if (plan.sendEntityUpdate)
     {
         this->ship.dock.zone->UpdateEntityPacket(this->npcDoor, ENTITY_UPDATE, UPDATE_COMBAT, true);
     }
@@ -111,14 +136,13 @@ void TransportZone_Town::openDoor(bool sendPacket) const
 
 void TransportZone_Town::closeDoor(bool sendPacket) const
 {
-    if (!this->npcDoor)
+    const auto plan = transporthelpers::PlanTransportDoor(this->npcDoor != nullptr, sendPacket, false /* open */);
+    if (plan.applyAnimation)
     {
-        return;
+        this->npcDoor->animation = plan.animation;
     }
 
-    this->npcDoor->animation = ANIMATION_CLOSE_DOOR;
-
-    if (sendPacket)
+    if (plan.sendEntityUpdate)
     {
         this->ship.dock.zone->UpdateEntityPacket(this->npcDoor, ENTITY_UPDATE, UPDATE_COMBAT, true);
     }

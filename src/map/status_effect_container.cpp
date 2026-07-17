@@ -1694,69 +1694,74 @@ void CStatusEffectContainer::SaveStatusEffects(bool logout)
 
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (statuseffecthelpers::ShouldStripOnSave(
-                logout,
-                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Logout),
-                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::OnZone)))
-        {
-            RemoveStatusEffect(PStatusEffect.get(), EffectNotice::Silent);
-            continue;
-        }
-
-        if (statuseffecthelpers::ShouldSkipDeletedOnSave(PStatusEffect->isDeleted()))
-        {
-            continue;
-        }
-
         const auto durationSeconds     = timer::count_seconds(PStatusEffect->GetDuration());
         const auto realDurationSeconds = timer::count_seconds(PStatusEffect->GetStartTime() + PStatusEffect->GetDuration() - timer::now());
 
-        if (statuseffecthelpers::ShouldPersistEffect(realDurationSeconds, durationSeconds))
+        // Pure per-effect disposition (slice 2793). Host owns strip + SQL.
+        const auto plan = statuseffecthelpers::PlanSaveStatusEffect(
+            PStatusEffect->isDeleted(),
+            logout,
+            PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::Logout),
+            PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::OnZone),
+            realDurationSeconds,
+            durationSeconds,
+            static_cast<uint16>(PStatusEffect->GetStatusID()));
+
+        switch (plan.action)
         {
-            // save power of utsusemi and blink
-            if (statuseffecthelpers::ShouldResyncUtsusemiPower(static_cast<uint16>(PStatusEffect->GetStatusID())))
-            {
-                PStatusEffect->SetSubPower(m_POwner->getMod(Mod::UTSUSEMI));
-            }
-            else if (statuseffecthelpers::ShouldResyncBlinkPower(static_cast<uint16>(PStatusEffect->GetStatusID())))
-            {
-                PStatusEffect->SetPower(m_POwner->getMod(Mod::BLINK));
-            }
-            else if (statuseffecthelpers::ShouldResyncStoneskinPower(static_cast<uint16>(PStatusEffect->GetStatusID())))
-            {
-                PStatusEffect->SetPower(m_POwner->getMod(Mod::STONESKIN));
-            }
-
-            uint32 duration = statuseffecthelpers::ComputePersistedDurationSeconds(
-                durationSeconds,
-                realDurationSeconds,
-                PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::OfflineTick));
-
-            if (durationSeconds > 0 && duration == 0)
-            {
+            case statuseffecthelpers::SaveEffectAction::SkipDeleted:
+            case statuseffecthelpers::SaveEffectAction::DropNoPersist:
                 continue;
-            }
-
-            uint32 tick      = static_cast<uint32>(timer::count_seconds(PStatusEffect->GetTickTime()));
-            auto   timestamp = earth_time::timestamp(timer::to_utc(PStatusEffect->GetStartTime()));
-
-            db::preparedStmt("INSERT INTO char_effects (charid, effectid, icon, power, tick, duration, subid, subpower, tier, flags, timestamp, sourcetype, sourcetypeparam, originid) "
-                             "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                             m_POwner->id,
-                             static_cast<uint16>(PStatusEffect->GetStatusID()),
-                             PStatusEffect->GetIcon(),
-                             PStatusEffect->GetPower(),
-                             tick,
-                             duration,
-                             PStatusEffect->GetSubID(),
-                             PStatusEffect->GetSubPower(),
-                             PStatusEffect->GetTier(),
-                             static_cast<uint32>(PStatusEffect->GetEffectFlags()),
-                             timestamp,
-                             PStatusEffect->GetSourceType(),
-                             PStatusEffect->GetSourceTypeParam(),
-                             PStatusEffect->GetOriginID());
+            case statuseffecthelpers::SaveEffectAction::Strip:
+                RemoveStatusEffect(PStatusEffect.get(), EffectNotice::Silent);
+                continue;
+            case statuseffecthelpers::SaveEffectAction::Persist:
+                break;
         }
+
+        // save power of utsusemi and blink / stoneskin (plan resync flags)
+        if (plan.resyncUtsusemi)
+        {
+            PStatusEffect->SetSubPower(m_POwner->getMod(Mod::UTSUSEMI));
+        }
+        else if (plan.resyncBlink)
+        {
+            PStatusEffect->SetPower(m_POwner->getMod(Mod::BLINK));
+        }
+        else if (plan.resyncStoneskin)
+        {
+            PStatusEffect->SetPower(m_POwner->getMod(Mod::STONESKIN));
+        }
+
+        uint32 duration = statuseffecthelpers::ComputePersistedDurationSeconds(
+            durationSeconds,
+            realDurationSeconds,
+            PStatusEffect->HasEffectFlag(xi::StatusEffectFlag::OfflineTick));
+
+        if (durationSeconds > 0 && duration == 0)
+        {
+            continue;
+        }
+
+        uint32 tick      = static_cast<uint32>(timer::count_seconds(PStatusEffect->GetTickTime()));
+        auto   timestamp = earth_time::timestamp(timer::to_utc(PStatusEffect->GetStartTime()));
+
+        db::preparedStmt("INSERT INTO char_effects (charid, effectid, icon, power, tick, duration, subid, subpower, tier, flags, timestamp, sourcetype, sourcetypeparam, originid) "
+                         "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                         m_POwner->id,
+                         static_cast<uint16>(PStatusEffect->GetStatusID()),
+                         PStatusEffect->GetIcon(),
+                         PStatusEffect->GetPower(),
+                         tick,
+                         duration,
+                         PStatusEffect->GetSubID(),
+                         PStatusEffect->GetSubPower(),
+                         PStatusEffect->GetTier(),
+                         static_cast<uint32>(PStatusEffect->GetEffectFlags()),
+                         timestamp,
+                         PStatusEffect->GetSourceType(),
+                         PStatusEffect->GetSourceTypeParam(),
+                         PStatusEffect->GetOriginID());
     }
     DeleteStatusEffects();
 }

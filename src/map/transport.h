@@ -85,6 +85,23 @@ struct TransportVisibility
     uint16 moving;
 };
 
+// ShipAnimateSetupPlan is the pure side-effect selection for Transport_Ship::animateSetup.
+// Entity writes (animation assignment and TransportTimestamp local var) stay host-side.
+struct ShipAnimateSetupPlan
+{
+    bool setAnimation;
+    bool stampTransportTimestamp;
+};
+
+// TransportDoorPlan is the pure side-effect selection for TransportZone_Town::openDoor
+// and closeDoor. Entity animation and UpdateEntityPacket remain host-side.
+struct TransportDoorPlan
+{
+    bool  applyAnimation;
+    uint8 animation;
+    bool  sendEntityUpdate;
+};
+
 namespace transporthelpers
 {
 
@@ -100,6 +117,17 @@ auto BuildVoyageSchedule(const TransportScheduleInput& input) -> Transport_Time;
 // VisibilityFor mirrors the magic status/movement pair used for transport
 // floors. Visible ships are solid, while hidden ships disappear.
 auto VisibilityFor(bool visible) -> TransportVisibility;
+
+// PlanShipAnimateSetup mirrors animateSetup's pure decisions: animation is
+// assigned only when animationID > 0, and the transport timestamp is always
+// stamped from the supplied horizon.
+auto PlanShipAnimateSetup(uint8 animationID) -> ShipAnimateSetupPlan;
+
+// PlanTransportDoor mirrors openDoor/closeDoor pure decisions. When hasDoor is
+// false every field is a no-op. open selects ANIMATION_OPEN_DOOR (8) vs
+// ANIMATION_CLOSE_DOOR (9); the entity update is sent only when hasDoor and
+// sendPacket are both true.
+auto PlanTransportDoor(bool hasDoor, bool sendPacket, bool open) -> TransportDoorPlan;
 
 } // namespace transporthelpers
 

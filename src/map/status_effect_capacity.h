@@ -987,5 +987,69 @@ inline auto ShouldLoadBlinkMod(const uint16 statusID) -> bool
     return IsBlinkEffect(statusID);
 }
 
+// --- Slice 2793: SaveStatusEffects per-effect plan ---
+
+// SaveEffectAction is the pure per-effect disposition of SaveStatusEffects
+// before host DelStatusEffect / SQL insert.
+enum class SaveEffectAction : uint8
+{
+    SkipDeleted,   // isDeleted → continue
+    Strip,         // Logout/OnZone strip → RemoveStatusEffect + continue
+    Persist,       // remaining > 0 or permanent → maybe resync + insert
+    DropNoPersist, // not deleted/strip but expired non-permanent → skip insert
+};
+
+// SaveStatusEffectPlan is the pure per-effect outcome of SaveStatusEffects.
+// Host owns DelStatusEffect (Strip) and SQL (Persist); resync* only set on Persist.
+struct SaveStatusEffectPlan
+{
+    SaveEffectAction action;
+    bool             resyncUtsusemi;
+    bool             resyncBlink;
+    bool             resyncStoneskin;
+};
+
+// PlanSaveStatusEffect composes ShouldStripOnSave, ShouldSkipDeletedOnSave,
+// ShouldPersistEffect, and ShouldResync* helpers in production loop order:
+// 1) strip flags → Strip (runs even for deleted effects that still need strip)
+// 2) deleted → SkipDeleted
+// 3) persist gate → Persist (+ at most one resync flag by if/else-if)
+// 4) else DropNoPersist
+inline auto PlanSaveStatusEffect(
+    const bool  deleted,
+    const bool  logout,
+    const bool  hasLogoutFlag,
+    const bool  hasOnZoneFlag,
+    const int64 realDurationSeconds,
+    const int64 durationSeconds,
+    const uint16 statusID) -> SaveStatusEffectPlan
+{
+    if (ShouldStripOnSave(logout, hasLogoutFlag, hasOnZoneFlag))
+    {
+        return SaveStatusEffectPlan{ SaveEffectAction::Strip, false, false, false };
+    }
+    if (ShouldSkipDeletedOnSave(deleted))
+    {
+        return SaveStatusEffectPlan{ SaveEffectAction::SkipDeleted, false, false, false };
+    }
+    if (ShouldPersistEffect(realDurationSeconds, durationSeconds))
+    {
+        SaveStatusEffectPlan plan{ SaveEffectAction::Persist, false, false, false };
+        if (ShouldResyncUtsusemiPower(statusID))
+        {
+            plan.resyncUtsusemi = true;
+        }
+        else if (ShouldResyncBlinkPower(statusID))
+        {
+            plan.resyncBlink = true;
+        }
+        else if (ShouldResyncStoneskinPower(statusID))
+        {
+            plan.resyncStoneskin = true;
+        }
+        return plan;
+    }
+    return SaveStatusEffectPlan{ SaveEffectAction::DropNoPersist, false, false, false };
+}
 
 } // namespace statuseffecthelpers

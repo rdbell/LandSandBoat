@@ -38,6 +38,8 @@ set(SOURCES
     test_console_service_input.cpp
     test_command_handler_2630.h
     test_command_handler_2630.cpp
+    test_command_permission_plan_2792.h
+    test_command_permission_plan_2792.cpp
     test_action_interrupt_2633.h
     test_action_interrupt_2633.cpp
     test_action_interrupt_2634.h
@@ -481,6 +483,8 @@ set(SOURCES
     test_gmcall_pending_response_1239.cpp
     test_gmcall_packet_handlers_1242.h
     test_gmcall_packet_handlers_1242.cpp
+    test_gmcall_faq_type_plan_2791.h
+    test_gmcall_faq_type_plan_2791.cpp
     test_gmcall_persistence_1243.h
     test_gmcall_persistence_1243.cpp
     test_map_gmcall_response_notification_1241.h
@@ -793,6 +797,8 @@ set(SOURCES
     test_status_effect_delete_1372.cpp
     test_status_effect_save_1373.h
     test_status_effect_save_1373.cpp
+    test_status_save_plan_2793.h
+    test_status_save_plan_2793.cpp
     test_attackround_multihit_1374.h
     test_attackround_multihit_1374.cpp
     test_attackround_create_attacks_plan_2756.h
@@ -1552,6 +1558,8 @@ set(SOURCES
     test_map_session_create_policy_2783.cpp
     test_map_session_destroy_pending_2787.h
     test_map_session_destroy_pending_2787.cpp
+    test_map_session_lookup_2790.h
+    test_map_session_lookup_2790.cpp
     test_map_session_index.h
     test_map_session_index.cpp
     test_look_parser.h
@@ -2107,6 +2115,8 @@ set(SOURCES
     test_transport_schedule_2646.cpp
     test_transport_visibility_2741.h
     test_transport_visibility_2741.cpp
+    test_transport_door_animate_2789.h
+    test_transport_door_animate_2789.cpp
     test_tracy_hex_helpers.h
     test_tracy_hex_helpers.cpp
     test_trigger_area.h

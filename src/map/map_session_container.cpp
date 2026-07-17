@@ -241,14 +241,16 @@ auto MapSessionContainer::getSessionByChar(CCharEntity* PChar) -> MapSession*
 {
     TracyZoneScoped;
 
-    if (PChar == nullptr)
+    if (mapsessionhelpers::ShouldRejectNullCharLookup(PChar == nullptr))
     {
         return nullptr;
     }
 
     for (const auto& [_, session] : sessions_)
     {
-        if (session->PChar->id == PChar->id)
+        const bool   sessionHasChar = session->PChar != nullptr;
+        const uint32 sessionCharID  = sessionHasChar ? session->PChar->id : 0;
+        if (mapsessionhelpers::SessionMatchesCharID(sessionHasChar, sessionCharID, PChar->id))
         {
             return session.get();
         }
@@ -284,7 +286,9 @@ auto MapSessionContainer::getSessionByCharName(const std::string& name) -> MapSe
 
     for (const auto& [_, session] : sessions_)
     {
-        if (session->PChar && session->PChar->name == name)
+        const bool        sessionHasChar = session->PChar != nullptr;
+        const std::string sessionName    = sessionHasChar ? session->PChar->name : std::string{};
+        if (mapsessionhelpers::SessionMatchesCharName(sessionHasChar, sessionName, name))
         {
             return session.get();
         }

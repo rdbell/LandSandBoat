@@ -20,6 +20,7 @@
 */
 
 #include "command_handler.h"
+#include "command_handler_capacity.h"
 
 #include "common/database.h"
 #include "common/utils.h"
@@ -104,14 +105,16 @@ auto CCommandHandler::call(Scheduler& scheduler, sol::state& lua, CCharEntity* c
 {
     TracyZoneScoped;
 
-    if (!PChar)
+    // Pure null-char gate (slice 2792).
+    if (commandhandlerhelpers::ShouldRejectNullChar(PChar == nullptr))
     {
         ShowError("cmdhandler::call: nullptr character attempted to use command");
         return CommandResult::Failure;
     }
 
     const auto parsedName = commandhandler::detail::ParseCommandLine(commandline, "");
-    if (!parsedName.valid)
+    // Pure empty-name gate (slice 2792).
+    if (commandhandlerhelpers::ShouldRejectEmptyCommandName(parsedName.valid))
     {
         ShowError("cmdhandler::call: function name was empty");
         return CommandResult::Failure;
@@ -122,6 +125,7 @@ auto CCommandHandler::call(Scheduler& scheduler, sol::state& lua, CCharEntity* c
     TracyZoneString(PChar->name);
     TracyZoneString(commandline);
 
+    // Lua/host table lookup remains host-side.
     const auto maybeCommand = lua["xi"]["commands"][cmdName].get<sol::optional<sol::table>>();
     if (!maybeCommand)
     {
@@ -149,14 +153,17 @@ auto CCommandHandler::call(Scheduler& scheduler, sol::state& lua, CCharEntity* c
     const auto& permission = *maybePerm;
     const auto& parameters = *maybeParams;
 
-    if (permission > PChar->m_GMlevel)
+    // Pure permission + audit plan after cmdprops load (slice 2792).
+    // permission is int8 from Lua; m_GMlevel / AUDIT_GM_CMD are uint8.
+    const auto auditLevel = settings::get<uint8>("map.AUDIT_GM_CMD");
+    const auto postProps  = commandhandlerhelpers::PlanCommandCallPostProps(PChar->m_GMlevel, permission, auditLevel);
+    if (postProps.rejectPermission)
     {
         ShowWarning("cmdhandler::call: Character %s attempting to use higher permission command %s", PChar->name.c_str(), cmdName.c_str());
         return CommandResult::Failure;
     }
 
-    const auto auditLevel = settings::get<uint8>("map.AUDIT_GM_CMD");
-    if (auditLevel <= permission && auditLevel > 0)
+    if (postProps.scheduleAudit)
     {
         scheduler.postToWorkerThread(
             [name = PChar->name, cmd = cmdName, cmdlinestr = autotranslate::replaceBytes(commandline)]() mutable
