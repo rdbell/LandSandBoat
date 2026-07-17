@@ -14,7 +14,8 @@
 //   - 3002: ShouldRejectAlreadyInBattlefield residual dual-wire expand
 //   - 3014: ShouldRegisterPC prior dual-wire
 //           (!enter && !alreadyRegistered; pure 1361)
-//   - 3024: ShouldEnterPC (enter identity)
+//   - 3024: ShouldEnterPC prior dual-wire
+//           (enter identity; pure 1361)
 //   - 3059: ShouldApplyLevelCap (levelCap > 0)
 //   - 3087: ShouldAddSjRestriction ((rules & ALLOW_SUBJOBS) == 0)
 //   - 3102: ShouldClearLevelRestriction (levelCap == 0)
@@ -31,6 +32,8 @@
 //            prior dedicated 3271 / pure 1361)
 //   - 3365: ShouldRegisterPC dedicated dual-wire
 //           (!enter && !alreadyRegistered; residual expand 3014 / pure 1361)
+//   - 3381: ShouldEnterPC dedicated dual-wire
+//           (enter identity; residual expand 3024 / pure 1361)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -233,7 +236,8 @@ inline auto ShouldRegisterPC(const bool enter, const bool alreadyRegistered) -> 
 
 // ShouldEnterPC mirrors enter path under capacity.
 //
-// Formula (slice 3024 dual-wire):
+// Formula (slice 3381 dedicated dual-wire; residual expand 3024 / pure 1361 —
+// formula unchanged):
 //   enter
 //
 // enter — host InsertEntity enter flag
@@ -249,8 +253,16 @@ inline auto ShouldRegisterPC(const bool enter, const bool alreadyRegistered) -> 
 //       // ... OnBattlefieldEnter, timer, pet insert ...
 //   }
 //   else if (ShouldRegisterPC(enter, IsRegistered(PChar))) {
-//       // register path (3014)
+//       // register path (3014 / 3365)
 //   }
+// Prior pure port: slice 1361. Prior dual-wire suite: 3024 /
+// test_battlefield_enter_pc_3024. Dedicated dual-wire suite is
+// test_battlefield_enter_pc_3381. Formula is unchanged; this slice
+// only expands dual-wire docs + index + dedicated suite
+// (free == inline == pin residual pins).
+// Sibling dual-wires left alone: 3198 null-insert, 3216 already-in,
+// 3302 under-capacity, 3365 register, 3140 advance-tick, etc.
+// Do not thrash register_pc.
 inline auto ShouldEnterPC(const bool enter) -> bool
 {
     return enter;

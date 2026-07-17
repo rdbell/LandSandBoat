@@ -12,11 +12,12 @@
 //   - 2917: onInstanceComplete / onInstanceFailure always-start exit CS residual
 //   - 3062: ShouldCompleteInstance prior dedicated dual-wire (complete_instance.go)
 //   - 3088: ShouldWarpOnExitEvent prior dedicated dual-wire (warp_exit.go)
-//   - 3109: ShouldStartExitEvent dedicated dual-wire (start_exit.go)
+//   - 3109: ShouldStartExitEvent prior dedicated dual-wire (start_exit.go)
 //   - 3129: ShouldTriggerRoEIntro dedicated dual-wire (roe_intro.go)
 //   - 3143: ShouldCreateIntenseVEInstance dedicated dual-wire (intense_ve.go)
 //   - 3241: ShouldCompleteInstance dedicated expand residual 2875 (prior 3062)
 //   - 3356: ShouldWarpOnExitEvent dedicated expand residual 2888 (prior 3088)
+//   - 3382: ShouldStartExitEvent dedicated expand residual 2917 (prior 3109)
 //
 // Dual-wire index:
 //   - 2875: ShouldCompleteInstance residual dual-wire suite
@@ -28,11 +29,12 @@
 //   - 2917: ShouldStartExitEvent residual dual-wire suite
 //   - 3062: ShouldCompleteInstance prior dedicated dual-wire (!anyMobAlive)
 //   - 3088: ShouldWarpOnExitEvent prior dedicated dual-wire (csid == EventCSIDExit / 10001)
-//   - 3109: ShouldStartExitEvent (always true / startEvent 10001)
+//   - 3109: ShouldStartExitEvent prior dedicated dual-wire (always true / startEvent 10001)
 //   - 3129: ShouldTriggerRoEIntro (csid == EventCSIDIntro / 385 → RoE 499)
 //   - 3143: ShouldCreateIntenseVEInstance (csid 374 + option 5 → createInstance 30000)
 //   - 3241: ShouldCompleteInstance dedicated expand residual 2875 (prior 3062)
 //   - 3356: ShouldWarpOnExitEvent dedicated expand residual 2888 (prior 3088)
+//   - 3382: ShouldStartExitEvent dedicated expand residual 2917 (prior 3109)
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
@@ -226,14 +228,15 @@ inline auto ShouldCreateIntenseVEInstance(const int32 csid, const int32 option) 
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2917 / 3109 — onInstanceComplete / onInstanceFailure always-start exit CS
+// Slice 2917 / 3109 / 3382 — onInstanceComplete / onInstanceFailure always-start exit CS
 // ---------------------------------------------------------------------------
 
 // ShouldStartExitEvent mirrors ambuscade.lua onInstanceComplete and
 // onInstanceFailure: both paths always call player:startEvent(10001) for
 // every char (no additional gate).
 //
-// Formula (slice 3109 dual-wire; residual expand 2917):
+// Formula (slice 3382 dedicated dual-wire expand residual 2917; prior
+// dedicated 3109 — formula unchanged):
 //   ShouldStartExitEvent() = true
 //
 // true → host calls startEvent(EventCSIDExit) (10001) for every char
@@ -241,8 +244,9 @@ inline auto ShouldCreateIntenseVEInstance(const int32 csid, const int32 option) 
 // Dual-wire of Go ambuscade.ShouldStartExitEvent.
 // Call site: future Lua onInstanceComplete / onInstanceFailure inject.
 // Prior pure port: slice 1089. Residual dual-wire suite: 2917 /
-// test_ambuscade_start_exit_2917. Dedicated dual-wire suite is
-// test_ambuscade_start_exit_3109. Host still calls startEvent(EventCSIDExit)
+// test_ambuscade_start_exit_2917. Prior dedicated dual-wire suite:
+// test_ambuscade_start_exit_3109. Dedicated expand residual suite is
+// test_ambuscade_start_exit_3382. Host still calls startEvent(EventCSIDExit)
 // after a true gate. Pure surface is unconditional so hosts dual-wire one
 // free function instead of re-inlining "always start exit CS".
 // Parity: Go ShouldStartExitEvent.

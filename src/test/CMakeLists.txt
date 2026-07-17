@@ -3331,6 +3331,16 @@ set(SOURCES
     test_voidwalker_should_upgrade_ki_3377.cpp
     test_party_remove_sync_low_3378.h
     test_party_remove_sync_low_3378.cpp
+    test_treasure_force_check_full_3379.h
+    test_treasure_force_check_full_3379.cpp
+    test_fishing_contest_placeholders_3380.h
+    test_fishing_contest_placeholders_3380.cpp
+    test_battlefield_enter_pc_3381.h
+    test_battlefield_enter_pc_3381.cpp
+    test_ambuscade_start_exit_3382.h
+    test_ambuscade_start_exit_3382.cpp
+    test_synergy_operate_furnace_3383.h
+    test_synergy_operate_furnace_3383.cpp
 )
 
 if(UNIX)

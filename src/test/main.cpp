@@ -1669,6 +1669,11 @@ auto runPetutilsPetEngage3375SelfTests() -> bool;
 auto runMapsessionDestroyPendingPtr3376SelfTests() -> bool;
 auto runVoidwalkerShouldUpgradeKI3377SelfTests() -> bool;
 auto runPartyRemoveSyncLow3378SelfTests() -> bool;
+auto runTreasureForceCheckFull3379SelfTests() -> bool;
+auto runFishingContestPlaceholders3380SelfTests() -> bool;
+auto runBattlefieldEnterPC3381SelfTests() -> bool;
+auto runAmbuscadeStartExit3382SelfTests() -> bool;
+auto runSynergyOperateFurnace3383SelfTests() -> bool;
 
 namespace
 {
@@ -3315,6 +3320,11 @@ namespace
         ok = runMapsessionDestroyPendingPtr3376SelfTests() && ok;
         ok = runVoidwalkerShouldUpgradeKI3377SelfTests() && ok;
         ok = runPartyRemoveSyncLow3378SelfTests() && ok;
+        ok = runTreasureForceCheckFull3379SelfTests() && ok;
+        ok = runFishingContestPlaceholders3380SelfTests() && ok;
+        ok = runBattlefieldEnterPC3381SelfTests() && ok;
+        ok = runAmbuscadeStartExit3382SelfTests() && ok;
+        ok = runSynergyOperateFurnace3383SelfTests() && ok;
 
         return ok;
     }

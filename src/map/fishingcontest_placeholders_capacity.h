@@ -2,9 +2,21 @@
 
 #include <cstdint>
 
-// Pure GeneratePlaceholderEntries gate and score helpers (slice 2855).
+// Pure GeneratePlaceholderEntries gate and score helpers.
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 2645: GeneratePlaceholderEntries pure port / field cycles / loop quirk
+//   - 2855: ShouldGeneratePlaceholderEntries + PlaceholderEntryScore residual
+//           dual-wire expand (gate + score pure helpers; host dual-wire)
+//   - 3380: ShouldGeneratePlaceholderEntries dedicated dual-wire
+//           (PRESENTING && realEntries < maxEntries;
+//            residual expand 2855 / pure 2645 — formula unchanged)
+//
 // Host injects presenting / measure / entry-count scalars; helpers never touch
 // FakeContestEntries storage, settings, or process-global contest state.
+// Production host: fishingcontest::GeneratePlaceholderEntries injects
+// presenting = (status == PRESENTING) into ShouldGeneratePlaceholderEntries
+// and measure==SMALLEST into PlaceholderEntryScore.
 
 namespace fishingcontestplaceholderhelpers
 {
@@ -12,6 +24,15 @@ namespace fishingcontestplaceholderhelpers
 // ShouldGeneratePlaceholderEntries mirrors GeneratePlaceholderEntries' early
 // return: status must be PRESENTING and realEntries must be below maxEntries.
 // presenting is true when status == FISHING_CONTEST_STATUS::PRESENTING.
+//
+// Formula (slice 3380 dedicated dual-wire; residual expand 2855 / pure 2645 —
+// formula unchanged):
+//   presenting && realEntries < maxEntries
+//
+// Dual-wire C++ / Go: fishingcontestplaceholderhelpers::ShouldGeneratePlaceholderEntries
+// / fishingcontest.ShouldGeneratePlaceholderEntries. Residual dual-wire suite:
+// slice 2855. Dedicated dual-wire suite: slice 3380.
+// Sibling score ladder PlaceholderEntryScore remains residual-ok under 2855.
 inline auto ShouldGeneratePlaceholderEntries(
     const bool         presenting,
     const std::uint8_t maxEntries,
@@ -25,6 +46,7 @@ inline auto ShouldGeneratePlaceholderEntries(
 //   greatest: (needed + 1) - number  (signed intermediate; may underflow to uint32)
 // needed is maxEntries - realEntries. smallest is true when
 // measure == FISHING_CONTEST_MEASURE::SMALLEST.
+// Residual dual-wire: slice 2855 (left residual under dedicated gate expand 3380).
 inline auto PlaceholderEntryScore(
     const std::uint8_t needed,
     const int          number,

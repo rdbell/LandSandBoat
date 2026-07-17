@@ -12,7 +12,7 @@
 //   - 2772 / 2777 / 2779 / 2780 / 2781: lot/pass/update/post-lot/flush plans
 //   - 2938: ShouldAutoResolveSolo residual dual-wire suite (memberCount == 1)
 //   - 2957: CanLotWithInventory residual dual-wire suite (freeSlots != 0 inventory lot gate)
-//   - 2981: ShouldForceCheckOnFullPoolInsert (SlotID == PoolSize after free scan)
+//   - 2981: ShouldForceCheckOnFullPoolInsert residual dual-wire suite (SlotID == PoolSize after free scan)
 //   - 2998: CanLotRareItem residual dual-wire suite (!(rare && alreadyHas))
 //   - 3060: ShouldRejectNullMember (charNull || poolMismatch null-member gate)
 //   - 3067: ShouldRejectNullItem (itemNull identity null-item gate)
@@ -24,16 +24,19 @@
 //   - 3291: CanLotRareItem prior dedicated dual-wire expand residual 2998 (prior ~3260)
 //   - 3321: CanLotRareItem dedicated dual-wire expand residual 2998 (prior ~3291)
 //   - 3367: CanLotWithInventory dedicated dual-wire expand residual 2957
+//   - 3379: ShouldForceCheckOnFullPoolInsert dedicated dual-wire expand residual 2981
 //
 // Dual-wire index:
 //   - 2938: ShouldAutoResolveSolo residual dual-wire suite
 //   - 2957: CanLotWithInventory residual dual-wire suite
+//   - 2981: ShouldForceCheckOnFullPoolInsert residual dual-wire suite
 //   - 2998: CanLotRareItem residual dual-wire suite
 //   - 3201: ShouldAutoResolveSolo = memberCount == 1
 //   - 3260: CanLotRareItem prior dedicated (!itemIsRare || !alreadyHasItem)
 //   - 3291: CanLotRareItem prior dedicated (!itemIsRare || !alreadyHasItem)
 //   - 3321: CanLotRareItem = !itemIsRare || !alreadyHasItem
 //   - 3367: CanLotWithInventory = freeSlots != 0
+//   - 3379: ShouldForceCheckOnFullPoolInsert = slotAfterFreeScan == PoolSize
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -54,6 +57,8 @@
 // PoolSize when free-slot loop completes without break).
 // Go dual-wire: treasurepool.ShouldForceCheckOnFullPoolInsert
 // (internal/treasurepool/force_check_full.go).
+// Residual dual-wire suite: 2981 (test_treasure_force_check_full_2981).
+// Dedicated dual-wire suite: 3379 (test_treasure_force_check_full_3379).
 //
 // Production host: CTreasurePool::lotItem / PlanLotItemPreflight injects
 // item rare flag + already-has lookup into CanLotRareItem.
@@ -184,9 +189,14 @@ inline auto DefaultFallbackSlot() -> uint8
     return 0;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3379 — addItem full-pool force-check gate (dedicated expand residual 2981)
+// ---------------------------------------------------------------------------
+
 // ShouldForceCheckOnFullPoolInsert mirrors SlotID == 10 after free-slot scan.
 //
-// Formula (slice 2981 dual-wire):
+// Formula (slice 3379 dedicated dual-wire expand residual 2981; prior pure
+// 1367 — formula unchanged):
 //   slotAfterFreeScan == PoolSize
 //
 // slotAfterFreeScan — host-evaluated SlotID after free-slot scan
@@ -196,6 +206,13 @@ inline auto DefaultFallbackSlot() -> uint8
 //
 // Dual-wire of Go treasurepool.ShouldForceCheckOnFullPoolInsert.
 // Call site: CTreasurePool::addItem after free-slot / eviction selection.
+// Prior pure port: slice 1367. Residual dual-wire suite: 2981 /
+// test_treasure_force_check_full_2981. Dedicated dual-wire suite is
+// test_treasure_force_check_full_3379. Sibling dual-wire gates:
+// CanLotWithInventory (3367), CanLotRareItem (3321),
+// ShouldAutoResolveSolo (3201), ShouldRejectNullMember (3060),
+// ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094),
+// ShouldUpdatePoolForChar (3112), ShouldFlushPool (3127) — left residual.
 inline auto ShouldForceCheckOnFullPoolInsert(const uint8 slotAfterFreeScan) -> bool
 {
     return slotAfterFreeScan == PoolSize;

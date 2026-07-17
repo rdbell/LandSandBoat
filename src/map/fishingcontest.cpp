@@ -814,7 +814,8 @@ void BuildPlaceholderEntries()
 
 auto GeneratePlaceholderEntries(FISHING_CONTEST_STATUS status, FISHING_CONTEST_MEASURE measure, uint8 maxEntries, uint8 realEntries) -> std::vector<FishingContestEntry>
 {
-    // Pure dual-wire: fishingcontestplaceholderhelpers gate + score (slice 2855).
+    // Pure dual-wire: fishingcontestplaceholderhelpers gate (slice 3380 dedicated /
+    // residual 2855) + score (slice 2855 residual-ok).
     const bool presenting = status == FISHING_CONTEST_STATUS::PRESENTING;
     if (!fishingcontestplaceholderhelpers::ShouldGeneratePlaceholderEntries(presenting, maxEntries, realEntries))
     {

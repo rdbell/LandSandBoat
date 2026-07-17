@@ -8,7 +8,7 @@
 //   - 2899: CanOperateFurnace residual dual-wire suite (claimedByYou gate)
 //   - 3065: CanClaimFurnace prior dedicated dual-wire (claim_furnace.go)
 //   - 3098: CanTradeIntoFurnace prior dedicated dual-wire (trade_furnace.go)
-//   - 3117: CanOperateFurnace dedicated dual-wire (operate_furnace.go)
+//   - 3117: CanOperateFurnace prior dedicated dual-wire (operate_furnace.go)
 //   - 3239: CanClaimFurnace prior dedicated dual-wire expand residual 2877
 //           (prior dedicated 3065; formula unchanged)
 //   - 3285: CanClaimFurnace prior dedicated dual-wire expand residual 2877
@@ -17,6 +17,8 @@
 //           (prior dedicated expand 3285; formula unchanged)
 //   - 3359: CanTradeIntoFurnace dedicated dual-wire expand residual 2896
 //           (prior dedicated 3098; formula unchanged)
+//   - 3383: CanOperateFurnace dedicated dual-wire expand residual 2899
+//           (prior dedicated 3117; formula unchanged)
 //
 // Dual-wire index:
 //   - 2877: CanClaimFurnace residual dual-wire suite
@@ -25,7 +27,7 @@
 //   - 3065: CanClaimFurnace prior dedicated (state == FurnaceAvailable)
 //   - 3098: CanTradeIntoFurnace prior dedicated
 //           (state == FurnaceClaimed && IsClaimedBy)
-//   - 3117: CanOperateFurnace (IsClaimedBy alias)
+//   - 3117: CanOperateFurnace prior dedicated (IsClaimedBy alias)
 //   - 3239: CanClaimFurnace = state == FurnaceAvailable
 //           prior dedicated dual-wire expand residual 2877 (prior dedicated 3065)
 //   - 3285: CanClaimFurnace = state == FurnaceAvailable
@@ -34,6 +36,8 @@
 //           dedicated dual-wire expand residual 2877 (prior dedicated expand 3285)
 //   - 3359: CanTradeIntoFurnace = state == FurnaceClaimed && IsClaimedBy
 //           dedicated dual-wire expand residual 2896 (prior dedicated 3098)
+//   - 3383: CanOperateFurnace = IsClaimedBy(furnacePlayerID, playerID)
+//           dedicated dual-wire expand residual 2899 (prior dedicated 3117)
 //
 // Production hosts are Lua under scripts/globals/synergy.lua
 // (furnaceStates + synergyFurnaceOnTrigger / synergyFurnaceOnTrade).
@@ -61,7 +65,10 @@
 // test_synergy_claim_furnace_3315 (dedicated expand residual 2877; not in CMake/main),
 // test_synergy_trade_furnace_2896 (residual),
 // test_synergy_trade_furnace_3098 (prior dedicated dual-wire; not in CMake/main),
-// test_synergy_trade_furnace_3359 (dedicated expand residual 2896; not in CMake/main).
+// test_synergy_trade_furnace_3359 (dedicated expand residual 2896; not in CMake/main),
+// test_synergy_operate_furnace_2899 (residual),
+// test_synergy_operate_furnace_3117 (prior dedicated dual-wire; not in CMake/main),
+// test_synergy_operate_furnace_3383 (dedicated expand residual 2899; not in CMake/main).
 
 namespace synergyhelpers
 {
@@ -152,7 +159,8 @@ inline auto CanTradeIntoFurnace(const uint8 state, const uint32 furnacePlayerID,
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2899 / 3117 — synergyFurnaceOnTrigger claimedByYou operate gate
+// Slice 2899 residual / 3117 prior dedicated / 3383 dedicated expand residual
+// 2899 — synergyFurnaceOnTrigger claimedByYou operate gate
 // ---------------------------------------------------------------------------
 
 // CanOperateFurnace mirrors the pure claimedByYou gate shared by
@@ -163,7 +171,7 @@ inline auto CanTradeIntoFurnace(const uint8 state, const uint32 furnacePlayerID,
 //   -- ACTIVE: distance check then startEvent 4518
 //   -- COMPLETED: retrieve / startEvent path
 //
-// Formula (slice 3117 dual-wire; residual expand 2899):
+// Formula (slice 3383 dual-wire expand residual 2899; prior dedicated 3117):
 //   CanOperateFurnace(furnacePlayerID, playerID)
 //     = IsClaimedBy(furnacePlayerID, playerID)
 //   // furnacePlayerID != 0 && furnacePlayerID == playerID
@@ -176,10 +184,12 @@ inline auto CanTradeIntoFurnace(const uint8 state, const uint32 furnacePlayerID,
 // Dual-wire of Go synergy.CanOperateFurnace.
 // Call site: future Lua synergyFurnaceOnTrigger inject.
 // Prior pure port: slice 1149. Residual dual-wire suite: 2899 /
-// test_synergy_operate_furnace_2899. Dedicated dual-wire suite is
-// test_synergy_operate_furnace_3117. Host still owns state branch
+// test_synergy_operate_furnace_2899. Prior dedicated dual-wire suite:
+// test_synergy_operate_furnace_3117. Dedicated expand residual suite is
+// test_synergy_operate_furnace_3383. Host still owns state branch
 // dispatch, distance checks, startEvent CSIDs, and retrieve side
 // effects after a true gate.
+// Formula is unchanged.
 inline auto CanOperateFurnace(const uint32 furnacePlayerID, const uint32 playerID) -> bool
 {
     return IsClaimedBy(furnacePlayerID, playerID);
