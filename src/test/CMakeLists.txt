@@ -3061,6 +3061,16 @@ set(SOURCES
     test_artisan_can_buy_sack_3242.cpp
     test_portermoogle_can_retrieve_item_3243.h
     test_portermoogle_can_retrieve_item_3243.cpp
+    test_synthutils_can_synthesize_hq_3244.h
+    test_synthutils_can_synthesize_hq_3244.cpp
+    test_apkallu_can_run_away_3245.h
+    test_apkallu_can_run_away_3245.cpp
+    test_interactionlookup_skip_priority_3246.h
+    test_interactionlookup_skip_priority_3246.cpp
+    test_monstrosity_instinct_loadout_3247.h
+    test_monstrosity_instinct_loadout_3247.cpp
+    test_universalcontainer_set_item_3248.h
+    test_universalcontainer_set_item_3248.cpp
 )
 
 if(UNIX)

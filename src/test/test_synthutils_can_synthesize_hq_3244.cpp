@@ -1,0 +1,170 @@
+#include "test_synthutils_can_synthesize_hq_3244.h"
+
+#include "map/utils/synthutils_capacity.h"
+
+#include <iostream>
+#include <limits>
+
+namespace
+{
+
+auto expect(const bool condition, const char* const label) -> bool
+{
+    if (!condition)
+    {
+        std::cerr << "synthutils CanSynthesizeHQ 3244 self-test failed: " << label << '\n';
+    }
+    return condition;
+}
+
+// Inline canSynthesizeHQ pure half for dual-wire cross-check
+// (slice 3244 dedicated expand residual 2876):
+//   return getMod(antiHQ) == 0
+// Direct return form matching production free function / capacity.
+auto inlineCanSynthesizeHQ(const int16 antiHQMod) -> bool
+{
+    return antiHQMod == 0;
+}
+
+// Compact dual-wire pin matching free function / capacity body (slice 3244).
+// Direct return only — same formula as production CanSynthesizeHQ.
+auto pinCanSynthesizeHQ3244(const int16 antiHQMod) -> bool
+{
+    return antiHQMod == 0;
+}
+
+} // namespace
+
+// Pure dual-wire expansion for synthutilshelpers::CanSynthesizeHQ
+// (synthutils::canSynthesizeHQ after skill→Mod mapping / getMod inject;
+// OmegaXI internal/synthutils; slice 3244 dedicated expand residual 2876).
+// Formula unchanged.
+//
+// Coverage:
+//   - free == inline == pin (direct return formula)
+//   - residual 2876 / 1922 poles still hold (0 true, non-zero false)
+//   - residual poles + dense range + int16 extremes
+auto runSynthutilsCanSynthesizeHQ3244SelfTests() -> bool
+{
+    using synthutilshelpers::CanSynthesizeHQ;
+
+    bool ok = true;
+
+    // Residual 2876 / 1922 pins still hold.
+    ok = expect(CanSynthesizeHQ(0), "residual zero mod allows HQ") && ok;
+    ok = expect(!CanSynthesizeHQ(1), "residual positive anti-HQ blocks") && ok;
+    ok = expect(!CanSynthesizeHQ(-1), "residual negative anti-HQ blocks") && ok;
+    ok = expect(!CanSynthesizeHQ(2), "residual ring-style anti-HQ 2 blocks") && ok;
+    ok = expect(!CanSynthesizeHQ(100), "residual large anti-HQ blocks") && ok;
+    ok = expect(!CanSynthesizeHQ(-100), "residual large negative anti-HQ blocks") && ok;
+
+    const struct
+    {
+        int16       antiHQMod;
+        bool        want;
+        const char* label;
+    } poles[] = {
+        // Residual 2876 / 1922 classic dual poles.
+        { 0, true, "residual zero mod allows HQ" },
+        { 1, false, "residual positive anti-HQ blocks" },
+        { -1, false, "residual negative anti-HQ blocks" },
+        { 2, false, "residual ring-style anti-HQ 2 blocks" },
+        { 100, false, "residual large anti-HQ blocks" },
+        { -100, false, "residual large negative anti-HQ blocks" },
+        { 0, true, "residual 1922 zero pin" },
+
+        // Host inject path poles (canSynthesizeHQ after getMod).
+        { 0, true, "host no ring → HQ allowed" },
+        { 1, false, "host anti-HQ ring 1 → block" },
+        { -1, false, "host defensive negative → block" },
+        { 2, false, "host multi-stack anti-HQ → block" },
+    };
+
+    for (const auto& p : poles)
+    {
+        const bool got     = CanSynthesizeHQ(p.antiHQMod);
+        const bool inlineF = inlineCanSynthesizeHQ(p.antiHQMod);
+        const bool pin     = pinCanSynthesizeHQ3244(p.antiHQMod);
+
+        ok = expect(got == p.want, p.label) && ok;
+        ok = expect(got == inlineF, "CanSynthesizeHQ dual-wire == inline getMod==0") && ok;
+        ok = expect(got == pin, "CanSynthesizeHQ == pin formula") && ok;
+        ok = expect(got == (p.antiHQMod == 0), "CanSynthesizeHQ == formula") && ok;
+    }
+
+    // Dense edges: negative, 0, 1, small non-zero, large, int16 extremes.
+    // free == inline == pin == formula.
+    const struct
+    {
+        int16       antiHQMod;
+        const char* label;
+    } edges[] = {
+        { -2, "edge neg -2" },
+        { -1, "edge neg -1" },
+        { 0, "edge zero allows" },
+        { 1, "edge one blocks" },
+        { 2, "edge two blocks" },
+        { 42, "edge mid blocks" },
+        { 100, "edge hundred blocks" },
+        { -100, "edge -100 blocks" },
+        { std::numeric_limits<int16>::max(), "edge int16 max blocks" },
+        { std::numeric_limits<int16>::min(), "edge int16 min blocks" },
+    };
+
+    for (const auto& e : edges)
+    {
+        const bool got     = CanSynthesizeHQ(e.antiHQMod);
+        const bool inlineF = inlineCanSynthesizeHQ(e.antiHQMod);
+        const bool pin     = pinCanSynthesizeHQ3244(e.antiHQMod);
+        const bool want    = e.antiHQMod == 0;
+
+        ok = expect(got == want, e.label) && ok;
+        ok = expect(got == inlineF, "dense edge free == inline") && ok;
+        ok = expect(got == pin, "dense edge free == pin") && ok;
+    }
+
+    // Dense compose range identity: antiHQMod -200..200.
+    // free == inline == pin == formula.
+    for (int16 m = -200; m <= 200; ++m)
+    {
+        const bool got     = CanSynthesizeHQ(m);
+        const bool inlineF = inlineCanSynthesizeHQ(m);
+        const bool pin     = pinCanSynthesizeHQ3244(m);
+        const bool want    = m == 0;
+
+        ok = expect(got == want, "dense compose free == formula") && ok;
+        ok = expect(got == inlineF, "dense compose free == inline") && ok;
+        ok = expect(got == pin, "dense compose free == pin") && ok;
+    }
+
+    // Explicit free-path poles matching capacity body (direct return).
+    ok = expect(CanSynthesizeHQ(0), "antiHQMod 0 must allow HQ") && ok;
+    ok = expect(!CanSynthesizeHQ(1), "antiHQMod 1 must block") && ok;
+    ok = expect(!CanSynthesizeHQ(-1), "antiHQMod -1 must block") && ok;
+    ok = expect(!CanSynthesizeHQ(std::numeric_limits<int16>::max()), "antiHQMod int16 max must block") && ok;
+
+    // Production path semantics (host inject model for canSynthesizeHQ).
+    const struct
+    {
+        int16       antiHQMod;
+        const char* label;
+    } hostPoles[] = {
+        { 0, "eligible HQ path" },
+        { 1, "anti-HQ ring blocks" },
+        { 2, "multi-stack anti-HQ blocks" },
+        { -1, "defensive negative blocks" },
+        { 100, "large anti-HQ blocks" },
+    };
+
+    for (const auto& p : hostPoles)
+    {
+        const bool got     = CanSynthesizeHQ(p.antiHQMod);
+        const bool inlineF = inlineCanSynthesizeHQ(p.antiHQMod);
+        const bool pin     = pinCanSynthesizeHQ3244(p.antiHQMod);
+
+        ok = expect(got == pin, p.label) && ok;
+        ok = expect(got == inlineF, "host pole free == inline") && ok;
+    }
+
+    return ok;
+}

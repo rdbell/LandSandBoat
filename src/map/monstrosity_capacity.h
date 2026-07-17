@@ -5,11 +5,14 @@
 // Pure Monstrosity helpers shared by dual-wire slices:
 //   - 2766: residual pure port (internal/monstrosity ShouldRejectInstinctLoadout)
 //   - 2872: ShouldRejectInstinctLoadout residual dual-wire suite (instinct_loadout)
-//   - 3168: ShouldRejectInstinctLoadout dedicated dual-wire (instinct_equip.go)
+//   - 3168: ShouldRejectInstinctLoadout prior dedicated dual-wire (instinct_equip.go)
+//   - 3247: ShouldRejectInstinctLoadout dedicated dual-wire expand residual 2872
+//           (prior dedicated 3168)
 //
 // Dual-wire index:
 //   - 2872: ShouldRejectInstinctLoadout residual dual-wire suite
-//   - 3168: ShouldRejectInstinctLoadout = hasDuplicates || totalCost > maxPoints
+//   - 3168: ShouldRejectInstinctLoadout prior dedicated dual-wire suite
+//   - 3247: ShouldRejectInstinctLoadout = hasDuplicates || totalCost > maxPoints
 //
 // Production host (2766 / map): src/map/monstrosity.cpp
 //   monstrosity::HandleEquipChangePacket InstinctFlag path:
@@ -36,15 +39,17 @@
 // Go dual-wire: monstrosity.ShouldRejectInstinctLoadout
 //   (internal/monstrosity/instinct_equip.go).
 // Residual dual-wire suite: 2872 (test_monstrosity_instinct_loadout_2872).
-// Dedicated dual-wire suite: 3168 (test_monstrosity_reject_instinct_loadout_3168).
+// Prior dedicated dual-wire suite: 3168
+//   (test_monstrosity_reject_instinct_loadout_3168).
+// Dedicated dual-wire suite: 3247 (test_monstrosity_instinct_loadout_3247).
 // Prior pure port: OmegaXI slice 2766 (internal/monstrosity).
 
 namespace monstrosityhelpers
 {
 
 // ---------------------------------------------------------------------------
-// Slice 3168 — HandleEquipChangePacket cost/duplicate reject gate
-// (dedicated expand residual 2872)
+// Slice 3247 — HandleEquipChangePacket cost/duplicate reject gate
+// (dedicated expand residual 2872 / prior dedicated 3168)
 // ---------------------------------------------------------------------------
 
 // ShouldRejectInstinctLoadout is the pure free-function form of the
@@ -52,8 +57,8 @@ namespace monstrosityhelpers
 //
 //   hasDuplicates || totalCost > maxPoints
 //
-// Formula (slice 3168 dedicated dual-wire; residual expand 2872 / pure 2766 —
-// formula unchanged):
+// Formula (slice 3247 dedicated dual-wire; residual expand 2872 / prior
+// dedicated 3168 / pure 2766 — formula unchanged):
 //   ShouldRejectInstinctLoadout(totalCost, maxPoints, hasDuplicates)
 //     = hasDuplicates || totalCost > maxPoints
 //
@@ -64,9 +69,10 @@ namespace monstrosityhelpers
 // Dual-wire of Go monstrosity.ShouldRejectInstinctLoadout.
 // Call site: future host inject (HandleEquipChangePacket InstinctFlag path).
 // Prior pure port: slice 2766. Residual dual-wire suite: 2872 /
-// test_monstrosity_instinct_loadout_2872. Dedicated dual-wire suite is
-// test_monstrosity_reject_instinct_loadout_3168. Future host injects scalars
-// into this helper instead of re-inlining the OR.
+// test_monstrosity_instinct_loadout_2872. Prior dedicated dual-wire suite:
+// 3168 / test_monstrosity_reject_instinct_loadout_3168. Dedicated dual-wire
+// suite is test_monstrosity_instinct_loadout_3247. Future host injects
+// scalars into this helper instead of re-inlining the OR.
 inline auto ShouldRejectInstinctLoadout(const uint16 totalCost, const uint16 maxPoints, const bool hasDuplicates) -> bool
 {
     return hasDuplicates || totalCost > maxPoints;

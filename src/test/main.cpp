@@ -1534,6 +1534,11 @@ auto runNyzulClaimRune3240SelfTests() -> bool;
 auto runAmbuscadeCompleteInstance3241SelfTests() -> bool;
 auto runArtisanCanBuySack3242SelfTests() -> bool;
 auto runPortermoogleCanRetrieveItem3243SelfTests() -> bool;
+auto runSynthutilsCanSynthesizeHQ3244SelfTests() -> bool;
+auto runApkalluCanRunAway3245SelfTests() -> bool;
+auto runInteractionlookupSkipPriority3246SelfTests() -> bool;
+auto runMonstrosityInstinctLoadout3247SelfTests() -> bool;
+auto runUniversalcontainerSetItem3248SelfTests() -> bool;
 
 namespace
 {
@@ -3045,6 +3050,11 @@ namespace
         ok = runAmbuscadeCompleteInstance3241SelfTests() && ok;
         ok = runArtisanCanBuySack3242SelfTests() && ok;
         ok = runPortermoogleCanRetrieveItem3243SelfTests() && ok;
+        ok = runSynthutilsCanSynthesizeHQ3244SelfTests() && ok;
+        ok = runApkalluCanRunAway3245SelfTests() && ok;
+        ok = runInteractionlookupSkipPriority3246SelfTests() && ok;
+        ok = runMonstrosityInstinctLoadout3247SelfTests() && ok;
+        ok = runUniversalcontainerSetItem3248SelfTests() && ok;
 
         return ok;
     }
