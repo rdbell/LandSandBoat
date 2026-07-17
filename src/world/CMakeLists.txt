@@ -21,6 +21,7 @@ set(SOURCES
     http_server_api.cpp
     http_server_api.h
     http_zone_path.h
+    http_request_plan.h
     ipc_server.cpp
     ipc_server.h
     ipc_lookup.cpp

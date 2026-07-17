@@ -94,10 +94,14 @@ void CAttack::SetCritical(bool value)
 {
     m_isCritical = value;
 
-    if (m_attackType == PHYSICAL_ATTACK_TYPE::DAKEN)
-    {
-        uint16 bonusRatt = 0;
+    const auto isDaken = m_attackType == PHYSICAL_ATTACK_TYPE::DAKEN;
+    bool       hasSange = false;
+    bool       hasSangeMerits = false;
+    int16      enhancesSange = 0;
+    int32      sangeMeritValue = 0;
 
+    if (isDaken)
+    {
         if (m_attacker->StatusEffectContainer)
         {
             const CStatusEffect* sangeEffect = m_attacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Sange);
@@ -105,24 +109,32 @@ void CAttack::SetCritical(bool value)
 
             if (sangeEffect && PChar && PChar->PMeritPoints)
             {
-                int32 meritValue = PChar->PMeritPoints->GetMeritValue(MERIT_SANGE, PChar);
-
-                // Add N ranged attack * merit level during Sange effect
-                bonusRatt += PChar->getMod(Mod::ENHANCES_SANGE) * meritValue;
+                hasSange       = true;
+                hasSangeMerits = true;
+                enhancesSange  = PChar->getMod(Mod::ENHANCES_SANGE);
+                sangeMeritValue = PChar->PMeritPoints->GetMeritValue(MERIT_SANGE, PChar);
             }
         }
-        m_damageRatio = battleutils::GetRangedDamageRatio(m_attacker, m_victim, m_isCritical, bonusRatt);
+    }
+
+    CStatusEffect* footworkEffect = m_attackType == PHYSICAL_ATTACK_TYPE::KICK
+                                        ? m_attacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Footwork)
+                                        : nullptr;
+    const auto modifiers = attackhelpers::ResolveCriticalRatioModifiers(
+        isDaken,
+        m_attackType == PHYSICAL_ATTACK_TYPE::KICK,
+        footworkEffect != nullptr,
+        footworkEffect != nullptr ? footworkEffect->GetSubPower() : 0,
+        hasSange && hasSangeMerits,
+        enhancesSange,
+        sangeMeritValue);
+
+    if (isDaken)
+    {
+        m_damageRatio = battleutils::GetRangedDamageRatio(m_attacker, m_victim, m_isCritical, modifiers.rangedAttackBonus);
     }
     else
     {
-        float attBonus = 1.0f;
-        if (m_attackType == PHYSICAL_ATTACK_TYPE::KICK)
-        {
-            if (CStatusEffect* footworkEffect = m_attacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Footwork))
-            {
-                attBonus += (footworkEffect->GetSubPower() / 256.0f); // Mod is out of 256
-            }
-        }
 
         SKILLTYPE skilltype  = SKILLTYPE::SKILL_NONE;
         SLOTTYPE  weaponSlot = static_cast<SLOTTYPE>(GetWeaponSlot());
@@ -140,7 +152,7 @@ void CAttack::SetCritical(bool value)
         }
 
         // need to pass the weapon slot because damage ratio depends on ATT which varies by slot
-        m_damageRatio = battleutils::GetDamageRatio(m_attacker, m_victim, m_isCritical, attBonus, skilltype, weaponSlot, false);
+        m_damageRatio = battleutils::GetDamageRatio(m_attacker, m_victim, m_isCritical, modifiers.meleeAttackBonus, skilltype, weaponSlot, false);
     }
 }
 

@@ -20,6 +20,7 @@
 */
 
 #include "http_server.h"
+#include "http_request_plan.h"
 
 #include "common/database.h"
 #include "common/logging.h"
@@ -108,15 +109,17 @@ HTTPServer::HTTPServer(Scheduler& scheduler)
 
 auto HTTPServer::APIResponse(const std::string& path) -> HTTPServerAPIResponse
 {
+    const auto requestPlan = worldhttp::PlanHTTPRequestData(path);
+
     HTTPServerAPIDataCache cache;
-    if (path != "/api" && path != "/api/settings")
+    if (requestPlan.refreshAndReadCache)
     {
         LockingUpdate();
         apiDataCache_.read([&](const auto& apiDataCache) { cache = apiDataCache; });
     }
 
     HTTPServerAPISettings apiSettings;
-    if (path == "/api/settings")
+    if (requestPlan.loadSettings)
     {
         settings::visit([&](const auto& key, const auto& variant) { apiSettings.emplace(key, variant); });
     }

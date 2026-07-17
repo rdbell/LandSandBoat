@@ -54,6 +54,8 @@ set(SOURCES
     test_daily_system_2621.cpp
     test_daily_item_classification_2643.h
     test_daily_item_classification_2643.cpp
+    test_daily_rare_fallback_2747.h
+    test_daily_rare_fallback_2747.cpp
     test_petskill_2628.h
     test_petskill_2628.cpp
     test_blacklistutils_2629.h
@@ -1239,6 +1241,8 @@ set(SOURCES
     test_world_http_server_cache_2644.cpp
     test_world_http_zone_path_2740.h
     test_world_http_zone_path_2740.cpp
+    test_world_http_request_plan_2746.h
+    test_world_http_request_plan_2746.cpp
     test_login_auth_handshake_2743.h
     test_login_auth_handshake_2743.cpp
     test_fishing_hookchance_1619.h
@@ -1442,6 +1446,8 @@ set(SOURCES
     test_attack_guard_resolution_2739.cpp
     test_attackround_initial_weapon_2742.h
     test_attackround_initial_weapon_2742.cpp
+    test_attack_critical_ratio_2745.h
+    test_attack_critical_ratio_2745.cpp
     test_map_networking_sequence_gate_2696.h
     test_map_networking_sequence_gate_2696.cpp
     test_map_networking_acknowledgement_2699.h

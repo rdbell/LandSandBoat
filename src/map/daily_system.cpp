@@ -125,51 +125,26 @@ uint16 SelectItemFromPool(const std::vector<uint16>& items, const size_t index)
 
 uint16 SelectItem(CCharEntity* player, uint8 dial)
 {
-    std::reference_wrapper<std::vector<uint16>> dialItems = gobbieJunk;
+    const DailyDialPools pools{
+        materialsDialItems,
+        foodDialItems,
+        medicineDialItems,
+        sundries1DialItems,
+        sundries2DialItems,
+        specialDialItems,
+        gobbieJunk,
+    };
 
-    switch (dial)
-    {
-        case 1:
+    return SelectItemWithRareFallback(
+        pools,
+        dial,
+        [](const size_t size) { return xirand::GetRandomNumber<size_t>(size); },
+        [](const uint16 itemId)
         {
-            dialItems = materialsDialItems;
-            break;
-        }
-        case 2:
-        {
-            dialItems = foodDialItems;
-            break;
-        }
-        case 3:
-        {
-            dialItems = medicineDialItems;
-            break;
-        }
-        case 4:
-        {
-            dialItems = sundries1DialItems;
-            break;
-        }
-        case 5:
-        {
-            dialItems = sundries2DialItems;
-            break;
-        }
-        case 6:
-        {
-            dialItems = specialDialItems;
-            break;
-        }
-    }
-    uint16 selection = SelectItemFromPool(dialItems.get(), xirand::GetRandomNumber<size_t>(dialItems.get().size()));
-
-    // Check if Rare item is already owned and substitute with Goblin trash item.
-    if (const auto* item = xi::items::lookup(selection); item != nullptr && item->hasFlag(ItemFlag::Rare) && charutils::HasItem(player, selection))
-    {
-        dialItems = gobbieJunk;
-        selection = SelectItemFromPool(dialItems.get(), xirand::GetRandomNumber<size_t>(dialItems.get().size()));
-    }
-
-    return selection;
+            const auto* item = xi::items::lookup(itemId);
+            return item != nullptr && item->hasFlag(ItemFlag::Rare);
+        },
+        [&](const uint16 itemId) { return charutils::HasItem(player, itemId); });
 }
 
 void LoadDailyItems()

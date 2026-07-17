@@ -11,6 +11,40 @@
 namespace attackhelpers
 {
 
+// CriticalRatioModifiers are the injected modifiers selected by
+// CAttack::SetCritical before it calls the melee or ranged damage-ratio host.
+struct CriticalRatioModifiers
+{
+    std::uint16_t rangedAttackBonus{};
+    float         meleeAttackBonus{ 1.0f };
+};
+
+// ResolveCriticalRatioModifiers preserves SetCritical's independent Daken
+// Sange and kick Footwork branches. sangeEligible represents the original
+// conjunction of Sange effect, PC cast, and merit-container presence.
+inline auto ResolveCriticalRatioModifiers(
+    const bool  isDaken,
+    const bool  isKick,
+    const bool  hasFootwork,
+    const auto  footworkSubPower,
+    const bool  sangeEligible,
+    const auto  enhancesSange,
+    const auto  sangeMeritValue) -> CriticalRatioModifiers
+{
+    CriticalRatioModifiers modifiers{};
+    if (isDaken && sangeEligible)
+    {
+        // Source's uint16 += conversion intentionally wraps for negative mods.
+        modifiers.rangedAttackBonus = static_cast<std::uint16_t>(
+            static_cast<std::int32_t>(enhancesSange) * static_cast<std::int32_t>(sangeMeritValue));
+    }
+    if (isKick && hasFootwork)
+    {
+        modifiers.meleeAttackBonus += static_cast<float>(footworkSubPower) / 256.0f;
+    }
+    return modifiers;
+}
+
 // PHYSICAL_ATTACK_TYPE::DAKEN numeric.
 constexpr uint8 AttackTypeDaken = 9;
 
