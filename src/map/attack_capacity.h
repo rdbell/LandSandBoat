@@ -14,12 +14,19 @@
 //   - 2739: ResolveGuardCheck (CheckGuarded state mutation)
 //   - 2748: ResolveCoverCheck (CheckCover state mutation)
 //   - 2996: ShouldSkipParryForDaken (CheckParried Daken early-out)
+//   - 3003: ShouldSkipCounterForDaken (CheckCounter Daken early-out)
 //
 // Production host: CAttack::CheckParried (attack.cpp) injects
 // static_cast<uint8>(m_attackType) into ShouldSkipParryForDaken before
 // attackutils::IsParried, then ResolveParryCheck for state writeback.
 // Go dual-wire: attack.ShouldSkipParryForDaken
 // (internal/attack/skip_parry_daken.go).
+//
+// Production host: CAttack::CheckCounter (attack.cpp ~499) injects
+// static_cast<uint8>(m_attackType) into ShouldSkipCounterForDaken and
+// early-returns false when true (no state/merit/rate/facing path).
+// Go dual-wire: attack.ShouldSkipCounterForDaken
+// (internal/attack/skip_counter_daken.go).
 
 namespace attackhelpers
 {
@@ -91,8 +98,8 @@ inline auto IsDakenAttack(const uint8 attackType) -> bool
 //   const bool parryProcs = !ShouldSkipParryForDaken(attackType) &&
 //                           attackutils::IsParried(m_attacker, m_victim);
 // Prior pure port: slice 1376 (attack check-policy residual).
-// Sibling Daken early-outs: ShouldSkipCounterForDaken / ShouldSkipAnticipateForDaken
-// (1376 residual; same formula, different hosts — not dual-wired in 2996).
+// Sibling Daken early-outs: ShouldSkipCounterForDaken (3003 dual-wire) /
+// ShouldSkipAnticipateForDaken (1376 residual; same formula, different hosts).
 // Coverage: test_attack_skip_parry_daken_2996 (not in CMake/main).
 inline auto ShouldSkipParryForDaken(const uint8 attackType) -> bool
 {
@@ -116,6 +123,25 @@ inline auto ResolveParryCheck(const bool alreadyParried, const uint8 attackType,
 }
 
 // ShouldSkipCounterForDaken mirrors CheckCounter Daken early-out.
+//
+// Formula (slice 3003 dual-wire):
+//   IsDakenAttack(attackType)
+//   // IsDakenAttack: attackType == PHYSICAL_ATTACK_TYPE::DAKEN (9)
+//
+// attackType — host-evaluated static_cast<uint8>(m_attackType)
+// true  → host returns false immediately (no counter evaluation)
+// false → host continues state / merit / rate / facing counter path
+//
+// Dual-wire of Go attack.ShouldSkipCounterForDaken.
+// Call site: CAttack::CheckCounter host inject (attackType) ~499:
+//   if (ShouldSkipCounterForDaken(static_cast<uint8>(m_attackType)))
+//   {
+//       return false;
+//   }
+// Prior pure port: slice 1376 (attack check-policy residual).
+// Sibling Daken early-outs: ShouldSkipParryForDaken (2996 dual-wire) /
+// ShouldSkipAnticipateForDaken (1376 residual; same formula, different hosts).
+// Coverage: test_attack_skip_counter_daken_3003 (not in CMake/main).
 inline auto ShouldSkipCounterForDaken(const uint8 attackType) -> bool
 {
     return IsDakenAttack(attackType);

@@ -11,6 +11,7 @@
 //   - 1361: level cap, insert, cleanup, tick policy suite
 //   - 2930: ShouldAcceptPCUnderCapacity (playerCount < maxParticipants)
 //   - 2994: ShouldRejectNullInsert (entityNull identity)
+//   - 3002: ShouldRejectAlreadyInBattlefield (hasBattlefield identity)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -23,6 +24,12 @@
 // branches.
 // Go dual-wire: battlefield.ShouldRejectNullInsert
 // (internal/battlefield/reject_null_insert.go).
+//
+// Production host: CBattlefield::InsertEntity injects hasBattlefield =
+// (PEntity->PBattlefield != nullptr) after null gate, before capacity / type
+// branches.
+// Go dual-wire: battlefield.ShouldRejectAlreadyInBattlefield
+// (internal/battlefield/reject_already_in.go).
 
 namespace battlefieldhelpers
 {
@@ -71,6 +78,18 @@ inline auto ShouldRejectNullInsert(const bool entityNull) -> bool
 }
 
 // ShouldRejectAlreadyInBattlefield mirrors PEntity->PBattlefield != nullptr.
+//
+// Formula (slice 3002 dual-wire):
+//   hasBattlefield
+//
+// true  → host returns false (entity already on a battlefield)
+// false → proceed to capacity / type branches
+//
+// Dual-wire of Go battlefield.ShouldRejectAlreadyInBattlefield.
+// Call site: CBattlefield::InsertEntity after null gate, before capacity.
+//   if (ShouldRejectAlreadyInBattlefield(PEntity->PBattlefield != nullptr)) {
+//       return false;
+//   }
 inline auto ShouldRejectAlreadyInBattlefield(const bool hasBattlefield) -> bool
 {
     return hasBattlefield;

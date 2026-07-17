@@ -2571,6 +2571,16 @@ set(SOURCES
     test_trade_bump_items_count_2997.cpp
     test_treasure_lot_rare_2998.h
     test_treasure_lot_rare_2998.cpp
+    test_party_apply_sync_member_2999.h
+    test_party_apply_sync_member_2999.cpp
+    test_ranged_delete_unlimited_shot_3000.h
+    test_ranged_delete_unlimited_shot_3000.cpp
+    test_linkshell_break_inventory_pearl_3001.h
+    test_linkshell_break_inventory_pearl_3001.cpp
+    test_battlefield_reject_already_in_3002.h
+    test_battlefield_reject_already_in_3002.cpp
+    test_attack_skip_counter_daken_3003.h
+    test_attack_skip_counter_daken_3003.cpp
 )
 
 if(UNIX)

@@ -80,8 +80,31 @@ inline auto ShouldConsumeAmmo(const bool hasAmmo, const int16 recycleChance, con
     return roll0to99 > recycleChance;
 }
 
+// --- Slice 3000: ShouldDeleteUnlimitedShot pure dual-wire ---
+// Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects
+// hasUnlimitedShot (StatusEffect::UnlimitedShot), hitOccured (any shot hit),
+// and getMod(Mod::RETAIN_UNLIMITED_SHOT) into ShouldDeleteUnlimitedShot before
+// DelStatusEffect(UnlimitedShot) on true.
+// Go dual-wire: attackutils.ShouldDeleteUnlimitedShot
+// (internal/attackutils/delete_unlimited_shot.go).
+// Sibling dual-wire: ShouldConsumeAmmo (slice 2986).
+
 // ShouldDeleteUnlimitedShot mirrors:
 //   hasUnlimitedShot && (hitOccured || RETAIN_UNLIMITED_SHOT <= 0)
+//
+// Formula (slice 3000 dual-wire):
+//   if !hasUnlimitedShot → false
+//   else → hitOccured || retainUnlimitedShotMod <= 0
+//
+// hasUnlimitedShot       — host-evaluated StatusEffect::UnlimitedShot present
+// hitOccured             — host-tracked whether any ranged shot hit this action
+// retainUnlimitedShotMod — host-injected getMod(Mod::RETAIN_UNLIMITED_SHOT)
+// true  → host DelStatusEffect(UnlimitedShot)
+// false → keep UnlimitedShot (no effect, or miss with retain mod > 0)
+//
+// Dual-wire of Go attackutils.ShouldDeleteUnlimitedShot.
+// Call site: CBattleEntity::OnRangedAttack (~3280).
 inline auto ShouldDeleteUnlimitedShot(
     const bool hasUnlimitedShot,
     const bool hitOccured,

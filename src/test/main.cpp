@@ -1289,6 +1289,11 @@ auto runMapwireMarkCurrentKey2995SelfTests() -> bool;
 auto runAttackSkipParryDaken2996SelfTests() -> bool;
 auto runTradeBumpItemsCount2997SelfTests() -> bool;
 auto runTreasureLotRare2998SelfTests() -> bool;
+auto runPartyApplySyncMember2999SelfTests() -> bool;
+auto runRangedDeleteUnlimitedShot3000SelfTests() -> bool;
+auto runLinkshellBreakInventoryPearl3001SelfTests() -> bool;
+auto runBattlefieldRejectAlreadyIn3002SelfTests() -> bool;
+auto runAttackSkipCounterDaken3003SelfTests() -> bool;
 
 namespace
 {
@@ -2555,6 +2560,11 @@ namespace
         ok = runAttackSkipParryDaken2996SelfTests() && ok;
         ok = runTradeBumpItemsCount2997SelfTests() && ok;
         ok = runTreasureLotRare2998SelfTests() && ok;
+        ok = runPartyApplySyncMember2999SelfTests() && ok;
+        ok = runRangedDeleteUnlimitedShot3000SelfTests() && ok;
+        ok = runLinkshellBreakInventoryPearl3001SelfTests() && ok;
+        ok = runBattlefieldRejectAlreadyIn3002SelfTests() && ok;
+        ok = runAttackSkipCounterDaken3003SelfTests() && ok;
 
         return ok;
     }

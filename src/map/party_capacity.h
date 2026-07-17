@@ -19,6 +19,7 @@
 //   - 2955: ShouldClearSeekingParty (isSeekingParty after join)
 //   - 2974: ShouldRemoveSyncForLowLevel (RefreshSync syncLevel < 10)
 //   - 2991: ShouldStampLeaderCreatedPartyTime (TYPE_PC && members.size() > 1)
+//   - 2999: ShouldApplySyncToMember (RefreshSync isPC && sameZoneAsSyncTarget)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
@@ -27,12 +28,15 @@
 // (objtype == TYPE_PC, members.size()) into ShouldStampLeaderCreatedPartyTime
 // after append before stamping PLeader->m_LeaderCreatedPartyTime.
 // Production host: CParty::RefreshSync (party.cpp) injects syncLevel into
-// ShouldRemoveSyncForLowLevel before SetSyncTarget clear.
+// ShouldRemoveSyncForLowLevel before SetSyncTarget clear, and
+// (objtype == TYPE_PC, getZone() == sync->getZone()) into ShouldApplySyncToMember
+// before ResolveSyncMemberLevel / status-effect power / SetMLevel.
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
 // party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go),
-// party.ShouldStampLeaderCreatedPartyTime (internal/party/stamp_leader_created.go).
+// party.ShouldStampLeaderCreatedPartyTime (internal/party/stamp_leader_created.go),
+// party.ShouldApplySyncToMember (internal/party/apply_sync_member.go).
 
 namespace partyhelpers
 {
@@ -201,6 +205,21 @@ inline auto ResolveSyncMemberLevel(const uint8 syncLevel, const uint8 memberMain
 
 // ShouldApplySyncToMember mirrors the RefreshSync per-member filter:
 // TYPE_PC and same zone as the sync target.
+//
+// Formula (slice 2999 dual-wire):
+//   isPC && sameZoneAsSyncTarget
+//
+// isPC                 — host-evaluated objtype == TYPE_PC
+// sameZoneAsSyncTarget — host-evaluated member->getZone() == sync->getZone()
+// true  → host continues RefreshSync per-member level apply
+//         (ResolveSyncMemberLevel / StatusEffect power / SetMLevel)
+// false → continue (skip non-PC or different-zone members)
+//
+// Dual-wire of Go party.ShouldApplySyncToMember
+// (internal/party/apply_sync_member.go). Prior pure port: slice 1330.
+// Call site: CParty::RefreshSync (party.cpp) host inject.
+// Edges: isPC × sameZone truth table (4 poles).
+// Coverage: test_party_apply_sync_member_2999 (not in CMake/main).
 inline auto ShouldApplySyncToMember(const bool isPC, const bool sameZoneAsSyncTarget) -> bool
 {
     return isPC && sameZoneAsSyncTarget;

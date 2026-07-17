@@ -17,6 +17,7 @@
 //   - 2958: ShouldRejectDuplicateAddMember (alreadyInList identity)
 //   - 2977: ShouldSendLinkshellMessageIPC (messageNonEmpty identity)
 //   - 2993: ShouldPushStoredLinkshellMessage (messageNonEmpty identity)
+//   - 3001: ShouldBreakInventoryPearl (shell holder OR equipped item)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -25,6 +26,9 @@
 // ShouldSendLinkshellMessageIPC after DB update before IPC send.
 // CLinkshell::PushLinkshellMessage injects !message.empty() into
 // ShouldPushStoredLinkshellMessage after DB load before packet push.
+// CLinkshell::RemoveMemberByName injects requesterRank and
+// (newPItemLinkshell == PItemLinkshell) into ShouldBreakInventoryPearl before
+// ShouldMarkPearlBroken / inventory break.
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
 // (internal/linkshell/reject_null_add_member.go),
 // linkshell.ShouldRejectDuplicateAddMember
@@ -32,7 +36,9 @@
 // linkshell.ShouldSendLinkshellMessageIPC
 // (internal/linkshell/send_message_ipc.go),
 // linkshell.ShouldPushStoredLinkshellMessage
-// (internal/linkshell/push_stored_message.go).
+// (internal/linkshell/push_stored_message.go),
+// linkshell.ShouldBreakInventoryPearl
+// (internal/linkshell/break_inventory_pearl.go).
 
 namespace linkshellhelpers
 {
@@ -201,6 +207,21 @@ inline auto IsLinkshell2Attachment(const bool isLS2Pointer) -> bool
 // --- RemoveMemberByName inventory break policy ---
 
 // ShouldBreakInventoryPearl mirrors requester is shell holder OR item is equipped one.
+//
+// Formula (slice 3001 dual-wire):
+//   requesterRank == LSTYPE_LINKSHELL || isEquippedItem
+//
+// (Go: Rank(requesterRank) == RankLinkshell || isEquippedItem)
+//
+// requesterRank  — host-injected LSTYPE of the remove requester
+// isEquippedItem — host-evaluated newPItemLinkshell == PItemLinkshell
+// true  → host may break this inventory pearl (then ShouldMarkPearlBroken)
+// false → skip this inventory slot for break
+//
+// Dual-wire of Go linkshell.ShouldBreakInventoryPearl.
+// Call site: CLinkshell::RemoveMemberByName host inject
+// (requesterRank, newPItemLinkshell == PItemLinkshell).
+// Prior pure port: slice 1354 (capacity suite RemoveMemberByName break gate).
 inline auto ShouldBreakInventoryPearl(const uint8 requesterRank, const bool isEquippedItem) -> bool
 {
     return requesterRank == LSTYPE_LINKSHELL || isEquippedItem;
