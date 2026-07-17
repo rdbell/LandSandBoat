@@ -907,6 +907,16 @@ set(SOURCES
     test_abyssea_buff_power_2866.cpp
     test_einherjar_empty_timeout_2865.h
     test_einherjar_empty_timeout_2865.cpp
+    test_clamming_bucket_overload_2869.h
+    test_clamming_bucket_overload_2869.cpp
+    test_garrison_fail_by_death_2870.h
+    test_garrison_fail_by_death_2870.cpp
+    test_salvage_claim_transport_2871.h
+    test_salvage_claim_transport_2871.cpp
+    test_monstrosity_instinct_loadout_2872.h
+    test_monstrosity_instinct_loadout_2872.cpp
+    test_dominion_xp_multiplier_2873.h
+    test_dominion_xp_multiplier_2873.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h

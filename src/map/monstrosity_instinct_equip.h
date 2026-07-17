@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/cbasetypes.h"
+#include "monstrosity_capacity.h"
 
 #include <array>
 #include <cstddef>
@@ -59,10 +60,11 @@ constexpr auto HasDuplicateInstincts(const std::array<uint16, InstinctSlotCount>
     return false;
 }
 
-// ShouldRejectInstinctLoadout: duplicates OR totalCost > maxPoints.
+// ShouldRejectInstinctLoadout dual-wires monstrosityhelpers capacity (slice 2872):
+// duplicates OR totalCost > maxPoints. Exact budget equality is accepted.
 constexpr auto ShouldRejectInstinctLoadout(const uint16 totalCost, const uint16 maxPoints, const bool hasDuplicates) -> bool
 {
-    return hasDuplicates || totalCost > maxPoints;
+    return monstrosityhelpers::ShouldRejectInstinctLoadout(totalCost, maxPoints, hasDuplicates);
 }
 
 // IsPurchasableInstinctIndex mirrors instinct >= 768.
