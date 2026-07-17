@@ -3611,6 +3611,16 @@ set(SOURCES
     test_latent_reject_process_3515.cpp
     test_pet_detach_player_master_3516.h
     test_pet_detach_player_master_3516.cpp
+    test_aistate_del_actor_on_attack_3521.h
+    test_aistate_del_actor_on_attack_3521.cpp
+    test_char_set_pending_push_3522.h
+    test_char_set_pending_push_3522.cpp
+    test_fishing_contest_placeholders_3523.h
+    test_fishing_contest_placeholders_3523.cpp
+    test_recast_update_max_charges_3519.h
+    test_recast_update_max_charges_3519.cpp
+    test_zone_high_targid_3520.h
+    test_zone_high_targid_3520.cpp
 )
 
 if(UNIX)

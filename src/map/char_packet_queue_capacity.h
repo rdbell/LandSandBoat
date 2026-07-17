@@ -23,7 +23,9 @@
 //           (packetType == 0x5B && packetEntityID == ownerID)
 //   - 3395: ShouldSetPendingPositionOnPush prior dedicated dual-wire
 //           expand residual 3125 (retained)
-//   - 3446: ShouldSetPendingPositionOnPush dedicated dual-wire
+//   - 3446: ShouldSetPendingPositionOnPush prior dedicated dual-wire
+//           expand residual 3125 (retained)
+//   - 3522: ShouldSetPendingPositionOnPush dedicated dual-wire
 //           (set_pending_position_push.go; expand residual 3125)
 //
 // Production host: CCharEntity::popPacket (char_entity.cpp) injects type /
@@ -52,8 +54,8 @@ inline bool Filtered(const std::uint16_t packetType, const bool filterOthersSynt
 // position: true when the packet is a position update (0x5B) for the owning
 // character.
 //
-// Formula (slice 3446 dedicated dual-wire expand residual 3125; prior dedicated
-// 3395 / pure 2842 — formula unchanged):
+// Formula (slice 3522 dedicated dual-wire expand residual 3125; prior dedicated
+// 3446 / 3395 / pure 2842 — formula unchanged):
 //   packetType == 0x5B && packetEntityID == ownerID
 //
 // packetType     — host-evaluated packet->getType()
@@ -68,12 +70,14 @@ inline bool Filtered(const std::uint16_t packetType, const bool filterOthersSynt
 //
 // Dual-wire of Go charentity.ShouldSetPendingPositionOnPush
 // (internal/charentity/set_pending_position_push.go;
-// residual 2842 / residual dual-wire 3125 / prior dedicated 3395 / dedicated 3446).
+// residual 2842 / residual dual-wire 3125 / prior dedicated 3395 / 3446 /
+// dedicated 3522).
 // Call site: CCharEntity::pushPacket → OnPush after entity-id extract
 // (0x5B → ref 0x10; else 0). Residual dual-wire suite: 3125
-// (test_char_set_pending_push_3125). Prior dedicated dual-wire suite: 3395
-// (test_char_set_pending_push_3395; retained). Dedicated dual-wire suite: 3446
-// (test_char_set_pending_push_3446). Sibling OnPop clear-pending
+// (test_char_set_pending_push_3125). Prior dedicated dual-wire suites: 3395
+// (test_char_set_pending_push_3395; retained), 3446
+// (test_char_set_pending_push_3446; retained). Dedicated dual-wire suite: 3522
+// (test_char_set_pending_push_3522). Sibling OnPop clear-pending
 // (3179 / residual 2943) shares the same scalar comparison but is a different
 // free function (do not thrash clear_pending_pop). Sibling dual-wire left alone:
 // ShouldEraseEntityUpdateOnPop (3340 / residual 3105).

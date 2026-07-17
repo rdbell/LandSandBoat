@@ -1809,6 +1809,11 @@ auto runLatentRejectProcess3515SelfTests() -> bool;
 auto runPetDetachPlayerMaster3516SelfTests() -> bool;
 auto runEinherjarShouldCycleWave3517SelfTests() -> bool;
 auto runCommandRejectEmptyLine3518SelfTests() -> bool;
+auto runAistateDelActorOnAttack3521SelfTests() -> bool;
+auto runCharSetPendingPush3522SelfTests() -> bool;
+auto runFishingContestPlaceholders3523SelfTests() -> bool;
+auto runRecastUpdateMaxCharges3519SelfTests() -> bool;
+auto runZoneHighTargid3520SelfTests() -> bool;
 
 namespace
 {
@@ -3595,6 +3600,11 @@ namespace
         ok = runPetDetachPlayerMaster3516SelfTests() && ok;
         ok = runEinherjarShouldCycleWave3517SelfTests() && ok;
         ok = runCommandRejectEmptyLine3518SelfTests() && ok;
+        ok = runAistateDelActorOnAttack3521SelfTests() && ok;
+        ok = runCharSetPendingPush3522SelfTests() && ok;
+        ok = runFishingContestPlaceholders3523SelfTests() && ok;
+        ok = runRecastUpdateMaxCharges3519SelfTests() && ok;
+        ok = runZoneHighTargid3520SelfTests() && ok;
 
         return ok;
     }
