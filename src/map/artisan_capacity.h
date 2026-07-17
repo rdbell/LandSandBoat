@@ -8,7 +8,8 @@
 //   - 2890: CanExpand residual dual-wire suite (can_expand)
 //   - 3106: CanExpand dedicated dual-wire (can_expand.go)
 //   - 2912: GobbieCanUpgradeFlag (option 2 expand-failure event param)
-//   - 2916: CanClaimScroll (artisan.lua moogleOnFinish option 99 gate)
+//   - 2916: CanClaimScroll residual dual-wire suite (claim_scroll)
+//   - 3132: CanClaimScroll dedicated dual-wire (claim_scroll.go)
 //
 // Dual-wire index:
 //   - 2879: CanBuySack residual dual-wire suite
@@ -16,17 +17,20 @@
 //   - 2890: CanExpand residual dual-wire suite
 //   - 3106: CanExpand = sackSize < gobbieSize && sackSize > 0
 //   - 2912: GobbieCanUpgradeFlag
-//   - 2916: CanClaimScroll
+//   - 2916: CanClaimScroll residual dual-wire suite
+//   - 3132: CanClaimScroll = nextScroll < jstMidnight
 //
 // Lua production host: scripts/globals/artisan.lua moogleOnUpdate /
 // moogleOnFinish:
 // Go dual-wire: artisan.CanBuySack / artisan.BuySackGilCost
 // (internal/artisan/buy_sack.go); artisan.CanExpand
-// (internal/artisan/can_expand.go). Future Lua host injects free functions
-// then delGil / changeContainerSize / setCharVar / updateEvent.
+// (internal/artisan/can_expand.go); artisan.CanClaimScroll
+// (internal/artisan/claim_scroll.go). Future Lua host injects free functions
+// then delGil / changeContainerSize / setCharVar / updateEvent / giveItem.
 //
 // Prior pure port: OmegaXI slice 0948 (internal/artisan).
-// Residual dual-wire suite: 2879 / 2890. Dedicated dual-wire suite: 3090 / 3106.
+// Residual dual-wire suite: 2879 / 2890 / 2916.
+// Dedicated dual-wire suite: 3090 / 3106 / 3132.
 //
 //   if option == 1 then -- Buy sack (2879 residual / 3090 dedicated)
 //       if player:getGil() >= 9980
@@ -46,7 +50,7 @@
 //           player:updateEvent(0, 0, 0, 0, 0, 0, gobbieCanUpgrade, 0)
 //       end
 //   end
-//   -- moogleOnFinish option 99 Get Scroll:
+//   -- moogleOnFinish option 99 Get Scroll (2916 residual / 3132 dedicated):
 //   if option == 99 then
 //       if player:getCharVar('[artisan]nextScroll') < JstMidnight() then
 //           if npcUtil.giveItem(player, xi.item.SCROLL_OF_INSTANT_WARP) then
@@ -134,13 +138,23 @@ inline auto GobbieCanUpgradeFlag(const int32 gobbieSize) -> int32
     return gobbieSize < GobbieUpgradeCap ? 1 : 0;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 2916 / 3132 — moogleOnFinish option 99 Get Scroll gate
+// ---------------------------------------------------------------------------
+
 // CanClaimScroll is the pure gate for option 99 (Get Scroll):
 //
-//   nextScroll < jstMidnight
+// Formula (slice 3132 dedicated dual-wire; residual expand 2916 / pure 0948 —
+// formula unchanged):
+//   CanClaimScroll(nextScroll, jstMidnight) = nextScroll < jstMidnight
 //
 // nextScroll is getCharVar('[artisan]nextScroll'); jstMidnight is JstMidnight().
 // Future Lua host injects both timestamps into this helper instead of
-// re-inlining the comparison. giveItem(SCROLL_OF_INSTANT_WARP) and
+// re-inlining the comparison. Dual-wire of Go artisan.CanClaimScroll
+// (claim_scroll.go). Call site: future Lua moogleOnFinish option 99 inject.
+// Prior pure port: slice 0948. Residual dual-wire suite: 2916 /
+// test_artisan_claim_scroll_2916. Dedicated dual-wire suite is
+// test_artisan_can_claim_scroll_3132. giveItem(SCROLL_OF_INSTANT_WARP) and
 // setCharVar('[artisan]nextScroll', JstMidnight()) remain host-owned.
 inline auto CanClaimScroll(const int64 nextScroll, const int64 jstMidnight) -> bool
 {

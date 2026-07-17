@@ -472,7 +472,8 @@ inline auto ShouldAssignParrySkill(const std::int16_t canParryMod) -> bool
 
 // ShouldAssignGuardSkill: residual pure half for CalculateMobStats guard
 // skill assignment (slice 1623). Dual-wire free function under
-// mobutilshelpers lives in mobutils_capacity.h (slice 3022). Formula:
+// mobutilshelpers lives in mobutils_capacity.h (slice 3131; prior dual-wire
+// 3022). Formula:
 //
 //   (mJob == 2 /*JOB_MNK*/ || mJob == 18 /*JOB_PUP*/) && cannotGuardMod == 0
 //
@@ -488,7 +489,7 @@ inline auto ShouldAssignGuardSkill(const std::uint8_t mJob, const std::int16_t c
 }
 
 // GuardSkillRank is fixed rank C (3) for MNK/PUP guard skill assignment.
-// Dual-wire: mobutilshelpers::GuardSkillRank (mobutils_capacity.h, 3022);
+// Dual-wire: mobutilshelpers::GuardSkillRank (mobutils_capacity.h, 3131);
 // Go: mobutils.GuardSkillRank.
 constexpr std::uint8_t GuardSkillRank = 3;
 

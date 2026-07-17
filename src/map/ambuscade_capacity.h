@@ -7,24 +7,26 @@
 //   - 2888: instance onEventFinish exit-warp CSID residual dual-wire suite
 //   - 2895: Gorpa-Masorpa onTrade eminence-completed(499) gate
 //   - 2901: Ambuscade Tome onEventFinish enter CSID (378) gate
-//   - 2906: Gorpa-Masorpa onEventFinish intro CSID (385) → RoE 499 gate
+//   - 2906: Gorpa-Masorpa onEventFinish intro CSID (385) → RoE 499 residual
 //   - 2910: Ambuscade Tome onEventFinish Intense VE createInstance gate
 //   - 2917: onInstanceComplete / onInstanceFailure always-start exit CS residual
 //   - 3062: ShouldCompleteInstance dedicated dual-wire (complete_instance.go)
 //   - 3088: ShouldWarpOnExitEvent dedicated dual-wire (warp_exit.go)
 //   - 3109: ShouldStartExitEvent dedicated dual-wire (start_exit.go)
+//   - 3129: ShouldTriggerRoEIntro dedicated dual-wire (roe_intro.go)
 //
 // Dual-wire index:
 //   - 2875: ShouldCompleteInstance residual dual-wire suite
 //   - 2888: ShouldWarpOnExitEvent residual dual-wire suite
 //   - 2895: ShouldProcessGorpaTrade (eminenceCompleted 499)
 //   - 2901: ShouldHandleTomeEnterFinish (csid 378)
-//   - 2906: ShouldTriggerRoEIntro (csid 385 → RoE 499)
+//   - 2906: ShouldTriggerRoEIntro residual dual-wire suite
 //   - 2910: ShouldCreateIntenseVEInstance (csid 374 + option 5)
 //   - 2917: ShouldStartExitEvent residual dual-wire suite
 //   - 3062: ShouldCompleteInstance (!anyMobAlive on onInstanceTimeUpdate)
 //   - 3088: ShouldWarpOnExitEvent (csid == EventCSIDExit / 10001)
 //   - 3109: ShouldStartExitEvent (always true / startEvent 10001)
+//   - 3129: ShouldTriggerRoEIntro (csid == EventCSIDIntro / 385 → RoE 499)
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
@@ -140,7 +142,7 @@ inline auto ShouldHandleTomeEnterFinish(const int32 csid) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2906 — Gorpa-Masorpa onEventFinish intro RoE CSID gate
+// Slice 2906 / 3129 — Gorpa-Masorpa onEventFinish intro RoE CSID gate
 // ---------------------------------------------------------------------------
 
 // EventCSIDIntro is the Gorpa-Masorpa intro cutscene CSID
@@ -150,9 +152,22 @@ inline constexpr int32 EventCSIDIntro = 385;
 
 // ShouldTriggerRoEIntro mirrors ambuscade.lua onEventFinishGorpaMasorpa:
 //   if csid == 385 then xi.roe.onRecordTrigger(player, 499) end
-// csid is the host-injected event CSID. Host still calls
+//
+// Formula (slice 3129 dual-wire; residual expand 2906):
+//   ShouldTriggerRoEIntro(csid) = csid == EventCSIDIntro  // 385
+//
+// csid — host-injected event CSID from onEventFinishGorpaMasorpa
+// true  → host calls roe.onRecordTrigger(player, 499)
+// false → no RoE intro trigger
+//
+// Dual-wire of Go ambuscade.ShouldTriggerRoEIntro.
+// Call site: future Lua onEventFinishGorpaMasorpa inject.
+// Prior pure port: slice 1005. Residual dual-wire suite: 2906 /
+// test_ambuscade_roe_intro_2906. Dedicated dual-wire suite is
+// test_ambuscade_roe_intro_3129. Host still calls
 // roe.onRecordTrigger(player, RoERecordSteppingIntoAnAmbuscade) after a
-// true gate.
+// true gate. EventCSIDIntro is also the intro startEvent CSID on Gorpa
+// trigger; this gate is the finish-side half only.
 inline auto ShouldTriggerRoEIntro(const int32 csid) -> bool
 {
     return csid == EventCSIDIntro;

@@ -5,7 +5,8 @@
 // Pure Salvage helpers shared by dual-wire slices:
 //   - 2871: CanClaimTransport / TransportUserBusy residual dual-wire suite
 //   - 3085: CanClaimTransport dedicated dual-wire (claim_transport.go)
-//   - 2892: CanOpenDoor (onDoorOpen CLOSE_DOOR + unSealed gate)
+//   - 2892: CanOpenDoor residual dual-wire suite (onDoorOpen CLOSE_DOOR + unSealed)
+//   - 3133: CanOpenDoor dedicated dual-wire (open_door.go)
 //   - 2894: CanOpenBossDoor (openBossDoor CLOSE_DOOR gate; no unSealed)
 //   - 2898: ShouldResetTempBox (resetTempBoxes status == NORMAL gate)
 //   - 2904: ShouldSpawnOnTempChestCasket (spawnTempChest status == DISAPPEAR)
@@ -13,18 +14,21 @@
 // Dual-wire index:
 //   - 2871: CanClaimTransport residual dual-wire suite
 //   - 3085: CanClaimTransport = !TransportUserBusy(transportUserID)
-//   - 2892: CanOpenDoor
+//   - 2892: CanOpenDoor residual dual-wire suite
+//   - 3133: CanOpenDoor = animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue
 //   - 2894: CanOpenBossDoor
 //   - 2898: ShouldResetTempBox
 //   - 2904: ShouldSpawnOnTempChestCasket
 //
 // Lua production host: scripts/globals/salvage.lua
 // Go dual-wire: salvage.CanClaimTransport / salvage.TransportUserBusy
-// (internal/salvage/claim_transport.go). Future Lua host injects
-// CanClaimTransport then claim writeback / timer / deSpawn / release.
+// (internal/salvage/claim_transport.go); salvage.CanOpenDoor
+// (internal/salvage/open_door.go). Future Lua host injects free functions
+// then claim/open writeback.
 //
-// Prior pure ports: OmegaXI slices 0977 (TransportUserBusy), 1083
-// (CanClaimTransport). Residual dual-wire suite: 2871.
+// Prior pure ports: OmegaXI slices 0977 (TransportUserBusy / CanOpenDoor),
+// 1083 (CanClaimTransport / DoorUnsealedValue). Residual dual-wire suites:
+// 2871 (claim), 2892 (open door). Dedicated dual-wire: 3085, 3133.
 //
 // onTransportUpdate (2871 residual / 3085 dedicated):
 //   if instance:getLocalVar('transportUser') == 0 then
@@ -33,7 +37,7 @@
 //     return
 //   end
 //
-// onDoorOpen (2892):
+// onDoorOpen (2892 residual / 3133 dedicated):
 //   if
 //       npc:getAnimation() == xi.animation.CLOSE_DOOR and
 //       npc:getLocalVar('unSealed') == 1
@@ -99,7 +103,7 @@ inline auto CanClaimTransport(const uint32 transportUserID) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// 2892 — onDoorOpen CLOSE_DOOR + unSealed gate
+// 2892 residual / 3133 dedicated — onDoorOpen CLOSE_DOOR + unSealed gate
 // ---------------------------------------------------------------------------
 
 // Door animation / seal pins (xi.animation / sealDoors / unsealDoors):
@@ -114,13 +118,20 @@ inline constexpr int32 kDoorUnsealedValue = 1;
 
 // CanOpenDoor is the pure free-function form of the onDoorOpen gate:
 //
-//   animation == CLOSE_DOOR && unSealed == 1
-//   ≡ animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue
+// Formula (slice 3133 dedicated dual-wire; residual expand 2892 / pure 0977 /
+// 1083 — formula unchanged):
+//   CanOpenDoor(animation, unSealed) =
+//     animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue
+//   ≡ animation == CLOSE_DOOR (9) && unSealed == 1
 //
 // Host injects npc:getAnimation() and npc:getLocalVar('unSealed') only.
 // Host still owns setLocalVar('unSealed', 0), optional setStage/setProgress,
 // setAnimation(OPEN_DOOR), and setUntargetable(true).
-// Dual-wire of Go salvage.CanOpenDoor (slice 2892 / residual 0977).
+// Dual-wire of Go salvage.CanOpenDoor (open_door.go).
+// Call site: future Lua onDoorOpen inject.
+// Prior pure port: slice 0977. Residual dual-wire suite: 2892 /
+// test_salvage_open_door_2892. Dedicated dual-wire suite is
+// test_salvage_can_open_door_3133.
 inline auto CanOpenDoor(const uint8 animation, const int32 unSealed) -> bool
 {
     return animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue;

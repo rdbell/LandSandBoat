@@ -1419,6 +1419,11 @@ auto runCharSetPendingPush3125SelfTests() -> bool;
 auto runLinkshellReturnCached3126SelfTests() -> bool;
 auto runTreasureFlushPool3127SelfTests() -> bool;
 auto runNyzulSpawnCasket3128SelfTests() -> bool;
+auto runAmbuscadeRoEIntro3129SelfTests() -> bool;
+auto runUnityReturnCached3130SelfTests() -> bool;
+auto runMobutilsAssignGuard3131SelfTests() -> bool;
+auto runArtisanCanClaimScroll3132SelfTests() -> bool;
+auto runSalvageCanOpenDoor3133SelfTests() -> bool;
 
 namespace
 {
@@ -2815,6 +2820,11 @@ namespace
         ok = runLinkshellReturnCached3126SelfTests() && ok;
         ok = runTreasureFlushPool3127SelfTests() && ok;
         ok = runNyzulSpawnCasket3128SelfTests() && ok;
+        ok = runAmbuscadeRoEIntro3129SelfTests() && ok;
+        ok = runUnityReturnCached3130SelfTests() && ok;
+        ok = runMobutilsAssignGuard3131SelfTests() && ok;
+        ok = runArtisanCanClaimScroll3132SelfTests() && ok;
+        ok = runSalvageCanOpenDoor3133SelfTests() && ok;
 
         return ok;
     }

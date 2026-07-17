@@ -2831,6 +2831,16 @@ set(SOURCES
     test_treasure_flush_pool_3127.cpp
     test_nyzul_spawn_casket_3128.h
     test_nyzul_spawn_casket_3128.cpp
+    test_ambuscade_roe_intro_3129.h
+    test_ambuscade_roe_intro_3129.cpp
+    test_unity_return_cached_3130.h
+    test_unity_return_cached_3130.cpp
+    test_mobutils_assign_guard_3131.h
+    test_mobutils_assign_guard_3131.cpp
+    test_artisan_can_claim_scroll_3132.h
+    test_artisan_can_claim_scroll_3132.cpp
+    test_salvage_can_open_door_3133.h
+    test_salvage_can_open_door_3133.cpp
 )
 
 if(UNIX)

@@ -15,6 +15,7 @@
 //   - 3075: ShouldRejectNullOnlineMember (charNull identity null-PChar gate)
 //   - 3096: ShouldAddMemberAfterOnlineLookup (unityLoaded identity post-lookup gate)
 //   - 3116: ShouldEraseUnityChatAfterDelOnline (!delMemberRemaining roster-empty erase)
+//   - 3130: ShouldReturnCachedUnityChat (foundInList identity)
 //
 // Production host: CUnityChat::PushPacket (unitychat.cpp) injects
 // member->id == senderID / STATUS_TYPE::DISAPPEAR / jailutils::InPrison(member)
@@ -39,6 +40,11 @@
 // ShouldEraseUnityChatAfterDelOnline; on true UnityChatList.erase(leader).
 // Go dual-wire: unitychat.ShouldEraseUnityChatAfterDelOnline
 // (internal/unitychat/erase_after_del_online.go).
+// Production host: unitychat::GetUnityChat injects
+// UnityChatList.find(leader) != end into ShouldReturnCachedUnityChat; on true
+// returns UnityChatList.find(leader)->second.get(); on false returns nullptr.
+// Go dual-wire: unitychat.ShouldReturnCachedUnityChat
+// (internal/unitychat/return_cached_unitychat.go).
 
 namespace unitychathelpers
 {
@@ -184,6 +190,25 @@ inline auto ShouldEraseUnityChatAfterDelOnline(const bool delMemberRemaining) ->
 }
 
 // ShouldReturnCachedUnityChat mirrors GetUnityChat find hit.
+//
+// Formula (slice 3130 dual-wire):
+//   foundInList
+//
+// foundInList — host: UnityChatList.find(leader) != end
+// true  → host returns UnityChatList.find(leader)->second.get()
+// false → host returns nullptr (not loaded)
+//
+// Dual-wire of Go unitychat.ShouldReturnCachedUnityChat.
+// Call site: unitychat::GetUnityChat — host injects
+// UnityChatList.find(leader) != UnityChatList.end(); on true returns
+// cached CUnityChat*; on false returns nullptr. Prior pure port: slice 1356
+// (unitychat capacity residual). Residual pins remain in
+// test_unitychat_capacity_1356; dedicated dual-wire suite is
+// test_unity_return_cached_3130. Sibling dual-wires (leave alone):
+// ShouldLoadUnityChatOnOnlineAdd (3050), ShouldRejectNullOnlineMember (3075),
+// ShouldAddMemberAfterOnlineLookup (3096),
+// ShouldEraseUnityChatAfterDelOnline (3116). Residual siblings: always-false
+// return, null warning string, exception format, unload (still 1356).
 inline auto ShouldReturnCachedUnityChat(const bool foundInList) -> bool
 {
     return foundInList;
