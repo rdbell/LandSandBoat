@@ -871,6 +871,16 @@ set(SOURCES
     test_status_eleven_roll_2833.cpp
     test_garden_result_key_2838.h
     test_garden_result_key_2838.cpp
+    test_login_zone_cap_2841.h
+    test_login_zone_cap_2841.cpp
+    test_mount_resolve_2839.h
+    test_mount_resolve_2839.cpp
+    test_char_packet_on_push_2842.h
+    test_char_packet_on_push_2842.cpp
+    test_party_invite_alliance_join_2843.h
+    test_party_invite_alliance_join_2843.cpp
+    test_char_packet_filtered_2840.h
+    test_char_packet_filtered_2840.cpp
     test_jail_in_prison_2837.h
     test_jail_in_prison_2837.cpp
     test_blacklist_chunk_flags_2834.h

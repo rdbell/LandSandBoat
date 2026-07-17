@@ -21,6 +21,8 @@
 
 #include "mountutils.h"
 
+#include "utils/mount_capacity.h"
+
 #include "entities/base_entity.h"
 #include "entities/char_entity.h"
 #include "status_effect.h"
@@ -31,23 +33,14 @@ namespace mountutils
 
 auto resolveState(const CStatusEffect* effect) -> MountStateResolution
 {
+    // Pure policy dual-wire: mountutilshelpers::PlanResolveMountState (slice 2839).
     if (!effect)
     {
-        return MountStateResolution{
-            .mounted   = false,
-            .mount     = 0,
-            .subPower  = 0,
-            .animation = MountAnimation::None,
-        };
+        return mountutilshelpers::PlanResolveMountState(true, 0, 0, MOUNT_CHOCOBO, MOUNT_NOBLE_CHOCOBO);
     }
 
     const auto mount = effect->GetPower();
-    return MountStateResolution{
-        .mounted  = true,
-        .mount    = mount,
-        .subPower = effect->GetSubPower(),
-        .animation = mount == MOUNT_CHOCOBO || mount == MOUNT_NOBLE_CHOCOBO ? MountAnimation::Chocobo : MountAnimation::Mount,
-    };
+    return mountutilshelpers::PlanResolveMountState(false, mount, effect->GetSubPower(), MOUNT_CHOCOBO, MOUNT_NOBLE_CHOCOBO);
 }
 
 // ChocoboIndex is a field (0-7) used in various packets.

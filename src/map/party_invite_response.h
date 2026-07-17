@@ -17,11 +17,16 @@ struct PartyInviteResponseInviterState
     bool hasAlliance{};
 };
 
+// MaxAllianceParties is the exclusive upper bound on distinct party rows that
+// still leave room for another party to join an existing alliance (LSB < 3).
+inline constexpr std::size_t MaxAllianceParties = 3;
+
 // CanJoinExistingAlliance reports whether an inviter's alliance still has room
-// for another party. LSB requires a positive party count strictly less than 3.
+// for another party. LSB requires a positive party count strictly less than
+// MaxAllianceParties.
 inline auto CanJoinExistingAlliance(const std::size_t alliancePartyCount) -> bool
 {
-    return alliancePartyCount > 0 && alliancePartyCount < 3;
+    return alliancePartyCount > 0 && alliancePartyCount < MaxAllianceParties;
 }
 
 // bothLeadersCount returns the accounts_parties row count for the dual-leader

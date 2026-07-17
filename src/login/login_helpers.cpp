@@ -22,6 +22,7 @@
 #include "login_helpers.h"
 
 #include "character_create.h"
+#include "login_helpers_capacity.h"
 
 namespace loginHelpers
 {
@@ -116,13 +117,13 @@ std::size_t authenticated_session_count()
 auto isZoneAtPlayerCap(uint16 zoneId, bool isGM) -> bool
 {
     const auto cap = settings::get<uint16>("map.ZONE_PLAYER_CAP");
+    // Host early-out before SQL when cap is disabled (pure also returns false).
     if (cap == 0)
     {
         return false;
     }
 
-    const auto reserved  = settings::get<uint16>("map.ZONE_PLAYER_GM_RESERVED");
-    const auto threshold = isGM ? cap : static_cast<uint16>(cap > reserved ? cap - reserved : 0);
+    const auto reserved = settings::get<uint16>("map.ZONE_PLAYER_GM_RESERVED");
 
     const auto rset = db::preparedStmt(
         "SELECT z.zonetype, "
@@ -135,13 +136,10 @@ auto isZoneAtPlayerCap(uint16 zoneId, bool isGM) -> bool
 
     FOR_DB_SINGLE_RESULT(rset)
     {
-        constexpr uint16 zoneTypeInstanced = 0x100;
-        if (rset->get<uint16>("zonetype") & zoneTypeInstanced)
-        {
-            return false;
-        }
-
-        return rset->get<uint32>("pop") >= threshold;
+        // Pure composition dual-wire (slice 2841) after SQL injects zonetype+pop.
+        const auto zoneType = rset->get<uint16>("zonetype");
+        const auto pop      = rset->get<uint32>("pop");
+        return IsZoneAtPlayerCap(cap, reserved, isGM, pop, IsZoneTypeInstanced(zoneType));
     }
 
     return false;
