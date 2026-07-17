@@ -11,8 +11,10 @@
 //   - 2840: Filtered (0x70 synthesis filter)
 //   - 2842: ShouldSetPendingPositionOnPush / OnPush
 //   - 2845: ShouldEraseEntityUpdateOnPop + ShouldClearPendingPositionOnPop / OnPop
-//   - 2943: ShouldClearPendingPositionOnPop residual dual-wire
+//   - 2943: ShouldClearPendingPositionOnPop residual dual-wire suite
 //           (packetType == 0x5B && packetEntityID == ownerID)
+//   - 3179: ShouldClearPendingPositionOnPop dedicated dual-wire
+//           (clear_pending_pop.go; expand residual 2943)
 //   - 3105: ShouldEraseEntityUpdateOnPop residual dual-wire
 //           (packetType == 0x0D || packetType == 0x0E)
 //   - 3125: ShouldSetPendingPositionOnPush residual dual-wire
@@ -106,7 +108,8 @@ inline bool ShouldEraseEntityUpdateOnPop(const std::uint16_t packetType)
 // ShouldClearPendingPositionOnPop is the pure gate for OnPop clear-pending:
 // true when the packet is a position update (0x5B) for the owning character.
 //
-// Formula (slice 2943 dual-wire; residual pure port from slice 2845):
+// Formula (slice 3179 dedicated dual-wire; residual expand 2943 / pure 2845 —
+// formula unchanged):
 //   packetType == 0x5B && packetEntityID == ownerID
 //
 // packetType     — host-evaluated packet->getType()
@@ -120,10 +123,15 @@ inline bool ShouldEraseEntityUpdateOnPop(const std::uint16_t packetType)
 //       setPending(false);
 //
 // Dual-wire of Go charentity.ShouldClearPendingPositionOnPop
-// (internal/charentity/clear_pending_pop.go).
+// (internal/charentity/clear_pending_pop.go;
+// residual 2845 / residual dual-wire 2943 / dedicated dual-wire 3179).
 // Call site: CCharEntity::popPacket → OnPop after entity-id extract.
+// Residual dual-wire suite: 2943 (test_char_clear_pending_pop_2943).
+// Dedicated dual-wire suite: 3179 (test_charentity_clear_pending_pop_3179).
 // Mutual exclusion with ShouldEraseEntityUpdateOnPop: erase types never also
 // clear pending (if / else if).
+// Sibling dual-wires left alone: ShouldSetPendingPositionOnPush (3125),
+// ShouldEraseEntityUpdateOnPop (3105).
 inline bool ShouldClearPendingPositionOnPop(const std::uint16_t packetType,
                                             const std::uint32_t packetEntityID,
                                             const std::uint32_t ownerID)

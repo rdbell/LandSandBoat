@@ -1469,6 +1469,11 @@ auto runTradecontainerSetConfirmed3175SelfTests() -> bool;
 auto runUniversalcontainerAllowSetItem3176SelfTests() -> bool;
 auto runZoneApplyLevelRestriction3177SelfTests() -> bool;
 auto runAistateDelActorOnAttack3178SelfTests() -> bool;
+auto runCharentityClearPendingPop3179SelfTests() -> bool;
+auto runClammingBucketOverloaded3180SelfTests() -> bool;
+auto runEinherjarShouldCycleWave3181SelfTests() -> bool;
+auto runEnmityRejectNonMobHolder3182SelfTests() -> bool;
+auto runSpellReturnZeroNoMPCost3183SelfTests() -> bool;
 
 namespace
 {
@@ -2915,6 +2920,11 @@ namespace
         ok = runUniversalcontainerAllowSetItem3176SelfTests() && ok;
         ok = runZoneApplyLevelRestriction3177SelfTests() && ok;
         ok = runAistateDelActorOnAttack3178SelfTests() && ok;
+        ok = runCharentityClearPendingPop3179SelfTests() && ok;
+        ok = runClammingBucketOverloaded3180SelfTests() && ok;
+        ok = runEinherjarShouldCycleWave3181SelfTests() && ok;
+        ok = runEnmityRejectNonMobHolder3182SelfTests() && ok;
+        ok = runSpellReturnZeroNoMPCost3183SelfTests() && ok;
 
         return ok;
     }

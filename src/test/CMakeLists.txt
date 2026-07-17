@@ -2931,6 +2931,16 @@ set(SOURCES
     test_zone_apply_level_restriction_3177.cpp
     test_aistate_del_actor_on_attack_3178.h
     test_aistate_del_actor_on_attack_3178.cpp
+    test_charentity_clear_pending_pop_3179.h
+    test_charentity_clear_pending_pop_3179.cpp
+    test_clamming_bucket_overloaded_3180.h
+    test_clamming_bucket_overloaded_3180.cpp
+    test_einherjar_should_cycle_wave_3181.h
+    test_einherjar_should_cycle_wave_3181.cpp
+    test_enmity_reject_non_mob_holder_3182.h
+    test_enmity_reject_non_mob_holder_3182.cpp
+    test_spell_return_zero_no_mp_cost_3183.h
+    test_spell_return_zero_no_mp_cost_3183.cpp
 )
 
 if(UNIX)

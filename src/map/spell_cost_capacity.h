@@ -9,7 +9,9 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 0813 / 1546 / 2104: CalculateSpellCost + zero gates residual suite
 //   - 2964: ShouldReturnZeroNullSpell (spellNull identity)
-//   - 2969: ShouldReturnZeroNoMPCost (!hasMPCost)
+//   - 2969: ShouldReturnZeroNoMPCost residual dual-wire suite (!hasMPCost)
+//   - 3183: ShouldReturnZeroNoMPCost dedicated dual-wire
+//           (no_mp_cost.go; expand residual 2969 / pure 2104)
 //
 // Production host: battleutils::CalculateSpellCost injects
 // PSpell == nullptr into ShouldReturnZeroNullSpell before hasMPCost / cost,
@@ -48,28 +50,40 @@ constexpr std::int16_t SpellCostMax = 9999;
 // Host inject (battleutils::CalculateSpellCost):
 //   if (ShouldReturnZeroNullSpell(PSpell == nullptr)) return 0;
 //
-// Sibling dual-wire: ShouldReturnZeroNoMPCost (slice 2969).
+// Sibling dual-wire: ShouldReturnZeroNoMPCost (3183 dedicated; residual 2969).
+// Sibling residual only (not re-expanded under 3183): CanUseSpellWith (3159).
 constexpr auto ShouldReturnZeroNullSpell(const bool spellNull) -> bool
 {
     return spellNull;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3183 — CalculateSpellCost no-MP-cost gate
+// (dedicated expand residual 2969 / pure 2104)
+// ---------------------------------------------------------------------------
+
 // ShouldReturnZeroNoMPCost mirrors CalculateSpellCost's hasMPCost short-circuit
 // after the null-spell gate. Host returns 0 (ninja tools / bard songs / trusts)
 // before stratagem / mod injects and the pure cost body when true.
 //
-// Formula (slice 2969 dual-wire):
+// Formula (slice 3183 dedicated dual-wire; residual expand 2969 / pure 2104 —
+// formula unchanged):
 //   !hasMPCost
 //
 // hasMPCost — host-evaluated PSpell->hasMPCost() (only after non-null)
 // true  → has MP cost; gate passes; host continues to pure cost body
 // false → return 0 (no-MP-cost short-circuit)
 //
-// Dual-wire of Go spell.ShouldReturnZeroNoMPCost.
+// Dual-wire of Go spell.ShouldReturnZeroNoMPCost
+// (residual 2104 / residual dual-wire 2969 / dedicated dual-wire 3183).
 // Host inject (battleutils::CalculateSpellCost):
 //   if (ShouldReturnZeroNoMPCost(PSpell->hasMPCost())) return 0;
 //
 // Evaluated only when ShouldReturnZeroNullSpell passes (2964).
+// Residual dual-wire suite: 2969 (test_spell_no_mp_cost_2969).
+// Dedicated dual-wire suite: 3183 (test_spell_return_zero_no_mp_cost_3183).
+// Sibling residual only (not re-expanded under 3183):
+// ShouldReturnZeroNullSpell (2964 dual-wire), CanUseSpellWith (3159).
 constexpr auto ShouldReturnZeroNoMPCost(const bool hasMPCost) -> bool
 {
     return !hasMPCost;
