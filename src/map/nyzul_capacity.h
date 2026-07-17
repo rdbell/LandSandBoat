@@ -5,10 +5,13 @@
 // Pure Nyzul Isle helpers shared by dual-wire slices:
 //   - 2874: free-floor selection gate (pickSetPoint)
 //   - 2891: gear-objective chance gate (pickSetPoint)
+//   - 2900: floor-100 vigil weapon drop gate (vigilWeaponDrop)
+//   - 2902: Rune of Transfer first-claimer gate (onEventUpdate)
 //
-// Production host is Lua under
+// Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
-// local pickSetPoint:
+// local pickSetPoint, scripts/globals/nyzul.lua xi.nyzul.vigilWeaponDrop,
+// and scripts/zones/Nyzul_Isle/npcs/Rune_of_Transfer.lua onEventUpdate:
 //
 //   elseif math.random(1, 30) == 1 and instance:getLocalVar('freeFloor') == 0 then
 //     instance:setStage(xi.nyzul.objective.FREE_FLOOR)
@@ -21,13 +24,29 @@
 //                   xi.nyzul.gearObjective.DO_NOT_DESTROY))
 //   end
 //
+//   if instance:getLocalVar('Nyzul_Current_Floor') == 100 then
+//     -- disk-holder job weapon + random weapon
+//   elseif math.random(1, 100) <= 20 and ENABLE_VIGIL_DROPS then
+//     -- single random NM vigil weapon
+//   end
+//
+//   if
+//       instance and
+//       csid == 201 and
+//       option ~= utils.EVENT_CANCELLED_OPTION and
+//       instance:getLocalVar('runeHandler') == 0
+//   then
+//     instance:setLocalVar('runeHandler', player:getID())
+//     -- release other in-event chars; clear Register localVars
+//   end
+//
 // Capacity is for future Lua/C++ inject so hosts dual-wire pure free
-// functions instead of re-inlining roll/localVar comparisons. Helpers
+// functions instead of re-inlining roll/localVar/floor comparisons. Helpers
 // take host-injected scalars only (no instance / entity / NPC pointers).
-// Side effects (setStage FREE_FLOOR, freeFloor / gearObjective localVar,
-// Rune of Transfer timer / setProgress, gear objective type pick) remain
-// host-owned.
-// Prior pure port: OmegaXI slice 1088 (internal/nyzul floorflow).
+// Side effects (setStage FREE_FLOOR, freeFloor / gearObjective / runeHandler
+// localVar, Rune of Transfer timer / setProgress, gear objective type pick,
+// treasure grants, release of other in-event chars) remain host-owned.
+// Prior pure port: OmegaXI slice 1088 (internal/nyzul floorflow / drops).
 
 namespace nyzulhelpers
 {
@@ -68,6 +87,39 @@ inline constexpr int32 GearObjectiveRollThreshold = 5;
 inline auto ShouldRollGearObjective(const int32 roll1to30) -> bool
 {
     return roll1to30 >= 1 && roll1to30 <= GearObjectiveRollThreshold;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2902 — Rune of Transfer first-claimer gate (onEventUpdate)
+// ---------------------------------------------------------------------------
+
+// CanClaimRuneHandler mirrors Rune_of_Transfer.lua onEventUpdate first claim:
+//   instance:getLocalVar('runeHandler') == 0
+// runeHandler is the host-injected localVar (0 = no claimer yet). Host still
+// owns csid/option gates, setLocalVar writeback to player ID, and release of
+// other in-event chars. Sibling IsRuneHandler (event finish identity) is not
+// dual-wired here.
+inline auto CanClaimRuneHandler(const int32 runeHandler) -> bool
+{
+    return runeHandler == 0;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2900 — vigilWeaponDrop floor-100 guaranteed-drop gate
+// ---------------------------------------------------------------------------
+
+// Floor100 is the floor pin for guaranteed vigil weapon drops
+// (Nyzul_Current_Floor == 100).
+inline constexpr int32 Floor100 = 100;
+
+// ShouldDropFloor100VigilWeapons mirrors vigilWeaponDrop floor-100 gate:
+//   instance:getLocalVar('Nyzul_Current_Floor') == 100
+// currentFloor is the host-injected Nyzul_Current_Floor localVar. Host still
+// owns disk-holder / random treasure grants on true and the non-100 NM 20%
+// roll path on false.
+inline auto ShouldDropFloor100VigilWeapons(const int32 currentFloor) -> bool
+{
+    return currentFloor == Floor100;
 }
 
 } // namespace nyzulhelpers

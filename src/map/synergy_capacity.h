@@ -5,6 +5,7 @@
 // Pure Synergy furnace helpers shared by dual-wire slices:
 //   - 2877: CanClaimFurnace (synergyFurnaceOnTrigger AVAILABLE gate)
 //   - 2896: CanTradeIntoFurnace (synergyFurnaceOnTrade CLAIMED+owner gate)
+//   - 2899: CanOperateFurnace (synergyFurnaceOnTrigger claimedByYou gate)
 //
 // Production hosts are Lua under scripts/globals/synergy.lua
 // (furnaceStates + synergyFurnaceOnTrigger / synergyFurnaceOnTrade).
@@ -60,6 +61,22 @@ inline auto IsClaimedBy(const uint32 furnacePlayerID, const uint32 playerID) -> 
 inline auto CanTradeIntoFurnace(const uint8 state, const uint32 furnacePlayerID, const uint32 playerID) -> bool
 {
     return state == FurnaceClaimed && IsClaimedBy(furnacePlayerID, playerID);
+}
+
+// CanOperateFurnace mirrors the pure claimedByYou gate shared by
+// synergyFurnaceOnTrigger CLAIMED / ACTIVE / COMPLETED branches:
+//   local claimedByYou = furnacePlayerID == player:getID()
+//   if not claimedByYou then return end
+// furnacePlayerID is the host-injected npc local-var synergyFurnacePlayerID.
+// Zero furnace player ID is never an owner (via IsClaimedBy).
+// Host still owns state branch dispatch, distance checks, startEvent
+// CSIDs, and retrieve side effects.
+// Matches Go synergy.CanOperateFurnace:
+//   IsClaimedBy(furnacePlayerID, playerID)
+//   // furnacePlayerID != 0 && furnacePlayerID == playerID
+inline auto CanOperateFurnace(const uint32 furnacePlayerID, const uint32 playerID) -> bool
+{
+    return IsClaimedBy(furnacePlayerID, playerID);
 }
 
 } // namespace synergyhelpers

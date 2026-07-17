@@ -6,18 +6,19 @@
 //   - 2875: onInstanceTimeUpdate complete-when-no-mobs-alive gate
 //   - 2888: instance onEventFinish exit-warp CSID gate
 //   - 2895: Gorpa-Masorpa onTrade eminence-completed(499) gate
+//   - 2901: Ambuscade Tome onEventFinish enter CSID (378) gate
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
 // (onInstanceTimeUpdate, onEventFinish) and scripts/globals/ambuscade.lua
-// (onTradeGorpaMasorpa). Capacity is for future Lua/C++ inject so hosts
-// dual-wire pure free functions instead of re-inlining comparisons.
-// Helpers take host-injected scalars only (no entity / instance / mob
-// pointers). Side effects (instance:complete, currency/KI writeback,
-// setPos, trade body) remain host-owned.
+// (onTradeGorpaMasorpa, onEventFinishTome). Capacity is for future Lua/C++
+// inject so hosts dual-wire pure free functions instead of re-inlining
+// comparisons. Helpers take host-injected scalars only (no entity /
+// instance / mob pointers). Side effects (instance:complete, currency/KI
+// writeback, setPos, trade body, tome enter body) remain host-owned.
 //
 // Parity: internal/ambuscade complete_instance.go, warp_exit.go,
-// gorpa_trade.go
+// gorpa_trade.go, tome_enter.go
 
 namespace ambuscadehelpers
 {
@@ -67,6 +68,24 @@ inline constexpr int32 RoERecordSteppingIntoAnAmbuscade = 499;
 inline auto ShouldProcessGorpaTrade(const bool eminenceCompleted499) -> bool
 {
     return eminenceCompleted499;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2901 — Ambuscade Tome onEventFinish enter CSID gate
+// ---------------------------------------------------------------------------
+
+// EventCSIDTomeEnter is the Ambuscade Tome enter cutscene CSID
+// (ambuscade.lua onEventFinishTome / commented startEvent path).
+// Parity: Go EventCSIDTomeEnter.
+inline constexpr int32 EventCSIDTomeEnter = 378;
+
+// ShouldHandleTomeEnterFinish mirrors ambuscade.lua onEventFinishTome:
+//   elseif csid == 378 then -- TODO end
+// csid is the host-injected event CSID. Host still owns the (currently
+// empty) enter-finish body after a true gate.
+inline auto ShouldHandleTomeEnterFinish(const int32 csid) -> bool
+{
+    return csid == EventCSIDTomeEnter;
 }
 
 } // namespace ambuscadehelpers

@@ -967,6 +967,16 @@ set(SOURCES
     test_manaclipper_arrival_event_2897.cpp
     test_salvage_reset_temp_box_2898.h
     test_salvage_reset_temp_box_2898.cpp
+    test_synergy_operate_furnace_2899.h
+    test_synergy_operate_furnace_2899.cpp
+    test_nyzul_floor100_vigil_2900.h
+    test_nyzul_floor100_vigil_2900.cpp
+    test_ambuscade_tome_enter_2901.h
+    test_ambuscade_tome_enter_2901.cpp
+    test_nyzul_claim_rune_2902.h
+    test_nyzul_claim_rune_2902.cpp
+    test_voidwalker_should_randomly_2903.h
+    test_voidwalker_should_randomly_2903.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h
