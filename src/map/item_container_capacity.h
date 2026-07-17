@@ -26,8 +26,9 @@
 //   - 3301: CanInsertAtSlot dedicated dual-wire (insert_slot.go; expand residual 2942)
 //   - 3351: ShouldDecrementCountOnRemove dedicated dual-wire (decrement_count_remove.go; expand residual 2989)
 //   - 3374: ShouldIncrementCountOnInsertAt earlier prior dedicated dual-wire (increment_count_insert.go; expand residual 3021)
-//   - 3432: ShouldIncrementCountOnInsertAt prior dedicated dual-wire (increment_count_insert.go; expand residual 3021)
-//   - 3486: ShouldIncrementCountOnInsertAt dedicated dual-wire (increment_count_insert.go; expand residual 3021)
+//   - 3432: ShouldIncrementCountOnInsertAt earlier prior dedicated dual-wire (increment_count_insert.go; expand residual 3021)
+//   - 3486: ShouldIncrementCountOnInsertAt prior dedicated dual-wire (increment_count_insert.go; expand residual 3021)
+//   - 3535: ShouldIncrementCountOnInsertAt dedicated dual-wire (increment_count_insert.go; expand residual 3021)
 //
 // Dual-wire index:
 //   - 2942: CanInsertAtSlot residual dual-wire suite
@@ -42,8 +43,9 @@
 //   - 3301: CanInsertAtSlot = slotID <= size
 //   - 3351: ShouldDecrementCountOnRemove = slotOccupied && slotID != 0
 //   - 3374: ShouldIncrementCountOnInsertAt = slotEmpty && slotID != 0 (earlier prior dedicated)
-//   - 3432: ShouldIncrementCountOnInsertAt = slotEmpty && slotID != 0 (prior dedicated)
-//   - 3486: ShouldIncrementCountOnInsertAt = slotEmpty && slotID != 0
+//   - 3432: ShouldIncrementCountOnInsertAt = slotEmpty && slotID != 0 (earlier prior dedicated)
+//   - 3486: ShouldIncrementCountOnInsertAt = slotEmpty && slotID != 0 (prior dedicated)
+//   - 3535: ShouldIncrementCountOnInsertAt = slotEmpty && slotID != 0
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
@@ -58,9 +60,9 @@
 // Go dual-wire: itemcontainer.ShouldIncrementCountOnInsertAt
 // (internal/itemcontainer/increment_count_insert.go).
 // Residual dual-wire suite: 3021 (test_item_increment_count_insert_3021).
-// Prior dedicated dual-wire suites: 3374 / 3432
-// (test_item_increment_count_insert_3374 / _3432).
-// Dedicated dual-wire suite: 3486 (test_item_increment_count_insert_3486).
+// Prior dedicated dual-wire suites: 3374 / 3432 / 3486
+// (test_item_increment_count_insert_3374 / _3432 / _3486).
+// Dedicated dual-wire suite: 3535 (test_item_increment_count_insert_3535).
 // Production host: CItemContainer::RemoveItem injects SlotID and m_size into
 // CanRemoveSlot. Go dual-wire: itemcontainer.CanRemoveSlot
 // (internal/itemcontainer/remove_slot.go).
@@ -124,15 +126,15 @@ inline auto CanSetSize(const std::uint8_t newSize, const std::uint8_t maxSize, c
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3486 — InsertItem count bump (dedicated expand residual 3021;
-// prior dedicated 3432 / 3374)
+// Slice 3535 — InsertItem count bump (dedicated expand residual 3021;
+// prior dedicated 3486 / 3432 / 3374)
 // ---------------------------------------------------------------------------
 
 // ShouldIncrementCountOnInsertAt mirrors InsertItem(PItem, SlotID) count bump:
 // only empty nonzero slots contribute to m_count.
 //
-// Formula (slice 3486 dedicated dual-wire expand residual 3021; prior dedicated
-// 3432 / 3374 / pure 2802 — formula unchanged):
+// Formula (slice 3535 dedicated dual-wire expand residual 3021; prior dedicated
+// 3486 / 3432 / 3374 / pure 2802 — formula unchanged):
 //   slotEmpty && slotID != 0
 //
 // slotEmpty — host-evaluated emptiness (m_ItemList[SlotID] == nullptr)
@@ -144,9 +146,10 @@ inline auto CanSetSize(const std::uint8_t newSize, const std::uint8_t maxSize, c
 // Call site: CItemContainer::InsertItem(PItem, SlotID) after CanInsertAtSlot admits.
 // Prior pure port: slice 2802. Residual dual-wire suite: 3021 /
 // test_item_increment_count_insert_3021. Prior dedicated dual-wire suites: 3374 /
-// test_item_increment_count_insert_3374 and 3432 /
-// test_item_increment_count_insert_3432. Dedicated dual-wire suite is
-// test_item_increment_count_insert_3486. Sibling dual-wire range gate:
+// test_item_increment_count_insert_3374, 3432 /
+// test_item_increment_count_insert_3432, and 3486 /
+// test_item_increment_count_insert_3486. Dedicated dual-wire suite is
+// test_item_increment_count_insert_3535. Sibling dual-wire range gate:
 // CanInsertAtSlot (slice 3301). Mirror decrement gate:
 // ShouldDecrementCountOnRemove (slice 3351; slotOccupied && slotID != 0) —
 // left residual under this slice. Sibling dual-wire gates: CanSetSize (3164),

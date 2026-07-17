@@ -1824,6 +1824,11 @@ auto runBesiegedAffordSanction3529SelfTests() -> bool;
 auto runMobtypeCanDeaggro3530SelfTests() -> bool;
 auto runTreasureForceCheckFull3533SelfTests() -> bool;
 auto runUniversalClearSlot3532SelfTests() -> bool;
+auto runAmbuscadeStartExit3534SelfTests() -> bool;
+auto runItemIncrementCountInsert3535SelfTests() -> bool;
+auto runPetutilsPetEngage3536SelfTests() -> bool;
+auto runMeritLowerMerit3537SelfTests() -> bool;
+auto runDynamisCanUnlockSJ3538SelfTests() -> bool;
 
 namespace
 {
@@ -3625,6 +3630,11 @@ namespace
         ok = runMobtypeCanDeaggro3530SelfTests() && ok;
         ok = runTreasureForceCheckFull3533SelfTests() && ok;
         ok = runUniversalClearSlot3532SelfTests() && ok;
+        ok = runAmbuscadeStartExit3534SelfTests() && ok;
+        ok = runItemIncrementCountInsert3535SelfTests() && ok;
+        ok = runPetutilsPetEngage3536SelfTests() && ok;
+        ok = runMeritLowerMerit3537SelfTests() && ok;
+        ok = runDynamisCanUnlockSJ3538SelfTests() && ok;
 
         return ok;
     }

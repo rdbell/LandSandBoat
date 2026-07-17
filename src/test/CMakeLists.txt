@@ -3641,6 +3641,16 @@ set(SOURCES
     test_treasure_force_check_full_3533.cpp
     test_universal_clear_slot_3532.h
     test_universal_clear_slot_3532.cpp
+    test_ambuscade_start_exit_3534.h
+    test_ambuscade_start_exit_3534.cpp
+    test_dynamis_can_unlock_sj_3538.h
+    test_dynamis_can_unlock_sj_3538.cpp
+    test_item_increment_count_insert_3535.h
+    test_item_increment_count_insert_3535.cpp
+    test_merit_lower_merit_3537.h
+    test_merit_lower_merit_3537.cpp
+    test_petutils_pet_engage_3536.h
+    test_petutils_pet_engage_3536.cpp
 )
 
 if(UNIX)

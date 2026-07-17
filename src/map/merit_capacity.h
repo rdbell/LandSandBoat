@@ -18,7 +18,8 @@
 //   - 3256: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
 //   - 3373: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
 //   - 3424: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
-//   - 3478: ShouldLowerMerit dedicated dual-wire expand residual 3054
+//   - 3478: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
+//   - 3537: ShouldLowerMerit dedicated dual-wire expand residual 3054
 //
 // Production host: CMeritPoints::RaiseMerit (merit.cpp) injects m_MeritPoints,
 // PMerit->next/count/upgrade, GetMeritCountInSameCategory, and
@@ -65,7 +66,7 @@ namespace meritshelpers
 // Prior pure port: slice 2805 (RaiseMerit admission plan suite). Residual pins
 // remain in test_merit_raise_plan_2805; dedicated dual-wire suite is
 // test_merit_should_raise_merit_3160. Sibling residual: PlanRaiseMerit (2805).
-// Sibling dual-wire: ShouldLowerMerit (3478 expand residual 3054) is independent.
+// Sibling dual-wire: ShouldLowerMerit (3537 expand residual 3054) is independent.
 inline auto ShouldRaiseMerit(
     const uint16 meritPoints,
     const uint16 nextCost,
@@ -109,20 +110,22 @@ inline auto PlanRaiseMerit(
     };
 }
 
-// --- Slice 3478: ShouldLowerMerit dedicated dual-wire expand residual 3054 ---
+// --- Slice 3537: ShouldLowerMerit dedicated dual-wire expand residual 3054 ---
 // Dual-wire index:
 //   - 2810: residual pure port (PlanLowerMerit / ShouldLowerMerit admission suite)
 //   - 3054: ShouldLowerMerit residual dual-wire suite
 //   - 3256: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
 //   - 3373: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
 //   - 3424: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
-//   - 3478: ShouldLowerMerit dedicated dual-wire expand residual 3054
+//   - 3478: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
+//   - 3537: ShouldLowerMerit dedicated dual-wire expand residual 3054
 // Dual-wire pure free functions (formula space):
 //   - 2810 / 3054: ShouldLowerMerit residual pure dual-wire
 //   - 3256: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
 //   - 3373: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
 //   - 3424: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
-//   - 3478: ShouldLowerMerit = count > 0
+//   - 3478: ShouldLowerMerit prior dedicated dual-wire expand residual 3054
+//   - 3537: ShouldLowerMerit = count > 0
 //     dedicated dual-wire expand residual 3054
 //
 // Residual pure port: slice 2810 (LowerMerit admission plan suite).
@@ -130,28 +133,30 @@ inline auto PlanRaiseMerit(
 // Prior dedicated dual-wire: slice 3256 (dedicated expand residual 3054 suite).
 // Prior dedicated dual-wire: slice 3373 (dedicated expand residual 3054 suite).
 // Prior dedicated dual-wire: slice 3424 (dedicated expand residual 3054 suite).
+// Prior dedicated dual-wire: slice 3478 (dedicated expand residual 3054 suite).
 // Production host: CMeritPoints::LowerMerit injects (PMerit != nullptr) and
 // PMerit->count into PlanLowerMerit / ShouldLowerMerit; on apply decrements
 // count, refreshes next, optional spell/WS del hosts.
-// Go dual-wire: merit.ShouldLowerMerit (internal/merit/lower_merit.go; slice 3478).
+// Go dual-wire: merit.ShouldLowerMerit (internal/merit/lower_merit.go; slice 3537).
 // Coverage: test_merit_lower_3054 (residual dual-wire),
 // test_merit_lower_merit_3256 (prior dedicated expand residual 3054),
 // test_merit_lower_merit_3373 (prior dedicated expand residual 3054),
 // test_merit_lower_merit_3424 (prior dedicated expand residual 3054),
-// test_merit_lower_merit_3478 (dedicated expand residual 3054; not in
-// CMake/main). Residual 3054 / prior dedicated 3424 / 3373 / 3256 suites retained.
+// test_merit_lower_merit_3478 (prior dedicated expand residual 3054),
+// test_merit_lower_merit_3537 (dedicated expand residual 3054; not in
+// CMake/main). Residual 3054 / prior dedicated 3478 / 3424 / 3373 / 3256 suites retained.
 //
-// Dual-wire notes (slice 3478):
+// Dual-wire notes (slice 3537):
 //   Formula unchanged from pure 2810 / residual dual-wire 3054 / prior dedicated
-//   3424 / 3373 / 3256:
+//   3478 / 3424 / 3373 / 3256:
 //     ShouldLowerMerit(count) = count > 0
 //   free == inline == pin (direct return). Residual poles (0, 1, n) + dense.
-//   Residual 3054 / prior dedicated 3424 / 3373 / 3256 suites retained.
+//   Residual 3054 / prior dedicated 3478 / 3424 / 3373 / 3256 suites retained.
 //
 // ShouldLowerMerit mirrors the LowerMerit count-decrement gate.
 //
-// Formula (slice 3478 dedicated dual-wire expand residual 3054; pure 2810 /
-// residual 3054 / prior dedicated 3424 / 3373 / 3256 — formula unchanged):
+// Formula (slice 3537 dedicated dual-wire expand residual 3054; pure 2810 /
+// residual 3054 / prior dedicated 3478 / 3424 / 3373 / 3256 — formula unchanged):
 //   count > 0
 //
 // count — host-evaluated Merit_t.count (0 when merit pointer absent)
@@ -162,11 +167,11 @@ inline auto PlanRaiseMerit(
 // Points are not refunded. Presence of the merit pointer is a separate
 // PlanLowerMerit inject (meritPresent); this free function only checks count > 0.
 //
-// Dual-wire of Go merit.ShouldLowerMerit (lower_merit.go / slice 3478).
+// Dual-wire of Go merit.ShouldLowerMerit (lower_merit.go / slice 3537).
 // Call site: CMeritPoints::LowerMerit via PlanLowerMerit — host injects
 // PMerit->count (0 when absent); on true host decrements count and refreshes next.
-// Coverage: test_merit_lower_merit_3478 (dedicated expand residual 3054;
-// not in CMake/main); residual 3054 / prior dedicated 3424 / 3373 / 3256 suites retained.
+// Coverage: test_merit_lower_merit_3537 (dedicated expand residual 3054;
+// not in CMake/main); residual 3054 / prior dedicated 3478 / 3424 / 3373 / 3256 suites retained.
 // Sibling residual: PlanLowerMerit (2810). Sibling dual-wire: ShouldRaiseMerit
 // (3160) is independent.
 inline auto ShouldLowerMerit(const uint8 count) -> bool
@@ -300,7 +305,7 @@ inline auto PlanAddLimitPoints(
 // else 0). Prior pure port: slice 2816 (IsMeritExist residual suite). Residual
 // pins remain in test_merit_exist_2816; dedicated dual-wire suite is
 // test_merit_is_merit_exist_3196. Sibling dual-wires left alone:
-// ShouldRaiseMerit (3160), ShouldLowerMerit (3478 expand residual 3054).
+// ShouldRaiseMerit (3160), ShouldLowerMerit (3537 expand residual 3054).
 inline auto IsMeritExist(
     const int16 merit,
     const int16 categoryStart,
