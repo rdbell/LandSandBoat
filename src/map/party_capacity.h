@@ -20,6 +20,8 @@
 //   - 2974: ShouldRemoveSyncForLowLevel (RefreshSync syncLevel < 10)
 //   - 2991: ShouldStampLeaderCreatedPartyTime (TYPE_PC && members.size() > 1)
 //   - 2999: ShouldApplySyncToMember (RefreshSync isPC && sameZoneAsSyncTarget)
+//   - 3015: ShouldApplySyncEnableToMember (SetSyncTarget ENABLE
+//           isPC && notDisappear && sameZoneAsDesignee)
 //
 // Production host: CParty::AddMember (party.cpp) injects
 // isPCEntity / isPCParty / IsFull() into ShouldRejectPCAddFull via ClassifyAddMember,
@@ -31,12 +33,16 @@
 // ShouldRemoveSyncForLowLevel before SetSyncTarget clear, and
 // (objtype == TYPE_PC, getZone() == sync->getZone()) into ShouldApplySyncToMember
 // before ResolveSyncMemberLevel / status-effect power / SetMLevel.
+// Production host: CParty::SetSyncTarget ENABLE (party.cpp:~1222) injects
+// isPC / notDisappear / sameZone into ShouldApplySyncEnableToMember before
+// LevelSync message / DelStatusEffectsByFlag / AddStatusEffectSilent / CharSync.
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
 // party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go),
 // party.ShouldStampLeaderCreatedPartyTime (internal/party/stamp_leader_created.go),
-// party.ShouldApplySyncToMember (internal/party/apply_sync_member.go).
+// party.ShouldApplySyncToMember (internal/party/apply_sync_member.go),
+// party.ShouldApplySyncEnableToMember (internal/party/apply_sync_enable.go).
 
 namespace partyhelpers
 {
@@ -282,8 +288,25 @@ inline auto ClassifySetSyncTarget(
     return set_sync_target_gate::ENABLE;
 }
 
-// ShouldApplySyncEnableToMember mirrors the enable-path per-member filter:
-// TYPE_PC, status != DISAPPEAR, same zone as designee.
+// ShouldApplySyncEnableToMember mirrors the SetSyncTarget enable-path
+// per-member filter: TYPE_PC, status != DISAPPEAR, same zone as designee.
+//
+// Formula (slice 3015 dual-wire):
+//   isPC && notDisappear && sameZoneAsDesignee
+//
+// isPC               — host-evaluated objtype == TYPE_PC
+// notDisappear       — host-evaluated member != nullptr && status != DISAPPEAR
+// sameZoneAsDesignee — host-evaluated member != nullptr && getZone() == designee zone
+// true  → host continues enable per-member LevelSync apply
+//         (message / DelStatusEffectsByFlag / AddStatusEffectSilent / CharSync)
+// false → continue (skip non-PC, disappear, or different-zone members)
+//
+// Dual-wire of Go party.ShouldApplySyncEnableToMember
+// (internal/party/apply_sync_enable.go). Prior pure port: slice 1334.
+// Call site: CParty::SetSyncTarget ENABLE (party.cpp:~1222) host inject.
+// Edges: isPC × notDisappear × sameZone truth table (8 poles).
+// Coverage: test_party_apply_sync_enable_3015 (not in CMake/main).
+// Sibling dual-wire: 2999 ShouldApplySyncToMember (RefreshSync apply filter).
 inline auto ShouldApplySyncEnableToMember(
     const bool isPC,
     const bool notDisappear,
@@ -301,6 +324,24 @@ inline auto ShouldApplySyncDisableToMember(const bool isPC, const bool notDisapp
 
 // ShouldStartSyncDisableCountdown mirrors disable applying a 30s countdown only
 // when the member has LevelSync with duration == 0 (infinite).
+//
+// Formula (slice 3016 dual-wire):
+//   hasLevelSync && durationIsZero
+//
+// hasLevelSync   — host-evaluated StatusEffectContainer has LevelSync
+// durationIsZero — host-evaluated sync effect GetDuration() == 0 (infinite)
+// true  → host pushes battle message with LevelSyncDisableDurationSeconds,
+//         SetStartTime(now), SetDuration(LevelSyncDisableDurationSeconds)
+// false → leave existing timed LevelSync (or missing effect) unchanged
+//
+// Dual-wire of Go party.ShouldStartSyncDisableCountdown
+// (internal/party/sync_disable_countdown.go). Prior pure port: slice 1334
+// (SetSyncTarget residual suite; also reused by remove/disband hosts).
+// Call sites: CParty::SetSyncTarget DISABLE path; CParty::RemoveMember /
+// Disband countdown sites (party.cpp:~158 and siblings) host inject.
+// Edges: hasLevelSync × durationIsZero truth table (4 poles).
+// Sibling dual-wire: slice 3015 (ShouldApplySyncEnableToMember enable filter).
+// Coverage: test_party_sync_disable_countdown_3016 (not in CMake/main).
 inline auto ShouldStartSyncDisableCountdown(const bool hasLevelSync, const bool durationIsZero) -> bool
 {
     return hasLevelSync && durationIsZero;

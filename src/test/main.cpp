@@ -1304,6 +1304,11 @@ auto runRangedTruncateHitCount3010SelfTests() -> bool;
 auto runCommandAuditGM3011SelfTests() -> bool;
 auto runJobpointsApplyRaise3012SelfTests() -> bool;
 auto runRangedDistancePenaltyMsg3013SelfTests() -> bool;
+auto runBattlefieldRegisterPC3014SelfTests() -> bool;
+auto runPartyApplySyncEnable3015SelfTests() -> bool;
+auto runPartySyncDisableCountdown3016SelfTests() -> bool;
+auto runLinkshellReceivePacket3017SelfTests() -> bool;
+auto runRangedDeleteBarrage3018SelfTests() -> bool;
 
 namespace
 {
@@ -2585,6 +2590,11 @@ namespace
         ok = runCommandAuditGM3011SelfTests() && ok;
         ok = runJobpointsApplyRaise3012SelfTests() && ok;
         ok = runRangedDistancePenaltyMsg3013SelfTests() && ok;
+        ok = runBattlefieldRegisterPC3014SelfTests() && ok;
+        ok = runPartyApplySyncEnable3015SelfTests() && ok;
+        ok = runPartySyncDisableCountdown3016SelfTests() && ok;
+        ok = runLinkshellReceivePacket3017SelfTests() && ok;
+        ok = runRangedDeleteBarrage3018SelfTests() && ok;
 
         return ok;
     }

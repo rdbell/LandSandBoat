@@ -295,7 +295,29 @@ inline auto ResolveRangedPhysicalAttackType(const bool isRapidShot) -> uint8
     return isRapidShot ? AttackTypeRapidShot : AttackTypeRanged;
 }
 
+// --- Slice 3018: ShouldDeleteBarrageStatus pure dual-wire ---
+// Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
+// Production host: CBattleEntity::OnRangedAttack injects isBarrage
+// (StatusEffectContainer->HasStatusEffect(Barrage, 0) captured at shot start)
+// into ShouldDeleteBarrageStatus before DelStatusEffectSilent(Barrage) on true
+// (~3449).
+// Go dual-wire: attackutils.ShouldDeleteBarrageStatus
+// (internal/attackutils/delete_barrage_status.go).
+// Sibling dual-wires: ShouldConsumeAmmo (2986), ShouldDeleteUnlimitedShot (3000),
+// ShouldDeleteFlashyAndStealthShot (3007), ShouldTruncateHitCountOnAmmoDeplete (3010),
+// ShouldApplyDistancePenaltyMessage (3013).
+
 // ShouldDeleteBarrageStatus mirrors isBarrage after shot resolution.
+//
+// Formula (slice 3018 dual-wire; identity):
+//   return isBarrage
+//
+// isBarrage — host-evaluated StatusEffect::Barrage present at shot start
+// true  → host DelStatusEffectSilent(Barrage)
+// false → skip cleanup (Barrage was not active for this action)
+//
+// Dual-wire of Go attackutils.ShouldDeleteBarrageStatus.
+// Call site: CBattleEntity::OnRangedAttack (~3449).
 inline auto ShouldDeleteBarrageStatus(const bool isBarrage) -> bool
 {
     return isBarrage;

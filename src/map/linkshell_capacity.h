@@ -20,6 +20,7 @@
 //   - 3001: ShouldBreakInventoryPearl (shell holder OR equipped item)
 //   - 3008: ShouldMarkPearlBroken (lsType != LSTYPE_LINKSHELL)
 //   - 3009: ShouldSendBreakMessage (breakLinkshell identity)
+//   - 3017: ShouldReceiveLinkshellPacket (!isSender && !isDisappear && !inPrison)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -34,6 +35,9 @@
 // GetLSType() into ShouldMarkPearlBroken before SetLSType(BROKEN);
 // then injects breakLinkshell into ShouldSendBreakMessage to select
 // LinkshellNoLongerExists vs LinkshellKicked after ITEM_SAME / CharStatus.
+// CLinkshell::PushPacket injects member->id == senderID,
+// member->status == DISAPPEAR, and jailutils::InPrison(member) into
+// ShouldReceiveLinkshellPacket before packet copy / optional LS2 rewrite / push.
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
 // (internal/linkshell/reject_null_add_member.go),
 // linkshell.ShouldRejectDuplicateAddMember
@@ -47,7 +51,9 @@
 // linkshell.ShouldMarkPearlBroken
 // (internal/linkshell/mark_pearl_broken.go),
 // linkshell.ShouldSendBreakMessage
-// (internal/linkshell/send_break_message.go).
+// (internal/linkshell/send_break_message.go),
+// linkshell.ShouldReceiveLinkshellPacket
+// (internal/linkshell/receive_packet.go).
 
 namespace linkshellhelpers
 {
@@ -279,6 +285,21 @@ inline auto ShouldSendBreakMessage(const bool breakLinkshell) -> bool
 // --- PushPacket ---
 
 // ShouldReceiveLinkshellPacket mirrors id != sender && not disappear && not prison.
+//
+// Formula (slice 3017 dual-wire):
+//   !isSender && !isDisappear && !inPrison
+//
+// isSender    — host-evaluated member->id == senderID
+// isDisappear — host-evaluated member->status == STATUS_TYPE::DISAPPEAR
+// inPrison    — host-evaluated jailutils::InPrison(member)
+// true  → host may copy packet, optional LS2 rewrite, and push to member
+// false → skip this online member for the fan-out
+//
+// Dual-wire of Go linkshell.ShouldReceiveLinkshellPacket.
+// Call site: CLinkshell::PushPacket host inject
+// (member->id == senderID, member->status == DISAPPEAR, InPrison(member)).
+// Prior pure port: slice 1354 (capacity suite PushPacket receive gate).
+// Sibling dual-wire: slice 3009 (ShouldSendBreakMessage; same capacity header).
 inline auto ShouldReceiveLinkshellPacket(const bool isSender, const bool isDisappear, const bool inPrison) -> bool
 {
     return !isSender && !isDisappear && !inPrison;

@@ -2601,6 +2601,16 @@ set(SOURCES
     test_jobpoints_apply_raise_3012.cpp
     test_ranged_distance_penalty_msg_3013.h
     test_ranged_distance_penalty_msg_3013.cpp
+    test_battlefield_register_pc_3014.h
+    test_battlefield_register_pc_3014.cpp
+    test_party_apply_sync_enable_3015.h
+    test_party_apply_sync_enable_3015.cpp
+    test_party_sync_disable_countdown_3016.h
+    test_party_sync_disable_countdown_3016.cpp
+    test_linkshell_receive_packet_3017.h
+    test_linkshell_receive_packet_3017.cpp
+    test_ranged_delete_barrage_3018.h
+    test_ranged_delete_barrage_3018.cpp
 )
 
 if(UNIX)
