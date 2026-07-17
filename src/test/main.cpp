@@ -1504,6 +1504,11 @@ auto runSpellReturnZeroNullSpell3210SelfTests() -> bool;
 auto runTradecontainerSetTradeItemEntry3211SelfTests() -> bool;
 auto runEinherjarEmptyChamberTimeout3212SelfTests() -> bool;
 auto runVoidwalkerShouldRandomly3213SelfTests() -> bool;
+auto runItemcontainerCanRemoveSlot3214SelfTests() -> bool;
+auto runLinkshellRejectDuplicateAddMember3215SelfTests() -> bool;
+auto runBattlefieldRejectAlreadyIn3216SelfTests() -> bool;
+auto runPartyClearSeekingParty3217SelfTests() -> bool;
+auto runMapsessionMarkLinkDead3218SelfTests() -> bool;
 
 namespace
 {
@@ -2985,6 +2990,11 @@ namespace
         ok = runTradecontainerSetTradeItemEntry3211SelfTests() && ok;
         ok = runEinherjarEmptyChamberTimeout3212SelfTests() && ok;
         ok = runVoidwalkerShouldRandomly3213SelfTests() && ok;
+        ok = runItemcontainerCanRemoveSlot3214SelfTests() && ok;
+        ok = runLinkshellRejectDuplicateAddMember3215SelfTests() && ok;
+        ok = runBattlefieldRejectAlreadyIn3216SelfTests() && ok;
+        ok = runPartyClearSeekingParty3217SelfTests() && ok;
+        ok = runMapsessionMarkLinkDead3218SelfTests() && ok;
 
         return ok;
     }

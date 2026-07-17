@@ -20,7 +20,8 @@
 //   - 2954: ShouldRejectNullCharLookup (charNull identity; prior dual-wire)
 //   - 3108: ShouldRejectNullCharLookup (charNull identity; dense dual-wire)
 //   - 2799: link-dead mark/recover pure plans (ShouldMarkLinkDead residual)
-//   - 2978: ShouldMarkLinkDead (hasChar && !alreadyLinkDead)
+//   - 2978: ShouldMarkLinkDead (hasChar && !alreadyLinkDead; residual dual-wire)
+//   - 3218: ShouldMarkLinkDead (hasChar && !alreadyLinkDead; dedicated expand residual 2978)
 //   - 2985: ShouldRecoverLinkDead (hasChar && isLinkDead)
 //
 // Production host: MapSessionContainer::createSession injects queryOK /
@@ -59,13 +60,15 @@
 // Production host: MapSessionContainer::cleanupSessions injects hasChar /
 // alreadyLinkDead into ShouldMarkLinkDead inside the >5s inactive branch
 // before the mark body. Go dual-wire: mapsession.ShouldMarkLinkDead
-// (internal/mapsession/mark_link_dead.go). Prior pure port: slice 2799.
+// (internal/mapsession/mark_link_dead.go). Prior pure: 2799; residual dual-wire:
+// 2978; dedicated expand residual: 3218. Sibling dual-wires left alone: 2985
+// ShouldRecoverLinkDead, 3207 ShouldCreatePendingSession, 3191 ShouldCreateSession.
 //
 // Production host: MapSessionContainer::cleanupSessions injects hasChar /
 // isLinkDead into ShouldRecoverLinkDead on the else-if of the >5s inactive
 // branch before the recover body. Go dual-wire: mapsession.ShouldRecoverLinkDead
 // (internal/mapsession/recover_link_dead.go). Prior pure port: slice 2799;
-// sibling dual-wire: 2978 ShouldMarkLinkDead.
+// sibling dual-wire: 2978 / 3218 ShouldMarkLinkDead.
 
 namespace mapsessionhelpers
 {
@@ -258,14 +261,16 @@ inline auto SessionMatchesCharName(const bool sessionHasChar, const std::string&
 }
 
 // --- Slice 2799: cleanupSessions link-dead mark / recover pure plans ---
-// --- Slice 2978: ShouldMarkLinkDead pure dual-wire expansion ---
+// --- Slice 2978: ShouldMarkLinkDead pure dual-wire expansion (residual) ---
+// --- Slice 3218: ShouldMarkLinkDead dedicated expand residual 2978 ---
 // --- Slice 2985: ShouldRecoverLinkDead pure dual-wire expansion ---
 
 // ShouldMarkLinkDead mirrors the mark-link-dead gate inside the >5s inactive
 // branch of MapSessionContainer::cleanupSessions:
 //   PChar != nullptr && !PChar->isLinkDead
 //
-// Formula (slice 2978 dual-wire):
+// Formula (slice 3218 dual-wire; residual expand 2978 / pure 2799 — formula
+// unchanged):
 //   hasChar && !alreadyLinkDead
 //
 // Host-injected scalars (no session / character pointers):
@@ -278,8 +283,16 @@ inline auto SessionMatchesCharName(const bool sessionHasChar, const std::string&
 // Caller has already ensured now > last_update + 5s (timeout gate outside pure).
 // Dual-wire of Go mapsession.ShouldMarkLinkDead
 // (internal/mapsession/mark_link_dead.go). Prior pure port: slice 2799.
-// Sibling dual-wire: ShouldRecoverLinkDead (slice 2985; inverted polarity).
-// Call site: MapSessionContainer::cleanupSessions (map_session_container.cpp).
+// Prior dual-wire expand: slice 2978. Dedicated expand residual: slice 3218.
+// Sibling dual-wires left alone: ShouldRecoverLinkDead (slice 2985; inverted
+// polarity), ShouldCreatePendingSession (3207), ShouldCreateSession (3191).
+// Call site: MapSessionContainer::cleanupSessions (map_session_container.cpp)
+// already injects the two bools into this free function before the mark body.
+//
+// Host inject (cleanupSessions, >5s branch):
+//   hasChar         = PChar != nullptr;
+//   alreadyLinkDead = hasChar && PChar->isLinkDead;
+//   if (ShouldMarkLinkDead(hasChar, alreadyLinkDead)) PlanLinkDeadMark(...);
 inline auto ShouldMarkLinkDead(const bool hasChar, const bool alreadyLinkDead) -> bool
 {
     return hasChar && !alreadyLinkDead;
@@ -303,8 +316,8 @@ inline auto ShouldMarkLinkDead(const bool hasChar, const bool alreadyLinkDead) -
 // gate (else of now > last_update + 5s; timeout gate outside pure).
 // Dual-wire of Go mapsession.ShouldRecoverLinkDead
 // (internal/mapsession/recover_link_dead.go). Prior pure port: slice 2799.
-// Sibling dual-wire: ShouldMarkLinkDead (slice 2978; inverted polarity —
-// mark uses !alreadyLinkDead; recover uses isLinkDead).
+// Sibling dual-wire: ShouldMarkLinkDead (slice 2978 residual / 3218 dedicated;
+// inverted polarity — mark uses !alreadyLinkDead; recover uses isLinkDead).
 // Call site: MapSessionContainer::cleanupSessions (map_session_container.cpp)
 // already injects the two bools before the recover body.
 inline auto ShouldRecoverLinkDead(const bool hasChar, const bool isLinkDead) -> bool

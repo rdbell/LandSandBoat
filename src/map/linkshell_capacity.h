@@ -30,6 +30,8 @@
 //   - 3126: ShouldReturnCachedLinkshell (foundInList identity)
 //   - 3195: ShouldRejectNullAddMember dedicated dual-wire
 //           (charNull identity; residual expand 2929 / pure 1354)
+//   - 3215: ShouldRejectDuplicateAddMember dedicated dual-wire
+//           (alreadyInList identity; residual expand 2958 / pure 1354)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -123,7 +125,8 @@ inline auto ShouldRejectNullAddMember(const bool charNull) -> bool
 
 // ShouldRejectDuplicateAddMember mirrors find hit in online members.
 //
-// Formula (slice 2958 dual-wire):
+// Formula (slice 3215 dedicated dual-wire; residual expand 2958 / pure 1354 —
+// formula unchanged):
 //   alreadyInList
 //
 // alreadyInList — host-evaluated
@@ -133,7 +136,17 @@ inline auto ShouldRejectNullAddMember(const bool charNull) -> bool
 //
 // Dual-wire of Go linkshell.ShouldRejectDuplicateAddMember.
 // Call site: CLinkshell::AddMember host inject (find hit in members).
+//   if (ShouldRejectDuplicateAddMember(
+//           std::find(members.begin(), members.end(), PChar) != members.end()))
+//   {
+//       ShowWarning("%s", FormatAddMemberAlreadyWarning(PChar->getName()));
+//       return;
+//   }
 // Evaluated only after ShouldRejectNullAddMember passes (slice 3195 / residual 2929).
+// Prior pure port: slice 1354. Residual dual-wire suite: 2958 /
+// test_linkshell_reject_duplicate_2958. Dedicated dual-wire suite is
+// test_linkshell_reject_duplicate_add_member_3215. Formula is unchanged; this
+// slice only expands dual-wire docs + index + dedicated suite.
 inline auto ShouldRejectDuplicateAddMember(const bool alreadyInList) -> bool
 {
     return alreadyInList;

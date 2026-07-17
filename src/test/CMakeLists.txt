@@ -3001,6 +3001,16 @@ set(SOURCES
     test_einherjar_empty_chamber_timeout_3212.cpp
     test_voidwalker_should_randomly_3213.h
     test_voidwalker_should_randomly_3213.cpp
+    test_itemcontainer_can_remove_slot_3214.h
+    test_itemcontainer_can_remove_slot_3214.cpp
+    test_linkshell_reject_duplicate_add_member_3215.h
+    test_linkshell_reject_duplicate_add_member_3215.cpp
+    test_battlefield_reject_already_in_3216.h
+    test_battlefield_reject_already_in_3216.cpp
+    test_party_clear_seeking_party_3217.h
+    test_party_clear_seeking_party_3217.cpp
+    test_mapsession_mark_link_dead_3218.h
+    test_mapsession_mark_link_dead_3218.cpp
 )
 
 if(UNIX)

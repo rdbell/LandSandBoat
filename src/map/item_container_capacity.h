@@ -12,7 +12,7 @@
 //   - 2826: FreeSlotsCount (unsigned size-minus-count)
 //   - 2831: CanSearchSlotID (GetItem / search inclusive range; residual)
 //   - 2942: CanInsertAtSlot residual dual-wire suite (InsertItem range gate)
-//   - 2976: CanRemoveSlot (RemoveItem range gate)
+//   - 2976: CanRemoveSlot residual dual-wire suite (RemoveItem range gate)
 //   - 2989: ShouldDecrementCountOnRemove (RemoveItem count drop)
 //   - 3021: ShouldIncrementCountOnInsertAt (InsertItem count bump)
 //   - 3027: CanSetSize residual dual-wire suite (SetSize / AddSize acceptance)
@@ -21,12 +21,15 @@
 //   - 3039: FreeSlotsCount (GetFreeSlotsCount size-minus-count dual-wire)
 //   - 3164: CanSetSize dedicated dual-wire (can_set_size.go; expand residual 3027)
 //   - 3194: CanInsertAtSlot dedicated dual-wire (insert_slot.go; expand residual 2942)
+//   - 3214: CanRemoveSlot dedicated dual-wire (remove_slot.go; expand residual 2976)
 //
 // Dual-wire index:
 //   - 2942: CanInsertAtSlot residual dual-wire suite
+//   - 2976: CanRemoveSlot residual dual-wire suite
 //   - 3027: CanSetSize residual dual-wire suite
 //   - 3164: CanSetSize = newSize <= maxSize && newSize >= itemCount
 //   - 3194: CanInsertAtSlot = slotID <= size
+//   - 3214: CanRemoveSlot = slotID <= size
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
@@ -41,6 +44,8 @@
 // Production host: CItemContainer::RemoveItem injects SlotID and m_size into
 // CanRemoveSlot. Go dual-wire: itemcontainer.CanRemoveSlot
 // (internal/itemcontainer/remove_slot.go).
+// Residual dual-wire suite: 2976 (test_item_remove_slot_2976).
+// Dedicated dual-wire suite: 3214 (test_itemcontainer_can_remove_slot_3214).
 // Production host: CItemContainer::RemoveItem injects occupancy and SlotID into
 // ShouldDecrementCountOnRemove after CanRemoveSlot admits.
 // Go dual-wire: itemcontainer.ShouldDecrementCountOnRemove
@@ -166,10 +171,15 @@ inline auto CanInsertAtSlot(const std::uint8_t slotID, const std::uint8_t size) 
     return slotID <= size;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3214 — RemoveItem range gate (dedicated expand residual 2976)
+// ---------------------------------------------------------------------------
+
 // CanRemoveSlot mirrors RemoveItem range gate: reject when SlotID > size,
 // so slotID <= size is accepted (including slot 0).
 //
-// Formula (slice 2976 dual-wire):
+// Formula (slice 3214 dedicated dual-wire; residual expand 2976 / pure 2802 —
+// formula unchanged):
 //   slotID <= size
 //
 // slotID — host-evaluated RemoveItem SlotID
@@ -179,7 +189,12 @@ inline auto CanInsertAtSlot(const std::uint8_t slotID, const std::uint8_t size) 
 //
 // Dual-wire of Go itemcontainer.CanRemoveSlot.
 // Call site: CItemContainer::RemoveItem before ownership move.
-// Same predicate as CanInsertAtSlot (slice 2942) and CanSearchSlotID (slice 3033).
+// Prior pure port: slice 2802. Residual dual-wire suite: 2976 /
+// test_item_remove_slot_2976. Dedicated dual-wire suite is
+// test_itemcontainer_can_remove_slot_3214. Sibling dual-wire gates:
+// CanSetSize (3164), CanInsertAtSlot (3194),
+// ShouldDecrementCountOnRemove (2989) — left residual under this slice.
+// Same predicate as CanInsertAtSlot (slice 3194) and CanSearchSlotID (slice 3033).
 inline auto CanRemoveSlot(const std::uint8_t slotID, const std::uint8_t size) -> bool
 {
     return slotID <= size;

@@ -11,7 +11,7 @@
 //   - 1361: level cap, insert, cleanup, tick policy suite
 //   - 2930: ShouldAcceptPCUnderCapacity (playerCount < maxParticipants)
 //   - 2994: ShouldRejectNullInsert residual dual-wire expand
-//   - 3002: ShouldRejectAlreadyInBattlefield (hasBattlefield identity)
+//   - 3002: ShouldRejectAlreadyInBattlefield residual dual-wire expand
 //   - 3014: ShouldRegisterPC (!enter && !alreadyRegistered)
 //   - 3024: ShouldEnterPC (enter identity)
 //   - 3059: ShouldApplyLevelCap (levelCap > 0)
@@ -21,6 +21,8 @@
 //   - 3140: ShouldAdvanceBattlefieldTick (pastTickPlusOneSecond identity)
 //   - 3198: ShouldRejectNullInsert dedicated dual-wire
 //           (entityNull identity; residual expand 2994 / pure 1361)
+//   - 3216: ShouldRejectAlreadyInBattlefield dedicated dual-wire
+//           (hasBattlefield identity; residual expand 3002 / pure 1361)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -134,7 +136,8 @@ inline auto ShouldRejectNullInsert(const bool entityNull) -> bool
 
 // ShouldRejectAlreadyInBattlefield mirrors PEntity->PBattlefield != nullptr.
 //
-// Formula (slice 3002 dual-wire):
+// Formula (slice 3216 dedicated dual-wire; residual expand 3002 / pure 1361 —
+// formula unchanged):
 //   hasBattlefield
 //
 // true  → host returns false (entity already on a battlefield)
@@ -145,6 +148,12 @@ inline auto ShouldRejectNullInsert(const bool entityNull) -> bool
 //   if (ShouldRejectAlreadyInBattlefield(PEntity->PBattlefield != nullptr)) {
 //       return false;
 //   }
+// Prior pure port: slice 1361. Residual dual-wire suite: 3002 /
+// test_battlefield_reject_already_in_3002. Dedicated dual-wire suite is
+// test_battlefield_reject_already_in_3216. Formula is unchanged; this slice
+// only expands dual-wire docs + index + dedicated suite.
+// Sibling dual-wires left alone: 3198 null-insert, 2930 under-capacity,
+// 3014 register, 3024 enter, 3140 advance-tick, etc.
 inline auto ShouldRejectAlreadyInBattlefield(const bool hasBattlefield) -> bool
 {
     return hasBattlefield;

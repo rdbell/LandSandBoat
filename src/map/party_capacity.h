@@ -18,7 +18,9 @@
 //   - 3200: ShouldRejectPCAddFull dedicated dual-wire
 //           (TYPE_PC + PARTY_PCS + partyFull; residual expand 2928 / pure 1327 / 1350)
 //   - 2937: ShouldRejectPCAddTrusts (TYPE_PC + PARTY_PCS + partyHasTrusts)
-//   - 2955: ShouldClearSeekingParty (isSeekingParty after join)
+//   - 2955: ShouldClearSeekingParty residual dual-wire expand
+//   - 3217: ShouldClearSeekingParty dedicated dual-wire
+//           (isSeekingParty after join; residual expand 2955 / pure 1350)
 //   - 2974: ShouldRemoveSyncForLowLevel (RefreshSync syncLevel < 10)
 //   - 2991: ShouldStampLeaderCreatedPartyTime (TYPE_PC && members.size() > 1)
 //   - 2999: ShouldApplySyncToMember (RefreshSync isPC && sameZoneAsSyncTarget)
@@ -78,7 +80,9 @@
 // residual dual-wire suite: 2928 / test_party_reject_full_2928;
 // dedicated dual-wire suite: 3200 / test_party_reject_pc_add_full_3200),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
-// party.ShouldClearSeekingParty (internal/party/clear_seeking.go),
+// party.ShouldClearSeekingParty (internal/party/clear_seeking.go;
+// residual dual-wire suite: 2955 / test_party_clear_seeking_2955;
+// dedicated dual-wire suite: 3217 / test_party_clear_seeking_party_3217),
 // party.ShouldRemoveSyncForLowLevel (internal/party/remove_sync_low.go),
 // party.ShouldStampLeaderCreatedPartyTime (internal/party/stamp_leader_created.go),
 // party.ShouldApplySyncToMember (internal/party/apply_sync_member.go),
@@ -1076,7 +1080,8 @@ inline auto ShouldRunPCAddPostProcess(const bool isPCParty) -> bool
 
 // ShouldClearSeekingParty mirrors isSeekingParty() after join.
 //
-// Formula (slice 2955 dual-wire):
+// Formula (slice 3217 dedicated dual-wire; residual expand 2955 / pure 1350 —
+// formula unchanged):
 //   isSeekingParty
 //
 // isSeekingParty — host-evaluated PChar->isSeekingParty()
@@ -1087,6 +1092,9 @@ inline auto ShouldRunPCAddPostProcess(const bool isPCParty) -> bool
 // Dual-wire of Go party.ShouldClearSeekingParty
 // (internal/party/clear_seeking.go).
 // Call site: CParty::AddMember PC post-process host inject.
+// Residual dual-wire suite: 2955 / test_party_clear_seeking_2955.
+// Dedicated dual-wire suite is test_party_clear_seeking_party_3217. Formula is
+// unchanged; dedicated suite expands free==inline==pin poles + dense 2^1.
 inline auto ShouldClearSeekingParty(const bool isSeekingParty) -> bool
 {
     return isSeekingParty;
