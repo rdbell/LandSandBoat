@@ -144,19 +144,26 @@ void CLinkshell::AddMember(CCharEntity* PChar, int8 type, uint8 lsNum)
 // delete a character to the list of online members
 bool CLinkshell::DelMember(CCharEntity* PChar)
 {
+    using linkshellhelpers::LinkshellClearAttachment;
+    using linkshellhelpers::PlanLinkshellDelMemberClear;
+
     for (uint32 i = 0; i < members.size(); ++i)
     {
         if (members.at(i) == PChar)
         {
-            if (PChar->PLinkshell1 == this)
+            // Pure clear branch: PLinkshell1/2 == this (slice 2786). LS1 wins if both.
+            switch (PlanLinkshellDelMemberClear(PChar->PLinkshell1 == this, PChar->PLinkshell2 == this))
             {
-                db::preparedStmt("UPDATE accounts_sessions SET linkshellid1 = 0, linkshellrank1 = 0 WHERE charid = ?", PChar->id);
-                PChar->PLinkshell1 = nullptr;
-            }
-            else if (PChar->PLinkshell2 == this)
-            {
-                db::preparedStmt("UPDATE accounts_sessions SET linkshellid2 = 0, linkshellrank2 = 0 WHERE charid = ?", PChar->id);
-                PChar->PLinkshell2 = nullptr;
+                case LinkshellClearAttachment::ClearLS1:
+                    db::preparedStmt("UPDATE accounts_sessions SET linkshellid1 = 0, linkshellrank1 = 0 WHERE charid = ?", PChar->id);
+                    PChar->PLinkshell1 = nullptr;
+                    break;
+                case LinkshellClearAttachment::ClearLS2:
+                    db::preparedStmt("UPDATE accounts_sessions SET linkshellid2 = 0, linkshellrank2 = 0 WHERE charid = ?", PChar->id);
+                    PChar->PLinkshell2 = nullptr;
+                    break;
+                case LinkshellClearAttachment::None:
+                    break;
             }
             members.erase(members.begin() + i);
             break;

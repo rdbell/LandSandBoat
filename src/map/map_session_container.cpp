@@ -484,10 +484,16 @@ void MapSessionContainer::destroyPendingSession(MapSession* map_session_data)
         return;
     }
 
-    if (!index_.removePendingSession(map_session_data))
+    // Lookup + pure gate; host owns index erase and ownership-map delete.
+    auto*      current        = index_.getPendingSessionByCharId(map_session_data->charID);
+    const bool found          = current != nullptr;
+    const bool pointerMatches = current == map_session_data;
+    if (!mapsessionhelpers::ShouldDestroyPendingByPointer(found, pointerMatches))
     {
         return;
     }
+
+    index_.removePendingSession(map_session_data);
 
     ShowDebugFmt("Closing pending session for character id {}", map_session_data->charID);
 
@@ -498,10 +504,16 @@ void MapSessionContainer::destroyPendingSession(uint32 charId)
 {
     TracyZoneScoped;
 
-    if (index_.removePendingSession(charId) != nullptr)
+    // Lookup + pure gate; host owns index erase and ownership-map delete.
+    const bool found = index_.getPendingSessionByCharId(charId) != nullptr;
+    if (!mapsessionhelpers::ShouldDestroyPendingByCharID(found))
     {
-        ShowDebugFmt("Closing pending session for character id {}", charId);
-
-        pending_sessions_.erase(charId);
+        return;
     }
+
+    index_.removePendingSession(charId);
+
+    ShowDebugFmt("Closing pending session for character id {}", charId);
+
+    pending_sessions_.erase(charId);
 }

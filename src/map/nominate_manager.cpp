@@ -25,6 +25,7 @@
 #include "entities/char_entity.h"
 #include "enums/msg_std.h"
 #include "linkshell.h"
+#include "nominate_capacity.h"
 #include "party.h"
 #include "utils/zoneutils.h"
 #include "zone.h"
@@ -218,33 +219,29 @@ NominateManager::NominateManager(CZone& zone)
 
 auto NominateProposal::inScope(const CCharEntity* PChar) const -> bool
 {
-    switch (this->kind)
-    {
-        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Party:
-        {
-            if (PChar->PParty == nullptr)
-            {
-                return false;
-            }
+    // Host injects membership scalars; pure policy lives in nominatehelpers.
+    const bool   hasParty         = PChar->PParty != nullptr;
+    const uint32 memberPartyId    = hasParty ? PChar->PParty->GetPartyID() : 0u;
+    const bool   hasAlliance      = hasParty && PChar->PParty->m_PAlliance != nullptr;
+    const uint32 memberAllianceId = hasAlliance ? PChar->PParty->m_PAlliance->m_AllianceID : 0u;
+    const bool   hasLS1           = PChar->PLinkshell1 != nullptr;
+    const uint32 ls1Id            = hasLS1 ? PChar->PLinkshell1->getID() : 0u;
+    const bool   hasLS2           = PChar->PLinkshell2 != nullptr;
+    const uint32 ls2Id            = hasLS2 ? PChar->PLinkshell2->getID() : 0u;
 
-            if (PChar->PParty->GetPartyID() == this->partyId)
-            {
-                return true;
-            }
-
-            return this->allianceId != 0 && PChar->PParty->m_PAlliance != nullptr &&
-                   PChar->PParty->m_PAlliance->m_AllianceID == this->allianceId;
-        }
-        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Linkshell1:
-        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Linkshell2:
-            return (PChar->PLinkshell1 != nullptr && PChar->PLinkshell1->getID() == this->linkshellId) ||
-                   (PChar->PLinkshell2 != nullptr && PChar->PLinkshell2->getID() == this->linkshellId);
-        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Say:
-        case GP_CLI_COMMAND_SWITCH_PROPOSAL_KIND::Shout:
-            return true;
-    }
-
-    return false;
+    return nominatehelpers::InScope(
+        this->kind,
+        this->partyId,
+        this->allianceId,
+        this->linkshellId,
+        hasParty,
+        memberPartyId,
+        hasAlliance,
+        memberAllianceId,
+        hasLS1,
+        ls1Id,
+        hasLS2,
+        ls2Id);
 }
 
 void NominateProposal::deliverProc(CCharEntity* PChar, const bool isFinal) const

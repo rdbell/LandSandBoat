@@ -7,6 +7,7 @@
 #include <fmt/format.h>
 
 #include <common/mmo.h>
+#include <common/zlib.h>
 
 namespace mapnetworkinghelpers
 {
@@ -221,6 +222,36 @@ inline auto PlanCompressionFailure(const bool hasQueuedPackets) -> CompressionFa
     return hasQueuedPackets ? CompressionFailurePlan::DropOldestPacketAndRetry : CompressionFailurePlan::ClearOutputAndFail;
 }
 
+// CompressPacketResultPlan is the early gate inside compressPacket after
+// zlib_compress returns. Reject maps to nullopt; Proceed continues to the
+// compressed-size trailer write.
+enum class CompressPacketResultPlan : uint8
+{
+    Reject,
+    Proceed,
+};
+
+// PlanCompressPacket mirrors compressPacket's zlib failure gate.
+// zlibFailed is true when zlib_compress returned -1.
+inline auto PlanCompressPacket(const bool zlibFailed) -> CompressPacketResultPlan
+{
+    return zlibFailed ? CompressPacketResultPlan::Reject : CompressPacketResultPlan::Proceed;
+}
+
+// ShouldRejectCompressFailure is the bool form of PlanCompressPacket(true).
+// True when zlib_compress returned -1 (result == -1).
+inline auto ShouldRejectCompressFailure(const bool zlibResultIsNegativeOne) -> bool
+{
+    return zlibResultIsNegativeOne;
+}
+
+// CompressSucceeded is the inverse gate: true when zlib_compress did not
+// return the -1 failure sentinel.
+inline auto CompressSucceeded(const int32 zlibResult) -> bool
+{
+    return zlibResult != -1;
+}
+
 // ShouldUsePreviousKeyForOutgoingPacket mirrors finalizePacket's key choice.
 // A previous key is valid only for an explicitly requested send while the
 // session is pending its zone transition.
@@ -271,6 +302,24 @@ inline auto PlanZoneOutSessionUpdate(const bool isLogout) -> ZoneOutSessionUpdat
 inline auto ShouldResetCharacterForUnencryptedLogin(const bool pendingZone) -> bool
 {
     return pendingZone;
+}
+
+// CompressedBitSizeTrailerBytes is the little-endian bit-count trailer length
+// written after zlib_compress in compressPacket.
+constexpr std::size_t CompressedBitSizeTrailerBytes = sizeof(uint32);
+
+// CompressedBitSizeTrailerOffset is the byte offset of the LE bit-size trailer
+// after a successful zlib_compress: zlib_compressed_size(bitSize).
+inline auto CompressedBitSizeTrailerOffset(const std::size_t bitSize) -> std::size_t
+{
+    return zlib_compressed_size(bitSize);
+}
+
+// CompressedPayloadSize is the total compressed payload length after the
+// bit-size trailer is written: zlib_compressed_size(bitSize) + 4.
+inline auto CompressedPayloadSize(const std::size_t bitSize) -> std::size_t
+{
+    return zlib_compressed_size(bitSize) + CompressedBitSizeTrailerBytes;
 }
 
 // MD5DigestSize is the digest length appended after the compressed payload in

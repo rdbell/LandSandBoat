@@ -207,6 +207,35 @@ inline auto DelMemberRemaining(const std::size_t memberCountAfter) -> bool
     return memberCountAfter != 0;
 }
 
+// --- DelMember session clear ---
+
+// LinkshellClearAttachment is the pure DelMember session-clear branch after a
+// matching online member is found. DB clear and PLinkshell nulling stay host-side.
+enum class LinkshellClearAttachment : uint8
+{
+    None     = 0, // neither PLinkshell1 nor PLinkshell2 matches this shell
+    ClearLS1 = 1, // clear LS1 session fields and PLinkshell1
+    ClearLS2 = 2, // clear LS2 session fields and PLinkshell2
+};
+
+// PlanLinkshellDelMemberClear mirrors production DelMember if/else-if order:
+// 1) isLS1Attachment (PLinkshell1 == this) -> ClearLS1
+// 2) else if isLS2Attachment (PLinkshell2 == this) -> ClearLS2
+// 3) else None
+// Note: LS1 wins when both are somehow true (if / else if).
+inline auto PlanLinkshellDelMemberClear(const bool isLS1Attachment, const bool isLS2Attachment) -> LinkshellClearAttachment
+{
+    if (isLS1Attachment)
+    {
+        return LinkshellClearAttachment::ClearLS1;
+    }
+    if (isLS2Attachment)
+    {
+        return LinkshellClearAttachment::ClearLS2;
+    }
+    return LinkshellClearAttachment::None;
+}
+
 // --- Registry: Load / Unload / Online / Register ---
 
 // load_linkshell_gate is pure outcome of LoadLinkshell DB lookup.

@@ -1,6 +1,6 @@
 #pragma once
 
-// Pure MapSessionContainer create-session gates.
+// Pure MapSessionContainer create/destroy-session gates.
 // SQL, logging, ownership maps, and scheduler side effects remain host-owned.
 
 namespace mapsessionhelpers
@@ -22,6 +22,24 @@ inline auto ShouldCreateSession(const bool queryOK, const bool hasAccountsSessio
 inline auto ShouldCreatePendingSession(const bool queryOK) -> bool
 {
     return queryOK;
+}
+
+// ShouldDestroyPendingByPointer mirrors destroyPendingSession(MapSession*)
+// after the null check and pending lookup by session->charID. found is whether
+// a pending owner exists for that charID; pointerMatches is whether that owner
+// is the same pointer. Host erase/delete only proceeds when both hold, so a
+// stale or foreign pointer cannot drop a replacement pending session.
+inline auto ShouldDestroyPendingByPointer(const bool found, const bool pointerMatches) -> bool
+{
+    return found && pointerMatches;
+}
+
+// ShouldDestroyPendingByCharID mirrors destroyPendingSession(uint32) after the
+// pending lookup by charId. Host erase/delete only proceeds when an owner was
+// found; missing keys are a no-op.
+inline auto ShouldDestroyPendingByCharID(const bool found) -> bool
+{
+    return found;
 }
 
 } // namespace mapsessionhelpers

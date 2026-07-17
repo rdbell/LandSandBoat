@@ -723,16 +723,16 @@ auto MapNetworking::compressPacket(uint8* buff, size_t buffsize) -> Maybe<size_t
     int32 result = zlib_compress((int8*)(buff + FFXI_HEADER_SIZE), (uint32)(buffsize - FFXI_HEADER_SIZE), (int8*)PScratchBuffer.data(), kMaxBufferSize);
 
     // handle compression error
-    if (result == -1)
+    if (mapnetworkinghelpers::PlanCompressPacket(result == -1) == mapnetworkinghelpers::CompressPacketResultPlan::Reject)
     {
         return std::nullopt;
     }
 
     auto packetSize = static_cast<size_t>(result);
 
-    ref<uint32>(PScratchBuffer.data(), zlib_compressed_size(packetSize)) = static_cast<uint32>(packetSize);
+    ref<uint32>(PScratchBuffer.data(), mapnetworkinghelpers::CompressedBitSizeTrailerOffset(packetSize)) = static_cast<uint32>(packetSize);
 
-    packetSize = zlib_compressed_size(packetSize) + 4;
+    packetSize = mapnetworkinghelpers::CompressedPayloadSize(packetSize);
 
     return packetSize;
 }

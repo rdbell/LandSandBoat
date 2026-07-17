@@ -356,6 +356,8 @@ set(SOURCES
     test_c2s_switch_nominate_packets.cpp
     test_nominate_parse_format_2614.h
     test_nominate_parse_format_2614.cpp
+    test_nominate_inscope_2784.h
+    test_nominate_inscope_2784.cpp
     test_c2s_switch_vote_runtime.h
     test_c2s_switch_vote_runtime.cpp
     test_c2s_switch_proposal_runtime.h
@@ -725,6 +727,8 @@ set(SOURCES
     test_linkshell_registry_1355.cpp
     test_linkshell_rank_change_plan_2774.h
     test_linkshell_rank_change_plan_2774.cpp
+    test_linkshell_del_clear_plan_2786.h
+    test_linkshell_del_clear_plan_2786.cpp
     test_unitychat_capacity_1356.h
     test_unitychat_capacity_1356.cpp
     test_guild_points_math_1358.h
@@ -1498,6 +1502,10 @@ set(SOURCES
     test_map_finalize_packet_size_2775.cpp
     test_map_finalize_md5_size_2778.h
     test_map_finalize_md5_size_2778.cpp
+    test_map_compress_packet_size_2785.h
+    test_map_compress_packet_size_2785.cpp
+    test_map_compress_failure_2788.h
+    test_map_compress_failure_2788.cpp
     test_attack_guard_resolution_2739.h
     test_attack_guard_resolution_2739.cpp
     test_attackround_initial_weapon_2742.h
@@ -1542,6 +1550,8 @@ set(SOURCES
     test_map_session_blowfish.cpp
     test_map_session_create_policy_2783.h
     test_map_session_create_policy_2783.cpp
+    test_map_session_destroy_pending_2787.h
+    test_map_session_destroy_pending_2787.cpp
     test_map_session_index.h
     test_map_session_index.cpp
     test_look_parser.h
