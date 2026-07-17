@@ -3921,6 +3921,16 @@ set(SOURCES
     test_dynamis_can_unlock_sj_3672.cpp
     test_jobpoints_apply_raise_3673.h
     test_jobpoints_apply_raise_3673.cpp
+    test_trade_bump_items_count_3674.h
+    test_trade_bump_items_count_3674.cpp
+    test_aman_thumbs_up_3675.h
+    test_aman_thumbs_up_3675.cpp
+    test_mapsession_destroy_pending_ptr_3676.h
+    test_mapsession_destroy_pending_ptr_3676.cpp
+    test_avatarpet_can_apply_buff_3677.h
+    test_avatarpet_can_apply_buff_3677.cpp
+    test_unity_reject_null_online_3678.h
+    test_unity_reject_null_online_3678.cpp
 )
 
 if(UNIX)

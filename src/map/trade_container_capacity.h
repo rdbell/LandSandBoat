@@ -33,8 +33,10 @@
 //           (bump_items_count.go; expand residual 2997; prior dedicated 3474 / 3420 / 3372)
 //   - 3584: ShouldBumpItemsCountOnSetEntry prior dedicated dual-wire
 //           (bump_items_count.go; expand residual 2997; prior dedicated 3540 / 3474 / 3420 / 3372)
-//   - 3629: ShouldBumpItemsCountOnSetEntry dedicated dual-wire
+//   - 3629: ShouldBumpItemsCountOnSetEntry prior dedicated dual-wire
 //           (bump_items_count.go; expand residual 2997; prior dedicated 3584 / 3540 / 3474 / 3420 / 3372)
+//   - 3674: ShouldBumpItemsCountOnSetEntry dedicated dual-wire
+//           (bump_items_count.go; expand residual 2997; prior dedicated 3629 / 3584 / 3540 / 3474 / 3420 / 3372)
 //
 // Dual-wire index:
 //   - 2962: ShouldAllowSetConfirmedStatus residual dual-wire suite
@@ -50,7 +52,8 @@
 //   - 3474: ShouldBumpItemsCountOnSetEntry prior dedicated dual-wire
 //   - 3540: ShouldBumpItemsCountOnSetEntry prior dedicated dual-wire
 //   - 3584: ShouldBumpItemsCountOnSetEntry prior dedicated dual-wire
-//   - 3629: ShouldBumpItemsCountOnSetEntry = slotInRange
+//   - 3629: ShouldBumpItemsCountOnSetEntry prior dedicated dual-wire
+//   - 3674: ShouldBumpItemsCountOnSetEntry = slotInRange
 //
 // Production host: CTradeContainer::setConfirmedStatus (trade_container.cpp)
 // injects slotInRange / itemNonNull / quantityGteAmount into
@@ -76,8 +79,9 @@
 // Residual dual-wire suite: 2997 (test_trade_bump_items_count_2997).
 // Prior dedicated dual-wire suites: 3372 (test_trade_bump_items_count_3372),
 // 3420 (test_trade_bump_items_count_3420), 3474 (test_trade_bump_items_count_3474),
-// 3540 (test_trade_bump_items_count_3540), 3584 (test_trade_bump_items_count_3584).
-// Dedicated dual-wire suite: 3629 (test_trade_bump_items_count_3629).
+// 3540 (test_trade_bump_items_count_3540), 3584 (test_trade_bump_items_count_3584),
+// 3629 (test_trade_bump_items_count_3629).
+// Dedicated dual-wire suite: 3674 (test_trade_bump_items_count_3674).
 // Prior pure port: slice 2812.
 
 namespace tradecontainerhelpers
@@ -109,7 +113,7 @@ namespace tradecontainerhelpers
 // test_tradecontainer_set_confirmed_3175, 3268 /
 // test_tradecontainer_set_confirmed_3268. Dedicated dual-wire suite is
 // test_tradecontainer_set_confirmed_3300. Sibling dual-wire gates:
-// ShouldSetTradeItemEntry (3211 / residual 2984), ShouldBumpItemsCountOnSetEntry (3629 / residual 2997; prior dedicated 3584 / 3540 / 3474 / 3420 / 3372).
+// ShouldSetTradeItemEntry (3211 / residual 2984), ShouldBumpItemsCountOnSetEntry (3674 / residual 2997; prior dedicated 3629 / 3584 / 3540 / 3474 / 3420 / 3372).
 // Host injects each conjunct after short-circuit-safe probes.
 inline auto ShouldAllowSetConfirmedStatus(
     const bool slotInRange,
@@ -151,7 +155,7 @@ inline auto ConfirmedStatusAmount(const std::uint32_t amount, const std::uint32_
 // Prior pure port: slice 2812. Residual dual-wire suite: 2984 /
 // test_trade_set_item_entry_2984. Dedicated dual-wire suite is
 // test_tradecontainer_set_trade_item_entry_3211. Sibling dual-wire gates:
-// ShouldAllowSetConfirmedStatus (3300), ShouldBumpItemsCountOnSetEntry (3629 / residual 2997; prior dedicated 3584 / 3540 / 3474 / 3420 / 3372).
+// ShouldAllowSetConfirmedStatus (3300), ShouldBumpItemsCountOnSetEntry (3674 / residual 2997; prior dedicated 3629 / 3584 / 3540 / 3474 / 3420 / 3372).
 // Host injects slotInRange only; helpers never touch CItem* or container storage.
 inline auto ShouldSetTradeItemEntry(const bool slotInRange) -> bool
 {
@@ -159,15 +163,15 @@ inline auto ShouldSetTradeItemEntry(const bool slotInRange) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 3629 — multi-arg setItem ItemsCount bump (dedicated expand residual 2997)
+// Slice 3674 — multi-arg setItem ItemsCount bump (dedicated expand residual 2997)
 // ---------------------------------------------------------------------------
 
 // ShouldBumpItemsCountOnSetEntry is the pure m_ItemsCount += 1 gate once
 // multi-arg setItem is admitted:
 //   slotId < m_PItem.size()  (same inject as outer admission)
 //
-// Formula (slice 3629 dedicated dual-wire; residual expand 2997 / pure 2812 —
-// prior dedicated 3584 / 3540 / 3474 / 3420 / 3372; formula unchanged):
+// Formula (slice 3674 dedicated dual-wire; residual expand 2997 / pure 2812 —
+// prior dedicated 3629 / 3584 / 3540 / 3474 / 3420 / 3372; formula unchanged):
 //   ShouldBumpItemsCountOnSetEntry(slotInRange) = slotInRange
 //
 // Production always bumps when in range — including slot replace / clear —
@@ -184,8 +188,8 @@ inline auto ShouldSetTradeItemEntry(const bool slotInRange) -> bool
 // test_trade_bump_items_count_2997. Prior dedicated dual-wire suites: 3372 /
 // test_trade_bump_items_count_3372, 3420 / test_trade_bump_items_count_3420,
 // 3474 / test_trade_bump_items_count_3474, 3540 / test_trade_bump_items_count_3540,
-// 3584 / test_trade_bump_items_count_3584.
-// Dedicated dual-wire suite is test_trade_bump_items_count_3629. Sibling dual-wire:
+// 3584 / test_trade_bump_items_count_3584, 3629 / test_trade_bump_items_count_3629.
+// Dedicated dual-wire suite is test_trade_bump_items_count_3674. Sibling dual-wire:
 // ShouldSetTradeItemEntry (slice 3211; residual 2984) — leave set_item_entry
 // sibling alone under this expand.
 // Host injects slotInRange only; helpers never touch CItem* or container storage.
