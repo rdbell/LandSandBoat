@@ -35,6 +35,8 @@
 //           (alreadyInList identity; residual expand 2958 / pure 1354)
 //   - 3264: ShouldBreakInventoryPearl dedicated dual-wire
 //           (shell holder OR equipped item; residual expand 3001 / pure 1354)
+//   - 3294: ShouldAddMemberAfterOnlineLookup dedicated dual-wire
+//           (linkshellLoaded identity; residual expand 3050 / pure 1355)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -64,6 +66,8 @@
 // LinkshellList.find(PItemLinkshell->GetLSID()) != end into
 // ShouldLoadLinkshellOnOnlineAdd; on true LoadLinkshell(id); on false reuses
 // cache entry when found.
+// After load/cache, inject (PLinkshell != nullptr) into
+// ShouldAddMemberAfterOnlineLookup; on true AddMember(PChar, lsType, lsNum).
 // linkshell::UnloadLinkshell injects
 // LinkshellList.find(id) != LinkshellList.end() into ShouldUnloadLinkshell;
 // on true LinkshellList.erase(id).
@@ -97,7 +101,9 @@
 // linkshell.ShouldUnloadLinkshell
 // (internal/linkshell/unload_linkshell.go),
 // linkshell.ShouldReturnCachedLinkshell
-// (internal/linkshell/return_cached_linkshell.go).
+// (internal/linkshell/return_cached_linkshell.go),
+// linkshell.ShouldAddMemberAfterOnlineLookup
+// (internal/linkshell/add_member_after_lookup.go).
 
 namespace linkshellhelpers
 {
@@ -598,7 +604,32 @@ inline auto ShouldLoadLinkshellOnOnlineAdd(const bool foundInCache) -> bool
     return !foundInCache;
 }
 
-// ShouldAddMemberAfterOnlineLookup mirrors PLinkshell != nullptr.
+// ShouldAddMemberAfterOnlineLookup mirrors PLinkshell != nullptr after
+// load/cache lookup on AddOnlineMember before AddMember.
+//
+// Formula (slice 3294 dedicated dual-wire; residual expand 3050 / pure 1355 —
+// formula unchanged):
+//   linkshellLoaded
+//
+// linkshellLoaded — host-evaluated (PLinkshell != nullptr) after cache reuse or
+//                   LoadLinkshell(lsid)
+// true  → host calls PLinkshell->AddMember(PChar, lsType, lsNum)
+// false → skip AddMember (null linkshell after miss + load failure)
+//
+// Dual-wire of Go linkshell.ShouldAddMemberAfterOnlineLookup.
+// Call site: linkshell::AddOnlineMember — host injects
+// (PLinkshell != nullptr); on true AddMember(PChar, lsType, lsNum).
+// Prior pure port: slice 1355 (linkshell registry residual). Residual 3050
+// online-add residual batch left this gate pure; residual pins remain in
+// test_linkshell_registry_1355. Dedicated dual-wire suite is
+// test_linkshell_add_member_after_lookup_3294 (free == inline == pin direct
+// return; dense 2¹). Formula is unchanged from 1355 / residual 3050. Free /
+// pin / inline all use direct return of linkshellLoaded.
+// Sibling dual-wires (leave alone): ShouldLoadLinkshellOnOnlineAdd (3055),
+// ShouldRejectNullOnlineMember (3079), ShouldProcessLinkshellItem (3099),
+// ShouldUnloadLinkshell (3111), ShouldReturnCachedLinkshell (3126). Residual
+// siblings: always-false return, erase-after-del, null warning string, load
+// classify (still 1355). Prior dedicated expand pattern: unitychat 3254.
 inline auto ShouldAddMemberAfterOnlineLookup(const bool linkshellLoaded) -> bool
 {
     return linkshellLoaded;

@@ -7,9 +7,10 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2959: ShouldAddNotorietyMember residual dual-wire expand
 //   - 3165: ShouldAddNotorietyMember prior dedicated dual-wire
-//   - 3267: ShouldAddNotorietyMember dedicated dual-wire
+//   - 3267: ShouldAddNotorietyMember prior dedicated dual-wire
+//   - 3297: ShouldAddNotorietyMember dedicated dual-wire
 //           (ownerPresent && entityPresent && differentAllegiance;
-//            residual expand 2959 / pure 2818; prior dedicated 3165)
+//            residual expand 2959 / pure 2818; prior dedicated 3267 / 3165)
 //   - 2971: ShouldRemoveNotorietyMember residual dual-wire expand
 //   - 3192: ShouldRemoveNotorietyMember dedicated dual-wire
 //           (ownerPresent && entityPresent;
@@ -33,8 +34,9 @@
 // Go dual-wire: notoriety.ShouldAddNotorietyMember
 // (internal/notoriety/add_member.go). Prior pure port: slice 2818.
 // Residual dual-wire suite: 2959 / test_notoriety_add_member_2959.
-// Prior dedicated dual-wire suite: 3165 / test_notoriety_add_member_3165.
-// Dedicated dual-wire suite: 3267 / test_notoriety_add_member_3267.
+// Prior dedicated dual-wire suites: 3165 / test_notoriety_add_member_3165,
+// 3267 / test_notoriety_add_member_3267.
+// Dedicated dual-wire suite: 3297 / test_notoriety_add_member_3297.
 // Go dual-wire: notoriety.ShouldRemoveNotorietyMember
 // (internal/notoriety/remove_member.go). Prior pure port: slice 2819.
 // Residual dual-wire suite: 2971 / test_notoriety_remove_member_2971.
@@ -101,7 +103,7 @@ inline auto ShouldScanNotorietyForPrune(const bool ownerPresent, const bool look
 // unchanged; this slice only expands dual-wire docs + index + dedicated suite.
 // Call site: CNotorietyContainer::hasEnmity (notoriety_container.cpp).
 // Sibling outer gate: ShouldScanNotorietyForPrune (slice 3020).
-// Sibling left alone: ShouldAddNotorietyMember (3267; prior dedicated 3165),
+// Sibling left alone: ShouldAddNotorietyMember (3297; prior dedicated 3267 / 3165),
 // ShouldRemoveNotorietyMember (3192), ShouldScanNotorietyForPrune (3020).
 inline auto ShouldPruneMobFromNotoriety(
     const bool isMob,
@@ -119,8 +121,8 @@ inline auto ShouldPruneMobFromNotoriety(
 // ShouldAddNotorietyMember mirrors CNotorietyContainer::add admission (~48):
 //   m_POwner && entity && entity->allegiance != m_POwner->allegiance
 //
-// Formula (slice 3267 dedicated dual-wire; residual expand 2959 / pure 2818 —
-// prior dedicated expand 3165 — formula unchanged):
+// Formula (slice 3297 dedicated dual-wire; residual expand 2959 / pure 2818 —
+// prior dedicated expand 3267 / 3165 — formula unchanged):
 //   ownerPresent && entityPresent && differentAllegiance
 //
 // Host-injected scalars (no entity pointers):
@@ -135,8 +137,9 @@ inline auto ShouldPruneMobFromNotoriety(
 // Dual-wire of Go notoriety.ShouldAddNotorietyMember
 // (internal/notoriety/add_member.go). Prior pure port: slice 2818.
 // Residual dual-wire suite: 2959 / test_notoriety_add_member_2959.
-// Prior dedicated dual-wire suite: 3165 / test_notoriety_add_member_3165.
-// Dedicated dual-wire suite is test_notoriety_add_member_3267. Formula is
+// Prior dedicated dual-wire suites: 3165 / test_notoriety_add_member_3165,
+// 3267 / test_notoriety_add_member_3267.
+// Dedicated dual-wire suite is test_notoriety_add_member_3297. Formula is
 // unchanged; this slice only expands dual-wire docs + index + dedicated suite.
 // Call site: CNotorietyContainer::add (notoriety_container.cpp).
 inline auto ShouldAddNotorietyMember(
@@ -167,7 +170,7 @@ inline auto ShouldAddNotorietyMember(
 // Dedicated dual-wire suite is test_notoriety_remove_member_3192. Formula is
 // unchanged; this slice only expands dual-wire docs + index + dedicated suite.
 // Call site: CNotorietyContainer::remove (notoriety_container.cpp).
-// Sibling left alone: ShouldAddNotorietyMember (3267; prior dedicated 3165).
+// Sibling left alone: ShouldAddNotorietyMember (3297; prior dedicated 3267 / 3165).
 inline auto ShouldRemoveNotorietyMember(const bool ownerPresent, const bool entityPresent) -> bool
 {
     return ownerPresent && entityPresent;

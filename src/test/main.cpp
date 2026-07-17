@@ -1584,6 +1584,11 @@ auto runSalvageClaimTransport3290SelfTests() -> bool;
 auto runTreasurepoolLotRare3291SelfTests() -> bool;
 auto runExtravaganzaCanAffordCipher3292SelfTests() -> bool;
 auto runCommandPermission3293SelfTests() -> bool;
+auto runLinkshellAddMemberAfterLookup3294SelfTests() -> bool;
+auto runDarkixionCanBreakHorn3295SelfTests() -> bool;
+auto runAistateCanRest3296SelfTests() -> bool;
+auto runNotorietyAddMember3297SelfTests() -> bool;
+auto runPetutilsCanAttackTarget3298SelfTests() -> bool;
 
 namespace
 {
@@ -3145,6 +3150,11 @@ namespace
         ok = runTreasurepoolLotRare3291SelfTests() && ok;
         ok = runExtravaganzaCanAffordCipher3292SelfTests() && ok;
         ok = runCommandPermission3293SelfTests() && ok;
+        ok = runLinkshellAddMemberAfterLookup3294SelfTests() && ok;
+        ok = runDarkixionCanBreakHorn3295SelfTests() && ok;
+        ok = runAistateCanRest3296SelfTests() && ok;
+        ok = runNotorietyAddMember3297SelfTests() && ok;
+        ok = runPetutilsCanAttackTarget3298SelfTests() && ok;
 
         return ok;
     }

@@ -22,41 +22,45 @@ inline auto ResolveResourcePercent(const int32 current, const int32 maxResource)
     return static_cast<uint8>(std::max<uint8>(1, static_cast<uint8>(std::floor(ratio))));
 }
 
-// --- Slice 3253: CanRest dedicated dual-wire expand residual 3006 ---
+// --- Slice 3296: CanRest dedicated dual-wire expand residual 3006 ---
 // Index:
 //   - 1635: residual pure port (GetHPP/GetMPP, CanRest, Rest policy suite)
 //   - 3006: CanRest residual dual-wire suite
-//   - 3253: CanRest dedicated dual-wire expand residual 3006
+//   - 3253: CanRest prior dedicated dual-wire expand residual 3006
+//   - 3296: CanRest dedicated dual-wire expand residual 3006 (prior ~3253)
 //
 // Formula index:
 //   - 1635 / 3006: CanRest residual pure dual-wire
-//   - 3253: CanRest = !hasRegenDown && !hasNoRestFlag
+//   - 3253: CanRest prior dedicated dual-wire expand residual 3006
+//   - 3296: CanRest = !hasRegenDown && !hasNoRestFlag
 //     dedicated dual-wire expand residual 3006
 //
 // Residual pure port: slice 1635 (GetHPP/GetMPP, CanRest, Rest policy suite).
 // Residual dual-wire: slice 3006 (CanRest free-function dual-wire suite).
+// Prior dedicated dual-wire: slice 3253 (suite retained).
 // Production host: CBattleEntity::CanRest injects
 // getMod(Mod::REGEN_DOWN) != 0 and
 // StatusEffectContainer->HasStatusEffectByFlag(StatusEffectFlag::NoRest)
 // into CanRest (battle_entity.cpp ~404). Controllers (mob_controller /
 // trust_controller) call CanRest before Rest(rate); Rest itself does not.
-// Go dual-wire: aistate.CanRest (internal/aistate/can_rest.go; slice 3253).
+// Go dual-wire: aistate.CanRest (internal/aistate/can_rest.go; slice 3296).
 // Sibling residual: ResolveResourcePercent / ResolveRestPlan (1635 suite).
 // Coverage: test_battle_can_rest_3006 (residual dual-wire),
-// test_aistate_can_rest_3253 (dedicated expand residual 3006; not in
+// test_aistate_can_rest_3253 (prior dedicated expand residual 3006),
+// test_aistate_can_rest_3296 (dedicated expand residual 3006; not in
 // CMake/main).
 //
-// Dual-wire notes (slice 3253):
-//   Formula unchanged from pure 1635 / residual dual-wire 3006:
+// Dual-wire notes (slice 3296):
+//   Formula unchanged from pure 1635 / residual dual-wire 3006 / prior 3253:
 //     !hasRegenDown && !hasNoRestFlag
 //   Host inject and call sites unchanged (battle_entity.cpp ~404).
 //   Dedicated suite expands free == inline == pin (direct return) + residual
-//   poles + dense 2² bool space. Residual 3006 suite retained.
+//   poles + dense 2² bool space. Residual 3006 / prior 3253 suites retained.
 
 // CanRest mirrors !REGEN_DOWN && !NoRest status flag.
 //
-// Formula (slice 3253 dedicated dual-wire expand residual 3006; pure 1635 —
-// formula unchanged):
+// Formula (slice 3296 dedicated dual-wire expand residual 3006; prior 3253;
+// pure 1635 — formula unchanged):
 //   !hasRegenDown && !hasNoRestFlag
 //
 // hasRegenDown  — host-injected getMod(Mod::REGEN_DOWN) != 0
@@ -64,10 +68,10 @@ inline auto ResolveResourcePercent(const int32 current, const int32 maxResource)
 // true  → entity is eligible to rest/heal
 // false → blocked by regen-down mod and/or NoRest status flag
 //
-// Dual-wire of Go aistate.CanRest (can_rest.go / slice 3253).
+// Dual-wire of Go aistate.CanRest (can_rest.go / slice 3296).
 // Call site: CBattleEntity::CanRest (~404).
-// Coverage: test_aistate_can_rest_3253 (dedicated expand residual 3006;
-// not in CMake/main); residual 3006 suite retained.
+// Coverage: test_aistate_can_rest_3296 (dedicated expand residual 3006;
+// not in CMake/main); residual 3006 / prior 3253 suites retained.
 inline auto CanRest(const bool hasRegenDown, const bool hasNoRestFlag) -> bool
 {
     return !hasRegenDown && !hasNoRestFlag;
