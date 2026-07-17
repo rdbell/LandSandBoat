@@ -26,6 +26,7 @@
 #include "view_acquire_player_response.h"
 #include "view_character_delete_response.h"
 #include "view_name_check_response.h"
+#include "view_character_create_response.h"
 
 #include "character_delete.h"
 #include "character_name.h"
@@ -208,22 +209,38 @@ void view_session::read_func()
         {
             lpkt_chr_info_sub2 charInfo = {};
             // creating new char
-            if (loginHelpers::createCharacter(session, buffer_.data(), charInfo) == -1)
+            const bool createSucceeded = loginHelpers::createCharacter(session, buffer_.data(), charInfo) != -1;
+            const auto responsePlan    = login::PlanViewCharacterCreateResponse(
+                createSucceeded,
+                session.data_session != nullptr);
+            if (responsePlan.closeViewSocket)
             {
                 socket_.lowest_layer().close();
+            }
+            if (responsePlan.returnFromRead)
+            {
                 return;
             }
-
-            if (auto data = dynamic_cast<data_session*>(session.data_session.get()))
+            if (responsePlan.addCharIntoDataSession)
             {
-                data->addCharIntoCharInfo(charInfo);
+                if (auto data = dynamic_cast<data_session*>(session.data_session.get()))
+                {
+                    data->addCharIntoCharInfo(charInfo);
+                }
             }
-
-            session.justCreatedNewChar = true;
-            ShowInfo(loginHelpers::FormatCharacterCreatedInfo(session.requestedNewCharacterName, session.accountID));
-
-            loginHelpers::GenerateViewLobbyAckPacket(buffer_.data());
-            do_write(loginHelpers::ViewLobbyAckPacketSize);
+            if (responsePlan.setJustCreatedNewChar)
+            {
+                session.justCreatedNewChar = true;
+            }
+            if (responsePlan.logCharacterCreated)
+            {
+                ShowInfo(loginHelpers::FormatCharacterCreatedInfo(session.requestedNewCharacterName, session.accountID));
+            }
+            if (responsePlan.writeLobbyAck)
+            {
+                loginHelpers::GenerateViewLobbyAckPacket(buffer_.data());
+                do_write(loginHelpers::ViewLobbyAckPacketSize);
+            }
         }
         break;
         case 0x22: // 34: Checking name and Gold World Pass

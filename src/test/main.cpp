@@ -288,6 +288,7 @@ auto runLoginViewWorldListResponse2759SelfTests() -> bool;
 auto runLoginViewAcquirePlayerResponse2760SelfTests() -> bool;
 auto runLoginViewCharacterDeleteResponse2761SelfTests() -> bool;
 auto runLoginViewNameCheckResponse2762SelfTests() -> bool;
+auto runLoginViewCharacterCreateResponse2763SelfTests() -> bool;
 auto runLoginAuthPassword1307SelfTests() -> bool;
 auto runLoginAuthVersionError1308SelfTests() -> bool;
 auto runLoginAuthAccountID1309SelfTests() -> bool;
@@ -1329,6 +1330,7 @@ namespace
         ok = runLoginViewAcquirePlayerResponse2760SelfTests() && ok;
         ok = runLoginViewCharacterDeleteResponse2761SelfTests() && ok;
         ok = runLoginViewNameCheckResponse2762SelfTests() && ok;
+        ok = runLoginViewCharacterCreateResponse2763SelfTests() && ok;
         ok = runLoginAuthPassword1307SelfTests() && ok;
         ok = runLoginAuthVersionError1308SelfTests() && ok;
         ok = runLoginAuthAccountID1309SelfTests() && ok;
