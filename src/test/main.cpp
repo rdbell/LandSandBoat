@@ -1829,6 +1829,11 @@ auto runItemIncrementCountInsert3535SelfTests() -> bool;
 auto runPetutilsPetEngage3536SelfTests() -> bool;
 auto runMeritLowerMerit3537SelfTests() -> bool;
 auto runDynamisCanUnlockSJ3538SelfTests() -> bool;
+auto runAmanThumbsUp3541SelfTests() -> bool;
+auto runAvatarpetCanApplyBuff3543SelfTests() -> bool;
+auto runJobpointsApplyRaise3539SelfTests() -> bool;
+auto runMapsessionDestroyPendingPtr3542SelfTests() -> bool;
+auto runTradeBumpItemsCount3540SelfTests() -> bool;
 
 namespace
 {
@@ -3635,6 +3640,11 @@ namespace
         ok = runPetutilsPetEngage3536SelfTests() && ok;
         ok = runMeritLowerMerit3537SelfTests() && ok;
         ok = runDynamisCanUnlockSJ3538SelfTests() && ok;
+        ok = runAmanThumbsUp3541SelfTests() && ok;
+        ok = runAvatarpetCanApplyBuff3543SelfTests() && ok;
+        ok = runJobpointsApplyRaise3539SelfTests() && ok;
+        ok = runMapsessionDestroyPendingPtr3542SelfTests() && ok;
+        ok = runTradeBumpItemsCount3540SelfTests() && ok;
 
         return ok;
     }

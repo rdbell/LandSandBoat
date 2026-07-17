@@ -3651,6 +3651,16 @@ set(SOURCES
     test_merit_lower_merit_3537.cpp
     test_petutils_pet_engage_3536.h
     test_petutils_pet_engage_3536.cpp
+    test_aman_thumbs_up_3541.h
+    test_aman_thumbs_up_3541.cpp
+    test_avatarpet_can_apply_buff_3543.h
+    test_avatarpet_can_apply_buff_3543.cpp
+    test_jobpoints_apply_raise_3539.h
+    test_jobpoints_apply_raise_3539.cpp
+    test_mapsession_destroy_pending_ptr_3542.h
+    test_mapsession_destroy_pending_ptr_3542.cpp
+    test_trade_bump_items_count_3540.h
+    test_trade_bump_items_count_3540.cpp
 )
 
 if(UNIX)
