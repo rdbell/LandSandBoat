@@ -9,7 +9,8 @@
 //   - 3290: CanClaimTransport prior dedicated dual-wire expand residual 2871
 //   - 3318: CanClaimTransport dedicated dual-wire expand residual 2871
 //   - 2892: CanOpenDoor residual dual-wire suite (onDoorOpen CLOSE_DOOR + unSealed)
-//   - 3133: CanOpenDoor dedicated dual-wire (open_door.go)
+//   - 3133: CanOpenDoor prior dedicated dual-wire (open_door.go)
+//   - 3358: CanOpenDoor dedicated dual-wire expand residual 2892
 //   - 2894: CanOpenBossDoor residual dual-wire suite (openBossDoor CLOSE_DOOR gate)
 //   - 3188: CanOpenBossDoor dedicated dual-wire (open_boss_door.go)
 //   - 2898: ShouldResetTempBox residual dual-wire suite (resetTempBoxes NORMAL)
@@ -24,7 +25,8 @@
 //   - 3290: CanClaimTransport prior dedicated dual-wire expand residual 2871
 //   - 3318: CanClaimTransport = !TransportUserBusy(transportUserID)
 //   - 2892: CanOpenDoor residual dual-wire suite
-//   - 3133: CanOpenDoor = animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue
+//   - 3133: CanOpenDoor prior dedicated dual-wire suite
+//   - 3358: CanOpenDoor = animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue
 //   - 2894: CanOpenBossDoor residual dual-wire suite
 //   - 3188: CanOpenBossDoor = animation == kAnimCloseDoor
 //   - 2898: ShouldResetTempBox residual dual-wire suite
@@ -46,7 +48,7 @@
 // ShouldResetTempBox / ShouldSpawnOnTempChestCasket). Residual dual-wire
 // suites: 2871 (claim), 2892 (open door), 2894 (open boss door), 2898
 // (reset temp box), 2904 (spawn temp chest). Dedicated dual-wire: 3085,
-// 3133, 3146, 3188, 3209, 3259, 3290, 3318.
+// 3133, 3146, 3188, 3209, 3259, 3290, 3318, 3358.
 //
 // onTransportUpdate (2871 residual / 3085+3259+3290 prior dedicated / 3318 dedicated):
 //   if instance:getLocalVar('transportUser') == 0 then
@@ -55,7 +57,7 @@
 //     return
 //   end
 //
-// onDoorOpen (2892 residual / 3133 dedicated):
+// onDoorOpen (2892 residual / 3133 prior dedicated / 3358 dedicated):
 //   if
 //       npc:getAnimation() == xi.animation.CLOSE_DOOR and
 //       npc:getLocalVar('unSealed') == 1
@@ -125,7 +127,8 @@ inline auto CanClaimTransport(const uint32 transportUserID) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// 2892 residual / 3133 dedicated — onDoorOpen CLOSE_DOOR + unSealed gate
+// 2892 residual / 3133 prior dedicated / 3358 dedicated — onDoorOpen
+// CLOSE_DOOR + unSealed gate
 // ---------------------------------------------------------------------------
 
 // Door animation / seal pins (xi.animation / sealDoors / unsealDoors):
@@ -140,8 +143,8 @@ inline constexpr int32 kDoorUnsealedValue = 1;
 
 // CanOpenDoor is the pure free-function form of the onDoorOpen gate:
 //
-// Formula (slice 3133 dedicated dual-wire; residual expand 2892 / pure 0977 /
-// 1083 — formula unchanged):
+// Formula (slice 3358 dedicated dual-wire; residual expand 2892 / prior
+// dedicated 3133 / pure 0977 / 1083 — formula unchanged):
 //   CanOpenDoor(animation, unSealed) =
 //     animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue
 //   ≡ animation == CLOSE_DOOR (9) && unSealed == 1
@@ -152,8 +155,9 @@ inline constexpr int32 kDoorUnsealedValue = 1;
 // Dual-wire of Go salvage.CanOpenDoor (open_door.go).
 // Call site: future Lua onDoorOpen inject.
 // Prior pure port: slice 0977. Residual dual-wire suite: 2892 /
-// test_salvage_open_door_2892. Dedicated dual-wire suite is
-// test_salvage_can_open_door_3133.
+// test_salvage_open_door_2892. Prior dedicated dual-wire suite is
+// test_salvage_can_open_door_3133. Dedicated dual-wire suite is
+// test_salvage_can_open_door_3358.
 inline auto CanOpenDoor(const uint8 animation, const int32 unSealed) -> bool
 {
     return animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue;

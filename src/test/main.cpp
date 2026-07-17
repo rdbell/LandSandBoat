@@ -1644,6 +1644,11 @@ auto runMapsessionRecoverLinkDead3350SelfTests() -> bool;
 auto runItemDecrementCountRemove3351SelfTests() -> bool;
 auto runNyzulFloor100Vigil3352SelfTests() -> bool;
 auto runPartyRejectTrusts3353SelfTests() -> bool;
+auto runUniversalClearSlot3354SelfTests() -> bool;
+auto runAllianceSetLocalMain3355SelfTests() -> bool;
+auto runAmbuscadeWarpExit3356SelfTests() -> bool;
+auto runCampaignDebitBonus3357SelfTests() -> bool;
+auto runSalvageCanOpenDoor3358SelfTests() -> bool;
 
 namespace
 {
@@ -3265,6 +3270,11 @@ namespace
         ok = runItemDecrementCountRemove3351SelfTests() && ok;
         ok = runNyzulFloor100Vigil3352SelfTests() && ok;
         ok = runPartyRejectTrusts3353SelfTests() && ok;
+        ok = runUniversalClearSlot3354SelfTests() && ok;
+        ok = runAllianceSetLocalMain3355SelfTests() && ok;
+        ok = runAmbuscadeWarpExit3356SelfTests() && ok;
+        ok = runCampaignDebitBonus3357SelfTests() && ok;
+        ok = runSalvageCanOpenDoor3358SelfTests() && ok;
 
         return ok;
     }

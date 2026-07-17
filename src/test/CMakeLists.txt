@@ -3281,6 +3281,16 @@ set(SOURCES
     test_nyzul_floor100_vigil_3352.cpp
     test_party_reject_trusts_3353.h
     test_party_reject_trusts_3353.cpp
+    test_universal_clear_slot_3354.h
+    test_universal_clear_slot_3354.cpp
+    test_alliance_set_local_main_3355.h
+    test_alliance_set_local_main_3355.cpp
+    test_ambuscade_warp_exit_3356.h
+    test_ambuscade_warp_exit_3356.cpp
+    test_campaign_debit_bonus_3357.h
+    test_campaign_debit_bonus_3357.cpp
+    test_salvage_can_open_door_3358.h
+    test_salvage_can_open_door_3358.cpp
 )
 
 if(UNIX)

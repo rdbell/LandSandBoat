@@ -11,11 +11,12 @@
 //   - 2910: Ambuscade Tome onEventFinish Intense VE createInstance residual
 //   - 2917: onInstanceComplete / onInstanceFailure always-start exit CS residual
 //   - 3062: ShouldCompleteInstance prior dedicated dual-wire (complete_instance.go)
-//   - 3088: ShouldWarpOnExitEvent dedicated dual-wire (warp_exit.go)
+//   - 3088: ShouldWarpOnExitEvent prior dedicated dual-wire (warp_exit.go)
 //   - 3109: ShouldStartExitEvent dedicated dual-wire (start_exit.go)
 //   - 3129: ShouldTriggerRoEIntro dedicated dual-wire (roe_intro.go)
 //   - 3143: ShouldCreateIntenseVEInstance dedicated dual-wire (intense_ve.go)
 //   - 3241: ShouldCompleteInstance dedicated expand residual 2875 (prior 3062)
+//   - 3356: ShouldWarpOnExitEvent dedicated expand residual 2888 (prior 3088)
 //
 // Dual-wire index:
 //   - 2875: ShouldCompleteInstance residual dual-wire suite
@@ -26,11 +27,12 @@
 //   - 2910: ShouldCreateIntenseVEInstance residual dual-wire suite
 //   - 2917: ShouldStartExitEvent residual dual-wire suite
 //   - 3062: ShouldCompleteInstance prior dedicated dual-wire (!anyMobAlive)
-//   - 3088: ShouldWarpOnExitEvent (csid == EventCSIDExit / 10001)
+//   - 3088: ShouldWarpOnExitEvent prior dedicated dual-wire (csid == EventCSIDExit / 10001)
 //   - 3109: ShouldStartExitEvent (always true / startEvent 10001)
 //   - 3129: ShouldTriggerRoEIntro (csid == EventCSIDIntro / 385 → RoE 499)
 //   - 3143: ShouldCreateIntenseVEInstance (csid 374 + option 5 → createInstance 30000)
 //   - 3241: ShouldCompleteInstance dedicated expand residual 2875 (prior 3062)
+//   - 3356: ShouldWarpOnExitEvent dedicated expand residual 2888 (prior 3088)
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
@@ -83,7 +85,7 @@ inline auto ShouldCompleteInstance(const bool anyMobAlive) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2888 / 3088 — instance onEventFinish exit-warp CSID gate
+// Slice 2888 / 3088 / 3356 — instance onEventFinish exit-warp CSID gate
 // ---------------------------------------------------------------------------
 
 // EventCSIDExit is the exit cutscene CSID (ambuscade instance onEventFinish /
@@ -93,7 +95,8 @@ inline constexpr int32 EventCSIDExit = 10001;
 // ShouldWarpOnExitEvent mirrors ambuscade.lua instance onEventFinish:
 //   if csid == 10001 then player:setPos(...) end
 //
-// Formula (slice 3088 dual-wire; residual expand 2888):
+// Formula (slice 3356 dedicated dual-wire expand residual 2888; prior
+// dedicated 3088 — formula unchanged):
 //   ShouldWarpOnExitEvent(csid) = csid == EventCSIDExit  // 10001
 //
 // csid — host-injected event CSID from onEventFinish
@@ -103,8 +106,9 @@ inline constexpr int32 EventCSIDExit = 10001;
 // Dual-wire of Go ambuscade.ShouldWarpOnExitEvent.
 // Call site: future Lua onEventFinish inject.
 // Prior pure port: slice 1089. Residual dual-wire suite: 2888 /
-// test_ambuscade_warp_exit_2888. Dedicated dual-wire suite is
-// test_ambuscade_warp_exit_3088. Host still calls setPos(ExitDest) after
+// test_ambuscade_warp_exit_2888. Prior dedicated dual-wire suite:
+// test_ambuscade_warp_exit_3088. Dedicated expand residual suite is
+// test_ambuscade_warp_exit_3356. Host still calls setPos(ExitDest) after
 // a true gate. EventCSIDExit is also the complete/failure startEvent CSID;
 // this gate is the finish-side warp half only.
 inline auto ShouldWarpOnExitEvent(const int32 csid) -> bool

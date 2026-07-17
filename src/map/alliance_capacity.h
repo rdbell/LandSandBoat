@@ -21,6 +21,7 @@
 //   - 3121: ShouldSkipDelPartyWhenEmpty (!hasAlliance || partyListEmpty) dual-wire expansion
 //   - 3144: ShouldAttemptAllianceLeaderPromote (isMainParty) dual-wire expansion
 //   - 3228: ShouldSkipDelPartyWhenEmpty dedicated dual-wire expand residual 2941
+//   - 3355: ShouldSetLocalMainParty dedicated dual-wire expand residual 2988
 //
 // Production host: CAlliance::delParty (alliance.cpp) injects
 // party->m_PAlliance != nullptr and partyList.empty() into
@@ -42,7 +43,8 @@
 // scanning partyList after clearing aLeader.
 // Go dual-wire: alliance.ShouldSetLocalMainParty
 // (internal/alliance/set_local_main_party.go). Prior pure port: 1346;
-// prior dual-wire: 2988; pure dual-wire expansion: 3077.
+// prior dual-wire: 2988; prior dual-wire expansion: 3077;
+// dedicated dual-wire expand residual 2988: 3355.
 
 namespace alliancehelpers
 {
@@ -240,7 +242,8 @@ constexpr uint16 AllianceLeaderFlag = 0x0008;
 // ShouldSetLocalMainParty mirrors finding GetMemberByName on this process
 // during assignAllianceLeader (local main-party gate).
 //
-// Formula (slice 3077 dual-wire; prior 2988 dual-wire; residual 1346):
+// Formula (slice 3355 dedicated dual-wire expand residual 2988; prior 3077
+// dual-wire expansion; prior 2988 dual-wire; residual 1346):
 //   memberFoundOnThisServer
 //
 // memberFoundOnThisServer — host-evaluated PParty->GetMemberByName(name) != nullptr
@@ -253,6 +256,8 @@ constexpr uint16 AllianceLeaderFlag = 0x0008;
 // injects GetMemberByName result per partyList entry.
 // Residual pure port: slice 1346 (assignAllianceLeader gate suite).
 // Prior dual-wire packaging: slice 2988.
+// Prior dual-wire expansion: slice 3077.
+// Dedicated dual-wire expand residual 2988: slice 3355.
 inline auto ShouldSetLocalMainParty(const bool memberFoundOnThisServer) -> bool
 {
     return memberFoundOnThisServer;
