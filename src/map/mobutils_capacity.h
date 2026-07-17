@@ -18,7 +18,8 @@
 //   - 3279: CanDropGil (gilMin/gilMax/gilBonus eligibility gate; prior dedicated expand residual 2960)
 //   - 3309: CanDropGil (gilMin/gilMax/gilBonus eligibility gate; dedicated expand residual 2960)
 //   - 3361: ShouldAssignParrySkill (MOBMOD_CAN_PARRY > 0 gate; dedicated expand residual 2972)
-//   - 3392: ShouldAssignGuardSkill (MNK/PUP + MOBMOD_CANNOT_GUARD == 0 gate; dedicated expand residual 3022)
+//   - 3392: ShouldAssignGuardSkill (MNK/PUP + MOBMOD_CANNOT_GUARD == 0 gate; prior dedicated expand residual 3022)
+//   - 3450: ShouldAssignGuardSkill (MNK/PUP + MOBMOD_CANNOT_GUARD == 0 gate; dedicated expand residual 3022)
 //
 // Production hosts:
 //   - CMobEntity::CanDropGil / CanStealGil in mob_entity.cpp injects
@@ -137,27 +138,29 @@ inline auto ShouldAssignParrySkill(const int16 canParryMod) -> bool
     return canParryMod > 0;
 }
 
-// Slice 3392 — CalculateMobStats guard skill assignment gate
-// (dedicated expand residual 3022; prior re-index dual-wire: 3131;
-// residual dual-wire expansion: 3022; residual pure port: 1623)
+// Slice 3450 — CalculateMobStats guard skill assignment gate
+// (dedicated expand residual 3022; prior dedicated expand residual: 3392;
+// prior re-index dual-wire: 3131; residual dual-wire expansion: 3022;
+// residual pure port: 1623)
 //
-// Dual-wire notes (slice 3392 dedicated expand residual 3022):
+// Dual-wire notes (slice 3450 dedicated expand residual 3022):
 //   Formula unchanged from residual 1623 / residual 3022 dual-wire /
-//   prior re-index 3131:
+//   prior re-index 3131 / prior dedicated 3392:
 //     ShouldAssignGuardSkill(mJob, cannotGuardMod) =
 //       (mJob == 2 /*MNK*/ || mJob == 18 /*PUP*/) && cannotGuardMod == 0
-//   Direct return form (production free function + 3392 / 3131 / 3022 inline/pin):
+//   Direct return form (production free function + 3450 / 3392 / 3131 / 3022 inline/pin):
 //     return (mJob == 2 /*JOB_MNK*/ || mJob == 18 /*JOB_PUP*/) && cannotGuardMod == 0;
 //   Go dual-wire: mobutils.ShouldAssignGuardSkill / GuardSkillRank
-//   Index 3392: mobutils.ShouldAssignGuardSkill pure dual-wire
+//   Index 3450: mobutils.ShouldAssignGuardSkill pure dual-wire
 //     (dedicated expand residual 3022).
 //   Residual dual-wire suite: test_mobutils_assign_guard_3022.
 //   Prior re-index dual-wire suite: test_mobutils_assign_guard_3131.
-//   Dedicated dual-wire suite: test_mobutils_assign_guard_3392.
+//   Prior dedicated dual-wire suite: test_mobutils_assign_guard_3392.
+//   Dedicated dual-wire suite: test_mobutils_assign_guard_3450.
 //   Sibling parry dual-wire (3361) left alone.
 //
 // ShouldAssignGuardSkill mirrors CalculateMobStats guard skill assignment
-// pure half (slice 3392 dual-wire; unchanged):
+// pure half (slice 3450 dual-wire; unchanged):
 //
 //   (mJob == 2 /*JOB_MNK*/ || mJob == 18 /*JOB_PUP*/) && cannotGuardMod == 0
 //
@@ -166,7 +169,7 @@ inline auto ShouldAssignParrySkill(const int16 canParryMod) -> bool
 // WorkingSkills.skill[SKILL_GUARD] from GetBaseSkill using GuardSkillRank
 // (fixed rank C / 3). Matches Go mobutils.ShouldAssignGuardSkill and residual
 // mobsetuphelpers::ShouldAssignGuardSkill (1623 / mob_setup_capacity.h).
-// Dual-wire of Go mobutils.ShouldAssignGuardSkill (assign_guard.go / slice 3392).
+// Dual-wire of Go mobutils.ShouldAssignGuardSkill (assign_guard.go / slice 3450).
 inline auto ShouldAssignGuardSkill(const uint8 mJob, const int16 cannotGuardMod) -> bool
 {
     return (mJob == 2 /*JOB_MNK*/ || mJob == 18 /*JOB_PUP*/) && cannotGuardMod == 0;

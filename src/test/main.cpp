@@ -1739,6 +1739,11 @@ auto runRangerStripPartialRetain3445SelfTests() -> bool;
 auto runCharSetPendingPush3446SelfTests() -> bool;
 auto runAllianceAttemptLeaderPromote3447SelfTests() -> bool;
 auto runRecastUpdateMaxCharges3448SelfTests() -> bool;
+auto runNyzulFloor100Vigil3449SelfTests() -> bool;
+auto runMobutilsAssignGuard3450SelfTests() -> bool;
+auto runRangedDeleteUnlimitedShot3451SelfTests() -> bool;
+auto runCommandAuditGMCommand3452SelfTests() -> bool;
+auto runAistateDelActorOnAttack3453SelfTests() -> bool;
 
 namespace
 {
@@ -3455,6 +3460,11 @@ namespace
         ok = runCharSetPendingPush3446SelfTests() && ok;
         ok = runAllianceAttemptLeaderPromote3447SelfTests() && ok;
         ok = runRecastUpdateMaxCharges3448SelfTests() && ok;
+        ok = runNyzulFloor100Vigil3449SelfTests() && ok;
+        ok = runMobutilsAssignGuard3450SelfTests() && ok;
+        ok = runRangedDeleteUnlimitedShot3451SelfTests() && ok;
+        ok = runCommandAuditGMCommand3452SelfTests() && ok;
+        ok = runAistateDelActorOnAttack3453SelfTests() && ok;
 
         return ok;
     }

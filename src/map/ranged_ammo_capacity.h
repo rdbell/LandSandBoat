@@ -95,7 +95,8 @@ inline auto ShouldConsumeAmmo(const bool hasAmmo, const int16 recycleChance, con
     return roll0to99 > recycleChance;
 }
 
-// --- Slice 3399: ShouldDeleteUnlimitedShot pure dual-wire (dedicated expand residual 3000) ---
+// --- Slice 3451: ShouldDeleteUnlimitedShot pure dual-wire (dedicated expand residual 3000) ---
+// Prior dedicated dual-wire: slice 3399 (suite retained).
 // Residual dual-wire: slice 3000 (ShouldDeleteUnlimitedShot pure dual-wire suite retained).
 // Residual pure port: slice 1390 (OnRangedAttack ammo / RemoveAmmo policy suite).
 // Production host: CBattleEntity::OnRangedAttack injects
@@ -105,24 +106,25 @@ inline auto ShouldConsumeAmmo(const bool hasAmmo, const int16 recycleChance, con
 // Go dual-wire: attackutils.ShouldDeleteUnlimitedShot
 // (internal/attackutils/delete_unlimited_shot.go).
 //
-// Dual-wire notes (slice 3399 dedicated expand residual 3000):
-//   Formula unchanged from residual 1390 / residual dual-wire 3000:
+// Dual-wire notes (slice 3451 dedicated expand residual 3000; prior 3399 retained):
+//   Formula unchanged from residual 1390 / residual dual-wire 3000 / dedicated 3399:
 //     if !hasUnlimitedShot → false
 //     else → hitOccured || retainUnlimitedShotMod <= 0
-//   Early-return form (production free function + 3399 / 3000 inline/pin):
+//   Early-return form (production free function + 3451 / 3399 / 3000 inline/pin):
 //     if (!hasUnlimitedShot) return false; return hitOccured || retainUnlimitedShotMod <= 0;
-//   Index 3399: attackutils.ShouldDeleteUnlimitedShot pure dual-wire
+//   Index 3451: attackutils.ShouldDeleteUnlimitedShot pure dual-wire
 //     (dedicated expand residual 3000).
 //   Residual dual-wire suite: test_ranged_delete_unlimited_shot_3000 (retained).
-//   Dedicated dual-wire suite: test_ranged_delete_unlimited_shot_3399.
+//   Prior dedicated dual-wire suite: test_ranged_delete_unlimited_shot_3399 (retained).
+//   Dedicated dual-wire suite: test_ranged_delete_unlimited_shot_3451.
 //
 // Sibling dual-wires (ShouldConsumeAmmo 3364/2986, truncate, etc.) left alone.
 
 // ShouldDeleteUnlimitedShot mirrors:
 //   hasUnlimitedShot && (hitOccured || RETAIN_UNLIMITED_SHOT <= 0)
 //
-// Formula (slice 3399 dedicated dual-wire expand residual 3000; prior
-// residual 3000 / pure 1390 — formula unchanged):
+// Formula (slice 3451 dedicated dual-wire expand residual 3000; prior
+// dedicated 3399 / residual 3000 / pure 1390 — formula unchanged):
 //   if !hasUnlimitedShot → false
 //   else → hitOccured || retainUnlimitedShotMod <= 0
 //
@@ -133,7 +135,7 @@ inline auto ShouldConsumeAmmo(const bool hasAmmo, const int16 recycleChance, con
 // false → keep UnlimitedShot (no effect, or miss with retain mod > 0)
 //
 // Dual-wire of Go attackutils.ShouldDeleteUnlimitedShot
-// (delete_unlimited_shot.go / slice 3399).
+// (delete_unlimited_shot.go / slice 3451; prior 3399 retained).
 // Call site: CBattleEntity::OnRangedAttack (~3280).
 inline auto ShouldDeleteUnlimitedShot(
     const bool hasUnlimitedShot,

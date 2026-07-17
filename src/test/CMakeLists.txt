@@ -3471,6 +3471,16 @@ set(SOURCES
     test_alliance_attempt_leader_promote_3447.cpp
     test_recast_update_max_charges_3448.h
     test_recast_update_max_charges_3448.cpp
+    test_nyzul_floor100_vigil_3449.h
+    test_nyzul_floor100_vigil_3449.cpp
+    test_mobutils_assign_guard_3450.h
+    test_mobutils_assign_guard_3450.cpp
+    test_ranged_delete_unlimited_shot_3451.h
+    test_ranged_delete_unlimited_shot_3451.cpp
+    test_command_audit_gm_command_3452.h
+    test_command_audit_gm_command_3452.cpp
+    test_aistate_del_actor_on_attack_3453.h
+    test_aistate_del_actor_on_attack_3453.cpp
 )
 
 if(UNIX)

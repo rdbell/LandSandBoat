@@ -35,6 +35,9 @@
 //   - 3400: ShouldAuditGMCommand dedicated dual-wire expand residual 3011
 //           (auditLevel <= permission && auditLevel > 0; prior dedicated expand 3161 /
 //            residual expand 3011 / pure 2792; formula unchanged)
+//   - 3452: ShouldAuditGMCommand dedicated dual-wire expand residual 3011
+//           (auditLevel <= permission && auditLevel > 0; prior dedicated expand 3400 / 3161 /
+//            residual expand 3011 / pure 2792; formula unchanged)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
@@ -138,8 +141,8 @@ inline auto ShouldAllowCommandPermission(const uint8 gmLevel, const int8 permiss
 // ShouldAuditGMCommand mirrors auditLevel <= permission && auditLevel > 0
 // after settings::get<uint8>("map.AUDIT_GM_CMD").
 //
-// Formula (slice 3400 dedicated dual-wire; residual expand 3011 / pure 2792 —
-// prior dedicated expand 3161; formula unchanged):
+// Formula (slice 3452 dedicated dual-wire; residual expand 3011 / pure 2792 —
+// prior dedicated expand 3400 / 3161; formula unchanged):
 //   static_cast<int>(auditLevel) <= static_cast<int>(permission) && auditLevel > 0
 // which is equivalent to (auditLevel <= permission && auditLevel > 0) after
 // usual arithmetic conversions promote uint8 / int8 to int.
@@ -154,10 +157,10 @@ inline auto ShouldAllowCommandPermission(const uint8 gmLevel, const int8 permiss
 // Call site: CCommandHandler::call via PlanCommandCallPostProps after cmdprops load
 // (only consulted for host disposition when permission is allowed).
 // Prior pure port: slice 2792. Residual dual-wire suite: 3011 /
-// test_command_audit_gm_3011. Prior dedicated dual-wire suite: 3161 /
-// test_command_audit_gm_command_3161. Dedicated dual-wire suite is
-// test_command_audit_gm_command_3400. Formula is unchanged; this slice only
-// expands dual-wire docs + index + dedicated suite.
+// test_command_audit_gm_3011. Prior dedicated dual-wire suites: 3161 /
+// test_command_audit_gm_command_3161, 3400 / test_command_audit_gm_command_3400.
+// Dedicated dual-wire suite is test_command_audit_gm_command_3452. Formula is
+// unchanged; this slice only expands dual-wire docs + index + dedicated suite.
 inline auto ShouldAuditGMCommand(const uint8 auditLevel, const int8 permission) -> bool
 {
     return static_cast<int>(auditLevel) <= static_cast<int>(permission) && auditLevel > 0;
