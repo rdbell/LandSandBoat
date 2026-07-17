@@ -25,10 +25,17 @@ inline auto IsPartiallyUsed(const bool isCharged, const uint8 currentCharges, co
     return currentCharges < maxCharges;
 }
 
-// CanCancelSale mirrors CancelSale's history index gate (slice 2920):
-//   AucWorkIndex < history.size()
-// Negative indexes (LSB packet handler should already reject -1) fail here too.
+// CanCancelSale mirrors CancelSale's history index gate
+// (slice 3234 dedicated dual-wire; residual expand 2920 / pure 1135 —
+// formula unchanged):
+//   if aucWorkIndex < 0: return false
+//   return aucWorkIndex < historyLen
+// Production: AucWorkIndex < history.size() (negatives fail defensively;
+// packet handler should already reject -1).
 // Host injects AucWorkIndex and history length only (no CCharEntity* / vector).
+// Dual-wire index: 3234 (dedicated expand residual 2920). Prior pure: 1135.
+// Residual dual-wire suite: test_auction_cancel_sale_2920.
+// Dedicated dual-wire suite: test_auctionutils_cancel_sale_3234.
 inline auto CanCancelSale(const int aucWorkIndex, const int historyLen) -> bool
 {
     if (aucWorkIndex < 0)

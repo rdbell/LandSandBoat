@@ -1524,6 +1524,11 @@ auto runAvatarpetCanApplyBuff3230SelfTests() -> bool;
 auto runMobutilsCanDropGil3231SelfTests() -> bool;
 auto runMapwireOpenSocket3232SelfTests() -> bool;
 auto runPetentityDespawnZoning3233SelfTests() -> bool;
+auto runAuctionutilsCancelSale3234SelfTests() -> bool;
+auto runLatenteffectApplyExpression3235SelfTests() -> bool;
+auto runGarrisonFailByDeath3236SelfTests() -> bool;
+auto runFollowCanFollow3237SelfTests() -> bool;
+auto runAbysseaCanGiveNMKI3238SelfTests() -> bool;
 
 namespace
 {
@@ -3025,6 +3030,11 @@ namespace
         ok = runMobutilsCanDropGil3231SelfTests() && ok;
         ok = runMapwireOpenSocket3232SelfTests() && ok;
         ok = runPetentityDespawnZoning3233SelfTests() && ok;
+        ok = runAuctionutilsCancelSale3234SelfTests() && ok;
+        ok = runLatenteffectApplyExpression3235SelfTests() && ok;
+        ok = runGarrisonFailByDeath3236SelfTests() && ok;
+        ok = runFollowCanFollow3237SelfTests() && ok;
+        ok = runAbysseaCanGiveNMKI3238SelfTests() && ok;
 
         return ok;
     }

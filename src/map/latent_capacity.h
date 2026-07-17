@@ -207,8 +207,12 @@ inline auto ShouldRejectProcessLatent(const bool ownerNull, const bool zoneIsZer
     return ownerNull || zoneIsZero;
 }
 
-// --- Slice 2983: ShouldApplyLatentExpression pure dual-wire ---
+// --- Slice 3235: ShouldApplyLatentExpression pure dual-wire ---
+// (dedicated expand residual 2983 / pure 1359)
 // Residual pure port: slice 1359 (ProcessLatentEffect condition eval suite).
+// Residual dual-wire expand: slice 2983 (test_latent_apply_expression_2983).
+// Dedicated dual-wire suite: slice 3235
+//   (test_latenteffect_apply_expression_3235).
 // Production host: CLatentEffectContainer::ProcessLatentEffect injects
 // latentFound (post condition-switch; false only on unhandled default) into
 // ShouldApplyLatentExpression before ApplyLatentEffect.
@@ -217,7 +221,8 @@ inline auto ShouldRejectProcessLatent(const bool ownerNull, const bool zoneIsZer
 
 // ShouldApplyLatentExpression mirrors latentFound before ApplyLatentEffect.
 //
-// Formula (slice 2983 dual-wire):
+// Formula (slice 3235 dedicated dual-wire; residual expand 2983 / pure 1359 —
+// formula unchanged):
 //   latentFound
 //
 // latentFound — host-evaluated after the ProcessLatentEffect condition switch:
@@ -226,8 +231,11 @@ inline auto ShouldRejectProcessLatent(const bool ownerNull, const bool zoneIsZer
 // true  → call ApplyLatentEffect(latentEffect, expression)
 // false → skip ApplyLatentEffect and return false
 //
-// Dual-wire of Go latenteffect.ShouldApplyLatentExpression.
+// Dual-wire of Go latenteffect.ShouldApplyLatentExpression
+// (residual 1359 / residual dual-wire 2983 / dedicated dual-wire 3235).
 // Call site: CLatentEffectContainer::ProcessLatentEffect (~1287).
+// Residual dual-wire suite: 2983 (test_latent_apply_expression_2983).
+// Dedicated dual-wire suite: 3235 (test_latenteffect_apply_expression_3235).
 inline auto ShouldApplyLatentExpression(const bool latentFound) -> bool
 {
     return latentFound;

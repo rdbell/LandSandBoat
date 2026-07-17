@@ -3041,6 +3041,16 @@ set(SOURCES
     test_mapwire_open_socket_3232.cpp
     test_petentity_despawn_zoning_3233.h
     test_petentity_despawn_zoning_3233.cpp
+    test_auctionutils_cancel_sale_3234.h
+    test_auctionutils_cancel_sale_3234.cpp
+    test_latenteffect_apply_expression_3235.h
+    test_latenteffect_apply_expression_3235.cpp
+    test_garrison_fail_by_death_3236.h
+    test_garrison_fail_by_death_3236.cpp
+    test_follow_can_follow_3237.h
+    test_follow_can_follow_3237.cpp
+    test_abyssea_can_give_nmki_3238.h
+    test_abyssea_can_give_nmki_3238.cpp
 )
 
 if(UNIX)
