@@ -20,9 +20,12 @@
 //   - 3498: ShouldRejectPCAddFull prior dedicated dual-wire (retained)
 //           (TYPE_PC + PARTY_PCS + partyFull; residual expand 2928 /
 //            prior dedicated 3200 / pure 1327 / 1350)
-//   - 3555: ShouldRejectPCAddFull dedicated dual-wire
+//   - 3555: ShouldRejectPCAddFull prior dedicated dual-wire (retained)
 //           (TYPE_PC + PARTY_PCS + partyFull; residual expand 2928 /
 //            prior dedicated 3498 / 3200 / pure 1327 / 1350)
+//   - 3600: ShouldRejectPCAddFull dedicated dual-wire
+//           (TYPE_PC + PARTY_PCS + partyFull; residual expand 2928 /
+//            prior dedicated 3555 / 3498 / 3200 / pure 1327 / 1350)
 //   - 2937: ShouldRejectPCAddTrusts residual dual-wire expand
 //   - 3353: ShouldRejectPCAddTrusts dedicated dual-wire
 //           (TYPE_PC + PARTY_PCS + partyHasTrusts; residual expand 2937 / pure 1327 / 1350)
@@ -100,8 +103,9 @@
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go;
 // residual dual-wire suite: 2928 / test_party_reject_full_2928;
 // prior dedicated dual-wire suites: 3200 / test_party_reject_pc_add_full_3200,
-// 3498 / test_party_reject_pc_add_full_3498 (retained);
-// dedicated dual-wire suite: 3555 / test_party_reject_pc_add_full_3555),
+// 3498 / test_party_reject_pc_add_full_3498,
+// 3555 / test_party_reject_pc_add_full_3555 (retained);
+// dedicated dual-wire suite: 3600 / test_party_reject_pc_add_full_3600),
 // party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go;
 // residual dual-wire suite: 2937 / test_party_reject_trusts_2937;
 // dedicated dual-wire suite: 3353 / test_party_reject_trusts_3353),
@@ -192,8 +196,8 @@ inline auto LoadPartySizeForType(const bool isPCParty, const std::size_t localMe
 
 // ShouldRejectPCAddFull mirrors AddMember's IsFull gate for TYPE_PC + PARTY_PCS.
 //
-// Formula (slice 3555 dedicated dual-wire; residual expand 2928 /
-// prior dedicated 3498 / 3200 / pure 1327 / 1350 — formula unchanged):
+// Formula (slice 3600 dedicated dual-wire; residual expand 2928 /
+// prior dedicated 3555 / 3498 / 3200 / pure 1327 / 1350 — formula unchanged):
 //   isPCEntity && isPCParty && partyFull
 //
 // isPCEntity — host-evaluated objtype == TYPE_PC
@@ -206,9 +210,10 @@ inline auto LoadPartySizeForType(const bool isPCParty, const std::size_t localMe
 // Call site: ClassifyAddMember / CParty::AddMember host inject.
 // Residual dual-wire suite: 2928 / test_party_reject_full_2928.
 // Prior dedicated dual-wire suites: 3200 / test_party_reject_pc_add_full_3200,
-// 3498 / test_party_reject_pc_add_full_3498 (retained).
-// Dedicated dual-wire suite is test_party_reject_pc_add_full_3555. Formula is
-// unchanged; dedicated suite expands free==inline==pin==pin3498 poles + dense 2^3.
+// 3498 / test_party_reject_pc_add_full_3498,
+// 3555 / test_party_reject_pc_add_full_3555 (retained).
+// Dedicated dual-wire suite is test_party_reject_pc_add_full_3600. Formula is
+// unchanged; dedicated suite expands free==inline==pin==pin3555 poles + dense 2^3.
 inline auto ShouldRejectPCAddFull(const bool isPCEntity, const bool isPCParty, const bool partyFull) -> bool
 {
     return isPCEntity && isPCParty && partyFull;

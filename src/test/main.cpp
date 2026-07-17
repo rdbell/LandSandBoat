@@ -1889,6 +1889,11 @@ auto runArtisanCanBuySack3595SelfTests() -> bool;
 auto runSynergyClaimFurnace3596SelfTests() -> bool;
 auto runSalvageClaimTransport3597SelfTests() -> bool;
 auto runCampaignAffordNotes3598SelfTests() -> bool;
+auto runBattlefieldEnterPC3599SelfTests() -> bool;
+auto runPartyRejectPCAddFull3600SelfTests() -> bool;
+auto runGuildpointsCanAfford3601SelfTests() -> bool;
+auto runFollowCanFollow3602SelfTests() -> bool;
+auto runApkalluCanRunAway3603SelfTests() -> bool;
 
 namespace
 {
@@ -3755,6 +3760,11 @@ namespace
         ok = runSynergyClaimFurnace3596SelfTests() && ok;
         ok = runSalvageClaimTransport3597SelfTests() && ok;
         ok = runCampaignAffordNotes3598SelfTests() && ok;
+        ok = runBattlefieldEnterPC3599SelfTests() && ok;
+        ok = runPartyRejectPCAddFull3600SelfTests() && ok;
+        ok = runGuildpointsCanAfford3601SelfTests() && ok;
+        ok = runFollowCanFollow3602SelfTests() && ok;
+        ok = runApkalluCanRunAway3603SelfTests() && ok;
 
         return ok;
     }
