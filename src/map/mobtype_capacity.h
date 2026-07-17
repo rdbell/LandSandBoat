@@ -9,6 +9,7 @@
 //   - 2934: CanBeNeutral residual dual-wire suite (type-bit gate)
 //   - 3063: CanDeaggro dedicated dual-wire (can_deaggro.go)
 //   - 3076: CanBeNeutral dedicated dual-wire (can_be_neutral.go)
+//   - 3223: CanBeNeutral dedicated dual-wire expand residual 2934
 //
 // Dual-wire index:
 //   - 2919: CanDeaggro residual dual-wire (Type-bit form; dense suite)
@@ -17,6 +18,8 @@
 //           dedicated dual-wire on can_deaggro.go)
 //   - 3076: CanBeNeutral (!Has(t, Notorious);
 //           dedicated dual-wire on can_be_neutral.go)
+//   - 3223: CanBeNeutral (!Has(t, Notorious);
+//           dedicated dual-wire expand residual 2934 on can_be_neutral.go)
 //
 // Production call sites today:
 //   - CMobEntity::CanDeaggro in mob_entity.cpp routes through
@@ -27,7 +30,8 @@
 //     m_Type & MOBTYPE_NOTORIOUS.
 //
 // This capacity dual-wires the Type-bit form used by OmegaXI
-// internal/mobtype (slice 2042 residual / 2919 / 2934 / 3063 / 3076 dual-wire):
+// internal/mobtype (slice 2042 residual / 2919 / 2934 / 3063 / 3076 / 3223
+// dual-wire):
 //
 //   CanDeaggro(t)    = !Has(t, Notorious) && !Has(t, Battlefield)
 //   CanBeNeutral(t)  = !Has(t, Notorious)
@@ -107,14 +111,15 @@ inline auto CanDeaggro(const uint8 t) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2934 / 3076 — CanBeNeutral type-bit gate
+// Slice 2934 / 3076 / 3223 — CanBeNeutral type-bit gate
 // ---------------------------------------------------------------------------
 
 // CanBeNeutral mirrors CMobEntity::CanBeNeutral's type policy:
 //
 //   !Has(t, Notorious)
 //
-// Formula (slice 3076 dual-wire; residual expand 2934):
+// Formula (slice 3223 dedicated dual-wire expand residual 2934; prior
+// dedicated 3076 / pure 2042 / 2655 — formula unchanged):
 //   CanBeNeutral(t) = !Has(t, Notorious)
 //
 // Only notorious mobs are excluded from the neutral/killing-pause behavior.
@@ -122,8 +127,9 @@ inline auto CanDeaggro(const uint8 t) -> bool
 // timer / tick. Dual-wire of Go mobtype.CanBeNeutral.
 // Call site: future CMobEntity::CanBeNeutral inject with raw m_Type.
 // Prior pure port: slices 2042 / 2655. Residual dual-wire suite: 2934 /
-// test_mobtype_can_be_neutral_2934. Dedicated dual-wire suite is
-// test_mobtype_can_be_neutral_3076. Future host inject may call this free
+// test_mobtype_can_be_neutral_2934. Prior dedicated dual-wire suite: 3076 /
+// test_mobtype_can_be_neutral_3076. Dedicated expand residual suite is
+// test_mobtype_can_be_neutral_3223. Future host inject may call this free
 // function with raw m_Type instead of splitting the notorious bool at the
 // call site.
 inline auto CanBeNeutral(const uint8 t) -> bool

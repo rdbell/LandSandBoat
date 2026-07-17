@@ -4,6 +4,27 @@
 
 // Pure petutils CheckPetModType / IsTandemActive / ExtendCharm gates.
 // Parity: internal/petutils (check_pet_mod, tandem, extend_charm; slice 1624).
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 1624: CheckPetModType / IsTandemActive / ExtendCharm production wire
+//           (CanExtendCharm / CharmSecondsRangeValid residual pure)
+//   - 2922: ShouldExtendCharm residual dual-wire suite
+//           (CanExtendCharm && CharmSecondsRangeValid combined gate)
+//   - 3220: ShouldExtendCharm dedicated dual-wire (extend_charm.go;
+//           expand residual 2922 / pure 1624)
+//
+// Dual-wire index:
+//   - 2922: ShouldExtendCharm residual dual-wire suite
+//   - 3220: ShouldExtendCharm = isMob && isCharmed && minSeconds <= maxSeconds
+//           && maxSeconds != 0
+//
+// Production host: petutils::ExtendCharm (petutils.cpp) still uses two
+// sequential 1624 early returns (CanExtendCharm then CharmSecondsRangeValid);
+// combined free function is the dual-wire surface for tests / future inject.
+// Go dual-wire: petutils.ShouldExtendCharm
+// (internal/petutils/extend_charm.go).
+// Residual dual-wire suite: 2922 (test_petutils_extend_charm_2922).
+// Dedicated dual-wire suite: 3220 (test_petutils_extend_charm_3220).
 
 namespace petmodtandemhelpers
 {
@@ -110,8 +131,33 @@ inline auto CharmSecondsRangeValid(const std::uint16_t minSeconds, const std::ui
     return minSeconds <= maxSeconds && maxSeconds != 0;
 }
 
-// Combined ExtendCharm early-return gate (slice 2922 dual-wire):
-// CanExtendCharm && CharmSecondsRangeValid. Host still owns RNG and charmTime.
+// ---------------------------------------------------------------------------
+// Slice 3220 — ExtendCharm combined early-return gate
+// (dedicated expand residual 2922)
+// ---------------------------------------------------------------------------
+
+// ShouldExtendCharm combines both ExtendCharm early-return gates:
+// CanExtendCharm && CharmSecondsRangeValid.
+//
+// Formula (slice 3220 dedicated dual-wire; residual expand 2922 / pure 1624 —
+// formula unchanged):
+//   isMob && isCharmed && minSeconds <= maxSeconds && maxSeconds != 0
+//
+// isMob       — host-injected PPet->objtype == TYPE_MOB
+// isCharmed   — host-injected PPet->isCharmed
+// minSeconds  — host-injected ExtendCharm minSeconds
+// maxSeconds  — host-injected ExtendCharm maxSeconds
+// true  → host may draw RNG and write charmTime
+// false → early return (not charmed mob and/or invalid range)
+//
+// Dual-wire of Go petutils.ShouldExtendCharm.
+// Call site: petutils::ExtendCharm — residual production still uses two
+// sequential 1624 helpers; combined free function is dual-wire surface for
+// tests / future single-gate inject before xirand / charmTime writeback.
+// Prior pure port: slice 1624 (CanExtendCharm / CharmSecondsRangeValid).
+// Residual dual-wire suite: 2922 / test_petutils_extend_charm_2922.
+// Dedicated dual-wire suite: 3220 / test_petutils_extend_charm_3220.
+// Host still owns RNG and charmTime.
 // Parity: internal/petutils.ShouldExtendCharm.
 inline auto ShouldExtendCharm(const bool isMob, const bool isCharmed, const std::uint16_t minSeconds,
                               const std::uint16_t maxSeconds) -> bool

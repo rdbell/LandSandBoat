@@ -1509,6 +1509,11 @@ auto runLinkshellRejectDuplicateAddMember3215SelfTests() -> bool;
 auto runBattlefieldRejectAlreadyIn3216SelfTests() -> bool;
 auto runPartyClearSeekingParty3217SelfTests() -> bool;
 auto runMapsessionMarkLinkDead3218SelfTests() -> bool;
+auto runJobpointsApplyRaise3219SelfTests() -> bool;
+auto runPetutilsExtendCharm3220SelfTests() -> bool;
+auto runGuildpointsCanAfford3221SelfTests() -> bool;
+auto runAicontainerCanDispatch3222SelfTests() -> bool;
+auto runMobtypeCanBeNeutral3223SelfTests() -> bool;
 
 namespace
 {
@@ -2995,6 +3000,11 @@ namespace
         ok = runBattlefieldRejectAlreadyIn3216SelfTests() && ok;
         ok = runPartyClearSeekingParty3217SelfTests() && ok;
         ok = runMapsessionMarkLinkDead3218SelfTests() && ok;
+        ok = runJobpointsApplyRaise3219SelfTests() && ok;
+        ok = runPetutilsExtendCharm3220SelfTests() && ok;
+        ok = runGuildpointsCanAfford3221SelfTests() && ok;
+        ok = runAicontainerCanDispatch3222SelfTests() && ok;
+        ok = runMobtypeCanBeNeutral3223SelfTests() && ok;
 
         return ok;
     }

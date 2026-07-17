@@ -4,10 +4,13 @@
 // pin policy without entity/controller instances, state objects, or packets.
 //
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
-//   - 2947: CanDispatch (controller presence outer gate for public
+//   - 2947: CanDispatch residual dual-wire expand
+//           (controller presence outer gate for public
 //           Cast/Engage/ChangeTarget/Disengage/WeaponSkill/Ability/
 //           RangedAttack and typed MobSkill/PetSkill/UseItem)
 //   - 2952: CanChangeState (current-state change gate for external means)
+//   - 3222: CanDispatch dedicated dual-wire
+//           (hasController identity; residual expand 2947 / pure 1189)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -25,7 +28,8 @@ namespace aicontainerhelpers
 //   if (Controller) { return Controller->X(...); }
 //   return false;
 //
-// Formula (slice 2947 dual-wire):
+// Formula (slice 3222 dedicated dual-wire; residual expand 2947 / pure 1189 —
+// formula unchanged):
 //   hasController
 //
 // hasController — host-evaluated controller presence:
@@ -37,6 +41,11 @@ namespace aicontainerhelpers
 // Dual-wire of Go aicontainer.CanDispatch
 // (internal/aicontainer/can_dispatch.go).
 // Call site: CAIContainer public controller-forward methods.
+// Prior pure port: slice 1189. Residual dual-wire suite: 2947 /
+// test_aicontainer_can_dispatch_2947. Dedicated dual-wire suite is
+// test_aicontainer_can_dispatch_3222. Formula is unchanged; this slice
+// only expands dual-wire docs + index + dedicated suite.
+// Sibling dual-wire left alone: 2952 CanChangeState.
 inline auto CanDispatch(const bool hasController) -> bool
 {
     return hasController;

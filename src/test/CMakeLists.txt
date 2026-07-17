@@ -3011,6 +3011,16 @@ set(SOURCES
     test_party_clear_seeking_party_3217.cpp
     test_mapsession_mark_link_dead_3218.h
     test_mapsession_mark_link_dead_3218.cpp
+    test_jobpoints_apply_raise_3219.h
+    test_jobpoints_apply_raise_3219.cpp
+    test_petutils_extend_charm_3220.h
+    test_petutils_extend_charm_3220.cpp
+    test_guildpoints_can_afford_3221.h
+    test_guildpoints_can_afford_3221.cpp
+    test_aicontainer_can_dispatch_3222.h
+    test_aicontainer_can_dispatch_3222.cpp
+    test_mobtype_can_be_neutral_3223.h
+    test_mobtype_can_be_neutral_3223.cpp
 )
 
 if(UNIX)
