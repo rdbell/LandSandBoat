@@ -240,6 +240,29 @@ inline auto ShouldSendCharZoneAfterKeyIncrement(const bool isLogout) -> bool
     return !isLogout;
 }
 
+// ZoneOutSessionUpdatePlan describes which accounts_sessions columns send_parse
+// should rewrite when an outgoing 0x00B zone-out packet is encrypted.
+// Session fields zone_ipp and zone_type are always stored by the host when
+// ShouldIncrementKeyAfterEncrypt has already gated entry into this path.
+struct ZoneOutSessionUpdatePlan
+{
+    bool updateServerEndpoint{};  // true for zone transition (not full logout)
+    bool clearClientPort{};       // always true
+    bool stampLastZoneoutTime{};  // always true
+};
+
+// PlanZoneOutSessionUpdate mirrors send_parse's accounts_sessions update choice
+// after a LOGOUT-type packet is detected. isLogout mirrors
+// zone_type == GP_GAME_LOGOUT_STATE::LOGOUT. SQL remains host-owned.
+inline auto PlanZoneOutSessionUpdate(const bool isLogout) -> ZoneOutSessionUpdatePlan
+{
+    return {
+        .updateServerEndpoint = !isLogout,
+        .clearClientPort      = true,
+        .stampLastZoneoutTime = true,
+    };
+}
+
 // ShouldResetCharacterForUnencryptedLogin mirrors recv_parse's 0x00A cleanup
 // of the old character during a pending zone transition.
 inline auto ShouldResetCharacterForUnencryptedLogin(const bool pendingZone) -> bool

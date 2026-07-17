@@ -478,4 +478,25 @@ inline auto ShouldProcFollowUpForChar(const bool isPC, const bool hasAmmoSwingMo
 {
     return isPC && hasAmmoSwingMod;
 }
+
+// AttackRoundPostBuildPlan is the pure post-construction tail of CAttackRound
+// after CreateKickAttacks / CreateDakenAttack / ProcFollowUpAttacks: mark the
+// first swing and always request HasteSambaHaste deletion.
+// setFirstSwing is gated on swingCount > 0 so empty lists never index [0].
+// deleteHasteSamba is always true (production DelStatusEffect is unconditional;
+// absent effects are a no-op).
+struct AttackRoundPostBuildPlan
+{
+    bool setFirstSwing{};
+    bool deleteHasteSamba{};
+};
+
+// PlanAttackRoundPostBuild mirrors the constructor post-build steps.
+inline auto PlanAttackRoundPostBuild(const std::size_t swingCount) -> AttackRoundPostBuildPlan
+{
+    AttackRoundPostBuildPlan plan{};
+    plan.setFirstSwing    = swingCount > 0;
+    plan.deleteHasteSamba = true;
+    return plan;
+}
 } // namespace attackroundhelpers

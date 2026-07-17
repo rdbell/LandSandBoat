@@ -25,6 +25,7 @@
 #include "auth_password.h"
 #include "common/ipc.h"
 #include "common/utils.h"
+#include "login_success_response.h"
 #include "otp_helpers.h"
 
 #include <bcrypt/BCrypt.hpp>
@@ -230,7 +231,8 @@ void auth_session::read_func()
 
             // set Satchel to the same size as inventory on all chars on their account if character has OTP
             // Note: Upgrades happen in-game with gobbiebag
-            if (otpVerified)
+            const auto successPlan = loginHelpers::PlanLoginSuccess(otpVerified, trust_this_computer);
+            if (successPlan.syncSatchel)
             {
                 db::preparedStmt("UPDATE char_storage a JOIN char_storage b ON a.charid = b.charid "
                                  "SET a.satchel = b.inventory "
@@ -269,11 +271,18 @@ void auth_session::read_func()
             md5(reinterpret_cast<uint8*>(&hashData), hash, sizeof(hashData));
 
             json loginSuccessReply;
-            loginSuccessReply["result"]       = static_cast<uint8>(loginHelpers::LoginAttemptSuccessResult);
-            loginSuccessReply["account_id"]   = accountID;
-            loginSuccessReply["session_hash"] = hash; // This has to be sent as an array, json.dump() tries to convert to UTF which fails
+            loginSuccessReply["result"] = static_cast<uint8>(successPlan.reply.result);
+            if (successPlan.reply.includeAccountId)
+            {
+                loginSuccessReply["account_id"] = accountID;
+            }
+            if (successPlan.reply.includeSessionHash)
+            {
+                // This has to be sent as an array, json.dump() tries to convert to UTF which fails
+                loginSuccessReply["session_hash"] = hash;
+            }
 
-            if (loginHelpers::ShouldIssueTrustToken(trust_this_computer, otpVerified))
+            if (successPlan.reply.includeTrustToken)
             {
                 try
                 {

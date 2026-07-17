@@ -611,6 +611,8 @@ set(SOURCES
     test_login_view_name_check_response_2762.cpp
     test_login_view_character_create_response_2763.h
     test_login_view_character_create_response_2763.cpp
+    test_login_success_response_2767.h
+    test_login_success_response_2767.cpp
     test_login_auth_password_1307.h
     test_login_auth_password_1307.cpp
     test_login_auth_version_error_1308.h
@@ -777,6 +779,8 @@ set(SOURCES
     test_attackround_create_kick_plan_2757.cpp
     test_attackround_create_daken_plan_2758.h
     test_attackround_create_daken_plan_2758.cpp
+    test_attackround_post_build_plan_2768.h
+    test_attackround_post_build_plan_2768.cpp
     test_attackround_followup_1375.h
     test_attackround_followup_1375.cpp
     test_attack_checks_1376.h
@@ -1466,6 +1470,8 @@ set(SOURCES
     test_map_networking_login_checksum_2693.cpp
     test_map_networking_login_character_reset_2735.h
     test_map_networking_login_character_reset_2735.cpp
+    test_map_zoneout_session_update_2765.h
+    test_map_zoneout_session_update_2765.cpp
     test_attack_guard_resolution_2739.h
     test_attack_guard_resolution_2739.cpp
     test_attackround_initial_weapon_2742.h
@@ -1476,6 +1482,8 @@ set(SOURCES
     test_attack_cover_resolution_2748.cpp
     test_attack_parry_resolution_2751.h
     test_attack_parry_resolution_2751.cpp
+    test_attack_restraint_wsd_2764.h
+    test_attack_restraint_wsd_2764.cpp
     test_map_networking_sequence_gate_2696.h
     test_map_networking_sequence_gate_2696.cpp
     test_map_networking_acknowledgement_2699.h
@@ -1862,6 +1870,8 @@ set(SOURCES
     test_s2c_miscdata_monstrosity_packets.cpp
     test_monstrosity_name_2753.h
     test_monstrosity_name_2753.cpp
+    test_monstrosity_instinct_equip_2766.h
+    test_monstrosity_instinct_equip_2766.cpp
     test_s2c_miscdata_status_icons_packet.h
     test_s2c_miscdata_status_icons_packet.cpp
     test_s2c_miscdata_unknown_packet.h

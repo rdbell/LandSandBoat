@@ -787,5 +787,81 @@ inline auto IsLeftAttackDirection(const uint8 direction) -> bool
     return direction == AttackDirectionLeft;
 }
 
+// --- Slice 2764: Restraint weaponskill-damage boost pure math ---
+
+// Cap on cumulative Restraint power (+30% WSD first hit).
+constexpr uint16 RestraintMaxPower = 30;
+
+// ShouldApplyRestraintBoost mirrors first swing + Restraint present + power < 30.
+// Null effect early-return is host-side before this gate.
+inline auto ShouldApplyRestraintBoost(
+    const bool isFirstSwing,
+    const bool hasRestraint,
+    const bool powerLessThan30) -> bool
+{
+    return isFirstSwing && hasRestraint && powerLessThan30;
+}
+
+// RestraintWSDBoost is the pure ProcessDamage restraint mutation plan.
+// BoostAmount is the floored, capped increment; NewSubPower is the remainder
+// tracker (fractional boost * 100); Applies is true when the gate passes.
+struct RestraintWSDBoost
+{
+    uint16 boostAmount{};
+    uint16 newSubPower{};
+    bool   applies{};
+};
+
+// ComputeRestraintWSDBoost mirrors the pure math half of ProcessDamage restraint.
+// jpBonus is host-injected (JP_RESTRAINT_EFFECT * 2 for PC, else 0).
+// Call when ShouldApplyRestraintBoost is true; Applies is set true for writeback.
+inline auto ComputeRestraintWSDBoost(
+    const uint32 weaponDelayMs,
+    const uint16 effectPower,
+    const uint16 effectSubPower,
+    const int16  enhancesRestraint,
+    const uint8  jpBonus) -> RestraintWSDBoost
+{
+    float boostPerRound = ((static_cast<float>(weaponDelayMs) / 1000.0f) * 60.0f) / 385.0f;
+    float remainder     = static_cast<float>(effectSubPower) / 100.0f;
+
+    // Delay-based base * Enhances Restraint * JP bonus + prior remainder.
+    boostPerRound = (boostPerRound * (1.0f + static_cast<float>(enhancesRestraint) / 100.0f) * (1.0f + static_cast<float>(jpBonus) / 100.0f)) + remainder;
+
+    // New remainder = fractional part * 100 via (1 - (ceil - x)) * 100.
+    // When boost is integral, this stores 100 (LSB production quirk).
+    remainder     = (1.0f - (std::ceil(boostPerRound) - boostPerRound)) * 100.0f;
+    boostPerRound = std::floor(boostPerRound);
+
+    // Cap total power to +30% WSD (remainder still reflects uncapped fraction).
+    if (static_cast<float>(effectPower) + boostPerRound > static_cast<float>(RestraintMaxPower))
+    {
+        boostPerRound = static_cast<float>(RestraintMaxPower) - static_cast<float>(effectPower);
+    }
+
+    return {
+        static_cast<uint16>(boostPerRound),
+        static_cast<uint16>(remainder),
+        true,
+    };
+}
+
+// ResolveRestraintWSDBoost combines the gate and pure math for host writeback.
+inline auto ResolveRestraintWSDBoost(
+    const bool   isFirstSwing,
+    const bool   hasRestraint,
+    const uint16 effectPower,
+    const uint16 effectSubPower,
+    const uint32 weaponDelayMs,
+    const int16  enhancesRestraint,
+    const uint8  jpBonus) -> RestraintWSDBoost
+{
+    if (!ShouldApplyRestraintBoost(isFirstSwing, hasRestraint, effectPower < RestraintMaxPower))
+    {
+        return { 0, effectSubPower, false };
+    }
+    return ComputeRestraintWSDBoost(weaponDelayMs, effectPower, effectSubPower, enhancesRestraint, jpBonus);
+}
+
 
 } // namespace attackhelpers

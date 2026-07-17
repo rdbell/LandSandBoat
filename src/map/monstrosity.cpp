@@ -24,6 +24,7 @@
 // ===
 
 #include "monstrosity.h"
+#include "monstrosity_instinct_equip.h"
 #include "monstrosity_name.h"
 
 #include "ai/ai_container.h"
@@ -429,38 +430,17 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
     // There used to be more checks here, but they've been moved to the packet handler.
 
     // NOTE: The amount of pointer per level is level + 10, this is set in the client
+    // Pure cost/dupe/max-point helpers live in monstrosity_instinct_equip.h.
 
-    auto getTotalInstinctsCost = [&](const std::array<uint16, 12>& input) -> uint8
+    auto resolveInstinctCosts = [&](const std::array<uint16, InstinctSlotCount>& input) -> std::array<uint8, InstinctSlotCount>
     {
-        uint8 total = 0;
-
-        for (const auto& idx : input)
+        std::array<uint8, InstinctSlotCount> costs{};
+        for (std::size_t i = 0; i < InstinctSlotCount; ++i)
         {
-            total += gMonstrosityInstinctMap[idx].cost;
+            // operator[] default-constructs missing catalog rows (cost 0), matching prior map lookup.
+            costs[i] = gMonstrosityInstinctMap[input[i]].cost;
         }
-
-        return total;
-    };
-
-    auto instinctsContainDuplicates = [&](const std::array<uint16, 12>& input) -> bool
-    {
-        std::unordered_set<uint16> set;
-        for (const auto& idx : input)
-        {
-            if (idx == 0)
-            {
-                continue; // Skip empty/unequipped slots
-            }
-
-            if (set.contains(idx))
-            {
-                // Found dupe
-                return true;
-            }
-
-            set.insert(idx);
-        }
-        return false;
+        return costs;
     };
 
     if (data.Flags0.SpeciesFlag)
@@ -476,13 +456,13 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
         const auto speciesData = gMonstrositySpeciesMap[data.SpeciesIndex];
 
         // Not unlocked
-        if (PChar->m_PMonstrosity->levels[speciesData.monstrosityId] == 0)
+        if (ShouldRejectUnleveledSpecies(PChar->m_PMonstrosity->levels[speciesData.monstrosityId]))
         {
             return;
         }
 
         // If is a variant, and isn't unlocked, bail
-        if (data.SpeciesIndex >= 256 && !IsVariantUnlocked(PChar, data.SpeciesIndex - 256))
+        if (ShouldCheckVariantUnlock(data.SpeciesIndex) && !IsVariantUnlocked(PChar, static_cast<uint8>(data.SpeciesIndex - VariantSpeciesThreshold)))
         {
             return;
         }
@@ -496,10 +476,10 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
         PChar->m_PMonstrosity->Look          = speciesData.look;
 
         // If changing "family" of species
-        if (PChar->m_PMonstrosity->MonstrosityId != previousId)
+        if (ShouldWipeInstinctsOnFamilyChange(previousId, PChar->m_PMonstrosity->MonstrosityId))
         {
             // Unequip all instincts
-            for (std::size_t idx = 0; idx < 12; ++idx)
+            for (std::size_t idx = 0; idx < InstinctSlotCount; ++idx)
             {
                 PChar->m_PMonstrosity->EquippedInstincts[idx] = 0x0000;
             }
@@ -515,9 +495,9 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
         const auto previousEquipped = PChar->m_PMonstrosity->EquippedInstincts;
 
         // NOTE: This is set by the client
-        const auto maxPoints = PChar->m_PMonstrosity->levels[PChar->m_PMonstrosity->MonstrosityId] + 10;
+        const auto maxPoints = InstinctMaxPoints(PChar->m_PMonstrosity->levels[PChar->m_PMonstrosity->MonstrosityId]);
 
-        for (std::size_t idx = 0; idx < 12; ++idx)
+        for (std::size_t idx = 0; idx < InstinctSlotCount; ++idx)
         {
             if (data.Slots[idx] != 0)
             {
@@ -542,9 +522,9 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
 
                         PChar->m_PMonstrosity->EquippedInstincts[idx] = data.Slots[idx];
 
-                        // Validate cost
-                        if (getTotalInstinctsCost(PChar->m_PMonstrosity->EquippedInstincts) > maxPoints ||
-                            instinctsContainDuplicates(PChar->m_PMonstrosity->EquippedInstincts))
+                        // Validate cost / duplicates via pure helpers (catalog costs resolved by host).
+                        const auto totalCost = TotalInstinctCost(resolveInstinctCosts(PChar->m_PMonstrosity->EquippedInstincts));
+                        if (ShouldRejectInstinctLoadout(totalCost, maxPoints, HasDuplicateInstincts(PChar->m_PMonstrosity->EquippedInstincts)))
                         {
                             // Reset to what it was before and don't handle mods
                             PChar->m_PMonstrosity->EquippedInstincts = previousEquipped;
@@ -634,16 +614,15 @@ bool monstrosity::IsInstinctUnlocked(CCharEntity* PChar, uint16 instinct)
         return false;
     }
 
-    // Purchasable instincts are 768 onwards
-    if (instinct >= 768)
+    // Purchasable instincts are 768 onwards (pure index/offset helpers in monstrosity_instinct_equip.h).
+    if (IsPurchasableInstinctIndex(instinct))
     {
-        auto  idx         = instinct - 768;
-        uint8 byteOffset  = 20 + (idx / 8);
-        uint8 shiftAmount = idx % 8;
+        const uint8 byteOffset  = PurchasableInstinctByteOffset(instinct);
+        const uint8 shiftAmount = PurchasableInstinctBitShift(instinct);
 
         // There is a gap in the instincts bitpack, so we put the purchase information
         // for these instincts in there. Sneaky sneaky.
-        if (byteOffset >= 20 && byteOffset < 24)
+        if (IsValidPurchasableInstinctByteOffset(byteOffset))
         {
             return PChar->m_PMonstrosity->instincts[byteOffset] & (0x01 << shiftAmount);
         }

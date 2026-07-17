@@ -30,6 +30,7 @@ set(SOURCES
     view_character_delete_response.h
     view_name_check_response.h
     view_character_create_response.h
+    login_success_response.h
 )
 
 if(UNIX)

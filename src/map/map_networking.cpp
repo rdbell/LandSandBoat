@@ -582,17 +582,24 @@ int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSess
 
                     incrementKeyAfterEncrypt = true;
 
-                    if (PSession->zone_type != GP_GAME_LOGOUT_STATE::LOGOUT)
+                    // zone_ipp / zone_type are always stored above once
+                    // ShouldIncrementKeyAfterEncrypt has gated this block.
+                    const auto zoneOutPlan = mapnetworkinghelpers::PlanZoneOutSessionUpdate(
+                        PSession->zone_type == GP_GAME_LOGOUT_STATE::LOGOUT);
+
+                    if (zoneOutPlan.updateServerEndpoint)
                     {
                         auto ip   = PSession->zone_ipp.getIP();
                         auto port = PSession->zone_ipp.getPort();
 
                         // Set client port to zero, indicating the client tried to zone out and no longer has a port until the next 0x00A
+                        // (clearClientPort + stampLastZoneoutTime always true)
                         db::preparedStmt("UPDATE accounts_sessions SET server_addr = ?, server_port = ?, client_port = 0, last_zoneout_time = NOW() WHERE charid = ?", ip, port, PSession->charID);
                     }
                     else
                     {
                         // This probably isn't necessary - the session should be deleted shortly.
+                        // clearClientPort + stampLastZoneoutTime remain true for full logout.
                         db::preparedStmt("UPDATE accounts_sessions SET client_port = 0, last_zoneout_time = NOW() WHERE charid = ?", PSession->charID);
                     }
                 }

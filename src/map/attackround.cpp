@@ -89,11 +89,16 @@ CAttackRound::CAttackRound(CBattleEntity* attacker, CBattleEntity* defender)
     // Append follow-up attacks
     ProcFollowUpAttacks();
 
-    // Set the first attack flag
-    m_attackSwings[0].SetAsFirstSwing();
-
-    // Delete the haste samba effect.
-    attacker->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::HasteSambaHaste);
+    // Post-build: first-swing flag and HasteSambaHaste cleanup.
+    const auto postBuild = attackroundhelpers::PlanAttackRoundPostBuild(m_attackSwings.size());
+    if (postBuild.setFirstSwing)
+    {
+        m_attackSwings[0].SetAsFirstSwing();
+    }
+    if (postBuild.deleteHasteSamba)
+    {
+        attacker->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::HasteSambaHaste);
+    }
 }
 
 /************************************************************************

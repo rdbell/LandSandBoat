@@ -814,6 +814,7 @@ void CAttack::ProcessDamage()
     // Apply Restraint Weaponskill Damage Modifier
     // Effect power tracks the total bonus
     // Effect sub power tracks remainder left over from whole percentage flooring
+    // Pure math: attackhelpers::ResolveRestraintWSDBoost (slice 2764).
     if (m_isFirstSwing && m_attacker->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Restraint))
     {
         CStatusEffect* effect = m_attacker->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Restraint);
@@ -824,37 +825,26 @@ void CAttack::ProcessDamage()
             return;
         }
 
-        if (effect->GetPower() < 30)
+        uint8 jpBonus = 0;
+        if (m_attacker->objtype == TYPE_PC)
         {
-            uint8 jpBonus = 0;
+            jpBonus = static_cast<CCharEntity*>(m_attacker)->PJobPoints->GetJobPointValue(JP_RESTRAINT_EFFECT) * 2;
+        }
 
-            if (m_attacker->objtype == TYPE_PC)
-            {
-                jpBonus = static_cast<CCharEntity*>(m_attacker)->PJobPoints->GetJobPointValue(JP_RESTRAINT_EFFECT) * 2;
-            }
+        const auto plan = attackhelpers::ResolveRestraintWSDBoost(
+            m_isFirstSwing,
+            true,
+            effect->GetPower(),
+            effect->GetSubPower(),
+            m_attacker->GetWeaponDelay(false),
+            m_attacker->getMod(Mod::ENHANCES_RESTRAINT),
+            jpBonus);
 
-            // Convert weapon delay and divide
-            // Pull remainder of previous hit's value from Effect sub Power
-            float boostPerRound = ((m_attacker->GetWeaponDelay(false) / 1000.0f) * 60.0f) / 385.0f;
-            float remainder     = effect->GetSubPower() / 100.0f;
-
-            // Calculate bonuses from Enhances Restraint, Job Point upgrades, and remainder from previous hit
-            boostPerRound = (boostPerRound * (1 + m_attacker->getMod(Mod::ENHANCES_RESTRAINT) / 100.0f) * (1 + jpBonus / 100.0f)) + remainder;
-
-            // Calculate new remainder and multiply by 100 so significant digits aren't lost
-            // Floor Boost per Round
-            remainder     = (1 - (std::ceil(boostPerRound) - boostPerRound)) * 100;
-            boostPerRound = std::floor(boostPerRound);
-
-            // Cap total power to +30% WSD
-            if (effect->GetPower() + boostPerRound > 30)
-            {
-                boostPerRound = 30 - effect->GetPower();
-            }
-
-            effect->SetPower(effect->GetPower() + boostPerRound);
-            effect->SetSubPower(remainder);
-            m_attacker->addModifier(Mod::ALL_WSDMG_FIRST_HIT, boostPerRound);
+        if (plan.applies)
+        {
+            effect->SetPower(effect->GetPower() + plan.boostAmount);
+            effect->SetSubPower(plan.newSubPower);
+            m_attacker->addModifier(Mod::ALL_WSDMG_FIRST_HIT, plan.boostAmount);
         }
     }
 }
