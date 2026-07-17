@@ -4311,6 +4311,16 @@ set(SOURCES
     test_salvage_claim_transport_3867.cpp
     test_campaign_afford_notes_3868.h
     test_campaign_afford_notes_3868.cpp
+    test_battlefield_enter_pc_3869.h
+    test_battlefield_enter_pc_3869.cpp
+    test_party_reject_pc_add_full_3870.h
+    test_party_reject_pc_add_full_3870.cpp
+    test_guildpoints_can_afford_3871.h
+    test_guildpoints_can_afford_3871.cpp
+    test_follow_can_follow_3872.h
+    test_follow_can_follow_3872.cpp
+    test_apkallu_can_run_away_3873.h
+    test_apkallu_can_run_away_3873.cpp
 )
 
 if(UNIX)
