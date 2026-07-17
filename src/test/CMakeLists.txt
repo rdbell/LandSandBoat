@@ -3271,6 +3271,16 @@ set(SOURCES
     test_zone_stamp_empty_3347.cpp
     test_status_reject_null_3348.h
     test_status_reject_null_3348.cpp
+    test_dynamis_unlock_sj_3349.h
+    test_dynamis_unlock_sj_3349.cpp
+    test_mapsession_recover_link_dead_3350.h
+    test_mapsession_recover_link_dead_3350.cpp
+    test_item_decrement_count_remove_3351.h
+    test_item_decrement_count_remove_3351.cpp
+    test_nyzul_floor100_vigil_3352.h
+    test_nyzul_floor100_vigil_3352.cpp
+    test_party_reject_trusts_3353.h
+    test_party_reject_trusts_3353.cpp
 )
 
 if(UNIX)

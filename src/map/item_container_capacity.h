@@ -13,7 +13,7 @@
 //   - 2831: CanSearchSlotID (GetItem / search inclusive range; residual)
 //   - 2942: CanInsertAtSlot residual dual-wire suite (InsertItem range gate)
 //   - 2976: CanRemoveSlot residual dual-wire suite (RemoveItem range gate)
-//   - 2989: ShouldDecrementCountOnRemove (RemoveItem count drop)
+//   - 2989: ShouldDecrementCountOnRemove residual dual-wire suite (RemoveItem count drop)
 //   - 3021: ShouldIncrementCountOnInsertAt (InsertItem count bump)
 //   - 3027: CanSetSize residual dual-wire suite (SetSize / AddSize acceptance)
 //   - 3033: CanSearchSlotID (GetItem / search inclusive range dual-wire)
@@ -24,16 +24,19 @@
 //   - 3214: CanRemoveSlot dedicated dual-wire (remove_slot.go; expand residual 2976)
 //   - 3270: CanInsertAtSlot prior dedicated dual-wire (insert_slot.go; expand residual 2942)
 //   - 3301: CanInsertAtSlot dedicated dual-wire (insert_slot.go; expand residual 2942)
+//   - 3351: ShouldDecrementCountOnRemove dedicated dual-wire (decrement_count_remove.go; expand residual 2989)
 //
 // Dual-wire index:
 //   - 2942: CanInsertAtSlot residual dual-wire suite
 //   - 2976: CanRemoveSlot residual dual-wire suite
+//   - 2989: ShouldDecrementCountOnRemove residual dual-wire suite
 //   - 3027: CanSetSize residual dual-wire suite
 //   - 3164: CanSetSize = newSize <= maxSize && newSize >= itemCount
 //   - 3194: CanInsertAtSlot = slotID <= size (earlier prior dedicated expand residual 2942)
 //   - 3214: CanRemoveSlot = slotID <= size
 //   - 3270: CanInsertAtSlot = slotID <= size (prior dedicated expand residual 2942)
 //   - 3301: CanInsertAtSlot = slotID <= size
+//   - 3351: ShouldDecrementCountOnRemove = slotOccupied && slotID != 0
 //
 // Production host: CItemContainer::InsertItem(PItem, SlotID)
 // (item_container.cpp) injects SlotID and m_size into CanInsertAtSlot.
@@ -56,6 +59,8 @@
 // ShouldDecrementCountOnRemove after CanRemoveSlot admits.
 // Go dual-wire: itemcontainer.ShouldDecrementCountOnRemove
 // (internal/itemcontainer/decrement_count_remove.go).
+// Residual dual-wire suite: 2989 (test_item_decrement_count_remove_2989).
+// Dedicated dual-wire suite: 3351 (test_item_decrement_count_remove_3351).
 // Production host: CItemContainer::SetSize / AddSize inject size / newsize,
 // MAX_CONTAINER_SIZE, and m_count into CanSetSize.
 // Go dual-wire: itemcontainer.CanSetSize
@@ -128,10 +133,15 @@ inline auto ShouldIncrementCountOnInsertAt(const bool slotEmpty, const std::uint
     return slotEmpty && slotID != 0;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3351 — RemoveItem count drop (dedicated expand residual 2989)
+// ---------------------------------------------------------------------------
+
 // ShouldDecrementCountOnRemove mirrors RemoveItem count drop: only occupied
 // nonzero slots contribute to m_count.
 //
-// Formula (slice 2989 dual-wire):
+// Formula (slice 3351 dedicated dual-wire; residual expand 2989 / pure 2802 —
+// formula unchanged):
 //   slotOccupied && slotID != 0
 //
 // slotOccupied — host-evaluated occupancy (m_ItemList[SlotID] != nullptr)
@@ -141,9 +151,13 @@ inline auto ShouldIncrementCountOnInsertAt(const bool slotEmpty, const std::uint
 //
 // Dual-wire of Go itemcontainer.ShouldDecrementCountOnRemove.
 // Call site: CItemContainer::RemoveItem after CanRemoveSlot admits.
-// Prior pure port: slice 2802. Sibling dual-wire range gate: CanRemoveSlot
-// (slice 2976). Mirror increment gate: ShouldIncrementCountOnInsertAt
-// (slice 3021; slotEmpty && slotID != 0).
+// Prior pure port: slice 2802. Residual dual-wire suite: 2989 /
+// test_item_decrement_count_remove_2989. Dedicated dual-wire suite is
+// test_item_decrement_count_remove_3351. Sibling dual-wire range gate:
+// CanRemoveSlot (slice 3214). Mirror increment gate:
+// ShouldIncrementCountOnInsertAt (slice 3021; slotEmpty && slotID != 0) —
+// left residual under this slice. Sibling dual-wire gates: CanSetSize (3164),
+// CanInsertAtSlot (3301), CanRemoveSlot (3214) — left residual under this slice.
 inline auto ShouldDecrementCountOnRemove(const bool slotOccupied, const std::uint8_t slotID) -> bool
 {
     return slotOccupied && slotID != 0;

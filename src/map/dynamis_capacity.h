@@ -7,6 +7,8 @@
 //   - 3257: ShouldSnapToEntryPos dedicated dual-wire expand residual 3197
 //   - 2921 residual: CanUnlockSJ (somnial threshold startEvent param)
 //   - 3151: CanUnlockSJ dedicated dual-wire (unlock_sj.go)
+//   - 3349: ShouldUnlockSJRestriction dedicated dual-wire expand residual
+//     2921/2857 (zone.go)
 //
 // Dual-wire index:
 //   - 2857: AtOrigin residual dual-wire notes
@@ -16,30 +18,39 @@
 //     dedicated dual-wire expand residual 3197
 //   - 2921: CanUnlockSJ residual dual-wire suite
 //   - 3151: CanUnlockSJ = hasSJRestriction ? 1 : 0
+//   - 3349: ShouldUnlockSJRestriction =
+//     hasSJRestriction && IsSubjobUnlockOption(option)
+//     dedicated dual-wire expand residual 2921/2857
 //
 // Lua production hosts: scripts/globals/dynamis.lua
 //   - xi.dynamis.zoneOnZoneIn (origin snap elseif after DYNAMIS check)
 //   - xi.dynamis.somnialThresholdOnTrigger (canUnlockSJ event param)
+//   - xi.dynamis.somnialThresholdOnEventFinish (option==2 unlock SJ)
 // Go dual-wire: dynamis.AtOrigin (internal/dynamis/at_origin.go);
 // dynamis.ShouldSnapToEntryPos (internal/dynamis/snap_entry.go);
-// dynamis.CanUnlockSJ (internal/dynamis/unlock_sj.go). Future Lua host
-// injects free functions then setPos / startEvent / delStatusEffectSilent.
+// dynamis.CanUnlockSJ (internal/dynamis/unlock_sj.go);
+// dynamis.ShouldUnlockSJRestriction (internal/dynamis/zone.go). Future Lua
+// host injects free functions then setPos / startEvent /
+// delStatusEffectSilent.
 //
 // Host injects scalars only (no entity pointers). Entity writeback
 // (setPos / startEvent / delStatusEffectSilent) remains host-owned.
 //
 // Prior pure ports: OmegaXI slices 1119 (zone), 1077 (somnial).
 // Residual dual-wire suite: 2857 / 2921 / 3078.
-// Dedicated dual-wire suite: 3078 / 3151 / 3197 / 3257.
+// Dedicated dual-wire suite: 3078 / 3151 / 3197 / 3257 / 3349.
 //
 // Index 3078: dynamis.ShouldSnapToEntryPos residual dual-wire suite.
 // Index 3151: dynamis.CanUnlockSJ pure dual-wire.
 // Index 3197: dynamis.AtOrigin pure dual-wire.
 // Index 3257: dynamis.ShouldSnapToEntryPos dedicated dual-wire expand
 // residual 3197.
+// Index 3349: dynamis.ShouldUnlockSJRestriction dedicated dual-wire expand
+// residual 2921/2857.
 // Go dual-wire: dynamis.AtOrigin (internal/dynamis/at_origin.go);
 // dynamis.ShouldSnapToEntryPos (internal/dynamis/snap_entry.go);
-// dynamis.CanUnlockSJ (internal/dynamis/unlock_sj.go).
+// dynamis.CanUnlockSJ (internal/dynamis/unlock_sj.go);
+// dynamis.ShouldUnlockSJRestriction (internal/dynamis/zone.go).
 
 namespace dynamishelpers
 {
@@ -126,10 +137,63 @@ inline auto ShouldSnapToEntryPos(const bool hasDynamisEffect, const float x, con
 // test_dynamis_unlock_sj_2921. Dedicated dual-wire suite is
 // test_dynamis_can_unlock_sj_3151. startEvent / menuBits / finish
 // delStatusEffectSilent remain host-owned.
-// Sibling left alone: ShouldSnapToEntryPos (3257 / residual 3078).
+// Sibling left alone: ShouldSnapToEntryPos (3257 / residual 3078);
+// ShouldUnlockSJRestriction (3349) pairs with unlock option.
 inline auto CanUnlockSJ(const bool hasSJRestriction) -> int
 {
     return hasSJRestriction ? 1 : 0;
+}
+
+// ---------------------------------------------------------------------------
+// Somnial unlock gate (ShouldUnlockSJRestriction slice 3349 expand residual
+// 2921/2857; pure 1119; composes IsSubjobUnlockOption)
+// ---------------------------------------------------------------------------
+
+// SomnialOptionUnlockSJ matches OmegaXI dynamis.SomnialOptionUnlockSJ (2).
+// Finish option from xi.dynamis.somnialThresholdOnEventFinish unlock branch.
+inline constexpr int SomnialOptionUnlockSJ = 2;
+
+// IsSubjobUnlockOption reports somnial finish option == 2 (unlock support
+// jobs). Dual-wire of OmegaXI internal/dynamis IsSubjobUnlockOption (zone.go).
+// Composed by ShouldUnlockSJRestriction (slice 3349).
+inline auto IsSubjobUnlockOption(const int option) -> bool
+{
+    return option == SomnialOptionUnlockSJ;
+}
+
+// ShouldUnlockSJRestriction is the pure free-function form of the semantic
+// unlock gate for hosts that already resolved hasStatusEffect(SJ_RESTRICTION)
+// and the somnial finish option:
+//
+//   elseif option == 2 then
+//     player:messageSpecial(ID.text.DYNAMIS_SUB_UNLOCKED)
+//     player:delStatusEffectSilent(xi.effect.SJ_RESTRICTION)
+//
+// Formula (slice 3349 dedicated dual-wire expand residual 2921/2857; prior
+// pure 1119 — formula unchanged):
+//   hasSJRestriction && IsSubjobUnlockOption(option)
+//
+// hasSJRestriction — host-evaluated hasStatusEffect(SJ_RESTRICTION)
+// option           — somnial finish option (2 = unlock support jobs)
+// true  → host messageSpecial + delStatusEffectSilent(SJ_RESTRICTION)
+// false → semantic no-op (LSB still may run delStatusEffectSilent harmlessly)
+//
+// Dual-wire of Go dynamis.ShouldUnlockSJRestriction (zone.go / slice 3349).
+// Call site: future Lua host inject of somnialThresholdOnEventFinish unlock
+// branch; pairs with CanUnlockSJ != 0 when option is unlock.
+// Prior pure port: slice 1119; residual dual-wire lineage: slice 2921
+// (CanUnlockSJ pairing / capacity) / slice 2857 (capacity surface).
+// Dedicated dual-wire suite is test_dynamis_unlock_sj_3349.
+// Residual dual-wire suite retained: test_dynamis_unlock_sj_2921.
+// Index 3349: dynamis.ShouldUnlockSJRestriction dedicated dual-wire expand
+// residual 2921/2857.
+// Sibling left alone this slice: CanUnlockSJ (3151 / residual 2921),
+// ShouldSnapToEntryPos / AtOrigin (3257 / 3197 / residual 2857), eject.
+// Coverage: free == inline == pin; residual poles (hasSJ on/off × unlock vs
+// non-unlock option); dense hasSJ × options. Residual 2921 suite retained.
+inline auto ShouldUnlockSJRestriction(const bool hasSJRestriction, const int option) -> bool
+{
+    return hasSJRestriction && IsSubjobUnlockOption(option);
 }
 
 } // namespace dynamishelpers

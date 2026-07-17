@@ -1639,6 +1639,11 @@ auto runAssaultAutoComplete3345SelfTests() -> bool;
 auto runAttackSkipAnticipateDaken3346SelfTests() -> bool;
 auto runZoneStampEmpty3347SelfTests() -> bool;
 auto runStatusRejectNull3348SelfTests() -> bool;
+auto runDynamisUnlockSJ3349SelfTests() -> bool;
+auto runMapsessionRecoverLinkDead3350SelfTests() -> bool;
+auto runItemDecrementCountRemove3351SelfTests() -> bool;
+auto runNyzulFloor100Vigil3352SelfTests() -> bool;
+auto runPartyRejectTrusts3353SelfTests() -> bool;
 
 namespace
 {
@@ -3255,6 +3260,11 @@ namespace
         ok = runAttackSkipAnticipateDaken3346SelfTests() && ok;
         ok = runZoneStampEmpty3347SelfTests() && ok;
         ok = runStatusRejectNull3348SelfTests() && ok;
+        ok = runDynamisUnlockSJ3349SelfTests() && ok;
+        ok = runMapsessionRecoverLinkDead3350SelfTests() && ok;
+        ok = runItemDecrementCountRemove3351SelfTests() && ok;
+        ok = runNyzulFloor100Vigil3352SelfTests() && ok;
+        ok = runPartyRejectTrusts3353SelfTests() && ok;
 
         return ok;
     }

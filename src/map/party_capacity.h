@@ -17,7 +17,9 @@
 //   - 2928: ShouldRejectPCAddFull residual dual-wire expand
 //   - 3200: ShouldRejectPCAddFull dedicated dual-wire
 //           (TYPE_PC + PARTY_PCS + partyFull; residual expand 2928 / pure 1327 / 1350)
-//   - 2937: ShouldRejectPCAddTrusts (TYPE_PC + PARTY_PCS + partyHasTrusts)
+//   - 2937: ShouldRejectPCAddTrusts residual dual-wire expand
+//   - 3353: ShouldRejectPCAddTrusts dedicated dual-wire
+//           (TYPE_PC + PARTY_PCS + partyHasTrusts; residual expand 2937 / pure 1327 / 1350)
 //   - 2955: ShouldClearSeekingParty residual dual-wire expand
 //           (also residual sibling pins for ShouldApplyPartyLevelSyncOnJoin)
 //   - 3217: ShouldClearSeekingParty dedicated dual-wire
@@ -87,7 +89,9 @@
 // Go dual-wire: party.ShouldRejectPCAddFull (internal/party/reject_pc_add_full.go;
 // residual dual-wire suite: 2928 / test_party_reject_full_2928;
 // dedicated dual-wire suite: 3200 / test_party_reject_pc_add_full_3200),
-// party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go),
+// party.ShouldRejectPCAddTrusts (internal/party/reject_pc_add_trusts.go;
+// residual dual-wire suite: 2937 / test_party_reject_trusts_2937;
+// dedicated dual-wire suite: 3353 / test_party_reject_trusts_3353),
 // party.ShouldClearSeekingParty (internal/party/clear_seeking.go;
 // residual dual-wire suite: 2955 / test_party_clear_seeking_2955;
 // dedicated dual-wire suite: 3217 / test_party_clear_seeking_party_3217),
@@ -194,7 +198,8 @@ inline auto ShouldRejectPCAddFull(const bool isPCEntity, const bool isPCParty, c
 
 // ShouldRejectPCAddTrusts mirrors AddMember's HasTrusts gate for TYPE_PC + PARTY_PCS.
 //
-// Formula (slice 2937 dual-wire):
+// Formula (slice 3353 dedicated dual-wire; residual expand 2937 / pure 1327 /
+// 1350 — formula unchanged):
 //   isPCEntity && isPCParty && partyHasTrusts
 //
 // isPCEntity     — host-evaluated objtype == TYPE_PC
@@ -205,6 +210,9 @@ inline auto ShouldRejectPCAddFull(const bool isPCEntity, const bool isPCParty, c
 //
 // Dual-wire of Go party.ShouldRejectPCAddTrusts.
 // Call site: ClassifyAddMember / CParty::AddMember host inject.
+// Residual dual-wire suite: 2937 / test_party_reject_trusts_2937.
+// Dedicated dual-wire suite is test_party_reject_trusts_3353. Formula is
+// unchanged; dedicated suite expands free==inline==pin poles + dense 2^3.
 inline auto ShouldRejectPCAddTrusts(const bool isPCEntity, const bool isPCParty, const bool partyHasTrusts) -> bool
 {
     return isPCEntity && isPCParty && partyHasTrusts;

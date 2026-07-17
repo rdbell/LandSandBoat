@@ -5,7 +5,7 @@
 // Pure Nyzul Isle helpers shared by dual-wire slices:
 //   - 2874: free-floor selection gate (pickSetPoint; prior dual-wire)
 //   - 2891: gear-objective chance gate (pickSetPoint)
-//   - 2900: floor-100 vigil weapon drop gate (vigilWeaponDrop)
+//   - 2900: floor-100 vigil weapon drop gate (vigilWeaponDrop; residual dual-wire)
 //   - 2902: Rune of Transfer first-claimer gate (onEventUpdate; residual dual-wire)
 //   - 2905: spawnChest regular-mob casket roll (prior dual-wire)
 //   - 2909: non-floor-100 NM vigil weapon roll (vigilWeaponDrop)
@@ -22,8 +22,11 @@
 //           (retained; prior dedicated 3240; formula unchanged: runeHandler == 0)
 //   - 3311: CanClaimRuneHandler dedicated dual-wire expand residual 2902
 //           (prior dedicated 3281; formula unchanged: runeHandler == 0)
+//   - 3352: ShouldDropFloor100VigilWeapons dedicated dual-wire expand residual 2900
+//           (formula unchanged: currentFloor == Floor100)
 //
 // Dual-wire index:
+//   - 2900: ShouldDropFloor100VigilWeapons residual pure dual-wire
 //   - 2902: CanClaimRuneHandler residual pure dual-wire
 //   - 3240: CanClaimRuneHandler prior dedicated dual-wire expand residual 2902
 //           (retained)
@@ -31,6 +34,8 @@
 //           (retained; prior dedicated 3240)
 //   - 3311: CanClaimRuneHandler = runeHandler == 0
 //     dedicated dual-wire expand residual 2902 (prior dedicated 3281)
+//   - 3352: ShouldDropFloor100VigilWeapons = currentFloor == Floor100
+//     dedicated dual-wire expand residual 2900
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
@@ -209,8 +214,23 @@ inline auto CanClaimRuneHandler(const int32 runeHandler) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2900 — vigilWeaponDrop floor-100 guaranteed-drop gate
+// Slice 2900 residual / 3352 expand residual 2900
+// — vigilWeaponDrop floor-100 guaranteed-drop gate
 // ---------------------------------------------------------------------------
+// Dual-wire notes (slice 3352):
+//   Formula unchanged from residual 1088 / residual dual-wire 2900:
+//     ShouldDropFloor100VigilWeapons(currentFloor) = currentFloor == Floor100
+//     // Floor100 == 100
+//   Go dual-wire: nyzul.ShouldDropFloor100VigilWeapons
+//   (internal/nyzul/floor100_vigil.go).
+//   Production host is Lua xi.nyzul.vigilWeaponDrop (no map-server C++ call
+//   site); future Lua host injects Nyzul_Current_Floor localVar instead of
+//   re-inlining `instance:getLocalVar('Nyzul_Current_Floor') == 100`.
+//   Host still owns disk-holder / random treasure grants on true and the
+//   non-100 NM 20% roll path on false (ShouldRollNMVigilWeapon / slice 2909).
+//   Sibling free_floor / claim_rune dual-wires left alone — do not thrash.
+// Coverage: test_nyzul_floor100_vigil_3352 (dedicated expand residual 2900;
+// not in CMake/main); residual 2900 suite retained.
 
 // Floor100 is the floor pin for guaranteed vigil weapon drops
 // (Nyzul_Current_Floor == 100).
@@ -218,9 +238,15 @@ inline constexpr int32 Floor100 = 100;
 
 // ShouldDropFloor100VigilWeapons mirrors vigilWeaponDrop floor-100 gate:
 //   instance:getLocalVar('Nyzul_Current_Floor') == 100
+//
+// Formula (slice 3352 dual-wire expand residual 2900; unchanged):
+//   ShouldDropFloor100VigilWeapons(currentFloor) = currentFloor == Floor100
+//
 // currentFloor is the host-injected Nyzul_Current_Floor localVar. Host still
 // owns disk-holder / random treasure grants on true and the non-100 NM 20%
 // roll path on false (ShouldRollNMVigilWeapon / slice 2909).
+// Dual-wire of Go nyzul.ShouldDropFloor100VigilWeapons
+// (floor100_vigil.go / slice 3352).
 inline auto ShouldDropFloor100VigilWeapons(const int32 currentFloor) -> bool
 {
     return currentFloor == Floor100;
