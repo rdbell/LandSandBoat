@@ -1549,6 +1549,11 @@ auto runRecastEraseOnExpire3255SelfTests() -> bool;
 auto runMeritLowerMerit3256SelfTests() -> bool;
 auto runDynamisSnapEntry3257SelfTests() -> bool;
 auto runAssaultIssueTag3258SelfTests() -> bool;
+auto runSalvageClaimTransport3259SelfTests() -> bool;
+auto runTreasurepoolLotRare3260SelfTests() -> bool;
+auto runSpawnslotDespawnFog3261SelfTests() -> bool;
+auto runExtravaganzaCanAffordCipher3262SelfTests() -> bool;
+auto runCommandPermission3263SelfTests() -> bool;
 
 namespace
 {
@@ -3075,6 +3080,11 @@ namespace
         ok = runMeritLowerMerit3256SelfTests() && ok;
         ok = runDynamisSnapEntry3257SelfTests() && ok;
         ok = runAssaultIssueTag3258SelfTests() && ok;
+        ok = runSalvageClaimTransport3259SelfTests() && ok;
+        ok = runTreasurepoolLotRare3260SelfTests() && ok;
+        ok = runSpawnslotDespawnFog3261SelfTests() && ok;
+        ok = runExtravaganzaCanAffordCipher3262SelfTests() && ok;
+        ok = runCommandPermission3263SelfTests() && ok;
 
         return ok;
     }

@@ -3091,6 +3091,16 @@ set(SOURCES
     test_dynamis_snap_entry_3257.cpp
     test_assault_issue_tag_3258.h
     test_assault_issue_tag_3258.cpp
+    test_salvage_claim_transport_3259.h
+    test_salvage_claim_transport_3259.cpp
+    test_treasurepool_lot_rare_3260.h
+    test_treasurepool_lot_rare_3260.cpp
+    test_spawnslot_despawn_fog_3261.h
+    test_spawnslot_despawn_fog_3261.cpp
+    test_extravaganza_can_afford_cipher_3262.h
+    test_extravaganza_can_afford_cipher_3262.cpp
+    test_command_permission_3263.h
+    test_command_permission_3263.cpp
 )
 
 if(UNIX)

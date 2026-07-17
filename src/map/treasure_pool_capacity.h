@@ -13,17 +13,20 @@
 //   - 2938: ShouldAutoResolveSolo residual dual-wire suite (memberCount == 1)
 //   - 2957: CanLotWithInventory (freeSlots != 0 inventory lot gate)
 //   - 2981: ShouldForceCheckOnFullPoolInsert (SlotID == PoolSize after free scan)
-//   - 2998: CanLotRareItem (!(rare && alreadyHas) rare-owned lot gate)
+//   - 2998: CanLotRareItem residual dual-wire suite (!(rare && alreadyHas))
 //   - 3060: ShouldRejectNullMember (charNull || poolMismatch null-member gate)
 //   - 3067: ShouldRejectNullItem (itemNull identity null-item gate)
 //   - 3094: ShouldSkipRareCheck (!isSoloPool && itemHasNoRareCheck skip-rare gate)
 //   - 3112: ShouldUpdatePoolForChar (!isDisappear UpdatePool visibility gate)
 //   - 3127: ShouldFlushPool (itemCount != 0 flush entry gate)
 //   - 3201: ShouldAutoResolveSolo dedicated dual-wire (auto_solo.go; expand residual 2938)
+//   - 3260: CanLotRareItem dedicated dual-wire (lot_rare.go; expand residual 2998)
 //
 // Dual-wire index:
 //   - 2938: ShouldAutoResolveSolo residual dual-wire suite
+//   - 2998: CanLotRareItem residual dual-wire suite
 //   - 3201: ShouldAutoResolveSolo = memberCount == 1
+//   - 3260: CanLotRareItem = !itemIsRare || !alreadyHasItem
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -47,6 +50,8 @@
 // item rare flag + already-has lookup into CanLotRareItem.
 // Go dual-wire: treasurepool.CanLotRareItem
 // (internal/treasurepool/lot_rare.go).
+// Residual dual-wire suite: 2998 (test_treasure_lot_rare_2998).
+// Dedicated dual-wire suite: 3260 (test_treasurepool_lot_rare_3260).
 //
 // Production host: CTreasurePool::{lotItem,passItem,UpdatePool} /
 // PlanLotItemPreflight / PlanPassItemPreflight / PlanUpdatePool inject
@@ -236,11 +241,16 @@ inline auto CanLotWithInventory(const uint8 freeSlots) -> bool
     return freeSlots != 0;
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3260 — lot rare-owned gate (dedicated expand residual 2998)
+// ---------------------------------------------------------------------------
+
 // CanLotRareItem mirrors !(rare && alreadyHas).
 //
-// Formula (slice 2998 dual-wire):
-//   !(itemIsRare && alreadyHasItem)
-//   // equivalent De Morgan: !itemIsRare || !alreadyHasItem
+// Formula (slice 3260 dedicated dual-wire; residual expand 2998 / pure 1367 —
+// formula unchanged):
+//   !itemIsRare || !alreadyHasItem
+//   // equivalent pin form: !(itemIsRare && alreadyHasItem)
 //
 // itemIsRare     — host-evaluated item rare flag
 // alreadyHasItem — host-evaluated whether the lotting character already holds
@@ -250,6 +260,13 @@ inline auto CanLotWithInventory(const uint8 freeSlots) -> bool
 //
 // Dual-wire of Go treasurepool.CanLotRareItem.
 // Call site: PlanLotItemPreflight / CTreasurePool::lotItem after inventory gate.
+// Prior pure port: slice 1367. Residual dual-wire suite: 2998 /
+// test_treasure_lot_rare_2998. Dedicated dual-wire suite is
+// test_treasurepool_lot_rare_3260. Sibling dual-wire gates:
+// CanLotWithInventory (2957), ShouldForceCheckOnFullPoolInsert (2981),
+// ShouldAutoResolveSolo (3201), ShouldRejectNullMember (3060),
+// ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094),
+// ShouldUpdatePoolForChar (3112), ShouldFlushPool (3127) — left residual.
 inline auto CanLotRareItem(const bool itemIsRare, const bool alreadyHasItem) -> bool
 {
     return !(itemIsRare && alreadyHasItem);

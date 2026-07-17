@@ -15,6 +15,9 @@
 //   - 3202: ShouldRejectFogSpawn dedicated dual-wire
 //           (HasSpawnTypeFlag(spawnType, SpawnTypeFog) && !isFog;
 //            residual expand 2923 / pure 1362)
+//   - 3261: ShouldDespawnFogMobOnWeather dedicated dual-wire
+//           (HasSpawnTypeFlag(spawnType, SpawnTypeFog) && !isFog;
+//            residual expand 2923 / pure 1362; prior spawn-gate dual-wire ~3202)
 //   - 3092: ShouldRejectAtNightSpawn (ATNIGHT flag && not NIGHT/MIDNIGHT TOTD)
 //   - 3107: ShouldRejectAtEveningSpawn (ATEVENING flag && not evening TOTD window)
 //   - 3124: ShouldRejectSpawnNullOrDisabled (mobNull || !allowRespawn)
@@ -23,10 +26,14 @@
 // Production host: SpawnHandler::canSpawnNow (spawn_handler.cpp) injects
 // isFog = zone_->weather().current() == Weather::Fog and current TOTD before
 // CanSpawnNowPure. SpawnHandler::onTOTDChange NEWDAY injects m_SpawnType into
-// ShouldDespawnOnNewDay.
+// ShouldDespawnOnNewDay. SpawnHandler::onWeatherChange injects
+// weather == Weather::Fog into ShouldDespawnFogMobOnWeather.
 // Go dual-wire: spawnslot.ShouldRejectFogSpawn (internal/spawnslot/reject_fog.go).
 // Residual dual-wire suite: 2923 / test_spawn_reject_fog_2923.
 // Dedicated dual-wire suite: 3202 / test_spawnslot_reject_fog_spawn_3202.
+// Go dual-wire: spawnslot.ShouldDespawnFogMobOnWeather
+// (internal/spawnslot/despawn_fog.go).
+// Dedicated dual-wire suite: 3261 / test_spawnslot_despawn_fog_3261.
 // Go dual-wire: spawnslot.ShouldRejectAtNightSpawn
 // (internal/spawnslot/reject_night_spawn.go),
 // spawnslot.ShouldRejectAtEveningSpawn (internal/spawnslot/reject_evening_spawn.go),
@@ -245,6 +252,28 @@ inline auto ShouldDespawnElementalOnWeather(
 }
 
 // ShouldDespawnFogMobOnWeather mirrors FOG type && weather != Fog.
+// isFog is host-evaluated weather == Weather::Fog.
+//
+// Formula (slice 3261 dedicated dual-wire; residual expand 2923 / pure 1362 —
+// formula unchanged; prior dedicated spawn-gate dual-wire ~3202):
+//   HasSpawnTypeFlag(spawnType, SpawnTypeFog) && !isFog
+//   // SpawnTypeFog = 0x08
+//   // Positive form: FOG flag required AND weather is not fog
+//
+// true  → despawn FOG-type mob outside fog weather
+// false → keep (no FOG flag, or weather is fog)
+//
+// Dual-wire of Go spawnslot.ShouldDespawnFogMobOnWeather
+// (internal/spawnslot/despawn_fog.go). Prior pure port: slice 1362.
+// Residual same-formula dual-wire: 2923 / test_spawn_reject_fog_2923
+// (spawn gate). Prior dedicated spawn-gate dual-wire: 3202 /
+// test_spawnslot_reject_fog_spawn_3202. Dedicated dual-wire suite is
+// test_spawnslot_despawn_fog_3261. Formula is unchanged; this slice only
+// expands dual-wire docs + index + dedicated suite.
+// Call site: SpawnHandler::onWeatherChange host inject.
+// Sibling dual-wires left alone: ShouldRejectFogSpawn (2923 / 3202),
+// ShouldDespawnOnNewDay (3139). Sibling residual left alone:
+// ShouldDespawnOnDawn / ShouldDespawnElementalOnWeather.
 inline auto ShouldDespawnFogMobOnWeather(const uint8 spawnType, const bool isFog) -> bool
 {
     return HasSpawnTypeFlag(spawnType, SpawnTypeFog) && !isFog;

@@ -10,7 +10,7 @@
 // Dual-wire pure free functions (OmegaXI slices expand individual helpers):
 //   - 2792: permission / audit plan suite (null/name/perm/audit + post-props)
 //   - 2836: ShouldRejectEmptyCommandLine residual (ParseCommandLine empty after trim)
-//   - 2940: ShouldAllowCommandPermission (permission <= m_GMlevel)
+//   - 2940: ShouldAllowCommandPermission residual dual-wire expand
 //   - 2982: ShouldRejectNullChar residual dual-wire expand
 //   - 2990: ShouldRejectEmptyCommandName residual dual-wire expand
 //   - 3005: ShouldRejectEmptyCommandLine (viewEmptyAfterTrim identity dual-wire)
@@ -21,6 +21,8 @@
 //           (charNull identity; residual expand 2982 / pure 2792)
 //   - 3205: ShouldRejectEmptyCommandName dedicated dual-wire
 //           (!valid identity-not; residual expand 2990 / pure 2792)
+//   - 3263: ShouldAllowCommandPermission dedicated dual-wire
+//           (permission <= m_GMlevel after int promotions; residual expand 2940 / pure 2792)
 //
 // Production host: CCommandHandler::call injects PChar->m_GMlevel and Lua
 // cmdprops permission into PlanCommandCallPostProps / ShouldAllowCommandPermission.
@@ -99,7 +101,8 @@ inline auto ShouldRejectEmptyCommandName(const bool valid) -> bool
 
 // ShouldAllowCommandPermission mirrors !(permission > PChar->m_GMlevel).
 //
-// Formula (slice 2940 dual-wire):
+// Formula (slice 3263 dedicated dual-wire; residual expand 2940 / pure 2792 —
+// formula unchanged):
 //   static_cast<int>(permission) <= static_cast<int>(gmLevel)
 // which is equivalent to !(permission > gmLevel) after usual arithmetic
 // conversions promote int8 / uint8 to int.
@@ -110,6 +113,10 @@ inline auto ShouldRejectEmptyCommandName(const bool valid) -> bool
 //
 // Dual-wire of Go command.ShouldAllowCommandPermission.
 // Call site: CCommandHandler::call via PlanCommandCallPostProps after cmdprops load.
+// Prior pure port: slice 2792. Residual dual-wire suite: 2940 /
+// test_command_permission_2940. Dedicated dual-wire suite is
+// test_command_permission_3263. Formula is unchanged; this slice only
+// expands dual-wire docs + index + dedicated suite.
 inline auto ShouldAllowCommandPermission(const uint8 gmLevel, const int8 permission) -> bool
 {
     return static_cast<int>(permission) <= static_cast<int>(gmLevel);
