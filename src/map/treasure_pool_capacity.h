@@ -18,6 +18,7 @@
 //   - 3067: ShouldRejectNullItem (itemNull identity null-item gate)
 //   - 3094: ShouldSkipRareCheck (!isSoloPool && itemHasNoRareCheck skip-rare gate)
 //   - 3112: ShouldUpdatePoolForChar (!isDisappear UpdatePool visibility gate)
+//   - 3127: ShouldFlushPool (itemCount != 0 flush entry gate)
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -67,6 +68,14 @@
 // (internal/treasurepool/update_pool_for_char.go).
 // Sibling dual-wires (leave alone): ShouldRejectNullMember (3060),
 // ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094).
+//
+// Production host: CTreasurePool::flush / PlanFlush injects m_count into
+// ShouldFlushPool before advancing the flush tick and checkTreasureItem loop.
+// Go dual-wire: treasurepool.ShouldFlushPool
+// (internal/treasurepool/flush_pool.go).
+// Sibling dual-wires (leave alone): ShouldRejectNullMember (3060),
+// ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094),
+// ShouldUpdatePoolForChar (3112).
 
 namespace treasurepoolhelpers
 {
@@ -432,6 +441,19 @@ inline auto PlanUpdatePool(
 }
 
 // ShouldFlushPool mirrors m_count != 0.
+//
+// Formula (slice 3127 dual-wire):
+//   itemCount != 0
+//
+// itemCount — host-evaluated m_count (current filled treasure pool slots)
+// true  → host may advance flush tick and checkTreasureItem each slot
+// false → host no-ops flush when the pool is empty
+//
+// Dual-wire of Go treasurepool.ShouldFlushPool.
+// Call site: PlanFlush / CTreasurePool::flush.
+// Sibling dual-wires (leave alone): ShouldRejectNullMember (3060),
+// ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094),
+// ShouldUpdatePoolForChar (3112).
 inline auto ShouldFlushPool(const uint8 itemCount) -> bool
 {
     return itemCount != 0;

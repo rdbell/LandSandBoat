@@ -14,13 +14,16 @@
 //   - 2923: ShouldRejectFogSpawn (FOG spawnType flag && weather is not fog)
 //   - 3092: ShouldRejectAtNightSpawn (ATNIGHT flag && not NIGHT/MIDNIGHT TOTD)
 //   - 3107: ShouldRejectAtEveningSpawn (ATEVENING flag && not evening TOTD window)
+//   - 3124: ShouldRejectSpawnNullOrDisabled (mobNull || !allowRespawn)
 //
 // Production host: SpawnHandler::canSpawnNow (spawn_handler.cpp) injects
 // isFog = zone_->weather().current() == Weather::Fog and current TOTD before
 // CanSpawnNowPure.
 // Go dual-wire: spawnslot.ShouldRejectFogSpawn (internal/spawnslot/reject_fog.go),
 // spawnslot.ShouldRejectAtNightSpawn (internal/spawnslot/reject_night_spawn.go),
-// spawnslot.ShouldRejectAtEveningSpawn (internal/spawnslot/reject_evening_spawn.go).
+// spawnslot.ShouldRejectAtEveningSpawn (internal/spawnslot/reject_evening_spawn.go),
+// spawnslot.ShouldRejectSpawnNullOrDisabled
+// (internal/spawnslot/reject_spawn_null_disabled.go).
 
 namespace spawnhelpers
 {
@@ -33,8 +36,23 @@ constexpr uint8 SpawnTypeWeather   = SPAWNTYPE_WEATHER;
 constexpr uint8 SpawnTypeFog       = SPAWNTYPE_FOG;
 
 // ShouldRejectSpawnNullOrDisabled mirrors !PMob || !m_AllowRespawn.
+// mobNull / allowRespawn are host-evaluated PMob nullity and m_AllowRespawn.
+//
+// Formula (slice 3124 dual-wire):
+//   mobNull || !allowRespawn
+//   // Positive form avoids QF1001 De Morgan rewrite of !(!mobNull && allowRespawn)
+//
+// true  → reject spawn (missing mob, or respawn disabled)
+// false → null/disabled gate passes (mob present and allowRespawn)
+//
+// Dual-wire of Go spawnslot.ShouldRejectSpawnNullOrDisabled.
+// Call site: CanSpawnNowPure (and SpawnHandler::canSpawnNow host inject).
+// Sibling dual-wires (leave alone): ShouldRejectAtNightSpawn (3092),
+// ShouldRejectAtEveningSpawn (3107). Related residual
+// ShouldRejectRegisterForRespawn adds an inInstance clause (not this gate).
 inline auto ShouldRejectSpawnNullOrDisabled(const bool mobNull, const bool allowRespawn) -> bool
 {
+    // Positive form: mobNull || !allowRespawn (avoid QF1001 De Morgan).
     return mobNull || !allowRespawn;
 }
 

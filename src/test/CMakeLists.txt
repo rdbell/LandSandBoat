@@ -2821,6 +2821,16 @@ set(SOURCES
     test_recast_update_max_charges_3122.cpp
     test_battlefield_check_in_progress_3123.h
     test_battlefield_check_in_progress_3123.cpp
+    test_spawn_reject_null_disabled_3124.h
+    test_spawn_reject_null_disabled_3124.cpp
+    test_char_set_pending_push_3125.h
+    test_char_set_pending_push_3125.cpp
+    test_linkshell_return_cached_3126.h
+    test_linkshell_return_cached_3126.cpp
+    test_treasure_flush_pool_3127.h
+    test_treasure_flush_pool_3127.cpp
+    test_nyzul_spawn_casket_3128.h
+    test_nyzul_spawn_casket_3128.cpp
 )
 
 if(UNIX)

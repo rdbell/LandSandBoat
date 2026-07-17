@@ -1414,6 +1414,11 @@ auto runAttackutilsZanshinDD3120SelfTests() -> bool;
 auto runAllianceSkipDelParty3121SelfTests() -> bool;
 auto runRecastUpdateMaxCharges3122SelfTests() -> bool;
 auto runBattlefieldCheckInProgress3123SelfTests() -> bool;
+auto runSpawnRejectNullDisabled3124SelfTests() -> bool;
+auto runCharSetPendingPush3125SelfTests() -> bool;
+auto runLinkshellReturnCached3126SelfTests() -> bool;
+auto runTreasureFlushPool3127SelfTests() -> bool;
+auto runNyzulSpawnCasket3128SelfTests() -> bool;
 
 namespace
 {
@@ -2805,6 +2810,11 @@ namespace
         ok = runAllianceSkipDelParty3121SelfTests() && ok;
         ok = runRecastUpdateMaxCharges3122SelfTests() && ok;
         ok = runBattlefieldCheckInProgress3123SelfTests() && ok;
+        ok = runSpawnRejectNullDisabled3124SelfTests() && ok;
+        ok = runCharSetPendingPush3125SelfTests() && ok;
+        ok = runLinkshellReturnCached3126SelfTests() && ok;
+        ok = runTreasureFlushPool3127SelfTests() && ok;
+        ok = runNyzulSpawnCasket3128SelfTests() && ok;
 
         return ok;
     }

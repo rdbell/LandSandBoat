@@ -27,6 +27,7 @@
 //   - 3079: ShouldRejectNullOnlineMember (charNull identity null-PChar gate)
 //   - 3099: ShouldProcessLinkshellItem (itemNonNull && isLinkshellType)
 //   - 3111: ShouldUnloadLinkshell (foundInList identity)
+//   - 3126: ShouldReturnCachedLinkshell (foundInList identity)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -59,6 +60,9 @@
 // linkshell::UnloadLinkshell injects
 // LinkshellList.find(id) != LinkshellList.end() into ShouldUnloadLinkshell;
 // on true LinkshellList.erase(id).
+// linkshell::GetLinkshell injects
+// LinkshellList.find(id) != LinkshellList.end() into ShouldReturnCachedLinkshell;
+// on true returns LinkshellList.find(id)->second.get(); on false returns nullptr.
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
 // (internal/linkshell/reject_null_add_member.go),
 // linkshell.ShouldRejectDuplicateAddMember
@@ -84,7 +88,9 @@
 // linkshell.ShouldProcessLinkshellItem
 // (internal/linkshell/process_linkshell_item.go),
 // linkshell.ShouldUnloadLinkshell
-// (internal/linkshell/unload_linkshell.go).
+// (internal/linkshell/unload_linkshell.go),
+// linkshell.ShouldReturnCachedLinkshell
+// (internal/linkshell/return_cached_linkshell.go).
 
 namespace linkshellhelpers
 {
@@ -632,6 +638,25 @@ inline auto ClassifyRegisterNewLinkshell(
 }
 
 // ShouldReturnCachedLinkshell mirrors GetLinkshell find hit.
+//
+// Formula (slice 3126 dual-wire):
+//   foundInList
+//
+// foundInList — host: LinkshellList.find(id) != end
+// true  → host returns LinkshellList.find(id)->second.get()
+// false → host returns nullptr (not loaded)
+//
+// Dual-wire of Go linkshell.ShouldReturnCachedLinkshell.
+// Call site: linkshell::GetLinkshell — host injects
+// LinkshellList.find(id) != LinkshellList.end(); on true returns cached
+// CLinkshell*; on false returns nullptr.
+// Prior pure port: slice 1355 (linkshell registry residual). Residual pins
+// remain in test_linkshell_registry_1355; dedicated dual-wire suite is
+// test_linkshell_return_cached_3126. Sibling dual-wires (leave alone):
+// ShouldLoadLinkshellOnOnlineAdd (3055), ShouldRejectNullOnlineMember (3079),
+// ShouldProcessLinkshellItem (3099), ShouldUnloadLinkshell (3111). Residual
+// siblings: add-after-lookup, always-false return, erase-after-del, null
+// warning string, load classify (still 1355).
 inline auto ShouldReturnCachedLinkshell(const bool foundInList) -> bool
 {
     return foundInList;

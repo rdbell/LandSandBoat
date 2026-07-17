@@ -7,7 +7,7 @@
 //   - 2891: gear-objective chance gate (pickSetPoint)
 //   - 2900: floor-100 vigil weapon drop gate (vigilWeaponDrop)
 //   - 2902: Rune of Transfer first-claimer gate (onEventUpdate)
-//   - 2905: spawnChest regular-mob casket roll (spawnChest)
+//   - 2905: spawnChest regular-mob casket roll (prior dual-wire)
 //   - 2909: non-floor-100 NM vigil weapon roll (vigilWeaponDrop)
 //   - 2913: activateRuneOfTransfer NORMAL status gate (prior dual-wire)
 //   - 2914: clearChests present + not-DISAPPEAR status gate (prior dual-wire)
@@ -15,6 +15,7 @@
 //   - 3061: clearChests present + not-DISAPPEAR status gate (ShouldClearChestNPC)
 //   - 3095: free-floor selection gate (ShouldGrantFreeFloor / pickSetPoint)
 //   - 3110: activateRuneOfTransfer NORMAL status gate (ShouldActivateRuneOfTransfer)
+//   - 3128: spawnChest regular-mob casket roll (ShouldSpawnCasket)
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
@@ -210,8 +211,21 @@ inline auto ShouldRollNMVigilWeapon(const int32 roll1to100, const bool enableVig
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2905 — spawnChest regular-mob casket roll
+// Slice 3128 — spawnChest regular-mob casket roll
+// (prior dual-wire expansion: slice 2905; residual pure port: 1088)
 // ---------------------------------------------------------------------------
+// Dual-wire notes (slice 3128):
+//   Formula unchanged from residual 1088 / prior 2905 dual-wire:
+//     ShouldSpawnCasket(roll1to100, enableCaskets) =
+//       enableCaskets && roll1to100 >= 1 && roll1to100 <= CasketDropChancePercent
+//   Go dual-wire: nyzul.ShouldSpawnCasket (internal/nyzul/spawn_casket.go).
+//   Production host is Lua xi.nyzul.spawnChest (no map-server C++ call site);
+//   future Lua host injects roll + ENABLE_NYZUL_CASKETS instead of re-inlining
+//   `ENABLE_NYZUL_CASKETS and math.random(1, 100) <= 6`.
+//   Host still owns mob-band eligibility (mobID < BOSS_OFFSET, NM coffer
+//   short-circuit) and casket NPC activate (setPos / NORMAL / animationSub).
+//   Sibling clear-chest dual-wire (3061), free-floor dual-wire (3095), and
+//   activate-rune dual-wire (3110) are separate surfaces — leave alone.
 
 // CasketDropChancePercent is the regular-mob casket pop rate for
 // math.random(1, 100) (roll ≤ 6 → 6%).
@@ -225,6 +239,11 @@ inline constexpr int32 CasketDropChancePercent = 6;
 // xi.settings.main.ENABLE_NYZUL_CASKETS (default true). Host still owns
 // mob-band eligibility (mobID < BOSS_OFFSET, NM coffer short-circuit) and
 // casket NPC activate (setPos / NORMAL / animationSub).
+//
+// Formula (slice 3128 dual-wire; unchanged):
+//   ShouldSpawnCasket(roll1to100, enableCaskets) =
+//     enableCaskets && roll1to100 >= 1 && roll1to100 <= CasketDropChancePercent
+// Dual-wire of Go nyzul.ShouldSpawnCasket (spawn_casket.go / slice 3128).
 inline auto ShouldSpawnCasket(const int32 roll1to100, const bool enableCaskets) -> bool
 {
     return enableCaskets && roll1to100 >= 1 && roll1to100 <= CasketDropChancePercent;

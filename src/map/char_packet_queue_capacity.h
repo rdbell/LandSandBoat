@@ -15,15 +15,22 @@
 //           (packetType == 0x5B && packetEntityID == ownerID)
 //   - 3105: ShouldEraseEntityUpdateOnPop residual dual-wire
 //           (packetType == 0x0D || packetType == 0x0E)
+//   - 3125: ShouldSetPendingPositionOnPush residual dual-wire
+//           (packetType == 0x5B && packetEntityID == ownerID)
 //
 // Production host: CCharEntity::popPacket (char_entity.cpp) injects type /
 // entity-id / owner scalars into OnPop, which dual-wires erase through
 // ShouldEraseEntityUpdateOnPop and clear-pending through
 // ShouldClearPendingPositionOnPop.
+// Production host: CCharEntity::pushPacket injects type / entity-id / owner
+// into OnPush, which dual-wires pending-position through
+// ShouldSetPendingPositionOnPush.
 // Go dual-wire erase: charentity.ShouldEraseEntityUpdateOnPop
 // (internal/charentity/erase_entity_update_pop.go).
 // Go dual-wire clear-pending: charentity.ShouldClearPendingPositionOnPop
 // (internal/charentity/clear_pending_pop.go).
+// Go dual-wire set-pending-on-push: charentity.ShouldSetPendingPositionOnPush
+// (internal/charentity/set_pending_position_push.go).
 
 namespace charpacketqueuehelpers
 {
@@ -35,9 +42,27 @@ inline bool Filtered(const std::uint16_t packetType, const bool filterOthersSynt
 
 // ShouldSetPendingPositionOnPush is the pure admission gate for OnPush pending
 // position: true when the packet is a position update (0x5B) for the owning
-// character. Host dual-wires:
+// character.
+//
+// Formula (slice 3125 dual-wire; residual pure port from slice 2842):
+//   packetType == 0x5B && packetEntityID == ownerID
+//
+// packetType     — host-evaluated packet->getType()
+// packetEntityID — host-injected entity id (0x5B → ref 0x10; else 0)
+// ownerID        — host-injected owning character id (this->id)
+// true  → setPending(true) / set pendingPositionUpdate
+// false → leave pending flag unchanged on this branch
+//
+// Host dual-wires (OnPush template):
 //   if (ShouldSetPendingPositionOnPush(packetType, packetEntityID, ownerID))
 //       setPending(true);
+//
+// Dual-wire of Go charentity.ShouldSetPendingPositionOnPush
+// (internal/charentity/set_pending_position_push.go).
+// Call site: CCharEntity::pushPacket → OnPush after entity-id extract
+// (0x5B → ref 0x10; else 0). Sibling OnPop clear-pending (2943) shares the
+// same scalar comparison but is a different free function; leave 3105 erase
+// dual-wire alone.
 inline bool ShouldSetPendingPositionOnPush(const std::uint16_t packetType,
                                            const std::uint32_t packetEntityID,
                                            const std::uint32_t ownerID)
