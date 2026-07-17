@@ -8,12 +8,14 @@
 //   - 2900: floor-100 vigil weapon drop gate (vigilWeaponDrop)
 //   - 2902: Rune of Transfer first-claimer gate (onEventUpdate)
 //   - 2905: spawnChest regular-mob casket roll (spawnChest)
+//   - 2909: non-floor-100 NM vigil weapon roll (vigilWeaponDrop)
+//   - 2913: activateRuneOfTransfer NORMAL status gate
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
 // local pickSetPoint, scripts/globals/nyzul.lua xi.nyzul.vigilWeaponDrop /
-// xi.nyzul.spawnChest, and scripts/zones/Nyzul_Isle/npcs/Rune_of_Transfer.lua
-// onEventUpdate:
+// xi.nyzul.spawnChest / xi.nyzul.activateRuneOfTransfer, and
+// scripts/zones/Nyzul_Isle/npcs/Rune_of_Transfer.lua onEventUpdate:
 //
 //   elseif math.random(1, 30) == 1 and instance:getLocalVar('freeFloor') == 0 then
 //     instance:setStage(xi.nyzul.objective.FREE_FLOOR)
@@ -48,13 +50,20 @@
 //     end
 //   end
 //
+//   for runeID = RUNE_OF_TRANSFER_OFFSET, RUNE_OF_TRANSFER_OFFSET + 1 do
+//     if GetNPCByID(runeID, instance):getStatus() == xi.status.NORMAL then
+//       GetNPCByID(runeID, instance):setAnimationSub(1)
+//       break
+//     end
+//   end
+//
 // Capacity is for future Lua/C++ inject so hosts dual-wire pure free
-// functions instead of re-inlining roll/localVar/floor/settings comparisons.
-// Helpers take host-injected scalars only (no instance / entity / NPC
-// pointers). Side effects (setStage FREE_FLOOR, freeFloor / gearObjective /
-// runeHandler localVar, Rune of Transfer timer / setProgress, gear objective
-// type pick, treasure grants, casket NPC activate, release of other in-event
-// chars) remain host-owned.
+// functions instead of re-inlining roll/localVar/floor/settings/status
+// comparisons. Helpers take host-injected scalars only (no instance /
+// entity / NPC pointers). Side effects (setStage FREE_FLOOR, freeFloor /
+// gearObjective / runeHandler localVar, Rune of Transfer timer / setProgress,
+// gear objective type pick, treasure grants, casket NPC activate, release of
+// other in-event chars, setAnimationSub on NORMAL rune) remain host-owned.
 // Prior pure port: OmegaXI slice 1088 (internal/nyzul floorflow / drops).
 
 namespace nyzulhelpers
@@ -125,10 +134,31 @@ inline constexpr int32 Floor100 = 100;
 //   instance:getLocalVar('Nyzul_Current_Floor') == 100
 // currentFloor is the host-injected Nyzul_Current_Floor localVar. Host still
 // owns disk-holder / random treasure grants on true and the non-100 NM 20%
-// roll path on false.
+// roll path on false (ShouldRollNMVigilWeapon / slice 2909).
 inline auto ShouldDropFloor100VigilWeapons(const int32 currentFloor) -> bool
 {
     return currentFloor == Floor100;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2909 — vigilWeaponDrop non-floor-100 NM 20% roll
+// ---------------------------------------------------------------------------
+
+// VigilNMDropChancePercent is the non-floor-100 NM vigil drop rate for
+// math.random(1, 100) (roll ≤ 20 → 20%).
+inline constexpr int32 VigilNMDropChancePercent = 20;
+
+// ShouldRollNMVigilWeapon mirrors vigilWeaponDrop non-100 NM path:
+//   math.random(1, 100) <= 20 and ENABLE_VIGIL_DROPS
+// Implemented as enableVigilDrops && roll >= 1 && roll <= VigilNMDropChancePercent
+// so out-of-range rolls do not spuriously succeed. roll1to100 is the
+// host-injected math.random(1, 100) result; enableVigilDrops injects
+// xi.settings.main.ENABLE_VIGIL_DROPS (default true). Host still owns the
+// floor-100 short-circuit (ShouldDropFloor100VigilWeapons) and random
+// weapon grant on true.
+inline auto ShouldRollNMVigilWeapon(const int32 roll1to100, const bool enableVigilDrops) -> bool
+{
+    return enableVigilDrops && roll1to100 >= 1 && roll1to100 <= VigilNMDropChancePercent;
 }
 
 // ---------------------------------------------------------------------------
@@ -150,6 +180,27 @@ inline constexpr int32 CasketDropChancePercent = 6;
 inline auto ShouldSpawnCasket(const int32 roll1to100, const bool enableCaskets) -> bool
 {
     return enableCaskets && roll1to100 >= 1 && roll1to100 <= CasketDropChancePercent;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2913 — activateRuneOfTransfer NORMAL status gate
+// ---------------------------------------------------------------------------
+
+// Status pins used by activateRuneOfTransfer (and residual clearChests /
+// spawnChest gates). Match Go nyzul.StatusNormal / StatusDisappear and
+// xi.status.NORMAL / xi.status.DISAPPEAR.
+inline constexpr uint8 kStatusNormal    = 0;
+inline constexpr uint8 kStatusDisappear = 2;
+
+// ShouldActivateRuneOfTransfer mirrors activateRuneOfTransfer status gate:
+//   GetNPCByID(runeID, instance):getStatus() == xi.status.NORMAL
+//   ≡ status == kStatusNormal
+// status is the host-injected NPC status scalar. Host still owns the Rune of
+// Transfer offset loop (OFFSET .. OFFSET+1), setAnimationSub(1), and break
+// after the first NORMAL rune.
+inline auto ShouldActivateRuneOfTransfer(const uint8 status) -> bool
+{
+    return status == kStatusNormal;
 }
 
 } // namespace nyzulhelpers

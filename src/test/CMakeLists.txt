@@ -987,6 +987,16 @@ set(SOURCES
     test_darkixion_horn_break_roll_2907.cpp
     test_voidwalker_mob_skill_hpp_2908.h
     test_voidwalker_mob_skill_hpp_2908.cpp
+    test_nyzul_nm_vigil_roll_2909.h
+    test_nyzul_nm_vigil_roll_2909.cpp
+    test_ambuscade_intense_ve_2910.h
+    test_ambuscade_intense_ve_2910.cpp
+    test_darkixion_horn_restore_roll_2911.h
+    test_darkixion_horn_restore_roll_2911.cpp
+    test_artisan_gobbie_upgrade_2912.h
+    test_artisan_gobbie_upgrade_2912.cpp
+    test_nyzul_activate_rune_2913.h
+    test_nyzul_activate_rune_2913.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h

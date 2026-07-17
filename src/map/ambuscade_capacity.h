@@ -8,6 +8,7 @@
 //   - 2895: Gorpa-Masorpa onTrade eminence-completed(499) gate
 //   - 2901: Ambuscade Tome onEventFinish enter CSID (378) gate
 //   - 2906: Gorpa-Masorpa onEventFinish intro CSID (385) → RoE 499 gate
+//   - 2910: Ambuscade Tome onEventFinish Intense VE createInstance gate
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
@@ -17,10 +18,10 @@
 // functions instead of re-inlining comparisons. Helpers take host-injected
 // scalars only (no entity / instance / mob pointers). Side effects
 // (instance:complete, currency/KI writeback, setPos, trade body, tome
-// enter body, RoE onRecordTrigger) remain host-owned.
+// enter body, RoE onRecordTrigger, createInstance) remain host-owned.
 //
 // Parity: internal/ambuscade complete_instance.go, warp_exit.go,
-// gorpa_trade.go, tome_enter.go, roe_intro.go
+// gorpa_trade.go, tome_enter.go, roe_intro.go, intense_ve.go
 
 namespace ambuscadehelpers
 {
@@ -107,6 +108,32 @@ inline constexpr int32 EventCSIDIntro = 385;
 inline auto ShouldTriggerRoEIntro(const int32 csid) -> bool
 {
     return csid == EventCSIDIntro;
+}
+
+// ---------------------------------------------------------------------------
+// Slice 2910 — Ambuscade Tome onEventFinish Intense VE createInstance gate
+// ---------------------------------------------------------------------------
+
+// EventCSIDTomeRegister is the Ambuscade Tome register cutscene CSID
+// (ambuscade.lua onEventFinishTome / onEventUpdateTome register path).
+// Parity: Go EventCSIDTomeRegister.
+inline constexpr int32 EventCSIDTomeRegister = 374;
+
+// TomeOptionIntenseVE is registration option 5 (Intense Very Easy).
+// Parity: Go TomeOptionIntenseVE.
+inline constexpr int32 TomeOptionIntenseVE = 5;
+
+// InstanceIntenseVE is the createInstance id for Intense VE (option 5).
+// Parity: Go InstanceIntenseVE. LSB hard-codes 30000.
+inline constexpr int32 InstanceIntenseVE = 30000;
+
+// ShouldCreateIntenseVEInstance mirrors ambuscade.lua onEventFinishTome:
+//   if csid == 374 and option == 5 then player:createInstance(30000) end
+// csid and option are host-injected event scalars. Host still calls
+// createInstance(InstanceIntenseVE) after a true gate.
+inline auto ShouldCreateIntenseVEInstance(const int32 csid, const int32 option) -> bool
+{
+    return csid == EventCSIDTomeRegister && option == TomeOptionIntenseVE;
 }
 
 } // namespace ambuscadehelpers

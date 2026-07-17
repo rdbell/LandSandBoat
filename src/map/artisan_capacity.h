@@ -5,6 +5,7 @@
 // Pure Artisan Moogle helpers shared by dual-wire slices:
 //   - 2879: CanBuySack (artisan.lua moogleOnUpdate option 1 gate)
 //   - 2890: CanExpand (artisan.lua moogleOnUpdate option 2 expand gate)
+//   - 2912: GobbieCanUpgradeFlag (option 2 expand-failure event param)
 //
 // Lua production host: scripts/globals/artisan.lua moogleOnUpdate:
 //
@@ -18,9 +19,12 @@
 //   elseif option == 2 then -- Expand sack
 //       local sackSize = player:getContainerSize(xi.inv.MOGSACK)
 //       local gobbieSize = player:getContainerSize(xi.inv.INVENTORY)
+//       local gobbieCanUpgrade = gobbieSize < 80 and 1 or 0
 //       if sackSize < gobbieSize and sackSize > 0 then
 //           player:changeContainerSize(xi.inv.MOGSACK, gobbieSize - sackSize)
 //           ...
+//       else
+//           player:updateEvent(0, 0, 0, 0, 0, 0, gobbieCanUpgrade, 0)
 //       end
 //   end
 //
@@ -60,6 +64,22 @@ inline auto CanBuySack(const int32 gil, const int32 sackSize) -> bool
 inline auto CanExpand(const int32 sackSize, const int32 gobbieSize) -> bool
 {
     return sackSize < gobbieSize && sackSize > 0;
+}
+
+// GobbieUpgradeCap is the inventory size threshold for gobbieCanUpgrade
+// (artisan.lua: gobbieSize < 80 and 1 or 0).
+inline constexpr int32 GobbieUpgradeCap = 80;
+
+// GobbieCanUpgradeFlag is the pure gobbieCanUpgrade event param when expand
+// fails (option 2 else branch):
+//
+//   gobbieSize < GobbieUpgradeCap ? 1 : 0
+//
+// Future Lua host injects gobbieSize into this helper instead of re-inlining
+// the cap comparison. updateEvent remains host-owned.
+inline auto GobbieCanUpgradeFlag(const int32 gobbieSize) -> int32
+{
+    return gobbieSize < GobbieUpgradeCap ? 1 : 0;
 }
 
 } // namespace artisanhelpers

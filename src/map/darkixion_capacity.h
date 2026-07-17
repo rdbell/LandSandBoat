@@ -6,6 +6,7 @@
 //   - 2885: CanBreakHorn (checkHornBreak pure gate before 5% roll)
 //   - 2893: CanRestoreHorn (Damsel Memento pure gate before 25% roll)
 //   - 2907: HornBreakRoll (checkHornBreak 5% roll after CanBreakHorn)
+//   - 2911: HornRestoreRoll (Damsel Memento 25% roll after CanRestoreHorn)
 //
 // Lua production host: scripts/globals/dark_ixion.lua
 //   local checkHornBreak = function(mob, attacker)
@@ -38,14 +39,14 @@
 //   busy            — xi.combat.behavior.isEntityBusy(mob)   [CanBreakHorn]
 //   animSub         — mob:getAnimationSub()
 //   attackerInFront — attacker ~= nil and attacker:isInfront(mob)  [CanBreakHorn]
-//   roll1to100      — math.random(1, 100)  [HornBreakRoll]
+//   roll1to100      — math.random(1, 100)  [HornBreakRoll / HornRestoreRoll]
 //
 // RNG generation (math.random) and changeHornState writeback remain host-owned.
-// HornRestoreRoll (25%) remains residual until its dual-wire slice.
 // Prior pure port: OmegaXI slice 0985 (internal/darkixion).
 // Dual-wire of Go darkixion.CanBreakHorn (slice 2885).
 // Dual-wire of Go darkixion.CanRestoreHorn (slice 2893).
 // Dual-wire of Go darkixion.HornBreakRoll (slice 2907).
+// Dual-wire of Go darkixion.HornRestoreRoll (slice 2911).
 
 namespace darkixionhelpers
 {
@@ -104,6 +105,27 @@ inline constexpr int32 HornBreakChancePercent = 5;
 inline auto HornBreakRoll(const int32 roll1to100) -> bool
 {
     return roll1to100 >= 1 && roll1to100 <= HornBreakChancePercent;
+}
+
+// HornRestoreChancePercent is the 25% roll ceiling after DAMSEL_MEMENTO
+// (math.random(1, 100) <= 25 → ~25%).
+// Dual-wire of Go darkixion.HornRestoreChancePercent.
+inline constexpr int32 HornRestoreChancePercent = 25;
+
+// HornRestoreRoll is the pure roll half of Damsel Memento horn restore after
+// CanRestoreHorn:
+//
+//   math.random(1, 100) <= 25
+//
+// Implemented as roll >= 1 && roll <= HornRestoreChancePercent so out-of-range
+// rolls do not spuriously succeed. roll1to100 is the host-injected
+// math.random(1, 100) result. Host still owns CanRestoreHorn gate inject, RNG
+// generation, setFinalAnimationSub(3), stun(500), and changeHornState(mob, 1)
+// writeback.
+// Dual-wire of Go darkixion.HornRestoreRoll.
+inline auto HornRestoreRoll(const int32 roll1to100) -> bool
+{
+    return roll1to100 >= 1 && roll1to100 <= HornRestoreChancePercent;
 }
 
 } // namespace darkixionhelpers
