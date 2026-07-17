@@ -2501,6 +2501,16 @@ set(SOURCES
     test_trade_set_confirmed_2962.cpp
     test_login_erase_idle_2963.h
     test_login_erase_idle_2963.cpp
+    test_spell_null_cost_2964.h
+    test_spell_null_cost_2964.cpp
+    test_universal_set_item_2965.h
+    test_universal_set_item_2965.cpp
+    test_porter_retrieve_item_2966.h
+    test_porter_retrieve_item_2966.cpp
+    test_aman_thumbs_up_2967.h
+    test_aman_thumbs_up_2967.cpp
+    test_avatarpet_apply_buff_2968.h
+    test_avatarpet_apply_buff_2968.cpp
 )
 
 if(UNIX)

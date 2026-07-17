@@ -1254,6 +1254,11 @@ auto runMobutilsCanDropGil2960SelfTests() -> bool;
 auto runLatentRejectProcess2961SelfTests() -> bool;
 auto runTradeSetConfirmed2962SelfTests() -> bool;
 auto runLoginEraseIdle2963SelfTests() -> bool;
+auto runSpellNullCost2964SelfTests() -> bool;
+auto runUniversalSetItem2965SelfTests() -> bool;
+auto runPorterRetrieveItem2966SelfTests() -> bool;
+auto runAmanThumbsUp2967SelfTests() -> bool;
+auto runAvatarpetApplyBuff2968SelfTests() -> bool;
 
 namespace
 {
@@ -2485,6 +2490,11 @@ namespace
         ok = runLatentRejectProcess2961SelfTests() && ok;
         ok = runTradeSetConfirmed2962SelfTests() && ok;
         ok = runLoginEraseIdle2963SelfTests() && ok;
+        ok = runSpellNullCost2964SelfTests() && ok;
+        ok = runUniversalSetItem2965SelfTests() && ok;
+        ok = runPorterRetrieveItem2966SelfTests() && ok;
+        ok = runAmanThumbsUp2967SelfTests() && ok;
+        ok = runAvatarpetApplyBuff2968SelfTests() && ok;
 
         return ok;
     }

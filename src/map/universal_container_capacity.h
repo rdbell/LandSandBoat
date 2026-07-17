@@ -3,16 +3,41 @@
 #include <cstdint>
 
 // Pure CUContainer::SetItem / ClearSlot / IsSlotEmpty / IsContainerEmpty policy
-// helpers (slices 2801, 2813, 2822, 2829).
+// helpers.
+// Host injects range / lock / occupancy scalars; helpers never touch CItem* or
+// container storage.
 //
-// Production host: CUContainer::{SetItem,ClearSlot,IsSlotEmpty,IsContainerEmpty}
-// in universal_container.cpp.
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 2801: SetItem admission + PlanSetItemCountDelta
+//   - 2813: ClearSlot range gate + no-count-adjust quirk
+//   - 2822: PlanIsSlotEmpty
+//   - 2829: IsContainerTypeEmpty
+//   - 2965: ShouldAllowSetItem (SetItem outer gate)
+//
+// Production host: CUContainer::SetItem (universal_container.cpp) injects
+// slotID < m_PItem.size() and m_lock into ShouldAllowSetItem, then
+// PlanSetItemCountDelta on admit.
+// Go dual-wire: universalcontainer.ShouldAllowSetItem
+// (internal/universalcontainer/set_item.go). Prior pure port: slice 2801.
 
 namespace ucontainerhelpers
 {
 
 // ShouldAllowSetItem mirrors the SetItem outer gate:
 //   slotID < m_PItem.size() && !m_lock
+//
+// Formula (slice 2965 dual-wire):
+//   slotInRange && !locked
+//
+// slotInRange — host-evaluated slotID < m_PItem.size()
+// locked      — host-evaluated m_lock
+// true  → host may apply PlanSetItemCountDelta and assign m_PItem[slotID]
+// false → host leaves state unchanged and returns false
+//
+// Dual-wire of Go universalcontainer.ShouldAllowSetItem
+// (internal/universalcontainer/set_item.go).
+// Call site: CUContainer::SetItem before count delta / assignment.
+// Host injects each conjunct after size/lock probes.
 inline auto ShouldAllowSetItem(const bool slotInRange, const bool locked) -> bool
 {
     return slotInRange && !locked;
@@ -26,6 +51,7 @@ inline auto ShouldAllowSetItem(const bool slotInRange, const bool locked) -> boo
 //
 // Replacing an occupied slot with a different non-null item is 0: LSB does not
 // decrement then increment; both count branches are independent ifs.
+// Residual pure port: slice 2801 (paired with ShouldAllowSetItem).
 inline auto PlanSetItemCountDelta(const bool newItemNonNull, const bool slotOccupied) -> std::int8_t
 {
     if (newItemNonNull && !slotOccupied)

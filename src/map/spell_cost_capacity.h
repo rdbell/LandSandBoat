@@ -5,6 +5,18 @@
 
 // Pure battleutils::CalculateSpellCost after entity/spell injects.
 // Parity: internal/spell.CalculateSpellCost
+//
+// Dual-wire pure free functions (OmegaXI slices expand individual helpers):
+//   - 0813 / 1546 / 2104: CalculateSpellCost + zero gates residual suite
+//   - 2964: ShouldReturnZeroNullSpell (spellNull identity)
+//
+// Production host: battleutils::CalculateSpellCost injects
+// PSpell == nullptr into ShouldReturnZeroNullSpell before hasMPCost / cost.
+// Go dual-wire: spell.ShouldReturnZeroNullSpell
+// (internal/spell/null_spell_cost.go).
+//
+// Sibling residual: ShouldReturnZeroNoMPCost (!hasMPCost) remains 2104 and is
+// not dual-wired in slice 2964.
 
 namespace spellcosthelpers
 {
@@ -22,11 +34,28 @@ constexpr std::uint16_t IDKaustra = 502;
 
 constexpr std::int16_t SpellCostMax = 9999;
 
+// ShouldReturnZeroNullSpell mirrors CalculateSpellCost's PSpell == nullptr gate.
+// Host returns 0 (and logs a warning) before hasMPCost / cost work when true.
+//
+// Formula (slice 2964 dual-wire):
+//   spellNull
+//
+// spellNull — host-evaluated PSpell == nullptr
+// true  → return 0 (null spell short-circuit)
+// false → null gate passes; host continues to hasMPCost / pure cost body
+//
+// Dual-wire of Go spell.ShouldReturnZeroNullSpell.
+// Host inject (battleutils::CalculateSpellCost):
+//   if (ShouldReturnZeroNullSpell(PSpell == nullptr)) return 0;
+//
+// ShouldReturnZeroNoMPCost remains 2104 residual sibling (not dual-wired here).
 constexpr auto ShouldReturnZeroNullSpell(const bool spellNull) -> bool
 {
     return spellNull;
 }
 
+// ShouldReturnZeroNoMPCost mirrors hasMPCost short-circuit after the null gate.
+// Residual 2104; evaluated only when ShouldReturnZeroNullSpell passes (2964).
 constexpr auto ShouldReturnZeroNoMPCost(const bool hasMPCost) -> bool
 {
     return !hasMPCost;
