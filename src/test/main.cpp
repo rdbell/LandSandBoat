@@ -1909,6 +1909,11 @@ auto runNyzulFloor100Vigil3615SelfTests() -> bool;
 auto runAssaultIssueTag3616SelfTests() -> bool;
 auto runBesiegedAffordSanction3617SelfTests() -> bool;
 auto runLatentRejectProcess3618SelfTests() -> bool;
+auto runAuctionutilsCanAffordFee3619SelfTests() -> bool;
+auto runRangedDeleteUnlimitedShot3620SelfTests() -> bool;
+auto runAistateDelActorOnAttack3621SelfTests() -> bool;
+auto runZoneHighTargid3622SelfTests() -> bool;
+auto runAmbuscadeStartExit3623SelfTests() -> bool;
 
 namespace
 {
@@ -3795,6 +3800,11 @@ namespace
         ok = runAssaultIssueTag3616SelfTests() && ok;
         ok = runBesiegedAffordSanction3617SelfTests() && ok;
         ok = runLatentRejectProcess3618SelfTests() && ok;
+        ok = runAuctionutilsCanAffordFee3619SelfTests() && ok;
+        ok = runRangedDeleteUnlimitedShot3620SelfTests() && ok;
+        ok = runAistateDelActorOnAttack3621SelfTests() && ok;
+        ok = runZoneHighTargid3622SelfTests() && ok;
+        ok = runAmbuscadeStartExit3623SelfTests() && ok;
 
         return ok;
     }

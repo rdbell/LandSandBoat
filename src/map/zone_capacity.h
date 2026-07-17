@@ -25,16 +25,19 @@
 //   - 2949: ShouldRejectHighCharTargid residual dual-wire suite
 //           (targid >= CharTargidHighThreshold / 0x700)
 //   - 3384: ShouldRejectHighCharTargid prior dedicated dual-wire
-//           (high_targid.go; expand residual 2949; retained under 3577)
+//           (high_targid.go; expand residual 2949; retained under 3622)
 //   - 3457: ShouldRejectHighCharTargid prior dedicated dual-wire
 //           (high_targid.go; expand residual 2949; prior dedicated 3384;
-//           retained under 3577)
+//           retained under 3622)
 //   - 3520: ShouldRejectHighCharTargid prior dedicated dual-wire
 //           (high_targid.go; expand residual 2949; prior dedicated 3457 / 3384;
-//           retained under 3577)
-//   - 3577: ShouldRejectHighCharTargid dedicated dual-wire
+//           retained under 3622)
+//   - 3577: ShouldRejectHighCharTargid prior dedicated dual-wire
 //           (high_targid.go; expand residual 2949; prior dedicated 3520 / 3457 /
-//           3384)
+//           3384; retained under 3622)
+//   - 3622: ShouldRejectHighCharTargid dedicated dual-wire
+//           (high_targid.go; expand residual 2949; prior dedicated 3577 / 3520 /
+//           3457 / 3384)
 //   - 2975: ShouldDespawnPCOnLeave (!charListEmpty after DecreaseZoneCounter)
 //   - 2992: ShouldCreateZoneTimers (!hasZoneTimerToken && !charListEmpty after InsertPC)
 //   - 3019: ShouldRejectInvalidWeather (!isValidEnum / !enum_contains on SetWeather)
@@ -77,8 +80,9 @@
 // Go dual-wire: zone.ShouldRejectHighCharTargid (internal/zone/high_targid.go).
 // Residual dual-wire suite: 2949 (test_zone_high_targid_2949).
 // Prior dedicated dual-wire suites: 3384 (test_zone_high_targid_3384),
-// 3457 (test_zone_high_targid_3457), 3520 (test_zone_high_targid_3520).
-// Dedicated dual-wire suite: 3577 (test_zone_high_targid_3577).
+// 3457 (test_zone_high_targid_3457), 3520 (test_zone_high_targid_3520),
+// 3577 (test_zone_high_targid_3577).
+// Dedicated dual-wire suite: 3622 (test_zone_high_targid_3622).
 // Production host: CZone::IncreaseZoneCounter (zone.cpp) injects
 // zoneTimerToken_.has_value() and CharListEmpty() into ShouldCreateZoneTimers
 // after InsertPC; on true calls createZoneTimers().
@@ -209,8 +213,8 @@ inline auto ShouldRejectIncreaseZoneCounter(
 
 // ShouldRejectHighCharTargid mirrors targid >= 0x700 after GetNewCharTargID.
 //
-// Formula (slice 3577 dedicated dual-wire expand residual 2949; prior dedicated
-// 3520 / 3457 / 3384; pure 1363 — formula unchanged):
+// Formula (slice 3622 dedicated dual-wire expand residual 2949; prior dedicated
+// 3577 / 3520 / 3457 / 3384; pure 1363 — formula unchanged):
 //   targid >= CharTargidHighThreshold
 //
 // CharTargidHighThreshold is pinned at 0x700 (same as Go zone.CharTargidHighThreshold).
@@ -221,9 +225,10 @@ inline auto ShouldRejectIncreaseZoneCounter(
 // Call site: CZone::IncreaseZoneCounter after GetNewCharTargID assigns PChar->targid.
 // Prior pure port: slice 1363 (zone policy suite). Residual dual-wire suite:
 // 2949 / test_zone_high_targid_2949. Prior dedicated dual-wire suites are
-// test_zone_high_targid_3384, test_zone_high_targid_3457, and
-// test_zone_high_targid_3520. Dedicated dual-wire suite is
-// test_zone_high_targid_3577. Residual pins remain in test_zone_policy_1363.
+// test_zone_high_targid_3384, test_zone_high_targid_3457,
+// test_zone_high_targid_3520, and test_zone_high_targid_3577. Dedicated
+// dual-wire suite is test_zone_high_targid_3622. Residual pins remain in
+// test_zone_policy_1363.
 // Sibling enter gates: ShouldRejectIncreaseZoneCounter (3224),
 // ShouldCreateZoneTimers (2992).
 inline auto ShouldRejectHighCharTargid(const uint16 targid) -> bool
