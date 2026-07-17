@@ -27,6 +27,7 @@
 
 #include "auth_session.h"
 #include "data_session.h"
+#include "handler_accept.h"
 #include "view_session.h"
 
 #include "common/scheduler.h"
@@ -58,11 +59,11 @@ private:
     auto accept_loop() -> Task<void>
     {
         // Run "forever"
-        while (!scheduler_.closeRequested())
+        while (handlerAcceptLoopAction(scheduler_.closeRequested()) == handler_accept_loop_action::ACCEPT)
         {
             auto [ec, socket] = co_await acceptor_.async_accept(asio::as_tuple(asio::use_awaitable));
 
-            if (!ec)
+            if (handlerAcceptCompletionAction(static_cast<bool>(ec)) == handler_accept_completion_action::START_SESSION_ON_WORKER)
             {
                 const auto sessionHandler = std::make_shared<T>(asio::ssl::stream<asio::ip::tcp::socket>(std::move(socket), sslContext_), dealerChannel_);
                 scheduler_.postToWorkerThread(

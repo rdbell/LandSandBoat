@@ -10,6 +10,7 @@ set(SOURCES
     data_session.h
     data_session.cpp
     handler.h
+    handler_accept.h
     handler_session.h
     handler_session_peer.h
     handler_session.cpp

@@ -24,6 +24,7 @@
 // ===
 
 #include "monstrosity.h"
+#include "monstrosity_name.h"
 
 #include "ai/ai_container.h"
 
@@ -368,12 +369,10 @@ uint32 monstrosity::GetPackedMonstrosityName(CCharEntity* PChar)
 
     // NOTE: Changing this 0x8000 to 0xC000 will hide the species name.
     //     : This looks to be a quirk of the client and not intended.
-    uint16 a = 0x8000 | PChar->m_PMonstrosity->Species;
-    uint8  b = PChar->m_PMonstrosity->NamePrefix1;
-    uint8  c = PChar->m_PMonstrosity->NamePrefix2;
-
-    // Packed as LE
-    return (c << 24) + (b << 16) + (a << 0);
+    return PackName(
+        PChar->m_PMonstrosity->Species,
+        PChar->m_PMonstrosity->NamePrefix1,
+        PChar->m_PMonstrosity->NamePrefix2);
 }
 
 void monstrosity::SendFullMonstrosityUpdate(CCharEntity* PChar)

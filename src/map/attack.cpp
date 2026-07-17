@@ -208,13 +208,10 @@ bool CAttack::CheckGuarded()
 
 bool CAttack::CheckParried()
 {
-    if (!attackhelpers::ShouldSkipParryForDaken(static_cast<uint8>(m_attackType)))
-    {
-        if (attackutils::IsParried(m_attacker, m_victim))
-        {
-            m_isParried = true;
-        }
-    }
+    const auto attackType = static_cast<uint8>(m_attackType);
+    const bool parryProcs = !attackhelpers::ShouldSkipParryForDaken(attackType) &&
+                            attackutils::IsParried(m_attacker, m_victim);
+    m_isParried           = attackhelpers::ResolveParryCheck(m_isParried, attackType, parryProcs).parried;
     return m_isParried;
 }
 

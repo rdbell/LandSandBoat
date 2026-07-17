@@ -69,6 +69,22 @@ inline auto ShouldSkipParryForDaken(const uint8 attackType) -> bool
     return IsDakenAttack(attackType);
 }
 
+// ParryResolution is the state produced by CheckParried after its host-side
+// parry lookup. Daken skips that lookup and retains any existing state.
+struct ParryResolution
+{
+    bool parried{};
+};
+
+inline auto ResolveParryCheck(const bool alreadyParried, const uint8 attackType, const bool parryProcs) -> ParryResolution
+{
+    if (ShouldSkipParryForDaken(attackType))
+    {
+        return { alreadyParried };
+    }
+    return { alreadyParried || parryProcs };
+}
+
 // ShouldSkipCounterForDaken mirrors CheckCounter Daken early-out.
 inline auto ShouldSkipCounterForDaken(const uint8 attackType) -> bool
 {

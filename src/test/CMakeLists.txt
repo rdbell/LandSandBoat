@@ -597,6 +597,8 @@ set(SOURCES
     test_login_handler_session_2581.cpp
     test_login_handler_session_peer_2749.h
     test_login_handler_session_peer_2749.cpp
+    test_login_handler_accept_2752.h
+    test_login_handler_accept_2752.cpp
     test_login_auth_password_1307.h
     test_login_auth_password_1307.cpp
     test_login_auth_version_error_1308.h
@@ -1454,6 +1456,8 @@ set(SOURCES
     test_attack_critical_ratio_2745.cpp
     test_attack_cover_resolution_2748.h
     test_attack_cover_resolution_2748.cpp
+    test_attack_parry_resolution_2751.h
+    test_attack_parry_resolution_2751.cpp
     test_map_networking_sequence_gate_2696.h
     test_map_networking_sequence_gate_2696.cpp
     test_map_networking_acknowledgement_2699.h
@@ -1838,6 +1842,8 @@ set(SOURCES
     test_s2c_miscdata_homepoints_packet.cpp
     test_s2c_miscdata_monstrosity_packets.h
     test_s2c_miscdata_monstrosity_packets.cpp
+    test_monstrosity_name_2753.h
+    test_monstrosity_name_2753.cpp
     test_s2c_miscdata_status_icons_packet.h
     test_s2c_miscdata_status_icons_packet.cpp
     test_s2c_miscdata_unknown_packet.h
