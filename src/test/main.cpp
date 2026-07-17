@@ -1409,6 +1409,11 @@ auto runMobutilsAssignParry3115SelfTests() -> bool;
 auto runUnityEraseAfterDel3116SelfTests() -> bool;
 auto runSynergyOperateFurnace3117SelfTests() -> bool;
 auto runRangerStripWithoutRetain3118SelfTests() -> bool;
+auto runPetDieOwned3119SelfTests() -> bool;
+auto runAttackutilsZanshinDD3120SelfTests() -> bool;
+auto runAllianceSkipDelParty3121SelfTests() -> bool;
+auto runRecastUpdateMaxCharges3122SelfTests() -> bool;
+auto runBattlefieldCheckInProgress3123SelfTests() -> bool;
 
 namespace
 {
@@ -2795,6 +2800,11 @@ namespace
         ok = runUnityEraseAfterDel3116SelfTests() && ok;
         ok = runSynergyOperateFurnace3117SelfTests() && ok;
         ok = runRangerStripWithoutRetain3118SelfTests() && ok;
+        ok = runPetDieOwned3119SelfTests() && ok;
+        ok = runAttackutilsZanshinDD3120SelfTests() && ok;
+        ok = runAllianceSkipDelParty3121SelfTests() && ok;
+        ok = runRecastUpdateMaxCharges3122SelfTests() && ok;
+        ok = runBattlefieldCheckInProgress3123SelfTests() && ok;
 
         return ok;
     }

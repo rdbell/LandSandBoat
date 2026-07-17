@@ -9,6 +9,7 @@
 // Dual-wire index (append-only notes on existing free functions):
 //   - 1380: CheckForDamageMultiplier residual pure-gate suite
 //   - 3091: ShouldRejectNullWeapon (weaponNull identity null-PWeapon gate)
+//   - 3120: ShouldApplyZanshinDoubleDamage (ZANSHIN && rateProcs type double)
 
 namespace attackutilshelpers
 {
@@ -177,6 +178,39 @@ inline auto ApplyOccProcDamage(
 
 // Type-specific double/triple damage after allowProc ladder fails.
 // Host injects whether the rate roll succeeded for the attack type.
+
+// --- Slice 3120: ShouldApplyZanshinDoubleDamage pure dual-wire ---
+// Residual pure port: slice 1380 (CheckForDamageMultiplier pure-gate suite).
+// Production host: attackutils::CheckForDamageMultiplier switch
+// PHYSICAL_ATTACK_TYPE::ZANSHIN injects attackTypeU8 and
+// RollRatePercent(Mod::ZANSHIN_DOUBLE_DAMAGE, rand) into
+// ShouldApplyZanshinDoubleDamage; on true return
+// ApplyTypeDoubleDamage(originalDamage, 2).
+// Go dual-wire: attackutils.ShouldApplyZanshinDoubleDamage
+// (internal/attackutils/zanshin_double_damage.go).
+// Residual siblings (TA triple, DA double, Rapid Shot, Samba, ApplyTypeDoubleDamage,
+// RollRatePercent, null weapon 3091, rem occ, allowProc ladder) remain in the
+// 1380 residual suite / reject_null_weapon dual-wire.
+// Index 3120: attackutils.ShouldApplyZanshinDoubleDamage pure dual-wire.
+//
+// ShouldApplyZanshinDoubleDamage mirrors ZANSHIN + rate proc.
+//
+// Formula (slice 3120 dual-wire):
+//   attackType == AttackTypeZanshin && rateProcs
+//
+// attackType — host-injected physical attack type (uint8 / enum)
+// rateProcs  — host-injected RollRatePercent(ZANSHIN_DOUBLE_DAMAGE, roll)
+// true  → host ApplyTypeDoubleDamage(originalDamage, 2)
+// false → leave damage unchanged for this type arm
+//
+// Dual-wire of Go attackutils.ShouldApplyZanshinDoubleDamage.
+// Call site: attackutils::CheckForDamageMultiplier — host injects
+// attackTypeU8 + rate roll; on true return ApplyTypeDoubleDamage(*2).
+// Prior pure port: slice 1380 (damage multiplier residual pure-gate suite).
+// Residual pins remain in test_attackutils_multiplier_1380; dedicated
+// dual-wire suite is test_attackutils_zanshin_dd_3120.
+// Residual siblings: ShouldApplyTATripleDamage / ShouldApplyDADoubleDamage /
+// Rapid / Samba / ApplyTypeDoubleDamage / RollRatePercent (still 1380).
 inline auto ShouldApplyZanshinDoubleDamage(const uint8 attackType, const bool rateProcs) -> bool
 {
     return attackType == AttackTypeZanshin && rateProcs;

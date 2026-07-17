@@ -14,16 +14,18 @@
 //   - 1339: dissolveAlliance path / dissolve server filter / flag clear mask
 //   - 1341: removeParty plan, delParty null warning, ShouldSkipDelPartyWhenEmpty
 //   - 1346: assignAllianceLeader gate / leader flag / local main party
-//   - 2941: ShouldSkipDelPartyWhenEmpty (!hasAlliance || partyListEmpty)
+//   - 2941: ShouldSkipDelPartyWhenEmpty prior dual-wire (!hasAlliance || partyListEmpty)
 //   - 2979: ShouldAttemptAllianceLeaderPromote (isMainParty)
 //   - 2988: ShouldSetLocalMainParty prior dual-wire (memberFoundOnThisServer)
 //   - 3077: ShouldSetLocalMainParty (memberFoundOnThisServer) dual-wire expansion
+//   - 3121: ShouldSkipDelPartyWhenEmpty (!hasAlliance || partyListEmpty) dual-wire expansion
 //
 // Production host: CAlliance::delParty (alliance.cpp) injects
 // party->m_PAlliance != nullptr and partyList.empty() into
 // ShouldSkipDelPartyWhenEmpty before erasing from partyList.
 // Go dual-wire: alliance.ShouldSkipDelPartyWhenEmpty
-// (internal/alliance/skip_del_party.go).
+// (internal/alliance/skip_del_party_empty.go). Prior pure port: 1341;
+// prior dual-wire: 2941; pure dual-wire expansion: 3121.
 //
 // Production host: CAlliance::removeParty (alliance.cpp) injects isMainParty
 // (getMainParty() == party after null check) into
@@ -185,7 +187,7 @@ inline auto FormatDelPartyNullWarning() -> std::string
 // ShouldSkipDelPartyWhenEmpty mirrors delParty's empty-alliance early return:
 // !party->m_PAlliance || partyList.size()==0.
 //
-// Formula (slice 2941 dual-wire):
+// Formula (slice 3121 dual-wire; prior 2941 dual-wire; residual 1341):
 //   !hasAlliance || partyListEmpty
 //
 // hasAlliance     — host-evaluated party->m_PAlliance != nullptr
@@ -195,9 +197,11 @@ inline auto FormatDelPartyNullWarning() -> std::string
 // true  → skip delParty body (no alliance, or alliance has no parties)
 // false → proceed (erase from partyList, clear m_PAlliance, treasure pool, …)
 //
-// Dual-wire of Go alliance.ShouldSkipDelPartyWhenEmpty.
+// Dual-wire of Go alliance.ShouldSkipDelPartyWhenEmpty
+// (internal/alliance/skip_del_party_empty.go).
 // Call site: CAlliance::delParty after null-party check.
 // Residual pure port: slice 1341 (removeParty / delParty plan suite).
+// Prior dual-wire packaging: slice 2941.
 inline auto ShouldSkipDelPartyWhenEmpty(const bool hasAlliance, const bool partyListEmpty) -> bool
 {
     return !hasAlliance || partyListEmpty;

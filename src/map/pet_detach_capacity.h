@@ -3,7 +3,19 @@
 #include <cstdint>
 
 // Pure DetachPet / DespawnPet gates from petutils.
-// Parity: internal/petutils/detach.go (slice 1626).
+// Parity: internal/petutils/detach.go (slice 1626 residual suite);
+// internal/petutils/die_owned_pet.go (slice 3119 dual-wire ShouldDieOwnedPet).
+//
+// Dual-wire index:
+//   - 3119: ShouldDieOwnedPet (!isDead on DetachPet TYPE_PET / OwnedPet branch)
+//
+// Production host: petutils::DetachPet (petutils.cpp) injects master/pet/PC
+// into ValidateDetachPet; classifies pet objtype via ClassifyDetachPet; on
+// OwnedPet branch injects PPet->isDead() into ShouldDieOwnedPet; on true
+// PPet->Die(); then optionally clears AVATAR_PERPETUATION via
+// ShouldClearAvatarPerpetuation. Go dual-wire: petutils.ShouldDieOwnedPet
+// (internal/petutils/die_owned_pet.go). Residual Validate*/Classify/
+// PlanCharmedMobAlive/ShouldClearAvatarPerpetuation remain 1626 residual.
 
 namespace petdetachhelpers
 {
@@ -89,6 +101,27 @@ inline auto PlanCharmedMobAlive(const bool withinEnmity, const bool leaveAbility
     };
 }
 
+// --- Slice 3119: ShouldDieOwnedPet pure dual-wire ---
+//
+// TYPE_PET / OwnedPet branch Die() gate on DetachPet after ClassifyDetachPet
+// selects OwnedPet. Prior pure port: slice 1626 (DetachPet / DespawnPet pure
+// gates). Go dual-wire: petutils.ShouldDieOwnedPet
+// (internal/petutils/die_owned_pet.go).
+// Sibling residual helpers left alone this slice: ValidateDetach*,
+// ClassifyDetachPet, PlanCharmedMobAlive, ShouldClearAvatarPerpetuation.
+//
+// Formula (slice 3119 dual-wire):
+//   !isDead
+//
+// isDead — host-evaluated PPet->isDead()
+// true  → call PPet->Die() (owned pet still alive at detach)
+// false → skip Die() (already dead)
+//
+// Dual-wire of Go petutils.ShouldDieOwnedPet.
+// Call site: petutils::DetachPet — host injects PPet->isDead() on the
+// OwnedPet branch; on true PPet->Die(). Residual pins remain in
+// test_pet_detach_1626; dedicated dual-wire suite is
+// test_pet_die_owned_3119.
 inline auto ShouldDieOwnedPet(const bool isDead) -> bool
 {
     return !isDead;

@@ -17,6 +17,7 @@
 //   - 3059: ShouldApplyLevelCap (levelCap > 0)
 //   - 3087: ShouldAddSjRestriction ((rules & ALLOW_SUBJOBS) == 0)
 //   - 3102: ShouldClearLevelRestriction (levelCap == 0)
+//   - 3123: ShouldCheckInProgress (!attacked)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -64,6 +65,11 @@
 // path is dual-wired as ShouldClearLevelRestriction(levelCap == 0).
 // Go dual-wire: battlefield.ShouldClearLevelRestriction
 // (internal/battlefield/clear_level_restriction.go).
+//
+// Production host: CBattlefield::onTick injects m_Attacked into
+// ShouldCheckInProgress; on true calls CheckInProgress().
+// Go dual-wire: battlefield.ShouldCheckInProgress
+// (internal/battlefield/check_in_progress.go).
 
 namespace battlefieldhelpers
 {
@@ -357,6 +363,25 @@ inline auto ShouldUpdateRecordOnWin(const uint8 status, const bool recordTimeWor
 // --- onTick pure halves ---
 
 // ShouldCheckInProgress mirrors !m_Attacked at tick start.
+//
+// Formula (slice 3123 dual-wire):
+//   !attacked
+//
+// attacked — host-injected m_Attacked (battlefield has been engaged)
+// true  → host calls CheckInProgress() (not yet attacked)
+// false → skip CheckInProgress (already attacked / progress checked)
+//
+// Dual-wire of Go battlefield.ShouldCheckInProgress.
+// Call site: CBattlefield::onTick — host injects m_Attacked:
+//   if (ShouldCheckInProgress(m_Attacked)) {
+//       CheckInProgress();
+//   }
+// Prior pure port: slice 1361 (battlefield policy suite). Residual pins remain
+// in test_battlefield_policy_1361; dedicated dual-wire suite is
+// test_battlefield_check_in_progress_3123. Sibling residual tick halves
+// (ShouldAdvanceBattlefieldTick / ShouldHoldFightTick /
+// ShouldCaptureFinishTime) remain in this header (1361). Sibling dual-wires
+// 3059 / 3087 / 3102 (ApplyLevelRestrictions) left alone.
 inline auto ShouldCheckInProgress(const bool attacked) -> bool
 {
     return !attacked;

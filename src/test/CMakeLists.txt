@@ -2811,6 +2811,16 @@ set(SOURCES
     test_synergy_operate_furnace_3117.cpp
     test_ranger_strip_without_retain_3118.h
     test_ranger_strip_without_retain_3118.cpp
+    test_pet_die_owned_3119.h
+    test_pet_die_owned_3119.cpp
+    test_attackutils_zanshin_dd_3120.h
+    test_attackutils_zanshin_dd_3120.cpp
+    test_alliance_skip_del_party_3121.h
+    test_alliance_skip_del_party_3121.cpp
+    test_recast_update_max_charges_3122.h
+    test_recast_update_max_charges_3122.cpp
+    test_battlefield_check_in_progress_3123.h
+    test_battlefield_check_in_progress_3123.cpp
 )
 
 if(UNIX)
