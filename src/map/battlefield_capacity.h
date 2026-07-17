@@ -37,9 +37,12 @@
 //   - 3431: ShouldEnterPC prior dedicated dual-wire
 //           (enter identity; residual expand 3024 /
 //            prior dedicated 3381 / pure 1361)
-//   - 3497: ShouldEnterPC dedicated dual-wire
+//   - 3497: ShouldEnterPC prior dedicated dual-wire
 //           (enter identity; residual expand 3024 /
 //            prior dedicated 3431 / 3381 / pure 1361)
+//   - 3554: ShouldEnterPC dedicated dual-wire
+//           (enter identity; residual expand 3024 /
+//            prior dedicated 3497 / 3431 / 3381 / pure 1361)
 //
 // Production host: CBattlefield::InsertEntity (battlefield.cpp) injects
 // GetPlayerCount() / GetMaxParticipants() into ShouldAcceptPCUnderCapacity
@@ -242,8 +245,8 @@ inline auto ShouldRegisterPC(const bool enter, const bool alreadyRegistered) -> 
 
 // ShouldEnterPC mirrors enter path under capacity.
 //
-// Formula (slice 3497 dedicated dual-wire; residual expand 3024 /
-// prior dedicated 3431 / 3381 / pure 1361 — formula unchanged):
+// Formula (slice 3554 dedicated dual-wire; residual expand 3024 /
+// prior dedicated 3497 / 3431 / 3381 / pure 1361 — formula unchanged):
 //   enter
 //
 // enter — host InsertEntity enter flag
@@ -263,9 +266,10 @@ inline auto ShouldRegisterPC(const bool enter, const bool alreadyRegistered) -> 
 //   }
 // Prior pure port: slice 1361. Prior dual-wire suite: 3024 /
 // test_battlefield_enter_pc_3024. Prior dedicated dual-wire suites: 3381 /
-// test_battlefield_enter_pc_3381, 3431 / test_battlefield_enter_pc_3431.
-// Dedicated dual-wire suite is test_battlefield_enter_pc_3497. Formula is
-// unchanged; this slice only expands dual-wire docs + index + dedicated suite
+// test_battlefield_enter_pc_3381, 3431 / test_battlefield_enter_pc_3431,
+// 3497 / test_battlefield_enter_pc_3497. Dedicated dual-wire suite is
+// test_battlefield_enter_pc_3554. Formula is unchanged; this slice only
+// expands dual-wire docs + index + dedicated suite
 // (free == inline == pin residual pins).
 // Sibling dual-wires left alone: 3198 null-insert, 3216 already-in,
 // 3302 under-capacity, 3365 register, 3140 advance-tick, etc.
