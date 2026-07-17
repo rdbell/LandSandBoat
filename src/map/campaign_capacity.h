@@ -19,7 +19,8 @@
 //   - 3496: CanAffordAlliedNotes prior dedicated dual-wire (retained)
 //   - 3553: CanAffordAlliedNotes prior dedicated dual-wire (retained)
 //   - 3598: CanAffordAlliedNotes prior dedicated dual-wire (retained)
-//   - 3643: CanAffordAlliedNotes dedicated dual-wire (afford_notes.go;
+//   - 3643: CanAffordAlliedNotes prior dedicated dual-wire (retained)
+//   - 3688: CanAffordAlliedNotes dedicated dual-wire (afford_notes.go;
 //           expand residual 2946)
 //
 // Dual-wire index:
@@ -38,7 +39,8 @@
 //   - 3496: CanAffordAlliedNotes prior dedicated dual-wire (retained)
 //   - 3553: CanAffordAlliedNotes prior dedicated dual-wire (retained)
 //   - 3598: CanAffordAlliedNotes prior dedicated dual-wire (retained)
-//   - 3643: CanAffordAlliedNotes (notes >= price)
+//   - 3643: CanAffordAlliedNotes prior dedicated dual-wire (retained)
+//   - 3688: CanAffordAlliedNotes (notes >= price)
 //
 // Production host is Lua scripts/globals/campaign.lua sigilOnEventFinish.
 // Capacity is for future Lua/C++ inject so hosts dual-wire pure free
@@ -136,7 +138,7 @@ inline auto ShouldDebitSelectedEffects(const int32 selectedEffects) -> bool
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2946 residual / 3072+3226+3273+3304+3496+3553+3598 prior dedicated / 3643 dedicated —
+// Slice 2946 residual / 3072+3226+3273+3304+3496+3553+3598+3643 prior dedicated / 3688 dedicated —
 // sigil shop purchase afford gate
 // ---------------------------------------------------------------------------
 
@@ -145,8 +147,8 @@ inline auto ShouldDebitSelectedEffects(const int32 selectedEffects) -> bool
 // Positive form of:
 //   if player:getCurrency('allied_notes') < itemPrice then return end
 //
-// Formula (slice 3643 dedicated dual-wire expand residual 2946; prior dedicated
-// 3598 / 3553 / 3496 / 3304 / 3273 / pure 1115 — formula unchanged):
+// Formula (slice 3688 dedicated dual-wire expand residual 2946; prior dedicated
+// 3643 / 3598 / 3553 / 3496 / 3304 / 3273 / pure 1115 — formula unchanged):
 //   CanAffordAlliedNotes(notes, price) = notes >= price
 //
 // Host injects notes (getCurrency) and price (itemPrice after optional *1.5).
@@ -161,9 +163,10 @@ inline auto ShouldDebitSelectedEffects(const int32 selectedEffects) -> bool
 // 3273 / test_campaign_afford_notes_3273, 3304 /
 // test_campaign_afford_notes_3304, 3496 /
 // test_campaign_afford_notes_3496, 3553 /
-// test_campaign_afford_notes_3553, and 3598 /
-// test_campaign_afford_notes_3598 (retained). Dedicated dual-wire suite
-// is test_campaign_afford_notes_3643.
+// test_campaign_afford_notes_3553, 3598 /
+// test_campaign_afford_notes_3598, and 3643 /
+// test_campaign_afford_notes_3643 (retained). Dedicated dual-wire suite
+// is test_campaign_afford_notes_3688.
 // Host still owns giveItem / delCurrency after a true gate.
 inline auto CanAffordAlliedNotes(const int32 notes, const int32 price) -> bool
 {

@@ -27,8 +27,10 @@
 //           (prior dedicated expand 3494; formula unchanged)
 //   - 3596: CanClaimFurnace prior dedicated dual-wire expand residual 2877
 //           (prior dedicated expand 3551; formula unchanged)
-//   - 3641: CanClaimFurnace dedicated dual-wire expand residual 2877
+//   - 3641: CanClaimFurnace prior dedicated dual-wire expand residual 2877
 //           (prior dedicated expand 3596; formula unchanged)
+//   - 3686: CanClaimFurnace dedicated dual-wire expand residual 2877
+//           (prior dedicated expand 3641; formula unchanged)
 //
 // Dual-wire index:
 //   - 2877: CanClaimFurnace residual dual-wire suite
@@ -58,7 +60,9 @@
 //   - 3596: CanClaimFurnace = state == FurnaceAvailable
 //           prior dedicated dual-wire expand residual 2877 (prior dedicated expand 3551)
 //   - 3641: CanClaimFurnace = state == FurnaceAvailable
-//           dedicated dual-wire expand residual 2877 (prior dedicated expand 3596)
+//           prior dedicated dual-wire expand residual 2877 (prior dedicated expand 3596)
+//   - 3686: CanClaimFurnace = state == FurnaceAvailable
+//           dedicated dual-wire expand residual 2877 (prior dedicated expand 3641)
 //
 // Production hosts are Lua under scripts/globals/synergy.lua
 // (furnaceStates + synergyFurnaceOnTrigger / synergyFurnaceOnTrade).
@@ -87,7 +91,8 @@
 // test_synergy_claim_furnace_3494 (prior dedicated expand residual 2877; not in CMake/main),
 // test_synergy_claim_furnace_3551 (prior dedicated expand residual 2877; not in CMake/main),
 // test_synergy_claim_furnace_3596 (prior dedicated expand residual 2877; not in CMake/main),
-// test_synergy_claim_furnace_3641 (dedicated expand residual 2877; not in CMake/main),
+// test_synergy_claim_furnace_3641 (prior dedicated expand residual 2877; not in CMake/main),
+// test_synergy_claim_furnace_3686 (dedicated expand residual 2877; not in CMake/main),
 // test_synergy_trade_furnace_2896 (residual),
 // test_synergy_trade_furnace_3098 (prior dedicated dual-wire; not in CMake/main),
 // test_synergy_trade_furnace_3359 (dedicated expand residual 2896; not in CMake/main),
@@ -111,7 +116,8 @@ constexpr uint8 FurnaceClaimed = 1;
 // Slice 2877 residual / 3065 prior dedicated / 3239 prior expand residual 2877
 // / 3285 prior expand residual 2877 / 3315 prior expand residual 2877
 // / 3494 prior expand residual 2877 / 3551 prior expand residual 2877
-// / 3596 prior expand residual 2877 / 3641 dedicated expand residual 2877
+// / 3596 prior expand residual 2877 / 3641 prior expand residual 2877
+// / 3686 dedicated expand residual 2877
 // — synergyFurnaceOnTrigger AVAILABLE claim gate
 // ---------------------------------------------------------------------------
 
@@ -122,10 +128,10 @@ constexpr uint8 FurnaceClaimed = 1;
 //     xi.synergy.attachToSynergyFurnace(player, npc)
 //   end
 //
-// Formula (slice 3641 dual-wire expand residual 2877; prior dedicated expand
-// 3596; prior dedicated expand 3551; prior dedicated expand 3494; prior
-// dedicated expand 3315; prior dedicated expand 3285; prior dedicated expand
-// 3239; prior dedicated 3065):
+// Formula (slice 3686 dual-wire expand residual 2877; prior dedicated expand
+// 3641; prior dedicated expand 3596; prior dedicated expand 3551; prior
+// dedicated expand 3494; prior dedicated expand 3315; prior dedicated expand
+// 3285; prior dedicated expand 3239; prior dedicated 3065):
 //   CanClaimFurnace(state) = state == FurnaceAvailable
 //
 // state is the host-injected npc:getLocalVar(synergyFurnaceState).
@@ -139,8 +145,9 @@ constexpr uint8 FurnaceClaimed = 1;
 // test_synergy_claim_furnace_3065. Prior dedicated expand residual suites:
 // test_synergy_claim_furnace_3239, test_synergy_claim_furnace_3285,
 // test_synergy_claim_furnace_3315, test_synergy_claim_furnace_3494,
-// test_synergy_claim_furnace_3551, test_synergy_claim_furnace_3596.
-// Dedicated expand residual suite is test_synergy_claim_furnace_3641.
+// test_synergy_claim_furnace_3551, test_synergy_claim_furnace_3596,
+// test_synergy_claim_furnace_3641.
+// Dedicated expand residual suite is test_synergy_claim_furnace_3686.
 // Host still owns message / attach / timers after a true gate.
 // Formula is unchanged.
 inline auto CanClaimFurnace(const uint8 state) -> bool
