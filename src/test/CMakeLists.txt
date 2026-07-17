@@ -957,6 +957,16 @@ set(SOURCES
     test_salvage_open_door_2892.cpp
     test_darkixion_restore_horn_2893.h
     test_darkixion_restore_horn_2893.cpp
+    test_salvage_open_boss_door_2894.h
+    test_salvage_open_boss_door_2894.cpp
+    test_ambuscade_gorpa_trade_2895.h
+    test_ambuscade_gorpa_trade_2895.cpp
+    test_synergy_trade_furnace_2896.h
+    test_synergy_trade_furnace_2896.cpp
+    test_manaclipper_arrival_event_2897.h
+    test_manaclipper_arrival_event_2897.cpp
+    test_salvage_reset_temp_box_2898.h
+    test_salvage_reset_temp_box_2898.cpp
     test_abyssea_can_give_nmki_2861.h
     test_abyssea_can_give_nmki_2861.cpp
     test_besieged_standing_event_2859.h

@@ -5,6 +5,8 @@
 // Pure Salvage helpers shared by dual-wire slices:
 //   - 2871: CanClaimTransport / TransportUserBusy (onTransportUpdate gate)
 //   - 2892: CanOpenDoor (onDoorOpen CLOSE_DOOR + unSealed gate)
+//   - 2894: CanOpenBossDoor (openBossDoor CLOSE_DOOR gate; no unSealed)
+//   - 2898: ShouldResetTempBox (resetTempBoxes status == NORMAL gate)
 //
 // Lua production host: scripts/globals/salvage.lua
 //
@@ -23,9 +25,20 @@
 //     -- host: clear unSealed, optional setStage/setProgress, OPEN_DOOR, untargetable
 //   end
 //
-// Host injects scalars only (no instance / npc pointers). Claim writeback and
-// door open writeback remain host-owned. Future Lua/C++ hosts dual-wire these
-// free functions instead of re-inlining the comparisons.
+// openBossDoor (2894):
+//   if npc:getAnimation() == xi.anim.CLOSE_DOOR then
+//     -- host: openDoor(15), queue(3000) arch openDoor(10)
+//   end
+//
+// resetTempBoxes (2898):
+//   if casket and casket:getStatus() == xi.status.NORMAL then
+//     -- host: setStatus(DISAPPEAR), resetLocalVars, setAnimationSub(8)
+//   end
+//
+// Host injects scalars only (no instance / npc pointers). Claim writeback,
+// door open writeback, and temp-box reset writeback remain host-owned.
+// Future Lua/C++ hosts dual-wire these free functions instead of re-inlining
+// the comparisons.
 
 namespace salvagehelpers
 {
@@ -77,6 +90,50 @@ inline constexpr int32 kDoorUnsealedValue = 1;
 inline auto CanOpenDoor(const uint8 animation, const int32 unSealed) -> bool
 {
     return animation == kAnimCloseDoor && unSealed == kDoorUnsealedValue;
+}
+
+// ---------------------------------------------------------------------------
+// 2898 — resetTempBoxes status == NORMAL gate
+// ---------------------------------------------------------------------------
+
+// Entity status pins (xi.status.*) used by crate / temp-box reset / spawn:
+//   NORMAL    = 0 — required status for resetTempBoxes writeback
+//   DISAPPEAR = 2 — residual pin (already disappeared → gate fails; also
+//                   spawnTempChest target status)
+// ShouldResetTempBox requires status == NORMAL.
+inline constexpr uint8 kStatusNormal    = 0;
+inline constexpr uint8 kStatusDisappear = 2;
+
+// ShouldResetTempBox is the pure free-function form of the resetTempBoxes
+// status gate:
+//
+//   status == NORMAL
+//   ≡ status == kStatusNormal
+//
+// Host injects casket:getStatus() only. Host still owns setStatus(DISAPPEAR),
+// resetLocalVars, and setAnimationSub(8). Dual-wire of Go
+// salvage.ShouldResetTempBox (slice 2898 / residual 1083).
+inline auto ShouldResetTempBox(const uint8 status) -> bool
+{
+    return status == kStatusNormal;
+}
+
+// ---------------------------------------------------------------------------
+// 2894 — openBossDoor CLOSE_DOOR gate (no unSealed)
+// ---------------------------------------------------------------------------
+
+// CanOpenBossDoor is the pure free-function form of the openBossDoor gate:
+//
+//   animation == CLOSE_DOOR
+//   ≡ animation == kAnimCloseDoor
+//
+// Host injects npc:getAnimation() only. Unlike CanOpenDoor there is no
+// unSealed check. Host still owns openDoor(15), queue(3000), and arch NPC
+// openDoor(10) via bossDoorID - 1.
+// Dual-wire of Go salvage.CanOpenBossDoor (slice 2894 / residual 0977).
+inline auto CanOpenBossDoor(const uint8 animation) -> bool
+{
+    return animation == kAnimCloseDoor;
 }
 
 } // namespace salvagehelpers
