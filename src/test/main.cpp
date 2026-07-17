@@ -1514,6 +1514,11 @@ auto runPetutilsExtendCharm3220SelfTests() -> bool;
 auto runGuildpointsCanAfford3221SelfTests() -> bool;
 auto runAicontainerCanDispatch3222SelfTests() -> bool;
 auto runMobtypeCanBeNeutral3223SelfTests() -> bool;
+auto runZoneRejectIncreaseCounter3224SelfTests() -> bool;
+auto runStatuseffectExpireEffect3225SelfTests() -> bool;
+auto runCampaignAffordNotes3226SelfTests() -> bool;
+auto runBesiegedAffordSanction3227SelfTests() -> bool;
+auto runAllianceSkipDelParty3228SelfTests() -> bool;
 
 namespace
 {
@@ -3005,6 +3010,11 @@ namespace
         ok = runGuildpointsCanAfford3221SelfTests() && ok;
         ok = runAicontainerCanDispatch3222SelfTests() && ok;
         ok = runMobtypeCanBeNeutral3223SelfTests() && ok;
+        ok = runZoneRejectIncreaseCounter3224SelfTests() && ok;
+        ok = runStatuseffectExpireEffect3225SelfTests() && ok;
+        ok = runCampaignAffordNotes3226SelfTests() && ok;
+        ok = runBesiegedAffordSanction3227SelfTests() && ok;
+        ok = runAllianceSkipDelParty3228SelfTests() && ok;
 
         return ok;
     }

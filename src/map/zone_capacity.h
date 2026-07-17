@@ -28,8 +28,11 @@
 //           (zoneLevelRestriction != 0 on updateCharLevelRestriction)
 //   - 3177: ShouldApplyZoneLevelRestriction dedicated dual-wire
 //           (apply_level_restriction.go; expand residual 3032)
-//   - 3037: ShouldRejectIncreaseZoneCounter (charNull || alreadyInZone ||
-//           hasTreasurePool on IncreaseZoneCounter entry)
+//   - 3037: ShouldRejectIncreaseZoneCounter residual dual-wire suite
+//           (charNull || alreadyInZone || hasTreasurePool on
+//           IncreaseZoneCounter entry)
+//   - 3224: ShouldRejectIncreaseZoneCounter dedicated dual-wire
+//           (reject_increase_counter.go; expand residual 3037)
 //   - 3042: ShouldSkipLevelRestrictionUpdate (!hasRestriction → false; else
 //           statusNull || powerMatches on updateCharLevelRestriction)
 //   - 3043: ShouldDeleteExistingLevelRestriction (hasRestriction && !shouldSkip
@@ -50,6 +53,8 @@
 // ShouldRejectIncreaseZoneCounter; on true ShowWarning + return.
 // Go dual-wire: zone.ShouldRejectIncreaseZoneCounter
 // (internal/zone/reject_increase_counter.go).
+// Residual dual-wire suite: 3037 (test_zone_reject_increase_counter_3037).
+// Dedicated dual-wire suite: 3224 (test_zone_reject_increase_counter_3224).
 // Production host: CZone::IncreaseZoneCounter (zone.cpp) injects
 // GetNewCharTargID() into ShouldRejectHighCharTargid; on true ShowError + return.
 // Go dual-wire: zone.ShouldRejectHighCharTargid (internal/zone/high_targid.go).
@@ -143,10 +148,15 @@ inline auto FormatInsertCharTargidHighErrorPrefix() -> std::string
     return "CZone::InsertChar : targid is high (03hX), update packets will be ignored";
 }
 
+// ---------------------------------------------------------------------------
+// Slice 3224 — IncreaseZoneCounter entry reject (dedicated expand residual 3037)
+// ---------------------------------------------------------------------------
+
 // ShouldRejectIncreaseZoneCounter mirrors
 // PChar null || loc.zone != null || PTreasurePool != null.
 //
-// Formula (slice 3037 dual-wire):
+// Formula (slice 3224 dedicated dual-wire; residual expand 3037 / pure 1363 —
+// formula unchanged):
 //   charNull || alreadyInZone || hasTreasurePool
 //
 // charNull         — host-evaluated PChar == nullptr
@@ -163,9 +173,10 @@ inline auto FormatInsertCharTargidHighErrorPrefix() -> std::string
 // Dual-wire of Go zone.ShouldRejectIncreaseZoneCounter.
 // Call site: CZone::IncreaseZoneCounter entry — host injects null / loc.zone /
 // PTreasurePool presence flags.
-// Prior pure port: slice 1363 (zone policy suite). Residual pins remain in
-// test_zone_policy_1363; dedicated dual-wire suite is
-// test_zone_reject_increase_counter_3037.
+// Prior pure port: slice 1363 (zone policy suite). Residual dual-wire suite:
+// 3037 / test_zone_reject_increase_counter_3037. Dedicated dual-wire suite is
+// test_zone_reject_increase_counter_3224. Residual pins remain in
+// test_zone_policy_1363.
 // Sibling enter gates: ShouldRejectHighCharTargid (2949), ShouldCreateZoneTimers (2992).
 inline auto ShouldRejectIncreaseZoneCounter(
     const bool charNull,

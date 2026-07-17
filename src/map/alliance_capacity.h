@@ -20,13 +20,15 @@
 //   - 3077: ShouldSetLocalMainParty (memberFoundOnThisServer) dual-wire expansion
 //   - 3121: ShouldSkipDelPartyWhenEmpty (!hasAlliance || partyListEmpty) dual-wire expansion
 //   - 3144: ShouldAttemptAllianceLeaderPromote (isMainParty) dual-wire expansion
+//   - 3228: ShouldSkipDelPartyWhenEmpty dedicated dual-wire expand residual 2941
 //
 // Production host: CAlliance::delParty (alliance.cpp) injects
 // party->m_PAlliance != nullptr and partyList.empty() into
 // ShouldSkipDelPartyWhenEmpty before erasing from partyList.
 // Go dual-wire: alliance.ShouldSkipDelPartyWhenEmpty
 // (internal/alliance/skip_del_party_empty.go). Prior pure port: 1341;
-// prior dual-wire: 2941; pure dual-wire expansion: 3121.
+// prior dual-wire: 2941; prior dual-wire expansion: 3121;
+// dedicated dual-wire expand residual 2941: 3228.
 //
 // Production host: CAlliance::removeParty (alliance.cpp) injects isMainParty
 // (getMainParty() == party after null check) into
@@ -191,7 +193,8 @@ inline auto FormatDelPartyNullWarning() -> std::string
 // ShouldSkipDelPartyWhenEmpty mirrors delParty's empty-alliance early return:
 // !party->m_PAlliance || partyList.size()==0.
 //
-// Formula (slice 3121 dual-wire; prior 2941 dual-wire; residual 1341):
+// Formula (slice 3228 dedicated dual-wire expand residual 2941;
+// prior 3121 dual-wire expansion; prior 2941 dual-wire; residual 1341):
 //   !hasAlliance || partyListEmpty
 //
 // hasAlliance     — host-evaluated party->m_PAlliance != nullptr
@@ -206,6 +209,8 @@ inline auto FormatDelPartyNullWarning() -> std::string
 // Call site: CAlliance::delParty after null-party check.
 // Residual pure port: slice 1341 (removeParty / delParty plan suite).
 // Prior dual-wire packaging: slice 2941.
+// Prior dual-wire expansion: slice 3121.
+// Dedicated dual-wire expand residual 2941: slice 3228.
 inline auto ShouldSkipDelPartyWhenEmpty(const bool hasAlliance, const bool partyListEmpty) -> bool
 {
     return !hasAlliance || partyListEmpty;

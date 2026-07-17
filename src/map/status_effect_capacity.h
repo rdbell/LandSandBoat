@@ -453,7 +453,8 @@ constexpr uint8 NightmareSleepTierMin = 4;
 
 // ShouldExpireEffect mirrors duration != 0 && start+duration <= tick.
 //
-// Formula (slice 3049 dual-wire):
+// Formula (slice 3225 dedicated dual-wire expand residual 3049; pure 1366 —
+// formula unchanged):
 //   durationNonzero && expiryTime <= tickTime
 //
 // durationNonzero — host-evaluated GetDuration() != 0
@@ -470,9 +471,13 @@ constexpr uint8 NightmareSleepTierMin = 4;
 // duration != 0s and (start+duration).count() / tick.count(); on true
 // RemoveStatusEffect.
 // Prior pure port: slice 1366 (expiry / tick / aura / eleven-roll suite).
-// Residual pins remain in test_status_effect_tick_1366; dedicated dual-wire
-// suite is test_status_expire_effect_3049. Sibling dual-wire: ShouldTickEffect
+// Residual pins remain in test_status_effect_tick_1366; residual dual-wire
+// suite is test_status_expire_effect_3049. Dedicated expand residual suite is
+// test_statuseffect_expire_effect_3225. Sibling dual-wire: ShouldTickEffect
 // (tick-period due; slice 3069) is orthogonal.
+// Index 3049: statuseffect.ShouldExpireEffect pure dual-wire (residual).
+// Index 3225: statuseffect.ShouldExpireEffect dedicated dual-wire expand
+// residual 3049 (formula unchanged).
 inline auto ShouldExpireEffect(
     const bool durationNonzero,
     const int64 expiryTime,

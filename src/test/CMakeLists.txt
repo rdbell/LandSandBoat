@@ -3021,6 +3021,16 @@ set(SOURCES
     test_aicontainer_can_dispatch_3222.cpp
     test_mobtype_can_be_neutral_3223.h
     test_mobtype_can_be_neutral_3223.cpp
+    test_zone_reject_increase_counter_3224.h
+    test_zone_reject_increase_counter_3224.cpp
+    test_statuseffect_expire_effect_3225.h
+    test_statuseffect_expire_effect_3225.cpp
+    test_campaign_afford_notes_3226.h
+    test_campaign_afford_notes_3226.cpp
+    test_besieged_afford_sanction_3227.h
+    test_besieged_afford_sanction_3227.cpp
+    test_alliance_skip_del_party_3228.h
+    test_alliance_skip_del_party_3228.cpp
 )
 
 if(UNIX)
