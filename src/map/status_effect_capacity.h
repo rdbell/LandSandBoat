@@ -202,7 +202,36 @@ inline auto ShouldRejectSleepImmunity(
     return false;
 }
 
+// --- Slice 3113: ShouldRejectSimpleImmunity pure dual-wire ---
+// Residual pure port: slice 1364 (CanGain overwrite / negative / immunity suite).
+// Production host: CStatusEffectContainer::CanGainStatusEffect injects
+// m_POwner->hasImmunity(IMMUNITY_*) for Weight/Bind/Stun/Silence/Paralysis/
+// Blindness/Slow/Poison/Elegy/Requiem/Terror/Petrification into
+// ShouldRejectSimpleImmunity; on true return false.
+// Go dual-wire: statuseffect.ShouldRejectSimpleImmunity
+// (internal/statuseffect/reject_simple_immunity.go).
+// Sibling dual-wires 3049 / 3069 / 3080 / 3100 (expire / tick / null-add /
+// charm-on-pet) left alone.
+// Index 3113: statuseffect.ShouldRejectSimpleImmunity pure dual-wire.
+
 // ShouldRejectSimpleImmunity mirrors single-flag immunity for one status.
+//
+// Formula (slice 3113 dual-wire):
+//   hasImmunity
+//
+// hasImmunity — host-injected (m_POwner->hasImmunity(IMMUNITY_*))
+// true  → host rejects CanGainStatusEffect for that status
+// false → proceed past simple-immunity gate
+//
+// Dual-wire of Go statuseffect.ShouldRejectSimpleImmunity.
+// Call site: CStatusEffectContainer::CanGainStatusEffect — host injects
+// hasImmunity for single-flag statuses; on true return false.
+// Prior pure port: slice 1364 (can-gain pure policy suite).
+// Residual pins remain in test_status_effect_can_gain_1364; dedicated
+// dual-wire suite is test_status_reject_simple_immunity_3113.
+// Sibling dual-wires: ShouldExpireEffect (3049) / ShouldTickEffect (3069) /
+// ShouldRejectNullStatusEffect (3080) / ShouldBlockCharmOnPet (3100) are
+// orthogonal.
 inline auto ShouldRejectSimpleImmunity(const bool hasImmunity) -> bool
 {
     return hasImmunity;

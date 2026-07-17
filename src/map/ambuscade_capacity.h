@@ -9,9 +9,10 @@
 //   - 2901: Ambuscade Tome onEventFinish enter CSID (378) gate
 //   - 2906: Gorpa-Masorpa onEventFinish intro CSID (385) → RoE 499 gate
 //   - 2910: Ambuscade Tome onEventFinish Intense VE createInstance gate
-//   - 2917: onInstanceComplete / onInstanceFailure always-start exit CS gate
+//   - 2917: onInstanceComplete / onInstanceFailure always-start exit CS residual
 //   - 3062: ShouldCompleteInstance dedicated dual-wire (complete_instance.go)
 //   - 3088: ShouldWarpOnExitEvent dedicated dual-wire (warp_exit.go)
+//   - 3109: ShouldStartExitEvent dedicated dual-wire (start_exit.go)
 //
 // Dual-wire index:
 //   - 2875: ShouldCompleteInstance residual dual-wire suite
@@ -20,9 +21,10 @@
 //   - 2901: ShouldHandleTomeEnterFinish (csid 378)
 //   - 2906: ShouldTriggerRoEIntro (csid 385 → RoE 499)
 //   - 2910: ShouldCreateIntenseVEInstance (csid 374 + option 5)
-//   - 2917: ShouldStartExitEvent (always-start exit CS)
+//   - 2917: ShouldStartExitEvent residual dual-wire suite
 //   - 3062: ShouldCompleteInstance (!anyMobAlive on onInstanceTimeUpdate)
 //   - 3088: ShouldWarpOnExitEvent (csid == EventCSIDExit / 10001)
+//   - 3109: ShouldStartExitEvent (always true / startEvent 10001)
 //
 // Production host is Lua under
 // scripts/zones/Maquette_Abdhaljs-Legion_B/instances/ambuscade.lua
@@ -183,13 +185,25 @@ inline auto ShouldCreateIntenseVEInstance(const int32 csid, const int32 option) 
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2917 — onInstanceComplete / onInstanceFailure always-start exit CS
+// Slice 2917 / 3109 — onInstanceComplete / onInstanceFailure always-start exit CS
 // ---------------------------------------------------------------------------
 
 // ShouldStartExitEvent mirrors ambuscade.lua onInstanceComplete and
 // onInstanceFailure: both paths always call player:startEvent(10001) for
-// every char (no additional gate). Host still calls
-// startEvent(EventCSIDExit) after a true gate.
+// every char (no additional gate).
+//
+// Formula (slice 3109 dual-wire; residual expand 2917):
+//   ShouldStartExitEvent() = true
+//
+// true → host calls startEvent(EventCSIDExit) (10001) for every char
+//
+// Dual-wire of Go ambuscade.ShouldStartExitEvent.
+// Call site: future Lua onInstanceComplete / onInstanceFailure inject.
+// Prior pure port: slice 1089. Residual dual-wire suite: 2917 /
+// test_ambuscade_start_exit_2917. Dedicated dual-wire suite is
+// test_ambuscade_start_exit_3109. Host still calls startEvent(EventCSIDExit)
+// after a true gate. Pure surface is unconditional so hosts dual-wire one
+// free function instead of re-inlining "always start exit CS".
 // Parity: Go ShouldStartExitEvent.
 inline auto ShouldStartExitEvent() -> bool
 {

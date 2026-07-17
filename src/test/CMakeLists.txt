@@ -2791,6 +2791,16 @@ set(SOURCES
     test_spawn_reject_evening_3107.cpp
     test_mapsession_reject_null_char_3108.h
     test_mapsession_reject_null_char_3108.cpp
+    test_ambuscade_start_exit_3109.h
+    test_ambuscade_start_exit_3109.cpp
+    test_nyzul_activate_rune_3110.h
+    test_nyzul_activate_rune_3110.cpp
+    test_linkshell_unload_3111.h
+    test_linkshell_unload_3111.cpp
+    test_treasure_update_pool_char_3112.h
+    test_treasure_update_pool_char_3112.cpp
+    test_status_reject_simple_immunity_3113.h
+    test_status_reject_simple_immunity_3113.cpp
 )
 
 if(UNIX)

@@ -26,6 +26,7 @@
 //   - 3055: ShouldLoadLinkshellOnOnlineAdd (!foundInCache)
 //   - 3079: ShouldRejectNullOnlineMember (charNull identity null-PChar gate)
 //   - 3099: ShouldProcessLinkshellItem (itemNonNull && isLinkshellType)
+//   - 3111: ShouldUnloadLinkshell (foundInList identity)
 //
 // Production host: CLinkshell::AddMember (linkshell.cpp) injects
 // PChar == nullptr into ShouldRejectNullAddMember before duplicate / slot work,
@@ -55,6 +56,9 @@
 // LinkshellList.find(PItemLinkshell->GetLSID()) != end into
 // ShouldLoadLinkshellOnOnlineAdd; on true LoadLinkshell(id); on false reuses
 // cache entry when found.
+// linkshell::UnloadLinkshell injects
+// LinkshellList.find(id) != LinkshellList.end() into ShouldUnloadLinkshell;
+// on true LinkshellList.erase(id).
 // Go dual-wire: linkshell.ShouldRejectNullAddMember
 // (internal/linkshell/reject_null_add_member.go),
 // linkshell.ShouldRejectDuplicateAddMember
@@ -78,7 +82,9 @@
 // linkshell.ShouldRejectNullOnlineMember
 // (internal/linkshell/reject_null_online_member.go),
 // linkshell.ShouldProcessLinkshellItem
-// (internal/linkshell/process_linkshell_item.go).
+// (internal/linkshell/process_linkshell_item.go),
+// linkshell.ShouldUnloadLinkshell
+// (internal/linkshell/unload_linkshell.go).
 
 namespace linkshellhelpers
 {
@@ -443,7 +449,26 @@ inline auto ClassifyLoadLinkshell(const bool queryOk, const bool hasRow) -> load
     return load_linkshell_gate::NOT_FOUND;
 }
 
-// ShouldUnloadLinkshell mirrors find hit in LinkshellList.
+// ShouldUnloadLinkshell mirrors find hit in LinkshellList before erase on
+// UnloadLinkshell.
+//
+// Formula (slice 3111 dual-wire):
+//   foundInList
+//
+// foundInList — host: LinkshellList.find(id) != end
+// true  → host LinkshellList.erase(id)
+// false → skip erase (not loaded)
+//
+// Dual-wire of Go linkshell.ShouldUnloadLinkshell.
+// Call site: linkshell::UnloadLinkshell — host injects
+// LinkshellList.find(id) != LinkshellList.end(); on true LinkshellList.erase(id).
+// Prior pure port: slice 1355 (linkshell registry residual). Residual pins
+// remain in test_linkshell_registry_1355; dedicated dual-wire suite is
+// test_linkshell_unload_3111. Sibling dual-wires (leave alone):
+// ShouldLoadLinkshellOnOnlineAdd (3055), ShouldRejectNullOnlineMember (3079),
+// ShouldProcessLinkshellItem (3099). Residual siblings: add-after-lookup,
+// always-false return, erase-after-del, null warning string, load classify
+// (still 1355).
 inline auto ShouldUnloadLinkshell(const bool foundInList) -> bool
 {
     return foundInList;

@@ -17,6 +17,7 @@
 //   - 3060: ShouldRejectNullMember (charNull || poolMismatch null-member gate)
 //   - 3067: ShouldRejectNullItem (itemNull identity null-item gate)
 //   - 3094: ShouldSkipRareCheck (!isSoloPool && itemHasNoRareCheck skip-rare gate)
+//   - 3112: ShouldUpdatePoolForChar (!isDisappear UpdatePool visibility gate)
 //
 // Production host: CTreasurePool::addItem (treasure_pool.cpp) injects
 // memberCount() into ShouldAutoResolveSolo after trophy list packets.
@@ -58,6 +59,14 @@
 // (internal/treasurepool/skip_rare_check.go).
 // Sibling dual-wires (leave alone): ShouldRejectNullMember (3060),
 // ShouldRejectNullItem (3067).
+//
+// Production host: CTreasurePool::UpdatePool / PlanUpdatePool injects
+// (PChar->status == STATUS_TYPE::DISAPPEAR) into ShouldUpdatePoolForChar
+// after the null-member early gate.
+// Go dual-wire: treasurepool.ShouldUpdatePoolForChar
+// (internal/treasurepool/update_pool_for_char.go).
+// Sibling dual-wires (leave alone): ShouldRejectNullMember (3060),
+// ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094).
 
 namespace treasurepoolhelpers
 {
@@ -382,6 +391,19 @@ inline auto PlanPassItemPreflight(
 }
 
 // ShouldUpdatePoolForChar mirrors status != DISAPPEAR.
+//
+// Formula (slice 3112 dual-wire):
+//   !isDisappear
+//
+// isDisappear — host-evaluated (PChar->status == STATUS_TYPE::DISAPPEAR)
+// true  → host may push trophy list packets for this character
+// false → host skips trophy push for a disappeared character
+//
+// Dual-wire of Go treasurepool.ShouldUpdatePoolForChar.
+// Call site: PlanUpdatePool / CTreasurePool::UpdatePool after
+// ShouldRejectNullMember.
+// Sibling dual-wires (leave alone): ShouldRejectNullMember (3060),
+// ShouldRejectNullItem (3067), ShouldSkipRareCheck (3094).
 inline auto ShouldUpdatePoolForChar(const bool isDisappear) -> bool
 {
     return !isDisappear;

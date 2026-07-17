@@ -9,11 +9,12 @@
 //   - 2902: Rune of Transfer first-claimer gate (onEventUpdate)
 //   - 2905: spawnChest regular-mob casket roll (spawnChest)
 //   - 2909: non-floor-100 NM vigil weapon roll (vigilWeaponDrop)
-//   - 2913: activateRuneOfTransfer NORMAL status gate
+//   - 2913: activateRuneOfTransfer NORMAL status gate (prior dual-wire)
 //   - 2914: clearChests present + not-DISAPPEAR status gate (prior dual-wire)
 //   - 2918: onGearEngage AVOID_AGRO penalty-trigger gate (pathos)
 //   - 3061: clearChests present + not-DISAPPEAR status gate (ShouldClearChestNPC)
 //   - 3095: free-floor selection gate (ShouldGrantFreeFloor / pickSetPoint)
+//   - 3110: activateRuneOfTransfer NORMAL status gate (ShouldActivateRuneOfTransfer)
 //
 // Production hosts are Lua under
 // scripts/zones/Nyzul_Isle/instances/nyzul_isle_investigation.lua
@@ -230,8 +231,21 @@ inline auto ShouldSpawnCasket(const int32 roll1to100, const bool enableCaskets) 
 }
 
 // ---------------------------------------------------------------------------
-// Slice 2913 — activateRuneOfTransfer NORMAL status gate
+// Slice 3110 — activateRuneOfTransfer NORMAL status gate
+// (prior dual-wire expansion: slice 2913; residual pure port: 1088)
 // ---------------------------------------------------------------------------
+// Dual-wire notes (slice 3110):
+//   Formula unchanged from residual 1088 / prior 2913 dual-wire:
+//     ShouldActivateRuneOfTransfer(status) = status == kStatusNormal
+//   Go dual-wire: nyzul.ShouldActivateRuneOfTransfer
+//   (internal/nyzul/activate_rune.go).
+//   Production host is Lua xi.nyzul.activateRuneOfTransfer (no map-server
+//   C++ call site); future Lua host injects status instead of re-inlining
+//   `getStatus() == xi.status.NORMAL`.
+//   Host still owns the Rune of Transfer offset loop (OFFSET .. OFFSET+1),
+//   setAnimationSub(1), and break after the first NORMAL rune.
+//   Sibling clear-chest dual-wire (3061) and free-floor dual-wire (3095)
+//   are separate surfaces — leave alone.
 
 // Status pins used by activateRuneOfTransfer (and residual clearChests /
 // spawnChest gates). Match Go nyzul.StatusNormal / StatusDisappear and
@@ -242,9 +256,14 @@ inline constexpr uint8 kStatusDisappear = 2;
 // ShouldActivateRuneOfTransfer mirrors activateRuneOfTransfer status gate:
 //   GetNPCByID(runeID, instance):getStatus() == xi.status.NORMAL
 //   ≡ status == kStatusNormal
+//
+// Formula (slice 3110 dual-wire; unchanged):
+//   ShouldActivateRuneOfTransfer(status) = status == kStatusNormal
+//
 // status is the host-injected NPC status scalar. Host still owns the Rune of
 // Transfer offset loop (OFFSET .. OFFSET+1), setAnimationSub(1), and break
 // after the first NORMAL rune.
+// Dual-wire of Go nyzul.ShouldActivateRuneOfTransfer (activate_rune.go / slice 3110).
 inline auto ShouldActivateRuneOfTransfer(const uint8 status) -> bool
 {
     return status == kStatusNormal;

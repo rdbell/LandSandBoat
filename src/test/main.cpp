@@ -1399,6 +1399,11 @@ auto runCharEraseEntityPop3105SelfTests() -> bool;
 auto runArtisanCanExpand3106SelfTests() -> bool;
 auto runSpawnRejectEvening3107SelfTests() -> bool;
 auto runMapsessionRejectNullChar3108SelfTests() -> bool;
+auto runAmbuscadeStartExit3109SelfTests() -> bool;
+auto runNyzulActivateRune3110SelfTests() -> bool;
+auto runLinkshellUnload3111SelfTests() -> bool;
+auto runTreasureUpdatePoolChar3112SelfTests() -> bool;
+auto runStatusRejectSimpleImmunity3113SelfTests() -> bool;
 
 namespace
 {
@@ -2775,6 +2780,11 @@ namespace
         ok = runArtisanCanExpand3106SelfTests() && ok;
         ok = runSpawnRejectEvening3107SelfTests() && ok;
         ok = runMapsessionRejectNullChar3108SelfTests() && ok;
+        ok = runAmbuscadeStartExit3109SelfTests() && ok;
+        ok = runNyzulActivateRune3110SelfTests() && ok;
+        ok = runLinkshellUnload3111SelfTests() && ok;
+        ok = runTreasureUpdatePoolChar3112SelfTests() && ok;
+        ok = runStatusRejectSimpleImmunity3113SelfTests() && ok;
 
         return ok;
     }
