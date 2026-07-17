@@ -122,6 +122,7 @@ auto GeneratePlaceholderEntries(FISHING_CONTEST_STATUS status, FISHING_CONTEST_M
 void RankContestEntries(std::vector<FishingContestEntry>& entries, FISHING_CONTEST_MEASURE measure);
 
 // IsStageDue preserves ProgressContest's strict currentTime > changeTime gate.
+// Dual-wires fishingcontesthelpers::IsStageDue (slice 2846).
 auto IsStageDue(uint32 currentTime, uint32 changeTime) -> bool;
 
 // Contest Data: Sets

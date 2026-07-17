@@ -20,6 +20,8 @@
 */
 
 #include "fishingcontest.h"
+#include "fishing_contest_capacity.h"
+#include "fishingcontest_rank_capacity.h"
 #include "fishingcontest_rank_entry.h"
 
 #include <algorithm>
@@ -130,6 +132,7 @@ void ProgressContest()
     }
 
     uint32 currentTime = earth_time::timestamp();
+    // Pure stage gate dual-wire: fishingcontesthelpers::IsStageDue (slice 2846).
     if (IsStageDue(currentTime, CurrentFishingContest.changeTime))
     {
         FISHING_CONTEST_STATUS newStatus = static_cast<FISHING_CONTEST_STATUS>((static_cast<int>(CurrentFishingContest.status) + 1) % static_cast<int>(FISHING_CONTEST_STATUS::CLOSED));
@@ -255,24 +258,19 @@ void ScoreContest()
 
 auto IsStageDue(const uint32 currentTime, const uint32 changeTime) -> bool
 {
-    return currentTime > changeTime;
+    // Pure dual-wire: fishingcontesthelpers::IsStageDue (slice 2846).
+    return fishingcontesthelpers::IsStageDue(currentTime, changeTime);
 }
 
 void RankContestEntries(std::vector<FishingContestEntry>& entries, const FISHING_CONTEST_MEASURE measure)
 {
-
-    // Sort the list first
+    // Sort the list first (dual-wire pure ShouldRankBefore).
+    const bool greatest = measure == FISHING_CONTEST_MEASURE::GREATEST;
     // clang-format off
-        std::sort(entries.begin(), entries.end(), [measure](auto&& a, auto&& b) -> bool
+        std::sort(entries.begin(), entries.end(), [greatest](auto&& a, auto&& b) -> bool
         {
-            if (measure == FISHING_CONTEST_MEASURE::GREATEST)
-            {
-                return a.score == b.score ? a.submitTime < b.submitTime : a.score > b.score;
-            }
-            else
-            {
-                return a.score == b.score ? a.submitTime < b.submitTime : b.score > a.score;
-            }
+            return fishingcontestrankhelpers::ShouldRankBefore(
+                a.score, a.submitTime, b.score, b.submitTime, greatest);
         });
     // clang-format on
 
@@ -282,30 +280,28 @@ void RankContestEntries(std::vector<FishingContestEntry>& entries, const FISHING
     uint8  prevrank    = 1;
     uint32 score       = 0;
 
-    // Apply the rank scores to the list
+    // Apply the rank scores to the list (dual-wire pure rank-share helpers).
     for (auto&& entry : entries)
     {
-        if (entry.score != score) // Regardless of increasing or decreasing ... Vector already sorted
+        // Regardless of increasing or decreasing ... Vector already sorted
+        entry.contestRank = fishingcontestrankhelpers::AssignedContestRank(
+            entry.score, score, contestRank, prevrank);
+        if (fishingcontestrankhelpers::ShouldAdvanceRunningScore(entry.score, score))
         {
-            entry.contestRank = contestRank;
-            prevrank          = contestRank;
-            score             = entry.score; // Update the ongoing score "tally"
-        }
-        else // Scores are matches so we have to share rank values
-        {
-            entry.contestRank = prevrank;
+            prevrank = contestRank;
+            score    = entry.score; // Update the ongoing score "tally"
         }
 
         // Set the number of times the score appears and copy it to dataset a and b
         // clang-format off
-            entry.share   = std::count_if(entries.begin(), entries.end(), [&score](auto& a) -> bool
+            entry.share = static_cast<uint8>(std::count_if(entries.begin(), entries.end(), [&score](auto& a) -> bool
             {
-                return a.score == score;
-            });
+                return fishingcontestrankhelpers::ScoreMatchesShare(a.score, score);
+            }));
         // clang-format on
 
-        entry.dataset_b   = entry.share; // Duplicated.  Uncertain as to definition
-        entry.resultCount = static_cast<uint8>(entries.size());
+        entry.dataset_b   = fishingcontestrankhelpers::RankDatasetB(entry.share); // Duplicated.  Uncertain as to definition
+        entry.resultCount = fishingcontestrankhelpers::RankResultCount(entries.size());
         contestRank++;
     }
 }

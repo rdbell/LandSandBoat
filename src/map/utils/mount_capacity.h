@@ -58,4 +58,68 @@ inline auto PlanResolveMountState(const bool effectNull,
     return PlanResolveMountState(effectNull, power, subPower, isChocobo);
 }
 
+// ---------------------------------------------------------------------------
+// Pure mountutils::packetDefinition policy (slice 2844).
+//
+// Production host: mountutils::packetDefinition in mountutils.cpp.
+// Host injects: mounted (from resolveState), mountPower (state.mount),
+// fieldChocobo (CCharEntity::m_FieldChocobo). No entity / status pointers.
+//
+// MOUNTTYPE pins (base_entity.h) stay as literals so the pure surface remains
+// free of entity headers: MOUNT_CHOCOBO = 0, MOUNT_NOBLE_CHOCOBO = 34.
+// ---------------------------------------------------------------------------
+
+// PlanMountPacketDefinition is the fully scalar form of packetDefinition:
+//   !mounted → ChocoboIndex=0
+//   MOUNT_CHOCOBO + fieldChocobo != 0 → index 2, CustomProperties={field, 0}
+//   MOUNT_CHOCOBO regular → index 1
+//   MOUNT_NOBLE_CHOCOBO → index (mount%8)+2, CustomProperties={0, 1}
+//   default → index (mount%8)+1
+inline auto PlanMountPacketDefinition(const bool mounted, const uint16_t mountPower, const uint32_t fieldChocobo)
+    -> MountPacketDefinition
+{
+    if (!mounted)
+    {
+        return MountPacketDefinition{
+            .ChocoboIndex = 0,
+        };
+    }
+
+    // Production MOUNTTYPE pins (base_entity.h).
+    constexpr uint16_t MountChocobo      = 0;
+    constexpr uint16_t MountNobleChocobo = 34;
+
+    if (mountPower == MountChocobo)
+    {
+        // Customized / personal field chocobos need ChocoboIndex 2.
+        if (fieldChocobo != 0)
+        {
+            return MountPacketDefinition{
+                .ChocoboIndex     = 2,
+                .CustomProperties = { fieldChocobo, 0 },
+            };
+        }
+
+        // Regular Chocobos use 1.
+        return MountPacketDefinition{
+            .ChocoboIndex = 1,
+        };
+    }
+
+    if (mountPower == MountNobleChocobo)
+    {
+        // Noble would be (34%8)+1 = 3 under the generic rule; captures use 4
+        // ((mount%8)+2) to indicate a chocobo, with CustomProperties[1] = 1.
+        return MountPacketDefinition{
+            .ChocoboIndex     = static_cast<uint8_t>((mountPower % 8) + 2),
+            .CustomProperties = { 0, 1 },
+        };
+    }
+
+    // All other mounts return the remainder + 1.
+    return MountPacketDefinition{
+        .ChocoboIndex = static_cast<uint8_t>((mountPower % 8) + 1),
+    };
+}
+
 } // namespace mountutilshelpers

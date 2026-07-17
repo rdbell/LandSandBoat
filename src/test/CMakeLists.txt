@@ -875,6 +875,16 @@ set(SOURCES
     test_login_zone_cap_2841.cpp
     test_mount_resolve_2839.h
     test_mount_resolve_2839.cpp
+    test_fishing_contest_rank_2847.h
+    test_fishing_contest_rank_2847.cpp
+    test_mount_packet_2844.h
+    test_mount_packet_2844.cpp
+    test_fishing_contest_stage_due_2846.h
+    test_fishing_contest_stage_due_2846.cpp
+    test_zone_mob_away_2848.h
+    test_zone_mob_away_2848.cpp
+    test_char_packet_on_pop_2845.h
+    test_char_packet_on_pop_2845.cpp
     test_char_packet_on_push_2842.h
     test_char_packet_on_push_2842.cpp
     test_party_invite_alliance_join_2843.h

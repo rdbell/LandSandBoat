@@ -47,50 +47,13 @@ auto resolveState(const CStatusEffect* effect) -> MountStateResolution
 // While it has little incidence for mounts, it is extremely important for custom chocobos.
 // CustomProperties[0] sets the Personal Chocobo model.
 // CustomProperties[1] is used for Noble Chocobo, and is set to 1.
+//
+// Pure policy dual-wire: mountutilshelpers::PlanMountPacketDefinition (slice 2844).
+// Host injects mounted/mount from resolveState and m_FieldChocobo.
 auto packetDefinition(const CCharEntity* PChar) -> MountPacketDefinition
 {
     const auto state = resolveState(PChar->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Mounted));
-    if (!state.mounted)
-    {
-        return MountPacketDefinition{
-            .ChocoboIndex = 0,
-        };
-    }
-
-    switch (const auto mount = state.mount)
-    {
-        case MOUNT_CHOCOBO:
-        {
-            // Customized chocobos need ChocoboIndex 2
-            if (PChar->m_FieldChocobo)
-            {
-                return MountPacketDefinition{
-                    .ChocoboIndex     = 2,
-                    .CustomProperties = { PChar->m_FieldChocobo, 0 },
-                };
-            }
-
-            // Regular Chocobos use 1
-            return MountPacketDefinition{
-                .ChocoboIndex = 1,
-            };
-        }
-        case MOUNT_NOBLE_CHOCOBO:
-        {
-            // Noble Chocobo is a special case, it should return 3
-            // if following other mounts logic, however captures show it uses 4, likely to indicate it is a Chocobo.
-            // It also needs 1 in CustomProperties[1]
-            return MountPacketDefinition{
-                .ChocoboIndex     = static_cast<uint8_t>((mount % 8) + 2),
-                .CustomProperties = { 0, 1 },
-            };
-        }
-        default:
-            // All other mounts return the remainder + 1
-            return MountPacketDefinition{
-                .ChocoboIndex = static_cast<uint8_t>((mount % 8) + 1),
-            };
-    }
+    return mountutilshelpers::PlanMountPacketDefinition(state.mounted, state.mount, PChar->m_FieldChocobo);
 }
 
 }; // namespace mountutils
