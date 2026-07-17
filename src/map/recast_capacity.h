@@ -14,21 +14,38 @@
 //   - 2931: ShouldStampOnZeroRecast (RecastTime == 0 stamp gate on charged Load)
 //   - 3052: ShouldExpireRecast (now >= TimeStamp + RecastTime Check gate)
 //   - 3070: ShouldEraseOnExpire (!isAbility erase vs ability zero-retain)
+//   - 3104: ShouldUpdateChargeTime (chargeTime != 0 update gate on Load existing)
 //
 // Production host: CRecastContainer::Load (recast_container.cpp) injects
 // RecastTime == 0s into ShouldStampOnZeroRecast on the charged path.
 // Go dual-wire: recast.ShouldStampOnZeroRecast (internal/recast/stamp_zero.go).
 // Check host injects type==RECAST_ABILITY into ShouldEraseOnExpire (slice 3070).
 // Go dual-wire: recast.ShouldEraseOnExpire (internal/recast/erase_on_expire.go).
+// Load host injects chargeTime != 0s into ShouldUpdateChargeTime (slice 3104).
+// Go dual-wire: recast.ShouldUpdateChargeTime (internal/recast/update_charge_time.go).
 
 namespace recasthelpers
 {
 
-// ShouldUpdateChargeMeta mirrors chargeTime != 0 / maxCharges != 0 on existing entry.
+// ShouldUpdateChargeTime mirrors chargeTime != 0 on existing entry.
+//
+// Formula (slice 3104 dual-wire):
+//   chargeTimeNonzero
+//
+// chargeTimeNonzero — host-evaluated chargeTime != 0s
+// true  → overwrite recast->chargeTime with the inject
+// false → keep existing chargeTime on the entry
+//
+// Dual-wire of Go recast.ShouldUpdateChargeTime.
+// Call site: CRecastContainer::Load on existing entry before maxCharges /
+// simple / charged branches.
+// Prior pure port: slice 1370. Siblings 3052/3070 left alone this slice.
 inline auto ShouldUpdateChargeTime(const bool chargeTimeNonzero) -> bool
 {
     return chargeTimeNonzero;
 }
+
+// ShouldUpdateChargeMeta: maxCharges half of the charge-meta update pair.
 
 inline auto ShouldUpdateMaxCharges(const bool maxChargesNonzero) -> bool
 {

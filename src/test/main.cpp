@@ -1394,6 +1394,11 @@ auto runStatusBlockCharmPet3100SelfTests() -> bool;
 auto runPartyDetachAlliance3101SelfTests() -> bool;
 auto runBattlefieldClearLevel3102SelfTests() -> bool;
 auto runCampaignDebitBonus3103SelfTests() -> bool;
+auto runRecastUpdateChargeTime3104SelfTests() -> bool;
+auto runCharEraseEntityPop3105SelfTests() -> bool;
+auto runArtisanCanExpand3106SelfTests() -> bool;
+auto runSpawnRejectEvening3107SelfTests() -> bool;
+auto runMapsessionRejectNullChar3108SelfTests() -> bool;
 
 namespace
 {
@@ -2765,6 +2770,11 @@ namespace
         ok = runPartyDetachAlliance3101SelfTests() && ok;
         ok = runBattlefieldClearLevel3102SelfTests() && ok;
         ok = runCampaignDebitBonus3103SelfTests() && ok;
+        ok = runRecastUpdateChargeTime3104SelfTests() && ok;
+        ok = runCharEraseEntityPop3105SelfTests() && ok;
+        ok = runArtisanCanExpand3106SelfTests() && ok;
+        ok = runSpawnRejectEvening3107SelfTests() && ok;
+        ok = runMapsessionRejectNullChar3108SelfTests() && ok;
 
         return ok;
     }

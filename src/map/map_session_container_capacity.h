@@ -15,7 +15,8 @@
 //   - 3056: ShouldDestroyPendingByPointer (found && pointerMatches)
 //   - 3066: ShouldDestroyPendingByCharID (found identity)
 //   - 2790: lookup pure gates (ShouldRejectNullCharLookup, SessionMatches*)
-//   - 2954: ShouldRejectNullCharLookup (charNull identity)
+//   - 2954: ShouldRejectNullCharLookup (charNull identity; prior dual-wire)
+//   - 3108: ShouldRejectNullCharLookup (charNull identity; dense dual-wire)
 //   - 2799: link-dead mark/recover pure plans (ShouldMarkLinkDead residual)
 //   - 2978: ShouldMarkLinkDead (hasChar && !alreadyLinkDead)
 //   - 2985: ShouldRecoverLinkDead (hasChar && isLinkDead)
@@ -46,7 +47,9 @@
 // Production host: MapSessionContainer::getSessionByChar injects
 // charNull = (PChar == nullptr) before scanning confirmed sessions.
 // Go dual-wire: mapsession.ShouldRejectNullCharLookup
-// (internal/mapsession/null_char.go).
+// (internal/mapsession/reject_null_char_lookup.go). Prior pure port: 2790;
+// prior dual-wire: 2954; dense dual-wire: 3108. Sibling dual-wires
+// 3056/3066/3086 (destroy-pending / replace-existing) are left alone.
 //
 // Production host: MapSessionContainer::cleanupSessions injects hasChar /
 // alreadyLinkDead into ShouldMarkLinkDead inside the >5s inactive branch
@@ -175,17 +178,27 @@ inline auto ShouldDestroyPendingByCharID(const bool found) -> bool
 // ShouldRejectNullCharLookup mirrors getSessionByChar's PChar == nullptr gate.
 // Host returns nullptr before scanning confirmed sessions when this is true.
 //
-// Formula (slice 2954 dual-wire):
+// Formula (slice 3108 dual-wire):
 //   charNull
+//
+// Host-injected scalar (no entity / map / name state):
+//   charNull — (PChar == nullptr) before confirmed-map scan
 //
 // true  → host returns nullptr before confirmed-map scan
 // false → host proceeds to SessionMatchesCharID loop match
+//
+// Dual-wire of Go mapsession.ShouldRejectNullCharLookup
+// (internal/mapsession/reject_null_char_lookup.go). Prior pure port: slice 2790.
+// Prior dual-wire: slice 2954. Sibling dual-wires 3056/3066/3086
+// (destroy-pending / replace-existing gates) are left alone.
+// Call site: MapSessionContainer::getSessionByChar (map_session_container.cpp)
+// already injects PChar == nullptr before the confirmed scan.
 //
 // Host inject (getSessionByChar):
 //   if (ShouldRejectNullCharLookup(PChar == nullptr)) return nullptr;
 //
 // SessionMatchesCharID / SessionMatchesCharName remain 2790 residual siblings
-// (scan-level match helpers; not dual-wired in slice 2954).
+// (scan-level match helpers; not dual-wired in slice 3108).
 inline auto ShouldRejectNullCharLookup(const bool charNull) -> bool
 {
     return charNull;

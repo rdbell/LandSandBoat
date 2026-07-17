@@ -13,12 +13,14 @@
 //   - 1362: canSpawnNow / TOTD / weather despawn / tick / register policy
 //   - 2923: ShouldRejectFogSpawn (FOG spawnType flag && weather is not fog)
 //   - 3092: ShouldRejectAtNightSpawn (ATNIGHT flag && not NIGHT/MIDNIGHT TOTD)
+//   - 3107: ShouldRejectAtEveningSpawn (ATEVENING flag && not evening TOTD window)
 //
 // Production host: SpawnHandler::canSpawnNow (spawn_handler.cpp) injects
 // isFog = zone_->weather().current() == Weather::Fog and current TOTD before
 // CanSpawnNowPure.
 // Go dual-wire: spawnslot.ShouldRejectFogSpawn (internal/spawnslot/reject_fog.go),
-// spawnslot.ShouldRejectAtNightSpawn (internal/spawnslot/reject_night_spawn.go).
+// spawnslot.ShouldRejectAtNightSpawn (internal/spawnslot/reject_night_spawn.go),
+// spawnslot.ShouldRejectAtEveningSpawn (internal/spawnslot/reject_evening_spawn.go).
 
 namespace spawnhelpers
 {
@@ -71,13 +73,27 @@ inline auto IsEveningTotdWindow(const vanadiel_time::TOTD totd) -> bool
 //
 // Dual-wire of Go spawnslot.ShouldRejectAtNightSpawn.
 // Call site: CanSpawnNowPure (and SpawnHandler::canSpawnNow host inject).
-// Sibling residual: ShouldRejectAtEveningSpawn (ATEVENING + evening window).
+// Sibling dual-wire: ShouldRejectAtEveningSpawn (ATEVENING + evening window; 3107).
 inline auto ShouldRejectAtNightSpawn(const uint8 spawnType, const vanadiel_time::TOTD totd) -> bool
 {
     return HasSpawnTypeFlag(spawnType, SpawnTypeAtNight) && !IsNightTotdWindow(totd);
 }
 
 // ShouldRejectAtEveningSpawn mirrors ATEVENING flag && not evening window.
+// totd is host-evaluated vanadiel_time::TOTD.
+//
+// Formula (slice 3107 dual-wire):
+//   HasSpawnTypeFlag(spawnType, SpawnTypeAtEvening) && !IsEveningTotdWindow(totd)
+//   // SpawnTypeAtEvening = 0x02 (SPAWNTYPE_ATEVENING)
+//   // IsEveningTotdWindow: totd == EVENING || NIGHT || MIDNIGHT || NEWDAY
+//   // TOTD pins: NONE=0 MIDNIGHT=1 NEWDAY=2 DAWN=3 DAY=4 DUSK=5 EVENING=6 NIGHT=7
+//
+// true  → reject spawn (ATEVENING-type mob outside evening window)
+// false → evening gate passes (no ATEVENING flag, or totd is evening window)
+//
+// Dual-wire of Go spawnslot.ShouldRejectAtEveningSpawn.
+// Call site: CanSpawnNowPure (and SpawnHandler::canSpawnNow host inject).
+// Sibling dual-wire: ShouldRejectAtNightSpawn (ATNIGHT + night window; 3092).
 inline auto ShouldRejectAtEveningSpawn(const uint8 spawnType, const vanadiel_time::TOTD totd) -> bool
 {
     return HasSpawnTypeFlag(spawnType, SpawnTypeAtEvening) && !IsEveningTotdWindow(totd);

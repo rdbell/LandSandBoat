@@ -2781,6 +2781,16 @@ set(SOURCES
     test_battlefield_clear_level_3102.cpp
     test_campaign_debit_bonus_3103.h
     test_campaign_debit_bonus_3103.cpp
+    test_recast_update_charge_time_3104.h
+    test_recast_update_charge_time_3104.cpp
+    test_char_erase_entity_pop_3105.h
+    test_char_erase_entity_pop_3105.cpp
+    test_artisan_can_expand_3106.h
+    test_artisan_can_expand_3106.cpp
+    test_spawn_reject_evening_3107.h
+    test_spawn_reject_evening_3107.cpp
+    test_mapsession_reject_null_char_3108.h
+    test_mapsession_reject_null_char_3108.cpp
 )
 
 if(UNIX)

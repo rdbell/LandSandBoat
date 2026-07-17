@@ -13,11 +13,16 @@
 //   - 2845: ShouldEraseEntityUpdateOnPop + ShouldClearPendingPositionOnPop / OnPop
 //   - 2943: ShouldClearPendingPositionOnPop residual dual-wire
 //           (packetType == 0x5B && packetEntityID == ownerID)
+//   - 3105: ShouldEraseEntityUpdateOnPop residual dual-wire
+//           (packetType == 0x0D || packetType == 0x0E)
 //
 // Production host: CCharEntity::popPacket (char_entity.cpp) injects type /
-// entity-id / owner scalars into OnPop, which dual-wires clear-pending through
+// entity-id / owner scalars into OnPop, which dual-wires erase through
+// ShouldEraseEntityUpdateOnPop and clear-pending through
 // ShouldClearPendingPositionOnPop.
-// Go dual-wire: charentity.ShouldClearPendingPositionOnPop
+// Go dual-wire erase: charentity.ShouldEraseEntityUpdateOnPop
+// (internal/charentity/erase_entity_update_pop.go).
+// Go dual-wire clear-pending: charentity.ShouldClearPendingPositionOnPop
 // (internal/charentity/clear_pending_pop.go).
 
 namespace charpacketqueuehelpers
@@ -51,9 +56,23 @@ inline void OnPush(const std::uint16_t packetType, const std::uint32_t packetEnt
 
 // ShouldEraseEntityUpdateOnPop is the pure gate for OnPop entity-update
 // cleanup: true when the packet is a char/entity update (0x0D or 0x0E).
-// Host dual-wires:
+//
+// Formula (slice 3105 dual-wire; residual pure port from slice 2845):
+//   packetType == 0x0D || packetType == 0x0E
+//
+// packetType — host-evaluated packet->getType()
+// true  → eraseEntityUpdate(packetEntityID) / EntityUpdatePackets.erase
+// false → leave entity-update map unchanged on this branch
+//
+// Host dual-wires (OnPop template if-branch before clear-pending):
 //   if (ShouldEraseEntityUpdateOnPop(packetType))
 //       eraseEntityUpdate(packetEntityID);
+//
+// Dual-wire of Go charentity.ShouldEraseEntityUpdateOnPop
+// (internal/charentity/erase_entity_update_pop.go).
+// Call site: CCharEntity::popPacket → OnPop after entity-id extract
+// (0x0D/0x0E → ref 0x04). Mutual exclusion with ShouldClearPendingPositionOnPop:
+// erase types never also clear pending (if / else if).
 inline bool ShouldEraseEntityUpdateOnPop(const std::uint16_t packetType)
 {
     return packetType == 0x0D || packetType == 0x0E;
