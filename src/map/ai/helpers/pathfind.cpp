@@ -21,6 +21,8 @@
 
 #include "pathfind.h"
 
+#include "pathfind_finished_capacity.h"
+
 #include "ai/ai_container.h"
 
 #include "common/utils.h"
@@ -636,7 +638,9 @@ void CPathFind::FinishedPath()
 {
     m_currentTurn++;
 
-    if (m_currentTurn < m_turnPoints.size())
+    const auto action = pathfindfinishedhelpers::Resolve(m_currentTurn < m_turnPoints.size(), IsPatrolling(), m_POwner->PAI->IsRoaming());
+
+    if (action == pathfindfinishedhelpers::Action::NextTurn)
     {
         // move on to next turn
         position_t& nextTurn = m_turnPoints[m_currentTurn];
@@ -648,7 +652,7 @@ void CPathFind::FinishedPath()
             Clear();
         }
     }
-    else if (IsPatrolling() && m_POwner->PAI->IsRoaming())
+    else if (action == pathfindfinishedhelpers::Action::RestartPatrol)
     {
         m_currentPoint = 0;
         m_currentTurn  = 0;

@@ -239,6 +239,7 @@ auto runTargetfindCone3925SelfTests() -> bool;
 auto runTargetfindPlayer3926SelfTests() -> bool;
 auto runTargetfindValidTarget3927SelfTests() -> bool;
 auto runTargetfindMobOwner3928SelfTests() -> bool;
+auto runPathfindFinished3930SelfTests() -> bool;
 auto runMapSessionReplaceCreate2795SelfTests() -> bool;
 auto runMapSessionLinkDeadPlan2799SelfTests() -> bool;
 auto runMapSessionTimeoutPlan2804SelfTests() -> bool;
@@ -4415,6 +4416,7 @@ namespace
         ok = runTargetfindPlayer3926SelfTests() && ok;
         ok = runTargetfindValidTarget3927SelfTests() && ok;
         ok = runTargetfindMobOwner3928SelfTests() && ok;
+        ok = runPathfindFinished3930SelfTests() && ok;
 
         return ok;
     }
