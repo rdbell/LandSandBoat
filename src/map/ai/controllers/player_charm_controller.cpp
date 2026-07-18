@@ -22,6 +22,7 @@
 #include "player_charm_controller.h"
 #include "player_charm_controller_combat_capacity.h"
 #include "player_charm_controller_roam_capacity.h"
+#include "player_charm_controller_tick_capacity.h"
 
 #include "ai/ai_container.h"
 #include "common/utils.h"
@@ -48,19 +49,19 @@ auto CPlayerCharmController::Tick(timer::time_point tick) -> Task<void>
 {
     m_Tick = tick;
 
-    if (POwner->PMaster == nullptr || !POwner->PMaster->isAlive())
+    const bool hasMaster = POwner->PMaster != nullptr;
+    const bool masterAlive = hasMaster && POwner->PMaster->isAlive();
+    switch (playercharmcontrollertick::Resolve(hasMaster, masterAlive, POwner->PAI->IsEngaged()))
     {
-        POwner->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::CharmI);
-        co_return;
-    }
-
-    if (POwner->PAI->IsEngaged())
-    {
-        DoCombatTick(tick);
-    }
-    else
-    {
-        DoRoamTick(tick);
+        case playercharmcontrollertick::Route::RemoveCharm:
+            POwner->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::CharmI);
+            co_return;
+        case playercharmcontrollertick::Route::Combat:
+            DoCombatTick(tick);
+            break;
+        case playercharmcontrollertick::Route::Roam:
+            DoRoamTick(tick);
+            break;
     }
 }
 
