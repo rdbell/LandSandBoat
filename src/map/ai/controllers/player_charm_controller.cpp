@@ -20,6 +20,7 @@
 */
 
 #include "player_charm_controller.h"
+#include "player_charm_controller_roam_capacity.h"
 
 #include "ai/ai_container.h"
 #include "common/utils.h"
@@ -93,18 +94,21 @@ void CPlayerCharmController::DoCombatTick(timer::time_point tick)
 
 void CPlayerCharmController::DoRoamTick(timer::time_point tick)
 {
-    if (POwner->PMaster->PAI->IsEngaged())
+    const float currentDistance = distance(POwner->loc.p, POwner->PMaster->loc.p);
+    const bool pathFinderExists = POwner->PAI->PathFind != nullptr;
+    const bool needsDistantWarp = pathFinderExists && currentDistance > RoamDistance && currentDistance >= 35.0f;
+    const bool hasSpeed = needsDistantWarp && POwner->GetSpeed() > 0;
+    const auto plan = playercharmcontrollerroam::Resolve(
+        POwner->PMaster->PAI->IsEngaged(), pathFinderExists, hasSpeed, currentDistance);
+    if (plan.engageMasterTarget)
     {
         POwner->PAI->Internal_Engage(POwner->PMaster->GetBattleTargetID());
     }
 
-    float currentDistance = distance(POwner->loc.p, POwner->PMaster->loc.p);
-
-    if (currentDistance > RoamDistance)
+    switch (plan.action)
     {
-        if (POwner->PAI->PathFind)
-        {
-            if (currentDistance < 35.0f && POwner->PAI->PathFind->PathAround(POwner->PMaster->loc.p, 2.0f, PATHFLAG_RUN | PATHFLAG_WALLHACK))
+        case playercharmcontrollerroam::Action::Path:
+            if (POwner->PAI->PathFind->PathAround(POwner->PMaster->loc.p, 2.0f, PATHFLAG_RUN | PATHFLAG_WALLHACK))
             {
                 POwner->PAI->PathFind->FollowPath(m_Tick);
             }
@@ -112,6 +116,11 @@ void CPlayerCharmController::DoRoamTick(timer::time_point tick)
             {
                 POwner->PAI->PathFind->WarpTo(POwner->PMaster->loc.p, RoamDistance);
             }
-        }
+            break;
+        case playercharmcontrollerroam::Action::Warp:
+            POwner->PAI->PathFind->WarpTo(POwner->PMaster->loc.p, RoamDistance);
+            break;
+        case playercharmcontrollerroam::Action::Hold:
+            break;
     }
 }

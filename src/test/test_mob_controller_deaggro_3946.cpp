@@ -27,6 +27,7 @@
 #include "map/ai/controllers/trust_controller_ability_capacity.h"
 #include "map/ai/controllers/trust_controller_noncombat_movement_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_movement_capacity.h"
+#include "map/ai/controllers/player_charm_controller_roam_capacity.h"
 
 #include <iostream>
 
@@ -277,6 +278,20 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                        meleePath.action == trustcontrollercombatmovement::Action::MeleePath && meleePath.desiredDistance == 3.0f &&
                                        meleeStep.action == trustcontrollercombatmovement::Action::MeleeStep &&
                                        rangedMovement.action == trustcontrollercombatmovement::Action::PathOut && rangedMovement.desiredDistance == 12.0f;
+    const auto charmEngaged = playercharmcontrollerroam::Resolve(true, true, true, 2.1f);
+    const auto charmInRange = playercharmcontrollerroam::Resolve(false, true, true, 2.1f);
+    const auto charmPath = playercharmcontrollerroam::Resolve(false, true, true, 2.2f);
+    const auto charmBoundary = playercharmcontrollerroam::Resolve(false, true, true, 35.0f);
+    const auto charmWarp = playercharmcontrollerroam::Resolve(false, true, true, 40.0f);
+    const auto charmNoPathFinder = playercharmcontrollerroam::Resolve(false, false, true, 40.0f);
+    const auto charmNoSpeed = playercharmcontrollerroam::Resolve(false, true, false, 40.0f);
+    const bool playerCharmRoamOK = charmEngaged.engageMasterTarget && charmEngaged.action == playercharmcontrollerroam::Action::Hold &&
+                                   charmInRange.action == playercharmcontrollerroam::Action::Hold &&
+                                   charmPath.action == playercharmcontrollerroam::Action::Path &&
+                                   charmBoundary.action == playercharmcontrollerroam::Action::Warp &&
+                                   charmWarp.action == playercharmcontrollerroam::Action::Warp &&
+                                   charmNoPathFinder.action == playercharmcontrollerroam::Action::Hold &&
+                                   charmNoSpeed.action == playercharmcontrollerroam::Action::Hold;
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -295,9 +310,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && hideOK && lockOK;
 }
