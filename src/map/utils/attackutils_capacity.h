@@ -22,6 +22,7 @@
 //   - 3907: ApplyOccProcDamage (outcome-to-damage mapping)
 //   - 3908: ResolveAllowProcLadder (exclusive Occ precedence)
 //   - 3909: RollChancePercent (inclusive Occ chance roll)
+//   - 3910: Occ modifier normalization (extra multiplier/chances)
 
 namespace attackutilshelpers
 {
@@ -94,6 +95,7 @@ inline auto OccExtraDmgMultiplier(const int16 scaledOccExtraDmgMod) -> float
 }
 
 // OccExtraDmgChance mirrors GetScaledItemModifier EXTRA_DMG_CHANCE / 10.
+// Integer division truncates toward zero, matching C++ and Go.
 inline auto OccExtraDmgChance(const int16 scaledExtraDmgChanceMod) -> int16
 {
     return static_cast<int16>(scaledExtraDmgChanceMod / 10);
