@@ -22,6 +22,7 @@
 #include "targetfind.h"
 #include "targetfind_candidate_capacity.h"
 #include "targetfind_ally_capacity.h"
+#include "targetfind_any_allegiance_capacity.h"
 #include "targetfind_context_capacity.h"
 #include "targetfind_first_target_capacity.h"
 #include "targetfind_identity_capacity.h"
@@ -567,15 +568,12 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
     }
 
     // short-circuit allegiance checks for aoe skills/abilities/spells that can hit players and mobs simultaneously
-    if (m_targetFlags & TARGET_ANY_ALLEGIANCE)
+    if (targetfindanyallegiancehelpers::ShouldRejectAnyAllegianceSelf((m_targetFlags & TARGET_ANY_ALLEGIANCE) != 0, m_PBattleEntity == PTarget))
     {
-        if (m_PBattleEntity == PTarget)
-        {
-            // Don't erroneously include self when using TARGET_ANY_ALLEGIANCE
-            return false;
-        }
+        // Don't erroneously include self when using TARGET_ANY_ALLEGIANCE.
+        return false;
     }
-    else
+    if (!(m_targetFlags & TARGET_ANY_ALLEGIANCE))
     {
         if (m_PTarget && m_PTarget->allegiance != PTarget->allegiance)
         {

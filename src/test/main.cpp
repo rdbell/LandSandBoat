@@ -230,6 +230,7 @@ auto runTargetfindLock3916SelfTests() -> bool;
 auto runTargetfindVertical3917SelfTests() -> bool;
 auto runTargetfindAlly3918SelfTests() -> bool;
 auto runTargetfindFirstTarget3919SelfTests() -> bool;
+auto runTargetfindAnyAllegiance3920SelfTests() -> bool;
 auto runMapSessionReplaceCreate2795SelfTests() -> bool;
 auto runMapSessionLinkDeadPlan2799SelfTests() -> bool;
 auto runMapSessionTimeoutPlan2804SelfTests() -> bool;
@@ -4397,6 +4398,7 @@ namespace
         ok = runTargetfindVertical3917SelfTests() && ok;
         ok = runTargetfindAlly3918SelfTests() && ok;
         ok = runTargetfindFirstTarget3919SelfTests() && ok;
+        ok = runTargetfindAnyAllegiance3920SelfTests() && ok;
 
         return ok;
     }
