@@ -68,7 +68,10 @@ describe('Treasure Hunter', function()
             },
         }
 
-        local iterations = tonumber(os.getenv('LSB_TREASURE_HUNTER_ITERATIONS') or '') or 250 -- should be 10,000
+        -- 250 samples made the 45% drop assertion intermittently fail from
+        -- ordinary binomial variance. Keep this practical for CI while using
+        -- enough samples for the stated tolerance to be meaningful.
+        local iterations = tonumber(os.getenv('LSB_TREASURE_HUNTER_ITERATIONS') or '') or 1000
 
         for zone, mobs in pairs(checkTable) do
             player:gotoZone(zone)
