@@ -217,6 +217,7 @@ auto runMapSessionLookup2790SelfTests() -> bool;
 auto runAttackutilsRapidShotDD3904SelfTests() -> bool;
 auto runAttackutilsSambaDD3905SelfTests() -> bool;
 auto runAttackutilsRollRate3906SelfTests() -> bool;
+auto runAttackutilsOccDamage3907SelfTests() -> bool;
 auto runMapSessionReplaceCreate2795SelfTests() -> bool;
 auto runMapSessionLinkDeadPlan2799SelfTests() -> bool;
 auto runMapSessionTimeoutPlan2804SelfTests() -> bool;
@@ -4371,6 +4372,7 @@ namespace
         ok = runAttackutilsRapidShotDD3904SelfTests() && ok;
         ok = runAttackutilsSambaDD3905SelfTests() && ok;
         ok = runAttackutilsRollRate3906SelfTests() && ok;
+        ok = runAttackutilsOccDamage3907SelfTests() && ok;
 
         return ok;
     }

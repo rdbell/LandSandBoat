@@ -19,6 +19,7 @@
 //   - 3904: ShouldApplyRapidShotDoubleDamage (RAPID_SHOT && rateProcs)
 //   - 3905: ShouldApplySambaDoubleDamage (SAMBA && rateProcs)
 //   - 3906: RollRatePercent (rate-mod roll boundary)
+//   - 3907: ApplyOccProcDamage (outcome-to-damage mapping)
 
 namespace attackutilshelpers
 {
@@ -166,7 +167,9 @@ inline auto ResolveAllowProcLadder(
     return OccProcResult::None;
 }
 
-// ApplyOccProcDamage applies the ladder result.
+// ApplyOccProcDamage applies the ladder result. Extra damage preserves LSB's
+// float multiplication followed by uint32 truncation; rem outcomes are exact
+// two- or three-times multipliers and no outcome leaves damage unchanged.
 inline auto ApplyOccProcDamage(
     const uint32 damage,
     const OccProcResult result,
