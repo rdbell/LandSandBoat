@@ -4391,6 +4391,8 @@ set(SOURCES
     test_attackutils_occ_damage_3907.cpp
     test_attackutils_occ_ladder_3908.h
     test_attackutils_occ_ladder_3908.cpp
+    test_attackutils_roll_chance_3909.h
+    test_attackutils_roll_chance_3909.cpp
 )
 
 if(UNIX)

@@ -21,6 +21,7 @@
 //   - 3906: RollRatePercent (rate-mod roll boundary)
 //   - 3907: ApplyOccProcDamage (outcome-to-damage mapping)
 //   - 3908: ResolveAllowProcLadder (exclusive Occ precedence)
+//   - 3909: RollChancePercent (inclusive Occ chance roll)
 
 namespace attackutilshelpers
 {
