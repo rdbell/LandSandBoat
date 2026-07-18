@@ -20,6 +20,7 @@
 */
 
 #include "targetfind.h"
+#include "targetfind_context_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/inactive_state.h"
@@ -501,9 +502,12 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
         return false;
     }
 
-    if (m_PBattleEntity->StatusEffectContainer->GetConfrontationEffect() != PTarget->StatusEffectContainer->GetConfrontationEffect() ||
-        m_PBattleEntity->PBattlefield != PTarget->PBattlefield || m_PBattleEntity->PInstance != PTarget->PInstance ||
-        ((m_findFlags & FINDFLAGS_IGNORE_BATTLEID) == FINDFLAGS_NONE && m_PBattleEntity->getBattleID() != PTarget->getBattleID()))
+    if (targetfindcontexthelpers::ShouldRejectContext(
+            m_PBattleEntity->StatusEffectContainer->GetConfrontationEffect() != PTarget->StatusEffectContainer->GetConfrontationEffect(),
+            m_PBattleEntity->PBattlefield != PTarget->PBattlefield,
+            m_PBattleEntity->PInstance != PTarget->PInstance,
+            (m_findFlags & FINDFLAGS_IGNORE_BATTLEID) == FINDFLAGS_NONE,
+            m_PBattleEntity->getBattleID() != PTarget->getBattleID()))
     {
         return false;
     }

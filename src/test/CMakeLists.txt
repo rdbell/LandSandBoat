@@ -4399,6 +4399,8 @@ set(SOURCES
     test_attackutils_rem_source_3911.cpp
     test_attackutils_type_damage_3912.h
     test_attackutils_type_damage_3912.cpp
+    test_targetfind_context_3913.h
+    test_targetfind_context_3913.cpp
 )
 
 if(UNIX)
