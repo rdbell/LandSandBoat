@@ -4407,6 +4407,8 @@ set(SOURCES
     test_targetfind_identity_3915.cpp
     test_targetfind_lock_3916.h
     test_targetfind_lock_3916.cpp
+    test_targetfind_vertical_3917.h
+    test_targetfind_vertical_3917.cpp
 )
 
 if(UNIX)

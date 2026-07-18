@@ -24,6 +24,7 @@
 #include "targetfind_context_capacity.h"
 #include "targetfind_identity_capacity.h"
 #include "targetfind_lock_capacity.h"
+#include "targetfind_vertical_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/inactive_state.h"
@@ -549,8 +550,7 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
     // check vertical range
     // Retail caps at 8.5y for mob self-centered AoE, 8y for everything else.
     const float yDelta = fabsf(PTarget->loc.p.y - m_PRadiusAround->y);
-    const float yCap   = m_selfCenteredAoE && m_PBattleEntity->objtype == TYPE_MOB ? 8.5f : 8.0f;
-    if (yDelta >= yCap)
+    if (targetfindverticalhelpers::ExceedsVerticalRange(yDelta, m_selfCenteredAoE, m_PBattleEntity->objtype == TYPE_MOB))
     {
         return false;
     }

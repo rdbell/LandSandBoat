@@ -227,6 +227,7 @@ auto runTargetfindContext3913SelfTests() -> bool;
 auto runTargetfindCandidate3914SelfTests() -> bool;
 auto runTargetfindIdentity3915SelfTests() -> bool;
 auto runTargetfindLock3916SelfTests() -> bool;
+auto runTargetfindVertical3917SelfTests() -> bool;
 auto runMapSessionReplaceCreate2795SelfTests() -> bool;
 auto runMapSessionLinkDeadPlan2799SelfTests() -> bool;
 auto runMapSessionTimeoutPlan2804SelfTests() -> bool;
@@ -4391,6 +4392,7 @@ namespace
         ok = runTargetfindCandidate3914SelfTests() && ok;
         ok = runTargetfindIdentity3915SelfTests() && ok;
         ok = runTargetfindLock3916SelfTests() && ok;
+        ok = runTargetfindVertical3917SelfTests() && ok;
 
         return ok;
     }
