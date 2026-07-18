@@ -34,6 +34,7 @@
 #include "targetfind_player_capacity.h"
 #include "targetfind_radius_capacity.h"
 #include "targetfind_vertical_capacity.h"
+#include "targetfind_valid_target_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/inactive_state.h"
@@ -676,9 +677,11 @@ CBattleEntity* CTargetFind::getValidTarget(uint16 actionTargetID, uint16 validTa
 
     bool ignoreBattleId  = (validTargetFlags & TARGET_IGNORE_BATTLEID) == TARGET_IGNORE_BATTLEID;
     bool hasSameBattleId = m_PBattleEntity->getBattleID() == PTarget->getBattleID();
-    if ((ignoreBattleId || hasSameBattleId) && PTarget->ValidTarget(m_PBattleEntity, validTargetFlags))
+    switch (targetfindvalidtargethelpers::Resolve(true, false, false, ignoreBattleId, hasSameBattleId, PTarget->ValidTarget(m_PBattleEntity, validTargetFlags)))
     {
-        return PTarget;
+        case targetfindvalidtargethelpers::Result::Pet: return m_PBattleEntity->PPet;
+        case targetfindvalidtargethelpers::Result::Candidate: return PTarget;
+        case targetfindvalidtargethelpers::Result::None: return nullptr;
     }
 
     return nullptr;

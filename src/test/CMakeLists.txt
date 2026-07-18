@@ -4427,6 +4427,8 @@ set(SOURCES
     test_targetfind_cone_3925.cpp
     test_targetfind_player_3926.h
     test_targetfind_player_3926.cpp
+    test_targetfind_valid_target_3927.h
+    test_targetfind_valid_target_3927.cpp
 )
 
 if(UNIX)
