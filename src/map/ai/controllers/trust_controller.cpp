@@ -22,6 +22,7 @@
 #include "trust_controller.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
+#include "trust_controller_recovery_capacity.h"
 #include "trust_controller_roam_formation_capacity.h"
 #include "trust_controller_tick_capacity.h"
 #include "trust_controller_target_sync_capacity.h"
@@ -421,20 +422,16 @@ auto CTrustController::DoRoamTick(timer::time_point tick) -> Task<void>
             break;
     }
 
-    if (POwner->CanRest() && m_Tick - POwner->LastAttacked > m_tickDelays.at(0) && m_Tick - m_CombatEndTime > m_tickDelays.at(0) &&
-        m_Tick - m_LastHealTickTime > m_tickDelays.at(m_NumHealingTicks))
+    const auto recoveryPlan = trustcontrollerrecovery::Resolve(
+        POwner->CanRest(), POwner->health.hp != POwner->health.maxhp || POwner->health.mp != POwner->health.maxmp,
+        m_Tick - POwner->LastAttacked, m_Tick - m_CombatEndTime, m_Tick - m_LastHealTickTime, m_NumHealingTicks);
+    if (recoveryPlan.recover)
     {
-        if (POwner->health.hp != POwner->health.maxhp || POwner->health.mp != POwner->health.maxmp)
-        {
-            // recover 5% HP & MP
-            uint32 recoverHP = (uint32)(POwner->health.maxhp * 0.05);
-            uint32 recoverMP = (uint32)(POwner->health.maxmp * 0.05);
-            POwner->addHP(recoverHP);
-            POwner->addMP(recoverMP);
-            m_LastHealTickTime = m_Tick;
-            POwner->updatemask |= UPDATE_HP;
-            m_NumHealingTicks = std::clamp(m_NumHealingTicks + 1, static_cast<std::size_t>(0U), m_tickDelays.size() - 1U);
-        }
+        POwner->addHP(trustcontrollerrecovery::Amount(POwner->health.maxhp));
+        POwner->addMP(trustcontrollerrecovery::Amount(POwner->health.maxmp));
+        m_LastHealTickTime = m_Tick;
+        POwner->updatemask |= UPDATE_HP;
+        m_NumHealingTicks = recoveryPlan.nextHealingTick;
     }
 
     co_return;

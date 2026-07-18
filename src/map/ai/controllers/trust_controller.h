@@ -76,7 +76,6 @@ private:
 
     timer::time_point                 m_CombatEndTime;
     timer::time_point                 m_LastHealTickTime;
-    std::vector<std::chrono::seconds> m_tickDelays      = { 15s, 10s, 10s, 3s };
     std::size_t                       m_NumHealingTicks = { 0 };
 
     timer::time_point m_LastRangedAttackTime;
