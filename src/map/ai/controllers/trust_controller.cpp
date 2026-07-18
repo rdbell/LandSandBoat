@@ -25,6 +25,7 @@
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_recovery_capacity.h"
 #include "trust_controller_ranged_attack_capacity.h"
+#include "trust_controller_reposition_capacity.h"
 #include "trust_controller_roam_formation_capacity.h"
 #include "trust_controller_tick_capacity.h"
 #include "trust_controller_target_sync_capacity.h"
@@ -488,8 +489,9 @@ void CTrustController::PathOutToDistance(CBattleEntity* PTarget, float amount)
     }
 
     // Invalidate position and pick new one (limit: every 3s)
-    if ((currentDistanceToTarget < amount - 2.5f || currentDistanceToTarget > amount + 2.5f || !POwner->PAI->PathFind->ValidPosition(POwner->loc.p)) &&
-        m_Tick - m_LastRepositionTime > 3s && !m_InTransit)
+    if (trustcontrollerreposition::ShouldSelect(
+            currentDistanceToTarget, amount, POwner->PAI->PathFind->ValidPosition(POwner->loc.p),
+            m_Tick - m_LastRepositionTime, m_InTransit))
     {
         std::vector<position_t> positions(5);
         for (auto& position : positions)
@@ -523,7 +525,7 @@ void CTrustController::PathOutToDistance(CBattleEntity* PTarget, float amount)
     }
 
     // Get somewhat close to the target destination
-    if (distance(POwner->loc.p, target_position) > 2.0f && m_failedRepositionAttempts < 3)
+    if (trustcontrollerreposition::ShouldPath(distance(POwner->loc.p, target_position), m_failedRepositionAttempts))
     {
         POwner->PAI->PathFind->PathTo(target_position, PATHFLAG_RUN | PATHFLAG_WALLHACK);
     }
