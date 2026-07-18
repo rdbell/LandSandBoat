@@ -17,6 +17,7 @@
 //   - 3320: ShouldApplyDADoubleDamage dedicated dual-wire (da_double_damage.go;
 //           residual expand 3120 / prior 3289)
 //   - 3904: ShouldApplyRapidShotDoubleDamage (RAPID_SHOT && rateProcs)
+//   - 3905: ShouldApplySambaDoubleDamage (SAMBA && rateProcs)
 
 namespace attackutilshelpers
 {
@@ -318,6 +319,8 @@ inline auto ShouldApplyRapidShotDoubleDamage(const uint8 attackType, const bool 
     return attackType == AttackTypeRapidShot && rateProcs;
 }
 
+// ShouldApplySambaDoubleDamage mirrors SAMBA + rate proc. The host supplies
+// the SAMBA_DOUBLE_DAMAGE rate roll and doubles the original damage on success.
 inline auto ShouldApplySambaDoubleDamage(const uint8 attackType, const bool rateProcs) -> bool
 {
     return attackType == AttackTypeSamba && rateProcs;

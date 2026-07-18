@@ -4383,6 +4383,8 @@ set(SOURCES
     test_unity_reject_null_online_3903.cpp
     test_attackutils_rapid_shot_dd_3904.h
     test_attackutils_rapid_shot_dd_3904.cpp
+    test_attackutils_samba_dd_3905.h
+    test_attackutils_samba_dd_3905.cpp
 )
 
 if(UNIX)
