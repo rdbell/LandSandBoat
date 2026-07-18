@@ -22,6 +22,7 @@
 #include "trust_controller.h"
 #include "trust_controller_ability_capacity.h"
 #include "trust_controller_cast_coordination_capacity.h"
+#include "trust_controller_combat_movement_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_noncombat_movement_capacity.h"
@@ -187,7 +188,9 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
 
     if (PTarget)
     {
-        if (PTrust->PAI->CanFollowPath() && PTrust->GetSpeed() > 0)
+        const bool canFollowPath = PTrust->PAI->CanFollowPath();
+        const bool hasSpeed      = PTrust->GetSpeed() > 0;
+        if (canFollowPath && hasSpeed)
         {
             float currentDistanceToTarget = distance(PTrust->loc.p, PTarget->loc.p);
             float currentDistanceToMaster = distance(PTrust->loc.p, PMaster->loc.p);
@@ -201,54 +204,36 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
 
             int16 movementDistance = PTrust->getMobMod(MOBMOD_TRUST_DISTANCE);
 
-            switch (movementDistance)
+            bool canAttack = false;
+            if (movementDistance == TRUST_MOVEMENT_TYPE::MELEE)
             {
-                case TRUST_MOVEMENT_TYPE::NO_MOVE:
-                {
-                    if (currentDistanceToMaster > CastingDistance)
-                    {
-                        PathOutToDistance(PTarget, 9.0f);
-                    }
-                    else if (currentDistanceToTarget > CastingDistance)
-                    {
-                        PathOutToDistance(PTarget, 9.0f);
-                    }
+                std::unique_ptr<CBasicPacket> err;
+                canAttack = PTrust->CanAttack(PTarget, err);
+            }
+
+            const auto movementPlan = trustcontrollercombatmovement::Resolve(
+                canFollowPath, hasSpeed, movementDistance, currentDistanceToTarget,
+                currentDistanceToMaster, canAttack);
+            switch (movementPlan.action)
+            {
+                case trustcontrollercombatmovement::Action::PathOut:
+                    PathOutToDistance(PTarget, movementPlan.desiredDistance);
                     break;
-                }
-                case TRUST_MOVEMENT_TYPE::NON_COMBAT:
-                {
-                    // Non-combat followers should not use target-distance positioning.
-                    break;
-                }
-                case TRUST_MOVEMENT_TYPE::MELEE:
-                {
-                    std::unique_ptr<CBasicPacket> err;
-                    if (!PTrust->CanAttack(PTarget, err) && PTrust->GetSpeed() > 0)
+                case trustcontrollercombatmovement::Action::MeleePath:
+                    if (PTrust->PAI->PathFind->PathAround(PTarget->loc.p, movementPlan.desiredDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK))
                     {
-                        if (currentDistanceToTarget > RoamDistance)
-                        {
-                            if (currentDistanceToTarget < RoamDistance * 3.0f &&
-                                PTrust->PAI->PathFind->PathAround(PTarget->loc.p, RoamDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK))
-                            {
-                                PTrust->PAI->PathFind->FollowPath(m_Tick);
-                            }
-                            else if (PTrust->GetSpeed() > 0)
-                            {
-                                PTrust->PAI->PathFind->StepTo(PTarget->loc.p, true);
-                            }
-                        }
+                        PTrust->PAI->PathFind->FollowPath(m_Tick);
+                    }
+                    else if (PTrust->GetSpeed() > 0)
+                    {
+                        PTrust->PAI->PathFind->StepTo(PTarget->loc.p, true);
                     }
                     break;
-                }
-                case TRUST_MOVEMENT_TYPE::MID_RANGE:
-                    [[fallthrough]];
-                case TRUST_MOVEMENT_TYPE::LONG_RANGE:
-                    [[fallthrough]];
-                default: // Using the positive-non-zero movementDistance mobMod value
-                {
-                    PathOutToDistance(PTarget, static_cast<float>(movementDistance));
+                case trustcontrollercombatmovement::Action::MeleeStep:
+                    PTrust->PAI->PathFind->StepTo(PTarget->loc.p, true);
                     break;
-                }
+                case trustcontrollercombatmovement::Action::Hold:
+                    break;
             }
 
             if (!PTrust->PAI->PathFind->IsFollowingPath())

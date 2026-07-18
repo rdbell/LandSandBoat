@@ -26,6 +26,7 @@
 #include "map/ai/controllers/trust_controller_reposition_capacity.h"
 #include "map/ai/controllers/trust_controller_ability_capacity.h"
 #include "map/ai/controllers/trust_controller_noncombat_movement_capacity.h"
+#include "map/ai/controllers/trust_controller_combat_movement_capacity.h"
 
 #include <iostream>
 
@@ -256,6 +257,26 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                          trustcontrollernoncombatmovement::Resolve(30.0f, 3.0f) == trustcontrollernoncombatmovement::Action::Step &&
                                          trustcontrollernoncombatmovement::Resolve(30.1f, 3.0f) == trustcontrollernoncombatmovement::Action::Warp &&
                                          trustcontrollernoncombatmovement::Resolve(8.9f, 3.0f) == trustcontrollernoncombatmovement::Action::Path;
+    const auto noFollowMovement = trustcontrollercombatmovement::Resolve(false, true, 0, 0.0f, 0.0f, false);
+    const auto noSpeedMovement = trustcontrollercombatmovement::Resolve(true, false, 0, 0.0f, 0.0f, false);
+    const auto noMoveMaster = trustcontrollercombatmovement::Resolve(true, true, -1, 0.0f, 15.1f, false);
+    const auto noMoveTarget = trustcontrollercombatmovement::Resolve(true, true, -1, 15.1f, 15.0f, false);
+    const auto noMoveBoundary = trustcontrollercombatmovement::Resolve(true, true, -1, 15.0f, 15.0f, false);
+    const auto nonCombatMovement = trustcontrollercombatmovement::Resolve(true, true, -2, 20.0f, 0.0f, false);
+    const auto meleeCanAttack = trustcontrollercombatmovement::Resolve(true, true, 0, 5.0f, 0.0f, true);
+    const auto meleePath = trustcontrollercombatmovement::Resolve(true, true, 0, 3.1f, 0.0f, false);
+    const auto meleeStep = trustcontrollercombatmovement::Resolve(true, true, 0, 9.0f, 0.0f, false);
+    const auto rangedMovement = trustcontrollercombatmovement::Resolve(true, true, 12, 0.0f, 0.0f, false);
+    const bool trustCombatMovementOK = noFollowMovement.action == trustcontrollercombatmovement::Action::Hold &&
+                                       noSpeedMovement.action == trustcontrollercombatmovement::Action::Hold &&
+                                       noMoveMaster.action == trustcontrollercombatmovement::Action::PathOut && noMoveMaster.desiredDistance == 9.0f &&
+                                       noMoveTarget.action == trustcontrollercombatmovement::Action::PathOut &&
+                                       noMoveBoundary.action == trustcontrollercombatmovement::Action::Hold &&
+                                       nonCombatMovement.action == trustcontrollercombatmovement::Action::Hold &&
+                                       meleeCanAttack.action == trustcontrollercombatmovement::Action::Hold &&
+                                       meleePath.action == trustcontrollercombatmovement::Action::MeleePath && meleePath.desiredDistance == 3.0f &&
+                                       meleeStep.action == trustcontrollercombatmovement::Action::MeleeStep &&
+                                       rangedMovement.action == trustcontrollercombatmovement::Action::PathOut && rangedMovement.desiredDistance == 12.0f;
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -274,9 +295,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && hideOK && lockOK;
 }
