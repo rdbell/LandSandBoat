@@ -31,6 +31,7 @@
 #include "targetfind_identity_capacity.h"
 #include "targetfind_lock_capacity.h"
 #include "targetfind_master_capacity.h"
+#include "targetfind_mob_owner_capacity.h"
 #include "targetfind_player_capacity.h"
 #include "targetfind_radius_capacity.h"
 #include "targetfind_vertical_capacity.h"
@@ -459,29 +460,31 @@ CBattleEntity* CTargetFind::findMaster(CBattleEntity* PTarget)
 
 bool CTargetFind::isMobOwner(CBattleEntity* PTarget)
 {
-    if (findMaster(m_PBattleEntity)->objtype != TYPE_PC || PTarget->objtype == TYPE_PC)
-    {
-        // always true for mobs, npcs, pets
-        return true;
-    }
-
-    if (PTarget->m_OwnerID.id == 0 || PTarget->m_OwnerID.id == findMaster(m_PBattleEntity)->id)
-    {
-        return true;
-    }
-
-    if (auto* PMob = dynamic_cast<CMobEntity*>(PTarget))
-    {
-        if (PMob->getMobMod(MOBMOD_CLAIM_TYPE) == static_cast<int16>(ClaimType::NonExclusive))
+    CBattleEntity* PMaster = findMaster(m_PBattleEntity);
+    const bool needsClaimCheck = PMaster->objtype == TYPE_PC && PTarget->objtype != TYPE_PC &&
+                                 PTarget->m_OwnerID.id != 0 && PTarget->m_OwnerID.id != PMaster->id;
+    const bool nonExclusiveClaim = [needsClaimCheck, &PTarget]() {
+        if (!needsClaimCheck)
         {
-            return true;
+            return false;
         }
+        if (auto* PMob = dynamic_cast<CMobEntity*>(PTarget))
+        {
+            return PMob->getMobMod(MOBMOD_CLAIM_TYPE) == static_cast<int16>(ClaimType::NonExclusive);
+        }
+        return false;
+    }();
+    if (targetfindmobownerhelpers::IsMobOwner(PMaster->objtype == TYPE_PC, PTarget->objtype == TYPE_PC,
+                                              PTarget->m_OwnerID.id == 0, PTarget->m_OwnerID.id == PMaster->id,
+                                              PTarget->objtype == TYPE_MOB, nonExclusiveClaim, false))
+    {
+        return true;
     }
 
     bool found = false;
 
     // clang-format off
-    findMaster(m_PBattleEntity)->ForAlliance([&found, &PTarget](CBattleEntity* PMember)
+    PMaster->ForAlliance([&found, &PTarget](CBattleEntity* PMember)
     {
         if (PMember->id == PTarget->m_OwnerID.id)
         {
@@ -490,7 +493,7 @@ bool CTargetFind::isMobOwner(CBattleEntity* PTarget)
     });
     // clang-format on
 
-    return found;
+    return targetfindmobownerhelpers::IsMobOwner(true, false, false, false, false, false, found);
 }
 
 /*
