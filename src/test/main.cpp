@@ -222,6 +222,7 @@ auto runAttackutilsOccLadder3908SelfTests() -> bool;
 auto runAttackutilsRollChance3909SelfTests() -> bool;
 auto runAttackutilsOccModifiers3910SelfTests() -> bool;
 auto runAttackutilsRemSource3911SelfTests() -> bool;
+auto runAttackutilsTypeDamage3912SelfTests() -> bool;
 auto runMapSessionReplaceCreate2795SelfTests() -> bool;
 auto runMapSessionLinkDeadPlan2799SelfTests() -> bool;
 auto runMapSessionTimeoutPlan2804SelfTests() -> bool;
@@ -4381,6 +4382,7 @@ namespace
         ok = runAttackutilsRollChance3909SelfTests() && ok;
         ok = runAttackutilsOccModifiers3910SelfTests() && ok;
         ok = runAttackutilsRemSource3911SelfTests() && ok;
+        ok = runAttackutilsTypeDamage3912SelfTests() && ok;
 
         return ok;
     }

@@ -24,6 +24,7 @@
 //   - 3909: RollChancePercent (inclusive Occ chance roll)
 //   - 3910: Occ modifier normalization (extra multiplier/chances)
 //   - 3911: REM rate-source selection (ranged vs main hand)
+//   - 3912: ApplyTypeDoubleDamage (shared type multiplier)
 
 namespace attackutilshelpers
 {
@@ -338,7 +339,7 @@ inline auto ShouldApplySambaDoubleDamage(const uint8 attackType, const bool rate
     return attackType == AttackTypeSamba && rateProcs;
 }
 
-// ApplyTypeDoubleDamage multiplies original damage by factor.
+// ApplyTypeDoubleDamage multiplies original damage by factor in uint32 space.
 inline auto ApplyTypeDoubleDamage(const uint32 originalDamage, const uint8 factor) -> uint32
 {
     return originalDamage * factor;
