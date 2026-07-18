@@ -4425,6 +4425,8 @@ set(SOURCES
     test_targetfind_radius_3924.cpp
     test_targetfind_cone_3925.h
     test_targetfind_cone_3925.cpp
+    test_targetfind_player_3926.h
+    test_targetfind_player_3926.cpp
 )
 
 if(UNIX)

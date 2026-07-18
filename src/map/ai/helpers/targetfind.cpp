@@ -31,6 +31,7 @@
 #include "targetfind_identity_capacity.h"
 #include "targetfind_lock_capacity.h"
 #include "targetfind_master_capacity.h"
+#include "targetfind_player_capacity.h"
 #include "targetfind_radius_capacity.h"
 #include "targetfind_vertical_capacity.h"
 
@@ -638,17 +639,10 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
 
 bool CTargetFind::checkIsPlayer(CBattleEntity* PTarget)
 {
-    if (PTarget == nullptr)
-    {
-        return false;
-    }
-    if (PTarget->objtype == TYPE_PC)
-    {
-        return true;
-    }
-
-    // check if i'm owned by a pc
-    return PTarget->PMaster != nullptr && PTarget->PMaster->objtype == TYPE_PC;
+    return targetfindplayerhelpers::IsPlayerTarget(
+        PTarget != nullptr,
+        PTarget != nullptr && PTarget->objtype == TYPE_PC,
+        PTarget != nullptr && PTarget->PMaster != nullptr && PTarget->PMaster->objtype == TYPE_PC);
 }
 
 bool CTargetFind::isWithinArea(position_t* pos)
