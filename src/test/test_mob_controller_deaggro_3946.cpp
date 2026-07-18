@@ -14,6 +14,7 @@
 #include "map/ai/controllers/player_controller_weaponskill_capacity.h"
 #include "map/ai/controllers/player_controller_ability_recast_capacity.h"
 #include "map/ai/controllers/player_controller_action_gate_capacity.h"
+#include "map/ai/controllers/player_controller_ability_gate_capacity.h"
 
 #include <iostream>
 
@@ -43,6 +44,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     using playercontrolleractiongate::Ranged;
     using playercontrolleractiongate::Item;
     using ActionError = playercontrolleractiongate::Error;
+    using AbilityError = playercontrollerabilitygate::Error;
 
     const auto base = std::chrono::steady_clock::time_point{};
     const bool detectionOK = Evaluate(false, false, false, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).shouldDeaggro &&
@@ -150,6 +152,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                     !Cast(true, false, true).dispatch && Ranged(true, true, false).dispatch &&
                                     Ranged(false, true, false).error == ActionError::WaitLonger && !Ranged(true, true, true).dispatch &&
                                     Item(true, true, false).dispatch && !Item(false, true, false).dispatch && !Item(true, true, true).dispatch;
+    const bool playerAbilityGateOK = playercontrollerabilitygate::Evaluate(true, true, true, false, false).dispatch &&
+                                     playercontrollerabilitygate::Evaluate(false, true, true, false, false).error == AbilityError::Unable &&
+                                     playercontrollerabilitygate::Evaluate(true, true, false, false, false).error == AbilityError::Unable &&
+                                     playercontrollerabilitygate::Evaluate(true, true, true, true, false).error == AbilityError::Recast &&
+                                     !playercontrollerabilitygate::Evaluate(true, true, true, false, true).dispatch;
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -168,9 +175,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && hideOK && lockOK;
 }
