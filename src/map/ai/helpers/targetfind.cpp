@@ -21,6 +21,7 @@
 
 #include "targetfind.h"
 #include "targetfind_candidate_capacity.h"
+#include "targetfind_ally_capacity.h"
 #include "targetfind_context_capacity.h"
 #include "targetfind_identity_capacity.h"
 #include "targetfind_lock_capacity.h"
@@ -536,15 +537,16 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
     // IMPORTANT: Benediction/self-centered ally-only check
     // This must run BEFORE the "first target always allowed" short-circuit.
     // -------------------------------------------------
-    if (m_selfCenteredAoE &&
-        (m_targetFlags & TARGET_ANY_ALLEGIANCE) == 0 &&
-        (m_targetFlags & TARGET_ENEMY) == 0)
+    if (targetfindallyhelpers::ShouldRejectSelfCenteredAllyOnly(
+            m_selfCenteredAoE,
+            (m_targetFlags & TARGET_ANY_ALLEGIANCE) != 0,
+            (m_targetFlags & TARGET_ENEMY) != 0,
+            [this, &PTarget]() {
+                CBattleEntity* PCasterMaster = findMaster(m_PBattleEntity);
+                return PCasterMaster && PCasterMaster->allegiance != PTarget->allegiance;
+            }))
     {
-        CBattleEntity* PCasterMaster = findMaster(m_PBattleEntity);
-        if (PCasterMaster && PCasterMaster->allegiance != PTarget->allegiance)
-        {
-            return false;
-        }
+        return false;
     }
 
     // check vertical range
