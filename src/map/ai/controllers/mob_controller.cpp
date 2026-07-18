@@ -22,6 +22,7 @@
 #include "mob_controller.h"
 #include "mob_controller_deaggro_capacity.h"
 #include "mob_controller_detection_capacity.h"
+#include "mob_controller_readiness_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/helpers/targetfind.h"
@@ -1654,46 +1655,29 @@ auto CMobController::IsSpecialSkillReady(const float currentDistance) const -> b
 {
     TracyZoneScoped;
 
-    if (PMob->getMobMod(MOBMOD_SPECIAL_SKILL) == 0)
-    {
-        return false;
-    }
-
-    if (PMob->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Chainspell))
-    {
-        return false;
-    }
-
-    int32 bonusTime = 0;
-    if (currentDistance > 5)
-    {
-        // Mobs use ranged attacks quicker when standing back
-        bonusTime = PMob->getMobMod(MOBMOD_STANDBACK_COOL);
-    }
-
-    return m_Tick >= m_LastSpecialTime + std::chrono::seconds(PMob->getMobMod(MOBMOD_SPECIAL_COOL) - bonusTime);
+    return mobcontrollerreadiness::SpecialSkillReady(
+        PMob->getMobMod(MOBMOD_SPECIAL_SKILL) != 0,
+        PMob->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Chainspell),
+        currentDistance,
+        m_Tick,
+        m_LastSpecialTime,
+        std::chrono::seconds(PMob->getMobMod(MOBMOD_SPECIAL_COOL)),
+        std::chrono::seconds(PMob->getMobMod(MOBMOD_STANDBACK_COOL)));
 }
 
 auto CMobController::IsSpellReady(const float& currentDistance, const float& meleeRange) const -> bool
 {
     TracyZoneScoped;
 
-    if (PMob->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Chainspell, xi::StatusEffect::Manafont }))
-    {
-        return true;
-    }
-
-    // Worms don't cast in melee range (typically.) The edge cases can be scripted.
-    if (PMob->m_roamFlags & ROAMFLAG_WORM && currentDistance <= meleeRange)
-    {
-        return false;
-    }
-
-    if (currentDistance > 5 && (PMob->m_roamFlags & ROAMFLAG_WORM) == 0)
-    {
-        // Mobs use magic quicker when standing back
-        return m_Tick >= (m_nextMagicTime - std::chrono::seconds(PMob->getMobMod(MOBMOD_STANDBACK_COOL)));
-    }
-
-    return m_Tick >= m_nextMagicTime;
+    const bool chainspell = PMob->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Chainspell);
+    const bool manafont = !chainspell && PMob->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Manafont);
+    return mobcontrollerreadiness::SpellReady(
+        chainspell,
+        manafont,
+        PMob->m_roamFlags & ROAMFLAG_WORM,
+        currentDistance,
+        meleeRange,
+        m_Tick,
+        m_nextMagicTime,
+        std::chrono::seconds(PMob->getMobMod(MOBMOD_STANDBACK_COOL)));
 }
