@@ -20,6 +20,7 @@
 */
 
 #include "targetfind.h"
+#include "targetfind_candidate_capacity.h"
 #include "targetfind_context_capacity.h"
 
 #include "ai/ai_container.h"
@@ -492,12 +493,10 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
 
     // Check if entity is already in list
     // TODO: Does it make sense to use a hashmap here instead?
-    if (std::find(m_targets.begin(), m_targets.end(), PTarget) != m_targets.end())
-    {
-        return false;
-    }
-
-    if (!(m_findFlags & FINDFLAGS_DEAD) && PTarget->isDead())
+    if (targetfindcandidatehelpers::ShouldRejectDuplicateOrDead(
+            std::find(m_targets.begin(), m_targets.end(), PTarget) != m_targets.end(),
+            (m_findFlags & FINDFLAGS_DEAD) != FINDFLAGS_NONE,
+            [&PTarget]() { return PTarget->isDead(); }))
     {
         return false;
     }
