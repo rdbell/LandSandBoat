@@ -11,6 +11,7 @@
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
+#include "map/ai/controllers/player_controller_weaponskill_capacity.h"
 
 #include <iostream>
 
@@ -34,6 +35,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     using mobcontrollertargetvalidity::TargetInvalid;
     using playercontrollerengage::Evaluate;
     using playercontrollerengage::Error;
+    using WeaponSkillError = playercontrollerweaponskill::Error;
 
     const auto base = std::chrono::steady_clock::time_point{};
     const bool detectionOK = Evaluate(false, false, false, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).shouldDeaggro &&
@@ -123,6 +125,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                 Evaluate(true, 29, engageBase, std::chrono::seconds(1), engageBase + std::chrono::seconds(2)).dispatch &&
                                 Evaluate(true, 30, engageBase, std::chrono::seconds(0), engageBase + std::chrono::seconds(1)).error == Error::TooFar &&
                                 Evaluate(true, 29, engageBase, std::chrono::seconds(1), engageBase + std::chrono::seconds(1)).error == Error::WaitLonger;
+    const bool playerWeaponSkillOK = playercontrollerweaponskill::Evaluate(true, true, true, true, true, false, 0, 1000, false, false, true, false, true, false).dispatch &&
+                                     playercontrollerweaponskill::Evaluate(false, true, true, true, true, false, 0, 1000, false, false, true, false, true, false).error == WeaponSkillError::Unable &&
+                                     playercontrollerweaponskill::Evaluate(true, true, true, false, true, false, 0, 1000, false, false, true, false, true, false).error == WeaponSkillError::CannotUse &&
+                                     playercontrollerweaponskill::Evaluate(true, true, true, true, true, true, 0, 1000, false, false, true, false, true, false).error == WeaponSkillError::CannotUseAny &&
+                                     playercontrollerweaponskill::Evaluate(true, true, true, true, true, false, 0, 999, false, false, true, false, true, false).error == WeaponSkillError::NotEnoughTP &&
+                                     playercontrollerweaponskill::Evaluate(true, true, true, true, true, false, 0, 1000, true, false, true, false, true, false).error == WeaponSkillError::NoRangedWeapon &&
+                                     !playercontrollerweaponskill::Evaluate(true, true, true, true, true, false, 0, 1000, false, false, true, true, true, false).dispatch &&
+                                     playercontrollerweaponskill::Evaluate(true, true, true, true, true, false, 0, 1000, false, false, true, false, false, false).error == WeaponSkillError::CannotSee &&
+                                     playercontrollerweaponskill::Evaluate(true, true, true, true, true, false, 0, 1000, false, false, true, false, false, true).dispatch;
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -141,9 +152,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && hideOK && lockOK;
 }
