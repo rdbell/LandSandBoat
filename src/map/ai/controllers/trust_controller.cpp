@@ -20,6 +20,7 @@
 */
 
 #include "trust_controller.h"
+#include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_tick_capacity.h"
 #include "trust_controller_target_sync_capacity.h"
@@ -370,28 +371,11 @@ auto CTrustController::DoRoamTick(timer::time_point tick) -> Task<void>
     auto  masterLastAttackTime = static_cast<CPlayerController*>(PMaster->PAI->GetController())->getLastAttackTime();
     bool  masterMeleeSwing     = masterLastAttackTime > timer::now() - 1s;
 
-    bool trustEngageCondition = false;
-    // NOTE: charvars are now cached, this is essentially a localvar read now.
-    switch (charutils::GetCharVar(PMaster, "TrustEngageType"))
-    {
-        case 1: // Master engages a monster, no melee swing required
-        {
-            trustEngageCondition = PMaster->GetBattleTarget();
-            break;
-        }
-        case 0: // Nothing set
-            [[fallthrough]];
-        default: // Something invalid set
-        {
-            // Default retail behavior: Master engages a monster and executes a melee swing
-            trustEngageCondition = PMaster->GetBattleTarget() && masterMeleeSwing;
-            break;
-        }
-    }
-
-    const uint16 modelID_Cornelia = 3119; // Cornielia does not have an Attack Schedule so do not engage.
-
-    if (PMaster->PAI->IsEngaged() && trustEngageCondition && POwner->GetModelId() != modelID_Cornelia)
+    const bool masterHasTarget = PMaster->GetBattleTarget();
+    // TrustEngageType 1 engages with a target alone; all other values use the retail swing requirement.
+    const auto engageType = charutils::GetCharVar(PMaster, "TrustEngageType");
+    if (trustcontrollerengage::ShouldEngage(
+            PMaster->PAI->IsEngaged(), masterHasTarget, masterMeleeSwing, engageType, POwner->GetModelId()))
     {
         POwner->PAI->Internal_Engage(PMaster->GetBattleTargetID());
     }
