@@ -23,6 +23,7 @@
 #include "mob_controller_deaggro_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
+#include "mob_controller_movement_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/helpers/targetfind.h"
@@ -1612,43 +1613,14 @@ auto CMobController::CanMoveForward(const float currentDistance) -> bool
 {
     TracyZoneScoped;
 
-    uint16 standbackRange = 20;
-
-    if (PMob->getMobMod(MOBMOD_STANDBACK_RANGE) > 0)
-    {
-        standbackRange = PMob->getMobMod(MOBMOD_STANDBACK_RANGE);
-    }
-
-    const bool isClosingToRangedAttackRange = IsRangedAttackEnabled() && currentDistance > PMob->GetRangedAttackRange();
-
-    if (!isClosingToRangedAttackRange && PMob->m_Behavior & BEHAVIOR_STANDBACK && currentDistance < standbackRange && PMob->CanSeeTarget(PTarget))
-    {
-        return false;
-    }
-
-    auto standbackThreshold = PMob->getMobMod(MOBMOD_HP_STANDBACK);
-    if (!isClosingToRangedAttackRange &&
-        currentDistance < standbackRange &&
-        standbackThreshold > 0 &&
-        PMob->getMobMod(MOBMOD_NO_STANDBACK) == 0 &&
-        PMob->GetHPP() >= standbackThreshold &&
-        (PMob->GetMaxMP() == 0 || PMob->GetMPP() >= standbackThreshold))
-    {
-        // Excluding Nins, mobs should not standback if can't cast magic
-        return PMob->GetMJob() != JOB_NIN && PMob->SpellContainer->HasSpells() && !CanCastSpells(IgnoreRecastsAndCosts::Yes);
-    }
-
-    if (PTarget && !PMob->CanSeeTarget(PTarget))
-    {
-        return true;
-    }
-
-    if (PMob->getMobMod(MOBMOD_SPAWN_LEASH) > 0 && distance(PMob->loc.p, PMob->m_SpawnPoint) > PMob->getMobMod(MOBMOD_SPAWN_LEASH))
-    {
-        return false;
-    }
-
-    return true;
+    const bool hasTarget = PTarget != nullptr;
+    const bool canSeeTarget = hasTarget && PMob->CanSeeTarget(PTarget);
+    return mobcontrollermovement::CanMoveForward(
+        PMob->getMobMod(MOBMOD_STANDBACK_RANGE), IsRangedAttackEnabled(), PMob->GetRangedAttackRange(), currentDistance,
+        PMob->m_Behavior & BEHAVIOR_STANDBACK, hasTarget, canSeeTarget, PMob->getMobMod(MOBMOD_HP_STANDBACK),
+        PMob->getMobMod(MOBMOD_NO_STANDBACK) != 0, PMob->GetHPP(), PMob->GetMPP(), PMob->GetMaxMP(), PMob->GetMJob() == JOB_NIN,
+        PMob->SpellContainer->HasSpells(), CanCastSpells(IgnoreRecastsAndCosts::Yes), PMob->getMobMod(MOBMOD_SPAWN_LEASH),
+        distance(PMob->loc.p, PMob->m_SpawnPoint));
 }
 
 auto CMobController::IsSpecialSkillReady(const float currentDistance) const -> bool
