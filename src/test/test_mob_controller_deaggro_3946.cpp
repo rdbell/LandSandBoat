@@ -19,6 +19,7 @@
 #include "map/ai/controllers/trust_controller_tick_capacity.h"
 #include "map/ai/controllers/trust_controller_target_sync_capacity.h"
 #include "map/ai/controllers/trust_controller_engage_capacity.h"
+#include "map/ai/controllers/trust_controller_roam_formation_capacity.h"
 
 #include <iostream>
 
@@ -53,6 +54,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     using trustcontrollertick::Route;
     using trustcontrollertargetsync::ShouldSync;
     using trustcontrollerengage::ShouldEngage;
+    using trustcontrollerroamformation::Action;
 
     const auto base = std::chrono::steady_clock::time_point{};
     const bool detectionOK = Evaluate(false, false, false, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).shouldDeaggro &&
@@ -189,6 +191,22 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                !ShouldEngage(false, true, false, 1, 0) &&
                                !ShouldEngage(true, false, true, 0, 0) &&
                                !ShouldEngage(true, true, true, 1, trustcontrollerengage::CorneliaModelID);
+    const auto firstDeclump = trustcontrollerroamformation::Resolve(0, 0.9f, false);
+    const auto laterDeclump = trustcontrollerroamformation::Resolve(1, 1.4f, false);
+    const auto firstThreshold = trustcontrollerroamformation::Resolve(0, 1.0f, false);
+    const auto firstPath = trustcontrollerroamformation::Resolve(0, 2.1f, false);
+    const auto laterPath = trustcontrollerroamformation::Resolve(1, 3.6f, false);
+    const auto firstStep = trustcontrollerroamformation::Resolve(0, 9.0f, false);
+    const auto warpThreshold = trustcontrollerroamformation::Resolve(1, 30.0f, false);
+    const auto laterWarp = trustcontrollerroamformation::Resolve(1, 30.1f, false);
+    const auto firstClear = trustcontrollerroamformation::Resolve(0, 1.5f, true);
+    const auto laterNone = trustcontrollerroamformation::Resolve(1, 3.0f, false);
+    const bool trustRoamFormationOK = firstDeclump.action == Action::Declump && firstDeclump.targetDistance == 1.5f &&
+                                      laterDeclump.action == Action::Declump && laterDeclump.targetDistance == 3.0f &&
+                                      firstThreshold.action == Action::None &&
+                                      firstPath.action == Action::Path && laterPath.action == Action::Path &&
+                                      firstStep.action == Action::Step && warpThreshold.action == Action::Step && laterWarp.action == Action::Warp &&
+                                      firstClear.action == Action::Clear && laterNone.action == Action::None;
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -207,9 +225,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && hideOK && lockOK;
 }

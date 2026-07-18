@@ -22,6 +22,7 @@
 #include "trust_controller.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
+#include "trust_controller_roam_formation_capacity.h"
 #include "trust_controller_tick_capacity.h"
 #include "trust_controller_target_sync_capacity.h"
 
@@ -384,35 +385,21 @@ auto CTrustController::DoRoamTick(timer::time_point tick) -> Task<void>
     CBattleEntity* PFollowTarget   = (GetPartyPosition() > 0) ? (CBattleEntity*)PMaster->PTrusts.at(currentPartyPos - 1) : POwner->PMaster;
     float          currentDistance = distance(POwner->loc.p, PFollowTarget->loc.p);
 
-    // Formation following thresholds (in yalms)
-    // First trust follows master more closely than other trusts follow each other
-    bool isFirstTrust = (currentPartyPos == 0);
-
-    float declumpDistance = isFirstTrust ? 1.0f : 1.5f; // Too close, need to move away
-    float followMax       = isFirstTrust ? 2.0f : 3.5f; // Maximum follow distance before moving closer
-    float followTarget    = isFirstTrust ? 1.5f : 3.0f; // Ideal follow distance
-
-    // Handle formation movement based on distance thresholds
-    if (currentDistance < declumpDistance)
+    const auto formationPlan = trustcontrollerroamformation::Resolve(
+        currentPartyPos, currentDistance, POwner->PAI->PathFind->IsFollowingPath());
+    switch (formationPlan.action)
     {
-        // Too close to follow target - push away to maintain formation spacing
-        if (PFollowTarget && POwner->PAI->PathFind->PathAround(PFollowTarget->loc.p, followTarget + 0.5f, PATHFLAG_RUN | PATHFLAG_WALLHACK))
-        {
-            POwner->PAI->PathFind->FollowPath(m_Tick);
-        }
-    }
-    else if (currentDistance > followMax)
-    {
-        // Too far from follow target - move closer to maintain formation
-        if (currentDistance > WarpDistance)
-        {
-            // Warp if extremely too far
+        case trustcontrollerroamformation::Action::Declump:
+            if (PFollowTarget && POwner->PAI->PathFind->PathAround(PFollowTarget->loc.p, formationPlan.targetDistance + 0.5f, PATHFLAG_RUN | PATHFLAG_WALLHACK))
+            {
+                POwner->PAI->PathFind->FollowPath(m_Tick);
+            }
+            break;
+        case trustcontrollerroamformation::Action::Warp:
             POwner->PAI->PathFind->WarpTo(PFollowTarget->loc.p);
-        }
-        else
-        {
-            // Path or step closer to follow target
-            if (currentDistance < RoamDistance * 3.0f && POwner->PAI->PathFind->PathAround(PFollowTarget->loc.p, followTarget, PATHFLAG_RUN | PATHFLAG_WALLHACK))
+            break;
+        case trustcontrollerroamformation::Action::Path:
+            if (POwner->PAI->PathFind->PathAround(PFollowTarget->loc.p, formationPlan.targetDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK))
             {
                 POwner->PAI->PathFind->FollowPath(m_Tick);
             }
@@ -420,15 +407,18 @@ auto CTrustController::DoRoamTick(timer::time_point tick) -> Task<void>
             {
                 POwner->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
             }
-        }
-    }
-    else
-    {
-        // In formation range - stop pathfinding to prevent circling
-        if (POwner->PAI->PathFind->IsFollowingPath())
-        {
+            break;
+        case trustcontrollerroamformation::Action::Step:
+            if (POwner->GetSpeed() > 0)
+            {
+                POwner->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
+            }
+            break;
+        case trustcontrollerroamformation::Action::Clear:
             POwner->PAI->PathFind->Clear();
-        }
+            break;
+        case trustcontrollerroamformation::Action::None:
+            break;
     }
 
     if (POwner->CanRest() && m_Tick - POwner->LastAttacked > m_tickDelays.at(0) && m_Tick - m_CombatEndTime > m_tickDelays.at(0) &&
