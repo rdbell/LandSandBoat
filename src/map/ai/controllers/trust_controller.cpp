@@ -22,6 +22,7 @@
 #include "trust_controller.h"
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_tick_capacity.h"
+#include "trust_controller_target_sync_capacity.h"
 
 #include "ability.h"
 #include "ai/helpers/gambits_container.h"
@@ -146,26 +147,24 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
         m_CombatEndTime = m_Tick;
     }
 
-    if (PMaster && PMob && PTrust->GetBattleTargetID() != PMaster->GetBattleTargetID())
+    const bool targetMismatch = PMaster && PMob && PTrust->GetBattleTargetID() != PMaster->GetBattleTargetID();
+    if (targetMismatch)
     {
         auto  masterID   = PMaster->id;
         auto* enmityList = PMob->PEnmityContainer->GetEnmityList();
-        bool  hasEnmity  = false;
+        bool  masterEnmityActive = false;
+        int32_t cumulativeEnmity = 0;
+        int32_t volatileEnmity   = 0;
 
         if (auto it = enmityList->find(masterID); it != enmityList->end())
         {
             const EnmityObject_t& entry = it->second;
-            // Only treat as "has enmity" if:
-            // the entry is active,
-            // the CE+VE is positive,
-            // and the master is within enmity range (same checks used when adding enmity).
-            if (entry.active && (entry.CE + entry.VE) > 0)
-            {
-                hasEnmity = true;
-            }
+            masterEnmityActive = entry.active;
+            cumulativeEnmity   = entry.CE;
+            volatileEnmity     = entry.VE;
         }
 
-        if (hasEnmity)
+        if (trustcontrollertargetsync::ShouldSync(targetMismatch, masterEnmityActive, cumulativeEnmity, volatileEnmity))
         {
             PTrust->PAI->Internal_ChangeTarget(PMaster->GetBattleTargetID());
             m_LastTopEnmity = nullptr;

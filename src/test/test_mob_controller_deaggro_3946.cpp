@@ -17,6 +17,7 @@
 #include "map/ai/controllers/player_controller_ability_gate_capacity.h"
 #include "map/ai/controllers/trust_controller_noncombat_follow_capacity.h"
 #include "map/ai/controllers/trust_controller_tick_capacity.h"
+#include "map/ai/controllers/trust_controller_target_sync_capacity.h"
 
 #include <iostream>
 
@@ -49,6 +50,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     using AbilityError = playercontrollerabilitygate::Error;
     using trustcontrollernoncombatfollow::Resolve;
     using trustcontrollertick::Route;
+    using trustcontrollertargetsync::ShouldSync;
 
     const auto base = std::chrono::steady_clock::time_point{};
     const bool detectionOK = Evaluate(false, false, false, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).shouldDeaggro &&
@@ -174,6 +176,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                              trustcontrollertick::Resolve(true, false, false, false, true, false) == Route::Combat &&
                              trustcontrollertick::Resolve(true, false, false, false, false, false) == Route::Roam &&
                              trustcontrollertick::Resolve(true, false, false, false, false, true) == Route::None;
+    const bool trustTargetSyncOK = ShouldSync(true, true, 1, 0) &&
+                                   !ShouldSync(false, true, 1, 0) &&
+                                   !ShouldSync(true, false, 1, 0) &&
+                                   !ShouldSync(true, true, 1, -1);
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -192,9 +198,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && hideOK && lockOK;
 }
