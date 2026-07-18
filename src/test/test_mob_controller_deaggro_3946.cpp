@@ -22,6 +22,7 @@
 #include "map/ai/controllers/trust_controller_roam_formation_capacity.h"
 #include "map/ai/controllers/trust_controller_recovery_capacity.h"
 #include "map/ai/controllers/trust_controller_ranged_attack_capacity.h"
+#include "map/ai/controllers/trust_controller_cast_coordination_capacity.h"
 
 #include <iostream>
 
@@ -222,6 +223,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                       trustcontrollerrangedattack::CanStart(std::chrono::seconds(3) + std::chrono::nanoseconds(1), true, std::chrono::seconds(3), false) &&
                                       !trustcontrollerrangedattack::CanStart(std::chrono::seconds(3), true, std::chrono::seconds(3), false) &&
                                       !trustcontrollerrangedattack::CanStart(std::chrono::seconds(11), false, std::chrono::seconds(0), true);
+    const bool trustCastCoordinationOK = !trustcontrollercastcoordination::CanCast(true, false, false, false, 1, 10, 1, 11, false, 0) &&
+                                         trustcontrollercastcoordination::CanCast(true, false, false, false, 1, 12, 1, 11, false, 0) &&
+                                         !trustcontrollercastcoordination::CanCast(false, true, false, false, 0, 0, 0, 0, true, 51) &&
+                                         trustcontrollercastcoordination::CanCast(false, true, false, false, 0, 0, 0, 0, true, 50) &&
+                                         trustcontrollercastcoordination::CanCast(false, true, false, false, 0, 0, 0, 0, false, 99) &&
+                                         !trustcontrollercastcoordination::CanCast(false, false, true, false, 2, 20, 2, 21, false, 0) &&
+                                         trustcontrollercastcoordination::CanCast(false, false, true, false, 2, 20, 3, 99, false, 0) &&
+                                         !trustcontrollercastcoordination::CanCast(false, false, false, true, 4, 30, 4, 30, false, 0) &&
+                                         trustcontrollercastcoordination::CanCast(false, false, false, true, 4, 31, 4, 30, false, 0);
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -240,9 +250,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && hideOK && lockOK;
 }

@@ -20,6 +20,7 @@
 */
 
 #include "trust_controller.h"
+#include "trust_controller_cast_coordination_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_recovery_capacity.h"
@@ -608,34 +609,15 @@ bool CTrustController::Cast(uint16 targid, SpellID spellid)
                 auto MTarget      = MState->GetTarget();
                 auto MSpellFamily = MSpell->getSpellFamily();
                 auto MSpellID     = MSpell->getID();
+                auto sameTarget   = PTarget == MTarget;
+                auto targetHPP    = (PSpell->isCure() && sameTarget) ? PTarget->GetHPP() : 0;
 
-                if (PSpell->isBuff())
+                if (!trustcontrollercastcoordination::CanCast(
+                        PSpell->isBuff(), PSpell->isCure(), PSpell->isDebuff(), PSpell->isNa(), PSpellFamily,
+                        static_cast<uint16>(spellid), MSpellFamily, static_cast<uint16>(MSpellID), sameTarget,
+                        targetHPP))
                 {
-                    if (PSpellFamily == MSpellFamily && spellid <= MSpellID)
-                    {
-                        canCast = false;
-                    }
-                }
-                if (PSpell->isCure())
-                {
-                    if (PTarget == MTarget && PTarget->GetHPP() > 50)
-                    {
-                        canCast = false;
-                    }
-                }
-                if (PSpell->isDebuff())
-                {
-                    if (PSpellFamily == MSpellFamily && spellid <= MSpellID)
-                    {
-                        canCast = false;
-                    }
-                }
-                if (PSpell->isNa())
-                {
-                    if (PSpellFamily == MSpellFamily && spellid == MSpellID)
-                    {
-                        canCast = false;
-                    }
+                    canCast = false;
                 }
             }
         }
