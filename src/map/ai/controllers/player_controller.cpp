@@ -20,6 +20,7 @@
 */
 
 #include "player_controller.h"
+#include "player_controller_engage_capacity.h"
 
 #include "ability.h"
 #include "ai/ai_container.h"
@@ -74,23 +75,23 @@ bool CPlayerController::Engage(uint16 targid)
 
     if (PTarget)
     {
-        if (distance(PChar->loc.p, PTarget->loc.p) < 30)
+        const auto decision = playercontrollerengage::Evaluate(
+            true, distance(PChar->loc.p, PTarget->loc.p), m_lastAttackTime,
+            std::chrono::milliseconds(PChar->GetWeaponDelay(false)), timer::now());
+        if (decision.dispatch)
         {
-            if (m_lastAttackTime + std::chrono::milliseconds(PChar->GetWeaponDelay(false)) < timer::now())
+            if (CController::Engage(targid))
             {
-                if (CController::Engage(targid))
-                {
-                    PChar->PLatentEffectContainer->CheckLatentsWeaponDraw(true);
-                    PChar->pushPacket<GP_SERV_COMMAND_ASSIST>(PChar, PTarget);
-                    return true;
-                }
-            }
-            else
-            {
-                errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PTarget, 0, 0, MsgBasic::WaitLonger);
+                PChar->PLatentEffectContainer->CheckLatentsWeaponDraw(true);
+                PChar->pushPacket<GP_SERV_COMMAND_ASSIST>(PChar, PTarget);
+                return true;
             }
         }
-        else
+        else if (decision.error == playercontrollerengage::Error::WaitLonger)
+        {
+            errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PTarget, 0, 0, MsgBasic::WaitLonger);
+        }
+        else if (decision.error == playercontrollerengage::Error::TooFar)
         {
             errMsg = std::make_unique<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PTarget, 0, 0, MsgBasic::TooFarAway);
         }

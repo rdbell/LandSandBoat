@@ -10,6 +10,7 @@
 #include "map/ai/controllers/mob_controller_spell_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
+#include "map/ai/controllers/player_controller_engage_capacity.h"
 
 #include <iostream>
 
@@ -31,6 +32,8 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     using mobcontrollermoverange::Resolve;
     using mobcontrollertargetvalidity::ShouldDeaggroNoTarget;
     using mobcontrollertargetvalidity::TargetInvalid;
+    using playercontrollerengage::Evaluate;
+    using playercontrollerengage::Error;
 
     const auto base = std::chrono::steady_clock::time_point{};
     const bool detectionOK = Evaluate(false, false, false, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).shouldDeaggro &&
@@ -115,6 +118,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                   TargetInvalid(true, true, false, true, true, true, true, false, true, true) &&
                                   TargetInvalid(true, true, false, true, true, true, true, true, false, true) &&
                                   TargetInvalid(true, true, false, true, true, true, true, true, true, false);
+    const auto engageBase = std::chrono::steady_clock::time_point{};
+    const bool playerEngageOK = !Evaluate(false, 0, engageBase, std::chrono::seconds(0), engageBase).dispatch &&
+                                Evaluate(true, 29, engageBase, std::chrono::seconds(1), engageBase + std::chrono::seconds(2)).dispatch &&
+                                Evaluate(true, 30, engageBase, std::chrono::seconds(0), engageBase + std::chrono::seconds(1)).error == Error::TooFar &&
+                                Evaluate(true, 29, engageBase, std::chrono::seconds(1), engageBase + std::chrono::seconds(1)).error == Error::WaitLonger;
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -133,9 +141,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && hideOK && lockOK;
 }
