@@ -2,6 +2,16 @@
 
 namespace mobcontrollerdeaggro
 {
+constexpr auto CanPursueByScent(
+    const bool hasScentDetection,
+    const bool isInWater,
+    const bool hasTarget,
+    const bool targetHasDeodorize,
+    const bool scentDisabled) -> bool
+{
+    return hasScentDetection && !isInWater && hasTarget && !targetHasDeodorize && !scentDisabled;
+}
+
 // Keep the entity-independent de-aggregation gates testable. Entity type,
 // status-effect, and detection queries remain in CMobController.
 constexpr auto ShouldDeaggroForHide(

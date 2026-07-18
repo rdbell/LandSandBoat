@@ -150,16 +150,19 @@ auto CMobController::CanPursueTarget(const CBattleEntity* PTarget) const -> bool
 {
     TracyZoneScoped;
 
-    if (PMob->getMobMod(MOBMOD_DETECTION) & DETECT_SCENT)
+    if (!(PMob->getMobMod(MOBMOD_DETECTION) & DETECT_SCENT))
     {
-        // if mob is in water it will instant deaggro if target cannot be detected
-        if (!PMob->PAI->PathFind->InWater() && PTarget && !PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Deodorize))
-        {
-            // certain weather / deodorize will turn on time deaggro
-            return !PMob->m_disableScent;
-        }
+        return false;
     }
-    return false;
+
+    // If mob is in water it will instant deaggro if target cannot be detected.
+    // Certain weather / deodorize will turn on time deaggro.
+    return mobcontrollerdeaggro::CanPursueByScent(
+        true,
+        PMob->PAI->PathFind->InWater(),
+        PTarget != nullptr,
+        PTarget && PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Deodorize),
+        PMob->m_disableScent);
 }
 
 auto CMobController::CheckHide(const CBattleEntity* PTarget) const -> bool
