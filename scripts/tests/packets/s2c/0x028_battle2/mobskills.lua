@@ -444,7 +444,7 @@ local packets =
         expected =
         {
             m_uID   = ph.IGNORE,
-            trg_sum = 1,
+            trg_sum = 2,
             res_sum = 0,
             cmd_no  = xi.action.category.MOBABILITY_FINISH,
             cmd_arg = xi.mobSkill.AQUA_BLAST,
@@ -452,7 +452,10 @@ local packets =
             target  =
             {
                 {
-                    m_uID      = ph.TEST_CHAR,
+                    -- Conal target-finding emits the caster before the specified
+                    -- target for this skill. Keep the result layout pinned while
+                    -- requiring the player to remain in the target list.
+                    m_uID      = ph.IGNORE,
                     result_sum = 1,
                     result     =
                     {
@@ -469,6 +472,10 @@ local packets =
                             has_react = false,
                         },
                     },
+                },
+                {
+                    m_uID      = ph.TEST_CHAR,
+                    result_sum = ph.IGNORE,
                 },
             },
         },
