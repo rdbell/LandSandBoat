@@ -22,6 +22,7 @@
 #include "targetfind.h"
 #include "targetfind_candidate_capacity.h"
 #include "targetfind_context_capacity.h"
+#include "targetfind_identity_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/inactive_state.h"
@@ -511,7 +512,11 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
         return false;
     }
 
-    if (m_PTarget == PTarget || PTarget->getZone() != m_zone || PTarget->GetUntargetable() || PTarget->status == STATUS_TYPE::INVISIBLE)
+    if (targetfindidentityhelpers::ShouldRejectIdentityOrVisibility(
+            m_PTarget == PTarget,
+            PTarget->getZone() != m_zone,
+            PTarget->GetUntargetable(),
+            PTarget->status == STATUS_TYPE::INVISIBLE))
     {
         return false;
     }

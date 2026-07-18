@@ -225,6 +225,7 @@ auto runAttackutilsRemSource3911SelfTests() -> bool;
 auto runAttackutilsTypeDamage3912SelfTests() -> bool;
 auto runTargetfindContext3913SelfTests() -> bool;
 auto runTargetfindCandidate3914SelfTests() -> bool;
+auto runTargetfindIdentity3915SelfTests() -> bool;
 auto runMapSessionReplaceCreate2795SelfTests() -> bool;
 auto runMapSessionLinkDeadPlan2799SelfTests() -> bool;
 auto runMapSessionTimeoutPlan2804SelfTests() -> bool;
@@ -4387,6 +4388,7 @@ namespace
         ok = runAttackutilsTypeDamage3912SelfTests() && ok;
         ok = runTargetfindContext3913SelfTests() && ok;
         ok = runTargetfindCandidate3914SelfTests() && ok;
+        ok = runTargetfindIdentity3915SelfTests() && ok;
 
         return ok;
     }
