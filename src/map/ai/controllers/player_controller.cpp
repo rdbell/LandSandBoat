@@ -21,6 +21,7 @@
 
 #include "player_controller.h"
 #include "player_controller_engage_capacity.h"
+#include "player_controller_ability_recast_capacity.h"
 
 #include "ability.h"
 #include "ai/ai_container.h"
@@ -127,18 +128,10 @@ bool CPlayerController::Ability(uint16 targid, uint16 abilityid)
         if (PChar->PRecastContainer->HasRecast(RECAST_ABILITY, PAbility->getRecastId(), PAbility->getRecastTime()))
         {
             Recast_t* recast = PChar->PRecastContainer->GetRecast(RECAST_ABILITY, PAbility->getRecastId());
-            // Set recast time to the normal recast time minus any charge time.
-            // Abilities without a charge will have zero chargeTime
-            timer::duration currentRecast = recast->TimeStamp - timer::now() + recast->RecastTime;
-            // Abilities with a single charge (low-level scholar stratagems) behave like abilities without a charge
-            if (recast->maxCharges > 1)
-            {
-                currentRecast -= recast->chargeTime * (recast->maxCharges - 1);
-            }
-
-            currentRecast = std::chrono::ceil<std::chrono::seconds>(currentRecast);
+            const uint32 currentRecast = playercontrollerabilityrecast::RemainingSeconds(
+                recast->TimeStamp, timer::now(), recast->RecastTime, recast->chargeTime, recast->maxCharges);
             PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::UnableToUseJobAbility2);
-            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, static_cast<uint32>(std::max<int64>(timer::count_seconds(currentRecast), 0)), 0, MsgBasic::TimeLeft);
+            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, currentRecast, 0, MsgBasic::TimeLeft);
             return false;
         }
         if (auto target = PChar->GetEntity(targid); target && target->PAI->IsUntargetable())

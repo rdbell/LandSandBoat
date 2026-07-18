@@ -12,6 +12,7 @@
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
 #include "map/ai/controllers/player_controller_weaponskill_capacity.h"
+#include "map/ai/controllers/player_controller_ability_recast_capacity.h"
 
 #include <iostream>
 
@@ -36,6 +37,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     using playercontrollerengage::Evaluate;
     using playercontrollerengage::Error;
     using WeaponSkillError = playercontrollerweaponskill::Error;
+    using playercontrollerabilityrecast::RemainingSeconds;
 
     const auto base = std::chrono::steady_clock::time_point{};
     const bool detectionOK = Evaluate(false, false, false, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).shouldDeaggro &&
@@ -134,6 +136,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      !playercontrollerweaponskill::Evaluate(true, true, true, true, true, false, 0, 1000, false, false, true, true, true, false).dispatch &&
                                      playercontrollerweaponskill::Evaluate(true, true, true, true, true, false, 0, 1000, false, false, true, false, false, false).error == WeaponSkillError::CannotSee &&
                                      playercontrollerweaponskill::Evaluate(true, true, true, true, true, false, 0, 1000, false, false, true, false, false, true).dispatch;
+    const auto recastBase = std::chrono::steady_clock::time_point{};
+    const bool abilityRecastOK = RemainingSeconds(recastBase + std::chrono::seconds(10) + std::chrono::milliseconds(1), recastBase + std::chrono::seconds(5), std::chrono::seconds(1), std::chrono::seconds(0), 0) == 7 &&
+                                 RemainingSeconds(recastBase + std::chrono::seconds(10), recastBase + std::chrono::seconds(5), std::chrono::seconds(1), std::chrono::seconds(2), 1) == 6 &&
+                                 RemainingSeconds(recastBase + std::chrono::seconds(10), recastBase + std::chrono::seconds(5), std::chrono::seconds(1), std::chrono::seconds(2), 3) == 2 &&
+                                 RemainingSeconds(recastBase + std::chrono::seconds(1), recastBase + std::chrono::seconds(5), std::chrono::seconds(0), std::chrono::seconds(0), 0) == 0;
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -152,9 +159,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && hideOK && lockOK;
 }
