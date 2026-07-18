@@ -27,6 +27,7 @@
 #include "mob_controller_aggro_capacity.h"
 #include "mob_controller_follow_capacity.h"
 #include "mob_controller_spell_admission_capacity.h"
+#include "mob_controller_move_range_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/helpers/targetfind.h"
@@ -858,15 +859,10 @@ void CMobController::Move()
         attack_range = PMob->GetRangedAttackRange();
     }
 
-    const int16 offsetMod     = PMob->getMobMod(MOBMOD_TARGET_DISTANCE_OFFSET);
-    const float offset        = static_cast<float>(offsetMod) / 10.0f;
-    float       closeDistance = attack_range - (offsetMod == 0 ? 0.4f : offset);
-
-    // No going negative on the final value.
-    if (closeDistance < 0.0f)
-    {
-        closeDistance = 0.0f;
-    }
+    const auto range = mobcontrollermoverange::Resolve(
+        attack_range, 0, IsRangedAttackEnabled(), PMob->GetRangedAttackRange(), PMob->getMobMod(MOBMOD_TARGET_DISTANCE_OFFSET));
+    attack_range = range.attackRange;
+    const float closeDistance = range.closeDistance;
 
     if (PMob->getMobMod(MOBMOD_SHARE_POS) > 0)
     {

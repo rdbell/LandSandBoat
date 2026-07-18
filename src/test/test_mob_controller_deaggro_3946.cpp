@@ -8,6 +8,7 @@
 #include "map/ai/helpers/gambits_tp_trigger_capacity.h"
 #include "map/ai/controllers/mob_controller_follow_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_admission_capacity.h"
+#include "map/ai/controllers/mob_controller_move_range_capacity.h"
 
 #include <iostream>
 
@@ -26,6 +27,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     using mobcontrollerfollow::SetTarget;
     using mobcontrollerfollow::Type;
     using mobcontrollerspelladmission::CanCastSpells;
+    using mobcontrollermoverange::Resolve;
 
     const auto base = std::chrono::steady_clock::time_point{};
     const bool detectionOK = Evaluate(false, false, false, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).shouldDeaggro &&
@@ -89,6 +91,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                   !CanCastSpells(true, false, false, false, false, false, false, true) &&
                                   !CanCastSpells(true, false, false, false, false, true, false, false) &&
                                   CanCastSpells(true, false, false, false, false, true, true, false);
+    const auto baseRange = Resolve(5, 0, false, 0, 0);
+    const auto skillRange = Resolve(5, 9, false, 0, 0);
+    const auto rangedRange = Resolve(5, 9, true, 20, 0);
+    const auto offsetRange = Resolve(5, 0, false, 0, 15);
+    const auto clampedRange = Resolve(1, 0, false, 0, 20);
+    const bool moveRangeOK = baseRange.attackRange == 5 && baseRange.closeDistance == 4.6f &&
+                             skillRange.attackRange == 9 && skillRange.closeDistance == 8.6f &&
+                             rangedRange.attackRange == 20 && rangedRange.closeDistance == 19.6f &&
+                             offsetRange.closeDistance == 3.5f && clampedRange.closeDistance == 0;
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -107,9 +118,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && hideOK && lockOK;
 }
