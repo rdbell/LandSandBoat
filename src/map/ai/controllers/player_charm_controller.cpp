@@ -20,6 +20,7 @@
 */
 
 #include "player_charm_controller.h"
+#include "player_charm_controller_combat_capacity.h"
 #include "player_charm_controller_roam_capacity.h"
 
 #include "ai/ai_container.h"
@@ -65,30 +66,35 @@ auto CPlayerCharmController::Tick(timer::time_point tick) -> Task<void>
 
 void CPlayerCharmController::DoCombatTick(timer::time_point tick)
 {
-    if (!POwner->PMaster->PAI->IsEngaged())
+    if (playercharmcontrollercombat::ShouldDisengage(POwner->PMaster->PAI->IsEngaged()))
     {
         POwner->PAI->Internal_Disengage();
     }
-    if (POwner->PMaster->GetBattleTargetID() != POwner->GetBattleTargetID())
+
+    if (playercharmcontrollercombat::ShouldSyncTarget(POwner->PMaster->GetBattleTargetID() != POwner->GetBattleTargetID()))
     {
         POwner->PAI->Internal_ChangeTarget(POwner->PMaster->GetBattleTargetID());
     }
-    auto* PTarget{ POwner->GetBattleTarget() };
-    if (PTarget)
+
+    auto* PTarget = POwner->GetBattleTarget();
+    const bool canFollowPath = PTarget && POwner->PAI->CanFollowPath();
+    bool canAttack = false;
+    bool hasSpeed = false;
+    if (canFollowPath)
     {
-        if (POwner->PAI->CanFollowPath())
-        {
-            POwner->PAI->PathFind->LookAt(PTarget->loc.p);
-            std::unique_ptr<CBasicPacket> err;
-            if (!POwner->CanAttack(PTarget, err))
-            {
-                if (POwner->GetSpeed() > 0)
-                {
-                    POwner->PAI->PathFind->PathAround(PTarget->loc.p, 2.0f, PATHFLAG_WALLHACK | PATHFLAG_RUN);
-                    POwner->PAI->PathFind->FollowPath(m_Tick);
-                }
-            }
-        }
+        std::unique_ptr<CBasicPacket> err;
+        canAttack = POwner->CanAttack(PTarget, err);
+        hasSpeed = !canAttack && POwner->GetSpeed() > 0;
+    }
+    const auto movementPlan = playercharmcontrollercombat::Resolve(true, false, PTarget != nullptr, canFollowPath, canAttack, hasSpeed);
+    if (movementPlan.lookAtTarget)
+    {
+        POwner->PAI->PathFind->LookAt(PTarget->loc.p);
+    }
+    if (movementPlan.pursueTarget)
+    {
+        POwner->PAI->PathFind->PathAround(PTarget->loc.p, 2.0f, PATHFLAG_WALLHACK | PATHFLAG_RUN);
+        POwner->PAI->PathFind->FollowPath(m_Tick);
     }
 }
 
