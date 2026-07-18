@@ -26,6 +26,7 @@
 #include "mob_controller_movement_capacity.h"
 #include "mob_controller_aggro_capacity.h"
 #include "mob_controller_follow_capacity.h"
+#include "mob_controller_spell_admission_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/helpers/targetfind.h"
@@ -644,37 +645,13 @@ auto CMobController::CanCastSpells(IgnoreRecastsAndCosts ignoreRecastsAndCosts) 
 {
     TracyZoneScoped;
 
-    if (!PMob->SpellContainer->HasSpells())
-    {
-        return false;
-    }
-
-    // check for spell blockers e.g. silence
-    if (PMob->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Silence, xi::StatusEffect::Mute }))
-    {
-        return false;
-    }
-
-    // smn can only cast spells if it has no pet
-    if (PMob->GetMJob() == JOB_SMN)
-    {
-        if (PMob->PPet && !PMob->PPet->isDead())
-        {
-            return false;
-        }
-    }
-
-    if (!IsMagicCastingEnabled())
-    {
-        return false;
-    }
-
-    if (!ignoreRecastsAndCosts && !PMob->SpellContainer->IsAnySpellAvailable())
-    {
-        return false;
-    }
-
-    return true;
+    const bool silenced = PMob->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Silence);
+    const bool muted = !silenced && PMob->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Mute);
+    const bool shouldIgnore = ignoreRecastsAndCosts == IgnoreRecastsAndCosts::Yes;
+    const bool anySpellAvailable = shouldIgnore || PMob->SpellContainer->IsAnySpellAvailable();
+    return mobcontrollerspelladmission::CanCastSpells(
+        PMob->SpellContainer->HasSpells(), silenced, muted, PMob->GetMJob() == JOB_SMN,
+        PMob->PPet && !PMob->PPet->isDead(), IsMagicCastingEnabled(), shouldIgnore, anySpellAvailable);
 }
 
 void CMobController::CastSpell(SpellID spellid)
