@@ -21,6 +21,7 @@
 
 #include "mob_controller.h"
 #include "mob_controller_deaggro_capacity.h"
+#include "mob_controller_detection_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/helpers/targetfind.h"
@@ -197,14 +198,24 @@ auto CMobController::CheckDetection(CBattleEntity* PTarget) -> bool
 {
     TracyZoneScoped;
 
-    if (CanPursueTarget(PTarget) || CanDetectTarget(PTarget) ||
-        PMob->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Bind, xi::StatusEffect::SleepI, xi::StatusEffect::SleepIi, xi::StatusEffect::Lullaby, xi::StatusEffect::Petrification }))
+    const bool canPursue = CanPursueTarget(PTarget);
+    const bool canDetect = !canPursue && CanDetectTarget(PTarget);
+    const bool immobilized = !canPursue && !canDetect && PMob->StatusEffectContainer->HasStatusEffect(
+                                                           { xi::StatusEffect::Bind, xi::StatusEffect::SleepI, xi::StatusEffect::SleepIi, xi::StatusEffect::Lullaby, xi::StatusEffect::Petrification });
+    const auto decision = mobcontrollerdetection::Evaluate(
+        canPursue,
+        canDetect,
+        immobilized,
+        PMob->CanDeaggro(),
+        PMob->m_roamFlags & ROAMFLAG_WORM,
+        m_Tick,
+        m_DeaggroTime,
+        std::chrono::seconds(settings::get<uint32>("map.MOB_ADDITIONAL_TIME_TO_DEAGGRO")));
+    if (decision.tapDeaggro)
     {
         TapDeaggroTime();
     }
-
-    const auto additionalDeaggroTime = PMob->m_roamFlags & ROAMFLAG_WORM ? std::chrono::seconds(0) : std::chrono::seconds(settings::get<uint32>("map.MOB_ADDITIONAL_TIME_TO_DEAGGRO"));
-    return PMob->CanDeaggro() && (m_Tick >= m_DeaggroTime + 25s + additionalDeaggroTime);
+    return decision.shouldDeaggro;
 }
 
 void CMobController::TryLink()
