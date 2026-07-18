@@ -20,6 +20,7 @@
 */
 
 #include "trust_controller.h"
+#include "trust_controller_ability_capacity.h"
 #include "trust_controller_cast_coordination_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
@@ -540,17 +541,13 @@ bool CTrustController::Ability(uint16 targid, uint16 abilityid)
 {
     TracyZoneScoped;
 
-    if (static_cast<CMobEntity*>(POwner)->PRecastContainer->HasRecast(RECAST_ABILITY, static_cast<Recast>(abilityid), 0s))
+    const bool hasRecast = static_cast<CMobEntity*>(POwner)->PRecastContainer->HasRecast(RECAST_ABILITY, static_cast<Recast>(abilityid), 0s);
+    if (hasRecast || !trustcontrollerability::CanUse(hasRecast, POwner->PAI->CanChangeState()))
     {
         return false;
     }
 
-    if (POwner->PAI->CanChangeState())
-    {
-        return POwner->PAI->Internal_Ability(targid, abilityid);
-    }
-
-    return false;
+    return POwner->PAI->Internal_Ability(targid, abilityid);
 }
 
 bool CTrustController::RangedAttack(uint16 targid)
