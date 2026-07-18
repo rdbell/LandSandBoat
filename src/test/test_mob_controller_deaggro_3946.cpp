@@ -9,6 +9,7 @@
 #include "map/ai/controllers/mob_controller_follow_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
+#include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 
 #include <iostream>
 
@@ -28,6 +29,8 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     using mobcontrollerfollow::Type;
     using mobcontrollerspelladmission::CanCastSpells;
     using mobcontrollermoverange::Resolve;
+    using mobcontrollertargetvalidity::ShouldDeaggroNoTarget;
+    using mobcontrollertargetvalidity::TargetInvalid;
 
     const auto base = std::chrono::steady_clock::time_point{};
     const bool detectionOK = Evaluate(false, false, false, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).shouldDeaggro &&
@@ -100,6 +103,18 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                              skillRange.attackRange == 9 && skillRange.closeDistance == 8.6f &&
                              rangedRange.attackRange == 20 && rangedRange.closeDistance == 19.6f &&
                              offsetRange.closeDistance == 3.5f && clampedRange.closeDistance == 0;
+    const bool targetValidityOK = ShouldDeaggroNoTarget(false, true) && !ShouldDeaggroNoTarget(false, false) &&
+                                  !TargetInvalid(true, true, false, true, true, true, true, true, true, true) &&
+                                  TargetInvalid(false, true, false, true, true, true, true, true, true, true) &&
+                                  TargetInvalid(true, false, false, true, true, true, true, true, true, true) &&
+                                  TargetInvalid(true, true, true, true, true, true, true, true, true, true) &&
+                                  TargetInvalid(true, true, false, false, true, true, true, true, true, true) &&
+                                  TargetInvalid(true, true, false, true, false, true, true, true, true, true) &&
+                                  TargetInvalid(true, true, false, true, true, false, true, true, true, true) &&
+                                  TargetInvalid(true, true, false, true, true, true, false, true, true, true) &&
+                                  TargetInvalid(true, true, false, true, true, true, true, false, true, true) &&
+                                  TargetInvalid(true, true, false, true, true, true, true, true, false, true) &&
+                                  TargetInvalid(true, true, false, true, true, true, true, true, true, false);
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -118,9 +133,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && hideOK && lockOK;
 }

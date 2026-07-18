@@ -28,6 +28,7 @@
 #include "mob_controller_follow_capacity.h"
 #include "mob_controller_spell_admission_capacity.h"
 #include "mob_controller_move_range_capacity.h"
+#include "mob_controller_target_validity_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/helpers/targetfind.h"
@@ -120,7 +121,8 @@ auto CMobController::TryDeaggro() -> bool
 {
     TracyZoneScoped;
 
-    if (PTarget == nullptr && (PMob->PEnmityContainer != nullptr && PMob->PEnmityContainer->GetHighestEnmity() == nullptr))
+    if (mobcontrollertargetvalidity::ShouldDeaggroNoTarget(
+            PTarget != nullptr, PMob->PEnmityContainer != nullptr && PMob->PEnmityContainer->GetHighestEnmity() == nullptr))
     {
         return true;
     }
