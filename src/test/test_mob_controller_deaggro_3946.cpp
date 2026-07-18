@@ -21,6 +21,7 @@
 #include "map/ai/controllers/trust_controller_engage_capacity.h"
 #include "map/ai/controllers/trust_controller_roam_formation_capacity.h"
 #include "map/ai/controllers/trust_controller_recovery_capacity.h"
+#include "map/ai/controllers/trust_controller_ranged_attack_capacity.h"
 
 #include <iostream>
 
@@ -216,6 +217,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                  !trustcontrollerrecovery::Resolve(true, false, std::chrono::seconds(16), std::chrono::seconds(16), std::chrono::seconds(16), 2).recover &&
                                  trustcontrollerrecovery::Resolve(true, true, std::chrono::seconds(16), std::chrono::seconds(16), std::chrono::seconds(4), 3).nextHealingTick == 3 &&
                                  trustcontrollerrecovery::Amount(101) == 5;
+    const bool trustRangedAttackOK = trustcontrollerrangedattack::CanStart(std::chrono::seconds(10) + std::chrono::nanoseconds(1), false, std::chrono::seconds(0), false) &&
+                                      !trustcontrollerrangedattack::CanStart(std::chrono::seconds(10), false, std::chrono::seconds(0), false) &&
+                                      trustcontrollerrangedattack::CanStart(std::chrono::seconds(3) + std::chrono::nanoseconds(1), true, std::chrono::seconds(3), false) &&
+                                      !trustcontrollerrangedattack::CanStart(std::chrono::seconds(3), true, std::chrono::seconds(3), false) &&
+                                      !trustcontrollerrangedattack::CanStart(std::chrono::seconds(11), false, std::chrono::seconds(0), true);
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -234,9 +240,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && hideOK && lockOK;
 }

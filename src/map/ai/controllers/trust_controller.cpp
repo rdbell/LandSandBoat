@@ -23,6 +23,7 @@
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_recovery_capacity.h"
+#include "trust_controller_ranged_attack_capacity.h"
 #include "trust_controller_roam_formation_capacity.h"
 #include "trust_controller_tick_capacity.h"
 #include "trust_controller_target_sync_capacity.h"
@@ -553,13 +554,15 @@ bool CTrustController::RangedAttack(uint16 targid)
 {
     TracyZoneScoped;
 
-    timer::duration rangedDelay = 10s;
+    timer::duration rangedDelay{};
+    bool            hasRangedWeapon = false;
     if (CItemWeapon* PRange = dynamic_cast<CItemWeapon*>(POwner->m_Weapons[SLOT_RANGED]))
     {
-        rangedDelay = std::chrono::milliseconds(PRange->getDelay());
+        hasRangedWeapon = true;
+        rangedDelay     = std::chrono::milliseconds(PRange->getDelay());
     }
 
-    if (m_Tick - m_LastRangedAttackTime > rangedDelay && !m_InTransit)
+    if (trustcontrollerrangedattack::CanStart(m_Tick - m_LastRangedAttackTime, hasRangedWeapon, rangedDelay, m_InTransit))
     {
         FaceTarget(PTarget->targid);
         if (POwner->PAI->CanChangeState() && POwner->PAI->Internal_RangedAttack(targid))
