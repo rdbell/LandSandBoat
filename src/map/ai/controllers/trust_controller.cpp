@@ -24,6 +24,7 @@
 #include "trust_controller_cast_coordination_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
+#include "trust_controller_noncombat_movement_capacity.h"
 #include "trust_controller_recovery_capacity.h"
 #include "trust_controller_ranged_attack_capacity.h"
 #include "trust_controller_reposition_capacity.h"
@@ -337,21 +338,29 @@ auto CTrustController::DoNonCombatTick(timer::time_point tick) -> Task<void>
         }
     }
 
-    if (currentDistance > WarpDistance)
+    switch (trustcontrollernoncombatmovement::Resolve(currentDistance, desiredFollowDistance))
     {
-        PTrust->PAI->PathFind->WarpTo(PFollowTarget->loc.p);
-    }
-    else if (currentDistance > desiredFollowDistance)
-    {
-        if (currentDistance < desiredFollowDistance * 3.0f &&
-            PTrust->PAI->PathFind->PathAround(PFollowTarget->loc.p, desiredFollowDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK))
-        {
-            PTrust->PAI->PathFind->FollowPath(m_Tick);
-        }
-        else if (PTrust->GetSpeed() > 0)
-        {
-            PTrust->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
-        }
+        case trustcontrollernoncombatmovement::Action::Warp:
+            PTrust->PAI->PathFind->WarpTo(PFollowTarget->loc.p);
+            break;
+        case trustcontrollernoncombatmovement::Action::Path:
+            if (PTrust->PAI->PathFind->PathAround(PFollowTarget->loc.p, desiredFollowDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK))
+            {
+                PTrust->PAI->PathFind->FollowPath(m_Tick);
+            }
+            else if (PTrust->GetSpeed() > 0)
+            {
+                PTrust->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
+            }
+            break;
+        case trustcontrollernoncombatmovement::Action::Step:
+            if (PTrust->GetSpeed() > 0)
+            {
+                PTrust->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
+            }
+            break;
+        case trustcontrollernoncombatmovement::Action::Hold:
+            break;
     }
 
     if (PTrust->PAI->PathFind->IsFollowingPath())

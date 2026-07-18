@@ -25,6 +25,7 @@
 #include "map/ai/controllers/trust_controller_cast_coordination_capacity.h"
 #include "map/ai/controllers/trust_controller_reposition_capacity.h"
 #include "map/ai/controllers/trust_controller_ability_capacity.h"
+#include "map/ai/controllers/trust_controller_noncombat_movement_capacity.h"
 
 #include <iostream>
 
@@ -248,6 +249,13 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                 !trustcontrollerability::CanUse(true, true) &&
                                 !trustcontrollerability::CanUse(false, false) &&
                                 !trustcontrollerability::CanUse(true, false);
+    const bool trustNonCombatMovementOK = trustcontrollernoncombatmovement::Resolve(3.0f, 3.0f) == trustcontrollernoncombatmovement::Action::Hold &&
+                                         trustcontrollernoncombatmovement::Resolve(3.1f, 3.0f) == trustcontrollernoncombatmovement::Action::Path &&
+                                         trustcontrollernoncombatmovement::Resolve(9.0f, 3.0f) == trustcontrollernoncombatmovement::Action::Step &&
+                                         trustcontrollernoncombatmovement::Resolve(10.0f, 3.0f) == trustcontrollernoncombatmovement::Action::Step &&
+                                         trustcontrollernoncombatmovement::Resolve(30.0f, 3.0f) == trustcontrollernoncombatmovement::Action::Step &&
+                                         trustcontrollernoncombatmovement::Resolve(30.1f, 3.0f) == trustcontrollernoncombatmovement::Action::Warp &&
+                                         trustcontrollernoncombatmovement::Resolve(8.9f, 3.0f) == trustcontrollernoncombatmovement::Action::Path;
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -266,9 +274,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && hideOK && lockOK;
 }
