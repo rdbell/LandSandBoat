@@ -4395,6 +4395,8 @@ set(SOURCES
     test_attackutils_roll_chance_3909.cpp
     test_attackutils_occ_modifiers_3910.h
     test_attackutils_occ_modifiers_3910.cpp
+    test_attackutils_rem_source_3911.h
+    test_attackutils_rem_source_3911.cpp
 )
 
 if(UNIX)

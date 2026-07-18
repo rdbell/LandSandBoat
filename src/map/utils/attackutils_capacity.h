@@ -23,6 +23,7 @@
 //   - 3908: ResolveAllowProcLadder (exclusive Occ precedence)
 //   - 3909: RollChancePercent (inclusive Occ chance roll)
 //   - 3910: Occ modifier normalization (extra multiplier/chances)
+//   - 3911: REM rate-source selection (ranged vs main hand)
 
 namespace attackutilshelpers
 {
@@ -81,7 +82,8 @@ inline auto ShouldUseRangedRemOcc(const uint8 attackType) -> bool
     return attackType == AttackTypeRanged || attackType == AttackTypeRapidShot;
 }
 
-// ShouldUseMainHandRemOcc mirrors NORMAL && weaponSlot == SLOT_MAIN.
+// ShouldUseMainHandRemOcc mirrors NORMAL && weaponSlot == SLOT_MAIN. Ranged
+// and Rapid Shot are deliberately excluded from main-hand REM selection.
 inline auto ShouldUseMainHandRemOcc(const uint8 attackType, const uint8 weaponSlot) -> bool
 {
     return attackType == AttackTypeNormal && weaponSlot == SlotMain;
