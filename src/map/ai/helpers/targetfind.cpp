@@ -24,6 +24,7 @@
 #include "targetfind_ally_capacity.h"
 #include "targetfind_any_allegiance_capacity.h"
 #include "targetfind_allegiance_capacity.h"
+#include "targetfind_offensive_capacity.h"
 #include "targetfind_context_capacity.h"
 #include "targetfind_first_target_capacity.h"
 #include "targetfind_identity_capacity.h"
@@ -585,8 +586,10 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
 
         // If offensive, don't target other entities with same allegiance
         // Cures can be AoE with Accession and Majesty, ideally we would use SPELLGROUP or some other mechanism, but TargetFind wasn't designed with that in mind
-        if ((m_targetFlags & TARGET_ENEMY) && !(m_targetFlags & TARGET_PLAYER_PARTY) &&
-            m_PBattleEntity->allegiance == PTarget->allegiance)
+        if (targetfindoffensivehelpers::ShouldRejectOffensiveAlly(
+                (m_targetFlags & TARGET_ENEMY) != 0,
+                (m_targetFlags & TARGET_PLAYER_PARTY) != 0,
+                m_PBattleEntity->allegiance == PTarget->allegiance))
         {
             return false;
         }
