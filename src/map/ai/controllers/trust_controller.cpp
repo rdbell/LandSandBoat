@@ -21,6 +21,7 @@
 
 #include "trust_controller.h"
 #include "trust_controller_noncombat_follow_capacity.h"
+#include "trust_controller_tick_capacity.h"
 
 #include "ability.h"
 #include "ai/helpers/gambits_container.h"
@@ -100,30 +101,30 @@ auto CTrustController::Tick(timer::time_point tick) -> Task<void>
 
     auto* PTrust = static_cast<CTrustEntity*>(POwner);
 
-    if (!PTrust->PMaster)
+    const bool hasMaster = PTrust->PMaster != nullptr;
+    if (!hasMaster)
     {
         co_return;
     }
-
-    if (PTrust->PMaster->isCharmed)
-    {
-        this->Despawn();
-        co_return;
-    }
-
+    const bool masterCharmed = hasMaster && PTrust->PMaster->isCharmed;
+    const bool masterEngaged = hasMaster && PTrust->PMaster->PAI->IsEngaged();
     const bool nonCombatFollowTrust = PTrust->getMobMod(MOBMOD_TRUST_DISTANCE) == TRUST_MOVEMENT_TYPE::NON_COMBAT;
-
-    if (PTrust->PMaster->PAI->IsEngaged() && nonCombatFollowTrust)
+    switch (trustcontrollertick::Resolve(hasMaster, masterCharmed, masterEngaged, nonCombatFollowTrust, POwner->PAI->IsEngaged(), POwner->isDead()))
     {
-        co_await DoNonCombatTick(tick);
-    }
-    else if (POwner->PAI->IsEngaged())
-    {
-        co_await DoCombatTick(tick);
-    }
-    else if (!POwner->isDead())
-    {
-        co_await DoRoamTick(tick);
+        case trustcontrollertick::Route::Despawn:
+            this->Despawn();
+            break;
+        case trustcontrollertick::Route::NonCombat:
+            co_await DoNonCombatTick(tick);
+            break;
+        case trustcontrollertick::Route::Combat:
+            co_await DoCombatTick(tick);
+            break;
+        case trustcontrollertick::Route::Roam:
+            co_await DoRoamTick(tick);
+            break;
+        case trustcontrollertick::Route::None:
+            break;
     }
 
     co_return;
