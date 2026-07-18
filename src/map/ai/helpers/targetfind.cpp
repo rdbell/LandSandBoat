@@ -23,6 +23,7 @@
 #include "targetfind_candidate_capacity.h"
 #include "targetfind_ally_capacity.h"
 #include "targetfind_context_capacity.h"
+#include "targetfind_first_target_capacity.h"
 #include "targetfind_identity_capacity.h"
 #include "targetfind_lock_capacity.h"
 #include "targetfind_vertical_capacity.h"
@@ -560,7 +561,7 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
     // this is first target, always add him first
     // Exception: for self-centered AoEs, all targets must pass radius validation
     // Conals always add the main target
-    if (m_PTarget == nullptr && (!m_selfCenteredAoE || m_conal))
+    if (targetfindfirsttargethelpers::ShouldAcceptFirstTarget(m_PTarget == nullptr, m_selfCenteredAoE, m_conal))
     {
         return true;
     }

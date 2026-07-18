@@ -4411,6 +4411,8 @@ set(SOURCES
     test_targetfind_vertical_3917.cpp
     test_targetfind_ally_3918.h
     test_targetfind_ally_3918.cpp
+    test_targetfind_first_target_3919.h
+    test_targetfind_first_target_3919.cpp
 )
 
 if(UNIX)
