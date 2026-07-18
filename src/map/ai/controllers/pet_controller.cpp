@@ -20,6 +20,7 @@
 */
 
 #include "pet_controller.h"
+#include "pet_controller_tick_capacity.h"
 
 #include "ai/ai_container.h"
 #include "common/utils.h"
@@ -58,7 +59,7 @@ auto CPetController::Tick(timer::time_point tick) -> Task<void>
     if (isPlayerPet)
     {
         // if a charmed mob and charm time is up then despawn
-        if (PPet->isCharmed && tick > PPet->charmTime)
+        if (PPet->isCharmed && petcontrollertick::ShouldDespawnForCharm(isPlayerPet, true, tick > PPet->charmTime))
         {
             petutils::DespawnPet(PPet->PMaster);
             co_return;
@@ -66,13 +67,12 @@ auto CPetController::Tick(timer::time_point tick) -> Task<void>
 
         // if a jug pet and the current time > jug spawn time + jug duration then despawn
         auto* PPetEntity = dynamic_cast<CPetEntity*>(PPet);
-        if (PPetEntity && PPetEntity->isAlive() && PPetEntity->getPetType() == PET_TYPE::JUG_PET)
+        if (PPetEntity && PPetEntity->isAlive() && PPetEntity->getPetType() == PET_TYPE::JUG_PET &&
+            petcontrollertick::ShouldDespawnForJug(
+                isPlayerPet, true, true, true, tick > PPetEntity->getJugSpawnTime() + PPetEntity->getJugDuration()))
         {
-            if (tick > PPetEntity->getJugSpawnTime() + PPetEntity->getJugDuration())
-            {
-                petutils::DespawnPet(PPetEntity->PMaster);
-                co_return;
-            }
+            petutils::DespawnPet(PPetEntity->PMaster);
+            co_return;
         }
     }
 
