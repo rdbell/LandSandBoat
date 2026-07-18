@@ -20,6 +20,7 @@
 //   - 3905: ShouldApplySambaDoubleDamage (SAMBA && rateProcs)
 //   - 3906: RollRatePercent (rate-mod roll boundary)
 //   - 3907: ApplyOccProcDamage (outcome-to-damage mapping)
+//   - 3908: ResolveAllowProcLadder (exclusive Occ precedence)
 
 namespace attackutilshelpers
 {
@@ -128,7 +129,9 @@ enum class OccProcResult : uint8
     RemDouble     = 3,
 };
 
-// ResolveAllowProcLadder evaluates the allowProc exclusive ladder.
+// ResolveAllowProcLadder evaluates the allowProc exclusive ladder. Its order
+// is semantically significant: each earlier winning arm suppresses later RNG
+// checks and outcomes.
 // Each *Procs flag is the result of RollChancePercent for that step.
 // Host must only roll when the preceding steps fail (short-circuit RNG order).
 inline auto ResolveAllowProcLadder(
