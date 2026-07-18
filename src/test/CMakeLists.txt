@@ -4385,6 +4385,8 @@ set(SOURCES
     test_attackutils_rapid_shot_dd_3904.cpp
     test_attackutils_samba_dd_3905.h
     test_attackutils_samba_dd_3905.cpp
+    test_attackutils_roll_rate_3906.h
+    test_attackutils_roll_rate_3906.cpp
 )
 
 if(UNIX)

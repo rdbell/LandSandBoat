@@ -18,6 +18,7 @@
 //           residual expand 3120 / prior 3289)
 //   - 3904: ShouldApplyRapidShotDoubleDamage (RAPID_SHOT && rateProcs)
 //   - 3905: ShouldApplySambaDoubleDamage (SAMBA && rateProcs)
+//   - 3906: RollRatePercent (rate-mod roll boundary)
 
 namespace attackutilshelpers
 {
@@ -332,7 +333,8 @@ inline auto ApplyTypeDoubleDamage(const uint32 originalDamage, const uint8 facto
     return originalDamage * factor;
 }
 
-// RollRatePercent mirrors rand(100) < mod (0..99 style).
+// RollRatePercent mirrors rand(100) < mod (0..99 style). Nonpositive rates
+// never proc; a valid host roll exactly equal to the rate does not proc.
 inline auto RollRatePercent(const int16 rateMod, const int roll0to99) -> bool
 {
     if (rateMod <= 0)
