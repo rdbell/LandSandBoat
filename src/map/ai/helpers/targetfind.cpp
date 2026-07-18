@@ -23,6 +23,7 @@
 #include "targetfind_candidate_capacity.h"
 #include "targetfind_context_capacity.h"
 #include "targetfind_identity_capacity.h"
+#include "targetfind_lock_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/inactive_state.h"
@@ -521,17 +522,11 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
         return false;
     }
 
-    // Super Jump or otherwise untargetable
-    if (PTarget->PAI->IsUntargetable())
-    {
-        return false;
-    }
-
     // m_Locked targets should not be able to be attacked or have any ability or spell cast on them, including AoEs.
     // TODO: Should a locked player's pet or trust be excluded as well? Verify on retail. Can add that check by changing PTarget to findMaster(PTarget).
     // m_Locked is only in a CCharEntity, not all CBattleEntity which do not have m_Locked. Need to account for that.
     CCharEntity* PChar = dynamic_cast<CCharEntity*>(PTarget);
-    if (PChar != nullptr && PChar->m_Locked)
+    if (targetfindlockhelpers::ShouldRejectAIOrLocked(PTarget->PAI->IsUntargetable(), PChar != nullptr, PChar != nullptr && PChar->m_Locked))
     {
         return false;
     }
