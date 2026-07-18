@@ -25,6 +25,7 @@
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
 #include "mob_controller_aggro_capacity.h"
+#include "mob_controller_follow_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/helpers/targetfind.h"
@@ -1531,21 +1532,25 @@ auto CMobController::Cast(const uint16 targid, const SpellID spellid) -> bool
 
 void CMobController::SetFollowTarget(CBaseEntity* PTarget, const FollowType followType)
 {
+    const auto result = mobcontrollerfollow::SetTarget(
+        PFollowTarget != nullptr, static_cast<mobcontrollerfollow::Type>(m_followType), PTarget != nullptr,
+        static_cast<mobcontrollerfollow::Type>(followType), PFollowTarget == PTarget, PMob->health.hp == PMob->GetMaxHP(),
+        m_Tick.time_since_epoch());
     if (PFollowTarget == PTarget && m_followType == followType)
     {
         return;
     }
 
-    if (PTarget != nullptr)
+    if (result.notifyFollow)
     {
         luautils::OnMobFollow(PMob, PTarget);
     }
-    else if (m_followType == FollowType::Roam)
+    else if (result.notifyUnfollow)
     {
-        PMob->m_neutral = true;
-        m_NeutralTime   = m_Tick + 30s;
+        PMob->m_neutral = result.neutral;
+        m_NeutralTime   = timer::time_point(result.neutralAfter);
         luautils::OnMobUnfollow(PMob, PFollowTarget);
-        if (PMob->health.hp == PMob->GetMaxHP())
+        if (result.clearOwnerAndEnmity)
         {
             PMob->m_OwnerID.clean();
             PMob->PEnmityContainer->Clear();
