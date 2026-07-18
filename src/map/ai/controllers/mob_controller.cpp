@@ -20,6 +20,7 @@
 */
 
 #include "mob_controller.h"
+#include "mob_controller_deaggro_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/helpers/targetfind.h"
@@ -165,48 +166,28 @@ auto CMobController::CheckHide(const CBattleEntity* PTarget) const -> bool
 {
     TracyZoneScoped;
 
-    if (PTarget && PTarget->GetMJob() == JOB_THF && PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hide))
-    {
-        return !CanPursueTarget(PTarget) && !PMob->m_TrueDetection && !(PMob->getMobMod(MOBMOD_DETECTION) & DETECT_HEARING);
-    }
-    return false;
+    return PTarget && mobcontrollerdeaggro::ShouldDeaggroForHide(
+                          PTarget->GetMJob() == JOB_THF,
+                          PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Hide),
+                          CanPursueTarget(PTarget),
+                          PMob->m_TrueDetection,
+                          PMob->getMobMod(MOBMOD_DETECTION) & DETECT_HEARING);
 }
 
 auto CMobController::CheckLock(CBattleEntity* PTarget) const -> bool
 {
     TracyZoneScoped;
 
-    if (PTarget)
-    {
-        if (PTarget->objtype == TYPE_PC)
-        {
-            const auto* PChar = dynamic_cast<CCharEntity*>(PTarget);
-            if (PChar && PChar->m_Locked)
-            {
-                return !CanPursueTarget(PTarget);
-            }
-        }
-        else if (PTarget->objtype == TYPE_PET)
-        {
-            const auto* PPet = dynamic_cast<CPetEntity*>(PTarget);
-            if (!PPet)
-            {
-                return false;
-            }
-
-            const auto* PChar = dynamic_cast<CCharEntity*>(PPet->PMaster);
-            if (PChar == nullptr)
-            {
-                return false;
-            }
-
-            if (PChar->m_Locked)
-            {
-                return !CanPursueTarget(PTarget);
-            }
-        }
-    }
-    return false;
+    const auto* PChar = PTarget && PTarget->objtype == TYPE_PC ? dynamic_cast<CCharEntity*>(PTarget) : nullptr;
+    const auto* PPet = PTarget && PTarget->objtype == TYPE_PET ? dynamic_cast<CPetEntity*>(PTarget) : nullptr;
+    const auto* PMaster = PPet ? dynamic_cast<CCharEntity*>(PPet->PMaster) : nullptr;
+    return PTarget && mobcontrollerdeaggro::ShouldDeaggroForLock(
+                          PChar != nullptr,
+                          PPet != nullptr,
+                          PChar && PChar->m_Locked,
+                          PMaster != nullptr,
+                          PMaster && PMaster->m_Locked,
+                          CanPursueTarget(PTarget));
 }
 
 auto CMobController::CheckDetection(CBattleEntity* PTarget) -> bool

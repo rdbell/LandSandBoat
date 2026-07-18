@@ -4433,6 +4433,8 @@ set(SOURCES
     test_targetfind_mob_owner_3928.cpp
     test_pathfind_finished_3930.h
     test_pathfind_finished_3930.cpp
+    test_mob_controller_deaggro_3946.h
+    test_mob_controller_deaggro_3946.cpp
 )
 
 if(UNIX)
