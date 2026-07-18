@@ -4423,6 +4423,8 @@ set(SOURCES
     test_targetfind_master_3923.cpp
     test_targetfind_radius_3924.h
     test_targetfind_radius_3924.cpp
+    test_targetfind_cone_3925.h
+    test_targetfind_cone_3925.cpp
 )
 
 if(UNIX)

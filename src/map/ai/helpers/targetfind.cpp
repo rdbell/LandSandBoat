@@ -26,6 +26,7 @@
 #include "targetfind_allegiance_capacity.h"
 #include "targetfind_offensive_capacity.h"
 #include "targetfind_context_capacity.h"
+#include "targetfind_cone_capacity.h"
 #include "targetfind_first_target_capacity.h"
 #include "targetfind_identity_capacity.h"
 #include "targetfind_lock_capacity.h"
@@ -657,36 +658,7 @@ bool CTargetFind::isWithinArea(position_t* pos)
 
 bool CTargetFind::isWithinCone(position_t* pos)
 {
-    position_t PPoint;
-
-    // holds final weight
-    position_t WPoint;
-
-    // move origin to one vertex
-    PPoint.x = pos->x - m_APoint->x;
-    PPoint.z = pos->z - m_APoint->z;
-
-    WPoint.x = (PPoint.x * (m_BPoint.z - m_CPoint.z) + PPoint.z * (m_CPoint.x - m_BPoint.x) + m_BPoint.x * m_CPoint.z - m_CPoint.x * m_BPoint.z) / m_scalar;
-
-    WPoint.y = (PPoint.x * m_CPoint.z - PPoint.z * m_CPoint.x) / m_scalar;
-    WPoint.z = (PPoint.z * m_BPoint.x - PPoint.x * m_BPoint.z) / m_scalar;
-
-    if (WPoint.x < 0 || WPoint.x > 1)
-    {
-        return false;
-    }
-
-    if (WPoint.y < 0 || WPoint.y > 1)
-    {
-        return false;
-    }
-
-    if (WPoint.z < 0 || WPoint.z > 1)
-    {
-        return false;
-    }
-
-    return true;
+    return targetfindconehelpers::IsWithinTriangle(*m_APoint, m_BPoint, m_CPoint, m_scalar, *pos);
 }
 
 bool CTargetFind::isWithinRange(position_t* pos, float range)
