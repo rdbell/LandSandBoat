@@ -23,6 +23,7 @@
 #include "targetfind_candidate_capacity.h"
 #include "targetfind_ally_capacity.h"
 #include "targetfind_any_allegiance_capacity.h"
+#include "targetfind_allegiance_capacity.h"
 #include "targetfind_context_capacity.h"
 #include "targetfind_first_target_capacity.h"
 #include "targetfind_identity_capacity.h"
@@ -575,7 +576,9 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
     }
     if (!(m_targetFlags & TARGET_ANY_ALLEGIANCE))
     {
-        if (m_PTarget && m_PTarget->allegiance != PTarget->allegiance)
+        if (targetfindallegiancehelpers::ShouldRejectInitialTargetAllegiance(
+                m_PTarget != nullptr,
+                m_PTarget != nullptr && m_PTarget->allegiance != PTarget->allegiance))
         {
             return false;
         }

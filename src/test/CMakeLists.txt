@@ -4415,6 +4415,8 @@ set(SOURCES
     test_targetfind_first_target_3919.cpp
     test_targetfind_any_allegiance_3920.h
     test_targetfind_any_allegiance_3920.cpp
+    test_targetfind_allegiance_3921.h
+    test_targetfind_allegiance_3921.cpp
 )
 
 if(UNIX)
