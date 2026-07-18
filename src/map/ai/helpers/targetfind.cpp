@@ -29,6 +29,7 @@
 #include "targetfind_first_target_capacity.h"
 #include "targetfind_identity_capacity.h"
 #include "targetfind_lock_capacity.h"
+#include "targetfind_master_capacity.h"
 #include "targetfind_vertical_capacity.h"
 
 #include "ai/ai_container.h"
@@ -595,27 +596,20 @@ bool CTargetFind::validEntity(CBattleEntity* PTarget)
         }
 
         // shouldn't add if target is charmed by the enemy
-        if (PTarget->PMaster != nullptr)
+        switch (targetfindmasterhelpers::ClassifyMasteredTarget(
+            PTarget->PMaster != nullptr,
+            m_findType,
+            PTarget->PMaster != nullptr && PTarget->PMaster->objtype == TYPE_MOB,
+            PTarget->PMaster != nullptr && PTarget->PMaster->objtype == TYPE_PC,
+            PTarget->objtype == TYPE_TRUST,
+            PTarget->objtype == TYPE_PET))
         {
-            if (m_findType == FIND_TYPE::MONSTER_PLAYER)
-            {
-                if (PTarget->PMaster->objtype == TYPE_MOB)
-                {
-                    return false;
-                }
-            }
-            else if (m_findType == FIND_TYPE::PLAYER_MONSTER)
-            {
-                if (PTarget->PMaster->objtype == TYPE_PC)
-                {
-                    return false;
-                }
-            }
-            else if (m_findType == FIND_TYPE::MONSTER_MONSTER || m_findType == FIND_TYPE::PLAYER_PLAYER)
-            {
-                // Allow Trusts and summoner/jug pets in party-targeted AoEs
-                return PTarget->objtype == TYPE_TRUST || PTarget->objtype == TYPE_PET;
-            }
+            case targetfindmasterhelpers::MasteredTargetDecision::REJECT:
+                return false;
+            case targetfindmasterhelpers::MasteredTargetDecision::ACCEPT:
+                return true;
+            case targetfindmasterhelpers::MasteredTargetDecision::CONTINUE:
+                break;
         }
     }
 

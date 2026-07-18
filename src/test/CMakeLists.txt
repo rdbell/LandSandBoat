@@ -4419,6 +4419,8 @@ set(SOURCES
     test_targetfind_allegiance_3921.cpp
     test_targetfind_offensive_3922.h
     test_targetfind_offensive_3922.cpp
+    test_targetfind_master_3923.h
+    test_targetfind_master_3923.cpp
 )
 
 if(UNIX)
