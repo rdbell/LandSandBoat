@@ -30,6 +30,7 @@
 #include "targetfind_identity_capacity.h"
 #include "targetfind_lock_capacity.h"
 #include "targetfind_master_capacity.h"
+#include "targetfind_radius_capacity.h"
 #include "targetfind_vertical_capacity.h"
 
 #include "ai/ai_container.h"
@@ -651,7 +652,7 @@ bool CTargetFind::checkIsPlayer(CBattleEntity* PTarget)
 
 bool CTargetFind::isWithinArea(position_t* pos)
 {
-    return distance(*m_PRadiusAround, *pos) <= m_radius;
+    return targetfindradiushelpers::IsWithinRadius(*m_PRadiusAround, *pos, m_radius);
 }
 
 bool CTargetFind::isWithinCone(position_t* pos)
@@ -690,7 +691,7 @@ bool CTargetFind::isWithinCone(position_t* pos)
 
 bool CTargetFind::isWithinRange(position_t* pos, float range)
 {
-    return distance(m_PBattleEntity->loc.p, *pos) <= range;
+    return targetfindradiushelpers::IsWithinRadius(m_PBattleEntity->loc.p, *pos, range);
 }
 
 CBattleEntity* CTargetFind::getValidTarget(uint16 actionTargetID, uint16 validTargetFlags)

@@ -4421,6 +4421,8 @@ set(SOURCES
     test_targetfind_offensive_3922.cpp
     test_targetfind_master_3923.h
     test_targetfind_master_3923.cpp
+    test_targetfind_radius_3924.h
+    test_targetfind_radius_3924.cpp
 )
 
 if(UNIX)
