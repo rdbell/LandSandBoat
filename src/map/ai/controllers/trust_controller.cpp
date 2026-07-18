@@ -20,6 +20,7 @@
 */
 
 #include "trust_controller.h"
+#include "trust_controller_noncombat_follow_capacity.h"
 
 #include "ability.h"
 #include "ai/helpers/gambits_container.h"
@@ -282,17 +283,23 @@ auto CTrustController::DoNonCombatTick(timer::time_point tick) -> Task<void>
     uint8 currentPartyPos = GetPartyPosition();
 
     CBattleEntity* PFollowTarget = PMaster;
+    bool           previousExists = false;
+    bool           previousIsSelf = false;
     if (currentPartyPos > 0 && static_cast<size_t>(currentPartyPos - 1) < PMaster->PTrusts.size())
     {
-        if (auto* PLeadTrust = PMaster->PTrusts.at(currentPartyPos - 1); PLeadTrust && PLeadTrust != PTrust)
+        if (auto* PLeadTrust = PMaster->PTrusts.at(currentPartyPos - 1); PLeadTrust)
         {
-            PFollowTarget = PLeadTrust;
+            previousExists = true;
+            previousIsSelf = PLeadTrust == PTrust;
+            if (!previousIsSelf)
+            {
+                PFollowTarget = PLeadTrust;
+            }
         }
     }
 
-    // First trust keeps a bit more space from master.
-    constexpr float FirstTrustFollowDistance = 3.0f; // tune as needed
-    const float     desiredFollowDistance    = (currentPartyPos == 0) ? FirstTrustFollowDistance : RoamDistance;
+    const auto plan = trustcontrollernoncombatfollow::Resolve(currentPartyPos, previousExists, previousIsSelf);
+    const float desiredFollowDistance = plan.distance;
 
     float currentDistance = distance(PTrust->loc.p, PFollowTarget->loc.p);
 
