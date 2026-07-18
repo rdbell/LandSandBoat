@@ -24,6 +24,7 @@
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
+#include "mob_controller_aggro_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/helpers/targetfind.h"
@@ -1493,53 +1494,21 @@ auto CMobController::CanAggroTarget(CBattleEntity* PTarget) const -> bool
 {
     TracyZoneScoped;
     TracyZoneString(PMob->getName());
-    if (PTarget)
+    if (!PTarget)
     {
-        TracyZoneString(PTarget->getName());
-
-        if (PMob->getBattleID() != PTarget->getBattleID())
-        {
-            return false;
-        }
-
-        // Don't aggro I'm neutral
-        if ((PMob->getMobMod(MOBMOD_ALWAYS_AGGRO) == 0 && !PMob->m_Aggro) || PMob->m_neutral || PMob->isDead())
-        {
-            return false;
-        }
-
-        // Don't aggro I'm special
-        if (PMob->getMobMod(MOBMOD_NO_AGGRO) > 0)
-        {
-            return false;
-        }
-
-        // Do not aggro if a normal CoP Fomor and the player has low enough fomor hate
-        if (PMob->m_Family == 172 && !(PMob->m_Type & MOBTYPE_NOTORIOUS) &&
-            (PMob->getZone() >= ZONE_LUFAISE_MEADOWS && PMob->getZone() <= ZONE_SACRARIUM) &&
-            PTarget->objtype == TYPE_PC)
-        {
-            if (static_cast<CCharEntity*>(PTarget)->getCharVar("FOMOR_HATE") < 8)
-            {
-                return false;
-            }
-        }
-
-        // Don't aggro I'm an underground worm
-        if ((PMob->m_roamFlags & ROAMFLAG_WORM) && PMob->IsNameHidden())
-        {
-            return false;
-        }
-
-        if (PTarget->isDead() || PTarget->isMounted())
-        {
-            return false;
-        }
-
-        return PMob->PMaster == nullptr && PMob->PAI->IsSpawned() && !PMob->PAI->IsEngaged() && CanDetectTarget(PTarget);
+        return false;
     }
-
-    return false;
+    TracyZoneString(PTarget->getName());
+    const bool isCoPFomor = PMob->m_Family == 172 && !(PMob->m_Type & MOBTYPE_NOTORIOUS) &&
+                            PMob->getZone() >= ZONE_LUFAISE_MEADOWS && PMob->getZone() <= ZONE_SACRARIUM && PTarget->objtype == TYPE_PC;
+    const int fomorHate = isCoPFomor ? static_cast<CCharEntity*>(PTarget)->getCharVar("FOMOR_HATE") : 8;
+    const bool eligible = mobcontrolleraggro::CanAggroTarget(
+        true, PMob->getBattleID() == PTarget->getBattleID(), PMob->getMobMod(MOBMOD_ALWAYS_AGGRO) != 0, PMob->m_Aggro,
+        PMob->m_neutral, PMob->isDead(), PMob->getMobMod(MOBMOD_NO_AGGRO) > 0, PMob->m_Family == 172,
+        PMob->m_Type & MOBTYPE_NOTORIOUS, PMob->getZone() >= ZONE_LUFAISE_MEADOWS && PMob->getZone() <= ZONE_SACRARIUM,
+        PTarget->objtype == TYPE_PC, fomorHate, PMob->m_roamFlags & ROAMFLAG_WORM, PMob->IsNameHidden(), PTarget->isDead(),
+        PTarget->isMounted(), PMob->PMaster != nullptr, PMob->PAI->IsSpawned(), PMob->PAI->IsEngaged(), true);
+    return eligible && CanDetectTarget(PTarget);
 }
 
 void CMobController::TapDeaggroTime()
