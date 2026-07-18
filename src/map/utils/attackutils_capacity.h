@@ -16,6 +16,7 @@
 //           residual expand 3120 / prior 3249)
 //   - 3320: ShouldApplyDADoubleDamage dedicated dual-wire (da_double_damage.go;
 //           residual expand 3120 / prior 3289)
+//   - 3904: ShouldApplyRapidShotDoubleDamage (RAPID_SHOT && rateProcs)
 
 namespace attackutilshelpers
 {
@@ -309,6 +310,9 @@ inline auto ShouldApplyDADoubleDamage(const uint8 attackType, const bool ratePro
     return attackType == AttackTypeDouble && rateProcs;
 }
 
+// ShouldApplyRapidShotDoubleDamage mirrors RAPID_SHOT + rate proc. The host
+// supplies the RAPID_SHOT_DAMAGE rate roll and doubles the original damage on
+// success; other multiplier switch arms remain mutually exclusive.
 inline auto ShouldApplyRapidShotDoubleDamage(const uint8 attackType, const bool rateProcs) -> bool
 {
     return attackType == AttackTypeRapidShot && rateProcs;

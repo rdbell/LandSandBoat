@@ -4381,6 +4381,8 @@ set(SOURCES
     test_avatarpet_can_apply_buff_3902.cpp
     test_unity_reject_null_online_3903.h
     test_unity_reject_null_online_3903.cpp
+    test_attackutils_rapid_shot_dd_3904.h
+    test_attackutils_rapid_shot_dd_3904.cpp
 )
 
 if(UNIX)

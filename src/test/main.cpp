@@ -214,6 +214,7 @@ auto runMapSessionBlowfishSelfTests() -> bool;
 auto runMapSessionCreatePolicy2783SelfTests() -> bool;
 auto runMapSessionDestroyPending2787SelfTests() -> bool;
 auto runMapSessionLookup2790SelfTests() -> bool;
+auto runAttackutilsRapidShotDD3904SelfTests() -> bool;
 auto runMapSessionReplaceCreate2795SelfTests() -> bool;
 auto runMapSessionLinkDeadPlan2799SelfTests() -> bool;
 auto runMapSessionTimeoutPlan2804SelfTests() -> bool;
@@ -4365,6 +4366,7 @@ namespace
         ok = runMapsessionDestroyPendingPtr3901SelfTests() && ok;
         ok = runAvatarpetCanApplyBuff3902SelfTests() && ok;
         ok = runUnityRejectNullOnline3903SelfTests() && ok;
+        ok = runAttackutilsRapidShotDD3904SelfTests() && ok;
 
         return ok;
     }
