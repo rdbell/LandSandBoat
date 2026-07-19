@@ -84,3 +84,13 @@ describe('ZNM Sanraku completed plate trade', function()
         assert(plan.day == 123 and plan.zeniValue == 45 and plan.clearTradedPlateValue)
     end)
 end)
+
+describe('ZNM Sanraku trophy trade', function()
+    it('ignores unknown trophies, rejects owned seals, and stages new seals', function()
+        assert(xi.znm.sanraku.trophyTradePlan(nil, false).kind == 'ignore')
+        assert(xi.znm.sanraku.trophyTradePlan(1000, true).kind == 'already_owned')
+
+        local staged = xi.znm.sanraku.trophyTradePlan(1000, false)
+        assert(staged.kind == 'stage' and staged.seal == 1000)
+    end)
+end)

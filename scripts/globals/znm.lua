@@ -549,15 +549,24 @@ end
 
 xi.znm.sanraku.handleTradeWithTrophy = function(player, npc, item)
     local znmSeal = xi.znm.TROPHIES[item:getID()]
+    local plan = xi.znm.sanraku.trophyTradePlan(znmSeal, znmSeal and player:hasKeyItem(znmSeal))
 
-    if znmSeal ~= nil then
-        if player:hasKeyItem(znmSeal) then
-            player:showText(npc, ID.text.SINGLE_TALLY)
-        else
-            xi.znm.sanraku.setTradedTrophySeal(player, znmSeal)
-            player:startEvent(912, 0, 0, 1, znmSeal)
-        end
+    if plan.kind == 'already_owned' then
+        player:showText(npc, ID.text.SINGLE_TALLY)
+    elseif plan.kind == 'stage' then
+        xi.znm.sanraku.setTradedTrophySeal(player, plan.seal)
+        player:startEvent(912, 0, 0, 1, plan.seal)
     end
+end
+
+xi.znm.sanraku.trophyTradePlan = function(seal, hasSeal)
+    if not seal then
+        return { kind = 'ignore' }
+    elseif hasSeal then
+        return { kind = 'already_owned' }
+    end
+
+    return { kind = 'stage', seal = seal }
 end
 
 -----------------------------------
