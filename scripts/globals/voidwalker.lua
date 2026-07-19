@@ -188,6 +188,10 @@ xi.voidwalker.npcUpdateOutcome = function(csid, option, hasGil, hasClearAbyssite
     return 'purchase_available'
 end
 
+xi.voidwalker.shouldDespawnOnFight = function(isSpawned, now, poppedAt, distance)
+    return isSpawned and (now > (poppedAt + 7200) or distance > 25)
+end
+
 local getNearestMob = function(player, mobs)
     return xi.voidwalker.nearestMob(mobs, function(mobId)
         return player:checkDistance(GetMobByID(mobId))
@@ -514,13 +518,7 @@ xi.voidwalker.onMobFight = function(mob, target)
     local poptime = mob:getLocalVar('[VoidWalker]PopedAt')
     local now     = GetSystemTime()
 
-    if
-        mob:isSpawned() and
-        (
-            now > (poptime + 7200) or
-            mob:checkDistance(target) > 25
-        )
-    then
+    if xi.voidwalker.shouldDespawnOnFight(mob:isSpawned(), now, poptime, mob:checkDistance(target)) then
         local zoneTextTable = zones[mob:getZoneID()].text
 
         target:messageSpecial(zoneTextTable.VOIDWALKER_DESPAWN)
