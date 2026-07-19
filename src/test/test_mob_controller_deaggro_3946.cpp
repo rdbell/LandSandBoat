@@ -55,6 +55,7 @@
 #include "map/ai/controllers/mob_controller_roam_action_dispatch_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_pet_follow_capacity.h"
 #include "map/ai/controllers/mob_controller_engage_pet_capacity.h"
+#include "map/ai/controllers/mob_controller_disengage_roam_schedule_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -715,6 +716,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                 !mobcontrollerengagepet::ShouldEngage(false, true, false) &&
                                 !mobcontrollerengagepet::ShouldEngage(true, false, false) &&
                                 !mobcontrollerengagepet::ShouldEngage(true, true, true);
+    const auto disengageRoamTick = base + std::chrono::seconds(20);
+    const bool mobDisengageRoamScheduleOK =
+        mobcontrollerdisengageroamschedule::Schedule(disengageRoamTick, std::chrono::seconds(30)) == base &&
+        mobcontrollerdisengageroamschedule::Schedule(disengageRoamTick, std::chrono::seconds(10)) == disengageRoamTick &&
+        mobcontrollerdisengageroamschedule::Schedule(disengageRoamTick, std::chrono::seconds(5)) == base + std::chrono::seconds(25);
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1463,6 +1469,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobEngagePetOK)
     {
         std::cerr << "mob engage-pet self-test failed\n";
+        return false;
+    }
+    if (!mobDisengageRoamScheduleOK)
+    {
+        std::cerr << "mob disengage-roam schedule self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

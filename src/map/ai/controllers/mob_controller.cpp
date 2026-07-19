@@ -73,6 +73,7 @@
 #include "mob_controller_roam_action_dispatch_capacity.h"
 #include "mob_controller_roam_pet_follow_capacity.h"
 #include "mob_controller_engage_pet_capacity.h"
+#include "mob_controller_disengage_roam_schedule_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1471,7 +1472,8 @@ auto CMobController::Disengage() -> bool
     TracyZoneScoped;
 
     // this will let me decide to walk home or despawn
-    m_LastActionTime = m_Tick - std::chrono::seconds(PMob->getMobMod(MOBMOD_ROAM_COOL)) + 10s;
+    m_LastActionTime = mobcontrollerdisengageroamschedule::Schedule(
+        m_Tick, std::chrono::seconds(PMob->getMobMod(MOBMOD_ROAM_COOL)));
     PMob->m_neutral  = true;
     m_NeutralTime    = m_Tick;
 
