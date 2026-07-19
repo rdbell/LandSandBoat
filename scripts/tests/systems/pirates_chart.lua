@@ -135,6 +135,21 @@ describe("Pirates Chart buddy defeat gate", function()
     end)
 end)
 
+describe("Pirates Chart item check", function()
+    it('allows items only on the three Barnacle Buddy targets', function()
+        local mobs = zones[xi.zone.VALKURM_DUNES].mob
+        local target = { getID = function(self) return self.id end }
+
+        for _, id in ipairs({ mobs.BEACH_MONK, mobs.HEIKE_CRAB, mobs.HOUU_THE_SHOALWADER }) do
+            target.id = id
+            assert(xi.piratesChart.onItemCheck(target) == 0)
+        end
+
+        target.id = 0
+        assert(xi.piratesChart.onItemCheck(target) == xi.msg.basic.CANNOT_ON_THAT_TARG)
+    end)
+end)
+
 describe("Pirates Chart box spawn", function()
     it('spawns and arms the Barnacled Box after the final buddy dies', function()
         local calls = {}
