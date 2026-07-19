@@ -70,6 +70,7 @@
 #include "map/ai/controllers/automaton_controller_tp_move_gate_capacity.h"
 #include "map/ai/controllers/automaton_controller_disengage_stand_back_capacity.h"
 #include "map/ai/controllers/automaton_controller_healing_gate_capacity.h"
+#include "map/ai/controllers/automaton_controller_elemental_gate_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -591,6 +592,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonHealingGateOK)
     {
         std::cerr << "automaton healing gate self-test failed\n";
+        return false;
+    }
+    const bool automatonElementalGateOK = automatoncontrollerelementalgate::CanTryElemental(true, 7001ms, 1000ms, 6000ms) &&
+                                          !automatoncontrollerelementalgate::CanTryElemental(false, 7001ms, 1000ms, 6000ms) &&
+                                          !automatoncontrollerelementalgate::CanTryElemental(true, 7001ms, 1000ms, 0ms) &&
+                                          !automatoncontrollerelementalgate::CanTryElemental(true, 7000ms, 1000ms, 6000ms);
+    if (!automatonElementalGateOK)
+    {
+        std::cerr << "automaton elemental gate self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&

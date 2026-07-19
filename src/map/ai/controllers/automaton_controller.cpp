@@ -49,6 +49,7 @@
 #include "automaton_controller_tp_move_gate_capacity.h"
 #include "automaton_controller_disengage_stand_back_capacity.h"
 #include "automaton_controller_healing_gate_capacity.h"
+#include "automaton_controller_elemental_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -537,7 +538,7 @@ auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
 
 auto CAutomatonController::TryElemental(const CurrentManeuvers& maneuvers) -> bool
 {
-    if (!PAutomaton->PMaster || m_elementalCooldown == 0s || m_Tick <= m_LastElementalTime + m_elementalCooldown)
+    if (!automatoncontrollerelementalgate::CanTryElemental(PAutomaton->PMaster != nullptr, m_Tick, m_LastElementalTime, m_elementalCooldown))
     {
         return false;
     }
