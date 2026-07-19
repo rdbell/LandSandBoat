@@ -26,6 +26,7 @@
 #include "mob_controller_pet_assist_capacity.h"
 #include "mob_controller_party_link_scan_capacity.h"
 #include "mob_controller_party_link_member_eligibility_capacity.h"
+#include "mob_controller_party_link_family_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -373,7 +374,8 @@ void CMobController::TryLink()
             // Handle the case where a mob doesn't link with its own family but has a sublink
             // This is needed because the sublink will cause like family members to be in the same
             // party so that they are linked with sublinked families.
-            if (!PMob->ShouldForceLink() && !PMob->m_Link && PMob->m_Family == PPartyMember->m_Family)
+            if (!mobcontrollerpartylinkfamily::CanLink(
+                    PMob->ShouldForceLink(), PMob->m_Link, PMob->m_Family, PPartyMember->m_Family))
             {
                 continue;
             }
