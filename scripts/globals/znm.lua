@@ -804,7 +804,12 @@ xi.znm.incrementTradedPlates = function(player)
     player:incrementCharVar('[ZNM][Sanraku]TradedPlates', 1)
 end
 
+xi.znm.dailyTrackingResetPlan = function()
+    return { tradingDay = 0, tradedPlates = 0 }
+end
+
 xi.znm.resetDailyTrackingVars = function(player)
-    player:setVar('[ZNM][Sanraku]TradingDay', 0)
-    player:setVar('[ZNM][Sanraku]TradedPlates', 0)
+    local plan = xi.znm.dailyTrackingResetPlan()
+    player:setVar('[ZNM][Sanraku]TradingDay', plan.tradingDay)
+    player:setVar('[ZNM][Sanraku]TradedPlates', plan.tradedPlates)
 end
