@@ -513,16 +513,24 @@ xi.znm.sanraku.handleTradeWithPlate = function(player, npc, item)
     player:startEvent(910, zeni)
 end
 
+xi.znm.plateTradeDayPlan = function(currentDay, storedDay, tradedPlates)
+    if currentDay ~= storedDay then
+        return { reset = true, tradedPlates = 0 }
+    end
+
+    return { tradedPlates = tradedPlates }
+end
+
 xi.znm.sanraku.platesTradedToday = function(player)
     local currentDay = VanadielUniqueDay()
     local storedDay  = xi.znm.playerTradingDay(player)
+    local plan       = xi.znm.plateTradeDayPlan(currentDay, storedDay, xi.znm.numberOfTradedPlates(player))
 
-    if currentDay ~= storedDay then
+    if plan.reset then
         xi.znm.resetDailyTrackingVars(player)
-        return 0
     end
 
-    return xi.znm.numberOfTradedPlates(player)
+    return plan.tradedPlates
 end
 
 xi.znm.sanraku.handleTradeWithTrophy = function(player, npc, item)

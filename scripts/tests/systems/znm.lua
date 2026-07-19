@@ -54,3 +54,13 @@ describe('ZNM Sanraku daily tracking reset', function()
         assert(plan.tradingDay == 0 and plan.tradedPlates == 0)
     end)
 end)
+
+describe('ZNM Sanraku plate trade day', function()
+    it('clears stale-day trade counts but retains current-day counts', function()
+        local stale = xi.znm.plateTradeDayPlan(100, 99, 7)
+        assert(stale.reset and stale.tradedPlates == 0)
+
+        local current = xi.znm.plateTradeDayPlan(100, 100, 7)
+        assert(current.reset == nil and current.tradedPlates == 7)
+    end)
+end)
