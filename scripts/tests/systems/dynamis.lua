@@ -19,6 +19,22 @@ describe('Dynamis entry trigger preflight', function()
     end)
 end)
 
+describe('Dynamis entry trigger actions', function()
+    it('prioritizes shrouded sand, then victory, then the entry menu', function()
+        local shroudedSand = xi.dynamis.entryTriggerActionPlan(true, true, false, false, false)
+        assert(shroudedSand.startShroudedSand and shroudedSand.startVictory == nil)
+
+        local victory = xi.dynamis.entryTriggerActionPlan(true, true, true, true, false)
+        assert(victory.startVictory and victory.openEntryMenu == nil)
+
+        local entryMenu = xi.dynamis.entryTriggerActionPlan(false, false, false, false, true)
+        assert(entryMenu.openEntryMenu and entryMenu.startVictory == nil)
+
+        local blocked = xi.dynamis.entryTriggerActionPlan(false, false, false, false, false)
+        assert(next(blocked) == nil)
+    end)
+end)
+
 describe('Dynamis time-extension groups', function()
     it('normalizes single and grouped extension mobs and rejects missing IDs', function()
         local single = { mob = 100, ki = 200, minutes = 10 }

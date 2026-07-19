@@ -457,6 +457,18 @@ xi.dynamis.entryTriggerPreflightPlan = function(tavnaziaFirstCandidate, hasPrism
     return {}
 end
 
+xi.dynamis.entryTriggerActionPlan = function(unlockingDynamis, hasShroudedSandCutscene, hasShroudedSand, hasBeatenDynamis, meetsEntryRequirements)
+    if unlockingDynamis and hasShroudedSandCutscene and not hasShroudedSand then
+        return { startShroudedSand = true }
+    elseif hasBeatenDynamis then
+        return { startVictory = true }
+    elseif meetsEntryRequirements then
+        return { openEntryMenu = true }
+    end
+
+    return {}
+end
+
 xi.dynamis.entryNpcOnTrigger = function(player, npc)
     local zoneId        = player:getZoneID()
     local info          = entryInfo[zoneId]
@@ -498,23 +510,26 @@ xi.dynamis.entryNpcOnTrigger = function(player, npc)
         player:getMainLvl() >= xi.settings.main.DYNA_LEVEL_MIN and
         (player:hasKeyItem(xi.ki.PRISMATIC_HOURGLASS) or unlockingDyna)
     then
+        local action = xi.dynamis.entryTriggerActionPlan(
+            unlockingDyna,
+            info.csVial ~= nil,
+            player:hasKeyItem(xi.ki.VIAL_OF_SHROUDED_SAND),
+            player:getCharVar(info.beatVar) == 1,
+            not info.reqs or info.reqs(player)
+        )
 
         -- shrouded sand cutscene
-        if
-            unlockingDyna and
-            info.csVial and
-            not player:hasKeyItem(xi.ki.VIAL_OF_SHROUDED_SAND)
-        then
+        if action.startShroudedSand then
             player:startEvent(info.csVial)
 
         -- victory cutscene
-        elseif player:getCharVar(info.beatVar) == 1 then
+        elseif action.startVictory then
             -- NOTE: The hourglass and shrouded sand parameter is only required for Beaucedine, but has no
             -- effect on the others.
             player:startEvent(info.csBeat, info.beatKI, 0, xi.ki.PRISMATIC_HOURGLASS , xi.ki.VIAL_OF_SHROUDED_SAND)
 
         -- dynamis entry
-        elseif not info.reqs or info.reqs(player) then
+        elseif action.openEntryMenu then
             local realDay      = GetSystemTime()
             local dynaWaitxDay = player:getCharVar('dynaWaitxDay')
             local sjobOption   = info.csBit > 6 and 1 or 0
