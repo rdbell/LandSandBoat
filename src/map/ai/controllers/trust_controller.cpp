@@ -28,6 +28,7 @@
 #include "trust_controller_combat_master_engagement_capacity.h"
 #include "trust_controller_combat_post_movement_capacity.h"
 #include "trust_controller_master_enmity_capacity.h"
+#include "trust_controller_target_sync_admission_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_noncombat_declump_admission_capacity.h"
@@ -170,7 +171,9 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
         m_CombatEndTime = m_Tick;
     }
 
-    const bool targetMismatch = PMaster && PMob && PTrust->GetBattleTargetID() != PMaster->GetBattleTargetID();
+    const bool targetMismatch = trustcontrollertargetsyncadmission::CanCheck(
+        PMaster != nullptr, PMob != nullptr,
+        [&]() { return PTrust->GetBattleTargetID() != PMaster->GetBattleTargetID(); });
     if (targetMismatch)
     {
         auto  masterID   = PMaster->id;
