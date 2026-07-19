@@ -90,3 +90,24 @@ describe("Pirates Chart event finish", function()
         assert(calls.animation == xi.animationString.SHIMMER)
     end)
 end)
+
+describe("Pirates Chart mob fight", function()
+    it('uses Hundred Fists once below half health and restores damage after snare expiry', function()
+        local calls = {}
+        local used, now = 0, 11
+        local mob = {
+            getHPP = function() return 49 end,
+            getLocalVar = function(_, name) return name == 'usedTwoHour' and used or 10 end,
+            useMobAbility = function(_, skill) calls.skill = skill end,
+            setLocalVar = function(_, name, value) if name == 'usedTwoHour' then used = value end end,
+            setMobMod = function(_, _, value) calls.multiplier = value end,
+        }
+        stub('GetSystemTime', function() return now end)
+        xi.piratesChart.onMobFight(mob)
+        assert(calls.skill == xi.mobSkill.HUNDRED_FISTS_1 and used == 1 and calls.multiplier == 100)
+        calls.skill = nil
+        now = 10
+        xi.piratesChart.onMobFight(mob)
+        assert(calls.skill == nil)
+    end)
+end)
