@@ -22,6 +22,7 @@
 #include "trust_controller.h"
 #include "trust_controller_ability_capacity.h"
 #include "trust_controller_cast_coordination_capacity.h"
+#include "trust_controller_combat_declump_admission_capacity.h"
 #include "trust_controller_combat_movement_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
@@ -452,7 +453,10 @@ void CTrustController::Declump(CCharEntity* PMaster, CBattleEntity* PTarget)
     uint8 currentPartyPos = GetPartyPosition();
     for (auto* POtherTrust : PMaster->PTrusts)
     {
-        if (POtherTrust != POwner && !POtherTrust->PAI->PathFind->IsFollowingPath() && distance(POtherTrust->loc.p, POwner->loc.p) < 1.5f)
+        if (trustcontrollercombatdeclumpadmission::ShouldDeclump(
+                POtherTrust == POwner,
+                [&]() { return POtherTrust->PAI->PathFind->IsFollowingPath(); },
+                [&]() { return distance(POtherTrust->loc.p, POwner->loc.p) < 1.5f; }))
         {
             auto diffAngle  = worldAngle(POwner->loc.p, PTarget->loc.p) + 64;
             auto moveAmount = xirand::GetRandomNumber(0.0f, 1.5f) * ((currentPartyPos % 2) ? 1.0f : -1.0f);
