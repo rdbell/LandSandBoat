@@ -29,6 +29,7 @@
 #include "automaton_controller_shield_bash_gate_capacity.h"
 #include "automaton_controller_spell_gate_capacity.h"
 #include "automaton_controller_healing_threshold_capacity.h"
+#include "automaton_controller_healing_target_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -416,28 +417,19 @@ auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
         }
     }
 
-    // Prioritize hate
-    if (haveHate)
+    const auto automatonHPP = PAutomaton->GetHPP();
+    const auto masterHPP    = PAutomaton->PMaster->GetHPP();
+    const auto masterDistance = haveHate && automatonHPP > 50 && masterHPP <= threshold ?
+                                    distance(PAutomaton->loc.p, PAutomaton->PMaster->loc.p) :
+                                    0.0f;
+    const auto target = automatoncontrollerhealingtarget::Select(haveHate, automatonHPP, masterHPP, threshold, masterDistance);
+    if (target == automatoncontrollerhealingtarget::Target::Automaton)
     {
-        if (PAutomaton->GetHPP() <= 50)
-        { // Automaton only heals itself when <= 50%
-            PCastTarget = PAutomaton;
-        }
-        else if (PAutomaton->PMaster->GetHPP() <= threshold && distance(PAutomaton->loc.p, PAutomaton->PMaster->loc.p) < 20)
-        {
-            PCastTarget = PAutomaton->PMaster;
-        }
+        PCastTarget = PAutomaton;
     }
-    else
+    else if (target == automatoncontrollerhealingtarget::Target::Master)
     {
-        if (PAutomaton->PMaster->GetHPP() <= threshold)
-        {
-            PCastTarget = PAutomaton->PMaster;
-        }
-        else if (PAutomaton->GetHPP() <= 50)
-        { // Automaton only heals itself when <= 50%
-            PCastTarget = PAutomaton;
-        }
+        PCastTarget = PAutomaton->PMaster;
     }
 
     if (maneuvers.light && !PCastTarget && PAutomaton->head() == AutomatonHead::Soulsoother && PAutomaton->PMaster->PParty) // Light + Soulsoother head -> Heal party
