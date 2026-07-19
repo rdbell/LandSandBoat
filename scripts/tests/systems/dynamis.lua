@@ -48,6 +48,13 @@ describe('Dynamis entry menu', function()
     end)
 end)
 
+describe('Dynamis initial spawn selection', function()
+    it('selects the requested one-based group member', function()
+        assert(xi.dynamis.initialSpawnSelection({ 100, 101 }, 1) == 100)
+        assert(xi.dynamis.initialSpawnSelection({ 100, 101 }, 2) == 101)
+    end)
+end)
+
 describe('Dynamis time-extension groups', function()
     it('normalizes single and grouped extension mobs and rejects missing IDs', function()
         local single = { mob = 100, ki = 200, minutes = 10 }

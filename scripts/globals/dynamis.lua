@@ -480,6 +480,10 @@ xi.dynamis.entryMenuPlan = function(dynaWaitxDay, realDay, waitHours, csBit)
     }
 end
 
+xi.dynamis.initialSpawnSelection = function(group, randomIndex)
+    return group[randomIndex]
+end
+
 xi.dynamis.entryNpcOnTrigger = function(player, npc)
     local zoneId        = player:getZoneID()
     local info          = entryInfo[zoneId]
@@ -606,7 +610,7 @@ xi.dynamis.zoneOnInitialize = function(zone)
                 group = { unpack(v.mob) }
             end
 
-            local teId = group[math.random(1, #group)]
+            local teId = xi.dynamis.initialSpawnSelection(group, math.random(1, #group))
             DisallowRespawn(teId, false)
             SpawnMob(teId)
         end
@@ -621,7 +625,7 @@ xi.dynamis.zoneOnInitialize = function(zone)
                 table.insert(group, m.mob)
             end
 
-            local spawnId = group[math.random(1, #group)]
+            local spawnId = xi.dynamis.initialSpawnSelection(group, math.random(1, #group))
             DisallowRespawn(spawnId, false)
             SpawnMob(spawnId)
         end
