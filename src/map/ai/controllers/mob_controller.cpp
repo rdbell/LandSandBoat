@@ -69,6 +69,7 @@
 #include "mob_controller_overlap_reposition_point_capacity.h"
 #include "mob_controller_bound_retarget_admission_capacity.h"
 #include "mob_controller_bound_retarget_search_capacity.h"
+#include "mob_controller_roam_follow_ranges_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1157,24 +1158,15 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
 
     if (PFollowTarget != nullptr && m_followType == FollowType::Roam)
     {
-        float followRoamDistance = 4.0f;
+        const auto followRanges = mobcontrollerroamfollowranges::Resolve(
+            PMob->getMobMod(MOBMOD_FOLLOW_LEASH_RANGE), PMob->getMobMod(MOBMOD_FOLLOW_STOP_RANGE));
 
-        if (PMob->getMobMod(MOBMOD_FOLLOW_LEASH_RANGE) > 0)
-        {
-            followRoamDistance = PMob->getMobMod(MOBMOD_FOLLOW_LEASH_RANGE);
-        }
         // Only path to leader if they're moving
         if (mobcontrollerroamfollowleader::ShouldPath(
-                distance(PMob->loc.p, PFollowTarget->loc.p) > followRoamDistance,
+                distance(PMob->loc.p, PFollowTarget->loc.p) > followRanges.leash,
                 PFollowTarget->PAI->PathFind->IsFollowingPath()))
         {
-            float followStopRange = 2.0f;
-
-            if (PMob->getMobMod(MOBMOD_FOLLOW_STOP_RANGE) > 0)
-            {
-                followStopRange = PMob->getMobMod(MOBMOD_FOLLOW_STOP_RANGE);
-            }
-            PMob->PAI->PathFind->PathAround(PFollowTarget->loc.p, followStopRange, PATHFLAG_RUN | PATHFLAG_WALLHACK);
+            PMob->PAI->PathFind->PathAround(PFollowTarget->loc.p, followRanges.stop, PATHFLAG_RUN | PATHFLAG_WALLHACK);
         }
 
         if (!PMob->PAI->PathFind->IsFollowingPath())

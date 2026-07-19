@@ -50,6 +50,7 @@
 #include "map/ai/controllers/mob_controller_overlap_reposition_point_capacity.h"
 #include "map/ai/controllers/mob_controller_bound_retarget_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_bound_retarget_search_capacity.h"
+#include "map/ai/controllers/mob_controller_roam_follow_ranges_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -682,6 +683,12 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool mobRoamFollowLeaderOK = mobcontrollerroamfollowleader::ShouldPath(true, true) &&
                                         !mobcontrollerroamfollowleader::ShouldPath(false, true) &&
                                         !mobcontrollerroamfollowleader::ShouldPath(true, false);
+    const auto mobRoamFollowDefaultRanges = mobcontrollerroamfollowranges::Resolve(0, 0);
+    const auto mobRoamFollowLeashRanges = mobcontrollerroamfollowranges::Resolve(7, 0);
+    const auto mobRoamFollowStopRanges = mobcontrollerroamfollowranges::Resolve(-1, 3);
+    const bool mobRoamFollowRangesOK = mobRoamFollowDefaultRanges.leash == 4.0f && mobRoamFollowDefaultRanges.stop == 2.0f &&
+                                       mobRoamFollowLeashRanges.leash == 7.0f && mobRoamFollowLeashRanges.stop == 2.0f &&
+                                       mobRoamFollowStopRanges.leash == 4.0f && mobRoamFollowStopRanges.stop == 3.0f;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1405,6 +1412,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobRoamFollowLeaderOK)
     {
         std::cerr << "mob roam follow-leader self-test failed\n";
+        return false;
+    }
+    if (!mobRoamFollowRangesOK)
+    {
+        std::cerr << "mob roam follow-ranges self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)
