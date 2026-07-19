@@ -71,6 +71,7 @@
 #include "mob_controller_roam_follow_ranges_capacity.h"
 #include "mob_controller_roam_home_action_capacity.h"
 #include "mob_controller_roam_action_dispatch_capacity.h"
+#include "mob_controller_roam_pet_follow_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1371,7 +1372,10 @@ void CMobController::FollowRoamPath()
         PMob->PAI->PathFind->FollowPath(m_Tick);
 
         CBattleEntity* PPet = PMob->PPet;
-        if (PPet != nullptr && PPet->PAI->IsSpawned() && !PPet->PAI->IsEngaged())
+        const auto hasPet     = PPet != nullptr;
+        const auto petSpawned = hasPet && PPet->PAI->IsSpawned();
+        const auto petEngaged = petSpawned && PPet->PAI->IsEngaged();
+        if (mobcontrollerroampetfollow::ShouldFollow(hasPet, petSpawned, petEngaged))
         {
             // pet should follow me if roaming
             position_t targetPoint = nearPosition(PMob->loc.p, 2.1f, (float)M_PI);
