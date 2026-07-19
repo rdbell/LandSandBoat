@@ -24,6 +24,7 @@
 #include "map/ai/controllers/mob_controller_roam_home_gate_capacity.h"
 #include "map/ai/controllers/mob_controller_despawn_policy_capacity.h"
 #include "map/ai/controllers/mob_controller_dead_master_despawn_capacity.h"
+#include "map/ai/controllers/mob_controller_worm_roam_action_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -671,6 +672,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                         !mobcontrollerdeadmasterdespawn::ShouldDespawn(false, true, false) &&
                                         !mobcontrollerdeadmasterdespawn::ShouldDespawn(true, false, false) &&
                                         !mobcontrollerdeadmasterdespawn::ShouldDespawn(true, true, true);
+    const bool mobWormRoamActionOK = mobcontrollerwormroamaction::Select(true, false, false) == mobcontrollerwormroamaction::Action::Burrow &&
+                                     mobcontrollerwormroamaction::Select(true, false, true) == mobcontrollerwormroamaction::Action::Wait &&
+                                     mobcontrollerwormroamaction::Select(true, true, false) == mobcontrollerwormroamaction::Action::RoamAround &&
+                                     mobcontrollerwormroamaction::Select(false, false, false) == mobcontrollerwormroamaction::Action::RoamAround;
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1162,6 +1167,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobDeadMasterDespawnOK)
     {
         std::cerr << "mob dead-master despawn self-test failed\n";
+        return false;
+    }
+    if (!mobWormRoamActionOK)
+    {
+        std::cerr << "mob worm roam-action self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)

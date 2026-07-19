@@ -43,6 +43,7 @@
 #include "mob_controller_roam_home_gate_capacity.h"
 #include "mob_controller_despawn_policy_capacity.h"
 #include "mob_controller_dead_master_despawn_capacity.h"
+#include "mob_controller_worm_roam_action_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1227,30 +1228,38 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
                 else if (PMob->CanRoam())
                 {
                     // TODO: #AIToScript (event probably)
-                    if (PMob->m_roamFlags & ROAMFLAG_WORM && !PMob->IsNameHidden())
+                    const bool worm       = (PMob->m_roamFlags & ROAMFLAG_WORM) != 0;
+                    const bool nameHidden = worm && PMob->IsNameHidden();
+                    const auto wormRoamAction = mobcontrollerwormroamaction::Select(
+                        worm,
+                        nameHidden,
+                        worm && !nameHidden && PMob->PAI->IsCurrentState<CMagicState>());
+                    if (wormRoamAction == mobcontrollerwormroamaction::Action::Burrow)
                     {
                         // don't reset m_LastActionTime until the roaming commences
-                        if (!PMob->PAI->IsCurrentState<CMagicState>())
-                        {
-                            // move down
-                            PMob->animationsub = 1;
-                            PMob->HideName(true);
-                            PMob->SetUntargetable(true);
+                        // move down
+                        PMob->animationsub = 1;
+                        PMob->HideName(true);
+                        PMob->SetUntargetable(true);
 
-                            // don't move around until i'm fully in the ground
-                            // Transition underground takes 2s, allow extra time for any magic effect to finish
-                            Wait(3s);
-                            PMob->PAI->QueueAction(
-                                queueAction_t(
-                                    3s,
-                                    false,
-                                    [](CBaseEntity* MobEntity)
-                                    {
-                                        MobEntity->status = STATUS_TYPE::INVISIBLE;
-                                    }));
-                        }
+                        // don't move around until i'm fully in the ground
+                        // Transition underground takes 2s, allow extra time for any magic effect to finish
+                        Wait(3s);
+                        PMob->PAI->QueueAction(
+                            queueAction_t(
+                                3s,
+                                false,
+                                [](CBaseEntity* MobEntity)
+                                {
+                                    MobEntity->status = STATUS_TYPE::INVISIBLE;
+                                }));
                     }
-                    else if (PMob->PAI->PathFind->RoamAround(PMob->m_SpawnPoint, PMob->GetRoamDistance(), static_cast<uint8>(PMob->getMobMod(MOBMOD_ROAM_TURNS)), PMob->m_roamFlags))
+                    else if (wormRoamAction == mobcontrollerwormroamaction::Action::Wait)
+                    {
+                        // Finish the current spell before burrowing.
+                    }
+                    else if (wormRoamAction == mobcontrollerwormroamaction::Action::RoamAround &&
+                             PMob->PAI->PathFind->RoamAround(PMob->m_SpawnPoint, PMob->GetRoamDistance(), static_cast<uint8>(PMob->getMobMod(MOBMOD_ROAM_TURNS)), PMob->m_roamFlags))
                     {
                         if ((PMob->m_roamFlags & ROAMFLAG_STEALTH))
                         {
