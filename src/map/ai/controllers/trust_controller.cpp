@@ -25,6 +25,7 @@
 #include "trust_controller_combat_movement_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
+#include "trust_controller_noncombat_declump_admission_capacity.h"
 #include "trust_controller_noncombat_movement_capacity.h"
 #include "trust_controller_recovery_capacity.h"
 #include "trust_controller_ranged_attack_capacity.h"
@@ -299,9 +300,10 @@ auto CTrustController::DoNonCombatTick(timer::time_point tick) -> Task<void>
     // Simple declump so non-combat trusts don't stack on each other.
     for (auto* POtherTrust : PMaster->PTrusts)
     {
-        if (POtherTrust != PTrust &&
-            distance(POtherTrust->loc.p, PTrust->loc.p) < 1.0f &&
-            !PTrust->PAI->PathFind->IsFollowingPath())
+        if (trustcontrollernoncombatdeclumpadmission::ShouldDeclump(
+                POtherTrust == PTrust,
+                [&]() { return distance(POtherTrust->loc.p, PTrust->loc.p) < 1.0f; },
+                [&]() { return PTrust->PAI->PathFind->IsFollowingPath(); }))
         {
             auto diff_angle = worldAngle(PTrust->loc.p, POtherTrust->loc.p) + 64;
             auto amount     = (currentPartyPos % 2) ? 1.0f : -1.0f;
