@@ -92,3 +92,23 @@ describe('Garrison spawn schedule selection', function()
         assert(xi.garrison.getSpawnSchedule(playerWithPartyCount(4)) == xi.garrison.waves.spawnSchedule[1])
     end)
 end)
+
+describe('Garrison level-cap resolution', function()
+    it('uses the server maximum for the uncapped encounter', function()
+        local captured = {}
+        local entity = {
+            addStatusEffect = function(_, effect, args)
+                captured.effect = effect
+                captured.args = args
+            end,
+        }
+
+        xi.garrison.addLevelCap(entity, 50)
+        assert(captured.effect == xi.effect.LEVEL_RESTRICTION and captured.args.power == 50)
+        assert(captured.args.origin == entity)
+
+        xi.garrison.addLevelCap(entity, 99)
+        assert(captured.args.power == xi.settings.main.MAX_LEVEL)
+        assert(captured.args.flag == xi.effectFlag.ON_ZONE + xi.effectFlag.CONFRONTATION)
+    end)
+end)
