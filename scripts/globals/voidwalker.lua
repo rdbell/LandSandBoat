@@ -154,6 +154,10 @@ xi.voidwalker.healingRangeOutcome = function(distance)
     return 'hint'
 end
 
+xi.voidwalker.shouldUpgradeOriginalPopper = function(isKiller, popperExists, popperInAlliance, popperHasKeyItem)
+    return isKiller and popperExists and not popperInAlliance and not popperHasKeyItem
+end
+
 local getNearestMob = function(player, mobs)
     return xi.voidwalker.nearestMob(mobs, function(mobId)
         return player:checkDistance(GetMobByID(mobId))
@@ -532,22 +536,25 @@ xi.voidwalker.onMobDeath = function(mob, player, optParams, keyItem)
         if optParams.isKiller then
             local playerpoped = GetPlayerByID(mob:getLocalVar('[VoidWalker]PopedBy'))
             local alliance    = player:getAlliance()
-            local outOfParty  = true
+            local popperInAlliance = false
 
             for _, member in pairs(alliance) do
                 if
                     playerpoped and
                     member:getID() == playerpoped:getID()
                 then
-                    outOfParty = false
+                    popperInAlliance = true
                     break
                 end
             end
 
             if
-                outOfParty and
-                playerpoped and
-                not playerpoped:hasKeyItem(keyItem)
+                xi.voidwalker.shouldUpgradeOriginalPopper(
+                    optParams.isKiller,
+                    playerpoped ~= nil,
+                    popperInAlliance,
+                    playerpoped and playerpoped:hasKeyItem(keyItem)
+                )
             then
                 checkUpgrade(playerpoped, mob, keyItem)
             end
