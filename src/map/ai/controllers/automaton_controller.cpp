@@ -91,6 +91,7 @@
 #include "automaton_controller_master_enhancement_target_capacity.h"
 #include "automaton_controller_party_enhancement_target_capacity.h"
 #include "automaton_controller_enhancement_enmity_target_capacity.h"
+#include "automaton_controller_tp_skillchain_resonance_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1498,7 +1499,10 @@ auto CAutomatonController::TryTPMove() -> bool
         if (attemptChain)
         {
             CStatusEffect* PSCEffect = PTarget->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Skillchain, 0);
-            if (PSCEffect && PSCEffect->GetStartTime() + 3s < timer::now())
+            if (automatoncontrollertpskillchainresonancegate::CanUseResonance(
+                    PSCEffect != nullptr,
+                    PSCEffect ? PSCEffect->GetStartTime() : timer::time_point{},
+                    timer::now()))
             {
                 std::list<SKILLCHAIN_ELEMENT> resonanceProperties;
 

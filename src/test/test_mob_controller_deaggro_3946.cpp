@@ -112,6 +112,7 @@
 #include "map/ai/controllers/automaton_controller_master_enhancement_target_capacity.h"
 #include "map/ai/controllers/automaton_controller_party_enhancement_target_capacity.h"
 #include "map/ai/controllers/automaton_controller_enhancement_enmity_target_capacity.h"
+#include "map/ai/controllers/automaton_controller_tp_skillchain_resonance_gate_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -578,6 +579,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool automatonTPSkillSelectionResultOK = !automatoncontrollertpskillselectionresult::HasSelectedTPSkill(-1) &&
                                                    automatoncontrollertpskillselectionresult::HasSelectedTPSkill(0) &&
                                                    automatoncontrollertpskillselectionresult::HasSelectedTPSkill(3);
+    const auto skillchainStart = timer::time_point{} + std::chrono::seconds(10);
+    const bool automatonTPSkillchainResonanceGateOK = automatoncontrollertpskillchainresonancegate::CanUseResonance(
+                                                         true, skillchainStart, skillchainStart + std::chrono::seconds(4)) &&
+                                                     !automatoncontrollertpskillchainresonancegate::CanUseResonance(
+                                                         false, skillchainStart, skillchainStart + std::chrono::seconds(4)) &&
+                                                     !automatoncontrollertpskillchainresonancegate::CanUseResonance(
+                                                         true, skillchainStart, skillchainStart + std::chrono::seconds(3)) &&
+                                                     !automatoncontrollertpskillchainresonancegate::CanUseResonance(
+                                                         true, skillchainStart, skillchainStart + std::chrono::seconds(2));
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -974,6 +984,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonTPSkillSelectionResultOK)
     {
         std::cerr << "automaton TP skill selection result self-test failed\n";
+        return false;
+    }
+    if (!automatonTPSkillchainResonanceGateOK)
+    {
+        std::cerr << "automaton TP skillchain resonance gate self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)
