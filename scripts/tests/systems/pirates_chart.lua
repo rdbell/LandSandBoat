@@ -536,7 +536,10 @@ describe("Pirates Chart range completion", function()
             if id == zones[xi.zone.VALKURM_DUNES].npc.BARNACLED_BOX then return box end
         end)
         stub('GetSystemTime', function() return now end)
-        stub('xi.confrontation.start', function() calls.started = true end)
+        stub('xi.confrontation.start', function(_, _, _, params)
+            calls.started = true
+            calls.onLose = params.onLose
+        end)
 
         for _, testCase in ipairs({
             { name = 'valid ending', distance = 0, alive = true, taruAtExpiry = true, shimmeringAtExpiry = true, started = true, hideAuxiliaries = true },
@@ -558,7 +561,12 @@ describe("Pirates Chart range completion", function()
             now = 51
             rangeTimer(qm)
             assert(calls.started == testCase.started, testCase.name)
-            if testCase.reset then
+            if testCase.started then
+                assert(calls.onLose, testCase.name)
+                calls.memberCleaned = nil
+                calls.onLose(player)
+                assert(calls.memberCleaned, testCase.name)
+            elseif testCase.reset then
                 assert(calls.memberCleaned, testCase.name)
             elseif testCase.hideAuxiliaries then
                 assert(calls.taruHidden and calls.shimmeringHidden, testCase.name)
