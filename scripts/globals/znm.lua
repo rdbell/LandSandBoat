@@ -385,7 +385,9 @@ end
 -----------------------------------
 
 xi.znm.ryo.onTrigger = function(player, npc)
-    if xi.znm.playerHasSpokenToSanrakuBefore(player) then
+    local outcome = xi.znm.ryo.triggerOutcome(xi.znm.playerHasSpokenToSanrakuBefore(player))
+
+    if outcome == 'menu' then
         player:startEvent(913)
     else
         player:showText(npc, ID.text.MASTER_FORBID)
@@ -442,6 +444,14 @@ end
 -----------------------------------
 -- Ryo General Helpers
 -----------------------------------
+
+xi.znm.ryo.triggerOutcome = function(hasSpokenToSanraku)
+    if hasSpokenToSanraku then
+        return 'menu'
+    end
+
+    return 'forbidden'
+end
 
 xi.znm.ryo.eventUpdateOutcome = function(csid, option)
     if csid == 914 then
