@@ -59,6 +59,7 @@
 #include "automaton_controller_healing_hate_capacity.h"
 #include "automaton_controller_healing_master_distance_capacity.h"
 #include "automaton_controller_soulsoother_party_heal_gate_capacity.h"
+#include "automaton_controller_dispel_status_candidate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -677,13 +678,13 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
             PTarget->StatusEffectContainer->ForEachEffect(
                 [&dispel](CStatusEffect& PStatus)
                 {
-                    if (!dispel && PStatus.GetDuration() > 0s)
+                    if (automatoncontrollerdispelstatuscandidate::CanSelectCandidate(
+                            dispel,
+                            PStatus.GetDuration() > 0s,
+                            PStatus.HasEffectFlag(xi::StatusEffectFlag::Dispelable)))
                     {
-                        if (PStatus.HasEffectFlag(xi::StatusEffectFlag::Dispelable))
-                        {
-                            dispel = true;
-                            return;
-                        }
+                        dispel = true;
+                        return;
                     }
                 });
             if (dispel)

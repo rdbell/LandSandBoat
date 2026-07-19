@@ -80,6 +80,7 @@
 #include "map/ai/controllers/automaton_controller_healing_hate_capacity.h"
 #include "map/ai/controllers/automaton_controller_healing_master_distance_capacity.h"
 #include "map/ai/controllers/automaton_controller_soulsoother_party_heal_gate_capacity.h"
+#include "map/ai/controllers/automaton_controller_dispel_status_candidate_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -692,6 +693,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonSoulsootherPartyHealGateOK)
     {
         std::cerr << "automaton Soulsoother party-heal gate self-test failed\n";
+        return false;
+    }
+    const bool automatonDispelStatusCandidateOK = automatoncontrollerdispelstatuscandidate::CanSelectCandidate(false, true, true) &&
+                                                  !automatoncontrollerdispelstatuscandidate::CanSelectCandidate(true, true, true) &&
+                                                  !automatoncontrollerdispelstatuscandidate::CanSelectCandidate(false, false, true) &&
+                                                  !automatoncontrollerdispelstatuscandidate::CanSelectCandidate(false, true, false);
+    if (!automatonDispelStatusCandidateOK)
+    {
+        std::cerr << "automaton Dispel status-candidate self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
