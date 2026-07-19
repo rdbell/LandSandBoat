@@ -170,6 +170,35 @@ describe("Pirates Chart box trigger", function()
     end)
 end)
 
+describe("Pirates Chart box rewards", function()
+    it('opens once, distributes loot, and schedules disappearance', function()
+        local calls = { timers = {} }
+        local opened = 0
+        local player = {
+            getID = function() return 1 end,
+            getParty = function() end,
+            addTreasure = function(_, item) calls.reward = item end,
+        }
+        local npc = {
+            getLocalVar = function(_, name) return name == 'pChartSpawnerID' and 1 or opened end,
+            setLocalVar = function(_, _, value) opened = value end,
+            entityAnimationPacket = function(_, animation) calls.animation = animation end,
+            timer = function(_, delay) table.insert(calls.timers, delay) end,
+        }
+        local originalSelect = utils.selectFromLootGroups
+        utils.selectFromLootGroups = function() return { { itemId = 42 } } end
+        stub('GetNPCByID', function() return nil end)
+
+        xi.piratesChart.barnacledBoxOnTrigger(player, npc)
+        assert(calls.animation == xi.animationString.OPEN_CRATE_GLOW and calls.reward == 42)
+        assert(opened == 1 and calls.timers[1] == 15000 and calls.timers[2] == 16000)
+
+        xi.piratesChart.barnacledBoxOnTrigger(player, npc)
+        assert(#calls.timers == 2)
+        utils.selectFromLootGroups = originalSelect
+    end)
+end)
+
 describe("Pirates Chart box spawn", function()
     it('spawns and arms the Barnacled Box after the final buddy dies', function()
         local calls = {}
