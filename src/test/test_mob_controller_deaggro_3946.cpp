@@ -45,6 +45,7 @@
 #include "map/ai/controllers/automaton_controller_cooldown_capacity.h"
 #include "map/ai/controllers/automaton_controller_maneuvers_capacity.h"
 #include "map/ai/controllers/automaton_controller_master_loss_capacity.h"
+#include "map/ai/controllers/automaton_controller_move_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -412,6 +413,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                        automatoncontrollermasterloss::ShouldDie(true, true, true) &&
                                        !automatoncontrollermasterloss::ShouldDie(true, false, true) &&
                                        !automatoncontrollermasterloss::ShouldDie(false, false, false);
+    const bool automatonMoveOK = automatoncontrollermove::ShouldClearStandBack(true, false, 10, 10) &&
+                                 !automatoncontrollermove::ShouldClearStandBack(true, true, 10, 10) &&
+                                 automatoncontrollermove::ShouldClearStandBack(false, true, 7, 9) &&
+                                 !automatoncontrollermove::ShouldClearStandBack(false, true, 8, 9) &&
+                                 !automatoncontrollermove::ShouldClearStandBack(false, true, 7, 8);
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
                                  petcontrollerfollowpath::ShouldRecalculate(true, 2.01f) &&
                                  !petcontrollerfollowpath::ShouldRecalculate(true, 2.0f) &&
@@ -442,9 +448,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && petHealingOK && petBuffTickOK && petMasterLossOK && petImmobileOK && petHealingRoamOK && petSpecialHealingRoamOK && petStateChangeRoamOK && petAbilityOK && petSkillOK && automatonStandBackOK && automatonCooldownOK && automatonFrameCooldownOK && automatonManeuversOK && automatonMasterLossOK && petFollowPathOK && petPathFallbackOK && petFollowDistanceOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && petHealingOK && petBuffTickOK && petMasterLossOK && petImmobileOK && petHealingRoamOK && petSpecialHealingRoamOK && petStateChangeRoamOK && petAbilityOK && petSkillOK && automatonStandBackOK && automatonCooldownOK && automatonFrameCooldownOK && automatonManeuversOK && automatonMasterLossOK && automatonMoveOK && petFollowPathOK && petPathFallbackOK && petFollowDistanceOK && hideOK && lockOK;
 }

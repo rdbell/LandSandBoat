@@ -24,6 +24,7 @@
 #include "automaton_controller_cooldown_capacity.h"
 #include "automaton_controller_maneuvers_capacity.h"
 #include "automaton_controller_master_loss_capacity.h"
+#include "automaton_controller_move_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -179,8 +180,9 @@ auto CAutomatonController::DoCombatTick(timer::time_point tick) -> Task<void>
 
 void CAutomatonController::Move()
 {
-    if ((shouldStandBack() && !isWithinDistance(PAutomaton->loc.p, PTarget->loc.p, 15.0f)) ||
-        (PAutomaton->health.mp < 8 && PAutomaton->health.maxmp > 8))
+    const auto standBack = shouldStandBack();
+    const auto within15 = standBack ? isWithinDistance(PAutomaton->loc.p, PTarget->loc.p, 15.0f) : true;
+    if (automatoncontrollermove::ShouldClearStandBack(standBack, within15, PAutomaton->health.mp, PAutomaton->health.maxmp))
     {
         PAutomaton->m_Behavior &= ~BEHAVIOR_STANDBACK;
     }
