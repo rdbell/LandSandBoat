@@ -122,3 +122,15 @@ describe("Pirates Chart mob spawn", function()
         assert(mods[xi.mobMod.BASE_DAMAGE_MULTIPLIER] == 100)
     end)
 end)
+
+describe("Pirates Chart buddy defeat gate", function()
+    it('requires every other barnacle buddy to be defeated', function()
+        local mobs = zones[xi.zone.VALKURM_DUNES].mob
+        local alive = { [mobs.BEACH_MONK] = true }
+        local mob = { getID = function() return mobs.BEACH_MONK end }
+        stub('GetMobByID', function(id) return { isAlive = function() return alive[id] or false end } end)
+        assert(xi.piratesChart.myBuddiesAreDead(mob))
+        alive[mobs.HEIKE_CRAB] = true
+        assert(not xi.piratesChart.myBuddiesAreDead(mob))
+    end)
+end)
