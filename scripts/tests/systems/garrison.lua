@@ -628,6 +628,38 @@ describe('Garrison shutdown', function()
     end)
 end)
 
+describe('Garrison shutdown actions', function()
+    it('clears membership before removing caps and despawns all active mobs', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local keys = { 'players', 'spawnSchedule', 'npcs', 'mobs', 'isRunning' }
+        local original = {}
+        for _, key in ipairs(keys) do original[key] = zoneData[key] end
+        local removedCaps, despawned, clearedZone = {}, {}, nil
+        local players = {
+            [11] = { delStatusEffect = function() table.insert(removedCaps, 11) end },
+            [12] = { delStatusEffect = function() table.insert(removedCaps, 12) end },
+        }
+        local zone = { getID = function() return zoneID end }
+
+        stub('GetPlayerByID', function(id) return players[id] end)
+        stub('DespawnMob', function(id, passedZone)
+            assert(passedZone == zone)
+            table.insert(despawned, id)
+        end)
+        stub('ClearGarrisonZonePlayers', function(id) clearedZone = id end)
+        zoneData.players, zoneData.spawnSchedule = { 11, 12 }, { { 2 } }
+        zoneData.npcs, zoneData.mobs, zoneData.isRunning = { 21 }, { 31, 32 }, true
+        xi.garrison.stop(zone)
+
+        assert(clearedZone == zoneID and #removedCaps == 2)
+        assert(#despawned == 3 and despawned[1] == 21 and despawned[2] == 31 and despawned[3] == 32)
+        assert(#zoneData.players == 0 and #zoneData.spawnSchedule == 0 and #zoneData.npcs == 0 and #zoneData.mobs == 0 and not zoneData.isRunning)
+
+        for key, value in pairs(original) do zoneData[key] = value end
+    end)
+end)
+
 describe('Garrison watchdog', function()
     it('stops a running event whose main tick is more than two seconds late', function()
         local zoneID = xi.zone.WEST_RONFAURE
