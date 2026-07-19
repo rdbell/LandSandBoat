@@ -144,3 +144,63 @@ describe("Brigand's Chart event finish", function()
         assert(calls == 0)
     end)
 end)
+
+describe("Brigand's Chart event reset", function()
+    it('restores the player and event entities when the timed event expires', function()
+        local now = 500
+        local calls = { music = {} }
+        local player = {
+            getLocalVar = function(_, name) return name == 'bChartActive' and 1 or 0 end,
+            setLocalVar = function(_, name, value) calls.playerVar = { name, value } end,
+            delStatusEffect = function(_, effect) calls.removedEffect = effect end,
+            changeMusic = function(_, channel, song) calls.music[channel] = song end,
+            showText = function() end,
+        }
+        local qm = {
+            getLocalVar = function(_, name) return name == 'bChartSpawnerID' and 123 or 0 end,
+            resetLocalVars = function() calls.qmVarsReset = true end,
+            setStatus = function(_, value) calls.qmStatus = value end,
+            timer = function(_, delay, callback)
+                calls.emoteDelay = delay
+                calls.emoteCallback = callback
+            end,
+        }
+        local hume = {
+            setStatus = function(_, value) calls.humeStatus = value end,
+            setAnimation = function(_, value) calls.humeAnimation = value end,
+        }
+        local shimmering = {
+            setStatus = function(_, value) calls.shimmeringStatus = value end,
+            entityAnimationPacket = function(_, value) calls.shimmerAnimation = value end,
+            timer = function() end,
+        }
+        local chest = {
+            setAnimationSub = function(_, value) calls.chestAnimationSub = value end,
+            setStatus = function(_, value) calls.chestStatus = value end,
+            resetLocalVars = function() calls.chestVarsReset = true end,
+        }
+
+        stub('GetNPCByID', function(id)
+            local npcs = zones[xi.zone.BUBURIMU_PENINSULA].npc
+            if id == npcs.BRIGAND_CHART_QM then return qm end
+            if id == npcs.BRIGAND_CHART_HUME then return hume end
+            if id == npcs.SHIMMERING_POINT then return shimmering end
+            return chest
+        end)
+        stub('GetPlayerByID', function(id) return id == 123 and player or nil end)
+        stub('GetSystemTime', function() return now end)
+
+        xi.brigandsChart.onEventFinish(player, 902, 0, qm)
+        now = 680
+        calls.emoteCallback(qm)
+
+        assert(calls.playerVar[1] == 'bChartActive' and calls.playerVar[2] == 0)
+        assert(calls.removedEffect == xi.effect.LEVEL_RESTRICTION)
+        assert(calls.music[0] == 0 and calls.music[1] == 0)
+        assert(calls.music[2] == 101 and calls.music[3] == 102)
+        assert(calls.qmVarsReset and calls.qmStatus == xi.status.NORMAL)
+        assert(calls.humeStatus == xi.status.DISAPPEAR and calls.humeAnimation == xi.animation.NONE)
+        assert(calls.shimmeringStatus == xi.status.DISAPPEAR and calls.shimmerAnimation == xi.animationString.STATUS_DISAPPEAR)
+        assert(calls.chestAnimationSub == 0 and calls.chestStatus == xi.status.DISAPPEAR and calls.chestVarsReset)
+    end)
+end)
