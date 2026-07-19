@@ -60,6 +60,7 @@
 #include "automaton_controller_healing_master_distance_capacity.h"
 #include "automaton_controller_soulsoother_party_heal_gate_capacity.h"
 #include "automaton_controller_dispel_status_candidate_capacity.h"
+#include "automaton_controller_dia_bio_priority_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -695,52 +696,44 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
         }
         default:
         {
-            if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
+            if (automatoncontrollerdiabiopriority::CanPrioritize(
+                    !PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia), maneuvers.dark))
             {
-                if (maneuvers.dark) // Dark -> Bio
-                {
-                    castPriority.emplace_back(SpellID::Bio_II);
-                }
-                else
-                {
-                    defaultPriority.emplace_back(SpellID::Bio_II);
-                }
+                castPriority.emplace_back(SpellID::Bio_II);
+            }
+            else if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
+            {
+                defaultPriority.emplace_back(SpellID::Bio_II);
             }
 
-            if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio))
+            if (automatoncontrollerdiabiopriority::CanPrioritize(
+                    !PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio), maneuvers.light))
             {
-                if (maneuvers.light)
-                {
-                    castPriority.emplace_back(SpellID::Dia_II);
-                }
-                else
-                {
-                    defaultPriority.emplace_back(SpellID::Dia_II);
-                }
+                castPriority.emplace_back(SpellID::Dia_II);
+            }
+            else if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio))
+            {
+                defaultPriority.emplace_back(SpellID::Dia_II);
             }
 
-            if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
+            if (automatoncontrollerdiabiopriority::CanPrioritize(
+                    !PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia), maneuvers.dark))
             {
-                if (maneuvers.dark) // Dark -> Bio
-                {
-                    castPriority.emplace_back(SpellID::Bio);
-                }
-                else
-                {
-                    defaultPriority.emplace_back(SpellID::Bio);
-                }
+                castPriority.emplace_back(SpellID::Bio);
+            }
+            else if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
+            {
+                defaultPriority.emplace_back(SpellID::Bio);
             }
 
-            if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio))
+            if (automatoncontrollerdiabiopriority::CanPrioritize(
+                    !PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio), maneuvers.light))
             {
-                if (maneuvers.light)
-                {
-                    castPriority.emplace_back(SpellID::Dia);
-                }
-                else
-                {
-                    defaultPriority.emplace_back(SpellID::Dia);
-                }
+                castPriority.emplace_back(SpellID::Dia);
+            }
+            else if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio))
+            {
+                defaultPriority.emplace_back(SpellID::Dia);
             }
 
             if (maneuvers.water) // Water -> Poison

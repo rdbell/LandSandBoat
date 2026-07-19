@@ -81,6 +81,7 @@
 #include "map/ai/controllers/automaton_controller_healing_master_distance_capacity.h"
 #include "map/ai/controllers/automaton_controller_soulsoother_party_heal_gate_capacity.h"
 #include "map/ai/controllers/automaton_controller_dispel_status_candidate_capacity.h"
+#include "map/ai/controllers/automaton_controller_dia_bio_priority_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -702,6 +703,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonDispelStatusCandidateOK)
     {
         std::cerr << "automaton Dispel status-candidate self-test failed\n";
+        return false;
+    }
+    const bool automatonDiaBioPriorityOK = automatoncontrollerdiabiopriority::CanPrioritize(true, true) &&
+                                           !automatoncontrollerdiabiopriority::CanPrioritize(true, false) &&
+                                           !automatoncontrollerdiabiopriority::CanPrioritize(false, true);
+    if (!automatonDiaBioPriorityOK)
+    {
+        std::cerr << "automaton Dia/Bio priority self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
