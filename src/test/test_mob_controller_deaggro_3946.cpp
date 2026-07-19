@@ -85,6 +85,7 @@
 #include "map/ai/controllers/mob_controller_illusion_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_stealth_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_sight_mode_capacity.h"
+#include "map/ai/controllers/mob_controller_engaged_target_range_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -908,6 +909,12 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                 mobcontrollersightmode::IsEnabled(true, false) &&
                                 mobcontrollersightmode::IsEnabled(false, true) &&
                                 mobcontrollersightmode::IsEnabled(true, true);
+    bool meleeRangeCalled = false;
+    const bool mobEngagedTargetRangeOK = mobcontrollerengagedtargetrange::IsInRange(true, 4.9f, []() { return 5.0f; }) &&
+                                         mobcontrollerengagedtargetrange::IsInRange(true, 5.0f, []() { return 5.0f; }) &&
+                                         !mobcontrollerengagedtargetrange::IsInRange(true, 5.1f, []() { return 5.0f; }) &&
+                                         !mobcontrollerengagedtargetrange::IsInRange(false, 0.0f, [&]() { meleeRangeCalled = true; return 5.0f; }) &&
+                                         !meleeRangeCalled;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1816,6 +1823,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobSightModeOK)
     {
         std::cerr << "mob sight-mode self-test failed\n";
+        return false;
+    }
+    if (!mobEngagedTargetRangeOK)
+    {
+        std::cerr << "mob engaged-target range self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

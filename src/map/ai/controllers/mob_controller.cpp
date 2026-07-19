@@ -103,6 +103,7 @@
 #include "mob_controller_illusion_detection_capacity.h"
 #include "mob_controller_stealth_detection_capacity.h"
 #include "mob_controller_sight_mode_capacity.h"
+#include "mob_controller_engaged_target_range_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -434,7 +435,10 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
     hasInvisible = illusionState.hasInvisible;
     hasSneak     = illusionState.hasSneak;
 
-    const bool isTargetAndInRange = PMob->GetBattleTargetID() == PTarget->targid && currentDistance <= PMob->GetMeleeRange(PTarget);
+    const bool isTargetAndInRange = mobcontrollerengagedtargetrange::IsInRange(
+        PMob->GetBattleTargetID() == PTarget->targid,
+        currentDistance,
+        [&]() { return PMob->GetMeleeRange(PTarget); });
 
     if (mobcontrollersightdetection::CanDetect(
             detectSight,
