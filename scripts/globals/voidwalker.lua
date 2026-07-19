@@ -242,6 +242,10 @@ xi.voidwalker.spawnModifierPlan = function(mobName)
     return spawnModifierPlans[mobName]
 end
 
+xi.voidwalker.shouldCapricornusUseRecoilDive = function(hasMightyStrikes, isBusy)
+    return hasMightyStrikes and not isBusy
+end
+
 xi.voidwalker.direction = function(diffx, diffz)
     local tan       = math.atan(diffz / diffx)
     local degree    = math.deg(tan)
@@ -440,10 +444,10 @@ local mixinByMobName =
 {
     ['Capricornus'] = function(mob)
         doMobSkillEveryHPP(mob, 20, 80, xi.mobSkill.MIGHTY_STRIKES_1, not mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES))
-        if
-            mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES) and
-            not xi.combat.behavior.isEntityBusy(mob)
-        then
+        if xi.voidwalker.shouldCapricornusUseRecoilDive(
+            mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES),
+            xi.combat.behavior.isEntityBusy(mob)
+        ) then
             mob:useMobAbility(xi.mobSkill.RECOIL_DIVE_1)
         end
     end,
