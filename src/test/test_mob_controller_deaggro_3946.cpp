@@ -42,6 +42,7 @@
 #include "map/ai/controllers/pet_controller_ability_capacity.h"
 #include "map/ai/controllers/pet_controller_pet_skill_capacity.h"
 #include "map/ai/controllers/automaton_controller_stand_back_capacity.h"
+#include "map/ai/controllers/automaton_controller_cooldown_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -386,6 +387,18 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                       !automatoncontrollerstandback::ShouldStandBack(false, false, true, true) &&
                                       automatoncontrollerstandback::ShouldStandBack(false, false, false, true) &&
                                       !automatoncontrollerstandback::ShouldStandBack(false, false, false, false);
+    const auto automatonHarlequinCooldown = automatoncontrollercooldown::Magic(0x01);
+    const auto automatonValoredgeCooldown = automatoncontrollercooldown::Magic(0x02);
+    const auto automatonSharpshotCooldown = automatoncontrollercooldown::Magic(0x03);
+    const auto automatonStormwakerCooldown = automatoncontrollercooldown::Magic(0x04);
+    const auto automatonSoulsootherCooldown = automatoncontrollercooldown::Magic(0x05);
+    const auto automatonSpiritreaverCooldown = automatoncontrollercooldown::Magic(0x06);
+    const bool automatonCooldownOK = automatonHarlequinCooldown.magic == 10 && automatonHarlequinCooldown.enfeeble == 12 && automatonHarlequinCooldown.heal == 12 &&
+                                     automatonValoredgeCooldown.magic == 10 && automatonValoredgeCooldown.heal == 20 &&
+                                     automatonSharpshotCooldown.magic == 10 && automatonSharpshotCooldown.enfeeble == 12 && automatonSharpshotCooldown.heal == 20 &&
+                                     automatonStormwakerCooldown.magic == 8 && automatonStormwakerCooldown.enfeeble == 10 && automatonStormwakerCooldown.heal == 20 && automatonStormwakerCooldown.elemental == 25 && automatonStormwakerCooldown.enhance == 25 &&
+                                     automatonSoulsootherCooldown.magic == 8 && automatonSoulsootherCooldown.enfeeble == 10 && automatonSoulsootherCooldown.heal == 10 && automatonSoulsootherCooldown.status == 10 && automatonSoulsootherCooldown.enhance == 25 &&
+                                     automatonSpiritreaverCooldown.magic == 8 && automatonSpiritreaverCooldown.enfeeble == 10 && automatonSpiritreaverCooldown.elemental == 30 && automatonSpiritreaverCooldown.enhance == 35;
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
                                  petcontrollerfollowpath::ShouldRecalculate(true, 2.01f) &&
                                  !petcontrollerfollowpath::ShouldRecalculate(true, 2.0f) &&
@@ -416,9 +429,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && petHealingOK && petBuffTickOK && petMasterLossOK && petImmobileOK && petHealingRoamOK && petSpecialHealingRoamOK && petStateChangeRoamOK && petAbilityOK && petSkillOK && automatonStandBackOK && petFollowPathOK && petPathFallbackOK && petFollowDistanceOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && petHealingOK && petBuffTickOK && petMasterLossOK && petImmobileOK && petHealingRoamOK && petSpecialHealingRoamOK && petStateChangeRoamOK && petAbilityOK && petSkillOK && automatonStandBackOK && automatonCooldownOK && petFollowPathOK && petPathFallbackOK && petFollowDistanceOK && hideOK && lockOK;
 }

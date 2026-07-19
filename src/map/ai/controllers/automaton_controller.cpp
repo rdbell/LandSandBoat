@@ -21,6 +21,7 @@
 
 #include "automaton_controller.h"
 #include "automaton_controller_stand_back_capacity.h"
+#include "automaton_controller_cooldown_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -91,54 +92,13 @@ void CAutomatonController::setCooldowns()
 // New retail Automaton magic AI (Needs more information to accurately recreate)
 void CAutomatonController::setMagicCooldowns()
 {
-    switch (PAutomaton->head())
-    {
-        case AutomatonHead::Harlequin:
-        {
-            m_magicCooldown    = 10s;
-            m_enfeebleCooldown = 12s;
-            m_healCooldown     = 12s;
-        }
-        break;
-        case AutomatonHead::Valoredge:
-        {
-            m_magicCooldown = 10s;
-            m_healCooldown  = 20s;
-        }
-        break;
-        case AutomatonHead::Sharpshot:
-        {
-            m_magicCooldown    = 10s;
-            m_enfeebleCooldown = 12s;
-            m_healCooldown     = 20s;
-        }
-        break;
-        case AutomatonHead::Stormwaker:
-        {
-            m_magicCooldown     = 8s;
-            m_enfeebleCooldown  = 10s;
-            m_healCooldown      = 20s;
-            m_elementalCooldown = 25s;
-            m_enhanceCooldown   = 25s;
-        }
-        break;
-        case AutomatonHead::Soulsoother:
-        {
-            m_magicCooldown    = 8s;
-            m_enfeebleCooldown = 10s;
-            m_healCooldown     = 10s;
-            m_statusCooldown   = 10s;
-            m_enhanceCooldown  = 25s;
-        }
-        break;
-        case AutomatonHead::Spiritreaver:
-        {
-            m_magicCooldown     = 8s;
-            m_enfeebleCooldown  = 10s;
-            m_elementalCooldown = 30s;
-            m_enhanceCooldown   = 35s;
-        }
-    }
+    const auto plan = automatoncontrollercooldown::Magic(static_cast<uint8>(PAutomaton->head()));
+    m_magicCooldown     = std::chrono::seconds(plan.magic);
+    m_enfeebleCooldown  = std::chrono::seconds(plan.enfeeble);
+    m_healCooldown      = std::chrono::seconds(plan.heal);
+    m_elementalCooldown = std::chrono::seconds(plan.elemental);
+    m_statusCooldown    = std::chrono::seconds(plan.status);
+    m_enhanceCooldown   = std::chrono::seconds(plan.enhance);
 }
 
 // Determines standback behavior for the Automaton.
