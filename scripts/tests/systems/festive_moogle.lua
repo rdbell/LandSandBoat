@@ -14,3 +14,35 @@ describe('Festive Moogle trigger', function()
         assert(event[1] == 380 and event[2] == xi.item.NOMAD_CAP)
     end)
 end)
+
+describe('Festive Moogle pell trade', function()
+    it('starts the reward event for an exact Gold Mog Pell trade', function()
+        local event = nil
+        local tradedPell = nil
+        local confirmedItem = nil
+        local confirmedQuantity = nil
+        local player = {
+            getCharVar = function(_, name) return name == '[GUILD]currentGuild' and 1 or 0 end,
+            hasItem = function() return false end,
+            setLocalVar = function(_, _, value) tradedPell = value end,
+            getZoneID = function() return xi.zone.PORT_BASTOK end,
+            startEvent = function(_, ...) event = { ... } end,
+        }
+        local trade = {
+            getSlotCount = function() return 1 end,
+            getItemId = function() return xi.item.GOLD_MOG_PELL end,
+            hasItemQty = function(_, item, quantity) return item == xi.item.GOLD_MOG_PELL and quantity == 1 end,
+            getItemQty = function(_, item) return item == xi.item.GOLD_MOG_PELL and 1 or 0 end,
+            confirmItem = function(_, item, quantity)
+                confirmedItem = item
+                confirmedQuantity = quantity
+            end,
+        }
+
+        xi.festiveMoogle.onTrade(player, {}, trade)
+
+        assert(tradedPell == xi.item.GOLD_MOG_PELL)
+        assert(confirmedItem == xi.item.GOLD_MOG_PELL and confirmedQuantity == 1)
+        assert(event[1] == 439 and event[2] == 0 and event[3] == 0 and event[4] == 0 and event[6] == 0)
+    end)
+end)
