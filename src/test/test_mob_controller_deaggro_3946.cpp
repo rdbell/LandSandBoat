@@ -12,6 +12,7 @@
 #include "map/ai/controllers/mob_controller_special_skill_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_selection_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_target_range_capacity.h"
+#include "map/ai/controllers/mob_controller_teleport_window_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -617,6 +618,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool mobSpellTargetRangeOK = mobcontrollerspelltargetrange::IsInRange(10.0f, 10.0f, 0.0f, 0.0f) &&
                                        mobcontrollerspelltargetrange::IsInRange(12.0f, 10.0f, 0.75f, 1.25f) &&
                                        !mobcontrollerspelltargetrange::IsInRange(12.1f, 10.0f, 0.75f, 1.25f);
+    const bool mobTeleportWindowOK = mobcontrollerteleportwindow::CanStartTypeOne(true, true, true) &&
+                                     !mobcontrollerteleportwindow::CanStartTypeOne(false, true, true) &&
+                                     !mobcontrollerteleportwindow::CanStartTypeOne(true, false, true) &&
+                                     !mobcontrollerteleportwindow::CanStartTypeOne(true, true, false);
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1048,6 +1053,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobSpellTargetRangeOK)
     {
         std::cerr << "mob spell target range self-test failed\n";
+        return false;
+    }
+    if (!mobTeleportWindowOK)
+    {
+        std::cerr << "mob teleport window self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)

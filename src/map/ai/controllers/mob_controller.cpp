@@ -31,6 +31,7 @@
 #include "mob_controller_special_skill_admission_capacity.h"
 #include "mob_controller_spell_selection_capacity.h"
 #include "mob_controller_spell_target_range_capacity.h"
+#include "mob_controller_teleport_window_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -865,15 +866,16 @@ void CMobController::Move()
         float currentDistance = distance(PMob->loc.p, PTarget->loc.p);
 
         // attempt to teleport (type 1) if target is out of melee range but within 30 distance
-        if (PMob->getMobMod(MOBMOD_TELEPORT_TYPE) == 1 && currentDistance > attack_range && currentDistance <= 30.0f)
+        if (PMob->getMobMod(MOBMOD_TELEPORT_TYPE) == 1 &&
+            mobcontrollerteleportwindow::CanStartTypeOne(
+                currentDistance > attack_range,
+                currentDistance <= 30.0f,
+                m_Tick >= m_LastSpecialTime + std::chrono::seconds(PMob->getMobMod(MOBMOD_TELEPORT_CD))))
         {
-            if (m_Tick >= m_LastSpecialTime + std::chrono::seconds(PMob->getMobMod(MOBMOD_TELEPORT_CD)))
+            if (const CMobSkill* teleportBegin = battleutils::GetMobSkill(PMob->getMobMod(MOBMOD_TELEPORT_START)))
             {
-                if (const CMobSkill* teleportBegin = battleutils::GetMobSkill(PMob->getMobMod(MOBMOD_TELEPORT_START)))
-                {
-                    m_LastSpecialTime = m_Tick;
-                    MobSkill(PMob->targid, teleportBegin->getID(), std::nullopt);
-                }
+                m_LastSpecialTime = m_Tick;
+                MobSkill(PMob->targid, teleportBegin->getID(), std::nullopt);
             }
         }
 
