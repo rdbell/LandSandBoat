@@ -24,6 +24,7 @@
 #include "pet_controller_deaggro_capacity.h"
 #include "pet_controller_healing_capacity.h"
 #include "pet_controller_healing_roam_capacity.h"
+#include "pet_controller_special_healing_roam_capacity.h"
 #include "pet_controller_follow_path_capacity.h"
 #include "pet_controller_follow_distance_capacity.h"
 #include "pet_controller_path_fallback_capacity.h"
@@ -121,14 +122,10 @@ auto CPetController::DoRoamTick(timer::time_point tick) -> Task<void>
             const auto petType             = PPetEntity->getPetType();
             const auto isWyvernOrAutomaton = petType == PET_TYPE::WYVERN || petType == PET_TYPE::AUTOMATON;
 
-            if (isWyvernOrAutomaton)
+            if (isWyvernOrAutomaton &&
+                petcontrollerspecialhealingroam::ShouldHold(petType == PET_TYPE::WYVERN, petType == PET_TYPE::AUTOMATON, PetIsHealing()))
             {
-                if (PetIsHealing())
-                {
-                    co_return;
-                }
-
-                // TODO: Other logic?
+                co_return;
             }
 
             // Certain pets do not roam
