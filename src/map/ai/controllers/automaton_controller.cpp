@@ -28,6 +28,7 @@
 #include "automaton_controller_action_gate_capacity.h"
 #include "automaton_controller_shield_bash_gate_capacity.h"
 #include "automaton_controller_spell_gate_capacity.h"
+#include "automaton_controller_healing_threshold_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -386,24 +387,7 @@ auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
         return false;
     }
 
-    float threshold = 0;
-    switch (maneuvers.light) // Light -> Higher healing threshold
-    {
-        case 1:
-            threshold = 40;
-            break;
-        case 2:
-            threshold = 50;
-            break;
-        case 3:
-            threshold = 75;
-            break;
-        default:
-            threshold = 30;
-            break;
-    }
-
-    threshold                  = std::clamp<float>(threshold + PAutomaton->getMod(Mod::AUTO_HEALING_THRESHOLD), 30.0f, 90.0f);
+    const auto threshold = automatoncontrollerhealingthreshold::HealingThreshold(maneuvers.light, PAutomaton->getMod(Mod::AUTO_HEALING_THRESHOLD));
     CBattleEntity* PCastTarget = nullptr;
 
     bool          haveHate   = false;
