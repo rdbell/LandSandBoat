@@ -10,6 +10,7 @@
 #include "map/ai/controllers/mob_controller_spell_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_special_skill_target_capacity.h"
 #include "map/ai/controllers/mob_controller_special_skill_admission_capacity.h"
+#include "map/ai/controllers/mob_controller_spell_selection_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -608,6 +609,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                             !mobcontrollerspecialskilladmission::CanAttempt(true, false, false, false) &&
                                             !mobcontrollerspecialskilladmission::CanAttempt(true, true, true, false) &&
                                             mobcontrollerspecialskilladmission::CanAttempt(true, true, true, true);
+    const bool mobSpellSelectionOK = mobcontrollerspellselection::Select(false, true, false) == mobcontrollerspellselection::Source::Buff &&
+                                     mobcontrollerspellselection::Select(false, false, false) == mobcontrollerspellselection::Source::Random &&
+                                     mobcontrollerspellselection::Select(true, false, true) == mobcontrollerspellselection::Source::Aggro &&
+                                     mobcontrollerspellselection::Select(true, true, false) == mobcontrollerspellselection::Source::Random;
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1029,6 +1034,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobSpecialSkillAdmissionOK)
     {
         std::cerr << "mob special-skill admission self-test failed\n";
+        return false;
+    }
+    if (!mobSpellSelectionOK)
+    {
+        std::cerr << "mob spell selection self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)

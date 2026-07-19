@@ -29,6 +29,7 @@
 #include "mob_controller_spell_admission_capacity.h"
 #include "mob_controller_special_skill_target_capacity.h"
 #include "mob_controller_special_skill_admission_capacity.h"
+#include "mob_controller_spell_selection_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -532,28 +533,22 @@ auto CMobController::TryCastSpell() -> bool
     }
 
     // Find random spell from list
+    const auto isEngaged   = PMob->PAI->IsEngaged();
+    const auto hasBuffSpells = !isEngaged && PMob->SpellContainer->HasBuffSpells();
+    const auto spellSource = mobcontrollerspellselection::Select(isEngaged, hasBuffSpells, m_firstSpell);
     Maybe<SpellID> chosenSpellId;
-    if (!PMob->PAI->IsEngaged())
+    switch (spellSource)
     {
-        if (PMob->SpellContainer->HasBuffSpells())
-        {
+        case mobcontrollerspellselection::Source::Buff:
             chosenSpellId = PMob->SpellContainer->GetBuffSpell();
-        }
-        else
-        {
-            // is this even possible to have a valid target?
+            break;
+        case mobcontrollerspellselection::Source::Aggro:
+            chosenSpellId = PMob->SpellContainer->GetAggroSpell();
+            m_firstSpell  = false;
+            break;
+        case mobcontrollerspellselection::Source::Random:
             chosenSpellId = PMob->SpellContainer->GetSpell();
-        }
-    }
-    else if (m_firstSpell)
-    {
-        // mobs first combat spell, should be aggro spell
-        chosenSpellId = PMob->SpellContainer->GetAggroSpell();
-        m_firstSpell  = false;
-    }
-    else
-    {
-        chosenSpellId = PMob->SpellContainer->GetSpell();
+            break;
     }
 
     // Try to get an override spell from the script (if available)
