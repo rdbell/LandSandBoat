@@ -75,6 +75,7 @@
 #include "automaton_controller_soulsoother_blind_priority_capacity.h"
 #include "automaton_controller_soulsoother_dia_priority_capacity.h"
 #include "automaton_controller_soulsoother_bio_priority_capacity.h"
+#include "automaton_controller_soulsoother_silence_priority_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -761,7 +762,7 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
                 defaultPriority.emplace_back(SpellID::Poison);
             }
 
-            if (maneuvers.wind)
+            if (automatoncontrollersoulsoothersilence::CanPrioritize(maneuvers.wind))
             { // Wind -> Silence
                 castPriority.emplace_back(SpellID::Silence);
             }
