@@ -75,6 +75,7 @@
 #include "mob_controller_engage_pet_capacity.h"
 #include "mob_controller_disengage_roam_schedule_capacity.h"
 #include "mob_controller_idle_despawn_capacity.h"
+#include "mob_controller_engage_delay_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1515,18 +1516,21 @@ auto CMobController::Engage(const uint16 targid) -> bool
         // Don't cast magic or use special ability right away
         if (PMob->getMobMod(MOBMOD_MAGIC_DELAY) != 0)
         {
-            m_nextMagicTime =
-                m_Tick + std::chrono::seconds(PMob->getMobMod(MOBMOD_MAGIC_COOL) + xirand::GetRandomNumber(PMob->getMobMod(MOBMOD_MAGIC_DELAY)));
+            m_nextMagicTime = mobcontrollerengagedelay::ScheduleMagic(
+                m_Tick,
+                std::chrono::seconds(PMob->getMobMod(MOBMOD_MAGIC_COOL)),
+                std::chrono::seconds(xirand::GetRandomNumber(PMob->getMobMod(MOBMOD_MAGIC_DELAY))));
         }
 
         if (PMob->getMobMod(MOBMOD_SPECIAL_DELAY) != 0)
         {
-            m_LastSpecialTime = m_Tick - std::chrono::seconds(PMob->getMobMod(MOBMOD_SPECIAL_COOL) +
-                                                              xirand::GetRandomNumber(PMob->getMobMod(MOBMOD_SPECIAL_DELAY)));
+            m_LastSpecialTime = mobcontrollerengagedelay::ScheduleSpecial(
+                m_Tick,
+                std::chrono::seconds(PMob->getMobMod(MOBMOD_SPECIAL_COOL)),
+                std::chrono::seconds(xirand::GetRandomNumber(PMob->getMobMod(MOBMOD_SPECIAL_DELAY))));
         }
 
         m_tpThreshold = xirand::GetRandomNumber(1000, 3000);
-
     }
 
     const auto hasPet     = ret && PMob->PPet != nullptr;

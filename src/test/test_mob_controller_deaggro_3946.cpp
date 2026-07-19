@@ -57,6 +57,7 @@
 #include "map/ai/controllers/mob_controller_engage_pet_capacity.h"
 #include "map/ai/controllers/mob_controller_disengage_roam_schedule_capacity.h"
 #include "map/ai/controllers/mob_controller_idle_despawn_capacity.h"
+#include "map/ai/controllers/mob_controller_engage_delay_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -726,6 +727,12 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const auto idleDespawn = mobcontrolleridledespawn::Resolve(60);
     const bool mobIdleDespawnOK = !noIdleDespawn.shouldSet && noIdleDespawn.duration == std::chrono::seconds(0) &&
                                   idleDespawn.shouldSet && idleDespawn.duration == std::chrono::seconds(60);
+    const auto engageDelayTick = base + std::chrono::seconds(20);
+    const bool mobEngageDelayOK =
+        mobcontrollerengagedelay::ScheduleMagic(engageDelayTick, std::chrono::seconds(0), std::chrono::seconds(0)) == engageDelayTick &&
+        mobcontrollerengagedelay::ScheduleMagic(engageDelayTick, std::chrono::seconds(3), std::chrono::seconds(2)) == base + std::chrono::seconds(25) &&
+        mobcontrollerengagedelay::ScheduleSpecial(engageDelayTick, std::chrono::seconds(0), std::chrono::seconds(0)) == engageDelayTick &&
+        mobcontrollerengagedelay::ScheduleSpecial(engageDelayTick, std::chrono::seconds(3), std::chrono::seconds(2)) == base + std::chrono::seconds(15);
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1484,6 +1491,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobIdleDespawnOK)
     {
         std::cerr << "mob idle-despawn self-test failed\n";
+        return false;
+    }
+    if (!mobEngageDelayOK)
+    {
+        std::cerr << "mob engage-delay self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)
