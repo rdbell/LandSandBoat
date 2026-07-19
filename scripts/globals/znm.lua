@@ -648,12 +648,15 @@ xi.znm.sanraku.eventUpdateOutcome = function(csid, option)
     end
 end
 
+xi.znm.sanraku.isletsMenuParam = function(zeniStatus)
+    return zeniStatus >= 3 and 1 or 0
+end
+
 xi.znm.sanraku.onEventUpdate = function(player, csid, option, npc)
     local outcome = xi.znm.sanraku.eventUpdateOutcome(csid, option)
 
     if outcome == 'islets_menu' then
-        local param = player:getVar('ZeniStatus') >= 3 and 1 or 0
-        player:updateEvent(param)
+        player:updateEvent(xi.znm.sanraku.isletsMenuParam(player:getVar('ZeniStatus')))
     elseif outcome == 'islets_access' then
         xi.znm.sanraku.handleGainingAccessToIslets(player, option)
     elseif outcome == 'confirm_info' then
