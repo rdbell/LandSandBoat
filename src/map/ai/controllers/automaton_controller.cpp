@@ -86,6 +86,7 @@
 #include "automaton_controller_tp_skill_selection_result_capacity.h"
 #include "automaton_controller_enfeeble_admission_capacity.h"
 #include "automaton_controller_spell_admission_capacity.h"
+#include "automaton_controller_erase_fallback_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1679,7 +1680,7 @@ Maybe<SpellID> FindNaSpell(CStatusEffect* PStatus)
         }
     }
 
-    if (PStatus->HasEffectFlag(xi::StatusEffectFlag::Erasable))
+    if (automatoncontrollererasefallback::ShouldSelectErase(PStatus->HasEffectFlag(xi::StatusEffectFlag::Erasable)))
     {
         return SpellID::Erase;
     }

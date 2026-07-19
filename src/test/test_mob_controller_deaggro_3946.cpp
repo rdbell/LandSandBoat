@@ -107,6 +107,7 @@
 #include "map/ai/controllers/automaton_controller_tp_skill_selection_result_capacity.h"
 #include "map/ai/controllers/automaton_controller_enfeeble_admission_capacity.h"
 #include "map/ai/controllers/automaton_controller_spell_admission_capacity.h"
+#include "map/ai/controllers/automaton_controller_erase_fallback_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -577,6 +578,8 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                            automatoncontrollerspelladmission::CanUseSpell(101, 100, 6, 0x20) &&
                                            !automatoncontrollerspelladmission::CanUseSpell(99, 100, 1, 0x01) &&
                                            !automatoncontrollerspelladmission::CanUseSpell(100, 100, 2, 0x01);
+    const bool automatonEraseFallbackOK = automatoncontrollererasefallback::ShouldSelectErase(true) &&
+                                          !automatoncontrollererasefallback::ShouldSelectErase(false);
     const bool automatonEnhanceGateOK = automatoncontrollerenhancegate::CanEnhance(3001ms, 0ms, 3000ms, true) &&
                                        !automatoncontrollerenhancegate::CanEnhance(3000ms, 0ms, 3000ms, true) &&
                                        !automatoncontrollerenhancegate::CanEnhance(4000ms, 0ms, 3000ms, false) &&
@@ -953,6 +956,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonSpellAdmissionOK)
     {
         std::cerr << "automaton spell admission self-test failed\n";
+        return false;
+    }
+    if (!automatonEraseFallbackOK)
+    {
+        std::cerr << "automaton Erase fallback self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)
