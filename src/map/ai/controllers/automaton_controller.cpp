@@ -57,6 +57,7 @@
 #include "automaton_controller_combat_party_heal_target_capacity.h"
 #include "automaton_controller_noncombat_party_heal_target_capacity.h"
 #include "automaton_controller_healing_hate_capacity.h"
+#include "automaton_controller_healing_master_distance_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -440,7 +441,7 @@ auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
 
     const auto automatonHPP = PAutomaton->GetHPP();
     const auto masterHPP    = PAutomaton->PMaster->GetHPP();
-    const auto masterDistance = haveHate && automatonHPP > 50 && masterHPP <= threshold ?
+    const auto masterDistance = automatoncontrollerhealingmasterdistance::ShouldMeasureDistance(haveHate, automatonHPP, masterHPP, threshold) ?
                                     distance(PAutomaton->loc.p, PAutomaton->PMaster->loc.p) :
                                     0.0f;
     const auto target = automatoncontrollerhealingtarget::Select(haveHate, automatonHPP, masterHPP, threshold, masterDistance);
