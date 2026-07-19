@@ -87,6 +87,7 @@
 #include "map/ai/controllers/mob_controller_stealth_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_sight_mode_capacity.h"
 #include "map/ai/controllers/mob_controller_engaged_target_range_capacity.h"
+#include "map/ai/controllers/mob_controller_target_detection_policy_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -919,6 +920,98 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool mobDetectionDistanceOK = mobcontrollerdetectiondistance::EffectiveDistance(12.5f, 3.0f) == 15.5f &&
                                         mobcontrollerdetectiondistance::EffectiveDistance(12.5f, 0.0f) == 12.5f &&
                                         mobcontrollerdetectiondistance::EffectiveDistance(12.5f, -3.0f) == 9.5f;
+    const mobcontrollertargetdetectionpolicy::Input targetDetectionBase{
+        .distance     = 1.0f,
+        .sightRange   = 10.0f,
+        .soundRange   = 10.0f,
+        .magicRange   = 10.0f,
+        .facingTarget = true,
+        .hpPercent    = 100,
+    };
+    bool laterDetectionCheckCalled = false;
+    auto sightPriorityInput = targetDetectionBase;
+    sightPriorityInput.detectSight = true;
+    sightPriorityInput.detectMagic = true;
+    const bool sightPriority = mobcontrollertargetdetectionpolicy::CanDetect(
+        sightPriorityInput,
+        []() { return true; },
+        [&]() { laterDetectionCheckCalled = true; return false; },
+        []() { return false; },
+        []() { return false; });
+    auto ambushPriorityInput = targetDetectionBase;
+    ambushPriorityInput.ambushBehavior = true;
+    ambushPriorityInput.detectHearing = true;
+    const bool ambushPriority = mobcontrollertargetdetectionpolicy::CanDetect(
+        ambushPriorityInput,
+        [&]() { laterDetectionCheckCalled = true; return false; },
+        []() { return false; },
+        []() { return false; },
+        []() { return false; });
+    auto hearingPriorityInput = targetDetectionBase;
+    hearingPriorityInput.detectHearing = true;
+    hearingPriorityInput.detectMagic = true;
+    const bool hearingPriority = mobcontrollertargetdetectionpolicy::CanDetect(
+        hearingPriorityInput,
+        []() { return true; },
+        [&]() { laterDetectionCheckCalled = true; return false; },
+        []() { return false; },
+        []() { return false; });
+    auto magicPriorityInput = targetDetectionBase;
+    magicPriorityInput.detectMagic = true;
+    const bool magicPriority = mobcontrollertargetdetectionpolicy::CanDetect(
+        magicPriorityInput,
+        []() { return true; },
+        []() { return true; },
+        [&]() { laterDetectionCheckCalled = true; return false; },
+        []() { return false; });
+    auto closeCutoffInput = targetDetectionBase;
+    closeCutoffInput.distance = 20.1f;
+    closeCutoffInput.detectLowHP = true;
+    closeCutoffInput.detectWeaponSkill = true;
+    closeCutoffInput.detectJobAbility = true;
+    closeCutoffInput.hpPercent = 1;
+    const bool closeCutoff = !mobcontrollertargetdetectionpolicy::CanDetect(
+        closeCutoffInput,
+        [&]() { laterDetectionCheckCalled = true; return false; },
+        []() { return false; },
+        [&]() { laterDetectionCheckCalled = true; return false; },
+        [&]() { laterDetectionCheckCalled = true; return false; });
+    auto lowHPPriorityInput = targetDetectionBase;
+    lowHPPriorityInput.detectLowHP = true;
+    lowHPPriorityInput.detectWeaponSkill = true;
+    lowHPPriorityInput.hpPercent = 74;
+    const bool lowHPPriority = mobcontrollertargetdetectionpolicy::CanDetect(
+        lowHPPriorityInput,
+        []() { return true; },
+        []() { return false; },
+        [&]() { laterDetectionCheckCalled = true; return false; },
+        []() { return false; });
+    auto weaponSkillPriorityInput = targetDetectionBase;
+    weaponSkillPriorityInput.detectWeaponSkill = true;
+    weaponSkillPriorityInput.detectJobAbility = true;
+    const bool weaponSkillPriority = mobcontrollertargetdetectionpolicy::CanDetect(
+        weaponSkillPriorityInput,
+        []() { return true; },
+        []() { return false; },
+        []() { return true; },
+        [&]() { laterDetectionCheckCalled = true; return false; });
+    auto jobAbilityInput = targetDetectionBase;
+    jobAbilityInput.detectJobAbility = true;
+    const bool jobAbilityDetection = mobcontrollertargetdetectionpolicy::CanDetect(
+        jobAbilityInput,
+        []() { return true; },
+        []() { return false; },
+        []() { return false; },
+        []() { return true; });
+    const bool noDetection = !mobcontrollertargetdetectionpolicy::CanDetect(
+        targetDetectionBase,
+        []() { return false; },
+        []() { return false; },
+        []() { return false; },
+        []() { return false; });
+    const bool mobTargetDetectionPolicyOK = sightPriority && ambushPriority && hearingPriority && magicPriority &&
+                                            closeCutoff && lowHPPriority && weaponSkillPriority && jobAbilityDetection && noDetection &&
+                                            !laterDetectionCheckCalled;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1837,6 +1930,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobDetectionDistanceOK)
     {
         std::cerr << "mob detection-distance self-test failed\n";
+        return false;
+    }
+    if (!mobTargetDetectionPolicyOK)
+    {
+        std::cerr << "mob target-detection policy self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

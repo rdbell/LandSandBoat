@@ -92,19 +92,13 @@
 #include "mob_controller_mob_skill_list_route_capacity.h"
 #include "mob_controller_mob_skill_override_capacity.h"
 #include "mob_controller_mob_skill_definition_capacity.h"
-#include "mob_controller_ambush_detection_capacity.h"
-#include "mob_controller_sight_detection_capacity.h"
-#include "mob_controller_hearing_detection_capacity.h"
-#include "mob_controller_magic_detection_capacity.h"
-#include "mob_controller_low_hp_detection_capacity.h"
-#include "mob_controller_action_state_detection_capacity.h"
-#include "mob_controller_close_detection_range_capacity.h"
 #include "mob_controller_detection_target_capacity.h"
 #include "mob_controller_detection_distance_capacity.h"
 #include "mob_controller_illusion_detection_capacity.h"
 #include "mob_controller_stealth_detection_capacity.h"
 #include "mob_controller_sight_mode_capacity.h"
 #include "mob_controller_engaged_target_range_capacity.h"
+#include "mob_controller_target_detection_policy_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -443,83 +437,32 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
         currentDistance,
         [&]() { return PMob->GetMeleeRange(PTarget); });
 
-    if (mobcontrollersightdetection::CanDetect(
-            detectSight,
-            hasInvisible,
-            currentDistance,
-            PMob->getMobMod(MOBMOD_SIGHT_RANGE),
-            facing(PMob->loc.p, PTarget->loc.p, 64),
-            isTargetAndInRange,
-            [&]() { return PMob->CanSeeTarget(PTarget); }))
-    {
-        return true;
-    }
-
-    if (mobcontrollerambushdetection::CanDetect(
-            (PMob->m_Behavior & BEHAVIOR_AGGRO_AMBUSH) != 0, currentDistance, hasSneak))
-    {
-        return true;
-    }
-
-    if (mobcontrollerhearingdetection::CanDetect(
-            (detects & DETECT_HEARING) != 0,
-            currentDistance,
-            PMob->getMobMod(MOBMOD_SOUND_RANGE),
-            hasSneak,
-            isTargetAndInRange,
-            [&]() { return PMob->CanSeeTarget(PTarget); }))
-    {
-        return true;
-    }
-
-    if (mobcontrollermagicdetection::CanDetect(
-            (detects & DETECT_MAGIC) != 0,
-            currentDistance,
-            PMob->getMobMod(MOBMOD_MAGIC_RANGE),
-            isTargetAndInRange,
-            [&]() {
-                return PTarget->PAI->IsCurrentState<CMagicState>() &&
-                       static_cast<CMagicState*>(PTarget->PAI->GetCurrentState())->GetSpell()->hasMPCost();
-            },
-            [&]() { return PMob->CanSeeTarget(PTarget); }))
-    {
-        return true;
-    }
-
-    // everything below require distance to be below 20
-    if (!mobcontrollerclosedetectionrange::IsInRange(currentDistance))
-    {
-        return false;
-    }
-
-    if (mobcontrollerlowhpdetection::CanDetect(
-            (detects & DETECT_LOWHP) != 0,
-            PTarget->GetHPP(),
-            isTargetAndInRange,
-            [&]() { return PMob->CanSeeTarget(PTarget); }))
-    {
-        return true;
-    }
-
-    if (mobcontrolleractionstatedetection::CanDetect(
-            (detects & DETECT_WEAPONSKILL) != 0,
-            isTargetAndInRange,
-            [&]() { return PTarget->PAI->IsCurrentState<CWeaponSkillState>(); },
-            [&]() { return PMob->CanSeeTarget(PTarget); }))
-    {
-        return true;
-    }
-
-    if (mobcontrolleractionstatedetection::CanDetect(
-            (detects & DETECT_JOBABILITY) != 0,
-            isTargetAndInRange,
-            [&]() { return PTarget->PAI->IsCurrentState<CAbilityState>(); },
-            [&]() { return PMob->CanSeeTarget(PTarget); }))
-    {
-        return true;
-    }
-
-    return false;
+    return mobcontrollertargetdetectionpolicy::CanDetect(
+        {
+            .detectSight        = detectSight,
+            .ambushBehavior     = (PMob->m_Behavior & BEHAVIOR_AGGRO_AMBUSH) != 0,
+            .detectHearing      = (detects & DETECT_HEARING) != 0,
+            .detectMagic        = (detects & DETECT_MAGIC) != 0,
+            .detectLowHP        = (detects & DETECT_LOWHP) != 0,
+            .detectWeaponSkill  = (detects & DETECT_WEAPONSKILL) != 0,
+            .detectJobAbility   = (detects & DETECT_JOBABILITY) != 0,
+            .hasInvisible       = hasInvisible,
+            .hasSneak           = hasSneak,
+            .distance           = currentDistance,
+            .sightRange         = static_cast<float>(PMob->getMobMod(MOBMOD_SIGHT_RANGE)),
+            .soundRange         = static_cast<float>(PMob->getMobMod(MOBMOD_SOUND_RANGE)),
+            .magicRange         = static_cast<float>(PMob->getMobMod(MOBMOD_MAGIC_RANGE)),
+            .facingTarget       = facing(PMob->loc.p, PTarget->loc.p, 64),
+            .targetInMeleeRange = isTargetAndInRange,
+            .hpPercent          = PTarget->GetHPP(),
+        },
+        [&]() { return PMob->CanSeeTarget(PTarget); },
+        [&]() {
+            return PTarget->PAI->IsCurrentState<CMagicState>() &&
+                   static_cast<CMagicState*>(PTarget->PAI->GetCurrentState())->GetSpell()->hasMPCost();
+        },
+        [&]() { return PTarget->PAI->IsCurrentState<CWeaponSkillState>(); },
+        [&]() { return PTarget->PAI->IsCurrentState<CAbilityState>(); });
 }
 
 auto CMobController::MobSkill(int listId) -> bool
