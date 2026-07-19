@@ -67,3 +67,40 @@ describe('Survival Guide finish', function()
         assert(payment == nil and tutorialSet == nil and destination == nil)
     end)
 end)
+
+describe('Survival Guide trigger', function()
+    it('registers an unregistered guide without opening its menu', function()
+        local added, started = nil, nil
+        local player = {
+            getZoneID = function() return xi.zone.NORTHERN_SAN_DORIA end,
+            hasTeleport = function() return false end,
+            messageSpecial = function() end,
+            addTeleport = function(_, _, bit, set) added = { bit, set } end,
+            startEvent = function() started = true end,
+        }
+
+        xi.survivalGuide.onTrigger(player)
+
+        assert(added[1] == 24 and added[2] == 0 and started == nil)
+    end)
+
+    it('opens a registered guide menu with current flags and unlock masks', function()
+        local event = nil
+        local player = {
+            getZoneID = function() return xi.zone.NORTHERN_SAN_DORIA end,
+            hasTeleport = function() return true end,
+            getCurrency = function() return 50 end,
+            getTeleportMenu = function() return { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 } end,
+            getCharVar = function() return 2 end,
+            hasKeyItem = function() return true end,
+            getTeleportTable = function() return { 1, 2, 3, 4 } end,
+            getGil = function() return 1000 end,
+            startEvent = function(_, ...) event = { ... } end,
+        }
+
+        xi.survivalGuide.onTrigger(player)
+
+        assert(event[1] == 8500 and event[2] == 0 and event[3] == 0x00323800)
+        assert(event[4] == 1000 and event[5] == 1 and event[6] == 2 and event[7] == 3 and event[8] == 4)
+    end)
+end)
