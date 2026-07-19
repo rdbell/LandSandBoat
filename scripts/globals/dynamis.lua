@@ -56,6 +56,22 @@ xi.dynamis.timeExtensionAwardPlan = function(hasDynamisEffect, hasKeyItem, minut
     return { durationAdded = minutes * 60 * 1000 }
 end
 
+xi.dynamis.findRefillStatue = function(refillMobs, mobId)
+    if not refillMobs then
+        return nil
+    end
+
+    for _, group in pairs(refillMobs) do
+        for _, statue in pairs(group) do
+            if statue.mob == mobId then
+                return statue
+            end
+        end
+    end
+
+    return nil
+end
+
 local entryInfo =
 {
     --[[
@@ -627,24 +643,10 @@ xi.dynamis.refillStatueOnSpawn = function(mob)
     local refillMobs = ID.mob.REFILL_STATUE
 
     if refillMobs then
-        local found = false
-
-        -- set this statue's eye color
-        for _, g in pairs(refillMobs) do
-            for _, m in pairs(g) do
-                if m.mob == mobId then
-                    found = true
-                    mob:setAnimationSub(m.eye)
-                    break
-                end
-            end
-
-            if found then
-                break
-            end
-        end
-
-        if not found then
+        local statue = xi.dynamis.findRefillStatue(refillMobs, mobId)
+        if statue then
+            mob:setAnimationSub(statue.eye)
+        else
             printf('[xi.dynamis.refillStatueOnSpawn] called in zone %i on mob %i that does not appear in a refill statue group.', zoneId, mobId)
         end
     else

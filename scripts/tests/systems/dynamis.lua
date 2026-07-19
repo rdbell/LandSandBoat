@@ -20,6 +20,18 @@ describe('Dynamis time-extension groups', function()
     end)
 end)
 
+describe('Dynamis refill statues', function()
+    it('finds a statue eye configuration across groups', function()
+        local blue = { mob = 100, eye = 1 }
+        local green = { mob = 101, eye = 2 }
+        local entries = { { blue }, { green } }
+
+        assert(xi.dynamis.findRefillStatue(entries, 101) == green)
+        assert(xi.dynamis.findRefillStatue(entries, 999) == nil)
+        assert(xi.dynamis.findRefillStatue(nil, 100) == nil)
+    end)
+end)
+
 describe('Dynamis time-extension awards', function()
     it('awards time only to effect holders without the extension key item', function()
         assert(xi.dynamis.timeExtensionAwardPlan(false, false, 10) == nil)
