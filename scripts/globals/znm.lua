@@ -816,10 +816,18 @@ xi.znm.sanraku.handleCompletedTradeWithPlate = function(player)
     player:addCurrency('zeni_point', plan.zeniValue)
 end
 
+xi.znm.sanraku.completedTrophyTradePlan = function(seal)
+    return { seal = seal, clearTradedTrophySeal = true }
+end
+
 xi.znm.sanraku.handleCompletedTradeWithTrophy = function(player)
+    local plan = xi.znm.sanraku.completedTrophyTradePlan(xi.znm.sanraku.tradedTrophySeal(player))
+
     player:tradeComplete()
-    player:addKeyItem(xi.znm.sanraku.tradedTrophySeal(player))
-    xi.znm.sanraku.setTradedTrophySeal(player, 0)
+    player:addKeyItem(plan.seal)
+    if plan.clearTradedTrophySeal then
+        xi.znm.sanraku.setTradedTrophySeal(player, 0)
+    end
 end
 
 -----------------------------------
