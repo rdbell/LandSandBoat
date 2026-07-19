@@ -226,3 +226,18 @@ describe('ZNM Ryo plate value update', function()
         assert(plan.zeniValue == 45 and plan.clearTradedPlateValue)
     end)
 end)
+
+describe('ZNM Ryo event finish', function()
+    it('cleans only the plate-value trade event', function()
+        assert(xi.znm.ryo.eventFinishOutcome(914) == 'clean_trade')
+        assert(xi.znm.ryo.eventFinishOutcome(913) == nil)
+    end)
+
+    it('clears a reserved item when present and always cleans the trade', function()
+        local withItem = xi.znm.ryo.tradeCleanupPlan(true)
+        assert(withItem.clearReservedValue and withItem.cleanTrade)
+
+        local withoutItem = xi.znm.ryo.tradeCleanupPlan(false)
+        assert(not withoutItem.clearReservedValue and withoutItem.cleanTrade)
+    end)
+end)

@@ -433,13 +433,19 @@ xi.znm.ryo.onEventUpdate = function(player, csid, option, npc)
 end
 
 xi.znm.ryo.onEventFinish = function(player, csid, option, npc)
-    if csid == 914 then
+    local outcome = xi.znm.ryo.eventFinishOutcome(csid)
+
+    if outcome == 'clean_trade' then
         local item = player:getTrade():getItem()
-        if item then
+        local plan = xi.znm.ryo.tradeCleanupPlan(item ~= nil)
+
+        if plan.clearReservedValue then
             item:setReservedValue(0)
         end
 
-        player:getTrade():clean()
+        if plan.cleanTrade then
+            player:getTrade():clean()
+        end
     end
 end
 
@@ -473,6 +479,16 @@ xi.znm.ryo.eventUpdateOutcome = function(csid, option)
     end
 
     return 'default'
+end
+
+xi.znm.ryo.eventFinishOutcome = function(csid)
+    if csid == 914 then
+        return 'clean_trade'
+    end
+end
+
+xi.znm.ryo.tradeCleanupPlan = function(hasTradeItem)
+    return { clearReservedValue = hasTradeItem, cleanTrade = true }
 end
 
 xi.znm.ryo.menuParam = function(zeniStatus, zeni)
