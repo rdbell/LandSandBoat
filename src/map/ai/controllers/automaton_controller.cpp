@@ -50,6 +50,7 @@
 #include "automaton_controller_disengage_stand_back_capacity.h"
 #include "automaton_controller_healing_gate_capacity.h"
 #include "automaton_controller_elemental_gate_capacity.h"
+#include "automaton_controller_low_hp_elemental_priority_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -301,7 +302,7 @@ auto CAutomatonController::TrySpellcast(const CurrentManeuvers& maneuvers) -> bo
         break;
         case AutomatonHead::Stormwaker:
         {
-            bool lowHP = PTarget->GetHPP() <= 30 && PTarget->health.hp <= 300;
+            bool lowHP = automatoncontrollerlowhpelementalpriority::ShouldPrioritizeElementalForLowHP(PTarget->GetHPP(), PTarget->health.hp);
             if (lowHP && TryElemental(maneuvers)) // Mob low HP -> Nuke
             {
                 m_LastElementalTime = m_Tick;

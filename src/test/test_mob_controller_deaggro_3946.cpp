@@ -71,6 +71,7 @@
 #include "map/ai/controllers/automaton_controller_disengage_stand_back_capacity.h"
 #include "map/ai/controllers/automaton_controller_healing_gate_capacity.h"
 #include "map/ai/controllers/automaton_controller_elemental_gate_capacity.h"
+#include "map/ai/controllers/automaton_controller_low_hp_elemental_priority_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -601,6 +602,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonElementalGateOK)
     {
         std::cerr << "automaton elemental gate self-test failed\n";
+        return false;
+    }
+    const bool automatonLowHPElemPriorityOK = automatoncontrollerlowhpelementalpriority::ShouldPrioritizeElementalForLowHP(30, 300) &&
+                                              !automatoncontrollerlowhpelementalpriority::ShouldPrioritizeElementalForLowHP(31, 300) &&
+                                              !automatoncontrollerlowhpelementalpriority::ShouldPrioritizeElementalForLowHP(30, 301);
+    if (!automatonLowHPElemPriorityOK)
+    {
+        std::cerr << "automaton low-HP elemental priority self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
