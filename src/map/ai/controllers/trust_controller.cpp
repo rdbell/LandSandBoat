@@ -28,6 +28,7 @@
 #include "trust_controller_combat_master_engagement_capacity.h"
 #include "trust_controller_combat_post_movement_capacity.h"
 #include "trust_controller_master_enmity_capacity.h"
+#include "trust_controller_melee_path_result_capacity.h"
 #include "trust_controller_target_sync_admission_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
@@ -234,13 +235,18 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
                     PathOutToDistance(PTarget, movementPlan.desiredDistance);
                     break;
                 case trustcontrollercombatmovement::Action::MeleePath:
-                    if (PTrust->PAI->PathFind->PathAround(PTarget->loc.p, movementPlan.desiredDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK))
+                    switch (trustcontrollermeleepathresult::Resolve(
+                        [&]() { return PTrust->PAI->PathFind->PathAround(PTarget->loc.p, movementPlan.desiredDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK); },
+                        [&]() { return PTrust->GetSpeed() > 0; }))
                     {
-                        PTrust->PAI->PathFind->FollowPath(m_Tick);
-                    }
-                    else if (PTrust->GetSpeed() > 0)
-                    {
-                        PTrust->PAI->PathFind->StepTo(PTarget->loc.p, true);
+                        case trustcontrollermeleepathresult::Action::Follow:
+                            PTrust->PAI->PathFind->FollowPath(m_Tick);
+                            break;
+                        case trustcontrollermeleepathresult::Action::Step:
+                            PTrust->PAI->PathFind->StepTo(PTarget->loc.p, true);
+                            break;
+                        case trustcontrollermeleepathresult::Action::Hold:
+                            break;
                     }
                     break;
                 case trustcontrollercombatmovement::Action::MeleeStep:

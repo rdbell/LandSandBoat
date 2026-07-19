@@ -123,6 +123,7 @@
 #include "map/ai/controllers/trust_controller_combat_master_engagement_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_post_movement_capacity.h"
 #include "map/ai/controllers/trust_controller_master_enmity_capacity.h"
+#include "map/ai/controllers/trust_controller_melee_path_result_capacity.h"
 #include "map/ai/controllers/trust_controller_target_sync_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_cast_recast_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_top_enmity_target_capacity.h"
@@ -878,6 +879,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                        meleePath.action == trustcontrollercombatmovement::Action::MeleePath && meleePath.desiredDistance == 3.0f &&
                                        meleeStep.action == trustcontrollercombatmovement::Action::MeleeStep &&
                                        rangedMovement.action == trustcontrollercombatmovement::Action::PathOut && rangedMovement.desiredDistance == 12.0f;
+    bool trustMeleePathSpeedCheckCalled = false;
+    const bool trustMeleePathResultOK = trustcontrollermeleepathresult::Resolve(
+                                             []() { return true; },
+                                             [&]() { trustMeleePathSpeedCheckCalled = true; return true; }) == trustcontrollermeleepathresult::Action::Follow &&
+                                         !trustMeleePathSpeedCheckCalled &&
+                                         trustcontrollermeleepathresult::Resolve(
+                                             []() { return false; }, []() { return true; }) == trustcontrollermeleepathresult::Action::Step &&
+                                         trustcontrollermeleepathresult::Resolve(
+                                             []() { return false; }, []() { return false; }) == trustcontrollermeleepathresult::Action::Hold;
     const auto charmEngaged = playercharmcontrollerroam::Resolve(true, true, true, 2.1f);
     const auto charmInRange = playercharmcontrollerroam::Resolve(false, true, true, 2.1f);
     const auto charmPath = playercharmcontrollerroam::Resolve(false, true, true, 2.2f);
@@ -2579,6 +2589,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!trustCombatPostMovementOK)
     {
         std::cerr << "trust combat post-movement self-test failed\n";
+        return false;
+    }
+    if (!trustMeleePathResultOK)
+    {
+        std::cerr << "trust melee path-result self-test failed\n";
         return false;
     }
     if (!trustCombatMasterEngagementOK)
