@@ -474,6 +474,42 @@ describe('Garrison shutdown', function()
     end)
 end)
 
+describe('Garrison watchdog', function()
+    it('stops a running event whose main tick is more than two seconds late', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local keys = { 'players', 'spawnSchedule', 'npcs', 'mobs', 'state', 'isRunning', 'stateTime', 'waveIndex', 'groupIndex', 'bossSpawned', 'nextSpawnTime', 'endTime', 'deadNPCCount', 'deadMobCount', 'despawnedMobCount', 'lastTick' }
+        local original = {}
+        for _, key in ipairs(keys) do original[key] = zoneData[key] end
+        local originalTick, originalStop = xi.garrison.tick, xi.garrison.stop
+        local callbacks = {}
+        local zone = { getID = function() return zoneID end, getName = function() return 'West Ronfaure' end }
+        local player = {
+            getZone = function() return zone end,
+            getZoneID = function() return zoneID end,
+            getAlliance = function() return {} end,
+            setCharVar = function() end,
+        }
+        local npc = {
+            getZone = function() return zone end,
+            getZoneID = function() return zoneID end,
+            timer = function(_, delay, callback) callbacks[delay] = callback end,
+        }
+        local stopped = false
+
+        xi.garrison.tick = function() end
+        xi.garrison.stop = function(stoppedZone) stopped = stoppedZone == zone end
+        xi.garrison.start(player, npc)
+        zoneData.lastTick = GetSystemTime() - 3
+        callbacks[5000](npc)
+
+        assert(stopped)
+
+        xi.garrison.tick, xi.garrison.stop = originalTick, originalStop
+        for key, value in pairs(original) do zoneData[key] = value end
+    end)
+end)
+
 describe('Garrison win transition', function()
     it('moves the zone into the reward state', function()
         local zoneID = xi.zone.WEST_RONFAURE
