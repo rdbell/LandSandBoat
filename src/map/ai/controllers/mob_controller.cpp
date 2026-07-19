@@ -58,6 +58,7 @@
 #include "mob_controller_ranged_attack_admission_capacity.h"
 #include "mob_controller_face_target_capacity.h"
 #include "mob_controller_scripted_path_capacity.h"
+#include "mob_controller_attack_range_source_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -866,7 +867,9 @@ void CMobController::Move()
     }
 
     const bool move         = PMob->PAI->PathFind->IsFollowingPath();
-    float      attack_range = PMob->GetMeleeRange(PTarget);
+    const float meleeRange  = PMob->GetMeleeRange(PTarget);
+    float       skillRange  = meleeRange;
+    bool        hasSkillRange{};
 
     if (PMob->getMobMod(MOBMOD_ATTACK_SKILL_LIST) > 0)
     {
@@ -877,19 +880,18 @@ void CMobController::Move()
             const auto* skill{ battleutils::GetMobSkill(skillList.front()) };
             if (skill)
             {
-                attack_range = skill->getDistance();
+                skillRange    = skill->getDistance();
+                hasSkillRange = true;
             }
         }
     }
 
-    if (IsRangedAttackEnabled())
-    {
-        // We need to set the range manually because the skill lists on mobs are not audited fully
-        attack_range = PMob->GetRangedAttackRange();
-    }
+    const bool rangedEnabled = IsRangedAttackEnabled();
+    float      attack_range  = mobcontrollerattackrangesource::Resolve(
+        meleeRange, hasSkillRange, skillRange, rangedEnabled, PMob->GetRangedAttackRange());
 
     const auto range = mobcontrollermoverange::Resolve(
-        attack_range, 0, IsRangedAttackEnabled(), PMob->GetRangedAttackRange(), PMob->getMobMod(MOBMOD_TARGET_DISTANCE_OFFSET));
+        attack_range, 0, rangedEnabled, PMob->GetRangedAttackRange(), PMob->getMobMod(MOBMOD_TARGET_DISTANCE_OFFSET));
     attack_range = range.attackRange;
     const float closeDistance = range.closeDistance;
 
