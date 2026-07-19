@@ -77,6 +77,7 @@
 #include "mob_controller_idle_despawn_capacity.h"
 #include "mob_controller_engage_delay_capacity.h"
 #include "mob_controller_fomor_aggro_context_capacity.h"
+#include "mob_controller_cast_stop_cooldown_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1647,8 +1648,8 @@ void CMobController::ClearFollowTarget()
 
 void CMobController::OnCastStopped(CMagicState& state, action_t& action)
 {
-    int32 magicCool = PMob->getMobMod(MOBMOD_MAGIC_COOL);
-    m_nextMagicTime = m_Tick + std::chrono::seconds(xirand::GetRandomNumber(magicCool / 2, magicCool));
+    const auto magicCooldown = mobcontrollercaststopcooldown::Resolve(PMob->getMobMod(MOBMOD_MAGIC_COOL));
+    m_nextMagicTime = m_Tick + std::chrono::seconds(xirand::GetRandomNumber(magicCooldown.lower, magicCooldown.upper));
 }
 
 auto CMobController::CanMoveForward(const float currentDistance) -> bool
