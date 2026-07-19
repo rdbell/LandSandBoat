@@ -1,4 +1,17 @@
 require('scripts/globals/garrison_data')
+require('scripts/globals/garrison')
+
+local function playerWithPartyCount(numParties)
+    local alliance = {}
+
+    for i = 1, numParties do
+        local name = tostring(i)
+        local leader = { getName = function() return name end }
+        alliance[i] = { getPartyLeader = function() return leader end }
+    end
+
+    return { getAlliance = function() return alliance end }
+end
 
 describe('Garrison wave schedules', function()
     it('defines every party-size wave group and its delay', function()
@@ -67,5 +80,15 @@ describe('Garrison level-cap-99 layout', function()
         local teriggan = xi.garrison.zoneData[xi.zone.CAPE_TERIGGAN]
         assert(teriggan.itemReq == xi.item.BUNNY_FANG_SACK and teriggan.levelCap == 99)
         assert(teriggan.mobBoss == 'Goblin_Boss' and teriggan.pos[1] == -174)
+    end)
+end)
+
+describe('Garrison spawn schedule selection', function()
+    it('uses the alliance party count and falls back to one party', function()
+        assert(xi.garrison.getSpawnSchedule(playerWithPartyCount(1)) == xi.garrison.waves.spawnSchedule[1])
+        assert(xi.garrison.getSpawnSchedule(playerWithPartyCount(2)) == xi.garrison.waves.spawnSchedule[2])
+        assert(xi.garrison.getSpawnSchedule(playerWithPartyCount(3)) == xi.garrison.waves.spawnSchedule[3])
+        assert(xi.garrison.getSpawnSchedule(playerWithPartyCount(0)) == xi.garrison.waves.spawnSchedule[1])
+        assert(xi.garrison.getSpawnSchedule(playerWithPartyCount(4)) == xi.garrison.waves.spawnSchedule[1])
     end)
 end)
