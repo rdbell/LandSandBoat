@@ -28,6 +28,7 @@
 #include "mob_controller_party_link_member_eligibility_capacity.h"
 #include "mob_controller_party_link_family_capacity.h"
 #include "mob_controller_party_link_engagement_capacity.h"
+#include "mob_controller_master_link_engagement_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -391,14 +392,14 @@ void CMobController::TryLink()
     }
 
     // ask my master for help
-    if (PMob->PMaster != nullptr && PMob->PMaster->PAI->IsRoaming())
+    if (mobcontrollermasterlinkengagement::CanEngage(
+            PMob->PMaster != nullptr,
+            [&]() { return PMob->PMaster->PAI->IsRoaming(); },
+            [&]() { return static_cast<CMobEntity*>(PMob->PMaster)->PAI->IsRoaming(); },
+            [&]() { return static_cast<CMobEntity*>(PMob->PMaster)->CanLink(&PMob->loc.p, PMob->getMobMod(MOBMOD_SUPERLINK)); }))
     {
         auto* PMaster = static_cast<CMobEntity*>(PMob->PMaster);
-
-        if (PMaster->PAI->IsRoaming() && PMaster->CanLink(&PMob->loc.p, PMob->getMobMod(MOBMOD_SUPERLINK)))
-        {
-            PMaster->PAI->Engage(PTarget->targid);
-        }
+        PMaster->PAI->Engage(PTarget->targid);
     }
 }
 
