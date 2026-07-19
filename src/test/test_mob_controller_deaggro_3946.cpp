@@ -122,6 +122,7 @@
 #include "map/ai/controllers/trust_controller_combat_movement_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_master_engagement_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_post_movement_capacity.h"
+#include "map/ai/controllers/trust_controller_master_enmity_capacity.h"
 #include "map/ai/controllers/trust_controller_cast_recast_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_top_enmity_target_capacity.h"
 #include "map/ai/controllers/trust_controller_tick_capacity.h"
@@ -698,6 +699,24 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                                trustCombatMasterDisengaged.disengage &&
                                                trustCombatMasterDisengaged.clearTopEnmity &&
                                                trustCombatMasterDisengaged.recordCombatEnd;
+    struct TestEnmity
+    {
+        bool  active;
+        int32 CE;
+        int32 VE;
+    };
+    const std::unordered_map<uint32, TestEnmity> trustEnmityEntries = {
+        { 100, { true, 30, 20 } },
+        { 200, { false, 7, 3 } },
+    };
+    const auto trustActiveEnmity = trustcontrollermasterenmity::Resolve(trustEnmityEntries, 100);
+    const auto trustInactiveEnmity = trustcontrollermasterenmity::Resolve(trustEnmityEntries, 200);
+    const auto trustMissingEnmity = trustcontrollermasterenmity::Resolve(trustEnmityEntries, 999);
+    const bool trustMasterEnmityOK = trustActiveEnmity.active && trustActiveEnmity.cumulative == 30 &&
+                                     trustActiveEnmity.volatileEnmity == 20 && !trustInactiveEnmity.active &&
+                                     trustInactiveEnmity.cumulative == 7 && trustInactiveEnmity.volatileEnmity == 3 &&
+                                     !trustMissingEnmity.active && trustMissingEnmity.cumulative == 0 &&
+                                     trustMissingEnmity.volatileEnmity == 0;
     const auto engageBase = std::chrono::steady_clock::time_point{};
     const bool playerEngageOK = !Evaluate(false, 0, engageBase, std::chrono::seconds(0), engageBase).dispatch &&
                                 Evaluate(true, 29, engageBase, std::chrono::seconds(1), engageBase + std::chrono::seconds(2)).dispatch &&
@@ -2545,6 +2564,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!trustCombatMasterEngagementOK)
     {
         std::cerr << "trust combat master-engagement self-test failed\n";
+        return false;
+    }
+    if (!trustMasterEnmityOK)
+    {
+        std::cerr << "trust master enmity self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !followAdmissionOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)

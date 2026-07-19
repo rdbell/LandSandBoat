@@ -27,6 +27,7 @@
 #include "trust_controller_combat_movement_capacity.h"
 #include "trust_controller_combat_master_engagement_capacity.h"
 #include "trust_controller_combat_post_movement_capacity.h"
+#include "trust_controller_master_enmity_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_noncombat_declump_admission_capacity.h"
@@ -174,19 +175,10 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
     {
         auto  masterID   = PMaster->id;
         auto* enmityList = PMob->PEnmityContainer->GetEnmityList();
-        bool  masterEnmityActive = false;
-        int32_t cumulativeEnmity = 0;
-        int32_t volatileEnmity   = 0;
+        const auto masterEnmity = trustcontrollermasterenmity::Resolve(*enmityList, masterID);
 
-        if (auto it = enmityList->find(masterID); it != enmityList->end())
-        {
-            const EnmityObject_t& entry = it->second;
-            masterEnmityActive = entry.active;
-            cumulativeEnmity   = entry.CE;
-            volatileEnmity     = entry.VE;
-        }
-
-        if (trustcontrollertargetsync::ShouldSync(targetMismatch, masterEnmityActive, cumulativeEnmity, volatileEnmity))
+        if (trustcontrollertargetsync::ShouldSync(
+                targetMismatch, masterEnmity.active, masterEnmity.cumulative, masterEnmity.volatileEnmity))
         {
             PTrust->PAI->Internal_ChangeTarget(PMaster->GetBattleTargetID());
             m_LastTopEnmity = nullptr;
