@@ -34,6 +34,7 @@
 #include "automaton_controller_elemental_tier_capacity.h"
 #include "automaton_controller_resistance_order_capacity.h"
 #include "automaton_controller_enfeeble_gate_capacity.h"
+#include "automaton_controller_status_removal_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1003,7 +1004,7 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
 
 auto CAutomatonController::TryStatusRemoval(const CurrentManeuvers& maneuvers) -> bool
 {
-    if (!PAutomaton->PMaster || m_statusCooldown == 0s || m_Tick <= m_LastStatusTime + m_statusCooldown)
+    if (!automatoncontrollerstatusremovalgate::CanRemoveStatus(m_Tick, m_LastStatusTime, m_statusCooldown, PAutomaton->PMaster != nullptr))
     {
         return false;
     }
