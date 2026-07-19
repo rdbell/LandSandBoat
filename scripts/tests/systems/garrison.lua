@@ -373,3 +373,34 @@ describe('Garrison entry validation', function()
         zoneData.isRunning = originalRunning
     end)
 end)
+
+describe('Garrison trade admission', function()
+    it('starts the nation event only after all trade gates pass', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local originalAllyInfo = xi.garrison.getAllyInfo
+        local originalValidate = xi.garrison.validateEntry
+        local originalTradeCheck = npcUtil.tradeHasExactly
+        local started, storedNPC = nil, nil
+        local zone = { getID = function() return zoneID end, getRegionID = function() return 0 end }
+        local player = {
+            getZone = function() return zone end,
+            getNation = function() return xi.nation.SANDORIA end,
+            startEvent = function(_, event) started = event end,
+            setLocalVar = function(_, key, value) storedNPC = { key, value } end,
+        }
+        local npc = { getID = function() return 1234 end }
+
+        xi.garrison.getAllyInfo = function() return {} end
+        xi.garrison.validateEntry = function() return true end
+        npcUtil.tradeHasExactly = function() return true end
+        assert(xi.garrison.onTrade(player, npc, {}, xi.nation.SANDORIA))
+        assert(started == 32753 and storedNPC[1] == 'GARRISON_NPC' and storedNPC[2] == 1234)
+
+        xi.garrison.validateEntry = function() return false end
+        assert(not xi.garrison.onTrade(player, npc, {}, xi.nation.SANDORIA))
+
+        xi.garrison.getAllyInfo = originalAllyInfo
+        xi.garrison.validateEntry = originalValidate
+        npcUtil.tradeHasExactly = originalTradeCheck
+    end)
+end)
