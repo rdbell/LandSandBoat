@@ -1533,7 +1533,12 @@ auto CMobController::Engage(const uint16 targid) -> bool
 
 auto CMobController::CanFollowTarget(CBattleEntity* PTarget) const -> bool
 {
-    return !PMob->m_neutral && (PMob->m_roamFlags & ROAMFLAG_FOLLOW) && PFollowTarget == nullptr && m_followType == FollowType::None && CanAggroTarget(PTarget);
+    const auto notNeutral        = !PMob->m_neutral;
+    const auto hasFollowFlag     = (PMob->m_roamFlags & ROAMFLAG_FOLLOW) != 0;
+    const auto hasNoFollowTarget = PFollowTarget == nullptr;
+    const auto hasNoFollowType   = m_followType == FollowType::None;
+    const auto canAggroTarget    = notNeutral && hasFollowFlag && hasNoFollowTarget && hasNoFollowType && CanAggroTarget(PTarget);
+    return mobcontrollerfollow::CanFollow(notNeutral, hasFollowFlag, hasNoFollowTarget, hasNoFollowType, canAggroTarget);
 }
 
 auto CMobController::CanAggroTarget(CBattleEntity* PTarget) const -> bool

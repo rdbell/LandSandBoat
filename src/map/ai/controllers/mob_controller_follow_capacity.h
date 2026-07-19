@@ -30,4 +30,12 @@ constexpr auto SetTarget(
     return { targetExists, desiredType, clearingRoam, clearingRoam ? tick + std::chrono::seconds(30) : std::chrono::steady_clock::duration{},
              targetExists, clearingRoam, clearingRoam && healthFull };
 }
+
+// CanFollow reports whether a mob may begin following an aggro-eligible target.
+constexpr auto CanFollow(
+    const bool notNeutral, const bool hasFollowFlag, const bool hasNoFollowTarget,
+    const bool hasNoFollowType, const bool canAggroTarget) -> bool
+{
+    return notNeutral && hasFollowFlag && hasNoFollowTarget && hasNoFollowType && canAggroTarget;
+}
 } // namespace mobcontrollerfollow
