@@ -20,4 +20,9 @@ inline auto ShouldPath(float distanceToPosition, uint8_t failedAttempts) -> bool
     return distanceToPosition > 2.0f && failedAttempts < 3;
 }
 
+constexpr auto NextFailedAttempts(const bool hasTopEnmity, const uint8_t previous) -> uint8_t
+{
+    return hasTopEnmity ? static_cast<uint8_t>(previous + 1) : 0;
+}
+
 } // namespace trustcontrollerreposition

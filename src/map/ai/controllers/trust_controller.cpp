@@ -489,14 +489,8 @@ void CTrustController::PathOutToDistance(CBattleEntity* PTarget, float amount)
     float      currentDistanceToTarget = distance(POwner->loc.p, PTarget->loc.p);
     position_t target_position         = POwner->loc.p;
 
-    if (GetTopEnmity() == POwner)
-    {
-        ++m_failedRepositionAttempts;
-    }
-    else
-    {
-        m_failedRepositionAttempts = 0;
-    }
+    m_failedRepositionAttempts = trustcontrollerreposition::NextFailedAttempts(
+        GetTopEnmity() == POwner, m_failedRepositionAttempts);
 
     // Invalidate position and pick new one (limit: every 3s)
     if (trustcontrollerreposition::ShouldSelect(
