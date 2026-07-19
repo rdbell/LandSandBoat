@@ -74,6 +74,7 @@
 #include "mob_controller_roam_pet_follow_capacity.h"
 #include "mob_controller_engage_pet_capacity.h"
 #include "mob_controller_disengage_roam_schedule_capacity.h"
+#include "mob_controller_idle_despawn_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1480,9 +1481,10 @@ auto CMobController::Disengage() -> bool
     PMob->PAI->PathFind->Clear();
     PMob->PEnmityContainer->Clear();
 
-    if (PMob->getMobMod(MOBMOD_IDLE_DESPAWN))
+    const auto idleDespawn = mobcontrolleridledespawn::Resolve(PMob->getMobMod(MOBMOD_IDLE_DESPAWN));
+    if (idleDespawn.shouldSet)
     {
-        PMob->SetDespawnTime(std::chrono::seconds(PMob->getMobMod(MOBMOD_IDLE_DESPAWN)));
+        PMob->SetDespawnTime(idleDespawn.duration);
     }
 
     PMob->m_OwnerID.clean();
