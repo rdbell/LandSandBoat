@@ -198,6 +198,26 @@ describe('Garrison mob-pool selection', function()
     end)
 end)
 
+describe('Garrison mob spawning', function()
+    it('configures spawned mobs and tracks both death and despawn', function()
+        local zoneData = { levelCap = 30, mobs = {}, deadMobCount = 0, despawnedMobCount = 0 }
+        local listeners = {}
+        local mob = {
+            addStatusEffect = function() end,
+            setRoamFlags = function() end,
+            addListener = function(_, event, name, callback) listeners[event] = { name, callback } end,
+        }
+
+        stub('SpawnMob', mob)
+        assert(xi.garrison.spawnMob(123, zoneData) == mob)
+        assert(#zoneData.mobs == 1 and zoneData.mobs[1] == 123)
+        assert(listeners.DEATH[1] == 'GARRISON_MOB_DEATH' and listeners.DESPAWN[1] == 'GARRISON_MOB_DESPAWN')
+        listeners.DEATH[2](mob)
+        listeners.DESPAWN[2](mob)
+        assert(zoneData.deadMobCount == 1 and zoneData.despawnedMobCount == 1)
+    end)
+end)
+
 describe('Garrison Gil payout', function()
     it('awards each participating player an equal cap-scaled amount', function()
         local first = { gil = 0, messages = 0 }
