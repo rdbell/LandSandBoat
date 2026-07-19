@@ -76,6 +76,7 @@
 #include "map/ai/controllers/mob_controller_mob_skill_definition_capacity.h"
 #include "map/ai/controllers/mob_controller_ambush_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_sight_detection_capacity.h"
+#include "map/ai/controllers/mob_controller_hearing_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -834,6 +835,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      !mobcontrollersightdetection::CanDetect(true, false, 9.9f, 10.0f, false, true, []() { return true; }) &&
                                      !mobcontrollersightdetection::CanDetect(false, false, 9.9f, 10.0f, true, true, [&]() { sightCallbackCalled = true; return true; }) &&
                                      !sightCallbackCalled;
+    bool hearingCallbackCalled = false;
+    const bool mobHearingDetectionOK = mobcontrollerhearingdetection::CanDetect(true, 9.9f, 10.0f, false, true, []() { return false; }) &&
+                                       mobcontrollerhearingdetection::CanDetect(true, 9.9f, 10.0f, false, false, []() { return true; }) &&
+                                       !mobcontrollerhearingdetection::CanDetect(true, 9.9f, 10.0f, false, false, []() { return false; }) &&
+                                       !mobcontrollerhearingdetection::CanDetect(true, 9.9f, 10.0f, true, true, []() { return true; }) &&
+                                       !mobcontrollerhearingdetection::CanDetect(true, 10.0f, 10.0f, false, true, []() { return true; }) &&
+                                       !mobcontrollerhearingdetection::CanDetect(false, 9.9f, 10.0f, false, true, [&]() { hearingCallbackCalled = true; return true; }) &&
+                                       !hearingCallbackCalled;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1692,6 +1701,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobSightDetectionOK)
     {
         std::cerr << "mob sight-detection self-test failed\n";
+        return false;
+    }
+    if (!mobHearingDetectionOK)
+    {
+        std::cerr << "mob hearing-detection self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

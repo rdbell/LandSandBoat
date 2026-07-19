@@ -94,6 +94,7 @@
 #include "mob_controller_mob_skill_definition_capacity.h"
 #include "mob_controller_ambush_detection_capacity.h"
 #include "mob_controller_sight_detection_capacity.h"
+#include "mob_controller_hearing_detection_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -445,9 +446,15 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
         return true;
     }
 
-    if ((detects & DETECT_HEARING) && currentDistance < PMob->getMobMod(MOBMOD_SOUND_RANGE) && !hasSneak)
+    if (mobcontrollerhearingdetection::CanDetect(
+            (detects & DETECT_HEARING) != 0,
+            currentDistance,
+            PMob->getMobMod(MOBMOD_SOUND_RANGE),
+            hasSneak,
+            isTargetAndInRange,
+            [&]() { return PMob->CanSeeTarget(PTarget); }))
     {
-        return isTargetAndInRange || PMob->CanSeeTarget(PTarget);
+        return true;
     }
 
     if ((detects & DETECT_MAGIC) && currentDistance < PMob->getMobMod(MOBMOD_MAGIC_RANGE) &&
