@@ -108,3 +108,32 @@ describe('Campaign Sigil application finish', function()
         assert(grantCalls == 0 and debitCalls == 0)
     end)
 end)
+
+describe('Campaign Sigil shop update', function()
+    it('reports an otherwise-valid item as level-ineligible', function()
+        local update = nil
+        local player = {
+            getZoneID = function() return xi.zone.BASTOK_MARKETS_S end,
+            canEquipItem = function(_, _, withLevel) return not withLevel end,
+            updateEvent = function(_, ...) update = { ... } end,
+        }
+
+        stub('GetItemByID', {})
+        stub('GetItemLevelRequirementsByID', 50)
+        xi.campaign.sigilOnEventUpdate(player, 13, bit.bor(bit.lshift(2, 8), 2))
+
+        assert(update[8] == 1)
+    end)
+
+    it('does not update a non-shop event', function()
+        local updateCalls = 0
+        local player = {
+            getZoneID = function() return xi.zone.BASTOK_MARKETS_S end,
+            updateEvent = function() updateCalls = updateCalls + 1 end,
+        }
+
+        xi.campaign.sigilOnEventUpdate(player, 14, 2)
+
+        assert(updateCalls == 0)
+    end)
+end)
