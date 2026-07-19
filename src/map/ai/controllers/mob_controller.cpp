@@ -85,6 +85,7 @@
 #include "mob_controller_roam_path_randomness_capacity.h"
 #include "mob_controller_roam_home_retry_schedule_capacity.h"
 #include "mob_controller_roam_neutral_capacity.h"
+#include "mob_controller_roam_rest_full_health_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1200,7 +1201,7 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
             PMob->updatemask |= UPDATE_HP;
         }
 
-        if (PMob->GetHPP() == 100)
+        if (mobcontrollerroamrestfullhealth::ShouldResetExperience(PMob->GetHPP()))
         {
             // at max health undirty exp
             PMob->m_HiPCLvl     = 0;

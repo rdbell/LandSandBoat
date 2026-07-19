@@ -67,6 +67,7 @@
 #include "map/ai/controllers/mob_controller_roam_path_randomness_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_home_retry_schedule_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_neutral_capacity.h"
+#include "map/ai/controllers/mob_controller_roam_rest_full_health_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -788,6 +789,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                   mobcontrollerroamneutral::IsNeutral(true, neutralTime + std::chrono::seconds(10), neutralTime) &&
                                   !mobcontrollerroamneutral::IsNeutral(true, neutralTime + std::chrono::seconds(10) + std::chrono::nanoseconds(1), neutralTime) &&
                                   !mobcontrollerroamneutral::IsNeutral(false, neutralTime, neutralTime);
+    const bool mobRoamRestFullHealthOK = !mobcontrollerroamrestfullhealth::ShouldResetExperience(0) &&
+                                         !mobcontrollerroamrestfullhealth::ShouldResetExperience(99) &&
+                                         mobcontrollerroamrestfullhealth::ShouldResetExperience(100);
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1601,6 +1605,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobRoamNeutralOK)
     {
         std::cerr << "mob roam-neutral self-test failed\n";
+        return false;
+    }
+    if (!mobRoamRestFullHealthOK)
+    {
+        std::cerr << "mob roam-rest full-health self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)
