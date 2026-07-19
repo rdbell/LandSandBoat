@@ -25,6 +25,7 @@
 #include "trust_controller_combat_declump_admission_capacity.h"
 #include "trust_controller_combat_movement_admission_capacity.h"
 #include "trust_controller_combat_movement_capacity.h"
+#include "trust_controller_combat_post_movement_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_noncombat_declump_admission_capacity.h"
@@ -248,13 +249,13 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
                     break;
             }
 
-            if (!PTrust->PAI->PathFind->IsFollowingPath())
+            if (trustcontrollercombatpostmovement::ShouldDeclump(PTrust->PAI->PathFind->IsFollowingPath()))
             {
                 Declump(PMaster, PTarget);
             }
         }
 
-        if (!m_InTransit)
+        if (trustcontrollercombatpostmovement::ShouldFollowPath(m_InTransit))
         {
             PTrust->PAI->PathFind->FollowPath(m_Tick);
         }
