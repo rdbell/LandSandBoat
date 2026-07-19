@@ -158,6 +158,10 @@ xi.voidwalker.shouldUpgradeOriginalPopper = function(isKiller, popperExists, pop
     return isKiller and popperExists and not popperInAlliance and not popperHasKeyItem
 end
 
+xi.voidwalker.shouldUpgradeKiller = function(killerHasPopKeyItem, killerHasNextKeyItem)
+    return killerHasPopKeyItem and not killerHasNextKeyItem
+end
+
 local getNearestMob = function(player, mobs)
     return xi.voidwalker.nearestMob(mobs, function(mobId)
         return player:checkDistance(GetMobByID(mobId))
@@ -561,8 +565,10 @@ xi.voidwalker.onMobDeath = function(mob, player, optParams, keyItem)
         end
 
         if
-            player:hasKeyItem(popkeyitem) and
-            not player:hasKeyItem(keyItem)
+            xi.voidwalker.shouldUpgradeKiller(
+                player:hasKeyItem(popkeyitem),
+                player:hasKeyItem(keyItem)
+            )
         then
             checkUpgrade(player, mob, keyItem)
         end
