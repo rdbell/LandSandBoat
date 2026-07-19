@@ -26,6 +26,7 @@
 #include "automaton_controller_master_loss_capacity.h"
 #include "automaton_controller_move_capacity.h"
 #include "automaton_controller_action_gate_capacity.h"
+#include "automaton_controller_shield_bash_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -208,8 +209,7 @@ auto CAutomatonController::TryShieldBash() -> bool
 {
     CState* PState = PTarget->PAI->GetCurrentState();
 
-    if (m_shieldbashCooldown > 0s && PState && PState->CanInterrupt() &&
-        m_Tick > m_LastShieldBashTime + (m_shieldbashCooldown - std::chrono::seconds(PAutomaton->getMod(Mod::AUTO_SHIELD_BASH_DELAY))))
+    if (automatoncontrollershieldbashgate::CanUseShieldBash(m_Tick, m_LastShieldBashTime, m_shieldbashCooldown, PState && PState->CanInterrupt(), PAutomaton->getMod(Mod::AUTO_SHIELD_BASH_DELAY)))
     {
         return MobSkill(PTarget->targid, m_ShieldBashAbility, std::nullopt);
     }
