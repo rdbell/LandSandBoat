@@ -35,6 +35,7 @@
 #include "automaton_controller_resistance_order_capacity.h"
 #include "automaton_controller_enfeeble_gate_capacity.h"
 #include "automaton_controller_status_removal_gate_capacity.h"
+#include "automaton_controller_enhance_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1092,7 +1093,7 @@ auto CAutomatonController::TryStatusRemoval(const CurrentManeuvers& maneuvers) -
 
 auto CAutomatonController::TryEnhance() -> bool
 {
-    if (!PAutomaton->PMaster || m_enhanceCooldown == 0s || m_Tick <= m_LastEnhanceTime + m_enhanceCooldown)
+    if (!automatoncontrollerenhancegate::CanEnhance(m_Tick, m_LastEnhanceTime, m_enhanceCooldown, PAutomaton->PMaster != nullptr))
     {
         return false;
     }
