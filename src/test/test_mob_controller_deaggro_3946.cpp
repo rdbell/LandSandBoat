@@ -11,6 +11,7 @@
 #include "map/ai/controllers/mob_controller_special_skill_target_capacity.h"
 #include "map/ai/controllers/mob_controller_special_skill_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_selection_capacity.h"
+#include "map/ai/controllers/mob_controller_spell_target_range_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -613,6 +614,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      mobcontrollerspellselection::Select(false, false, false) == mobcontrollerspellselection::Source::Random &&
                                      mobcontrollerspellselection::Select(true, false, true) == mobcontrollerspellselection::Source::Aggro &&
                                      mobcontrollerspellselection::Select(true, true, false) == mobcontrollerspellselection::Source::Random;
+    const bool mobSpellTargetRangeOK = mobcontrollerspelltargetrange::IsInRange(10.0f, 10.0f, 0.0f, 0.0f) &&
+                                       mobcontrollerspelltargetrange::IsInRange(12.0f, 10.0f, 0.75f, 1.25f) &&
+                                       !mobcontrollerspelltargetrange::IsInRange(12.1f, 10.0f, 0.75f, 1.25f);
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1039,6 +1043,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobSpellSelectionOK)
     {
         std::cerr << "mob spell selection self-test failed\n";
+        return false;
+    }
+    if (!mobSpellTargetRangeOK)
+    {
+        std::cerr << "mob spell target range self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)

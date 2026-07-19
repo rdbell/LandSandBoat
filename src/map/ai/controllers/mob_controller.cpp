@@ -30,6 +30,7 @@
 #include "mob_controller_special_skill_target_capacity.h"
 #include "mob_controller_special_skill_admission_capacity.h"
 #include "mob_controller_spell_selection_capacity.h"
+#include "mob_controller_spell_target_range_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -606,7 +607,8 @@ auto CMobController::TryCastSpell() -> bool
     }
 
     // Check if target is in range before attempting to cast
-    if (PCastTarget && distance(PMob->loc.p, PCastTarget->loc.p) > PSpell->getRange() + PMob->modelHitboxSize + PCastTarget->modelHitboxSize)
+    if (PCastTarget && !mobcontrollerspelltargetrange::IsInRange(
+                           distance(PMob->loc.p, PCastTarget->loc.p), PSpell->getRange(), PMob->modelHitboxSize, PCastTarget->modelHitboxSize))
     {
         return false; // Target out of range.
     }
