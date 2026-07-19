@@ -246,7 +246,7 @@ describe("Brigand's Chart Jade Etui admission", function()
             getID = function() return 123 end,
             getLocalVar = function() return 0 end,
             setLocalVar = function() end,
-            addTreasure = function() end,
+            addTreasure = function(_, item) calls.treasure = item end,
         }
         local chest = {
             getLocalVar = function() return 0 end,
@@ -268,5 +268,48 @@ describe("Brigand's Chart Jade Etui admission", function()
         xi.brigandsChart.jadeEtuiOnTrigger(player, chest)
         assert(calls.animation == xi.animationString.OPEN_CRATE_GLOW)
         assert(calls.opened[1] == xi.animationString.OPEN_CRATE_GLOW and calls.opened[2] == 1)
+        assert(calls.treasure == xi.item.BEASTCOIN)
+    end)
+end)
+
+describe("Brigand's Chart Jade Etui rewards", function()
+    it('bundles the Penguin Ring with three Yellow Globes and resets the event', function()
+        local rewards, reset = {}, false
+        local player = {
+            getID = function() return 123 end,
+            getLocalVar = function(_, name) return name == 'bChartChestNum' and 3 or 0 end,
+            addTreasure = function(_, item) table.insert(rewards, item) end,
+            setLocalVar = function() end,
+        }
+        local chest = {
+            getLocalVar = function() return 0 end,
+            entityAnimationPacket = function() end,
+            setLocalVar = function() end,
+            setAnimationSub = function() end,
+            setStatus = function() end,
+            resetLocalVars = function() end,
+            timer = function() end,
+        }
+        local qm = {
+            getLocalVar = function() return 123 end,
+            resetLocalVars = function() reset = true end,
+            setStatus = function() end,
+        }
+        local hume = { setStatus = function() end, setAnimation = function() end }
+        local shimmering = { setStatus = function() end, entityAnimationPacket = function() end }
+        stub('GetNPCByID', function(id)
+            local npcs = zones[xi.zone.BUBURIMU_PENINSULA].npc
+            if id == npcs.BRIGAND_CHART_QM then return qm end
+            if id == npcs.BRIGAND_CHART_HUME then return hume end
+            if id == npcs.SHIMMERING_POINT then return shimmering end
+            return chest
+        end)
+        stub('GetPlayerByID', function() return nil end)
+        stub('utils.selectFromLootGroups', function() return { { itemId = xi.item.PENGUIN_RING } } end)
+
+        xi.brigandsChart.jadeEtuiOnTrigger(player, chest)
+
+        assert(rewards[1] == xi.item.PENGUIN_RING and rewards[2] == xi.item.YELLOW_GLOBE)
+        assert(rewards[3] == xi.item.YELLOW_GLOBE and rewards[4] == xi.item.YELLOW_GLOBE and reset)
     end)
 end)
