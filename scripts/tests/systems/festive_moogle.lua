@@ -45,4 +45,17 @@ describe('Festive Moogle pell trade', function()
         assert(confirmedItem == xi.item.GOLD_MOG_PELL and confirmedQuantity == 1)
         assert(event[1] == 439 and event[2] == 0 and event[3] == 0 and event[4] == 0 and event[6] == 0)
     end)
+
+    it('returns the traded pell message when the reward event is cancelled', function()
+        local message = nil
+        local player = {
+            getZoneID = function() return xi.zone.PORT_BASTOK end,
+            getLocalVar = function(_, name) return name == 'tradedPell' and xi.item.GOLD_MOG_PELL or 0 end,
+            messageSpecial = function(_, ...) message = { ... } end,
+        }
+
+        xi.festiveMoogle.onEventFinish(player, 439, utils.EVENT_CANCELLED_OPTION, {})
+
+        assert(message[1] == 6406 and message[2] == xi.item.GOLD_MOG_PELL)
+    end)
 end)
