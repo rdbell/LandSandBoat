@@ -59,17 +59,8 @@ void CAutomatonController::setCooldowns()
     {
         case AutomatonFrame::Sharpshot:
         {
-            switch (PAutomaton->head())
-            {
-                case AutomatonHead::Sharpshot:
-                    m_rangedCooldown = 20s;
-                    break;
-                case AutomatonHead::Harlequin:
-                    m_rangedCooldown = 25s;
-                    break;
-                default:
-                    m_rangedCooldown = 36s;
-            }
+            const auto plan = automatoncontrollercooldown::Frame(static_cast<uint8>(PAutomaton->frame()), static_cast<uint8>(PAutomaton->head()));
+            m_rangedCooldown = std::chrono::seconds(plan.ranged);
         }
         break;
         case AutomatonFrame::Harlequin:
@@ -84,7 +75,8 @@ void CAutomatonController::setCooldowns()
         break;
         case AutomatonFrame::Valoredge:
         {
-            m_shieldbashCooldown = 3min;
+            const auto plan = automatoncontrollercooldown::Frame(static_cast<uint8>(PAutomaton->frame()), static_cast<uint8>(PAutomaton->head()));
+            m_shieldbashCooldown = std::chrono::seconds(plan.shieldBash);
         }
     }
 }

@@ -16,6 +16,22 @@ struct Plan
     uint16_t enhance;
 };
 
+inline auto Frame(uint8_t frame, uint8_t head) -> Plan
+{
+    switch (frame)
+    {
+        case 0x22:
+            switch (head)
+            {
+                case 0x03: return { 20 };
+                case 0x01: return { 25 };
+                default: return { 36 };
+            }
+        case 0x21: return { 0, 180 };
+        default: return {};
+    }
+}
+
 inline auto Magic(uint8_t head) -> Plan
 {
     switch (head)
