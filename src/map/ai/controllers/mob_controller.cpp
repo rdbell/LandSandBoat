@@ -32,6 +32,7 @@
 #include "mob_controller_buff_tick_admission_capacity.h"
 #include "mob_controller_try_cast_target_source_capacity.h"
 #include "mob_controller_party_spell_target_admission_capacity.h"
+#include "mob_controller_tp_move_dispatch_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -858,7 +859,10 @@ auto CMobController::DoCombatTick(timer::time_point tick) -> Task<void>
             co_return;
         }
 
-        if (m_Tick >= m_LastMobSkillTime && PMob->shouldUseTPMove(m_tpThreshold) && MobSkill())
+        if (mobcontrollertpmovedispatch::CanDispatch(
+                m_Tick >= m_LastMobSkillTime,
+                [&]() { return PMob->shouldUseTPMove(m_tpThreshold); },
+                [&]() { return MobSkill(); }))
         {
             m_tpThreshold = xirand::GetRandomNumber(1000, 3000);
             co_return;
