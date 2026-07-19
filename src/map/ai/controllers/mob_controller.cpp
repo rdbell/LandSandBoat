@@ -1602,13 +1602,13 @@ auto CMobController::CanAggroTarget(CBattleEntity* PTarget) const -> bool
     const int fomorHate = fomorAggroContext.usesTargetHate ?
                               static_cast<CCharEntity*>(PTarget)->getCharVar("FOMOR_HATE") :
                               fomorAggroContext.fallbackHate;
-    const bool eligible = mobcontrolleraggro::CanAggroTarget(
+    return mobcontrolleraggro::CanAggroTarget(
         true, PMob->getBattleID() == PTarget->getBattleID(), PMob->getMobMod(MOBMOD_ALWAYS_AGGRO) != 0, PMob->m_Aggro,
         PMob->m_neutral, PMob->isDead(), PMob->getMobMod(MOBMOD_NO_AGGRO) > 0, PMob->m_Family == 172,
         PMob->m_Type & MOBTYPE_NOTORIOUS, PMob->getZone() >= ZONE_LUFAISE_MEADOWS && PMob->getZone() <= ZONE_SACRARIUM,
         PTarget->objtype == TYPE_PC, fomorHate, PMob->m_roamFlags & ROAMFLAG_WORM, PMob->IsNameHidden(), PTarget->isDead(),
-        PTarget->isMounted(), PMob->PMaster != nullptr, PMob->PAI->IsSpawned(), PMob->PAI->IsEngaged(), true);
-    return eligible && CanDetectTarget(PTarget);
+        PTarget->isMounted(), PMob->PMaster != nullptr, PMob->PAI->IsSpawned(), PMob->PAI->IsEngaged(),
+        [&]() { return CanDetectTarget(PTarget); });
 }
 
 void CMobController::TapDeaggroTime()

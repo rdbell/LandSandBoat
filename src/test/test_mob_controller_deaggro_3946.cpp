@@ -271,6 +271,20 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                          !CanAggroTarget(true, true, false, true, false, false, false, false, false, false, false, 0, true, true, false, false, false, true, false, true) &&
                          !CanAggroTarget(true, true, false, true, false, false, false, false, false, false, false, 0, false, false, true, false, false, true, false, true) &&
                          !CanAggroTarget(true, true, false, true, false, false, false, false, false, false, false, 0, false, false, false, false, true, true, false, true);
+    bool aggroDetectionCalled = false;
+    const bool aggroDetectionAdmissionOK = CanAggroTarget(
+                                                 true, true, false, true, false, false, false, false, false, false, false, 0,
+                                                 false, false, false, false, false, true, false,
+                                                 []() { return true; }) &&
+                                             !CanAggroTarget(
+                                                 false, true, false, true, false, false, false, false, false, false, false, 0,
+                                                 false, false, false, false, false, true, false,
+                                                 [&]() { aggroDetectionCalled = true; return true; }) &&
+                                             !aggroDetectionCalled &&
+                                             !CanAggroTarget(
+                                                 true, true, false, true, false, false, false, false, false, false, false, 0,
+                                                 false, false, false, false, false, true, false,
+                                                 []() { return false; });
     const bool tpTriggerOK = !Evaluate(false, 3000, Trigger::ASAP, 0, 0, false, false, false).ready &&
                              Evaluate(true, 3000, Trigger::Closer, 0, 0, false, false, false).ready &&
                              Evaluate(true, 0, Trigger::ASAP, 0, 0, false, false, false).ready &&
@@ -2010,6 +2024,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonEnhancementEnmityTargetOK)
     {
         std::cerr << "automaton enhancement enmity target self-test failed\n";
+        return false;
+    }
+    if (!aggroDetectionAdmissionOK)
+    {
+        std::cerr << "aggro detection-admission self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !followAdmissionOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)
