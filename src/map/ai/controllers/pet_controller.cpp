@@ -24,6 +24,7 @@
 #include "pet_controller_deaggro_capacity.h"
 #include "pet_controller_healing_capacity.h"
 #include "pet_controller_master_loss_capacity.h"
+#include "pet_controller_immobile_capacity.h"
 #include "pet_controller_tick_capacity.h"
 
 #include "ai/ai_container.h"
@@ -31,18 +32,6 @@
 #include "entities/pet_entity.h"
 #include "status_effect_container.h"
 #include "utils/petutils.h"
-
-namespace
-{
-
-const std::set immobilePets = {
-    PETID_LUOPAN,
-    PETID_ALEXANDER,
-    PETID_ODIN,
-    PETID_ATOMOS,
-};
-
-}
 
 CPetController::CPetController(CMobEntity* _PPet)
 : CMobController(_PPet)
@@ -139,7 +128,7 @@ auto CPetController::DoRoamTick(timer::time_point tick) -> Task<void>
             }
 
             // Certain pets do not roam
-            if (immobilePets.contains(static_cast<PETID>(PPetEntity->petID())))
+            if (petcontrollerimmobile::IsImmobile(PPetEntity->petID()))
             {
                 co_return;
             }
