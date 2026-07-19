@@ -29,6 +29,10 @@ xi.znm.shouldRotateSanrakuTrades = function(currentTrades)
     return currentTrades >= 500
 end
 
+xi.znm.shouldInitializeSanrakuSelection = function(selection)
+    return selection == nil or selection == 0
+end
+
 xi.znm.serverPlateTrades = function()
     local currentTrades = GetServerVariable('[ZNM][Sanraku]Trades')
 
@@ -44,7 +48,7 @@ xi.znm.getSanrakusInterest = function()
     local interest = GetServerVariable('[ZNM][Sanraku]Interest')
 
     -- Initialize the server var if it hasn't been already
-    if interest == nil or interest == 0 then
+    if xi.znm.shouldInitializeSanrakuSelection(interest) then
         interest = math.random(#xi.znm.SANRAKUS_INTEREST)
         SetServerVariable('[ZNM][Sanraku]Interest', interest)
     end
@@ -57,7 +61,7 @@ xi.znm.getSanrakusFauna = function()
     local fauna = GetServerVariable('[ZNM][Sanraku]Fauna')
 
     -- Initialize the server var if it hasn't been already
-    if fauna == nil or fauna == 0 then
+    if xi.znm.shouldInitializeSanrakuSelection(fauna) then
         fauna = math.random(#xi.znm.SANRAKUS_FAUNA)
         SetServerVariable('[ZNM][Sanraku]Fauna', fauna)
     end
