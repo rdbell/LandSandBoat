@@ -41,6 +41,7 @@
 #include "mob_controller_roam_follow_leader_capacity.h"
 #include "mob_controller_roam_rest_gate_capacity.h"
 #include "mob_controller_roam_home_gate_capacity.h"
+#include "mob_controller_despawn_policy_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1191,7 +1192,7 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
                 // move back every 5 seconds
                 m_LastActionTime = m_Tick - (std::chrono::seconds(PMob->getMobMod(MOBMOD_ROAM_COOL)) + 10s);
             }
-            else if (shouldCheckHome && !(PMob->getMobMod(MOBMOD_NO_DESPAWN) != 0) && !settings::get<bool>("map.MOB_NO_DESPAWN"))
+            else if (shouldCheckHome && mobcontrollerdespawnpolicy::CanDespawn(PMob->getMobMod(MOBMOD_NO_DESPAWN) != 0, settings::get<bool>("map.MOB_NO_DESPAWN")))
             {
                 PMob->PAI->Despawn();
                 // Override respawn timer set by CDespawnState for deaggro (60s instead of default)
@@ -1200,7 +1201,7 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
             }
             else
             {
-                if (!(PMob->getMobMod(MOBMOD_NO_DESPAWN) != 0) && PMob->PMaster != nullptr && !PMob->PMaster->isAlive())
+                if (mobcontrollerdespawnpolicy::CanDespawn(PMob->getMobMod(MOBMOD_NO_DESPAWN) != 0, false) && PMob->PMaster != nullptr && !PMob->PMaster->isAlive())
                 {
                     // despawn pets if they are disengaged and master is dead
                     PMob->PAI->Despawn();
