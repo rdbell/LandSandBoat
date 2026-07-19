@@ -124,6 +124,7 @@
 #include "map/ai/controllers/trust_controller_combat_movement_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_master_engagement_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_post_movement_capacity.h"
+#include "map/ai/controllers/trust_controller_combat_warp_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_master_enmity_capacity.h"
 #include "map/ai/controllers/trust_controller_melee_path_result_capacity.h"
 #include "map/ai/controllers/trust_controller_target_sync_admission_capacity.h"
@@ -699,6 +700,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                            !trustCombatPostMovementFollowing.declump && trustCombatPostMovementFollowing.followPath &&
                                            trustCombatPostMovementTransit.declump && !trustCombatPostMovementTransit.followPath &&
                                            !trustCombatPostMovementWaiting.declump && !trustCombatPostMovementWaiting.followPath;
+    const bool trustCombatWarpAdmissionOK = trustcontrollercombatwarpadmission::ShouldWarp(false, 30.1f) &&
+                                             !trustcontrollercombatwarpadmission::ShouldWarp(true, 30.1f) &&
+                                             !trustcontrollercombatwarpadmission::ShouldWarp(false, 30.0f) &&
+                                             !trustcontrollercombatwarpadmission::ShouldWarp(false, 29.9f);
     const auto trustCombatMasterEngaged = trustcontrollercombatmasterengagement::Resolve(true);
     const auto trustCombatMasterDisengaged = trustcontrollercombatmasterengagement::Resolve(false);
     const bool trustCombatMasterEngagementOK = !trustCombatMasterEngaged.disengage &&
@@ -2619,6 +2624,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!trustCombatPostMovementOK)
     {
         std::cerr << "trust combat post-movement self-test failed\n";
+        return false;
+    }
+    if (!trustCombatWarpAdmissionOK)
+    {
+        std::cerr << "trust combat warp admission self-test failed\n";
         return false;
     }
     if (!trustMeleePathResultOK)

@@ -29,6 +29,7 @@
 #include "trust_controller_combat_movement_capacity.h"
 #include "trust_controller_combat_master_engagement_capacity.h"
 #include "trust_controller_combat_post_movement_capacity.h"
+#include "trust_controller_combat_warp_admission_capacity.h"
 #include "trust_controller_master_enmity_capacity.h"
 #include "trust_controller_melee_path_result_capacity.h"
 #include "trust_controller_target_sync_admission_capacity.h"
@@ -212,7 +213,8 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
             float currentDistanceToTarget = distance(PTrust->loc.p, PTarget->loc.p);
             float currentDistanceToMaster = distance(PTrust->loc.p, PMaster->loc.p);
 
-            if (!PMaster->PAI->IsEngaged() && currentDistanceToTarget > WarpDistance)
+            if (trustcontrollercombatwarpadmission::ShouldWarp(
+                    PMaster->PAI->IsEngaged(), currentDistanceToTarget))
             {
                 PTrust->PAI->PathFind->WarpTo(PTarget->loc.p);
             }
