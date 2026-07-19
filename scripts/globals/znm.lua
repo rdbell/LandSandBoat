@@ -413,10 +413,13 @@ xi.znm.ryo.onEventUpdate = function(player, csid, option, npc)
             player:updateEvent(param, 0)
         elseif option == 300 then -- 'My zeni balance'
             player:updateEvent(player:getCurrency('zeni_point'), 0)
-        elseif option == 401 and player:getVar('ZeniStatus') == 1 then
-            player:setVar('ZeniStatus', 2)
-        elseif option == 402 and player:getVar('ZeniStatus') == 2 then -- ask about gaining access to islet's
-            player:setVar('ZeniStatus', 3)
+        elseif option == 401 or option == 402 then
+            local nextZeniStatus = xi.znm.ryo.nextZeniStatus(option, player:getVar('ZeniStatus'))
+            if nextZeniStatus then
+                player:setVar('ZeniStatus', nextZeniStatus)
+            else
+                player:updateEvent(0, 0)
+            end
         elseif option == 404 then
             player:updateEvent(xi.znm.ryo.menuParam(player:getVar('ZeniStatus'), player:getCurrency('zeni_point')))
         else
@@ -455,6 +458,14 @@ xi.znm.ryo.menuParam = function(zeniStatus, zeni)
     end
 
     return menuOptions
+end
+
+xi.znm.ryo.nextZeniStatus = function(option, zeniStatus)
+    if option == 401 and zeniStatus == 1 then
+        return 2
+    elseif option == 402 and zeniStatus == 2 then -- ask about gaining access to islet's
+        return 3
+    end
 end
 
 xi.znm.ryo.tradedPlateValue = function(player)
