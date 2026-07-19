@@ -62,6 +62,7 @@
 #include "mob_controller_share_position_capacity.h"
 #include "mob_controller_type_one_teleport_admission_capacity.h"
 #include "mob_controller_movement_entry_capacity.h"
+#include "mob_controller_chase_movement_admission_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -937,7 +938,10 @@ void CMobController::Move()
                 move,
                 PMob->PAI->CanFollowPath()))
         {
-            if (PMob->GetSpeed() != 0 && PMob->getMobMod(MOBMOD_NO_MOVE) == 0 && m_Tick >= m_LastSpecialTime)
+            if (mobcontrollerchasemovementadmission::CanEnter(
+                    PMob->GetSpeed() != 0,
+                    PMob->getMobMod(MOBMOD_NO_MOVE) == 0,
+                    m_Tick >= m_LastSpecialTime))
             {
                 // attempt to teleport to target (if in range)
                 if (PMob->getMobMod(MOBMOD_TELEPORT_TYPE) == 2)
