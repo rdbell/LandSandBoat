@@ -27,6 +27,7 @@
 #include "map/ai/controllers/mob_controller_worm_roam_action_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_path_result_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_script_cadence_capacity.h"
+#include "map/ai/controllers/mob_controller_wait_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -686,6 +687,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool mobRoamScriptCadenceOK = !mobcontrollerroamscriptcadence::ShouldRun(roamScriptLast + std::chrono::seconds(3) - std::chrono::nanoseconds(1), roamScriptLast) &&
                                         mobcontrollerroamscriptcadence::ShouldRun(roamScriptLast + std::chrono::seconds(3), roamScriptLast) &&
                                         mobcontrollerroamscriptcadence::ShouldRun(roamScriptLast + std::chrono::seconds(3) + std::chrono::nanoseconds(1), roamScriptLast);
+    const auto elapsedWait = mobcontrollerwait::Apply(base + std::chrono::seconds(11), base + std::chrono::seconds(10), std::chrono::seconds(3));
+    const auto equalWait = mobcontrollerwait::Apply(base + std::chrono::seconds(10), base + std::chrono::seconds(10), std::chrono::seconds(3));
+    const auto activeWait = mobcontrollerwait::Apply(base + std::chrono::seconds(9), base + std::chrono::seconds(10), std::chrono::seconds(3));
+    const bool mobWaitOK = elapsedWait.tick == base + std::chrono::seconds(14) &&
+                           elapsedWait.waitUntil == base + std::chrono::seconds(14) &&
+                           equalWait.tick == base + std::chrono::seconds(10) &&
+                           equalWait.waitUntil == base + std::chrono::seconds(13) &&
+                           activeWait.tick == base + std::chrono::seconds(9) &&
+                           activeWait.waitUntil == base + std::chrono::seconds(13);
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1192,6 +1202,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobRoamScriptCadenceOK)
     {
         std::cerr << "mob roam-script cadence self-test failed\n";
+        return false;
+    }
+    if (!mobWaitOK)
+    {
+        std::cerr << "mob wait-state self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)
