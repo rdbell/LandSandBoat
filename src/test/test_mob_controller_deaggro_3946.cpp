@@ -4,6 +4,7 @@
 #include "map/ai/controllers/mob_controller_deaggro_retarget_capacity.h"
 #include "map/ai/controllers/mob_controller_avatar_bodyguard_capacity.h"
 #include "map/ai/controllers/mob_controller_pet_assist_capacity.h"
+#include "map/ai/controllers/mob_controller_party_link_scan_capacity.h"
 #include "map/ai/controllers/mob_controller_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_readiness_capacity.h"
 #include "map/ai/controllers/mob_controller_movement_capacity.h"
@@ -415,6 +416,36 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                              !mobcontrollerpetassist::ShouldAssist(false, true) &&
                              !mobcontrollerpetassist::ShouldAssist(true, false) &&
                              !mobcontrollerpetassist::ShouldAssist(false, false);
+    bool partyLinkScanCallbackCalled = false;
+    const auto firstPartyLinkScan = mobcontrollerpartylinkscan::Resolve(
+        false, true, []() { return 2; }, []() { return false; });
+    const auto alternatePartyLinkScan = mobcontrollerpartylinkscan::Resolve(
+        true,
+        true,
+        [&]() { partyLinkScanCallbackCalled = true; return 2; },
+        [&]() { partyLinkScanCallbackCalled = true; return false; });
+    const bool partyLinkScanOK = firstPartyLinkScan.scanThisTick &&
+                                 firstPartyLinkScan.shouldScan &&
+                                 !alternatePartyLinkScan.scanThisTick &&
+                                 !alternatePartyLinkScan.shouldScan &&
+                                 !partyLinkScanCallbackCalled &&
+                                 !mobcontrollerpartylinkscan::Resolve(
+                                     false,
+                                     false,
+                                     [&]() { partyLinkScanCallbackCalled = true; return 2; },
+                                     [&]() { partyLinkScanCallbackCalled = true; return false; })
+                                      .shouldScan &&
+                                 !partyLinkScanCallbackCalled &&
+                                 !mobcontrollerpartylinkscan::Resolve(
+                                     false,
+                                     true,
+                                     []() { return 1; },
+                                     [&]() { partyLinkScanCallbackCalled = true; return false; })
+                                      .shouldScan &&
+                                 !partyLinkScanCallbackCalled &&
+                                 !mobcontrollerpartylinkscan::Resolve(
+                                      false, true, []() { return 2; }, []() { return true; })
+                                      .shouldScan;
     const auto engageBase = std::chrono::steady_clock::time_point{};
     const bool playerEngageOK = !Evaluate(false, 0, engageBase, std::chrono::seconds(0), engageBase).dispatch &&
                                 Evaluate(true, 29, engageBase, std::chrono::seconds(1), engageBase + std::chrono::seconds(2)).dispatch &&
@@ -2132,6 +2163,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!petAssistOK)
     {
         std::cerr << "pet assist self-test failed\n";
+        return false;
+    }
+    if (!partyLinkScanOK)
+    {
+        std::cerr << "party link scan self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !followAdmissionOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)

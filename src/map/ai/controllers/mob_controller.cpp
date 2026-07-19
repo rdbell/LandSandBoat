@@ -24,6 +24,7 @@
 #include "mob_controller_deaggro_retarget_capacity.h"
 #include "mob_controller_avatar_bodyguard_capacity.h"
 #include "mob_controller_pet_assist_capacity.h"
+#include "mob_controller_party_link_scan_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -345,11 +346,13 @@ void CMobController::TryLink()
     // Handle linking if they are close enough. This party scan is the hot part of
     // TryLink, so throttle it to every other combat tick and skip it when there is nothing
     // to link with (no party, or a party of just this mob).
-    linkScanThisTick_ = !linkScanThisTick_;
-    if (linkScanThisTick_ &&
-        PMob->PParty != nullptr &&
-        PMob->PParty->members.size() > 1 &&
-        !PMob->getMobMod(MOBMOD_ONE_WAY_LINKING))
+    const auto partyLinkScan = mobcontrollerpartylinkscan::Resolve(
+        linkScanThisTick_,
+        PMob->PParty != nullptr,
+        [&]() { return PMob->PParty->members.size(); },
+        [&]() { return PMob->getMobMod(MOBMOD_ONE_WAY_LINKING) != 0; });
+    linkScanThisTick_ = partyLinkScan.scanThisTick;
+    if (partyLinkScan.shouldScan)
     {
         for (auto* member : PMob->PParty->members)
         {
