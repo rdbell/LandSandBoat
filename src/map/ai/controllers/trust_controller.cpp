@@ -28,6 +28,7 @@
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_noncombat_declump_admission_capacity.h"
 #include "trust_controller_noncombat_gambit_admission_capacity.h"
+#include "trust_controller_party_position_capacity.h"
 #include "trust_controller_reposition_candidate_capacity.h"
 #include "trust_controller_ranged_attack_dispatch_capacity.h"
 #include "trust_controller_cast_target_source_capacity.h"
@@ -663,12 +664,6 @@ uint8 CTrustController::GetPartyPosition()
     TracyZoneScoped;
 
     auto& trustList = static_cast<CCharEntity*>(POwner->PMaster)->PTrusts;
-    for (std::size_t i = 0; i < trustList.size(); ++i)
-    {
-        if (trustList.at(i)->id == POwner->id)
-        {
-            return static_cast<uint8>(i);
-        }
-    }
-    return 0;
+    return trustcontrollerpartyposition::Resolve(
+        trustList, POwner->id, [](const auto* PTrust) { return PTrust->id; });
 }

@@ -114,6 +114,7 @@
 #include "map/ai/controllers/trust_controller_noncombat_follow_capacity.h"
 #include "map/ai/controllers/trust_controller_noncombat_declump_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_noncombat_gambit_admission_capacity.h"
+#include "map/ai/controllers/trust_controller_party_position_capacity.h"
 #include "map/ai/controllers/trust_controller_reposition_candidate_capacity.h"
 #include "map/ai/controllers/trust_controller_ranged_attack_dispatch_capacity.h"
 #include "map/ai/controllers/trust_controller_cast_target_source_capacity.h"
@@ -642,6 +643,18 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                              !trustcontrollercastrecastadmission::CanStart(true);
     const bool trustTopEnmityTargetOK = trustcontrollertopenmitytarget::ShouldRead(true) &&
                                         !trustcontrollertopenmitytarget::ShouldRead(false);
+    const std::vector<uint32_t> trustPartyIDs = { 100, 200, 300 };
+    const std::vector<uint32_t> trustPartyIDsWithDuplicate = { 200, 100, 200 };
+    const bool trustPartyPositionOK = trustcontrollerpartyposition::Resolve(
+                                          trustPartyIDs, 100, [](const auto id) { return id; }) == 0 &&
+                                      trustcontrollerpartyposition::Resolve(
+                                          trustPartyIDs, 200, [](const auto id) { return id; }) == 1 &&
+                                      trustcontrollerpartyposition::Resolve(
+                                          trustPartyIDs, 300, [](const auto id) { return id; }) == 2 &&
+                                      trustcontrollerpartyposition::Resolve(
+                                          trustPartyIDsWithDuplicate, 200, [](const auto id) { return id; }) == 0 &&
+                                      trustcontrollerpartyposition::Resolve(
+                                          trustPartyIDs, 999, [](const auto id) { return id; }) == 0;
     bool trustCombatDeclumpCallbackCalled = false;
     const bool trustCombatDeclumpOK = trustcontrollercombatdeclumpadmission::ShouldDeclump(
                                          false, []() { return false; }, []() { return true; }) &&
@@ -2469,6 +2482,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!trustTopEnmityTargetOK)
     {
         std::cerr << "trust top enmity target self-test failed\n";
+        return false;
+    }
+    if (!trustPartyPositionOK)
+    {
+        std::cerr << "trust party position self-test failed\n";
         return false;
     }
     if (!trustCombatDeclumpOK)
