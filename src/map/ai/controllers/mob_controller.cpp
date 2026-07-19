@@ -68,6 +68,7 @@
 #include "mob_controller_overlap_reposition_capacity.h"
 #include "mob_controller_overlap_reposition_point_capacity.h"
 #include "mob_controller_bound_retarget_admission_capacity.h"
+#include "mob_controller_bound_retarget_search_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1072,7 +1073,10 @@ void CMobController::HandleEnmity()
     {
         CBattleEntity*                PNewTarget = nullptr;
         std::unique_ptr<CBasicPacket> m_errorMsg; // Ignored
-        if (PTarget && !PMob->CanAttack(PTarget, m_errorMsg) && PMob->PEnmityContainer)
+        if (mobcontrollerboundretargetsearch::ShouldSearch(
+                PTarget != nullptr,
+                PTarget && PMob->CanAttack(PTarget, m_errorMsg),
+                PMob->PEnmityContainer != nullptr))
         {
             float minDistance = 999999;
             int32 totalEnmity = -1;

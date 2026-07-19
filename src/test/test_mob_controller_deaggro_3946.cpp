@@ -49,6 +49,7 @@
 #include "map/ai/controllers/mob_controller_overlap_reposition_capacity.h"
 #include "map/ai/controllers/mob_controller_overlap_reposition_point_capacity.h"
 #include "map/ai/controllers/mob_controller_bound_retarget_admission_capacity.h"
+#include "map/ai/controllers/mob_controller_bound_retarget_search_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -922,6 +923,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobBoundRetargetAdmissionOK)
     {
         std::cerr << "mob bound-retarget admission self-test failed\n";
+        return false;
+    }
+    const bool mobBoundRetargetSearchOK = mobcontrollerboundretargetsearch::ShouldSearch(true, false, true) &&
+                                          !mobcontrollerboundretargetsearch::ShouldSearch(false, false, true) &&
+                                          !mobcontrollerboundretargetsearch::ShouldSearch(true, true, true) &&
+                                          !mobcontrollerboundretargetsearch::ShouldSearch(true, false, false);
+    if (!mobBoundRetargetSearchOK)
+    {
+        std::cerr << "mob bound-retarget search self-test failed\n";
         return false;
     }
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
