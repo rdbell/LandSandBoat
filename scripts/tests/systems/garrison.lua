@@ -106,6 +106,7 @@ describe('Garrison level-cap resolution', function()
         xi.garrison.addLevelCap(entity, 50)
         assert(captured.effect == xi.effect.LEVEL_RESTRICTION and captured.args.power == 50)
         assert(captured.args.origin == entity)
+        assert(captured.args.flag == xi.effectFlag.ON_ZONE + xi.effectFlag.CONFRONTATION)
 
         xi.garrison.addLevelCap(entity, 99)
         assert(captured.args.power == xi.settings.main.MAX_LEVEL)
