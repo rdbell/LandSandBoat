@@ -20,6 +20,7 @@
 */
 
 #include "controller.h"
+#include "controller_action_dispatch_capacity.h"
 
 #include "ai/ai_container.h"
 #include "entities/battle_entity.h"
@@ -44,56 +45,38 @@ void CController::Reset()
 
 bool CController::Cast(uint16 targid, SpellID spellid)
 {
-    if (POwner)
-    {
-        return POwner->PAI->Internal_Cast(targid, spellid);
-    }
-    return false;
+    return controlleractiondispatch::Dispatch(
+        POwner != nullptr, [&]() { return POwner->PAI->Internal_Cast(targid, spellid); });
 }
 
 bool CController::Engage(uint16 targid)
 {
-    if (POwner)
-    {
-        return POwner->PAI->Internal_Engage(targid);
-    }
-    return false;
+    return controlleractiondispatch::Dispatch(
+        POwner != nullptr, [&]() { return POwner->PAI->Internal_Engage(targid); });
 }
 
 bool CController::ChangeTarget(uint16 targid)
 {
-    if (POwner)
-    {
-        return POwner->PAI->Internal_ChangeTarget(targid);
-    }
-    return false;
+    return controlleractiondispatch::Dispatch(
+        POwner != nullptr, [&]() { return POwner->PAI->Internal_ChangeTarget(targid); });
 }
 
 bool CController::Disengage()
 {
-    if (POwner)
-    {
-        return POwner->PAI->Internal_Disengage();
-    }
-    return false;
+    return controlleractiondispatch::Dispatch(
+        POwner != nullptr, [&]() { return POwner->PAI->Internal_Disengage(); });
 }
 
 bool CController::WeaponSkill(uint16 targid, uint16 wsid)
 {
-    if (POwner)
-    {
-        return POwner->PAI->Internal_WeaponSkill(targid, wsid);
-    }
-    return false;
+    return controlleractiondispatch::Dispatch(
+        POwner != nullptr, [&]() { return POwner->PAI->Internal_WeaponSkill(targid, wsid); });
 }
 
 bool CController::RangedAttack(uint16 targid)
 {
-    if (POwner)
-    {
-        return POwner->PAI->Internal_RangedAttack(targid);
-    }
-    return false;
+    return controlleractiondispatch::Dispatch(
+        POwner != nullptr, [&]() { return POwner->PAI->Internal_RangedAttack(targid); });
 }
 
 bool CController::IsAutoAttackEnabled() const
