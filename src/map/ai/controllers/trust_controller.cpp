@@ -27,6 +27,7 @@
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_noncombat_declump_admission_capacity.h"
 #include "trust_controller_noncombat_gambit_admission_capacity.h"
+#include "trust_controller_reposition_candidate_capacity.h"
 #include "trust_controller_noncombat_movement_capacity.h"
 #include "trust_controller_recovery_capacity.h"
 #include "trust_controller_ranged_attack_capacity.h"
@@ -511,9 +512,10 @@ void CTrustController::PathOutToDistance(CBattleEntity* PTarget, float amount)
         for (auto& potential_position : positions)
         {
             // Validate position
-            if (!position_found &&
-                POwner->PAI->PathFind->ValidPosition(potential_position) &&
-                POwner->CanSeeTarget(potential_position))
+            if (trustcontrollerrepositioncandidate::ShouldSelect(
+                    position_found,
+                    [&]() { return POwner->PAI->PathFind->ValidPosition(potential_position); },
+                    [&]() { return POwner->CanSeeTarget(potential_position); }))
             {
                 position_found  = true;
                 target_position = potential_position;
