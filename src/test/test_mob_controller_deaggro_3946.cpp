@@ -733,6 +733,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                                  false,
                                                  [&]() { trustTargetSyncMismatchCalled = true; return true; }) &&
                                              !trustTargetSyncMismatchCalled;
+    const auto trustTargetSyncReady = trustcontrollertargetsync::Resolve(true, true, 1, 0);
+    const auto trustTargetSyncBlocked = trustcontrollertargetsync::Resolve(false, true, 1, 0);
+    const bool trustTargetSyncPlanOK = trustTargetSyncReady.changeTarget && trustTargetSyncReady.clearTopEnmity &&
+                                       !trustTargetSyncBlocked.changeTarget && !trustTargetSyncBlocked.clearTopEnmity;
     const auto engageBase = std::chrono::steady_clock::time_point{};
     const bool playerEngageOK = !Evaluate(false, 0, engageBase, std::chrono::seconds(0), engageBase).dispatch &&
                                 Evaluate(true, 29, engageBase, std::chrono::seconds(1), engageBase + std::chrono::seconds(2)).dispatch &&
@@ -2590,6 +2594,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!trustTargetSyncAdmissionOK)
     {
         std::cerr << "trust target-sync admission self-test failed\n";
+        return false;
+    }
+    if (!trustTargetSyncPlanOK)
+    {
+        std::cerr << "trust target-sync plan self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !followAdmissionOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)

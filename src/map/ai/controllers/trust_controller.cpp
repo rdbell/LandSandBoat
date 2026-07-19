@@ -180,11 +180,15 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
         auto* enmityList = PMob->PEnmityContainer->GetEnmityList();
         const auto masterEnmity = trustcontrollermasterenmity::Resolve(*enmityList, masterID);
 
-        if (trustcontrollertargetsync::ShouldSync(
-                targetMismatch, masterEnmity.active, masterEnmity.cumulative, masterEnmity.volatileEnmity))
+        const auto targetSyncPlan = trustcontrollertargetsync::Resolve(
+            targetMismatch, masterEnmity.active, masterEnmity.cumulative, masterEnmity.volatileEnmity);
+        if (targetSyncPlan.changeTarget)
         {
             PTrust->PAI->Internal_ChangeTarget(PMaster->GetBattleTargetID());
-            m_LastTopEnmity = nullptr;
+            if (targetSyncPlan.clearTopEnmity)
+            {
+                m_LastTopEnmity = nullptr;
+            }
         }
     }
 
