@@ -313,3 +313,14 @@ describe("Brigand's Chart Jade Etui rewards", function()
         assert(rewards[3] == xi.item.YELLOW_GLOBE and rewards[4] == xi.item.YELLOW_GLOBE and reset)
     end)
 end)
+
+describe("Brigand's Chart loot catalog", function()
+    it('pins the common and special weighted reward groups', function()
+        local common = xi.brigandsChart.rewards.common[1]
+        local special = xi.brigandsChart.rewards.special[1]
+        assert(#common == 15 and common[1].itemId == xi.item.BEASTCOIN and common[1].weight == xi.loot.weight.NORMAL)
+        assert(common[3].itemId == xi.item.COPY_OF_LINES_AND_SPACE and common[3].weight == xi.loot.weight.VERY_LOW)
+        assert(common[15].itemId == xi.item.WOODEN_FLOWERPOT and common[15].weight == xi.loot.weight.VERY_LOW)
+        assert(#special == 2 and special[1].itemId == xi.item.NONE and special[2].itemId == xi.item.PENGUIN_RING)
+    end)
+end)
