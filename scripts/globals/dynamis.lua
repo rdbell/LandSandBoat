@@ -445,6 +445,18 @@ end
 -----------------------------------
 -- global functions
 -----------------------------------
+xi.dynamis.entryTriggerPreflightPlan = function(tavnaziaFirstCandidate, hasPrismaticHourglass, isBelowLevelMinimum, unlockingDynamis, hasBeatenDynamis)
+    if tavnaziaFirstCandidate then
+        return { startFirstVisit = true, markFirstVisit = true }
+    elseif hasPrismaticHourglass and isBelowLevelMinimum then
+        return { showLowLevel = true }
+    elseif not unlockingDynamis and not hasBeatenDynamis then
+        return { showDefaultMessage = true }
+    end
+
+    return {}
+end
+
 xi.dynamis.entryNpcOnTrigger = function(player, npc)
     local zoneId        = player:getZoneID()
     local info          = entryInfo[zoneId]
@@ -452,25 +464,31 @@ xi.dynamis.entryNpcOnTrigger = function(player, npc)
     local dynaMask      = player:getCharVar('Dynamis_Status')
     local unlockingDyna = utils.mask.getBit(dynaMask, 0)
     local tavnaziaFirst = false
-
-    -- Tavnazia is unique;  plays the first time cs directly on trigger without message or transporting
-    if
+    local tavnaziaFirstCandidate =
         info.csBit == 10 and
         info.reqs(player) and
         not utils.mask.getBit(dynaMask, info.csBit)
-    then
+    local preflight = xi.dynamis.entryTriggerPreflightPlan(
+        tavnaziaFirstCandidate,
+        player:hasKeyItem(xi.ki.PRISMATIC_HOURGLASS),
+        player:getMainLvl() < xi.settings.main.DYNA_LEVEL_MIN,
+        unlockingDyna,
+        player:getCharVar(info.beatVar) == 1
+    )
+
+    -- Tavnazia is unique;  plays the first time cs directly on trigger without message or transporting
+    if preflight.startFirstVisit then
         player:startEvent(info.csFirst)
-        player:setCharVar('Dynamis_Status', utils.mask.setBit(dynaMask, info.csBit, true))
+        if preflight.markFirstVisit then
+            player:setCharVar('Dynamis_Status', utils.mask.setBit(dynaMask, info.csBit, true))
+        end
         -- set to skip menu after getting this CS
         tavnaziaFirst = not tavnaziaFirst
     -- player has access but is on a job below required level
-    elseif
-        player:hasKeyItem(xi.ki.PRISMATIC_HOURGLASS) and
-        player:getMainLvl() < xi.settings.main.DYNA_LEVEL_MIN
-    then
+    elseif preflight.showLowLevel then
         player:messageSpecial(ID.text.PLAYERS_HAVE_NOT_REACHED_LEVEL)
     -- default message always prints except in cases above and not for shrouded sand or winning cs
-    elseif not unlockingDyna and player:getCharVar(info.beatVar) ~= 1 then
+    elseif preflight.showDefaultMessage then
         player:messageSpecial(ID.text.DYNA_NPC_DEFAULT_MESSAGE)
     end
 

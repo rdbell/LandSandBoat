@@ -1,5 +1,24 @@
 require('scripts/globals/dynamis')
 
+describe('Dynamis entry trigger preflight', function()
+    it('prioritizes Tavnazia first visit, then low level, then the default warning', function()
+        local firstVisit = xi.dynamis.entryTriggerPreflightPlan(true, true, true, false, false)
+        assert(firstVisit.startFirstVisit and firstVisit.markFirstVisit)
+
+        local lowLevel = xi.dynamis.entryTriggerPreflightPlan(false, true, true, false, false)
+        assert(lowLevel.showLowLevel and lowLevel.showDefaultMessage == nil)
+
+        local defaultMessage = xi.dynamis.entryTriggerPreflightPlan(false, true, false, false, false)
+        assert(defaultMessage.showDefaultMessage and defaultMessage.showLowLevel == nil)
+
+        local noMessage = xi.dynamis.entryTriggerPreflightPlan(false, false, false, true, false)
+        assert(next(noMessage) == nil)
+
+        local beatenDynamis = xi.dynamis.entryTriggerPreflightPlan(false, false, false, false, true)
+        assert(next(beatenDynamis) == nil)
+    end)
+end)
+
 describe('Dynamis time-extension groups', function()
     it('normalizes single and grouped extension mobs and rejects missing IDs', function()
         local single = { mob = 100, ki = 200, minutes = 10 }
