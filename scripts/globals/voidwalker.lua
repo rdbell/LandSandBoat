@@ -257,6 +257,18 @@ xi.voidwalker.mobSkillEveryHPPPlan = function(mobName)
     return mobSkillEveryHPPPlans[mobName]
 end
 
+local randomMobSkillPlans =
+{
+    ['Lamprey_Lord'] = { chance = 10, between = 60, statusGate = xi.effect.BLOOD_WEAPON, mobSkill = xi.mobSkill.BLOOD_WEAPON_1 },
+    ['Jyeshtha']     = { chance = 30, between = 60, statusGate = xi.mobSkill.MIGHTY_STRIKES_1, mobSkill = xi.mobSkill.MIGHTY_STRIKES_1 },
+    ['Erebus']       = { chance = 30, between = 60, statusGate = xi.effect.BLOOD_WEAPON, mobSkill = xi.mobSkill.BLOOD_WEAPON_1 },
+    ['Feuerunke']    = { chance = 30, between = 60, statusGate = xi.effect.HUNDRED_FISTS, mobSkill = xi.mobSkill.HUNDRED_FISTS_1 },
+}
+
+xi.voidwalker.randomMobSkillPlan = function(mobName)
+    return randomMobSkillPlans[mobName]
+end
+
 xi.voidwalker.shouldCapricornusUseRecoilDive = function(hasMightyStrikes, isBusy)
     return hasMightyStrikes and not isBusy
 end
@@ -454,6 +466,13 @@ local function randomly(mob, chance, between, effect, skill)
     end
 end
 
+local function doRandomMobSkillPlan(mob, mobName)
+    local plan = xi.voidwalker.randomMobSkillPlan(mobName)
+    if plan then
+        randomly(mob, plan.chance, plan.between, plan.statusGate, plan.mobSkill)
+    end
+end
+
 local function DespawnPet(mob)
     local zoneId = mob:getZoneID()
     local mobId  = mob:getID()
@@ -490,7 +509,7 @@ local mixinByMobName =
     end,
 
     ['Lamprey_Lord'] = function(mob)
-        randomly(mob, 10, 60, xi.effect.BLOOD_WEAPON, xi.mobSkill.BLOOD_WEAPON_1)
+        doRandomMobSkillPlan(mob, 'Lamprey_Lord')
     end,
 
     ['Shoggoth'] = function(mob)
@@ -498,7 +517,7 @@ local mixinByMobName =
     end,
 
     ['Jyeshtha'] = function(mob)
-        randomly(mob, 30, 60, xi.mobSkill.MIGHTY_STRIKES_1, xi.mobSkill.MIGHTY_STRIKES_1)
+        doRandomMobSkillPlan(mob, 'Jyeshtha')
         if xi.voidwalker.shouldResetJyeshthaMobSkillUse(
             mob:getLocalVar('MOBSKILL_USE'),
             mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES)
@@ -520,7 +539,7 @@ local mixinByMobName =
     end,
 
     ['Erebus'] = function(mob)
-        randomly(mob, 30, 60, xi.effect.BLOOD_WEAPON, xi.mobSkill.BLOOD_WEAPON_1)
+        doRandomMobSkillPlan(mob, 'Erebus')
         if xi.voidwalker.shouldErebusApplyHundredFists(
             mob:hasStatusEffect(xi.effect.BLOOD_WEAPON),
             mob:hasStatusEffect(xi.effect.HUNDRED_FISTS)
@@ -530,7 +549,7 @@ local mixinByMobName =
     end,
 
     ['Feuerunke'] = function(mob)
-        randomly(mob, 30, 60, xi.effect.HUNDRED_FISTS, xi.mobSkill.HUNDRED_FISTS_1)
+        doRandomMobSkillPlan(mob, 'Feuerunke')
     end,
 
     ['Dawon'] = function(mob)

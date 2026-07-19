@@ -164,6 +164,23 @@ describe('Voidwalker fixed-HPP mob skills', function()
     end)
 end)
 
+describe('Voidwalker random mob skills', function()
+    it('provides every random-skill chance, cooldown, status gate, and skill', function()
+        local lamprey = xi.voidwalker.randomMobSkillPlan('Lamprey_Lord')
+        assert(lamprey.chance == 10 and lamprey.between == 60 and lamprey.statusGate == xi.effect.BLOOD_WEAPON and lamprey.mobSkill == xi.mobSkill.BLOOD_WEAPON_1)
+
+        local jyeshtha = xi.voidwalker.randomMobSkillPlan('Jyeshtha')
+        assert(jyeshtha.chance == 30 and jyeshtha.between == 60 and jyeshtha.statusGate == xi.mobSkill.MIGHTY_STRIKES_1 and jyeshtha.mobSkill == xi.mobSkill.MIGHTY_STRIKES_1)
+
+        local erebus = xi.voidwalker.randomMobSkillPlan('Erebus')
+        assert(erebus.chance == 30 and erebus.between == 60 and erebus.statusGate == xi.effect.BLOOD_WEAPON and erebus.mobSkill == xi.mobSkill.BLOOD_WEAPON_1)
+
+        local feuerunke = xi.voidwalker.randomMobSkillPlan('Feuerunke')
+        assert(feuerunke.chance == 30 and feuerunke.between == 60 and feuerunke.statusGate == xi.effect.HUNDRED_FISTS and feuerunke.mobSkill == xi.mobSkill.HUNDRED_FISTS_1)
+        assert(xi.voidwalker.randomMobSkillPlan('Unknown') == nil)
+    end)
+end)
+
 describe('Voidwalker direction', function()
     it('classifies cardinal and diagonal offsets', function()
         assert(xi.voidwalker.direction(1, 0) == 0)
