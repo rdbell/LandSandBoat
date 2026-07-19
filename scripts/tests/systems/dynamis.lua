@@ -55,6 +55,16 @@ describe('Dynamis initial spawn selection', function()
     end)
 end)
 
+describe('Dynamis time-extension death plan', function()
+    it('awards independently of killer status and respawns only for the killer', function()
+        local awardOnly = xi.dynamis.timeExtensionDeathPlan(true, false, false, 10, 100, { 100, 101 }, 2)
+        assert(awardOnly.awardDuration == 600000 and awardOnly.respawnMobId == nil)
+
+        local respawnOnly = xi.dynamis.timeExtensionDeathPlan(true, true, true, 10, 100, { 100, 101 }, 2)
+        assert(respawnOnly.awardDuration == nil and respawnOnly.respawnMobId == 101 and respawnOnly.disableDead)
+    end)
+end)
+
 describe('Dynamis time-extension groups', function()
     it('normalizes single and grouped extension mobs and rejects missing IDs', function()
         local single = { mob = 100, ki = 200, minutes = 10 }

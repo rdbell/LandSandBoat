@@ -484,6 +484,24 @@ xi.dynamis.initialSpawnSelection = function(group, randomIndex)
     return group[randomIndex]
 end
 
+xi.dynamis.timeExtensionDeathPlan = function(hasDynamisEffect, hasKeyItem, isKiller, minutes, mobId, group, randomIndex)
+    local plan = {}
+    local awardPlan = xi.dynamis.timeExtensionAwardPlan(hasDynamisEffect, hasKeyItem, minutes)
+
+    if awardPlan then
+        plan.awardDuration = awardPlan.durationAdded
+    end
+
+    if isKiller then
+        local respawnPlan = xi.dynamis.timeExtensionRespawnPlan(mobId, group, true, randomIndex)
+        plan.respawnMobId = respawnPlan.respawnMobId
+        plan.disableDead = respawnPlan.disableDead
+        plan.respawnDelay = respawnPlan.respawnDelay
+    end
+
+    return plan
+end
+
 xi.dynamis.entryNpcOnTrigger = function(player, npc)
     local zoneId        = player:getZoneID()
     local info          = entryInfo[zoneId]
@@ -728,25 +746,28 @@ xi.dynamis.timeExtensionOnDeath = function(mob, player, optParams)
         if te then
             -- award KI and extension to those who have not yet received it
             local effect = player:getStatusEffect(xi.effect.DYNAMIS)
-            local awardPlan = xi.dynamis.timeExtensionAwardPlan(effect ~= nil, player:hasKeyItem(te.ki), te.minutes)
-            if awardPlan then
+            local randomIndex = 1
+            if optParams.isKiller then
+                randomIndex = math.random(1, #group)
+            end
+            local deathPlan = xi.dynamis.timeExtensionDeathPlan(effect ~= nil, player:hasKeyItem(te.ki), optParams.isKiller, te.minutes, mobId, group, randomIndex)
+            if deathPlan.awardDuration then
                 npcUtil.giveKeyItem(player, te.ki)
                 local oldDuration = effect:getDuration()
-                effect:setDuration(oldDuration + awardPlan.durationAdded)
+                effect:setDuration(oldDuration + deathPlan.awardDuration)
                 player:setLocalVar('dynamis_lasttimeupdate', effect:getTimeRemaining() / 1000)
                 player:messageSpecial(ID.text.DYNAMIS_TIME_EXTEND, te.minutes)
             end
 
             -- spawn a new mob in this group
-            if optParams.isKiller then
-                local respawnPlan = xi.dynamis.timeExtensionRespawnPlan(mobId, group, true, math.random(1, #group))
-                local teId = respawnPlan.respawnMobId
-                if respawnPlan.disableDead then
+            if deathPlan.respawnMobId then
+                local teId = deathPlan.respawnMobId
+                if deathPlan.disableDead then
                     DisallowRespawn(mobId, true)
                     DisallowRespawn(teId, false)
                 end
 
-                GetMobByID(teId):setRespawnTime(respawnPlan.respawnDelay)
+                GetMobByID(teId):setRespawnTime(deathPlan.respawnDelay)
             end
         else
             printf('[xi.dynamis.timeExtensionOnDeath] called in zone %i on mob %s that does not appear in a time extension group.', zoneId, mob:getName())
