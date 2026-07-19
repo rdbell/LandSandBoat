@@ -166,6 +166,16 @@ xi.voidwalker.shouldConsumePopAbyssite = function(keyItem)
     return keyItem ~= xi.keyItem.CLEAR_ABYSSITE and keyItem ~= xi.keyItem.COLORFUL_ABYSSITE
 end
 
+xi.voidwalker.upgradeMessageKind = function(currentKeyItem, nextKeyItem)
+    if currentKeyItem == xi.keyItem.CLEAR_ABYSSITE then
+        return 'upgrade_1'
+    elseif currentKeyItem == xi.keyItem.COLORFUL_ABYSSITE then
+        return 'upgrade_2'
+    elseif nextKeyItem == xi.keyItem.BLACK_ABYSSITE then
+        return 'obtain'
+    end
+end
+
 local getNearestMob = function(player, mobs)
     return xi.voidwalker.nearestMob(mobs, function(mobId)
         return player:checkDistance(GetMobByID(mobId))
@@ -246,11 +256,12 @@ local function checkUpgrade(player, mob, nextKeyItem)
             if nextKeyItem then
                 player:addKeyItem(nextKeyItem)
 
-                if currentKeyItem == xi.keyItem.CLEAR_ABYSSITE then
+                local messageKind = xi.voidwalker.upgradeMessageKind(currentKeyItem, nextKeyItem)
+                if messageKind == 'upgrade_1' then
                     player:messageSpecial(zoneTextTable.VOIDWALKER_UPGRADE_KI_1, currentKeyItem, nextKeyItem)
-                elseif currentKeyItem == xi.keyItem.COLORFUL_ABYSSITE then
+                elseif messageKind == 'upgrade_2' then
                     player:messageSpecial(zoneTextTable.VOIDWALKER_UPGRADE_KI_2, currentKeyItem, nextKeyItem)
-                elseif nextKeyItem == xi.keyItem.BLACK_ABYSSITE then
+                elseif messageKind == 'obtain' then
                     player:messageSpecial(zoneTextTable.VOIDWALKER_OBTAIN_KI, nextKeyItem)
                 end
             end
