@@ -64,6 +64,7 @@
 #include "automaton_controller_spiritreaver_aspir_candidate_capacity.h"
 #include "automaton_controller_spiritreaver_drain_candidate_capacity.h"
 #include "automaton_controller_spiritreaver_absorb_int_candidate_capacity.h"
+#include "automaton_controller_spiritreaver_dia_priority_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -824,32 +825,28 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
                     defaultPriority.emplace_back(SpellID::Bio_II);
                 }
 
-                if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio))
+                if (automatoncontrollerspiritreaverdia::CanPrioritize(
+                        !PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio), maneuvers.light))
                 {
-                    if (maneuvers.light >= 2) // 2 Light -> Dia
-                    {
-                        castPriority.emplace_back(SpellID::Dia_II);
-                    }
-                    else
-                    {
-                        defaultPriority.emplace_back(SpellID::Dia_II);
-                    }
+                    castPriority.emplace_back(SpellID::Dia_II);
+                }
+                else if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio))
+                {
+                    defaultPriority.emplace_back(SpellID::Dia_II);
                 }
                 if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
                 {
                     defaultPriority.emplace_back(SpellID::Bio);
                 }
 
-                if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio))
+                if (automatoncontrollerspiritreaverdia::CanPrioritize(
+                        !PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio), maneuvers.light))
                 {
-                    if (maneuvers.light >= 2) // 2 Light -> Dia
-                    {
-                        castPriority.emplace_back(SpellID::Dia);
-                    }
-                    else
-                    {
-                        defaultPriority.emplace_back(SpellID::Dia);
-                    }
+                    castPriority.emplace_back(SpellID::Dia);
+                }
+                else if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bio))
+                {
+                    defaultPriority.emplace_back(SpellID::Dia);
                 }
 
                 if (maneuvers.water >= 2) // 2 Water -> Poison

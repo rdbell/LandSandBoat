@@ -85,6 +85,7 @@
 #include "map/ai/controllers/automaton_controller_spiritreaver_aspir_candidate_capacity.h"
 #include "map/ai/controllers/automaton_controller_spiritreaver_drain_candidate_capacity.h"
 #include "map/ai/controllers/automaton_controller_spiritreaver_absorb_int_candidate_capacity.h"
+#include "map/ai/controllers/automaton_controller_spiritreaver_dia_priority_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -738,6 +739,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonSpiritreaverAbsorbIntCandidateOK)
     {
         std::cerr << "automaton Spiritreaver Absorb-INT candidate self-test failed\n";
+        return false;
+    }
+    const bool automatonSpiritreaverDiaPriorityOK = automatoncontrollerspiritreaverdia::CanPrioritize(true, 2) &&
+                                                    !automatoncontrollerspiritreaverdia::CanPrioritize(true, 1) &&
+                                                    !automatoncontrollerspiritreaverdia::CanPrioritize(false, 2);
+    if (!automatonSpiritreaverDiaPriorityOK)
+    {
+        std::cerr << "automaton Spiritreaver Dia priority self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
