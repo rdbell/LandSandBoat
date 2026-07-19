@@ -585,6 +585,7 @@ end)
 describe('Garrison event confirmation', function()
     it('confirms a matching event and starts Garrison', function()
         local originalStart = xi.garrison.start
+        local originalEnabled = xi.settings.main.ENABLE_GARRISON
         local confirmed, started = false, false
         local player = {
             getNation = function() return xi.nation.SANDORIA end,
@@ -598,7 +599,11 @@ describe('Garrison event confirmation', function()
         assert(not xi.garrison.onEventFinish(player, 32754, 0))
         assert(not xi.garrison.onEventFinish(player, 32753, 1))
 
+        xi.settings.main.ENABLE_GARRISON = false
+        assert(not xi.garrison.onEventFinish(player, 32753, 0))
+
         xi.garrison.start = originalStart
+        xi.settings.main.ENABLE_GARRISON = originalEnabled
     end)
 end)
 
