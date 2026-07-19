@@ -75,6 +75,7 @@
 #include "map/ai/controllers/mob_controller_mob_skill_override_capacity.h"
 #include "map/ai/controllers/mob_controller_mob_skill_definition_capacity.h"
 #include "map/ai/controllers/mob_controller_ambush_detection_capacity.h"
+#include "map/ai/controllers/mob_controller_sight_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -824,6 +825,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                       !mobcontrollerambushdetection::CanDetect(true, 3.0f, false) &&
                                       !mobcontrollerambushdetection::CanDetect(true, 2.9f, true) &&
                                       !mobcontrollerambushdetection::CanDetect(false, 2.9f, false);
+    bool sightCallbackCalled = false;
+    const bool mobSightDetectionOK = mobcontrollersightdetection::CanDetect(true, false, 9.9f, 10.0f, true, true, []() { return false; }) &&
+                                     mobcontrollersightdetection::CanDetect(true, false, 9.9f, 10.0f, true, false, []() { return true; }) &&
+                                     !mobcontrollersightdetection::CanDetect(true, false, 9.9f, 10.0f, true, false, []() { return false; }) &&
+                                     !mobcontrollersightdetection::CanDetect(true, true, 9.9f, 10.0f, true, true, []() { return true; }) &&
+                                     !mobcontrollersightdetection::CanDetect(true, false, 10.0f, 10.0f, true, true, []() { return true; }) &&
+                                     !mobcontrollersightdetection::CanDetect(true, false, 9.9f, 10.0f, false, true, []() { return true; }) &&
+                                     !mobcontrollersightdetection::CanDetect(false, false, 9.9f, 10.0f, true, true, [&]() { sightCallbackCalled = true; return true; }) &&
+                                     !sightCallbackCalled;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1677,6 +1687,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobAmbushDetectionOK)
     {
         std::cerr << "mob ambush-detection self-test failed\n";
+        return false;
+    }
+    if (!mobSightDetectionOK)
+    {
+        std::cerr << "mob sight-detection self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

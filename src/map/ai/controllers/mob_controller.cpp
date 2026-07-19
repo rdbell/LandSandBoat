@@ -93,6 +93,7 @@
 #include "mob_controller_mob_skill_override_capacity.h"
 #include "mob_controller_mob_skill_definition_capacity.h"
 #include "mob_controller_ambush_detection_capacity.h"
+#include "mob_controller_sight_detection_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -426,9 +427,16 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
 
     const bool isTargetAndInRange = PMob->GetBattleTargetID() == PTarget->targid && currentDistance <= PMob->GetMeleeRange(PTarget);
 
-    if (detectSight && !hasInvisible && currentDistance < PMob->getMobMod(MOBMOD_SIGHT_RANGE) && facing(PMob->loc.p, PTarget->loc.p, 64))
+    if (mobcontrollersightdetection::CanDetect(
+            detectSight,
+            hasInvisible,
+            currentDistance,
+            PMob->getMobMod(MOBMOD_SIGHT_RANGE),
+            facing(PMob->loc.p, PTarget->loc.p, 64),
+            isTargetAndInRange,
+            [&]() { return PMob->CanSeeTarget(PTarget); }))
     {
-        return isTargetAndInRange || PMob->CanSeeTarget(PTarget);
+        return true;
     }
 
     if (mobcontrollerambushdetection::CanDetect(
