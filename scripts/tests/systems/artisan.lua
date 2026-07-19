@@ -41,3 +41,22 @@ describe('Artisan Moogle sack purchase', function()
         assert(event[4] == 31 and event[8] == 2)
     end)
 end)
+
+describe('Artisan Moogle sack expansion', function()
+    it('expands the Mog Sack to inventory size and refreshes progress', function()
+        local sackSize = 30
+        local event = nil
+        local player = {
+            getContainerSize = function(_, container)
+                return container == xi.inv.MOGSACK and sackSize or 35
+            end,
+            changeContainerSize = function(_, _, amount) sackSize = sackSize + amount end,
+            updateEvent = function(_, ...) event = { ... } end,
+        }
+
+        xi.artisan.moogleOnUpdate(player, 544, 2, {})
+
+        assert(sackSize == 35)
+        assert(event[1] == 1 and event[4] == 36 and event[7] == 2 and event[8] == 0)
+    end)
+end)
