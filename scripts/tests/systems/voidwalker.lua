@@ -139,6 +139,31 @@ describe('Voidwalker Erebus Hundred Fists', function()
     end)
 end)
 
+describe('Voidwalker fixed-HPP mob skills', function()
+    it('provides every scheduled skill plan and its status gate', function()
+        local capricornus = xi.voidwalker.mobSkillEveryHPPPlan('Capricornus')
+        assert(capricornus.every == 20 and capricornus.start == 80 and capricornus.mobSkill == xi.mobSkill.MIGHTY_STRIKES_1 and capricornus.absentEffect == xi.effect.MIGHTY_STRIKES)
+
+        local yacumama = xi.voidwalker.mobSkillEveryHPPPlan('Yacumama')
+        assert(yacumama.mobSkill == xi.mobSkill.HUNDRED_FISTS_1 and yacumama.absentEffect == xi.effect.HUNDRED_FISTS)
+
+        for _, mobName in ipairs({ 'Shoggoth', 'Skuld' }) do
+            local plan = xi.voidwalker.mobSkillEveryHPPPlan(mobName)
+            assert(plan.every == 20 and plan.start == 80 and plan.mobSkill == xi.mobSkill.CHAINSPELL_1 and plan.absentEffect == xi.effect.CHAINSPELL)
+        end
+
+        local blobdingnag = xi.voidwalker.mobSkillEveryHPPPlan('Blobdingnag')
+        assert(blobdingnag.every == 20 and blobdingnag.start == 82 and blobdingnag.mobSkill == xi.mobSkill.CYTOKINESIS and blobdingnag.absentEffect == nil)
+
+        for _, mobName in ipairs({ 'Farruca_Fly', 'Dawon' }) do
+            local plan = xi.voidwalker.mobSkillEveryHPPPlan(mobName)
+            assert(plan.every == 20 and plan.start == 80 and plan.mobSkill == xi.mobSkill.PERFECT_DODGE_1 and plan.absentEffect == xi.effect.PERFECT_DODGE)
+        end
+
+        assert(xi.voidwalker.mobSkillEveryHPPPlan('Unknown') == nil)
+    end)
+end)
+
 describe('Voidwalker direction', function()
     it('classifies cardinal and diagonal offsets', function()
         assert(xi.voidwalker.direction(1, 0) == 0)

@@ -242,6 +242,21 @@ xi.voidwalker.spawnModifierPlan = function(mobName)
     return spawnModifierPlans[mobName]
 end
 
+local mobSkillEveryHPPPlans =
+{
+    ['Capricornus'] = { every = 20, start = 80, mobSkill = xi.mobSkill.MIGHTY_STRIKES_1, absentEffect = xi.effect.MIGHTY_STRIKES },
+    ['Yacumama']    = { every = 20, start = 80, mobSkill = xi.mobSkill.HUNDRED_FISTS_1, absentEffect = xi.effect.HUNDRED_FISTS },
+    ['Shoggoth']    = { every = 20, start = 80, mobSkill = xi.mobSkill.CHAINSPELL_1, absentEffect = xi.effect.CHAINSPELL },
+    ['Blobdingnag'] = { every = 20, start = 82, mobSkill = xi.mobSkill.CYTOKINESIS },
+    ['Farruca_Fly'] = { every = 20, start = 80, mobSkill = xi.mobSkill.PERFECT_DODGE_1, absentEffect = xi.effect.PERFECT_DODGE },
+    ['Skuld']       = { every = 20, start = 80, mobSkill = xi.mobSkill.CHAINSPELL_1, absentEffect = xi.effect.CHAINSPELL },
+    ['Dawon']       = { every = 20, start = 80, mobSkill = xi.mobSkill.PERFECT_DODGE_1, absentEffect = xi.effect.PERFECT_DODGE },
+}
+
+xi.voidwalker.mobSkillEveryHPPPlan = function(mobName)
+    return mobSkillEveryHPPPlans[mobName]
+end
+
 xi.voidwalker.shouldCapricornusUseRecoilDive = function(hasMightyStrikes, isBusy)
     return hasMightyStrikes and not isBusy
 end
@@ -417,6 +432,16 @@ local function doMobSkillEveryHPP(mob, every, start, mobskill, condition)
     end
 end
 
+local function doMobSkillPlan(mob, mobName)
+    local plan = xi.voidwalker.mobSkillEveryHPPPlan(mobName)
+    if not plan then
+        return
+    end
+
+    local condition = not plan.absentEffect or not mob:hasStatusEffect(plan.absentEffect)
+    doMobSkillEveryHPP(mob, plan.every, plan.start, plan.mobSkill, condition)
+end
+
 local function randomly(mob, chance, between, effect, skill)
     if
         math.random(0, 100) <= chance and
@@ -451,7 +476,7 @@ end
 local mixinByMobName =
 {
     ['Capricornus'] = function(mob)
-        doMobSkillEveryHPP(mob, 20, 80, xi.mobSkill.MIGHTY_STRIKES_1, not mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES))
+        doMobSkillPlan(mob, 'Capricornus')
         if xi.voidwalker.shouldCapricornusUseRecoilDive(
             mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES),
             xi.combat.behavior.isEntityBusy(mob)
@@ -461,7 +486,7 @@ local mixinByMobName =
     end,
 
     ['Yacumama'] = function(mob)
-        doMobSkillEveryHPP(mob, 20, 80, xi.mobSkill.HUNDRED_FISTS_1, not mob:hasStatusEffect(xi.effect.HUNDRED_FISTS))
+        doMobSkillPlan(mob, 'Yacumama')
     end,
 
     ['Lamprey_Lord'] = function(mob)
@@ -469,7 +494,7 @@ local mixinByMobName =
     end,
 
     ['Shoggoth'] = function(mob)
-        doMobSkillEveryHPP(mob, 20, 80, xi.mobSkill.CHAINSPELL_1, not mob:hasStatusEffect(xi.effect.CHAINSPELL))
+        doMobSkillPlan(mob, 'Shoggoth')
     end,
 
     ['Jyeshtha'] = function(mob)
@@ -483,15 +508,15 @@ local mixinByMobName =
     end,
 
     ['Blobdingnag'] = function(mob)
-        doMobSkillEveryHPP(mob, 20, 82, xi.mobSkill.CYTOKINESIS, true)
+        doMobSkillPlan(mob, 'Blobdingnag')
     end,
 
     ['Farruca_Fly'] = function(mob)
-        doMobSkillEveryHPP(mob, 20, 80, xi.mobSkill.PERFECT_DODGE_1, not mob:hasStatusEffect(xi.effect.PERFECT_DODGE))
+        doMobSkillPlan(mob, 'Farruca_Fly')
     end,
 
     ['Skuld'] = function(mob)
-        doMobSkillEveryHPP(mob, 20, 80, xi.mobSkill.CHAINSPELL_1, not mob:hasStatusEffect(xi.effect.CHAINSPELL))
+        doMobSkillPlan(mob, 'Skuld')
     end,
 
     ['Erebus'] = function(mob)
@@ -509,7 +534,7 @@ local mixinByMobName =
     end,
 
     ['Dawon'] = function(mob)
-        doMobSkillEveryHPP(mob, 20, 80, xi.mobSkill.PERFECT_DODGE_1, not mob:hasStatusEffect(xi.effect.PERFECT_DODGE))
+        doMobSkillPlan(mob, 'Dawon')
     end
 }
 
