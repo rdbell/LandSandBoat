@@ -59,6 +59,7 @@
 #include "automaton_controller_healing_hate_capacity.h"
 #include "automaton_controller_healing_master_distance_capacity.h"
 #include "automaton_controller_soulsoother_party_heal_gate_capacity.h"
+#include "automaton_controller_soulsoother_party_status_removal_gate_capacity.h"
 #include "automaton_controller_dispel_status_candidate_capacity.h"
 #include "automaton_controller_dia_bio_priority_capacity.h"
 #include "automaton_controller_spiritreaver_aspir_candidate_capacity.h"
@@ -1087,7 +1088,7 @@ auto CAutomatonController::TryStatusRemoval(const CurrentManeuvers& maneuvers) -
         }
     }
 
-    if (maneuvers.water && PAutomaton->head() == AutomatonHead::Soulsoother && PAutomaton->PMaster->PParty) // Water + Soulsoother head -> Remove party's statuses
+    if (automatoncontrollersoulsootherpartystatusremovalgate::CanConsiderPartyStatusRemoval(maneuvers.water, PAutomaton->head() == AutomatonHead::Soulsoother, PAutomaton->PMaster->PParty != nullptr)) // Water + Soulsoother head -> Remove party's statuses
     {
         for (auto member : PAutomaton->PMaster->PParty->members)
         {
