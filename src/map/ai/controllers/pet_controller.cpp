@@ -20,6 +20,7 @@
 */
 
 #include "pet_controller.h"
+#include "pet_controller_buff_tick_capacity.h"
 #include "pet_controller_deaggro_capacity.h"
 #include "pet_controller_healing_capacity.h"
 #include "pet_controller_tick_capacity.h"
@@ -85,7 +86,7 @@ auto CPetController::Tick(timer::time_point tick) -> Task<void>
 auto CPetController::DoBuffTick() -> bool
 {
     const auto* PPetEntity = dynamic_cast<CPetEntity*>(PPet);
-    if (!PPetEntity || PPetEntity->petID() != PETID_LIGHTSPIRIT)
+    if (!petcontrollerbufftick::AllowsBuffTick(PPetEntity != nullptr, PPetEntity && PPetEntity->petID() == PETID_LIGHTSPIRIT))
     {
         return false;
     }
