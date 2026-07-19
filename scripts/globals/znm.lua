@@ -706,6 +706,16 @@ xi.znm.sanraku.confirmedZNMPopIndex = function(option)
     return math.min(option - 399, 31)
 end
 
+xi.znm.sanraku.confirmedZNMPopPurchaseOutcome = function(hasEnoughZeni, hasFreeSlots, hasPopItem)
+    if not hasEnoughZeni then
+        return 'no_zeni'
+    elseif not hasFreeSlots or hasPopItem then
+        return 'unavailable'
+    end
+
+    return 'purchase'
+end
+
 xi.znm.sanraku.handleConfirmedZNMInfo = function(player, option)
     -- (440 because Warden's option is offset by 10 for some reason)
     local diff     = xi.znm.sanraku.confirmedZNMPopIndex(option) -- Determine the desired ZNM
@@ -714,11 +724,22 @@ xi.znm.sanraku.handleConfirmedZNMInfo = function(player, option)
     local mob      = xi.znm.POP_ITEMS[diff].mob
     local zeniCost = xi.znm.getPopPrice(mob, znmTier)
 
-    if player:getCurrency('zeni_point') < zeniCost then -- Not enough zeni
+    local hasEnoughZeni = player:getCurrency('zeni_point') >= zeniCost
+    local hasFreeSlots = false
+    local hasPopItem = false
+
+    if hasEnoughZeni then
+        hasFreeSlots = player:getFreeSlotsCount() ~= 0
+        if hasFreeSlots then
+            hasPopItem = player:hasItem(popItem)
+        end
+    end
+
+    local outcome = xi.znm.sanraku.confirmedZNMPopPurchaseOutcome(hasEnoughZeni, hasFreeSlots, hasPopItem)
+
+    if outcome == 'no_zeni' then
         player:updateEvent(2)
-    elseif player:getFreeSlotsCount() == 0 then -- No inventory space
-        player:updateEvent(4)
-    elseif player:hasItem(popItem) then -- Own pop already
+    elseif outcome == 'unavailable' then
         player:updateEvent(4)
     else
         -- Deduct zeni from player, increase future pop-item costs
