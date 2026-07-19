@@ -29,6 +29,10 @@ xi.znm.shouldRotateSanrakuTrades = function(currentTrades)
     return currentTrades >= 500
 end
 
+xi.znm.nextSanrakuTradeCount = function(currentTrades)
+    return currentTrades + 1
+end
+
 xi.znm.shouldInitializeSanrakuSelection = function(selection)
     return selection == nil or selection == 0
 end
@@ -39,7 +43,7 @@ xi.znm.serverPlateTrades = function()
     if xi.znm.shouldRotateSanrakuTrades(currentTrades) then
         xi.znm.UpdateSanrakusMobs()
     else
-        SetServerVariable('[ZNM][Sanraku]Trades', currentTrades + 1)
+        SetServerVariable('[ZNM][Sanraku]Trades', xi.znm.nextSanrakuTradeCount(currentTrades))
     end
 end
 

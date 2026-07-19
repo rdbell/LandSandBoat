@@ -8,6 +8,13 @@ describe('ZNM Sanraku trade rotation', function()
     end)
 end)
 
+describe('ZNM Sanraku trade increment', function()
+    it('increments the counter between rotations', function()
+        assert(xi.znm.nextSanrakuTradeCount(0) == 1)
+        assert(xi.znm.nextSanrakuTradeCount(499) == 500)
+    end)
+end)
+
 describe('ZNM Sanraku selection initialization', function()
     it('initializes missing and zero selections only', function()
         assert(xi.znm.shouldInitializeSanrakuSelection(nil))
