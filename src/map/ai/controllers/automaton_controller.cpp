@@ -31,6 +31,7 @@
 #include "automaton_controller_healing_threshold_capacity.h"
 #include "automaton_controller_healing_target_capacity.h"
 #include "automaton_controller_cure_tier_capacity.h"
+#include "automaton_controller_elemental_tier_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -528,28 +529,12 @@ auto CAutomatonController::TryElemental(const CurrentManeuvers& maneuvers) -> bo
     std::vector<SpellID> castPriority;
     std::vector<SpellID> defaultPriority;
 
-    int8        tier   = 4;
     const int32 hp     = PTarget->health.hp;
     const int32 selfmp = PAutomaton->health.mp; // Shortcut for wasting less time
-    if (selfmp < 4)
+    const int8 tier = automatoncontrollerelementaltier::Select(hp, selfmp);
+    if (tier < 0)
     {
         return false;
-    }
-    else if (hp <= 50 || selfmp < 16)
-    {
-        tier = 0;
-    }
-    else if (hp <= 150 || selfmp < 40)
-    {
-        tier = 1;
-    }
-    else if (hp <= 200 || selfmp < 88)
-    {
-        tier = 2;
-    }
-    else if (hp <= 600 || selfmp < 156)
-    {
-        tier = 3;
     }
 
     if (PAutomaton->getMod(Mod::AUTO_SCAN_RESISTS))
