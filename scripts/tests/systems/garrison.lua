@@ -404,3 +404,23 @@ describe('Garrison trade admission', function()
         npcUtil.tradeHasExactly = originalTradeCheck
     end)
 end)
+
+describe('Garrison event confirmation', function()
+    it('confirms a matching event and starts Garrison', function()
+        local originalStart = xi.garrison.start
+        local confirmed, started = false, false
+        local player = {
+            getNation = function() return xi.nation.SANDORIA end,
+            getLocalVar = function() return 1234 end,
+            confirmTrade = function() confirmed = true end,
+        }
+        xi.garrison.start = function() started = true end
+
+        assert(xi.garrison.onEventFinish(player, 32753, 0))
+        assert(confirmed and started)
+        assert(not xi.garrison.onEventFinish(player, 32754, 0))
+        assert(not xi.garrison.onEventFinish(player, 32753, 1))
+
+        xi.garrison.start = originalStart
+    end)
+end)
