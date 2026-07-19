@@ -25,6 +25,7 @@
 #include "automaton_controller_maneuvers_capacity.h"
 #include "automaton_controller_master_loss_capacity.h"
 #include "automaton_controller_move_capacity.h"
+#include "automaton_controller_action_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -192,7 +193,7 @@ void CAutomatonController::Move()
 
 auto CAutomatonController::TryAction() -> bool
 {
-    if (m_Tick > m_LastActionTime + (m_actionCooldown - std::chrono::milliseconds(PAutomaton->getMod(Mod::AUTO_DECISION_DELAY) * 10)))
+    if (automatoncontrolleractiongate::CanTakeAction(m_Tick, m_LastActionTime, m_actionCooldown, PAutomaton->getMod(Mod::AUTO_DECISION_DELAY)))
     {
         m_LastActionTime = m_Tick;
         PAutomaton->PAI->EventHandler.triggerListener("AUTOMATON_AI_TICK", PAutomaton, PTarget);
