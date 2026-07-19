@@ -319,6 +319,124 @@ describe("Pirates Chart reset", function()
     end)
 end)
 
+describe("Pirates Chart Taru phases", function()
+    it('performs the text, emote, and animation actions for all six phases', function()
+        local now = 0
+        local rangeTimer
+        local calls = { qmText = {}, taruText = {}, emotes = {}, animations = {} }
+        local restriction = { getPower = function() return 20 end }
+        local player = {
+            hasStatusEffect = function() return true end,
+            getStatusEffect = function() return restriction end,
+            getPartySize = function() return 1 end,
+            checkSoloPartyAlliance = function() return 0 end,
+            getZoneID = function() return xi.zone.VALKURM_DUNES end,
+            getParty = function() return {} end,
+            checkDistance = function() return 0 end,
+            isAlive = function() return true end,
+        }
+        local qm = {
+            getLocalVar = function(_, name) return name == 'pChartSpawnerID' and 1 or 0 end,
+            setStatus = function() end,
+            timer = function(_, _, callback) rangeTimer = callback end,
+            showText = function(_, _, text) table.insert(calls.qmText, text) end,
+        }
+        local taru = {
+            setStatus = function() end,
+            setAnimation = function() end,
+            messageText = function(_, _, text) table.insert(calls.taruText, text) end,
+            sendEmote = function(_, target, emote, mode) table.insert(calls.emotes, { target, emote, mode }) end,
+            entityAnimationPacket = function(_, animation) table.insert(calls.animations, animation) end,
+        }
+        local shimmering = { setStatus = function() end, timer = function() end }
+        stub('GetPlayerByID', function(id) return id == 1 and player or nil end)
+        stub('GetNPCByID', function(id)
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_QM then return qm end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_TARU then return taru end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.SHIMMERING_POINT then return shimmering end
+        end)
+        stub('GetSystemTime', function() return now end)
+
+        xi.piratesChart.onEventFinish(player, 14, 0, qm)
+        for timestamp = 1, 47 do
+            now = timestamp
+            rangeTimer(qm)
+        end
+
+        local baseText = zones[xi.zone.VALKURM_DUNES].text.RIGHT_OVER_THERE_POINT
+        assert(calls.qmText[1] == baseText and calls.qmText[2] == baseText + 1)
+        assert(calls.qmText[3] == baseText + 2 and calls.qmText[4] == baseText + 3 and calls.qmText[5] == baseText + 4)
+        assert(calls.taruText[1] == baseText + 5)
+        assert(#calls.emotes == 4 and calls.emotes[1][1] == qm and calls.emotes[1][2] == xi.emote.POINT)
+        assert(calls.emotes[2][2] == xi.emote.PANIC and calls.emotes[3][2] == xi.emote.PANIC and calls.emotes[4][2] == xi.emote.PANIC)
+        assert(calls.emotes[1][3] == xi.emoteMode.MOTION and calls.animations[1] == xi.animationString.EFFECT_DEATH)
+    end)
+
+    it('does not advance a due phase until both event entities resolve', function()
+        local now = 0
+        local rangeTimer
+        local qmAvailable = true
+        local taruAvailable = true
+        local texts = {}
+        local restriction = { getPower = function() return 20 end }
+        local player = {
+            hasStatusEffect = function() return true end,
+            getStatusEffect = function() return restriction end,
+            getPartySize = function() return 1 end,
+            checkSoloPartyAlliance = function() return 0 end,
+            getZoneID = function() return xi.zone.VALKURM_DUNES end,
+            getParty = function() return {} end,
+            checkDistance = function() return 0 end,
+            isAlive = function() return true end,
+        }
+        local qm = {
+            getLocalVar = function(_, name) return name == 'pChartSpawnerID' and 1 or 0 end,
+            setStatus = function() end,
+            timer = function(_, _, callback) rangeTimer = callback end,
+            showText = function(_, _, text) table.insert(texts, text) end,
+        }
+        local taru = {
+            setStatus = function() end,
+            setAnimation = function() end,
+            messageText = function() end,
+            sendEmote = function() end,
+            entityAnimationPacket = function() end,
+        }
+        local shimmering = { setStatus = function() end, timer = function() end }
+        stub('GetPlayerByID', function(id) return id == 1 and player or nil end)
+        stub('GetNPCByID', function(id)
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_QM then return qmAvailable and qm or nil end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_TARU then return taruAvailable and taru or nil end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.SHIMMERING_POINT then return shimmering end
+        end)
+        stub('GetSystemTime', function() return now end)
+
+        xi.piratesChart.onEventFinish(player, 14, 0, qm)
+        taruAvailable = false
+        now = 1
+        rangeTimer(qm)
+        now = 2
+        rangeTimer(qm)
+        assert(#texts == 0)
+        taruAvailable = true
+        now = 3
+        rangeTimer(qm)
+        assert(#texts == 1)
+        for timestamp = 4, 20 do
+            now = timestamp
+            rangeTimer(qm)
+        end
+        qmAvailable = false
+        now = 21
+        rangeTimer(qm)
+        assert(#texts == 1)
+        qmAvailable = true
+        now = 22
+        rangeTimer(qm)
+        assert(#texts == 2)
+    end)
+end)
+
 describe("Pirates Chart mob fight", function()
     it('uses Hundred Fists once below half health and restores damage after snare expiry', function()
         local calls = {}
