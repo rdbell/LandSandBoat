@@ -53,6 +53,7 @@
 #include "mob_controller_spell_cast_route_capacity.h"
 #include "mob_controller_spell_target_source_capacity.h"
 #include "mob_controller_owner_declaim_capacity.h"
+#include "mob_controller_run_away_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -761,17 +762,24 @@ auto CMobController::DoCombatTick(timer::time_point tick) -> Task<void>
 
     if (PFollowTarget != nullptr && m_followType == FollowType::RunAway)
     {
-        if (distance(PMob->loc.p, PFollowTarget->loc.p) > FollowRunAwayDistance)
+        const auto action = mobcontrollerrunaway::Resolve(
+            true,
+            distance(PMob->loc.p, PFollowTarget->loc.p) > FollowRunAwayDistance,
+            PMob->PAI->PathFind->IsFollowingPath());
+        if (action.startPath)
         {
-            if (!PMob->PAI->PathFind->IsFollowingPath())
-            {
-                PMob->PAI->PathFind->PathTo(PFollowTarget->loc.p);
-            }
+            PMob->PAI->PathFind->PathTo(PFollowTarget->loc.p);
+        }
+        if (action.followPath)
+        {
             PMob->PAI->PathFind->FollowPath(m_Tick);
         }
-        else
+        if (action.notifyArrival)
         {
             PMob->PAI->EventHandler.triggerListener("RUN_AWAY", PMob, PFollowTarget);
+        }
+        if (action.clearTarget)
+        {
             ClearFollowTarget();
         }
         co_return;

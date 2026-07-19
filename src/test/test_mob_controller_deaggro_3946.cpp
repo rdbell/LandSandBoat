@@ -34,6 +34,7 @@
 #include "map/ai/controllers/mob_controller_spell_cast_route_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_target_source_capacity.h"
 #include "map/ai/controllers/mob_controller_owner_declaim_capacity.h"
+#include "map/ai/controllers/mob_controller_run_away_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -762,6 +763,19 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobOwnerDeclaimOK)
     {
         std::cerr << "mob owner declaim self-test failed\n";
+        return false;
+    }
+    const auto noRunAway = mobcontrollerrunaway::Resolve(false, false, false);
+    const auto startRunAway = mobcontrollerrunaway::Resolve(true, true, false);
+    const auto followRunAway = mobcontrollerrunaway::Resolve(true, true, true);
+    const auto arriveRunAway = mobcontrollerrunaway::Resolve(true, false, false);
+    const bool mobRunAwayOK = !noRunAway.handled &&
+                              startRunAway.handled && startRunAway.startPath && startRunAway.followPath &&
+                              followRunAway.handled && !followRunAway.startPath && followRunAway.followPath &&
+                              arriveRunAway.handled && arriveRunAway.notifyArrival && arriveRunAway.clearTarget;
+    if (!mobRunAwayOK)
+    {
+        std::cerr << "mob run-away self-test failed\n";
         return false;
     }
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
