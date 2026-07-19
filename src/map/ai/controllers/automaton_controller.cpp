@@ -88,6 +88,7 @@
 #include "automaton_controller_spell_admission_capacity.h"
 #include "automaton_controller_erase_fallback_capacity.h"
 #include "automaton_controller_status_removal_candidate_capacity.h"
+#include "automaton_controller_master_enhancement_target_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1163,26 +1164,28 @@ auto CAutomatonController::TryEnhance() -> bool
 
     bool isEngaged = false;
 
-    if (distance(PAutomaton->loc.p, PAutomaton->PMaster->loc.p) < 20)
+    const bool masterWithinRange = distance(PAutomaton->loc.p, PAutomaton->PMaster->loc.p) < 20;
+    if (masterWithinRange)
     {
+        bool targetIsMob     = false;
+        bool masterHasEnmity = false;
         if (auto* PMob = dynamic_cast<CMobEntity*>(PTarget))
         {
+            targetIsMob = true;
             auto enmityList = PMob->PEnmityContainer->GetEnmityList();
             if (auto enmity_obj = enmityList->find(PAutomaton->PMaster->id);
                 enmity_obj != enmityList->end())
             {
-                isEngaged = true;
+                masterHasEnmity = true;
                 if (highestEnmity < enmity_obj->second.CE + enmity_obj->second.VE)
                 {
                     highestEnmity = enmity_obj->second.CE + enmity_obj->second.VE;
                     PRegenTarget  = PAutomaton->PMaster;
                 }
             }
-            else
-            {
-                isEngaged = true; // Assume everyone is engaged if the target isn't a mob
-            }
         }
+
+        isEngaged = automatoncontrollermasterenhancementtarget::CanConsiderMasterEnhancement(masterWithinRange, targetIsMob, masterHasEnmity);
 
         PAutomaton->PMaster->StatusEffectContainer->ForEachEffect(
             [&protect, &protectcount, &shell, &shellcount, &haste, &stoneskin, &phalanx](CStatusEffect& PStatus)
