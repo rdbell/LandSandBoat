@@ -32,3 +32,26 @@ describe('Armor Storage update', function()
         assert(event[4] == 14214 and event[5] == 14089 and event[6] == 500)
     end)
 end)
+
+describe('Armor Storage withdrawal finish', function()
+    it('restores a stored set when it has slots and gil', function()
+        local items = {}
+        local removedKeyItem = nil
+        local gil = nil
+        local player = {
+            hasKeyItem = function(_, keyItem) return keyItem == xi.ki.FIGHTERS_ARMOR_CLAIM_SLIP end,
+            getFreeSlotsCount = function() return 5 end,
+            getGil = function() return 500 end,
+            addItem = function(_, item) table.insert(items, item) end,
+            messageSpecial = function() end,
+            getZoneID = function() return xi.zone.PORT_BASTOK end,
+            delKeyItem = function(_, keyItem) removedKeyItem = keyItem end,
+            setGil = function(_, amount) gil = amount end,
+        }
+
+        xi.armorStorage.onEventFinish(player, 900, 1, 800, 900)
+
+        assert(#items == 5 and items[1] == 12511 and items[5] == 14089)
+        assert(removedKeyItem == xi.ki.FIGHTERS_ARMOR_CLAIM_SLIP and gil == 0)
+    end)
+end)
