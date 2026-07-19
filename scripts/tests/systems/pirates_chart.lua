@@ -129,6 +129,56 @@ describe("Pirates Chart range warning", function()
     end)
 end)
 
+describe("Pirates Chart range timer state", function()
+    it('carries the source out-of-range accumulator through recursive checks', function()
+        local now = 100
+        local warnings = 0
+        local rangeTimer
+        local restriction = { getPower = function() return 20 end }
+        local player = {
+            hasStatusEffect = function() return true end,
+            getStatusEffect = function() return restriction end,
+            getPartySize = function() return 1 end,
+            checkSoloPartyAlliance = function() return 0 end,
+            getZoneID = function() return xi.zone.VALKURM_DUNES end,
+            checkDistance = function() return 11 end,
+            messageSpecial = function() warnings = warnings + 1 end,
+            getParty = function() return {} end,
+            isAlive = function() return true end,
+        }
+        local npc = {
+            getLocalVar = function(_, name) return name == 'pChartSpawnerID' and 1 or 0 end,
+            setStatus = function() end,
+            timer = function(_, _, callback) rangeTimer = callback end,
+            showText = function() end,
+        }
+        local taru = {
+            setStatus = function() end,
+            setAnimation = function() end,
+            messageText = function() end,
+            sendEmote = function() end,
+            entityAnimationPacket = function() end,
+        }
+        local shimmering = { setStatus = function() end, timer = function() end }
+        stub('GetPlayerByID', function(id) return id == 1 and player or nil end)
+        stub('GetNPCByID', function(id)
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_QM then return npc end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_TARU then return taru end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.SHIMMERING_POINT then return shimmering end
+        end)
+        stub('GetSystemTime', function() return now end)
+
+        xi.piratesChart.onEventFinish(player, 14, 0, npc)
+        assert(warnings == 1)
+        now = 101
+        rangeTimer(npc)
+        assert(warnings == 1)
+        now = 108
+        rangeTimer(npc)
+        assert(warnings == 1)
+    end)
+end)
+
 describe("Pirates Chart event validity", function()
     it('rejects each invalid spawner and restricted member state', function()
         local current
