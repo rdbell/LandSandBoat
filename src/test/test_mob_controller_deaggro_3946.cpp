@@ -120,6 +120,7 @@
 #include "map/ai/controllers/trust_controller_cast_target_source_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_declump_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_declump_displacement_capacity.h"
+#include "map/ai/controllers/trust_controller_combat_attack_lookup_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_movement_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_master_engagement_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_post_movement_capacity.h"
@@ -890,6 +891,19 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                        meleePath.action == trustcontrollercombatmovement::Action::MeleePath && meleePath.desiredDistance == 3.0f &&
                                        meleeStep.action == trustcontrollercombatmovement::Action::MeleeStep &&
                                        rangedMovement.action == trustcontrollercombatmovement::Action::PathOut && rangedMovement.desiredDistance == 12.0f;
+    bool trustCombatAttackLookupCalled = false;
+    const bool trustCombatAttackLookupOK = trustcontrollercombatattacklookup::Resolve(
+                                                0, []() { return true; }) &&
+                                            !trustcontrollercombatattacklookup::Resolve(
+                                                0, []() { return false; }) &&
+                                            !trustcontrollercombatattacklookup::Resolve(
+                                                12,
+                                                [&]() { trustCombatAttackLookupCalled = true; return true; }) &&
+                                            !trustCombatAttackLookupCalled &&
+                                            !trustcontrollercombatattacklookup::Resolve(
+                                                -1,
+                                                [&]() { trustCombatAttackLookupCalled = true; return true; }) &&
+                                            !trustCombatAttackLookupCalled;
     bool trustMeleePathSpeedCheckCalled = false;
     const bool trustMeleePathResultOK = trustcontrollermeleepathresult::Resolve(
                                              []() { return true; },
@@ -2610,6 +2624,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!trustMeleePathResultOK)
     {
         std::cerr << "trust melee path-result self-test failed\n";
+        return false;
+    }
+    if (!trustCombatAttackLookupOK)
+    {
+        std::cerr << "trust combat attack-lookup self-test failed\n";
         return false;
     }
     if (!trustCombatMasterEngagementOK)

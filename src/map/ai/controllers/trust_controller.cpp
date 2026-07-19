@@ -24,6 +24,7 @@
 #include "trust_controller_cast_coordination_capacity.h"
 #include "trust_controller_combat_declump_admission_capacity.h"
 #include "trust_controller_combat_declump_displacement_capacity.h"
+#include "trust_controller_combat_attack_lookup_capacity.h"
 #include "trust_controller_combat_movement_admission_capacity.h"
 #include "trust_controller_combat_movement_capacity.h"
 #include "trust_controller_combat_master_engagement_capacity.h"
@@ -220,12 +221,13 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
 
             int16 movementDistance = PTrust->getMobMod(MOBMOD_TRUST_DISTANCE);
 
-            bool canAttack = false;
-            if (movementDistance == TRUST_MOVEMENT_TYPE::MELEE)
-            {
-                std::unique_ptr<CBasicPacket> err;
-                canAttack = PTrust->CanAttack(PTarget, err);
-            }
+            const bool canAttack = trustcontrollercombatattacklookup::Resolve(
+                movementDistance,
+                [&]()
+                {
+                    std::unique_ptr<CBasicPacket> err;
+                    return PTrust->CanAttack(PTarget, err);
+                });
 
             const auto movementPlan = trustcontrollercombatmovement::Resolve(
                 canFollowPath, hasSpeed, movementDistance, currentDistanceToTarget,
