@@ -85,6 +85,7 @@
 #include "automaton_controller_party_enhancement_threshold_capacity.h"
 #include "automaton_controller_tp_skill_selection_result_capacity.h"
 #include "automaton_controller_enfeeble_admission_capacity.h"
+#include "automaton_controller_spell_admission_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1657,7 +1658,7 @@ void LoadAutomatonSpellList()
 bool CanUseSpell(CAutomatonEntity* PCaster, SpellID spellid)
 {
     const AutomatonSpell& PSpell = autoSpellList[spellid];
-    return ((PCaster->GetSkill(SKILL_AUTOMATON_MAGIC) >= PSpell.skilllevel) && (PSpell.heads & (1 << ((uint8)PCaster->head() - 1))));
+    return automatoncontrollerspelladmission::CanUseSpell(PCaster->GetSkill(SKILL_AUTOMATON_MAGIC), PSpell.skilllevel, (uint8)PCaster->head(), PSpell.heads);
 }
 
 bool CanUseEnfeeble(CBattleEntity* PTarget, SpellID spell)
