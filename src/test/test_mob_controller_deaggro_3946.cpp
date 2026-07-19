@@ -82,6 +82,7 @@
 #include "map/ai/controllers/mob_controller_action_state_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_close_detection_range_capacity.h"
 #include "map/ai/controllers/mob_controller_detection_target_capacity.h"
+#include "map/ai/controllers/mob_controller_detection_distance_capacity.h"
 #include "map/ai/controllers/mob_controller_illusion_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_stealth_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_sight_mode_capacity.h"
@@ -915,6 +916,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                          !mobcontrollerengagedtargetrange::IsInRange(true, 5.1f, []() { return 5.0f; }) &&
                                          !mobcontrollerengagedtargetrange::IsInRange(false, 0.0f, [&]() { meleeRangeCalled = true; return 5.0f; }) &&
                                          !meleeRangeCalled;
+    const bool mobDetectionDistanceOK = mobcontrollerdetectiondistance::EffectiveDistance(12.5f, 3.0f) == 15.5f &&
+                                        mobcontrollerdetectiondistance::EffectiveDistance(12.5f, 0.0f) == 12.5f &&
+                                        mobcontrollerdetectiondistance::EffectiveDistance(12.5f, -3.0f) == 9.5f;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1828,6 +1832,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobEngagedTargetRangeOK)
     {
         std::cerr << "mob engaged-target range self-test failed\n";
+        return false;
+    }
+    if (!mobDetectionDistanceOK)
+    {
+        std::cerr << "mob detection-distance self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

@@ -100,6 +100,7 @@
 #include "mob_controller_action_state_detection_capacity.h"
 #include "mob_controller_close_detection_range_capacity.h"
 #include "mob_controller_detection_target_capacity.h"
+#include "mob_controller_detection_distance_capacity.h"
 #include "mob_controller_illusion_detection_capacity.h"
 #include "mob_controller_stealth_detection_capacity.h"
 #include "mob_controller_sight_mode_capacity.h"
@@ -413,8 +414,10 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
         return false;
     }
 
-    const auto detects         = PMob->getMobMod(MOBMOD_DETECTION);
-    const auto currentDistance = distance(PTarget->loc.p, PMob->loc.p) + PTarget->getMod(Mod::STEALTH);
+    const auto detects = PMob->getMobMod(MOBMOD_DETECTION);
+    const auto currentDistance = mobcontrollerdetectiondistance::EffectiveDistance(
+        distance(PTarget->loc.p, PMob->loc.p),
+        PTarget->getMod(Mod::STEALTH));
 
     const bool detectSight  = mobcontrollersightmode::IsEnabled((detects & DETECT_SIGHT) != 0, forceSight);
     const auto stealthState = mobcontrollerstealthdetection::Resolve(
