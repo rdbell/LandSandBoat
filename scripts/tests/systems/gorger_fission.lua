@@ -32,3 +32,56 @@ describe('Gorger Fission gate', function()
         end
     end)
 end)
+
+describe('Fission mob skill', function()
+    it('calls its available add IDs with fixed pet parameters and no skill message', function()
+        local fission = require('scripts/actions/mobskills/fission')
+        local originalCallPets = xi.mob.callPets
+        local calls = {}
+        local message = nil
+
+        xi.mob.callPets = function(mob, pets, params)
+            calls.mob = mob
+            calls.pets = pets
+            calls.params = params
+        end
+
+        local mob = {
+            getID = function() return 100 end,
+            getLocalVar = function(_, key)
+                return key == 'fissionAdds' and 3 or 1
+            end,
+        }
+        local skill = { setMsg = function(_, value) message = value end }
+
+        assert(fission.onMobSkillCheck(nil, mob, skill) == 0)
+        assert(fission.onMobWeaponSkill(mob, nil, skill, nil) == 0)
+
+        xi.mob.callPets = originalCallPets
+
+        assert(calls.mob == mob)
+        assert(calls.pets[1] == 102 and calls.pets[2] == 103 and calls.pets[3] == 104)
+        assert(calls.params.maxSpawns == 1 and calls.params.noAnimation)
+        assert(calls.params.dieWithOwner and calls.params.superlink and calls.params.ignoreBusy)
+        assert(message == xi.msg.basic.NONE)
+    end)
+
+    it('calls no pets when there are no remaining adds', function()
+        local fission = require('scripts/actions/mobskills/fission')
+        local originalCallPets = xi.mob.callPets
+        local pets = nil
+
+        xi.mob.callPets = function(_, ids) pets = ids end
+
+        local mob = {
+            getID = function() return 100 end,
+            getLocalVar = function() return 0 end,
+        }
+        local skill = { setMsg = function() end }
+        fission.onMobWeaponSkill(mob, nil, skill, nil)
+
+        xi.mob.callPets = originalCallPets
+
+        assert(#pets == 0)
+    end)
+end)
