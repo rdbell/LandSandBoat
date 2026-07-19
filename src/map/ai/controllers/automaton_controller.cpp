@@ -32,6 +32,7 @@
 #include "automaton_controller_healing_target_capacity.h"
 #include "automaton_controller_cure_tier_capacity.h"
 #include "automaton_controller_elemental_tier_capacity.h"
+#include "automaton_controller_resistance_order_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -514,11 +515,6 @@ auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
     return false;
 }
 
-inline auto resistanceComparator(const std::pair<SpellID, int16>& firstElem, const std::pair<SpellID, int16>& secondElem) -> bool
-{
-    return firstElem.second < secondElem.second;
-}
-
 auto CAutomatonController::TryElemental(const CurrentManeuvers& maneuvers) -> bool
 {
     if (!PAutomaton->PMaster || m_elementalCooldown == 0s || m_Tick <= m_LastElementalTime + m_elementalCooldown)
@@ -547,7 +543,7 @@ auto CAutomatonController::TryElemental(const CurrentManeuvers& maneuvers) -> bo
             std::make_pair(SpellID::Thunder, PTarget->getMod(Mod::THUNDER_RES_RANK)),
             std::make_pair(SpellID::Water, PTarget->getMod(Mod::WATER_RES_RANK)),
         };
-        std::stable_sort(reslist.begin(), reslist.end(), resistanceComparator);
+        automatoncontrollerresistanceorder::Sort(reslist);
         for (std::pair<SpellID, int16>& res : reslist)
         {
             castPriority.emplace_back(res.first);

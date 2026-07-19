@@ -53,6 +53,7 @@
 #include "map/ai/controllers/automaton_controller_healing_target_capacity.h"
 #include "map/ai/controllers/automaton_controller_cure_tier_capacity.h"
 #include "map/ai/controllers/automaton_controller_elemental_tier_capacity.h"
+#include "map/ai/controllers/automaton_controller_resistance_order_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -477,6 +478,17 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                           automatoncontrollerelementaltier::Select(600, 200) == 3 &&
                                           automatoncontrollerelementaltier::Select(1000, 155) == 3 &&
                                           automatoncontrollerelementaltier::Select(601, 156) == 4;
+    auto automatonResistances = std::vector<std::pair<int, int16>>{
+        { 1, 2 },
+        { 2, -1 },
+        { 3, 2 },
+        { 4, 0 },
+    };
+    automatoncontrollerresistanceorder::Sort(automatonResistances);
+    const bool automatonResistanceOrderOK = automatonResistances[0].first == 2 &&
+                                             automatonResistances[1].first == 4 &&
+                                             automatonResistances[2].first == 1 &&
+                                             automatonResistances[3].first == 3;
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
                                  petcontrollerfollowpath::ShouldRecalculate(true, 2.01f) &&
                                  !petcontrollerfollowpath::ShouldRecalculate(true, 2.0f) &&
@@ -507,9 +519,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && petHealingOK && petBuffTickOK && petMasterLossOK && petImmobileOK && petHealingRoamOK && petSpecialHealingRoamOK && petStateChangeRoamOK && petAbilityOK && petSkillOK && automatonStandBackOK && automatonCooldownOK && automatonFrameCooldownOK && automatonManeuversOK && automatonMasterLossOK && automatonMoveOK && automatonActionGateOK && automatonShieldBashGateOK && automatonSpellGateOK && automatonHealingThresholdOK && automatonHealingTargetOK && automatonCureTierOK && automatonElementalTierOK && petFollowPathOK && petPathFallbackOK && petFollowDistanceOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && petHealingOK && petBuffTickOK && petMasterLossOK && petImmobileOK && petHealingRoamOK && petSpecialHealingRoamOK && petStateChangeRoamOK && petAbilityOK && petSkillOK && automatonStandBackOK && automatonCooldownOK && automatonFrameCooldownOK && automatonManeuversOK && automatonMasterLossOK && automatonMoveOK && automatonActionGateOK && automatonShieldBashGateOK && automatonSpellGateOK && automatonHealingThresholdOK && automatonHealingTargetOK && automatonCureTierOK && automatonElementalTierOK && automatonResistanceOrderOK && petFollowPathOK && petPathFallbackOK && petFollowDistanceOK && hideOK && lockOK;
 }
