@@ -477,6 +477,35 @@ describe('Garrison boss spawning', function()
     end)
 end)
 
+describe('Garrison mob aggro', function()
+    it('assigns reciprocal enmity between each spawned mob and ally', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local original = { state = zoneData.state, players = zoneData.players, isRunning = zoneData.isRunning, spawnSchedule = zoneData.spawnSchedule, waveIndex = zoneData.waveIndex, groupIndex = zoneData.groupIndex, mobs = zoneData.mobs, npcs = zoneData.npcs }
+        local calls = {}
+        local mob = { addEnmity = function(_, target) table.insert(calls, target) end }
+        local ally = { addEnmity = function(_, target) table.insert(calls, target) end }
+        local zone = { getID = function() return zoneID end, queryEntitiesByName = function() return { { getID = function() return 100 end } } end }
+        local npc = { getZone = function() return zone end, getZoneID = function() return zoneID end }
+        local originalSpawnMob = xi.garrison.spawnMob
+
+        stub('GetMobByID', function(id)
+            if id == 92 then return mob end
+            if id == 200 then return ally end
+        end)
+        zoneData.players, zoneData.isRunning = {}, false
+        zoneData.spawnSchedule, zoneData.waveIndex, zoneData.groupIndex = { { 1 } }, 1, 1
+        zoneData.mobs, zoneData.npcs, zoneData.state = {}, { 200 }, xi.garrison.state.SPAWN_MOBS
+        xi.garrison.spawnMob = function() end
+        xi.garrison.tick(npc)
+
+        assert(#calls == 2 and calls[1] == ally and calls[2] == mob)
+
+        xi.garrison.spawnMob = originalSpawnMob
+        for key, value in pairs(original) do zoneData[key] = value end
+    end)
+end)
+
 describe('Garrison reward transition', function()
     it('grants loot and Gil before ending the event', function()
         local zoneID = xi.zone.WEST_RONFAURE
