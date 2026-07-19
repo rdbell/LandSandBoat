@@ -80,6 +80,7 @@
 #include "mob_controller_cast_stop_cooldown_capacity.h"
 #include "mob_controller_reset_capacity.h"
 #include "mob_controller_roam_reset_facing_capacity.h"
+#include "mob_controller_worm_emergence_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1398,7 +1399,9 @@ void CMobController::FollowRoamPath()
             m_LastActionTime            = m_Tick - std::chrono::milliseconds(xirand::GetRandomNumber(roamRandomness));
 
             // i'm a worm pop back up
-            if (PMob->m_roamFlags & ROAMFLAG_WORM && PMob->PAI->IsUntargetable())
+            if (mobcontrollerwormemergence::ShouldEmerge(
+                    (PMob->m_roamFlags & ROAMFLAG_WORM) != 0,
+                    PMob->PAI->IsUntargetable()))
             {
                 // send a final position update before coming out of the ground to avoid a slight movement as it emerges
                 PMob->loc.zone->UpdateEntityPacket(PMob, ENTITY_UPDATE, UPDATE_POS);
