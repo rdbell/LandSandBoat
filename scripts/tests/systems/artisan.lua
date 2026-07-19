@@ -60,3 +60,22 @@ describe('Artisan Moogle sack expansion', function()
         assert(event[1] == 1 and event[4] == 36 and event[7] == 2 and event[8] == 0)
     end)
 end)
+
+describe('Artisan Moogle scroll finish', function()
+    it('grants the daily scroll and records the claim timestamp', function()
+        local nextScroll = nil
+        local given = nil
+        local player = {
+            getCharVar = function() return 0 end,
+            setCharVar = function(_, name, value) nextScroll = { name, value } end,
+        }
+        local oldGiveItem = npcUtil.giveItem
+        npcUtil.giveItem = function(_, item) given = item; return true end
+
+        xi.artisan.moogleOnFinish(player, 544, 99, {})
+
+        npcUtil.giveItem = oldGiveItem
+        assert(given == xi.item.SCROLL_OF_INSTANT_WARP)
+        assert(nextScroll[1] == '[artisan]nextScroll' and nextScroll[2] > 0)
+    end)
+end)
