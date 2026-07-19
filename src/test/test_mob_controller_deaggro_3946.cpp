@@ -26,6 +26,7 @@
 #include "map/ai/controllers/mob_controller_dead_master_despawn_capacity.h"
 #include "map/ai/controllers/mob_controller_worm_roam_action_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_path_result_capacity.h"
+#include "map/ai/controllers/mob_controller_roam_script_cadence_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -681,6 +682,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      mobcontrollerroampathresult::Resolve(false, true) == mobcontrollerroampathresult::Result::RecordAction &&
                                      mobcontrollerroampathresult::Resolve(true, false) == mobcontrollerroampathresult::Result::Follow &&
                                      mobcontrollerroampathresult::Resolve(true, true) == mobcontrollerroampathresult::Result::Conceal;
+    const auto roamScriptLast = base + std::chrono::seconds(10);
+    const bool mobRoamScriptCadenceOK = !mobcontrollerroamscriptcadence::ShouldRun(roamScriptLast + std::chrono::seconds(3) - std::chrono::nanoseconds(1), roamScriptLast) &&
+                                        mobcontrollerroamscriptcadence::ShouldRun(roamScriptLast + std::chrono::seconds(3), roamScriptLast) &&
+                                        mobcontrollerroamscriptcadence::ShouldRun(roamScriptLast + std::chrono::seconds(3) + std::chrono::nanoseconds(1), roamScriptLast);
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1182,6 +1187,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobRoamPathResultOK)
     {
         std::cerr << "mob roam-path result self-test failed\n";
+        return false;
+    }
+    if (!mobRoamScriptCadenceOK)
+    {
+        std::cerr << "mob roam-script cadence self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)

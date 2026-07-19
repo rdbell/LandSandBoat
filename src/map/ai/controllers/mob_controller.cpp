@@ -45,6 +45,7 @@
 #include "mob_controller_dead_master_despawn_capacity.h"
 #include "mob_controller_worm_roam_action_capacity.h"
 #include "mob_controller_roam_path_result_capacity.h"
+#include "mob_controller_roam_script_cadence_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1290,7 +1291,7 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
         }
     }
 
-    if (m_Tick >= m_LastRoamScript + 3s)
+    if (mobcontrollerroamscriptcadence::ShouldRun(m_Tick, m_LastRoamScript))
     {
         PMob->PAI->EventHandler.triggerListener("ROAM_TICK", PMob);
         luautils::OnMobRoam(PMob);
