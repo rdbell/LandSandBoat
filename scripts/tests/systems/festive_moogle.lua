@@ -97,4 +97,22 @@ describe('Festive Moogle pell trade', function()
         assert(item.id == xi.item.RIDILL and item.quantity == 1)
         assert(confirmed)
     end)
+
+    it('gives the selected currency reward and confirms the trade', function()
+        local conquestPoints = 0
+        local message = nil
+        local confirmed = false
+        local player = {
+            getZoneID = function() return xi.zone.PORT_BASTOK end,
+            addCP = function(_, amount) conquestPoints = amount end,
+            messageSpecial = function(_, ...) message = { ... } end,
+            confirmTrade = function() confirmed = true end,
+        }
+
+        xi.festiveMoogle.onEventFinish(player, 439, 3, {})
+
+        assert(conquestPoints == 50000)
+        assert(message[1] == 8168 and message[2] == 0 and message[3] == 50000)
+        assert(confirmed)
+    end)
 end)
