@@ -55,6 +55,7 @@
 #include "automaton_controller_stormwaker_ice_elemental_priority_capacity.h"
 #include "automaton_controller_stormwaker_elemental_fallback_capacity.h"
 #include "automaton_controller_combat_party_heal_target_capacity.h"
+#include "automaton_controller_noncombat_party_heal_target_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -491,12 +492,13 @@ auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
         {
             static_cast<CCharEntity*>(PAutomaton->PMaster)->ForPartyWithTrusts([&](CBattleEntity* PMember)
             {
-                if (PMember->id != PAutomaton->PMaster->id && distance(PAutomaton->loc.p, PAutomaton->PMaster->loc.p) < 20)
+                if (automatoncontrollernoncombatpartyhealtarget::CanSelectTarget(
+                        PMember->id == PAutomaton->PMaster->id,
+                        PMember->GetHPP(),
+                        threshold,
+                        distance(PAutomaton->loc.p, PAutomaton->PMaster->loc.p)))
                 {
-                    if (PMember->GetHPP() <= threshold)
-                    {
-                        PCastTarget = PMember;
-                    }
+                    PCastTarget = PMember;
                 }
             });
         }

@@ -76,6 +76,7 @@
 #include "map/ai/controllers/automaton_controller_stormwaker_ice_elemental_priority_capacity.h"
 #include "map/ai/controllers/automaton_controller_stormwaker_elemental_fallback_capacity.h"
 #include "map/ai/controllers/automaton_controller_combat_party_heal_target_capacity.h"
+#include "map/ai/controllers/automaton_controller_noncombat_party_heal_target_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -650,6 +651,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonCombatPartyHealTargetOK)
     {
         std::cerr << "automaton combat party heal-target self-test failed\n";
+        return false;
+    }
+    const bool automatonNonCombatPartyHealTargetOK = automatoncontrollernoncombatpartyhealtarget::CanSelectTarget(false, 50, 50, 19.9f) &&
+                                                     !automatoncontrollernoncombatpartyhealtarget::CanSelectTarget(true, 50, 50, 19.9f) &&
+                                                     !automatoncontrollernoncombatpartyhealtarget::CanSelectTarget(false, 51, 50, 19.9f) &&
+                                                     !automatoncontrollernoncombatpartyhealtarget::CanSelectTarget(false, 50, 50, 20.0f);
+    if (!automatonNonCombatPartyHealTargetOK)
+    {
+        std::cerr << "automaton non-combat party heal-target self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
