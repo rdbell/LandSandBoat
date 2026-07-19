@@ -30,6 +30,7 @@
 #include "automaton_controller_spell_gate_capacity.h"
 #include "automaton_controller_healing_threshold_capacity.h"
 #include "automaton_controller_healing_target_capacity.h"
+#include "automaton_controller_cure_tier_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -472,29 +473,40 @@ auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
     if (PCastTarget)
     {
         auto missinghp = PCastTarget->GetMaxHP() - PCastTarget->health.hp;
-        if (missinghp > 850 && Cast(PCastTarget->targid, SpellID::Cure_VI))
+        switch (automatoncontrollercuretier::Select(missinghp))
         {
-            return true;
-        }
-        else if (missinghp > 600 && Cast(PCastTarget->targid, SpellID::Cure_V))
-        {
-            return true;
-        }
-        else if (missinghp > 350 && Cast(PCastTarget->targid, SpellID::Cure_IV))
-        {
-            return true;
-        }
-        else if (missinghp > 190 && Cast(PCastTarget->targid, SpellID::Cure_III))
-        {
-            return true;
-        }
-        else if (missinghp > 120 && Cast(PCastTarget->targid, SpellID::Cure_II))
-        {
-            return true;
-        }
-        else if (Cast(PCastTarget->targid, SpellID::Cure))
-        {
-            return true;
+            case automatoncontrollercuretier::Tier::VI:
+                if (Cast(PCastTarget->targid, SpellID::Cure_VI))
+                {
+                    return true;
+                }
+                [[fallthrough]];
+            case automatoncontrollercuretier::Tier::V:
+                if (Cast(PCastTarget->targid, SpellID::Cure_V))
+                {
+                    return true;
+                }
+                [[fallthrough]];
+            case automatoncontrollercuretier::Tier::IV:
+                if (Cast(PCastTarget->targid, SpellID::Cure_IV))
+                {
+                    return true;
+                }
+                [[fallthrough]];
+            case automatoncontrollercuretier::Tier::III:
+                if (Cast(PCastTarget->targid, SpellID::Cure_III))
+                {
+                    return true;
+                }
+                [[fallthrough]];
+            case automatoncontrollercuretier::Tier::II:
+                if (Cast(PCastTarget->targid, SpellID::Cure_II))
+                {
+                    return true;
+                }
+                [[fallthrough]];
+            case automatoncontrollercuretier::Tier::I:
+                return Cast(PCastTarget->targid, SpellID::Cure);
         }
     }
 
