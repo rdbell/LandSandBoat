@@ -25,10 +25,14 @@ xi.znm.UpdateSanrakusMobs = function()
     SetServerVariable('[ZNM][Sanraku]Trades', math.random(0, 250))
 end
 
+xi.znm.shouldRotateSanrakuTrades = function(currentTrades)
+    return currentTrades >= 500
+end
+
 xi.znm.serverPlateTrades = function()
     local currentTrades = GetServerVariable('[ZNM][Sanraku]Trades')
 
-    if currentTrades >= 500 then
+    if xi.znm.shouldRotateSanrakuTrades(currentTrades) then
         xi.znm.UpdateSanrakusMobs()
     else
         SetServerVariable('[ZNM][Sanraku]Trades', currentTrades + 1)
