@@ -178,6 +178,32 @@ describe('Garrison Gil payout', function()
     end)
 end)
 
+describe('Garrison loot rolls', function()
+    it('rolls once per player and deposits every reward into the first player pool', function()
+        local originalSelect = utils.selectFromLootGroups
+        local lootGroup = xi.garrison.loot[20]
+        local originalQuantity = lootGroup.quantity
+        local rewards = {}
+        local first = {
+            getName = function() return 'first' end,
+            addTreasure = function(_, itemID) table.insert(rewards, itemID) end,
+        }
+        local second = { getName = function() return 'second' end }
+
+        utils.selectFromLootGroups = function(actor, lootTable)
+            assert(actor == first and lootTable[1] == lootGroup)
+            assert(lootGroup.quantity == 2)
+            return { { itemId = 111 }, { itemId = 222 } }
+        end
+        xi.garrison.handleLootRolls(20, { first, second })
+
+        assert(#rewards == 2 and rewards[1] == 111 and rewards[2] == 222)
+
+        utils.selectFromLootGroups = originalSelect
+        lootGroup.quantity = originalQuantity
+    end)
+end)
+
 describe('Garrison spawn-NPC state transition', function()
     it('enters battle only when ally spawning succeeds', function()
         local zoneID = xi.zone.WEST_RONFAURE
