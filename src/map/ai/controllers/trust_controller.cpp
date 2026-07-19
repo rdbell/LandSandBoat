@@ -49,6 +49,7 @@
 #include "trust_controller_ranged_attack_capacity.h"
 #include "trust_controller_reposition_capacity.h"
 #include "trust_controller_roam_formation_capacity.h"
+#include "trust_controller_roam_movement_dispatch_capacity.h"
 #include "trust_controller_tick_capacity.h"
 #include "trust_controller_target_sync_capacity.h"
 
@@ -409,37 +410,38 @@ auto CTrustController::DoRoamTick(timer::time_point tick) -> Task<void>
 
     const auto formationPlan = trustcontrollerroamformation::Resolve(
         currentPartyPos, currentDistance, POwner->PAI->PathFind->IsFollowingPath());
+    bool pathFound = false;
     switch (formationPlan.action)
     {
         case trustcontrollerroamformation::Action::Declump:
-            if (PFollowTarget && POwner->PAI->PathFind->PathAround(PFollowTarget->loc.p, formationPlan.targetDistance + 0.5f, PATHFLAG_RUN | PATHFLAG_WALLHACK))
-            {
-                POwner->PAI->PathFind->FollowPath(m_Tick);
-            }
-            break;
-        case trustcontrollerroamformation::Action::Warp:
-            POwner->PAI->PathFind->WarpTo(PFollowTarget->loc.p);
+            pathFound = PFollowTarget && POwner->PAI->PathFind->PathAround(PFollowTarget->loc.p, formationPlan.targetDistance + 0.5f, PATHFLAG_RUN | PATHFLAG_WALLHACK);
             break;
         case trustcontrollerroamformation::Action::Path:
-            if (POwner->PAI->PathFind->PathAround(PFollowTarget->loc.p, formationPlan.targetDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK))
-            {
-                POwner->PAI->PathFind->FollowPath(m_Tick);
-            }
-            else if (POwner->GetSpeed() > 0)
-            {
-                POwner->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
-            }
+            pathFound = POwner->PAI->PathFind->PathAround(PFollowTarget->loc.p, formationPlan.targetDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK);
             break;
         case trustcontrollerroamformation::Action::Step:
-            if (POwner->GetSpeed() > 0)
-            {
-                POwner->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
-            }
-            break;
+        case trustcontrollerroamformation::Action::Warp:
         case trustcontrollerroamformation::Action::Clear:
+        case trustcontrollerroamformation::Action::None:
+            break;
+    }
+
+    switch (trustcontrollerroammovementdispatch::Resolve(
+        formationPlan.action, pathFound, [&]() { return POwner->GetSpeed() > 0; }))
+    {
+        case trustcontrollerroammovementdispatch::Action::Warp:
+            POwner->PAI->PathFind->WarpTo(PFollowTarget->loc.p);
+            break;
+        case trustcontrollerroammovementdispatch::Action::Follow:
+            POwner->PAI->PathFind->FollowPath(m_Tick);
+            break;
+        case trustcontrollerroammovementdispatch::Action::Step:
+            POwner->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
+            break;
+        case trustcontrollerroammovementdispatch::Action::Clear:
             POwner->PAI->PathFind->Clear();
             break;
-        case trustcontrollerroamformation::Action::None:
+        case trustcontrollerroammovementdispatch::Action::Hold:
             break;
     }
 

@@ -134,6 +134,7 @@
 #include "map/ai/controllers/trust_controller_target_sync_capacity.h"
 #include "map/ai/controllers/trust_controller_engage_capacity.h"
 #include "map/ai/controllers/trust_controller_roam_formation_capacity.h"
+#include "map/ai/controllers/trust_controller_roam_movement_dispatch_capacity.h"
 #include "map/ai/controllers/trust_controller_recovery_capacity.h"
 #include "map/ai/controllers/trust_controller_ranged_attack_capacity.h"
 #include "map/ai/controllers/trust_controller_cast_coordination_capacity.h"
@@ -818,6 +819,29 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                       firstPath.action == Action::Path && laterPath.action == Action::Path &&
                                       firstStep.action == Action::Step && warpThreshold.action == Action::Step && laterWarp.action == Action::Warp &&
                                       firstClear.action == Action::Clear && laterNone.action == Action::None;
+    bool trustRoamDispatchSpeedChecked = false;
+    const bool trustRoamDispatchOK =
+        trustcontrollerroammovementdispatch::Resolve(Action::Declump, true, [&]() { trustRoamDispatchSpeedChecked = true; return true; }) == trustcontrollerroammovementdispatch::Action::Follow &&
+        !trustRoamDispatchSpeedChecked &&
+        trustcontrollerroammovementdispatch::Resolve(Action::Declump, false, [&]() { trustRoamDispatchSpeedChecked = true; return true; }) == trustcontrollerroammovementdispatch::Action::Hold &&
+        !trustRoamDispatchSpeedChecked &&
+        trustcontrollerroammovementdispatch::Resolve(Action::Path, true, [&]() { trustRoamDispatchSpeedChecked = true; return true; }) == trustcontrollerroammovementdispatch::Action::Follow &&
+        !trustRoamDispatchSpeedChecked &&
+        trustcontrollerroammovementdispatch::Resolve(Action::Path, false, []() { return true; }) == trustcontrollerroammovementdispatch::Action::Step &&
+        trustcontrollerroammovementdispatch::Resolve(Action::Path, false, []() { return false; }) == trustcontrollerroammovementdispatch::Action::Hold &&
+        trustcontrollerroammovementdispatch::Resolve(Action::Step, false, []() { return true; }) == trustcontrollerroammovementdispatch::Action::Step &&
+        trustcontrollerroammovementdispatch::Resolve(Action::Step, false, []() { return false; }) == trustcontrollerroammovementdispatch::Action::Hold &&
+        trustcontrollerroammovementdispatch::Resolve(Action::Warp, false, [&]() { trustRoamDispatchSpeedChecked = true; return true; }) == trustcontrollerroammovementdispatch::Action::Warp &&
+        !trustRoamDispatchSpeedChecked &&
+        trustcontrollerroammovementdispatch::Resolve(Action::Clear, false, [&]() { trustRoamDispatchSpeedChecked = true; return true; }) == trustcontrollerroammovementdispatch::Action::Clear &&
+        !trustRoamDispatchSpeedChecked &&
+        trustcontrollerroammovementdispatch::Resolve(Action::None, false, [&]() { trustRoamDispatchSpeedChecked = true; return true; }) == trustcontrollerroammovementdispatch::Action::Hold &&
+        !trustRoamDispatchSpeedChecked;
+    if (!trustRoamDispatchOK)
+    {
+        std::cerr << "trust roam movement dispatch self-test failed\n";
+        return false;
+    }
     const bool trustRecoveryOK = trustcontrollerrecovery::Resolve(true, true, std::chrono::seconds(16), std::chrono::seconds(16), std::chrono::seconds(16), 0).recover &&
                                  trustcontrollerrecovery::Resolve(true, true, std::chrono::seconds(16), std::chrono::seconds(16), std::chrono::seconds(16), 0).nextHealingTick == 1 &&
                                  !trustcontrollerrecovery::Resolve(true, true, std::chrono::seconds(15), std::chrono::seconds(16), std::chrono::seconds(16), 0).recover &&
