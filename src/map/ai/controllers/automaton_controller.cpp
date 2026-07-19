@@ -47,6 +47,7 @@
 #include "automaton_controller_mob_skill_admission_capacity.h"
 #include "automaton_controller_attachment_check_gate_capacity.h"
 #include "automaton_controller_tp_move_gate_capacity.h"
+#include "automaton_controller_disengage_stand_back_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -72,7 +73,7 @@ CAutomatonController::CAutomatonController(CAutomatonEntity* PPet)
 , PAutomaton(PPet)
 {
     setCooldowns();
-    if (shouldStandBack())
+    if (automatoncontrollerdisengagestandback::ShouldRestoreStandBackOnDisengage(shouldStandBack()))
     {
         PAutomaton->m_Behavior |= BEHAVIOR_STANDBACK;
     }
