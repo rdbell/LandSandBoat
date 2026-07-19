@@ -46,6 +46,7 @@
 #include "automaton_controller_cast_admission_capacity.h"
 #include "automaton_controller_mob_skill_admission_capacity.h"
 #include "automaton_controller_attachment_check_gate_capacity.h"
+#include "automaton_controller_tp_move_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1420,7 +1421,7 @@ auto CAutomatonController::TryEnhance() -> bool
 
 auto CAutomatonController::TryTPMove() -> bool
 {
-    if (PAutomaton->health.tp >= 1000)
+    if (automatoncontrollertpmovegate::CanTryTPMove(PAutomaton->health.tp))
     {
         const auto& FrameSkills = battleutils::GetMobSkillList(PAutomaton->m_MobSkillList);
 

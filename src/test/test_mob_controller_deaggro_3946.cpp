@@ -67,6 +67,7 @@
 #include "map/ai/controllers/automaton_controller_cast_admission_capacity.h"
 #include "map/ai/controllers/automaton_controller_mob_skill_admission_capacity.h"
 #include "map/ai/controllers/automaton_controller_attachment_check_gate_capacity.h"
+#include "map/ai/controllers/automaton_controller_tp_move_gate_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -564,6 +565,13 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonAttachmentCheckGateOK)
     {
         std::cerr << "automaton attachment-check gate self-test failed\n";
+        return false;
+    }
+    const bool automatonTPMoveGateOK = !automatoncontrollertpmovegate::CanTryTPMove(999) &&
+                                       automatoncontrollertpmovegate::CanTryTPMove(1000);
+    if (!automatonTPMoveGateOK)
+    {
+        std::cerr << "automaton TP-move gate self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
