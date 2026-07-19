@@ -59,6 +59,7 @@
 #include "mob_controller_face_target_capacity.h"
 #include "mob_controller_scripted_path_capacity.h"
 #include "mob_controller_attack_range_source_capacity.h"
+#include "mob_controller_share_position_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -898,13 +899,16 @@ void CMobController::Move()
     if (PMob->getMobMod(MOBMOD_SHARE_POS) > 0)
     {
         const auto* posShare = static_cast<CMobEntity*>(PMob->GetEntity(PMob->getMobMod(MOBMOD_SHARE_POS) + PMob->targid, TYPE_MOB));
-        if (posShare)
+        switch (mobcontrollershareposition::Resolve(true, posShare != nullptr))
         {
-            PMob->loc = posShare->loc;
-        }
-        else
-        {
-            ShowWarning("CMobController::Move() failed to get mob for MOBMOD_SHARE_POS");
+            case mobcontrollershareposition::Action::Copy:
+                PMob->loc = posShare->loc;
+                break;
+            case mobcontrollershareposition::Action::Warn:
+                ShowWarning("CMobController::Move() failed to get mob for MOBMOD_SHARE_POS");
+                break;
+            case mobcontrollershareposition::Action::None:
+                break;
         }
     }
     else if (PTarget)
