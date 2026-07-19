@@ -66,6 +66,7 @@
 #include "mob_controller_chase_path_refresh_capacity.h"
 #include "mob_controller_chase_path_start_capacity.h"
 #include "mob_controller_overlap_reposition_capacity.h"
+#include "mob_controller_overlap_reposition_point_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -995,15 +996,7 @@ void CMobController::Move()
                                         PSpawnedMob.second->PAI->PathFind->IsFollowingPath(),
                                         distance(PSpawnedMob.second->loc.p, PMob->loc.p) < 1.0f))
                                 {
-                                    auto angle = worldAngle(PMob->loc.p, PTarget->loc.p) + 64;
-
-                                    position_t new_pos{
-                                        PMob->loc.p.x - (cosf(rotationToRadian(angle)) * 1.5f),
-                                        PTarget->loc.p.y,
-                                        PMob->loc.p.z + (sinf(rotationToRadian(angle)) * 1.5f),
-                                        0,
-                                        0,
-                                    };
+                                    const auto new_pos = mobcontrolleroverlaprepositionpoint::Destination(PMob->loc.p, PTarget->loc.p);
 
                                     if (PMob->PAI->PathFind->ValidPosition(new_pos))
                                     {
