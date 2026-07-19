@@ -397,34 +397,34 @@ end
 -----------------------------------
 
 xi.znm.ryo.onEventUpdate = function(player, csid, option, npc)
-    if csid == 914 then -- Get approximate value of traded soulplate
+    local outcome = xi.znm.ryo.eventUpdateOutcome(csid, option)
+
+    if outcome == 'plate_value' then -- Get approximate value of traded soulplate
         local zeniValue = xi.znm.ryo.tradedPlateValue(player)
 
         xi.znm.ryo.setTradedPlateValue(player, 0)
         player:updateEvent(zeniValue)
-    elseif csid == 913 then
-        if option == 200 then -- 'Sanraku's subject of interest'
-            local param = xi.znm.getSanrakusInterest()
+    elseif outcome == 'interest' then -- 'Sanraku's subject of interest'
+        local param = xi.znm.getSanrakusInterest()
 
-            player:updateEvent(param, 0)
-        elseif option == 201 then -- 'Sanraku's recommended fauna'
-            local param = xi.znm.getSanrakusFauna()
+        player:updateEvent(param, 0)
+    elseif outcome == 'fauna' then -- 'Sanraku's recommended fauna'
+        local param = xi.znm.getSanrakusFauna()
 
-            player:updateEvent(param, 0)
-        elseif option == 300 then -- 'My zeni balance'
-            player:updateEvent(player:getCurrency('zeni_point'), 0)
-        elseif option == 401 or option == 402 then
-            local nextZeniStatus = xi.znm.ryo.nextZeniStatus(option, player:getVar('ZeniStatus'))
-            if nextZeniStatus then
-                player:setVar('ZeniStatus', nextZeniStatus)
-            else
-                player:updateEvent(0, 0)
-            end
-        elseif option == 404 then
-            player:updateEvent(xi.znm.ryo.menuParam(player:getVar('ZeniStatus'), player:getCurrency('zeni_point')))
+        player:updateEvent(param, 0)
+    elseif outcome == 'zeni_balance' then -- 'My zeni balance'
+        player:updateEvent(player:getCurrency('zeni_point'), 0)
+    elseif outcome == 'zeni_status' then
+        local nextZeniStatus = xi.znm.ryo.nextZeniStatus(option, player:getVar('ZeniStatus'))
+        if nextZeniStatus then
+            player:setVar('ZeniStatus', nextZeniStatus)
         else
             player:updateEvent(0, 0)
         end
+    elseif outcome == 'menu' then
+        player:updateEvent(xi.znm.ryo.menuParam(player:getVar('ZeniStatus'), player:getCurrency('zeni_point')))
+    elseif outcome == 'default' then
+        player:updateEvent(0, 0)
     end
 end
 
@@ -442,6 +442,26 @@ end
 -----------------------------------
 -- Ryo General Helpers
 -----------------------------------
+
+xi.znm.ryo.eventUpdateOutcome = function(csid, option)
+    if csid == 914 then
+        return 'plate_value'
+    elseif csid ~= 913 then
+        return nil
+    elseif option == 200 then
+        return 'interest'
+    elseif option == 201 then
+        return 'fauna'
+    elseif option == 300 then
+        return 'zeni_balance'
+    elseif option == 401 or option == 402 then
+        return 'zeni_status'
+    elseif option == 404 then
+        return 'menu'
+    end
+
+    return 'default'
+end
 
 xi.znm.ryo.menuParam = function(zeniStatus, zeni)
     local menuOptions = 175
