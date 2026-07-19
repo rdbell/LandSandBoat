@@ -944,17 +944,21 @@ end
 
 xi.znm.getPopPrice = function(mob, znmTier)
     local popCost = GetServerVariable('[ZNM][' .. mob .. ']PopCost')
+    local plan = xi.znm.popPricePlan(popCost, xi.znm.ZNM_POP_COSTS[znmTier].minPrice)
 
-    -- Check to make sure the pop prices have a set value
-    if
-        popCost == nil or
-        popCost == 0
-    then
-        popCost = xi.znm.ZNM_POP_COSTS[znmTier].minPrice
-        SetServerVariable('[ZNM][' .. mob .. ']PopCost', popCost)
+    if plan.initialize then
+        SetServerVariable('[ZNM][' .. mob .. ']PopCost', plan.price)
     end
 
-    return popCost
+    return plan.price
+end
+
+xi.znm.popPricePlan = function(popCost, minPrice)
+    if popCost == nil or popCost == 0 then
+        return { price = minPrice, initialize = true }
+    end
+
+    return { price = popCost }
 end
 
 -- pop prices update per purchase at the mob level

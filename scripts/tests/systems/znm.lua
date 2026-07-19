@@ -241,3 +241,16 @@ describe('ZNM Ryo event finish', function()
         assert(not withoutItem.clearReservedValue and withoutItem.cleanTrade)
     end)
 end)
+
+describe('ZNM pop price initialization', function()
+    it('initializes absent and zero prices but preserves positive prices', function()
+        local absent = xi.znm.popPricePlan(nil, 1000)
+        assert(absent.price == 1000 and absent.initialize)
+
+        local zero = xi.znm.popPricePlan(0, 1000)
+        assert(zero.price == 1000 and zero.initialize)
+
+        local existing = xi.znm.popPricePlan(1200, 1000)
+        assert(existing.price == 1200 and existing.initialize == nil)
+    end)
+end)
