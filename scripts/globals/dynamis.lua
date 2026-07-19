@@ -8,6 +8,27 @@ require('scripts/globals/npc_util')
 xi = xi or {}
 xi.dynamis = xi.dynamis or {}
 
+-- Returns the time-extension definition and its normalized mob group for mobId.
+-- TIME_EXTENSION entries allow either one mob ID or a group of replacement IDs.
+xi.dynamis.findTimeExtensionGroup = function(timeExtensionMobs, mobId)
+    if not timeExtensionMobs then
+        return nil, nil
+    end
+
+    for _, te in pairs(timeExtensionMobs) do
+        local group = type(te.mob) == 'number' and { te.mob } or te.mob
+        if group then
+            for _, groupMobId in pairs(group) do
+                if groupMobId == mobId then
+                    return te, group
+                end
+            end
+        end
+    end
+
+    return nil, nil
+end
+
 local entryInfo =
 {
     --[[
@@ -539,37 +560,9 @@ xi.dynamis.timeExtensionOnDeath = function(mob, player, optParams)
     local timeExtensionMobs = ID.mob.TIME_EXTENSION
 
     if timeExtensionMobs then
-        local found = false
-        local te    = nil
-        local group = {}
+        local te, group = xi.dynamis.findTimeExtensionGroup(timeExtensionMobs, mobId)
 
-        -- find this TE's group
-        for _, t in pairs(timeExtensionMobs) do
-            if type(t.mob) == 'number' then
-                group = { t.mob }
-            elseif type(t.mob) == 'table' then
-                group = { unpack(t.mob) }
-            end
-
-            for _, g in pairs(group) do
-                if g == mobId then
-                    found = true
-                    te    = t
-                    break
-                end
-            end
-
-            if found then
-                break
-            end
-        end
-
-        -- TODO: Refactor the above loops to not need the 'found' variable, and only use
-        -- non-nil te value.
-        if
-            found and
-            te
-        then
+        if te then
             -- award KI and extension to those who have not yet received it
             local effect = player:getStatusEffect(xi.effect.DYNAMIS)
             if effect and not player:hasKeyItem(te.ki) then
