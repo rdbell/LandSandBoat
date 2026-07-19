@@ -634,18 +634,32 @@ end
 -- onEventUpdate
 -----------------------------------
 
+xi.znm.sanraku.eventUpdateOutcome = function(csid, option)
+    if csid ~= 909 then
+        return nil
+    elseif option == 1 or option == 500 then
+        return 'islets_menu'
+    elseif option >= 300 and option <= 302 then
+        return 'islets_access'
+    elseif option >= 100 and option <= 130 then
+        return 'confirm_info'
+    elseif option >= 400 and option <= 440 then
+        return 'confirmed_info'
+    end
+end
+
 xi.znm.sanraku.onEventUpdate = function(player, csid, option, npc)
-    if csid == 909 then
-        if option == 1 or option == 500 then -- adding islets menu
-            local param = player:getVar('ZeniStatus') >= 3 and 1 or 0
-            player:updateEvent(param)
-        elseif option >= 300 and option <= 302 then -- 'Gaining access to islets'
-            xi.znm.sanraku.handleGainingAccessToIslets(player, option)
-        elseif option >= 100 and option <= 130 then -- Are you sure you want info on <ZNM_mob>?
-            xi.znm.sanraku.handleConfirmingDesiredZNMInfo(player, option)
-        elseif option >= 400 and option <= 440 then -- Yes, I want info on <ZNM_mob>
-            xi.znm.sanraku.handleConfirmedZNMInfo(player, option)
-        end
+    local outcome = xi.znm.sanraku.eventUpdateOutcome(csid, option)
+
+    if outcome == 'islets_menu' then
+        local param = player:getVar('ZeniStatus') >= 3 and 1 or 0
+        player:updateEvent(param)
+    elseif outcome == 'islets_access' then
+        xi.znm.sanraku.handleGainingAccessToIslets(player, option)
+    elseif outcome == 'confirm_info' then
+        xi.znm.sanraku.handleConfirmingDesiredZNMInfo(player, option)
+    elseif outcome == 'confirmed_info' then
+        xi.znm.sanraku.handleConfirmedZNMInfo(player, option)
     end
 end
 
