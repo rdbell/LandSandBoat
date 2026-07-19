@@ -83,6 +83,7 @@
 #include "automaton_controller_regen_candidate_capacity.h"
 #include "automaton_controller_enhancement_self_target_capacity.h"
 #include "automaton_controller_party_enhancement_threshold_capacity.h"
+#include "automaton_controller_tp_skill_selection_result_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1537,7 +1538,7 @@ auto CAutomatonController::TryTPMove() -> bool
         }
 
         // No WS was chosen (waiting on master's TP to skillchain probably)
-        if (currentManeuvers == -1)
+        if (!automatoncontrollertpskillselectionresult::HasSelectedTPSkill(currentManeuvers))
         {
             return false;
         }
