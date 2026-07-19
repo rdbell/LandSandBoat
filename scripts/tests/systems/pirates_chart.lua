@@ -150,6 +150,26 @@ describe("Pirates Chart item check", function()
     end)
 end)
 
+describe("Pirates Chart box trigger", function()
+    it('admits only the recorded chart spawner', function()
+        local partyRequested = false
+        local playerID = 9
+        local player = {
+            getID = function() return playerID end,
+            getParty = function() partyRequested = true end,
+        }
+        local npc = { getLocalVar = function() return 10 end }
+        stub('GetNPCByID', function() return nil end)
+
+        xi.piratesChart.barnacledBoxOnTrigger(player, npc)
+        assert(not partyRequested)
+
+        playerID = 10
+        xi.piratesChart.barnacledBoxOnTrigger(player, npc)
+        assert(partyRequested)
+    end)
+end)
+
 describe("Pirates Chart box spawn", function()
     it('spawns and arms the Barnacled Box after the final buddy dies', function()
         local calls = {}
