@@ -35,6 +35,19 @@ describe('Dynamis entry trigger actions', function()
     end)
 end)
 
+describe('Dynamis entry menu', function()
+    it('opens only after the strict wait boundary and otherwise reports days remaining', function()
+        local entry = xi.dynamis.entryMenuPlan(0, 86401, 24, 7)
+        assert(entry.openMenu and entry.sjobOption == 1)
+
+        local lockedAtBoundary = xi.dynamis.entryMenuPlan(0, 86400, 24, 6)
+        assert(lockedAtBoundary.showCooldown)
+
+        local cooldown = xi.dynamis.entryMenuPlan(0, 0, 24, 6)
+        assert(cooldown.showCooldown and cooldown.daysRemaining == 25)
+    end)
+end)
+
 describe('Dynamis time-extension groups', function()
     it('normalizes single and grouped extension mobs and rejects missing IDs', function()
         local single = { mob = 100, ki = 200, minutes = 10 }

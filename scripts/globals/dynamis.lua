@@ -469,6 +469,17 @@ xi.dynamis.entryTriggerActionPlan = function(unlockingDynamis, hasShroudedSandCu
     return {}
 end
 
+xi.dynamis.entryMenuPlan = function(dynaWaitxDay, realDay, waitHours, csBit)
+    if (dynaWaitxDay + waitHours * 60 * 60) < realDay then
+        return { openMenu = true, sjobOption = csBit > 6 and 1 or 0 }
+    end
+
+    return {
+        showCooldown = true,
+        daysRemaining = math.floor(((dynaWaitxDay + waitHours * 60 * 60) - realDay) / 3456),
+    }
+end
+
 xi.dynamis.entryNpcOnTrigger = function(player, npc)
     local zoneId        = player:getZoneID()
     local info          = entryInfo[zoneId]
@@ -532,14 +543,13 @@ xi.dynamis.entryNpcOnTrigger = function(player, npc)
         elseif action.openEntryMenu then
             local realDay      = GetSystemTime()
             local dynaWaitxDay = player:getCharVar('dynaWaitxDay')
-            local sjobOption   = info.csBit > 6 and 1 or 0
+            local menu         = xi.dynamis.entryMenuPlan(dynaWaitxDay, realDay, xi.settings.main.BETWEEN_2DYNA_WAIT_TIME, info.csBit)
 
-            if (dynaWaitxDay + xi.settings.main.BETWEEN_2DYNA_WAIT_TIME * 60 * 60) < realDay then
+            if menu.openMenu then
                 -- params: bit, cutscene option, Prismatic Hourglass KI, sJob option, junk, Shrouded Sand KI, Timeless Hourglass item ID, Perpetual Hourglass item ID
-                player:startEvent(info.csMenu, info.csBit, arg3(player, info.csBit), xi.ki.PRISMATIC_HOURGLASS, sjobOption, 0, xi.ki.VIAL_OF_SHROUDED_SAND, 4236, 4237)
+                player:startEvent(info.csMenu, info.csBit, arg3(player, info.csBit), xi.ki.PRISMATIC_HOURGLASS, menu.sjobOption, 0, xi.ki.VIAL_OF_SHROUDED_SAND, 4236, 4237)
             else
-                local dayRemaining = math.floor(((dynaWaitxDay + xi.settings.main.BETWEEN_2DYNA_WAIT_TIME * 60 * 60) - realDay) / 3456)
-                player:messageSpecial(ID.text.YOU_CANNOT_ENTER_DYNAMIS, dayRemaining, info.csBit)
+                player:messageSpecial(ID.text.YOU_CANNOT_ENTER_DYNAMIS, menu.daysRemaining, info.csBit)
             end
         end
     end
