@@ -25,6 +25,7 @@
 #include "pet_controller_healing_capacity.h"
 #include "pet_controller_healing_roam_capacity.h"
 #include "pet_controller_special_healing_roam_capacity.h"
+#include "pet_controller_state_change_roam_capacity.h"
 #include "pet_controller_follow_path_capacity.h"
 #include "pet_controller_follow_distance_capacity.h"
 #include "pet_controller_path_fallback_capacity.h"
@@ -102,7 +103,7 @@ auto CPetController::DoRoamTick(timer::time_point tick) -> Task<void>
     }
 
     // If pet cannot change state (for example because pet is asleep) then just return
-    if (!PPet->PAI->CanChangeState())
+    if (petcontrollerstatechangeroam::ShouldHold(PPet->PAI->CanChangeState()))
     {
         co_return;
     }
