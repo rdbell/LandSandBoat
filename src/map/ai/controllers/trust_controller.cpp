@@ -25,6 +25,7 @@
 #include "trust_controller_combat_declump_admission_capacity.h"
 #include "trust_controller_combat_movement_admission_capacity.h"
 #include "trust_controller_combat_movement_capacity.h"
+#include "trust_controller_combat_master_engagement_capacity.h"
 #include "trust_controller_combat_post_movement_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
@@ -160,7 +161,8 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
     CMobEntity*   PMob    = dynamic_cast<CMobEntity*>(PMaster->GetBattleTarget());
     PTarget               = POwner->GetBattleTarget();
 
-    if (!PMaster->PAI->IsEngaged())
+    const auto masterEngagementPlan = trustcontrollercombatmasterengagement::Resolve(PMaster->PAI->IsEngaged());
+    if (masterEngagementPlan.disengage)
     {
         PTrust->PAI->Internal_Disengage();
         m_LastTopEnmity = nullptr;
