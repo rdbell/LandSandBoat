@@ -484,3 +484,26 @@ describe('Garrison win transition', function()
         zoneData.state = originalState
     end)
 end)
+
+describe('Garrison battle transition', function()
+    it('moves to mob spawning when the next group is due', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local keys = { 'state', 'players', 'npcs', 'mobs', 'deadNPCCount', 'deadMobCount', 'despawnedMobCount', 'spawnSchedule', 'waveIndex', 'groupIndex', 'nextSpawnTime', 'endTime', 'bossSpawned', 'isRunning' }
+        local original = {}
+        for _, key in ipairs(keys) do original[key] = zoneData[key] end
+        local player = xi.test.world:spawnPlayer({ zone = zoneID })
+        local zone = { getID = function() return zoneID end }
+        local npc = { getZone = function() return zone end, getZoneID = function() return zoneID end }
+        local now = GetSystemTime()
+        zoneData.state = xi.garrison.state.BATTLE
+        zoneData.players, zoneData.npcs, zoneData.mobs = { player:getID() }, { 1 }, {}
+        zoneData.deadNPCCount, zoneData.deadMobCount, zoneData.despawnedMobCount = 0, 0, 0
+        zoneData.spawnSchedule, zoneData.waveIndex, zoneData.groupIndex = { { 2 } }, 1, 1
+        zoneData.nextSpawnTime, zoneData.endTime, zoneData.bossSpawned, zoneData.isRunning = now - 1, now + 60, false, false
+        xi.garrison.tick(npc)
+        assert(zoneData.state == xi.garrison.state.SPAWN_MOBS)
+        player:release()
+        for key, value in pairs(original) do zoneData[key] = value end
+    end)
+end)
