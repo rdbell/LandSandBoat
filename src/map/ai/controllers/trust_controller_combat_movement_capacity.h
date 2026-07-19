@@ -19,10 +19,15 @@ struct Plan
     float  desiredDistance;
 };
 
+constexpr auto CanRun(const bool canFollowPath, const bool hasSpeed) -> bool
+{
+    return canFollowPath && hasSpeed;
+}
+
 inline auto Resolve(bool canFollowPath, bool hasSpeed, int16_t movementDistance, float distanceToTarget,
                     float distanceToMaster, bool canAttack) -> Plan
 {
-    if (!canFollowPath || !hasSpeed)
+    if (!CanRun(canFollowPath, hasSpeed))
     {
         return {};
     }

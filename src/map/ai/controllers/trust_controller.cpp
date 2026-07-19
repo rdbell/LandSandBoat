@@ -208,7 +208,7 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
     {
         const bool canFollowPath = PTrust->PAI->CanFollowPath();
         const bool hasSpeed      = PTrust->GetSpeed() > 0;
-        if (canFollowPath && hasSpeed)
+        if (trustcontrollercombatmovement::CanRun(canFollowPath, hasSpeed))
         {
             float currentDistanceToTarget = distance(PTrust->loc.p, PTarget->loc.p);
             float currentDistanceToMaster = distance(PTrust->loc.p, PMaster->loc.p);

@@ -895,7 +895,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                        meleeCanAttack.action == trustcontrollercombatmovement::Action::Hold &&
                                        meleePath.action == trustcontrollercombatmovement::Action::MeleePath && meleePath.desiredDistance == 3.0f &&
                                        meleeStep.action == trustcontrollercombatmovement::Action::MeleeStep &&
-                                       rangedMovement.action == trustcontrollercombatmovement::Action::PathOut && rangedMovement.desiredDistance == 12.0f;
+                                       rangedMovement.action == trustcontrollercombatmovement::Action::PathOut && rangedMovement.desiredDistance == 12.0f &&
+                                       trustcontrollercombatmovement::CanRun(true, true) &&
+                                       !trustcontrollercombatmovement::CanRun(false, true) &&
+                                       !trustcontrollercombatmovement::CanRun(true, false) &&
+                                       !trustcontrollercombatmovement::CanRun(false, false);
     bool trustCombatAttackLookupCalled = false;
     const bool trustCombatAttackLookupOK = trustcontrollercombatattacklookup::Resolve(
                                                 0, []() { return true; }) &&
