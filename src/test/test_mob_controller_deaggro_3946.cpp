@@ -108,6 +108,7 @@
 #include "map/ai/controllers/automaton_controller_enfeeble_admission_capacity.h"
 #include "map/ai/controllers/automaton_controller_spell_admission_capacity.h"
 #include "map/ai/controllers/automaton_controller_erase_fallback_capacity.h"
+#include "map/ai/controllers/automaton_controller_status_removal_candidate_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -580,6 +581,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                            !automatoncontrollerspelladmission::CanUseSpell(100, 100, 2, 0x01);
     const bool automatonEraseFallbackOK = automatoncontrollererasefallback::ShouldSelectErase(true) &&
                                           !automatoncontrollererasefallback::ShouldSelectErase(false);
+    const auto automatonStatusRemovalCandidates = std::vector<uint16>{ 1, 3, 5 };
+    const bool automatonStatusRemovalCandidateOK = automatoncontrollerstatusremovalcandidate::CanMatchStatusRemoval(automatonStatusRemovalCandidates, uint16{ 3 }) &&
+                                                   !automatoncontrollerstatusremovalcandidate::CanMatchStatusRemoval(automatonStatusRemovalCandidates, uint16{ 4 }) &&
+                                                   !automatoncontrollerstatusremovalcandidate::CanMatchStatusRemoval(std::vector<uint16>{}, uint16{ 1 });
     const bool automatonEnhanceGateOK = automatoncontrollerenhancegate::CanEnhance(3001ms, 0ms, 3000ms, true) &&
                                        !automatoncontrollerenhancegate::CanEnhance(3000ms, 0ms, 3000ms, true) &&
                                        !automatoncontrollerenhancegate::CanEnhance(4000ms, 0ms, 3000ms, false) &&
@@ -961,6 +966,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonEraseFallbackOK)
     {
         std::cerr << "automaton Erase fallback self-test failed\n";
+        return false;
+    }
+    if (!automatonStatusRemovalCandidateOK)
+    {
+        std::cerr << "automaton status-removal candidate self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)

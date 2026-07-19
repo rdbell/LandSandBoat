@@ -87,6 +87,7 @@
 #include "automaton_controller_enfeeble_admission_capacity.h"
 #include "automaton_controller_spell_admission_capacity.h"
 #include "automaton_controller_erase_fallback_capacity.h"
+#include "automaton_controller_status_removal_candidate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1674,7 +1675,7 @@ Maybe<SpellID> FindNaSpell(CStatusEffect* PStatus)
     for (auto spell : naSpells)
     {
         const AutomatonSpell& PSpell = autoSpellList[spell];
-        if (std::find(PSpell.removes.begin(), PSpell.removes.end(), PStatus->GetStatusID()) != PSpell.removes.end())
+        if (automatoncontrollerstatusremovalcandidate::CanMatchStatusRemoval(PSpell.removes, PStatus->GetStatusID()))
         {
             return spell;
         }
