@@ -36,6 +36,7 @@
 #include "map/ai/controllers/mob_controller_owner_declaim_capacity.h"
 #include "map/ai/controllers/mob_controller_run_away_capacity.h"
 #include "map/ai/controllers/mob_controller_combat_action_gate_capacity.h"
+#include "map/ai/controllers/mob_controller_ranged_attack_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -786,6 +787,16 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobCombatActionGateOK)
     {
         std::cerr << "mob combat action gate self-test failed\n";
+        return false;
+    }
+    const bool mobRangedAttackAdmissionOK = mobcontrollerrangedattackadmission::CanAttempt(true, true, true, true) &&
+                                            !mobcontrollerrangedattackadmission::CanAttempt(false, true, true, true) &&
+                                            !mobcontrollerrangedattackadmission::CanAttempt(true, false, true, true) &&
+                                            !mobcontrollerrangedattackadmission::CanAttempt(true, true, false, true) &&
+                                            !mobcontrollerrangedattackadmission::CanAttempt(true, true, true, false);
+    if (!mobRangedAttackAdmissionOK)
+    {
+        std::cerr << "mob ranged attack admission self-test failed\n";
         return false;
     }
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&

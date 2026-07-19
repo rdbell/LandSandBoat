@@ -55,6 +55,7 @@
 #include "mob_controller_owner_declaim_capacity.h"
 #include "mob_controller_run_away_capacity.h"
 #include "mob_controller_combat_action_gate_capacity.h"
+#include "mob_controller_ranged_attack_admission_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -810,7 +811,11 @@ auto CMobController::DoCombatTick(timer::time_point tick) -> Task<void>
             co_return;
         }
 
-        if (IsRangedAttackEnabled() && currentDistance <= rangedAttackRange && m_Tick >= PMob->m_LastRangedAttackTime && PMob->PAI->CanChangeState())
+        if (mobcontrollerrangedattackadmission::CanAttempt(
+                IsRangedAttackEnabled(),
+                currentDistance <= rangedAttackRange,
+                m_Tick >= PMob->m_LastRangedAttackTime,
+                PMob->PAI->CanChangeState()))
         {
             if (PTarget != nullptr)
             {
