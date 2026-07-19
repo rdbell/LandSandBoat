@@ -64,6 +64,7 @@
 #include "mob_controller_movement_entry_capacity.h"
 #include "mob_controller_chase_movement_admission_capacity.h"
 #include "mob_controller_chase_path_refresh_capacity.h"
+#include "mob_controller_chase_path_start_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -958,16 +959,15 @@ void CMobController::Move()
                 }
                 else if (CanMoveForward(currentDistance))
                 {
-                    if (!PMob->PAI->PathFind->IsFollowingPath())
+                    if (mobcontrollerchasepathstart::ShouldStart(
+                            PMob->PAI->PathFind->IsFollowingPath(),
+                            currentDistance > attack_range))
                     {
                         // out of melee range, try to path towards
-                        if (currentDistance > attack_range)
-                        {
-                            auto projectedPosition = nearPosition(PTarget->loc.p, 0, rotationToRadian(worldAngle(PMob->loc.p, PTarget->loc.p)));
+                        auto projectedPosition = nearPosition(PTarget->loc.p, 0, rotationToRadian(worldAngle(PMob->loc.p, PTarget->loc.p)));
 
-                            // try to find path towards target
-                            PMob->PAI->PathFind->PathInRange(projectedPosition, closeDistance, PATHFLAG_WALLHACK | PATHFLAG_RUN);
-                        }
+                        // try to find path towards target
+                        PMob->PAI->PathFind->PathInRange(projectedPosition, closeDistance, PATHFLAG_WALLHACK | PATHFLAG_RUN);
                     }
                     else if (mobcontrollerchasepathrefresh::ShouldRefresh(
                                  isWithinDistance(PMob->PAI->PathFind->GetDestination(), PTarget->loc.p, 0.1f))) // This checks against the previous frames distance, and can false positive for where we want to be _now_

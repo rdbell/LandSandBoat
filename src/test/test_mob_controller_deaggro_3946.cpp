@@ -45,6 +45,7 @@
 #include "map/ai/controllers/mob_controller_movement_entry_capacity.h"
 #include "map/ai/controllers/mob_controller_chase_movement_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_chase_path_refresh_capacity.h"
+#include "map/ai/controllers/mob_controller_chase_path_start_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -875,6 +876,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobChasePathRefreshOK)
     {
         std::cerr << "mob chase-path refresh self-test failed\n";
+        return false;
+    }
+    const bool mobChasePathStartOK = mobcontrollerchasepathstart::ShouldStart(false, true) &&
+                                     !mobcontrollerchasepathstart::ShouldStart(true, true) &&
+                                     !mobcontrollerchasepathstart::ShouldStart(false, false);
+    if (!mobChasePathStartOK)
+    {
+        std::cerr << "mob chase-path start self-test failed\n";
         return false;
     }
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
