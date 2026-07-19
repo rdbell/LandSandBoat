@@ -287,6 +287,10 @@ xi.voidwalker.spawnPresentationPlan = function()
     return { status = xi.status.INVISIBLE, hideHP = true, hideName = true, untargetable = true }
 end
 
+xi.voidwalker.shouldHandleHealing = function(voidwalkerEnabled, abyssiteCount, hasVoidwalkerMobs)
+    return voidwalkerEnabled and abyssiteCount > 0 and hasVoidwalkerMobs
+end
+
 xi.voidwalker.shouldCapricornusUseRecoilDive = function(hasMightyStrikes, isBusy)
     return hasMightyStrikes and not isBusy
 end
@@ -700,11 +704,11 @@ xi.voidwalker.onHealing = function(player)
     local zoneTextTable = zones[zoneId].text
     local abyssites     = getCurrentKIsFromPlayer(player)
 
-    if
-        #abyssites == 0 or
-        not zones[zoneId].mob or
-        not zones[zoneId].mob.VOIDWALKER
-    then
+    if not xi.voidwalker.shouldHandleHealing(
+        true,
+        #abyssites,
+        zones[zoneId].mob and zones[zoneId].mob.VOIDWALKER
+    ) then
         return
     end
 
