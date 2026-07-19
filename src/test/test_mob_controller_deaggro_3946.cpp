@@ -19,6 +19,7 @@
 #include "map/ai/controllers/mob_controller_roam_engage_gate_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_owner_engage_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_despawn_capacity.h"
+#include "map/ai/controllers/mob_controller_roam_follow_leader_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -648,6 +649,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool mobRoamDespawnOK = mobcontrollerroamdespawn::ShouldDespawn(true, true) &&
                                   !mobcontrollerroamdespawn::ShouldDespawn(false, true) &&
                                   !mobcontrollerroamdespawn::ShouldDespawn(true, false);
+    const bool mobRoamFollowLeaderOK = mobcontrollerroamfollowleader::ShouldPath(true, true) &&
+                                        !mobcontrollerroamfollowleader::ShouldPath(false, true) &&
+                                        !mobcontrollerroamfollowleader::ShouldPath(true, false);
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1114,6 +1118,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobRoamDespawnOK)
     {
         std::cerr << "mob roam despawn self-test failed\n";
+        return false;
+    }
+    if (!mobRoamFollowLeaderOK)
+    {
+        std::cerr << "mob roam follow-leader self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)

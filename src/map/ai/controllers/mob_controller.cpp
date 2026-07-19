@@ -38,6 +38,7 @@
 #include "mob_controller_roam_engage_gate_capacity.h"
 #include "mob_controller_roam_owner_engage_capacity.h"
 #include "mob_controller_roam_despawn_capacity.h"
+#include "mob_controller_roam_follow_leader_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1104,8 +1105,9 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
             followRoamDistance = PMob->getMobMod(MOBMOD_FOLLOW_LEASH_RANGE);
         }
         // Only path to leader if they're moving
-        if (distance(PMob->loc.p, PFollowTarget->loc.p) > followRoamDistance &&
-            PFollowTarget->PAI->PathFind->IsFollowingPath())
+        if (mobcontrollerroamfollowleader::ShouldPath(
+                distance(PMob->loc.p, PFollowTarget->loc.p) > followRoamDistance,
+                PFollowTarget->PAI->PathFind->IsFollowingPath()))
         {
             float followStopRange = 2.0f;
 
