@@ -38,6 +38,7 @@
 #include "map/ai/controllers/mob_controller_combat_action_gate_capacity.h"
 #include "map/ai/controllers/mob_controller_ranged_attack_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_face_target_capacity.h"
+#include "map/ai/controllers/mob_controller_scripted_path_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -808,6 +809,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobFaceTargetOK)
     {
         std::cerr << "mob face-target self-test failed\n";
+        return false;
+    }
+    const bool mobScriptedPathOK = mobcontrollerscriptedpath::ShouldFollow(true, true) &&
+                                   !mobcontrollerscriptedpath::ShouldFollow(false, true) &&
+                                   !mobcontrollerscriptedpath::ShouldFollow(true, false) &&
+                                   !mobcontrollerscriptedpath::ShouldFollow(false, false);
+    if (!mobScriptedPathOK)
+    {
+        std::cerr << "mob scripted-path self-test failed\n";
         return false;
     }
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&

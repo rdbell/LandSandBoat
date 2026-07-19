@@ -57,6 +57,7 @@
 #include "mob_controller_combat_action_gate_capacity.h"
 #include "mob_controller_ranged_attack_admission_capacity.h"
 #include "mob_controller_face_target_capacity.h"
+#include "mob_controller_scripted_path_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -856,7 +857,9 @@ void CMobController::Move()
     {
         return;
     }
-    if (PMob->PAI->PathFind->IsFollowingScriptedPath() && PMob->PAI->CanFollowPath())
+    if (mobcontrollerscriptedpath::ShouldFollow(
+            PMob->PAI->CanFollowPath(),
+            PMob->PAI->PathFind->IsFollowingScriptedPath()))
     {
         PMob->PAI->PathFind->FollowPath(m_Tick);
         return;
