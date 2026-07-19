@@ -42,6 +42,7 @@
 #include "mob_controller_roam_rest_gate_capacity.h"
 #include "mob_controller_roam_home_gate_capacity.h"
 #include "mob_controller_despawn_policy_capacity.h"
+#include "mob_controller_dead_master_despawn_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1201,7 +1202,10 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
             }
             else
             {
-                if (mobcontrollerdespawnpolicy::CanDespawn(PMob->getMobMod(MOBMOD_NO_DESPAWN) != 0, false) && PMob->PMaster != nullptr && !PMob->PMaster->isAlive())
+                if (mobcontrollerdeadmasterdespawn::ShouldDespawn(
+                        mobcontrollerdespawnpolicy::CanDespawn(PMob->getMobMod(MOBMOD_NO_DESPAWN) != 0, false),
+                        PMob->PMaster != nullptr,
+                        PMob->PMaster && PMob->PMaster->isAlive()))
                 {
                     // despawn pets if they are disengaged and master is dead
                     PMob->PAI->Despawn();
