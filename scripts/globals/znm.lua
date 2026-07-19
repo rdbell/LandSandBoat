@@ -769,12 +769,24 @@ end
 -- onEventFinish
 -----------------------------------
 
-xi.znm.sanraku.onEventFinish = function(player, csid, option, npc)
+xi.znm.sanraku.eventFinishOutcome = function(csid)
     if csid == 910 then
-        xi.znm.sanraku.handleCompletedTradeWithPlate(player)
+        return 'complete_plate_trade'
     elseif csid == 908 then
-        xi.znm.setPlayerHasSpokenToSanrakuBefore(player)
+        return 'mark_introduction_seen'
     elseif csid == 912 then
+        return 'complete_trophy_trade'
+    end
+end
+
+xi.znm.sanraku.onEventFinish = function(player, csid, option, npc)
+    local outcome = xi.znm.sanraku.eventFinishOutcome(csid)
+
+    if outcome == 'complete_plate_trade' then
+        xi.znm.sanraku.handleCompletedTradeWithPlate(player)
+    elseif outcome == 'mark_introduction_seen' then
+        xi.znm.setPlayerHasSpokenToSanrakuBefore(player)
+    elseif outcome == 'complete_trophy_trade' then
         xi.znm.sanraku.handleCompletedTradeWithTrophy(player)
     end
 end
