@@ -158,3 +158,22 @@ describe('Garrison mob-pool selection', function()
         assert(#xi.garrison.pickMobsFromPool(10, 14, 0, {}) == 0)
     end)
 end)
+
+describe('Garrison Gil payout', function()
+    it('awards each participating player an equal cap-scaled amount', function()
+        local first = { gil = 0, messages = 0 }
+        function first:addGil(gil) self.gil = self.gil + gil end
+        function first:messageSpecial(_, gil) self.messages = self.messages + gil end
+        function first:getZoneID() return xi.zone.WEST_RONFAURE end
+
+        local second = { gil = 0, messages = 0 }
+        function second:addGil(gil) self.gil = self.gil + gil end
+        function second:messageSpecial(_, gil) self.messages = self.messages + gil end
+        function second:getZoneID() return xi.zone.WEST_RONFAURE end
+
+        xi.garrison.handleGilPayout(30, { first, second })
+        local expected = xi.settings.main.GIL_RATE * 30 * 100
+        assert(first.gil == expected and second.gil == expected)
+        assert(first.messages == expected and second.messages == expected)
+    end)
+end)
