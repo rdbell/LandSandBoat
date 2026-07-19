@@ -61,3 +61,11 @@ describe('Garrison level-cap-50 layouts', function()
         assert(xi.garrison.zoneData[xi.zone.YHOATOR_JUNGLE].zThirdLine == -2)
     end)
 end)
+
+describe('Garrison level-cap-99 layout', function()
+    it('defines the Cape Teriggan encounter layout', function()
+        local teriggan = xi.garrison.zoneData[xi.zone.CAPE_TERIGGAN]
+        assert(teriggan.itemReq == xi.item.BUNNY_FANG_SACK and teriggan.levelCap == 99)
+        assert(teriggan.mobBoss == 'Goblin_Boss' and teriggan.pos[1] == -174)
+    end)
+end)
