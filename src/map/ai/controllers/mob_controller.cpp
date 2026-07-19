@@ -49,6 +49,7 @@
 #include "mob_controller_wait_capacity.h"
 #include "mob_controller_ability_capacity.h"
 #include "mob_controller_mob_skill_target_capacity.h"
+#include "mob_controller_mob_skill_admission_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -491,13 +492,18 @@ auto CMobController::MobSkill(int listId) -> bool
 
     Maybe<timer::duration> mobSkillReadyTime = luautils::OnMobSkillReadyTime(PActionTarget, PMob, PMobSkill);
 
-    if (PActionTarget && !PMobSkill->isAstralFlow() && luautils::OnMobSkillCheck(PActionTarget, PMob, PMobSkill) == 0) // A script says that the move in question is valid
+    const bool hasActionTarget = PActionTarget != nullptr;
+    const bool isAstralFlow    = PMobSkill->isAstralFlow();
+    if (!hasActionTarget || isAstralFlow)
     {
-        const float currentDistance = distance(PMob->loc.p, PActionTarget->loc.p);
-        if (currentDistance <= PMobSkill->getDistance())
-        {
-            return MobSkill(PActionTarget->targid, PMobSkill->getID(), mobSkillReadyTime);
-        }
+        return false;
+    }
+
+    const bool scriptAccepted = luautils::OnMobSkillCheck(PActionTarget, PMob, PMobSkill) == 0;
+    const bool targetInRange  = scriptAccepted && distance(PMob->loc.p, PActionTarget->loc.p) <= PMobSkill->getDistance();
+    if (mobcontrollermobskilladmission::CanDispatch(hasActionTarget, isAstralFlow, scriptAccepted, targetInRange))
+    {
+        return MobSkill(PActionTarget->targid, PMobSkill->getID(), mobSkillReadyTime);
     }
 
     return false;
