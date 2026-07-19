@@ -177,3 +177,37 @@ describe('Garrison Gil payout', function()
         assert(first.messages == expected and second.messages == expected)
     end)
 end)
+
+describe('Garrison spawn-NPC state transition', function()
+    it('enters battle only when ally spawning succeeds', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local originalState = zoneData.state
+        local originalPlayers = zoneData.players
+        local originalRunning = zoneData.isRunning
+        local originalSpawnNPCs = xi.garrison.spawnNPCs
+        local zone = { getID = function() return zoneID end }
+        local npc = {
+            getZone = function() return zone end,
+            getZoneID = function() return zoneID end,
+        }
+
+        zoneData.players = {}
+        zoneData.isRunning = false
+
+        xi.garrison.spawnNPCs = function() return true end
+        zoneData.state = xi.garrison.state.SPAWN_NPCS
+        xi.garrison.tick(npc)
+        assert(zoneData.state == xi.garrison.state.BATTLE)
+
+        xi.garrison.spawnNPCs = function() return false end
+        zoneData.state = xi.garrison.state.SPAWN_NPCS
+        xi.garrison.tick(npc)
+        assert(zoneData.state == xi.garrison.state.ENDED)
+
+        xi.garrison.spawnNPCs = originalSpawnNPCs
+        zoneData.state = originalState
+        zoneData.players = originalPlayers
+        zoneData.isRunning = originalRunning
+    end)
+end)
