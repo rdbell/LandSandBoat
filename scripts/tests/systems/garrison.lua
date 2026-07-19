@@ -143,3 +143,18 @@ describe('Garrison ally formation', function()
         assert(npcs[13].pos[1] == -442 and npcs[13].pos[3] == -223)
     end)
 end)
+
+describe('Garrison mob-pool selection', function()
+    it('filters excluded IDs and samples without replacement', function()
+        local selected = xi.garrison.pickMobsFromPool(10, 14, 3, { 11, 13 })
+        local seen = {}
+        for _, mobID in ipairs(selected) do
+            assert(mobID == 10 or mobID == 12 or mobID == 14)
+            assert(not seen[mobID])
+            seen[mobID] = true
+        end
+        assert(#selected == 3)
+        assert(#xi.garrison.pickMobsFromPool(10, 14, 8, { 11, 13 }) == 3)
+        assert(#xi.garrison.pickMobsFromPool(10, 14, 0, {}) == 0)
+    end)
+end)
