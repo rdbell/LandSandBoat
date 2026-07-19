@@ -176,6 +176,18 @@ xi.voidwalker.upgradeMessageKind = function(currentKeyItem, nextKeyItem)
     end
 end
 
+xi.voidwalker.npcUpdateOutcome = function(csid, option, hasGil, hasClearAbyssite)
+    if csid ~= 10120 or bit.band(option, 0xF) ~= 3 then
+        return nil
+    elseif not hasGil then
+        return 'no_gil'
+    elseif hasClearAbyssite then
+        return 'has_clear_abyssite'
+    end
+
+    return 'purchase_available'
+end
+
 local getNearestMob = function(player, mobs)
     return xi.voidwalker.nearestMob(mobs, function(mobId)
         return player:checkDistance(GetMobByID(mobId))
@@ -282,22 +294,19 @@ xi.voidwalker.npcOnTrigger = function(player, npc)
 end
 
 xi.voidwalker.npcOnEventUpdate = function(player, csid, option, npc)
-    local opt = bit.band(option, 0xF)
+    local outcome = xi.voidwalker.npcUpdateOutcome(
+        csid,
+        option,
+        player:getGil() >= 1000,
+        player:hasKeyItem(xi.keyItem.CLEAR_ABYSSITE)
+    )
 
-    if
-        csid == 10120 and
-        opt == 3
-    then
-        local hasGil = player:getGil() >= 1000
-        local hasKi  = player:hasKeyItem(xi.keyItem.CLEAR_ABYSSITE)
-
-        if not hasGil then
-            player:updateEvent(3)
-        elseif hasKi then
-            player:updateEvent(2)
-        else
-            player:updateEvent(1)
-        end
+    if outcome == 'no_gil' then
+        player:updateEvent(3)
+    elseif outcome == 'has_clear_abyssite' then
+        player:updateEvent(2)
+    elseif outcome == 'purchase_available' then
+        player:updateEvent(1)
     end
 end
 
