@@ -36,6 +36,7 @@
 #include "automaton_controller_enfeeble_gate_capacity.h"
 #include "automaton_controller_status_removal_gate_capacity.h"
 #include "automaton_controller_enhance_gate_capacity.h"
+#include "automaton_controller_ranged_attack_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1503,15 +1504,9 @@ auto CAutomatonController::TryTPMove() -> bool
 
 auto CAutomatonController::TryRangedAttack() -> bool // TODO: Find the animation for its ranged attack
 {
-    if (PAutomaton->frame() == AutomatonFrame::Sharpshot)
+    if (automatoncontrollerrangedattackgate::CanRangedAttack(m_Tick, m_LastRangedTime, m_rangedCooldown, PAutomaton->frame() == AutomatonFrame::Sharpshot, PAutomaton->head() == AutomatonHead::Sharpshot, PAutomaton->getMod(Mod::AUTO_RANGED_DELAY)))
     {
-        timer::duration minDelay   = PAutomaton->head() == AutomatonHead::Sharpshot ? 5s : 10s;
-        timer::duration attackTime = m_rangedCooldown - std::chrono::seconds(PAutomaton->getMod(Mod::AUTO_RANGED_DELAY));
-
-        if (m_rangedCooldown > 0s && m_Tick > m_LastRangedTime + std::max(attackTime, minDelay))
-        {
-            return MobSkill(PTarget->targid, m_RangedAbility, std::nullopt);
-        }
+        return MobSkill(PTarget->targid, m_RangedAbility, std::nullopt);
     }
 
     return false;
