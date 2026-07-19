@@ -25,6 +25,7 @@
 #include "pet_controller_healing_capacity.h"
 #include "pet_controller_healing_roam_capacity.h"
 #include "pet_controller_follow_path_capacity.h"
+#include "pet_controller_follow_distance_capacity.h"
 #include "pet_controller_path_fallback_capacity.h"
 #include "pet_controller_master_loss_capacity.h"
 #include "pet_controller_immobile_capacity.h"
@@ -150,7 +151,7 @@ auto CPetController::DoRoamTick(timer::time_point tick) -> Task<void>
 
     const float currentDistance = distance(PPet->loc.p, PPet->PMaster->loc.p);
 
-    if (currentDistance <= PetRoamDistance)
+    if (petcontrollerfollowdistance::ShouldHold(currentDistance))
     {
         co_return;
     }
