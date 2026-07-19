@@ -81,6 +81,7 @@
 #include "automaton_controller_soulsoother_addle_priority_capacity.h"
 #include "automaton_controller_spiritreaver_enhancement_capacity.h"
 #include "automaton_controller_regen_candidate_capacity.h"
+#include "automaton_controller_enhancement_self_target_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1279,17 +1280,17 @@ auto CAutomatonController::TryEnhance() -> bool
             }
         });
 
-    if (!PProtectTarget && !protect)
+    if (automatoncontrollerenhancementselftarget::CanSelectSelf(PProtectTarget != nullptr, protect))
     {
         PProtectTarget = PAutomaton;
     }
 
-    if (!PShellTarget && !shell)
+    if (automatoncontrollerenhancementselftarget::CanSelectSelf(PShellTarget != nullptr, shell))
     {
         PShellTarget = PAutomaton;
     }
 
-    if (!PHasteTarget && !haste)
+    if (automatoncontrollerenhancementselftarget::CanSelectSelf(PHasteTarget != nullptr, haste))
     {
         PHasteTarget = PAutomaton;
     }
