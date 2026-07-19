@@ -29,6 +29,7 @@
 #include "trust_controller_noncombat_gambit_admission_capacity.h"
 #include "trust_controller_reposition_candidate_capacity.h"
 #include "trust_controller_ranged_attack_dispatch_capacity.h"
+#include "trust_controller_cast_target_source_capacity.h"
 #include "trust_controller_noncombat_movement_capacity.h"
 #include "trust_controller_recovery_capacity.h"
 #include "trust_controller_ranged_attack_capacity.h"
@@ -592,7 +593,7 @@ bool CTrustController::Cast(uint16 targid, SpellID spellid)
     }
 
     auto* PSpell = spell::GetSpell(spellid);
-    if (PSpell->getValidTarget() == TARGET_SELF)
+    if (trustcontrollercasttargetsource::ShouldUseSelf(PSpell->getValidTarget() == TARGET_SELF))
     {
         targid = POwner->targid;
     }
