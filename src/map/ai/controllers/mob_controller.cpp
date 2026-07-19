@@ -33,6 +33,7 @@
 #include "mob_controller_try_cast_target_source_capacity.h"
 #include "mob_controller_party_spell_target_admission_capacity.h"
 #include "mob_controller_tp_move_dispatch_capacity.h"
+#include "mob_controller_special_skill_dispatch_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -849,7 +850,9 @@ auto CMobController::DoCombatTick(timer::time_point tick) -> Task<void>
         const float rangedAttackRange = PMob->GetRangedAttackRange();
         const float meleeAttackRange  = PMob->GetMeleeRange(PTarget);
 
-        if (IsSpecialSkillReady(currentDistance) && TrySpecialSkill())
+        if (mobcontrollerspecialskilldispatch::CanDispatch(
+                IsSpecialSkillReady(currentDistance),
+                [&]() { return TrySpecialSkill(); }))
         {
             co_return;
         }
