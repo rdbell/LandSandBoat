@@ -27,6 +27,7 @@
 #include "automaton_controller_move_capacity.h"
 #include "automaton_controller_action_gate_capacity.h"
 #include "automaton_controller_shield_bash_gate_capacity.h"
+#include "automaton_controller_spell_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -220,8 +221,7 @@ auto CAutomatonController::TryShieldBash() -> bool
 auto CAutomatonController::TrySpellcast(const CurrentManeuvers& maneuvers) -> bool
 {
     // Apparently the automaton has nothing in its spell list, so CanCastSpells must ignore spell lists and recasts?
-    if (!PAutomaton->PMaster || m_magicCooldown == 0s ||
-        m_Tick <= m_LastMagicTime + (m_magicCooldown + std::chrono::seconds(PAutomaton->getMod(Mod::AUTO_MAGIC_COOLDOWN))) || !CanCastSpells(IgnoreRecastsAndCosts::Yes))
+    if (!automatoncontrollerspellgate::CanCastSpell(m_Tick, m_LastMagicTime, m_magicCooldown, PAutomaton->PMaster != nullptr, CanCastSpells(IgnoreRecastsAndCosts::Yes), PAutomaton->getMod(Mod::AUTO_MAGIC_COOLDOWN)))
     {
         return false;
     }
