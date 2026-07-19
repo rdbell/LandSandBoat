@@ -89,6 +89,7 @@
 #include "map/ai/controllers/automaton_controller_spiritreaver_poison_priority_capacity.h"
 #include "map/ai/controllers/automaton_controller_spiritreaver_silence_priority_capacity.h"
 #include "map/ai/controllers/automaton_controller_spiritreaver_slow_priority_capacity.h"
+#include "map/ai/controllers/automaton_controller_spiritreaver_paralyze_priority_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -774,6 +775,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonSpiritreaverSlowPriorityOK)
     {
         std::cerr << "automaton Spiritreaver Slow priority self-test failed\n";
+        return false;
+    }
+    const bool automatonSpiritreaverParalyzePriorityOK = automatoncontrollerspiritreaverparalyze::CanPrioritize(2) &&
+                                                         !automatoncontrollerspiritreaverparalyze::CanPrioritize(1) &&
+                                                         !automatoncontrollerspiritreaverparalyze::CanPrioritize(0);
+    if (!automatonSpiritreaverParalyzePriorityOK)
+    {
+        std::cerr << "automaton Spiritreaver Paralyze priority self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&

@@ -68,6 +68,7 @@
 #include "automaton_controller_spiritreaver_poison_priority_capacity.h"
 #include "automaton_controller_spiritreaver_silence_priority_capacity.h"
 #include "automaton_controller_spiritreaver_slow_priority_capacity.h"
+#include "automaton_controller_spiritreaver_paralyze_priority_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -881,7 +882,7 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
                     defaultPriority.emplace_back(SpellID::Slow);
                 }
 
-                if (maneuvers.ice >= 2)
+                if (automatoncontrollerspiritreaverparalyze::CanPrioritize(maneuvers.ice))
                 { // 2 Ice -> Paralyze
                     castPriority.emplace_back(SpellID::Paralyze);
                 }
