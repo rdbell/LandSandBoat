@@ -137,3 +137,40 @@ describe('Campaign Sigil shop update', function()
         assert(updateCalls == 0)
     end)
 end)
+
+describe('Campaign Sigil trigger', function()
+    it('opens the no-medal dialog for a player without a campaign medal', function()
+        local event = nil
+        local player = {
+            getZoneID = function() return xi.zone.BASTOK_MARKETS_S end,
+            hasKeyItem = function() return false end,
+            startEvent = function(_, ...) event = { ... } end,
+        }
+
+        xi.campaign.sigilOnTrigger(player)
+
+        assert(#event == 1 and event[1] == 14)
+    end)
+
+    it('packs the active Sigil menu arguments for a medal holder', function()
+        local event = nil
+        local effect = { getTimeRemaining = function() return 5000 end }
+        local player = {
+            getZoneID = function() return xi.zone.BASTOK_MARKETS_S end,
+            hasKeyItem = function(_, keyItem) return keyItem == xi.ki.BRONZE_RIBBON_OF_SERVICE end,
+            getCampaignAllegiance = function() return xi.nation.BASTOK end,
+            getCurrency = function() return 321 end,
+            hasStatusEffect = function() return true end,
+            getStatusEffect = function() return effect end,
+            startEvent = function(_, ...) event = { ... } end,
+        }
+
+        stub('VanadielTime', 1000)
+        xi.campaign.sigilOnTrigger(player)
+
+        assert(#event == 9 and event[1] == 13)
+        assert(event[2] == xi.nation.BASTOK and event[3] == 321 and event[4] == 0)
+        assert(event[5] == 0 and event[6] == 1 and event[7] == 0)
+        assert(event[8] == 1005 and event[9] == 0)
+    end)
+end)
