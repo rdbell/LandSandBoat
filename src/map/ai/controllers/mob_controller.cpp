@@ -72,6 +72,7 @@
 #include "mob_controller_roam_home_action_capacity.h"
 #include "mob_controller_roam_action_dispatch_capacity.h"
 #include "mob_controller_roam_pet_follow_capacity.h"
+#include "mob_controller_engage_pet_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1522,11 +1523,14 @@ auto CMobController::Engage(const uint16 targid) -> bool
 
         m_tpThreshold = xirand::GetRandomNumber(1000, 3000);
 
+    }
+
+    const auto hasPet     = ret && PMob->PPet != nullptr;
+    const auto petEngaged = hasPet && PMob->PPet->PAI->IsEngaged();
+    if (mobcontrollerengagepet::ShouldEngage(ret, hasPet, petEngaged))
+    {
         // Pet should also fight the target if they can
-        if (PMob->PPet && !PMob->PPet->PAI->IsEngaged())
-        {
-            PMob->PPet->PAI->Engage(targid);
-        }
+        PMob->PPet->PAI->Engage(targid);
     }
     return ret;
 }
