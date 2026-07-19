@@ -141,6 +141,10 @@ xi.dynamis.firstQMTradeMatch = function(items, hasExactTrade)
     end
 end
 
+xi.dynamis.mobInfoPlan = function()
+    return { gilMax = -1, mugGil = -1, baseDamageMultiplier = 150 }
+end
+
 local entryInfo =
 {
     --[[
@@ -1195,8 +1199,8 @@ xi.dynamis.hourglassAndCurrencyExchangeNPCOnEventFinish = function(player, csid,
 end
 
 xi.dynamis.mobInfo = function(mob)
-    -- No gil, no mug, enhanced damage 1.5x
-    mob:setMobMod(xi.mobMod.GIL_MAX, -1)
-    mob:setMobMod(xi.mobMod.MUG_GIL, -1)
-    mob:setMobMod(xi.mobMod.BASE_DAMAGE_MULTIPLIER, 150)
+    local plan = xi.dynamis.mobInfoPlan()
+    mob:setMobMod(xi.mobMod.GIL_MAX, plan.gilMax)
+    mob:setMobMod(xi.mobMod.MUG_GIL, plan.mugGil)
+    mob:setMobMod(xi.mobMod.BASE_DAMAGE_MULTIPLIER, plan.baseDamageMultiplier)
 end

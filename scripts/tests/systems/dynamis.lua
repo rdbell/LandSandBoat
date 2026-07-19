@@ -91,6 +91,13 @@ describe('Dynamis QM trade order', function()
     end)
 end)
 
+describe('Dynamis mob info', function()
+    it('disables gil and mug while setting a 1.5x damage multiplier', function()
+        local plan = xi.dynamis.mobInfoPlan()
+        assert(plan.gilMax == -1 and plan.mugGil == -1 and plan.baseDamageMultiplier == 150)
+    end)
+end)
+
 describe('Dynamis refill statues', function()
     it('finds a statue eye configuration across groups', function()
         local blue = { mob = 100, eye = 1 }
