@@ -35,6 +35,7 @@
 #include "mob_controller_type_two_teleport_capacity.h"
 #include "mob_controller_bound_target_candidate_capacity.h"
 #include "mob_controller_shared_target_selection_capacity.h"
+#include "mob_controller_roam_engage_gate_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1058,7 +1059,9 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
 {
     TracyZoneScopedC(0x00FF00);
     // If there's someone on our enmity list, go from roaming -> engaging
-    if (PMob->PEnmityContainer->GetHighestEnmity() != nullptr && !(PMob->m_roamFlags & ROAMFLAG_IGNORE))
+    if (mobcontrollerroamengagegate::ShouldEngageFromEnmity(
+            PMob->PEnmityContainer->GetHighestEnmity() != nullptr,
+            (PMob->m_roamFlags & ROAMFLAG_IGNORE) != 0))
     {
         Engage(PMob->PEnmityContainer->GetHighestEnmity()->targid);
         co_return;

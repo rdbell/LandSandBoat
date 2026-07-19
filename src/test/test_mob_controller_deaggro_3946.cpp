@@ -16,6 +16,7 @@
 #include "map/ai/controllers/mob_controller_type_two_teleport_capacity.h"
 #include "map/ai/controllers/mob_controller_bound_target_candidate_capacity.h"
 #include "map/ai/controllers/mob_controller_shared_target_selection_capacity.h"
+#include "map/ai/controllers/mob_controller_roam_engage_gate_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -636,6 +637,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                             mobcontrollersharedtargetselection::Select(true, false, true) == mobcontrollersharedtargetselection::Source::Enmity &&
                                             mobcontrollersharedtargetselection::Select(false, false, true) == mobcontrollersharedtargetselection::Source::Enmity &&
                                             mobcontrollersharedtargetselection::Select(false, false, false) == mobcontrollersharedtargetselection::Source::None;
+    const bool mobRoamEngageGateOK = mobcontrollerroamengagegate::ShouldEngageFromEnmity(true, false) &&
+                                     !mobcontrollerroamengagegate::ShouldEngageFromEnmity(true, true) &&
+                                     !mobcontrollerroamengagegate::ShouldEngageFromEnmity(false, false);
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1087,6 +1091,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobSharedTargetSelectionOK)
     {
         std::cerr << "mob shared-target selection self-test failed\n";
+        return false;
+    }
+    if (!mobRoamEngageGateOK)
+    {
+        std::cerr << "mob roam enmity gate self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)
