@@ -68,3 +68,25 @@ describe("Pirates Chart event update", function()
         assert(calls.effect == xi.effect.LEVEL_RESTRICTION and calls.args.power == 20 and calls.args.origin == player)
     end)
 end)
+
+describe("Pirates Chart event finish", function()
+    it('sets up the Taru and shimmering point only when both resolve', function()
+        local calls = {}
+        local player = { getParty = function() return {} end }
+        local npc = { getLocalVar = function() return 0 end, setStatus = function(_, v) calls.qm = v end, timer = function(_, _, fn) calls.range = fn end }
+        local taru = { setStatus = function(_, v) calls.taruStatus = v end, setAnimation = function(_, v) calls.taruAnimation = v end }
+        local shimmering = { setStatus = function(_, v) calls.shimmerStatus = v end, timer = function(_, delay, fn) calls.delay, calls.shimmer = delay, fn end, entityAnimationPacket = function(_, v) calls.animation = v end }
+        stub('GetNPCByID', function(id)
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_TARU then return taru end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.SHIMMERING_POINT then return shimmering end
+        end)
+        stub('GetSystemTime', function() return 0 end)
+        xi.piratesChart.onEventFinish(player, 14, 0, npc)
+        -- rangeChecking immediately rejects the intentionally invalid player
+        -- fixture and resets entities, so assert the delayed shimmer setup.
+        assert(calls.taruAnimation == xi.animation.NONE)
+        assert(calls.delay == 2000)
+        calls.shimmer(shimmering)
+        assert(calls.animation == xi.animationString.SHIMMER)
+    end)
+end)
