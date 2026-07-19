@@ -121,6 +121,14 @@ xi.dynamis.qmTradeMob = function(mob, randomIndex)
     end
 end
 
+xi.dynamis.qmTriggerPlan = function(params, tradeItems, hasOminousMessage)
+    if params then
+        return { event = true }
+    elseif tradeItems and #tradeItems == 1 and type(tradeItems[1]) == 'number' and hasOminousMessage then
+        return { ominousItem = tradeItems[1] }
+    end
+end
+
 local entryInfo =
 {
     --[[
@@ -801,16 +809,17 @@ xi.dynamis.qmOnTrigger = function(player, npc)
         local info = qmNpcs[npcId]
 
         if info then
-            if info.param then
+            local tradeItems = {}
+            if info.trade then
+                for _, trade in pairs(info.trade) do
+                    table.insert(tradeItems, trade.item)
+                end
+            end
+            local triggerPlan = xi.dynamis.qmTriggerPlan(info.param, tradeItems, ID.text.OMINOUS_PRESENCE ~= nil)
+            if triggerPlan and triggerPlan.event then
                 player:startEvent(102, unpack(info.param))
-            elseif
-                info.trade and
-                #info.trade == 1 and
-                info.trade[1].item and
-                type(info.trade[1].item) == 'number' and
-                ID.text.OMINOUS_PRESENCE
-            then
-                player:messageSpecial(ID.text.OMINOUS_PRESENCE, info.trade[1].item)
+            elseif triggerPlan then
+                player:messageSpecial(ID.text.OMINOUS_PRESENCE, triggerPlan.ominousItem)
             end
         else
             printf('[xi.dynamis.qmOnTrigger] called on in zone %i on npc %i (%s) that does not appear in QM data.', zoneId, npcId, npc:getName())

@@ -67,6 +67,15 @@ describe('Dynamis QM trade mobs', function()
     end)
 end)
 
+describe('Dynamis QM trigger plans', function()
+    it('prioritizes events and otherwise exposes a single ominous item', function()
+        assert(xi.dynamis.qmTriggerPlan({ 1 }, { 100 }, true).event)
+        assert(xi.dynamis.qmTriggerPlan(nil, { 100 }, true).ominousItem == 100)
+        assert(xi.dynamis.qmTriggerPlan(nil, { 100, 101 }, true) == nil)
+        assert(xi.dynamis.qmTriggerPlan(nil, { 100 }, false) == nil)
+    end)
+end)
+
 describe('Dynamis refill statues', function()
     it('finds a statue eye configuration across groups', function()
         local blue = { mob = 100, eye = 1 }
