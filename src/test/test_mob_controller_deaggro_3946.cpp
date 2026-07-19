@@ -101,6 +101,7 @@
 #include "map/ai/controllers/automaton_controller_soulsoother_paralyze_priority_capacity.h"
 #include "map/ai/controllers/automaton_controller_soulsoother_addle_priority_capacity.h"
 #include "map/ai/controllers/automaton_controller_spiritreaver_enhancement_capacity.h"
+#include "map/ai/controllers/automaton_controller_regen_candidate_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -550,6 +551,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                                                !automatoncontrollersoulsootherpartystatusremovalgate::CanConsiderPartyStatusRemoval(true, true, false);
     const bool automatonSpiritreaverEnhancementOK = automatoncontrollerspiritreaverenhancement::CanCastDreadSpikes(true) &&
                                                     !automatoncontrollerspiritreaverenhancement::CanCastDreadSpikes(false);
+    const bool automatonRegenCandidateOK = automatoncontrollerregencandidate::CanCastRegen(true, false, false) &&
+                                           !automatoncontrollerregencandidate::CanCastRegen(false, false, false) &&
+                                           !automatoncontrollerregencandidate::CanCastRegen(true, true, false) &&
+                                           !automatoncontrollerregencandidate::CanCastRegen(true, false, true);
     const bool automatonEnhanceGateOK = automatoncontrollerenhancegate::CanEnhance(3001ms, 0ms, 3000ms, true) &&
                                        !automatoncontrollerenhancegate::CanEnhance(3000ms, 0ms, 3000ms, true) &&
                                        !automatoncontrollerenhancegate::CanEnhance(4000ms, 0ms, 3000ms, false) &&
@@ -898,6 +903,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
+    if (!automatonRegenCandidateOK)
+    {
+        std::cerr << "automaton Regen candidate self-test failed\n";
+        return false;
+    }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";

@@ -80,6 +80,7 @@
 #include "automaton_controller_soulsoother_paralyze_priority_capacity.h"
 #include "automaton_controller_soulsoother_addle_priority_capacity.h"
 #include "automaton_controller_spiritreaver_enhancement_capacity.h"
+#include "automaton_controller_regen_candidate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1386,8 +1387,9 @@ auto CAutomatonController::TryEnhance() -> bool
         Cast(PAutomaton->targid, SpellID::Shellra_V);
     }
 
-    if (PRegenTarget &&
-        !(PRegenTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Regen) || PRegenTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::GeoRegen)))
+    if (automatoncontrollerregencandidate::CanCastRegen(PRegenTarget != nullptr,
+                                                        PRegenTarget && PRegenTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Regen),
+                                                        PRegenTarget && PRegenTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::GeoRegen)))
     {
         if (Cast(PRegenTarget->targid, SpellID::Regen_III) || Cast(PRegenTarget->targid, SpellID::Regen_II) || Cast(PRegenTarget->targid, SpellID::Regen))
         {
