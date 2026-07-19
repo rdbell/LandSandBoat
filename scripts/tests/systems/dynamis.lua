@@ -78,6 +78,21 @@ describe('Dynamis refill statue death plan', function()
     end)
 end)
 
+describe('Dynamis QM trade plan', function()
+    it('selects a configured mob and confirms only a successful pop', function()
+        local calls = 0
+        local fixed = xi.dynamis.qmTradePlan(100, 1, function()
+            calls = calls + 1
+            return true
+        end)
+        assert(fixed.mobId == 100 and fixed.confirmTrade)
+        assert(calls == 1)
+
+        local group = xi.dynamis.qmTradePlan({ 100, 101 }, 2, function() return false end)
+        assert(group.mobId == 101 and not group.confirmTrade)
+    end)
+end)
+
 describe('Dynamis time-extension groups', function()
     it('normalizes single and grouped extension mobs and rejects missing IDs', function()
         local single = { mob = 100, ki = 200, minutes = 10 }

@@ -517,6 +517,18 @@ xi.dynamis.refillStatueDeathPlan = function(eye, isKiller, mobId, group, randomI
     }
 end
 
+xi.dynamis.qmTradePlan = function(mob, randomIndex, popMob)
+    local mobId = xi.dynamis.qmTradeMob(mob, randomIndex)
+    if not mobId then
+        return {}
+    end
+
+    return {
+        mobId = mobId,
+        confirmTrade = xi.dynamis.shouldConfirmQMTrade(mobId, popMob(mobId)),
+    }
+end
+
 xi.dynamis.entryNpcOnTrigger = function(player, npc)
     local zoneId        = player:getZoneID()
     local info          = entryInfo[zoneId]
@@ -881,11 +893,13 @@ xi.dynamis.qmOnTrade = function(player, npc, trade)
             local tradeIndex = xi.dynamis.firstQMTradeMatch(info.trade, function(entry) return npcUtil.tradeHasExactly(trade, entry.item) end)
             if tradeIndex then
                 local v = info.trade[tradeIndex]
-                    local mobId = xi.dynamis.qmTradeMob(v.mob, math.random(1, type(v.mob) == 'table' and #v.mob or 1))
+                local tradePlan = xi.dynamis.qmTradePlan(v.mob, math.random(1, type(v.mob) == 'table' and #v.mob or 1), function(mobId)
+                    return npcUtil.popFromQM(player, npc, mobId, { hide = 0, radius = 2 })
+                end)
 
-                    if xi.dynamis.shouldConfirmQMTrade(mobId, mobId and npcUtil.popFromQM(player, npc, mobId, { hide = 0, radius = 2 })) then
-                        player:confirmTrade()
-                    end
+                if tradePlan.confirmTrade then
+                    player:confirmTrade()
+                end
 
             end
         else
