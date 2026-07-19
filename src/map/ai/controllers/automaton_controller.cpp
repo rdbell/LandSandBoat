@@ -38,6 +38,7 @@
 #include "automaton_controller_enhance_gate_capacity.h"
 #include "automaton_controller_ranged_attack_gate_capacity.h"
 #include "automaton_controller_tp_skill_type_capacity.h"
+#include "automaton_controller_spell_permission_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1527,19 +1528,12 @@ auto CAutomatonController::TryAttachment() -> bool
 
 auto CAutomatonController::CanCastSpells(IgnoreRecastsAndCosts ignoreRecastsAndCosts) -> bool
 {
-    // Check for spell blockers e.g. silence
-    if (PAutomaton->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::Silence, xi::StatusEffect::Mute }))
-    {
-        return false;
-    }
-
-    if (!ignoreRecastsAndCosts && !PAutomaton->SpellContainer->IsAnySpellAvailable())
-    {
-        return false;
-    }
-
-    // Check if we can change states!
-    return PAutomaton->PAI->CanChangeState();
+    return automatoncontrollerspellpermission::CanCastSpells(
+        PAutomaton->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Silence),
+        PAutomaton->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Mute),
+        PAutomaton->SpellContainer->IsAnySpellAvailable(),
+        ignoreRecastsAndCosts == IgnoreRecastsAndCosts::Yes,
+        PAutomaton->PAI->CanChangeState());
 }
 
 auto CAutomatonController::Cast(uint16 targid, SpellID spellid) -> bool
