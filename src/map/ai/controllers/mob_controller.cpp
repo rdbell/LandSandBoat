@@ -56,6 +56,7 @@
 #include "mob_controller_run_away_capacity.h"
 #include "mob_controller_combat_action_gate_capacity.h"
 #include "mob_controller_ranged_attack_admission_capacity.h"
+#include "mob_controller_face_target_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -837,9 +838,9 @@ void CMobController::FaceTarget(const uint16 targid) const
 {
     TracyZoneScoped;
 
-    const uint16 resolvedTargid = targid != 0 ? targid : PMob->GetBattleTargetID();
+    const uint16 resolvedTargid = mobcontrollerfacetarget::ResolveTargetID(targid, PMob->GetBattleTargetID());
     const auto*  maybeTarget    = PMob->GetEntity(resolvedTargid);
-    if (!(PMob->m_Behavior & BEHAVIOR_NO_TURN) && maybeTarget)
+    if (mobcontrollerfacetarget::ShouldLookAt((PMob->m_Behavior & BEHAVIOR_NO_TURN) != 0, maybeTarget != nullptr))
     {
         PMob->PAI->PathFind->LookAt(maybeTarget->loc.p);
     }
