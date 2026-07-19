@@ -97,6 +97,38 @@ describe("Pirates Chart event finish", function()
     end)
 end)
 
+describe("Pirates Chart range warning", function()
+    it('warns immediately when the valid spawner first leaves range', function()
+        local warned, delay = false, nil
+        local restriction = { getPower = function() return 20 end }
+        local player = {
+            hasStatusEffect = function() return true end,
+            getStatusEffect = function() return restriction end,
+            getPartySize = function() return 1 end,
+            checkSoloPartyAlliance = function() return 0 end,
+            getZoneID = function() return xi.zone.VALKURM_DUNES end,
+            checkDistance = function() return 11 end,
+            messageSpecial = function() warned = true end,
+        }
+        local npc = {
+            getLocalVar = function(_, name) return name == 'pChartSpawnerID' and 1 or 0 end,
+            setStatus = function() end,
+            timer = function(_, value) delay = value end,
+        }
+        local taru = { setStatus = function() end, setAnimation = function() end }
+        local shimmering = { setStatus = function() end, timer = function() end }
+        stub('GetPlayerByID', function(id) return id == 1 and player or nil end)
+        stub('GetNPCByID', function(id)
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_TARU then return taru end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.SHIMMERING_POINT then return shimmering end
+        end)
+        stub('GetSystemTime', function() return 100 end)
+
+        xi.piratesChart.onEventFinish(player, 14, 0, npc)
+        assert(warned and delay == 1000)
+    end)
+end)
+
 describe("Pirates Chart mob fight", function()
     it('uses Hundred Fists once below half health and restores damage after snare expiry', function()
         local calls = {}
