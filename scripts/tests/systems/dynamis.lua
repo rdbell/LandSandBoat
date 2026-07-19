@@ -20,6 +20,16 @@ describe('Dynamis time-extension groups', function()
     end)
 end)
 
+describe('Dynamis time-extension awards', function()
+    it('awards time only to effect holders without the extension key item', function()
+        assert(xi.dynamis.timeExtensionAwardPlan(false, false, 10) == nil)
+        assert(xi.dynamis.timeExtensionAwardPlan(true, true, 10) == nil)
+
+        local award = xi.dynamis.timeExtensionAwardPlan(true, false, 10)
+        assert(award.durationAdded == 600000)
+    end)
+end)
+
 describe('Dynamis time-extension respawns', function()
     it('plans group replacements only for killers', function()
         assert(xi.dynamis.timeExtensionRespawnPlan(100, { 100, 101 }, false, 2) == nil)

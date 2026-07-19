@@ -48,6 +48,14 @@ xi.dynamis.timeExtensionRespawnPlan = function(mobId, group, isKiller, randomInd
     }
 end
 
+xi.dynamis.timeExtensionAwardPlan = function(hasDynamisEffect, hasKeyItem, minutes)
+    if not hasDynamisEffect or hasKeyItem then
+        return nil
+    end
+
+    return { durationAdded = minutes * 60 * 1000 }
+end
+
 local entryInfo =
 {
     --[[
@@ -584,10 +592,11 @@ xi.dynamis.timeExtensionOnDeath = function(mob, player, optParams)
         if te then
             -- award KI and extension to those who have not yet received it
             local effect = player:getStatusEffect(xi.effect.DYNAMIS)
-            if effect and not player:hasKeyItem(te.ki) then
+            local awardPlan = xi.dynamis.timeExtensionAwardPlan(effect ~= nil, player:hasKeyItem(te.ki), te.minutes)
+            if awardPlan then
                 npcUtil.giveKeyItem(player, te.ki)
                 local oldDuration = effect:getDuration()
-                effect:setDuration(oldDuration + te.minutes * 60 * 1000)
+                effect:setDuration(oldDuration + awardPlan.durationAdded)
                 player:setLocalVar('dynamis_lasttimeupdate', effect:getTimeRemaining() / 1000)
                 player:messageSpecial(ID.text.DYNAMIS_TIME_EXTEND, te.minutes)
             end
