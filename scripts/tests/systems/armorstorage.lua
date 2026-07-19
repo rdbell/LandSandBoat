@@ -55,3 +55,27 @@ describe('Armor Storage withdrawal finish', function()
         assert(removedKeyItem == xi.ki.FIGHTERS_ARMOR_CLAIM_SLIP and gil == 0)
     end)
 end)
+
+describe('Armor Storage deposit', function()
+    it('accepts a complete unstored set and starts the deposit event', function()
+        local event = nil
+        local keyItem = nil
+        local player = {
+            hasKeyItem = function() return false end,
+            startEvent = function(_, ...) event = { ... } end,
+            addKeyItem = function(_, keyItemID) keyItem = keyItemID end,
+            messageSpecial = function() end,
+            getZoneID = function() return xi.zone.PORT_BASTOK end,
+        }
+        local items = { [12511] = true, [12638] = true, [13961] = true, [14214] = true, [14089] = true }
+        local trade = {
+            hasItemQty = function(_, item) return items[item] end,
+            getItemCount = function() return 5 end,
+        }
+
+        assert(xi.armorStorage.onTrade(player, trade, 800))
+
+        assert(event[1] == 800 and event[7] == 500)
+        assert(keyItem == xi.ki.FIGHTERS_ARMOR_CLAIM_SLIP)
+    end)
+end)
