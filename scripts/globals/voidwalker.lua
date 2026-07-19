@@ -162,6 +162,10 @@ xi.voidwalker.shouldUpgradeKiller = function(killerHasPopKeyItem, killerHasNextK
     return killerHasPopKeyItem and not killerHasNextKeyItem
 end
 
+xi.voidwalker.shouldConsumePopAbyssite = function(keyItem)
+    return keyItem ~= xi.keyItem.CLEAR_ABYSSITE and keyItem ~= xi.keyItem.COLORFUL_ABYSSITE
+end
+
 local getNearestMob = function(player, mobs)
     return xi.voidwalker.nearestMob(mobs, function(mobId)
         return player:checkDistance(GetMobByID(mobId))
@@ -610,10 +614,7 @@ xi.voidwalker.onHealing = function(player)
         mob:setLocalVar('[VoidWalker]PopedWith', mobNearest.keyItem)
         mob:setLocalVar('[VoidWalker]PopedAt', GetSystemTime())
 
-        if
-            mobNearest.keyItem ~= xi.keyItem.CLEAR_ABYSSITE and
-            mobNearest.keyItem ~= xi.keyItem.COLORFUL_ABYSSITE
-        then
+        if xi.voidwalker.shouldConsumePopAbyssite(mobNearest.keyItem) then
             player:delKeyItem(mobNearest.keyItem)
             player:messageSpecial(zoneTextTable.VOIDWALKER_BREAK_KI, mobNearest.keyItem)
         else
