@@ -34,6 +34,7 @@
 #include "mob_controller_party_spell_target_admission_capacity.h"
 #include "mob_controller_tp_move_dispatch_capacity.h"
 #include "mob_controller_special_skill_dispatch_capacity.h"
+#include "mob_controller_spell_dispatch_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -857,7 +858,9 @@ auto CMobController::DoCombatTick(timer::time_point tick) -> Task<void>
             co_return;
         }
 
-        if (IsSpellReady(currentDistance, meleeAttackRange) && TryCastSpell()) // Try to spellcast (this is done first so things like Chainspell spam is prioritised over TP moves etc.
+        if (mobcontrollerspelldispatch::CanDispatch(
+                IsSpellReady(currentDistance, meleeAttackRange),
+                [&]() { return TryCastSpell(); })) // Try to spellcast (this is done first so things like Chainspell spam is prioritised over TP moves etc.
         {
             co_return;
         }
