@@ -89,6 +89,7 @@
 #include "automaton_controller_erase_fallback_capacity.h"
 #include "automaton_controller_status_removal_candidate_capacity.h"
 #include "automaton_controller_master_enhancement_target_capacity.h"
+#include "automaton_controller_party_enhancement_target_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1319,15 +1320,17 @@ auto CAutomatonController::TryEnhance() -> bool
                 shell   = false;
                 haste   = false;
 
-                isEngaged = false;
+                bool targetIsMob = false;
+                bool hasEnmity   = false;
 
                 if (auto* PMob = dynamic_cast<CMobEntity*>(PTarget))
                 {
+                    targetIsMob = true;
                     auto enmityList = PMob->PEnmityContainer->GetEnmityList();
                     auto enmity_obj = enmityList->find(PMember->id);
                     if (enmity_obj != enmityList->end())
                     {
-                        isEngaged = true;
+                        hasEnmity = true;
                         if (highestEnmity < enmity_obj->second.CE + enmity_obj->second.VE)
                         {
                             highestEnmity = enmity_obj->second.CE + enmity_obj->second.VE;
@@ -1335,10 +1338,12 @@ auto CAutomatonController::TryEnhance() -> bool
                         }
                     }
                 }
-                else
-                {
-                    isEngaged = true; // Assume everyone is engaged if the target isn't a mob
-                }
+
+                isEngaged = automatoncontrollerpartyenhancementtarget::CanConsiderPartyEnhancement(
+                    PMember->id != PAutomaton->PMaster->id,
+                    distance(PAutomaton->loc.p, PMember->loc.p) < 20,
+                    targetIsMob,
+                    hasEnmity);
 
                 PMember->StatusEffectContainer->ForEachEffect([&protect, &protectcount, &shell, &shellcount, &haste](CStatusEffect& PStatus)
                 {
