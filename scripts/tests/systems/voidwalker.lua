@@ -93,6 +93,28 @@ describe('Voidwalker NPC finish', function()
     end)
 end)
 
+describe('Voidwalker spawn modifiers', function()
+    it('provides status, mod, and immunity plans by mob name', function()
+        local krabkatoa = xi.voidwalker.spawnModifierPlan('Krabkatoa')
+        assert(#krabkatoa == 2)
+        assert(krabkatoa[1].kind == 'status' and krabkatoa[1].effect == xi.effect.REGAIN and krabkatoa[1].power == 10)
+        assert(krabkatoa[2].kind == 'mod' and krabkatoa[2].mod == xi.mod.DOUBLE_ATTACK and krabkatoa[2].value == 10)
+
+        local tammuz = xi.voidwalker.spawnModifierPlan('Tammuz')
+        assert(#tammuz == 1 and tammuz[1].kind == 'status' and tammuz[1].effect == xi.effect.MIGHTY_STRIKES and tammuz[1].power == 1)
+
+        for _, mobName in ipairs({ 'Erebus', 'Raker_Bee' }) do
+            local immunities = xi.voidwalker.spawnModifierPlan(mobName)
+            assert(#immunities == 2)
+            assert(immunities[1].immunity == xi.immunity.GRAVITY and immunities[2].immunity == xi.immunity.BIND)
+        end
+
+        local gjenganger = xi.voidwalker.spawnModifierPlan('Gjenganger')
+        assert(#gjenganger == 1 and gjenganger[1].kind == 'immunity' and gjenganger[1].immunity == xi.immunity.STUN)
+        assert(xi.voidwalker.spawnModifierPlan('Unknown') == nil)
+    end)
+end)
+
 describe('Voidwalker direction', function()
     it('classifies cardinal and diagonal offsets', function()
         assert(xi.voidwalker.direction(1, 0) == 0)

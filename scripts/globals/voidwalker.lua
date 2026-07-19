@@ -211,6 +211,37 @@ local getNearestMob = function(player, mobs)
     end)
 end
 
+local spawnModifierPlans =
+{
+    ['Krabkatoa'] =
+    {
+        { kind = 'status', effect = xi.effect.REGAIN, power = 10 },
+        { kind = 'mod', mod = xi.mod.DOUBLE_ATTACK, value = 10 },
+    },
+    ['Tammuz'] =
+    {
+        { kind = 'status', effect = xi.effect.MIGHTY_STRIKES, power = 1 },
+    },
+    ['Erebus'] =
+    {
+        { kind = 'immunity', immunity = xi.immunity.GRAVITY },
+        { kind = 'immunity', immunity = xi.immunity.BIND },
+    },
+    ['Raker_Bee'] =
+    {
+        { kind = 'immunity', immunity = xi.immunity.GRAVITY },
+        { kind = 'immunity', immunity = xi.immunity.BIND },
+    },
+    ['Gjenganger'] =
+    {
+        { kind = 'immunity', immunity = xi.immunity.STUN },
+    },
+}
+
+xi.voidwalker.spawnModifierPlan = function(mobName)
+    return spawnModifierPlans[mobName]
+end
+
 xi.voidwalker.direction = function(diffx, diffz)
     local tan       = math.atan(diffz / diffx)
     local degree    = math.deg(tan)
@@ -405,32 +436,6 @@ local function DespawnPet(mob)
     end
 end
 
-local modByMobName =
-{
-    ['Krabkatoa'] = function(mob)
-        mob:addStatusEffect(xi.effect.REGAIN, { power = 10, origin = mob })
-        mob:addMod(xi.mod.DOUBLE_ATTACK, 10)
-    end,
-
-    ['Tammuz'] = function(mob)
-        mob:addStatusEffect(xi.effect.MIGHTY_STRIKES, { power = 1, origin = mob })
-    end,
-
-    ['Erebus'] = function(mob)
-        mob:addImmunity(xi.immunity.GRAVITY)
-        mob:addImmunity(xi.immunity.BIND)
-    end,
-
-    ['Raker_Bee'] = function(mob)
-        mob:addImmunity(xi.immunity.GRAVITY)
-        mob:addImmunity(xi.immunity.BIND)
-    end,
-
-    ['Gjenganger'] = function(mob)
-        mob:addImmunity(xi.immunity.STUN)
-    end,
-}
-
 local mixinByMobName =
 {
     ['Capricornus'] = function(mob)
@@ -508,10 +513,17 @@ xi.voidwalker.onMobSpawn = function(mob)
     mob:hideHP(true)
     mob:hideName(true)
     mob:setUntargetable(true)
-    local mods = modByMobName[mobName]
-
-    if mods then
-        mods(mob)
+    local modifiers = xi.voidwalker.spawnModifierPlan(mobName)
+    if modifiers then
+        for _, modifier in ipairs(modifiers) do
+            if modifier.kind == 'status' then
+                mob:addStatusEffect(modifier.effect, { power = modifier.power, origin = mob })
+            elseif modifier.kind == 'mod' then
+                mob:addMod(modifier.mod, modifier.value)
+            elseif modifier.kind == 'immunity' then
+                mob:addImmunity(modifier.immunity)
+            end
+        end
     end
 end
 
