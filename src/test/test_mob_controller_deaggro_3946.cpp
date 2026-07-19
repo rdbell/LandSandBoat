@@ -29,6 +29,7 @@
 #include "map/ai/controllers/mob_controller_roam_script_cadence_capacity.h"
 #include "map/ai/controllers/mob_controller_wait_capacity.h"
 #include "map/ai/controllers/mob_controller_ability_capacity.h"
+#include "map/ai/controllers/mob_controller_mob_skill_target_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -709,6 +710,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobAbilityOK)
     {
         std::cerr << "mob ability admission self-test failed\n";
+        return false;
+    }
+    const bool mobSkillTargetOK = mobcontrollermobskilltarget::Select(true, false) == mobcontrollermobskilltarget::Target::Enemy &&
+                                  mobcontrollermobskilltarget::Select(false, true) == mobcontrollermobskilltarget::Target::Self &&
+                                  mobcontrollermobskilltarget::Select(false, false) == mobcontrollermobskilltarget::Target::None &&
+                                  mobcontrollermobskilltarget::Select(true, true) == mobcontrollermobskilltarget::Target::Enemy;
+    if (!mobSkillTargetOK)
+    {
+        std::cerr << "mob skill target self-test failed\n";
         return false;
     }
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&

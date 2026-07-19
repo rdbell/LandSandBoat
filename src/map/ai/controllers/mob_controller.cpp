@@ -48,6 +48,7 @@
 #include "mob_controller_roam_script_cadence_capacity.h"
 #include "mob_controller_wait_capacity.h"
 #include "mob_controller_ability_capacity.h"
+#include "mob_controller_mob_skill_target_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -471,13 +472,19 @@ auto CMobController::MobSkill(int listId) -> bool
 
     auto* PMobSkill{ battleutils::GetMobSkill(chosenSkillId) };
 
-    if (PMobSkill->getValidTargets() & TARGET_ENEMY) // enemy
+    const auto target = mobcontrollermobskilltarget::Select(
+        (PMobSkill->getValidTargets() & TARGET_ENEMY) != 0,
+        (PMobSkill->getValidTargets() & TARGET_SELF) != 0);
+    switch (target)
     {
-        PActionTarget = PTarget;
-    }
-    else if (PMobSkill->getValidTargets() & TARGET_SELF) // self
-    {
-        PActionTarget = PMob;
+        case mobcontrollermobskilltarget::Target::Enemy:
+            PActionTarget = PTarget;
+            break;
+        case mobcontrollermobskilltarget::Target::Self:
+            PActionTarget = PMob;
+            break;
+        case mobcontrollermobskilltarget::Target::None:
+            break;
     }
 
     PActionTarget = luautils::OnMobSkillTarget(PActionTarget, PMob, PMobSkill);
