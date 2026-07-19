@@ -568,6 +568,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool automatonEnhancementSelfTargetOK = automatoncontrollerenhancementselftarget::CanSelectSelf(false, false) &&
                                                   !automatoncontrollerenhancementselftarget::CanSelectSelf(true, false) &&
                                                   !automatoncontrollerenhancementselftarget::CanSelectSelf(false, true);
+    const bool automatonEnhancementPartyTargetOK = automatoncontrollerenhancementselftarget::CanSelectTarget(false, false) &&
+                                                   !automatoncontrollerenhancementselftarget::CanSelectTarget(true, false) &&
+                                                   !automatoncontrollerenhancementselftarget::CanSelectTarget(false, true);
     const bool automatonPartyEnhancementThresholdOK = automatoncontrollerpartyenhancementthreshold::CanCastPartyEnhancement(4, 0) &&
                                                        automatoncontrollerpartyenhancementthreshold::CanCastPartyEnhancement(5, 1) &&
                                                        !automatoncontrollerpartyenhancementthreshold::CanCastPartyEnhancement(4, 1) &&
@@ -956,6 +959,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonEnhancementSelfTargetOK)
     {
         std::cerr << "automaton enhancement self-target self-test failed\n";
+        return false;
+    }
+    if (!automatonEnhancementPartyTargetOK)
+    {
+        std::cerr << "automaton enhancement party-target self-test failed\n";
         return false;
     }
     if (!automatonPartyEnhancementThresholdOK)

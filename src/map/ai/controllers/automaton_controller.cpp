@@ -1371,17 +1371,17 @@ auto CAutomatonController::TryEnhance() -> bool
 
                 if (isEngaged)
                 {
-                    if (!PProtectTarget && !protect)
+                    if (automatoncontrollerenhancementselftarget::CanSelectTarget(PProtectTarget != nullptr, protect))
                     {
                         PProtectTarget = PMember;
                     }
 
-                    if (!PShellTarget && !shell)
+                    if (automatoncontrollerenhancementselftarget::CanSelectTarget(PShellTarget != nullptr, shell))
                     {
                         PShellTarget = PMember;
                     }
 
-                    if (!PHasteTarget && !haste)
+                    if (automatoncontrollerenhancementselftarget::CanSelectTarget(PHasteTarget != nullptr, haste))
                     {
                         PHasteTarget = PMember;
                     }
