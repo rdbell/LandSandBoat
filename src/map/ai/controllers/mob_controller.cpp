@@ -54,6 +54,7 @@
 #include "mob_controller_spell_target_source_capacity.h"
 #include "mob_controller_owner_declaim_capacity.h"
 #include "mob_controller_run_away_capacity.h"
+#include "mob_controller_combat_action_gate_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -755,7 +756,9 @@ auto CMobController::DoCombatTick(timer::time_point tick) -> Task<void>
     PMob->PAI->EventHandler.triggerListener("COMBAT_TICK", PMob);
     luautils::OnMobFight(PMob, PTarget);
 
-    if (PMob->PAI->IsCurrentState<CInactiveState>() || !PMob->PAI->CanChangeState())
+    if (!mobcontrollercombatactiongate::CanAct(
+            PMob->PAI->IsCurrentState<CInactiveState>(),
+            PMob->PAI->CanChangeState()))
     {
         co_return;
     }
