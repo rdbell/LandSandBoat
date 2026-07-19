@@ -119,6 +119,7 @@
 #include "map/ai/controllers/trust_controller_ranged_attack_dispatch_capacity.h"
 #include "map/ai/controllers/trust_controller_cast_target_source_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_declump_admission_capacity.h"
+#include "map/ai/controllers/trust_controller_combat_declump_displacement_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_movement_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_master_engagement_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_post_movement_capacity.h"
@@ -676,6 +677,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      !trustCombatDeclumpCallbackCalled &&
                                      !trustcontrollercombatdeclumpadmission::ShouldDeclump(
                                          false, []() { return false; }, []() { return false; });
+    const bool trustCombatDeclumpDisplacementOK = trustcontrollercombatdeclumpdisplacement::Amount(1.0f, 0) == -1.0f &&
+                                                  trustcontrollercombatdeclumpdisplacement::Amount(1.0f, 1) == 1.0f &&
+                                                  trustcontrollercombatdeclumpdisplacement::Amount(1.0f, 2) == -1.0f &&
+                                                  trustcontrollercombatdeclumpdisplacement::Amount(0.0f, 1) == 0.0f;
     bool trustCombatMovementAdmissionCallbackCalled = false;
     const bool trustCombatMovementAdmissionOK = trustcontrollercombatmovementadmission::CanMove(
                                                     []() { return false; }, []() { return false; }) &&
@@ -2585,6 +2590,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!trustCombatDeclumpOK)
     {
         std::cerr << "trust combat declump self-test failed\n";
+        return false;
+    }
+    if (!trustCombatDeclumpDisplacementOK)
+    {
+        std::cerr << "trust combat declump displacement self-test failed\n";
         return false;
     }
     if (!trustCombatMovementAdmissionOK)
