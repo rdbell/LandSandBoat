@@ -79,3 +79,19 @@ describe('Artisan Moogle scroll finish', function()
         assert(nextScroll[1] == '[artisan]nextScroll' and nextScroll[2] > 0)
     end)
 end)
+
+describe('Artisan Moogle main dialogue', function()
+    it('updates gil, sack display, and scroll availability', function()
+        local event = nil
+        local player = {
+            getCharVar = function() return 0 end,
+            getContainerSize = function() return 30 end,
+            getGil = function() return 1234 end,
+            updateEvent = function(_, ...) event = { ... } end,
+        }
+
+        xi.artisan.moogleOnUpdate(player, 544, 4, {})
+
+        assert(event[3] == 1234 and event[4] == 31 and event[8] == 1)
+    end)
+end)
