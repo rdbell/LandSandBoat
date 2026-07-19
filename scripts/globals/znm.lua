@@ -19,10 +19,20 @@ xi.znm = xi.znm or {}
 -----------------------------------
 
 -- Called during JstMidnight tick
+xi.znm.sanrakuRotationPlan = function(interest, fauna, trades)
+    return { interest = interest, fauna = fauna, trades = trades }
+end
+
 xi.znm.UpdateSanrakusMobs = function()
-    SetServerVariable('[ZNM][Sanraku]Interest', math.random(#xi.znm.SANRAKUS_INTEREST))
-    SetServerVariable('[ZNM][Sanraku]Fauna', math.random(#xi.znm.SANRAKUS_FAUNA))
-    SetServerVariable('[ZNM][Sanraku]Trades', math.random(0, 250))
+    local plan = xi.znm.sanrakuRotationPlan(
+        math.random(#xi.znm.SANRAKUS_INTEREST),
+        math.random(#xi.znm.SANRAKUS_FAUNA),
+        math.random(0, 250)
+    )
+
+    SetServerVariable('[ZNM][Sanraku]Interest', plan.interest)
+    SetServerVariable('[ZNM][Sanraku]Fauna', plan.fauna)
+    SetServerVariable('[ZNM][Sanraku]Trades', plan.trades)
 end
 
 xi.znm.shouldRotateSanrakuTrades = function(currentTrades)

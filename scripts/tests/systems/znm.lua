@@ -1,5 +1,12 @@
 require('scripts/globals/znm')
 
+describe('ZNM Sanraku rotation plan', function()
+    it('retains each newly rolled server value', function()
+        local plan = xi.znm.sanrakuRotationPlan(4, 9, 123)
+        assert(plan.interest == 4 and plan.fauna == 9 and plan.trades == 123)
+    end)
+end)
+
 describe('ZNM Sanraku trade rotation', function()
     it('rotates after 500 completed trades', function()
         assert(not xi.znm.shouldRotateSanrakuTrades(499))
