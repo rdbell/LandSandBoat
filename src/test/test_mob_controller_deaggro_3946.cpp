@@ -66,6 +66,7 @@
 #include "map/ai/controllers/mob_controller_mob_skill_owner_dispatch_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_path_randomness_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_home_retry_schedule_capacity.h"
+#include "map/ai/controllers/mob_controller_roam_neutral_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -782,6 +783,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
         mobcontrollerroamhomeretryschedule::Schedule(roamHomeRetryTick, std::chrono::seconds(0)) == base + std::chrono::seconds(50) &&
         mobcontrollerroamhomeretryschedule::Schedule(roamHomeRetryTick, std::chrono::seconds(5)) == base + std::chrono::seconds(45) &&
         mobcontrollerroamhomeretryschedule::Schedule(roamHomeRetryTick, std::chrono::seconds(30)) == base + std::chrono::seconds(20);
+    const auto neutralTime = base + std::chrono::seconds(30);
+    const bool mobRoamNeutralOK = mobcontrollerroamneutral::IsNeutral(true, neutralTime, neutralTime) &&
+                                  mobcontrollerroamneutral::IsNeutral(true, neutralTime + std::chrono::seconds(10), neutralTime) &&
+                                  !mobcontrollerroamneutral::IsNeutral(true, neutralTime + std::chrono::seconds(10) + std::chrono::nanoseconds(1), neutralTime) &&
+                                  !mobcontrollerroamneutral::IsNeutral(false, neutralTime, neutralTime);
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1590,6 +1596,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobRoamHomeRetryScheduleOK)
     {
         std::cerr << "mob roam-home retry-schedule self-test failed\n";
+        return false;
+    }
+    if (!mobRoamNeutralOK)
+    {
+        std::cerr << "mob roam-neutral self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)
