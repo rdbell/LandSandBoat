@@ -74,6 +74,7 @@
 #include "map/ai/controllers/automaton_controller_low_hp_elemental_priority_capacity.h"
 #include "map/ai/controllers/automaton_controller_spiritreaver_enfeeble_priority_capacity.h"
 #include "map/ai/controllers/automaton_controller_stormwaker_ice_elemental_priority_capacity.h"
+#include "map/ai/controllers/automaton_controller_stormwaker_elemental_fallback_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -629,6 +630,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonStormwakerIceElemPriorityOK)
     {
         std::cerr << "automaton Stormwaker ice elemental priority self-test failed\n";
+        return false;
+    }
+    const bool automatonStormwakerElemFallbackOK = automatoncontrollerstormwakerelementalfallback::ShouldUseElementalFallback(false, false) &&
+                                                   !automatoncontrollerstormwakerelementalfallback::ShouldUseElementalFallback(true, false) &&
+                                                   !automatoncontrollerstormwakerelementalfallback::ShouldUseElementalFallback(false, true);
+    if (!automatonStormwakerElemFallbackOK)
+    {
+        std::cerr << "automaton Stormwaker elemental fallback self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&

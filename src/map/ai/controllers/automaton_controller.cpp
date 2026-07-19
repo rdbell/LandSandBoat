@@ -53,6 +53,7 @@
 #include "automaton_controller_low_hp_elemental_priority_capacity.h"
 #include "automaton_controller_spiritreaver_enfeeble_priority_capacity.h"
 #include "automaton_controller_stormwaker_ice_elemental_priority_capacity.h"
+#include "automaton_controller_stormwaker_elemental_fallback_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -332,7 +333,7 @@ auto CAutomatonController::TrySpellcast(const CurrentManeuvers& maneuvers) -> bo
                 m_LastHealTime = m_Tick;
                 return true;
             }
-            else if (!lowHP && !maneuvers.ice && TryElemental(maneuvers))
+            else if (automatoncontrollerstormwakerelementalfallback::ShouldUseElementalFallback(lowHP, maneuvers.ice) && TryElemental(maneuvers))
             {
                 m_LastElementalTime = m_Tick;
                 return true;
