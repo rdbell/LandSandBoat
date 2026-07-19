@@ -78,3 +78,37 @@ describe('Ancestry Moogle finish', function()
         assert(changed[1] == xi.race.HUME_F and changed[2] == 5 and changed[3] == 2)
     end)
 end)
+
+describe('Ancestry Moogle trade', function()
+    it('swaps eligible gear and confirms only successfully granted items', function()
+        local confirmed = {}
+        local completed = false
+        local given = {}
+        local player = {
+            getGender = function() return 0 end,
+            confirmTrade = function() completed = true end,
+        }
+        local trade = {
+            getItem = function(_, slot)
+                if slot == 0 then
+                    return { getID = function() return xi.item.DANCERS_TIARA_M end }
+                elseif slot == 1 then
+                    return { getID = function() return xi.item.DANCERS_TIARA_F end }
+                end
+            end,
+            confirmItem = function(_, item, quantity) table.insert(confirmed, { item, quantity }) end,
+        }
+        local oldGiveItem = npcUtil.giveItem
+        npcUtil.giveItem = function(_, item)
+            table.insert(given, item)
+            return item == xi.item.DANCERS_TIARA_M + 1
+        end
+
+        assert(xi.ancestryMoogle.onTrade(player, {}, trade))
+
+        npcUtil.giveItem = oldGiveItem
+        assert(#given == 1 and given[1] == xi.item.DANCERS_TIARA_F)
+        assert(#confirmed == 1 and confirmed[1][1] == xi.item.DANCERS_TIARA_M and confirmed[1][2] == 1)
+        assert(completed)
+    end)
+end)
