@@ -26,6 +26,7 @@
 #include "pet_controller_healing_roam_capacity.h"
 #include "pet_controller_special_healing_roam_capacity.h"
 #include "pet_controller_state_change_roam_capacity.h"
+#include "pet_controller_ability_capacity.h"
 #include "pet_controller_follow_path_capacity.h"
 #include "pet_controller_follow_distance_capacity.h"
 #include "pet_controller_path_fallback_capacity.h"
@@ -231,7 +232,7 @@ bool CPetController::Ability(uint16 targid, uint16 abilityid)
 {
     TracyZoneScoped;
 
-    if (PPet->PAI->CanChangeState())
+    if (petcontrollerability::ShouldDelegate(PPet->PAI->CanChangeState()))
     {
         return PPet->PAI->Internal_Ability(targid, abilityid);
     }
