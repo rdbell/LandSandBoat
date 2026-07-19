@@ -144,6 +144,45 @@ describe('Garrison ally formation', function()
     end)
 end)
 
+describe('Garrison ally NPC spawning', function()
+    it('builds the dynamic ally specification and tracks ally deaths', function()
+        local zoneData = { deadNPCCount = 0 }
+        local inserted, deathListener = nil, nil
+        local mob = {
+            getName = function() return 'Patrician' end,
+            getID = function() return 0 end,
+            getMainLvl = function() return 15 end,
+            getHP = function() return 100 end,
+            setSpawn = function() end,
+            setMobMod = function() end,
+            setRoamFlags = function() end,
+            spawn = function() end,
+            setBaseSpeed = function() end,
+            setAllegiance = function() end,
+            setMagicCastingEnabled = function() end,
+            setMobAbilityEnabled = function() end,
+            addListener = function(_, event, name, callback)
+                assert(event == 'DEATH' and name == 'GARRISON_NPC_DEATH')
+                deathListener = callback
+            end,
+        }
+        local zone = {
+            insertDynamicEntity = function(_, spec)
+                inserted = spec
+                return mob
+            end,
+        }
+
+        assert(xi.garrison.spawnNPC(zone, zoneData, { 1, 2, 3, 4 }, 'Patrician', 1, 'look', 15, 20) == mob)
+        assert(inserted.objtype == xi.objType.MOB and inserted.allegiance == xi.allegiance.PLAYER)
+        assert(inserted.name == 'Patrician' and inserted.x == 1 and inserted.y == 2 and inserted.z == 3 and inserted.rotation == 4)
+        assert(inserted.look == 'look' and inserted.groupId == 1 and inserted.minLevel == 15 and inserted.maxLevel == 20)
+        assert(inserted.groupZoneId == xi.zone.GM_HOME and inserted.releaseIdOnDisappear and inserted.specialSpawnAnimation)
+        deathListener(mob)
+        assert(zoneData.deadNPCCount == 1)
+    end)
+end)
+
 describe('Garrison mob-pool selection', function()
     it('filters excluded IDs and samples without replacement', function()
         local selected = xi.garrison.pickMobsFromPool(10, 14, 3, { 11, 13 })
