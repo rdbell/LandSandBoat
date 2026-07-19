@@ -129,6 +129,70 @@ describe("Pirates Chart range warning", function()
     end)
 end)
 
+describe("Pirates Chart event validity", function()
+    it('rejects each invalid spawner and restricted member state', function()
+        local current
+        local rangeScheduled = false
+        local inertNPC = {
+            resetLocalVars = function() end,
+            setStatus = function() end,
+            setAnimation = function() end,
+            timer = function() end,
+        }
+        local npc = {
+            getLocalVar = function(_, name)
+                if name == 'pChartSpawnerID' then return 1 end
+                if name == 'pChartMemberID_1' and current.member then return 2 end
+                return 0
+            end,
+            setStatus = function() end,
+            timer = function() rangeScheduled = true end,
+        }
+        local triggeringPlayer = {
+            getParty = function() return {} end,
+            checkDistance = function() return 0 end,
+        }
+        local function player(config, id)
+            local restriction = { getPower = function() return config.power end }
+            return {
+                getID = function() return id end,
+                hasStatusEffect = function() return config.restricted end,
+                getStatusEffect = function() return restriction end,
+                getPartySize = function() return config.partySize end,
+                checkSoloPartyAlliance = function() return config.alliance end,
+                getZoneID = function() return config.zone end,
+                checkDistance = function() return 0 end,
+                getParty = function() return {} end,
+            }
+        end
+        stub('GetPlayerByID', function(id)
+            if id == 1 and current.spawner then return player(current.spawner, 1) end
+            if id == 2 and current.member then return player(current.member, 2) end
+        end)
+        stub('GetNPCByID', function() return inertNPC end)
+        stub('GetSystemTime', function() return 0 end)
+
+        local valid = { restricted = true, power = 20, partySize = 3, alliance = 0, zone = xi.zone.VALKURM_DUNES }
+        for _, testCase in ipairs({
+            { name = 'valid', spawner = valid, expectRange = true },
+            { name = 'missing spawner', expectRange = false },
+            { name = 'missing restriction', spawner = { restricted = false, power = 20, partySize = 3, alliance = 0, zone = xi.zone.VALKURM_DUNES }, expectRange = false },
+            { name = 'wrong restriction power', spawner = { restricted = true, power = 19, partySize = 3, alliance = 0, zone = xi.zone.VALKURM_DUNES }, expectRange = false },
+            { name = 'oversized party', spawner = { restricted = true, power = 20, partySize = 4, alliance = 0, zone = xi.zone.VALKURM_DUNES }, expectRange = false },
+            { name = 'alliance', spawner = { restricted = true, power = 20, partySize = 3, alliance = 2, zone = xi.zone.VALKURM_DUNES }, expectRange = false },
+            { name = 'wrong zone', spawner = { restricted = true, power = 20, partySize = 3, alliance = 0, zone = 0 }, expectRange = false },
+            { name = 'misconfigured member', spawner = valid, member = { restricted = true, power = 19, partySize = 1, alliance = 0, zone = xi.zone.VALKURM_DUNES }, expectRange = false },
+            { name = 'member outside Valkurm', spawner = valid, member = { restricted = true, power = 19, partySize = 1, alliance = 0, zone = 0 }, expectRange = true },
+            { name = 'member without restriction', spawner = valid, member = { restricted = false, power = 19, partySize = 1, alliance = 0, zone = xi.zone.VALKURM_DUNES }, expectRange = true },
+        }) do
+            current = testCase
+            rangeScheduled = false
+            xi.piratesChart.onEventFinish(triggeringPlayer, 14, 0, npc)
+            assert(rangeScheduled == testCase.expectRange, testCase.name)
+        end
+    end)
+end)
+
 describe("Pirates Chart mob fight", function()
     it('uses Hundred Fists once below half health and restores damage after snare expiry', function()
         local calls = {}
