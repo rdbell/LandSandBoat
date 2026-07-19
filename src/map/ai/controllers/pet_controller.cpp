@@ -25,6 +25,7 @@
 #include "pet_controller_healing_capacity.h"
 #include "pet_controller_healing_roam_capacity.h"
 #include "pet_controller_follow_path_capacity.h"
+#include "pet_controller_path_fallback_capacity.h"
 #include "pet_controller_master_loss_capacity.h"
 #include "pet_controller_immobile_capacity.h"
 #include "pet_controller_tick_capacity.h"
@@ -159,8 +160,9 @@ auto CPetController::DoRoamTick(timer::time_point tick) -> Task<void>
     const auto destinationDistance = isFollowing ? distance(PPet->PAI->PathFind->GetDestination(), PPet->PMaster->loc.p) : 0.0f;
     if (petcontrollerfollowpath::ShouldRecalculate(isFollowing, destinationDistance))
     {
-        if (!PPet->PAI->PathFind->PathAround(PPet->PMaster->loc.p, 2.0f, PATHFLAG_RUN | PATHFLAG_WALLHACK) &&
-            !PPet->PAI->PathFind->PathInRange(PPet->PMaster->loc.p, 2.0f, PATHFLAG_RUN | PATHFLAG_WALLHACK))
+        const auto pathAroundSucceeded = PPet->PAI->PathFind->PathAround(PPet->PMaster->loc.p, 2.0f, PATHFLAG_RUN | PATHFLAG_WALLHACK);
+        const auto pathInRangeSucceeded = !pathAroundSucceeded && PPet->PAI->PathFind->PathInRange(PPet->PMaster->loc.p, 2.0f, PATHFLAG_RUN | PATHFLAG_WALLHACK);
+        if (petcontrollerpathfallback::ShouldWarp(pathAroundSucceeded, pathInRangeSucceeded))
         {
             // If we got here, the pet isn't able to path to master
             // But it cant, so maybe we teleported or dropped down a hole
