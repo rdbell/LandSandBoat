@@ -52,3 +52,28 @@ describe('Astral Flow mob skill', function()
         assert(avatarIds[1] == 102 and avatarIds[2] == 102)
     end)
 end)
+
+describe('Astral Flow II mob skill', function()
+    it('always allows use, sends USES, and marks an existing pet', function()
+        local astralFlow = require('scripts/actions/mobskills/astral_flow_2')
+        local message, used = nil, nil
+        local pet = { setLocalVar = function(_, key, value) used = { key, value } end }
+        local mob = { getPet = function() return pet end }
+        local skill = { setMsg = function(_, value) message = value end }
+
+        assert(astralFlow.onMobSkillCheck(nil, mob, skill) == 0)
+        assert(astralFlow.onMobWeaponSkill(mob, nil, skill, nil) == nil)
+        assert(message == xi.msg.basic.USES)
+        assert(used[1] == 'astralFlowUsed' and used[2] == 1)
+    end)
+
+    it('sends USES but does nothing when there is no pet', function()
+        local astralFlow = require('scripts/actions/mobskills/astral_flow_2')
+        local message = nil
+        local mob = { getPet = function() return nil end }
+        local skill = { setMsg = function(_, value) message = value end }
+
+        assert(astralFlow.onMobWeaponSkill(mob, nil, skill, nil) == nil)
+        assert(message == xi.msg.basic.USES)
+    end)
+end)
