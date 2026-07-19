@@ -115,6 +115,7 @@
 #include "map/ai/controllers/trust_controller_noncombat_declump_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_noncombat_gambit_admission_capacity.h"
 #include "map/ai/controllers/trust_controller_reposition_candidate_capacity.h"
+#include "map/ai/controllers/trust_controller_ranged_attack_dispatch_capacity.h"
 #include "map/ai/controllers/trust_controller_tick_capacity.h"
 #include "map/ai/controllers/trust_controller_target_sync_capacity.h"
 #include "map/ai/controllers/trust_controller_engage_capacity.h"
@@ -611,6 +612,26 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                             !trustRepositionCandidateCallbackCalled &&
                                             !trustcontrollerrepositioncandidate::ShouldSelect(
                                                 false, []() { return true; }, []() { return false; });
+    bool trustRangedAttackCallbackCalled = false;
+    const auto trustRangedAttackSuccess = trustcontrollerrangedattackdispatch::Resolve(
+        true, []() { return true; }, []() { return true; });
+    const bool trustRangedAttackDispatchOK = trustRangedAttackSuccess.handled &&
+                                             trustRangedAttackSuccess.updateCooldown &&
+                                             !trustcontrollerrangedattackdispatch::Resolve(
+                                                 false,
+                                                 [&]() { trustRangedAttackCallbackCalled = true; return true; },
+                                                 [&]() { trustRangedAttackCallbackCalled = true; return true; })
+                                                  .handled &&
+                                             !trustRangedAttackCallbackCalled &&
+                                             trustcontrollerrangedattackdispatch::Resolve(
+                                                 true,
+                                                 []() { return false; },
+                                                 [&]() { trustRangedAttackCallbackCalled = true; return true; })
+                                                  .handled &&
+                                             !trustRangedAttackCallbackCalled &&
+                                             trustcontrollerrangedattackdispatch::Resolve(
+                                                 true, []() { return true; }, []() { return false; })
+                                                  .handled;
     const auto engageBase = std::chrono::steady_clock::time_point{};
     const bool playerEngageOK = !Evaluate(false, 0, engageBase, std::chrono::seconds(0), engageBase).dispatch &&
                                 Evaluate(true, 29, engageBase, std::chrono::seconds(1), engageBase + std::chrono::seconds(2)).dispatch &&
@@ -2403,6 +2424,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!trustRepositionCandidateOK)
     {
         std::cerr << "trust reposition candidate self-test failed\n";
+        return false;
+    }
+    if (!trustRangedAttackDispatchOK)
+    {
+        std::cerr << "trust ranged attack dispatch self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !followAdmissionOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)

@@ -28,6 +28,7 @@
 #include "trust_controller_noncombat_declump_admission_capacity.h"
 #include "trust_controller_noncombat_gambit_admission_capacity.h"
 #include "trust_controller_reposition_candidate_capacity.h"
+#include "trust_controller_ranged_attack_dispatch_capacity.h"
 #include "trust_controller_noncombat_movement_capacity.h"
 #include "trust_controller_recovery_capacity.h"
 #include "trust_controller_ranged_attack_capacity.h"
@@ -566,11 +567,15 @@ bool CTrustController::RangedAttack(uint16 targid)
     if (trustcontrollerrangedattack::CanStart(m_Tick - m_LastRangedAttackTime, hasRangedWeapon, rangedDelay, m_InTransit))
     {
         FaceTarget(PTarget->targid);
-        if (POwner->PAI->CanChangeState() && POwner->PAI->Internal_RangedAttack(targid))
+        const auto dispatch = trustcontrollerrangedattackdispatch::Resolve(
+            true,
+            [&]() { return POwner->PAI->CanChangeState(); },
+            [&]() { return POwner->PAI->Internal_RangedAttack(targid); });
+        if (dispatch.updateCooldown)
         {
             m_LastRangedAttackTime = m_Tick;
         }
-        return true;
+        return dispatch.handled;
     }
     return false;
 }
