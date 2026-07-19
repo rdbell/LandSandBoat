@@ -22,6 +22,7 @@
 #include "mob_controller.h"
 #include "mob_controller_deaggro_capacity.h"
 #include "mob_controller_deaggro_retarget_capacity.h"
+#include "mob_controller_avatar_bodyguard_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -317,30 +318,21 @@ void CMobController::TryLink()
     // handle pet behavior on the targets behalf (faster than in ai_pet_dummy)
     // Avatars defend masters by attacking mobs if the avatar isn't attacking anything currently (bodyguard behavior)
     // Alexander, Odin and Atomos are passive and do not protect the master.
-    if (PTarget->PPet != nullptr && PTarget->PPet->GetBattleTargetID() == 0)
+    if (PTarget->PPet != nullptr && mobcontrolleravatarbodyguard::ShouldDefend(
+                                       PTarget->PPet->GetBattleTargetID() == 0,
+                                       [&]() { return PTarget->PPet->objtype == TYPE_PET; },
+                                       [&]() { return static_cast<CPetEntity*>(PTarget->PPet)->getPetType() == PET_TYPE::AVATAR; },
+                                       [&]() {
+                                           const auto petID = static_cast<CPetEntity*>(PTarget->PPet)->petID();
+                                           return petID != PETID_ALEXANDER && petID != PETID_ODIN && petID != PETID_ATOMOS;
+                                       },
+                                       PTarget->objtype == TYPE_PC,
+                                       [&]() {
+                                           auto* PChar = dynamic_cast<CCharEntity*>(PTarget);
+                                           return PChar && PChar->IsMobOwner(PMob);
+                                       }))
     {
-        if (PTarget->PPet->objtype == TYPE_PET)
-        {
-            const auto PPetEntity = static_cast<CPetEntity*>(PTarget->PPet);
-            if (PPetEntity->getPetType() == PET_TYPE::AVATAR &&
-                PPetEntity->petID() != PETID_ALEXANDER &&
-                PPetEntity->petID() != PETID_ODIN &&
-                PPetEntity->petID() != PETID_ATOMOS)
-            {
-                if (PTarget->objtype == TYPE_PC)
-                {
-                    auto* PChar = dynamic_cast<CCharEntity*>(PTarget);
-                    if (PChar && PChar->IsMobOwner(PMob))
-                    {
-                        petutils::AttackTarget(PTarget, PMob);
-                    }
-                }
-                else
-                {
-                    petutils::AttackTarget(PTarget, PMob);
-                }
-            }
-        }
+        petutils::AttackTarget(PTarget, PMob);
     }
 
     // my pet should help as well
