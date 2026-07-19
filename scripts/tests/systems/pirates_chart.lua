@@ -10,3 +10,34 @@ describe("Pirates Chart loot catalog", function()
         assert(loot[4][1].itemId == xi.item.ALBATROSS_RING and loot[4][1].weight == 1000)
     end)
 end)
+
+describe("Pirates Chart trade", function()
+    it('starts the chart event and prioritizes the party-size rejection', function()
+        local message, event = nil, nil
+        local player = {
+            getParty = function() return {} end,
+            getPartySize = function() return 3 end,
+            checkSoloPartyAlliance = function() return 0 end,
+            messageSpecial = function(_, ...) message = { ... } end,
+            startEvent = function(_, ...) event = { ... } end,
+        }
+        local npc = { getStatus = function() return xi.status.NORMAL end }
+        local box = { getStatus = function() return xi.status.DISAPPEAR end }
+        local trade = {
+            getSlotCount = function() return 1 end,
+            getItemId = function() return xi.item.PIRATES_CHART end,
+            getItemQty = function() return 1 end,
+            confirmItem = function() end,
+        }
+        stub('GetNPCByID', function() return box end)
+        xi.piratesChart.onTrade(player, npc, trade)
+        assert(message[1] == 7825 and message[2] == xi.item.PIRATES_CHART)
+        assert(event[1] == 14 and event[5] == 3)
+
+        player.getPartySize = function() return 4 end
+        player.checkSoloPartyAlliance = function() return 2 end
+        message, event = nil, nil
+        xi.piratesChart.onTrade(player, npc, trade)
+        assert(message[1] == 7845 and message[2] == 3 and event == nil)
+    end)
+end)
