@@ -573,17 +573,30 @@ end
 -- onTrigger
 -----------------------------------
 
+xi.znm.sanraku.triggerOutcome = function(hasSpokenBefore, hasZeni)
+    if not hasSpokenBefore then
+        return 'introduction'
+    elseif not hasZeni then
+        return 'no_zeni'
+    end
+
+    return 'menu'
+end
+
 xi.znm.sanraku.onTrigger = function(player, npc)
     -- ZNM and Zeni Ineractions
-    if xi.znm.playerHasSpokenToSanrakuBefore(player) then
-        if player:getCurrency('zeni_point') ~= 0 then
-            local param = xi.znm.sanraku.menu(player)
-            player:startEvent(909, param)
-        else
-            player:showText(npc, ID.text.HOPES_REST)
-        end
-    else -- First time introduction
+    local outcome = xi.znm.sanraku.triggerOutcome(
+        xi.znm.playerHasSpokenToSanrakuBefore(player),
+        player:getCurrency('zeni_point') ~= 0
+    )
+
+    if outcome == 'introduction' then
         player:startEvent(908)
+    elseif outcome == 'no_zeni' then
+        player:showText(npc, ID.text.HOPES_REST)
+    else
+        local param = xi.znm.sanraku.menu(player)
+        player:startEvent(909, param)
     end
 end
 
