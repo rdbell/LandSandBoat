@@ -112,3 +112,15 @@ describe('Garrison level-cap resolution', function()
         assert(captured.args.flag == xi.effectFlag.ON_ZONE + xi.effectFlag.CONFRONTATION)
     end)
 end)
+
+describe('Garrison ally information', function()
+    it('assembles ally data from zone and nation catalogs', function()
+        local ronfaure = xi.garrison.zoneData[xi.zone.WEST_RONFAURE]
+        local ally = xi.garrison.getAllyInfo(xi.zone.WEST_RONFAURE, ronfaure, xi.nation.SANDORIA)
+
+        assert(ally.name == 'Patrician' and ally.groupId == 1)
+        assert(ally.minLevel == 15 and ally.maxLevel == 20)
+        assert(ally.pos == ronfaure.pos and ally.looks == xi.garrison.allyLooks[20][xi.nation.SANDORIA])
+        assert(xi.garrison.getAllyInfo(xi.zone.WEST_RONFAURE, ronfaure, xi.nation.BEASTMEN) == nil)
+    end)
+end)
