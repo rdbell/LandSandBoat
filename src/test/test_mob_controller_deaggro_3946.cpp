@@ -80,6 +80,7 @@
 #include "map/ai/controllers/mob_controller_magic_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_low_hp_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_action_state_detection_capacity.h"
+#include "map/ai/controllers/mob_controller_close_detection_range_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -875,6 +876,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                           !mobcontrolleractionstatedetection::CanDetect(true, true, []() { return false; }, []() { return true; }) &&
                                           !mobcontrolleractionstatedetection::CanDetect(false, true, [&]() { jobAbilityCallbackCalled = true; return true; }, []() { return true; }) &&
                                           !jobAbilityCallbackCalled;
+    const bool mobCloseDetectionRangeOK = mobcontrollerclosedetectionrange::IsInRange(19.9f) &&
+                                          mobcontrollerclosedetectionrange::IsInRange(20.0f) &&
+                                          !mobcontrollerclosedetectionrange::IsInRange(20.1f);
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1758,6 +1762,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobJobAbilityDetectionOK)
     {
         std::cerr << "mob job-ability detection self-test failed\n";
+        return false;
+    }
+    if (!mobCloseDetectionRangeOK)
+    {
+        std::cerr << "mob close-detection range self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

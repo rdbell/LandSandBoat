@@ -98,6 +98,7 @@
 #include "mob_controller_magic_detection_capacity.h"
 #include "mob_controller_low_hp_detection_capacity.h"
 #include "mob_controller_action_state_detection_capacity.h"
+#include "mob_controller_close_detection_range_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -475,7 +476,7 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
     }
 
     // everything below require distance to be below 20
-    if (currentDistance > 20)
+    if (!mobcontrollerclosedetectionrange::IsInRange(currentDistance))
     {
         return false;
     }
