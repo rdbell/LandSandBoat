@@ -45,6 +45,7 @@
 #include "automaton_controller_spell_permission_capacity.h"
 #include "automaton_controller_cast_admission_capacity.h"
 #include "automaton_controller_mob_skill_admission_capacity.h"
+#include "automaton_controller_attachment_check_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1534,7 +1535,7 @@ auto CAutomatonController::TryRangedAttack() -> bool // TODO: Find the animation
 
 auto CAutomatonController::TryAttachment() -> bool
 {
-    if (!PAutomaton->PAI->CanChangeState())
+    if (!automatoncontrollerattachmentcheckgate::CanCheckAttachments(PAutomaton->PAI->CanChangeState()))
     {
         return false;
     }
