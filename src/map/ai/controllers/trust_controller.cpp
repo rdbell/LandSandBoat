@@ -26,6 +26,7 @@
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
 #include "trust_controller_noncombat_declump_admission_capacity.h"
+#include "trust_controller_noncombat_gambit_admission_capacity.h"
 #include "trust_controller_noncombat_movement_capacity.h"
 #include "trust_controller_recovery_capacity.h"
 #include "trust_controller_ranged_attack_capacity.h"
@@ -356,7 +357,9 @@ auto CTrustController::DoNonCombatTick(timer::time_point tick) -> Task<void>
     }
 
     // Keep gambits active in combat, but only while stationary.
-    if (PMaster->PAI->IsEngaged() && !PTrust->PAI->PathFind->IsFollowingPath())
+    if (trustcontrollernoncombatgambitadmission::CanRun(
+            PMaster->PAI->IsEngaged(),
+            [&]() { return PTrust->PAI->PathFind->IsFollowingPath(); }))
     {
         co_await m_GambitsContainer->Tick(tick);
         PTrust->PAI->EventHandler.triggerListener("COMBAT_TICK", PTrust, PMaster, PTarget);
