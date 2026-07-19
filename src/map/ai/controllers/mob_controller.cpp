@@ -36,6 +36,7 @@
 #include "mob_controller_bound_target_candidate_capacity.h"
 #include "mob_controller_shared_target_selection_capacity.h"
 #include "mob_controller_roam_engage_gate_capacity.h"
+#include "mob_controller_roam_owner_engage_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1066,7 +1067,7 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
         Engage(PMob->PEnmityContainer->GetHighestEnmity()->targid);
         co_return;
     }
-    else if (PMob->m_OwnerID.id != 0 && !(PMob->m_roamFlags & ROAMFLAG_IGNORE))
+    else if (mobcontrollerroamownerengage::ShouldAttempt(PMob->m_OwnerID.id != 0, (PMob->m_roamFlags & ROAMFLAG_IGNORE) != 0))
     {
         // i'm claimed by someone and want to be fighting them
         PTarget = static_cast<CBattleEntity*>(PMob->GetEntity(PMob->m_OwnerID.targid, TYPE_PC | TYPE_MOB | TYPE_PET | TYPE_TRUST));
