@@ -50,6 +50,7 @@
 #include "mob_controller_ability_capacity.h"
 #include "mob_controller_mob_skill_target_capacity.h"
 #include "mob_controller_mob_skill_admission_capacity.h"
+#include "mob_controller_spell_cast_route_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -642,7 +643,7 @@ auto CMobController::TryCastSpell() -> bool
 
     // Perform cast. If there is a valid target override, cast at that target, otherwise cast normally.
     // We need this because CastSpell has its own targetfind and PCastTarget is not used for it.
-    if (maybeTargetOverride.has_value() && PCastTarget)
+    if (mobcontrollerspellcastroute::Select(maybeTargetOverride.has_value(), PCastTarget != nullptr) == mobcontrollerspellcastroute::Route::Direct)
     {
         Cast(PCastTarget->targid, chosenSpellId.value());
     }
