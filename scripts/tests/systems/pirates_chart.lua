@@ -111,3 +111,14 @@ describe("Pirates Chart mob fight", function()
         assert(calls.skill == nil)
     end)
 end)
+
+describe("Pirates Chart mob spawn", function()
+    it('applies the fixed confrontation mob-mod policy', function()
+        local mods = {}
+        local mob = { setMobMod = function(_, id, value) mods[id] = value end }
+        xi.piratesChart.onMobSpawn(mob)
+        assert(mods[xi.mobMod.EXP_BONUS] == -100 and mods[xi.mobMod.NO_DROPS] == 1)
+        assert(mods[xi.mobMod.GIL_MAX] == -1 and mods[xi.mobMod.IDLE_DESPAWN] == 60)
+        assert(mods[xi.mobMod.BASE_DAMAGE_MULTIPLIER] == 100)
+    end)
+end)
