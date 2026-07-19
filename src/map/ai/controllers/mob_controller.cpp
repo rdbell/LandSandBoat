@@ -27,6 +27,7 @@
 #include "mob_controller_party_link_scan_capacity.h"
 #include "mob_controller_party_link_member_eligibility_capacity.h"
 #include "mob_controller_party_link_family_capacity.h"
+#include "mob_controller_party_link_engagement_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -380,7 +381,9 @@ void CMobController::TryLink()
                 continue;
             }
 
-            if (PPartyMember->PAI->IsRoaming() && PPartyMember->CanLink(&PMob->loc.p, PMob->getMobMod(MOBMOD_SUPERLINK)))
+            if (mobcontrollerpartylinkengagement::CanEngage(
+                    PPartyMember->PAI->IsRoaming(),
+                    [&]() { return PPartyMember->CanLink(&PMob->loc.p, PMob->getMobMod(MOBMOD_SUPERLINK)); }))
             {
                 PPartyMember->PAI->Engage(PTarget->targid);
             }
