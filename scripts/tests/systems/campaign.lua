@@ -68,4 +68,43 @@ describe('Campaign Sigil application finish', function()
         assert(debitCalls == 0)
         xi.campaign.getMedalRank = originalGetMedalRank
     end)
+
+    it('grants an affordable shop item before debiting its allied-note price', function()
+        local granted, debited = nil, nil
+        local player = {
+            getZoneID = function() return xi.zone.BASTOK_MARKETS_S end,
+            getCampaignAllegiance = function() return xi.nation.BASTOK end,
+            getCurrency = function() return 10 end,
+            delCurrency = function(_, currency, amount) debited = { currency, amount } end,
+        }
+
+        stub('npcUtil.giveItem', function(actor, itemID)
+            assert(actor == player)
+            granted = itemID
+            return true
+        end)
+        -- Common-page entry 1 is Scroll of Instant Retrace, priced at 10.
+        xi.campaign.sigilOnEventFinish(player, 13, bit.bor(bit.lshift(1, 8), 2))
+
+        assert(granted == xi.item.SCROLL_OF_INSTANT_RETRACE)
+        assert(debited[1] == 'allied_notes' and debited[2] == 10)
+    end)
+
+    it('does not attempt a shop grant when allied notes are insufficient', function()
+        local grantCalls, debitCalls = 0, 0
+        local player = {
+            getZoneID = function() return xi.zone.BASTOK_MARKETS_S end,
+            getCampaignAllegiance = function() return xi.nation.BASTOK end,
+            getCurrency = function() return 9 end,
+            delCurrency = function() debitCalls = debitCalls + 1 end,
+        }
+
+        stub('npcUtil.giveItem', function()
+            grantCalls = grantCalls + 1
+            return true
+        end)
+        xi.campaign.sigilOnEventFinish(player, 13, bit.bor(bit.lshift(1, 8), 2))
+
+        assert(grantCalls == 0 and debitCalls == 0)
+    end)
 end)
