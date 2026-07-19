@@ -38,4 +38,10 @@ constexpr auto CanFollow(
 {
     return notNeutral && hasFollowFlag && hasNoFollowTarget && hasNoFollowType && canAggroTarget;
 }
+
+// ShouldClearOnEngage reports whether an existing roam follow target is cleared.
+constexpr auto ShouldClearOnEngage(const bool hasFollowTarget, const bool isRoamFollow) -> bool
+{
+    return hasFollowTarget && isRoamFollow;
+}
 } // namespace mobcontrollerfollow

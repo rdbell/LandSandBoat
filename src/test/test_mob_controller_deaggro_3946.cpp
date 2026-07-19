@@ -733,6 +733,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
         mobcontrollerengagedelay::ScheduleMagic(engageDelayTick, std::chrono::seconds(3), std::chrono::seconds(2)) == base + std::chrono::seconds(25) &&
         mobcontrollerengagedelay::ScheduleSpecial(engageDelayTick, std::chrono::seconds(0), std::chrono::seconds(0)) == engageDelayTick &&
         mobcontrollerengagedelay::ScheduleSpecial(engageDelayTick, std::chrono::seconds(3), std::chrono::seconds(2)) == base + std::chrono::seconds(15);
+    const bool mobFollowEngageClearOK = mobcontrollerfollow::ShouldClearOnEngage(true, true) &&
+                                        !mobcontrollerfollow::ShouldClearOnEngage(false, true) &&
+                                        !mobcontrollerfollow::ShouldClearOnEngage(true, false);
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1496,6 +1499,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobEngageDelayOK)
     {
         std::cerr << "mob engage-delay self-test failed\n";
+        return false;
+    }
+    if (!mobFollowEngageClearOK)
+    {
+        std::cerr << "mob follow-engage clear self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

@@ -1508,7 +1508,7 @@ auto CMobController::Engage(const uint16 targid) -> bool
     {
         m_firstSpell = true;
 
-        if (PFollowTarget != nullptr && m_followType == FollowType::Roam)
+        if (mobcontrollerfollow::ShouldClearOnEngage(PFollowTarget != nullptr, m_followType == FollowType::Roam))
         {
             ClearFollowTarget();
         }
