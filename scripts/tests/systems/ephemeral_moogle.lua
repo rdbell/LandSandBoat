@@ -78,3 +78,55 @@ describe('Ephemeral Moogle trade', function()
         assert(event[6] == 0 and event[7] == 0 and event[8] == 0 and event[9] == 0)
     end)
 end)
+
+describe('Ephemeral Moogle trade update', function()
+    it('confirms the trade, credits pending crystals, and refreshes the event', function()
+        local confirmed = false
+        local localVars = { ['[EM]fire_crystals'] = 27 }
+        local event = nil
+        local balances = {
+            fire_crystals = 100,
+            ice_crystals = 0,
+            wind_crystals = 0,
+            earth_crystals = 0,
+            lightning_crystals = 0,
+            water_crystals = 0,
+            light_crystals = 0,
+            dark_crystals = 0,
+        }
+        local player = {
+            getCurrency = function(_, currency) return balances[currency] end,
+            getLocalVar = function(_, name) return localVars[name] or 0 end,
+            setLocalVar = function(_, name, value) localVars[name] = value end,
+            addCurrency = function(_, currency, amount) balances[currency] = balances[currency] + amount end,
+            confirmTrade = function() confirmed = true end,
+            updateEvent = function(_, ...) event = { ... } end,
+        }
+        local npc = {
+            getName = function() return 'Ephemeral_Moogle_Wood' end,
+        }
+
+        xi.crafting.ephemeralMoogleOnEventUpdate(player, 915, 0, npc)
+
+        assert(confirmed)
+        assert(balances.fire_crystals == 127)
+        assert(localVars['[EM]fire_crystals'] == 0)
+        assert(event[1] == 127 and event[2] == 0 and event[3] == 0 and event[4] == 0)
+    end)
+
+    it('ignores a non-trade event', function()
+        local confirmed = false
+        local updated = false
+        local player = {
+            confirmTrade = function() confirmed = true end,
+            updateEvent = function() updated = true end,
+        }
+        local npc = {
+            getName = function() return 'Ephemeral_Moogle_Wood' end,
+        }
+
+        xi.crafting.ephemeralMoogleOnEventUpdate(player, 917, 0, npc)
+
+        assert(not confirmed and not updated)
+    end)
+end)
