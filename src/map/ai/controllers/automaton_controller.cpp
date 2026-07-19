@@ -93,6 +93,7 @@
 #include "automaton_controller_enhancement_enmity_target_capacity.h"
 #include "automaton_controller_tp_skillchain_resonance_gate_capacity.h"
 #include "automaton_controller_tp_skillchain_resonance_properties_capacity.h"
+#include "automaton_controller_status_removal_decode_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1655,11 +1656,9 @@ void LoadAutomatonSpellList()
                 .removes    = {}, // Will handle in a moment
             };
 
-            uint32 removes = rset->get<uint32>("removes");
-            while (removes > 0)
+            for (const auto status : automatoncontrollerstatusremovaldecode::Decode(rset->get<uint32>("removes")))
             {
-                PSpell.removes.emplace_back(static_cast<xi::StatusEffect>(removes & 0xFF));
-                removes = removes >> 8;
+                PSpell.removes.emplace_back(static_cast<xi::StatusEffect>(status));
             }
 
             if (!PSpell.removes.empty())

@@ -114,6 +114,7 @@
 #include "map/ai/controllers/automaton_controller_enhancement_enmity_target_capacity.h"
 #include "map/ai/controllers/automaton_controller_tp_skillchain_resonance_gate_capacity.h"
 #include "map/ai/controllers/automaton_controller_tp_skillchain_resonance_properties_capacity.h"
+#include "map/ai/controllers/automaton_controller_status_removal_decode_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -593,6 +594,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool automatonTPSkillchainResonancePropertiesOK = automatonResonanceProperties[0] == 13 &&
                                                             automatonResonanceProperties[1] == 12 &&
                                                             automatonResonanceProperties[2] == 0xAB;
+    const auto automatonStatusRemovals = automatoncontrollerstatusremovaldecode::Decode(0x030001);
+    const bool automatonStatusRemovalDecodeOK = automatonStatusRemovals == std::vector<std::uint16_t>{ 1, 0, 3 } &&
+                                                automatoncontrollerstatusremovaldecode::Decode(0).empty();
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -999,6 +1003,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonTPSkillchainResonancePropertiesOK)
     {
         std::cerr << "automaton TP skillchain resonance properties self-test failed\n";
+        return false;
+    }
+    if (!automatonStatusRemovalDecodeOK)
+    {
+        std::cerr << "automaton status-removal decode self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)
