@@ -64,3 +64,16 @@ describe('ZNM Sanraku plate trade day', function()
         assert(current.reset == nil and current.tradedPlates == 7)
     end)
 end)
+
+describe('ZNM Sanraku plate trade admission', function()
+    it('enforces the daily limit unless Rhapsody resets tracking', function()
+        local allowed = xi.znm.sanraku.plateTradeAdmissionPlan(false, 9, 10)
+        assert(allowed.accept and allowed.resetTracking == nil)
+
+        local denied = xi.znm.sanraku.plateTradeAdmissionPlan(false, 10, 10)
+        assert(not denied.accept and denied.resetTracking == nil)
+
+        local rhapsody = xi.znm.sanraku.plateTradeAdmissionPlan(true, 10, 10)
+        assert(rhapsody.accept and rhapsody.resetTracking)
+    end)
+end)

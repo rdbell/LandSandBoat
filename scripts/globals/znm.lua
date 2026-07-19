@@ -487,22 +487,36 @@ end
 -- onTrade Helpers
 -----------------------------------
 
+xi.znm.sanraku.plateTradeAdmissionPlan = function(hasRhapsodyInAzure, tradedPlates, tradeLimit)
+    if hasRhapsodyInAzure then
+        return { resetTracking = true, accept = true }
+    end
+
+    return { accept = tradedPlates < tradeLimit }
+end
+
 xi.znm.sanraku.handleTradeWithPlate = function(player, npc, item)
-    if not player:hasKeyItem(xi.ki.RHAPSODY_IN_AZURE) then
-        local tradeLimit = xi.znm.SOULPLATE_TRADE_LIMIT
+    local hasRhapsody = player:hasKeyItem(xi.ki.RHAPSODY_IN_AZURE)
+    local tradeLimit  = xi.znm.SOULPLATE_TRADE_LIMIT
+    local tradedPlates = 0
 
-        if xi.znm.sanraku.platesTradedToday(player) >= tradeLimit then
-            player:showText(npc, ID.text.APPRECIATE_MORE, 1, xi.item.SOUL_PLATE, tradeLimit)
-            local tradeItem = player:getTrade():getItem()
-            if tradeItem then
-                tradeItem:setReservedValue(0)
-            end
+    if not hasRhapsody then
+        tradedPlates = xi.znm.sanraku.platesTradedToday(player)
+    end
 
-            player:getTrade():clean()
-            return
-        end
-    else -- If you have the KI, clear out the tracking vars!
+    local plan = xi.znm.sanraku.plateTradeAdmissionPlan(hasRhapsody, tradedPlates, tradeLimit)
+
+    if plan.resetTracking then
         xi.znm.resetDailyTrackingVars(player)
+    elseif not plan.accept then
+        player:showText(npc, ID.text.APPRECIATE_MORE, 1, xi.item.SOUL_PLATE, tradeLimit)
+        local tradeItem = player:getTrade():getItem()
+        if tradeItem then
+            tradeItem:setReservedValue(0)
+        end
+
+        player:getTrade():clean()
+        return
     end
 
     -- Cache the soulplate value on the player
