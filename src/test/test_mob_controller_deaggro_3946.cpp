@@ -111,6 +111,7 @@
 #include "map/ai/controllers/automaton_controller_status_removal_candidate_capacity.h"
 #include "map/ai/controllers/automaton_controller_master_enhancement_target_capacity.h"
 #include "map/ai/controllers/automaton_controller_party_enhancement_target_capacity.h"
+#include "map/ai/controllers/automaton_controller_enhancement_enmity_target_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -596,6 +597,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                                    !automatoncontrollerpartyenhancementtarget::CanConsiderPartyEnhancement(false, true, false, false) &&
                                                    !automatoncontrollerpartyenhancementtarget::CanConsiderPartyEnhancement(true, false, false, false) &&
                                                    !automatoncontrollerpartyenhancementtarget::CanConsiderPartyEnhancement(true, true, true, false);
+    const bool automatonEnhancementEnmityTargetOK = automatoncontrollerenhancementenmitytarget::CanSelectHigherEnmity(100, 101) &&
+                                                    !automatoncontrollerenhancementenmitytarget::CanSelectHigherEnmity(100, 100) &&
+                                                    !automatoncontrollerenhancementenmitytarget::CanSelectHigherEnmity(100, 99);
     const bool automatonEnhanceGateOK = automatoncontrollerenhancegate::CanEnhance(3001ms, 0ms, 3000ms, true) &&
                                        !automatoncontrollerenhancegate::CanEnhance(3000ms, 0ms, 3000ms, true) &&
                                        !automatoncontrollerenhancegate::CanEnhance(4000ms, 0ms, 3000ms, false) &&
@@ -992,6 +996,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonPartyEnhancementTargetOK)
     {
         std::cerr << "automaton party enhancement target self-test failed\n";
+        return false;
+    }
+    if (!automatonEnhancementEnmityTargetOK)
+    {
+        std::cerr << "automaton enhancement enmity target self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)

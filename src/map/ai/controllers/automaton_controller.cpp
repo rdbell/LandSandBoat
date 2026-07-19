@@ -90,6 +90,7 @@
 #include "automaton_controller_status_removal_candidate_capacity.h"
 #include "automaton_controller_master_enhancement_target_capacity.h"
 #include "automaton_controller_party_enhancement_target_capacity.h"
+#include "automaton_controller_enhancement_enmity_target_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1178,7 +1179,7 @@ auto CAutomatonController::TryEnhance() -> bool
                 enmity_obj != enmityList->end())
             {
                 masterHasEnmity = true;
-                if (highestEnmity < enmity_obj->second.CE + enmity_obj->second.VE)
+                if (automatoncontrollerenhancementenmitytarget::CanSelectHigherEnmity(highestEnmity, enmity_obj->second.CE + enmity_obj->second.VE))
                 {
                     highestEnmity = enmity_obj->second.CE + enmity_obj->second.VE;
                     PRegenTarget  = PAutomaton->PMaster;
@@ -1261,7 +1262,7 @@ auto CAutomatonController::TryEnhance() -> bool
     {
         auto enmityList = PMob->PEnmityContainer->GetEnmityList();
         auto enmity_obj = enmityList->find(PAutomaton->id);
-        if (enmity_obj != enmityList->end() && highestEnmity < enmity_obj->second.CE + enmity_obj->second.VE)
+        if (enmity_obj != enmityList->end() && automatoncontrollerenhancementenmitytarget::CanSelectHigherEnmity(highestEnmity, enmity_obj->second.CE + enmity_obj->second.VE))
         {
             highestEnmity = enmity_obj->second.CE + enmity_obj->second.VE;
             PRegenTarget  = PAutomaton;
@@ -1331,7 +1332,7 @@ auto CAutomatonController::TryEnhance() -> bool
                     if (enmity_obj != enmityList->end())
                     {
                         hasEnmity = true;
-                        if (highestEnmity < enmity_obj->second.CE + enmity_obj->second.VE)
+                        if (automatoncontrollerenhancementenmitytarget::CanSelectHigherEnmity(highestEnmity, enmity_obj->second.CE + enmity_obj->second.VE))
                         {
                             highestEnmity = enmity_obj->second.CE + enmity_obj->second.VE;
                             PRegenTarget  = PMember;
