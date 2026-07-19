@@ -56,3 +56,25 @@ describe('Ancestry Moogle trigger', function()
         assert(eligible[1] == '[RaceChange]Eligible' and eligible[2] == 0)
     end)
 end)
+
+describe('Ancestry Moogle finish', function()
+    it('consumes eligibility and applies a valid appearance change', function()
+        local vars = {}
+        local changed = nil
+        local player = {
+            getZoneID = function() return xi.zone.PORT_BASTOK end,
+            getCharVar = function(_, name) return name == '[RaceChange]Eligible' and 9999999999 or 0 end,
+            setCharVar = function(_, name, value) vars[name] = value end,
+            getName = function() return 'Tester' end,
+            getRace = function() return xi.race.HUME_M end,
+            getFace = function() return 0 end,
+            getSize = function() return 0 end,
+            raceChange = function(_, race, face, size) changed = { race, face, size }; return true end,
+        }
+
+        xi.ancestryMoogle.onEventFinish(player, 479, 0x00025200, {})
+
+        assert(vars['[RaceChange]Eligible'] == 0 and vars['[RaceChange]Last'] > 0)
+        assert(changed[1] == xi.race.HUME_F and changed[2] == 5 and changed[3] == 2)
+    end)
+end)
