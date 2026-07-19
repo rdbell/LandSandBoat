@@ -77,6 +77,7 @@
 #include "map/ai/controllers/automaton_controller_stormwaker_elemental_fallback_capacity.h"
 #include "map/ai/controllers/automaton_controller_combat_party_heal_target_capacity.h"
 #include "map/ai/controllers/automaton_controller_noncombat_party_heal_target_capacity.h"
+#include "map/ai/controllers/automaton_controller_healing_hate_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -660,6 +661,16 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonNonCombatPartyHealTargetOK)
     {
         std::cerr << "automaton non-combat party heal-target self-test failed\n";
+        return false;
+    }
+    const bool automatonHealingHateOK = !automatoncontrollerhealinghate::HasHealingHate(false, false, false, 0, 0) &&
+                                        automatoncontrollerhealinghate::HasHealingHate(true, false, true, 0, 0) &&
+                                        !automatoncontrollerhealinghate::HasHealingHate(true, true, false, 0, 0) &&
+                                        automatoncontrollerhealinghate::HasHealingHate(true, true, true, 100, 101) &&
+                                        !automatoncontrollerhealinghate::HasHealingHate(true, true, true, 100, 100);
+    if (!automatonHealingHateOK)
+    {
+        std::cerr << "automaton healing-hate self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&

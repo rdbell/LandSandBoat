@@ -56,6 +56,7 @@
 #include "automaton_controller_stormwaker_elemental_fallback_capacity.h"
 #include "automaton_controller_combat_party_heal_target_capacity.h"
 #include "automaton_controller_noncombat_party_heal_target_capacity.h"
+#include "automaton_controller_healing_hate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -430,21 +431,11 @@ auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
         enmityList            = PMob->PEnmityContainer->GetEnmityList();
         auto masterEnmity_obj = enmityList->find(PAutomaton->PMaster->id);
         auto selfEnmity_obj   = enmityList->find(PAutomaton->id);
-
-        if (masterEnmity_obj == enmityList->end())
-        {
-            haveHate = true;
-        }
-        else if (selfEnmity_obj == enmityList->end())
-        {
-            haveHate = false;
-        }
-        else
-        {
-            int32 selfEnmity   = selfEnmity_obj->second.CE + selfEnmity_obj->second.VE;
-            int32 masterEnmity = masterEnmity_obj->second.CE + masterEnmity_obj->second.VE;
-            haveHate           = selfEnmity > masterEnmity;
-        }
+        const auto masterHasEnmity = masterEnmity_obj != enmityList->end();
+        const auto automatonHasEnmity = selfEnmity_obj != enmityList->end();
+        const auto masterEnmity = masterHasEnmity ? masterEnmity_obj->second.CE + masterEnmity_obj->second.VE : 0;
+        const auto automatonEnmity = automatonHasEnmity ? selfEnmity_obj->second.CE + selfEnmity_obj->second.VE : 0;
+        haveHate = automatoncontrollerhealinghate::HasHealingHate(true, masterHasEnmity, automatonHasEnmity, masterEnmity, automatonEnmity);
     }
 
     const auto automatonHPP = PAutomaton->GetHPP();
