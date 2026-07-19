@@ -424,3 +424,32 @@ describe('Garrison event confirmation', function()
         xi.garrison.start = originalStart
     end)
 end)
+
+describe('Garrison startup', function()
+    it('initializes the first wave and timing state', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local keys = { 'players', 'spawnSchedule', 'npcs', 'mobs', 'state', 'isRunning', 'stateTime', 'waveIndex', 'groupIndex', 'bossSpawned', 'nextSpawnTime', 'endTime', 'deadNPCCount', 'deadMobCount', 'despawnedMobCount', 'lastTick' }
+        local original = {}
+        for _, key in ipairs(keys) do original[key] = zoneData[key] end
+        local originalTick = xi.garrison.tick
+        local zone = { getID = function() return zoneID end }
+        local player = {
+            getZone = function() return zone end,
+            getZoneID = function() return zoneID end,
+            getAlliance = function() return {} end,
+            setCharVar = function() end,
+        }
+        local npc = { timer = function() end }
+        xi.garrison.tick = function() end
+        local before = GetSystemTime()
+        xi.garrison.start(player, npc)
+        assert(zoneData.state == xi.garrison.state.SPAWN_NPCS and zoneData.isRunning)
+        assert(zoneData.waveIndex == 1 and zoneData.groupIndex == 1 and not zoneData.bossSpawned)
+        assert(#zoneData.players == 0 and #zoneData.npcs == 0 and #zoneData.mobs == 0)
+        assert(zoneData.nextSpawnTime >= before + xi.garrison.waves.delayBetweenGroups)
+        assert(zoneData.endTime >= before + xi.settings.main.GARRISON_TIME_LIMIT)
+        xi.garrison.tick = originalTick
+        for key, value in pairs(original) do zoneData[key] = value end
+    end)
+end)
