@@ -72,6 +72,7 @@
 #include "map/ai/controllers/mob_controller_roam_action_cooldown_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_call_for_help_capacity.h"
 #include "map/ai/controllers/mob_controller_mob_skill_list_route_capacity.h"
+#include "map/ai/controllers/mob_controller_mob_skill_override_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -813,6 +814,8 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
         mobcontrollermobskilllistroute::Resolve(false, 42) == mobcontrollermobskilllistroute::Route::Reject &&
         mobcontrollermobskilllistroute::Resolve(true, 42) == mobcontrollermobskilllistroute::Route::Explicit &&
         mobcontrollermobskilllistroute::Resolve(true, 0) == mobcontrollermobskilllistroute::Route::Modifier;
+    const bool mobSkillOverrideOK = mobcontrollermobskilloverride::Resolve(42, 0) == 42 &&
+                                    mobcontrollermobskilloverride::Resolve(42, 99) == 99;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1651,6 +1654,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobSkillListRouteOK)
     {
         std::cerr << "mob-skill list-route self-test failed\n";
+        return false;
+    }
+    if (!mobSkillOverrideOK)
+    {
+        std::cerr << "mob-skill override self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

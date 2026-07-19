@@ -90,6 +90,7 @@
 #include "mob_controller_roam_action_cooldown_capacity.h"
 #include "mob_controller_roam_call_for_help_capacity.h"
 #include "mob_controller_mob_skill_list_route_capacity.h"
+#include "mob_controller_mob_skill_override_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -507,10 +508,8 @@ auto CMobController::MobSkill(int listId) -> bool
         break;
     }
 
-    if (auto overrideSkill = luautils::OnMobMobskillChoose(PMob, PTarget, chosenSkillId); overrideSkill > 0)
-    {
-        chosenSkillId = overrideSkill;
-    }
+    chosenSkillId = mobcontrollermobskilloverride::Resolve(
+        chosenSkillId, luautils::OnMobMobskillChoose(PMob, PTarget, chosenSkillId));
 
     auto* PMobSkill{ battleutils::GetMobSkill(chosenSkillId) };
 
