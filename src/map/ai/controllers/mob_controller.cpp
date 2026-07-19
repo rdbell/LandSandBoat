@@ -32,6 +32,7 @@
 #include "mob_controller_spell_selection_capacity.h"
 #include "mob_controller_spell_target_range_capacity.h"
 #include "mob_controller_teleport_window_capacity.h"
+#include "mob_controller_type_two_teleport_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -888,7 +889,7 @@ void CMobController::Move()
                 {
                     CMobSkill* teleportBegin = battleutils::GetMobSkill(PMob->getMobMod(MOBMOD_TELEPORT_START));
 
-                    if (teleportBegin && currentDistance <= teleportBegin->getDistance())
+                    if (mobcontrollertypetwoteleport::CanStart(teleportBegin != nullptr, teleportBegin && currentDistance <= teleportBegin->getDistance()))
                     {
                         MobSkill(PMob->targid, teleportBegin->getID(), std::nullopt);
                         m_LastSpecialTime = m_Tick;

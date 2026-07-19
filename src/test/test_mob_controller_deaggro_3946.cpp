@@ -13,6 +13,7 @@
 #include "map/ai/controllers/mob_controller_spell_selection_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_target_range_capacity.h"
 #include "map/ai/controllers/mob_controller_teleport_window_capacity.h"
+#include "map/ai/controllers/mob_controller_type_two_teleport_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -622,6 +623,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      !mobcontrollerteleportwindow::CanStartTypeOne(false, true, true) &&
                                      !mobcontrollerteleportwindow::CanStartTypeOne(true, false, true) &&
                                      !mobcontrollerteleportwindow::CanStartTypeOne(true, true, false);
+    const bool mobTypeTwoTeleportOK = mobcontrollertypetwoteleport::CanStart(true, true) &&
+                                      !mobcontrollertypetwoteleport::CanStart(false, true) &&
+                                      !mobcontrollertypetwoteleport::CanStart(true, false);
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1058,6 +1062,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobTeleportWindowOK)
     {
         std::cerr << "mob teleport window self-test failed\n";
+        return false;
+    }
+    if (!mobTypeTwoTeleportOK)
+    {
+        std::cerr << "mob type-two teleport self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)
