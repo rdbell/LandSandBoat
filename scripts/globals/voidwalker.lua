@@ -250,6 +250,10 @@ xi.voidwalker.shouldResetJyeshthaMobSkillUse = function(mobSkillUse, hasMightySt
     return mobSkillUse == 1 and not hasMightyStrikes
 end
 
+xi.voidwalker.shouldErebusApplyHundredFists = function(hasBloodWeapon, hasHundredFists)
+    return hasBloodWeapon and not hasHundredFists
+end
+
 xi.voidwalker.direction = function(diffx, diffz)
     local tan       = math.atan(diffz / diffx)
     local degree    = math.deg(tan)
@@ -492,10 +496,10 @@ local mixinByMobName =
 
     ['Erebus'] = function(mob)
         randomly(mob, 30, 60, xi.effect.BLOOD_WEAPON, xi.mobSkill.BLOOD_WEAPON_1)
-        if
-            mob:hasStatusEffect(xi.effect.BLOOD_WEAPON) and
-            not mob:hasStatusEffect(xi.effect.HUNDRED_FISTS)
-        then
+        if xi.voidwalker.shouldErebusApplyHundredFists(
+            mob:hasStatusEffect(xi.effect.BLOOD_WEAPON),
+            mob:hasStatusEffect(xi.effect.HUNDRED_FISTS)
+        ) then
             mob:addStatusEffect(xi.effect.HUNDRED_FISTS, { power = 1, duration = 30, origin = mob })
         end
     end,
