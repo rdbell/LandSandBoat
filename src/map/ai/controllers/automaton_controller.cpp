@@ -54,6 +54,7 @@
 #include "automaton_controller_spiritreaver_enfeeble_priority_capacity.h"
 #include "automaton_controller_stormwaker_ice_elemental_priority_capacity.h"
 #include "automaton_controller_stormwaker_elemental_fallback_capacity.h"
+#include "automaton_controller_combat_party_heal_target_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -468,15 +469,21 @@ auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
             uint16 highestEnmity = 0;
             static_cast<CCharEntity*>(PAutomaton->PMaster)->ForPartyWithTrusts([&](CBattleEntity* PMember)
             {
-                if (PMember->id != PAutomaton->PMaster->id)
+                const auto isMaster = PMember->id == PAutomaton->PMaster->id;
+                auto       enmity_obj = enmityList->find(PMember->id);
+                const auto hasEnmity = enmity_obj != enmityList->end();
+                const auto candidateEnmity = hasEnmity ? enmity_obj->second.CE + enmity_obj->second.VE : 0;
+                if (automatoncontrollercombatpartyhealtarget::CanSelectTarget(
+                        isMaster,
+                        hasEnmity,
+                        candidateEnmity,
+                        highestEnmity,
+                        PMember->GetHPP(),
+                        threshold,
+                        distance(PAutomaton->loc.p, PAutomaton->PMaster->loc.p)))
                 {
-                    auto enmity_obj = enmityList->find(PMember->id);
-                    if (enmity_obj != enmityList->end() && highestEnmity < enmity_obj->second.CE + enmity_obj->second.VE && PMember->GetHPP() <= threshold &&
-                        distance(PAutomaton->loc.p, PAutomaton->PMaster->loc.p) < 20)
-                    {
-                        highestEnmity = enmity_obj->second.CE + enmity_obj->second.VE;
-                        PCastTarget   = PMember;
-                    }
+                    highestEnmity = candidateEnmity;
+                    PCastTarget   = PMember;
                 }
             });
         }
