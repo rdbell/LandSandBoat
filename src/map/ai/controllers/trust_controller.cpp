@@ -541,14 +541,19 @@ void CTrustController::PathOutToDistance(CBattleEntity* PTarget, float amount)
     }
 
     // Get somewhat close to the target destination
-    if (trustcontrollerreposition::ShouldPath(distance(POwner->loc.p, target_position), m_failedRepositionAttempts))
+    const auto completionPlan = trustcontrollerreposition::ResolveCompletion(
+        distance(POwner->loc.p, target_position), m_failedRepositionAttempts);
+    if (completionPlan.action == trustcontrollerreposition::CompletionAction::Path)
     {
         POwner->PAI->PathFind->PathTo(target_position, PATHFLAG_RUN | PATHFLAG_WALLHACK);
     }
     else
     {
         FaceTarget(PTarget->targid);
-        m_InTransit = false;
+        if (completionPlan.clearTransit)
+        {
+            m_InTransit = false;
+        }
     }
 }
 

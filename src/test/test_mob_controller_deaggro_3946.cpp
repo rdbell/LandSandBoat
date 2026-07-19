@@ -841,7 +841,13 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                    trustcontrollerreposition::NextFailedAttempts(true, 0) == 1 &&
                                    trustcontrollerreposition::NextFailedAttempts(true, 2) == 3 &&
                                    trustcontrollerreposition::NextFailedAttempts(true, 255) == 0 &&
-                                   trustcontrollerreposition::NextFailedAttempts(false, 2) == 0;
+                                   trustcontrollerreposition::NextFailedAttempts(false, 2) == 0 &&
+                                   trustcontrollerreposition::ResolveCompletion(2.1f, 2).action == trustcontrollerreposition::CompletionAction::Path &&
+                                   !trustcontrollerreposition::ResolveCompletion(2.1f, 2).clearTransit &&
+                                   trustcontrollerreposition::ResolveCompletion(2.0f, 0).action == trustcontrollerreposition::CompletionAction::Face &&
+                                   trustcontrollerreposition::ResolveCompletion(2.0f, 0).clearTransit &&
+                                   trustcontrollerreposition::ResolveCompletion(3.0f, 3).action == trustcontrollerreposition::CompletionAction::Face &&
+                                   trustcontrollerreposition::ResolveCompletion(3.0f, 3).clearTransit;
     bool trustAbilityStateCheckCalled = false;
     const bool trustAbilityOK = trustcontrollerability::CanUse(false, true) &&
                                 !trustcontrollerability::CanUse(true, true) &&
