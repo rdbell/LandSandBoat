@@ -348,3 +348,28 @@ describe('Garrison reward transition', function()
         for key, value in pairs(original) do zoneData[key] = value end
     end)
 end)
+
+describe('Garrison entry validation', function()
+    it('accepts eligible players and rejects active or wrong-nation entries', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local originalRunning = zoneData.isRunning
+        local player = {
+            getZoneID = function() return zoneID end,
+            getAlliance = function() return {} end,
+            getNation = function() return xi.nation.SANDORIA end,
+            getRank = function() return xi.settings.main.GARRISON_RANK end,
+            getCharVar = function() return 0 end,
+            getZone = function() return { getID = function() return zoneID end } end,
+            messageText = function() end,
+            messageSpecial = function() end,
+        }
+
+        zoneData.isRunning = false
+        assert(xi.garrison.validateEntry(zoneData, player, {}, xi.nation.SANDORIA))
+        assert(not xi.garrison.validateEntry(zoneData, player, {}, xi.nation.BASTOK))
+        zoneData.isRunning = true
+        assert(not xi.garrison.validateEntry(zoneData, player, {}, xi.nation.SANDORIA))
+        zoneData.isRunning = originalRunning
+    end)
+end)
