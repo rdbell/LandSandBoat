@@ -23,6 +23,7 @@
 #include "mob_controller_deaggro_capacity.h"
 #include "mob_controller_deaggro_retarget_capacity.h"
 #include "mob_controller_avatar_bodyguard_capacity.h"
+#include "mob_controller_pet_assist_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -336,7 +337,7 @@ void CMobController::TryLink()
     }
 
     // my pet should help as well
-    if (PMob->PPet != nullptr && PMob->PPet->PAI->IsRoaming())
+    if (mobcontrollerpetassist::ShouldAssist(PMob->PPet != nullptr, PMob->PPet != nullptr && PMob->PPet->PAI->IsRoaming()))
     {
         PMob->PPet->PAI->Engage(PTarget->targid);
     }
