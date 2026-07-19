@@ -63,6 +63,7 @@
 #include "mob_controller_type_one_teleport_admission_capacity.h"
 #include "mob_controller_movement_entry_capacity.h"
 #include "mob_controller_chase_movement_admission_capacity.h"
+#include "mob_controller_chase_path_refresh_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -968,7 +969,8 @@ void CMobController::Move()
                             PMob->PAI->PathFind->PathInRange(projectedPosition, closeDistance, PATHFLAG_WALLHACK | PATHFLAG_RUN);
                         }
                     }
-                    else if (!isWithinDistance(PMob->PAI->PathFind->GetDestination(), PTarget->loc.p, 0.1f)) // This checks against the previous frames distance, and can false positive for where we want to be _now_
+                    else if (mobcontrollerchasepathrefresh::ShouldRefresh(
+                                 isWithinDistance(PMob->PAI->PathFind->GetDestination(), PTarget->loc.p, 0.1f))) // This checks against the previous frames distance, and can false positive for where we want to be _now_
                     {
                         auto projectedPosition = nearPosition(PTarget->loc.p, 0, rotationToRadian(worldAngle(PMob->loc.p, PTarget->loc.p)));
 
