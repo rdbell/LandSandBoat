@@ -402,10 +402,12 @@ xi.znm.ryo.onEventUpdate = function(player, csid, option, npc)
     local outcome = xi.znm.ryo.eventUpdateOutcome(csid, option)
 
     if outcome == 'plate_value' then -- Get approximate value of traded soulplate
-        local zeniValue = xi.znm.ryo.tradedPlateValue(player)
+        local plan = xi.znm.ryo.plateValueUpdatePlan(xi.znm.ryo.tradedPlateValue(player))
 
-        xi.znm.ryo.setTradedPlateValue(player, 0)
-        player:updateEvent(zeniValue)
+        if plan.clearTradedPlateValue then
+            xi.znm.ryo.setTradedPlateValue(player, 0)
+        end
+        player:updateEvent(plan.zeniValue)
     elseif outcome == 'interest' then -- 'Sanraku's subject of interest'
         local param = xi.znm.getSanrakusInterest()
 
@@ -496,6 +498,10 @@ xi.znm.ryo.nextZeniStatus = function(option, zeniStatus)
     elseif option == 402 and zeniStatus == 2 then -- ask about gaining access to islet's
         return 3
     end
+end
+
+xi.znm.ryo.plateValueUpdatePlan = function(zeniValue)
+    return { zeniValue = zeniValue, clearTradedPlateValue = true }
 end
 
 xi.znm.ryo.tradedPlateValue = function(player)
