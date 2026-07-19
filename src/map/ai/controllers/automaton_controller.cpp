@@ -41,6 +41,7 @@
 #include "automaton_controller_tp_skill_candidate_capacity.h"
 #include "automaton_controller_tp_skill_priority_capacity.h"
 #include "automaton_controller_tp_skillchain_candidate_capacity.h"
+#include "automaton_controller_tp_selection_fallback_capacity.h"
 #include "automaton_controller_spell_permission_capacity.h"
 #include "automaton_controller_cast_admission_capacity.h"
 
@@ -1487,7 +1488,12 @@ auto CAutomatonController::TryTPMove() -> bool
             }
         }
 
-        if (!attemptChain || (currentManeuvers == -1 && PAutomaton->PMaster && PAutomaton->PMaster->health.tp < PAutomaton->getMod(Mod::AUTO_TP_EFFICIENCY)))
+        if (!attemptChain || automatoncontrollertpselectionfallback::ShouldUseNormalTPSkillSelection(
+                true,
+                currentManeuvers,
+                PAutomaton->PMaster != nullptr,
+                PAutomaton->PMaster ? PAutomaton->PMaster->health.tp : 0,
+                PAutomaton->getMod(Mod::AUTO_TP_EFFICIENCY)))
         {
             for (auto* PSkill : validSkills)
             {
