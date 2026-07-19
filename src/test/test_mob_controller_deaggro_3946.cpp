@@ -28,6 +28,7 @@
 #include "map/ai/controllers/mob_controller_roam_path_result_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_script_cadence_capacity.h"
 #include "map/ai/controllers/mob_controller_wait_capacity.h"
+#include "map/ai/controllers/mob_controller_ability_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -696,6 +697,20 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                            equalWait.waitUntil == base + std::chrono::seconds(13) &&
                            activeWait.tick == base + std::chrono::seconds(9) &&
                            activeWait.waitUntil == base + std::chrono::seconds(13);
+    const bool mobAbilityOK = mobcontrollerability::CanUse(false, true) &&
+                              !mobcontrollerability::CanUse(true, true) &&
+                              !mobcontrollerability::CanUse(false, false) &&
+                              !mobcontrollerability::CanUse(true, false);
+    if (!mobWaitOK)
+    {
+        std::cerr << "mob wait-state self-test failed\n";
+        return false;
+    }
+    if (!mobAbilityOK)
+    {
+        std::cerr << "mob ability admission self-test failed\n";
+        return false;
+    }
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);

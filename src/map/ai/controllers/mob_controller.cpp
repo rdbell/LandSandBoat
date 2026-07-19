@@ -47,6 +47,7 @@
 #include "mob_controller_roam_path_result_capacity.h"
 #include "mob_controller_roam_script_cadence_capacity.h"
 #include "mob_controller_wait_capacity.h"
+#include "mob_controller_ability_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -80,12 +81,9 @@ CMobController::CMobController(CMobEntity* PEntity)
 
 auto CMobController::Ability(uint16 targid, uint16 abilityid) -> bool
 {
-    if (PMob->PRecastContainer->HasRecast(RECAST_ABILITY, static_cast<Recast>(abilityid), 0s))
-    {
-        return false;
-    }
-
-    if (POwner->PAI->CanChangeState())
+    if (mobcontrollerability::CanUse(
+            PMob->PRecastContainer->HasRecast(RECAST_ABILITY, static_cast<Recast>(abilityid), 0s),
+            POwner->PAI->CanChangeState()))
     {
         return POwner->PAI->Internal_Ability(targid, abilityid);
     }
