@@ -211,3 +211,47 @@ describe('Garrison spawn-NPC state transition', function()
         zoneData.isRunning = originalRunning
     end)
 end)
+
+describe('Garrison wave advance', function()
+    it('resets mob state and schedules the next wave', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local original = {
+            state = zoneData.state,
+            players = zoneData.players,
+            isRunning = zoneData.isRunning,
+            spawnSchedule = zoneData.spawnSchedule,
+            waveIndex = zoneData.waveIndex,
+            groupIndex = zoneData.groupIndex,
+            mobs = zoneData.mobs,
+            deadMobCount = zoneData.deadMobCount,
+            despawnedMobCount = zoneData.despawnedMobCount,
+        }
+        local zone = { getID = function() return zoneID end }
+        local npc = {
+            getZone = function() return zone end,
+            getZoneID = function() return zoneID end,
+        }
+
+        zoneData.players = {}
+        zoneData.isRunning = false
+        zoneData.spawnSchedule = xi.garrison.waves.spawnSchedule[1]
+        zoneData.state = xi.garrison.state.ADVANCE_WAVE
+        zoneData.waveIndex = 2
+        zoneData.groupIndex = 3
+        zoneData.mobs = { 123, 456 }
+        zoneData.deadMobCount = 2
+        zoneData.despawnedMobCount = 2
+        local before = GetSystemTime()
+        xi.garrison.tick(npc)
+
+        assert(zoneData.state == xi.garrison.state.BATTLE)
+        assert(zoneData.waveIndex == 3 and zoneData.groupIndex == 1)
+        assert(#zoneData.mobs == 0 and zoneData.deadMobCount == 0 and zoneData.despawnedMobCount == 0)
+        assert(zoneData.nextSpawnTime >= before + xi.garrison.waves.delayBetweenGroups)
+
+        for key, value in pairs(original) do
+            zoneData[key] = value
+        end
+    end)
+end)
