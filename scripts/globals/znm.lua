@@ -370,7 +370,9 @@ xi.znm.ryo = xi.znm.ryo or {}
 -----------------------------------
 
 xi.znm.ryo.onTrade = function(player, npc, trade)
-    if npcUtil.tradeHasExactly(trade, xi.item.SOUL_PLATE) then
+    local outcome = xi.znm.ryo.tradeOutcome(npcUtil.tradeHasExactly(trade, xi.item.SOUL_PLATE))
+
+    if outcome == 'plate_trade' then
         -- Cache the soulplate value on the player
         local item = trade:getItem(0)
         local zeni = xi.znm.calculatePlateZeni(player, item:getExData())
@@ -452,6 +454,12 @@ end
 -----------------------------------
 -- Ryo General Helpers
 -----------------------------------
+
+xi.znm.ryo.tradeOutcome = function(hasExactlySoulPlate)
+    if hasExactlySoulPlate then
+        return 'plate_trade'
+    end
+end
 
 xi.znm.ryo.triggerOutcome = function(hasSpokenToSanraku)
     if hasSpokenToSanraku then
