@@ -50,6 +50,14 @@ describe('Dynamis refill statue range', function()
     end)
 end)
 
+describe('Dynamis refill statue respawns', function()
+    it('plans killer group respawns with a five-minute delay', function()
+        assert(xi.dynamis.refillStatueRespawnPlan(100, { 100 }, false, 1) == nil)
+        local plan = xi.dynamis.refillStatueRespawnPlan(100, { 100, 101 }, true, 2)
+        assert(plan.respawnMobId == 101 and plan.disableDead and plan.respawnDelay == 300)
+    end)
+end)
+
 describe('Dynamis refill statues', function()
     it('finds a statue eye configuration across groups', function()
         local blue = { mob = 100, eye = 1 }

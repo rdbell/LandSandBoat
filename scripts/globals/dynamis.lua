@@ -100,6 +100,19 @@ xi.dynamis.canReceiveRefill = function(distance)
     return distance < 30
 end
 
+xi.dynamis.refillStatueRespawnPlan = function(mobId, group, isKiller, randomIndex)
+    if not isKiller or not group or #group == 0 then
+        return nil
+    end
+
+    local respawnMobId = group[randomIndex]
+    if not respawnMobId then
+        return nil
+    end
+
+    return { respawnMobId = respawnMobId, disableDead = respawnMobId ~= mobId, respawnDelay = 300 }
+end
+
 local entryInfo =
 {
     --[[
@@ -721,13 +734,14 @@ xi.dynamis.refillStatueOnDeath = function(mob, player, optParams)
                 mob:setAnimationSub(xi.dynamis.eye.NONE)
 
                 -- spawn a new mob in this group
-                local nextId = group[math.random(1, #group)]
-                if nextId ~= mobId then
+                local respawnPlan = xi.dynamis.refillStatueRespawnPlan(mobId, group, true, math.random(1, #group))
+                local nextId = respawnPlan.respawnMobId
+                if respawnPlan.disableDead then
                     DisallowRespawn(mobId, true)
                     DisallowRespawn(nextId, false)
                 end
 
-                GetMobByID(nextId):setRespawnTime(300) -- 5 minutes
+                GetMobByID(nextId):setRespawnTime(respawnPlan.respawnDelay)
             end
         else
             printf('[xi.dynamis.refillStatueOnDeath] called in zone %i on mob %i that does not appear in a refill statue group.', zoneId, mobId)
