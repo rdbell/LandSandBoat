@@ -48,6 +48,7 @@
 #include "automaton_controller_attachment_check_gate_capacity.h"
 #include "automaton_controller_tp_move_gate_capacity.h"
 #include "automaton_controller_disengage_stand_back_capacity.h"
+#include "automaton_controller_healing_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -400,8 +401,12 @@ auto CAutomatonController::TrySpellcast(const CurrentManeuvers& maneuvers) -> bo
 
 auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
 {
-    if (!PAutomaton->PMaster || m_healCooldown == 0s ||
-        m_Tick <= m_LastHealTime + (m_healCooldown - std::chrono::seconds(PAutomaton->getMod(Mod::AUTO_HEALING_DELAY))))
+    if (!automatoncontrollerhealinggate::CanTryHeal(
+            PAutomaton->PMaster != nullptr,
+            m_Tick,
+            m_LastHealTime,
+            m_healCooldown,
+            std::chrono::seconds(PAutomaton->getMod(Mod::AUTO_HEALING_DELAY))))
     {
         return false;
     }
