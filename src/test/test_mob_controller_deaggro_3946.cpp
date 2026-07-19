@@ -8,6 +8,7 @@
 #include "map/ai/helpers/gambits_tp_trigger_capacity.h"
 #include "map/ai/controllers/mob_controller_follow_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_admission_capacity.h"
+#include "map/ai/controllers/mob_controller_special_skill_target_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -597,6 +598,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const auto automatonStatusRemovals = automatoncontrollerstatusremovaldecode::Decode(0x030001);
     const bool automatonStatusRemovalDecodeOK = automatonStatusRemovals == std::vector<std::uint16_t>{ 1, 0, 3 } &&
                                                 automatoncontrollerstatusremovaldecode::Decode(0).empty();
+    const bool mobSpecialSkillTargetOK = mobcontrollerspecialskilltarget::CanSelectTarget(true, false, false) &&
+                                         mobcontrollerspecialskilltarget::CanSelectTarget(false, true, true) &&
+                                         !mobcontrollerspecialskilltarget::CanSelectTarget(false, false, false) &&
+                                         !mobcontrollerspecialskilltarget::CanSelectTarget(false, true, false);
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1008,6 +1013,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonStatusRemovalDecodeOK)
     {
         std::cerr << "automaton status-removal decode self-test failed\n";
+        return false;
+    }
+    if (!mobSpecialSkillTargetOK)
+    {
+        std::cerr << "mob special-skill target self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)

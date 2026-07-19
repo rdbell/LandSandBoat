@@ -27,6 +27,7 @@
 #include "mob_controller_aggro_capacity.h"
 #include "mob_controller_follow_capacity.h"
 #include "mob_controller_spell_admission_capacity.h"
+#include "mob_controller_special_skill_target_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -502,28 +503,14 @@ auto CMobController::TrySpecialSkill() -> bool
         return false;
     }
 
-    if (PSpecialSkill->getValidTargets() & TARGET_SELF)
-    {
-        PAbilityTarget = PMob;
-    }
-    else if (PTarget != nullptr)
-    {
-        // distance check for special skill
-        float currentDistance = distance(PMob->loc.p, PTarget->loc.p);
-
-        if (currentDistance <= PSpecialSkill->getDistance())
-        {
-            PAbilityTarget = PTarget;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else
+    const auto selfValid   = (PSpecialSkill->getValidTargets() & TARGET_SELF) != 0;
+    const auto hasTarget   = PTarget != nullptr;
+    const auto withinRange = hasTarget && distance(PMob->loc.p, PTarget->loc.p) <= PSpecialSkill->getDistance();
+    if (!mobcontrollerspecialskilltarget::CanSelectTarget(selfValid, hasTarget, withinRange))
     {
         return false;
     }
+    PAbilityTarget = selfValid ? PMob : PTarget;
 
     if (luautils::OnMobSkillCheck(PAbilityTarget, PMob, PSpecialSkill) == 0)
     {
