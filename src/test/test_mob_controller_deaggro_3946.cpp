@@ -78,6 +78,7 @@
 #include "map/ai/controllers/mob_controller_sight_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_hearing_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_magic_detection_capacity.h"
+#include "map/ai/controllers/mob_controller_low_hp_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -852,6 +853,13 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      !mobcontrollermagicdetection::CanDetect(true, 10.0f, 10.0f, true, []() { return true; }, []() { return true; }) &&
                                      !mobcontrollermagicdetection::CanDetect(false, 9.9f, 10.0f, true, [&]() { magicCallbackCalled = true; return true; }, []() { return true; }) &&
                                      !magicCallbackCalled;
+    bool lowHPCallbackCalled = false;
+    const bool mobLowHPDetectionOK = mobcontrollerlowhpdetection::CanDetect(true, 74, true, []() { return false; }) &&
+                                     mobcontrollerlowhpdetection::CanDetect(true, 74, false, []() { return true; }) &&
+                                     !mobcontrollerlowhpdetection::CanDetect(true, 74, false, []() { return false; }) &&
+                                     !mobcontrollerlowhpdetection::CanDetect(true, 75, true, []() { return true; }) &&
+                                     !mobcontrollerlowhpdetection::CanDetect(false, 74, true, [&]() { lowHPCallbackCalled = true; return true; }) &&
+                                     !lowHPCallbackCalled;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1720,6 +1728,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobMagicDetectionOK)
     {
         std::cerr << "mob magic-detection self-test failed\n";
+        return false;
+    }
+    if (!mobLowHPDetectionOK)
+    {
+        std::cerr << "mob low-HP detection self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

@@ -96,6 +96,7 @@
 #include "mob_controller_sight_detection_capacity.h"
 #include "mob_controller_hearing_detection_capacity.h"
 #include "mob_controller_magic_detection_capacity.h"
+#include "mob_controller_low_hp_detection_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -478,9 +479,13 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
         return false;
     }
 
-    if ((detects & DETECT_LOWHP) && PTarget->GetHPP() < 75)
+    if (mobcontrollerlowhpdetection::CanDetect(
+            (detects & DETECT_LOWHP) != 0,
+            PTarget->GetHPP(),
+            isTargetAndInRange,
+            [&]() { return PMob->CanSeeTarget(PTarget); }))
     {
-        return isTargetAndInRange || PMob->CanSeeTarget(PTarget);
+        return true;
     }
 
     if ((detects & DETECT_WEAPONSKILL) && PTarget->PAI->IsCurrentState<CWeaponSkillState>())
