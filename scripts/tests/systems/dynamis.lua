@@ -65,6 +65,19 @@ describe('Dynamis time-extension death plan', function()
     end)
 end)
 
+describe('Dynamis refill statue death plan', function()
+    it('only gives recovery and replacement actions to the killer', function()
+        local noAction = xi.dynamis.refillStatueDeathPlan(xi.dynamis.eye.BLUE, false, 100, { 100, 101 }, 2)
+        assert(next(noAction) == nil)
+
+        local killer = xi.dynamis.refillStatueDeathPlan(xi.dynamis.eye.BLUE, true, 100, { 100, 101 }, 2)
+        assert(killer.recovery == 'mp' and killer.clearEye and killer.respawnMobId == 101 and killer.disableDead)
+
+        local greenEye = xi.dynamis.refillStatueDeathPlan(xi.dynamis.eye.GREEN, true, 100, { 100, 101 }, 1)
+        assert(greenEye.recovery == 'hp')
+    end)
+end)
+
 describe('Dynamis time-extension groups', function()
     it('normalizes single and grouped extension mobs and rejects missing IDs', function()
         local single = { mob = 100, ki = 200, minutes = 10 }

@@ -502,6 +502,21 @@ xi.dynamis.timeExtensionDeathPlan = function(hasDynamisEffect, hasKeyItem, isKil
     return plan
 end
 
+xi.dynamis.refillStatueDeathPlan = function(eye, isKiller, mobId, group, randomIndex)
+    if not isKiller then
+        return {}
+    end
+
+    local respawnPlan = xi.dynamis.refillStatueRespawnPlan(mobId, group, true, randomIndex)
+    return {
+        recovery = xi.dynamis.refillStatueRecovery(eye),
+        clearEye = true,
+        respawnMobId = respawnPlan.respawnMobId,
+        disableDead = respawnPlan.disableDead,
+        respawnDelay = respawnPlan.respawnDelay,
+    }
+end
+
 xi.dynamis.entryNpcOnTrigger = function(player, npc)
     local zoneId        = player:getZoneID()
     local info          = entryInfo[zoneId]
@@ -810,8 +825,9 @@ xi.dynamis.refillStatueOnDeath = function(mob, player, optParams)
                 table.insert(group, groupStatue.mob)
             end
             if optParams.isKiller then
+                local deathPlan = xi.dynamis.refillStatueDeathPlan(eye, true, mobId, group, math.random(1, #group))
                 -- MP or HP refill
-                local recovery = xi.dynamis.refillStatueRecovery(eye)
+                local recovery = deathPlan.recovery
                 if recovery then
                     local zone    = mob:getZone()
                     local players = zone:getPlayers()
@@ -831,17 +847,18 @@ xi.dynamis.refillStatueOnDeath = function(mob, player, optParams)
                     end
                 end
 
-                mob:setAnimationSub(xi.dynamis.eye.NONE)
+                if deathPlan.clearEye then
+                    mob:setAnimationSub(xi.dynamis.eye.NONE)
+                end
 
                 -- spawn a new mob in this group
-                local respawnPlan = xi.dynamis.refillStatueRespawnPlan(mobId, group, true, math.random(1, #group))
-                local nextId = respawnPlan.respawnMobId
-                if respawnPlan.disableDead then
+                local nextId = deathPlan.respawnMobId
+                if deathPlan.disableDead then
                     DisallowRespawn(mobId, true)
                     DisallowRespawn(nextId, false)
                 end
 
-                GetMobByID(nextId):setRespawnTime(respawnPlan.respawnDelay)
+                GetMobByID(nextId):setRespawnTime(deathPlan.respawnDelay)
             end
         else
             printf('[xi.dynamis.refillStatueOnDeath] called in zone %i on mob %i that does not appear in a refill statue group.', zoneId, mobId)
