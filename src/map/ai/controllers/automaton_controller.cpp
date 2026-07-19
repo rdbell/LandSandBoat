@@ -63,6 +63,7 @@
 #include "automaton_controller_dia_bio_priority_capacity.h"
 #include "automaton_controller_spiritreaver_aspir_candidate_capacity.h"
 #include "automaton_controller_spiritreaver_drain_candidate_capacity.h"
+#include "automaton_controller_spiritreaver_absorb_int_candidate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -808,13 +809,14 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
                 castPriority.emplace_back(SpellID::Drain);
             }
 
+            if (automatoncontrollerspiritreaverabsorbintcandidate::CanSelectCandidate(
+                    maneuvers.dark, PAutomaton->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::IntBoost)))
+            { // Use it ASAP
+                defaultPriority.emplace_back(SpellID::Absorb_INT);
+            }
+
             if (maneuvers.dark) // Dark -> Access to Enfeebles
             {
-                if (!PAutomaton->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::IntBoost))
-                { // Use it ASAP
-                    defaultPriority.emplace_back(SpellID::Absorb_INT);
-                }
-
                 // Not prioritizable since it requires 1 Dark to access Enfeebles and requires 2 of another element to prioritize another
                 defaultPriority.emplace_back(SpellID::Blind);
                 if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
