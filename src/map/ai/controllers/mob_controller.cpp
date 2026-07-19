@@ -25,6 +25,7 @@
 #include "mob_controller_avatar_bodyguard_capacity.h"
 #include "mob_controller_pet_assist_capacity.h"
 #include "mob_controller_party_link_scan_capacity.h"
+#include "mob_controller_party_link_member_eligibility_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -358,18 +359,16 @@ void CMobController::TryLink()
         {
             // Mob link parties only contain mobs; objtype-gate then static_cast to avoid a
             // per-member dynamic_cast in this hot loop.
-            if (member->objtype != TYPE_MOB)
+            // Note if the mob to link with this one is a pet then do not link.
+            // Pets only link with their masters.
+            if (!mobcontrollerpartylinkmembereligibility::IsEligible(
+                    member->objtype == TYPE_MOB,
+                    [&]() { return static_cast<CMobEntity*>(member)->PMaster != nullptr; },
+                    [&]() { return static_cast<CMobEntity*>(member)->isDead(); }))
             {
                 continue;
             }
             auto* PPartyMember = static_cast<CMobEntity*>(member);
-
-            // Note if the mob to link with this one is a pet then do not link
-            // Pets only link with their masters
-            if (PPartyMember->PMaster || PPartyMember->isDead())
-            {
-                continue;
-            }
 
             // Handle the case where a mob doesn't link with its own family but has a sublink
             // This is needed because the sublink will cause like family members to be in the same
