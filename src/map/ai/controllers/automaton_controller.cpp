@@ -61,6 +61,7 @@
 #include "automaton_controller_soulsoother_party_heal_gate_capacity.h"
 #include "automaton_controller_dispel_status_candidate_capacity.h"
 #include "automaton_controller_dia_bio_priority_capacity.h"
+#include "automaton_controller_spiritreaver_aspir_candidate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -795,7 +796,7 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
         }
         case AutomatonHead::Spiritreaver:
         {
-            if (PAutomaton->GetMPP() < 75 && PTarget->health.mp > 0) // MPP < 75 -> Aspir
+            if (automatoncontrollerspiritreaveraspircandidate::CanSelectCandidate(PAutomaton->GetMPP(), PTarget->health.mp)) // MPP < 75 -> Aspir
             {
                 castPriority.emplace_back(SpellID::Aspir_II);
                 castPriority.emplace_back(SpellID::Aspir);

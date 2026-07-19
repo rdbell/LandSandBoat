@@ -82,6 +82,7 @@
 #include "map/ai/controllers/automaton_controller_soulsoother_party_heal_gate_capacity.h"
 #include "map/ai/controllers/automaton_controller_dispel_status_candidate_capacity.h"
 #include "map/ai/controllers/automaton_controller_dia_bio_priority_capacity.h"
+#include "map/ai/controllers/automaton_controller_spiritreaver_aspir_candidate_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -711,6 +712,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonDiaBioPriorityOK)
     {
         std::cerr << "automaton Dia/Bio priority self-test failed\n";
+        return false;
+    }
+    const bool automatonSpiritreaverAspirCandidateOK = automatoncontrollerspiritreaveraspircandidate::CanSelectCandidate(74, 1) &&
+                                                       !automatoncontrollerspiritreaveraspircandidate::CanSelectCandidate(75, 1) &&
+                                                       !automatoncontrollerspiritreaveraspircandidate::CanSelectCandidate(74, 0);
+    if (!automatonSpiritreaverAspirCandidateOK)
+    {
+        std::cerr << "automaton Spiritreaver Aspir candidate self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
