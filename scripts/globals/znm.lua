@@ -660,14 +660,32 @@ xi.znm.sanraku.isletAccessPlan = function(hasRhapsodyInAzure, option)
     return { zeniCost = zeniCost, keyItem = keyItem }
 end
 
+xi.znm.sanraku.isletAccessOutcome = function(hasEnoughZeni, hasSalt)
+    if not hasEnoughZeni then
+        return 'no_zeni'
+    elseif hasSalt then
+        return 'already_owned'
+    end
+
+    return 'purchase'
+end
+
 xi.znm.sanraku.handleGainingAccessToIslets = function(player, option)
     local plan = xi.znm.sanraku.isletAccessPlan(player:hasKeyItem(xi.keyItem.RHAPSODY_IN_AZURE), option)
     local zeniCost = plan.zeniCost
     local keyItem = plan.keyItem
 
-    if player:getCurrency('zeni_point') < zeniCost then -- Not enough zeni
+    local hasEnoughZeni = player:getCurrency('zeni_point') >= zeniCost
+    local hasSalt = false
+    if hasEnoughZeni then
+        hasSalt = player:hasKeyItem(keyItem)
+    end
+
+    local outcome = xi.znm.sanraku.isletAccessOutcome(hasEnoughZeni, hasSalt)
+
+    if outcome == 'no_zeni' then
         player:updateEvent(2)
-    elseif player:hasKeyItem(keyItem) then -- Already have the salt
+    elseif outcome == 'already_owned' then
         player:showText(GetNPCByID(ID.npc.SANRAKU), ID.text.ALREADY_IN_POSSESSION)
     else
         player:addKeyItem(keyItem)
