@@ -13,6 +13,28 @@ describe('Festive Moogle trigger', function()
 
         assert(event[1] == 380 and event[2] == xi.item.NOMAD_CAP)
     end)
+
+    it('clears the granted item charvar after a successful claim', function()
+        local item = nil
+        local clearedVar = nil
+        local clearedValue = nil
+        local player = {
+            getZoneID = function() return xi.zone.PORT_BASTOK end,
+            getCharVar = function(_, name) return name == 'festiveMoogleNomadCap' and 1 or 0 end,
+            getFreeSlotsCount = function() return 1 end,
+            addItem = function(_, entry) item = entry return true end,
+            messageSpecial = function() end,
+            setCharVar = function(_, name, value)
+                clearedVar = name
+                clearedValue = value
+            end,
+        }
+
+        xi.festiveMoogle.onEventFinish(player, 380, 1, {})
+
+        assert(item.id == xi.item.NOMAD_CAP and item.quantity == 1)
+        assert(clearedVar == 'festiveMoogleNomadCap' and clearedValue == 0)
+    end)
 end)
 
 describe('Festive Moogle pell trade', function()
