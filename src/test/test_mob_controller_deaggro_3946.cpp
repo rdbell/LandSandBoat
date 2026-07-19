@@ -83,6 +83,7 @@
 #include "map/ai/controllers/automaton_controller_dispel_status_candidate_capacity.h"
 #include "map/ai/controllers/automaton_controller_dia_bio_priority_capacity.h"
 #include "map/ai/controllers/automaton_controller_spiritreaver_aspir_candidate_capacity.h"
+#include "map/ai/controllers/automaton_controller_spiritreaver_drain_candidate_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -720,6 +721,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonSpiritreaverAspirCandidateOK)
     {
         std::cerr << "automaton Spiritreaver Aspir candidate self-test failed\n";
+        return false;
+    }
+    const bool automatonSpiritreaverDrainCandidateOK = automatoncontrollerspiritreaverdraincandidate::CanSelectCandidate(74, false) &&
+                                                       !automatoncontrollerspiritreaverdraincandidate::CanSelectCandidate(75, false) &&
+                                                       !automatoncontrollerspiritreaverdraincandidate::CanSelectCandidate(74, true);
+    if (!automatonSpiritreaverDrainCandidateOK)
+    {
+        std::cerr << "automaton Spiritreaver Drain candidate self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&

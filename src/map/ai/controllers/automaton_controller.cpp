@@ -62,6 +62,7 @@
 #include "automaton_controller_dispel_status_candidate_capacity.h"
 #include "automaton_controller_dia_bio_priority_capacity.h"
 #include "automaton_controller_spiritreaver_aspir_candidate_capacity.h"
+#include "automaton_controller_spiritreaver_drain_candidate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -802,7 +803,7 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
                 castPriority.emplace_back(SpellID::Aspir);
             }
 
-            if (PAutomaton->GetHPP() < 75 && PTarget->m_EcoSystem != xi::Ecosystem::Undead)
+            if (automatoncontrollerspiritreaverdraincandidate::CanSelectCandidate(PAutomaton->GetHPP(), PTarget->m_EcoSystem == xi::Ecosystem::Undead))
             { // HPP <= 75 -> Drain
                 castPriority.emplace_back(SpellID::Drain);
             }
