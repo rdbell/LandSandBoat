@@ -78,6 +78,7 @@
 #include "mob_controller_engage_delay_capacity.h"
 #include "mob_controller_fomor_aggro_context_capacity.h"
 #include "mob_controller_cast_stop_cooldown_capacity.h"
+#include "mob_controller_reset_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1447,14 +1448,22 @@ void CMobController::Reset()
     TracyZoneScoped;
 
     // Wait a little while before roaming again.
-    m_LastActionTime = m_Tick - std::chrono::seconds(xirand::GetRandomNumber(PMob->getMobMod(MOBMOD_ROAM_COOL)));
+    const auto resetState = mobcontrollerreset::Resolve(
+        m_Tick, std::chrono::seconds(xirand::GetRandomNumber(PMob->getMobMod(MOBMOD_ROAM_COOL))));
+    m_LastActionTime = resetState.lastAction;
 
     // Don't attack player right off of spawn
-    PMob->m_neutral = true;
-    m_NeutralTime   = m_Tick;
+    PMob->m_neutral = resetState.neutral;
+    m_NeutralTime   = resetState.neutralTime;
 
-    PTarget = nullptr;
-    ClearFollowTarget();
+    if (resetState.clearTarget)
+    {
+        PTarget = nullptr;
+    }
+    if (resetState.clearFollowTarget)
+    {
+        ClearFollowTarget();
+    }
 }
 
 auto CMobController::MobSkill(const uint16 targid, uint16 wsid, Maybe<timer::duration> castTimeOverride) -> bool
