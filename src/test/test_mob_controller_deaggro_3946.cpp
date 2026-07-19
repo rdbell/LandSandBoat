@@ -15,6 +15,7 @@
 #include "map/ai/controllers/mob_controller_teleport_window_capacity.h"
 #include "map/ai/controllers/mob_controller_type_two_teleport_capacity.h"
 #include "map/ai/controllers/mob_controller_bound_target_candidate_capacity.h"
+#include "map/ai/controllers/mob_controller_shared_target_selection_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -631,6 +632,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                            !mobcontrollerboundtargetcandidate::ShouldSelect(10, 10, 5.0f, 4.0f, true) &&
                                            !mobcontrollerboundtargetcandidate::ShouldSelect(10, 11, 5.0f, 5.0f, true) &&
                                            !mobcontrollerboundtargetcandidate::ShouldSelect(10, 11, 5.0f, 4.0f, false);
+    const bool mobSharedTargetSelectionOK = mobcontrollersharedtargetselection::Select(true, true, true) == mobcontrollersharedtargetselection::Source::Partner &&
+                                            mobcontrollersharedtargetselection::Select(true, false, true) == mobcontrollersharedtargetselection::Source::Enmity &&
+                                            mobcontrollersharedtargetselection::Select(false, false, true) == mobcontrollersharedtargetselection::Source::Enmity &&
+                                            mobcontrollersharedtargetselection::Select(false, false, false) == mobcontrollersharedtargetselection::Source::None;
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1077,6 +1082,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobBoundTargetCandidateOK)
     {
         std::cerr << "mob bound-target candidate self-test failed\n";
+        return false;
+    }
+    if (!mobSharedTargetSelectionOK)
+    {
+        std::cerr << "mob shared-target selection self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)

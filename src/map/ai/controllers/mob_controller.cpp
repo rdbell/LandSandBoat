@@ -34,6 +34,7 @@
 #include "mob_controller_teleport_window_capacity.h"
 #include "mob_controller_type_two_teleport_capacity.h"
 #include "mob_controller_bound_target_candidate_capacity.h"
+#include "mob_controller_shared_target_selection_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -984,24 +985,23 @@ void CMobController::HandleEnmity()
     PMob->PEnmityContainer->DecayEnmity();
     auto* PHighestEnmityTarget{ PMob->PEnmityContainer->GetHighestEnmity() };
 
-    if (PMob->getMobMod(MOBMOD_SHARE_TARGET) > 0 && PMob->GetEntity(PMob->getMobMod(MOBMOD_SHARE_TARGET), TYPE_MOB))
+    auto* PSharedTargetMob = PMob->getMobMod(MOBMOD_SHARE_TARGET) > 0
+        ? static_cast<CMobEntity*>(PMob->GetEntity(PMob->getMobMod(MOBMOD_SHARE_TARGET), TYPE_MOB))
+        : nullptr;
+    const auto sharedTargetID = PSharedTargetMob ? PSharedTargetMob->GetBattleTargetID() : 0;
+    if (PSharedTargetMob)
     {
-        ChangeTarget(static_cast<CMobEntity*>(PMob->GetEntity(PMob->getMobMod(MOBMOD_SHARE_TARGET), TYPE_MOB))->GetBattleTargetID());
-
-        if (!PMob->GetBattleTargetID())
-        {
-            if (PHighestEnmityTarget)
-            {
-                ChangeTarget(PHighestEnmityTarget->targid);
-            }
-        }
+        ChangeTarget(sharedTargetID);
     }
-    else
+    switch (mobcontrollersharedtargetselection::Select(PSharedTargetMob != nullptr, sharedTargetID != 0, PHighestEnmityTarget != nullptr))
     {
-        if (PHighestEnmityTarget)
-        {
+        case mobcontrollersharedtargetselection::Source::Partner:
+            break;
+        case mobcontrollersharedtargetselection::Source::Enmity:
             ChangeTarget(PHighestEnmityTarget->targid);
-        }
+            break;
+        case mobcontrollersharedtargetselection::Source::None:
+            break;
     }
 
     // Bind special case
