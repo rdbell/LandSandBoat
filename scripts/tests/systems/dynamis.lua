@@ -84,6 +84,13 @@ describe('Dynamis QM trade confirmation', function()
     end)
 end)
 
+describe('Dynamis QM trade order', function()
+    it('returns the first matching configured entry', function()
+        local index, item = xi.dynamis.firstQMTradeMatch({ 100, 101, 102 }, function(value) return value >= 101 end)
+        assert(index == 2 and item == 101)
+    end)
+end)
+
 describe('Dynamis refill statues', function()
     it('finds a statue eye configuration across groups', function()
         local blue = { mob = 100, eye = 1 }

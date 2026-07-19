@@ -133,6 +133,14 @@ xi.dynamis.shouldConfirmQMTrade = function(mobId, popSucceeded)
     return mobId ~= nil and popSucceeded
 end
 
+xi.dynamis.firstQMTradeMatch = function(items, hasExactTrade)
+    for index, item in pairs(items or {}) do
+        if hasExactTrade(item) then
+            return index, item
+        end
+    end
+end
+
 local entryInfo =
 {
     --[[
@@ -781,16 +789,15 @@ xi.dynamis.qmOnTrade = function(player, npc, trade)
         local info = qmNpcs[npcId]
 
         if info then
-            for _, v in pairs(info.trade) do
-                if npcUtil.tradeHasExactly(trade, v.item) then
+            local tradeIndex = xi.dynamis.firstQMTradeMatch(info.trade, function(entry) return npcUtil.tradeHasExactly(trade, entry.item) end)
+            if tradeIndex then
+                local v = info.trade[tradeIndex]
                     local mobId = xi.dynamis.qmTradeMob(v.mob, math.random(1, type(v.mob) == 'table' and #v.mob or 1))
 
                     if xi.dynamis.shouldConfirmQMTrade(mobId, mobId and npcUtil.popFromQM(player, npc, mobId, { hide = 0, radius = 2 })) then
                         player:confirmTrade()
                     end
 
-                    break
-                end
             end
         else
             printf('[xi.dynamis.qmOnTrade] called on in zone %i on npc %i (%s) that does not appear in QM data.', zoneId, npcId, npc:getName())
