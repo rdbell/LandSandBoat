@@ -207,6 +207,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     using mobcontrollerdeaggro::ShouldDeaggroForHide;
     using mobcontrollerdeaggro::ShouldDeaggroForLock;
     using mobcontrollerdetection::Evaluate;
+    using mobcontrollerdetection::ResolveChecks;
     using mobcontrollerreadiness::SpecialSkillReady;
     using mobcontrollerreadiness::SpellReady;
     using mobcontrollermovement::CanMoveForward;
@@ -244,6 +245,28 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                              Evaluate(true, false, false, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).tapDeaggro &&
                              Evaluate(false, true, false, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).tapDeaggro &&
                              Evaluate(false, false, true, true, false, base + std::chrono::seconds(25), base, std::chrono::seconds(0)).tapDeaggro;
+    bool detectionStageCalled = false;
+    const auto pursuitCheck = ResolveChecks(
+        []() { return true; },
+        [&]() { detectionStageCalled = true; return true; },
+        [&]() { detectionStageCalled = true; return true; });
+    const auto targetDetectionCheck = ResolveChecks(
+        []() { return false; },
+        []() { return true; },
+        [&]() { detectionStageCalled = true; return true; });
+    const auto immobilizedCheck = ResolveChecks(
+        []() { return false; },
+        []() { return false; },
+        []() { return true; });
+    const auto noDetectionCheck = ResolveChecks(
+        []() { return false; },
+        []() { return false; },
+        []() { return false; });
+    const bool detectionCheckOrderOK = pursuitCheck.canPursue && !pursuitCheck.canDetect && !pursuitCheck.immobilized &&
+                                       !targetDetectionCheck.canPursue && targetDetectionCheck.canDetect && !targetDetectionCheck.immobilized &&
+                                       !immobilizedCheck.canPursue && !immobilizedCheck.canDetect && immobilizedCheck.immobilized &&
+                                       !noDetectionCheck.canPursue && !noDetectionCheck.canDetect && !noDetectionCheck.immobilized &&
+                                       !detectionStageCalled;
     const bool readinessOK = SpellReady(true, false, false, 0, 0, base, base + std::chrono::hours(1), std::chrono::seconds(0)) &&
                              SpellReady(false, true, false, 0, 0, base, base + std::chrono::hours(1), std::chrono::seconds(0)) &&
                              !SpellReady(false, false, true, 3, 3, base + std::chrono::hours(1), base, std::chrono::seconds(0)) &&
@@ -2029,6 +2052,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!aggroDetectionAdmissionOK)
     {
         std::cerr << "aggro detection-admission self-test failed\n";
+        return false;
+    }
+    if (!detectionCheckOrderOK)
+    {
+        std::cerr << "detection check-order self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !followAdmissionOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)

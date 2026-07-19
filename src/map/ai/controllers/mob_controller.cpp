@@ -275,14 +275,17 @@ auto CMobController::CheckDetection(CBattleEntity* PTarget) -> bool
 {
     TracyZoneScoped;
 
-    const bool canPursue = CanPursueTarget(PTarget);
-    const bool canDetect = !canPursue && CanDetectTarget(PTarget);
-    const bool immobilized = !canPursue && !canDetect && PMob->StatusEffectContainer->HasStatusEffect(
-                                                           { xi::StatusEffect::Bind, xi::StatusEffect::SleepI, xi::StatusEffect::SleepIi, xi::StatusEffect::Lullaby, xi::StatusEffect::Petrification });
+    const auto checks = mobcontrollerdetection::ResolveChecks(
+        [&]() { return CanPursueTarget(PTarget); },
+        [&]() { return CanDetectTarget(PTarget); },
+        [&]() {
+            return PMob->StatusEffectContainer->HasStatusEffect(
+                { xi::StatusEffect::Bind, xi::StatusEffect::SleepI, xi::StatusEffect::SleepIi, xi::StatusEffect::Lullaby, xi::StatusEffect::Petrification });
+        });
     const auto decision = mobcontrollerdetection::Evaluate(
-        canPursue,
-        canDetect,
-        immobilized,
+        checks.canPursue,
+        checks.canDetect,
+        checks.immobilized,
         PMob->CanDeaggro(),
         PMob->m_roamFlags & ROAMFLAG_WORM,
         m_Tick,

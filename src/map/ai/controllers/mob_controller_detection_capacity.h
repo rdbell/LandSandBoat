@@ -10,6 +10,29 @@ struct Decision
     bool shouldDeaggro;
 };
 
+// CheckState records the source-ordered detection checks used before the
+// deaggregation decision.
+struct CheckState
+{
+    bool canPursue;
+    bool canDetect;
+    bool immobilized;
+};
+
+// ResolveChecks evaluates pursuit, detection, and immobilization in controller
+// source order. Later checks run only after earlier checks fail.
+template <typename CanPursueTarget, typename CanDetectTarget, typename IsImmobilized>
+constexpr auto ResolveChecks(
+    CanPursueTarget&& canPursueTarget,
+    CanDetectTarget&& canDetectTarget,
+    IsImmobilized&& isImmobilized) -> CheckState
+{
+    const bool canPursue = canPursueTarget();
+    const bool canDetect = !canPursue && canDetectTarget();
+    const bool immobilized = !canPursue && !canDetect && isImmobilized();
+    return { canPursue, canDetect, immobilized };
+}
+
 constexpr auto Evaluate(
     const bool canPursue,
     const bool canDetect,
