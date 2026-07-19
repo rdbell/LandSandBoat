@@ -713,10 +713,14 @@ end
 
 xi.znm.sanraku.handleConfirmingDesiredZNMInfo = function(player, option)
     -- Give the correct ZNM's zeni cost
-    local diff      = option - 99
+    local diff      = xi.znm.sanraku.confirmingZNMPopIndex(option)
     local zeniCost = xi.znm.getPopPrice(xi.znm.POP_ITEMS[diff].mob, xi.znm.POP_ITEMS[diff].tier)
 
     player:updateEvent(0, 0, 0, 0, 0, 0, zeniCost)
+end
+
+xi.znm.sanraku.confirmingZNMPopIndex = function(option)
+    return option - 99
 end
 
 xi.znm.sanraku.confirmedZNMPopIndex = function(option)
