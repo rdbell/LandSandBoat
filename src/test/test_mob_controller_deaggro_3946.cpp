@@ -79,7 +79,7 @@
 #include "map/ai/controllers/mob_controller_hearing_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_magic_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_low_hp_detection_capacity.h"
-#include "map/ai/controllers/mob_controller_weapon_skill_detection_capacity.h"
+#include "map/ai/controllers/mob_controller_action_state_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -862,12 +862,19 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      !mobcontrollerlowhpdetection::CanDetect(false, 74, true, [&]() { lowHPCallbackCalled = true; return true; }) &&
                                      !lowHPCallbackCalled;
     bool weaponSkillCallbackCalled = false;
-    const bool mobWeaponSkillDetectionOK = mobcontrollerweaponskilldetection::CanDetect(true, true, []() { return true; }, []() { return false; }) &&
-                                           mobcontrollerweaponskilldetection::CanDetect(true, false, []() { return true; }, []() { return true; }) &&
-                                           !mobcontrollerweaponskilldetection::CanDetect(true, false, []() { return true; }, []() { return false; }) &&
-                                           !mobcontrollerweaponskilldetection::CanDetect(true, true, []() { return false; }, []() { return true; }) &&
-                                           !mobcontrollerweaponskilldetection::CanDetect(false, true, [&]() { weaponSkillCallbackCalled = true; return true; }, []() { return true; }) &&
+    const bool mobWeaponSkillDetectionOK = mobcontrolleractionstatedetection::CanDetect(true, true, []() { return true; }, []() { return false; }) &&
+                                           mobcontrolleractionstatedetection::CanDetect(true, false, []() { return true; }, []() { return true; }) &&
+                                           !mobcontrolleractionstatedetection::CanDetect(true, false, []() { return true; }, []() { return false; }) &&
+                                           !mobcontrolleractionstatedetection::CanDetect(true, true, []() { return false; }, []() { return true; }) &&
+                                           !mobcontrolleractionstatedetection::CanDetect(false, true, [&]() { weaponSkillCallbackCalled = true; return true; }, []() { return true; }) &&
                                            !weaponSkillCallbackCalled;
+    bool jobAbilityCallbackCalled = false;
+    const bool mobJobAbilityDetectionOK = mobcontrolleractionstatedetection::CanDetect(true, true, []() { return true; }, []() { return false; }) &&
+                                          mobcontrolleractionstatedetection::CanDetect(true, false, []() { return true; }, []() { return true; }) &&
+                                          !mobcontrolleractionstatedetection::CanDetect(true, false, []() { return true; }, []() { return false; }) &&
+                                          !mobcontrolleractionstatedetection::CanDetect(true, true, []() { return false; }, []() { return true; }) &&
+                                          !mobcontrolleractionstatedetection::CanDetect(false, true, [&]() { jobAbilityCallbackCalled = true; return true; }, []() { return true; }) &&
+                                          !jobAbilityCallbackCalled;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1746,6 +1753,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobWeaponSkillDetectionOK)
     {
         std::cerr << "mob weapon-skill detection self-test failed\n";
+        return false;
+    }
+    if (!mobJobAbilityDetectionOK)
+    {
+        std::cerr << "mob job-ability detection self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

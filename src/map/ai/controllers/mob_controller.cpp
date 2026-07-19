@@ -97,7 +97,7 @@
 #include "mob_controller_hearing_detection_capacity.h"
 #include "mob_controller_magic_detection_capacity.h"
 #include "mob_controller_low_hp_detection_capacity.h"
-#include "mob_controller_weapon_skill_detection_capacity.h"
+#include "mob_controller_action_state_detection_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -489,7 +489,7 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
         return true;
     }
 
-    if (mobcontrollerweaponskilldetection::CanDetect(
+    if (mobcontrolleractionstatedetection::CanDetect(
             (detects & DETECT_WEAPONSKILL) != 0,
             isTargetAndInRange,
             [&]() { return PTarget->PAI->IsCurrentState<CWeaponSkillState>(); },
@@ -498,9 +498,13 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
         return true;
     }
 
-    if ((detects & DETECT_JOBABILITY) && PTarget->PAI->IsCurrentState<CAbilityState>())
+    if (mobcontrolleractionstatedetection::CanDetect(
+            (detects & DETECT_JOBABILITY) != 0,
+            isTargetAndInRange,
+            [&]() { return PTarget->PAI->IsCurrentState<CAbilityState>(); },
+            [&]() { return PMob->CanSeeTarget(PTarget); }))
     {
-        return isTargetAndInRange || PMob->CanSeeTarget(PTarget);
+        return true;
     }
 
     return false;
