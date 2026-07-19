@@ -130,3 +130,30 @@ describe('Ephemeral Moogle trade update', function()
         assert(not confirmed and not updated)
     end)
 end)
+
+describe('Ephemeral Moogle retrieve finish', function()
+    it('removes stored currency and grants clusters and crystals', function()
+        local removed = nil
+        local granted = {}
+        local player = {
+            getCurrency = function() return 100 end,
+            getFreeSlotsCount = function() return 3 end,
+            delCurrency = function(_, currency, amount) removed = { currency, amount } end,
+        }
+        local npc = {
+            getName = function() return 'Ephemeral_Moogle_Wood' end,
+        }
+        local oldGiveItem = npcUtil.giveItem
+        npcUtil.giveItem = function(_, items)
+            table.insert(granted, items[1])
+        end
+
+        xi.crafting.ephemeralMoogleOnEventFinish(player, 913, 0x00010019, npc)
+
+        npcUtil.giveItem = oldGiveItem
+        assert(removed[1] == 'fire_crystals' and removed[2] == 25)
+        assert(#granted == 2)
+        assert(granted[1][1] == xi.item.FIRE_CLUSTER and granted[1][2] == 2)
+        assert(granted[2][1] == xi.item.FIRE_CRYSTAL and granted[2][2] == 1)
+    end)
+end)
