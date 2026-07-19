@@ -23,6 +23,7 @@
 #include "pet_controller_buff_tick_capacity.h"
 #include "pet_controller_deaggro_capacity.h"
 #include "pet_controller_healing_capacity.h"
+#include "pet_controller_master_loss_capacity.h"
 #include "pet_controller_tick_capacity.h"
 
 #include "ai/ai_container.h"
@@ -98,7 +99,9 @@ auto CPetController::DoRoamTick(timer::time_point tick) -> Task<void>
 {
     TracyZoneScoped;
 
-    if ((PPet->PMaster == nullptr || PPet->PMaster->isDead()) && PPet->isAlive() && PPet->objtype != TYPE_MOB)
+    const auto hasMaster = PPet->PMaster != nullptr;
+    const auto masterDead = hasMaster && PPet->PMaster->isDead();
+    if (petcontrollermasterloss::ShouldDie(hasMaster, masterDead, PPet->isAlive(), PPet->objtype == TYPE_MOB))
     {
         PPet->Die();
         co_return;
