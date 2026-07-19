@@ -39,6 +39,7 @@
 #include "automaton_controller_ranged_attack_gate_capacity.h"
 #include "automaton_controller_tp_skill_type_capacity.h"
 #include "automaton_controller_tp_skill_candidate_capacity.h"
+#include "automaton_controller_tp_skill_priority_capacity.h"
 #include "automaton_controller_spell_permission_capacity.h"
 #include "automaton_controller_cast_admission_capacity.h"
 
@@ -1487,7 +1488,7 @@ auto CAutomatonController::TryTPMove() -> bool
             for (auto* PSkill : validSkills)
             {
                 int8 maneuvers = luautils::OnAutomatonAbilityCheck(PTarget, PAutomaton, PSkill);
-                if (maneuvers > -1 && (maneuvers > currentManeuvers || (maneuvers == currentManeuvers && PSkill->getParam() > currentSkill)))
+                if (automatoncontrollertpskillpriority::ShouldSelectTPSkill(maneuvers, currentManeuvers, PSkill->getParam(), currentSkill))
                 {
                     currentManeuvers = maneuvers;
                     currentSkill     = PSkill->getParam();
