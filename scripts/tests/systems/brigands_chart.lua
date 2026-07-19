@@ -238,3 +238,35 @@ describe("Brigand's Chart timed emotes", function()
         assert(text[1] == qm and text[2] == 7858)
     end)
 end)
+
+describe("Brigand's Chart Jade Etui admission", function()
+    it('removes expired chests and opens only an unopened owner chest', function()
+        local calls = {}
+        local player = {
+            getID = function() return 123 end,
+            getLocalVar = function() return 0 end,
+            setLocalVar = function() end,
+            addTreasure = function() end,
+        }
+        local chest = {
+            getLocalVar = function() return 0 end,
+            entityAnimationPacket = function(_, value) calls.animation = value end,
+            setLocalVar = function(_, name, value) calls.opened = { name, value } end,
+            setAnimationSub = function(_, value) calls.animationSub = value end,
+            setStatus = function(_, value) calls.status = value end,
+            resetLocalVars = function() calls.reset = true end,
+            timer = function() end,
+        }
+        local qm = { getLocalVar = function() return 0 end }
+        stub('utils.selectFromLootGroups', function() return { { itemId = xi.item.BEASTCOIN } } end)
+        stub('GetNPCByID', function() return qm end)
+        xi.brigandsChart.jadeEtuiOnTrigger(player, chest)
+        assert(calls.animationSub == 0 and calls.status == xi.status.DISAPPEAR and calls.reset)
+
+        calls = {}
+        qm.getLocalVar = function() return 123 end
+        xi.brigandsChart.jadeEtuiOnTrigger(player, chest)
+        assert(calls.animation == xi.animationString.OPEN_CRATE_GLOW)
+        assert(calls.opened[1] == xi.animationString.OPEN_CRATE_GLOW and calls.opened[2] == 1)
+    end)
+end)
