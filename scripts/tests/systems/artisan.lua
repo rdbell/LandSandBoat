@@ -95,3 +95,18 @@ describe('Artisan Moogle main dialogue', function()
         assert(event[3] == 1234 and event[4] == 31 and event[8] == 1)
     end)
 end)
+
+describe('Artisan Moogle sack status', function()
+    it('updates displayed sack size and scroll availability', function()
+        local event = nil
+        local player = {
+            getCharVar = function() return 0 end,
+            getContainerSize = function() return 30 end,
+            updateEvent = function(_, ...) event = { ... } end,
+        }
+
+        xi.artisan.moogleOnUpdate(player, 544, 3, {})
+
+        assert(event[3] == 0 and event[4] == 31 and event[8] == 1)
+    end)
+end)
