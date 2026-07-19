@@ -43,6 +43,14 @@ xi.znm.nextSanrakuTradeCount = function(currentTrades)
     return currentTrades + 1
 end
 
+xi.znm.serverPlateTradesPlan = function(currentTrades)
+    if xi.znm.shouldRotateSanrakuTrades(currentTrades) then
+        return { rotate = true }
+    end
+
+    return { trades = xi.znm.nextSanrakuTradeCount(currentTrades) }
+end
+
 xi.znm.shouldInitializeSanrakuSelection = function(selection)
     return selection == nil or selection == 0
 end
@@ -57,11 +65,12 @@ end
 
 xi.znm.serverPlateTrades = function()
     local currentTrades = GetServerVariable('[ZNM][Sanraku]Trades')
+    local plan = xi.znm.serverPlateTradesPlan(currentTrades)
 
-    if xi.znm.shouldRotateSanrakuTrades(currentTrades) then
+    if plan.rotate then
         xi.znm.UpdateSanrakusMobs()
     else
-        SetServerVariable('[ZNM][Sanraku]Trades', xi.znm.nextSanrakuTradeCount(currentTrades))
+        SetServerVariable('[ZNM][Sanraku]Trades', plan.trades)
     end
 end
 

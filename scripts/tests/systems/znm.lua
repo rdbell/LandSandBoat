@@ -22,6 +22,16 @@ describe('ZNM Sanraku trade increment', function()
     end)
 end)
 
+describe('ZNM Sanraku trade plan', function()
+    it('rotates at the limit and otherwise increments the counter', function()
+        local rotate = xi.znm.serverPlateTradesPlan(500)
+        assert(rotate.rotate and rotate.trades == nil)
+
+        local increment = xi.znm.serverPlateTradesPlan(499)
+        assert(increment.rotate == nil and increment.trades == 500)
+    end)
+end)
+
 describe('ZNM Sanraku selection initialization', function()
     it('initializes missing and zero selections only', function()
         assert(xi.znm.shouldInitializeSanrakuSelection(nil))
