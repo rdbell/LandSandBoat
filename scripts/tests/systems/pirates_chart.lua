@@ -193,6 +193,82 @@ describe("Pirates Chart event validity", function()
     end)
 end)
 
+describe("Pirates Chart confrontation roster", function()
+    it('includes only recorded, restricted Valkurm members when the event starts', function()
+        local now = 0
+        local rangeTimer
+        local playerList
+        local restriction20 = { getPower = function() return 20 end }
+        local restriction19 = { getPower = function() return 19 end }
+        local function makePlayer(id, restriction, zone)
+            return {
+                getID = function() return id end,
+                hasStatusEffect = function() return restriction ~= nil end,
+                getStatusEffect = function() return restriction end,
+                getPartySize = function() return 3 end,
+                checkSoloPartyAlliance = function() return 0 end,
+                getZoneID = function() return zone end,
+                getParty = function() return {} end,
+                checkDistance = function() return 0 end,
+                isAlive = function() return true end,
+            }
+        end
+        local spawner = makePlayer(1, restriction20, xi.zone.VALKURM_DUNES)
+        local member = makePlayer(2, restriction20, xi.zone.VALKURM_DUNES)
+        local cases = {
+            { name = 'member outside Valkurm', third = makePlayer(3, restriction20, 0), want = { 1, 2 } },
+            { name = 'member without restriction', third = makePlayer(3, nil, xi.zone.VALKURM_DUNES), want = { 1, 2 } },
+            { name = 'member with wrong restriction power', third = makePlayer(3, restriction19, xi.zone.VALKURM_DUNES), want = nil },
+        }
+        local taru = {
+            setStatus = function() end,
+            setAnimation = function() end,
+            messageText = function() end,
+            sendEmote = function() end,
+            entityAnimationPacket = function() end,
+        }
+        local shimmering = { setStatus = function() end, timer = function() end }
+        local npc = {
+            getLocalVar = function(_, name)
+                return ({ pChartSpawnerID = 1, pChartMemberID_1 = 1, pChartMemberID_2 = 2, pChartMemberID_3 = 3 })[name] or 0
+            end,
+            setStatus = function() end,
+            resetLocalVars = function() end,
+            timer = function(_, _, callback) rangeTimer = callback end,
+            showText = function() end,
+        }
+        stub('GetNPCByID', function(id)
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_TARU then return taru end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.SHIMMERING_POINT then return shimmering end
+            return npc
+        end)
+        stub('GetSystemTime', function() return now end)
+        stub('xi.confrontation.start', function(_, _, _, params) playerList = params.playerList end)
+
+        for _, testCase in ipairs(cases) do
+            stub('GetPlayerByID', function(id)
+                if id == 1 then return spawner end
+                if id == 2 then return member end
+                if id == 3 then return testCase.third end
+            end)
+            playerList, rangeTimer, now = nil, nil, 0
+            xi.piratesChart.onEventFinish(spawner, 14, 0, npc)
+            if not testCase.want then
+                assert(rangeTimer == nil and playerList == nil, testCase.name)
+            else
+                now = 50
+                rangeTimer(npc)
+                now = 51
+                rangeTimer(npc)
+                assert(#playerList == #testCase.want, testCase.name)
+                for index, id in ipairs(testCase.want) do
+                    assert(playerList[index]:getID() == id, testCase.name)
+                end
+            end
+        end
+    end)
+end)
+
 describe("Pirates Chart mob fight", function()
     it('uses Hundred Fists once below half health and restores damage after snare expiry', function()
         local calls = {}
