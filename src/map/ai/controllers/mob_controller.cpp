@@ -67,6 +67,7 @@
 #include "mob_controller_chase_path_start_capacity.h"
 #include "mob_controller_overlap_reposition_capacity.h"
 #include "mob_controller_overlap_reposition_point_capacity.h"
+#include "mob_controller_bound_retarget_admission_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1064,7 +1065,10 @@ void CMobController::HandleEnmity()
     // TODO: do mobs with bind attack players *without* enmity if they are in the same party?
     // TODO: do jug pets do this?
     // TODO: This code is assuming charmed mobs can do this -- they DO keep an enmity table, after all..
-    if (PMob->objtype == TYPE_MOB && PMob->StatusEffectContainer && PMob->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bind) && PMob->PAI->IsCurrentState<CAttackState>())
+    if (mobcontrollerboundretargetadmission::ShouldAttempt(
+            PMob->objtype == TYPE_MOB,
+            PMob->StatusEffectContainer && PMob->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Bind),
+            PMob->PAI->IsCurrentState<CAttackState>()))
     {
         CBattleEntity*                PNewTarget = nullptr;
         std::unique_ptr<CBasicPacket> m_errorMsg; // Ignored
