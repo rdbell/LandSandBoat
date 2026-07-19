@@ -20,6 +20,20 @@ describe('Dynamis time-extension groups', function()
     end)
 end)
 
+describe('Dynamis refill statue groups', function()
+    it('returns the matching statue and full group', function()
+        local blue = { mob = 100, eye = 1 }
+        local green = { mob = 101, eye = 2 }
+        local entries = { { blue, green } }
+
+        local statue, group = xi.dynamis.findRefillStatueGroup(entries, 101)
+        assert(statue == green and #group == 2 and group[1] == blue and group[2] == green)
+
+        statue, group = xi.dynamis.findRefillStatueGroup(entries, 999)
+        assert(statue == nil and group == nil)
+    end)
+end)
+
 describe('Dynamis refill statues', function()
     it('finds a statue eye configuration across groups', function()
         local blue = { mob = 100, eye = 1 }

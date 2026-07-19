@@ -72,6 +72,22 @@ xi.dynamis.findRefillStatue = function(refillMobs, mobId)
     return nil
 end
 
+xi.dynamis.findRefillStatueGroup = function(refillMobs, mobId)
+    if not refillMobs then
+        return nil, nil
+    end
+
+    for _, group in pairs(refillMobs) do
+        for _, statue in pairs(group) do
+            if statue.mob == mobId then
+                return statue, group
+            end
+        end
+    end
+
+    return nil, nil
+end
+
 local entryInfo =
 {
     --[[
@@ -661,27 +677,13 @@ xi.dynamis.refillStatueOnDeath = function(mob, player, optParams)
     local refillMobs = ID.mob.REFILL_STATUE
 
     if refillMobs then
-        local found = false
-        local group = {}
-        local eye   = nil
-
-        -- find this statue's group and eye color
-        for _, g in pairs(refillMobs) do
-            group = {}
-            for _, m in pairs(g) do
-                table.insert(group, m.mob)
-                if m.mob == mobId then
-                    found = true
-                    eye = m.eye
-                end
+        local statue, statueGroup = xi.dynamis.findRefillStatueGroup(refillMobs, mobId)
+        if statue then
+            local eye = statue.eye
+            local group = {}
+            for _, groupStatue in pairs(statueGroup) do
+                table.insert(group, groupStatue.mob)
             end
-
-            if found then
-                break
-            end
-        end
-
-        if found then
             if optParams.isKiller then
                 -- MP or HP refill
                 if eye == xi.dynamis.eye.BLUE or eye == xi.dynamis.eye.GREEN then
