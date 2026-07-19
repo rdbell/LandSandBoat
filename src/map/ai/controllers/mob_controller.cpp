@@ -44,6 +44,7 @@
 #include "mob_controller_despawn_policy_capacity.h"
 #include "mob_controller_dead_master_despawn_capacity.h"
 #include "mob_controller_worm_roam_action_capacity.h"
+#include "mob_controller_roam_path_result_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1258,10 +1259,12 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
                     {
                         // Finish the current spell before burrowing.
                     }
-                    else if (wormRoamAction == mobcontrollerwormroamaction::Action::RoamAround &&
-                             PMob->PAI->PathFind->RoamAround(PMob->m_SpawnPoint, PMob->GetRoamDistance(), static_cast<uint8>(PMob->getMobMod(MOBMOD_ROAM_TURNS)), PMob->m_roamFlags))
+                    else if (wormRoamAction == mobcontrollerwormroamaction::Action::RoamAround)
                     {
-                        if ((PMob->m_roamFlags & ROAMFLAG_STEALTH))
+                        const auto roamPathResult = mobcontrollerroampathresult::Resolve(
+                            PMob->PAI->PathFind->RoamAround(PMob->m_SpawnPoint, PMob->GetRoamDistance(), static_cast<uint8>(PMob->getMobMod(MOBMOD_ROAM_TURNS)), PMob->m_roamFlags),
+                            (PMob->m_roamFlags & ROAMFLAG_STEALTH) != 0);
+                        if (roamPathResult == mobcontrollerroampathresult::Result::Conceal)
                         {
                             // hidden name
                             PMob->HideName(true);
@@ -1269,14 +1272,14 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
 
                             PMob->updatemask |= UPDATE_HP;
                         }
-                        else
+                        else if (roamPathResult == mobcontrollerroampathresult::Result::Follow)
                         {
                             FollowRoamPath();
                         }
-                    }
-                    else
-                    {
-                        m_LastActionTime = m_Tick;
+                        else
+                        {
+                            m_LastActionTime = m_Tick;
+                        }
                     }
                 }
                 else
