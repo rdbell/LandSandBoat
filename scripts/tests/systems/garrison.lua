@@ -328,3 +328,23 @@ describe('Garrison boss spawning', function()
         for key, value in pairs(original) do zoneData[key] = value end
     end)
 end)
+
+describe('Garrison reward transition', function()
+    it('grants loot and Gil before ending the event', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local original = { state = zoneData.state, players = zoneData.players, isRunning = zoneData.isRunning, levelCap = zoneData.levelCap }
+        local zone = { getID = function() return zoneID end }
+        local npc = { getZone = function() return zone end, getZoneID = function() return zoneID end }
+        local lootCalls, gilCalls = 0, 0
+        local originalLoot, originalGil = xi.garrison.handleLootRolls, xi.garrison.handleGilPayout
+        zoneData.players, zoneData.isRunning, zoneData.levelCap = {}, false, 30
+        xi.garrison.handleLootRolls = function(cap) assert(cap == 30) lootCalls = lootCalls + 1 end
+        xi.garrison.handleGilPayout = function(cap) assert(cap == 30) gilCalls = gilCalls + 1 end
+        zoneData.state = xi.garrison.state.GRANT_LOOT
+        xi.garrison.tick(npc)
+        assert(lootCalls == 1 and gilCalls == 1 and zoneData.state == xi.garrison.state.ENDED)
+        xi.garrison.handleLootRolls, xi.garrison.handleGilPayout = originalLoot, originalGil
+        for key, value in pairs(original) do zoneData[key] = value end
+    end)
+end)
