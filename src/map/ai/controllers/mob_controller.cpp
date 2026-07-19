@@ -76,6 +76,7 @@
 #include "mob_controller_disengage_roam_schedule_capacity.h"
 #include "mob_controller_idle_despawn_capacity.h"
 #include "mob_controller_engage_delay_capacity.h"
+#include "mob_controller_fomor_aggro_context_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1562,9 +1563,14 @@ auto CMobController::CanAggroTarget(CBattleEntity* PTarget) const -> bool
         return false;
     }
     TracyZoneString(PTarget->getName());
-    const bool isCoPFomor = PMob->m_Family == 172 && !(PMob->m_Type & MOBTYPE_NOTORIOUS) &&
-                            PMob->getZone() >= ZONE_LUFAISE_MEADOWS && PMob->getZone() <= ZONE_SACRARIUM && PTarget->objtype == TYPE_PC;
-    const int fomorHate = isCoPFomor ? static_cast<CCharEntity*>(PTarget)->getCharVar("FOMOR_HATE") : 8;
+    const auto fomorAggroContext = mobcontrollerfomoraggrocontext::Resolve(
+        PMob->m_Family == 172,
+        (PMob->m_Type & MOBTYPE_NOTORIOUS) != 0,
+        PMob->getZone() >= ZONE_LUFAISE_MEADOWS && PMob->getZone() <= ZONE_SACRARIUM,
+        PTarget->objtype == TYPE_PC);
+    const int fomorHate = fomorAggroContext.usesTargetHate ?
+                              static_cast<CCharEntity*>(PTarget)->getCharVar("FOMOR_HATE") :
+                              fomorAggroContext.fallbackHate;
     const bool eligible = mobcontrolleraggro::CanAggroTarget(
         true, PMob->getBattleID() == PTarget->getBattleID(), PMob->getMobMod(MOBMOD_ALWAYS_AGGRO) != 0, PMob->m_Aggro,
         PMob->m_neutral, PMob->isDead(), PMob->getMobMod(MOBMOD_NO_AGGRO) > 0, PMob->m_Family == 172,
