@@ -44,6 +44,7 @@
 #include "trust_controller_cast_recast_admission_capacity.h"
 #include "trust_controller_top_enmity_target_capacity.h"
 #include "trust_controller_noncombat_movement_capacity.h"
+#include "trust_controller_noncombat_movement_dispatch_capacity.h"
 #include "trust_controller_recovery_capacity.h"
 #include "trust_controller_ranged_attack_capacity.h"
 #include "trust_controller_reposition_capacity.h"
@@ -349,28 +350,22 @@ auto CTrustController::DoNonCombatTick(timer::time_point tick) -> Task<void>
         }
     }
 
-    switch (trustcontrollernoncombatmovement::Resolve(currentDistance, desiredFollowDistance))
+    const auto movementAction = trustcontrollernoncombatmovement::Resolve(currentDistance, desiredFollowDistance);
+    const bool pathFound = movementAction == trustcontrollernoncombatmovement::Action::Path &&
+                           PTrust->PAI->PathFind->PathAround(PFollowTarget->loc.p, desiredFollowDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK);
+    switch (trustcontrollernoncombatmovementdispatch::Resolve(
+        movementAction, pathFound, [&]() { return PTrust->GetSpeed() > 0; }))
     {
-        case trustcontrollernoncombatmovement::Action::Warp:
+        case trustcontrollernoncombatmovementdispatch::Action::Warp:
             PTrust->PAI->PathFind->WarpTo(PFollowTarget->loc.p);
             break;
-        case trustcontrollernoncombatmovement::Action::Path:
-            if (PTrust->PAI->PathFind->PathAround(PFollowTarget->loc.p, desiredFollowDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK))
-            {
-                PTrust->PAI->PathFind->FollowPath(m_Tick);
-            }
-            else if (PTrust->GetSpeed() > 0)
-            {
-                PTrust->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
-            }
+        case trustcontrollernoncombatmovementdispatch::Action::Follow:
+            PTrust->PAI->PathFind->FollowPath(m_Tick);
             break;
-        case trustcontrollernoncombatmovement::Action::Step:
-            if (PTrust->GetSpeed() > 0)
-            {
-                PTrust->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
-            }
+        case trustcontrollernoncombatmovementdispatch::Action::Step:
+            PTrust->PAI->PathFind->StepTo(PFollowTarget->loc.p, true);
             break;
-        case trustcontrollernoncombatmovement::Action::Hold:
+        case trustcontrollernoncombatmovementdispatch::Action::Hold:
             break;
     }
 
