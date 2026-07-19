@@ -546,7 +546,7 @@ bool CTrustController::Ability(uint16 targid, uint16 abilityid)
     TracyZoneScoped;
 
     const bool hasRecast = static_cast<CMobEntity*>(POwner)->PRecastContainer->HasRecast(RECAST_ABILITY, static_cast<Recast>(abilityid), 0s);
-    if (hasRecast || !trustcontrollerability::CanUse(hasRecast, POwner->PAI->CanChangeState()))
+    if (!trustcontrollerability::CanStart(hasRecast, [&]() { return POwner->PAI->CanChangeState(); }))
     {
         return false;
     }

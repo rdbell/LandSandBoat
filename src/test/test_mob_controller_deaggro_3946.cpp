@@ -774,10 +774,16 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                    trustcontrollerreposition::NextFailedAttempts(true, 2) == 3 &&
                                    trustcontrollerreposition::NextFailedAttempts(true, 255) == 0 &&
                                    trustcontrollerreposition::NextFailedAttempts(false, 2) == 0;
+    bool trustAbilityStateCheckCalled = false;
     const bool trustAbilityOK = trustcontrollerability::CanUse(false, true) &&
                                 !trustcontrollerability::CanUse(true, true) &&
                                 !trustcontrollerability::CanUse(false, false) &&
-                                !trustcontrollerability::CanUse(true, false);
+                                !trustcontrollerability::CanUse(true, false) &&
+                                trustcontrollerability::CanStart(false, []() { return true; }) &&
+                                !trustcontrollerability::CanStart(
+                                    true, [&]() { trustAbilityStateCheckCalled = true; return true; }) &&
+                                !trustAbilityStateCheckCalled &&
+                                !trustcontrollerability::CanStart(false, []() { return false; });
     const bool trustNonCombatMovementOK = trustcontrollernoncombatmovement::Resolve(3.0f, 3.0f) == trustcontrollernoncombatmovement::Action::Hold &&
                                          trustcontrollernoncombatmovement::Resolve(3.1f, 3.0f) == trustcontrollernoncombatmovement::Action::Path &&
                                          trustcontrollernoncombatmovement::Resolve(9.0f, 3.0f) == trustcontrollernoncombatmovement::Action::Step &&
