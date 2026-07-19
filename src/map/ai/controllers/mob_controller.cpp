@@ -82,6 +82,7 @@
 #include "mob_controller_roam_reset_facing_capacity.h"
 #include "mob_controller_worm_emergence_capacity.h"
 #include "mob_controller_mob_skill_owner_dispatch_capacity.h"
+#include "mob_controller_roam_path_randomness_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1396,7 +1397,8 @@ void CMobController::FollowRoamPath()
         // if I just finished reset my last action time
         if (!PMob->PAI->PathFind->IsFollowingPath())
         {
-            const uint32 roamRandomness = std::clamp<uint32>(static_cast<uint16>(PMob->getMobMod(MOBMOD_ROAM_COOL) * 1000 / PMob->GetRoamRate()), 0, 120 * 1000);
+            const uint32 roamRandomness = mobcontrollerroampathrandomness::Calculate(
+                PMob->getMobMod(MOBMOD_ROAM_COOL), PMob->GetRoamRate());
             m_LastActionTime            = m_Tick - std::chrono::milliseconds(xirand::GetRandomNumber(roamRandomness));
 
             // i'm a worm pop back up
