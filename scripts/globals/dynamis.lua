@@ -88,6 +88,14 @@ xi.dynamis.findRefillStatueGroup = function(refillMobs, mobId)
     return nil, nil
 end
 
+xi.dynamis.refillStatueRecovery = function(eye)
+    if eye == xi.dynamis.eye.BLUE then
+        return 'mp'
+    elseif eye == xi.dynamis.eye.GREEN then
+        return 'hp'
+    end
+end
+
 local entryInfo =
 {
     --[[
@@ -686,13 +694,14 @@ xi.dynamis.refillStatueOnDeath = function(mob, player, optParams)
             end
             if optParams.isKiller then
                 -- MP or HP refill
-                if eye == xi.dynamis.eye.BLUE or eye == xi.dynamis.eye.GREEN then
+                local recovery = xi.dynamis.refillStatueRecovery(eye)
+                if recovery then
                     local zone    = mob:getZone()
                     local players = zone:getPlayers()
 
                     for name, playerObj in pairs(players) do
                         if mob:checkDistance(playerObj) < 30 then
-                            if eye == xi.dynamis.eye.BLUE then
+                            if recovery == 'mp' then
                                 local amt = playerObj:getMaxMP() - playerObj:getMP()
                                 playerObj:restoreMP(amt)
                                 playerObj:messageBasic(xi.msg.basic.RECOVERS_MP, 0, amt)

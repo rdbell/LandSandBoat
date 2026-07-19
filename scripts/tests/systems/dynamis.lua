@@ -34,6 +34,14 @@ describe('Dynamis refill statue groups', function()
     end)
 end)
 
+describe('Dynamis refill statue recovery', function()
+    it('maps blue and green statue eyes to their recovery pools', function()
+        assert(xi.dynamis.refillStatueRecovery(xi.dynamis.eye.BLUE) == 'mp')
+        assert(xi.dynamis.refillStatueRecovery(xi.dynamis.eye.GREEN) == 'hp')
+        assert(xi.dynamis.refillStatueRecovery(xi.dynamis.eye.NONE) == nil)
+    end)
+end)
+
 describe('Dynamis refill statues', function()
     it('finds a statue eye configuration across groups', function()
         local blue = { mob = 100, eye = 1 }
