@@ -21,3 +21,16 @@ describe('Garrison loot', function()
         assert(xi.garrison.loot[99][1].itemId == xi.item.MIRATETES_MEMOIRS and xi.garrison.loot[99][14].itemId == xi.item.MIGHTY_SWORD)
     end)
 end)
+
+describe('Garrison level-cap-20 layouts', function()
+    it('defines the three starter-zone encounter layouts', function()
+        local ronfaure = xi.garrison.zoneData[xi.zone.WEST_RONFAURE]
+        assert(ronfaure.itemReq == xi.item.RED_CRYPTEX and ronfaure.levelCap == 20 and ronfaure.mobBoss == 'Orcish_Fighterchief')
+
+        local gustaberg = xi.garrison.zoneData[xi.zone.NORTH_GUSTABERG]
+        assert(gustaberg.itemReq == xi.item.DARKSTEEL_ENGRAVING and gustaberg.pos[1] == -575 and gustaberg.xChange == 1)
+
+        local sarutabaruta = xi.garrison.zoneData[xi.zone.WEST_SARUTABARUTA]
+        assert(sarutabaruta.itemReq == xi.item.SEVEN_KNOT_QUIPU and sarutabaruta.pos[2] == -13.312 and sarutabaruta.pos[4] == 128)
+    end)
+end)
