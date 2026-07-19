@@ -77,6 +77,7 @@
 #include "automaton_controller_soulsoother_bio_priority_capacity.h"
 #include "automaton_controller_soulsoother_silence_priority_capacity.h"
 #include "automaton_controller_soulsoother_paralyze_priority_capacity.h"
+#include "automaton_controller_soulsoother_addle_priority_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -799,7 +800,7 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
                 defaultPriority.emplace_back(SpellID::Paralyze);
             }
 
-            if (maneuvers.fire)
+            if (automatoncontrollersoulsootheraddle::CanPrioritize(maneuvers.fire))
             { // Fire -> Addle
                 castPriority.emplace_back(SpellID::Addle);
             }
