@@ -58,6 +58,7 @@
 #include "automaton_controller_noncombat_party_heal_target_capacity.h"
 #include "automaton_controller_healing_hate_capacity.h"
 #include "automaton_controller_healing_master_distance_capacity.h"
+#include "automaton_controller_soulsoother_party_heal_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -454,7 +455,7 @@ auto CAutomatonController::TryHeal(const CurrentManeuvers& maneuvers) -> bool
         PCastTarget = PAutomaton->PMaster;
     }
 
-    if (maneuvers.light && !PCastTarget && PAutomaton->head() == AutomatonHead::Soulsoother && PAutomaton->PMaster->PParty) // Light + Soulsoother head -> Heal party
+    if (automatoncontrollersoulsootherpartyhealgate::CanConsiderPartyHealing(maneuvers.light, !PCastTarget, PAutomaton->head() == AutomatonHead::Soulsoother, PAutomaton->PMaster->PParty != nullptr)) // Light + Soulsoother head -> Heal party
     {
         // clang-format off
         if (PMob)

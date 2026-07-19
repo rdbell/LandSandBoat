@@ -79,6 +79,7 @@
 #include "map/ai/controllers/automaton_controller_noncombat_party_heal_target_capacity.h"
 #include "map/ai/controllers/automaton_controller_healing_hate_capacity.h"
 #include "map/ai/controllers/automaton_controller_healing_master_distance_capacity.h"
+#include "map/ai/controllers/automaton_controller_soulsoother_party_heal_gate_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -681,6 +682,16 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonHealingMasterDistanceOK)
     {
         std::cerr << "automaton healing master-distance self-test failed\n";
+        return false;
+    }
+    const bool automatonSoulsootherPartyHealGateOK = automatoncontrollersoulsootherpartyhealgate::CanConsiderPartyHealing(true, true, true, true) &&
+                                                     !automatoncontrollersoulsootherpartyhealgate::CanConsiderPartyHealing(false, true, true, true) &&
+                                                     !automatoncontrollersoulsootherpartyhealgate::CanConsiderPartyHealing(true, false, true, true) &&
+                                                     !automatoncontrollersoulsootherpartyhealgate::CanConsiderPartyHealing(true, true, false, true) &&
+                                                     !automatoncontrollersoulsootherpartyhealgate::CanConsiderPartyHealing(true, true, true, false);
+    if (!automatonSoulsootherPartyHealGateOK)
+    {
+        std::cerr << "automaton Soulsoother party-heal gate self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
