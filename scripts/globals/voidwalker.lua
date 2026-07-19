@@ -120,12 +120,15 @@ local function setRandomPos(zoneId, mobId)
     mob:setPos(vPos[1], vPos[2], vPos[3])
 end
 
-local getNearestMob = function(player, mobs)
+xi.voidwalker.nearestMob = function(mobs, distanceForMob)
     local results = {}
 
+    if not mobs or not distanceForMob then
+        return nil
+    end
+
     for _, v in ipairs(mobs) do
-        local mob      = GetMobByID(v.mobId)
-        local distance = player:checkDistance(mob)
+        local distance = distanceForMob(v.mobId)
 
         table.insert(results, { mobId = v.mobId, keyItem = v.keyItem, distance = distance })
     end
@@ -139,6 +142,12 @@ local getNearestMob = function(player, mobs)
     else
         return nil
     end
+end
+
+local getNearestMob = function(player, mobs)
+    return xi.voidwalker.nearestMob(mobs, function(mobId)
+        return player:checkDistance(GetMobByID(mobId))
+    end)
 end
 
 xi.voidwalker.direction = function(diffx, diffz)
