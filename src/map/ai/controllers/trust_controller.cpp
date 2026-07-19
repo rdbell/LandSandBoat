@@ -23,6 +23,7 @@
 #include "trust_controller_ability_capacity.h"
 #include "trust_controller_cast_coordination_capacity.h"
 #include "trust_controller_combat_declump_admission_capacity.h"
+#include "trust_controller_combat_movement_admission_capacity.h"
 #include "trust_controller_combat_movement_capacity.h"
 #include "trust_controller_engage_capacity.h"
 #include "trust_controller_noncombat_follow_capacity.h"
@@ -190,7 +191,9 @@ auto CTrustController::DoCombatTick(timer::time_point tick) -> Task<void>
     }
 
     // If busy, don't run around!
-    if (PTrust->PAI->IsCurrentState<CMagicState>() || PTrust->PAI->IsCurrentState<CRangeState>())
+    if (!trustcontrollercombatmovementadmission::CanMove(
+            [&]() { return PTrust->PAI->IsCurrentState<CMagicState>(); },
+            [&]() { return PTrust->PAI->IsCurrentState<CRangeState>(); }))
     {
         co_return;
     }
