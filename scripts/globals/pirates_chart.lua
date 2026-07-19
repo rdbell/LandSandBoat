@@ -53,6 +53,9 @@ local pChartLoot =
     },
 }
 
+-- Expose the static catalog for consumers and parity tests.
+xi.piratesChart.loot = pChartLoot
+
 local eventTable =
 {
     [1] = { time = 1,  text = valkID.text.RIGHT_OVER_THERE_POINT + 0, emote = xi.emote.POINT, animationString = nil                             },
