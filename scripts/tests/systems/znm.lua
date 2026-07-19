@@ -102,3 +102,13 @@ describe('ZNM Sanraku trigger', function()
         assert(xi.znm.sanraku.triggerOutcome(true, true) == 'menu')
     end)
 end)
+
+describe('ZNM Sanraku islet access', function()
+    it('derives salt key items and applies the Rhapsody cost', function()
+        local normal = xi.znm.sanraku.isletAccessPlan(false, 300)
+        assert(normal.zeniCost == 500 and normal.keyItem == xi.ki.SICKLEMOON_SALT)
+
+        local rhapsody = xi.znm.sanraku.isletAccessPlan(true, 302)
+        assert(rhapsody.zeniCost == 50 and rhapsody.keyItem == xi.ki.SICKLEMOON_SALT + 2)
+    end)
+end)

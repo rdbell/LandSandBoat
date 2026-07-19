@@ -653,15 +653,18 @@ end
 -- onEventUpdate Helpers
 -----------------------------------
 
-xi.znm.sanraku.handleGainingAccessToIslets = function(player, option)
-    local zeniCost = 500 -- Base cost charged by Sanraku
-
-    if player:hasKeyItem(xi.keyItem.RHAPSODY_IN_AZURE) then -- Reduced zeni cost
-        zeniCost = 50
-    end
-
-    -- Give the correct island's information + salt
+xi.znm.sanraku.isletAccessPlan = function(hasRhapsodyInAzure, option)
+    local zeniCost = hasRhapsodyInAzure and 50 or 500
     local keyItem = xi.ki.SICKLEMOON_SALT + option - 300
+
+    return { zeniCost = zeniCost, keyItem = keyItem }
+end
+
+xi.znm.sanraku.handleGainingAccessToIslets = function(player, option)
+    local plan = xi.znm.sanraku.isletAccessPlan(player:hasKeyItem(xi.keyItem.RHAPSODY_IN_AZURE), option)
+    local zeniCost = plan.zeniCost
+    local keyItem = plan.keyItem
+
     if player:getCurrency('zeni_point') < zeniCost then -- Not enough zeni
         player:updateEvent(2)
     elseif player:hasKeyItem(keyItem) then -- Already have the salt
