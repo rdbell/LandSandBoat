@@ -65,6 +65,7 @@
 #include "automaton_controller_spiritreaver_drain_candidate_capacity.h"
 #include "automaton_controller_spiritreaver_absorb_int_candidate_capacity.h"
 #include "automaton_controller_spiritreaver_dia_priority_capacity.h"
+#include "automaton_controller_spiritreaver_poison_priority_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -849,7 +850,7 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
                     defaultPriority.emplace_back(SpellID::Dia);
                 }
 
-                if (maneuvers.water >= 2) // 2 Water -> Poison
+                if (automatoncontrollerspiritreaverpoison::CanPrioritize(maneuvers.water)) // 2 Water -> Poison
                 {
                     castPriority.emplace_back(SpellID::Poison_II);
                     castPriority.emplace_back(SpellID::Poison);
