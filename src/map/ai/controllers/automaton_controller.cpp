@@ -51,6 +51,7 @@
 #include "automaton_controller_healing_gate_capacity.h"
 #include "automaton_controller_elemental_gate_capacity.h"
 #include "automaton_controller_low_hp_elemental_priority_capacity.h"
+#include "automaton_controller_spiritreaver_enfeeble_priority_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -384,7 +385,7 @@ auto CAutomatonController::TrySpellcast(const CurrentManeuvers& maneuvers) -> bo
                 m_LastEnhanceTime = m_Tick;
                 return true;
             }
-            else if ((maneuvers.dark || PAutomaton->GetHPP() < 75 || PAutomaton->GetMPP() < 75) &&
+            else if (automatoncontrollerspiritreaverenfeeblepriority::ShouldPrioritizeEnfeeble(maneuvers.dark, PAutomaton->GetHPP(), PAutomaton->GetMPP()) &&
                      TryEnfeeble(maneuvers)) // Dark or self HPP/MPP < 75 -> Enfeeble
             {
                 m_LastEnfeebleTime = m_Tick;

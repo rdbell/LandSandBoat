@@ -72,6 +72,7 @@
 #include "map/ai/controllers/automaton_controller_healing_gate_capacity.h"
 #include "map/ai/controllers/automaton_controller_elemental_gate_capacity.h"
 #include "map/ai/controllers/automaton_controller_low_hp_elemental_priority_capacity.h"
+#include "map/ai/controllers/automaton_controller_spiritreaver_enfeeble_priority_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -610,6 +611,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonLowHPElemPriorityOK)
     {
         std::cerr << "automaton low-HP elemental priority self-test failed\n";
+        return false;
+    }
+    const bool automatonSpiritreaverEnfeeblePriorityOK = automatoncontrollerspiritreaverenfeeblepriority::ShouldPrioritizeEnfeeble(true, 100, 100) &&
+                                                         automatoncontrollerspiritreaverenfeeblepriority::ShouldPrioritizeEnfeeble(false, 74, 100) &&
+                                                         automatoncontrollerspiritreaverenfeeblepriority::ShouldPrioritizeEnfeeble(false, 100, 74) &&
+                                                         !automatoncontrollerspiritreaverenfeeblepriority::ShouldPrioritizeEnfeeble(false, 75, 75);
+    if (!automatonSpiritreaverEnfeeblePriorityOK)
+    {
+        std::cerr << "automaton Spiritreaver enfeeble priority self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
