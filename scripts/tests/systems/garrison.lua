@@ -303,3 +303,28 @@ describe('Garrison mob spawning', function()
         end
     end)
 end)
+
+describe('Garrison boss spawning', function()
+    it('enters battle only after the boss spawns', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local original = { state = zoneData.state, players = zoneData.players, isRunning = zoneData.isRunning, npcs = zoneData.npcs, bossSpawned = zoneData.bossSpawned }
+        local zone = { getID = function() return zoneID end, queryEntitiesByName = function() return { { getID = function() return 100 end } } end }
+        local npc = { getZone = function() return zone end, getZoneID = function() return zoneID end }
+        local originalSpawnMob = xi.garrison.spawnMob
+
+        zoneData.players, zoneData.isRunning, zoneData.npcs = {}, false, {}
+        xi.garrison.spawnMob = function() return {} end
+        zoneData.state, zoneData.bossSpawned = xi.garrison.state.SPAWN_BOSS, false
+        xi.garrison.tick(npc)
+        assert(zoneData.state == xi.garrison.state.BATTLE and zoneData.bossSpawned)
+
+        xi.garrison.spawnMob = function() return nil end
+        zoneData.state, zoneData.bossSpawned = xi.garrison.state.SPAWN_BOSS, false
+        xi.garrison.tick(npc)
+        assert(zoneData.state == xi.garrison.state.ENDED and not zoneData.bossSpawned)
+
+        xi.garrison.spawnMob = originalSpawnMob
+        for key, value in pairs(original) do zoneData[key] = value end
+    end)
+end)
