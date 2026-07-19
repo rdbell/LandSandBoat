@@ -283,6 +283,10 @@ xi.voidwalker.resetLocalVars = function()
     return resetLocalVarPlan
 end
 
+xi.voidwalker.spawnPresentationPlan = function()
+    return { status = xi.status.INVISIBLE, hideHP = true, hideName = true, untargetable = true }
+end
+
 xi.voidwalker.shouldCapricornusUseRecoilDive = function(hasMightyStrikes, isBusy)
     return hasMightyStrikes and not isBusy
 end
@@ -585,10 +589,11 @@ end
 
 xi.voidwalker.onMobSpawn = function(mob)
     local mobName = mob:getName()
-    mob:setStatus(xi.status.INVISIBLE)
-    mob:hideHP(true)
-    mob:hideName(true)
-    mob:setUntargetable(true)
+    local presentation = xi.voidwalker.spawnPresentationPlan()
+    mob:setStatus(presentation.status)
+    mob:hideHP(presentation.hideHP)
+    mob:hideName(presentation.hideName)
+    mob:setUntargetable(presentation.untargetable)
     local modifiers = xi.voidwalker.spawnModifierPlan(mobName)
     if modifiers then
         for _, modifier in ipairs(modifiers) do

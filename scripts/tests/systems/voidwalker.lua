@@ -191,6 +191,13 @@ describe('Voidwalker local-var reset', function()
     end)
 end)
 
+describe('Voidwalker spawn presentation', function()
+    it('starts mobs invisible, hidden, and untargetable', function()
+        local plan = xi.voidwalker.spawnPresentationPlan()
+        assert(plan.status == xi.status.INVISIBLE and plan.hideHP and plan.hideName and plan.untargetable)
+    end)
+end)
+
 describe('Voidwalker direction', function()
     it('classifies cardinal and diagonal offsets', function()
         assert(xi.voidwalker.direction(1, 0) == 0)
