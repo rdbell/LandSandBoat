@@ -82,6 +82,7 @@
 #include "map/ai/controllers/mob_controller_action_state_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_close_detection_range_capacity.h"
 #include "map/ai/controllers/mob_controller_detection_target_capacity.h"
+#include "map/ai/controllers/mob_controller_illusion_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -886,6 +887,13 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                       !mobcontrollerdetectiontarget::CanDetect(true, []() { return true; }, [&]() { mountedCheckCalled = true; return false; }) &&
                                       !mountedCheckCalled &&
                                       !mobcontrollerdetectiontarget::CanDetect(true, []() { return false; }, []() { return true; });
+    bool seesThroughCalled = false;
+    const auto illusionBlocked = mobcontrollerillusiondetection::Apply(true, false, false, []() { return false; });
+    const auto illusionSeen = mobcontrollerillusiondetection::Apply(true, true, false, []() { return true; });
+    const auto noIllusion = mobcontrollerillusiondetection::Apply(false, false, true, [&]() { seesThroughCalled = true; return false; });
+    const bool mobIllusionDetectionOK = illusionBlocked.hasInvisible && illusionBlocked.hasSneak &&
+                                        illusionSeen.hasInvisible && !illusionSeen.hasSneak &&
+                                        !noIllusion.hasInvisible && noIllusion.hasSneak && !seesThroughCalled;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1779,6 +1787,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobDetectionTargetOK)
     {
         std::cerr << "mob detection-target self-test failed\n";
+        return false;
+    }
+    if (!mobIllusionDetectionOK)
+    {
+        std::cerr << "mob illusion-detection self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)
