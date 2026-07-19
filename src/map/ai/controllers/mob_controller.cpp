@@ -89,6 +89,7 @@
 #include "mob_controller_roam_rest_admission_capacity.h"
 #include "mob_controller_roam_action_cooldown_capacity.h"
 #include "mob_controller_roam_call_for_help_capacity.h"
+#include "mob_controller_mob_skill_list_route_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -471,13 +472,14 @@ auto CMobController::MobSkill(int listId) -> bool
 {
     TracyZoneScoped;
 
-    if (!PTarget)
+    const auto skillListRoute = mobcontrollermobskilllistroute::Resolve(PTarget != nullptr, listId);
+    if (skillListRoute == mobcontrollermobskilllistroute::Route::Reject)
     {
         return false;
     }
 
     // Fetch skill list from mobmod if not set in database.
-    if (!listId)
+    if (skillListRoute == mobcontrollermobskilllistroute::Route::Modifier)
     {
         listId = PMob->getMobMod(MOBMOD_SKILL_LIST);
     }
