@@ -72,6 +72,7 @@
 #include "automaton_controller_spiritreaver_addle_priority_capacity.h"
 #include "automaton_controller_soulsoother_slow_priority_capacity.h"
 #include "automaton_controller_soulsoother_poison_priority_capacity.h"
+#include "automaton_controller_soulsoother_blind_priority_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -927,7 +928,7 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
                 defaultPriority.emplace_back(SpellID::Poison);
             }
 
-            if (maneuvers.dark) // Dark -> Blind > Bio
+            if (automatoncontrollersoulsootherblind::CanPrioritize(maneuvers.dark)) // Dark -> Blind > Bio
             {
                 castPriority.emplace_back(SpellID::Blind);
                 if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
