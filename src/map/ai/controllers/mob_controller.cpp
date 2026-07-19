@@ -60,6 +60,7 @@
 #include "mob_controller_scripted_path_capacity.h"
 #include "mob_controller_attack_range_source_capacity.h"
 #include "mob_controller_share_position_capacity.h"
+#include "mob_controller_type_one_teleport_admission_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -922,7 +923,8 @@ void CMobController::Move()
                 currentDistance <= 30.0f,
                 m_Tick >= m_LastSpecialTime + std::chrono::seconds(PMob->getMobMod(MOBMOD_TELEPORT_CD))))
         {
-            if (const CMobSkill* teleportBegin = battleutils::GetMobSkill(PMob->getMobMod(MOBMOD_TELEPORT_START)))
+            const CMobSkill* teleportBegin = battleutils::GetMobSkill(PMob->getMobMod(MOBMOD_TELEPORT_START));
+            if (mobcontrollertypeoneteleportadmission::CanDispatch(true, teleportBegin != nullptr))
             {
                 m_LastSpecialTime = m_Tick;
                 MobSkill(PMob->targid, teleportBegin->getID(), std::nullopt);
