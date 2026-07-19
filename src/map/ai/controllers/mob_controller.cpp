@@ -52,6 +52,7 @@
 #include "mob_controller_mob_skill_admission_capacity.h"
 #include "mob_controller_spell_cast_route_capacity.h"
 #include "mob_controller_spell_target_source_capacity.h"
+#include "mob_controller_owner_declaim_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -729,13 +730,13 @@ auto CMobController::DoCombatTick(timer::time_point tick) -> Task<void>
     if (PMob->m_OwnerID.targid != 0)
     {
         auto* POwner = dynamic_cast<CCharEntity*>(PMob->GetEntity(PMob->m_OwnerID.targid));
-        if (POwner && POwner->PClaimedMob != static_cast<CBattleEntity*>(PMob))
+        if (mobcontrollerownerdeclaim::ShouldClear(
+                POwner != nullptr,
+                POwner && POwner->PClaimedMob == static_cast<CBattleEntity*>(PMob),
+                m_Tick >= m_DeclaimTime + 3s))
         {
-            if (m_Tick >= m_DeclaimTime + 3s)
-            {
-                PMob->m_OwnerID.clean();
-                PMob->updatemask |= UPDATE_STATUS;
-            }
+            PMob->m_OwnerID.clean();
+            PMob->updatemask |= UPDATE_STATUS;
         }
     }
 

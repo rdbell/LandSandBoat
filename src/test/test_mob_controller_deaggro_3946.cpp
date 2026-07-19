@@ -33,6 +33,7 @@
 #include "map/ai/controllers/mob_controller_mob_skill_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_cast_route_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_target_source_capacity.h"
+#include "map/ai/controllers/mob_controller_owner_declaim_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -752,6 +753,15 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobSpellTargetSourceOK)
     {
         std::cerr << "mob spell target source self-test failed\n";
+        return false;
+    }
+    const bool mobOwnerDeclaimOK = mobcontrollerownerdeclaim::ShouldClear(true, false, true) &&
+                                   !mobcontrollerownerdeclaim::ShouldClear(false, false, true) &&
+                                   !mobcontrollerownerdeclaim::ShouldClear(true, true, true) &&
+                                   !mobcontrollerownerdeclaim::ShouldClear(true, false, false);
+    if (!mobOwnerDeclaimOK)
+    {
+        std::cerr << "mob owner declaim self-test failed\n";
         return false;
     }
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
