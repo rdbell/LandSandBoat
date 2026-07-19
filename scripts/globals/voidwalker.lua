@@ -269,6 +269,20 @@ xi.voidwalker.randomMobSkillPlan = function(mobName)
     return randomMobSkillPlans[mobName]
 end
 
+local resetLocalVarPlan =
+{
+    '[VoidWalker]PopedBy',
+    '[VoidWalker]checkPopedBy',
+    '[VoidWalker]PopedWith',
+    '[VoidWalker]PopedAt',
+    'MOBSKILL_USE',
+    'MOBSKILL_TIME',
+}
+
+xi.voidwalker.resetLocalVars = function()
+    return resetLocalVarPlan
+end
+
 xi.voidwalker.shouldCapricornusUseRecoilDive = function(hasMightyStrikes, isBusy)
     return hasMightyStrikes and not isBusy
 end
@@ -492,6 +506,12 @@ local function DespawnPet(mob)
     end
 end
 
+local function resetMobLocalVars(mob)
+    for _, name in ipairs(xi.voidwalker.resetLocalVars()) do
+        mob:setLocalVar(name, 0)
+    end
+end
+
 local mixinByMobName =
 {
     ['Capricornus'] = function(mob)
@@ -603,12 +623,7 @@ xi.voidwalker.onMobFight = function(mob, target)
 end
 
 xi.voidwalker.onMobDisengage = function(mob)
-    mob:setLocalVar('[VoidWalker]PopedBy', 0)
-    mob:setLocalVar('[VoidWalker]checkPopedBy', 0)
-    mob:setLocalVar('[VoidWalker]PopedWith', 0)
-    mob:setLocalVar('[VoidWalker]PopedAt', 0)
-    mob:setLocalVar('MOBSKILL_USE', 0)
-    mob:setLocalVar('MOBSKILL_TIME', 0)
+    resetMobLocalVars(mob)
     DespawnPet(mob)
     mob:setStatus(xi.status.INVISIBLE)
     mob:hideHP(true)
@@ -622,12 +637,7 @@ xi.voidwalker.onMobDespawn = function(mob)
 
     removeMobIdFromPos(zoneId, mobId)
     setRandomPos(zoneId, mobId)
-    mob:setLocalVar('[VoidWalker]PopedBy', 0)
-    mob:setLocalVar('[VoidWalker]checkPopedBy', 0)
-    mob:setLocalVar('[VoidWalker]PopedWith', 0)
-    mob:setLocalVar('[VoidWalker]PopedAt', 0)
-    mob:setLocalVar('MOBSKILL_USE', 0)
-    mob:setLocalVar('MOBSKILL_TIME', 0)
+    resetMobLocalVars(mob)
     DespawnPet(mob)
 end
 
