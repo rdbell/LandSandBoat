@@ -41,3 +41,30 @@ describe("Pirates Chart trade", function()
         assert(message[1] == 7845 and message[2] == 3 and event == nil)
     end)
 end)
+
+describe("Pirates Chart event update", function()
+    it('prepares every admitted party member for confrontation', function()
+        local calls = { music = {} }
+        local player = {
+            getID = function() return 123 end,
+            getParty = function() return {} end,
+            confirmTrade = function() calls.confirmed = true end,
+            setLocalVar = function(_, name, value) calls.active = { name, value } end,
+            changeMusic = function(_, channel, song) calls.music[channel] = song end,
+            delStatusEffectsByFlag = function(_, flag) calls.dispelable = flag end,
+            delStatusEffect = function(_, effect) calls.reraise = effect end,
+            delContainerItems = function(_, container) calls.temp = container end,
+            addStatusEffect = function(_, effect, args) calls.effect, calls.args = effect, args end,
+        }
+        player.getParty = function() return { player } end
+        local npc = { setLocalVar = function(_, name, value) calls.npcVar = { name, value } end }
+        local box = { setLocalVar = function(_, name, value) calls.boxVar = { name, value } end }
+        stub('GetNPCByID', function() return box end)
+        xi.piratesChart.onEventUpdate(player, 14, 0, npc)
+        assert(calls.confirmed and calls.active[1] == 'pChartActive' and calls.active[2] == 1)
+        assert(calls.npcVar[1] == 'pChartMemberID_1' and calls.npcVar[2] == 123 and calls.boxVar[2] == 123)
+        assert(calls.music[0] == 136 and calls.music[1] == 136 and calls.music[2] == 136 and calls.music[3] == 136)
+        assert(calls.dispelable == xi.effectFlag.DISPELABLE and calls.reraise == xi.effect.RERAISE and calls.temp == xi.inv.TEMPITEMS)
+        assert(calls.effect == xi.effect.LEVEL_RESTRICTION and calls.args.power == 20 and calls.args.origin == player)
+    end)
+end)
