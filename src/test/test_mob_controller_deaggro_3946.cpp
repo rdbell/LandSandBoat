@@ -65,6 +65,7 @@
 #include "map/ai/controllers/automaton_controller_tp_selection_fallback_capacity.h"
 #include "map/ai/controllers/automaton_controller_spell_permission_capacity.h"
 #include "map/ai/controllers/automaton_controller_cast_admission_capacity.h"
+#include "map/ai/controllers/automaton_controller_mob_skill_admission_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -550,6 +551,13 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool automatonCastAdmissionOK = automatoncontrollercastadmission::CanUseCast(true, false) &&
                                           !automatoncontrollercastadmission::CanUseCast(false, false) &&
                                           !automatoncontrollercastadmission::CanUseCast(true, true);
+    const bool automatonMobSkillAdmissionOK = automatoncontrollermobskilladmission::CanUseMobSkill(false) &&
+                                              !automatoncontrollermobskilladmission::CanUseMobSkill(true);
+    if (!automatonMobSkillAdmissionOK)
+    {
+        std::cerr << "automaton mob-skill admission self-test failed\n";
+        return false;
+    }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
                                  petcontrollerfollowpath::ShouldRecalculate(true, 2.01f) &&
                                  !petcontrollerfollowpath::ShouldRecalculate(true, 2.0f) &&

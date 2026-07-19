@@ -44,6 +44,7 @@
 #include "automaton_controller_tp_selection_fallback_capacity.h"
 #include "automaton_controller_spell_permission_capacity.h"
 #include "automaton_controller_cast_admission_capacity.h"
+#include "automaton_controller_mob_skill_admission_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1565,7 +1566,7 @@ auto CAutomatonController::Cast(uint16 targid, SpellID spellid) -> bool
 
 auto CAutomatonController::MobSkill(uint16 targid, uint16 wsid, Maybe<timer::duration> castTimeOverride) -> bool
 {
-    if (PAutomaton->PRecastContainer->HasRecast(RECAST_ABILITY, static_cast<Recast>(wsid), 0s))
+    if (!automatoncontrollermobskilladmission::CanUseMobSkill(PAutomaton->PRecastContainer->HasRecast(RECAST_ABILITY, static_cast<Recast>(wsid), 0s)))
     {
         return false;
     }
