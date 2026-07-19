@@ -27,6 +27,7 @@
 #include "pet_controller_special_healing_roam_capacity.h"
 #include "pet_controller_state_change_roam_capacity.h"
 #include "pet_controller_ability_capacity.h"
+#include "pet_controller_pet_skill_capacity.h"
 #include "pet_controller_follow_path_capacity.h"
 #include "pet_controller_follow_distance_capacity.h"
 #include "pet_controller_path_fallback_capacity.h"
@@ -244,7 +245,8 @@ bool CPetController::PetSkill(uint16 targid, uint16 abilityid)
 {
     TracyZoneScoped;
 
-    if (POwner)
+    const auto plan = petcontrollerpetskill::Resolve(POwner != nullptr);
+    if (plan.delegate)
     {
         FaceTarget(targid);
         PPet->PAI->EventHandler.triggerListener("WEAPONSKILL_BEFORE_USE", PPet, abilityid);
