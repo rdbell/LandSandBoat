@@ -79,6 +79,7 @@
 #include "automaton_controller_soulsoother_silence_priority_capacity.h"
 #include "automaton_controller_soulsoother_paralyze_priority_capacity.h"
 #include "automaton_controller_soulsoother_addle_priority_capacity.h"
+#include "automaton_controller_spiritreaver_enhancement_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1130,7 +1131,7 @@ auto CAutomatonController::TryEnhance() -> bool
         return false;
     }
 
-    if (PAutomaton->head() == AutomatonHead::Spiritreaver)
+    if (automatoncontrollerspiritreaverenhancement::CanCastDreadSpikes(PAutomaton->head() == AutomatonHead::Spiritreaver))
     {
         return Cast(PAutomaton->targid, SpellID::Dread_Spikes);
     }
