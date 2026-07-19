@@ -129,6 +129,10 @@ xi.dynamis.qmTriggerPlan = function(params, tradeItems, hasOminousMessage)
     end
 end
 
+xi.dynamis.shouldConfirmQMTrade = function(mobId, popSucceeded)
+    return mobId ~= nil and popSucceeded
+end
+
 local entryInfo =
 {
     --[[
@@ -781,10 +785,7 @@ xi.dynamis.qmOnTrade = function(player, npc, trade)
                 if npcUtil.tradeHasExactly(trade, v.item) then
                     local mobId = xi.dynamis.qmTradeMob(v.mob, math.random(1, type(v.mob) == 'table' and #v.mob or 1))
 
-                    if
-                        mobId and
-                        npcUtil.popFromQM(player, npc, mobId, { hide = 0, radius = 2 })
-                    then
+                    if xi.dynamis.shouldConfirmQMTrade(mobId, mobId and npcUtil.popFromQM(player, npc, mobId, { hide = 0, radius = 2 })) then
                         player:confirmTrade()
                     end
 

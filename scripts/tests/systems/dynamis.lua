@@ -76,6 +76,14 @@ describe('Dynamis QM trigger plans', function()
     end)
 end)
 
+describe('Dynamis QM trade confirmation', function()
+    it('confirms only successful selected mob pops', function()
+        assert(xi.dynamis.shouldConfirmQMTrade(100, true))
+        assert(not xi.dynamis.shouldConfirmQMTrade(100, false))
+        assert(not xi.dynamis.shouldConfirmQMTrade(nil, true))
+    end)
+end)
+
 describe('Dynamis refill statues', function()
     it('finds a statue eye configuration across groups', function()
         local blue = { mob = 100, eye = 1 }
