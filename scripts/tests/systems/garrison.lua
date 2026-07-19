@@ -453,3 +453,23 @@ describe('Garrison startup', function()
         for key, value in pairs(original) do zoneData[key] = value end
     end)
 end)
+
+describe('Garrison shutdown', function()
+    it('clears active collections and running state', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local keys = { 'players', 'spawnSchedule', 'npcs', 'mobs', 'isRunning' }
+        local original = {}
+        for _, key in ipairs(keys) do original[key] = zoneData[key] end
+        local zone = { getID = function() return zoneID end }
+        zoneData.players = {}
+        zoneData.spawnSchedule = { { 2 } }
+        zoneData.npcs = {}
+        zoneData.mobs = {}
+        zoneData.isRunning = true
+        xi.garrison.stop(zone)
+        assert(#zoneData.players == 0 and #zoneData.spawnSchedule == 0)
+        assert(#zoneData.npcs == 0 and #zoneData.mobs == 0 and not zoneData.isRunning)
+        for key, value in pairs(original) do zoneData[key] = value end
+    end)
+end)
