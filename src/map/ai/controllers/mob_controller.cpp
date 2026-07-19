@@ -40,6 +40,7 @@
 #include "mob_controller_roam_despawn_capacity.h"
 #include "mob_controller_roam_follow_leader_capacity.h"
 #include "mob_controller_roam_rest_gate_capacity.h"
+#include "mob_controller_roam_home_gate_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1171,33 +1172,31 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
 
             // if I just disengaged check if I should despawn
             PMob->m_IsPathingHome = false;
-            if (!PMob->getMobMod(MOBMOD_DONT_ROAM_HOME) && PMob->IsFarFromHome())
+            const auto shouldCheckHome = PMob->getMobMod(MOBMOD_DONT_ROAM_HOME) == 0 && PMob->IsFarFromHome();
+            if (shouldCheckHome && mobcontrollerroamhomegate::ShouldPathHome(false, true, PMob->CanRoamHome()))
             {
-                if (PMob->CanRoamHome())
+                PMob->m_IsPathingHome = true;
+                // walk back to spawn if too far away
+                if (!PMob->PAI->PathFind->IsFollowingPath() && !PMob->PAI->PathFind->PathTo(PMob->m_SpawnPoint))
                 {
-                    PMob->m_IsPathingHome = true;
-                    // walk back to spawn if too far away
-                    if (!PMob->PAI->PathFind->IsFollowingPath() && !PMob->PAI->PathFind->PathTo(PMob->m_SpawnPoint))
-                    {
-                        PMob->PAI->PathFind->PathInRange(PMob->m_SpawnPoint, PMob->m_maxRoamDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK);
-                    }
-
-                    // limit total path to just 10 or
-                    // else we'll move straight back to spawn
-                    PMob->PAI->PathFind->LimitDistance(10.0f);
-
-                    FollowRoamPath();
-
-                    // move back every 5 seconds
-                    m_LastActionTime = m_Tick - (std::chrono::seconds(PMob->getMobMod(MOBMOD_ROAM_COOL)) + 10s);
+                    PMob->PAI->PathFind->PathInRange(PMob->m_SpawnPoint, PMob->m_maxRoamDistance, PATHFLAG_RUN | PATHFLAG_WALLHACK);
                 }
-                else if (!(PMob->getMobMod(MOBMOD_NO_DESPAWN) != 0) && !settings::get<bool>("map.MOB_NO_DESPAWN"))
-                {
-                    PMob->PAI->Despawn();
-                    // Override respawn timer set by CDespawnState for deaggro (60s instead of default)
-                    PMob->loc.zone->spawnHandler().registerForRespawn(PMob, 60s);
-                    co_return;
-                }
+
+                // limit total path to just 10 or
+                // else we'll move straight back to spawn
+                PMob->PAI->PathFind->LimitDistance(10.0f);
+
+                FollowRoamPath();
+
+                // move back every 5 seconds
+                m_LastActionTime = m_Tick - (std::chrono::seconds(PMob->getMobMod(MOBMOD_ROAM_COOL)) + 10s);
+            }
+            else if (shouldCheckHome && !(PMob->getMobMod(MOBMOD_NO_DESPAWN) != 0) && !settings::get<bool>("map.MOB_NO_DESPAWN"))
+            {
+                PMob->PAI->Despawn();
+                // Override respawn timer set by CDespawnState for deaggro (60s instead of default)
+                PMob->loc.zone->spawnHandler().registerForRespawn(PMob, 60s);
+                co_return;
             }
             else
             {
