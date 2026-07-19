@@ -70,6 +70,7 @@
 #include "mob_controller_bound_retarget_search_capacity.h"
 #include "mob_controller_roam_follow_ranges_capacity.h"
 #include "mob_controller_roam_home_action_capacity.h"
+#include "mob_controller_roam_action_dispatch_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1265,18 +1266,22 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
                 }
 
                 // No longer including conditional for ROAMFLAG_AMBUSH now that using mixin to handle mob hiding
-                if (IsSpecialSkillReady(0) && TrySpecialSkill())
+                const auto specialSkillUsed = IsSpecialSkillReady(0) && TrySpecialSkill();
+                const auto scripted         = !specialSkillUsed && (PMob->m_roamFlags & ROAMFLAG_SCRIPTED) != 0;
+                const auto canRoam          = !specialSkillUsed && !scripted && PMob->CanRoam();
+                const auto roamAction       = mobcontrollerroamactiondispatch::Resolve(specialSkillUsed, scripted, canRoam);
+                if (roamAction == mobcontrollerroamactiondispatch::Action::SpecialSkill)
                 {
                     // I spawned a pet
                 }
-                else if (PMob->m_roamFlags & ROAMFLAG_SCRIPTED)
+                else if (roamAction == mobcontrollerroamactiondispatch::Action::Scripted)
                 {
                     // allow custom event action
                     PMob->PAI->EventHandler.triggerListener("ROAM_ACTION", PMob);
                     luautils::OnMobRoamAction(PMob);
                     m_LastActionTime = m_Tick;
                 }
-                else if (PMob->CanRoam())
+                else if (roamAction == mobcontrollerroamactiondispatch::Action::Roam)
                 {
                     // TODO: #AIToScript (event probably)
                     const bool worm       = (PMob->m_roamFlags & ROAMFLAG_WORM) != 0;
