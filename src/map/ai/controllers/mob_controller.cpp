@@ -37,6 +37,7 @@
 #include "mob_controller_shared_target_selection_capacity.h"
 #include "mob_controller_roam_engage_gate_capacity.h"
 #include "mob_controller_roam_owner_engage_capacity.h"
+#include "mob_controller_roam_despawn_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1080,7 +1081,9 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
         co_return;
     }
     // TODO
-    else if (PMob->GetDespawnTime() > timer::time_point::min() && PMob->GetDespawnTime() < m_Tick)
+    else if (mobcontrollerroamdespawn::ShouldDespawn(
+                 PMob->GetDespawnTime() > timer::time_point::min(),
+                 PMob->GetDespawnTime() < m_Tick))
     {
         Despawn();
         co_return;
