@@ -74,6 +74,7 @@
 #include "automaton_controller_soulsoother_poison_priority_capacity.h"
 #include "automaton_controller_soulsoother_blind_priority_capacity.h"
 #include "automaton_controller_soulsoother_dia_priority_capacity.h"
+#include "automaton_controller_soulsoother_bio_priority_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -932,9 +933,14 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
             if (automatoncontrollersoulsootherblind::CanPrioritize(maneuvers.dark)) // Dark -> Blind > Bio
             {
                 castPriority.emplace_back(SpellID::Blind);
-                if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
+                if (automatoncontrollersoulsootherbio::CanPrioritize(
+                        !PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia), maneuvers.dark))
                 {
                     castPriority.emplace_back(SpellID::Bio_II);
+                }
+                else if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
+                {
+                    defaultPriority.emplace_back(SpellID::Bio_II);
                 }
             }
             else
@@ -956,16 +962,14 @@ auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> boo
                 defaultPriority.emplace_back(SpellID::Dia_II);
             }
 
-            if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
+            if (automatoncontrollersoulsootherbio::CanPrioritize(
+                    !PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia), maneuvers.dark))
             {
-                if (maneuvers.dark) // Dark -> Blind > Bio
-                {
-                    castPriority.emplace_back(SpellID::Bio);
-                }
-                else
-                {
-                    defaultPriority.emplace_back(SpellID::Bio);
-                }
+                castPriority.emplace_back(SpellID::Bio);
+            }
+            else if (!PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Dia))
+            {
+                defaultPriority.emplace_back(SpellID::Bio);
             }
 
             if (automatoncontrollersoulsootherdia::CanPrioritize(

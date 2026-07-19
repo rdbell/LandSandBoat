@@ -95,6 +95,7 @@
 #include "map/ai/controllers/automaton_controller_soulsoother_poison_priority_capacity.h"
 #include "map/ai/controllers/automaton_controller_soulsoother_blind_priority_capacity.h"
 #include "map/ai/controllers/automaton_controller_soulsoother_dia_priority_capacity.h"
+#include "map/ai/controllers/automaton_controller_soulsoother_bio_priority_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -825,6 +826,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonSoulsootherDiaPriorityOK)
     {
         std::cerr << "automaton Soulsoother Dia priority self-test failed\n";
+        return false;
+    }
+    const bool automatonSoulsootherBioPriorityOK = automatoncontrollersoulsootherbio::CanPrioritize(true, 1) &&
+                                                   !automatoncontrollersoulsootherbio::CanPrioritize(true, 0) &&
+                                                   !automatoncontrollersoulsootherbio::CanPrioritize(false, 1);
+    if (!automatonSoulsootherBioPriorityOK)
+    {
+        std::cerr << "automaton Soulsoother Bio priority self-test failed\n";
         return false;
     }
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
