@@ -246,6 +246,10 @@ xi.voidwalker.shouldCapricornusUseRecoilDive = function(hasMightyStrikes, isBusy
     return hasMightyStrikes and not isBusy
 end
 
+xi.voidwalker.shouldResetJyeshthaMobSkillUse = function(mobSkillUse, hasMightyStrikes)
+    return mobSkillUse == 1 and not hasMightyStrikes
+end
+
 xi.voidwalker.direction = function(diffx, diffz)
     local tan       = math.atan(diffz / diffx)
     local degree    = math.deg(tan)
@@ -466,10 +470,10 @@ local mixinByMobName =
 
     ['Jyeshtha'] = function(mob)
         randomly(mob, 30, 60, xi.mobSkill.MIGHTY_STRIKES_1, xi.mobSkill.MIGHTY_STRIKES_1)
-        if
-            mob:getLocalVar('MOBSKILL_USE') == 1 and
-            not mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES)
-        then
+        if xi.voidwalker.shouldResetJyeshthaMobSkillUse(
+            mob:getLocalVar('MOBSKILL_USE'),
+            mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES)
+        ) then
             mob:setLocalVar('MOBSKILL_USE', 0)
         end
     end,
