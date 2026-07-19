@@ -144,6 +144,16 @@ xi.voidwalker.nearestMob = function(mobs, distanceForMob)
     end
 end
 
+xi.voidwalker.healingRangeOutcome = function(distance)
+    if distance <= 4 then
+        return 'spawn'
+    elseif distance >= 300 then
+        return 'too_far'
+    end
+
+    return 'hint'
+end
+
 local getNearestMob = function(player, mobs)
     return xi.voidwalker.nearestMob(mobs, function(mobId)
         return player:checkDistance(GetMobByID(mobId))
@@ -577,7 +587,7 @@ xi.voidwalker.onHealing = function(player)
 
     if not mobNearest then
         player:messageSpecial(zoneTextTable.VOIDWALKER_NO_MOB, abyssites[1])
-    elseif mobNearest.distance <= 4 then
+    elseif xi.voidwalker.healingRangeOutcome(mobNearest.distance) == 'spawn' then
         local mob = GetMobByID(mobNearest.mobId)
         if not mob then
             return
@@ -603,7 +613,7 @@ xi.voidwalker.onHealing = function(player)
         mob:setStatus(xi.status.UPDATE)
         mob:updateClaim(player)
 
-    elseif mobNearest.distance >= 300 then
+    elseif xi.voidwalker.healingRangeOutcome(mobNearest.distance) == 'too_far' then
         player:messageSpecial(zoneTextTable.VOIDWALKER_MOB_TOO_FAR, mobNearest.keyItem)
 
     else
