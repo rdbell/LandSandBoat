@@ -23,6 +23,7 @@
 #include "automaton_controller_stand_back_capacity.h"
 #include "automaton_controller_cooldown_capacity.h"
 #include "automaton_controller_maneuvers_capacity.h"
+#include "automaton_controller_master_loss_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -127,7 +128,9 @@ auto CAutomatonController::GetCurrentManeuvers() const -> CurrentManeuvers
 
 auto CAutomatonController::DoCombatTick(timer::time_point tick) -> Task<void>
 {
-    if ((PAutomaton->PMaster == nullptr || PAutomaton->PMaster->isDead()) && PAutomaton->isAlive())
+    const auto hasMaster = PAutomaton->PMaster != nullptr;
+    const auto masterDead = hasMaster && PAutomaton->PMaster->isDead();
+    if (automatoncontrollermasterloss::ShouldDie(hasMaster, masterDead, PAutomaton->isAlive()))
     {
         PAutomaton->Die();
         co_return;
