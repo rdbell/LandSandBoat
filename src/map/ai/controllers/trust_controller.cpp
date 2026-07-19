@@ -31,6 +31,7 @@
 #include "trust_controller_ranged_attack_dispatch_capacity.h"
 #include "trust_controller_cast_target_source_capacity.h"
 #include "trust_controller_cast_recast_admission_capacity.h"
+#include "trust_controller_top_enmity_target_capacity.h"
 #include "trust_controller_noncombat_movement_capacity.h"
 #include "trust_controller_recovery_capacity.h"
 #include "trust_controller_ranged_attack_capacity.h"
@@ -645,7 +646,8 @@ CBattleEntity* CTrustController::GetTopEnmity()
     TracyZoneScoped;
 
     CBattleEntity* PEntity = nullptr;
-    if (auto* PMob = dynamic_cast<CMobEntity*>(POwner->PMaster->GetBattleTarget()))
+    if (auto* PMob = dynamic_cast<CMobEntity*>(POwner->PMaster->GetBattleTarget());
+        trustcontrollertopenmitytarget::ShouldRead(PMob != nullptr))
     {
         return PMob->PEnmityContainer->GetHighestEnmity();
     }
