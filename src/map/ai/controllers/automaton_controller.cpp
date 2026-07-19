@@ -33,6 +33,7 @@
 #include "automaton_controller_cure_tier_capacity.h"
 #include "automaton_controller_elemental_tier_capacity.h"
 #include "automaton_controller_resistance_order_capacity.h"
+#include "automaton_controller_enfeeble_gate_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -634,7 +635,7 @@ auto CAutomatonController::TryElemental(const CurrentManeuvers& maneuvers) -> bo
 
 auto CAutomatonController::TryEnfeeble(const CurrentManeuvers& maneuvers) -> bool
 {
-    if (!PAutomaton->PMaster || m_enfeebleCooldown == 0s || m_Tick <= m_LastEnfeebleTime + m_enfeebleCooldown)
+    if (!automatoncontrollerenfeeblegate::CanEnfeeble(m_Tick, m_LastEnfeebleTime, m_enfeebleCooldown, PAutomaton->PMaster != nullptr))
     {
         return false;
     }
