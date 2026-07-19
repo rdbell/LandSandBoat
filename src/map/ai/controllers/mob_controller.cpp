@@ -86,6 +86,7 @@
 #include "mob_controller_roam_home_retry_schedule_capacity.h"
 #include "mob_controller_roam_neutral_capacity.h"
 #include "mob_controller_roam_rest_full_health_capacity.h"
+#include "mob_controller_roam_rest_admission_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1191,8 +1192,8 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
         }
     }
 
-    if (m_Tick >= m_mobHealTime + 10s && PMob->getMobMod(MOBMOD_NO_REST) == 0 &&
-        mobcontrollerroamrestgate::CanRest(true, false, PMob->CanRest()))
+    if (mobcontrollerroamrestadmission::CanRest(
+            m_Tick, m_mobHealTime, PMob->getMobMod(MOBMOD_NO_REST) != 0, PMob->CanRest()))
     {
         // recover 10% health and lose tp
         if (PMob->Rest(0.1f))

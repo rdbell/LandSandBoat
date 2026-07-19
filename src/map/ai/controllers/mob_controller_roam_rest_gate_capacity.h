@@ -2,7 +2,7 @@
 
 namespace mobcontrollerroamrestgate
 {
-inline auto CanRest(bool intervalElapsed, bool noRestModifier, bool canRest) -> bool
+constexpr auto CanRest(bool intervalElapsed, bool noRestModifier, bool canRest) -> bool
 {
     return intervalElapsed && !noRestModifier && canRest;
 }
