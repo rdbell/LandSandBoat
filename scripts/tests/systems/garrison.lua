@@ -183,6 +183,38 @@ describe('Garrison ally NPC spawning', function()
     end)
 end)
 
+describe('Garrison ally spawn admission', function()
+    it('requires a player-controlled region, ally data, and a nonempty formation', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = { players = { 1, 2 }, npcs = {}, levelCap = 20 }
+        local nation, allyInfo, rolled = xi.nation.SANDORIA, { groupId = 1, minLevel = 15, maxLevel = 20 }, { { pos = { 1, 2, 3, 4 }, name = 'Patrician', look = 'look' } }
+        local spawned = 0
+        local zone = { getID = function() return zoneID end, getRegionID = function() return 0 end }
+        local originalGetAllyInfo, originalRollNPCs, originalSpawnNPC = xi.garrison.getAllyInfo, xi.garrison.rollNPCs, xi.garrison.spawnNPC
+
+        stub('GetRegionOwner', function() return nation end)
+        xi.garrison.getAllyInfo = function() return allyInfo end
+        xi.garrison.rollNPCs = function() return rolled end
+        xi.garrison.spawnNPC = function()
+            spawned = spawned + 1
+            return { getID = function() return spawned end, addStatusEffect = function() end }
+        end
+
+        assert(xi.garrison.spawnNPCs(zone, zoneData))
+        assert(spawned == 1 and #zoneData.npcs == 1 and zoneData.npcs[1] == 1)
+
+        nation = xi.nation.BEASTMEN
+        assert(not xi.garrison.spawnNPCs(zone, zoneData))
+        nation = xi.nation.SANDORIA
+        allyInfo = nil
+        assert(not xi.garrison.spawnNPCs(zone, zoneData))
+        allyInfo, rolled = { groupId = 1, minLevel = 15, maxLevel = 20 }, {}
+        assert(not xi.garrison.spawnNPCs(zone, zoneData))
+
+        xi.garrison.getAllyInfo, xi.garrison.rollNPCs, xi.garrison.spawnNPC = originalGetAllyInfo, originalRollNPCs, originalSpawnNPC
+    end)
+end)
+
 describe('Garrison mob-pool selection', function()
     it('filters excluded IDs and samples without replacement', function()
         local selected = xi.garrison.pickMobsFromPool(10, 14, 3, { 11, 13 })
