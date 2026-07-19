@@ -96,6 +96,10 @@ xi.dynamis.refillStatueRecovery = function(eye)
     end
 end
 
+xi.dynamis.canReceiveRefill = function(distance)
+    return distance < 30
+end
+
 local entryInfo =
 {
     --[[
@@ -700,7 +704,7 @@ xi.dynamis.refillStatueOnDeath = function(mob, player, optParams)
                     local players = zone:getPlayers()
 
                     for name, playerObj in pairs(players) do
-                        if mob:checkDistance(playerObj) < 30 then
+                        if xi.dynamis.canReceiveRefill(mob:checkDistance(playerObj)) then
                             if recovery == 'mp' then
                                 local amt = playerObj:getMaxMP() - playerObj:getMP()
                                 playerObj:restoreMP(amt)

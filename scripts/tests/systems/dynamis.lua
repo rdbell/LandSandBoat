@@ -42,6 +42,14 @@ describe('Dynamis refill statue recovery', function()
     end)
 end)
 
+describe('Dynamis refill statue range', function()
+    it('includes players strictly within 30 yalms', function()
+        assert(xi.dynamis.canReceiveRefill(29.9))
+        assert(not xi.dynamis.canReceiveRefill(30))
+        assert(not xi.dynamis.canReceiveRefill(30.1))
+    end)
+end)
+
 describe('Dynamis refill statues', function()
     it('finds a statue eye configuration across groups', function()
         local blue = { mob = 100, eye = 1 }
