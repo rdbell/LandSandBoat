@@ -32,6 +32,7 @@
 #include "map/ai/controllers/mob_controller_mob_skill_target_capacity.h"
 #include "map/ai/controllers/mob_controller_mob_skill_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_cast_route_capacity.h"
+#include "map/ai/controllers/mob_controller_spell_target_source_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -740,6 +741,17 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobSpellCastRouteOK)
     {
         std::cerr << "mob spell cast route self-test failed\n";
+        return false;
+    }
+    const bool mobSpellTargetSourceOK = mobcontrollerspelltargetsource::Select(false, false, false, false, false) == mobcontrollerspelltargetsource::Source::Enemy &&
+                                        mobcontrollerspelltargetsource::Select(true, false, false, false, false) == mobcontrollerspelltargetsource::Source::Self &&
+                                        mobcontrollerspelltargetsource::Select(true, true, true, true, false) == mobcontrollerspelltargetsource::Source::Master &&
+                                        mobcontrollerspelltargetsource::Select(true, true, true, false, true) == mobcontrollerspelltargetsource::Source::PartyCandidate &&
+                                        mobcontrollerspelltargetsource::Select(true, true, true, false, false) == mobcontrollerspelltargetsource::Source::Self &&
+                                        mobcontrollerspelltargetsource::Select(true, true, false, true, true) == mobcontrollerspelltargetsource::Source::PartyCandidate;
+    if (!mobSpellTargetSourceOK)
+    {
+        std::cerr << "mob spell target source self-test failed\n";
         return false;
     }
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&

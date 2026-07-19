@@ -51,6 +51,7 @@
 #include "mob_controller_mob_skill_target_capacity.h"
 #include "mob_controller_mob_skill_admission_capacity.h"
 #include "mob_controller_spell_cast_route_capacity.h"
+#include "mob_controller_spell_target_source_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -679,44 +680,39 @@ void CMobController::CastSpell(SpellID spellid)
     else
     {
         CBattleEntity* PCastTarget = nullptr;
-        // check valid targets
-        if (PSpell->getValidTarget() & TARGET_SELF)
+        const bool selfTarget   = (PSpell->getValidTarget() & TARGET_SELF) != 0;
+        const bool partyTarget  = selfTarget && (PSpell->getValidTarget() & TARGET_PLAYER_PARTY) != 0;
+        const bool hasMaster    = PMob->PMaster != nullptr;
+        const bool chooseMaster = partyTarget && hasMaster && xirand::GetRandomNumber(2) == 0;
+        const bool chooseParty  = partyTarget && !chooseMaster && xirand::GetRandomNumber(2) == 0;
+        switch (mobcontrollerspelltargetsource::Select(selfTarget, partyTarget, hasMaster, chooseMaster, chooseParty))
         {
-            PCastTarget = PMob;
+            case mobcontrollerspelltargetsource::Source::Enemy:
+                PCastTarget = PTarget;
+                break;
+            case mobcontrollerspelltargetsource::Source::Self:
+                PCastTarget = PMob;
+                break;
+            case mobcontrollerspelltargetsource::Source::Master:
+                PCastTarget = PMob->PMaster;
+                break;
+            case mobcontrollerspelltargetsource::Source::PartyCandidate:
+                PMob->PAI->TargetFind->reset();
+                PMob->PAI->TargetFind->findWithinArea(PMob, AOE_RADIUS::ATTACKER, PSpell->getRange(), FINDFLAGS_NONE, TARGET_NONE);
 
-            // only buff other targets if i'm roaming
-            if ((PSpell->getValidTarget() & TARGET_PLAYER_PARTY))
-            {
-                // chance to target my master
-                if (PMob->PMaster != nullptr && xirand::GetRandomNumber(2) == 0)
+                if (!PMob->PAI->TargetFind->m_targets.empty())
                 {
-                    // target my master
-                    PCastTarget = PMob->PMaster;
-                }
-                else if (xirand::GetRandomNumber(2) == 0)
-                {
-                    // chance to target party
-                    PMob->PAI->TargetFind->reset();
-                    PMob->PAI->TargetFind->findWithinArea(PMob, AOE_RADIUS::ATTACKER, PSpell->getRange(), FINDFLAGS_NONE, TARGET_NONE);
+                    // randomly select a target
+                    PCastTarget = PMob->PAI->TargetFind->m_targets[xirand::GetRandomNumber(PMob->PAI->TargetFind->m_targets.size())];
 
-                    if (!PMob->PAI->TargetFind->m_targets.empty())
+                    // revert target to self if not on same action
+                    // TODO can engaged mobs buff idle mobs?
+                    if (PMob->PAI->IsEngaged() != PCastTarget->PAI->IsEngaged())
                     {
-                        // randomly select a target
-                        PCastTarget = PMob->PAI->TargetFind->m_targets[xirand::GetRandomNumber(PMob->PAI->TargetFind->m_targets.size())];
-
-                        // revert target to self if not on same action
-                        // TODO can engaged mobs buff idle mobs?
-                        if (PMob->PAI->IsEngaged() != PCastTarget->PAI->IsEngaged())
-                        {
-                            PCastTarget = PMob;
-                        }
+                        PCastTarget = PMob;
                     }
                 }
-            }
-        }
-        else
-        {
-            PCastTarget = PTarget;
+                break;
         }
 
         if (PCastTarget)
