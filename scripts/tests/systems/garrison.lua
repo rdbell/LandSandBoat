@@ -460,11 +460,14 @@ describe('Garrison startup', function()
         for _, key in ipairs(keys) do original[key] = zoneData[key] end
         local originalTick = xi.garrison.tick
         local zone = { getID = function() return zoneID end }
+        local lockoutKey = '[Garrison]NextEntryTime_' .. zoneID
+        local originalZoneLockout = GetServerVariable(lockoutKey)
+        local tallyLockout = {}
         local player = {
             getZone = function() return zone end,
             getZoneID = function() return zoneID end,
             getAlliance = function() return {} end,
-            setCharVar = function() end,
+            setCharVar = function(_, key, value, expires) tallyLockout = { key, value, expires } end,
         }
         local npc = { timer = function() end }
         xi.garrison.tick = function() end
@@ -475,7 +478,10 @@ describe('Garrison startup', function()
         assert(#zoneData.players == 0 and #zoneData.npcs == 0 and #zoneData.mobs == 0)
         assert(zoneData.nextSpawnTime >= before + xi.garrison.waves.delayBetweenGroups)
         assert(zoneData.endTime >= before + xi.settings.main.GARRISON_TIME_LIMIT)
+        assert(tallyLockout[1] == '[Garrison]NextEntryTime' and tallyLockout[2] == 1 and tallyLockout[3] == NextConquestTally())
+        assert(GetServerVariable(lockoutKey) >= before + xi.settings.main.GARRISON_LOCKOUT)
         xi.garrison.tick = originalTick
+        SetServerVariable(lockoutKey, originalZoneLockout)
         for key, value in pairs(original) do zoneData[key] = value end
     end)
 end)
