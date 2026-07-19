@@ -29,6 +29,7 @@
 #include "mob_controller_party_link_family_capacity.h"
 #include "mob_controller_party_link_engagement_capacity.h"
 #include "mob_controller_master_link_engagement_capacity.h"
+#include "mob_controller_buff_tick_admission_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -181,16 +182,19 @@ auto CMobController::DoBuffTick() -> bool
 {
     TracyZoneScoped;
 
-    if (PMob->PAI->IsCurrentState<CMagicState>())
+    const auto buffTickAction = mobcontrollerbufftickadmission::Resolve(
+        PMob->PAI->IsCurrentState<CMagicState>(),
+        [&]() { return IsSpellReady(0, 0); },
+        [&]() { return PMob->SpellContainer->HasBuffSpells(); });
+    switch (buffTickAction)
     {
-        return true;
+        case mobcontrollerbufftickadmission::Action::KeepCasting:
+            return true;
+        case mobcontrollerbufftickadmission::Action::Reject:
+            return false;
+        case mobcontrollerbufftickadmission::Action::Cast:
+            break;
     }
-
-    if (!IsSpellReady(0, 0) || !PMob->SpellContainer->HasBuffSpells())
-    {
-        return false;
-    }
-
     return TryCastSpell();
 }
 
