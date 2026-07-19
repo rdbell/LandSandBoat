@@ -84,6 +84,7 @@
 #include "automaton_controller_enhancement_self_target_capacity.h"
 #include "automaton_controller_party_enhancement_threshold_capacity.h"
 #include "automaton_controller_tp_skill_selection_result_capacity.h"
+#include "automaton_controller_enfeeble_admission_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1663,7 +1664,7 @@ bool CanUseEnfeeble(CBattleEntity* PTarget, SpellID spell)
 {
     const AutomatonSpell& PSpell   = autoSpellList[spell];
     auto&                 statuses = PTarget->StatusEffectContainer;
-    return (!statuses->HasStatusEffect(PSpell.enfeeble) && !PTarget->hasImmunity(PSpell.immunity));
+    return automatoncontrollerenfeebleadmission::CanUseEnfeeble(statuses->HasStatusEffect(PSpell.enfeeble), PTarget->hasImmunity(PSpell.immunity));
 }
 
 Maybe<SpellID> FindNaSpell(CStatusEffect* PStatus)
