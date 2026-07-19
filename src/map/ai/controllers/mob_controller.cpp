@@ -197,10 +197,16 @@ auto CMobController::TryDeaggro() -> bool
     }
 
     // target is no longer valid, so wipe them from our enmity list
-    if (!PTarget || PTarget->isDead() || PTarget->isMounted() || PTarget->loc.zone->GetID() != PMob->loc.zone->GetID() ||
-        PMob->StatusEffectContainer->GetConfrontationEffect() != PTarget->StatusEffectContainer->GetConfrontationEffect() ||
-        PMob->allegiance == PTarget->allegiance || CheckDetection(PTarget) || CheckHide(PTarget) || CheckLock(PTarget) ||
-        PMob->getBattleID() != PTarget->getBattleID())
+    if (!PTarget || mobcontrollertargetvalidity::TargetInvalidWithChecks(
+            !PTarget->isDead(),
+            PTarget->isMounted(),
+            PTarget->loc.zone->GetID() == PMob->loc.zone->GetID(),
+            PMob->StatusEffectContainer->GetConfrontationEffect() == PTarget->StatusEffectContainer->GetConfrontationEffect(),
+            PMob->allegiance != PTarget->allegiance,
+            [&]() { return !CheckDetection(PTarget); },
+            [&]() { return !CheckHide(PTarget); },
+            [&]() { return !CheckLock(PTarget); },
+            PMob->getBattleID() == PTarget->getBattleID()))
     {
         if (PTarget)
         {
