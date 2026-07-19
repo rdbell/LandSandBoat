@@ -40,6 +40,7 @@
 #include "automaton_controller_tp_skill_type_capacity.h"
 #include "automaton_controller_tp_skill_candidate_capacity.h"
 #include "automaton_controller_tp_skill_priority_capacity.h"
+#include "automaton_controller_tp_skillchain_candidate_capacity.h"
 #include "automaton_controller_spell_permission_capacity.h"
 #include "automaton_controller_cast_admission_capacity.h"
 
@@ -1472,7 +1473,10 @@ auto CAutomatonController::TryTPMove() -> bool
                         skillProperties.emplace_back((SKILLCHAIN_ELEMENT)PSkill->getPrimarySkillchain());
                         skillProperties.emplace_back((SKILLCHAIN_ELEMENT)PSkill->getSecondarySkillchain());
                         skillProperties.emplace_back((SKILLCHAIN_ELEMENT)PSkill->getTertiarySkillchain());
-                        if (battleutils::FormSkillchain(resonanceProperties, skillProperties) != SC_NONE)
+                        if (automatoncontrollertpskillchaincandidate::ShouldSelectTPSkillchainCandidate(
+                                PSkill->getParam(),
+                                currentSkill,
+                                battleutils::FormSkillchain(resonanceProperties, skillProperties) != SC_NONE))
                         {
                             currentManeuvers = 1;
                             currentSkill     = PSkill->getParam();
