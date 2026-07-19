@@ -255,3 +255,51 @@ describe('Garrison wave advance', function()
         end
     end)
 end)
+
+describe('Garrison mob spawning', function()
+    it('uses the current wave group and returns to battle', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local original = {
+            state = zoneData.state,
+            players = zoneData.players,
+            isRunning = zoneData.isRunning,
+            spawnSchedule = zoneData.spawnSchedule,
+            waveIndex = zoneData.waveIndex,
+            groupIndex = zoneData.groupIndex,
+            mobs = zoneData.mobs,
+            npcs = zoneData.npcs,
+        }
+        local spawned = {}
+        local zone = {
+            getID = function() return zoneID end,
+            queryEntitiesByName = function()
+                return { { getID = function() return 100 end } }
+            end,
+        }
+        local npc = {
+            getZone = function() return zone end,
+            getZoneID = function() return zoneID end,
+        }
+        local originalSpawnMob = xi.garrison.spawnMob
+
+        zoneData.players = {}
+        zoneData.isRunning = false
+        zoneData.spawnSchedule = { { 2, 1 } }
+        zoneData.waveIndex = 1
+        zoneData.groupIndex = 1
+        zoneData.mobs = { 92 }
+        zoneData.npcs = {}
+        zoneData.state = xi.garrison.state.SPAWN_MOBS
+        xi.garrison.spawnMob = function(mobID) table.insert(spawned, mobID) end
+        xi.garrison.tick(npc)
+
+        assert(#spawned == 2 and spawned[1] ~= 92 and spawned[2] ~= 92 and spawned[1] ~= spawned[2])
+        assert(zoneData.state == xi.garrison.state.BATTLE and zoneData.groupIndex == 2)
+
+        xi.garrison.spawnMob = originalSpawnMob
+        for key, value in pairs(original) do
+            zoneData[key] = value
+        end
+    end)
+end)
