@@ -20,6 +20,7 @@
 */
 
 #include "pet_controller.h"
+#include "pet_controller_deaggro_capacity.h"
 #include "pet_controller_tick_capacity.h"
 
 #include "ai/ai_container.h"
@@ -207,15 +208,23 @@ bool CPetController::TryDeaggro()
         return true;
     }
 
-    // target is no longer valid, so wipe them from our enmity list
-    if (PTarget->isDead() || PTarget->isMounted() || PTarget->loc.zone->GetID() != PPet->loc.zone->GetID() ||
-        PPet->StatusEffectContainer->GetConfrontationEffect() != PTarget->StatusEffectContainer->GetConfrontationEffect() ||
-        PPet->getBattleID() != PTarget->getBattleID())
+    if (PTarget->isDead())
     {
-        return true;
+        return petcontrollerdeaggro::ShouldDeaggro(true, true, false, true, true, true);
     }
-
-    return false;
+    if (PTarget->isMounted())
+    {
+        return petcontrollerdeaggro::ShouldDeaggro(true, false, true, true, true, true);
+    }
+    if (PTarget->loc.zone->GetID() != PPet->loc.zone->GetID())
+    {
+        return petcontrollerdeaggro::ShouldDeaggro(true, false, false, false, true, true);
+    }
+    if (PPet->StatusEffectContainer->GetConfrontationEffect() != PTarget->StatusEffectContainer->GetConfrontationEffect())
+    {
+        return petcontrollerdeaggro::ShouldDeaggro(true, false, false, true, false, true);
+    }
+    return petcontrollerdeaggro::ShouldDeaggro(true, false, false, true, true, PPet->getBattleID() == PTarget->getBattleID());
 }
 
 bool CPetController::Ability(uint16 targid, uint16 abilityid)
