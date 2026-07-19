@@ -82,6 +82,7 @@
 #include "automaton_controller_spiritreaver_enhancement_capacity.h"
 #include "automaton_controller_regen_candidate_capacity.h"
 #include "automaton_controller_enhancement_self_target_capacity.h"
+#include "automaton_controller_party_enhancement_threshold_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1377,13 +1378,13 @@ auto CAutomatonController::TryEnhance() -> bool
     }
 
     // No info on how this spell worked
-    if ((members - protectcount) >= 4)
+    if (automatoncontrollerpartyenhancementthreshold::CanCastPartyEnhancement(members, protectcount))
     {
         Cast(PAutomaton->targid, SpellID::Protectra_V);
     }
 
     // No info on how this spell worked
-    if ((members - shellcount) >= 4)
+    if (automatoncontrollerpartyenhancementthreshold::CanCastPartyEnhancement(members, shellcount))
     {
         Cast(PAutomaton->targid, SpellID::Shellra_V);
     }
