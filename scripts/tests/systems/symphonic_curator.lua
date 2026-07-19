@@ -36,3 +36,17 @@ describe('Symphonic Curator trigger', function()
         assert(event[4] == 1 and event[5] == 0x0F)
     end)
 end)
+
+describe('Symphonic Curator update', function()
+    it('previews the selected song without changing the stored selection', function()
+        local changed = nil
+        local player = {
+            changeMusic = function(_, musicType, song) changed = { musicType, song } end,
+            setLocalVar = function() error('preview must not change the stored selection') end,
+        }
+
+        xi.symphonic_curator.onEventUpdate(player, 30034, 18)
+
+        assert(changed[1] == 6 and changed[2] == 108)
+    end)
+end)
