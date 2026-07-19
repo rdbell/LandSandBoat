@@ -1,6 +1,7 @@
 #include "test_mob_controller_deaggro_3946.h"
 
 #include "map/ai/controllers/mob_controller_deaggro_capacity.h"
+#include "map/ai/controllers/mob_controller_deaggro_retarget_capacity.h"
 #include "map/ai/controllers/mob_controller_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_readiness_capacity.h"
 #include "map/ai/controllers/mob_controller_movement_capacity.h"
@@ -389,6 +390,8 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                                   []() { return true; },
                                                   []() { return true; },
                                                   true);
+    const bool deaggroRetargetOK = mobcontrollerdeaggroretarget::Resolve(true) == mobcontrollerdeaggroretarget::Action::Replacement &&
+                                   mobcontrollerdeaggroretarget::Resolve(false) == mobcontrollerdeaggroretarget::Action::Clear;
     const auto engageBase = std::chrono::steady_clock::time_point{};
     const bool playerEngageOK = !Evaluate(false, 0, engageBase, std::chrono::seconds(0), engageBase).dispatch &&
                                 Evaluate(true, 29, engageBase, std::chrono::seconds(1), engageBase + std::chrono::seconds(2)).dispatch &&
@@ -2091,6 +2094,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!targetValidityCheckOrderOK)
     {
         std::cerr << "target-validity check-order self-test failed\n";
+        return false;
+    }
+    if (!deaggroRetargetOK)
+    {
+        std::cerr << "deaggro retarget self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !followAdmissionOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)

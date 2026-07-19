@@ -21,6 +21,7 @@
 
 #include "mob_controller.h"
 #include "mob_controller_deaggro_capacity.h"
+#include "mob_controller_deaggro_retarget_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -213,7 +214,7 @@ auto CMobController::TryDeaggro() -> bool
             PMob->PEnmityContainer->Clear(PTarget->id);
         }
         PTarget = PMob->PEnmityContainer->GetHighestEnmity();
-        if (PTarget)
+        if (mobcontrollerdeaggroretarget::Resolve(PTarget != nullptr) == mobcontrollerdeaggroretarget::Action::Replacement)
         {
             PMob->SetBattleTargetID(PTarget->targid);
             // Reset deaggro time so that the mob is given time to actually try to path towards the new highest enmity target
