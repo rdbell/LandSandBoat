@@ -437,6 +437,88 @@ describe("Pirates Chart Taru phases", function()
     end)
 end)
 
+describe("Pirates Chart range completion", function()
+    it('resets invalid endings and starts confrontation with conditional auxiliary cleanup', function()
+        local current
+        local now = 0
+        local rangeTimer
+        local calls = {}
+        local restriction = { getPower = function() return 20 end }
+        local player
+        player = {
+            hasStatusEffect = function() return true end,
+            getStatusEffect = function() return restriction end,
+            getPartySize = function() return 1 end,
+            checkSoloPartyAlliance = function() return 0 end,
+            getZoneID = function() return xi.zone.VALKURM_DUNES end,
+            getParty = function() return { player } end,
+            checkDistance = function() return current.distance end,
+            isAlive = function() return current.alive end,
+            messageSpecial = function() end,
+            delStatusEffect = function() calls.memberCleaned = true end,
+            changeMusic = function() end,
+            setLocalVar = function() end,
+        }
+        local qm = {
+            getLocalVar = function(_, name) return name == 'pChartSpawnerID' and 1 or 0 end,
+            setStatus = function() end,
+            resetLocalVars = function() end,
+            timer = function(_, _, callback) rangeTimer = callback end,
+            showText = function() end,
+        }
+        local taru = {
+            setStatus = function(_, status) if status == xi.status.DISAPPEAR then calls.taruHidden = true end end,
+            setAnimation = function() end,
+            messageText = function() end,
+            sendEmote = function() end,
+            entityAnimationPacket = function() end,
+        }
+        local shimmering = {
+            setStatus = function(_, status) if status == xi.status.DISAPPEAR then calls.shimmeringHidden = true end end,
+            timer = function() end,
+        }
+        local box = { resetLocalVars = function() end }
+        stub('GetPlayerByID', function(id) return id == 1 and player or nil end)
+        stub('GetNPCByID', function(id)
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_QM then return qm end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_TARU then return current.taruAtExpiry and taru or nil end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.SHIMMERING_POINT then return current.shimmeringAtExpiry and shimmering or nil end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.BARNACLED_BOX then return box end
+        end)
+        stub('GetSystemTime', function() return now end)
+        stub('xi.confrontation.start', function() calls.started = true end)
+
+        for _, testCase in ipairs({
+            { name = 'valid ending', distance = 0, alive = true, taruAtExpiry = true, shimmeringAtExpiry = true, started = true, hideAuxiliaries = true },
+            { name = 'out of range', distance = 11, alive = true, taruAtExpiry = true, shimmeringAtExpiry = true, reset = true },
+            { name = 'dead spawner', distance = 0, alive = false, taruAtExpiry = true, shimmeringAtExpiry = true, reset = true },
+            { name = 'missing Taru at expiry', distance = 0, alive = true, taruAtExpiry = false, shimmeringAtExpiry = true, started = true },
+            { name = 'missing shimmering point at expiry', distance = 0, alive = true, taruAtExpiry = true, shimmeringAtExpiry = false, started = true },
+        }) do
+            current, calls, rangeTimer, now = testCase, {}, nil, 0
+            local terminalTaru = testCase.taruAtExpiry
+            local terminalShimmering = testCase.shimmeringAtExpiry
+            -- onEventFinish requires both entities. Make them visible for setup,
+            -- then restore the terminal availability requested by the case.
+            current.taruAtExpiry, current.shimmeringAtExpiry = true, true
+            xi.piratesChart.onEventFinish(player, 14, 0, qm)
+            now = 50
+            rangeTimer(qm)
+            current.taruAtExpiry, current.shimmeringAtExpiry = terminalTaru, terminalShimmering
+            now = 51
+            rangeTimer(qm)
+            assert(calls.started == testCase.started, testCase.name)
+            if testCase.reset then
+                assert(calls.memberCleaned, testCase.name)
+            elseif testCase.hideAuxiliaries then
+                assert(calls.taruHidden and calls.shimmeringHidden, testCase.name)
+            else
+                assert(not calls.taruHidden and not calls.shimmeringHidden, testCase.name)
+            end
+        end
+    end)
+end)
+
 describe("Pirates Chart mob fight", function()
     it('uses Hundred Fists once below half health and restores damage after snare expiry', function()
         local calls = {}
