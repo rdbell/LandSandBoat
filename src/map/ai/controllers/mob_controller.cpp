@@ -102,6 +102,7 @@
 #include "mob_controller_detection_target_capacity.h"
 #include "mob_controller_illusion_detection_capacity.h"
 #include "mob_controller_stealth_detection_capacity.h"
+#include "mob_controller_sight_mode_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -414,7 +415,7 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
     const auto detects         = PMob->getMobMod(MOBMOD_DETECTION);
     const auto currentDistance = distance(PTarget->loc.p, PMob->loc.p) + PTarget->getMod(Mod::STEALTH);
 
-    const bool detectSight  = (detects & DETECT_SIGHT) || forceSight;
+    const bool detectSight  = mobcontrollersightmode::IsEnabled((detects & DETECT_SIGHT) != 0, forceSight);
     const auto stealthState = mobcontrollerstealthdetection::Resolve(
         PMob->m_TrueDetection,
         [&]() { return PTarget->StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::Invisible); },
