@@ -192,6 +192,19 @@ xi.voidwalker.shouldDespawnOnFight = function(isSpawned, now, poppedAt, distance
     return isSpawned and (now > (poppedAt + 7200) or distance > 25)
 end
 
+xi.voidwalker.npcFinishAction = function(csid, option)
+    if csid ~= 10120 then
+        return nil
+    end
+
+    local opt = bit.band(option, 0xF)
+    if opt == 1 then
+        return { kind = 'buy_clear', keyItem = abyssiteKeyitems[1] }
+    elseif opt == 2 then
+        return { kind = 'remove_abyssite', keyItem = abyssiteKeyitems[bit.rshift(option, 4)] }
+    end
+end
+
 local getNearestMob = function(player, mobs)
     return xi.voidwalker.nearestMob(mobs, function(mobId)
         return player:checkDistance(GetMobByID(mobId))
@@ -315,19 +328,14 @@ xi.voidwalker.npcOnEventUpdate = function(player, csid, option, npc)
 end
 
 xi.voidwalker.npcOnEventFinish = function(player, csid, option, npc)
-    local opt = bit.band(option, 0xF)
-
-    if csid == 10120 then
-        if opt == 1 then
-            local msg = zones[xi.zone.RULUDE_GARDENS]
-            local ki  = abyssiteKeyitems[1]
-            player:delGil(1000)
-            player:addKeyItem(ki)
-            player:messageSpecial(msg.text.KEYITEM_OBTAINED, ki)
-        elseif opt == 2 then
-            local numAbyssite = bit.rshift(option, 4)
-            player:delKeyItem(abyssiteKeyitems[numAbyssite])
-        end
+    local action = xi.voidwalker.npcFinishAction(csid, option)
+    if action and action.kind == 'buy_clear' then
+        local msg = zones[xi.zone.RULUDE_GARDENS]
+        player:delGil(1000)
+        player:addKeyItem(action.keyItem)
+        player:messageSpecial(msg.text.KEYITEM_OBTAINED, action.keyItem)
+    elseif action and action.kind == 'remove_abyssite' then
+        player:delKeyItem(action.keyItem)
     end
 end
 

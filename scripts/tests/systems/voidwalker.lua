@@ -82,6 +82,17 @@ describe('Voidwalker fight despawn', function()
     end)
 end)
 
+describe('Voidwalker NPC finish', function()
+    it('selects purchase and selected-abyssite removal actions', function()
+        local purchase = xi.voidwalker.npcFinishAction(10120, 1)
+        assert(purchase.kind == 'buy_clear' and purchase.keyItem == xi.keyItem.CLEAR_ABYSSITE)
+
+        local remove = xi.voidwalker.npcFinishAction(10120, bit.lshift(2, 4) + 2)
+        assert(remove.kind == 'remove_abyssite' and remove.keyItem == xi.keyItem.COLORFUL_ABYSSITE)
+        assert(xi.voidwalker.npcFinishAction(10119, 1) == nil)
+    end)
+end)
+
 describe('Voidwalker direction', function()
     it('classifies cardinal and diagonal offsets', function()
         assert(xi.voidwalker.direction(1, 0) == 0)
