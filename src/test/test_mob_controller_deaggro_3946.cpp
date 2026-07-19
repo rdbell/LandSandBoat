@@ -32,6 +32,7 @@
 #include "map/ai/controllers/player_charm_controller_tick_capacity.h"
 #include "map/ai/controllers/pet_controller_tick_capacity.h"
 #include "map/ai/controllers/pet_controller_deaggro_capacity.h"
+#include "map/ai/controllers/pet_controller_healing_capacity.h"
 
 #include <iostream>
 
@@ -326,6 +327,16 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                petcontrollerdeaggro::ShouldDeaggro(true, false, false, false, true, true) &&
                                petcontrollerdeaggro::ShouldDeaggro(true, false, false, true, false, true) &&
                                petcontrollerdeaggro::ShouldDeaggro(true, false, false, true, true, false);
+    const auto petStartHealing = petcontrollerhealing::Resolve(true, false, false);
+    const auto petPreventedHealing = petcontrollerhealing::Resolve(true, false, true);
+    const auto petAlreadyHealing = petcontrollerhealing::Resolve(true, true, false);
+    const auto petStopHealing = petcontrollerhealing::Resolve(false, true, false);
+    const auto petStanding = petcontrollerhealing::Resolve(false, false, false);
+    const bool petHealingOK = petStartHealing.start && petStartHealing.isHealing &&
+                              !petPreventedHealing.start && petPreventedHealing.isHealing &&
+                              !petAlreadyHealing.start && petAlreadyHealing.isHealing &&
+                              petStopHealing.stop && !petStopHealing.isHealing &&
+                              !petStanding.start && !petStanding.stop && !petStanding.isHealing;
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -344,9 +355,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && petHealingOK && hideOK && lockOK;
 }

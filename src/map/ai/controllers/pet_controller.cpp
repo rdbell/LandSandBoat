@@ -21,6 +21,7 @@
 
 #include "pet_controller.h"
 #include "pet_controller_deaggro_capacity.h"
+#include "pet_controller_healing_capacity.h"
 #include "pet_controller_tick_capacity.h"
 
 #include "ai/ai_container.h"
@@ -180,25 +181,27 @@ bool CPetController::PetIsHealing()
 {
     const auto isMasterHealing = PPet->PMaster->animation == ANIMATION_HEALING;
     const auto isPetHealing    = PPet->animation == ANIMATION_HEALING;
+    const auto preventAction   = isMasterHealing && !isPetHealing && PPet->StatusEffectContainer->HasPreventActionEffect();
+    const auto plan            = petcontrollerhealing::Resolve(isMasterHealing, isPetHealing, preventAction);
 
-    if (isMasterHealing && !isPetHealing && !PPet->StatusEffectContainer->HasPreventActionEffect())
+    if (plan.start)
     {
         // Animation down
         PPet->animation = ANIMATION_HEALING;
         PPet->StatusEffectContainer->AddStatusEffect(xi::StatusEffect::Healing, 0, 0, std::chrono::seconds(settings::get<uint8>("map.HEALING_TICK_DELAY")), 0s);
         PPet->updatemask |= UPDATE_HP;
-        return true;
+        return plan.isHealing;
     }
-    else if (!isMasterHealing && isPetHealing)
+    if (plan.stop)
     {
         // Animation up
         PPet->animation = ANIMATION_NONE;
         PPet->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Healing);
         PPet->updatemask |= UPDATE_HP;
-        return false;
+        return plan.isHealing;
     }
 
-    return isMasterHealing;
+    return plan.isHealing;
 }
 
 bool CPetController::TryDeaggro()
