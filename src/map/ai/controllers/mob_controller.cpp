@@ -28,6 +28,7 @@
 #include "mob_controller_follow_capacity.h"
 #include "mob_controller_spell_admission_capacity.h"
 #include "mob_controller_special_skill_target_capacity.h"
+#include "mob_controller_special_skill_admission_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -487,19 +488,16 @@ auto CMobController::TrySpecialSkill() -> bool
     CMobSkill*     PSpecialSkill  = battleutils::GetMobSkill(PMob->getMobMod(MOBMOD_SPECIAL_SKILL));
     CBattleEntity* PAbilityTarget = nullptr;
 
-    if (PSpecialSkill == nullptr)
+    if (!mobcontrollerspecialskilladmission::CanAttempt(
+            PSpecialSkill != nullptr,
+            IsWeaponSkillEnabled(),
+            (PMob->m_specialFlags & SPECIALFLAG_HIDDEN) != 0,
+            PMob->IsNameHidden()))
     {
-        ShowError("CAIMobDummy::ActionSpawn Special skill was set but not found! (%d)", PMob->getMobMod(MOBMOD_SPECIAL_SKILL));
-        return false;
-    }
-
-    if (!IsWeaponSkillEnabled())
-    {
-        return false;
-    }
-
-    if ((PMob->m_specialFlags & SPECIALFLAG_HIDDEN) && !PMob->IsNameHidden())
-    {
+        if (PSpecialSkill == nullptr)
+        {
+            ShowError("CAIMobDummy::ActionSpawn Special skill was set but not found! (%d)", PMob->getMobMod(MOBMOD_SPECIAL_SKILL));
+        }
         return false;
     }
 

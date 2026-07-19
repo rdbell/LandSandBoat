@@ -9,6 +9,7 @@
 #include "map/ai/controllers/mob_controller_follow_capacity.h"
 #include "map/ai/controllers/mob_controller_spell_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_special_skill_target_capacity.h"
+#include "map/ai/controllers/mob_controller_special_skill_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -602,6 +603,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                          mobcontrollerspecialskilltarget::CanSelectTarget(false, true, true) &&
                                          !mobcontrollerspecialskilltarget::CanSelectTarget(false, false, false) &&
                                          !mobcontrollerspecialskilltarget::CanSelectTarget(false, true, false);
+    const bool mobSpecialSkillAdmissionOK = mobcontrollerspecialskilladmission::CanAttempt(true, true, false, false) &&
+                                            !mobcontrollerspecialskilladmission::CanAttempt(false, true, false, false) &&
+                                            !mobcontrollerspecialskilladmission::CanAttempt(true, false, false, false) &&
+                                            !mobcontrollerspecialskilladmission::CanAttempt(true, true, true, false) &&
+                                            mobcontrollerspecialskilladmission::CanAttempt(true, true, true, true);
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -1018,6 +1024,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobSpecialSkillTargetOK)
     {
         std::cerr << "mob special-skill target self-test failed\n";
+        return false;
+    }
+    if (!mobSpecialSkillAdmissionOK)
+    {
+        std::cerr << "mob special-skill admission self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)
