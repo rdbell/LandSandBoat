@@ -61,6 +61,7 @@
 #include "map/ai/controllers/mob_controller_fomor_aggro_context_capacity.h"
 #include "map/ai/controllers/mob_controller_cast_stop_cooldown_capacity.h"
 #include "map/ai/controllers/mob_controller_reset_capacity.h"
+#include "map/ai/controllers/mob_controller_roam_reset_facing_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -758,6 +759,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool mobResetOK = delayedReset.lastAction == base + std::chrono::seconds(23) && delayedReset.neutral &&
                             delayedReset.neutralTime == resetTick && delayedReset.clearTarget && delayedReset.clearFollowTarget &&
                             immediateReset.lastAction == resetTick;
+    const bool mobRoamResetFacingOK = !mobcontrollerroamresetfacing::ShouldReset(false, 1.0f, 2.0f) &&
+                                      mobcontrollerroamresetfacing::ShouldReset(true, 1.0f, 2.0f) &&
+                                      mobcontrollerroamresetfacing::ShouldReset(true, 2.0f, 2.0f) &&
+                                      !mobcontrollerroamresetfacing::ShouldReset(true, 2.1f, 2.0f);
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1541,6 +1546,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobResetOK)
     {
         std::cerr << "mob reset self-test failed\n";
+        return false;
+    }
+    if (!mobRoamResetFacingOK)
+    {
+        std::cerr << "mob roam reset-facing self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

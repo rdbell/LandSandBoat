@@ -79,6 +79,7 @@
 #include "mob_controller_fomor_aggro_context_capacity.h"
 #include "mob_controller_cast_stop_cooldown_capacity.h"
 #include "mob_controller_reset_capacity.h"
+#include "mob_controller_roam_reset_facing_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1419,7 +1420,10 @@ void CMobController::FollowRoamPath()
 
             // face spawn rotation if I just moved back to spawn
             // used by dynamis mobs, bcnm mobs etc
-            if (PMob->getMobMod(MOBMOD_ROAM_RESET_FACING) && distance(PMob->loc.p, PMob->m_SpawnPoint) <= PMob->m_maxRoamDistance)
+            if (mobcontrollerroamresetfacing::ShouldReset(
+                    PMob->getMobMod(MOBMOD_ROAM_RESET_FACING) != 0,
+                    distance(PMob->loc.p, PMob->m_SpawnPoint),
+                    PMob->m_maxRoamDistance))
             {
                 PMob->loc.p.rotation = PMob->m_SpawnPoint.rotation;
             }
