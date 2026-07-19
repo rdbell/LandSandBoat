@@ -31,6 +31,7 @@
 #include "mob_controller_master_link_engagement_capacity.h"
 #include "mob_controller_buff_tick_admission_capacity.h"
 #include "mob_controller_try_cast_target_source_capacity.h"
+#include "mob_controller_party_spell_target_admission_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -762,7 +763,8 @@ void CMobController::CastSpell(SpellID spellid)
 
                     // revert target to self if not on same action
                     // TODO can engaged mobs buff idle mobs?
-                    if (PMob->PAI->IsEngaged() != PCastTarget->PAI->IsEngaged())
+                    if (!mobcontrollerpartyspelltargetadmission::CanUse(
+                            PMob->PAI->IsEngaged(), PCastTarget->PAI->IsEngaged()))
                     {
                         PCastTarget = PMob;
                     }
