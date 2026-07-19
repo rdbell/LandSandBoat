@@ -18,3 +18,26 @@ describe('Artisan Moogle trigger', function()
         assert(visited[1] == '[artisan]visited' and visited[2] == 1)
     end)
 end)
+
+describe('Artisan Moogle sack purchase', function()
+    it('buys a Mog Sack and refreshes the menu', function()
+        local debited = nil
+        local size = nil
+        local visited = nil
+        local event = nil
+        local player = {
+            getGil = function() return 9980 end,
+            getContainerSize = function() return 0 end,
+            delGil = function(_, amount) debited = amount end,
+            changeContainerSize = function(_, _, amount) size = amount end,
+            setCharVar = function(_, name, value) visited = { name, value } end,
+            updateEvent = function(_, ...) event = { ... } end,
+        }
+
+        xi.artisan.moogleOnUpdate(player, 544, 1, {})
+
+        assert(debited == 9980 and size == 30)
+        assert(visited[1] == '[artisan]visited' and visited[2] == 0)
+        assert(event[4] == 31 and event[8] == 2)
+    end)
+end)
