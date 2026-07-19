@@ -702,9 +702,13 @@ xi.znm.sanraku.handleConfirmingDesiredZNMInfo = function(player, option)
     player:updateEvent(0, 0, 0, 0, 0, 0, zeniCost)
 end
 
+xi.znm.sanraku.confirmedZNMPopIndex = function(option)
+    return math.min(option - 399, 31)
+end
+
 xi.znm.sanraku.handleConfirmedZNMInfo = function(player, option)
     -- (440 because Warden's option is offset by 10 for some reason)
-    local diff     = math.min(option - 399, 31) -- Determine the desired ZNM
+    local diff     = xi.znm.sanraku.confirmedZNMPopIndex(option) -- Determine the desired ZNM
     local popItem  = xi.znm.POP_ITEMS[diff].item
     local znmTier  = xi.znm.POP_ITEMS[diff].tier
     local mob      = xi.znm.POP_ITEMS[diff].mob
