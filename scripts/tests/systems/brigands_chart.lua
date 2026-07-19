@@ -204,3 +204,37 @@ describe("Brigand's Chart event reset", function()
         assert(calls.chestAnimationSub == 0 and calls.chestStatus == xi.status.DISAPPEAR and calls.chestVarsReset)
     end)
 end)
+
+describe("Brigand's Chart timed emotes", function()
+    it('advances a phase at its strict wall even when the spawner is absent', function()
+        local now, spawner, text, callback = 0, nil, nil, nil
+        local player = { showText = function(_, ...) text = { ... } end }
+        local qm = {
+            getLocalVar = function() return 123 end,
+            setStatus = function() end,
+            timer = function(_, _, fn) callback = fn end,
+        }
+        local hume = { setStatus = function() end, setAnimation = function() end }
+        local shimmering = { setStatus = function() end, timer = function() end }
+
+        stub('GetNPCByID', function(id)
+            local npcs = zones[xi.zone.BUBURIMU_PENINSULA].npc
+            if id == npcs.BRIGAND_CHART_HUME then return hume end
+            if id == npcs.SHIMMERING_POINT then return shimmering end
+            return qm
+        end)
+        stub('GetPlayerByID', function() return spawner end)
+        stub('GetSystemTime', function() return now end)
+
+        xi.brigandsChart.onEventFinish(player, 902, 0, qm)
+        text = nil -- onEventFinish announces MY_ITEM before the timer begins.
+        now = 61
+        callback(qm)
+        assert(text == nil)
+
+        spawner = player
+        now = 92
+        callback(qm)
+        assert(text[1] == qm and text[2] == 7858)
+    end)
+end)
