@@ -33,6 +33,7 @@
 #include "mob_controller_spell_target_range_capacity.h"
 #include "mob_controller_teleport_window_capacity.h"
 #include "mob_controller_type_two_teleport_capacity.h"
+#include "mob_controller_bound_target_candidate_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1024,11 +1025,14 @@ void CMobController::HandleEnmity()
                 CBattleEntity*        PEnmityOwner = enmityObject.PEnmityOwner;
 
                 // Check total enmity first
-                if (PEnmityOwner && (enmityObject.CE + enmityObject.VE) > totalEnmity)
+                if (PEnmityOwner)
                 {
                     float targetDistance = distance(PEnmityOwner->loc.p, PMob->loc.p);
 
-                    if (targetDistance < minDistance && PMob->CanAttack(PEnmityOwner, m_errorMsg))
+                    const auto candidateEnmity = enmityObject.CE + enmityObject.VE;
+                    if (candidateEnmity > totalEnmity && targetDistance < minDistance &&
+                        mobcontrollerboundtargetcandidate::ShouldSelect(
+                            totalEnmity, candidateEnmity, minDistance, targetDistance, PMob->CanAttack(PEnmityOwner, m_errorMsg)))
                     {
                         minDistance = targetDistance;
                         totalEnmity = enmityObject.CE + enmityObject.VE;
