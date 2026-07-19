@@ -113,6 +113,14 @@ xi.dynamis.refillStatueRespawnPlan = function(mobId, group, isKiller, randomInde
     return { respawnMobId = respawnMobId, disableDead = respawnMobId ~= mobId, respawnDelay = 300 }
 end
 
+xi.dynamis.qmTradeMob = function(mob, randomIndex)
+    if type(mob) == 'number' then
+        return mob
+    elseif type(mob) == 'table' then
+        return mob[randomIndex]
+    end
+end
+
 local entryInfo =
 {
     --[[
@@ -763,13 +771,7 @@ xi.dynamis.qmOnTrade = function(player, npc, trade)
         if info then
             for _, v in pairs(info.trade) do
                 if npcUtil.tradeHasExactly(trade, v.item) then
-                    local mobId
-
-                    if type(v.mob) == 'table' then
-                        mobId = v.mob[math.random(1, #v.mob)]
-                    else
-                        mobId = v.mob
-                    end
+                    local mobId = xi.dynamis.qmTradeMob(v.mob, math.random(1, type(v.mob) == 'table' and #v.mob or 1))
 
                     if
                         mobId and

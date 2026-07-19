@@ -58,6 +58,15 @@ describe('Dynamis refill statue respawns', function()
     end)
 end)
 
+describe('Dynamis QM trade mobs', function()
+    it('selects fixed and grouped mobs', function()
+        assert(xi.dynamis.qmTradeMob(100, 1) == 100)
+        assert(xi.dynamis.qmTradeMob({ 100, 101 }, 2) == 101)
+        assert(xi.dynamis.qmTradeMob({ 100 }, 2) == nil)
+        assert(xi.dynamis.qmTradeMob(nil, 1) == nil)
+    end)
+end)
+
 describe('Dynamis refill statues', function()
     it('finds a statue eye configuration across groups', function()
         local blue = { mob = 100, eye = 1 }
