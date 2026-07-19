@@ -30,6 +30,7 @@
 #include "trust_controller_reposition_candidate_capacity.h"
 #include "trust_controller_ranged_attack_dispatch_capacity.h"
 #include "trust_controller_cast_target_source_capacity.h"
+#include "trust_controller_cast_recast_admission_capacity.h"
 #include "trust_controller_noncombat_movement_capacity.h"
 #include "trust_controller_recovery_capacity.h"
 #include "trust_controller_ranged_attack_capacity.h"
@@ -587,7 +588,8 @@ bool CTrustController::Cast(uint16 targid, SpellID spellid)
 
     FaceTarget(targid);
 
-    if (static_cast<CMobEntity*>(POwner)->PRecastContainer->Has(RECAST_MAGIC, static_cast<Recast>(spellid)))
+    if (!trustcontrollercastrecastadmission::CanStart(
+            static_cast<CMobEntity*>(POwner)->PRecastContainer->Has(RECAST_MAGIC, static_cast<Recast>(spellid))))
     {
         return false;
     }
