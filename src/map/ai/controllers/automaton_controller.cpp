@@ -39,6 +39,7 @@
 #include "automaton_controller_ranged_attack_gate_capacity.h"
 #include "automaton_controller_tp_skill_type_capacity.h"
 #include "automaton_controller_spell_permission_capacity.h"
+#include "automaton_controller_cast_admission_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1538,7 +1539,7 @@ auto CAutomatonController::CanCastSpells(IgnoreRecastsAndCosts ignoreRecastsAndC
 
 auto CAutomatonController::Cast(uint16 targid, SpellID spellid) -> bool
 {
-    if (!automaton::CanUseSpell(PAutomaton, spellid) || PAutomaton->PRecastContainer->HasRecast(RECAST_MAGIC, static_cast<Recast>(spellid), 0s))
+    if (!automatoncontrollercastadmission::CanUseCast(automaton::CanUseSpell(PAutomaton, spellid), PAutomaton->PRecastContainer->HasRecast(RECAST_MAGIC, static_cast<Recast>(spellid), 0s)))
     {
         return false;
     }
