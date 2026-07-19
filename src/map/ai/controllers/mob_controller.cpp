@@ -101,6 +101,7 @@
 #include "mob_controller_close_detection_range_capacity.h"
 #include "mob_controller_detection_target_capacity.h"
 #include "mob_controller_illusion_detection_capacity.h"
+#include "mob_controller_stealth_detection_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -414,14 +415,12 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
     const auto currentDistance = distance(PTarget->loc.p, PMob->loc.p) + PTarget->getMod(Mod::STEALTH);
 
     const bool detectSight  = (detects & DETECT_SIGHT) || forceSight;
-    bool       hasInvisible = false;
-    bool       hasSneak     = false;
-
-    if (!PMob->m_TrueDetection)
-    {
-        hasInvisible = PTarget->StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::Invisible);
-        hasSneak     = PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sneak);
-    }
+    const auto stealthState = mobcontrollerstealthdetection::Resolve(
+        PMob->m_TrueDetection,
+        [&]() { return PTarget->StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::Invisible); },
+        [&]() { return PTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Sneak); });
+    bool hasInvisible = stealthState.hasInvisible;
+    bool hasSneak     = stealthState.hasSneak;
 
     // Illusion effect seems to ignore true detection (true sound Porrogos don't aggro with Illusion up)
     // Additionally, mobs that would normally aggro you via sound that also ignore illusion must also ignore you with illusion if you have sneak up,
