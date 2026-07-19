@@ -473,3 +473,14 @@ describe('Garrison shutdown', function()
         for key, value in pairs(original) do zoneData[key] = value end
     end)
 end)
+
+describe('Garrison win transition', function()
+    it('moves the zone into the reward state', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local originalState = zoneData.state
+        xi.garrison.win({ getID = function() return zoneID end })
+        assert(zoneData.state == xi.garrison.state.GRANT_LOOT)
+        zoneData.state = originalState
+    end)
+end)
