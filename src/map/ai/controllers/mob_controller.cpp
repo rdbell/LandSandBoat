@@ -81,6 +81,7 @@
 #include "mob_controller_reset_capacity.h"
 #include "mob_controller_roam_reset_facing_capacity.h"
 #include "mob_controller_worm_emergence_capacity.h"
+#include "mob_controller_mob_skill_owner_dispatch_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1477,7 +1478,8 @@ auto CMobController::MobSkill(const uint16 targid, uint16 wsid, Maybe<timer::dur
 {
     TracyZoneScoped;
 
-    if (POwner)
+    const auto mobSkillDispatch = mobcontrollermobskillownerdispatch::Resolve(POwner != nullptr);
+    if (mobSkillDispatch == mobcontrollermobskillownerdispatch::Route::Owner)
     {
         FaceTarget(targid);
         PMob->PAI->EventHandler.triggerListener("WEAPONSKILL_BEFORE_USE", PMob, wsid);
