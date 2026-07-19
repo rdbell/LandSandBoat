@@ -51,6 +51,7 @@
 #include "map/ai/controllers/mob_controller_bound_retarget_admission_capacity.h"
 #include "map/ai/controllers/mob_controller_bound_retarget_search_capacity.h"
 #include "map/ai/controllers/mob_controller_roam_follow_ranges_capacity.h"
+#include "map/ai/controllers/mob_controller_roam_home_action_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -689,6 +690,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool mobRoamFollowRangesOK = mobRoamFollowDefaultRanges.leash == 4.0f && mobRoamFollowDefaultRanges.stop == 2.0f &&
                                        mobRoamFollowLeashRanges.leash == 7.0f && mobRoamFollowLeashRanges.stop == 2.0f &&
                                        mobRoamFollowStopRanges.leash == 4.0f && mobRoamFollowStopRanges.stop == 3.0f;
+    const bool mobRoamHomeActionOK = mobcontrollerroamhomeaction::Resolve(false, true, true) == mobcontrollerroamhomeaction::Action::None &&
+                                     mobcontrollerroamhomeaction::Resolve(true, true, true) == mobcontrollerroamhomeaction::Action::PathHome &&
+                                     mobcontrollerroamhomeaction::Resolve(true, false, true) == mobcontrollerroamhomeaction::Action::Despawn &&
+                                     mobcontrollerroamhomeaction::Resolve(true, false, false) == mobcontrollerroamhomeaction::Action::None;
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1417,6 +1422,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobRoamFollowRangesOK)
     {
         std::cerr << "mob roam follow-ranges self-test failed\n";
+        return false;
+    }
+    if (!mobRoamHomeActionOK)
+    {
+        std::cerr << "mob roam home-action self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)

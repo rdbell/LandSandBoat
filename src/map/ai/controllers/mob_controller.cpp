@@ -40,7 +40,6 @@
 #include "mob_controller_roam_despawn_capacity.h"
 #include "mob_controller_roam_follow_leader_capacity.h"
 #include "mob_controller_roam_rest_gate_capacity.h"
-#include "mob_controller_roam_home_gate_capacity.h"
 #include "mob_controller_despawn_policy_capacity.h"
 #include "mob_controller_dead_master_despawn_capacity.h"
 #include "mob_controller_worm_roam_action_capacity.h"
@@ -70,6 +69,7 @@
 #include "mob_controller_bound_retarget_admission_capacity.h"
 #include "mob_controller_bound_retarget_search_capacity.h"
 #include "mob_controller_roam_follow_ranges_capacity.h"
+#include "mob_controller_roam_home_action_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1222,7 +1222,12 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
             // if I just disengaged check if I should despawn
             PMob->m_IsPathingHome = false;
             const auto shouldCheckHome = PMob->getMobMod(MOBMOD_DONT_ROAM_HOME) == 0 && PMob->IsFarFromHome();
-            if (shouldCheckHome && mobcontrollerroamhomegate::ShouldPathHome(false, true, PMob->CanRoamHome()))
+            const auto canRoamHome    = shouldCheckHome && PMob->CanRoamHome();
+            const auto canDespawn     = shouldCheckHome && !canRoamHome && mobcontrollerdespawnpolicy::CanDespawn(
+                                                               PMob->getMobMod(MOBMOD_NO_DESPAWN) != 0, settings::get<bool>("map.MOB_NO_DESPAWN"));
+            const auto roamHomeAction = mobcontrollerroamhomeaction::Resolve(
+                shouldCheckHome, canRoamHome, canDespawn);
+            if (roamHomeAction == mobcontrollerroamhomeaction::Action::PathHome)
             {
                 PMob->m_IsPathingHome = true;
                 // walk back to spawn if too far away
@@ -1240,7 +1245,7 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
                 // move back every 5 seconds
                 m_LastActionTime = m_Tick - (std::chrono::seconds(PMob->getMobMod(MOBMOD_ROAM_COOL)) + 10s);
             }
-            else if (shouldCheckHome && mobcontrollerdespawnpolicy::CanDespawn(PMob->getMobMod(MOBMOD_NO_DESPAWN) != 0, settings::get<bool>("map.MOB_NO_DESPAWN")))
+            else if (roamHomeAction == mobcontrollerroamhomeaction::Action::Despawn)
             {
                 PMob->PAI->Despawn();
                 // Override respawn timer set by CDespawnState for deaggro (60s instead of default)
