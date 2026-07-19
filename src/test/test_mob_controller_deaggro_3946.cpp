@@ -113,6 +113,7 @@
 #include "map/ai/controllers/automaton_controller_party_enhancement_target_capacity.h"
 #include "map/ai/controllers/automaton_controller_enhancement_enmity_target_capacity.h"
 #include "map/ai/controllers/automaton_controller_tp_skillchain_resonance_gate_capacity.h"
+#include "map/ai/controllers/automaton_controller_tp_skillchain_resonance_properties_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_path_capacity.h"
 #include "map/ai/controllers/pet_controller_follow_distance_capacity.h"
 #include "map/ai/controllers/pet_controller_path_fallback_capacity.h"
@@ -588,6 +589,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                                          true, skillchainStart, skillchainStart + std::chrono::seconds(3)) &&
                                                      !automatoncontrollertpskillchainresonancegate::CanUseResonance(
                                                          true, skillchainStart, skillchainStart + std::chrono::seconds(2));
+    const auto automatonResonanceProperties = automatoncontrollertpskillchainresonanceproperties::Decode(0xABCD);
+    const bool automatonTPSkillchainResonancePropertiesOK = automatonResonanceProperties[0] == 13 &&
+                                                            automatonResonanceProperties[1] == 12 &&
+                                                            automatonResonanceProperties[2] == 0xAB;
     const bool automatonEnfeebleAdmissionOK = automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(true, false) &&
                                               !automatoncontrollerenfeebleadmission::CanUseEnfeeble(false, true);
@@ -989,6 +994,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!automatonTPSkillchainResonanceGateOK)
     {
         std::cerr << "automaton TP skillchain resonance gate self-test failed\n";
+        return false;
+    }
+    if (!automatonTPSkillchainResonancePropertiesOK)
+    {
+        std::cerr << "automaton TP skillchain resonance properties self-test failed\n";
         return false;
     }
     if (!automatonEnfeebleAdmissionOK)

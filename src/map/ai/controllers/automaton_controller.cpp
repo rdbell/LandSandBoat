@@ -92,6 +92,7 @@
 #include "automaton_controller_party_enhancement_target_capacity.h"
 #include "automaton_controller_enhancement_enmity_target_capacity.h"
 #include "automaton_controller_tp_skillchain_resonance_gate_capacity.h"
+#include "automaton_controller_tp_skillchain_resonance_properties_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1508,9 +1509,10 @@ auto CAutomatonController::TryTPMove() -> bool
 
                 if (uint16 power = PSCEffect->GetPower())
                 {
-                    resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)(power & 0xF));
-                    resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)((power >> 4) & 0xF));
-                    resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)(power >> 8));
+                    const auto properties = automatoncontrollertpskillchainresonanceproperties::Decode(power);
+                    resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)properties[0]);
+                    resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)properties[1]);
+                    resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)properties[2]);
                 }
 
                 for (auto* PSkill : validSkills)
