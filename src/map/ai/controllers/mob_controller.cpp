@@ -30,6 +30,7 @@
 #include "mob_controller_party_link_engagement_capacity.h"
 #include "mob_controller_master_link_engagement_capacity.h"
 #include "mob_controller_buff_tick_admission_capacity.h"
+#include "mob_controller_try_cast_target_source_capacity.h"
 #include "mob_controller_detection_capacity.h"
 #include "mob_controller_readiness_capacity.h"
 #include "mob_controller_movement_capacity.h"
@@ -674,19 +675,19 @@ auto CMobController::TryCastSpell() -> bool
 
     // Target logic.
     CBattleEntity* PCastTarget = nullptr;
-
-    if (PSpell->getValidTarget() & TARGET_SELF)
+    switch (mobcontrollertrycasttargetsource::Select(
+        (PSpell->getValidTarget() & TARGET_SELF) != 0,
+        maybeTargetOverride.has_value()))
     {
-        PCastTarget = PMob;
-    }
-    else
-    {
-        PCastTarget = PTarget;
-    }
-
-    if (maybeTargetOverride.has_value())
-    {
-        PCastTarget = maybeTargetOverride.value();
+        case mobcontrollertrycasttargetsource::Source::BattleTarget:
+            PCastTarget = PTarget;
+            break;
+        case mobcontrollertrycasttargetsource::Source::Self:
+            PCastTarget = PMob;
+            break;
+        case mobcontrollertrycasttargetsource::Source::Override:
+            PCastTarget = maybeTargetOverride.value();
+            break;
     }
 
     // Check if target is in range before attempting to cast

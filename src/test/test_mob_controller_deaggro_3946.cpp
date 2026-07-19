@@ -10,6 +10,7 @@
 #include "map/ai/controllers/mob_controller_party_link_engagement_capacity.h"
 #include "map/ai/controllers/mob_controller_master_link_engagement_capacity.h"
 #include "map/ai/controllers/mob_controller_buff_tick_admission_capacity.h"
+#include "map/ai/controllers/mob_controller_try_cast_target_source_capacity.h"
 #include "map/ai/controllers/mob_controller_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_readiness_capacity.h"
 #include "map/ai/controllers/mob_controller_movement_capacity.h"
@@ -518,6 +519,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      mobcontrollerbufftickadmission::Resolve(
                                          false, []() { return true; }, []() { return true; }) ==
                                          mobcontrollerbufftickadmission::Action::Cast;
+    const bool tryCastTargetSourceOK = mobcontrollertrycasttargetsource::Select(false, false) ==
+                                           mobcontrollertrycasttargetsource::Source::BattleTarget &&
+                                       mobcontrollertrycasttargetsource::Select(true, false) ==
+                                           mobcontrollertrycasttargetsource::Source::Self &&
+                                       mobcontrollertrycasttargetsource::Select(false, true) ==
+                                           mobcontrollertrycasttargetsource::Source::Override &&
+                                       mobcontrollertrycasttargetsource::Select(true, true) ==
+                                           mobcontrollertrycasttargetsource::Source::Override;
     const auto engageBase = std::chrono::steady_clock::time_point{};
     const bool playerEngageOK = !Evaluate(false, 0, engageBase, std::chrono::seconds(0), engageBase).dispatch &&
                                 Evaluate(true, 29, engageBase, std::chrono::seconds(1), engageBase + std::chrono::seconds(2)).dispatch &&
@@ -2265,6 +2274,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!buffTickAdmissionOK)
     {
         std::cerr << "buff tick admission self-test failed\n";
+        return false;
+    }
+    if (!tryCastTargetSourceOK)
+    {
+        std::cerr << "try-cast target source self-test failed\n";
         return false;
     }
     if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !followAdmissionOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !petSpecialHealingRoamOK || !petStateChangeRoamOK || !petAbilityOK || !petSkillOK || !automatonStandBackOK || !automatonCooldownOK || !automatonFrameCooldownOK || !automatonManeuversOK || !automatonMasterLossOK || !automatonMoveOK || !automatonActionGateOK || !automatonShieldBashGateOK || !automatonSpellGateOK || !automatonHealingThresholdOK || !automatonHealingTargetOK || !automatonCureTierOK || !automatonElementalTierOK || !automatonResistanceOrderOK || !automatonEnfeebleGateOK || !automatonStatusRemovalGateOK || !automatonSoulsootherPartyStatusRemovalGateOK || !automatonSpiritreaverEnhancementOK || !automatonEnhanceGateOK || !automatonRangedAttackGateOK || !automatonTPSkillTypeOK || !automatonTPSkillCandidateOK || !automatonTPSkillPriorityOK || !automatonTPSkillchainCandidateOK || !automatonTPSkillSelectionFallbackOK || !automatonSpellPermissionOK || !automatonCastAdmissionOK || !petFollowPathOK || !petPathFallbackOK || !petFollowDistanceOK || !hideOK || !lockOK)
