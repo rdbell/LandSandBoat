@@ -269,6 +269,56 @@ describe("Pirates Chart confrontation roster", function()
     end)
 end)
 
+describe("Pirates Chart reset", function()
+    it('cleans up party members and restores every available event entity', function()
+        local calls = { members = {} }
+        local function member(index)
+            local memberCalls = { music = {} }
+            calls.members[index] = memberCalls
+            return {
+                delStatusEffect = function(_, effect) memberCalls.restriction = effect end,
+                changeMusic = function(_, channel, song) memberCalls.music[channel] = song end,
+                setLocalVar = function(_, name, value) memberCalls.active = { name, value } end,
+            }
+        end
+        local members = { member(1), member(2) }
+        local player = { getParty = function() return members end }
+        local qm = {
+            getLocalVar = function() return 99 end,
+            resetLocalVars = function() calls.qmReset = true end,
+            setStatus = function(_, status) calls.qmStatus = status end,
+        }
+        local taru = {
+            setStatus = function(_, status) calls.taruStatus = status end,
+            setAnimation = function(_, animation) calls.taruAnimation = animation end,
+        }
+        local shimmering = {
+            setStatus = function(_, status) calls.shimmeringStatus = status end,
+            timer = function() calls.shimmeringTimer = true end,
+        }
+        local box = { resetLocalVars = function() calls.boxReset = true end }
+        stub('GetPlayerByID', function() return nil end)
+        stub('GetNPCByID', function(id)
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_QM then return qm end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.PIRATE_CHART_TARU then return taru end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.SHIMMERING_POINT then return shimmering end
+            if id == zones[xi.zone.VALKURM_DUNES].npc.BARNACLED_BOX then return box end
+        end)
+
+        xi.piratesChart.onEventFinish(player, 14, 0, qm)
+
+        for _, memberCalls in ipairs(calls.members) do
+            assert(memberCalls.restriction == xi.effect.LEVEL_RESTRICTION)
+            assert(memberCalls.music[0] == 0 and memberCalls.music[1] == 0)
+            assert(memberCalls.music[2] == 101 and memberCalls.music[3] == 102)
+            assert(memberCalls.active[1] == 'pChartActive' and memberCalls.active[2] == 0)
+        end
+        assert(calls.qmReset and calls.qmStatus == xi.status.NORMAL and calls.boxReset)
+        assert(calls.taruStatus == xi.status.DISAPPEAR and calls.taruAnimation == xi.animation.NONE)
+        assert(calls.shimmeringStatus == xi.status.DISAPPEAR and calls.shimmeringTimer)
+    end)
+end)
+
 describe("Pirates Chart mob fight", function()
     it('uses Hundred Fists once below half health and restores damage after snare expiry', function()
         local calls = {}
