@@ -29,6 +29,25 @@ xi.dynamis.findTimeExtensionGroup = function(timeExtensionMobs, mobId)
     return nil, nil
 end
 
+-- Plans the replacement respawn used after a killer defeats a time-extension
+-- mob. randomIndex is a one-based selection within group, matching math.random.
+xi.dynamis.timeExtensionRespawnPlan = function(mobId, group, isKiller, randomIndex)
+    if not isKiller or not group or #group == 0 then
+        return nil
+    end
+
+    local respawnMobId = group[randomIndex]
+    if not respawnMobId then
+        return nil
+    end
+
+    return {
+        respawnMobId = respawnMobId,
+        disableDead  = respawnMobId ~= mobId,
+        respawnDelay = 85,
+    }
+end
+
 local entryInfo =
 {
     --[[
@@ -575,13 +594,14 @@ xi.dynamis.timeExtensionOnDeath = function(mob, player, optParams)
 
             -- spawn a new mob in this group
             if optParams.isKiller then
-                local teId = group[math.random(1, #group)]
-                if teId ~= mobId then
+                local respawnPlan = xi.dynamis.timeExtensionRespawnPlan(mobId, group, true, math.random(1, #group))
+                local teId = respawnPlan.respawnMobId
+                if respawnPlan.disableDead then
                     DisallowRespawn(mobId, true)
                     DisallowRespawn(teId, false)
                 end
 
-                GetMobByID(teId):setRespawnTime(85)
+                GetMobByID(teId):setRespawnTime(respawnPlan.respawnDelay)
             end
         else
             printf('[xi.dynamis.timeExtensionOnDeath] called in zone %i on mob %s that does not appear in a time extension group.', zoneId, mob:getName())

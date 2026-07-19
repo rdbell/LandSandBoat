@@ -19,3 +19,17 @@ describe('Dynamis time-extension groups', function()
         assert(te == nil and group == nil)
     end)
 end)
+
+describe('Dynamis time-extension respawns', function()
+    it('plans group replacements only for killers', function()
+        assert(xi.dynamis.timeExtensionRespawnPlan(100, { 100, 101 }, false, 2) == nil)
+        assert(xi.dynamis.timeExtensionRespawnPlan(100, nil, true, 1) == nil)
+        assert(xi.dynamis.timeExtensionRespawnPlan(100, { 100 }, true, 2) == nil)
+
+        local same = xi.dynamis.timeExtensionRespawnPlan(100, { 100, 101 }, true, 1)
+        assert(same.respawnMobId == 100 and not same.disableDead and same.respawnDelay == 85)
+
+        local replacement = xi.dynamis.timeExtensionRespawnPlan(100, { 100, 101 }, true, 2)
+        assert(replacement.respawnMobId == 101 and replacement.disableDead and replacement.respawnDelay == 85)
+    end)
+end)
