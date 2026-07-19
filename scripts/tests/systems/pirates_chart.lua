@@ -39,6 +39,12 @@ describe("Pirates Chart trade", function()
         message, event = nil, nil
         xi.piratesChart.onTrade(player, npc, trade)
         assert(message[1] == 7845 and message[2] == 3 and event == nil)
+
+        player.getPartySize = function() return 3 end
+        box.getStatus = function() return xi.status.NORMAL end
+        message, event = nil, nil
+        xi.piratesChart.onTrade(player, npc, trade)
+        assert(message == nil and event == nil)
     end)
 end)
 
