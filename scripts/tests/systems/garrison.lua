@@ -124,3 +124,22 @@ describe('Garrison ally information', function()
         assert(xi.garrison.getAllyInfo(xi.zone.WEST_RONFAURE, ronfaure, xi.nation.BEASTMEN) == nil)
     end)
 end)
+
+describe('Garrison ally formation', function()
+    it('places allies in three configured lines', function()
+        local zone = { getID = function() return xi.zone.WEST_RONFAURE end }
+        local allyInfo = {
+            name = 'Patrician',
+            looks = { 'look' },
+            pos = xi.garrison.zoneData[xi.zone.WEST_RONFAURE].pos,
+        }
+        local npcs = xi.garrison.rollNPCs(zone, allyInfo, 13)
+
+        assert(#npcs == 13 and npcs[1].name == 'Patrician' and npcs[1].look == 'look')
+        assert(npcs[1].pos[1] == -438 and npcs[1].pos[3] == -223)
+        assert(npcs[6].pos[1] == -438 and npcs[6].pos[3] == -233)
+        assert(npcs[7].pos[1] == -440 and npcs[7].pos[3] == -223)
+        assert(npcs[12].pos[1] == -440 and npcs[12].pos[3] == -233)
+        assert(npcs[13].pos[1] == -442 and npcs[13].pos[3] == -223)
+    end)
+end)
