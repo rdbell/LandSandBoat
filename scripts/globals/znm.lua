@@ -418,20 +418,7 @@ xi.znm.ryo.onEventUpdate = function(player, csid, option, npc)
         elseif option == 402 and player:getVar('ZeniStatus') == 2 then -- ask about gaining access to islet's
             player:setVar('ZeniStatus', 3)
         elseif option == 404 then
-            local menuOptions = 175
-            local zeni = player:getCurrency('zeni_point')
-            if player:getVar('ZeniStatus') >= 2 then -- add 'sanrakus subject of interest' and 'recommended fauna'
-                menuOptions = menuOptions - 12
-            end
-
-            if zeni ~= 0 then -- add 'whats zeni' and 'my zeni balance' and 'islet's'
-                menuOptions = menuOptions - 131
-                if zeni >= 1000 then
-                    menuOptions = menuOptions - 32
-                end
-            end
-
-            player:updateEvent(menuOptions)
+            player:updateEvent(xi.znm.ryo.menuParam(player:getVar('ZeniStatus'), player:getCurrency('zeni_point')))
         else
             player:updateEvent(0, 0)
         end
@@ -452,6 +439,23 @@ end
 -----------------------------------
 -- Ryo General Helpers
 -----------------------------------
+
+xi.znm.ryo.menuParam = function(zeniStatus, zeni)
+    local menuOptions = 175
+
+    if zeniStatus >= 2 then -- add 'sanrakus subject of interest' and 'recommended fauna'
+        menuOptions = menuOptions - 12
+    end
+
+    if zeni ~= 0 then -- add 'whats zeni' and 'my zeni balance' and 'islet's'
+        menuOptions = menuOptions - 131
+        if zeni >= 1000 then
+            menuOptions = menuOptions - 32
+        end
+    end
+
+    return menuOptions
+end
 
 xi.znm.ryo.tradedPlateValue = function(player)
     return player:getLocalVar('[ZNM][Ryo]SoulPlateValue')
