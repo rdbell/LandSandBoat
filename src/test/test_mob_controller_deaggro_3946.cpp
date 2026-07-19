@@ -81,6 +81,7 @@
 #include "map/ai/controllers/mob_controller_low_hp_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_action_state_detection_capacity.h"
 #include "map/ai/controllers/mob_controller_close_detection_range_capacity.h"
+#include "map/ai/controllers/mob_controller_detection_target_capacity.h"
 #include "map/ai/controllers/mob_controller_move_range_capacity.h"
 #include "map/ai/controllers/mob_controller_target_validity_capacity.h"
 #include "map/ai/controllers/player_controller_engage_capacity.h"
@@ -879,6 +880,12 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool mobCloseDetectionRangeOK = mobcontrollerclosedetectionrange::IsInRange(19.9f) &&
                                           mobcontrollerclosedetectionrange::IsInRange(20.0f) &&
                                           !mobcontrollerclosedetectionrange::IsInRange(20.1f);
+    bool mountedCheckCalled = false;
+    const bool mobDetectionTargetOK = mobcontrollerdetectiontarget::CanDetect(true, []() { return false; }, []() { return false; }) &&
+                                      !mobcontrollerdetectiontarget::CanDetect(false, []() { return false; }, []() { return false; }) &&
+                                      !mobcontrollerdetectiontarget::CanDetect(true, []() { return true; }, [&]() { mountedCheckCalled = true; return false; }) &&
+                                      !mountedCheckCalled &&
+                                      !mobcontrollerdetectiontarget::CanDetect(true, []() { return false; }, []() { return true; });
     const bool mobRoamRestGateOK = mobcontrollerroamrestgate::CanRest(true, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(false, false, true) &&
                                    !mobcontrollerroamrestgate::CanRest(true, true, true) &&
@@ -1767,6 +1774,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     if (!mobCloseDetectionRangeOK)
     {
         std::cerr << "mob close-detection range self-test failed\n";
+        return false;
+    }
+    if (!mobDetectionTargetOK)
+    {
+        std::cerr << "mob detection-target self-test failed\n";
         return false;
     }
     if (!mobRoamRestGateOK)
