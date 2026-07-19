@@ -92,6 +92,7 @@
 #include "mob_controller_mob_skill_list_route_capacity.h"
 #include "mob_controller_mob_skill_override_capacity.h"
 #include "mob_controller_mob_skill_definition_capacity.h"
+#include "mob_controller_ambush_detection_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -430,7 +431,8 @@ auto CMobController::CanDetectTarget(CBattleEntity* PTarget, const bool forceSig
         return isTargetAndInRange || PMob->CanSeeTarget(PTarget);
     }
 
-    if ((PMob->m_Behavior & BEHAVIOR_AGGRO_AMBUSH) && currentDistance < 3 && !hasSneak)
+    if (mobcontrollerambushdetection::CanDetect(
+            (PMob->m_Behavior & BEHAVIOR_AGGRO_AMBUSH) != 0, currentDistance, hasSneak))
     {
         return true;
     }
