@@ -65,6 +65,7 @@
 #include "mob_controller_chase_movement_admission_capacity.h"
 #include "mob_controller_chase_path_refresh_capacity.h"
 #include "mob_controller_chase_path_start_capacity.h"
+#include "mob_controller_overlap_reposition_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -989,8 +990,10 @@ void CMobController::Move()
                         {
                             for (auto PSpawnedMob : static_cast<CCharEntity*>(PTarget)->SpawnMOBList)
                             {
-                                if (PSpawnedMob.second != PMob && !PSpawnedMob.second->PAI->PathFind->IsFollowingPath() &&
-                                    distance(PSpawnedMob.second->loc.p, PMob->loc.p) < 1.0f)
+                                if (mobcontrolleroverlapreposition::ShouldReposition(
+                                        PSpawnedMob.second == PMob,
+                                        PSpawnedMob.second->PAI->PathFind->IsFollowingPath(),
+                                        distance(PSpawnedMob.second->loc.p, PMob->loc.p) < 1.0f))
                                 {
                                     auto angle = worldAngle(PMob->loc.p, PTarget->loc.p) + 64;
 
