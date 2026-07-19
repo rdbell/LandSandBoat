@@ -22,6 +22,7 @@
 #include "automaton_controller.h"
 #include "automaton_controller_stand_back_capacity.h"
 #include "automaton_controller_cooldown_capacity.h"
+#include "automaton_controller_maneuvers_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -111,7 +112,7 @@ auto CAutomatonController::shouldStandBack() const -> bool
 auto CAutomatonController::GetCurrentManeuvers() const -> CurrentManeuvers
 {
     const auto& statuses = PAutomaton->PMaster->StatusEffectContainer;
-    return {
+    const auto counts = automatoncontrollermaneuvers::Current({
         statuses->GetEffectsCount(xi::StatusEffect::FireManeuver),
         statuses->GetEffectsCount(xi::StatusEffect::IceManeuver),
         statuses->GetEffectsCount(xi::StatusEffect::WindManeuver),
@@ -120,7 +121,8 @@ auto CAutomatonController::GetCurrentManeuvers() const -> CurrentManeuvers
         statuses->GetEffectsCount(xi::StatusEffect::WaterManeuver),
         statuses->GetEffectsCount(xi::StatusEffect::LightManeuver),
         statuses->GetEffectsCount(xi::StatusEffect::DarkManeuver),
-    };
+    });
+    return { counts.fire, counts.ice, counts.wind, counts.earth, counts.thunder, counts.water, counts.light, counts.dark };
 }
 
 auto CAutomatonController::DoCombatTick(timer::time_point tick) -> Task<void>
