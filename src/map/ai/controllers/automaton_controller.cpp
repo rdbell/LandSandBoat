@@ -37,6 +37,7 @@
 #include "automaton_controller_status_removal_gate_capacity.h"
 #include "automaton_controller_enhance_gate_capacity.h"
 #include "automaton_controller_ranged_attack_gate_capacity.h"
+#include "automaton_controller_tp_skill_type_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -1420,7 +1421,7 @@ auto CAutomatonController::TryTPMove() -> bool
         // load the skills that the automaton has access to with it's skill
         SKILLTYPE skilltype = SKILL_AUTOMATON_MELEE;
 
-        if (PAutomaton->frame() == AutomatonFrame::Sharpshot)
+        if (automatoncontrollertpskilltype::UsesRangedWeaponSkill(PAutomaton->frame() == AutomatonFrame::Sharpshot))
         {
             skilltype = SKILL_AUTOMATON_RANGED;
         }
