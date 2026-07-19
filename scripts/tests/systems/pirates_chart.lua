@@ -134,3 +134,59 @@ describe("Pirates Chart buddy defeat gate", function()
         assert(not xi.piratesChart.myBuddiesAreDead(mob))
     end)
 end)
+
+describe("Pirates Chart box spawn", function()
+    it('spawns and arms the Barnacled Box after the final buddy dies', function()
+        local calls = {}
+        local mob = {
+            getLocalVar = function() return 0 end,
+            getPos = function() return 1, 2, 3 end,
+            getRotPos = function() return 4 end,
+            setLocalVar = function(_, name, value) calls.spawned = { name, value } end,
+        }
+        local box = {
+            teleport = function(_, ...) calls.position = { ... } end,
+            setStatus = function(_, value) calls.status = value end,
+            setLocalVar = function(_, name, value) calls.open = { name, value } end,
+            timer = function(_, delay) calls.delay = delay end,
+        }
+        local original = xi.piratesChart.myBuddiesAreDead
+        xi.piratesChart.myBuddiesAreDead = function() return true end
+        stub('GetNPCByID', function() return box end)
+        xi.piratesChart.onMobDeath(mob)
+        assert(calls.position[1] == 1 and calls.position[2] == 4 and calls.status == xi.status.NORMAL)
+        assert(calls.open[1] == 'open' and calls.open[2] == 0 and calls.spawned[1] == 'spawnedChest' and calls.spawned[2] == 1)
+        assert(calls.delay == 180000)
+        xi.piratesChart.myBuddiesAreDead = original
+    end)
+
+    it('does nothing for duplicate, incomplete, or missing-box states', function()
+        local calls = 0
+        local current
+        local mob = {
+            getLocalVar = function() return current.spawned and 1 or 0 end,
+            setLocalVar = function() calls = calls + 1 end,
+        }
+        local box = {
+            teleport = function() calls = calls + 1 end,
+            setStatus = function() calls = calls + 1 end,
+            setLocalVar = function() calls = calls + 1 end,
+            timer = function() calls = calls + 1 end,
+        }
+        local original = xi.piratesChart.myBuddiesAreDead
+        stub('GetNPCByID', function() return current.box and box or nil end)
+
+        for _, testCase in ipairs({
+            { spawned = true, defeated = true, box = true },
+            { spawned = false, defeated = false, box = true },
+            { spawned = false, defeated = true, box = false },
+        }) do
+            current = testCase
+            xi.piratesChart.myBuddiesAreDead = function() return current.defeated end
+            xi.piratesChart.onMobDeath(mob)
+            assert(calls == 0)
+        end
+
+        xi.piratesChart.myBuddiesAreDead = original
+    end)
+end)
