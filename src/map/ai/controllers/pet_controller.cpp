@@ -23,6 +23,7 @@
 #include "pet_controller_buff_tick_capacity.h"
 #include "pet_controller_deaggro_capacity.h"
 #include "pet_controller_healing_capacity.h"
+#include "pet_controller_healing_roam_capacity.h"
 #include "pet_controller_master_loss_capacity.h"
 #include "pet_controller_immobile_capacity.h"
 #include "pet_controller_tick_capacity.h"
@@ -134,7 +135,7 @@ auto CPetController::DoRoamTick(timer::time_point tick) -> Task<void>
             }
         }
 
-        if (isBstPet && PPet->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Healing))
+        if (petcontrollerhealingroam::ShouldHold(isBstPet, PPet->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Healing) != nullptr))
         {
             co_return;
         }

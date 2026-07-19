@@ -36,6 +36,7 @@
 #include "map/ai/controllers/pet_controller_buff_tick_capacity.h"
 #include "map/ai/controllers/pet_controller_master_loss_capacity.h"
 #include "map/ai/controllers/pet_controller_immobile_capacity.h"
+#include "map/ai/controllers/pet_controller_healing_roam_capacity.h"
 
 #include <iostream>
 
@@ -356,6 +357,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                petcontrollerimmobile::IsImmobile(19) &&
                                !petcontrollerimmobile::IsImmobile(1) &&
                                !petcontrollerimmobile::IsImmobile(65535);
+    const bool petHealingRoamOK = petcontrollerhealingroam::ShouldHold(true, true) &&
+                                  !petcontrollerhealingroam::ShouldHold(true, false) &&
+                                  !petcontrollerhealingroam::ShouldHold(false, true) &&
+                                  !petcontrollerhealingroam::ShouldHold(false, false);
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
                          !CanPursueByScent(false, false, true, false, false) &&
@@ -374,9 +379,9 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                         !ShouldDeaggroForLock(true, false, false, false, false, false) &&
                         !ShouldDeaggroForLock(false, true, false, false, true, false) &&
                         !ShouldDeaggroForLock(true, false, true, false, false, true);
-    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !hideOK || !lockOK)
+    if (!scentOK || !detectionOK || !readinessOK || !movementOK || !aggroOK || !tpTriggerOK || !followOK || !spellAdmissionOK || !moveRangeOK || !targetValidityOK || !playerEngageOK || !playerWeaponSkillOK || !abilityRecastOK || !playerActionGateOK || !playerAbilityGateOK || !trustFollowOK || !trustTickOK || !trustTargetSyncOK || !trustEngageOK || !trustRoamFormationOK || !trustRecoveryOK || !trustRangedAttackOK || !trustCastCoordinationOK || !trustRepositionOK || !trustAbilityOK || !trustNonCombatMovementOK || !trustCombatMovementOK || !playerCharmRoamOK || !playerCharmCombatOK || !playerCharmTickOK || !petTickOK || !petDeaggroOK || !petHealingOK || !petBuffTickOK || !petMasterLossOK || !petImmobileOK || !petHealingRoamOK || !hideOK || !lockOK)
     {
         std::cerr << "mob controller deaggro 3946 self-test failed\n";
     }
-    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && petHealingOK && petBuffTickOK && petMasterLossOK && petImmobileOK && hideOK && lockOK;
+    return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && petHealingOK && petBuffTickOK && petMasterLossOK && petImmobileOK && petHealingRoamOK && hideOK && lockOK;
 }
