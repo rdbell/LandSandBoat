@@ -88,6 +88,7 @@
 #include "mob_controller_roam_rest_full_health_capacity.h"
 #include "mob_controller_roam_rest_admission_capacity.h"
 #include "mob_controller_roam_action_cooldown_capacity.h"
+#include "mob_controller_roam_call_for_help_capacity.h"
 #include "mob_controller_move_range_capacity.h"
 #include "mob_controller_target_validity_capacity.h"
 
@@ -1233,7 +1234,7 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
                      m_Tick, m_LastActionTime, std::chrono::seconds(PMob->getMobMod(MOBMOD_ROAM_COOL))))
         {
             // lets buff up or move around
-            if (PMob->GetCallForHelpFlag())
+            if (mobcontrollerroamcallforhelp::ShouldClear(PMob->GetCallForHelpFlag()))
             {
                 PMob->SetCallForHelpFlag(false);
             }
