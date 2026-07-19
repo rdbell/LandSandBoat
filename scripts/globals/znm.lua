@@ -715,15 +715,25 @@ end
 -- onEventFinish Helpers
 -----------------------------------
 
+xi.znm.sanraku.completedPlateTradePlan = function(day, zeniValue)
+    return { day = day, zeniValue = zeniValue, clearTradedPlateValue = true }
+end
+
 xi.znm.sanraku.handleCompletedTradeWithPlate = function(player)
+    local plan = xi.znm.sanraku.completedPlateTradePlan(
+        VanadielUniqueDay(),
+        xi.znm.sanraku.tradedPlateValue(player)
+    )
+
     player:tradeComplete()
-    xi.znm.setPlayerTradingDay(player, VanadielUniqueDay())
+    xi.znm.setPlayerTradingDay(player, plan.day)
     xi.znm.incrementTradedPlates(player)
 
-    local zeniValue = xi.znm.sanraku.tradedPlateValue(player)
-    xi.znm.sanraku.setTradedPlateValue(player, 0)
+    if plan.clearTradedPlateValue then
+        xi.znm.sanraku.setTradedPlateValue(player, 0)
+    end
 
-    player:addCurrency('zeni_point', zeniValue)
+    player:addCurrency('zeni_point', plan.zeniValue)
 end
 
 xi.znm.sanraku.handleCompletedTradeWithTrophy = function(player)
