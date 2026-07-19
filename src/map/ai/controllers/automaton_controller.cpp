@@ -38,6 +38,7 @@
 #include "automaton_controller_enhance_gate_capacity.h"
 #include "automaton_controller_ranged_attack_gate_capacity.h"
 #include "automaton_controller_tp_skill_type_capacity.h"
+#include "automaton_controller_tp_skill_candidate_capacity.h"
 #include "automaton_controller_spell_permission_capacity.h"
 #include "automaton_controller_cast_admission_capacity.h"
 
@@ -1431,8 +1432,12 @@ auto CAutomatonController::TryTPMove() -> bool
         for (auto skillid : FrameSkills)
         {
             auto* PSkill = battleutils::GetMobSkill(skillid);
-            if (PSkill && PAutomaton->GetSkill(skilltype) > PSkill->getParam() && PSkill->getParam() != -1 &&
-                distance(PAutomaton->loc.p, PTarget->loc.p) < PSkill->getRadius())
+            if (PSkill && automatoncontrollertpskillcandidate::CanUseTPSkillCandidate(
+                              true,
+                              PAutomaton->GetSkill(skilltype),
+                              PSkill->getParam(),
+                              distance(PAutomaton->loc.p, PTarget->loc.p),
+                              PSkill->getRadius()))
             {
                 validSkills.emplace_back(PSkill);
             }
