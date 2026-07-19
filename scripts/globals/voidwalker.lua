@@ -141,11 +141,7 @@ local getNearestMob = function(player, mobs)
     end
 end
 
-local getDirection = function(player, mob, distance)
-    local posPlayer = player:getPos()
-    local posMob    = mob:getPos()
-    local diffx     = posMob.x - posPlayer.x
-    local diffz     = posMob.z - posPlayer.z
+xi.voidwalker.direction = function(diffx, diffz)
     local tan       = math.atan(diffz / diffx)
     local degree    = math.deg(tan)
 
@@ -188,6 +184,15 @@ local getDirection = function(player, mob, distance)
             end
         end
     end
+end
+
+local getDirection = function(player, mob, distance)
+    local posPlayer = player:getPos()
+    local posMob    = mob:getPos()
+    local diffx     = posMob.x - posPlayer.x
+    local diffz     = posMob.z - posPlayer.z
+
+    return xi.voidwalker.direction(diffx, diffz)
 end
 
 -----------------------------------
