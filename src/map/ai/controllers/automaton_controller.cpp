@@ -20,6 +20,7 @@
 */
 
 #include "automaton_controller.h"
+#include "automaton_controller_stand_back_capacity.h"
 
 #include "ai/ai_container.h"
 #include "ai/states/ability_state.h"
@@ -150,22 +151,9 @@ auto CAutomatonController::shouldStandBack() const -> bool
     if (PMaster)
     {
         CItemWeapon* animator = dynamic_cast<CItemWeapon*>(PMaster->m_Weapons[SLOT_AMMO]);
-
-        if (animator && animator->getSubSkillType() == SUBSKILLTYPE::SUBSKILL_ANIMATOR_II)
-        {
-            return true;
-        }
+        return automatoncontrollerstandback::ShouldStandBack(true, animator && animator->getSubSkillType() == SUBSKILLTYPE::SUBSKILL_ANIMATOR_II, false, false);
     }
-    else if (PAutomaton->frame() == AutomatonFrame::Valoredge)
-    {
-        return false;
-    }
-    else if (PAutomaton->head() >= AutomatonHead::Sharpshot)
-    {
-        return true;
-    }
-
-    return false;
+    return automatoncontrollerstandback::ShouldStandBack(false, false, PAutomaton->frame() == AutomatonFrame::Valoredge, PAutomaton->head() >= AutomatonHead::Sharpshot);
 }
 
 auto CAutomatonController::GetCurrentManeuvers() const -> CurrentManeuvers
