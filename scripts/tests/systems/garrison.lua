@@ -277,6 +277,36 @@ describe('Garrison spawn-NPC state transition', function()
     end)
 end)
 
+describe('Garrison tick scheduling', function()
+    it('records its tick time and schedules another tick while running', function()
+        local zoneID = xi.zone.WEST_RONFAURE
+        local zoneData = xi.garrison.zoneData[zoneID]
+        local originalState, originalPlayers = zoneData.state, zoneData.players
+        local originalRunning, originalLastTick = zoneData.isRunning, zoneData.lastTick
+        local originalSpawnNPCs = xi.garrison.spawnNPCs
+        local scheduledDelay = nil
+        local zone = { getID = function() return zoneID end }
+        local npc = {
+            getZone = function() return zone end,
+            getZoneID = function() return zoneID end,
+            timer = function(_, delay) scheduledDelay = delay end,
+        }
+
+        zoneData.players = {}
+        zoneData.isRunning = true
+        zoneData.state = xi.garrison.state.SPAWN_NPCS
+        xi.garrison.spawnNPCs = function() return true end
+        local before = GetSystemTime()
+        xi.garrison.tick(npc)
+
+        assert(zoneData.lastTick >= before and scheduledDelay == 1000)
+
+        xi.garrison.spawnNPCs = originalSpawnNPCs
+        zoneData.state, zoneData.players = originalState, originalPlayers
+        zoneData.isRunning, zoneData.lastTick = originalRunning, originalLastTick
+    end)
+end)
+
 describe('Garrison wave advance', function()
     it('resets mob state and schedules the next wave', function()
         local zoneID = xi.zone.WEST_RONFAURE
