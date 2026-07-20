@@ -1,0 +1,5 @@
+describe('Head Snatch mob skill',function()
+ it('reduces HP to ten percent of max HP and clamps the damage at zero',function()
+  local snatch=require('scripts/actions/mobskills/head_snatch');local damage=nil;local mob={};local target={getHP=function()return 600 end,getMaxHP=function()return 1000 end,takeDamage=function(_,...)damage={...}end};assert(snatch.onMobSkillCheck(target,mob,{})==0 and snatch.onMobWeaponSkill(mob,target,{},{})==500);assert(damage[1]==500 and damage[2]==mob and damage[3]==xi.attackType.PHYSICAL and damage[4]==xi.damageType.NONE);target.getHP=function()return 50 end;assert(snatch.onMobWeaponSkill(mob,target,{},{})==0 and damage[1]==0)
+ end)
+end)
