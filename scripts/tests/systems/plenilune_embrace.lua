@@ -1,0 +1,8 @@
+require('scripts/actions/mobskills/plenilune_embrace')
+describe('Plenilune Embrace mob skill', function()
+    it('always fails skill check and has empty weapon skill body', function()
+        local skill = require('scripts/actions/mobskills/plenilune_embrace')
+        assert(skill.onMobSkillCheck({}, {}, {}) == 1)
+        assert(skill.onMobWeaponSkill({}, {}, {}, {}) == nil)
+    end)
+end)
