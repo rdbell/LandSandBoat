@@ -1,0 +1,7 @@
+describe('Gastric Bomb mob skill',function()
+ it('uses its Water plan and applies Attack Down only after processing',function()
+  local bomb=require('scripts/actions/mobskills/gastric_bomb');local move,process,status=xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,attack=nil,nil,nil;local mob={getMainLvl=function()return 75 end};local target={takeDamage=function(_,...)damage={...}end};xi.mobskills.mobMagicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.MAGICAL,damageType=xi.damageType.WATER}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)attack={...}end
+  assert(bomb.onMobSkillCheck(target,mob,{})==0 and bomb.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==77 and params.fTP[1]==2 and params.fTP[2]==2 and params.fTP[3]==2 and params.element==xi.element.WATER and params.attackType==xi.attackType.MAGICAL and params.damageType==xi.damageType.WATER and params.shadowBehavior==xi.mobskills.shadowBehavior.IGNORE_SHADOWS and params.dStatMultiplier==1 and damage==nil and attack==nil);xi.mobskills.processDamage=function()return true end;bomb.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,status;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.MAGICAL and damage[4]==xi.damageType.WATER and attack[3]==xi.effect.ATTACK_DOWN and attack[4]==50 and attack[5]==0 and attack[6]==180)
+ end)
+end)
