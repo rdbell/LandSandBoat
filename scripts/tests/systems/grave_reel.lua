@@ -1,0 +1,7 @@
+describe('Grave Reel mob skill',function()
+ it('uses its no-element drain plan and drains HP only after processing',function()
+  local reel=require('scripts/actions/mobskills/grave_reel');local move,process,drain=xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobDrainMove;local params,drainArgs,message=nil,nil,nil;local mob={getMainLvl=function()return 75 end};local target={};local skill={setMsg=function(_,v)message=v end};xi.mobskills.mobMagicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.MAGICAL,damageType=xi.damageType.NONE}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobDrainMove=function(...)drainArgs={...};return 456 end
+  assert(reel.onMobSkillCheck(target,mob,skill)==0 and reel.onMobWeaponSkill(mob,target,skill,{})==123);assert(params.baseDamage==77 and params.fTP[1]==1 and params.fTP[2]==1 and params.fTP[3]==1 and params.element==xi.element.NONE and params.attackType==xi.attackType.MAGICAL and params.damageType==xi.damageType.NONE and params.shadowBehavior==xi.mobskills.shadowBehavior.WIPE_SHADOWS and params.skipMagicBonusDiff and drainArgs==nil and message==nil);xi.mobskills.processDamage=function()return true end;reel.onMobWeaponSkill(mob,target,skill,{})
+  xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobDrainMove=move,process,drain;assert(drainArgs[1]==mob and drainArgs[2]==target and drainArgs[3]==xi.mobskills.drainType.HP and drainArgs[4]==123 and message==456)
+ end)
+end)
