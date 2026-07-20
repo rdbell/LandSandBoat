@@ -1,0 +1,7 @@
+describe('Gust Slash mob skill',function()
+ it('announces readiness and uses its INT-based Wind plan',function()
+  local slash=require('scripts/actions/mobskills/gust_slash');local move,process=xi.mobskills.mobMagicalMove,xi.mobskills.processDamage;local params,damage,message=nil,nil,nil;local mob={getMainLvl=function()return 75 end,messageBasic=function(_,...)message={...}end};local target={takeDamage=function(_,...)damage={...}end};assert(slash.onMobSkillCheck(target,mob,{})==0 and message[1]==xi.msg.basic.READIES_WS and message[2]==0 and message[3]==19);xi.mobskills.mobMagicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.MAGICAL,damageType=xi.damageType.WIND}end;xi.mobskills.processDamage=function()return false end
+  assert(slash.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==77 and params.fTP[1]==1 and params.fTP[2]==2 and params.fTP[3]==2.5 and params.element==xi.element.WIND and params.attackType==xi.attackType.MAGICAL and params.damageType==xi.damageType.WIND and params.shadowBehavior==xi.mobskills.shadowBehavior.IGNORE_SHADOWS and params.dStatMultiplier==1 and params.dStatAttackerMod==xi.mod.INT and params.dStatDefenderMod==xi.mod.INT and damage==nil);xi.mobskills.processDamage=function()return true end;slash.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobMagicalMove,xi.mobskills.processDamage=move,process;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.MAGICAL and damage[4]==xi.damageType.WIND)
+ end)
+end)
