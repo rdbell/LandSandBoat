@@ -1,0 +1,7 @@
+describe('Great Whirlwind mob skill',function()
+ it('uses its Wind plan and applies Choke only after processing',function()
+  local whirlwind=require('scripts/actions/mobskills/great_whirlwind');local move,process,status=xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,choke=nil,nil,nil;local mob={getMainLvl=function()return 99 end};local target={takeDamage=function(_,...)damage={...}end};xi.mobskills.mobMagicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.MAGICAL,damageType=xi.damageType.WIND}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)choke={...}end
+  assert(whirlwind.onMobSkillCheck(target,mob,{})==0 and whirlwind.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==99 and params.fTP[1]==4 and params.fTP[2]==4 and params.fTP[3]==4 and params.element==xi.element.WIND and params.attackType==xi.attackType.MAGICAL and params.damageType==xi.damageType.WIND and params.shadowBehavior==xi.mobskills.shadowBehavior.IGNORE_SHADOWS and damage==nil and choke==nil);xi.mobskills.processDamage=function()return true end;whirlwind.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,status;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.MAGICAL and damage[4]==xi.damageType.WIND and choke[3]==xi.effect.CHOKE and choke[4]==3 and choke[5]==3 and choke[6]==90)
+ end)
+end)
