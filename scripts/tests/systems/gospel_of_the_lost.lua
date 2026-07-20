@@ -1,0 +1,5 @@
+describe('Gospel of the Lost mob skill',function()
+ it('rejects full health and erases before setting self-heal message and healing random max HP percent',function()
+  local gospel=require('scripts/actions/mobskills/gospel_of_the_lost');local heal,random=xi.mobskills.mobHealMove,math.random;local events={};local hpp=99;local mob={getHPP=function()return hpp end,getMaxHP=function()return 2000 end,eraseStatusEffect=function()events[#events+1]='erase' end};local skill={setMsg=function(_,v)events[#events+1]={'message',v}end};xi.mobskills.mobHealMove=function(subject,amount)events[#events+1]={'heal',subject,amount};return 123 end;math.random=function(min,max)assert(min==4 and max==6);return 5 end;assert(gospel.onMobSkillCheck({},mob,skill)==0);hpp=100;assert(gospel.onMobSkillCheck({},mob,skill)==1);hpp=99;assert(gospel.onMobWeaponSkill(mob,{},skill,{})==123);xi.mobskills.mobHealMove,math.random=heal,random;assert(events[1]=='erase' and events[2][1]=='message' and events[2][2]==xi.msg.basic.SELF_HEAL and events[3][1]=='heal' and events[3][2]==mob and events[3][3]==100)
+ end)
+end)
