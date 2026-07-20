@@ -1,0 +1,8 @@
+describe('Grim Reaper mob skill',function()
+ it('requires animation sub one and applies Doom only after processed damage',function()
+  local reaper=require('scripts/actions/mobskills/grim_reaper');local move,process,status=xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,doom=nil,nil,nil;local animation=0;local mob={getAnimationSub=function()return animation end,getWeaponDmg=function()return 77 end};local target={takeDamage=function(_,...)damage={...}end}
+  assert(reaper.onMobSkillCheck(target,mob,{})==0);animation=1;assert(reaper.onMobSkillCheck(target,mob,{})==1);xi.mobskills.mobPhysicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.PHYSICAL,damageType=xi.damageType.SLASHING}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)doom={...}end
+  assert(reaper.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==77 and params.numHits==3 and params.fTP[1]==1.2 and params.fTP[2]==1.2 and params.fTP[3]==1.2 and params.attackType==xi.attackType.PHYSICAL and params.damageType==xi.damageType.SLASHING and params.shadowBehavior==xi.mobskills.shadowBehavior.NUMSHADOWS_3 and damage==nil and doom==nil);xi.mobskills.processDamage=function()return true end;reaper.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,status;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.PHYSICAL and damage[4]==xi.damageType.SLASHING and doom[3]==xi.effect.DOOM and doom[4]==10 and doom[5]==3 and doom[6]==45)
+ end)
+end)
