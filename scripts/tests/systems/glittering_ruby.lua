@@ -1,0 +1,5 @@
+describe('Glittering Ruby mob skill',function()
+ it('gives a random stat boost from the mob, announces gain effect, and returns it',function()
+  local ruby=require('scripts/actions/mobskills/glittering_ruby');local entry,random=utils.randomEntry,math.random;local applied,message=nil,nil;local mob={};local target={addStatusEffect=function(_,effect,options)applied={effect,options}end};local skill={setMsg=function(_,v)message=v end};utils.randomEntry=function(effects)assert(#effects==7 and effects[1]==xi.effect.STR_BOOST and effects[7]==xi.effect.CHR_BOOST);return xi.effect.INT_BOOST end;math.random=function(min,max)assert(min==12 and max==14);return 13 end;assert(ruby.onMobSkillCheck(target,mob,skill)==0 and ruby.onMobWeaponSkill(mob,target,skill,{})==xi.effect.INT_BOOST);utils.randomEntry,math.random=entry,random;assert(applied[1]==xi.effect.INT_BOOST and applied[2].power==13 and applied[2].duration==90 and applied[2].origin==mob and message==xi.msg.basic.SKILL_GAIN_EFFECT)
+ end)
+end)
