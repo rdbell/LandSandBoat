@@ -1,0 +1,7 @@
+describe('Glory Slash mob skill',function()
+ it('uses its TP-scaled slashing plan and Stuns only after processing',function()
+  local slash=require('scripts/actions/mobskills/glory_slash');local move,process,status=xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,stun=nil,nil,nil;local mob={getWeaponDmg=function()return 77 end};local target={takeDamage=function(_,...)damage={...}end};xi.mobskills.mobPhysicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.PHYSICAL,damageType=xi.damageType.SLASHING}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)stun={...}end
+  assert(slash.onMobSkillCheck(target,mob,{})==0 and slash.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==77 and params.numHits==1 and params.fTP[1]==3 and params.fTP[2]==3.5 and params.fTP[3]==4 and params.attackType==xi.attackType.PHYSICAL and params.damageType==xi.damageType.SLASHING and params.shadowBehavior==xi.mobskills.shadowBehavior.NUMSHADOWS_1 and damage==nil and stun==nil);xi.mobskills.processDamage=function()return true end;slash.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,status;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.PHYSICAL and damage[4]==xi.damageType.SLASHING and stun[3]==xi.effect.STUN and stun[4]==1 and stun[5]==0 and stun[6]==4)
+ end)
+end)
