@@ -1,0 +1,7 @@
+describe('Geocrush mob skill',function()
+ it('uses its Earth plan and applies Stun only after processing',function()
+  local geocrush=require('scripts/actions/mobskills/geocrush');local move,process,status=xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,stun=nil,nil,nil;local mob={getMainLvl=function()return 75 end};local target={takeDamage=function(_,...)damage={...}end};xi.mobskills.mobMagicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.MAGICAL,damageType=xi.damageType.EARTH}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)stun={...}end
+  assert(geocrush.onMobSkillCheck(target,mob,{})==0 and geocrush.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==77 and params.fTP[1]==8 and params.fTP[2]==8 and params.fTP[3]==8 and params.element==xi.element.EARTH and params.attackType==xi.attackType.MAGICAL and params.damageType==xi.damageType.EARTH and params.shadowBehavior==xi.mobskills.shadowBehavior.WIPE_SHADOWS and damage==nil and stun==nil);xi.mobskills.processDamage=function()return true end;geocrush.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,status;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.MAGICAL and damage[4]==xi.damageType.EARTH and stun[3]==xi.effect.STUN and stun[4]==1 and stun[5]==0 and stun[6]==6)
+ end)
+end)
