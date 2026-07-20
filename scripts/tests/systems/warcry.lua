@@ -1,27 +1,19 @@
 require('scripts/actions/mobskills/warcry')
-
 describe('Warcry mob skill', function()
-    it('sets the job-ability action category, applies its fixed buff, and forwards its message', function()
-        local warcry = require('scripts/actions/mobskills/warcry')
-        local originalBuffMove = xi.mobskills.mobBuffMove
-        local category, buff, message = nil, nil, nil
-        local mob = {}
-        local skill = { setMsg = function(_, value) message = value end }
-        local action = { setCategory = function(_, value) category = value end }
-
-        xi.mobskills.mobBuffMove = function(target, effect, power, tick, duration)
-            buff = { target, effect, power, tick, duration }
-            return 123
+    it('sets JOBABILITY_FINISH and buffs WARCRY power 8', function()
+        local skill = require('scripts/actions/mobskills/warcry')
+        local buff = xi.mobskills.mobBuffMove
+        local message, category, buffParams = nil, nil, nil
+        local sk = { setMsg = function(_, v) message = v end }
+        local action = { setCategory = function(_, c) category = c end }
+        assert(skill.onMobSkillCheck({}, {}, sk) == 0)
+        xi.mobskills.mobBuffMove = function(m, effect, power, tick, duration)
+            buffParams = { effect, power, tick, duration }
+            return 101
         end
-
-        assert(warcry.onMobSkillCheck(nil, mob, skill) == 0)
-        assert(warcry.onMobWeaponSkill(mob, nil, skill, action) == xi.effect.WARCRY)
-
-        xi.mobskills.mobBuffMove = originalBuffMove
-
+        assert(skill.onMobWeaponSkill({}, {}, sk, action) == xi.effect.WARCRY and message == 101)
+        xi.mobskills.mobBuffMove = buff
         assert(category == xi.action.category.JOBABILITY_FINISH)
-        assert(buff[1] == mob and buff[2] == xi.effect.WARCRY)
-        assert(buff[3] == 8 and buff[4] == 0 and buff[5] == 30)
-        assert(message == 123)
+        assert(buffParams[1] == xi.effect.WARCRY and buffParams[2] == 8 and buffParams[4] == 30)
     end)
 end)

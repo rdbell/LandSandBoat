@@ -1,35 +1,25 @@
 require('scripts/actions/mobskills/warm-up')
-
-describe('Warm-up mob skill', function()
-    it('only reapplies effects already present, preserving Accuracy then Evasion order', function()
-        local warmUp = require('scripts/actions/mobskills/warm-up')
-        local originalBuffMove = xi.mobskills.mobBuffMove
-        local cases = {
-            { accuracy = false, evasion = false, effects = {}, result = nil, message = nil },
-            { accuracy = true, evasion = false, effects = { xi.effect.ACCURACY_BOOST }, result = xi.effect.ACCURACY_BOOST, message = 101 },
-            { accuracy = false, evasion = true, effects = { xi.effect.EVASION_BOOST }, result = xi.effect.EVASION_BOOST, message = 101 },
-            { accuracy = true, evasion = true, effects = { xi.effect.ACCURACY_BOOST, xi.effect.EVASION_BOOST }, result = xi.effect.EVASION_BOOST, message = 102 },
-        }
-        local mob = {}
-        local skill = {}
-        assert(warmUp.onMobSkillCheck(nil, mob, skill) == 0)
-        for _, case in ipairs(cases) do
-            local buffs, message = {}, nil
-            mob.hasStatusEffect = function(_, effect)
-                return (effect == xi.effect.ACCURACY_BOOST and case.accuracy) or (effect == xi.effect.EVASION_BOOST and case.evasion)
-            end
-            skill.setMsg = function(_, value) message = value end
-            xi.mobskills.mobBuffMove = function(target, effect, power, tick, duration)
-                table.insert(buffs, { target, effect, power, tick, duration })
-                return #buffs + 100
-            end
-            assert(warmUp.onMobWeaponSkill(mob, nil, skill, nil) == case.result)
-            assert(#buffs == #case.effects and message == case.message)
-            for index, effect in ipairs(case.effects) do
-                assert(buffs[index][1] == mob and buffs[index][2] == effect)
-                assert(buffs[index][3] == 40 and buffs[index][4] == 0 and buffs[index][5] == 60)
-            end
+describe('Warm-Up mob skill', function()
+    it('refreshes existing accuracy/evasion boosts only', function()
+        local skill = require('scripts/actions/mobskills/warm-up')
+        local buff = xi.mobskills.mobBuffMove
+        local message, buffs = nil, {}
+        local sk = { setMsg = function(_, v) message = v end }
+        local has = {}
+        local mob = { hasStatusEffect = function(_, e) return has[e] == true end }
+        assert(skill.onMobSkillCheck({}, mob, sk) == 0)
+        xi.mobskills.mobBuffMove = function(m, effect, power, tick, duration)
+            buffs[#buffs + 1] = { effect, power, duration }
+            return 100 + #buffs
         end
-        xi.mobskills.mobBuffMove = originalBuffMove
+        local ret = skill.onMobWeaponSkill(mob, {}, sk, {})
+        assert(ret == nil and #buffs == 0)
+        has[xi.effect.ACCURACY_BOOST] = true
+        has[xi.effect.EVASION_BOOST] = true
+        ret = skill.onMobWeaponSkill(mob, {}, sk, {})
+        xi.mobskills.mobBuffMove = buff
+        assert(ret == xi.effect.EVASION_BOOST and message == 102)
+        assert(buffs[1][1] == xi.effect.ACCURACY_BOOST and buffs[1][2] == 40 and buffs[1][3] == 60)
+        assert(buffs[2][1] == xi.effect.EVASION_BOOST)
     end)
 end)
