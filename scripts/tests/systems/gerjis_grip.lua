@@ -1,0 +1,5 @@
+describe("Gerjis' Grip mob skill",function()
+ it('forwards its gaze Stun message and returns Stun',function()
+  local grip=require('scripts/actions/mobskills/gerjis_grip');local gaze=xi.mobskills.mobGazeMove;local args,message=nil,nil;local skill={setMsg=function(_,v)message=v end};xi.mobskills.mobGazeMove=function(...)args={...};return 456 end;assert(grip.onMobSkillCheck({}, {}, skill)==0 and grip.onMobWeaponSkill({}, {}, skill,{})==xi.effect.STUN);xi.mobskills.mobGazeMove=gaze;assert(message==456 and args[3]==xi.effect.STUN and args[4]==1 and args[5]==0 and args[6]==10)
+ end)
+end)
