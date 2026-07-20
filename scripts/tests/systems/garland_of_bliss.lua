@@ -1,0 +1,8 @@
+describe('Garland of Bliss mob skill',function()
+ it('uses its MND Light plan and applies TP-scaled Defense Down only after processing',function()
+  local garland=require('scripts/actions/mobskills/garland_of_bliss');local move,process,status=xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,defense=nil,nil,nil;local mob={getMainLvl=function()return 75 end};local skill={getTP=function()return 1500 end};local target={takeDamage=function(_,...)damage={...}end};xi.mobskills.mobMagicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.MAGICAL,damageType=xi.damageType.LIGHT}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)defense={...}end
+  assert(garland.onMobSkillCheck(target,mob,skill)==0 and garland.onMobWeaponSkill(mob,target,skill,{})==123);assert(params.baseDamage==77 and params.fTP[1]==2 and params.fTP[2]==2 and params.fTP[3]==2 and params.element==xi.element.LIGHT and params.attackType==xi.attackType.MAGICAL and params.damageType==xi.damageType.LIGHT and params.shadowBehavior==xi.mobskills.shadowBehavior.IGNORE_SHADOWS and params.dStatMultiplier==2 and params.dStatAttackerMod==xi.mod.MND and params.dStatDefenderMod==xi.mod.MND and damage==nil and defense==nil)
+  xi.mobskills.processDamage=function()return true end;garland.onMobWeaponSkill(mob,target,skill,{})
+  xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,status;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.MAGICAL and damage[4]==xi.damageType.LIGHT and defense[3]==xi.effect.DEFENSE_DOWN and defense[4]==12.5 and defense[5]==0 and defense[6]==90)
+ end)
+end)
