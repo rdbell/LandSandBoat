@@ -1,0 +1,9 @@
+describe('Fulminous Fury mob skill',function()
+ it('uses its Dark plan and applies its minimum-only TP-scaled Stun after processing',function()
+  local fury=require('scripts/actions/mobskills/fulminous_fury');local move,process,status=xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,effects=nil,nil,{};local tp=1000;local mob={getMainLvl=function()return 75 end};local skill={getTP=function()return tp end};local target={takeDamage=function(_,...)damage={...}end}
+  xi.mobskills.mobMagicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.MAGICAL,damageType=xi.damageType.DARK}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)effects[#effects+1]={...}end
+  assert(fury.onMobSkillCheck(target,mob,skill)==0 and fury.onMobWeaponSkill(mob,target,skill,{})==123);assert(params.baseDamage==450 and params.fTP[1]==1.25 and params.fTP[2]==1.25 and params.fTP[3]==1.25 and params.element==xi.element.DARK and params.attackType==xi.attackType.MAGICAL and params.damageType==xi.damageType.DARK and params.shadowBehavior==xi.mobskills.shadowBehavior.WIPE_SHADOWS and damage==nil and #effects==0)
+  xi.mobskills.processDamage=function()return true end;fury.onMobWeaponSkill(mob,target,skill,{});tp=3600;fury.onMobWeaponSkill(mob,target,skill,{})
+  xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,status;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.MAGICAL and damage[4]==xi.damageType.DARK and #effects==2);assert(effects[1][3]==xi.effect.STUN and effects[1][4]==1 and effects[1][5]==0 and effects[1][6]==2 and effects[2][3]==xi.effect.STUN and effects[2][4]==1 and effects[2][5]==0 and effects[2][6]==6)
+ end)
+end)
