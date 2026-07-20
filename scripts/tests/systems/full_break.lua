@@ -1,0 +1,9 @@
+describe('Full Break mob skill',function()
+ it('uses its slashing plan and applies four TP-scaled debuffs only after processing',function()
+  local full=require('scripts/actions/mobskills/full_break');local move,process,status=xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,effects=nil,nil,{};local mob={getWeaponDmg=function()return 77 end};local skill={getTP=function()return 1000 end};local target={takeDamage=function(_,...)damage={...}end}
+  xi.mobskills.mobPhysicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.PHYSICAL,damageType=xi.damageType.SLASHING}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)effects[#effects+1]={...}end
+  assert(full.onMobSkillCheck(target,mob,skill)==0 and full.onMobWeaponSkill(mob,target,skill,{})==123);assert(params.baseDamage==77 and params.numHits==1 and params.fTP[1]==1 and params.fTP[2]==1 and params.fTP[3]==1 and params.attackType==xi.attackType.PHYSICAL and params.damageType==xi.damageType.SLASHING and params.shadowBehavior==xi.mobskills.shadowBehavior.NUMSHADOWS_1 and damage==nil and #effects==0)
+  xi.mobskills.processDamage=function()return true end;full.onMobWeaponSkill(mob,target,skill,{})
+  xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,status;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.PHYSICAL and damage[4]==xi.damageType.SLASHING and #effects==4);assert(effects[1][3]==xi.effect.ATTACK_DOWN and effects[1][4]==12.5 and effects[2][3]==xi.effect.DEFENSE_DOWN and effects[2][4]==12.5 and effects[3][3]==xi.effect.ACCURACY_DOWN and effects[3][4]==20 and effects[4][3]==xi.effect.EVASION_DOWN and effects[4][4]==20);for _,effect in ipairs(effects) do assert(effect[5]==0 and effect[6]==90) end
+ end)
+end)
