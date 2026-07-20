@@ -1,0 +1,7 @@
+describe('Geirskogul mob skill',function()
+ it('uses its piercing plan and gives the mob TP-scaled Shock Spikes only after processing',function()
+  local geir=require('scripts/actions/mobskills/geirskogul');local move,process=xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage;local params,damage,spikes=nil,nil,nil;local mob={getWeaponDmg=function()return 77 end,addStatusEffect=function(_,effect,options)spikes={effect,options}end};local skill={getTP=function()return 1500 end};local target={takeDamage=function(_,...)damage={...}end};xi.mobskills.mobPhysicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.PHYSICAL,damageType=xi.damageType.PIERCING}end;xi.mobskills.processDamage=function()return false end
+  assert(geir.onMobSkillCheck(target,mob,skill)==0 and geir.onMobWeaponSkill(mob,target,skill,{})==123);assert(params.baseDamage==77 and params.numHits==1 and params.fTP[1]==3 and params.fTP[2]==3 and params.fTP[3]==3 and params.attackType==xi.attackType.PHYSICAL and params.damageType==xi.damageType.PIERCING and params.shadowBehavior==xi.mobskills.shadowBehavior.NUMSHADOWS_1 and damage==nil and spikes==nil);xi.mobskills.processDamage=function()return true end;geir.onMobWeaponSkill(mob,target,skill,{})
+  xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage=move,process;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.PHYSICAL and damage[4]==xi.damageType.PIERCING and spikes[1]==xi.effect.SHOCK_SPIKES and spikes[2].power==10 and spikes[2].duration==30 and spikes[2].origin==mob)
+ end)
+end)
