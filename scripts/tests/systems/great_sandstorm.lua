@@ -1,0 +1,7 @@
+describe('Great Sandstorm mob skill',function()
+ it('uses its Earth plan and applies Blindness only after processing',function()
+  local sand=require('scripts/actions/mobskills/great_sandstorm');local move,process,status=xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,effect=nil,nil,nil;local mob={getMainLvl=function()return 99 end};local target={takeDamage=function(_,...)damage={...}end};xi.mobskills.mobMagicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.MAGICAL,damageType=xi.damageType.EARTH}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)effect={...}end
+  assert(sand.onMobSkillCheck(target,mob,{})==0 and sand.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==99 and params.fTP[1]==3 and params.fTP[2]==3 and params.fTP[3]==3 and params.element==xi.element.EARTH and params.attackType==xi.attackType.MAGICAL and params.damageType==xi.damageType.EARTH and params.shadowBehavior==xi.mobskills.shadowBehavior.IGNORE_SHADOWS and damage==nil and effect==nil);xi.mobskills.processDamage=function()return true end;sand.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,status;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.MAGICAL and damage[4]==xi.damageType.EARTH and effect[3]==xi.effect.BLINDNESS and effect[4]==20 and effect[5]==0 and effect[6]==180)
+ end)
+end)
