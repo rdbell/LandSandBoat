@@ -1,0 +1,8 @@
+describe('Hydro Ball mob skill',function()
+ it('uses its Water magical plan and level-scaled STR Down only after processing',function()
+  local ball=require('scripts/actions/mobskills/hydro_ball');local move,process,effect=xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,strDown=nil,nil,nil;local level=35;local mob={getMainLvl=function()return level end};local target={takeDamage=function(_,...)damage={...}end};xi.mobskills.mobMagicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.MAGICAL,damageType=xi.damageType.WATER}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(_,_,...)strDown={...}end
+  assert(ball.onMobSkillCheck(target,mob,{})==0 and ball.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==37 and params.fTP[1]==1.5 and params.fTP[2]==1.5 and params.fTP[3]==1.5 and params.element==xi.element.WATER and params.attackType==xi.attackType.MAGICAL and params.damageType==xi.damageType.WATER and params.shadowBehavior==xi.mobskills.shadowBehavior.IGNORE_SHADOWS and params.dStatMultiplier==1 and damage==nil and strDown==nil);xi.mobskills.processDamage=function()return true end;ball.onMobWeaponSkill(mob,target,{},{})
+  assert(strDown[1]==xi.effect.STR_DOWN and strDown[2]==17 and strDown[3]==9 and strDown[4]==120);level=75;ball.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,effect;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.MAGICAL and damage[4]==xi.damageType.WATER and strDown[2]==32)
+ end)
+end)
