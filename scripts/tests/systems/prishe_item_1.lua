@@ -1,11 +1,11 @@
 require('scripts/actions/mobskills/prishe_item_1')
 describe('Prishe Item 1 mob skill', function()
-    it('always rejects use and emits NONE with zero return when forced', function()
-        local item = require('scripts/actions/mobskills/prishe_item_1')
-        local message = nil
-        local skill = { setMsg = function(_, value) message = value end }
-        assert(item.onMobSkillCheck({}, {}, skill) == 1)
-        assert(item.onMobWeaponSkill({}, {}, skill, {}) == 0)
-        assert(message == xi.msg.basic.NONE)
+    it('always fails skill check and sets NONE', function()
+        local skill = require('scripts/actions/mobskills/prishe_item_1')
+        local msg = nil
+        local sk = { setMsg = function(_, m) msg = m end }
+        assert(skill.onMobSkillCheck({}, {}, sk) == 1)
+        assert(skill.onMobWeaponSkill({}, {}, sk, {}) == 0)
+        assert(msg == xi.msg.basic.NONE)
     end)
 end)
