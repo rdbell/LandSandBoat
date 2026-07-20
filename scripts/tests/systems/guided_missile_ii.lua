@@ -1,0 +1,7 @@
+describe('Guided Missile II mob skill',function()
+ it('rejects targets behind the mob and ignores shadows after processing',function()
+  local missile=require('scripts/actions/mobskills/guided_missile_ii');local move,process=xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage;local params,damage=nil,nil;local behind=false;local mob={getWeaponDmg=function()return 77 end};local target={isBehind=function(_,source,distance)return behind and source==mob and distance==48 end,takeDamage=function(_,...)damage={...}end};assert(missile.onMobSkillCheck(target,mob,{})==0);behind=true;assert(missile.onMobSkillCheck(target,mob,{})==1);behind=false;xi.mobskills.mobPhysicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.PHYSICAL,damageType=xi.damageType.SLASHING}end;xi.mobskills.processDamage=function()return false end
+  assert(missile.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==77 and params.numHits==3 and params.fTP[1]==2 and params.fTP[2]==2 and params.fTP[3]==2 and params.attackType==xi.attackType.PHYSICAL and params.damageType==xi.damageType.SLASHING and params.shadowBehavior==xi.mobskills.shadowBehavior.IGNORE_SHADOWS and damage==nil);xi.mobskills.processDamage=function()return true end;missile.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage=move,process;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.PHYSICAL and damage[4]==xi.damageType.SLASHING)
+ end)
+end)
