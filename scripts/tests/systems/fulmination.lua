@@ -1,0 +1,9 @@
+describe('Fulmination mob skill',function()
+ it('uses its Thunder plan and applies Paralysis plus random Stun only after processing',function()
+  local fulmination=require('scripts/actions/mobskills/fulmination');local move,process,status,random=xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove,math.random;local params,damage,effects=nil,nil,{};local mob={getMainLvl=function()return 75 end};local target={takeDamage=function(_,...)damage={...}end}
+  xi.mobskills.mobMagicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.MAGICAL,damageType=xi.damageType.THUNDER}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)effects[#effects+1]={...}end;math.random=function(min,max)assert(min==6 and max==10);return 9 end
+  assert(fulmination.onMobSkillCheck(target,mob,{})==0 and fulmination.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==77 and params.fTP[1]==12 and params.fTP[2]==12 and params.fTP[3]==12 and params.element==xi.element.THUNDER and params.attackType==xi.attackType.MAGICAL and params.damageType==xi.damageType.THUNDER and params.shadowBehavior==xi.mobskills.shadowBehavior.WIPE_SHADOWS and damage==nil and #effects==0)
+  xi.mobskills.processDamage=function()return true end;fulmination.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobMagicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove,math.random=move,process,status,random;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.MAGICAL and damage[4]==xi.damageType.THUNDER and #effects==2);assert(effects[1][3]==xi.effect.PARALYSIS and effects[1][4]==40 and effects[1][5]==0 and effects[1][6]==60 and effects[2][3]==xi.effect.STUN and effects[2][4]==1 and effects[2][5]==0 and effects[2][6]==9)
+ end)
+end)
