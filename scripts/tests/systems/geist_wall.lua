@@ -1,0 +1,5 @@
+describe('Geist Wall mob skill',function()
+ it('returns the dispelled effect and selects no-effect or erase messages',function()
+  local wall=require('scripts/actions/mobskills/geist_wall');local message=nil;local skill={setMsg=function(_,v)message=v end};local target={dispelStatusEffect=function()return xi.effect.NONE end};assert(wall.onMobSkillCheck(target,{},skill)==0 and wall.onMobWeaponSkill({},target,skill,{})==xi.effect.NONE and message==xi.msg.basic.SKILL_NO_EFFECT);target.dispelStatusEffect=function()return xi.effect.HASTE end;assert(wall.onMobWeaponSkill({},target,skill,{})==xi.effect.HASTE and message==xi.msg.basic.SKILL_ERASE)
+ end)
+end)
