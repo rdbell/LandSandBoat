@@ -1,0 +1,7 @@
+describe('Grape Shot mob skill',function()
+ it('uses its captured piercing plan and Stuns only after processing',function()
+  local shot=require('scripts/actions/mobskills/grapeshot');local move,process,status=xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,stun=nil,nil,nil;local mob={getWeaponDmg=function()return 77 end};local target={takeDamage=function(_,...)damage={...}end};xi.mobskills.mobPhysicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.PHYSICAL,damageType=xi.damageType.PIERCING}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(...)stun={...}end
+  assert(shot.onMobSkillCheck(target,mob,{})==0 and shot.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==77 and params.numHits==1 and params.fTP[1]==.3 and params.fTP[2]==.3 and params.fTP[3]==.3 and params.attackType==xi.attackType.PHYSICAL and params.damageType==xi.damageType.PIERCING and params.shadowBehavior==xi.mobskills.shadowBehavior.NUMSHADOWS_1 and damage==nil and stun==nil);xi.mobskills.processDamage=function()return true end;shot.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,status;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.PHYSICAL and damage[4]==xi.damageType.PIERCING and stun[3]==xi.effect.STUN and stun[4]==1 and stun[5]==0 and stun[6]==10)
+ end)
+end)
