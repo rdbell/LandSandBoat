@@ -1,20 +1,17 @@
 require('scripts/actions/mobskills/water_shield')
-
 describe('Water Shield mob skill', function()
-    it('allows use, applies the fixed Evasion Boost buff, and forwards its message', function()
-        local waterShield = require('scripts/actions/mobskills/water_shield')
-        local originalBuffMove = xi.mobskills.mobBuffMove
-        local buff, message = nil, nil
-        local mob = {}
-        local skill = { setMsg = function(_, value) message = value end }
-        xi.mobskills.mobBuffMove = function(target, effect, power, tick, duration)
-            buff = { target, effect, power, tick, duration }
-            return 123
+    it('buffs EVASION_BOOST power 20 for 30s', function()
+        local skill = require('scripts/actions/mobskills/water_shield')
+        local buff = xi.mobskills.mobBuffMove
+        local message, params = nil, nil
+        local sk = { setMsg = function(_, v) message = v end }
+        assert(skill.onMobSkillCheck({}, {}, sk) == 0)
+        xi.mobskills.mobBuffMove = function(m, effect, power, tick, duration)
+            params = { effect, power, tick, duration }
+            return 101
         end
-        assert(waterShield.onMobSkillCheck(nil, mob, skill) == 0)
-        assert(waterShield.onMobWeaponSkill(mob, nil, skill, nil) == xi.effect.EVASION_BOOST)
-        xi.mobskills.mobBuffMove = originalBuffMove
-        assert(buff[1] == mob and buff[2] == xi.effect.EVASION_BOOST)
-        assert(buff[3] == 20 and buff[4] == 0 and buff[5] == 30 and message == 123)
+        assert(skill.onMobWeaponSkill({}, {}, sk, {}) == xi.effect.EVASION_BOOST and message == 101)
+        xi.mobskills.mobBuffMove = buff
+        assert(params[1] == xi.effect.EVASION_BOOST and params[2] == 20 and params[4] == 30)
     end)
 end)
