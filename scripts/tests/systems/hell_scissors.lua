@@ -1,0 +1,5 @@
+describe('Hell Scissors mob skill',function()
+ it('deals 95 percent current HP physical slashing damage and resets enmity',function()
+  local scissors=require('scripts/actions/mobskills/hell_scissors');local damage,reset=nil,nil;local mob={resetEnmity=function(_,target)reset=target end};local target={getHP=function()return 1000 end,takeDamage=function(_,...)damage={...}end};assert(scissors.onMobSkillCheck(target,mob,{})==0 and scissors.onMobWeaponSkill(mob,target,{},{})==950);assert(damage[1]==950 and damage[2]==mob and damage[3]==xi.attackType.PHYSICAL and damage[4]==xi.damageType.SLASHING and reset==target)
+ end)
+end)
