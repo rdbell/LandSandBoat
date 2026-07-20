@@ -1,0 +1,7 @@
+describe('Hellclap mob skill',function()
+ it('uses its captured physical plan and applies Weight only after processing',function()
+  local clap=require('scripts/actions/mobskills/hellclap');local move,process,effect=xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove;local params,damage,weight=nil,nil,nil;local mob={getWeaponDmg=function()return 77 end};local target={takeDamage=function(_,...)damage={...}end};xi.mobskills.mobPhysicalMove=function(_,_,_,_,v)params=v;return {damage=123,attackType=xi.attackType.PHYSICAL,damageType=xi.damageType.SLASHING}end;xi.mobskills.processDamage=function()return false end;xi.mobskills.mobStatusEffectMove=function(_,_,...)weight={...}end
+  assert(clap.onMobSkillCheck(target,mob,{})==0 and clap.onMobWeaponSkill(mob,target,{},{})==123);assert(params.baseDamage==77 and params.numHits==1 and params.fTP[1]==4 and params.fTP[2]==4 and params.fTP[3]==4 and params.attackType==xi.attackType.PHYSICAL and params.damageType==xi.damageType.SLASHING and params.shadowBehavior==xi.mobskills.shadowBehavior.NUMSHADOWS_3 and damage==nil and weight==nil);xi.mobskills.processDamage=function()return true end;clap.onMobWeaponSkill(mob,target,{},{})
+  xi.mobskills.mobPhysicalMove,xi.mobskills.processDamage,xi.mobskills.mobStatusEffectMove=move,process,effect;assert(damage[1]==123 and damage[2]==mob and damage[3]==xi.attackType.PHYSICAL and damage[4]==xi.damageType.SLASHING);assert(weight[1]==xi.effect.WEIGHT and weight[2]==40 and weight[3]==0 and weight[4]==60)
+ end)
+end)
