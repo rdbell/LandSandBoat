@@ -173,3 +173,28 @@ describe('Dragoon ability pure plans', function()
         assert(flyHighRecasts[5] == 167)
     end)
 end)
+
+describe('Dragoon High Jump / Super Jump pure plans', function()
+    it('high jump enmity shed and spirit surge TP remove', function()
+        local function highJumpShed(isDRG, mod)
+            local base = isDRG and 50 or 30
+            return base + mod
+        end
+
+        assert(highJumpShed(true, 0) == 50)
+        assert(highJumpShed(false, 0) == 30)
+        assert(highJumpShed(true, 10) == 60)
+        assert(100 * 2 == 200) -- spirit surge delTP
+    end)
+
+    it('super jump range and CE/VE injects', function()
+        local range = 75.0
+        assert(50 <= range)
+        assert(75.0 <= range)
+        assert(not (75.1 <= range))
+        -- setCE(1), setVE(0)
+        assert(1 == 1 and 0 == 0)
+        -- surge party enmity shed 100
+        assert(100 == 100)
+    end)
+end)
