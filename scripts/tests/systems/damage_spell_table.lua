@@ -109,3 +109,32 @@ describe('damage spell pTable pure catalog', function()
         assert(comet[column.MULTIPLIER_500] == 2)
     end)
 end)
+
+describe('damage spell pTable base V selection corners', function()
+    -- Pure half of calculateBaseDamage step 1: V selection from pTable columns.
+    -- New system when Mult0 > 0 and PC and not USE_OLD_MAGIC_DAMAGE.
+    local function baseV(row, isPC, useOld)
+        local mult0 = row[8] or 0
+        local useNew = mult0 > 0 and isPC and not useOld
+        if useNew then
+            return row[6] -- PC_POWER
+        end
+        return row[4] -- NPC_POWER
+    end
+
+    local aero = { xi.mod.INT, 0, false, 25, 1, 40, 35, 1.6, 1, 0, 0, 0, 0, 0 }
+    local death = { 0, 0, false, 32, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0 }
+    local doton = { xi.mod.INT, 0, false, 16, 1, 16, 25, 0 }
+
+    it('AERO NPC uses NPC_POWER; PC new system uses PC_POWER', function()
+        assert(baseV(aero, false, false) == 25)
+        assert(baseV(aero, true, false) == 40)
+        assert(baseV(aero, true, true) == 25) -- USE_OLD_MAGIC_DAMAGE
+    end)
+
+    it('DEATH and short DOTON Mult0=0 force NPC_POWER even for PC', function()
+        assert(baseV(death, true, false) == 32)
+        assert(baseV(doton, true, false) == 16)
+        assert((doton[8] or 0) == 0)
+    end)
+end)
