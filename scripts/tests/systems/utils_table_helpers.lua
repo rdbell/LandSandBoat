@@ -44,4 +44,23 @@ describe('utils table helpers pure plans', function()
         assert(base.a == 1 and base.b == 2)
         assert(base.nested.x == 1 and base.nested.y == 2)
     end)
+
+    it('append overwrites non-table and replaces table over scalar', function()
+        local base = { k = 1 }
+        utils.append(base, { k = 'str' })
+        assert(base.k == 'str')
+
+        local base2 = { k = 1 }
+        utils.append(base2, { k = { z = 9 } })
+        assert(type(base2.k) == 'table' and base2.k.z == 9)
+    end)
+
+    it('join nested second wins on shared keys', function()
+        local j = utils.join(
+            { a = 1, nested = { x = 1 } },
+            { b = 2, nested = { y = 2, x = 9 } }
+        )
+        assert(j.a == 1 and j.b == 2)
+        assert(j.nested.x == 9 and j.nested.y == 2)
+    end)
 end)
