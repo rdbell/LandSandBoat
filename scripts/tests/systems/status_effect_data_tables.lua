@@ -87,3 +87,80 @@ describe('Status effect data table pure plans', function()
         assert(n == 38)
     end)
 end)
+
+describe('Status effect associated lookups and resistance pure plans', function()
+    it('getAssociatedImmunity has sleep light exception', function()
+        assert(xi.data.statusEffect.getAssociatedImmunity(xi.effect.SLEEP_I, xi.element.LIGHT) == xi.immunity.LIGHT_SLEEP)
+        assert(xi.data.statusEffect.getAssociatedImmunity(xi.effect.SLEEP_I, xi.element.DARK) == xi.immunity.DARK_SLEEP)
+        assert(xi.data.statusEffect.getAssociatedImmunity(xi.effect.POISON, xi.element.WATER) == xi.immunity.POISON)
+        assert(xi.data.statusEffect.getAssociatedImmunity(xi.effect.AMNESIA, xi.element.FIRE) == 0)
+    end)
+
+    it('getAssociatedResistTrait and rank modifiers', function()
+        assert(xi.data.statusEffect.getAssociatedResistTraitModifier(xi.effect.POISON) == xi.mod.POISONRES)
+        assert(xi.data.statusEffect.getAssociatedResistTraitModifier(xi.effect.TERROR) == 0)
+        assert(xi.data.statusEffect.getAssociatedResistanceRankModifier(xi.effect.SLEEP_I, xi.element.LIGHT) == xi.mod.LIGHT_SLEEP_RES_RANK)
+        assert(xi.data.statusEffect.getAssociatedResistanceRankModifier(xi.effect.BIND, xi.element.ICE) == xi.mod.BIND_RES_RANK)
+    end)
+
+    it('getAssociatedMagicEvasion and immunobreak modifiers', function()
+        assert(xi.data.statusEffect.getAssociatedMagicEvasionModifier(xi.effect.POISON) == xi.mod.POISON_MEVA)
+        assert(xi.data.statusEffect.getAssociatedImmunobreakModifier(xi.effect.POISON) == xi.mod.POISON_IMMUNOBREAK)
+        assert(xi.data.statusEffect.getAssociatedMagicEvasionModifier(xi.effect.ATTACK_DOWN) == 0)
+    end)
+
+    it('isResistRateSuccessfull thresholds from allowed resist state', function()
+        -- blindness allowed = 1 → threshold 0.5
+        assert(xi.data.statusEffect.isResistRateSuccessfull(xi.effect.BLINDNESS, 0.5, 0))
+        assert(not xi.data.statusEffect.isResistRateSuccessfull(xi.effect.BLINDNESS, 0.49, 0))
+        -- bio allowed = 4 → 1/16
+        local thr = 1 / 2 ^ 4
+        assert(xi.data.statusEffect.isResistRateSuccessfull(xi.effect.BIO, thr, 0))
+        assert(not xi.data.statusEffect.isResistRateSuccessfull(xi.effect.BIO, thr - 0.001, 0))
+        -- bypass 3 → 0.125
+        assert(xi.data.statusEffect.isResistRateSuccessfull(xi.effect.BLINDNESS, 0.125, 3))
+        assert(not xi.data.statusEffect.isResistRateSuccessfull(xi.effect.BLINDNESS, 0.124, 3))
+    end)
+
+    it('isTargetImmune requires mob and matching immunity', function()
+        local target = {
+            isMob = function() return true end,
+            immunities = { [xi.immunity.POISON] = true },
+            hasImmunity = function(self, id)
+                return self.immunities[id] == true
+            end,
+        }
+        assert(xi.data.statusEffect.isTargetImmune(target, xi.effect.POISON, xi.element.WATER))
+        target.immunities = {}
+        assert(not xi.data.statusEffect.isTargetImmune(target, xi.effect.POISON, xi.element.WATER))
+        target.isMob = function() return false end
+        target.immunities = { [xi.immunity.POISON] = true }
+        assert(not xi.data.statusEffect.isTargetImmune(target, xi.effect.POISON, xi.element.WATER))
+    end)
+
+    it('isTargetResistant power formula with NM half', function()
+        -- Pure arithmetic mirror (RNG not exercised).
+        local function planResistant(effectId, traitMod, statusRes, isNM)
+            local modId = xi.data.statusEffect.getAssociatedResistTraitModifier(effectId)
+            if modId == 0 then
+                return { shouldRoll = false, power = 0 }
+            end
+            local power = traitMod + statusRes + 5
+            if power <= 5 then
+                return { shouldRoll = false, power = 0 }
+            end
+            if isNM then
+                power = math.floor(power / 2)
+            end
+            return { shouldRoll = true, power = power }
+        end
+        local p = planResistant(xi.effect.TERROR, 50, 10, false)
+        assert(not p.shouldRoll)
+        p = planResistant(xi.effect.POISON, 20, 0, false)
+        assert(p.shouldRoll and p.power == 25)
+        p = planResistant(xi.effect.POISON, 0, 0, false)
+        assert(not p.shouldRoll)
+        p = planResistant(xi.effect.POISON, 20, 10, true)
+        assert(p.shouldRoll and p.power == 17)
+    end)
+end)
