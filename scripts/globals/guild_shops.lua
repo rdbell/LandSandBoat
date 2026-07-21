@@ -42,6 +42,118 @@ local calcSellPrice = function(base, maxStock, stock)
     return math.floor(base * (600 - index) / 400)
 end
 
+-----------------------------------
+-- Pure day-roll / open-hours helpers (no entity hosts).
+-- Exported for system tests and Go parity ports.
+-----------------------------------
+
+---Whether the current Vanadiel hour falls in [openHour, closeHour).
+---@param hour integer
+---@param openHour integer
+---@param closeHour integer
+---@return boolean
+xi.guildShops.isOpenHour = function(hour, openHour, closeHour)
+    return hour >= openHour and hour < closeHour
+end
+
+---Whether a daily roll already locked prices for `today`.
+---@param today integer VanadielUniqueDay
+---@param lastRoll integer state.lastRoll (-1 = never rolled)
+---@return boolean
+xi.guildShops.alreadyRolledToday = function(today, lastRoll)
+    return lastRoll == today
+end
+
+---Days elapsed since last roll and first-roll flag.
+---firstRoll is true when lastRoll < 0 (uninitialized); days is then 0.
+---@param today integer
+---@param lastRoll integer
+---@return integer days
+---@return boolean firstRoll
+xi.guildShops.daysSinceRoll = function(today, lastRoll)
+    local firstRoll = lastRoll < 0
+    local days      = firstRoll and 0 or (today - lastRoll)
+
+    return days, firstRoll
+end
+
+---Restock toward targetStock then trim overstock.
+---On first roll, only the trim runs (no restock add).
+---When restockRate <= 0 or stock already at/above target, only trim applies.
+---@param stock integer previous stock (or initial)
+---@param targetStock integer
+---@param restockRate integer items per day
+---@param days integer days since last roll
+---@param firstRoll boolean
+---@return integer
+xi.guildShops.restockAndTrim = function(stock, targetStock, restockRate, days, firstRoll)
+    if not firstRoll and restockRate > 0 and stock < targetStock then
+        stock = math.min(targetStock, stock + restockRate * days)
+    end
+
+    -- Sales can pile stock up to maxStock during the day, but every open trims it back to targetStock.
+    return math.min(stock, targetStock)
+end
+
+---Locked "offered today" flag at open: stock > 0.
+---@param stock integer
+---@return boolean
+xi.guildShops.isOffered = function(stock)
+    return stock > 0
+end
+
+---Previous stock if present, otherwise cfg.initial.
+---@param prevStock integer|nil
+---@param initial integer
+---@return integer
+xi.guildShops.seedStock = function(prevStock, initial)
+    if prevStock ~= nil then
+        return prevStock
+    end
+
+    return initial
+end
+
+---Buy quantity clamp: min(requested, stock).
+---@param quantity integer
+---@param stock integer
+---@return integer
+xi.guildShops.clampBuyQuantity = function(quantity, stock)
+    return math.min(quantity, stock)
+end
+
+---Sell capacity want: min(requested, maxStock - stock).
+---@param quantity integer
+---@param maxStock integer
+---@param stock integer
+---@return integer
+xi.guildShops.clampSellWant = function(quantity, maxStock, stock)
+    return math.min(quantity, maxStock - stock)
+end
+
+---Sell trade field: full fill returns sold count, partial returns -1.
+---@param sold integer
+---@param quantity integer requested
+---@return integer
+xi.guildShops.sellTradeResult = function(sold, quantity)
+    return (sold < quantity) and -1 or sold
+end
+
+---Hide sell-list row from the client by setting price MSB.
+---@param price integer
+---@return integer
+xi.guildShops.hiddenSellPrice = function(price)
+    return bit.bor(price, 0x80000000)
+end
+
+---Canonical shop name: sharedStock alias or own name.
+---@param name string
+---@param sharedStock string|nil
+---@return string
+xi.guildShops.canonicalName = function(name, sharedStock)
+    return sharedStock or name
+end
+
 local getShopState = function(name)
     local state = xi.guildShops.state[name]
     if state == nil then
@@ -71,7 +183,7 @@ end
 local canonicalShop = function(npc)
     local name = npc:getName()
     local cfg  = xi.data.guildShops[name]
-    return (cfg and cfg.sharedStock) or name
+    return xi.guildShops.canonicalName(name, cfg and cfg.sharedStock or nil)
 end
 
 local shopFor = function(npc)
@@ -88,30 +200,24 @@ end
 local rollShopDay = function(npc, shop)
     local state = getShopState(canonicalShop(npc))
     local today = VanadielUniqueDay()
-    if state.lastRoll == today then
+    if xi.guildShops.alreadyRolledToday(today, state.lastRoll) then
         return state
     end
 
-    local firstRoll = state.lastRoll < 0
-    local days      = firstRoll and 0 or (today - state.lastRoll)
+    local days, firstRoll = xi.guildShops.daysSinceRoll(today, state.lastRoll)
 
     for _, cfg in ipairs(shop.stock) do
         local prev  = state.items[cfg.id]
-        local stock = prev and prev.stock or cfg.initial
+        local stock = xi.guildShops.seedStock(prev and prev.stock or nil, cfg.initial)
 
-        if not firstRoll and cfg.restockRate > 0 and stock < cfg.targetStock then
-            stock = math.min(cfg.targetStock, stock + cfg.restockRate * days)
-        end
-
-        -- Sales can pile stock up to maxStock during the day, but every open trims it back to targetStock.
-        stock = math.min(stock, cfg.targetStock)
+        stock = xi.guildShops.restockAndTrim(stock, cfg.targetStock, cfg.restockRate, days, firstRoll)
 
         state.items[cfg.id] =
         {
             stock     = stock,
             buyPrice  = calcBuyPrice(cfg.buyMax, priceFloorOf(cfg), cfg.maxStock, stock),
             sellPrice = cfg.sellPrice or calcSellPrice(GetReadOnlyItem(cfg.id):getBasePrice(), cfg.maxStock, stock),
-            offered   = stock > 0, -- locked: 0 at open => not sold today
+            offered   = xi.guildShops.isOffered(stock), -- locked: 0 at open => not sold today
         }
     end
 
@@ -126,8 +232,7 @@ local guildShopIsOpen = function(npc)
         return false
     end
 
-    local hour = VanadielHour()
-    return hour >= shop.hours[1] and hour < shop.hours[2]
+    return xi.guildShops.isOpenHour(VanadielHour(), shop.hours[1], shop.hours[2])
 end
 
 ---@param player CBaseEntity
@@ -175,7 +280,7 @@ xi.guildShops.onPlayerBuy = function(player, npc, itemId, quantity)
     end
 
     -- Bad quantity or no more in stock
-    quantity = math.min(quantity, item.stock)
+    quantity = xi.guildShops.clampBuyQuantity(quantity, item.stock)
     if quantity <= 0 then
         return rejected(-1)
     end
@@ -253,7 +358,7 @@ xi.guildShops.onPlayerSell = function(player, npc, itemId, quantity)
     local item   = state.items[itemId]
 
     -- Cap the purchase to the least of requested quantity or remaining stock
-    local want   = math.min(quantity, cfg.maxStock - item.stock)
+    local want = xi.guildShops.clampSellWant(quantity, cfg.maxStock, item.stock)
 
     -- Packet does NOT provide specific inventory slots, we have to iterate the player inventory ourselves
     -- The sale can potentially span multiple stacks
@@ -278,7 +383,7 @@ xi.guildShops.onPlayerSell = function(player, npc, itemId, quantity)
     item.stock = item.stock + sold
 
     -- Return sale status to core for packet and audit purposes.
-    local trade = (sold < quantity) and -1 or sold
+    local trade = xi.guildShops.sellTradeResult(sold, quantity)
     return { itemNo = itemId, count = item.stock, trade = trade, sold = sold, price = item.sellPrice }
 end
 
@@ -301,7 +406,7 @@ xi.guildShops.onSellList = function(player, npc)
             local price = item.sellPrice
             if cfg.hidden then
                 -- When MSB is set in packet, the client hides the item from the initial sell menu
-                price = bit.bor(price, 0x80000000)
+                price = xi.guildShops.hiddenSellPrice(price)
             end
 
             items[#items + 1] =
