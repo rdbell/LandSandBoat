@@ -44,6 +44,11 @@ public:
     {
         return CInstance::checkFirstEntry(entered, id);
     }
+
+    static auto music(const Maybe<uint16>& overrideMusic, uint16 zoneMusic) -> uint16
+    {
+        return CInstance::musicOrDefault(overrideMusic, zoneMusic);
+    }
 };
 
 namespace
@@ -95,6 +100,15 @@ auto testParticipantIdentity() -> bool
     ok = expect(!InstanceTestAccess::firstEntry(entered, UINT32_MAX), "maximum id repeated entry") && ok;
     return ok;
 }
+
+auto testMusicOverrides() -> bool
+{
+    bool ok = true;
+    ok = expect(InstanceTestAccess::music(std::nullopt, 123) == 123, "music falls back to zone value") && ok;
+    ok = expect(InstanceTestAccess::music(Maybe<uint16>(456), 123) == 456, "music override wins") && ok;
+    ok = expect(InstanceTestAccess::music(Maybe<uint16>(0), 123) == 0, "zero music override is preserved") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -102,5 +116,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     bool ok = true;
     ok      = testElapsedAndTimerCadence() && ok;
     ok      = testParticipantIdentity() && ok;
+    ok      = testMusicOverrides() && ok;
     return ok;
 }

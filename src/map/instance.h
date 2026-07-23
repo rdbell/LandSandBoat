@@ -97,6 +97,7 @@ private:
     static auto timeCheckDue(timer::time_point startTime, timer::time_point lastTimeCheck, timer::time_point tick, bool charsEmpty, bool failed) -> bool;
     static void registerChar(std::vector<uint32>& registeredChars, uint32& commander, uint32 id);
     static auto checkFirstEntry(std::set<uint32>& enteredChars, uint32 id) -> bool;
+    static auto musicOrDefault(const Maybe<uint16>& overrideMusic, uint16 zoneMusic) -> uint16;
 
     void LoadInstance();
 

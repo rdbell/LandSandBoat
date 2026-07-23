@@ -360,24 +360,29 @@ auto CInstance::checkFirstEntry(std::set<uint32>& enteredChars, uint32 id) -> bo
     return enteredChars.insert(id).second;
 }
 
+auto CInstance::musicOrDefault(const Maybe<uint16>& overrideMusic, uint16 zoneMusic) -> uint16
+{
+    return overrideMusic ? *overrideMusic : zoneMusic;
+}
+
 uint16 CInstance::GetSoloBattleMusic()
 {
-    return m_zone_music_override.m_bSongS ? *m_zone_music_override.m_bSongS : GetZone()->GetSoloBattleMusic();
+    return musicOrDefault(m_zone_music_override.m_bSongS, GetZone()->GetSoloBattleMusic());
 }
 
 uint16 CInstance::GetPartyBattleMusic()
 {
-    return m_zone_music_override.m_bSongM ? *m_zone_music_override.m_bSongM : GetZone()->GetPartyBattleMusic();
+    return musicOrDefault(m_zone_music_override.m_bSongM, GetZone()->GetPartyBattleMusic());
 }
 
 uint16 CInstance::GetBackgroundMusicDay()
 {
-    return m_zone_music_override.m_songDay ? *m_zone_music_override.m_songDay : GetZone()->GetBackgroundMusicDay();
+    return musicOrDefault(m_zone_music_override.m_songDay, GetZone()->GetBackgroundMusicDay());
 }
 
 uint16 CInstance::GetBackgroundMusicNight()
 {
-    return m_zone_music_override.m_songNight ? *m_zone_music_override.m_songNight : GetZone()->GetBackgroundMusicNight();
+    return musicOrDefault(m_zone_music_override.m_songNight, GetZone()->GetBackgroundMusicNight());
 }
 
 // Certain instances with multiple sub-maps use alternative entity lists replacing the base list
