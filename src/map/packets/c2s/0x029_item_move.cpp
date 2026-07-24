@@ -145,6 +145,8 @@ const auto isValidMovement = [](const CCharEntity* PChar, const CONTAINER_ID fro
 
 } // namespace
 
+// Go host pure half: packetsystem.ValidateItemMove / ProcessItemMove /
+// NewItemMoveHandler (6447); pure itemmove.IsValidMovement / PlanProcess.
 auto GP_CLI_COMMAND_ITEM_MOVE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     const auto validContainersForChar = validContainers(PChar);
