@@ -46,6 +46,7 @@ auto rescue::TransitionFor(const bool selfUnstuckEnabled, const bool cooldownAct
     };
 }
 
+// Go host pure half: packetsystem.ValidateRescue / ProcessRescue / NewRescueHandler (6537); plan mappacket.ClientRescueTransitionFor.
 auto GP_CLI_COMMAND_RESCUE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

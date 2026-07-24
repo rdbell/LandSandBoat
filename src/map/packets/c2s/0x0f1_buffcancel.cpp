@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "status_effect_container.h"
 
+// Go host pure half: packetsystem.ValidateBuffCancel / ProcessBuffCancel / NewBuffCancelHandler (6538); plan mappacket.ClientBuffCancelRuntimeEffectsFor.
 auto GP_CLI_COMMAND_BUFFCANCEL::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // TODO: Build a list of known cancellable buffs

@@ -41,6 +41,7 @@ const std::set<uint8_t> validContainers = { LOC_MOGSAFE, LOC_MOGSAFE2 };
 
 }
 
+// Go host pure half: packetsystem.ValidateMyRoomBankIn / ProcessMyRoomBankIn / NewMyRoomBankInHandler (6539); plan mappacket.ClientMyRoomBankInRuntimePlanFor.
 auto GP_CLI_COMMAND_MYROOM_BANKIN::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
