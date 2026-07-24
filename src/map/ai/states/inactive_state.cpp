@@ -20,6 +20,7 @@
 */
 
 #include "inactive_state.h"
+#include "inactive_interrupt.h"
 #include "ai/ai_container.h"
 #include "entities/battle_entity.h"
 #include "status_effect_container.h"
@@ -30,7 +31,7 @@ CInactiveState::CInactiveState(CBaseEntity* PEntity, timer::duration _duration, 
 , m_canChangeState(canChangeState)
 , m_untargetable(untargetable)
 {
-    if (!canChangeState)
+    if (inactiveinterrupt::shouldInterrupt(canChangeState))
     {
         PEntity->PAI->InterruptStates();
     }

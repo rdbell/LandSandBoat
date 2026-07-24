@@ -2689,6 +2689,8 @@ set(SOURCES
     test_mob_respawn_time_6286.cpp
     test_despawn_respawn_registration_6287.h
     test_despawn_respawn_registration_6287.cpp
+    test_inactive_interrupt_6288.h
+    test_inactive_interrupt_6288.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
