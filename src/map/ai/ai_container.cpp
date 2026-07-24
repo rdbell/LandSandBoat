@@ -190,11 +190,15 @@ bool CAIContainer::UseItem(uint16 targid, uint8 loc, uint8 slotid)
 
 bool CAIContainer::Inactive(timer::duration _duration, bool canChangeState)
 {
+    // Go host pure half: aicontainer.Inactive / InactiveOn (slice 6371)
+    // ForceChangeState<CInactiveState>(..., untargetable=false).
     return ForceChangeState<CInactiveState>(PEntity, _duration, canChangeState, false);
 }
 
 bool CAIContainer::Untargetable(timer::duration _duration, bool canChangeState)
 {
+    // Go host pure half: aicontainer.Untargetable / UntargetableOn (slice 6371)
+    // ForceChangeState<CInactiveState>(..., untargetable=true).
     return ForceChangeState<CInactiveState>(PEntity, _duration, canChangeState, true);
 }
 
@@ -234,6 +238,7 @@ bool CAIContainer::Internal_Engage(uint16 targetid)
                 entity->OnEngage(*static_cast<CAttackState*>(GetCurrentState()));
 
                 // Resume being inactive if entity has a status effect preventing them from doing actions
+                // Go host pure half: aicontainer.InternalEngageResumeInactive (slice 6371).
                 if (aicontainerhelpers::InternalEngageShouldResumeInactive(
                         entity->StatusEffectContainer->HasPreventActionEffect(true)))
                 {
@@ -594,7 +599,8 @@ auto CAIContainer::Tick(timer::time_point tick) -> Task<void>
     // prevent-action effects don't cancel them on retail), so we never force them inactive
     // from here. Once such a state ends, this poll parks the entity inactive.
     // Dual-wire: aicontainerhelpers::TickPreventActionParkAllowed (slice 6314).
-    // Go host pure half: aicontainer.TickPreventActionPark (slice 6365).
+    // Go host pure half: aicontainer.TickPreventActionPark (slice 6365);
+    // composition with Inactive ForceChange: TickPreventActionParkInactive (6371).
     {
         auto*      battle                  = dynamic_cast<CBattleEntity*>(PEntity);
         const bool hasBattleEntity         = battle != nullptr;
