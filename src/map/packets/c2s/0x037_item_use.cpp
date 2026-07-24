@@ -26,6 +26,9 @@
 #include "packets/s2c/0x029_battle_message.h"
 #include "universal_container.h"
 
+// Go host pure half: packetsystem.ValidateItemUse / ProcessItemUse /
+// NewItemUseHandler (6454); plan mappacket.ClientItemUseActionFor.
+
 namespace
 {
 
