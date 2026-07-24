@@ -1204,6 +1204,58 @@ xi.weaponskills.rangedWeaponskillMitigation = function(rangedDmgTakenResult, pie
     return math.floor(rangedDmgTakenResult * (1 + pierceSDT / 10000))
 end
 
+-- Pure residual doMagicWeaponskill / post-raw bookkeeping (OmegaXI slice 6672).
+
+xi.weaponskills.magicWSHitsLanded      = 1
+xi.weaponskills.magicWSTpHitsLanded    = 1
+xi.weaponskills.magicWSExtraHitsLanded = 0
+
+-- MAIN unless archery/marksmanship magic WS.
+xi.weaponskills.magicWSAttackSlot = function(skill)
+    if xi.weaponskills.isRangedMagicWeaponskill(skill) then
+        return xi.slot.RANGED
+    end
+
+    return xi.slot.MAIN
+end
+
+xi.weaponskills.magicWSDStatIsCHR = function(dStatIsCHR)
+    return dStatIsCHR
+end
+
+-- gearAccFromFTP + WSACC (magic path stacks WSACC here).
+xi.weaponskills.magicWSBonusAcc = function(gearAccFromFTP, wsAccMod)
+    return gearAccFromFTP + wsAccMod
+end
+
+xi.weaponskills.magicWSScarletProduct = function(dmg, scarletMult)
+    return dmg * scarletMult
+end
+
+xi.weaponskills.magicWSNegativeEarlyReturn = function(dmg)
+    return dmg < 0
+end
+
+xi.weaponskills.planMagicWSShadowAbsorb = function()
+    return { shadowsAbsorbed = 1, damage = 0, trySkillUp = false }
+end
+
+xi.weaponskills.magicWSSkillUpApplies = function(dmg)
+    return dmg > 0
+end
+
+xi.weaponskills.floorRawFinalDmg = function(finalDmg)
+    return math.floor(finalDmg)
+end
+
+xi.weaponskills.hybridMagicAdd = function(physicalFinal, hybridMagicDmg)
+    return physicalFinal + hybridMagicDmg
+end
+
+xi.weaponskills.shouldRemoveAmmo = function(ammoUsed)
+    return ammoUsed > 0
+end
+
 xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParams, tp, action, primaryMsg, taChar)
     -- Set up conditions and wsParams used for calculating weaponskill damage
     local gearFTP = xi.combat.physical.calculateFTPBonus(attacker)
@@ -1267,12 +1319,15 @@ xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParam
 
     -- Send our wsParams off to calculate our raw WS damage, hits landed, and shadows absorbed
     calcParams     = xi.weaponskills.calculateRawWSDmg(attacker, target, wsID, tp, action, wsParams, calcParams)
-    local finaldmg = math.floor(calcParams.finalDmg)
+    local finaldmg = xi.weaponskills.floorRawFinalDmg(calcParams.finalDmg)
 
     -- Add in magic damage for hybrid weaponskills
     -- Only procs if the mob still has HP remaining
     if xi.weaponskills.hybridMagicApplies(wsParams.hybridWS, target:getHP(), finaldmg) then
-        finaldmg = finaldmg + calculateHybridMagicDamage(tp, finaldmg, attacker, target, wsParams, calcParams, wsID)
+        finaldmg = xi.weaponskills.hybridMagicAdd(
+            finaldmg,
+            calculateHybridMagicDamage(tp, finaldmg, attacker, target, wsParams, calcParams, wsID)
+        )
     end
 
     -- Delete statuses that may have been spent by the WS
@@ -1365,7 +1420,10 @@ xi.weaponskills.doRangedWeaponskill = function(attacker, target, wsID, wsParams,
     -- Add in magic damage for hybrid weaponskills
     -- Only procs if the mob still has HP remaining
     if xi.weaponskills.hybridMagicApplies(wsParams.hybridWS, target:getHP(), finaldmg) then
-        finaldmg = finaldmg + calculateHybridMagicDamage(tp, finaldmg, attacker, target, wsParams, calcParams, wsID)
+        finaldmg = xi.weaponskills.hybridMagicAdd(
+            finaldmg,
+            calculateHybridMagicDamage(tp, finaldmg, attacker, target, wsParams, calcParams, wsID)
+        )
     end
 
     finaldmg            = xi.weaponskills.applyWeaponSkillPower(finaldmg, xi.settings.main.WEAPON_SKILL_POWER) -- Add server bonus
@@ -1374,7 +1432,7 @@ xi.weaponskills.doRangedWeaponskill = function(attacker, target, wsID, wsParams,
     finaldmg = xi.weaponskills.takeWeaponskillDamage(target, attacker, wsParams, primaryMsg, attack, calcParams, action)
 
     -- Ammo needs to be removed after xi.weaponskills.takeWeaponskillDamage for delay/tp return uses
-    if calcParams.ammoUsed and calcParams.ammoUsed > 0 then
+    if xi.weaponskills.shouldRemoveAmmo(calcParams.ammoUsed or 0) then
         attacker:removeAmmo(calcParams.ammoUsed)
     end
 
@@ -1432,7 +1490,7 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
     local attack =
     {
         ['type']       = xi.attackType.MAGICAL,
-        ['slot']       = xi.slot.MAIN,
+        ['slot']       = xi.weaponskills.magicWSAttackSlot(wsParams.skill or 0),
         ['weaponType'] = attacker:getWeaponSkillType(xi.slot.MAIN),
         ['damageType'] = xi.damageType.ELEMENTAL + wsParams.ele
     }
@@ -1440,26 +1498,29 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
     local calcParams =
     {
         ['shadowsAbsorbed'] = 0,
-        ['hitsLanded']      = 1,
-        ['tpHitsLanded']    = 1,
-        ['extraHitsLanded'] = 0,
+        ['hitsLanded']      = xi.weaponskills.magicWSHitsLanded,
+        ['tpHitsLanded']    = xi.weaponskills.magicWSTpHitsLanded,
+        ['extraHitsLanded'] = xi.weaponskills.magicWSExtraHitsLanded,
         ['bonusTP']         = wsParams.bonusTP or 0,
         ['wsID']            = wsID,
     }
 
-    if xi.weaponskills.isRangedMagicWeaponskill(wsParams.skill) then
-        attack.slot = xi.slot.RANGED
-    end
-
     local dStat   = wsParams.dStat and wsParams.dStat or xi.mod.INT
     local gearFTP = xi.combat.physical.calculateFTPBonus(attacker)
-    local gearAcc = xi.weaponskills.gearAccFromFTP(gearFTP) + attacker:getMod(xi.mod.WSACC) -- TODO: Separate gear fTP and acc bonuses
+    local gearAcc = xi.weaponskills.magicWSBonusAcc(
+        xi.weaponskills.gearAccFromFTP(gearFTP),
+        attacker:getMod(xi.mod.WSACC)
+    ) -- TODO: Separate gear fTP and acc bonuses
     local fint    = 0
     local dmg     = 0
 
     -- TODO: ranged magic WS are universal in it's (AGI-INT)*2
     -- But other magic WS vary. Some don't even have a component, the general case is dINT/2 + 8
-    fint = xi.weaponskills.magicWeaponskillFint(attack.slot == xi.slot.RANGED, dStat == xi.mod.CHR, attacker:getStat(dStat) - target:getStat(xi.mod.INT))
+    fint = xi.weaponskills.magicWeaponskillFint(
+        attack.slot == xi.slot.RANGED,
+        xi.weaponskills.magicWSDStatIsCHR(dStat == xi.mod.CHR),
+        attacker:getStat(dStat) - target:getStat(xi.mod.INT)
+    )
 
     -- Magic-based WSes never miss, so we don't need to worry about calculating a miss, only if a shadow absorbed it.
     if not shadowAbsorb(target) then
@@ -1470,7 +1531,7 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
 
         -- Apply Consume Mana and Scarlet Delirium
         -- dmg = dmg + xi.combat.damage.consumeManaAddition(attacker)
-        dmg = dmg * xi.combat.damage.scarletDeliriumMultiplier(attacker)
+        dmg = xi.weaponskills.magicWSScarletProduct(dmg, xi.combat.damage.scarletDeliriumMultiplier(attacker))
 
         dmg = xi.weaponskills.magicWeaponskillWSDProduct(
             dmg,
@@ -1489,7 +1550,7 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
         )
         dmg = math.floor(target:handleSevereDamage(dmg, false))
 
-        if dmg < 0 then
+        if xi.weaponskills.magicWSNegativeEarlyReturn(dmg) then
             calcParams.finalDmg = dmg
 
             dmg = xi.weaponskills.takeWeaponskillDamage(target, attacker, wsParams, primaryMsg, attack, calcParams, action)
@@ -1506,14 +1567,16 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
         dmg = utils.handleOneForAll(target, dmg)
         dmg = utils.handleStoneskin(target, dmg)
 
-        dmg = dmg * xi.settings.main.WEAPON_SKILL_POWER -- Add server bonus
+        dmg = xi.weaponskills.applyWeaponSkillPower(dmg, xi.settings.main.WEAPON_SKILL_POWER) -- Add server bonus
     else
-        calcParams.shadowsAbsorbed = 1
+        local shadowPlan = xi.weaponskills.planMagicWSShadowAbsorb()
+        calcParams.shadowsAbsorbed = shadowPlan.shadowsAbsorbed
+        dmg = shadowPlan.damage
     end
 
     calcParams.finalDmg = dmg
 
-    if dmg > 0 then
+    if xi.weaponskills.magicWSSkillUpApplies(dmg) then
         attacker:trySkillUp(attack.weaponType, target:getMainLvl())
     end
 
