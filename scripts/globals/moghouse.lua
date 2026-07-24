@@ -178,19 +178,12 @@ xi.moghouse.set2ndFloorStyle = function(player, style)
     player:setMoghouseFlag(mhflag)
 end
 
-xi.moghouse.getAvailableMusic = function(player)
+-- Pure song selection given which furnishings are installed. An installed
+-- Orchestrion suppresses the lot: it drives its own music, so the other
+-- furnishings contribute nothing while it is up.
+xi.moghouse.availableMusic = function(hasOrchestrion, hasSpinet, hasNanaaStatue1, hasNanaaStatue2)
     -- See documentation/songdata.txt or documentation/MusicIDs.txt for song data.
     local possibleSongs = {}
-
-    local orchestrion  = player:findItem(xi.item.ORCHESTRION)
-    local spinet       = player:findItem(xi.item.SPINET)
-    local nanaaStatue1 = player:findItem(xi.item.NANAA_MIHGO_STATUE)
-    local nanaaStatue2 = player:findItem(xi.item.NANAA_MIHGO_STATUE_II)
-
-    local hasOrchestrion  = orchestrion and orchestrion:isInstalled()
-    local hasSpinet       = spinet and spinet:isInstalled()
-    local hasNanaaStatue1 = nanaaStatue1 and nanaaStatue1:isInstalled()
-    local hasNanaaStatue2 = nanaaStatue2 and nanaaStatue2:isInstalled()
 
     -- NOTE: Since Spinet, Nanaa Mihgo Statue I, and Nanaa Mihgo Statue II are promotional-only items,
     --     : it is extremely difficult to get them and test what they do when used together.
@@ -226,6 +219,47 @@ xi.moghouse.getAvailableMusic = function(player)
     end
 
     return possibleSongs
+end
+
+xi.moghouse.getAvailableMusic = function(player)
+    local orchestrion  = player:findItem(xi.item.ORCHESTRION)
+    local spinet       = player:findItem(xi.item.SPINET)
+    local nanaaStatue1 = player:findItem(xi.item.NANAA_MIHGO_STATUE)
+    local nanaaStatue2 = player:findItem(xi.item.NANAA_MIHGO_STATUE_II)
+
+    return xi.moghouse.availableMusic(
+        orchestrion and orchestrion:isInstalled() or false,
+        spinet and spinet:isInstalled() or false,
+        nanaaStatue1 and nanaaStatue1:isInstalled() or false,
+        nanaaStatue2 and nanaaStatue2:isInstalled() or false
+    )
+end
+
+-- Bronze coins buy more locker days on Al Zahbi-only access than on all-areas.
+xi.moghouse.mogLockerDaysPerBronze = function(accessType)
+    if accessType == xi.moghouse.lockerAccessType.ALZAHBI then
+        return xi.moghouse.MOGLOCKER_ALZAHBI_VALID_DAYS
+    end
+
+    return xi.moghouse.MOGLOCKER_ALLAREAS_VALID_DAYS
+end
+
+-- Locker expiry state from the stored timestamp. 0 means the locker was never
+-- unlocked, and a timestamp already passed means expired.
+xi.moghouse.mogLockerExpiryState = function(storedTimestamp, nowSinceLockerEpoch)
+    if storedTimestamp == 0 then
+        return 'locked'
+    end
+
+    if nowSinceLockerEpoch > storedTimestamp then
+        return 'expired'
+    end
+
+    return 'active'
+end
+
+xi.moghouse.mogLockerAddedExpiry = function(currentTimestamp, numBronze, daysPerBronze)
+    return currentTimestamp + 60 * 60 * 24 * daysPerBronze * numBronze
 end
 
 xi.moghouse.trySetMusic = function(player)
@@ -433,12 +467,7 @@ end
 -- The expiry time itself is the number of seconds past 2001/12/31 15:00
 -- Returns true if time was added successfully, false otherwise.
 xi.moghouse.addMogLockerExpiryTime = function(player, numBronze)
-    local accessType       = xi.moghouse.getMogLockerAccessType(player)
-    local numDaysPerBronze = 5
-
-    if accessType == xi.moghouse.lockerAccessType.ALZAHBI then
-        numDaysPerBronze = 7
-    end
+    local numDaysPerBronze = xi.moghouse.mogLockerDaysPerBronze(xi.moghouse.getMogLockerAccessType(player))
 
     local currentTs = xi.moghouse.getMogLockerExpiryTimestamp(player)
 
@@ -450,8 +479,7 @@ xi.moghouse.addMogLockerExpiryTime = function(player, numBronze)
         currentTs = GetSystemTime() - mogLockerStartTimestamp
     end
 
-    local timeIncrease = 60 * 60 * 24 * numDaysPerBronze * numBronze
-    local newTs        = currentTs + timeIncrease
+    local newTs = xi.moghouse.mogLockerAddedExpiry(currentTs, numBronze, numDaysPerBronze)
 
     player:setCharVar(mogLockerTimestampVarName, newTs)
 
