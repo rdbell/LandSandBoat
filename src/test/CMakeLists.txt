@@ -2633,6 +2633,8 @@ set(SOURCES
     test_zone_mob_aggro_tap_6255.cpp
     test_zone_spawn_list_sync_6256.h
     test_zone_spawn_list_sync_6256.cpp
+    test_zone_conditional_npc_6257.h
+    test_zone_conditional_npc_6257.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

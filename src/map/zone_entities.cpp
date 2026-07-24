@@ -61,6 +61,7 @@
 
 #include "zone_entity_visibility.h"
 #include "zone_char_sync_significance.h"
+#include "zone_conditional_npc.h"
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
 #include "zone_pc_despawn_gate.h"
@@ -1242,16 +1243,16 @@ void CZoneEntities::SpawnConditionalNPCs(CCharEntity* PChar)
     {
         // TODO: Come up with a sane way to mark "You only" NPCs
 
-        if (PCurrentEntity->name == "Moogle" && PCurrentEntity->loc.p.z == 1.5 && PCurrentEntity->look.face == 0x52)
+        switch (zoneconditionalnpc::Classify(PCurrentEntity->name, PCurrentEntity->loc.p.z, PCurrentEntity->look.face))
         {
-            toggleVisibilityForPlayer(PCurrentEntity, inMogHouse && !onMH2F);
-            continue;
-        }
-
-        if (PCurrentEntity->name == "Symphonic_Curator")
-        {
-            toggleVisibilityForPlayer(PCurrentEntity, inMHinHomeNation && orchestrionPlaced);
-            continue;
+            case zoneconditionalnpc::ConditionalNPC::MogHouseMoogle:
+                toggleVisibilityForPlayer(PCurrentEntity, zoneconditionalnpc::ShouldShowMogHouseMoogle(inMogHouse, onMH2F));
+                break;
+            case zoneconditionalnpc::ConditionalNPC::SymphonicCurator:
+                toggleVisibilityForPlayer(PCurrentEntity, zoneconditionalnpc::ShouldShowSymphonicCurator(inMHinHomeNation, orchestrionPlaced));
+                break;
+            case zoneconditionalnpc::ConditionalNPC::None:
+                break;
         }
     }
 }
