@@ -1364,6 +1364,7 @@ auto runSpawnTickSlot6270SelfTests() -> bool;
 auto runSpawnTickSpawn6271SelfTests() -> bool;
 auto runSpawnSlotRegistry6272SelfTests() -> bool;
 auto runSpawnSlotAssignment6273SelfTests() -> bool;
+auto runSpawnInitialRespawn6274SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3562,6 +3563,7 @@ namespace
         ok = runSpawnTickSpawn6271SelfTests() && ok;
         ok = runSpawnSlotRegistry6272SelfTests() && ok;
         ok = runSpawnSlotAssignment6273SelfTests() && ok;
+        ok = runSpawnInitialRespawn6274SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

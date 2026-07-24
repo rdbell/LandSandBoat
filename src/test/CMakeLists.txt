@@ -2667,6 +2667,8 @@ set(SOURCES
     test_spawn_slot_registry_6272.cpp
     test_spawn_slot_assignment_6273.h
     test_spawn_slot_assignment_6273.cpp
+    test_spawn_initial_respawn_6274.h
+    test_spawn_initial_respawn_6274.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

@@ -40,6 +40,7 @@
 #include "spawn_handler.h"
 #include "spawn_slot.h"
 #include "spawn_slot_assignment.h"
+#include "spawn_initial_respawn.h"
 #include "zone_instance.h"
 
 #include <algorithm>
@@ -645,9 +646,7 @@ auto LoadMOBList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
                     PMob->saveMobModifiers();
 
                     // Allow the mob to respawn if it is NOT a lottery, scripted, or windowed spawn
-                    PMob->m_AllowRespawn = !(PMob->m_SpawnType == SPAWNTYPE_LOTTERY ||
-                                             PMob->m_SpawnType == SPAWNTYPE_SCRIPTED ||
-                                             PMob->m_SpawnType == SPAWNTYPE_WINDOWED);
+                    PMob->m_AllowRespawn = spawninitialrespawn::allowsRespawn(static_cast<uint8>(PMob->m_SpawnType));
 
                     // Intialize monsters that do not require specific conditions to spawn initially. Monsters conditioned to
                     // spawn by time or weather will be allowed upon corresponding time/weather events.
