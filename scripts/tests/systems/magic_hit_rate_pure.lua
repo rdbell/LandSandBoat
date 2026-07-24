@@ -1,0 +1,136 @@
+-----------------------------------
+-- Pure system tests for magic hit rate dual-wire helpers (slice 6678).
+-- Calls production xi.combat.magicHitRate pure exports (not local copies).
+-----------------------------------
+
+require('scripts/globals/combat/magic_hit_rate')
+
+describe('Magic hit rate clampResistRank', function()
+    it('clamps to [-3, 11]', function()
+        assert(xi.combat.magicHitRate.clampResistRank(-5) == -3)
+        assert(xi.combat.magicHitRate.clampResistRank(20) == 11)
+        assert(xi.combat.magicHitRate.clampResistRank(0) == 0)
+        assert(xi.combat.magicHitRate.clampResistRank(7) == 7)
+    end)
+end)
+
+describe('Magic hit rate resistRankMultiplier', function()
+    it('returns golden table values after clamp', function()
+        assert(xi.combat.magicHitRate.resistRankMultiplier(-3) == 0.95)
+        assert(math.abs(xi.combat.magicHitRate.resistRankMultiplier(-2) - 0.96019) < 1e-12)
+        assert(xi.combat.magicHitRate.resistRankMultiplier(0) == 1)
+        assert(xi.combat.magicHitRate.resistRankMultiplier(1) == 1.023)
+        assert(xi.combat.magicHitRate.resistRankMultiplier(9) == 2.2)
+        assert(xi.combat.magicHitRate.resistRankMultiplier(11) == 2.35)
+        -- out of range clamps into table
+        assert(xi.combat.magicHitRate.resistRankMultiplier(-99) == 0.95)
+        assert(xi.combat.magicHitRate.resistRankMultiplier(99) == 2.35)
+    end)
+end)
+
+describe('Magic hit rate magicAccuracyFromStatDifference', function()
+    it('uses mid band identity for |diff| < 11', function()
+        assert(xi.combat.magicHitRate.magicAccuracyFromStatDifference(0) == 0)
+        assert(xi.combat.magicHitRate.magicAccuracyFromStatDifference(10) == 10)
+        assert(xi.combat.magicHitRate.magicAccuracyFromStatDifference(-10) == -10)
+    end)
+
+    it('uses soft bands 11..30 and -11..-30', function()
+        assert(math.abs(xi.combat.magicHitRate.magicAccuracyFromStatDifference(11) - 10.5) < 1e-12)
+        assert(xi.combat.magicHitRate.magicAccuracyFromStatDifference(30) == 20)
+        assert(math.abs(xi.combat.magicHitRate.magicAccuracyFromStatDifference(-11) - (-10.5)) < 1e-12)
+        assert(xi.combat.magicHitRate.magicAccuracyFromStatDifference(-30) == -20)
+    end)
+
+    it('uses hard bands and clamps ±30', function()
+        assert(math.abs(xi.combat.magicHitRate.magicAccuracyFromStatDifference(31) - 20.25) < 1e-12)
+        assert(xi.combat.magicHitRate.magicAccuracyFromStatDifference(70) == 30)
+        assert(xi.combat.magicHitRate.magicAccuracyFromStatDifference(71) == 30)
+        assert(math.abs(xi.combat.magicHitRate.magicAccuracyFromStatDifference(-31) - (-20.25)) < 1e-12)
+        assert(xi.combat.magicHitRate.magicAccuracyFromStatDifference(-70) == -30)
+        assert(xi.combat.magicHitRate.magicAccuracyFromStatDifference(-71) == -30)
+    end)
+end)
+
+describe('Magic hit rate calculateMagicHitRate', function()
+    it('maps even MACC/MEVA to 0.50', function()
+        assert(xi.combat.magicHitRate.calculateMagicHitRate(300, 300) == 0.50)
+    end)
+
+    it('applies positive and cap paths', function()
+        assert(math.abs(xi.combat.magicHitRate.calculateMagicHitRate(340, 300) - 0.90) < 1e-12)
+        assert(xi.combat.magicHitRate.calculateMagicHitRate(400, 300) == 0.95)
+    end)
+
+    it('half-floors negative diffs toward -inf', function()
+        -- diff -10 → floor(-5) = -5 → 0.45
+        assert(xi.combat.magicHitRate.calculateMagicHitRate(290, 300) == 0.45)
+        -- diff -1 → floor(-0.5) = -1 → 0.49
+        assert(xi.combat.magicHitRate.calculateMagicHitRate(299, 300) == 0.49)
+        -- deep miss floors at 0.05
+        assert(xi.combat.magicHitRate.calculateMagicHitRate(100, 300) == 0.05)
+    end)
+end)
+
+describe('Magic hit rate maxResistTier', function()
+    it('gives non-PC always 3', function()
+        assert(xi.combat.magicHitRate.maxResistTier(false, -100) == 3)
+        assert(xi.combat.magicHitRate.maxResistTier(false, 0) == 3)
+    end)
+
+    it('gates PC by elemental MEVA screen', function()
+        assert(xi.combat.magicHitRate.maxResistTier(true, -1) == 1)
+        assert(xi.combat.magicHitRate.maxResistTier(true, 0) == 2)
+        assert(xi.combat.magicHitRate.maxResistTier(true, 1) == 3)
+    end)
+end)
+
+describe('Magic hit rate resistanceFactorFromTier', function()
+    it('maps tier to 1/2^tier', function()
+        assert(xi.combat.magicHitRate.resistanceFactorFromTier(0) == 1)
+        assert(xi.combat.magicHitRate.resistanceFactorFromTier(1) == 0.5)
+        assert(xi.combat.magicHitRate.resistanceFactorFromTier(2) == 0.25)
+        assert(xi.combat.magicHitRate.resistanceFactorFromTier(3) == 0.125)
+        assert(xi.combat.magicHitRate.resistanceFactorFromTier(-1) == 1)
+    end)
+end)
+
+describe('Magic hit rate countResistTiers', function()
+    it('counts successive resists until a hit', function()
+        assert(xi.combat.magicHitRate.countResistTiers(3, { true, true, true }) == 3)
+        assert(xi.combat.magicHitRate.countResistTiers(3, { false, true, true }) == 0)
+        assert(xi.combat.magicHitRate.countResistTiers(3, { true, true, false }) == 2)
+        assert(xi.combat.magicHitRate.countResistTiers(1, { true, true, true }) == 1)
+        assert(xi.combat.magicHitRate.countResistTiers(3, { true }) == 1)
+        assert(xi.combat.magicHitRate.countResistTiers(3, {}) == 0)
+    end)
+end)
+
+describe('Magic hit rate autoResistFactor', function()
+    it('short-circuits only at rank ≥ 11', function()
+        local factor, auto = xi.combat.magicHitRate.autoResistFactor(10, 0)
+        assert(not auto)
+        assert(factor == 0)
+
+        factor, auto = xi.combat.magicHitRate.autoResistFactor(11, 0)
+        assert(auto)
+        assert(factor == 0.25)
+
+        factor, auto = xi.combat.magicHitRate.autoResistFactor(11, 42)
+        assert(auto)
+        assert(factor == 0)
+
+        factor, auto = xi.combat.magicHitRate.autoResistFactor(12, 0)
+        assert(auto)
+        assert(factor == 0.25)
+    end)
+end)
+
+describe('Magic hit rate skipHitRateAssembly', function()
+    it('is true only for rank ∈ [10, 11)', function()
+        assert(not xi.combat.magicHitRate.skipHitRateAssembly(9))
+        assert(xi.combat.magicHitRate.skipHitRateAssembly(10))
+        assert(not xi.combat.magicHitRate.skipHitRateAssembly(11))
+        assert(not xi.combat.magicHitRate.skipHitRateAssembly(0))
+    end)
+end)

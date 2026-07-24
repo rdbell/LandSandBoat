@@ -6,6 +6,158 @@ xi.combat = xi.combat or {}
 xi.combat.magicHitRate = xi.combat.magicHitRate or {}
 
 -----------------------------------
+-- Pure formula helpers (OmegaXI slice 6678)
+-- Dual-wired so Go internal/magichitrate and LSB tests share one surface.
+-----------------------------------
+
+-- Resistance rank table bounds (utils.clamp on calculated rank).
+local RESIST_RANK_MIN = -3
+local RESIST_RANK_MAX = 11
+
+-- Auto-resist / floor-MHR rank thresholds from calculateResistRate.
+local RANK_AUTO_RESIST = 11      -- status → 0, nuke → 0.25
+local RANK_FLOOR_HIT_RATE = 10   -- skip MACC/MEVA assembly; MHR floor 0.05
+local NUKE_AUTO_RESIST_FACTOR = 0.25
+local MAGIC_HIT_RATE_FLOOR = 0.05
+local MAGIC_HIT_RATE_CAP = 0.95
+local STAT_DIFF_MACC_MIN = -30
+local STAT_DIFF_MACC_MAX = 30
+local MAX_RESIST_TIER_DEFAULT = 3
+
+-- Resist-rank → MEVA multiplier table (research-cited; ranks 10/11 untestable live).
+xi.combat.magicHitRate.resistRankMultiplierTable =
+{
+    [-3] = 0.95,
+    [-2] = 0.96019,
+    [-1] = 0.98,
+    [ 0] = 1,
+    [ 1] = 1.023,
+    [ 2] = 1.049,
+    [ 3] = 1.0905,
+    [ 4] = 1.126,
+    [ 5] = 1.2075,
+    [ 6] = 1.3475,
+    [ 7] = 1.70065,
+    [ 8] = 2.141,
+    [ 9] = 2.2,
+    [10] = 2.275, -- Impossible to test since 'Magic Hit Rate' is floored to 5% at this point.
+    [11] = 2.35,  -- Impossible to test since 'Magic Hit Rate' is floored to 5% at this point.
+}
+
+-- Clamp resistance rank to [-3, 11].
+xi.combat.magicHitRate.clampResistRank = function(rank)
+    return utils.clamp(rank, RESIST_RANK_MIN, RESIST_RANK_MAX)
+end
+
+-- MEVA multiplier for a resistance rank (clamped first).
+xi.combat.magicHitRate.resistRankMultiplier = function(rank)
+    rank = xi.combat.magicHitRate.clampResistRank(rank)
+    local mult = xi.combat.magicHitRate.resistRankMultiplierTable[rank]
+
+    if mult == nil then
+        return 1
+    end
+
+    return mult
+end
+
+-- Pure stat-diff MACC ladder once actorStat - targetStat is known.
+-- When actorStat was 0 the host returns 0 before calling this.
+xi.combat.magicHitRate.magicAccuracyFromStatDifference = function(statDiff)
+    local magicAcc = 0
+
+    if statDiff <= -31 then
+        magicAcc = -20 + (statDiff + 30) / 4
+    elseif statDiff <= -11 then
+        magicAcc = -10 + (statDiff + 10) / 2
+    elseif statDiff < 11 then -- Between -11 and 11
+        magicAcc = statDiff
+    elseif statDiff >= 31 then
+        magicAcc = 20 + (statDiff - 30) / 4
+    elseif statDiff >= 11 then
+        magicAcc = 10 + (statDiff - 10) / 2
+    end
+
+    return utils.clamp(magicAcc, STAT_DIFF_MACC_MIN, STAT_DIFF_MACC_MAX)
+end
+
+-- Pure magic hit rate once MACC and MEVA are known:
+--   diff = macc - meva; if diff < 0 then floor(diff/2); clamp((50+diff)/100, 0.05, 0.95)
+xi.combat.magicHitRate.calculateMagicHitRate = function(actorMagicAccuracy, targetMagicEvasion)
+    local magicHitRate = actorMagicAccuracy - targetMagicEvasion
+
+    if magicHitRate < 0 then
+        magicHitRate = math.floor(magicHitRate / 2)
+    end
+
+    return utils.clamp((50 + magicHitRate) / 100, MAGIC_HIT_RATE_FLOOR, MAGIC_HIT_RATE_CAP)
+end
+
+-- PC elemental-MEVA screen gate for successive resist tiers (non-PC always 3).
+xi.combat.magicHitRate.maxResistTier = function(isPC, elementalMeva)
+    if not isPC then
+        return MAX_RESIST_TIER_DEFAULT
+    end
+
+    if elementalMeva < 0 then
+        return 1
+    elseif elementalMeva == 0 then
+        return 2
+    end
+
+    return MAX_RESIST_TIER_DEFAULT
+end
+
+-- Map completed resist-tier count → damage/effect factor 1/2^tier.
+xi.combat.magicHitRate.resistanceFactorFromTier = function(resistTier)
+    if resistTier <= 0 then
+        return 1
+    end
+
+    return 1 / (2 ^ resistTier)
+end
+
+-- Pure multi-roll resist-tier count. rolls[i] true means that roll resisted
+-- (math.random() > magicHitRate). Stops at first non-resist or after maxTiers.
+xi.combat.magicHitRate.countResistTiers = function(maxTiers, rolls)
+    if maxTiers < 0 then
+        maxTiers = 0
+    end
+
+    local tier = 0
+    rolls = rolls or {}
+
+    for i = 1, maxTiers do
+        if not rolls[i] then
+            break
+        end
+
+        tier = tier + 1
+    end
+
+    return tier
+end
+
+-- Rank ≥ 11 auto-resist short-circuit. Returns factor, autoApplied.
+-- Status (effectId > 0) → 0; nuke → 0.25. Rank < 11 → 0, false.
+xi.combat.magicHitRate.autoResistFactor = function(rank, effectId)
+    if rank < RANK_AUTO_RESIST then
+        return 0, false
+    end
+
+    if effectId and effectId > 0 then
+        return 0, true
+    end
+
+    return NUKE_AUTO_RESIST_FACTOR, true
+end
+
+-- Rank ∈ [10, 11): skip MACC/MEVA assembly and use floor magic hit rate.
+xi.combat.magicHitRate.skipHitRateAssembly = function(rank)
+    return rank >= RANK_FLOOR_HIT_RATE and rank < RANK_AUTO_RESIST
+end
+
+-----------------------------------
 -- Calculate Target Resistance Rank
 -----------------------------------
 local function calculateTargetResistanceRank(actor, target, params)
@@ -32,7 +184,7 @@ local function calculateTargetResistanceRank(actor, target, params)
         resistanceRank = resistanceRank - target:getMod(xi.data.statusEffect.getAssociatedImmunobreakModifier(params.effectId)) -- Apply immunobreak modification.
     end
 
-    return utils.clamp(resistanceRank, -3, 11)
+    return xi.combat.magicHitRate.clampResistRank(resistanceRank)
 end
 
 -----------------------------------
@@ -98,22 +250,9 @@ local function magicAccuracyFromStatDifference(actor, target, params)
         return 0
     end
 
-    local magicAcc = 0
     local statDiff = actor:getStat(params.actorStat) - target:getStat(params.targetStat)
 
-    if statDiff <= -31 then
-        magicAcc = -20 + (statDiff + 30) / 4
-    elseif statDiff <= -11 then
-        magicAcc = -10 + (statDiff + 10) / 2
-    elseif statDiff < 11 then -- Between -11 and 11
-        magicAcc = statDiff
-    elseif statDiff >= 31 then
-        magicAcc = 20 + (statDiff - 30) / 4
-    elseif statDiff >= 11 then
-        magicAcc = 10 + (statDiff - 10) / 2
-    end
-
-    return utils.clamp(magicAcc, -30, 30)
+    return xi.combat.magicHitRate.magicAccuracyFromStatDifference(statDiff)
 end
 
 -- Magic Accuracy from Status Effects.
@@ -429,26 +568,6 @@ end
 -----------------------------------
 -- Calculate Target Magic Evasion
 -----------------------------------
-local resistRankMultiplier =
-{
--- [Rank] = Magic Evasion multiplier.
-    [-3] = 0.95,
-    [-2] = 0.96019,
-    [-1] = 0.98,
-    [ 0] = 1,
-    [ 1] = 1.023,
-    [ 2] = 1.049,
-    [ 3] = 1.0905,
-    [ 4] = 1.126,
-    [ 5] = 1.2075,
-    [ 6] = 1.3475,
-    [ 7] = 1.70065,
-    [ 8] = 2.141,
-    [ 9] = 2.2,
-    [10] = 2.275, -- Impossible to test since 'Magic Hit Rate' is floored to 5% at this point.
-    [11] = 2.35,  -- Impossible to test since 'Magic Hit Rate' is floored to 5% at this point.
-}
-
 local function calculateTargetMagicEvasion(actor, target, params)
     local magicEva = target:getMod(xi.mod.MEVA) -- Base MACC.
 
@@ -471,7 +590,7 @@ local function calculateTargetMagicEvasion(actor, target, params)
     end
 
     -- Apply resistance rank multiplier.
-    magicEva = math.floor(magicEva * resistRankMultiplier[params.resistanceRank])
+    magicEva = math.floor(magicEva * xi.combat.magicHitRate.resistRankMultiplier(params.resistanceRank))
 
     return magicEva
 end
@@ -480,15 +599,7 @@ end
 -- Magic Hit Rate. The function gets fed the result of both functions above.
 -----------------------------------
 local function calculateMagicHitRate(params)
-    local magicHitRate = params.actorMagicAccuracy - params.targetMagicEvasion
-
-    if magicHitRate < 0 then
-        magicHitRate = math.floor(magicHitRate / 2)
-    end
-
-    magicHitRate = utils.clamp((50 + magicHitRate) / 100, 0.05, 0.95)
-
-    return magicHitRate
+    return xi.combat.magicHitRate.calculateMagicHitRate(params.actorMagicAccuracy, params.targetMagicEvasion)
 end
 
 -----------------------------------
@@ -505,32 +616,29 @@ local function calculateResistanceFactor(actor, target, params)
         return 1
     end
 
-    -- Calculate max allowed resist tier.
-    local maxResistTier = 3
-
-    -- Players: Affected by element shown in equipment screen.
+    -- Calculate max allowed resist tier (PC elemental MEVA screen gate).
+    local elementalMeva = 0
     if target:isPC() then
-        local playerElementalEvasion = target:getMod(xi.data.element.getElementalMEVAModifier(params.magicalElement)) or 0
-
-        if playerElementalEvasion < 0 then
-            maxResistTier = 1
-        elseif playerElementalEvasion == 0 then
-            maxResistTier = 2
-        end
+        elementalMeva = target:getMod(xi.data.element.getElementalMEVAModifier(params.magicalElement)) or 0
     end
 
-    -- Calculate first 3 resist tiers.
+    local maxResistTier = xi.combat.magicHitRate.maxResistTier(target:isPC(), elementalMeva)
+
+    -- Calculate first N resist tiers.
     -- Notes: https://wiki-ffo-jp.translate.goog/html/795.html?_x_tr_sl=ja&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=sc
-    local resistTier = 0
+    local rolls = {}
     for i = 1, maxResistTier do
+        -- true = resisted (math.random() > magicHitRate)
         if math.random() > params.magicHitRate then
-            resistTier = resistTier + 1
+            rolls[i] = true
         else
             break
         end
     end
 
-    return 1 / (2 ^ resistTier)
+    local resistTier = xi.combat.magicHitRate.countResistTiers(maxResistTier, rolls)
+
+    return xi.combat.magicHitRate.resistanceFactorFromTier(resistTier)
 end
 
 -----------------------------------
@@ -576,17 +684,15 @@ xi.combat.magicHitRate.calculateResistRate = function(actor, target, spellGroup,
     -- Calculate and table resistance rank.
     params.resistanceRank = calculateTargetResistanceRank(actor, target, params)
 
-    -- Early return: Auto-resist.
-    if params.resistanceRank >= 11 then
-        if params.effectId > 0 then
-            return 0    -- Status Effects
-        else
-            return 0.25 -- Nukes
-        end
+    -- Early return: Auto-resist (rank ≥ 11).
+    local autoFactor, isAuto = xi.combat.magicHitRate.autoResistFactor(params.resistanceRank, params.effectId)
+    if isAuto then
+        return autoFactor
     end
 
-    -- Early return: MHR is floored to 0.05. Skip calculating it.
-    if params.resistanceRank >= 10 then
+    -- Early return: MHR is floored to 0.05. Skip calculating it (rank ∈ [10, 11)).
+    if xi.combat.magicHitRate.skipHitRateAssembly(params.resistanceRank) then
+        params.magicHitRate = MAGIC_HIT_RATE_FLOOR
         return calculateResistanceFactor(actor, target, params)
     end
 
