@@ -95,6 +95,7 @@ void MapSocket::receive()
 
 void MapSocket::send(const IPP& ipp, ByteSpan buffer)
 {
+    // Go host pure half: mapwire.SendToIPP / IPPToUDPAddr (slice 6388).
     TracyZoneScoped;
 
     DebugPacketsFmt("Sending {} bytes to {}", buffer.size(), ipp.toString());

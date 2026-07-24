@@ -2799,6 +2799,8 @@ set(SOURCES
     test_zmq_socket_host_6386.cpp
     test_map_socket_receive_loop_6387.h
     test_map_socket_receive_loop_6387.cpp
+    test_map_socket_send_6388.h
+    test_map_socket_send_6388.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
