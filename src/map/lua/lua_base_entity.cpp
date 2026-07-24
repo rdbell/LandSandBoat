@@ -20,6 +20,7 @@
 */
 
 #include "lua_base_entity.h"
+#include "mob_respawn_time.h"
 
 #include "lua_battlefield.h"
 #include "lua_instance.h"
@@ -17900,7 +17901,8 @@ void CLuaBaseEntity::setRespawnTime(const uint32 seconds) const
     }
 
     auto* PMob = static_cast<CMobEntity*>(m_PBaseEntity);
-    if (seconds == 0)
+    const auto plan = mobrespawntime::plan(seconds, PMob->PAI->IsSpawned(), PMob->loc.zone != nullptr);
+    if (plan.disable)
     {
         PMob->m_RespawnTime  = 0s;
         PMob->m_AllowRespawn = false;
@@ -17917,7 +17919,7 @@ void CLuaBaseEntity::setRespawnTime(const uint32 seconds) const
     PMob->m_AllowRespawn = true;
 
     // If mob is not currently spawned, update its pending respawn time in SpawnHandler
-    if (!PMob->PAI->IsSpawned() && PMob->loc.zone != nullptr)
+    if (plan.registerPending)
     {
         PMob->loc.zone->spawnHandler().registerForRespawn(PMob, std::chrono::seconds(seconds));
     }

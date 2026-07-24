@@ -1373,6 +1373,7 @@ auto runSpawnInitialDispatch6279SelfTests() -> bool;
 auto runSpawnInitialRegistered6280SelfTests() -> bool;
 auto runSpawnRemainingRespawn6281SelfTests() -> bool;
 auto runMobControllerDeaggroRespawn6285SelfTests() -> bool;
+auto runMobRespawnTime6286SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3580,6 +3581,7 @@ namespace
         ok = runSpawnInitialRegistered6280SelfTests() && ok;
         ok = runSpawnRemainingRespawn6281SelfTests() && ok;
         ok = runMobControllerDeaggroRespawn6285SelfTests() && ok;
+        ok = runMobRespawnTime6286SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

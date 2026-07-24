@@ -2685,6 +2685,8 @@ set(SOURCES
     test_spawn_remaining_respawn_6281.cpp
     test_mob_controller_deaggro_respawn_6285.h
     test_mob_controller_deaggro_respawn_6285.cpp
+    test_mob_respawn_time_6286.h
+    test_mob_respawn_time_6286.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
