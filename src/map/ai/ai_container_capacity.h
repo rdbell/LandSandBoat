@@ -990,4 +990,16 @@ inline auto ShouldTickController(const bool hasController, const bool canUpdate)
     return hasController && canUpdate;
 }
 
+// ShouldCheckActionQueue reports whether Tick should call ActionQueue.checkAction.
+// Mirrors unconditional ActionQueue.checkAction(tick) when a queue is present.
+// Formula (slice 6362): hasQueue
+// Dual-wire of Go aicontainer.ShouldCheckActionQueue (tick_action_queue.go).
+// Call site: CAIContainer::Tick before pathing. ActionQueue is always a member
+// in production (hasQueue=true). checkAction body remains ActionQueue ownership.
+// Go host half aicontainer.TickActionQueue drives actionqueue.Executor.Check.
+inline auto ShouldCheckActionQueue(const bool hasQueue) -> bool
+{
+    return hasQueue;
+}
+
 } // namespace aicontainerhelpers

@@ -507,7 +507,13 @@ auto CAIContainer::Tick(timer::time_point tick) -> Task<void>
     co_await PEntity->Tick(tick);
 
     // TODO: check this in the controller instead maybe? (might not want to check every tick)
-    ActionQueue.checkAction(tick);
+    // Dual-wire: aicontainerhelpers::ShouldCheckActionQueue (slice 6362).
+    // Go host pure half: aicontainer.TickActionQueue drives actionqueue.Check.
+    // ActionQueue is always present as a member (hasQueue=true).
+    if (aicontainerhelpers::ShouldCheckActionQueue(true))
+    {
+        ActionQueue.checkAction(tick);
+    }
 
     // check pathfinding only if there is no controller to do it
     // Dual-wire: aicontainerhelpers::ShouldTickFollowPath / ShouldNotifyPathPoint (slice 6359).
