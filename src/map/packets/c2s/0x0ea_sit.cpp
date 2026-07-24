@@ -46,6 +46,8 @@ auto sit::TransitionFor(const uint32_t mode, const uint8_t currentAnimation, con
     return transition;
 }
 
+// Go host pure half: packetsystem.ValidateSit / ProcessSit /
+// NewSitHandler (6503); plan mappacket.ClientSitTransitionFor.
 auto GP_CLI_COMMAND_SIT::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

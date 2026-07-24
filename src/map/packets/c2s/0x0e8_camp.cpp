@@ -51,6 +51,8 @@ auto camp::HealingTransitionFor(uint32_t mode, bool isHealing, bool hasAutomaton
     return {};
 }
 
+// Go host pure half: packetsystem.ValidateCamp / ProcessCamp /
+// NewCampHandler (6502); plan mappacket.ClientCampHealingTransitionFor.
 auto GP_CLI_COMMAND_CAMP::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

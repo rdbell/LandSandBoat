@@ -80,6 +80,8 @@ auto reqlogout::LeaveGameTransitionFor(uint16_t mode, uint16_t kind, bool hasExi
     return {};
 }
 
+// Go host pure half: packetsystem.ValidateReqLogout / ProcessReqLogout /
+// NewReqLogoutHandler (6501); plan mappacket.ClientReqLogoutLeaveGameTransitionFor.
 auto GP_CLI_COMMAND_REQLOGOUT::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
