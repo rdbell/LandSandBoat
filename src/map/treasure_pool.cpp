@@ -340,6 +340,7 @@ void CTreasurePool::flush()
  *                                                                       *
  ************************************************************************/
 
+// Go pure half: treasurepool.PlanLotItemDisposition + HighestLotter (6595).
 void CTreasurePool::lotItem(CCharEntity* PChar, uint8 SlotID, uint16 Lot)
 {
     using treasurepoolhelpers::LotItemPreflight;
@@ -419,6 +420,7 @@ void CTreasurePool::lotItem(CCharEntity* PChar, uint8 SlotID, uint16 Lot)
     }
 }
 
+// Go pure half: treasurepool.PlanPassItemDisposition (6595).
 void CTreasurePool::passItem(CCharEntity* PChar, uint8 SlotID)
 {
     using treasurepoolhelpers::PassItemPreflight;
