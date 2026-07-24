@@ -2813,6 +2813,8 @@ set(SOURCES
     test_console_stdin_poll_host_6393.cpp
     test_console_crash_inject_host_6394.h
     test_console_crash_inject_host_6394.cpp
+    test_map_gm_command_host_6395.h
+    test_map_gm_command_host_6395.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

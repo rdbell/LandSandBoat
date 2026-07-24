@@ -5897,6 +5897,7 @@ void SaveCharStats(CCharEntity* PChar)
 
 void SaveCharGMLevel(CCharEntity* PChar)
 {
+    // Go host pure half: mapapp.PlanSaveCharGMLevelSQL (slice 6395).
     TracyZoneScoped;
 
     db::preparedStmt("UPDATE chars "

@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
   Copyright (c) 2010-2015 Darkstar Dev Teams
@@ -401,6 +401,7 @@ void MapEngine::onReloadRecipes(std::vector<std::string>& inputs) const
 
 void MapEngine::onGM(const std::vector<std::string>& inputs) const
 {
+    // Go host pure half: mapapp.ApplyGMCommand / ZoneCharIndex (slice 6395).
     if (!mapapp::ClassifyGMCommandArgsValid(inputs.size()))
     {
         fmt::print("{}", mapapp::FormatGMUsage());
