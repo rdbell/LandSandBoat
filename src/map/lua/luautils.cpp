@@ -2414,6 +2414,7 @@ bool IsContentEnabled(const std::string& contentTag)
     return true;
 }
 
+// Go host pure half: zoneutils.ApplyOnZoneInitialize (slice 6411).
 void OnZoneInitialize(uint16 ZoneID)
 {
     TracyZoneScoped;

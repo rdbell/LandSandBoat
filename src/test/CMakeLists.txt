@@ -2845,6 +2845,8 @@ set(SOURCES
     test_mobutils_sql_modifiers_host_6409.cpp
     test_zone_mesh_load_host_6410.h
     test_zone_mesh_load_host_6410.cpp
+    test_on_zone_initialize_host_6411.h
+    test_on_zone_initialize_host_6411.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
