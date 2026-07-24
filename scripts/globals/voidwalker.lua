@@ -158,6 +158,51 @@ xi.voidwalker.shouldUpgradeOriginalPopper = function(isKiller, popperExists, pop
     return isKiller and popperExists and not popperInAlliance and not popperHasKeyItem
 end
 
+-- Pure onMobDeath alliance scan: reports whether the player who popped the NM
+-- is still in the killer's alliance. memberIds is the killer's alliance roster.
+xi.voidwalker.popperInAlliance = function(memberIds, popperId, popperExists)
+    if not popperExists then
+        return false
+    end
+
+    for _, memberId in ipairs(memberIds) do
+        if memberId == popperId then
+            return true
+        end
+    end
+
+    return false
+end
+
+-- Pure onMobDeath dispatch: which of the two independent checkUpgrade rolls
+-- fire, in upstream order. The original popper is only considered when the
+-- reporting player is the killer; the killer's own roll is always considered.
+xi.voidwalker.mobDeathUpgradePlan = function(
+    isKiller,
+    popperExists,
+    popperInAlliance,
+    popperHasNextKeyItem,
+    killerHasPopKeyItem,
+    killerHasNextKeyItem
+)
+    local upgradePopper = false
+
+    if isKiller then
+        upgradePopper = xi.voidwalker.shouldUpgradeOriginalPopper(
+            isKiller,
+            popperExists,
+            popperInAlliance,
+            popperHasNextKeyItem
+        ) or false
+    end
+
+    return
+    {
+        upgradePopper = upgradePopper,
+        upgradeKiller = xi.voidwalker.shouldUpgradeKiller(killerHasPopKeyItem, killerHasNextKeyItem) or false,
+    }
+end
+
 xi.voidwalker.shouldUpgradeKiller = function(killerHasPopKeyItem, killerHasNextKeyItem)
     return killerHasPopKeyItem and not killerHasNextKeyItem
 end
@@ -723,41 +768,39 @@ end
 
 xi.voidwalker.onMobDeath = function(mob, player, optParams, keyItem)
     if player then
-        local popkeyitem = mob:getLocalVar('[VoidWalker]PopedWith')
+        local popkeyitem  = mob:getLocalVar('[VoidWalker]PopedWith')
+        local playerpoped = nil
+        local inAlliance  = false
 
         if optParams.isKiller then
-            local playerpoped = GetPlayerByID(mob:getLocalVar('[VoidWalker]PopedBy'))
-            local alliance    = player:getAlliance()
-            local popperInAlliance = false
+            playerpoped = GetPlayerByID(mob:getLocalVar('[VoidWalker]PopedBy'))
 
-            for _, member in pairs(alliance) do
-                if
-                    playerpoped and
-                    member:getID() == playerpoped:getID()
-                then
-                    popperInAlliance = true
-                    break
-                end
+            local memberIds = {}
+            for _, member in pairs(player:getAlliance()) do
+                table.insert(memberIds, member:getID())
             end
 
-            if
-                xi.voidwalker.shouldUpgradeOriginalPopper(
-                    optParams.isKiller,
-                    playerpoped ~= nil,
-                    popperInAlliance,
-                    playerpoped and playerpoped:hasKeyItem(keyItem)
-                )
-            then
-                checkUpgrade(playerpoped, mob, keyItem)
-            end
+            inAlliance = xi.voidwalker.popperInAlliance(
+                memberIds,
+                playerpoped and playerpoped:getID(),
+                playerpoped ~= nil
+            )
         end
 
-        if
-            xi.voidwalker.shouldUpgradeKiller(
-                player:hasKeyItem(popkeyitem),
-                player:hasKeyItem(keyItem)
-            )
-        then
+        local plan = xi.voidwalker.mobDeathUpgradePlan(
+            optParams.isKiller,
+            playerpoped ~= nil,
+            inAlliance,
+            playerpoped and playerpoped:hasKeyItem(keyItem),
+            player:hasKeyItem(popkeyitem),
+            player:hasKeyItem(keyItem)
+        )
+
+        if plan.upgradePopper then
+            checkUpgrade(playerpoped, mob, keyItem)
+        end
+
+        if plan.upgradeKiller then
             checkUpgrade(player, mob, keyItem)
         end
     end
