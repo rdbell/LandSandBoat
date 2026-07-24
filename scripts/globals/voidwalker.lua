@@ -636,70 +636,36 @@ local function resetMobLocalVars(mob)
     end
 end
 
-local mixinByMobName =
+local mobFightSpecialStep =
 {
-    ['Capricornus'] = function(mob)
-        doMobSkillPlan(mob, 'Capricornus')
-        if xi.voidwalker.shouldCapricornusUseRecoilDive(
-            mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES),
-            xi.combat.behavior.isEntityBusy(mob)
-        ) then
-            mob:useMobAbility(xi.mobSkill.RECOIL_DIVE_1)
-        end
-    end,
-
-    ['Yacumama'] = function(mob)
-        doMobSkillPlan(mob, 'Yacumama')
-    end,
-
-    ['Lamprey_Lord'] = function(mob)
-        doRandomMobSkillPlan(mob, 'Lamprey_Lord')
-    end,
-
-    ['Shoggoth'] = function(mob)
-        doMobSkillPlan(mob, 'Shoggoth')
-    end,
-
-    ['Jyeshtha'] = function(mob)
-        doRandomMobSkillPlan(mob, 'Jyeshtha')
-        if xi.voidwalker.shouldResetJyeshthaMobSkillUse(
-            mob:getLocalVar('MOBSKILL_USE'),
-            mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES)
-        ) then
-            mob:setLocalVar('MOBSKILL_USE', 0)
-        end
-    end,
-
-    ['Blobdingnag'] = function(mob)
-        doMobSkillPlan(mob, 'Blobdingnag')
-    end,
-
-    ['Farruca_Fly'] = function(mob)
-        doMobSkillPlan(mob, 'Farruca_Fly')
-    end,
-
-    ['Skuld'] = function(mob)
-        doMobSkillPlan(mob, 'Skuld')
-    end,
-
-    ['Erebus'] = function(mob)
-        doRandomMobSkillPlan(mob, 'Erebus')
-        if xi.voidwalker.shouldErebusApplyHundredFists(
-            mob:hasStatusEffect(xi.effect.BLOOD_WEAPON),
-            mob:hasStatusEffect(xi.effect.HUNDRED_FISTS)
-        ) then
-            mob:addStatusEffect(xi.effect.HUNDRED_FISTS, { power = 1, duration = 30, origin = mob })
-        end
-    end,
-
-    ['Feuerunke'] = function(mob)
-        doRandomMobSkillPlan(mob, 'Feuerunke')
-    end,
-
-    ['Dawon'] = function(mob)
-        doMobSkillPlan(mob, 'Dawon')
-    end
+    ['Capricornus'] = 'recoil_dive',
+    ['Jyeshtha']    = 'mob_skill_use_reset',
+    ['Erebus']      = 'hundred_fists',
 }
+
+-- Pure onMobFight mixin dispatch. The scheduled and random skill steps are
+-- derived from the shared plan catalogs, so the roster of mobs with an
+-- onMobFight mixin stays in one place. Returns nil for mobs without one.
+xi.voidwalker.mobFightMixinPlan = function(mobName)
+    local special = mobFightSpecialStep[mobName]
+    local fixed   = xi.voidwalker.mobSkillEveryHPPPlan(mobName) ~= nil
+    local random  = xi.voidwalker.randomMobSkillPlan(mobName) ~= nil
+
+    if
+        not fixed and
+        not random and
+        not special
+    then
+        return nil
+    end
+
+    return
+    {
+        fixedHPPSkill = fixed,
+        randomSkill   = random,
+        special       = special,
+    }
+end
 
 -----------------------------------
 -- Mob On Init
@@ -730,10 +696,39 @@ end
 
 xi.voidwalker.onMobFight = function(mob, target)
     local mobName = mob:getName()
-    local mixin   = mixinByMobName[mobName]
+    local mixin   = xi.voidwalker.mobFightMixinPlan(mobName)
 
     if mixin then
-        mixin(mob)
+        if mixin.fixedHPPSkill then
+            doMobSkillPlan(mob, mobName)
+        end
+
+        if mixin.randomSkill then
+            doRandomMobSkillPlan(mob, mobName)
+        end
+
+        if mixin.special == 'recoil_dive' then
+            if xi.voidwalker.shouldCapricornusUseRecoilDive(
+                mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES),
+                xi.combat.behavior.isEntityBusy(mob)
+            ) then
+                mob:useMobAbility(xi.mobSkill.RECOIL_DIVE_1)
+            end
+        elseif mixin.special == 'mob_skill_use_reset' then
+            if xi.voidwalker.shouldResetJyeshthaMobSkillUse(
+                mob:getLocalVar('MOBSKILL_USE'),
+                mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES)
+            ) then
+                mob:setLocalVar('MOBSKILL_USE', 0)
+            end
+        elseif mixin.special == 'hundred_fists' then
+            if xi.voidwalker.shouldErebusApplyHundredFists(
+                mob:hasStatusEffect(xi.effect.BLOOD_WEAPON),
+                mob:hasStatusEffect(xi.effect.HUNDRED_FISTS)
+            ) then
+                mob:addStatusEffect(xi.effect.HUNDRED_FISTS, { power = 1, duration = 30, origin = mob })
+            end
+        end
     end
 
     local poptime = mob:getLocalVar('[VoidWalker]PopedAt')

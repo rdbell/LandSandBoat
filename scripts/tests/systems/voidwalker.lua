@@ -207,6 +207,51 @@ describe('Voidwalker healing admission', function()
     end)
 end)
 
+describe('Voidwalker mob fight mixin dispatch', function()
+    it('runs the scheduled skill step for every fixed-HPP mob', function()
+        for _, mobName in ipairs({ 'Capricornus', 'Yacumama', 'Shoggoth', 'Blobdingnag', 'Farruca_Fly', 'Skuld', 'Dawon' }) do
+            local mixin = xi.voidwalker.mobFightMixinPlan(mobName)
+            assert(mixin ~= nil, mobName)
+            assert(mixin.fixedHPPSkill and not mixin.randomSkill, mobName)
+        end
+    end)
+
+    it('runs the random skill step for every random-skill mob', function()
+        for _, mobName in ipairs({ 'Lamprey_Lord', 'Jyeshtha', 'Erebus', 'Feuerunke' }) do
+            local mixin = xi.voidwalker.mobFightMixinPlan(mobName)
+            assert(mixin ~= nil, mobName)
+            assert(mixin.randomSkill and not mixin.fixedHPPSkill, mobName)
+        end
+    end)
+
+    it('attaches the special step only to its three mobs', function()
+        assert(xi.voidwalker.mobFightMixinPlan('Capricornus').special == 'recoil_dive')
+        assert(xi.voidwalker.mobFightMixinPlan('Jyeshtha').special == 'mob_skill_use_reset')
+        assert(xi.voidwalker.mobFightMixinPlan('Erebus').special == 'hundred_fists')
+
+        assert(xi.voidwalker.mobFightMixinPlan('Yacumama').special == nil)
+        assert(xi.voidwalker.mobFightMixinPlan('Lamprey_Lord').special == nil)
+    end)
+
+    it('has no mixin for spawn-modifier-only mobs or unknown names', function()
+        assert(xi.voidwalker.mobFightMixinPlan('Krabkatoa') == nil)
+        assert(xi.voidwalker.mobFightMixinPlan('Tammuz') == nil)
+        assert(xi.voidwalker.mobFightMixinPlan('Raker_Bee') == nil)
+        assert(xi.voidwalker.mobFightMixinPlan('Gjenganger') == nil)
+        assert(xi.voidwalker.mobFightMixinPlan('Not_A_Voidwalker') == nil)
+    end)
+
+    it('never selects both skill steps for one mob', function()
+        for _, mobName in ipairs({
+            'Capricornus', 'Yacumama', 'Lamprey_Lord', 'Shoggoth', 'Jyeshtha',
+            'Blobdingnag', 'Farruca_Fly', 'Skuld', 'Erebus', 'Feuerunke', 'Dawon'
+        }) do
+            local mixin = xi.voidwalker.mobFightMixinPlan(mobName)
+            assert(not (mixin.fixedHPPSkill and mixin.randomSkill), mobName)
+        end
+    end)
+end)
+
 describe('Voidwalker popper alliance scan', function()
     it('matches the popper against the killer alliance roster', function()
         assert(xi.voidwalker.popperInAlliance({ 10, 20, 30 }, 20, true))
