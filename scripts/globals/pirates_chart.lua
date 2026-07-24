@@ -366,6 +366,7 @@ xi.piratesChart.onEventFinish = function(player, csid, option, npc)
     end
 end
 
+-- Go pure half: pirateschart.OtherBuddiesDefeatedFromInjects (6623).
 xi.piratesChart.myBuddiesAreDead = function(mob)
     local mobID = mob:getID()
     for _, buddyID in ipairs(barnacleBuddyIDs) do
@@ -390,6 +391,7 @@ xi.piratesChart.onMobSpawn = function(mob)
     mob:setMobMod(xi.mobMod.BASE_DAMAGE_MULTIPLIER, 100)
 end
 
+-- Go pure half: pirateschart.PlanMobFightFromInjects (6623).
 xi.piratesChart.onMobFight = function(mob, target)
     if
         mob:getHPP() < 50 and
@@ -404,6 +406,7 @@ xi.piratesChart.onMobFight = function(mob, target)
     end
 end
 
+-- Go pure half: pirateschart.PlanBoxSpawnFromInjects (6623).
 xi.piratesChart.onMobDeath = function(mob, player, optParams)
     if mob:getLocalVar('spawnedChest') == 1 then
         return
@@ -446,7 +449,8 @@ xi.piratesChart.onItemCheck = function(target, item, caster)
     return xi.msg.basic.CANNOT_ON_THAT_TARG
 end
 
--- Go pure half: pirateschart.BoxTriggerFromInjects (6622).
+-- Go pure half: pirateschart.BoxTriggerFromInjects (6622);
+-- pirateschart.PlanBarnacledBoxTrigger / PlanBoxRewardsFromInjects (6623).
 xi.piratesChart.barnacledBoxOnTrigger = function(player, npc)
     local spawnerID = npc:getLocalVar('pChartSpawnerID')
 
