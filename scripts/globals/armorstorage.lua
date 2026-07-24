@@ -169,6 +169,7 @@ xi.armorStorage.onEventUpdate = function(player, csid, option, withdrawal)
     end
 end
 
+-- Go pure half: armorstorage.PlanEventFinish deposit/withdrawal residual (6578).
 xi.armorStorage.onEventFinish = function(player, csid, option, deposit, withdrawal)
     if csid == deposit then
         player:tradeComplete()

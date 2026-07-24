@@ -142,6 +142,7 @@ xi.ancestryMoogle.onTrade = function(player, npc, trade)
     return true
 end
 
+-- Go pure half: ancestrymoogle.PlanTrigger ClearEligible/UpdatePreviousRace residual (6578).
 xi.ancestryMoogle.onTrigger = function(player, npc)
     if not settings.enabled then
         return
