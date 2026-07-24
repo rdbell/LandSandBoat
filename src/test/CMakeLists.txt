@@ -2753,6 +2753,8 @@ set(SOURCES
     test_aicontainer_tick_action_queue_6362.cpp
     test_aicontainer_despawn_host_6363.h
     test_aicontainer_despawn_host_6363.cpp
+    test_aicontainer_state_cleanup_host_6364.h
+    test_aicontainer_state_cleanup_host_6364.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
