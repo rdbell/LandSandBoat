@@ -99,12 +99,14 @@ xi.crafting.ephemeralMoogleOnTrade = function(player, npc, trade)
     end
 end
 
+-- Go pure half: ephemeralmoogle.PlanTriggerFromCurrency getCurrency inject (6591).
 xi.crafting.ephemeralMoogleOnTrigger = function(player, npc)
     local eventParams = getStoredCrystals(player)
 
     player:startEvent(moogleEventTable[npc:getName()].trigger, eventParams[1], eventParams[2], eventParams[3], eventParams[4], 0, 0, 0, 0)
 end
 
+-- Go pure half: ephemeralmoogle.PlanEventUpdateFromInjects currency/localvar inject (6591).
 xi.crafting.ephemeralMoogleOnEventUpdate = function(player, csid, option, npc)
     -- Only trade event (crystal storing) has updates.
     if csid == moogleEventTable[npc:getName()].trade then
