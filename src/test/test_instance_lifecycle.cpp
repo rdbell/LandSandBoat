@@ -156,6 +156,16 @@ auto testInstanceCleanup() -> bool
     ok = expect(!zoneinstance::shouldCleanupInstance(true, false, false), "occupied failed instance stays") && ok;
     return ok;
 }
+
+auto testInstanceEntityLookup() -> bool
+{
+    bool ok = true;
+    ok = expect(!zoneinstance::shouldSearchInstancePlayers(0), "empty entity filter skips instances") && ok;
+    ok = expect(zoneinstance::shouldSearchInstancePlayers(TYPE_PC), "player filter searches instances") && ok;
+    ok = expect(!zoneinstance::shouldSearchInstancePlayers(TYPE_MOB), "mob filter skips instances") && ok;
+    ok = expect(zoneinstance::shouldSearchInstancePlayers(TYPE_PC | TYPE_MOB), "combined player filter searches instances") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -168,5 +178,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testEntryRotation() && ok;
     ok      = testCancelStatus() && ok;
     ok      = testInstanceCleanup() && ok;
+    ok      = testInstanceEntityLookup() && ok;
     return ok;
 }

@@ -27,6 +27,7 @@
 namespace zoneinstance
 {
 auto shouldCleanupInstance(bool failed, bool completed, bool charsEmpty) -> bool;
+auto shouldSearchInstancePlayers(uint8 filter) -> bool;
 }
 
 class CZoneInstance : public CZone

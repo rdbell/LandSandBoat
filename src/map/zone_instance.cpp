@@ -34,6 +34,11 @@ auto shouldCleanupInstance(bool failed, bool completed, bool charsEmpty) -> bool
 {
     return (failed || completed) && charsEmpty;
 }
+
+auto shouldSearchInstancePlayers(uint8 filter) -> bool
+{
+    return filter & TYPE_PC;
+}
 } // namespace zoneinstance
 
 CZoneInstance::CZoneInstance(Scheduler& scheduler, MapConfig config, ZONEID ZoneID, REGION_TYPE RegionID, CONTINENT_TYPE ContinentID, uint8 levelRestriction)
@@ -84,7 +89,7 @@ CBaseEntity* CZoneInstance::GetEntity(uint16 targid, uint8 filter)
     TracyZoneScoped;
 
     CBaseEntity* PEntity = nullptr;
-    if (filter & TYPE_PC)
+    if (zoneinstance::shouldSearchInstancePlayers(filter))
     {
         for (const auto& PInstance : m_InstanceList)
         {
