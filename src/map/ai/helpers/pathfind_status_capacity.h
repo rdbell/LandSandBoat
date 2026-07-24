@@ -151,4 +151,31 @@ inline auto PathIndexComplete(const int currentPoint, const int pointCount) -> b
     return currentPoint >= pointCount;
 }
 
+// ShouldSnapCareful reports whether FollowPath should snap to valid position.
+// Mirrors: if (m_carefulPathing) { snapToValidPosition }
+// Formula (slice 6343): carefulPathing
+// Dual-wire of Go pathfind.ShouldSnapCareful (follow_admissions.go).
+inline auto ShouldSnapCareful(const bool carefulPathing) -> bool
+{
+    return carefulPathing;
+}
+
+// ShouldStartWaypointWait reports whether FollowPath starts a point wait.
+// Mirrors: wait != 0s && m_timeAtPoint == min
+// Formula (slice 6343): waitNonzero && !hasActiveWait
+// Dual-wire of Go pathfind.ShouldStartWaypointWait (follow_admissions.go).
+inline auto ShouldStartWaypointWait(const bool waitNonzero, const bool hasActiveWait) -> bool
+{
+    return waitNonzero && !hasActiveWait;
+}
+
+// CarefulPathingValue returns the careful flag for SetCarefulPathing.
+// Mirrors: m_carefulPathing = careful
+// Formula (slice 6343): careful
+// Dual-wire of Go pathfind.CarefulPathingValue (follow_admissions.go).
+inline auto CarefulPathingValue(const bool careful) -> bool
+{
+    return careful;
+}
+
 } // namespace pathfindstatushelpers

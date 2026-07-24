@@ -300,7 +300,8 @@ void CPathFind::FollowPath(timer::time_point tick)
 
     pathpoint_t targetPoint = m_points[m_currentPoint];
 
-    if (m_carefulPathing)
+    // Dual-wire: pathfindstatushelpers::ShouldSnapCareful (slice 6343).
+    if (pathfindstatushelpers::ShouldSnapCareful(m_carefulPathing))
     {
         m_POwner->loc.zone->navMesh()->snapToValidPosition(m_POwner->loc.p);
     }
@@ -328,7 +329,10 @@ void CPathFind::FollowPath(timer::time_point tick)
                 m_POwner->loc.p.rotation = targetPoint.position.rotation;
                 m_POwner->updatemask |= UPDATE_POS;
             }
-            if (targetPoint.wait != 0s && m_timeAtPoint == timer::time_point::min())
+            // Dual-wire: pathfindstatushelpers::ShouldStartWaypointWait (slice 6343).
+            if (pathfindstatushelpers::ShouldStartWaypointWait(
+                    targetPoint.wait != 0s,
+                    m_timeAtPoint != timer::time_point::min()))
             {
                 m_timeAtPoint = tick + targetPoint.wait;
                 return;
@@ -600,7 +604,8 @@ const position_t& CPathFind::GetDestination() const
 
 void CPathFind::SetCarefulPathing(bool careful)
 {
-    m_carefulPathing = careful;
+    // Dual-wire: pathfindstatushelpers::CarefulPathingValue (slice 6343).
+    m_carefulPathing = pathfindstatushelpers::CarefulPathingValue(careful);
 }
 
 void CPathFind::Clear()
