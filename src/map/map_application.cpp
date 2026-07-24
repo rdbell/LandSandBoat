@@ -96,6 +96,7 @@ void MapApplication::registerCommands(ConsoleService& console)
 {
     auto* mapEngine = static_cast<MapEngine*>(engine_.get());
 
+    // Go host pure half: mapapp.RegisterMapEngineConsoleCommands (slice 6396).
     console.registerCommand(mapapp::MapGMCommandName, mapapp::MapGMCommandHelp, std::bind(&MapEngine::onGM, mapEngine, std::placeholders::_1));
     console.registerCommand(mapapp::MapReloadRecipesCommandName, mapapp::MapReloadRecipesCommandHelp, std::bind(&MapEngine::onReloadRecipes, mapEngine, std::placeholders::_1));
     console.registerCommand(mapapp::MapStatsCommandName, mapapp::MapStatsCommandHelp, std::bind(&MapEngine::onStats, mapEngine, std::placeholders::_1));

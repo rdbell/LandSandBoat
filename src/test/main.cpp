@@ -1438,6 +1438,7 @@ auto runZoneOutSQLHost6392SelfTests() -> bool;
 auto runConsoleStdinPollHost6393SelfTests() -> bool;
 auto runConsoleCrashInjectHost6394SelfTests() -> bool;
 auto runMapGMCommandHost6395SelfTests() -> bool;
+auto runMapConsoleCommandsHost6396SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3753,6 +3754,7 @@ namespace
         ok = runConsoleStdinPollHost6393SelfTests() && ok;
         ok = runConsoleCrashInjectHost6394SelfTests() && ok;
         ok = runMapGMCommandHost6395SelfTests() && ok;
+        ok = runMapConsoleCommandsHost6396SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;

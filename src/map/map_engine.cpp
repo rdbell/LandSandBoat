@@ -381,11 +381,13 @@ void MapEngine::garbageCollect() const
 
 void MapEngine::onStats(std::vector<std::string>& inputs) const
 {
+    // Go host pure half: mapapp.ApplyStatsCommand (slice 6396).
     mapStatistics_->print();
 }
 
 void MapEngine::onBacktrace(std::vector<std::string>& inputs) const
 {
+    // Go host pure half: mapapp.ApplyBacktraceCommand (slice 6396).
     const auto backtrace = logging::GetBacktrace();
     for (const auto& line : backtrace)
     {
@@ -395,6 +397,7 @@ void MapEngine::onBacktrace(std::vector<std::string>& inputs) const
 
 void MapEngine::onReloadRecipes(std::vector<std::string>& inputs) const
 {
+    // Go host pure half: mapapp.ApplyReloadRecipesCommand (slice 6396).
     fmt::print("{}", mapapp::FormatReloadRecipesNotice());
     synthutils::LoadSynthRecipes();
 }
