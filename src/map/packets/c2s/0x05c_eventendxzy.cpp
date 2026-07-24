@@ -30,6 +30,8 @@
 #include "packets/s2c/0x05b_wpos.h"
 #include "packets/s2c/0x065_wpos2.h"
 
+// Go host pure half: packetsystem.ValidateEventEndXZY / ProcessEventEndXZY /
+// NewEventEndXZYHandler (6470); plan mappacket.ClientEventEndXZYTransitionFor.
 auto GP_CLI_COMMAND_EVENTENDXZY::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
