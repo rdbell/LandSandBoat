@@ -459,4 +459,69 @@ inline auto RandomPathHasTurns(const std::size_t turnCount) -> bool
     return turnCount > 0;
 }
 
+// HasActiveWaypointWait reports whether FollowPath is in the wait-deadline branch.
+// Mirrors: m_timeAtPoint != timer::time_point::min()
+// Formula (slice 6350): hasDeadline
+// Dual-wire of Go pathfind.HasActiveWaypointWait (follow_point_gates.go).
+// Call sites: CPathFind::FollowPath wait branch entry; ShouldStartWaypointWait second arg.
+inline auto HasActiveWaypointWait(const bool hasDeadline) -> bool
+{
+    return hasDeadline;
+}
+
+// ShouldApplyPointRotation reports whether FollowPath applies baked point rotation.
+// Mirrors: if (targetPoint.setRotation)
+// Formula (slice 6350): setRotation
+// Dual-wire of Go pathfind.ShouldApplyPointRotation (follow_point_gates.go).
+inline auto ShouldApplyPointRotation(const bool setRotation) -> bool
+{
+    return setRotation;
+}
+
+// ShouldStepWithRun reports whether StepTo is invoked with run=true from FollowPath.
+// Mirrors: StepTo(targetPoint.position, m_pathFlags & PATHFLAG_RUN)
+// Formula (slice 6350): runFlag
+// Dual-wire of Go pathfind.ShouldStepWithRun (follow_point_gates.go).
+inline auto ShouldStepWithRun(const bool runFlag) -> bool
+{
+    return runFlag;
+}
+
+// RoamFlagsValue returns the roam flags stored by RoamAround.
+// Mirrors: m_roamFlags = roamFlags
+// Formula (slice 6350): roamFlags
+// Dual-wire of Go pathfind.RoamFlagsValue (follow_point_gates.go).
+// Call site: CPathFind::RoamAround after Clear.
+inline auto RoamFlagsValue(const uint16_t roamFlags) -> uint16_t
+{
+    return roamFlags;
+}
+
+// CompletedOnPoint returns m_onPoint after path completion in FollowPath.
+// Mirrors: m_onPoint = true after FinishedPath
+// Formula (slice 6350): true
+// Dual-wire of Go pathfind.CompletedOnPoint (follow_point_gates.go).
+inline auto CompletedOnPoint() -> bool
+{
+    return true;
+}
+
+// ArrivedOnPoint returns m_onPoint when AtPoint succeeds in FollowPath.
+// Mirrors: m_onPoint = true when AtPoint(targetPoint.position)
+// Formula (slice 6350): true
+// Dual-wire of Go pathfind.ArrivedOnPoint (follow_point_gates.go).
+inline auto ArrivedOnPoint() -> bool
+{
+    return true;
+}
+
+// LeavingPoint returns m_onPoint when FollowPath begins moving after wait branch.
+// Mirrors: m_onPoint = false at start of move half
+// Formula (slice 6350): false
+// Dual-wire of Go pathfind.LeavingPoint (follow_point_gates.go).
+inline auto LeavingPoint() -> bool
+{
+    return false;
+}
+
 } // namespace pathfindstatushelpers

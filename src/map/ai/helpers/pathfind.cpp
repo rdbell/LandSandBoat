@@ -75,7 +75,8 @@ bool CPathFind::RoamAround(const position_t& point, float maxRadius, uint8 maxTu
 
     Clear();
 
-    m_roamFlags = roamFlags;
+    // Dual-wire: pathfindstatushelpers::RoamFlagsValue (slice 6350).
+    m_roamFlags = pathfindstatushelpers::RoamFlagsValue(roamFlags);
 
     bool result = FindRandomPath(point, maxRadius, maxTurns, roamFlags);
     // Dual-wire: pathfindstatushelpers::ShouldClearAfterFailedPath (slice 6348).
@@ -290,7 +291,8 @@ void CPathFind::FollowPath(timer::time_point tick)
         return;
     }
 
-    if (m_timeAtPoint != timer::time_point::min())
+    // Dual-wire: pathfindstatushelpers::HasActiveWaypointWait (slice 6350).
+    if (pathfindstatushelpers::HasActiveWaypointWait(m_timeAtPoint != timer::time_point::min()))
     {
         // Dual-wire: WaitStillActive / PathIndexComplete (slice 6342).
         // Continue to wait until full wait time has elapsed
@@ -308,7 +310,8 @@ void CPathFind::FollowPath(timer::time_point tick)
         return;
     }
 
-    m_onPoint = false;
+    // Dual-wire: pathfindstatushelpers::LeavingPoint (slice 6350).
+    m_onPoint = pathfindstatushelpers::LeavingPoint();
 
     pathpoint_t targetPoint = m_points[m_currentPoint];
 
@@ -335,16 +338,18 @@ void CPathFind::FollowPath(timer::time_point tick)
 
         if (AtPoint(targetPoint.position))
         {
-            m_onPoint = true;
-            if (targetPoint.setRotation)
+            // Dual-wire: pathfindstatushelpers::ArrivedOnPoint (slice 6350).
+            m_onPoint = pathfindstatushelpers::ArrivedOnPoint();
+            // Dual-wire: pathfindstatushelpers::ShouldApplyPointRotation (slice 6350).
+            if (pathfindstatushelpers::ShouldApplyPointRotation(targetPoint.setRotation))
             {
                 m_POwner->loc.p.rotation = targetPoint.position.rotation;
                 m_POwner->updatemask |= UPDATE_POS;
             }
-            // Dual-wire: pathfindstatushelpers::ShouldStartWaypointWait (slice 6343).
+            // Dual-wire: ShouldStartWaypointWait (6343) + HasActiveWaypointWait (6350).
             if (pathfindstatushelpers::ShouldStartWaypointWait(
                     targetPoint.wait != 0s,
-                    m_timeAtPoint != timer::time_point::min()))
+                    pathfindstatushelpers::HasActiveWaypointWait(m_timeAtPoint != timer::time_point::min())))
             {
                 m_timeAtPoint = tick + targetPoint.wait;
                 return;
@@ -359,14 +364,16 @@ void CPathFind::FollowPath(timer::time_point tick)
         }
     }
 
-    StepTo(targetPoint.position, m_pathFlags & PATHFLAG_RUN);
+    // Dual-wire: pathfindstatushelpers::ShouldStepWithRun (slice 6350).
+    StepTo(targetPoint.position, pathfindstatushelpers::ShouldStepWithRun((m_pathFlags & PATHFLAG_RUN) != 0));
 
     // Dual-wire: pathfindstatushelpers::PathIndexComplete (slice 6342).
     if (pathfindstatushelpers::PathIndexComplete(m_currentPoint, static_cast<int>(m_points.size())))
     {
         luautils::OnPathComplete(m_POwner);
         FinishedPath();
-        m_onPoint = true;
+        // Dual-wire: pathfindstatushelpers::CompletedOnPoint (slice 6350).
+        m_onPoint = pathfindstatushelpers::CompletedOnPoint();
     }
 }
 
