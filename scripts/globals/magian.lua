@@ -934,6 +934,7 @@ end
 -----------------------------------
 -- Item Globals/Callbacks
 -----------------------------------
+-- Go pure half: magian.MagianOnItemEquipPlanFor / MagianOnItemUnequipPlanFor / MagianOnMobDeathPlanFor (6574).
 xi.magian.onItemEquip = function(player, itemObj)
     local itemTrialId = itemObj:getTrialNumber()
 
