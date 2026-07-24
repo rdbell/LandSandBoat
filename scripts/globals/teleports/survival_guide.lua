@@ -146,6 +146,7 @@ xi.survivalGuide.onEventUpdate = function(player, csid, option, npc)
     end
 end
 
+-- Go pure half: survivalguide.PlanEventFinish allMogTablets free cost (6585).
 xi.survivalGuide.onEventFinish = function(player, eventId, option, npc)
     if eventId ~= 8500 then
         return
