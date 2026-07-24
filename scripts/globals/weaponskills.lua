@@ -595,6 +595,101 @@ xi.weaponskills.magicWeaponskillAbsorbNullify = function(dmg, absorb, nullify)
     return dmg * absorb * nullify
 end
 
+-- Pure residual calculateRawWSDmg bookkeeping (OmegaXI slice 6670).
+
+-- Ammo inventory init: non-PC/non-ranged → -1 (no tracking); missing item → 0.
+xi.weaponskills.rangedAmmoInventoryCount = function(isRanged, isPC, hasAmmoItem, quantity)
+    if not isRanged or not isPC then
+        return -1
+    end
+
+    if not hasAmmoItem then
+        return 0
+    end
+
+    return quantity
+end
+
+xi.weaponskills.ammoTrackingActive = function(ammoCount)
+    return ammoCount ~= -1
+end
+
+-- First-hit skill-up plan. Quirk: mainHitsLanded is forced to 0, tpHitsLanded = 1.
+xi.weaponskills.planFirstHitLanded = function(skillTypePresent, hitDmg, isJump)
+    if not skillTypePresent or hitDmg <= 0 then
+        return { applies = false, trySkillUp = false, addJumpTP = false, tpHitsLanded = 0, mainHitsLanded = 0 }
+    end
+
+    return {
+        applies        = true,
+        trySkillUp     = true,
+        addJumpTP      = isJump,
+        tpHitsLanded   = 1,
+        mainHitsLanded = 0,
+    }
+end
+
+-- Subsequent landed swing plan + TP classification injects.
+xi.weaponskills.planSubsequentHitLanded = function(hitDmg, isJump, isH2H, extraOffhandHit, hitsDone, isBarrage, isOffhand)
+    if hitDmg <= 0 then
+        return { applies = false, trySkillUp = false, addJumpTP = false, tpClass = 'main' }
+    end
+
+    return {
+        applies    = true,
+        trySkillUp = true,
+        addJumpTP  = isJump,
+        tpClass    = xi.weaponskills.classifyLandedHitTP(isH2H, extraOffhandHit, hitsDone, isBarrage, isOffhand),
+    }
+end
+
+xi.weaponskills.applyHitTPClass = function(tpClass, tpHits, mainHits, offhandHits)
+    if tpClass == 'tp' then
+        return tpHits + 1, mainHits, offhandHits
+    elseif tpClass == 'offhand' then
+        return tpHits, mainHits, offhandHits + 1
+    end
+
+    return tpHits, mainHits + 1, offhandHits
+end
+
+xi.weaponskills.planH2HOffhand = function(skillType, subSkill)
+    if skillType == xi.skill.HAND_TO_HAND then
+        return {
+            offhandSkill      = xi.skill.HAND_TO_HAND,
+            isH2H             = true,
+            subTPUsesMainhand = true,
+        }
+    end
+
+    return {
+        offhandSkill      = subSkill,
+        isH2H             = false,
+        subTPUsesMainhand = false,
+    }
+end
+
+xi.weaponskills.extraHitsLanded = function(mainHitsLanded, offhandHitsLanded)
+    return mainHitsLanded + offhandHitsLanded
+end
+
+xi.weaponskills.planAmmoStep = function(tracking, ammoUsed, ammoCount, useAmmoCount)
+    if not tracking then
+        return { ammoUsed = ammoUsed, forceStop = false }
+    end
+
+    local used = ammoUsed + useAmmoCount
+
+    return {
+        ammoUsed  = used,
+        forceStop = xi.weaponskills.ammoExhausted(used, ammoCount),
+    }
+end
+
+xi.weaponskills.jumpTPGain = function(mainhandTPGain, attackerTPMult)
+    return mainhandTPGain * attackerTPMult
+end
+
 -- TODO: Reduce complexity
 -- Disable cyclomatic complexity check for this function:
 -- luacheck: ignore 561
@@ -647,14 +742,13 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     calcParams.guardedHits        = 0
 
     -- Get ammo information
-    if isRanged and attacker:isPC() then
-        local ammoItem = attacker:getEquippedItem(xi.slot.AMMO)
-        if ammoItem then
-            ammoCount = ammoItem:getQuantity()
-        else
-            ammoCount = 0
-        end
-    end
+    local ammoItem = isRanged and attacker:isPC() and attacker:getEquippedItem(xi.slot.AMMO) or nil
+    ammoCount = xi.weaponskills.rangedAmmoInventoryCount(
+        isRanged,
+        attacker:isPC(),
+        ammoItem ~= nil,
+        ammoItem and ammoItem:getQuantity() or 0
+    )
 
     -- Calculate the damage from the first hit
     if xi.weaponskills.shouldUseFirstHitRate(isJump, calcParams.firstHitRate ~= nil) then
@@ -673,15 +767,20 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
         hitdmg = modifyMeleeHitDamage(attacker, target, calcParams.attackInfo, wsParams, hitdmg)
     end
 
-    if calcParams.skillType and hitdmg > 0 then
+    local firstHitPlan = xi.weaponskills.planFirstHitLanded(
+        not not calcParams.skillType,
+        hitdmg,
+        isJump
+    )
+    if firstHitPlan.applies then
         attacker:trySkillUp(calcParams.skillType, targetLvl)
 
-        if isJump then
-            attacker:addTP(mainhandTPGain * attackerTPMult)
+        if firstHitPlan.addJumpTP then
+            attacker:addTP(xi.weaponskills.jumpTPGain(mainhandTPGain, attackerTPMult))
         end
 
-        calcParams.tpHitsLanded   = 1 -- Store number of TP hits that have landed thus far
-        calcParams.mainHitsLanded = 0
+        calcParams.tpHitsLanded   = firstHitPlan.tpHitsLanded -- Store number of TP hits that have landed thus far
+        calcParams.mainHitsLanded = firstHitPlan.mainHitsLanded
     end
 
     finaldmg = finaldmg + hitdmg
@@ -734,12 +833,14 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     -- We'll recalculate our mainhand damage after doing offhand
     ftp = xi.weaponskills.multiHitFTPAfterFirst(ftp, wsParams.multiHitfTP)
 
-    local offhandSkill = attacker:getWeaponSkillType(xi.slot.SUB)
-    local isH2H        = false
-    if calcParams.skillType == xi.skill.HAND_TO_HAND then
-        offhandSkill = xi.skill.HAND_TO_HAND
-        subTPGain    = mainhandTPGain
-        isH2H        = true
+    local h2hPlan = xi.weaponskills.planH2HOffhand(
+        calcParams.skillType or 0,
+        attacker:getWeaponSkillType(xi.slot.SUB)
+    )
+    local offhandSkill = h2hPlan.offhandSkill
+    local isH2H        = h2hPlan.isH2H
+    if h2hPlan.subTPUsesMainhand then
+        subTPGain = mainhandTPGain
     end
 
     calcParams.guaranteedHit = false -- Accuracy bonus from SA/TA applies only to first main and offhand hit
@@ -750,10 +851,15 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     local mainhandHits     = xi.weaponskills.mainhandHitsRemaining(wsParams.numHits)
     local mainhandHitsDone = 0
 
-    if isRanged and ammoCount ~= -1 then
-        ammoUsed = ammoUsed + useAmmo(attacker)
-
-        if xi.weaponskills.ammoExhausted(ammoUsed, ammoCount) then
+    if xi.weaponskills.ammoTrackingActive(ammoCount) then
+        local ammoStep = xi.weaponskills.planAmmoStep(
+            true,
+            ammoUsed,
+            ammoCount,
+            useAmmo(attacker)
+        )
+        ammoUsed = ammoStep.ammoUsed
+        if ammoStep.forceStop then
             hitsDone = 8 -- Attack while loops will stop if hitsDone is 8 or higher
         end
     end
@@ -766,21 +872,31 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
             hitdmg = modifyMeleeHitDamage(attacker, target, calcParams.attackInfo, wsParams, hitdmg)
         end
 
-        if hitdmg > 0 then
+        local subPlan = xi.weaponskills.planSubsequentHitLanded(
+            hitdmg,
+            isJump,
+            isH2H,
+            calcParams.extraOffhandHit,
+            hitsDone,
+            wsParams.isBarrage,
+            false
+        )
+        if subPlan.applies then
             attacker:trySkillUp(calcParams.skillType, targetLvl)
 
             -- When dual wielding, the mainhand appears to count the second hit as a TP hit unless it's a 1 hit WS where the offhand will gain TP
             -- H2H also does this on retail (much more easy to verify)
             -- Needs better verification
-            local tpClass = xi.weaponskills.classifyLandedHitTP(isH2H, calcParams.extraOffhandHit, hitsDone, wsParams.isBarrage, false)
-            if tpClass == 'tp' then
-                calcParams.tpHitsLanded = calcParams.tpHitsLanded + 1
-            else
-                calcParams.mainHitsLanded = calcParams.mainHitsLanded + 1
-            end
+            calcParams.tpHitsLanded, calcParams.mainHitsLanded, calcParams.offhandHitsLanded =
+                xi.weaponskills.applyHitTPClass(
+                    subPlan.tpClass,
+                    calcParams.tpHitsLanded,
+                    calcParams.mainHitsLanded,
+                    calcParams.offhandHitsLanded
+                )
 
-            if isJump then
-                attacker:addTP(mainhandTPGain * attackerTPMult)
+            if subPlan.addJumpTP then
+                attacker:addTP(xi.weaponskills.jumpTPGain(mainhandTPGain, attackerTPMult))
             end
         end
 
@@ -795,10 +911,10 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
             numMultiProcs     = xi.weaponskills.nextMultiProcCount(numMultiProcs, extraMultis)
         end
 
-        if isRanged and ammoCount ~= -1 then
-            ammoUsed = ammoUsed + useAmmo(attacker)
-
-            if xi.weaponskills.ammoExhausted(ammoUsed, ammoCount) then
+        if xi.weaponskills.ammoTrackingActive(ammoCount) then
+            local ammoStep = xi.weaponskills.planAmmoStep(true, ammoUsed, ammoCount, useAmmo(attacker))
+            ammoUsed = ammoStep.ammoUsed
+            if ammoStep.forceStop then
                 hitsDone = 8 -- Attack while loops will stop if hitsDone is 8 or higher
             end
         end
@@ -814,21 +930,31 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
             hitdmg = modifyMeleeHitDamage(attacker, target, calcParams.attackInfo, wsParams, hitdmg)
         end
 
-        if hitdmg > 0 then
+        local multiPlan = xi.weaponskills.planSubsequentHitLanded(
+            hitdmg,
+            isJump,
+            false,
+            calcParams.extraOffhandHit,
+            hitsDone,
+            false,
+            false
+        )
+        if multiPlan.applies then
             attacker:trySkillUp(calcParams.skillType, targetLvl)
 
             -- When dual wielding, the mainhand appears to count the second hit as a TP hit unless it's a 1 hit WS where the offhand will gain TP
             -- Needs better verification, in this case (1 hit ws with multis)  a DA/TA/QA may not count as TP hit and we'd move this into the offhand hit proc.
             -- Either way, this won't "cheat" players out of TP in the current implementation.
-            local tpClass = xi.weaponskills.classifyLandedHitTP(false, calcParams.extraOffhandHit, hitsDone, false, false)
-            if tpClass == 'tp' then
-                calcParams.tpHitsLanded = calcParams.tpHitsLanded + 1
-            else
-                calcParams.mainHitsLanded = calcParams.mainHitsLanded + 1
-            end
+            calcParams.tpHitsLanded, calcParams.mainHitsLanded, calcParams.offhandHitsLanded =
+                xi.weaponskills.applyHitTPClass(
+                    multiPlan.tpClass,
+                    calcParams.tpHitsLanded,
+                    calcParams.mainHitsLanded,
+                    calcParams.offhandHitsLanded
+                )
 
-            if isJump then
-                attacker:addTP(mainhandTPGain * attackerTPMult)
+            if multiPlan.addJumpTP then
+                attacker:addTP(xi.weaponskills.jumpTPGain(mainhandTPGain, attackerTPMult))
             end
         end
 
@@ -836,10 +962,10 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
         hitsDone                  = hitsDone + 1
         mainhandMultiHitsDone     = mainhandMultiHitsDone + 1
 
-        if isRanged and ammoCount ~= -1 then
-            ammoUsed = ammoUsed + useAmmo(attacker)
-
-            if xi.weaponskills.ammoExhausted(ammoUsed, ammoCount) then
+        if xi.weaponskills.ammoTrackingActive(ammoCount) then
+            local ammoStep = xi.weaponskills.planAmmoStep(true, ammoUsed, ammoCount, useAmmo(attacker))
+            ammoUsed = ammoStep.ammoUsed
+            if ammoStep.forceStop then
                 hitsDone = 8 -- Attack while loops will stop if hitsDone is 8 or higher
             end
         end
@@ -870,20 +996,30 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
             hitdmg = modifyMeleeHitDamage(attacker, target, calcParams.attackInfo, wsParams, hitdmg)
         end
 
-        if hitdmg > 0 then
+        local offPlan = xi.weaponskills.planSubsequentHitLanded(
+            hitdmg,
+            isJump,
+            false,
+            true,
+            hitsDone,
+            false,
+            true
+        )
+        if offPlan.applies then
             attacker:trySkillUp(offhandSkill, targetLvl)
 
             -- If this is the second swing of the WS (1 hit ws) the offhand appears to count for TP gain
             -- Needs better verification
-            local tpClass = xi.weaponskills.classifyLandedHitTP(false, true, hitsDone, false, true)
-            if tpClass == 'tp' then
-                calcParams.tpHitsLanded = calcParams.tpHitsLanded + 1
-            else
-                calcParams.offhandHitsLanded = calcParams.offhandHitsLanded + 1
-            end
+            calcParams.tpHitsLanded, calcParams.mainHitsLanded, calcParams.offhandHitsLanded =
+                xi.weaponskills.applyHitTPClass(
+                    offPlan.tpClass,
+                    calcParams.tpHitsLanded,
+                    calcParams.mainHitsLanded,
+                    calcParams.offhandHitsLanded
+                )
 
-            if isJump then
-                attacker:addTP(subTPGain * attackerTPMult)
+            if offPlan.addJumpTP then
+                attacker:addTP(xi.weaponskills.jumpTPGain(subTPGain, attackerTPMult))
             end
         end
 
@@ -905,11 +1041,12 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
             hitdmg = modifyMeleeHitDamage(attacker, target, calcParams.attackInfo, wsParams, hitdmg)
         end
 
+        -- Offhand multi-attacks always count as offhand hits when landed (no classify path upstream).
         if hitdmg > 0 then
             attacker:trySkillUp(offhandSkill, targetLvl)
 
             if isJump then
-                attacker:addTP(subTPGain * attackerTPMult)
+                attacker:addTP(xi.weaponskills.jumpTPGain(subTPGain, attackerTPMult))
             end
 
             calcParams.offhandHitsLanded = calcParams.offhandHitsLanded + 1
@@ -920,7 +1057,10 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
         offhandMultiHitsDone = offhandMultiHitsDone + 1
     end
 
-    calcParams.extraHitsLanded = calcParams.mainHitsLanded + calcParams.offhandHitsLanded
+    calcParams.extraHitsLanded = xi.weaponskills.extraHitsLanded(
+        calcParams.mainHitsLanded,
+        calcParams.offhandHitsLanded
+    )
 
     -- Reset slot info (A listener eventually uses this, and the change to SLOT_SUB on DW will be unexpected)
     calcParams.attackInfo.slot = originalSlot
