@@ -111,6 +111,7 @@ local swappableItems =
     },
 }
 
+-- Go pure half: ancestrymoogle.PlanTradeFromInjects gender/slots (6614).
 xi.ancestryMoogle.onTrade = function(player, npc, trade)
     if not settings.enabled then
         return
@@ -142,7 +143,7 @@ xi.ancestryMoogle.onTrade = function(player, npc, trade)
     return true
 end
 
--- Go pure half: ancestrymoogle.PlanTrigger ClearEligible/UpdatePreviousRace residual (6578).
+-- Go pure half: ancestrymoogle.PlanTrigger (6578); PlanTriggerFromInjects/PlanTriggerStartParams (6614).
 xi.ancestryMoogle.onTrigger = function(player, npc)
     if not settings.enabled then
         return
@@ -197,6 +198,7 @@ xi.ancestryMoogle.onTrigger = function(player, npc)
     )
 end
 
+-- Go pure half: ancestrymoogle.PlanEventFinishFromInjects expiry (6614).
 xi.ancestryMoogle.onEventFinish = function(player, csid, option, npc)
     if not settings.enabled then
         return
