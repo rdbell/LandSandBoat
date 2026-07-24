@@ -70,6 +70,7 @@ local eventTable =
 -- Local functions
 -----------------------------------
 
+-- Go pure half: pirateschart.EventIsValidFromInjects (6622).
 local function eventIsNotValid(npc)
     local spawnerID = npc:getLocalVar('pChartSpawnerID')
     local spawner   = GetPlayerByID(spawnerID)
@@ -148,6 +149,7 @@ local function resetEvent(members)
     end
 end
 
+-- Go pure half: pirateschart.PlanTaruPhaseFromInjects (6622).
 local function tryTaruEmote(elapsedTime, phase)
     if phase > #eventTable then
         return phase
@@ -444,6 +446,7 @@ xi.piratesChart.onItemCheck = function(target, item, caster)
     return xi.msg.basic.CANNOT_ON_THAT_TARG
 end
 
+-- Go pure half: pirateschart.BoxTriggerFromInjects (6622).
 xi.piratesChart.barnacledBoxOnTrigger = function(player, npc)
     local spawnerID = npc:getLocalVar('pChartSpawnerID')
 
