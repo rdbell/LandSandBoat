@@ -114,6 +114,8 @@ std::size_t authenticated_session_count()
     return count;
 }
 
+// Go host pure half: loginutil.ApplyIsZoneAtPlayerCap (6441);
+// pure poles: IsZoneAtPlayerCap / IsZoneTypeInstanced (2841).
 auto isZoneAtPlayerCap(uint16 zoneId, bool isGM) -> bool
 {
     const auto cap = settings::get<uint16>("map.ZONE_PLAYER_CAP");

@@ -2905,6 +2905,8 @@ set(SOURCES
     test_mapsession_create_init_host_6439.cpp
     test_mapsession_packet_seq_host_6440.h
     test_mapsession_packet_seq_host_6440.cpp
+    test_login_zone_player_cap_host_6441.h
+    test_login_zone_player_cap_host_6441.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
