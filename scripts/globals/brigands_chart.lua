@@ -98,6 +98,7 @@ local function emoteChecking(npc, timeRemaining, timeOfLastCheck, phase)
     end
 end
 
+-- Go pure half: brigandschart.PlanTradeFromInjects/PlanTradeStartParams (6602).
 xi.brigandsChart.onTrade = function(player, npc, trade)
     if
         npc:getStatus() == xi.status.NORMAL and
@@ -109,6 +110,7 @@ xi.brigandsChart.onTrade = function(player, npc, trade)
     end
 end
 
+-- Go pure half: brigandschart.PlanEventUpdateFromInjects player:getID (6602).
 xi.brigandsChart.onEventUpdate = function(player, csid, option, npc)
     if csid == 902 and option == 0 then
         player:confirmTrade()
@@ -125,6 +127,7 @@ xi.brigandsChart.onEventUpdate = function(player, csid, option, npc)
     end
 end
 
+-- Go pure half: brigandschart.PlanEventFinishFromInjects GetNPCByID (6602).
 xi.brigandsChart.onEventFinish = function(player, csid, option, npc)
     if csid == 902 and option == 0 then
         local npcHume = GetNPCByID(ID.npc.BRIGAND_CHART_HUME)
