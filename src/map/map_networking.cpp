@@ -61,6 +61,7 @@ MapNetworking::MapNetworking(Scheduler& scheduler, MapStatistics& mapStatistics,
     TracyZoneScoped;
 
     // Embedded map server for testing does not actually need to open a socket
+    // Go host pure half: mapwire.PlanMapNetworkingOpen / OpenMapNetworkingSocket (6385).
     if (!mapnetworkinghelpers::ShouldOpenSocket(config_.isTestServer))
     {
         return;

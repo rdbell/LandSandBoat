@@ -2793,6 +2793,8 @@ set(SOURCES
     test_lua_init_host_6383.cpp
     test_application_platform_host_6384.h
     test_application_platform_host_6384.cpp
+    test_map_socket_host_6385.h
+    test_map_socket_host_6385.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

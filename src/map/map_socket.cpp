@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
   Copyright (c) 2025 LandSandBoat Dev Teams
@@ -25,6 +25,7 @@
 #include <common/logging.h>
 
 MapSocket::MapSocket(Scheduler& scheduler, const uint16 port, ReceiveFn onReceiveFn)
+// Go host pure half: mapwire.OpenMapSocket (slice 6385).
 : scheduler_(scheduler)
 , port_(port)
 , socket_(scheduler_.mainContext())
