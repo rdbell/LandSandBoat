@@ -338,6 +338,7 @@ xi.magian.giveRewardItem = function(player, trialId)
     giveMagianItem(player, xi.magian.trials[trialId].rewardItem, false)
 end
 
+-- Go pure half: magian.MagianOnTradePlanFor / MagianOnTriggerPlanFor (6572); event packing in internal/magian/event.go.
 xi.magian.magianOnTrade = function(player, npc, trade)
     if xi.settings.main.ENABLE_MAGIAN_TRIALS ~= 1 then
         return
