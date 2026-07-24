@@ -166,6 +166,7 @@ void CTreasurePool::delMember(CCharEntity* PChar)
  *                                                                       *
  ************************************************************************/
 
+// Go pure half: treasurepool.PlanAddItemDisposition (6599).
 uint8 CTreasurePool::addItem(uint16 ItemID, CBaseEntity* PEntity)
 {
     uint8             SlotID     = 0;
