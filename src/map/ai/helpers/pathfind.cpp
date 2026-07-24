@@ -142,12 +142,13 @@ bool CPathFind::PathInRange(const position_t& point, float range, uint8 pathFlag
     TracyZoneScoped;
     TracyZoneString(m_POwner->getName());
 
-    if (clear)
+    // Dual-wire: ShouldClearBeforePath (6345) + DistanceFromPointValue (6347).
+    if (pathfindstatushelpers::ShouldClearBeforePath(clear))
     {
         Clear();
     }
 
-    m_distanceFromPoint = range;
+    m_distanceFromPoint = pathfindstatushelpers::DistanceFromPointValue(range);
 
     bool result = PathTo(point, pathFlags, false);
 
@@ -160,11 +161,16 @@ bool CPathFind::PathAround(const position_t& point, float distanceFromPoint, uin
     TracyZoneScoped;
     TracyZoneString(m_POwner->getName());
 
-    Clear();
+    // Dual-wire: ShouldClearBeforePath(true) (slice 6345).
+    if (pathfindstatushelpers::ShouldClearBeforePath(true))
+    {
+        Clear();
+    }
 
     // save for sliding logic
     m_originalPoint     = point;
-    m_distanceFromPoint = distanceFromPoint;
+    // Dual-wire: DistanceFromPointValue (slice 6347).
+    m_distanceFromPoint = pathfindstatushelpers::DistanceFromPointValue(distanceFromPoint);
 
     // Don't clear path so
     // original point / distance are kept
@@ -198,12 +204,14 @@ bool CPathFind::WarpTo(const position_t& point, float maxDistance)
     m_POwner->loc.p.x      = newPoint.x;
     m_POwner->loc.p.y      = newPoint.y;
     m_POwner->loc.p.z      = newPoint.z;
-    m_POwner->loc.p.moving = 0;
+    // Dual-wire: pathfindstatushelpers::WarpMovingReset (slice 6347).
+    m_POwner->loc.p.moving = pathfindstatushelpers::WarpMovingReset();
 
     LookAt(point);
     m_POwner->updatemask |= UPDATE_POS;
 
-    if (m_POwner->loc.zone != nullptr)
+    // Dual-wire: pathfindstatushelpers::ShouldNotifyZoneOnMove (slice 6347).
+    if (pathfindstatushelpers::ShouldNotifyZoneOnMove(m_POwner->loc.zone != nullptr))
     {
         m_POwner->loc.zone->onEntityMoved(m_POwner);
     }
@@ -243,7 +251,8 @@ bool CPathFind::ValidPosition(const position_t& pos)
 
 void CPathFind::LimitDistance(float maxLength)
 {
-    m_maxDistance = maxLength;
+    // Dual-wire: pathfindstatushelpers::LimitDistanceValue (slice 6347).
+    m_maxDistance = pathfindstatushelpers::LimitDistanceValue(maxLength);
 }
 
 void CPathFind::PrunePathWithin(float within)

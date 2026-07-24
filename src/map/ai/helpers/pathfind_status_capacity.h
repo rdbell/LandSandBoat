@@ -317,4 +317,41 @@ inline auto ClampVerticalStep(const float newY, const float startY, const float 
     return newY;
 }
 
+// DistanceFromPointValue returns range stored for PathInRange/PathAround.
+// Mirrors: m_distanceFromPoint = range;
+// Formula (slice 6347): range
+// Dual-wire of Go pathfind.DistanceFromPointValue (warp_path_in_range.go).
+inline auto DistanceFromPointValue(const float range) -> float
+{
+    return range;
+}
+
+// LimitDistanceValue returns max length stored by LimitDistance.
+// Mirrors: m_maxDistance = maxLength;
+// Formula (slice 6347): maxLength
+// Dual-wire of Go pathfind.LimitDistanceValue (warp_path_in_range.go).
+inline auto LimitDistanceValue(const float maxLength) -> float
+{
+    return maxLength;
+}
+
+// WarpMovingReset returns movement counter after WarpTo.
+// Mirrors: m_POwner->loc.p.moving = 0;
+// Formula (slice 6347): 0
+// Dual-wire of Go pathfind.WarpMovingReset (warp_path_in_range.go).
+inline auto WarpMovingReset() -> uint16_t
+{
+    return 0;
+}
+
+// ShouldNotifyZoneOnMove reports whether WarpTo notifies the zone.
+// Mirrors: if (m_POwner->loc.zone != nullptr) onEntityMoved
+// Formula (slice 6347): hasZone
+// Dual-wire of Go pathfind.ShouldNotifyZoneOnMove (warp_path_in_range.go).
+// Call site: CPathFind::WarpTo. Callback remains host-owned.
+inline auto ShouldNotifyZoneOnMove(const bool hasZone) -> bool
+{
+    return hasZone;
+}
+
 } // namespace pathfindstatushelpers
