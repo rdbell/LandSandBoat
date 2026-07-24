@@ -187,6 +187,7 @@ xi.brigandsChart.rewards =
     },
 }
 
+-- Go pure half: brigandschart.PlanJadeEtuiTrigger admission+reward composition (6582).
 xi.brigandsChart.jadeEtuiOnTrigger = function(player, npc)
     local qm1 = GetNPCByID(ID.npc.BRIGAND_CHART_QM)
     if not qm1 then
