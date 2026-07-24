@@ -497,6 +497,7 @@ auto CZone::LoadNavMesh() -> Task<void>
     DebugNavmesh("CZone::LoadNavMesh: Build failed for zone (%s)", getName().c_str());
 }
 
+// Go host pure half: zone.ApplyRebuildNavMesh / ShouldInstallBuiltMesh (6436).
 void CZone::RebuildNavMesh(const NavMeshConfig& config)
 {
     const auto  zoneName  = getName();
