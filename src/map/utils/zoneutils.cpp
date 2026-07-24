@@ -441,6 +441,8 @@ auto LoadMOBList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
 
                                 if (!(zoneType & ZONE_TYPE::INSTANCED))
                                 {
+                                    // Go host pure half: zoneutils.ApplyMOBRowFields / LoadedMOB (slice 6407)
+                                    // applies these CMobEntity fields + level/charmable/spawn-slot plans.
                                     CMobEntity* PMob = new CMobEntity;
 
                                     PMob->name       = rset->get<std::string>("mobname");
