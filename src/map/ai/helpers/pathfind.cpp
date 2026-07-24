@@ -22,6 +22,7 @@
 #include "pathfind.h"
 
 #include "pathfind_finished_capacity.h"
+#include "pathfind_status_capacity.h"
 
 #include "ai/ai_container.h"
 
@@ -540,22 +541,28 @@ void CPathFind::LookAt(const position_t& point)
 
 bool CPathFind::OnPoint() const
 {
-    return m_onPoint;
+    // Dual-wire: pathfindstatushelpers::OnPoint (slice 6336).
+    return pathfindstatushelpers::OnPoint(m_onPoint);
 }
 
 bool CPathFind::IsFollowingPath()
 {
-    return !m_points.empty();
+    // Dual-wire: pathfindstatushelpers::IsFollowingPath (slice 6336).
+    return pathfindstatushelpers::IsFollowingPath(m_points.size());
 }
 
 bool CPathFind::IsFollowingScriptedPath()
 {
-    return IsFollowingPath() && m_pathFlags & PATHFLAG_SCRIPT;
+    // Dual-wire: pathfindstatushelpers::IsFollowingScriptedPath (slice 6336).
+    return pathfindstatushelpers::IsFollowingScriptedPath(
+        IsFollowingPath(),
+        (m_pathFlags & PATHFLAG_SCRIPT) != 0);
 }
 
 bool CPathFind::IsPatrolling()
 {
-    return m_patrolFlags & PATHFLAG_PATROL;
+    // Dual-wire: pathfindstatushelpers::IsPatrolling (slice 6336).
+    return pathfindstatushelpers::IsPatrolling((m_patrolFlags & PATHFLAG_PATROL) != 0);
 }
 
 bool CPathFind::AtPoint(const position_t& pos)
