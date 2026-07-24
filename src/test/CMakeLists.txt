@@ -2873,6 +2873,8 @@ set(SOURCES
     test_application_quick_edit_host_6423.cpp
     test_navmesh_build_tile_rasterize_host_6424.h
     test_navmesh_build_tile_rasterize_host_6424.cpp
+    test_navmesh_findpath_query_host_6425.h
+    test_navmesh_findpath_query_host_6425.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
