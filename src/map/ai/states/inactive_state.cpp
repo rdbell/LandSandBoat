@@ -20,6 +20,7 @@
 */
 
 #include "inactive_state.h"
+#include "inactive_duration_exit.h"
 #include "inactive_interrupt.h"
 #include "inactive_zero_duration_exit.h"
 #include "ai/ai_container.h"
@@ -65,7 +66,9 @@ bool CInactiveState::Update(timer::time_point tick)
         }
     }
 
-    return m_duration > 0ms && tick > GetEntryTime() + m_duration;
+    // Positive-duration tail (pure gate: inactivedurationexit); host precomputes
+    // duration > 0ms and strict tick > entry + duration (slice 6301 dual-wire).
+    return inactivedurationexit::shouldExit(m_duration > 0ms, tick > GetEntryTime() + m_duration);
 }
 
 void CInactiveState::Cleanup(timer::time_point tick)
