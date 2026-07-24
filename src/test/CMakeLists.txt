@@ -2773,6 +2773,8 @@ set(SOURCES
     test_state_complete_6328.cpp
     test_state_target_id_6329.h
     test_state_target_id_6329.cpp
+    test_state_entry_time_6330.h
+    test_state_entry_time_6330.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

@@ -23,6 +23,7 @@
 #include "entities/base_entity.h"
 #include "ai/states/state_complete.h"
 #include "ai/states/state_delay_exit.h"
+#include "ai/states/state_entry_time.h"
 #include "ai/states/state_error_msg.h"
 #include "ai/states/state_is_completed.h"
 #include "ai/states/state_set_target.h"
@@ -66,7 +67,8 @@ void CState::Complete()
 
 timer::time_point CState::GetEntryTime() const
 {
-    return m_entryTime;
+    // Dual-wire: statehelpers::EntryTime (slice 6330).
+    return statehelpers::EntryTime(m_entryTime);
 }
 
 bool CState::WasExitDelayed()
@@ -85,7 +87,8 @@ void CState::DelayExitTime(std::chrono::milliseconds delayMilliseconds)
 
 void CState::ResetEntryTime()
 {
-    m_entryTime = timer::now();
+    // Dual-wire: statehelpers::ResetEntryTime (slice 6330).
+    m_entryTime = statehelpers::ResetEntryTime(timer::now());
 }
 
 void CState::SetTarget(uint16 _targid)
