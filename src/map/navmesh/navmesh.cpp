@@ -170,6 +170,7 @@ CNavMesh::~CNavMesh()
     }
 }
 
+// Go host pure half: navmesh.LoadNavMeshFile / DecodeNavMeshSet (6416).
 bool CNavMesh::load(const std::string& filename)
 {
     this->m_filename = filename;

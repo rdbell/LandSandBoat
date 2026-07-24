@@ -2855,6 +2855,8 @@ set(SOURCES
     test_ximesh_raycast_host_6414.cpp
     test_navmesh_builder_geometry_host_6415.h
     test_navmesh_builder_geometry_host_6415.cpp
+    test_navmesh_load_host_6416.h
+    test_navmesh_load_host_6416.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

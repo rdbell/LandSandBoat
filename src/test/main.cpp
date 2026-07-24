@@ -1458,6 +1458,7 @@ auto runXimeshBinaryDecodeHost6412SelfTests() -> bool;
 auto runXimeshQueryHost6413SelfTests() -> bool;
 auto runXimeshRaycastHost6414SelfTests() -> bool;
 auto runNavmeshBuilderGeometryHost6415SelfTests() -> bool;
+auto runNavmeshLoadHost6416SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3793,6 +3794,7 @@ namespace
         ok = runXimeshQueryHost6413SelfTests() && ok;
         ok = runXimeshRaycastHost6414SelfTests() && ok;
         ok = runNavmeshBuilderGeometryHost6415SelfTests() && ok;
+        ok = runNavmeshLoadHost6416SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
