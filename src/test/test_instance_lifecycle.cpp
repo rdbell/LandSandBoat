@@ -218,6 +218,14 @@ auto testInstanceLookupStop() -> bool
     ok = expect(zoneinstance::shouldStopInstanceSearch(true), "found entity stops instance search") && ok;
     return ok;
 }
+
+auto testInstanceOperationRouting() -> bool
+{
+    bool ok = true;
+    ok = expect(!zoneinstance::shouldBroadcastInstanceOperation(true), "entity operation targets one instance") && ok;
+    ok = expect(zoneinstance::shouldBroadcastInstanceOperation(false), "unbound operation broadcasts to instances") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -236,5 +244,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testPublicInstanceID() && ok;
     ok      = testInstanceEraseIdentity() && ok;
     ok      = testInstanceLookupStop() && ok;
+    ok      = testInstanceOperationRouting() && ok;
     return ok;
 }

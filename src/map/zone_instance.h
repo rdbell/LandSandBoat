@@ -32,6 +32,7 @@ auto shouldSetInstanceWipeTimeOnExit(bool charsEmpty, bool failed, bool complete
 auto shouldRestoreInstance(bool registered) -> bool;
 auto shouldEraseInstance(const CInstance* candidate, const CInstance* target) -> bool;
 auto shouldStopInstanceSearch(bool found) -> bool;
+auto shouldBroadcastInstanceOperation(bool entityPresent) -> bool;
 }
 
 class CZoneInstance : public CZone

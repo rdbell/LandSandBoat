@@ -59,6 +59,11 @@ auto shouldStopInstanceSearch(bool found) -> bool
 {
     return found;
 }
+
+auto shouldBroadcastInstanceOperation(bool entityPresent) -> bool
+{
+    return !entityPresent;
+}
 } // namespace zoneinstance
 
 CZoneInstance::CZoneInstance(Scheduler& scheduler, MapConfig config, ZONEID ZoneID, REGION_TYPE RegionID, CONTINENT_TYPE ContinentID, uint8 levelRestriction)
@@ -387,7 +392,7 @@ void CZoneInstance::PushPacket(CBaseEntity* PEntity, GLOBAL_MESSAGE_TYPE message
 {
     TracyZoneScoped;
 
-    if (PEntity)
+    if (!zoneinstance::shouldBroadcastInstanceOperation(PEntity != nullptr))
     {
         if (PEntity->PInstance)
         {
@@ -407,7 +412,7 @@ void CZoneInstance::UpdateEntityPacket(CBaseEntity* PEntity, ENTITYUPDATE type, 
 {
     TracyZoneScoped;
 
-    if (PEntity)
+    if (!zoneinstance::shouldBroadcastInstanceOperation(PEntity != nullptr))
     {
         if (PEntity->PInstance)
         {
