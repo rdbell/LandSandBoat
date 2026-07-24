@@ -115,6 +115,46 @@ xi.weaponskills.getRangedHitRate = function(attacker, target, bonus)
 end
 
 -- Function to calculate if a hit in a WS misses, criticals, and the respective damage done
+-- Pure evade/miss gate for one weaponskill hit once the miss roll is known.
+-- mustMiss always misses; otherwise miss when roll exceeds hitRate unless
+-- guaranteedHit.
+xi.weaponskills.singleHitMisses = function(missChance, hitRate, guaranteedHit, mustMiss)
+    return (missChance > hitRate and not guaranteedHit) or mustMiss
+end
+
+-- Pure parry-eligibility gate: physical, not guaranteed, and isParried inject.
+xi.weaponskills.singleHitMayParry = function(isPhysical, guaranteedHit)
+    return isPhysical and not guaranteedHit
+end
+
+-- Pure shadow-absorb eligibility: not guaranteed and not ignoreShadows.
+xi.weaponskills.singleHitMayShadowAbsorb = function(guaranteedHit, ignoreShadows)
+    return not guaranteedHit and not ignoreShadows
+end
+
+-- Pure critical OR of the three weaponskill sources.
+xi.weaponskills.singleHitIsCritical = function(critVaries, critChance, critRate, forcedFirstCrit, mightyStrikesApplicable)
+    return (critVaries and critChance <= critRate) or forcedFirstCrit or mightyStrikesApplicable
+end
+
+-- Pure hit damage after pDIF inject, before modifyMeleeHitDamage:
+--   (dmg + consumeMana) * ftp * pdif
+--   if blocked: subtract block reduction (no intermediate floor)
+xi.weaponskills.singleHitDamage = function(dmg, consumeMana, ftp, pdif, blocked, blockReduction)
+    local hitDamage = (dmg + consumeMana) * ftp * pdif
+
+    if blocked then
+        hitDamage = hitDamage - blockReduction
+    end
+
+    return hitDamage
+end
+
+-- Pure pDIF drop applied when a physical hit is guarded: max(pdif - 1, 0).
+xi.weaponskills.guardedPDIF = function(pdif)
+    return math.max(pdif - 1.0, 0)
+end
+
 local function getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcParams)
     local criticalHit          = false
     local hitDamage            = 0
@@ -130,19 +170,14 @@ local function getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcPara
 
     -- check evasion
     local missChance = math.random()
-    if
-        (missChance > calcParams.hitRate and
-        not calcParams.guaranteedHit) or
-        calcParams.mustMiss
-    then
+    if xi.weaponskills.singleHitMisses(missChance, calcParams.hitRate, calcParams.guaranteedHit, calcParams.mustMiss) then
         -- miss logic
         return hitDamage, calcParams
     end
 
     -- check parry
     if
-        calcParams.attackType == xi.attackType.PHYSICAL and
-        not calcParams.guaranteedHit and
+        xi.weaponskills.singleHitMayParry(calcParams.attackType == xi.attackType.PHYSICAL, calcParams.guaranteedHit) and
         xi.combat.physical.isParried(target, attacker)
     then
         -- parried logic
@@ -151,8 +186,7 @@ local function getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcPara
 
     -- check shadows
     if
-        not calcParams.guaranteedHit and
-        not wsParams.ignoreShadows and
+        xi.weaponskills.singleHitMayShadowAbsorb(calcParams.guaranteedHit, wsParams.ignoreShadows) and
         shadowAbsorb(target)
     then
         -- shadow absorb logic
@@ -161,9 +195,14 @@ local function getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcPara
     end
 
     local critChance = math.random() -- See if we land a critical hit
-    criticalHit = (wsParams.critVaries and critChance <= calcParams.critRate) or
-        calcParams.forcedFirstCrit or
+    -- critVaries is a truthy table when present (same as `wsParams.critVaries and ...`).
+    criticalHit = xi.weaponskills.singleHitIsCritical(
+        not not wsParams.critVaries,
+        critChance,
+        calcParams.critRate,
+        calcParams.forcedFirstCrit,
         calcParams.mightyStrikesApplicable
+    )
 
     if criticalHit then
         calcParams.criticalHit = true
@@ -175,19 +214,33 @@ local function getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcPara
         calcParams.pdif = xi.combat.physical.calculateRangedPDIF(attacker, target, calcParams.skillType, atkMultiplier, criticalHit, applyLevelCorrection, ignoresDefense, ignoreDefMultiplier, true, 0)
     end
 
-    hitDamage = (dmg + xi.combat.damage.consumeManaAddition(attacker)) * ftp * calcParams.pdif
-
-    -- handle blocking and reduce the hit damage if needed
-    if xi.combat.physical.isBlocked(target, attacker) then
-        hitDamage = hitDamage - xi.combat.physical.getDamageReductionForBlock(target, attacker, hitDamage)
+    local blocked = xi.combat.physical.isBlocked(target, attacker)
+    local blockReduction = 0
+    if blocked then
+        -- Reduction is computed from the pre-block product (same as upstream
+        -- getDamageReductionForBlock(target, attacker, hitDamage) after the product).
+        blockReduction = xi.combat.physical.getDamageReductionForBlock(
+            target,
+            attacker,
+            (dmg + xi.combat.damage.consumeManaAddition(attacker)) * ftp * calcParams.pdif
+        )
     end
+
+    hitDamage = xi.weaponskills.singleHitDamage(
+        dmg,
+        xi.combat.damage.consumeManaAddition(attacker),
+        ftp,
+        calcParams.pdif,
+        blocked,
+        blockReduction
+    )
 
     -- handle guard and reduce the hit damage if needed
     if
         calcParams.attackType == xi.attackType.PHYSICAL and
         xi.combat.physical.isGuarded(target, attacker)
     then
-        calcParams.pdif        = math.max(calcParams.pdif - 1.0, 0)
+        calcParams.pdif        = xi.weaponskills.guardedPDIF(calcParams.pdif)
         calcParams.guardedHits = calcParams.guardedHits + 1
     end
 
