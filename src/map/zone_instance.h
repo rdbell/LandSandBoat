@@ -24,6 +24,11 @@
 #include "instance.h"
 #include "zone.h"
 
+namespace zoneinstance
+{
+auto shouldCleanupInstance(bool failed, bool completed, bool charsEmpty) -> bool;
+}
+
 class CZoneInstance : public CZone
 {
 public:

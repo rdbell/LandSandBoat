@@ -14,6 +14,7 @@
 #include "test_instance_lifecycle.h"
 
 #include "map/instance.h"
+#include "map/zone_instance.h"
 
 #include <chrono>
 #include <iostream>
@@ -145,6 +146,16 @@ auto testCancelStatus() -> bool
 {
     return expect(InstanceTestAccess::cancelStatus() == INSTANCE_FAILED, "cancel sets failed status");
 }
+
+auto testInstanceCleanup() -> bool
+{
+    bool ok = true;
+    ok = expect(zoneinstance::shouldCleanupInstance(true, false, true), "failed empty instance cleans up") && ok;
+    ok = expect(zoneinstance::shouldCleanupInstance(false, true, true), "complete empty instance cleans up") && ok;
+    ok = expect(!zoneinstance::shouldCleanupInstance(false, false, true), "normal empty instance stays") && ok;
+    ok = expect(!zoneinstance::shouldCleanupInstance(true, false, false), "occupied failed instance stays") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -156,5 +167,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testClearEntityState() && ok;
     ok      = testEntryRotation() && ok;
     ok      = testCancelStatus() && ok;
+    ok      = testInstanceCleanup() && ok;
     return ok;
 }

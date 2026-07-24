@@ -28,6 +28,14 @@
 #include "utils/charutils.h"
 #include "utils/zoneutils.h"
 
+namespace zoneinstance
+{
+auto shouldCleanupInstance(bool failed, bool completed, bool charsEmpty) -> bool
+{
+    return (failed || completed) && charsEmpty;
+}
+} // namespace zoneinstance
+
 CZoneInstance::CZoneInstance(Scheduler& scheduler, MapConfig config, ZONEID ZoneID, REGION_TYPE RegionID, CONTINENT_TYPE ContinentID, uint8 levelRestriction)
 : CZone(scheduler, config, ZoneID, RegionID, ContinentID, levelRestriction)
 {
@@ -413,7 +421,7 @@ auto CZoneInstance::ZoneServer(timer::time_point tick) -> Task<void>
         co_await PInstance->ZoneServer(tick);
         PInstance->CheckTime(tick);
 
-        if ((PInstance->Failed() || PInstance->Completed()) && PInstance->CharListEmpty())
+        if (zoneinstance::shouldCleanupInstance(PInstance->Failed(), PInstance->Completed(), PInstance->CharListEmpty()))
         {
             instancesToRemove.push_back(PInstance.get());
         }
