@@ -280,7 +280,8 @@ void CPathFind::FollowPath(timer::time_point tick)
     TracyZoneScoped;
     TracyZoneString(m_POwner->getName());
 
-    if (!IsFollowingPath())
+    // Dual-wire: pathfindstatushelpers::ShouldFollowPath (slice 6346).
+    if (!pathfindstatushelpers::ShouldFollowPath(IsFollowingPath()))
     {
         return;
     }
@@ -410,15 +411,12 @@ void CPathFind::StepTo(const position_t& pos, bool run)
 
             m_POwner->loc.p.x += cosf(radians) * (distanceTo - m_distanceFromPoint);
             m_POwner->loc.p.z += sinf(radians) * (distanceTo - m_distanceFromPoint);
-            if (abs(diff_y) > .5f)
+            // Dual-wire: ShouldStepVertical / ClampVerticalStep (slice 6346).
+            if (pathfindstatushelpers::ShouldStepVertical(abs(diff_y)))
             {
                 // Don't step too far vertically by simply utilizing the slope
                 float new_y = m_POwner->loc.p.y + stepDistance * (pos.y - m_POwner->loc.p.y) / distance(m_POwner->loc.p, pos, true);
-                float min_y = (pos.y + m_POwner->loc.p.y - abs(pos.y - m_POwner->loc.p.y)) / 2;
-                float max_y = (pos.y + m_POwner->loc.p.y + abs(pos.y - m_POwner->loc.p.y)) / 2;
-                // clamp new_y between start and end vertical position
-                new_y             = new_y < min_y ? min_y : new_y;
-                m_POwner->loc.p.y = new_y > max_y ? max_y : new_y;
+                m_POwner->loc.p.y = pathfindstatushelpers::ClampVerticalStep(new_y, m_POwner->loc.p.y, pos.y);
             }
             else
             {
@@ -434,15 +432,12 @@ void CPathFind::StepTo(const position_t& pos, bool run)
 
         m_POwner->loc.p.x += cosf(radians) * stepDistance;
         m_POwner->loc.p.z += sinf(radians) * stepDistance;
-        if (abs(diff_y) > .5f)
+        // Dual-wire: ShouldStepVertical / ClampVerticalStep (slice 6346).
+        if (pathfindstatushelpers::ShouldStepVertical(abs(diff_y)))
         {
             // Don't step too far vertically by simply utilizing the slope
             float new_y = m_POwner->loc.p.y + stepDistance * (pos.y - m_POwner->loc.p.y) / distance(m_POwner->loc.p, pos, true);
-            float min_y = (pos.y + m_POwner->loc.p.y - abs(pos.y - m_POwner->loc.p.y)) / 2;
-            float max_y = (pos.y + m_POwner->loc.p.y + abs(pos.y - m_POwner->loc.p.y)) / 2;
-            // clamp new_y between start and end vertical position
-            new_y             = new_y < min_y ? min_y : new_y;
-            m_POwner->loc.p.y = new_y > max_y ? max_y : new_y;
+            m_POwner->loc.p.y = pathfindstatushelpers::ClampVerticalStep(new_y, m_POwner->loc.p.y, pos.y);
         }
         else
         {
@@ -611,6 +606,9 @@ bool CPathFind::InWater()
 
 const position_t& CPathFind::GetDestination() const
 {
+    // Dual-wire: pathfindstatushelpers::HasDestination pure half (slice 6346)
+    // documents non-empty precondition. Production assumes points are present
+    // (same as upstream); callers may guard with HasDestination(size).
     return m_points.back().position;
 }
 

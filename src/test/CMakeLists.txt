@@ -2803,6 +2803,8 @@ set(SOURCES
     test_pathfind_path_to_gates_6344.cpp
     test_pathfind_path_flags_6345.h
     test_pathfind_path_flags_6345.cpp
+    test_pathfind_follow_entry_6346.h
+    test_pathfind_follow_entry_6346.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

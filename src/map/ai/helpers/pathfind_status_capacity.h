@@ -269,4 +269,52 @@ inline auto WrapMoving(const uint16_t moving, const bool speedChanged) -> uint16
     return static_cast<uint16_t>((moving + MovingDelta(speedChanged)) % 0x2000);
 }
 
+// ShouldFollowPath reports whether FollowPath may run this tick.
+// Mirrors: if (!IsFollowingPath()) return;
+// Formula (slice 6346): following
+// Dual-wire of Go pathfind.ShouldFollowPath (follow_entry.go).
+// Call site: CPathFind::FollowPath entry.
+inline auto ShouldFollowPath(const bool following) -> bool
+{
+    return following;
+}
+
+// ShouldStepVertical reports whether StepTo uses vertical slope stepping.
+// Mirrors: if (abs(diff_y) > .5f) { slope } else { y = target.y }
+// Formula (slice 6346): absDiffY > 0.5
+// Dual-wire of Go pathfind.ShouldStepVertical (follow_entry.go).
+// Call site: CPathFind::StepTo vertical branches.
+inline auto ShouldStepVertical(const float absDiffY) -> bool
+{
+    return absDiffY > 0.5f;
+}
+
+// HasDestination reports whether a destination point is present.
+// Mirrors non-empty m_points precondition for GetDestination pure half.
+// Formula (slice 6346): pointCount > 0
+// Dual-wire of Go pathfind.HasDestination (follow_entry.go).
+inline auto HasDestination(const std::size_t pointCount) -> bool
+{
+    return pointCount > 0;
+}
+
+// ClampVerticalStep clamps new_y between start and end vertical positions.
+// Mirrors min_y/max_y clamp after slope step in StepTo.
+// Formula (slice 6346): clamp(newY, min(startY,endY), max(startY,endY))
+// Dual-wire of Go pathfind.ClampVerticalStep (follow_entry.go).
+inline auto ClampVerticalStep(const float newY, const float startY, const float endY) -> float
+{
+    const float minY = startY < endY ? startY : endY;
+    const float maxY = startY > endY ? startY : endY;
+    if (newY < minY)
+    {
+        return minY;
+    }
+    if (newY > maxY)
+    {
+        return maxY;
+    }
+    return newY;
+}
+
 } // namespace pathfindstatushelpers
