@@ -1,4 +1,4 @@
-﻿/*
+/*
 ===========================================================================
 
   Copyright (c) 2022 LandSandBoat Dev Teams
@@ -35,6 +35,8 @@ sol::state lua;
  */
 void lua_init()
 {
+    // Go host pure half: luascript.ApplyLuaInit / AttachProcessLua /
+    // Application.WireServices InitLua (slice 6383).
     TracyZoneScoped;
 
     lua.open_libraries();

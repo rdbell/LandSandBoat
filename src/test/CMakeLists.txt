@@ -2789,6 +2789,8 @@ set(SOURCES
     test_client_entity_pair_host_6380.cpp
     test_settings_runtime_host_6382.h
     test_settings_runtime_host_6382.cpp
+    test_lua_init_host_6383.h
+    test_lua_init_host_6383.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

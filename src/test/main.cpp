@@ -1425,6 +1425,7 @@ auto runZmqIOLoopHost6378SelfTests() -> bool;
 auto runApplicationServicesHost6379SelfTests() -> bool;
 auto runClientEntityPairHost6380SelfTests() -> bool;
 auto runSettingsRuntimeHost6382SelfTests() -> bool;
+auto runLuaInitHost6383SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3727,6 +3728,7 @@ namespace
         ok = runApplicationServicesHost6379SelfTests() && ok;
         ok = runClientEntityPairHost6380SelfTests() && ok;
         ok = runSettingsRuntimeHost6382SelfTests() && ok;
+        ok = runLuaInitHost6383SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;

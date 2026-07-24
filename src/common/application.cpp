@@ -65,6 +65,8 @@ Application::Application(const ApplicationConfig& appConfig, int argc, char** ar
 
     debug::init();
 
+    // Go host pure half: luascript.AttachProcessLua / Application.WireServices
+    // InitLua (slice 6383) owns process Runtime after prepareLogging.
     lua_init();
     // Go host pure half: settingsutil.AttachProcessRuntime / Application.WireServices
     // InitSettings (slice 6382) owns process defaultStore load after logging.
