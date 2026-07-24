@@ -98,6 +98,7 @@ Application::~Application()
 
 void Application::trySetConsoleTitle()
 {
+    // Go host pure half: application.FormatConsoleTitle / ApplyPlatformSetup (6384).
 #ifdef _WIN32
     SetConsoleTitleA(fmt::format("{}-server", serverName_).c_str());
 #endif
@@ -150,6 +151,7 @@ void Application::registerSignalHandlers()
 
 void Application::usercheck() const
 {
+    // Go host pure half: application.PlanUserCheck / ApplyPlatformSetup (6384).
 #ifndef TRACY_ENABLE
     // We _need_ root/admin for Tracy to be able to collect the full suite
     // of information, so we disable this warning if Tracy is enabled.
@@ -164,6 +166,7 @@ void Application::usercheck() const
 
 void Application::tryIncreaseRLimits()
 {
+    // Go host pure half: application.PlanIncreaseRLimits / ApplyPlatformSetup (6384).
 #ifndef _WIN32
     rlimit limits{};
 
@@ -184,6 +187,7 @@ void Application::tryIncreaseRLimits()
 
 void Application::tryDisableQuickEditMode() const
 {
+    // Go host pure half: application.PlanDisableQuickEdit (6384).
 #ifdef _WIN32
     // Disable Quick Edit Mode (Mark) in Windows Console to prevent users from accidentially
     // causing the server to freeze.

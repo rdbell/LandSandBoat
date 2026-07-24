@@ -1426,6 +1426,7 @@ auto runApplicationServicesHost6379SelfTests() -> bool;
 auto runClientEntityPairHost6380SelfTests() -> bool;
 auto runSettingsRuntimeHost6382SelfTests() -> bool;
 auto runLuaInitHost6383SelfTests() -> bool;
+auto runApplicationPlatformHost6384SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3729,6 +3730,7 @@ namespace
         ok = runClientEntityPairHost6380SelfTests() && ok;
         ok = runSettingsRuntimeHost6382SelfTests() && ok;
         ok = runLuaInitHost6383SelfTests() && ok;
+        ok = runApplicationPlatformHost6384SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
