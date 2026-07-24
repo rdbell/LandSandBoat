@@ -2731,6 +2731,8 @@ set(SOURCES
     test_aicontainer_internal_use_item_6307.cpp
     test_aicontainer_animation_status_6308.h
     test_aicontainer_animation_status_6308.cpp
+    test_aicontainer_is_spawned_6309.h
+    test_aicontainer_is_spawned_6309.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

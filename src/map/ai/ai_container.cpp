@@ -596,7 +596,9 @@ void CAIContainer::InterruptStates()
 
 bool CAIContainer::IsSpawned()
 {
-    return PEntity->status != STATUS_TYPE::DISAPPEAR;
+    // Dual-wire: aicontainerhelpers::IsSpawnedStatus (slice 6309)
+    const bool isDisappear = PEntity->status == STATUS_TYPE::DISAPPEAR;
+    return aicontainerhelpers::IsSpawnedStatus(isDisappear);
 }
 
 bool CAIContainer::IsRoaming()

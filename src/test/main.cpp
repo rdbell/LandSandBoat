@@ -1396,6 +1396,7 @@ auto runAicontainerDespawnDispatch6305SelfTests() -> bool;
 auto runAicontainerCanFollowPath6306SelfTests() -> bool;
 auto runAicontainerInternalUseItem6307SelfTests() -> bool;
 auto runAicontainerAnimationStatus6308SelfTests() -> bool;
+auto runAicontainerIsSpawned6309SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3626,6 +3627,7 @@ namespace
         ok = runAicontainerCanFollowPath6306SelfTests() && ok;
         ok = runAicontainerInternalUseItem6307SelfTests() && ok;
         ok = runAicontainerAnimationStatus6308SelfTests() && ok;
+        ok = runAicontainerIsSpawned6309SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

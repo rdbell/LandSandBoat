@@ -63,6 +63,8 @@
 //           (Internal_UseItem outer char-entity gate; pure inject)
 //   - 6308: IsEngagedAnimation / IsRoamingAnimation
 //           (IsEngaged / IsRoaming animation identity dual-wire residual 1189)
+//   - 6309: IsSpawnedStatus
+//           (IsSpawned !isDisappear dual-wire; SHUTDOWN not rejected)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -103,6 +105,7 @@
 // InternalUseItemHasCharEntity before ChangeState<CItemState>.
 // CAIContainer::IsEngaged / IsRoaming inject animation comparisons into
 // IsEngagedAnimation / IsRoamingAnimation.
+// CAIContainer::IsSpawned injects DISAPPEAR comparison into IsSpawnedStatus.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -133,7 +136,9 @@
 // aicontainer.InternalUseItemHasCharEntity
 // (internal_use_item.go),
 // aicontainer.IsEngagedAnimation / aicontainer.IsRoamingAnimation
-// (animation_status.go). Prior pure port: slice 1189.
+// (animation_status.go),
+// aicontainer.IsSpawnedStatus
+// (is_spawned.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -674,6 +679,27 @@ inline auto IsEngagedAnimation(const bool animationIsAttack) -> bool
 inline auto IsRoamingAnimation(const bool animationIsNone) -> bool
 {
     return animationIsNone;
+}
+
+// IsSpawnedStatus reports whether CAIContainer::IsSpawned is true.
+// Mirrors production:
+//
+//   return PEntity->status != STATUS_TYPE::DISAPPEAR;
+//
+// Formula (slice 6309):
+//   !isDisappear
+//
+// isDisappear — host PEntity->status == STATUS_TYPE::DISAPPEAR
+// true  → entity is considered spawned
+// false → entity is despawned/disappeared
+//
+// Dual-wire of Go aicontainer.IsSpawnedStatus (is_spawned.go).
+// Call site: CAIContainer::IsSpawned. Prior pure port (1189) incorrectly also
+// rejected SHUTDOWN; production only checks DISAPPEAR. Sibling dual-wires
+// left alone: IsEngagedAnimation / IsRoamingAnimation (6308).
+inline auto IsSpawnedStatus(const bool isDisappear) -> bool
+{
+    return !isDisappear;
 }
 
 } // namespace aicontainerhelpers
