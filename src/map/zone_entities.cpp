@@ -62,6 +62,7 @@
 #include "zone_entity_visibility.h"
 #include "zone_char_sync_significance.h"
 #include "zone_char_sync_relationship.h"
+#include "zone_char_sync_target_bonus.h"
 #include "zone_conditional_npc.h"
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
@@ -1039,7 +1040,10 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
         }
 
         CBaseEntity* PTarget = PState->GetTarget();
-        if (PTarget && PTarget->objtype == TYPE_PC && PTarget->id != PChar->id)
+        if (zonecharsynctargetbonus::ShouldAward(
+                PTarget != nullptr,
+                PTarget != nullptr && PTarget->objtype == TYPE_PC,
+                PTarget != nullptr && PTarget->id == PChar->id))
         {
             scoreBonus[PTarget->id] += CHARACTER_SYNC_DISTANCE_SWAP_THRESHOLD;
         }
