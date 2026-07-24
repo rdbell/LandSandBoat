@@ -617,7 +617,11 @@ bool CAIContainer::IsEngaged()
 
 bool CAIContainer::IsUntargetable()
 {
-    return (PEntity->PAI->IsCurrentState<CInactiveState>() && static_cast<CInactiveState*>(PEntity->PAI->GetCurrentState())->GetUntargetable()) || PEntity->GetUntargetable();
+    // Dual-wire: aicontainerhelpers::IsUntargetable (slice 6310)
+    const bool isInactiveState       = IsCurrentState<CInactiveState>();
+    const bool inactiveUntargetable  = isInactiveState && static_cast<CInactiveState*>(GetCurrentState())->GetUntargetable();
+    const bool entityUntargetable    = PEntity->GetUntargetable();
+    return aicontainerhelpers::IsUntargetable(isInactiveState, inactiveUntargetable, entityUntargetable);
 }
 
 timer::time_point CAIContainer::getTick()

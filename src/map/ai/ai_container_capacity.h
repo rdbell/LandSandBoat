@@ -65,6 +65,8 @@
 //           (IsEngaged / IsRoaming animation identity dual-wire residual 1189)
 //   - 6309: IsSpawnedStatus
 //           (IsSpawned !isDisappear dual-wire; SHUTDOWN not rejected)
+//   - 6310: IsUntargetable
+//           (inactive-state && inactive flag) || entity flag dual-wire residual 1189
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -106,6 +108,8 @@
 // CAIContainer::IsEngaged / IsRoaming inject animation comparisons into
 // IsEngagedAnimation / IsRoamingAnimation.
 // CAIContainer::IsSpawned injects DISAPPEAR comparison into IsSpawnedStatus.
+// CAIContainer::IsUntargetable injects inactive-state presence, inactive
+// GetUntargetable, and entity GetUntargetable into IsUntargetable.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -138,7 +142,9 @@
 // aicontainer.IsEngagedAnimation / aicontainer.IsRoamingAnimation
 // (animation_status.go),
 // aicontainer.IsSpawnedStatus
-// (is_spawned.go). Prior pure port: slice 1189.
+// (is_spawned.go),
+// aicontainer.IsUntargetable
+// (aicontainer.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -700,6 +706,29 @@ inline auto IsRoamingAnimation(const bool animationIsNone) -> bool
 inline auto IsSpawnedStatus(const bool isDisappear) -> bool
 {
     return !isDisappear;
+}
+
+// IsUntargetable reports whether CAIContainer::IsUntargetable is true.
+// Mirrors:
+//
+//   (IsCurrentState<CInactiveState>() && inactive.GetUntargetable())
+//     || PEntity->GetUntargetable()
+//
+// Formula (slice 6310 dedicated dual-wire residual pure 1189):
+//   (isInactiveState && inactiveUntargetable) || entityUntargetable
+//
+// isInactiveState — host IsCurrentState<CInactiveState>()
+// inactiveUntargetable — host CInactiveState::GetUntargetable() when inactive;
+// host must inject false when not inactive (do not cast null)
+// entityUntargetable — host CBaseEntity::GetUntargetable()
+//
+// Dual-wire of Go aicontainer.IsUntargetable (aicontainer.go).
+// Call site: CAIContainer::IsUntargetable. Prior pure port: slice 1189.
+// Sibling dual-wires left alone: IsSpawnedStatus / IsEngagedAnimation /
+// IsRoamingAnimation / InternalActionTargetAllowed free functions.
+inline auto IsUntargetable(const bool isInactiveState, const bool inactiveUntargetable, const bool entityUntargetable) -> bool
+{
+    return (isInactiveState && inactiveUntargetable) || entityUntargetable;
 }
 
 } // namespace aicontainerhelpers
