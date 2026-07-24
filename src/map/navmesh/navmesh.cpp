@@ -777,6 +777,7 @@ bool CNavMesh::onSameFloor(const position_t& start, float* spos, const position_
     return true;
 }
 
+// Go host pure half: navmesh.ApplyRaycast / ApplyValidPosition (6427).
 bool CNavMesh::raycast(const position_t& start, const position_t& end)
 {
     TracyZoneScoped;

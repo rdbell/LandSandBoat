@@ -2877,6 +2877,8 @@ set(SOURCES
     test_navmesh_findpath_query_host_6425.cpp
     test_navmesh_findpath_io_host_6426.h
     test_navmesh_findpath_io_host_6426.cpp
+    test_navmesh_raycast_validpos_host_6427.h
+    test_navmesh_raycast_validpos_host_6427.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
