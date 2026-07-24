@@ -1450,6 +1450,7 @@ auto runZoneutilsLoadZonesHost6404SelfTests() -> bool;
 auto runZoneutilsLoadNpcMobHost6405SelfTests() -> bool;
 auto runLoadNPCFieldApplicationHost6406SelfTests() -> bool;
 auto runLoadMOBFieldApplicationHost6407SelfTests() -> bool;
+auto runMobutilsInitializeMobHost6408SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3777,6 +3778,7 @@ namespace
         ok = runZoneutilsLoadNpcMobHost6405SelfTests() && ok;
         ok = runLoadNPCFieldApplicationHost6406SelfTests() && ok;
         ok = runLoadMOBFieldApplicationHost6407SelfTests() && ok;
+        ok = runMobutilsInitializeMobHost6408SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;

@@ -688,6 +688,7 @@ void SetSpellList(CMobEntity* PMob, uint16 spellList)
     RecalculateSpellContainer(PMob);
 }
 
+// Go host pure half: mobutils.ApplyInitializeMob / PlanInitializeMobDefaultMods (6408).
 void InitializeMob(CMobEntity* PMob)
 {
     // add special mob mods
