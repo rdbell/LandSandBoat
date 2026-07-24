@@ -164,7 +164,11 @@ bool CAIContainer::Trigger(CCharEntity* player)
     if (CanChangeState())
     {
         auto ret = ChangeState<CTriggerState>(PEntity, player->targid, isDoor);
-        if (PathFind && PEntity->GetLocalVar("stopPathingOnTrigger") == 1)
+        // Dual-wire: aicontainerhelpers::ShouldPausePathingOnTrigger (slice 6360).
+        // Go host pure plan: aicontainer.PlanTriggerPathing.
+        if (aicontainerhelpers::ShouldPausePathingOnTrigger(
+                static_cast<bool>(PathFind),
+                PEntity->GetLocalVar("stopPathingOnTrigger")))
         {
             PEntity->SetLocalVar("pauseNPCPathing", 1);
         }
@@ -471,12 +475,14 @@ CController* CAIContainer::GetController()
 
 void CAIContainer::Reset()
 {
-    if (PathFind)
+    // Dual-wire: ShouldClearPathOnReset / ShouldResetControllerOnReset (slice 6360).
+    // Go host half: aicontainer.Reset drives pathfind.Path.Clear.
+    if (aicontainerhelpers::ShouldClearPathOnReset(static_cast<bool>(PathFind)))
     {
         PathFind->Clear();
     }
 
-    if (Controller)
+    if (aicontainerhelpers::ShouldResetControllerOnReset(static_cast<bool>(Controller)))
     {
         Controller->Reset();
     }

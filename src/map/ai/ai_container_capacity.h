@@ -949,4 +949,35 @@ inline auto ShouldNotifyPathPoint(const bool onPoint) -> bool
     return onPoint;
 }
 
+// ShouldClearPathOnReset reports whether Reset should Clear PathFind.
+// Mirrors: if (PathFind) { PathFind->Clear(); }
+// Formula (slice 6360): hasPathFind
+// Dual-wire of Go aicontainer.ShouldClearPathOnReset (reset_trigger_pathing.go).
+// Call site: CAIContainer::Reset. Clear body remains host PathFind ownership.
+inline auto ShouldClearPathOnReset(const bool hasPathFind) -> bool
+{
+    return hasPathFind;
+}
+
+// ShouldResetControllerOnReset reports whether Reset should call Controller->Reset.
+// Mirrors: if (Controller) { Controller->Reset(); }
+// Formula (slice 6360): hasController
+// Dual-wire of Go aicontainer.ShouldResetControllerOnReset (reset_trigger_pathing.go).
+// Call site: CAIContainer::Reset.
+inline auto ShouldResetControllerOnReset(const bool hasController) -> bool
+{
+    return hasController;
+}
+
+// ShouldPausePathingOnTrigger reports whether Trigger should set pauseNPCPathing.
+// Mirrors: if (PathFind && GetLocalVar("stopPathingOnTrigger") == 1)
+// Formula (slice 6360): hasPathFind && stopPathingOnTrigger == 1
+// Dual-wire of Go aicontainer.ShouldPausePathingOnTrigger (reset_trigger_pathing.go).
+// Call site: CAIContainer::Trigger after ChangeState when CanChangeState.
+// SetLocalVar remains host-owned.
+inline auto ShouldPausePathingOnTrigger(const bool hasPathFind, const uint32_t stopPathingOnTrigger) -> bool
+{
+    return hasPathFind && stopPathingOnTrigger == 1;
+}
+
 } // namespace aicontainerhelpers
