@@ -128,6 +128,7 @@ xi.crafting.ephemeralMoogleOnEventUpdate = function(player, csid, option, npc)
     end
 end
 
+-- Go pure half: ephemeralmoogle.PlanEventFinishGrant currency/item catalog (6587).
 xi.crafting.ephemeralMoogleOnEventFinish = function(player, csid, option, npc)
     -- Logic for crystal retrieving.
     if csid ~= moogleEventTable[npc:getName()].trigger then
