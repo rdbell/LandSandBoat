@@ -100,6 +100,9 @@ auto ZMQService::drainPending(std::vector<std::unique_ptr<ZmqEndpoint>>& endpoin
 
 auto ZMQService::run() -> void
 {
+    // Go host pure half: zmqutil.RunIOLoop / Service.Start (slice 6378) drives
+    // ServicePlan drain → rebuild opened poll set → poll inject → onReadable/
+    // flushOutbound → PlanStop close without a real zmq context.
     TracySetThreadName(threadName_.c_str());
 
     std::vector<std::unique_ptr<ZmqEndpoint>> endpoints;
