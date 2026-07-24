@@ -55,7 +55,7 @@ auto shouldEraseInstance(const CInstance* candidate, const CInstance* target) ->
     return candidate == target;
 }
 
-auto shouldStopInstanceCharacterSearch(bool found) -> bool
+auto shouldStopInstanceSearch(bool found) -> bool
 {
     return found;
 }
@@ -80,7 +80,7 @@ CCharEntity* CZoneInstance::GetCharByName(const std::string& name)
     for (const auto& PInstance : m_InstanceList)
     {
         PEntity = PInstance->GetCharByName(name);
-        if (zoneinstance::shouldStopInstanceCharacterSearch(PEntity != nullptr))
+        if (zoneinstance::shouldStopInstanceSearch(PEntity != nullptr))
         {
             break;
         }
@@ -96,7 +96,7 @@ CCharEntity* CZoneInstance::GetCharByID(uint32 id)
     for (const auto& PInstance : m_InstanceList)
     {
         PEntity = PInstance->GetCharByID(id);
-        if (zoneinstance::shouldStopInstanceCharacterSearch(PEntity != nullptr))
+        if (zoneinstance::shouldStopInstanceSearch(PEntity != nullptr))
         {
             break;
         }
@@ -114,7 +114,7 @@ CBaseEntity* CZoneInstance::GetEntity(uint16 targid, uint8 filter)
         for (const auto& PInstance : m_InstanceList)
         {
             PEntity = PInstance->GetEntity(targid, filter);
-            if (PEntity)
+            if (zoneinstance::shouldStopInstanceSearch(PEntity != nullptr))
             {
                 break;
             }

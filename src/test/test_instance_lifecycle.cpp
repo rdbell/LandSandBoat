@@ -211,11 +211,11 @@ auto testInstanceEraseIdentity() -> bool
     return ok;
 }
 
-auto testInstanceCharacterLookup() -> bool
+auto testInstanceLookupStop() -> bool
 {
     bool ok = true;
-    ok = expect(!zoneinstance::shouldStopInstanceCharacterSearch(false), "missing character continues instance search") && ok;
-    ok = expect(zoneinstance::shouldStopInstanceCharacterSearch(true), "found character stops instance search") && ok;
+    ok = expect(!zoneinstance::shouldStopInstanceSearch(false), "missing entity continues instance search") && ok;
+    ok = expect(zoneinstance::shouldStopInstanceSearch(true), "found entity stops instance search") && ok;
     return ok;
 }
 } // namespace
@@ -235,6 +235,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testInstanceRestore() && ok;
     ok      = testPublicInstanceID() && ok;
     ok      = testInstanceEraseIdentity() && ok;
-    ok      = testInstanceCharacterLookup() && ok;
+    ok      = testInstanceLookupStop() && ok;
     return ok;
 }
