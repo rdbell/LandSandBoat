@@ -25,6 +25,7 @@ local function clearChests()
     end
 end
 
+-- Go pure half: brigandschart.PlanResetEventFromInjects (6607).
 local function resetEvent()
     local qm1        = GetNPCByID(ID.npc.BRIGAND_CHART_QM)
     local npcHume    = GetNPCByID(ID.npc.BRIGAND_CHART_HUME)
@@ -70,6 +71,7 @@ local eventTable =
     [6] = { time = 180, text = ID.text.WHAT_CAN_I_DO + 5 },
 }
 
+-- Go pure half: brigandschart.PlanEmoteCheckFromInjects (6607).
 local function emoteChecking(npc, timeRemaining, timeOfLastCheck, phase)
     -- Event continues if player leaves zone
     -- https://www.youtube.com/watch?v=_opqVW-HIu0
