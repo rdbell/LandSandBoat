@@ -21,6 +21,7 @@
 
 #include "action_queue.h"
 #include "ai/ai_container.h"
+#include "ai/helpers/action_queue_capacity.h"
 #include "entities/base_entity.h"
 #include "lua/lua_base_entity.h"
 #include "lua/luautils.h"
@@ -94,7 +95,8 @@ void CAIActionQueue::handleAction(queueAction_t& action)
 
 bool CAIActionQueue::isEmpty()
 {
-    return actionQueue.empty() && timerQueue.empty();
+    // Dual-wire: actionqueuehelpers::IsBothQueuesEmpty (slice 6331).
+    return actionqueuehelpers::IsBothQueuesEmpty(actionQueue.empty(), timerQueue.empty());
 }
 
 void CAIActionQueue::clearActionQueue()
