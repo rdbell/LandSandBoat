@@ -67,6 +67,7 @@
 #include "zone_pc_distance_gate.h"
 #include "zone_pc_candidate_gate.h"
 #include "wide_scan_policy.h"
+#include "packet_broadcast_policy.h"
 
 #include <map/ximesh/ximesh.h>
 
@@ -1465,12 +1466,12 @@ void CZoneEntities::PushPacket(CBaseEntity* PEntity, GLOBAL_MESSAGE_TYPE message
     }
 
     // Do not send packets that are updates of a hidden GM..
-    if (packet->getType() == 0x00D && PEntity != nullptr && PEntity->objtype == TYPE_PC)
+    if (packet->getType() == zonepacketbroadcast::CharacterUpdatePacket && PEntity != nullptr && PEntity->objtype == TYPE_PC)
     {
         auto* PChar = static_cast<CCharEntity*>(PEntity);
 
         // Ensure this packet is not despawning us..
-        if (PChar->m_isGMHidden && packet->ref<uint8>(0x0A) != 0x20)
+        if (zonepacketbroadcast::ShouldSuppressHiddenCharacterPacket(packet->getType(), true, PChar->m_isGMHidden, packet->ref<uint8>(0x0A)))
         {
             return;
         }
@@ -1499,81 +1500,77 @@ void CZoneEntities::PushPacket(CBaseEntity* PEntity, GLOBAL_MESSAGE_TYPE message
 
                 FOR_EACH_PAIR_CAST_SECOND(CCharEntity*, PCurrentChar, m_charList)
                 {
-                    if (PEntity != PCurrentChar)
+                    if (zonepacketbroadcast::ShouldSendRangePacket(
+                            PEntity != PCurrentChar,
+                            isWithinDistance(PEntity->loc.p, PCurrentChar->loc.p, checkDistance),
+                            PEntity->objtype != TYPE_PC || static_cast<CCharEntity*>(PEntity)->m_moghouseID == PCurrentChar->m_moghouseID))
                     {
-                        if (isWithinDistance(PEntity->loc.p, PCurrentChar->loc.p, checkDistance) &&
-                            (PEntity->objtype != TYPE_PC || static_cast<CCharEntity*>(PEntity)->m_moghouseID == PCurrentChar->m_moghouseID))
+                        uint16 packetType = packet->getType();
+                        if ((packetType == zonepacketbroadcast::EntityUpdatePacket || packetType == zonepacketbroadcast::ActionPacket) &&
+                            zonepacketbroadcast::RequiresSpawnListFilter(packetType, packet->ref<uint8>(0x0A)))
                         {
-                            uint16 packetType = packet->getType();
-                            if
-                                ((packetType == 0x00E && // Entity Update
-                                (packet->ref<uint8>(0x0A) != 0x20 ||
-                                packet->ref<uint8>(0x0A) != 0x0F)) ||
-                                packetType == 0x028) // Action packet
+                            uint32 id           = 0;
+                            uint16 targid       = 0;
+                            CBaseEntity* entity = nullptr;
+
+                            if (packetType == zonepacketbroadcast::EntityUpdatePacket) // Entity update
                             {
-                                uint32 id           = 0;
-                                uint16 targid       = 0;
-                                CBaseEntity* entity = nullptr;
+                                id     = packet->ref<uint32>(0x04);
+                                targid = packet->ref<uint16>(0x08);
+                                entity = GetEntity(targid);
+                            }
+                            else if (packetType == zonepacketbroadcast::ActionPacket) // Action packet
+                            {
+                                id     = packet->ref<uint32>(0x05);
+                                // Try char
+                                entity = GetCharByID(id);
 
-                                if (packetType == 0x00E) // Entity update
-                                {
-                                    id     = packet->ref<uint32>(0x04);
-                                    targid = packet->ref<uint16>(0x08);
-                                    entity = GetEntity(targid);
-                                }
-                                else if (packetType == 0x028) // Action packet
-                                {
-                                    id     = packet->ref<uint32>(0x05);
-                                    // Try char
-                                    entity = GetCharByID(id);
-
-                                    // Try everything else
-                                    if (!entity)
-                                    {
-                                        entity = zoneutils::GetEntity(id);
-                                    }
-                                }
-
-                                // If everything else failed
+                                // Try everything else
                                 if (!entity)
                                 {
-                                    // No target entity in spawnlists found, so we're just going to skip this packet
-                                    break;
-                                }
-
-                                auto pushPacketIfInSpawnList = [&](CCharEntity* PChar, SpawnIDList_t const& spawnlist)
-                                {
-                                    if (spawnlist.find(id) != spawnlist.end())
-                                    {
-                                        PChar->pushPacket(packet->copy());
-                                    }
-                                };
-
-                                switch(entity->objtype)
-                                {
-                                    case TYPE_MOB:
-                                        pushPacketIfInSpawnList(PCurrentChar, PCurrentChar->SpawnMOBList);
-                                        break;
-                                    case TYPE_NPC:
-                                        pushPacketIfInSpawnList(PCurrentChar, PCurrentChar->SpawnNPCList);
-                                        break;
-                                    case TYPE_PET:
-                                        pushPacketIfInSpawnList(PCurrentChar, PCurrentChar->SpawnPETList);
-                                        break;
-                                    case TYPE_TRUST:
-                                        pushPacketIfInSpawnList(PCurrentChar, PCurrentChar->SpawnTRUSTList);
-                                        break;
-                                    case TYPE_PC:
-                                        pushPacketIfInSpawnList(PCurrentChar, PCurrentChar->SpawnPCList);
-                                        break;
-                                    default:
-                                        break;
+                                    entity = zoneutils::GetEntity(id);
                                 }
                             }
-                            else
+
+                            // If everything else failed
+                            if (!entity)
                             {
-                                PCurrentChar->pushPacket(packet->copy());
+                                // No target entity in spawnlists found, so we're just going to skip this packet
+                                break;
                             }
+
+                            auto pushPacketIfInSpawnList = [&](CCharEntity* PChar, SpawnIDList_t const& spawnlist)
+                            {
+                                if (spawnlist.find(id) != spawnlist.end())
+                                {
+                                    PChar->pushPacket(packet->copy());
+                                }
+                            };
+
+                            switch(entity->objtype)
+                            {
+                                case TYPE_MOB:
+                                    pushPacketIfInSpawnList(PCurrentChar, PCurrentChar->SpawnMOBList);
+                                    break;
+                                case TYPE_NPC:
+                                    pushPacketIfInSpawnList(PCurrentChar, PCurrentChar->SpawnNPCList);
+                                    break;
+                                case TYPE_PET:
+                                    pushPacketIfInSpawnList(PCurrentChar, PCurrentChar->SpawnPETList);
+                                    break;
+                                case TYPE_TRUST:
+                                    pushPacketIfInSpawnList(PCurrentChar, PCurrentChar->SpawnTRUSTList);
+                                    break;
+                                case TYPE_PC:
+                                    pushPacketIfInSpawnList(PCurrentChar, PCurrentChar->SpawnPCList);
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            PCurrentChar->pushPacket(packet->copy());
                         }
                     }
                 }
@@ -1584,13 +1581,12 @@ void CZoneEntities::PushPacket(CBaseEntity* PEntity, GLOBAL_MESSAGE_TYPE message
                 TracyZoneCString("CHAR_INSHOUT");
                 FOR_EACH_PAIR_CAST_SECOND(CCharEntity*, PCurrentChar, m_charList)
                 {
-                    if (PEntity != PCurrentChar)
+                    if (zonepacketbroadcast::ShouldSendShoutPacket(
+                            PEntity != PCurrentChar,
+                            distance(PEntity->loc.p, PCurrentChar->loc.p) < 180.0f,
+                            PEntity->objtype != TYPE_PC || static_cast<CCharEntity*>(PEntity)->m_moghouseID == PCurrentChar->m_moghouseID))
                     {
-                        if (distance(PEntity->loc.p, PCurrentChar->loc.p) < 180.0f &&
-                            (PEntity->objtype != TYPE_PC || static_cast<CCharEntity*>(PEntity)->m_moghouseID == PCurrentChar->m_moghouseID))
-                        {
-                            PCurrentChar->pushPacket(packet->copy());
-                        }
+                        PCurrentChar->pushPacket(packet->copy());
                     }
                 }
             }
@@ -1600,12 +1596,9 @@ void CZoneEntities::PushPacket(CBaseEntity* PEntity, GLOBAL_MESSAGE_TYPE message
                 TracyZoneCString("CHAR_INZONE");
                 FOR_EACH_PAIR_CAST_SECOND(CCharEntity*, PCurrentChar, m_charList)
                 {
-                    if (!PCurrentChar->inMogHouse())
+                    if (zonepacketbroadcast::ShouldSendZonePacket(!PCurrentChar->inMogHouse(), PEntity != PCurrentChar))
                     {
-                        if (PEntity != PCurrentChar)
-                        {
-                            PCurrentChar->pushPacket(packet->copy());
-                        }
+                        PCurrentChar->pushPacket(packet->copy());
                     }
                 }
             }
