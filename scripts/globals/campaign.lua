@@ -304,6 +304,7 @@ xi.campaign.sigilOnTrigger = function(player, npc)
     end
 end
 
+-- Go pure half: campaign.PlanSigilShopUpdateFromInjects/PlanSigilShopUpdateEventParams (6617).
 xi.campaign.sigilOnEventUpdate = function(player, csid, option, npc)
     local optionType   = bit.band(option, 0xF)
 
