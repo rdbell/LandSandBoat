@@ -51,6 +51,8 @@
 //   - 6302: InternalActionTargetAllowed
 //           (Internal_Cast/WeaponSkill/MobSkill/PetSkill/Ability/RangedAttack
 //           target untargetable gate; pure inject)
+//   - 6303: AcceptRaiseShouldInvoke
+//           (Accept_Raise death-state admission; pure inject)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -78,6 +80,8 @@
 // Internal_PetSkill / Internal_Ability / Internal_RangedAttack inject GetEntity
 // presence and PAI->IsUntargetable into InternalActionTargetAllowed before
 // ChangeState.
+// CAIContainer::Accept_Raise injects IsCurrentState<CDeathState> into
+// AcceptRaiseShouldInvoke before acceptRaise().
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.InternalEngageForceAttackAllowed /
@@ -95,7 +99,9 @@
 // aicontainer.InternalDespawnAllowed
 // (internal_despawn.go),
 // aicontainer.InternalActionTargetAllowed
-// (internal_action_target.go). Prior pure port: slice 1189.
+// (internal_action_target.go),
+// aicontainer.AcceptRaiseShouldInvoke
+// (accept_raise.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -450,11 +456,46 @@ inline auto InternalDespawnAllowed(const bool isCurrentDespawnState) -> bool
 // vs battle-entity outer casts, and full PAI ownership remain host/deferred.
 // Sibling dual-wires left alone: CanDispatch / CanChangeState /
 // InternalEngage* / InternalChangeTarget* / InternalDisengage* /
-// InternalDie* / InternalDespawn* free functions. Accept_Raise and public
-// Despawn() controller branch remain out of scope.
+// InternalDie* / InternalDespawn* free functions. Accept_Raise (6303) and
+// public Despawn() controller branch remain separate slices.
 inline auto InternalActionTargetAllowed(const bool hasTarget, const bool isUntargetable) -> bool
 {
     return !hasTarget || !isUntargetable;
+}
+
+// AcceptRaiseShouldInvoke reports whether CAIContainer::Accept_Raise may call
+// CDeathState::acceptRaise on the current state.
+// Mirrors:
+//
+//   if (IsCurrentState<CDeathState>()) {
+//       static_cast<CDeathState*>(GetCurrentState())->acceptRaise();
+//   }
+//   return false; // always
+//
+// Formula (slice 6303):
+//   isCurrentDeathState
+//
+// isCurrentDeathState — host IsCurrentState<CDeathState>()
+// true  → host casts current state to CDeathState and calls acceptRaise()
+// false → host skips acceptRaise
+//
+// Accept_Raise always returns false after the optional host side-effect;
+// that residual return is host-only and not part of this pure gate.
+//
+// Dual-wire of Go aicontainer.AcceptRaiseShouldInvoke
+// (internal/aicontainer/accept_raise.go). Host injects the current-state type
+// check so production and tests share one pure surface (same pattern as
+// InternalDespawnAllowed identity inject).
+// Call site: CAIContainer::Accept_Raise outer admission.
+// CDeathState::acceptRaise mutation (m_raiseAccepted / timers), death Update
+// raise paths (already 6293), and full PAI ownership remain host/deferred.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState /
+// InternalEngage* / InternalChangeTarget* / InternalDisengage* /
+// InternalDie* / InternalDespawn* / InternalActionTarget* free functions.
+// Public Despawn() controller branch and Internal_Synth remain out of scope.
+inline auto AcceptRaiseShouldInvoke(const bool isCurrentDeathState) -> bool
+{
+    return isCurrentDeathState;
 }
 
 } // namespace aicontainerhelpers

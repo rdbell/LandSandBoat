@@ -685,7 +685,9 @@ void CAIContainer::CheckCompletedStates()
 
 bool CAIContainer::Accept_Raise()
 {
-    if (IsCurrentState<CDeathState>())
+    const bool isCurrentDeathState = IsCurrentState<CDeathState>();
+    // Death-state admission (slice 6303 dual-wire).
+    if (aicontainerhelpers::AcceptRaiseShouldInvoke(isCurrentDeathState))
     {
         static_cast<CDeathState*>(PEntity->PAI->GetCurrentState())->acceptRaise();
     }
