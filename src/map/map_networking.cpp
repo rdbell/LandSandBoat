@@ -234,6 +234,7 @@ bool MapNetworking::decodeIncomingPacket(ByteSpan packet, NetworkBuffer& output,
 
 int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSession, const IPP& ipp)
 {
+    // Go host pure half: mapwire.ApplyRecvParseUnencryptedLogin (slice 6389).
     TracyZoneScoped;
 
     size_t size           = *buffsize;
