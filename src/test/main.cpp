@@ -1471,6 +1471,7 @@ auto runNavmeshFindpathQueryHost6425SelfTests() -> bool;
 auto runNavmeshFindpathIoHost6426SelfTests() -> bool;
 auto runNavmeshRaycastValidposHost6427SelfTests() -> bool;
 auto runNavmeshFurthestPointHost6428SelfTests() -> bool;
+auto runNavmeshFindRandomPositionHost6429SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3819,6 +3820,7 @@ namespace
         ok = runNavmeshFindpathIoHost6426SelfTests() && ok;
         ok = runNavmeshRaycastValidposHost6427SelfTests() && ok;
         ok = runNavmeshFurthestPointHost6428SelfTests() && ok;
+        ok = runNavmeshFindRandomPositionHost6429SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;

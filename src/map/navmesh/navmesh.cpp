@@ -475,6 +475,7 @@ auto CNavMesh::findPath(const position_t& start, const position_t& end) -> std::
     return outPoints;
 }
 
+// Go host pure half: navmesh.ApplyFindRandomPosition (6429).
 std::pair<int16, position_t> CNavMesh::findRandomPosition(const position_t& start, float maxRadius)
 {
     TracyZoneScoped;
