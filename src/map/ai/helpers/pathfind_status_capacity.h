@@ -713,4 +713,35 @@ inline auto AdvancedCurrentPoint(const int16_t current) -> int16_t
     return static_cast<int16_t>(current + 1);
 }
 
+// ShouldIteratePathPoint reports whether FollowPath arrival loop may continue.
+// Mirrors: while (m_currentPoint < (int16)m_points.size())
+// Formula (slice 6356): current < pointCount
+// Dual-wire of Go pathfind.ShouldIteratePathPoint (follow_iterate_gates.go).
+// Call site: CPathFind::FollowPath arrival while condition.
+inline auto ShouldIteratePathPoint(const int current, const int pointCount) -> bool
+{
+    return current < pointCount;
+}
+
+// AdvancedCurrentTurn returns m_currentTurn after FinishedPath increments it.
+// Mirrors: m_currentTurn++
+// Formula (slice 6356): current + 1
+// Dual-wire of Go pathfind.AdvancedCurrentTurn (follow_iterate_gates.go).
+// Call site: CPathFind::FinishedPath entry.
+inline auto AdvancedCurrentTurn(const int current) -> int
+{
+    return current + 1;
+}
+
+// WaitDeadlineFrom returns wait deadline as now + wait (monotonic tick units).
+// Mirrors: m_timeAtPoint = tick + targetPoint.wait
+// Formula (slice 6356): now + wait
+// Dual-wire of Go pathfind.WaitDeadlineFrom (follow_iterate_gates.go).
+// Production C++ chrono time_point + duration remains host-composed; pure half
+// pins arithmetic for dual-wire self-tests and the Go production path.
+inline auto WaitDeadlineFrom(const int64_t now, const int64_t wait) -> int64_t
+{
+    return now + wait;
+}
+
 } // namespace pathfindstatushelpers

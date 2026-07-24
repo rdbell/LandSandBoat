@@ -344,7 +344,8 @@ void CPathFind::FollowPath(timer::time_point tick)
 
     // Iterate over points in the current path and find the first point
     // that we haven't successfully arrived at already.
-    while (m_currentPoint < (int16)m_points.size())
+    // Dual-wire: pathfindstatushelpers::ShouldIteratePathPoint (slice 6356).
+    while (pathfindstatushelpers::ShouldIteratePathPoint(m_currentPoint, static_cast<int>(m_points.size())))
     {
         targetPoint = m_points[m_currentPoint];
 
@@ -363,12 +364,14 @@ void CPathFind::FollowPath(timer::time_point tick)
                     targetPoint.wait != 0s,
                     pathfindstatushelpers::HasActiveWaypointWait(m_timeAtPoint != timer::time_point::min())))
             {
+                // Dual-wire pure half WaitDeadlineFrom (6356); chrono compose stays host.
                 m_timeAtPoint = tick + targetPoint.wait;
                 return;
             }
 
             luautils::OnPathPoint(m_POwner);
-            m_currentPoint++;
+            // Dual-wire: pathfindstatushelpers::AdvancedCurrentPoint (slice 6355).
+            m_currentPoint = pathfindstatushelpers::AdvancedCurrentPoint(m_currentPoint);
         }
         else
         {
@@ -708,7 +711,8 @@ void CPathFind::AddPoints(std::vector<pathpoint_t>&& points, bool reverse)
 
 void CPathFind::FinishedPath()
 {
-    m_currentTurn++;
+    // Dual-wire: pathfindstatushelpers::AdvancedCurrentTurn (slice 6356).
+    m_currentTurn = pathfindstatushelpers::AdvancedCurrentTurn(m_currentTurn);
 
     const auto action = pathfindfinishedhelpers::Resolve(m_currentTurn < m_turnPoints.size(), IsPatrolling(), m_POwner->PAI->IsRoaming());
 
