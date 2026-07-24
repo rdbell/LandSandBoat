@@ -45,6 +45,7 @@
 #include "spawn_scripted_respawn.h"
 #include "spawn_condition_based.h"
 #include "spawn_initial_register.h"
+#include "spawn_initial_dispatch.h"
 #include "zone_instance.h"
 
 #include <algorithm>
@@ -671,7 +672,7 @@ auto LoadMOBList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
                         return;
                     }
 
-                    if (PMob->m_CanSpawn && PMob->m_AllowRespawn)
+                    if (spawninitialdispatch::shouldSpawn(PMob->m_CanSpawn, PMob->m_AllowRespawn))
                     {
                         PMob->m_AllowRespawn = true;
                         PMob->TrySpawn();
