@@ -16,24 +16,134 @@ end
 -- placeholder / lottery NMs
 -----------------------------------
 
+-- Pure halves of xi.mob.phOnDespawn, extracted so the lottery decision is
+-- testable without entity, settings, or RNG access.
+
+-- Every NM id reachable from a placeholder list, flattening the nested
+-- { id, id2 } entries lotteryPrimed walks. Order follows the outer list.
+xi.mob.phListNmIds = function(phList)
+    local ids = {}
+
+    if not phList then
+        return ids
+    end
+
+    for _, entry in pairs(phList) do
+        if type(entry) == 'table' then
+            for _, innerId in pairs(entry) do
+                table.insert(ids, innerId)
+            end
+        else
+            table.insert(ids, entry)
+        end
+    end
+
+    return ids
+end
+
+-- An NM is primed when it is already spawned or has a pending respawn.
+xi.mob.nmPrimed = function(isSpawned, respawnTime)
+    return isSpawned or respawnTime ~= 0
+end
+
+-- The NM ids a placeholder can pop. A plain number yields one candidate; a
+-- table yields all of them for the caller to choose between.
+xi.mob.nmCandidatesForPh = function(phList, phId)
+    local entry = phList and phList[phId]
+
+    if type(entry) == 'number' then
+        return { entry }
+    elseif type(entry) == 'table' then
+        local ids = {}
+        for _, id in pairs(entry) do
+            table.insert(ids, id)
+        end
+
+        return ids
+    end
+
+    return {}
+end
+
+-- NM_LOTTERY_CHANCE scaling, then the x10 conversion to a 1..1000 roll domain.
+-- A negative setting forces 100 (a guaranteed pop); an absent setting leaves the
+-- script's own chance untouched.
+xi.mob.lotteryScaledChance = function(chance, setting)
+    if setting then
+        chance = setting >= 0 and (chance * setting) or 100
+    end
+
+    return math.ceil(chance * 10)
+end
+
+-- NM_LOTTERY_COOLDOWN scaling. A negative setting leaves the cooldown alone.
+xi.mob.lotteryScaledCooldown = function(cooldown, setting)
+    if setting then
+        cooldown = setting >= 0 and (cooldown * setting) or cooldown
+    end
+
+    return cooldown
+end
+
+-- The Vana'diel hour a placeholder's next repop lands on.
+xi.mob.lotteryRepopHour = function(vanadielTime, phRespawnTime)
+    return math.floor(((vanadielTime + phRespawnTime) % xi.vanaTime.DAY) / xi.vanaTime.HOUR)
+end
+
+-- Day/night restriction on the repop hour.
+--
+-- NOTE: the dayOnly arm requires hour < 4 AND hour >= 20, which no hour
+-- satisfies, so dayOnly never blocks a pop upstream. Preserved deliberately for
+-- parity; the nightOnly arm does work.
+xi.mob.lotteryRepopBlocked = function(dayOnly, nightOnly, nextRepopHour)
+    if
+        dayOnly and
+        nextRepopHour < 4 and
+        nextRepopHour >= 20
+    then
+        return true
+    elseif
+        nightOnly and
+        nextRepopHour >= 4 and
+        nextRepopHour < 20
+    then
+        return true
+    end
+
+    return false
+end
+
+-- The NM's post-kill cooldown is still running.
+xi.mob.lotteryCooldownActive = function(now, popUntil)
+    return now <= popUntil
+end
+
+-- A 1..1000 roll hits when it lands at or under the scaled chance.
+xi.mob.lotteryRollPassed = function(roll, scaledChance)
+    return roll <= scaledChance
+end
+
+-- The three-way pop gate: cooldown still running, another NM already primed, or
+-- the roll missed. Callers that must not draw from the shared RNG unless the
+-- earlier gates pass should short-circuit over the two primitives instead.
+xi.mob.lotteryPopAdmitted = function(now, popUntil, primed, roll, scaledChance)
+    return not xi.mob.lotteryCooldownActive(now, popUntil) and
+        not primed and
+        xi.mob.lotteryRollPassed(roll, scaledChance)
+end
+
+-- Respawn delay applied to the NM once the pop is admitted.
+xi.mob.lotteryRespawnTime = function(immediate, phRespawnTime)
+    return immediate and 1 or phRespawnTime
+end
+
 -- is a lottery NM in the table already spawned or primed to pop?
 local function lotteryPrimed(phList)
-    local nm = nil
+    for _, nmId in ipairs(xi.mob.phListNmIds(phList)) do
+        local nm = GetMobByID(nmId)
 
-    for k, v in pairs(phList) do
-        -- if `v` is a table, then it's a table of numbers: { id, id2 }
-        if type(v) == 'table' then
-            for _, innerId in pairs(v) do
-                nm = GetMobByID(innerId)
-                if nm ~= nil and (nm:isSpawned() or nm:getRespawnTime() ~= 0) then
-                    return true
-                end
-            end
-        else -- `v` is a number
-            nm = GetMobByID(v)
-            if nm ~= nil and (nm:isSpawned() or nm:getRespawnTime() ~= 0) then
-                return true
-            end
+        if nm ~= nil and xi.mob.nmPrimed(nm:isSpawned(), nm:getRespawnTime()) then
+            return true
         end
     end
 
@@ -106,17 +216,13 @@ local function getMobEntityObj(phNmId)
 end
 
 local function getNmId(phList, phId)
-    local nmId = nil
+    local candidates = xi.mob.nmCandidatesForPh(phList, phId)
 
-    if phList and phList[phId] then
-        if type(phList[phId]) == 'number' then
-            nmId = phList[phId]
-        elseif type(phList[phId]) == 'table' then
-            nmId = utils.randomEntry(phList[phId])
-        end
+    if #candidates == 0 then
+        return nil
     end
 
-    return nmId
+    return utils.randomEntry(candidates)
 end
 
 -- potential lottery placeholder was killed
@@ -173,41 +279,23 @@ xi.mob.phOnDespawn = function(ph, phNmId, chance, cooldown, params)
         end
     end
 
-    if xi.settings.main.NM_LOTTERY_CHANCE then
-        chance = xi.settings.main.NM_LOTTERY_CHANCE >= 0 and (chance * xi.settings.main.NM_LOTTERY_CHANCE) or 100
-    end
+    chance   = xi.mob.lotteryScaledChance(chance, xi.settings.main.NM_LOTTERY_CHANCE)
+    cooldown = xi.mob.lotteryScaledCooldown(cooldown, xi.settings.main.NM_LOTTERY_COOLDOWN)
 
-    if xi.settings.main.NM_LOTTERY_COOLDOWN then
-        cooldown = xi.settings.main.NM_LOTTERY_COOLDOWN >= 0 and (cooldown * xi.settings.main.NM_LOTTERY_COOLDOWN) or cooldown
-    end
-
-    local pop = nm:getLocalVar('pop')
-
-    chance = math.ceil(chance * 10) -- chance / 1000.
-
+    -- Short-circuit over the primitives rather than calling lotteryPopAdmitted:
+    -- upstream only draws from the shared RNG once the cooldown and primed
+    -- gates have both passed.
     if
-        GetSystemTime() <= pop or
+        xi.mob.lotteryCooldownActive(GetSystemTime(), nm:getLocalVar('pop')) or
         lotteryPrimed(phList) or
-        math.random(1, 1000) > chance
+        not xi.mob.lotteryRollPassed(math.random(1, 1000), chance)
     then
         return false
     end
 
-    local nextRepopTime = VanadielTime() + GetMobRespawnTime(phId)
-    local nextRepopHour = math.floor((nextRepopTime % xi.vanaTime.DAY) / xi.vanaTime.HOUR)
-    -- If the NM is day only and spawn would happen during the night, bail out
-    if
-        params.dayOnly and
-        nextRepopHour < 4 and
-        nextRepopHour >= 20
-    then
-        return false
-    -- If the NM is night only and spawn would happen during the day, bail out
-    elseif
-        params.nightOnly and
-        nextRepopHour >= 4 and
-        nextRepopHour < 20
-    then
+    local nextRepopHour = xi.mob.lotteryRepopHour(VanadielTime(), GetMobRespawnTime(phId))
+
+    if xi.mob.lotteryRepopBlocked(params.dayOnly, params.nightOnly, nextRepopHour) then
         return false
     end
 
@@ -222,7 +310,7 @@ xi.mob.phOnDespawn = function(ph, phNmId, chance, cooldown, params)
     end
 
     -- if params.immediate is true, spawn the nm params.immediately (1ms) else use placeholder's timer
-    nm:setRespawnTime(params.immediate and 1 or GetMobRespawnTime(phId))
+    nm:setRespawnTime(xi.mob.lotteryRespawnTime(params.immediate, GetMobRespawnTime(phId)))
 
     nm:addListener('DESPAWN', 'DESPAWN_' .. nmId, function(m)
         -- on NM death, replace NM repop with PH repop
