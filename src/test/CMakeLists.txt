@@ -2893,6 +2893,8 @@ set(SOURCES
     test_navmesh_install_unload_host_6433.cpp
     test_navmesh_load_detour_host_6434.h
     test_navmesh_load_detour_host_6434.cpp
+    test_navmesh_ctor_scratch_host_6435.h
+    test_navmesh_ctor_scratch_host_6435.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

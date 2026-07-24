@@ -1477,6 +1477,7 @@ auto runNavmeshBuildTilePipelineHost6431SelfTests() -> bool;
 auto runNavmeshBuildAsyncHost6432SelfTests() -> bool;
 auto runNavmeshInstallUnloadHost6433SelfTests() -> bool;
 auto runNavmeshLoadDetourHost6434SelfTests() -> bool;
+auto runNavmeshCtorScratchHost6435SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3831,6 +3832,7 @@ namespace
         ok = runNavmeshBuildAsyncHost6432SelfTests() && ok;
         ok = runNavmeshInstallUnloadHost6433SelfTests() && ok;
         ok = runNavmeshLoadDetourHost6434SelfTests() && ok;
+        ok = runNavmeshCtorScratchHost6435SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;

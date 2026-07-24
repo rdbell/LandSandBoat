@@ -146,6 +146,7 @@ void CNavMesh::ToDetourPos(const position_t* pos, float* out)
     out[2] = z * -1;
 }
 
+// Go host pure half: navmesh.PlanQueryScratchSizes / NewLoadedNavMesh (6435).
 CNavMesh::CNavMesh(uint16 zoneID)
 : m_zoneID(zoneID)
 , m_navMesh(nullptr)
@@ -162,6 +163,7 @@ CNavMesh::CNavMesh(uint16 zoneID)
     m_raycastHit.maxPath = MAX_HIT_PATH_SIZE;
 }
 
+// Go host pure half: navmesh.ApplyDestroyNavMesh (6435).
 CNavMesh::~CNavMesh()
 {
     if (m_navMesh)
