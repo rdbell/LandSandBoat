@@ -472,6 +472,7 @@ void CZone::LoadZoneSettings()
     }
 }
 
+// Go host pure half: zone.ApplyLoadNavMesh / PlanLoadNavMesh (slice 6410).
 auto CZone::LoadNavMesh() -> Task<void>
 {
     auto       navMesh = std::make_unique<CNavMesh>(static_cast<uint16>(GetID()));
@@ -527,6 +528,7 @@ auto CZone::xiMesh() const -> IXiMesh*
     return xiMesh_.get();
 }
 
+// Go host pure half: zone.ApplyLoadXiMesh / PlanLoadXiMesh (slice 6410).
 void CZone::LoadXiMesh()
 {
     TracyZoneScoped;
