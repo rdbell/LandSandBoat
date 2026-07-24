@@ -77,6 +77,8 @@ MapApplication::MapApplication(const int argc, char** argv)
         args().get<bool>(std::string(mapapp::MapCLIArguments[2].name)),
         args().get<bool>(std::string(mapapp::MapCLIArguments[3].name)));
 
+    // Go host pure half: mapapp.BuildMapConfigFromInputs (slice 6397)
+    // constructs MapConfig{ IPP(pure.ip, pure.port), flags }.
     engineConfig_.ipp              = IPP(pure.ip, pure.port);
     engineConfig_.inCI             = pure.inCI;
     engineConfig_.lazyZones        = pure.lazyZones;
@@ -89,6 +91,7 @@ MapApplication::~MapApplication()
 
 auto MapApplication::createEngine() -> std::unique_ptr<Engine>
 {
+    // Go host pure half: mapapp.CreateMapEngine / CreateMapEngineFactory (6397).
     return std::make_unique<MapEngine>(*this, engineConfig_);
 }
 

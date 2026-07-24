@@ -2817,6 +2817,8 @@ set(SOURCES
     test_map_gm_command_host_6395.cpp
     test_map_console_commands_host_6396.h
     test_map_console_commands_host_6396.cpp
+    test_map_engine_factory_host_6397.h
+    test_map_engine_factory_host_6397.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
