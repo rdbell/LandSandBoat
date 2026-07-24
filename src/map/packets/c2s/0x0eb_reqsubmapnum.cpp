@@ -25,6 +25,7 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x10e_reqsubmapnum.h"
 
+// Go host pure half: packetsystem.ValidateReqSubmapNum / ProcessReqSubmapNum / NewReqSubmapNumHandler (6531); plan mappacket.ClientReqSubmapNumRuntimePlanFor.
 auto GP_CLI_COMMAND_REQSUBMAPNUM::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameter to validate.

@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x0a0_map_group.h"
 
+// Go host pure half: packetsystem.ValidateMapGroup / ProcessMapGroup / NewMapGroupHandler (6533); plan mappacket.ClientMapGroupEligibleMemberIndexes.
 auto GP_CLI_COMMAND_MAP_GROUP::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

@@ -26,6 +26,7 @@
 #include "entities/char_entity.h"
 #include "linkshell.h"
 
+// Go host pure half: packetsystem.ValidateGetLSMsg / ProcessGetLSMsg / NewGetLSMsgHandler (6532); plan mappacket.ClientGetLSMsgRuntimePlanFor.
 auto GP_CLI_COMMAND_GET_LSMSG::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     auto pv = PacketValidator(PChar)
