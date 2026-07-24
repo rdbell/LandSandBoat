@@ -2823,6 +2823,8 @@ set(SOURCES
     test_map_engine_tasks_host_6398.cpp
     test_map_engine_maintenance_host_6399.h
     test_map_engine_maintenance_host_6399.cpp
+    test_map_networking_attach_host_6400.h
+    test_map_networking_attach_host_6400.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

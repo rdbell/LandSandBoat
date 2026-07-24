@@ -86,7 +86,8 @@
 #endif
 
 // Go host pure half: mapapp.NewMapEngine (slice 6397) owns MapStatistics +
-// MapConfig/IPP; live MapNetworking construction remains pending on the Go side.
+// MapConfig/IPP; mapapp.NewMapEngineWithNetworking / AttachMapNetworking (6400)
+// drives MapNetworking socket open (OpenMapNetworkingSocket).
 MapEngine::MapEngine(Application& application, MapConfig& config)
 : application_(application)
 , scheduler_(application_.scheduler())
