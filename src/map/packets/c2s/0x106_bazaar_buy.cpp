@@ -34,6 +34,8 @@
 #include "utils/charutils.h"
 #include "utils/itemutils.h"
 
+// Go host pure half: packetsystem.ValidateBazaarBuy / ProcessBazaarBuy /
+// NewBazaarBuyHandler (6511); plan mappacket.ClientBazaarBuyDecisionFor.
 auto GP_CLI_COMMAND_BAZAAR_BUY::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // TODO: Short-circuit PV so we can bring all the other checks into this function

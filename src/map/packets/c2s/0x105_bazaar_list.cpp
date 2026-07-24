@@ -25,6 +25,8 @@
 #include "packets/s2c/0x105_bazaar_list.h"
 #include "packets/s2c/0x108_bazaar_shopping.h"
 
+// Go host pure half: packetsystem.ValidateBazaarList / ProcessBazaarList /
+// NewBazaarListHandler (6510); plan mappacket.ClientBazaarListRuntimePlanFor.
 auto GP_CLI_COMMAND_BAZAAR_LIST::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
