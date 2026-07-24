@@ -928,4 +928,25 @@ inline auto ShouldResumeStackedState(const bool stackEmpty) -> bool
     return !stackEmpty;
 }
 
+// ShouldTickFollowPath reports whether Tick may drive PathFind::FollowPath.
+// Mirrors: if (!Controller && CanFollowPath() && !isPathingPaused)
+// Formula (slice 6359): !hasController && canFollowPath && !pathingPaused
+// Dual-wire of Go aicontainer.ShouldTickFollowPath (tick_pathing.go).
+// Call site: CAIContainer::Tick pathing block. CanFollowPath is precomputed.
+// FollowPath / OnPath Lua remain host.
+inline auto ShouldTickFollowPath(const bool hasController, const bool canFollowPath, const bool pathingPaused) -> bool
+{
+    return !hasController && canFollowPath && !pathingPaused;
+}
+
+// ShouldNotifyPathPoint reports whether Tick should fire PATH / OnPath.
+// Mirrors: if (PathFind->OnPoint()) { EventHandler...; luautils::OnPath(...); }
+// Formula (slice 6359): onPoint
+// Dual-wire of Go aicontainer.ShouldNotifyPathPoint (tick_pathing.go).
+// Call site: CAIContainer::Tick after FollowPath. Listener/Lua remain host.
+inline auto ShouldNotifyPathPoint(const bool onPoint) -> bool
+{
+    return onPoint;
+}
+
 } // namespace aicontainerhelpers

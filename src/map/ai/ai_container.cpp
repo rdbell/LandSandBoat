@@ -504,11 +504,16 @@ auto CAIContainer::Tick(timer::time_point tick) -> Task<void>
     ActionQueue.checkAction(tick);
 
     // check pathfinding only if there is no controller to do it
-    bool isPathingPaused = PEntity->GetLocalVar("pauseNPCPathing");
-    if (!Controller && CanFollowPath() && !isPathingPaused)
+    // Dual-wire: aicontainerhelpers::ShouldTickFollowPath / ShouldNotifyPathPoint (slice 6359).
+    // Go host pure half: aicontainer.TickPathing drives pathfind.FollowPath.
+    bool isPathingPaused = PEntity->GetLocalVar("pauseNPCPathing") != 0;
+    if (aicontainerhelpers::ShouldTickFollowPath(
+            static_cast<bool>(Controller),
+            CanFollowPath(),
+            isPathingPaused))
     {
         PathFind->FollowPath(tick);
-        if (PathFind->OnPoint())
+        if (aicontainerhelpers::ShouldNotifyPathPoint(PathFind->OnPoint()))
         {
             EventHandler.triggerListener("PATH", PEntity);
             luautils::OnPath(PEntity);
