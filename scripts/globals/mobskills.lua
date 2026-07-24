@@ -275,33 +275,69 @@ end
 ---@param primaryMessage xi.msg.basic
 ---@param totalDamage integer
 ---@return integer
-local function resolveMissMessage(skill, hitsLanded, hitsYaegasumi, hitsAnticipated, hitsAbsorbed, shadowsAbsorbed, primaryMessage, totalDamage)
-    if hitsLanded == 0 and hitsYaegasumi then
-        -- Yaegasumi
-        -- TODO: Get captures of Yaegasumi ability and confirm.
-        skill:setMsg(xi.msg.basic.EVADES)
-    elseif hitsLanded == 0 and hitsAnticipated then
-        -- Third Eye
-        skill:setMsg(xi.msg.basic.ANTICIPATE)
-    elseif hitsLanded == 0 and hitsAbsorbed > 0 then
-        -- Utsusemi and Blink
-        skill:setMsg(xi.msg.basic.SHADOW_ABSORB)
-        totalDamage = shadowsAbsorbed
-    elseif hitsLanded == 0 then
-        if primaryMessage == xi.msg.basic.RANGED_ATTACK_HIT then
-            skill:setMsg(xi.msg.basic.RANGED_ATTACK_MISS)
-        elseif primaryMessage == xi.msg.basic.HIT_DMG then
-            skill:setMsg(xi.msg.basic.HIT_MISS)
-        elseif primaryMessage == xi.msg.basic.USES_JA_TAKE_DAMAGE then
-            skill:setMsg(xi.msg.basic.JA_MISS_2)
-        else
-            skill:setMsg(xi.msg.basic.SKILL_MISS)
-        end
+-- Pure miss-message plan once hit tallies are known. Host residual: setMsg.
+-- Yaegasumi > Third Eye > shadow absorb > primary-dependent plain miss.
+xi.mobskills.resolveMissMessagePlan = function(hitsLanded, hitsYaegasumi, hitsAnticipated, hitsAbsorbed, shadowsAbsorbed, primaryMessage, totalDamage)
+    local plan =
+    {
+        setMsg      = false,
+        msg         = 0,
+        totalDamage = totalDamage,
+    }
 
-        totalDamage = 0
+    if hitsLanded ~= 0 then
+        return plan
     end
 
-    return totalDamage
+    if hitsYaegasumi then
+        -- Yaegasumi
+        -- TODO: Get captures of Yaegasumi ability and confirm.
+        plan.setMsg = true
+        plan.msg    = xi.msg.basic.EVADES
+    elseif hitsAnticipated then
+        -- Third Eye
+        plan.setMsg = true
+        plan.msg    = xi.msg.basic.ANTICIPATE
+    elseif hitsAbsorbed > 0 then
+        -- Utsusemi and Blink
+        plan.setMsg      = true
+        plan.msg         = xi.msg.basic.SHADOW_ABSORB
+        plan.totalDamage = shadowsAbsorbed
+    else
+        plan.setMsg = true
+
+        if primaryMessage == xi.msg.basic.RANGED_ATTACK_HIT then
+            plan.msg = xi.msg.basic.RANGED_ATTACK_MISS
+        elseif primaryMessage == xi.msg.basic.HIT_DMG then
+            plan.msg = xi.msg.basic.HIT_MISS
+        elseif primaryMessage == xi.msg.basic.USES_JA_TAKE_DAMAGE then
+            plan.msg = xi.msg.basic.JA_MISS_2
+        else
+            plan.msg = xi.msg.basic.SKILL_MISS
+        end
+
+        plan.totalDamage = 0
+    end
+
+    return plan
+end
+
+local function resolveMissMessage(skill, hitsLanded, hitsYaegasumi, hitsAnticipated, hitsAbsorbed, shadowsAbsorbed, primaryMessage, totalDamage)
+    local plan = xi.mobskills.resolveMissMessagePlan(
+        hitsLanded,
+        hitsYaegasumi,
+        hitsAnticipated,
+        hitsAbsorbed,
+        shadowsAbsorbed,
+        primaryMessage,
+        totalDamage
+    )
+
+    if plan.setMsg then
+        skill:setMsg(plan.msg)
+    end
+
+    return plan.totalDamage
 end
 
 -- passed to handleSinglePhysicalHit() inside xi.mobskills.mobPhysicalMove() and handleSingleRangedHit() inside xi.mobskills.mobRangedMove()
