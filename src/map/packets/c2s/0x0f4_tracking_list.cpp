@@ -26,6 +26,7 @@
 #include "entities/char_entity.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateTrackingList / ProcessTrackingList / NewTrackingListHandler (6529); plan mappacket.ClientTrackingListRuntimePlanFor.
 auto GP_CLI_COMMAND_TRACKING_LIST::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

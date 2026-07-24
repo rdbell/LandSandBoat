@@ -25,6 +25,7 @@
 #include "enums/alter_ego_points.h"
 #include "packets/s2c/0x08e_alter_ego_points.h"
 
+// Go host pure half: packetsystem.ValidateAlterEgoPoints / ProcessAlterEgoPoints / NewAlterEgoPointsHandler (6528); plan mappacket.ClientAlterEgoPointsActionFor.
 auto GP_CLI_COMMAND_ALTER_EGO_POINTS::validate(MapSession* PSession, const CCharEntity* PChar) const
     -> PacketValidationResult
 {

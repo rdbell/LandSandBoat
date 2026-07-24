@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x113_currencies_1.h"
 
+// Go host pure half: packetsystem.ValidateCurrencies1 / ProcessCurrencies1 / NewCurrencies1Handler (6526); plan mappacket.ClientCurrencies1ActionFor.
 auto GP_CLI_COMMAND_CURRENCIES_1::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameters to validate for this packet.
