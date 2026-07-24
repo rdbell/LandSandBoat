@@ -163,6 +163,7 @@ inline constexpr const char* ConnectClearCommandHelp = "Run periodic session cle
 
 // ConnectMainExitCode is the fixed process exit code after connectApp->run().
 // Production always returns 0 regardless of run outcome.
+// Go host pure half: loginsession.ConnectMain always returns this (slice 6372).
 inline constexpr int ConnectMainExitCode = 0;
 
 } // namespace loginHelpers

@@ -30,6 +30,8 @@
 
 int main(int argc, char** argv)
 {
+    // Go host pure half: loginsession.NewConnectApplication + ConnectMain (slice 6372)
+    // drives application.Application.Run and always returns ConnectMainExitCode.
     const auto connectApp = std::make_unique<ConnectApplication>(argc, argv);
 
     connectApp->run();
