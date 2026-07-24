@@ -21,6 +21,7 @@
 
 #include "state.h"
 #include "entities/base_entity.h"
+#include "ai/states/state_set_target.h"
 
 CState::CState(CBaseEntity* PEntity, uint16 _targid)
 : m_PEntity(PEntity)
@@ -78,7 +79,10 @@ void CState::ResetEntryTime()
 
 void CState::SetTarget(uint16 _targid)
 {
-    if (!m_PTarget || _targid != m_targid || (m_PTarget && m_PTarget->targid != _targid))
+    const bool   hasTarget     = m_PTarget != nullptr;
+    const uint16 entityTargid  = hasTarget ? m_PTarget->targid : 0;
+    // Dual-wire: statehelpers::ShouldUpdateTarget (slice 6317).
+    if (statehelpers::ShouldUpdateTarget(hasTarget, m_targid, _targid, entityTargid))
     {
         m_targid = _targid;
         UpdateTarget(_targid);

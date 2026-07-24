@@ -2747,6 +2747,8 @@ set(SOURCES
     test_synth_update_6315.cpp
     test_item_update_6316.h
     test_item_update_6316.cpp
+    test_state_set_target_6317.h
+    test_state_set_target_6317.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
