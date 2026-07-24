@@ -541,6 +541,7 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
 
 int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSession, UsePreviousKey usePreviousKey)
 {
+    // Go host pure half: mapwire.AggregateOutgoingQueue / PacketQueue (slice 6390).
     TracyZoneScoped;
 
     preparePacket(buff, PSession);
@@ -761,6 +762,7 @@ void MapNetworking::finalizePacket(uint8* buff, size_t* buffsize, size_t PacketS
 
     blowfish_t* pbfkey = nullptr;
 
+    // Go host pure half: mapwire.SelectLiveOutgoingKey (slice 6390).
     if (mapnetworkinghelpers::ShouldUsePreviousKeyForOutgoingPacket(
             PSession->blowfish.status == BLOWFISH_PENDING_ZONE,
             usePreviousKey == UsePreviousKey::Yes))
