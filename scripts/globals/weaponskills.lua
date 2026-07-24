@@ -807,6 +807,27 @@ end
 -- params: ftpMod, wsc_str, wsc_dex, wsc_vit, wsc_agi, wsc_int, wsc_mnd, wsc_chr,
 --         ele (xi.element.FIRE), skill (xi.skill.STAFF)
 
+-- fINT component of a magic weaponskill, from the attacker's dStat minus the
+-- target's INT.
+--
+-- The three branches differ in more than their multiplier: ranged and CHR
+-- weaponskills clamp without flooring, so a CHR result can be fractional, while
+-- the default branch adds a flat 8 and floors *after* clamping. The CHR bound
+-- is also two orders of magnitude wider than the others.
+xi.weaponskills.magicWeaponskillFint = function(isRanged, dStatIsCHR, statDelta)
+    if isRanged then
+        -- TODO: ranged magic WS are universal in it's (AGI-INT)*2
+        return utils.clamp(statDelta * 2, -32, 32)
+    elseif dStatIsCHR then
+        -- TODO: unknown lower cap but on dINT it normally mirrors https://www.bg-wiki.com/ffxi/Primal_Rend
+        return utils.clamp(statDelta * 1.5, -651, 651)
+    end
+
+    -- But other magic WS vary. Some don't even have a component, the general
+    -- case is dINT/2 + 8
+    return math.floor(utils.clamp(8 + statDelta / 2, -32, 32))
+end
+
 xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, tp, action, primaryMsg)
     -- Set up conditions and wsParams used for calculating weaponskill damage
     local attack =
@@ -842,13 +863,7 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
 
     -- TODO: ranged magic WS are universal in it's (AGI-INT)*2
     -- But other magic WS vary. Some don't even have a component, the general case is dINT/2 + 8
-    if attack.slot == xi.slot.RANGED then
-        fint = utils.clamp((attacker:getStat(dStat) - target:getStat(xi.mod.INT)) * 2, -32, 32)
-    elseif dStat == xi.mod.CHR then
-        fint = utils.clamp((attacker:getStat(dStat) - target:getStat(xi.mod.INT)) * 1.5, -651, 651) -- TODO: unknown lower cap but on dINT it normally mirrors https://www.bg-wiki.com/ffxi/Primal_Rend
-    else
-        fint = math.floor(utils.clamp(8 + (attacker:getStat(dStat) - target:getStat(xi.mod.INT)) / 2, -32, 32))
-    end
+    fint = xi.weaponskills.magicWeaponskillFint(attack.slot == xi.slot.RANGED, dStat == xi.mod.CHR, attacker:getStat(dStat) - target:getStat(xi.mod.INT))
 
     -- Magic-based WSes never miss, so we don't need to worry about calculating a miss, only if a shadow absorbed it.
     if not shadowAbsorb(target) then
