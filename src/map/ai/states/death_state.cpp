@@ -24,6 +24,7 @@
 #include "ai/ai_container.h"
 #include "death_entry.h"
 #include "death_pc_update.h"
+#include "death_raise_plan.h"
 #include "death_raisable_hold.h"
 #include "entities/battle_entity.h"
 #include "entities/char_entity.h"
@@ -130,13 +131,20 @@ bool CDeathState::Update(timer::time_point tick)
 
 void CDeathState::allowSendRaise()
 {
-    m_raiseTime = timer::now() + 12s;
-    m_raiseSent = false;
+    // Dual-wire: deathraise::allowSendRaisePlan (slice 6318).
+    const auto plan = deathraise::allowSendRaisePlan(timer::now());
+    m_raiseTime     = plan.raiseTime;
+    m_raiseSent     = plan.raiseSent;
 }
 
 void CDeathState::acceptRaise()
 {
-    m_raiseAcceptedTime = timer::now();
-    m_raiseAccepted     = true;
-    Complete();
+    // Dual-wire: deathraise::acceptRaisePlan (slice 6318).
+    const auto plan     = deathraise::acceptRaisePlan(timer::now());
+    m_raiseAcceptedTime = plan.raiseAcceptedTime;
+    m_raiseAccepted     = plan.raiseAccepted;
+    if (plan.complete)
+    {
+        Complete();
+    }
 }
