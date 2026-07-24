@@ -754,4 +754,14 @@ inline auto HasNextRoamTurn(const int currentTurn, const std::size_t turnCount) 
     return currentTurn < static_cast<int>(turnCount);
 }
 
+// LookAtWithinDistance returns the flat radius for LookAt admission.
+// Mirrors: isWithinDistance(owner, point, 0.1f, true)
+// Formula (slice 6358): 0.1
+// Dual-wire of Go pathfind.LookAtWithinDistance (look_at.go).
+// Call site: CPathFind::LookAt before ShouldUpdateLookAt.
+inline auto LookAtWithinDistance() -> float
+{
+    return 0.1f;
+}
+
 } // namespace pathfindstatushelpers

@@ -589,9 +589,11 @@ bool CPathFind::FindClosestPath(const position_t& start, const position_t& end)
 
 void CPathFind::LookAt(const position_t& point)
 {
-    // Dual-wire: pathfindstatushelpers::ShouldUpdateLookAt (slice 6342).
+    // Dual-wire: LookAtWithinDistance (6358) + ShouldUpdateLookAt (6342).
     // Avoid unpredictable results if we're too close.
-    if (pathfindstatushelpers::ShouldUpdateLookAt(isWithinDistance(m_POwner->loc.p, point, 0.1f, true)))
+    // Go host pure half: pathfind.LookAt composes distance + worldAngle (6358).
+    if (pathfindstatushelpers::ShouldUpdateLookAt(isWithinDistance(
+            m_POwner->loc.p, point, pathfindstatushelpers::LookAtWithinDistance(), true)))
     {
         m_POwner->loc.p.rotation = worldAngle(m_POwner->loc.p, point);
         m_POwner->updatemask |= UPDATE_POS;

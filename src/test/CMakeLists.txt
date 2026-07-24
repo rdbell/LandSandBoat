@@ -2827,6 +2827,8 @@ set(SOURCES
     test_pathfind_follow_iterate_6356.cpp
     test_pathfind_finish_next_turn_6357.h
     test_pathfind_finish_next_turn_6357.cpp
+    test_pathfind_look_at_host_6358.h
+    test_pathfind_look_at_host_6358.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
