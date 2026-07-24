@@ -22,6 +22,7 @@
 #include "death_state.h"
 
 #include "ai/ai_container.h"
+#include "death_entry.h"
 #include "death_pc_update.h"
 #include "death_raisable_hold.h"
 #include "entities/battle_entity.h"
@@ -44,14 +45,26 @@ CDeathState::CDeathState(CBattleEntity* PEntity, timer::duration death_time)
 , m_deathTime(death_time)
 , m_raiseTime(GetEntryTime() + TIME_TO_SEND_RERAISE_MENU)
 {
-    m_PEntity->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Death, EffectNotice::Silent);
-
-    m_PEntity->animation = ANIMATION_DEATH;
-    m_PEntity->updatemask |= UPDATE_HP;
-    if (m_PEntity->PAI->PathFind)
-    {
-        m_PEntity->PAI->PathFind->Clear();
-    }
+    // Ordered construction side-effects (slice 6295 / deathentry):
+    // DelStatus Death Silent → ANIMATION_DEATH → UPDATE_HP → PathFind clear if present.
+    deathentry::ApplyConstructionEffects(
+        [this]()
+        {
+            m_PEntity->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Death, EffectNotice::Silent);
+        },
+        [this]()
+        {
+            m_PEntity->animation = ANIMATION_DEATH;
+        },
+        [this]()
+        {
+            m_PEntity->updatemask |= UPDATE_HP;
+        },
+        m_PEntity->PAI->PathFind != nullptr,
+        [this]()
+        {
+            m_PEntity->PAI->PathFind->Clear();
+        });
 }
 
 bool CDeathState::Update(timer::time_point tick)
