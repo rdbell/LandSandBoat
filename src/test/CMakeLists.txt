@@ -2805,6 +2805,8 @@ set(SOURCES
     test_recv_parse_login_host_6389.cpp
     test_send_parse_queue_host_6390.h
     test_send_parse_queue_host_6390.cpp
+    test_send_parse_host_6391.h
+    test_send_parse_host_6391.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

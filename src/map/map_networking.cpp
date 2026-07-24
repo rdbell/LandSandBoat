@@ -541,7 +541,8 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
 
 int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSession, UsePreviousKey usePreviousKey)
 {
-    // Go host pure half: mapwire.AggregateOutgoingQueue / PacketQueue (slice 6390).
+    // Go host pure half: mapwire.AggregateOutgoingQueue / PacketQueue (slice 6390);
+    // ApplySendParse compress+finalize host (slice 6391).
     TracyZoneScoped;
 
     preparePacket(buff, PSession);
