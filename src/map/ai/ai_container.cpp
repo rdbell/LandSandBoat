@@ -631,7 +631,9 @@ void CAIContainer::checkQueueImmediately()
 
 bool CAIContainer::Internal_Despawn(bool instantDespawn)
 {
-    if (!IsCurrentState<CDespawnState>())
+    const bool isCurrentDespawnState = IsCurrentState<CDespawnState>();
+    // Outer not-already-despawning admission (slice 6300 dual-wire).
+    if (aicontainerhelpers::InternalDespawnAllowed(isCurrentDespawnState))
     {
         return ForceChangeState<CDespawnState>(PEntity, instantDespawn);
     }

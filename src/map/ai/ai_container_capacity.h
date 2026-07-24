@@ -361,10 +361,44 @@ inline auto InternalDisengageHasBattleEntity(const bool hasBattleEntity) -> bool
 // ownership remain host/deferred. Sibling dual-wires left alone:
 // CanDispatch / CanChangeState / InternalEngage* / InternalChangeTarget* /
 // InternalDisengage* free functions. Internal_Despawn, Accept_Raise, and
-// skill Internal_* untargetable checks are out of scope.
+// skill Internal_* untargetable checks are out of scope (6300 and later).
 inline auto InternalDieHasBattleEntity(const bool hasBattleEntity) -> bool
 {
     return hasBattleEntity;
+}
+
+// InternalDespawnAllowed reports whether CAIContainer::Internal_Despawn
+// may ForceChangeState into CDespawnState.
+// Mirrors:
+//
+//   if (!IsCurrentState<CDespawnState>()) {
+//       return ForceChangeState<CDespawnState>(PEntity, instantDespawn);
+//   }
+//   return false;
+//
+// Formula (slice 6300):
+//   !isCurrentDespawnState
+//
+// isCurrentDespawnState — host IsCurrentState<CDespawnState>()
+// true  → already despawning; host returns false without ForceChangeState
+// false → host ForceChangeState<CDespawnState>(PEntity, instantDespawn);
+//         return its result
+//
+// Dual-wire of Go aicontainer.InternalDespawnAllowed
+// (internal/aicontainer/internal_despawn.go). Host injects the current-state
+// type check so production and tests share one pure surface (same pattern as
+// CanDispatch / InternalDieHasBattleEntity).
+// Call site: CAIContainer::Internal_Despawn outer admission.
+// ForceChangeState/enterState object graph, CDespawnState ctor/Update
+// (already 0770/6299), public Despawn() controller-vs-Internal_Despawn
+// branch, Accept_Raise, skill Internal_* untargetable checks, Tick
+// prevent-action park, and full PAI ownership remain host/deferred.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState /
+// InternalEngage* / InternalChangeTarget* / InternalDisengage* /
+// InternalDie* free functions.
+inline auto InternalDespawnAllowed(const bool isCurrentDespawnState) -> bool
+{
+    return !isCurrentDespawnState;
 }
 
 } // namespace aicontainerhelpers
