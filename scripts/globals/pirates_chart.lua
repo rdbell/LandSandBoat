@@ -116,6 +116,7 @@ local function removeFromConfrontation(player)
     player:setLocalVar('pChartActive', 0)
 end
 
+-- Go pure half: pirateschart.PlanResetEventFromInjects (6615).
 local function resetEvent(members)
     local qm4          = GetNPCByID(valkID.npc.PIRATE_CHART_QM)
     local panicTaru    = GetNPCByID(valkID.npc.PIRATE_CHART_TARU)
@@ -186,6 +187,7 @@ local function tryTaruEmote(elapsedTime, phase)
     return phase + 1
 end
 
+-- Go pure half: pirateschart.PlanRangeTickFromInjects/PlanRangeCompletionFromInjects (6615).
 local function rangeChecking(npc, spawner, timeToMobSpawn, timeOfLastCheck, wasInRangeLastCheck, timeOutOfRangeLastMsg, phase)
     if eventIsNotValid(npc) then
         resetEvent(spawner:getParty())
