@@ -32,6 +32,9 @@
 #include "utils/charutils.h"
 #include "utils/zoneutils.h"
 
+// Go host pure half: packetsystem.ValidateMapRect / ProcessMapRect /
+// NewMapRectHandler (6472); plans ClientMapRectClassifyRectID + MogHouseExitFor.
+
 namespace
 {
 
