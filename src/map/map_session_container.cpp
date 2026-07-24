@@ -505,6 +505,7 @@ void MapSessionContainer::destroySession(IPP ipp)
     }
 }
 
+// Go host pure half: mapsession.ApplyDestroySession (6419).
 void MapSessionContainer::destroySession(MapSession* map_session_data)
 {
     TracyZoneScoped;
