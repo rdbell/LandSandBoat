@@ -281,6 +281,7 @@ xi.campaign.getMedalRank = function(player)
 end
 
 -- Sigil NPC
+-- Go pure half: campaign.PlanSigilTriggerFromInjects/PlanSigilTriggerStartParams (6609).
 xi.campaign.sigilOnTrigger = function(player, npc)
     local baseEvent     = sigilNpcInfo[player:getZoneID()][1]
     local freelanceMask = 0
@@ -342,7 +343,7 @@ xi.campaign.sigilOnEventUpdate = function(player, csid, option, npc)
     end
 end
 
--- Go pure half: campaign.PlanSigilEventFinish apply/shop dispatch (6583).
+-- Go pure half: campaign.PlanSigilEventFinish (6583); PlanSigilEventFinishFromInjects (6609).
 xi.campaign.sigilOnEventFinish = function(player, csid, option, npc)
     local zoneId = player:getZoneID()
 
