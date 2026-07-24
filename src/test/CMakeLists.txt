@@ -2641,6 +2641,8 @@ set(SOURCES
     test_zone_char_sync_target_bonus_6259.cpp
     test_zone_char_sync_existing_6260.h
     test_zone_char_sync_existing_6260.cpp
+    test_zone_char_sync_candidate_6261.h
+    test_zone_char_sync_candidate_6261.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

@@ -64,6 +64,7 @@
 #include "zone_char_sync_relationship.h"
 #include "zone_char_sync_target_bonus.h"
 #include "zone_char_sync_existing.h"
+#include "zone_char_sync_candidate.h"
 #include "zone_conditional_npc.h"
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
@@ -1110,13 +1111,13 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
     {
         if (PCurrentChar != nullptr && PChar != PCurrentChar && PChar->SpawnPCList.find(PCurrentChar->id) == PChar->SpawnPCList.end())
         {
-            if (PCurrentChar->m_isGMHidden || PChar->m_moghouseID != PCurrentChar->m_moghouseID)
+            if (!zonecharsynccandidate::HasEligibleIdentity(PCurrentChar->m_isGMHidden, PChar->m_moghouseID == PCurrentChar->m_moghouseID))
             {
                 return;
             }
 
             float charDistance = distance(PChar->loc.p, PCurrentChar->loc.p);
-            if (!zoneentityvisibility::ShouldConsiderPC(charDistance) || !isWithinVerticalDistance(PChar, PCurrentChar))
+            if (!zonecharsynccandidate::IsInCandidateRange(zoneentityvisibility::ShouldConsiderPC(charDistance), isWithinVerticalDistance(PChar, PCurrentChar)))
             {
                 return;
             }
@@ -1129,8 +1130,9 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
             auto  bonus      = bonusIter == scoreBonus.end() ? 0 : bonusIter->second;
             float totalScore = significanceScore + bonus - charDistance;
 
-            if (PChar->SpawnPCList.size() < CHARACTER_SYNC_LIMIT_MAX ||
-                (!spawnedCharacters.empty() && totalScore > spawnedCharacters.top().first))
+            const auto swapPoolEmpty  = spawnedCharacters.empty();
+            const auto lowestSwapScore = swapPoolEmpty ? 0.0f : spawnedCharacters.top().first;
+            if (zonecharsynccandidate::ShouldAdmit(PChar->SpawnPCList.size(), CHARACTER_SYNC_LIMIT_MAX, swapPoolEmpty, lowestSwapScore, totalScore))
             {
                 // Is nearby and should be considered as a candidate to be spawned
                 candidateCharacters.emplace(totalScore, PCurrentChar);
