@@ -248,6 +248,7 @@ void CNavMesh::unload()
     m_navMesh = nullptr;
 }
 
+// Go host pure half: navmesh.ApplyInstallNavMesh / ApplyUnload (6433).
 bool CNavMesh::installNavMesh(dtNavMesh* newNavMesh)
 {
     if (!newNavMesh)
