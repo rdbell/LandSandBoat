@@ -26,6 +26,9 @@
 #include "universal_container.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateTradeRes / ProcessTradeRes /
+// NewTradeResHandler (6451); plan mappacket.ClientTradeResActionPlanFor.
+
 namespace
 {
 
