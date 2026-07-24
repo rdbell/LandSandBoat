@@ -1443,6 +1443,7 @@ auto runPathfindResumeClosest6353SelfTests() -> bool;
 auto runPathfindPathAroundClear6354SelfTests() -> bool;
 auto runPathfindPruneWaitAdvance6355SelfTests() -> bool;
 auto runPathfindFollowIterate6356SelfTests() -> bool;
+auto runPathfindFinishNextTurn6357SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3720,6 +3721,7 @@ namespace
         ok = runPathfindPathAroundClear6354SelfTests() && ok;
         ok = runPathfindPruneWaitAdvance6355SelfTests() && ok;
         ok = runPathfindFollowIterate6356SelfTests() && ok;
+        ok = runPathfindFinishNextTurn6357SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

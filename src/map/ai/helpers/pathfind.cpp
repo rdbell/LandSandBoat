@@ -714,11 +714,15 @@ void CPathFind::FinishedPath()
     // Dual-wire: pathfindstatushelpers::AdvancedCurrentTurn (slice 6356).
     m_currentTurn = pathfindstatushelpers::AdvancedCurrentTurn(m_currentTurn);
 
-    const auto action = pathfindfinishedhelpers::Resolve(m_currentTurn < m_turnPoints.size(), IsPatrolling(), m_POwner->PAI->IsRoaming());
+    // Dual-wire: pathfindstatushelpers::HasNextRoamTurn (slice 6357).
+    const auto action = pathfindfinishedhelpers::Resolve(
+        pathfindstatushelpers::HasNextRoamTurn(m_currentTurn, m_turnPoints.size()),
+        IsPatrolling(),
+        m_POwner->PAI->IsRoaming());
 
     if (action == pathfindfinishedhelpers::Action::NextTurn)
     {
-        // move on to next turn
+        // Host half (slice 6357): FindPath to next roam turn; clear on failure.
         position_t& nextTurn = m_turnPoints[m_currentTurn];
 
         bool result = FindPath(m_POwner->loc.p, nextTurn);

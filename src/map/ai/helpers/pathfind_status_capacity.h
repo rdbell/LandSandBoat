@@ -744,4 +744,14 @@ inline auto WaitDeadlineFrom(const int64_t now, const int64_t wait) -> int64_t
     return now + wait;
 }
 
+// HasNextRoamTurn reports whether FinishedPath should path to the next roam turn.
+// Mirrors after m_currentTurn++: m_currentTurn < m_turnPoints.size()
+// Formula (slice 6357): currentTurn < turnCount
+// Dual-wire of Go pathfind.HasNextRoamTurn (finish_path_next_turn.go).
+// Call site: CPathFind::FinishedPath Resolve first argument.
+inline auto HasNextRoamTurn(const int currentTurn, const std::size_t turnCount) -> bool
+{
+    return currentTurn < static_cast<int>(turnCount);
+}
+
 } // namespace pathfindstatushelpers
