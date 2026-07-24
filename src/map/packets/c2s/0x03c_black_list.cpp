@@ -23,6 +23,8 @@
 
 #include "utils/blacklistutils.h"
 
+// Go host pure half: packetsystem.ValidateBlackList / ProcessBlackList /
+// NewBlackListHandler (6457); plan mappacket.ClientBlackListActionFor.
 auto GP_CLI_COMMAND_BLACK_LIST::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameter to validate for this packet.
