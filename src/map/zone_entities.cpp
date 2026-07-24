@@ -64,6 +64,7 @@
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
 #include "zone_pc_despawn_gate.h"
+#include "zone_pc_despawn_dispatch.h"
 #include "zone_pc_distance_gate.h"
 #include "zone_pc_candidate_gate.h"
 #include "wide_scan_policy.h"
@@ -741,7 +742,7 @@ void CZoneEntities::DespawnPC(CCharEntity* PChar)
         const auto itr           = PCurrentChar->SpawnPCList.find(PChar->id);
         const auto isInSpawnList = itr != PCurrentChar->SpawnPCList.end();
 
-        if (isInSpawnList)
+        if (zoneentityvisibility::ShouldDispatchPCDespawn(isInSpawnList))
         {
             PCurrentChar->SpawnPCList.erase(itr);
             PCurrentChar->updateEntityPacket(PChar, ENTITY_DESPAWN, UPDATE_NONE);

@@ -1343,6 +1343,7 @@ auto runZoneNearbySpawn6249SelfTests() -> bool;
 auto runMobPartyLink6250SelfTests() -> bool;
 auto runZoneWideScan6251SelfTests() -> bool;
 auto runZonePacketBroadcast6252SelfTests() -> bool;
+auto runZonePCDespawnDispatch6253SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3520,6 +3521,7 @@ namespace
         ok = runMobPartyLink6250SelfTests() && ok;
         ok = runZoneWideScan6251SelfTests() && ok;
         ok = runZonePacketBroadcast6252SelfTests() && ok;
+        ok = runZonePCDespawnDispatch6253SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;
