@@ -1744,120 +1744,118 @@ xi.mobskills.mobDrainMove = function(mob, target, drainType, drain, attackType, 
     -- Is this also reflected in the damage messaging on retail?
     -- Currently we do not return the clamped drain afterwards so the damage messaging will not be updated to reflect this.
 
-    if not target:isUndead() then
-        if drainType == xi.mobskills.drainType.MP then
-            drain = math.min(drain, target:getMP())
+    local isUndead = target:isUndead()
+    local available = 0
 
-            target:delMP(drain)
-            mob:addMP(drain)
-
-            return xi.msg.basic.SKILL_DRAIN_MP
-        elseif drainType == xi.mobskills.drainType.TP then
-            drain = math.min(drain, target:getTP())
-
-            target:delTP(drain)
-            mob:addTP(drain)
-
-            return xi.msg.basic.SKILL_DRAIN_TP
-        elseif drainType == xi.mobskills.drainType.HP then
-            drain = math.min(drain, target:getHP())
-
-            target:takeDamage(drain, mob, attackType, damageType)
-            mob:addHP(drain)
-
-            return xi.msg.basic.SKILL_DRAIN_HP
-        end
-    else
-        drain = math.min(drain, target:getHP())
-
-        target:takeDamage(drain, mob, attackType, damageType)
-        return xi.msg.basic.DAMAGE
+    if isUndead then
+        available = target:getHP()
+    elseif drainType == xi.mobskills.drainType.MP then
+        available = target:getMP()
+    elseif drainType == xi.mobskills.drainType.TP then
+        available = target:getTP()
+    elseif drainType == xi.mobskills.drainType.HP then
+        available = target:getHP()
     end
 
-    return xi.msg.basic.SKILL_NO_EFFECT
+    local plan = xi.mobskills.planDrainMove(isUndead, drainType, drain, available)
+
+    if not plan.applies then
+        return plan.message
+    end
+
+    drain = plan.amount
+
+    if plan.damagesTarget then
+        target:takeDamage(drain, mob, attackType, damageType)
+    elseif drainType == xi.mobskills.drainType.MP then
+        target:delMP(drain)
+    elseif drainType == xi.mobskills.drainType.TP then
+        target:delTP(drain)
+    end
+
+    if plan.healsMob then
+        if drainType == xi.mobskills.drainType.MP then
+            mob:addMP(drain)
+        elseif drainType == xi.mobskills.drainType.TP then
+            mob:addTP(drain)
+        else
+            mob:addHP(drain)
+        end
+    end
+
+    return plan.message
 end
 
-local drainEffectCorrelation =
-{
-    [xi.effect.STR_DOWN] = xi.effect.STR_BOOST,
-    [xi.effect.DEX_DOWN] = xi.effect.DEX_BOOST,
-    [xi.effect.AGI_DOWN] = xi.effect.AGI_BOOST,
-    [xi.effect.VIT_DOWN] = xi.effect.VIT_BOOST,
-    [xi.effect.MND_DOWN] = xi.effect.MND_BOOST,
-    [xi.effect.INT_DOWN] = xi.effect.INT_BOOST,
-    [xi.effect.CHR_DOWN] = xi.effect.CHR_BOOST,
-}
-
 xi.mobskills.mobDrainAttribute = function(mob, target, typeEffect, power, tick, duration)
-    if not drainEffectCorrelation[typeEffect] then
+    local boostEffect = xi.mobskills.drainAttributeBoost(typeEffect)
+
+    if not boostEffect then
         return xi.msg.basic.SKILL_NO_EFFECT
     end
 
     local results = xi.mobskills.mobStatusEffectMove(mob, target, typeEffect, power, tick, duration)
+    local planBoost, message, applyBoost = xi.mobskills.drainAttributePlan(typeEffect, results)
 
-    if results == xi.msg.basic.SKILL_ENFEEB_IS then
-        mob:addStatusEffect(drainEffectCorrelation[typeEffect], { power = power, duration = duration, origin = mob, tick = tick })
-
-        return xi.msg.basic.ATTR_DRAINED
+    if applyBoost then
+        mob:addStatusEffect(planBoost, { power = power, duration = duration, origin = mob, tick = tick })
     end
 
-    return xi.msg.basic.SKILL_MISS
+    return message
 end
 
 xi.mobskills.mobDrainStatusEffectMove = function(mob, target)
-    -- If target has Hysteria, no message skip rest
-    if mob:hasStatusEffect(xi.effect.HYSTERIA) then
-        return xi.msg.basic.NONE
+    local hasHysteria = mob:hasStatusEffect(xi.effect.HYSTERIA)
+    local stole       = false
+
+    if not hasHysteria then
+        -- try to drain buff
+        local effect = mob:stealStatusEffect(target)
+        stole = effect ~= 0
     end
 
-    -- try to drain buff
-    local effect = mob:stealStatusEffect(target)
-
-    if effect ~= 0 then
-        return xi.msg.basic.EFFECT_DRAINED
-    end
-
-    return xi.msg.basic.SKILL_NO_EFFECT
+    return xi.mobskills.drainStatusEffectMessage(hasHysteria, stole)
 end
 
 -- Adds a status effect to a target
 xi.mobskills.mobStatusEffectMove = function(mob, target, typeEffect, power, tick, duration, subType, subPower, tier)
-    if target:canGainStatusEffect(typeEffect, power) then
+    local canGain    = target:canGainStatusEffect(typeEffect, power)
+    local immune     = false
+    local resistant  = false
+    local nullified  = false
+    local resistRate = 0
+
+    if canGain then
         -- Check immunity. TODO: We dont fetch elements.
-        if xi.data.statusEffect.isTargetImmune(target, typeEffect, xi.element.NONE) then
-            return xi.msg.basic.SKILL_MISS -- <user> uses <skill>, but misses <target>.
+        immune = xi.data.statusEffect.isTargetImmune(target, typeEffect, xi.element.NONE)
 
         -- Check resist traits. TODO: We do not fetch action objects, so we cannot set action modifiers.
-        elseif xi.data.statusEffect.isTargetResistant(mob, target, typeEffect) then
-            -- action:setModifier(xi.msg.actionModifier.RESIST) -- Resist!
-            return xi.msg.basic.SKILL_MISS                  -- <user> uses <skill>, but misses <target>.
+        if not immune then
+            resistant = xi.data.statusEffect.isTargetResistant(mob, target, typeEffect)
+        end
 
         -- Check effect incompatibilities.
-        elseif xi.data.statusEffect.isEffectNullified(target, typeEffect, 0) then
-            return xi.msg.basic.SKILL_MISS -- <user> uses <skill>, but misses <target>.
+        if not immune and not resistant then
+            nullified = xi.data.statusEffect.isEffectNullified(target, typeEffect, 0)
         end
 
-        local element    = mob:getStatusEffectElement(typeEffect) -- TODO: Do something.
-        local resistRate = xi.combat.magicHitRate.calculateResistRate(mob, target, 0, 0, 0, element, xi.mod.INT, typeEffect, 0)
-        if resistRate >= 0.25 then
-            local totalDuration = math.floor(duration * resistRate)
-            target:addStatusEffect(typeEffect, { power = power, duration = totalDuration, origin = mob, tick = tick, subType = subType, subPower = subPower, tier = tier })
-
-            return xi.msg.basic.SKILL_ENFEEB_IS
+        if not immune and not resistant and not nullified then
+            local element = mob:getStatusEffectElement(typeEffect) -- TODO: Do something.
+            resistRate    = xi.combat.magicHitRate.calculateResistRate(mob, target, 0, 0, 0, element, xi.mod.INT, typeEffect, 0)
         end
-
-        return xi.msg.basic.SKILL_MISS -- resist !
     end
 
-    return xi.msg.basic.SKILL_NO_EFFECT -- no effect
+    local plan = xi.mobskills.planStatusEffectMove(canGain, immune, resistant, nullified, duration, resistRate)
+
+    if plan.applyEffect then
+        target:addStatusEffect(typeEffect, { power = power, duration = plan.totalDuration, origin = mob, tick = tick, subType = subType, subPower = subPower, tier = tier })
+    end
+
+    return plan.message
 end
 
 -- similar to statuseffect move except it will only take effect if facing
 xi.mobskills.mobGazeMove = function(mob, target, typeEffect, power, tick, duration)
-    if
-        target:isFacing(mob) and
-        mob:isInfront(target)
-    then
+    if xi.mobskills.gazeApplies(target:isFacing(mob), mob:isInfront(target)) then
         return xi.mobskills.mobStatusEffectMove(mob, target, typeEffect, power, tick, duration)
     end
 
@@ -1865,15 +1863,13 @@ xi.mobskills.mobGazeMove = function(mob, target, typeEffect, power, tick, durati
 end
 
 xi.mobskills.mobBuffMove = function(mob, typeEffect, power, tick, duration, subType, subPower)
-    if mob:addStatusEffect(typeEffect, { power = power, duration = duration, origin = mob, tick = tick, subType = subType, subPower = subPower }) then
-        return xi.msg.basic.SKILL_GAIN_EFFECT
-    end
+    local added = mob:addStatusEffect(typeEffect, { power = power, duration = duration, origin = mob, tick = tick, subType = subType, subPower = subPower })
 
-    return xi.msg.basic.SKILL_NO_EFFECT
+    return xi.mobskills.buffMoveMessage(added)
 end
 
 xi.mobskills.mobHealMove = function(target, healAmount)
-    healAmount = math.min(healAmount, target:getMaxHP() - target:getHP())
+    healAmount = xi.mobskills.mobHealAmount(healAmount, target:getHP(), target:getMaxHP())
 
     target:wakeUp()
     target:addHP(healAmount)
@@ -2031,6 +2027,132 @@ end
 -- SDT, resist, and shell-style damage adjustment are forced to 1 — day/weather
 -- and MAB still apply, then absorb, nullify, and the fixed 0.5 hybrid scale.
 -- Callers still own OneForAll and Stoneskin.
+-- Pure halves of drain / status / heal / gaze helpers (OmegaXI slice 6667).
+-- Host residual: resource writes, takeDamage, immunity/resist lookups, facing.
+
+xi.mobskills.planDrainMove = function(isUndead, drainType, requested, available)
+    if isUndead then
+        return {
+            amount        = math.min(requested, available),
+            message       = xi.msg.basic.DAMAGE,
+            damagesTarget = true,
+            healsMob      = false,
+            applies       = true,
+        }
+    end
+
+    if drainType == xi.mobskills.drainType.HP then
+        return {
+            amount        = math.min(requested, available),
+            message       = xi.msg.basic.SKILL_DRAIN_HP,
+            damagesTarget = true,
+            healsMob      = true,
+            applies       = true,
+        }
+    elseif drainType == xi.mobskills.drainType.MP then
+        return {
+            amount        = math.min(requested, available),
+            message       = xi.msg.basic.SKILL_DRAIN_MP,
+            damagesTarget = false,
+            healsMob      = true,
+            applies       = true,
+        }
+    elseif drainType == xi.mobskills.drainType.TP then
+        return {
+            amount        = math.min(requested, available),
+            message       = xi.msg.basic.SKILL_DRAIN_TP,
+            damagesTarget = false,
+            healsMob      = true,
+            applies       = true,
+        }
+    end
+
+    return {
+        amount        = 0,
+        message       = xi.msg.basic.SKILL_NO_EFFECT,
+        damagesTarget = false,
+        healsMob      = false,
+        applies       = false,
+    }
+end
+
+xi.mobskills.mobHealAmount = function(healAmount, currentHP, maxHP)
+    local missing = maxHP - currentHP
+
+    if missing < 0 then
+        return 0
+    end
+
+    return math.min(healAmount, missing)
+end
+
+xi.mobskills.planStatusEffectMove = function(canGain, immune, resistant, nullified, duration, resistRate)
+    if not canGain then
+        return { message = xi.msg.basic.SKILL_NO_EFFECT, applyEffect = false, totalDuration = 0 }
+    end
+
+    if immune or resistant or nullified then
+        return { message = xi.msg.basic.SKILL_MISS, applyEffect = false, totalDuration = 0 }
+    end
+
+    if resistRate >= 0.25 then
+        return {
+            message       = xi.msg.basic.SKILL_ENFEEB_IS,
+            applyEffect   = true,
+            totalDuration = math.floor(duration * resistRate),
+        }
+    end
+
+    return { message = xi.msg.basic.SKILL_MISS, applyEffect = false, totalDuration = 0 }
+end
+
+xi.mobskills.gazeApplies = function(targetFacingMob, mobInFrontOfTarget)
+    return targetFacingMob and mobInFrontOfTarget
+end
+
+xi.mobskills.buffMoveMessage = function(added)
+    if added then
+        return xi.msg.basic.SKILL_GAIN_EFFECT
+    end
+
+    return xi.msg.basic.SKILL_NO_EFFECT
+end
+
+-- STR_DOWN..CHR_DOWN (136..142) map to STR_BOOST..CHR_BOOST (80..86).
+xi.mobskills.drainAttributeBoost = function(downEffect)
+    if downEffect < xi.effect.STR_DOWN or downEffect > xi.effect.CHR_DOWN then
+        return nil
+    end
+
+    return downEffect - (xi.effect.STR_DOWN - xi.effect.STR_BOOST)
+end
+
+xi.mobskills.drainAttributePlan = function(downEffect, enfeebleMessage)
+    local boost = xi.mobskills.drainAttributeBoost(downEffect)
+
+    if not boost then
+        return nil, xi.msg.basic.SKILL_NO_EFFECT, false
+    end
+
+    if enfeebleMessage == xi.msg.basic.SKILL_ENFEEB_IS then
+        return boost, xi.msg.basic.ATTR_DRAINED, true
+    end
+
+    return boost, xi.msg.basic.SKILL_MISS, false
+end
+
+xi.mobskills.drainStatusEffectMessage = function(hasHysteria, stoleEffect)
+    if hasHysteria then
+        return xi.msg.basic.NONE
+    end
+
+    if stoleEffect then
+        return xi.msg.basic.EFFECT_DRAINED
+    end
+
+    return xi.msg.basic.SKILL_NO_EFFECT
+end
+
 -- Pure halves of mobMagicalMove / mobBreathMove base damage and mitigation
 -- (OmegaXI slice 6666). Hosts inject entity multipliers; these keep the math
 -- testable without entities.
