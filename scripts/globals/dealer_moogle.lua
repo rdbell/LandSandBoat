@@ -3380,6 +3380,7 @@ end
 xi.dealerMoogle.onEventUpdate = function(player, csid, option, npc)
 end
 
+-- Go pure half: dealermoogle.PlanEventFinishDisposition gate/access/route (6589).
 xi.dealerMoogle.onEventFinish = function(player, csid, option, npc)
     local cs = csidLookup[player:getZoneID()][1] + 1
 
