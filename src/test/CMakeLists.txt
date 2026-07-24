@@ -2765,6 +2765,8 @@ set(SOURCES
     test_state_error_msg_6324.cpp
     test_state_is_completed_6325.h
     test_state_is_completed_6325.cpp
+    test_state_was_exit_delayed_6326.h
+    test_state_was_exit_delayed_6326.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

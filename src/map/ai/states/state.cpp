@@ -25,6 +25,7 @@
 #include "ai/states/state_error_msg.h"
 #include "ai/states/state_is_completed.h"
 #include "ai/states/state_set_target.h"
+#include "ai/states/state_was_exit_delayed.h"
 
 CState::CState(CBaseEntity* PEntity, uint16 _targid)
 : m_PEntity(PEntity)
@@ -66,7 +67,8 @@ timer::time_point CState::GetEntryTime() const
 
 bool CState::WasExitDelayed()
 {
-    return m_wasDelayed;
+    // Dual-wire: statehelpers::WasExitDelayed (slice 6326).
+    return statehelpers::WasExitDelayed(m_wasDelayed);
 }
 
 void CState::DelayExitTime(std::chrono::milliseconds delayMilliseconds)
