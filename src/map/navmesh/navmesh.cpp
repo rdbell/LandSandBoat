@@ -270,6 +270,7 @@ bool CNavMesh::installNavMesh(dtNavMesh* newNavMesh)
     return true;
 }
 
+// Go host pure half: navmesh.SaveNavMeshFile / EncodeNavMeshSetForSave (6430).
 bool CNavMesh::save(const std::string& path) const
 {
     if (!m_navMesh || path.empty())

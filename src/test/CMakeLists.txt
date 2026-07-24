@@ -2883,6 +2883,8 @@ set(SOURCES
     test_navmesh_furthest_point_host_6428.cpp
     test_navmesh_find_random_position_host_6429.h
     test_navmesh_find_random_position_host_6429.cpp
+    test_navmesh_save_host_6430.h
+    test_navmesh_save_host_6430.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
