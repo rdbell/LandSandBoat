@@ -45,6 +45,7 @@
 #include "utils/charutils.h"
 #include "utils/petutils.h"
 
+// Go host pure half: packetsystem.ValidateGameOK / ProcessGameOK / NewGameOKHandler (6554); plan mappacket.ClientGameOKActionPlanFor.
 auto GP_CLI_COMMAND_GAMEOK::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
