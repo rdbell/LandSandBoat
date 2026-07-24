@@ -146,6 +146,9 @@ void ConsoleService::registerCommand(const std::string& name, const std::string&
 
 void ConsoleService::registerDefaultCommands()
 {
+    // Go host pure half: console.RegisterDefaultCommands / AttachConsole (slice 6376)
+    // wires help/version/reload_settings/log_level/lua/crash/crash_worker/throw/exit
+    // on console.Service with side-effect injects.
     registerCommand(
         "help", "Print a list of available console commands", [this](std::vector<std::string>& inputs)
         {
@@ -231,6 +234,7 @@ void ConsoleService::registerDefaultCommands()
 
 void ConsoleService::run()
 {
+    // Go host pure half: console.ShouldStartConsoleLoop(!CI, isatty) (slice 6376).
     if (isatty(0))
     {
         application_.scheduler().postToWorkerThread(consoleLoop());

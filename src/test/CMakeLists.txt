@@ -2777,6 +2777,8 @@ set(SOURCES
     test_search_main_host_6374.cpp
     test_map_main_host_6375.h
     test_map_main_host_6375.cpp
+    test_console_default_commands_host_6376.h
+    test_console_default_commands_host_6376.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
