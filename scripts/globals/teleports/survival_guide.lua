@@ -99,6 +99,7 @@ xi.survivalGuide.onTrigger = function(player)
     player:startEvent(8500, 0, param, player:getGil(), g1, g2, g3, g4, expansions)
 end
 
+-- Go pure half: survivalguide.PlanEventUpdateFromInjects/PlanUpdateEventParams (6611).
 xi.survivalGuide.onEventUpdate = function(player, csid, option, npc)
     local choice = bit.band(option, 0xFF)
 
@@ -147,7 +148,7 @@ xi.survivalGuide.onEventUpdate = function(player, csid, option, npc)
     end
 end
 
--- Go pure half: survivalguide.PlanEventFinish allMogTablets free cost (6585).
+-- Go pure half: survivalguide.PlanEventFinish (6585); PlanEventFinishFromInjects (6611).
 xi.survivalGuide.onEventFinish = function(player, eventId, option, npc)
     if eventId ~= 8500 then
         return
