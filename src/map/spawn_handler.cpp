@@ -30,6 +30,7 @@
 #include "lua/luautils.h"
 #include "spawn_capacity.h"
 #include "spawn_slot.h"
+#include "spawn_tod_despawn.h"
 #include "utils/zoneutils.h"
 #include "zone.h"
 
@@ -210,35 +211,20 @@ void SpawnHandler::Tick(const timer::time_point now)
 // This is not tied to the 30s task.
 void SpawnHandler::onTOTDChange(const vanadiel_time::TOTD totd) const
 {
-    switch (totd)
+    const auto trigger = spawntoddespawn::triggerFor(totd);
+    if (trigger == spawntoddespawn::Trigger::None)
     {
-        case vanadiel_time::TOTD::NEWDAY:
-        {
-            zone_->ForEachMob(
-                [](CMobEntity* PMob)
-                {
-                    if (spawnhelpers::ShouldDespawnOnNewDay(static_cast<uint8>(PMob->m_SpawnType)))
-                    {
-                        PMob->SetDespawnTime(1ms);
-                    }
-                });
-        }
-        break;
-        case vanadiel_time::TOTD::DAWN:
-        {
-            zone_->ForEachMob(
-                [](CMobEntity* PMob)
-                {
-                    if (spawnhelpers::ShouldDespawnOnDawn(static_cast<uint8>(PMob->m_SpawnType)))
-                    {
-                        PMob->SetDespawnTime(1ms);
-                    }
-                });
-        }
-        break;
-        default:
-            break;
+        return;
     }
+
+    zone_->ForEachMob(
+        [trigger](CMobEntity* PMob)
+        {
+            if (spawntoddespawn::shouldDespawn(trigger, static_cast<uint8>(PMob->m_SpawnType)))
+            {
+                PMob->SetDespawnTime(spawntoddespawn::delay());
+            }
+        });
 }
 
 // On Weather change, process all relevant despawns.

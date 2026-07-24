@@ -2651,6 +2651,8 @@ set(SOURCES
     test_zone_entity_lookup_6264.cpp
     test_zone_playtime_save_6265.h
     test_zone_playtime_save_6265.cpp
+    test_spawn_tod_despawn_6266.h
+    test_spawn_tod_despawn_6266.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
