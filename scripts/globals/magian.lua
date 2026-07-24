@@ -266,6 +266,7 @@ end
 -- since onItemEquip/unEquip functions only exist for two items.
 -- NOTE: This function isn't the most efficient, but is only executed on server
 -- start, or magian reload.
+-- Go pure half: magian.RegisterTrialListenerRequiredItemIDs / CollectPlayerTrialsByTradeItemID (6576).
 xi.magian.registerTrialListeners = function()
     xi.items = xi.items or {}
 
