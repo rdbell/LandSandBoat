@@ -138,6 +138,7 @@ auto anyInstalledFurnishing(CCharEntity* PChar, const uint8 selfCat, const uint8
 
 } // namespace
 
+// Go host pure half: packetsystem.ValidateMyRoomLayout / ProcessMyRoomLayout / NewMyRoomLayoutHandler (6562); plan mappacket.ClientMyRoomLayoutRuntimePlanFor.
 auto GP_CLI_COMMAND_MYROOM_LAYOUT::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

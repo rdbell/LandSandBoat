@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "packets/basic.h"
 
+// Go host pure half: packetsystem.ValidateChocoboRaceReq / ProcessChocoboRaceReq / NewChocoboRaceReqHandler (6563); action mappacket.ClientChocoboRaceReqActionFor.
 auto GP_CLI_COMMAND_CHOCOBO_RACE_REQ::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
