@@ -65,6 +65,7 @@
 #include "zone_pc_spawn_gate.h"
 #include "zone_pc_despawn_gate.h"
 #include "zone_pc_despawn_dispatch.h"
+#include "zone_spatial_grid_rebuild.h"
 #include "zone_pc_distance_gate.h"
 #include "zone_pc_candidate_gate.h"
 #include "wide_scan_policy.h"
@@ -796,7 +797,7 @@ void CZoneEntities::rebuildSpatialGrid()
     for (const auto& [_, entity] : m_npcList)
     {
         spatialGrid_.add(entity);
-        if (static_cast<CNpcEntity*>(entity)->alwaysRelevant())
+        if (zoneentityvisibility::ShouldCacheAlwaysRelevantNPC(static_cast<CNpcEntity*>(entity)->alwaysRelevant()))
         {
             alwaysRelevantNpcs_.push_back(entity);
         }

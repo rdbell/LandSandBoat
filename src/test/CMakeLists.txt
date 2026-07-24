@@ -2627,6 +2627,8 @@ set(SOURCES
     test_zone_packet_broadcast_6252.cpp
     test_zone_pc_despawn_dispatch_6253.h
     test_zone_pc_despawn_dispatch_6253.cpp
+    test_zone_spatial_grid_rebuild_6254.h
+    test_zone_spatial_grid_rebuild_6254.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
