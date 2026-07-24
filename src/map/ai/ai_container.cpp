@@ -212,16 +212,23 @@ bool CAIContainer::Internal_Engage(uint16 targetid)
     if (entity)
     {
         // TODO: remove m_battleTarget if possible (need to check disengage)
-        //  Check if an entity can change to the attack state
-        //  Allow entity with prevent action effect to very briefly switch to the attack state to be properly engaged
-        if (CanChangeState() || (GetCurrentState() && GetCurrentState()->IsCompleted()) || entity->StatusEffectContainer->HasPreventActionEffect(true))
+        // Check if an entity can change to the attack state.
+        // Allow entity with prevent action effect to very briefly switch to the
+        // attack state to be properly engaged (slice 6291 dual-wire).
+        auto* const current                    = GetCurrentState();
+        const bool  hasCurrentState            = current != nullptr;
+        const bool  currentIsCompleted         = hasCurrentState && current->IsCompleted();
+        const bool  preventActionIgnoringCharm = entity->StatusEffectContainer->HasPreventActionEffect(true);
+        if (aicontainerhelpers::InternalEngageForceAttackAllowed(
+                CanChangeState(), hasCurrentState, currentIsCompleted, preventActionIgnoringCharm))
         {
             if (ForceChangeState<CAttackState>(entity, targetid))
             {
                 entity->OnEngage(*static_cast<CAttackState*>(GetCurrentState()));
 
                 // Resume being inactive if entity has a status effect preventing them from doing actions
-                if (entity->StatusEffectContainer->HasPreventActionEffect(true))
+                if (aicontainerhelpers::InternalEngageShouldResumeInactive(
+                        entity->StatusEffectContainer->HasPreventActionEffect(true)))
                 {
                     entity->PAI->Inactive(0ms, false);
                 }
