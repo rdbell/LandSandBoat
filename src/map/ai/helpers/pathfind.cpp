@@ -206,7 +206,8 @@ bool CPathFind::WarpTo(const position_t& point, float maxDistance)
 
 void CPathFind::ResumePatrol()
 {
-    if (m_patrolFlags & PATHFLAG_PATROL)
+    // Dual-wire: pathfindstatushelpers::ShouldResumePatrol (slice 6341).
+    if (pathfindstatushelpers::ShouldResumePatrol((m_patrolFlags & PATHFLAG_PATROL) != 0))
     {
         m_pathFlags        = m_patrolFlags;
         m_points           = m_patrol;

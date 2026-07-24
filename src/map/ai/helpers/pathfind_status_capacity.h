@@ -110,4 +110,14 @@ inline auto ValidPosition(const bool meshValid) -> bool
     return meshValid;
 }
 
+// ShouldResumePatrol reports whether ResumePatrol may restore m_patrol.
+// Mirrors: if (m_patrolFlags & PATHFLAG_PATROL) { ... }
+// Formula (slice 6341): isPatrol
+// Dual-wire of Go pathfind.ShouldResumePatrol (resume_patrol.go).
+// Call site: CPathFind::ResumePatrol admission. Closest-point loop host-owned.
+inline auto ShouldResumePatrol(const bool isPatrol) -> bool
+{
+    return isPatrol;
+}
+
 } // namespace pathfindstatushelpers
