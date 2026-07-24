@@ -167,11 +167,12 @@ local optionToSongLookup =
     [834] = 196, -- Fighters of the Crystal
 }
 
+-- Go pure half: symphoniccurator.PlanEventUpdateChangeMusic (6621).
 xi.symphonic_curator.onEventUpdate = function(player, csid, option, npc)
     player:changeMusic(6, optionToSongLookup[option])
 end
 
--- Go pure half: symphoniccurator.PlanEventFinishFromInjects previous song (6603).
+-- Go pure half: symphoniccurator.PlanEventFinishFromInjects (6603); ChangeMusic/SetStoredSong pack (6621).
 xi.symphonic_curator.onEventFinish = function(player, csid, option, npc)
     if option == 0 then
         -- Reset
