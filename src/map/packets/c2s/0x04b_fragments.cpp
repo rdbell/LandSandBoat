@@ -30,6 +30,7 @@
 #include "packets/s2c/0x04d_fragments_fishranking.h"
 #include "packets/s2c/0x04d_fragments_servmes.h"
 
+// Go host pure half: packetsystem.ValidateFragments / ProcessFragments / NewFragmentsHandler (6564); plan mappacket.ClientFragmentsRuntimePlanFor.
 auto GP_CLI_COMMAND_FRAGMENTS::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // TODO: Document field values and validate.
