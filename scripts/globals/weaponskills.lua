@@ -877,10 +877,76 @@ end
 
 -- Sets up the necessary calcParams for a melee WS before passing it to calculateRawWSDmg. When the raw
 -- damage is returned, handles reductions based on target resistances and passes off to xi.weaponskills.takeWeaponskillDamage.
+-- Pure gearAcc from gear fTP: ceil(gearFTP * 100). TODO: separate gear fTP and acc.
+xi.weaponskills.gearAccFromFTP = function(gearFTP)
+    return math.ceil(gearFTP * 100)
+end
+
+-- Pure mustMiss for physical WS: Perfect Dodge, or ALL_MISS unless hitsHigh.
+xi.weaponskills.physicalMustMiss = function(hasPerfectDodge, hasAllMiss, hitsHigh)
+    return hasPerfectDodge or (hasAllMiss and not hitsHigh)
+end
+
+-- Pure Sneak Attack applicability: has SA and (behind or Hide or target Doubt).
+xi.weaponskills.sneakApplicable = function(hasSneakAttack, isBehind, hasHide, targetHasDoubt)
+    return hasSneakAttack and (isBehind or hasHide or targetHasDoubt)
+end
+
+-- Pure Trick Attack applicability: taChar is present.
+xi.weaponskills.trickApplicable = function(hasTaChar)
+    return hasTaChar
+end
+
+-- Pure Assassin trait gate for forced first crit on TA.
+xi.weaponskills.assassinApplicable = function(trickApplicable, hasAssassinTrait)
+    return trickApplicable and hasAssassinTrait
+end
+
+-- Pure guaranteed hit: SA or TA applicable.
+xi.weaponskills.guaranteedHit = function(sneakApplicable, trickApplicable)
+    return sneakApplicable or trickApplicable
+end
+
+-- Pure forced first crit: SA or Assassin+TA.
+xi.weaponskills.forcedFirstCrit = function(sneakApplicable, assassinApplicable)
+    return sneakApplicable or assassinApplicable
+end
+
+-- Pure Jump vs normal bonus fTP / Acc / WSmods injects.
+-- Returns bonusfTP, bonusAcc, bonusWSmods.
+xi.weaponskills.physicalBonusInjects = function(isJump, gearFTP, gearAcc, jumpAccBonus, wsAccMod, bonusWSmods)
+    if isJump then
+        return 0, jumpAccBonus, 0
+    end
+
+    return gearFTP, gearAcc + wsAccMod, bonusWSmods or 0
+end
+
+-- Pure accVaries add onto bonusAcc once fTP(tp, accVaries) is resolved.
+xi.weaponskills.bonusAccWithVaries = function(bonusAcc, accVariesFTP)
+    return bonusAcc + accVariesFTP
+end
+
+-- Pure hybrid magic add gate: hybridWS and target still has HP after physical.
+xi.weaponskills.hybridMagicApplies = function(hybridWS, targetHP, physicalFinalDmg)
+    return hybridWS and targetHP > physicalFinalDmg
+end
+
+-- Pure server weaponskill power multiply.
+xi.weaponskills.applyWeaponSkillPower = function(finalDmg, weaponSkillPower)
+    return finalDmg * weaponSkillPower
+end
+
+-- Pure ranged post-raw reduction product once rangedDmgTaken is injected:
+--   dmg * (1 + PIERCE_SDT/10000), then floor.
+xi.weaponskills.rangedWeaponskillMitigation = function(rangedDmgTakenResult, pierceSDT)
+    return math.floor(rangedDmgTakenResult * (1 + pierceSDT / 10000))
+end
+
 xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParams, tp, action, primaryMsg, taChar)
     -- Set up conditions and wsParams used for calculating weaponskill damage
     local gearFTP = xi.combat.physical.calculateFTPBonus(attacker)
-    local gearAcc = math.ceil(gearFTP * 100) -- TODO: Separate gear fTP and acc bonuses
+    local gearAcc = xi.weaponskills.gearAccFromFTP(gearFTP) -- TODO: Separate gear fTP and acc bonuses
     local attack =
     {
         ['type']       = xi.attackType.PHYSICAL,
@@ -896,14 +962,23 @@ xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParam
     calcParams.fSTR                    = xi.combat.physical.calculateMeleeStatFactor(attacker, target)
     calcParams.accStat                 = attacker:getACC()
     calcParams.melee                   = true
-    calcParams.mustMiss                = target:hasStatusEffect(xi.effect.PERFECT_DODGE) or (target:hasStatusEffect(xi.effect.ALL_MISS) and not wsParams.hitsHigh)
-    calcParams.sneakApplicable         = attacker:hasStatusEffect(xi.effect.SNEAK_ATTACK) and (attacker:isBehind(target) or attacker:hasStatusEffect(xi.effect.HIDE) or target:hasStatusEffect(xi.effect.DOUBT))
+    calcParams.mustMiss                = xi.weaponskills.physicalMustMiss(
+        target:hasStatusEffect(xi.effect.PERFECT_DODGE),
+        target:hasStatusEffect(xi.effect.ALL_MISS),
+        wsParams.hitsHigh
+    )
+    calcParams.sneakApplicable         = xi.weaponskills.sneakApplicable(
+        attacker:hasStatusEffect(xi.effect.SNEAK_ATTACK),
+        attacker:isBehind(target),
+        attacker:hasStatusEffect(xi.effect.HIDE),
+        target:hasStatusEffect(xi.effect.DOUBT)
+    )
     calcParams.taChar                  = taChar
-    calcParams.trickApplicable         = calcParams.taChar ~= nil
-    calcParams.assassinApplicable      = calcParams.trickApplicable and attacker:hasTrait(xi.trait.ASSASSIN)
-    calcParams.guaranteedHit           = calcParams.sneakApplicable or calcParams.trickApplicable
+    calcParams.trickApplicable         = xi.weaponskills.trickApplicable(calcParams.taChar ~= nil)
+    calcParams.assassinApplicable      = xi.weaponskills.assassinApplicable(calcParams.trickApplicable, attacker:hasTrait(xi.trait.ASSASSIN))
+    calcParams.guaranteedHit           = xi.weaponskills.guaranteedHit(calcParams.sneakApplicable, calcParams.trickApplicable)
     calcParams.mightyStrikesApplicable = attacker:hasStatusEffect(xi.effect.MIGHTY_STRIKES)
-    calcParams.forcedFirstCrit         = calcParams.sneakApplicable or calcParams.assassinApplicable
+    calcParams.forcedFirstCrit         = xi.weaponskills.forcedFirstCrit(calcParams.sneakApplicable, calcParams.assassinApplicable)
     calcParams.extraOffhandHit         = attacker:isDualWielding()
     calcParams.hybridHit               = wsParams.hybridWS
     calcParams.flourishEffect          = attacker:getStatusEffect(xi.effect.BUILDING_FLOURISH)
@@ -912,19 +987,17 @@ xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParam
     calcParams.attackType              = xi.attackType.PHYSICAL
 
     local isJump = wsParams.isJump or false
-    if isJump then
-        calcParams.bonusfTP    = 0
-        calcParams.bonusAcc    = attacker:getMod(xi.mod.JUMP_ACC_BONUS)
-        calcParams.bonusWSmods = 0
-    else
-        calcParams.bonusfTP    = gearFTP
-        calcParams.bonusAcc    = gearAcc + attacker:getMod(xi.mod.WSACC)
-        calcParams.bonusWSmods = wsParams.bonusWSmods or 0
-    end
+    calcParams.bonusfTP, calcParams.bonusAcc, calcParams.bonusWSmods = xi.weaponskills.physicalBonusInjects(
+        isJump,
+        gearFTP,
+        gearAcc,
+        attacker:getMod(xi.mod.JUMP_ACC_BONUS),
+        attacker:getMod(xi.mod.WSACC),
+        wsParams.bonusWSmods
+    )
 
     if wsParams.accVaries then
-        local accMod        = xi.weaponskills.fTP(tp, wsParams.accVaries)
-        calcParams.bonusAcc = calcParams.bonusAcc + accMod
+        calcParams.bonusAcc = xi.weaponskills.bonusAccWithVaries(calcParams.bonusAcc, xi.weaponskills.fTP(tp, wsParams.accVaries))
     end
 
     calcParams.firstHitRate = xi.weaponskills.getHitRate(attacker, target, calcParams.bonusAcc + 100, xi.attackAnimation.RIGHT_ATTACK)
@@ -937,7 +1010,7 @@ xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParam
 
     -- Add in magic damage for hybrid weaponskills
     -- Only procs if the mob still has HP remaining
-    if wsParams.hybridWS and target:getHP() > finaldmg then
+    if xi.weaponskills.hybridMagicApplies(wsParams.hybridWS, target:getHP(), finaldmg) then
         finaldmg = finaldmg + calculateHybridMagicDamage(tp, finaldmg, attacker, target, wsParams, calcParams, wsID)
     end
 
@@ -946,7 +1019,7 @@ xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParam
     attacker:delStatusEffect(xi.effect.SNEAK_ATTACK)
     attacker:delStatusEffectSilent(xi.effect.BUILDING_FLOURISH)
 
-    finaldmg            = finaldmg * xi.settings.main.WEAPON_SKILL_POWER -- Add server bonus
+    finaldmg            = xi.weaponskills.applyWeaponSkillPower(finaldmg, xi.settings.main.WEAPON_SKILL_POWER) -- Add server bonus
     calcParams.finalDmg = finaldmg
     finaldmg            = xi.weaponskills.takeWeaponskillDamage(target, attacker, wsParams, primaryMsg, attack, calcParams, action)
 
@@ -958,7 +1031,7 @@ end
 xi.weaponskills.doRangedWeaponskill = function(attacker, target, wsID, wsParams, tp, action, primaryMsg)
     -- Set up conditions and params used for calculating weaponskill damage
     local gearFTP = xi.combat.physical.calculateFTPBonus(attacker)
-    local gearAcc = math.ceil(gearFTP * 100) -- TODO: Separate gear fTP and acc bonuses
+    local gearAcc = xi.weaponskills.gearAccFromFTP(gearFTP) -- TODO: Separate gear fTP and acc bonuses
 
     local attack =
     {
@@ -967,6 +1040,15 @@ xi.weaponskills.doRangedWeaponskill = function(attacker, target, wsID, wsParams,
         ['weaponType'] = attacker:getWeaponSkillType(xi.slot.RANGED),
         ['damageType'] = attacker:getWeaponDamageType(xi.slot.RANGED),
     }
+
+    local _, bonusAcc, bonusWSmods = xi.weaponskills.physicalBonusInjects(
+        false,
+        gearFTP,
+        gearAcc,
+        0,
+        attacker:getMod(xi.mod.WSACC),
+        wsParams.bonusWSmods
+    )
 
     local calcParams =
     {
@@ -988,14 +1070,13 @@ xi.weaponskills.doRangedWeaponskill = function(attacker, target, wsID, wsParams,
         tpUsed                  = tp,
         bonusTP                 = wsParams.bonusTP or 0,
         bonusfTP                = gearFTP,
-        bonusAcc                = gearAcc + attacker:getMod(xi.mod.WSACC),
-        bonusWSmods             = wsParams.bonusWSmods or 0,
+        bonusAcc                = bonusAcc,
+        bonusWSmods             = bonusWSmods,
         attackType              = xi.attackType.RANGED,
     }
 
     if wsParams.accVaries then
-        local accMod        = xi.weaponskills.fTP(tp, wsParams.accVaries)
-        calcParams.bonusAcc = calcParams.bonusAcc + accMod
+        calcParams.bonusAcc = xi.weaponskills.bonusAccWithVaries(calcParams.bonusAcc, xi.weaponskills.fTP(tp, wsParams.accVaries))
     end
 
     -- Split Shot/Piercing Arrow and Empyreal Arrow/Detonator are confirmed for this. Theoretically Last Stand could have a bonus too, and if so it would likely be first hit only.
@@ -1015,17 +1096,18 @@ xi.weaponskills.doRangedWeaponskill = function(attacker, target, wsID, wsParams,
     attacker:delStatusEffect(xi.effect.STEALTH_SHOT)
 
     -- Calculate reductions
-    finaldmg = target:rangedDmgTaken(finaldmg)
-    finaldmg = finaldmg * (1 + target:getMod(xi.mod.PIERCE_SDT) / 10000)
-    finaldmg = math.floor(finaldmg)
+    finaldmg = xi.weaponskills.rangedWeaponskillMitigation(
+        target:rangedDmgTaken(finaldmg),
+        target:getMod(xi.mod.PIERCE_SDT)
+    )
 
     -- Add in magic damage for hybrid weaponskills
     -- Only procs if the mob still has HP remaining
-    if wsParams.hybridWS and target:getHP() > finaldmg then
+    if xi.weaponskills.hybridMagicApplies(wsParams.hybridWS, target:getHP(), finaldmg) then
         finaldmg = finaldmg + calculateHybridMagicDamage(tp, finaldmg, attacker, target, wsParams, calcParams, wsID)
     end
 
-    finaldmg            = finaldmg * xi.settings.main.WEAPON_SKILL_POWER -- Add server bonus
+    finaldmg            = xi.weaponskills.applyWeaponSkillPower(finaldmg, xi.settings.main.WEAPON_SKILL_POWER) -- Add server bonus
     calcParams.finalDmg = finaldmg
 
     finaldmg = xi.weaponskills.takeWeaponskillDamage(target, attacker, wsParams, primaryMsg, attack, calcParams, action)
