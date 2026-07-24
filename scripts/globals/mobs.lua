@@ -582,6 +582,81 @@ local additionalEffects =
     },
 }
 
+-- Pure halves of xi.mob.onAddEffect, extracted so the proc and power maths are
+-- testable without entity or RNG access.
+
+-- The additional-effect definition for an xi.mob.ae value, or nil when unknown.
+xi.mob.additionalEffectData = function(effect)
+    return additionalEffects[effect]
+end
+
+-- Proc chance after the level-difference penalty. A target above the mob loses
+-- 5 points per level and the result is clamped to 5..95; a target at or below
+-- the mob's level keeps the unclamped base chance.
+xi.mob.addEffectProcChance = function(paramsChance, aeChance, dLevel)
+    local chance = paramsChance or aeChance or 100
+
+    if dLevel > 0 then
+        chance = chance - 5 * dLevel
+        chance = utils.clamp(chance, 5, 95)
+    end
+
+    return chance
+end
+
+-- A status add-effect lands only on a weak resist and an unafflicted target.
+xi.mob.addEffectStatusApplies = function(resist, targetHasEffect)
+    return resist > 0.5 and not targetHasEffect
+end
+
+-- Status duration after the min/max clamp and the resist scale.
+--
+-- NOTE: entries without minDuration/maxDuration (STUN, TERROR) fall through
+-- utils.clamp unchanged, so their duration is only scaled by resist.
+xi.mob.addEffectStatusDuration = function(paramsDuration, aeDuration, minDuration, maxDuration, resist)
+    local duration = paramsDuration or aeDuration
+
+    return utils.clamp(duration, minDuration, maxDuration) * resist
+end
+
+-- Attacker-minus-target stat delta feeding an immediate add-effect's power.
+-- Gains past 20 are halved and negative deltas floor at 0.
+xi.mob.addEffectDMod = function(mobStat, targetStat)
+    local dMod = mobStat - targetStat
+
+    if dMod > 20 then
+        dMod = 20 + (dMod - 20) / 2
+    end
+
+    -- This is a bad assumption, but it prevents some negative damage (healing)
+    -- when there otherwise shouldn't be
+    if dMod < 0 then
+        dMod = 0
+    end
+
+    return dMod
+end
+
+-- Base power of an immediate add-effect before elemental adjustment.
+xi.mob.addEffectBasePower = function(dMod, targetLvl, mobLvl, damage)
+    return dMod + targetLvl - mobLvl + damage / 2
+end
+
+-- Negative power becomes a healing message where one exists, and is otherwise
+-- dropped to zero. Returns the adjusted power and the message to report.
+xi.mob.addEffectNegativeAdjust = function(power, msg, negMsg)
+    if power >= 0 then
+        return power, msg
+    end
+
+    if negMsg then
+        -- outgoing action packets only support unsigned integers
+        return power * -1, negMsg
+    end
+
+    return 0, msg
+end
+
 --[[
     Helper function for xi.mob.onAddEffect that applies a status effect.
 --]]
@@ -592,12 +667,10 @@ local addEffectStatus = function(mob, target, ae, params)
         resist = applyResistanceAddEffect(mob, target, ae.ele, ae.eff)
     end
 
-    if resist > 0.5 and not target:hasStatusEffect(ae.eff) then
+    if xi.mob.addEffectStatusApplies(resist, target:hasStatusEffect(ae.eff)) then
         local power    = params.power or ae.power or 0
         local tick     = ae.tick or 0
-        local duration = params.duration or ae.duration
-
-        duration = utils.clamp(duration, ae.minDuration, ae.maxDuration) * resist
+        local duration = xi.mob.addEffectStatusDuration(params.duration, ae.duration, ae.minDuration, ae.maxDuration, resist)
 
         target:addStatusEffect(ae.eff, { power = power, duration = duration, origin = mob, tick = tick })
 
@@ -622,19 +695,13 @@ local addEffectImmediate = function(mob, target, damage, ae, params)
     if params.power then
         power = params.power
     elseif ae.mod then
-        local dMod = mob:getStat(ae.mod) - target:getStat(ae.mod)
-
-        if dMod > 20 then
-            dMod = 20 + (dMod - 20) / 2
-        end
-
-        -- This is a bad assumption, but it prevents some negative damage (healing) when there otherwise shouldn't be
         -- TODO: better understand damage add effects from mobs
-        if dMod < 0 then
-            dMod = 0
-        end
-
-        power = dMod + target:getMainLvl() - mob:getMainLvl() + damage / 2
+        power = xi.mob.addEffectBasePower(
+            xi.mob.addEffectDMod(mob:getStat(ae.mod), target:getStat(ae.mod)),
+            target:getMainLvl(),
+            mob:getMainLvl(),
+            damage
+        )
     end
 
     -- target:printToPlayer(string.format('Initial Power: %f', power)) -- DEBUG
@@ -650,15 +717,9 @@ local addEffectImmediate = function(mob, target, damage, ae, params)
 
     -- target:printToPlayer(string.format('Adjusted Power: %f', power)) -- DEBUG
 
-    local message = ae.msg
-    if power < 0 then
-        if ae.negMsg then
-            message = ae.negMsg
-            power   = power * -1 -- outgoing action packets only support unsigned integers. The "negative message" will also handle healing automagically deep inside core somewhere.
-        else
-            power = 0
-        end
-    end
+    -- The "negative message" also handles healing automagically deep inside core somewhere.
+    local message
+    power, message = xi.mob.addEffectNegativeAdjust(power, ae.msg, ae.negMsg)
 
     if power ~= 0 then
         if params.code then
@@ -691,13 +752,11 @@ xi.mob.onAddEffect = function(mob, target, damage, effect, params)
     local ae = additionalEffects[effect]
 
     if ae then
-        local chance = params.chance or ae.chance or 100
-        local dLevel = target:getMainLvl() - mob:getMainLvl()
-
-        if dLevel > 0 then
-            chance = chance - 5 * dLevel
-            chance = utils.clamp(chance, 5, 95)
-        end
+        local chance = xi.mob.addEffectProcChance(
+            params.chance,
+            ae.chance,
+            target:getMainLvl() - mob:getMainLvl()
+        )
 
         -- target:printToPlayer(string.format('Chance: %i', chance)) -- DEBUG
 
