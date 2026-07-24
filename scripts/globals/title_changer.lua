@@ -39,6 +39,7 @@ xi.titleChanger.onTrigger = function(player, eventId, titleInfo)
     )
 end
 
+-- Go pure half: titlechanger.PlanEventFinishWithGil gil affordability (6588).
 xi.titleChanger.onEventFinish = function(player, csid, option, eventId, titleInfo)
     if csid == eventId then
         local group = titleInfo[bit.rshift(option, 8) + 1]
