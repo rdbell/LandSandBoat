@@ -31,6 +31,7 @@
 #include "spawn_capacity.h"
 #include "spawn_can_spawn.h"
 #include "spawn_slot.h"
+#include "spawn_slot_registry.h"
 #include "spawn_tick_cleanup.h"
 #include "spawn_tick_slot.h"
 #include "spawn_tick_spawn.h"
@@ -49,7 +50,7 @@ SpawnHandler::~SpawnHandler() = default;
 auto SpawnHandler::getOrCreateSpawnSlot(uint32_t slotId) -> SpawnSlot*
 {
     auto& spawnSlot = spawnSlots_[slotId];
-    if (!spawnSlot)
+    if (spawnslotregistry::shouldCreateSlot(spawnSlot != nullptr))
     {
         spawnSlot = std::make_unique<SpawnSlot>();
     }
