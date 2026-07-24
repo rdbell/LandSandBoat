@@ -508,6 +508,9 @@ auto CAIContainer::Tick(timer::time_point tick) -> Task<void>
 
     co_await PEntity->Tick(tick);
 
+    // Go host pure half: aicontainer.Tick (slice 6369) orchestrates the phases
+    // below in this order: ActionQueue → Pathing → Controller → StateDrain → Park.
+
     // TODO: check this in the controller instead maybe? (might not want to check every tick)
     // Dual-wire: aicontainerhelpers::ShouldCheckActionQueue (slice 6362).
     // Go host pure half: aicontainer.TickActionQueue drives actionqueue.Check.
