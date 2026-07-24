@@ -456,7 +456,7 @@ void CZoneEntities::WeatherChange(Weather weather)
 
         if (PCurrentMob->getMobMod(MOBMOD_DETECTION) & DETECT_SCENT)
         {
-            PCurrentMob->m_disableScent = (weather == Weather::Rain || weather == Weather::Squall || weather == Weather::Blizzards);
+            PCurrentMob->m_disableScent = zonehelpers::ShouldDisableScentForWeather(weather);
         }
     }
 

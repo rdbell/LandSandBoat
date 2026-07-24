@@ -3,6 +3,7 @@
 #include "common/cbasetypes.h"
 #include "common/timer.h"
 
+#include "enums/weather.h"
 #include "map_constants.h"
 
 #include <chrono>
@@ -541,6 +542,17 @@ inline auto ShouldRejectInvalidWeather(const bool isValidEnum) -> bool
 inline auto ShouldSkipSameWeather(const bool alreadyCurrent) -> bool
 {
     return alreadyCurrent;
+}
+
+// ShouldDisableScentForWeather mirrors the weather membership test in
+// CZoneEntities::WeatherChange. The caller applies this only to mobs whose
+// MOBMOD_DETECTION contains DETECT_SCENT.
+//
+// Rain, squall, and blizzards disable scent detection; every other weather
+// leaves it enabled.
+inline auto ShouldDisableScentForWeather(const Weather weather) -> bool
+{
+    return weather == Weather::Rain || weather == Weather::Squall || weather == Weather::Blizzards;
 }
 
 // WeatherPacketOffsetMin/Max for xirand::GetRandomNumber(4, 28) half-open.

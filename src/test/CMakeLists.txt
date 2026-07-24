@@ -2613,6 +2613,8 @@ set(SOURCES
     test_ranged_delete_barrage_3018.cpp
     test_zone_reject_invalid_weather_3019.h
     test_zone_reject_invalid_weather_3019.cpp
+    test_zone_scent_weather_6247.h
+    test_zone_scent_weather_6247.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
