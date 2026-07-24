@@ -906,4 +906,26 @@ inline auto IsActionQueueEmpty(const bool isEmpty) -> bool
     return isEmpty;
 }
 
+// ShouldSuspendCurrentOnEnter reports whether enterState should push the
+// existing current state onto the stack before installing next.
+// Mirrors: if (m_currentState) { m_stateStack.push(std::move(m_currentState)); }
+// Formula (slice 6327): hasCurrentState
+// Dual-wire of Go aicontainer.ShouldSuspendCurrentOnEnter (enter_resume_state.go).
+// Call site: CAIContainer::enterState. unique_ptr moves remain host.
+inline auto ShouldSuspendCurrentOnEnter(const bool hasCurrentState) -> bool
+{
+    return hasCurrentState;
+}
+
+// ShouldResumeStackedState reports whether resumeNextState should pop and
+// install the suspended state (true) versus clear current (false when empty).
+// Mirrors: if (m_stateStack.empty()) { reset } else { pop install }
+// Formula (slice 6327): !stackEmpty
+// Dual-wire of Go aicontainer.ShouldResumeStackedState (enter_resume_state.go).
+// Call site: CAIContainer::resumeNextState. unique_ptr moves remain host.
+inline auto ShouldResumeStackedState(const bool stackEmpty) -> bool
+{
+    return !stackEmpty;
+}
+
 } // namespace aicontainerhelpers

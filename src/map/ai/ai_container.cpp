@@ -414,8 +414,9 @@ CState* CAIContainer::GetCurrentState()
 
 void CAIContainer::enterState(std::unique_ptr<CState> next)
 {
+    // Dual-wire: aicontainerhelpers::ShouldSuspendCurrentOnEnter (slice 6327).
     // Suspend the state we're leaving beneath the new one, which becomes current.
-    if (m_currentState)
+    if (aicontainerhelpers::ShouldSuspendCurrentOnEnter(static_cast<bool>(m_currentState)))
     {
         m_stateStack.push(std::move(m_currentState));
     }
@@ -424,8 +425,9 @@ void CAIContainer::enterState(std::unique_ptr<CState> next)
 
 void CAIContainer::resumeNextState()
 {
+    // Dual-wire: aicontainerhelpers::ShouldResumeStackedState (slice 6327).
     // The current state is finished; resume the one suspended beneath it, or go idle.
-    if (m_stateStack.empty())
+    if (!aicontainerhelpers::ShouldResumeStackedState(m_stateStack.empty()))
     {
         m_currentState.reset();
     }
