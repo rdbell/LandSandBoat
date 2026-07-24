@@ -1481,12 +1481,75 @@ xi.mobskills.mobBreathMove = function(mob, target, skill, action, skillParams)
     return returnInfo
 end
 
+-- Pure halves of the shared mob-skill helpers, extracted so the TP maths and
+-- selection policy are testable without entities.
+
+-- A skill only returns TP when it actually connected.
+xi.mobskills.skillTPReturnApplies = function(damage, hitsLanded)
+    return hitsLanded > 0 and damage > 0
+end
+
+-- Only ranged skills use the ranged delay; breath and magical skills take the
+-- melee hit TP return and the melee delay, same as physical.
+xi.mobskills.skillTPUsesRangedDelay = function(attackType)
+    return attackType == xi.attackType.RANGED
+end
+
+-- Extra hits past the first give 10 TP each, whatever the attack type.
+xi.mobskills.skillTPExtraHitBonus = function(hitsLanded)
+    return 10 * (hitsLanded - 1)
+end
+
+-- Save TP raises the mob's TP to the modifier's floor, never lowers it.
+xi.mobskills.saveTPFloor = function(currentTP, saveTPModifier)
+    if
+        saveTPModifier > 0 and
+        currentTP < saveTPModifier
+    then
+        return saveTPModifier
+    end
+
+    return currentTP
+end
+
+-- Which equipped slots an unequip effect strips: at most numberToUnequip, drawn
+-- without replacement. rollFunc(n) picks a 1-based index into what remains.
+xi.mobskills.unequipSelection = function(equippedSlots, numberToUnequip, rollFunc)
+    local remaining = {}
+    for _, slot in ipairs(equippedSlots) do
+        table.insert(remaining, slot)
+    end
+
+    local chosen = {}
+    for _ = 1, math.min(numberToUnequip, #remaining) do
+        table.insert(chosen, table.remove(remaining, rollFunc(#remaining)))
+    end
+
+    return chosen
+end
+
+-- Avatar summoning-skill overcap, plus a flat bonus while a burstable
+-- skillchain is up.
+xi.mobskills.petMagicAccuracyBonus = function(isAvatar, masterSkillLevel, masterMaxSkillLevel, hasPetID, skillchainTier)
+    local petAccBonus = 0
+
+    if isAvatar then
+        petAccBonus = utils.clamp(masterSkillLevel - masterMaxSkillLevel, 0, 200)
+    end
+
+    if
+        hasPetID and
+        skillchainTier > 0
+    then
+        petAccBonus = petAccBonus + 25
+    end
+
+    return petAccBonus
+end
+
 xi.mobskills.calculateSkillTPReturn = function(damage, mob, skill, target, attackType, hitsLanded)
     -- Calculate TP return of the mob skill.
-    if
-        hitsLanded > 0 and
-        damage > 0
-    then
+    if xi.mobskills.skillTPReturnApplies(damage, hitsLanded) then
         local mobTPReturn    = 0
         local targetTPReturn = 0
 
@@ -1505,7 +1568,7 @@ xi.mobskills.calculateSkillTPReturn = function(damage, mob, skill, target, attac
         end
 
         -- Handle additional hit TP return for mob.
-        mobTPReturn = mobTPReturn + 10 * (hitsLanded - 1) -- Extra hits give 10 TP each
+        mobTPReturn = mobTPReturn + xi.mobskills.skillTPExtraHitBonus(hitsLanded)
 
         -- Mob gains TP if skill hit the primary target.
         if skill:getPrimaryTargetID() == target:getID() then
@@ -1515,12 +1578,9 @@ xi.mobskills.calculateSkillTPReturn = function(damage, mob, skill, target, attac
         -- Targets hit gain TP
         target:addTP(targetTPReturn)
 
-        local saveTPModifier = mob:getMod(xi.mod.SAVETP)
-        if
-            saveTPModifier > 0 and
-            mob:getTP() < saveTPModifier
-        then
-            mob:setTP(saveTPModifier)
+        local flooredTP = xi.mobskills.saveTPFloor(mob:getTP(), mob:getMod(xi.mod.SAVETP))
+        if flooredTP ~= mob:getTP() then
+            mob:setTP(flooredTP)
         end
     end
 end
@@ -1707,9 +1767,8 @@ xi.mobskills.unequipRandomSlots = function(target, numberToUnequip)
         end
     end
 
-    for _ = 1, math.min(numberToUnequip, #slots) do
-        local index = math.random(#slots)
-        target:unequipItem(table.remove(slots, index))
+    for _, slot in ipairs(xi.mobskills.unequipSelection(slots, numberToUnequip, math.random)) do
+        target:unequipItem(slot)
     end
 end
 
@@ -1781,28 +1840,17 @@ xi.mobskills.handleShadowConsumption = function(target, skill, params, shadowsTo
 end
 
 xi.mobskills.calculatePetMagicAccuracyBonus = function(mob, target, actionElement)
-    local petAccBonus = 0
-
-    if mob:isPet() and mob:getMaster() ~= nil then
-        local master = mob:getMaster()
-
-        if mob:isAvatar() then
-            local masterSkillLevel    = master:getSkillLevel(xi.skill.SUMMONING_MAGIC)
-            local masterMaxSkillLevel = master:getMaxSkillLevel(mob:getMainLvl(), xi.job.SMN, xi.skill.SUMMONING_MAGIC)
-
-            petAccBonus = utils.clamp(masterSkillLevel - masterMaxSkillLevel, 0, 200)
-        end
-
-        local skillchainTier, _ = xi.magicburst.formMagicBurst(target, actionElement)
-        if
-            mob:getPetID() > 0 and
-            skillchainTier > 0
-        then
-            petAccBonus = petAccBonus + 25
-        end
+    if not (mob:isPet() and mob:getMaster() ~= nil) then
+        return 0
     end
 
-    return petAccBonus
+    local master             = mob:getMaster()
+    local isAvatar           = mob:isAvatar()
+    local masterSkillLevel   = isAvatar and master:getSkillLevel(xi.skill.SUMMONING_MAGIC) or 0
+    local masterMaxSkill     = isAvatar and master:getMaxSkillLevel(mob:getMainLvl(), xi.job.SMN, xi.skill.SUMMONING_MAGIC) or 0
+    local skillchainTier, _  = xi.magicburst.formMagicBurst(target, actionElement)
+
+    return xi.mobskills.petMagicAccuracyBonus(isAvatar, masterSkillLevel, masterMaxSkill, mob:getPetID() > 0, skillchainTier)
 end
 
 xi.mobskills.handleHybridDamage = function(mob, target, physicalDamage, element)
