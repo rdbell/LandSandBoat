@@ -34,6 +34,7 @@
 #include "utils/charutils.h"
 #include "utils/jailutils.h"
 
+// Go host pure half: packetsystem.ValidateEquipInspect / ProcessEquipInspect / NewEquipInspectHandler (6567); plan mappacket.ClientEquipInspectRuntimePlanFor.
 auto GP_CLI_COMMAND_EQUIP_INSPECT::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
