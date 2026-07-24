@@ -2751,6 +2751,8 @@ set(SOURCES
     test_state_set_target_6317.cpp
     test_death_raise_plan_6318.h
     test_death_raise_plan_6318.cpp
+    test_trigger_update_6319.h
+    test_trigger_update_6319.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
