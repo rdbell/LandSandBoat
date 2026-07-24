@@ -2757,6 +2757,8 @@ set(SOURCES
     test_aicontainer_state_cleanup_host_6364.cpp
     test_aicontainer_action_queue_park_host_6365.h
     test_aicontainer_action_queue_park_host_6365.cpp
+    test_aicontainer_enter_resume_host_6366.h
+    test_aicontainer_enter_resume_host_6366.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
