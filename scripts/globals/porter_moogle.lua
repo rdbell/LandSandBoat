@@ -238,6 +238,7 @@ end
 -- desc : Begins the storage or retrieval process based on the items
 --        supplied in the trade.
 -----------------------------------
+-- Go pure half: portermoogle.PlanTradeDisposition store/retrieve composition (6593).
 xi.porter_moogle.onTrade = function(player, trade, eventTable)
     local slipId, slipCount = getSlipId(trade)
 
