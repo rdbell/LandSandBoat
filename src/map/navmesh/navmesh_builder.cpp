@@ -61,6 +61,7 @@ auto transform(const std::array<float, 9>& rot, const std::array<float, 3>& tran
 
 } // namespace
 
+// Go host pure half: navmesh.NewBuilder / GatherTrianglesInAABB (6415).
 NavMeshBuilder::NavMeshBuilder(const IXiMesh& xiMesh)
 : xiMesh_(&xiMesh)
 , gridWidth_(xiMesh.gridWidth())
