@@ -2783,6 +2783,8 @@ set(SOURCES
     test_logging_init_show_host_6377.cpp
     test_zmq_io_loop_host_6378.h
     test_zmq_io_loop_host_6378.cpp
+    test_application_services_host_6379.h
+    test_application_services_host_6379.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

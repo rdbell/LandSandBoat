@@ -81,11 +81,13 @@ Application::Application(const ApplicationConfig& appConfig, int argc, char** ar
     ShowInfo("32-bit environment detected");
 #endif
 
+    // Go host pure half: application.WireServices attaches console + ZMQ (slice 6379).
     consoleService_ = std::make_unique<ConsoleService>(*this);
 }
 
 Application::~Application()
 {
+    // Go host pure half: application.ShutdownServices / Close (slice 6379).
     tryRestoreQuickEditMode();
     logging::ShutDown();
 }
@@ -198,6 +200,8 @@ void Application::tryRestoreQuickEditMode() const
 
 void Application::prepareLogging()
 {
+    // Go host pure half: application.PlanPrepareLogging / PrepareLoggingOnly /
+    // WireServices (slice 6379) select log path and call logging.InitializeLog.
     auto logFile    = fmt::format("log/{}-server.log", serverName_);
     bool appendDate = false;
 
@@ -220,6 +224,7 @@ void Application::prepareLogging()
 
 void Application::markLoaded()
 {
+    // Go host pure half: application.MarkLoaded (slice 6379).
     const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - startTime_).count();
 
     ShowInfoFmt("The {}-server is ready to work after {:.2f} seconds...", serverName_, elapsed);
