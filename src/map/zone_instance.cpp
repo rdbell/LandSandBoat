@@ -44,6 +44,11 @@ auto shouldSetInstanceWipeTimeOnExit(bool charsEmpty, bool failed, bool complete
 {
     return charsEmpty && !failed && !completed;
 }
+
+auto shouldRestoreInstance(bool registered) -> bool
+{
+    return registered;
+}
 } // namespace zoneinstance
 
 CZoneInstance::CZoneInstance(Scheduler& scheduler, MapConfig config, ZONEID ZoneID, REGION_TYPE RegionID, CONTINENT_TYPE ContinentID, uint8 levelRestriction)
@@ -215,7 +220,7 @@ void CZoneInstance::IncreaseZoneCounter(CCharEntity* PChar)
     {
         for (const auto& PInstance : m_InstanceList)
         {
-            if (PInstance->CharRegistered(PChar))
+            if (zoneinstance::shouldRestoreInstance(PInstance->CharRegistered(PChar)))
             {
                 PChar->PInstance = PInstance.get();
             }

@@ -176,6 +176,14 @@ auto testInstanceWipeExit() -> bool
     ok = expect(!zoneinstance::shouldSetInstanceWipeTimeOnExit(true, false, true), "complete instance skips wipe") && ok;
     return ok;
 }
+
+auto testInstanceRestore() -> bool
+{
+    bool ok = true;
+    ok = expect(zoneinstance::shouldRestoreInstance(true), "registered character selects candidate") && ok;
+    ok = expect(!zoneinstance::shouldRestoreInstance(false), "unregistered character skips candidate") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -190,5 +198,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testInstanceCleanup() && ok;
     ok      = testInstanceEntityLookup() && ok;
     ok      = testInstanceWipeExit() && ok;
+    ok      = testInstanceRestore() && ok;
     return ok;
 }
