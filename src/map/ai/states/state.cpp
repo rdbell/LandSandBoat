@@ -21,6 +21,7 @@
 
 #include "state.h"
 #include "entities/base_entity.h"
+#include "ai/states/state_complete.h"
 #include "ai/states/state_delay_exit.h"
 #include "ai/states/state_error_msg.h"
 #include "ai/states/state_is_completed.h"
@@ -57,7 +58,8 @@ uint16 CState::GetTargetID() const
 
 void CState::Complete()
 {
-    m_completed = true;
+    // Dual-wire: statehelpers::MarkCompleted (slice 6328).
+    m_completed = statehelpers::MarkCompleted();
 }
 
 timer::time_point CState::GetEntryTime() const

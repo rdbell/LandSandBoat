@@ -2769,6 +2769,8 @@ set(SOURCES
     test_state_was_exit_delayed_6326.cpp
     test_aicontainer_enter_resume_6327.h
     test_aicontainer_enter_resume_6327.cpp
+    test_state_complete_6328.h
+    test_state_complete_6328.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
