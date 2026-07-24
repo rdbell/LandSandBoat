@@ -258,10 +258,12 @@ bool CAIContainer::Internal_Cast(uint16 targetid, SpellID spellid)
 
 bool CAIContainer::Internal_ChangeTarget(uint16 targetid)
 {
-    auto* entity = dynamic_cast<CBattleEntity*>(PEntity);
-    if (entity)
+    auto* entity                   = dynamic_cast<CBattleEntity*>(PEntity);
+    const bool hasBattleEntity     = entity != nullptr;
+    // Outer gate + path split (slice 6294 dual-wire).
+    if (aicontainerhelpers::InternalChangeTargetHasBattleEntity(hasBattleEntity))
     {
-        if (IsEngaged() || targetid == 0)
+        if (aicontainerhelpers::InternalChangeTargetShouldSetBattleTarget(IsEngaged(), targetid))
         {
             entity->SetBattleTargetID(targetid);
             return true;
