@@ -1409,6 +1409,7 @@ auto runDeathRaisePlan6318SelfTests() -> bool;
 auto runTriggerUpdate6319SelfTests() -> bool;
 auto runStateDelayExit6320SelfTests() -> bool;
 auto runAicontainerInterruptStates6321SelfTests() -> bool;
+auto runAicontainerStateStackCleanup6322SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3652,6 +3653,7 @@ namespace
         ok = runTriggerUpdate6319SelfTests() && ok;
         ok = runStateDelayExit6320SelfTests() && ok;
         ok = runAicontainerInterruptStates6321SelfTests() && ok;
+        ok = runAicontainerStateStackCleanup6322SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

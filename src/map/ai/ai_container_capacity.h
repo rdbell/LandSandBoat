@@ -77,6 +77,8 @@
 //           (Tick post-drain prevent-action → Inactive park admission AND)
 //   - 6321: ShouldInterruptCurrent
 //           (InterruptStates while current&&CanInterrupt loop admission)
+//   - 6322: ShouldClearCurrentState / ShouldCleanupCompletedState
+//           (ClearStateStack / CheckCompletedStates loop admissions)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -129,6 +131,9 @@
 // predicates into TickPreventActionParkAllowed before Inactive(0ms, false).
 // CAIContainer::InterruptStates injects current-state presence and
 // CanInterrupt into ShouldInterruptCurrent for the while-loop admission.
+// CAIContainer::ClearStateStack injects current-state presence into
+// ShouldClearCurrentState. CAIContainer::CheckCompletedStates injects
+// current-state presence and IsCompleted into ShouldCleanupCompletedState.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -173,7 +178,10 @@
 // aicontainer.TickPreventActionParkAllowed
 // (tick_prevent_action_park.go),
 // aicontainer.ShouldInterruptCurrent
-// (interrupt_states.go). Prior pure port: slice 1189.
+// (interrupt_states.go),
+// aicontainer.ShouldClearCurrentState /
+// aicontainer.ShouldCleanupCompletedState
+// (state_stack_cleanup.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -859,6 +867,28 @@ inline auto TickPreventActionParkAllowed(
 inline auto ShouldInterruptCurrent(const bool hasCurrentState, const bool currentCanInterrupt) -> bool
 {
     return hasCurrentState && currentCanInterrupt;
+}
+
+// ShouldClearCurrentState reports whether ClearStateStack should cleanup and
+// resume past the current state for one loop iteration.
+// Mirrors: while (m_currentState) { Cleanup; resumeNextState; }
+// Formula (slice 6322): hasCurrentState
+// Dual-wire of Go aicontainer.ShouldClearCurrentState (state_stack_cleanup.go).
+// Call site: CAIContainer::ClearStateStack while admission.
+inline auto ShouldClearCurrentState(const bool hasCurrentState) -> bool
+{
+    return hasCurrentState;
+}
+
+// ShouldCleanupCompletedState reports whether CheckCompletedStates should
+// cleanup and resume past the current state for one loop iteration.
+// Mirrors: while (m_currentState && m_currentState->IsCompleted()) { Cleanup; resume; }
+// Formula (slice 6322): hasCurrentState && isCompleted
+// Dual-wire of Go aicontainer.ShouldCleanupCompletedState (state_stack_cleanup.go).
+// Call site: CAIContainer::CheckCompletedStates while admission.
+inline auto ShouldCleanupCompletedState(const bool hasCurrentState, const bool isCompleted) -> bool
+{
+    return hasCurrentState && isCompleted;
 }
 
 } // namespace aicontainerhelpers

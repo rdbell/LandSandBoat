@@ -590,7 +590,8 @@ bool CAIContainer::IsStateStackEmpty()
 
 void CAIContainer::ClearStateStack()
 {
-    while (m_currentState)
+    // Dual-wire: aicontainerhelpers::ShouldClearCurrentState (slice 6322).
+    while (aicontainerhelpers::ShouldClearCurrentState(m_currentState != nullptr))
     {
         m_currentState->Cleanup(timer::now());
         resumeNextState();
@@ -720,8 +721,17 @@ bool CAIContainer::Internal_Synth(SKILLTYPE synthSkill)
 
 void CAIContainer::CheckCompletedStates()
 {
-    while (m_currentState && m_currentState->IsCompleted())
+    // Dual-wire: aicontainerhelpers::ShouldCleanupCompletedState (slice 6322).
+    // CState::IsCompleted is const-safe; keep a pointer for the inject.
+    while (true)
     {
+        auto* const current         = m_currentState.get();
+        const bool  hasCurrentState = current != nullptr;
+        const bool  isCompleted     = hasCurrentState && current->IsCompleted();
+        if (!aicontainerhelpers::ShouldCleanupCompletedState(hasCurrentState, isCompleted))
+        {
+            break;
+        }
         m_currentState->Cleanup(timer::now());
         resumeNextState();
     }
