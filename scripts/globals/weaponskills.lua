@@ -235,18 +235,43 @@ end
 -- https://wiki.ffo.jp/html/1261.html
 -- https://www.ffxiah.com/forum/topic/33470/the-sealed-dagger-a-ninja-guide/151/#3420836
 -- https://www.ffxiah.com/forum/topic/49614/blade-chi-damage-formula/2/#3171538
-local function calculateHybridMagicDamage(tp, physicaldmg, attacker, target, wsParams, calcParams, wsID)
-    local ftp      = xi.weaponskills.fTP(tp, wsParams.ftpMod)
-    local magicdmg = math.floor(physicaldmg * ftp + attacker:getMod(xi.mod.MAGIC_DAMAGE))
-    local wsd      = attacker:getMod(xi.mod.ALL_WSDMG_ALL_HITS)
+--
+-- Pure base product once fTP, MAGIC_DAMAGE, ALL_WSDMG_ALL_HITS, and optional
+-- per-WS WSD are resolved. Host residual continues with addBonusesAbility,
+-- then hybridWeaponskillMagicBonusFTP, then resist / shell / severe /
+-- absorb / Phalanx / OneForAll / Stoneskin.
+--
+-- Distinct from xi.mobskills.hybridMagicDamage (fixed 0.5 hybrid scale, no WSD).
+xi.weaponskills.hybridWeaponskillMagicBase = function(physicaldmg, ftp, magicDamageMod, allWSDMG, perWSWSD)
+    local magicdmg = math.floor(physicaldmg * ftp + magicDamageMod)
+    local wsd      = allWSDMG
 
-    if attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID) > 0 then
-        wsd = wsd + attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID)
+    -- Per-weaponskill WSD only stacks when the mod is strictly positive.
+    if perWSWSD > 0 then
+        wsd = wsd + perWSWSD
     end
 
-    magicdmg = math.floor(magicdmg * (100 + wsd) / 100)
+    return math.floor(magicdmg * (100 + wsd) / 100)
+end
+
+-- bonusfTP add after ability bonuses (upstream order: base → ability bonuses →
+-- bonusfTP → resist…). Kept pure so the floor product is pin-able.
+xi.weaponskills.hybridWeaponskillMagicBonusFTP = function(magicdmg, physicaldmg, bonusFTP)
+    return math.floor(magicdmg + bonusFTP * physicaldmg)
+end
+
+local function calculateHybridMagicDamage(tp, physicaldmg, attacker, target, wsParams, calcParams, wsID)
+    local ftp = xi.weaponskills.fTP(tp, wsParams.ftpMod)
+    local magicdmg = xi.weaponskills.hybridWeaponskillMagicBase(
+        physicaldmg,
+        ftp,
+        attacker:getMod(xi.mod.MAGIC_DAMAGE),
+        attacker:getMod(xi.mod.ALL_WSDMG_ALL_HITS),
+        attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID)
+    )
+
     magicdmg = math.floor(addBonusesAbility(attacker, wsParams.ele, target, magicdmg, wsParams))
-    magicdmg = math.floor(magicdmg + calcParams.bonusfTP * physicaldmg)
+    magicdmg = xi.weaponskills.hybridWeaponskillMagicBonusFTP(magicdmg, physicaldmg, calcParams.bonusfTP or 0)
     magicdmg = math.floor(magicdmg * xi.combat.magicHitRate.calculateResistRate(attacker, target, 0, wsParams.skill, 0, wsParams.ele, 0, 0, calcParams.bonusAcc))
     magicdmg = math.floor(magicdmg * xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false))
     magicdmg = math.floor(target:handleSevereDamage(magicdmg, false))
