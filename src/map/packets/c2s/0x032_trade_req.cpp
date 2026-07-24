@@ -31,6 +31,8 @@
 #include "utils/charutils.h"
 #include "utils/jailutils.h"
 
+// Go host pure half: packetsystem.ValidateTradeReq / ProcessTradeReq /
+// NewTradeReqHandler (6450); policy mappacket.ClientTradeReqPlanFor.
 auto GP_CLI_COMMAND_TRADE_REQ::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
