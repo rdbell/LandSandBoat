@@ -1705,23 +1705,19 @@ bool CGambitsContainer::TryTrustSkill()
             }
             case G_SELECT::SPECIAL_AUGUST:
             {
-                static const uint32                     NO_QUARTER  = 3658;
-                static const std::unordered_set<uint32> daybreak_ws = { 3656, 3657 };
-                static const std::unordered_set<uint32> regular_ws  = { 3653, 3654, 3655 };
-
-                bool   maybeDaybreakActive = POwner->animationsub == 5; // Daybreak active is sub animation 5, retail does the same thing.
-                uint32 lastSkillUsed       = POwner->GetLocalVar("[Gambit]LastDaybreakSkill");
+                const bool   daybreakActive = gambitshelpers::AugustDaybreakActive(POwner->animationsub);
+                const uint32 lastSkillUsed  = POwner->GetLocalVar("[Gambit]LastDaybreakSkill");
 
                 std::vector<TrustSkill_t> candidates;
 
-                if (maybeDaybreakActive)
+                if (daybreakActive)
                 {
                     // Only trigger No Quarter if the last skill used was ACTUALLY a Daybreak opener
-                    if (daybreak_ws.count(lastSkillUsed))
+                    if (gambitshelpers::ShouldUseNoQuarter(daybreakActive, lastSkillUsed))
                     {
                         for (const auto& tskill : tp_skills)
                         {
-                            if (tskill.skill_id == NO_QUARTER)
+                            if (tskill.skill_id == gambitshelpers::AugustNoQuarter)
                             {
                                 chosen_skill = tskill;
                                 break;
@@ -1734,7 +1730,7 @@ bool CGambitsContainer::TryTrustSkill()
                     {
                         for (const auto& tskill : tp_skills)
                         {
-                            if (daybreak_ws.count(tskill.skill_id))
+                            if (gambitshelpers::IsAugustDaybreakSkill(tskill.skill_id))
                             {
                                 candidates.push_back(tskill);
                             }
@@ -1746,13 +1742,13 @@ bool CGambitsContainer::TryTrustSkill()
                     // Normal state: use standard rotation
                     for (const auto& tskill : tp_skills)
                     {
-                        if (regular_ws.count(tskill.skill_id))
+                        if (gambitshelpers::IsAugustRegularSkill(tskill.skill_id))
                         {
                             candidates.push_back(tskill);
                         }
                     }
                     // Clear the localVar so the next Daybreak starts fresh
-                    if (lastSkillUsed != 0)
+                    if (gambitshelpers::ShouldClearDaybreakSkill(daybreakActive, lastSkillUsed))
                     {
                         POwner->SetLocalVar("[Gambit]LastDaybreakSkill", 0);
                     }

@@ -350,6 +350,42 @@ inline auto ShouldReplaceSkillchain(uint8 candidate, uint8 currentBest) -> bool
     return candidate != 0 /* SC_NONE */ && candidate >= currentBest;
 }
 
+// August's Daybreak rotation (slice 6642, G_SELECT::SPECIAL_AUGUST).
+inline constexpr uint32 AugustNoQuarter = 3658;
+
+// Daybreak active is sub-animation 5; retail does the same thing.
+inline constexpr uint16 AugustDaybreakAnimationSub = 5;
+
+inline auto IsAugustDaybreakSkill(uint32 skillId) -> bool
+{
+    return skillId == 3656 || skillId == 3657;
+}
+
+inline auto IsAugustRegularSkill(uint32 skillId) -> bool
+{
+    return skillId == 3653 || skillId == 3654 || skillId == 3655;
+}
+
+inline auto AugustDaybreakActive(uint16 animationSub) -> bool
+{
+    return animationSub == AugustDaybreakAnimationSub;
+}
+
+// ShouldUseNoQuarter admits the No Quarter finisher, but only while Daybreak is
+// up *and* the previous weaponskill was actually a Daybreak opener — a regular
+// skill or a cleared local var falls back to the Daybreak pool.
+inline auto ShouldUseNoQuarter(bool daybreakActive, uint32 lastSkillUsed) -> bool
+{
+    return daybreakActive && IsAugustDaybreakSkill(lastSkillUsed);
+}
+
+// ShouldClearDaybreakSkill resets the rotation once Daybreak drops, so the next
+// one starts fresh.
+inline auto ShouldClearDaybreakSkill(bool daybreakActive, uint32 lastSkillUsed) -> bool
+{
+    return !daybreakActive && lastSkillUsed != 0;
+}
+
 // CanUseUriel is G_CONDITION::VAL_URIEL_CHECK.
 inline auto CanUseUriel(bool masterHasEnmity, bool valHasTopEnmity, bool masterHasOffTargetAggro,
                         bool valHasEnmity, float distanceToTarget, uint32 secondsSinceLastUriel) -> bool

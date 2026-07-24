@@ -7,6 +7,12 @@
 namespace
 {
 using gambitshelpers::AbilityOnCooldown;
+using gambitshelpers::AugustDaybreakActive;
+using gambitshelpers::AugustNoQuarter;
+using gambitshelpers::IsAugustDaybreakSkill;
+using gambitshelpers::IsAugustRegularSkill;
+using gambitshelpers::ShouldClearDaybreakSkill;
+using gambitshelpers::ShouldUseNoQuarter;
 using gambitshelpers::ResonanceFromPower;
 using gambitshelpers::ShouldReplaceSkillchain;
 using gambitshelpers::CanUseUriel;
@@ -450,11 +456,60 @@ auto CheckSkillSelection() -> bool
     return true;
 }
 
+auto CheckAugust() -> bool
+{
+    // The three weaponskill sets are disjoint.
+    if (!IsAugustDaybreakSkill(3656) || !IsAugustDaybreakSkill(3657))
+    {
+        return false;
+    }
+    if (!IsAugustRegularSkill(3653) || !IsAugustRegularSkill(3654) || !IsAugustRegularSkill(3655))
+    {
+        return false;
+    }
+    if (IsAugustDaybreakSkill(AugustNoQuarter) || IsAugustRegularSkill(AugustNoQuarter))
+    {
+        return false;
+    }
+    if (IsAugustDaybreakSkill(3653) || IsAugustRegularSkill(3656))
+    {
+        return false;
+    }
+
+    // Daybreak is sub-animation 5.
+    if (!AugustDaybreakActive(5) || AugustDaybreakActive(0) || AugustDaybreakActive(4))
+    {
+        return false;
+    }
+
+    // No Quarter needs Daybreak up AND a Daybreak opener as the last skill.
+    if (!ShouldUseNoQuarter(true, 3656) || !ShouldUseNoQuarter(true, 3657))
+    {
+        return false;
+    }
+    if (ShouldUseNoQuarter(false, 3656) || ShouldUseNoQuarter(true, 0) || ShouldUseNoQuarter(true, 3653))
+    {
+        return false;
+    }
+
+    // The rotation resets only once Daybreak drops with a skill recorded.
+    if (!ShouldClearDaybreakSkill(false, 3656))
+    {
+        return false;
+    }
+    if (ShouldClearDaybreakSkill(false, 0) || ShouldClearDaybreakSkill(true, 3656))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 auto Check() -> bool
 {
     return CheckRunes() && CheckTopEnmity() && CheckSkillchain() && CheckPartyRoles() &&
            CheckCasting() && CheckBarEffect() && CheckLunge() && CheckSimpleGates() &&
-           CheckUriel() && CheckSkillSelection();
+           CheckUriel() && CheckSkillSelection() && CheckAugust();
 }
 } // namespace
 
