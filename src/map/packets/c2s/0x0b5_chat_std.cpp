@@ -102,6 +102,7 @@ const auto auditLinkshell = [](Scheduler& scheduler, CCharEntity* PChar, CLinksh
 
 } // namespace
 
+// Go host pure half: packetsystem.ValidateChatStd / ProcessChatStd / NewChatStdHandler (6569); plan mappacket.ClientChatStdRuntimePlanFor.
 auto GP_CLI_COMMAND_CHAT_STD::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
