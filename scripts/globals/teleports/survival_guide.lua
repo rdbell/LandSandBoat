@@ -39,6 +39,7 @@ end
 -----------------------------------
 -- Public functions
 -----------------------------------
+-- Go pure half: survivalguide.PlanTriggerWithTablets/PlanTriggerStartParams (6601).
 xi.survivalGuide.onTrigger = function(player)
     local tableIndex = survival.zoneIdToGuideIdMap[player:getZoneID()]
     local guide      = survival.survivalGuides[tableIndex]
