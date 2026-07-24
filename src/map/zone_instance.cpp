@@ -49,6 +49,11 @@ auto shouldRestoreInstance(bool registered) -> bool
 {
     return registered;
 }
+
+auto shouldEraseInstance(const CInstance* candidate, const CInstance* target) -> bool
+{
+    return candidate == target;
+}
 } // namespace zoneinstance
 
 CZoneInstance::CZoneInstance(Scheduler& scheduler, MapConfig config, ZONEID ZoneID, REGION_TYPE RegionID, CONTINENT_TYPE ContinentID, uint8 levelRestriction)
@@ -449,7 +454,7 @@ auto CZoneInstance::ZoneServer(timer::time_point tick) -> Task<void>
                 m_InstanceList.end(),
                 [&PInstance](const auto& el)
                 {
-                    return el.get() == PInstance;
+                    return zoneinstance::shouldEraseInstance(el.get(), PInstance);
                 }));
     }
 }

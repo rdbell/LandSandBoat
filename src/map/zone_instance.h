@@ -30,6 +30,7 @@ auto shouldCleanupInstance(bool failed, bool completed, bool charsEmpty) -> bool
 auto shouldSearchInstancePlayers(uint8 filter) -> bool;
 auto shouldSetInstanceWipeTimeOnExit(bool charsEmpty, bool failed, bool completed) -> bool;
 auto shouldRestoreInstance(bool registered) -> bool;
+auto shouldEraseInstance(const CInstance* candidate, const CInstance* target) -> bool;
 }
 
 class CZoneInstance : public CZone

@@ -199,6 +199,17 @@ auto testPublicInstanceID() -> bool
     ok = expect(InstanceTestAccess::publicID(65536) == 0, "instance id narrows to uint16") && ok;
     return ok;
 }
+
+auto testInstanceEraseIdentity() -> bool
+{
+    auto* const first  = reinterpret_cast<CInstance*>(uintptr_t{ 1 });
+    auto* const second = reinterpret_cast<CInstance*>(uintptr_t{ 2 });
+    bool ok = true;
+    ok = expect(zoneinstance::shouldEraseInstance(first, first), "same instance identity erases") && ok;
+    ok = expect(!zoneinstance::shouldEraseInstance(first, second), "different instance identity stays") && ok;
+    ok = expect(zoneinstance::shouldEraseInstance(nullptr, nullptr), "null identities compare equal") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -215,5 +226,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testInstanceWipeExit() && ok;
     ok      = testInstanceRestore() && ok;
     ok      = testPublicInstanceID() && ok;
+    ok      = testInstanceEraseIdentity() && ok;
     return ok;
 }
