@@ -120,4 +120,35 @@ inline auto ShouldResumePatrol(const bool isPatrol) -> bool
     return isPatrol;
 }
 
+// ShouldUpdateLookAt reports whether LookAt should assign worldAngle rotation.
+// Mirrors: if (!isWithinDistance(owner, point, 0.1f, true)) { set rotation }
+// Formula (slice 6342): !withinFlat01
+// Dual-wire of Go pathfind.ShouldUpdateLookAt (look_at.go).
+// Call site: CPathFind::LookAt. Host injects isWithinDistance flat 0.1.
+inline auto ShouldUpdateLookAt(const bool withinFlat01) -> bool
+{
+    return !withinFlat01;
+}
+
+// WaitStillActive reports whether FollowPath is still waiting at a waypoint.
+// Mirrors: tick < m_timeAtPoint (still waiting) vs tick >= deadline (advance).
+// Formula (slice 6342): now < deadline
+// Dual-wire of Go pathfind.WaitStillActive (follow_wait_gates.go).
+// Call site: CPathFind::FollowPath wait branch.
+template <typename TimePoint>
+inline auto WaitStillActive(const TimePoint now, const TimePoint deadline) -> bool
+{
+    return now < deadline;
+}
+
+// PathIndexComplete reports whether current path index is past the last point.
+// Mirrors: m_currentPoint >= (int16)m_points.size()
+// Formula (slice 6342): currentPoint >= pointCount
+// Dual-wire of Go pathfind.PathIndexComplete (follow_wait_gates.go).
+// Call sites: CPathFind::FollowPath wait-advance and end-of-path checks.
+inline auto PathIndexComplete(const int currentPoint, const int pointCount) -> bool
+{
+    return currentPoint >= pointCount;
+}
+
 } // namespace pathfindstatushelpers

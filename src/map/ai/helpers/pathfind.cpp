@@ -280,13 +280,14 @@ void CPathFind::FollowPath(timer::time_point tick)
 
     if (m_timeAtPoint != timer::time_point::min())
     {
+        // Dual-wire: WaitStillActive / PathIndexComplete (slice 6342).
         // Continue to wait until full wait time has elapsed
-        if (tick >= m_timeAtPoint)
+        if (!pathfindstatushelpers::WaitStillActive(tick, m_timeAtPoint))
         {
             m_timeAtPoint = timer::time_point::min();
             ++m_currentPoint;
             luautils::OnPathPoint(m_POwner);
-            if (m_currentPoint >= (int16)m_points.size())
+            if (pathfindstatushelpers::PathIndexComplete(m_currentPoint, static_cast<int>(m_points.size())))
             {
                 luautils::OnPathComplete(m_POwner);
                 FinishedPath();
@@ -344,7 +345,8 @@ void CPathFind::FollowPath(timer::time_point tick)
 
     StepTo(targetPoint.position, m_pathFlags & PATHFLAG_RUN);
 
-    if (m_currentPoint >= (int16)m_points.size())
+    // Dual-wire: pathfindstatushelpers::PathIndexComplete (slice 6342).
+    if (pathfindstatushelpers::PathIndexComplete(m_currentPoint, static_cast<int>(m_points.size())))
     {
         luautils::OnPathComplete(m_POwner);
         FinishedPath();
@@ -539,8 +541,9 @@ bool CPathFind::FindClosestPath(const position_t& start, const position_t& end)
 
 void CPathFind::LookAt(const position_t& point)
 {
+    // Dual-wire: pathfindstatushelpers::ShouldUpdateLookAt (slice 6342).
     // Avoid unpredictable results if we're too close.
-    if (!isWithinDistance(m_POwner->loc.p, point, 0.1f, true))
+    if (pathfindstatushelpers::ShouldUpdateLookAt(isWithinDistance(m_POwner->loc.p, point, 0.1f, true)))
     {
         m_POwner->loc.p.rotation = worldAngle(m_POwner->loc.p, point);
         m_POwner->updatemask |= UPDATE_POS;

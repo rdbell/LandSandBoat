@@ -2795,6 +2795,8 @@ set(SOURCES
     test_pathfind_prune_valid_6340.cpp
     test_pathfind_resume_patrol_6341.h
     test_pathfind_resume_patrol_6341.cpp
+    test_pathfind_look_wait_6342.h
+    test_pathfind_look_wait_6342.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
