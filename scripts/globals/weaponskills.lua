@@ -399,6 +399,54 @@ end
 --
 -- See xi.weaponskills.doPhysicalWeaponskill or xi.weaponskills.doRangedWeaponskill for how calcParams are determined.
 
+-- Pure fTP for a weaponskill hit: hybrid first hits use 1 + bonusfTP only;
+-- otherwise fTP(tp, ftpMod) + bonusfTP.
+xi.weaponskills.weaponskillFTP = function(tp, ftpMod, bonusFTP, hybridHit)
+    if hybridHit then
+        return 1 + bonusFTP
+    end
+
+    return xi.weaponskills.fTP(tp, ftpMod) + bonusFTP
+end
+
+-- Pure Sneak Attack first-hit add (THF main path): floor(final + pdif * floor(DEX * (1 + SNEAK_ATK_DEX/100))).
+xi.weaponskills.weaponskillSneakAttackBonus = function(finalDmg, pdif, dex, sneakAtkDexMod)
+    local dexFactor = math.floor(dex * (1 + sneakAtkDexMod / 100))
+
+    return math.floor(finalDmg + pdif * dexFactor)
+end
+
+-- Pure Trick Attack first-hit add (THF main path): floor(final + pdif * floor(AGI * (1 + TRICK_ATK_AGI/100))).
+xi.weaponskills.weaponskillTrickAttackBonus = function(finalDmg, pdif, agi, trickAtkAgiMod)
+    local agiFactor = math.floor(agi * (1 + trickAtkAgiMod / 100))
+
+    return math.floor(finalDmg + pdif * agiFactor)
+end
+
+-- Pure AUGMENTS_SA multiply (any job with SA applicable).
+xi.weaponskills.weaponskillAugmentSA = function(finalDmg, augmentsSA)
+    return math.floor(finalDmg * (1 + augmentsSA / 100))
+end
+
+-- Pure AUGMENTS_TA multiply (any job with TA applicable).
+xi.weaponskills.weaponskillAugmentTA = function(finalDmg, augmentsTA)
+    return math.floor(finalDmg * (1 + augmentsTA / 100))
+end
+
+-- Pure first-hit-only WSD bonus store: finalDmg * ALL_WSDMG_FIRST_HIT / 100.
+xi.weaponskills.weaponskillFirstHitBonus = function(finalDmg, firstHitWSDMod)
+    return finalDmg * firstHitWSDMod / 100
+end
+
+-- Pure multi-hit fTP carry: keep ftp when multiHitfTP, else reset to 1 for later hits.
+xi.weaponskills.multiHitFTPAfterFirst = function(ftp, multiHitfTP)
+    if multiHitfTP then
+        return ftp
+    end
+
+    return 1
+end
+
 -- TODO: Reduce complexity
 -- Disable cyclomatic complexity check for this function:
 -- luacheck: ignore 561
@@ -423,10 +471,7 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     local mainBase = math.floor(calcParams.weaponDamage[1] + calcParams.fSTR + calcParams.bonusWSmods + wsc * alpha)
 
     -- Calculate fTP multiplier
-    local ftp = xi.weaponskills.fTP(tp, wsParams.ftpMod) + calcParams.bonusfTP
-    if calcParams.hybridHit then
-        ftp = 1 + calcParams.bonusfTP
-    end
+    local ftp = xi.weaponskills.weaponskillFTP(tp, wsParams.ftpMod, calcParams.bonusfTP, calcParams.hybridHit)
 
     -- Calculate critrates
     calcParams.critRate = 0
@@ -509,23 +554,31 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     if attacker:getMainJob() == xi.job.THF then
         -- Add DEX/AGI bonus to base damage of first hit if THF main and valid Sneak/Trick Attack
         if calcParams.sneakApplicable then
-            local dexFactor = math.floor(attacker:getStat(xi.mod.DEX) * (1 + attacker:getMod(xi.mod.SNEAK_ATK_DEX) / 100))
-            finaldmg = math.floor(finaldmg + calcParams.pdif * dexFactor)
+            finaldmg = xi.weaponskills.weaponskillSneakAttackBonus(
+                finaldmg,
+                calcParams.pdif,
+                attacker:getStat(xi.mod.DEX),
+                attacker:getMod(xi.mod.SNEAK_ATK_DEX)
+            )
         end
 
         if calcParams.trickApplicable then
-            local agiFactor = math.floor(attacker:getStat(xi.mod.AGI) * (1 + attacker:getMod(xi.mod.TRICK_ATK_AGI) / 100))
-            finaldmg = math.floor(finaldmg + calcParams.pdif * agiFactor)
+            finaldmg = xi.weaponskills.weaponskillTrickAttackBonus(
+                finaldmg,
+                calcParams.pdif,
+                attacker:getStat(xi.mod.AGI),
+                attacker:getMod(xi.mod.TRICK_ATK_AGI)
+            )
         end
     end
 
     -- these are deliberately left outside of the "If main job is THF" if-statement
     if calcParams.sneakApplicable then
-        finaldmg = math.floor(finaldmg * (1 + attacker:getMod(xi.mod.AUGMENTS_SA) / 100))
+        finaldmg = xi.weaponskills.weaponskillAugmentSA(finaldmg, attacker:getMod(xi.mod.AUGMENTS_SA))
     end
 
     if calcParams.trickApplicable then
-        finaldmg = math.floor(finaldmg * (1 + attacker:getMod(xi.mod.AUGMENTS_TA) / 100))
+        finaldmg = xi.weaponskills.weaponskillAugmentTA(finaldmg, attacker:getMod(xi.mod.AUGMENTS_TA))
     end
 
     -- We've now accounted for any crit from SA/TA, so nullify them
@@ -533,13 +586,11 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
 
     -- For items that apply bonus damage to the first hit of a weaponskill (but not later hits),
     -- store bonus damage for first hit, for use after other calculations are done
-    local firstHitBonus = finaldmg * attacker:getMod(xi.mod.ALL_WSDMG_FIRST_HIT) / 100
+    local firstHitBonus = xi.weaponskills.weaponskillFirstHitBonus(finaldmg, attacker:getMod(xi.mod.ALL_WSDMG_FIRST_HIT))
 
     -- Reset fTP if it's not supposed to carry over across all hits for this WS
     -- We'll recalculate our mainhand damage after doing offhand
-    if not wsParams.multiHitfTP then
-        ftp = 1
-    end
+    ftp = xi.weaponskills.multiHitFTPAfterFirst(ftp, wsParams.multiHitfTP)
 
     local offhandSkill = attacker:getWeaponSkillType(xi.slot.SUB)
     local isH2H        = false
