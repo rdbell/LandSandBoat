@@ -22,6 +22,7 @@
 #include "item_state.h"
 
 #include "ai/ai_container.h"
+#include "ai/states/item_update.h"
 #include "entities/battle_entity.h"
 #include "entities/char_entity.h"
 
@@ -189,7 +190,13 @@ void CItemState::UpdateTarget(const uint16 targid)
 
 auto CItemState::Update(const timer::time_point tick) -> bool
 {
-    if (tick > GetEntryTime() + m_castTime && !IsCompleted())
+    const bool completed                   = IsCompleted();
+    const bool tickAfterEntryPlusCast      = tick > GetEntryTime() + m_castTime;
+    const bool tickAfterEntryPlusCastPlusAnim =
+        tick > GetEntryTime() + m_castTime + m_animationTime;
+
+    // Cast-complete branch (slice 6316 dual-wire).
+    if (itemupdate::shouldFinishCast(tickAfterEntryPlusCast, completed))
     {
         m_interrupted   = false;
         m_interruptable = false;
@@ -224,7 +231,8 @@ auto CItemState::Update(const timer::time_point tick) -> bool
         }
         Complete();
     }
-    else if (IsCompleted() && tick > GetEntryTime() + m_castTime + m_animationTime)
+    // Post-animation exit branch (slice 6316 dual-wire).
+    else if (itemupdate::shouldExit(tickAfterEntryPlusCastPlusAnim, completed))
     {
         if (m_PEntity->objtype == TYPE_PC)
         {
