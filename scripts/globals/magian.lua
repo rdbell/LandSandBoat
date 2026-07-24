@@ -432,6 +432,7 @@ xi.magian.magianOnTrigger = function(player, npc)
     end
 end
 
+-- Go pure half: magian.MagianEventUpdatePlanFor / MagianListenerFirePlanFor / DeliveryCrateOnEventUpdatePlanFor (6575).
 xi.magian.magianEventUpdate = function(player, csid, option, npc)
     local updateType = bit.band(option, 0xFF)
 
