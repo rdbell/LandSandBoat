@@ -31,6 +31,7 @@
 #include "utils/petutils.h"
 #include "utils/puppetutils.h"
 
+// Go host pure half: packetsystem.ValidateExtendedJob / ProcessExtendedJob / NewExtendedJobHandler (6568); plan mappacket.ClientExtendedJobRuntimePlanFor.
 auto GP_CLI_COMMAND_EXTENDED_JOB::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     auto pv = PacketValidator(PChar)
