@@ -79,6 +79,7 @@ bool CTreasurePool::isMember(const CCharEntity* PChar)
     return std::find(m_Members.begin(), m_Members.end(), PChar) != m_Members.end();
 }
 
+// Go pure half: treasurepool.PlanAddMemberDisposition (6598).
 void CTreasurePool::addMember(CCharEntity* PChar)
 {
     if (PChar == nullptr || PChar->PTreasurePool != this)
@@ -107,6 +108,7 @@ void CTreasurePool::addMember(CCharEntity* PChar)
     updatePool(PChar);
 }
 
+// Go pure half: treasurepool.PlanDelMemberDisposition (6598).
 void CTreasurePool::delMember(CCharEntity* PChar)
 {
     if (PChar == nullptr || PChar->PTreasurePool != this)
@@ -524,6 +526,7 @@ bool CTreasurePool::hasPassedItem(CCharEntity* PChar, uint8 SlotID)
     return false;
 }
 
+// Go pure half: treasurepool.PlanCheckItems (6598).
 void CTreasurePool::checkItems(timer::time_point tick)
 {
     if (m_count != 0)
