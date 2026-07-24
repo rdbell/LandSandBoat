@@ -30,6 +30,8 @@ auto bazaaropenhelpers::applyRuntimeState(RuntimeState state) -> RuntimeState
     return state;
 }
 
+// Go host pure half: packetsystem.ValidateBazaarOpen / ProcessBazaarOpen /
+// NewBazaarOpenHandler (6506); plan mappacket.ClientBazaarOpenRuntimePlanFor.
 auto GP_CLI_COMMAND_BAZAAR_OPEN::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

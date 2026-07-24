@@ -25,6 +25,8 @@
 #include "packets/s2c/0x01d_item_same.h"
 #include "packets/s2c/0x020_item_attr.h"
 
+// Go host pure half: packetsystem.ValidateBazaarItemSet / ProcessBazaarItemSet /
+// NewBazaarItemSetHandler (6507); plan mappacket.ClientBazaarItemSetDecisionFor.
 auto GP_CLI_COMMAND_BAZAAR_ITEMSET::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // TODO: Need PV to support short-circuiting so we can nest null checks and move the PStorage/PItem checks here

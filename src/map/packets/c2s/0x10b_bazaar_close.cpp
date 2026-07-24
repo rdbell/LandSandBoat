@@ -24,6 +24,8 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x107_bazaar_close.h"
 
+// Go host pure half: packetsystem.ValidateBazaarClose / ProcessBazaarClose /
+// NewBazaarCloseHandler (6508); plan mappacket.ClientBazaarCloseTransitionFor.
 auto GP_CLI_COMMAND_BAZAAR_CLOSE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
