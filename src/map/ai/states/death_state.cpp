@@ -22,6 +22,7 @@
 #include "death_state.h"
 
 #include "ai/ai_container.h"
+#include "death_raisable_hold.h"
 #include "entities/battle_entity.h"
 #include "entities/char_entity.h"
 #include "entities/mob_entity.h"
@@ -56,7 +57,7 @@ bool CDeathState::Update(timer::time_point tick)
 {
     if (m_PEntity->objtype != TYPE_PC)
     {
-        if (IsCompleted() || !m_PEntity->isDead())
+        if (deathraisablehold::shouldExitEarly(IsCompleted(), m_PEntity->isDead()))
         {
             return true;
         }
@@ -67,7 +68,9 @@ bool CDeathState::Update(timer::time_point tick)
             {
                 auto* PMob = dynamic_cast<CMobEntity*>(m_PEntity);
                 // RAISABLE mobs should stay in death state indefinitely until raised
-                if (PMob && (PMob->m_Behavior & BEHAVIOR_RAISABLE))
+                const bool isMob    = PMob != nullptr;
+                const bool raisable = isMob && (PMob->m_Behavior & BEHAVIOR_RAISABLE);
+                if (deathraisablehold::shouldHold(isMob, raisable))
                 {
                     return false;
                 }
