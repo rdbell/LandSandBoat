@@ -2887,6 +2887,8 @@ set(SOURCES
     test_navmesh_save_host_6430.cpp
     test_navmesh_build_tile_pipeline_host_6431.h
     test_navmesh_build_tile_pipeline_host_6431.cpp
+    test_navmesh_build_async_host_6432.h
+    test_navmesh_build_async_host_6432.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

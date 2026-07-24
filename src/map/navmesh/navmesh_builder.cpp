@@ -470,6 +470,7 @@ auto NavMeshBuilder::buildTile(const int tx, const int ty, const rcConfig& cfg, 
     };
 }
 
+// Go host pure half: navmesh.ApplyBuildAsync / TileBatchRanges (6432).
 auto NavMeshBuilder::buildAsync(Scheduler& scheduler, const std::string& zoneName, const uint16 zoneID, const NavMeshConfig& config) -> Task<dtNavMesh*>
 {
     //
