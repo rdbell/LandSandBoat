@@ -81,4 +81,33 @@ inline auto LimitDistanceReached(const float maxDistance, const float distanceMo
     return maxDistance > 0.f && distanceMoved >= maxDistance;
 }
 
+// ShouldPrunePath reports whether PrunePathWithin may enter the prune loop.
+// Mirrors: if (!IsFollowingPath()) return;
+// Formula (slice 6340): following
+// Dual-wire of Go pathfind.ShouldPrunePath (prune_path.go).
+inline auto ShouldPrunePath(const bool following) -> bool
+{
+    return following;
+}
+
+// ShouldContinuePrune reports whether to erase second-last for one more step.
+// Mirrors: while (size > 1) { if (distance > within) break; erase; }
+// Formula (slice 6340): pointCount > 1 && distanceToSecondLast <= within
+// Dual-wire of Go pathfind.ShouldContinuePrune (prune_path.go).
+// Host injects Euclidean distance(target, secondLast).
+inline auto ShouldContinuePrune(const std::size_t pointCount, const float distanceToSecondLast, const float within) -> bool
+{
+    return pointCount > 1 && distanceToSecondLast <= within;
+}
+
+// ValidPosition reports the navmesh validPosition inject result.
+// Mirrors: return navMesh()->validPosition(pos);
+// Formula (slice 6340): meshValid
+// Dual-wire of Go pathfind.ValidPositionResult (prune_path.go).
+// Call site: CPathFind::ValidPosition.
+inline auto ValidPosition(const bool meshValid) -> bool
+{
+    return meshValid;
+}
+
 } // namespace pathfindstatushelpers

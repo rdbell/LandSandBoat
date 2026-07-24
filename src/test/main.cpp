@@ -1426,6 +1426,7 @@ auto runPathfindStatus6336SelfTests() -> bool;
 auto runPathfindAtPoint6337SelfTests() -> bool;
 auto runPathfindInWater6338SelfTests() -> bool;
 auto runPathfindAddPointsLimit6339SelfTests() -> bool;
+auto runPathfindPruneValid6340SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3686,6 +3687,7 @@ namespace
         ok = runPathfindAtPoint6337SelfTests() && ok;
         ok = runPathfindInWater6338SelfTests() && ok;
         ok = runPathfindAddPointsLimit6339SelfTests() && ok;
+        ok = runPathfindPruneValid6340SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

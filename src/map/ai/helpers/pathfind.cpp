@@ -229,7 +229,8 @@ bool CPathFind::ValidPosition(const position_t& pos)
     TracyZoneScoped;
     TracyZoneString(m_POwner->getName());
 
-    return m_POwner->loc.zone->navMesh()->validPosition(pos);
+    // Dual-wire: pathfindstatushelpers::ValidPosition (slice 6340).
+    return pathfindstatushelpers::ValidPosition(m_POwner->loc.zone->navMesh()->validPosition(pos));
 }
 
 void CPathFind::LimitDistance(float maxLength)
@@ -242,18 +243,23 @@ void CPathFind::PrunePathWithin(float within)
     TracyZoneScoped;
     TracyZoneString(m_POwner->getName());
 
-    if (!IsFollowingPath())
+    // Dual-wire: pathfindstatushelpers::ShouldPrunePath (slice 6340).
+    if (!pathfindstatushelpers::ShouldPrunePath(IsFollowingPath()))
     {
         return;
     }
 
     position_t targetPoint = m_points.back().position;
 
-    while (m_points.size() > 1)
+    while (true)
     {
+        if (m_points.size() < 2)
+        {
+            break;
+        }
         position_t secondLastPoint = m_points[m_points.size() - 2].position;
-
-        if (distance(targetPoint, secondLastPoint) > within)
+        // Dual-wire: pathfindstatushelpers::ShouldContinuePrune (slice 6340).
+        if (!pathfindstatushelpers::ShouldContinuePrune(m_points.size(), distance(targetPoint, secondLastPoint), within))
         {
             break;
         }
