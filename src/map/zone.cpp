@@ -472,7 +472,8 @@ void CZone::LoadZoneSettings()
     }
 }
 
-// Go host pure half: zone.ApplyLoadNavMesh / PlanLoadNavMesh (slice 6410).
+// Go host pure half: zone.ApplyLoadNavMesh / PlanLoadNavMesh (slice 6410);
+// full file-detour + rebuild-install composition: ApplyLoadNavMeshFull (6437).
 auto CZone::LoadNavMesh() -> Task<void>
 {
     auto       navMesh = std::make_unique<CNavMesh>(static_cast<uint16>(GetID()));
