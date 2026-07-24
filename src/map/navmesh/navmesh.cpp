@@ -322,7 +322,7 @@ bool CNavMesh::save(const std::string& path) const
     return true;
 }
 
-// Go host pure half: navmesh.ClassifyFindPathInputs / IsPartialPath (6425).
+// Go host pure half: navmesh.ApplyFindPath / DetourQueryOps (6426); pure gates 6425.
 auto CNavMesh::findPath(const position_t& start, const position_t& end) -> std::vector<pathpoint_t>
 {
     TracyZoneScoped;

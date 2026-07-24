@@ -2875,6 +2875,8 @@ set(SOURCES
     test_navmesh_build_tile_rasterize_host_6424.cpp
     test_navmesh_findpath_query_host_6425.h
     test_navmesh_findpath_query_host_6425.cpp
+    test_navmesh_findpath_io_host_6426.h
+    test_navmesh_findpath_io_host_6426.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
