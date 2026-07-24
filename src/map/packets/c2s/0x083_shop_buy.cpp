@@ -28,6 +28,8 @@
 #include "utils/charutils.h"
 #include "utils/itemutils.h"
 
+// Go host pure half: packetsystem.ValidateShopBuy / ProcessShopBuy /
+// NewShopBuyHandler (6489); plan mappacket.ClientShopBuyPlanFor.
 auto GP_CLI_COMMAND_SHOP_BUY::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
