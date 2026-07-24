@@ -1448,6 +1448,7 @@ auto runMapEngineInitTailHost6402SelfTests() -> bool;
 auto runZoneutilsInitializeHost6403SelfTests() -> bool;
 auto runZoneutilsLoadZonesHost6404SelfTests() -> bool;
 auto runZoneutilsLoadNpcMobHost6405SelfTests() -> bool;
+auto runLoadNPCFieldApplicationHost6406SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3773,6 +3774,7 @@ namespace
         ok = runZoneutilsInitializeHost6403SelfTests() && ok;
         ok = runZoneutilsLoadZonesHost6404SelfTests() && ok;
         ok = runZoneutilsLoadNpcMobHost6405SelfTests() && ok;
+        ok = runLoadNPCFieldApplicationHost6406SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;

@@ -2835,6 +2835,8 @@ set(SOURCES
     test_zoneutils_load_zones_host_6404.cpp
     test_zoneutils_load_npc_mob_host_6405.h
     test_zoneutils_load_npc_mob_host_6405.cpp
+    test_load_npc_field_application_host_6406.h
+    test_load_npc_field_application_host_6406.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

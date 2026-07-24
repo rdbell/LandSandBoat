@@ -307,6 +307,8 @@ auto LoadNPCList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
 
                                 if (!(PZone->GetTypeMask() & ZONE_TYPE::INSTANCED))
                                 {
+                                    // Go host pure half: zoneutils.ApplyNPCRowFields / LoadedNPC (slice 6406)
+                                    // applies these CNpcEntity fields + npcentity.State flags/widescan.
                                     CNpcEntity* PNpc = new CNpcEntity;
                                     PNpc->targid     = NpcID & 0xFFF;
                                     PNpc->id         = NpcID;
