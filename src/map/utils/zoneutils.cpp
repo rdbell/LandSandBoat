@@ -749,6 +749,7 @@ auto CreateZone(Scheduler& scheduler, MapConfig config, uint16 ZoneID) -> CZone*
  *                                                                       *
  ************************************************************************/
 
+// Go host pure half: zoneutils.ApplyLoadZones / PlanLoadZonesPhases (slice 6404).
 auto LoadZones(Scheduler& scheduler, MapConfig config, const std::vector<uint16>& zoneIds) -> Task<void>
 {
     std::vector<uint16> zonesIdsToLoad;
