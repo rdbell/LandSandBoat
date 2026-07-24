@@ -980,4 +980,14 @@ inline auto ShouldPausePathingOnTrigger(const bool hasPathFind, const uint32_t s
     return hasPathFind && stopPathingOnTrigger == 1;
 }
 
+// ShouldTickController reports whether Tick may drive Controller->Tick.
+// Mirrors: if (Controller && Controller->canUpdate) { co_await Controller->Tick(tick); }
+// Formula (slice 6361): hasController && canUpdate
+// Dual-wire of Go aicontainer.ShouldTickController (tick_controller.go).
+// Call site: CAIContainer::Tick after pathing. Controller->Tick remains host.
+inline auto ShouldTickController(const bool hasController, const bool canUpdate) -> bool
+{
+    return hasController && canUpdate;
+}
+
 } // namespace aicontainerhelpers

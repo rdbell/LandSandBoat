@@ -526,7 +526,11 @@ auto CAIContainer::Tick(timer::time_point tick) -> Task<void>
         }
     }
 
-    if (Controller && Controller->canUpdate)
+    // Dual-wire: aicontainerhelpers::ShouldTickController (slice 6361).
+    // Go host pure half: aicontainer.TickController runs controllerTick inject.
+    if (aicontainerhelpers::ShouldTickController(
+            static_cast<bool>(Controller),
+            Controller && Controller->canUpdate))
     {
         co_await Controller->Tick(tick);
     }

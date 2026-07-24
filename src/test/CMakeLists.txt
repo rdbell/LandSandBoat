@@ -2747,6 +2747,8 @@ set(SOURCES
     test_aicontainer_tick_pathing_6359.cpp
     test_aicontainer_reset_trigger_pathing_6360.h
     test_aicontainer_reset_trigger_pathing_6360.cpp
+    test_aicontainer_tick_controller_6361.h
+    test_aicontainer_tick_controller_6361.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
