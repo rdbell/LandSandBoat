@@ -44,6 +44,8 @@
 //           IsEngaged||targetid==0 path split; pure inject)
 //   - 6296: InternalDisengageHasBattleEntity
 //           (Internal_Disengage outer battle-entity gate; pure inject)
+//   - 6298: InternalDieHasBattleEntity
+//           (Internal_Die outer battle-entity gate; pure inject)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -63,6 +65,8 @@
 // InternalChangeTargetShouldSetBattleTarget before SetBattleTargetID vs Engage.
 // CAIContainer::Internal_Disengage injects battle-entity presence into
 // InternalDisengageHasBattleEntity before SetBattleTargetID(0).
+// CAIContainer::Internal_Die injects battle-entity presence into
+// InternalDieHasBattleEntity before ChangeState<CDeathState>.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.InternalEngageForceAttackAllowed /
@@ -74,7 +78,9 @@
 // aicontainer.InternalChangeTargetShouldSetBattleTarget
 // (internal_change_target.go),
 // aicontainer.InternalDisengageHasBattleEntity
-// (internal_disengage.go). Prior pure port: slice 1189.
+// (internal_disengage.go),
+// aicontainer.InternalDieHasBattleEntity
+// (internal_die.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -327,6 +333,36 @@ inline auto InternalChangeTargetShouldSetBattleTarget(const bool isEngaged, cons
 // Sibling dual-wires left alone: CanDispatch / CanChangeState /
 // InternalEngage* / InternalChangeTarget* free functions.
 inline auto InternalDisengageHasBattleEntity(const bool hasBattleEntity) -> bool
+{
+    return hasBattleEntity;
+}
+
+// InternalDieHasBattleEntity reports whether CAIContainer::Internal_Die
+// may proceed past the outer dynamic_cast gate.
+// Mirrors:
+//
+//   auto* entity = dynamic_cast<CBattleEntity*>(PEntity);
+//   if (entity) { ... }
+//
+// Formula (slice 6298):
+//   hasBattleEntity
+//
+// hasBattleEntity — dynamic_cast<CBattleEntity*>(PEntity) != nullptr
+// true  → host ChangeState<CDeathState>(entity, deathTime); return its result
+// false → host returns false without ChangeState
+//
+// Dual-wire of Go aicontainer.InternalDieHasBattleEntity
+// (internal/aicontainer/internal_die.go). Identity inject keeps production
+// and tests on one pure surface (same pattern as CanDispatch /
+// InternalDisengageHasBattleEntity).
+// Call site: CAIContainer::Internal_Die entry outer gate.
+// ChangeState/ForceChangeState object graph, CDeathState construction
+// side-effects (already 6295), deathTime selection hosts, and full PAI
+// ownership remain host/deferred. Sibling dual-wires left alone:
+// CanDispatch / CanChangeState / InternalEngage* / InternalChangeTarget* /
+// InternalDisengage* free functions. Internal_Despawn, Accept_Raise, and
+// skill Internal_* untargetable checks are out of scope.
+inline auto InternalDieHasBattleEntity(const bool hasBattleEntity) -> bool
 {
     return hasBattleEntity;
 }
