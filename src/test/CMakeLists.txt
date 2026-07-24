@@ -2755,6 +2755,8 @@ set(SOURCES
     test_trigger_update_6319.cpp
     test_state_delay_exit_6320.h
     test_state_delay_exit_6320.cpp
+    test_aicontainer_interrupt_states_6321.h
+    test_aicontainer_interrupt_states_6321.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

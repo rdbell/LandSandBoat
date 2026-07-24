@@ -599,8 +599,17 @@ void CAIContainer::ClearStateStack()
 
 void CAIContainer::InterruptStates()
 {
-    while (m_currentState && m_currentState->CanInterrupt())
+    // Dual-wire: aicontainerhelpers::ShouldInterruptCurrent (slice 6321).
+    // CState::CanInterrupt is non-const; keep a mutable pointer for the inject.
+    while (true)
     {
+        auto* const current              = m_currentState.get();
+        const bool  hasCurrentState      = current != nullptr;
+        const bool  currentCanInterrupt  = hasCurrentState && current->CanInterrupt();
+        if (!aicontainerhelpers::ShouldInterruptCurrent(hasCurrentState, currentCanInterrupt))
+        {
+            break;
+        }
         m_currentState->Cleanup(timer::now());
         resumeNextState();
     }

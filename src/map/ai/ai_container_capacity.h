@@ -75,6 +75,8 @@
 //           (guard <= 32 Tick state-drain loop bound dual-wire residual pure 1189)
 //   - 6314: TickPreventActionParkAllowed
 //           (Tick post-drain prevent-action → Inactive park admission AND)
+//   - 6321: ShouldInterruptCurrent
+//           (InterruptStates while current&&CanInterrupt loop admission)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -125,6 +127,8 @@
 // CAIContainer::Tick injects post-increment guard into TickStateLoopContinue.
 // CAIContainer::Tick post-drain injects battle/alive/state/prevent-action
 // predicates into TickPreventActionParkAllowed before Inactive(0ms, false).
+// CAIContainer::InterruptStates injects current-state presence and
+// CanInterrupt into ShouldInterruptCurrent for the while-loop admission.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -167,7 +171,9 @@
 // aicontainer.TickStateLoopContinue
 // (aicontainer.go),
 // aicontainer.TickPreventActionParkAllowed
-// (tick_prevent_action_park.go). Prior pure port: slice 1189.
+// (tick_prevent_action_park.go),
+// aicontainer.ShouldInterruptCurrent
+// (interrupt_states.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -839,6 +845,20 @@ inline auto TickPreventActionParkAllowed(
     const bool hasPreventActionEffect) -> bool
 {
     return hasBattleEntity && isAlive && !isInactiveState && !isMagicState && !isMobSkillState && hasPreventActionEffect;
+}
+
+// ShouldInterruptCurrent reports whether InterruptStates should cleanup and
+// resume past the current state for one loop iteration.
+// Mirrors:
+//   while (m_currentState && m_currentState->CanInterrupt()) { Cleanup; resume; }
+// Formula (slice 6321):
+//   hasCurrentState && currentCanInterrupt
+// Dual-wire of Go aicontainer.ShouldInterruptCurrent (interrupt_states.go).
+// Call site: CAIContainer::InterruptStates while admission.
+// Cleanup/resumeNextState object graph remains host/deferred.
+inline auto ShouldInterruptCurrent(const bool hasCurrentState, const bool currentCanInterrupt) -> bool
+{
+    return hasCurrentState && currentCanInterrupt;
 }
 
 } // namespace aicontainerhelpers
