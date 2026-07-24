@@ -109,7 +109,8 @@ bool CPathFind::PathTo(const position_t& point, uint8 pathFlags, bool clear)
         return false;
     }
 
-    if (clear)
+    // Dual-wire: pathfindstatushelpers::ShouldClearBeforePath (slice 6345).
+    if (pathfindstatushelpers::ShouldClearBeforePath(clear))
     {
         Clear();
     }
@@ -179,7 +180,8 @@ bool CPathFind::PathThrough(std::vector<pathpoint_t>&& points, uint8 pathFlags)
 
     m_pathFlags = pathFlags;
 
-    AddPoints(std::move(points), m_pathFlags & PATHFLAG_REVERSE);
+    // Dual-wire: pathfindstatushelpers::ShouldReversePoints (slice 6345).
+    AddPoints(std::move(points), pathfindstatushelpers::ShouldReversePoints((m_pathFlags & PATHFLAG_REVERSE) != 0));
 
     return true;
 }
@@ -373,9 +375,14 @@ void CPathFind::StepTo(const position_t& pos, bool run)
 
     if (const auto* PMobEntity = dynamic_cast<CMobEntity*>(m_POwner))
     {
-        if (PMobEntity->GetSpeed() == 0 && (m_roamFlags & ROAMFLAG_WORM))
+        // Dual-wire: pathfindstatushelpers::WormStepSpeedOverride (slice 6345).
+        float wormSpeed = 0.f;
+        if (pathfindstatushelpers::WormStepSpeedOverride(
+                PMobEntity->GetSpeed() == 0,
+                (m_roamFlags & ROAMFLAG_WORM) != 0,
+                wormSpeed))
         {
-            speed = 20;
+            speed = wormSpeed;
         }
     }
 
@@ -443,9 +450,8 @@ void CPathFind::StepTo(const position_t& pos, bool run)
         }
     }
 
-    m_POwner->loc.p.moving += speedChange ? 0x28 : 0x35;
-
-    m_POwner->loc.p.moving %= 0x2000;
+    // Dual-wire: pathfindstatushelpers::WrapMoving (slice 6345).
+    m_POwner->loc.p.moving = pathfindstatushelpers::WrapMoving(m_POwner->loc.p.moving, speedChange);
 
     m_POwner->updatemask |= UPDATE_POS;
 

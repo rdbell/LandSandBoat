@@ -1431,6 +1431,7 @@ auto runPathfindResumePatrol6341SelfTests() -> bool;
 auto runPathfindLookWait6342SelfTests() -> bool;
 auto runPathfindFollowAdmissions6343SelfTests() -> bool;
 auto runPathfindPathToGates6344SelfTests() -> bool;
+auto runPathfindPathFlags6345SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3696,6 +3697,7 @@ namespace
         ok = runPathfindLookWait6342SelfTests() && ok;
         ok = runPathfindFollowAdmissions6343SelfTests() && ok;
         ok = runPathfindPathToGates6344SelfTests() && ok;
+        ok = runPathfindPathFlags6345SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

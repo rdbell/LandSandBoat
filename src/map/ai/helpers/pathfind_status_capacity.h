@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 
 // Pure CPathFind follow/status injects (slice 6336).
 // Dual-wire of Go pathfind.IsFollowingPathFlag /
@@ -215,6 +216,57 @@ inline auto StepDistance(const float speed, const bool run) -> float
 inline auto ShouldSnapToTarget(const float distanceTo, const float rangeFromTarget, const float stepDistance) -> bool
 {
     return distanceTo <= rangeFromTarget + stepDistance;
+}
+
+// ShouldReversePoints reports whether AddPoints reverses the point list.
+// Mirrors: AddPoints(points, m_pathFlags & PATHFLAG_REVERSE)
+// Formula (slice 6345): reverseFlag
+// Dual-wire of Go pathfind.ShouldReversePoints (path_flags_gates.go).
+inline auto ShouldReversePoints(const bool reverseFlag) -> bool
+{
+    return reverseFlag;
+}
+
+// ShouldClearBeforePath reports whether PathTo clears for the clear argument.
+// Mirrors: if (clear) Clear();
+// Formula (slice 6345): clear
+// Dual-wire of Go pathfind.ShouldClearBeforePath (path_flags_gates.go).
+inline auto ShouldClearBeforePath(const bool clear) -> bool
+{
+    return clear;
+}
+
+// WormStepSpeedOverride reports worm roam speed when entity speed is zero.
+// Mirrors: if (speed==0 && ROAMFLAG_WORM) speed = 20;
+// Formula (slice 6345): speedZero && wormRoam → use 20
+// Dual-wire of Go pathfind.WormStepSpeedOverride (path_flags_gates.go).
+// Call site: CPathFind::StepTo. outSpeed is only valid when return is true.
+inline auto WormStepSpeedOverride(const bool speedZero, const bool wormRoam, float& outSpeed) -> bool
+{
+    if (speedZero && wormRoam)
+    {
+        outSpeed = 20.f;
+        return true;
+    }
+    return false;
+}
+
+// MovingDelta returns the StepTo movement-counter increment.
+// Mirrors: speedChange ? 0x28 : 0x35
+// Formula (slice 6345): speedChanged ? 0x28 : 0x35
+// Dual-wire of Go pathfind.MovingDelta (path_flags_gates.go).
+inline auto MovingDelta(const bool speedChanged) -> uint16_t
+{
+    return speedChanged ? 0x28 : 0x35;
+}
+
+// WrapMoving applies StepTo moving counter update with 0x2000 modulus.
+// Mirrors: moving += delta; moving %= 0x2000;
+// Formula (slice 6345): (moving + MovingDelta(speedChanged)) % 0x2000
+// Dual-wire of Go pathfind.WrapMoving (path_flags_gates.go).
+inline auto WrapMoving(const uint16_t moving, const bool speedChanged) -> uint16_t
+{
+    return static_cast<uint16_t>((moving + MovingDelta(speedChanged)) % 0x2000);
 }
 
 } // namespace pathfindstatushelpers
