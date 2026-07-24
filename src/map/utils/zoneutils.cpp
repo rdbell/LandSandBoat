@@ -46,6 +46,7 @@
 #include "spawn_condition_based.h"
 #include "spawn_initial_register.h"
 #include "spawn_initial_dispatch.h"
+#include "spawn_initial_registered.h"
 #include "zone_instance.h"
 
 #include <algorithm>
@@ -663,7 +664,7 @@ auto LoadMOBList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
                 [&PZone](CMobEntity* PMob)
                 {
                     // Skip mobs already registered via setRespawnTime in onMobInitialize - let SpawnHandler handle them
-                    if (PZone->spawnHandler().isRegistered(PMob))
+                    if (spawninitialregistered::shouldSkip(PZone->spawnHandler().isRegistered(PMob)))
                     {
                         if (spawnscriptedrespawn::shouldAllow(static_cast<uint8>(PMob->m_SpawnType), PMob->m_RespawnTime > 0s))
                         {
