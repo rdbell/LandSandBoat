@@ -788,6 +788,104 @@ end
 --      then no ROAM listener is installed on the pet, but the animations can still be consistently managed in one place
 -----------------------------------
 
+-- Pure halves of xi.mob.callPets.
+
+-- Per-job action packet used to announce a pet call, or nil for jobs without
+-- one (which fall back to the generic two-hour packet).
+local callPetJobActions =
+{
+    [xi.job.BST] =
+    {
+        finishCategory = xi.action.category.MOBABILITY_FINISH,
+        animationID    = 718,
+        actionID       = xi.mobSkill.CALL_BEAST,
+        messageID      = xi.msg.basic.USES,
+        param          = 0,
+    },
+
+    [xi.job.DRG] =
+    {
+        finishCategory = xi.action.category.MOBABILITY_FINISH,
+        animationID    = 438,
+        actionID       = xi.mobSkill.CALL_WYVERN_1,
+        messageID      = xi.msg.basic.USES,
+        param          = 0,
+    },
+
+    -- The PUP mobskill has no action message, so the job ability is used.
+    [xi.job.PUP] =
+    {
+        finishCategory = xi.action.category.JOBABILITY_FINISH,
+        animationID    = 83,
+        actionID       = xi.jobAbility.ACTIVATE,
+        messageID      = xi.msg.basic.USES_JA,
+        param          = 0,
+    },
+}
+
+-- Action packet fields for a pet call. A job packet is only chosen for an
+-- instant call with no explicit override; everything else falls back to the
+-- generic two-hour packet, whose fields the caller may override.
+--
+-- NOTE: the generic actionID reads params.action.messageID, not actionID.
+-- Preserved for parity; it looks like an upstream copy-paste slip.
+xi.mob.callPetActionParams = function(callPetJob, inactiveTime, actionOverride)
+    if inactiveTime == 0 and not actionOverride then
+        local jobAction = callPetJobActions[callPetJob]
+
+        if jobAction then
+            return jobAction
+        end
+    end
+
+    local override = actionOverride or {}
+
+    return
+    {
+        finishCategory = override.finishCategory or 11,
+        actionID       = override.messageID or 307,
+        animationID    = override.animationID or 439,
+        messageID      = override.messageID or 0,
+        param          = override.param or 0,
+    }
+end
+
+-- Animation timings below a second bug out, so they collapse to an instant call.
+xi.mob.callPetInactiveTime = function(inactiveTime)
+    if inactiveTime == nil or inactiveTime < 1000 then
+        return 0
+    end
+
+    return inactiveTime
+end
+
+-- Normalizes the petIds argument: a single id becomes a one-entry list, and an
+-- absent list falls back to the owner's own pet.
+xi.mob.callPetIds = function(petIds, ownerPetId)
+    if type(petIds) == 'number' then
+        return { petIds }
+    elseif petIds == nil then
+        return ownerPetId and { ownerPetId } or {}
+    end
+
+    return petIds
+end
+
+-- Calls are refused while the owner is busy unless explicitly ignored, and
+-- require at least one pet that is not already spawned.
+xi.mob.callPetAdmitted = function(isBusy, ignoreBusy, hasSummonablePet)
+    if isBusy and not ignoreBusy then
+        return false
+    end
+
+    return hasSummonablePet
+end
+
+-- Spawn cap defaults to every candidate pet.
+xi.mob.callPetMaxSpawns = function(maxSpawns, petCount)
+    return maxSpawns or petCount
+end
+
 xi.mob.callPets = function(mob, petIds, params)
     params = params or {}
     -- params table:
@@ -805,18 +903,16 @@ xi.mob.callPets = function(mob, petIds, params)
     --      if not, the function will use a generic 2-hour action packet
     --          optionally you can override particular action packet params with params.action.X (see that code below)
     -- NOTE these are not arbitrary choices, but multiple options to emulate retail behavior for any particular owner of pets/helpers
+    -- Short-circuit over the busy gate rather than calling callPetAdmitted, so
+    -- a busy owner skips the pet lookups entirely as upstream does.
     if xi.combat.behavior.isEntityBusy(mob) and not params.ignoreBusy then
         return false
     end
 
-    -- make sure at least one pet is available to summon
-    if type(petIds) == 'number' then
-        petIds = { petIds }
-    elseif petIds == nil then
-        -- ensure petIds is always a table so ipairs doesn't fail below
-        petIds = mob:getPet() and { mob:getPet():getID() } or {}
-    end
+    -- ensure petIds is always a table so ipairs doesn't fail below
+    petIds = xi.mob.callPetIds(petIds, mob:getPet() and mob:getPet():getID())
 
+    -- make sure at least one pet is available to summon
     local canSummonPets = false
     for _, petId in ipairs(petIds) do
         local petToSummon = GetMobByID(petId)
@@ -833,66 +929,11 @@ xi.mob.callPets = function(mob, petIds, params)
     end
 
     -- don't allow times so short the animations will bug out
-    if params.inactiveTime == nil or params.inactiveTime < 1000 then
-        params.inactiveTime = 0
-    end
+    params.inactiveTime = xi.mob.callPetInactiveTime(params.inactiveTime)
 
-    local actionParams = nil
-    if params.inactiveTime == 0 and not params.action then
-        -- job based action packet
-        switch (params.callPetJob) : caseof
-        {
-            [xi.job.BST] = function(x)
-                -- inject "<mob> uses Call Beast"
-                actionParams =
-                {
-                    finishCategory = xi.action.category.MOBABILITY_FINISH,
-                    animationID = 718,
-                    actionID = xi.mobSkill.CALL_BEAST,
-                    messageID = xi.msg.basic.USES,
-                    param = 0,
-                }
-            end,
-
-            [xi.job.DRG] = function(x)
-                -- inject "<mob> uses Call Wyvern"
-                actionParams =
-                {
-                    finishCategory = xi.action.category.MOBABILITY_FINISH,
-                    animationID = 438,
-                    actionID = xi.mobSkill.CALL_WYVERN_1,
-                    messageID = xi.msg.basic.USES,
-                    param = 0,
-                }
-            end,
-
-            [xi.job.PUP] = function(x)
-                -- inject "<mob> uses Activate"
-                -- The mobskill has no action message, so we use the job ability
-                actionParams =
-                {
-                    finishCategory = xi.action.category.JOBABILITY_FINISH,
-                    animationID = 83,
-                    actionID = xi.jobAbility.ACTIVATE,
-                    messageID = xi.msg.basic.USES_JA,
-                    param = 0,
-                }
-            end,
-        }
-    end
+    local actionParams = xi.mob.callPetActionParams(params.callPetJob, params.inactiveTime, params.action)
 
     params.action = params.action or {}
-    if not actionParams then
-    -- Generic 2-hour animation with no message or options from params table
-        actionParams =
-        {
-            finishCategory = params.action.finishCategory or 11,
-            actionID = params.action.messageID or 307,
-            animationID = params.action.animationID or 439,
-            messageID = params.action.messageID or 0,
-            param = params.action.param or 0,
-        }
-    end
 
     -- function to execute when pets are actually called (there may be an inactiveTime)
     local callPetFinish = function(mobArg)
@@ -914,7 +955,7 @@ xi.mob.callPets = function(mob, petIds, params)
 
         local spawnPos = mobArg:getSpawnPos()
         local pos = mobArg:getPos()
-        params.maxSpawns = params.maxSpawns or #petIds
+        params.maxSpawns = xi.mob.callPetMaxSpawns(params.maxSpawns, #petIds)
         local spawnedCount = 0
         for _, petId in ipairs(petIds) do
             local petToSummon = GetMobByID(petId)
