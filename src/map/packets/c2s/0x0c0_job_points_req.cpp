@@ -25,6 +25,8 @@
 #include "packets/s2c/0x08d_job_points.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateJobPointsReq / ProcessJobPointsReq /
+// NewJobPointsReqHandler (6520); plan mappacket.ClientJobPointsReqActionFor.
 auto GP_CLI_COMMAND_JOB_POINTS_REQ::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

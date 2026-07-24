@@ -24,6 +24,8 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x11a_emote_list.h"
 
+// Go host pure half: packetsystem.ValidateEmoteList / ProcessEmoteList /
+// NewEmoteListHandler (6518); plan mappacket.ClientEmoteListActionFor.
 auto GP_CLI_COMMAND_EMOTE_LIST::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No input validation is needed for this packet.

@@ -26,6 +26,8 @@
 #include "packets/char_sync.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateMasteryDisplay / ProcessMasteryDisplay /
+// NewMasteryDisplayHandler (6519); plan mappacket.ClientMasteryDisplayTransitionFor.
 auto GP_CLI_COMMAND_MASTERY_DISPLAY::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

@@ -26,6 +26,8 @@
 #include "packets/s2c/0x063_miscdata_job_points.h"
 #include "packets/s2c/0x08d_job_points.h"
 
+// Go host pure half: packetsystem.ValidateJobPointsSpend / ProcessJobPointsSpend /
+// NewJobPointsSpendHandler (6521); plan mappacket.ClientJobPointsSpendActionPlanFor.
 auto GP_CLI_COMMAND_JOB_POINTS_SPEND::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
