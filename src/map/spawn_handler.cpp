@@ -29,6 +29,7 @@
 #include "enums/weather.h"
 #include "lua/luautils.h"
 #include "spawn_capacity.h"
+#include "spawn_can_spawn.h"
 #include "spawn_slot.h"
 #include "spawn_tod_despawn.h"
 #include "spawn_weather_despawn.h"
@@ -253,7 +254,7 @@ void SpawnHandler::onWeatherChange(Weather weather) const
 auto SpawnHandler::canSpawnNow(const CMobEntity* PMob) const -> bool
 {
     const auto totd = vanadiel_time::get_totd();
-    return spawnhelpers::CanSpawnNowPure(
+    return spawncanspawn::canSpawnNow(
         PMob == nullptr,
         PMob != nullptr && PMob->m_AllowRespawn,
         PMob != nullptr ? static_cast<uint8>(PMob->m_SpawnType) : 0,
