@@ -185,6 +185,7 @@ void Application::tryIncreaseRLimits()
 #endif
 }
 
+// Go host pure half: application.ApplyDisableQuickEditMode (6423).
 void Application::tryDisableQuickEditMode() const
 {
     // Go host pure half: application.PlanDisableQuickEdit (6384).
