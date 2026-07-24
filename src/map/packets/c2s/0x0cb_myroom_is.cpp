@@ -45,6 +45,7 @@ const auto isRentARoom = [](const CCharEntity* PChar)
 
 } // namespace
 
+// Go host pure half: packetsystem.ValidateMyRoomIs / ProcessMyRoomIs / NewMyRoomIsHandler (6525); plan mappacket.ClientMyRoomIsRuntimePlanFor.
 auto GP_CLI_COMMAND_MYROOM_IS::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

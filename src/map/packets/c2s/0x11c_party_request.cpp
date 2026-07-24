@@ -23,6 +23,7 @@
 
 #include "entities/char_entity.h"
 
+// Go host pure half: packetsystem.ValidatePartyRequest / ProcessPartyRequest / NewPartyRequestHandler (6524); plan mappacket.ClientPartyRequestActionFor.
 auto GP_CLI_COMMAND_PARTY_REQUEST::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // Not implemented.

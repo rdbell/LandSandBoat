@@ -25,6 +25,7 @@
 
 #include "entities/char_entity.h"
 
+// Go host pure half: packetsystem.ValidateTrackingEnd / ProcessTrackingEnd / NewTrackingEndHandler (6522); plan mappacket.ClientTrackingEndTargetFor.
 auto GP_CLI_COMMAND_TRACKING_END::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameter to validate.

@@ -23,6 +23,7 @@
 
 #include "entities/char_entity.h"
 
+// Go host pure half: packetsystem.ValidateBattlefieldReq / ProcessBattlefieldReq / NewBattlefieldReqHandler (6523); plan mappacket.ClientBattlefieldReqActionFor.
 auto GP_CLI_COMMAND_BATTLEFIELD_REQ::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
