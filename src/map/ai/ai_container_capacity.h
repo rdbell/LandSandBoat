@@ -29,13 +29,25 @@
 //   - 3531: CanDispatch dedicated dual-wire expand residual 2947
 //           (hasController identity; residual expand 2947; prior dedicated
 //           3470 / 3416 / 3369 / 3222; pure 1189)
+//   - 6291: InternalEngageForceAttackAllowed +
+//           InternalEngageShouldResumeInactive
+//           (not-yet-engaged ForceChangeState<CAttackState> admission OR and
+//           post-OnEngage prevent-action inactive resume; pure inject gates)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
 // the controller method. CAIContainer::CanChangeState injects current-state
 // presence and current->CanChangeState() into CanChangeState.
+// CAIContainer::Internal_Engage (not-yet-engaged path) injects CanChangeState,
+// current-state completed presence, and HasPreventActionEffect(true) into
+// InternalEngageForceAttackAllowed; after successful ForceChangeState +
+// OnEngage it injects HasPreventActionEffect(true) into
+// InternalEngageShouldResumeInactive before Inactive(0ms, false).
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
-// aicontainer.CanChangeState (can_change_state.go). Prior pure port: slice 1189.
+// aicontainer.CanChangeState (can_change_state.go),
+// aicontainer.InternalEngageForceAttackAllowed /
+// aicontainer.InternalEngageShouldResumeInactive
+// (internal_engage.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -101,6 +113,64 @@ inline auto CanDispatch(const bool hasController) -> bool
 inline auto CanChangeState(const bool hasCurrentState, const bool currentCanChange) -> bool
 {
     return !hasCurrentState || currentCanChange;
+}
+
+// InternalEngageForceAttackAllowed reports whether the not-yet-engaged path of
+// CAIContainer::Internal_Engage may attempt ForceChangeState<CAttackState>.
+// Mirrors the admission OR:
+//
+//   CanChangeState()
+//     || (GetCurrentState() && GetCurrentState()->IsCompleted())
+//     || StatusEffectContainer->HasPreventActionEffect(true)
+//
+// Formula (slice 6291):
+//   canChangeState
+//     || (hasCurrentState && currentIsCompleted)
+//     || hasPreventActionIgnoringCharm
+//
+// canChangeState — host CAIContainer::CanChangeState() (external-change gate)
+// hasCurrentState — GetCurrentState() != nullptr
+// currentIsCompleted — GetCurrentState()->IsCompleted() (ignored when idle)
+// hasPreventActionIgnoringCharm — HasPreventActionEffect(true)
+//   (allow a very brief attack-state switch so the entity is properly engaged
+//   even while prevent-action status is active)
+// true  → host may ForceChangeState<CAttackState>
+// false → host skips ForceChangeState / OnEngage for this call
+//
+// Dual-wire of Go aicontainer.InternalEngageForceAttackAllowed
+// (internal/aicontainer/internal_engage.go).
+// Call site: CAIContainer::Internal_Engage not-yet-engaged branch.
+// Already-engaged retarget / ChangeTarget, ForceChangeState object graph,
+// OnEngage entity mutations, and live status-container membership remain host.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState free functions.
+inline auto InternalEngageForceAttackAllowed(
+    const bool canChangeState,
+    const bool hasCurrentState,
+    const bool currentIsCompleted,
+    const bool hasPreventActionIgnoringCharm) -> bool
+{
+    return canChangeState || (hasCurrentState && currentIsCompleted) || hasPreventActionIgnoringCharm;
+}
+
+// InternalEngageShouldResumeInactive reports whether, after a successful
+// ForceChangeState<CAttackState> + OnEngage, Internal_Engage must resume
+// Inactive(0ms, false) because a prevent-action effect (ignoring charm) is
+// still present.
+//
+// Formula (slice 6291):
+//   hasPreventActionIgnoringCharm
+//
+// hasPreventActionIgnoringCharm — post-OnEngage HasPreventActionEffect(true)
+// true  → host calls PAI->Inactive(0ms, false)
+// false → host leaves the entity in the attack state
+//
+// Dual-wire of Go aicontainer.InternalEngageShouldResumeInactive
+// (internal/aicontainer/internal_engage.go). Identity inject keeps production
+// and tests on one pure surface (same pattern as CanDispatch).
+// Call site: CAIContainer::Internal_Engage after OnEngage.
+inline auto InternalEngageShouldResumeInactive(const bool hasPreventActionIgnoringCharm) -> bool
+{
+    return hasPreventActionIgnoringCharm;
 }
 
 } // namespace aicontainerhelpers
