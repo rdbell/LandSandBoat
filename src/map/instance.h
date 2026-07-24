@@ -101,6 +101,7 @@ private:
     static auto shouldClearEntityState(bool alive) -> bool;
     static auto entryRotation(float rot) -> uint8;
     static auto cancelStatus() -> INSTANCE_STATUS;
+    static auto publicInstanceID(uint32 instanceid) -> uint16;
 
     void LoadInstance();
 

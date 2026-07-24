@@ -52,7 +52,7 @@ CInstance::~CInstance()
 
 uint16 CInstance::GetID() const
 {
-    return m_instanceid;
+    return publicInstanceID(m_instanceid);
 }
 
 uint32 CInstance::GetProgress() const
@@ -378,6 +378,11 @@ auto CInstance::entryRotation(float rot) -> uint8
 auto CInstance::cancelStatus() -> INSTANCE_STATUS
 {
     return INSTANCE_FAILED;
+}
+
+auto CInstance::publicInstanceID(uint32 instanceid) -> uint16
+{
+    return static_cast<uint16>(instanceid);
 }
 
 uint16 CInstance::GetSoloBattleMusic()

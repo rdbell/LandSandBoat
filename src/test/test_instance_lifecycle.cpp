@@ -65,6 +65,11 @@ public:
     {
         return CInstance::cancelStatus();
     }
+
+    static auto publicID(uint32 instanceid) -> uint16
+    {
+        return CInstance::publicInstanceID(instanceid);
+    }
 };
 
 namespace
@@ -184,6 +189,15 @@ auto testInstanceRestore() -> bool
     ok = expect(!zoneinstance::shouldRestoreInstance(false), "unregistered character skips candidate") && ok;
     return ok;
 }
+
+auto testPublicInstanceID() -> bool
+{
+    bool ok = true;
+    ok = expect(InstanceTestAccess::publicID(7) == 7, "small instance id is preserved") && ok;
+    ok = expect(InstanceTestAccess::publicID(65535) == 65535, "maximum public instance id is preserved") && ok;
+    ok = expect(InstanceTestAccess::publicID(65536) == 0, "instance id narrows to uint16") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -199,5 +213,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testInstanceEntityLookup() && ok;
     ok      = testInstanceWipeExit() && ok;
     ok      = testInstanceRestore() && ok;
+    ok      = testPublicInstanceID() && ok;
     return ok;
 }
