@@ -58,7 +58,9 @@ xi.mobskills.magicalTpBonus =
     DMG_BONUS  = 3, -- Damage formula incorrect
 }
 
-local burstMultipliersByTier =
+-- Skillchain-tier base multipliers for mob/pet magic bursts.
+-- Distinct from spell MB (1.25 + rank + SC/10): mobs use tier + rank only.
+xi.mobskills.burstMultipliersByTier =
 {
     [0] = 1.0,
     [1] = 1.3,
@@ -68,30 +70,38 @@ local burstMultipliersByTier =
     [5] = 1.5,
 }
 
----@params target CBaseEntity
----@params actionElement xi.element
----@params skillChainCount integer
----@return number
-local function calculateMobMagicBurst(target, actionElement, skillchainCount)
+-- Pure resist-rank contribution shared with spell MB (same rank table).
+xi.mobskills.magicBurstRankBonus = function(resistRank)
+    local rankTable = { 1.15, 0.85, 0.6, 0.5, 0.4, 0.15, 0.05 } -- TODO: Confirm resist rank tier scaling.
+
+    if resistRank <= -3 then
+        return 1.5
+    elseif resistRank >= 5 then
+        return 0
+    end
+
+    return rankTable[resistRank + 3]
+end
+
+-- Pure mob/pet magic-burst multiplier once element, resist rank, and
+-- skillchain count are known. Host residual: getMod resistance-rank lookup.
+--
+-- Distinct from xi.spells.damage.calculateIfMagicBurst:
+--   spell: 1.25 + rank + skillchainCount/10 (+ optional Sengikori)
+--   mob:   burstMultipliersByTier[SC] + rank  when SC >= 1, else 1.0
+xi.mobskills.mobMagicBurstMultiplier = function(actionElement, resistRank, skillchainCount)
     local burstMultiplier = 1.0
 
     if actionElement > xi.element.NONE then
-        local resistRank = target:getMod(xi.data.element.getElementalResistanceRankModifier(actionElement))
-        local rankTable  = { 1.15, 0.85, 0.6, 0.5, 0.4, 0.15, 0.05 } -- TODO: Confirm resist rank tier scaling.
-        local rankBonus  = 0
-
-        if resistRank <= -3 then
-            rankBonus = 1.5
-        elseif resistRank >= 5 then
-            rankBonus = 0
-        else
-            rankBonus = rankTable[resistRank + 3]
-        end
+        local rankBonus = xi.mobskills.magicBurstRankBonus(resistRank)
 
         -- https://w.atwiki.jp/bartlett3/pages/329.html
         -- This page has a bullet point on pet magic bursts where avatar magic damage is discussed.
         if skillchainCount >= 1 then
-            burstMultiplier = burstMultipliersByTier[skillchainCount] + rankBonus
+            local tier = xi.mobskills.burstMultipliersByTier[skillchainCount]
+            if tier then
+                burstMultiplier = tier + rankBonus
+            end
         end
     end
 
@@ -106,6 +116,20 @@ local function calculateMobMagicBurst(target, actionElement, skillchainCount)
     -- end
 
     return burstMultiplier
+end
+
+---@params target CBaseEntity
+---@params actionElement xi.element
+---@params skillChainCount integer
+---@return number
+local function calculateMobMagicBurst(target, actionElement, skillchainCount)
+    local resistRank = 0
+
+    if actionElement > xi.element.NONE then
+        resistRank = target:getMod(xi.data.element.getElementalResistanceRankModifier(actionElement))
+    end
+
+    return xi.mobskills.mobMagicBurstMultiplier(actionElement, resistRank, skillchainCount)
 end
 
 -- LLS definitions for normalizePhysicalSkillParams()
