@@ -935,25 +935,62 @@ xi.monstrosity.unlockVariant = function(player, variant)
     end
 end
 
-local function hasPurchasedInstinct(player, purchasableInstinctId)
-    local data        = player:getMonstrosityData()
-    local byteOffset  = 20 + math.floor(purchasableInstinctId / 8)
-    local shiftAmount = purchasableInstinctId % 8
+-- Purchasable instincts live in the four instinct bytes at offsets 20..23 of
+-- the monstrosity data blob. These pure helpers own that addressing so it is
+-- testable without a player.
 
-    if byteOffset >= 20 and byteOffset < 24 then
-        return bit.band(data.instincts[byteOffset], bit.lshift(1, shiftAmount)) > 0
-    else
-        print('byteOffset out of range')
-    end
+-- Byte offset and bit position holding a purchasable instinct's ownership flag.
+xi.monstrosity.instinctByteOffset = function(purchasableInstinctId)
+    return 20 + math.floor(purchasableInstinctId / 8)
 end
 
-local function getPurchasedInstinctsMask(player)
+xi.monstrosity.instinctBitShift = function(purchasableInstinctId)
+    return purchasableInstinctId % 8
+end
+
+-- Only offsets 20..23 hold instinct bytes; anything else is out of range.
+xi.monstrosity.instinctByteOffsetValid = function(byteOffset)
+    return byteOffset >= 20 and byteOffset < 24
+end
+
+-- Ownership flag for a purchasable instinct, read out of the instinct bytes.
+-- Returns nil for an out-of-range instinct, matching upstream's fall-through.
+xi.monstrosity.instinctPurchased = function(instinctBytes, purchasableInstinctId)
+    local byteOffset  = xi.monstrosity.instinctByteOffset(purchasableInstinctId)
+    local shiftAmount = xi.monstrosity.instinctBitShift(purchasableInstinctId)
+
+    if not xi.monstrosity.instinctByteOffsetValid(byteOffset) then
+        return nil
+    end
+
+    return bit.band(instinctBytes[byteOffset] or 0, bit.lshift(1, shiftAmount)) > 0
+end
+
+-- Sets a purchasable instinct's ownership flag in the instinct bytes, in place.
+-- Returns whether the instinct was addressable.
+xi.monstrosity.instinctSetPurchased = function(instinctBytes, purchasableInstinctId)
+    local byteOffset  = xi.monstrosity.instinctByteOffset(purchasableInstinctId)
+    local shiftAmount = xi.monstrosity.instinctBitShift(purchasableInstinctId)
+
+    if not xi.monstrosity.instinctByteOffsetValid(byteOffset) then
+        return false
+    end
+
+    instinctBytes[byteOffset] = bit.bor(instinctBytes[byteOffset] or 0, bit.lshift(0x01, shiftAmount))
+
+    return true
+end
+
+-- Terynon's discount mask over the purchasable instincts from HUME_II up,
+-- rebased so HUME_II is bit 0. The five default racial instincts below HUME_II
+-- are excluded.
+xi.monstrosity.purchasedInstinctsMask = function(isPurchased)
     local instinctMask = 0
 
     for _, purchasableInstinctId in pairs(xi.monstrosity.purchasableInstincts) do
         if
             purchasableInstinctId >= xi.monstrosity.purchasableInstincts.HUME_II and
-            hasPurchasedInstinct(player, purchasableInstinctId)
+            isPurchased(purchasableInstinctId)
         then
             instinctMask = utils.mask.setBit(instinctMask, purchasableInstinctId - xi.monstrosity.purchasableInstincts.HUME_II, true)
         end
@@ -962,14 +999,40 @@ local function getPurchasedInstinctsMask(player)
     return instinctMask
 end
 
-local function addPurchasedInstinct(player, purchasableInstinctId)
-    local data        = player:getMonstrosityData()
-    local byteOffset  = 20 + math.floor(purchasableInstinctId / 8)
-    local shiftAmount = purchasableInstinctId % 8
+-- Terynon's limit-break mask over WAR..RUN, with each job at bit jobId-1.
+xi.monstrosity.limitBreakMask = function(isCompleted)
+    local limitMask = 0
 
-    if byteOffset >= 20 and byteOffset < 24 then
-        data.instincts[byteOffset] = bit.bor(data.instincts[byteOffset] or 0, bit.lshift(0x01, shiftAmount))
-    else
+    for jobId = xi.job.WAR, xi.job.RUN do
+        if isCompleted(jobId) then
+            limitMask = utils.mask.setBit(limitMask, jobId - 1, true)
+        end
+    end
+
+    return limitMask
+end
+
+local function hasPurchasedInstinct(player, purchasableInstinctId)
+    local data   = player:getMonstrosityData()
+    local result = xi.monstrosity.instinctPurchased(data.instincts, purchasableInstinctId)
+
+    if result == nil then
+        print('byteOffset out of range')
+    end
+
+    return result
+end
+
+local function getPurchasedInstinctsMask(player)
+    return xi.monstrosity.purchasedInstinctsMask(function(purchasableInstinctId)
+        return hasPurchasedInstinct(player, purchasableInstinctId)
+    end)
+end
+
+local function addPurchasedInstinct(player, purchasableInstinctId)
+    local data = player:getMonstrosityData()
+
+    if not xi.monstrosity.instinctSetPurchased(data.instincts, purchasableInstinctId) then
         print('byteOffset out of range')
     end
 
@@ -990,15 +1053,9 @@ local function hasCompletedLimitBreak(player, jobId)
 end
 
 local function getLimitBreakMask(player)
-    local limitMask = 0
-
-    for jobId = xi.job.WAR, xi.job.RUN do
-        if hasCompletedLimitBreak(player, jobId) then
-            limitMask = utils.mask.setBit(limitMask, jobId - 1, true)
-        end
-    end
-
-    return limitMask
+    return xi.monstrosity.limitBreakMask(function(jobId)
+        return hasCompletedLimitBreak(player, jobId)
+    end)
 end
 
 local function hasPurchaseRequirements(player, monCategory, selectedMon)
