@@ -31,6 +31,7 @@
 #include "spawn_capacity.h"
 #include "spawn_slot.h"
 #include "spawn_tod_despawn.h"
+#include "spawn_weather_despawn.h"
 #include "utils/zoneutils.h"
 #include "zone.h"
 
@@ -236,17 +237,14 @@ void SpawnHandler::onWeatherChange(Weather weather) const
         [weather, element](CMobEntity* PMob)
         {
             const uint8 spawnType = static_cast<uint8>(PMob->m_SpawnType);
-            if (spawnhelpers::ShouldDespawnElementalOnWeather(
+            if (spawnweatherdespawn::shouldDespawn(
                     PMob->m_EcoSystem == xi::Ecosystem::Elemental,
                     PMob->PMaster != nullptr,
                     spawnType,
-                    PMob->m_Element == element))
+                    PMob->m_Element == element,
+                    weather == Weather::Fog))
             {
-                PMob->SetDespawnTime(1s);
-            }
-            else if (spawnhelpers::ShouldDespawnFogMobOnWeather(spawnType, weather == Weather::Fog))
-            {
-                PMob->SetDespawnTime(1s);
+                PMob->SetDespawnTime(spawnweatherdespawn::delay());
             }
         });
 }
