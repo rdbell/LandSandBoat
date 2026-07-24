@@ -291,6 +291,46 @@ xi.voidwalker.shouldHandleHealing = function(voidwalkerEnabled, abyssiteCount, h
     return voidwalkerEnabled and abyssiteCount > 0 and hasVoidwalkerMobs
 end
 
+-- Pure onHealing branch selection once the nearest Voidwalker mob is resolved.
+-- nearest is the { mobId, keyItem, distance } row from nearestMob, or nil when
+-- the zone had no eligible candidate. firstAbyssite is abyssites[1], reported
+-- with VOIDWALKER_NO_MOB. diffx/diffz are the mob-minus-player offsets used for
+-- the hint direction.
+xi.voidwalker.healingOutcomePlan = function(nearest, firstAbyssite, diffx, diffz)
+    if not nearest then
+        return { kind = 'no_mob', keyItem = firstAbyssite }
+    end
+
+    local outcome = xi.voidwalker.healingRangeOutcome(nearest.distance)
+
+    if outcome == 'spawn' then
+        local consume = xi.voidwalker.shouldConsumePopAbyssite(nearest.keyItem)
+
+        return
+        {
+            kind     = 'spawn',
+            mobId    = nearest.mobId,
+            keyItem  = nearest.keyItem,
+            distance = nearest.distance,
+            consume  = consume,
+            -- Upstream only reveals HP on the retained-abyssite path; a consumed
+            -- abyssite leaves the mob's HP bar hidden.
+            showHP   = not consume,
+        }
+    elseif outcome == 'too_far' then
+        return { kind = 'too_far', keyItem = nearest.keyItem, distance = nearest.distance }
+    end
+
+    return
+    {
+        kind      = 'hint',
+        keyItem   = nearest.keyItem,
+        distance  = nearest.distance,
+        tier      = abyssiteMessage[nearest.keyItem],
+        direction = xi.voidwalker.direction(diffx, diffz),
+    }
+end
+
 xi.voidwalker.shouldCapricornusUseRecoilDive = function(hasMightyStrikes, isBusy)
     return hasMightyStrikes and not isBusy
 end
@@ -346,15 +386,6 @@ xi.voidwalker.direction = function(diffx, diffz)
             end
         end
     end
-end
-
-local getDirection = function(player, mob, distance)
-    local posPlayer = player:getPos()
-    local posMob    = mob:getPos()
-    local diffx     = posMob.x - posPlayer.x
-    local diffz     = posMob.z - posPlayer.z
-
-    return xi.voidwalker.direction(diffx, diffz)
 end
 
 -----------------------------------
@@ -714,24 +745,41 @@ xi.voidwalker.onHealing = function(player)
 
     local mobs       = getMobsFromAbyssites(zoneId, abyssites)
     local mobNearest = getNearestMob(player, mobs)
+    local mob        = mobNearest and GetMobByID(mobNearest.mobId)
+    local diffx      = 0
+    local diffz      = 0
 
-    if not mobNearest then
-        player:messageSpecial(zoneTextTable.VOIDWALKER_NO_MOB, abyssites[1])
-    elseif xi.voidwalker.healingRangeOutcome(mobNearest.distance) == 'spawn' then
-        local mob = GetMobByID(mobNearest.mobId)
+    -- The hint branch needs the player-to-mob offset, which the plan cannot
+    -- derive on its own, so resolve it up front for any nearest candidate.
+    if mob then
+        local posPlayer = player:getPos()
+        local posMob    = mob:getPos()
+
+        diffx = posMob.x - posPlayer.x
+        diffz = posMob.z - posPlayer.z
+    end
+
+    local plan = xi.voidwalker.healingOutcomePlan(mobNearest, abyssites[1], diffx, diffz)
+
+    if plan.kind == 'no_mob' then
+        player:messageSpecial(zoneTextTable.VOIDWALKER_NO_MOB, plan.keyItem)
+    elseif plan.kind == 'spawn' then
         if not mob then
             return
         end
 
         mob:setLocalVar('[VoidWalker]PopedBy', player:getID())
-        mob:setLocalVar('[VoidWalker]PopedWith', mobNearest.keyItem)
+        mob:setLocalVar('[VoidWalker]PopedWith', plan.keyItem)
         mob:setLocalVar('[VoidWalker]PopedAt', GetSystemTime())
 
-        if xi.voidwalker.shouldConsumePopAbyssite(mobNearest.keyItem) then
-            player:delKeyItem(mobNearest.keyItem)
-            player:messageSpecial(zoneTextTable.VOIDWALKER_BREAK_KI, mobNearest.keyItem)
+        if plan.consume then
+            player:delKeyItem(plan.keyItem)
+            player:messageSpecial(zoneTextTable.VOIDWALKER_BREAK_KI, plan.keyItem)
         else
             player:messageSpecial(zoneTextTable.VOIDWALKER_SPAWN_MOB)
+        end
+
+        if plan.showHP then
             mob:hideHP(false)
         end
 
@@ -740,12 +788,10 @@ xi.voidwalker.onHealing = function(player)
         mob:setStatus(xi.status.UPDATE)
         mob:updateClaim(player)
 
-    elseif xi.voidwalker.healingRangeOutcome(mobNearest.distance) == 'too_far' then
-        player:messageSpecial(zoneTextTable.VOIDWALKER_MOB_TOO_FAR, mobNearest.keyItem)
+    elseif plan.kind == 'too_far' then
+        player:messageSpecial(zoneTextTable.VOIDWALKER_MOB_TOO_FAR, plan.keyItem)
 
     else
-        local mob       = GetMobByID(mobNearest.mobId)
-        local direction = getDirection(player, mob, mobNearest.distance)
-        player:messageSpecial(zoneTextTable.VOIDWALKER_MOB_HINT, abyssiteMessage[mobNearest.keyItem], direction, mobNearest.distance, mobNearest.keyItem)
+        player:messageSpecial(zoneTextTable.VOIDWALKER_MOB_HINT, plan.tier, plan.direction, plan.distance, plan.keyItem)
     end
 end

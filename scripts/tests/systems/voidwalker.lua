@@ -207,6 +207,53 @@ describe('Voidwalker healing admission', function()
     end)
 end)
 
+describe('Voidwalker healing outcome plan', function()
+    it('reports the first abyssite when no candidate mob remains', function()
+        local plan = xi.voidwalker.healingOutcomePlan(nil, xi.keyItem.BLUE_ABYSSITE, 0, 0)
+        assert(plan.kind == 'no_mob' and plan.keyItem == xi.keyItem.BLUE_ABYSSITE)
+    end)
+
+    it('consumes later-tier abyssites on spawn and leaves the HP bar hidden', function()
+        local nearest = { mobId = 17715201, keyItem = xi.keyItem.BLUE_ABYSSITE, distance = 4 }
+        local plan    = xi.voidwalker.healingOutcomePlan(nearest, xi.keyItem.BLUE_ABYSSITE, 0, 0)
+
+        assert(plan.kind == 'spawn')
+        assert(plan.mobId == 17715201 and plan.keyItem == xi.keyItem.BLUE_ABYSSITE and plan.distance == 4)
+        assert(plan.consume and not plan.showHP)
+    end)
+
+    it('retains Clear abyssites on spawn and reveals the HP bar', function()
+        local nearest = { mobId = 17715202, keyItem = xi.keyItem.CLEAR_ABYSSITE, distance = 0 }
+        local plan    = xi.voidwalker.healingOutcomePlan(nearest, xi.keyItem.CLEAR_ABYSSITE, 0, 0)
+
+        assert(plan.kind == 'spawn' and not plan.consume and plan.showHP)
+    end)
+
+    it('reports the too-far message at and beyond the distance limit', function()
+        local nearest = { mobId = 17715203, keyItem = xi.keyItem.BLACK_ABYSSITE, distance = 300 }
+        local plan    = xi.voidwalker.healingOutcomePlan(nearest, xi.keyItem.CLEAR_ABYSSITE, 0, 0)
+
+        assert(plan.kind == 'too_far')
+        assert(plan.keyItem == xi.keyItem.BLACK_ABYSSITE and plan.distance == 300)
+    end)
+
+    it('hints with the abyssite resonance tier and player-to-mob direction', function()
+        local nearest = { mobId = 17715204, keyItem = xi.keyItem.BLACK_ABYSSITE, distance = 50 }
+        local plan    = xi.voidwalker.healingOutcomePlan(nearest, xi.keyItem.CLEAR_ABYSSITE, -1, 0)
+
+        assert(plan.kind == 'hint')
+        assert(plan.keyItem == xi.keyItem.BLACK_ABYSSITE and plan.distance == 50)
+        assert(plan.tier == 3 and plan.direction == 4)
+    end)
+
+    it('leaves the hint tier absent for Purple abyssites', function()
+        local nearest = { mobId = 17715205, keyItem = xi.keyItem.PURPLE_ABYSSITE, distance = 50 }
+        local plan    = xi.voidwalker.healingOutcomePlan(nearest, xi.keyItem.CLEAR_ABYSSITE, 1, 0)
+
+        assert(plan.kind == 'hint' and plan.tier == nil and plan.direction == 0)
+    end)
+end)
+
 describe('Voidwalker direction', function()
     it('classifies cardinal and diagonal offsets', function()
         assert(xi.voidwalker.direction(1, 0) == 0)
