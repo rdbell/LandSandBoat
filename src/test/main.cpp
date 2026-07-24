@@ -1355,6 +1355,7 @@ auto runZoneCharSyncCandidate6261SelfTests() -> bool;
 auto runZoneCharSyncApply6262SelfTests() -> bool;
 auto runZoneTransportSpawn6263SelfTests() -> bool;
 auto runZoneEntityLookup6264SelfTests() -> bool;
+auto runZonePlayTimeSave6265SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3544,6 +3545,7 @@ namespace
         ok = runZoneCharSyncApply6262SelfTests() && ok;
         ok = runZoneTransportSpawn6263SelfTests() && ok;
         ok = runZoneEntityLookup6264SelfTests() && ok;
+        ok = runZonePlayTimeSave6265SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

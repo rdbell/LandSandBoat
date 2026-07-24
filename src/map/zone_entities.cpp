@@ -68,6 +68,7 @@
 #include "zone_char_sync_apply.h"
 #include "zone_transport_spawn.h"
 #include "zone_entity_lookup.h"
+#include "zone_playtime_save.h"
 #include "zone_conditional_npc.h"
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
@@ -1384,7 +1385,10 @@ void CZoneEntities::SavePlayTime()
 
     FOR_EACH_PAIR_CAST_SECOND(CCharEntity*, PChar, m_charList)
     {
-        charutils::SavePlayTime(PChar);
+        if (zoneplaytimesave::ShouldSaveCharacter())
+        {
+            charutils::SavePlayTime(PChar);
+        }
     }
 }
 
