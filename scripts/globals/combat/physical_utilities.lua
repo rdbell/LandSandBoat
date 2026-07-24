@@ -577,18 +577,20 @@ end
 ---@param isPC boolean
 ---@param wRatio number
 ---@return number
-local function getSpikeRatio(isPC, wRatio)
+-- Pure pDIF "spike" / qRatio mass from wRatio (OmegaXI slice 6677).
+-- Dual-wired to internal/pdif.SpikeRatio / internal/pdifspike.
+--
+-- PC arm: https://www.bg-wiki.com/ffxi/PDIF#Average_Melee_pDIF(qRatio)
+-- Non-PC: https://www.ffxiah.com/forum/topic/58479/monster-pdif-curves-and-other-info/#3751498
+xi.combat.physical.spikeRatio = function(isPC, wRatio)
     if isPC then
-        -- https://www.bg-wiki.com/ffxi/PDIF#Average_Melee_pDIF(qRatio)
-        -- This is also known as "pDIF spike"
-        if wRatio > 0.5 and wRatio < 1.5 then -- 0.5 and 1.5 are 0% chance
+        -- 0.5 and 1.5 are 0% chance (strict inequalities).
+        if wRatio > 0.5 and wRatio < 1.5 then
             local sRatio = (0.5 - math.abs(wRatio - 1)) * 1.2
 
             return utils.clamp(sRatio, 0, 1 / 3) -- 1/3 (one-third), not 0.33
         end
     else
-        -- https://www.ffxiah.com/forum/topic/58479/monster-pdif-curves-and-other-info/#3751498
-        -- This is also known as "pDIF spike"
         local sRatio = 0
 
         if wRatio > 0.0 and wRatio < 0.75 then
@@ -603,6 +605,10 @@ local function getSpikeRatio(isPC, wRatio)
     end
 
     return 0
+end
+
+local function getSpikeRatio(isPC, wRatio)
+    return xi.combat.physical.spikeRatio(isPC, wRatio)
 end
 
 -- WARNING: This function is used in src/utils/battleutils.cpp "GetDamageRatio" function.
