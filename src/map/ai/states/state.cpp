@@ -21,6 +21,7 @@
 
 #include "state.h"
 #include "entities/base_entity.h"
+#include "ai/states/state_delay_exit.h"
 #include "ai/states/state_set_target.h"
 
 CState::CState(CBaseEntity* PEntity, uint16 _targid)
@@ -68,8 +69,10 @@ bool CState::WasExitDelayed()
 
 void CState::DelayExitTime(std::chrono::milliseconds delayMilliseconds)
 {
-    m_entryTime += delayMilliseconds;
-    m_wasDelayed = true;
+    // Dual-wire: statehelpers::delayExitPlan (slice 6320).
+    const auto plan = statehelpers::delayExitPlan(m_entryTime, delayMilliseconds);
+    m_entryTime     = plan.entryTime;
+    m_wasDelayed    = plan.wasDelayed;
 }
 
 void CState::ResetEntryTime()

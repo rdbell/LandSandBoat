@@ -2753,6 +2753,8 @@ set(SOURCES
     test_death_raise_plan_6318.cpp
     test_trigger_update_6319.h
     test_trigger_update_6319.cpp
+    test_state_delay_exit_6320.h
+    test_state_delay_exit_6320.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
