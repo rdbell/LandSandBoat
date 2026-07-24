@@ -61,6 +61,7 @@
 
 #include "zone_entity_visibility.h"
 #include "zone_char_sync_significance.h"
+#include "zone_char_sync_relationship.h"
 #include "zone_conditional_npc.h"
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
@@ -1000,14 +1001,20 @@ void CZoneEntities::SpawnTRUSTs(CCharEntity* PChar)
 
 float getSignificanceScore(CCharEntity* originChar, CCharEntity* targetChar)
 {
-    bool sameParty    = false;
-    bool sameAlliance = false;
-    if (originChar->PParty && targetChar->PParty)
-    {
-        sameParty    = originChar->PParty->GetPartyID() == targetChar->PParty->GetPartyID();
-        sameAlliance = originChar->PParty->m_PAlliance && targetChar->PParty->m_PAlliance && originChar->PParty->m_PAlliance->m_AllianceID == targetChar->PParty->m_PAlliance->m_AllianceID;
-    }
-    return zoneentityvisibility::CharacterSyncSignificance(targetChar->m_GMlevel > 0 && !targetChar->m_isGMHidden, sameParty, sameAlliance);
+    const bool originHasParty = originChar->PParty != nullptr;
+    const bool targetHasParty = targetChar->PParty != nullptr;
+    const bool originHasAlliance = originHasParty && originChar->PParty->m_PAlliance != nullptr;
+    const bool targetHasAlliance = targetHasParty && targetChar->PParty->m_PAlliance != nullptr;
+    const auto relationship = zonecharsyncrelationship::Determine(
+        originHasParty,
+        originHasParty ? originChar->PParty->GetPartyID() : 0,
+        targetHasParty,
+        targetHasParty ? targetChar->PParty->GetPartyID() : 0,
+        originHasAlliance,
+        originHasAlliance ? originChar->PParty->m_PAlliance->m_AllianceID : 0,
+        targetHasAlliance,
+        targetHasAlliance ? targetChar->PParty->m_PAlliance->m_AllianceID : 0);
+    return zoneentityvisibility::CharacterSyncSignificance(targetChar->m_GMlevel > 0 && !targetChar->m_isGMHidden, relationship.sameParty, relationship.sameAlliance);
 }
 
 void CZoneEntities::SpawnPCs(CCharEntity* PChar)
