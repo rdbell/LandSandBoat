@@ -20,6 +20,7 @@
 */
 
 #include "despawn_state.h"
+#include "despawn_respawn_registration.h"
 #include "ai/ai_container.h"
 #include "entities/base_entity.h"
 #include "entities/mob_entity.h"
@@ -37,7 +38,11 @@ CDespawnState::CDespawnState(CBaseEntity* _PEntity, bool instantDespawn)
         _PEntity->loc.zone->PushPacket(_PEntity, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_SCHEDULOR>(_PEntity, _PEntity, FourCC::FadeOut));
     }
 
-    if (auto* PMob = dynamic_cast<CMobEntity*>(_PEntity); PMob && PMob->m_AllowRespawn && PMob->loc.zone != nullptr)
+    if (auto* PMob = dynamic_cast<CMobEntity*>(_PEntity);
+        despawnrespawnregistration::shouldRegister(
+            PMob != nullptr,
+            PMob != nullptr && PMob->m_AllowRespawn,
+            PMob != nullptr && PMob->loc.zone != nullptr))
     {
         PMob->loc.zone->spawnHandler().registerForRespawn(PMob);
     }
