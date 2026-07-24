@@ -1434,6 +1434,7 @@ auto runMapSocketSend6388SelfTests() -> bool;
 auto runRecvParseLoginHost6389SelfTests() -> bool;
 auto runSendParseQueueHost6390SelfTests() -> bool;
 auto runSendParseHost6391SelfTests() -> bool;
+auto runZoneOutSQLHost6392SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3745,6 +3746,7 @@ namespace
         ok = runRecvParseLoginHost6389SelfTests() && ok;
         ok = runSendParseQueueHost6390SelfTests() && ok;
         ok = runSendParseHost6391SelfTests() && ok;
+        ok = runZoneOutSQLHost6392SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;

@@ -586,6 +586,7 @@ int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSess
 
                     incrementKeyAfterEncrypt = true;
 
+                    // Go host pure half: mapwire.ApplyZoneOutPreEncryptSQL (slice 6392).
                     // zone_ipp / zone_type are always stored above once
                     // ShouldIncrementKeyAfterEncrypt has gated this block.
                     const auto zoneOutPlan = mapnetworkinghelpers::PlanZoneOutSessionUpdate(
@@ -675,6 +676,7 @@ int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSess
     // Increment the key after 0x00B was sent (otherwise the client would never get it!)
     if (incrementKeyAfterEncrypt)
     {
+        // Go host pure half: mapwire.ApplyZoneOutPostEncrypt (slice 6392).
         PSession->incrementBlowfish();
 
         db::preparedStmt("UPDATE accounts_sessions SET session_key = ? WHERE charid = ? LIMIT 1",
