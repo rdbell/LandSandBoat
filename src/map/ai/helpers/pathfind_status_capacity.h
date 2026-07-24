@@ -675,4 +675,42 @@ inline auto ClearedWaitDeadline() -> int64_t
     return 0;
 }
 
+// OriginalPointMoving returns PathAround original slide-target moving counter.
+// Mirrors: m_originalPoint.moving = point.moving
+// Formula (slice 6355): moving
+// Dual-wire of Go pathfind.OriginalPointMoving (prune_wait_advance_gates.go).
+inline auto OriginalPointMoving(const uint16_t moving) -> uint16_t
+{
+    return moving;
+}
+
+// OriginalPointRotation returns PathAround original slide-target rotation.
+// Mirrors: m_originalPoint.rotation = point.rotation
+// Formula (slice 6355): rotation
+// Dual-wire of Go pathfind.OriginalPointRotation (prune_wait_advance_gates.go).
+inline auto OriginalPointRotation(const uint8_t rotation) -> uint8_t
+{
+    return rotation;
+}
+
+// ShouldPruneHasPair reports whether PrunePathWithin may access second-last.
+// Mirrors: if (m_points.size() < 2) break
+// Formula (slice 6355): pointCount >= 2
+// Dual-wire of Go pathfind.ShouldPruneHasPair (prune_wait_advance_gates.go).
+// Call site: CPathFind::PrunePathWithin before second-last access.
+inline auto ShouldPruneHasPair(const std::size_t pointCount) -> bool
+{
+    return pointCount >= 2;
+}
+
+// AdvancedCurrentPoint returns path cursor after one waypoint advance.
+// Mirrors: ++m_currentPoint
+// Formula (slice 6355): current + 1
+// Dual-wire of Go pathfind.AdvancedCurrentPoint (prune_wait_advance_gates.go).
+// Call site: CPathFind::FollowPath wait-expired branch.
+inline auto AdvancedCurrentPoint(const int16_t current) -> int16_t
+{
+    return static_cast<int16_t>(current + 1);
+}
+
 } // namespace pathfindstatushelpers

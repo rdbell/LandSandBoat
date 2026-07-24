@@ -164,12 +164,12 @@ bool CPathFind::PathAround(const position_t& point, float distanceFromPoint, uin
         Clear();
     }
 
-    // Dual-wire: OriginalPoint* (slice 6354) — save for sliding logic.
+    // Dual-wire: OriginalPoint* (slices 6354–6355) — save for sliding logic.
     m_originalPoint.x        = pathfindstatushelpers::OriginalPointX(point.x);
     m_originalPoint.y        = pathfindstatushelpers::OriginalPointY(point.y);
     m_originalPoint.z        = pathfindstatushelpers::OriginalPointZ(point.z);
-    m_originalPoint.moving   = point.moving;
-    m_originalPoint.rotation = point.rotation;
+    m_originalPoint.moving   = pathfindstatushelpers::OriginalPointMoving(point.moving);
+    m_originalPoint.rotation = pathfindstatushelpers::OriginalPointRotation(point.rotation);
     // Dual-wire: DistanceFromPointValue (slice 6347).
     m_distanceFromPoint = pathfindstatushelpers::DistanceFromPointValue(distanceFromPoint);
 
@@ -273,7 +273,8 @@ void CPathFind::PrunePathWithin(float within)
 
     while (true)
     {
-        if (m_points.size() < 2)
+        // Dual-wire: pathfindstatushelpers::ShouldPruneHasPair (slice 6355).
+        if (!pathfindstatushelpers::ShouldPruneHasPair(m_points.size()))
         {
             break;
         }
@@ -305,8 +306,12 @@ void CPathFind::FollowPath(timer::time_point tick)
         // Continue to wait until full wait time has elapsed
         if (!pathfindstatushelpers::WaitStillActive(tick, m_timeAtPoint))
         {
-            m_timeAtPoint = timer::time_point::min();
-            ++m_currentPoint;
+            // Dual-wire: ClearedWaiting (6354) + AdvancedCurrentPoint (6355).
+            if (!pathfindstatushelpers::ClearedWaiting())
+            {
+                m_timeAtPoint = timer::time_point::min();
+            }
+            m_currentPoint = pathfindstatushelpers::AdvancedCurrentPoint(m_currentPoint);
             luautils::OnPathPoint(m_POwner);
             if (pathfindstatushelpers::PathIndexComplete(m_currentPoint, static_cast<int>(m_points.size())))
             {
