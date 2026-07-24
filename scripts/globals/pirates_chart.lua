@@ -260,6 +260,7 @@ end
 -- Global functions
 -----------------------------------
 
+-- Go pure half: pirateschart.PlanTradeFromInjects/PlanTradeStartParams (6608).
 xi.piratesChart.onTrade = function(player, npc, trade)
     local barnacledBox = GetNPCByID(valkID.npc.BARNACLED_BOX)
     if
@@ -288,6 +289,7 @@ xi.piratesChart.onTrade = function(player, npc, trade)
     end
 end
 
+-- Go pure half: pirateschart.PlanEventUpdateFromInjects getID/party (6608).
 xi.piratesChart.onEventUpdate = function(player, csid, option, npc)
     if csid ~= 14 then
         return
@@ -329,6 +331,7 @@ xi.piratesChart.onEventUpdate = function(player, csid, option, npc)
     end
 end
 
+-- Go pure half: pirateschart.PlanEventFinishFromInjects GetNPCByID (6608).
 xi.piratesChart.onEventFinish = function(player, csid, option, npc)
     if csid == 14 and option == 0 then
         local panicTaru  = GetNPCByID(valkID.npc.PIRATE_CHART_TARU)
