@@ -64,6 +64,8 @@ const std::set validCrystals = {
 
 }
 
+// Go host pure half: packetsystem.ValidateCombineAsk / ProcessCombineAsk /
+// NewCombineAskHandler (6491); plan mappacket.ClientCombineAskIngredientPlanFor.
 auto GP_CLI_COMMAND_COMBINE_ASK::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

@@ -25,6 +25,8 @@
 #include "enums/msg_std.h"
 #include "packets/s2c/0x009_message.h"
 
+// Go host pure half: packetsystem.ValidateDice / ProcessDice /
+// NewDiceHandler (6490); plan mappacket.ClientDicePlanFor.
 auto GP_CLI_COMMAND_DICE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameter to validate for this packet.
