@@ -53,7 +53,7 @@ local getStoredCrystals = function(player)
     return { param1, param2, param3, param4 }
 end
 
--- Go pure half: ephemeralmoogle.PlanTradeFromInjects getCurrency/getItemQty (6592).
+-- Go pure half: ephemeralmoogle.PlanTradeFromInjects (6592); PlanTradeStartParams (6616).
 xi.crafting.ephemeralMoogleOnTrade = function(player, npc, trade)
     local eventParams = { 0, 0, 0, 0, 0, 0, 0, 0 }
     local validTrade  = false
@@ -100,14 +100,14 @@ xi.crafting.ephemeralMoogleOnTrade = function(player, npc, trade)
     end
 end
 
--- Go pure half: ephemeralmoogle.PlanTriggerFromCurrency getCurrency inject (6591).
+-- Go pure half: ephemeralmoogle.PlanTriggerFromCurrency (6591); PlanTriggerStartParams (6616).
 xi.crafting.ephemeralMoogleOnTrigger = function(player, npc)
     local eventParams = getStoredCrystals(player)
 
     player:startEvent(moogleEventTable[npc:getName()].trigger, eventParams[1], eventParams[2], eventParams[3], eventParams[4], 0, 0, 0, 0)
 end
 
--- Go pure half: ephemeralmoogle.PlanEventUpdateFromInjects currency/localvar inject (6591).
+-- Go pure half: ephemeralmoogle.PlanEventUpdateFromInjects (6591); PlanUpdateEventParams (6616).
 xi.crafting.ephemeralMoogleOnEventUpdate = function(player, csid, option, npc)
     -- Only trade event (crystal storing) has updates.
     if csid == moogleEventTable[npc:getName()].trade then
@@ -131,7 +131,7 @@ xi.crafting.ephemeralMoogleOnEventUpdate = function(player, csid, option, npc)
     end
 end
 
--- Go pure half: ephemeralmoogle.PlanEventFinishGrant currency/item catalog (6587).
+-- Go pure half: ephemeralmoogle.PlanEventFinishGrant (6587); PlanEventFinishGrantFromInjects (6616).
 xi.crafting.ephemeralMoogleOnEventFinish = function(player, csid, option, npc)
     -- Logic for crystal retrieving.
     if csid ~= moogleEventTable[npc:getName()].trigger then
