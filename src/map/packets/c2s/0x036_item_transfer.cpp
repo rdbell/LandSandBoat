@@ -29,6 +29,9 @@
 #include "trade_container.h"
 #include "utils/synthutils.h"
 
+// Go host pure half: packetsystem.ValidateItemTransfer / ProcessItemTransfer /
+// NewItemTransferHandler (6453); plan mappacket.ClientItemTransferPlanFor.
+
 namespace
 {
 
