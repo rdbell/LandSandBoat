@@ -363,13 +363,18 @@ local function calculateHybridMagicDamage(tp, physicaldmg, attacker, target, wsP
 
     magicdmg = math.floor(addBonusesAbility(attacker, wsParams.ele, target, magicdmg, wsParams))
     magicdmg = xi.weaponskills.hybridWeaponskillMagicBonusFTP(magicdmg, physicaldmg, calcParams.bonusfTP or 0)
-    magicdmg = math.floor(magicdmg * xi.combat.magicHitRate.calculateResistRate(attacker, target, 0, wsParams.skill, 0, wsParams.ele, 0, 0, calcParams.bonusAcc))
-    magicdmg = math.floor(magicdmg * xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false))
-    magicdmg = math.floor(target:handleSevereDamage(magicdmg, false))
+
+    local resist    = xi.combat.magicHitRate.calculateResistRate(attacker, target, 0, wsParams.skill, 0, wsParams.ele, 0, 0, calcParams.bonusAcc)
+    local damageAdj = xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false)
+    magicdmg        = xi.weaponskills.magicMitigationFloors(magicdmg, resist, damageAdj)
+    magicdmg        = math.floor(target:handleSevereDamage(magicdmg, false))
 
     if magicdmg > 0 then
-        magicdmg = math.floor(magicdmg * xi.spells.damage.calculateAbsorption(target, wsParams.ele, true))
-        magicdmg = math.floor(magicdmg * xi.spells.damage.calculateNullification(target, wsParams.ele, true, false))
+        magicdmg = xi.weaponskills.hybridMagicAbsorbNullify(
+            magicdmg,
+            xi.spells.damage.calculateAbsorption(target, wsParams.ele, true),
+            xi.spells.damage.calculateNullification(target, wsParams.ele, true, false)
+        )
     end
 
     if magicdmg > 0 then -- handle nonzero damage if previous function does not absorb or nullify
@@ -383,11 +388,7 @@ end
 
 -- returns ammo used, if any
 local function useAmmo(attacker)
-    if xi.combat.ranged.shouldUseAmmo(attacker) then
-        return 1
-    end
-
-    return 0
+    return xi.weaponskills.useAmmoCount(xi.combat.ranged.shouldUseAmmo(attacker))
 end
 
 -- Calculates the raw damage for a weaponskill, used by both xi.weaponskills.doPhysicalWeaponskill and xi.weaponskills.doRangedWeaponskill.
@@ -521,12 +522,85 @@ xi.weaponskills.ammoExhausted = function(ammoUsed, ammoCount)
     return ammoCount ~= -1 and ammoUsed >= ammoCount
 end
 
+-- Pure first-hit accuracy bonus used for physical WS firstHitRate (+100).
+xi.weaponskills.firstHitAccuracyBonus = function(bonusAcc)
+    return bonusAcc + 100
+end
+
+-- Pure whether to temporarily swap hitRate to firstHitRate for the first swing.
+xi.weaponskills.shouldUseFirstHitRate = function(isJump, hasFirstHitRate)
+    return not isJump and hasFirstHitRate
+end
+
+-- Pure target HP used for the multi-hit stop gate (current HP + Stoneskin mod).
+xi.weaponskills.weaponskillTargetHp = function(targetHp, stoneskinMod)
+    return targetHp + stoneskinMod
+end
+
+-- Pure mainhand multi-attack count: ranged never rolls multi-attacks on the
+-- mainhand multi budget (always 0).
+xi.weaponskills.initialMainhandMultis = function(isRanged, multiBonusHits)
+    if isRanged then
+        return 0
+    end
+
+    return multiBonusHits
+end
+
+-- Pure initial multi-proc counter: one proc if any mainhand multis, else zero.
+xi.weaponskills.initialMultiProcCount = function(numMainHandMultis)
+    if numMainHandMultis > 0 then
+        return 1
+    end
+
+    return 0
+end
+
+-- Pure useAmmo result: 1 if shouldUseAmmo, else 0.
+xi.weaponskills.useAmmoCount = function(shouldUseAmmo)
+    if shouldUseAmmo then
+        return 1
+    end
+
+    return 0
+end
+
+-- Pure magic-WS ranged slot gate: archery or marksmanship.
+xi.weaponskills.isRangedMagicWeaponskill = function(skill)
+    return skill == xi.skill.MARKSMANSHIP or skill == xi.skill.ARCHERY
+end
+
+-- Pure hybrid/magic resist+adjustment floors after ability bonuses:
+--   floor(floor(dmg * resist) * damageAdj)
+-- Host then applies handleSevereDamage to the result.
+xi.weaponskills.magicMitigationFloors = function(dmg, resist, damageAdj)
+    return math.floor(math.floor(dmg * resist) * damageAdj)
+end
+
+-- Pure hybrid absorb/nullify when damage is still positive after severe:
+-- each multiply is floored (distinct from magic WS which does not floor here).
+xi.weaponskills.hybridMagicAbsorbNullify = function(magicdmg, absorb, nullify)
+    if magicdmg <= 0 then
+        return magicdmg
+    end
+
+    magicdmg = math.floor(magicdmg * absorb)
+    magicdmg = math.floor(magicdmg * nullify)
+
+    return magicdmg
+end
+
+-- Pure magic-WS absorb/nullify when damage is non-negative (no intermediate floors).
+xi.weaponskills.magicWeaponskillAbsorbNullify = function(dmg, absorb, nullify)
+    return dmg * absorb * nullify
+end
+
 -- TODO: Reduce complexity
 -- Disable cyclomatic complexity check for this function:
 -- luacheck: ignore 561
 xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action, wsParams, calcParams)
     local targetLvl = target:getMainLvl()
-    local targetHp  = target:getHP() + target:getMod(xi.mod.STONESKIN)
+    local targetHp  = xi.weaponskills.weaponskillTargetHp(target:getHP(), target:getMod(xi.mod.STONESKIN))
 
     -- Obtains alpha, used for working out WSC on legacy servers. Retail has no alpha anymore as of 2014 Weaponskill functions
     local alpha = 1
@@ -583,10 +657,7 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     end
 
     -- Calculate the damage from the first hit
-    if
-        not isJump and
-        calcParams.firstHitRate
-    then
+    if xi.weaponskills.shouldUseFirstHitRate(isJump, calcParams.firstHitRate ~= nil) then
         calcParams.origHitRate = calcParams.hitRate
         calcParams.hitRate = calcParams.firstHitRate
     end
@@ -594,10 +665,7 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     local dmg = mainBase
     hitdmg, calcParams = getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcParams)
 
-    if
-        not isJump and
-        calcParams.origHitRate
-    then
+    if xi.weaponskills.shouldUseFirstHitRate(isJump, calcParams.origHitRate ~= nil) then
         calcParams.hitRate = calcParams.origHitRate
     end
 
@@ -620,9 +688,9 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
 
     -- Finish first/mainhand hit
 
-    local numMainHandMultis = isRanged and 0 or getMultiAttacks(attacker, target, wsParams, true, false)
+    local numMainHandMultis = xi.weaponskills.initialMainhandMultis(isRanged, isRanged and 0 or getMultiAttacks(attacker, target, wsParams, true, false))
     local numOffhandMultis  = 0
-    local numMultiProcs     = numMainHandMultis > 0 and 1 or 0
+    local numMultiProcs     = xi.weaponskills.initialMultiProcCount(numMainHandMultis)
 
     -- Have to calculate added bonus for SA/TA here since it is done outside of the fTP multiplier
     if attacker:getMainJob() == xi.job.THF then
@@ -1000,7 +1068,7 @@ xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParam
         calcParams.bonusAcc = xi.weaponskills.bonusAccWithVaries(calcParams.bonusAcc, xi.weaponskills.fTP(tp, wsParams.accVaries))
     end
 
-    calcParams.firstHitRate = xi.weaponskills.getHitRate(attacker, target, calcParams.bonusAcc + 100, xi.attackAnimation.RIGHT_ATTACK)
+    calcParams.firstHitRate = xi.weaponskills.getHitRate(attacker, target, xi.weaponskills.firstHitAccuracyBonus(calcParams.bonusAcc), xi.attackAnimation.RIGHT_ATTACK)
     calcParams.hitRate      = xi.weaponskills.getHitRate(attacker, target, calcParams.bonusAcc, xi.attackAnimation.RIGHT_ATTACK)
     calcParams.skillType    = attack.weaponType
 
@@ -1186,16 +1254,13 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
         ['wsID']            = wsID,
     }
 
-    if
-        wsParams.skill == xi.skill.MARKSMANSHIP or
-        wsParams.skill == xi.skill.ARCHERY
-    then
+    if xi.weaponskills.isRangedMagicWeaponskill(wsParams.skill) then
         attack.slot = xi.slot.RANGED
     end
 
     local dStat   = wsParams.dStat and wsParams.dStat or xi.mod.INT
     local gearFTP = xi.combat.physical.calculateFTPBonus(attacker)
-    local gearAcc = math.ceil(gearFTP * 100) + attacker:getMod(xi.mod.WSACC) -- TODO: Separate gear fTP and acc bonuses
+    local gearAcc = xi.weaponskills.gearAccFromFTP(gearFTP) + attacker:getMod(xi.mod.WSACC) -- TODO: Separate gear fTP and acc bonuses
     local fint    = 0
     local dmg     = 0
 
@@ -1224,8 +1289,11 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
 
         -- Calculate magical bonuses and reductions
         dmg = math.floor(addBonusesAbility(attacker, wsParams.ele, target, dmg, wsParams))
-        dmg = math.floor(dmg * xi.combat.magicHitRate.calculateResistRate(attacker, target, 0, wsParams.skill, 0, wsParams.ele, 0, 0, gearAcc))
-        dmg = math.floor(dmg * xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false))
+        dmg = xi.weaponskills.magicMitigationFloors(
+            dmg,
+            xi.combat.magicHitRate.calculateResistRate(attacker, target, 0, wsParams.skill, 0, wsParams.ele, 0, 0, gearAcc),
+            xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false)
+        )
         dmg = math.floor(target:handleSevereDamage(dmg, false))
 
         if dmg < 0 then
@@ -1235,8 +1303,11 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
             return dmg
         end
 
-        dmg = dmg * xi.spells.damage.calculateAbsorption(target, wsParams.ele, true)
-        dmg = dmg * xi.spells.damage.calculateNullification(target, wsParams.ele, true, false)
+        dmg = xi.weaponskills.magicWeaponskillAbsorbNullify(
+            dmg,
+            xi.spells.damage.calculateAbsorption(target, wsParams.ele, true),
+            xi.spells.damage.calculateNullification(target, wsParams.ele, true, false)
+        )
 
         dmg = utils.handlePhalanx(target, dmg)
         dmg = utils.handleOneForAll(target, dmg)
