@@ -38,15 +38,7 @@
 #include "status_effect_container.h"
 #include "zone.h"
 
-namespace
-{
-
-bool arePositionsClose(const position_t& a, const position_t& b)
-{
-    return distance(a, b) < 1.0f;
-}
-
-} // namespace
+// arePositionsClose dual-wired as pathfindstatushelpers::ArePositionsClose (slice 6348).
 
 CPathFind::CPathFind(CBaseEntity* PTarget)
 : m_POwner(PTarget)
@@ -85,13 +77,15 @@ bool CPathFind::RoamAround(const position_t& point, float maxRadius, uint8 maxTu
 
     m_roamFlags = roamFlags;
 
-    if (FindRandomPath(point, maxRadius, maxTurns, roamFlags))
+    bool result = FindRandomPath(point, maxRadius, maxTurns, roamFlags);
+    // Dual-wire: pathfindstatushelpers::ShouldClearAfterFailedPath (slice 6348).
+    if (pathfindstatushelpers::ShouldClearAfterFailedPath(result))
     {
-        return true;
+        Clear();
+        return false;
     }
 
-    Clear();
-    return false;
+    return true;
 }
 
 bool CPathFind::PathTo(const position_t& point, uint8 pathFlags, bool clear)
@@ -129,7 +123,8 @@ bool CPathFind::PathTo(const position_t& point, uint8 pathFlags, bool clear)
         result = FindPath(m_POwner->loc.p, point);
     }
 
-    if (!result)
+    // Dual-wire: pathfindstatushelpers::ShouldClearAfterFailedPath (slice 6348).
+    if (pathfindstatushelpers::ShouldClearAfterFailedPath(result))
     {
         Clear();
     }
@@ -470,7 +465,8 @@ bool CPathFind::FindPath(const position_t& start, const position_t& end)
     TracyZoneScoped;
     TracyZoneString(m_POwner->getName());
 
-    if (arePositionsClose(start, end))
+    // Dual-wire: pathfindstatushelpers::ArePositionsClose (slice 6348).
+    if (pathfindstatushelpers::ArePositionsClose(distance(start, end)))
     {
         return false;
     }
@@ -478,7 +474,8 @@ bool CPathFind::FindPath(const position_t& start, const position_t& end)
     m_points       = m_POwner->loc.zone->navMesh()->findPath(start, end);
     m_currentPoint = 0;
 
-    if (m_points.empty())
+    // Dual-wire: pathfindstatushelpers::FindPathSucceeded (slice 6348).
+    if (!pathfindstatushelpers::FindPathSucceeded(m_points.size()))
     {
         DebugNavmesh("CPathFind::FindPath Entity (%s - %d) could not find path", m_POwner->getName(), m_POwner->id);
         return false;
@@ -494,8 +491,9 @@ bool CPathFind::FindRandomPath(const position_t& start, float maxRadius, uint8 m
 
     auto m_turnLength = static_cast<uint8_t>(xirand::GetRandomNumber<uint32>(maxTurns) + 1);
 
+    // Dual-wire: pathfindstatushelpers::RandomPathPolyRadius (slice 6348).
     // Seemingly arbitrary value to pass for maxRadius, all values seem to give similar results, likely due to navmesh polygons being too dense?
-    float      maxRadiusForPolyQuery = maxRadius / 10.0f;
+    float      maxRadiusForPolyQuery = pathfindstatushelpers::RandomPathPolyRadius(maxRadius);
     position_t startPosition         = start;
 
     // find end points for turns, iterate potentially twice as many times to account for erroneous turnPoints
@@ -525,13 +523,15 @@ bool CPathFind::FindRandomPath(const position_t& start, float maxRadius, uint8 m
             break;
         }
     }
-    if (m_turnPoints.size() > 0)
+    // Dual-wire: pathfindstatushelpers::RandomPathHasTurns (slice 6348).
+    if (pathfindstatushelpers::RandomPathHasTurns(m_turnPoints.size()))
     {
         m_points       = m_POwner->loc.zone->navMesh()->findPath(start, m_turnPoints[0]);
         m_currentPoint = 0;
     }
 
-    return !m_points.empty();
+    // Dual-wire: pathfindstatushelpers::FindPathSucceeded (slice 6348).
+    return pathfindstatushelpers::FindPathSucceeded(m_points.size());
 }
 
 bool CPathFind::FindClosestPath(const position_t& start, const position_t& end)
@@ -539,7 +539,8 @@ bool CPathFind::FindClosestPath(const position_t& start, const position_t& end)
     TracyZoneScoped;
     TracyZoneString(m_POwner->getName());
 
-    if (arePositionsClose(start, end))
+    // Dual-wire: pathfindstatushelpers::ArePositionsClose (slice 6348).
+    if (pathfindstatushelpers::ArePositionsClose(distance(start, end)))
     {
         return false;
     }
@@ -688,7 +689,8 @@ void CPathFind::FinishedPath()
 
         bool result = FindPath(m_POwner->loc.p, nextTurn);
 
-        if (!result)
+        // Dual-wire: pathfindstatushelpers::ShouldClearAfterFailedPath (slice 6348).
+        if (pathfindstatushelpers::ShouldClearAfterFailedPath(result))
         {
             Clear();
         }

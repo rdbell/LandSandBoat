@@ -354,4 +354,51 @@ inline auto ShouldNotifyZoneOnMove(const bool hasZone) -> bool
     return hasZone;
 }
 
+// ArePositionsClose reports whether FindPath/FindClosestPath reject the query.
+// Mirrors free arePositionsClose: distance(a,b) < 1.0f
+// Formula (slice 6348): distance < 1.0
+// Dual-wire of Go pathfind.ArePositionsClose (find_path_gates.go).
+// Host injects distance(start, end). Call sites: FindPath, FindClosestPath.
+inline auto ArePositionsClose(const float distance) -> bool
+{
+    return distance < 1.0f;
+}
+
+// FindPathSucceeded reports whether FindPath may return true after mesh query.
+// Mirrors: !m_points.empty()
+// Formula (slice 6348): pointCount > 0
+// Dual-wire of Go pathfind.FindPathSucceeded (find_path_gates.go).
+inline auto FindPathSucceeded(const std::size_t pointCount) -> bool
+{
+    return pointCount > 0;
+}
+
+// RandomPathPolyRadius returns FindRandomPath poly-query radius.
+// Mirrors: maxRadius / 10.0f
+// Formula (slice 6348): maxRadius / 10
+// Dual-wire of Go pathfind.RandomPathPolyRadius (find_path_gates.go).
+inline auto RandomPathPolyRadius(const float maxRadius) -> float
+{
+    return maxRadius / 10.0f;
+}
+
+// ShouldClearAfterFailedPath reports Clear after failed FindPath-style result.
+// Mirrors: if (!result) Clear();
+// Formula (slice 6348): !result
+// Dual-wire of Go pathfind.ShouldClearAfterFailedPath (find_path_gates.go).
+// Call sites: PathTo, FinishedPath NextTurn fail, RoamAround fail.
+inline auto ShouldClearAfterFailedPath(const bool result) -> bool
+{
+    return !result;
+}
+
+// RandomPathHasTurns reports whether FindRandomPath can path to first turn.
+// Mirrors: if (m_turnPoints.size() > 0)
+// Formula (slice 6348): turnCount > 0
+// Dual-wire of Go pathfind.RandomPathHasTurns (find_path_gates.go).
+inline auto RandomPathHasTurns(const std::size_t turnCount) -> bool
+{
+    return turnCount > 0;
+}
+
 } // namespace pathfindstatushelpers
