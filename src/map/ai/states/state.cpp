@@ -23,6 +23,7 @@
 #include "entities/base_entity.h"
 #include "ai/states/state_delay_exit.h"
 #include "ai/states/state_error_msg.h"
+#include "ai/states/state_is_completed.h"
 #include "ai/states/state_set_target.h"
 
 CState::CState(CBaseEntity* PEntity, uint16 _targid)
@@ -120,5 +121,6 @@ bool CState::DoUpdate(timer::time_point tick)
 
 bool CState::IsCompleted() const
 {
-    return m_completed;
+    // Dual-wire: statehelpers::IsCompleted (slice 6325).
+    return statehelpers::IsCompleted(m_completed);
 }

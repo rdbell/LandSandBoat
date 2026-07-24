@@ -1412,6 +1412,7 @@ auto runAicontainerInterruptStates6321SelfTests() -> bool;
 auto runAicontainerStateStackCleanup6322SelfTests() -> bool;
 auto runAicontainerQueueEmpty6323SelfTests() -> bool;
 auto runStateErrorMsg6324SelfTests() -> bool;
+auto runStateIsCompleted6325SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3658,6 +3659,7 @@ namespace
         ok = runAicontainerStateStackCleanup6322SelfTests() && ok;
         ok = runAicontainerQueueEmpty6323SelfTests() && ok;
         ok = runStateErrorMsg6324SelfTests() && ok;
+        ok = runStateIsCompleted6325SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;
