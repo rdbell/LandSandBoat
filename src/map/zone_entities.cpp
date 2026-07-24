@@ -66,6 +66,7 @@
 #include "zone_pc_despawn_gate.h"
 #include "zone_pc_despawn_dispatch.h"
 #include "zone_spatial_grid_rebuild.h"
+#include "zone_mob_aggro_tap.h"
 #include "zone_pc_distance_gate.h"
 #include "zone_pc_candidate_gate.h"
 #include "wide_scan_policy.h"
@@ -807,7 +808,7 @@ void CZoneEntities::rebuildSpatialGrid()
 void CZoneEntities::tapMobAggro(CCharEntity* PChar, CMobEntity* PCurrentMob)
 {
     // Check to skip aggro routine
-    if (PCurrentMob->isDead() || PChar->isDead() || PChar->visibleGmLevel >= 3 || PCurrentMob->PMaster)
+    if (zoneaggrohelpers::ShouldSkipMobAggro(PCurrentMob->isDead(), PChar->isDead(), PChar->visibleGmLevel >= 3, PCurrentMob->PMaster != nullptr))
     {
         return;
     }
@@ -818,7 +819,7 @@ void CZoneEntities::tapMobAggro(CCharEntity* PChar, CMobEntity* PCurrentMob)
     CMobController* PController = static_cast<CMobController*>(PCurrentMob->PAI->GetController());
 
     // Check if this mob follows targets and if so then it should not aggro
-    if (PCurrentMob->m_roamFlags & ROAMFLAG_FOLLOW)
+    if (zoneaggrohelpers::ShouldUseRoamFollow((PCurrentMob->m_roamFlags & ROAMFLAG_FOLLOW) != 0))
     {
         if (PController->CanFollowTarget(PChar))
         {
@@ -827,7 +828,8 @@ void CZoneEntities::tapMobAggro(CCharEntity* PChar, CMobEntity* PCurrentMob)
         return;
     }
 
-    bool validAggro = mobCheck > EMobDifficulty::TooWeak || PChar->isSitting() || PCurrentMob->getMobMod(MOBMOD_ALWAYS_AGGRO);
+    bool validAggro = zoneaggrohelpers::ShouldAttemptMobAggro(
+        mobCheck > EMobDifficulty::TooWeak, PChar->isSitting(), PCurrentMob->getMobMod(MOBMOD_ALWAYS_AGGRO));
     if (validAggro && PController->CanAggroTarget(PChar))
     {
         PCurrentMob->PAI->Engage(PChar->targid);
