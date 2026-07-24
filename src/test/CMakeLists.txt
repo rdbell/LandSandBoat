@@ -2859,6 +2859,8 @@ set(SOURCES
     test_navmesh_load_host_6416.cpp
     test_mapsession_cleanup_sql_host_6417.h
     test_mapsession_cleanup_sql_host_6417.cpp
+    test_mapsession_cleanup_effects_host_6418.h
+    test_mapsession_cleanup_effects_host_6418.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

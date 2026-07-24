@@ -389,6 +389,7 @@ void MapSessionContainer::cleanupSessions(IPP mapIPP)
                 {
                     switch (plan.actions[i])
                     {
+                        // Go host pure half: mapsession.ApplyTimeoutCleanupEffects (6418).
                         case mapsessionhelpers::CleanupAction::SaveStatusEffects:
                             map_session_data->PChar->StatusEffectContainer->SaveStatusEffects(true);
                             break;

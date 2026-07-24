@@ -1460,6 +1460,7 @@ auto runXimeshRaycastHost6414SelfTests() -> bool;
 auto runNavmeshBuilderGeometryHost6415SelfTests() -> bool;
 auto runNavmeshLoadHost6416SelfTests() -> bool;
 auto runMapsessionCleanupSqlHost6417SelfTests() -> bool;
+auto runMapsessionCleanupEffectsHost6418SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3797,6 +3798,7 @@ namespace
         ok = runNavmeshBuilderGeometryHost6415SelfTests() && ok;
         ok = runNavmeshLoadHost6416SelfTests() && ok;
         ok = runMapsessionCleanupSqlHost6417SelfTests() && ok;
+        ok = runMapsessionCleanupEffectsHost6418SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
