@@ -414,28 +414,32 @@ local function calculateHybridMagicDamage(tp, physicaldmg, attacker, target, wsP
     )
 
     magicdmg = math.floor(addBonusesAbility(attacker, wsParams.ele, target, magicdmg, wsParams))
-    magicdmg = xi.weaponskills.hybridWeaponskillMagicBonusFTP(magicdmg, physicaldmg, calcParams.bonusfTP or 0)
+    magicdmg = xi.weaponskills.hybridWeaponskillMagicBonusFTP(
+        magicdmg,
+        physicaldmg,
+        xi.weaponskills.bonusFTPOrZero(calcParams.bonusfTP ~= nil, calcParams.bonusfTP or 0)
+    )
 
     local resist    = xi.combat.magicHitRate.calculateResistRate(attacker, target, 0, wsParams.skill, 0, wsParams.ele, 0, 0, calcParams.bonusAcc)
     local damageAdj = xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false)
     magicdmg        = xi.weaponskills.magicMitigationFloors(magicdmg, resist, damageAdj)
     magicdmg        = math.floor(target:handleSevereDamage(magicdmg, false))
 
-    if magicdmg > 0 then
-        magicdmg = xi.weaponskills.hybridMagicAbsorbNullify(
+    if xi.weaponskills.hybridMagicPositive(magicdmg) then
+        magicdmg = xi.weaponskills.hybridMagicPostSevere(
             magicdmg,
             xi.spells.damage.calculateAbsorption(target, wsParams.ele, true),
             xi.spells.damage.calculateNullification(target, wsParams.ele, true, false)
         )
     end
 
-    if magicdmg > 0 then -- handle nonzero damage if previous function does not absorb or nullify
+    if xi.weaponskills.hybridMagicShouldMitigate(magicdmg) then -- handle nonzero damage if previous function does not absorb or nullify
         magicdmg = utils.handlePhalanx(target, magicdmg)
         magicdmg = utils.handleOneForAll(target, magicdmg)
         magicdmg = utils.handleStoneskin(target, magicdmg)
     end
 
-    return math.floor(magicdmg)
+    return xi.weaponskills.floorHybridMagicFinal(magicdmg)
 end
 
 -- returns ammo used, if any
@@ -640,6 +644,39 @@ xi.weaponskills.hybridMagicAbsorbNullify = function(magicdmg, absorb, nullify)
     magicdmg = math.floor(magicdmg * nullify)
 
     return magicdmg
+end
+
+-- Pure residual calculateHybridMagicDamage gates (OmegaXI slice 6676).
+
+-- calcParams.bonusfTP or 0
+xi.weaponskills.bonusFTPOrZero = function(hasBonusFTP, bonusFTP)
+    if not hasBonusFTP then
+        return 0
+    end
+
+    return bonusFTP
+end
+
+xi.weaponskills.hybridMagicPositive = function(magicdmg)
+    return magicdmg > 0
+end
+
+-- Absorb/nullify step after severe: only when still positive.
+xi.weaponskills.hybridMagicPostSevere = function(magicdmg, absorb, nullify)
+    if not xi.weaponskills.hybridMagicPositive(magicdmg) then
+        return magicdmg
+    end
+
+    return xi.weaponskills.hybridMagicAbsorbNullify(magicdmg, absorb, nullify)
+end
+
+-- Second positive gate for Phalanx / OneForAll / Stoneskin after absorb.
+xi.weaponskills.hybridMagicShouldMitigate = function(magicdmg)
+    return xi.weaponskills.hybridMagicPositive(magicdmg)
+end
+
+xi.weaponskills.floorHybridMagicFinal = function(magicdmg)
+    return math.floor(magicdmg)
 end
 
 -- Pure magic-WS absorb/nullify when damage is non-negative (no intermediate floors).
