@@ -42,6 +42,8 @@
 //           InternalChangeTargetShouldSetBattleTarget
 //           (Internal_ChangeTarget outer battle-entity gate and
 //           IsEngaged||targetid==0 path split; pure inject)
+//   - 6296: InternalDisengageHasBattleEntity
+//           (Internal_Disengage outer battle-entity gate; pure inject)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -59,6 +61,8 @@
 // CAIContainer::Internal_ChangeTarget injects battle-entity presence into
 // InternalChangeTargetHasBattleEntity, then IsEngaged and targetid into
 // InternalChangeTargetShouldSetBattleTarget before SetBattleTargetID vs Engage.
+// CAIContainer::Internal_Disengage injects battle-entity presence into
+// InternalDisengageHasBattleEntity before SetBattleTargetID(0).
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.InternalEngageForceAttackAllowed /
@@ -68,7 +72,9 @@
 // (internal_engage.go),
 // aicontainer.InternalChangeTargetHasBattleEntity /
 // aicontainer.InternalChangeTargetShouldSetBattleTarget
-// (internal_change_target.go). Prior pure port: slice 1189.
+// (internal_change_target.go),
+// aicontainer.InternalDisengageHasBattleEntity
+// (internal_disengage.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -295,6 +301,34 @@ inline auto InternalChangeTargetHasBattleEntity(const bool hasBattleEntity) -> b
 inline auto InternalChangeTargetShouldSetBattleTarget(const bool isEngaged, const uint16 targetid) -> bool
 {
     return isEngaged || targetid == 0;
+}
+
+// InternalDisengageHasBattleEntity reports whether CAIContainer::Internal_Disengage
+// may proceed past the outer dynamic_cast gate.
+// Mirrors:
+//
+//   auto* entity = dynamic_cast<CBattleEntity*>(PEntity);
+//   if (entity) { ... }
+//
+// Formula (slice 6296):
+//   hasBattleEntity
+//
+// hasBattleEntity — dynamic_cast<CBattleEntity*>(PEntity) != nullptr
+// true  → host SetBattleTargetID(0); return true
+// false → host returns false without mutation
+//
+// Dual-wire of Go aicontainer.InternalDisengageHasBattleEntity
+// (internal/aicontainer/internal_disengage.go). Identity inject keeps
+// production and tests on one pure surface (same pattern as CanDispatch /
+// InternalChangeTargetHasBattleEntity).
+// Call site: CAIContainer::Internal_Disengage entry outer gate.
+// SetBattleTargetID mutation semantics, public Disengage CanDispatch residual,
+// pet engage/disengage TODOs, and full PAI ownership remain host/deferred.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState /
+// InternalEngage* / InternalChangeTarget* free functions.
+inline auto InternalDisengageHasBattleEntity(const bool hasBattleEntity) -> bool
+{
+    return hasBattleEntity;
 }
 
 } // namespace aicontainerhelpers

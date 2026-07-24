@@ -278,8 +278,10 @@ bool CAIContainer::Internal_ChangeTarget(uint16 targetid)
 
 bool CAIContainer::Internal_Disengage()
 {
-    auto* entity = dynamic_cast<CBattleEntity*>(PEntity);
-    if (entity)
+    auto* entity               = dynamic_cast<CBattleEntity*>(PEntity);
+    const bool hasBattleEntity = entity != nullptr;
+    // Outer battle-entity gate (slice 6296 dual-wire).
+    if (aicontainerhelpers::InternalDisengageHasBattleEntity(hasBattleEntity))
     {
         entity->SetBattleTargetID(0);
         return true;
