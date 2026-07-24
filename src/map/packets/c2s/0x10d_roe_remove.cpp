@@ -25,6 +25,8 @@
 #include "packets/s2c/0x110_unity.h"
 #include "roe.h"
 
+// Go host pure half: packetsystem.ValidateROERemove / ProcessROERemove /
+// NewROERemoveHandler (6513); plan mappacket.ClientROERemoveRuntimePlanFor.
 auto GP_CLI_COMMAND_ROE_REMOVE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

@@ -26,6 +26,8 @@
 #include "packets/s2c/0x110_unity.h"
 #include "roe.h"
 
+// Go host pure half: packetsystem.ValidateROEStart / ProcessROEStart /
+// NewROEStartHandler (6512); plan mappacket.ClientROEStartTransitionFor.
 auto GP_CLI_COMMAND_ROE_START::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

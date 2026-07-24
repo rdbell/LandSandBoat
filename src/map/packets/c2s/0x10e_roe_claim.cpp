@@ -25,6 +25,8 @@
 #include "packets/s2c/0x113_currencies_1.h"
 #include "roe.h"
 
+// Go host pure half: packetsystem.ValidateROEClaim / ProcessROEClaim /
+// NewROEClaimHandler (6514); plan mappacket.ClientROEClaimRuntimeResultFor.
 auto GP_CLI_COMMAND_ROE_CLAIM::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
