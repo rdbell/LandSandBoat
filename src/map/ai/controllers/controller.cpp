@@ -33,10 +33,12 @@ CController::CController(CBattleEntity* _POwner)
 
 void CController::Despawn()
 {
-    if (POwner)
-    {
+    // Dual-wire: controlleractiondispatch::Dispatch owner gate (slice 6363).
+    // Go host pure half: controller.Despawn runs Internal_Despawn when hasOwner.
+    (void)controlleractiondispatch::Dispatch(POwner != nullptr, [&]() {
         POwner->PAI->Internal_Despawn();
-    }
+        return true;
+    });
 }
 
 void CController::Reset()

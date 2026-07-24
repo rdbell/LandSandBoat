@@ -1406,6 +1406,7 @@ auto runAicontainerTickPathing6359SelfTests() -> bool;
 auto runAicontainerResetTriggerPathing6360SelfTests() -> bool;
 auto runAicontainerTickController6361SelfTests() -> bool;
 auto runAicontainerTickActionQueue6362SelfTests() -> bool;
+auto runAicontainerDespawnHost6363SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3689,6 +3690,7 @@ namespace
         ok = runAicontainerResetTriggerPathing6360SelfTests() && ok;
         ok = runAicontainerTickController6361SelfTests() && ok;
         ok = runAicontainerTickActionQueue6362SelfTests() && ok;
+        ok = runAicontainerDespawnHost6363SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
