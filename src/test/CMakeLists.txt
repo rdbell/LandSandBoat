@@ -2779,6 +2779,8 @@ set(SOURCES
     test_action_queue_is_empty_6331.cpp
     test_action_queue_due_6332.h
     test_action_queue_due_6332.cpp
+    test_action_queue_push_state_6333.h
+    test_action_queue_push_state_6333.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

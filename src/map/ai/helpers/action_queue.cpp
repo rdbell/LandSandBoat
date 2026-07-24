@@ -33,7 +33,8 @@ CAIActionQueue::CAIActionQueue(CBaseEntity* _PEntity)
 
 void CAIActionQueue::pushAction(queueAction_t&& action)
 {
-    if (action.checkState)
+    // Dual-wire: actionqueuehelpers::ShouldRouteToActionQueue (slice 6333).
+    if (actionqueuehelpers::ShouldRouteToActionQueue(action.checkState))
     {
         actionQueue.push(std::move(action));
     }
@@ -49,7 +50,9 @@ void CAIActionQueue::checkAction(timer::time_point tick)
     {
         const auto& topaction = timerQueue.top();
         // Dual-wire: actionqueuehelpers::ActionDueStrict (slice 6332).
-        if (actionqueuehelpers::ActionDueStrict(tick, topaction.start_time + topaction.delay))
+        // Timer queue entries use checkState=false; state gate always allows.
+        if (actionqueuehelpers::ActionDueStrict(tick, topaction.start_time + topaction.delay) &&
+            actionqueuehelpers::ActionStateGateAllows(topaction.checkState, true))
         {
             queueAction_t action = timerQueue.top();
             timerQueue.pop();
@@ -63,8 +66,9 @@ void CAIActionQueue::checkAction(timer::time_point tick)
     while (!actionQueue.empty())
     {
         const auto& topaction = actionQueue.top();
-        // Dual-wire: actionqueuehelpers::ActionDueStrict (slice 6332).
-        if (actionqueuehelpers::ActionDueStrict(tick, topaction.start_time + topaction.delay) && (!topaction.checkState || PEntity->PAI->CanChangeState()))
+        // Dual-wire: ActionDueStrict (6332) + ActionStateGateAllows (6333).
+        if (actionqueuehelpers::ActionDueStrict(tick, topaction.start_time + topaction.delay) &&
+            actionqueuehelpers::ActionStateGateAllows(topaction.checkState, PEntity->PAI->CanChangeState()))
         {
             auto action = actionQueue.top();
             actionQueue.pop();

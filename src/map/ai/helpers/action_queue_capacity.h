@@ -28,4 +28,26 @@ inline auto ActionDueStrict(const TimePoint tick, const TimePoint dueAt) -> bool
     return tick > dueAt;
 }
 
+// ShouldRouteToActionQueue reports whether pushAction uses the state-gated
+// action queue (true) versus the timer queue (false).
+// Mirrors: if (action.checkState) actionQueue else timerQueue
+// Formula (slice 6333): checkState
+// Dual-wire of Go actionqueue.ShouldRouteToActionQueue (push_state_gate.go).
+// Call site: CAIActionQueue::pushAction.
+inline auto ShouldRouteToActionQueue(const bool checkState) -> bool
+{
+    return checkState;
+}
+
+// ActionStateGateAllows reports whether a due action may drain under the
+// host-injected checkState and CanChangeState flags.
+// Mirrors: !topaction.checkState || PEntity->PAI->CanChangeState()
+// Formula (slice 6333): !checkState || canChangeState
+// Dual-wire of Go actionqueue.ActionStateGateAllows (push_state_gate.go).
+// Call site: CAIActionQueue::checkAction action-queue while admission.
+inline auto ActionStateGateAllows(const bool checkState, const bool canChangeState) -> bool
+{
+    return !checkState || canChangeState;
+}
+
 } // namespace actionqueuehelpers
