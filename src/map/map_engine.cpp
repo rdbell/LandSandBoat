@@ -151,6 +151,7 @@ auto MapEngine::init() -> Task<void>
     luautils::init(mapIPP, config_.smokeLuaFiles); // Also calls moduleutils::LoadLuaModules();
 
     // Delete sessions that are associated with this map process, but leave others alone
+    // Go host pure half: mapapp.ApplyDeleteMapProcessSessions (slice 6399).
     db::preparedStmt("DELETE FROM accounts_sessions WHERE (? = 0 AND ? = 0) OR (server_addr = ? AND server_port = ?)",
                      mapIPP.getIP(),
                      mapIPP.getPort(),
@@ -256,6 +257,7 @@ auto MapEngine::init() -> Task<void>
 
     zoneutils::TOTDChange(vanadiel_time::get_totd()); // This tells the zones to spawn stuff based on time of day conditions (such as undead at night)
 
+    // Go host pure half: mapapp.ApplyRemoveExpiredDatabaseVariables (slice 6399).
     ShowInfo("do_init: Removing expired database variables");
     uint32 currentTimestamp = earth_time::timestamp();
     db::preparedStmt("DELETE FROM char_vars WHERE expiry > 0 AND expiry <= ?", currentTimestamp);
@@ -364,6 +366,7 @@ auto MapEngine::watchdogWatcher() -> Task<void>
     }
 }
 
+// Go host pure half: mapapp.ApplySessionCleanup (slice 6399).
 void MapEngine::sessionCleanup() const
 {
     TracyZoneScoped;
@@ -377,6 +380,7 @@ void MapEngine::sessionCleanup() const
         });
 }
 
+// Go host pure half: mapapp.ApplyGarbageCollect (slice 6399).
 void MapEngine::garbageCollect() const
 {
     TracyZoneScoped;
