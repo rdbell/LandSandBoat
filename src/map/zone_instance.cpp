@@ -39,6 +39,11 @@ auto shouldSearchInstancePlayers(uint8 filter) -> bool
 {
     return filter & TYPE_PC;
 }
+
+auto shouldSetInstanceWipeTimeOnExit(bool charsEmpty, bool failed, bool completed) -> bool
+{
+    return charsEmpty && !failed && !completed;
+}
 } // namespace zoneinstance
 
 CZoneInstance::CZoneInstance(Scheduler& scheduler, MapConfig config, ZONEID ZoneID, REGION_TYPE RegionID, CONTINENT_TYPE ContinentID, uint8 levelRestriction)
@@ -176,12 +181,9 @@ void CZoneInstance::DecreaseZoneCounter(CCharEntity* PChar)
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::LevelRestriction);
         PChar->PInstance = nullptr;
 
-        if (PInstance->CharListEmpty())
+        if (zoneinstance::shouldSetInstanceWipeTimeOnExit(PInstance->CharListEmpty(), PInstance->Failed(), PInstance->Completed()))
         {
-            if (!(PInstance->Failed() || PInstance->Completed()))
-            {
-                PInstance->SetWipeTime(PInstance->GetElapsedTime(timer::now()));
-            }
+            PInstance->SetWipeTime(PInstance->GetElapsedTime(timer::now()));
         }
     }
 }

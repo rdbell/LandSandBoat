@@ -166,6 +166,16 @@ auto testInstanceEntityLookup() -> bool
     ok = expect(zoneinstance::shouldSearchInstancePlayers(TYPE_PC | TYPE_MOB), "combined player filter searches instances") && ok;
     return ok;
 }
+
+auto testInstanceWipeExit() -> bool
+{
+    bool ok = true;
+    ok = expect(zoneinstance::shouldSetInstanceWipeTimeOnExit(true, false, false), "empty normal instance records wipe") && ok;
+    ok = expect(!zoneinstance::shouldSetInstanceWipeTimeOnExit(false, false, false), "occupied instance skips wipe") && ok;
+    ok = expect(!zoneinstance::shouldSetInstanceWipeTimeOnExit(true, true, false), "failed instance skips wipe") && ok;
+    ok = expect(!zoneinstance::shouldSetInstanceWipeTimeOnExit(true, false, true), "complete instance skips wipe") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -179,5 +189,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testCancelStatus() && ok;
     ok      = testInstanceCleanup() && ok;
     ok      = testInstanceEntityLookup() && ok;
+    ok      = testInstanceWipeExit() && ok;
     return ok;
 }
