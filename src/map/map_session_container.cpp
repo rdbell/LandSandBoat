@@ -181,6 +181,7 @@ auto MapSessionContainer::createSession(IPP ipp) -> MapSession*
 
     auto map_session_data = std::make_unique<MapSession>();
 
+    // Go host pure half: mapsession.ApplyInitCreatedSession (6439).
     map_session_data->scheduler  = &scheduler_;
     map_session_data->client_ipp = ipp;
     map_session_data->tapLastUpdate();
@@ -212,6 +213,7 @@ auto MapSessionContainer::createPendingSession(uint32 charId) -> MapSession*
 
     auto map_session_data = std::make_unique<MapSession>();
 
+    // Go host pure half: mapsession.ApplyInitCreatedPendingSession (6439).
     map_session_data->scheduler = &scheduler_;
     map_session_data->charID    = charId;
     map_session_data->tapLastUpdate();
