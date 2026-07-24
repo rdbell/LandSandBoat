@@ -1032,9 +1032,10 @@ end
 -----------------------------------
 -- Light Handling
 -----------------------------------
-xi.abyssea.getLightsTable = function(player)
-    local lightMaskFirst  = player:getCharVar('abysseaLights1')
-    local lightMaskSecond = player:getCharVar('abysseaLights2')
+-- Pure unpack of the two Abyssea light masks into the seven light values.
+-- Lights 1-4 live in the first mask at byte offsets 0/8/16/24; lights 5-7 live
+-- in the second at offsets 0/8/16.
+xi.abyssea.unpackLights = function(lightMaskFirst, lightMaskSecond)
     local lightValues = { 0, 0, 0, 0, 0, 0, 0 }
 
     for v = 1, 7 do
@@ -1048,7 +1049,13 @@ xi.abyssea.getLightsTable = function(player)
     return lightValues
 end
 
-local function setLightsFromTable(player, lightTable)
+-- Pure pack, the inverse of unpackLights.
+--
+-- NOTE: the second mask is shifted by (k - 1) * 8, not (k - 5) * 8, so lights
+-- 5/6/7 are shifted by 32/40/48. This only round-trips because the bit library
+-- reduces shift counts modulo 32, landing them back on 0/8/16. Reproduced
+-- deliberately; see the round-trip test.
+xi.abyssea.packLights = function(lightTable)
     local lightMaskFirst  = 0
     local lightMaskSecond = 0
 
@@ -1059,6 +1066,16 @@ local function setLightsFromTable(player, lightTable)
             lightMaskSecond = lightMaskSecond + bit.lshift(lightTable[k], (k - 1) * 8)
         end
     end
+
+    return lightMaskFirst, lightMaskSecond
+end
+
+xi.abyssea.getLightsTable = function(player)
+    return xi.abyssea.unpackLights(player:getCharVar('abysseaLights1'), player:getCharVar('abysseaLights2'))
+end
+
+local function setLightsFromTable(player, lightTable)
+    local lightMaskFirst, lightMaskSecond = xi.abyssea.packLights(lightTable)
 
     player:setCharVar('abysseaLights1', lightMaskFirst)
     player:setCharVar('abysseaLights2', lightMaskSecond)
