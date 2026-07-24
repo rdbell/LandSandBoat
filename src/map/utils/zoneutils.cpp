@@ -43,6 +43,7 @@
 #include "spawn_initial_respawn.h"
 #include "spawn_initial_can_spawn.h"
 #include "spawn_scripted_respawn.h"
+#include "spawn_condition_based.h"
 #include "zone_instance.h"
 
 #include <algorithm>
@@ -683,7 +684,7 @@ auto LoadMOBList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
                         }
 
                         // Condition-based mobs (time/weather) register with 0s so they spawn when conditions are met
-                        const bool isConditionBased = PMob->m_SpawnType & (SPAWNTYPE_ATNIGHT | SPAWNTYPE_ATEVENING | SPAWNTYPE_WEATHER | SPAWNTYPE_FOG);
+                        const bool isConditionBased = spawnconditionbased::requiresConditionEvent(static_cast<uint8>(PMob->m_SpawnType));
                         PZone->spawnHandler().registerForRespawn(PMob, isConditionBased ? std::make_optional(0s) : std::nullopt);
                     }
                 });
