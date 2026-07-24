@@ -65,6 +65,8 @@ bool isNumber(const std::string& stringValue)
 //
 void init()
 {
+    // Go host pure half: settingsutil.Runtime.Init / AttachProcessRuntime (slice 6382)
+    // loads settings/default then settings into the process store (+ optional Watcher).
     // Load defaults
     for (const auto& entry : sorted_directory_iterator<std::filesystem::directory_iterator>("./settings/default/"))
     {

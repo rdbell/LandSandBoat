@@ -2787,6 +2787,8 @@ set(SOURCES
     test_application_services_host_6379.cpp
     test_client_entity_pair_host_6380.h
     test_client_entity_pair_host_6380.cpp
+    test_settings_runtime_host_6382.h
+    test_settings_runtime_host_6382.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
