@@ -485,7 +485,7 @@ local function handleSinglePhysicalHit(mob, target, baseHitDamage, params)
     ----------------------------------
     -- Critical Check
     ----------------------------------
-    if params.canCrit then
+    if xi.mobskills.critRateApplies(params.canCrit) then
         local critRate = xi.combat.physical.calculateSwingCriticalRate(mob, target, params.tpValue, xi.slot.MAIN, params.critModTable)
 
         isCritical = xi.mobskills.critRollSucceeds(math.random(1, 1000), critRate)
@@ -494,25 +494,30 @@ local function handleSinglePhysicalHit(mob, target, baseHitDamage, params)
     ----------------------------------
     -- PDIF + Damage
     ----------------------------------
-    local pDif      = 1
+    local calculatedPDif = 1
+    if not params.skipPDIF then
+        calculatedPDif = xi.combat.physical.calculateMeleePDIF(mob, target, params.weaponType, params.attackMultiplier, isCritical, params.applyLevelCorrection, params.ignoreDefense, params.ignoreDefenseFactor, false, xi.slot.MAIN, params.isCannonball)
+    end
+
+    local pDif = xi.mobskills.resolvePDIF(params.skipPDIF, calculatedPDif)
     local hitDamage = 0
     local blockReduction = 0
 
-    if not params.skipPDIF then
-        pDif = xi.combat.physical.calculateMeleePDIF(mob, target, params.weaponType, params.attackMultiplier, isCritical, params.applyLevelCorrection, params.ignoreDefense, params.ignoreDefenseFactor, false, xi.slot.MAIN, params.isCannonball)
-    end
+    local blockPlan = xi.mobskills.planBlockOnHit(
+        xi.combat.physical.isBlocked(target, mob),
+        params.skipBlock,
+        target:getMod(xi.mod.SHIELD_MASTERY_TP)
+    )
+    hitBlocked               = blockPlan.hitBlocked
+    blockedWithShieldMastery = blockPlan.blockedWithShieldMastery
 
-    if
-        xi.combat.physical.isBlocked(target, mob) and
-        not params.skipBlock
-    then
-        hitBlocked = true
+    if hitBlocked then
         -- Reduction is computed from floor(base * pDif) before the product continues.
-        blockReduction = xi.combat.physical.getDamageReductionForBlock(target, mob, math.floor(baseHitDamage * pDif))
-
-        if target:getMod(xi.mod.SHIELD_MASTERY_TP) > 0 then
-            blockedWithShieldMastery = true
-        end
+        blockReduction = xi.combat.physical.getDamageReductionForBlock(
+            target,
+            mob,
+            xi.mobskills.blockReductionInput(baseHitDamage, pDif)
+        )
     end
 
     local sdt       = xi.combat.damage.physicalElementSDT(target, params.damageType)
@@ -552,24 +557,19 @@ local function handleSinglePhysicalHit(mob, target, baseHitDamage, params)
 
     hitDamage = math.floor(target:checkDamageCap(hitDamage))
 
-    if hitDamage > 0 then
+    local postPlan = xi.mobskills.planPostHitDamage(hitDamage, blockedWithShieldMastery)
+    if postPlan.tryEvasionSkillUp then
         target:trySkillUp(xi.skill.EVASION, target:getMainLvl())
+    end
 
-        if not blockedWithShieldMastery then
-            target:tryHitInterrupt(mob)
-        end
+    if postPlan.tryHitInterrupt then
+        target:tryHitInterrupt(mob)
     end
 
     ----------------------------------
     -- Successful Hit
     ----------------------------------
-    hitInfo.hitLanded  = true
-    hitInfo.hitDamage  = hitDamage
-    hitInfo.hitBlocked = hitBlocked
-    hitInfo.isCritical = isCritical
-    hitInfo.pDif       = pDif
-
-    return hitInfo
+    return xi.mobskills.successfulHitInfo(hitNumber, hitDamage, hitBlocked, isCritical, pDif)
 end
 
 -- helper function to handle a single ranged hit and check for parrying, guarding, and blocking
@@ -602,7 +602,7 @@ local function handleSingleRangedHit(mob, target, baseHitDamage, params)
     ----------------------------------
     -- Critical Check
     ----------------------------------
-    if params.canCrit then
+    if xi.mobskills.critRateApplies(params.canCrit) then
         local critRate = xi.combat.physical.calculateRangedCriticalRate(mob, target, params.tpValue, xi.slot.MAIN, params.critModTable)
 
         isCritical = xi.mobskills.critRollSucceeds(math.random(1, 1000), critRate)
@@ -611,24 +611,29 @@ local function handleSingleRangedHit(mob, target, baseHitDamage, params)
     ----------------------------------
     -- PDIF + Damage
     ----------------------------------
-    local pDif           = 1
-    local hitDamage      = 0
-    local blockReduction = 0
-
+    local calculatedPDif = 1
     if not params.skipPDIF then
-        pDif = xi.combat.physical.calculateRangedPDIF(mob, target, params.weaponType, params.attackMultiplier, isCritical, params.applyLevelCorrection, params.ignoreDefense, params.ignoreDefenseFactor, false, 0)
+        calculatedPDif = xi.combat.physical.calculateRangedPDIF(mob, target, params.weaponType, params.attackMultiplier, isCritical, params.applyLevelCorrection, params.ignoreDefense, params.ignoreDefenseFactor, false, 0)
     end
 
-    if
-        xi.combat.physical.isBlocked(target, mob) and
-        not params.skipBlock
-    then
-        hitBlocked = true
-        blockReduction = xi.combat.physical.getDamageReductionForBlock(target, mob, math.floor(baseHitDamage * pDif))
+    local pDif = xi.mobskills.resolvePDIF(params.skipPDIF, calculatedPDif)
+    local hitDamage = 0
+    local blockReduction = 0
 
-        if target:getMod(xi.mod.SHIELD_MASTERY_TP) > 0 then
-            blockedWithShieldMastery = true
-        end
+    local blockPlan = xi.mobskills.planBlockOnHit(
+        xi.combat.physical.isBlocked(target, mob),
+        params.skipBlock,
+        target:getMod(xi.mod.SHIELD_MASTERY_TP)
+    )
+    hitBlocked               = blockPlan.hitBlocked
+    blockedWithShieldMastery = blockPlan.blockedWithShieldMastery
+
+    if hitBlocked then
+        blockReduction = xi.combat.physical.getDamageReductionForBlock(
+            target,
+            mob,
+            xi.mobskills.blockReductionInput(baseHitDamage, pDif)
+        )
     end
 
     -- Ranged uses damage-adjustment inject (true, false, true, false) and never BP_DAMAGE.
@@ -662,24 +667,19 @@ local function handleSingleRangedHit(mob, target, baseHitDamage, params)
         hitDamage = utils.handleStoneskin(target, hitDamage)
     end
 
-    if hitDamage > 0 then
+    local postPlan = xi.mobskills.planPostHitDamage(hitDamage, blockedWithShieldMastery)
+    if postPlan.tryEvasionSkillUp then
         target:trySkillUp(xi.skill.EVASION, target:getMainLvl())
+    end
 
-        if not blockedWithShieldMastery then
-            target:tryHitInterrupt(mob)
-        end
+    if postPlan.tryHitInterrupt then
+        target:tryHitInterrupt(mob)
     end
 
     ----------------------------------
     -- Successful Hit
     ----------------------------------
-    hitInfo.hitLanded  = true
-    hitInfo.hitDamage  = hitDamage
-    hitInfo.hitBlocked = hitBlocked
-    hitInfo.isCritical = isCritical
-    hitInfo.pDif       = pDif
-
-    return hitInfo
+    return xi.mobskills.successfulHitInfo(hitNumber, hitDamage, hitBlocked, isCritical, pDif)
 end
 
 ---@alias rangedMobSkillRetVal { damage: number, hybridDamage: number, hitsLanded: number, attackType: xi.attackType, damageType: xi.damageType, hybridAttackType: xi.attackType, hybridDamageType: xi.damageType, isCritical: boolean, hitData: table }
@@ -2047,6 +2047,58 @@ end
 -- SDT, resist, and shell-style damage adjustment are forced to 1 — day/weather
 -- and MAB still apply, then absorb, nullify, and the fixed 0.5 hybrid scale.
 -- Callers still own OneForAll and Stoneskin.
+-- Pure halves of physical/ranged single-hit residual (OmegaXI slice 6669).
+
+xi.mobskills.resolvePDIF = function(skip, calculated)
+    if skip then
+        return 1
+    end
+
+    return calculated
+end
+
+xi.mobskills.blockReductionInput = function(baseHitDamage, pDif)
+    return math.floor(baseHitDamage * pDif)
+end
+
+xi.mobskills.planBlockOnHit = function(isBlocked, skipBlock, shieldMasteryTP)
+    if not isBlocked or skipBlock then
+        return { hitBlocked = false, blockedWithShieldMastery = false }
+    end
+
+    return {
+        hitBlocked               = true,
+        blockedWithShieldMastery = shieldMasteryTP > 0,
+    }
+end
+
+xi.mobskills.planPostHitDamage = function(hitDamage, blockedWithShieldMastery)
+    if hitDamage <= 0 then
+        return { tryEvasionSkillUp = false, tryHitInterrupt = false }
+    end
+
+    return {
+        tryEvasionSkillUp = true,
+        tryHitInterrupt   = not blockedWithShieldMastery,
+    }
+end
+
+xi.mobskills.successfulHitInfo = function(hitNumber, hitDamage, hitBlocked, isCritical, pDif)
+    local hitInfo = xi.mobskills.defaultHitInfo(hitNumber)
+
+    hitInfo.hitLanded  = true
+    hitInfo.hitDamage  = hitDamage
+    hitInfo.hitBlocked = hitBlocked
+    hitInfo.isCritical = isCritical
+    hitInfo.pDif       = pDif
+
+    return hitInfo
+end
+
+xi.mobskills.critRateApplies = function(canCrit)
+    return not not canCrit
+end
+
 -- Pure halves of physical/ranged base damage setup (OmegaXI slice 6668).
 
 -- Physical/ranged floor skill TP at 1000 before the shared 3000 cap.
