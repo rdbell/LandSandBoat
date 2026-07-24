@@ -196,27 +196,42 @@ local function getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcPara
     return hitDamage, calcParams
 end
 
+-- Maps a weaponskill weapon skill type onto the physical SDT mod family used
+-- by modifyMeleeHitDamage. Dagger and Polearm share PIERCE; Club and Staff
+-- share IMPACT; everything else (including swords/axes/etc.) is SLASH.
+-- Returns the xi.mod id so callers can getMod without re-branching.
+xi.weaponskills.meleeHitSDTMod = function(weaponType)
+    if weaponType == xi.skill.HAND_TO_HAND then
+        return xi.mod.HTH_SDT
+    elseif
+        weaponType == xi.skill.DAGGER or
+        weaponType == xi.skill.POLEARM
+    then
+        return xi.mod.PIERCE_SDT
+    elseif
+        weaponType == xi.skill.CLUB or
+        weaponType == xi.skill.STAFF
+    then
+        return xi.mod.IMPACT_SDT
+    end
+
+    return xi.mod.SLASH_SDT
+end
+
+-- Unclamped SDT scale for weaponskill melee hits: 1 + sdtMod/10000.
+-- Distinct from xi.combat.damage.physicalElementSDT, which clamps to [0, 3].
+xi.weaponskills.meleeHitSDTScale = function(sdtMod)
+    return 1 + sdtMod / 10000
+end
+
 local function modifyMeleeHitDamage(attacker, target, attackTbl, wsParams, rawDamage)
     local adjustedDamage = rawDamage
 
     if not wsParams.formless then
         adjustedDamage = target:physicalDmgTaken(adjustedDamage, attackTbl.damageType)
 
-        if attackTbl.weaponType == xi.skill.HAND_TO_HAND then
-            adjustedDamage = adjustedDamage * (1 + target:getMod(xi.mod.HTH_SDT) / 10000)
-        elseif
-            attackTbl.weaponType == xi.skill.DAGGER or
-            attackTbl.weaponType == xi.skill.POLEARM
-        then
-            adjustedDamage = adjustedDamage * (1 + target:getMod(xi.mod.PIERCE_SDT) / 10000)
-        elseif
-            attackTbl.weaponType == xi.skill.CLUB or
-            attackTbl.weaponType == xi.skill.STAFF
-        then
-            adjustedDamage = adjustedDamage * (1 + target:getMod(xi.mod.IMPACT_SDT) / 10000)
-        else
-            adjustedDamage = adjustedDamage * (1 + target:getMod(xi.mod.SLASH_SDT) / 10000)
-        end
+        local sdtMod = target:getMod(xi.weaponskills.meleeHitSDTMod(attackTbl.weaponType))
+        adjustedDamage = adjustedDamage * xi.weaponskills.meleeHitSDTScale(sdtMod)
     end
 
     -- Scarlet Delirium

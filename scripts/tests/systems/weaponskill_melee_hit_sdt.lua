@@ -1,0 +1,38 @@
+require('scripts/globals/weaponskills')
+
+describe('Weaponskill melee-hit SDT mod', function()
+    it('maps hand-to-hand to HTH_SDT', function()
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.HAND_TO_HAND) == xi.mod.HTH_SDT)
+    end)
+
+    it('maps dagger and polearm to PIERCE_SDT', function()
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.DAGGER) == xi.mod.PIERCE_SDT)
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.POLEARM) == xi.mod.PIERCE_SDT)
+    end)
+
+    it('maps club and staff to IMPACT_SDT', function()
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.CLUB) == xi.mod.IMPACT_SDT)
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.STAFF) == xi.mod.IMPACT_SDT)
+    end)
+
+    it('maps other weapon skills to SLASH_SDT', function()
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.SWORD) == xi.mod.SLASH_SDT)
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.GREAT_SWORD) == xi.mod.SLASH_SDT)
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.AXE) == xi.mod.SLASH_SDT)
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.GREAT_AXE) == xi.mod.SLASH_SDT)
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.SCYTHE) == xi.mod.SLASH_SDT)
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.KATANA) == xi.mod.SLASH_SDT)
+        assert(xi.weaponskills.meleeHitSDTMod(xi.skill.GREAT_KATANA) == xi.mod.SLASH_SDT)
+    end)
+end)
+
+describe('Weaponskill melee-hit SDT scale', function()
+    it('is one plus mod over ten thousand without clamping', function()
+        assert(xi.weaponskills.meleeHitSDTScale(0) == 1)
+        assert(xi.weaponskills.meleeHitSDTScale(2500) == 1.25)
+        assert(xi.weaponskills.meleeHitSDTScale(-2500) == 0.75)
+        -- Unclamped: values outside physicalElementSDT's [0, 3] survive.
+        assert(xi.weaponskills.meleeHitSDTScale(50000) == 6)
+        assert(xi.weaponskills.meleeHitSDTScale(-15000) == -0.5)
+    end)
+end)
