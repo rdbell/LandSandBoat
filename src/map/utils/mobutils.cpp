@@ -718,6 +718,7 @@ Usage:
     Evil weapons have a magic defense boost. So pop that into mob_species_mods table.
     Goblin Diggers have a vermin killer trait, so find its poolid and put it in mod_pool_mods table.
 */
+// Go host pure half: mobutils.ApplyLoadSqlModifiers / SqlModifiersStore (6409).
 void LoadSqlModifiers()
 {
     // load family mods
@@ -886,6 +887,7 @@ ModsList_t* GetMobSpawnMods(uint32 mobId, bool create)
     return nullptr;
 }
 
+// Go host pure half: mobutils.ApplyAddSqlModifiers (slice 6409).
 void AddSqlModifiers(CMobEntity* PMob)
 {
     // find my species mods
