@@ -42,6 +42,7 @@
 #include "spawn_slot_assignment.h"
 #include "spawn_initial_respawn.h"
 #include "spawn_initial_can_spawn.h"
+#include "spawn_scripted_respawn.h"
 #include "zone_instance.h"
 
 #include <algorithm>
@@ -661,7 +662,7 @@ auto LoadMOBList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
                     // Skip mobs already registered via setRespawnTime in onMobInitialize - let SpawnHandler handle them
                     if (PZone->spawnHandler().isRegistered(PMob))
                     {
-                        if (PMob->m_SpawnType == SPAWNTYPE_SCRIPTED && PMob->m_RespawnTime > 0s)
+                        if (spawnscriptedrespawn::shouldAllow(static_cast<uint8>(PMob->m_SpawnType), PMob->m_RespawnTime > 0s))
                         {
                             PMob->m_AllowRespawn = true;
                         }
@@ -676,7 +677,7 @@ auto LoadMOBList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
                     else
                     {
                         // If the mob is a scripted spawn and it has a respawn time defined when the mob initializes then allow it to respawn
-                        if (PMob->m_SpawnType == SPAWNTYPE_SCRIPTED && PMob->m_RespawnTime > 0s)
+                        if (spawnscriptedrespawn::shouldAllow(static_cast<uint8>(PMob->m_SpawnType), PMob->m_RespawnTime > 0s))
                         {
                             PMob->m_AllowRespawn = true;
                         }
