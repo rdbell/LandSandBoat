@@ -63,6 +63,7 @@
 #include "zone_char_sync_significance.h"
 #include "zone_char_sync_relationship.h"
 #include "zone_char_sync_target_bonus.h"
+#include "zone_char_sync_existing.h"
 #include "zone_conditional_npc.h"
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
@@ -1079,19 +1080,19 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
         float significanceScore = getSignificanceScore(PChar, PCurrentChar);
         auto  bonusIter         = scoreBonus.find(PCurrentChar->id);
         auto  bonus             = bonusIter == scoreBonus.end() ? 0 : bonusIter->second;
-        float totalScore        = significanceScore + bonus - charDistance + CHARACTER_SYNC_DISTANCE_SWAP_THRESHOLD;
+        float totalScore        = zonecharsyncexisting::TotalScore(significanceScore, bonus, charDistance, CHARACTER_SYNC_DISTANCE_SWAP_THRESHOLD);
 
-        if (significanceScore < zoneentityvisibility::CharacterSyncAllianceSignificance)
+        if (zonecharsyncexisting::ShouldTrackForSwap(significanceScore, zoneentityvisibility::CharacterSyncAllianceSignificance))
         {
             // Is spawned and should be considered for removal if necessary
-            if (spawnedCharacters.size() < CHARACTER_SYNC_LIMIT_MAX)
+            const auto lowestScore = spawnedCharacters.empty() ? 0.0f : spawnedCharacters.top().first;
+            if (zonecharsyncexisting::ShouldAddToSwapPool(spawnedCharacters.size(), CHARACTER_SYNC_LIMIT_MAX, lowestScore, totalScore))
             {
                 spawnedCharacters.emplace(std::make_pair(totalScore, PCurrentChar));
-            }
-            else if (!spawnedCharacters.empty() && spawnedCharacters.top().first < totalScore)
-            {
-                spawnedCharacters.emplace(std::make_pair(totalScore, PCurrentChar));
-                spawnedCharacters.pop();
+                if (spawnedCharacters.size() > CHARACTER_SYNC_LIMIT_MAX)
+                {
+                    spawnedCharacters.pop();
+                }
             }
         }
     }
