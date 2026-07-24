@@ -25,6 +25,8 @@
 #include "packets/s2c/0x061_clistatus.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateCLIStatus / ProcessCLIStatus /
+// NewCLIStatusHandler (6475); plan mappacket.ClientCLIStatusDispatchPlanFor.
 auto clistatushelpers::MakeDispatchPlan() -> DispatchPlan
 {
     return { .refreshLocalPlayerPackets = true };

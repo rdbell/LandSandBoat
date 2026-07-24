@@ -21,6 +21,8 @@
 
 #include "0x063_dig.h"
 
+// Go host pure half: packetsystem.ValidateDig / ProcessDig /
+// NewDigHandler (6476); plan mappacket.ClientDigDispatchPlanFor.
 auto dighelpers::MakeDispatchPlan() -> DispatchPlan
 {
     return {};

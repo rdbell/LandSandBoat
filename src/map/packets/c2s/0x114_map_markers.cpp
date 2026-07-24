@@ -24,6 +24,8 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x063_miscdata_homepoints.h"
 
+// Go host pure half: packetsystem.ValidateMapMarkers / ProcessMapMarkers /
+// NewMapMarkersHandler (6474); plan mappacket.ClientMapMarkersActionFor.
 auto GP_CLI_COMMAND_MAP_MARKERS::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameters to validate for this packet.
