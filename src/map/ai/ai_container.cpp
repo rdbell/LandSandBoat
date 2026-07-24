@@ -361,8 +361,10 @@ bool CAIContainer::Internal_RangedAttack(uint16 targetid)
 
 bool CAIContainer::Internal_Die(timer::duration deathTime)
 {
-    auto* entity = dynamic_cast<CBattleEntity*>(PEntity);
-    if (entity)
+    auto* entity               = dynamic_cast<CBattleEntity*>(PEntity);
+    const bool hasBattleEntity = entity != nullptr;
+    // Outer battle-entity gate (slice 6298 dual-wire).
+    if (aicontainerhelpers::InternalDieHasBattleEntity(hasBattleEntity))
     {
         return ChangeState<CDeathState>(entity, deathTime);
     }
