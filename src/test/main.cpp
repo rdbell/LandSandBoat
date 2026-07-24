@@ -1484,6 +1484,7 @@ auto runMapsessionEntityBodyHost6438SelfTests() -> bool;
 auto runMapsessionCreateInitHost6439SelfTests() -> bool;
 auto runMapsessionPacketSeqHost6440SelfTests() -> bool;
 auto runLoginZonePlayerCapHost6441SelfTests() -> bool;
+auto runZoneutilsPlayerCapHost6442SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3845,6 +3846,7 @@ namespace
         ok = runMapsessionCreateInitHost6439SelfTests() && ok;
         ok = runMapsessionPacketSeqHost6440SelfTests() && ok;
         ok = runLoginZonePlayerCapHost6441SelfTests() && ok;
+        ok = runZoneutilsPlayerCapHost6442SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;

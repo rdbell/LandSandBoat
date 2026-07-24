@@ -6943,6 +6943,7 @@ auto SendToZone(CCharEntity* PChar, uint16 zoneId) -> bool
         return false;
     }
 
+    // Go host pure half: zoneutils.ShouldDenySendToZoneAtCap / FormatSendToZoneCapDenied (6442).
     if (zoneutils::IsZoneAtPlayerCap(zoneId, PChar->m_GMlevel > 0))
     {
         ShowInfoFmt("charutils::SendToZone : zone {} at player cap, denying {} (gm={})", zoneId, PChar->name, PChar->m_GMlevel);
