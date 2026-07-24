@@ -1410,7 +1410,7 @@ void CZoneEntities::UpdateEntityPacket(CBaseEntity* PEntity, ENTITYUPDATE type, 
     if (PEntity->objtype == TYPE_PC)
     {
         auto* PChar = static_cast<CCharEntity*>(PEntity);
-        if (PChar->m_isGMHidden && type != ENTITY_DESPAWN)
+        if (zonehelpers::ShouldSuppressHiddenGMEntityUpdate(PChar->m_isGMHidden, type == ENTITY_DESPAWN))
         {
             return;
         }
@@ -1419,7 +1419,7 @@ void CZoneEntities::UpdateEntityPacket(CBaseEntity* PEntity, ENTITYUPDATE type, 
     // Grid-accelerated recipient selection for the common ENTITY_UPDATE case: instead of scanning
     // every player in the zone (O(P) per broadcast -> O(P^2)/tick), query the spatial hash for the
     // players near the entity.
-    if (type == ENTITY_UPDATE && !alwaysInclude && spatialGrid_.size() > 0)
+    if (zonehelpers::ShouldUseGridEntityUpdateRouting(type == ENTITY_UPDATE, alwaysInclude, spatialGrid_.size() > 0))
     {
         spatialGrid_.forEachInRange(
             PEntity->loc.p,
@@ -1448,7 +1448,11 @@ void CZoneEntities::UpdateEntityPacket(CBaseEntity* PEntity, ENTITYUPDATE type, 
             continue;
         }
 
-        if (alwaysInclude || type == ENTITY_SPAWN || type == ENTITY_DESPAWN || charutils::hasEntitySpawned(PCurrentChar, PEntity))
+        if (zonehelpers::ShouldDispatchEntityUpdateToRecipient(
+                alwaysInclude,
+                type == ENTITY_SPAWN,
+                type == ENTITY_DESPAWN,
+                charutils::hasEntitySpawned(PCurrentChar, PEntity)))
         {
             PCurrentChar->updateEntityPacket(PEntity, type, updatemask);
         }

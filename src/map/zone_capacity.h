@@ -555,6 +555,34 @@ inline auto ShouldDisableScentForWeather(const Weather weather) -> bool
     return weather == Weather::Rain || weather == Weather::Squall || weather == Weather::Blizzards;
 }
 
+// ShouldSuppressHiddenGMEntityUpdate mirrors CZoneEntities::UpdateEntityPacket's
+// early return for hidden player characters. Despawns must still be sent so
+// recipients remove an entity that was previously visible.
+inline auto ShouldSuppressHiddenGMEntityUpdate(const bool hiddenGM, const bool isDespawn) -> bool
+{
+    return hiddenGM && !isDespawn;
+}
+
+// ShouldUseGridEntityUpdateRouting selects UpdateEntityPacket's spatial-grid
+// fast path. Only ordinary updates without the always-include override use the
+// grid, and only when it contains tracked entities.
+inline auto ShouldUseGridEntityUpdateRouting(const bool isEntityUpdate, const bool alwaysInclude, const bool gridNonEmpty) -> bool
+{
+    return isEntityUpdate && !alwaysInclude && gridNonEmpty;
+}
+
+// ShouldDispatchEntityUpdateToRecipient mirrors UpdateEntityPacket's fallback
+// recipient admission. Spawns, despawns, and always-include updates bypass an
+// existing spawn-list membership check.
+inline auto ShouldDispatchEntityUpdateToRecipient(
+    const bool alwaysInclude,
+    const bool isSpawn,
+    const bool isDespawn,
+    const bool entityAlreadySpawned) -> bool
+{
+    return alwaysInclude || isSpawn || isDespawn || entityAlreadySpawned;
+}
+
 // WeatherPacketOffsetMin/Max for xirand::GetRandomNumber(4, 28) half-open.
 constexpr uint16 WeatherPacketOffsetMin = 4;
 constexpr uint16 WeatherPacketOffsetMaxExclusive = 28;
