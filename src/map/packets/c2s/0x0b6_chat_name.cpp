@@ -54,6 +54,8 @@ const auto auditTell = [](Scheduler& scheduler, CCharEntity* PChar, const std::s
 
 } // namespace
 
+// Go host pure half: packetsystem.ValidateChatName / ProcessChatName /
+// NewChatNameHandler (6499); plan mappacket.ClientChatNameActionFor.
 auto GP_CLI_COMMAND_CHAT_NAME::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

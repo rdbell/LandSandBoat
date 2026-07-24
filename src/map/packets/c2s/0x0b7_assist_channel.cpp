@@ -58,6 +58,8 @@ auto assistchannelhelpers::SelectAction(const GP_CLI_COMMAND_ASSIST_CHANNEL_KIND
     }
 }
 
+// Go host pure half: packetsystem.ValidateAssistChannel / ProcessAssistChannel /
+// NewAssistChannelHandler (6500); plan mappacket.ClientAssistChannelActionFor.
 auto GP_CLI_COMMAND_ASSIST_CHANNEL::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
