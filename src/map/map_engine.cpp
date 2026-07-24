@@ -234,6 +234,8 @@ auto MapEngine::init() -> Task<void>
     //
     // Queue up regular tasks for the Scheduler
     //
+    // Go host pure half: mapapp.RegisterMapEngineRecurringTasks / PlanMapEngineRecurringTasks
+    // (slice 6398) — ordered IntervalMain catalog gated on !isTestServer.
 
     if (!config_.isTestServer)
     {
@@ -273,6 +275,7 @@ auto MapEngine::init() -> Task<void>
     //
     // Set up the watchdog tasks
     //
+    // Go host pure half: mapapp.PostMapEngineWatchdogs (slice 6398).
 
     if (!config_.isTestServer)
     {

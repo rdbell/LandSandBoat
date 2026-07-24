@@ -1440,6 +1440,7 @@ auto runConsoleCrashInjectHost6394SelfTests() -> bool;
 auto runMapGMCommandHost6395SelfTests() -> bool;
 auto runMapConsoleCommandsHost6396SelfTests() -> bool;
 auto runMapEngineFactoryHost6397SelfTests() -> bool;
+auto runMapEngineTasksHost6398SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3757,6 +3758,7 @@ namespace
         ok = runMapGMCommandHost6395SelfTests() && ok;
         ok = runMapConsoleCommandsHost6396SelfTests() && ok;
         ok = runMapEngineFactoryHost6397SelfTests() && ok;
+        ok = runMapEngineTasksHost6398SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
