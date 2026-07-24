@@ -65,6 +65,8 @@ auto groupstrikehelpers::MakeLocalAlliancePlan(
     return { allianceHasOnlyOneParty ? AllianceAction::Dissolve : AllianceAction::RemoveParty, false };
 }
 
+// Go host pure half: packetsystem.ValidateGroupStrike / ProcessGroupStrike /
+// NewGroupStrikeHandler (6481); plans mappacket.ClientGroupStrikeLocal*PlanFor.
 auto GP_CLI_COMMAND_GROUP_STRIKE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     auto pv = PacketValidator(PChar)
