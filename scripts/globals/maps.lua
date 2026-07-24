@@ -113,14 +113,14 @@ local function getMapEventParams(player)
     return paramTable
 end
 
--- Go pure half: mapvendor.PlanTriggerFromKeyItems composition (6586).
+-- Go pure half: mapvendor.PlanTriggerFromKeyItems (6586); PlanTriggerStartParams (6606).
 xi.maps.onTrigger = function(player, npc)
     local eventParams = getMapEventParams(player)
 
     player:startEvent(mapVendors[npc:getName()], eventParams[1], eventParams[2], eventParams[3])
 end
 
--- Go pure half: mapvendor.PlanEventUpdateForVendor/FromKeyItems composition (6590).
+-- Go pure half: mapvendor.PlanEventUpdateForVendor/FromKeyItems (6590); PlanEventUpdateFromInjects (6606).
 xi.maps.onEventUpdate = function(player, csid, option, npc)
     local mapId = bit.rshift(option, 16)
 
