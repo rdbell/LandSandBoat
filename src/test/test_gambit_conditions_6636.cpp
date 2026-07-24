@@ -7,6 +7,8 @@
 namespace
 {
 using gambitshelpers::AbilityOnCooldown;
+using gambitshelpers::ResonanceFromPower;
+using gambitshelpers::ShouldReplaceSkillchain;
 using gambitshelpers::CanUseUriel;
 using gambitshelpers::IsOffTargetAggro;
 using gambitshelpers::UrielAggroGate;
@@ -420,10 +422,39 @@ auto CheckUriel() -> bool
     return true;
 }
 
+auto CheckSkillSelection() -> bool
+{
+    // Power 0x321 unpacks to primary 1, secondary 2, tertiary 3.
+    const auto resonance = ResonanceFromPower(0x321);
+    if (resonance.primary != 1 || resonance.secondary != 2 || resonance.tertiary != 3)
+    {
+        return false;
+    }
+
+    // The tertiary nibble is unmasked, so a value above 12 bits bleeds through.
+    if (ResonanceFromPower(0xF321).tertiary != 0xF3)
+    {
+        return false;
+    }
+
+    // A formable chain replaces an equal-or-worse best; SC_NONE never does.
+    if (!ShouldReplaceSkillchain(5, 0) || !ShouldReplaceSkillchain(5, 5) || !ShouldReplaceSkillchain(6, 5))
+    {
+        return false;
+    }
+    if (ShouldReplaceSkillchain(0, 0) || ShouldReplaceSkillchain(4, 5))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 auto Check() -> bool
 {
     return CheckRunes() && CheckTopEnmity() && CheckSkillchain() && CheckPartyRoles() &&
-           CheckCasting() && CheckBarEffect() && CheckLunge() && CheckSimpleGates() && CheckUriel();
+           CheckCasting() && CheckBarEffect() && CheckLunge() && CheckSimpleGates() &&
+           CheckUriel() && CheckSkillSelection();
 }
 } // namespace
 

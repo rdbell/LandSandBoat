@@ -315,6 +315,41 @@ inline auto UrielCooldownReady(bool valHasEnmity, uint32 secondsSinceLastUriel) 
                : secondsSinceLastUriel >= UrielShortCooldownSeconds;
 }
 
+// Trust weaponskill selection (slice 6641, TryTrustSkill's G_SELECT switch).
+
+// SkillchainResonance is a Skillchain effect's power unpacked into the three
+// resonance properties FormSkillchain consumes.
+struct SkillchainResonance
+{
+    uint8 primary;
+    uint8 secondary;
+    uint8 tertiary;
+};
+
+// ResonanceFromPower unpacks a Skillchain status effect's power.
+//
+// NOTE: the tertiary nibble is taken as power >> 8 with no 0xF mask, unlike the
+// first two. Reproduced as-is; for the 12-bit powers actually stored it makes no
+// difference, but the asymmetry is upstream's.
+inline auto ResonanceFromPower(uint16 power) -> SkillchainResonance
+{
+    return SkillchainResonance{
+        static_cast<uint8>(power & 0xF),
+        static_cast<uint8>((power >> 4) & 0xF),
+        static_cast<uint8>(power >> 8),
+    };
+}
+
+// ShouldReplaceSkillchain is the shared tie-break in every closer loop: a
+// formable skillchain wins when it is at least as good as the best so far.
+//
+// NOTE: the comparison is >=, not >, so among equally-good candidates the
+// *last* one in the skill list wins.
+inline auto ShouldReplaceSkillchain(uint8 candidate, uint8 currentBest) -> bool
+{
+    return candidate != 0 /* SC_NONE */ && candidate >= currentBest;
+}
+
 // CanUseUriel is G_CONDITION::VAL_URIEL_CHECK.
 inline auto CanUseUriel(bool masterHasEnmity, bool valHasTopEnmity, bool masterHasOffTargetAggro,
                         bool valHasEnmity, float distanceToTarget, uint32 secondsSinceLastUriel) -> bool

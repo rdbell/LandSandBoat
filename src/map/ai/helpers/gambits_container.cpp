@@ -1613,9 +1613,10 @@ bool CGambitsContainer::TryTrustSkill()
                     std::list<SKILLCHAIN_ELEMENT> resonanceProperties;
                     if (uint16 power = PSCEffect->GetPower())
                     {
-                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)(power & 0xF));
-                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)(power >> 4 & 0xF));
-                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)(power >> 8));
+                        const auto resonance = gambitshelpers::ResonanceFromPower(power);
+                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)resonance.primary);
+                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)resonance.secondary);
+                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)resonance.tertiary);
                     }
 
                     std::list<SKILLCHAIN_ELEMENT> skillProperties;
@@ -1623,13 +1624,10 @@ bool CGambitsContainer::TryTrustSkill()
                     skillProperties.emplace_back((SKILLCHAIN_ELEMENT)skill.secondary);
                     skillProperties.emplace_back((SKILLCHAIN_ELEMENT)skill.tertiary);
                     if (SKILLCHAIN_ELEMENT possible_skillchain = battleutils::FormSkillchain(resonanceProperties, skillProperties);
-                        possible_skillchain != SC_NONE)
+                        gambitshelpers::ShouldReplaceSkillchain(static_cast<uint8>(possible_skillchain), static_cast<uint8>(chosen_skillchain)))
                     {
-                        if (possible_skillchain >= chosen_skillchain)
-                        {
-                            chosen_skill      = skill;
-                            chosen_skillchain = possible_skillchain;
-                        }
+                        chosen_skill      = skill;
+                        chosen_skillchain = possible_skillchain;
                     }
                 }
                 break;
@@ -1652,9 +1650,10 @@ bool CGambitsContainer::TryTrustSkill()
                     std::list<SKILLCHAIN_ELEMENT> resonanceProperties;
                     if (uint16 power = PSCEffect->GetPower())
                     {
-                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)(power & 0xF));
-                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)(power >> 4 & 0xF));
-                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)(power >> 8));
+                        const auto resonance = gambitshelpers::ResonanceFromPower(power);
+                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)resonance.primary);
+                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)resonance.secondary);
+                        resonanceProperties.emplace_back((SKILLCHAIN_ELEMENT)resonance.tertiary);
                     }
 
                     std::list<SKILLCHAIN_ELEMENT> skillProperties;
@@ -1662,13 +1661,10 @@ bool CGambitsContainer::TryTrustSkill()
                     skillProperties.emplace_back((SKILLCHAIN_ELEMENT)skill.secondary);
                     skillProperties.emplace_back((SKILLCHAIN_ELEMENT)skill.tertiary);
                     if (SKILLCHAIN_ELEMENT possible_skillchain = battleutils::FormSkillchain(resonanceProperties, skillProperties);
-                        possible_skillchain != SC_NONE)
+                        gambitshelpers::ShouldReplaceSkillchain(static_cast<uint8>(possible_skillchain), static_cast<uint8>(chosen_skillchain)))
                     {
-                        if (possible_skillchain >= chosen_skillchain)
-                        {
-                            chosen_skill      = skill;
-                            chosen_skillchain = possible_skillchain;
-                        }
+                        chosen_skill      = skill;
+                        chosen_skillchain = possible_skillchain;
                     }
                 }
                 break;
@@ -1693,13 +1689,10 @@ bool CGambitsContainer::TryTrustSkill()
                         skillProperties.emplace_back((SKILLCHAIN_ELEMENT)PMasterLastWeaponSkill->getSecondarySkillchain());
                         skillProperties.emplace_back((SKILLCHAIN_ELEMENT)PMasterLastWeaponSkill->getTertiarySkillchain());
                         if (SKILLCHAIN_ELEMENT possible_skillchain = battleutils::FormSkillchain(resonanceProperties, skillProperties);
-                            possible_skillchain != SC_NONE)
+                            gambitshelpers::ShouldReplaceSkillchain(static_cast<uint8>(possible_skillchain), static_cast<uint8>(chosen_skillchain)))
                         {
-                            if (possible_skillchain >= chosen_skillchain)
-                            {
-                                chosen_skill      = skill;
-                                chosen_skillchain = possible_skillchain;
-                            }
+                            chosen_skill      = skill;
+                            chosen_skillchain = possible_skillchain;
                         }
                     }
                 }
