@@ -67,6 +67,8 @@
 //           (IsSpawned !isDisappear dual-wire; SHUTDOWN not rejected)
 //   - 6310: IsUntargetable
 //           (inactive-state && inactive flag) || entity flag dual-wire residual 1189
+//   - 6311: IsStateStackEmpty
+//           (!hasCurrentState dual-wire residual pure 1189)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -110,6 +112,8 @@
 // CAIContainer::IsSpawned injects DISAPPEAR comparison into IsSpawnedStatus.
 // CAIContainer::IsUntargetable injects inactive-state presence, inactive
 // GetUntargetable, and entity GetUntargetable into IsUntargetable.
+// CAIContainer::IsStateStackEmpty injects current-state presence into
+// IsStateStackEmpty.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -144,6 +148,8 @@
 // aicontainer.IsSpawnedStatus
 // (is_spawned.go),
 // aicontainer.IsUntargetable
+// (aicontainer.go),
+// aicontainer.IsStateStackEmpty
 // (aicontainer.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
@@ -729,6 +735,26 @@ inline auto IsSpawnedStatus(const bool isDisappear) -> bool
 inline auto IsUntargetable(const bool isInactiveState, const bool inactiveUntargetable, const bool entityUntargetable) -> bool
 {
     return (isInactiveState && inactiveUntargetable) || entityUntargetable;
+}
+
+// IsStateStackEmpty reports whether CAIContainer::IsStateStackEmpty is true.
+// Mirrors:
+//
+//   return !m_currentState;
+//
+// Formula (slice 6311 dedicated dual-wire residual pure 1189):
+//   !hasCurrentState
+//
+// hasCurrentState — host m_currentState / GetCurrentState() != nullptr
+// Note: LSB names this "stack empty" but the predicate is only about the
+// current state pointer, not m_stateStack size.
+//
+// Dual-wire of Go aicontainer.IsStateStackEmpty (aicontainer.go).
+// Call site: CAIContainer::IsStateStackEmpty. Prior pure port: slice 1189.
+// Sibling dual-wires left alone: CanChangeState / CanFollowPath / IsCurrentState.
+inline auto IsStateStackEmpty(const bool hasCurrentState) -> bool
+{
+    return !hasCurrentState;
 }
 
 } // namespace aicontainerhelpers

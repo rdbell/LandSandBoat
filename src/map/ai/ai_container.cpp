@@ -573,7 +573,9 @@ auto CAIContainer::Tick(timer::time_point tick) -> Task<void>
 
 bool CAIContainer::IsStateStackEmpty()
 {
-    return !m_currentState;
+    // Dual-wire: aicontainerhelpers::IsStateStackEmpty (slice 6311)
+    const bool hasCurrentState = m_currentState != nullptr;
+    return aicontainerhelpers::IsStateStackEmpty(hasCurrentState);
 }
 
 void CAIContainer::ClearStateStack()
