@@ -18,4 +18,5 @@ auto SearchApplicationConsoleCommandDescriptors(uint16 expiryDays) -> std::array
 
 // SearchMainExitCode is the fixed process exit code after searchApp->run().
 // Production always returns 0 regardless of run outcome (same polarity as world/connect).
+// Go host pure half: searchutil.SearchMain always returns this (slice 6374).
 inline constexpr int SearchMainExitCode = 0;

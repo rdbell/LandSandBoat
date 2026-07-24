@@ -39,6 +39,7 @@ auto SearchApplication::createEngine() -> std::unique_ptr<Engine>
 
 void SearchApplication::registerCommands(ConsoleService& console)
 {
+    // Go host pure half: searchutil.PlanSearchRegisterCommands (slice 6374).
     const auto expiryDays    = settings::get<uint16>("search.EXPIRE_DAYS");
     const auto commands      = SearchApplicationConsoleCommandDescriptors(expiryDays);
     auto*      searchEngine  = static_cast<SearchEngine*>(engine_.get());

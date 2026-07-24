@@ -25,6 +25,8 @@
 
 int main(int argc, char** argv)
 {
+    // Go host pure half: searchutil.NewSearchApplication + SearchMain (slice 6374)
+    // drives application.Application.Run and always returns SearchMainExitCode.
     const auto searchApp = std::make_unique<SearchApplication>(argc, argv);
 
     searchApp->run();
