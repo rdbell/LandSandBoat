@@ -410,9 +410,10 @@ void CPathFind::StepTo(const position_t& pos, bool run)
 
     if (pathfindstatushelpers::ShouldSnapToTarget(distanceTo, m_distanceFromPoint, stepDistance))
     {
-        m_distanceMoved += distanceTo - m_distanceFromPoint;
+        // Dual-wire: SnapDistanceMoved / ShouldSnapExact (slice 6352).
+        m_distanceMoved += pathfindstatushelpers::SnapDistanceMoved(distanceTo, m_distanceFromPoint);
 
-        if (m_distanceFromPoint == 0)
+        if (pathfindstatushelpers::ShouldSnapExact(m_distanceFromPoint))
         {
             m_POwner->loc.p.x = pos.x;
             m_POwner->loc.p.y = pos.y;
@@ -480,8 +481,9 @@ bool CPathFind::FindPath(const position_t& start, const position_t& end)
         return false;
     }
 
-    m_points       = m_POwner->loc.zone->navMesh()->findPath(start, end);
-    m_currentPoint = 0;
+    m_points = m_POwner->loc.zone->navMesh()->findPath(start, end);
+    // Dual-wire: pathfindstatushelpers::FindPathCursor (slice 6352).
+    m_currentPoint = pathfindstatushelpers::FindPathCursor();
 
     // Dual-wire: pathfindstatushelpers::FindPathSucceeded (slice 6348).
     if (!pathfindstatushelpers::FindPathSucceeded(m_points.size()))
@@ -535,8 +537,9 @@ bool CPathFind::FindRandomPath(const position_t& start, float maxRadius, uint8 m
     // Dual-wire: pathfindstatushelpers::RandomPathHasTurns (slice 6348).
     if (pathfindstatushelpers::RandomPathHasTurns(m_turnPoints.size()))
     {
-        m_points       = m_POwner->loc.zone->navMesh()->findPath(start, m_turnPoints[0]);
-        m_currentPoint = 0;
+        m_points = m_POwner->loc.zone->navMesh()->findPath(start, m_turnPoints[0]);
+        // Dual-wire: pathfindstatushelpers::FindPathCursor (slice 6352).
+        m_currentPoint = pathfindstatushelpers::FindPathCursor();
     }
 
     // Dual-wire: pathfindstatushelpers::FindPathSucceeded (slice 6348).
@@ -554,8 +557,9 @@ bool CPathFind::FindClosestPath(const position_t& start, const position_t& end)
         return false;
     }
 
-    m_points       = m_POwner->loc.zone->navMesh()->findPath(start, end);
-    m_currentPoint = 0;
+    m_points = m_POwner->loc.zone->navMesh()->findPath(start, end);
+    // Dual-wire: pathfindstatushelpers::FindPathCursor (slice 6352).
+    m_currentPoint = pathfindstatushelpers::FindPathCursor();
     m_points.emplace_back(pathpoint_t{ end, 0s, false }); // this prevents exploits with navmesh / impassible terrain
 
     /* this check requirement is never met as intended since m_points are never empty when mob has a path

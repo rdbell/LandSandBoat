@@ -578,4 +578,32 @@ inline auto RestartedCurrentTurn() -> int
     return 0;
 }
 
+// ShouldSnapExact reports whether StepTo snap branch copies target position.
+// Mirrors: if (m_distanceFromPoint == 0)
+// Formula (slice 6352): distanceFromPoint == 0
+// Dual-wire of Go pathfind.ShouldSnapExact (step_snap_gates.go).
+// Call site: CPathFind::StepTo after ShouldSnapToTarget.
+inline auto ShouldSnapExact(const float distanceFromPoint) -> bool
+{
+    return distanceFromPoint == 0.f;
+}
+
+// SnapDistanceMoved returns distance accounted when snapping to target.
+// Mirrors: m_distanceMoved += distanceTo - m_distanceFromPoint
+// Formula (slice 6352): distanceTo - distanceFromPoint
+// Dual-wire of Go pathfind.SnapDistanceMoved (step_snap_gates.go).
+inline auto SnapDistanceMoved(const float distanceTo, const float distanceFromPoint) -> float
+{
+    return distanceTo - distanceFromPoint;
+}
+
+// FindPathCursor returns m_currentPoint after a mesh FindPath-style install.
+// Mirrors FindPath / FindClosestPath / FindRandomPath: m_currentPoint = 0
+// Formula (slice 6352): 0
+// Dual-wire of Go pathfind.FindPathCursor (step_snap_gates.go).
+inline auto FindPathCursor() -> int16_t
+{
+    return 0;
+}
+
 } // namespace pathfindstatushelpers
