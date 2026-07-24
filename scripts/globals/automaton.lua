@@ -244,13 +244,27 @@ xi.automaton.repairKit =
     },
 }
 
-local function getRegenModValue(pet, attachment, numManeuvers)
-    local repairKitData = xi.automaton.repairKit.data[attachment:getName()]
-    if not repairKitData then
+-- Pure repair-kit regen once table row and max HP are injected.
+xi.automaton.repairKitRegenValue = function(hasData, regenBase, regenMultiplier, maxHP)
+    if not hasData then
         return 0
     end
 
-    return repairKitData.regenBase[numManeuvers + 1] + pet:getMaxHP() * repairKitData.regenMultiplier[numManeuvers + 1] / 100
+    return regenBase + maxHP * regenMultiplier / 100
+end
+
+local function getRegenModValue(pet, attachment, numManeuvers)
+    local repairKitData = xi.automaton.repairKit.data[attachment:getName()]
+    if not repairKitData then
+        return xi.automaton.repairKitRegenValue(false, 0, 0, 0)
+    end
+
+    return xi.automaton.repairKitRegenValue(
+        true,
+        repairKitData.regenBase[numManeuvers + 1],
+        repairKitData.regenMultiplier[numManeuvers + 1],
+        pet:getMaxHP()
+    )
 end
 
 -----------------------------------
@@ -370,31 +384,56 @@ xi.automaton.manaTank =
     },
 }
 
-local function getRefreshModValue(pet, attachment, numManeuvers)
-    local manaTankData = xi.automaton.manaTank.data[attachment:getName()]
-    if not manaTankData then
+-- Pure mana-tank refresh once table row and max MP are injected.
+xi.automaton.manaTankRefreshValue = function(hasData, refreshBase, refreshMultiplier, maxMP)
+    if not hasData then
         return 0
     end
 
-    return manaTankData.refreshBase[numManeuvers + 1] + pet:getMaxMP() * manaTankData.refreshMultiplier[numManeuvers + 1] / 100
+    return refreshBase + maxMP * refreshMultiplier / 100
+end
+
+local function getRefreshModValue(pet, attachment, numManeuvers)
+    local manaTankData = xi.automaton.manaTank.data[attachment:getName()]
+    if not manaTankData then
+        return xi.automaton.manaTankRefreshValue(false, 0, 0, 0)
+    end
+
+    return xi.automaton.manaTankRefreshValue(
+        true,
+        manaTankData.refreshBase[numManeuvers + 1],
+        manaTankData.refreshMultiplier[numManeuvers + 1],
+        pet:getMaxMP()
+    )
 end
 
 -----------------------------------
 -- Optic Fiber
 -----------------------------------
+xi.automaton.isOpticFiber = function(attachmentName)
+    return string.find(attachmentName, 'optic_fiber') ~= nil
+end
+
 local function isOpticFiber(attachmentName)
-    if string.find(attachmentName, 'optic_fiber') ~= nil then
-        return true
+    return xi.automaton.isOpticFiber(attachmentName)
+end
+
+-- Pure sum of pre-resolved Optic Fiber performance values.
+xi.automaton.performanceBoostSum = function(opticFiberValues)
+    local performanceBoost = 0
+
+    for i = 1, #opticFiberValues do
+        performanceBoost = performanceBoost + opticFiberValues[i]
     end
 
-    return false
+    return performanceBoost
 end
 
 -- Due to load order, we can't expect to determine Optic Fiber enhancements on change.
 -- For maneuvers, calculate this based on the number of light maneuvers that are active.
 local function calculatePerformanceBoost(pet)
-    local master           = pet:getMaster()
-    local performanceBoost = 0
+    local master = pet:getMaster()
+    local values = {}
 
     local lightManeuversActive = xi.automaton.getManeuverCount(master, master and master:countEffect(xi.effect.LIGHT_MANEUVER) or 0)
     for _, attachmentName in pairs(pet:getAttachments()) do
@@ -402,11 +441,11 @@ local function calculatePerformanceBoost(pet)
             isOpticFiber(attachmentName) and
             xi.automaton.attachmentModifiers[attachmentName]
         then
-            performanceBoost = performanceBoost + xi.automaton.attachmentModifiers[attachmentName][1].values[lightManeuversActive + 1]
+            table.insert(values, xi.automaton.attachmentModifiers[attachmentName][1].values[lightManeuversActive + 1])
         end
     end
 
-    return performanceBoost
+    return xi.automaton.performanceBoostSum(values)
 end
 
 -----------------------------------
@@ -523,31 +562,58 @@ end
 -- https://wiki.ffo.jp/html/29192.html
 -- Maneuvers cost less when the matching stat is higher than the automatons, except for dark maneuvers which have a flat cost based on the frame.
 -----------------------------------
-local function getAddBurdenValue(player, maneuverElement, maneuverStat)
-    -- Dark Maneuvers
-    if maneuverElement == xi.element.DARK then
-        local frameEquipped = player:getAutomatonFrame()
+-- Pure residual maneuver helpers (OmegaXI slice 6674).
 
-        if
-            frameEquipped == xi.automaton.frame.VALOREDGE or
-            frameEquipped == xi.automaton.frame.SHARPSHOT
-        then
+xi.automaton.overloadPrevented = function(overloadNonZero, preventOverload, waterManeuverDeleted)
+    return overloadNonZero and preventOverload and waterManeuverDeleted
+end
+
+xi.automaton.maneuverEffectPower = function(puppetmasterLevel, maneuverBonusMod)
+    return 1 + (puppetmasterLevel / 15) + maneuverBonusMod
+end
+
+xi.automaton.clampManeuverDuration = function(duration)
+    return utils.clamp(duration, 60, 300)
+end
+
+xi.automaton.shouldRemoveOldestManeuver = function(activeCount)
+    return activeCount == 3
+end
+
+-- Pure burden cost once element/frame/stat delta are injected (OmegaXI slice 6674).
+xi.automaton.addBurdenValue = function(isDark, valoredgeOrSharpshot, statDifference)
+    if isDark then
+        if valoredgeOrSharpshot then
             return 8
         end
 
         return 14
-    else
-        -- Fire, Ice, Wind, Earth, Lightning, Water, Light Maneuvers
-        local statDifference = player:getStat(maneuverStat) - player:getPet():getStat(maneuverStat)
-
-        if statDifference >= 4 then
-            return 14
-        elseif statDifference >= 0 then
-            return 19 - statDifference
-        else
-            return 20
-        end
     end
+
+    if statDifference >= 4 then
+        return 14
+    elseif statDifference >= 0 then
+        return 19 - statDifference
+    end
+
+    return 20
+end
+
+local function getAddBurdenValue(player, maneuverElement, maneuverStat)
+    -- Dark Maneuvers
+    if maneuverElement == xi.element.DARK then
+        local frameEquipped = player:getAutomatonFrame()
+        local valorOrSharp  =
+            frameEquipped == xi.automaton.frame.VALOREDGE or
+            frameEquipped == xi.automaton.frame.SHARPSHOT
+
+        return xi.automaton.addBurdenValue(true, valorOrSharp, 0)
+    end
+
+    -- Fire, Ice, Wind, Earth, Lightning, Water, Light Maneuvers
+    local statDifference = player:getStat(maneuverStat) - player:getPet():getStat(maneuverStat)
+
+    return xi.automaton.addBurdenValue(false, false, statDifference)
 end
 
 -----------------------------------
@@ -558,11 +624,16 @@ xi.automaton.getManeuverCount = function(master, maneuvers)
         return 0
     end
 
+    return xi.automaton.maneuverCount(maneuvers, master:hasStatusEffect(xi.effect.OVERDRIVE))
+end
+
+-- Pure half of getManeuverCount once master presence is known.
+xi.automaton.maneuverCount = function(maneuvers, hasOverdrive)
     local maneuversActive = math.min(maneuvers, 3)
 
     if
         maneuversActive > 0 and
-        master:hasStatusEffect(xi.effect.OVERDRIVE)
+        hasOverdrive
     then
         return 3
     end
@@ -602,11 +673,18 @@ xi.automaton.onUseManeuver = function(player, target, ability, action)
     local burdenValue  = getAddBurdenValue(player, maneuverInfo.element, maneuverInfo.stat)
     local overload     = target:addBurden(element, burdenValue)
 
+    local preventOverload =
+        player:getMod(xi.mod.PREVENT_OVERLOAD) > 0 or
+        pet:getMod(xi.mod.PREVENT_OVERLOAD) > 0
+    local waterDeleted = false
     if
         overload ~= 0 and
-        (player:getMod(xi.mod.PREVENT_OVERLOAD) > 0 or pet:getMod(xi.mod.PREVENT_OVERLOAD) > 0) and
-        player:delStatusEffectSilent(xi.effect.WATER_MANEUVER)
+        preventOverload
     then
+        waterDeleted = player:delStatusEffectSilent(xi.effect.WATER_MANEUVER)
+    end
+
+    if xi.automaton.overloadPrevented(overload ~= 0, preventOverload, waterDeleted) then
         overload = 0
     end
 
@@ -619,13 +697,17 @@ xi.automaton.onUseManeuver = function(player, target, ability, action)
         action:messageID(player:getID(), xi.msg.basic.AUTO_OVERLOADED)
     else
         local puppetmasterLevel = target:getMainJob() == xi.job.PUP and target:getMainLvl() or target:getSubLvl()
-        local maneuverBonus     = 1 + (puppetmasterLevel / 15) + target:getMod(xi.mod.MANEUVER_BONUS)
+        local maneuverBonus     = xi.automaton.maneuverEffectPower(puppetmasterLevel, target:getMod(xi.mod.MANEUVER_BONUS))
 
-        if target:getActiveManeuverCount() == 3 then
+        if xi.automaton.shouldRemoveOldestManeuver(target:getActiveManeuverCount()) then
             target:removeOldestManeuver()
         end
 
-        target:addStatusEffect(maneuverInfo.effect, { power = maneuverBonus, duration = utils.clamp(pet:getLocalVar('MANEUVER_DURATION'), 60, 300), origin = player })
+        target:addStatusEffect(maneuverInfo.effect, {
+            power    = maneuverBonus,
+            duration = xi.automaton.clampManeuverDuration(pet:getLocalVar('MANEUVER_DURATION')),
+            origin   = player,
+        })
     end
 
     return target:getOverloadChance(element)
