@@ -556,7 +556,8 @@ auto CAIContainer::Tick(timer::time_point tick) -> Task<void>
 
     while (m_currentState)
     {
-        // Dual-wire: aicontainerhelpers::TickStateLoopContinue (slice 6313)
+        // Dual-wire: aicontainerhelpers::TickStateLoopContinue (slice 6313).
+        // Go host pure half: aicontainer.TickStateDrain (slice 6367).
         // Pass post-increment guard; continues while guard <= 32.
         if (!aicontainerhelpers::TickStateLoopContinue(++guard))
         {
