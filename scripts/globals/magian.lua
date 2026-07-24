@@ -13,6 +13,7 @@ xi.magian = xi.magian or {}
 -- data unless returned via getPlayerTrialData().
 xi.magian.playerCache = xi.magian.playerCache or {}
 
+-- Go pure half: magian.MagianMoogleInfoByName / LookupMagianMoogle / FinishCsidKind (6577).
 local magianMoogleInfo =
 {
     ['Magian_Moogle_Blue']   = {   nil, 10141, 10142, 10143, 10144, 10148, xi.itemType.ARMOR  },
