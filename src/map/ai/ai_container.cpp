@@ -392,6 +392,8 @@ bool CAIContainer::Internal_Die(timer::duration deathTime)
     auto* entity               = dynamic_cast<CBattleEntity*>(PEntity);
     const bool hasBattleEntity = entity != nullptr;
     // Outer battle-entity gate (slice 6298 dual-wire).
+    // Go host pure half: aicontainer.InternalDie / InternalDieOn (slice 6370)
+    // composes admission + ChangeState.
     if (aicontainerhelpers::InternalDieHasBattleEntity(hasBattleEntity))
     {
         return ChangeState<CDeathState>(entity, deathTime);
@@ -404,6 +406,8 @@ bool CAIContainer::Internal_UseItem(uint16 targetid, uint8 loc, uint8 slotid)
     auto*      entity        = dynamic_cast<CCharEntity*>(PEntity);
     const bool hasCharEntity = entity != nullptr;
     // Outer char-entity gate (slice 6307 dual-wire).
+    // Go host pure half: aicontainer.InternalUseItem / InternalUseItemOn (slice 6370)
+    // composes admission + ChangeState.
     if (aicontainerhelpers::InternalUseItemHasCharEntity(hasCharEntity))
     {
         return ChangeState<CItemState>(entity, targetid, loc, slotid);
@@ -747,6 +751,8 @@ bool CAIContainer::Internal_Synth(SKILLTYPE synthSkill)
     const bool hasCharEntity       = PChar != nullptr;
     const bool isCurrentSynthState = IsCurrentState<CSynthState>();
     // Char-entity + not-already-synth admission (slice 6304 dual-wire).
+    // Go host pure half: aicontainer.InternalSynth / InternalSynthOn (slice 6370)
+    // composes admission + ForceChangeState.
     if (aicontainerhelpers::InternalSynthAllowed(hasCharEntity, isCurrentSynthState))
     {
         return ForceChangeState<CSynthState>(PChar, synthSkill);

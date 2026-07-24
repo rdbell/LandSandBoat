@@ -1413,6 +1413,7 @@ auto runAicontainerEnterResumeHost6366SelfTests() -> bool;
 auto runAicontainerTickStateDrainHost6367SelfTests() -> bool;
 auto runAicontainerChangeStateHost6368SelfTests() -> bool;
 auto runAicontainerTickHost6369SelfTests() -> bool;
+auto runAicontainerInternalDieSynthUseItemHost6370SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3703,6 +3704,7 @@ namespace
         ok = runAicontainerTickStateDrainHost6367SelfTests() && ok;
         ok = runAicontainerChangeStateHost6368SelfTests() && ok;
         ok = runAicontainerTickHost6369SelfTests() && ok;
+        ok = runAicontainerInternalDieSynthUseItemHost6370SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;

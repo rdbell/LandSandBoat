@@ -2765,6 +2765,8 @@ set(SOURCES
     test_aicontainer_change_state_host_6368.cpp
     test_aicontainer_tick_host_6369.h
     test_aicontainer_tick_host_6369.cpp
+    test_aicontainer_internal_die_synth_useitem_host_6370.h
+    test_aicontainer_internal_die_synth_useitem_host_6370.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
