@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/cbasetypes.h"
+
 // Pure CAIContainer controller-dispatch gates extracted so native tests can
 // pin policy without entity/controller instances, state objects, or packets.
 //
@@ -33,6 +35,9 @@
 //           InternalEngageShouldResumeInactive
 //           (not-yet-engaged ForceChangeState<CAttackState> admission OR and
 //           post-OnEngage prevent-action inactive resume; pure inject gates)
+//   - 6292: InternalEngageIsAlreadyEngagedPath +
+//           InternalEngageShouldRetarget
+//           (already-engaged path selection and retarget decision; pure inject)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -43,10 +48,16 @@
 // InternalEngageForceAttackAllowed; after successful ForceChangeState +
 // OnEngage it injects HasPreventActionEffect(true) into
 // InternalEngageShouldResumeInactive before Inactive(0ms, false).
+// CAIContainer::Internal_Engage (already-engaged path) injects battle-entity
+// presence and IsEngaged into InternalEngageIsAlreadyEngagedPath, then
+// GetBattleTargetID vs requested into InternalEngageShouldRetarget before
+// optional ChangeTarget.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.InternalEngageForceAttackAllowed /
-// aicontainer.InternalEngageShouldResumeInactive
+// aicontainer.InternalEngageShouldResumeInactive /
+// aicontainer.InternalEngageIsAlreadyEngagedPath /
+// aicontainer.InternalEngageShouldRetarget
 // (internal_engage.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
@@ -171,6 +182,56 @@ inline auto InternalEngageForceAttackAllowed(
 inline auto InternalEngageShouldResumeInactive(const bool hasPreventActionIgnoringCharm) -> bool
 {
     return hasPreventActionIgnoringCharm;
+}
+
+// InternalEngageIsAlreadyEngagedPath reports whether CAIContainer::Internal_Engage
+// takes the already-engaged branch (retarget / early return) instead of the
+// not-yet-engaged ForceChangeState path.
+// Mirrors the path selection:
+//
+//   entity && entity->PAI->IsEngaged()
+//
+// Formula (slice 6292):
+//   hasBattleEntity && isEngaged
+//
+// hasBattleEntity — dynamic_cast<CBattleEntity*>(PEntity) != nullptr
+// isEngaged — host PAI->IsEngaged() (inject false when no battle entity)
+// true  → host takes already-engaged retarget branch
+// false → host continues to not-yet-engaged path (or returns false if no entity)
+//
+// Dual-wire of Go aicontainer.InternalEngageIsAlreadyEngagedPath
+// (internal/aicontainer/internal_engage.go).
+// Call site: CAIContainer::Internal_Engage entry path selection.
+// ChangeTarget body / SetBattleTargetID mutations, not-yet-engaged
+// ForceChangeState/OnEngage (6291), pet engage TODOs, and full PAI ownership
+// remain host/deferred.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState /
+// InternalEngageForceAttackAllowed / InternalEngageShouldResumeInactive.
+inline auto InternalEngageIsAlreadyEngagedPath(const bool hasBattleEntity, const bool isEngaged) -> bool
+{
+    return hasBattleEntity && isEngaged;
+}
+
+// InternalEngageShouldRetarget reports whether, on the already-engaged path of
+// CAIContainer::Internal_Engage, the host must ChangeTarget(requested) and
+// return true.
+// Mirrors:
+//
+//   entity->GetBattleTargetID() != targetid
+//
+// Formula (slice 6292):
+//   currentBattleTargetID != requestedTargetID
+//
+// true  → host ChangeTarget(requestedTargetID); return true
+// false → host return false without ChangeTarget
+//
+// Dual-wire of Go aicontainer.InternalEngageShouldRetarget
+// (internal/aicontainer/internal_engage.go).
+// Call site: CAIContainer::Internal_Engage already-engaged branch.
+// ChangeTarget controller dispatch and battle-target mutations remain host.
+inline auto InternalEngageShouldRetarget(const uint16 currentBattleTargetID, const uint16 requestedTargetID) -> bool
+{
+    return currentBattleTargetID != requestedTargetID;
 }
 
 } // namespace aicontainerhelpers

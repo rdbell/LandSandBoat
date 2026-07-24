@@ -199,9 +199,12 @@ bool CAIContainer::Internal_Engage(uint16 targetid)
     // TODO: pet engage/disengage
     auto* entity = dynamic_cast<CBattleEntity*>(PEntity);
 
-    if (entity && entity->PAI->IsEngaged())
+    // Already-engaged path: retarget iff battle target differs (slice 6292 dual-wire).
+    const bool hasBattleEntity = entity != nullptr;
+    const bool isEngaged       = hasBattleEntity && entity->PAI->IsEngaged();
+    if (aicontainerhelpers::InternalEngageIsAlreadyEngagedPath(hasBattleEntity, isEngaged))
     {
-        if (entity->GetBattleTargetID() != targetid)
+        if (aicontainerhelpers::InternalEngageShouldRetarget(entity->GetBattleTargetID(), targetid))
         {
             ChangeTarget(targetid);
             return true;
