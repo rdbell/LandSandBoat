@@ -28,6 +28,9 @@
 #include "packets/s2c/0x05a_motionmes.h"
 #include "utils/jailutils.h"
 
+// Go host pure half: packetsystem.ValidateMotion / ProcessMotion /
+// NewMotionHandler (6471); plan mappacket.ClientMotionDispatchPlanFor.
+
 namespace
 {
 
