@@ -69,6 +69,11 @@ auto shouldForwardInstanceOperation(bool instancePresent) -> bool
 {
     return instancePresent;
 }
+
+auto afterInstanceRegisterDelay() -> timer::duration
+{
+    return 400ms;
+}
 } // namespace zoneinstance
 
 CZoneInstance::CZoneInstance(Scheduler& scheduler, MapConfig config, ZONEID ZoneID, REGION_TYPE RegionID, CONTINENT_TYPE ContinentID, uint8 levelRestriction)
@@ -274,7 +279,7 @@ void CZoneInstance::IncreaseZoneCounter(CCharEntity* PChar)
         if (PChar->PInstance->CheckFirstEntry(PChar->id))
         {
             PChar->loc.p = PChar->PInstance->GetEntryLoc();
-            PChar->PAI->QueueAction(queueAction_t(400ms, false, luautils::AfterInstanceRegister));
+            PChar->PAI->QueueAction(queueAction_t(zoneinstance::afterInstanceRegisterDelay(), false, luautils::AfterInstanceRegister));
         }
     }
     else

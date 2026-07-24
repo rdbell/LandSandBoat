@@ -253,6 +253,11 @@ auto testOwnedInstanceBroadcast() -> bool
     ok = expect(ok, "empty owned instance list does not visit") && ok;
     return ok;
 }
+
+auto testFirstInstanceEntryDelay() -> bool
+{
+    return expect(zoneinstance::afterInstanceRegisterDelay() == 400ms, "first instance entry queues after-register at 400ms");
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -274,5 +279,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testInstanceOperationRouting() && ok;
     ok      = testInstanceOperationForwarding() && ok;
     ok      = testOwnedInstanceBroadcast() && ok;
+    ok      = testFirstInstanceEntryDelay() && ok;
     return ok;
 }

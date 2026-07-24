@@ -34,6 +34,7 @@ auto shouldEraseInstance(const CInstance* candidate, const CInstance* target) ->
 auto shouldStopInstanceSearch(bool found) -> bool;
 auto shouldBroadcastInstanceOperation(bool entityPresent) -> bool;
 auto shouldForwardInstanceOperation(bool instancePresent) -> bool;
+auto afterInstanceRegisterDelay() -> timer::duration;
 
 template <typename List, typename Visitor>
 void forEachOwnedInstance(const List& instances, Visitor&& visitor)
