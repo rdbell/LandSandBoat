@@ -28,6 +28,7 @@
 #include "entities/base_entity.h"
 #include "helpers/action_queue.h"
 #include "helpers/event_handler.h"
+#include "ai/ai_container_capacity.h"
 #include "helpers/pathfind.h"
 #include "helpers/targetfind.h"
 #include "states/state.h"
@@ -188,7 +189,8 @@ bool CAIContainer::IsCurrentState()
 template <typename T, typename... Args>
 bool CAIContainer::ChangeState(Args&&... args)
 {
-    if (stateCount() > 10)
+    // Stack ceiling dual-wire (slice 6312): aicontainerhelpers::CanPushState
+    if (!aicontainerhelpers::CanPushState(stateCount()))
     {
         ShowWarning("State Stack size exceeds maximum.");
         return false;
@@ -216,7 +218,8 @@ bool CAIContainer::ChangeState(Args&&... args)
 template <typename T, typename... Args>
 bool CAIContainer::ForceChangeState(Args&&... args)
 {
-    if (stateCount() > 10)
+    // Stack ceiling dual-wire (slice 6312): aicontainerhelpers::CanPushState
+    if (!aicontainerhelpers::CanPushState(stateCount()))
     {
         ShowWarning("State Stack size exceeds maximum.");
         return false;

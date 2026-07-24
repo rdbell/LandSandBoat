@@ -69,6 +69,8 @@
 //           (inactive-state && inactive flag) || entity flag dual-wire residual 1189
 //   - 6311: IsStateStackEmpty
 //           (!hasCurrentState dual-wire residual pure 1189)
+//   - 6312: CanPushState
+//           (stateCount <= 10 stack ceiling dual-wire residual pure 1189)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -114,6 +116,8 @@
 // GetUntargetable, and entity GetUntargetable into IsUntargetable.
 // CAIContainer::IsStateStackEmpty injects current-state presence into
 // IsStateStackEmpty.
+// CAIContainer::ChangeState / ForceChangeState inject stateCount() into
+// CanPushState for the stack ceiling gate.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -150,6 +154,8 @@
 // aicontainer.IsUntargetable
 // (aicontainer.go),
 // aicontainer.IsStateStackEmpty
+// (aicontainer.go),
+// aicontainer.CanPushState
 // (aicontainer.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
@@ -755,6 +761,25 @@ inline auto IsUntargetable(const bool isInactiveState, const bool inactiveUntarg
 inline auto IsStateStackEmpty(const bool hasCurrentState) -> bool
 {
     return !hasCurrentState;
+}
+
+// CanPushState reports whether ChangeState / ForceChangeState may enter a new
+// state given the current stateCount.
+// Mirrors:
+//
+//   if (stateCount() > 10) { ShowWarning(...); return false; }
+//
+// Formula (slice 6312 dedicated dual-wire residual pure 1189):
+//   stateCount <= 10
+//
+// At stateCount == 10 push is still allowed; stateCount > 10 rejects.
+// Dual-wire of Go aicontainer.CanPushState (aicontainer.go; MaxStateCount=10).
+// Call sites: CAIContainer::ChangeState / ForceChangeState stack ceiling.
+// ShowWarning on reject remains host-only. Sibling dual-wires left alone:
+// CanChangeState / IsStateStackEmpty free functions.
+inline auto CanPushState(const std::size_t stateCount) -> bool
+{
+    return stateCount <= 10;
 }
 
 } // namespace aicontainerhelpers
