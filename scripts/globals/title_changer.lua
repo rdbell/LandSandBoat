@@ -25,6 +25,7 @@ end
 -- public title changer functions
 -----------------------------------
 
+-- Go pure half: titlechanger.PlanTriggerFromInjects/PlanTriggerStartParams (6605).
 xi.titleChanger.onTrigger = function(player, eventId, titleInfo)
     player:startEvent(
         eventId,
@@ -39,7 +40,7 @@ xi.titleChanger.onTrigger = function(player, eventId, titleInfo)
     )
 end
 
--- Go pure half: titlechanger.PlanEventFinishWithGil gil affordability (6588).
+-- Go pure half: titlechanger.PlanEventFinishWithGil (6588); PlanEventFinishFromInjects getGil (6605).
 xi.titleChanger.onEventFinish = function(player, csid, option, eventId, titleInfo)
     if csid == eventId then
         local group = titleInfo[bit.rshift(option, 8) + 1]
