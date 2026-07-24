@@ -29,6 +29,9 @@
 #include "utils/charutils.h"
 #include "utils/itemutils.h"
 
+// Go host pure half: packetsystem.ValidateLockStyle / ProcessLockStyle /
+// NewLockStyleHandler (6465); non-Set plan mappacket.ClientLockStylePacket.RuntimePlan.
+
 namespace
 {
 
