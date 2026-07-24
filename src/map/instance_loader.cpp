@@ -46,6 +46,16 @@ auto instanceloader::SpawnQueryPlanFor(const uint32 realZoneId, const uint32 ove
     return { realZoneId, effectiveZoneId, npcMin, npcMin + 1024 };
 }
 
+auto instanceloader::MobLoadQueryPlanFor(const SpawnQueryPlan spawn, const uint32 instanceId) -> MobLoadQueryPlan
+{
+    return { spawn.realZoneId, instanceId, spawn.effectiveZoneId };
+}
+
+auto instanceloader::NpcLoadQueryPlanFor(const SpawnQueryPlan spawn, const uint32 instanceId) -> NpcLoadQueryPlan
+{
+    return { instanceId, spawn.npcMin, spawn.npcMax };
+}
+
 CInstanceLoader::CInstanceLoader(uint32 instanceid, CCharEntity* PRequester)
 {
     TracyZoneScoped;
@@ -73,9 +83,9 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
 {
     TracyZoneScoped;
 
-    const auto plan            = instanceloader::SpawnQueryPlanFor(m_PZone->GetID(), m_PInstance->overlayId());
-    const auto realZoneId      = plan.realZoneId;
-    const auto effectiveZoneId = plan.effectiveZoneId;
+    const auto plan    = instanceloader::SpawnQueryPlanFor(m_PZone->GetID(), m_PInstance->overlayId());
+    const auto mobPlan = instanceloader::MobLoadQueryPlanFor(plan, m_PInstance->GetID());
+    const auto npcPlan = instanceloader::NpcLoadQueryPlanFor(plan, m_PInstance->GetID());
 
     auto rset = db::preparedStmt("SELECT mobname, mobid, pos_rot, pos_x, pos_y, pos_z, "
                                  "respawntime, spawntype, dropid, mob_groups.HP, mob_groups.MP, minLevel, maxLevel, "
@@ -99,9 +109,9 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
                                  "WHERE instanceid = ? "
                                  "  AND ((mob_spawn_points.mobid >> 12) & 0xFFF) = ? "
                                  "  AND NOT (pos_x = 0 AND pos_y = 0 AND pos_z = 0)",
-                                 realZoneId,
-                                 m_PInstance->GetID(),
-                                 effectiveZoneId);
+                                 mobPlan.templateZoneId,
+                                 mobPlan.instanceId,
+                                 mobPlan.effectiveZoneId);
 
     if (!m_PInstance->Failed())
     {
@@ -248,18 +258,15 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
             m_PInstance->InsertMOB(PMob);
         }
 
-        const uint32 zoneMin = plan.npcMin;
-        const uint32 zoneMax = plan.npcMax;
-
         rset = db::preparedStmt("SELECT npcid, name, pos_rot, pos_x, pos_y, pos_z, "
                                 "flag, speed, speedsub, animation, animationsub, namevis, "
                                 "status, entityFlags, look, name_prefix, widescan "
                                 "FROM instance_entities INNER JOIN npc_list ON "
                                 "(instance_entities.id = npc_list.npcid) "
                                 "WHERE instanceid = ? AND npcid >= ? AND npcid < ?",
-                                m_PInstance->GetID(),
-                                zoneMin,
-                                zoneMax);
+                                npcPlan.instanceId,
+                                npcPlan.npcMin,
+                                npcPlan.npcMax);
         FOR_DB_MULTIPLE_RESULTS(rset)
         {
             CNpcEntity* PNpc = new CNpcEntity;

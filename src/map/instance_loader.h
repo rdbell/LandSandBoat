@@ -38,7 +38,23 @@ struct SpawnQueryPlan
     uint32 npcMax;
 };
 
+struct MobLoadQueryPlan
+{
+    uint32 templateZoneId;
+    uint32 instanceId;
+    uint32 effectiveZoneId;
+};
+
+struct NpcLoadQueryPlan
+{
+    uint32 instanceId;
+    uint32 npcMin;
+    uint32 npcMax;
+};
+
 auto SpawnQueryPlanFor(uint32 realZoneId, uint32 overlayId) -> SpawnQueryPlan;
+auto MobLoadQueryPlanFor(SpawnQueryPlan spawn, uint32 instanceId) -> MobLoadQueryPlan;
+auto NpcLoadQueryPlanFor(SpawnQueryPlan spawn, uint32 instanceId) -> NpcLoadQueryPlan;
 
 } // namespace instanceloader
 
