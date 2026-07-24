@@ -207,6 +207,75 @@ describe('Voidwalker healing admission', function()
     end)
 end)
 
+describe('Voidwalker spawn slot occupancy', function()
+    local function slots()
+        return
+        {
+            { pos = { 1, 2, 3 } },
+            { pos = { 4, 5, 6 }, mobId = 100 },
+            { pos = { 7, 8, 9 }, mobId = 101 },
+        }
+    end
+
+    it('claims a slot and reports its position', function()
+        local positions = slots()
+        local pos       = xi.voidwalker.claimPosSlot(positions, 1, 200)
+
+        assert(pos[1] == 1 and pos[2] == 2 and pos[3] == 3)
+        assert(positions[1].mobId == 200)
+    end)
+
+    it('reports no position for a slot outside the table', function()
+        local positions = slots()
+
+        assert(xi.voidwalker.claimPosSlot(positions, 4, 200) == nil)
+        assert(xi.voidwalker.claimPosSlot(positions, 0, 200) == nil)
+    end)
+
+    it('releases the slot a mob holds', function()
+        local positions = slots()
+
+        assert(xi.voidwalker.releasePosSlots(positions, 100) == 1)
+        assert(positions[2].mobId == nil)
+        assert(positions[3].mobId == 101)
+    end)
+
+    it('releases every slot a mob holds', function()
+        local positions = slots()
+        positions[1].mobId = 101
+
+        assert(xi.voidwalker.releasePosSlots(positions, 101) == 2)
+        assert(positions[1].mobId == nil and positions[3].mobId == nil)
+    end)
+
+    it('releases nothing for an unknown mob', function()
+        local positions = slots()
+
+        assert(xi.voidwalker.releasePosSlots(positions, 999) == 0)
+        assert(positions[2].mobId == 100 and positions[3].mobId == 101)
+    end)
+
+    it('counts the free slots that bound searchEmptyPos', function()
+        local positions = slots()
+        assert(xi.voidwalker.emptyPosSlotCount(positions) == 1)
+
+        xi.voidwalker.releasePosSlots(positions, 100)
+        assert(xi.voidwalker.emptyPosSlotCount(positions) == 2)
+
+        xi.voidwalker.claimPosSlot(positions, 1, 200)
+        assert(xi.voidwalker.emptyPosSlotCount(positions) == 1)
+    end)
+
+    it('round-trips a despawn and respawn through the same registry', function()
+        local positions = slots()
+
+        assert(xi.voidwalker.releasePosSlots(positions, 101) == 1)
+        assert(xi.voidwalker.claimPosSlot(positions, 3, 101) ~= nil)
+        assert(positions[3].mobId == 101)
+        assert(xi.voidwalker.emptyPosSlotCount(positions) == 1)
+    end)
+end)
+
 describe('Voidwalker mob fight mixin dispatch', function()
     it('runs the scheduled skill step for every fixed-HPP mob', function()
         for _, mobName in ipairs({ 'Capricornus', 'Yacumama', 'Shoggoth', 'Blobdingnag', 'Farruca_Fly', 'Skuld', 'Dawon' }) do

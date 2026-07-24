@@ -81,12 +81,50 @@ local function getMobsFromAbyssites(zoneId, abyssites)
     return results
 end
 
-local function removeMobIdFromPos(zoneId, mobId)
-    for i, pos in ipairs(xi.voidwalker.pos[zoneId]) do
+-- Releases every spawn slot held by mobId and reports how many were freed.
+-- Upstream does not stop at the first match, so a mob that somehow holds more
+-- than one slot is fully released.
+xi.voidwalker.releasePosSlots = function(positions, mobId)
+    local released = 0
+
+    for i, pos in ipairs(positions) do
         if pos.mobId == mobId then
-            xi.voidwalker.pos[zoneId][i].mobId = nil
+            positions[i].mobId = nil
+            released = released + 1
         end
     end
+
+    return released
+end
+
+-- Claims slot for mobId and returns that slot's { x, y, z } position, or nil
+-- when the slot does not exist.
+xi.voidwalker.claimPosSlot = function(positions, slot, mobId)
+    if not positions[slot] then
+        return nil
+    end
+
+    positions[slot].mobId = mobId
+
+    return positions[slot].pos
+end
+
+-- Counts the spawn slots currently free, which bounds how many Voidwalker NMs a
+-- zone can place before searchEmptyPos can no longer terminate.
+xi.voidwalker.emptyPosSlotCount = function(positions)
+    local empty = 0
+
+    for _, pos in ipairs(positions) do
+        if pos.mobId == nil then
+            empty = empty + 1
+        end
+    end
+
+    return empty
+end
+
+local function removeMobIdFromPos(zoneId, mobId)
+    xi.voidwalker.releasePosSlots(xi.voidwalker.pos[zoneId], mobId)
 end
 
 local function searchEmptyPos(zoneId)
@@ -111,10 +149,15 @@ local function setRandomPos(zoneId, mobId)
         return
     end
 
-    local pos = searchEmptyPos(zoneId)
+    local vPos = xi.voidwalker.claimPosSlot(
+        xi.voidwalker.pos[zoneId],
+        searchEmptyPos(zoneId),
+        mobId
+    )
 
-    xi.voidwalker.pos[zoneId][pos].mobId = mobId
-    local vPos                           = xi.voidwalker.pos[zoneId][pos].pos
+    if not vPos then
+        return
+    end
 
     mob:setSpawn(vPos[1], vPos[2], vPos[3])
     mob:setPos(vPos[1], vPos[2], vPos[3])
