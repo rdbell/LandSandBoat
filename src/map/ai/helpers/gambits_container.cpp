@@ -29,6 +29,7 @@
 #include "ai/states/range_state.h"
 #include "ai/states/weaponskill_state.h"
 #include "enmity_container.h"
+#include "gambits_capacity.h"
 #include "mobskill.h"
 #include "notoriety_container.h"
 #include "spell.h"
@@ -46,6 +47,24 @@
 
 namespace gambits
 {
+
+namespace
+{
+    // Age of a skillchain effect in milliseconds, or 0 when absent. Milliseconds
+    // keep gambitshelpers' strict comparison identical to the original
+    // GetStartTime() + 3s < now() form.
+    auto skillchainAgeMs(const CStatusEffect* PSCEffect) -> uint32
+    {
+        if (!PSCEffect)
+        {
+            return 0;
+        }
+
+        const auto elapsed = timer::now() - PSCEffect->GetStartTime();
+
+        return static_cast<uint32>(std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+    }
+} // namespace
 
 // Return a new unique identifier for a gambit
 auto CGambitsContainer::NewGambitIdentifier(const Gambit_t& gambit) const -> std::string
@@ -1132,27 +1151,10 @@ auto CGambitsContainer::CheckTrigger(const CBattleEntity* triggerTarget, const G
             }
             case G_CONDITION::NO_MAX_RUNE:
             {
-                auto maxRuneEffect = 1;
-                bool canUseRunes   = true;
+                const auto maxRuneEffect = gambitshelpers::MaxRuneEffects(POwner->GetMJob(), POwner->GetMLevel());
+                const auto runeCount     = triggerTarget->StatusEffectContainer->GetAllRuneEffects().size();
 
-                if (POwner->GetMJob() == JOB_RUN)
-                {
-                    if (POwner->GetMLevel() >= 65)
-                    {
-                        maxRuneEffect = 3;
-                    }
-                    else if (POwner->GetMLevel() >= 35)
-                    {
-                        maxRuneEffect = 2;
-                    }
-                }
-
-                if (triggerTarget->StatusEffectContainer->GetAllRuneEffects().size() >= maxRuneEffect)
-                {
-                    canUseRunes = false;
-                }
-
-                predicateResults.push_back(canUseRunes);
+                predicateResults.push_back(gambitshelpers::CanUseRunes(runeCount, maxRuneEffect));
                 continue;
             }
             case G_CONDITION::NO_SAMBA:
@@ -1213,30 +1215,32 @@ auto CGambitsContainer::CheckTrigger(const CBattleEntity* triggerTarget, const G
             }
             case G_CONDITION::HAS_TOP_ENMITY:
             {
-                predicateResults.push_back((controller->GetTopEnmity()) ? controller->GetTopEnmity()->targid == POwner->targid : false);
+                auto* PTopEnmity = controller->GetTopEnmity();
+                predicateResults.push_back(gambitshelpers::HasTopEnmity(PTopEnmity != nullptr, PTopEnmity ? PTopEnmity->targid : 0, POwner->targid));
                 continue;
             }
             case G_CONDITION::NOT_HAS_TOP_ENMITY:
             {
-                predicateResults.push_back((controller->GetTopEnmity()) ? controller->GetTopEnmity()->targid != POwner->targid : false);
+                auto* PTopEnmity = controller->GetTopEnmity();
+                predicateResults.push_back(gambitshelpers::NotHasTopEnmity(PTopEnmity != nullptr, PTopEnmity ? PTopEnmity->targid : 0, POwner->targid));
                 continue;
             }
             case G_CONDITION::SC_AVAILABLE:
             {
                 auto* PSCEffect = triggerTarget->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Skillchain);
-                predicateResults.push_back(PSCEffect && PSCEffect->GetStartTime() + 3s < timer::now() && PSCEffect->GetTier() == 0);
+                predicateResults.push_back(gambitshelpers::SkillchainAvailable(PSCEffect != nullptr, skillchainAgeMs(PSCEffect), PSCEffect ? PSCEffect->GetTier() : 0));
                 continue;
             }
             case G_CONDITION::NOT_SC_AVAILABLE:
             {
                 auto* PSCEffect = triggerTarget->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Skillchain);
-                predicateResults.push_back(PSCEffect == nullptr);
+                predicateResults.push_back(gambitshelpers::NoSkillchain(PSCEffect != nullptr));
                 continue;
             }
             case G_CONDITION::MB_AVAILABLE:
             {
                 auto* PSCEffect = triggerTarget->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::Skillchain);
-                predicateResults.push_back(PSCEffect && PSCEffect->GetStartTime() + 3s < timer::now() && PSCEffect->GetTier() > 0);
+                predicateResults.push_back(gambitshelpers::MagicBurstAvailable(PSCEffect != nullptr, skillchainAgeMs(PSCEffect), PSCEffect ? PSCEffect->GetTier() : 0));
                 continue;
             }
             case G_CONDITION::LUNGE_MB_AVAILABLE:

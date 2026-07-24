@@ -714,6 +714,7 @@ auto runCheckEquipment1510SelfTests() -> bool;
 auto runCapacityAward1511SelfTests() -> bool;
 auto runWeaponSkillRoster1512SelfTests() -> bool;
 auto runAbilityTable1513SelfTests() -> bool;
+auto runGambitConditions6636SelfTests() -> bool;
 auto runPetAbilityTable1514SelfTests() -> bool;
 auto runKeyItemSpell1515SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
@@ -3091,6 +3092,7 @@ namespace
         ok = runCapacityAward1511SelfTests() && ok;
         ok = runWeaponSkillRoster1512SelfTests() && ok;
         ok = runAbilityTable1513SelfTests() && ok;
+        ok = runGambitConditions6636SelfTests() && ok;
         ok = runPetAbilityTable1514SelfTests() && ok;
         ok = runKeyItemSpell1515SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;

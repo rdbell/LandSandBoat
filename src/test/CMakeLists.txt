@@ -1335,6 +1335,8 @@ set(SOURCES
     test_weapon_skill_roster_1512.cpp
     test_ability_table_1513.h
     test_ability_table_1513.cpp
+    test_gambit_conditions_6636.h
+    test_gambit_conditions_6636.cpp
     test_pet_ability_table_1514.h
     test_pet_ability_table_1514.cpp
     test_keyitem_spell_1515.h
