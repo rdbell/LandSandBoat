@@ -66,6 +66,7 @@ auto myroomplantcheck::PlanFor(const Facts& facts) -> Plan
     return plan;
 }
 
+// Go host pure half: packetsystem.ValidateMyRoomPlantCheck / ProcessMyRoomPlantCheck / NewMyRoomPlantCheckHandler (6535); plan mappacket.ClientMyRoomPlantCheckRuntimePlanFor.
 auto GP_CLI_COMMAND_MYROOM_PLANT_CHECK::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

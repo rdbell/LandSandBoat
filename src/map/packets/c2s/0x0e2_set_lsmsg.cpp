@@ -26,6 +26,7 @@
 #include "items/item_linkshell.h"
 #include "linkshell.h"
 
+// Go host pure half: packetsystem.ValidateSetLSMsg / ProcessSetLSMsg / NewSetLSMsgHandler (6534); plan mappacket.ClientSetLSMsgRuntimePlanFor.
 auto GP_CLI_COMMAND_SET_LSMSG::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // TODO: Short-circuit the null check so we can check the permission level here

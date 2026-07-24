@@ -50,6 +50,7 @@ auto myroomplantstophelpers::MakeRuntimePlan(const RuntimeFacts& facts) -> Runti
     };
 }
 
+// Go host pure half: packetsystem.ValidateMyRoomPlantStop / ProcessMyRoomPlantStop / NewMyRoomPlantStopHandler (6536); plan mappacket.ClientMyRoomPlantStopTransitionFor.
 auto GP_CLI_COMMAND_MYROOM_PLANT_STOP::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
