@@ -54,6 +54,11 @@ public:
     {
         return CInstance::shouldClearEntityState(alive);
     }
+
+    static auto entryRotation(float rot) -> uint8
+    {
+        return CInstance::entryRotation(rot);
+    }
 };
 
 namespace
@@ -122,6 +127,14 @@ auto testClearEntityState() -> bool
     ok = expect(!InstanceTestAccess::shouldClearState(false), "dead entity retains state") && ok;
     return ok;
 }
+
+auto testEntryRotation() -> bool
+{
+    bool ok = true;
+    ok = expect(InstanceTestAccess::entryRotation(127.75f) == 127, "entry rotation truncates fractional value") && ok;
+    ok = expect(InstanceTestAccess::entryRotation(128.0f) == 128, "entry rotation preserves integer value") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -131,5 +144,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testParticipantIdentity() && ok;
     ok      = testMusicOverrides() && ok;
     ok      = testClearEntityState() && ok;
+    ok      = testEntryRotation() && ok;
     return ok;
 }

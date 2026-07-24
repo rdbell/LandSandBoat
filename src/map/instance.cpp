@@ -212,7 +212,7 @@ void CInstance::SetEntryLoc(float x, float y, float z, float rot)
     m_entryloc.x        = x;
     m_entryloc.y        = y;
     m_entryloc.z        = z;
-    m_entryloc.rotation = (uint8)rot;
+    m_entryloc.rotation = entryRotation(rot);
 }
 
 void CInstance::SetLastTimeUpdate(timer::duration lastTime)
@@ -368,6 +368,11 @@ auto CInstance::musicOrDefault(const Maybe<uint16>& overrideMusic, uint16 zoneMu
 auto CInstance::shouldClearEntityState(bool alive) -> bool
 {
     return alive;
+}
+
+auto CInstance::entryRotation(float rot) -> uint8
+{
+    return static_cast<uint8>(rot);
 }
 
 uint16 CInstance::GetSoloBattleMusic()

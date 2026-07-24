@@ -99,6 +99,7 @@ private:
     static auto checkFirstEntry(std::set<uint32>& enteredChars, uint32 id) -> bool;
     static auto musicOrDefault(const Maybe<uint16>& overrideMusic, uint16 zoneMusic) -> uint16;
     static auto shouldClearEntityState(bool alive) -> bool;
+    static auto entryRotation(float rot) -> uint8;
 
     void LoadInstance();
 
