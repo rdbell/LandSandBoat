@@ -2697,6 +2697,10 @@ set(SOURCES
     test_death_raisable_hold_6290.cpp
     test_aicontainer_internal_engage_6291.h
     test_aicontainer_internal_engage_6291.cpp
+    test_aicontainer_internal_engage_already_engaged_6292.h
+    test_aicontainer_internal_engage_already_engaged_6292.cpp
+    test_death_pc_update_6293.h
+    test_death_pc_update_6293.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

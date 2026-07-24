@@ -1379,6 +1379,8 @@ auto runInactiveInterrupt6288SelfTests() -> bool;
 auto runInactiveZeroDurationExit6289SelfTests() -> bool;
 auto runDeathRaisableHold6290SelfTests() -> bool;
 auto runAicontainerInternalEngage6291SelfTests() -> bool;
+auto runAicontainerInternalEngageAlreadyEngaged6292SelfTests() -> bool;
+auto runDeathPCUpdate6293SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3592,6 +3594,8 @@ namespace
         ok = runInactiveZeroDurationExit6289SelfTests() && ok;
         ok = runDeathRaisableHold6290SelfTests() && ok;
         ok = runAicontainerInternalEngage6291SelfTests() && ok;
+        ok = runAicontainerInternalEngageAlreadyEngaged6292SelfTests() && ok;
+        ok = runDeathPCUpdate6293SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;
