@@ -524,4 +524,58 @@ inline auto LeavingPoint() -> bool
     return false;
 }
 
+// PathFlagsValue returns the path flags stored by PathTo / PathThrough.
+// Mirrors: m_pathFlags = pathFlags
+// Formula (slice 6351): pathFlags
+// Dual-wire of Go pathfind.PathFlagsValue (patrol_install_gates.go).
+inline auto PathFlagsValue(const uint8_t pathFlags) -> uint8_t
+{
+    return pathFlags;
+}
+
+// ShouldSnapshotPatrol reports whether AddPoints copies into m_patrol.
+// Mirrors: if (m_pathFlags & PATHFLAG_PATROL)
+// Formula (slice 6351): isPatrol
+// Dual-wire of Go pathfind.ShouldSnapshotPatrol (patrol_install_gates.go).
+inline auto ShouldSnapshotPatrol(const bool isPatrol) -> bool
+{
+    return isPatrol;
+}
+
+// PatrolFlagsValue returns patrol flags stored when snapshotting a patrol.
+// Mirrors: m_patrolFlags = m_pathFlags
+// Formula (slice 6351): pathFlags
+// Dual-wire of Go pathfind.PatrolFlagsValue (patrol_install_gates.go).
+inline auto PatrolFlagsValue(const uint8_t pathFlags) -> uint8_t
+{
+    return pathFlags;
+}
+
+// ClearedPatrolFlags returns m_patrolFlags for the non-patrol AddPoints branch.
+// Mirrors: m_patrolFlags = 0
+// Formula (slice 6351): 0
+// Dual-wire of Go pathfind.ClearedPatrolFlags (patrol_install_gates.go).
+inline auto ClearedPatrolFlags() -> uint8_t
+{
+    return 0;
+}
+
+// RestartedCurrentPoint returns m_currentPoint after RestartPatrol.
+// Mirrors FinishedPath: m_currentPoint = 0
+// Formula (slice 6351): 0
+// Dual-wire of Go pathfind.RestartedCurrentPoint (patrol_install_gates.go).
+inline auto RestartedCurrentPoint() -> int16_t
+{
+    return 0;
+}
+
+// RestartedCurrentTurn returns m_currentTurn after RestartPatrol.
+// Mirrors FinishedPath: m_currentTurn = 0
+// Formula (slice 6351): 0
+// Dual-wire of Go pathfind.RestartedCurrentTurn (patrol_install_gates.go).
+inline auto RestartedCurrentTurn() -> int
+{
+    return 0;
+}
+
 } // namespace pathfindstatushelpers

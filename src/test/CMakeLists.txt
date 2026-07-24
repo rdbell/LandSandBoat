@@ -2813,6 +2813,8 @@ set(SOURCES
     test_pathfind_clear_defaults_6349.cpp
     test_pathfind_follow_point_gates_6350.h
     test_pathfind_follow_point_gates_6350.cpp
+    test_pathfind_patrol_install_6351.h
+    test_pathfind_patrol_install_6351.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

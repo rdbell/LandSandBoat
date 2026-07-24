@@ -110,7 +110,8 @@ bool CPathFind::PathTo(const position_t& point, uint8 pathFlags, bool clear)
         Clear();
     }
 
-    m_pathFlags = pathFlags;
+    // Dual-wire: pathfindstatushelpers::PathFlagsValue (slice 6351).
+    m_pathFlags = pathfindstatushelpers::PathFlagsValue(pathFlags);
 
     bool result = false;
 
@@ -180,7 +181,8 @@ bool CPathFind::PathThrough(std::vector<pathpoint_t>&& points, uint8 pathFlags)
 
     Clear();
 
-    m_pathFlags = pathFlags;
+    // Dual-wire: pathfindstatushelpers::PathFlagsValue (slice 6351).
+    m_pathFlags = pathfindstatushelpers::PathFlagsValue(pathFlags);
 
     // Dual-wire: pathfindstatushelpers::ShouldReversePoints (slice 6345).
     AddPoints(std::move(points), pathfindstatushelpers::ShouldReversePoints((m_pathFlags & PATHFLAG_REVERSE) != 0));
@@ -672,15 +674,16 @@ void CPathFind::AddPoints(std::vector<pathpoint_t>&& points, bool reverse)
         std::reverse(m_points.begin(), m_points.end());
     }
 
-    if (m_pathFlags & PATHFLAG_PATROL)
+    // Dual-wire: ShouldSnapshotPatrol / PatrolFlagsValue / ClearedPatrolFlags (slice 6351).
+    if (pathfindstatushelpers::ShouldSnapshotPatrol((m_pathFlags & PATHFLAG_PATROL) != 0))
     {
         m_patrol      = m_points;
-        m_patrolFlags = m_pathFlags;
+        m_patrolFlags = pathfindstatushelpers::PatrolFlagsValue(m_pathFlags);
     }
     else
     {
         m_patrol.clear();
-        m_patrolFlags = 0;
+        m_patrolFlags = pathfindstatushelpers::ClearedPatrolFlags();
     }
 }
 
@@ -705,8 +708,9 @@ void CPathFind::FinishedPath()
     }
     else if (action == pathfindfinishedhelpers::Action::RestartPatrol)
     {
-        m_currentPoint = 0;
-        m_currentTurn  = 0;
+        // Dual-wire: RestartedCurrentPoint / RestartedCurrentTurn (slice 6351).
+        m_currentPoint = pathfindstatushelpers::RestartedCurrentPoint();
+        m_currentTurn  = pathfindstatushelpers::RestartedCurrentTurn();
     }
     else
     {
