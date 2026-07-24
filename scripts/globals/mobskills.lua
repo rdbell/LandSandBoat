@@ -717,7 +717,7 @@ xi.mobskills.mobRangedMove = function(mob, target, skill, action, skillParams)
     local fSTR       = 0
     local wscMods    = xi.combat.physical.calculateWSC(mob, skillParams.str_wSC, skillParams.dex_wSC, skillParams.vit_wSC, skillParams.agi_wSC, skillParams.int_wSC, skillParams.mnd_wSC, skillParams.chr_wSC)
     local bonusTP    = mob:getMod(xi.mod.TP_BONUS) + params.fTPBonus
-    local skillTP    = math.max(1000, skill:getTP())
+    local skillTP    = xi.mobskills.mobPhysicalSkillTP(skill:getTP())
     local tpValue    = xi.mobskills.mobSkillTPValue(skillTP, bonusTP)
     local basefTP    = xi.combat.physical.calculateTPfactor(tpValue, params.fTP)
     local baseDamage = 0
@@ -726,34 +726,44 @@ xi.mobskills.mobRangedMove = function(mob, target, skill, action, skillParams)
         fSTR = xi.combat.physical.calculateRangedStatFactor(mob, target)
     end
 
-    baseDamage = math.max(1, math.floor((damage + fSTR + wscMods) * basefTP))
+    baseDamage = xi.mobskills.mobPhysicalBaseDamage(damage, fSTR, wscMods, basefTP)
 
-    local subsequentDamage = baseDamage
-    if params.fTPSubsequentHits then
-        subsequentDamage = math.floor((damage + fSTR + wscMods) * xi.combat.physical.calculateTPfactor(tpValue, params.fTPSubsequentHits))
+    local hasSubsequentFTP = not not params.fTPSubsequentHits
+    local subsequentFTP    = 0
+    if hasSubsequentFTP then
+        subsequentFTP = xi.combat.physical.calculateTPfactor(tpValue, params.fTPSubsequentHits)
     end
+
+    local subsequentDamage = xi.mobskills.mobPhysicalSubsequentDamage(
+        damage,
+        fSTR,
+        wscMods,
+        subsequentFTP,
+        hasSubsequentFTP,
+        baseDamage
+    )
 
     ----------------------------------
     -- Calculate Skill Params To Pass To hitParams.
     ----------------------------------
     -- targetSpecialAttackEvasion gets transformed to a negative number since its a modifier on the target affecting the attacker's accuracy.
-    local targetSpecialAttackEvasion = target:getMod(xi.mod.SPECIAL_ATTACK_EVASION) * -1
-    local accuracyModifier           = 0
-    if params.accuracyModifier then
-        accuracyModifier = xi.combat.physical.calculateTPfactor(tpValue, params.accuracyModifier)
-    end
+    local targetSpecialAttackEvasion = xi.mobskills.specialAttackEvasionBonus(target:getMod(xi.mod.SPECIAL_ATTACK_EVASION))
+    local accuracyModifier           = xi.mobskills.optionalTPFactor(
+        not not params.accuracyModifier,
+        params.accuracyModifier and xi.combat.physical.calculateTPfactor(tpValue, params.accuracyModifier) or 0,
+        0
+    )
 
-    local attackMultiplier = 1
-    if params.attackMultiplier then
-        attackMultiplier = xi.combat.physical.calculateTPfactor(tpValue, params.attackMultiplier)
-    end
+    local attackMultiplier = xi.mobskills.optionalTPFactor(
+        not not params.attackMultiplier,
+        params.attackMultiplier and xi.combat.physical.calculateTPfactor(tpValue, params.attackMultiplier) or 1,
+        1
+    )
 
-    local ignoreDefenseFactor = 0
-    local hitIgnoreDefense    = false
-    if params.ignoreDefense then
-        ignoreDefenseFactor = xi.combat.physical.calculateTPfactor(tpValue, params.ignoreDefense)
-        hitIgnoreDefense    = true
-    end
+    local ignoreDefenseFactor, hitIgnoreDefense = xi.mobskills.ignoreDefensePlan(
+        not not params.ignoreDefense,
+        params.ignoreDefense and xi.combat.physical.calculateTPfactor(tpValue, params.ignoreDefense) or 0
+    )
 
     ----------------------------------
     -- Params for the individual hits
@@ -940,7 +950,7 @@ xi.mobskills.mobPhysicalMove = function(mob, target, skill, action, skillParams)
     local fSTR       = 0
     local wscMods    = xi.combat.physical.calculateWSC(mob, skillParams.str_wSC, skillParams.dex_wSC, skillParams.vit_wSC, skillParams.agi_wSC, skillParams.int_wSC, skillParams.mnd_wSC, skillParams.chr_wSC)
     local bonusTP    = mob:getMod(xi.mod.TP_BONUS) + params.fTPBonus
-    local skillTP    = math.max(1000, skill:getTP())
+    local skillTP    = xi.mobskills.mobPhysicalSkillTP(skill:getTP())
     local tpValue    = xi.mobskills.mobSkillTPValue(skillTP, bonusTP)
     local basefTP    = xi.combat.physical.calculateTPfactor(tpValue, params.fTP)
     local baseDamage = 0
@@ -949,41 +959,51 @@ xi.mobskills.mobPhysicalMove = function(mob, target, skill, action, skillParams)
         fSTR = xi.combat.physical.calculateMeleeStatFactor(mob, target)
     end
 
-    baseDamage = math.max(1, math.floor((damage + fSTR + wscMods) * basefTP))
+    baseDamage = xi.mobskills.mobPhysicalBaseDamage(damage, fSTR, wscMods, basefTP)
 
-    local subsequentDamage = baseDamage
-
-    if params.fTPSubsequentHits then
-        subsequentDamage = math.floor((damage + fSTR + wscMods) * xi.combat.physical.calculateTPfactor(tpValue, params.fTPSubsequentHits))
+    local hasSubsequentFTP = not not params.fTPSubsequentHits
+    local subsequentFTP    = 0
+    if hasSubsequentFTP then
+        subsequentFTP = xi.combat.physical.calculateTPfactor(tpValue, params.fTPSubsequentHits)
     end
+
+    local subsequentDamage = xi.mobskills.mobPhysicalSubsequentDamage(
+        damage,
+        fSTR,
+        wscMods,
+        subsequentFTP,
+        hasSubsequentFTP,
+        baseDamage
+    )
 
     ----------------------------------
     -- Calculate Skill Params To Pass To hitParams.
     ----------------------------------
     -- Mobs seem to not usually use TP moves during Mighty Strikes but if forced to by a script, the hits will crit.
-    if mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES) then
-        params.canCrit = true
-        params.criticalChance = { 1.00, 1.00, 1.00 }
+    local canCritMS, critTableMS = xi.mobskills.mightyStrikesCritPlan(mob:hasStatusEffect(xi.effect.MIGHTY_STRIKES))
+    if canCritMS then
+        params.canCrit        = true
+        params.criticalChance = critTableMS
     end
 
     -- targetSpecialAttackEvasion gets transformed to a negative number since its a modifier on the target affecting the attacker's accuracy.
-    local targetSpecialAttackEvasion = target:getMod(xi.mod.SPECIAL_ATTACK_EVASION) * -1
-    local accuracyModifier           = 0
-    if params.accuracyModifier then
-        accuracyModifier = xi.combat.physical.calculateTPfactor(tpValue, params.accuracyModifier)
-    end
+    local targetSpecialAttackEvasion = xi.mobskills.specialAttackEvasionBonus(target:getMod(xi.mod.SPECIAL_ATTACK_EVASION))
+    local accuracyModifier           = xi.mobskills.optionalTPFactor(
+        not not params.accuracyModifier,
+        params.accuracyModifier and xi.combat.physical.calculateTPfactor(tpValue, params.accuracyModifier) or 0,
+        0
+    )
 
-    local attackMultiplier = 1
-    if params.attackMultiplier then
-        attackMultiplier = xi.combat.physical.calculateTPfactor(tpValue, params.attackMultiplier)
-    end
+    local attackMultiplier = xi.mobskills.optionalTPFactor(
+        not not params.attackMultiplier,
+        params.attackMultiplier and xi.combat.physical.calculateTPfactor(tpValue, params.attackMultiplier) or 1,
+        1
+    )
 
-    local ignoreDefenseFactor = 0
-    local hitIgnoreDefense    = false
-    if params.ignoreDefense then
-        ignoreDefenseFactor = xi.combat.physical.calculateTPfactor(tpValue, params.ignoreDefense)
-        hitIgnoreDefense    = true
-    end
+    local ignoreDefenseFactor, hitIgnoreDefense = xi.mobskills.ignoreDefensePlan(
+        not not params.ignoreDefense,
+        params.ignoreDefense and xi.combat.physical.calculateTPfactor(tpValue, params.ignoreDefense) or 0
+    )
 
     ----------------------------------
     -- Params for the individual hits
@@ -1453,7 +1473,7 @@ xi.mobskills.mobBreathMove = function(mob, target, skill, action, skillParams)
     local mobCurrentHP = skill:getMobHP()
 
     local percentMultipier     = skillParams.percentMultipier or 0.10
-    local breathSkillDamageCap = skillParams.damageCap or math.floor(mobCurrentHP / 5)
+    local breathSkillDamageCap = skillParams.damageCap or xi.mobskills.breathDamageCapDefault(mobCurrentHP)
     local bonusDamage          = skillParams.bonusDamage or 0
     local mAccuracyBonusfTP    = skillParams.mAccuracyBonus or { 0, 0, 0 }
     local actionElement        = skillParams.element or 0
@@ -2027,6 +2047,60 @@ end
 -- SDT, resist, and shell-style damage adjustment are forced to 1 — day/weather
 -- and MAB still apply, then absorb, nullify, and the fixed 0.5 hybrid scale.
 -- Callers still own OneForAll and Stoneskin.
+-- Pure halves of physical/ranged base damage setup (OmegaXI slice 6668).
+
+-- Physical/ranged floor skill TP at 1000 before the shared 3000 cap.
+xi.mobskills.mobPhysicalSkillTP = function(skillTP)
+    return math.max(1000, skillTP)
+end
+
+-- First-hit base: max(1, floor((weapon + fSTR + wsc) * ftp))
+xi.mobskills.mobPhysicalBaseDamage = function(weaponDamage, fSTR, wsc, ftp)
+    return math.max(1, math.floor((weaponDamage + fSTR + wsc) * ftp))
+end
+
+-- Subsequent-hit base: floor product when table present, else first-hit base.
+-- Does not apply the max(1, …) floor of first-hit base.
+xi.mobskills.mobPhysicalSubsequentDamage = function(weaponDamage, fSTR, wsc, subsequentFTP, hasSubsequentFTP, baseDamage)
+    if not hasSubsequentFTP then
+        return baseDamage
+    end
+
+    return math.floor((weaponDamage + fSTR + wsc) * subsequentFTP)
+end
+
+xi.mobskills.specialAttackEvasionBonus = function(targetSpecialAttackEvasionMod)
+    return targetSpecialAttackEvasionMod * -1
+end
+
+xi.mobskills.mightyStrikesCritPlan = function(hasMightyStrikes)
+    if not hasMightyStrikes then
+        return false, { 0, 0, 0 }
+    end
+
+    return true, { 1.00, 1.00, 1.00 }
+end
+
+xi.mobskills.breathDamageCapDefault = function(currentHP)
+    return math.floor(currentHP / 5)
+end
+
+xi.mobskills.optionalTPFactor = function(hasTable, tpFactor, defaultValue)
+    if not hasTable then
+        return defaultValue
+    end
+
+    return tpFactor
+end
+
+xi.mobskills.ignoreDefensePlan = function(hasTable, tpFactor)
+    if not hasTable then
+        return 0, false
+    end
+
+    return tpFactor, true
+end
+
 -- Pure halves of drain / status / heal / gaze helpers (OmegaXI slice 6667).
 -- Host residual: resource writes, takeDamage, immunity/resist lookups, facing.
 
