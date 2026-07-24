@@ -21,6 +21,7 @@
 
 #include "inactive_state.h"
 #include "inactive_interrupt.h"
+#include "inactive_zero_duration_exit.h"
 #include "ai/ai_container.h"
 #include "entities/battle_entity.h"
 #include "status_effect_container.h"
@@ -42,13 +43,23 @@ bool CInactiveState::Update(timer::time_point tick)
     auto* PBattleEntity{ dynamic_cast<CBattleEntity*>(m_PEntity) };
     if (PBattleEntity && m_duration == 0ms)
     {
-        if (PBattleEntity->isDead())
-        {
-            return true;
-        }
-
-        if (!PBattleEntity->StatusEffectContainer->HasPreventActionEffect() ||
-            (PBattleEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::CharmI, xi::StatusEffect::CharmIi }) && !PBattleEntity->StatusEffectContainer->HasPreventActionEffect(true)))
+        if (inactivezerodurationexit::shouldExit(
+                [&]()
+                {
+                    return PBattleEntity->isDead();
+                },
+                [&]()
+                {
+                    return PBattleEntity->StatusEffectContainer->HasPreventActionEffect();
+                },
+                [&]()
+                {
+                    return PBattleEntity->StatusEffectContainer->HasStatusEffect({ xi::StatusEffect::CharmI, xi::StatusEffect::CharmIi });
+                },
+                [&]()
+                {
+                    return PBattleEntity->StatusEffectContainer->HasPreventActionEffect(true);
+                }))
         {
             return true;
         }
