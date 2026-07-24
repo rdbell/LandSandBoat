@@ -207,6 +207,69 @@ describe('Voidwalker healing admission', function()
     end)
 end)
 
+describe('Voidwalker mob lifecycle plan', function()
+    local function stepsEqual(hook, expected)
+        local steps = xi.voidwalker.mobLifecyclePlan(hook)
+        assert(steps ~= nil, hook)
+        assert(#steps == #expected, hook)
+
+        for i, step in ipairs(expected) do
+            assert(steps[i] == step, hook .. ' step ' .. i)
+        end
+    end
+
+    it('hides the mob then applies its spawn modifiers', function()
+        stepsEqual('spawn', { 'presentation', 'modifiers' })
+    end)
+
+    it('clears fight state before re-hiding on disengage', function()
+        stepsEqual('disengage', { 'reset_local_vars', 'despawn_pet', 'presentation' })
+    end)
+
+    it('releases the spawn slot before assigning a new one on despawn', function()
+        stepsEqual('despawn', { 'release_pos', 'assign_pos', 'reset_local_vars', 'despawn_pet' })
+    end)
+
+    it('has no plan for an unknown hook', function()
+        assert(xi.voidwalker.mobLifecyclePlan('death') == nil)
+        assert(xi.voidwalker.mobLifecyclePlan('') == nil)
+    end)
+
+    it('reuses the spawn presentation for the disengage re-hide', function()
+        local presentation = xi.voidwalker.spawnPresentationPlan()
+
+        assert(presentation.status == xi.status.INVISIBLE)
+        assert(presentation.hideHP and presentation.hideName and presentation.untargetable)
+
+        local spawnHasPresentation     = false
+        local disengageHasPresentation = false
+
+        for _, step in ipairs(xi.voidwalker.mobLifecyclePlan('spawn')) do
+            spawnHasPresentation = spawnHasPresentation or step == 'presentation'
+        end
+
+        for _, step in ipairs(xi.voidwalker.mobLifecyclePlan('disengage')) do
+            disengageHasPresentation = disengageHasPresentation or step == 'presentation'
+        end
+
+        assert(spawnHasPresentation and disengageHasPresentation)
+    end)
+
+    it('shares the reset and pet steps between disengage and despawn', function()
+        local shared = { reset_local_vars = 0, despawn_pet = 0 }
+
+        for _, hook in ipairs({ 'disengage', 'despawn' }) do
+            for _, step in ipairs(xi.voidwalker.mobLifecyclePlan(hook)) do
+                if shared[step] then
+                    shared[step] = shared[step] + 1
+                end
+            end
+        end
+
+        assert(shared.reset_local_vars == 2 and shared.despawn_pet == 2)
+    end)
+end)
+
 describe('Voidwalker spawn slot occupancy', function()
     local function slots()
         return

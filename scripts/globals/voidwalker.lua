@@ -375,6 +375,24 @@ xi.voidwalker.spawnPresentationPlan = function()
     return { status = xi.status.INVISIBLE, hideHP = true, hideName = true, untargetable = true }
 end
 
+local mobLifecycleSteps =
+{
+    -- Spawn hides the NM, then applies its named spawn modifiers.
+    spawn     = { 'presentation', 'modifiers' },
+    -- Disengage re-hides the NM after clearing its fight state. Upstream wrote
+    -- the same four presentation calls inline here as onMobSpawn uses.
+    disengage = { 'reset_local_vars', 'despawn_pet', 'presentation' },
+    -- Despawn frees the NM's spawn slot before picking a new one, so the
+    -- release must precede the assignment.
+    despawn   = { 'release_pos', 'assign_pos', 'reset_local_vars', 'despawn_pet' },
+}
+
+-- Ordered step plan for a Voidwalker NM lifecycle hook: 'spawn', 'disengage',
+-- or 'despawn'. Returns nil for an unknown hook.
+xi.voidwalker.mobLifecyclePlan = function(hook)
+    return mobLifecycleSteps[hook]
+end
+
 xi.voidwalker.shouldHandleHealing = function(voidwalkerEnabled, abyssiteCount, hasVoidwalkerMobs)
     return voidwalkerEnabled and abyssiteCount > 0 and hasVoidwalkerMobs
 end
@@ -710,6 +728,45 @@ xi.voidwalker.mobFightMixinPlan = function(mobName)
     }
 end
 
+local function applyLifecycleStep(mob, step)
+    if step == 'presentation' then
+        local presentation = xi.voidwalker.spawnPresentationPlan()
+
+        mob:setStatus(presentation.status)
+        mob:hideHP(presentation.hideHP)
+        mob:hideName(presentation.hideName)
+        mob:setUntargetable(presentation.untargetable)
+    elseif step == 'modifiers' then
+        local modifiers = xi.voidwalker.spawnModifierPlan(mob:getName())
+
+        if modifiers then
+            for _, modifier in ipairs(modifiers) do
+                if modifier.kind == 'status' then
+                    mob:addStatusEffect(modifier.effect, { power = modifier.power, origin = mob })
+                elseif modifier.kind == 'mod' then
+                    mob:addMod(modifier.mod, modifier.value)
+                elseif modifier.kind == 'immunity' then
+                    mob:addImmunity(modifier.immunity)
+                end
+            end
+        end
+    elseif step == 'reset_local_vars' then
+        resetMobLocalVars(mob)
+    elseif step == 'despawn_pet' then
+        DespawnPet(mob)
+    elseif step == 'release_pos' then
+        removeMobIdFromPos(mob:getZoneID(), mob:getID())
+    elseif step == 'assign_pos' then
+        setRandomPos(mob:getZoneID(), mob:getID())
+    end
+end
+
+local function runLifecycleHook(mob, hook)
+    for _, step in ipairs(xi.voidwalker.mobLifecyclePlan(hook)) do
+        applyLifecycleStep(mob, step)
+    end
+end
+
 -----------------------------------
 -- Mob On Init
 -----------------------------------
@@ -717,24 +774,7 @@ xi.voidwalker.onMobInitialize = function(mob)
 end
 
 xi.voidwalker.onMobSpawn = function(mob)
-    local mobName = mob:getName()
-    local presentation = xi.voidwalker.spawnPresentationPlan()
-    mob:setStatus(presentation.status)
-    mob:hideHP(presentation.hideHP)
-    mob:hideName(presentation.hideName)
-    mob:setUntargetable(presentation.untargetable)
-    local modifiers = xi.voidwalker.spawnModifierPlan(mobName)
-    if modifiers then
-        for _, modifier in ipairs(modifiers) do
-            if modifier.kind == 'status' then
-                mob:addStatusEffect(modifier.effect, { power = modifier.power, origin = mob })
-            elseif modifier.kind == 'mod' then
-                mob:addMod(modifier.mod, modifier.value)
-            elseif modifier.kind == 'immunity' then
-                mob:addImmunity(modifier.immunity)
-            end
-        end
-    end
+    runLifecycleHook(mob, 'spawn')
 end
 
 xi.voidwalker.onMobFight = function(mob, target)
@@ -786,22 +826,11 @@ xi.voidwalker.onMobFight = function(mob, target)
 end
 
 xi.voidwalker.onMobDisengage = function(mob)
-    resetMobLocalVars(mob)
-    DespawnPet(mob)
-    mob:setStatus(xi.status.INVISIBLE)
-    mob:hideHP(true)
-    mob:hideName(true)
-    mob:setUntargetable(true)
+    runLifecycleHook(mob, 'disengage')
 end
 
 xi.voidwalker.onMobDespawn = function(mob)
-    local zoneId = mob:getZoneID()
-    local mobId  = mob:getID()
-
-    removeMobIdFromPos(zoneId, mobId)
-    setRandomPos(zoneId, mobId)
-    resetMobLocalVars(mob)
-    DespawnPet(mob)
+    runLifecycleHook(mob, 'despawn')
 end
 
 xi.voidwalker.onMobDeath = function(mob, player, optParams, keyItem)
