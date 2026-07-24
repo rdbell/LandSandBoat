@@ -301,7 +301,8 @@ auto MapSessionContainer::getSessionByCharName(const std::string& name) -> MapSe
     return nullptr;
 }
 
-// Go host pure half: mapsession.ApplyTimeoutCleanupSQL / OtherMapFromServer (6417).
+// Go host pure half: mapsession.ApplyCleanupConfirmedSession / ApplyCleanupPendingSession (6420).
+// Prior: ApplyTimeoutCleanupSQL / OtherMapFromServer (6417).
 void MapSessionContainer::cleanupSessions(IPP mapIPP)
 {
     TracyZoneScoped;

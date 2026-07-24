@@ -2863,6 +2863,8 @@ set(SOURCES
     test_mapsession_cleanup_effects_host_6418.cpp
     test_mapsession_destroy_session_host_6419.h
     test_mapsession_destroy_session_host_6419.cpp
+    test_mapsession_cleanup_sessions_host_6420.h
+    test_mapsession_cleanup_sessions_host_6420.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
