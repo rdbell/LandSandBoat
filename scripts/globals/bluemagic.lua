@@ -26,92 +26,87 @@ xi.spells.blue.tpMod =
 }
 
 -----------------------------------
--- Local functions
+-- Pure formula helpers (OmegaXI slice 6675)
+-- Dual-wired so Go internal/bluemagic and LSB tests share one surface.
 -----------------------------------
 
--- Get alpha (level-dependent multiplier on WSC)
-local function calculateAlpha(level)
+-- Level-dependent WSC alpha (ceil bands, then /100).
+xi.spells.blue.alpha = function(level)
     if level <= 60 then
         return math.ceil(100 - level / 6) / 100
     elseif level <= 75 then
         return math.ceil(100 - (level - 40) / 2) / 100
-    else
-        return 0.83
     end
+
+    return 0.83
 end
 
--- Get WSC
-local function calculateWSC(attacker, params)
-    local alpha  = calculateAlpha(attacker:getMainLvl())
-    local wscSTR = attacker:getStat(xi.mod.STR) * params.str_wsc
-    local wscDEX = attacker:getStat(xi.mod.DEX) * params.dex_wsc
-    local wscVIT = attacker:getStat(xi.mod.VIT) * params.vit_wsc
-    local wscAGI = attacker:getStat(xi.mod.AGI) * params.agi_wsc
-    local wscINT = attacker:getStat(xi.mod.INT) * params.int_wsc
-    local wscMND = attacker:getStat(xi.mod.MND) * params.mnd_wsc
-    local wscCHR = attacker:getStat(xi.mod.CHR) * params.chr_wsc
+-- Pure WSC once stats and script multipliers are injected:
+--   sum(stat * wsc) * alpha(level)
+-- Distinct from weaponskill calculateWSC (no per-stat floor, no WS_*_BONUS).
+xi.spells.blue.wsc = function(str, dex, vit, agi, int, mnd, chr, strWsc, dexWsc, vitWsc, agiWsc, intWsc, mndWsc, chrWsc, level)
+    local alpha = xi.spells.blue.alpha(level)
+    local sum   =
+        str * (strWsc or 0) +
+        dex * (dexWsc or 0) +
+        vit * (vitWsc or 0) +
+        agi * (agiWsc or 0) +
+        int * (intWsc or 0) +
+        mnd * (mndWsc or 0) +
+        chr * (chrWsc or 0)
 
-    local wsc = (wscSTR + wscDEX + wscVIT + wscAGI + wscINT + wscMND + wscCHR) * alpha
-
-    return wsc
+    return sum * alpha
 end
 
--- Get cRatio
-local function calculatecRatio(ratio, atk_lvl, def_lvl)
-    -- Get ratio with level penalty
+-- Pure cRatio min/max for physical blue pDIF range once attack/defense ratio
+-- and levels are known.
+xi.spells.blue.cRatio = function(ratio, atkLvl, defLvl)
     local levelcor = 0
-    if atk_lvl < def_lvl then
-        levelcor = 0.05 * (def_lvl - atk_lvl)
+    if atkLvl < defLvl then
+        levelcor = 0.05 * (defLvl - atkLvl)
     end
 
     ratio = ratio - levelcor
     ratio = utils.clamp(ratio, 0, 2)
 
-    -- Get cRatiomin
     local cratiomin = 0
     if ratio < 1.25 then
         cratiomin = 1.2 * ratio - 0.5
-    elseif ratio >= 1.25 and ratio <= 1.5 then
+    elseif ratio <= 1.5 then
         cratiomin = 1
-    elseif ratio > 1.5 and ratio <= 2 then
+    else
         cratiomin = 1.2 * ratio - 0.8
     end
 
-    -- Get cRatiomax
     local cratiomax = 0
     if ratio < 0.5 then
         cratiomax = 0.4 + 1.2 * ratio
-    elseif ratio <= 0.833 and ratio >= 0.5 then
+    elseif ratio <= 0.833 then
         cratiomax = 1
-    elseif ratio <= 2 and ratio > 0.833 then
+    else
         cratiomax = 1.2 * ratio
     end
 
-    -- Return data
-    local cratio = {}
     if cratiomin < 0 then
         cratiomin = 0
     end
 
-    cratio[1] = cratiomin
-    cratio[2] = cratiomax
-
-    return cratio
+    return { cratiomin, cratiomax }
 end
 
--- Get the fTP multiplier (by applying 2 straight lines between ftp0-ftp1500 and ftp1500-ftp3000)
-local function calculatefTP(tp, ftp0, ftp1500, ftp3000)
+-- Pure fTP: two straight lines 0→1500 and 1500→3000.
+xi.spells.blue.fTP = function(tp, ftp0, ftp1500, ftp3000)
     tp = utils.clamp(tp, 0, 3000)
 
     if tp >= 1500 then
         return ftp1500 + (ftp3000 - ftp1500) * (tp - 1500) / 1500
-    else
-        return ftp0 + (ftp1500 - ftp0) * tp / 1500
     end
+
+    return ftp0 + (ftp1500 - ftp0) * tp / 1500
 end
 
--- Get fSTR
-local function calculatefSTR(dSTR)
+-- Pure blue fSTR ladder (dSTR → fSTR2/2). Distinct from weaponskill fSTR.
+xi.spells.blue.fSTR = function(dSTR)
     local fSTR2 = 0
 
     if dSTR >= 12 then
@@ -135,6 +130,73 @@ local function calculatefSTR(dSTR)
     return fSTR2 / 2
 end
 
+-- Soft-cap fSTR at 22 unless ignoreCap (Smite of Rage / Grand Slam).
+xi.spells.blue.capFSTR = function(fstr, ignoreCap)
+    if not ignoreCap and fstr > 22 then
+        return 22
+    end
+
+    return fstr
+end
+
+-- Pure ecosystem correlation: strengthBonus * 0.25; merits only boost positives.
+xi.spells.blue.correlation = function(strengthBonus, merits)
+    local effect = strengthBonus * 0.25
+
+    if effect > 0 then
+        effect = effect + 0.001 * merits
+    end
+
+    return effect
+end
+
+-- Pure physical initial D: floor(skill*0.11)*2+3 clamped to [0, dUpperCap].
+xi.spells.blue.physicalInitialD = function(blueSkill, dUpperCap)
+    local d = math.floor(blueSkill * 0.11) * 2 + 3
+
+    return utils.clamp(d, 0, dUpperCap)
+end
+
+-----------------------------------
+-- Local hosts (entity injects → pure)
+-----------------------------------
+
+local function calculateAlpha(level)
+    return xi.spells.blue.alpha(level)
+end
+
+local function calculateWSC(attacker, params)
+    return xi.spells.blue.wsc(
+        attacker:getStat(xi.mod.STR),
+        attacker:getStat(xi.mod.DEX),
+        attacker:getStat(xi.mod.VIT),
+        attacker:getStat(xi.mod.AGI),
+        attacker:getStat(xi.mod.INT),
+        attacker:getStat(xi.mod.MND),
+        attacker:getStat(xi.mod.CHR),
+        params.str_wsc,
+        params.dex_wsc,
+        params.vit_wsc,
+        params.agi_wsc,
+        params.int_wsc,
+        params.mnd_wsc,
+        params.chr_wsc,
+        attacker:getMainLvl()
+    )
+end
+
+local function calculatecRatio(ratio, atk_lvl, def_lvl)
+    return xi.spells.blue.cRatio(ratio, atk_lvl, def_lvl)
+end
+
+local function calculatefTP(tp, ftp0, ftp1500, ftp3000)
+    return xi.spells.blue.fTP(tp, ftp0, ftp1500, ftp3000)
+end
+
+local function calculatefSTR(dSTR)
+    return xi.spells.blue.fSTR(dSTR)
+end
+
 -- Get hitrate
 local function calculateHitrate(attacker, target, bonusacc)
     -- your mainhand may not be a sword, so hit rate would vary here
@@ -142,15 +204,10 @@ local function calculateHitrate(attacker, target, bonusacc)
     return xi.combat.physicalHitRate.getPhysicalHitRate(attacker, target, bonusacc + attacker:getMerit(xi.merit.PHYSICAL_POTENCY) * 2, xi.attackAnimation.RIGHT_ATTACK, false)
 end
 
--- Get the effect of ecosystem correlation
 local function calculateCorrelation(spellEcosystem, monsterEcosystem, merits)
-    local effect = utils.getEcosystemStrengthBonus(spellEcosystem, monsterEcosystem) * 0.25
+    local strengthBonus = utils.getEcosystemStrengthBonus(spellEcosystem, monsterEcosystem)
 
-    if effect > 0 then -- merits don't impose a penalty, only a benefit in case of strength
-        effect = effect + 0.001 * merits
-    end
-
-    return effect
+    return xi.spells.blue.correlation(strengthBonus, merits)
 end
 
 -- Consecutive Elemental Damage Penalty. Most commonly known as "Nuke Wall".
@@ -230,16 +287,16 @@ xi.spells.blue.usePhysicalSpell = function(caster, target, spell, params)
     -----------------------
 
     -- Initial D value
-    local initialD = math.floor(caster:getSkillLevel(xi.skill.BLUE_MAGIC) * 0.11) * 2 + 3
-    initialD       = utils.clamp(initialD, 0, params.duppercap)
+    local initialD = xi.spells.blue.physicalInitialD(
+        caster:getSkillLevel(xi.skill.BLUE_MAGIC),
+        params.duppercap
+    )
 
     -- fSTR
-    local fStr = calculatefSTR(caster:getStat(xi.mod.STR) - target:getStat(xi.mod.VIT))
-    if fStr > 22 then
-        if params.ignorefstrcap == nil then -- Smite of Rage / Grand Slam don't have this cap applied
-            fStr = 22
-        end
-    end
+    local fStr = xi.spells.blue.capFSTR(
+        calculatefSTR(caster:getStat(xi.mod.STR) - target:getStat(xi.mod.VIT)),
+        params.ignorefstrcap ~= nil
+    )
 
     -- Multiplier, bonus WSC
     local multiplier = params.multiplier or 1
