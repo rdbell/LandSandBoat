@@ -1772,6 +1772,67 @@ xi.mobskills.unequipRandomSlots = function(target, numberToUnequip)
     end
 end
 
+-- Pure plan for handleShadowConsumption once skill shape and attack type are
+-- known. Host residual: delStatusEffect writes, attemptShadowMitigation rolls,
+-- and shadowAbsorb.
+--
+-- Important pin: IGNORE_SHADOWS still strips Blink (and Third Eye on physical/
+-- ranged) when the skill is AoE or conal — ignore only skips the absorb count.
+xi.mobskills.shadowConsumptionPlan = function(shadowsToRemove, isAoE, isConal, attackType)
+    local plan =
+    {
+        delCopyImage       = false,
+        delBlink           = false,
+        delThirdEye        = false,
+        attemptAbsorb      = false,
+        attemptedRemoval   = 0,
+        useAoEMitigation   = false,
+    }
+
+    local isPhysOrRanged =
+        attackType == xi.attackType.PHYSICAL or
+        attackType == xi.attackType.RANGED
+
+    ----------------------------------
+    -- Wipe all shadows
+    ----------------------------------
+    if shadowsToRemove == xi.mobskills.shadowBehavior.WIPE_SHADOWS then
+        plan.delCopyImage = true
+        plan.delBlink     = true
+
+        -- Magical skills do not interact with Third Eye
+        if isPhysOrRanged then
+            plan.delThirdEye = true
+        end
+    end
+
+    ----------------------------------
+    -- AoE physical skills remove Third Eye and Blink.
+    -- Magical skills do not interact with Third Eye.
+    ----------------------------------
+    if isAoE or isConal then
+        if isPhysOrRanged then
+            plan.delThirdEye = true
+        end
+
+        plan.delBlink = true
+    end
+
+    ----------------------------------
+    -- Standard shadow handling
+    ----------------------------------
+    if
+        shadowsToRemove ~= xi.mobskills.shadowBehavior.WIPE_SHADOWS and
+        shadowsToRemove ~= xi.mobskills.shadowBehavior.IGNORE_SHADOWS
+    then
+        plan.attemptAbsorb    = true
+        plan.attemptedRemoval = shadowsToRemove
+        plan.useAoEMitigation = isAoE or isConal
+    end
+
+    return plan
+end
+
 ---@param target CBaseEntity
 ---@param skill CMobSkill|CPetSkill
 ---@param params table
@@ -1783,51 +1844,24 @@ xi.mobskills.handleShadowConsumption = function(target, skill, params, shadowsTo
 
     local isAoE   = skill:isAoE()
     local isConal = skill:isConal()
+    local plan    = xi.mobskills.shadowConsumptionPlan(shadowsToRemove, isAoE, isConal, params.attackType)
 
-    ----------------------------------
-    -- Wipe all shadows
-    ----------------------------------
-    if shadowsToRemove == xi.mobskills.shadowBehavior.WIPE_SHADOWS then
+    if plan.delCopyImage then
         target:delStatusEffect(xi.effect.COPY_IMAGE)
-        target:delStatusEffect(xi.effect.BLINK)
-
-        -- Magical skills do not interact with Third Eye
-        if
-            params.attackType == xi.attackType.PHYSICAL or
-            params.attackType == xi.attackType.RANGED
-        then
-            target:delStatusEffect(xi.effect.THIRD_EYE)
-        end
     end
 
-    ----------------------------------
-    -- AoE physical skills remove Third Eye and Blink.
-    -- Magical skills do not interact with Third Eye.
-    ----------------------------------
-    if
-        isAoE or
-        isConal
-    then
-        if
-            params.attackType == xi.attackType.PHYSICAL or
-            params.attackType == xi.attackType.RANGED
-        then
-            target:delStatusEffect(xi.effect.THIRD_EYE)
-        end
-
+    if plan.delBlink then
         target:delStatusEffect(xi.effect.BLINK)
     end
 
-    ----------------------------------
-    -- Standard shadow handling
-    ----------------------------------
-    if
-        shadowsToRemove ~= xi.mobskills.shadowBehavior.WIPE_SHADOWS and
-        shadowsToRemove ~= xi.mobskills.shadowBehavior.IGNORE_SHADOWS
-    then
-        local attemptedShadowRemoval = shadowsToRemove
+    if plan.delThirdEye then
+        target:delStatusEffect(xi.effect.THIRD_EYE)
+    end
 
-        if isAoE or isConal then
+    if plan.attemptAbsorb then
+        local attemptedShadowRemoval = plan.attemptedRemoval
+
+        if plan.useAoEMitigation then
             shadowsMitigated = utils.attemptShadowMitigation(target, attemptedShadowRemoval)
         end
 
