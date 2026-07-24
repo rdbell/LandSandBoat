@@ -104,4 +104,28 @@ inline auto NoSkillchain(bool hasSkillchain) -> bool
 {
     return !hasSkillchain;
 }
+
+// Party role main jobs (slice 6637). PartyHasHealer/PartyHasTank fold these
+// over ForPartyWithTrusts.
+inline constexpr uint8 JobWhm = 3;
+inline constexpr uint8 JobRdm = 5;
+inline constexpr uint8 JobPld = 7;
+inline constexpr uint8 JobNin = 13;
+inline constexpr uint8 JobSch = 20;
+inline constexpr uint8 JobRun = 22;
+
+// IsHealerJob classifies a member's main job for PartyHasHealer, used to pick
+// Uka Totlihn's samba.
+//
+// NOTE: Paladin counts as both a healer and a tank.
+inline auto IsHealerJob(uint8 mainJob) -> bool
+{
+    return mainJob == JobWhm || mainJob == JobRdm || mainJob == JobPld || mainJob == JobSch;
+}
+
+// IsTankJob classifies a member's main job for PartyHasTank (Volker, AA Hume).
+inline auto IsTankJob(uint8 mainJob) -> bool
+{
+    return mainJob == JobNin || mainJob == JobPld || mainJob == JobRun;
+}
 } // namespace gambitshelpers

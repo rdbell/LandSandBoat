@@ -8,6 +8,14 @@ namespace
 {
 using gambitshelpers::CanUseRunes;
 using gambitshelpers::HasTopEnmity;
+using gambitshelpers::IsHealerJob;
+using gambitshelpers::IsTankJob;
+using gambitshelpers::JobNin;
+using gambitshelpers::JobPld;
+using gambitshelpers::JobRdm;
+using gambitshelpers::JobRun;
+using gambitshelpers::JobSch;
+using gambitshelpers::JobWhm;
 using gambitshelpers::MagicBurstAvailable;
 using gambitshelpers::MaxRuneEffects;
 using gambitshelpers::MaxRuneEffects;
@@ -123,9 +131,40 @@ auto CheckSkillchain() -> bool
     return true;
 }
 
+auto CheckPartyRoles() -> bool
+{
+    // Healers: WHM, RDM, PLD, SCH.
+    if (!IsHealerJob(JobWhm) || !IsHealerJob(JobRdm) || !IsHealerJob(JobPld) || !IsHealerJob(JobSch))
+    {
+        return false;
+    }
+    if (IsHealerJob(JobNin) || IsHealerJob(JobRun) || IsHealerJob(1))
+    {
+        return false;
+    }
+
+    // Tanks: NIN, PLD, RUN.
+    if (!IsTankJob(JobNin) || !IsTankJob(JobPld) || !IsTankJob(JobRun))
+    {
+        return false;
+    }
+    if (IsTankJob(JobWhm) || IsTankJob(JobRdm) || IsTankJob(JobSch) || IsTankJob(1))
+    {
+        return false;
+    }
+
+    // Paladin is the only job counted as both.
+    if (!IsHealerJob(JobPld) || !IsTankJob(JobPld))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 auto Check() -> bool
 {
-    return CheckRunes() && CheckTopEnmity() && CheckSkillchain();
+    return CheckRunes() && CheckTopEnmity() && CheckSkillchain() && CheckPartyRoles();
 }
 } // namespace
 

@@ -1857,9 +1857,7 @@ bool CGambitsContainer::PartyHasHealer()
     // clang-format off
         static_cast<CCharEntity*>(POwner->PMaster)->ForPartyWithTrusts([&](CBattleEntity* PMember)
         {
-            auto jobType = PMember->GetMJob();
-
-            if (jobType == JOB_WHM || jobType == JOB_RDM || jobType == JOB_PLD || jobType == JOB_SCH)
+            if (gambitshelpers::IsHealerJob(PMember->GetMJob()))
             {
                 hasHealer = true;
             }
@@ -1875,9 +1873,7 @@ bool CGambitsContainer::PartyHasTank()
     // clang-format off
         static_cast<CCharEntity*>(POwner->PMaster)->ForPartyWithTrusts([&](CBattleEntity* PMember)
         {
-            auto jobType = PMember->GetMJob();
-
-            if (jobType == JOB_NIN || jobType == JOB_PLD || jobType == JOB_RUN)
+            if (gambitshelpers::IsTankJob(PMember->GetMJob()))
             {
                 hasTank = true;
             }
