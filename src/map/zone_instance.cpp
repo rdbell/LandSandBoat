@@ -54,6 +54,11 @@ auto shouldEraseInstance(const CInstance* candidate, const CInstance* target) ->
 {
     return candidate == target;
 }
+
+auto shouldStopInstanceCharacterSearch(bool found) -> bool
+{
+    return found;
+}
 } // namespace zoneinstance
 
 CZoneInstance::CZoneInstance(Scheduler& scheduler, MapConfig config, ZONEID ZoneID, REGION_TYPE RegionID, CONTINENT_TYPE ContinentID, uint8 levelRestriction)
@@ -75,7 +80,7 @@ CCharEntity* CZoneInstance::GetCharByName(const std::string& name)
     for (const auto& PInstance : m_InstanceList)
     {
         PEntity = PInstance->GetCharByName(name);
-        if (PEntity)
+        if (zoneinstance::shouldStopInstanceCharacterSearch(PEntity != nullptr))
         {
             break;
         }
@@ -91,7 +96,7 @@ CCharEntity* CZoneInstance::GetCharByID(uint32 id)
     for (const auto& PInstance : m_InstanceList)
     {
         PEntity = PInstance->GetCharByID(id);
-        if (PEntity)
+        if (zoneinstance::shouldStopInstanceCharacterSearch(PEntity != nullptr))
         {
             break;
         }

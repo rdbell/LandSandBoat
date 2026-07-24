@@ -210,6 +210,14 @@ auto testInstanceEraseIdentity() -> bool
     ok = expect(zoneinstance::shouldEraseInstance(nullptr, nullptr), "null identities compare equal") && ok;
     return ok;
 }
+
+auto testInstanceCharacterLookup() -> bool
+{
+    bool ok = true;
+    ok = expect(!zoneinstance::shouldStopInstanceCharacterSearch(false), "missing character continues instance search") && ok;
+    ok = expect(zoneinstance::shouldStopInstanceCharacterSearch(true), "found character stops instance search") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -227,5 +235,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testInstanceRestore() && ok;
     ok      = testPublicInstanceID() && ok;
     ok      = testInstanceEraseIdentity() && ok;
+    ok      = testInstanceCharacterLookup() && ok;
     return ok;
 }
