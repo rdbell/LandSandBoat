@@ -20,6 +20,7 @@
 */
 
 #include "despawn_state.h"
+#include "despawn_fade_update.h"
 #include "despawn_respawn_registration.h"
 #include "ai/ai_container.h"
 #include "entities/base_entity.h"
@@ -33,7 +34,11 @@ CDespawnState::CDespawnState(CBaseEntity* _PEntity, bool instantDespawn)
 : CState(_PEntity, _PEntity->targid)
 , despawnTime_(timer::now() + (instantDespawn ? 0s : 3s))
 {
-    if (!instantDespawn && (_PEntity->status != STATUS_TYPE::DISAPPEAR && !(static_cast<CMobEntity*>(_PEntity)->m_Behavior & BEHAVIOR_NO_DESPAWN)))
+    // FadeOut SCHEDULOR (pure gate: despawnfadeupdate); host owns packet push
+    if (despawnfadeupdate::shouldPushFadeOut(
+            instantDespawn,
+            static_cast<uint8_t>(_PEntity->status),
+            static_cast<CMobEntity*>(_PEntity)->m_Behavior))
     {
         _PEntity->loc.zone->PushPacket(_PEntity, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_SCHEDULOR>(_PEntity, _PEntity, FourCC::FadeOut));
     }
@@ -50,13 +55,14 @@ CDespawnState::CDespawnState(CBaseEntity* _PEntity, bool instantDespawn)
 
 bool CDespawnState::Update(timer::time_point tick)
 {
-    if (!IsCompleted() && !(static_cast<CMobEntity*>(m_PEntity)->m_Behavior & BEHAVIOR_NO_DESPAWN))
+    // OnDespawn + Complete (pure gate: despawnfadeupdate); host owns OnDespawn body
+    if (despawnfadeupdate::shouldComplete(
+            IsCompleted(),
+            static_cast<CMobEntity*>(m_PEntity)->m_Behavior,
+            tick >= despawnTime_))
     {
-        if (tick >= despawnTime_)
-        {
-            static_cast<CMobEntity*>(m_PEntity)->OnDespawn(*this);
-            Complete();
-        }
+        static_cast<CMobEntity*>(m_PEntity)->OnDespawn(*this);
+        Complete();
     }
     return IsCompleted();
 }
