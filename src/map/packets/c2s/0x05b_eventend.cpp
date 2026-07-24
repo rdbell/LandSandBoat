@@ -26,6 +26,8 @@
 #include "lua/luautils.h"
 #include "packets/s2c/0x052_eventucoff.h"
 
+// Go host pure half: packetsystem.ValidateEventEnd / ProcessEventEnd /
+// NewEventEndHandler (6469); plan mappacket.ClientEventEndTransitionFor.
 auto GP_CLI_COMMAND_EVENTEND::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
