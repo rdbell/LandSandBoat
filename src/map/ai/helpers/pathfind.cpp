@@ -567,14 +567,9 @@ bool CPathFind::IsPatrolling()
 
 bool CPathFind::AtPoint(const position_t& pos)
 {
-    if (m_distanceFromPoint == 0)
-    {
-        return isWithinDistance(m_POwner->loc.p, pos, 0.1f);
-    }
-    else
-    {
-        return isWithinDistance(m_POwner->loc.p, pos, m_distanceFromPoint + 0.2f);
-    }
+    // Dual-wire: pathfindstatushelpers::AtPointThreshold (slice 6337).
+    const float threshold = pathfindstatushelpers::AtPointThreshold(m_distanceFromPoint);
+    return isWithinDistance(m_POwner->loc.p, pos, threshold);
 }
 
 bool CPathFind::InWater()

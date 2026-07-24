@@ -2785,6 +2785,8 @@ set(SOURCES
     test_action_queue_clear_6334.cpp
     test_pathfind_status_6336.h
     test_pathfind_status_6336.cpp
+    test_pathfind_at_point_6337.h
+    test_pathfind_at_point_6337.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

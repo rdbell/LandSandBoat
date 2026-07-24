@@ -42,4 +42,14 @@ inline auto OnPoint(const bool onPoint) -> bool
     return onPoint;
 }
 
+// AtPointThreshold returns the isWithinDistance radius for AtPoint.
+// Mirrors: m_distanceFromPoint == 0 ? 0.1f : m_distanceFromPoint + 0.2f
+// Formula (slice 6337): distanceFromPoint == 0 ? 0.1 : distanceFromPoint + 0.2
+// Dual-wire of Go pathfind.AtPointThreshold (at_point.go).
+// Call site: CPathFind::AtPoint before host isWithinDistance.
+inline auto AtPointThreshold(const float distanceFromPoint) -> float
+{
+    return distanceFromPoint == 0.f ? 0.1f : distanceFromPoint + 0.2f;
+}
+
 } // namespace pathfindstatushelpers
