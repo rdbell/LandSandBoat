@@ -107,7 +107,8 @@ bool CAIActionQueue::isEmpty()
 
 void CAIActionQueue::clearActionQueue()
 {
-    while (!actionQueue.empty())
+    // Dual-wire: actionqueuehelpers::ShouldContinueClear (slice 6334).
+    while (actionqueuehelpers::ShouldContinueClear(actionQueue.empty()))
     {
         actionQueue.pop();
     }
@@ -115,7 +116,8 @@ void CAIActionQueue::clearActionQueue()
 
 void CAIActionQueue::clearTimerQueue()
 {
-    while (!timerQueue.empty())
+    // Dual-wire: actionqueuehelpers::ShouldContinueClear (slice 6334).
+    while (actionqueuehelpers::ShouldContinueClear(timerQueue.empty()))
     {
         timerQueue.pop();
     }

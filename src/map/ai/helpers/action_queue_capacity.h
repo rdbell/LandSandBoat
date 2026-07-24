@@ -50,4 +50,15 @@ inline auto ActionStateGateAllows(const bool checkState, const bool canChangeSta
     return !checkState || canChangeState;
 }
 
+// ShouldContinueClear reports whether clearActionQueue / clearTimerQueue should
+// pop one more entry.
+// Mirrors: while (!queue.empty()) { queue.pop(); }
+// Formula (slice 6334): !queueEmpty
+// Dual-wire of Go actionqueue.ShouldContinueClear (clear_loop.go).
+// Call sites: CAIActionQueue::clearActionQueue and clearTimerQueue.
+inline auto ShouldContinueClear(const bool queueEmpty) -> bool
+{
+    return !queueEmpty;
+}
+
 } // namespace actionqueuehelpers

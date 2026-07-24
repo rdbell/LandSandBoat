@@ -1421,6 +1421,7 @@ auto runStateEntryTime6330SelfTests() -> bool;
 auto runActionQueueIsEmpty6331SelfTests() -> bool;
 auto runActionQueueDue6332SelfTests() -> bool;
 auto runActionQueuePushState6333SelfTests() -> bool;
+auto runActionQueueClear6334SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3676,6 +3677,7 @@ namespace
         ok = runActionQueueIsEmpty6331SelfTests() && ok;
         ok = runActionQueueDue6332SelfTests() && ok;
         ok = runActionQueuePushState6333SelfTests() && ok;
+        ok = runActionQueueClear6334SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;
