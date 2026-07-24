@@ -447,6 +447,80 @@ xi.weaponskills.multiHitFTPAfterFirst = function(ftp, multiHitfTP)
     return 1
 end
 
+-- Remaining mainhand hits after the first is accounted for (numHits includes first).
+xi.weaponskills.mainhandHitsRemaining = function(numHits)
+    return numHits - 1
+end
+
+-- Pure TP-counter classification for a landed non-first multi-hit swing.
+-- Returns 'tp', 'main', or 'offhand' for which counter to increment.
+--
+--	if (isH2H or extraOffhandHit) and hitsDone == 1: 'tp'   -- second swing counts as TP hit
+--	elseif isBarrage: 'tp'
+--	elseif isOffhand: 'offhand'
+--	else: 'main'
+xi.weaponskills.classifyLandedHitTP = function(isH2H, extraOffhandHit, hitsDone, isBarrage, isOffhand)
+    if
+        (isH2H or extraOffhandHit) and
+        hitsDone == 1
+    then
+        return 'tp'
+    elseif isBarrage then
+        return 'tp'
+    elseif isOffhand then
+        return 'offhand'
+    end
+
+    return 'main'
+end
+
+-- Pure offhand hit base (no floor): weaponDamage[2] + fSTR + wsc * alpha.
+xi.weaponskills.offhandBaseDamage = function(offhandWeaponDamage, fSTR, wsc, alpha)
+    return offhandWeaponDamage + fSTR + wsc * alpha
+end
+
+-- Pure multi-proc budget: at most two multi procs are checked on the mainhand
+-- numHits loop. Returns the updated numMultiProcs after an extraMultis roll.
+xi.weaponskills.nextMultiProcCount = function(numMultiProcs, extraMultis)
+    if extraMultis > 0 then
+        return numMultiProcs + 1
+    end
+
+    return numMultiProcs
+end
+
+-- Pure all-hits WSD product for non-Jump weaponskills:
+--   bonus = ALL_WSDMG_ALL_HITS + (perWS if perWS > 0 and not pet)
+--   final = final * (100 + bonus) / 100 + firstHitBonus
+-- Jump skips entirely (returns finalDmg unchanged).
+xi.weaponskills.allHitsWSDProduct = function(finalDmg, allWSDMG, perWSWSD, isPet, firstHitBonus, isJump)
+    if isJump then
+        return finalDmg
+    end
+
+    local bonusdmg = allWSDMG
+
+    if perWSWSD > 0 and not isPet then
+        bonusdmg = bonusdmg + perWSWSD
+    end
+
+    finalDmg = finalDmg * (100 + bonusdmg) / 100
+    finalDmg = finalDmg + firstHitBonus
+
+    return finalDmg
+end
+
+-- Pure hit-loop stop: retail caps at 8 swings or when cumulative damage reaches target HP+SS.
+xi.weaponskills.wsHitLoopContinues = function(hitsDone, finalDmg, targetHp)
+    return hitsDone < 8 and finalDmg < targetHp
+end
+
+-- Pure ammo exhaustion: when tracking ammo (ammoCount ~= -1) and used >= count,
+-- force the hit loop to stop (hitsDone = 8).
+xi.weaponskills.ammoExhausted = function(ammoUsed, ammoCount)
+    return ammoCount ~= -1 and ammoUsed >= ammoCount
+end
+
 -- TODO: Reduce complexity
 -- Disable cyclomatic complexity check for this function:
 -- luacheck: ignore 561
@@ -605,19 +679,19 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     dmg = mainBase
 
     -- First mainhand hit is already accounted for
-    local mainhandHits     = wsParams.numHits - 1
+    local mainhandHits     = xi.weaponskills.mainhandHitsRemaining(wsParams.numHits)
     local mainhandHitsDone = 0
 
     if isRanged and ammoCount ~= -1 then
         ammoUsed = ammoUsed + useAmmo(attacker)
 
-        if ammoUsed >= ammoCount then
+        if xi.weaponskills.ammoExhausted(ammoUsed, ammoCount) then
             hitsDone = 8 -- Attack while loops will stop if hitsDone is 8 or higher
         end
     end
 
     -- Use up any remaining hits in the WS's numhits
-    while hitsDone < 8 and mainhandHitsDone < mainhandHits and finaldmg < targetHp do
+    while mainhandHitsDone < mainhandHits and xi.weaponskills.wsHitLoopContinues(hitsDone, finaldmg, targetHp) do
         hitdmg, calcParams    = getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcParams)
 
         if calcParams.melee then
@@ -630,11 +704,10 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
             -- When dual wielding, the mainhand appears to count the second hit as a TP hit unless it's a 1 hit WS where the offhand will gain TP
             -- H2H also does this on retail (much more easy to verify)
             -- Needs better verification
-            if (isH2H or calcParams.extraOffhandHit) and hitsDone == 1 then
+            local tpClass = xi.weaponskills.classifyLandedHitTP(isH2H, calcParams.extraOffhandHit, hitsDone, wsParams.isBarrage, false)
+            if tpClass == 'tp' then
                 calcParams.tpHitsLanded = calcParams.tpHitsLanded + 1
-            elseif wsParams.isBarrage then
-                calcParams.tpHitsLanded = calcParams.tpHitsLanded + 1
-            else -- Otherwise, add a hit to the "extra" hits which is 10 tp each
+            else
                 calcParams.mainHitsLanded = calcParams.mainHitsLanded + 1
             end
 
@@ -651,13 +724,13 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
         if numMultiProcs < 2 then
             local extraMultis = isRanged and 0 or getMultiAttacks(attacker, target, wsParams, false, false)
             numMainHandMultis = numMainHandMultis + extraMultis
-            numMultiProcs     = extraMultis > 0 and numMultiProcs + 1 or numMultiProcs
+            numMultiProcs     = xi.weaponskills.nextMultiProcCount(numMultiProcs, extraMultis)
         end
 
         if isRanged and ammoCount ~= -1 then
             ammoUsed = ammoUsed + useAmmo(attacker)
 
-            if ammoUsed >= ammoCount then
+            if xi.weaponskills.ammoExhausted(ammoUsed, ammoCount) then
                 hitsDone = 8 -- Attack while loops will stop if hitsDone is 8 or higher
             end
         end
@@ -666,7 +739,7 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     -- Proc any mainhand multi attacks.
     local mainhandMultiHitsDone = 0
 
-    while hitsDone < 8 and mainhandMultiHitsDone < numMainHandMultis and finaldmg < targetHp do
+    while mainhandMultiHitsDone < numMainHandMultis and xi.weaponskills.wsHitLoopContinues(hitsDone, finaldmg, targetHp) do
         hitdmg, calcParams    = getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcParams)
 
         if calcParams.melee then
@@ -679,9 +752,10 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
             -- When dual wielding, the mainhand appears to count the second hit as a TP hit unless it's a 1 hit WS where the offhand will gain TP
             -- Needs better verification, in this case (1 hit ws with multis)  a DA/TA/QA may not count as TP hit and we'd move this into the offhand hit proc.
             -- Either way, this won't "cheat" players out of TP in the current implementation.
-            if calcParams.extraOffhandHit and hitsDone == 1 then
+            local tpClass = xi.weaponskills.classifyLandedHitTP(false, calcParams.extraOffhandHit, hitsDone, false, false)
+            if tpClass == 'tp' then
                 calcParams.tpHitsLanded = calcParams.tpHitsLanded + 1
-            else -- Otherwise, add a hit to the "extra" hits which is 10 tp each
+            else
                 calcParams.mainHitsLanded = calcParams.mainHitsLanded + 1
             end
 
@@ -697,7 +771,7 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
         if isRanged and ammoCount ~= -1 then
             ammoUsed = ammoUsed + useAmmo(attacker)
 
-            if ammoUsed >= ammoCount then
+            if xi.weaponskills.ammoExhausted(ammoUsed, ammoCount) then
                 hitsDone = 8 -- Attack while loops will stop if hitsDone is 8 or higher
             end
         end
@@ -720,8 +794,8 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     calcParams.hitRate = xi.weaponskills.getHitRate(attacker, target, calcParams.bonusAcc, xi.attackAnimation.LEFT_ATTACK)
 
     -- Do the extra hit for our offhand if applicable
-    if calcParams.extraOffhandHit and hitsDone < 8 and finaldmg < targetHp then
-        local offhandDmg      = calcParams.weaponDamage[2] + calcParams.fSTR + wsc * alpha
+    if calcParams.extraOffhandHit and xi.weaponskills.wsHitLoopContinues(hitsDone, finaldmg, targetHp) then
+        local offhandDmg      = xi.weaponskills.offhandBaseDamage(calcParams.weaponDamage[2], calcParams.fSTR, wsc, alpha)
         hitdmg, calcParams    = getSingleHitDamage(attacker, target, offhandDmg, ftp, wsParams, calcParams)
 
         if calcParams.melee then
@@ -733,9 +807,10 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
 
             -- If this is the second swing of the WS (1 hit ws) the offhand appears to count for TP gain
             -- Needs better verification
-            if calcParams.extraOffhandHit and hitsDone == 1 then
+            local tpClass = xi.weaponskills.classifyLandedHitTP(false, true, hitsDone, false, true)
+            if tpClass == 'tp' then
                 calcParams.tpHitsLanded = calcParams.tpHitsLanded + 1
-            else -- Otherwise, add a hit to the "extra" hits which is 10 tp each
+            else
                 calcParams.offhandHitsLanded = calcParams.offhandHitsLanded + 1
             end
 
@@ -748,14 +823,14 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
         hitsDone = hitsDone + 1
 
         numOffhandMultis = getMultiAttacks(attacker, target, wsParams, false, true)
-        numMultiProcs    = numOffhandMultis > 0 and numMultiProcs + 1 or numMultiProcs
+        numMultiProcs    = xi.weaponskills.nextMultiProcCount(numMultiProcs, numOffhandMultis)
     end
 
     -- Proc any offhand multi attacks.
     local offhandMultiHitsDone = 0
 
-    while hitsDone < 8 and offhandMultiHitsDone < numOffhandMultis and finaldmg < targetHp do
-        local offhandDmg      = calcParams.weaponDamage[2] + calcParams.fSTR + wsc * alpha
+    while offhandMultiHitsDone < numOffhandMultis and xi.weaponskills.wsHitLoopContinues(hitsDone, finaldmg, targetHp) do
+        local offhandDmg      = xi.weaponskills.offhandBaseDamage(calcParams.weaponDamage[2], calcParams.fSTR, wsc, alpha)
         hitdmg, calcParams    = getSingleHitDamage(attacker, target, offhandDmg, ftp, wsParams, calcParams)
 
         if calcParams.melee then
@@ -784,22 +859,14 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
 
     -- Factor in "all hits" bonus damage mods
     -- TODO: does this apply to every hit of a multi hit WS as it's coming in to account for potentially excess damage here?
-    local bonusdmg = 0
-
-    if not isJump then
-        bonusdmg = attacker:getMod(xi.mod.ALL_WSDMG_ALL_HITS) -- For any WS
-
-        if
-            attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID) > 0 and
-            not attacker:isPet()
-        then
-            -- For specific WS
-            bonusdmg = bonusdmg + attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID)
-        end
-
-        finaldmg = finaldmg * (100 + bonusdmg) / 100 -- Apply our "all hits" WS dmg bonuses
-        finaldmg = finaldmg + firstHitBonus -- Finally add in our "first hit" WS dmg bonus from before
-    end
+    finaldmg = xi.weaponskills.allHitsWSDProduct(
+        finaldmg,
+        isJump and 0 or attacker:getMod(xi.mod.ALL_WSDMG_ALL_HITS),
+        isJump and 0 or attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID),
+        attacker:isPet(),
+        firstHitBonus,
+        isJump
+    )
 
     -- Return our raw damage to then be modified by enemy reductions based off of melee/ranged
     calcParams.finalDmg = finaldmg
