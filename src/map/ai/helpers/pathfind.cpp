@@ -322,8 +322,8 @@ void CPathFind::FollowPath(timer::time_point tick)
     if (pathfindstatushelpers::LimitDistanceReached(m_maxDistance, m_distanceMoved))
     {
         // if I have a max distance, check to stop me
+        // Clear sets onPoint via ClearedOnPoint (slice 6349).
         Clear();
-        m_onPoint = true;
         return;
     }
 
@@ -630,21 +630,22 @@ void CPathFind::SetCarefulPathing(bool careful)
 
 void CPathFind::Clear()
 {
-    m_distanceFromPoint = 0;
-    m_pathFlags         = 0;
-    m_roamFlags         = 0;
+    // Dual-wire: pathfindstatushelpers::Cleared* sticky defaults (slice 6349).
+    m_distanceFromPoint = pathfindstatushelpers::ClearedDistanceFromPoint();
+    m_pathFlags         = pathfindstatushelpers::ClearedPathFlags();
+    m_roamFlags         = pathfindstatushelpers::ClearedRoamFlags();
 
     m_points.clear();
 
     m_timeAtPoint = timer::time_point::min();
 
-    m_currentPoint  = 0;
-    m_maxDistance   = 0;
-    m_distanceMoved = 0;
+    m_currentPoint  = pathfindstatushelpers::ClearedCurrentPoint();
+    m_maxDistance   = pathfindstatushelpers::ClearedMaxDistance();
+    m_distanceMoved = pathfindstatushelpers::ClearedDistanceMoved();
 
-    m_onPoint = true;
+    m_onPoint = pathfindstatushelpers::ClearedOnPoint();
 
-    m_currentTurn = 0;
+    m_currentTurn = pathfindstatushelpers::ClearedCurrentTurn();
     m_turnPoints.clear();
 }
 

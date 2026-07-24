@@ -354,6 +354,64 @@ inline auto ShouldNotifyZoneOnMove(const bool hasZone) -> bool
     return hasZone;
 }
 
+// ClearedOnPoint returns m_onPoint after Clear.
+// Formula (slice 6349): true
+// Dual-wire of Go pathfind.ClearedOnPoint (clear_defaults.go).
+inline auto ClearedOnPoint() -> bool
+{
+    return true;
+}
+
+// ClearedCurrentPoint returns m_currentPoint after Clear.
+// Formula (slice 6349): 0
+// Dual-wire of Go pathfind.ClearedCurrentPoint (clear_defaults.go).
+inline auto ClearedCurrentPoint() -> int16_t
+{
+    return 0;
+}
+
+// ClearedDistanceFromPoint returns m_distanceFromPoint after Clear.
+// Formula (slice 6349): 0
+inline auto ClearedDistanceFromPoint() -> float
+{
+    return 0.f;
+}
+
+// ClearedMaxDistance returns m_maxDistance after Clear.
+// Formula (slice 6349): 0
+inline auto ClearedMaxDistance() -> float
+{
+    return 0.f;
+}
+
+// ClearedDistanceMoved returns m_distanceMoved after Clear.
+// Formula (slice 6349): 0
+inline auto ClearedDistanceMoved() -> float
+{
+    return 0.f;
+}
+
+// ClearedCurrentTurn returns m_currentTurn after Clear.
+// Formula (slice 6349): 0
+inline auto ClearedCurrentTurn() -> int
+{
+    return 0;
+}
+
+// ClearedPathFlags returns m_pathFlags after Clear.
+// Formula (slice 6349): 0
+inline auto ClearedPathFlags() -> uint8_t
+{
+    return 0;
+}
+
+// ClearedRoamFlags returns m_roamFlags after Clear.
+// Formula (slice 6349): 0
+inline auto ClearedRoamFlags() -> uint16_t
+{
+    return 0;
+}
+
 // ArePositionsClose reports whether FindPath/FindClosestPath reject the query.
 // Mirrors free arePositionsClose: distance(a,b) < 1.0f
 // Formula (slice 6348): distance < 1.0
