@@ -4,38 +4,29 @@ xi.combat.tp = xi.combat.tp or {}
 -----------------------------------
 
 -----------------------------------
--- "Local" functions only used here.
+-- Pure formula helpers (OmegaXI slice 6679)
+-- Dual-wired so Go internal/attackutils and LSB tests share one surface.
 -----------------------------------
 
--- USED IN CORE (If you add/remove function params, they must be mirrored in core)
+-- Pure classification: charmed TYPE_MOB under a PC master uses the PC table.
+xi.combat.tp.isCharmedPCPet = function(isMob, isCharmed, hasPCMaster)
+    return isMob and isCharmed and hasPCMaster
+end
+
+-- Pure classification: PC/pet/trust (or charmed PC pet) use the PC delay→TP table.
+xi.combat.tp.usePCOrPetTPFormula = function(isMob, isCharmedPCPet)
+    return (not isMob) or isCharmedPCPet
+end
+
+-- Pure delay→TP tables once the formula flag is known (math.floor toward -inf).
+-- isPCOrPetFormula true → PC/pet bands; false → mob bands.
+-- USED IN CORE via calculateTPReturn host (params must stay mirrored in core).
 -- https://www.bg-wiki.com/ffxi/Tactical_Points
--- Gainee is the target who is going to gain the TP.
--- For instance, if a player attacks a mob, the mob uses the mob formula when gaining TP from the returned hit.
--- This appears to be a measure to not buff mobs when players were buffed with the new TP gain formula.
---- @params gainee CBaseEntity
---- @params delay integer
---- @return integer
-xi.combat.tp.calculateTPReturn = function(gainee, delay)
+-- Mob formula: http://wiki.ffo.jp/html/308.html
+xi.combat.tp.calculateTPReturnFromDelay = function(isPCOrPetFormula, delay)
     local tpReturn = 0
-    local isCharmedPCPet = false
 
-    -- Charmed pets controlled by the player are not caught by isPet() and are considered mobs still.
-    -- However once charmed, they convert to use the PC delay formula.
-    if
-        gainee:getObjType() == xi.objType.MOB and
-        gainee:getMaster() ~= nil and
-        gainee:getMaster():isPC() and
-        gainee:isCharmed()
-    then
-        isCharmedPCPet = true
-    end
-
-    if
-        gainee and
-        gainee:getObjType() ~= xi.objType.MOB or
-        isCharmedPCPet
-
-    then -- Pets and PCs have been observed to use this formula
+    if isPCOrPetFormula then -- Pets and PCs have been observed to use this formula
         if delay > 900 then
             tpReturn = 173 + (delay - 900) * 28 / 360
         elseif delay > 720 then
@@ -49,7 +40,7 @@ xi.combat.tp.calculateTPReturn = function(gainee, delay)
         else
             tpReturn = 61 + (delay - 180) * 63 / 360
         end
-    else -- mobs have been observed to use this formula -- http://wiki.ffo.jp/html/308.html
+    else -- mobs have been observed to use this formula
         if delay > 530 then
             tpReturn = 145 + (delay - 530) * 35 / 470
         elseif delay > 480 then
@@ -64,6 +55,43 @@ xi.combat.tp.calculateTPReturn = function(gainee, delay)
     end
 
     return math.floor(tpReturn)
+end
+
+-----------------------------------
+-- Entity hosts (entity injects → pure)
+-----------------------------------
+
+-- USED IN CORE (If you add/remove function params, they must be mirrored in core)
+-- Gainee is the target who is going to gain the TP.
+-- For instance, if a player attacks a mob, the mob uses the mob formula when gaining TP from the returned hit.
+-- This appears to be a measure to not buff mobs when players were buffed with the new TP gain formula.
+--- @params gainee CBaseEntity
+--- @params delay integer
+--- @return integer
+xi.combat.tp.calculateTPReturn = function(gainee, delay)
+    local isMob = false
+    local isCharmed = false
+    local hasPCMaster = false
+
+    if gainee then
+        isMob = gainee:getObjType() == xi.objType.MOB
+        if isMob then
+            -- Charmed pets controlled by the player are not caught by isPet() and are
+            -- considered mobs still. Once charmed, they convert to the PC delay formula.
+            isCharmed = gainee:isCharmed()
+            local master = gainee:getMaster()
+            hasPCMaster = master ~= nil and master:isPC()
+        end
+    else
+        -- nil gainee: original (gainee and ...) is falsy → mob formula unless charmed
+        -- (which cannot apply without an entity). Force mob table.
+        isMob = true
+    end
+
+    local isCharmedPCPet = xi.combat.tp.isCharmedPCPet(isMob, isCharmed, hasPCMaster)
+    local isPCOrPetFormula = xi.combat.tp.usePCOrPetTPFormula(isMob, isCharmedPCPet)
+
+    return xi.combat.tp.calculateTPReturnFromDelay(isPCOrPetFormula, delay)
 end
 
 xi.combat.tp.getModifiedDelayAndCanZanshin = function(actor, delay)
