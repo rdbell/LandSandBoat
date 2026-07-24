@@ -25,6 +25,8 @@
 #include "packets/s2c/0x047_translate.h"
 #include "utils/itemutils.h"
 
+// Go host pure half: packetsystem.ValidateTranslate / ProcessTranslate /
+// NewTranslateHandler (6448); lookup itemutils.TranslateItemName.
 auto GP_CLI_COMMAND_TRANSLATE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
