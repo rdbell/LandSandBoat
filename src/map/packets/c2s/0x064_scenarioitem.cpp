@@ -24,6 +24,8 @@
 #include "entities/char_entity.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateScenarioItem / ProcessScenarioItem /
+// NewScenarioItemHandler (6477); plan mappacket.ClientScenarioItemTransitionFor.
 auto GP_CLI_COMMAND_SCENARIOITEM::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
