@@ -2725,6 +2725,8 @@ set(SOURCES
     test_aicontainer_internal_synth_6304.cpp
     test_aicontainer_despawn_dispatch_6305.h
     test_aicontainer_despawn_dispatch_6305.cpp
+    test_aicontainer_can_follow_path_6306.h
+    test_aicontainer_can_follow_path_6306.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

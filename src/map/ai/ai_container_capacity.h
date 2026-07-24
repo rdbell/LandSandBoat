@@ -57,6 +57,8 @@
 //           (Internal_Synth char-entity + not-already-synth admission; pure inject)
 //   - 6305: DespawnShouldDispatchController
 //           (public Despawn() controller-vs-Internal_Despawn branch; pure inject)
+//   - 6306: CanFollowPath
+//           (PathFind && CanChangeState injects; pure dual-wire residual 1189)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -91,8 +93,11 @@
 // ForceChangeState<CSynthState>.
 // CAIContainer::Despawn injects Controller presence into
 // DespawnShouldDispatchController before Controller->Despawn vs Internal_Despawn.
+// CAIContainer::CanFollowPath injects PathFind presence and CanChangeState
+// injects into CanFollowPath.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
+// aicontainer.CanFollowPath (aicontainer.go),
 // aicontainer.InternalEngageForceAttackAllowed /
 // aicontainer.InternalEngageShouldResumeInactive /
 // aicontainer.InternalEngageIsAlreadyEngagedPath /
@@ -114,7 +119,9 @@
 // aicontainer.InternalSynthAllowed
 // (internal_synth.go),
 // aicontainer.DespawnShouldDispatchController
-// (despawn_dispatch.go). Prior pure port: slice 1189.
+// (despawn_dispatch.go),
+// aicontainer.CanFollowPath
+// (aicontainer.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -177,9 +184,35 @@ inline auto CanDispatch(const bool hasController) -> bool
 // suite is test_aicontainer_can_change_state_3303. Formula is unchanged; this
 // slice only expands dual-wire docs + index + dedicated suite.
 // Sibling dual-wire left alone: 2947 / 3222 / 3369 / 3416 / 3470 / 3531 CanDispatch.
+// CanFollowPath (6306) composes this free function with PathFind presence.
 inline auto CanChangeState(const bool hasCurrentState, const bool currentCanChange) -> bool
 {
     return !hasCurrentState || currentCanChange;
+}
+
+// CanFollowPath reports whether the AI may follow a path under the current
+// state constraints.
+// Mirrors CAIContainer::CanFollowPath:
+//
+//   return PathFind && (!GetCurrentState() || GetCurrentState()->CanChangeState());
+//
+// Formula (slice 6306 dedicated dual-wire residual pure 1189):
+//   hasPathFind && CanChangeState(hasCurrentState, currentCanChange)
+//   // ≡ hasPathFind && (!hasCurrentState || currentCanChange)
+//
+// hasPathFind — PathFind != nullptr
+// hasCurrentState / currentCanChange — same injects as CanChangeState (3303)
+// true  → host may pathfind under current state
+// false → host must not follow path (no PathFind or current state blocks)
+//
+// Dual-wire of Go aicontainer.CanFollowPath
+// (internal/aicontainer/aicontainer.go). Host injects PathFind presence and
+// CanChangeState injects so production and tests share one pure surface.
+// Call site: CAIContainer::CanFollowPath. Prior pure port: slice 1189.
+// Sibling dual-wires left alone: CanChangeState / CanDispatch and Internal_*.
+inline auto CanFollowPath(const bool hasPathFind, const bool hasCurrentState, const bool currentCanChange) -> bool
+{
+    return hasPathFind && CanChangeState(hasCurrentState, currentCanChange);
 }
 
 // InternalEngageForceAttackAllowed reports whether the not-yet-engaged path of

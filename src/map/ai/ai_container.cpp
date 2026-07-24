@@ -446,7 +446,13 @@ bool CAIContainer::CanChangeState()
 
 bool CAIContainer::CanFollowPath()
 {
-    return PathFind && (!GetCurrentState() || GetCurrentState()->CanChangeState());
+    // Dual-wire: aicontainerhelpers::CanFollowPath (slice 6306)
+    // CState::CanChangeState is non-const; keep a mutable pointer for the inject.
+    auto* const current          = GetCurrentState();
+    const bool  hasPathFind      = static_cast<bool>(PathFind);
+    const bool  hasCurrentState  = current != nullptr;
+    const bool  currentCanChange = hasCurrentState && current->CanChangeState();
+    return aicontainerhelpers::CanFollowPath(hasPathFind, hasCurrentState, currentCanChange);
 }
 
 void CAIContainer::SetController(std::unique_ptr<CController> controller)
