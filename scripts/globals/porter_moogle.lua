@@ -238,7 +238,7 @@ end
 -- desc : Begins the storage or retrieval process based on the items
 --        supplied in the trade.
 -----------------------------------
--- Go pure half: portermoogle.PlanTradeDisposition store/retrieve composition (6593).
+-- Go pure half: portermoogle.PlanTradeDisposition (6593); PlanTradeDispositionFromInjects/StartParams (6619).
 xi.porter_moogle.onTrade = function(player, trade, eventTable)
     local slipId, slipCount = getSlipId(trade)
 
@@ -260,7 +260,7 @@ end
 --        the slip's extra data, displays a message to the user, and
 --        updates the user's event data.
 -----------------------------------
--- Go pure half: portermoogle.PlanRetrieveUpdateFromInjects hasItem residual (6594).
+-- Go pure half: portermoogle.PlanRetrieveUpdateFromInjects (6594); PlanRetrieveUpdateFromLocalVar/EventParams (6619).
 xi.porter_moogle.onEventUpdate = function(player, csid, option, retrieveEventId)
     local slipId = player:getLocalVar('slipId')
 
