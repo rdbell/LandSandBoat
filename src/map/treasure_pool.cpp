@@ -539,6 +539,7 @@ void CTreasurePool::checkItems(timer::time_point tick)
     }
 }
 
+// Go pure half: treasurepool.PlanCheckTreasureGate/PlanCheckTreasureItem (6596).
 void CTreasurePool::checkTreasureItem(timer::time_point tick, uint8 SlotID)
 {
     if (m_PoolItems[SlotID].ID == 0)
