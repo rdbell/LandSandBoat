@@ -39,6 +39,7 @@
 #include "mobutils.h"
 #include "spawn_handler.h"
 #include "spawn_slot.h"
+#include "spawn_slot_assignment.h"
 #include "zone_instance.h"
 
 #include <algorithm>
@@ -582,7 +583,7 @@ auto LoadMOBList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
                                     uint32 slotId      = rset->getOrDefault<uint32>("spawnslotid", 0);
                                     uint8  spawnChance = rset->getOrDefault<uint8>("chance", 0);
 
-                                    if (slotId > 0)
+                                    if (spawnslotassignment::shouldAssign(slotId))
                                     {
                                         SpawnSlot* spawnSlot = PZone->spawnHandler().getOrCreateSpawnSlot(slotId);
 
