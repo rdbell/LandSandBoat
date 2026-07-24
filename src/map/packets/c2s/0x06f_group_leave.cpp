@@ -24,6 +24,8 @@
 #include "entities/char_entity.h"
 #include "enums/party_kind.h"
 
+// Go host pure half: packetsystem.ValidateGroupLeave / ProcessGroupLeave /
+// NewGroupLeaveHandler (6479); plan mappacket.ClientGroupLeaveMutationPlanFor.
 auto groupleavehelpers::MakeMutationPlan(const PartyKind kind, const bool hasAlliance, const bool partyHasOnlyOneMember, const bool allianceHasOnlyOneParty, const bool isPartyLeader) -> MutationPlan
 {
     switch (kind)

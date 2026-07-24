@@ -33,6 +33,8 @@
 #include "utils/jailutils.h"
 #include "utils/zoneutils.h"
 
+// Go host pure half: packetsystem.ValidateGroupSolicitReq / ProcessGroupSolicitReq /
+// NewGroupSolicitReqHandler (6478); plan mappacket.ClientGroupSolicitReqPacket.PlanInvite.
 auto GP_CLI_COMMAND_GROUP_SOLICIT_REQ::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     auto pv = PacketValidator(PChar)
