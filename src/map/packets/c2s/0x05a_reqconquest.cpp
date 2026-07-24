@@ -25,6 +25,8 @@
 #include "packets/s2c/0x05e_conquest.h"
 #include "packets/s2c/0x071_influence_colonization.h"
 
+// Go host pure half: packetsystem.ValidateReqConquest / ProcessReqConquest /
+// NewReqConquestHandler (6468); plan mappacket.ClientReqConquestResponsePlanFor.
 auto GP_CLI_COMMAND_REQCONQUEST::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameter to validate for this packet.

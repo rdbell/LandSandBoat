@@ -25,6 +25,8 @@
 #include "packets/s2c/0x031_recipe.h"
 #include "validation.h"
 
+// Go host pure half: packetsystem.ValidateRecipe / ProcessRecipe /
+// NewRecipeHandler (6466); plan mappacket.ClientRecipeResponsePlanFor.
 auto GP_CLI_COMMAND_RECIPE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

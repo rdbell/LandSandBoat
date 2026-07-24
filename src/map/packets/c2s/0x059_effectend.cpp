@@ -21,6 +21,8 @@
 
 #include "0x059_effectend.h"
 
+// Go host pure half: packetsystem.ValidateEffectEnd / ProcessEffectEnd /
+// NewEffectEndHandler (6467); action mappacket.ClientEffectEndActionFor.
 auto GP_CLI_COMMAND_EFFECTEND::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // Packet explicitly ignored.
