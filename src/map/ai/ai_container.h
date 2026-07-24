@@ -190,6 +190,8 @@ template <typename T, typename... Args>
 bool CAIContainer::ChangeState(Args&&... args)
 {
     // Stack ceiling dual-wire (slice 6312): aicontainerhelpers::CanPushState
+    // Go host pure half: aicontainer.ChangeState (slice 6368) composes
+    // CanPushState + CanChangeState + CheckCompletedStates + enterState.
     if (!aicontainerhelpers::CanPushState(stateCount()))
     {
         ShowWarning("State Stack size exceeds maximum.");
@@ -219,6 +221,8 @@ template <typename T, typename... Args>
 bool CAIContainer::ForceChangeState(Args&&... args)
 {
     // Stack ceiling dual-wire (slice 6312): aicontainerhelpers::CanPushState
+    // Go host pure half: aicontainer.ForceChangeState (slice 6368) skips
+    // CanChangeState; same CheckCompletedStates + enterState composition.
     if (!aicontainerhelpers::CanPushState(stateCount()))
     {
         ShowWarning("State Stack size exceeds maximum.");
