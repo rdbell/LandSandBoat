@@ -285,7 +285,7 @@ void CInstance::ClearEntities()
 {
     auto clearStates = [](CBattleEntity* entity)
     {
-        if (static_cast<CBattleEntity*>(entity)->isAlive())
+        if (shouldClearEntityState(static_cast<CBattleEntity*>(entity)->isAlive()))
         {
             entity->PAI->ClearStateStack();
         }
@@ -363,6 +363,11 @@ auto CInstance::checkFirstEntry(std::set<uint32>& enteredChars, uint32 id) -> bo
 auto CInstance::musicOrDefault(const Maybe<uint16>& overrideMusic, uint16 zoneMusic) -> uint16
 {
     return overrideMusic ? *overrideMusic : zoneMusic;
+}
+
+auto CInstance::shouldClearEntityState(bool alive) -> bool
+{
+    return alive;
 }
 
 uint16 CInstance::GetSoloBattleMusic()

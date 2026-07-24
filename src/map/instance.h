@@ -98,6 +98,7 @@ private:
     static void registerChar(std::vector<uint32>& registeredChars, uint32& commander, uint32 id);
     static auto checkFirstEntry(std::set<uint32>& enteredChars, uint32 id) -> bool;
     static auto musicOrDefault(const Maybe<uint16>& overrideMusic, uint16 zoneMusic) -> uint16;
+    static auto shouldClearEntityState(bool alive) -> bool;
 
     void LoadInstance();
 

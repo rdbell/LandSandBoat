@@ -49,6 +49,11 @@ public:
     {
         return CInstance::musicOrDefault(overrideMusic, zoneMusic);
     }
+
+    static auto shouldClearState(bool alive) -> bool
+    {
+        return CInstance::shouldClearEntityState(alive);
+    }
 };
 
 namespace
@@ -109,6 +114,14 @@ auto testMusicOverrides() -> bool
     ok = expect(InstanceTestAccess::music(Maybe<uint16>(0), 123) == 0, "zero music override is preserved") && ok;
     return ok;
 }
+
+auto testClearEntityState() -> bool
+{
+    bool ok = true;
+    ok = expect(InstanceTestAccess::shouldClearState(true), "alive entity clears state") && ok;
+    ok = expect(!InstanceTestAccess::shouldClearState(false), "dead entity retains state") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -117,5 +130,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testElapsedAndTimerCadence() && ok;
     ok      = testParticipantIdentity() && ok;
     ok      = testMusicOverrides() && ok;
+    ok      = testClearEntityState() && ok;
     return ok;
 }
