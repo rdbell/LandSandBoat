@@ -24,6 +24,7 @@
 #include "entities/battle_entity.h"
 
 #include "ai/ai_container.h"
+#include "ai/states/synth_update.h"
 #include "utils/synthutils.h"
 
 CSynthState::CSynthState(CCharEntity* PChar, SKILLTYPE skill)
@@ -63,13 +64,14 @@ CSynthState::CSynthState(CCharEntity* PChar, SKILLTYPE skill)
 
 bool CSynthState::Update(timer::time_point tick)
 {
-    // Exit state if dead
-    if (m_PEntity->isDead())
+    // Dead → critical fail exit (slice 6315 dual-wire).
+    if (synthupdate::shouldCriticalFailExit(m_PEntity->isDead()))
     {
         synthutils::doSynthCriticalFail(m_PEntity);
         return true;
     }
 
+    // Ready → sendSynthDone exit (slice 6315 dual-wire via SynthReady inject).
     if (SynthReady())
     {
         synthutils::sendSynthDone(m_PEntity);
@@ -100,5 +102,8 @@ void CSynthState::UpdateTarget(uint16 targid)
 
 bool CSynthState::SynthReady()
 {
-    return m_synthFinishTime < 0ms && m_PEntity->isAlive();
+    // Dual-wire: synthupdate::isReady (slice 6315)
+    const bool remainingNegative = m_synthFinishTime < 0ms;
+    const bool isAlive           = m_PEntity->isAlive();
+    return synthupdate::isReady(remainingNegative, isAlive);
 }

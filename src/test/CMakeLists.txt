@@ -2743,6 +2743,8 @@ set(SOURCES
     test_aicontainer_tick_state_loop_6313.cpp
     test_aicontainer_tick_prevent_action_park_6314.h
     test_aicontainer_tick_prevent_action_park_6314.cpp
+    test_synth_update_6315.h
+    test_synth_update_6315.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
