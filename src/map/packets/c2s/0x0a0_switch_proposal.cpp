@@ -25,6 +25,8 @@
 #include "nominate_manager.h"
 #include "zone.h"
 
+// Go host pure half: packetsystem.ValidateSwitchProposal / ProcessSwitchProposal /
+// NewSwitchProposalHandler (6496); plan mappacket.ClientSwitchProposalActionFor.
 auto GP_CLI_COMMAND_SWITCH_PROPOSAL::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

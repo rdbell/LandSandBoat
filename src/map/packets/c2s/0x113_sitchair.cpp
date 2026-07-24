@@ -26,6 +26,8 @@
 #include "utils/charutils.h"
 #include "validation.h"
 
+// Go host pure half: packetsystem.ValidateSitChair / ProcessSitChair /
+// NewSitChairHandler (6498); plan mappacket.ClientSitChairRuntimePlanFor.
 auto GP_CLI_COMMAND_SITCHAIR::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
