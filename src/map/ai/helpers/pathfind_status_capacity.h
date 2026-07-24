@@ -178,4 +178,43 @@ inline auto CarefulPathingValue(const bool careful) -> bool
     return careful;
 }
 
+// ShouldBlockNonScriptPath reports whether PathTo rejects a non-script path
+// while a scripted path is already active.
+// Mirrors: following && (m_pathFlags & SCRIPT) && !(pathFlags & SCRIPT)
+// Formula (slice 6344): following && currentScript && !newScript
+// Dual-wire of Go pathfind.ShouldBlockNonScriptPath (path_to_gates.go).
+// Call site: CPathFind::PathTo admission.
+inline auto ShouldBlockNonScriptPath(const bool following, const bool currentScript, const bool newScript) -> bool
+{
+    return following && currentScript && !newScript;
+}
+
+// ShouldUseWallhackPath reports whether PathTo uses FindClosestPath.
+// Mirrors: m_pathFlags & PATHFLAG_WALLHACK
+// Formula (slice 6344): wallhack
+// Dual-wire of Go pathfind.ShouldUseWallhackPath (path_to_gates.go).
+inline auto ShouldUseWallhackPath(const bool wallhack) -> bool
+{
+    return wallhack;
+}
+
+// StepDistance returns StepTo walk/run step length.
+// Mirrors: speed / (run ? 50 : 40)
+// Formula (slice 6344): run ? speed/50 : speed/40
+// Dual-wire of Go pathfind.StepDistance (path_to_gates.go).
+// Call site: CPathFind::StepTo.
+inline auto StepDistance(const float speed, const bool run) -> float
+{
+    return speed / (run ? 50.f : 40.f);
+}
+
+// ShouldSnapToTarget reports whether StepTo is within one step of the target.
+// Mirrors: distanceTo <= m_distanceFromPoint + stepDistance
+// Formula (slice 6344): distanceTo <= rangeFromTarget + stepDistance
+// Dual-wire of Go pathfind.ShouldSnapToTarget (path_to_gates.go).
+inline auto ShouldSnapToTarget(const float distanceTo, const float rangeFromTarget, const float stepDistance) -> bool
+{
+    return distanceTo <= rangeFromTarget + stepDistance;
+}
+
 } // namespace pathfindstatushelpers

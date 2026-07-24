@@ -2799,6 +2799,8 @@ set(SOURCES
     test_pathfind_look_wait_6342.cpp
     test_pathfind_follow_admissions_6343.h
     test_pathfind_follow_admissions_6343.cpp
+    test_pathfind_path_to_gates_6344.h
+    test_pathfind_path_to_gates_6344.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

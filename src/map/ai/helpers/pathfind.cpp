@@ -99,8 +99,12 @@ bool CPathFind::PathTo(const position_t& point, uint8 pathFlags, bool clear)
     TracyZoneScoped;
     TracyZoneString(m_POwner->getName());
 
+    // Dual-wire: pathfindstatushelpers::ShouldBlockNonScriptPath (slice 6344).
     // don't follow a new path if the current path has script flag and new path doesn't
-    if (IsFollowingPath() && (m_pathFlags & PATHFLAG_SCRIPT) && !(pathFlags & PATHFLAG_SCRIPT))
+    if (pathfindstatushelpers::ShouldBlockNonScriptPath(
+            IsFollowingPath(),
+            (m_pathFlags & PATHFLAG_SCRIPT) != 0,
+            (pathFlags & PATHFLAG_SCRIPT) != 0))
     {
         return false;
     }
@@ -114,7 +118,8 @@ bool CPathFind::PathTo(const position_t& point, uint8 pathFlags, bool clear)
 
     bool result = false;
 
-    if (m_pathFlags & PATHFLAG_WALLHACK)
+    // Dual-wire: pathfindstatushelpers::ShouldUseWallhackPath (slice 6344).
+    if (pathfindstatushelpers::ShouldUseWallhackPath((m_pathFlags & PATHFLAG_WALLHACK) != 0))
     {
         result = FindClosestPath(m_POwner->loc.p, point);
     }
@@ -374,14 +379,15 @@ void CPathFind::StepTo(const position_t& pos, bool run)
         }
     }
 
-    float stepDistance = speed / (run ? 50 : 40);
+    // Dual-wire: pathfindstatushelpers::StepDistance / ShouldSnapToTarget (slice 6344).
+    float stepDistance = pathfindstatushelpers::StepDistance(speed, run);
     float distanceTo   = distance(m_POwner->loc.p, pos);
     float diff_y       = pos.y - m_POwner->loc.p.y;
 
     // face point mob is moving towards
     LookAt(pos);
 
-    if (distanceTo <= m_distanceFromPoint + stepDistance)
+    if (pathfindstatushelpers::ShouldSnapToTarget(distanceTo, m_distanceFromPoint, stepDistance))
     {
         m_distanceMoved += distanceTo - m_distanceFromPoint;
 
