@@ -621,6 +621,7 @@ void CTreasurePool::checkTreasureItem(timer::time_point tick, uint8 SlotID)
     }
 }
 
+// Go pure half: treasurepool.PlanTreasureWon (6597).
 void CTreasurePool::treasureWon(CCharEntity* winner, uint8 SlotID)
 {
     if (winner == nullptr || winner->PTreasurePool != this || m_PoolItems[SlotID].ID == 0)
@@ -641,6 +642,7 @@ void CTreasurePool::treasureWon(CCharEntity* winner, uint8 SlotID)
     m_PoolItems[SlotID].Lotters.clear();
 }
 
+// Go pure half: treasurepool.PlanTreasureError (6597).
 void CTreasurePool::treasureError(CCharEntity* winner, uint8 SlotID)
 {
     if (winner == nullptr || winner->PTreasurePool != this || m_PoolItems[SlotID].ID == 0)
@@ -661,6 +663,7 @@ void CTreasurePool::treasureError(CCharEntity* winner, uint8 SlotID)
     m_PoolItems[SlotID].Lotters.clear();
 }
 
+// Go pure half: treasurepool.PlanTreasureLost (6597).
 void CTreasurePool::treasureLost(uint8 SlotID)
 {
     if (m_PoolItems[SlotID].ID == 0)
