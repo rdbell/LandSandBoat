@@ -277,21 +277,44 @@ xi.weaponskills.meleeHitSDTScale = function(sdtMod)
     return 1 + sdtMod / 10000
 end
 
-local function modifyMeleeHitDamage(attacker, target, attackTbl, wsParams, rawDamage)
+-- Pure product half of modifyMeleeHitDamage once physicalDmgTaken, SDT scale,
+-- Scarlet Delirium, and Souleater are injected.
+--
+--	if formless: dmg = raw
+--	else:        dmg = physicalDmgTakenResult * sdtScale
+--	dmg = dmg * scarletMult + souleaterAdd
+--
+-- Phalanx and Stoneskin remain host residual after this product.
+xi.weaponskills.modifyMeleeHitDamageProduct = function(rawDamage, formless, physicalDmgTakenResult, sdtScale, scarletMult, souleaterAdd)
     local adjustedDamage = rawDamage
 
-    if not wsParams.formless then
-        adjustedDamage = target:physicalDmgTaken(adjustedDamage, attackTbl.damageType)
-
-        local sdtMod = target:getMod(xi.weaponskills.meleeHitSDTMod(attackTbl.weaponType))
-        adjustedDamage = adjustedDamage * xi.weaponskills.meleeHitSDTScale(sdtMod)
+    if not formless then
+        adjustedDamage = physicalDmgTakenResult * sdtScale
     end
 
-    -- Scarlet Delirium
-    adjustedDamage = adjustedDamage * xi.combat.damage.scarletDeliriumMultiplier(attacker)
+    adjustedDamage = adjustedDamage * scarletMult
+    adjustedDamage = adjustedDamage + souleaterAdd
 
-    -- Souleater
-    adjustedDamage = adjustedDamage + xi.combat.damage.souleaterAddition(attacker)
+    return adjustedDamage
+end
+
+local function modifyMeleeHitDamage(attacker, target, attackTbl, wsParams, rawDamage)
+    local physicalTaken = rawDamage
+    local sdtScale      = 1
+
+    if not wsParams.formless then
+        physicalTaken = target:physicalDmgTaken(rawDamage, attackTbl.damageType)
+        sdtScale      = xi.weaponskills.meleeHitSDTScale(target:getMod(xi.weaponskills.meleeHitSDTMod(attackTbl.weaponType)))
+    end
+
+    local adjustedDamage = xi.weaponskills.modifyMeleeHitDamageProduct(
+        rawDamage,
+        wsParams.formless,
+        physicalTaken,
+        sdtScale,
+        xi.combat.damage.scarletDeliriumMultiplier(attacker),
+        xi.combat.damage.souleaterAddition(attacker)
+    )
 
     adjustedDamage = utils.handlePhalanx(target, adjustedDamage)
     adjustedDamage = utils.handleStoneskin(target, adjustedDamage)
