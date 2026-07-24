@@ -588,6 +588,7 @@ bool CNavMesh::findClosestValidPoint(const position_t& position, float* validPoi
     return true;
 }
 
+// Go host pure half: navmesh.ApplyFindFurthestValidPoint (6428).
 bool CNavMesh::findFurthestValidPoint(const position_t& startPosition, const position_t& endPosition, float* validEndPoint)
 {
     TracyZoneScoped;
