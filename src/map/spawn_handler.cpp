@@ -32,6 +32,7 @@
 #include "spawn_can_spawn.h"
 #include "spawn_slot.h"
 #include "spawn_slot_registry.h"
+#include "spawn_remaining_respawn.h"
 #include "spawn_tick_cleanup.h"
 #include "spawn_tick_slot.h"
 #include "spawn_tick_spawn.h"
@@ -136,16 +137,14 @@ auto SpawnHandler::getRemainingRespawnTime(CMobEntity* PMob) const -> Maybe<time
     {
         if (auto it = pendingSlotRespawns_.find(slot); it != pendingSlotRespawns_.end())
         {
-            const auto remaining = it->second.respawnAt - now;
-            return remaining > timer::duration::zero() ? remaining : timer::duration::zero();
+            return spawnremainingrespawn::clamp(it->second.respawnAt - now);
         }
     }
     else
     {
         if (auto it = pendingRespawns_.find(PMob->id); it != pendingRespawns_.end())
         {
-            const auto remaining = it->second - now;
-            return remaining > timer::duration::zero() ? remaining : timer::duration::zero();
+            return spawnremainingrespawn::clamp(it->second - now);
         }
     }
 

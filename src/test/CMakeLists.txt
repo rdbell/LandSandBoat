@@ -2681,6 +2681,8 @@ set(SOURCES
     test_spawn_initial_dispatch_6279.cpp
     test_spawn_initial_registered_6280.h
     test_spawn_initial_registered_6280.cpp
+    test_spawn_remaining_respawn_6281.h
+    test_spawn_remaining_respawn_6281.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

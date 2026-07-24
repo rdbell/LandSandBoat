@@ -1371,6 +1371,7 @@ auto runSpawnConditionBased6277SelfTests() -> bool;
 auto runSpawnInitialRegister6278SelfTests() -> bool;
 auto runSpawnInitialDispatch6279SelfTests() -> bool;
 auto runSpawnInitialRegistered6280SelfTests() -> bool;
+auto runSpawnRemainingRespawn6281SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3576,6 +3577,7 @@ namespace
         ok = runSpawnInitialRegister6278SelfTests() && ok;
         ok = runSpawnInitialDispatch6279SelfTests() && ok;
         ok = runSpawnInitialRegistered6280SelfTests() && ok;
+        ok = runSpawnRemainingRespawn6281SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;
