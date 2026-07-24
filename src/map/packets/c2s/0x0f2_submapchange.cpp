@@ -25,6 +25,7 @@
 #include "entities/char_entity.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateSubmapChange / ProcessSubmapChange / NewSubmapChangeHandler (6541); plan mappacket.ClientSubmapChangeTransitionFor.
 auto GP_CLI_COMMAND_SUBMAPCHANGE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // TODO: List of valid submap numbers per zone

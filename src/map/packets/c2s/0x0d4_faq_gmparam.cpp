@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x0b5_faq_gmparam.h"
 
+// Go host pure half: packetsystem.ValidateFAQGMParam / ProcessFAQGMParam / NewFAQGMParamHandler (6542); plan mappacket.ClientFAQGMParamResponseFor.
 auto GP_CLI_COMMAND_FAQ_GMPARAM::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

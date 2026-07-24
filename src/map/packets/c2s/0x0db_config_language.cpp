@@ -28,6 +28,7 @@
 #include "packets/s2c/0x0b4_config.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateConfigLanguage / ProcessConfigLanguage / NewConfigLanguageHandler (6543); plan mappacket.ClientConfigLanguageRuntimePlanFor.
 auto GP_CLI_COMMAND_CONFIG_LANGUAGE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

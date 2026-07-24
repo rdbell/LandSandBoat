@@ -38,6 +38,7 @@ const std::set<uint8_t> validPlantCategories = { LOC_MOGSAFE, LOC_MOGSAFE2 };
 
 }
 
+// Go host pure half: packetsystem.ValidateMyRoomPlantCrop / ProcessMyRoomPlantCrop / NewMyRoomPlantCropHandler (6540); plan mappacket.ClientMyRoomPlantCropRuntimePlanFor.
 auto GP_CLI_COMMAND_MYROOM_PLANT_CROP::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
