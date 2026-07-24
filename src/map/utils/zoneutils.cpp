@@ -198,6 +198,7 @@ auto GetCharToUpdate(uint32 primary, uint32 tertiary) -> CCharEntity*
     return selection.selected();
 }
 
+// Go host pure half: zoneutils.FormatZonesAssignedQuery / LoadZonesAssigned (6403).
 auto GetZonesAssignedToThisProcess(const IPP mapIPP) -> std::vector<uint16>
 {
     const auto ip    = mapIPP.getIP();
@@ -823,6 +824,7 @@ auto LoadZones(Scheduler& scheduler, MapConfig config, const std::vector<uint16>
     }
 }
 
+// Go host pure half: zoneutils.PlanLoadZoneList / ApplyZoneutilsInitialize (6403).
 auto LoadZoneList(Scheduler& scheduler, MapConfig config) -> Task<void>
 {
     TracyZoneScoped;
@@ -839,6 +841,7 @@ auto LoadZoneList(Scheduler& scheduler, MapConfig config) -> Task<void>
 }
 
 // Initialize zone loading: immediate (load all now) or lazy (load on-demand)
+// Go host pure half: zoneutils.ApplyZoneutilsInitialize (slice 6403).
 auto Initialize(Scheduler& scheduler, MapConfig config) -> Task<void>
 {
     if (!config.lazyZones)

@@ -1445,6 +1445,7 @@ auto runMapEngineMaintenanceHost6399SelfTests() -> bool;
 auto runMapNetworkingAttachHost6400SelfTests() -> bool;
 auto runMapEngineInitLoadHost6401SelfTests() -> bool;
 auto runMapEngineInitTailHost6402SelfTests() -> bool;
+auto runZoneutilsInitializeHost6403SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3767,6 +3768,7 @@ namespace
         ok = runMapNetworkingAttachHost6400SelfTests() && ok;
         ok = runMapEngineInitLoadHost6401SelfTests() && ok;
         ok = runMapEngineInitTailHost6402SelfTests() && ok;
+        ok = runZoneutilsInitializeHost6403SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
