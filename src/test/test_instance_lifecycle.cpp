@@ -159,6 +159,7 @@ auto testInstanceCleanup() -> bool
     ok = expect(zoneinstance::shouldCleanupInstance(false, true, true), "complete empty instance cleans up") && ok;
     ok = expect(!zoneinstance::shouldCleanupInstance(false, false, true), "normal empty instance stays") && ok;
     ok = expect(!zoneinstance::shouldCleanupInstance(true, false, false), "occupied failed instance stays") && ok;
+    ok = expect(!zoneinstance::shouldCleanupInstance(true, true, false), "occupied terminal instance stays") && ok;
     return ok;
 }
 
