@@ -346,7 +346,7 @@ bool CInstance::Completed()
 
 void CInstance::Cancel()
 {
-    m_status = INSTANCE_FAILED;
+    m_status = cancelStatus();
 }
 
 bool CInstance::CheckFirstEntry(uint32 id)
@@ -373,6 +373,11 @@ auto CInstance::shouldClearEntityState(bool alive) -> bool
 auto CInstance::entryRotation(float rot) -> uint8
 {
     return static_cast<uint8>(rot);
+}
+
+auto CInstance::cancelStatus() -> INSTANCE_STATUS
+{
+    return INSTANCE_FAILED;
 }
 
 uint16 CInstance::GetSoloBattleMusic()

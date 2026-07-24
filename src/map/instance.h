@@ -100,6 +100,7 @@ private:
     static auto musicOrDefault(const Maybe<uint16>& overrideMusic, uint16 zoneMusic) -> uint16;
     static auto shouldClearEntityState(bool alive) -> bool;
     static auto entryRotation(float rot) -> uint8;
+    static auto cancelStatus() -> INSTANCE_STATUS;
 
     void LoadInstance();
 

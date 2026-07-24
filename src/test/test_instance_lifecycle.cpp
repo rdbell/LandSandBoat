@@ -59,6 +59,11 @@ public:
     {
         return CInstance::entryRotation(rot);
     }
+
+    static auto cancelStatus() -> INSTANCE_STATUS
+    {
+        return CInstance::cancelStatus();
+    }
 };
 
 namespace
@@ -135,6 +140,11 @@ auto testEntryRotation() -> bool
     ok = expect(InstanceTestAccess::entryRotation(128.0f) == 128, "entry rotation preserves integer value") && ok;
     return ok;
 }
+
+auto testCancelStatus() -> bool
+{
+    return expect(InstanceTestAccess::cancelStatus() == INSTANCE_FAILED, "cancel sets failed status");
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -145,5 +155,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testMusicOverrides() && ok;
     ok      = testClearEntityState() && ok;
     ok      = testEntryRotation() && ok;
+    ok      = testCancelStatus() && ok;
     return ok;
 }
