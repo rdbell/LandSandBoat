@@ -342,6 +342,7 @@ xi.campaign.sigilOnEventUpdate = function(player, csid, option, npc)
     end
 end
 
+-- Go pure half: campaign.PlanSigilEventFinish apply/shop dispatch (6583).
 xi.campaign.sigilOnEventFinish = function(player, csid, option, npc)
     local zoneId = player:getZoneID()
 
