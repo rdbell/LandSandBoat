@@ -26,6 +26,7 @@
 #include "ai/states/state_error_msg.h"
 #include "ai/states/state_is_completed.h"
 #include "ai/states/state_set_target.h"
+#include "ai/states/state_target_id.h"
 #include "ai/states/state_was_exit_delayed.h"
 
 CState::CState(CBaseEntity* PEntity, uint16 _targid)
@@ -53,7 +54,8 @@ CBaseEntity* CState::GetTarget() const
 
 uint16 CState::GetTargetID() const
 {
-    return m_targid;
+    // Dual-wire: statehelpers::TargetID (slice 6329).
+    return statehelpers::TargetID(m_targid);
 }
 
 void CState::Complete()
