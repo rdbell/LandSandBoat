@@ -1002,4 +1002,10 @@ inline auto ShouldCheckActionQueue(const bool hasQueue) -> bool
     return hasQueue;
 }
 
+// Note (slice 6365): Go host halves QueueEmpty / QueueAction / ClearActionQueue /
+// ClearTimerQueue / CheckQueueImmediately drive actionqueue.Executor on the
+// CAIContainer ActionQueue surface. TickPreventActionPark runs parkInactive
+// under TickPreventActionParkAllowed (6314). Production C++ already calls
+// ActionQueue.* and Inactive(...) directly; pure admission gates above + 6314.
+
 } // namespace aicontainerhelpers

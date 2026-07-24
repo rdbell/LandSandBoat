@@ -584,6 +584,7 @@ auto CAIContainer::Tick(timer::time_point tick) -> Task<void>
     // prevent-action effects don't cancel them on retail), so we never force them inactive
     // from here. Once such a state ends, this poll parks the entity inactive.
     // Dual-wire: aicontainerhelpers::TickPreventActionParkAllowed (slice 6314).
+    // Go host pure half: aicontainer.TickPreventActionPark (slice 6365).
     {
         auto*      battle                  = dynamic_cast<CBattleEntity*>(PEntity);
         const bool hasBattleEntity         = battle != nullptr;
@@ -701,21 +702,25 @@ void CAIContainer::QueueAction(queueAction_t&& action)
 bool CAIContainer::QueueEmpty()
 {
     // Dual-wire: aicontainerhelpers::IsActionQueueEmpty (slice 6323).
+    // Go host pure half: aicontainer.QueueEmpty drives actionqueue.Executor.Empty.
     return aicontainerhelpers::IsActionQueueEmpty(ActionQueue.isEmpty());
 }
 
 void CAIContainer::ClearActionQueue()
 {
+    // Go host pure half: aicontainer.ClearActionQueue (slice 6365).
     ActionQueue.clearActionQueue();
 }
 
 void CAIContainer::ClearTimerQueue()
 {
+    // Go host pure half: aicontainer.ClearTimerQueue (slice 6365).
     ActionQueue.clearTimerQueue();
 }
 
 void CAIContainer::checkQueueImmediately()
 {
+    // Go host pure half: aicontainer.CheckQueueImmediately → TickActionQueue (6362/6365).
     ActionQueue.checkAction(timer::now());
 }
 
