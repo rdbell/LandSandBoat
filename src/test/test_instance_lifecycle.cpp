@@ -234,6 +234,25 @@ auto testInstanceOperationForwarding() -> bool
     ok = expect(!zoneinstance::shouldForwardInstanceOperation(false), "unassigned entity skips instance") && ok;
     return ok;
 }
+
+auto testOwnedInstanceBroadcast() -> bool
+{
+    std::vector<int> visited;
+    const std::vector<int> instances{ 3, 7, 11 };
+    zoneinstance::forEachOwnedInstance(instances, [&](int id)
+    {
+        visited.push_back(id);
+    });
+
+    bool ok = true;
+    ok = expect(visited == instances, "owned instance broadcast preserves list order") && ok;
+    zoneinstance::forEachOwnedInstance(std::vector<int>{}, [&](int)
+    {
+        ok = false;
+    });
+    ok = expect(ok, "empty owned instance list does not visit") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -254,5 +273,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testInstanceLookupStop() && ok;
     ok      = testInstanceOperationRouting() && ok;
     ok      = testInstanceOperationForwarding() && ok;
+    ok      = testOwnedInstanceBroadcast() && ok;
     return ok;
 }

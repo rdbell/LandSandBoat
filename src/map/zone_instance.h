@@ -34,6 +34,15 @@ auto shouldEraseInstance(const CInstance* candidate, const CInstance* target) ->
 auto shouldStopInstanceSearch(bool found) -> bool;
 auto shouldBroadcastInstanceOperation(bool entityPresent) -> bool;
 auto shouldForwardInstanceOperation(bool instancePresent) -> bool;
+
+template <typename List, typename Visitor>
+void forEachOwnedInstance(const List& instances, Visitor&& visitor)
+{
+    for (const auto& instance : instances)
+    {
+        visitor(instance);
+    }
+}
 }
 
 class CZoneInstance : public CZone
