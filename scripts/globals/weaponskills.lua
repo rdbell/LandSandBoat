@@ -853,6 +853,28 @@ xi.weaponskills.magicWeaponskillFint = function(isRanged, dStatIsCHR, statDelta)
     return math.floor(utils.clamp(8 + statDelta / 2, -32, 32))
 end
 
+-- Pure magic weaponskill raw damage before Scarlet Delirium / WSD / ability
+-- bonuses: (WSC + mainLvl + 2 + fINT) * (fTP + gearFTP).
+xi.weaponskills.magicWeaponskillRawDamage = function(wsc, mainLvl, fint, ftp, gearFTP)
+    return (wsc + mainLvl + 2 + fint) * (ftp + gearFTP)
+end
+
+-- Pure all-hits / first-hit WSD product for magic weaponskills. Per-WS WSD
+-- only stacks when the mod is strictly positive *and* the attacker is not a
+-- pet. First-hit uses the additive form dmg + dmg * mod/100.
+xi.weaponskills.magicWeaponskillWSDProduct = function(dmg, allWSDMG, perWSWSD, isPet, firstHitWSD)
+    local bonusdmg = allWSDMG
+
+    if perWSWSD > 0 and not isPet then
+        bonusdmg = bonusdmg + perWSWSD
+    end
+
+    dmg = dmg * (100 + bonusdmg) / 100
+    dmg = dmg + dmg * firstHitWSD / 100
+
+    return dmg
+end
+
 xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, tp, action, primaryMsg)
     -- Set up conditions and wsParams used for calculating weaponskill damage
     local attack =
@@ -892,31 +914,22 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
 
     -- Magic-based WSes never miss, so we don't need to worry about calculating a miss, only if a shadow absorbed it.
     if not shadowAbsorb(target) then
-        dmg = dmg + xi.combat.physical.calculateWSC(attacker, wsParams.str_wsc, wsParams.dex_wsc, wsParams.vit_wsc, wsParams.agi_wsc, wsParams.int_wsc, wsParams.mnd_wsc, wsParams.chr_wsc)
-        dmg = dmg + attacker:getMainLvl() + 2 + fint
+        local wsc = xi.combat.physical.calculateWSC(attacker, wsParams.str_wsc, wsParams.dex_wsc, wsParams.vit_wsc, wsParams.agi_wsc, wsParams.int_wsc, wsParams.mnd_wsc, wsParams.chr_wsc)
+        local ftp = xi.weaponskills.fTP(tp, wsParams.ftpMod)
 
-        -- Applying fTP multiplier
-        local ftp = xi.weaponskills.fTP(tp, wsParams.ftpMod) + gearFTP
-
-        dmg = dmg * ftp
+        dmg = xi.weaponskills.magicWeaponskillRawDamage(wsc, attacker:getMainLvl(), fint, ftp, gearFTP)
 
         -- Apply Consume Mana and Scarlet Delirium
         -- dmg = dmg + xi.combat.damage.consumeManaAddition(attacker)
         dmg = dmg * xi.combat.damage.scarletDeliriumMultiplier(attacker)
 
-        -- Factor in "all hits" bonus damage mods
-        local bonusdmg = attacker:getMod(xi.mod.ALL_WSDMG_ALL_HITS) -- For any WS
-        if
-            attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID) > 0 and
-            not attacker:isPet()
-        then
-            -- For specific WS
-            bonusdmg = bonusdmg + attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID)
-        end
-
-        -- Add in bonusdmg
-        dmg = dmg * (100 + bonusdmg) / 100 -- Apply our "all hits" WS dmg bonuses
-        dmg = dmg + dmg * attacker:getMod(xi.mod.ALL_WSDMG_FIRST_HIT) / 100 -- Add in our "first hit" WS dmg bonus
+        dmg = xi.weaponskills.magicWeaponskillWSDProduct(
+            dmg,
+            attacker:getMod(xi.mod.ALL_WSDMG_ALL_HITS),
+            attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID),
+            attacker:isPet(),
+            attacker:getMod(xi.mod.ALL_WSDMG_FIRST_HIT)
+        )
 
         -- Calculate magical bonuses and reductions
         dmg = math.floor(addBonusesAbility(attacker, wsParams.ele, target, dmg, wsParams))
