@@ -26,6 +26,7 @@
 #include "instance.h"
 #include "latent_effect_container.h"
 #include "mob_modifier.h"
+#include "mob_party_link_policy.h"
 #include "party.h"
 #include "recast_container.h"
 #include "spawn_handler.h"
@@ -367,11 +368,11 @@ void CZoneEntities::FindPartyForMob(CBaseEntity* PEntity)
     bool forceLink = PMob->ShouldForceLink();
     // check for sublinks even if a family doesn't link with itself
     int16 sublink = PMob->getMobMod(MOBMOD_SUBLINK);
-    if ((forceLink || PMob->m_Link || sublink) && PMob->PParty == nullptr)
+    if (mobpartylinkhelpers::ShouldAttemptPartyLink(forceLink, PMob->m_Link, sublink, PMob->PParty != nullptr))
     {
         FOR_EACH_PAIR_CAST_SECOND(CMobEntity*, PCurrentMob, m_mobList)
         {
-            if (!forceLink && !sublink && !PCurrentMob->m_Link)
+            if (!mobpartylinkhelpers::ShouldConsiderPartyLinkCandidate(forceLink, sublink, PCurrentMob->m_Link))
             {
                 continue;
             }
@@ -385,21 +386,17 @@ void CZoneEntities::FindPartyForMob(CBaseEntity* PEntity)
             // Check SUPERLINK first in cases that forceLink is enables with SUPERLINK. (Like BCNMs/Dynamis)
             // If no SUPERLINK then check if forceLink is enabled and the mob should force link.
             // Otherwise, mobs link by family or sublink as normal.
-            bool  match     = false;
             int16 superlink = PMob->getMobMod(MOBMOD_SUPERLINK);
-            if (superlink)
-            {
-                match = PCurrentMob->getMobMod(MOBMOD_SUPERLINK) == superlink;
-            }
-            else if (forceLink)
-            {
-                match = PCurrentMob->ShouldForceLink();
-            }
-            else
-            {
-                match = (PCurrentMob->m_Link && PCurrentMob->m_Family == PMob->m_Family) ||
-                        (sublink && sublink == PCurrentMob->getMobMod(MOBMOD_SUBLINK));
-            }
+            const bool match = mobpartylinkhelpers::MatchesPartyLink(
+                superlink,
+                forceLink,
+                sublink,
+                PMob->m_Family,
+                PCurrentMob->getMobMod(MOBMOD_SUPERLINK),
+                PCurrentMob->ShouldForceLink(),
+                PCurrentMob->m_Link,
+                PCurrentMob->m_Family,
+                PCurrentMob->getMobMod(MOBMOD_SUBLINK));
 
             if (match && (PCurrentMob->PMaster == nullptr || PCurrentMob->PMaster->objtype == TYPE_MOB))
             {
