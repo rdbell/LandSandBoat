@@ -122,6 +122,7 @@ auto MapEngine::init() -> Task<void>
     ShowInfo("*** TRACY IS ENABLED ***");
 #endif // TRACY_ENABLE
 
+    // Go host pure half: mapapp.PlanMapEngineInitPreamble / ApplyMapEngineInitPreamble (6401).
     ShowInfo(fmt::format("Last Branch: {}", version::GetGitBranch()));
     ShowInfo(fmt::format("SHA: {} ({})", version::GetGitSha(), version::GetGitDate()));
 
@@ -183,6 +184,8 @@ auto MapEngine::init() -> Task<void>
         }
     }
 
+    // Go host pure half: mapapp.ApplyMapEngineContentLoads (slice 6401) —
+    // ordered inject catalog itemutils::Initialize … LoadAugmentData.
     ShowInfo("do_init: loading items");
     itemutils::Initialize();
 
