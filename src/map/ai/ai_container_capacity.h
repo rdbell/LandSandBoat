@@ -73,6 +73,8 @@
 //           (stateCount <= 10 stack ceiling dual-wire residual pure 1189)
 //   - 6313: TickStateLoopContinue
 //           (guard <= 32 Tick state-drain loop bound dual-wire residual pure 1189)
+//   - 6314: TickPreventActionParkAllowed
+//           (Tick post-drain prevent-action → Inactive park admission AND)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -121,6 +123,8 @@
 // CAIContainer::ChangeState / ForceChangeState inject stateCount() into
 // CanPushState for the stack ceiling gate.
 // CAIContainer::Tick injects post-increment guard into TickStateLoopContinue.
+// CAIContainer::Tick post-drain injects battle/alive/state/prevent-action
+// predicates into TickPreventActionParkAllowed before Inactive(0ms, false).
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -161,7 +165,9 @@
 // aicontainer.CanPushState
 // (aicontainer.go),
 // aicontainer.TickStateLoopContinue
-// (aicontainer.go). Prior pure port: slice 1189.
+// (aicontainer.go),
+// aicontainer.TickPreventActionParkAllowed
+// (tick_prevent_action_park.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -804,6 +810,35 @@ inline auto CanPushState(const std::size_t stateCount) -> bool
 inline auto TickStateLoopContinue(const int guard) -> bool
 {
     return guard <= 32;
+}
+
+// TickPreventActionParkAllowed reports whether CAIContainer::Tick may park
+// the entity into Inactive(0ms, false) after the state-drain loop due to a
+// prevent-action status effect.
+// Mirrors:
+//
+//   if (battle && isAlive && !Inactive && !Magic && !MobSkill && HasPreventAction) {
+//       Inactive(0ms, false);
+//   }
+//
+// Formula (slice 6314):
+//   hasBattleEntity && isAlive && !isInactiveState && !isMagicState &&
+//     !isMobSkillState && hasPreventActionEffect
+//
+// Dual-wire of Go aicontainer.TickPreventActionParkAllowed
+// (tick_prevent_action_park.go). Call site: CAIContainer::Tick post-drain
+// prevent-action park. Inactive construction remains host-only.
+// Sibling dual-wires left alone: TickStateLoopContinue /
+// InternalEngageShouldResumeInactive free functions.
+inline auto TickPreventActionParkAllowed(
+    const bool hasBattleEntity,
+    const bool isAlive,
+    const bool isInactiveState,
+    const bool isMagicState,
+    const bool isMobSkillState,
+    const bool hasPreventActionEffect) -> bool
+{
+    return hasBattleEntity && isAlive && !isInactiveState && !isMagicState && !isMobSkillState && hasPreventActionEffect;
 }
 
 } // namespace aicontainerhelpers

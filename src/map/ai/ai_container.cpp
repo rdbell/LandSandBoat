@@ -560,12 +560,20 @@ auto CAIContainer::Tick(timer::time_point tick) -> Task<void>
     // Magic and mobskill states decide their own interrupt at their finish (mid-action
     // prevent-action effects don't cancel them on retail), so we never force them inactive
     // from here. Once such a state ends, this poll parks the entity inactive.
-    if (auto* battle = dynamic_cast<CBattleEntity*>(PEntity);
-        battle && battle->isAlive() && !IsCurrentState<CInactiveState>() &&
-        !IsCurrentState<CMagicState>() && !IsCurrentState<CMobSkillState>() &&
-        battle->StatusEffectContainer->HasPreventActionEffect())
+    // Dual-wire: aicontainerhelpers::TickPreventActionParkAllowed (slice 6314).
     {
-        Inactive(0ms, false);
+        auto*      battle                  = dynamic_cast<CBattleEntity*>(PEntity);
+        const bool hasBattleEntity         = battle != nullptr;
+        const bool isAlive                 = hasBattleEntity && battle->isAlive();
+        const bool isInactiveState         = IsCurrentState<CInactiveState>();
+        const bool isMagicState            = IsCurrentState<CMagicState>();
+        const bool isMobSkillState         = IsCurrentState<CMobSkillState>();
+        const bool hasPreventActionEffect  = hasBattleEntity && battle->StatusEffectContainer->HasPreventActionEffect();
+        if (aicontainerhelpers::TickPreventActionParkAllowed(
+                hasBattleEntity, isAlive, isInactiveState, isMagicState, isMobSkillState, hasPreventActionEffect))
+        {
+            Inactive(0ms, false);
+        }
     }
 
     PEntity->PostTick();
