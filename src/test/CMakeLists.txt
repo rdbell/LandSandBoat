@@ -2911,6 +2911,8 @@ set(SOURCES
     test_zoneutils_player_cap_host_6442.cpp
     test_zone_player_cap_backends_6443.h
     test_zone_player_cap_backends_6443.cpp
+    test_mapsession_packet_cache_host_6444.h
+    test_mapsession_packet_cache_host_6444.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

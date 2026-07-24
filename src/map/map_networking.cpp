@@ -155,6 +155,7 @@ void MapNetworking::handle_incoming_packet(ByteSpan buffer, const IPP& ipp)
 
         socket_->send(ipp, { PBuff.data(), size });
 
+        // Go host pure half: mapwire.ApplyStoreServerPacketCache / Session.StoreServerPacketCache (6444).
         std::swap(PBuff, PSession->server_packet_data);
         std::swap(size, PSession->server_packet_size);
     }
@@ -526,6 +527,7 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
         case mapnetworkinghelpers::AcknowledgementPlan::IgnoreLoginMismatch:
             return 0;
         case mapnetworkinghelpers::AcknowledgementPlan::ReplayCachedPacket:
+            // Go host pure half: mapwire.ApplyReplayCachedPacket / Session.ReplayCachedPacket (6444).
             // If the client and server have become out of sync, then caching takes place.
             ref<uint16>(PSession->server_packet_data.data(), 2) = SmallPD_Code;
             ref<uint16>(PSession->server_packet_data.data(), 8) = earth_time::timestamp();
