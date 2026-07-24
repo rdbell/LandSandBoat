@@ -34,6 +34,7 @@
 #include "packets/s2c/0x119_abil_recast.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateMerits / ProcessMerits / NewMeritsHandler (6548); plan mappacket.ClientMeritsRuntimePlanFor.
 auto GP_CLI_COMMAND_MERITS::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

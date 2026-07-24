@@ -25,6 +25,7 @@
 #include "gmcall_container.h"
 #include "gmcall_packet_handlers.h"
 
+// Go host pure half: packetsystem.ValidateAckGMMsg / ProcessAckGMMsg / NewAckGMMsgHandler (6547); gmcall.HandleAckGMMsg acknowledge inject.
 auto GP_CLI_COMMAND_ACK_GMMSG::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

@@ -32,6 +32,7 @@
 #include "packets/s2c/0x0b4_config.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateConfig / ProcessConfig / NewConfigHandler (6549); plan mappacket.ClientConfigRuntimePlanFor.
 auto GP_CLI_COMMAND_CONFIG::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
