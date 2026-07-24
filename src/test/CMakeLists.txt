@@ -2709,6 +2709,10 @@ set(SOURCES
     test_aicontainer_internal_disengage_6296.cpp
     test_mob_death_timer_despawn_6297.h
     test_mob_death_timer_despawn_6297.cpp
+    test_aicontainer_internal_die_6298.h
+    test_aicontainer_internal_die_6298.cpp
+    test_despawn_fade_update_6299.h
+    test_despawn_fade_update_6299.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

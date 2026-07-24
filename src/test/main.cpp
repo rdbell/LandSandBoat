@@ -1385,6 +1385,8 @@ auto runAicontainerInternalChangeTarget6294SelfTests() -> bool;
 auto runDeathEntry6295SelfTests() -> bool;
 auto runAicontainerInternalDisengage6296SelfTests() -> bool;
 auto runMobDeathTimerDespawn6297SelfTests() -> bool;
+auto runAicontainerInternalDie6298SelfTests() -> bool;
+auto runDespawnFadeUpdate6299SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3604,6 +3606,8 @@ namespace
         ok = runDeathEntry6295SelfTests() && ok;
         ok = runAicontainerInternalDisengage6296SelfTests() && ok;
         ok = runMobDeathTimerDespawn6297SelfTests() && ok;
+        ok = runAicontainerInternalDie6298SelfTests() && ok;
+        ok = runDespawnFadeUpdate6299SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;
