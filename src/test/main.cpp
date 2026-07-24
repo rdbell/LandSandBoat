@@ -1391,6 +1391,7 @@ auto runAicontainerInternalDespawn6300SelfTests() -> bool;
 auto runInactiveDurationExit6301SelfTests() -> bool;
 auto runAicontainerInternalActionTarget6302SelfTests() -> bool;
 auto runAicontainerAcceptRaise6303SelfTests() -> bool;
+auto runAicontainerInternalSynth6304SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3616,6 +3617,7 @@ namespace
         ok = runInactiveDurationExit6301SelfTests() && ok;
         ok = runAicontainerInternalActionTarget6302SelfTests() && ok;
         ok = runAicontainerAcceptRaise6303SelfTests() && ok;
+        ok = runAicontainerInternalSynth6304SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

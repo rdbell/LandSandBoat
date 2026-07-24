@@ -53,6 +53,8 @@
 //           target untargetable gate; pure inject)
 //   - 6303: AcceptRaiseShouldInvoke
 //           (Accept_Raise death-state admission; pure inject)
+//   - 6304: InternalSynthAllowed
+//           (Internal_Synth char-entity + not-already-synth admission; pure inject)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -82,6 +84,9 @@
 // ChangeState.
 // CAIContainer::Accept_Raise injects IsCurrentState<CDeathState> into
 // AcceptRaiseShouldInvoke before acceptRaise().
+// CAIContainer::Internal_Synth injects char-entity presence and
+// IsCurrentState<CSynthState> into InternalSynthAllowed before
+// ForceChangeState<CSynthState>.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.InternalEngageForceAttackAllowed /
@@ -101,7 +106,9 @@
 // aicontainer.InternalActionTargetAllowed
 // (internal_action_target.go),
 // aicontainer.AcceptRaiseShouldInvoke
-// (accept_raise.go). Prior pure port: slice 1189.
+// (accept_raise.go),
+// aicontainer.InternalSynthAllowed
+// (internal_synth.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -492,10 +499,46 @@ inline auto InternalActionTargetAllowed(const bool hasTarget, const bool isUntar
 // Sibling dual-wires left alone: CanDispatch / CanChangeState /
 // InternalEngage* / InternalChangeTarget* / InternalDisengage* /
 // InternalDie* / InternalDespawn* / InternalActionTarget* free functions.
-// Public Despawn() controller branch and Internal_Synth remain out of scope.
+// Public Despawn() controller branch and Internal_Synth (6304) remain
+// separate slices.
 inline auto AcceptRaiseShouldInvoke(const bool isCurrentDeathState) -> bool
 {
     return isCurrentDeathState;
+}
+
+// InternalSynthAllowed reports whether CAIContainer::Internal_Synth may
+// ForceChangeState into CSynthState.
+// Mirrors:
+//
+//   auto PChar = dynamic_cast<CCharEntity*>(PEntity);
+//   if (PChar && !IsCurrentState<CSynthState>()) {
+//       return ForceChangeState<CSynthState>(PChar, synthSkill);
+//   }
+//   return false;
+//
+// Formula (slice 6304):
+//   hasCharEntity && !isCurrentSynthState
+//
+// hasCharEntity — dynamic_cast<CCharEntity*>(PEntity) != nullptr
+// isCurrentSynthState — host IsCurrentState<CSynthState>()
+// true  → host ForceChangeState<CSynthState>(PChar, synthSkill); return result
+// false → host returns false without ForceChangeState
+//
+// Dual-wire of Go aicontainer.InternalSynthAllowed
+// (internal/aicontainer/internal_synth.go). Host injects char-entity presence
+// and current-synth-state so production and tests share one pure surface
+// (same pattern as InternalDespawnAllowed).
+// Call site: CAIContainer::Internal_Synth outer admission.
+// ForceChangeState/enterState object graph, CSynthState construction,
+// synthSkill payload, and full PAI ownership remain host/deferred.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState /
+// InternalEngage* / InternalChangeTarget* / InternalDisengage* /
+// InternalDie* / InternalDespawn* / InternalActionTarget* /
+// AcceptRaise* free functions. Public Despawn() controller branch remains
+// out of scope.
+inline auto InternalSynthAllowed(const bool hasCharEntity, const bool isCurrentSynthState) -> bool
+{
+    return hasCharEntity && !isCurrentSynthState;
 }
 
 } // namespace aicontainerhelpers

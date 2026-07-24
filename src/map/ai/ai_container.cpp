@@ -666,8 +666,11 @@ bool CAIContainer::Internal_Despawn(bool instantDespawn)
 
 bool CAIContainer::Internal_Synth(SKILLTYPE synthSkill)
 {
-    auto PChar = dynamic_cast<CCharEntity*>(PEntity);
-    if (PChar && !IsCurrentState<CSynthState>())
+    auto*      PChar               = dynamic_cast<CCharEntity*>(PEntity);
+    const bool hasCharEntity       = PChar != nullptr;
+    const bool isCurrentSynthState = IsCurrentState<CSynthState>();
+    // Char-entity + not-already-synth admission (slice 6304 dual-wire).
+    if (aicontainerhelpers::InternalSynthAllowed(hasCharEntity, isCurrentSynthState))
     {
         return ForceChangeState<CSynthState>(PChar, synthSkill);
     }
