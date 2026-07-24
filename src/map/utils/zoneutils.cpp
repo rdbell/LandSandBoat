@@ -41,6 +41,7 @@
 #include "spawn_slot.h"
 #include "spawn_slot_assignment.h"
 #include "spawn_initial_respawn.h"
+#include "spawn_initial_can_spawn.h"
 #include "zone_instance.h"
 
 #include <algorithm>
@@ -650,10 +651,7 @@ auto LoadMOBList(Scheduler& scheduler, const std::vector<uint16>& zoneIds) -> Ta
 
                     // Intialize monsters that do not require specific conditions to spawn initially. Monsters conditioned to
                     // spawn by time or weather will be allowed upon corresponding time/weather events.
-                    PMob->m_CanSpawn = PMob->m_SpawnType == SPAWNTYPE_NORMAL ||
-                                       PMob->m_SpawnType == SPAWNTYPE_LOTTERY ||
-                                       PMob->m_SpawnType == SPAWNTYPE_SCRIPTED ||
-                                       PMob->m_SpawnType == SPAWNTYPE_WINDOWED;
+                    PMob->m_CanSpawn = spawninitialcanspawn::canSpawn(static_cast<uint8>(PMob->m_SpawnType));
                 });
 
             // Spawn mobs after they've all been initialized. Spawning some mobs will spawn other mobs that may not yet be initialized.
