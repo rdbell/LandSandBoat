@@ -2913,6 +2913,8 @@ set(SOURCES
     test_zone_player_cap_backends_6443.cpp
     test_mapsession_packet_cache_host_6444.h
     test_mapsession_packet_cache_host_6444.cpp
+    test_c2s_switch_vote_handler_host_6445.h
+    test_c2s_switch_vote_handler_host_6445.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

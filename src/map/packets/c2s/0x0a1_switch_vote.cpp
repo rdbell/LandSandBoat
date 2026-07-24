@@ -25,6 +25,8 @@
 #include "nominate_manager.h"
 #include "zone.h"
 
+// Go host pure half: packetsystem.ValidateSwitchVote / ProcessSwitchVote /
+// NewSwitchVoteHandler (6445); pure plan ClientSwitchVotePlanFor.
 auto GP_CLI_COMMAND_SWITCH_VOTE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
