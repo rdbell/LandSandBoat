@@ -34,6 +34,7 @@
 #include "utils/gardenutils.h"
 #include "utils/zoneutils.h"
 
+// Go host pure half: packetsystem.ValidateLogin / ProcessLogin / NewLoginHandler (6570); plan mappacket.ClientLoginRuntimePlanFor.
 auto GP_CLI_COMMAND_LOGIN::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
