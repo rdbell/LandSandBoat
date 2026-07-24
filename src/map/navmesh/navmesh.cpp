@@ -170,7 +170,8 @@ CNavMesh::~CNavMesh()
     }
 }
 
-// Go host pure half: navmesh.LoadNavMeshFile / DecodeNavMeshSet (6416).
+// Go host pure half: navmesh.LoadNavMeshFile / DecodeNavMeshSet (6416);
+// Detour materialization: ApplyLoadDetourFromSet / ApplyLoadNavMeshFileDetour (6434).
 bool CNavMesh::load(const std::string& filename)
 {
     this->m_filename = filename;
