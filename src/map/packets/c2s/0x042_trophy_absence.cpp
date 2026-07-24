@@ -24,6 +24,8 @@
 #include "entities/char_entity.h"
 #include "treasure_pool.h"
 
+// Go host pure half: packetsystem.ValidateTrophyAbsence / ProcessTrophyAbsence /
+// NewTrophyAbsenceHandler (6460); plan mappacket.ClientTrophyAbsencePlanFor.
 auto GP_CLI_COMMAND_TROPHY_ABSENCE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

@@ -24,6 +24,8 @@
 #include "entities/char_entity.h"
 #include "treasure_pool.h"
 
+// Go host pure half: packetsystem.ValidateTrophyEntry / ProcessTrophyEntry /
+// NewTrophyEntryHandler (6459); plan mappacket.ClientTrophyEntryPlanFor.
 auto GP_CLI_COMMAND_TROPHY_ENTRY::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
