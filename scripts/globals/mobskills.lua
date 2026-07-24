@@ -143,8 +143,9 @@ end
 --- Sets default values if the params are not explicitly defined in the mobskill script.
 --- @param skillParams physicalSkillParams
 --- @return physicalSkillParams
-local function normalizePhysicalSkillParams(skillParams)
-    local defaults =
+-- Pure defaults for physical mob-skill params (before script overrides).
+xi.mobskills.physicalSkillParamDefaults = function()
+    return
     {
         baseDamage            = nil, -- handled separately
         numHits               = 1,
@@ -175,8 +176,15 @@ local function normalizePhysicalSkillParams(skillParams)
         terminateOnMiss       = false,
         primaryMessage        = xi.msg.basic.DAMAGE,
     }
+end
 
-    local result = {}
+-- Pure normalize: each key uses utils.defaultIfNil against the defaults table,
+-- then baseDamage is always taken from skillParams (even when nil).
+xi.mobskills.normalizePhysicalSkillParams = function(skillParams)
+    skillParams = skillParams or {}
+
+    local defaults = xi.mobskills.physicalSkillParamDefaults()
+    local result   = {}
 
     for paramName, defaultValue in pairs(defaults) do
         result[paramName] = utils.defaultIfNil(skillParams[paramName], defaultValue)
@@ -185,6 +193,10 @@ local function normalizePhysicalSkillParams(skillParams)
     result.baseDamage = skillParams.baseDamage
 
     return result
+end
+
+local function normalizePhysicalSkillParams(skillParams)
+    return xi.mobskills.normalizePhysicalSkillParams(skillParams)
 end
 
 -- Helper function to store default physical hit information before being modified.
@@ -206,7 +218,7 @@ end
 ---Creates a default HitInfo table for a physical hit before damage resolution.
 ---@param hitNumber integer The index of this hit in a multi-hit attack sequence.
 ---@return physicalHitInfo
-local function defaultHitInfo(hitNumber)
+xi.mobskills.defaultHitInfo = function(hitNumber)
     return {
         hitNumber       = hitNumber,
         hitLanded       = false,
@@ -224,6 +236,10 @@ local function defaultHitInfo(hitNumber)
     }
 end
 
+local function defaultHitInfo(hitNumber)
+    return xi.mobskills.defaultHitInfo(hitNumber)
+end
+
 ---Tallies the results of all hits from a physical mob skill into aggregate values.
 ---@param hitData physicalHitInfo[] List of hit result tables from `returnInfo.hitData`
 ---@return number totalDamage Sum of damage dealt across all landed hits
@@ -233,7 +249,7 @@ end
 ---@return number hitsAbsorbed Count of hits absorbed by shadows (Utsusemi/Blink)
 ---@return number shadowsAbsorbed Total number of shadow images consumed across all absorbed hits
 ---@return boolean anyCrit True if any landed hit was a critical strike
-local function tallyHitResults(hitData)
+xi.mobskills.tallyHitResults = function(hitData)
     local totalDamage     = 0
     local hitsLanded      = 0
     local hitsYaegasumi   = false
@@ -264,6 +280,10 @@ local function tallyHitResults(hitData)
     end
 
     return totalDamage, hitsLanded, hitsYaegasumi, hitsAnticipated, hitsAbsorbed, shadowsAbsorbed, anyCrit
+end
+
+local function tallyHitResults(hitData)
+    return xi.mobskills.tallyHitResults(hitData)
 end
 
 ---@param skill CPetSkill|CMobSkill
