@@ -23,6 +23,7 @@
 
 #include "entities/char_entity.h"
 
+// Go host pure half: packetsystem.ValidateUnknown / ProcessUnknown / NewUnknownHandler (6557); plan mappacket.ClientUnknownPacket.Diagnostic.
 auto GP_CLI_COMMAND_UNKNOWN::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // Not implemented.

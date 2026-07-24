@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x059_friendpass.h"
 
+// Go host pure half: packetsystem.ValidateFriendPass / ProcessFriendPass / NewFriendPassHandler (6560); plan mappacket.ClientFriendPassResponsePlanFor.
 auto GP_CLI_COMMAND_FRIENDPASS::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // Not implemented.

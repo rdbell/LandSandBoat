@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "inspect_message_runtime.h"
 
+// Go host pure half: packetsystem.ValidateInspectMessage / ProcessInspectMessage / NewInspectMessageHandler (6559); plan mappacket.ClientInspectMessageRuntimePlanFor.
 auto GP_CLI_COMMAND_INSPECT_MESSAGE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

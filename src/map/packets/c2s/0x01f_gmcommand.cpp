@@ -23,6 +23,7 @@
 
 #include "entities/char_entity.h"
 
+// Go host pure half: packetsystem.ValidateGMCommand / ProcessGMCommand / NewGMCommandHandler (6558); plan mappacket.ClientGMCommandActionFor.
 auto GP_CLI_COMMAND_GMCOMMAND::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // Not implemented.
