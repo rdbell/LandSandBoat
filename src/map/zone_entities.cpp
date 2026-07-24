@@ -65,6 +65,7 @@
 #include "zone_char_sync_target_bonus.h"
 #include "zone_char_sync_existing.h"
 #include "zone_char_sync_candidate.h"
+#include "zone_char_sync_apply.h"
 #include "zone_conditional_npc.h"
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
@@ -1173,7 +1174,7 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
         // Loop through candidates to be spawned from best to worst
         for (const auto& [candidateScore, candidateChar] : candidates)
         {
-            if (swapCount >= CHARACTER_SWAP_MAX)
+            if (zonecharsyncapply::ShouldStopForSwapLimit(swapCount, CHARACTER_SWAP_MAX))
             {
                 break;
             }
@@ -1181,15 +1182,11 @@ void CZoneEntities::SpawnPCs(CCharEntity* PChar)
             // If max amount of characters are currently spawned, we need to despawn one before we can spawn a new one
             if (PChar->SpawnPCList.size() >= CHARACTER_SYNC_LIMIT_MAX)
             {
-                if (spawnedCharacters.size() == 0)
-                {
-                    // No spawned characters left that we can swap with
-                    break;
-                }
-
                 // Check that the candidate score is better than the worst spawned score by a certain threshold,
                 // to avoid causing a lot of spawn/despawns all the time as people move around.
-                if (candidateScore > spawnedCharacters.top().first)
+                const auto hasReplaceableEntry = !spawnedCharacters.empty();
+                const auto lowestReplaceableScore = hasReplaceableEntry ? spawnedCharacters.top().first : 0.0f;
+                if (zonecharsyncapply::CanReplaceAtCapacity(hasReplaceableEntry, candidateScore, lowestReplaceableScore))
                 {
                     CCharEntity* spawnedChar = spawnedCharacters.top().second;
                     PChar->SpawnPCList.erase(spawnedChar->id);

@@ -1352,6 +1352,7 @@ auto runZoneCharSyncRelationship6258SelfTests() -> bool;
 auto runZoneCharSyncTargetBonus6259SelfTests() -> bool;
 auto runZoneCharSyncExisting6260SelfTests() -> bool;
 auto runZoneCharSyncCandidate6261SelfTests() -> bool;
+auto runZoneCharSyncApply6262SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3538,6 +3539,7 @@ namespace
         ok = runZoneCharSyncTargetBonus6259SelfTests() && ok;
         ok = runZoneCharSyncExisting6260SelfTests() && ok;
         ok = runZoneCharSyncCandidate6261SelfTests() && ok;
+        ok = runZoneCharSyncApply6262SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;
