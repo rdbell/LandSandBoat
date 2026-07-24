@@ -7,6 +7,13 @@
 namespace
 {
 using gambitshelpers::AbilityOnCooldown;
+using gambitshelpers::CanUseUriel;
+using gambitshelpers::IsOffTargetAggro;
+using gambitshelpers::UrielAggroGate;
+using gambitshelpers::UrielCooldownReady;
+using gambitshelpers::UrielLongCooldownSeconds;
+using gambitshelpers::UrielRangeYalms;
+using gambitshelpers::UrielShortCooldownSeconds;
 using gambitshelpers::BarEffectForElement;
 using gambitshelpers::CanUseRunes;
 using gambitshelpers::IsDarkSkillchain;
@@ -332,10 +339,91 @@ auto CheckSimpleGates() -> bool
     return true;
 }
 
+auto CheckUriel() -> bool
+{
+    // Off-target aggro needs every one of: alive, in range, targeting the
+    // master, not the master's current target, hostile.
+    if (!IsOffTargetAggro(true, UrielRangeYalms, true, false, true))
+    {
+        return false;
+    }
+    if (IsOffTargetAggro(false, 1.0f, true, false, true) ||
+        IsOffTargetAggro(true, UrielRangeYalms + 0.1f, true, false, true) ||
+        IsOffTargetAggro(true, 1.0f, false, false, true) ||
+        IsOffTargetAggro(true, 1.0f, true, true, true) ||
+        IsOffTargetAggro(true, 1.0f, true, false, false))
+    {
+        return false;
+    }
+
+    // Outer gate: master under attack and Val not already holding it, or any
+    // off-target aggro.
+    if (!UrielAggroGate(true, false, false) || !UrielAggroGate(false, true, true))
+    {
+        return false;
+    }
+    if (UrielAggroGate(true, true, false) || UrielAggroGate(false, false, false))
+    {
+        return false;
+    }
+
+    // Cooldown depends on whether Val already holds enmity.
+    if (!UrielCooldownReady(true, UrielLongCooldownSeconds) || UrielCooldownReady(true, UrielLongCooldownSeconds - 1))
+    {
+        return false;
+    }
+    if (!UrielCooldownReady(false, UrielShortCooldownSeconds) || UrielCooldownReady(false, UrielShortCooldownSeconds - 1))
+    {
+        return false;
+    }
+
+    // Upstream's third clause (offTargetAggro && longCooldown) is redundant:
+    // exhaustively confirm the simplified form matches the original.
+    for (int valEnmity = 0; valEnmity < 2; ++valEnmity)
+    {
+        for (int offTarget = 0; offTarget < 2; ++offTarget)
+        {
+            for (uint32 elapsed = 0; elapsed <= UrielLongCooldownSeconds + 2; ++elapsed)
+            {
+                const bool longCooldown  = elapsed >= UrielLongCooldownSeconds;
+                const bool shortCooldown = elapsed >= UrielShortCooldownSeconds;
+                const bool original      = (valEnmity && longCooldown) ||
+                                      (!valEnmity && shortCooldown) ||
+                                      (offTarget && longCooldown);
+
+                if (UrielCooldownReady(valEnmity != 0, elapsed) != original)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Full check: gated, in range, and off cooldown.
+    if (!CanUseUriel(true, false, false, true, 1.0f, UrielLongCooldownSeconds))
+    {
+        return false;
+    }
+    if (CanUseUriel(false, false, false, true, 1.0f, UrielLongCooldownSeconds))
+    {
+        return false;
+    }
+    if (CanUseUriel(true, false, false, true, UrielRangeYalms + 0.1f, UrielLongCooldownSeconds))
+    {
+        return false;
+    }
+    if (CanUseUriel(true, false, false, true, 1.0f, UrielLongCooldownSeconds - 1))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 auto Check() -> bool
 {
     return CheckRunes() && CheckTopEnmity() && CheckSkillchain() && CheckPartyRoles() &&
-           CheckCasting() && CheckBarEffect() && CheckLunge() && CheckSimpleGates();
+           CheckCasting() && CheckBarEffect() && CheckLunge() && CheckSimpleGates() && CheckUriel();
 }
 } // namespace
 

@@ -268,4 +268,62 @@ inline auto AbilityOnCooldown(uint32 recastSeconds) -> bool
 {
     return recastSeconds > 0;
 }
+
+// Valaineral's Uriel Blade gates (slice 6640, G_CONDITION::VAL_URIEL_CHECK).
+inline constexpr float  UrielRangeYalms          = 10.0f;
+inline constexpr uint32 UrielLongCooldownSeconds  = 30; // Standard cooldown
+inline constexpr uint32 UrielShortCooldownSeconds = 5;  // New-target cooldown
+
+// IsOffTargetAggro classifies one mob from the master's notoriety list: alive,
+// within Uriel range of Val, hostile to the master, targeting the master, and
+// not the master's current battle target.
+inline auto IsOffTargetAggro(bool mobIsAlive, float distanceToOwner, bool targetingMaster, bool isMastersCurrentTarget, bool hostile) -> bool
+{
+    if (!mobIsAlive || distanceToOwner > UrielRangeYalms)
+    {
+        return false;
+    }
+
+    return targetingMaster && !isMastersCurrentTarget && hostile;
+}
+
+// UrielAggroGate is the outer admission: the master is being hit by something
+// Val is not already holding, either on the current target or off it.
+inline auto UrielAggroGate(bool masterHasEnmity, bool valHasTopEnmity, bool masterHasOffTargetAggro) -> bool
+{
+    return (masterHasEnmity && !valHasTopEnmity) || masterHasOffTargetAggro;
+}
+
+// UrielCooldownReady picks the cooldown by whether Val already has enmity on
+// the target: a full 30s once engaged, a short 5s when switching to a new one.
+//
+// NOTE: upstream also ORs in (masterHasOffTargetAggro && longCooldown), which
+// is fully redundant *given that the long cooldown is at least the short one*:
+// longCooldown then implies shortCooldown, so whenever that third clause holds,
+// clause one (valHasEnmity) or clause two (!valHasEnmity) already does. The
+// truth tables are identical over every reachable input, and both suites pin
+// that. The static_assert below keeps the simplification honest if the
+// constants are ever retuned.
+static_assert(UrielLongCooldownSeconds >= UrielShortCooldownSeconds,
+              "UrielCooldownReady drops upstream's redundant off-target clause, which is only "
+              "equivalent while the long cooldown implies the short one");
+
+inline auto UrielCooldownReady(bool valHasEnmity, uint32 secondsSinceLastUriel) -> bool
+{
+    return valHasEnmity
+               ? secondsSinceLastUriel >= UrielLongCooldownSeconds
+               : secondsSinceLastUriel >= UrielShortCooldownSeconds;
+}
+
+// CanUseUriel is G_CONDITION::VAL_URIEL_CHECK.
+inline auto CanUseUriel(bool masterHasEnmity, bool valHasTopEnmity, bool masterHasOffTargetAggro,
+                        bool valHasEnmity, float distanceToTarget, uint32 secondsSinceLastUriel) -> bool
+{
+    if (!UrielAggroGate(masterHasEnmity, valHasTopEnmity, masterHasOffTargetAggro))
+    {
+        return false;
+    }
+
+    return distanceToTarget <= UrielRangeYalms && UrielCooldownReady(valHasEnmity, secondsSinceLastUriel);
+}
 } // namespace gambitshelpers

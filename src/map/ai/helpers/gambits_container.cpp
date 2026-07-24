@@ -1431,41 +1431,35 @@ auto CGambitsContainer::CheckTrigger(const CBattleEntity* triggerTarget, const G
                             }
 
                             auto* PZoneMob = dynamic_cast<CMobEntity*>(*it);
-                            if (!PZoneMob || !PZoneMob->isAlive())
+                            if (!PZoneMob)
                             {
                                 continue;
                             }
 
-                            if (distance(POwner->loc.p, PZoneMob->loc.p) > 10.0f)
-                            {
-                                continue;
-                            }
-
-                            const bool targetingMaster        = (PZoneMob->GetBattleTargetID() == PMaster->targid);
-                            const bool isMastersCurrentTarget = (PZoneMob->id == PMob->id);
-                            const bool hostile                = (PZoneMob->allegiance != PMaster->allegiance);
-
-                            if (targetingMaster && !isMastersCurrentTarget && hostile)
+                            if (gambitshelpers::IsOffTargetAggro(
+                                    PZoneMob->isAlive(),
+                                    distance(POwner->loc.p, PZoneMob->loc.p),
+                                    PZoneMob->GetBattleTargetID() == PMaster->targid,
+                                    PZoneMob->id == PMob->id,
+                                    PZoneMob->allegiance != PMaster->allegiance))
                             {
                                 masterHasOffTargetAggro = true;
                             }
                         }
                     }
 
-                    if ((masterHasEnmity && !valHasTopEnmity) || masterHasOffTargetAggro)
-                    {
-                        auto   timeNow          = std::chrono::system_clock::now();
-                        uint32 lastUrielTime    = POwner->GetLocalVar("[Gambit]LastUrielTime");
-                        auto   distanceToTarget = distance(POwner->loc.p, PMob->loc.p);
+                    const auto timeNow       = std::chrono::system_clock::now();
+                    const uint32 lastUrielTime = POwner->GetLocalVar("[Gambit]LastUrielTime");
+                    const auto lastTimePoint   = std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(lastUrielTime));
+                    const auto elapsedSeconds  = std::chrono::duration_cast<std::chrono::seconds>(timeNow - lastTimePoint).count();
 
-                        auto lastTimePoint = std::chrono::time_point<std::chrono::system_clock>(std::chrono::seconds(lastUrielTime));
-                        auto timeDiff      = timeNow - lastTimePoint;
-                        bool longCooldown  = (timeDiff >= std::chrono::seconds(30)); // Standard Cooldown
-                        bool shortCooldown = (timeDiff >= std::chrono::seconds(5));  // New Target Cooldown
-
-                        canUseUriel = (distanceToTarget <= 10.0f) &&
-                                      ((valHasEnmity && longCooldown) || (!valHasEnmity && shortCooldown) || (masterHasOffTargetAggro && longCooldown));
-                    }
+                    canUseUriel = gambitshelpers::CanUseUriel(
+                        masterHasEnmity,
+                        valHasTopEnmity,
+                        masterHasOffTargetAggro,
+                        valHasEnmity,
+                        distance(POwner->loc.p, PMob->loc.p),
+                        static_cast<uint32>(std::max<int64>(elapsedSeconds, 0)));
                 }
                 predicateResults.push_back(canUseUriel);
                 continue;
