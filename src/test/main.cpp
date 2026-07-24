@@ -1400,6 +1400,7 @@ auto runAicontainerIsSpawned6309SelfTests() -> bool;
 auto runAicontainerIsUntargetable6310SelfTests() -> bool;
 auto runAicontainerIsStateStackEmpty6311SelfTests() -> bool;
 auto runAicontainerCanPushState6312SelfTests() -> bool;
+auto runAicontainerTickStateLoop6313SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3634,6 +3635,7 @@ namespace
         ok = runAicontainerIsUntargetable6310SelfTests() && ok;
         ok = runAicontainerIsStateStackEmpty6311SelfTests() && ok;
         ok = runAicontainerCanPushState6312SelfTests() && ok;
+        ok = runAicontainerTickStateLoop6313SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

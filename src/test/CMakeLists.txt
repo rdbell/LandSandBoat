@@ -2739,6 +2739,8 @@ set(SOURCES
     test_aicontainer_is_state_stack_empty_6311.cpp
     test_aicontainer_can_push_state_6312.h
     test_aicontainer_can_push_state_6312.cpp
+    test_aicontainer_tick_state_loop_6313.h
+    test_aicontainer_tick_state_loop_6313.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

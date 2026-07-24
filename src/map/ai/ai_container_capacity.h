@@ -71,6 +71,8 @@
 //           (!hasCurrentState dual-wire residual pure 1189)
 //   - 6312: CanPushState
 //           (stateCount <= 10 stack ceiling dual-wire residual pure 1189)
+//   - 6313: TickStateLoopContinue
+//           (guard <= 32 Tick state-drain loop bound dual-wire residual pure 1189)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -118,6 +120,7 @@
 // IsStateStackEmpty.
 // CAIContainer::ChangeState / ForceChangeState inject stateCount() into
 // CanPushState for the stack ceiling gate.
+// CAIContainer::Tick injects post-increment guard into TickStateLoopContinue.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -156,6 +159,8 @@
 // aicontainer.IsStateStackEmpty
 // (aicontainer.go),
 // aicontainer.CanPushState
+// (aicontainer.go),
+// aicontainer.TickStateLoopContinue
 // (aicontainer.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
@@ -780,6 +785,25 @@ inline auto IsStateStackEmpty(const bool hasCurrentState) -> bool
 inline auto CanPushState(const std::size_t stateCount) -> bool
 {
     return stateCount <= 10;
+}
+
+// TickStateLoopContinue reports whether the Tick state-drain loop may keep
+// iterating after guard has been incremented for this pass.
+// Mirrors:
+//
+//   if (++guard > 32) { ShowWarning(...); break; }
+//
+// Formula (slice 6313 dedicated dual-wire residual pure 1189):
+//   guard <= 32
+//
+// Pass the post-increment guard value. Continues while guard <= 32; breaks at 33+.
+// Dual-wire of Go aicontainer.TickStateLoopContinue (aicontainer.go;
+// StateTickGuardMax=32). Call site: CAIContainer::Tick state-drain loop.
+// ShowWarning on break remains host-only. Sibling dual-wires left alone:
+// CanPushState / IsStateStackEmpty free functions.
+inline auto TickStateLoopContinue(const int guard) -> bool
+{
+    return guard <= 32;
 }
 
 } // namespace aicontainerhelpers

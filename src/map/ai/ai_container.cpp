@@ -531,7 +531,9 @@ auto CAIContainer::Tick(timer::time_point tick) -> Task<void>
 
     while (m_currentState)
     {
-        if (++guard > 32)
+        // Dual-wire: aicontainerhelpers::TickStateLoopContinue (slice 6313)
+        // Pass post-increment guard; continues while guard <= 32.
+        if (!aicontainerhelpers::TickStateLoopContinue(++guard))
         {
             ShowWarning("AI state loop exceeded its iteration bound; breaking to avoid a hang.");
             break;
