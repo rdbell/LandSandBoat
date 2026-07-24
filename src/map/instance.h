@@ -42,6 +42,16 @@ struct zoneMusicOverride_t
     Maybe<uint16> m_bSongM;    // battle music (party)
 };
 
+struct instanceLoadSettings_t
+{
+    std::string         instanceName;
+    uint32              timeLimitMinutes;
+    uint16              entrance;
+    uint32              overlayId;
+    position_t          entryLoc;
+    zoneMusicOverride_t musicOverrides;
+};
+
 class InstanceTestAccess;
 
 class CInstance : public CZoneEntities
@@ -103,6 +113,7 @@ private:
     static auto cancelStatus() -> INSTANCE_STATUS;
     static auto publicInstanceID(uint32 instanceid) -> uint16;
     static auto publicOverlayID(uint32 overlayId) -> uint32;
+    static void applyLoadSettings(std::string& instanceName, timer::duration& timeLimit, uint16& entrance, uint32& overlayId, position_t& entryLoc, zoneMusicOverride_t& musicOverrides, const instanceLoadSettings_t& settings);
 
     void LoadInstance();
 

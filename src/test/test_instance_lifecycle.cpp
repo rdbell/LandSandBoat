@@ -75,6 +75,31 @@ public:
     {
         return CInstance::publicOverlayID(overlayId);
     }
+
+    struct LoadedSettings
+    {
+        std::string         instanceName;
+        timer::duration     timeLimit;
+        uint16              entrance;
+        uint32              overlayId;
+        position_t          entryLoc;
+        zoneMusicOverride_t musicOverrides;
+    };
+
+    static auto applySettings(const std::string& instanceName, uint32 timeLimitMinutes, uint16 entrance, uint32 overlayId, position_t entryLoc, zoneMusicOverride_t musicOverrides) -> LoadedSettings
+    {
+        instanceLoadSettings_t settings;
+        settings.instanceName     = instanceName;
+        settings.timeLimitMinutes = timeLimitMinutes;
+        settings.entrance         = entrance;
+        settings.overlayId        = overlayId;
+        settings.entryLoc         = entryLoc;
+        settings.musicOverrides   = musicOverrides;
+
+        LoadedSettings loaded;
+        CInstance::applyLoadSettings(loaded.instanceName, loaded.timeLimit, loaded.entrance, loaded.overlayId, loaded.entryLoc, loaded.musicOverrides, settings);
+        return loaded;
+    }
 };
 
 namespace
@@ -213,6 +238,33 @@ auto testOverlayID() -> bool
     return ok;
 }
 
+auto testLoadSettings() -> bool
+{
+    position_t entryLoc{};
+    entryLoc.x        = 1.5f;
+    entryLoc.y        = -2.5f;
+    entryLoc.z        = 3.25f;
+    entryLoc.rotation = 127;
+    zoneMusicOverride_t musicOverrides;
+    musicOverrides.m_songDay = 101;
+    musicOverrides.m_bSongS  = 0;
+
+    const auto loaded = InstanceTestAccess::applySettings("A Crystalline Prophecy", 45, 55, 0xFEDCBA98, entryLoc, musicOverrides);
+    bool       ok     = true;
+    ok                = expect(loaded.instanceName == "A Crystalline Prophecy", "load settings keeps instance name") && ok;
+    ok                = expect(loaded.timeLimit == 45min, "load settings converts minutes") && ok;
+    ok                = expect(loaded.entrance == 55, "load settings keeps entrance") && ok;
+    ok                = expect(loaded.overlayId == 0xFEDCBA98, "load settings keeps overlay id") && ok;
+    ok                = expect(loaded.entryLoc.x == 1.5f && loaded.entryLoc.y == -2.5f && loaded.entryLoc.z == 3.25f && loaded.entryLoc.rotation == 127,
+                               "load settings keeps entry location") &&
+                        ok;
+    ok                = expect(loaded.musicOverrides.m_songDay && *loaded.musicOverrides.m_songDay == 101, "load settings keeps day override") && ok;
+    ok                = expect(!loaded.musicOverrides.m_songNight, "load settings keeps null night override") && ok;
+    ok                = expect(loaded.musicOverrides.m_bSongS && *loaded.musicOverrides.m_bSongS == 0, "load settings keeps explicit zero solo override") && ok;
+    ok                = expect(!loaded.musicOverrides.m_bSongM, "load settings keeps null party override") && ok;
+    return ok;
+}
+
 auto testInstanceEraseIdentity() -> bool
 {
     auto* const first  = reinterpret_cast<CInstance*>(uintptr_t{ 1 });
@@ -288,6 +340,7 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testInstanceRestore() && ok;
     ok      = testPublicInstanceID() && ok;
     ok      = testOverlayID() && ok;
+    ok      = testLoadSettings() && ok;
     ok      = testInstanceEraseIdentity() && ok;
     ok      = testInstanceLookupStop() && ok;
     ok      = testInstanceOperationRouting() && ok;

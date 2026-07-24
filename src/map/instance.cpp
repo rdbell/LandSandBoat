@@ -95,19 +95,21 @@ void CInstance::LoadInstance()
 
     if (rset && rset->rowsCount() && rset->next())
     {
-        m_instanceName = rset->get<std::string>("instance_name");
+        instanceLoadSettings_t settings;
+        settings.instanceName               = rset->get<std::string>("instance_name");
+        settings.timeLimitMinutes           = rset->get<uint32>("time_limit");
+        settings.entrance                   = rset->get<uint16>("entrance_zone");
+        settings.overlayId                  = rset->getOrDefault("overlay_id", 0);
+        settings.entryLoc.x                 = rset->get<float>("start_x");
+        settings.entryLoc.y                 = rset->get<float>("start_y");
+        settings.entryLoc.z                 = rset->get<float>("start_z");
+        settings.entryLoc.rotation          = rset->get<uint8>("start_rot");
+        settings.musicOverrides.m_songDay   = !rset->isNull("music_day") ? Maybe<uint16>(rset->get<uint16>("music_day")) : std::nullopt;
+        settings.musicOverrides.m_songNight = !rset->isNull("music_night") ? Maybe<uint16>(rset->get<uint16>("music_night")) : std::nullopt;
+        settings.musicOverrides.m_bSongS    = !rset->isNull("battlesolo") ? Maybe<uint16>(rset->get<uint16>("battlesolo")) : std::nullopt;
+        settings.musicOverrides.m_bSongM    = !rset->isNull("battlemulti") ? Maybe<uint16>(rset->get<uint16>("battlemulti")) : std::nullopt;
 
-        m_timeLimit                       = std::chrono::minutes(rset->get<uint32>("time_limit"));
-        m_entrance                        = rset->get<uint16>("entrance_zone");
-        overlayId_                        = rset->getOrDefault("overlay_id", 0);
-        m_entryloc.x                      = rset->get<float>("start_x");
-        m_entryloc.y                      = rset->get<float>("start_y");
-        m_entryloc.z                      = rset->get<float>("start_z");
-        m_entryloc.rotation               = rset->get<uint8>("start_rot");
-        m_zone_music_override.m_songDay   = !rset->isNull("music_day") ? Maybe<uint16>(rset->get<uint16>("music_day")) : std::nullopt;
-        m_zone_music_override.m_songNight = !rset->isNull("music_night") ? Maybe<uint16>(rset->get<uint16>("music_night")) : std::nullopt;
-        m_zone_music_override.m_bSongS    = !rset->isNull("battlesolo") ? Maybe<uint16>(rset->get<uint16>("battlesolo")) : std::nullopt;
-        m_zone_music_override.m_bSongM    = !rset->isNull("battlemulti") ? Maybe<uint16>(rset->get<uint16>("battlemulti")) : std::nullopt;
+        applyLoadSettings(m_instanceName, m_timeLimit, m_entrance, overlayId_, m_entryloc, m_zone_music_override, settings);
 
         // Add to Lua cache
         // TODO: This will happen more often than needed, but not so often that it's a performance concern
@@ -415,4 +417,14 @@ auto CInstance::overlayId() const -> uint32
 auto CInstance::publicOverlayID(uint32 overlayId) -> uint32
 {
     return overlayId;
+}
+
+void CInstance::applyLoadSettings(std::string& instanceName, timer::duration& timeLimit, uint16& entrance, uint32& overlayId, position_t& entryLoc, zoneMusicOverride_t& musicOverrides, const instanceLoadSettings_t& settings)
+{
+    instanceName   = settings.instanceName;
+    timeLimit      = std::chrono::minutes(settings.timeLimitMinutes);
+    entrance       = settings.entrance;
+    overlayId      = settings.overlayId;
+    entryLoc       = settings.entryLoc;
+    musicOverrides = settings.musicOverrides;
 }
