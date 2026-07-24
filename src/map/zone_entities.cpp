@@ -67,6 +67,7 @@
 #include "zone_pc_despawn_dispatch.h"
 #include "zone_spatial_grid_rebuild.h"
 #include "zone_mob_aggro_tap.h"
+#include "zone_spawn_list_sync.h"
 #include "zone_pc_distance_gate.h"
 #include "zone_pc_candidate_gate.h"
 #include "wide_scan_policy.h"
@@ -849,7 +850,7 @@ void CZoneEntities::syncSpawnListWithGrid(CCharEntity*                     PChar
     idsToRemoveScratch_.clear();
     for (const auto& [id, entity] : spawnList)
     {
-        if (!visible(entity))
+        if (zonespawnlistsync::ShouldRemoveSpawnListEntity(visible(entity)))
         {
             idsToRemoveScratch_.push_back(id);
         }
@@ -865,7 +866,7 @@ void CZoneEntities::syncSpawnListWithGrid(CCharEntity*                     PChar
     // Add a single candidate if it's the right type, not already shown, and passes the precise filter.
     const auto tryAdd = [&](CBaseEntity* entity)
     {
-        if (entity->objtype != objtype || !visible(entity))
+        if (!zonespawnlistsync::ShouldIncludeSpawnListCandidate(entity->objtype == objtype, [&]() { return visible(entity); }))
         {
             return;
         }

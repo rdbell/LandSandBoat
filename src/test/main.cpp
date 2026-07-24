@@ -1346,6 +1346,7 @@ auto runZonePacketBroadcast6252SelfTests() -> bool;
 auto runZonePCDespawnDispatch6253SelfTests() -> bool;
 auto runZoneSpatialGridRebuild6254SelfTests() -> bool;
 auto runZoneMobAggroTap6255SelfTests() -> bool;
+auto runZoneSpawnListSync6256SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3526,6 +3527,7 @@ namespace
         ok = runZonePCDespawnDispatch6253SelfTests() && ok;
         ok = runZoneSpatialGridRebuild6254SelfTests() && ok;
         ok = runZoneMobAggroTap6255SelfTests() && ok;
+        ok = runZoneSpawnListSync6256SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;
