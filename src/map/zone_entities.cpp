@@ -66,6 +66,7 @@
 #include "zone_char_sync_existing.h"
 #include "zone_char_sync_candidate.h"
 #include "zone_char_sync_apply.h"
+#include "zone_transport_spawn.h"
 #include "zone_conditional_npc.h"
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
@@ -1274,7 +1275,7 @@ void CZoneEntities::SpawnTransport(CCharEntity* PChar)
 
     FOR_EACH_PAIR_CAST_SECOND(CNpcEntity*, PEntity, m_TransportList)
     {
-        if (!PEntity->alwaysRelevant())
+        if (!zonetransportspawn::ShouldSpawnForRecipient(PEntity->alwaysRelevant()))
         {
             continue;
         }
