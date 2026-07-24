@@ -53,6 +53,7 @@ local getStoredCrystals = function(player)
     return { param1, param2, param3, param4 }
 end
 
+-- Go pure half: ephemeralmoogle.PlanTradeFromInjects getCurrency/getItemQty (6592).
 xi.crafting.ephemeralMoogleOnTrade = function(player, npc, trade)
     local eventParams = { 0, 0, 0, 0, 0, 0, 0, 0 }
     local validTrade  = false
