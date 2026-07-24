@@ -25,6 +25,9 @@
 #include "lua/luautils.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateEquipSetSet / ProcessEquipSetSet /
+// NewEquipSetSetHandler (6463); plan mappacket.ClientEquipSetSetDispatchPlanFor.
+
 namespace
 {
 

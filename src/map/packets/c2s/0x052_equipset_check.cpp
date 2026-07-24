@@ -24,6 +24,8 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x116_equipset_valid.h"
 
+// Go host pure half: packetsystem.ValidateEquipSetCheck / ProcessEquipSetCheck /
+// NewEquipSetCheckHandler (6464); plan mappacket.ClientEquipSetCheckReplyFor.
 auto GP_CLI_COMMAND_EQUIPSET_CHECK::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // Not implemented.
