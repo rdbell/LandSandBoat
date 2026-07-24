@@ -77,6 +77,7 @@ void CLuaClientEntityPairBCNM::killMobs(const sol::optional<sol::table>& params)
 
 void CLuaClientEntityPairBCNM::expectWin(sol::optional<sol::table> params) const
 {
+    // Go host pure half: cliententitypair.PlanExpectWin (slice 6381).
     bool                  delayedWin   = true;
     sol::optional<uint32> finishOption = sol::nullopt;
 
@@ -109,6 +110,7 @@ void CLuaClientEntityPairBCNM::expectWin(sol::optional<sol::table> params) const
 
 void CLuaClientEntityPairBCNM::enter(const sol::object& npcQuery, const uint16 bcnmId, sol::optional<sol::table> items) const
 {
+    // Go host pure half: cliententitypair.PlanEnter / PlanEnterVerify (slice 6381).
     const uint16 zoneId = parent_->getZoneID();
 
     sol::table                contentsByZone = lua["xi"]["battlefield"]["contentsByZone"];

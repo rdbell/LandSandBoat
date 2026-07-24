@@ -430,6 +430,7 @@ void CLuaClientEntityPairActions::acceptPartyInvite() const
 
 void CLuaClientEntityPairActions::tradeNpc(const sol::object& npcQuery, const sol::table& items, sol::optional<sol::table> expectedEvent) const
 {
+    // Go host pure half: cliententitypair.PlanTradeNPC / Pair.TradeNPC (slice 6381).
     const auto entities = parent_->entities();
     auto       npc      = entities.moveTo(npcQuery);
 

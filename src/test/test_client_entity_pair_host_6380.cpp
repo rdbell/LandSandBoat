@@ -52,5 +52,21 @@ auto runClientEntityPairHost6380SelfTests() -> bool
     ok = expect(PacketHeaderSize == 4, "header size") && ok;
     ok = expect(FFIBodyCopyOK(12) && !FFIBodyCopyOK(4), "ffi copy range") && ok;
 
+    // Slice 6381 residuals: trade/craft/bcnm pure gates.
+    using cliententitypairhelpers::BCNMEnterEventID;
+    using cliententitypairhelpers::BCNMEnterOption;
+    using cliententitypairhelpers::BCNMExpectWinEventID;
+    using cliententitypairhelpers::CraftIngredientCountOK;
+    using cliententitypairhelpers::SkillchainWSCountOK;
+    using cliententitypairhelpers::TradeItemCountOK;
+    using cliententitypairhelpers::TradeMaxItems;
+
+    ok = expect(TradeMaxItems == 9, "trade max") && ok;
+    ok = expect(TradeItemCountOK(1) && TradeItemCountOK(9) && !TradeItemCountOK(0) && !TradeItemCountOK(10), "trade count") && ok;
+    ok = expect(CraftIngredientCountOK(1) && CraftIngredientCountOK(8) && !CraftIngredientCountOK(0), "craft count") && ok;
+    ok = expect(SkillchainWSCountOK(2) && !SkillchainWSCountOK(1), "skillchain count") && ok;
+    ok = expect(BCNMExpectWinEventID == 32001 && BCNMEnterEventID == 32000, "bcnm events") && ok;
+    ok = expect(BCNMEnterOption(3) == 49, "bcnm option") && ok;
+
     return ok;
 }
