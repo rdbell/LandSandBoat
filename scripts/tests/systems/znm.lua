@@ -261,3 +261,109 @@ describe('ZNM Ryo trade', function()
         assert(xi.znm.ryo.tradeOutcome(false) == nil)
     end)
 end)
+
+describe('ZNM soul plate fauna bonus', function()
+    it('matches a single recommended fauna name in its zone', function()
+        local row = { zone = 100, name = 'Bugbear' }
+        assert(xi.znm.isCurrentFaunaRow({ zoneId = 100, signature = 'Bugbear' }, row))
+        assert(not xi.znm.isCurrentFaunaRow({ zoneId = 100, signature = 'Goblin' }, row))
+    end)
+
+    it('matches any name when the row lists several', function()
+        local row = { zone = 100, name = { 'Bugbear', 'Goblin' } }
+        assert(xi.znm.isCurrentFaunaRow({ zoneId = 100, signature = 'Bugbear' }, row))
+        assert(xi.znm.isCurrentFaunaRow({ zoneId = 100, signature = 'Goblin' }, row))
+        assert(not xi.znm.isCurrentFaunaRow({ zoneId = 100, signature = 'Orc' }, row))
+    end)
+
+    it('requires the plate to come from the recommended zone', function()
+        local row = { zone = 100, name = 'Bugbear' }
+        assert(not xi.znm.isCurrentFaunaRow({ zoneId = 101, signature = 'Bugbear' }, row))
+    end)
+end)
+
+describe('ZNM soul plate family bonus', function()
+    it('matches the subject family', function()
+        local row = { family = 5 }
+        assert(xi.znm.isCurrentFamilyRow({ familyId = 5 }, row, 1))
+        assert(not xi.znm.isCurrentFamilyRow({ familyId = 6 }, row, 1))
+    end)
+
+    it('disambiguates elementals by signature for interests 45 to 51', function()
+        local row = { family = 5, name = 'Fire Elemental' }
+
+        -- Inside the elemental band the signature must match too.
+        assert(xi.znm.isCurrentFamilyRow({ familyId = 5, signature = 'Fire Elemental' }, row, 45))
+        assert(xi.znm.isCurrentFamilyRow({ familyId = 5, signature = 'Fire Elemental' }, row, 51))
+        assert(not xi.znm.isCurrentFamilyRow({ familyId = 5, signature = 'Ice Elemental' }, row, 45))
+
+        -- Outside it the signature is ignored.
+        assert(xi.znm.isCurrentFamilyRow({ familyId = 5, signature = 'Ice Elemental' }, row, 44))
+        assert(xi.znm.isCurrentFamilyRow({ familyId = 5, signature = 'Ice Elemental' }, row, 52))
+    end)
+end)
+
+describe('ZNM soul plate ecosystem bonus', function()
+    it('matches any family in the interest ecosystem', function()
+        local row = { ecoSystem = { 5, 6, 7 } }
+        assert(xi.znm.isCurrentEcosystemRow({ familyId = 6 }, row))
+        assert(not xi.znm.isCurrentEcosystemRow({ familyId = 8 }, row))
+    end)
+end)
+
+describe('ZNM soul plate bonus selection', function()
+    local faunaRow    = { zone = 100, name = 'Bugbear' }
+    local interestRow = { family = 5, name = 'Bugbear', ecoSystem = { 5, 6 } }
+
+    it('prefers fauna over family and ecosystem', function()
+        local plate = { zoneId = 100, signature = 'Bugbear', familyId = 5 }
+        assert(xi.znm.plateBonusKind(plate, interestRow, 1, faunaRow) == 'Fauna')
+    end)
+
+    it('prefers family over ecosystem', function()
+        local plate = { zoneId = 999, signature = 'Bugbear', familyId = 5 }
+        assert(xi.znm.plateBonusKind(plate, interestRow, 1, faunaRow) == 'family')
+    end)
+
+    it('falls back to ecosystem', function()
+        local plate = { zoneId = 999, signature = 'Other', familyId = 6 }
+        assert(xi.znm.plateBonusKind(plate, interestRow, 1, faunaRow) == 'ecoSystem')
+    end)
+
+    it('reports no bonus when nothing matches', function()
+        local plate = { zoneId = 999, signature = 'Other', familyId = 9 }
+        assert(xi.znm.plateBonusKind(plate, interestRow, 1, faunaRow) == 'none')
+    end)
+
+    it('pins each bonus value', function()
+        assert(xi.znm.plateBonusZeni('Fauna') == xi.znm.SOULPLATE_FAUNA)
+        assert(xi.znm.plateBonusZeni('family') == xi.znm.SOULPLATE_INTEREST)
+        assert(xi.znm.plateBonusZeni('ecoSystem') == xi.znm.SOULPLATE_ECOSYSTEM)
+        assert(xi.znm.plateBonusZeni('none') == 0)
+
+        -- Fauna is the richest bonus, ecosystem the leanest.
+        assert(xi.znm.SOULPLATE_FAUNA > xi.znm.SOULPLATE_INTEREST)
+        assert(xi.znm.SOULPLATE_INTEREST > xi.znm.SOULPLATE_ECOSYSTEM)
+    end)
+end)
+
+describe('ZNM soul plate zeni value', function()
+    it('adds the bonus to the plate quality', function()
+        assert(xi.znm.plateZeniValue(50, 'none', 75) == 50)
+        assert(xi.znm.plateZeniValue(50, 'ecoSystem', 75) == 50 + xi.znm.SOULPLATE_ECOSYSTEM)
+        assert(xi.znm.plateZeniValue(50, 'Fauna', 75) == 50 + xi.znm.SOULPLATE_FAUNA)
+    end)
+
+    it('thirds the value for characters at or below level ten', function()
+        assert(xi.znm.plateZeniValue(60, 'none', 10) == 20)
+        assert(xi.znm.plateZeniValue(60, 'none', 11) == 60)
+    end)
+
+    it('clamps to the plate value bounds', function()
+        assert(xi.znm.plateZeniValue(0, 'none', 75) == xi.znm.SOULPLATE_MIN_VALUE)
+        assert(xi.znm.plateZeniValue(1000, 'Fauna', 75) == xi.znm.SOULPLATE_MAX_VALUE)
+
+        -- The low-level third applies before the clamp, so the floor still holds.
+        assert(xi.znm.plateZeniValue(3, 'none', 5) == xi.znm.SOULPLATE_MIN_VALUE)
+    end)
+end)

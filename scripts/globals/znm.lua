@@ -102,10 +102,12 @@ end
 
 --- Is this mob Sanraku's current 'Recommended Fauna'?
 
-xi.znm.isCurrentFauna = function(plateData)
+-- Pure halves of the soul-plate valuation, taking the catalog rows directly so
+-- they are testable without the Sanraku server variables or a player.
+
+xi.znm.isCurrentFaunaRow = function(plateData, faunaRow)
     local zoneID   = plateData.zoneId
     local mobName  = plateData.signature
-    local faunaRow = xi.znm.SANRAKUS_FAUNA[xi.znm.getSanrakusFauna()]
 
     if faunaRow.zone ~= zoneID then
         return false
@@ -128,10 +130,8 @@ end
 
 -- Main interest objective
 
-xi.znm.isCurrentFamily = function(plateData)
-    local family          = plateData.familyId
-    local currectInterest = xi.znm.getSanrakusInterest()
-    local interestRow     = xi.znm.SANRAKUS_INTEREST[currectInterest]
+xi.znm.isCurrentFamilyRow = function(plateData, interestRow, currectInterest)
+    local family = plateData.familyId
 
     if family == interestRow.family then
         -- Handle elementals as all have same family
@@ -148,10 +148,8 @@ xi.znm.isCurrentFamily = function(plateData)
 end
 
 -- Secondary interest objective
-xi.znm.isCurrentEcosystem = function(plateData)
-    local family          = plateData.familyId
-    local currectInterest = xi.znm.getSanrakusInterest()
-    local interestRow     = xi.znm.SANRAKUS_INTEREST[currectInterest]
+xi.znm.isCurrentEcosystemRow = function(plateData, interestRow)
+    local family = plateData.familyId
 
     if utils.contains(family, interestRow.ecoSystem) then
         return true
@@ -160,31 +158,73 @@ xi.znm.isCurrentEcosystem = function(plateData)
     return false
 end
 
+-- Server-variable-bound wrappers kept for existing callers.
+xi.znm.isCurrentFauna = function(plateData)
+    return xi.znm.isCurrentFaunaRow(plateData, xi.znm.SANRAKUS_FAUNA[xi.znm.getSanrakusFauna()])
+end
+
+xi.znm.isCurrentFamily = function(plateData)
+    local currectInterest = xi.znm.getSanrakusInterest()
+    return xi.znm.isCurrentFamilyRow(plateData, xi.znm.SANRAKUS_INTEREST[currectInterest], currectInterest)
+end
+
+xi.znm.isCurrentEcosystem = function(plateData)
+    return xi.znm.isCurrentEcosystemRow(plateData, xi.znm.SANRAKUS_INTEREST[xi.znm.getSanrakusInterest()])
+end
+
+-- Which bonus a soul plate earns. Only the first match counts, so the richer
+-- fauna bonus wins over family, which wins over ecosystem.
+xi.znm.plateBonusKind = function(plateData, interestRow, currectInterest, faunaRow)
+    if xi.znm.isCurrentFaunaRow(plateData, faunaRow) then
+        return 'Fauna'
+    elseif xi.znm.isCurrentFamilyRow(plateData, interestRow, currectInterest) then
+        return 'family'
+    elseif xi.znm.isCurrentEcosystemRow(plateData, interestRow) then
+        return 'ecoSystem'
+    end
+
+    return 'none'
+end
+
+xi.znm.plateBonusZeni = function(bonusKind)
+    if bonusKind == 'Fauna' then
+        return xi.znm.SOULPLATE_FAUNA
+    elseif bonusKind == 'family' then
+        return xi.znm.SOULPLATE_INTEREST
+    elseif bonusKind == 'ecoSystem' then
+        return xi.znm.SOULPLATE_ECOSYSTEM
+    end
+
+    return 0
+end
+
+-- Final plate value: quality plus the bonus, thirded for low-level characters
+-- so pictures are not farmed on mules, then clamped.
+xi.znm.plateZeniValue = function(quality, bonusKind, mainLevel)
+    local zeni = quality + xi.znm.plateBonusZeni(bonusKind)
+
+    if mainLevel <= 10 then
+        zeni = zeni / 3
+    end
+
+    return utils.clamp(zeni, xi.znm.SOULPLATE_MIN_VALUE, xi.znm.SOULPLATE_MAX_VALUE)
+end
+
 xi.znm.calculatePlateZeni = function(player, plateData)
     -- Cache the soulplate value on the player
-    local zeni  = plateData.quality
-    local bonus = 'none'
-
-    if xi.znm.isCurrentFauna(plateData) then
-        zeni = zeni + xi.znm.SOULPLATE_FAUNA
-        bonus = 'Fauna'
-    elseif xi.znm.isCurrentFamily(plateData) then
-        zeni = zeni + xi.znm.SOULPLATE_INTEREST
-        bonus = 'family'
-    elseif xi.znm.isCurrentEcosystem(plateData) then
-        zeni = zeni + xi.znm.SOULPLATE_ECOSYSTEM
-        bonus = 'ecoSystem'
-    end
+    local currectInterest = xi.znm.getSanrakusInterest()
+    local bonus           = xi.znm.plateBonusKind(
+        plateData,
+        xi.znm.SANRAKUS_INTEREST[currectInterest],
+        currectInterest,
+        xi.znm.SANRAKUS_FAUNA[xi.znm.getSanrakusFauna()]
+    )
 
     utils.unused(bonus)
 
     -- to avoid pictures being handed to low level chars, adding this check
     -- low level chars get 1/3 less when they take the pic, customizing to also affect trade in.
-    if player:getMainLvl() <= 10 then
-        zeni = zeni / 3
-    end
-
-    zeni = utils.clamp(zeni, xi.znm.SOULPLATE_MIN_VALUE, xi.znm.SOULPLATE_MAX_VALUE)
+    local zeni = xi.znm.plateZeniValue(plateData.quality, bonus, player:getMainLvl())
 
     -- if player:getDebugMode() then
     --     player:printToPlayer(string.format('name: %s zeni %i, bonus: %s', plateData.signature, zeni, bonus))
