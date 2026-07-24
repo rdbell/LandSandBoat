@@ -2847,6 +2847,8 @@ set(SOURCES
     test_zone_mesh_load_host_6410.cpp
     test_on_zone_initialize_host_6411.h
     test_on_zone_initialize_host_6411.cpp
+    test_ximesh_binary_decode_host_6412.h
+    test_ximesh_binary_decode_host_6412.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

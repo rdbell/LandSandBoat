@@ -245,6 +245,7 @@ XiMesh::XiMesh(const std::string& filename)
     }
 }
 
+// Go host pure half: ximesh.DecodeXimeshRaw / DecodeXimeshBuffer / LoadXiMeshFile (6412).
 auto XiMesh::load(const std::string& filename) -> bool
 {
     TracyZoneScoped;
