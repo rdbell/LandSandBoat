@@ -7,6 +7,14 @@
 namespace
 {
 using gambitshelpers::CanUseRunes;
+using gambitshelpers::CastingDebuff;
+using gambitshelpers::CastingElementalAoe;
+using gambitshelpers::CastingElementalMagic;
+using gambitshelpers::CastingElementalOnSelf;
+using gambitshelpers::ElementFire;
+using gambitshelpers::ElementWater;
+using gambitshelpers::IsElementalMagic;
+using gambitshelpers::SpellAoeRadial;
 using gambitshelpers::HasTopEnmity;
 using gambitshelpers::IsHealerJob;
 using gambitshelpers::IsTankJob;
@@ -162,9 +170,67 @@ auto CheckPartyRoles() -> bool
     return true;
 }
 
+auto CheckCasting() -> bool
+{
+    // Fire..Water are elemental; None, Light, and Dark are not.
+    for (uint8 element = ElementFire; element <= ElementWater; ++element)
+    {
+        if (!IsElementalMagic(element))
+        {
+            return false;
+        }
+    }
+    if (IsElementalMagic(0) || IsElementalMagic(7) || IsElementalMagic(8))
+    {
+        return false;
+    }
+
+    // Every casting condition first requires the magic state.
+    if (CastingDebuff(false, true) || CastingElementalMagic(false, ElementFire))
+    {
+        return false;
+    }
+    if (CastingElementalAoe(false, ElementFire, SpellAoeRadial) || CastingElementalOnSelf(false, ElementFire, 7, 7))
+    {
+        return false;
+    }
+
+    if (!CastingDebuff(true, true) || CastingDebuff(true, false))
+    {
+        return false;
+    }
+    if (!CastingElementalMagic(true, ElementWater) || CastingElementalMagic(true, 8))
+    {
+        return false;
+    }
+
+    // Radial area of effect only.
+    if (!CastingElementalAoe(true, ElementFire, SpellAoeRadial) || CastingElementalAoe(true, ElementFire, 0))
+    {
+        return false;
+    }
+    // A non-elemental radial spell is still rejected.
+    if (CastingElementalAoe(true, 8, SpellAoeRadial))
+    {
+        return false;
+    }
+
+    // Aimed at the owner only.
+    if (!CastingElementalOnSelf(true, ElementFire, 7, 7) || CastingElementalOnSelf(true, ElementFire, 8, 7))
+    {
+        return false;
+    }
+    if (CastingElementalOnSelf(true, 8, 7, 7))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 auto Check() -> bool
 {
-    return CheckRunes() && CheckTopEnmity() && CheckSkillchain() && CheckPartyRoles();
+    return CheckRunes() && CheckTopEnmity() && CheckSkillchain() && CheckPartyRoles() && CheckCasting();
 }
 } // namespace
 

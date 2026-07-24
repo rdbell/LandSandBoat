@@ -1315,60 +1315,53 @@ auto CGambitsContainer::CheckTrigger(const CBattleEntity* triggerTarget, const G
             case G_CONDITION::CASTING_DEBUFF:
             {
                 // Check if the target is currently casting a debuff magic spell
-                bool isDebuff = false;
-                if (triggerTarget->PAI->IsCurrentState<CMagicState>())
-                {
-                    auto spell = static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetSpell();
+                const bool isCastingMagic = triggerTarget->PAI->IsCurrentState<CMagicState>();
+                const bool spellIsDebuff   = isCastingMagic &&
+                    static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetSpell()->isDebuff();
 
-                    if (spell->isDebuff())
-                    {
-                        isDebuff = true;
-                    }
-                }
-                predicateResults.push_back(isDebuff);
+                predicateResults.push_back(gambitshelpers::CastingDebuff(isCastingMagic, spellIsDebuff));
                 continue;
             }
             case G_CONDITION::CASTING_ELE_MA_AOE:
             {
-                bool isAOE = false;
-                if (triggerTarget->PAI->IsCurrentState<CMagicState>())
+                const bool isCastingMagic = triggerTarget->PAI->IsCurrentState<CMagicState>();
+                uint8      spellElement   = 0;
+                uint8      spellAOEType   = 0;
+
+                if (isCastingMagic)
                 {
-                    auto spellElement  = static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetSpell()->getElement();
-                    auto isElementalMA = spellElement >= ELEMENT_FIRE && spellElement <= ELEMENT_WATER;
-                    auto spellAOEType  = static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetSpell()->getAOE();
-                    if (isElementalMA && spellAOEType == SPELLAOE_RADIAL)
-                    {
-                        isAOE = true;
-                    }
+                    auto* PSpell = static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetSpell();
+                    spellElement = static_cast<uint8>(PSpell->getElement());
+                    spellAOEType = static_cast<uint8>(PSpell->getAOE());
                 }
-                predicateResults.push_back(isAOE);
+
+                predicateResults.push_back(gambitshelpers::CastingElementalAoe(isCastingMagic, spellElement, spellAOEType));
                 continue;
             }
             case G_CONDITION::CASTING_ELEMENT_MA:
             {
-                bool isElementalMA = false;
-                if (triggerTarget->PAI->IsCurrentState<CMagicState>())
-                {
-                    auto spellElement = static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetSpell()->getElement();
-                    isElementalMA     = spellElement >= ELEMENT_FIRE && spellElement <= ELEMENT_WATER;
-                }
-                predicateResults.push_back(isElementalMA);
+                const bool isCastingMagic = triggerTarget->PAI->IsCurrentState<CMagicState>();
+                const uint8 spellElement  = isCastingMagic
+                    ? static_cast<uint8>(static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetSpell()->getElement())
+                    : 0;
+
+                predicateResults.push_back(gambitshelpers::CastingElementalMagic(isCastingMagic, spellElement));
                 continue;
             }
             case G_CONDITION::CAST_ELE_MA_SELF:
             {
-                bool isElementalMAOnSelf = false;
-                if (triggerTarget->PAI->IsCurrentState<CMagicState>())
+                const bool isCastingMagic = triggerTarget->PAI->IsCurrentState<CMagicState>();
+                uint8      spellElement   = 0;
+                uint32     spellTargetId  = 0;
+
+                if (isCastingMagic)
                 {
-                    auto spellElement  = static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetSpell()->getElement();
-                    auto targetID      = static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetTarget()->id;
-                    bool isElementalMA = spellElement >= ELEMENT_FIRE && spellElement <= ELEMENT_WATER;
-                    if (targetID == POwner->id && isElementalMA)
-                    {
-                        isElementalMAOnSelf = true;
-                    }
+                    auto* PMagicState = static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState());
+                    spellElement      = static_cast<uint8>(PMagicState->GetSpell()->getElement());
+                    spellTargetId     = PMagicState->GetTarget()->id;
                 }
-                predicateResults.push_back(isElementalMAOnSelf);
+
+                predicateResults.push_back(gambitshelpers::CastingElementalOnSelf(isCastingMagic, spellElement, spellTargetId, POwner->id));
                 continue;
             }
             case G_CONDITION::NEED_ELE_BAREFFECT:

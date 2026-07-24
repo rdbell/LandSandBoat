@@ -128,4 +128,43 @@ inline auto IsTankJob(uint8 mainJob) -> bool
 {
     return mainJob == JobNin || mainJob == JobPld || mainJob == JobRun;
 }
+
+// Casting condition gates (slice 6638). The CASTING_* family all first require
+// the trigger target to be in CMagicState, then inspect the spell being cast.
+inline constexpr uint8 ElementFire  = 1; // ELEMENT_FIRE
+inline constexpr uint8 ElementWater = 6; // ELEMENT_WATER
+inline constexpr uint8 SpellAoeRadial = 1; // SPELLAOE_RADIAL
+
+// IsElementalMagic covers the six offensive elements Fire..Water. Light and
+// Dark are deliberately outside the range, matching the upstream bounds check.
+inline auto IsElementalMagic(uint8 spellElement) -> bool
+{
+    return spellElement >= ElementFire && spellElement <= ElementWater;
+}
+
+// CastingDebuff is G_CONDITION::CASTING_DEBUFF.
+inline auto CastingDebuff(bool isCastingMagic, bool spellIsDebuff) -> bool
+{
+    return isCastingMagic && spellIsDebuff;
+}
+
+// CastingElementalMagic is G_CONDITION::CASTING_ELEMENT_MA.
+inline auto CastingElementalMagic(bool isCastingMagic, uint8 spellElement) -> bool
+{
+    return isCastingMagic && IsElementalMagic(spellElement);
+}
+
+// CastingElementalAoe is G_CONDITION::CASTING_ELE_MA_AOE: an elemental spell
+// with radial area of effect.
+inline auto CastingElementalAoe(bool isCastingMagic, uint8 spellElement, uint8 spellAoeType) -> bool
+{
+    return CastingElementalMagic(isCastingMagic, spellElement) && spellAoeType == SpellAoeRadial;
+}
+
+// CastingElementalOnSelf is G_CONDITION::CAST_ELE_MA_SELF: an elemental spell
+// aimed at the gambit owner.
+inline auto CastingElementalOnSelf(bool isCastingMagic, uint8 spellElement, uint32 spellTargetId, uint32 ownerId) -> bool
+{
+    return CastingElementalMagic(isCastingMagic, spellElement) && spellTargetId == ownerId;
+}
 } // namespace gambitshelpers
