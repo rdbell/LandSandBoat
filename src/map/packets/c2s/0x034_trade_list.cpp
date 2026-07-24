@@ -28,6 +28,9 @@
 #include "packets/s2c/0x025_item_trade_mylist.h"
 #include "universal_container.h"
 
+// Go host pure half: packetsystem.ValidateTradeList / ProcessTradeList /
+// NewTradeListHandler (6452); plan mappacket.ClientTradeListPlanFor.
+
 namespace
 {
 
