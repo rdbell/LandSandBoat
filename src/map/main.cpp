@@ -29,6 +29,9 @@
 
 int main(int argc, char** argv)
 {
+    // Go host pure half: mapapp.NewMapApplication + MapMain (slice 6375)
+    // drives Application.Run with success→0/failure→1 polarity and lua_cleanup
+    // after explicit Application destroy.
     auto mapApp = std::make_unique<MapApplication>(argc, argv);
 
     const auto success = mapApp->run();

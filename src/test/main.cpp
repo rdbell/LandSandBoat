@@ -1418,6 +1418,7 @@ auto runAicontainerInactiveUntargetableHost6371SelfTests() -> bool;
 auto runConnectMainHost6372SelfTests() -> bool;
 auto runWorldMainHost6373SelfTests() -> bool;
 auto runSearchMainHost6374SelfTests() -> bool;
+auto runMapMainHost6375SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3713,6 +3714,7 @@ namespace
         ok = runConnectMainHost6372SelfTests() && ok;
         ok = runWorldMainHost6373SelfTests() && ok;
         ok = runSearchMainHost6374SelfTests() && ok;
+        ok = runMapMainHost6375SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;

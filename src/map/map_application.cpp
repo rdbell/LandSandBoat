@@ -104,6 +104,9 @@ void MapApplication::registerCommands(ConsoleService& console)
 
 auto MapApplication::run() -> bool
 {
+    // Go host pure half: mapapp.MapApplicationRun (slice 6375) composes
+    // null-engine terminate gate, init/registerCommands/postInit, and
+    // FormatMapFatalException catch path.
     engine_ = createEngine();
     if (!engine_)
     {

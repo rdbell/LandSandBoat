@@ -119,6 +119,7 @@ inline auto BuildMapEngineConfigInputs(
 
 // MapMainExitCode mirrors main's success ? EXIT_SUCCESS : EXIT_FAILURE.
 // EXIT_SUCCESS is 0; EXIT_FAILURE is typically 1.
+// Go host pure half: mapapp.MapMain uses this polarity (slice 6375).
 inline auto MapMainExitCode(const bool runSuccess) -> int
 {
     return runSuccess ? 0 : 1;
