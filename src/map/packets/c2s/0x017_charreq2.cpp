@@ -53,6 +53,7 @@ auto resolveByUniqueNo(const uint32 uniqueNo) -> CBaseEntity*
 
 } // namespace
 
+// Go host pure half: packetsystem.ValidateCharReq2 / ProcessCharReq2 / NewCharReq2Handler (6556); plan mappacket.ClientCharReq2RuntimePlanFor.
 auto GP_CLI_COMMAND_CHARREQ2::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar);
