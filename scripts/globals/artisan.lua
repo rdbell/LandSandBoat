@@ -37,6 +37,7 @@ xi.artisan.moogleOnTrigger = function(player, npc)
     player:startEvent(csid, 0, 0, 0, sackSize, 0, 0, menuMask, mogVisited)
 end
 
+-- Go pure half: artisan.PlanEventUpdate / PlanExpandSack fail-path gobbieCanUpgrade (6579).
 xi.artisan.moogleOnUpdate = function(player, csid, option, npc)
     if option == 1 then -- Buy sack
         if player:getGil() >= 9980 and player:getContainerSize(xi.inv.MOGSACK) == 0 then
@@ -77,6 +78,7 @@ xi.artisan.moogleOnUpdate = function(player, csid, option, npc)
     end
 end
 
+-- Go pure half: artisan.PlanEventFinish option-99 PlanClaimScroll (6579).
 xi.artisan.moogleOnFinish = function(player, csid, option, npc)
     if option == 99 then -- Get Scroll
         if player:getCharVar('[artisan]nextScroll') < JstMidnight() then
