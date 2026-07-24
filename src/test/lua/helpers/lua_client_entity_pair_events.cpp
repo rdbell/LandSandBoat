@@ -41,6 +41,7 @@ CLuaClientEntityPairEvents::CLuaClientEntityPairEvents(CLuaClientEntityPair* par
 
 void CLuaClientEntityPairEvents::sendEventPacket(sol::optional<uint16> eventId, const sol::optional<uint32> option, const bool isUpdate) const
 {
+    // Go host pure half: cliententitypair.PlanSendEventPacket (slice 6380).
     const uint16 actualEventId = eventId.value_or(currentId());
 
     if (actualEventId == 65535)

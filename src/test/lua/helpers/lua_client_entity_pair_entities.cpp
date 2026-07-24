@@ -49,6 +49,7 @@ CLuaClientEntityPairEntities::CLuaClientEntityPairEntities(CLuaClientEntityPair*
 
 auto CLuaClientEntityPairEntities::get(const sol::object& entityQuery) const -> Maybe<CLuaTestEntity>
 {
+    // Go host pure half: cliententitypair.PlanEntityGet / ClassifyEntityQuery (slice 6380).
     switch (entityQuery.get_type())
     {
         case sol::type::number:

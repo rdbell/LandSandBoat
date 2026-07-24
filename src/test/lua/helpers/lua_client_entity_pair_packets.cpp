@@ -47,6 +47,7 @@ CLuaClientEntityPairPackets::CLuaClientEntityPairPackets(CLuaClientEntityPair* p
 
 auto CLuaClientEntityPairPackets::createPacket(PacketC2S packetType) -> std::unique_ptr<CBasicPacket>
 {
+    // Go host pure half: cliententitypair.SequenceCounter / PlanCreatePacket (slice 6380).
     auto packet = std::make_unique<CBasicPacket>();
     packet->setType(static_cast<uint16_t>(packetType));
     packet->setSequence(sequenceNum_++);
