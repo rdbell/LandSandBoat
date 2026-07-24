@@ -65,9 +65,69 @@ local piratesData =
     },
 }
 
+-- Pure halves of the pirates encounter, extracted so the schedule and the two
+-- rolls are testable without a zone, NPC, or RNG.
+
+xi.pirates.actions      = actions
+xi.pirates.cycleMinutes = 480
+
+-- The encounter schedule in cycle order: each entry ends at endTime minutes
+-- after midnight and drives the periodic trigger for its action.
+xi.pirates.schedule = function()
+    return piratesSchedule
+end
+
+-- The middle pirate is the one that may wear a verm cloak.
+xi.pirates.vermCloakPirateIndex = 2
+
+-- Model ids for the middle pirate's body slot.
+xi.pirates.vermCloakModelId  = 47
+xi.pirates.defaultBodyModelId = 8195
+
+-- A 1..100 roll wears the verm cloak on a 10 or under, which is what makes the
+-- ride NM-eligible.
+xi.pirates.vermCloakRollPassed = function(roll)
+    return roll <= 10
+end
+
+xi.pirates.bodyModelId = function(hasVermCloak)
+    return hasVermCloak and xi.pirates.vermCloakModelId or xi.pirates.defaultBodyModelId
+end
+
+-- A ride is NM-eligible while its nmCanSpawn flag is still set; it is cleared
+-- to 0 once the NM is up.
+xi.pirates.nmEligible = function(nmCanSpawn)
+    return nmCanSpawn == 1
+end
+
+-- On an eligible ride a 1..100 roll raises the NM at 75 or under.
+xi.pirates.nmRollPassed = function(roll)
+    return roll <= 75
+end
+
+-- Which mob the MOBS_SPAWN step raises: the NM only on an eligible ride whose
+-- roll passes, otherwise the placeholder Wight.
+--
+-- Callers sharing the RNG should short-circuit over nmEligible and nmRollPassed
+-- instead, because upstream only rolls once the ride is eligible.
+xi.pirates.mobsSpawnSelection = function(nmCanSpawn, roll)
+    if
+        xi.pirates.nmEligible(nmCanSpawn) and
+        xi.pirates.nmRollPassed(roll)
+    then
+        return 'nm'
+    end
+
+    return 'wight'
+end
+
 -- This ride's NM: Blackbeard sails the Selbina route, Silverhook the Mhaura route.
+xi.pirates.nmIsBlackbeard = function(zoneId)
+    return zoneId == xi.zone.SHIP_BOUND_FOR_SELBINA_PIRATES
+end
+
 local function getNMId(zoneId)
-    if zoneId == xi.zone.SHIP_BOUND_FOR_SELBINA_PIRATES then
+    if xi.pirates.nmIsBlackbeard(zoneId) then
         return zones[zoneId].mob.BLACKBEARD
     end
 
@@ -148,8 +208,8 @@ xi.pirates.setupPirateNPCSchedule = function(npc)
     npc:initNpcAi()
 
     -- Create triggers for every stage of the encounter on each Pirate NPC.
-    for _, eventData in ipairs(piratesSchedule) do
-        npc:addPeriodicTrigger(eventData.action, 480, eventData.endTime)
+    for _, eventData in ipairs(xi.pirates.schedule()) do
+        npc:addPeriodicTrigger(eventData.action, xi.pirates.cycleMinutes, eventData.endTime)
     end
 end
 
@@ -177,10 +237,10 @@ xi.pirates.pirateNPCTimeTrigger = function(npc, triggerId, zoneKey)
 
     -- Pirates appear and run to position
     if triggerId == actions.PIRATES_ARRIVE then
-        if pirateIdx == 2 then
+        if pirateIdx == xi.pirates.vermCloakPirateIndex then
             -- middle pirate has chance to wear a verm cloak, which then means the pirate encounter _might_ have the NM spawn
-            local hasVermCloak = math.random(1, 100) <= 10
-            npc:setModelId(hasVermCloak and 47 or 8195, xi.slot.BODY) -- 47 = verm cloak body, 8195 = default body
+            local hasVermCloak = xi.pirates.vermCloakRollPassed(math.random(1, 100))
+            npc:setModelId(xi.pirates.bodyModelId(hasVermCloak), xi.slot.BODY)
             pirateZone:setLocalVar('nmCanSpawn', hasVermCloak and 1 or 0) -- 1 = NM still eligible; cleared to 0 once it spawns
         end
 
@@ -237,7 +297,12 @@ xi.pirates.zoneStateChange = function(zone, action)
             end
         end
 
-        if zone:getLocalVar('nmCanSpawn') == 1 and math.random(1, 100) <= 75 then
+        -- Short-circuit over the primitives: upstream only rolls for the NM once
+        -- the ride is eligible.
+        if
+            xi.pirates.nmEligible(zone:getLocalVar('nmCanSpawn')) and
+            xi.pirates.nmRollPassed(math.random(1, 100))
+        then
             -- HQ ride, 75%: NM appears from the start
             local nm = GetMobByID(getNMId(zoneId))
             if nm then
