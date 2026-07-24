@@ -2795,6 +2795,8 @@ set(SOURCES
     test_application_platform_host_6384.cpp
     test_map_socket_host_6385.h
     test_map_socket_host_6385.cpp
+    test_zmq_socket_host_6386.h
+    test_zmq_socket_host_6386.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

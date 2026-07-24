@@ -36,6 +36,7 @@ RouterEndpoint::RouterEndpoint(std::string endpoint)
 }
 
 auto RouterEndpoint::open(zmq::context_t& ctx) -> bool
+// Go host pure half: zmqutil.ManagedEndpoint.Open (slice 6386).
 {
     socket_ = zmq::socket_t(ctx, zmq::socket_type::router);
     try
