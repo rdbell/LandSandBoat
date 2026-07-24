@@ -46,6 +46,11 @@
 //           (Internal_Disengage outer battle-entity gate; pure inject)
 //   - 6298: InternalDieHasBattleEntity
 //           (Internal_Die outer battle-entity gate; pure inject)
+//   - 6300: InternalDespawnAllowed
+//           (Internal_Despawn not-already-despawning admission; pure inject)
+//   - 6302: InternalActionTargetAllowed
+//           (Internal_Cast/WeaponSkill/MobSkill/PetSkill/Ability/RangedAttack
+//           target untargetable gate; pure inject)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -67,6 +72,12 @@
 // InternalDisengageHasBattleEntity before SetBattleTargetID(0).
 // CAIContainer::Internal_Die injects battle-entity presence into
 // InternalDieHasBattleEntity before ChangeState<CDeathState>.
+// CAIContainer::Internal_Despawn injects IsCurrentState<CDespawnState> into
+// InternalDespawnAllowed before ForceChangeState<CDespawnState>.
+// CAIContainer::Internal_Cast / Internal_WeaponSkill / Internal_MobSkill /
+// Internal_PetSkill / Internal_Ability / Internal_RangedAttack inject GetEntity
+// presence and PAI->IsUntargetable into InternalActionTargetAllowed before
+// ChangeState.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.InternalEngageForceAttackAllowed /
@@ -80,7 +91,11 @@
 // aicontainer.InternalDisengageHasBattleEntity
 // (internal_disengage.go),
 // aicontainer.InternalDieHasBattleEntity
-// (internal_die.go). Prior pure port: slice 1189.
+// (internal_die.go),
+// aicontainer.InternalDespawnAllowed
+// (internal_despawn.go),
+// aicontainer.InternalActionTargetAllowed
+// (internal_action_target.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -360,8 +375,8 @@ inline auto InternalDisengageHasBattleEntity(const bool hasBattleEntity) -> bool
 // side-effects (already 6295), deathTime selection hosts, and full PAI
 // ownership remain host/deferred. Sibling dual-wires left alone:
 // CanDispatch / CanChangeState / InternalEngage* / InternalChangeTarget* /
-// InternalDisengage* free functions. Internal_Despawn, Accept_Raise, and
-// skill Internal_* untargetable checks are out of scope (6300 and later).
+// InternalDisengage* free functions. Internal_Despawn (6300), Accept_Raise,
+// and skill Internal_* untargetable checks (6302) are separate slices.
 inline auto InternalDieHasBattleEntity(const bool hasBattleEntity) -> bool
 {
     return hasBattleEntity;
@@ -391,7 +406,7 @@ inline auto InternalDieHasBattleEntity(const bool hasBattleEntity) -> bool
 // Call site: CAIContainer::Internal_Despawn outer admission.
 // ForceChangeState/enterState object graph, CDespawnState ctor/Update
 // (already 0770/6299), public Despawn() controller-vs-Internal_Despawn
-// branch, Accept_Raise, skill Internal_* untargetable checks, Tick
+// branch, Accept_Raise, skill Internal_* untargetable checks (6302), Tick
 // prevent-action park, and full PAI ownership remain host/deferred.
 // Sibling dual-wires left alone: CanDispatch / CanChangeState /
 // InternalEngage* / InternalChangeTarget* / InternalDisengage* /
@@ -399,6 +414,47 @@ inline auto InternalDieHasBattleEntity(const bool hasBattleEntity) -> bool
 inline auto InternalDespawnAllowed(const bool isCurrentDespawnState) -> bool
 {
     return !isCurrentDespawnState;
+}
+
+// InternalActionTargetAllowed reports whether skill/spell Internal_* paths
+// may proceed past the target untargetable check after the outer entity
+// dynamic_cast gate has already passed.
+// Mirrors the shared pattern in:
+//
+//   Internal_Cast / Internal_WeaponSkill / Internal_MobSkill /
+//   Internal_PetSkill / Internal_Ability / Internal_RangedAttack
+//
+//   if (auto* target = entity->GetEntity(targid); target && target->PAI->IsUntargetable()) {
+//       return false;
+//   }
+//   return ChangeState<...>(...);
+//
+// Formula (slice 6302):
+//   !hasTarget || !isUntargetable
+//   (equivalent to !(hasTarget && isUntargetable); De Morgan form matches
+//   Go static-analysis dual-wire)
+//
+// hasTarget — entity->GetEntity(targid) != nullptr
+// isUntargetable — host target->PAI->IsUntargetable() when hasTarget; host
+// must inject false when there is no target (do not dereference null)
+// true  → host ChangeState for the Internal_* action; return its result
+// false → host returns false without ChangeState (target exists and untargetable)
+//
+// Dual-wire of Go aicontainer.InternalActionTargetAllowed
+// (internal/aicontainer/internal_action_target.go). Host injects GetEntity
+// presence and IsUntargetable so production and tests share one pure surface.
+// Call sites: CAIContainer::Internal_Cast, Internal_WeaponSkill,
+// Internal_MobSkill, Internal_PetSkill, Internal_Ability, Internal_RangedAttack
+// after the outer entity dynamic_cast gate.
+// ChangeState object graph, spell/ability/skill ID validation, pet-entity
+// vs battle-entity outer casts, and full PAI ownership remain host/deferred.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState /
+// InternalEngage* / InternalChangeTarget* / InternalDisengage* /
+// InternalDie* / InternalDespawn* free functions. Accept_Raise and public
+// Despawn() controller branch remain out of scope.
+inline auto InternalActionTargetAllowed(const bool hasTarget, const bool isUntargetable) -> bool
+{
+    return !hasTarget || !isUntargetable;
 }
 
 } // namespace aicontainerhelpers

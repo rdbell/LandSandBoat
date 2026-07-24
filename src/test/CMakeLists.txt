@@ -2717,6 +2717,8 @@ set(SOURCES
     test_aicontainer_internal_despawn_6300.cpp
     test_inactive_duration_exit_6301.h
     test_inactive_duration_exit_6301.cpp
+    test_aicontainer_internal_action_target_6302.h
+    test_aicontainer_internal_action_target_6302.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
