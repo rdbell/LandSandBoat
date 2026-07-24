@@ -33,6 +33,7 @@ auto shouldRestoreInstance(bool registered) -> bool;
 auto shouldEraseInstance(const CInstance* candidate, const CInstance* target) -> bool;
 auto shouldStopInstanceSearch(bool found) -> bool;
 auto shouldBroadcastInstanceOperation(bool entityPresent) -> bool;
+auto shouldForwardInstanceOperation(bool instancePresent) -> bool;
 }
 
 class CZoneInstance : public CZone

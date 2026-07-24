@@ -64,6 +64,11 @@ auto shouldBroadcastInstanceOperation(bool entityPresent) -> bool
 {
     return !entityPresent;
 }
+
+auto shouldForwardInstanceOperation(bool instancePresent) -> bool
+{
+    return instancePresent;
+}
 } // namespace zoneinstance
 
 CZoneInstance::CZoneInstance(Scheduler& scheduler, MapConfig config, ZONEID ZoneID, REGION_TYPE RegionID, CONTINENT_TYPE ContinentID, uint8 levelRestriction)
@@ -132,7 +137,7 @@ void CZoneInstance::InsertMOB(CBaseEntity* PMob)
 {
     TracyZoneScoped;
 
-    if (PMob->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PMob->PInstance != nullptr))
     {
         PMob->PInstance->InsertMOB(PMob);
     }
@@ -142,7 +147,7 @@ void CZoneInstance::InsertNPC(CBaseEntity* PNpc)
 {
     TracyZoneScoped;
 
-    if (PNpc->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PNpc->PInstance != nullptr))
     {
         PNpc->PInstance->InsertNPC(PNpc);
     }
@@ -152,7 +157,7 @@ void CZoneInstance::InsertPET(CBaseEntity* PPet)
 {
     TracyZoneScoped;
 
-    if (PPet->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PPet->PInstance != nullptr))
     {
         PPet->PInstance->InsertPET(PPet);
     }
@@ -162,7 +167,7 @@ void CZoneInstance::InsertTRUST(CBaseEntity* PTrust)
 {
     TracyZoneScoped;
 
-    if (PTrust->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PTrust->PInstance != nullptr))
     {
         PTrust->PInstance->InsertTRUST(PTrust);
     }
@@ -172,7 +177,7 @@ void CZoneInstance::FindPartyForMob(CBaseEntity* PEntity)
 {
     TracyZoneScoped;
 
-    if (PEntity->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PEntity->PInstance != nullptr))
     {
         PEntity->PInstance->FindPartyForMob(PEntity);
     }
@@ -242,7 +247,7 @@ void CZoneInstance::IncreaseZoneCounter(CCharEntity* PChar)
         }
     }
 
-    if (PChar->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PChar->PInstance != nullptr))
     {
         if (!zoneTimerToken_.has_value())
         {
@@ -312,7 +317,7 @@ void CZoneInstance::SpawnMOBs(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PChar->PInstance != nullptr))
     {
         PChar->PInstance->SpawnMOBs(PChar);
     }
@@ -322,7 +327,7 @@ void CZoneInstance::SpawnPETs(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PChar->PInstance != nullptr))
     {
         PChar->PInstance->SpawnPETs(PChar);
     }
@@ -332,7 +337,7 @@ void CZoneInstance::SpawnTRUSTs(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PChar->PInstance != nullptr))
     {
         PChar->PInstance->SpawnTRUSTs(PChar);
     }
@@ -342,7 +347,7 @@ void CZoneInstance::SpawnNPCs(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PChar->PInstance != nullptr))
     {
         PChar->PInstance->SpawnNPCs(PChar);
     }
@@ -352,7 +357,7 @@ void CZoneInstance::SpawnPCs(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PChar->PInstance != nullptr))
     {
         PChar->PInstance->SpawnPCs(PChar);
     }
@@ -362,7 +367,7 @@ void CZoneInstance::SpawnConditionalNPCs(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PChar->PInstance != nullptr))
     {
         PChar->PInstance->SpawnConditionalNPCs(PChar);
     }
@@ -372,7 +377,7 @@ void CZoneInstance::SpawnTransport(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PChar->PInstance != nullptr))
     {
         PChar->PInstance->SpawnTransport(PChar);
     }
@@ -432,7 +437,7 @@ void CZoneInstance::WideScan(CCharEntity* PChar, uint16 radius)
 {
     TracyZoneScoped;
 
-    if (PChar->PInstance)
+    if (zoneinstance::shouldForwardInstanceOperation(PChar->PInstance != nullptr))
     {
         PChar->PInstance->WideScan(PChar, radius);
     }

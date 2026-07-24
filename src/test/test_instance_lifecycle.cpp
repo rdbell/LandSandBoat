@@ -226,6 +226,14 @@ auto testInstanceOperationRouting() -> bool
     ok = expect(zoneinstance::shouldBroadcastInstanceOperation(false), "unbound operation broadcasts to instances") && ok;
     return ok;
 }
+
+auto testInstanceOperationForwarding() -> bool
+{
+    bool ok = true;
+    ok = expect(zoneinstance::shouldForwardInstanceOperation(true), "assigned entity forwards to instance") && ok;
+    ok = expect(!zoneinstance::shouldForwardInstanceOperation(false), "unassigned entity skips instance") && ok;
+    return ok;
+}
 } // namespace
 
 auto runInstanceLifecycleSelfTests() -> bool
@@ -245,5 +253,6 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testInstanceEraseIdentity() && ok;
     ok      = testInstanceLookupStop() && ok;
     ok      = testInstanceOperationRouting() && ok;
+    ok      = testInstanceOperationForwarding() && ok;
     return ok;
 }
