@@ -120,6 +120,7 @@ xi.maps.onTrigger = function(player, npc)
     player:startEvent(mapVendors[npc:getName()], eventParams[1], eventParams[2], eventParams[3])
 end
 
+-- Go pure half: mapvendor.PlanEventUpdateForVendor/FromKeyItems composition (6590).
 xi.maps.onEventUpdate = function(player, csid, option, npc)
     local mapId = bit.rshift(option, 16)
 
