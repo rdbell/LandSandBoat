@@ -187,6 +187,8 @@ inline auto format_as(type v) \
 // NOTE 2: It isn't possible (or a good idea) to allow the user to disable TRACE, ERROR, or CRITICAL logging.
 #define ShowTrace(...)    logging::AddBacktrace(fmt::format("{}:{}: {}", __FILE__, __LINE__, fmt::sprintf(__VA_ARGS__)))
 #define ShowDebug(...)    LOGGER_BODY_CONDITIONAL(SPDLOG_LOGGER_DEBUG, "debug", "logging.LOG_DEBUG", __FILE__, __LINE__, __VA_ARGS__)
+// Go host pure half for Show* emit path: logging.Show / ShowInfo / ... (slice 6377)
+// drives Logger.Log + backtrace + tapWarningOrError under settings conditionals.
 #define ShowInfo(...)     LOGGER_BODY_CONDITIONAL(SPDLOG_LOGGER_INFO, "info", "logging.LOG_INFO", __FILE__, __LINE__, __VA_ARGS__)
 #define ShowWarning(...)  LOGGER_BODY_CONDITIONAL(SPDLOG_LOGGER_WARN, "warn", "logging.LOG_WARNING", __FILE__, __LINE__, __VA_ARGS__); logging::tapWarningOrError()
 #define ShowLua(...)      LOGGER_BODY_CONDITIONAL(SPDLOG_LOGGER_INFO, "lua", "logging.LOG_LUA", __FILE__, __LINE__, __VA_ARGS__); logging::tapWarningOrError()

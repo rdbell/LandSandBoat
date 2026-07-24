@@ -146,6 +146,8 @@ std::array<spdlog::logger*, logNames.size()> logPointers{};
 
 void logging::InitializeLog(const std::string& serverName, const std::string& logFile, bool appendDate)
 {
+    // Go host pure half: logging.InitializeLog / PlanInitializeLog (slice 6377)
+    // builds Logger + sinks plan (stdout + basic/daily file) and named registry.
     ServerName = serverName;
 
     // If you create more than one worker thread, messages may be delivered out of order
@@ -187,6 +189,7 @@ void logging::ShutDown()
 
 void logging::SetPattern(const std::string& str)
 {
+    // Go host pure half: logging.PlanSetPattern / SetPattern (slice 6377).
     detail::gJsonMode = settings::get<bool>("logging.JSON_ENABLED");
     if (detail::gJsonMode)
     {
