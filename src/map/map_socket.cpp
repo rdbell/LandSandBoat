@@ -55,6 +55,7 @@ MapSocket::~MapSocket()
 
 void MapSocket::receive()
 {
+    // Go host pure half: mapwire.StartReceiveLoop (slice 6387).
     TracyZoneScoped;
 
     socket_.async_receive_from(

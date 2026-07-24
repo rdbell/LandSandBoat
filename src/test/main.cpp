@@ -1429,6 +1429,7 @@ auto runLuaInitHost6383SelfTests() -> bool;
 auto runApplicationPlatformHost6384SelfTests() -> bool;
 auto runMapSocketHost6385SelfTests() -> bool;
 auto runZmqSocketHost6386SelfTests() -> bool;
+auto runMapSocketReceiveLoop6387SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3735,6 +3736,7 @@ namespace
         ok = runApplicationPlatformHost6384SelfTests() && ok;
         ok = runMapSocketHost6385SelfTests() && ok;
         ok = runZmqSocketHost6386SelfTests() && ok;
+        ok = runMapSocketReceiveLoop6387SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
