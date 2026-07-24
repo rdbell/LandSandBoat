@@ -98,6 +98,7 @@ local armorSets =
     89, 2, 0x040000, 2, 0,     11310, 0,     16365, 0,     600,  xi.ki.ARGENT_ATTIRE_CLAIM_SLIP,
 }
 
+-- Go pure half: armorstorage.PlanDepositFromInjects/PlanDepositStartParams (6613).
 xi.armorStorage.onTrade = function(player, trade, deposit)
     local returnValue = false
 
@@ -127,6 +128,7 @@ xi.armorStorage.onTrade = function(player, trade, deposit)
     return returnValue
 end
 
+-- Go pure half: armorstorage.PlanTriggerFromInjects/PlanTriggerStartParams (6613).
 xi.armorStorage.onTrigger = function(player, withdrawal)
     local g1 = 0
     local g2 = 0
@@ -156,6 +158,7 @@ xi.armorStorage.onTrigger = function(player, withdrawal)
     player:startEvent(withdrawal, g1, g2, g3, g4, player:getGil(), g5)
 end
 
+-- Go pure half: armorstorage.PlanUpdateEventParams (6613).
 xi.armorStorage.onEventUpdate = function(player, csid, option, withdrawal)
     if csid == withdrawal then
         player:updateEvent(
@@ -169,7 +172,7 @@ xi.armorStorage.onEventUpdate = function(player, csid, option, withdrawal)
     end
 end
 
--- Go pure half: armorstorage.PlanEventFinish deposit/withdrawal residual (6578).
+-- Go pure half: armorstorage.PlanEventFinish (6578); PlanEventFinishFromInjects (6613).
 xi.armorStorage.onEventFinish = function(player, csid, option, deposit, withdrawal)
     if csid == deposit then
         player:tradeComplete()
