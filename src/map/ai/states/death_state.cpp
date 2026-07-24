@@ -22,6 +22,7 @@
 #include "death_state.h"
 
 #include "ai/ai_container.h"
+#include "death_pc_update.h"
 #include "death_raisable_hold.h"
 #include "entities/battle_entity.h"
 #include "entities/char_entity.h"
@@ -86,16 +87,16 @@ bool CDeathState::Update(timer::time_point tick)
 
         auto time = GetEntryTime() + m_deathTime - std::chrono::seconds(m_PEntity->getMod(Mod::DESPAWN_TIME_REDUCTION));
 
-        // exit state after 2 seconds on raise
-        if (m_raiseAccepted && IsCompleted() && tick > m_raiseAcceptedTime + 2s)
+        // exit state after 2 seconds on raise (pure gate: deathpcupdate)
+        if (deathpcupdate::shouldExitAfterRaise(m_raiseAccepted, IsCompleted(), tick > m_raiseAcceptedTime + 2s))
         {
             m_PEntity->animation = ANIMATION_NONE; // TODO: should this be set in acceptRaise or after 2 seconds?
             m_PEntity->updatemask |= UPDATE_HP;
 
             return true;
         }
-        // Check for auto-homepoint
-        else if (tick > time)
+        // Check for auto-homepoint (pure gate: deathpcupdate)
+        else if (deathpcupdate::shouldAutoHomepoint(tick > time))
         {
             Complete();
             m_PEntity->OnDeathTimer();
@@ -103,13 +104,11 @@ bool CDeathState::Update(timer::time_point tick)
             return true;
         }
 
-        if (tick > m_raiseTime && !m_raiseSent && m_PEntity->isDead())
+        // Raise-menu offer (pure gate: deathpcupdate); host owns packet + raiseSent
+        if (deathpcupdate::shouldOfferRaiseMenu(tick > m_raiseTime, m_raiseSent, m_PEntity->isDead(), PChar->m_hasRaise))
         {
-            if (PChar->m_hasRaise)
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_RES>(PChar, GP_SERV_COMMAND_RES_TYPE::Raise);
-                m_raiseSent = true;
-            }
+            PChar->pushPacket<GP_SERV_COMMAND_RES>(PChar, GP_SERV_COMMAND_RES_TYPE::Raise);
+            m_raiseSent = true;
         }
     }
 
