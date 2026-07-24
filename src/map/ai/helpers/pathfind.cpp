@@ -222,14 +222,15 @@ void CPathFind::ResumePatrol()
     // Dual-wire: pathfindstatushelpers::ShouldResumePatrol (slice 6341).
     if (pathfindstatushelpers::ShouldResumePatrol((m_patrolFlags & PATHFLAG_PATROL) != 0))
     {
-        m_pathFlags        = m_patrolFlags;
-        m_points           = m_patrol;
-        m_currentPoint     = 0;
-        float closestPoint = FLT_MAX;
+        // Dual-wire: PathFlagsValue (6351) + ResumePatrol closest injects (6353).
+        m_pathFlags    = pathfindstatushelpers::PathFlagsValue(m_patrolFlags);
+        m_points       = m_patrol;
+        m_currentPoint = pathfindstatushelpers::ResumePatrolCursor();
+        float closestPoint = pathfindstatushelpers::InitialClosestPatrolDistance();
         for (size_t i = 0; i < m_points.size(); ++i)
         {
             const float distanceSq = distanceSquared(m_POwner->loc.p, m_points[i].position);
-            if (distanceSq < closestPoint)
+            if (pathfindstatushelpers::ShouldUpdateClosestPatrol(distanceSq, closestPoint))
             {
                 m_currentPoint = (int16)i;
                 closestPoint   = distanceSq;

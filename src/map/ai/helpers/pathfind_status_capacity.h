@@ -606,4 +606,32 @@ inline auto FindPathCursor() -> int16_t
     return 0;
 }
 
+// ResumePatrolCursor returns m_currentPoint before closest-point scan.
+// Mirrors ResumePatrol: m_currentPoint = 0
+// Formula (slice 6353): 0
+// Dual-wire of Go pathfind.ResumePatrolCursor (resume_patrol_gates.go).
+inline auto ResumePatrolCursor() -> int16_t
+{
+    return 0;
+}
+
+// InitialClosestPatrolDistance returns the seed for closest-point search.
+// Mirrors: float closestPoint = FLT_MAX
+// Formula (slice 6353): FLT_MAX
+// Dual-wire of Go pathfind.InitialClosestPatrolDistance (resume_patrol_gates.go).
+inline auto InitialClosestPatrolDistance() -> float
+{
+    return 3.402823466e+38f; // FLT_MAX
+}
+
+// ShouldUpdateClosestPatrol reports whether a candidate is nearer than closest.
+// Mirrors: if (distanceSq < closestPoint)
+// Formula (slice 6353): distance < closestSoFar
+// Dual-wire of Go pathfind.ShouldUpdateClosestPatrol (resume_patrol_gates.go).
+// Host injects distanceSquared (C++) or Euclidean distance (Go); order matches.
+inline auto ShouldUpdateClosestPatrol(const float distance, const float closestSoFar) -> bool
+{
+    return distance < closestSoFar;
+}
+
 } // namespace pathfindstatushelpers

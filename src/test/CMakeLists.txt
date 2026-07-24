@@ -2817,6 +2817,8 @@ set(SOURCES
     test_pathfind_patrol_install_6351.cpp
     test_pathfind_step_snap_6352.h
     test_pathfind_step_snap_6352.cpp
+    test_pathfind_resume_closest_6353.h
+    test_pathfind_resume_closest_6353.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
