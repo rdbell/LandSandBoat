@@ -1853,9 +1853,37 @@ xi.mobskills.calculatePetMagicAccuracyBonus = function(mob, target, actionElemen
     return xi.mobskills.petMagicAccuracyBonus(isAvatar, masterSkillLevel, masterMaxSkill, mob:getPetID() > 0, skillchainTier)
 end
 
-xi.mobskills.handleHybridDamage = function(mob, target, physicalDamage, element)
+-- Hybrid magical half of a physical/ranged hybrid mob skill, after entity
+-- multipliers are resolved.
+--
+-- When absorbDamage is not positive (Liement-style full absorb / heal path),
+-- SDT, resist, and shell-style damage adjustment are forced to 1 — day/weather
+-- and MAB still apply, then absorb, nullify, and the fixed 0.5 hybrid scale.
+-- Callers still own OneForAll and Stoneskin.
+xi.mobskills.hybridMagicDamage = function(physicalDamage, sdt, resist, dayAndWeather, magicBonusDiff, magicDamageAdjustment, absorbDamage, nullifyDamage)
     local magicDamage = math.floor(physicalDamage)
 
+    -- Note: Elemental absorb mechanics such as Liement are calculated BEFORE
+    -- resist/damage adjustments (such as shell/magic bursts).
+    if absorbDamage <= 0 then
+        sdt                   = 1
+        resist                = 1
+        magicDamageAdjustment = 1
+    end
+
+    magicDamage = math.floor(magicDamage * sdt)
+    magicDamage = math.floor(magicDamage * resist)
+    magicDamage = math.floor(magicDamage * dayAndWeather)
+    magicDamage = math.floor(magicDamage * magicBonusDiff)
+    magicDamage = math.floor(magicDamage * magicDamageAdjustment)
+    magicDamage = math.floor(magicDamage * absorbDamage)
+    magicDamage = math.floor(magicDamage * nullifyDamage)
+    magicDamage = math.floor(magicDamage * 0.5)
+
+    return magicDamage
+end
+
+xi.mobskills.handleHybridDamage = function(mob, target, physicalDamage, element)
     -- Multipliers.
     local nullifyDamage         = xi.spells.damage.calculateNullification(target, element, true, false)
     local absorbDamage          = xi.spells.damage.calculateAbsorption(target, element, true)
@@ -1865,7 +1893,6 @@ xi.mobskills.handleHybridDamage = function(mob, target, physicalDamage, element)
     local dayAndWeather         = xi.spells.damage.calculateDayAndWeather(mob, element, false)
     local magicBonusDiff        = xi.spells.damage.calculateMagicBonusDiff(mob, target, 0, 0, element, 0)
     local petAccBonus           = xi.mobskills.calculatePetMagicAccuracyBonus(mob, target, element)
-    -- Note: Elemental absorb mechanics such as Liement are calculated BEFORE resist/damage adjustments (such as shell/magic bursts).
 
     if absorbDamage > 0 then
         sdt                   = xi.combat.damage.magicalElementSDT(target, element)
@@ -1873,15 +1900,16 @@ xi.mobskills.handleHybridDamage = function(mob, target, physicalDamage, element)
         magicDamageAdjustment = xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false)
     end
 
-    -- Calculate final damage.
-    magicDamage = math.floor(magicDamage * sdt)
-    magicDamage = math.floor(magicDamage * resist)
-    magicDamage = math.floor(magicDamage * dayAndWeather)
-    magicDamage = math.floor(magicDamage * magicBonusDiff)
-    magicDamage = math.floor(magicDamage * magicDamageAdjustment)
-    magicDamage = math.floor(magicDamage * absorbDamage)
-    magicDamage = math.floor(magicDamage * nullifyDamage)
-    magicDamage = math.floor(magicDamage * 0.5)
+    local magicDamage = xi.mobskills.hybridMagicDamage(
+        physicalDamage,
+        sdt,
+        resist,
+        dayAndWeather,
+        magicBonusDiff,
+        magicDamageAdjustment,
+        absorbDamage,
+        nullifyDamage
+    )
 
     magicDamage = utils.handleOneForAll(target, magicDamage)
     magicDamage = utils.handleStoneskin(target, magicDamage)
