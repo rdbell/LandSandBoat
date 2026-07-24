@@ -403,6 +403,7 @@ local function getFestiveItems(player)
     return availableItems
 end
 
+-- Go pure half: festivemoogle.PlanTradeFromInjects getItemQty/guild/rare (6600).
 xi.festiveMoogle.onTrade = function(player, npc, trade)
     for pellItemId, pellType in pairs(tradeItems) do
         if npcUtil.tradeHasExactly(trade, pellItemId) then
@@ -434,6 +435,7 @@ xi.festiveMoogle.onTrade = function(player, npc, trade)
     end
 end
 
+-- Go pure half: festivemoogle.PlanTriggerStartParams (6600).
 xi.festiveMoogle.onTrigger = function(player, npc)
     local zoneId       = player:getZoneID()
     local festiveItems = getFestiveItems(player)
