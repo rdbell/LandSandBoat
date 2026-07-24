@@ -207,6 +207,50 @@ describe('Voidwalker healing admission', function()
     end)
 end)
 
+describe('Voidwalker key-item upgrade plan', function()
+    it('requires a same-zone player and the winning roll', function()
+        assert(xi.voidwalker.keyItemUpgradePlan(false, 5, xi.keyItem.CLEAR_ABYSSITE, true, xi.keyItem.COLORFUL_ABYSSITE) == nil)
+        assert(xi.voidwalker.keyItemUpgradePlan(true, 4, xi.keyItem.CLEAR_ABYSSITE, true, xi.keyItem.COLORFUL_ABYSSITE) == nil)
+        assert(xi.voidwalker.keyItemUpgradePlan(true, 6, xi.keyItem.CLEAR_ABYSSITE, true, xi.keyItem.COLORFUL_ABYSSITE) == nil)
+        assert(xi.voidwalker.keyItemUpgradePlan(true, 5, xi.keyItem.CLEAR_ABYSSITE, true, xi.keyItem.COLORFUL_ABYSSITE) ~= nil)
+    end)
+
+    it('spends the current abyssite and grants the next with its message', function()
+        local plan = xi.voidwalker.keyItemUpgradePlan(true, 5, xi.keyItem.CLEAR_ABYSSITE, true, xi.keyItem.COLORFUL_ABYSSITE)
+
+        assert(plan.currentKeyItem == xi.keyItem.CLEAR_ABYSSITE)
+        assert(plan.delKeyItem == xi.keyItem.CLEAR_ABYSSITE)
+        assert(plan.addKeyItem == xi.keyItem.COLORFUL_ABYSSITE)
+        assert(plan.message == 'upgrade_1')
+    end)
+
+    it('skips the removal when the player no longer holds the current abyssite', function()
+        local plan = xi.voidwalker.keyItemUpgradePlan(true, 5, xi.keyItem.COLORFUL_ABYSSITE, false, xi.keyItem.BLUE_ABYSSITE)
+
+        assert(plan.delKeyItem == nil)
+        assert(plan.addKeyItem == xi.keyItem.BLUE_ABYSSITE and plan.message == 'upgrade_2')
+    end)
+
+    it('still spends the current abyssite when there is no next one to grant', function()
+        local plan = xi.voidwalker.keyItemUpgradePlan(true, 5, xi.keyItem.BLACK_ABYSSITE, true, nil)
+
+        assert(plan.delKeyItem == xi.keyItem.BLACK_ABYSSITE)
+        assert(plan.addKeyItem == nil and plan.message == nil)
+    end)
+
+    it('leaves the message absent for ordinary mid-tier upgrades', function()
+        local plan = xi.voidwalker.keyItemUpgradePlan(true, 5, xi.keyItem.BLUE_ABYSSITE, true, xi.keyItem.ORANGE_ABYSSITE)
+
+        assert(plan.addKeyItem == xi.keyItem.ORANGE_ABYSSITE and plan.message == nil)
+    end)
+
+    it('reports the obtain message for the final Black abyssite', function()
+        local plan = xi.voidwalker.keyItemUpgradePlan(true, 5, xi.keyItem.GREY_ABYSSITE, true, xi.keyItem.BLACK_ABYSSITE)
+
+        assert(plan.message == 'obtain')
+    end)
+end)
+
 describe('Voidwalker healing outcome plan', function()
     it('reports the first abyssite when no candidate mob remains', function()
         local plan = xi.voidwalker.healingOutcomePlan(nil, xi.keyItem.BLUE_ABYSSITE, 0, 0)

@@ -391,32 +391,72 @@ end
 -----------------------------------
 -- check keyitem upgrade
 -----------------------------------
-local function checkUpgrade(player, mob, nextKeyItem)
+
+-- Pure checkUpgrade body once the host resolves the zone match, the
+-- math.random(1, 10) roll, and the player's hold on the current abyssite.
+-- Returns nil when the upgrade does not fire. delKeyItem/addKeyItem/message are
+-- absent when that step is skipped; note that a winning roll still spends the
+-- current abyssite even when there is no next one to grant.
+xi.voidwalker.keyItemUpgradePlan = function(sameZone, roll, currentKeyItem, hasCurrentKeyItem, nextKeyItem)
     if
-        player and
-        mob:getZoneID() == player:getZoneID()
+        not sameZone or
+        roll ~= 5
     then
-        local zoneTextTable  = zones[mob:getZoneID()].text
-        local currentKeyItem = mob:getLocalVar('[VoidWalker]PopedWith')
-        local rand           = math.random(1, 10)
+        return nil
+    end
 
-        if rand == 5 then
-            if player:hasKeyItem(currentKeyItem) then
-                player:delKeyItem(currentKeyItem)
-            end
+    local plan = { currentKeyItem = currentKeyItem }
 
-            if nextKeyItem then
-                player:addKeyItem(nextKeyItem)
+    if hasCurrentKeyItem then
+        plan.delKeyItem = currentKeyItem
+    end
 
-                local messageKind = xi.voidwalker.upgradeMessageKind(currentKeyItem, nextKeyItem)
-                if messageKind == 'upgrade_1' then
-                    player:messageSpecial(zoneTextTable.VOIDWALKER_UPGRADE_KI_1, currentKeyItem, nextKeyItem)
-                elseif messageKind == 'upgrade_2' then
-                    player:messageSpecial(zoneTextTable.VOIDWALKER_UPGRADE_KI_2, currentKeyItem, nextKeyItem)
-                elseif messageKind == 'obtain' then
-                    player:messageSpecial(zoneTextTable.VOIDWALKER_OBTAIN_KI, nextKeyItem)
-                end
-            end
+    if nextKeyItem then
+        plan.addKeyItem = nextKeyItem
+        plan.message    = xi.voidwalker.upgradeMessageKind(currentKeyItem, nextKeyItem)
+    end
+
+    return plan
+end
+
+local function checkUpgrade(player, mob, nextKeyItem)
+    -- Short-circuit before rolling: the plan repeats the zone gate for its own
+    -- tests, but only a same-zone player may consume from the shared RNG.
+    if
+        not player or
+        mob:getZoneID() ~= player:getZoneID()
+    then
+        return
+    end
+
+    local currentKeyItem = mob:getLocalVar('[VoidWalker]PopedWith')
+    local plan           = xi.voidwalker.keyItemUpgradePlan(
+        true,
+        math.random(1, 10),
+        currentKeyItem,
+        player:hasKeyItem(currentKeyItem),
+        nextKeyItem
+    )
+
+    if not plan then
+        return
+    end
+
+    local zoneTextTable = zones[mob:getZoneID()].text
+
+    if plan.delKeyItem then
+        player:delKeyItem(plan.delKeyItem)
+    end
+
+    if plan.addKeyItem then
+        player:addKeyItem(plan.addKeyItem)
+
+        if plan.message == 'upgrade_1' then
+            player:messageSpecial(zoneTextTable.VOIDWALKER_UPGRADE_KI_1, plan.currentKeyItem, plan.addKeyItem)
+        elseif plan.message == 'upgrade_2' then
+            player:messageSpecial(zoneTextTable.VOIDWALKER_UPGRADE_KI_2, plan.currentKeyItem, plan.addKeyItem)
+        elseif plan.message == 'obtain' then
+            player:messageSpecial(zoneTextTable.VOIDWALKER_OBTAIN_KI, plan.addKeyItem)
         end
     end
 end
