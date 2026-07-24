@@ -583,6 +583,29 @@ inline auto ShouldDispatchEntityUpdateToRecipient(
     return alwaysInclude || isSpawn || isDespawn || entityAlreadySpawned;
 }
 
+// ShouldSpawnNearbyNPC mirrors TryAddToNearbySpawnLists' NPC path. NPCs bypass
+// the vertical render limit so elevators remain visible, but still require the
+// normal horizontal render range.
+inline auto ShouldSpawnNearbyNPC(const bool inRange) -> bool
+{
+    return inRange;
+}
+
+// ShouldSpawnNearbyNonNPC mirrors TryAddToNearbySpawnLists' shared admission
+// for players, mobs, pets, and trusts.
+inline auto ShouldSpawnNearbyNonNPC(const bool inRange, const bool withinVerticalRange) -> bool
+{
+    return inRange && withinVerticalRange;
+}
+
+// ShouldSpawnNearbyPC mirrors the player-specific privacy checks after the
+// shared range gates. Players in different Mog Houses and hidden GMs are not
+// added to nearby player spawn lists.
+inline auto ShouldSpawnNearbyPC(const bool sameMogHouse, const bool hiddenGM) -> bool
+{
+    return sameMogHouse && !hiddenGM;
+}
+
 // WeatherPacketOffsetMin/Max for xirand::GetRandomNumber(4, 28) half-open.
 constexpr uint16 WeatherPacketOffsetMin = 4;
 constexpr uint16 WeatherPacketOffsetMaxExclusive = 28;

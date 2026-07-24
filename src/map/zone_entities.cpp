@@ -164,63 +164,60 @@ void CZoneEntities::TryAddToNearbySpawnLists(CBaseEntity* PEntity)
     {
         const auto isInRange = isWithinDistance(PEntity->loc.p, PCurrentChar->loc.p, ENTITY_RENDER_DISTANCE);
 
-        if (isInRange)
+        if (PEntity->objtype == TYPE_NPC)
         {
             // Exclude NPCs from vertical rendering limits (elevators may go past the normal vertical range)
-            if (PEntity->objtype == TYPE_NPC)
+            if (zonehelpers::ShouldSpawnNearbyNPC(isInRange))
             {
                 PCurrentChar->SpawnNPCList[PEntity->id] = PEntity;
                 PCurrentChar->updateEntityPacket(PEntity, ENTITY_SPAWN, UPDATE_ALL_MOB);
             }
-            else if (isWithinVerticalDistance(PEntity, PCurrentChar))
+            continue;
+        }
+
+        if (zonehelpers::ShouldSpawnNearbyNonNPC(isInRange, isWithinVerticalDistance(PEntity, PCurrentChar)))
+        {
+            switch (PEntity->objtype)
             {
-                switch (PEntity->objtype)
+                case TYPE_PC:
                 {
-                    case TYPE_PC:
+                    auto* PChar = static_cast<CCharEntity*>(PEntity);
+                    if (!zonehelpers::ShouldSpawnNearbyPC(PChar->m_moghouseID == PCurrentChar->m_moghouseID, PChar->m_isGMHidden))
                     {
-                        auto* PChar = static_cast<CCharEntity*>(PEntity);
-                        if (PChar->m_moghouseID != PCurrentChar->m_moghouseID)
-                        {
-                            continue;
-                        }
+                        continue;
+                    }
 
-                        if (PChar->m_isGMHidden)
-                        {
-                            continue;
-                        }
-
-                        PCurrentChar->SpawnPCList[PEntity->id] = PEntity;
-                        PCurrentChar->updateEntityPacket(PChar, ENTITY_SPAWN, UPDATE_ALL_CHAR);
-                        break;
-                    }
-                    case TYPE_MOB:
-                    {
-                        PCurrentChar->SpawnMOBList[PEntity->id] = PEntity;
-                        PCurrentChar->updateEntityPacket(PEntity, ENTITY_SPAWN, UPDATE_ALL_MOB);
-                        break;
-                    }
-                    case TYPE_PET:
-                    {
-                        PCurrentChar->SpawnPETList[PEntity->id] = PEntity;
-                        PCurrentChar->updateEntityPacket(PEntity, ENTITY_SPAWN, UPDATE_ALL_MOB);
-                        break;
-                    }
-                    case TYPE_TRUST:
-                    {
-                        PCurrentChar->SpawnTRUSTList[PEntity->id] = PEntity;
-                        PCurrentChar->updateEntityPacket(PEntity, ENTITY_SPAWN, UPDATE_ALL_MOB);
-                        break;
-                    }
-                    // case TYPE_FELLOW:
-                    // {
-                    //     PCurrentChar->SpawnFellowList[PEntity->id] = PEntity;
-                    //     PCurrentChar->updateEntityPacket(PEntity, ENTITY_SPAWN, UPDATE_ALL_MOB);
-                    //     break;
-                    // }
-                    default:
-                        return;
-                        break;
+                    PCurrentChar->SpawnPCList[PEntity->id] = PEntity;
+                    PCurrentChar->updateEntityPacket(PChar, ENTITY_SPAWN, UPDATE_ALL_CHAR);
+                    break;
                 }
+                case TYPE_MOB:
+                {
+                    PCurrentChar->SpawnMOBList[PEntity->id] = PEntity;
+                    PCurrentChar->updateEntityPacket(PEntity, ENTITY_SPAWN, UPDATE_ALL_MOB);
+                    break;
+                }
+                case TYPE_PET:
+                {
+                    PCurrentChar->SpawnPETList[PEntity->id] = PEntity;
+                    PCurrentChar->updateEntityPacket(PEntity, ENTITY_SPAWN, UPDATE_ALL_MOB);
+                    break;
+                }
+                case TYPE_TRUST:
+                {
+                    PCurrentChar->SpawnTRUSTList[PEntity->id] = PEntity;
+                    PCurrentChar->updateEntityPacket(PEntity, ENTITY_SPAWN, UPDATE_ALL_MOB);
+                    break;
+                }
+                // case TYPE_FELLOW:
+                // {
+                //     PCurrentChar->SpawnFellowList[PEntity->id] = PEntity;
+                //     PCurrentChar->updateEntityPacket(PEntity, ENTITY_SPAWN, UPDATE_ALL_MOB);
+                //     break;
+                // }
+                default:
+                    return;
+                    break;
             }
         }
     }
