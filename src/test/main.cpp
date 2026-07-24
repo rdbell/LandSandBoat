@@ -1440,6 +1440,7 @@ auto runPathfindFollowPointGates6350SelfTests() -> bool;
 auto runPathfindPatrolInstall6351SelfTests() -> bool;
 auto runPathfindStepSnap6352SelfTests() -> bool;
 auto runPathfindResumeClosest6353SelfTests() -> bool;
+auto runPathfindPathAroundClear6354SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3714,6 +3715,7 @@ namespace
         ok = runPathfindPatrolInstall6351SelfTests() && ok;
         ok = runPathfindStepSnap6352SelfTests() && ok;
         ok = runPathfindResumeClosest6353SelfTests() && ok;
+        ok = runPathfindPathAroundClear6354SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;

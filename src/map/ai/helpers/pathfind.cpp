@@ -164,8 +164,12 @@ bool CPathFind::PathAround(const position_t& point, float distanceFromPoint, uin
         Clear();
     }
 
-    // save for sliding logic
-    m_originalPoint     = point;
+    // Dual-wire: OriginalPoint* (slice 6354) — save for sliding logic.
+    m_originalPoint.x        = pathfindstatushelpers::OriginalPointX(point.x);
+    m_originalPoint.y        = pathfindstatushelpers::OriginalPointY(point.y);
+    m_originalPoint.z        = pathfindstatushelpers::OriginalPointZ(point.z);
+    m_originalPoint.moving   = point.moving;
+    m_originalPoint.rotation = point.rotation;
     // Dual-wire: DistanceFromPointValue (slice 6347).
     m_distanceFromPoint = pathfindstatushelpers::DistanceFromPointValue(distanceFromPoint);
 
@@ -465,7 +469,8 @@ void CPathFind::StepTo(const position_t& pos, bool run)
 
     m_POwner->updatemask |= UPDATE_POS;
 
-    if (m_POwner->loc.zone != nullptr)
+    // Dual-wire: pathfindstatushelpers::ShouldNotifyZoneOnMove (slice 6347 / StepTo 6354).
+    if (pathfindstatushelpers::ShouldNotifyZoneOnMove(m_POwner->loc.zone != nullptr))
     {
         m_POwner->loc.zone->onEntityMoved(m_POwner);
     }
@@ -651,7 +656,11 @@ void CPathFind::Clear()
 
     m_points.clear();
 
-    m_timeAtPoint = timer::time_point::min();
+    // Dual-wire: ClearedWaiting (slice 6354). False means assign inactive wait deadline.
+    if (!pathfindstatushelpers::ClearedWaiting())
+    {
+        m_timeAtPoint = timer::time_point::min();
+    }
 
     m_currentPoint  = pathfindstatushelpers::ClearedCurrentPoint();
     m_maxDistance   = pathfindstatushelpers::ClearedMaxDistance();

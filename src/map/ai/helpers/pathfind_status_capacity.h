@@ -634,4 +634,45 @@ inline auto ShouldUpdateClosestPatrol(const float distance, const float closestS
     return distance < closestSoFar;
 }
 
+// OriginalPointX returns PathAround slide-target X.
+// Mirrors: m_originalPoint.x = point.x
+// Formula (slice 6354): x
+// Dual-wire of Go pathfind.OriginalPointX (path_around_clear_gates.go).
+inline auto OriginalPointX(const float x) -> float
+{
+    return x;
+}
+
+// OriginalPointY returns PathAround slide-target Y.
+// Formula (slice 6354): y
+inline auto OriginalPointY(const float y) -> float
+{
+    return y;
+}
+
+// OriginalPointZ returns PathAround slide-target Z.
+// Formula (slice 6354): z
+inline auto OriginalPointZ(const float z) -> float
+{
+    return z;
+}
+
+// ClearedWaiting reports whether a wait deadline is active after Clear.
+// Mirrors: m_timeAtPoint = timer::time_point::min() (no active wait)
+// Formula (slice 6354): false
+// Dual-wire of Go pathfind.ClearedWaiting (path_around_clear_gates.go).
+// Call site: CPathFind::Clear wait reset (semantic pure half; host assigns min()).
+inline auto ClearedWaiting() -> bool
+{
+    return false;
+}
+
+// ClearedWaitDeadline documents inactive wait tick after Clear (Go half).
+// Formula (slice 6354): 0
+// Dual-wire of Go pathfind.ClearedWaitDeadline. C++ host uses time_point::min().
+inline auto ClearedWaitDeadline() -> int64_t
+{
+    return 0;
+}
+
 } // namespace pathfindstatushelpers
