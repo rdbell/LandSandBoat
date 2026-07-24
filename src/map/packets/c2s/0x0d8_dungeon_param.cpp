@@ -23,6 +23,7 @@
 
 #include "entities/char_entity.h"
 
+// Go host pure half: packetsystem.ValidateDungeonParam / ProcessDungeonParam / NewDungeonParamHandler (6565); action mappacket.ClientDungeonParamActionFor.
 auto GP_CLI_COMMAND_DUNGEON_PARAM::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // Not implemented.

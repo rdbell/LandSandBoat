@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "gmcall_packet_handlers.h"
 
+// Go host pure half: packetsystem.ValidateFAQGMCall / ProcessFAQGMCall / NewFAQGMCallHandler (6566); disposition gmcall.PlanFAQGMCallType.
 auto GP_CLI_COMMAND_FAQ_GMCALL::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
