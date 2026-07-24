@@ -142,6 +142,7 @@ xi.darkRider.addHoofprints = function(zone)
 end
 
 -- Remove hoofprints at 06:00 from previous day
+-- Go pure half: darkrider.PlanHoofprintCleanupFromInjects Vanadiel/NPC (6604).
 xi.darkRider.onGameHour = function(zone)
     if VanadielHour() ~= 6 then
         return
