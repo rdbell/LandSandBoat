@@ -409,5 +409,10 @@ uint16 CInstance::GetBackgroundMusicNight()
 // The client needs it to know which DATs to load.
 auto CInstance::overlayId() const -> uint32
 {
-    return overlayId_;
+    return publicOverlayID(overlayId_);
+}
+
+auto CInstance::publicOverlayID(uint32 overlayId) -> uint32
+{
+    return overlayId;
 }

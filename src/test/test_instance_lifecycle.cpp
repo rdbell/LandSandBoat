@@ -70,6 +70,11 @@ public:
     {
         return CInstance::publicInstanceID(instanceid);
     }
+
+    static auto overlayID(uint32 overlayId) -> uint32
+    {
+        return CInstance::publicOverlayID(overlayId);
+    }
 };
 
 namespace
@@ -200,6 +205,14 @@ auto testPublicInstanceID() -> bool
     return ok;
 }
 
+auto testOverlayID() -> bool
+{
+    bool ok = true;
+    ok = expect(InstanceTestAccess::overlayID(0) == 0, "default overlay id is zero") && ok;
+    ok = expect(InstanceTestAccess::overlayID(0xFEDCBA98) == 0xFEDCBA98, "overlay id preserves full uint32") && ok;
+    return ok;
+}
+
 auto testInstanceEraseIdentity() -> bool
 {
     auto* const first  = reinterpret_cast<CInstance*>(uintptr_t{ 1 });
@@ -274,6 +287,7 @@ auto runInstanceLifecycleSelfTests() -> bool
     ok      = testInstanceWipeExit() && ok;
     ok      = testInstanceRestore() && ok;
     ok      = testPublicInstanceID() && ok;
+    ok      = testOverlayID() && ok;
     ok      = testInstanceEraseIdentity() && ok;
     ok      = testInstanceLookupStop() && ok;
     ok      = testInstanceOperationRouting() && ok;

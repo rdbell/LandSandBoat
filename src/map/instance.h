@@ -102,6 +102,7 @@ private:
     static auto entryRotation(float rot) -> uint8;
     static auto cancelStatus() -> INSTANCE_STATUS;
     static auto publicInstanceID(uint32 instanceid) -> uint16;
+    static auto publicOverlayID(uint32 overlayId) -> uint32;
 
     void LoadInstance();
 
