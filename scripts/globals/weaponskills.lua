@@ -1060,43 +1060,92 @@ end
 
 -- After WS damage is calculated and damage reduction has been taken into account by the calling function,
 -- handles displaying the appropriate action/message, delivering the damage to the mob, and any enmity from it
+-- Pure action-message plan for takeWeaponskillDamage once hit/shadow tallies
+-- and final damage are known. Host residual: action:messageID/param/resolution.
+--
+-- Pin: hitsLanded > 0 and finalDmg == 0 still sets DAMAGE/DAMAGE_SECONDARY but
+-- does *not* set a resolution.
+xi.weaponskills.takeWeaponskillDamagePlan = function(hitsLanded, finalDmg, shadowsAbsorbed, primaryMsg, guardedHits)
+    local plan =
+    {
+        message        = 0,
+        setParam       = false,
+        param          = 0,
+        setResolution  = false,
+        resolution     = 0,
+    }
+
+    if hitsLanded > 0 then
+        if finalDmg >= 0 then
+            plan.message = primaryMsg and xi.msg.basic.DAMAGE or xi.msg.basic.DAMAGE_SECONDARY
+
+            if finalDmg > 0 then
+                plan.setResolution = true
+                plan.resolution    = (guardedHits and guardedHits > 0) and xi.action.resolution.GUARD or xi.action.resolution.HIT
+            end
+        else
+            plan.message = primaryMsg and xi.msg.basic.SELF_HEAL or xi.msg.basic.SELF_HEAL_SECONDARY
+        end
+    elseif shadowsAbsorbed > 0 then
+        plan.message       = xi.msg.basic.SHADOW_ABSORB
+        plan.setParam      = true
+        plan.param         = shadowsAbsorbed
+        plan.setResolution = true
+        plan.resolution    = xi.action.resolution.MISS
+    else
+        plan.message       = primaryMsg and xi.msg.basic.SKILL_MISS or xi.msg.basic.EVADES
+        plan.setResolution = true
+        plan.resolution    = xi.action.resolution.MISS
+    end
+
+    return plan
+end
+
+-- Jump skills zero attacker TP mult and wipe extraHitsLanded so multi-hit
+-- bonuses do not feed TP from takeWeaponskillDamage.
+xi.weaponskills.jumpTPAdjust = function(isJump, attackerTPMult, extraHitsLanded)
+    if isJump then
+        return 0, 0
+    end
+
+    return attackerTPMult, extraHitsLanded
+end
+
+-- Store TP modifier: 1 + STORETP / 100 (inhibit TP not applied here).
+xi.weaponskills.storeTPModifier = function(storeTPMod)
+    return 1 + storeTPMod / 100
+end
+
+-- Extra-hit TP bonus passed into takeWeaponskillDamage core:
+--   extraHitsLanded * 10 * storeTPModifier + bonusTP
+xi.weaponskills.weaponskillExtraHitTP = function(extraHitsLanded, storeTPModifier, bonusTP)
+    return (extraHitsLanded * 10 * storeTPModifier) + bonusTP
+end
+
+-- Pure enmity-source selection: Trick Attack char when present, else attacker.
+xi.weaponskills.weaponskillEnmityUsesOverride = function(overrideCE, overrideVE, tpHitsLanded, extraHitsLanded)
+    return overrideCE ~= nil and overrideVE ~= nil and (tpHitsLanded + extraHitsLanded > 0)
+end
+
 xi.weaponskills.takeWeaponskillDamage = function(defender, attacker, wsParams, primaryMsg, attack, wsResults, action)
     local finaldmg = wsResults.finalDmg
 
-    if wsResults.hitsLanded > 0 then
-        if finaldmg >= 0 then
-            if primaryMsg then
-                action:messageID(defender:getID(), xi.msg.basic.DAMAGE)
-            else
-                action:messageID(defender:getID(), xi.msg.basic.DAMAGE_SECONDARY)
-            end
+    local plan = xi.weaponskills.takeWeaponskillDamagePlan(
+        wsResults.hitsLanded,
+        finaldmg,
+        wsResults.shadowsAbsorbed,
+        primaryMsg,
+        wsResults.guardedHits
+    )
 
-            if finaldmg > 0 then
-                if wsResults.guardedHits and wsResults.guardedHits > 0 then
-                    action:resolution(defender:getID(), xi.action.resolution.GUARD)
-                else
-                    action:resolution(defender:getID(), xi.action.resolution.HIT)
-                end
-            end
-        else
-            if primaryMsg then
-                action:messageID(defender:getID(), xi.msg.basic.SELF_HEAL)
-            else
-                action:messageID(defender:getID(), xi.msg.basic.SELF_HEAL_SECONDARY)
-            end
-        end
-    elseif wsResults.shadowsAbsorbed > 0 then
-        action:messageID(defender:getID(), xi.msg.basic.SHADOW_ABSORB)
-        action:param(defender:getID(), wsResults.shadowsAbsorbed)
-        action:resolution(defender:getID(), xi.action.resolution.MISS)
-    else
-        if primaryMsg then
-            action:messageID(defender:getID(), xi.msg.basic.SKILL_MISS)
-        else
-            action:messageID(defender:getID(), xi.msg.basic.EVADES)
-        end
+    action:messageID(defender:getID(), plan.message)
 
-        action:resolution(defender:getID(), xi.action.resolution.MISS)
+    if plan.setParam then
+        action:param(defender:getID(), plan.param)
+    end
+
+    if plan.setResolution then
+        action:resolution(defender:getID(), plan.resolution)
     end
 
     local targetTPMult   = wsParams.targetTPMult or 1
@@ -1104,27 +1153,20 @@ xi.weaponskills.takeWeaponskillDamage = function(defender, attacker, wsParams, p
     local isJump         = wsParams.isJump or false
 
     -- DA/TA/QA/OaT/Oa2-3 etc give full TP return per hit on Jumps
-    if isJump then
-        -- Don't feed TP and don't gain TP from takeWeaponskillDamage
-        attackerTPMult            = 0
-        wsResults.extraHitsLanded = 0
-    end
+    attackerTPMult, wsResults.extraHitsLanded = xi.weaponskills.jumpTPAdjust(isJump, attackerTPMult, wsResults.extraHitsLanded)
 
     -- Core does not modify the TP for the 10 TP/hit like it should, so we're doing it here
-    local storeTPModifier = 1 + attacker:getMod(xi.mod.STORETP) / 100 -- TODO, make a global function to get this (inhibit TP is not accounted for properly in core)
+    local storeTPModifier = xi.weaponskills.storeTPModifier(attacker:getMod(xi.mod.STORETP)) -- TODO, make a global function to get this (inhibit TP is not accounted for properly in core)
+    local extraHitTP     = xi.weaponskills.weaponskillExtraHitTP(wsResults.extraHitsLanded, storeTPModifier, wsResults.bonusTP)
 
-    finaldmg = defender:takeWeaponskillDamage(attacker, finaldmg, attack.type, attack.damageType, attack.slot, primaryMsg, wsResults.tpHitsLanded * attackerTPMult, (wsResults.extraHitsLanded * 10 * storeTPModifier) + wsResults.bonusTP, targetTPMult)
+    finaldmg = defender:takeWeaponskillDamage(attacker, finaldmg, attack.type, attack.damageType, attack.slot, primaryMsg, wsResults.tpHitsLanded * attackerTPMult, extraHitTP, targetTPMult)
     if wsResults.tpHitsLanded + wsResults.extraHitsLanded > 0 then
         action:recordDamage(defender, attack.type, math.abs(finaldmg), wsResults.criticalHit)
     end
 
     local enmityEntity = wsResults.taChar or attacker
 
-    if
-        wsParams.overrideCE and
-        wsParams.overrideVE and
-        wsResults.tpHitsLanded + wsResults.extraHitsLanded > 0
-    then
+    if xi.weaponskills.weaponskillEnmityUsesOverride(wsParams.overrideCE, wsParams.overrideVE, wsResults.tpHitsLanded, wsResults.extraHitsLanded) then
         defender:addEnmity(enmityEntity, wsParams.overrideCE, wsParams.overrideVE)
     else
         local enmityMult = wsParams.enmityMult or 1
