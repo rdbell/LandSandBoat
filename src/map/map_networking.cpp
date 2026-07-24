@@ -353,6 +353,7 @@ int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSess
             }
         }
 
+        // Go host pure half: mapsession.ApplyResetPacketSequences (6440).
         PSession->client_packet_id = 0;
         PSession->server_packet_id = 0;
         PSession->zone_ipp         = {};

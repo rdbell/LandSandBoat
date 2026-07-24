@@ -42,6 +42,7 @@ struct MapSession
     Scheduler* scheduler = nullptr;
 
     IPP                          client_ipp         = {};
+    // Go host pure half: mapsession packet-seq fields / Apply*Packet* (6440).
     uint16                       client_packet_id   = 0;  // id of the last packet that came from the client
     uint16                       server_packet_id   = 0;  // id of the last packet sent by the server
     NetworkBuffer                server_packet_data = {}; // data of the packet, which was previously sent to the client

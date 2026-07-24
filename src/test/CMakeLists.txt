@@ -2903,6 +2903,8 @@ set(SOURCES
     test_mapsession_entity_body_host_6438.cpp
     test_mapsession_create_init_host_6439.h
     test_mapsession_create_init_host_6439.cpp
+    test_mapsession_packet_seq_host_6440.h
+    test_mapsession_packet_seq_host_6440.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h
