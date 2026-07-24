@@ -26,6 +26,7 @@
 #include "packets/char_status.h"
 #include "utils/zoneutils.h"
 
+// Go host pure half: packetsystem.ValidateCharReq / ProcessCharReq / NewCharReqHandler (6552); plan mappacket.ClientCharReqActionFor.
 auto GP_CLI_COMMAND_CHARREQ::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar);

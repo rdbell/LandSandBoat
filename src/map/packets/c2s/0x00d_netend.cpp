@@ -21,6 +21,7 @@
 
 #include "0x00d_netend.h"
 
+// Go host pure half: packetsystem.ValidateNetEnd / ProcessNetEnd / NewNetEndHandler (6551); plan mappacket.ClientNetEndPacket.RuntimePlan.
 auto GP_CLI_COMMAND_NETEND::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // Packet explicitly ignored.

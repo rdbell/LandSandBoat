@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x0f5_tracking_pos.h"
 
+// Go host pure half: packetsystem.ValidatePos / ProcessPos / NewPosHandler (6553); plan mappacket.ClientPosRuntimePlanFor.
 auto GP_CLI_COMMAND_POS::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

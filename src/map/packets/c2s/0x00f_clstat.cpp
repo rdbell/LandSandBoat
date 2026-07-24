@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateCLStat / ProcessCLStat / NewCLStatHandler (6550); plan mappacket.ClientCLStatPacket.RuntimePlan.
 auto GP_CLI_COMMAND_CLSTAT::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameter to validate for this packet.
