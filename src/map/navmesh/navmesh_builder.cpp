@@ -211,7 +211,7 @@ void NavMeshBuilder::gatherTrianglesInAABB(const float* bmin, const float* bmax,
 }
 
 // Full Recast tile pipeline: RecastDemo/Source/Sample_TileMesh.cpp:794-830.
-// Go host pure half: navmesh.PlanBuildTileGeometry / ApplyBuildTileGeometry (6422).
+// Go host pure half: navmesh.ApplyBuildTileRecastPipeline (6431); geometry 6422; prep 6424.
 auto NavMeshBuilder::buildTile(const int tx, const int ty, const rcConfig& cfg, const NavMeshConfig& config, const float tileWorldSize) const -> TileResult
 {
     //
