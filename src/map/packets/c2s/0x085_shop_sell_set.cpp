@@ -53,6 +53,8 @@ const auto auditSale = [](Scheduler& scheduler, CCharEntity* PChar, uint32_t ite
 
 } // namespace
 
+// Go host pure half: packetsystem.ValidateShopSellSet / ProcessShopSellSet /
+// NewShopSellSetHandler (6488); plan mappacket.ClientShopSellSetPlanFor.
 auto GP_CLI_COMMAND_SHOP_SELL_SET::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

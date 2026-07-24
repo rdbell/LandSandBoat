@@ -23,6 +23,8 @@
 
 #include "entities/char_entity.h"
 
+// Go host pure half: packetsystem.ValidateFishing / ProcessFishing /
+// NewFishing2Handler + NewFishingHandler (6486); plan mappacket.ClientFishingActionPlanFor.
 auto GP_CLI_COMMAND_FISHING_2::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

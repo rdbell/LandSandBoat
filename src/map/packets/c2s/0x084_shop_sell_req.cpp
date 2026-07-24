@@ -25,6 +25,8 @@
 #include "packets/s2c/0x03d_shop_sell.h"
 #include "trade_container.h"
 
+// Go host pure half: packetsystem.ValidateShopSellReq / ProcessShopSellReq /
+// NewShopSellReqHandler (6487); plan mappacket.ClientShopSellReqPlanFor.
 auto GP_CLI_COMMAND_SHOP_SELL_REQ::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
