@@ -20,6 +20,7 @@
 */
 
 #include "mob_controller.h"
+#include "mob_controller_deaggro_respawn.h"
 #include "mob_controller_deaggro_capacity.h"
 #include "mob_controller_deaggro_retarget_capacity.h"
 #include "mob_controller_avatar_bodyguard_capacity.h"
@@ -1300,7 +1301,7 @@ auto CMobController::DoRoamTick(timer::time_point tick) -> Task<void>
             {
                 PMob->PAI->Despawn();
                 // Override respawn timer set by CDespawnState for deaggro (60s instead of default)
-                PMob->loc.zone->spawnHandler().registerForRespawn(PMob, 60s);
+                PMob->loc.zone->spawnHandler().registerForRespawn(PMob, mobcontrollerdeaggrorespawn::delay());
                 co_return;
             }
             else
