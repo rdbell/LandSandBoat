@@ -25,6 +25,8 @@
 #include "unitychat.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateUnityToggle / ProcessUnityToggle /
+// NewUnityToggleHandler (6517); plan mappacket.ClientUnityToggleRuntimePlanFor.
 auto GP_CLI_COMMAND_UNITY_TOGGLE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

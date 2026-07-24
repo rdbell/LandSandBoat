@@ -25,6 +25,8 @@
 #include "packets/s2c/0x110_unity.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateUnityMenu / ProcessUnityMenu /
+// NewUnityMenuHandler (6515); plan mappacket.ClientUnityMenuRuntimePlanFor.
 auto GP_CLI_COMMAND_UNITY_MENU::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

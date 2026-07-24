@@ -25,6 +25,8 @@
 #include "packets/s2c/0x110_unity.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateUnityQuest / ProcessUnityQuest /
+// NewUnityQuestHandler (6516); plan mappacket.ClientUnityQuestActionFor.
 auto GP_CLI_COMMAND_UNITY_QUEST::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
