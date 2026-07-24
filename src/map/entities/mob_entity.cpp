@@ -48,6 +48,7 @@
 #include "ai/helpers/pathfind.h"
 #include "ai/helpers/targetfind.h"
 #include "ai/states/attack_state.h"
+#include "ai/states/mob_death_timer_despawn.h"
 #include "ai/states/mobskill_state.h"
 #include "ai/states/weaponskill_state.h"
 #include "battlefield.h"
@@ -1025,7 +1026,10 @@ void CMobEntity::OnDeathTimer()
 {
     TracyZoneScoped;
 
-    if (!(m_Behavior & BEHAVIOR_RAISABLE))
+    // Dual-wire pure admission (slice 6297): raisable host inject from
+    // BEHAVIOR_RAISABLE; PAI->Despawn only when shouldDespawn is true.
+    const bool raisable = (m_Behavior & BEHAVIOR_RAISABLE) != 0;
+    if (mobdeathtimer::shouldDespawn(raisable))
     {
         PAI->Despawn();
     }
