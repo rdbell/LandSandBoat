@@ -205,6 +205,7 @@ void ConsoleService::registerDefaultCommands()
         });
 
     registerCommand(
+        // Go host pure half: console.ProcessCrashCommandInjects (slice 6394).
         "crash", "Crash the process (main thread)", [](std::vector<std::string>& inputs)
         {
             crash();

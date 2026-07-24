@@ -894,6 +894,7 @@ bool definitelyLessThan(float a, float b)
 
 void crash()
 {
+    // Go host pure half: console.ApplyProcessCrash (slice 6394).
 #ifndef _DEBUG
     ShowInfo("crash command is likely optimized out in release mode.");
 #endif
