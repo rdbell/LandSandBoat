@@ -450,7 +450,7 @@ end
 xi.festiveMoogle.onEventUpdate = function(player, csid, option, npc)
 end
 
--- Go pure half: festivemoogle.PlanEventFinish CSID/option dispatch (6580).
+-- Go pure half: festivemoogle.PlanEventFinish (6580); PlanEventFinishFromInjects (6620).
 xi.festiveMoogle.onEventFinish = function(player, csid, option, npc)
     local zoneId = player:getZoneID()
 
