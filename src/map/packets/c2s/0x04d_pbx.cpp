@@ -27,6 +27,8 @@
 #include "utils/jailutils.h"
 #include "utils/zoneutils.h"
 
+// Go host pure half: packetsystem.ValidatePBX / ProcessPBX /
+// NewPBXHandler (6461); plan mappacket.ClientPBXPacket.PlanOperation.
 auto GP_CLI_COMMAND_PBX::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     auto pv = PacketValidator(PChar)
