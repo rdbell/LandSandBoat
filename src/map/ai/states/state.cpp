@@ -22,6 +22,7 @@
 #include "state.h"
 #include "entities/base_entity.h"
 #include "ai/states/state_delay_exit.h"
+#include "ai/states/state_error_msg.h"
 #include "ai/states/state_set_target.h"
 
 CState::CState(CBaseEntity* PEntity, uint16 _targid)
@@ -94,12 +95,14 @@ void CState::SetTarget(uint16 _targid)
 
 bool CState::HasErrorMsg() const
 {
-    return m_errorMsg != nullptr;
+    // Dual-wire: statehelpers::HasErrorMsg (slice 6324).
+    return statehelpers::HasErrorMsg(m_errorMsg != nullptr);
 }
 
 auto CState::GetErrorMsg() -> std::unique_ptr<CBasicPacket>
 {
-    if (HasErrorMsg())
+    // Dual-wire residual: reuses HasErrorMsg free gate (slice 6324).
+    if (statehelpers::HasErrorMsg(m_errorMsg != nullptr))
     {
         return m_errorMsg->copy();
     }
