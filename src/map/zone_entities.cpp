@@ -67,6 +67,7 @@
 #include "zone_char_sync_candidate.h"
 #include "zone_char_sync_apply.h"
 #include "zone_transport_spawn.h"
+#include "zone_entity_lookup.h"
 #include "zone_conditional_npc.h"
 #include "zone_npc_visibility.h"
 #include "zone_pc_spawn_gate.h"
@@ -1298,74 +1299,73 @@ CBaseEntity* CZoneEntities::GetEntity(uint16 targid, uint8 filter)
         return nullptr;
     };
 
-    if (targid < 0x400)
+    switch (zoneentitylookup::ClassifyTargetID(targid))
     {
-        if (filter & TYPE_MOB)
-        {
-            if (const auto& PEntity = findEntity(m_mobList))
+        case zoneentitylookup::TargetRange::Static:
+            if (zoneentitylookup::RequestsType(filter, TYPE_MOB))
             {
-                return PEntity;
+                if (const auto& PEntity = findEntity(m_mobList))
+                {
+                    return PEntity;
+                }
             }
-        }
-        if (filter & TYPE_NPC)
-        {
-            if (const auto& PEntity = findEntity(m_npcList))
+            if (zoneentitylookup::RequestsType(filter, TYPE_NPC))
             {
-                return PEntity;
+                if (const auto& PEntity = findEntity(m_npcList))
+                {
+                    return PEntity;
+                }
             }
-        }
-        if (filter & TYPE_SHIP)
-        {
-            if (const auto& PEntity = findEntity(m_TransportList))
+            if (zoneentitylookup::RequestsType(filter, TYPE_SHIP))
             {
-                return PEntity;
+                if (const auto& PEntity = findEntity(m_TransportList))
+                {
+                    return PEntity;
+                }
             }
-        }
-    }
-    else if (targid < 0x700)
-    {
-        if (filter & TYPE_PC)
-        {
-            if (const auto& PEntity = findEntity(m_charList))
+            break;
+        case zoneentitylookup::TargetRange::Character:
+            if (zoneentitylookup::RequestsType(filter, TYPE_PC))
             {
-                return PEntity;
+                if (const auto& PEntity = findEntity(m_charList))
+                {
+                    return PEntity;
+                }
             }
-        }
-    }
-    else if (targid < 0x1000) // 1792 - 4096 are dynamic entities
-    {
-        if (filter & TYPE_PET)
-        {
-            if (const auto& PEntity = findEntity(m_petList))
+            break;
+        case zoneentitylookup::TargetRange::Dynamic:
+            if (zoneentitylookup::RequestsType(filter, TYPE_PET))
             {
-                return PEntity;
+                if (const auto& PEntity = findEntity(m_petList))
+                {
+                    return PEntity;
+                }
             }
-        }
-        if (filter & TYPE_TRUST)
-        {
-            if (const auto& PEntity = findEntity(m_trustList))
+            if (zoneentitylookup::RequestsType(filter, TYPE_TRUST))
             {
-                return PEntity;
+                if (const auto& PEntity = findEntity(m_trustList))
+                {
+                    return PEntity;
+                }
             }
-        }
-        if (filter & TYPE_NPC)
-        {
-            if (const auto& PEntity = findEntity(m_npcList))
+            if (zoneentitylookup::RequestsType(filter, TYPE_NPC))
             {
-                return PEntity;
+                if (const auto& PEntity = findEntity(m_npcList))
+                {
+                    return PEntity;
+                }
             }
-        }
-        if (filter & TYPE_MOB)
-        {
-            if (const auto& PEntity = findEntity(m_mobList))
+            if (zoneentitylookup::RequestsType(filter, TYPE_MOB))
             {
-                return PEntity;
+                if (const auto& PEntity = findEntity(m_mobList))
+                {
+                    return PEntity;
+                }
             }
-        }
-    }
-    else
-    {
-        ShowError("Trying to get entity outside of valid id bounds (%u)", targid);
+            break;
+        case zoneentitylookup::TargetRange::Invalid:
+            ShowError("Trying to get entity outside of valid id bounds (%u)", targid);
+            break;
     }
 
     return nullptr;

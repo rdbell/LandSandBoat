@@ -2647,6 +2647,8 @@ set(SOURCES
     test_zone_char_sync_apply_6262.cpp
     test_zone_transport_spawn_6263.h
     test_zone_transport_spawn_6263.cpp
+    test_zone_entity_lookup_6264.h
+    test_zone_entity_lookup_6264.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
