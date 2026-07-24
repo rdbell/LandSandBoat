@@ -155,6 +155,7 @@ MapSessionContainer::MapSessionContainer(Scheduler& scheduler)
 {
 }
 
+// Go host pure half: mapsession.ApplyCreateSession (6421).
 auto MapSessionContainer::createSession(IPP ipp) -> MapSession*
 {
     TracyZoneScoped;
