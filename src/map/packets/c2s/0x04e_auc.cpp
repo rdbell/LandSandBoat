@@ -25,6 +25,8 @@
 #include "utils/auctionutils.h"
 #include "utils/jailutils.h"
 
+// Go host pure half: packetsystem.ValidateAUC / ProcessAUC /
+// NewAUCHandler (6462); plan mappacket.ClientAUCOperationPlanFor.
 auto GP_CLI_COMMAND_AUC::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     auto pv = PacketValidator(PChar)
