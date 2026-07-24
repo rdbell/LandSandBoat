@@ -30,6 +30,8 @@
 #include "status_effect_container.h"
 #include "utils/zoneutils.h"
 
+// Go host pure half: packetsystem.ValidateGroupSolicitRes / ProcessGroupSolicitRes /
+// NewGroupSolicitResHandler (6482); plan mappacket.ClientGroupSolicitResPacket.PlanResponse.
 auto GP_CLI_COMMAND_GROUP_SOLICIT_RES::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

@@ -54,6 +54,8 @@ auto groupchange2helpers::MakeDispatchPlan(const uint8 kind, const uint8 changeK
     return {};
 }
 
+// Go host pure half: packetsystem.ValidateGroupChange2 / ProcessGroupChange2 /
+// NewGroupChange2Handler (6484); plan mappacket.ClientGroupChange2Packet.DispatchPlan.
 auto GP_CLI_COMMAND_GROUP_CHANGE2::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     auto pv = PacketValidator(PChar)

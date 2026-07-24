@@ -24,6 +24,8 @@
 #include "entities/char_entity.h"
 #include "packets/s2c/0x0c8_group_tbl.h"
 
+// Go host pure half: packetsystem.ValidateGroupListReq / ProcessGroupListReq /
+// NewGroupListReqHandler (6483); plan mappacket.ClientGroupListReqPacket.Dispatch.
 auto GP_CLI_COMMAND_GROUP_LIST_REQ::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

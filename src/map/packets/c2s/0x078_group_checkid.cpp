@@ -29,6 +29,8 @@ auto groupcheckidhelpers::MakeDispatchPlan() -> DispatchPlan
     return { true };
 }
 
+// Go host pure half: packetsystem.ValidateGroupCheckID / ProcessGroupCheckID /
+// NewGroupCheckIDHandler (6485); plan mappacket.ClientGroupCheckIDDispatchPlanFor.
 auto GP_CLI_COMMAND_GROUP_CHECKID::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameter to validate.
