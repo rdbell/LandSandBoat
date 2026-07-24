@@ -31,6 +31,8 @@
 #include "utils/itemutils.h"
 #include "utils/zoneutils.h"
 
+// Go host pure half: packetsystem.ValidateGuildBuy / ProcessGuildBuy /
+// NewGuildBuyHandler (6492); plan mappacket.ClientGuildBuyPlanFor.
 auto GP_CLI_COMMAND_GUILD_BUY::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

@@ -60,6 +60,8 @@ const auto auditSale = [](Scheduler& scheduler, CCharEntity* PChar, uint32_t ite
 
 } // namespace
 
+// Go host pure half: packetsystem.ValidateGuildSell / ProcessGuildSell /
+// NewGuildSellHandler (6494); plan mappacket.ClientGuildSellPlanFor.
 auto GP_CLI_COMMAND_GUILD_SELL::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

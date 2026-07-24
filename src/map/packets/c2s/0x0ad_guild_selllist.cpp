@@ -25,6 +25,8 @@
 #include "lua/luautils.h"
 #include "utils/zoneutils.h"
 
+// Go host pure half: packetsystem.ValidateGuildSellList / ProcessGuildSellList /
+// NewGuildSellListHandler (6495); plan mappacket.ClientGuildSellListRuntimePlanFor.
 auto GP_CLI_COMMAND_GUILD_SELLLIST::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
