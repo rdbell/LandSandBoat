@@ -397,8 +397,10 @@ bool CAIContainer::Internal_Die(timer::duration deathTime)
 
 bool CAIContainer::Internal_UseItem(uint16 targetid, uint8 loc, uint8 slotid)
 {
-    auto* entity = dynamic_cast<CCharEntity*>(PEntity);
-    if (entity)
+    auto*      entity        = dynamic_cast<CCharEntity*>(PEntity);
+    const bool hasCharEntity = entity != nullptr;
+    // Outer char-entity gate (slice 6307 dual-wire).
+    if (aicontainerhelpers::InternalUseItemHasCharEntity(hasCharEntity))
     {
         return ChangeState<CItemState>(entity, targetid, loc, slotid);
     }

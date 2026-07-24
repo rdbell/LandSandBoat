@@ -59,6 +59,8 @@
 //           (public Despawn() controller-vs-Internal_Despawn branch; pure inject)
 //   - 6306: CanFollowPath
 //           (PathFind && CanChangeState injects; pure dual-wire residual 1189)
+//   - 6307: InternalUseItemHasCharEntity
+//           (Internal_UseItem outer char-entity gate; pure inject)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -95,6 +97,8 @@
 // DespawnShouldDispatchController before Controller->Despawn vs Internal_Despawn.
 // CAIContainer::CanFollowPath injects PathFind presence and CanChangeState
 // injects into CanFollowPath.
+// CAIContainer::Internal_UseItem injects char-entity presence into
+// InternalUseItemHasCharEntity before ChangeState<CItemState>.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -121,7 +125,9 @@
 // aicontainer.DespawnShouldDispatchController
 // (despawn_dispatch.go),
 // aicontainer.CanFollowPath
-// (aicontainer.go). Prior pure port: slice 1189.
+// (aicontainer.go),
+// aicontainer.InternalUseItemHasCharEntity
+// (internal_use_item.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -610,6 +616,38 @@ inline auto InternalSynthAllowed(const bool hasCharEntity, const bool isCurrentS
 inline auto DespawnShouldDispatchController(const bool hasController) -> bool
 {
     return hasController;
+}
+
+// InternalUseItemHasCharEntity reports whether CAIContainer::Internal_UseItem
+// may proceed past the outer dynamic_cast gate.
+// Mirrors:
+//
+//   auto* entity = dynamic_cast<CCharEntity*>(PEntity);
+//   if (entity) {
+//       return ChangeState<CItemState>(entity, targetid, loc, slotid);
+//   }
+//   return false;
+//
+// Formula (slice 6307):
+//   hasCharEntity
+//
+// hasCharEntity — dynamic_cast<CCharEntity*>(PEntity) != nullptr
+// true  → host ChangeState<CItemState>(entity, targetid, loc, slotid); return result
+// false → host returns false without ChangeState
+//
+// Dual-wire of Go aicontainer.InternalUseItemHasCharEntity
+// (internal/aicontainer/internal_use_item.go). Identity inject keeps production
+// and tests on one pure surface (same pattern as InternalDieHasBattleEntity).
+// Call site: CAIContainer::Internal_UseItem entry outer gate.
+// ChangeState object graph, CItemState construction, targetid/loc/slotid
+// hosts, and full PAI ownership remain host/deferred.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState / CanFollowPath /
+// InternalEngage* / InternalChangeTarget* / InternalDisengage* /
+// InternalDie* / InternalDespawn* / InternalActionTarget* /
+// AcceptRaise* / InternalSynth* / DespawnShouldDispatch* free functions.
+inline auto InternalUseItemHasCharEntity(const bool hasCharEntity) -> bool
+{
+    return hasCharEntity;
 }
 
 } // namespace aicontainerhelpers
