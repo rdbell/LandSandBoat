@@ -66,6 +66,7 @@
 #include "zone_pc_despawn_gate.h"
 #include "zone_pc_distance_gate.h"
 #include "zone_pc_candidate_gate.h"
+#include "wide_scan_policy.h"
 
 #include <map/ximesh/ximesh.h>
 
@@ -1632,7 +1633,10 @@ void CZoneEntities::WideScan(CCharEntity* PChar, uint16 radius)
     {
         for (const auto& [_, PEntity] : entityList)
         {
-            if (PEntity->isWideScannable() && isWithinDistance(PChar->loc.p, PEntity->loc.p, radius) && isSameFloor(PEntity))
+            if (widescanhelpers::ShouldIncludeWideScanEntity(
+                    PEntity->isWideScannable(),
+                    isWithinDistance(PChar->loc.p, PEntity->loc.p, radius),
+                    isSameFloor(PEntity)))
             {
                 PChar->pushPacket<GP_SERV_COMMAND_TRACKING_LIST>(PChar, PEntity);
             }

@@ -2621,6 +2621,8 @@ set(SOURCES
     test_zone_nearby_spawn_6249.cpp
     test_mob_party_link_6250.h
     test_mob_party_link_6250.cpp
+    test_zone_wide_scan_6251.h
+    test_zone_wide_scan_6251.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
