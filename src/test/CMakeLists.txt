@@ -2867,6 +2867,8 @@ set(SOURCES
     test_mapsession_cleanup_sessions_host_6420.cpp
     test_mapsession_create_session_host_6421.h
     test_mapsession_create_session_host_6421.cpp
+    test_navmesh_build_tile_setup_host_6422.h
+    test_navmesh_build_tile_setup_host_6422.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

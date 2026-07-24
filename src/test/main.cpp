@@ -1464,6 +1464,7 @@ auto runMapsessionCleanupEffectsHost6418SelfTests() -> bool;
 auto runMapsessionDestroySessionHost6419SelfTests() -> bool;
 auto runMapsessionCleanupSessionsHost6420SelfTests() -> bool;
 auto runMapsessionCreateSessionHost6421SelfTests() -> bool;
+auto runNavmeshBuildTileSetupHost6422SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3805,6 +3806,7 @@ namespace
         ok = runMapsessionDestroySessionHost6419SelfTests() && ok;
         ok = runMapsessionCleanupSessionsHost6420SelfTests() && ok;
         ok = runMapsessionCreateSessionHost6421SelfTests() && ok;
+        ok = runNavmeshBuildTileSetupHost6422SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
