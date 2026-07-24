@@ -113,6 +113,7 @@ local function getMapEventParams(player)
     return paramTable
 end
 
+-- Go pure half: mapvendor.PlanTriggerFromKeyItems composition (6586).
 xi.maps.onTrigger = function(player, npc)
     local eventParams = getMapEventParams(player)
 
