@@ -26,6 +26,9 @@
 #include "utils/blacklistutils.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateBlackEdit / ProcessBlackEdit /
+// NewBlackEditHandler (6458); plan mappacket.ClientBlackEditRuntimePlanFor.
+
 namespace
 {
 
