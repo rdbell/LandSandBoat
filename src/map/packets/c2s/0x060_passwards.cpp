@@ -27,6 +27,8 @@
 #include "lua/luautils.h"
 #include "packets/s2c/0x052_eventucoff.h"
 
+// Go host pure half: packetsystem.ValidatePasswards / ProcessPasswards /
+// NewPasswardsHandler (6473); plan mappacket.ClientPasswardsPacket.RunRuntime.
 auto GP_CLI_COMMAND_PASSWARDS::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
