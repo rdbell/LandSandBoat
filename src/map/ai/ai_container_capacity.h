@@ -38,6 +38,10 @@
 //   - 6292: InternalEngageIsAlreadyEngagedPath +
 //           InternalEngageShouldRetarget
 //           (already-engaged path selection and retarget decision; pure inject)
+//   - 6294: InternalChangeTargetHasBattleEntity +
+//           InternalChangeTargetShouldSetBattleTarget
+//           (Internal_ChangeTarget outer battle-entity gate and
+//           IsEngaged||targetid==0 path split; pure inject)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -52,13 +56,19 @@
 // presence and IsEngaged into InternalEngageIsAlreadyEngagedPath, then
 // GetBattleTargetID vs requested into InternalEngageShouldRetarget before
 // optional ChangeTarget.
+// CAIContainer::Internal_ChangeTarget injects battle-entity presence into
+// InternalChangeTargetHasBattleEntity, then IsEngaged and targetid into
+// InternalChangeTargetShouldSetBattleTarget before SetBattleTargetID vs Engage.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.InternalEngageForceAttackAllowed /
 // aicontainer.InternalEngageShouldResumeInactive /
 // aicontainer.InternalEngageIsAlreadyEngagedPath /
 // aicontainer.InternalEngageShouldRetarget
-// (internal_engage.go). Prior pure port: slice 1189.
+// (internal_engage.go),
+// aicontainer.InternalChangeTargetHasBattleEntity /
+// aicontainer.InternalChangeTargetShouldSetBattleTarget
+// (internal_change_target.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -232,6 +242,59 @@ inline auto InternalEngageIsAlreadyEngagedPath(const bool hasBattleEntity, const
 inline auto InternalEngageShouldRetarget(const uint16 currentBattleTargetID, const uint16 requestedTargetID) -> bool
 {
     return currentBattleTargetID != requestedTargetID;
+}
+
+// InternalChangeTargetHasBattleEntity reports whether CAIContainer::Internal_ChangeTarget
+// may proceed past the outer dynamic_cast gate.
+// Mirrors:
+//
+//   auto* entity = dynamic_cast<CBattleEntity*>(PEntity);
+//   if (entity) { ... }
+//
+// Formula (slice 6294):
+//   hasBattleEntity
+//
+// hasBattleEntity — dynamic_cast<CBattleEntity*>(PEntity) != nullptr
+// true  → host evaluates path split (SetBattleTargetID vs Engage)
+// false → host returns false without path split
+//
+// Dual-wire of Go aicontainer.InternalChangeTargetHasBattleEntity
+// (internal/aicontainer/internal_change_target.go). Identity inject keeps
+// production and tests on one pure surface (same pattern as CanDispatch).
+// Call site: CAIContainer::Internal_ChangeTarget entry outer gate.
+// SetBattleTargetID mutations, Engage controller body, public ChangeTarget
+// CanDispatch residual, and full PAI ownership remain host/deferred.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState /
+// InternalEngage* free functions.
+inline auto InternalChangeTargetHasBattleEntity(const bool hasBattleEntity) -> bool
+{
+    return hasBattleEntity;
+}
+
+// InternalChangeTargetShouldSetBattleTarget reports whether, once
+// Internal_ChangeTarget has a battle entity, the host must SetBattleTargetID
+// and return true instead of Engage(targetid).
+// Mirrors:
+//
+//   IsEngaged() || targetid == 0
+//
+// Formula (slice 6294):
+//   isEngaged || targetid == 0
+//
+// isEngaged — host CAIContainer::IsEngaged()
+// targetid — requested battle target id (0 clears / sets zero without Engage)
+// true  → host SetBattleTargetID(targetid); return true
+// false → host return Engage(targetid)
+//
+// Dual-wire of Go aicontainer.InternalChangeTargetShouldSetBattleTarget
+// (internal/aicontainer/internal_change_target.go).
+// Call site: CAIContainer::Internal_ChangeTarget path split.
+// SetBattleTargetID mutations and Engage controller body remain host.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState /
+// InternalEngage* free functions.
+inline auto InternalChangeTargetShouldSetBattleTarget(const bool isEngaged, const uint16 targetid) -> bool
+{
+    return isEngaged || targetid == 0;
 }
 
 } // namespace aicontainerhelpers
