@@ -99,6 +99,7 @@ for zoneId, _ in pairs(hoofprintPositions) do
 end
 
 -- Adds hoofprints if the current zone is the one picked for that day
+-- Go pure half: darkrider.PlanAddHoofprints seed/zone/spawn composition (6581).
 xi.darkRider.addHoofprints = function(zone)
     -- We need a random number that's the same across servers,
     -- so we add a bunch of vanadiel time values, which will be the same across servers, but should
