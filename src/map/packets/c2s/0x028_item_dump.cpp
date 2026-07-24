@@ -65,6 +65,8 @@ auto itemdump::PlanFor(const uint8_t category, const uint8_t index, const uint32
     return { .action = (!recycleEnabled || category != LOC_INVENTORY || noRecycle) ? Action::Drop : Action::Recycle, .breakLinkshell = mainLinkshell };
 }
 
+// Go host pure half: packetsystem.ValidateItemDump / ProcessItemDump /
+// NewItemDumpHandler (6446); pure plan itemdump.PlanFor.
 auto GP_CLI_COMMAND_ITEM_DUMP::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

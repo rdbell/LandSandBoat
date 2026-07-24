@@ -2915,6 +2915,8 @@ set(SOURCES
     test_mapsession_packet_cache_host_6444.cpp
     test_c2s_switch_vote_handler_host_6445.h
     test_c2s_switch_vote_handler_host_6445.cpp
+    test_c2s_item_dump_handler_host_6446.h
+    test_c2s_item_dump_handler_host_6446.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

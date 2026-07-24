@@ -1488,6 +1488,7 @@ auto runZoneutilsPlayerCapHost6442SelfTests() -> bool;
 auto runZonePlayerCapBackends6443SelfTests() -> bool;
 auto runMapsessionPacketCacheHost6444SelfTests() -> bool;
 auto runC2sSwitchVoteHandlerHost6445SelfTests() -> bool;
+auto runC2sItemDumpHandlerHost6446SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3853,6 +3854,7 @@ namespace
         ok = runZonePlayerCapBackends6443SelfTests() && ok;
         ok = runMapsessionPacketCacheHost6444SelfTests() && ok;
         ok = runC2sSwitchVoteHandlerHost6445SelfTests() && ok;
+        ok = runC2sItemDumpHandlerHost6446SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
