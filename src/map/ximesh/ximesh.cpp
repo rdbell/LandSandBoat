@@ -497,6 +497,7 @@ auto XiMesh::worldToCell(const float x, const float z) const -> std::pair<int, i
     };
 }
 
+// Go host pure half: ximesh.Query / GetTerrainAt / GetFloorID / WorldToCell (6413).
 // Returns the triangle under (x, z) closest above y.
 auto XiMesh::query(const float x, const float y, const float z) const -> std::optional<CellHit>
 {
