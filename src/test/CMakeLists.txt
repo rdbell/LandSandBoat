@@ -2809,6 +2809,8 @@ set(SOURCES
     test_send_parse_host_6391.cpp
     test_zoneout_sql_host_6392.h
     test_zoneout_sql_host_6392.cpp
+    test_console_stdin_poll_host_6393.h
+    test_console_stdin_poll_host_6393.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

@@ -48,6 +48,7 @@
 // https://stackoverflow.com/a/71992965
 bool stdinHasData()
 {
+    // Go host pure half: console.DefaultStdinHasData / DrainStdinLines (slice 6393).
 #if defined(_WIN32)
     // this works by harnessing Windows' black magic:
     return _kbhit();
@@ -62,6 +63,7 @@ bool stdinHasData()
 
 bool getLine(std::string& line)
 {
+    // Go host pure half: console.DefaultGetLine / PlanGetLine (slice 6393).
     // If there is data on stdin we can call _getch() knowing that it won't block!
     // This makes this routine non-blocking.
     if (!stdinHasData())
