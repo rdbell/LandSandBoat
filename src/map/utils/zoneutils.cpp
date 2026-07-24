@@ -1337,7 +1337,8 @@ auto GetZoneIPP(uint16 zoneId) -> uint64
     return ipp;
 }
 
-// Go host pure half: zoneutils.ApplyIsZoneAtPlayerCap → loginutil.ApplyIsZoneAtPlayerCap (6442/6441).
+// Go host pure half: zoneutils.ApplyIsZoneAtPlayerCap → loginutil (6442/6441);
+// production backends: IsZoneAtPlayerCapLive settings+dbutil (6443).
 auto IsZoneAtPlayerCap(uint16 zoneId, bool isGM) -> bool
 {
     const auto cap = settings::get<uint16>("map.ZONE_PLAYER_CAP");

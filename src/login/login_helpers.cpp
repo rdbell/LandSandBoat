@@ -115,6 +115,7 @@ std::size_t authenticated_session_count()
 }
 
 // Go host pure half: loginutil.ApplyIsZoneAtPlayerCap (6441);
+// production backends: SettingsGetUint16 / QueryZonePopPreparedStmt (6443);
 // pure poles: IsZoneAtPlayerCap / IsZoneTypeInstanced (2841).
 auto isZoneAtPlayerCap(uint16 zoneId, bool isGM) -> bool
 {
