@@ -182,6 +182,8 @@ const auto unequipLinkshell = [](CCharEntity* PChar, CItemLinkshell* PItemLinksh
 
 } // namespace
 
+// Go host pure half: packetsystem.ValidateGroupComlinkActive / ProcessGroupComlinkActive /
+// NewGroupComlinkActiveHandler (6505); plan mappacket.ClientGroupComlinkActiveRuntimePlanFor.
 auto GP_CLI_COMMAND_GROUP_COMLINK_ACTIVE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

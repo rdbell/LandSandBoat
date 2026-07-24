@@ -27,6 +27,8 @@
 #include "utils/charutils.h"
 #include "utils/itemutils.h"
 
+// Go host pure half: packetsystem.ValidateGroupComlinkMake / ProcessGroupComlinkMake /
+// NewGroupComlinkMakeHandler (6504); plan mappacket.ClientGroupComlinkMakeActionPlanFor.
 auto GP_CLI_COMMAND_GROUP_COMLINK_MAKE::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
