@@ -718,7 +718,7 @@ xi.mobskills.mobRangedMove = function(mob, target, skill, action, skillParams)
     local wscMods    = xi.combat.physical.calculateWSC(mob, skillParams.str_wSC, skillParams.dex_wSC, skillParams.vit_wSC, skillParams.agi_wSC, skillParams.int_wSC, skillParams.mnd_wSC, skillParams.chr_wSC)
     local bonusTP    = mob:getMod(xi.mod.TP_BONUS) + params.fTPBonus
     local skillTP    = math.max(1000, skill:getTP())
-    local tpValue    = math.min(skillTP + bonusTP, 3000)
+    local tpValue    = xi.mobskills.mobSkillTPValue(skillTP, bonusTP)
     local basefTP    = xi.combat.physical.calculateTPfactor(tpValue, params.fTP)
     local baseDamage = 0
 
@@ -941,7 +941,7 @@ xi.mobskills.mobPhysicalMove = function(mob, target, skill, action, skillParams)
     local wscMods    = xi.combat.physical.calculateWSC(mob, skillParams.str_wSC, skillParams.dex_wSC, skillParams.vit_wSC, skillParams.agi_wSC, skillParams.int_wSC, skillParams.mnd_wSC, skillParams.chr_wSC)
     local bonusTP    = mob:getMod(xi.mod.TP_BONUS) + params.fTPBonus
     local skillTP    = math.max(1000, skill:getTP())
-    local tpValue    = math.min(skillTP + bonusTP, 3000)
+    local tpValue    = xi.mobskills.mobSkillTPValue(skillTP, bonusTP)
     local basefTP    = xi.combat.physical.calculateTPfactor(tpValue, params.fTP)
     local baseDamage = 0
 
@@ -1238,7 +1238,7 @@ xi.mobskills.mobMagicalMove = function(mob, target, skill, action, skillParams)
     -- TODO: Do mobs benefit from Fencer job trait's TP_BONUS?
     -- Best way to test will likely be to find a mob that uses a magical skill with fTP scaling and has varying jobs to compare (WAR 45 min for Fencer, 80 BST, 85 BRD).
     local bonusTP             = mob:getMod(xi.mod.TP_BONUS) + fTPBonus
-    local tpValue             = math.min(skill:getTP() + bonusTP, 3000)
+    local tpValue             = xi.mobskills.mobSkillTPValue(skill:getTP(), bonusTP)
     local baseDamagefTPMult   = xi.combat.physical.calculateTPfactor(tpValue, fTPScale)
     local additiveBonusDamage = math.floor(xi.combat.physical.calculateTPfactor(tpValue, additiveDamage))
 
@@ -1248,25 +1248,18 @@ xi.mobskills.mobMagicalMove = function(mob, target, skill, action, skillParams)
     local dStat = 0
 
     if skillParams.dStatMultiplier then
-        dStat = mob:getStat(dStatAttackerMod) - target:getStat(dStatDefenderMod)
-
-        if not mob:isAvatar() then
-            -- TODO: Does this apply to jug pets and avatars?
-            if dStat < 0 then
-                dStatMultiplier = dStatMultiplier - 0.5
-
-                if dStatMultiplier < 1 then
-                    dStat = -1
-                end
-            end
-        end
-
-        dStat = math.floor(dStat * dStatMultiplier)
-        dStat = utils.clamp(dStat, -65, 999)
+        local statDelta = mob:getStat(dStatAttackerMod) - target:getStat(dStatDefenderMod)
+        dStat = xi.mobskills.mobMagicalDStat(statDelta, dStatMultiplier, true, mob:isAvatar())
     end
 
-    damage = math.floor((damage + wscMods + mob:getMod(xi.mod.MAGIC_DAMAGE)) * baseDamagefTPMult + dStat + additiveBonusDamage)
-    damage = math.max(0, damage)
+    damage = xi.mobskills.mobMagicalBaseDamage(
+        damage,
+        wscMods,
+        mob:getMod(xi.mod.MAGIC_DAMAGE),
+        baseDamagefTPMult,
+        dStat,
+        additiveBonusDamage
+    )
 
     local hitsLanded      = 1 -- Magic skills can't miss in the same way as physical skills so assume 1 hit landed for calculations.
     local hitAbsorbed     = false
@@ -1383,16 +1376,19 @@ xi.mobskills.mobMagicalMove = function(mob, target, skill, action, skillParams)
         resistTier = resistTierOverride
     end
 
-    damage = math.floor(damage * sdt)
-    damage = math.floor(damage * resistTier)
-    damage = math.floor(damage * dayAndWeather)
-    damage = math.floor(damage * steamJacketMultiplier)
-    damage = math.floor(damage * magicBonusDiff)
-    damage = math.floor(damage * magicDamageAdjustment)
-    damage = math.floor(damage * bloodPactMultiplier)
-    damage = math.floor(damage * absorbDamage)
-    damage = math.floor(damage * magicBurst)
-    damage = math.floor(damage * magicBurstBonus)
+    damage = xi.mobskills.mobMagicalMitigationProduct(
+        damage,
+        sdt,
+        resistTier,
+        dayAndWeather,
+        steamJacketMultiplier,
+        magicBonusDiff,
+        magicDamageAdjustment,
+        bloodPactMultiplier,
+        absorbDamage,
+        magicBurst,
+        magicBurstBonus
+    )
 
     -- If we absorbed, then return early as the rest is not needed.
     if absorbDamage < 0  then
@@ -1488,7 +1484,7 @@ xi.mobskills.mobBreathMove = function(mob, target, skill, action, skillParams)
     end
 
     -- Calculate base damage
-    local damage          = math.floor(mobCurrentHP * percentMultipier + bonusDamage)
+    local damage          = xi.mobskills.mobBreathBaseDamage(mobCurrentHP, percentMultipier, bonusDamage)
     local hitsLanded      = 1
     local hitAbsorbed     = false
     local shadowsConsumed = 0
@@ -1527,7 +1523,7 @@ xi.mobskills.mobBreathMove = function(mob, target, skill, action, skillParams)
     -- TODO: Do mobs benefit from Fencer job trait's TP_BONUS?
     -- Best way to test will likely be to find a mob that uses a magical skill with fTP scaling and has varying jobs to compare (WAR 45 min for Fencer, 80 BST, 85 BRD).
     local bonusTP = mob:getMod(xi.mod.TP_BONUS)
-    local tpValue = math.min(skill:getTP() + bonusTP, 3000)
+    local tpValue = xi.mobskills.mobSkillTPValue(skill:getTP(), bonusTP)
 
     -- Flat MACC bonus/penalty based on fTP scale if defined.
     local mAccuracyBonus = 0
@@ -1570,17 +1566,19 @@ xi.mobskills.mobBreathMove = function(mob, target, skill, action, skillParams)
     -- TODO: Need more research about monster correlation.
     -- local systemBonus     = 1 + utils.getEcosystemStrengthBonus(mob:getEcosystem(), target:getEcosystem()) / 4
 
-    damage = math.floor(damage * systemBonus)
-    damage = math.floor(damage * elementalSDT)
-    damage = math.floor(damage * resistRate)
-    damage = math.floor(damage * dayAndWeather)
-    damage = math.floor(damage * steamJacketMultiplier)
-    damage = math.floor(damage * breathDamageAdjustment)
-    damage = math.floor(damage * absorbDamage)
-    damage = math.floor(damage * magicBurst)
-    damage = math.floor(damage * magicBurstBonus)
-
-    damage = utils.clamp(damage, 0, breathSkillDamageCap)
+    damage = xi.mobskills.mobBreathMitigationProduct(
+        damage,
+        systemBonus,
+        elementalSDT,
+        resistRate,
+        dayAndWeather,
+        steamJacketMultiplier,
+        breathDamageAdjustment,
+        absorbDamage,
+        magicBurst,
+        magicBurstBonus,
+        breathSkillDamageCap
+    )
 
     -- If we absorbed, then return early as the rest is not needed.
     if absorbDamage < 0  then
@@ -1725,9 +1723,14 @@ end
 ---@param action CAction
 ---@param info table
 ---@return boolean
+-- Pure gate: chip damage / enmity only when the skill landed a hit.
+xi.mobskills.processDamageApplies = function(hitsLanded)
+    return hitsLanded > 0
+end
+
 -- Used as a conditional filter for target:takeDamage so the target doesn't take chip damage through shadows.
 xi.mobskills.processDamage = function(actor, target, skill, action, info)
-    if info.hitsLanded > 0 then
+    if xi.mobskills.processDamageApplies(info.hitsLanded) then
         target:updateEnmityFromDamage(actor, info.damage)
 
         return true
@@ -2028,6 +2031,115 @@ end
 -- SDT, resist, and shell-style damage adjustment are forced to 1 — day/weather
 -- and MAB still apply, then absorb, nullify, and the fixed 0.5 hybrid scale.
 -- Callers still own OneForAll and Stoneskin.
+-- Pure halves of mobMagicalMove / mobBreathMove base damage and mitigation
+-- (OmegaXI slice 6666). Hosts inject entity multipliers; these keep the math
+-- testable without entities.
+
+-- min(skillTP + bonusTP, 3000) for magical/breath/physical fTP resolution.
+xi.mobskills.mobSkillTPValue = function(skillTP, bonusTP)
+    return math.min(skillTP + bonusTP, 3000)
+end
+
+-- Magical dStat contribution once stat delta and multiplier are known.
+-- apply mirrors `if skillParams.dStatMultiplier then` (nil/0 skips).
+-- Non-avatar negative dStat reduces multiplier by 0.5; if that drops below 1,
+-- dStat is forced to -1 before the multiply. Result is floor-clamped [-65, 999].
+xi.mobskills.mobMagicalDStat = function(statDelta, dStatMultiplier, apply, isAvatar)
+    if not apply then
+        return 0
+    end
+
+    local mult  = dStatMultiplier
+    local dStat = statDelta
+
+    if not isAvatar and statDelta < 0 then
+        mult = mult - 0.5
+
+        if mult < 1 then
+            dStat = -1
+        end
+    end
+
+    dStat = math.floor(dStat * mult)
+
+    return utils.clamp(dStat, -65, 999)
+end
+
+-- Pre-mitigation magical base:
+--   floor((base + wsc + magicDamage) * ftpMult + dStat + additiveBonus)
+--   max(0, …)
+xi.mobskills.mobMagicalBaseDamage = function(baseDamage, wscMods, magicDamage, ftpMult, dStat, additiveBonus)
+    local damage = math.floor((baseDamage + wscMods + magicDamage) * ftpMult + dStat + additiveBonus)
+
+    return math.max(0, damage)
+end
+
+-- Pre-mitigation breath base: floor(currentHP * percent + bonusDamage)
+xi.mobskills.mobBreathBaseDamage = function(currentHP, percentMultiplier, bonusDamage)
+    return math.floor(currentHP * percentMultiplier + bonusDamage)
+end
+
+-- Successive-floor magical mitigation product. Unlike hybridMagicDamage, this
+-- does not force SDT/resist/adj to 1 on absorb≤0 — the host already left those
+-- injects at 1 when absorb is not positive.
+xi.mobskills.mobMagicalMitigationProduct = function(
+    base,
+    sdt,
+    resist,
+    dayAndWeather,
+    steamJacket,
+    magicBonusDiff,
+    magicDamageAdjustment,
+    bloodPact,
+    absorbDamage,
+    magicBurst,
+    magicBurstBonus
+)
+    local damage = base
+
+    damage = math.floor(damage * sdt)
+    damage = math.floor(damage * resist)
+    damage = math.floor(damage * dayAndWeather)
+    damage = math.floor(damage * steamJacket)
+    damage = math.floor(damage * magicBonusDiff)
+    damage = math.floor(damage * magicDamageAdjustment)
+    damage = math.floor(damage * bloodPact)
+    damage = math.floor(damage * absorbDamage)
+    damage = math.floor(damage * magicBurst)
+    damage = math.floor(damage * magicBurstBonus)
+
+    return damage
+end
+
+-- Successive-floor breath mitigation product, then clamp [0, damageCap].
+xi.mobskills.mobBreathMitigationProduct = function(
+    base,
+    systemBonus,
+    elementalSDT,
+    resist,
+    dayAndWeather,
+    steamJacket,
+    breathDamageAdjustment,
+    absorbDamage,
+    magicBurst,
+    magicBurstBonus,
+    damageCap
+)
+    local damage = base
+
+    damage = math.floor(damage * systemBonus)
+    damage = math.floor(damage * elementalSDT)
+    damage = math.floor(damage * resist)
+    damage = math.floor(damage * dayAndWeather)
+    damage = math.floor(damage * steamJacket)
+    damage = math.floor(damage * breathDamageAdjustment)
+    damage = math.floor(damage * absorbDamage)
+    damage = math.floor(damage * magicBurst)
+    damage = math.floor(damage * magicBurstBonus)
+
+    return utils.clamp(damage, 0, damageCap)
+end
+
 xi.mobskills.hybridMagicDamage = function(physicalDamage, sdt, resist, dayAndWeather, magicBonusDiff, magicDamageAdjustment, absorbDamage, nullifyDamage)
     local magicDamage = math.floor(physicalDamage)
 
