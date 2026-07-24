@@ -2771,6 +2771,8 @@ set(SOURCES
     test_aicontainer_inactive_untargetable_host_6371.cpp
     test_connect_main_host_6372.h
     test_connect_main_host_6372.cpp
+    test_world_main_host_6373.h
+    test_world_main_host_6373.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

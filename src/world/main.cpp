@@ -24,6 +24,8 @@
 
 int main(int argc, char** argv)
 {
+    // Go host pure half: worldapp.NewWorldApplication + WorldMain (slice 6373)
+    // drives application.Application.Run and always returns WorldMainExitCode.
     const auto worldApp = std::make_unique<WorldApplication>(argc, argv);
 
     worldApp->run();

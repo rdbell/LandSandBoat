@@ -15,6 +15,7 @@ inline constexpr const char* WorldHTTPEnableSettingKey = "network.ENABLE_HTTP";
 
 // WorldMainExitCode is the fixed process exit code after worldApp->run().
 // Production always returns 0 regardless of run outcome.
+// Go host pure half: worldapp.WorldMain always returns this (slice 6373).
 inline constexpr int WorldMainExitCode = 0;
 
 } // namespace worldapp

@@ -51,6 +51,7 @@ WorldApplication::~WorldApplication() = default;
 
 auto WorldApplication::createEngine() -> std::unique_ptr<Engine>
 {
+    // Go host pure half: worldapp.PlanWorldCreateEngine / WorldEngineHTTPEnabled (slice 6373).
     const auto httpEnabled = settings::get<bool>(worldapp::WorldHTTPEnableSettingKey);
     return std::make_unique<WorldEngine>(scheduler_, zmqService_, WorldEngine::EnableHTTPServer{ httpEnabled });
 }
