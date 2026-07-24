@@ -52,4 +52,14 @@ inline auto AtPointThreshold(const float distanceFromPoint) -> float
     return distanceFromPoint == 0.f ? 0.1f : distanceFromPoint + 0.2f;
 }
 
+// IsWaterTerrain reports shallow or deep water membership for InWater.
+// Mirrors: terrain == ShallowWater || terrain == DeepWater
+// Formula (slice 6338): shallow || deep (host injects equality flags)
+// Dual-wire of Go pathfind.IsWaterTerrain (in_water.go).
+// Call site: CPathFind::InWater after GetTerrainAt.
+inline auto IsWaterTerrain(const bool isShallowWater, const bool isDeepWater) -> bool
+{
+    return isShallowWater || isDeepWater;
+}
+
 } // namespace pathfindstatushelpers

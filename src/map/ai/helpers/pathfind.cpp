@@ -576,7 +576,10 @@ bool CPathFind::InWater()
 {
     const auto& pos     = m_POwner->loc.p;
     const auto  terrain = m_POwner->loc.zone->xiMesh()->getTerrainAt(pos.x, pos.y, pos.z);
-    return terrain == TerrainType::ShallowWater || terrain == TerrainType::DeepWater;
+    // Dual-wire: pathfindstatushelpers::IsWaterTerrain (slice 6338).
+    return pathfindstatushelpers::IsWaterTerrain(
+        terrain == TerrainType::ShallowWater,
+        terrain == TerrainType::DeepWater);
 }
 
 const position_t& CPathFind::GetDestination() const

@@ -2787,6 +2787,8 @@ set(SOURCES
     test_pathfind_status_6336.cpp
     test_pathfind_at_point_6337.h
     test_pathfind_at_point_6337.cpp
+    test_pathfind_in_water_6338.h
+    test_pathfind_in_water_6338.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h
