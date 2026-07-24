@@ -79,6 +79,8 @@
 //           (InterruptStates while current&&CanInterrupt loop admission)
 //   - 6322: ShouldClearCurrentState / ShouldCleanupCompletedState
 //           (ClearStateStack / CheckCompletedStates loop admissions)
+//   - 6323: IsActionQueueEmpty
+//           (QueueEmpty ActionQueue.isEmpty identity inject)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -134,6 +136,7 @@
 // CAIContainer::ClearStateStack injects current-state presence into
 // ShouldClearCurrentState. CAIContainer::CheckCompletedStates injects
 // current-state presence and IsCompleted into ShouldCleanupCompletedState.
+// CAIContainer::QueueEmpty injects ActionQueue.isEmpty into IsActionQueueEmpty.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -181,7 +184,9 @@
 // (interrupt_states.go),
 // aicontainer.ShouldClearCurrentState /
 // aicontainer.ShouldCleanupCompletedState
-// (state_stack_cleanup.go). Prior pure port: slice 1189.
+// (state_stack_cleanup.go),
+// aicontainer.IsActionQueueEmpty
+// (queue_empty.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -889,6 +894,16 @@ inline auto ShouldClearCurrentState(const bool hasCurrentState) -> bool
 inline auto ShouldCleanupCompletedState(const bool hasCurrentState, const bool isCompleted) -> bool
 {
     return hasCurrentState && isCompleted;
+}
+
+// IsActionQueueEmpty reports whether CAIContainer::QueueEmpty should return true.
+// Mirrors: return ActionQueue.isEmpty();
+// Formula (slice 6323): isEmpty
+// Dual-wire of Go aicontainer.IsActionQueueEmpty (queue_empty.go).
+// Call site: CAIContainer::QueueEmpty. ActionQueue ownership remains host.
+inline auto IsActionQueueEmpty(const bool isEmpty) -> bool
+{
+    return isEmpty;
 }
 
 } // namespace aicontainerhelpers

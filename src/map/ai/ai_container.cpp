@@ -677,7 +677,8 @@ void CAIContainer::QueueAction(queueAction_t&& action)
 
 bool CAIContainer::QueueEmpty()
 {
-    return ActionQueue.isEmpty();
+    // Dual-wire: aicontainerhelpers::IsActionQueueEmpty (slice 6323).
+    return aicontainerhelpers::IsActionQueueEmpty(ActionQueue.isEmpty());
 }
 
 void CAIContainer::ClearActionQueue()
