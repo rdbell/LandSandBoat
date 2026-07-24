@@ -16,4 +16,16 @@ inline auto IsBothQueuesEmpty(const bool actionEmpty, const bool timerEmpty) -> 
     return actionEmpty && timerEmpty;
 }
 
+// ActionDueStrict reports whether checkAction may drain a queued action at
+// tick for the host-injected due deadline (start_time + delay).
+// Mirrors: tick > topaction.start_time + topaction.delay
+// Formula (slice 6332): tick > dueAt
+// Dual-wire of Go actionqueue.ActionDueStrict (action_due.go).
+// Call sites: CAIActionQueue::checkAction timer and action while admissions.
+template <typename TimePoint>
+inline auto ActionDueStrict(const TimePoint tick, const TimePoint dueAt) -> bool
+{
+    return tick > dueAt;
+}
+
 } // namespace actionqueuehelpers

@@ -48,7 +48,8 @@ void CAIActionQueue::checkAction(timer::time_point tick)
     while (!timerQueue.empty())
     {
         const auto& topaction = timerQueue.top();
-        if (tick > topaction.start_time + topaction.delay)
+        // Dual-wire: actionqueuehelpers::ActionDueStrict (slice 6332).
+        if (actionqueuehelpers::ActionDueStrict(tick, topaction.start_time + topaction.delay))
         {
             queueAction_t action = timerQueue.top();
             timerQueue.pop();
@@ -62,7 +63,8 @@ void CAIActionQueue::checkAction(timer::time_point tick)
     while (!actionQueue.empty())
     {
         const auto& topaction = actionQueue.top();
-        if (tick > topaction.start_time + topaction.delay && (!topaction.checkState || PEntity->PAI->CanChangeState()))
+        // Dual-wire: actionqueuehelpers::ActionDueStrict (slice 6332).
+        if (actionqueuehelpers::ActionDueStrict(tick, topaction.start_time + topaction.delay) && (!topaction.checkState || PEntity->PAI->CanChangeState()))
         {
             auto action = actionQueue.top();
             actionQueue.pop();
