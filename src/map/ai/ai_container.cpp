@@ -618,7 +618,9 @@ timer::time_point CAIContainer::getPrevTick()
 
 void CAIContainer::Despawn()
 {
-    if (Controller)
+    const bool hasController = static_cast<bool>(Controller);
+    // Controller-vs-Internal_Despawn branch (slice 6305 dual-wire).
+    if (aicontainerhelpers::DespawnShouldDispatchController(hasController))
     {
         Controller->Despawn();
     }

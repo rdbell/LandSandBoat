@@ -55,6 +55,8 @@
 //           (Accept_Raise death-state admission; pure inject)
 //   - 6304: InternalSynthAllowed
 //           (Internal_Synth char-entity + not-already-synth admission; pure inject)
+//   - 6305: DespawnShouldDispatchController
+//           (public Despawn() controller-vs-Internal_Despawn branch; pure inject)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -87,6 +89,8 @@
 // CAIContainer::Internal_Synth injects char-entity presence and
 // IsCurrentState<CSynthState> into InternalSynthAllowed before
 // ForceChangeState<CSynthState>.
+// CAIContainer::Despawn injects Controller presence into
+// DespawnShouldDispatchController before Controller->Despawn vs Internal_Despawn.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.InternalEngageForceAttackAllowed /
@@ -108,7 +112,9 @@
 // aicontainer.AcceptRaiseShouldInvoke
 // (accept_raise.go),
 // aicontainer.InternalSynthAllowed
-// (internal_synth.go). Prior pure port: slice 1189.
+// (internal_synth.go),
+// aicontainer.DespawnShouldDispatchController
+// (despawn_dispatch.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -534,11 +540,43 @@ inline auto AcceptRaiseShouldInvoke(const bool isCurrentDeathState) -> bool
 // Sibling dual-wires left alone: CanDispatch / CanChangeState /
 // InternalEngage* / InternalChangeTarget* / InternalDisengage* /
 // InternalDie* / InternalDespawn* / InternalActionTarget* /
-// AcceptRaise* free functions. Public Despawn() controller branch remains
-// out of scope.
+// AcceptRaise* free functions. Public Despawn() controller branch (6305)
+// remains a separate slice.
 inline auto InternalSynthAllowed(const bool hasCharEntity, const bool isCurrentSynthState) -> bool
 {
     return hasCharEntity && !isCurrentSynthState;
+}
+
+// DespawnShouldDispatchController reports whether CAIContainer::Despawn
+// should forward to Controller->Despawn() rather than Internal_Despawn().
+// Mirrors:
+//
+//   if (Controller) {
+//       Controller->Despawn();
+//   } else {
+//       Internal_Despawn();
+//   }
+//
+// Formula (slice 6305):
+//   hasController
+//
+// hasController — Controller != nullptr (same inject as CanDispatch)
+// true  → host Controller->Despawn()
+// false → host Internal_Despawn() (default instantDespawn=false path)
+//
+// Dual-wire of Go aicontainer.DespawnShouldDispatchController
+// (internal/aicontainer/despawn_dispatch.go). Identity inject keeps
+// production and tests on one pure surface (same pattern as CanDispatch).
+// Call site: CAIContainer::Despawn branch selection.
+// Controller->Despawn body, Internal_Despawn admission (already 6300),
+// and full PAI ownership remain host/deferred.
+// Sibling dual-wires left alone: CanDispatch / CanChangeState /
+// InternalEngage* / InternalChangeTarget* / InternalDisengage* /
+// InternalDie* / InternalDespawn* / InternalActionTarget* /
+// AcceptRaise* / InternalSynth* free functions.
+inline auto DespawnShouldDispatchController(const bool hasController) -> bool
+{
+    return hasController;
 }
 
 } // namespace aicontainerhelpers
