@@ -29,6 +29,9 @@
 #include "packets/s2c/0x020_item_attr.h"
 #include "packets/s2c/0x026_item_subcontainer.h"
 
+// Go host pure half: packetsystem.ValidateSubcontainer / ProcessSubcontainer /
+// NewSubcontainerHandler (6456); plan mappacket.ClientSubcontainerTransitionFor.
+
 namespace
 {
 
