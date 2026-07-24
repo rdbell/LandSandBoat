@@ -2851,6 +2851,8 @@ set(SOURCES
     test_ximesh_binary_decode_host_6412.cpp
     test_ximesh_query_host_6413.h
     test_ximesh_query_host_6413.cpp
+    test_ximesh_raycast_host_6414.h
+    test_ximesh_raycast_host_6414.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

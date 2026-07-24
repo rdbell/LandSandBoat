@@ -650,6 +650,7 @@ auto XiMesh::gridHeight() const -> uint16
     return header_.gridHeight;
 }
 
+// Go host pure half: ximesh.RayIntersect / GetPositionInfo (6414).
 auto XiMesh::rayIntersect(const Vector3& start, const Vector3& end, const IgnoreTransparentBarriers ignoreTransparentBarriers) const -> bool
 {
     TracyZoneScoped;
