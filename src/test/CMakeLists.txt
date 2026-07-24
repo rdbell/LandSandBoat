@@ -2659,6 +2659,8 @@ set(SOURCES
     test_spawn_can_spawn_dispatch_6268.cpp
     test_spawn_tick_cleanup_6269.h
     test_spawn_tick_cleanup_6269.cpp
+    test_spawn_tick_slot_6270.h
+    test_spawn_tick_slot_6270.cpp
     test_notoriety_scan_prune_3020.h
     test_notoriety_scan_prune_3020.cpp
     test_item_increment_count_insert_3021.h

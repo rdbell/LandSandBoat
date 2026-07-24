@@ -32,6 +32,7 @@
 #include "spawn_can_spawn.h"
 #include "spawn_slot.h"
 #include "spawn_tick_cleanup.h"
+#include "spawn_tick_slot.h"
 #include "spawn_tod_despawn.h"
 #include "spawn_weather_despawn.h"
 #include "utils/zoneutils.h"
@@ -200,13 +201,13 @@ void SpawnHandler::Tick(const timer::time_point now)
         pendingSlotRespawns_,
         [&](const auto& pair)
         {
-            if (!spawnhelpers::IsRespawnDueWithinWindow(pair.second.respawnAt > spawnThreshold))
+            if (!spawntickslot::shouldProcess(pair.second.respawnAt > spawnThreshold))
             {
                 return false;
             }
 
             SpawnSlot* slot = pair.first;
-            return !slot || slot->TrySpawn(pair.second.specificMobId);
+            return !slot || spawntickslot::shouldRemoveAfterAttempt(slot->TrySpawn(pair.second.specificMobId));
         });
 }
 

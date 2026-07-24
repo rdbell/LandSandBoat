@@ -1360,6 +1360,7 @@ auto runSpawnTodDespawn6266SelfTests() -> bool;
 auto runSpawnWeatherDespawn6267SelfTests() -> bool;
 auto runSpawnCanSpawnDispatch6268SelfTests() -> bool;
 auto runSpawnTickCleanup6269SelfTests() -> bool;
+auto runSpawnTickSlot6270SelfTests() -> bool;
 auto runNotorietyScanPrune3020SelfTests() -> bool;
 auto runItemIncrementCountInsert3021SelfTests() -> bool;
 auto runMobutilsAssignGuard3022SelfTests() -> bool;
@@ -3554,6 +3555,7 @@ namespace
         ok = runSpawnWeatherDespawn6267SelfTests() && ok;
         ok = runSpawnCanSpawnDispatch6268SelfTests() && ok;
         ok = runSpawnTickCleanup6269SelfTests() && ok;
+        ok = runSpawnTickSlot6270SelfTests() && ok;
         ok = runNotorietyScanPrune3020SelfTests() && ok;
         ok = runItemIncrementCountInsert3021SelfTests() && ok;
         ok = runMobutilsAssignGuard3022SelfTests() && ok;
