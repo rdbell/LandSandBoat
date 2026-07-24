@@ -3307,6 +3307,7 @@ local function getItemSelection(player, list, idx, idxAlt1, idxAlt2)
     return { item }
 end
 
+-- Go pure half: dealermoogle.PlanTradeFromInjects/PlanTradeStartParams (6610).
 xi.dealerMoogle.onTrade = function(player, npc, trade)
     -- Notes:
     -- You can trade stacks of items and multiple coupons.
@@ -3348,6 +3349,7 @@ xi.dealerMoogle.onTrade = function(player, npc, trade)
     end
 end
 
+-- Go pure half: dealermoogle.PlanTriggerFromInjects/PlanTriggerStartParams (6610).
 xi.dealerMoogle.onTrigger = function(player, npc)
     local cs              = csidLookup[player:getZoneID()][1]
     local itemList        = 0 -- Param 3: Only returns the index of a single KI. The one with the highest index.
@@ -3380,7 +3382,7 @@ end
 xi.dealerMoogle.onEventUpdate = function(player, csid, option, npc)
 end
 
--- Go pure half: dealermoogle.PlanEventFinishDisposition gate/access/route (6589).
+-- Go pure half: dealermoogle.PlanEventFinishDisposition (6589); PlanEventFinishFromInjects (6610).
 xi.dealerMoogle.onEventFinish = function(player, csid, option, npc)
     local cs = csidLookup[player:getZoneID()][1] + 1
 
