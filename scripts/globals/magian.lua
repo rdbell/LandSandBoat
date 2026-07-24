@@ -574,6 +574,7 @@ xi.magian.magianEventUpdate = function(player, csid, option, npc)
     }
 end
 
+-- Go pure half: magian.MagianOnEventFinishPlanFor / DeliveryCrateOnTradePlanFor / DeliveryCrateOnEventFinishPlanFor (6573).
 xi.magian.magianOnEventFinish = function(player, csid, option, npc)
     local moogleData = magianMoogleInfo[npc:getName()]
     local finishType = bit.band(option, 0xFF)
