@@ -2827,6 +2827,8 @@ set(SOURCES
     test_map_networking_attach_host_6400.cpp
     test_map_engine_init_load_host_6401.h
     test_map_engine_init_load_host_6401.cpp
+    test_map_engine_init_tail_host_6402.h
+    test_map_engine_init_tail_host_6402.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
     test_item_update_6316.h

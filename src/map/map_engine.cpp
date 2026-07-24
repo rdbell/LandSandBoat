@@ -219,6 +219,8 @@ auto MapEngine::init() -> Task<void>
     synergyutils::LoadSynergyRecipes();
     CItemEquipment::LoadAugmentData(); // TODO: Move to itemutils
 
+    // Go host pure half: mapapp.ApplyMapEngineInitTail (slice 6402) —
+    // ordered inject catalog zoneutils::Initialize … markLoaded.
     co_await zoneutils::Initialize(scheduler_, config_);
     instanceutils::Initialize(config_);
 
@@ -298,6 +300,7 @@ auto MapEngine::init() -> Task<void>
     // to run everything.
     //
 
+    // Go host pure half: mapapp.ApplyMapEngineInitTail TailMarkLoaded (6402).
     application_.markLoaded();
 }
 
