@@ -33,6 +33,7 @@
 #include "spawn_slot.h"
 #include "spawn_tick_cleanup.h"
 #include "spawn_tick_slot.h"
+#include "spawn_tick_spawn.h"
 #include "spawn_tod_despawn.h"
 #include "spawn_weather_despawn.h"
 #include "utils/zoneutils.h"
@@ -180,7 +181,7 @@ void SpawnHandler::Tick(const timer::time_point now)
                 return true;
             }
 
-            if (spawnhelpers::ShouldKeepPendingWhenCannotSpawn(
+            if (spawntickspawn::shouldKeepPending(
                     canSpawnNow(PMob),
                     luautils::OnMobSpawnCheck(PMob) == 0))
             {
