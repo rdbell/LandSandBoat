@@ -115,6 +115,56 @@ xi.weaponskills.getRangedHitRate = function(attacker, target, bonus)
 end
 
 -- Function to calculate if a hit in a WS misses, criticals, and the respective damage done
+-- Pure residual getSingleHitDamage bookkeeping (OmegaXI slice 6671).
+
+-- ignoredDefense table present (not its values).
+xi.weaponskills.ignoresDefense = function(hasIgnoredDefenseTable)
+    return hasIgnoredDefenseTable
+end
+
+xi.weaponskills.attackTypeIsPhysical = function(attackType)
+    return attackType == xi.attackType.PHYSICAL
+end
+
+-- Pre-block product for WS hits: (dmg + consumeMana) * ftp * pdif (no floor).
+xi.weaponskills.singleHitBlockReductionInput = function(dmg, consumeMana, ftp, pdif)
+    return (dmg + consumeMana) * ftp * pdif
+end
+
+-- Guard branch: physical and isGuarded → drop pDIF by 1 (floored at 0) and count.
+xi.weaponskills.planSingleHitGuard = function(isPhysical, isGuarded, pdif)
+    if not isPhysical or not isGuarded then
+        return { applyGuard = false, newPDIF = pdif, guardedHitsDelta = 0 }
+    end
+
+    return {
+        applyGuard       = true,
+        newPDIF          = xi.weaponskills.guardedPDIF(pdif),
+        guardedHitsDelta = 1,
+    }
+end
+
+-- Successful hit bookkeeping after evade/parry/shadow: hitsLanded++, optional guard, crit sticky.
+xi.weaponskills.planSingleHitSuccess = function(hitsLanded, guardedHits, pdif, criticalHit, wasCritical, isPhysical, isGuarded)
+    local guard = xi.weaponskills.planSingleHitGuard(isPhysical, isGuarded, pdif)
+
+    return {
+        hitsLanded  = hitsLanded + 1,
+        guardedHits = guardedHits + guard.guardedHitsDelta,
+        pdif        = guard.newPDIF,
+        criticalHit = criticalHit or wasCritical,
+    }
+end
+
+-- Offhand multi-attack landed plan (always offhandHitsLanded++; no classify).
+xi.weaponskills.planOffhandMultiLanded = function(hitDmg, isJump)
+    if hitDmg <= 0 then
+        return { applies = false, trySkillUp = false, addJumpTP = false }
+    end
+
+    return { applies = true, trySkillUp = true, addJumpTP = isJump }
+end
+
 -- Pure evade/miss gate for one weaponskill hit once the miss roll is known.
 -- mustMiss always misses; otherwise miss when roll exceeds hitRate unless
 -- guaranteedHit.
@@ -161,7 +211,8 @@ local function getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcPara
     local atkMultiplier        = xi.weaponskills.fTP(calcParams.tpUsed, wsParams.atkVaries)
     local ignoreDefMultiplier  = xi.weaponskills.fTP(calcParams.tpUsed, wsParams.ignoredDefense)
     local applyLevelCorrection = xi.data.levelCorrection.isLevelCorrectedZone(attacker)
-    local ignoresDefense       = (wsParams.ignoredDefense ~= nil) -- if the table exists, it ignores defense
+    local ignoresDefense       = xi.weaponskills.ignoresDefense(wsParams.ignoredDefense ~= nil)
+    local isPhysical           = xi.weaponskills.attackTypeIsPhysical(calcParams.attackType)
 
     -- local pdif = 0 Reminder for Future Implementation!
 
@@ -177,7 +228,7 @@ local function getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcPara
 
     -- check parry
     if
-        xi.weaponskills.singleHitMayParry(calcParams.attackType == xi.attackType.PHYSICAL, calcParams.guaranteedHit) and
+        xi.weaponskills.singleHitMayParry(isPhysical, calcParams.guaranteedHit) and
         xi.combat.physical.isParried(target, attacker)
     then
         -- parried logic
@@ -204,47 +255,48 @@ local function getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcPara
         calcParams.mightyStrikesApplicable
     )
 
-    if criticalHit then
-        calcParams.criticalHit = true
-    end
-
     if calcParams.attackType == xi.attackType.PHYSICAL then
         calcParams.pdif = xi.combat.physical.calculateMeleePDIF(attacker, target, calcParams.attackInfo.weaponType, atkMultiplier, criticalHit, applyLevelCorrection, ignoresDefense, ignoreDefMultiplier, true, calcParams.attackInfo.slot, false)
     else
         calcParams.pdif = xi.combat.physical.calculateRangedPDIF(attacker, target, calcParams.skillType, atkMultiplier, criticalHit, applyLevelCorrection, ignoresDefense, ignoreDefMultiplier, true, 0)
     end
 
+    local consumeMana = xi.combat.damage.consumeManaAddition(attacker)
     local blocked = xi.combat.physical.isBlocked(target, attacker)
     local blockReduction = 0
     if blocked then
         -- Reduction is computed from the pre-block product (same as upstream
         -- getDamageReductionForBlock(target, attacker, hitDamage) after the product).
+        -- Weaponskill path does not floor before the block-reduction host.
         blockReduction = xi.combat.physical.getDamageReductionForBlock(
             target,
             attacker,
-            (dmg + xi.combat.damage.consumeManaAddition(attacker)) * ftp * calcParams.pdif
+            xi.weaponskills.singleHitBlockReductionInput(dmg, consumeMana, ftp, calcParams.pdif)
         )
     end
 
     hitDamage = xi.weaponskills.singleHitDamage(
         dmg,
-        xi.combat.damage.consumeManaAddition(attacker),
+        consumeMana,
         ftp,
         calcParams.pdif,
         blocked,
         blockReduction
     )
 
-    -- handle guard and reduce the hit damage if needed
-    if
-        calcParams.attackType == xi.attackType.PHYSICAL and
+    local success = xi.weaponskills.planSingleHitSuccess(
+        calcParams.hitsLanded,
+        calcParams.guardedHits,
+        calcParams.pdif,
+        calcParams.criticalHit,
+        criticalHit,
+        isPhysical,
         xi.combat.physical.isGuarded(target, attacker)
-    then
-        calcParams.pdif        = xi.weaponskills.guardedPDIF(calcParams.pdif)
-        calcParams.guardedHits = calcParams.guardedHits + 1
-    end
-
-    calcParams.hitsLanded = calcParams.hitsLanded + 1
+    )
+    calcParams.hitsLanded  = success.hitsLanded
+    calcParams.guardedHits = success.guardedHits
+    calcParams.pdif        = success.pdif
+    calcParams.criticalHit = success.criticalHit
 
     return hitDamage, calcParams
 end
@@ -1042,10 +1094,11 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
         end
 
         -- Offhand multi-attacks always count as offhand hits when landed (no classify path upstream).
-        if hitdmg > 0 then
+        local offMultiPlan = xi.weaponskills.planOffhandMultiLanded(hitdmg, isJump)
+        if offMultiPlan.applies then
             attacker:trySkillUp(offhandSkill, targetLvl)
 
-            if isJump then
+            if offMultiPlan.addJumpTP then
                 attacker:addTP(xi.weaponskills.jumpTPGain(subTPGain, attackerTPMult))
             end
 
