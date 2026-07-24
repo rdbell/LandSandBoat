@@ -61,6 +61,8 @@
 //           (PathFind && CanChangeState injects; pure dual-wire residual 1189)
 //   - 6307: InternalUseItemHasCharEntity
 //           (Internal_UseItem outer char-entity gate; pure inject)
+//   - 6308: IsEngagedAnimation / IsRoamingAnimation
+//           (IsEngaged / IsRoaming animation identity dual-wire residual 1189)
 //
 // Production host: CAIContainer::{Cast,Engage,...} (ai_container.cpp) inject
 // Controller / typed dynamic_cast presence into CanDispatch before invoking
@@ -99,6 +101,8 @@
 // injects into CanFollowPath.
 // CAIContainer::Internal_UseItem injects char-entity presence into
 // InternalUseItemHasCharEntity before ChangeState<CItemState>.
+// CAIContainer::IsEngaged / IsRoaming inject animation comparisons into
+// IsEngagedAnimation / IsRoamingAnimation.
 // Go dual-wire: aicontainer.CanDispatch (can_dispatch.go),
 // aicontainer.CanChangeState (can_change_state.go),
 // aicontainer.CanFollowPath (aicontainer.go),
@@ -127,7 +131,9 @@
 // aicontainer.CanFollowPath
 // (aicontainer.go),
 // aicontainer.InternalUseItemHasCharEntity
-// (internal_use_item.go). Prior pure port: slice 1189.
+// (internal_use_item.go),
+// aicontainer.IsEngagedAnimation / aicontainer.IsRoamingAnimation
+// (animation_status.go). Prior pure port: slice 1189.
 
 namespace aicontainerhelpers
 {
@@ -648,6 +654,26 @@ inline auto DespawnShouldDispatchController(const bool hasController) -> bool
 inline auto InternalUseItemHasCharEntity(const bool hasCharEntity) -> bool
 {
     return hasCharEntity;
+}
+
+// IsEngagedAnimation reports whether CAIContainer::IsEngaged is true.
+// Mirrors: return PEntity->animation == ANIMATION_ATTACK;
+// Formula (slice 6308): animationIsAttack
+// Dual-wire of Go aicontainer.IsEngagedAnimation (animation_status.go).
+// Call site: CAIContainer::IsEngaged. Prior pure port: slice 1189.
+inline auto IsEngagedAnimation(const bool animationIsAttack) -> bool
+{
+    return animationIsAttack;
+}
+
+// IsRoamingAnimation reports whether CAIContainer::IsRoaming is true.
+// Mirrors: return PEntity->animation == ANIMATION_NONE;
+// Formula (slice 6308): animationIsNone
+// Dual-wire of Go aicontainer.IsRoamingAnimation (animation_status.go).
+// Call site: CAIContainer::IsRoaming. Prior pure port: slice 1189.
+inline auto IsRoamingAnimation(const bool animationIsNone) -> bool
+{
+    return animationIsNone;
 }
 
 } // namespace aicontainerhelpers

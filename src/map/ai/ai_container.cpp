@@ -601,12 +601,16 @@ bool CAIContainer::IsSpawned()
 
 bool CAIContainer::IsRoaming()
 {
-    return PEntity->animation == ANIMATION_NONE;
+    // Dual-wire: aicontainerhelpers::IsRoamingAnimation (slice 6308)
+    const bool animationIsNone = PEntity->animation == ANIMATION_NONE;
+    return aicontainerhelpers::IsRoamingAnimation(animationIsNone);
 }
 
 bool CAIContainer::IsEngaged()
 {
-    return PEntity->animation == ANIMATION_ATTACK;
+    // Dual-wire: aicontainerhelpers::IsEngagedAnimation (slice 6308)
+    const bool animationIsAttack = PEntity->animation == ANIMATION_ATTACK;
+    return aicontainerhelpers::IsEngagedAnimation(animationIsAttack);
 }
 
 bool CAIContainer::IsUntargetable()
