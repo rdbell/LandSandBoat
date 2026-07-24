@@ -282,6 +282,7 @@ auto NavMeshBuilder::buildTile(const int tx, const int ty, const rcConfig& cfg, 
     // Walkable triangles + rasterize
     //
 
+    // Go host pure half: navmesh.MarkWalkableTriangles / PrepareTriAreas (6424).
     std::vector<unsigned char> triAreas(numTris, 0);
     rcMarkWalkableTriangles(&ctx, tileCfg.walkableSlopeAngle, tileMesh.verts.data(), numVerts, tileMesh.indices.data(), numTris, triAreas.data());
 
