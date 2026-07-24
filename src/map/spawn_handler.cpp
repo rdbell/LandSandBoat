@@ -31,6 +31,7 @@
 #include "spawn_capacity.h"
 #include "spawn_can_spawn.h"
 #include "spawn_slot.h"
+#include "spawn_tick_cleanup.h"
 #include "spawn_tod_despawn.h"
 #include "spawn_weather_despawn.h"
 #include "utils/zoneutils.h"
@@ -165,7 +166,7 @@ void SpawnHandler::Tick(const timer::time_point now)
         pendingRespawns_,
         [&](const auto& pair)
         {
-            if (!spawnhelpers::IsRespawnDueWithinWindow(pair.second > spawnThreshold))
+            if (!spawntickcleanup::shouldProcess(pair.second > spawnThreshold))
             {
                 return false;
             }
@@ -173,7 +174,7 @@ void SpawnHandler::Tick(const timer::time_point now)
             const uint16 targid = spawnhelpers::EntityTargidFromId(pair.first);
             auto*        PMob   = static_cast<CMobEntity*>(zone_->GetEntity(targid, TYPE_MOB));
 
-            if (spawnhelpers::ShouldDropMissingMobRegistration(PMob != nullptr))
+            if (spawntickcleanup::shouldDrop(PMob != nullptr))
             {
                 return true;
             }
