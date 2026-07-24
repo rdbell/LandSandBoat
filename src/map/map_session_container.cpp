@@ -315,6 +315,7 @@ void MapSessionContainer::cleanupSessions(IPP mapIPP)
     {
         auto& map_session_data = it->second;
 
+        // Go host pure half: mapsession.BuildCleanupConfirmedInput / EntityBody (6438).
         auto* PChar = map_session_data->PChar.get();
         auto  now   = earth_time::now();
 

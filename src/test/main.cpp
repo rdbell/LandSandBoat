@@ -1480,6 +1480,7 @@ auto runNavmeshLoadDetourHost6434SelfTests() -> bool;
 auto runNavmeshCtorScratchHost6435SelfTests() -> bool;
 auto runZoneRebuildNavmeshHost6436SelfTests() -> bool;
 auto runZoneLoadNavmeshFullHost6437SelfTests() -> bool;
+auto runMapsessionEntityBodyHost6438SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
@@ -3837,6 +3838,7 @@ namespace
         ok = runNavmeshCtorScratchHost6435SelfTests() && ok;
         ok = runZoneRebuildNavmeshHost6436SelfTests() && ok;
         ok = runZoneLoadNavmeshFullHost6437SelfTests() && ok;
+        ok = runMapsessionEntityBodyHost6438SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
