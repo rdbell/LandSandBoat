@@ -25,6 +25,8 @@
 #include "packets/s2c/0x01d_item_same.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateItemStack / ProcessItemStack /
+// NewItemStackHandler (6455); plan mappacket.ClientItemStackTransfers.
 auto GP_CLI_COMMAND_ITEM_STACK::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
