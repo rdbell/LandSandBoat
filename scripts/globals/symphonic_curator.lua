@@ -6,7 +6,7 @@
 xi = xi or {}
 xi.symphonic_curator = xi.symphonic_curator or {}
 
--- Go pure half: symphoniccurator.PlanTriggerFull composition (6584).
+-- Go pure half: symphoniccurator.PlanTriggerFull (6584); PlanTriggerFromInjects/PlanTriggerStartParams (6603).
 xi.symphonic_curator.onTrigger = function(player, npc)
     -- The first time you click, you'll always already be listening to Mog House
     if player:getLocalVar('Symphonic_Curator_Music') == 0 then
@@ -171,6 +171,7 @@ xi.symphonic_curator.onEventUpdate = function(player, csid, option, npc)
     player:changeMusic(6, optionToSongLookup[option])
 end
 
+-- Go pure half: symphoniccurator.PlanEventFinishFromInjects previous song (6603).
 xi.symphonic_curator.onEventFinish = function(player, csid, option, npc)
     if option == 0 then
         -- Reset
