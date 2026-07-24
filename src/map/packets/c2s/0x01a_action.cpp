@@ -52,6 +52,7 @@ const auto actionToStr = [](const GP_CLI_COMMAND_ACTION_ACTIONID actionIn)
 
 } // namespace
 
+// Go host pure half: packetsystem.ValidateAction / ProcessAction / NewActionHandler (6571); plan mappacket.ClientActionRuntimePlanFor.
 auto GP_CLI_COMMAND_ACTION::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
