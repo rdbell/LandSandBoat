@@ -25,6 +25,8 @@
 #include "packets/s2c/0x049_itemsearch.h"
 #include "utils/itemutils.h"
 
+// Go host pure half: packetsystem.ValidateItemSearch / ProcessItemSearch /
+// NewItemSearchHandler (6449); same-language itemutils.TranslateItemName.
 auto GP_CLI_COMMAND_ITEMSEARCH::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)
