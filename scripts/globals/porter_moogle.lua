@@ -260,6 +260,7 @@ end
 --        the slip's extra data, displays a message to the user, and
 --        updates the user's event data.
 -----------------------------------
+-- Go pure half: portermoogle.PlanRetrieveUpdateFromInjects hasItem residual (6594).
 xi.porter_moogle.onEventUpdate = function(player, csid, option, retrieveEventId)
     local slipId = player:getLocalVar('slipId')
 
@@ -294,6 +295,7 @@ end
 -----------------------------------
 -- desc : Completes the event.
 -----------------------------------
+-- Go pure half: portermoogle.PlanEventFinishFromInjects hasItem residual (6594).
 xi.porter_moogle.onEventFinish = function(player, csid, option, talkEventId)
     if csid == talkEventId and option < 1000 then
         option = math.floor(option / 16) + (option % 16)
