@@ -41,6 +41,7 @@
 #include "utils/charutils.h"
 #include "utils/puppetutils.h"
 
+// Go host pure half: packetsystem.ValidateMyRoomJob / ProcessMyRoomJob / NewMyRoomJobHandler (6546); plan mappacket.ClientMyRoomJobRuntimePlanFor.
 auto GP_CLI_COMMAND_MYROOM_JOB::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     auto pv = PacketValidator(PChar)

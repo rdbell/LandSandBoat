@@ -24,6 +24,7 @@
 #include "entities/char_entity.h"
 #include "packets/char_status.h"
 
+// Go host pure half: packetsystem.ValidateSetUserMsg / ProcessSetUserMsg / NewSetUserMsgHandler (6545); plan mappacket.ClientSetUserMsgRuntimePlanFor.
 auto GP_CLI_COMMAND_SET_USERMSG::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     return PacketValidator(PChar)

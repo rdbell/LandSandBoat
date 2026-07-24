@@ -23,6 +23,7 @@
 
 #include "entities/char_entity.h"
 
+// Go host pure half: packetsystem.ValidateGetLSPriv / ProcessGetLSPriv / NewGetLSPrivHandler (6544); plan mappacket.ClientGetLSPrivActionFor.
 auto GP_CLI_COMMAND_GET_LSPRIV::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {
     // No parameter to validate as it is not implemented.
