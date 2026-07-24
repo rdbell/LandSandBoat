@@ -1130,7 +1130,7 @@ auto CGambitsContainer::CheckTrigger(const CBattleEntity* triggerTarget, const G
             case G_CONDITION::JA_ON_COOLDOWN:
             {
                 auto* PAbility = ability::GetAbility(static_cast<ABILITY>(predicate.condition_arg));
-                predicateResults.push_back(PAbility->getRecastTime() > 0s);
+                predicateResults.push_back(gambitshelpers::AbilityOnCooldown(static_cast<uint32>(PAbility->getRecastTime().count())));
                 continue;
             }
             case G_CONDITION::LVL_LT:
@@ -1369,33 +1369,20 @@ auto CGambitsContainer::CheckTrigger(const CBattleEntity* triggerTarget, const G
                 bool needBarEffect = false;
                 if (triggerTarget->PAI->IsCurrentState<CMagicState>())
                 {
-                    auto spellElement = static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetSpell()->getElement();
+                    auto       spellElement = static_cast<CMagicState*>(triggerTarget->PAI->GetCurrentState())->GetSpell()->getElement();
+                    const auto barEffect    = gambitshelpers::BarEffectForElement(static_cast<uint8>(spellElement));
 
-                    switch (spellElement)
+                    if (barEffect != 0)
                     {
-                        case ELEMENT_FIRE:
-                            needBarEffect = !POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Barfire);
-                            break;
-                        case ELEMENT_ICE:
-                            needBarEffect = !POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Barblizzard);
-                            break;
-                        case ELEMENT_WIND:
-                            needBarEffect = !POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Baraero);
-                            break;
-                        case ELEMENT_EARTH:
-                            needBarEffect = !POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Barstone);
-                            break;
-                        case ELEMENT_THUNDER:
-                            needBarEffect = !POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Barthunder);
-                            break;
-                        case ELEMENT_WATER:
-                            needBarEffect = !POwner->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Barwater);
-                            break;
-                        default:
-                            needBarEffect = false;
-                            spellElement  = (uint16)battleutils::GetDayElement();
-                            break;
+                        const bool ownerHasBarEffect = POwner->StatusEffectContainer->HasStatusEffect(static_cast<xi::StatusEffect>(barEffect));
+                        needBarEffect                = gambitshelpers::NeedBarEffect(true, static_cast<uint8>(spellElement), ownerHasBarEffect);
                     }
+                    else
+                    {
+                        // Non-elemental spell: record the day's element instead.
+                        spellElement = (uint16)battleutils::GetDayElement();
+                    }
+
                     POwner->SetLocalVar("[Gambit]CastElement", spellElement);
                 }
                 predicateResults.push_back(needBarEffect);
@@ -1403,7 +1390,7 @@ auto CGambitsContainer::CheckTrigger(const CBattleEntity* triggerTarget, const G
             }
             case G_CONDITION::IS_ECOSYSTEM:
             {
-                predicateResults.push_back(triggerTarget->m_EcoSystem == static_cast<xi::Ecosystem>(predicate.condition_arg));
+                predicateResults.push_back(gambitshelpers::IsEcosystem(static_cast<uint8>(triggerTarget->m_EcoSystem), static_cast<uint8>(predicate.condition_arg)));
                 continue;
             }
             case G_CONDITION::RANDOM:
@@ -1418,7 +1405,7 @@ auto CGambitsContainer::CheckTrigger(const CBattleEntity* triggerTarget, const G
             }
             case G_CONDITION::SUB_ANIMATION:
             {
-                predicateResults.push_back(triggerTarget->animationsub == predicate.condition_arg);
+                predicateResults.push_back(gambitshelpers::MatchesSubAnimation(triggerTarget->animationsub, static_cast<uint16>(predicate.condition_arg)));
                 continue;
             }
             case G_CONDITION::VAL_URIEL_CHECK:

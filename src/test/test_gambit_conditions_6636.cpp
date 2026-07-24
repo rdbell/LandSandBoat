@@ -6,7 +6,20 @@
 
 namespace
 {
+using gambitshelpers::AbilityOnCooldown;
+using gambitshelpers::BarEffectForElement;
 using gambitshelpers::CanUseRunes;
+using gambitshelpers::IsDarkSkillchain;
+using gambitshelpers::IsEcosystem;
+using gambitshelpers::IsLightSkillchain;
+using gambitshelpers::LungeMagicBurstAvailable;
+using gambitshelpers::MatchesSubAnimation;
+using gambitshelpers::MinLungeSkillchainTier;
+using gambitshelpers::NeedBarEffect;
+using gambitshelpers::ScDarkness;
+using gambitshelpers::ScDarknessII;
+using gambitshelpers::ScLight;
+using gambitshelpers::ScLightII;
 using gambitshelpers::CastingDebuff;
 using gambitshelpers::CastingElementalAoe;
 using gambitshelpers::CastingElementalMagic;
@@ -228,9 +241,101 @@ auto CheckCasting() -> bool
     return true;
 }
 
+auto CheckBarEffect() -> bool
+{
+    // Each of the six elements maps to its own bar effect.
+    const uint16 expected[] = { 100, 101, 102, 103, 104, 105 };
+    for (uint8 element = 1; element <= 6; ++element)
+    {
+        if (BarEffectForElement(element) != expected[element - 1])
+        {
+            return false;
+        }
+    }
+
+    // Non-elemental spells have no bar effect.
+    if (BarEffectForElement(0) != 0 || BarEffectForElement(7) != 0 || BarEffectForElement(8) != 0)
+    {
+        return false;
+    }
+
+    // Needed only while casting an elemental spell the owner is unprotected from.
+    if (!NeedBarEffect(true, 1, false) || NeedBarEffect(true, 1, true))
+    {
+        return false;
+    }
+    if (NeedBarEffect(false, 1, false) || NeedBarEffect(true, 8, false))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+auto CheckLunge() -> bool
+{
+    if (!IsLightSkillchain(ScLight) || !IsLightSkillchain(ScLightII))
+    {
+        return false;
+    }
+    if (!IsDarkSkillchain(ScDarkness) || !IsDarkSkillchain(ScDarknessII))
+    {
+        return false;
+    }
+    if (IsLightSkillchain(ScDarkness) || IsDarkSkillchain(ScLight))
+    {
+        return false;
+    }
+
+    // Needs a burstable chain, tier 3+, Light or Darkness, and a matching rune.
+    if (!LungeMagicBurstAvailable(true, ScLight, MinLungeSkillchainTier, true))
+    {
+        return false;
+    }
+    if (LungeMagicBurstAvailable(false, ScLight, MinLungeSkillchainTier, true))
+    {
+        return false;
+    }
+    if (LungeMagicBurstAvailable(true, ScLight, MinLungeSkillchainTier - 1, true))
+    {
+        return false;
+    }
+    if (LungeMagicBurstAvailable(true, ScLight, MinLungeSkillchainTier, false))
+    {
+        return false;
+    }
+    // A lower-tier element never qualifies, nor does SC_NONE.
+    if (LungeMagicBurstAvailable(true, 12, MinLungeSkillchainTier, true) ||
+        LungeMagicBurstAvailable(true, 0, MinLungeSkillchainTier, true))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+auto CheckSimpleGates() -> bool
+{
+    if (!IsEcosystem(3, 3) || IsEcosystem(3, 4))
+    {
+        return false;
+    }
+    if (!MatchesSubAnimation(7, 7) || MatchesSubAnimation(7, 8))
+    {
+        return false;
+    }
+    if (!AbilityOnCooldown(1) || AbilityOnCooldown(0))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 auto Check() -> bool
 {
-    return CheckRunes() && CheckTopEnmity() && CheckSkillchain() && CheckPartyRoles() && CheckCasting();
+    return CheckRunes() && CheckTopEnmity() && CheckSkillchain() && CheckPartyRoles() &&
+           CheckCasting() && CheckBarEffect() && CheckLunge() && CheckSimpleGates();
 }
 } // namespace
 

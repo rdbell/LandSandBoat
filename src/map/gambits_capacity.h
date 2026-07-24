@@ -167,4 +167,105 @@ inline auto CastingElementalOnSelf(bool isCastingMagic, uint8 spellElement, uint
 {
     return CastingElementalMagic(isCastingMagic, spellElement) && spellTargetId == ownerId;
 }
+
+// Bar-effect and Lunge gates (slice 6639).
+
+// Bar-spell status effects, indexed by the incoming spell's element.
+inline constexpr uint16 StatusBarfire      = 100;
+inline constexpr uint16 StatusBarblizzard  = 101;
+inline constexpr uint16 StatusBaraero      = 102;
+inline constexpr uint16 StatusBarstone     = 103;
+inline constexpr uint16 StatusBarthunder   = 104;
+inline constexpr uint16 StatusBarwater     = 105;
+
+// BarEffectForElement maps an incoming elemental spell to the bar effect that
+// resists it, or 0 for a non-elemental spell.
+inline auto BarEffectForElement(uint8 spellElement) -> uint16
+{
+    switch (spellElement)
+    {
+        case 1: return StatusBarfire;     // ELEMENT_FIRE
+        case 2: return StatusBarblizzard; // ELEMENT_ICE
+        case 3: return StatusBaraero;     // ELEMENT_WIND
+        case 4: return StatusBarstone;    // ELEMENT_EARTH
+        case 5: return StatusBarthunder;  // ELEMENT_THUNDER
+        case 6: return StatusBarwater;    // ELEMENT_WATER
+        default: return 0;
+    }
+}
+
+// NeedBarEffect is G_CONDITION::NEED_ELE_BAREFFECT: the owner lacks the bar
+// effect resisting the spell being cast.
+//
+// NOTE: a non-elemental spell yields false, and upstream then overwrites the
+// recorded cast element with the day's element rather than the spell's. That
+// side effect stays with the host; only the predicate is pure here.
+inline auto NeedBarEffect(bool isCastingMagic, uint8 spellElement, bool ownerHasBarEffect) -> bool
+{
+    if (!isCastingMagic || BarEffectForElement(spellElement) == 0)
+    {
+        return false;
+    }
+
+    return !ownerHasBarEffect;
+}
+
+// Skillchain elements Lunge can burst, and the runes matching each.
+inline constexpr uint8 ScLight      = 13;
+inline constexpr uint8 ScDarkness   = 14;
+inline constexpr uint8 ScLightII    = 15;
+inline constexpr uint8 ScDarknessII = 16;
+
+// MinLungeSkillchainTier is the skillchain tier Lunge requires; only Light and
+// Darkness reach it.
+inline constexpr uint8 MinLungeSkillchainTier = 3;
+
+inline auto IsLightSkillchain(uint8 skillchainElement) -> bool
+{
+    return skillchainElement == ScLight || skillchainElement == ScLightII;
+}
+
+inline auto IsDarkSkillchain(uint8 skillchainElement) -> bool
+{
+    return skillchainElement == ScDarkness || skillchainElement == ScDarknessII;
+}
+
+// LungeMagicBurstAvailable is G_CONDITION::LUNGE_MB_AVAILABLE: a burstable
+// skillchain of tier 3 or better, in Light or Darkness, with a matching rune up.
+//
+// hasMatchingRune is the owner's hold on one of the light runes (Lux, Ignis,
+// Flabra, Sulpor) for a Light chain, or the dark runes (Tenebrae, Tellus, Unda,
+// Gelus) for a Darkness chain.
+inline auto LungeMagicBurstAvailable(bool magicBurstAvailable, uint8 skillchainElement, uint8 skillchainTier, bool hasMatchingRune) -> bool
+{
+    if (!magicBurstAvailable || skillchainElement == 0 || skillchainTier < MinLungeSkillchainTier)
+    {
+        return false;
+    }
+
+    if (!IsLightSkillchain(skillchainElement) && !IsDarkSkillchain(skillchainElement))
+    {
+        return false;
+    }
+
+    return hasMatchingRune;
+}
+
+// IsEcosystem is G_CONDITION::IS_ECOSYSTEM.
+inline auto IsEcosystem(uint8 targetEcosystem, uint8 wantedEcosystem) -> bool
+{
+    return targetEcosystem == wantedEcosystem;
+}
+
+// MatchesSubAnimation is G_CONDITION::SUB_ANIMATION.
+inline auto MatchesSubAnimation(uint16 animationSub, uint16 wanted) -> bool
+{
+    return animationSub == wanted;
+}
+
+// AbilityOnCooldown is G_CONDITION::JA_ON_COOLDOWN.
+inline auto AbilityOnCooldown(uint32 recastSeconds) -> bool
+{
+    return recastSeconds > 0;
+}
 } // namespace gambitshelpers
