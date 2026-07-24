@@ -257,18 +257,73 @@ end
 -- Coiler
 -----------------------------------
 -- Returns the number of extra hits granted by the DOUBLE_ATTACK modifier based on the base number of hits.
-xi.automaton.getExtraHits = function(automaton, numHits)
-    local doubleAttackRate = utils.clamp(automaton:getMod(xi.mod.DOUBLE_ATTACK), 0, 100)
-    local extraHits        = 0
-    if doubleAttackRate > 0 then
-        for _ = 1, numHits do
-            if math.random(1, 100) <= doubleAttackRate then
+-- Pure halves of the attachment formulas, taking the resolved modifiers and
+-- stats so they are testable without an automaton.
+
+-- One extra-hit roll per swing, at the clamped Double Attack rate.
+xi.automaton.extraHitsFromRolls = function(doubleAttackRate, numHits, rolls)
+    local rate      = utils.clamp(doubleAttackRate, 0, 100)
+    local extraHits = 0
+
+    if rate > 0 then
+        for i = 1, numHits do
+            if rolls[i] <= rate then
                 extraHits = extraHits + 1
             end
         end
     end
 
     return extraHits
+end
+
+-- Equalizer reduces damage more sharply the larger it is relative to the
+-- automaton's max HP. The rate is truncated to two decimals before the cap.
+xi.automaton.equalizerDamage = function(damage, equalizerModifier, maxHP)
+    if
+        equalizerModifier == 0 or
+        damage <= 0
+    then
+        return damage
+    end
+
+    local reductionRate = (damage / maxHP) * (equalizerModifier / 100)
+
+    reductionRate = math.floor(reductionRate * 100) / 100
+    reductionRate = math.min(reductionRate, 0.90)
+
+    return math.floor(damage * (1 - reductionRate))
+end
+
+-- Flame Holder scales every fTP tier by the WEAPONSKILL_DAMAGE_BASE modifier.
+xi.automaton.flameHolderFTP = function(ftp, weaponskillDamageBase)
+    local multiplier = weaponskillDamageBase / 100
+
+    if multiplier <= 0 then
+        return ftp
+    end
+
+    return { ftp[1] * multiplier, ftp[2] * multiplier, ftp[3] * multiplier }
+end
+
+xi.automaton.rangedBaseDamage = function(rangedDmg, autoRangedDamageP)
+    return rangedDmg * (1 + autoRangedDamageP / 100)
+end
+
+-- Volt Gun potency scales with the automaton's best skill and the INT delta.
+xi.automaton.voltGunPotency = function(voltGunModifier, bestSkillLevel, dINT)
+    local basePotency = math.floor(bestSkillLevel / 16)
+    local power       = math.min(math.max(math.floor(dINT / 2), -10), 30)
+
+    return math.max(math.floor((basePotency + power) * (1 + voltGunModifier / 100)), 1)
+end
+
+xi.automaton.getExtraHits = function(automaton, numHits)
+    local rolls = {}
+    for i = 1, numHits do
+        rolls[i] = math.random(1, 100)
+    end
+
+    return xi.automaton.extraHitsFromRolls(automaton:getMod(xi.mod.DOUBLE_ATTACK), numHits, rolls)
 end
 
 -----------------------------------
@@ -278,28 +333,7 @@ end
 ---@param damage integer
 ---@return integer
 xi.automaton.handleEqualizer = function(actor, damage)
-    local equalizerModifier = actor:getMod(xi.mod.AUTO_EQUALIZER)
-    local maxHP             = actor:getMaxHP()
-
-    -- No Equalizer Equipped, return unmodified damage.
-    if equalizerModifier == 0 then
-        return damage
-    end
-
-    -- No Damage to reduce, return unmodified damage.
-    if damage <= 0 then
-        return damage
-    end
-
-    -- Equalizer damage reduction becomes more effective the higher the damage is in relation to the automatons max HP.
-    local reductionRate = (damage / maxHP) * (equalizerModifier / 100)
-
-    reductionRate = math.floor(reductionRate * 100) / 100
-
-    -- Damage reduction is capped at 90%.
-    reductionRate = math.min(reductionRate, 0.90)
-
-    return math.floor(damage * (1 - reductionRate))
+    return xi.automaton.equalizerDamage(damage, actor:getMod(xi.mod.AUTO_EQUALIZER), actor:getMaxHP())
 end
 
 -----------------------------------
@@ -307,12 +341,11 @@ end
 -----------------------------------
 -- Applies the FTP multiplier for an Automaton Weapon Skill, factoring in the WEAPONSKILL_DAMAGE_BASE modifier from Flame Holder.
 xi.automaton.applyFlameHolder = function(automaton, ftp)
-    local flameHolderFTP = automaton:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE) / 100
-    if flameHolderFTP > 0 then
-        ftp[1] = ftp[1] * flameHolderFTP
-        ftp[2] = ftp[2] * flameHolderFTP
-        ftp[3] = ftp[3] * flameHolderFTP
-    end
+    local scaled = xi.automaton.flameHolderFTP(ftp, automaton:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE))
+
+    ftp[1] = scaled[1]
+    ftp[2] = scaled[2]
+    ftp[3] = scaled[3]
 end
 
 -----------------------------------
@@ -381,7 +414,7 @@ end
 -----------------------------------
 -- Return the base damage of an Automaton Ranged Attack, factoring in the AUTO_RANGED_DAMAGEP modifier.
 xi.automaton.getRangedBaseDamage = function(automaton)
-    return automaton:getRangedDmg() * (1 + automaton:getMod(xi.mod.AUTO_RANGED_DAMAGEP) / 100)
+    return xi.automaton.rangedBaseDamage(automaton:getRangedDmg(), automaton:getMod(xi.mod.AUTO_RANGED_DAMAGEP))
 end
 
 -----------------------------------
@@ -389,13 +422,10 @@ end
 -----------------------------------
 -- Calculates the potency of Volt Gun AE. TODO: Additional dINT testing.
 xi.automaton.calculateVoltGunPotency = function(automaton, target)
-    local voltGunModifier = automaton:getMod(xi.mod.VOLT_GUN_POTENCY)
-    local skillLevel      = math.max(automaton:getSkillLevel(xi.skill.AUTOMATON_MELEE), automaton:getSkillLevel(xi.skill.AUTOMATON_RANGED), automaton:getSkillLevel(xi.skill.AUTOMATON_MAGIC))
-    local basePotency     = math.floor(skillLevel / 16)
-    local dINT            = automaton:getStat(xi.mod.INT) - target:getStat(xi.mod.INT)
-    local power           = math.min(math.max(math.floor(dINT / 2), -10), 30)
+    local skillLevel = math.max(automaton:getSkillLevel(xi.skill.AUTOMATON_MELEE), automaton:getSkillLevel(xi.skill.AUTOMATON_RANGED), automaton:getSkillLevel(xi.skill.AUTOMATON_MAGIC))
+    local dINT       = automaton:getStat(xi.mod.INT) - target:getStat(xi.mod.INT)
 
-    return math.max(math.floor((basePotency + power) * (1 + voltGunModifier / 100)), 1)
+    return xi.automaton.voltGunPotency(automaton:getMod(xi.mod.VOLT_GUN_POTENCY), skillLevel, dINT)
 end
 
 -----------------------------------
