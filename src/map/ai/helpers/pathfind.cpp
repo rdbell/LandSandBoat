@@ -297,7 +297,8 @@ void CPathFind::FollowPath(timer::time_point tick)
         m_POwner->loc.zone->navMesh()->snapToValidPosition(m_POwner->loc.p);
     }
 
-    if (m_maxDistance && m_distanceMoved >= m_maxDistance)
+    // Dual-wire: pathfindstatushelpers::LimitDistanceReached (slice 6339).
+    if (pathfindstatushelpers::LimitDistanceReached(m_maxDistance, m_distanceMoved))
     {
         // if I have a max distance, check to stop me
         Clear();
@@ -614,7 +615,8 @@ void CPathFind::Clear()
 
 void CPathFind::AddPoints(std::vector<pathpoint_t>&& points, bool reverse)
 {
-    if (points.size() > MAX_PATH_POINTS && (m_pathFlags & PATHFLAG_PATROL) == 0)
+    // Dual-wire: pathfindstatushelpers::ShouldTruncatePathPoints (slice 6339).
+    if (pathfindstatushelpers::ShouldTruncatePathPoints(points.size(), MAX_PATH_POINTS, (m_pathFlags & PATHFLAG_PATROL) != 0))
     {
         ShowWarning("CPathFind::AddPoints Given too many points (%d). Limiting to max (%d)", points.size(), MAX_PATH_POINTS);
         points.resize(MAX_PATH_POINTS);

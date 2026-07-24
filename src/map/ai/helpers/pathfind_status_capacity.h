@@ -62,4 +62,23 @@ inline auto IsWaterTerrain(const bool isShallowWater, const bool isDeepWater) ->
     return isShallowWater || isDeepWater;
 }
 
+// ShouldTruncatePathPoints reports whether AddPoints must resize to max.
+// Mirrors: points.size() > MAX_PATH_POINTS && !(PATHFLAG_PATROL)
+// Formula (slice 6339): pointCount > maxPathPoints && !isPatrol
+// Dual-wire of Go pathfind.ShouldTruncatePathPoints (add_points_limit.go).
+// Call site: CPathFind::AddPoints before resize/ShowWarning.
+inline auto ShouldTruncatePathPoints(const std::size_t pointCount, const std::size_t maxPathPoints, const bool isPatrol) -> bool
+{
+    return pointCount > maxPathPoints && !isPatrol;
+}
+
+// LimitDistanceReached reports whether moved distance hit LimitDistance.
+// Mirrors: m_maxDistance > 0 && m_distanceMoved >= m_maxDistance
+// Formula (slice 6339): maxDistance > 0 && distanceMoved >= maxDistance
+// Dual-wire of Go pathfind.LimitDistanceReached (add_points_limit.go).
+inline auto LimitDistanceReached(const float maxDistance, const float distanceMoved) -> bool
+{
+    return maxDistance > 0.f && distanceMoved >= maxDistance;
+}
+
 } // namespace pathfindstatushelpers
