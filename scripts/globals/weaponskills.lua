@@ -132,53 +132,113 @@ local function shadowAbsorb(target)
     return true
 end
 
+-----------------------------------
+-- Pure: multi-attack bonus hits (slice 6753 / internal/wsmulti.BonusHits)
+-- Exclusive QA→TA→DA→mythic OA thrice→OA twice ladder; Jump double stack;
+-- Jump PC weapon-hit OaX fallback. Rolls inject d100 (1..100); host preserves
+-- short-circuit RNG order when assembling injects.
+-- params: doubleRate, tripleRate, quadRate, oaThriceRate, oaTwiceRate,
+--         jumpDouble, firstHit, isJump, isPC, offHand,
+--         quadRoll, tripleRoll, doubleRoll, oaThriceRoll, oaTwiceRoll,
+--         weaponHitCount
+-----------------------------------
+xi.weaponskills.quadBonusHits   = 3
+xi.weaponskills.tripleBonusHits = 2
+xi.weaponskills.doubleBonusHits = 1
+
+local function multiAttackRollProc(roll, rate)
+    return roll >= 1 and roll <= rate
+end
+
+xi.weaponskills.multiAttackBonusHitsFromParams = function(params)
+    params = params or {}
+    local doubleRate = params.doubleRate or 0
+    if params.isJump then
+        doubleRate = doubleRate + (params.jumpDouble or 0)
+    end
+
+    local bonus = 0
+    if multiAttackRollProc(params.quadRoll or 0, params.quadRate or 0) then
+        bonus = xi.weaponskills.quadBonusHits
+    elseif multiAttackRollProc(params.tripleRoll or 0, params.tripleRate or 0) then
+        bonus = xi.weaponskills.tripleBonusHits
+    elseif multiAttackRollProc(params.doubleRoll or 0, doubleRate) then
+        bonus = xi.weaponskills.doubleBonusHits
+    elseif params.firstHit and multiAttackRollProc(params.oaThriceRoll or 0, params.oaThriceRate or 0) then
+        bonus = xi.weaponskills.tripleBonusHits -- thrice = +2
+    elseif params.firstHit and multiAttackRollProc(params.oaTwiceRoll or 0, params.oaTwiceRate or 0) then
+        bonus = xi.weaponskills.doubleBonusHits -- twice = +1
+    end
+
+    -- Jump OaX: when multi-attack rates miss, PC weapon multihit still contributes.
+    if params.isJump and bonus == 0 and params.isPC then
+        bonus = (params.weaponHitCount or 0) - 1
+    end
+
+    return bonus
+end
+
+-- Entity host: inject rates/RNG (short-circuit order) → pure → del charge effects.
 local function getMultiAttacks(attacker, target, wsParams, firstHit, offHand)
-    local numHits      = 0
-    local bonusHits    = 0
     local doubleRate   = attacker:getMod(xi.mod.DOUBLE_ATTACK) + attacker:getMerit(xi.merit.DOUBLE_ATTACK_RATE)
     local tripleRate   = attacker:getMod(xi.mod.TRIPLE_ATTACK) + attacker:getMerit(xi.merit.TRIPLE_ATTACK_RATE)
     local quadRate     = attacker:getMod(xi.mod.QUAD_ATTACK)
     local oaThriceRate = attacker:getMod(xi.mod.MYTHIC_OCC_ATT_THRICE)
     local oaTwiceRate  = attacker:getMod(xi.mod.MYTHIC_OCC_ATT_TWICE)
     local isJump       = wsParams.isJump or false
-
-    if isJump then
-        doubleRate = doubleRate + attacker:getMod(xi.mod.JUMP_DOUBLE_ATTACK)
-    end
+    local jumpDouble   = isJump and attacker:getMod(xi.mod.JUMP_DOUBLE_ATTACK) or 0
 
     -- TODO: Assasin vest +2 Ambush augment.
     -- The logic here wasnt actually checking for the augment.
     -- Also, it was in a completely different scale, making triple attack trigger always.
 
-    if math.random(1, 100) <= quadRate then
-        bonusHits = bonusHits + 3
-    elseif math.random(1, 100) <= tripleRate then
-        bonusHits = bonusHits + 2
-    elseif math.random(1, 100) <= doubleRate then
-        bonusHits = bonusHits + 1
-    elseif firstHit and math.random(1, 100) <= oaThriceRate then -- Can only proc on first hit
-        bonusHits = bonusHits + 2
-    elseif firstHit and math.random(1, 100) <= oaTwiceRate then  -- Can only proc on first hit
-        bonusHits = bonusHits + 1
+    -- Preserve short-circuit RNG stream: only draw later rolls when earlier miss.
+    local inject = {
+        doubleRate   = doubleRate,
+        tripleRate   = tripleRate,
+        quadRate     = quadRate,
+        oaThriceRate = oaThriceRate,
+        oaTwiceRate  = oaTwiceRate,
+        jumpDouble   = jumpDouble,
+        firstHit     = firstHit,
+        isJump       = isJump,
+        isPC         = attacker:isPC(),
+        offHand      = offHand,
+        quadRoll     = 0,
+        tripleRoll   = 0,
+        doubleRoll   = 0,
+        oaThriceRoll = 0,
+        oaTwiceRoll  = 0,
+        weaponHitCount = 0,
+    }
+
+    inject.quadRoll = math.random(1, 100)
+    if inject.quadRoll > quadRate then
+        inject.tripleRoll = math.random(1, 100)
+        if inject.tripleRoll > tripleRate then
+            inject.doubleRoll = math.random(1, 100)
+            local effectiveDouble = doubleRate + jumpDouble
+            if inject.doubleRoll > effectiveDouble then
+                if firstHit then
+                    inject.oaThriceRoll = math.random(1, 100)
+                    if inject.oaThriceRoll > oaThriceRate then
+                        inject.oaTwiceRoll = math.random(1, 100)
+                    end
+                end
+            end
+        end
     end
+
+    if isJump and attacker:isPC() then
+        inject.weaponHitCount = attacker:getWeaponHitCount(offHand)
+    end
+
+    local bonusHits = xi.weaponskills.multiAttackBonusHitsFromParams(inject)
 
     attacker:delStatusEffect(xi.effect.ASSASSINS_CHARGE)
     attacker:delStatusEffect(xi.effect.WARRIORS_CHARGE)
 
-    -- Try OaX for Jumps
-    -- ... What's the correct dual wield interaction?
-    if isJump and bonusHits == 0 and attacker:isPC() then
-        -- getWeaponHitCount will always return 1 if there's a weapon in the slot, which is already accounted for.
-        if offHand then
-            bonusHits = attacker:getWeaponHitCount(true) - 1
-        else
-            bonusHits = attacker:getWeaponHitCount(false) - 1
-        end
-    end
-
-    numHits = numHits + bonusHits
-
-    return numHits
+    return bonusHits
 end
 
 ---@param attacker CBaseEntity
