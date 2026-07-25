@@ -25,55 +25,67 @@
 #include "lua/luautils.h"
 #include "utils/charutils.h"
 
+// Go host pure half: packetsystem.ValidateEquipSet / ProcessEquipSet / NewEquipSetHandler (6778); plan mappacket.ClientEquipSetDispatchPlanFor.
+
 namespace
 {
 
 const auto validContainers = [](const CCharEntity* PChar) -> std::set<CONTAINER_ID>
 {
-    // These are always available in both LSB and retail.
+    return equipsethelpers::ValidContainers({
+        .wardrobesAvailable = {
+            PChar->getStorage(LOC_WARDROBE3)->GetSize() > 0,
+            PChar->getStorage(LOC_WARDROBE4)->GetSize() > 0,
+            PChar->getStorage(LOC_WARDROBE5)->GetSize() > 0,
+            PChar->getStorage(LOC_WARDROBE6)->GetSize() > 0,
+            PChar->getStorage(LOC_WARDROBE7)->GetSize() > 0,
+            PChar->getStorage(LOC_WARDROBE8)->GetSize() > 0,
+        },
+        .equipFromOtherContainers = settings::get<bool>("main.EQUIP_FROM_OTHER_CONTAINERS"),
+        .mogSatchelAvailable      = PChar->getStorage(LOC_MOGSATCHEL)->GetSize() > 0,
+        .mogSackAvailable         = PChar->getStorage(LOC_MOGSACK)->GetSize() > 0,
+        .mogCaseAvailable         = PChar->getStorage(LOC_MOGCASE)->GetSize() > 0,
+    });
+};
+
+} // namespace
+
+auto equipsethelpers::ValidContainers(const ContainerFacts& facts) -> std::set<CONTAINER_ID>
+{
     std::set allowedContainers = {
         LOC_INVENTORY,
         LOC_WARDROBE,
         LOC_WARDROBE2,
     };
 
-    // Global containers optionally unlockable
-    const std::set unlockableContainers = {
-        LOC_WARDROBE3, // Always available in LSB but paid feature on retail.
+    constexpr std::array unlockableContainers = {
+        LOC_WARDROBE3,
         LOC_WARDROBE4,
         LOC_WARDROBE5,
         LOC_WARDROBE6,
         LOC_WARDROBE7,
         LOC_WARDROBE8,
     };
-
-    const std::set additionalContainers = {
-        LOC_MOGSATCHEL, LOC_MOGSACK, LOC_MOGCASE
-    };
-
-    for (const auto containerId : unlockableContainers)
+    for (size_t index = 0; index < unlockableContainers.size(); ++index)
     {
-        if (PChar->getStorage(containerId)->GetSize() > 0)
+        if (facts.wardrobesAvailable[index])
         {
-            allowedContainers.insert(containerId);
+            allowedContainers.insert(unlockableContainers[index]);
         }
     }
 
-    if (settings::get<bool>("main.EQUIP_FROM_OTHER_CONTAINERS"))
+    if (facts.equipFromOtherContainers)
     {
-        for (const auto containerId : additionalContainers)
-        {
-            if (PChar->getStorage(containerId)->GetSize() > 0)
-            {
-                allowedContainers.insert(containerId);
-            }
-        }
+        if (facts.mogSatchelAvailable)
+            allowedContainers.insert(LOC_MOGSATCHEL);
+        if (facts.mogSackAvailable)
+            allowedContainers.insert(LOC_MOGSACK);
+        if (facts.mogCaseAvailable)
+            allowedContainers.insert(LOC_MOGCASE);
     }
 
     return allowedContainers;
-};
-
-} // namespace
+}
 
 auto GP_CLI_COMMAND_EQUIP_SET::validate(MapSession* PSession, const CCharEntity* PChar) const -> PacketValidationResult
 {

@@ -21,8 +21,41 @@
 
 #pragma once
 
+#include <array>
+#include <set>
+
 #include "base.h"
-namespace equipsethelpers { struct DispatchPlan { bool equip=true, persist=true, checkGearSet=true, updateHealth=true, retriggerLatents=true; }; constexpr auto MakeDispatchPlan() -> DispatchPlan { return {}; } }
+#include "item_container.h"
+
+namespace equipsethelpers
+{
+
+struct DispatchPlan
+{
+    bool equip            = true;
+    bool persist          = true;
+    bool checkGearSet     = true;
+    bool updateHealth     = true;
+    bool retriggerLatents = true;
+};
+
+struct ContainerFacts
+{
+    std::array<bool, 6> wardrobesAvailable{};
+    bool                equipFromOtherContainers{};
+    bool                mogSatchelAvailable{};
+    bool                mogSackAvailable{};
+    bool                mogCaseAvailable{};
+};
+
+constexpr auto MakeDispatchPlan() -> DispatchPlan
+{
+    return {};
+}
+
+auto ValidContainers(const ContainerFacts& facts) -> std::set<CONTAINER_ID>;
+
+} // namespace equipsethelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0050
 // This packet is sent by the client when changing equipment.
