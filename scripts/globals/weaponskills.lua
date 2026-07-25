@@ -1975,23 +1975,57 @@ xi.weaponskills.takeWeaponskillDamage = function(defender, attacker, wsParams, p
     return finaldmg
 end
 
--- Helper function to get Main damage depending on weapon type
-xi.weaponskills.getMeleeDmg = function(attacker, weaponType, kick)
-    local mainhandDamage = attacker:getWeaponDmg()
-    local offhandDamage  = attacker:getOffhandDmg()
+-----------------------------------
+-- Pure: getMeleeDmg inject form (slice 6754 / internal/wsformula.MeleeDmg)
+-- H2H/NONE: main = (kick+footwork ? kickDmg : mainhandDmg) + skill*0.11+3; off = main
+-- Other skills: return injected main/off unchanged.
+-----------------------------------
+xi.weaponskills.h2hSkillFactor = 0.11
+xi.weaponskills.h2hSkillBase   = 3.0
 
-    if weaponType == xi.skill.HAND_TO_HAND or weaponType == xi.skill.NONE then
-        local h2hSkill = attacker:getSkillLevel(xi.skill.HAND_TO_HAND) * 0.11 + 3
+xi.weaponskills.h2hSkillDamageFromParams = function(params)
+    params = params or {}
+    return (params.skillLevel or 0) * xi.weaponskills.h2hSkillFactor + xi.weaponskills.h2hSkillBase
+end
 
-        if kick and attacker:hasStatusEffect(xi.effect.FOOTWORK) then
-            mainhandDamage = attacker:getMod(xi.mod.KICK_DMG) -- Use Kick damage if footwork is on
+-- params: weaponType, kick, mainhandDmg, offhandDmg, h2hSkillLevel, hasFootwork, kickDmg
+-- returns: main, off
+xi.weaponskills.meleeDmgFromParams = function(params)
+    params = params or {}
+    local main = params.mainhandDmg or 0
+    local off  = params.offhandDmg or 0
+    local weaponType = params.weaponType or 0
+
+    if
+        weaponType == xi.skill.HAND_TO_HAND or
+        weaponType == xi.skill.NONE
+    then
+        local h2h = xi.weaponskills.h2hSkillDamageFromParams({
+            skillLevel = params.h2hSkillLevel or 0,
+        })
+        if params.kick and params.hasFootwork then
+            main = params.kickDmg or 0
         end
 
-        mainhandDamage = mainhandDamage + h2hSkill
-        offhandDamage  = mainhandDamage
+        main = main + h2h
+        off  = main
     end
 
-    return { mainhandDamage, offhandDamage }
+    return main, off
+end
+
+-- Helper function to get Main damage depending on weapon type
+xi.weaponskills.getMeleeDmg = function(attacker, weaponType, kick)
+    local main, off = xi.weaponskills.meleeDmgFromParams({
+        weaponType    = weaponType,
+        kick          = kick,
+        mainhandDmg   = attacker:getWeaponDmg(),
+        offhandDmg    = attacker:getOffhandDmg(),
+        h2hSkillLevel = attacker:getSkillLevel(xi.skill.HAND_TO_HAND),
+        hasFootwork   = attacker:hasStatusEffect(xi.effect.FOOTWORK),
+        kickDmg       = attacker:getMod(xi.mod.KICK_DMG),
+    })
+    return { main, off }
 end
 
 ---@param attacker CBaseEntity
