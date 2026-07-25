@@ -1,9 +1,275 @@
 -----------------------------------
 -- Ranger Job Utilities
+-- Dual-wired pure inject forms (slice 6746 / 0902):
+--   one-hour recast, sharpshot/fixed effect params, scavenge arrows,
+--   camouflage duration, shadowbind duration/success/msg,
+--   EES/shadowbind/bounty check gates, animation offsets
+-- Parity: internal/ranger
 -----------------------------------
 xi = xi or {}
 xi.job_utils = xi.job_utils or {}
 xi.job_utils.ranger = xi.job_utils.ranger or {}
+
+
+-----------------------------------
+-- Pure inject pins (internal/ranger, slice 6746 / 0902)
+-----------------------------------
+xi.job_utils.ranger.oneHourRecastSecondsPerMod   = 60
+xi.job_utils.ranger.sharpshotBasePower           = 40
+xi.job_utils.ranger.sharpshotDuration            = 60
+xi.job_utils.ranger.velocityShotPower            = 1
+xi.job_utils.ranger.velocityShotDuration         = 7200
+xi.job_utils.ranger.barrageDuration              = 60
+xi.job_utils.ranger.unlimitedShotPower           = 1
+xi.job_utils.ranger.unlimitedShotDuration        = 60
+xi.job_utils.ranger.flashyShotPower              = 1
+xi.job_utils.ranger.flashyShotDuration           = 60
+xi.job_utils.ranger.stealthShotPower             = 1
+xi.job_utils.ranger.stealthShotDuration          = 60
+xi.job_utils.ranger.doubleShotPower              = 40
+xi.job_utils.ranger.doubleShotDuration           = 90
+xi.job_utils.ranger.decoyShotPower               = 11
+xi.job_utils.ranger.decoyShotDuration            = 30
+xi.job_utils.ranger.decoyShotTick                = 1
+xi.job_utils.ranger.overkillPower                = 11
+xi.job_utils.ranger.overkillDuration             = 60
+xi.job_utils.ranger.overkillTick                 = 1
+xi.job_utils.ranger.camouflagePower              = 1
+xi.job_utils.ranger.camouflageBaseRollMin        = 30
+xi.job_utils.ranger.camouflageBaseRollMax        = 300
+xi.job_utils.ranger.shadowbindBaseDuration       = 30
+xi.job_utils.ranger.scavengeArrowsUsedMod        = 10000
+xi.job_utils.ranger.scavengeArrowsMax            = 99
+xi.job_utils.ranger.scavengeLevelScale           = 200
+xi.job_utils.ranger.scavengeBonusScale           = 100
+xi.job_utils.ranger.skillArchery                 = 25
+xi.job_utils.ranger.skillMarksmanship            = 26
+xi.job_utils.ranger.skillThrowing                = 27
+xi.job_utils.ranger.msgScavengeFindNothing       = 139
+xi.job_utils.ranger.msgScavengeFindItem          = 140
+xi.job_utils.ranger.msgJAMiss                    = 158
+xi.job_utils.ranger.msgNoRangedWeapon            = 216
+xi.job_utils.ranger.msgIsEffect                  = 277
+xi.job_utils.ranger.msgCannotAttackTarget        = 446
+xi.job_utils.ranger.msgScavengeFindItems         = 674
+
+-- Pure: OneHourRecast
+xi.job_utils.ranger.oneHourRecastFromParams = function(params)
+    params = params or {}
+    local out = (params.abilityRecast or 0)
+        - (params.oneHourRecastMod or 0) * xi.job_utils.ranger.oneHourRecastSecondsPerMod
+    if out < 0 then
+        return 0
+    end
+
+    return out
+end
+
+xi.job_utils.ranger.sharpshotPowerFromParams = function(sharpshotMod)
+    return xi.job_utils.ranger.sharpshotBasePower + (sharpshotMod or 0)
+end
+
+xi.job_utils.ranger.sharpshotFromParams = function(params)
+    params = params or {}
+    return {
+        power    = xi.job_utils.ranger.sharpshotPowerFromParams(params.sharpshotMod),
+        duration = xi.job_utils.ranger.sharpshotDuration,
+    }
+end
+
+xi.job_utils.ranger.velocityShotFromParams = function()
+    return {
+        power    = xi.job_utils.ranger.velocityShotPower,
+        duration = xi.job_utils.ranger.velocityShotDuration,
+    }
+end
+
+xi.job_utils.ranger.barrageFromParams = function()
+    return { power = 0, duration = xi.job_utils.ranger.barrageDuration }
+end
+
+xi.job_utils.ranger.unlimitedShotFromParams = function()
+    return {
+        power    = xi.job_utils.ranger.unlimitedShotPower,
+        duration = xi.job_utils.ranger.unlimitedShotDuration,
+    }
+end
+
+xi.job_utils.ranger.flashyShotFromParams = function()
+    return {
+        power    = xi.job_utils.ranger.flashyShotPower,
+        duration = xi.job_utils.ranger.flashyShotDuration,
+    }
+end
+
+xi.job_utils.ranger.stealthShotFromParams = function()
+    return {
+        power    = xi.job_utils.ranger.stealthShotPower,
+        duration = xi.job_utils.ranger.stealthShotDuration,
+    }
+end
+
+xi.job_utils.ranger.doubleShotFromParams = function()
+    return {
+        power    = xi.job_utils.ranger.doubleShotPower,
+        duration = xi.job_utils.ranger.doubleShotDuration,
+    }
+end
+
+xi.job_utils.ranger.decoyShotFromParams = function()
+    return {
+        power    = xi.job_utils.ranger.decoyShotPower,
+        duration = xi.job_utils.ranger.decoyShotDuration,
+        tick     = xi.job_utils.ranger.decoyShotTick,
+    }
+end
+
+xi.job_utils.ranger.overkillFromParams = function()
+    return {
+        power    = xi.job_utils.ranger.overkillPower,
+        duration = xi.job_utils.ranger.overkillDuration,
+        tick     = xi.job_utils.ranger.overkillTick,
+    }
+end
+
+-- Pure: DecodeArrowsUsed — returns arrowID, arrowsUsedLow
+xi.job_utils.ranger.decodeArrowsUsedFromParams = function(arrowsUsed)
+    arrowsUsed = arrowsUsed or 0
+    local mod = xi.job_utils.ranger.scavengeArrowsUsedMod
+    return math.floor(arrowsUsed / mod), arrowsUsed % mod
+end
+
+-- Pure: ScavengeArrowsToReturn
+xi.job_utils.ranger.scavengeArrowsToReturnFromParams = function(params)
+    params = params or {}
+    local bonuses = ((params.scavengeMod or 0) + (params.scavengeMerit or 0))
+        / xi.job_utils.ranger.scavengeBonusScale
+    local factor = (params.mainLvl or 0) / xi.job_utils.ranger.scavengeLevelScale + bonuses
+    local n = math.floor((params.arrowsUsedLow or 0) * factor)
+    if n < 0 then
+        return 0
+    end
+
+    if n > xi.job_utils.ranger.scavengeArrowsMax then
+        return xi.job_utils.ranger.scavengeArrowsMax
+    end
+
+    return n
+end
+
+xi.job_utils.ranger.scavengeMessageFromParams = function(arrowsToReturn)
+    arrowsToReturn = arrowsToReturn or 0
+    if arrowsToReturn <= 0 then
+        return xi.job_utils.ranger.msgScavengeFindNothing
+    elseif arrowsToReturn == 1 then
+        return xi.job_utils.ranger.msgScavengeFindItem
+    end
+
+    return xi.job_utils.ranger.msgScavengeFindItems
+end
+
+-- Pure: CamouflageDuration
+xi.job_utils.ranger.camouflageDurationFromParams = function(params)
+    params = params or {}
+    local duration = (params.baseRoll or 0)
+        * (1 + 0.01 * (params.camouflageDurationMod or 0))
+    return math.floor(duration * (params.sneakInvisMultiplier or 1))
+end
+
+-- Pure: ShadowbindDuration / Success / Msg
+xi.job_utils.ranger.shadowbindDurationFromParams = function(params)
+    params = params or {}
+    return xi.job_utils.ranger.shadowbindBaseDuration
+        + (params.shadowBindExt or 0)
+        + (params.jpDuration or 0)
+end
+
+xi.job_utils.ranger.shadowbindSuccessFromParams = function(params)
+    params = params or {}
+    if params.alreadyBound then
+        return false
+    end
+
+    return (params.roll0to99 or 0) >= (params.bindMeva or 0)
+end
+
+xi.job_utils.ranger.shadowbindMsgFromParams = function(success)
+    if success then
+        return xi.job_utils.ranger.msgIsEffect
+    end
+
+    return xi.job_utils.ranger.msgJAMiss
+end
+
+-- Pure: skill helpers
+xi.job_utils.ranger.isRangedCombatSkillFromParams = function(skill)
+    skill = skill or 0
+    local archery = xi.skill and xi.skill.ARCHERY or xi.job_utils.ranger.skillArchery
+    local marks = xi.skill and xi.skill.MARKSMANSHIP or xi.job_utils.ranger.skillMarksmanship
+    local throw = xi.skill and xi.skill.THROWING or xi.job_utils.ranger.skillThrowing
+    return skill == archery or skill == marks or skill == throw
+end
+
+xi.job_utils.ranger.hasMatchingRangedPairFromParams = function(params)
+    params = params or {}
+    local archery = xi.skill and xi.skill.ARCHERY or xi.job_utils.ranger.skillArchery
+    local marks = xi.skill and xi.skill.MARKSMANSHIP or xi.job_utils.ranger.skillMarksmanship
+    local r = params.rangedSkill or 0
+    local a = params.ammoSkill or 0
+    return (r == marks and a == marks) or (r == archery and a == archery)
+end
+
+-- Pure: CheckEagleEyeShot — returns msg, ok
+xi.job_utils.ranger.checkEagleEyeShotFromParams = function(params)
+    params = params or {}
+    if params.hasRangedWeapon and xi.job_utils.ranger.isRangedCombatSkillFromParams(params.skillType) then
+        if params.hasAmmoWeapon or params.skillType == (xi.skill and xi.skill.THROWING or xi.job_utils.ranger.skillThrowing) then
+            return 0, true
+        end
+    end
+
+    return xi.job_utils.ranger.msgNoRangedWeapon, false
+end
+
+xi.job_utils.ranger.checkShadowbindFromParams = function(params)
+    params = params or {}
+    if xi.job_utils.ranger.hasMatchingRangedPairFromParams(params) then
+        return 0, true
+    end
+
+    return xi.job_utils.ranger.msgNoRangedWeapon, false
+end
+
+xi.job_utils.ranger.checkBountyShotFromParams = function(params)
+    params = params or {}
+    if not params.isMob then
+        return xi.job_utils.ranger.msgCannotAttackTarget, false
+    end
+
+    if xi.job_utils.ranger.hasMatchingRangedPairFromParams(params) then
+        return 0, true
+    end
+
+    return xi.job_utils.ranger.msgNoRangedWeapon, false
+end
+
+xi.job_utils.ranger.marksmanAnimOffsetFromParams = function(rangedSkill)
+    local marks = xi.skill and xi.skill.MARKSMANSHIP or xi.job_utils.ranger.skillMarksmanship
+    if rangedSkill == marks then
+        return 1
+    end
+
+    return 0
+end
+
+xi.job_utils.ranger.bountyShotAnimOffsetFromParams = function(rangedSkill)
+    local archery = xi.skill and xi.skill.ARCHERY or xi.job_utils.ranger.skillArchery
+    if rangedSkill == archery then
+        return -1
+    end
+
+    return 0
+end
 
 -----------------------------------
 -- Helper Functions
@@ -37,28 +303,28 @@ end
 xi.job_utils.ranger.checkEagleEyeShot = function(player, target, ability)
     local ranged = player:getStorageItem(0, 0, xi.slot.RANGED)
     local ammo   = player:getStorageItem(0, 0, xi.slot.AMMO)
+    local skilltype = 0
+    local hasRangedWeapon = ranged and ranged:isType(xi.itemType.WEAPON)
+    local hasAmmoWeapon = ammo and ammo:isType(xi.itemType.WEAPON)
 
-    if ranged and ranged:isType(xi.itemType.WEAPON) then
-        local skilltype = ranged:getSkillType()
-        if
-            skilltype == xi.skill.ARCHERY or
-            skilltype == xi.skill.MARKSMANSHIP or
-            skilltype == xi.skill.THROWING
-        then
-            if
-                ammo and
-                (
-                    ammo:isType(xi.itemType.WEAPON) or
-                    skilltype == xi.skill.THROWING
-                )
-            then
-                ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
-                return 0, 0
-            end
-        end
+    if hasRangedWeapon then
+        skilltype = ranged:getSkillType()
     end
 
-    return xi.msg.basic.NO_RANGED_WEAPON, 0
+    local msg, ok = xi.job_utils.ranger.checkEagleEyeShotFromParams({
+        hasRangedWeapon = hasRangedWeapon,
+        skillType       = skilltype,
+        hasAmmoWeapon   = hasAmmoWeapon,
+    })
+    if ok then
+        ability:setRecast(xi.job_utils.ranger.oneHourRecastFromParams({
+            abilityRecast    = ability:getRecast(),
+            oneHourRecastMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+        }))
+        return 0, 0
+    end
+
+    return msg, 0
 end
 
 xi.job_utils.ranger.checkVelocityShot = function(player, target, ability)
@@ -82,16 +348,15 @@ xi.job_utils.ranger.checkBarrage = function(player, target, ability)
 end
 
 xi.job_utils.ranger.checkShadowbind = function(player, target, ability)
-    if
-        (player:getWeaponSkillType(xi.slot.RANGED) == xi.skill.MARKSMANSHIP and
-        player:getWeaponSkillType(xi.slot.AMMO) == xi.skill.MARKSMANSHIP) or
-        (player:getWeaponSkillType(xi.slot.RANGED) == xi.skill.ARCHERY and
-        player:getWeaponSkillType(xi.slot.AMMO) == xi.skill.ARCHERY)
-    then
+    local msg, ok = xi.job_utils.ranger.checkShadowbindFromParams({
+        rangedSkill = player:getWeaponSkillType(xi.slot.RANGED),
+        ammoSkill   = player:getWeaponSkillType(xi.slot.AMMO),
+    })
+    if ok then
         return 0, 0
     end
 
-    return 216, 0 -- You do not have an appropriate ranged weapon equipped.
+    return msg, 0 -- You do not have an appropriate ranged weapon equipped.
 end
 
 xi.job_utils.ranger.checkUnlimitedShot = function(player, target, ability)
@@ -111,20 +376,16 @@ xi.job_utils.ranger.checkDoubleShot = function(player, target, ability)
 end
 
 xi.job_utils.ranger.checkBountyShot = function(player, target, ability)
-    if target:getObjType() ~= xi.objType.MOB then
-        return xi.msg.basic.CANNOT_ATTACK_TARGET, 0
-    end
-
-    if
-        (player:getWeaponSkillType(xi.slot.RANGED) == xi.skill.MARKSMANSHIP and
-        player:getWeaponSkillType(xi.slot.AMMO) == xi.skill.MARKSMANSHIP) or
-        (player:getWeaponSkillType(xi.slot.RANGED) == xi.skill.ARCHERY and
-        player:getWeaponSkillType(xi.slot.AMMO) == xi.skill.ARCHERY)
-    then
+    local msg, ok = xi.job_utils.ranger.checkBountyShotFromParams({
+        isMob       = target:getObjType() == xi.objType.MOB,
+        rangedSkill = player:getWeaponSkillType(xi.slot.RANGED),
+        ammoSkill   = player:getWeaponSkillType(xi.slot.AMMO),
+    })
+    if ok then
         return 0, 0
     end
 
-    return xi.msg.basic.NO_RANGED_WEAPON, 0
+    return msg, 0
 end
 
 xi.job_utils.ranger.checkDecoyShot = function(player, target, ability)
@@ -136,7 +397,10 @@ xi.job_utils.ranger.checkHoverShot = function(player, target, ability)
 end
 
 xi.job_utils.ranger.checkOverkill = function(player, target, ability)
-    ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
+    ability:setRecast(xi.job_utils.ranger.oneHourRecastFromParams({
+        abilityRecast    = ability:getRecast(),
+        oneHourRecastMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+    }))
 
     return 0, 0
 end
@@ -146,8 +410,11 @@ end
 -----------------------------------
 
 xi.job_utils.ranger.useEagleEyeShot = function(player, target, ability, action)
-    if player:getWeaponSkillType(xi.slot.RANGED) == xi.skill.MARKSMANSHIP then
-        action:setAnimation(target:getID(), action:getAnimation(target:getID()) + 1)
+    local animOff = xi.job_utils.ranger.marksmanAnimOffsetFromParams(
+        player:getWeaponSkillType(xi.slot.RANGED)
+    )
+    if animOff ~= 0 then
+        action:setAnimation(target:getID(), action:getAnimation(target:getID()) + animOff)
     end
 
     local params = {}
@@ -188,14 +455,25 @@ xi.job_utils.ranger.useEagleEyeShot = function(player, target, ability, action)
 end
 
 xi.job_utils.ranger.useVelocityShot = function(player, target, ability, action)
-    player:addStatusEffect(xi.effect.VELOCITY_SHOT, { power = 1, duration = 7200, origin = player })
+    local p = xi.job_utils.ranger.velocityShotFromParams()
+    player:addStatusEffect(xi.effect.VELOCITY_SHOT, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.VELOCITY_SHOT
 end
 
 xi.job_utils.ranger.useSharpshot = function(player, target, ability, action)
-    local power = 40 + player:getMod(xi.mod.SHARPSHOT)
-    player:addStatusEffect(xi.effect.SHARPSHOT, { power = power, duration = 60, origin = player })
+    local p = xi.job_utils.ranger.sharpshotFromParams({
+        sharpshotMod = player:getMod(xi.mod.SHARPSHOT),
+    })
+    player:addStatusEffect(xi.effect.SHARPSHOT, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.SHARPSHOT
 end
@@ -206,24 +484,26 @@ xi.job_utils.ranger.useScavenge = function(player, target, ability, action)
         return
     end
 
-    local bonuses        = (player:getMod(xi.mod.SCAVENGE_EFFECT) + player:getMerit(xi.merit.SCAVENGE_EFFECT)) / 100
-    local arrowsToReturn = math.floor(math.floor(player:getLocalVar('ArrowsUsed') % 10000) * (player:getMainLvl() / 200 + bonuses))
-    local playerID       = target:getID()
+    local arrowsUsed = player:getLocalVar('ArrowsUsed')
+    local arrowID, arrowsUsedLow = xi.job_utils.ranger.decodeArrowsUsedFromParams(arrowsUsed)
+    local arrowsToReturn = xi.job_utils.ranger.scavengeArrowsToReturnFromParams({
+        arrowsUsedLow = arrowsUsedLow,
+        mainLvl       = player:getMainLvl(),
+        scavengeMod   = player:getMod(xi.mod.SCAVENGE_EFFECT),
+        scavengeMerit = player:getMerit(xi.merit.SCAVENGE_EFFECT),
+    })
+    local playerID = target:getID()
+    local msg = xi.job_utils.ranger.scavengeMessageFromParams(arrowsToReturn)
 
     if arrowsToReturn == 0 then
-        action:messageID(playerID, xi.msg.basic.SCAVENGE_FIND_NOTHING)
+        action:messageID(playerID, msg)
     else
-        if arrowsToReturn > 99 then
-            arrowsToReturn = 99
-        end
-
-        local arrowID = math.floor(player:getLocalVar('ArrowsUsed') / 10000)
         player:addItem(arrowID, arrowsToReturn)
 
         if arrowsToReturn == 1 then
-            action:messageID(playerID, xi.msg.basic.SCAVENGE_FIND_ITEM)
+            action:messageID(playerID, msg)
         else
-            action:messageID(playerID, xi.msg.basic.SCAVENGE_FIND_ITEMS)
+            action:messageID(playerID, msg)
             action:additionalEffect(playerID, 1)
             action:addEffectParam(playerID, arrowsToReturn)
         end
@@ -234,34 +514,56 @@ xi.job_utils.ranger.useScavenge = function(player, target, ability, action)
 end
 
 xi.job_utils.ranger.useCamouflage = function(player, target, ability, action)
-    local duration = math.random(30, 300) * (1 + 0.01 * player:getMod(xi.mod.CAMOUFLAGE_DURATION))
-    player:addStatusEffect(xi.effect.CAMOUFLAGE, { power = 1, duration = math.floor(duration * xi.settings.main.SNEAK_INVIS_DURATION_MULTIPLIER), origin = player })
+    local baseRoll = math.random(
+        xi.job_utils.ranger.camouflageBaseRollMin,
+        xi.job_utils.ranger.camouflageBaseRollMax
+    )
+    local duration = xi.job_utils.ranger.camouflageDurationFromParams({
+        baseRoll               = baseRoll,
+        camouflageDurationMod  = player:getMod(xi.mod.CAMOUFLAGE_DURATION),
+        sneakInvisMultiplier   = xi.settings.main.SNEAK_INVIS_DURATION_MULTIPLIER,
+    })
+    player:addStatusEffect(xi.effect.CAMOUFLAGE, {
+        power    = xi.job_utils.ranger.camouflagePower,
+        duration = duration,
+        origin   = player,
+    })
 
     return xi.effect.CAMOUFLAGE
 end
 
 xi.job_utils.ranger.useBarrage = function(player, target, ability, action)
-    player:addStatusEffect(xi.effect.BARRAGE, { duration = 60, origin = player })
+    local p = xi.job_utils.ranger.barrageFromParams()
+    player:addStatusEffect(xi.effect.BARRAGE, {
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.BARRAGE
 end
 
 xi.job_utils.ranger.useShadowbind = function(player, target, ability, action)
-    if player:getWeaponSkillType(xi.slot.RANGED) == xi.skill.MARKSMANSHIP then -- can't have your crossbow/gun held like a bow, now can we?
-        action:setAnimation(target:getID(), action:getAnimation(target:getID()) + 1)
+    local animOff = xi.job_utils.ranger.marksmanAnimOffsetFromParams(
+        player:getWeaponSkillType(xi.slot.RANGED)
+    )
+    if animOff ~= 0 then -- can't have your crossbow/gun held like a bow, now can we?
+        action:setAnimation(target:getID(), action:getAnimation(target:getID()) + animOff)
     end
 
-    local duration      = 30 + player:getMod(xi.mod.SHADOW_BIND_EXT) + player:getJobPointLevel(xi.jp.SHADOWBIND_DURATION)
+    local duration = xi.job_utils.ranger.shadowbindDurationFromParams({
+        shadowBindExt = player:getMod(xi.mod.SHADOW_BIND_EXT),
+        jpDuration    = player:getJobPointLevel(xi.jp.SHADOWBIND_DURATION),
+    })
 
     -- TODO: Acc penalty for /RNG, acc vs. mob level?
-    if
-        math.random(0, 99) >= target:getMod(xi.mod.BIND_MEVA) and
-        not target:hasStatusEffect(xi.effect.BIND)
-    then
+    local success = xi.job_utils.ranger.shadowbindSuccessFromParams({
+        bindMeva     = target:getMod(xi.mod.BIND_MEVA),
+        roll0to99    = math.random(0, 99),
+        alreadyBound = target:hasStatusEffect(xi.effect.BIND),
+    })
+    ability:setMsg(xi.job_utils.ranger.shadowbindMsgFromParams(success))
+    if success then
         target:addStatusEffect(xi.effect.BIND, { duration = duration, origin = player })
-        ability:setMsg(xi.msg.basic.IS_EFFECT) -- Target is bound.
-    else
-        ability:setMsg(xi.msg.basic.JA_MISS) -- Player uses Shadowbind, but misses.
     end
 
     if xi.combat.ranged.shouldUseAmmo(player) then
@@ -272,26 +574,46 @@ xi.job_utils.ranger.useShadowbind = function(player, target, ability, action)
 end
 
 xi.job_utils.ranger.useUnlimitedShot = function(player, target, ability, action)
-    player:addStatusEffect(xi.effect.UNLIMITED_SHOT, { power = 1, duration = 60, origin = player })
+    local p = xi.job_utils.ranger.unlimitedShotFromParams()
+    player:addStatusEffect(xi.effect.UNLIMITED_SHOT, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.UNLIMITED_SHOT
 end
 
 xi.job_utils.ranger.useFlashyShot = function(player, target, ability, action)
     -- TODO: Flashy Shot should add "D" damage to the next ranged attack
-    player:addStatusEffect(xi.effect.FLASHY_SHOT, { power = 1, duration = 60, origin = player })
+    local p = xi.job_utils.ranger.flashyShotFromParams()
+    player:addStatusEffect(xi.effect.FLASHY_SHOT, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.FLASHY_SHOT
 end
 
 xi.job_utils.ranger.useStealthShot = function(player, target, ability, action)
-    player:addStatusEffect(xi.effect.STEALTH_SHOT, { power = 1, duration = 60, origin = player })
+    local p = xi.job_utils.ranger.stealthShotFromParams()
+    player:addStatusEffect(xi.effect.STEALTH_SHOT, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.STEALTH_SHOT
 end
 
 xi.job_utils.ranger.useDoubleShot = function(player, target, ability, action)
-    player:addStatusEffect(xi.effect.DOUBLE_SHOT, { power = 40, duration = 90, origin = player })
+    local p = xi.job_utils.ranger.doubleShotFromParams()
+    player:addStatusEffect(xi.effect.DOUBLE_SHOT, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.DOUBLE_SHOT
 end
@@ -304,8 +626,11 @@ xi.job_utils.ranger.useBountyShot = function(player, target, ability, action)
 
     -- base animation was for gun, -1 = archery
     -- Note: hume male's archery animation is bugged and looks like shadowbind
-    if player:getWeaponSkillType(xi.slot.RANGED) == xi.skill.ARCHERY then
-        action:setAnimation(target:getID(), action:getAnimation(target:getID()) - 1)
+    local bountyAnim = xi.job_utils.ranger.bountyShotAnimOffsetFromParams(
+        player:getWeaponSkillType(xi.slot.RANGED)
+    )
+    if bountyAnim ~= 0 then
+        action:setAnimation(target:getID(), action:getAnimation(target:getID()) + bountyAnim)
     end
 
     player:removeAmmo(1) -- TODO: does this check recycle?
@@ -367,7 +692,13 @@ xi.job_utils.ranger.useBountyShot = function(player, target, ability, action)
 end
 
 xi.job_utils.ranger.useDecoyShot = function(player, target, ability, action)
-    target:addStatusEffect(xi.effect.DECOY_SHOT, { power = 11, duration = 30, origin = player, tick = 1 })
+    local p = xi.job_utils.ranger.decoyShotFromParams()
+    target:addStatusEffect(xi.effect.DECOY_SHOT, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+        tick     = p.tick,
+    })
 
     return xi.effect.DECOY_SHOT
 end
@@ -377,7 +708,13 @@ xi.job_utils.ranger.useHoverShot = function(player, target, ability, action)
 end
 
 xi.job_utils.ranger.useOverkill = function(player, target, ability, action)
-    player:addStatusEffect(xi.effect.OVERKILL, { power = 11, duration = 60, origin = player, tick = 1 })
+    local p = xi.job_utils.ranger.overkillFromParams()
+    player:addStatusEffect(xi.effect.OVERKILL, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+        tick     = p.tick,
+    })
 
     return xi.effect.OVERKILL
 end
