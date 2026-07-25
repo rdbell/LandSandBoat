@@ -252,85 +252,108 @@ xi.combat.physical.calculateAttackDamage = function(actor, target, slot, physica
     return damage
 end
 
--- 'fSTR' in English Wikis. 'SV function' in JP wiki and Studio Gobli.
+-----------------------------------
+-- Pure fSTR / fSTR2 injects (OmegaXI slice 6687)
+-- Dual-wired to internal/fstr.Melee / Ranged / MeleeMobPet / MeleePC / ...
 -- BG wiki: https://www.bg-wiki.com/ffxi/FSTR
--- Gobli Wiki: https://w-atwiki-jp.translate.goog/studiogobli/pages/14.html?_x_tr_sl=auto&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp
--- Mob calculation: https://docs.google.com/spreadsheets/d/1YBoveP-weMdidrirY-vPDzHyxbEI2ryECINlfCnFkLI/edit?gid=224123492#gid=224123492&range=C50
-xi.combat.physical.calculateMeleeStatFactor = function(actor, target)
-    local fSTR = 0 -- The variable we want to calculate.
-    local mLvl = actor:getMainLvl()
+-----------------------------------
 
-    -- Early return: Mobs at or under lvl 1.
-    if actor:isMob() and mLvl <= 1 then
-        return 1
+-- Shared player/trust piecewise raw addend before /4 (melee) or /2 (ranged).
+xi.combat.physical.playerStatDiffRaw = function(statDiff)
+    if statDiff >= 12 then
+        return statDiff + 4
+    elseif statDiff >= 6 then
+        return statDiff + 6
+    elseif statDiff >= 1 then
+        return statDiff + 7
+    elseif statDiff >= -2 then
+        return statDiff + 8
+    elseif statDiff >= -7 then
+        return statDiff + 9
+    elseif statDiff >= -15 then
+        return statDiff + 10
+    elseif statDiff >= -21 then
+        return statDiff + 12
     end
 
-    -- Calculate statDiff.
-    local statDiff = actor:getStat(xi.mod.STR) - target:getStat(xi.mod.VIT)
+    return statDiff + 13
+end
 
-    -- Pets and Mobs.
-    if actor:isMob() or actor:isPet() then
-        if statDiff >= 36 then
-            fSTR = (statDiff - 4) / 4
-        elseif statDiff >= 26 then
-            fSTR = (statDiff - 3) / 4
-        elseif statDiff >= 17 then
-            fSTR = (statDiff - 2) / 4
-        elseif statDiff >= 4 then
-            fSTR = (statDiff - 1) / 4
-        elseif statDiff >= -8 then
-            fSTR = statDiff / 4
-        elseif statDiff >= -13 then
-            fSTR = (statDiff + 1) / 4
-        elseif statDiff >= -19 then
-            fSTR = (statDiff + 3) / 4
-        elseif statDiff >= -32 then
-            fSTR = (statDiff + 4) / 4
-        elseif statDiff >= -42 then
-            fSTR = (statDiff + 5) / 4
-        elseif statDiff >= -54 then
-            fSTR = (statDiff + 6) / 4
-        elseif statDiff >= -67 then
-            fSTR = (statDiff + 7) / 4
-        elseif statDiff >= -76 then
-            fSTR = (statDiff + 8) / 4
-        else -- <= -77
-            fSTR = (statDiff + 9) / 4
-        end
-
-        fSTR = math.floor(fSTR)
-        fSTR = utils.clamp(fSTR, math.floor(mLvl / 5) - 1, math.floor(mLvl / 5) + 5)
-
-        return fSTR
+-- Pure mob/pet melee ladder (unfloored /4).
+xi.combat.physical.mobMeleeStatLadder = function(statDiff)
+    if statDiff >= 36 then
+        return (statDiff - 4) / 4
+    elseif statDiff >= 26 then
+        return (statDiff - 3) / 4
+    elseif statDiff >= 17 then
+        return (statDiff - 2) / 4
+    elseif statDiff >= 4 then
+        return (statDiff - 1) / 4
+    elseif statDiff >= -8 then
+        return statDiff / 4
+    elseif statDiff >= -13 then
+        return (statDiff + 1) / 4
+    elseif statDiff >= -19 then
+        return (statDiff + 3) / 4
+    elseif statDiff >= -32 then
+        return (statDiff + 4) / 4
+    elseif statDiff >= -42 then
+        return (statDiff + 5) / 4
+    elseif statDiff >= -54 then
+        return (statDiff + 6) / 4
+    elseif statDiff >= -67 then
+        return (statDiff + 7) / 4
+    elseif statDiff >= -76 then
+        return (statDiff + 8) / 4
     end
 
-    -- Players and Trusts
-    local weaponRank   = actor:getWeaponDmgRank()
+    return (statDiff + 9) / 4 -- <= -77
+end
+
+-- Pure mob/pet ranged ladder (unfloored /2); band thresholds differ from melee.
+xi.combat.physical.mobRangedStatLadder = function(statDiff)
+    if statDiff >= 36 then
+        return (statDiff - 4) / 2
+    elseif statDiff >= 26 then
+        return (statDiff - 3) / 2
+    elseif statDiff >= 15 then
+        return (statDiff - 2) / 2
+    elseif statDiff >= 4 then
+        return (statDiff - 1) / 2
+    elseif statDiff >= -8 then
+        return statDiff / 2
+    elseif statDiff >= -16 then
+        return (statDiff + 1) / 2
+    elseif statDiff >= -31 then
+        return (statDiff + 1) / 2
+    elseif statDiff >= -42 then
+        return (statDiff + 3) / 2
+    elseif statDiff >= -53 then
+        return (statDiff + 3) / 2
+    elseif statDiff >= -64 then
+        return (statDiff + 5) / 2
+    elseif statDiff >= -76 then
+        return (statDiff + 6) / 2
+    end
+
+    return (statDiff + 7) / 2 -- <= -77
+end
+
+-- Pure mob/pet melee fSTR after early-return gate: floor ladder, level clamp.
+xi.combat.physical.meleeStatFactorMobPet = function(statDiff, mainLvl)
+    local fSTR = math.floor(xi.combat.physical.mobMeleeStatLadder(statDiff))
+
+    return utils.clamp(fSTR, math.floor(mainLvl / 5) - 1, math.floor(mainLvl / 5) + 5)
+end
+
+-- Pure PC/trust melee fSTR: clamp dSTR to rank caps, raw addend, /4 clamp.
+xi.combat.physical.meleeStatFactorPC = function(statDiff, weaponRank)
     local statLowerCap = (7 + weaponRank * 2) * -2
     local statUpperCap = (14 + weaponRank * 2) * 2
 
     statDiff = utils.clamp(statDiff, statLowerCap, statUpperCap)
 
-    -- Calculate fSTR based on stat difference.
-    if statDiff >= 12 then
-        fSTR = statDiff + 4
-    elseif statDiff >= 6 then
-        fSTR = statDiff + 6
-    elseif statDiff >= 1 then
-        fSTR = statDiff + 7
-    elseif statDiff >= -2 then
-        fSTR = statDiff + 8
-    elseif statDiff >= -7 then
-        fSTR = statDiff + 9
-    elseif statDiff >= -15 then
-        fSTR = statDiff + 10
-    elseif statDiff >= -21 then
-        fSTR = statDiff + 12
-    else
-        fSTR = statDiff + 13
-    end
-
-    -- Clamp fSTR.
+    local raw = xi.combat.physical.playerStatDiffRaw(statDiff)
     local fSTRupperCap = weaponRank + 8
     local fSTRlowerCap = weaponRank * -1
 
@@ -338,87 +361,25 @@ xi.combat.physical.calculateMeleeStatFactor = function(actor, target)
         fSTRlowerCap = -1
     end
 
-    fSTR = utils.clamp(fSTR / 4, fSTRlowerCap, fSTRupperCap)
-
-    return fSTR
+    return utils.clamp(raw / 4, fSTRlowerCap, fSTRupperCap)
 end
 
--- 'fSTR2' in English Wikis. 'SV function' in JP wiki and Studio Gobli.
--- BG wiki: https://www.bg-wiki.com/ffxi/FSTR
--- Gobli Wiki: https://w-atwiki-jp.translate.goog/studiogobli/pages/14.html?_x_tr_sl=auto&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp
-xi.combat.physical.calculateRangedStatFactor = function(actor, target)
-    local fSTR = 0 -- The variable we want to calculate.
-    local mLvl = actor:getMainLvl()
+-- Pure mob/pet ranged fSTR2.
+xi.combat.physical.rangedStatFactorMobPet = function(statDiff, mainLvl)
+    local fSTR = math.floor(xi.combat.physical.mobRangedStatLadder(statDiff))
+    local ml = mainLvl / 5
 
-    -- Early return: Mobs at or under lvl 1.
-    if actor:isMob() and mLvl <= 1 then
-        return 1
-    end
+    return utils.clamp(fSTR, math.floor((ml - 1) * 2), math.floor((ml + 5) * 2))
+end
 
-    -- Calculate statDiff.
-    local statDiff = actor:getStat(xi.mod.STR) - target:getStat(xi.mod.VIT)
-
-    -- Pets and Mobs.
-    if actor:isMob() or actor:isPet() then
-        if statDiff >= 36 then
-            fSTR = (statDiff - 4) / 2
-        elseif statDiff >= 26 then
-            fSTR = (statDiff - 3) / 2
-        elseif statDiff >= 15 then
-            fSTR = (statDiff - 2) / 2
-        elseif statDiff >= 4 then
-            fSTR = (statDiff - 1) / 2
-        elseif statDiff >= -8 then
-            fSTR = statDiff / 2
-        elseif statDiff >= -16 then
-            fSTR = (statDiff + 1) / 2
-        elseif statDiff >= -31 then
-            fSTR = (statDiff + 1) / 2
-        elseif statDiff >= -42 then
-            fSTR = (statDiff + 3) / 2
-        elseif statDiff >= -53 then
-            fSTR = (statDiff + 3) / 2
-        elseif statDiff >= -64 then
-            fSTR = (statDiff + 5) / 2
-        elseif statDiff >= -76 then
-            fSTR = (statDiff + 6) / 2
-        else -- <= -77
-            fSTR = (statDiff + 7) / 2
-        end
-
-        fSTR = math.floor(fSTR)
-        fSTR = utils.clamp(fSTR, math.floor((mLvl / 5 - 1) * 2), math.floor((mLvl / 5 + 5) * 2))
-
-        return fSTR
-    end
-
-    -- Players and Trusts
-    local weaponRank   = actor:getRangedDmgRank()
+-- Pure PC/trust ranged fSTR2.
+xi.combat.physical.rangedStatFactorPC = function(statDiff, weaponRank)
     local statLowerCap = (7 + weaponRank * 2) * -2
     local statUpperCap = (14 + weaponRank * 2) * 2
 
     statDiff = utils.clamp(statDiff, statLowerCap, statUpperCap)
 
-    -- Calculate fSTR based on stat difference.
-    if statDiff >= 12 then
-        fSTR = statDiff + 4
-    elseif statDiff >= 6 then
-        fSTR = statDiff + 6
-    elseif statDiff >= 1 then
-        fSTR = statDiff + 7
-    elseif statDiff >= -2 then
-        fSTR = statDiff + 8
-    elseif statDiff >= -7 then
-        fSTR = statDiff + 9
-    elseif statDiff >= -15 then
-        fSTR = statDiff + 10
-    elseif statDiff >= -21 then
-        fSTR = statDiff + 12
-    else
-        fSTR = statDiff + 13
-    end
-
-    -- Clamp fSTR.
+    local raw = xi.combat.physical.playerStatDiffRaw(statDiff)
     local fSTRupperCap = (weaponRank + 8) * 2
     local fSTRlowerCap = weaponRank * -2
 
@@ -428,9 +389,62 @@ xi.combat.physical.calculateRangedStatFactor = function(actor, target)
         fSTRlowerCap = -3
     end
 
-    fSTR = utils.clamp(fSTR / 2, fSTRlowerCap, fSTRupperCap)
+    return utils.clamp(raw / 2, fSTRlowerCap, fSTRupperCap)
+end
 
-    return fSTR
+-- Pure melee fSTR once actor kind / level / STR / VIT / weapon rank are injected.
+-- isMob with mainLvl <= 1 → 1; isMob or isPet → mob/pet path; else PC/trust.
+xi.combat.physical.meleeStatFactor = function(isMob, isPet, mainLvl, str, vit, weaponRank)
+    if isMob and mainLvl <= 1 then
+        return 1
+    end
+
+    local statDiff = str - vit
+
+    if isMob or isPet then
+        return xi.combat.physical.meleeStatFactorMobPet(statDiff, mainLvl)
+    end
+
+    return xi.combat.physical.meleeStatFactorPC(statDiff, weaponRank or 0)
+end
+
+-- Pure ranged fSTR2 with the same actor-kind rules as melee.
+xi.combat.physical.rangedStatFactor = function(isMob, isPet, mainLvl, str, vit, weaponRank)
+    if isMob and mainLvl <= 1 then
+        return 1
+    end
+
+    local statDiff = str - vit
+
+    if isMob or isPet then
+        return xi.combat.physical.rangedStatFactorMobPet(statDiff, mainLvl)
+    end
+
+    return xi.combat.physical.rangedStatFactorPC(statDiff, weaponRank or 0)
+end
+
+-- Entity host: fSTR.
+xi.combat.physical.calculateMeleeStatFactor = function(actor, target)
+    return xi.combat.physical.meleeStatFactor(
+        actor:isMob(),
+        actor:isPet(),
+        actor:getMainLvl(),
+        actor:getStat(xi.mod.STR),
+        target:getStat(xi.mod.VIT),
+        actor:getWeaponDmgRank()
+    )
+end
+
+-- Entity host: fSTR2.
+xi.combat.physical.calculateRangedStatFactor = function(actor, target)
+    return xi.combat.physical.rangedStatFactor(
+        actor:isMob(),
+        actor:isPet(),
+        actor:getMainLvl(),
+        actor:getStat(xi.mod.STR),
+        target:getStat(xi.mod.VIT),
+        actor:getRangedDmgRank()
+    )
 end
 
 -- Weapon Skill Secondary Attribute Modifier: Function used to get stat addition to base damage.
