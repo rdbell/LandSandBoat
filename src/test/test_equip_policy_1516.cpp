@@ -4,6 +4,7 @@
 #include "map/equip_item_success_capacity.h"
 #include "map/equip_armor_direct_restrictions_capacity.h"
 #include "map/equip_armor_ammo_look_capacity.h"
+#include "map/equip_armor_main_look_capacity.h"
 #include "map/equip_armor_main_sub_capacity.h"
 #include "map/equip_armor_ranged_compatibility_capacity.h"
 #include "map/equip_armor_ranged_look_capacity.h"
@@ -332,6 +333,11 @@ auto Check() -> bool
     }
     const auto subLookPlan = equiparmorsublookhelpers::PlanFor(505);
     if (!subLookPlan.setSubLook || subLookPlan.modelID != 505)
+    {
+        return false;
+    }
+    const auto mainLookPlan = equiparmormainlookhelpers::PlanFor(506);
+    if (!mainLookPlan.setMainLook || mainLookPlan.modelID != 506)
     {
         return false;
     }
