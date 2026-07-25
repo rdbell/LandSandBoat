@@ -14,6 +14,7 @@
 #include "map/equip_armor_sub_look_capacity.h"
 #include "map/equip_armor_target_look_capacity.h"
 #include "map/unequip_armor_look_capacity.h"
+#include "map/unequip_ranged_look_capacity.h"
 #include "map/equip_policy_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
 
@@ -351,6 +352,21 @@ auto Check() -> bool
     const auto noUnequipArmorLook = unequiparmorlookhelpers::PlanFor(3);
     if (!unequipArmorLook.setArmorLook || unequipArmorLook.slot != 4 || unequipArmorLook.modelID != 0 ||
         noUnequipArmorLook.setArmorLook || noUnequipArmorLook.slot != 0 || noUnequipArmorLook.modelID != 0)
+    {
+        return false;
+    }
+
+    const auto ammoRangedClear = unequiprangedlookhelpers::PlanFor({ .equipSlotID = 3 });
+    const auto ammoRangedKeep  = unequiprangedlookhelpers::PlanFor({
+        .equipSlotID          = 3,
+        .hasRangedAfterClear = true,
+    });
+    const auto rangedClear   = unequiprangedlookhelpers::PlanFor({ .equipSlotID = 2 });
+    const auto unrelatedSlot = unequiprangedlookhelpers::PlanFor({ .equipSlotID = 1 });
+    if (!ammoRangedClear.setRangedLook || ammoRangedClear.modelID != 0 ||
+        ammoRangedKeep.setRangedLook || ammoRangedKeep.modelID != 0 ||
+        !rangedClear.setRangedLook || rangedClear.modelID != 0 ||
+        unrelatedSlot.setRangedLook || unrelatedSlot.modelID != 0)
     {
         return false;
     }

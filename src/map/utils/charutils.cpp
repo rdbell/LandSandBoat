@@ -122,6 +122,7 @@
 #include "equip_armor_sub_look_capacity.h"
 #include "equip_armor_target_look_capacity.h"
 #include "unequip_armor_look_capacity.h"
+#include "unequip_ranged_look_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
@@ -2272,6 +2273,10 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
         PChar->delPetModifiers(&((CItemEquipment*)PItem)->petModList);
 
         const auto armorLookPlan = unequiparmorlookhelpers::PlanFor(equipSlotID);
+        const auto rangedLookPlan = unequiprangedlookhelpers::PlanFor({
+            .equipSlotID          = equipSlotID,
+            .hasRangedAfterClear = PChar->getEquip(SLOT_RANGED) != nullptr,
+        });
         switch (equipSlotID)
         {
             case SLOT_HEAD:
@@ -2316,9 +2321,9 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
             break;
             case SLOT_AMMO:
             {
-                if (!PChar->getEquip(SLOT_RANGED))
+                if (rangedLookPlan.setRangedLook)
                 {
-                    PChar->look.ranged = 0;
+                    PChar->look.ranged = rangedLookPlan.modelID;
                 }
                 PChar->m_Weapons[SLOT_AMMO] = nullptr;
                 UpdateWeaponStyle(PChar, equipSlotID, nullptr);
@@ -2326,9 +2331,9 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
             break;
             case SLOT_RANGED:
             {
-                if (!PChar->getEquip(SLOT_RANGED))
+                if (rangedLookPlan.setRangedLook)
                 {
-                    PChar->look.ranged = 0;
+                    PChar->look.ranged = rangedLookPlan.modelID;
                 }
                 PChar->m_Weapons[SLOT_RANGED] = nullptr;
                 if (((CItemWeapon*)PItem)->getSkillType() != SKILL_STRING_INSTRUMENT && ((CItemWeapon*)PItem)->getSkillType() != SKILL_WIND_INSTRUMENT)
