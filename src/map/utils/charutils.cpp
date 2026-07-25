@@ -61,6 +61,7 @@
 
 #include "ability.h"
 #include "alliance.h"
+#include "char_points_capacity.h"
 #include "conquest_system.h"
 #include "grades.h"
 #include "ipc_client.h"
@@ -7113,10 +7114,10 @@ void AddPoints(CCharEntity* PChar, const char* type, int32 amount, int32 max)
     TracyZoneScoped;
 
     const auto currentPointsValue = GetPoints(PChar, type);
-    const auto newPointsValue     = std::clamp(currentPointsValue + amount, 0, max);
+    const auto newPointsValue     = charpointshelpers::ClampPointTotal(currentPointsValue, amount, max);
     SetPoints(PChar, type, newPointsValue);
 
-    if (strcmp(type, "unity_accolades") == 0 && amount > 0)
+    if (charpointshelpers::ShouldAwardUnityAccolades(strcmp(type, "unity_accolades") == 0, amount))
     {
         float evalPoints = static_cast<float>(amount) / 1000;
 

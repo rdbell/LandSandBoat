@@ -1361,6 +1361,8 @@ set(SOURCES
     test_ability_recast_plan_6853.cpp
     test_aid_block_6854.h
     test_aid_block_6854.cpp
+    test_char_points_6855.h
+    test_char_points_6855.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h

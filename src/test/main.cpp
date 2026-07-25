@@ -727,6 +727,7 @@ auto runWeaponSkillPoints6851SelfTests() -> bool;
 auto runArrowUsageForScavenge6852SelfTests() -> bool;
 auto runAbilityRecastPlan6853SelfTests() -> bool;
 auto runAidBlock6854SelfTests() -> bool;
+auto runCharPoints6855SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
 auto runStyleUpdate1518SelfTests() -> bool;
@@ -3116,6 +3117,7 @@ namespace
         ok = runArrowUsageForScavenge6852SelfTests() && ok;
         ok = runAbilityRecastPlan6853SelfTests() && ok;
         ok = runAidBlock6854SelfTests() && ok;
+        ok = runCharPoints6855SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
         ok = runStyleUpdate1518SelfTests() && ok;
