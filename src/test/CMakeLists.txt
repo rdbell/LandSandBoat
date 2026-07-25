@@ -1385,6 +1385,8 @@ set(SOURCES
     test_history_load_6865.cpp
     test_zone_exit_transition_6866.h
     test_zone_exit_transition_6866.cpp
+    test_playtime_save_plan_6867.h
+    test_playtime_save_plan_6867.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h

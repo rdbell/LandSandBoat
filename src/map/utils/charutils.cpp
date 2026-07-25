@@ -66,6 +66,7 @@
 #include "char_history_load.h"
 #include "char_mannequin_update.h"
 #include "char_points_capacity.h"
+#include "char_playtime_save_plan.h"
 #include "char_race_change_transition.h"
 #include "char_send_to_zone_capacity.h"
 #include "char_unity_leader_capacity.h"
@@ -6780,17 +6781,23 @@ void SavePlayTime(CCharEntity* PChar)
     TracyZoneScoped;
 
     const timer::duration playDuration = PChar->GetPlayTime();
-    const uint32          playtime     = static_cast<uint32>(timer::count_seconds(playDuration));
+    const auto plan = playtimesavehelpers::MakePlayTimeSavePlan(
+        timer::count_seconds(playDuration), PChar->isNewPlayer());
 
-    db::preparedStmt("UPDATE chars SET playtime = ? WHERE charid = ? LIMIT 1", playtime, PChar->id);
+    db::preparedStmt("UPDATE chars SET playtime = ? WHERE charid = ? LIMIT 1", plan.persistPlayTime, PChar->id);
 
-    // Removes new player icon if played for more than 240 hours
-    if (PChar->isNewPlayer() && playDuration >= 240h)
+    // Removes new player icon if played for more than 240 hours.
+    if (plan.clearNewAdventurer)
     {
         PChar->playerConfig.NewAdventurerOffFlg = true;
-        PChar->updatemask |= UPDATE_HP;
-
-        SavePlayerSettings(PChar);
+        if (plan.setUpdateHP)
+        {
+            PChar->updatemask |= UPDATE_HP;
+        }
+        if (plan.savePlayerSettings)
+        {
+            SavePlayerSettings(PChar);
+        }
     }
 }
 

@@ -739,6 +739,7 @@ auto runMannequinUpdate6863SelfTests() -> bool;
 auto runRaceChangeTransition6864SelfTests() -> bool;
 auto runHistoryLoad6865SelfTests() -> bool;
 auto runZoneExitTransition6866SelfTests() -> bool;
+auto runPlayTimeSavePlan6867SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
 auto runStyleUpdate1518SelfTests() -> bool;
@@ -3140,6 +3141,7 @@ namespace
         ok = runRaceChangeTransition6864SelfTests() && ok;
         ok = runHistoryLoad6865SelfTests() && ok;
         ok = runZoneExitTransition6866SelfTests() && ok;
+        ok = runPlayTimeSavePlan6867SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
         ok = runStyleUpdate1518SelfTests() && ok;
