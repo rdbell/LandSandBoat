@@ -1353,6 +1353,8 @@ set(SOURCES
     test_weaponskill_mutation_6849.cpp
     test_pet_command_mutation_6850.h
     test_pet_command_mutation_6850.cpp
+    test_weapon_skill_points_6851.h
+    test_weapon_skill_points_6851.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h
