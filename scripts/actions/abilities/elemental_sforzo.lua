@@ -1,22 +1,25 @@
 -----------------------------------
 -- Ability: Elemental Sforzo
--- Grants immunity to all magic attacks.
--- Obtained: Rune Fencer Level 1
--- Recast Time: 1:00:00
--- Duration: 00:00:30
+-- Dual-wired via xi.job_utils.rune_fencer (slice 6751)
 -----------------------------------
 ---@type TAbility
 local abilityObject = {}
 
 abilityObject.onAbilityCheck = function(player, target, ability)
-    ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
-
+    ability:setRecast(xi.job_utils.rune_fencer.oneHourRecastFromParams({
+        abilityRecast    = ability:getRecast(),
+        oneHourRecastMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+    }))
     return 0, 0
 end
 
 abilityObject.onUseAbility = function(player, target, ability)
-    player:addStatusEffect(xi.effect.ELEMENTAL_SFORZO, { power = 1, duration = 30, origin = player })
-
+    local p = xi.job_utils.rune_fencer.elementalSforzoFromParams()
+    player:addStatusEffect(xi.effect.ELEMENTAL_SFORZO, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
     return xi.effect.ELEMENTAL_SFORZO
 end
 

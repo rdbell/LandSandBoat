@@ -1,5 +1,10 @@
 -----------------------------------
 -- Rune Fencer Job Utilities
+-- Dual-wired pure inject forms (slice 6751 / 0882 / 5978):
+--   max runes, rune enhancement power, vivacious pulse HP/MP,
+--   swordplay power/sub/tick, vallation SDT + inspiration FC,
+--   battuta powers, swipe/lunge skill+base, embolden/sforzo, one-hour
+-- Parity: internal/runefencer
 -----------------------------------
 require('scripts/globals/ability')
 require('scripts/globals/combat/magic_hit_rate')
@@ -12,6 +17,191 @@ xi.job_utils = xi.job_utils or {}
 xi.job_utils.rune_fencer = xi.job_utils.rune_fencer or {}
 -----------------------------------
 
+-----------------------------------
+-- Pure inject pins (internal/runefencer)
+-----------------------------------
+xi.job_utils.rune_fencer.runeDurationSeconds         = 300
+xi.job_utils.rune_fencer.swordplayBasePower           = 3
+xi.job_utils.rune_fencer.swordplayTickPower           = 3
+xi.job_utils.rune_fencer.swordplayBaseCap             = 60
+xi.job_utils.rune_fencer.swordplayDurationSeconds     = 120
+xi.job_utils.rune_fencer.swordplayTickSeconds         = 3
+xi.job_utils.rune_fencer.vallationBaseSDTPercent      = 15
+xi.job_utils.rune_fencer.battutaBaseInquartata        = 36
+xi.job_utils.rune_fencer.battutaBaseSpikes            = 6
+xi.job_utils.rune_fencer.battutaDurationSeconds       = 90
+xi.job_utils.rune_fencer.vivaciousPulseBaseHP         = 10
+xi.job_utils.rune_fencer.emboldenDurationSec          = 60
+xi.job_utils.rune_fencer.elementalSforzoPower         = 1
+xi.job_utils.rune_fencer.elementalSforzoDurationSec   = 30
+xi.job_utils.rune_fencer.oneHourRecastSecondsPerMod   = 60
+
+-- Pure: MaxRunes by RUN level
+xi.job_utils.rune_fencer.maxRunesFromParams = function(params)
+    params = params or {}
+    local runLevel = params.runLevel or 0
+    if runLevel >= 65 then
+        return 3
+    end
+
+    if runLevel >= 35 then
+        return 2
+    end
+
+    return 1
+end
+
+-- Pure: RuneEnhancementPower
+-- floor((49 * runLevel / 99) + 5.5) + meritBonus + jobPointBonus
+xi.job_utils.rune_fencer.runeEnhancementPowerFromParams = function(params)
+    params = params or {}
+    local runLevel = params.runLevel or 0
+    local base = math.floor((49 * runLevel / 99) + 5.5)
+    return base + (params.meritBonus or 0) + (params.jobPointBonus or 0)
+end
+
+-- Pure: RuneHealAmount floor(stat * 0.5); Tenebrae / non-rune → 0
+xi.job_utils.rune_fencer.runeHealAmountFromParams = function(params)
+    params = params or {}
+    local effectType = params.effectType or 0
+    if effectType == xi.effect.TENEBRAE then
+        return 0
+    end
+
+    if effectType < xi.effect.IGNIS or effectType > xi.effect.TENEBRAE then
+        return 0
+    end
+
+    return math.floor((params.stat or 0) * 0.5)
+end
+
+-- Pure: VivaciousPulse HP/MP (entity restore deferred)
+-- params: divineSkill, vivaciousPulseJP, potencyMod, runeStatHeals,
+--         tenebraeCount, currentHP, maxHP
+-- returns: hp, mp
+xi.job_utils.rune_fencer.vivaciousPulseFromParams = function(params)
+    params = params or {}
+    local jpFactor = 100 + (params.vivaciousPulseJP or 0)
+    local skillHalf = (params.divineSkill or 0) / 2 * jpFactor / 100
+    local hp = xi.job_utils.rune_fencer.vivaciousPulseBaseHP
+        + math.floor(skillHalf)
+        + (params.runeStatHeals or 0)
+    hp = math.floor(hp * (100 + (params.potencyMod or 0)) / 100)
+
+    local mp = 0
+    local tenebrae = params.tenebraeCount or 0
+    if tenebrae > 0 then
+        local base = (params.divineSkill or 0) / 10 * jpFactor / 100
+        mp = math.floor(base) * (tenebrae + 1)
+    end
+
+    local maxHP = params.maxHP or 0
+    local currentHP = params.currentHP or 0
+    if maxHP > 0 and currentHP + hp > maxHP then
+        hp = maxHP - currentHP
+        if hp < 0 then
+            hp = 0
+        end
+    end
+
+    return hp, mp
+end
+
+-- Pure: Swordplay power = 3 + 3 * swordplayMod
+xi.job_utils.rune_fencer.swordplayPowerFromParams = function(params)
+    params = params or {}
+    local base = xi.job_utils.rune_fencer.swordplayBasePower
+    return base + base * (params.swordplayMod or 0)
+end
+
+-- Pure: Swordplay subPower (Subtle Blow)
+xi.job_utils.rune_fencer.swordplaySubPowerFromParams = function(params)
+    params = params or {}
+    local merit = params.sleightMerit or 0
+    return merit + (merit / 5) * (params.augmentsMod or 0)
+end
+
+-- Pure: Swordplay tick delta
+xi.job_utils.rune_fencer.swordplayTickDeltaFromParams = function(params)
+    params = params or {}
+    local currentPower = params.currentPower or 0
+    local maxPower = xi.job_utils.rune_fencer.swordplayBaseCap + (params.swordplayJP or 0)
+    if currentPower >= maxPower then
+        return 0
+    end
+
+    local tick = xi.job_utils.rune_fencer.swordplayTickPower
+    if currentPower + tick > maxPower then
+        tick = maxPower - currentPower
+    end
+
+    if tick < 0 then
+        return 0
+    end
+
+    return tick
+end
+
+-- Pure: Vallation SDT power = (15 + merit) * 100
+xi.job_utils.rune_fencer.vallationSDTPowerFromParams = function(params)
+    params = params or {}
+    return (xi.job_utils.rune_fencer.vallationBaseSDTPercent + (params.vallationMerit or 0)) * 100
+end
+
+-- Pure: Inspiration Fast Cast
+xi.job_utils.rune_fencer.inspirationFastCastFromParams = function(params)
+    params = params or {}
+    local merits = params.inspirationMerits or 0
+    return merits + (merits / 10) * (params.enhancesInspirationMod or 0)
+end
+
+-- Pure: Battuta inquartata + spikes subPower
+-- returns: inquartata, spikesSubPower
+xi.job_utils.rune_fencer.battutaFromParams = function(params)
+    params = params or {}
+    local meritPower = params.meritPower or 0
+    local inquartata = xi.job_utils.rune_fencer.battutaBaseInquartata + meritPower
+    local spikes = (xi.job_utils.rune_fencer.battutaBaseSpikes + meritPower) * (params.runeCount or 0)
+    local modBonus = 1 + ((params.enhancesBattuta or 0) * meritPower / 4) / 100
+    return inquartata, math.floor(spikes * modBonus)
+end
+
+-- Pure: Swipe/Lunge skill modifier
+xi.job_utils.rune_fencer.swipeLungeSkillModifierFromParams = function(params)
+    params = params or {}
+    return ((params.weaponSkill or 0) + (params.iLvlSkill or 0)) * (1 + (params.swipeJP or 0) / 100)
+end
+
+-- Pure: Swipe/Lunge base damage before elemental product chain
+xi.job_utils.rune_fencer.swipeLungeBaseDamageFromParams = function(params)
+    params = params or {}
+    local mult = 0.50 + 0.25 * (params.numHits or 0) + (params.gearBonus or 0) / 100
+    return math.floor((params.skillModifier or 0) * mult) + (params.magicDamage or 0)
+end
+
+-- Pure: Embolden / Elemental Sforzo fixed params
+xi.job_utils.rune_fencer.emboldenFromParams = function()
+    return { duration = xi.job_utils.rune_fencer.emboldenDurationSec }
+end
+
+xi.job_utils.rune_fencer.elementalSforzoFromParams = function()
+    return {
+        power    = xi.job_utils.rune_fencer.elementalSforzoPower,
+        duration = xi.job_utils.rune_fencer.elementalSforzoDurationSec,
+    }
+end
+
+xi.job_utils.rune_fencer.oneHourRecastFromParams = function(params)
+    params = params or {}
+    local out = (params.abilityRecast or 0)
+        - (params.oneHourRecastMod or 0) * xi.job_utils.rune_fencer.oneHourRecastSecondsPerMod
+    if out < 0 then
+        return 0
+    end
+
+    return out
+end
+
 local function getRUNLevel(player)
     if player:getMainJob() == xi.job.RUN then
         return player:getMainLvl()
@@ -21,18 +211,22 @@ local function getRUNLevel(player)
 end
 
 local function applyRuneEnhancement(effectType, player)
-    local runLevel      = getRUNLevel(player)
-    local meritBonus    = player:getMerit(xi.merit.MERIT_RUNE_ENHANCE) -- 2 more elemental resistance per merit for a maximum total of (2*5) = 10 (power of merit is 2 per level)
-    local jobPointBonus = player:getJobPointLevel(xi.jp.RUNE_ENCHANTMENT_EFFECT) -- 1 more elemental resistance per level for a maximum total of 20
-
-    -- see https://www.bg-wiki.com/ffxi/Category:Rune
-    local power = math.floor((49 * runLevel / 99) + 5.5) + meritBonus + jobPointBonus
-    player:addStatusEffect(effectType, { power = power, duration = 300, origin = player })
+    local power = xi.job_utils.rune_fencer.runeEnhancementPowerFromParams({
+        runLevel      = getRUNLevel(player),
+        meritBonus    = player:getMerit(xi.merit.MERIT_RUNE_ENHANCE),
+        jobPointBonus = player:getJobPointLevel(xi.jp.RUNE_ENCHANTMENT_EFFECT),
+    })
+    player:addStatusEffect(effectType, {
+        power    = power,
+        duration = xi.job_utils.rune_fencer.runeDurationSeconds,
+        origin   = player,
+    })
 end
 
 local function enforceRuneCounts(target)
-    local runLevel    = getRUNLevel(target)
-    local maxRunes    = runLevel >= 65 and 3 or runLevel >= 35 and 2 or 1
+    local maxRunes = xi.job_utils.rune_fencer.maxRunesFromParams({
+        runLevel = getRUNLevel(target),
+    })
     local activeRunes = target:getActiveRuneCount()
 
     if activeRunes >= maxRunes then -- delete the rune with the least duration
@@ -58,7 +252,10 @@ local function getRuneHealAmount(type, target)
             [xi.effect.LUX]    = xi.mod.CHR,
         }
 
-        return math.floor(target:getStat(runeStatMap[type]) * 0.5)
+        return xi.job_utils.rune_fencer.runeHealAmountFromParams({
+            effectType = type,
+            stat       = target:getStat(runeStatMap[type]),
+        })
     end
 
     return 0
@@ -67,9 +264,10 @@ end
 -- source https://www.bg-wiki.com/ffxi/Vivacious_Pulse
 local function calculateVivaciousPulseHealing(target)
     local divineMagicSkillLevel = target:getSkillLevel(xi.skill.DIVINE_MAGIC)
-    local hpHealAmount          = 10 + math.floor(divineMagicSkillLevel / 2 * (100 + target:getJobPointLevel(xi.jp.VIVACIOUS_PULSE_EFFECT)) / 100) -- Bonus of 1-20%  from Vivacious pulse job points.
+    local vivaciousPulseJP      = target:getJobPointLevel(xi.jp.VIVACIOUS_PULSE_EFFECT)
+    local potencyMod            = target:getMod(xi.mod.VIVACIOUS_PULSE_POTENCY)
     local tenebraeRuneCount     = 0
-    local bonusPct              = (100 + target:getMod(xi.mod.VIVACIOUS_PULSE_POTENCY)) / 100
+    local runeStatHeals         = 0
     local debuffs               = {}
     local debuffCount           = 0
 
@@ -92,7 +290,7 @@ local function calculateVivaciousPulseHealing(target)
     for _, effect in ipairs(effects) do
         local type = effect:getEffectType()
 
-        hpHealAmount = hpHealAmount + getRuneHealAmount(type, target) -- type checked internally
+        runeStatHeals = runeStatHeals + getRuneHealAmount(type, target) -- type checked internally
 
         if removableDebuffMap[type] ~= nil then -- effect in debuff table, count it as a debuff.
             debuffs[debuffCount + 1] = type
@@ -104,18 +302,22 @@ local function calculateVivaciousPulseHealing(target)
         end
     end
 
-    if tenebraeRuneCount > 0 then -- only restore MP if there's one or more tenebrae rune active
-        local mpHealAmount = math.floor(divineMagicSkillLevel / 10 * (100 + target:getJobPointLevel(xi.jp.VIVACIOUS_PULSE_EFFECT)) / 100) * (tenebraeRuneCount + 1)
+    local hpHealAmount, mpHealAmount = xi.job_utils.rune_fencer.vivaciousPulseFromParams({
+        divineSkill      = divineMagicSkillLevel,
+        vivaciousPulseJP = vivaciousPulseJP,
+        potencyMod       = potencyMod,
+        runeStatHeals    = runeStatHeals,
+        tenebraeCount    = tenebraeRuneCount,
+        currentHP        = target:getHP(),
+        maxHP            = target:getMaxHP(),
+    })
+
+    if mpHealAmount > 0 then -- only restore MP if there's one or more tenebrae rune active
         target:addMP(mpHealAmount) -- augment bonusPct does not apply here according to testing.
     end
 
     if debuffCount > 0 and target:getMod(xi.mod.AUGMENTS_VIVACIOUS_PULSE) > 0 then -- add random removal of Poison, Paralyze, Blind, Silence, Mute, Curse, Bane, Doom, Virus, Plague, Petrification via AF3 head (source: https://www.bg-wiki.com/ffxi/Erilaz_Galea)
         target:delStatusEffect(debuffs[math.random(1, debuffCount)])
-    end
-
-    hpHealAmount = hpHealAmount * bonusPct
-    if target:getHP() + hpHealAmount > target:getMaxHP() then
-        hpHealAmount = target:getMaxHP() - target:getHP() -- don't go over cap
     end
 
     target:restoreHP(hpHealAmount)
@@ -319,15 +521,21 @@ xi.job_utils.rune_fencer.useRuneEnchantment = function(player, target, ability, 
 end
 
 xi.job_utils.rune_fencer.useSwordplay = function(player, target, ability)
-    -- Calculate power. (Accuracy and Evasion) https://www.bg-wiki.com/ffxi/Swordplay
-    local power = 3                                               -- Naked swordplay starts at 3. Retail confirmed.
-    power       = power + power * player:getMod(xi.mod.SWORDPLAY) -- "Swordplay + X" Where X is TICKS.
+    local power = xi.job_utils.rune_fencer.swordplayPowerFromParams({
+        swordplayMod = player:getMod(xi.mod.SWORDPLAY),
+    })
+    local subPower = xi.job_utils.rune_fencer.swordplaySubPowerFromParams({
+        sleightMerit = player:getMerit(xi.merit.MERIT_SLEIGHT_OF_SWORD),
+        augmentsMod  = player:getMod(xi.mod.AUGMENTS_SLEIGHT_OF_SWORD),
+    })
 
-    -- Calculate subPower. (Subtle blow) https://www.bg-wiki.com/ffxi/Sleight_of_Sword
-    local subPower = player:getMerit(xi.merit.MERIT_SLEIGHT_OF_SWORD)                            -- Each merit adds 5 "Subtle Blow".
-    subPower       = subPower + (subPower / 5) * player:getMod(xi.mod.AUGMENTS_SLEIGHT_OF_SWORD) -- Add augment effect IF player has augment.
-
-    player:addStatusEffect(xi.effect.SWORDPLAY, { power = power, duration = 120, origin = player, tick = 3, subPower = subPower })
+    player:addStatusEffect(xi.effect.SWORDPLAY, {
+        power    = power,
+        duration = xi.job_utils.rune_fencer.swordplayDurationSeconds,
+        origin   = player,
+        tick     = xi.job_utils.rune_fencer.swordplayTickSeconds,
+        subPower = subPower,
+    })
 
     return xi.effect.SWORDPLAY
 end
@@ -348,23 +556,16 @@ end
 
 -- tick values from https://www.bg-wiki.com/ffxi/Swordplay
 xi.job_utils.rune_fencer.onSwordplayEffectTick = function(target, effect)
-    local power         = effect:getPower()
-    local tickPower     = 3
-    local jobPointBonus = target:getJobPointLevel(xi.jp.SWORDPLAY_EFFECT)
-    local maxPower      = 60 + jobPointBonus  -- ACC/EVA bonus caps at 60, + 1 per level of job point.
+    local power = effect:getPower()
+    local tickPower = xi.job_utils.rune_fencer.swordplayTickDeltaFromParams({
+        currentPower = power,
+        swordplayJP  = target:getJobPointLevel(xi.jp.SWORDPLAY_EFFECT),
+    })
 
-    if power < maxPower then
-        if power + tickPower > maxPower then
-            tickPower = maxPower - power
-        end
-
-        if tickPower > 0 then
-            target:addMod(xi.mod.ACC, tickPower)
-            target:addMod(xi.mod.EVA, tickPower)
-        end
-
-        power = math.min(power + tickPower, maxPower)
-        effect:setPower(power)
+    if tickPower > 0 then
+        target:addMod(xi.mod.ACC, tickPower)
+        target:addMod(xi.mod.EVA, tickPower)
+        effect:setPower(power + tickPower)
     end
 end
 
@@ -417,13 +618,16 @@ xi.job_utils.rune_fencer.useVallationValiance = function(player, target, ability
     end
 
     local runeEffects           = target:getAllRuneEffects()
-    local sdtPower              = 15
     local meritBonus            = player:getMerit(xi.merit.MERIT_VALLATION_EFFECT)
     local inspirationMerits     = player:getMerit(xi.merit.MERIT_INSPIRATION)
-    local inspirationFCBonus    = inspirationMerits + inspirationMerits / 10 * player:getMod(xi.mod.ENHANCES_INSPIRATION)  -- 10 FC per merit level, plus 2% per level from AF2 leg aug
+    local inspirationFCBonus    = xi.job_utils.rune_fencer.inspirationFastCastFromParams({
+        inspirationMerits       = inspirationMerits,
+        enhancesInspirationMod  = player:getMod(xi.mod.ENHANCES_INSPIRATION),
+    })
     local jobPointBonusDuration = player:getJobPointLevel(xi.jp.VALLATION_DURATION)
-
-    sdtPower = (sdtPower + meritBonus) * 100
+    local sdtPower = xi.job_utils.rune_fencer.vallationSDTPowerFromParams({
+        vallationMerit = meritBonus,
+    })
 
     local sdtTypes = {} -- one SDT type per rune which can be additive
     local i = 0
@@ -482,18 +686,22 @@ end
 
 -- see https://www.bg-wiki.com/ffxi/Battuta
 xi.job_utils.rune_fencer.useBattuta = function(player, target, ability, action)
-    local meritPower      = player:getMerit(xi.merit.MERIT_BATTUTA) -- power is 4
-    local modBonus        = 1 + (player:getMod(xi.mod.ENHANCES_BATTUTA) * meritPower / 4) / 100
-    local inquartataPower = 36 + meritPower -- base 36% + merit power of 4% each = max of 56%
-    local spikesPower     = 6 + meritPower  -- damage is static 26 per rune barring SDT/MDT at 5/5 Battuta merits. 6 + 4*5 = 26.
-    local runeCount       = target:getActiveRuneCount()
-
-    spikesPower = spikesPower * runeCount
+    local meritPower = player:getMerit(xi.merit.MERIT_BATTUTA) -- power is 4
+    local inquartataPower, spikesSubPower = xi.job_utils.rune_fencer.battutaFromParams({
+        meritPower       = meritPower,
+        enhancesBattuta  = player:getMod(xi.mod.ENHANCES_BATTUTA),
+        runeCount        = target:getActiveRuneCount(),
+    })
 
     local highestRune = target:getHighestRuneEffect()
     action:info(target:getID(), getSpecEffectElementWard(highestRune)) -- set element color for animation.
 
-    target:addStatusEffect(xi.effect.BATTUTA, { power = inquartataPower, duration = 90, origin = player, subPower = math.floor(spikesPower * modBonus) })
+    target:addStatusEffect(xi.effect.BATTUTA, {
+        power    = inquartataPower,
+        duration = xi.job_utils.rune_fencer.battutaDurationSeconds,
+        origin   = player,
+        subPower = spikesSubPower,
+    })
 
     return xi.effect.BATTUTA
 end
@@ -541,9 +749,12 @@ local function getSwipeLungeDamageMultipliers(player, target, element, bonusMacc
 end
 
 local function calculateSwipeLungeDamage(player, target, skillModifier, gearBonus, numHits, multipliers)
-    local damage = math.floor(skillModifier * (0.50 + 0.25 * numHits + gearBonus / 100))
-
-    damage = damage + player:getMod(xi.mod.MAGIC_DAMAGE) -- add mdamage to base damage
+    local damage = xi.job_utils.rune_fencer.swipeLungeBaseDamageFromParams({
+        skillModifier = skillModifier,
+        numHits       = numHits,
+        gearBonus     = gearBonus,
+        magicDamage   = player:getMod(xi.mod.MAGIC_DAMAGE),
+    })
 
     damage = math.floor(damage * multipliers.eleStaffBonus)
     damage = math.floor(damage * multipliers.eleAffinityBonus)
@@ -582,7 +793,11 @@ xi.job_utils.rune_fencer.useSwipeLunge = function(player, target, ability, actio
         numHits = player:getActiveRuneCount()  -- num hits equals num active runes
     end
 
-    local skillModifier    = (player:getSkillLevel(weaponSkillType) + player:getILvlSkill()) * (1 + jobPointBonus / 100)
+    local skillModifier = xi.job_utils.rune_fencer.swipeLungeSkillModifierFromParams({
+        weaponSkill = player:getSkillLevel(weaponSkillType),
+        iLvlSkill   = player:getILvlSkill(),
+        swipeJP     = jobPointBonus,
+    })
     local shadowsHit       = 0
     local cumulativeDamage = 0
     local runesUsed        = 0

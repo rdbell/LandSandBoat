@@ -1,9 +1,6 @@
 -----------------------------------
 -- Ability: Embolden
--- Enhances the effects of the next enhancing magic spell you cast, but reduces effect duration.
--- Obtained: Rune Fencer Level 60
--- Recast Time: 10:00
--- Duration: 1:00 or first absorb
+-- Dual-wired via xi.job_utils.rune_fencer (slice 6751)
 -----------------------------------
 ---@type TAbility
 local abilityObject = {}
@@ -13,7 +10,8 @@ abilityObject.onAbilityCheck = function(player, target, ability)
 end
 
 abilityObject.onUseAbility = function(player, target, ability, action)
-    target:addStatusEffect(xi.effect.EMBOLDEN, { duration = 60, origin = player }) -- effects handled in scripts/globals/spells/spell_enhancing.lua
+    local p = xi.job_utils.rune_fencer.emboldenFromParams()
+    target:addStatusEffect(xi.effect.EMBOLDEN, { duration = p.duration, origin = player })
 end
 
 return abilityObject
