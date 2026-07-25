@@ -1345,6 +1345,8 @@ set(SOURCES
     test_learned_ability_mutation_6845.cpp
     test_ability_mutation_6846.h
     test_ability_mutation_6846.cpp
+    test_title_mutation_6847.h
+    test_title_mutation_6847.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h
