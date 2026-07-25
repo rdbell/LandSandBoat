@@ -1,9 +1,21 @@
 -----------------------------------
 -- Can use spell override functionality
 -- Used to allow cast of spells granted by job points
+--
+-- Dual-wired pure inject forms (slice 6721 / 0883):
+--   getSpellJobPointCostForJob, canUseSpellOverrideFromParams,
+--   spentJobPointsForOverride, giftCatalogSize
+-- Parity: internal/canusespell + can_use_spell_capacity.h
 -----------------------------------
 xi = xi or {}
 xi.spells = xi.spells or {}
+
+-- Spent-JP thresholds (internal/canusespell GiftJP*).
+xi.spells.giftJP100  = 100
+xi.spells.giftJP550  = 550
+xi.spells.giftJP1200 = 1200
+xi.spells.unknownGiftCost = -1
+xi.spells.minLevelForSpentJP = 99
 
 local jobPointSpellGiftMap =
 {
@@ -114,7 +126,9 @@ local jobPointSpellGiftMap =
     }
 }
 
-local function getSpellJobPointCostForJob(job, spellID)
+-- Pure: getSpellJobPointCostForJob (missing → -1).
+-- Dual-wired to internal/canusespell.GiftCost / canusespellhelpers::GiftCost.
+xi.spells.getSpellJobPointCostForJob = function(job, spellID)
     local jobGiftMap = jobPointSpellGiftMap[job]
     if jobGiftMap then
         local jobPointCost = jobGiftMap[spellID]
@@ -124,26 +138,53 @@ local function getSpellJobPointCostForJob(job, spellID)
         end
     end
 
-    return -1
+    return xi.spells.unknownGiftCost
+end
+
+-- Pure spent-JP inject after Level Sync gate (main level < 99 → 0).
+-- Dual-wired to internal/canusespell.SpentJobPointsForOverride.
+xi.spells.spentJobPointsForOverride = function(isPC, mainLevel, rawSpentJP)
+    if not isPC or (mainLevel or 0) < xi.spells.minLevelForSpentJP then
+        return 0
+    end
+
+    return rawSpentJP or 0
+end
+
+-- Pure canUseSpellOverride after injects.
+-- params: job, spellID, spentJobPoints
+-- Dual-wired to internal/canusespell.CanUseOverride.
+xi.spells.canUseSpellOverrideFromParams = function(params)
+    params = params or {}
+    local cost = xi.spells.getSpellJobPointCostForJob(params.job or 0, params.spellID or 0)
+
+    if cost == xi.spells.unknownGiftCost then -- that job can't cast that spell no matter how many JP they have
+        return false
+    end
+
+    return (params.spentJobPoints or 0) >= cost
+end
+
+-- Catalog completeness (60 gift rows).
+xi.spells.giftCatalogSize = function()
+    local n = 0
+    for _, jobMap in pairs(jobPointSpellGiftMap) do
+        for _ in pairs(jobMap) do
+            n = n + 1
+        end
+    end
+
+    return n
 end
 
 -- return true to indicate that the spell can indeed be cast
 -- return false falls back to default behavior of checking main/sub job levels for cast availability
 -- note: this only affects whether or not you are able to cast a spell in general, MP costs (if any) are still required.
+-- Host: injects main job / spell ID / spent JP into pure canUseSpellOverrideFromParams.
 xi.spells.canUseSpellOverride = function(player, spell)
-    local job            = player:getMainJob()
-    local spellID        = spell:getID()
-    local jobPointsSpent = player:getSpentJobPoints()
-
-    local jobPointCostForSpell = getSpellJobPointCostForJob(job, spellID)
-
-    if jobPointCostForSpell == -1 then -- that job can't cast that spell no matter how many JP they have
-        return false
-    end
-
-    if jobPointsSpent >= jobPointCostForSpell then
-        return true
-    end
-
-    return false
+    return xi.spells.canUseSpellOverrideFromParams({
+        job            = player:getMainJob(),
+        spellID        = spell:getID(),
+        spentJobPoints = player:getSpentJobPoints(),
+    })
 end
