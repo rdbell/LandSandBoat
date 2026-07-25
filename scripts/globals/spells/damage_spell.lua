@@ -917,16 +917,32 @@ xi.spells.damage.calculateMagicBonusDiff = function(caster, target, spellId, ski
     })
 end
 
-xi.spells.damage.calculateMagicCriticalMultiplier = function(caster)
-    -- Also known as "Magic Critical Hit II"
-    -- https://www.bg-wiki.com/ffxi/Magic_Critical_Hit
-    -- https://www.bg-wiki.com/ffxi/Sroda_Tathlum
-    local criticalChance = caster:getMod(xi.mod.MAGIC_CRITHITRATE_II)
-    if math.random(1, 100) <= criticalChance then
-        return 1.25
+-----------------------------------
+-- Magic Critical Hit II pure helpers
+-- Dual-wired to OmegaXI internal/magicbonus (slice 6714 / 0858).
+-- https://www.bg-wiki.com/ffxi/Magic_Critical_Hit
+-- https://www.bg-wiki.com/ffxi/Sroda_Tathlum
+-----------------------------------
+
+xi.spells.damage.magicCriticalIIMultiplier = 1.25
+
+-- Pure Magic Crit II: roll in 1..100 and roll <= chance → 1.25, else 1.
+-- params: critChanceII, critIIRoll
+xi.spells.damage.calculateMagicCriticalMultiplierFromParams = function(params)
+    local chance = params.critChanceII or 0
+    local roll = params.critIIRoll or 0
+    if roll >= 1 and roll <= 100 and roll <= chance then
+        return xi.spells.damage.magicCriticalIIMultiplier
     end
 
     return 1
+end
+
+xi.spells.damage.calculateMagicCriticalMultiplier = function(caster)
+    return xi.spells.damage.calculateMagicCriticalMultiplierFromParams({
+        critChanceII = caster:getMod(xi.mod.MAGIC_CRITHITRATE_II),
+        critIIRoll   = math.random(1, 100),
+    })
 end
 
 -- Pure mid/late product multipliers (consume flags for status del hosts).
