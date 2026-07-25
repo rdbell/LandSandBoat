@@ -103,6 +103,7 @@
 #include "check_equipment_capacity.h"
 #include "capacity_award_capacity.h"
 #include "weapon_skill_roster_capacity.h"
+#include "weapon_style_update_capacity.h"
 #include "ability_table_capacity.h"
 #include "armor_style_update_capacity.h"
 #include "pet_ability_table_capacity.h"
@@ -2799,75 +2800,40 @@ void SetStyleLock(CCharEntity* PChar, bool isStyleLocked)
 
 void UpdateWeaponStyle(CCharEntity* PChar, uint8 equipSlotID, CItemEquipment* PItem)
 {
-    if (styleupdatehelpers::ShouldSkipStyleUpdateWhenUnlocked(PChar->getStyleLocked()))
+    const bool styleLocked = PChar->getStyleLocked();
+    if (styleupdatehelpers::ShouldSkipStyleUpdateWhenUnlocked(styleLocked))
     {
         return;
     }
 
     const CItemEquipment* appearance      = xi::items::lookup<CItemEquipment>(PChar->styleItems[equipSlotID]);
     uint16                appearanceModel = styleupdatehelpers::AppearanceModelOrZero(appearance != nullptr, appearance ? appearance->getModelId() : 0);
-
-    switch (equipSlotID)
+    const bool            styleSlot       = equipSlotID == SLOT_MAIN || equipSlotID == SLOT_SUB || equipSlotID == SLOT_RANGED;
+    const auto*           PWeapon         = equipSlotID == SLOT_MAIN ? dynamic_cast<CItemWeapon*>(PItem) : nullptr;
+    const auto            plan            = weaponstyleupdatehelpers::PlanFor({
+        .styleLocked          = styleLocked,
+        .styleValid           = styleSlot && hasValidStyle(PChar, PItem, appearance),
+        .incomingItemNil      = PItem == nullptr,
+        .incomingIsWeapon     = PWeapon != nullptr,
+        .incomingIsHandToHand = PWeapon != nullptr && PWeapon->getSkillType() == SKILL_HAND_TO_HAND,
+        .incomingIsTwoHanded  = PWeapon != nullptr && styleupdatehelpers::IsTwoHandedStyleSkill(PWeapon->getSkillType()),
+        .equipSlotID          = equipSlotID,
+        .appearanceModel      = appearanceModel,
+        .currentMainModel     = PChar->look.main,
+        .currentSubModel      = PChar->look.sub,
+        .currentRangedModel   = PChar->look.ranged,
+    });
+    if (plan.setMainLook)
     {
-        case SLOT_MAIN:
-            if (hasValidStyle(PChar, PItem, appearance))
-            {
-                PChar->mainlook.main = appearanceModel;
-            }
-            else
-            {
-                PChar->mainlook.main = PChar->look.main;
-            }
-
-            if (PItem == nullptr)
-            {
-                PChar->mainlook.sub = PChar->look.sub;
-            }
-            else
-            {
-                CItemWeapon* PWeapon = dynamic_cast<CItemWeapon*>(PItem);
-                if (PWeapon)
-                {
-                    switch (PWeapon->getSkillType())
-                    {
-                        case SKILL_HAND_TO_HAND:
-                            PChar->mainlook.sub = styleupdatehelpers::H2HSubLookModel(appearanceModel);
-                            break;
-                        case SKILL_GREAT_SWORD:
-                        case SKILL_GREAT_AXE:
-                        case SKILL_SCYTHE:
-                        case SKILL_POLEARM:
-                        case SKILL_GREAT_KATANA:
-                        case SKILL_STAFF:
-                            PChar->mainlook.sub = PChar->look.sub;
-                            break;
-                    }
-                }
-            }
-            break;
-        case SLOT_SUB:
-            if (hasValidStyle(PChar, PItem, appearance))
-            {
-                PChar->mainlook.sub = appearanceModel;
-            }
-            else
-            {
-                PChar->mainlook.sub = PChar->look.sub;
-            }
-            break;
-        case SLOT_RANGED:
-            if (hasValidStyle(PChar, PItem, appearance))
-            {
-                PChar->mainlook.ranged = appearanceModel;
-            }
-            else
-            {
-                PChar->mainlook.ranged = PChar->look.ranged;
-            }
-
-            break;
-        default:
-            break;
+        PChar->mainlook.main = plan.mainModel;
+    }
+    if (plan.setSubLook)
+    {
+        PChar->mainlook.sub = plan.subModel;
+    }
+    if (plan.setRangedLook)
+    {
+        PChar->mainlook.ranged = plan.rangedModel;
     }
 }
 
@@ -2886,7 +2852,7 @@ void UpdateArmorStyle(CCharEntity* PChar, uint8 equipSlotID)
         .hasAppearance      = appearance != nullptr,
         .stillHasAppearance = HasItem(PChar, itemID),
         .canEquipAppearance = canEquipItemOnAnyJob(PChar, appearance),
-        .modelID            = appearance ? static_cast<std::uint16_t>(appearance->getModelId()) : 0u,
+        .modelID            = static_cast<std::uint16_t>(appearance ? appearance->getModelId() : 0),
         .equipSlotID        = equipSlotID,
     });
     if (!plan.setMainLook)

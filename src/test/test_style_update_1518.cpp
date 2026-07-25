@@ -2,6 +2,7 @@
 
 #include "map/armor_style_update_capacity.h"
 #include "map/style_update_capacity.h"
+#include "map/weapon_style_update_capacity.h"
 
 #include <iostream>
 
@@ -154,6 +155,64 @@ auto Check() -> bool
     });
     if (!retainedArmorStyle.setMainLook || retainedArmorStyle.slot != 5 || retainedArmorStyle.modelID != 0x1234 ||
         !missingArmorStyle.setMainLook || missingArmorStyle.slot != 8 || missingArmorStyle.modelID != 0)
+    {
+        return false;
+    }
+    if (weaponstyleupdatehelpers::PlanFor({ .equipSlotID = weaponstyleupdatehelpers::SlotMain }).setMainLook)
+    {
+        return false;
+    }
+    const auto h2hWeaponStyle = weaponstyleupdatehelpers::PlanFor({
+        .styleLocked          = true,
+        .styleValid           = true,
+        .incomingIsWeapon     = true,
+        .incomingIsHandToHand = true,
+        .equipSlotID          = weaponstyleupdatehelpers::SlotMain,
+        .appearanceModel      = 0x1234,
+        .currentMainModel     = 10,
+        .currentSubModel      = 11,
+    });
+    const auto twoHandedWeaponStyle = weaponstyleupdatehelpers::PlanFor({
+        .styleLocked         = true,
+        .incomingIsWeapon    = true,
+        .incomingIsTwoHanded = true,
+        .equipSlotID         = weaponstyleupdatehelpers::SlotMain,
+        .appearanceModel     = 0x1234,
+        .currentMainModel    = 10,
+        .currentSubModel     = 11,
+    });
+    const auto genericMainWeaponStyle = weaponstyleupdatehelpers::PlanFor({
+        .styleLocked      = true,
+        .styleValid       = true,
+        .incomingIsWeapon = true,
+        .equipSlotID      = weaponstyleupdatehelpers::SlotMain,
+        .appearanceModel  = 0x1234,
+    });
+    const auto nilMainWeaponStyle = weaponstyleupdatehelpers::PlanFor({
+        .styleLocked      = true,
+        .incomingItemNil  = true,
+        .equipSlotID      = weaponstyleupdatehelpers::SlotMain,
+        .currentMainModel = 10,
+        .currentSubModel  = 11,
+    });
+    const auto subWeaponStyle = weaponstyleupdatehelpers::PlanFor({
+        .styleLocked     = true,
+        .styleValid      = true,
+        .equipSlotID     = weaponstyleupdatehelpers::SlotSub,
+        .appearanceModel = 0x3333,
+        .currentSubModel = 11,
+    });
+    const auto rangedWeaponStyle = weaponstyleupdatehelpers::PlanFor({
+        .styleLocked        = true,
+        .equipSlotID        = weaponstyleupdatehelpers::SlotRanged,
+        .currentRangedModel = 12,
+    });
+    if (!h2hWeaponStyle.setMainLook || h2hWeaponStyle.mainModel != 0x1234 || !h2hWeaponStyle.setSubLook || h2hWeaponStyle.subModel != 0x2234 ||
+        !twoHandedWeaponStyle.setMainLook || twoHandedWeaponStyle.mainModel != 10 || !twoHandedWeaponStyle.setSubLook || twoHandedWeaponStyle.subModel != 11 ||
+        !genericMainWeaponStyle.setMainLook || genericMainWeaponStyle.mainModel != 0x1234 || genericMainWeaponStyle.setSubLook ||
+        !nilMainWeaponStyle.setMainLook || nilMainWeaponStyle.mainModel != 10 || !nilMainWeaponStyle.setSubLook || nilMainWeaponStyle.subModel != 11 ||
+        !subWeaponStyle.setSubLook || subWeaponStyle.subModel != 0x3333 ||
+        !rangedWeaponStyle.setRangedLook || rangedWeaponStyle.rangedModel != 12)
     {
         return false;
     }
