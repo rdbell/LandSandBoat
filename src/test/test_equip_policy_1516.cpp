@@ -5,6 +5,7 @@
 #include "map/equip_armor_direct_restrictions_capacity.h"
 #include "map/equip_armor_ammo_look_capacity.h"
 #include "map/equip_armor_main_look_capacity.h"
+#include "map/equip_armor_main_attack_timer_capacity.h"
 #include "map/equip_armor_main_sub_capacity.h"
 #include "map/equip_armor_ranged_compatibility_capacity.h"
 #include "map/equip_armor_ranged_look_capacity.h"
@@ -472,6 +473,22 @@ auto Check() -> bool
     });
     if (!resetMainAttackTimer.resetAttackTimer || disengagedMainAttackTimer.resetAttackTimer ||
         nonAttackMainTimer.resetAttackTimer || subAttackTimer.resetAttackTimer)
+    {
+        return false;
+    }
+
+    const auto resetEquipMainAttackTimer = equiparmormainattacktimerhelpers::PlanFor({
+        .isEngaged           = true,
+        .currentStateIsAttack = true,
+    });
+    const auto disengagedEquipMainAttackTimer = equiparmormainattacktimerhelpers::PlanFor({
+        .currentStateIsAttack = true,
+    });
+    const auto nonAttackEquipMainTimer = equiparmormainattacktimerhelpers::PlanFor({
+        .isEngaged = true,
+    });
+    if (!resetEquipMainAttackTimer.resetAttackTimer || disengagedEquipMainAttackTimer.resetAttackTimer ||
+        nonAttackEquipMainTimer.resetAttackTimer)
     {
         return false;
     }

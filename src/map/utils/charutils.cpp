@@ -113,6 +113,7 @@
 #include "equip_armor_direct_restrictions_capacity.h"
 #include "equip_armor_ammo_look_capacity.h"
 #include "equip_armor_main_look_capacity.h"
+#include "equip_armor_main_attack_timer_capacity.h"
 #include "equip_armor_main_sub_capacity.h"
 #include "equip_armor_ranged_compatibility_capacity.h"
 #include "equip_armor_ranged_look_capacity.h"
@@ -2625,13 +2626,15 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                         }
                         break;
                     }
-                    if (PChar->PAI->IsEngaged())
+                    const bool isEngaged = PChar->PAI->IsEngaged();
+                    auto* const state = isEngaged ? dynamic_cast<CAttackState*>(PChar->PAI->GetCurrentState()) : nullptr;
+                    const auto attackTimerPlan = equiparmormainattacktimerhelpers::PlanFor({
+                        .isEngaged           = isEngaged,
+                        .currentStateIsAttack = state != nullptr,
+                    });
+                    if (attackTimerPlan.resetAttackTimer)
                     {
-                        auto* state = dynamic_cast<CAttackState*>(PChar->PAI->GetCurrentState());
-                        if (state)
-                        {
-                            state->ResetAttackTimer();
-                        }
+                        state->ResetAttackTimer();
                     }
                     PChar->m_Weapons[SLOT_MAIN] = PItem;
                 }
