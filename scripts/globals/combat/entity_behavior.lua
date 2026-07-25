@@ -1,47 +1,73 @@
 -----------------------------------
 -- Global file for globably/commonly used entity behavior/patterns.
+-- Pure isEntityBusy dual-wired to OmegaXI internal/entitybusy (slice 6700 / 0907).
 -----------------------------------
 xi = xi or {}
 xi.combat = xi.combat or {}
 xi.combat.behavior = xi.combat.behavior or {}
 
-xi.combat.behavior.isEntityBusy = function(actor)
+xi.combat.behavior.isBusyLocalVarKey = 'isBusy'
+
+-- Pure free-action pose gate (NONE / BASIC_ATTACK / ROAMING).
+xi.combat.behavior.isFreeActionCategory = function(currAction)
+    return currAction == xi.action.category.NONE or
+        currAction == xi.action.category.BASIC_ATTACK or
+        currAction == xi.action.category.ROAMING
+end
+
+-- Pure isEntityBusy once action/PC/queue/status/local-var injects are supplied.
+-- params: currentAction, isPC, actionQueueEmpty,
+--   hasSleepI, hasSleepII, hasLullaby, hasStun, hasTerror, hasPetrification,
+--   isBusyLocalVar
+xi.combat.behavior.isEntityBusyFromParams = function(params)
     -- Check poses (actions).
-    local currAction = actor:getCurrentAction()
-    if
-        currAction ~= xi.action.category.NONE and
-        currAction ~= xi.action.category.BASIC_ATTACK and-- TODO: What does "ATTACK" entail? Just swinging or engaged in general?
-        currAction ~= xi.action.category.ROAMING
-    then
+    local currAction = params.currentAction or xi.action.category.NONE
+    if not xi.combat.behavior.isFreeActionCategory(currAction) then
         return true
     end
 
     -- Check action queue.
     if
-        not actor:isPC() and
-        not actor:actionQueueEmpty()
+        not params.isPC and
+        not params.actionQueueEmpty
     then
         return true
     end
 
     -- Check status effects.
     if
-        actor:hasStatusEffect(xi.effect.SLEEP_I) or
-        actor:hasStatusEffect(xi.effect.SLEEP_II) or -- Unused, but let's check it anyway, for the future.
-        actor:hasStatusEffect(xi.effect.LULLABY) or  -- Unused, but let's check it anyway, for the future.
-        actor:hasStatusEffect(xi.effect.STUN) or
-        actor:hasStatusEffect(xi.effect.TERROR) or
-        actor:hasStatusEffect(xi.effect.PETRIFICATION)
+        params.hasSleepI or
+        params.hasSleepII or -- Unused, but let's check it anyway, for the future.
+        params.hasLullaby or -- Unused, but let's check it anyway, for the future.
+        params.hasStun or
+        params.hasTerror or
+        params.hasPetrification
     then
         return true
     end
 
     -- Check "isBusy" local variable. For special actions (Bahamut's Megaflare or Ultima's... Ultima, for example).
-    if actor:getLocalVar('isBusy') > 0 then
+    if (params.isBusyLocalVar or 0) > 0 then
         return true
     end
 
     return false
+end
+
+-- Entity host: inject action/PC/queue/status/local-var → pure.
+xi.combat.behavior.isEntityBusy = function(actor)
+    return xi.combat.behavior.isEntityBusyFromParams({
+        currentAction    = actor:getCurrentAction(),
+        isPC             = actor:isPC(),
+        actionQueueEmpty = actor:actionQueueEmpty(),
+        hasSleepI        = actor:hasStatusEffect(xi.effect.SLEEP_I),
+        hasSleepII       = actor:hasStatusEffect(xi.effect.SLEEP_II),
+        hasLullaby       = actor:hasStatusEffect(xi.effect.LULLABY),
+        hasStun          = actor:hasStatusEffect(xi.effect.STUN),
+        hasTerror        = actor:hasStatusEffect(xi.effect.TERROR),
+        hasPetrification = actor:hasStatusEffect(xi.effect.PETRIFICATION),
+        isBusyLocalVar   = actor:getLocalVar(xi.combat.behavior.isBusyLocalVarKey),
+    })
 end
 
 -- For "decoration" type mobs and faked actions.
