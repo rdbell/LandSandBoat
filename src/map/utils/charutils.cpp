@@ -2741,20 +2741,12 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
 
 auto canEquipItemOnAnyJob(CCharEntity* PChar, const CItemEquipment* PItem) -> bool
 {
-    if (styleupdatehelpers::CanEquipItemOnAnyJobNullOK(PItem == nullptr))
-    {
-        return true;
-    }
-
-    for (uint8 i = 1; i < styleupdatehelpers::MaxJobType; i++)
-    {
-        if (styleupdatehelpers::JobMeetsItemReqs(PItem->getJobs(), i, PItem->getReqLvl(), PChar->jobs.job[i]))
-        {
-            // TODO: Check for Su level for the player's job, and apply to the condition.
-            return true;
-        }
-    }
-    return false;
+    // TODO: Check for Su level for the player's job, and apply to the condition.
+    return styleupdatehelpers::CanEquipItemOnAnyJob(
+        PItem == nullptr,
+        PItem ? PItem->getJobs() : 0u,
+        PItem ? PItem->getReqLvl() : 0,
+        std::to_array(PChar->jobs.job));
 }
 
 auto hasValidStyle(CCharEntity* PChar, const CItemEquipment* PItem, const CItemEquipment* AItem) -> bool

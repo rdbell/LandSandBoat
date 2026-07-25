@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 
 // Pure UpdateItem quantity gates and style-lock policy from charutils.
@@ -93,6 +94,28 @@ constexpr auto JobMeetsItemReqs(const std::uint32_t itemJobs, const std::uint8_t
 constexpr auto CanEquipItemOnAnyJobNullOK(const bool itemNull) -> bool
 {
     return itemNull;
+}
+
+// CanEquipItemOnAnyJob mirrors the native null-item and job 1..MAX-1 scan.
+// Superior-level eligibility remains intentionally deferred in the native path.
+constexpr auto CanEquipItemOnAnyJob(const bool itemNull,
+                                    const std::uint32_t itemJobs,
+                                    const std::uint8_t reqLvl,
+                                    const std::array<std::uint8_t, MaxJobType>& jobLevels) -> bool
+{
+    if (CanEquipItemOnAnyJobNullOK(itemNull))
+    {
+        return true;
+    }
+
+    for (std::uint8_t jobID = 1; jobID < MaxJobType; ++jobID)
+    {
+        if (JobMeetsItemReqs(itemJobs, jobID, reqLvl, jobLevels[jobID]))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 // HasValidStyleShieldCase mirrors both shields.

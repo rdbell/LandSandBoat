@@ -12,6 +12,7 @@ namespace
 using styleupdatehelpers::ArmorStyleAppearanceModel;
 using styleupdatehelpers::AppearanceModelOrZero;
 using styleupdatehelpers::CanEquipItemOnAnyJobNullOK;
+using styleupdatehelpers::CanEquipItemOnAnyJob;
 using styleupdatehelpers::CapQuantityToStack;
 using styleupdatehelpers::H2HSubLookModel;
 using styleupdatehelpers::HasValidStyle;
@@ -75,6 +76,24 @@ auto Check() -> bool
         return false;
     }
     if (!JobMeetsItemReqs(0x2, 2, 50, 75) || JobMeetsItemReqs(0x2, 2, 80, 75) || JobMeetsItemReqs(0x2, 1, 50, 75))
+    {
+        return false;
+    }
+    std::array<std::uint8_t, styleupdatehelpers::MaxJobType> jobLevels{};
+    if (!CanEquipItemOnAnyJob(true, 0, 0, jobLevels))
+    {
+        return false;
+    }
+    jobLevels[2] = 75;
+    if (!CanEquipItemOnAnyJob(false, 1u << (2 - 1), 50, jobLevels))
+    {
+        return false;
+    }
+    jobLevels = {};
+    jobLevels[styleupdatehelpers::MaxJobType - 1] = 99;
+    if (!CanEquipItemOnAnyJob(false, 1u << ((styleupdatehelpers::MaxJobType - 1) - 1), 99, jobLevels) ||
+        CanEquipItemOnAnyJob(false, 1u << (2 - 1), 1, jobLevels) ||
+        CanEquipItemOnAnyJob(false, 1u << ((styleupdatehelpers::MaxJobType - 1) - 1), 100, jobLevels))
     {
         return false;
     }
