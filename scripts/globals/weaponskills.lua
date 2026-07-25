@@ -18,43 +18,118 @@ require('scripts/globals/combat/physical_utilities')
 xi = xi or {}
 xi.weaponskills = xi.weaponskills or {}
 
-local function shadowAbsorb(target)
-    local targetShadows = target:getMod(xi.mod.UTSUSEMI)
-    local shadowType    = xi.mod.UTSUSEMI
+-----------------------------------
+-- Pure: weaponskill single-hit shadow absorb (slice 6752 / internal/shadowabsorb.SingleHitAbsorb)
+-- Unlike utils.shadowAbsorb: Blink 80% proc when Utsusemi 0; no COPY_IMAGE_4 for remaining >= 4;
+-- remaining 0 deletes both COPY_IMAGE and BLINK.
+-- params: utsusemi, blink, blinkProcRoll, hasCopyImageEffect
+-- returns: absorbed, remaining, usedUtsusemi, usedBlink, icon, setIcon, delCopyImage, delBlink
+-----------------------------------
+xi.weaponskills.wsBlinkProcThreshold = 80
 
-    if targetShadows == 0 then
-        if math.random(1, 100) <= 80 then
-            targetShadows = target:getMod(xi.mod.BLINK)
-            shadowType    = xi.mod.BLINK
-        end
-    end
+xi.weaponskills.singleHitShadowAbsorbFromParams = function(params)
+    params = params or {}
+    local utsusemi = params.utsusemi or 0
+    local blink = params.blink or 0
+    local blinkProcRoll = params.blinkProcRoll or 0
+    local hasCopyImageEffect = params.hasCopyImageEffect
 
-    if targetShadows > 0 then
-        targetShadows = targetShadows - 1
+    local shadows = utsusemi
+    local usedUtsu = false
+    local usedBlink = false
 
-        if shadowType == xi.mod.UTSUSEMI then
-            local effect = target:getStatusEffect(xi.effect.COPY_IMAGE)
-            if effect then
-                if targetShadows == 1 then
-                    effect:setIcon(xi.effect.COPY_IMAGE)
-                elseif targetShadows == 2 then
-                    effect:setIcon(xi.effect.COPY_IMAGE_2)
-                elseif targetShadows == 3 then
-                    effect:setIcon(xi.effect.COPY_IMAGE_3)
-                end
+    if shadows == 0 then
+        if blinkProcRoll <= xi.weaponskills.wsBlinkProcThreshold then
+            shadows = blink
+            if shadows > 0 then
+                usedBlink = true
             end
         end
-
-        target:setMod(shadowType, targetShadows)
-        if targetShadows == 0 then
-            target:delStatusEffect(xi.effect.COPY_IMAGE)
-            target:delStatusEffect(xi.effect.BLINK)
-        end
-
-        return true
+    else
+        usedUtsu = true
     end
 
-    return false
+    if shadows <= 0 then
+        return {
+            absorbed     = false,
+            remaining    = 0,
+            usedUtsusemi = false,
+            usedBlink    = false,
+            icon         = 0,
+            setIcon      = false,
+            delCopyImage = false,
+            delBlink     = false,
+        }
+    end
+
+    local remaining = shadows - 1
+    local res = {
+        absorbed     = true,
+        remaining    = remaining,
+        usedUtsusemi = usedUtsu,
+        usedBlink    = usedBlink,
+        icon         = 0,
+        setIcon      = false,
+        delCopyImage = false,
+        delBlink     = false,
+    }
+
+    if remaining == 0 then
+        res.delCopyImage = true
+        res.delBlink = true
+        return res
+    end
+
+    if usedUtsu then
+        -- WS local only maps remaining 1/2/3 (no COPY_IMAGE_4 branch).
+        if remaining == 1 then
+            res.icon = xi.effect.COPY_IMAGE
+        elseif remaining == 2 then
+            res.icon = xi.effect.COPY_IMAGE_2
+        elseif remaining == 3 then
+            res.icon = xi.effect.COPY_IMAGE_3
+        end
+
+        res.setIcon = hasCopyImageEffect and res.icon ~= 0
+    end
+
+    return res
+end
+
+-- Entity host: inject mods/RNG → pure → setMod/setIcon/delStatusEffect.
+local function shadowAbsorb(target)
+    local res = xi.weaponskills.singleHitShadowAbsorbFromParams({
+        utsusemi           = target:getMod(xi.mod.UTSUSEMI),
+        blink              = target:getMod(xi.mod.BLINK),
+        blinkProcRoll      = math.random(1, 100),
+        hasCopyImageEffect = target:getStatusEffect(xi.effect.COPY_IMAGE) ~= nil,
+    })
+
+    if not res.absorbed then
+        return false
+    end
+
+    if res.usedUtsusemi then
+        target:setMod(xi.mod.UTSUSEMI, res.remaining)
+        if res.setIcon then
+            local effect = target:getStatusEffect(xi.effect.COPY_IMAGE)
+            if effect then
+                effect:setIcon(res.icon)
+            end
+        end
+    elseif res.usedBlink then
+        target:setMod(xi.mod.BLINK, res.remaining)
+    end
+
+    if res.delCopyImage then
+        target:delStatusEffect(xi.effect.COPY_IMAGE)
+    end
+
+    if res.delBlink then
+        target:delStatusEffect(xi.effect.BLINK)
+    end
+
+    return true
 end
 
 local function getMultiAttacks(attacker, target, wsParams, firstHit, offHand)
