@@ -1373,6 +1373,8 @@ set(SOURCES
     test_send_to_zone_6859.cpp
     test_home_point_transition_6860.h
     test_home_point_transition_6860.cpp
+    test_zone_out_transition_6861.h
+    test_zone_out_transition_6861.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h

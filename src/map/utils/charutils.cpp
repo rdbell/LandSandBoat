@@ -65,6 +65,7 @@
 #include "char_points_capacity.h"
 #include "char_send_to_zone_capacity.h"
 #include "char_unity_leader_capacity.h"
+#include "char_zone_out_transition.h"
 #include "conquest_system.h"
 #include "grades.h"
 #include "ipc_client.h"
@@ -8019,90 +8020,125 @@ void forceSynthCritFail(const std::string& sourceFunction, CCharEntity* PChar)
 
 void removeCharFromZone(CCharEntity* PChar)
 {
+    const auto status = static_cast<uint8>(PChar->status);
+    const bool isShutdownLogout = zoneouthelpers::IsShutdownLogout(status);
+    const bool hasParty    = isShutdownLogout && PChar->PParty != nullptr;
+    const bool hasAlliance = hasParty && PChar->PParty->m_PAlliance != nullptr;
+    const auto plan = zoneouttransitionhelpers::MakeZoneOutTransitionPlan({
+        .hasSession                = PChar->PSession != nullptr,
+        .hasZone                   = PChar->loc.zone != nullptr,
+        .animation                 = static_cast<uint8>(PChar->animation),
+        .hasTrusts                 = !PChar->PTrusts.empty(),
+        .status                    = status,
+        .hasParty                  = hasParty,
+        .hasAlliance               = hasAlliance,
+        .isPartyLeader             = hasParty && PChar->PParty->GetLeader() == PChar,
+        .partyHasOnlyOneMember     = hasParty && PChar->PParty->HasOnlyOneMember(),
+        .allianceHasOnlyOneParty   = hasAlliance && PChar->PParty->m_PAlliance->hasOnlyOneParty(),
+        .petPersists               = isShutdownLogout && PChar->shouldPetPersistThroughZoning(),
+    });
+
     // Store old blowfish, recalculate expected new blowfish
-    if (zoneouthelpers::ShouldMarkBlowfishPendingZone(PChar->PSession != nullptr))
+    if (plan.markBlowfishPendingZone)
     {
         PChar->PSession->blowfish.status = BLOWFISH_PENDING_ZONE;
     }
 
-    PChar->TradePending.clean();
-    PChar->InvitePending.clean();
+    if (plan.cleanTradePending)
+    {
+        PChar->TradePending.clean();
+    }
+    if (plan.cleanInvitePending)
+    {
+        PChar->InvitePending.clean();
+    }
 
-    if (zoneouthelpers::ShouldNotifyNominateOnLeave(PChar->loc.zone != nullptr))
+    if (plan.notifyNominateOnLeave)
     {
         PChar->loc.zone->nominateManager().onCharLeavingZone(PChar);
     }
 
-    PChar->WideScanTarget = std::nullopt;
+    if (plan.clearWideScanTarget)
+    {
+        PChar->WideScanTarget = std::nullopt;
+    }
 
-    if (zoneouthelpers::ShouldClearAttackAnimation(static_cast<uint8>(PChar->animation)))
+    if (plan.clearAttackAnimation)
     {
         PChar->animation = ANIMATION_NONE;
+    }
+    if (plan.setUpdateHP)
+    {
         PChar->updatemask |= UPDATE_HP;
     }
 
-    if (zoneouthelpers::ShouldClearTrusts(!PChar->PTrusts.empty()))
+    if (plan.clearTrusts)
     {
         PChar->ClearTrusts();
     }
 
-    const bool isShutdownLogout = zoneouthelpers::IsShutdownLogout(static_cast<uint8>(PChar->status));
-    if (isShutdownLogout)
+    switch (plan.partyAction)
     {
-        if (PChar->PParty != nullptr)
-        {
-            const bool hasAlliance = PChar->PParty->m_PAlliance != nullptr;
-            const bool isLeader    = PChar->PParty->GetLeader() == PChar;
-            const bool onlyMember  = PChar->PParty->HasOnlyOneMember();
-            const bool onlyParty   = hasAlliance && PChar->PParty->m_PAlliance->hasOnlyOneParty();
-            switch (zoneouthelpers::ClassifyZoneOutPartyLeave(true, hasAlliance, isLeader, onlyMember, onlyParty))
-            {
-                case zoneouthelpers::ZoneOutPartyAction::DissolveAlliance:
-                    PChar->PParty->m_PAlliance->dissolveAlliance();
-                    break;
-                case zoneouthelpers::ZoneOutPartyAction::RemovePartyFromAlliance:
-                    PChar->PParty->m_PAlliance->removeParty(PChar->PParty);
-                    break;
-                case zoneouthelpers::ZoneOutPartyAction::RemoveMember:
-                    PChar->PParty->RemoveMember(PChar);
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        if (zoneouthelpers::ShouldSetPetZoningInfo(PChar->shouldPetPersistThroughZoning()))
-        {
-            PChar->setPetZoningInfo();
-        }
-        else
-        {
-            PChar->resetPetZoningInfo();
-        }
-
-        PChar->PSession->shuttingDown = zoneouthelpers::SessionShuttingDownValue(true);
-        db::preparedStmt("UPDATE char_stats SET zoning = ? WHERE charid = ?", zoneouthelpers::CharStatsZoningValue(true), PChar->id);
-    }
-    else
-    {
-        PChar->PSession->shuttingDown = zoneouthelpers::SessionShuttingDownValue(false);
-        db::preparedStmt("UPDATE char_stats SET zoning = ? WHERE charid = ?", zoneouthelpers::CharStatsZoningValue(false), PChar->id);
+        case zoneouthelpers::ZoneOutPartyAction::DissolveAlliance:
+            PChar->PParty->m_PAlliance->dissolveAlliance();
+            break;
+        case zoneouthelpers::ZoneOutPartyAction::RemovePartyFromAlliance:
+            PChar->PParty->m_PAlliance->removeParty(PChar->PParty);
+            break;
+        case zoneouthelpers::ZoneOutPartyAction::RemoveMember:
+            PChar->PParty->RemoveMember(PChar);
+            break;
+        default:
+            break;
     }
 
-    if (zoneouthelpers::ShouldDecreaseZoneCounter(PChar->loc.zone != nullptr))
+    if (plan.savePetZoningInfo)
+    {
+        PChar->setPetZoningInfo();
+    }
+    else if (plan.resetPetZoningInfo)
+    {
+        PChar->resetPetZoningInfo();
+    }
+
+    PChar->PSession->shuttingDown = plan.sessionShuttingDown;
+    db::preparedStmt("UPDATE char_stats SET zoning = ? WHERE charid = ?", plan.charStatsZoning, PChar->id);
+
+    if (plan.decreaseZoneCounter)
     {
         PChar->loc.zone->DecreaseZoneCounter(PChar);
     }
 
-    PChar->StatusEffectContainer->SaveStatusEffects(zoneouthelpers::SaveStatusEffectsLogoutFlag(PChar->PSession->shuttingDown));
-    PChar->PersistData();
-    charutils::SavePlayTime(PChar);
-    charutils::SaveCharStats(PChar);
-    charutils::SaveCharExp(PChar, PChar->GetMJob());
-    charutils::SaveEminenceData(PChar);
-    charutils::SaveLastLogout(PChar);
+    PChar->StatusEffectContainer->SaveStatusEffects(plan.saveStatusEffectsAsLogout);
+    if (plan.persistData)
+    {
+        PChar->PersistData();
+    }
+    if (plan.savePlayTime)
+    {
+        charutils::SavePlayTime(PChar);
+    }
+    if (plan.saveCharStats)
+    {
+        charutils::SaveCharStats(PChar);
+    }
+    if (plan.saveCharExp)
+    {
+        charutils::SaveCharExp(PChar, PChar->GetMJob());
+    }
+    if (plan.saveEminenceData)
+    {
+        charutils::SaveEminenceData(PChar);
+    }
+    if (plan.saveLastLogout)
+    {
+        charutils::SaveLastLogout(PChar);
+    }
 
-    PChar->status = STATUS_TYPE::DISAPPEAR;
+    if (plan.setDisappearStatus)
+    {
+        PChar->status = STATUS_TYPE::DISAPPEAR;
+    }
 }
 
 void updateSession(MapSession* PSession, CCharEntity* PChar, CZone* currentZone)
