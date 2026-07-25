@@ -67,6 +67,7 @@
 #include "char_history_load.h"
 #include "char_history_write.h"
 #include "char_invisible_removal.h"
+#include "char_local_player_packets.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
 #include "char_name_lookup.h"
@@ -1805,13 +1806,33 @@ void SendExtendedJobPackets(CCharEntity* PChar)
 // Server sends a specific set of packets when certain player information change.
 void SendLocalPlayerPackets(CCharEntity* PChar)
 {
-    PChar->pushPacket<GP_SERV_COMMAND_GROUP_ATTR>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS2>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MERITS>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY1>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::JOB_POINTS>(PChar);
+    for (const auto action : localplayerpackethelpers::BuildPlan())
+    {
+        switch (action)
+        {
+            case localplayerpackethelpers::Action::GroupAttributes:
+                PChar->pushPacket<GP_SERV_COMMAND_GROUP_ATTR>(PChar);
+                break;
+            case localplayerpackethelpers::Action::CliStatus:
+                PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS>(PChar);
+                break;
+            case localplayerpackethelpers::Action::CliStatus2:
+                PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS2>(PChar);
+                break;
+            case localplayerpackethelpers::Action::AbilityRecast:
+                PChar->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PChar);
+                break;
+            case localplayerpackethelpers::Action::Merits:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MERITS>(PChar);
+                break;
+            case localplayerpackethelpers::Action::Monstrosity:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY1>(PChar);
+                break;
+            case localplayerpackethelpers::Action::JobPoints:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::JOB_POINTS>(PChar);
+                break;
+        }
+    }
 }
 
 /************************************************************************
