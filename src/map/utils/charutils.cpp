@@ -106,6 +106,7 @@
 #include "ability_table_capacity.h"
 #include "pet_ability_table_capacity.h"
 #include "keyitem_spell_capacity.h"
+#include "equip_item_finalize_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
@@ -3395,34 +3396,55 @@ void EquipItem(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 contai
         }
     }
 
-    if (equippolicyhelpers::ShouldClearTPOnWeaponEquip(
+    const auto finalizePlan = equipitemfinalizehelpers::PlanFor({
+        .clearTP = equippolicyhelpers::ShouldClearTPOnWeaponEquip(
             equipSlotID,
             PItem != nullptr,
             PItem != nullptr && PItem->isType(ITEM_EQUIPMENT),
             (PItem != nullptr && PItem->isType(ITEM_EQUIPMENT)) ? static_cast<CItemWeapon*>(PItem)->getSkillType() : 0,
             SKILL_STRING_INSTRUMENT,
-            SKILL_WIND_INSTRUMENT))
+            SKILL_WIND_INSTRUMENT),
+        .mainNeedsUnarmed = !PChar->getEquip(SLOT_MAIN) || !PChar->getEquip(SLOT_MAIN)->isType(ITEM_EQUIPMENT) ||
+                            PChar->m_Weapons[SLOT_MAIN] == xi::items::unarmedH2H(),
+    });
+
+    if (finalizePlan.clearTP)
     {
+        // If the weapon ISN'T a wind based instrument or a string based instrument.
+        PChar->health.tp = 0;
+        if (finalizePlan.clearAftermath)
         {
-            // If the weapon ISN'T a wind based instrument or a string based instrument
-            PChar->health.tp = 0;
             PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Aftermath);
         }
 
-        if (!PChar->getEquip(SLOT_MAIN) || !PChar->getEquip(SLOT_MAIN)->isType(ITEM_EQUIPMENT) ||
-            PChar->m_Weapons[SLOT_MAIN] == xi::items::unarmedH2H())
+        if (finalizePlan.checkUnarmedWeapon)
         {
             CheckUnarmedWeapon(PChar);
         }
 
-        BuildingCharWeaponSkills(PChar);
+        if (finalizePlan.buildWeaponSkills)
+        {
+            BuildingCharWeaponSkills(PChar);
+        }
     }
 
-    charutils::BuildingCharSkillsTable(PChar);
-    PChar->UpdateHealth();
+    if (finalizePlan.buildSkills)
+    {
+        charutils::BuildingCharSkillsTable(PChar);
+    }
+    if (finalizePlan.updateHealth)
+    {
+        PChar->UpdateHealth();
+    }
 
-    PChar->updatemask |= UPDATE_HP;
-    PChar->updatemask |= UPDATE_LOOK;
+    if (finalizePlan.markUpdateHP)
+    {
+        PChar->updatemask |= UPDATE_HP;
+    }
+    if (finalizePlan.markUpdateLook)
+    {
+        PChar->updatemask |= UPDATE_LOOK;
+    }
 }
 
 /************************************************************************

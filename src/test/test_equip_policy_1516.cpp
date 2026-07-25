@@ -1,5 +1,6 @@
 #include "test_equip_policy_1516.h"
 
+#include "map/equip_item_finalize_capacity.h"
 #include "map/equip_policy_capacity.h"
 
 #include <iostream>
@@ -152,6 +153,25 @@ auto Check() -> bool
     }
     if (!ShouldClearTPOnWeaponEquip(SlotMain, false, false, 0, 41, 42) || !ShouldClearTPOnWeaponEquip(SlotMain, true, true, 1, 41, 42) ||
         ShouldClearTPOnWeaponEquip(SlotMain, true, true, 41, 41, 42) || ShouldClearTPOnWeaponEquip(SlotHead, true, true, 1, 41, 42))
+    {
+        return false;
+    }
+
+    const auto noWeaponChange = equipitemfinalizehelpers::PlanFor({});
+    if (noWeaponChange.clearTP || noWeaponChange.clearAftermath || noWeaponChange.checkUnarmedWeapon || noWeaponChange.buildWeaponSkills ||
+        !noWeaponChange.buildSkills || !noWeaponChange.updateHealth || !noWeaponChange.markUpdateHP || !noWeaponChange.markUpdateLook)
+    {
+        return false;
+    }
+
+    const auto weaponChange = equipitemfinalizehelpers::PlanFor({ .clearTP = true, .mainNeedsUnarmed = true });
+    if (!weaponChange.clearTP || !weaponChange.clearAftermath || !weaponChange.checkUnarmedWeapon || !weaponChange.buildWeaponSkills)
+    {
+        return false;
+    }
+
+    const auto instrument = equipitemfinalizehelpers::PlanFor({ .mainNeedsUnarmed = true });
+    if (instrument.checkUnarmedWeapon || instrument.buildWeaponSkills)
     {
         return false;
     }
