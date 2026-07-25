@@ -64,6 +64,7 @@
 #include "char_death_timestamp_load.h"
 #include "char_home_point_transition.h"
 #include "char_history_load.h"
+#include "char_invisible_removal.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
 #include "char_points_capacity.h"
@@ -6882,7 +6883,9 @@ auto CheckAbilityAddtype(CCharEntity* PChar, const CAbility* PAbility) -> bool
 
 void RemoveInvisible(const CCharEntity* PChar)
 {
-    if (PChar && PChar->StatusEffectContainer)
+    const bool characterPresent             = PChar != nullptr;
+    const bool statusEffectContainerPresent = characterPresent && PChar->StatusEffectContainer != nullptr;
+    if (invisibleremovalhelpers::ShouldRemoveInvisible(characterPresent, statusEffectContainerPresent))
     {
         PChar->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Invisible);
     }
