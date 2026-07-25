@@ -25,6 +25,7 @@
 #include "map_networking_parse_tail.h"
 #include "map_networking_small_packet.h"
 #include "map_networking_capacity.h"
+#include "map_networking_zone_packet_rebuild.h"
 
 #include <common/arguments.h>
 #include <common/md52.h>
@@ -140,12 +141,14 @@ void MapNetworking::handle_incoming_packet(ByteSpan buffer, const IPP& ipp)
 
         mapStatistics_.increment(MapStatistics::Key::TotalPacketsToSendPerTick);
 
+        const auto packetPlan = mapnetworkingzonepacketrebuildhelpers::MakePacketPlan(PSession->server_packet_id);
+
         preparePacket(PBuff.data(), PSession);
 
         // Build the packet
         GP_SERV_COMMAND_LOGOUT zonePacket(PSession->zone_type, PSession->zone_ipp);
         size = FFXI_HEADER_SIZE;
-        zonePacket.setSequence(PSession->server_packet_id);
+        zonePacket.setSequence(packetPlan.packetSequence);
 
         // Copy into PBuff
         // TODO: This memcpy is funky, we need to fix the API of BasicPacket and derived
@@ -154,20 +157,24 @@ void MapNetworking::handle_incoming_packet(ByteSpan buffer, const IPP& ipp)
         size += zonePacket.getSize();
 
         auto maybePacketSize = compressPacket(PBuff.data(), size);
-        if (!maybePacketSize)
+        const auto completionPlan = mapnetworkingzonepacketrebuildhelpers::MakeCompletionPlan(PSession->server_packet_id, maybePacketSize.has_value());
+        if (completionPlan.clearOutput)
         {
             ShowError("zlib compression error");
             size = 0;
         }
         else
         {
-            finalizePacket(PBuff.data(), &size, *maybePacketSize, PSession, UsePreviousKey::Yes);
-            mapStatistics_.increment(MapStatistics::Key::TotalPacketsSentPerTick);
+            finalizePacket(PBuff.data(), &size, *maybePacketSize, PSession, packetPlan.usePreviousKey ? UsePreviousKey::Yes : UsePreviousKey::No);
+            if (completionPlan.incrementPacketsSent)
+            {
+                mapStatistics_.increment(MapStatistics::Key::TotalPacketsSentPerTick);
+            }
         }
 
         // Increment sync count with every packet
         // TODO: match incoming with a new parse that only cares about sync count
-        PSession->server_packet_id += 1;
+        PSession->server_packet_id = completionPlan.nextServerPacketID;
     }
 
     if (initialPlan.send)

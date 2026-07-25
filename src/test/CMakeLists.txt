@@ -1487,6 +1487,8 @@ set(SOURCES
     test_map_networking_parse_tail_6920.cpp
     test_map_networking_flush_statistics_6921.h
     test_map_networking_flush_statistics_6921.cpp
+    test_map_networking_zone_packet_rebuild_6922.h
+    test_map_networking_zone_packet_rebuild_6922.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h
