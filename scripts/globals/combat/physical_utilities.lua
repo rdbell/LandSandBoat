@@ -984,89 +984,178 @@ end
 -- Critical hit rate operations
 -----------------------------------
 -- dStat: Critical hit rate bonus from DEX vs AGI difference.
-xi.combat.physical.criticalRateFromStatDiff = function(actor, target)
-    local statBonus = 0
+-----------------------------------
+-- Pure critical-rate helpers (OmegaXI slice 6686)
+-- Dual-wired to internal/critrate (6079 / 6212).
+-----------------------------------
 
-    local dDex = actor:getStat(xi.mod.DEX) - target:getStat(xi.mod.AGI)
+xi.combat.physical.baseCriticalRate = 0.05
+xi.combat.physical.criticalRateFloor = 0.05
+xi.combat.physical.criticalRateCap   = 1.0
+xi.combat.physical.inninBehindAngle  = 23
+
+-- Pure dDEX critical bonus once actorDEX - targetAGI is known.
+xi.combat.physical.criticalRateFromStatDiffValue = function(dDex)
+    dDex = dDex or 0
 
     if dDex > 50 then
-        statBonus = 0.15
+        return 0.15
     elseif dDex >= 40 then
-        statBonus = (dDex - 35) / 100
+        return (dDex - 35) / 100
     elseif dDex >= 30 then
-        statBonus = 0.04
+        return 0.04
     elseif dDex >= 20 then
-        statBonus = 0.03
+        return 0.03
     elseif dDex >= 14 then
-        statBonus = 0.02
+        return 0.02
     elseif dDex >= 7 then
-        statBonus = 0.01
+        return 0.01
     end
 
-    return statBonus
+    return 0
+end
+
+-- Pure dAGI critical bonus once max(0, actorAGI - targetAGI) is known.
+xi.combat.physical.criticalRateFromAGIDiffValue = function(dAgi)
+    dAgi = dAgi or 0
+
+    if dAgi < 0 then
+        dAgi = 0
+    end
+
+    return math.floor(dAgi / 10) / 100
+end
+
+-- Pure Innin bonus once status/position injects are known.
+xi.combat.physical.criticalRateFromInninValue = function(hasInnin, isBehind, power)
+    if not hasInnin or not isBehind then
+        return 0
+    end
+
+    return power or 0
+end
+
+-- Pure Fencer gear eligibility (slice 6212 / 6686).
+-- PC only; main equipped; not two-handed; not hand-to-hand;
+-- sub empty OR skill NONE OR is shield.
+xi.combat.physical.fencerEligible = function(isPC, hasMain, mainTwoHanded, mainHandToHand, hasSub, subSkillType, subIsShield)
+    if not isPC or not hasMain then
+        return false
+    end
+
+    if mainTwoHanded or mainHandToHand then
+        return false
+    end
+
+    if not hasSub then
+        return true
+    end
+
+    if (subSkillType or 0) == 0 then -- xi.skill.NONE
+        return true
+    end
+
+    return subIsShield
+end
+
+-- Pure Fencer crit bonus once eligibility and FENCER_CRITHITRATE mod are known.
+xi.combat.physical.criticalRateFromFencerValue = function(eligible, fencerMod)
+    if not eligible then
+        return 0
+    end
+
+    return (fencerMod or 0) / 100
+end
+
+-- Pure Building Flourish crit bonus once effect power/subPower are known.
+xi.combat.physical.criticalRateFromFlourishValue = function(hasEffect, power, subPower)
+    if not hasEffect or (power or 0) < 3 then
+        return 0
+    end
+
+    return (10 + (subPower or 0)) / 100
+end
+
+-- Pure weapon-slot-only crit mod / 100.
+xi.combat.physical.criticalRateFromWeaponSlotValue = function(weaponOnlyCritMod)
+    return (weaponOnlyCritMod or 0) / 100
+end
+
+-- Pure swing/ranged critical rate clamp after component injects.
+xi.combat.physical.clampCriticalRate = function(rate)
+    return utils.clamp(rate, xi.combat.physical.criticalRateFloor, xi.combat.physical.criticalRateCap)
+end
+
+-----------------------------------
+-- Entity hosts for critical-rate components
+-----------------------------------
+
+xi.combat.physical.criticalRateFromStatDiff = function(actor, target)
+    local dDex = actor:getStat(xi.mod.DEX) - target:getStat(xi.mod.AGI)
+
+    return xi.combat.physical.criticalRateFromStatDiffValue(dDex)
 end
 
 -- dStat: Ranged critical hit rate bonus from AGI vs AGI difference.
 xi.combat.physical.criticalRateFromAGIDiff = function(actor, target)
-    local statBonus = 0
-
     local dAgi = math.max(0, actor:getStat(xi.mod.AGI) - target:getStat(xi.mod.AGI))
-    statBonus = math.floor(dAgi / 10)
-    statBonus = statBonus / 100
 
-    return statBonus
+    return xi.combat.physical.criticalRateFromAGIDiffValue(dAgi)
 end
 
 -- Innin: Critical hit rate bonus when actor is behind target.
 xi.combat.physical.criticalRateFromInnin = function(actor, target)
-    local inninBonus = 0
+    local hasInnin = actor:hasStatusEffect(xi.effect.INNIN)
+    local power = 0
 
-    if
-        actor:hasStatusEffect(xi.effect.INNIN) and
-        actor:isBehind(target, 23)
-    then
-        inninBonus = actor:getStatusEffect(xi.effect.INNIN):getPower()
+    if hasInnin then
+        power = actor:getStatusEffect(xi.effect.INNIN):getPower()
     end
 
-    return inninBonus
+    return xi.combat.physical.criticalRateFromInninValue(
+        hasInnin,
+        actor:isBehind(target, xi.combat.physical.inninBehindAngle),
+        power
+    )
 end
 
 -- Fencer: Critical hit rate bonus when actor is only wielding with main hand.
 xi.combat.physical.criticalRateFromFencer = function(actor)
-    local fencerBonus = 0
     -- TODO: do any Trusts or mobs ever get Fencer bonuses?
+    local isPC = actor:getObjType() == xi.objType.PC
+    local mainEquip = isPC and actor:getStorageItem(0, 0, xi.slot.MAIN) or nil
+    local subEquip  = isPC and actor:getStorageItem(0, 0, xi.slot.SUB) or nil
+    local hasMain = mainEquip ~= nil
+    local hasSub = subEquip ~= nil
+    local main2H = hasMain and mainEquip:isTwoHanded()
+    local mainH2H = hasMain and mainEquip:isHandToHand()
+    local subSkill = hasSub and subEquip:getSkillType() or 0
+    local subShield = hasSub and subEquip:isShield()
 
-    if actor:getObjType() == xi.objType.PC then
-        local mainEquip = actor:getStorageItem(0, 0, xi.slot.MAIN)
-        local subEquip  = actor:getStorageItem(0, 0, xi.slot.SUB)
-        if
-            mainEquip and
-            not mainEquip:isTwoHanded() and                                                      -- No 2 handed weapons.
-            not mainEquip:isHandToHand() and                                                     -- No 2 handed weapons.
-            (subEquip == nil or subEquip:getSkillType() == xi.skill.NONE or subEquip:isShield()) -- Only shields allowed in sub.
-        then
-            fencerBonus = actor:getMod(xi.mod.FENCER_CRITHITRATE) / 100
-        end
-    end
+    local eligible = xi.combat.physical.fencerEligible(
+        isPC, hasMain, main2H, mainH2H, hasSub, subSkill, subShield
+    )
 
-    return fencerBonus
+    return xi.combat.physical.criticalRateFromFencerValue(
+        eligible,
+        actor:getMod(xi.mod.FENCER_CRITHITRATE)
+    )
 end
 
 -- Critical rate from Building Flourish.
 -- TODO: Study case where if we can attach modifiers to the effect itself, both this and the effect may need refactoring.
 xi.combat.physical.criticalRateFromFlourish = function(actor)
-    local buildingFlourishBonus = 0
+    local hasEffect = actor:hasStatusEffect(xi.effect.BUILDING_FLOURISH)
+    local power = 0
+    local subPower = 0
 
-    if actor:hasStatusEffect(xi.effect.BUILDING_FLOURISH) then
-        local effectPower    = actor:getStatusEffect(xi.effect.BUILDING_FLOURISH):getPower()
-        local effectSubPower = actor:getStatusEffect(xi.effect.BUILDING_FLOURISH):getSubPower()
-
-        if effectPower >= 3 then
-            buildingFlourishBonus = (10 + effectSubPower) / 100
-        end
+    if hasEffect then
+        local effect = actor:getStatusEffect(xi.effect.BUILDING_FLOURISH)
+        power = effect:getPower()
+        subPower = effect:getSubPower()
     end
 
-    return buildingFlourishBonus
+    return xi.combat.physical.criticalRateFromFlourishValue(hasEffect, power, subPower)
 end
 
 ---@param actor CBaseEntity
@@ -1074,7 +1163,9 @@ end
 ---@return number
 xi.combat.physical.criticalRateFromWeaponSlot = function(actor, slot)
     if actor:isPC() then
-        return actor:getGearModFromSlot(slot, xi.mod.CRITHITRATE_ONLY_WEP) / 100
+        return xi.combat.physical.criticalRateFromWeaponSlotValue(
+            actor:getGearModFromSlot(slot, xi.mod.CRITHITRATE_ONLY_WEP)
+        )
     end
 
     return 0
@@ -1110,7 +1201,7 @@ xi.combat.physical.calculateSwingCriticalRate = function(actor, target, actorTP,
     -- Add all different bonuses and clamp.
     finalCriticalRate = baseCriticalRate + statBonus + inninBonus + fencerBonus + buildingFlourishBonus + weaponSlotBonus + modifierBonus + meritBonus - targetCriticalEvasion - targetMeritPenalty + tpFactor
 
-    return utils.clamp(finalCriticalRate, 0.05, 1) -- TODO: Need confirmation of no upper cap.
+    return xi.combat.physical.clampCriticalRate(finalCriticalRate) -- TODO: Need confirmation of no upper cap.
 end
 
 ---@param actor CBaseEntity
@@ -1142,7 +1233,7 @@ xi.combat.physical.calculateRangedCriticalRate = function(actor, target, actorTP
     -- Add all different bonuses and clamp.
     finalCriticalRate = baseCriticalRate + statBonus + inninBonus + fencerBonus + buildingFlourishBonus + weaponSlotBonus + modifierBonus + meritBonus - targetCriticalEvasion - targetMeritPenalty + tpFactor
 
-    return utils.clamp(finalCriticalRate, 0.05, 1) -- TODO: Need confirmation of no upper cap.
+    return xi.combat.physical.clampCriticalRate(finalCriticalRate) -- TODO: Need confirmation of no upper cap.
 end
 
 xi.combat.physical.calculateNumberOfHits = function(actor, additionalParamsHere)
