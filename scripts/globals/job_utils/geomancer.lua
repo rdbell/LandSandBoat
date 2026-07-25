@@ -1,5 +1,10 @@
 -----------------------------------
 -- Geomancer Job Utilities
+-- Dual-wired pure inject forms (slice 6740 / 0894):
+--   potency catalog/ramp, bolster/BoG multipliers, indi/bolster duration,
+--   full circle MP/HP, life cycle, lasting/EA regen-down, luopan regen,
+--   aura size, geoOnAbilityCheck, mending/radial restore, entrust params
+-- Parity: internal/geomancer
 -----------------------------------
 require('scripts/globals/ability')
 require('scripts/globals/pets')
@@ -105,7 +110,7 @@ local indiData =
 
 -- "minPotency" is potency as zero combined skill
 -- "maxSkill" is the combined skill where you reach maxPotency
-local potencyData =
+xi.job_utils.geomancer.potencyData =
 {
     [xi.effect.GEO_REGEN              ] = { maxSkill = 600, minPotency = 1.0, maxPotency = 30.0, geoModMultiplier = 2.0 },
     [xi.effect.GEO_POISON             ] = { maxSkill = 600, minPotency = 1.0, maxPotency = 30.0, geoModMultiplier = 3.0 },
@@ -139,6 +144,279 @@ local potencyData =
     [xi.effect.GEO_HASTE              ] = { maxSkill = 900, minPotency = 2.4, maxPotency = 29.9, geoModMultiplier = 1.1 },
 }
 
+
+-- Local alias for production paths that still say potencyData
+local potencyData = xi.job_utils.geomancer.potencyData
+
+-----------------------------------
+-- Pure inject pins (internal/geomancer, slice 6740 / 0894)
+-----------------------------------
+xi.job_utils.geomancer.combinedSkillCap            = 900
+xi.job_utils.geomancer.indiBaseDuration            = 180
+xi.job_utils.geomancer.bolsterBaseDuration         = 240
+xi.job_utils.geomancer.bolsterTick                 = 3
+xi.job_utils.geomancer.widenedCompassAuraSize      = 625
+xi.job_utils.geomancer.lifeCycleMinHP              = 2
+xi.job_utils.geomancer.lifeCycleDrainFraction      = 0.25
+xi.job_utils.geomancer.eclipticAttritionMult       = 1.25
+xi.job_utils.geomancer.lastingEmanationLvlDiv      = 14
+xi.job_utils.geomancer.eclipticAttritionLvlDiv     = 16
+xi.job_utils.geomancer.luopanRegenLvlDiv           = 4
+xi.job_utils.geomancer.blazeOfGloryPotencyAdd      = 0.5
+xi.job_utils.geomancer.mendingHalationBaseMult     = 7
+xi.job_utils.geomancer.mendingHalationMeritStep    = 0.05
+xi.job_utils.geomancer.mendingHalationGearStep     = 0.04
+xi.job_utils.geomancer.radialArcanaBaseMult        = 3
+xi.job_utils.geomancer.radialArcanaMeritStep       = 0.03
+xi.job_utils.geomancer.radialArcanaGearStep        = 0.05
+xi.job_utils.geomancer.entrustPower                = 1
+xi.job_utils.geomancer.entrustDuration             = 60
+xi.job_utils.geomancer.collimatedFervorDuration    = 60
+xi.job_utils.geomancer.blazeOfGloryDuration        = 60
+xi.job_utils.geomancer.dematerializeDuration       = 60
+xi.job_utils.geomancer.theurgicFocusPower          = 1
+xi.job_utils.geomancer.theurgicFocusDuration       = 60
+xi.job_utils.geomancer.widenedCompassDuration      = 60
+xi.job_utils.geomancer.msgUnableToUseJA            = 87
+xi.job_utils.geomancer.msgRequireLuopan            = 662
+
+-- Pure: CombinedSkillLevel
+xi.job_utils.geomancer.combinedSkillLevelFromParams = function(params)
+    params = params or {}
+    local sum = (params.handbellSkill or 0) + (params.geoSkill or 0)
+    if sum < 0 then
+        return 0
+    end
+
+    if sum > xi.job_utils.geomancer.combinedSkillCap then
+        return xi.job_utils.geomancer.combinedSkillCap
+    end
+
+    return sum
+end
+
+-- Pure: EffectPotency
+-- params: effectId, combinedSkill, geomancyMod, hasEntrust
+-- returns: potency, ok
+xi.job_utils.geomancer.effectPotencyFromParams = function(params)
+    params = params or {}
+    local entry = potencyData[params.effectId]
+    if not entry then
+        return 0, false
+    end
+
+    local combinedSkill = params.combinedSkill or 0
+    if combinedSkill < 0 then
+        combinedSkill = 0
+    end
+
+    if combinedSkill > xi.job_utils.geomancer.combinedSkillCap then
+        combinedSkill = xi.job_utils.geomancer.combinedSkillCap
+    end
+
+    local divisor = entry.maxSkill / (entry.maxPotency - entry.minPotency)
+    local potency = entry.minPotency + combinedSkill / divisor
+    if potency < entry.minPotency then
+        potency = entry.minPotency
+    end
+
+    if potency > entry.maxPotency then
+        potency = entry.maxPotency
+    end
+
+    if (params.geomancyMod or 0) > 0 and not params.hasEntrust then
+        potency = potency + (params.geomancyMod or 0) * entry.geoModMultiplier
+    end
+
+    local effectHaste = 580
+    local effectSlow  = 565
+    if xi.effect then
+        if xi.effect.GEO_HASTE then effectHaste = xi.effect.GEO_HASTE end
+        if xi.effect.GEO_SLOW then effectSlow = xi.effect.GEO_SLOW end
+    end
+
+    if params.effectId == effectHaste or params.effectId == effectSlow then
+        potency = math.floor(potency * 100)
+    end
+
+    return potency, true
+end
+
+-- Pure: Bolstered / BoG / Final potency
+xi.job_utils.geomancer.bolsteredPotency = function(base)
+    return (base or 0) * 2
+end
+
+xi.job_utils.geomancer.blazeOfGloryPotency = function(base)
+    base = base or 0
+    return base + xi.job_utils.geomancer.blazeOfGloryPotencyAdd * base
+end
+
+xi.job_utils.geomancer.finalGeoPotencyFromParams = function(params)
+    params = params or {}
+    local base = params.base or 0
+    local final = base
+    if params.hasBlazeOfGlory then
+        final = xi.job_utils.geomancer.blazeOfGloryPotency(base)
+    end
+
+    if params.hasBolster then
+        final = xi.job_utils.geomancer.bolsteredPotency(base)
+    end
+
+    return final
+end
+
+-- Pure: IndiDuration / BolsterDuration
+xi.job_utils.geomancer.indiDurationFromParams = function(indiDurationMod)
+    return xi.job_utils.geomancer.indiBaseDuration + (indiDurationMod or 0)
+end
+
+xi.job_utils.geomancer.bolsterDurationFromParams = function(bolsterEffectMod)
+    return xi.job_utils.geomancer.bolsterBaseDuration + (bolsterEffectMod or 0)
+end
+
+-- Pure: FullCircle MP/HP
+xi.job_utils.geomancer.fullCircleMPFromParams = function(params)
+    params = params or {}
+    local mpMultiplier = 0.5 + (params.fcMerit or 0) / 10 + (params.fcMod or 0) / 10
+    return math.floor(mpMultiplier * (params.mpCost or 0) * (params.hppRemaining or 0) / 100)
+end
+
+xi.job_utils.geomancer.fullCircleHPFromParams = function(params)
+    params = params or {}
+    local hpMultiplier = 0.5 + 0.7 * (params.crMerit or 0) + (params.crMod or 0) / 10
+    return math.floor(hpMultiplier * (params.mpCost or 0) * (params.hppRemaining or 0) / 100)
+end
+
+-- Pure: LifeCycle
+xi.job_utils.geomancer.lifeCycleDrainFromParams = function(playerHP)
+    return math.floor(xi.job_utils.geomancer.lifeCycleDrainFraction * (playerHP or 0))
+end
+
+xi.job_utils.geomancer.lifeCycleTransferFromParams = function(params)
+    params = params or {}
+    local hpAmount = xi.job_utils.geomancer.lifeCycleDrainFromParams(params.playerHP)
+    if (params.lifeCycleEffectMod or 0) > 0 then
+        return math.floor(hpAmount * (params.lifeCycleEffectMod or 0) / 10)
+    end
+
+    return hpAmount
+end
+
+-- Pure: REGEN_DOWN deltas / EA potency / luopan regen / BoG HP / aura
+xi.job_utils.geomancer.lastingEmanationRegenDownFromParams = function(params)
+    params = params or {}
+    return (params.currentRegenDown or 0)
+        - math.floor((params.luopanMainLvl or 0) / xi.job_utils.geomancer.lastingEmanationLvlDiv)
+end
+
+xi.job_utils.geomancer.eclipticAttritionRegenDownFromParams = function(params)
+    params = params or {}
+    return (params.currentRegenDown or 0)
+        + math.floor((params.luopanMainLvl or 0) / xi.job_utils.geomancer.eclipticAttritionLvlDiv)
+end
+
+xi.job_utils.geomancer.eclipticAttritionPotencyFromParams = function(subPower)
+    return math.floor(xi.job_utils.geomancer.eclipticAttritionMult * (subPower or 0))
+end
+
+xi.job_utils.geomancer.luopanRegenDownFromParams = function(params)
+    params = params or {}
+    return math.floor((params.luopanMainLvl or 0) / xi.job_utils.geomancer.luopanRegenLvlDiv)
+        - (params.bolsterJP or 0)
+end
+
+xi.job_utils.geomancer.blazeOfGloryLuopanHPFromParams = function(params)
+    params = params or {}
+    local maxHP = params.maxHP or 0
+    return maxHP / 2 + maxHP * 0.01 * (params.blazeOfGloryJP or 0)
+end
+
+xi.job_utils.geomancer.auraSizeModFromParams = function(hasWidenedCompass)
+    if hasWidenedCompass then
+        return xi.job_utils.geomancer.widenedCompassAuraSize
+    end
+
+    return 0
+end
+
+-- Pure: geoOnAbilityCheck
+-- params: hasLuopan, isLifeCycle, playerHP
+-- returns: msg, ok
+xi.job_utils.geomancer.geoOnAbilityCheckFromParams = function(params)
+    params = params or {}
+    if params.hasLuopan then
+        return 0, true
+    end
+
+    if params.isLifeCycle and (params.playerHP or 0) <= xi.job_utils.geomancer.lifeCycleMinHP then
+        return xi.job_utils.geomancer.msgUnableToUseJA, false
+    end
+
+    return xi.job_utils.geomancer.msgRequireLuopan, false
+end
+
+-- Pure: MendingHalationRestore / RadialArcanaRestore
+xi.job_utils.geomancer.mendingHalationRestoreFromParams = function(params)
+    params = params or {}
+    if params.targetIsPet then
+        return 0
+    end
+
+    local hp = xi.job_utils.geomancer.mendingHalationBaseMult * (params.petMainLvl or 0)
+    if (params.merit or 0) > 0 then
+        hp = hp + hp * xi.job_utils.geomancer.mendingHalationMeritStep * (params.merit or 0)
+        if (params.gearMod or 0) > 0 then
+            hp = hp + hp * xi.job_utils.geomancer.mendingHalationGearStep * (params.merit or 0)
+        end
+    end
+
+    if hp < 0 then
+        return 0
+    end
+
+    local cap = params.targetMaxHP or 0
+    if hp > cap then
+        return cap
+    end
+
+    return math.floor(hp)
+end
+
+xi.job_utils.geomancer.radialArcanaRestoreFromParams = function(params)
+    params = params or {}
+    if params.targetIsPet then
+        return 0
+    end
+
+    local mp = xi.job_utils.geomancer.radialArcanaBaseMult * (params.petMainLvl or 0)
+    if (params.merit or 0) > 0 then
+        mp = mp + mp * xi.job_utils.geomancer.radialArcanaMeritStep * (params.merit or 0)
+        if (params.gearMod or 0) > 0 then
+            mp = mp + mp * xi.job_utils.geomancer.radialArcanaGearStep * (params.merit or 0)
+        end
+    end
+
+    if mp < 0 then
+        return 0
+    end
+
+    local cap = params.targetMaxMP or 0
+    if mp > cap then
+        return cap
+    end
+
+    return math.floor(mp)
+end
+
+xi.job_utils.geomancer.entrustFromParams = function()
+    return {
+        power    = xi.job_utils.geomancer.entrustPower,
+        duration = xi.job_utils.geomancer.entrustDuration,
+    }
+end
+
 local function getLuopan(player)
     local pet = player:getPet()
 
@@ -157,17 +435,16 @@ end
 -- Ability Check Functions
 -----------------------------------
 xi.job_utils.geomancer.geoOnAbilityCheck = function(player, target, ability)
-    if hasLuopan(player) then
+    local msg, ok = xi.job_utils.geomancer.geoOnAbilityCheckFromParams({
+        hasLuopan   = hasLuopan(player),
+        isLifeCycle = ability == xi.jobAbility.LIFE_CYCLE,
+        playerHP    = player:getHP(),
+    })
+    if ok then
         return 0, 0
     end
 
-    if ability == xi.jobAbility.LIFE_CYCLE then
-        if player:getHP() <= 2 then
-            return xi.msg.basic.UNABLE_TO_USE_JA
-        end
-    end
-
-    return xi.msg.basic.REQUIRE_LUOPAN, 0
+    return msg, 0
 end
 
 xi.job_utils.geomancer.geoOnConcentricPulseAbilityCheck = function(player, target, ability)
@@ -248,23 +525,18 @@ local function getEffectPotency(player, effect)
         handbellSkill = 0
     end
 
-    local combinedSkillLevel = utils.clamp(handbellSkill + geoSkill, 0, 900)
-    local maxSkill           = potencyData[effect].maxSkill
-    local minPotency         = potencyData[effect].minPotency
-    local maxPotency         = potencyData[effect].maxPotency
-    -- TODO find the real scaling formula?
-    -- linear regression to find divisor based on minPotency at 0 skill and maxPotency at "maxSkill"
-    local divisor            = maxSkill / (maxPotency - minPotency)
-    local potency            = utils.clamp(minPotency + combinedSkillLevel / divisor, minPotency, maxPotency)
-
-    if geomancyMod > 0 and not player:hasStatusEffect(xi.effect.ENTRUST) then
-        -- Geomancy bonus is a mod value * the multiplier then added to the final potency of the effect
-        potency = potency + geomancyMod * potencyData[effect].geoModMultiplier
-    end
-
-    -- Boost potency calculations for Haste/Slow into the no-longer-human-readable-format
-    if effect == xi.effect.GEO_HASTE or effect == xi.effect.GEO_SLOW then
-        potency = math.floor(potency * 100)
+    local combinedSkillLevel = xi.job_utils.geomancer.combinedSkillLevelFromParams({
+        handbellSkill = handbellSkill,
+        geoSkill      = geoSkill,
+    })
+    local potency, ok = xi.job_utils.geomancer.effectPotencyFromParams({
+        effectId      = effect,
+        combinedSkill = combinedSkillLevel,
+        geomancyMod   = geomancyMod,
+        hasEntrust    = player:hasStatusEffect(xi.effect.ENTRUST),
+    })
+    if not ok then
+        return 0
     end
 
     return potency
@@ -278,19 +550,23 @@ local function windenedCompassCheck(player)
     -- As the extended range does not change on an active indi spell if Widened Compass wears,
     -- we need to set this mod each time we cast an indi spell to affect the aura range,
     -- this is because we cannot delete the mod on onEffectLose or the range will reduce after a tick
-    if player:hasStatusEffect(xi.effect.WIDENED_COMPASS) then
-        player:setMod(xi.mod.AURA_SIZE, 625)
-    else
-        player:setMod(xi.mod.AURA_SIZE, 0)
-    end
+    player:setMod(xi.mod.AURA_SIZE, xi.job_utils.geomancer.auraSizeModFromParams(
+        player:hasStatusEffect(xi.effect.WIDENED_COMPASS)
+    ))
 end
 
 -----------------------------------
 -- Ability Use Functions
 -----------------------------------
 xi.job_utils.geomancer.bolster = function(player, target, ability)
-    local bonusTime = player:getMod(xi.mod.BOLSTER_EFFECT)
-    player:addStatusEffect(xi.effect.BOLSTER, { duration = 240 + bonusTime, origin = player, tick = 3 })
+    local duration = xi.job_utils.geomancer.bolsterDurationFromParams(
+        player:getMod(xi.mod.BOLSTER_EFFECT)
+    )
+    player:addStatusEffect(xi.effect.BOLSTER, {
+        duration = duration,
+        origin   = player,
+        tick     = xi.job_utils.geomancer.bolsterTick,
+    })
 
     return xi.effect.BOLSTER
 end
@@ -307,17 +583,21 @@ xi.job_utils.geomancer.fullCircle = function(player, target, ability)
     local crMerit      = player:getMerit(xi.merit.CURATIVE_RECANTATION)
     local fcMod        = player:getMod(xi.mod.FULL_CIRCLE)
     local crMod        = player:getMod(xi.mod.CURATIVE_RECANTATION)
-    local mpMultiplier = 0.5 + fcMerit / 10 + fcMod / 10
-    local hpMultiplier = 0.5 + 0.7 * crMerit + crMod / 10
-    local mpReturned   = 0
-    local hpReturned   = 0
 
-    -- calculate final mp value
-    mpReturned = math.floor(mpMultiplier * mpCost * hppRemaining / 100)
+    local mpReturned = xi.job_utils.geomancer.fullCircleMPFromParams({
+        mpCost       = mpCost,
+        hppRemaining = hppRemaining,
+        fcMerit      = fcMerit,
+        fcMod        = fcMod,
+    })
 
     if crMerit > 0 then
-        -- calculate final hp value
-        hpReturned = math.floor(hpMultiplier * mpCost * hppRemaining / 100)
+        local hpReturned = xi.job_utils.geomancer.fullCircleHPFromParams({
+            mpCost       = mpCost,
+            hppRemaining = hppRemaining,
+            crMerit      = crMerit,
+            crMod        = crMod,
+        })
         player:restoreHP(hpReturned)
     end
 
@@ -332,8 +612,10 @@ xi.job_utils.geomancer.lastingEmanation = function(player, target, ability, acti
         return
     end
 
-    local hpDrain = luopan:getMod(xi.mod.REGEN_DOWN)
-    luopan:setMod(xi.mod.REGEN_DOWN, hpDrain - math.floor(luopan:getMainLvl() / 14))
+    luopan:setMod(xi.mod.REGEN_DOWN, xi.job_utils.geomancer.lastingEmanationRegenDownFromParams({
+        currentRegenDown = luopan:getMod(xi.mod.REGEN_DOWN),
+        luopanMainLvl    = luopan:getMainLvl(),
+    }))
     -- Self cast ability but targets Luopan
     action:ID(player:getID(), luopan:getID())
 end
@@ -353,8 +635,10 @@ xi.job_utils.geomancer.eclipticAttrition = function(player, target, ability, act
         return
     end
 
-    local hpDrain = luopan:getMod(xi.mod.REGEN_DOWN)
-    luopan:setMod(xi.mod.REGEN_DOWN, hpDrain + math.floor(luopan:getMainLvl() / 16))
+    luopan:setMod(xi.mod.REGEN_DOWN, xi.job_utils.geomancer.eclipticAttritionRegenDownFromParams({
+        currentRegenDown = luopan:getMod(xi.mod.REGEN_DOWN),
+        luopanMainLvl    = luopan:getMainLvl(),
+    }))
 
     if player:hasStatusEffect(xi.effect.BOLSTER) then
         return
@@ -365,15 +649,16 @@ xi.job_utils.geomancer.eclipticAttrition = function(player, target, ability, act
         return
     end
 
-    local finalPotency = math.floor(1.25 * effect:getSubPower())
-
     -- This floors https://www.bg-wiki.com/ffxi/Ecliptic_Attrition
-    effect:setSubPower(finalPotency)
+    effect:setSubPower(xi.job_utils.geomancer.eclipticAttritionPotencyFromParams(effect:getSubPower()))
     luopan:setLocalVar('eclipticAttrition', 1)
 end
 
 xi.job_utils.geomancer.collimatedFervor = function(player, target, ability)
-    target:addStatusEffect(xi.effect.COLLIMATED_FERVOR, { duration = 60, origin = player })
+    target:addStatusEffect(xi.effect.COLLIMATED_FERVOR, {
+        duration = xi.job_utils.geomancer.collimatedFervorDuration,
+        origin   = player,
+    })
 
     return xi.effect.COLLIMATED_FERVOR
 end
@@ -387,12 +672,12 @@ xi.job_utils.geomancer.lifeCycle = function(player, target, ability, action)
     -- Self cast ability but targets Luopan
     action:ID(player:getID(), luopan:getID())
 
-    local hpAmount   = math.floor(0.25 * player:getHP())
-    local hpTransfer = hpAmount
-
-    if player:getMod(xi.mod.LIFE_CYCLE_EFFECT) > 0 then
-        hpTransfer = hpAmount * player:getMod(xi.mod.LIFE_CYCLE_EFFECT) / 10
-    end
+    local playerHP   = player:getHP()
+    local hpAmount   = xi.job_utils.geomancer.lifeCycleDrainFromParams(playerHP)
+    local hpTransfer = xi.job_utils.geomancer.lifeCycleTransferFromParams({
+        playerHP           = playerHP,
+        lifeCycleEffectMod = player:getMod(xi.mod.LIFE_CYCLE_EFFECT),
+    })
 
     luopan:restoreHP(hpTransfer)
     player:delHP(hpAmount)
@@ -400,7 +685,11 @@ xi.job_utils.geomancer.lifeCycle = function(player, target, ability, action)
 end
 
 xi.job_utils.geomancer.blazeOfGlory = function(player, target, ability)
-    player:addStatusEffect(xi.effect.BLAZE_OF_GLORY, { duration = 60, origin = player, tick = 3 })
+    player:addStatusEffect(xi.effect.BLAZE_OF_GLORY, {
+        duration = xi.job_utils.geomancer.blazeOfGloryDuration,
+        origin   = player,
+        tick     = 3,
+    })
 
     return xi.effect.BLAZE_OF_GLORY
 end
@@ -408,7 +697,11 @@ end
 xi.job_utils.geomancer.dematerialize = function(player, target, ability, action)
     local luopan = getLuopan(player)
     if luopan then
-        luopan:addStatusEffect(xi.effect.DEMATERIALIZE, { duration = 60, origin = player, tick = 3 })
+        luopan:addStatusEffect(xi.effect.DEMATERIALIZE, {
+            duration = xi.job_utils.geomancer.dematerializeDuration,
+            origin   = player,
+            tick     = 3,
+        })
         -- Self-cast ability but reports effect on Luopan
         action:ID(player:getID(), luopan:getID())
     end
@@ -417,13 +710,21 @@ xi.job_utils.geomancer.dematerialize = function(player, target, ability, action)
 end
 
 xi.job_utils.geomancer.theurgicFocus = function(player, target, ability)
-    player:addStatusEffect(xi.effect.THEURGIC_FOCUS, { power = 1, duration = 60, origin = player })
+    player:addStatusEffect(xi.effect.THEURGIC_FOCUS, {
+        power    = xi.job_utils.geomancer.theurgicFocusPower,
+        duration = xi.job_utils.geomancer.theurgicFocusDuration,
+        origin   = player,
+    })
 
     return xi.effect.THEURGIC_FOCUS
 end
 
 xi.job_utils.geomancer.widenedCompass = function(player, target, ability)
-    player:addStatusEffect(xi.effect.WIDENED_COMPASS, { duration = 60, origin = player, tick = 3 })
+    player:addStatusEffect(xi.effect.WIDENED_COMPASS, {
+        duration = xi.job_utils.geomancer.widenedCompassDuration,
+        origin   = player,
+        tick     = 3,
+    })
 
     return xi.effect.WIDENED_COMPASS
 end
@@ -478,18 +779,29 @@ xi.job_utils.geomancer.doIndiSpell = function(caster, target, spell)
     local potency      = getEffectPotency(caster, effect)
     local targetType   = indiData[spellID].targetType
     local visualEffect = indiData[spellID].visualEffect
-    local duration     = 180 + caster:getMod(xi.mod.INDI_DURATION)
+    local duration     = xi.job_utils.geomancer.indiDurationFromParams(
+        caster:getMod(xi.mod.INDI_DURATION)
+    )
 
     -- set a local var to adjust potency values after an ability has worn off
     target:setLocalVar('INDI_POTENCY', potency)
 
     if target:hasStatusEffect(xi.effect.BOLSTER) then
-        potency = potency * 2
+        potency = xi.job_utils.geomancer.bolsteredPotency(potency)
     end
 
     windenedCompassCheck(caster)
 
-    target:addStatusEffect(xi.effect.COLURE_ACTIVE, { power = visualEffect, duration = duration, origin = caster, tick = 3, subType = effect, subPower = potency, tier = targetType, flag = xi.effectFlag.AURA })
+    target:addStatusEffect(xi.effect.COLURE_ACTIVE, {
+        power    = visualEffect,
+        duration = duration,
+        origin   = caster,
+        tick     = 3,
+        subType  = effect,
+        subPower = potency,
+        tier     = targetType,
+        flag     = xi.effectFlag.AURA,
+    })
 
     if caster:hasStatusEffect(xi.effect.ENTRUST) then
         caster:delStatusEffectSilent(xi.effect.ENTRUST)
@@ -520,13 +832,11 @@ xi.job_utils.geomancer.spawnLuopan = function(player, target, spell)
     -- set a local var to adjust potency values after an ability has worn off
     luopan:setLocalVar('GEO_POTENCY', potency)
 
-    if player:hasStatusEffect(xi.effect.BLAZE_OF_GLORY) then
-        finalPotency = potency + 0.5 * potency
-    end
-
-    if player:hasStatusEffect(xi.effect.BOLSTER) then
-        finalPotency = potency * 2
-    end
+    finalPotency = xi.job_utils.geomancer.finalGeoPotencyFromParams({
+        base            = potency,
+        hasBolster      = player:hasStatusEffect(xi.effect.BOLSTER),
+        hasBlazeOfGlory = player:hasStatusEffect(xi.effect.BLAZE_OF_GLORY),
+    })
 
     windenedCompassCheck(player)
 
@@ -546,11 +856,17 @@ xi.job_utils.geomancer.spawnLuopan = function(player, target, spell)
 
     if player:hasStatusEffect(xi.effect.BLAZE_OF_GLORY) then
         player:delStatusEffect(xi.effect.BLAZE_OF_GLORY)
-        luopan:setHP(luopan:getMaxHP() / 2 + luopan:getMaxHP() * 0.01 * player:getJobPointLevel(xi.jp.BLAZE_OF_GLORY_EFFECT))
+        luopan:setHP(xi.job_utils.geomancer.blazeOfGloryLuopanHPFromParams({
+            maxHP          = luopan:getMaxHP(),
+            blazeOfGloryJP = player:getJobPointLevel(xi.jp.BLAZE_OF_GLORY_EFFECT),
+        }))
     end
 
     -- Set HP loss over time
-    luopan:addMod(xi.mod.REGEN_DOWN, math.floor(luopan:getMainLvl() / 4) - bolsterValue)
+    luopan:addMod(xi.mod.REGEN_DOWN, xi.job_utils.geomancer.luopanRegenDownFromParams({
+        luopanMainLvl = luopan:getMainLvl(),
+        bolsterJP     = bolsterValue,
+    }))
 
     -- Innate Damage Taken -50%
     luopan:addMod(xi.mod.DMG, -5000)
