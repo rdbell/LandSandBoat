@@ -756,6 +756,7 @@ auto runCharVarFetch6881SelfTests() -> bool;
 auto runCharVarPersist6882SelfTests() -> bool;
 auto runCharVarSetDispatch6883SelfTests() -> bool;
 auto runCharVarClearAll6884SelfTests() -> bool;
+auto runCharVarIncrement6885SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3175,6 +3176,7 @@ namespace
         ok = runCharVarPersist6882SelfTests() && ok;
         ok = runCharVarSetDispatch6883SelfTests() && ok;
         ok = runCharVarClearAll6884SelfTests() && ok;
+        ok = runCharVarIncrement6885SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;

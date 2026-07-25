@@ -84,6 +84,7 @@
 #include "char_unity_leader_capacity.h"
 #include "char_var_clear_all.h"
 #include "char_var_fetch.h"
+#include "char_var_increment.h"
 #include "char_var_persist.h"
 #include "char_var_set_dispatch.h"
 #include "char_zone_exit_transition.h"
@@ -7674,14 +7675,18 @@ void IncrementCharVar(uint32 charId, const std::string& var, int32 value)
 
 void IncrementCharVar(CCharEntity* PChar, const std::string& var, int32 value)
 {
-    if (PChar == nullptr)
+    const auto plan = charvarincrementhelpers::MakePlan(PChar != nullptr);
+    if (!plan.persistIncrement)
     {
         return;
     }
 
     IncrementCharVar(PChar->id, var, value);
 
-    PChar->removeFromCharVarCache(var);
+    if (plan.evictLocalCache)
+    {
+        PChar->removeFromCharVarCache(var);
+    }
 }
 
 auto FetchCharVar(uint32 charId, const std::string& varName) -> std::pair<int32, uint32>
