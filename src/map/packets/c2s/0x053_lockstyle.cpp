@@ -23,6 +23,7 @@
 
 #include "enums/msg_std.h"
 #include "items/item_equipment.h"
+#include "lockstyle_set_conflict_capacity.h"
 #include "lockstyle_set_item_capacity.h"
 #include "packets/char_sync.h"
 #include "packets/s2c/0x009_message.h"
@@ -117,20 +118,33 @@ void GP_CLI_COMMAND_LOCKSTYLE::process(MapSession* PSession, CCharEntity* PChar)
             }
 
             // Check if we need to remove conflicting slots. Essentially, packet injection shenanigan detector.
-            for (int i = 0; i < 10; i++)
+            auto styleItems = std::array<std::uint16_t, lockstylesetconflicthelpers::StyleSlotCount>{};
+            auto items      = std::array<lockstylesetconflicthelpers::Item, lockstylesetconflicthelpers::ScannedStyleSlots + 1>{};
+            for (std::size_t i = 0; i < styleItems.size(); ++i)
             {
-                if (const auto* PItemEquipment = xi::items::lookup<CItemEquipment>(PChar->styleItems[i]))
+                styleItems[i] = PChar->styleItems[i];
+                if (i < lockstylesetconflicthelpers::ScannedStyleSlots)
                 {
-                    const auto removeSlotID = PItemEquipment->getRemoveSlotId();
-
-                    for (uint8_t x = 0; x < sizeof(removeSlotID) * 8; ++x)
-                    {
-                        if (removeSlotID & (1 << x))
-                        {
-                            PChar->styleItems[x] = 0;
-                        }
-                    }
+                    const auto* PItemEquipment = xi::items::lookup<CItemEquipment>(styleItems[i]);
+                    items[i]                   = {
+                        .itemID      = styleItems[i],
+                        .found       = PItemEquipment != nullptr,
+                        .removeSlots = PItemEquipment ? PItemEquipment->getRemoveSlotId() : std::uint16_t{ 0 },
+                    };
                 }
+            }
+            if (const auto* PEmptyItem = xi::items::lookup<CItemEquipment>(0))
+            {
+                items.back() = {
+                    .itemID      = 0,
+                    .found       = true,
+                    .removeSlots = PEmptyItem->getRemoveSlotId(),
+                };
+            }
+            const auto conflictPlan = lockstylesetconflicthelpers::PlanFor(styleItems, items);
+            for (std::size_t i = 0; i < conflictPlan.styleItems.size(); ++i)
+            {
+                PChar->styleItems[i] = conflictPlan.styleItems[i];
             }
 
             for (int i = 0; i < 10; i++)

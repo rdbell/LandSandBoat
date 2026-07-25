@@ -1,5 +1,6 @@
 #include "test_c2s_lockstyle_runtime_plan.h"
 
+#include "map/lockstyle_set_conflict_capacity.h"
 #include "map/lockstyle_set_item_capacity.h"
 #include "map/packets/c2s/0x053_lockstyle.h"
 
@@ -94,6 +95,37 @@ auto runC2SLockstyleRuntimePlanSelfTests() -> bool
         .itemID      = 100,
     });
     check(missing.writeStyleItem && missing.styleSlot == 1 && missing.styleItemID == 0 && !missing.mainHasH2H);
+
+    const auto conflicts = lockstylesetconflicthelpers::PlanFor(
+        std::array<std::uint16_t, lockstylesetconflicthelpers::StyleSlotCount>{
+            100, 200, 700, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 300,
+        },
+        std::array<lockstylesetconflicthelpers::Item, lockstylesetconflicthelpers::StyleSlotCount>{
+            lockstylesetconflicthelpers::Item{ .itemID = 100, .found = true, .removeSlots = std::uint16_t{ 1 } << 1 },
+            lockstylesetconflicthelpers::Item{ .itemID = 200, .found = true, .removeSlots = std::uint16_t{ 1 } << 2 },
+        });
+    check(conflicts.styleItems[1] == 0 && conflicts.styleItems[2] == 700 && conflicts.styleItems[15] == 300);
+
+    const auto zeroItemConflict = lockstylesetconflicthelpers::PlanFor(
+        std::array<std::uint16_t, lockstylesetconflicthelpers::StyleSlotCount>{
+            100, 200, 700, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 300,
+        },
+        std::array<lockstylesetconflicthelpers::Item, lockstylesetconflicthelpers::StyleSlotCount>{
+            lockstylesetconflicthelpers::Item{ .itemID = 100, .found = true, .removeSlots = std::uint16_t{ 1 } << 1 },
+            lockstylesetconflicthelpers::Item{ .itemID = 200, .found = true, .removeSlots = std::uint16_t{ 1 } << 2 },
+            lockstylesetconflicthelpers::Item{ .itemID = 0, .found = true, .removeSlots = std::uint16_t{ 1 } << 2 },
+        });
+    check(zeroItemConflict.styleItems[2] == 0);
+
+    const auto clearsUnscanned = lockstylesetconflicthelpers::PlanFor(
+        std::array<std::uint16_t, lockstylesetconflicthelpers::StyleSlotCount>{
+            0, 0, 0, 0, 400, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 500,
+        },
+        std::array<lockstylesetconflicthelpers::Item, lockstylesetconflicthelpers::StyleSlotCount>{
+            lockstylesetconflicthelpers::Item{}, lockstylesetconflicthelpers::Item{}, lockstylesetconflicthelpers::Item{}, lockstylesetconflicthelpers::Item{},
+            lockstylesetconflicthelpers::Item{ .itemID = 400, .found = true, .removeSlots = std::uint16_t{ 1 } << 15 },
+        });
+    check(clearsUnscanned.styleItems[15] == 0);
 
     return ok;
 }
