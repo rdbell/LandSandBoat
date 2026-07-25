@@ -914,6 +914,39 @@ xi.weaponskills.jumpTPGain = function(mainhandTPGain, attackerTPMult)
     return mainhandTPGain * attackerTPMult
 end
 
+-----------------------------------
+-- Pure: pre-Adoulin WSC alpha + main-hand base D (slice 6756 / internal/wsformula)
+-- Alpha: Adoulin → 1; else level bands >75 / >59 / >5 / else 1
+-- MainBase: floor(weaponDmg + fSTR + bonusWSmods + wsc * alpha)
+-----------------------------------
+xi.weaponskills.alphaFromParams = function(params)
+    params = params or {}
+    if params.useAdoulinWeaponSkillChanges then
+        return 1
+    end
+
+    local level = params.level or 0
+    if level > 75 then
+        return 0.85
+    elseif level > 59 then
+        return 0.9 - math.floor((level - 60) / 2) / 100
+    elseif level > 5 then
+        return 1 - math.floor(level / 6) / 100
+    end
+
+    return 1
+end
+
+xi.weaponskills.mainBaseFromParams = function(params)
+    params = params or {}
+    return math.floor(
+        (params.weaponDamage or 0)
+            + (params.fSTR or 0)
+            + (params.bonusWSmods or 0)
+            + (params.wsc or 0) * (params.alpha or 0)
+    )
+end
+
 -- TODO: Reduce complexity
 -- Disable cyclomatic complexity check for this function:
 -- luacheck: ignore 561
@@ -922,20 +955,19 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     local targetHp  = xi.weaponskills.weaponskillTargetHp(target:getHP(), target:getMod(xi.mod.STONESKIN))
 
     -- Obtains alpha, used for working out WSC on legacy servers. Retail has no alpha anymore as of 2014 Weaponskill functions
-    local alpha = 1
-    if not xi.settings.main.USE_ADOULIN_WEAPON_SKILL_CHANGES then
-        local level = attacker:getMainLvl()
-        if level > 75 then
-            alpha = 0.85
-        elseif level > 59 then
-            alpha = 0.9 - math.floor((level - 60) / 2) / 100
-        elseif level > 5 then
-            alpha = 1 - math.floor(level / 6) / 100
-        end
-    end
+    local alpha = xi.weaponskills.alphaFromParams({
+        level                         = attacker:getMainLvl(),
+        useAdoulinWeaponSkillChanges  = xi.settings.main.USE_ADOULIN_WEAPON_SKILL_CHANGES,
+    })
 
     local wsc      = xi.combat.physical.calculateWSC(attacker, wsParams.str_wsc, wsParams.dex_wsc, wsParams.vit_wsc, wsParams.agi_wsc, wsParams.int_wsc, wsParams.mnd_wsc, wsParams.chr_wsc)
-    local mainBase = math.floor(calcParams.weaponDamage[1] + calcParams.fSTR + calcParams.bonusWSmods + wsc * alpha)
+    local mainBase = xi.weaponskills.mainBaseFromParams({
+        weaponDamage = calcParams.weaponDamage[1],
+        fSTR         = calcParams.fSTR,
+        bonusWSmods  = calcParams.bonusWSmods,
+        wsc          = wsc,
+        alpha        = alpha,
+    })
 
     -- Calculate fTP multiplier
     local ftp = xi.weaponskills.weaponskillFTP(tp, wsParams.ftpMod, calcParams.bonusfTP, calcParams.hybridHit)
