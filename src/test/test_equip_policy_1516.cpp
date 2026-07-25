@@ -223,13 +223,14 @@ auto Check() -> bool
         .equipSlotID    = 5,
         .itemEquipSlots = static_cast<std::uint16_t>(1u << 5),
         .removeSlots    = static_cast<std::uint16_t>((1u << 0) | (1u << 4) | (1u << 8) | (1u << 15)),
+        .modelID        = 0x1234,
     });
     if (!directRestrictions.applies || directRestrictions.actionCount != 6 ||
         directRestrictions.actions[0] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::Unequip, .slot = 0 } ||
         directRestrictions.actions[1] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::Unequip, .slot = 4 } ||
-        directRestrictions.actions[2] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::SetArmorLook, .slot = 4 } ||
+        directRestrictions.actions[2] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::SetArmorLook, .slot = 4, .modelID = 0x1234 } ||
         directRestrictions.actions[3] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::Unequip, .slot = 8 } ||
-        directRestrictions.actions[4] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::SetArmorLook, .slot = 8 } ||
+        directRestrictions.actions[4] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::SetArmorLook, .slot = 8, .modelID = 0x1234 } ||
         directRestrictions.actions[5] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::Unequip, .slot = 15 })
     {
         return false;

@@ -2447,6 +2447,7 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
         .equipSlotID    = equipSlotID,
         .itemEquipSlots = PItem->getEquipSlotId(),
         .removeSlots    = PItem->getRemoveSlotId(),
+        .modelID        = static_cast<uint16>(PItem->getModelId()),
     });
 
     // When equipping PItem, remove all slots restricted by PItem. For example,
@@ -2465,19 +2466,19 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                 switch (action.slot)
                 {
                     case SLOT_HEAD:
-                        PChar->look.head = PItem->getModelId();
+                        PChar->look.head = action.modelID;
                         break;
                     case SLOT_BODY:
-                        PChar->look.body = PItem->getModelId();
+                        PChar->look.body = action.modelID;
                         break;
                     case SLOT_HANDS:
-                        PChar->look.hands = PItem->getModelId();
+                        PChar->look.hands = action.modelID;
                         break;
                     case SLOT_LEGS:
-                        PChar->look.legs = PItem->getModelId();
+                        PChar->look.legs = action.modelID;
                         break;
                     case SLOT_FEET:
-                        PChar->look.feet = PItem->getModelId();
+                        PChar->look.feet = action.modelID;
                         break;
                 }
             }
