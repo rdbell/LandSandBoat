@@ -1455,6 +1455,8 @@ set(SOURCES
     test_char_subjob_update_plan_6901.cpp
     test_char_drop_item_dispatch_6902.h
     test_char_drop_item_dispatch_6902.cpp
+    test_char_trade_item_plan_6903.h
+    test_char_trade_item_plan_6903.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h

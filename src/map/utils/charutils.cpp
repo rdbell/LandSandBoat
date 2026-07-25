@@ -94,6 +94,7 @@
 #include "char_stratagem_removal.h"
 #include "char_subjob_update_plan.h"
 #include "char_temp_item_clear.h"
+#include "char_trade_item_plan.h"
 #include "char_unity_leader_capacity.h"
 #include "char_unity_ranking_packets.h"
 #include "char_var_clear_all.h"
@@ -2184,26 +2185,18 @@ void DoTrade(CCharEntity* PChar, CCharEntity* PTarget)
     for (uint8 slotid = 0; slotid <= tradeitemhelpers::TradeSlotMax; ++slotid)
     {
         CItem* PItem = PChar->UContainer->GetItem(slotid);
-
-        if (PItem != nullptr)
+        const auto amount = PItem != nullptr ? PItem->getReserve() : 0;
+        const auto plan = tradeitemplanhelpers::BuildPlan(PItem != nullptr, PItem != nullptr ? PItem->getStackSize() : 0, amount);
+        for (uint8 actionIndex = 0; actionIndex < plan.count; ++actionIndex)
         {
-            if (tradeitemhelpers::ShouldCloneSingleStackTrade(PItem->getStackSize(), PItem->getReserve()))
+            switch (plan.actions[actionIndex])
             {
-                auto PNewItem = xi::items::clone(*PItem);
-                ShowDebug("Adding %s to %s inventory stacksize 1", PNewItem->getName(), PTarget->getName());
-                PNewItem->setReserve(0);
-                AddItem(PTarget, LOC_INVENTORY, std::move(PNewItem));
+                case tradeitemplanhelpers::Action::CloneToTarget: { auto PNewItem = xi::items::clone(*PItem); ShowDebug("Adding %s to %s inventory stacksize 1", PNewItem->getName(), PTarget->getName()); PNewItem->setReserve(0); AddItem(PTarget, LOC_INVENTORY, std::move(PNewItem)); break; }
+                case tradeitemplanhelpers::Action::AddToTarget: ShowDebug("Adding %s to %s inventory", PItem->getName(), PTarget->getName()); AddItem(PTarget, LOC_INVENTORY, PItem->getID(), PItem->getReserve()); break;
+                case tradeitemplanhelpers::Action::ClearReserve: PItem->setReserve(0); break;
+                case tradeitemplanhelpers::Action::RemoveFromSource: UpdateItem(PChar, LOC_INVENTORY, PItem->getSlotID(), tradeitemhelpers::TradeRemoveQuantity(amount)); break;
+                case tradeitemplanhelpers::Action::ClearTradeSlot: PChar->UContainer->ClearSlot(slotid); break;
             }
-            else
-            {
-                ShowDebug("Adding %s to %s inventory", PItem->getName(), PTarget->getName());
-                AddItem(PTarget, LOC_INVENTORY, PItem->getID(), PItem->getReserve());
-            }
-            ShowDebug("Removing %s from %s's inventory", PItem->getName(), PChar->getName());
-            auto amount = PItem->getReserve();
-            PItem->setReserve(0);
-            UpdateItem(PChar, LOC_INVENTORY, PItem->getSlotID(), tradeitemhelpers::TradeRemoveQuantity(amount));
-            PChar->UContainer->ClearSlot(slotid);
         }
     }
 }
