@@ -1,6 +1,7 @@
 #include "test_pet_ability_table_1514.h"
 
 #include "map/pet_ability_table_capacity.h"
+#include "map/pet_ability_table_lifecycle_capacity.h"
 
 #include <iostream>
 
@@ -30,6 +31,21 @@ auto Check() -> bool
         return false;
     }
     if (!ShouldClearPetCommandsOnly(0) || ShouldClearPetCommandsOnly(8))
+    {
+        return false;
+    }
+    const auto rejectedLifecycle = petabilitytablelifecyclehelpers::PlanFor({
+        .petNull = true,
+        .petID   = petabilitytablehelpers::PetIDCarbuncle,
+    });
+    const auto clearOnlyLifecycle = petabilitytablelifecyclehelpers::PlanFor({});
+    const auto buildLifecycle = petabilitytablelifecyclehelpers::PlanFor({
+        .petID = petabilitytablehelpers::PetIDCarbuncle,
+    });
+    if (!rejectedLifecycle.reject || rejectedLifecycle.clearPetCommands || rejectedLifecycle.buildAbilityRosters ||
+        rejectedLifecycle.pushCommandPacket || clearOnlyLifecycle.reject || !clearOnlyLifecycle.clearPetCommands ||
+        clearOnlyLifecycle.buildAbilityRosters || !clearOnlyLifecycle.pushCommandPacket || buildLifecycle.reject ||
+        !buildLifecycle.clearPetCommands || !buildLifecycle.buildAbilityRosters || !buildLifecycle.pushCommandPacket)
     {
         return false;
     }

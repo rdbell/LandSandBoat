@@ -110,6 +110,7 @@
 #include "armor_style_update_capacity.h"
 #include "jug_pet_ability_roster_capacity.h"
 #include "pet_ability_table_capacity.h"
+#include "pet_ability_table_lifecycle_capacity.h"
 #include "summoner_pet_ability_roster_capacity.h"
 #include "keyitem_spell_capacity.h"
 #include "equip_item_finalize_capacity.h"
@@ -3812,17 +3813,27 @@ void BuildingCharWeaponSkills(CCharEntity* PChar)
 
 void BuildingCharPetAbilityTable(CCharEntity* PChar, CPetEntity* PPet, uint32 PetID)
 {
-    if (petabilitytablehelpers::ShouldRejectNullPetOrChar(PPet == nullptr, PChar == nullptr))
+    const auto lifecyclePlan = petabilitytablelifecyclehelpers::PlanFor({
+        .petNull  = PPet == nullptr,
+        .charNull = PChar == nullptr,
+        .petID    = PetID,
+    });
+    if (lifecyclePlan.reject)
     {
         ShowWarning("PPet or PChar was null.");
         return;
     }
 
-    std::memset(&PChar->m_PetCommands, 0, sizeof(PChar->m_PetCommands));
-
-    if (petabilitytablehelpers::ShouldClearPetCommandsOnly(PetID))
+    if (lifecyclePlan.clearPetCommands)
+    {
+        std::memset(&PChar->m_PetCommands, 0, sizeof(PChar->m_PetCommands));
+    }
+    if (!lifecyclePlan.buildAbilityRosters)
     { // technically Fire Spirit but we're using this to null the abilities shown
-        PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+        if (lifecyclePlan.pushCommandPacket)
+        {
+            PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+        }
         return;
     }
 
@@ -3859,7 +3870,10 @@ void BuildingCharPetAbilityTable(CCharEntity* PChar, CPetEntity* PPet, uint32 Pe
             addPetAbility(PChar, bit);
         }
     }
-    PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+    if (lifecyclePlan.pushCommandPacket)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+    }
 }
 
 void BuildingCharAbilityTable(CCharEntity* PChar)
