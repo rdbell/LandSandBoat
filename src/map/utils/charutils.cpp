@@ -98,6 +98,7 @@
 #include "skill_up_capacity.h"
 #include "skill_up_award_capacity.h"
 #include "skill_up_cap_capacity.h"
+#include "skill_up_extra_step_capacity.h"
 #include "calculate_stats_capacity.h"
 #include "distribute_gil_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -4300,22 +4301,24 @@ void TrySkillUP(CCharEntity* PChar, SKILLTYPE SkillID, uint8 lvl, bool forceSkil
 
         if (skilluphelpers::ShouldGainSkillUp(Diff, random, SkillUpChance, forceSkillUp))
         {
-            double chance      = 0;
             uint8  SkillAmount = 1;
             uint8  tier        = skilluphelpers::SkillUpTier(Diff);
 
             for (uint8 i = 0; i < 4; ++i) // 1 + 4 possible additional ones (maximum 5)
             {
                 random = xirand::GetRandomNumber(1.);
-                chance = skilluphelpers::ExtraSkillUpTierChance(tier);
-
-                if (skilluphelpers::ShouldStopExtraSkillUp(chance, random, SkillAmount))
+                const auto extraStepPlan = skillupextrastephelpers::PlanFor({
+                    .tier        = tier,
+                    .skillAmount = SkillAmount,
+                    .random      = random,
+                });
+                if (extraStepPlan.stop)
                 {
                     break;
                 }
 
-                tier -= 1;
-                SkillAmount += 1;
+                tier        = extraStepPlan.nextTier;
+                SkillAmount = extraStepPlan.nextSkillAmount;
             }
             // convert to 10th units
             CapSkill = skilluphelpers::CapSkillTenths(CapSkill);

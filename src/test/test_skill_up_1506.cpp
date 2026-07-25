@@ -3,6 +3,7 @@
 #include "map/skill_up_capacity.h"
 #include "map/skill_up_award_capacity.h"
 #include "map/skill_up_cap_capacity.h"
+#include "map/skill_up_extra_step_capacity.h"
 
 #include <cmath>
 #include <iostream>
@@ -105,6 +106,28 @@ auto Check() -> bool
         return false;
     }
     if (!ShouldStopExtraSkillUp(0.3, 0.5, 1) || ShouldStopExtraSkillUp(0.5, 0.3, 1) || !ShouldStopExtraSkillUp(0.9, 0.1, 5))
+    {
+        return false;
+    }
+    const auto continuedExtraStep = skillupextrastephelpers::PlanFor({
+        .tier        = 5,
+        .skillAmount = 1,
+        .random      = 0.3,
+    });
+    const auto stoppedExtraStep = skillupextrastephelpers::PlanFor({
+        .tier        = 1,
+        .skillAmount = 1,
+        .random      = 0.3,
+    });
+    const auto maxedExtraStep = skillupextrastephelpers::PlanFor({
+        .tier        = 5,
+        .skillAmount = 5,
+        .random      = 0.1,
+    });
+    if (continuedExtraStep.stop || continuedExtraStep.chance != 0.9 || continuedExtraStep.nextTier != 4 ||
+        continuedExtraStep.nextSkillAmount != 2 || !stoppedExtraStep.stop || stoppedExtraStep.chance != 0.2 ||
+        stoppedExtraStep.nextTier != 1 || stoppedExtraStep.nextSkillAmount != 1 || !maxedExtraStep.stop ||
+        maxedExtraStep.nextTier != 5 || maxedExtraStep.nextSkillAmount != 5)
     {
         return false;
     }
