@@ -1,9 +1,163 @@
 -----------------------------------
 -- Paladin Job Utilities
+-- Dual-wired pure inject forms (slice 6739):
+--   one-hour recast, Cover bonus/duration, Divine Emblem/Fealty/Holy Circle,
+--   Intervene/Shield Bash base damage, Palisade/Rampart/Sentinel/Sepulcher,
+--   Chivalry MP product
+-- Parity: internal/paladin
 -----------------------------------
 xi = xi or {}
 xi.job_utils = xi.job_utils or {}
 xi.job_utils.paladin = xi.job_utils.paladin or {}
+
+-----------------------------------
+-- Pure inject pins (internal/paladin)
+-----------------------------------
+xi.job_utils.paladin.coverBaseDuration            = 15
+xi.job_utils.paladin.coverBonusTimeCap            = 15
+xi.job_utils.paladin.divineEmblemBasePower        = 50
+xi.job_utils.paladin.divineEmblemDuration         = 60
+xi.job_utils.paladin.fealtyBaseDuration           = 60
+xi.job_utils.paladin.fealtyMeritUnit              = 5
+xi.job_utils.paladin.holyCircleMainPower          = 15
+xi.job_utils.paladin.holyCircleSubPower           = 5
+xi.job_utils.paladin.holyCircleBaseDuration       = 180
+xi.job_utils.paladin.interveneLvlScale            = 3.36
+xi.job_utils.paladin.interveneDuration            = 30
+xi.job_utils.paladin.invincibleDuration           = 30
+xi.job_utils.paladin.majestyPower                 = 25
+xi.job_utils.paladin.majestyDuration              = 180
+xi.job_utils.paladin.palisadeBasePower            = 30
+xi.job_utils.paladin.palisadeDuration             = 60
+xi.job_utils.paladin.rampartPower                 = 2500
+xi.job_utils.paladin.rampartBaseDuration          = 30 -- production LSB pin
+xi.job_utils.paladin.sentinelBasePct              = 90
+xi.job_utils.paladin.sentinelBaseDuration         = 30
+xi.job_utils.paladin.sentinelTick                 = 3
+xi.job_utils.paladin.sepulcherPower               = 20
+xi.job_utils.paladin.sepulcherBaseDuration        = 180
+xi.job_utils.paladin.shieldBashLvlScale           = 0.273
+xi.job_utils.paladin.chivalryBaseMP               = 0.05
+xi.job_utils.paladin.chivalryMNDScale             = 0.0015
+xi.job_utils.paladin.oneHourRecastSecondsPerMod   = 60
+xi.job_utils.paladin.msgCannotPerformTarg         = 72
+xi.job_utils.paladin.msgRequiresShield            = 217
+xi.job_utils.paladin.msgCannotOnThatTarg          = 155
+
+-- Pure: OneHourRecast
+xi.job_utils.paladin.oneHourRecastFromParams = function(params)
+    params = params or {}
+    local r = (params.abilityRecast or 0)
+        - (params.oneHourRecastMod or 0) * xi.job_utils.paladin.oneHourRecastSecondsPerMod
+    if r < 0 then
+        return 0
+    end
+
+    return r
+end
+
+-- Pure: CoverBonusTime
+xi.job_utils.paladin.coverBonusTimeFromParams = function(params)
+    params = params or {}
+    local v = math.floor(((params.playerVIT or 0) + (params.playerMND or 0) - (params.targetVIT or 0) * 2) / 4)
+    if v < 0 then
+        return 0
+    end
+
+    if v > xi.job_utils.paladin.coverBonusTimeCap then
+        return xi.job_utils.paladin.coverBonusTimeCap
+    end
+
+    return v
+end
+
+-- Pure: CoverDuration
+xi.job_utils.paladin.coverDurationFromParams = function(params)
+    params = params or {}
+    return xi.job_utils.paladin.coverBaseDuration
+        + (params.bonusTime or 0)
+        + (params.merit or 0)
+        + (params.coverDurationMod or 0)
+        + (params.jp or 0)
+end
+
+-- Pure: DivineEmblemPower
+xi.job_utils.paladin.divineEmblemPowerFromParams = function(enhances)
+    return xi.job_utils.paladin.divineEmblemBasePower + (enhances or 0)
+end
+
+-- Pure: FealtyDuration
+-- params: merits (raw getMerit), enhancesFealty
+xi.job_utils.paladin.fealtyDurationFromParams = function(params)
+    params = params or {}
+    local merits = params.merits or 0
+    local m = merits - xi.job_utils.paladin.fealtyMeritUnit
+    local enh = math.floor(merits / xi.job_utils.paladin.fealtyMeritUnit) * (params.enhancesFealty or 0)
+    return xi.job_utils.paladin.fealtyBaseDuration + m + enh
+end
+
+-- Pure: HolyCirclePower
+xi.job_utils.paladin.holyCirclePowerFromParams = function(params)
+    params = params or {}
+    local p = xi.job_utils.paladin.holyCircleMainPower
+    if not params.isMain then
+        p = xi.job_utils.paladin.holyCircleSubPower
+    end
+
+    return p + (params.potency or 0)
+end
+
+-- Pure: HolyCircleDuration
+xi.job_utils.paladin.holyCircleDurationFromParams = function(mod)
+    return xi.job_utils.paladin.holyCircleBaseDuration + (mod or 0)
+end
+
+-- Pure: InterveneDamage base (before shield size / JP)
+xi.job_utils.paladin.interveneDamageFromParams = function(mainLvl)
+    return math.floor((mainLvl or 0) * xi.job_utils.paladin.interveneLvlScale)
+end
+
+-- Pure: PalisadePower
+xi.job_utils.paladin.palisadePowerFromParams = function(jp)
+    return xi.job_utils.paladin.palisadeBasePower + (jp or 0)
+end
+
+-- Pure: RampartDuration (LSB production base 30)
+xi.job_utils.paladin.rampartDurationFromParams = function(mod)
+    return xi.job_utils.paladin.rampartBaseDuration + (mod or 0)
+end
+
+-- Pure: SentinelPower
+xi.job_utils.paladin.sentinelPowerFromParams = function(sentinelEffect)
+    return (xi.job_utils.paladin.sentinelBasePct + (sentinelEffect or 0)) * 100
+end
+
+-- Pure: SentinelDuration
+-- params: enhGuardian (ENHANCES_GUARDIAN * (guardian/19) precomputed by host)
+xi.job_utils.paladin.sentinelDurationFromParams = function(enhGuardian)
+    return xi.job_utils.paladin.sentinelBaseDuration + (enhGuardian or 0)
+end
+
+-- Pure: SepulcherDuration
+xi.job_utils.paladin.sepulcherDurationFromParams = function(jp)
+    return xi.job_utils.paladin.sepulcherBaseDuration + (jp or 0)
+end
+
+-- Pure: ChivalryMP
+-- params: tp, mnd, enhancesChivalry, merits (raw getMerit)
+xi.job_utils.paladin.chivalryMPFromParams = function(params)
+    params = params or {}
+    local base = xi.job_utils.paladin.chivalryBaseMP + (params.enhancesChivalry or 0) / 100
+    local meritsAdj = (params.merits or 0) - xi.job_utils.paladin.fealtyMeritUnit -- same unit 5
+    local tp = params.tp or 0
+    local mnd = params.mnd or 0
+    return (tp * base) + (xi.job_utils.paladin.chivalryMNDScale * tp * mnd) * ((100 + meritsAdj) / 100)
+end
+
+-- Pure: ShieldBashBaseDamage
+xi.job_utils.paladin.shieldBashBaseDamageFromParams = function(mainLvl)
+    return math.floor((mainLvl or 0) * xi.job_utils.paladin.shieldBashLvlScale)
+end
 
 -----------------------------------
 -- Ability Check Functions
@@ -24,7 +178,10 @@ xi.job_utils.paladin.checkIntervene = function(player, target, ability)
     if player:getShieldSize() == 0 then
         return xi.msg.basic.REQUIRES_SHIELD, 0
     else
-        ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
+        ability:setRecast(xi.job_utils.paladin.oneHourRecastFromParams({
+            abilityRecast    = ability:getRecast(),
+            oneHourRecastMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+        }))
 
         return 0, 0
     end
@@ -34,7 +191,10 @@ xi.job_utils.paladin.checkInvincible = function(player, target, ability)
     local jpValue = player:getJobPointLevel(xi.jp.INVINCIBLE_EFFECT)
 
     ability:setVE(ability:getVE() + 100 * jpValue)
-    ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
+    ability:setRecast(xi.job_utils.paladin.oneHourRecastFromParams({
+        abilityRecast    = ability:getRecast(),
+        oneHourRecastMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+    }))
 
     return 0, 0
 end
@@ -59,11 +219,12 @@ end
 -- Ability Use Functions
 -----------------------------------
 xi.job_utils.paladin.useChivalry = function(player, target, ability, action)
-    local merits = player:getMerit(xi.merit.CHIVALRY) - 5
-    local tp     = target:getTP()
-    local base   = 0.05 + (player:getMod(xi.mod.ENHANCES_CHIVALRY) / 100)
-    -- MP gained = (TP * 0.05) + (0.0015 * TP * MND) * Merits
-    local amount = (tp * base) + (0.0015 * tp * target:getStat(xi.mod.MND)) * ((100 + merits) / 100)
+    local amount = xi.job_utils.paladin.chivalryMPFromParams({
+        tp               = target:getTP(),
+        mnd              = target:getStat(xi.mod.MND),
+        enhancesChivalry = player:getMod(xi.mod.ENHANCES_CHIVALRY),
+        merits           = player:getMerit(xi.merit.CHIVALRY),
+    })
 
     target:setTP(0)
 
@@ -71,31 +232,53 @@ xi.job_utils.paladin.useChivalry = function(player, target, ability, action)
 end
 
 xi.job_utils.paladin.useCover = function(player, target, ability)
-    local baseDuration = 15
-    local bonusTime    = utils.clamp(math.floor((player:getStat(xi.mod.VIT) + player:getStat(xi.mod.MND) - target:getStat(xi.mod.VIT) * 2) / 4), 0, 15)
-    local jpValue      = player:getJobPointLevel(xi.jp.COVER_DURATION)
-    local duration     = baseDuration + bonusTime + player:getMerit(xi.merit.COVER_EFFECT_LENGTH) + player:getMod(xi.mod.COVER_DURATION) + jpValue
+    local bonusTime = xi.job_utils.paladin.coverBonusTimeFromParams({
+        playerVIT = player:getStat(xi.mod.VIT),
+        playerMND = player:getStat(xi.mod.MND),
+        targetVIT = target:getStat(xi.mod.VIT),
+    })
+    local duration = xi.job_utils.paladin.coverDurationFromParams({
+        bonusTime         = bonusTime,
+        merit             = player:getMerit(xi.merit.COVER_EFFECT_LENGTH),
+        coverDurationMod  = player:getMod(xi.mod.COVER_DURATION),
+        jp                = player:getJobPointLevel(xi.jp.COVER_DURATION),
+    })
 
-    player:addStatusEffect(xi.effect.COVER, { power = player:getMod(xi.mod.COVER_TO_MP), duration = duration, origin = player })
+    player:addStatusEffect(xi.effect.COVER, {
+        power    = player:getMod(xi.mod.COVER_TO_MP),
+        duration = duration,
+        origin   = player,
+    })
     player:setLocalVar('COVER_ABILITY_TARGET', target:getID())
     ability:setMsg(xi.msg.basic.COVER_SUCCESS)
 end
 
 xi.job_utils.paladin.useDivineEmblem = function(player, target, ability)
     -- Divine Magic bonus damage handled in globals/magic.lua
-    local power = 50 + player:getMod(xi.mod.ENHANCES_DIVINE_EMBLEM) -- 50% increase to enmity
+    local power = xi.job_utils.paladin.divineEmblemPowerFromParams(
+        player:getMod(xi.mod.ENHANCES_DIVINE_EMBLEM)
+    )
 
-    player:addStatusEffect(xi.effect.DIVINE_EMBLEM, { power = power, duration = 60, origin = player })
+    player:addStatusEffect(xi.effect.DIVINE_EMBLEM, {
+        power    = power,
+        duration = xi.job_utils.paladin.divineEmblemDuration,
+        origin   = player,
+    })
 
     return xi.effect.DIVINE_EMBLEM
 end
 
 xi.job_utils.paladin.useFealty = function(player, target, ability, action)
-    local merits    = player:getMerit(xi.merit.FEALTY) - 5
-    local enhFealty = (player:getMerit(xi.merit.FEALTY) / 5) * player:getMod(xi.mod.ENHANCES_FEALTY)
-    local duration  = 60 + merits + enhFealty
+    local duration = xi.job_utils.paladin.fealtyDurationFromParams({
+        merits          = player:getMerit(xi.merit.FEALTY),
+        enhancesFealty  = player:getMod(xi.mod.ENHANCES_FEALTY),
+    })
 
-    player:addStatusEffect(xi.effect.FEALTY, { power = 1, duration = duration, origin = player })
+    player:addStatusEffect(xi.effect.FEALTY, {
+        power    = 1,
+        duration = duration,
+        origin   = player,
+    })
 
     return xi.effect.FEALTY
 end
@@ -104,18 +287,19 @@ xi.job_utils.paladin.useHolyCircle = function(player, target, ability)
     -- TODO:
     -- Create Bonus vs Ecosystem handling
     -- https://www.bg-wiki.com/ffxi/Holy_Circle
-    -- Main (PLD) job gives a unique 15% damage bonus against undead, 15% damage resistance from undead, and likely +15% Undead Killer.
-    -- When subbed, gives 5% of these bonuses.
-    local duration = 180 + player:getMod(xi.mod.HOLY_CIRCLE_DURATION)
-    local power    = 15
+    local duration = xi.job_utils.paladin.holyCircleDurationFromParams(
+        player:getMod(xi.mod.HOLY_CIRCLE_DURATION)
+    )
+    local power = xi.job_utils.paladin.holyCirclePowerFromParams({
+        isMain  = player:getMainJob() == xi.job.PLD,
+        potency = player:getMod(xi.mod.HOLY_CIRCLE_POTENCY),
+    })
 
-    if player:getMainJob() ~= xi.job.PLD then
-        power = 5
-    end
-
-    power = power + player:getMod(xi.mod.HOLY_CIRCLE_POTENCY)
-
-    target:addStatusEffect(xi.effect.HOLY_CIRCLE, { power = power, duration = duration, origin = player })
+    target:addStatusEffect(xi.effect.HOLY_CIRCLE, {
+        power    = power,
+        duration = duration,
+        origin   = player,
+    })
 
     return xi.effect.HOLY_CIRCLE
 end
@@ -124,7 +308,7 @@ xi.job_utils.paladin.useIntervene = function(player, target, ability)
     -- TODO: Retail testing to determine damage
     local shieldSize = player:getShieldSize()
     local jpValue    = 1 + (player:getJobPointLevel(xi.jp.INTERVENE_EFFECT) / 100)
-    local damage     = math.floor(player:getMainLvl() * 3.36)
+    local damage     = xi.job_utils.paladin.interveneDamageFromParams(player:getMainLvl())
 
     if shieldSize == 2 then
         damage = 13 + damage
@@ -136,36 +320,59 @@ xi.job_utils.paladin.useIntervene = function(player, target, ability)
 
     damage = damage * jpValue
 
-    target:addStatusEffect(xi.effect.INTERVENE, { power = 1, duration = 30, origin = player })
+    target:addStatusEffect(xi.effect.INTERVENE, {
+        power    = 1,
+        duration = xi.job_utils.paladin.interveneDuration,
+        origin   = player,
+    })
 
     return damage
 end
 
 xi.job_utils.paladin.useInvincible = function(player, target, ability)
-    player:addStatusEffect(xi.effect.INVINCIBLE, { power = 1, duration = 30, origin = player })
+    player:addStatusEffect(xi.effect.INVINCIBLE, {
+        power    = 1,
+        duration = xi.job_utils.paladin.invincibleDuration,
+        origin   = player,
+    })
 
     return xi.effect.INVINCIBLE
 end
 
 xi.job_utils.paladin.useMajesty = function(player, target, ability)
-    player:addStatusEffect(xi.effect.MAJESTY, { power = 25, duration = 180, origin = player })
+    player:addStatusEffect(xi.effect.MAJESTY, {
+        power    = xi.job_utils.paladin.majestyPower,
+        duration = xi.job_utils.paladin.majestyDuration,
+        origin   = player,
+    })
 
     return xi.effect.MAJESTY
 end
 
 xi.job_utils.paladin.usePalisade = function(player, target, ability)
-    local jpValue = player:getJobPointLevel(xi.jp.PALISADE_EFFECT)
-    local power   = 30 + jpValue
+    local power = xi.job_utils.paladin.palisadePowerFromParams(
+        player:getJobPointLevel(xi.jp.PALISADE_EFFECT)
+    )
 
-    player:addStatusEffect(xi.effect.PALISADE, { power = power, duration = 60, origin = player })
+    player:addStatusEffect(xi.effect.PALISADE, {
+        power    = power,
+        duration = xi.job_utils.paladin.palisadeDuration,
+        origin   = player,
+    })
 
     return xi.effect.PALISADE
 end
 
 xi.job_utils.paladin.useRampart = function(player, target, ability)
-    local duration = 30 + player:getMod(xi.mod.RAMPART_DURATION)
+    local duration = xi.job_utils.paladin.rampartDurationFromParams(
+        player:getMod(xi.mod.RAMPART_DURATION)
+    )
 
-    target:addStatusEffect(xi.effect.RAMPART, { power = 2500, duration = duration, origin = player })
+    target:addStatusEffect(xi.effect.RAMPART, {
+        power    = xi.job_utils.paladin.rampartPower,
+        duration = duration,
+        origin   = player,
+    })
 
     return xi.effect.RAMPART
 end
@@ -173,30 +380,41 @@ end
 xi.job_utils.paladin.useSentinel = function(player, target, ability)
     -- Whether feet have to be equipped before using ability, or if they can be swapped in
     -- is disputed.  Source used: http://wiki.bluegartr.com/bg/Sentinel
-    local power       = (90 + player:getMod(xi.mod.SENTINEL_EFFECT)) * 100
+    local power       = xi.job_utils.paladin.sentinelPowerFromParams(player:getMod(xi.mod.SENTINEL_EFFECT))
     local guardian    = player:getMerit(xi.merit.GUARDIAN)
     local enhGuardian = player:getMod(xi.mod.ENHANCES_GUARDIAN) * (guardian / 19)
     local jpValue     = player:getJobPointLevel(xi.jp.SENTINEL_EFFECT)
-    local duration    = 30 + enhGuardian
+    local duration    = xi.job_utils.paladin.sentinelDurationFromParams(enhGuardian)
 
     -- Sent as positive power because UINTs, man.
-    player:addStatusEffect(xi.effect.SENTINEL, { power = power, duration = duration, origin = player, tick = 3, subPower = guardian + jpValue })
+    player:addStatusEffect(xi.effect.SENTINEL, {
+        power    = power,
+        duration = duration,
+        origin   = player,
+        tick     = xi.job_utils.paladin.sentinelTick,
+        subPower = guardian + jpValue,
+    })
 
     return xi.effect.SENTINEL
 end
 
 xi.job_utils.paladin.useSepulcher = function(player, target, ability)
-    local power    = 20
-    local jpValue  = player:getJobPointLevel(xi.jp.SEPULCHER_DURATION)
-    local duration = 180 + jpValue
+    local power    = xi.job_utils.paladin.sepulcherPower
+    local duration = xi.job_utils.paladin.sepulcherDurationFromParams(
+        player:getJobPointLevel(xi.jp.SEPULCHER_DURATION)
+    )
 
-    target:addStatusEffect(xi.effect.SEPULCHER, { power = power, duration = duration, origin = player })
+    target:addStatusEffect(xi.effect.SEPULCHER, {
+        power    = power,
+        duration = duration,
+        origin   = player,
+    })
 end
 
 xi.job_utils.paladin.useShieldBash = function(player, target, ability)
     local shieldSize = player:getShieldSize()
     local jpValue    = player:getJobPointLevel(xi.jp.SHIELD_BASH_EFFECT)
-    local damage     = math.floor(player:getMainLvl() * 0.273)
+    local damage     = xi.job_utils.paladin.shieldBashBaseDamageFromParams(player:getMainLvl())
 
     if shieldSize == 2 then
         damage = 13 + damage
