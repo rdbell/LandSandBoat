@@ -167,17 +167,20 @@ void GP_CLI_COMMAND_LOCKSTYLE::process(MapSession* PSession, CCharEntity* PChar)
             }
 
             const auto setTailPlan = lockstylesettailhelpers::PlanFor();
-            if (setTailPlan.updateRemovedSlots)
+            for (const auto action : setTailPlan.actions)
             {
-                charutils::UpdateRemovedSlotsLookForLockStyle(PChar);
-            }
-            if (setTailPlan.persist)
-            {
-                PChar->RequestPersist(CHAR_PERSIST::EQUIP);
-            }
-            if (setTailPlan.refresh)
-            {
-                updateClientAppearance(PChar);
+                switch (action)
+                {
+                    case lockstylesettailhelpers::ActionKind::UpdateRemovedSlots:
+                        charutils::UpdateRemovedSlotsLookForLockStyle(PChar);
+                        break;
+                    case lockstylesettailhelpers::ActionKind::Persist:
+                        PChar->RequestPersist(CHAR_PERSIST::EQUIP);
+                        break;
+                    case lockstylesettailhelpers::ActionKind::Refresh:
+                        updateClientAppearance(PChar);
+                        break;
+                }
             }
         }
         break;

@@ -143,7 +143,9 @@ auto runC2SLockstyleRuntimePlanSelfTests() -> bool
           h2hStyleUpdates.actions[7].kind == lockstylesetstyleupdatehelpers::ActionKind::Armor && h2hStyleUpdates.actions[7].slot == 8);
 
     const auto setTail = lockstylesettailhelpers::PlanFor();
-    check(setTail.updateRemovedSlots && setTail.persist && setTail.refresh);
+    check(setTail.actions[0] == lockstylesettailhelpers::ActionKind::UpdateRemovedSlots &&
+          setTail.actions[1] == lockstylesettailhelpers::ActionKind::Persist &&
+          setTail.actions[2] == lockstylesettailhelpers::ActionKind::Refresh);
 
     return ok;
 }

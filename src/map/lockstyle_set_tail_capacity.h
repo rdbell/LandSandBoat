@@ -1,23 +1,33 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
+
 // Pure post-style tail from GP_CLI_COMMAND_LOCKSTYLE::process Set mode.
 
 namespace lockstylesettailhelpers
 {
 
+enum class ActionKind : std::uint8_t
+{
+    UpdateRemovedSlots,
+    Persist,
+    Refresh,
+};
+
 struct Plan
 {
-    bool updateRemovedSlots = false;
-    bool persist            = false;
-    bool refresh            = false;
+    std::array<ActionKind, 3> actions{};
 };
 
 constexpr auto PlanFor() -> Plan
 {
     return {
-        .updateRemovedSlots = true,
-        .persist            = true,
-        .refresh            = true,
+        .actions = {
+            ActionKind::UpdateRemovedSlots,
+            ActionKind::Persist,
+            ActionKind::Refresh,
+        },
     };
 }
 
