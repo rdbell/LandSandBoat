@@ -23,9 +23,13 @@ xi = xi or {}
 xi.combat = xi.combat or {}
 xi.combat.physical = xi.combat.physical or {}
 -----------------------------------
-local wsElementalProperties =
+-----------------------------------
+-- Pure WS elemental membership + fTP gear bonus (OmegaXI slice 6690)
+-- Dual-wired to internal/ftpbonus.
+-----------------------------------
+-- [Skillchain type] = { Fire, Ice, Wind, Earth, Thunder, Water, Light, Dark }
+xi.combat.physical.wsElementalProperties =
 {
-    -- [Skillchain type             ] = { Fire, Ice, Wind, Earth, Thunder, Water, Light, Dark },
     [xi.skillchainType.NONE         ] = { 0, 0, 0, 0, 0, 0, 0, 0 }, -- Lv0 None
     [xi.skillchainType.LIQUEFACTION ] = { 1, 0, 0, 0, 0, 0, 0, 0 }, -- Lv1 Fire
     [xi.skillchainType.INDURATION   ] = { 0, 1, 0, 0, 0, 0, 0, 0 }, -- Lv1 Ice
@@ -44,6 +48,70 @@ local wsElementalProperties =
     [xi.skillchainType.LIGHT_II     ] = { 1, 0, 1, 0, 1, 0, 1, 0 }, -- Lv4 Fire, Wind, Thunder, Light
     [xi.skillchainType.DARKNESS_II  ] = { 0, 1, 0, 1, 0, 1, 0, 1 }, -- Lv4 Ice, Earth, Water, Dark
 }
+
+xi.combat.physical.ftpDivisor = 256
+
+-- Pure: skillchain type carries magic element (wsElementalProperties).
+xi.combat.physical.hasWSElement = function(sc, el)
+    if not el or el < xi.element.FIRE or el > xi.element.DARK then
+        return false
+    end
+
+    local row = xi.combat.physical.wsElementalProperties[sc or 0]
+    if not row then
+        return false
+    end
+
+    return row[el] == 1
+end
+
+-- Pure: any of three WS skillchain props carries element.
+xi.combat.physical.propsCarryElement = function(sc1, sc2, sc3, el)
+    return xi.combat.physical.hasWSElement(sc1, el) or
+        xi.combat.physical.hasWSElement(sc2, el) or
+        xi.combat.physical.hasWSElement(sc3, el)
+end
+
+-- Pure calculateFTPBonus once actor type, SC props, day, and gear mods are injected.
+-- params: isPC, scProp1/2/3, dayElement, elementFTPMods[FIRE..DARK], dayFTPBonus, anyFTPBonus
+-- elementFTPMods entries are raw getMod amounts (divided by 256 inside).
+xi.combat.physical.ftpBonusFromParams = function(params)
+    if not params.isPC then
+        return 0
+    end
+
+    local sc1 = params.scProp1 or xi.skillchainType.NONE
+    local sc2 = params.scProp2 or xi.skillchainType.NONE
+    local sc3 = params.scProp3 or xi.skillchainType.NONE
+
+    if
+        sc1 == xi.skillchainType.NONE and
+        sc2 == xi.skillchainType.NONE and
+        sc3 == xi.skillchainType.NONE
+    then
+        return 0
+    end
+
+    local fTPBonus = 0
+    local mods = params.elementFTPMods or {}
+    local dayElement = params.dayElement or 0
+    local dayFTPBonus = params.dayFTPBonus or 0
+    local divisor = xi.combat.physical.ftpDivisor
+
+    for elementChecked = xi.element.FIRE, xi.element.DARK do
+        if xi.combat.physical.propsCarryElement(sc1, sc2, sc3, elementChecked) then
+            fTPBonus = fTPBonus + (mods[elementChecked] or 0) / divisor
+
+            if dayElement == elementChecked then
+                fTPBonus = fTPBonus + dayFTPBonus / divisor
+            end
+        end
+    end
+
+    fTPBonus = fTPBonus + (params.anyFTPBonus or 0) / divisor
+
+    return fTPBonus
+end
 
 -- Table with pDIF caps per weapon/skill type.
 xi.combat.physical.pDifWeaponCapTable =
@@ -542,45 +610,30 @@ xi.combat.physical.calculateTPfactor = function(actorTP, tpModifierTable)
     return tpFactor
 end
 
--- TP Multiplier calculations.
+-- Entity host: inject actor type / SC props / day / gear mods → pure.
 xi.combat.physical.calculateFTPBonus = function(actor)
-    local fTPBonus = 0
-
-    -- Early return: Gear bonuses only come from gear.
+    -- Gear bonuses only come from gear (PC).
     if actor:getObjType() ~= xi.objType.PC then
-        return fTPBonus
+        return xi.combat.physical.ftpBonusFromParams({ isPC = false })
     end
 
-    -- Early return: Gear bonuses only apply to weaponskills with elemental properties.
     local scProp1, scProp2, scProp3 = actor:getWSSkillchainProp()
-    if
-        scProp1 == xi.skillchainType.NONE and
-        scProp2 == xi.skillchainType.NONE and
-        scProp3 == xi.skillchainType.NONE
-    then
-        return fTPBonus
-    end
-
-    -- fTP bonuses from gear.
-    local dayElement = VanadielDayElement()
+    local elementFTPMods = {}
 
     for elementChecked = xi.element.FIRE, xi.element.DARK do
-        if
-            wsElementalProperties[scProp1][elementChecked] == 1 or
-            wsElementalProperties[scProp2][elementChecked] == 1 or
-            wsElementalProperties[scProp3][elementChecked] == 1
-        then
-            fTPBonus = fTPBonus + actor:getMod(xi.data.element.getElementalFTPModifier(elementChecked)) / 256
-
-            if dayElement == elementChecked then
-                fTPBonus = fTPBonus + actor:getMod(xi.mod.DAY_FTP_BONUS) / 256
-            end
-        end
+        elementFTPMods[elementChecked] = actor:getMod(xi.data.element.getElementalFTPModifier(elementChecked))
     end
 
-    fTPBonus = fTPBonus + actor:getMod(xi.mod.ANY_FTP_BONUS) / 256
-
-    return fTPBonus
+    return xi.combat.physical.ftpBonusFromParams({
+        isPC           = true,
+        scProp1        = scProp1,
+        scProp2        = scProp2,
+        scProp3        = scProp3,
+        dayElement     = VanadielDayElement(),
+        elementFTPMods = elementFTPMods,
+        dayFTPBonus    = actor:getMod(xi.mod.DAY_FTP_BONUS),
+        anyFTPBonus    = actor:getMod(xi.mod.ANY_FTP_BONUS),
+    })
 end
 
 ---@param wRatio number
