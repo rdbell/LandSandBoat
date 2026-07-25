@@ -95,6 +95,7 @@
 #include "char_subjob_update_plan.h"
 #include "char_temp_item_clear.h"
 #include "char_can_trade_plan.h"
+#include "char_add_item_request_plan.h"
 #include "char_trade_item_plan.h"
 #include "char_unity_leader_capacity.h"
 #include "char_unity_ranking_packets.h"
@@ -1741,13 +1742,14 @@ void SendLocalPlayerPackets(CCharEntity* PChar)
 
 uint8 AddItem(CCharEntity* PChar, uint8 LocationID, uint16 ItemID, uint32 quantity, bool silence)
 {
-    if (tradeitemhelpers::ShouldRejectAddItemEmptyOrZero(PChar->getStorage(LocationID)->GetFreeSlotsCount(), quantity))
+    const auto freeSlots = PChar->getStorage(LocationID)->GetFreeSlotsCount();
+    if (additemrequesthelpers::BuildPlan(freeSlots, quantity, true) == additemrequesthelpers::Decision::Reject)
     {
         return ERROR_SLOTID;
     }
 
     auto PItem = xi::items::spawn(ItemID);
-    if (tradeitemhelpers::ShouldRejectAddItemMissingDB(PItem != nullptr))
+    if (additemrequesthelpers::BuildPlan(freeSlots, quantity, PItem != nullptr) == additemrequesthelpers::Decision::MissingItem)
     {
         ShowWarning("AddItem: Item <%i> is not found in a database", ItemID);
         return ERROR_SLOTID;

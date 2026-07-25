@@ -1459,6 +1459,8 @@ set(SOURCES
     test_char_trade_item_plan_6903.cpp
     test_char_can_trade_plan_6904.h
     test_char_can_trade_plan_6904.cpp
+    test_char_add_item_request_plan_6905.h
+    test_char_add_item_request_plan_6905.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h
