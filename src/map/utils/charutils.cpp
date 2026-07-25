@@ -99,6 +99,7 @@
 #include "char_add_item_currency_plan.h"
 #include "char_add_item_rare_rejection.h"
 #include "char_add_item_insert_failure.h"
+#include "char_add_item_persistence_failure.h"
 #include "char_trade_item_plan.h"
 #include "char_unity_leader_capacity.h"
 #include "char_unity_ranking_packets.h"
@@ -1809,11 +1810,12 @@ auto AddItem(CCharEntity* PChar, uint8 LocationID, std::unique_ptr<CItem> PItem,
                         "VALUES(?, ?, ?, ?, ?, ?, ?) "
                         "LIMIT 1";
 
-    if (!db::preparedStmt(Query, PChar->id, LocationID, SlotID, PInserted->getID(), PInserted->getQuantity(), PInserted->getSignature(), PInserted->m_extra))
+    const auto persistencePlan = additempersistencefailurehelpers::BuildPlan(db::preparedStmt(Query, PChar->id, LocationID, SlotID, PInserted->getID(), PInserted->getQuantity(), PInserted->getSignature(), PInserted->m_extra) != nullptr);
+    if (persistencePlan.reject)
     {
         ShowError("AddItem: Cannot insert item to database");
-        PStorage->RemoveItem(SlotID);
-        return ERROR_SLOTID;
+        if (persistencePlan.removeInserted) PStorage->RemoveItem(SlotID);
+        return persistencePlan.returnSlot;
     }
 
     PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PInserted, static_cast<CONTAINER_ID>(LocationID), SlotID);
