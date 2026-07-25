@@ -144,6 +144,7 @@
 #include "style_lock_transition_capacity.h"
 #include "save_job_change_gear_capacity.h"
 #include "load_job_change_gear_capacity.h"
+#include "load_job_change_gear_restore_capacity.h"
 #include "inventory_move_capacity.h"
 #include "lockstyle_removed_look_capacity.h"
 #include "misc_progress_capacity.h"
@@ -3354,58 +3355,62 @@ void LoadJobChangeGear(CCharEntity* PChar)
                                        PChar->GetMJob());
     FOR_DB_SINGLE_RESULT(rset)
     {
-        const std::vector<uint8> validContainers = { LOC_INVENTORY, LOC_WARDROBE, LOC_WARDROBE2, LOC_WARDROBE3, LOC_WARDROBE4, LOC_WARDROBE5, LOC_WARDROBE6, LOC_WARDROBE7, LOC_WARDROBE8 };
+        const std::array<uint16, 16> savedItemIDs{
+            rset->get<uint16>(SLOT_MAIN), rset->get<uint16>(SLOT_SUB), rset->get<uint16>(SLOT_RANGED), rset->get<uint16>(SLOT_AMMO),
+            rset->get<uint16>(SLOT_HEAD), rset->get<uint16>(SLOT_BODY), rset->get<uint16>(SLOT_HANDS), rset->get<uint16>(SLOT_LEGS),
+            rset->get<uint16>(SLOT_FEET), rset->get<uint16>(SLOT_NECK), rset->get<uint16>(SLOT_WAIST), rset->get<uint16>(SLOT_EAR1),
+            rset->get<uint16>(SLOT_EAR2), rset->get<uint16>(SLOT_RING1), rset->get<uint16>(SLOT_RING2), rset->get<uint16>(SLOT_BACK),
+        };
+        const auto restorePlan = loadjobchangegearrestorehelpers::PlanFor(savedItemIDs);
 
-        for (uint8 equipSlot = SLOT_MAIN; equipSlot <= SLOT_BACK; equipSlot++)
+        for (uint8 actionIndex = 0; actionIndex < restorePlan.actionCount; ++actionIndex)
         {
-            const auto itemId = rset->get<uint16>(equipSlot);
+            const auto equipSlot = restorePlan.actions[actionIndex].equipSlotID;
+            const auto itemId    = restorePlan.actions[actionIndex].itemID;
 
-            if (itemId > 0)
+            for (const auto container : loadjobchangegearrestorehelpers::SearchContainers)
             {
-                for (const auto container : validContainers)
+                bool found = false;
+
+                for (uint8 slot = 0; slot < PChar->getStorage(container)->GetSize(); slot++)
                 {
-                    bool found = false;
+                    auto* PEquip = dynamic_cast<CItemEquipment*>(PChar->getStorage(container)->GetItem(slot));
 
-                    for (uint8 slot = 0; slot < PChar->getStorage(container)->GetSize(); slot++)
+                    if (PEquip)
                     {
-                        auto* PEquip = dynamic_cast<CItemEquipment*>(PChar->getStorage(container)->GetItem(slot));
+                        // Validate that we're not trying to equip the same item to two different slots
+                        CItemEquipment* compareItem = nullptr;
 
-                        if (PEquip)
+                        // Get item that theoretically could be equipped an adjacent slot
+                        if (equipSlot == SLOT_MAIN || equipSlot == SLOT_EAR1 || equipSlot == SLOT_RING1)
                         {
-                            // Validate that we're not trying to equip the same item to two different slots
-                            CItemEquipment* compareItem = nullptr;
+                            // Check one item to the "right"
+                            compareItem = PChar->getEquip(static_cast<SLOTTYPE>(equipSlot + 1));
+                        }
+                        else if (equipSlot == SLOT_SUB || equipSlot == SLOT_EAR2 || equipSlot == SLOT_RING2)
+                        {
+                            // Check one item to the "left"
+                            compareItem = PChar->getEquip(static_cast<SLOTTYPE>(equipSlot - 1));
+                        }
 
-                            // Get item that theoretically could be equipped an adjacent slot
-                            if (equipSlot == SLOT_MAIN || equipSlot == SLOT_EAR1 || equipSlot == SLOT_RING1)
-                            {
-                                // Check one item to the "right"
-                                compareItem = PChar->getEquip(static_cast<SLOTTYPE>(equipSlot + 1));
-                            }
-                            else if (equipSlot == SLOT_SUB || equipSlot == SLOT_EAR2 || equipSlot == SLOT_RING2)
-                            {
-                                // Check one item to the "left"
-                                compareItem = PChar->getEquip(static_cast<SLOTTYPE>(equipSlot - 1));
-                            }
-
-                            const auto candidatePlan = loadjobchangegearhelpers::PlanFor({
-                                .savedItemID        = itemId,
-                                .candidateIsEquipment = true,
-                                .candidateItemID     = PEquip->getID(),
-                                .sameAsAdjacentEquip = compareItem == PEquip,
-                            });
-                            if (candidatePlan.equipCandidate)
-                            {
-                                found = true;
-                                charutils::EquipItem(PChar, PEquip->getSlotID(), equipSlot, static_cast<CONTAINER_ID>(container));
-                                break;
-                            }
+                        const auto candidatePlan = loadjobchangegearhelpers::PlanFor({
+                            .savedItemID        = itemId,
+                            .candidateIsEquipment = true,
+                            .candidateItemID     = PEquip->getID(),
+                            .sameAsAdjacentEquip = compareItem == PEquip,
+                        });
+                        if (candidatePlan.equipCandidate)
+                        {
+                            found = true;
+                            charutils::EquipItem(PChar, PEquip->getSlotID(), equipSlot, static_cast<CONTAINER_ID>(container));
+                            break;
                         }
                     }
+                }
 
-                    if (found)
-                    {
-                        break;
-                    }
+                if (found)
+                {
+                    break;
                 }
             }
         }

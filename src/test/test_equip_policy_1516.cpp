@@ -34,6 +34,7 @@
 #include "map/lockstyle_removed_look_capacity.h"
 #include "map/save_job_change_gear_capacity.h"
 #include "map/load_job_change_gear_capacity.h"
+#include "map/load_job_change_gear_restore_capacity.h"
 
 #include <array>
 #include <iostream>
@@ -526,6 +527,17 @@ auto Check() -> bool
     const auto pairedSavedGear = loadjobchangegearhelpers::PlanFor({ .savedItemID = 100, .candidateIsEquipment = true, .candidateItemID = 100, .sameAsAdjacentEquip = true });
     if (!matchingSavedGear.equipCandidate || emptySavedGear.equipCandidate || nonEquipmentSavedGear.equipCandidate ||
         wrongIDSavedGear.equipCandidate || pairedSavedGear.equipCandidate)
+    {
+        return false;
+    }
+
+    constexpr std::array<uint16_t, 16> restoreIDs{ 100, 0, 102, 0, 104, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 115 };
+    const auto restorePlan = loadjobchangegearrestorehelpers::PlanFor(restoreIDs);
+    if (restorePlan.actionCount != 4 || restorePlan.actions[0].equipSlotID != 0 || restorePlan.actions[0].itemID != 100 ||
+        restorePlan.actions[1].equipSlotID != 2 || restorePlan.actions[1].itemID != 102 ||
+        restorePlan.actions[2].equipSlotID != 4 || restorePlan.actions[2].itemID != 104 ||
+        restorePlan.actions[3].equipSlotID != 15 || restorePlan.actions[3].itemID != 115 ||
+        loadjobchangegearrestorehelpers::SearchContainers != std::array<uint8_t, 9>{ 0, 8, 10, 11, 12, 13, 14, 15, 16 })
     {
         return false;
     }
