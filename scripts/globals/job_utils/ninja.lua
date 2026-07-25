@@ -6,6 +6,123 @@ xi.job_utils = xi.job_utils or {}
 xi.job_utils.ninja = xi.job_utils.ninja or {}
 
 -----------------------------------
+-- Ninja tool pure helpers
+-- Dual-wired to OmegaXI internal/ninjatool (slice 6720 / 0891).
+-- Parity: battleutils::HasNinjaTool / ninja_tool_capacity.h
+-----------------------------------
+
+xi.job_utils.ninja.tool =
+{
+    UCHITAKE         = 1161,
+    TSURARA          = 1164,
+    KAWAHORI_OGI     = 1167,
+    MAKIBISHI        = 1170,
+    HIRAISHIN        = 1173,
+    MIZU_DEPPO       = 1176,
+    SHIHEI           = 1179,
+    JUSATSU          = 1182,
+    KAGINAWA         = 1185,
+    SAIRUI_RAN       = 1188,
+    KODOKU           = 1191,
+    SHINOBI_TABI     = 1194,
+    SANJAKU_TENUGUI  = 2553,
+    SOSHI            = 2555,
+    KABENRO          = 2642,
+    JINKO            = 2643,
+    RYUNO            = 2644,
+    MOKUJIN          = 2970,
+    INOSHISHINOFUDA  = 2971, -- elemental-wheel universal
+    SHIKANOFUDA      = 2972, -- toolbag / utility universal
+    CHONOFUDA        = 2973, -- enfeeble universal
+    RANKA            = 8803,
+    FURUSUMI         = 8804,
+}
+
+-- Preferred tool → NIN main-job universal substitute. Returns id or nil.
+xi.job_utils.ninja.substituteTool = function(preferred)
+    preferred = preferred or 0
+    local t = xi.job_utils.ninja.tool
+
+    if
+        preferred == t.UCHITAKE or preferred == t.TSURARA or preferred == t.KAWAHORI_OGI or
+        preferred == t.MAKIBISHI or preferred == t.HIRAISHIN or preferred == t.MIZU_DEPPO
+    then
+        return t.INOSHISHINOFUDA
+    elseif
+        preferred == t.RYUNO or preferred == t.MOKUJIN or preferred == t.SANJAKU_TENUGUI or
+        preferred == t.KABENRO or preferred == t.SHINOBI_TABI or preferred == t.SHIHEI or
+        preferred == t.RANKA or preferred == t.FURUSUMI
+    then
+        return t.SHIKANOFUDA
+    elseif
+        preferred == t.SOSHI or preferred == t.KODOKU or preferred == t.KAGINAWA or
+        preferred == t.JUSATSU or preferred == t.SAIRUI_RAN or preferred == t.JINKO
+    then
+        return t.CHONOFUDA
+    end
+
+    return nil
+end
+
+-- Six primary elemental tools that Futae can consume two of.
+xi.job_utils.ninja.isElementalWheelTool = function(toolId)
+    toolId = toolId or 0
+    local t = xi.job_utils.ninja.tool
+    return toolId == t.UCHITAKE or toolId == t.TSURARA or toolId == t.KAWAHORI_OGI or
+        toolId == t.MAKIBISHI or toolId == t.HIRAISHIN or toolId == t.MIZU_DEPPO
+end
+
+-- Resolve preferred tool with optional NIN main-job substitute after miss.
+-- params: preferred, preferredAvailable, isNINMain, substituteAvailable
+-- returns: { toolId, ok, usedSubstitute }
+xi.job_utils.ninja.resolveNinjaToolFromParams = function(params)
+    local preferred = params.preferred or 0
+    if params.preferredAvailable then
+        return { toolId = preferred, ok = true, usedSubstitute = false }
+    end
+
+    if not params.isNINMain then
+        return { toolId = 0, ok = false, usedSubstitute = false }
+    end
+
+    local sub = xi.job_utils.ninja.substituteTool(preferred)
+    if not sub or not params.substituteAvailable then
+        return { toolId = 0, ok = false, usedSubstitute = false }
+    end
+
+    return { toolId = sub, ok = true, usedSubstitute = true }
+end
+
+-- Expertise chance = NINJA_TOOL mod + merit bonus (0 when trait absent).
+xi.job_utils.ninja.expertiseChance = function(ninjaToolMod, meritBonus)
+    return (ninjaToolMod or 0) + (meritBonus or 0)
+end
+
+-- GetRandomNumber(100) roll 0..99; consume when roll > chance.
+xi.job_utils.ninja.shouldConsumeTool = function(chance, roll)
+    return (roll or 0) > (chance or 0)
+end
+
+-- Inventory delta when ConsumeTool is true.
+-- Futae + elemental wheel → 2; else expertise path → 1 or 0.
+xi.job_utils.ninja.consumeToolQty = function(toolId, hasFutae, expertiseChance, roll)
+    if hasFutae and xi.job_utils.ninja.isElementalWheelTool(toolId) then
+        return 2
+    end
+
+    if xi.job_utils.ninja.shouldConsumeTool(expertiseChance, roll) then
+        return 1
+    end
+
+    return 0
+end
+
+-- Non-PC entities always pass HasNinjaTool without inventory checks.
+xi.job_utils.ninja.nonPCAlwaysHasTool = function()
+    return true
+end
+
+-----------------------------------
 -- Ability Check Functions
 -----------------------------------
 
