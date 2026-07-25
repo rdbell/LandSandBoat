@@ -1,5 +1,6 @@
 -----------------------------------
 -- Global file for additional effects (damage)
+-- Pure injects dual-wired to OmegaXI internal/addeffectdamage (slice 6702 / 0946 / 6093).
 -----------------------------------
 require('scripts/globals/combat/damage_multipliers')
 require('scripts/globals/combat/magic_hit_rate')
@@ -9,7 +10,12 @@ xi.combat = xi.combat or {}
 xi.combat.action = xi.combat.action or {}
 -----------------------------------
 
-local defaultsTable =
+xi.combat.action.addEffectDamageDefaultChance = 100
+xi.combat.action.addEffectDamageDefaultLowestResist = 0.125
+xi.combat.action.addEffectDamageClampMax = 99999
+
+-- Element → subEffect animation defaults.
+xi.combat.action.addEffectDamageDefaultsTable =
 {
     [xi.element.NONE   ] = { xi.subEffect.LIGHT_DAMAGE     }, -- Like Excalibur.
     [xi.element.FIRE   ] = { xi.subEffect.FIRE_DAMAGE      },
@@ -22,72 +28,83 @@ local defaultsTable =
     [xi.element.DARK   ] = { xi.subEffect.DARKNESS_DAMAGE  },
 }
 
+-- En-spells override innate/weapon additional effects (shared with status path).
+xi.combat.action.enspellEffects =
+{
+    xi.effect.ENFIRE,
+    xi.effect.ENFIRE_II,
+    xi.effect.ENBLIZZARD,
+    xi.effect.ENBLIZZARD_II,
+    xi.effect.ENAERO,
+    xi.effect.ENAERO_II,
+    xi.effect.ENSTONE,
+    xi.effect.ENSTONE_II,
+    xi.effect.ENTHUNDER,
+    xi.effect.ENTHUNDER_II,
+    xi.effect.ENWATER,
+    xi.effect.ENWATER_II,
+    xi.effect.ENLIGHT,
+    xi.effect.ENDARK,
+}
+
 -----------------------------------
--- Local functions to ensure defaults are set.
+-- Pure injects
 -----------------------------------
-local function validateParameters(actor, target, fedData)
+
+xi.combat.action.animationForMagicalElement = function(magicalElement)
+    local row = xi.combat.action.addEffectDamageDefaultsTable[magicalElement or xi.element.NONE]
+    if row then
+        return row[1]
+    end
+
+    return 0
+end
+
+-- Pure validateParameters once fedData is injected (aeTarget deferred to host).
+-- Numeric fields use Lua `or` falsy semantics (zero → default).
+xi.combat.action.validateAddEffectDamageParams = function(fedData)
+    fedData = fedData or {}
     local params = {}
 
-    -- Additional effect target.
-    params.aeTarget        = fedData.aeTarget or target -- Default to the current attack target.
-
-    -- Chance.
-    params.chance          = fedData.chance or 100 -- Default: Always proc.
-
-    -- Limit undead
-    params.limitUndead     = fedData.limitUndead or false -- Default: Works on undead.
-
-    -- Action properties.
-    params.attackType      = fedData.attackType or xi.attackType.SPECIAL   -- Physical, Magical, Ranged, Breath or Special.
-    params.physicalElement = fedData.physicalElement or xi.damageType.NONE -- None, H2H, Slashing, Piercing or Blunt.
-    params.magicalElement  = fedData.magicalElement or xi.element.NONE     -- None, Fire, Ice, Wind, Earth, Thunder, Water, Light, Dark.
-
-    -- Base damage parameters.
+    params.chance          = fedData.chance or xi.combat.action.addEffectDamageDefaultChance
+    params.limitUndead     = fedData.limitUndead or false
+    params.attackType      = fedData.attackType or xi.attackType.SPECIAL
+    params.physicalElement = fedData.physicalElement or xi.damageType.NONE
+    params.magicalElement  = fedData.magicalElement or xi.element.NONE
     params.basePower       = fedData.basePower or 0
     params.actorStat       = fedData.actorStat or 0
     params.targetStat      = fedData.targetStat or params.actorStat
-
-    -- Multiplier properties.
     params.canMAB          = fedData.canMAB or false
     params.canResist       = fedData.canResist or false
-    params.lowestResist    = fedData.lowestResist or 0.125
+    params.lowestResist    = fedData.lowestResist or xi.combat.action.addEffectDamageDefaultLowestResist
     params.canResistExtra  = fedData.canResistExtra or false
-
-    -- Drain properties.
     params.drainHP         = fedData.drainHP or false
     params.drainMP         = fedData.drainMP or false
     params.drainTP         = fedData.drainTP or false
     params.overDrain       = fedData.overDrain or false
-
-    -- Animations and messaging.
-    params.animation       = fedData.animation or defaultsTable[params.magicalElement][1]
+    params.animation       = fedData.animation or xi.combat.action.animationForMagicalElement(params.magicalElement)
     params.messageDamage   = fedData.messageDamage or xi.msg.basic.ADD_EFFECT_DMG
     params.messageHeal     = fedData.messageHeal or xi.msg.basic.ADD_EFFECT_HEAL
 
     return params
 end
 
-local function hasEnspell(actor)
-    local enspellTable =
-    {
-        [ 1] = xi.effect.ENFIRE,
-        [ 2] = xi.effect.ENFIRE_II,
-        [ 3] = xi.effect.ENBLIZZARD,
-        [ 4] = xi.effect.ENBLIZZARD_II,
-        [ 5] = xi.effect.ENAERO,
-        [ 6] = xi.effect.ENAERO_II,
-        [ 7] = xi.effect.ENSTONE,
-        [ 8] = xi.effect.ENSTONE_II,
-        [ 9] = xi.effect.ENTHUNDER,
-        [10] = xi.effect.ENTHUNDER_II,
-        [11] = xi.effect.ENWATER,
-        [12] = xi.effect.ENWATER_II,
-        [13] = xi.effect.ENLIGHT,
-        [14] = xi.effect.ENDARK,
-    }
+-- Pure hasEnspell once status presence for the enspell list is injected.
+-- hasStatus is a map effectId → true, or a function(effectId) → bool.
+xi.combat.action.hasEnspellFromParams = function(hasStatus)
+    if not hasStatus then
+        return false
+    end
 
-    for i = 1, #enspellTable do
-        if actor:hasStatusEffect(enspellTable[i]) then
+    local check = hasStatus
+    if type(hasStatus) == 'table' then
+        check = function(id)
+            return hasStatus[id] == true
+        end
+    end
+
+    for i = 1, #xi.combat.action.enspellEffects do
+        if check(xi.combat.action.enspellEffects[i]) then
             return true
         end
     end
@@ -95,19 +112,72 @@ local function hasEnspell(actor)
     return false
 end
 
+xi.combat.action.procMiss = function(roll, chance)
+    return (roll or 0) > (chance or 0)
+end
+
+xi.combat.action.resistBelowFloor = function(resist, lowestResist)
+    return (resist or 0) < (lowestResist or 0)
+end
+
+xi.combat.action.baseDamageFromParams = function(params)
+    return (params.basePower or 0) + (params.actorStatMod or 0) - (params.targetStatMod or 0)
+end
+
+-- Pure floor-product once gates and multipliers are injected.
+-- params: hasEnspell, procMiss, limitUndead, resistBelowFloor, base,
+--   absorption, nullification, damageTypeSDT, physicalElementSDT, magicalElementSDT,
+--   staff, affinity, dayWeather, magicDiff, resist, forcedResistTier
+xi.combat.action.addEffectDamageProductFromParams = function(params)
+    if
+        params.hasEnspell or
+        params.procMiss or
+        params.limitUndead or
+        params.resistBelowFloor
+    then
+        return 0
+    end
+
+    local damage = params.base or 0
+    damage = math.floor(damage * (params.absorption or 1))
+    damage = math.floor(damage * (params.nullification or 1))
+    damage = math.floor(damage * (params.damageTypeSDT or 1))
+    damage = math.floor(damage * (params.physicalElementSDT or 1))
+    damage = math.floor(damage * (params.magicalElementSDT or 1))
+    damage = math.floor(damage * (params.staff or 1))
+    damage = math.floor(damage * (params.affinity or 1))
+    damage = math.floor(damage * (params.dayWeather or 1))
+    damage = math.floor(damage * (params.magicDiff or 1))
+    damage = math.floor(damage * (params.resist or 1))
+    damage = math.floor(damage * (params.forcedResistTier or 1))
+
+    return damage
+end
+
+xi.combat.action.drainClamp = function(damage, resource, overDrain)
+    if overDrain then
+        return damage
+    end
+
+    return utils.clamp(damage, 0, resource or 0)
+end
+
 -----------------------------------
--- Global functions called from "emtity.onAdditionalEffect()"
+-- Entity host
 -----------------------------------
 xi.combat.action.executeAddEffectDamage = function(actor, target, fedData)
-    local params = validateParameters(actor, target, fedData)
+    local params = xi.combat.action.validateAddEffectDamageParams(fedData)
+    params.aeTarget = (fedData and fedData.aeTarget) or target
 
     -- Early return: En-spell overrides innate/weapon additional effects.
-    if hasEnspell(actor) then
+    if xi.combat.action.hasEnspellFromParams(function(id)
+        return actor:hasStatusEffect(id)
+    end) then
         return 0, 0, 0
     end
 
     -- Early return: No proc.
-    if math.random(1, 100) > params.chance then
+    if xi.combat.action.procMiss(math.random(1, 100), params.chance) then
         return 0, 0, 0
     end
 
@@ -122,11 +192,13 @@ xi.combat.action.executeAddEffectDamage = function(actor, target, fedData)
     local isRanged   = params.attackType == xi.attackType.RANGED or false
     local isBreath   = params.attackType == xi.attackType.BREATH or false
 
-    -- Calculate base power.
-    local damage = params.basePower + actor:getMod(params.actorStat) - params.aeTarget:getMod(params.targetStat)
+    local base = xi.combat.action.baseDamageFromParams({
+        basePower      = params.basePower,
+        actorStatMod   = actor:getMod(params.actorStat),
+        targetStatMod  = params.aeTarget:getMod(params.targetStat),
+    })
 
-    -- Calculate mandatory multipliers.
-    local multiplierAbsorption         = xi.spells.damage.calculateAbsorption(params.aeTarget, params.magicalElement, params.isMagical)
+    local multiplierAbsorption         = xi.spells.damage.calculateAbsorption(params.aeTarget, params.magicalElement, isMagical)
     local multiplierNullification      = xi.spells.damage.calculateNullification(params.aeTarget, params.magicalElement, isMagical, isBreath)
     local multiplierDamageTypeSDT      = xi.combat.damage.calculateDamageAdjustment(params.aeTarget, isPhysical, isMagical, isRanged, isBreath)
     local multiplierPhysicalElementSDT = xi.combat.damage.physicalElementSDT(params.aeTarget, params.physicalElement)
@@ -134,52 +206,52 @@ xi.combat.action.executeAddEffectDamage = function(actor, target, fedData)
     local multiplierElementalStaff     = xi.spells.damage.calculateElementalStaffBonus(actor, params.magicalElement)
     local multiplierElementalAffinity  = xi.spells.damage.calculateElementalAffinityBonus(actor, params.magicalElement)
     local multiplierDayWeather         = xi.spells.damage.calculateDayAndWeather(actor, params.magicalElement, false)
-
-    -- Calculate optional multipliers.
     local multiplierMagicDiff          = params.canMAB and xi.spells.damage.calculateMagicBonusDiff(actor, params.aeTarget, 0, 0, params.magicalElement, 0) or 1
     local multiplierResist             = params.canResist and xi.combat.magicHitRate.calculateResistRate(actor, params.aeTarget, 0, 0, xi.skillRank.A_PLUS, params.magicalElement, params.actorStat, 0, 0) or 1
     local multiplierForcedResistTier   = params.canResistExtra and xi.spells.damage.calculateAdditionalResistTier(actor, params.aeTarget, params.magicalElement) or 1
 
     -- Early return: Resist state is too low. Auto-fail.
-    if multiplierResist < params.lowestResist then
+    if xi.combat.action.resistBelowFloor(multiplierResist, params.lowestResist) then
         return 0, 0, 0
     end
 
-    -- Calculate final damage.
-    damage = math.floor(damage * multiplierAbsorption)
-    damage = math.floor(damage * multiplierNullification)
-    damage = math.floor(damage * multiplierDamageTypeSDT)
-    damage = math.floor(damage * multiplierPhysicalElementSDT)
-    damage = math.floor(damage * multiplierMagicalElementSDT)
-    damage = math.floor(damage * multiplierElementalStaff)
-    damage = math.floor(damage * multiplierElementalAffinity)
-    damage = math.floor(damage * multiplierDayWeather)
-    damage = math.floor(damage * multiplierMagicDiff)
-    damage = math.floor(damage * multiplierResist)
-    damage = math.floor(damage * multiplierForcedResistTier)
+    local damage = xi.combat.action.addEffectDamageProductFromParams({
+        base               = base,
+        absorption         = multiplierAbsorption,
+        nullification      = multiplierNullification,
+        damageTypeSDT      = multiplierDamageTypeSDT,
+        physicalElementSDT = multiplierPhysicalElementSDT,
+        magicalElementSDT  = multiplierMagicalElementSDT,
+        staff              = multiplierElementalStaff,
+        affinity           = multiplierElementalAffinity,
+        dayWeather         = multiplierDayWeather,
+        magicDiff          = multiplierMagicDiff,
+        resist             = multiplierResist,
+        forcedResistTier   = multiplierForcedResistTier,
+    })
 
     -- Phalanx, One for all, Stoneskin.
     if damage > 0 then
-        damage = utils.clamp(utils.handlePhalanx(params.aeTarget, damage), 0, 99999)
-        damage = utils.clamp(utils.handleOneForAll(params.aeTarget, damage), 0, 99999)
-        damage = utils.clamp(utils.handleStoneskin(params.aeTarget, damage), 0, 99999)
+        damage = utils.clamp(utils.handlePhalanx(params.aeTarget, damage), 0, xi.combat.action.addEffectDamageClampMax)
+        damage = utils.clamp(utils.handleOneForAll(params.aeTarget, damage), 0, xi.combat.action.addEffectDamageClampMax)
+        damage = utils.clamp(utils.handleStoneskin(params.aeTarget, damage), 0, xi.combat.action.addEffectDamageClampMax)
     end
 
     -- Drain HP, MP or TP
     if params.drainHP then
-        damage               = params.overDrain and damage or utils.clamp(damage, 0, params.aeTarget:getHP())
+        damage               = xi.combat.action.drainClamp(damage, params.aeTarget:getHP(), params.overDrain)
         params.messageDamage = xi.msg.basic.ADD_EFFECT_HP_DRAIN
         actor:addHP(damage)
     end
 
     if params.drainMP then
-        damage               = params.overDrain and damage or utils.clamp(damage, 0, params.aeTarget:getMP())
+        damage               = xi.combat.action.drainClamp(damage, params.aeTarget:getMP(), params.overDrain)
         params.messageDamage = xi.msg.basic.ADD_EFFECT_MP_DRAIN
         actor:addMP(damage)
     end
 
     if params.drainTP then
-        damage               = params.overDrain and damage or utils.clamp(damage, 0, params.aeTarget:getTP())
+        damage               = xi.combat.action.drainClamp(damage, params.aeTarget:getTP(), params.overDrain)
         params.messageDamage = xi.msg.basic.ADD_EFFECT_TP_DRAIN
         actor:addTP(damage)
     end
@@ -189,7 +261,7 @@ xi.combat.action.executeAddEffectDamage = function(actor, target, fedData)
         return 0, 0, 0
     end
 
-    if damage < 0  then
+    if damage < 0 then
         params.aeTarget:addHP(-damage) -- Heal target.
         return params.animation, params.messageHeal, -damage
     end

@@ -1,14 +1,21 @@
 -----------------------------------
 -- Global file for additional effects (Status Effects)
+-- Pure injects dual-wired to OmegaXI internal/addeffectstatus (slice 6702 / 0943 / 6094).
+-- Shares enspellEffects / hasEnspellFromParams / procMiss with damage path.
 -----------------------------------
 require('scripts/globals/combat/magic_hit_rate')
+require('scripts/globals/combat/action_additional_effect_damage') -- enspell + procMiss pure
 -----------------------------------
 xi = xi or {}
 xi.combat = xi.combat or {}
 xi.combat.action = xi.combat.action or {}
 -----------------------------------
 
-local defaultsTable =
+xi.combat.action.addEffectStatusDefaultChance = 100
+xi.combat.action.addEffectStatusDefaultDuration = 120
+
+-- Effect → { subEffect animation, message } defaults.
+xi.combat.action.addEffectStatusDefaultsTable =
 {
     [xi.effect.AMNESIA      ] = { xi.subEffect.AMNESIA,         xi.msg.basic.ADD_EFFECT_STATUS },
     [xi.effect.ATTACK_DOWN  ] = { xi.subEffect.ATTACK_DOWN,     xi.msg.basic.ADD_EFFECT_STATUS },
@@ -32,100 +39,133 @@ local defaultsTable =
 }
 
 -----------------------------------
--- Local functions to ensure defaults are set.
+-- Pure injects
 -----------------------------------
-local function validateParameters(actor, target, fedData)
+
+xi.combat.action.defaultsForStatusEffect = function(effectId)
+    local row = xi.combat.action.addEffectStatusDefaultsTable[effectId or xi.effect.NONE]
+    if not row then
+        return 0, 0
+    end
+
+    return row[1] or 0, row[2] or 0
+end
+
+-- Pure validateParameters once fedData is injected (aeTarget deferred to host).
+xi.combat.action.validateAddEffectStatusParams = function(fedData)
+    fedData = fedData or {}
     local params = {}
 
-    -- Additional effect target.
-    params.aeTarget     = fedData.aeTarget or target -- Default to the current attack target.
-
-    -- Chance.
-    params.chance       = fedData.chance or 100 -- Default: Always proc.
-
-    -- Status effect application parameters.
+    params.chance       = fedData.chance or xi.combat.action.addEffectStatusDefaultChance
     params.effectId     = fedData.effectId or xi.effect.NONE
     params.power        = fedData.power or 0
     params.tick         = fedData.tick or 0
-    params.duration     = fedData.duration or 120
+    params.duration     = fedData.duration or xi.combat.action.addEffectStatusDefaultDuration
     params.subType      = fedData.subType or 0
     params.subPower     = fedData.subPower or 0
     params.tier         = fedData.tier or 0
-
-    -- Action properties.
     params.element      = fedData.element or xi.element.NONE
     params.actorStat    = fedData.actorStat or 0
-    params.targetStat   = fedData.targetStat or params.actorStat -- Currently unused. For future use.
+    params.targetStat   = fedData.targetStat or params.actorStat
     params.macc         = fedData.macc or 0
     params.resistRate   = fedData.resistRate or 0
-
-    -- Optional behavior.
     params.resetEmnity  = fedData.resetEmnity or false
     params.absorbEffect = fedData.absorbEffect or false
 
-    -- Animations and messaging.
-    params.animation    = fedData.animation or (defaultsTable[params.effectId][1] or 0)
-    params.message      = fedData.message or (defaultsTable[params.effectId][2] or 0)
+    local defAnim, defMsg = xi.combat.action.defaultsForStatusEffect(params.effectId)
+    params.animation    = fedData.animation or defAnim
+    params.message      = fedData.message or defMsg
 
     return params
 end
 
-local function hasEnspell(actor)
-    local enspellTable =
-    {
-        [ 1] = xi.effect.ENFIRE,
-        [ 2] = xi.effect.ENFIRE_II,
-        [ 3] = xi.effect.ENBLIZZARD,
-        [ 4] = xi.effect.ENBLIZZARD_II,
-        [ 5] = xi.effect.ENAERO,
-        [ 6] = xi.effect.ENAERO_II,
-        [ 7] = xi.effect.ENSTONE,
-        [ 8] = xi.effect.ENSTONE_II,
-        [ 9] = xi.effect.ENTHUNDER,
-        [10] = xi.effect.ENTHUNDER_II,
-        [11] = xi.effect.ENWATER,
-        [12] = xi.effect.ENWATER_II,
-        [13] = xi.effect.ENLIGHT,
-        [14] = xi.effect.ENDARK,
-    }
-
-    for i = 1, #enspellTable do
-        if actor:hasStatusEffect(enspellTable[i]) then
-            return true
-        end
+-- Pure gate compositions (slice 6094).
+xi.combat.action.enhancementAppliesFromParams = function(params)
+    if
+        params.hasEnspell or
+        (params.effectId or xi.effect.NONE) == xi.effect.NONE or
+        params.procMiss or
+        params.nullified
+    then
+        return false
     end
 
-    return false
+    return params.addStatusOK == true
+end
+
+xi.combat.action.enfeeblementAppliesFromParams = function(params)
+    if
+        params.hasEnspell or
+        (params.effectId or xi.effect.NONE) == xi.effect.NONE or
+        params.procMiss
+    then
+        return false
+    end
+
+    if
+        params.immune or
+        params.traitResisted or
+        params.nullified or
+        params.resistRateFail
+    then
+        return false
+    end
+
+    return params.addStatusOK == true
+end
+
+xi.combat.action.dispelAppliesFromParams = function(params)
+    if params.hasEnspell then
+        return false
+    end
+
+    if (params.effectId or xi.effect.NONE) ~= xi.effect.NONE then
+        return false
+    end
+
+    if params.procMiss or not params.hasDispelable or params.resistRateFail then
+        return false
+    end
+
+    return true
+end
+
+xi.combat.action.enfeebleDurationFromParams = function(baseDuration, resistanceRate)
+    return math.floor((baseDuration or 0) * (resistanceRate or 0))
 end
 
 -----------------------------------
--- Global functions called from "emtity.onAdditionalEffect()"
+-- Entity hosts
 -----------------------------------
 xi.combat.action.executeAddEffectEnhancement = function(actor, target, fedData)
-    local params = validateParameters(actor, target, fedData)
+    local params = xi.combat.action.validateAddEffectStatusParams(fedData)
+    params.aeTarget = (fedData and fedData.aeTarget) or target
 
-    -- Early return: En-spell overrides innate/weapon additional effects.
-    if hasEnspell(actor) then
+    local hasEnspell = xi.combat.action.hasEnspellFromParams(function(id)
+        return actor:hasStatusEffect(id)
+    end)
+    local procMiss = xi.combat.action.procMiss(math.random(1, 100), params.chance)
+    local nullified = xi.data.statusEffect.isEffectNullified(params.aeTarget, params.effectId, params.tier)
+
+    -- Gate composition without addStatus yet (early outs).
+    if
+        hasEnspell or
+        params.effectId == xi.effect.NONE or
+        procMiss or
+        nullified
+    then
         return 0, 0, 0
     end
 
-    -- Early return: Incorrect effect ID.
-    if params.effectId == xi.effect.NONE then
-        return 0, 0, 0
-    end
+    local addOK = params.aeTarget:addStatusEffect(params.effectId, {
+        power = params.power, duration = params.duration, origin = actor,
+        tick = params.tick, subType = params.subType, subPower = params.subPower, tier = params.tier,
+    })
 
-    -- Early return: No proc.
-    if math.random(1, 100) > params.chance then
-        return 0, 0, 0
-    end
-
-    -- Early return: Target has an status effect that invalidates current (Outright incompatible or higher tier).
-    if xi.data.statusEffect.isEffectNullified(params.aeTarget, params.effectId, params.tier) then
-        return 0, 0, 0
-    end
-
-    -- Apply effect.
-    if params.aeTarget:addStatusEffect(params.effectId, { power = params.power, duration = params.duration, origin = actor, tick = params.tick, subType = params.subType, subPower = params.subPower, tier = params.tier }) then
+    if xi.combat.action.enhancementAppliesFromParams({
+        hasEnspell = false, effectId = params.effectId, procMiss = false,
+        nullified = false, addStatusOK = addOK,
+    }) then
         return params.animation, params.message, params.effectId
     end
 
@@ -133,49 +173,47 @@ xi.combat.action.executeAddEffectEnhancement = function(actor, target, fedData)
 end
 
 xi.combat.action.executeAddEffectEnfeeblement = function(actor, target, fedData)
-    local params = validateParameters(actor, target, fedData)
+    local params = xi.combat.action.validateAddEffectStatusParams(fedData)
+    params.aeTarget = (fedData and fedData.aeTarget) or target
 
-    -- Early return: En-spell overrides innate/weapon additional effects.
-    if hasEnspell(actor) then
+    local hasEnspell = xi.combat.action.hasEnspellFromParams(function(id)
+        return actor:hasStatusEffect(id)
+    end)
+
+    if hasEnspell or params.effectId == xi.effect.NONE then
         return 0, 0, 0
     end
 
-    -- Early return: Incorrect effect ID.
-    if params.effectId == xi.effect.NONE then
+    if xi.combat.action.procMiss(math.random(1, 100), params.chance) then
         return 0, 0, 0
     end
 
-    -- Early return: No proc.
-    if math.random(1, 100) > params.chance then
-        return 0, 0, 0
-    end
-
-    -- Early return: Target is immune.
     if xi.data.statusEffect.isTargetImmune(params.aeTarget, params.effectId, params.element) then
         return 0, 0, 0
     end
 
-    -- Early return: Target triggers resist trait.
     if xi.data.statusEffect.isTargetResistant(actor, params.aeTarget, params.effectId) then
         return 0, 0, 0
     end
 
-    -- Early return: Target has an status effect that invalidates current (Outright incompatible or higher tier).
     if xi.data.statusEffect.isEffectNullified(params.aeTarget, params.effectId, params.tier) then
         return 0, 0, 0
     end
 
-    -- Early return: Resist rate too high.
-    local resistanceRate = xi.combat.magicHitRate.calculateResistRate(actor, params.aeTarget, 0, 0, xi.skillRank.A_PLUS, params.element, params.actorStat, params.effectId, params.macc)
+    local resistanceRate = xi.combat.magicHitRate.calculateResistRate(
+        actor, params.aeTarget, 0, 0, xi.skillRank.A_PLUS, params.element,
+        params.actorStat, params.effectId, params.macc
+    )
     if not xi.data.statusEffect.isResistRateSuccessfull(params.effectId, resistanceRate, params.resistRate) then
         return 0, 0, 0
     end
 
-    -- Calculate duration.
-    local totalDuration = math.floor(params.duration * resistanceRate)
+    local totalDuration = xi.combat.action.enfeebleDurationFromParams(params.duration, resistanceRate)
 
-    -- Apply effect.
-    if params.aeTarget:addStatusEffect(params.effectId, { power = params.power, duration = totalDuration, origin = actor, tick = params.tick, subType = params.subType, subPower = params.subPower, tier = params.tier }) then
+    if params.aeTarget:addStatusEffect(params.effectId, {
+        power = params.power, duration = totalDuration, origin = actor,
+        tick = params.tick, subType = params.subType, subPower = params.subPower, tier = params.tier,
+    }) then
         return params.animation, params.message, params.effectId
     end
 
@@ -183,35 +221,42 @@ xi.combat.action.executeAddEffectEnfeeblement = function(actor, target, fedData)
 end
 
 xi.combat.action.executeAddEffectDispel = function(actor, target, fedData)
-    local params = validateParameters(actor, target, fedData)
+    local params = xi.combat.action.validateAddEffectStatusParams(fedData)
+    params.aeTarget = (fedData and fedData.aeTarget) or target
 
-    -- Early return: En-spell overrides innate/weapon additional effects.
-    if hasEnspell(actor) then
+    local hasEnspell = xi.combat.action.hasEnspellFromParams(function(id)
+        return actor:hasStatusEffect(id)
+    end)
+    local procMiss = xi.combat.action.procMiss(math.random(1, 100), params.chance)
+    local hasDispelable = params.aeTarget:hasStatusEffectByFlag(xi.effectFlag.DISPELABLE)
+
+    local resistanceRate = 1
+    local resistRateFail = false
+    if
+        not hasEnspell and
+        params.effectId == xi.effect.NONE and
+        not procMiss and
+        hasDispelable
+    then
+        resistanceRate = xi.combat.magicHitRate.calculateResistRate(
+            actor, params.aeTarget, 0, 0, xi.skillRank.A_PLUS, params.element,
+            params.actorStat, params.effectId, params.macc
+        )
+        resistRateFail = not xi.data.statusEffect.isResistRateSuccessfull(
+            params.effectId, resistanceRate, params.resistRate
+        )
+    end
+
+    if not xi.combat.action.dispelAppliesFromParams({
+        hasEnspell     = hasEnspell,
+        effectId       = params.effectId,
+        procMiss       = procMiss,
+        hasDispelable  = hasDispelable,
+        resistRateFail = resistRateFail,
+    }) then
         return 0, 0, 0
     end
 
-    -- Early return: Incorrect effect ID.
-    if params.effectId ~= xi.effect.NONE then
-        return 0, 0, 0
-    end
-
-    -- Early return: No proc.
-    if math.random(1, 100) > params.chance then
-        return 0, 0, 0
-    end
-
-    -- Early return: No dispelable effect.
-    if not params.aeTarget:hasStatusEffectByFlag(xi.effectFlag.DISPELABLE) then
-        return 0, 0, 0
-    end
-
-    -- Early return: Resist rate too high.
-    local resistanceRate = xi.combat.magicHitRate.calculateResistRate(actor, params.aeTarget, 0, 0, xi.skillRank.A_PLUS, params.element, params.actorStat, params.effectId, params.macc)
-    if not xi.data.statusEffect.isResistRateSuccessfull(params.effectId, resistanceRate, params.resistRate) then
-        return 0, 0, 0
-    end
-
-    -- Attampt to dispel or steal an status effect.
     local dispelledEffect = 0
     if params.absorbEffect then
         dispelledEffect = actor:stealStatusEffect(params.aeTarget, xi.effectFlag.DISPELABLE, true)
