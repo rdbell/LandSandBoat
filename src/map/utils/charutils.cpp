@@ -107,6 +107,7 @@
 #include "pet_ability_table_capacity.h"
 #include "keyitem_spell_capacity.h"
 #include "equip_item_finalize_capacity.h"
+#include "equip_item_success_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
@@ -3352,43 +3353,70 @@ void EquipItem(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 contai
         {
             if (!PItem->isSubType(ITEM_LOCKED) && EquipArmor(PChar, slotID, equipSlotID, containerID))
             {
-                if (PItem->getScriptType() & SCRIPT_EQUIP)
+                const auto equipSuccessPlan = equipitemsuccesshelpers::PlanFor({
+                    .hasEquipScript   = (PItem->getScriptType() & SCRIPT_EQUIP) != 0,
+                    .hasUsableCharges = PItem->isType(ITEM_USABLE) && static_cast<CItemUsable*>(PItem)->getCurrentCharges() != 0,
+                    .isSubSlot        = equipSlotID == SLOT_SUB,
+                    .mainNeedsUnarmed = equipSlotID == SLOT_SUB &&
+                                        (!PChar->getEquip(SLOT_MAIN) || !PChar->getEquip(SLOT_MAIN)->isType(ITEM_EQUIPMENT)),
+                });
+
+                if (equipSuccessPlan.setScriptEquipFlag)
                 {
                     PChar->m_EquipFlag |= PItem->getScriptType();
                 }
 
-                if (PItem->isType(ITEM_USABLE) && ((CItemUsable*)PItem)->getCurrentCharges() != 0)
+                if (equipSuccessPlan.assignChargeTime)
                 {
                     PItem->setAssignTime(timer::now());
-                    // add recast timer to Recast List from any bag
+                }
+                if (equipSuccessPlan.addItemRecast)
+                {
+                    // Add recast timer to the Recast List from any bag.
                     PChar->PRecastContainer->Add(RECAST_ITEM, static_cast<Recast>(slotID << 8 | containerID), PItem->getReuseTime());
-
-                    // Do not forget to update the timer when equipping the subject
-
+                }
+                if (equipSuccessPlan.pushItemAttr)
+                {
+                    // Do not forget to update the timer when equipping the subject.
                     PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PItem, static_cast<CONTAINER_ID>(containerID), slotID);
                 }
 
-                PItem->setSubType(ITEM_LOCKED);
-
-                if (equipSlotID == SLOT_SUB)
+                if (equipSuccessPlan.lockItem)
                 {
-                    // If main hand is empty, check which UnarmedItem to use.
-                    if (!PChar->getEquip(SLOT_MAIN) || !PChar->getEquip(SLOT_MAIN)->isType(ITEM_EQUIPMENT))
-                    {
-                        CheckUnarmedWeapon(PChar);
-                    }
+                    PItem->setSubType(ITEM_LOCKED);
                 }
 
-                PChar->addEquipModifiers(&PItem->modList, PItem->getReqLvl(), equipSlotID);
-                PChar->PLatentEffectContainer->AddLatentEffects(PItem->latentList, PItem->getReqLvl(), equipSlotID);
-                PChar->PLatentEffectContainer->CheckLatentsEquip(equipSlotID);
-                PChar->addPetModifiers(&PItem->petModList);
+                if (equipSuccessPlan.checkUnarmedWeapon)
+                {
+                    // If main hand is empty, check which UnarmedItem to use.
+                    CheckUnarmedWeapon(PChar);
+                }
+
+                if (equipSuccessPlan.addEquipModifiers)
+                {
+                    PChar->addEquipModifiers(&PItem->modList, PItem->getReqLvl(), equipSlotID);
+                }
+                if (equipSuccessPlan.addLatentEffects)
+                {
+                    PChar->PLatentEffectContainer->AddLatentEffects(PItem->latentList, PItem->getReqLvl(), equipSlotID);
+                }
+                if (equipSuccessPlan.checkLatentsEquip)
+                {
+                    PChar->PLatentEffectContainer->CheckLatentsEquip(equipSlotID);
+                }
+                if (equipSuccessPlan.addPetModifiers)
+                {
+                    PChar->addPetModifiers(&PItem->petModList);
+                }
 
                 // Only call the lua onEquip if it's a valid equip - e.g. has passed EquipArmor and other checks above
-                luautils::OnItemEquip(PChar, PItem);
+                if (equipSuccessPlan.onItemEquip)
+                {
+                    luautils::OnItemEquip(PChar, PItem);
+                }
 
                 // queue look update on valid equip
-                if (PItem != nullptr && PItem->isType(ITEM_EQUIPMENT))
+                if (equipSuccessPlan.queueEquipChange)
                 {
                     PChar->inventorySyncState().queueEquipChange(static_cast<CONTAINER_ID>(containerID), slotID, static_cast<SLOTTYPE>(equipSlotID), PItem, Equipping::Yes);
                 }

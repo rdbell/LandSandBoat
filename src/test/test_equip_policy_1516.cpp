@@ -1,6 +1,7 @@
 #include "test_equip_policy_1516.h"
 
 #include "map/equip_item_finalize_capacity.h"
+#include "map/equip_item_success_capacity.h"
 #include "map/equip_policy_capacity.h"
 
 #include <iostream>
@@ -172,6 +173,26 @@ auto Check() -> bool
 
     const auto instrument = equipitemfinalizehelpers::PlanFor({ .mainNeedsUnarmed = true });
     if (instrument.checkUnarmedWeapon || instrument.buildWeaponSkills)
+    {
+        return false;
+    }
+
+    const auto equipSuccess = equipitemsuccesshelpers::PlanFor({});
+    if (equipSuccess.setScriptEquipFlag || equipSuccess.assignChargeTime || equipSuccess.addItemRecast || equipSuccess.pushItemAttr ||
+        equipSuccess.checkUnarmedWeapon || !equipSuccess.lockItem || !equipSuccess.addEquipModifiers || !equipSuccess.addLatentEffects ||
+        !equipSuccess.checkLatentsEquip || !equipSuccess.addPetModifiers || !equipSuccess.onItemEquip || !equipSuccess.queueEquipChange)
+    {
+        return false;
+    }
+
+    const auto conditionalEquipSuccess = equipitemsuccesshelpers::PlanFor({
+        .hasEquipScript   = true,
+        .hasUsableCharges = true,
+        .isSubSlot        = true,
+        .mainNeedsUnarmed = true,
+    });
+    if (!conditionalEquipSuccess.setScriptEquipFlag || !conditionalEquipSuccess.assignChargeTime || !conditionalEquipSuccess.addItemRecast ||
+        !conditionalEquipSuccess.pushItemAttr || !conditionalEquipSuccess.checkUnarmedWeapon)
     {
         return false;
     }
