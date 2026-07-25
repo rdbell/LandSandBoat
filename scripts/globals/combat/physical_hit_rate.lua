@@ -94,44 +94,95 @@ xi.combat.physicalHitRate.clampRangedHitRate = function(hitrate)
 end
 
 -----------------------------------
+-- Pure: checkAnticipated product (slice 6765 / 6101)
+-- Parity: internal/physhitrate CheckAnticipated / CheckAnticipatedRetention
+-----------------------------------
+
+-- Pure Third Eye retention scale 0..10000 once time-in-effect and retention
+-- rate mod inject. Host only uses this when Seigan + canRetain.
+xi.combat.physicalHitRate.thirdEyeRetentionScaledChance = function(timeInEffectMs, retentionRateMod)
+    timeInEffectMs = timeInEffectMs or 0
+    if timeInEffectMs < 0 then
+        timeInEffectMs = 0
+    end
+
+    local retentionModifier = utils.clamp(1 - (retentionRateMod or 0) / 100, 0, 1)
+    local percent = utils.clamp(100 - timeInEffectMs * (1 / 300) * retentionModifier, 0, 100)
+    return math.floor(percent * 100)
+end
+
+-- Pure: not PC or two-handed (Lua: not isPC or isPC and isWeaponTwoHanded).
+xi.combat.physicalHitRate.canRetainThirdEye = function(isPC, isWeaponTwoHanded)
+    return not isPC or isWeaponTwoHanded
+end
+
+-- Pure retention outcome once TE is present.
+-- params: hasSeigan, canRetain, timeInEffectMs, retentionRateMod, roll1to10000
+-- returns: anticipated (always true when TE present), shouldDeleteThirdEye
+xi.combat.physicalHitRate.checkAnticipatedRetentionFromParams = function(params)
+    params = params or {}
+    local scaled = 0
+    if params.hasSeigan and params.canRetain then
+        scaled = xi.combat.physicalHitRate.thirdEyeRetentionScaledChance(
+            params.timeInEffectMs or 0, params.retentionRateMod or 0)
+    end
+
+    local retains = scaled > 0 and (params.roll1to10000 or 0) <= scaled
+    return true, not retains
+end
+
+-- Pure full checkAnticipated once status/weapon/timing/RNG inject.
+-- params: hasThirdEye, hasSeigan, isPC, isWeaponTwoHanded, timeInEffectMs,
+--   retentionRateMod, roll1to10000
+-- returns: anticipated, shouldDeleteThirdEye
+xi.combat.physicalHitRate.checkAnticipatedFromParams = function(params)
+    params = params or {}
+    if not params.hasThirdEye then
+        return false, false
+    end
+
+    local canRetain = xi.combat.physicalHitRate.canRetainThirdEye(
+        params.isPC, params.isWeaponTwoHanded)
+    return xi.combat.physicalHitRate.checkAnticipatedRetentionFromParams({
+        hasSeigan        = params.hasSeigan,
+        canRetain        = canRetain,
+        timeInEffectMs   = params.timeInEffectMs or 0,
+        retentionRateMod = params.retentionRateMod or 0,
+        roll1to10000     = params.roll1to10000 or 0,
+    })
+end
+
+-----------------------------------
 -- Entity hosts
 -----------------------------------
 
+-- Host residual: Third Eye / Seigan / 2H / retention mod / RNG; may delete TE.
+-- Pure product: checkAnticipatedFromParams (slice 6765).
 xi.combat.physicalHitRate.checkAnticipated = function(attacker, defender)
-    -- Early Return: Defender lacks Third Eye.
-    if not defender:hasStatusEffect(xi.effect.THIRD_EYE) then
-        return false
-    end
-
-    -- Calculate chance to retain "Third Eye".
-    local thirdEyeRetentionChance = 0
-    local canRetainThirdEye = not defender:isPC() or defender:isPC() and defender:isWeaponTwoHanded()
-
-    if defender:hasStatusEffect(xi.effect.SEIGAN) and canRetainThirdEye then
-        -- Duration left.
+    local hasThirdEye = defender:hasStatusEffect(xi.effect.THIRD_EYE)
+    local timeInEffectMs = 0
+    local retentionRateMod = 0
+    if hasThirdEye then
         local thirdEyeEffect = defender:getStatusEffect(xi.effect.THIRD_EYE)
-        local timeInEffect   = thirdEyeEffect:getDuration() - thirdEyeEffect:getTimeRemaining()
-
-        -- Retention
-        local retentionLossPerMillisecond = 1 / 300 -- Retain 100% / 30 seconds (30000 milliseconds)
-        local retentionModifier           = utils.clamp(1 - defender:getMod(xi.mod.THIRD_EYE_RETENTION_RATE) / 100, 0, 1) -- 50 = 0.5x reduction in loss per millisecond
-
-        -- Add in retention bonus, Kogarasumaru has a 50% reduction per JP wiki -- https://wiki.ffo.jp/html/15175.html
-        -- Other sources such as BG indicate it has a reduction -- https://www.bluegartr.com/threads/71538-Mythic-Weapon-Compiled-Information?p=2972086&highlight=#post2972086
-
-        -- Increase scale by 100x to give more precision to the RNG
-        thirdEyeRetentionChance = utils.clamp(100 - timeInEffect * retentionLossPerMillisecond * retentionModifier, 0, 100) * 100
+        timeInEffectMs = thirdEyeEffect:getDuration() - thirdEyeEffect:getTimeRemaining()
+        retentionRateMod = defender:getMod(xi.mod.THIRD_EYE_RETENTION_RATE)
     end
 
-    -- Calculate if "Third Eye" is retained.
-    if
-        thirdEyeRetentionChance == 0 or
-        math.random(1, 10000) > thirdEyeRetentionChance
-    then
+    local anticipated, shouldDelete = xi.combat.physicalHitRate.checkAnticipatedFromParams({
+        hasThirdEye       = hasThirdEye,
+        hasSeigan         = defender:hasStatusEffect(xi.effect.SEIGAN),
+        isPC              = defender:isPC(),
+        isWeaponTwoHanded = defender:isWeaponTwoHanded(),
+        timeInEffectMs    = timeInEffectMs,
+        retentionRateMod  = retentionRateMod,
+        roll1to10000      = math.random(1, 10000),
+    })
+
+    if shouldDelete then
         defender:delStatusEffect(xi.effect.THIRD_EYE)
     end
 
-    return true
+    return anticipated
 end
 
 -- https://www.bg-wiki.com/ffxi/Hit_Rate
