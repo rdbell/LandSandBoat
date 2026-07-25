@@ -71,6 +71,7 @@
 #include "char_party_alliance_attach.h"
 #include "char_party_alliance_reconcile.h"
 #include "char_party_level_sync_restore.h"
+#include "char_party_reload_assembly.h"
 #include "char_party_reload_id_sync.h"
 #include "char_party_reload_missing.h"
 #include "char_party_trust_disband.h"
@@ -7060,13 +7061,21 @@ void ReloadParty(CCharEntity* PChar)
                 });
             // clang-format on
 
-            // create new party if it doesn't exist already
-            if (!PParty)
+            const auto partyReloadAssemblyPlan = partyreloadassemblyhelpers::MakePlan(
+                PChar->PParty != nullptr,
+                PParty != nullptr);
+            for (std::uint8_t index = 0; index < partyReloadAssemblyPlan.count; ++index)
             {
-                PParty = new CParty(partyid);
+                switch (partyReloadAssemblyPlan.actions[index])
+                {
+                    case partyreloadassemblyhelpers::Action::CreateParty:
+                        PParty = new CParty(partyid);
+                        break;
+                    case partyreloadassemblyhelpers::Action::PushMember:
+                        PParty->PushMember(PChar);
+                        break;
+                }
             }
-
-            PParty->PushMember(PChar);
         }
 
         CBattleEntity* PSyncTarget = PChar->PParty->GetSyncTarget();
