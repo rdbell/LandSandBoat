@@ -109,6 +109,7 @@
 #include "equip_item_finalize_capacity.h"
 #include "equip_item_success_capacity.h"
 #include "equip_armor_direct_restrictions_capacity.h"
+#include "equip_armor_reverse_restrictions_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
@@ -2474,7 +2475,11 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
         for (uint8 i = 0; i < SLOT_BACK; ++i)
         {
             CItemEquipment* armor = PChar->getEquip((SLOTTYPE)i);
-            if (armor && armor->isType(ITEM_EQUIPMENT) && armor->getRemoveSlotId() & PItem->getEquipSlotId())
+            if (equiparmorreversehelpers::ShouldUnequip({
+                    .isEquipment       = armor && armor->isType(ITEM_EQUIPMENT),
+                    .removeSlots       = static_cast<std::uint16_t>(armor != nullptr ? armor->getRemoveSlotId() : 0),
+                    .incomingEquipSlots = PItem->getEquipSlotId(),
+                }))
             {
                 UnequipItem(PChar, i, Recalculate::No);
             }

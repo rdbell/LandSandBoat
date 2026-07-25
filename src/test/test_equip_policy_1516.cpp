@@ -3,6 +3,7 @@
 #include "map/equip_item_finalize_capacity.h"
 #include "map/equip_item_success_capacity.h"
 #include "map/equip_armor_direct_restrictions_capacity.h"
+#include "map/equip_armor_reverse_restrictions_capacity.h"
 #include "map/equip_policy_capacity.h"
 
 #include <iostream>
@@ -220,6 +221,25 @@ auto Check() -> bool
         directRestrictions.actions[3] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::Unequip, .slot = 8 } ||
         directRestrictions.actions[4] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::SetArmorLook, .slot = 8 } ||
         directRestrictions.actions[5] != equiparmordirecthelpers::Action{ .kind = equiparmordirecthelpers::ActionKind::Unequip, .slot = 15 })
+    {
+        return false;
+    }
+
+    if (equiparmorreversehelpers::ShouldUnequip({
+            .isEquipment        = true,
+            .removeSlots        = static_cast<std::uint16_t>(1u << 4),
+            .incomingEquipSlots = static_cast<std::uint16_t>(1u << 5),
+        }) ||
+        equiparmorreversehelpers::ShouldUnequip({
+            .isEquipment        = false,
+            .removeSlots        = static_cast<std::uint16_t>(1u << 5),
+            .incomingEquipSlots = static_cast<std::uint16_t>(1u << 5),
+        }) ||
+        !equiparmorreversehelpers::ShouldUnequip({
+            .isEquipment        = true,
+            .removeSlots        = static_cast<std::uint16_t>((1u << 1) | (1u << 5)),
+            .incomingEquipSlots = static_cast<std::uint16_t>(1u << 5),
+        }))
     {
         return false;
     }
