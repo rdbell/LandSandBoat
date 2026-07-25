@@ -742,6 +742,7 @@ auto runSkillchainEffect1537SelfTests() -> bool;
 auto runTrickAttack1538SelfTests() -> bool;
 auto runDrawIn1539SelfTests() -> bool;
 auto runEnspellDamageTails1540SelfTests() -> bool;
+auto runEnspellDamageTier6767SelfTests() -> bool;
 auto runWeatherGet1541SelfTests() -> bool;
 auto runEntityEquip1542SelfTests() -> bool;
 auto runWeatherMatches1543SelfTests() -> bool;
@@ -3120,6 +3121,7 @@ namespace
         ok = runTrickAttack1538SelfTests() && ok;
         ok = runDrawIn1539SelfTests() && ok;
         ok = runEnspellDamageTails1540SelfTests() && ok;
+        ok = runEnspellDamageTier6767SelfTests() && ok;
         ok = runWeatherGet1541SelfTests() && ok;
         ok = runEntityEquip1542SelfTests() && ok;
         ok = runWeatherMatches1543SelfTests() && ok;

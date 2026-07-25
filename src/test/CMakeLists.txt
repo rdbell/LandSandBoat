@@ -1391,6 +1391,8 @@ set(SOURCES
     test_draw_in_1539.cpp
     test_enspell_damage_tails_1540.h
     test_enspell_damage_tails_1540.cpp
+    test_enspell_damage_tier_6767.h
+    test_enspell_damage_tier_6767.cpp
     test_weather_get_1541.h
     test_weather_get_1541.cpp
     test_entity_equip_1542.h

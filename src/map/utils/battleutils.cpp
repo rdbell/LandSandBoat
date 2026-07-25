@@ -45,6 +45,7 @@
 #include "trick_attack_capacity.h"
 #include "draw_in_capacity.h"
 #include "enspell_damage_tails_capacity.h"
+#include "enspell_damage_tier_capacity.h"
 #include "weather_get_capacity.h"
 #include "entity_equip_capacity.h"
 #include "weather_matches_capacity.h"
@@ -578,47 +579,36 @@ int32 CalculateEnspellDamage(CBattleEntity* PAttacker, CBattleEntity* PDefender,
     }
     int32 bonus = enspelldamagetailshelpers::EnspellBonusFromExclude(totalMod, exclude);
 
-    // Tier 1 enspells have their damaged pre-calculated AT CAST TIME and is stored in Mod::ENSPELL_DMG
+    // Tier 1/2 base product dual-wired to enspelldamagetierhelpers (slice 6767 / 0804).
+    // Host residual: equip-exclude bonus, skill/merit reads, ENSPELL_DMG writeback.
     if (Tier == 1)
     {
-        damage      = PAttacker->getMod(Mod::ENSPELL_DMG) + bonus;
-        auto* PChar = dynamic_cast<CCharEntity*>(PAttacker);
+        // Cast-time base stored in Mod::ENSPELL_DMG; no mod mutation.
+        int32 merit = 0;
         if (PChar)
         {
-            damage += PChar->PMeritPoints->GetMeritValue(MERIT_ENSPELL_DAMAGE, PChar);
+            merit = PChar->PMeritPoints->GetMeritValue(MERIT_ENSPELL_DAMAGE, PChar);
         }
+        damage = enspelldamagetierhelpers::CalculateEnspellTier1Damage(
+            PAttacker->getMod(Mod::ENSPELL_DMG), bonus, merit);
     }
     else if (Tier == 2)
     {
-        // Tier 2 enspells calculate the damage on each hit and increment the potency in Mod::ENSPELL_DMG per hit
-        uint16 skill = PAttacker->GetSkill(SKILL_ENHANCING_MAGIC);
-        uint16 cap   = 3 + 6 * skill / 100;
-        if (skill > 200)
-        {
-            cap = 5 + 5 * skill / 100;
-        }
-        cap *= 2;
-
-        if (PAttacker->getMod(Mod::ENSPELL_DMG) > cap)
-        {
-            PAttacker->setModifier(Mod::ENSPELL_DMG, cap);
-            damage = cap;
-        }
-        else if (PAttacker->getMod(Mod::ENSPELL_DMG) == cap)
-        {
-            damage = cap;
-        }
-        else if (PAttacker->getMod(Mod::ENSPELL_DMG) < cap)
-        {
-            PAttacker->addModifier(Mod::ENSPELL_DMG, 1);
-            damage = PAttacker->getMod(Mod::ENSPELL_DMG) - 1;
-        }
-        damage += bonus;
-
-        auto* PChar = dynamic_cast<CCharEntity*>(PAttacker);
+        // Per-hit ramp of ENSPELL_DMG potency; pure product returns new mod value.
+        const uint16 skill       = PAttacker->GetSkill(SKILL_ENHANCING_MAGIC);
+        const int32  enspellDMG  = PAttacker->getMod(Mod::ENSPELL_DMG);
+        int32        merit       = 0;
         if (PChar)
         {
-            damage += PChar->PMeritPoints->GetMeritValue(MERIT_ENSPELL_DAMAGE, PChar) * 2;
+            merit = PChar->PMeritPoints->GetMeritValue(MERIT_ENSPELL_DAMAGE, PChar);
+        }
+
+        const auto res = enspelldamagetierhelpers::CalculateEnspellTier2Damage(
+            enspellDMG, skill, bonus, merit);
+        damage = res.damage;
+        if (res.newEnspellDMG != enspellDMG)
+        {
+            PAttacker->setModifier(Mod::ENSPELL_DMG, res.newEnspellDMG);
         }
     }
     else if (Tier == 3) // enlight or endark
