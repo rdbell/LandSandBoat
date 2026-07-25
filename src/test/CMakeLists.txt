@@ -1415,6 +1415,8 @@ set(SOURCES
     test_char_var_fetch_6881.cpp
     test_char_var_persist_6882.h
     test_char_var_persist_6882.cpp
+    test_char_var_set_dispatch_6883.h
+    test_char_var_set_dispatch_6883.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h

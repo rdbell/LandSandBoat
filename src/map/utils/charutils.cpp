@@ -84,6 +84,7 @@
 #include "char_unity_leader_capacity.h"
 #include "char_var_fetch.h"
 #include "char_var_persist.h"
+#include "char_var_set_dispatch.h"
 #include "char_zone_exit_transition.h"
 #include "char_zone_out_transition.h"
 #include "conquest_system.h"
@@ -7602,20 +7603,23 @@ int32 GetCharVar(CCharEntity* PChar, const std::string& var)
 
 void SetCharVar(uint32 charId, const std::string& var, int32 value, uint32 expiry /* = 0 */)
 {
-    if (auto player = zoneutils::GetChar(charId))
+    const auto player = zoneutils::GetChar(charId);
+
+    switch (charvarsetdispatchhelpers::ActionFor(player != nullptr))
     {
-        player->setCharVar(var, value, expiry);
-        return;
+        case charvarsetdispatchhelpers::Action::UpdateLocalCache:
+            player->setCharVar(var, value, expiry);
+            break;
+        case charvarsetdispatchhelpers::Action::PersistAndBroadcast:
+            PersistCharVar(charId, var, value, expiry);
+            message::send(ipc::CharVarUpdate{
+                .charId  = charId,
+                .value   = value,
+                .expiry  = expiry,
+                .varName = var,
+            });
+            break;
     }
-
-    PersistCharVar(charId, var, value, expiry);
-
-    message::send(ipc::CharVarUpdate{
-        .charId  = charId,
-        .value   = value,
-        .expiry  = expiry,
-        .varName = var,
-    });
 }
 
 void SetCharVar(CCharEntity* PChar, const std::string& var, int32 value, uint32 expiry /* = 0 */)
