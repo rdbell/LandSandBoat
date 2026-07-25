@@ -6,6 +6,7 @@
 #include "map/equip_armor_ammo_look_capacity.h"
 #include "map/equip_armor_main_sub_capacity.h"
 #include "map/equip_armor_ranged_compatibility_capacity.h"
+#include "map/equip_armor_ranged_look_capacity.h"
 #include "map/equip_armor_removed_look_capacity.h"
 #include "map/equip_armor_reverse_restrictions_capacity.h"
 #include "map/equip_armor_sub_capacity.h"
@@ -320,6 +321,11 @@ auto Check() -> bool
     if (!ammoLookPlan.setRangedLook || ammoLookPlan.modelID != 501 ||
         noAmmoLookPlan.setRangedLook || noAmmoLookPlan.modelID != 0 ||
         nonWeaponAmmoLookPlan.setRangedLook || nonWeaponAmmoLookPlan.modelID != 0)
+    {
+        return false;
+    }
+    const auto rangedLookPlan = equiparmorrangedlookhelpers::PlanFor(504);
+    if (!rangedLookPlan.setRangedLook || rangedLookPlan.modelID != 504)
     {
         return false;
     }

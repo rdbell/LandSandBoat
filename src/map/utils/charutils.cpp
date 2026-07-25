@@ -114,6 +114,7 @@
 #include "equip_armor_ammo_look_capacity.h"
 #include "equip_armor_main_sub_capacity.h"
 #include "equip_armor_ranged_compatibility_capacity.h"
+#include "equip_armor_ranged_look_capacity.h"
 #include "equip_armor_removed_look_capacity.h"
 #include "equip_armor_reverse_restrictions_capacity.h"
 #include "equip_armor_sub_capacity.h"
@@ -2629,6 +2630,7 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
             break;
             case SLOT_RANGED:
             {
+                const auto rangedLookPlan = equiparmorrangedlookhelpers::PlanFor(static_cast<uint16>(PItem->getModelId()));
                 if (PItem->isType(ITEM_WEAPON))
                 {
                     CItemWeapon* weapon = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO));
@@ -2646,7 +2648,10 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                     }
                     PChar->m_Weapons[SLOT_RANGED] = PItem;
                 }
-                PChar->look.ranged = PItem->getModelId();
+                if (rangedLookPlan.setRangedLook)
+                {
+                    PChar->look.ranged = rangedLookPlan.modelID;
+                }
                 UpdateWeaponStyle(PChar, equipSlotID, PItem);
             }
             break;
