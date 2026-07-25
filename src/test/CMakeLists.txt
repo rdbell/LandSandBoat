@@ -1507,6 +1507,8 @@ set(SOURCES
     test_time_server_vana_tick_6930.cpp
     test_time_server_tick_6931.h
     test_time_server_tick_6931.cpp
+    test_time_server_vana_totd_6932.h
+    test_time_server_vana_totd_6932.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h

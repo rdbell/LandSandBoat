@@ -24,6 +24,7 @@
 #include "time_server_tick.h"
 #include "time_server_tick_tail.h"
 #include "time_server_vana_tick.h"
+#include "time_server_vana_totd.h"
 
 #include "common/logging.h"
 #include "common/vana_time.h"
@@ -69,7 +70,7 @@ auto time_server(Scheduler& scheduler, MapConfig config) -> Task<void>
 
     // Static variables for the next tick
     static auto nextVHourlyUpdate = std::chrono::ceil<xi::vanadiel_clock::hours>(vanaTime);
-    static auto prevTotd          = vanaTotd;
+    static auto totdTracker       = timeservervanatotdhelpers::Tracker{ vanaTotd };
 
     auto       runEarth  = false;
     auto       runVana   = false;
@@ -160,7 +161,7 @@ auto time_server(Scheduler& scheduler, MapConfig config) -> Task<void>
 
     if (runVana)
     {
-        const auto vanaTickPlan = timeservervanatickhelpers::MakePlan(vanaHour, vanaTotd != prevTotd);
+        const auto vanaTickPlan = timeservervanatickhelpers::MakePlan(vanaHour, timeservervanatotdhelpers::HasChanged(totdTracker, vanaTotd));
         for (std::size_t index = 0; index < vanaTickPlan.count; ++index)
         {
             switch (vanaTickPlan.actions[index])
@@ -219,7 +220,7 @@ auto time_server(Scheduler& scheduler, MapConfig config) -> Task<void>
                                     PChar->PLatentEffectContainer->CheckLatentsJobLevel(); // Eerie CLoak +1 latent is nighttime + level multiple of 13
                                 });
                         });
-                    prevTotd = vanaTotd;
+                    timeservervanatotdhelpers::MarkHandled(totdTracker, vanaTotd);
                     break;
                 }
             }
