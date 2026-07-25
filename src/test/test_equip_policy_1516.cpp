@@ -7,7 +7,7 @@
 #include "map/equip_armor_main_look_capacity.h"
 #include "map/equip_armor_main_attack_timer_capacity.h"
 #include "map/equip_armor_main_sub_capacity.h"
-#include "map/equip_armor_main_weapon_state_capacity.h"
+#include "map/equip_armor_weapon_slot_state_capacity.h"
 #include "map/equip_armor_ranged_compatibility_capacity.h"
 #include "map/equip_armor_ranged_look_capacity.h"
 #include "map/equip_armor_removed_look_capacity.h"
@@ -494,8 +494,15 @@ auto Check() -> bool
         return false;
     }
 
-    if (!equiparmormainweaponstatehelpers::PlanFor(true).setMainWeapon ||
-        equiparmormainweaponstatehelpers::PlanFor(false).setMainWeapon)
+    const auto mainWeaponState = equiparmorweaponslotstatehelpers::PlanFor(0, true);
+    const auto rangedWeaponState = equiparmorweaponslotstatehelpers::PlanFor(2, true);
+    const auto ammoWeaponState = equiparmorweaponslotstatehelpers::PlanFor(3, true);
+    const auto noSubWeaponState = equiparmorweaponslotstatehelpers::PlanFor(1, true);
+    const auto noWeaponState = equiparmorweaponslotstatehelpers::PlanFor(2, false);
+    if (!mainWeaponState.setWeapon || mainWeaponState.slot != 0 ||
+        !rangedWeaponState.setWeapon || rangedWeaponState.slot != 2 ||
+        !ammoWeaponState.setWeapon || ammoWeaponState.slot != 3 ||
+        noSubWeaponState.setWeapon || noWeaponState.setWeapon)
     {
         return false;
     }

@@ -115,7 +115,7 @@
 #include "equip_armor_main_look_capacity.h"
 #include "equip_armor_main_attack_timer_capacity.h"
 #include "equip_armor_main_sub_capacity.h"
-#include "equip_armor_main_weapon_state_capacity.h"
+#include "equip_armor_weapon_slot_state_capacity.h"
 #include "equip_armor_ranged_compatibility_capacity.h"
 #include "equip_armor_ranged_look_capacity.h"
 #include "equip_armor_removed_look_capacity.h"
@@ -2596,7 +2596,7 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
             case SLOT_MAIN:
             {
                 const auto mainLookPlan = equiparmormainlookhelpers::PlanFor(static_cast<uint16>(PItem->getModelId()));
-                const auto mainWeaponStatePlan = equiparmormainweaponstatehelpers::PlanFor(PItem->isType(ITEM_WEAPON));
+                const auto mainWeaponStatePlan = equiparmorweaponslotstatehelpers::PlanFor(SLOT_MAIN, PItem->isType(ITEM_WEAPON));
                 if (PItem->isType(ITEM_WEAPON))
                 {
                     switch (static_cast<CItemWeapon*>(PItem)->getSkillType())
@@ -2639,9 +2639,9 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                         state->ResetAttackTimer();
                     }
                 }
-                if (mainWeaponStatePlan.setMainWeapon)
+                if (mainWeaponStatePlan.setWeapon)
                 {
-                    PChar->m_Weapons[SLOT_MAIN] = PItem;
+                        PChar->m_Weapons[mainWeaponStatePlan.slot] = PItem;
                 }
                 if (mainLookPlan.setMainLook)
                 {
@@ -2743,6 +2743,7 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
             case SLOT_RANGED:
             {
                 const auto rangedLookPlan = equiparmorrangedlookhelpers::PlanFor(static_cast<uint16>(PItem->getModelId()));
+                const auto rangedWeaponStatePlan = equiparmorweaponslotstatehelpers::PlanFor(SLOT_RANGED, PItem->isType(ITEM_WEAPON));
                 if (PItem->isType(ITEM_WEAPON))
                 {
                     CItemWeapon* weapon = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO));
@@ -2758,7 +2759,10 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                         // If the subtype of the ranged weapon is not compatible with the ammo, unequip it, except for Archery where Longbow and Shortbow both use arrows
                         UnequipItem(PChar, SLOT_AMMO, Recalculate::No);
                     }
-                    PChar->m_Weapons[SLOT_RANGED] = PItem;
+                    if (rangedWeaponStatePlan.setWeapon)
+                    {
+                        PChar->m_Weapons[rangedWeaponStatePlan.slot] = PItem;
+                    }
                 }
                 if (rangedLookPlan.setRangedLook)
                 {
@@ -2769,6 +2773,7 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
             break;
             case SLOT_AMMO:
             {
+                const auto ammoWeaponStatePlan = equiparmorweaponslotstatehelpers::PlanFor(SLOT_AMMO, PItem->isType(ITEM_WEAPON));
                 if (PItem->isType(ITEM_WEAPON))
                 {
                     CItemWeapon* weapon = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED));
@@ -2793,7 +2798,10 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                     {
                         PChar->look.ranged = ammoLookPlan.modelID;
                     }
-                    PChar->m_Weapons[SLOT_AMMO] = PItem;
+                    if (ammoWeaponStatePlan.setWeapon)
+                    {
+                        PChar->m_Weapons[ammoWeaponStatePlan.slot] = PItem;
+                    }
                     UpdateWeaponStyle(PChar, equipSlotID, PItem);
                 }
             }
