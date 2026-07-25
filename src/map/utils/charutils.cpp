@@ -109,6 +109,7 @@
 #include "ability_table_capacity.h"
 #include "armor_style_update_capacity.h"
 #include "pet_ability_table_capacity.h"
+#include "summoner_pet_ability_roster_capacity.h"
 #include "keyitem_spell_capacity.h"
 #include "equip_item_finalize_capacity.h"
 #include "equip_item_success_capacity.h"
@@ -3827,47 +3828,22 @@ void BuildingCharPetAbilityTable(CCharEntity* PChar, CPetEntity* PPet, uint32 Pe
     if (petabilitytablehelpers::IsSummonerJob(static_cast<uint8>(PChar->GetMJob()), static_cast<uint8>(PChar->GetSJob())))
     {
         std::vector<CAbility*> AbilitiesList = ability::GetAbilities(JOB_SMN);
-
+        summonerpetabilityrosterhelpers::Facts rosterFacts{
+            .isSummoner = true,
+            .petLevel   = PPet->GetMLevel(),
+            .petID      = PetID,
+        };
         for (auto PAbility : AbilitiesList)
         {
-            if (petabilitytablehelpers::ShouldConsiderSMNPetAbility(PPet->GetMLevel(), PAbility->getLevel(), PetID, CheckAbilityAddtype(PChar, PAbility)))
-            {
-                if (PetID == PETID_CARBUNCLE)
-                {
-                    if (petabilitytablehelpers::IsCarbuncleAbility(PAbility->getID()))
-                    {
-                        addPetAbility(PChar, petabilitytablehelpers::CarbunclePetAbilityBit(PAbility->getID()));
-                    }
-                }
-                else if (petabilitytablehelpers::IsElementalAvatarPet(PetID))
-                {
-                    if (petabilitytablehelpers::ElementalAvatarAbilityInBand(PAbility->getID(), PetID))
-                    {
-                        addPetAbility(PChar, petabilitytablehelpers::AvatarPetAbilityBit(PAbility->getID()));
-                    }
-                }
-                else if (PetID == PETID_DIABOLOS)
-                {
-                    if (petabilitytablehelpers::IsDiabolosAbility(PAbility->getID()))
-                    {
-                        addPetAbility(PChar, petabilitytablehelpers::AvatarPetAbilityBit(PAbility->getID()));
-                    }
-                }
-                else if (PetID == PETID_CAIT_SITH)
-                {
-                    if (petabilitytablehelpers::IsCaitSithAbility(PAbility->getID()))
-                    {
-                        addPetAbility(PChar, petabilitytablehelpers::AvatarPetAbilityBit(PAbility->getID()));
-                    }
-                }
-                else if (PetID == PETID_SIREN)
-                {
-                    if (petabilitytablehelpers::IsSirenAbility(PAbility->getID()))
-                    {
-                        addPetAbility(PChar, petabilitytablehelpers::SirenPetAbilityBit(PAbility->getID()));
-                    }
-                }
-            }
+            rosterFacts.abilities.push_back({
+                .id        = PAbility->getID(),
+                .level     = PAbility->getLevel(),
+                .addTypeOK = CheckAbilityAddtype(PChar, PAbility),
+            });
+        }
+        for (const auto bit : summonerpetabilityrosterhelpers::PlanFor(rosterFacts).addPetAbilityBits)
+        {
+            addPetAbility(PChar, bit);
         }
     }
     if (PPet->getPetType() == PET_TYPE::JUG_PET)

@@ -36,6 +36,7 @@
 #include "map/load_job_change_gear_capacity.h"
 #include "map/load_job_change_gear_restore_capacity.h"
 #include "map/remove_all_equipment_capacity.h"
+#include "map/summoner_pet_ability_roster_capacity.h"
 #include "map/weapon_skill_unlock_modifiers_capacity.h"
 #include "map/weapon_skill_roster_build_capacity.h"
 
@@ -583,6 +584,33 @@ auto Check() -> bool
     });
     if (rosterPlan.addWeaponSkillIDs != std::vector<uint16_t>{ 10, 11, 21, 22 } ||
         noRangedRosterPlan.addWeaponSkillIDs != std::vector<uint16_t>{ 10 })
+    {
+        return false;
+    }
+
+    const auto carbunclePetAbilityRoster = summonerpetabilityrosterhelpers::PlanFor({
+        .isSummoner = true,
+        .petLevel   = 50,
+        .petID      = petabilitytablehelpers::PetIDCarbuncle,
+        .abilities  = {
+            { .id = petabilitytablehelpers::AbilitySoothingRuby, .level = 10, .addTypeOK = true },
+            { .id = petabilitytablehelpers::AbilityPacifyingRuby, .level = 20, .addTypeOK = true },
+            { .id = petabilitytablehelpers::AbilitySoothingRuby, .level = 60, .addTypeOK = true },
+            { .id = petabilitytablehelpers::AbilitySoothingRuby, .level = 10 },
+        },
+    });
+    const auto sirenPetAbilityRoster = summonerpetabilityrosterhelpers::PlanFor({
+        .isSummoner = true,
+        .petLevel   = 99,
+        .petID      = petabilitytablehelpers::PetIDSiren,
+        .abilities  = { { .id = petabilitytablehelpers::AbilityClarsachCall, .addTypeOK = true } },
+    });
+    const auto nonSummonerPetAbilityRoster = summonerpetabilityrosterhelpers::PlanFor({
+        .petID = petabilitytablehelpers::PetIDCarbuncle,
+    });
+    if (carbunclePetAbilityRoster.addPetAbilityBits != std::vector<uint16_t>{ 8, 261 } ||
+        sirenPetAbilityRoster.addPetAbilityBits != std::vector<uint16_t>{ 448 } ||
+        !nonSummonerPetAbilityRoster.addPetAbilityBits.empty())
     {
         return false;
     }
