@@ -68,6 +68,7 @@
 #include "char_invisible_removal.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
+#include "char_party_reload_missing.h"
 #include "char_party_trust_disband.h"
 #include "char_points_capacity.h"
 #include "char_playtime_save_plan.h"
@@ -7119,11 +7120,19 @@ void ReloadParty(CCharEntity* PChar)
     }
     else
     {
-        if (PChar->PParty)
+        const auto plan = partyreloadmissinghelpers::MakePlan(PChar->PParty != nullptr);
+        for (std::uint8_t index = 0; index < plan.count; ++index)
         {
-            PChar->PParty->DelMember(PChar);
+            switch (plan.actions[index])
+            {
+                case partyreloadmissinghelpers::Action::RemoveMember:
+                    PChar->PParty->DelMember(PChar);
+                    break;
+                case partyreloadmissinghelpers::Action::DecrementReload:
+                    PChar->ReloadPartyDec();
+                    break;
+            }
         }
-        PChar->ReloadPartyDec();
     }
 
     // Attempt to disband party if the last trust was just released
