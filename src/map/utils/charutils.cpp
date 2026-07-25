@@ -83,6 +83,7 @@
 #include "char_temp_item_clear.h"
 #include "char_unity_leader_capacity.h"
 #include "char_var_clear_all.h"
+#include "char_var_entity_ops.h"
 #include "char_var_fetch.h"
 #include "char_var_increment.h"
 #include "char_var_persist.h"
@@ -7595,12 +7596,15 @@ bool AddWeaponSkillPoints(CCharEntity* PChar, SLOTTYPE slotid, int wspoints)
 
 int32 GetCharVar(CCharEntity* PChar, const std::string& var)
 {
-    if (PChar == nullptr)
+    switch (charvarentityopshelpers::ReadActionFor(PChar != nullptr))
     {
-        return 0;
+        case charvarentityopshelpers::ReadAction::ReturnZero:
+            return 0;
+        case charvarentityopshelpers::ReadAction::ReadLocalCache:
+            return PChar->getCharVar(var);
     }
 
-    return PChar->getCharVar(var);
+    return 0;
 }
 
 void SetCharVar(uint32 charId, const std::string& var, int32 value, uint32 expiry /* = 0 */)
@@ -7626,22 +7630,26 @@ void SetCharVar(uint32 charId, const std::string& var, int32 value, uint32 expir
 
 void SetCharVar(CCharEntity* PChar, const std::string& var, int32 value, uint32 expiry /* = 0 */)
 {
-    if (PChar == nullptr)
+    switch (charvarentityopshelpers::SetActionFor(PChar != nullptr))
     {
-        return;
+        case charvarentityopshelpers::SetAction::Noop:
+            return;
+        case charvarentityopshelpers::SetAction::UpdateLocalCache:
+            return PChar->setCharVar(var, value, expiry);
     }
-
-    return PChar->setCharVar(var, value, expiry);
 }
 
 int32 ClearCharVarsWithPrefix(CCharEntity* PChar, const std::string& prefix)
 {
-    if (PChar == nullptr)
+    switch (charvarentityopshelpers::ClearPrefixActionFor(PChar != nullptr))
     {
-        return 0;
+        case charvarentityopshelpers::ClearPrefixAction::ReturnZero:
+            return 0;
+        case charvarentityopshelpers::ClearPrefixAction::ClearLocalCache:
+            PChar->clearCharVarsWithPrefix(prefix);
+            return 0;
     }
 
-    PChar->clearCharVarsWithPrefix(prefix);
     return 0;
 }
 

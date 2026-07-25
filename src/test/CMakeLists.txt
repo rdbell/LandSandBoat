@@ -1421,6 +1421,8 @@ set(SOURCES
     test_char_var_clear_all_6884.cpp
     test_char_var_increment_6885.h
     test_char_var_increment_6885.cpp
+    test_char_var_entity_ops_6886.h
+    test_char_var_entity_ops_6886.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h
