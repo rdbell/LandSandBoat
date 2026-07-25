@@ -68,6 +68,7 @@
 #include "char_invisible_removal.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
+#include "char_party_alliance_attach.h"
 #include "char_party_alliance_reconcile.h"
 #include "char_party_level_sync_restore.h"
 #include "char_party_reload_id_sync.h"
@@ -7125,13 +7126,22 @@ void ReloadParty(CCharEntity* PChar)
                     });
                 // clang-format on
 
-                // create new alliance if it doesn't exist on this server already
-                if (!PAlliance)
+                const auto allianceAttachPlan = partyallianceattachhelpers::MakePlan(
+                    allianceid != 0,
+                    hasLocalAlliance,
+                    PAlliance != nullptr);
+                for (std::uint8_t index = 0; index < allianceAttachPlan.count; ++index)
                 {
-                    PAlliance = new CAlliance(allianceid);
+                    switch (allianceAttachPlan.actions[index])
+                    {
+                        case partyallianceattachhelpers::Action::CreateAlliance:
+                            PAlliance = new CAlliance(allianceid);
+                            break;
+                        case partyallianceattachhelpers::Action::AttachParty:
+                            PAlliance->pushParty(PChar->PParty, partynumber);
+                            break;
+                    }
                 }
-
-                PAlliance->pushParty(PChar->PParty, partynumber);
             }
         }
         else if (alliancePlan.action == partyalliancereconcilehelpers::Action::DetachParty)

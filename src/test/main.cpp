@@ -750,6 +750,7 @@ auto runPartyReloadMissing6875SelfTests() -> bool;
 auto runPartyReloadIDSync6876SelfTests() -> bool;
 auto runPartyLevelSyncRestore6877SelfTests() -> bool;
 auto runPartyAllianceReconcile6878SelfTests() -> bool;
+auto runPartyAllianceAttach6879SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3163,6 +3164,7 @@ namespace
         ok = runPartyReloadIDSync6876SelfTests() && ok;
         ok = runPartyLevelSyncRestore6877SelfTests() && ok;
         ok = runPartyAllianceReconcile6878SelfTests() && ok;
+        ok = runPartyAllianceAttach6879SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
