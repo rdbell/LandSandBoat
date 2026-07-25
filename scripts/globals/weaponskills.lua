@@ -340,98 +340,164 @@ xi.weaponskills.guardedPDIF = function(pdif)
     return math.max(pdif - 1.0, 0)
 end
 
+-----------------------------------
+-- Pure: getSingleHitDamage outcome product (slice 6766)
+-- Parity: internal/wsformula SingleHitOutcome
+-----------------------------------
+-- params: missed, parried, shadowAbsorbed, critVaries, critChance, critRate,
+--   forcedFirstCrit, mightyStrikes, dmg, consumeMana, ftp, pdif, blocked,
+--   blockReduction, hitsLanded, guardedHits, criticalHit, isPhysical, isGuarded
+-- returns: hitDamage, hitsLanded, guardedHits, pdif, criticalHit, shadowsDelta
+xi.weaponskills.singleHitOutcomeFromParams = function(params)
+    params = params or {}
+    local hitsLanded  = params.hitsLanded or 0
+    local guardedHits = params.guardedHits or 0
+    local pdif        = params.pdif or 0
+    local criticalHit = params.criticalHit or false
+
+    if params.missed or params.parried then
+        return 0, hitsLanded, guardedHits, pdif, criticalHit, 0
+    end
+
+    if params.shadowAbsorbed then
+        return 0, hitsLanded, guardedHits, pdif, criticalHit, 1
+    end
+
+    local wasCritical = xi.weaponskills.singleHitIsCritical(
+        not not params.critVaries,
+        params.critChance or 0,
+        params.critRate or 0,
+        params.forcedFirstCrit,
+        params.mightyStrikes
+    )
+
+    local hitDamage = xi.weaponskills.singleHitDamage(
+        params.dmg or 0,
+        params.consumeMana or 0,
+        params.ftp or 0,
+        pdif,
+        params.blocked,
+        params.blockReduction or 0
+    )
+
+    local success = xi.weaponskills.planSingleHitSuccess(
+        hitsLanded,
+        guardedHits,
+        pdif,
+        criticalHit,
+        wasCritical,
+        params.isPhysical,
+        params.isGuarded
+    )
+
+    return hitDamage, success.hitsLanded, success.guardedHits, success.pdif, success.criticalHit, 0
+end
+
+-- Host residual: miss/parry/shadow rolls, PDIF entity assembly, block/guard hosts.
+-- Pure product: singleHitOutcomeFromParams (slice 6766).
 local function getSingleHitDamage(attacker, target, dmg, ftp, wsParams, calcParams)
-    local criticalHit          = false
-    local hitDamage            = 0
     local atkMultiplier        = xi.weaponskills.fTP(calcParams.tpUsed, wsParams.atkVaries)
     local ignoreDefMultiplier  = xi.weaponskills.fTP(calcParams.tpUsed, wsParams.ignoredDefense)
     local applyLevelCorrection = xi.data.levelCorrection.isLevelCorrectedZone(attacker)
     local ignoresDefense       = xi.weaponskills.ignoresDefense(wsParams.ignoredDefense ~= nil)
     local isPhysical           = xi.weaponskills.attackTypeIsPhysical(calcParams.attackType)
 
-    -- local pdif = 0 Reminder for Future Implementation!
-
     -- priority order of checks
     -- evade > parry > shadow/blink > guard/block
 
-    -- check evasion
     local missChance = math.random()
-    if xi.weaponskills.singleHitMisses(missChance, calcParams.hitRate, calcParams.guaranteedHit, calcParams.mustMiss) then
-        -- miss logic
-        return hitDamage, calcParams
-    end
+    local missed = xi.weaponskills.singleHitMisses(
+        missChance, calcParams.hitRate, calcParams.guaranteedHit, calcParams.mustMiss)
 
-    -- check parry
+    local parried = false
     if
+        not missed and
         xi.weaponskills.singleHitMayParry(isPhysical, calcParams.guaranteedHit) and
         xi.combat.physical.isParried(target, attacker)
     then
-        -- parried logic
-        return hitDamage, calcParams
+        parried = true
     end
 
-    -- check shadows
+    local shadowAbsorbed = false
     if
+        not missed and
+        not parried and
         xi.weaponskills.singleHitMayShadowAbsorb(calcParams.guaranteedHit, wsParams.ignoreShadows) and
         shadowAbsorb(target)
     then
-        -- shadow absorb logic
-        calcParams.shadowsAbsorbed = calcParams.shadowsAbsorbed + 1
-        return hitDamage, calcParams
+        shadowAbsorbed = true
     end
 
-    local critChance = math.random() -- See if we land a critical hit
-    -- critVaries is a truthy table when present (same as `wsParams.critVaries and ...`).
-    criticalHit = xi.weaponskills.singleHitIsCritical(
-        not not wsParams.critVaries,
-        critChance,
-        calcParams.critRate,
-        calcParams.forcedFirstCrit,
-        calcParams.mightyStrikesApplicable
-    )
-
-    if calcParams.attackType == xi.attackType.PHYSICAL then
-        calcParams.pdif = xi.combat.physical.calculateMeleePDIF(attacker, target, calcParams.attackInfo.weaponType, atkMultiplier, criticalHit, applyLevelCorrection, ignoresDefense, ignoreDefMultiplier, true, calcParams.attackInfo.slot, false)
-    else
-        calcParams.pdif = xi.combat.physical.calculateRangedPDIF(attacker, target, calcParams.skillType, atkMultiplier, criticalHit, applyLevelCorrection, ignoresDefense, ignoreDefMultiplier, true, 0)
-    end
-
-    local consumeMana = xi.combat.damage.consumeManaAddition(attacker)
-    local blocked = xi.combat.physical.isBlocked(target, attacker)
+    local critChance = 0
+    local wasCritical = false
+    local blocked = false
     local blockReduction = 0
-    if blocked then
-        -- Reduction is computed from the pre-block product (same as upstream
-        -- getDamageReductionForBlock(target, attacker, hitDamage) after the product).
-        -- Weaponskill path does not floor before the block-reduction host.
-        blockReduction = xi.combat.physical.getDamageReductionForBlock(
-            target,
-            attacker,
-            xi.weaponskills.singleHitBlockReductionInput(dmg, consumeMana, ftp, calcParams.pdif)
+    local consumeMana = 0
+    local isGuarded = false
+
+    if not missed and not parried and not shadowAbsorbed then
+        critChance = math.random()
+        wasCritical = xi.weaponskills.singleHitIsCritical(
+            not not wsParams.critVaries,
+            critChance,
+            calcParams.critRate,
+            calcParams.forcedFirstCrit,
+            calcParams.mightyStrikesApplicable
         )
+
+        if calcParams.attackType == xi.attackType.PHYSICAL then
+            calcParams.pdif = xi.combat.physical.calculateMeleePDIF(
+                attacker, target, calcParams.attackInfo.weaponType, atkMultiplier,
+                wasCritical, applyLevelCorrection, ignoresDefense, ignoreDefMultiplier,
+                true, calcParams.attackInfo.slot, false)
+        else
+            calcParams.pdif = xi.combat.physical.calculateRangedPDIF(
+                attacker, target, calcParams.skillType, atkMultiplier, wasCritical,
+                applyLevelCorrection, ignoresDefense, ignoreDefMultiplier, true, 0)
+        end
+
+        consumeMana = xi.combat.damage.consumeManaAddition(attacker)
+        blocked = xi.combat.physical.isBlocked(target, attacker)
+        if blocked then
+            -- Weaponskill path does not floor before the block-reduction host.
+            blockReduction = xi.combat.physical.getDamageReductionForBlock(
+                target,
+                attacker,
+                xi.weaponskills.singleHitBlockReductionInput(dmg, consumeMana, ftp, calcParams.pdif)
+            )
+        end
+
+        isGuarded = xi.combat.physical.isGuarded(target, attacker)
     end
 
-    hitDamage = xi.weaponskills.singleHitDamage(
-        dmg,
-        consumeMana,
-        ftp,
-        calcParams.pdif,
-        blocked,
-        blockReduction
-    )
+    local hitDamage, hitsLanded, guardedHits, pdif, criticalHit, shadowsDelta =
+        xi.weaponskills.singleHitOutcomeFromParams({
+            missed          = missed,
+            parried         = parried,
+            shadowAbsorbed  = shadowAbsorbed,
+            critVaries      = not not wsParams.critVaries,
+            critChance      = critChance,
+            critRate        = calcParams.critRate,
+            forcedFirstCrit = calcParams.forcedFirstCrit,
+            mightyStrikes   = calcParams.mightyStrikesApplicable,
+            dmg             = dmg,
+            consumeMana     = consumeMana,
+            ftp             = ftp,
+            pdif            = calcParams.pdif or 0,
+            blocked         = blocked,
+            blockReduction  = blockReduction,
+            hitsLanded      = calcParams.hitsLanded,
+            guardedHits     = calcParams.guardedHits,
+            criticalHit     = calcParams.criticalHit,
+            isPhysical      = isPhysical,
+            isGuarded       = isGuarded,
+        })
 
-    local success = xi.weaponskills.planSingleHitSuccess(
-        calcParams.hitsLanded,
-        calcParams.guardedHits,
-        calcParams.pdif,
-        calcParams.criticalHit,
-        criticalHit,
-        isPhysical,
-        xi.combat.physical.isGuarded(target, attacker)
-    )
-    calcParams.hitsLanded  = success.hitsLanded
-    calcParams.guardedHits = success.guardedHits
-    calcParams.pdif        = success.pdif
-    calcParams.criticalHit = success.criticalHit
+    calcParams.hitsLanded      = hitsLanded
+    calcParams.guardedHits     = guardedHits
+    calcParams.pdif            = pdif
+    calcParams.criticalHit     = criticalHit
+    calcParams.shadowsAbsorbed = (calcParams.shadowsAbsorbed or 0) + shadowsDelta
 
     return hitDamage, calcParams
 end
