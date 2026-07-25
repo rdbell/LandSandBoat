@@ -1,10 +1,23 @@
 -----------------------------------
 -- Avatars Favor helper
+-- Dual-wired pure inject forms (slice 6725 / 0874):
+--   shouldAvatarsFavorBeApplied, lookupAvatarsFavor, scalingFromParams,
+--   clampPowerToSkillFromParams, tickPowerFromParams, preSOADebuffs
+-- Parity: internal/avatarsfavor
 -----------------------------------
 require('scripts/globals/pets')
 -----------------------------------
 xi = xi or {}
 xi.avatarsFavor = xi.avatarsFavor or {}
+
+-- Pins matching internal/avatarsfavor.
+xi.avatarsFavor.maxSkillRank  = 7
+xi.avatarsFavor.maxTickPower  = 11
+xi.avatarsFavor.overSkillCap  = 670
+xi.avatarsFavor.preSOADebuffMATT = 20
+xi.avatarsFavor.preSOADebuffATTP = 20
+xi.avatarsFavor.preSOADebuffACC  = 10
+xi.avatarsFavor.preSOADebuffDEFP = 10
 
 xi.avatarsFavor.skillLevels =
 {
@@ -87,13 +100,13 @@ local avatarsFavorEffect =
         effect = xi.effect.SIRENS_FAVOR
     },
 }
+
 -----------------------------------
 -- Given a :getPetID petID (Not a getMobID)
 -- Returns if Avatars Favor should be applied
--- This equates to is the pet not nil and should have avatars favor effect
--- Does not account for Siren
+-- Dual-wired to internal/avatarsfavor.ShouldApply
 -----------------------------------
-local shouldAvatarsFavorBeApplied = function(petId)
+xi.avatarsFavor.shouldAvatarsFavorBeApplied = function(petId)
     local shouldApply = false
 
     if petId and petId >= xi.petId.CARBUNCLE and petId <= xi.petId.DIABOLOS then
@@ -107,18 +120,112 @@ local shouldAvatarsFavorBeApplied = function(petId)
     return shouldApply
 end
 
+-- Pure catalog lookup (internal/avatarsfavor.Lookup).
+-- returns: { effect, scaling } or nil
+xi.avatarsFavor.lookupAvatarsFavor = function(petId)
+    local row = avatarsFavorEffect[petId]
+    if not row then
+        return nil
+    end
+
+    return {
+        effect  = row.effect,
+        scaling = row.scaling,
+    }
+end
+
+-- Pure scaling ladder index (internal/avatarsfavor.Scaling).
+-- params: petId, power (1-based favor rank)
+-- returns: subPower or nil
+xi.avatarsFavor.scalingFromParams = function(params)
+    params = params or {}
+    local row = avatarsFavorEffect[params.petId]
+    if not row then
+        return nil
+    end
+
+    local power = params.power or 0
+    if power < 1 or power > #row.scaling then
+        return nil
+    end
+
+    return row.scaling[power]
+end
+
+-- Pure skill-cap half of onEffectTick (internal/avatarsfavor.ClampPowerToSkill).
+-- params: power, summoningSkill
+xi.avatarsFavor.clampPowerToSkillFromParams = function(params)
+    params = params or {}
+    local power          = params.power or 0
+    local summoningSkill = params.summoningSkill or 0
+
+    for i = 1, xi.avatarsFavor.maxSkillRank do
+        if
+            summoningSkill <= xi.avatarsFavor.skillLevels[i] and
+            power > i
+        then
+            return i
+        elseif
+            summoningSkill > xi.avatarsFavor.overSkillCap and
+            power > xi.avatarsFavor.maxSkillRank
+        then
+            power = xi.avatarsFavor.maxSkillRank
+        end
+    end
+
+    return power
+end
+
+-- Pure onEffectTick power mutation (internal/avatarsfavor.TickPower).
+-- params: currentPower, summoningSkill, gearEnhance
+xi.avatarsFavor.tickPowerFromParams = function(params)
+    params = params or {}
+    local power = params.currentPower or 0
+
+    if power <= xi.avatarsFavor.maxTickPower then
+        power = power + 1
+    end
+
+    power = xi.avatarsFavor.clampPowerToSkillFromParams({
+        power          = power,
+        summoningSkill = params.summoningSkill or 0,
+    })
+
+    return power + (params.gearEnhance or 0)
+end
+
+-- Pre-SoA pet debuff magnitudes (internal/avatarsfavor.PreSOADebuffs).
+-- returns: matt, attp, acc, defp
+xi.avatarsFavor.preSOADebuffs = function()
+    return xi.avatarsFavor.preSOADebuffMATT,
+        xi.avatarsFavor.preSOADebuffATTP,
+        xi.avatarsFavor.preSOADebuffACC,
+        xi.avatarsFavor.preSOADebuffDEFP
+end
+
+-- Catalog size (11 avatars).
+xi.avatarsFavor.catalogSize = function()
+    local n = 0
+    for _ in pairs(avatarsFavorEffect) do
+        n = n + 1
+    end
+
+    return n
+end
+
 local removeAvatarsFavorDebuffsFromPet = function(target)
     local pet = target:getPet()
     if pet then
         local petId = pet:getPetID()
         if  -- Different pet states for in and out of retail / eras
-            shouldAvatarsFavorBeApplied(petId) and
+            xi.avatarsFavor.shouldAvatarsFavorBeApplied(petId) and
             xi.settings.main.ENABLE_SOA == 0
         then
-            pet:addMod(xi.mod.MATT, 20)
-            pet:addMod(xi.mod.ATTP, 20)
-            pet:addMod(xi.mod.ACC, 10)
-            pet:addMod(xi.mod.DEFP, 10)
+            local matt, attp, acc, defp = xi.avatarsFavor.preSOADebuffs()
+            pet:addMod(xi.mod.MATT, matt)
+            pet:addMod(xi.mod.ATTP, attp)
+            pet:addMod(xi.mod.ACC, acc)
+            pet:addMod(xi.mod.DEFP, defp)
         end
     end
 end
@@ -127,8 +234,11 @@ xi.avatarsFavor.applyAvatarsFavorAuraToPet = function(target, effect)
     local pet = target:getPet()
     if pet then
         local petId = pet:getPetID()
-        if shouldAvatarsFavorBeApplied(petId) then
-            local power = avatarsFavorEffect[petId].scaling[effect:getPower()]
+        if xi.avatarsFavor.shouldAvatarsFavorBeApplied(petId) then
+            local power = xi.avatarsFavor.scalingFromParams({
+                petId = petId,
+                power = effect:getPower(),
+            })
             local avatarEffect = avatarsFavorEffect[petId].effect
 
             --Useful debug message
@@ -143,7 +253,7 @@ xi.avatarsFavor.removeAvatarsFavorAuraFromPet = function(target)
     local pet = target:getPet()
     if pet then
         local petId = pet:getPetID()
-        if shouldAvatarsFavorBeApplied(petId) then
+        if xi.avatarsFavor.shouldAvatarsFavorBeApplied(petId) then
             if pet:hasStatusEffect(avatarsFavorEffect[petId].effect) then
                 pet:delStatusEffect(avatarsFavorEffect[petId].effect)
             end
@@ -158,13 +268,14 @@ xi.avatarsFavor.applyAvatarsFavorDebuffsToPet = function(target)
     if pet then
         local petId = pet:getPetID()
         if  -- Different pet states for in and out of retail / eras
-            shouldAvatarsFavorBeApplied(petId) and
+            xi.avatarsFavor.shouldAvatarsFavorBeApplied(petId) and
             xi.settings.main.ENABLE_SOA == 0
         then
-            pet:delMod(xi.mod.MATT, 20) -- Other than MATT most of these values are myth and guesses from multiple sources
-            pet:delMod(xi.mod.ATTP, 20)
-            pet:delMod(xi.mod.ACC, 10)
-            pet:delMod(xi.mod.DEFP, 10)
+            local matt, attp, acc, defp = xi.avatarsFavor.preSOADebuffs()
+            pet:delMod(xi.mod.MATT, matt) -- Other than MATT most of these values are myth and guesses from multiple sources
+            pet:delMod(xi.mod.ATTP, attp)
+            pet:delMod(xi.mod.ACC, acc)
+            pet:delMod(xi.mod.DEFP, defp)
         end
     end
 end
