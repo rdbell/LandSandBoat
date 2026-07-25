@@ -37,6 +37,7 @@
 #include "map/load_job_change_gear_restore_capacity.h"
 #include "map/remove_all_equipment_capacity.h"
 #include "map/weapon_skill_unlock_modifiers_capacity.h"
+#include "map/weapon_skill_roster_build_capacity.h"
 
 #include <array>
 #include <iostream>
@@ -565,6 +566,23 @@ auto Check() -> bool
     if (!mainOnlyUnlockModifier.useMainModifier || mainOnlyUnlockModifier.useRangedModifier ||
         !bothUnlockModifiers.useMainModifier || !bothUnlockModifiers.useRangedModifier ||
         noUnlockModifiers.useMainModifier || noUnlockModifiers.useRangedModifier)
+    {
+        return false;
+    }
+
+    const auto rosterPlan = weaponskillrosterbuildhelpers::PlanFor({
+        .melee = { { .id = 10, .canUse = true }, { .id = 11 }, { .id = 12 } },
+        .mainAddsWeaponSkill = 11,
+        .considerRanged = true,
+        .ranged = { { .id = 20 }, { .id = 21, .canUse = true }, { .id = 22 } },
+        .rangedAddsWeaponSkill = 22,
+    });
+    const auto noRangedRosterPlan = weaponskillrosterbuildhelpers::PlanFor({
+        .melee = { { .id = 10, .canUse = true } },
+        .ranged = { { .id = 20, .canUse = true } },
+    });
+    if (rosterPlan.addWeaponSkillIDs != std::vector<uint16_t>{ 10, 11, 21, 22 } ||
+        noRangedRosterPlan.addWeaponSkillIDs != std::vector<uint16_t>{ 10 })
     {
         return false;
     }

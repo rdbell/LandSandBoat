@@ -103,6 +103,7 @@
 #include "check_equipment_capacity.h"
 #include "capacity_award_capacity.h"
 #include "weapon_skill_roster_capacity.h"
+#include "weapon_skill_roster_build_capacity.h"
 #include "weapon_skill_unlock_modifiers_capacity.h"
 #include "weapon_style_update_capacity.h"
 #include "ability_table_capacity.h"
@@ -3779,28 +3780,31 @@ void BuildingCharWeaponSkills(CCharEntity* PChar)
     PItem       = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_MAIN));
     uint8 skill = weaponskillrosterhelpers::MeleeSkillTypeFromMain(PItem != nullptr, PItem ? PItem->getSkillType() : 0);
 
-    const auto& MeleeWeaponSkillList = battleutils::GetWeaponSkills(skill);
-    for (auto&& PSkill : MeleeWeaponSkillList)
+    weaponskillrosterbuildhelpers::Facts rosterFacts{
+        .mainAddsWeaponSkill = main_ws,
+        .rangedAddsWeaponSkill = range_ws,
+    };
+    const auto& meleeWeaponSkillList = battleutils::GetWeaponSkills(skill);
+    for (auto&& PSkill : meleeWeaponSkillList)
     {
-        if (weaponskillrosterhelpers::ShouldAddMeleeWeaponSkill(battleutils::CanUseWeaponskill(PChar, PSkill), PSkill->getID(), main_ws))
-        {
-            addWeaponSkill(PChar, PSkill->getID());
-        }
+        rosterFacts.melee.push_back({ .id = PSkill->getID(), .canUse = battleutils::CanUseWeaponskill(PChar, PSkill) });
     }
 
     // add in ranged ws
     PItem = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED));
-    if (PItem != nullptr && weaponskillrosterhelpers::ShouldConsiderRangedWeaponSkills(true, PItem->isType(ITEM_WEAPON), PItem->getSkillType()))
+    rosterFacts.considerRanged = PItem != nullptr && weaponskillrosterhelpers::ShouldConsiderRangedWeaponSkills(true, PItem->isType(ITEM_WEAPON), PItem->getSkillType());
+    if (rosterFacts.considerRanged)
     {
         skill                             = weaponskillrosterhelpers::RangedSkillTypeFromItem(true, PItem->getSkillType());
-        const auto& RangedWeaponSkillList = battleutils::GetWeaponSkills(skill);
-        for (auto&& PSkill : RangedWeaponSkillList)
+        const auto& rangedWeaponSkillList = battleutils::GetWeaponSkills(skill);
+        for (auto&& PSkill : rangedWeaponSkillList)
         {
-            if (weaponskillrosterhelpers::ShouldAddRangedWeaponSkill(battleutils::CanUseWeaponskill(PChar, PSkill), PSkill->getID(), range_ws))
-            {
-                addWeaponSkill(PChar, PSkill->getID());
-            }
+            rosterFacts.ranged.push_back({ .id = PSkill->getID(), .canUse = battleutils::CanUseWeaponskill(PChar, PSkill) });
         }
+    }
+    for (const auto weaponSkillID : weaponskillrosterbuildhelpers::PlanFor(rosterFacts).addWeaponSkillIDs)
+    {
+        addWeaponSkill(PChar, weaponSkillID);
     }
 }
 
