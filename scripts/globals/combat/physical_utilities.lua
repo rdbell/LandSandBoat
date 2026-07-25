@@ -173,6 +173,305 @@ xi.combat.physical.reprisalMultBonus = 3.0
 xi.combat.physical.nonPCBlockAbsorbFraction = 0.5
 xi.combat.physical.softMaxTrustLevel = 99
 
+-----------------------------------
+-- Pure: calculateAttackDamage inject halves (slice 6760 / internal/attack)
+-- Matches production C++/Go path (additive DA/TA dmg mod quirk from 1577).
+-- Host residual: consumeMana/souleater/addDamageFromMultipliers/restraint.
+-----------------------------------
+xi.combat.physical.mobH2HPenaltyPreToAU    = 0.425
+xi.combat.physical.mobH2HPenaltyToAUOnward = 0.65
+xi.combat.physical.mobKickPenalty          = 2 / 3
+
+-- params: dex, sneakAtkDexMod
+xi.combat.physical.sneakAttackDexBonusFromParams = function(params)
+    params = params or {}
+    local bonusPct = (params.sneakAtkDexMod or 0) / 100
+    if bonusPct < 0 then
+        bonusPct = 0
+    end
+
+    return (params.dex or 0) * (1 + bonusPct)
+end
+
+-- params: agi, trickAtkAgiMod
+xi.combat.physical.trickAttackAgiBonusFromParams = function(params)
+    params = params or {}
+    local bonusPct = (params.trickAtkAgiMod or 0) / 100
+    if bonusPct < 0 then
+        bonusPct = 0
+    end
+
+    return (params.agi or 0) * (1 + bonusPct)
+end
+
+-- params: h2hSkill
+xi.combat.physical.naturalH2hDamageFromParams = function(params)
+    params = params or {}
+    return math.floor((params.h2hSkill or 0) * 0.11) + 3
+end
+
+-- params: noH2HPenaltyMod, isPreToAURegion
+xi.combat.physical.mobH2HPenaltyFromParams = function(params)
+    params = params or {}
+    if params.noH2HPenaltyMod then
+        return 1
+    end
+
+    if params.isPreToAURegion then
+        return xi.combat.physical.mobH2HPenaltyPreToAU
+    end
+
+    return xi.combat.physical.mobH2HPenaltyToAUOnward
+end
+
+-- params: baseDamagePlusBonus, isKick, kickDamageMod, fSTR, mobH2HPenalty
+xi.combat.physical.assembleMobH2HPreRatioFromParams = function(params)
+    params = params or {}
+    local base = (params.baseDamagePlusBonus or 0)
+    local fSTR = params.fSTR or 0
+    local pen  = params.mobH2HPenalty or 1
+    if params.isKick then
+        return (base + (params.kickDamageMod or 0)) * pen * xi.combat.physical.mobKickPenalty + fSTR
+    end
+
+    return (base + fSTR) * pen
+end
+
+-- params: naturalH2h, kickDamageMod, bonus, fSTR
+xi.combat.physical.assemblePlayerH2HKickPreRatioFromParams = function(params)
+    params = params or {}
+    local v = (params.naturalH2h or 0)
+        + (params.kickDamageMod or 0)
+        + (params.bonus or 0)
+        + (params.fSTR or 0)
+    if v < 0 then
+        return 0
+    end
+
+    return v
+end
+
+-- params: weaponDmg, naturalH2h, bonus, fSTR
+xi.combat.physical.assemblePlayerH2HPunchPreRatioFromParams = function(params)
+    params = params or {}
+    local v = (params.weaponDmg or 0)
+        + (params.naturalH2h or 0)
+        + (params.bonus or 0)
+        + (params.fSTR or 0)
+    if v < 0 then
+        return 0
+    end
+
+    return v
+end
+
+-- params: weaponDmg, bonus, fSTR
+xi.combat.physical.assembleWeaponPreRatioFromParams = function(params)
+    params = params or {}
+    local v = (params.weaponDmg or 0) + (params.bonus or 0) + (params.fSTR or 0)
+    if v < 0 then
+        return 0
+    end
+
+    return v
+end
+
+-- params: damage, damageRatio
+xi.combat.physical.applyDamageRatioFromParams = function(params)
+    params = params or {}
+    local damage = params.damage or 0
+    if damage <= 0 then
+        return 0
+    end
+
+    return math.floor(damage * (params.damageRatio or 0))
+end
+
+-- Production additive DA/TA quirk (slice 1577): floor(damage * 1 + max(mod/100, 0))
+-- params: damage, dmgMod
+xi.combat.physical.applyDoubleTripleAttackDamageFromParams = function(params)
+    params = params or {}
+    local bonus = (params.dmgMod or 0) / 100
+    if bonus < 0 then
+        bonus = 0
+    end
+
+    return math.floor((params.damage or 0) * 1 + bonus)
+end
+
+-- params: damage, mult
+xi.combat.physical.floorProductFromParams = function(params)
+    params = params or {}
+    local damage = params.damage or 0
+    if damage <= 0 then
+        return 0
+    end
+
+    return math.floor(damage * (params.mult or 0))
+end
+
+-- params: augmentsMod
+xi.combat.physical.augmentDamageMultiplierFromParams = function(params)
+    params = params or {}
+    local bonus = (params.augmentsMod or 0) / 100
+    if bonus < 0 then
+        bonus = 0
+    end
+
+    return 1 + bonus
+end
+
+-- params: damage
+xi.combat.physical.clampNonNegativeDamageFromParams = function(params)
+    params = params or {}
+    local damage = params.damage or 0
+    if damage < 0 then
+        return 0
+    end
+
+    return damage
+end
+
+--[[
+  Pure product once injects are known (matches internal/attack.CalculateAttackDamage).
+  params:
+    isSneakAttack, isTrickAttack, dex, sneakAtkDexMod, agi, trickAtkAgiMod, consumeMana,
+    isH2H, isMob, isKick, slot (MAIN/SUB/AMMO),
+    weaponDmg, naturalH2h, kickDamageMod, fSTR, mobH2HPenalty, damageRatio,
+    scarletMult, attackType (DOUBLE/TRIPLE/other), isPC, doubleAttackDmg, tripleAttackDmg,
+    soulEater, useDamageMultipliers, damageAfterMultipliers,
+    augmentsSA, hasSneakAttackEffect, augmentsTA, hasTrickAttackEffect
+]]
+xi.combat.physical.calculateAttackDamageFromParams = function(params)
+    params = params or {}
+    local bonus = 0
+    if params.isSneakAttack then
+        bonus = bonus + math.floor(xi.combat.physical.sneakAttackDexBonusFromParams({
+            dex            = params.dex or 0,
+            sneakAtkDexMod = params.sneakAtkDexMod or 0,
+        }))
+    end
+
+    if params.isTrickAttack then
+        bonus = bonus + math.floor(xi.combat.physical.trickAttackAgiBonusFromParams({
+            agi            = params.agi or 0,
+            trickAtkAgiMod = params.trickAtkAgiMod or 0,
+        }))
+    end
+
+    bonus = bonus + (params.consumeMana or 0)
+
+    local pre = 0
+    local slot = params.slot
+    if params.isH2H and params.isMob then
+        pre = xi.combat.physical.assembleMobH2HPreRatioFromParams({
+            baseDamagePlusBonus = (params.weaponDmg or 0) + bonus,
+            isKick              = params.isKick,
+            kickDamageMod       = params.kickDamageMod or 0,
+            fSTR                = params.fSTR or 0,
+            mobH2HPenalty       = params.mobH2HPenalty or 1,
+        })
+        -- cast pre to int then clamp then ratio (Go path)
+        pre = math.floor(pre)
+        if pre < 0 then
+            pre = 0
+        end
+    elseif params.isH2H and params.isKick then
+        pre = xi.combat.physical.assemblePlayerH2HKickPreRatioFromParams({
+            naturalH2h    = params.naturalH2h or 0,
+            kickDamageMod = params.kickDamageMod or 0,
+            bonus         = bonus,
+            fSTR          = params.fSTR or 0,
+        })
+    elseif params.isH2H then
+        pre = xi.combat.physical.assemblePlayerH2HPunchPreRatioFromParams({
+            weaponDmg  = params.weaponDmg or 0,
+            naturalH2h = params.naturalH2h or 0,
+            bonus      = bonus,
+            fSTR       = params.fSTR or 0,
+        })
+    elseif slot == xi.slot.MAIN then
+        pre = xi.combat.physical.assembleWeaponPreRatioFromParams({
+            weaponDmg = params.weaponDmg or 0,
+            bonus     = bonus,
+            fSTR      = params.fSTR or 0,
+        })
+    elseif slot == xi.slot.SUB then
+        pre = xi.combat.physical.assembleWeaponPreRatioFromParams({
+            weaponDmg = params.weaponDmg or 0,
+            bonus     = bonus,
+            fSTR      = params.fSTR or 0,
+        })
+    elseif slot == xi.slot.AMMO then
+        -- ammo ignores SA/TA bonus base
+        pre = xi.combat.physical.assembleWeaponPreRatioFromParams({
+            weaponDmg = params.weaponDmg or 0,
+            bonus     = 0,
+            fSTR      = params.fSTR or 0,
+        })
+    end
+
+    local damage = xi.combat.physical.applyDamageRatioFromParams({
+        damage      = pre,
+        damageRatio = params.damageRatio or 0,
+    })
+
+    local scarlet = params.scarletMult or 1
+    if scarlet ~= 1 and scarlet > 0 then
+        damage = xi.combat.physical.floorProductFromParams({
+            damage = damage,
+            mult   = scarlet,
+        })
+    end
+
+    local attackType = params.attackType
+    if attackType == xi.physicalAttackType.DOUBLE and params.isPC then
+        damage = xi.combat.physical.applyDoubleTripleAttackDamageFromParams({
+            damage = damage,
+            dmgMod = params.doubleAttackDmg or 0,
+        })
+    elseif attackType == xi.physicalAttackType.TRIPLE and params.isPC then
+        damage = xi.combat.physical.applyDoubleTripleAttackDamageFromParams({
+            damage = damage,
+            dmgMod = params.tripleAttackDmg or 0,
+        })
+    end
+
+    damage = damage + (params.soulEater or 0)
+
+    if params.useDamageMultipliers then
+        damage = params.damageAfterMultipliers or 0
+    end
+
+    if
+        (params.augmentsSA or 0) > 0 and
+        params.isSneakAttack and
+        params.hasSneakAttackEffect
+    then
+        damage = xi.combat.physical.floorProductFromParams({
+            damage = damage,
+            mult   = xi.combat.physical.augmentDamageMultiplierFromParams({
+                augmentsMod = params.augmentsSA or 0,
+            }),
+        })
+    end
+
+    if
+        (params.augmentsTA or 0) > 0 and
+        params.isTrickAttack and
+        params.hasTrickAttackEffect
+    then
+        damage = xi.combat.physical.floorProductFromParams({
+            damage = damage,
+            mult   = xi.combat.physical.augmentDamageMultiplierFromParams({
+                augmentsMod = params.augmentsTA or 0,
+            }),
+        })
+    end
+
+    return xi.combat.physical.clampNonNegativeDamageFromParams({ damage = damage })
+end
+
 -- WARNING: This function is used in src/map/attack.cpp "ProcessDamage" function.
 -- If you update these parameters, update them there as well.
 ---@param actor CBaseEntity
@@ -185,110 +484,105 @@ xi.combat.physical.softMaxTrustLevel = 99
 ---@param isTrickAttack boolean
 ---@param damageRatio number
 xi.combat.physical.calculateAttackDamage = function(actor, target, slot, physicalAttackType, isH2H, isFirstSwing, isSneakAttack, isTrickAttack, damageRatio)
-    local bonusBasePhysicalDamage = 0
-    local damage                  = 0
-
-    -- Sneak Attack
-    if isSneakAttack then
-        bonusBasePhysicalDamage = math.floor(bonusBasePhysicalDamage + actor:getStat(xi.mod.DEX) * (1 + actor:getMod(xi.mod.SNEAK_ATK_DEX) / 100))
-    end
-
-    -- Trick Attack
-    if isTrickAttack then
-        bonusBasePhysicalDamage = math.floor(bonusBasePhysicalDamage + actor:getStat(xi.mod.AGI) * (1 + actor:getMod(xi.mod.TRICK_ATK_AGI) / 100))
-    end
-
-    -- Consume Mana
-    bonusBasePhysicalDamage = bonusBasePhysicalDamage + xi.combat.damage.consumeManaAddition(actor)
-
-    -- Apply damage ratio multiplier.
-    local baseDamage = 0
+    local naturalH2h = 0
+    local weaponDmg  = 0
+    local fSTR       = 0
+    local mobH2HPenalty = 1
+    local isKick = physicalAttackType == xi.physicalAttackType.KICK
+    local isMob  = actor:isMob()
 
     if isH2H then
-        local naturalH2hDamage = math.floor(actor:getSkillLevel(xi.skill.HAND_TO_HAND) * 0.11) + 3
-
-        if actor:isMob() then
-            local mobH2HPenalty = 1
-            local regionID      = actor:getCurrentRegion()
-            local fSTR          = xi.combat.physical.calculateMeleeStatFactor(actor, target)
-
-            if actor:getMobMod(xi.mobMod.NO_H2H_PENALTY) == 0 then
-                if regionID <= xi.region.LIMBUS then
-                    mobH2HPenalty = 0.425 -- Vanilla - COP
-                else
-                    mobH2HPenalty = 0.65
-                end
-            end
-
-            baseDamage = actor:getWeaponDmg() + bonusBasePhysicalDamage
-
-            if physicalAttackType == xi.physicalAttackType.KICK then
-                local kickPenalty = 2 / 3 -- Per Jimmy, kicks get a second penalty, then fSTR is added
-                local kickDamage  = actor:getMod(xi.mod.KICK_DMG)
-
-                -- Per Jimmy, kick damage penalty for mobs can only be damage * h2h penalty * kickpenalty + fstr
-                -- The math doesn't work in any other way, which is strange given fSTR is before the penalty on non-kicks
-                baseDamage = (baseDamage + kickDamage) * mobH2HPenalty * kickPenalty + fSTR
-            else
-                baseDamage = (baseDamage + fSTR) * mobH2HPenalty
-            end
-        elseif physicalAttackType == xi.physicalAttackType.KICK then
-            baseDamage = naturalH2hDamage + actor:getMod(xi.mod.KICK_DMG) + bonusBasePhysicalDamage + xi.combat.physical.calculateMeleeStatFactor(actor, target)
+        naturalH2h = xi.combat.physical.naturalH2hDamageFromParams({
+            h2hSkill = actor:getSkillLevel(xi.skill.HAND_TO_HAND),
+        })
+        if isMob then
+            weaponDmg = actor:getWeaponDmg()
+            fSTR = xi.combat.physical.calculateMeleeStatFactor(actor, target)
+            mobH2HPenalty = xi.combat.physical.mobH2HPenaltyFromParams({
+                noH2HPenaltyMod = actor:getMobMod(xi.mobMod.NO_H2H_PENALTY) ~= 0,
+                isPreToAURegion = actor:getCurrentRegion() <= xi.region.LIMBUS,
+            })
         else
-            baseDamage = naturalH2hDamage + actor:getWeaponDmg() + bonusBasePhysicalDamage + xi.combat.physical.calculateMeleeStatFactor(actor, target)
+            if not isKick then
+                weaponDmg = actor:getWeaponDmg()
+            end
+
+            fSTR = xi.combat.physical.calculateMeleeStatFactor(actor, target)
         end
     elseif slot == xi.slot.MAIN then
-        baseDamage = actor:getWeaponDmg() + bonusBasePhysicalDamage + xi.combat.physical.calculateMeleeStatFactor(actor, target)
+        weaponDmg = actor:getWeaponDmg()
+        fSTR = xi.combat.physical.calculateMeleeStatFactor(actor, target)
     elseif slot == xi.slot.SUB then
-        baseDamage = actor:getOffhandDmg() + bonusBasePhysicalDamage + xi.combat.physical.calculateMeleeStatFactor(actor, target)
+        weaponDmg = actor:getOffhandDmg()
+        fSTR = xi.combat.physical.calculateMeleeStatFactor(actor, target)
     elseif slot == xi.slot.AMMO then
-        baseDamage = actor:getRangedDmg() + xi.combat.physical.calculateRangedStatFactor(actor, target)
+        weaponDmg = actor:getRangedDmg()
+        fSTR = xi.combat.physical.calculateRangedStatFactor(actor, target)
     end
 
-    damage = math.floor(baseDamage * damageRatio)
+    -- Pure product through soul eater (before host damage multipliers / restraint).
+    local damage = xi.combat.physical.calculateAttackDamageFromParams({
+        isSneakAttack        = isSneakAttack,
+        isTrickAttack        = isTrickAttack,
+        dex                  = actor:getStat(xi.mod.DEX),
+        sneakAtkDexMod       = actor:getMod(xi.mod.SNEAK_ATK_DEX),
+        agi                  = actor:getStat(xi.mod.AGI),
+        trickAtkAgiMod       = actor:getMod(xi.mod.TRICK_ATK_AGI),
+        consumeMana          = xi.combat.damage.consumeManaAddition(actor),
+        isH2H                = isH2H,
+        isMob                = isMob,
+        isKick               = isKick,
+        slot                 = slot,
+        weaponDmg            = weaponDmg,
+        naturalH2h           = naturalH2h,
+        kickDamageMod        = actor:getMod(xi.mod.KICK_DMG),
+        fSTR                 = fSTR,
+        mobH2HPenalty        = mobH2HPenalty,
+        damageRatio          = damageRatio,
+        scarletMult          = xi.combat.damage.scarletDeliriumMultiplier(actor),
+        attackType           = physicalAttackType,
+        isPC                 = actor:isPC(),
+        doubleAttackDmg      = actor:getMod(xi.mod.DOUBLE_ATTACK_DMG),
+        tripleAttackDmg      = actor:getMod(xi.mod.TRIPLE_ATTACK_DMG),
+        soulEater            = xi.combat.damage.souleaterAddition(actor),
+        useDamageMultipliers = false,
+        augmentsSA           = 0,
+        hasSneakAttackEffect = false,
+        augmentsTA           = 0,
+        hasTrickAttackEffect = false,
+    })
 
-    -- Scarlet Delirium multiplier.
-    damage = math.floor(damage * xi.combat.damage.scarletDeliriumMultiplier(actor))
-
-    -- Double/Triple Attack multipliers.
-    local multiAttackMultiplier = 1
-    if physicalAttackType == xi.physicalAttackType.DOUBLE then
-        multiAttackMultiplier = 1 + actor:getMod(xi.mod.DOUBLE_ATTACK_DMG) / 100
-    elseif physicalAttackType == xi.physicalAttackType.TRIPLE then
-        multiAttackMultiplier = 1 + actor:getMod(xi.mod.TRIPLE_ATTACK_DMG) / 100
-    end
-
-    damage = math.floor(damage * multiAttackMultiplier)
-
-    -- Soul Eater additive damage.
-    damage = damage + xi.combat.damage.souleaterAddition(actor)
-
-    -- Damage multipliers
+    -- Host residual: CheckForDamageMultiplier
     damage = actor:addDamageFromMultipliers(damage, physicalAttackType, slot, isFirstSwing)
 
-    -- Sneak Attack Augment
+    -- Pure SA/TA augment floors after host multipliers.
     if
         actor:getMod(xi.mod.AUGMENTS_SA) > 0 and
         isSneakAttack and
         actor:hasStatusEffect(xi.effect.SNEAK_ATTACK)
     then
-        damage = math.floor(damage * (1 + actor:getMod(xi.mod.AUGMENTS_SA) / 100))
+        damage = xi.combat.physical.floorProductFromParams({
+            damage = damage,
+            mult   = xi.combat.physical.augmentDamageMultiplierFromParams({
+                augmentsMod = actor:getMod(xi.mod.AUGMENTS_SA),
+            }),
+        })
     end
 
-    -- Trick Attack Augment
     if
         actor:getMod(xi.mod.AUGMENTS_TA) > 0 and
         isTrickAttack and
         actor:hasStatusEffect(xi.effect.TRICK_ATTACK)
     then
-        damage = math.floor(damage * (1 + actor:getMod(xi.mod.AUGMENTS_TA) / 100))
+        damage = xi.combat.physical.floorProductFromParams({
+            damage = damage,
+            mult   = xi.combat.physical.augmentDamageMultiplierFromParams({
+                augmentsMod = actor:getMod(xi.mod.AUGMENTS_TA),
+            }),
+        })
     end
 
-    --- Low level mobs can get negative fSTR so low they crater their (base weapon damage + fstr) to below 0.
-    --- Absorption isn't possible at this point in the calculation, so zero it.
-    if damage < 0 then
-        damage = 0
-    end
+    damage = xi.combat.physical.clampNonNegativeDamageFromParams({ damage = damage })
 
     -- Apply Restraint Weaponskill Damage
     if
