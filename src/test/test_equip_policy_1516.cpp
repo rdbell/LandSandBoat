@@ -333,6 +333,21 @@ auto Check() -> bool
         return false;
     }
 
+    const auto removedLookPlan = equiparmorremovedlookhelpers::PlanFor({{
+        { .itemPresent = true, .itemIsEquipment = true, .modelID = 501, .removeSlotLookID = (1u << 4) | (1u << 6) },
+        { .itemPresent = true, .itemIsEquipment = false, .modelID = 502, .removeSlotLookID = 1u << 5 },
+        { .itemPresent = true, .itemIsEquipment = true, .modelID = 503 },
+        { .itemPresent = true, .itemIsEquipment = true, .modelID = 504, .removeSlotLookID = (1u << 5) | (1u << 8) },
+    }});
+    if (removedLookPlan.actionCount != 4 ||
+        removedLookPlan.actions[0] != equiparmorremovedlookhelpers::Action{ .sourceSlot = 4, .targetSlot = 4, .modelID = 501 } ||
+        removedLookPlan.actions[1] != equiparmorremovedlookhelpers::Action{ .sourceSlot = 4, .targetSlot = 6, .modelID = 501 } ||
+        removedLookPlan.actions[2] != equiparmorremovedlookhelpers::Action{ .sourceSlot = 7, .targetSlot = 5, .modelID = 504 } ||
+        removedLookPlan.actions[3] != equiparmorremovedlookhelpers::Action{ .sourceSlot = 7, .targetSlot = 8, .modelID = 504 })
+    {
+        return false;
+    }
+
     const auto preferredLockstyleLook = lockstyleremovedlookhelpers::PlanFor({
         .styleItemID      = 100,
         .itemFound        = true,

@@ -2922,7 +2922,7 @@ void UpdateRemovedSlotsLookForLockStyle(CCharEntity* PChar)
         const auto  plan  = lockstyleremovedlookhelpers::PlanFor({
             .styleItemID      = items[i],
             .itemFound        = PItem != nullptr,
-            .modelID          = PItem ? static_cast<uint16>(PItem->getModelId()) : 0,
+            .modelID          = PItem ? static_cast<uint16>(PItem->getModelId()) : static_cast<uint16>(0),
             .removeSlotLookID = PItem ? static_cast<std::uint32_t>(PItem->getRemoveSlotLookId()) : 0u,
             .removeSlotID     = PItem ? static_cast<std::uint32_t>(PItem->getRemoveSlotId()) : 0u,
         });
@@ -2971,36 +2971,39 @@ void UpdateRemovedSlotsLook(CCharEntity* PChar)
         return;
     }
 
+    std::array<equiparmorremovedlookhelpers::Input, equiparmorremovedlookhelpers::SourceSlotCount> removedLookInputs{};
     for (int i = SLOT_HEAD; equiparmorremovedlookhelpers::IsSourceSlot(static_cast<uint8>(i)); i++)
     {
         CItemEquipment* armor = PChar->getEquip((SLOTTYPE)i);
-        if (armor && armor->isType(ITEM_EQUIPMENT) && armor->getRemoveSlotLookId())
+        removedLookInputs[i - SLOT_HEAD] = {
+            .itemPresent      = armor != nullptr,
+            .itemIsEquipment  = armor && armor->isType(ITEM_EQUIPMENT),
+            .modelID          = armor ? static_cast<uint16>(armor->getModelId()) : static_cast<uint16>(0),
+            .removeSlotLookID = armor ? static_cast<std::uint32_t>(armor->getRemoveSlotLookId()) : 0u,
+        };
+    }
+
+    const auto plan = equiparmorremovedlookhelpers::PlanFor(removedLookInputs);
+    for (std::uint8_t index = 0; index < plan.actionCount; ++index)
+    {
+        const auto& action = plan.actions[index];
+        switch (action.targetSlot)
         {
-            auto removeSlotID = armor->getRemoveSlotLookId();
-            for (int j = SLOT_HEAD; j <= SLOT_FEET; j++)
-            {
-                if (equiparmorremovedlookhelpers::ShouldSetTargetLook(removeSlotID, static_cast<uint8>(j)))
-                {
-                    switch (j)
-                    {
-                        case SLOT_HEAD:
-                            PChar->look.head = armor->getModelId();
-                            break;
-                        case SLOT_BODY:
-                            PChar->look.body = armor->getModelId();
-                            break;
-                        case SLOT_HANDS:
-                            PChar->look.hands = armor->getModelId();
-                            break;
-                        case SLOT_LEGS:
-                            PChar->look.legs = armor->getModelId();
-                            break;
-                        case SLOT_FEET:
-                            PChar->look.feet = armor->getModelId();
-                            break;
-                    }
-                }
-            }
+            case SLOT_HEAD:
+                PChar->look.head = action.modelID;
+                break;
+            case SLOT_BODY:
+                PChar->look.body = action.modelID;
+                break;
+            case SLOT_HANDS:
+                PChar->look.hands = action.modelID;
+                break;
+            case SLOT_LEGS:
+                PChar->look.legs = action.modelID;
+                break;
+            case SLOT_FEET:
+                PChar->look.feet = action.modelID;
+                break;
         }
     }
 }
