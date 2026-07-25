@@ -33,6 +33,7 @@
 #include "map/equip_policy_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
 #include "map/save_job_change_gear_capacity.h"
+#include "map/load_job_change_gear_capacity.h"
 
 #include <array>
 #include <iostream>
@@ -514,6 +515,17 @@ auto Check() -> bool
         savedGear.head != 104 || savedGear.body != 105 || savedGear.hands != 106 || savedGear.legs != 107 || savedGear.feet != 108 ||
         savedGear.neck != 109 || savedGear.waist != 110 || savedGear.ear1 != 111 || savedGear.ear2 != 112 ||
         savedGear.ring1 != 113 || savedGear.ring2 != 114 || savedGear.back != 115)
+    {
+        return false;
+    }
+
+    const auto matchingSavedGear = loadjobchangegearhelpers::PlanFor({ .savedItemID = 100, .candidateIsEquipment = true, .candidateItemID = 100 });
+    const auto emptySavedGear = loadjobchangegearhelpers::PlanFor({ .candidateIsEquipment = true });
+    const auto nonEquipmentSavedGear = loadjobchangegearhelpers::PlanFor({ .savedItemID = 100, .candidateItemID = 100 });
+    const auto wrongIDSavedGear = loadjobchangegearhelpers::PlanFor({ .savedItemID = 100, .candidateIsEquipment = true, .candidateItemID = 101 });
+    const auto pairedSavedGear = loadjobchangegearhelpers::PlanFor({ .savedItemID = 100, .candidateIsEquipment = true, .candidateItemID = 100, .sameAsAdjacentEquip = true });
+    if (!matchingSavedGear.equipCandidate || emptySavedGear.equipCandidate || nonEquipmentSavedGear.equipCandidate ||
+        wrongIDSavedGear.equipCandidate || pairedSavedGear.equipCandidate)
     {
         return false;
     }

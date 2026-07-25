@@ -143,6 +143,7 @@
 #include "style_update_capacity.h"
 #include "style_lock_transition_capacity.h"
 #include "save_job_change_gear_capacity.h"
+#include "load_job_change_gear_capacity.h"
 #include "inventory_move_capacity.h"
 #include "lockstyle_removed_look_capacity.h"
 #include "misc_progress_capacity.h"
@@ -3369,8 +3370,7 @@ void LoadJobChangeGear(CCharEntity* PChar)
                     {
                         auto* PEquip = dynamic_cast<CItemEquipment*>(PChar->getStorage(container)->GetItem(slot));
 
-                        // ensure this is the item we actually want from the db
-                        if (PEquip && PEquip->getID() == itemId)
+                        if (PEquip)
                         {
                             // Validate that we're not trying to equip the same item to two different slots
                             CItemEquipment* compareItem = nullptr;
@@ -3387,9 +3387,13 @@ void LoadJobChangeGear(CCharEntity* PChar)
                                 compareItem = PChar->getEquip(static_cast<SLOTTYPE>(equipSlot - 1));
                             }
 
-                            // If there's no item to compare then this item is valid
-                            // If there is, check they aren't the same via pointer comparison (2 unique copies)
-                            if (!compareItem || (compareItem && compareItem != PEquip))
+                            const auto candidatePlan = loadjobchangegearhelpers::PlanFor({
+                                .savedItemID        = itemId,
+                                .candidateIsEquipment = true,
+                                .candidateItemID     = PEquip->getID(),
+                                .sameAsAdjacentEquip = compareItem == PEquip,
+                            });
+                            if (candidatePlan.equipCandidate)
                             {
                                 found = true;
                                 charutils::EquipItem(PChar, PEquip->getSlotID(), equipSlot, static_cast<CONTAINER_ID>(container));
