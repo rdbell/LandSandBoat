@@ -32,6 +32,9 @@ struct MapSession;
 class PacketSystem
 {
 public:
+    static auto isHandlerRegistered(uint16 packetId) -> bool;
+    static auto registeredHandlerCount() -> uint16;
+
     void dispatch(uint16 packetId, MapSession* PSession, CCharEntity* PChar, CBasicPacket& data);
 
 private:

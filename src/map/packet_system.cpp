@@ -369,6 +369,24 @@ constexpr auto packetHandlers_ = buildPacketHandlers();
 
 } // namespace
 
+auto PacketSystem::isHandlerRegistered(uint16 packetId) -> bool
+{
+    return packetId < packetHandlers_.size() && packetHandlers_[packetId] != nullptr;
+}
+
+auto PacketSystem::registeredHandlerCount() -> uint16
+{
+    auto count = uint16{};
+    for (const auto handler : packetHandlers_)
+    {
+        if (handler != nullptr)
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
 void PacketSystem::dispatch(uint16 packetId, MapSession* PSession, CCharEntity* PChar, CBasicPacket& data)
 {
     LogWith({ "char", { { "id", PChar->id }, { "name", PChar->getName() } } },
