@@ -189,326 +189,255 @@ end
 
 -----------------------------------
 -- Calculate Actor Magic Accuracy
+-- Pure contribution helpers dual-wired to OmegaXI internal/magacc (slice 6705).
 -----------------------------------
 
--- Magic Accuracy from spell's skill.
-local function magicAccuracyFromSkill(actor, params)
+xi.combat.magicHitRate.klimaformBonus = 15
+xi.combat.magicHitRate.sealBonus = 256
+xi.combat.magicHitRate.dayWeatherProcChance = 33
+xi.combat.magicHitRate.singleWeatherAcc = 5
+xi.combat.magicHitRate.doubleWeatherAcc = 10
+xi.combat.magicHitRate.dayElementAcc = 5
+xi.combat.magicHitRate.iridescenceAccStep = 5
+xi.combat.magicHitRate.magicBurstAccBonus = 100
+xi.combat.magicHitRate.soulVoiceMultiplier = 2
+xi.combat.magicHitRate.marcatoMultiplier = 1.5
+
+-- Pure magicAccuracyFromSkill once skill levels / entity class are injected.
+-- params: skillType, skillLevel, skillRank, mainLvl, isMob, isPC, rangeSkillType, rangeSkillLvl
+xi.combat.magicHitRate.magicAccuracyFromSkillFromParams = function(params)
     local magicAcc = 0
+    local skillType = params.skillType or 0
 
-    -- For known skills.
-    if params.skillType > 0 then
-        magicAcc = actor:getSkillLevel(params.skillType)
+    if skillType > 0 then
+        magicAcc = params.skillLevel or 0
 
-        -- If a mob is casting something its main/sub jobs cannot (i.e. JoL casting black magic) this is _exceptional_
-        -- So give them A+ rank base magic accuracy
-        if magicAcc == 0 and actor:isMob() then
-            magicAcc = xi.data.skillLevel.getSkillCap(actor:getMainLvl(), xi.skillRank.A_PLUS)
+        if magicAcc == 0 and params.isMob then
+            magicAcc = xi.data.skillLevel.getSkillCap(params.mainLvl or 0, xi.skillRank.A_PLUS)
         end
 
-        if params.skillType == xi.skill.SINGING then
-            if actor:isPC() then
-                -- Add ranged skill level ONLY if it's an instrument.
-                local rangeType = actor:getWeaponSkillType(xi.slot.RANGED)
-
-                -- String instruments have half the skill effectiveness and amplify the AoE in exchange.
+        if skillType == xi.skill.SINGING then
+            if params.isPC then
+                local rangeType = params.rangeSkillType or 0
                 if rangeType == xi.skill.WIND_INSTRUMENT then
-                    magicAcc = magicAcc + actor:getSkillLevel(rangeType)
+                    magicAcc = magicAcc + (params.rangeSkillLvl or 0)
                 elseif rangeType == xi.skill.STRING_INSTRUMENT then
-                    magicAcc = magicAcc + math.floor(actor:getSkillLevel(rangeType) / 2)
+                    magicAcc = magicAcc + math.floor((params.rangeSkillLvl or 0) / 2)
                 end
-
             else
                 magicAcc = magicAcc * 2
             end
         end
-
-    -- Made for bolts. Will probably see other uses.
-    elseif params.skillRank > 0 then
-        magicAcc = xi.data.skillLevel.getSkillCap(actor:getMainLvl(), params.skillRank)
-
-    -- For mob skills / additional effects which don't have a skill.
+    elseif (params.skillRank or 0) > 0 then
+        magicAcc = xi.data.skillLevel.getSkillCap(params.mainLvl or 0, params.skillRank)
     else
-        magicAcc = xi.data.skillLevel.getSkillCap(actor:getMainLvl(), xi.skillRank.A_PLUS)
+        magicAcc = xi.data.skillLevel.getSkillCap(params.mainLvl or 0, xi.skillRank.A_PLUS)
     end
 
     return magicAcc
 end
 
--- Magic Accuracy from spell's element.
-local function magicAccuracyFromElement(actor, params)
-    -- Early return: No element.
-    if params.magicalElement <= xi.element.NONE then
+-- Pure magicAccuracyFromElement once elemental MACC/staff mods are injected.
+xi.combat.magicHitRate.magicAccuracyFromElementFromParams = function(params)
+    if (params.magicalElement or 0) <= xi.element.NONE then
         return 0
     end
 
-    return actor:getMod(xi.data.element.getElementalMACCModifier(params.magicalElement)) + actor:getMod(xi.data.element.getElementalStaffModifier(params.magicalElement)) * 10
+    return (params.elementalMaccMod or 0) + (params.elementalStaffMod or 0) * 10
 end
 
--- Magic Accuracy from Stat Difference between caster and target.
-local function magicAccuracyFromStatDifference(actor, target, params)
-    if params.actorStat == 0 then
-        return 0
+-- Pure magicAccuracyFromStatusEffects inject form.
+xi.combat.magicHitRate.magicAccuracyFromStatusEffectsFromParams = function(params)
+    local magicAcc = 0
+
+    if params.hasAltruism and params.spellGroup == xi.magic.spellGroup.WHITE then
+        magicAcc = params.altruismPower or 0
     end
 
-    local statDiff = actor:getStat(params.actorStat) - target:getStat(params.targetStat)
+    if params.hasFocalization and params.spellGroup == xi.magic.spellGroup.BLACK then
+        magicAcc = magicAcc + (params.focalizationPower or 0)
+    end
 
-    return xi.combat.magicHitRate.magicAccuracyFromStatDifference(statDiff)
-end
-
--- Magic Accuracy from Status Effects.
-local function magicAccuracyFromStatusEffects(actor, params)
-    local magicAcc     = 0
-    local actorJob     = actor:getMainJob()
-    local actorWeather = actor:getWeather()
-
-    -- Altruism
     if
-        actor:hasStatusEffect(xi.effect.ALTRUISM) and
-        params.spellGroup == xi.magic.spellGroup.WHITE
+        params.hasKlimaform and
+        (params.magicalElement or 0) > 0 and
+        params.weatherMatchesElement
     then
-        magicAcc = actor:getStatusEffect(xi.effect.ALTRUISM):getPower()
+        magicAcc = magicAcc + xi.combat.magicHitRate.klimaformBonus
     end
 
-    -- Focalization
     if
-        actor:hasStatusEffect(xi.effect.FOCALIZATION) and
-        params.spellGroup == xi.magic.spellGroup.BLACK
-    then
-        magicAcc = magicAcc + actor:getStatusEffect(xi.effect.FOCALIZATION):getPower()
-    end
-
-    --Klimaform
-    if
-        actor:hasStatusEffect(xi.effect.KLIMAFORM) and
-        params.magicalElement > 0 and
-        (actorWeather == xi.data.element.getAssociatedSingleWeather(params.magicalElement) or actorWeather == xi.data.element.getAssociatedDoubleWeather(params.magicalElement))
-    then
-        magicAcc = magicAcc + 15
-    end
-
-    -- Apply Divine Emblem to Banish and Holy families
-    if
-        actor:hasStatusEffect(xi.effect.DIVINE_EMBLEM) and
-        actorJob == xi.job.PLD and
+        params.hasDivineEmblem and
+        params.actorJob == xi.job.PLD and
         params.skillType == xi.skill.DIVINE_MAGIC
     then
-        magicAcc = magicAcc + 256
+        magicAcc = magicAcc + xi.combat.magicHitRate.sealBonus
     end
 
-    -- Elemental seal
     if
-        actor:hasStatusEffect(xi.effect.ELEMENTAL_SEAL) and
+        params.hasElementalSeal and
         params.skillType ~= xi.skill.DARK_MAGIC and
         params.skillType ~= xi.skill.DIVINE_MAGIC and
-        params.magicalElement > 0
+        (params.magicalElement or 0) > 0
     then
-        magicAcc = magicAcc + 256
+        magicAcc = magicAcc + xi.combat.magicHitRate.sealBonus
     end
 
-    -- Dark Seal
-    if
-        actor:hasStatusEffect(xi.effect.DARK_SEAL) and
-        params.skillType == xi.skill.DARK_MAGIC
-    then
-        magicAcc = magicAcc + 256
+    if params.hasDarkSeal and params.skillType == xi.skill.DARK_MAGIC then
+        magicAcc = magicAcc + xi.combat.magicHitRate.sealBonus
     end
 
     return magicAcc
 end
 
--- Magic Accuracy from Merits.
-local function magicAccuracyFromMerits(actor, params)
-    local magicAcc = 0
-    local actorJob = actor:getMainJob()
+-- Pure magicAccuracyFromMerits inject form.
+xi.combat.magicHitRate.magicAccuracyFromMeritsFromParams = function(params)
+    local job = params.actorJob or 0
+    local skillType = params.skillType or 0
+    local element = params.magicalElement or 0
 
-    switch (actorJob) : caseof
-    {
-        [xi.job.BLM] = function()
-            if params.skillType == xi.skill.ELEMENTAL_MAGIC then
-                magicAcc = actor:getMerit(xi.merit.ELEMENTAL_MAGIC_ACCURACY)
-            end
-        end,
+    if job == xi.job.BLM then
+        if skillType == xi.skill.ELEMENTAL_MAGIC then
+            return params.elementalMerit or 0
+        end
+    elseif job == xi.job.RDM then
+        local magicAcc = 0
+        if element >= xi.element.FIRE and element <= xi.element.WATER then
+            magicAcc = params.elementalMerit or 0
+        end
+        return magicAcc + (params.magicAccMerit or 0)
+    elseif job == xi.job.BRD then
+        if skillType == xi.skill.SINGING and params.hasTroubadour then
+            return 64 * ((params.troubadourMerit or 0) / 25 - 1)
+        end
+    elseif job == xi.job.NIN then
+        if skillType == xi.skill.NINJUTSU then
+            return params.ninMerit or 0
+        end
+    elseif job == xi.job.BLU then
+        if skillType == xi.skill.BLUE_MAGIC then
+            return params.bluMerit or 0
+        end
+    end
 
-        [xi.job.RDM] = function()
-            -- Category 1
-            if
-                params.magicalElement >= xi.element.FIRE and
-                params.magicalElement <= xi.element.WATER
-            then
-                magicAcc = actor:getMerit(xi.data.element.getElementalAccuracyMerit(params.magicalElement))
-            end
-
-            -- Category 2
-            magicAcc = magicAcc + actor:getMerit(xi.merit.MAGIC_ACCURACY)
-        end,
-
-        [xi.job.BRD] = function()
-            if
-                params.skillType == xi.skill.SINGING and
-                actor:hasStatusEffect(xi.effect.TROUBADOUR)
-            then
-                magicAcc = 64 * (actor:getMerit(xi.merit.TROUBADOUR) / 25 - 1)
-            end
-        end,
-
-        [xi.job.NIN] = function()
-            if params.skillType == xi.skill.NINJUTSU then
-                magicAcc = actor:getMerit(xi.merit.NIN_MAGIC_ACCURACY)
-            end
-        end,
-
-        [xi.job.BLU] = function()
-            if params.skillType == xi.skill.BLUE_MAGIC then
-                magicAcc = actor:getMerit(xi.merit.MAGICAL_ACCURACY)
-            end
-        end,
-    }
-
-    return magicAcc
+    return 0
 end
 
--- Magic Accuracy from Job Points.
-local function magicAccuracyFromJobPoints(actor, params)
-    local magicAcc = 0
-    local actorJob = actor:getMainJob()
+-- Pure magicAccuracyFromJobPoints inject form.
+xi.combat.magicHitRate.magicAccuracyFromJobPointsFromParams = function(params)
+    local job = params.actorJob or 0
+    local skillType = params.skillType or 0
+    local spellGroup = params.spellGroup or 0
 
-    switch (actorJob) : caseof
-    {
-        [xi.job.WHM] = function()
-            magicAcc = actor:getJobPointLevel(xi.jp.WHM_MAGIC_ACC_BONUS)
-        end,
+    if job == xi.job.WHM then
+        return params.whmJP or 0
+    elseif job == xi.job.BLM then
+        return params.blmJP or 0
+    elseif job == xi.job.RDM then
+        local magicAcc = 0
+        if skillType == xi.skill.ENFEEBLING_MAGIC and params.hasSaboteur then
+            magicAcc = (params.saboteurJP or 0) * 2
+        end
+        return magicAcc + (params.rdmJP or 0)
+    elseif job == xi.job.BRD then
+        if skillType == xi.skill.SINGING then
+            return params.songAccJP or 0
+        end
+    elseif job == xi.job.NIN then
+        if skillType == xi.skill.NINJUTSU then
+            return params.ninjutsuAccJP or 0
+        end
+    elseif job == xi.job.SCH then
+        if
+            (spellGroup == xi.magic.spellGroup.WHITE and params.hasParsimony) or
+            (spellGroup == xi.magic.spellGroup.BLACK and params.hasPenury)
+        then
+            return params.strategemJP or 0
+        end
+    end
 
-        [xi.job.BLM] = function()
-            magicAcc = actor:getJobPointLevel(xi.jp.BLM_MAGIC_ACC_BONUS)
-        end,
-
-        [xi.job.RDM] = function()
-            -- RDM Job Point: During saboteur, Enfeebling MACC +2
-            if
-                params.skillType == xi.skill.ENFEEBLING_MAGIC and
-                actor:hasStatusEffect(xi.effect.SABOTEUR)
-            then
-                magicAcc = actor:getJobPointLevel(xi.jp.SABOTEUR_EFFECT) * 2
-            end
-
-            -- RDM Job Point: Magic Accuracy Bonus, All MACC + 1
-            magicAcc = magicAcc + actor:getJobPointLevel(xi.jp.RDM_MAGIC_ACC_BONUS)
-        end,
-
-        [xi.job.BRD] = function()
-            if params.skillType == xi.skill.SINGING then
-                magicAcc = actor:getJobPointLevel(xi.jp.SONG_ACC_BONUS)
-            end
-        end,
-
-        [xi.job.NIN] = function()
-            if params.skillType == xi.skill.NINJUTSU then
-                magicAcc = actor:getJobPointLevel(xi.jp.NINJITSU_ACC_BONUS)
-            end
-        end,
-
-        [xi.job.SCH] = function()
-            if
-                (params.spellGroup == xi.magic.spellGroup.WHITE and actor:hasStatusEffect(xi.effect.PARSIMONY)) or
-                (params.spellGroup == xi.magic.spellGroup.BLACK and actor:hasStatusEffect(xi.effect.PENURY))
-            then
-                magicAcc = actor:getJobPointLevel(xi.jp.STRATEGEM_EFFECT_I)
-            end
-        end,
-    }
-
-    return magicAcc
+    return 0
 end
 
--- Magic Accuracy from Magic Burst.
-local function magicAccuracyFromMagicBurst(target, params)
-    if params.actorStat == 0 then
+-- Pure magicAccuracyFromMagicBurst: actorStat + skillchainCount inject.
+xi.combat.magicHitRate.magicAccuracyFromMagicBurstFromParams = function(params)
+    if (params.actorStat or 0) == 0 or (params.skillchainCount or 0) <= 0 then
         return 0
     end
 
-    local _, skillchainCount = xi.magicburst.formMagicBurst(target, params.magicalElement)
-    if skillchainCount <= 0 then
+    return xi.combat.magicHitRate.magicBurstAccBonus
+end
+
+-- Pure day/weather MACC once element/day/weather/iridescence/force/roll are injected.
+xi.combat.magicHitRate.magicAccuracyFromDayWeatherElementFromParams = function(params)
+    local element = params.magicalElement or 0
+    if element <= xi.element.NONE then
         return 0
     end
 
-    return 100
-end
-
--- Magic Accuracy from Day and Weather Element.
-local function magicAccuracyFromDayWeatherElement(actor, params)
-    local magicAcc = 0
-
-    -- Early return: Invalid element.
-    if params.magicalElement <= xi.element.NONE then
-        return magicAcc
-    end
-
-    -- Define what to apply.
-    local applyBonuses   = false
+    local applyBonuses = false
     local applyPenalties = false
+    local roll = params.roll1to100 or 0
 
-    if
-        math.random(1, 100) <= 33 or                     -- Random. Applies to both bonuses and penalties.
-        actor:getMod(xi.mod.FORCE_DW_BONUS_PENALTY) >= 1 -- Hachirin-no-Obi forces both bonuses and penalties.
-    then
-        applyBonuses   = true
+    if roll <= xi.combat.magicHitRate.dayWeatherProcChance or params.forceDW then
+        applyBonuses = true
         applyPenalties = true
-    elseif actor:getMod(xi.data.element.getForcedDayOrWeatherBonusModifier(params.magicalElement)) >= 1 then -- Elemental Obis only force bonuses, not penalties.
+    elseif params.forceElementObi then
         applyBonuses = true
     end
 
-    -- Calculate bonuses/penalties.
-    local dayElement   = VanadielDayElement()
-    local actorWeather = actor:getWeather()
+    local magicAcc = 0
+    local weather = params.weather or 0
+    local dayElement = params.dayElement or 0
+    local iri = params.iridescence or 0
+    local singleW = params.associatedSingleWeather or 0
+    local doubleW = params.associatedDoubleWeather or 0
+    local oppSingle = params.oppositeSingleWeather or 0
+    local oppDouble = params.oppositeDoubleWeather or 0
+    local weakness = params.elementWeakness or 0
 
     if applyBonuses then
-        if actorWeather == xi.data.element.getAssociatedSingleWeather(params.magicalElement) then
-            magicAcc = magicAcc + 5 + actor:getMod(xi.mod.IRIDESCENCE) * 5
-        elseif actorWeather == xi.data.element.getAssociatedDoubleWeather(params.magicalElement) then
-            magicAcc = magicAcc + 10 + actor:getMod(xi.mod.IRIDESCENCE) * 5
+        -- Associated weather injects are non-zero for valid elements (host always
+        -- supplies them). Guard > 0 so unset injects do not match weather==0.
+        if singleW > 0 and weather == singleW then
+            magicAcc = magicAcc + xi.combat.magicHitRate.singleWeatherAcc + iri * xi.combat.magicHitRate.iridescenceAccStep
+        elseif doubleW > 0 and weather == doubleW then
+            magicAcc = magicAcc + xi.combat.magicHitRate.doubleWeatherAcc + iri * xi.combat.magicHitRate.iridescenceAccStep
         end
-
-        if dayElement == params.magicalElement then
-            magicAcc = magicAcc + 5
+        if dayElement == element then
+            magicAcc = magicAcc + xi.combat.magicHitRate.dayElementAcc
         end
     end
 
     if applyPenalties then
-        if actorWeather == xi.data.element.getOppositeSingleWeather(params.magicalElement) then
-            magicAcc = magicAcc - 5 - actor:getMod(xi.mod.IRIDESCENCE) * 5
-        elseif actorWeather == xi.data.element.getOppositeDoubleWeather(params.magicalElement) then
-            magicAcc = magicAcc - 10 - actor:getMod(xi.mod.IRIDESCENCE) * 5
+        if oppSingle > 0 and weather == oppSingle then
+            magicAcc = magicAcc - xi.combat.magicHitRate.singleWeatherAcc - iri * xi.combat.magicHitRate.iridescenceAccStep
+        elseif oppDouble > 0 and weather == oppDouble then
+            magicAcc = magicAcc - xi.combat.magicHitRate.doubleWeatherAcc - iri * xi.combat.magicHitRate.iridescenceAccStep
         end
-
-        if dayElement == xi.data.element.getElementWeakness(params.magicalElement) then
-            magicAcc = magicAcc - 5
+        if weakness > 0 and dayElement == weakness then
+            magicAcc = magicAcc - xi.combat.magicHitRate.dayElementAcc
         end
     end
 
     return magicAcc
 end
 
--- Magic Accuracy from Tandem Strike (BST trait).
-local function magicAccuracyFromTandemStrike(actor)
-    -- Early return: Can't apply Tandem Strike.
-    if not actor:isTandemActive() then
+-- Pure tandem strike inject.
+xi.combat.magicHitRate.magicAccuracyFromTandemStrikeFromParams = function(params)
+    if not params.tandemActive then
         return 0
     end
-
-    -- Actor is a pet, with a master. Fetch master modifier.
-    local master = actor:getMaster()
-    if master and master:isPC() then
-        return master:getMod(xi.mod.TANDEM_STRIKE_POWER)
+    if params.isPetWithMasterPC then
+        return params.masterPower or 0
     end
-
-    -- Actor is the master.
-    return actor:getMod(xi.mod.TANDEM_STRIKE_POWER)
+    return params.selfPower or 0
 end
 
--- Magic Accuracy from Food.
-local function magicAccuracyFromFoodMultiplier(actor)
-    local foodMagicAccBonus = actor:getMod(xi.mod.FOOD_MACCP) / 100
-    local foodMagicAccCap   = actor:getMod(xi.mod.FOOD_MACC_CAP) / 100
+-- Pure food multiplier inject (raw FOOD_MACCP / FOOD_MACC_CAP).
+xi.combat.magicHitRate.magicAccuracyFromFoodMultiplierFromParams = function(params)
+    local foodMagicAccBonus = (params.foodMaccP or 0) / 100
+    local foodMagicAccCap = (params.foodMaccCap or 0) / 100
 
     if foodMagicAccCap > 0 then
         foodMagicAccBonus = utils.clamp(foodMagicAccBonus, 0, foodMagicAccCap)
@@ -517,52 +446,268 @@ local function magicAccuracyFromFoodMultiplier(actor)
     return 1 + foodMagicAccBonus
 end
 
-local function magicAccuracyFromSoulVoiceMultiplier(actor, params)
-    local effectTable =
-    set{
-        xi.effect.SLEEP_I, -- Lullabies
-        xi.effect.NONE,    -- Magic Finale
-        xi.effect.CHARM_I  -- Maiden's Virellai
-    }
+-- Pure Soul Voice / Marcato multiplier inject.
+xi.combat.magicHitRate.magicAccuracyFromSoulVoiceMultiplierFromParams = function(params)
+    local effectId = params.effectId
+    local skillType = params.skillType or 0
+
+    if skillType ~= xi.skill.SINGING then
+        return 1
+    end
 
     if
-        effectTable[params.effectId] and
-        params.skillType == xi.skill.SINGING
+        effectId == xi.effect.SLEEP_I or
+        effectId == xi.effect.NONE or
+        effectId == xi.effect.CHARM_I
     then
-        if actor:hasStatusEffect(xi.effect.SOUL_VOICE) then
-            return 2
-        elseif actor:hasStatusEffect(xi.effect.MARCATO) then
-            return 1.5
+        if params.hasSoulVoice then
+            return xi.combat.magicHitRate.soulVoiceMultiplier
+        elseif params.hasMarcato then
+            return xi.combat.magicHitRate.marcatoMultiplier
         end
     end
 
     return 1
 end
 
--- Global function to calculate total magicc accuracy.
+-- Pure actor MACC product once all contribution halves are injected.
+xi.combat.magicHitRate.calculateActorMagicAccuracyFromParams = function(params)
+    local sum =
+        (params.base or 0) +
+        (params.skill or 0) +
+        (params.element or 0) +
+        (params.statDiff or 0) +
+        (params.effects or 0) +
+        (params.merits or 0) +
+        (params.jobPoints or 0) +
+        (params.burst or 0) +
+        (params.dayWeather or 0) +
+        (params.tandem or 0)
+
+    return math.floor(sum * (params.food or 1) * (params.soulVoice or 1))
+end
+
+-----------------------------------
+-- Entity hosts for actor MACC
+-----------------------------------
+
+local function magicAccuracyFromSkill(actor, params)
+    local skillLevel = 0
+    local rangeSkillType = 0
+    local rangeSkillLvl = 0
+
+    if (params.skillType or 0) > 0 then
+        skillLevel = actor:getSkillLevel(params.skillType)
+        if params.skillType == xi.skill.SINGING and actor:isPC() then
+            rangeSkillType = actor:getWeaponSkillType(xi.slot.RANGED)
+            if
+                rangeSkillType == xi.skill.WIND_INSTRUMENT or
+                rangeSkillType == xi.skill.STRING_INSTRUMENT
+            then
+                rangeSkillLvl = actor:getSkillLevel(rangeSkillType)
+            end
+        end
+    end
+
+    return xi.combat.magicHitRate.magicAccuracyFromSkillFromParams({
+        skillType      = params.skillType,
+        skillLevel     = skillLevel,
+        skillRank      = params.skillRank,
+        mainLvl        = actor:getMainLvl(),
+        isMob          = actor:isMob(),
+        isPC           = actor:isPC(),
+        rangeSkillType = rangeSkillType,
+        rangeSkillLvl  = rangeSkillLvl,
+    })
+end
+
+local function magicAccuracyFromElement(actor, params)
+    local elementalMacc = 0
+    local elementalStaff = 0
+    if (params.magicalElement or 0) > xi.element.NONE then
+        elementalMacc = actor:getMod(xi.data.element.getElementalMACCModifier(params.magicalElement))
+        elementalStaff = actor:getMod(xi.data.element.getElementalStaffModifier(params.magicalElement))
+    end
+
+    return xi.combat.magicHitRate.magicAccuracyFromElementFromParams({
+        magicalElement     = params.magicalElement,
+        elementalMaccMod   = elementalMacc,
+        elementalStaffMod  = elementalStaff,
+    })
+end
+
+local function magicAccuracyFromStatDifference(actor, target, params)
+    if params.actorStat == 0 then
+        return 0
+    end
+
+    local statDiff = actor:getStat(params.actorStat) - target:getStat(params.targetStat)
+    return xi.combat.magicHitRate.magicAccuracyFromStatDifference(statDiff)
+end
+
+local function magicAccuracyFromStatusEffects(actor, params)
+    local weather = actor:getWeather()
+    local weatherMatch = false
+    if (params.magicalElement or 0) > 0 then
+        weatherMatch =
+            weather == xi.data.element.getAssociatedSingleWeather(params.magicalElement) or
+            weather == xi.data.element.getAssociatedDoubleWeather(params.magicalElement)
+    end
+
+    local altruismPower = 0
+    if actor:hasStatusEffect(xi.effect.ALTRUISM) then
+        altruismPower = actor:getStatusEffect(xi.effect.ALTRUISM):getPower()
+    end
+    local focalizationPower = 0
+    if actor:hasStatusEffect(xi.effect.FOCALIZATION) then
+        focalizationPower = actor:getStatusEffect(xi.effect.FOCALIZATION):getPower()
+    end
+
+    return xi.combat.magicHitRate.magicAccuracyFromStatusEffectsFromParams({
+        spellGroup             = params.spellGroup,
+        magicalElement         = params.magicalElement,
+        skillType              = params.skillType,
+        actorJob               = actor:getMainJob(),
+        hasAltruism            = actor:hasStatusEffect(xi.effect.ALTRUISM),
+        altruismPower          = altruismPower,
+        hasFocalization        = actor:hasStatusEffect(xi.effect.FOCALIZATION),
+        focalizationPower      = focalizationPower,
+        hasKlimaform           = actor:hasStatusEffect(xi.effect.KLIMAFORM),
+        weatherMatchesElement  = weatherMatch,
+        hasDivineEmblem        = actor:hasStatusEffect(xi.effect.DIVINE_EMBLEM),
+        hasElementalSeal       = actor:hasStatusEffect(xi.effect.ELEMENTAL_SEAL),
+        hasDarkSeal            = actor:hasStatusEffect(xi.effect.DARK_SEAL),
+    })
+end
+
+local function magicAccuracyFromMerits(actor, params)
+    local job = actor:getMainJob()
+    local elementalMerit = 0
+    if job == xi.job.BLM then
+        elementalMerit = actor:getMerit(xi.merit.ELEMENTAL_MAGIC_ACCURACY)
+    elseif job == xi.job.RDM and
+        (params.magicalElement or 0) >= xi.element.FIRE and
+        (params.magicalElement or 0) <= xi.element.WATER
+    then
+        elementalMerit = actor:getMerit(xi.data.element.getElementalAccuracyMerit(params.magicalElement))
+    end
+
+    return xi.combat.magicHitRate.magicAccuracyFromMeritsFromParams({
+        actorJob         = job,
+        skillType        = params.skillType,
+        magicalElement   = params.magicalElement,
+        elementalMerit   = elementalMerit,
+        magicAccMerit    = actor:getMerit(xi.merit.MAGIC_ACCURACY),
+        troubadourMerit  = actor:getMerit(xi.merit.TROUBADOUR),
+        hasTroubadour    = actor:hasStatusEffect(xi.effect.TROUBADOUR),
+        ninMerit         = actor:getMerit(xi.merit.NIN_MAGIC_ACCURACY),
+        bluMerit         = actor:getMerit(xi.merit.MAGICAL_ACCURACY),
+    })
+end
+
+local function magicAccuracyFromJobPoints(actor, params)
+    return xi.combat.magicHitRate.magicAccuracyFromJobPointsFromParams({
+        actorJob       = actor:getMainJob(),
+        skillType      = params.skillType,
+        spellGroup     = params.spellGroup,
+        hasSaboteur    = actor:hasStatusEffect(xi.effect.SABOTEUR),
+        hasParsimony   = actor:hasStatusEffect(xi.effect.PARSIMONY),
+        hasPenury      = actor:hasStatusEffect(xi.effect.PENURY),
+        whmJP          = actor:getJobPointLevel(xi.jp.WHM_MAGIC_ACC_BONUS),
+        blmJP          = actor:getJobPointLevel(xi.jp.BLM_MAGIC_ACC_BONUS),
+        rdmJP          = actor:getJobPointLevel(xi.jp.RDM_MAGIC_ACC_BONUS),
+        saboteurJP     = actor:getJobPointLevel(xi.jp.SABOTEUR_EFFECT),
+        songAccJP      = actor:getJobPointLevel(xi.jp.SONG_ACC_BONUS),
+        ninjutsuAccJP  = actor:getJobPointLevel(xi.jp.NINJITSU_ACC_BONUS),
+        strategemJP    = actor:getJobPointLevel(xi.jp.STRATEGEM_EFFECT_I),
+    })
+end
+
+local function magicAccuracyFromMagicBurst(target, params)
+    local _, skillchainCount = xi.magicburst.formMagicBurst(target, params.magicalElement)
+    return xi.combat.magicHitRate.magicAccuracyFromMagicBurstFromParams({
+        actorStat        = params.actorStat,
+        skillchainCount  = skillchainCount,
+    })
+end
+
+local function magicAccuracyFromDayWeatherElement(actor, params)
+    local element = params.magicalElement or 0
+    local forceDW = actor:getMod(xi.mod.FORCE_DW_BONUS_PENALTY) >= 1
+    local forceObi = false
+    if element > xi.element.NONE then
+        forceObi = actor:getMod(xi.data.element.getForcedDayOrWeatherBonusModifier(element)) >= 1
+    end
+
+    return xi.combat.magicHitRate.magicAccuracyFromDayWeatherElementFromParams({
+        magicalElement           = element,
+        dayElement               = VanadielDayElement(),
+        weather                  = actor:getWeather(),
+        iridescence              = actor:getMod(xi.mod.IRIDESCENCE),
+        forceDW                  = forceDW,
+        forceElementObi          = forceObi,
+        roll1to100               = math.random(1, 100),
+        associatedSingleWeather  = element > 0 and xi.data.element.getAssociatedSingleWeather(element) or 0,
+        associatedDoubleWeather  = element > 0 and xi.data.element.getAssociatedDoubleWeather(element) or 0,
+        oppositeSingleWeather    = element > 0 and xi.data.element.getOppositeSingleWeather(element) or 0,
+        oppositeDoubleWeather    = element > 0 and xi.data.element.getOppositeDoubleWeather(element) or 0,
+        elementWeakness          = element > 0 and xi.data.element.getElementWeakness(element) or 0,
+    })
+end
+
+local function magicAccuracyFromTandemStrike(actor)
+    local tandemActive = actor:isTandemActive()
+    local isPetWithMasterPC = false
+    local masterPower = 0
+    local selfPower = actor:getMod(xi.mod.TANDEM_STRIKE_POWER)
+
+    if tandemActive then
+        local master = actor:getMaster()
+        if master and master:isPC() then
+            isPetWithMasterPC = true
+            masterPower = master:getMod(xi.mod.TANDEM_STRIKE_POWER)
+        end
+    end
+
+    return xi.combat.magicHitRate.magicAccuracyFromTandemStrikeFromParams({
+        tandemActive       = tandemActive,
+        isPetWithMasterPC  = isPetWithMasterPC,
+        masterPower        = masterPower,
+        selfPower          = selfPower,
+    })
+end
+
+local function magicAccuracyFromFoodMultiplier(actor)
+    return xi.combat.magicHitRate.magicAccuracyFromFoodMultiplierFromParams({
+        foodMaccP   = actor:getMod(xi.mod.FOOD_MACCP),
+        foodMaccCap = actor:getMod(xi.mod.FOOD_MACC_CAP),
+    })
+end
+
+local function magicAccuracyFromSoulVoiceMultiplier(actor, params)
+    return xi.combat.magicHitRate.magicAccuracyFromSoulVoiceMultiplierFromParams({
+        effectId     = params.effectId,
+        skillType    = params.skillType,
+        hasSoulVoice = actor:hasStatusEffect(xi.effect.SOUL_VOICE),
+        hasMarcato   = actor:hasStatusEffect(xi.effect.MARCATO),
+    })
+end
+
 local function calculateActorMagicAccuracy(actor, target, params)
-    local finalMagicAcc = 0
-
-    local magicAccBase       = actor:getMod(xi.mod.MACC) + actor:getILvlMacc(xi.slot.MAIN) + params.bonusMacc
-    local magicAccSkill      = magicAccuracyFromSkill(actor, params)
-    local magicAccElement    = magicAccuracyFromElement(actor, params)
-    local magicAccStatDiff   = magicAccuracyFromStatDifference(actor, target, params)
-    local magicAccEffects    = magicAccuracyFromStatusEffects(actor, params)
-    local magicAccMerits     = magicAccuracyFromMerits(actor, params)
-    local magicAccJobPoints  = magicAccuracyFromJobPoints(actor, params)
-    local magicAccBurst      = magicAccuracyFromMagicBurst(target, params)
-    local magicAccDayWeather = magicAccuracyFromDayWeatherElement(actor, params)
-    local magicAccTandem     = magicAccuracyFromTandemStrike(actor)
-
-    -- Multipliers
-    local magicAccFoodFactor      = magicAccuracyFromFoodMultiplier(actor)
-    local magicAccSoulVoiceFactor = magicAccuracyFromSoulVoiceMultiplier(actor, params)
-
-    -- Add up food magic accuracy.
-    finalMagicAcc = magicAccBase + magicAccSkill + magicAccElement + magicAccStatDiff + magicAccEffects + magicAccMerits + magicAccJobPoints + magicAccBurst + magicAccDayWeather + magicAccTandem
-    finalMagicAcc = math.floor(finalMagicAcc * magicAccFoodFactor * magicAccSoulVoiceFactor)
-
-    return finalMagicAcc
+    return xi.combat.magicHitRate.calculateActorMagicAccuracyFromParams({
+        base       = actor:getMod(xi.mod.MACC) + actor:getILvlMacc(xi.slot.MAIN) + (params.bonusMacc or 0),
+        skill      = magicAccuracyFromSkill(actor, params),
+        element    = magicAccuracyFromElement(actor, params),
+        statDiff   = magicAccuracyFromStatDifference(actor, target, params),
+        effects    = magicAccuracyFromStatusEffects(actor, params),
+        merits     = magicAccuracyFromMerits(actor, params),
+        jobPoints  = magicAccuracyFromJobPoints(actor, params),
+        burst      = magicAccuracyFromMagicBurst(target, params),
+        dayWeather = magicAccuracyFromDayWeatherElement(actor, params),
+        tandem     = magicAccuracyFromTandemStrike(actor),
+        food       = magicAccuracyFromFoodMultiplier(actor),
+        soulVoice  = magicAccuracyFromSoulVoiceMultiplier(actor, params),
+    })
 end
 
 -----------------------------------
