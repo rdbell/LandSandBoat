@@ -1578,6 +1578,53 @@ xi.weaponskills.bonusAccWithVaries = function(bonusAcc, accVariesFTP)
     return bonusAcc + accVariesFTP
 end
 
+-----------------------------------
+-- Pure: doPhysicalWeaponskill setup product (slice 6775 / 6664)
+-- Parity: internal/wsformula PhysicalWeaponskillSetup
+-----------------------------------
+-- params: hasPerfectDodge, hasAllMiss, hitsHigh,
+--   hasSneakAttack, isBehind, hasHide, targetHasDoubt,
+--   hasTaChar, hasAssassinTrait,
+--   isJump, gearFTP, gearAcc, jumpAccBonus, wsAccMod, bonusWSmods,
+--   hasAccVaries, accVariesFTP
+-- returns table of calcParams flags/bonuses + firstHitAccBonus
+xi.weaponskills.physicalWeaponskillSetupFromParams = function(params)
+    params = params or {}
+    -- Coerce injects to booleans so nil status reads become false (not nil).
+    local mustMiss = not not xi.weaponskills.physicalMustMiss(
+        not not params.hasPerfectDodge, not not params.hasAllMiss, not not params.hitsHigh)
+    local sneak = not not xi.weaponskills.sneakApplicable(
+        not not params.hasSneakAttack, not not params.isBehind,
+        not not params.hasHide, not not params.targetHasDoubt)
+    local trick = not not xi.weaponskills.trickApplicable(not not params.hasTaChar)
+    local assassin = not not xi.weaponskills.assassinApplicable(
+        trick, not not params.hasAssassinTrait)
+    local bonusFTP, bonusAcc, bonusWSmods = xi.weaponskills.physicalBonusInjects(
+        not not params.isJump,
+        params.gearFTP or 0,
+        params.gearAcc or 0,
+        params.jumpAccBonus or 0,
+        params.wsAccMod or 0,
+        params.bonusWSmods or 0
+    )
+    if params.hasAccVaries then
+        bonusAcc = xi.weaponskills.bonusAccWithVaries(bonusAcc, params.accVariesFTP or 0)
+    end
+
+    return {
+        mustMiss           = mustMiss,
+        sneakApplicable    = sneak,
+        trickApplicable    = trick,
+        assassinApplicable = assassin,
+        guaranteedHit      = not not xi.weaponskills.guaranteedHit(sneak, trick),
+        forcedFirstCrit    = not not xi.weaponskills.forcedFirstCrit(sneak, assassin),
+        bonusFTP           = bonusFTP,
+        bonusAcc           = bonusAcc,
+        bonusWSmods        = bonusWSmods,
+        firstHitAccBonus   = xi.weaponskills.firstHitAccuracyBonus(bonusAcc),
+    }
+end
+
 -- Pure hybrid magic add gate: hybridWS and target still has HP after physical.
 xi.weaponskills.hybridMagicApplies = function(hybridWS, targetHP, physicalFinalDmg)
     return hybridWS and targetHP > physicalFinalDmg
@@ -1692,23 +1739,8 @@ xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParam
     calcParams.fSTR                    = xi.combat.physical.calculateMeleeStatFactor(attacker, target)
     calcParams.accStat                 = attacker:getACC()
     calcParams.melee                   = true
-    calcParams.mustMiss                = xi.weaponskills.physicalMustMiss(
-        target:hasStatusEffect(xi.effect.PERFECT_DODGE),
-        target:hasStatusEffect(xi.effect.ALL_MISS),
-        wsParams.hitsHigh
-    )
-    calcParams.sneakApplicable         = xi.weaponskills.sneakApplicable(
-        attacker:hasStatusEffect(xi.effect.SNEAK_ATTACK),
-        attacker:isBehind(target),
-        attacker:hasStatusEffect(xi.effect.HIDE),
-        target:hasStatusEffect(xi.effect.DOUBT)
-    )
     calcParams.taChar                  = taChar
-    calcParams.trickApplicable         = xi.weaponskills.trickApplicable(calcParams.taChar ~= nil)
-    calcParams.assassinApplicable      = xi.weaponskills.assassinApplicable(calcParams.trickApplicable, attacker:hasTrait(xi.trait.ASSASSIN))
-    calcParams.guaranteedHit           = xi.weaponskills.guaranteedHit(calcParams.sneakApplicable, calcParams.trickApplicable)
     calcParams.mightyStrikesApplicable = attacker:hasStatusEffect(xi.effect.MIGHTY_STRIKES)
-    calcParams.forcedFirstCrit         = xi.weaponskills.forcedFirstCrit(calcParams.sneakApplicable, calcParams.assassinApplicable)
     calcParams.extraOffhandHit         = attacker:isDualWielding()
     calcParams.hybridHit               = wsParams.hybridWS
     calcParams.flourishEffect          = attacker:getStatusEffect(xi.effect.BUILDING_FLOURISH)
@@ -1716,21 +1748,38 @@ xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParam
     calcParams.tpUsed                  = tp
     calcParams.attackType              = xi.attackType.PHYSICAL
 
+    -- Pure setup product for miss/SA/TA/guaranteed/bonus injects (slice 6775).
     local isJump = wsParams.isJump or false
-    calcParams.bonusfTP, calcParams.bonusAcc, calcParams.bonusWSmods = xi.weaponskills.physicalBonusInjects(
-        isJump,
-        gearFTP,
-        gearAcc,
-        attacker:getMod(xi.mod.JUMP_ACC_BONUS),
-        attacker:getMod(xi.mod.WSACC),
-        wsParams.bonusWSmods
-    )
+    local setup = xi.weaponskills.physicalWeaponskillSetupFromParams({
+        hasPerfectDodge  = target:hasStatusEffect(xi.effect.PERFECT_DODGE),
+        hasAllMiss       = target:hasStatusEffect(xi.effect.ALL_MISS),
+        hitsHigh         = wsParams.hitsHigh,
+        hasSneakAttack   = attacker:hasStatusEffect(xi.effect.SNEAK_ATTACK),
+        isBehind         = attacker:isBehind(target),
+        hasHide          = attacker:hasStatusEffect(xi.effect.HIDE),
+        targetHasDoubt   = target:hasStatusEffect(xi.effect.DOUBT),
+        hasTaChar        = taChar ~= nil,
+        hasAssassinTrait = attacker:hasTrait(xi.trait.ASSASSIN),
+        isJump           = isJump,
+        gearFTP          = gearFTP,
+        gearAcc          = gearAcc,
+        jumpAccBonus     = attacker:getMod(xi.mod.JUMP_ACC_BONUS),
+        wsAccMod         = attacker:getMod(xi.mod.WSACC),
+        bonusWSmods      = wsParams.bonusWSmods,
+        hasAccVaries     = wsParams.accVaries ~= nil,
+        accVariesFTP     = wsParams.accVaries and xi.weaponskills.fTP(tp, wsParams.accVaries) or 0,
+    })
+    calcParams.mustMiss           = setup.mustMiss
+    calcParams.sneakApplicable    = setup.sneakApplicable
+    calcParams.trickApplicable    = setup.trickApplicable
+    calcParams.assassinApplicable = setup.assassinApplicable
+    calcParams.guaranteedHit      = setup.guaranteedHit
+    calcParams.forcedFirstCrit    = setup.forcedFirstCrit
+    calcParams.bonusfTP           = setup.bonusFTP
+    calcParams.bonusAcc           = setup.bonusAcc
+    calcParams.bonusWSmods        = setup.bonusWSmods
 
-    if wsParams.accVaries then
-        calcParams.bonusAcc = xi.weaponskills.bonusAccWithVaries(calcParams.bonusAcc, xi.weaponskills.fTP(tp, wsParams.accVaries))
-    end
-
-    calcParams.firstHitRate = xi.weaponskills.getHitRate(attacker, target, xi.weaponskills.firstHitAccuracyBonus(calcParams.bonusAcc), xi.attackAnimation.RIGHT_ATTACK)
+    calcParams.firstHitRate = xi.weaponskills.getHitRate(attacker, target, setup.firstHitAccBonus, xi.attackAnimation.RIGHT_ATTACK)
     calcParams.hitRate      = xi.weaponskills.getHitRate(attacker, target, calcParams.bonusAcc, xi.attackAnimation.RIGHT_ATTACK)
     calcParams.skillType    = attack.weaponType
 
