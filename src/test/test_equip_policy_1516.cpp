@@ -14,6 +14,7 @@
 #include "map/equip_armor_sub_look_capacity.h"
 #include "map/equip_armor_target_look_capacity.h"
 #include "map/unequip_armor_look_capacity.h"
+#include "map/unequip_main_sub_look_capacity.h"
 #include "map/unequip_ranged_look_capacity.h"
 #include "map/unequip_sub_look_capacity.h"
 #include "map/equip_policy_capacity.h"
@@ -376,6 +377,25 @@ auto Check() -> bool
     const auto noSubLook    = unequipsublookhelpers::PlanFor(2);
     if (!subLookClear.setSubLook || subLookClear.modelID != 0 ||
         noSubLook.setSubLook || noSubLook.modelID != 0)
+    {
+        return false;
+    }
+
+    const auto h2hMainSubClear = unequipmainsublookhelpers::PlanFor({
+        .removedMainIsWeapon     = true,
+        .removedMainIsHandToHand = true,
+        .hasSubAfterClear        = true,
+    });
+    const auto emptySubMainClear = unequipmainsublookhelpers::PlanFor({ .removedMainIsWeapon = true });
+    const auto retainedSub       = unequipmainsublookhelpers::PlanFor({
+        .removedMainIsWeapon = true,
+        .hasSubAfterClear    = true,
+    });
+    const auto nonWeaponMain = unequipmainsublookhelpers::PlanFor({});
+    if (!h2hMainSubClear.setSubLook || h2hMainSubClear.modelID != 0 ||
+        !emptySubMainClear.setSubLook || emptySubMainClear.modelID != 0 ||
+        retainedSub.setSubLook || retainedSub.modelID != 0 ||
+        nonWeaponMain.setSubLook || nonWeaponMain.modelID != 0)
     {
         return false;
     }

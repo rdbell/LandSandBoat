@@ -122,6 +122,7 @@
 #include "equip_armor_sub_look_capacity.h"
 #include "equip_armor_target_look_capacity.h"
 #include "unequip_armor_look_capacity.h"
+#include "unequip_main_sub_look_capacity.h"
 #include "unequip_ranged_look_capacity.h"
 #include "unequip_sub_look_capacity.h"
 #include "equip_policy_capacity.h"
@@ -2279,6 +2280,12 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
             .hasRangedAfterClear = PChar->getEquip(SLOT_RANGED) != nullptr,
         });
         const auto subLookPlan = unequipsublookhelpers::PlanFor(equipSlotID);
+        const auto mainSubLookPlan = unequipmainsublookhelpers::PlanFor({
+            .equipSlotID             = equipSlotID,
+            .removedMainIsWeapon     = PItem->isType(ITEM_WEAPON),
+            .removedMainIsHandToHand = PItem->isType(ITEM_WEAPON) && static_cast<CItemWeapon*>(PItem)->getSkillType() == SKILL_HAND_TO_HAND,
+            .hasSubAfterClear        = PChar->getEquip(SLOT_SUB) != nullptr,
+        });
         switch (equipSlotID)
         {
             case SLOT_HEAD:
@@ -2352,18 +2359,9 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
             break;
             case SLOT_MAIN:
             {
-                if (PItem->isType(ITEM_WEAPON))
+                if (mainSubLookPlan.setSubLook)
                 {
-                    CItemEquipment* PSub = PChar->getEquip(SLOT_SUB);
-
-                    if (static_cast<CItemWeapon*>(PItem)->getSkillType() == SKILL_HAND_TO_HAND)
-                    {
-                        PChar->look.sub = 0;
-                    }
-                    else if (!PSub)
-                    {
-                        PChar->look.sub = 0;
-                    }
+                    PChar->look.sub = mainSubLookPlan.modelID;
                 }
 
                 if (PChar->PAI->IsEngaged())
