@@ -22,6 +22,7 @@
 #include "time_server.h"
 #include "time_server_earth_tick.h"
 #include "time_server_tick_tail.h"
+#include "time_server_vana_tick.h"
 
 #include "common/logging.h"
 #include "common/vana_time.h"
@@ -138,68 +139,69 @@ auto time_server(Scheduler& scheduler, MapConfig config) -> Task<void>
 
     if (vanaTime >= nextVHourlyUpdate)
     {
-        // Vana'diel Hour
-        zoneutils::ForEachZone(
-            [](CZone* PZone)
+        const auto vanaTickPlan = timeservervanatickhelpers::MakePlan(vanaHour, vanaTotd != prevTotd);
+        for (std::size_t index = 0; index < vanaTickPlan.count; ++index)
+        {
+            switch (vanaTickPlan.actions[index])
             {
-                luautils::OnGameHour(PZone);
-                PZone->ForEachChar(
-                    [](CCharEntity* PChar)
-                    {
-                        PChar->PLatentEffectContainer->CheckLatentsHours();
-                        PChar->PLatentEffectContainer->CheckLatentsMoonPhase();
-
-                        if (PChar->guildShopNpc_.id != 0)
+                case timeservervanatickhelpers::Action::OnGameHour:
+                    zoneutils::ForEachZone(
+                        [](CZone* PZone)
                         {
-                            if (auto* PNpc = zoneutils::GetEntity(PChar->guildShopNpc_.id, TYPE_NPC))
-                            {
-                                luautils::callGlobal<void>("xi.guildShops.onGameHour", PChar, PNpc);
-                            }
-                        }
-                    });
-            });
+                            luautils::OnGameHour(PZone);
+                            PZone->ForEachChar(
+                                [](CCharEntity* PChar)
+                                {
+                                    PChar->PLatentEffectContainer->CheckLatentsHours();
+                                    PChar->PLatentEffectContainer->CheckLatentsMoonPhase();
 
-        if (vanaHour == 0)
-        {
-            // Vana'diel Day
-            TracyZoneScoped;
-
-            ShowDebugFmt("Vana'diel day tick... (current tick: {})", tickNum);
-
-            zoneutils::ForEachZone(
-                [](CZone* PZone)
-                {
-                    luautils::OnGameDay(PZone);
-                    PZone->ForEachChar(
-                        [](CCharEntity* PChar)
-                        {
-                            PChar->PLatentEffectContainer->CheckLatentsWeekDay();
+                                    if (PChar->guildShopNpc_.id != 0)
+                                    {
+                                        if (auto* PNpc = zoneutils::GetEntity(PChar->guildShopNpc_.id, TYPE_NPC))
+                                        {
+                                            luautils::callGlobal<void>("xi.guildShops.onGameHour", PChar, PNpc);
+                                        }
+                                    }
+                                });
                         });
-                });
-
-            zoneutils::SavePlayTime();
-        }
-
-        if (vanaTotd != prevTotd)
-        {
-            // MIDNIGHT -> NEWDAY -> DAWN -> DAY -> DUSK -> EVENING -> NIGHT
-            TracyZoneScoped;
-
-            zoneutils::TOTDChange(vanaTotd);
-            fishingutils::RestockFishingAreas();
-
-            zoneutils::ForEachZone(
-                [](CZone* PZone)
+                    break;
+                case timeservervanatickhelpers::Action::OnGameDay:
                 {
-                    PZone->ForEachChar(
-                        [](CCharEntity* PChar)
+                    TracyZoneScoped;
+                    ShowDebugFmt("Vana'diel day tick... (current tick: {})", tickNum);
+                    zoneutils::ForEachZone(
+                        [](CZone* PZone)
                         {
-                            PChar->PLatentEffectContainer->CheckLatentsDay();
-                            PChar->PLatentEffectContainer->CheckLatentsJobLevel(); // Eerie CLoak +1 latent is nighttime + level multiple of 13
+                            luautils::OnGameDay(PZone);
+                            PZone->ForEachChar(
+                                [](CCharEntity* PChar)
+                                {
+                                    PChar->PLatentEffectContainer->CheckLatentsWeekDay();
+                                });
                         });
-                });
-
-            prevTotd = vanaTotd;
+                    zoneutils::SavePlayTime();
+                    break;
+                }
+                case timeservervanatickhelpers::Action::TotdChange:
+                {
+                    // MIDNIGHT -> NEWDAY -> DAWN -> DAY -> DUSK -> EVENING -> NIGHT
+                    TracyZoneScoped;
+                    zoneutils::TOTDChange(vanaTotd);
+                    fishingutils::RestockFishingAreas();
+                    zoneutils::ForEachZone(
+                        [](CZone* PZone)
+                        {
+                            PZone->ForEachChar(
+                                [](CCharEntity* PChar)
+                                {
+                                    PChar->PLatentEffectContainer->CheckLatentsDay();
+                                    PChar->PLatentEffectContainer->CheckLatentsJobLevel(); // Eerie CLoak +1 latent is nighttime + level multiple of 13
+                                });
+                        });
+                    prevTotd = vanaTotd;
+                    break;
+                }
+            }
         }
 
         nextVHourlyUpdate = std::chrono::ceil<xi::vanadiel_clock::hours>(vanaTime);

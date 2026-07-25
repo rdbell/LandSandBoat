@@ -798,6 +798,7 @@ auto runMapNetworkingSendBacklog6926SelfTests() -> bool;
 auto runMapNetworkingDecipher6927SelfTests() -> bool;
 auto runTimeServerTickTail6928SelfTests() -> bool;
 auto runTimeServerEarthTick6929SelfTests() -> bool;
+auto runTimeServerVanaTick6930SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3259,6 +3260,7 @@ namespace
         ok = runMapNetworkingDecipher6927SelfTests() && ok;
         ok = runTimeServerTickTail6928SelfTests() && ok;
         ok = runTimeServerEarthTick6929SelfTests() && ok;
+        ok = runTimeServerVanaTick6930SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
