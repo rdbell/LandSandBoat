@@ -65,6 +65,7 @@
 #include "char_home_point_transition.h"
 #include "char_mannequin_update.h"
 #include "char_points_capacity.h"
+#include "char_race_change_transition.h"
 #include "char_send_to_zone_capacity.h"
 #include "char_unity_leader_capacity.h"
 #include "char_zone_out_transition.h"
@@ -8235,33 +8236,34 @@ void updateMannequins(CCharEntity* PChar)
 
 bool raceChange(CCharEntity* PChar, CharRace newRace, CharFace newFace, CharSize newSize)
 {
-    if (entityspawnhelpers::ShouldRejectNullCharRaceChange(PChar != nullptr))
+    const bool argsInBounds = PChar != nullptr && entityspawnhelpers::IsRaceChangeArgsInBounds(
+        static_cast<uint8>(newRace), static_cast<uint8>(newFace), static_cast<uint8>(newSize),
+        static_cast<uint8>(CharRace::HumeMale), static_cast<uint8>(CharRace::Galka),
+        static_cast<uint8>(CharFace::Face8B), static_cast<uint8>(CharSize::Large));
+    const auto validation = racechangetransitionhelpers::MakeRaceChangeValidationPlan(PChar != nullptr, argsInBounds);
+    if (!validation.attemptLookUpdate)
     {
+        if (validation.reportInvalidArguments)
+        {
+            ShowError("charutils::raceChange: Arguments out of bounds for charid: %u", PChar->id);
+        }
         return false;
     }
 
-    if (!entityspawnhelpers::IsRaceChangeArgsInBounds(
-            static_cast<uint8>(newRace),
-            static_cast<uint8>(newFace),
-            static_cast<uint8>(newSize),
-            static_cast<uint8>(CharRace::HumeMale),
-            static_cast<uint8>(CharRace::Galka),
-            static_cast<uint8>(CharFace::Face8B),
-            static_cast<uint8>(CharSize::Large)))
-    {
-        ShowError("charutils::raceChange: Arguments out of bounds for charid: %u", PChar->id);
-        return false;
-    }
-
-    if (!db::preparedStmt("UPDATE char_look SET "
+    const bool lookUpdateSucceeded = db::preparedStmt("UPDATE char_look SET "
                           "face = ?, race = ?, size = ? "
                           "WHERE charid = ?",
                           newFace,
                           newRace,
                           newSize,
-                          PChar->id))
+                          PChar->id) != nullptr;
+    const auto completion = racechangetransitionhelpers::MakeRaceChangeCompletionPlan(lookUpdateSucceeded);
+    if (!completion.succeeded)
     {
-        ShowError("charutils::raceChange: Failed to update char_look for charid: %u", PChar->id);
+        if (completion.reportLookUpdateFailure)
+        {
+            ShowError("charutils::raceChange: Failed to update char_look for charid: %u", PChar->id);
+        }
         return false;
     }
 
@@ -8276,8 +8278,11 @@ bool raceChange(CCharEntity* PChar, CharRace newRace, CharFace newFace, CharSize
         }
     }
 
-    ForceRezone(PChar);
-    return true;
+    if (completion.forceRezone)
+    {
+        ForceRezone(PChar);
+    }
+    return completion.succeeded;
 }
 
 void ApplyAbilityRecast(CCharEntity* PChar, const CAbility* PAbility, const Charge_t* charge, const timer::duration baseChargeTime, const timer::duration recastTime)

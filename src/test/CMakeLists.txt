@@ -1379,6 +1379,8 @@ set(SOURCES
     test_death_timestamp_load_6862.cpp
     test_mannequin_update_6863.h
     test_mannequin_update_6863.cpp
+    test_race_change_transition_6864.h
+    test_race_change_transition_6864.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h
