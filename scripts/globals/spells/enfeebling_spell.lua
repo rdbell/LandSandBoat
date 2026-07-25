@@ -1,6 +1,12 @@
 -----------------------------------
 -- Enfeebling Spell Utilities
 -- Used for spells that deal negative status effects upon targets.
+--
+-- Dual-wired pure inject forms (slice 6727 / 0872 / 6089):
+--   elementalDebuffPotencyFromParams, calculatePotencyFromParams,
+--   calculateDurationFromParams, immunobreakEligibleFromParams,
+--   immunobreakChance, immunobreakSucceeds
+-- Parity: internal/enfeebling
 -----------------------------------
 require('scripts/globals/combat/magic_hit_rate')
 require('scripts/globals/jobpoints')
@@ -9,6 +15,14 @@ require('scripts/globals/magicburst')
 xi = xi or {}
 xi.spells = xi.spells or {}
 xi.spells.enfeebling = xi.spells.enfeebling or {}
+-----------------------------------
+-- Pins matching internal/enfeebling.
+xi.spells.enfeebling.skillEnfeeblingMagic = 35 -- xi.skill.ENFEEBLING_MAGIC
+xi.spells.enfeebling.saboteurNMMult       = 1.3
+xi.spells.enfeebling.saboteurNormalMult   = 2.0
+xi.spells.enfeebling.immunobreakMinBaseRank  = 6
+xi.spells.enfeebling.immunobreakMinFinalRank = 4
+xi.spells.enfeebling.immunobreakBaseChanceFlat = 20
 -----------------------------------
 local column =
 {
@@ -114,9 +128,12 @@ local pTable =
     [xi.magic.spell.YURIN_ICHI    ] = { xi.effect.INHIBIT_TP,         1, xi.mod.INT,   10,   0, 180, 1, false,   0 },
 }
 
-local function getElementalDebuffPotency(caster, statUsed)
-    local potency    = 1
-    local casterStat = caster:getStat(statUsed)
+-- Pure elemental debuff potency (internal/enfeebling.ElementalDebuffPotency).
+-- params: casterStat, merit, mod
+xi.spells.enfeebling.elementalDebuffPotencyFromParams = function(params)
+    params = params or {}
+    local potency = 1
+    local casterStat = params.casterStat or 0
 
     if casterStat > 150 then
         potency = potency + 4
@@ -128,60 +145,79 @@ local function getElementalDebuffPotency(caster, statUsed)
         potency = potency + 1
     end
 
-    potency = potency + caster:getMerit(xi.merit.ELEMENTAL_DEBUFF_EFFECT) + caster:getMod(xi.mod.ELEMENTAL_DEBUFF_EFFECT) / 2
+    return potency + (params.merit or 0) + (params.mod or 0) / 2
+end
 
-    return potency
+-- Host wrapper for elemental ladder (entity inject).
+local function getElementalDebuffPotency(caster, statUsed)
+    return xi.spells.enfeebling.elementalDebuffPotencyFromParams({
+        casterStat = caster:getStat(statUsed),
+        merit      = caster:getMerit(xi.merit.ELEMENTAL_DEBUFF_EFFECT),
+        mod        = caster:getMod(xi.mod.ELEMENTAL_DEBUFF_EFFECT),
+    })
+end
+
+-- Pure immunobreak gates (internal/enfeebling.ImmunobreakEligible).
+xi.spells.enfeebling.immunobreakEligibleFromParams = function(params)
+    params = params or {}
+    if not params.enabled or not params.casterIsPC or not params.targetIsMob then
+        return false
+    end
+
+    if (params.skillType or 0) ~= xi.spells.enfeebling.skillEnfeeblingMagic then
+        return false
+    end
+
+    if (params.immunobreakModId or 0) == 0 then
+        return false
+    end
+
+    if (params.baseResistanceRank or 0) < xi.spells.enfeebling.immunobreakMinBaseRank then
+        return false
+    end
+
+    local finalRank = (params.baseResistanceRank or 0) - (params.immunobreakValue or 0)
+    return finalRank > xi.spells.enfeebling.immunobreakMinFinalRank
+end
+
+-- Pure chance: merit + 20/(value+1)
+xi.spells.enfeebling.immunobreakChance = function(merit, immunobreakValue)
+    return (merit or 0) + xi.spells.enfeebling.immunobreakBaseChanceFlat / ((immunobreakValue or 0) + 1)
+end
+
+-- Pure roll: succeed when roll (1..100) <= chance
+xi.spells.enfeebling.immunobreakSucceeds = function(chance, roll1to100)
+    return (roll1to100 or 0) <= (chance or 0)
 end
 
 local function executeImmunobreak(caster, target, spell, effectId)
-    -- Early return: Immunobreak didn't exist in lvl 75 era.
-    if not xi.settings.main.ENABLE_IMMUNOBREAK then
-        return
-    end
-
-    -- Early return: Only players can immunobreak. (NOTE: Any job can proc Immunobreaks.)
-    if not caster:isPC() then
-        return
-    end
-
-    -- Early return: Only non-players can be immunobroken.
-    if not target:isMob() then
-        return
-    end
-
-    -- Early return: Only Enfeebling magic can immunobreak.
-    if spell:getSkillType() ~= xi.skill.ENFEEBLING_MAGIC then
-        return
-    end
-
-    -- Early return: This effect doesn't have an immunobreak associated modifier.
-    local immunobreakModId = xi.data.statusEffect.getAssociatedImmunobreakModifier(effectId)
-    if immunobreakModId == 0 then
-        return
-    end
-
     -- Fetch resistance rank modifier (Either effect-specific or elemental)
+    local immunobreakModId = xi.data.statusEffect.getAssociatedImmunobreakModifier(effectId)
     local resistanceRankModId = xi.data.statusEffect.getAssociatedResistanceRankModifier(effectId, spell:getElement())
     if resistanceRankModId == 0 then -- If it's an effect and this is 0, try with element.
         resistanceRankModId = xi.data.element.getElementalResistanceRankModifier(spell:getElement())
     end
 
-    -- Early return: Only mobs with a resistance rank of 6+ (x <= 30% EEM) can be immunobroken.
-    local baseResistanceRank  = target:getMod(resistanceRankModId)
-    if baseResistanceRank < 6 then
+    local baseResistanceRank = target:getMod(resistanceRankModId)
+    local immunobreakValue   = target:getMod(immunobreakModId)
+
+    if not xi.spells.enfeebling.immunobreakEligibleFromParams({
+        enabled             = xi.settings.main.ENABLE_IMMUNOBREAK and true or false,
+        casterIsPC          = caster:isPC(),
+        targetIsMob         = target:isMob(),
+        skillType           = spell:getSkillType(),
+        immunobreakModId    = immunobreakModId,
+        baseResistanceRank  = baseResistanceRank,
+        immunobreakValue    = immunobreakValue,
+    }) then
         return
     end
 
-    -- Early return: Resistance rank cannot be lowered (and wont trigger) bellow rank 4 (50% EEM)
-    local immunobreakValue    = target:getMod(immunobreakModId)
-    local finalResistanceRank = baseResistanceRank - immunobreakValue
-    if finalResistanceRank <= 4 then
-        return
-    end
-
-    -- Calculate Immunobreack chance.
-    local immunobreakChance = caster:getMerit(xi.merit.IMMUNOBREAK_CHANCE) + 20 / (immunobreakValue + 1) -- TODO: Add immunobreak gear?
-    if math.random(1, 100) > immunobreakChance then
+    local chance = xi.spells.enfeebling.immunobreakChance(
+        caster:getMerit(xi.merit.IMMUNOBREAK_CHANCE),
+        immunobreakValue
+    )
+    if not xi.spells.enfeebling.immunobreakSucceeds(chance, math.random(1, 100)) then
         return
     end
 
@@ -190,145 +226,154 @@ local function executeImmunobreak(caster, target, spell, effectId)
     spell:setModifier(xi.msg.actionModifier.IMMUNOBREAK)
 end
 
--- Calculate potency.
-xi.spells.enfeebling.calculatePotency = function(caster, target, spellId, spellEffect, skillType, statUsed)
-    local potency    = pTable[spellId][column.BASE_POTENCY]
-    local statDiff   = caster:getStat(statUsed) - target:getStat(statUsed)
-    local skillLevel = caster:getSkillLevel(skillType)
+-- Pure calculatePotency (internal/enfeebling.Potency).
+-- params: spellId, spellEffect, basePotency, skillType, skillLevel,
+--         casterStat, targetStat, targetMND, elementalDebuffMerit, elementalDebuffMod,
+--         applySaboteur, hasSaboteur, targetIsNM, enhancesSaboteur, enfMagPotency
+xi.spells.enfeebling.calculatePotencyFromParams = function(params)
+    params = params or {}
+    local potency    = params.basePotency or 0
+    local spellId    = params.spellId or 0
+    local spellEffect = params.spellEffect or 0
+    local skillLevel = params.skillLevel or 0
+    local casterStat = params.casterStat or 0
+    local targetStat = params.targetStat or 0
+    local targetMND  = params.targetMND or 0
+    local statDiff   = casterStat - targetStat
 
-    -- Calculate base potency for spells.
-    switch (spellEffect) : caseof
-    {
-        [xi.effect.ADDLE] = function()
-            potency = potency + utils.clamp(math.floor(statDiff / 5), 0, 20) -- Values from JP wiki: http://wiki.ffo.jp/html/21127.html
-        end,
-
-        [xi.effect.BLINDNESS] = function()
-            statDiff = caster:getStat(statUsed) - target:getStat(xi.mod.MND)
-
-            if spellId == xi.magic.spell.BLIND_II then
-                potency = utils.clamp(statDiff * 0.375 + 49, 19, 94) -- Values from JP wiki: http://wiki.ffo.jp/html/3449.html
-            else
-                potency = utils.clamp(statDiff * 0.225 + 23, 5, 50)  -- Values from JP wiki: http://wiki.ffo.jp/html/834.html
+    if spellEffect == xi.effect.ADDLE then
+        potency = potency + utils.clamp(math.floor(statDiff / 5), 0, 20)
+    elseif spellEffect == xi.effect.BLINDNESS then
+        local blindDiff = casterStat - targetMND
+        if spellId == xi.magic.spell.BLIND_II then
+            potency = utils.clamp(blindDiff * 0.375 + 49, 19, 94)
+        else
+            potency = utils.clamp(blindDiff * 0.225 + 23, 5, 50)
+        end
+    elseif spellEffect == xi.effect.EVASION_DOWN then
+        if spellId == xi.magic.spell.DISTRACT then
+            potency = utils.clamp(skillLevel / 5, 0, 25) + utils.clamp(statDiff / 5, 0, 10)
+        elseif spellId == xi.magic.spell.DISTRACT_II then
+            potency = utils.clamp(skillLevel * 4 / 35, 0, 40) + utils.clamp(statDiff / 5, 0, 10)
+        else
+            potency = utils.clamp(skillLevel / 5, 0, 120) + utils.clamp(statDiff / 5, 0, 10)
+        end
+    elseif spellEffect == xi.effect.MAGIC_EVASION_DOWN then
+        if spellId == xi.magic.spell.FRAZZLE then
+            potency = utils.clamp(skillLevel / 5, 0, 25) + utils.clamp(statDiff / 5, 0, 10)
+        elseif spellId == xi.magic.spell.FRAZZLE_II then
+            potency = utils.clamp(skillLevel * 4 / 35, 0, 40) + utils.clamp(statDiff / 5, 0, 10)
+        else
+            potency = utils.clamp(skillLevel / 5, 0, 120) + utils.clamp(statDiff / 5, 0, 10)
+        end
+    elseif spellEffect == xi.effect.PARALYSIS then
+        if spellId == xi.magic.spell.PARALYZE_II then
+            potency = utils.clamp(statDiff / 4 + 24, 14, 34)
+        else
+            potency = utils.clamp(statDiff / 4 + 15, 5, 25)
+        end
+    elseif spellEffect == xi.effect.POISON then
+        if
+            spellId == xi.magic.spell.POISON or
+            spellId == xi.magic.spell.POISONGA
+        then
+            potency = math.max(skillLevel / 25, 1)
+            if skillLevel > 400 then
+                potency = math.min((skillLevel - 225) / 5, 55)
             end
-        end,
-
-        [xi.effect.EVASION_DOWN] = function()
-            if spellId == xi.magic.spell.DISTRACT then
-                potency = utils.clamp(skillLevel / 5, 0, 25) + utils.clamp(statDiff / 5, 0, 10)
-            elseif spellId == xi.magic.spell.DISTRACT_II then
-                potency = utils.clamp(skillLevel * 4 / 35, 0, 40) + utils.clamp(statDiff / 5, 0, 10)
-            else
-                potency = utils.clamp(skillLevel / 5, 0, 120) + utils.clamp(statDiff / 5, 0, 10)
+        elseif
+            spellId == xi.magic.spell.POISON_II or
+            spellId == xi.magic.spell.POISONGA_II
+        then
+            potency = math.max(skillLevel / 20, 4)
+            if skillLevel > 400 then
+                potency = skillLevel * 49 / 183 - 55
             end
-        end,
+        else
+            potency = skillLevel / 10 + 1
+        end
+    elseif spellEffect == xi.effect.SLOW then
+        if spellId == xi.magic.spell.SLOW_II then
+            potency = utils.clamp(statDiff * 226 / 15 + 2780, 1650, 3910)
+        else
+            potency = utils.clamp(statDiff * 73 / 5 + 1825, 730, 2920)
+        end
+    elseif
+        spellEffect == xi.effect.BURN or
+        spellEffect == xi.effect.CHOKE or
+        spellEffect == xi.effect.DROWN or
+        spellEffect == xi.effect.FROST or
+        spellEffect == xi.effect.RASP or
+        spellEffect == xi.effect.SHOCK
+    then
+        potency = xi.spells.enfeebling.elementalDebuffPotencyFromParams({
+            casterStat = casterStat,
+            merit      = params.elementalDebuffMerit or 0,
+            mod        = params.elementalDebuffMod or 0,
+        })
+    end
 
-        [xi.effect.MAGIC_EVASION_DOWN] = function()
-            if spellId == xi.magic.spell.FRAZZLE then
-                potency = utils.clamp(skillLevel / 5, 0, 25) + utils.clamp(statDiff / 5, 0, 10)
-            elseif spellId == xi.magic.spell.FRAZZLE_II then
-                potency = utils.clamp(skillLevel * 4 / 35, 0, 40) + utils.clamp(statDiff / 5, 0, 10)
-            else
-                potency = utils.clamp(skillLevel / 5, 0, 120) + utils.clamp(statDiff / 5, 0, 10)
-            end
-        end,
-
-        [xi.effect.PARALYSIS] = function()
-            if spellId == xi.magic.spell.PARALYZE_II then
-                potency = utils.clamp(statDiff / 4 + 24, 14, 34) -- Values from JP wiki: https://wiki.ffo.jp/html/3453.html
-            else
-                potency = utils.clamp(statDiff / 4 + 15, 5, 25)
-            end
-        end,
-
-        [xi.effect.POISON] = function()
-            if
-                spellId == xi.magic.spell.POISON or
-                spellId == xi.magic.spell.POISONGA
-            then
-                potency = math.max(skillLevel / 25, 1)
-                if skillLevel > 400 then
-                    potency = math.min((skillLevel - 225) / 5, 55) -- Cap is 55 hp/tick.
-                end
-            elseif
-                spellId == xi.magic.spell.POISON_II or
-                spellId == xi.magic.spell.POISONGA_II
-            then
-                potency = math.max(skillLevel / 20, 4)
-                if skillLevel > 400 then
-                    potency = skillLevel * 49 / 183 - 55 -- No cap can be reached yet
-                end
-            else
-                potency = skillLevel / 10 + 1
-            end
-        end,
-
-        [xi.effect.SLOW] = function()
-            if spellId == xi.magic.spell.SLOW_II then
-                potency = utils.clamp(statDiff * 226 / 15 + 2780, 1650, 3910) -- https://wiki.ffo.jp/html/3454.html
-            else
-                potency = utils.clamp(statDiff * 73 / 5 + 1825, 730, 2920)
-            end
-        end,
-
-        [xi.effect.BURN] = function()
-            potency = getElementalDebuffPotency(caster, statUsed)
-        end,
-
-        [xi.effect.CHOKE] = function()
-            potency = getElementalDebuffPotency(caster, statUsed)
-        end,
-
-        [xi.effect.DROWN] = function()
-            potency = getElementalDebuffPotency(caster, statUsed)
-        end,
-
-        [xi.effect.FROST] = function()
-            potency = getElementalDebuffPotency(caster, statUsed)
-        end,
-
-        [xi.effect.RASP] = function()
-            potency = getElementalDebuffPotency(caster, statUsed)
-        end,
-
-        [xi.effect.SHOCK] = function()
-            potency = getElementalDebuffPotency(caster, statUsed)
-        end,
-    }
-
-    ---@cast potency integer
     potency = math.floor(potency)
 
-    -- Apply Saboteur Effect when applicable.
-    local applySaboteur = pTable[spellId][column.SABOTEUR]
-
     if
-        applySaboteur and
-        caster:hasStatusEffect(xi.effect.SABOTEUR) and
-        skillType == xi.skill.ENFEEBLING_MAGIC
+        params.applySaboteur and
+        params.hasSaboteur and
+        (params.skillType or 0) == xi.spells.enfeebling.skillEnfeeblingMagic
     then
-        if target:isNM() then
-            potency = math.floor(potency * (1.3 + caster:getMod(xi.mod.ENHANCES_SABOTEUR)))
+        local enhance = params.enhancesSaboteur or 0
+        if params.targetIsNM then
+            potency = math.floor(potency * (xi.spells.enfeebling.saboteurNMMult + enhance))
         else
-            potency = math.floor(potency * (2 + caster:getMod(xi.mod.ENHANCES_SABOTEUR)))
+            potency = math.floor(potency * (xi.spells.enfeebling.saboteurNormalMult + enhance))
         end
     end
 
-    -- General Enfeebling potency modifier.
-    potency = math.floor(potency * (1 + caster:getMod(xi.mod.ENF_MAG_POTENCY) / 100))
+    potency = math.floor(potency * (1 + (params.enfMagPotency or 0) / 100))
 
     return potency
 end
 
--- Calculate duration before resist
-xi.spells.enfeebling.calculateDuration = function(caster, target, spellId, spellEffect, skillType)
-    local duration = pTable[spellId][column.BASE_DURATION] -- Get base duration.
+-- Calculate potency (host → pure).
+xi.spells.enfeebling.calculatePotency = function(caster, target, spellId, spellEffect, skillType, statUsed)
+    local basePotency = pTable[spellId][column.BASE_POTENCY]
+    local applySaboteur = pTable[spellId][column.SABOTEUR]
+
+    return xi.spells.enfeebling.calculatePotencyFromParams({
+        spellId              = spellId,
+        spellEffect          = spellEffect,
+        basePotency          = basePotency,
+        skillType            = skillType,
+        skillLevel           = caster:getSkillLevel(skillType),
+        casterStat           = caster:getStat(statUsed),
+        targetStat           = target:getStat(statUsed),
+        targetMND            = target:getStat(xi.mod.MND),
+        elementalDebuffMerit = caster:getMerit(xi.merit.ELEMENTAL_DEBUFF_EFFECT),
+        elementalDebuffMod   = caster:getMod(xi.mod.ELEMENTAL_DEBUFF_EFFECT),
+        applySaboteur        = applySaboteur,
+        hasSaboteur          = caster:hasStatusEffect(xi.effect.SABOTEUR),
+        targetIsNM           = target:isNM(),
+        enhancesSaboteur     = caster:getMod(xi.mod.ENHANCES_SABOTEUR),
+        enfMagPotency        = caster:getMod(xi.mod.ENF_MAG_POTENCY),
+    })
+end
+
+-- Pure calculateDuration before resist (internal/enfeebling.Duration).
+-- params: spellEffect, baseDuration, skillType, bindDuration,
+--         elementalDebuffDurationMerit, casterMainLvl, hasDarkArts, darkArtsJP,
+--         helixDurationMod, hasSaboteur, targetIsNM, isRDM,
+--         enfeeblingDurationMerit, enfeebleDurationJP, hasStymie, stymieJP,
+--         enfMagDuration
+xi.spells.enfeebling.calculateDurationFromParams = function(params)
+    params = params or {}
+    local duration    = params.baseDuration or 0
+    local spellEffect = params.spellEffect or 0
 
     if spellEffect == xi.effect.BIND then
-        duration = math.random(13, 60)
+        if (params.bindDuration or 0) > 0 then
+            duration = params.bindDuration
+        end
     end
 
-    -- Additions to base duration.
     if
         spellEffect == xi.effect.BURN or
         spellEffect == xi.effect.CHOKE or
@@ -337,52 +382,72 @@ xi.spells.enfeebling.calculateDuration = function(caster, target, spellId, spell
         spellEffect == xi.effect.RASP or
         spellEffect == xi.effect.SHOCK
     then
-        duration = duration + caster:getMerit(xi.merit.ELEMENTAL_DEBUFF_DURATION) -- TODO: Add BLM Toban gear effect (duration) here.
-
+        duration = duration + (params.elementalDebuffDurationMerit or 0)
     elseif spellEffect == xi.effect.HELIX then
-        local casterLevel = caster:getMainLvl()
-
+        local casterLevel = params.casterMainLvl or 0
         if casterLevel >= 60 then
             duration = duration + 60
         elseif casterLevel >= 40 then
             duration = duration + 30
         end
 
-        if caster:hasStatusEffect(xi.effect.DARK_ARTS) then
-            duration = duration + 3 * caster:getJobPointLevel(xi.jp.DARK_ARTS_EFFECT)
+        if params.hasDarkArts then
+            duration = duration + 3 * (params.darkArtsJP or 0)
         end
 
-        duration = duration + caster:getMod(xi.mod.HELIX_DURATION)
+        duration = duration + (params.helixDurationMod or 0)
     end
 
-    if skillType == xi.skill.ENFEEBLING_MAGIC then
-        if caster:hasStatusEffect(xi.effect.SABOTEUR) then
-            if target:isNM() then
+    if (params.skillType or 0) == xi.spells.enfeebling.skillEnfeeblingMagic then
+        if params.hasSaboteur then
+            if params.targetIsNM then
                 duration = duration * 1.25
             else
                 duration = duration * 2
             end
         end
 
-        -- After Saboteur according to bg-wiki
-        if caster:getMainJob() == xi.job.RDM then
-            -- RDM Merit: Enfeebling Magic Duration
-            duration = duration + caster:getMerit(xi.merit.ENFEEBLING_MAGIC_DURATION)
-
-            -- RDM Job Point: Enfeebling Magic Duration
-            duration = duration + caster:getJobPointLevel(xi.jp.ENFEEBLE_DURATION)
-
-            -- RDM Job Point: Stymie effect
-            if caster:hasStatusEffect(xi.effect.STYMIE) then
-                duration = duration + caster:getJobPointLevel(xi.jp.STYMIE_EFFECT)
+        if params.isRDM then
+            duration = duration + (params.enfeeblingDurationMerit or 0)
+            duration = duration + (params.enfeebleDurationJP or 0)
+            if params.hasStymie then
+                duration = duration + (params.stymieJP or 0)
             end
         end
 
-        duration = math.floor(duration * (1 + caster:getMod(xi.mod.ENF_MAG_DURATION) / 100))
+        duration = math.floor(duration * (1 + (params.enfMagDuration or 0) / 100))
     end
 
-    ---@cast duration integer
     return math.floor(duration)
+end
+
+-- Calculate duration before resist (host → pure).
+xi.spells.enfeebling.calculateDuration = function(caster, target, spellId, spellEffect, skillType)
+    local baseDuration = pTable[spellId][column.BASE_DURATION]
+    local bindDuration = 0
+    if spellEffect == xi.effect.BIND then
+        bindDuration = math.random(13, 60)
+    end
+
+    return xi.spells.enfeebling.calculateDurationFromParams({
+        spellEffect                  = spellEffect,
+        baseDuration                 = baseDuration,
+        skillType                    = skillType,
+        bindDuration                 = bindDuration,
+        elementalDebuffDurationMerit = caster:getMerit(xi.merit.ELEMENTAL_DEBUFF_DURATION),
+        casterMainLvl                = caster:getMainLvl(),
+        hasDarkArts                  = caster:hasStatusEffect(xi.effect.DARK_ARTS),
+        darkArtsJP                   = caster:getJobPointLevel(xi.jp.DARK_ARTS_EFFECT),
+        helixDurationMod             = caster:getMod(xi.mod.HELIX_DURATION),
+        hasSaboteur                  = caster:hasStatusEffect(xi.effect.SABOTEUR),
+        targetIsNM                   = target:isNM(),
+        isRDM                        = caster:getMainJob() == xi.job.RDM,
+        enfeeblingDurationMerit      = caster:getMerit(xi.merit.ENFEEBLING_MAGIC_DURATION),
+        enfeebleDurationJP           = caster:getJobPointLevel(xi.jp.ENFEEBLE_DURATION),
+        hasStymie                    = caster:hasStatusEffect(xi.effect.STYMIE),
+        stymieJP                     = caster:getJobPointLevel(xi.jp.STYMIE_EFFECT),
+        enfMagDuration               = caster:getMod(xi.mod.ENF_MAG_DURATION),
+    })
 end
 
 -- Main function, called by spell scripts
