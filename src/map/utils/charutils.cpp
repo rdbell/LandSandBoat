@@ -66,6 +66,7 @@
 #include "char_home_point_transition.h"
 #include "char_history_load.h"
 #include "char_history_write.h"
+#include "char_inventory_equipment_slots.h"
 #include "char_invisible_removal.h"
 #include "char_inventory_sync_plan.h"
 #include "char_key_item_packets.h"
@@ -1573,9 +1574,9 @@ void SendInventory(CCharEntity* PChar)
         pushContainer(containerID);
     }
 
-    for (int32 i = 0; i < 16; ++i)
+    for (const auto slot : inventoryequiphelpers::BuildStandardSlotPlan())
     {
-        CItem* PItem = PChar->getEquip((SLOTTYPE)i);
+        CItem* PItem = PChar->getEquip(slot);
         if (PItem != nullptr)
         {
             PItem->setSubType(ITEM_LOCKED);
