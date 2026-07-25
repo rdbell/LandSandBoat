@@ -126,6 +126,7 @@
 #include "unequip_item_recast_capacity.h"
 #include "unequip_item_unlock_capacity.h"
 #include "unequip_recalculate_capacity.h"
+#include "unequip_removed_armor_look_capacity.h"
 #include "unequip_script_flags_capacity.h"
 #include "unequip_ranged_look_capacity.h"
 #include "unequip_sub_look_capacity.h"
@@ -2204,42 +2205,36 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
     if (equippolicyhelpers::HasSlotEquipped(PItem != nullptr, PItem != nullptr && PItem->isType(ITEM_EQUIPMENT)))
     {
         // if removeSlotLookID is available it should be prioritized as it will encompass a larger set of slots
-        auto removeSlotLookID = ((CItemEquipment*)PItem)->getRemoveSlotLookId();
-        auto removeSlotID     = equippolicyhelpers::PreferRemoveSlotLookID(removeSlotLookID, ((CItemEquipment*)PItem)->getRemoveSlotId());
+        const auto removeSlotLookID = ((CItemEquipment*)PItem)->getRemoveSlotLookId();
+        const auto removeSlotID     = ((CItemEquipment*)PItem)->getRemoveSlotId();
+        const auto removeSlotMask   = equippolicyhelpers::PreferRemoveSlotLookID(removeSlotLookID, removeSlotID);
 
-        // When unequipping an item, revert all associated look slots to either default or the item which is equipped
-        for (auto i = 0u; i < sizeof(removeSlotID) * 8; ++i)
+        std::array<unequipremovedarmorlookhelpers::EquippedModel, 16> equippedModels{};
+        for (uint8 i = SLOT_HEAD; i <= SLOT_FEET; ++i)
         {
-            if (removeSlotID & (1 << i))
+            if ((removeSlotMask & (1u << i)) == 0)
             {
-                if (equippolicyhelpers::IsArmorLookSlot(static_cast<uint8>(i)))
-                {
-                    int             itemLook     = 0;
-                    CItemEquipment* equippedItem = PChar->getEquip((SLOTTYPE)i);
-                    if (equippedItem)
-                    {
-                        itemLook = equippedItem->getModelId();
-                    }
+                continue;
+            }
 
-                    switch (i)
-                    {
-                        case SLOT_HEAD:
-                            PChar->look.head = itemLook;
-                            break;
-                        case SLOT_BODY:
-                            PChar->look.body = itemLook;
-                            break;
-                        case SLOT_HANDS:
-                            PChar->look.hands = itemLook;
-                            break;
-                        case SLOT_LEGS:
-                            PChar->look.legs = itemLook;
-                            break;
-                        case SLOT_FEET:
-                            PChar->look.feet = itemLook;
-                            break;
-                    }
-                }
+            CItemEquipment* equippedItem = PChar->getEquip(static_cast<SLOTTYPE>(i));
+            if (equippedItem != nullptr)
+            {
+                equippedModels[i] = {
+                    .present = true,
+                    .modelID = static_cast<uint16>(equippedItem->getModelId()),
+                };
+            }
+        }
+        for (const auto& plan : unequipremovedarmorlookhelpers::PlansFor(removeSlotLookID, removeSlotID, equippedModels))
+        {
+            switch (plan.slot)
+            {
+                case SLOT_HEAD: PChar->look.head = plan.modelID; break;
+                case SLOT_BODY: PChar->look.body = plan.modelID; break;
+                case SLOT_HANDS: PChar->look.hands = plan.modelID; break;
+                case SLOT_LEGS: PChar->look.legs = plan.modelID; break;
+                case SLOT_FEET: PChar->look.feet = plan.modelID; break;
             }
         }
 

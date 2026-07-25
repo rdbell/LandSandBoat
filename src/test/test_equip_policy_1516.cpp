@@ -18,6 +18,7 @@
 #include "map/unequip_item_recast_capacity.h"
 #include "map/unequip_item_unlock_capacity.h"
 #include "map/unequip_recalculate_capacity.h"
+#include "map/unequip_removed_armor_look_capacity.h"
 #include "map/unequip_script_flags_capacity.h"
 #include "map/unequip_ranged_look_capacity.h"
 #include "map/unequip_sub_look_capacity.h"
@@ -482,6 +483,18 @@ auto Check() -> bool
     const auto noRecomputeScriptFlags = unequipscriptflagshelpers::PlanFor(0x0002, remainingScriptTypes);
     if (!recomputeScriptFlags.recomputeEquipFlag || recomputeScriptFlags.equipFlag != 0x0016 ||
         noRecomputeScriptFlags.recomputeEquipFlag || noRecomputeScriptFlags.equipFlag != 0)
+    {
+        return false;
+    }
+
+    std::array<unequipremovedarmorlookhelpers::EquippedModel, 16> equippedModels{};
+    equippedModels[4] = { .present = true, .modelID = 0x1001 };
+    equippedModels[6] = { .present = true, .modelID = 0x1003 };
+    const auto removedArmorLook = unequipremovedarmorlookhelpers::PlansFor((1u << 4) | (1u << 6) | (1u << 9), 1u << 5, equippedModels);
+    const auto fallbackArmorLook = unequipremovedarmorlookhelpers::PlansFor(0, 1u << 5, equippedModels);
+    if (removedArmorLook.size() != 2 || removedArmorLook[0].slot != 4 || removedArmorLook[0].modelID != 0x1001 ||
+        removedArmorLook[1].slot != 6 || removedArmorLook[1].modelID != 0x1003 ||
+        fallbackArmorLook.size() != 1 || fallbackArmorLook[0].slot != 5 || fallbackArmorLook[0].modelID != 0)
     {
         return false;
     }
