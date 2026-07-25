@@ -1,5 +1,9 @@
 -----------------------------------
 -- Teleport Spell Utilities
+-- Dual-wired pure inject forms (slice 6722 / 0884):
+--   lookupTeleportSpell, checkTeleportSpellFromParams,
+--   useTeleportSpellFromParams, teleportSpellCatalogSize
+-- Parity: internal/teleportspell
 -----------------------------------
 require('scripts/globals/teleports')
 -----------------------------------
@@ -7,6 +11,13 @@ xi = xi or {}
 xi.spells = xi.spells or {}
 xi.spells.enhancing = xi.spells.enhancing or {}
 -----------------------------------
+-- Message / check pins (internal/teleportspell).
+xi.spells.enhancing.teleportMsgMagicTeleport = 93 -- xi.msg.basic.MAGIC_TELEPORT
+xi.spells.enhancing.teleportMsgNone          = 0  -- xi.msg.basic.NONE
+xi.spells.enhancing.teleportCheckMsgOK       = 0
+xi.spells.enhancing.teleportCheckMsgCannot   = 48
+xi.spells.enhancing.teleportEffectID         = 797 -- xi.effect.TELEPORT
+
 -- Table variables.
 local column =
 {
@@ -34,29 +45,115 @@ local pTable =
     [xi.magic.spell.WARP_II       ] = { xi.teleport.id.WARP,    0,                              3, false },
 }
 
--- Check for "Retrace" Spell.
-xi.spells.enhancing.checkTeleportSpell = function(caster, target, spell)
-    if target:getCampaignAllegiance() > 0 then
-        return 0
-    else
-        return 48
+-- Pure catalog lookup (internal/teleportspell.Lookup).
+-- returns: { teleportId, keyItem, duration, campaign } or nil
+xi.spells.enhancing.lookupTeleportSpell = function(spellId)
+    local row = pTable[spellId or 0]
+    if not row then
+        return nil
     end
+
+    return {
+        teleportId = row[column.TELEPORT_ID],
+        keyItem    = row[column.TELEPORT_KEY_ITEM],
+        duration   = row[column.TELEPORT_DURATION],
+        campaign   = row[column.TELEPORT_CAMPAIGN],
+    }
 end
 
--- Main function for Teleport / Warp / etc. Spells.
-xi.spells.enhancing.useTeleportSpell = function(caster, target, spell)
-    local spellId    = spell:getID()
-    local teleportId = pTable[spellId][column.TELEPORT_ID]
-    local keyItem    = pTable[spellId][column.TELEPORT_KEY_ITEM]
-    local duration   = pTable[spellId][column.TELEPORT_DURATION]
-    local campaign   = pTable[spellId][column.TELEPORT_CAMPAIGN]
+xi.spells.enhancing.teleportSpellCatalogSize = function()
+    local n = 0
+    for _ in pairs(pTable) do
+        n = n + 1
+    end
 
-    if
-        target:getObjType() == xi.objType.PC and
-        (keyItem == 0 or (keyItem > 0 and target:hasKeyItem(keyItem))) and
-        (not campaign or (campaign and target:getCampaignAllegiance() > 0))
-    then
-        target:addStatusEffect(xi.effect.TELEPORT, { power = teleportId, duration = duration, origin = caster, icon = 0 })
+    return n
+end
+
+-- Pure Retrace campaign gate (internal/teleportspell.CheckRetrace).
+-- params: campaignAllegiance
+xi.spells.enhancing.checkTeleportSpellFromParams = function(params)
+    params = params or {}
+    if (params.campaignAllegiance or 0) > 0 then
+        return xi.spells.enhancing.teleportCheckMsgOK
+    end
+
+    return xi.spells.enhancing.teleportCheckMsgCannot
+end
+
+-- Pure useTeleportSpell after PC / KI / campaign injects
+-- (internal/teleportspell.Use).
+-- params: spellId, targetIsPC, hasKeyItem, campaignAllegiance
+-- returns: { apply, teleportId, duration, msg, campaignRequired, keyItem }
+xi.spells.enhancing.useTeleportSpellFromParams = function(params)
+    params = params or {}
+    local row = xi.spells.enhancing.lookupTeleportSpell(params.spellId)
+    if not row then
+        return {
+            apply            = false,
+            teleportId       = 0,
+            duration         = 0,
+            msg              = xi.spells.enhancing.teleportMsgNone,
+            campaignRequired = false,
+            keyItem          = 0,
+        }
+    end
+
+    local hasKI      = row.keyItem == 0 or params.hasKeyItem
+    local campaignOK = not row.campaign or (params.campaignAllegiance or 0) > 0
+
+    if params.targetIsPC and hasKI and campaignOK then
+        return {
+            apply            = true,
+            teleportId       = row.teleportId,
+            duration         = row.duration,
+            msg              = xi.spells.enhancing.teleportMsgMagicTeleport,
+            campaignRequired = row.campaign,
+            keyItem          = row.keyItem,
+        }
+    end
+
+    return {
+        apply            = false,
+        teleportId       = row.teleportId,
+        duration         = row.duration,
+        msg              = xi.spells.enhancing.teleportMsgNone,
+        campaignRequired = row.campaign,
+        keyItem          = row.keyItem,
+    }
+end
+
+-- Check for "Retrace" Spell (host → pure).
+xi.spells.enhancing.checkTeleportSpell = function(caster, target, spell)
+    return xi.spells.enhancing.checkTeleportSpellFromParams({
+        campaignAllegiance = target:getCampaignAllegiance(),
+    })
+end
+
+-- Main function for Teleport / Warp / etc. Spells (host → pure).
+xi.spells.enhancing.useTeleportSpell = function(caster, target, spell)
+    local spellId = spell:getID()
+    local row     = xi.spells.enhancing.lookupTeleportSpell(spellId)
+    if not row then
+        spell:setMsg(xi.msg.basic.NONE)
+        return 0
+    end
+
+    local hasKeyItem = row.keyItem == 0 or (row.keyItem > 0 and target:hasKeyItem(row.keyItem))
+    local result     = xi.spells.enhancing.useTeleportSpellFromParams({
+        spellId            = spellId,
+        targetIsPC         = target:getObjType() == xi.objType.PC,
+        hasKeyItem         = hasKeyItem,
+        campaignAllegiance = target:getCampaignAllegiance(),
+    })
+
+    if result.apply then
+        target:addStatusEffect(xi.effect.TELEPORT, {
+            power    = result.teleportId,
+            duration = result.duration,
+            origin   = caster,
+            icon     = 0,
+        })
         spell:setMsg(xi.msg.basic.MAGIC_TELEPORT)
     else
         spell:setMsg(xi.msg.basic.NONE)
