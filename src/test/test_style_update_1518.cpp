@@ -2,6 +2,7 @@
 
 #include "map/armor_style_update_capacity.h"
 #include "map/style_update_capacity.h"
+#include "map/style_lock_transition_capacity.h"
 #include "map/weapon_style_update_capacity.h"
 
 #include <iostream>
@@ -213,6 +214,25 @@ auto Check() -> bool
         !nilMainWeaponStyle.setMainLook || nilMainWeaponStyle.mainModel != 10 || !nilMainWeaponStyle.setSubLook || nilMainWeaponStyle.subModel != 11 ||
         !subWeaponStyle.setSubLook || subWeaponStyle.subModel != 0x3333 ||
         !rangedWeaponStyle.setRangedLook || rangedWeaponStyle.rangedModel != 12)
+    {
+        return false;
+    }
+    auto styleLockInput = stylelocktransitionhelpers::Input{};
+    styleLockInput.currentlyLocked   = false;
+    styleLockInput.requestedLocked   = true;
+    styleLockInput.equipment[0]      = { .hasItem = true, .itemID = 100 };
+    styleLockInput.equipment[8]      = { .hasItem = true, .itemID = 200 };
+    const auto enabledStyleLock      = stylelocktransitionhelpers::PlanFor(styleLockInput);
+    const auto repeatedEnableInput   = stylelocktransitionhelpers::Input{ .currentlyLocked = true, .requestedLocked = true };
+    const auto repeatedEnable        = stylelocktransitionhelpers::PlanFor(repeatedEnableInput);
+    const auto disabledStyleLock     = stylelocktransitionhelpers::PlanFor({ .currentlyLocked = true });
+    const auto repeatedDisable       = stylelocktransitionhelpers::PlanFor({});
+    if (!enabledStyleLock.snapshotStyleItems || !enabledStyleLock.copyCurrentLook || enabledStyleLock.clearStyleItems ||
+        !enabledStyleLock.notifyChange || !enabledStyleLock.locked || enabledStyleLock.styleItems[0] != 100 ||
+        enabledStyleLock.styleItems[8] != 200 || enabledStyleLock.styleItems[4] != 0 ||
+        !repeatedEnable.snapshotStyleItems || !repeatedEnable.copyCurrentLook || repeatedEnable.notifyChange ||
+        disabledStyleLock.snapshotStyleItems || disabledStyleLock.copyCurrentLook || !disabledStyleLock.clearStyleItems ||
+        !disabledStyleLock.notifyChange || disabledStyleLock.locked || !repeatedDisable.clearStyleItems || repeatedDisable.notifyChange)
     {
         return false;
     }

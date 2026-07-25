@@ -121,6 +121,7 @@
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
+#include "style_lock_transition_capacity.h"
 #include "inventory_move_capacity.h"
 #include "lockstyle_removed_look_capacity.h"
 #include "misc_progress_capacity.h"
@@ -2774,16 +2775,32 @@ auto hasValidStyle(CCharEntity* PChar, const CItemEquipment* PItem, const CItemE
 
 void SetStyleLock(CCharEntity* PChar, bool isStyleLocked)
 {
-    if (styleupdatehelpers::ShouldApplyStyleLockSnapshot(isStyleLocked))
+    auto input = stylelocktransitionhelpers::Input{
+        .currentlyLocked = PChar->getStyleLocked(),
+        .requestedLocked = isStyleLocked,
+    };
+    if (isStyleLocked)
     {
         for (uint8 i = 0; i < styleupdatehelpers::SlotLink1; i++)
         {
-            auto* PItem          = PChar->getEquip((SLOTTYPE)i);
-            PChar->styleItems[i] = styleupdatehelpers::StyleItemFromEquip(PItem != nullptr, PItem ? PItem->getID() : 0);
+            auto* PItem             = PChar->getEquip((SLOTTYPE)i);
+            input.equipment[i] = {
+                .hasItem = PItem != nullptr,
+                .itemID  = static_cast<std::uint16_t>(PItem ? PItem->getID() : 0),
+            };
+        }
+    }
+    const auto plan = stylelocktransitionhelpers::PlanFor(input);
+
+    if (plan.snapshotStyleItems)
+    {
+        for (uint8 i = 0; i < styleupdatehelpers::SlotLink1; i++)
+        {
+            PChar->styleItems[i] = plan.styleItems[i];
         }
         std::memcpy(&PChar->mainlook, &PChar->look, sizeof(PChar->look));
     }
-    else
+    else if (plan.clearStyleItems)
     {
         for (unsigned short& styleItem : PChar->styleItems)
         {
@@ -2791,11 +2808,11 @@ void SetStyleLock(CCharEntity* PChar, bool isStyleLocked)
         }
     }
 
-    if (styleupdatehelpers::ShouldNotifyStyleLockChange(PChar->getStyleLocked(), isStyleLocked))
+    if (plan.notifyChange)
     {
         PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(isStyleLocked ? MsgStd::StyleLockOn : MsgStd::StyleLockOff);
     }
-    PChar->setStyleLocked(isStyleLocked);
+    PChar->setStyleLocked(plan.locked);
 }
 
 void UpdateWeaponStyle(CCharEntity* PChar, uint8 equipSlotID, CItemEquipment* PItem)
