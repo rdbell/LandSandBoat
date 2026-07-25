@@ -68,6 +68,7 @@
 #include "char_invisible_removal.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
+#include "char_party_alliance_reconcile.h"
 #include "char_party_level_sync_restore.h"
 #include "char_party_reload_id_sync.h"
 #include "char_party_reload_missing.h"
@@ -7095,11 +7096,14 @@ void ReloadParty(CCharEntity* PChar)
             }
         }
 
+        const bool hasLocalAlliance = PChar->PParty->m_PAlliance != nullptr;
+        const auto localAllianceID  = hasLocalAlliance ? PChar->PParty->m_PAlliance->m_AllianceID : 0;
+        const auto alliancePlan     = partyalliancereconcilehelpers::MakePlan(allianceid, hasLocalAlliance, localAllianceID);
         if (allianceid != 0)
         {
-            if (PChar->PParty->m_PAlliance)
+            if (hasLocalAlliance)
             {
-                if (PChar->PParty->m_PAlliance->m_AllianceID != allianceid)
+                if (alliancePlan.action == partyalliancereconcilehelpers::Action::SynchronizeID)
                 {
                     PChar->PParty->m_PAlliance->m_AllianceID = allianceid;
                 }
@@ -7130,7 +7134,7 @@ void ReloadParty(CCharEntity* PChar)
                 PAlliance->pushParty(PChar->PParty, partynumber);
             }
         }
-        else if (PChar->PParty->m_PAlliance)
+        else if (alliancePlan.action == partyalliancereconcilehelpers::Action::DetachParty)
         {
             PChar->PParty->m_PAlliance->delParty(PChar->PParty);
         }
