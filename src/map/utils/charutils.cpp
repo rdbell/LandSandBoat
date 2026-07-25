@@ -61,6 +61,7 @@
 
 #include "ability.h"
 #include "alliance.h"
+#include "char_home_point_transition.h"
 #include "char_points_capacity.h"
 #include "char_send_to_zone_capacity.h"
 #include "char_unity_leader_capacity.h"
@@ -7360,37 +7361,76 @@ auto HomePoint(CCharEntity* PChar, bool resetHPMP) -> bool
 {
     TracyZoneScoped;
 
-    if (entityspawnhelpers::ShouldRejectHomePointAtCap(
-            zoneutils::IsZoneAtPlayerCap(PChar->profile.home_point.destination, PChar->m_GMlevel > 0)))
+    const auto plan = homepointtransitionhelpers::MakeHomePointPlan(
+        zoneutils::IsZoneAtPlayerCap(PChar->profile.home_point.destination, PChar->m_GMlevel > 0), resetHPMP);
+
+    if (plan.rejectAtCap)
     {
-        PChar->pushPacket<GP_SERV_COMMAND_SYSTEMMES>(0, 0, MsgStd::CouldNotEnter);
-        PChar->requestedWarp = false;
+        if (plan.sendCouldNotEnterMessage)
+        {
+            PChar->pushPacket<GP_SERV_COMMAND_SYSTEMMES>(0, 0, MsgStd::CouldNotEnter);
+        }
+        if (plan.clearRequestedWarp)
+        {
+            PChar->requestedWarp = false;
+        }
         return false;
     }
 
     // player initiated warp/warp 2 or otherwise
-    if (entityspawnhelpers::ShouldResetHPMPOnHomePoint(resetHPMP))
+    if (plan.removeWeakness)
     {
         // remove weakness on homepoint
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Weakness);
+    }
+    if (plan.removeLevelSync)
+    {
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::LevelSync);
+    }
 
+    if (plan.clearDeathTime)
+    {
         PChar->SetDeathTime(timer::time_point::min());
+    }
 
+    if (plan.restoreHPMP)
+    {
         PChar->health.hp = PChar->GetMaxHP();
         PChar->health.mp = PChar->GetMaxMP();
     }
 
-    PChar->loc.boundary    = 0;
-    PChar->loc.p           = PChar->profile.home_point.p;
-    PChar->loc.destination = PChar->profile.home_point.destination;
+    if (plan.clearBoundary)
+    {
+        PChar->loc.boundary = 0;
+    }
+    if (plan.setHomePointLocation)
+    {
+        PChar->loc.p           = PChar->profile.home_point.p;
+        PChar->loc.destination = PChar->profile.home_point.destination;
+    }
 
-    PChar->status    = STATUS_TYPE::DISAPPEAR;
-    PChar->animation = ANIMATION_NONE;
-    PChar->updatemask |= UPDATE_HP;
+    if (plan.setDisappearStatus)
+    {
+        PChar->status = STATUS_TYPE::DISAPPEAR;
+    }
+    if (plan.setAnimationNone)
+    {
+        PChar->animation = ANIMATION_NONE;
+    }
+    if (plan.setUpdateHP)
+    {
+        PChar->updatemask |= UPDATE_HP;
+    }
 
-    PChar->clearPacketList();
-    return SendToZone(PChar, PChar->loc.destination);
+    if (plan.clearPacketList)
+    {
+        PChar->clearPacketList();
+    }
+    if (plan.requestSendToZone)
+    {
+        return SendToZone(PChar, PChar->loc.destination);
+    }
+    return false;
 }
 
 bool AddWeaponSkillPoints(CCharEntity* PChar, SLOTTYPE slotid, int wspoints)
