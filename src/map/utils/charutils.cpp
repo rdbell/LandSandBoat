@@ -63,6 +63,7 @@
 #include "alliance.h"
 #include "char_death_timestamp_load.h"
 #include "char_home_point_transition.h"
+#include "char_mannequin_update.h"
 #include "char_points_capacity.h"
 #include "char_send_to_zone_capacity.h"
 #include "char_unity_leader_capacity.h"
@@ -8210,13 +8211,22 @@ void updateMannequins(CCharEntity* PChar)
                 if (zoneouthelpers::IsInstalledMannequin(true, PFurnishing->isInstalled(), PFurnishing->isMannequin()))
                 {
                     auto& mannequin = PFurnishing->exdata<Exdata::Mannequin>();
+                    const auto plan = mannequinupdatehelpers::MakeMannequinUpdatePlan(
+                        true,
+                        true,
+                        PFurnishing->isInstalled(),
+                        PFurnishing->isMannequin(),
+                        mannequin.Race);
 
-                    if (zoneouthelpers::ShouldWarnInvalidMannequinRace(mannequin.Race))
+                    if (plan.warnInvalidRace)
                     {
                         ShowWarning("Invalid Mannequin placed (race of 0 in exdata, when races start at 1). It will be unusable.");
                     }
 
-                    PChar->pushPacket<GP_SERV_COMMAND_ITEM_SUBCONTAINER>(PChar, safeContainerId, slotIndex, mannequin);
+                    if (plan.sendSubcontainerPacket)
+                    {
+                        PChar->pushPacket<GP_SERV_COMMAND_ITEM_SUBCONTAINER>(PChar, safeContainerId, slotIndex, mannequin);
+                    }
                 }
             }
         }
