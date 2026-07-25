@@ -720,6 +720,7 @@ auto runKeyItemSpell1515SelfTests() -> bool;
 auto runLearnedAbilityMutation6845SelfTests() -> bool;
 auto runAbilityMutation6846SelfTests() -> bool;
 auto runTitleMutation6847SelfTests() -> bool;
+auto runTraitMutation6848SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
 auto runStyleUpdate1518SelfTests() -> bool;
@@ -3102,6 +3103,7 @@ namespace
         ok = runLearnedAbilityMutation6845SelfTests() && ok;
         ok = runAbilityMutation6846SelfTests() && ok;
         ok = runTitleMutation6847SelfTests() && ok;
+        ok = runTraitMutation6848SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
         ok = runStyleUpdate1518SelfTests() && ok;

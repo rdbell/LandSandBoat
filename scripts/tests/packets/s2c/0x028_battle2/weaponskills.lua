@@ -451,6 +451,7 @@ local packets =
             mob:setUnkillable(true)
             player:changeJob(xi.job.MNK)
             player:setLevel(99)
+            player:setMod(xi.mod.CRITHITRATE, 100)
             player:addItem(xi.item.VERETHRAGNA_99)
             player:equipItem(xi.item.VERETHRAGNA_99, nil, xi.slot.MAIN)
             player:capSkill(xi.skill.HAND_TO_HAND)
@@ -458,7 +459,7 @@ local packets =
             player.actions:engage(mob)
             xi.test.world:skipTime(1)
 
-            -- Surely we'll get at least 1 crit in 10 attempts...
+            -- Make the packet assertion deterministic instead of sampling crit RNG.
             for i = 1, 10 do
                 player:setTP(3000)
                 player.actions:useWeaponskill(mob, xi.weaponskill.VICTORY_SMITE)

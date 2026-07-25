@@ -30,6 +30,7 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 namespace
@@ -183,7 +184,7 @@ auto testSortedDirectoryIterator(const std::filesystem::path& root) -> bool
 auto runFileUtilsSelfTests() -> bool
 {
     const auto suffix = std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
-    const auto root   = std::filesystem::temp_directory_path() / ("lsb_file_utils_" + suffix);
+    const auto root   = std::filesystem::temp_directory_path() / ("lsb_file_utils_" + std::to_string(::getpid()) + "_" + suffix);
     std::filesystem::create_directories(root);
 
     bool ok = true;
