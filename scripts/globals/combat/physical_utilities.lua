@@ -786,6 +786,79 @@ xi.combat.physical.critDamageMultFromParams = function(params)
     return (100 + bonus) / 100
 end
 
+-----------------------------------
+-- Pure: Building Flourish attack bonus + actor attack product (slice 6759)
+-- Parity: internal/pdif BuildingFlourishBonus / MeleeActorAttack /
+-- RangedActorAttack / BaseRatio / MeleeWRatio / MeleeRandomFactor
+-----------------------------------
+xi.combat.physical.buildingFlourishMinPower   = 2
+xi.combat.physical.buildingFlourishBaseBonus  = 1.25
+xi.combat.physical.buildingFlourishMeritStep  = 0.01
+
+-- params: hasEffect, power, meritCount
+xi.combat.physical.buildingFlourishBonusFromParams = function(params)
+    params = params or {}
+    if not params.hasEffect or (params.power or 0) < xi.combat.physical.buildingFlourishMinPower then
+        return 1
+    end
+
+    return xi.combat.physical.buildingFlourishBaseBonus
+        + xi.combat.physical.buildingFlourishMeritStep * (params.meritCount or 0)
+end
+
+-- params: att, wsAttackMod, flourishBonus
+xi.combat.physical.meleeActorAttackFromParams = function(params)
+    params = params or {}
+    return math.max(1, math.floor(
+        (params.att or 0) * (params.wsAttackMod or 0) * (params.flourishBonus or 0)
+    ))
+end
+
+-- params: ratt, bonusRangedAttack, distancePenalty, wsAttackMod, flourishBonus
+xi.combat.physical.rangedActorAttackFromParams = function(params)
+    params = params or {}
+    return math.max(1, math.floor(
+        ((params.ratt or 0) + (params.bonusRangedAttack or 0) - (params.distancePenalty or 0))
+            * (params.wsAttackMod or 0)
+            * (params.flourishBonus or 0)
+    ))
+end
+
+-- params: actorAttack, targetDefense
+xi.combat.physical.baseRatioFromParams = function(params)
+    params = params or {}
+    local def = params.targetDefense or 0
+    if def == 0 then
+        return 0
+    end
+
+    return (params.actorAttack or 0) / def
+end
+
+-- params: baseRatio, isCritical
+xi.combat.physical.meleeWRatioFromParams = function(params)
+    params = params or {}
+    local base = params.baseRatio or 0
+    if params.isCritical then
+        return base + 1
+    end
+
+    return base
+end
+
+-- params: step (0..5)
+xi.combat.physical.meleeRandomFactorFromParams = function(params)
+    params = params or {}
+    local step = params.step or 0
+    if step < 0 then
+        step = 0
+    elseif step > 5 then
+        step = 5
+    end
+
+    return 1 + step * 0.01
+end
+
 xi.combat.physical.wRatioCapPC = function(wRatio, pDifFinalCap)
     local pDifUpperCap = 0
     local pDifLowerCap = 0
@@ -919,17 +992,20 @@ xi.combat.physical.calculateMeleePDIF = function(actor, target, weaponType, wsAt
     -- Actor Weaponskill Specific Attack modifiers.
     if isWeaponskill then
         local flourishEffect = actor:getStatusEffect(xi.effect.BUILDING_FLOURISH)
-
-        if flourishEffect and flourishEffect:getPower() >= 2 then -- 2 or more Finishing Moves used.
-            local meritCount = flourishEffect:getSubPower()
-
-            flourishBonus = 1.25 + 0.01 * meritCount -- +1% attack bonus per merit -- TODO: do the merits apply even when FMs are < 2?
-        end
+        flourishBonus = xi.combat.physical.buildingFlourishBonusFromParams({
+            hasEffect  = flourishEffect ~= nil,
+            power      = flourishEffect and flourishEffect:getPower() or 0,
+            meritCount = flourishEffect and flourishEffect:getSubPower() or 0,
+        })
     end
 
     -- TODO: it is unknown if ws attack mod and flourish bonus are additive or multiplicative
     -- TODO: do flourish and attack mods come before or after food?
-    actorAttack = math.max(1, math.floor(actor:getStat(xi.mod.ATT, weaponSlot) * wsAttackMod * flourishBonus))
+    actorAttack = xi.combat.physical.meleeActorAttackFromParams({
+        att            = actor:getStat(xi.mod.ATT, weaponSlot),
+        wsAttackMod    = wsAttackMod,
+        flourishBonus  = flourishBonus,
+    })
 
     -- handle attuner
     -- note: isAutomaton is checked inside xi.automaton.handleAttuner and could be removed
@@ -955,9 +1031,10 @@ xi.combat.physical.calculateMeleePDIF = function(actor, target, weaponType, wsAt
     end
 
     -- Actor Attack / Target Defense ratio
-    if targetDefense ~= 0 then
-        baseRatio = actorAttack / targetDefense
-    end
+    baseRatio = xi.combat.physical.baseRatioFromParams({
+        actorAttack   = actorAttack,
+        targetDefense = targetDefense,
+    })
 
     ----------------------------------------
     -- Step 2: cRatio (Level correction, corrected ratio) Zone based!
@@ -976,7 +1053,10 @@ xi.combat.physical.calculateMeleePDIF = function(actor, target, weaponType, wsAt
     ----------------------------------------
     -- Step 3: wRatio and pDif Caps (Melee)
     ----------------------------------------
-    local wRatio             = baseRatio + (isCritical and 1 or 0)
+    local wRatio = xi.combat.physical.meleeWRatioFromParams({
+        baseRatio  = baseRatio,
+        isCritical = isCritical,
+    })
     local pDifUpperCap       = 0
     local pDifLowerCap       = 0
     local damageLimit        = actor:getMod(xi.mod.DAMAGE_LIMIT)
@@ -1036,7 +1116,9 @@ xi.combat.physical.calculateMeleePDIF = function(actor, target, weaponType, wsAt
     ----------------------------------------
     -- Step 4: Melee random factor.
     ----------------------------------------
-    local meleeRandom = 1 + math.random(0, 5) * 0.01 -- 5 distinct values
+    local meleeRandom = xi.combat.physical.meleeRandomFactorFromParams({
+        step = math.random(0, 5), -- 5 distinct values
+    })
 
     pDif = pDif * meleeRandom
 
@@ -1081,16 +1163,21 @@ xi.combat.physical.calculateRangedPDIF = function(actor, target, weaponType, wsA
     -- TODO: verify this actually works on ranged WS
     if isWeaponskill then
         local flourishEffect = actor:getStatusEffect(xi.effect.BUILDING_FLOURISH)
-
-        if flourishEffect and flourishEffect:getPower() >= 2 then -- 2 or more Finishing Moves used.
-            local meritCount = flourishEffect:getSubPower()
-
-            flourishBonus = 1.25 + 0.01 * meritCount -- +1% attack bonus per merit -- TODO: do the merits apply even when FMs are < 2?
-        end
+        flourishBonus = xi.combat.physical.buildingFlourishBonusFromParams({
+            hasEffect  = flourishEffect ~= nil,
+            power      = flourishEffect and flourishEffect:getPower() or 0,
+            meritCount = flourishEffect and flourishEffect:getSubPower() or 0,
+        })
     end
 
     -- TODO: it is unknown if ws attack mod and flourish bonus are additive or multiplicative
-    actorAttack = math.max(1, math.floor((actor:getStat(xi.mod.RATT) + bonusRangedAttack - distancePenalty) * wsAttackMod * flourishBonus))
+    actorAttack = xi.combat.physical.rangedActorAttackFromParams({
+        ratt               = actor:getStat(xi.mod.RATT),
+        bonusRangedAttack  = bonusRangedAttack,
+        distancePenalty    = distancePenalty,
+        wsAttackMod        = wsAttackMod,
+        flourishBonus      = flourishBonus,
+    })
 
     -- Target Defense Modifiers.
     targetDefense = xi.combat.physical.effectiveDefenseFromParams({
@@ -1099,9 +1186,10 @@ xi.combat.physical.calculateRangedPDIF = function(actor, target, weaponType, wsA
         ignoreFraction = tpFactor,
     })
 
-    if targetDefense ~= 0 then
-        baseRatio = actorAttack / targetDefense
-    end
+    baseRatio = xi.combat.physical.baseRatioFromParams({
+        actorAttack   = actorAttack,
+        targetDefense = targetDefense,
+    })
 
     ----------------------------------------
     -- Step 2: cRatio (Level correction, corrected ratio) Zone based!
