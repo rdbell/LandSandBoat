@@ -110,6 +110,7 @@
 #include "equip_item_success_capacity.h"
 #include "equip_armor_direct_restrictions_capacity.h"
 #include "equip_armor_main_sub_capacity.h"
+#include "equip_armor_ranged_compatibility_capacity.h"
 #include "equip_armor_reverse_restrictions_capacity.h"
 #include "equip_armor_sub_capacity.h"
 #include "equip_policy_capacity.h"
@@ -2623,14 +2624,17 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                 if (PItem->isType(ITEM_WEAPON))
                 {
                     CItemWeapon* weapon = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_AMMO));
-                    if (weapon)
+                    if (equiparmorrangedhelpers::ShouldUnequipOther({
+                            .incomingIsWeapon = true,
+                            .otherIsWeapon    = weapon != nullptr,
+                            .incomingSkill    = static_cast<CItemWeapon*>(PItem)->getSkillType(),
+                            .incomingSubSkill = static_cast<CItemWeapon*>(PItem)->getSubSkillType(),
+                            .otherSkill       = static_cast<std::uint8_t>(weapon ? weapon->getSkillType() : 0),
+                            .otherSubSkill    = static_cast<std::uint8_t>(weapon ? weapon->getSubSkillType() : 0),
+                        }))
                     {
                         // If the subtype of the ranged weapon is not compatible with the ammo, unequip it, except for Archery where Longbow and Shortbow both use arrows
-                        if (static_cast<CItemWeapon*>(PItem)->getSkillType() != weapon->getSkillType() ||
-                            (weapon->getSkillType() != SKILL_ARCHERY && static_cast<CItemWeapon*>(PItem)->getSubSkillType() != weapon->getSubSkillType()))
-                        {
-                            UnequipItem(PChar, SLOT_AMMO, Recalculate::No);
-                        }
+                        UnequipItem(PChar, SLOT_AMMO, Recalculate::No);
                     }
                     PChar->m_Weapons[SLOT_RANGED] = PItem;
                 }
@@ -2643,14 +2647,17 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                 if (PItem->isType(ITEM_WEAPON))
                 {
                     CItemWeapon* weapon = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_RANGED));
-                    if (weapon)
+                    if (equiparmorrangedhelpers::ShouldUnequipOther({
+                            .incomingIsWeapon = true,
+                            .otherIsWeapon    = weapon != nullptr,
+                            .incomingSkill    = static_cast<CItemWeapon*>(PItem)->getSkillType(),
+                            .incomingSubSkill = static_cast<CItemWeapon*>(PItem)->getSubSkillType(),
+                            .otherSkill       = static_cast<std::uint8_t>(weapon ? weapon->getSkillType() : 0),
+                            .otherSubSkill    = static_cast<std::uint8_t>(weapon ? weapon->getSubSkillType() : 0),
+                        }))
                     {
                         // If the subtype of the ammo is not compatible with the ranged weapon, unequip it, except for Archery where Longbow and Shortbow both use arrows
-                        if (static_cast<CItemWeapon*>(PItem)->getSkillType() != weapon->getSkillType() ||
-                            (weapon->getSkillType() != SKILL_ARCHERY && static_cast<CItemWeapon*>(PItem)->getSubSkillType() != weapon->getSubSkillType()))
-                        {
-                            UnequipItem(PChar, SLOT_RANGED, Recalculate::No);
-                        }
+                        UnequipItem(PChar, SLOT_RANGED, Recalculate::No);
                     }
                     if (!PChar->getEquip(SLOT_RANGED))
                     {

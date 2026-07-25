@@ -4,6 +4,7 @@
 #include "map/equip_item_success_capacity.h"
 #include "map/equip_armor_direct_restrictions_capacity.h"
 #include "map/equip_armor_main_sub_capacity.h"
+#include "map/equip_armor_ranged_compatibility_capacity.h"
 #include "map/equip_armor_reverse_restrictions_capacity.h"
 #include "map/equip_armor_sub_capacity.h"
 #include "map/equip_policy_capacity.h"
@@ -273,6 +274,32 @@ auto Check() -> bool
     });
     if (!h2hShieldPlan.unequipMain || !oneHandedWeaponPlan.setSubWeapon || !oneHandedWeaponPlan.setDualWield ||
         otherGripPlan.unequipMain || otherGripPlan.setSubWeapon || otherGripPlan.setDualWield)
+    {
+        return false;
+    }
+
+    if (equiparmorrangedhelpers::ShouldUnequipOther({
+            .incomingIsWeapon = true,
+            .otherIsWeapon    = true,
+            .incomingSkill    = 25,
+            .incomingSubSkill = 1,
+            .otherSkill       = 25,
+            .otherSubSkill    = 2,
+        }) ||
+        !equiparmorrangedhelpers::ShouldUnequipOther({
+            .incomingIsWeapon = true,
+            .otherIsWeapon    = true,
+            .incomingSkill    = 26,
+            .incomingSubSkill = 1,
+            .otherSkill       = 26,
+            .otherSubSkill    = 2,
+        }) ||
+        !equiparmorrangedhelpers::ShouldUnequipOther({
+            .incomingIsWeapon = true,
+            .otherIsWeapon    = true,
+            .incomingSkill    = 25,
+            .otherSkill       = 26,
+        }))
     {
         return false;
     }
