@@ -6,6 +6,97 @@ xi.combat = xi.combat or {}
 xi.combat.physicalHitRate = xi.combat.physicalHitRate or {}
 -----------------------------------
 
+-----------------------------------
+-- Pure formula helpers (OmegaXI slice 6681)
+-- Dual-wired so Go internal/physhitrate and LSB tests share one surface.
+-----------------------------------
+
+xi.combat.physicalHitRate.capPet           = 0.99
+xi.combat.physicalHitRate.capPCH2H         = 0.99
+xi.combat.physicalHitRate.capPCMainhand1H  = 0.99
+xi.combat.physicalHitRate.capPCOffhandOr2H = 0.95
+xi.combat.physicalHitRate.capNonPC         = 0.95
+xi.combat.physicalHitRate.meleeHitRateFloor  = 0.2
+xi.combat.physicalHitRate.rangedHitRateFloor = 0.05
+xi.combat.physicalHitRate.rangedHitRateCap   = 0.95
+xi.combat.physicalHitRate.maxRangedDistance  = 25
+xi.combat.physicalHitRate.flashReductionPerMs = 0.03
+xi.combat.physicalHitRate.levelCorrectionAccPerLevel = 4
+xi.combat.physicalHitRate.avatarDlvlMin = 0
+xi.combat.physicalHitRate.avatarDlvlMax = 38
+xi.combat.physicalHitRate.baseHitPercent = 75
+
+-- Pure hit-rate cap once entity predicates are known.
+-- https://www.bg-wiki.com/ffxi/Hit_Rate
+xi.combat.physicalHitRate.hitRateCap = function(isPet, isPC, usingH2H, isTwoHanded, slotLeftOrHigher)
+    if isPet then
+        return xi.combat.physicalHitRate.capPet
+    elseif isPC then
+        if usingH2H then
+            return xi.combat.physicalHitRate.capPCH2H
+        elseif isTwoHanded or slotLeftOrHigher then
+            return xi.combat.physicalHitRate.capPCOffhandOr2H
+        end
+
+        return xi.combat.physicalHitRate.capPCMainhand1H
+    end
+
+    return xi.combat.physicalHitRate.capNonPC
+end
+
+-- Pure Flash accuracy penalty once remaining duration (ms) is known.
+-- https://github.com/LandSandBoat/server/discussions/6926
+xi.combat.physicalHitRate.flashPenalty = function(timeRemainingMs)
+    if not timeRemainingMs or timeRemainingMs <= 0 then
+        return 0
+    end
+
+    return math.floor(timeRemainingMs * xi.combat.physicalHitRate.flashReductionPerMs)
+end
+
+-- Pure level-correction ACC branch of accuracyAndEvasionToHitRate.
+xi.combat.physicalHitRate.levelCorrectedAccuracy = function(acc, atkLvl, defLvl, applyLevelCorrection, isPC, isAvatar)
+    if not applyLevelCorrection then
+        return acc
+    end
+
+    local dlvl = atkLvl - defLvl
+
+    if isAvatar then
+        dlvl = utils.clamp(dlvl, xi.combat.physicalHitRate.avatarDlvlMin, xi.combat.physicalHitRate.avatarDlvlMax)
+    end
+
+    -- Accuracy Bonus, doesn't apply to PCs
+    if not isPC and atkLvl > defLvl then
+        acc = acc + dlvl * xi.combat.physicalHitRate.levelCorrectionAccPerLevel
+
+    -- Accuracy Penalty, only applies to PCs
+    elseif isPC and atkLvl < defLvl then
+        acc = acc + dlvl * xi.combat.physicalHitRate.levelCorrectionAccPerLevel
+    end
+
+    return acc
+end
+
+-- Pure ACC/EVA → hit-rate (after level correction): (75 + (acc-eva)/2) / 100
+xi.combat.physicalHitRate.accuracyEvasionToHitRate = function(acc, eva)
+    local hitdiff = (acc - eva) / 2
+
+    return (xi.combat.physicalHitRate.baseHitPercent + hitdiff) / 100
+end
+
+xi.combat.physicalHitRate.clampMeleeHitRate = function(hitrate, cap)
+    return utils.clamp(hitrate, xi.combat.physicalHitRate.meleeHitRateFloor, cap)
+end
+
+xi.combat.physicalHitRate.clampRangedHitRate = function(hitrate)
+    return utils.clamp(hitrate, xi.combat.physicalHitRate.rangedHitRateFloor, xi.combat.physicalHitRate.rangedHitRateCap)
+end
+
+-----------------------------------
+-- Entity hosts
+-----------------------------------
+
 xi.combat.physicalHitRate.checkAnticipated = function(attacker, defender)
     -- Early Return: Defender lacks Third Eye.
     if not defender:hasStatusEffect(xi.effect.THIRD_EYE) then
@@ -49,19 +140,13 @@ end
 ---@param slot xi.attackAnimation
 ---@return number
 xi.combat.physicalHitRate.getPhysicalHitRateCap = function(attacker, slot)
-    if attacker:isPet() then
-        return 0.99
-    elseif attacker:isPC() then
-        if attacker:isUsingH2H() then -- Kicks aren't explicitly listed as 99%, TODO: needs verification
-            return 0.99
-        elseif attacker:isWeaponTwoHanded() or slot >= xi.attackAnimation.LEFT_ATTACK then -- 1h offhand, ranged
-            return 0.95
-        end
-
-        return 0.99 -- 1h mainhand
-    end
-
-    return 0.95 -- mobs, charmed pets. -- Do trusts have a 99% or 95% acc cap?
+    return xi.combat.physicalHitRate.hitRateCap(
+        attacker:isPet(),
+        attacker:isPC(),
+        attacker:isUsingH2H(), -- Kicks aren't explicitly listed as 99%, TODO: needs verification
+        attacker:isWeaponTwoHanded(),
+        slot >= xi.attackAnimation.LEFT_ATTACK -- 1h offhand, ranged
+    )
 end
 
 ---@param entity CBaseEntity
@@ -70,12 +155,7 @@ xi.combat.physicalHitRate.getFlashPenalty = function(entity)
     local effect = entity:getStatusEffect(xi.effect.FLASH)
 
     if effect then
-        -- https://github.com/LandSandBoat/server/discussions/6926
-        -- milliseconds. 12s flash has a potency of 360, 360 = 0.03*(12*1000)
-        local timeRemaining           = effect:getTimeRemaining()
-        local reductionPerMillisecond = 0.03
-
-        return math.floor(timeRemaining * reductionPerMillisecond)
+        return xi.combat.physicalHitRate.flashPenalty(effect:getTimeRemaining())
     end
 
     return 0
@@ -147,30 +227,16 @@ end
 ---@param eva number
 ---@return number
 local function accuracyAndEvasionToHitRate(attacker, target, acc, eva)
-    local shouldApplyLevelCorrection = xi.data.levelCorrection.isLevelCorrectedZone(attacker)
+    acc = xi.combat.physicalHitRate.levelCorrectedAccuracy(
+        acc,
+        attacker:getMainLvl(),
+        target:getMainLvl(),
+        xi.data.levelCorrection.isLevelCorrectedZone(attacker),
+        attacker:isPC(),
+        attacker:isAvatar()
+    )
 
-    if shouldApplyLevelCorrection then
-        local dlvl = attacker:getMainLvl() - target:getMainLvl()
-
-        -- cap dlvl for avatars. It's known to cap at 38
-        if attacker:isAvatar() then
-            dlvl = utils.clamp(dlvl, 0, 38)
-        end
-
-        -- Accuracy Bonus, doesn't apply to PCs
-        if not attacker:isPC() and attacker:getMainLvl() > target:getMainLvl() then
-            acc = acc + dlvl * 4
-
-        -- Accuracy Penalty, only applies to PCs -- TODO: does this apply to player pets?
-        elseif attacker:isPC() and attacker:getMainLvl() < target:getMainLvl() then
-            acc = acc + dlvl * 4
-        end
-    end
-
-    local hitdiff = (acc - eva) / 2
-    local hitrate = (75 + hitdiff) / 100
-
-    return hitrate
+    return xi.combat.physicalHitRate.accuracyEvasionToHitRate(acc, eva)
 end
 
 ---@param attacker CBaseEntity
@@ -197,7 +263,7 @@ xi.combat.physicalHitRate.getPhysicalHitRate = function(attacker, target, bonus,
     local hitrate = accuracyAndEvasionToHitRate(attacker, target, acc, eva)
 
     -- Apply hitrate caps
-    hitrate = utils.clamp(hitrate, 0.2, hitRateCap)
+    hitrate = xi.combat.physicalHitRate.clampMeleeHitRate(hitrate, hitRateCap)
 
     return hitrate
 end
@@ -211,7 +277,7 @@ xi.combat.physicalHitRate.getRangedHitRate = function(attacker, target, bonus, i
     local distance = attacker:checkDistance(target)
 
     -- special case
-    if distance > 25 then
+    if distance > xi.combat.physicalHitRate.maxRangedDistance then
         return 0
     end
 
@@ -230,7 +296,7 @@ xi.combat.physicalHitRate.getRangedHitRate = function(attacker, target, bonus, i
     local hitrate = accuracyAndEvasionToHitRate(attacker, target, acc, eva)
 
     -- Apply hitrate caps
-    hitrate = utils.clamp(hitrate, 0.05, 0.95)
+    hitrate = xi.combat.physicalHitRate.clampRangedHitRate(hitrate)
 
     return hitrate
 end
