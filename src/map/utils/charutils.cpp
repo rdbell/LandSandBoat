@@ -63,6 +63,7 @@
 #include "alliance.h"
 #include "char_death_timestamp_load.h"
 #include "char_equip_mod_update.h"
+#include "char_extended_job_packets.h"
 #include "char_home_point_transition.h"
 #include "char_history_load.h"
 #include "char_history_write.h"
@@ -1676,43 +1677,25 @@ void SendUnityPackets(CCharEntity* PChar)
 // Send relevant 0x044 packets for extended job information (BLU spells, Automaton, Monstrosity)
 void SendExtendedJobPackets(CCharEntity* PChar)
 {
-    if (PChar->m_PMonstrosity)
+    const auto plan = extendedjobpackethelpers::BuildPlan(PChar->m_PMonstrosity != nullptr, PChar->GetMJob(), PChar->GetSJob());
+    for (uint8 i = 0; i < plan.count; ++i)
     {
-        PChar->pushPacket<GP_SERV_COMMAND_EXTENDED_JOB::MON>(PChar);
-    }
-    else
-    {
-        switch (PChar->GetMJob())
+        switch (plan.actions[i])
         {
-            case JOB_PUP:
-            {
+            case extendedjobpackethelpers::Action::Monstrosity:
+                PChar->pushPacket<GP_SERV_COMMAND_EXTENDED_JOB::MON>(PChar);
+                break;
+            case extendedjobpackethelpers::Action::PUPMain:
                 PChar->pushPacket<GP_SERV_COMMAND_EXTENDED_JOB::PUP>(PChar, true);
                 break;
-            }
-            case JOB_BLU:
-            {
+            case extendedjobpackethelpers::Action::BLUMain:
                 PChar->pushPacket<GP_SERV_COMMAND_EXTENDED_JOB::BLU>(PChar, true);
                 break;
-            }
-            default:
-                // TODO: Retail actually sends a packet in this case but content is unknown/unused
-                break;
-        }
-
-        switch (PChar->GetSJob())
-        {
-            case JOB_PUP:
-            {
+            case extendedjobpackethelpers::Action::PUPSub:
                 PChar->pushPacket<GP_SERV_COMMAND_EXTENDED_JOB::PUP>(PChar, false);
                 break;
-            }
-            case JOB_BLU:
-            {
+            case extendedjobpackethelpers::Action::BLUSub:
                 PChar->pushPacket<GP_SERV_COMMAND_EXTENDED_JOB::BLU>(PChar, false);
-                break;
-            }
-            default:
-                // TODO: Retail actually sends a packet in this case but content is unknown/unused
                 break;
         }
     }

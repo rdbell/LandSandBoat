@@ -770,6 +770,7 @@ auto runCharKeyItemPackets6895SelfTests() -> bool;
 auto runCharInventorySyncPlan6896SelfTests() -> bool;
 auto runCharInventoryEquipmentSlots6897SelfTests() -> bool;
 auto runCharInventoryLinkshellAttachments6898SelfTests() -> bool;
+auto runCharExtendedJobPackets6899SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3203,6 +3204,7 @@ namespace
         ok = runCharInventorySyncPlan6896SelfTests() && ok;
         ok = runCharInventoryEquipmentSlots6897SelfTests() && ok;
         ok = runCharInventoryLinkshellAttachments6898SelfTests() && ok;
+        ok = runCharExtendedJobPackets6899SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
