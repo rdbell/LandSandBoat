@@ -794,6 +794,7 @@ auto runMapNetworkingZonePacketRebuild6922SelfTests() -> bool;
 auto runMapNetworkingEncryptedReceive6923SelfTests() -> bool;
 auto runMapNetworkingParseLiveness6924SelfTests() -> bool;
 auto runMapNetworkingParsePostprocess6925SelfTests() -> bool;
+auto runMapNetworkingSendBacklog6926SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3251,6 +3252,7 @@ namespace
         ok = runMapNetworkingEncryptedReceive6923SelfTests() && ok;
         ok = runMapNetworkingParseLiveness6924SelfTests() && ok;
         ok = runMapNetworkingParsePostprocess6925SelfTests() && ok;
+        ok = runMapNetworkingSendBacklog6926SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;

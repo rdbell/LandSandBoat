@@ -26,6 +26,7 @@
 #include "map_networking_parse_liveness.h"
 #include "map_networking_parse_postprocess.h"
 #include "map_networking_parse_tail.h"
+#include "map_networking_send_backlog.h"
 #include "map_networking_small_packet.h"
 #include "map_networking_capacity.h"
 #include "map_networking_zone_packet_rebuild.h"
@@ -714,23 +715,28 @@ int32 MapNetworking::send_parse(uint8* buff, size_t* buffsize, MapSession* PSess
     auto remainingPackets = PChar->getPacketCount();
     mapStatistics_.increment(MapStatistics::Key::TotalPacketsDelayedPerTick, static_cast<uint32>(remainingPackets));
 
-    if (settings::get<bool>("logging.DEBUG_PACKET_BACKLOG"))
+    const auto backlogPlan = mapnetworkingsendbackloghelpers::MakePlan(
+        settings::get<bool>("logging.DEBUG_PACKET_BACKLOG"),
+        remainingPackets,
+        PChar->loc.zone != nullptr,
+        kMaxPacketBacklogSize);
+    if (backlogPlan.reportRemainingPackets)
     {
         TracyZoneString(fmt::format("{} packets remaining", remainingPackets));
-        if (remainingPackets > kMaxPacketBacklogSize)
-        {
-            if (PChar->loc.zone == nullptr)
-            {
-                ShowWarning(fmt::format("Packet backlog exists for char {} with a nullptr zone. Clearing packet list.", PChar->name));
-                PChar->clearPacketList();
-                return 0;
-            }
-            ShowWarning(fmt::format("Packet backlog for char {} in {} is {}! Limit is: {}",
-                                    PChar->name,
-                                    PChar->loc.zone->getName(),
-                                    remainingPackets,
-                                    kMaxPacketBacklogSize));
-        }
+    }
+    if (backlogPlan.warnUnzonedBacklog)
+    {
+        ShowWarning(fmt::format("Packet backlog exists for char {} with a nullptr zone. Clearing packet list.", PChar->name));
+        PChar->clearPacketList();
+        return 0;
+    }
+    if (backlogPlan.warnZonedBacklog)
+    {
+        ShowWarning(fmt::format("Packet backlog for char {} in {} is {}! Limit is: {}",
+                                PChar->name,
+                                PChar->loc.zone->getName(),
+                                remainingPackets,
+                                kMaxPacketBacklogSize));
     }
 
     // Increment the key after 0x00B was sent (otherwise the client would never get it!)
