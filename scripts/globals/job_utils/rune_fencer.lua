@@ -824,18 +824,82 @@ xi.job_utils.rune_fencer.useOneForAll = function(player, target, ability, action
     end
 end
 
-local function applyLiementEffect(target, absorbTypes, absorbPower, duration, caster)
-    local absorbBits = 0
-    local i          = 0
+-----------------------------------
+-- Liement pure helpers
+-- Dual-wired to OmegaXI internal/liement (slice 6719 / 0823).
+-- CheckAbsorb matches battleutils::CheckLiementAbsorb / damage_affinity_capacity.
+-----------------------------------
 
-    for _, damageType in ipairs(absorbTypes) do
-        absorbBits = absorbBits + bit.lshift(damageType, 4 * i) -- pack 4 bit damage type into 16 bit int
-        i = i + 1
+xi.job_utils.rune_fencer.liementBaseAbsorbPercent = 85
+xi.job_utils.rune_fencer.liementMaxPackedRunes    = 4
+xi.job_utils.rune_fencer.liementNibbleMask        = 0xF
+
+-- Pack up to 4 damage types into uint16 subPower (low nibble first).
+-- Extra types beyond 4 are ignored (Go PackAbsorbTypes; Lua still logs error).
+xi.job_utils.rune_fencer.packAbsorbTypes = function(absorbTypes)
+    local absorbBits = 0
+    absorbTypes = absorbTypes or {}
+    local n = #absorbTypes
+    local max = xi.job_utils.rune_fencer.liementMaxPackedRunes
+    if n > max then
+        n = max
     end
 
-    if i * 4 > 16 then -- This will trip if a custom module overrides current retail behavior and give RUN 5 runes or more.
+    for i = 1, n do
+        local damageType = bit.band(absorbTypes[i] or 0, xi.job_utils.rune_fencer.liementNibbleMask)
+        absorbBits = bit.bor(absorbBits, bit.lshift(damageType, 4 * (i - 1)))
+    end
+
+    return absorbBits
+end
+
+-- Unpack four nibble slots (including zeros).
+xi.job_utils.rune_fencer.unpackAbsorbTypes = function(absorbTypeBits)
+    absorbTypeBits = absorbTypeBits or 0
+    local out = {}
+    for i = 0, xi.job_utils.rune_fencer.liementMaxPackedRunes - 1 do
+        out[i + 1] = bit.band(bit.rshift(absorbTypeBits, 4 * i), xi.job_utils.rune_fencer.liementNibbleMask)
+    end
+
+    return out
+end
+
+-- Pure CheckLiementAbsorb once active/power/bits/damageType inject.
+-- Returns multiplier, consume.
+-- params: active, absorbPower, absorbTypeBits, damageType
+xi.job_utils.rune_fencer.checkLiementAbsorbFromParams = function(params)
+    if not params.active then
+        return 1.0, false
+    end
+
+    local damageType = params.damageType or 0
+    local bits = params.absorbTypeBits or 0
+    local power = params.absorbPower or 0
+    local count = 0
+
+    for i = 0, xi.job_utils.rune_fencer.liementMaxPackedRunes - 1 do
+        local packed = bit.band(bit.rshift(bits, 4 * i), xi.job_utils.rune_fencer.liementNibbleMask)
+        if packed == damageType then
+            count = count + 1
+        end
+    end
+
+    if count == 0 then
+        return 1.0, false
+    end
+
+    -- C++: float((85 + count * power) / 100.0) * -1
+    local mult = (xi.job_utils.rune_fencer.liementBaseAbsorbPercent + count * power) / 100
+    return -mult, true
+end
+
+local function applyLiementEffect(target, absorbTypes, absorbPower, duration, caster)
+    local i = #absorbTypes
+    if i * 4 > 16 then -- custom module with 5+ runes
         print('ERROR: applyLiementEffect trying to pack more than 16 bits into 16 bit datatype! Does Rune Fencer have 5 or more runes enabled?')
     end
+
+    local absorbBits = xi.job_utils.rune_fencer.packAbsorbTypes(absorbTypes)
 
     target:delStatusEffectSilent(xi.effect.VALLATION) -- Liement overwrites Vallation
     target:delStatusEffectSilent(xi.effect.VALIANCE)  -- Liement overwrites Valiance
