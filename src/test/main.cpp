@@ -743,6 +743,7 @@ auto runPlayTimeSavePlan6867SelfTests() -> bool;
 auto runMogLockerAccess6868SelfTests() -> bool;
 auto runStratagemRemoval6869SelfTests() -> bool;
 auto runInvisibleRemoval6870SelfTests() -> bool;
+auto runEquipModRemoval6871SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
 auto runStyleUpdate1518SelfTests() -> bool;
@@ -3148,6 +3149,7 @@ namespace
         ok = runMogLockerAccess6868SelfTests() && ok;
         ok = runStratagemRemoval6869SelfTests() && ok;
         ok = runInvisibleRemoval6870SelfTests() && ok;
+        ok = runEquipModRemoval6871SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
         ok = runStyleUpdate1518SelfTests() && ok;

@@ -1393,6 +1393,8 @@ set(SOURCES
     test_stratagem_removal_6869.cpp
     test_invisible_removal_6870.h
     test_invisible_removal_6870.cpp
+    test_equip_mod_removal_6871.h
+    test_equip_mod_removal_6871.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h
