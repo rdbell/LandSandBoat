@@ -125,6 +125,7 @@
 #include "unequip_main_sub_look_capacity.h"
 #include "unequip_ranged_look_capacity.h"
 #include "unequip_sub_look_capacity.h"
+#include "unequip_weapon_finalize_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
@@ -2286,6 +2287,26 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
             .removedMainIsHandToHand = PItem->isType(ITEM_WEAPON) && static_cast<CItemWeapon*>(PItem)->getSkillType() == SKILL_HAND_TO_HAND,
             .hasSubAfterClear        = PChar->getEquip(SLOT_SUB) != nullptr,
         });
+        const auto weaponFinalizePlan = unequipweaponfinalizehelpers::PlanFor({
+            .equipSlotID                     = equipSlotID,
+            .removedRangedIsStringInstrument = equipSlotID == SLOT_RANGED && static_cast<CItemWeapon*>(PItem)->getSkillType() == SKILL_STRING_INSTRUMENT,
+            .removedRangedIsWindInstrument   = equipSlotID == SLOT_RANGED && static_cast<CItemWeapon*>(PItem)->getSkillType() == SKILL_WIND_INSTRUMENT,
+        });
+        const auto applyWeaponFinalizePlan = [&]()
+        {
+            if (weaponFinalizePlan.clearTP)
+            {
+                PChar->health.tp = 0;
+            }
+            if (weaponFinalizePlan.clearAftermath)
+            {
+                PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Aftermath);
+            }
+            if (weaponFinalizePlan.buildWeaponSkills)
+            {
+                BuildingCharWeaponSkills(PChar);
+            }
+        };
         switch (equipSlotID)
         {
             case SLOT_HEAD:
@@ -2325,9 +2346,7 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
                     PChar->look.sub = subLookPlan.modelID;
                 }
                 PChar->m_Weapons[SLOT_SUB] = xi::items::unarmed(); // << equips "nothing" in the sub slot to prevent multi attack exploit
-                PChar->health.tp           = 0;
-                PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Aftermath);
-                BuildingCharWeaponSkills(PChar);
+                applyWeaponFinalizePlan();
                 UpdateWeaponStyle(PChar, equipSlotID, nullptr);
             }
             break;
@@ -2348,12 +2367,7 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
                     PChar->look.ranged = rangedLookPlan.modelID;
                 }
                 PChar->m_Weapons[SLOT_RANGED] = nullptr;
-                if (((CItemWeapon*)PItem)->getSkillType() != SKILL_STRING_INSTRUMENT && ((CItemWeapon*)PItem)->getSkillType() != SKILL_WIND_INSTRUMENT)
-                {
-                    PChar->health.tp = 0;
-                    PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Aftermath);
-                }
-                BuildingCharWeaponSkills(PChar);
+                applyWeaponFinalizePlan();
                 UpdateWeaponStyle(PChar, equipSlotID, nullptr);
             }
             break;
@@ -2379,9 +2393,7 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
                     CheckUnarmedWeapon(PChar);
                 }
 
-                PChar->health.tp = 0;
-                PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Aftermath);
-                BuildingCharWeaponSkills(PChar);
+                applyWeaponFinalizePlan();
                 UpdateWeaponStyle(PChar, equipSlotID, nullptr);
             }
             break;

@@ -17,6 +17,7 @@
 #include "map/unequip_main_sub_look_capacity.h"
 #include "map/unequip_ranged_look_capacity.h"
 #include "map/unequip_sub_look_capacity.h"
+#include "map/unequip_weapon_finalize_capacity.h"
 #include "map/equip_policy_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
 
@@ -396,6 +397,28 @@ auto Check() -> bool
         !emptySubMainClear.setSubLook || emptySubMainClear.modelID != 0 ||
         retainedSub.setSubLook || retainedSub.modelID != 0 ||
         nonWeaponMain.setSubLook || nonWeaponMain.modelID != 0)
+    {
+        return false;
+    }
+
+    const auto subWeaponFinalize = unequipweaponfinalizehelpers::PlanFor({ .equipSlotID = 1 });
+    const auto mainWeaponFinalize = unequipweaponfinalizehelpers::PlanFor({ .equipSlotID = 0 });
+    const auto rangedWeaponFinalize = unequipweaponfinalizehelpers::PlanFor({ .equipSlotID = 2 });
+    const auto stringInstrumentFinalize = unequipweaponfinalizehelpers::PlanFor({
+        .equipSlotID                        = 2,
+        .removedRangedIsStringInstrument = true,
+    });
+    const auto windInstrumentFinalize = unequipweaponfinalizehelpers::PlanFor({
+        .equipSlotID                      = 2,
+        .removedRangedIsWindInstrument = true,
+    });
+    const auto ammoFinalize = unequipweaponfinalizehelpers::PlanFor({ .equipSlotID = 3 });
+    if (!subWeaponFinalize.clearTP || !subWeaponFinalize.clearAftermath || !subWeaponFinalize.buildWeaponSkills ||
+        !mainWeaponFinalize.clearTP || !mainWeaponFinalize.clearAftermath || !mainWeaponFinalize.buildWeaponSkills ||
+        !rangedWeaponFinalize.clearTP || !rangedWeaponFinalize.clearAftermath || !rangedWeaponFinalize.buildWeaponSkills ||
+        stringInstrumentFinalize.clearTP || stringInstrumentFinalize.clearAftermath || !stringInstrumentFinalize.buildWeaponSkills ||
+        windInstrumentFinalize.clearTP || windInstrumentFinalize.clearAftermath || !windInstrumentFinalize.buildWeaponSkills ||
+        ammoFinalize.clearTP || ammoFinalize.clearAftermath || ammoFinalize.buildWeaponSkills)
     {
         return false;
     }
