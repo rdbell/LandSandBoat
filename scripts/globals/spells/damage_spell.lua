@@ -323,147 +323,207 @@ local function cardinalChantBonus(actor, target, direction, spellId, skillType)
 end
 
 -----------------------------------
--- Basic Functions
+-- Base spell damage pure helpers
+-- Dual-wired to OmegaXI internal/spellbasedmg (slice 6713 / 0857).
+-----------------------------------
+
+xi.spells.damage.baseDamageMin = 0
+xi.spells.damage.baseDamageMax = 99999
+
+-- New-system soft-cap ladder thresholds/widths (mTable).
+xi.spells.damage.newSystemStatLadder =
+{
+    [1] = {   0,  50 },
+    [2] = {  50,  50 },
+    [3] = { 100, 100 },
+    [4] = { 200, 100 },
+    [5] = { 300, 100 },
+    [6] = { 400, 100 },
+    [7] = { 500, 100 },
+}
+
+-- Gate: MULTIPLIER_0 > 0 and isPC and not USE_OLD_MAGIC_DAMAGE.
+xi.spells.damage.useNewMagicDamageSystem = function(params)
+    return (params.multiplier0 or 0) > 0 and
+        params.isPC and
+        not params.useOldMagicDamage
+end
+
+-- Old system statDiff * M ladder with 3*I cap.
+xi.spells.damage.oldSystemStatDiffBonus = function(statDiff, spellMultiplier, inflexionPoint)
+    spellMultiplier = spellMultiplier or 0
+    inflexionPoint = inflexionPoint or 0
+    local statCap = 3 * inflexionPoint
+    if statDiff > statCap then
+        statDiff = statCap
+    end
+
+    if statDiff <= 0 then
+        return statDiff
+    elseif statDiff <= inflexionPoint then
+        return math.floor(statDiff * spellMultiplier)
+    end
+
+    return math.floor(inflexionPoint * spellMultiplier) +
+        math.floor((statDiff - inflexionPoint) * spellMultiplier / 2)
+end
+
+-- New system multi-segment PC ladder. multipliers is 7-entry M0..M500 array.
+xi.spells.damage.newSystemStatDiffBonus = function(statDiff, multipliers)
+    local bonus = 0
+    local ladder = xi.spells.damage.newSystemStatLadder
+    multipliers = multipliers or {}
+    for i = 1, 7 do
+        local thr = ladder[i][1]
+        local width = ladder[i][2]
+        local m = multipliers[i] or 0
+        bonus = bonus + math.floor(utils.clamp(statDiff - thr, 0, width) * m)
+    end
+
+    return bonus
+end
+
+-- mDMG assembly from JP/status/gear/cascade injects.
+xi.spells.damage.baseSpellDamageBonusFromParams = function(params)
+    local bonus = 0
+    if params.isPC then
+        if params.hasManafont then
+            bonus = bonus + (params.manafontJP or 0) * 3
+        end
+
+        if params.hasManawell then
+            bonus = bonus + (params.manawellJP or 0)
+        end
+
+        if params.isBLMMain then
+            bonus = bonus + (params.magicDmgBonusJP or 0)
+        end
+
+        if params.skillType == xi.skill.NINJUTSU then
+            bonus = bonus + (params.elemNinjutsuJP or 0) * 2
+        end
+
+        if
+            (params.spellGroup == xi.magic.spellGroup.WHITE and params.hasRapture) or
+            (params.spellGroup == xi.magic.spellGroup.BLACK and params.hasEbullience)
+        then
+            bonus = bonus + (params.strategemEffectIIIJP or 0) * 2
+        end
+    end
+
+    bonus = bonus + (params.magicDamageMod or 0)
+
+    if
+        params.skillType == xi.skill.ELEMENTAL_MAGIC and
+        params.hasCascade
+    then
+        bonus = bonus + math.floor((params.currentTP or 0) / 10)
+    end
+
+    return bonus
+end
+
+-- Pure calculateBaseDamage once table columns, statDiff, and mDMG injects known.
+-- params fields mirror Go spellbasedmg.Params + table columns as scalars.
+xi.spells.damage.calculateBaseDamageFromParams = function(params)
+    local useNew = xi.spells.damage.useNewMagicDamageSystem(params)
+    local baseSpellDamage = params.npcPower or 0
+    if useNew then
+        baseSpellDamage = params.pcPower or 0
+    end
+
+    local statDiff = params.statDiff or 0
+    local statDiffBonus = 0
+    if useNew then
+        local multipliers =
+        {
+            params.multiplier0 or 0,
+            params.multiplier50 or 0,
+            params.multiplier100 or 0,
+            params.multiplier200 or 0,
+            params.multiplier300 or 0,
+            params.multiplier400 or 0,
+            params.multiplier500 or 0,
+        }
+        -- Prefer packed multipliers array when provided (1-indexed M0..M500).
+        if params.multipliers then
+            multipliers = params.multipliers
+        end
+
+        statDiffBonus = xi.spells.damage.newSystemStatDiffBonus(statDiff, multipliers)
+    else
+        statDiffBonus = xi.spells.damage.oldSystemStatDiffBonus(
+            statDiff, params.npcMultiplier, params.inflexionPoint)
+    end
+
+    local mdmg = xi.spells.damage.baseSpellDamageBonusFromParams(params)
+    local spellDamage = baseSpellDamage + mdmg + statDiffBonus
+    local spellId = params.spellId or 0
+
+    if spellId == xi.magic.spell.DEATH then
+        spellDamage = baseSpellDamage + (params.casterMP or 0) * 3
+    elseif xi.spells.damage.isHelixSpell(spellId) then
+        spellDamage = spellDamage + (params.helixEffectMod or 0)
+    elseif spellId == xi.magic.spell.KAUSTRA then
+        baseSpellDamage = math.floor((params.mainLvl or 0) * 0.67) / 10
+        statDiffBonus = math.floor(statDiffBonus)
+        spellDamage = math.floor(baseSpellDamage * (mdmg + statDiffBonus))
+    end
+
+    return utils.clamp(spellDamage, xi.spells.damage.baseDamageMin, xi.spells.damage.baseDamageMax)
+end
+
+-----------------------------------
+-- Basic Functions (entity hosts)
 -----------------------------------
 xi.spells.damage.calculateBaseDamage = function(caster, target, spellId, spellGroup, skillType, statUsed)
-    local spellDamage  = 0 -- The variable we want to calculate
-    local useNewSystem = false -- Default to old.
-
-    -- Choose system to use.
-    if
-        pTable[spellId][column.MULTIPLIER_0] > 0 and -- We actually have new system values.
-        caster:isPC() and                            -- Only players use new system.
-        not xi.settings.main.USE_OLD_MAGIC_DAMAGE    -- New system is allowed in settings.
-    then
-        useNewSystem = true -- Use new system.
+    local row = pTable[spellId]
+    if not row then
+        return 0
     end
 
-    -----------------------------------
-    -- STEP 1: baseSpellDamage (V)
-    -----------------------------------
-    local baseSpellDamage = pTable[spellId][column.NPC_POWER] -- (V) In Wiki.
+    local isPC = caster:isPC()
+    local inject =
+    {
+        spellId            = spellId,
+        spellGroup         = spellGroup,
+        skillType          = skillType,
+        statDiff           = caster:getStat(statUsed) - target:getStat(statUsed),
+        isPC               = isPC,
+        useOldMagicDamage  = xi.settings.main.USE_OLD_MAGIC_DAMAGE,
+        npcPower           = row[column.NPC_POWER],
+        npcMultiplier      = row[column.NPC_MULTIPLIER],
+        pcPower            = row[column.PC_POWER],
+        inflexionPoint     = row[column.INFLEXION_POINT],
+        multiplier0        = row[column.MULTIPLIER_0],
+        multiplier50       = row[column.MULTIPLIER_50],
+        multiplier100      = row[column.MULTIPLIER_100],
+        multiplier200      = row[column.MULTIPLIER_200],
+        multiplier300      = row[column.MULTIPLIER_300],
+        multiplier400      = row[column.MULTIPLIER_400],
+        multiplier500      = row[column.MULTIPLIER_500],
+        magicDamageMod     = caster:getMod(xi.mod.MAGIC_DAMAGE),
+        hasCascade         = caster:hasStatusEffect(xi.effect.CASCADE),
+        currentTP          = caster:getTP(),
+        helixEffectMod     = caster:getMod(xi.mod.HELIX_EFFECT),
+        casterMP           = caster:getMP(),
+        mainLvl            = caster:getMainLvl(),
+    }
 
-    if useNewSystem then
-        baseSpellDamage = pTable[spellId][column.PC_POWER] -- vPC
+    if isPC then
+        inject.hasManafont          = caster:hasStatusEffect(xi.effect.MANAFONT)
+        inject.manafontJP           = caster:getJobPointLevel(xi.jp.MANAFONT_EFFECT)
+        inject.hasManawell          = caster:hasStatusEffect(xi.effect.MANAWELL)
+        inject.manawellJP           = caster:getJobPointLevel(xi.jp.MANAWELL_EFFECT)
+        inject.isBLMMain            = caster:getMainJob() == xi.job.BLM
+        inject.magicDmgBonusJP      = caster:getJobPointLevel(xi.jp.MAGIC_DMG_BONUS)
+        inject.elemNinjutsuJP       = caster:getJobPointLevel(xi.jp.ELEM_NINJITSU_EFFECT)
+        inject.hasRapture           = caster:hasStatusEffect(xi.effect.RAPTURE)
+        inject.hasEbullience        = caster:hasStatusEffect(xi.effect.EBULLIENCE)
+        inject.strategemEffectIIIJP = caster:getJobPointLevel(xi.jp.STRATEGEM_EFFECT_III)
     end
 
-    -----------------------------------
-    -- STEP 2: statDiffBonus (statDiff * M)
-    -----------------------------------
-    local statDiffBonus = 0 -- statDiff x appropriate multipliers.
-    local statDiff      = caster:getStat(statUsed) - target:getStat(statUsed)
-
-    -- New System
-    if useNewSystem then
-        local mTable =
-        {
-            [1] = {   0,  50 },
-            [2] = {  50,  50 },
-            [3] = { 100, 100 },
-            [4] = { 200, 100 },
-            [5] = { 300, 100 },
-            [6] = { 400, 100 },
-            [7] = { 500, 100 },
-        }
-
-        for i = 1, 7 do
-            statDiffBonus = statDiffBonus + math.floor(utils.clamp(statDiff - mTable[i][1], 0, mTable[i][2]) * pTable[spellId][column.INFLEXION_POINT + i])
-        end
-
-    -- Old system
-    else
-        local spellMultiplier = pTable[spellId][column.NPC_MULTIPLIER]  -- M
-        local inflexionPoint  = pTable[spellId][column.INFLEXION_POINT] -- I
-
-        -- Cap stat difference. In the old system, in 99% of cases, the stat difference capped at 3 times the infexion point, from which point, stat would stop taking effect.
-        local statCap = 3 * inflexionPoint
-
-        statDiff = math.min(statDiff, statCap)
-
-        -- Operations.
-        if statDiff <= 0 then
-            statDiffBonus = statDiff
-        elseif statDiff <= inflexionPoint then
-            statDiffBonus = math.floor(statDiff * spellMultiplier)
-        else
-            statDiffBonus = math.floor(inflexionPoint * spellMultiplier) + math.floor((statDiff - inflexionPoint) * spellMultiplier / 2)
-        end
-    end
-
-    -----------------------------------
-    -- STEP 3: baseSpellDamageBonus (mDMG)
-    -----------------------------------
-    local baseSpellDamageBonus = 0 -- (mDMG) In Wiki. Get from equipment, status, etc
-
-    if caster:isPC() then
-        -- BLM Job Point: Manafont Elemental Magic Damage +3
-        if caster:hasStatusEffect(xi.effect.MANAFONT) then
-            baseSpellDamageBonus = baseSpellDamageBonus + caster:getJobPointLevel(xi.jp.MANAFONT_EFFECT) * 3
-        end
-
-        -- BLM Job Point: With Manawell mDMG +1
-        if caster:hasStatusEffect(xi.effect.MANAWELL) then
-            baseSpellDamageBonus = baseSpellDamageBonus + caster:getJobPointLevel(xi.jp.MANAWELL_EFFECT)
-        end
-
-        -- BLM Job Point: Magic Damage Bonus
-        if caster:getMainJob() == xi.job.BLM then
-            baseSpellDamageBonus = baseSpellDamageBonus + caster:getJobPointLevel(xi.jp.MAGIC_DMG_BONUS)
-        end
-
-        -- NIN Job Point: Elemental Ninjutsu Effect
-        if skillType == xi.skill.NINJUTSU then
-            baseSpellDamageBonus = baseSpellDamageBonus + caster:getJobPointLevel(xi.jp.ELEM_NINJITSU_EFFECT) * 2
-        end
-
-        -- SCH Job Point: Stratagem Effect III
-        if
-            (spellGroup == xi.magic.spellGroup.WHITE and caster:hasStatusEffect(xi.effect.RAPTURE)) or
-            (spellGroup == xi.magic.spellGroup.BLACK and caster:hasStatusEffect(xi.effect.EBULLIENCE))
-        then
-            baseSpellDamageBonus = baseSpellDamageBonus + caster:getJobPointLevel(xi.jp.STRATEGEM_EFFECT_III) * 2
-        end
-    end
-
-    -- Bonus to spell base damage from gear.
-    baseSpellDamageBonus = baseSpellDamageBonus + caster:getMod(xi.mod.MAGIC_DAMAGE)
-
-    -- Bonus to spell base damage from Cascade effect.
-    if
-        skillType == xi.skill.ELEMENTAL_MAGIC and
-        caster:hasStatusEffect(xi.effect.CASCADE)
-    then
-        baseSpellDamageBonus = baseSpellDamageBonus + math.floor(caster:getTP() / 10)
-    end
-
-    -----------------------------------
-    -- STEP 4: Spell Damage
-    -----------------------------------
-    spellDamage = baseSpellDamage + baseSpellDamageBonus + statDiffBonus
-
-    -----------------------------------
-    -- STEP 5: Exceptions
-    -----------------------------------
-    -- Death
-    if spellId == xi.magic.spell.DEATH then
-        spellDamage = baseSpellDamage + caster:getMP() * 3
-
-    -- Helix-spells
-    elseif
-        (spellId >= xi.magic.spell.GEOHELIX and spellId <= xi.magic.spell.LUMINOHELIX) or
-        (spellId >= xi.magic.spell.GEOHELIX_II and spellId <= xi.magic.spell.LUMINOHELIX_II)
-    then
-        spellDamage = spellDamage + caster:getMod(xi.mod.HELIX_EFFECT)
-
-    -- Kaustra
-    elseif spellId == xi.magic.spell.KAUSTRA then
-        baseSpellDamage = math.floor(caster:getMainLvl() * 0.67) / 10
-        statDiffBonus   = math.floor(statDiffBonus)
-
-        spellDamage = math.floor(baseSpellDamage * (baseSpellDamageBonus + statDiffBonus))
-    end
-
-    return utils.clamp(spellDamage, 0, 99999)
+    return xi.spells.damage.calculateBaseDamageFromParams(inject)
 end
 
 -----------------------------------
