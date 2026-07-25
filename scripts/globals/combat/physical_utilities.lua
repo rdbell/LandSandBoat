@@ -1153,6 +1153,199 @@ xi.combat.physical.meleeRandomFactorFromParams = function(params)
     return 1 + step * 0.01
 end
 
+-----------------------------------
+-- Pure: full MeleePDIF / RangedPDIF products (slice 6762 / 1572)
+-- Parity: internal/pdif MeleePDIF / RangedPDIF / MeleeBounds / RangedBounds
+-----------------------------------
+xi.combat.physical.rangedCritMult = 1.25
+
+-- Pure melee pDIF bounds after level correction for host RNG sampling.
+-- params: actorAttack, targetDefense, isCritical, applyLevelCorrection,
+--   actorIsPC, actorLevel, targetLevel, weaponCap, damageLimit, damageLimitP,
+--   spikeRoll (1..10000), upperMaxCoin (0 or 1)
+-- returns: lower, upper, spiked, spikePdif
+xi.combat.physical.meleePDIFBoundsFromParams = function(params)
+    params = params or {}
+    local def = params.targetDefense or 0
+    if def < 1 then
+        def = 1
+    end
+
+    local baseRatio = xi.combat.physical.baseRatioFromParams({
+        actorAttack   = params.actorAttack or 0,
+        targetDefense = def,
+    })
+    local levelDif = xi.combat.physical.levelDifFactorFromParams({
+        actorLevel           = params.actorLevel or 0,
+        targetLevel          = params.targetLevel or 0,
+        applyLevelCorrection = params.applyLevelCorrection,
+        actorIsPC            = params.actorIsPC,
+        ranged               = false,
+    })
+    local wRatio = xi.combat.physical.meleeWRatioFromParams({
+        baseRatio  = baseRatio,
+        isCritical = params.isCritical,
+    })
+
+    local pDifFinalCap = 0
+    if params.actorIsPC then
+        pDifFinalCap = xi.combat.physical.finalCapPCFromParams({
+            weaponCap      = params.weaponCap or 0,
+            damageLimit    = params.damageLimit or 0,
+            damageLimitP   = params.damageLimitP or 0,
+            meleeCritBonus = params.isCritical,
+        })
+    else
+        pDifFinalCap = xi.combat.physical.finalCapMeleeOthersFromParams({
+            applyLevelCorrection = params.applyLevelCorrection,
+            isCritical           = params.isCritical,
+            damageLimit          = params.damageLimit or 0,
+            damageLimitP         = params.damageLimitP or 0,
+        })
+    end
+
+    local sRatio = xi.combat.physical.spikeRatio(params.actorIsPC, wRatio)
+    if ((params.spikeRoll or 0) / 10000) <= sRatio then
+        return 0, 0, true, 1.0
+    end
+
+    local lowerCap, upperCap
+    if params.actorIsPC then
+        lowerCap, upperCap = xi.combat.physical.wRatioCapPC(wRatio, pDifFinalCap)
+    else
+        lowerCap, upperCap = xi.combat.physical.wRatioCapOthers(wRatio, pDifFinalCap)
+    end
+
+    local upperMax = 0
+    if (params.upperMaxCoin or 0) == 0 then
+        upperMax = 0.5
+    end
+
+    local upperBound = math.max(upperCap + levelDif, upperMax)
+    local lowerBound = math.max(lowerCap + levelDif, 0)
+    return lowerBound, upperBound, false, 0
+end
+
+-- Pure calculateMeleePDIF once attack/defense/level/cap injects and RNG rolls.
+-- params: actorAttack, targetDefense, isCritical, applyLevelCorrection,
+--   actorIsPC, actorLevel, targetLevel, weaponCap, damageLimit, damageLimitP,
+--   critDmgIncrease, critDefBonus, spikeRoll, upperMaxCoin, ratioRoll,
+--   ratioRollValid, meleeRandStep
+xi.combat.physical.meleePDIFFromParams = function(params)
+    params = params or {}
+    local lower, upper, spiked, spikePdif = xi.combat.physical.meleePDIFBoundsFromParams(params)
+    if spiked then
+        return spikePdif
+    end
+
+    if upper == 0 then
+        return 0
+    end
+
+    local pDif
+    if params.ratioRollValid then
+        pDif = (params.ratioRoll or 0) / 1000
+    else
+        pDif = (lower + upper) / 2
+    end
+
+    pDif = pDif * xi.combat.physical.meleeRandomFactorFromParams({
+        step = params.meleeRandStep or 0,
+    })
+
+    if params.isCritical then
+        pDif = pDif * xi.combat.physical.critDamageMultFromParams({
+            critDmgIncrease = params.critDmgIncrease or 0,
+            critDefBonus    = params.critDefBonus or 0,
+        })
+    end
+
+    return pDif
+end
+
+-- Pure ranged pDIF bounds after level correction for host RNG sampling.
+-- params: actorAttack, targetDefense, applyLevelCorrection, actorIsPC,
+--   actorLevel, targetLevel, weaponCap, damageLimit, damageLimitP
+-- returns: lower, upper
+xi.combat.physical.rangedPDIFBoundsFromParams = function(params)
+    params = params or {}
+    local def = params.targetDefense or 0
+    if def < 1 then
+        def = 1
+    end
+
+    local baseRatio = xi.combat.physical.baseRatioFromParams({
+        actorAttack   = params.actorAttack or 0,
+        targetDefense = def,
+    })
+    local levelDif = xi.combat.physical.levelDifFactorFromParams({
+        actorLevel           = params.actorLevel or 0,
+        targetLevel          = params.targetLevel or 0,
+        applyLevelCorrection = params.applyLevelCorrection,
+        actorIsPC            = params.actorIsPC,
+        ranged               = true,
+    })
+    local cRatio = xi.combat.physical.clampRangedCRatioFromParams({
+        baseRatio = baseRatio,
+    })
+
+    local pDifFinalCap = 0
+    if params.actorIsPC then
+        pDifFinalCap = xi.combat.physical.finalCapPCFromParams({
+            weaponCap      = params.weaponCap or 0,
+            damageLimit    = params.damageLimit or 0,
+            damageLimitP   = params.damageLimitP or 0,
+            meleeCritBonus = false,
+        })
+    else
+        pDifFinalCap = xi.combat.physical.finalCapRangedOthersFromParams({
+            applyLevelCorrection = params.applyLevelCorrection,
+            damageLimit          = params.damageLimit or 0,
+            damageLimitP         = params.damageLimitP or 0,
+        })
+    end
+
+    local lowerCap, upperCap = xi.combat.physical.rangedCRatioCapsFromParams({
+        cRatio       = cRatio,
+        pDifFinalCap = pDifFinalCap,
+    })
+    return xi.combat.physical.applyLevelDifToCapsFromParams({
+        lowerCap       = lowerCap,
+        upperCap       = upperCap,
+        levelDifFactor = levelDif,
+    })
+end
+
+-- Pure calculateRangedPDIF once attack/defense/level/cap injects and RNG rolls.
+-- params: actorAttack, targetDefense, isCritical, applyLevelCorrection,
+--   actorIsPC, actorLevel, targetLevel, weaponCap, damageLimit, damageLimitP,
+--   critDmgIncrease, critDefBonus, ratioRoll, ratioRollValid
+xi.combat.physical.rangedPDIFFromParams = function(params)
+    params = params or {}
+    local lower, upper = xi.combat.physical.rangedPDIFBoundsFromParams(params)
+
+    local pDif
+    if params.ratioRollValid then
+        pDif = (params.ratioRoll or 0) / 1000
+    else
+        pDif = (lower + upper) / 2
+    end
+
+    if pDif < 0 then
+        pDif = 0
+    end
+
+    if params.isCritical then
+        pDif = pDif * xi.combat.physical.rangedCritMult
+        pDif = pDif * xi.combat.physical.critDamageMultFromParams({
+            critDmgIncrease = params.critDmgIncrease or 0,
+            critDefBonus    = params.critDefBonus or 0,
+        })
+    end
+
+    return pDif
+end
+
 xi.combat.physical.wRatioCapPC = function(wRatio, pDifFinalCap)
     local pDifUpperCap = 0
     local pDifLowerCap = 0
@@ -1255,10 +1448,6 @@ xi.combat.physical.spikeRatio = function(isPC, wRatio)
     return 0
 end
 
-local function getSpikeRatio(isPC, wRatio)
-    return xi.combat.physical.spikeRatio(isPC, wRatio)
-end
-
 -- WARNING: This function is used in src/utils/battleutils.cpp "GetDamageRatio" function.
 -- If you update this parameters, update them there aswell.
 ---@param actor CBaseEntity
@@ -1272,14 +1461,12 @@ end
 ---@param isWeaponskill boolean
 ---@param weaponSlot xi.slot
 ---@param isCannonball boolean
+-- Host residual: entity ATT/DEF/flourish/attuner/cannonball/level/cap mods + RNG.
+-- Pure product: meleePDIFFromParams (slice 6762 / 1572).
 xi.combat.physical.calculateMeleePDIF = function(actor, target, weaponType, wsAttackMod, isCritical, applyLevelCorrection, tpIgnoresDefense, tpFactor, isWeaponskill, weaponSlot, isCannonball)
-    local pDif = 0
-
     ----------------------------------------
-    -- Step 1: Attack / Defense Ratio
+    -- Step 1: Attack / Defense injects
     ----------------------------------------
-    local baseRatio     = 0
-    local actorAttack   = 0
     local targetDefense = math.max(1, target:getStat(xi.mod.DEF))
     local flourishBonus = 1
 
@@ -1295,7 +1482,7 @@ xi.combat.physical.calculateMeleePDIF = function(actor, target, weaponType, wsAt
 
     -- TODO: it is unknown if ws attack mod and flourish bonus are additive or multiplicative
     -- TODO: do flourish and attack mods come before or after food?
-    actorAttack = xi.combat.physical.meleeActorAttackFromParams({
+    local actorAttack = xi.combat.physical.meleeActorAttackFromParams({
         att            = actor:getStat(xi.mod.ATT, weaponSlot),
         wsAttackMod    = wsAttackMod,
         flourishBonus  = flourishBonus,
@@ -1324,107 +1511,37 @@ xi.combat.physical.calculateMeleePDIF = function(actor, target, weaponType, wsAt
         actorAttack = actor:getStat(xi.mod.DEF)
     end
 
-    -- Actor Attack / Target Defense ratio
-    baseRatio = xi.combat.physical.baseRatioFromParams({
-        actorAttack   = actorAttack,
-        targetDefense = targetDefense,
-    })
+    local inject =
+    {
+        actorAttack          = actorAttack,
+        targetDefense        = targetDefense,
+        isCritical           = isCritical,
+        applyLevelCorrection = applyLevelCorrection,
+        actorIsPC            = actor:isPC(),
+        actorLevel           = actor:getMainLvl(),
+        targetLevel          = target:getMainLvl(),
+        weaponCap            = xi.combat.physical.weaponCap(weaponType),
+        damageLimit          = actor:getMod(xi.mod.DAMAGE_LIMIT),
+        damageLimitP         = actor:getMod(xi.mod.DAMAGE_LIMITP),
+        critDmgIncrease      = actor:getMod(xi.mod.CRIT_DMG_INCREASE),
+        critDefBonus         = target:getMod(xi.mod.CRIT_DEF_BONUS),
+        spikeRoll            = math.random(1, 10000),
+        upperMaxCoin         = math.random(0, 1),
+        meleeRandStep        = math.random(0, 5),
+    }
 
-    ----------------------------------------
-    -- Step 2: cRatio (Level correction, corrected ratio) Zone based!
-    ----------------------------------------
-    -- https://forum.square-enix.com/ffxi/threads/31310-March-27-2013-(JST)-Version-Update
-    -- TODO: There is some weirdness with needing 2 levels to start level correction in retail
-    -- It is not currently implemented.
-    local levelDifFactor = xi.combat.physical.levelDifFactorFromParams({
-        actorLevel            = actor:getMainLvl(),
-        targetLevel           = target:getMainLvl(),
-        applyLevelCorrection  = applyLevelCorrection,
-        actorIsPC             = actor:isPC(),
-        ranged                = false,
-    })
-
-    ----------------------------------------
-    -- Step 3: wRatio and pDif Caps (Melee)
-    ----------------------------------------
-    local wRatio = xi.combat.physical.meleeWRatioFromParams({
-        baseRatio  = baseRatio,
-        isCritical = isCritical,
-    })
-    local pDifUpperCap       = 0
-    local pDifLowerCap       = 0
-    local damageLimit        = actor:getMod(xi.mod.DAMAGE_LIMIT)
-    local damageLimitP       = actor:getMod(xi.mod.DAMAGE_LIMITP)
-    local pDifFinalCap       = 0
-
-    if actor:isPC() then
-        pDifFinalCap = xi.combat.physical.finalCapPCFromParams({
-            weaponCap      = xi.combat.physical.weaponCap(weaponType),
-            damageLimit    = damageLimit,
-            damageLimitP   = damageLimitP,
-            meleeCritBonus = isCritical,
-        })
-
-        local sRatio = getSpikeRatio(true, wRatio)
-
-        if math.random(1, 10000) / 10000 <= sRatio then
-            return 1.0
-        end
-
-        pDifLowerCap, pDifUpperCap = xi.combat.physical.wRatioCapPC(wRatio, pDifFinalCap)
-    else
-        -- Mobs and pets, unconfirmed if pets use this same formula
-        -- corrected mobs have 2.0 pdif + 1.0 for crits, with level correction added after the fact
-        -- non-corrected mobs have 4.0 pdif cap, but there is some indication that ilvl may go up to 8.0
-        pDifFinalCap = xi.combat.physical.finalCapMeleeOthersFromParams({
-            applyLevelCorrection = applyLevelCorrection,
-            isCritical           = isCritical,
-            damageLimit          = damageLimit,
-            damageLimitP         = damageLimitP,
-        })
-
-        local sRatio = getSpikeRatio(false, wRatio)
-
-        if math.random(1, 10000) / 10000 <= sRatio then
-            return 1.0
-        end
-
-        pDifLowerCap, pDifUpperCap = xi.combat.physical.wRatioCapOthers(wRatio, pDifFinalCap)
+    local lower, upper, spiked, spikePdif = xi.combat.physical.meleePDIFBoundsFromParams(inject)
+    if spiked then
+        return spikePdif
     end
 
-    -- Apply level correction to UL/LL
-    -- https://www.ffxiah.com/forum/topic/57989/post-2016-level-correction-testing/
-    -- Dice roll the 50/50 chance to select two different bounds. Mote has not yet implemented the spike by the time of this post so his ratio is not 50/50 rate.
-    -- His model at the time and implemented spike, so the (0.0, 0.5) bounds also looks different
-    -- https://www.bluegartr.com/threads/108161-pDif-and-damage?p=5007487&viewfull=1#post5007487
-    local upperMax   = math.random(0, 1) == 0 and 0.5 or 0
-    local upperBound = math.max(pDifUpperCap + levelDifFactor, upperMax)
-    local lowerbound = math.max(pDifLowerCap + levelDifFactor, 0)
-
-    if upperBound == 0 then
+    if upper == 0 then
         return 0
     end
 
-    pDif = math.random(lowerbound * 1000, upperBound * 1000) / 1000
-
-    ----------------------------------------
-    -- Step 4: Melee random factor.
-    ----------------------------------------
-    local meleeRandom = xi.combat.physical.meleeRandomFactorFromParams({
-        step = math.random(0, 5), -- 5 distinct values
-    })
-
-    pDif = pDif * meleeRandom
-
-    -- Crit damage bonus is a final modifier
-    if isCritical then
-        pDif = pDif * xi.combat.physical.critDamageMultFromParams({
-            critDmgIncrease = actor:getMod(xi.mod.CRIT_DMG_INCREASE),
-            critDefBonus    = target:getMod(xi.mod.CRIT_DEF_BONUS),
-        })
-    end
-
-    return pDif
+    inject.ratioRollValid = true
+    inject.ratioRoll = math.random(lower * 1000, upper * 1000)
+    return xi.combat.physical.meleePDIFFromParams(inject)
 end
 
 ---@param actor CBaseEntity
@@ -1437,14 +1554,12 @@ end
 ---@param tpFactor number
 ---@param isWeaponskill boolean
 ---@param bonusRangedAttack integer
+-- Host residual: entity RATT/DEF/distance/flourish/level/cap mods + RNG.
+-- Pure product: rangedPDIFFromParams (slice 6762 / 1572).
 xi.combat.physical.calculateRangedPDIF = function(actor, target, weaponType, wsAttackMod, isCritical, applyLevelCorrection, tpIgnoresDefense, tpFactor, isWeaponskill, bonusRangedAttack)
-    local pDif = 0
-
     ----------------------------------------
-    -- Step 1: Attack / Defense Ratio
+    -- Step 1: Attack / Defense injects
     ----------------------------------------
-    local baseRatio       = 0
-    local actorAttack     = 0
     local targetDefense   = math.max(1, target:getStat(xi.mod.DEF))
     local flourishBonus   = 1
     local distancePenalty = 0
@@ -1465,7 +1580,7 @@ xi.combat.physical.calculateRangedPDIF = function(actor, target, weaponType, wsA
     end
 
     -- TODO: it is unknown if ws attack mod and flourish bonus are additive or multiplicative
-    actorAttack = xi.combat.physical.rangedActorAttackFromParams({
+    local actorAttack = xi.combat.physical.rangedActorAttackFromParams({
         ratt               = actor:getStat(xi.mod.RATT),
         bonusRangedAttack  = bonusRangedAttack,
         distancePenalty    = distancePenalty,
@@ -1480,99 +1595,32 @@ xi.combat.physical.calculateRangedPDIF = function(actor, target, weaponType, wsA
         ignoreFraction = tpFactor,
     })
 
-    baseRatio = xi.combat.physical.baseRatioFromParams({
-        actorAttack   = actorAttack,
-        targetDefense = targetDefense,
-    })
-
-    ----------------------------------------
-    -- Step 2: cRatio (Level correction, corrected ratio) Zone based!
-    ----------------------------------------
     -- Mod-based bypass for ranged level correction
     if actor:isPC() and actor:getMod(xi.mod.RA_IGNORE_LVL_DIFF) > 0 then
         applyLevelCorrection = false
     end
 
-    -- https://forum.square-enix.com/ffxi/threads/31310-March-27-2013-(JST)-Version-Update
-    -- TODO: There is some weirdness with needing 2 levels to start level correction in retail
-    -- It is not currently implemented.
-    local levelDifFactor = xi.combat.physical.levelDifFactorFromParams({
-        actorLevel            = actor:getMainLvl(),
-        targetLevel           = target:getMainLvl(),
-        applyLevelCorrection  = applyLevelCorrection,
-        actorIsPC             = actor:isPC(),
-        ranged                = true,
-    })
+    local inject =
+    {
+        actorAttack          = actorAttack,
+        targetDefense        = targetDefense,
+        isCritical           = isCritical,
+        applyLevelCorrection = applyLevelCorrection,
+        actorIsPC            = actor:isPC(),
+        actorLevel           = actor:getMainLvl(),
+        targetLevel          = target:getMainLvl(),
+        weaponCap            = xi.combat.physical.weaponCap(weaponType),
+        damageLimit          = actor:getMod(xi.mod.DAMAGE_LIMIT),
+        damageLimitP         = actor:getMod(xi.mod.DAMAGE_LIMITP),
+        critDmgIncrease      = actor:getMod(xi.mod.CRIT_DMG_INCREASE)
+            + actor:getMod(xi.mod.RANGED_CRIT_DMG_INCREASE),
+        critDefBonus         = target:getMod(xi.mod.CRIT_DEF_BONUS),
+    }
 
-    local cRatio = xi.combat.physical.clampRangedCRatioFromParams({
-        baseRatio = baseRatio,
-    }) -- Clamp for the lower limit, mainly.
-
-    -- TODO: Presumably, pets get a Cap here if the target checks as 'Too Weak'. More info needed.
-
-    ----------------------------------------
-    -- Step 3: pDif Caps (Ranged)
-    ----------------------------------------
-    local pDifUpperCap       = 0
-    local pDifLowerCap       = 0
-    local damageLimit        = actor:getMod(xi.mod.DAMAGE_LIMIT)
-    local damageLimitP       = actor:getMod(xi.mod.DAMAGE_LIMITP)
-    local pDifFinalCap       = 0
-
-    if actor:isPC() then
-        pDifFinalCap = xi.combat.physical.finalCapPCFromParams({
-            weaponCap      = xi.combat.physical.weaponCap(weaponType),
-            damageLimit    = damageLimit,
-            damageLimitP   = damageLimitP,
-            meleeCritBonus = false,
-        })
-    else
-        -- 4.0 is guessed. there is some indication that mob pdif can go to 8.0 in ilvl content
-        -- 3.0 with level correction matches player ranged pdif cap for 2013 and may need verification
-        pDifFinalCap = xi.combat.physical.finalCapRangedOthersFromParams({
-            applyLevelCorrection = applyLevelCorrection,
-            damageLimit          = damageLimit,
-            damageLimitP         = damageLimitP,
-        })
-    end
-
-    pDif = utils.clamp(pDif, 0, pDifFinalCap)
-
-    -- pDIF upper and lower caps + level correction.
-    pDifLowerCap, pDifUpperCap = xi.combat.physical.rangedCRatioCapsFromParams({
-        cRatio       = cRatio,
-        pDifFinalCap = pDifFinalCap,
-    })
-    pDifLowerCap, pDifUpperCap = xi.combat.physical.applyLevelDifToCapsFromParams({
-        lowerCap       = pDifLowerCap,
-        upperCap       = pDifUpperCap,
-        levelDifFactor = levelDifFactor,
-    })
-
-    pDif = math.random(pDifLowerCap * 1000, pDifUpperCap * 1000) / 1000
-
-    -- do not go negative, rolls below zero (proportionally) need to be rolled
-    pDif = math.max(pDif, 0)
-
-    ----------------------------------------
-    -- Step 4: Ranged critical factor. Bypasses caps.
-    ----------------------------------------
-    if isCritical then
-        pDif = pDif * 1.25
-    end
-
-    -- Step 5: TODO: True Shot.
-
-    -- Crit damage bonus is a final modifier
-    if isCritical then
-        pDif = pDif * xi.combat.physical.critDamageMultFromParams({
-            critDmgIncrease = actor:getMod(xi.mod.CRIT_DMG_INCREASE)
-                + actor:getMod(xi.mod.RANGED_CRIT_DMG_INCREASE),
-            critDefBonus = target:getMod(xi.mod.CRIT_DEF_BONUS),
-        })
-    end
-
-    return pDif
+    local lower, upper = xi.combat.physical.rangedPDIFBoundsFromParams(inject)
+    inject.ratioRollValid = true
+    inject.ratioRoll = math.random(lower * 1000, upper * 1000)
+    return xi.combat.physical.rangedPDIFFromParams(inject)
 end
 
 -----------------------------------
