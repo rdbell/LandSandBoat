@@ -67,6 +67,7 @@
 #include "char_history_load.h"
 #include "char_history_write.h"
 #include "char_invisible_removal.h"
+#include "char_inventory_sync_plan.h"
 #include "char_key_item_packets.h"
 #include "char_local_player_packets.h"
 #include "char_mannequin_update.h"
@@ -1567,7 +1568,7 @@ void SendInventory(CCharEntity* PChar)
     // Note: it's possible that non-essential inventory items are sent in response to another packet
 
     // Container order based on retail capture
-    for (auto&& containerID : { LOC_INVENTORY, LOC_MOGSAFE, LOC_MOGSAFE2, LOC_STORAGE, LOC_RECYCLEBIN, LOC_WARDROBE, LOC_WARDROBE2, LOC_WARDROBE3, LOC_WARDROBE4, LOC_WARDROBE5, LOC_WARDROBE6, LOC_WARDROBE7, LOC_WARDROBE8, LOC_TEMPITEMS, LOC_MOGLOCKER, LOC_MOGSATCHEL, LOC_MOGSACK, LOC_MOGCASE })
+    for (const auto containerID : inventorysyncpackethelpers::BuildContainerPlan())
     {
         pushContainer(containerID);
     }
