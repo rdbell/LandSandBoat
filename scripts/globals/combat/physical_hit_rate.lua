@@ -288,22 +288,49 @@ xi.combat.physicalHitRate.getHitRateModifiers = function(attacker, target, isWea
     })
 end
 
----@param attacker CBaseEntity
----@param target CBaseEntity
----@param acc number
----@param eva number
----@return number
-local function accuracyAndEvasionToHitRate(attacker, target, acc, eva)
+-----------------------------------
+-- Pure: full melee / ranged hit-rate products (slice 6763 / 0838)
+-- Parity: internal/physhitrate MeleeHitRate / RangedHitRate
+-----------------------------------
+
+-- params: acc, eva, bonus, accBonus, evaBonus, cap,
+--   applyLevelCorrection, attackerLevel, defenderLevel, attackerIsPC, attackerIsAvatar
+xi.combat.physicalHitRate.meleeHitRateFromParams = function(params)
+    params = params or {}
+    local acc = (params.acc or 0) + (params.bonus or 0) + (params.accBonus or 0)
+    local eva = (params.eva or 0) + (params.evaBonus or 0)
     acc = xi.combat.physicalHitRate.levelCorrectedAccuracy(
         acc,
-        attacker:getMainLvl(),
-        target:getMainLvl(),
-        xi.data.levelCorrection.isLevelCorrectedZone(attacker),
-        attacker:isPC(),
-        attacker:isAvatar()
+        params.attackerLevel or 0,
+        params.defenderLevel or 0,
+        params.applyLevelCorrection,
+        params.attackerIsPC,
+        params.attackerIsAvatar
     )
+    local hitrate = xi.combat.physicalHitRate.accuracyEvasionToHitRate(acc, eva)
+    return xi.combat.physicalHitRate.clampMeleeHitRate(hitrate, params.cap or xi.combat.physicalHitRate.capNonPC)
+end
 
-    return xi.combat.physicalHitRate.accuracyEvasionToHitRate(acc, eva)
+-- params: acc, eva, bonus, accBonus, evaBonus, distancePenalty, distance,
+--   applyLevelCorrection, attackerLevel, defenderLevel, attackerIsPC, attackerIsAvatar
+xi.combat.physicalHitRate.rangedHitRateFromParams = function(params)
+    params = params or {}
+    if (params.distance or 0) > xi.combat.physicalHitRate.maxRangedDistance then
+        return 0
+    end
+
+    local acc = (params.acc or 0) + (params.bonus or 0) + (params.accBonus or 0) - (params.distancePenalty or 0)
+    local eva = (params.eva or 0) + (params.evaBonus or 0)
+    acc = xi.combat.physicalHitRate.levelCorrectedAccuracy(
+        acc,
+        params.attackerLevel or 0,
+        params.defenderLevel or 0,
+        params.applyLevelCorrection,
+        params.attackerIsPC,
+        params.attackerIsAvatar
+    )
+    local hitrate = xi.combat.physicalHitRate.accuracyEvasionToHitRate(acc, eva)
+    return xi.combat.physicalHitRate.clampRangedHitRate(hitrate)
 end
 
 ---@param attacker CBaseEntity
@@ -312,27 +339,25 @@ end
 ---@param slot xi.attackAnimation
 ---@param isWeaponskill boolean
 ---@return number
+-- Host residual: ACC/EVA/cap/modifier entity reads.
+-- Pure product: meleeHitRateFromParams (slice 6763).
 xi.combat.physicalHitRate.getPhysicalHitRate = function(attacker, target, bonus, slot, isWeaponskill)
     local hitRateCap = xi.combat.physicalHitRate.getPhysicalHitRateCap(attacker, slot)
-
-    local acc = attacker:getACC(slot) -- TODO: clamp slot for 0, 1, 2 (mainhand, offhand, kick)
-    local eva = target:getEVA()
-
     local accBonus, evaBonus = xi.combat.physicalHitRate.getHitRateModifiers(attacker, target, isWeaponskill, false)
 
-    if bonus == nil then
-        bonus = 0
-    end
-
-    acc = acc + bonus + accBonus
-    eva = eva + evaBonus
-
-    local hitrate = accuracyAndEvasionToHitRate(attacker, target, acc, eva)
-
-    -- Apply hitrate caps
-    hitrate = xi.combat.physicalHitRate.clampMeleeHitRate(hitrate, hitRateCap)
-
-    return hitrate
+    return xi.combat.physicalHitRate.meleeHitRateFromParams({
+        acc                  = attacker:getACC(slot), -- TODO: clamp slot for 0, 1, 2
+        eva                  = target:getEVA(),
+        bonus                = bonus or 0,
+        accBonus             = accBonus,
+        evaBonus             = evaBonus,
+        cap                  = hitRateCap,
+        applyLevelCorrection = xi.data.levelCorrection.isLevelCorrectedZone(attacker),
+        attackerLevel        = attacker:getMainLvl(),
+        defenderLevel        = target:getMainLvl(),
+        attackerIsPC         = attacker:isPC(),
+        attackerIsAvatar     = attacker:isAvatar(),
+    })
 end
 
 ---@param attacker CBaseEntity
@@ -340,30 +365,27 @@ end
 ---@param bonus number
 ---@param isWeaponskill boolean
 ---@return number
+-- Host residual: RACC/EVA/distance/modifier entity reads.
+-- Pure product: rangedHitRateFromParams (slice 6763).
 xi.combat.physicalHitRate.getRangedHitRate = function(attacker, target, bonus, isWeaponskill)
-    local distance = attacker:checkDistance(target)
-
-    -- special case
-    if distance > xi.combat.physicalHitRate.maxRangedDistance then
-        return 0
-    end
-
-    local acc = attacker:getRACC()
-    local eva = target:getEVA()
-
     local accBonus, evaBonus = xi.combat.physicalHitRate.getHitRateModifiers(attacker, target, isWeaponskill, true)
-
-    if bonus == nil then
-        bonus = 0
+    local distancePenalty = 0
+    if attacker:checkDistance(target) <= xi.combat.physicalHitRate.maxRangedDistance then
+        distancePenalty = xi.combat.ranged.accuracyDistancePenalty(attacker, target)
     end
 
-    acc = acc + bonus + accBonus - xi.combat.ranged.accuracyDistancePenalty(attacker, target)
-    eva = eva + evaBonus
-
-    local hitrate = accuracyAndEvasionToHitRate(attacker, target, acc, eva)
-
-    -- Apply hitrate caps
-    hitrate = xi.combat.physicalHitRate.clampRangedHitRate(hitrate)
-
-    return hitrate
+    return xi.combat.physicalHitRate.rangedHitRateFromParams({
+        acc                  = attacker:getRACC(),
+        eva                  = target:getEVA(),
+        bonus                = bonus or 0,
+        accBonus             = accBonus,
+        evaBonus             = evaBonus,
+        distancePenalty      = distancePenalty,
+        distance             = attacker:checkDistance(target),
+        applyLevelCorrection = xi.data.levelCorrection.isLevelCorrectedZone(attacker),
+        attackerLevel        = attacker:getMainLvl(),
+        defenderLevel        = target:getMainLvl(),
+        attackerIsPC         = attacker:isPC(),
+        attackerIsAvatar     = attacker:isAvatar(),
+    })
 end
