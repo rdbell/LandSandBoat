@@ -20,6 +20,7 @@
 */
 
 #include "map_networking.h"
+#include "map_networking_flush_statistics.h"
 #include "map_networking_incoming_packet_plan.h"
 #include "map_networking_parse_tail.h"
 #include "map_networking_small_packet.h"
@@ -824,31 +825,31 @@ void MapNetworking::flushStatistics()
 {
     // Collect statistics
     // TODO: Collect these inline
-    std::size_t activeZoneCount    = 0;
-    std::size_t playerCount        = 0;
-    std::size_t mobCount           = 0;
-    std::size_t dynamicTargIdCount = 0;
+    mapnetworkingflushstatisticshelpers::Accumulator accumulator;
 
     for (auto& [id, PZone] : g_PZoneList)
     {
-        if (PZone->IsZoneActive())
+        if (!PZone->IsZoneActive())
         {
-            activeZoneCount += 1;
-            playerCount += PZone->GetZoneEntities()->GetCharList().size();
-            mobCount += PZone->GetZoneEntities()->GetMobList().size();
-            dynamicTargIdCount += PZone->GetZoneEntities()->GetUsedDynamicTargIDsCount();
+            continue;
         }
+
+        const auto* zoneEntities = PZone->GetZoneEntities();
+        accumulator.add(mapnetworkingflushstatisticshelpers::ZoneSnapshot{
+            .active             = true,
+            .playerCount        = zoneEntities->GetCharList().size(),
+            .mobCount           = zoneEntities->GetMobList().size(),
+            .dynamicTargIdCount = zoneEntities->GetUsedDynamicTargIDsCount(),
+        });
     }
 
-    const auto dynamicTargIdCapacity = mapnetworkinghelpers::AccumulateDynamicTargIdCapacity(activeZoneCount);
+    const auto plan = accumulator.plan();
 
     // Set statistics
-    mapStatistics_.set(MapStatistics::Key::ActiveZones, activeZoneCount);
-    mapStatistics_.set(MapStatistics::Key::ConnectedPlayers, playerCount);
-    mapStatistics_.set(MapStatistics::Key::ActiveMobs, mobCount);
-
-    mapStatistics_.set(MapStatistics::Key::DynamicTargIdUsagePercent,
-                       mapnetworkinghelpers::DynamicTargIdUsagePercent(dynamicTargIdCount, dynamicTargIdCapacity));
+    mapStatistics_.set(MapStatistics::Key::ActiveZones, plan.activeZoneCount);
+    mapStatistics_.set(MapStatistics::Key::ConnectedPlayers, plan.playerCount);
+    mapStatistics_.set(MapStatistics::Key::ActiveMobs, plan.mobCount);
+    mapStatistics_.set(MapStatistics::Key::DynamicTargIdUsagePercent, plan.dynamicTargIdUsagePercent);
 
     // This also zeroes out all the stats
     mapStatistics_.flush();
