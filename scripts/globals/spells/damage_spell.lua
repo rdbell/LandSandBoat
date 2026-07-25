@@ -1006,66 +1006,114 @@ xi.spells.damage.calculateSkillTypeMultiplier = function(skillType)
     })
 end
 
+-----------------------------------
+-- Ninjutsu damage mult pure helpers
+-- Dual-wired to OmegaXI internal/ninjutsudmg (slice 6712 / 0856).
+-----------------------------------
+
+xi.spells.damage.ninSkillCaps =
+{
+    -- Tier = { Min skill, Max skill }
+    [1] = {  50, 250 }, -- Ichi
+    [2] = { 125, 350 }, -- Ni
+    [3] = { 275, 500 }, -- San
+}
+
+xi.spells.damage.ninFutaeBase = 1.5
+
+-- Ichi/Ni/San tier from elemental nuke spell ID (LSB modulo rule).
+xi.spells.damage.ninSpellTier = function(spellId)
+    spellId = spellId or 0
+    if spellId % 3 == 2 then
+        return 1 -- Ichi (e.g. 320, 323, …)
+    elseif spellId % 3 == 0 then
+        return 2 -- Ni
+    end
+
+    return 3 -- San
+end
+
+-- Pure calculateNinSkillBonus once job/skill/spell/skill-level inject.
+xi.spells.damage.calculateNinSkillBonusFromParams = function(params)
+    if (params.mainJob or 0) ~= xi.job.NIN then
+        return 1
+    end
+
+    if (params.skillType or 0) ~= xi.skill.NINJUTSU then
+        return 1
+    end
+
+    local tier = xi.spells.damage.ninSpellTier(params.spellId)
+    local caps = xi.spells.damage.ninSkillCaps[tier]
+    local skillLevel = utils.clamp(params.ninjutsuSkill or 0, caps[1], caps[2])
+
+    return 1 + (skillLevel - caps[1]) / 200
+end
+
+-- Pure calculateNinFutaeBonus. Returns multiplier, consume.
+xi.spells.damage.calculateNinFutaeBonusFromParams = function(params)
+    if not params.hasFutae then
+        return 1, false
+    end
+
+    if (params.skillType or 0) ~= xi.skill.NINJUTSU then
+        return 1, false
+    end
+
+    local mult = xi.spells.damage.ninFutaeBase +
+        (params.enhancesFutaeMod or 0) / 100 +
+        (params.futaeJP or 0) / 20
+
+    return mult, true
+end
+
+-- Pure calculateNinjutsuMultiplier (Innin behind nuke bonus).
+xi.spells.damage.calculateNinjutsuMultiplierFromParams = function(params)
+    if not params.hasInnin then
+        return 1
+    end
+
+    if not params.isBehind then
+        return 1
+    end
+
+    if (params.skillType or 0) ~= xi.skill.NINJUTSU then
+        return 1
+    end
+
+    return 1 + (params.ninNukeBonusInnin or 0) / 100
+end
+
 xi.spells.damage.calculateNinSkillBonus = function(caster, spellId, skillType)
-    if caster:getMainJob() ~= xi.job.NIN then
-        return 1
-    end
-
-    if skillType ~= xi.skill.NINJUTSU then
-        return 1
-    end
-
-    local skillCaps =
-    {
-    -- Tier = { Min skill, Max skill}
-        [1] = {  50, 250 },
-        [2] = { 125, 350 },
-        [3] = { 275, 500 },
-    }
-
-    -- Get spell tier.
-    local spellTier = 3
-
-    if spellId % 3 == 2 then     -- Ichi nuke spell ids are 320, 323, 326, 329, 332, and 335
-        spellTier = 1
-    elseif spellId % 3 == 0 then -- Ni nuke spell ids are 1 more than their corresponding Ichi spell
-        spellTier = 2
-    end
-
-    -- Get skill bonus.
-    local skillLevel = utils.clamp(caster:getSkillLevel(xi.skill.NINJUTSU), skillCaps[spellTier][1], skillCaps[spellTier][2])
-
-    return 1 + (skillLevel - skillCaps[spellTier][1]) / 200
+    return xi.spells.damage.calculateNinSkillBonusFromParams({
+        mainJob       = caster:getMainJob(),
+        skillType     = skillType,
+        spellId       = spellId,
+        ninjutsuSkill = caster:getSkillLevel(xi.skill.NINJUTSU),
+    })
 end
 
 xi.spells.damage.calculateNinFutaeBonus = function(caster, skillType)
-    if not caster:hasStatusEffect(xi.effect.FUTAE) then
-        return 1
+    local mult, consume = xi.spells.damage.calculateNinFutaeBonusFromParams({
+        hasFutae         = caster:hasStatusEffect(xi.effect.FUTAE),
+        skillType        = skillType,
+        enhancesFutaeMod = caster:getMod(xi.mod.ENHANCES_FUTAE),
+        futaeJP          = caster:getJobPointLevel(xi.jp.FUTAE_EFFECT),
+    })
+    if consume then
+        caster:delStatusEffect(xi.effect.FUTAE)
     end
 
-    if skillType ~= xi.skill.NINJUTSU then
-        return 1
-    end
-
-    caster:delStatusEffect(xi.effect.FUTAE)
-
-    return 1.5 + caster:getMod(xi.mod.ENHANCES_FUTAE) / 100 + caster:getJobPointLevel(xi.jp.FUTAE_EFFECT) / 20
+    return mult
 end
 
 xi.spells.damage.calculateNinjutsuMultiplier = function(caster, target, skillType)
-    if not caster:hasStatusEffect(xi.effect.INNIN) then
-        return 1
-    end
-
-    if not caster:isBehind(target) then
-        return 1
-    end
-
-    if skillType ~= xi.skill.NINJUTSU then
-        return 1
-    end
-
-    return 1 + caster:getMod(xi.mod.NIN_NUKE_BONUS_INNIN) / 100
+    return xi.spells.damage.calculateNinjutsuMultiplierFromParams({
+        hasInnin          = caster:hasStatusEffect(xi.effect.INNIN),
+        isBehind          = caster:isBehind(target),
+        skillType         = skillType,
+        ninNukeBonusInnin = caster:getMod(xi.mod.NIN_NUKE_BONUS_INNIN),
+    })
 end
 
 xi.spells.damage.isHelixSpell = function(spellId)
