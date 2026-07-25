@@ -115,6 +115,7 @@
 #include "equip_armor_main_look_capacity.h"
 #include "equip_armor_main_attack_timer_capacity.h"
 #include "equip_armor_main_sub_capacity.h"
+#include "equip_armor_main_weapon_state_capacity.h"
 #include "equip_armor_ranged_compatibility_capacity.h"
 #include "equip_armor_ranged_look_capacity.h"
 #include "equip_armor_removed_look_capacity.h"
@@ -2595,6 +2596,7 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
             case SLOT_MAIN:
             {
                 const auto mainLookPlan = equiparmormainlookhelpers::PlanFor(static_cast<uint16>(PItem->getModelId()));
+                const auto mainWeaponStatePlan = equiparmormainweaponstatehelpers::PlanFor(PItem->isType(ITEM_WEAPON));
                 if (PItem->isType(ITEM_WEAPON))
                 {
                     switch (static_cast<CItemWeapon*>(PItem)->getSkillType())
@@ -2636,6 +2638,9 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                     {
                         state->ResetAttackTimer();
                     }
+                }
+                if (mainWeaponStatePlan.setMainWeapon)
+                {
                     PChar->m_Weapons[SLOT_MAIN] = PItem;
                 }
                 if (mainLookPlan.setMainLook)

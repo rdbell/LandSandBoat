@@ -7,6 +7,7 @@
 #include "map/equip_armor_main_look_capacity.h"
 #include "map/equip_armor_main_attack_timer_capacity.h"
 #include "map/equip_armor_main_sub_capacity.h"
+#include "map/equip_armor_main_weapon_state_capacity.h"
 #include "map/equip_armor_ranged_compatibility_capacity.h"
 #include "map/equip_armor_ranged_look_capacity.h"
 #include "map/equip_armor_removed_look_capacity.h"
@@ -489,6 +490,12 @@ auto Check() -> bool
     });
     if (!resetEquipMainAttackTimer.resetAttackTimer || disengagedEquipMainAttackTimer.resetAttackTimer ||
         nonAttackEquipMainTimer.resetAttackTimer)
+    {
+        return false;
+    }
+
+    if (!equiparmormainweaponstatehelpers::PlanFor(true).setMainWeapon ||
+        equiparmormainweaponstatehelpers::PlanFor(false).setMainWeapon)
     {
         return false;
     }
