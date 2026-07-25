@@ -6,73 +6,156 @@ xi = xi or {}
 xi.magic = xi.magic or {}
 
 -----------------------------------
---   getCurePower returns the caster's cure power
---   getCureFinal returns the final cure amount
---   Source: http://members.shaw.ca/pizza_steve/cure/Cure_Calculator.html
+-- Cure power pure helpers
+-- Dual-wired to OmegaXI internal/curepower (slice 6718 / 0867).
+-- Source: http://members.shaw.ca/pizza_steve/cure/Cure_Calculator.html
 -----------------------------------
-function getCurePower(caster, isBlueMagic)
-    local mnd = caster:getStat(xi.mod.MND)
-    local vit = caster:getStat(xi.mod.VIT)
-    local skill = caster:getSkillLevel(xi.skill.HEALING_MAGIC)
-    local power = math.floor(mnd / 2) + math.floor(vit / 4) + skill
-    return power
+
+xi.magic.curePotencyCap   = 50
+xi.magic.curePotencyIICap = 30
+xi.magic.divineSealMult   = 2
+xi.magic.raptureBase      = 1.5
+
+-- Pure getCurePower once MND/VIT/healing skill inject (isBlueMagic unused).
+xi.magic.getCurePowerFromParams = function(params)
+    local mnd = params.mnd or 0
+    local vit = params.vit or 0
+    local skill = params.healingSkill or 0
+    return math.floor(mnd / 2) + math.floor(vit / 4) + skill
 end
 
-function getCurePowerOld(caster)
-    local mnd = caster:getStat(xi.mod.MND)
-    local vit = caster:getStat(xi.mod.VIT)
-    local skill = caster:getSkillLevel(xi.skill.HEALING_MAGIC) -- it's healing magic skill for the BLU cures as well
-    local power = (3 * mnd) + vit + (3 * math.floor(skill / 5))
-    return power
+-- Pure getCurePowerOld.
+xi.magic.getCurePowerOldFromParams = function(params)
+    local mnd = params.mnd or 0
+    local vit = params.vit or 0
+    local skill = params.healingSkill or 0
+    return (3 * mnd) + vit + (3 * math.floor(skill / 5))
 end
 
-function getBaseCure(power, divisor, constant, basepower)
-    return ((power - basepower) / divisor) + constant
+-- Pure getBaseCure ladder: ((power - basepower) / divisor) + constant
+xi.magic.getBaseCureFromParams = function(params)
+    return ((params.power or 0) - (params.basepower or 0)) / (params.divisor or 1) + (params.constant or 0)
 end
 
-function getBaseCureOld(power, divisor, constant)
-    return (power / 2) / divisor + constant
+-- Pure getBaseCureOld: (power / 2) / divisor + constant
+xi.magic.getBaseCureOldFromParams = function(params)
+    return ((params.power or 0) / 2) / (params.divisor or 1) + (params.constant or 0)
 end
 
-function getCureFinal(caster, spell, basecure, minCure, isBlueMagic)
+-- Pure getCureFinal. Returns final, consumeRapture.
+-- params: baseCure, minCure, curePotency, curePotencyII, dayWeatherBonus,
+--   hasDivineSeal, isBlueMagic, hasRapture, raptureAmountMod
+xi.magic.getCureFinalFromParams = function(params)
+    local basecure = params.baseCure or 0
+    local minCure = params.minCure or 0
     if basecure < minCure then
         basecure = minCure
     end
 
-    local curePot         = math.min(caster:getMod(xi.mod.CURE_POTENCY), 50) / 100 -- caps at 50%
-    local curePotII       = math.min(caster:getMod(xi.mod.CURE_POTENCY_II), 30) / 100 -- caps at 30%
-    local potency         = 1 + curePot + curePotII
-    local dayWeatherBonus = xi.spells.damage.calculateDayAndWeather(caster, spell:getElement(), false)
-    local dSeal           = 1
+    local curePot = math.min(params.curePotency or 0, xi.magic.curePotencyCap) / 100
+    local curePotII = math.min(params.curePotencyII or 0, xi.magic.curePotencyIICap) / 100
+    local potency = 1 + curePot + curePotII
 
-    if caster:hasStatusEffect(xi.effect.DIVINE_SEAL) then
-        dSeal = 2
+    local dSeal = 1
+    if params.hasDivineSeal then
+        dSeal = xi.magic.divineSealMult
     end
 
     local rapture = 1
-    if not isBlueMagic then --rapture doesn't affect BLU cures as they're not white magic
-        if caster:hasStatusEffect(xi.effect.RAPTURE) then
-            rapture = 1.5 + caster:getMod(xi.mod.RAPTURE_AMOUNT) / 100
-            caster:delStatusEffectSilent(xi.effect.RAPTURE)
-        end
+    local consumeRapture = false
+    if not params.isBlueMagic and params.hasRapture then
+        rapture = xi.magic.raptureBase + (params.raptureAmountMod or 0) / 100
+        consumeRapture = true
     end
 
-    -- Floor and return.
+    local dayWeatherBonus = params.dayWeatherBonus
+    if dayWeatherBonus == nil then
+        dayWeatherBonus = 1
+    end
+
     local final = math.floor(basecure)
-    final       = math.floor(final * potency)
-    final       = math.floor(final * dayWeatherBonus)
-    final       = math.floor(final * rapture)
-    final       = math.floor(final * dSeal)
+    final = math.floor(final * potency)
+    final = math.floor(final * dayWeatherBonus)
+    final = math.floor(final * rapture)
+    final = math.floor(final * dSeal)
+
+    return final, consumeRapture
+end
+
+-- Pure isValidHealTarget once allegiance and objType inject.
+xi.magic.isValidHealTargetFromParams = function(params)
+    if (params.casterAllegiance or 0) ~= (params.targetAllegiance or 0) then
+        return false
+    end
+
+    local t = params.targetObjType or 0
+    return t == xi.objType.PC or
+        t == xi.objType.MOB or
+        t == xi.objType.TRUST or
+        t == xi.objType.FELLOW
+end
+
+-----------------------------------
+-- Entity hosts
+-----------------------------------
+function getCurePower(caster, isBlueMagic)
+    return xi.magic.getCurePowerFromParams({
+        mnd          = caster:getStat(xi.mod.MND),
+        vit          = caster:getStat(xi.mod.VIT),
+        healingSkill = caster:getSkillLevel(xi.skill.HEALING_MAGIC),
+    })
+end
+
+function getCurePowerOld(caster)
+    return xi.magic.getCurePowerOldFromParams({
+        mnd          = caster:getStat(xi.mod.MND),
+        vit          = caster:getStat(xi.mod.VIT),
+        healingSkill = caster:getSkillLevel(xi.skill.HEALING_MAGIC),
+    })
+end
+
+function getBaseCure(power, divisor, constant, basepower)
+    return xi.magic.getBaseCureFromParams({
+        power     = power,
+        divisor   = divisor,
+        constant  = constant,
+        basepower = basepower,
+    })
+end
+
+function getBaseCureOld(power, divisor, constant)
+    return xi.magic.getBaseCureOldFromParams({
+        power    = power,
+        divisor  = divisor,
+        constant = constant,
+    })
+end
+
+function getCureFinal(caster, spell, basecure, minCure, isBlueMagic)
+    local final, consumeRapture = xi.magic.getCureFinalFromParams({
+        baseCure         = basecure,
+        minCure          = minCure,
+        curePotency      = caster:getMod(xi.mod.CURE_POTENCY),
+        curePotencyII    = caster:getMod(xi.mod.CURE_POTENCY_II),
+        dayWeatherBonus  = xi.spells.damage.calculateDayAndWeather(caster, spell:getElement(), false),
+        hasDivineSeal    = caster:hasStatusEffect(xi.effect.DIVINE_SEAL),
+        isBlueMagic      = isBlueMagic,
+        hasRapture       = caster:hasStatusEffect(xi.effect.RAPTURE),
+        raptureAmountMod = caster:getMod(xi.mod.RAPTURE_AMOUNT),
+    })
+    if consumeRapture then
+        caster:delStatusEffectSilent(xi.effect.RAPTURE)
+    end
 
     return final
 end
 
 function isValidHealTarget(caster, target)
-    return target:getAllegiance() == caster:getAllegiance() and
-            (target:getObjType() == xi.objType.PC or
-            target:getObjType() == xi.objType.MOB or
-            target:getObjType() == xi.objType.TRUST or
-            target:getObjType() == xi.objType.FELLOW)
+    return xi.magic.isValidHealTargetFromParams({
+        casterAllegiance = caster:getAllegiance(),
+        targetAllegiance = target:getAllegiance(),
+        targetObjType    = target:getObjType(),
+    })
 end
 
 -- Applies resistance for additional effects
