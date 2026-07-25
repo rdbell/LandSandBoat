@@ -1433,6 +1433,8 @@ set(SOURCES
     test_char_session_update_6890.cpp
     test_char_local_player_packets_6891.h
     test_char_local_player_packets_6891.cpp
+    test_char_partial_log_packets_6892.h
+    test_char_partial_log_packets_6892.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h

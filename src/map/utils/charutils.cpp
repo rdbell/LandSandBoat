@@ -71,6 +71,7 @@
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
 #include "char_name_lookup.h"
+#include "char_partial_log_packets.h"
 #include "char_party_alliance_attach.h"
 #include "char_party_alliance_reconcile.h"
 #include "char_party_level_sync_restore.h"
@@ -1447,127 +1448,44 @@ void SendQuestMissionLog(CCharEntity* PChar)
 
 void SendPartialMissionLog(CCharEntity* PChar, const MissionLog log, const bool completed)
 {
-    switch (log)
+    const auto plan = partiallogpackethelpers::BuildMissionPlan(log, completed);
+    for (uint8 i = 0; i < plan.count; ++i)
     {
-        case MissionLog::Sandoria:
-        case MissionLog::Bastok:
-        case MissionLog::Windurst:
-        case MissionLog::Zilart:
+        const auto& packet = plan.packets[i];
+        switch (packet.action)
         {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, MissionComplete::Nations)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::MISSION>(PChar);
-            break;
-        }
-        case MissionLog::ToAU:
-        case MissionLog::WoTG:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, MissionComplete::ToAU_WoTG)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::AhtUrghan);
-            break;
-        }
-        case MissionLog::Assault:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::AhtUrghan)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::AhtUrghan);
-            break;
-        }
-        case MissionLog::Campaign:
-        {
-            if (completed)
-            {
-                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, MissionComplete::Campaign1);
-                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, MissionComplete::Campaign2);
-            }
-            else
-            {
-                // Not a typo...
-                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::AhtUrghan);
-            }
-            break;
-        }
-        case MissionLog::CoP:
-        case MissionLog::ACP:
-        case MissionLog::AMK:
-        case MissionLog::ASA:
-        case MissionLog::SoA:
-        case MissionLog::RoV:
-        {
-            // These expansions store both completed and in-progress in the same structure
-            PChar->pushPacket<GP_SERV_COMMAND_MISSION::MISSION>(PChar);
-            break;
+            case partiallogpackethelpers::Action::Mission:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::MISSION>(PChar);
+                break;
+            case partiallogpackethelpers::Action::QuestOffer:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<QuestOffer>(packet.value));
+                break;
+            case partiallogpackethelpers::Action::QuestComplete:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<QuestComplete>(packet.value));
+                break;
+            case partiallogpackethelpers::Action::MissionComplete:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<MissionComplete>(packet.value));
+                break;
         }
     }
 }
 
 void SendPartialQuestLog(CCharEntity* PChar, const QuestLog log, const bool completed)
 {
-    switch (log)
+    const auto plan = partiallogpackethelpers::BuildQuestPlan(log, completed);
+    for (uint8 i = 0; i < plan.count; ++i)
     {
-        case QuestLog::Sandoria:
+        const auto& packet = plan.packets[i];
+        switch (packet.action)
         {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Sandoria)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Sandoria);
-            break;
-        }
-        case QuestLog::Bastok:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Bastok)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Bastok);
-            break;
-        }
-        case QuestLog::Windurst:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Windurst)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Windurst);
-            break;
-        }
-        case QuestLog::Jeuno:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Jeuno)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Jeuno);
-            break;
-        }
-        case QuestLog::OtherAreas:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::OtherAreas)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::OtherAreas);
-            break;
-        }
-        case QuestLog::Outlands:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Outlands)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Outlands);
-            break;
-        }
-        case QuestLog::AhtUrghan:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::AhtUrghan)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::AhtUrghan);
-            break;
-        }
-        case QuestLog::CrystalWar:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::CrystalWar)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::CrystalWar);
-            break;
-        }
-        case QuestLog::Abyssea:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Abyssea)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Abyssea);
-            break;
-        }
-        case QuestLog::Adoulin:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Adoulin)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Adoulin);
-            break;
-        }
-        case QuestLog::Coalition:
-        {
-            completed ? PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Coalition)
-                      : PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Coalition);
-            break;
+            case partiallogpackethelpers::Action::QuestOffer:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<QuestOffer>(packet.value));
+                break;
+            case partiallogpackethelpers::Action::QuestComplete:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<QuestComplete>(packet.value));
+                break;
+            default:
+                break;
         }
     }
 }
