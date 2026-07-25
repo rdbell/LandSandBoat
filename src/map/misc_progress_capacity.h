@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <array>
 
 // Pure AddWeaponSkillPoints, ApplyAbilityRecast share rules, arrow scavenge
 // tracking, and traverser stone accrual from charutils.
@@ -51,6 +52,37 @@ constexpr auto PairedBloodPactRecast(const std::uint16_t recastId) -> std::uint1
 constexpr auto ShouldMirrorYoninToInnin(const std::uint16_t recastId) -> bool
 {
     return recastId == RecastYonin;
+}
+
+struct AbilityRecastStep
+{
+    std::uint16_t recastId;
+    bool          usesCharges;
+};
+
+struct AbilityRecastPlan
+{
+    std::array<AbilityRecastStep, 3> steps{};
+    std::uint8_t                     count{};
+};
+
+// PlanAbilityRecast mirrors ApplyAbilityRecast's primary, shared Blood Pact,
+// and Yonin/Innin timer additions. Only the primary entry carries charges.
+constexpr auto PlanAbilityRecast(const std::uint16_t recastId, const bool hasCharge, const bool bloodPactSharedTimer) -> AbilityRecastPlan
+{
+    auto plan = AbilityRecastPlan{};
+    plan.steps[0] = { recastId, hasCharge };
+    plan.count = 1;
+
+    if (ShouldShareBloodPactTimer(bloodPactSharedTimer, recastId))
+    {
+        plan.steps[plan.count++] = { PairedBloodPactRecast(recastId), false };
+    }
+    if (ShouldMirrorYoninToInnin(recastId))
+    {
+        plan.steps[plan.count++] = { RecastInnin, false };
+    }
+    return plan;
 }
 
 // --- Arrow scavenge ArrowsUsed packing ---

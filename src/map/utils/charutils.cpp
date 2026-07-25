@@ -8162,26 +8162,20 @@ bool raceChange(CCharEntity* PChar, CharRace newRace, CharFace newFace, CharSize
 
 void ApplyAbilityRecast(CCharEntity* PChar, const CAbility* PAbility, const Charge_t* charge, const timer::duration baseChargeTime, const timer::duration recastTime)
 {
-    if (miscprogresshelpers::HasChargeAdd(charge != nullptr))
-    {
-        PChar->PRecastContainer->Add(RECAST_ABILITY, PAbility->getRecastId(), recastTime, baseChargeTime, charge->maxCharges);
-    }
-    else
-    {
-        PChar->PRecastContainer->Add(RECAST_ABILITY, PAbility->getRecastId(), recastTime);
-    }
-
     const auto recastId = static_cast<uint16>(PAbility->getRecastId());
-    if (miscprogresshelpers::ShouldShareBloodPactTimer(settings::get<bool>("map.BLOOD_PACT_SHARED_TIMER"), recastId))
+    const auto plan = miscprogresshelpers::PlanAbilityRecast(
+        recastId, miscprogresshelpers::HasChargeAdd(charge != nullptr), settings::get<bool>("map.BLOOD_PACT_SHARED_TIMER"));
+    for (std::uint8_t index = 0; index < plan.count; ++index)
     {
-        PChar->PRecastContainer->Add(RECAST_ABILITY, static_cast<Recast>(miscprogresshelpers::PairedBloodPactRecast(recastId)), recastTime);
-    }
-
-    // Yonin (recastId 146) and Innin share a server-side timer via the SQL recastId update.
-    // Also add Innin's original client-facing recast ID (147) so the client greys out Innin.
-    if (miscprogresshelpers::ShouldMirrorYoninToInnin(recastId))
-    {
-        PChar->PRecastContainer->Add(RECAST_ABILITY, static_cast<Recast>(miscprogresshelpers::RecastInnin), recastTime);
+        const auto& step = plan.steps[index];
+        if (step.usesCharges)
+        {
+            PChar->PRecastContainer->Add(RECAST_ABILITY, static_cast<Recast>(step.recastId), recastTime, baseChargeTime, charge->maxCharges);
+        }
+        else
+        {
+            PChar->PRecastContainer->Add(RECAST_ABILITY, static_cast<Recast>(step.recastId), recastTime);
+        }
     }
 
     PChar->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PChar);

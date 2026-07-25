@@ -1357,6 +1357,8 @@ set(SOURCES
     test_weapon_skill_points_6851.cpp
     test_arrow_usage_for_scavenge_6852.h
     test_arrow_usage_for_scavenge_6852.cpp
+    test_ability_recast_plan_6853.h
+    test_ability_recast_plan_6853.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h
