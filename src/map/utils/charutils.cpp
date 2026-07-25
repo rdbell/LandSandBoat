@@ -98,6 +98,7 @@
 #include "char_add_item_request_plan.h"
 #include "char_add_item_currency_plan.h"
 #include "char_add_item_rare_rejection.h"
+#include "char_add_item_insert_failure.h"
 #include "char_trade_item_plan.h"
 #include "char_unity_leader_capacity.h"
 #include "char_unity_ranking_packets.h"
@@ -1788,10 +1789,11 @@ auto AddItem(CCharEntity* PChar, uint8 LocationID, std::unique_ptr<CItem> PItem,
 
     auto* PStorage = PChar->getStorage(LocationID);
     uint8 SlotID   = PStorage->InsertItem(std::move(PItem));
-    if (SlotID == ERROR_SLOTID)
+    const auto insertFailurePlan = additeminsertfailurehelpers::BuildPlan(SlotID);
+    if (insertFailurePlan.reject)
     {
         ShowDebug("AddItem: Location %i is full", LocationID);
-        return SlotID;
+        return insertFailurePlan.returnSlot;
     }
 
     auto* PInserted = PStorage->GetItem(SlotID);

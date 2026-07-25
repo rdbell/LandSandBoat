@@ -1465,6 +1465,8 @@ set(SOURCES
     test_char_add_item_currency_plan_6906.cpp
     test_char_add_item_rare_rejection_6907.h
     test_char_add_item_rare_rejection_6907.cpp
+    test_char_add_item_insert_failure_6908.h
+    test_char_add_item_insert_failure_6908.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h
