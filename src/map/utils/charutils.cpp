@@ -126,6 +126,7 @@
 #include "unequip_item_recast_capacity.h"
 #include "unequip_item_unlock_capacity.h"
 #include "unequip_recalculate_capacity.h"
+#include "unequip_script_flags_capacity.h"
 #include "unequip_ranged_look_capacity.h"
 #include "unequip_sub_look_capacity.h"
 #include "unequip_sub_state_capacity.h"
@@ -2246,17 +2247,22 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
         //      thought to be source of nin bug
         PChar->clearEquip(equipSlotID);
 
-        if (((CItemEquipment*)PItem)->getScriptType() & SCRIPT_EQUIP)
+        const uint16_t removedScriptType = static_cast<CItemEquipment*>(PItem)->getScriptType();
+        if ((removedScriptType & SCRIPT_EQUIP) != 0)
         {
-            PChar->m_EquipFlag = 0;
+            std::array<uint16_t, 16> remainingScriptTypes{};
             for (uint8 i = 0; i < 16; ++i)
             {
                 CItem* PSlotItem = PChar->getEquip(static_cast<SLOTTYPE>(i));
-
                 if ((PSlotItem != nullptr) && PSlotItem->isType(ITEM_EQUIPMENT))
                 {
-                    PChar->m_EquipFlag |= (static_cast<CItemEquipment*>(PSlotItem))->getScriptType();
+                    remainingScriptTypes[i] = static_cast<CItemEquipment*>(PSlotItem)->getScriptType();
                 }
+            }
+            const auto scriptFlagsPlan = unequipscriptflagshelpers::PlanFor(removedScriptType, remainingScriptTypes);
+            if (scriptFlagsPlan.recomputeEquipFlag)
+            {
+                PChar->m_EquipFlag = scriptFlagsPlan.equipFlag;
             }
         }
 

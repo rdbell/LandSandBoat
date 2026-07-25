@@ -18,6 +18,7 @@
 #include "map/unequip_item_recast_capacity.h"
 #include "map/unequip_item_unlock_capacity.h"
 #include "map/unequip_recalculate_capacity.h"
+#include "map/unequip_script_flags_capacity.h"
 #include "map/unequip_ranged_look_capacity.h"
 #include "map/unequip_sub_look_capacity.h"
 #include "map/unequip_sub_state_capacity.h"
@@ -25,6 +26,7 @@
 #include "map/equip_policy_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
 
+#include <array>
 #include <iostream>
 
 namespace
@@ -471,6 +473,15 @@ auto Check() -> bool
     const auto recalculate = unequiprecalculatehelpers::PlanFor(true);
     if (noRecalculate.buildSkills || noRecalculate.updateHealth || noRecalculate.markUpdateHP || noRecalculate.markUpdateLook ||
         !recalculate.buildSkills || !recalculate.updateHealth || !recalculate.markUpdateHP || !recalculate.markUpdateLook)
+    {
+        return false;
+    }
+
+    constexpr std::array<uint16_t, 3> remainingScriptTypes{ 0x0002, 0x0004, 0x0010 };
+    const auto recomputeScriptFlags = unequipscriptflagshelpers::PlanFor(0x0001, remainingScriptTypes);
+    const auto noRecomputeScriptFlags = unequipscriptflagshelpers::PlanFor(0x0002, remainingScriptTypes);
+    if (!recomputeScriptFlags.recomputeEquipFlag || recomputeScriptFlags.equipFlag != 0x0016 ||
+        noRecomputeScriptFlags.recomputeEquipFlag || noRecomputeScriptFlags.equipFlag != 0)
     {
         return false;
     }
