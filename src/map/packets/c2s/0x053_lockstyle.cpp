@@ -84,7 +84,11 @@ void GP_CLI_COMMAND_LOCKSTYLE::process(MapSession* PSession, CCharEntity* PChar)
         {
             // TODO: First, move this to charutils.
             // TODO: Missing a handful of retail checks here
-            charutils::SetStyleLock(PChar, true);
+            const auto setPlan = lockstylesettailhelpers::PlanFor();
+            if (setPlan.setStyleLock)
+            {
+                charutils::SetStyleLock(PChar, true);
+            }
 
             // Build new lockstyle
             for (int i = 0; i < this->Count; i++)
@@ -166,8 +170,7 @@ void GP_CLI_COMMAND_LOCKSTYLE::process(MapSession* PSession, CCharEntity* PChar)
                 }
             }
 
-            const auto setTailPlan = lockstylesettailhelpers::PlanFor();
-            for (const auto action : setTailPlan.actions)
+            for (const auto action : setPlan.actions)
             {
                 switch (action)
                 {
