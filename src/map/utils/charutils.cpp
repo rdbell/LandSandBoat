@@ -71,7 +71,7 @@
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
 #include "char_name_lookup.h"
-#include "char_partial_log_packets.h"
+#include "char_mission_packet_plans.h"
 #include "char_party_alliance_attach.h"
 #include "char_party_alliance_reconcile.h"
 #include "char_party_level_sync_restore.h"
@@ -1415,56 +1415,50 @@ void LoadEquip(CCharEntity* PChar)
 
 void SendQuestMissionLog(CCharEntity* PChar)
 {
-    // Actual verified retail order.
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Sandoria);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Bastok);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Windurst);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Jeuno);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::OtherAreas);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Outlands);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::AhtUrghan);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::CrystalWar);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Sandoria);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Bastok);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Windurst);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Jeuno);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::OtherAreas);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Outlands);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::AhtUrghan);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::CrystalWar);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, MissionComplete::Nations);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, MissionComplete::ToAU_WoTG);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, MissionComplete::Campaign1);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, MissionComplete::Campaign2);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Abyssea);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Abyssea);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Adoulin);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Adoulin);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestOffer::Coalition);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, QuestComplete::Coalition);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::MISSION>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_MISSION::TVR>(PChar);
+    for (const auto& packet : missionpackethelpers::BuildQuestMissionLogPlan())
+    {
+        switch (packet.action)
+        {
+            case missionpackethelpers::Action::Mission:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::MISSION>(PChar);
+                break;
+            case missionpackethelpers::Action::QuestOffer:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<QuestOffer>(packet.value));
+                break;
+            case missionpackethelpers::Action::QuestComplete:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<QuestComplete>(packet.value));
+                break;
+            case missionpackethelpers::Action::MissionComplete:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<MissionComplete>(packet.value));
+                break;
+            case missionpackethelpers::Action::TVR:
+                PChar->pushPacket<GP_SERV_COMMAND_MISSION::TVR>(PChar);
+                break;
+        }
+    }
 }
 
 void SendPartialMissionLog(CCharEntity* PChar, const MissionLog log, const bool completed)
 {
-    const auto plan = partiallogpackethelpers::BuildMissionPlan(log, completed);
+    const auto plan = missionpackethelpers::BuildMissionPlan(log, completed);
     for (uint8 i = 0; i < plan.count; ++i)
     {
         const auto& packet = plan.packets[i];
         switch (packet.action)
         {
-            case partiallogpackethelpers::Action::Mission:
+            case missionpackethelpers::Action::Mission:
                 PChar->pushPacket<GP_SERV_COMMAND_MISSION::MISSION>(PChar);
                 break;
-            case partiallogpackethelpers::Action::QuestOffer:
+            case missionpackethelpers::Action::QuestOffer:
                 PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<QuestOffer>(packet.value));
                 break;
-            case partiallogpackethelpers::Action::QuestComplete:
+            case missionpackethelpers::Action::QuestComplete:
                 PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<QuestComplete>(packet.value));
                 break;
-            case partiallogpackethelpers::Action::MissionComplete:
+            case missionpackethelpers::Action::MissionComplete:
                 PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<MissionComplete>(packet.value));
+                break;
+            case missionpackethelpers::Action::TVR:
                 break;
         }
     }
@@ -1472,16 +1466,16 @@ void SendPartialMissionLog(CCharEntity* PChar, const MissionLog log, const bool 
 
 void SendPartialQuestLog(CCharEntity* PChar, const QuestLog log, const bool completed)
 {
-    const auto plan = partiallogpackethelpers::BuildQuestPlan(log, completed);
+    const auto plan = missionpackethelpers::BuildQuestPlan(log, completed);
     for (uint8 i = 0; i < plan.count; ++i)
     {
         const auto& packet = plan.packets[i];
         switch (packet.action)
         {
-            case partiallogpackethelpers::Action::QuestOffer:
+            case missionpackethelpers::Action::QuestOffer:
                 PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<QuestOffer>(packet.value));
                 break;
-            case partiallogpackethelpers::Action::QuestComplete:
+            case missionpackethelpers::Action::QuestComplete:
                 PChar->pushPacket<GP_SERV_COMMAND_MISSION::OTHER>(PChar, static_cast<QuestComplete>(packet.value));
                 break;
             default:

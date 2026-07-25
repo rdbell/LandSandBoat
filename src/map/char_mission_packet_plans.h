@@ -7,7 +7,7 @@
 
 #include <array>
 
-namespace partiallogpackethelpers
+namespace missionpackethelpers
 {
 
 enum class Action : uint8
@@ -16,6 +16,7 @@ enum class Action : uint8
     QuestOffer,
     QuestComplete,
     MissionComplete,
+    TVR,
 };
 
 struct Packet
@@ -26,40 +27,40 @@ struct Packet
     auto operator==(const Packet&) const -> bool = default;
 };
 
-struct Plan
+struct PartialPlan
 {
     std::array<Packet, 2> packets{};
     uint8                 count{};
 
-    auto operator==(const Plan&) const -> bool = default;
+    auto operator==(const PartialPlan&) const -> bool = default;
 };
 
-constexpr auto Mission() -> Plan
+constexpr auto Mission() -> PartialPlan
 {
-    Plan plan{};
+    PartialPlan plan{};
     plan.packets[0] = { Action::Mission, 0 };
     plan.count      = 1;
     return plan;
 }
 
-constexpr auto Other(const Action action, const uint16 value) -> Plan
+constexpr auto Other(const Action action, const uint16 value) -> PartialPlan
 {
-    Plan plan{};
+    PartialPlan plan{};
     plan.packets[0] = { action, value };
     plan.count      = 1;
     return plan;
 }
 
-constexpr auto TwoMissionCompletions() -> Plan
+constexpr auto TwoMissionCompletions() -> PartialPlan
 {
-    Plan plan{};
+    PartialPlan plan{};
     plan.packets[0] = { Action::MissionComplete, static_cast<uint16>(MissionComplete::Campaign1) };
     plan.packets[1] = { Action::MissionComplete, static_cast<uint16>(MissionComplete::Campaign2) };
     plan.count      = 2;
     return plan;
 }
 
-constexpr auto BuildMissionPlan(const MissionLog log, const bool completed) -> Plan
+constexpr auto BuildMissionPlan(const MissionLog log, const bool completed) -> PartialPlan
 {
     switch (log)
     {
@@ -87,7 +88,7 @@ constexpr auto BuildMissionPlan(const MissionLog log, const bool completed) -> P
     }
 }
 
-constexpr auto BuildQuestPlan(const QuestLog log, const bool completed) -> Plan
+constexpr auto BuildQuestPlan(const QuestLog log, const bool completed) -> PartialPlan
 {
     const auto action = completed ? Action::QuestComplete : Action::QuestOffer;
     switch (log)
@@ -119,4 +120,38 @@ constexpr auto BuildQuestPlan(const QuestLog log, const bool completed) -> Plan
     }
 }
 
-} // namespace partiallogpackethelpers
+constexpr auto BuildQuestMissionLogPlan() -> std::array<Packet, 28>
+{
+    return {
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::Sandoria) },
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::Bastok) },
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::Windurst) },
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::Jeuno) },
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::OtherAreas) },
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::Outlands) },
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::AhtUrghan) },
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::CrystalWar) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::Sandoria) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::Bastok) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::Windurst) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::Jeuno) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::OtherAreas) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::Outlands) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::AhtUrghan) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::CrystalWar) },
+        Packet{ Action::MissionComplete, static_cast<uint16>(MissionComplete::Nations) },
+        Packet{ Action::MissionComplete, static_cast<uint16>(MissionComplete::ToAU_WoTG) },
+        Packet{ Action::MissionComplete, static_cast<uint16>(MissionComplete::Campaign1) },
+        Packet{ Action::MissionComplete, static_cast<uint16>(MissionComplete::Campaign2) },
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::Abyssea) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::Abyssea) },
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::Adoulin) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::Adoulin) },
+        Packet{ Action::QuestOffer, static_cast<uint16>(QuestOffer::Coalition) },
+        Packet{ Action::QuestComplete, static_cast<uint16>(QuestComplete::Coalition) },
+        Packet{ Action::Mission, 0 },
+        Packet{ Action::TVR, 0 },
+    };
+}
+
+} // namespace missionpackethelpers
