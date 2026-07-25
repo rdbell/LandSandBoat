@@ -1,6 +1,12 @@
 -----------------------------------
 -- Enfeebling Song Utilities
 -- Used for songs that deal negative status effects upon targets.
+--
+-- Dual-wired pure inject forms (slice 6728 / 0873):
+--   calculateSongPowerFromParams, calculateSongDurationFromParams,
+--   clampSongPower, finaleBonusMacc, requiemTickFor,
+--   successMessageFromParams, virelaiMessage
+-- Parity: internal/enfeeblingsong
 -----------------------------------
 require('scripts/globals/combat/magic_hit_rate')
 require('scripts/globals/jobpoints')
@@ -66,13 +72,21 @@ local pTable =
 }
 
 -----------------------------------
--- Calculates song power.
+-- Pure song power / duration injects (slice 6728)
+-- Parity: internal/enfeeblingsong
 -----------------------------------
-xi.spells.enfeebling.calculateSongPower = function(caster, spellEffect, basePower, gearBoost)
-    local power = basePower
+
+-- Pure calculateSongPower (internal/enfeeblingsong.SongPower).
+-- params: spellEffect, basePower, gearBoost, requiemJP,
+--         hasSoulVoice, hasMarcato, marcatoPower
+xi.spells.enfeebling.calculateSongPowerFromParams = function(params)
+    params = params or {}
+    local power       = params.basePower or 0
+    local gearBoost   = params.gearBoost or 0
+    local spellEffect = params.spellEffect or 0
 
     if spellEffect == xi.effect.REQUIEM then
-        power = power + utils.clamp(gearBoost - 1, 0, 20) + caster:getJobPointLevel(xi.jp.REQUIEM_EFFECT) * 3
+        power = power + utils.clamp(gearBoost - 1, 0, 20) + (params.requiemJP or 0) * 3
     elseif spellEffect == xi.effect.ELEGY then
         power = power + gearBoost * 6375 / 256 -- Simplified numbers of: 25.5 * 10000/1024
     elseif spellEffect == xi.effect.THRENODY then
@@ -81,66 +95,146 @@ xi.spells.enfeebling.calculateSongPower = function(caster, spellEffect, basePowe
         power = power + gearBoost * 1.5
     end
 
-    -- Apply Soul Voice or Marcato if appropriate.
-    local effectTable =
-    set{
-        xi.effect.ELEGY,
-        xi.effect.NOCTURNE,
-        xi.effect.REQUIEM,
-        xi.effect.THRENODY
-    }
-
-    if effectTable[spellEffect] then
-        local marcatoEffect = caster:getStatusEffect(xi.effect.MARCATO)
-        if caster:hasStatusEffect(xi.effect.SOUL_VOICE) then
+    -- Soul Voice / Marcato for Elegy/Nocturne/Requiem/Threnody only.
+    if
+        spellEffect == xi.effect.ELEGY or
+        spellEffect == xi.effect.NOCTURNE or
+        spellEffect == xi.effect.REQUIEM or
+        spellEffect == xi.effect.THRENODY
+    then
+        if params.hasSoulVoice then
             power = power * 2
-        elseif marcatoEffect ~= nil then
-            power = power * (1 + (marcatoEffect:getPower() / 100))
+        elseif params.hasMarcato then
+            power = power * (1 + (params.marcatoPower or 0) / 100)
         end
     end
 
     return power
 end
 
------------------------------------
--- Calculates song duration.
------------------------------------
-xi.spells.enfeebling.calculateSongDuration = function(caster, spellEffect, baseDuration, gearBoost)
-    -- Duration boost of 10% per level of Song+ and All_Song+ gear plus song duration gear.
-    local duration = baseDuration
+-- Pure calculateSongDuration (internal/enfeeblingsong.SongDuration).
+-- params: spellEffect, baseDuration, gearBoost, songDurationBonus, lullabyJP,
+--         hasClarionCall, clarionCallJP, hasTenuto, tenutoJP, hasTroubadour
+xi.spells.enfeebling.calculateSongDurationFromParams = function(params)
+    params = params or {}
+    local duration    = params.baseDuration or 0
+    local gearBoost   = params.gearBoost or 0
+    local spellEffect = params.spellEffect or 0
 
-    -- Virelai is not affected by song duration bonuses other than skill, BRD gifts or Troubadour
-    -- https://www.bg-wiki.com/ffxi/Category:Virelai
-    if spellEffect ~= xi.effect.CHARM_I then
-        duration = math.floor(duration * (1 + gearBoost / 10 + caster:getMod(xi.mod.SONG_DURATION_BONUS) / 100))
-    else
-        duration = math.floor(duration * (1 + gearBoost / 10))
-
-        return duration
+    -- Virelai: skill/gear only; early return (no SONG_DURATION_BONUS / status tails).
+    if spellEffect == xi.effect.CHARM_I then
+        return math.floor(duration * (1 + gearBoost / 10))
     end
 
-    -- Lullaby gets a duration boost from job points of 1 second per level.
-    -- This is applied after skill+ duration bonuses
-    -- https://www.bg-wiki.com/ffxi/Category:Lullaby
+    duration = math.floor(duration * (1 + gearBoost / 10 + (params.songDurationBonus or 0) / 100))
+
     if spellEffect == xi.effect.SLEEP_I then
-        duration = duration + caster:getJobPointLevel(xi.jp.LULLABY_DURATION)
+        duration = duration + (params.lullabyJP or 0)
     end
 
-    -- Duration from status effects.
-    if caster:hasStatusEffect(xi.effect.CLARION_CALL) then
-        duration = duration + caster:getJobPointLevel(xi.jp.CLARION_CALL_EFFECT) * 2
+    if params.hasClarionCall then
+        duration = duration + (params.clarionCallJP or 0) * 2
     end
 
-    if caster:hasStatusEffect(xi.effect.TENUTO) then
-        duration = duration + caster:getJobPointLevel(xi.jp.TENUTO_EFFECT) * 2
+    if params.hasTenuto then
+        duration = duration + (params.tenutoJP or 0) * 2
     end
 
-    -- Unclear if Troubadour effects lullaby before or after JP
-    if caster:hasStatusEffect(xi.effect.TROUBADOUR) then
+    if params.hasTroubadour then
         duration = math.floor(duration * 2)
     end
 
     return duration
+end
+
+-- Pure power clamp (internal/enfeeblingsong.ClampPower).
+xi.spells.enfeebling.clampSongPower = function(power, cap)
+    power = power or 0
+    cap   = cap or 0
+    if power < 0 then
+        power = 0
+    end
+
+    if cap >= 0 and power > cap then
+        power = cap
+    end
+
+    return math.floor(power)
+end
+
+-- Pure Finale bonus macc (internal/enfeeblingsong.FinaleBonusMacc).
+xi.spells.enfeebling.finaleBonusMacc = function(gearBoost)
+    return 175 + (gearBoost or 0) * 5
+end
+
+-- Pure Requiem tick (internal/enfeeblingsong.RequiemTickFor).
+xi.spells.enfeebling.requiemTickFor = function(spellEffect)
+    if spellEffect == xi.effect.REQUIEM then
+        return 3
+    end
+
+    return 0
+end
+
+-- Pure success message (internal/enfeeblingsong.SuccessMessage).
+-- MAGIC_BURST_ENFEEB=268, MAGIC_ENFEEB_IS=236, MAGIC_ENFEEB=237
+xi.spells.enfeebling.successMessageFromParams = function(params)
+    params = params or {}
+    if (params.skillchainCount or 0) > 0 then
+        return 268
+    end
+
+    if params.spellEffect == xi.effect.SLEEP_I then
+        return 236
+    end
+
+    return 237
+end
+
+-- Pure Virelai message (internal/enfeeblingsong.VirelaiMessage).
+xi.spells.enfeebling.virelaiMessage = function(casterIsPC)
+    if casterIsPC then
+        return 237 -- MAGIC_ENFEEB
+    end
+
+    return 236 -- MAGIC_ENFEEB_IS
+end
+
+-----------------------------------
+-- Calculates song power (host → pure).
+-----------------------------------
+xi.spells.enfeebling.calculateSongPower = function(caster, spellEffect, basePower, gearBoost)
+    local marcatoEffect = caster:getStatusEffect(xi.effect.MARCATO)
+    local hasMarcato    = marcatoEffect ~= nil
+    local marcatoPower  = hasMarcato and marcatoEffect:getPower() or 0
+
+    return xi.spells.enfeebling.calculateSongPowerFromParams({
+        spellEffect  = spellEffect,
+        basePower    = basePower,
+        gearBoost    = gearBoost,
+        requiemJP    = caster:getJobPointLevel(xi.jp.REQUIEM_EFFECT),
+        hasSoulVoice = caster:hasStatusEffect(xi.effect.SOUL_VOICE),
+        hasMarcato   = hasMarcato,
+        marcatoPower = marcatoPower,
+    })
+end
+
+-----------------------------------
+-- Calculates song duration (host → pure).
+-----------------------------------
+xi.spells.enfeebling.calculateSongDuration = function(caster, spellEffect, baseDuration, gearBoost)
+    return xi.spells.enfeebling.calculateSongDurationFromParams({
+        spellEffect       = spellEffect,
+        baseDuration      = baseDuration,
+        gearBoost         = gearBoost,
+        songDurationBonus = caster:getMod(xi.mod.SONG_DURATION_BONUS),
+        lullabyJP         = caster:getJobPointLevel(xi.jp.LULLABY_DURATION),
+        hasClarionCall    = caster:hasStatusEffect(xi.effect.CLARION_CALL),
+        clarionCallJP     = caster:getJobPointLevel(xi.jp.CLARION_CALL_EFFECT),
+        hasTenuto         = caster:hasStatusEffect(xi.effect.TENUTO),
+        tenutoJP          = caster:getJobPointLevel(xi.jp.TENUTO_EFFECT),
+        hasTroubadour     = caster:hasStatusEffect(xi.effect.TROUBADOUR),
+    })
 end
 
 -----------------------------------
@@ -182,7 +276,7 @@ xi.spells.enfeebling.useEnfeeblingSong = function(caster, target, spell)
     -- Finale has innate +175 to magic accuracy.
     local bonusMagicAcc = 0
     if spellEffect == xi.effect.NONE then
-        bonusMagicAcc = 175 + gearBoost * 5
+        bonusMagicAcc = xi.spells.enfeebling.finaleBonusMacc(gearBoost)
     end
 
     local resistRate = xi.combat.magicHitRate.calculateResistRate(caster, target, xi.magic.spellGroup.SONG, xi.skill.SINGING, 0, spellElement, xi.mod.CHR, spellEffect, bonusMagicAcc)
@@ -204,12 +298,12 @@ xi.spells.enfeebling.useEnfeeblingSong = function(caster, target, spell)
     -- STEP 3: Calculate power, tick, duration and subEffect.
     ------------------------------
     local power     = xi.spells.enfeebling.calculateSongPower(caster, spellEffect, pTable[spellId][column.SONG_POWER_BASE], gearBoost) or 0
-    local tick      = spellEffect == xi.effect.REQUIEM and 3 or 0
+    local tick      = xi.spells.enfeebling.requiemTickFor(spellEffect)
     local duration  = xi.spells.enfeebling.calculateSongDuration(caster, spellEffect, pTable[spellId][column.SONG_DURATION], gearBoost) or 0
     local subEffect = spellEffect == xi.effect.THRENODY and xi.data.element.getElementalMEVAModifier(xi.data.element.getElementStrength(spellElement)) or 0
 
-    -- FClamp and floor.
-    power    = math.floor(utils.clamp(power, 0, pTable[spellId][column.SONG_POWER_CAP]))
+    -- FClamp and floor (pure clampSongPower).
+    power    = xi.spells.enfeebling.clampSongPower(power, pTable[spellId][column.SONG_POWER_CAP])
     duration = math.floor(duration * resistRate)
 
     ------------------------------
@@ -230,11 +324,7 @@ xi.spells.enfeebling.useEnfeeblingSong = function(caster, target, spell)
     elseif spellEffect == xi.effect.CHARM_I then
         target:addStatusEffect(xi.effect.CHARM_I, { duration = duration, origin = caster })
         caster:charm(target)
-        if caster:isPC() then
-            spell:setMsg(xi.msg.basic.MAGIC_ENFEEB)
-        else
-            spell:setMsg(xi.msg.basic.MAGIC_ENFEEB_IS)
-        end
+        spell:setMsg(xi.spells.enfeebling.virelaiMessage(caster:isPC()))
 
         return spellEffect
     end
@@ -245,15 +335,14 @@ xi.spells.enfeebling.useEnfeeblingSong = function(caster, target, spell)
     if target:addStatusEffect(spellEffect, { power = power, duration = duration, origin = caster, tick = tick, subPower = subEffect, tier = spellTier }) then
         local _, skillchainCount = xi.magicburst.formMagicBurst(target, spellElement)
         if skillchainCount > 0 then
-            spell:setMsg(xi.msg.basic.MAGIC_BURST_ENFEEB)
+            spell:setMsg(xi.spells.enfeebling.successMessageFromParams({
+                spellEffect = spellEffect, skillchainCount = skillchainCount,
+            }))
             caster:triggerRoeEvent(xi.roeTrigger.MAGIC_BURST)
         else
-            -- Lullaby has a different application message than the rest of the song debuffs.
-            if spellEffect == xi.effect.SLEEP_I then
-                spell:setMsg(xi.msg.basic.MAGIC_ENFEEB_IS)
-            else
-                spell:setMsg(xi.msg.basic.MAGIC_ENFEEB)
-            end
+            spell:setMsg(xi.spells.enfeebling.successMessageFromParams({
+                spellEffect = spellEffect, skillchainCount = 0,
+            }))
         end
     else
         spell:setMsg(xi.msg.basic.MAGIC_NO_EFFECT)
