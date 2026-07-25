@@ -1,26 +1,16 @@
 -----------------------------------
 -- Ability: Enlightenment
--- Your next spell cast may be any from your list regardless of addenda.
--- Obtained: Scholar Level 75
--- Recast Time: 0:05:00
--- Duration: 0:01:00 or 1 Spell, whichever occurs first
+-- Dual-wired via xi.job_utils.scholar (slice 6749)
 -----------------------------------
 ---@type TAbility
 local abilityObject = {}
 
 abilityObject.onAbilityCheck = function(player, target, ability)
-    if player:hasStatusEffect(xi.effect.ENLIGHTENMENT) then
-        return xi.msg.basic.EFFECT_ALREADY_ACTIVE, 0
-    end
-
-    return 0, 0
+    return xi.job_utils.scholar.checkAlreadyActiveEffect(player, xi.effect.ENLIGHTENMENT)
 end
 
 abilityObject.onUseAbility = function(player, target, ability)
-    local merit = (player:getMerit(xi.merit.ENLIGHTENMENT) - 5)
-    player:addStatusEffect(xi.effect.ENLIGHTENMENT, { power = merit, duration = 60, origin = player })
-
-    return xi.effect.ENLIGHTENMENT
+    return xi.job_utils.scholar.useEnlightenment(player, target, ability)
 end
 
 return abilityObject

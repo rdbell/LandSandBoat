@@ -1,25 +1,16 @@
 -----------------------------------
 -- Ability: Caper Emissarius
--- Description: Transfers enmity to a party member of your choice.
--- Obtained: SCH Level 96
--- Recast Time: 01:00:00
--- Duration: 00:00:30
--- target:transferEnmity(player, 99, 20.6)
+-- Dual-wired via xi.job_utils.scholar (slice 6749)
 -----------------------------------
 ---@type TAbility
 local abilityObject = {}
 
 abilityObject.onAbilityCheck = function(player, target, ability)
-    if target == nil or target:getID() == player:getID() or not target:isPC() then
-        return xi.msg.basic.CANNOT_ON_THAT_TARG, 0
-    end
-
-    ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
-    return 0, 0
+    return xi.job_utils.scholar.checkCaperEmissarius(player, target, ability)
 end
 
 abilityObject.onUseAbility = function(player, target, ability)
-    target:transferEnmity(player, 99, 20.6)
+    return xi.job_utils.scholar.useCaperEmissarius(player, target, ability)
 end
 
 return abilityObject

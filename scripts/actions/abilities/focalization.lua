@@ -1,33 +1,16 @@
 -----------------------------------
 -- Ability: Focalization
--- Increases the accuracy of your next black magic spell.
--- Obtained: Scholar Level 75
--- Recast Time: Stratagem Charge
--- Duration: 1 black magic spell or 60 seconds, whichever occurs first
---
--- Level   |Charges |Recharge Time per Charge
--- -----   -------- ---------------
--- 10      |1       |4:00 minutes
--- 30      |2       |2:00 minutes
--- 50      |3       |1:20 minutes
--- 70      |4       |1:00 minute
--- 90      |5       |48 seconds
+-- Dual-wired via xi.job_utils.scholar (slice 6749)
 -----------------------------------
 ---@type TAbility
 local abilityObject = {}
 
 abilityObject.onAbilityCheck = function(player, target, ability)
-    if player:hasStatusEffect(xi.effect.FOCALIZATION) then
-        return xi.msg.basic.EFFECT_ALREADY_ACTIVE, 0
-    end
-
-    return 0, 0
+    return xi.job_utils.scholar.checkAlreadyActiveEffect(player, xi.effect.FOCALIZATION)
 end
 
 abilityObject.onUseAbility = function(player, target, ability)
-    player:addStatusEffect(xi.effect.FOCALIZATION, { power = player:getMerit(xi.merit.FOCALIZATION), duration = 60, origin = player })
-
-    return xi.effect.FOCALIZATION
+    return xi.job_utils.scholar.useMeritStratagem(player, xi.effect.FOCALIZATION, xi.merit.FOCALIZATION)
 end
 
 return abilityObject
