@@ -1625,6 +1625,41 @@ xi.weaponskills.physicalWeaponskillSetupFromParams = function(params)
     }
 end
 
+-----------------------------------
+-- Pure: doRangedWeaponskill bonus setup product (slice 6776 / 6664)
+-- Parity: internal/wsformula RangedWeaponskillSetup
+-----------------------------------
+-- params: gearFTP, gearAcc, wsAccMod, bonusWSmods,
+--   hasAccVaries, accVariesFTP,
+--   hasRangedAccuracyBonus, rangedAccuracyBonus
+xi.weaponskills.rangedWeaponskillSetupFromParams = function(params)
+    params = params or {}
+    local _, bonusAcc, bonusWSmods = xi.weaponskills.physicalBonusInjects(
+        false,
+        params.gearFTP or 0,
+        params.gearAcc or 0,
+        0,
+        params.wsAccMod or 0,
+        params.bonusWSmods or 0
+    )
+    if params.hasAccVaries then
+        bonusAcc = xi.weaponskills.bonusAccWithVaries(bonusAcc, params.accVariesFTP or 0)
+    end
+
+    local firstHitBonusAcc = bonusAcc
+    if params.hasRangedAccuracyBonus then
+        firstHitBonusAcc = bonusAcc + (params.rangedAccuracyBonus or 0)
+    end
+
+    return {
+        bonusFTP             = params.gearFTP or 0,
+        bonusAcc             = bonusAcc,
+        bonusWSmods          = bonusWSmods,
+        firstHitBonusAcc     = firstHitBonusAcc,
+        useFirstHitBonusAcc  = not not params.hasRangedAccuracyBonus,
+    }
+end
+
 -- Pure hybrid magic add gate: hybridWS and target still has HP after physical.
 xi.weaponskills.hybridMagicApplies = function(hybridWS, targetHP, physicalFinalDmg)
     return hybridWS and targetHP > physicalFinalDmg
@@ -1828,14 +1863,17 @@ xi.weaponskills.doRangedWeaponskill = function(attacker, target, wsID, wsParams,
         ['damageType'] = attacker:getWeaponDamageType(xi.slot.RANGED),
     }
 
-    local _, bonusAcc, bonusWSmods = xi.weaponskills.physicalBonusInjects(
-        false,
-        gearFTP,
-        gearAcc,
-        0,
-        attacker:getMod(xi.mod.WSACC),
-        wsParams.bonusWSmods
-    )
+    -- Pure bonus setup product (slice 6776). Host residual: getRangedHitRate.
+    local setup = xi.weaponskills.rangedWeaponskillSetupFromParams({
+        gearFTP                = gearFTP,
+        gearAcc                = gearAcc,
+        wsAccMod               = attacker:getMod(xi.mod.WSACC),
+        bonusWSmods            = wsParams.bonusWSmods,
+        hasAccVaries           = wsParams.accVaries ~= nil,
+        accVariesFTP           = wsParams.accVaries and xi.weaponskills.fTP(tp, wsParams.accVaries) or 0,
+        hasRangedAccuracyBonus = wsParams.rangedAccuracyBonus ~= nil,
+        rangedAccuracyBonus    = wsParams.rangedAccuracyBonus or 0,
+    })
 
     local calcParams =
     {
@@ -1856,19 +1894,15 @@ xi.weaponskills.doRangedWeaponskill = function(attacker, target, wsID, wsParams,
         flourishEffect          = false,
         tpUsed                  = tp,
         bonusTP                 = wsParams.bonusTP or 0,
-        bonusfTP                = gearFTP,
-        bonusAcc                = bonusAcc,
-        bonusWSmods             = bonusWSmods,
+        bonusfTP                = setup.bonusFTP,
+        bonusAcc                = setup.bonusAcc,
+        bonusWSmods             = setup.bonusWSmods,
         attackType              = xi.attackType.RANGED,
     }
 
-    if wsParams.accVaries then
-        calcParams.bonusAcc = xi.weaponskills.bonusAccWithVaries(calcParams.bonusAcc, xi.weaponskills.fTP(tp, wsParams.accVaries))
-    end
-
     -- Split Shot/Piercing Arrow and Empyreal Arrow/Detonator are confirmed for this. Theoretically Last Stand could have a bonus too, and if so it would likely be first hit only.
-    if wsParams.rangedAccuracyBonus then
-        calcParams.firstHitRate = xi.weaponskills.getRangedHitRate(attacker, target, calcParams.bonusAcc + wsParams.rangedAccuracyBonus)
+    if setup.useFirstHitBonusAcc then
+        calcParams.firstHitRate = xi.weaponskills.getRangedHitRate(attacker, target, setup.firstHitBonusAcc)
     end
 
     calcParams.hitRate = xi.weaponskills.getRangedHitRate(attacker, target, calcParams.bonusAcc)
