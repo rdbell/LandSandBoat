@@ -12,6 +12,8 @@ set(PACKET_C2S_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/inspect_message_runtime.h
     ${CMAKE_CURRENT_SOURCE_DIR}/config_language_runtime.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/config_language_runtime.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/gm_runtime.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/gm_runtime.h
     ${CMAKE_CURRENT_SOURCE_DIR}/maprect_moghouse_exit.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/maprect_moghouse_exit.h
     ${CMAKE_CURRENT_SOURCE_DIR}/group_breakup_dispatch.cpp

@@ -21,6 +21,8 @@
 
 #include "0x01e_gm.h"
 
+#include "gm_runtime.h"
+
 #include "entities/char_entity.h"
 #include "lua/luautils.h"
 
@@ -38,8 +40,7 @@ void GP_CLI_COMMAND_GM::process(MapSession* PSession, CCharEntity* PChar) const
     // Extremely important to figure out the message length here.
     // Depending on alignment, the message may not be NULL-terminated.
     // Start with reported size and skip the first 4 bytes (header).
-    const auto messageLength = std::min<std::size_t>((header.size * 4) - 0x4, sizeof(this->Command));
-    const auto rawCommand    = asStringFromUntrustedSource(this->Command, messageLength);
+    const auto rawCommand = gmhelpers::CommandFrom(this->Command, header.size);
 
     luautils::OnPlayerVolunteer(PChar, rawCommand);
 }

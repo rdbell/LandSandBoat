@@ -32,6 +32,7 @@
 #include "common/utils.h"
 #include "map/packets/c2s/0x01e_gm.h"
 #include "map/packets/c2s/0x01f_gmcommand.h"
+#include "map/packets/c2s/gm_runtime.h"
 
 namespace
 {
@@ -218,6 +219,22 @@ auto testGMPacketEncodedBytes() -> bool
     return ok;
 }
 
+auto testGMCommandExtraction() -> bool
+{
+    uint8_t command[gmCommandMaxSize]{};
+    std::memcpy(command, "Vol\0ignored", 12);
+
+    bool ok = true;
+    ok      = expectEqualString(gmhelpers::CommandFrom(command, 1), "", "GM zero-byte command") && ok;
+    ok      = expectEqualString(gmhelpers::CommandFrom(command, 2), "Vol", "GM short command") && ok;
+
+    uint8_t fullCommand[gmCommandMaxSize]{};
+    const auto pattern = makePattern<gmCommandMaxSize>('A');
+    std::memcpy(fullCommand, pattern.data(), pattern.size());
+    ok = expectEqualString(gmhelpers::CommandFrom(fullCommand, 255), std::string(pattern.begin(), pattern.end()), "GM capped command") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SGMPacketSelfTests() -> bool
@@ -225,5 +242,6 @@ auto runC2SGMPacketSelfTests() -> bool
     bool ok = true;
     ok      = testGMPacketLayoutsAndMetadata() && ok;
     ok      = testGMPacketEncodedBytes() && ok;
+    ok      = testGMCommandExtraction() && ok;
     return ok;
 }
