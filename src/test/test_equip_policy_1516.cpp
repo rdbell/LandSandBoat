@@ -18,6 +18,7 @@
 #include "map/unequip_main_sub_look_capacity.h"
 #include "map/unequip_item_recast_capacity.h"
 #include "map/unequip_item_unlock_capacity.h"
+#include "map/unequip_post_switch_effects_capacity.h"
 #include "map/unequip_recalculate_capacity.h"
 #include "map/unequip_removed_armor_look_capacity.h"
 #include "map/unequip_script_flags_capacity.h"
@@ -512,6 +513,13 @@ auto Check() -> bool
     const auto recalculate = unequiprecalculatehelpers::PlanFor(true);
     if (noRecalculate.buildSkills || noRecalculate.updateHealth || noRecalculate.markUpdateHP || noRecalculate.markUpdateLook ||
         !recalculate.buildSkills || !recalculate.updateHealth || !recalculate.markUpdateHP || !recalculate.markUpdateLook)
+    {
+        return false;
+    }
+
+    const auto postSwitchEffects = unequippostswitcheffectshelpers::PlanFor(2);
+    if (!postSwitchEffects.callItemUnequipScript || !postSwitchEffects.queueEquipChange ||
+        postSwitchEffects.locationID != 0 || postSwitchEffects.itemSlotID != 0 || postSwitchEffects.equipSlotID != 2)
     {
         return false;
     }

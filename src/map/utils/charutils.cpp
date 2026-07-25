@@ -126,6 +126,7 @@
 #include "unequip_main_sub_look_capacity.h"
 #include "unequip_item_recast_capacity.h"
 #include "unequip_item_unlock_capacity.h"
+#include "unequip_post_switch_effects_capacity.h"
 #include "unequip_recalculate_capacity.h"
 #include "unequip_removed_armor_look_capacity.h"
 #include "unequip_script_flags_capacity.h"
@@ -2433,9 +2434,16 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
             break;
         }
 
-        luautils::OnItemUnequip(PChar, PItem);
-
-        PChar->inventorySyncState().queueEquipChange(LOC_INVENTORY, 0, static_cast<SLOTTYPE>(equipSlotID), PItem, Equipping::No);
+        const auto postSwitchEffectsPlan = unequippostswitcheffectshelpers::PlanFor(equipSlotID);
+        if (postSwitchEffectsPlan.callItemUnequipScript)
+        {
+            luautils::OnItemUnequip(PChar, PItem);
+        }
+        if (postSwitchEffectsPlan.queueEquipChange)
+        {
+            PChar->inventorySyncState().queueEquipChange(static_cast<CONTAINER_ID>(postSwitchEffectsPlan.locationID), postSwitchEffectsPlan.itemSlotID,
+                                                          static_cast<SLOTTYPE>(postSwitchEffectsPlan.equipSlotID), PItem, Equipping::No);
+        }
 
         const auto recalculatePlan = unequiprecalculatehelpers::PlanFor(recalculate);
         if (recalculatePlan.buildSkills)
