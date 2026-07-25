@@ -730,6 +730,7 @@ auto runAidBlock6854SelfTests() -> bool;
 auto runCharPoints6855SelfTests() -> bool;
 auto runUnityLeaderTransition6856SelfTests() -> bool;
 auto runPointSet6857SelfTests() -> bool;
+auto runPointLookup6858SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
 auto runStyleUpdate1518SelfTests() -> bool;
@@ -3122,6 +3123,7 @@ namespace
         ok = runCharPoints6855SelfTests() && ok;
         ok = runUnityLeaderTransition6856SelfTests() && ok;
         ok = runPointSet6857SelfTests() && ok;
+        ok = runPointLookup6858SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
         ok = runStyleUpdate1518SelfTests() && ok;

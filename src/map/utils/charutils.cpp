@@ -7174,7 +7174,7 @@ int32 GetPoints(CCharEntity* PChar, const char* type)
     TracyZoneScoped;
 
     const auto rset = db::preparedStmt("SELECT * FROM char_points WHERE charid = ? LIMIT 1", PChar->id);
-    if (rset && rset->rowsCount() && rset->next())
+    if (charpointshelpers::ShouldAdvancePointResult(rset != nullptr, rset && rset->rowsCount()) && rset->next())
     {
         return rset->get<int32>(type);
     }
@@ -7210,18 +7210,13 @@ void SetUnityLeader(CCharEntity* PChar, uint8 leaderID)
 
 std::string GetConquestPointsName(CCharEntity* PChar)
 {
-    switch (PChar->profile.nation)
+    const auto column = charpointshelpers::ConquestPointsColumn(PChar->profile.nation);
+    if (column.empty())
     {
-        case 0:
-            return "sandoria_cp";
-        case 1:
-            return "bastok_cp";
-        case 2:
-            return "windurst_cp";
-        default:
-            ShowError("Invalid nation received, returning nothing.");
-            return "";
+        ShowError("Invalid nation received, returning nothing.");
+        return {};
     }
+    return std::string{ column };
 }
 
 auto SendToZone(CCharEntity* PChar, uint16 zoneId) -> bool
