@@ -112,6 +112,7 @@
 #include "pet_ability_table_capacity.h"
 #include "pet_ability_table_lifecycle_capacity.h"
 #include "summoner_pet_ability_roster_capacity.h"
+#include "traits_source_capacity.h"
 #include "keyitem_spell_capacity.h"
 #include "equip_item_finalize_capacity.h"
 #include "equip_item_success_capacity.h"
@@ -4211,32 +4212,34 @@ void BuildingCharTraitsTable(CCharEntity* PChar)
     PChar->TraitList.clear();
     std::memset(&PChar->m_TraitList, 0, sizeof(PChar->m_TraitList));
 
-    auto mjob = PChar->GetMJob();
-    auto sjob = PChar->GetSJob();
-    auto mlvl = PChar->GetMLevel();
-    auto slvl = PChar->GetSLevel();
-
     // NOTE: Monstrosity (MON) is treated as its own job, but each species is it's own
     //     : combination of main/sub job for stats, traits and abilities.
-    if (petabilitytablehelpers::ShouldApplyMonstrosityJobs(PChar->m_PMonstrosity != nullptr))
+    traitssourcehelpers::Facts traitsFacts{
+        .mainJob         = static_cast<uint8>(PChar->GetMJob()),
+        .subJob          = static_cast<uint8>(PChar->GetSJob()),
+        .mainLevel       = PChar->GetMLevel(),
+        .subLevel        = PChar->GetSLevel(),
+        .hasMonstrosity  = PChar->m_PMonstrosity != nullptr,
+    };
+    if (traitsFacts.hasMonstrosity)
     {
-        mjob = PChar->m_PMonstrosity->MainJob;
-        sjob = PChar->m_PMonstrosity->SubJob;
-        mlvl = PChar->m_PMonstrosity->levels[PChar->m_PMonstrosity->MonstrosityId];
-        slvl = mlvl;
+        traitsFacts.monstrosityMainJob = static_cast<uint8>(PChar->m_PMonstrosity->MainJob);
+        traitsFacts.monstrositySubJob  = static_cast<uint8>(PChar->m_PMonstrosity->SubJob);
+        traitsFacts.monstrosityLevel   = PChar->m_PMonstrosity->levels[PChar->m_PMonstrosity->MonstrosityId];
     }
+    const auto traitsPlan = traitssourcehelpers::PlanFor(traitsFacts);
 
-    battleutils::AddTraits(PChar, traits::GetTraits(mjob), mlvl);
-    battleutils::AddTraits(PChar, traits::GetTraits(sjob), slvl);
+    battleutils::AddTraits(PChar, traits::GetTraits(static_cast<JOBTYPE>(traitsPlan.mainJob)), traitsPlan.mainLevel);
+    battleutils::AddTraits(PChar, traits::GetTraits(static_cast<JOBTYPE>(traitsPlan.subJob)), traitsPlan.subLevel);
 
-    if (petabilitytablehelpers::ShouldCalculateBlueTraits(static_cast<uint8>(mjob), static_cast<uint8>(sjob)))
+    if (traitsPlan.calculateBlueTraits)
     {
         blueutils::CalculateTraits(PChar);
     }
 
     PChar->delModifier(Mod::MEVA, PChar->m_magicEvasion);
 
-    PChar->m_magicEvasion = battleutils::GetMaxSkill(petabilitytablehelpers::PlayerMEVASkillRank, mlvl); // Player MEVA is Rank G
+    PChar->m_magicEvasion = battleutils::GetMaxSkill(petabilitytablehelpers::PlayerMEVASkillRank, traitsPlan.mainLevel); // Player MEVA is Rank G
     PChar->addModifier(Mod::MEVA, PChar->m_magicEvasion);
 }
 

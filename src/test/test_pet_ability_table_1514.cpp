@@ -2,6 +2,7 @@
 
 #include "map/pet_ability_table_capacity.h"
 #include "map/pet_ability_table_lifecycle_capacity.h"
+#include "map/traits_source_capacity.h"
 
 #include <iostream>
 
@@ -99,6 +100,30 @@ auto Check() -> bool
         return false;
     }
     if (!ShouldCalculateBlueTraits(16, 1) || !ShouldCalculateBlueTraits(1, 16) || ShouldCalculateBlueTraits(1, 2))
+    {
+        return false;
+    }
+    const auto normalTraits = traitssourcehelpers::PlanFor({
+        .mainJob   = 1,
+        .subJob    = petabilitytablehelpers::JobBLU,
+        .mainLevel = 99,
+        .subLevel  = 49,
+    });
+    const auto monstrosityTraits = traitssourcehelpers::PlanFor({
+        .mainJob             = 1,
+        .subJob              = 2,
+        .mainLevel           = 99,
+        .subLevel            = 49,
+        .hasMonstrosity      = true,
+        .monstrosityMainJob  = petabilitytablehelpers::JobBLU,
+        .monstrositySubJob   = 1,
+        .monstrosityLevel    = 50,
+    });
+    const auto noBlueTraits = traitssourcehelpers::PlanFor({ .mainJob = 1, .subJob = 2 });
+    if (normalTraits.mainJob != 1 || normalTraits.subJob != petabilitytablehelpers::JobBLU || normalTraits.mainLevel != 99 ||
+        normalTraits.subLevel != 49 || !normalTraits.calculateBlueTraits || monstrosityTraits.mainJob != petabilitytablehelpers::JobBLU ||
+        monstrosityTraits.subJob != 1 || monstrosityTraits.mainLevel != 50 || monstrosityTraits.subLevel != 50 ||
+        !monstrosityTraits.calculateBlueTraits || noBlueTraits.calculateBlueTraits)
     {
         return false;
     }
