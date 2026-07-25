@@ -93,6 +93,7 @@
 #include "char_zone_exit_transition.h"
 #include "char_zone_out_transition.h"
 #include "conquest_system.h"
+#include "forced_synth_critical_fail.h"
 #include "grades.h"
 #include "ipc_client.h"
 #include "item_container.h"
@@ -8212,8 +8213,12 @@ void forceSynthCritFail(const std::string& sourceFunction, CCharEntity* PChar)
     // The broken rod can never be lost in a normal failed synth. It will only be lost if the synth is
     // interrupted in some way, such as by being attacked or moving to another area (e.g. ship docking).
 
-    ShowWarning("%s: Force crit-failing %s synthesis!", sourceFunction, PChar->getName());
-    synthutils::doSynthCriticalFail(PChar);
+    const auto plan = forcedsynthhelpers::MakePlan(sourceFunction, PChar->getName());
+    ShowWarning("%s: Force crit-failing %s synthesis!", plan.sourceFunction, plan.characterName);
+    if (plan.criticalFail)
+    {
+        synthutils::doSynthCriticalFail(PChar);
+    }
 }
 
 void removeCharFromZone(CCharEntity* PChar)
