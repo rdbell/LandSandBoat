@@ -21,6 +21,7 @@
 
 #include "map_networking.h"
 #include "map_networking_incoming_packet_plan.h"
+#include "map_networking_parse_tail.h"
 #include "map_networking_small_packet.h"
 #include "map_networking_capacity.h"
 
@@ -537,13 +538,18 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
     // Flush any batched equip changes after processing all incoming packets
     PChar->flushEquipChanges();
 
-    PSession->client_packet_id = SmallPD_Code;
+    const auto parseTailPlan = mapnetworkingparsetailhelpers::MakePlan(
+        SmallPD_Code,
+        ref<uint16>(buff, 2),
+        PSession->server_packet_id,
+        SmallPD_Type);
+    PSession->client_packet_id = parseTailPlan.clientPacketID;
 
     // Google Translate:
     // here we check if the client received the previous package
     // if not received, then we do not create a new one, but send the previous one
 
-    switch (mapnetworkinghelpers::PlanOutgoingPacketAcknowledgement(ref<uint16>(buff, 2), PSession->server_packet_id, SmallPD_Type))
+    switch (parseTailPlan.acknowledgement)
     {
         case mapnetworkinghelpers::AcknowledgementPlan::IncrementServerPacketID:
             PSession->server_packet_id += 1;
