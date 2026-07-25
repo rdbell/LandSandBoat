@@ -104,6 +104,7 @@
 #include "capacity_award_capacity.h"
 #include "weapon_skill_roster_capacity.h"
 #include "ability_table_capacity.h"
+#include "armor_style_update_capacity.h"
 #include "pet_ability_table_capacity.h"
 #include "keyitem_spell_capacity.h"
 #include "equip_item_finalize_capacity.h"
@@ -2872,39 +2873,43 @@ void UpdateWeaponStyle(CCharEntity* PChar, uint8 equipSlotID, CItemEquipment* PI
 
 void UpdateArmorStyle(CCharEntity* PChar, uint8 equipSlotID)
 {
-    if (styleupdatehelpers::ShouldSkipStyleUpdateWhenUnlocked(PChar->getStyleLocked()))
+    const bool styleLocked = PChar->getStyleLocked();
+    if (styleupdatehelpers::ShouldSkipStyleUpdateWhenUnlocked(styleLocked))
     {
         return;
     }
 
     uint16                itemID          = PChar->styleItems[equipSlotID];
     const CItemEquipment* appearance      = xi::items::lookup<CItemEquipment>(itemID);
-    uint16                appearanceModel = styleupdatehelpers::ArmorStyleAppearanceModel(
-        appearance != nullptr,
-        HasItem(PChar, itemID),
-        appearance ? appearance->getModelId() : 0);
-
-    if (!styleupdatehelpers::ShouldApplyArmorStyle(canEquipItemOnAnyJob(PChar, appearance)))
+    const auto            plan            = armorstyleupdatehelpers::PlanFor({
+        .styleLocked        = styleLocked,
+        .hasAppearance      = appearance != nullptr,
+        .stillHasAppearance = HasItem(PChar, itemID),
+        .canEquipAppearance = canEquipItemOnAnyJob(PChar, appearance),
+        .modelID            = appearance ? static_cast<std::uint16_t>(appearance->getModelId()) : 0u,
+        .equipSlotID        = equipSlotID,
+    });
+    if (!plan.setMainLook)
     {
         return;
     }
 
-    switch (equipSlotID)
+    switch (plan.slot)
     {
         case SLOT_HEAD:
-            PChar->mainlook.head = appearanceModel;
+            PChar->mainlook.head = plan.modelID;
             break;
         case SLOT_BODY:
-            PChar->mainlook.body = appearanceModel;
+            PChar->mainlook.body = plan.modelID;
             break;
         case SLOT_HANDS:
-            PChar->mainlook.hands = appearanceModel;
+            PChar->mainlook.hands = plan.modelID;
             break;
         case SLOT_LEGS:
-            PChar->mainlook.legs = appearanceModel;
+            PChar->mainlook.legs = plan.modelID;
             break;
         case SLOT_FEET:
-            PChar->mainlook.feet = appearanceModel;
+            PChar->mainlook.feet = plan.modelID;
             break;
     }
 }

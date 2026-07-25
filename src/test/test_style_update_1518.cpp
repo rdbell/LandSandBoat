@@ -1,5 +1,6 @@
 #include "test_style_update_1518.h"
 
+#include "map/armor_style_update_capacity.h"
 #include "map/style_update_capacity.h"
 
 #include <iostream>
@@ -128,6 +129,31 @@ auto Check() -> bool
         return false;
     }
     if (!IsArmorStyleSlot(4) || !IsArmorStyleSlot(8) || IsArmorStyleSlot(3))
+    {
+        return false;
+    }
+    if (armorstyleupdatehelpers::PlanFor({ .canEquipAppearance = true, .equipSlotID = 4 }).setMainLook ||
+        armorstyleupdatehelpers::PlanFor({ .styleLocked = true, .equipSlotID = 4 }).setMainLook ||
+        armorstyleupdatehelpers::PlanFor({ .styleLocked = true, .canEquipAppearance = true, .equipSlotID = 3 }).setMainLook)
+    {
+        return false;
+    }
+    const auto retainedArmorStyle = armorstyleupdatehelpers::PlanFor({
+        .styleLocked        = true,
+        .hasAppearance      = true,
+        .stillHasAppearance = true,
+        .canEquipAppearance = true,
+        .modelID            = 0x1234,
+        .equipSlotID        = 5,
+    });
+    const auto missingArmorStyle = armorstyleupdatehelpers::PlanFor({
+        .styleLocked        = true,
+        .canEquipAppearance = true,
+        .modelID            = 0x1234,
+        .equipSlotID        = 8,
+    });
+    if (!retainedArmorStyle.setMainLook || retainedArmorStyle.slot != 5 || retainedArmorStyle.modelID != 0x1234 ||
+        !missingArmorStyle.setMainLook || missingArmorStyle.slot != 8 || missingArmorStyle.modelID != 0)
     {
         return false;
     }
