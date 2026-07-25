@@ -1071,67 +1071,141 @@ xi.spells.damage.calculateIfMagicBurstBonus = function(caster, target, spellId, 
     return magicBurstBonus
 end
 
--- Consecutive Elemental Damage Penalty. Most commonly known as "Nuke Wall".
-local function calculateNukeWallFactor(target, spellElement, finalDamage)
-    -- Initial check.
+-----------------------------------
+-- Nuke Wall pure helpers
+-- Dual-wired to OmegaXI internal/nukewall (slice 6708 / 0863).
+-----------------------------------
+
+xi.spells.damage.nukeWallPotencyMin       = 0
+xi.spells.damage.nukeWallPotencyMax       = 4000
+xi.spells.damage.nukeWallPotencyDecay     = 2000
+xi.spells.damage.nukeWallDecayRemainingMs = 4000
+xi.spells.damage.nukeWallDurationSec      = 5
+xi.spells.damage.nukeWallLevelDamageScale = 21
+xi.spells.damage.nukeWallLevelDamageBase  = 500
+
+xi.spells.damage.nukeWallDamageCap = function(mainLvl)
+    return (mainLvl or 0) * xi.spells.damage.nukeWallLevelDamageScale + xi.spells.damage.nukeWallLevelDamageBase
+end
+
+xi.spells.damage.nukeWallApplyTimeDecay = function(potency, timeRemainingMs)
+    potency = potency or 0
+    if (timeRemainingMs or 0) <= xi.spells.damage.nukeWallDecayRemainingMs then
+        return utils.clamp(potency - xi.spells.damage.nukeWallPotencyDecay,
+            xi.spells.damage.nukeWallPotencyMin, xi.spells.damage.nukeWallPotencyMax)
+    end
+
+    return potency
+end
+
+xi.spells.damage.nukeWallRaykeMatchesElement = function(spellElement, raykeSubPower)
+    spellElement = spellElement or 0
+    raykeSubPower = raykeSubPower or 0
+    for i = 0, 16, 4 do
+        if bit.band(bit.rshift(raykeSubPower, i), 0xF) == spellElement then
+            return true
+        end
+    end
+
+    return false
+end
+
+xi.spells.damage.nukeWallApplyRayke = function(potency, spellElement, hasRayke, raykeSubPower)
+    potency = potency or 0
+    if not hasRayke then
+        return potency
+    end
+
+    if xi.spells.damage.nukeWallRaykeMatchesElement(spellElement, raykeSubPower) then
+        return math.floor(potency / 2)
+    end
+
+    return potency
+end
+
+xi.spells.damage.nukeWallFactorFromPotency = function(potency)
+    return 1 - (potency or 0) / 10000
+end
+
+xi.spells.damage.nukeWallNextPotency = function(prevPotency, finalDamage, mainLvl)
+    local cap = xi.spells.damage.nukeWallDamageCap(mainLvl)
+    local added = math.floor(xi.spells.damage.nukeWallPotencyMax * (finalDamage or 0) / cap)
+    return utils.clamp(added + (prevPotency or 0),
+        xi.spells.damage.nukeWallPotencyMin, xi.spells.damage.nukeWallPotencyMax)
+end
+
+-- Pure calculateNukeWallFactor inject form.
+-- params: isNM, spellElement, finalDamage, hasNukeWall, wallPotency, timeRemainingMs,
+--   hasRayke, raykeSubPower, mainLvl
+-- returns: factor, nextPotency, applied, consumedWall
+xi.spells.damage.calculateNukeWallFactorFromParams = function(params)
     if
-        not target:isNM() or               -- Target is not an NM.
-        spellElement <= xi.element.NONE or -- Action isn't elemental.
-        finalDamage < 0                    -- Action heals target.
+        not params.isNM or
+        (params.spellElement or 0) <= xi.element.NONE or
+        (params.finalDamage or 0) < 0
     then
-        return 1
+        return 1, 0, false, false
     end
 
-    -----------------------------------
-    -- Fetch current wall potency and math based on time and Ruake
-    -----------------------------------
     local potency = 0
-    local effect  = target:getStatusEffect(xi.effect.NUKE_WALL)
-
-    if effect then
-        -- Current nuke wall effect.
-        potency = effect:getPower()
-
-        -- Effect potency is reduced by 20% after 1 second and remains stable for the remaining time, unless refreshed.
-        if effect:getTimeRemaining() <= 4000 then
-            potency = utils.clamp(potency - 2000, 0, 4000) -- Potency is reduced by 2000 (20%) after first second has happened. Can't go below 0.
-        end
-
-        -- Rayke effect.
-        if target:hasStatusEffect(xi.effect.RAYKE) then
-            local raykeSubpower = target:getStatusEffect(xi.effect.RAYKE):getSubPower()
-
-            -- current bit size of subPower is 16 bits, 4*4 = 16
-            -- Step from 0 to 16 in increments of 4...
-            for i = 0, 16, 4 do
-                -- If element is bitpacked into rayke subeffect...
-                if bit.band(bit.rshift(raykeSubpower, i), 0xF) == spellElement then
-                    potency = math.floor(potency / 2)
-
-                    break
-                end
-            end
-        end
-
-        target:delStatusEffectSilent(xi.effect.NUKE_WALL)
+    local consumed = false
+    if params.hasNukeWall then
+        potency = params.wallPotency or 0
+        potency = xi.spells.damage.nukeWallApplyTimeDecay(potency, params.timeRemainingMs)
+        potency = xi.spells.damage.nukeWallApplyRayke(
+            potency, params.spellElement, params.hasRayke, params.raykeSubPower)
+        consumed = true
     end
 
-    -----------------------------------
-    -- Calculate new potency after this nuke and renew effect.
-    -----------------------------------
-    -- Calculate damage needed to reach the potency cap (4000). The lower the level, the easier to hit potency cap.
-    local damageCap = target:getMainLvl() * 21 + 500
+    local nextPot = xi.spells.damage.nukeWallNextPotency(potency, params.finalDamage, params.mainLvl)
+    return xi.spells.damage.nukeWallFactorFromPotency(potency), nextPot, true, consumed
+end
 
-    -- Calculate new potency, based on existing potency and damage dealt (compared to mob level).
-    local finalPotency = utils.clamp(math.floor(4000 * finalDamage / damageCap) + potency, 0, 4000)
+-- Consecutive Elemental Damage Penalty ("Nuke Wall") entity host.
+local function calculateNukeWallFactor(target, spellElement, finalDamage)
+    local hasWall = false
+    local wallPotency = 0
+    local timeRemainingMs = 0
+    local effect = target:getStatusEffect(xi.effect.NUKE_WALL)
+    if effect then
+        hasWall = true
+        wallPotency = effect:getPower()
+        timeRemainingMs = effect:getTimeRemaining()
+    end
 
-    -- Renew status effect without messages.
-    target:addStatusEffect(xi.effect.NUKE_WALL, { power = finalPotency, duration = 5, origin = target, icon = 0, subPower = spellElement })
+    local hasRayke = target:hasStatusEffect(xi.effect.RAYKE)
+    local raykeSubPower = 0
+    if hasRayke then
+        raykeSubPower = target:getStatusEffect(xi.effect.RAYKE):getSubPower()
+    end
 
-    -----------------------------------
-    -- We return JUST the factor based on previous nuke. This nuke only affects the next one.
-    -----------------------------------
-    return 1 - potency / 10000
+    local factor, nextPot, applied, consumed = xi.spells.damage.calculateNukeWallFactorFromParams({
+        isNM            = target:isNM(),
+        spellElement    = spellElement,
+        finalDamage     = finalDamage,
+        hasNukeWall     = hasWall,
+        wallPotency     = wallPotency,
+        timeRemainingMs = timeRemainingMs,
+        hasRayke        = hasRayke,
+        raykeSubPower   = raykeSubPower,
+        mainLvl         = target:getMainLvl(),
+    })
+
+    if applied then
+        if consumed then
+            target:delStatusEffectSilent(xi.effect.NUKE_WALL)
+        end
+
+        target:addStatusEffect(xi.effect.NUKE_WALL, {
+            power    = nextPot,
+            duration = xi.spells.damage.nukeWallDurationSec,
+            origin   = target,
+            icon     = 0,
+            subPower = spellElement,
+        })
+    end
+
+    return factor
 end
 
 -----------------------------------
