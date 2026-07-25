@@ -88,6 +88,7 @@
 #include "char_party_reload_missing.h"
 #include "char_party_trust_disband.h"
 #include "char_points_capacity.h"
+#include "char_position_save_plan.h"
 #include "char_playtime_save_plan.h"
 #include "char_race_change_transition.h"
 #include "char_send_to_zone_capacity.h"
@@ -5823,7 +5824,8 @@ void SaveCharPosition(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar->status == STATUS_TYPE::DISAPPEAR)
+    const auto plan = positionsavehelpers::MakePlan(static_cast<uint8>(PChar->status));
+    if (!plan.persist)
     {
         return;
     }

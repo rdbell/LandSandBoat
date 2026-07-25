@@ -784,6 +784,7 @@ auto runCharAddItemPersistenceFailure6909SelfTests() -> bool;
 auto runCharAddItemSuccessPackets6910SelfTests() -> bool;
 auto runCharTimerPacketPlan6911SelfTests() -> bool;
 auto runCharDeathTimeSavePlan6912SelfTests() -> bool;
+auto runCharPositionSavePlan6913SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3231,6 +3232,7 @@ namespace
         ok = runCharAddItemSuccessPackets6910SelfTests() && ok;
         ok = runCharTimerPacketPlan6911SelfTests() && ok;
         ok = runCharDeathTimeSavePlan6912SelfTests() && ok;
+        ok = runCharPositionSavePlan6913SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
