@@ -124,6 +124,7 @@
 #include "unequip_armor_look_capacity.h"
 #include "unequip_main_sub_look_capacity.h"
 #include "unequip_item_recast_capacity.h"
+#include "unequip_item_unlock_capacity.h"
 #include "unequip_ranged_look_capacity.h"
 #include "unequip_sub_look_capacity.h"
 #include "unequip_sub_state_capacity.h"
@@ -2267,7 +2268,11 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
         {
             PChar->PRecastContainer->Del(RECAST_ITEM, static_cast<Recast>(itemRecastPlan.recastKey)); // Also remove item from the Recast List no matter what bag its in
         }
-        PItem->setSubType(ITEM_UNLOCKED);
+        const auto itemUnlockPlan = unequipitemunlockhelpers::PlanFor();
+        if (itemUnlockPlan.setItemSubtype)
+        {
+            PItem->setSubType(itemUnlockPlan.subtype);
+        }
 
         CItemEquipment* const mainAfterClear = PChar->getEquip(SLOT_MAIN);
         const auto subStatePlan = unequipsubstatehelpers::PlanFor({
