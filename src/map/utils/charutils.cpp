@@ -61,6 +61,7 @@
 
 #include "ability.h"
 #include "alliance.h"
+#include "char_death_timestamp_load.h"
 #include "char_home_point_transition.h"
 #include "char_points_capacity.h"
 #include "char_send_to_zone_capacity.h"
@@ -8157,14 +8158,18 @@ void loadDeathTimestamp(CCharEntity* PChar)
     {
         // Update the character's death timestamp based off of how long they were previously dead
         const auto secondsSinceDeathRaw = rset->get<uint32>("death");
-        const auto secondsSinceDeath    = std::chrono::seconds(secondsSinceDeathRaw);
-        if (zoneouthelpers::ShouldApplyDeathTimestamp(PChar->health.hp))
+        const auto plan = deathtimestamploadhelpers::MakeDeathTimestampLoadPlan(
+            true,
+            PChar->health.hp,
+            secondsSinceDeathRaw,
+            std::chrono::duration_cast<std::chrono::seconds>(CCharEntity::death_duration).count());
+        if (plan.setDeathTime)
         {
-            PChar->SetDeathTime(timer::time_point(timer::now() - secondsSinceDeath));
-            const auto remaining = zoneouthelpers::RemainingDeathDurationSeconds(
-                std::chrono::duration_cast<std::chrono::seconds>(CCharEntity::death_duration).count(),
-                secondsSinceDeathRaw);
-            PChar->Die(std::chrono::seconds(remaining));
+            PChar->SetDeathTime(timer::time_point(timer::now() - std::chrono::seconds(plan.deathTimeSecondsAgo)));
+        }
+        if (plan.callDie)
+        {
+            PChar->Die(std::chrono::seconds(plan.dieRemainingSeconds));
         }
     }
 }

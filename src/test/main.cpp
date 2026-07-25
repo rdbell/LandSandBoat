@@ -734,6 +734,7 @@ auto runPointLookup6858SelfTests() -> bool;
 auto runSendToZone6859SelfTests() -> bool;
 auto runHomePointTransition6860SelfTests() -> bool;
 auto runZoneOutTransition6861SelfTests() -> bool;
+auto runDeathTimestampLoad6862SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
 auto runStyleUpdate1518SelfTests() -> bool;
@@ -3130,6 +3131,7 @@ namespace
         ok = runSendToZone6859SelfTests() && ok;
         ok = runHomePointTransition6860SelfTests() && ok;
         ok = runZoneOutTransition6861SelfTests() && ok;
+        ok = runDeathTimestampLoad6862SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
         ok = runStyleUpdate1518SelfTests() && ok;

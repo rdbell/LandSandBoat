@@ -1375,6 +1375,8 @@ set(SOURCES
     test_home_point_transition_6860.cpp
     test_zone_out_transition_6861.h
     test_zone_out_transition_6861.cpp
+    test_death_timestamp_load_6862.h
+    test_death_timestamp_load_6862.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h
