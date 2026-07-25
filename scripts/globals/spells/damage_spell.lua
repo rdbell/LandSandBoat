@@ -466,52 +466,108 @@ xi.spells.damage.calculateBaseDamage = function(caster, target, spellId, spellGr
     return utils.clamp(spellDamage, 0, 99999)
 end
 
--- Calculate: Multiple Target Damage Reduction (MTDR)
-xi.spells.damage.calculateMTDR = function(caster, spell)
-    -- Only players are subject to this penalty.
-    if not caster:isPC() then
+-----------------------------------
+-- Spell damage product mult pure helpers
+-- Dual-wired to OmegaXI internal/spelldmgmult (slice 6711 / 0862 / 6090).
+-----------------------------------
+
+xi.spells.damage.spellDmgDefaultMult        = 1
+xi.spells.damage.divineSealMult             = 2
+xi.spells.damage.ebullienceBase             = 1.2
+xi.spells.damage.undeadDivinePenalty        = 1.5
+xi.spells.damage.mtdrMin                    = 0.4
+xi.spells.damage.mtdrMax                    = 1.0
+xi.spells.damage.aoeResistMin               = 0
+xi.spells.damage.aoeResistMax               = 2
+xi.spells.damage.additionalResistTierRank   = 4
+xi.spells.damage.additionalResistTierHalf   = 0.5
+
+-- Pure MTDR once PC gate and target count inject.
+xi.spells.damage.calculateMTDRFromParams = function(params)
+    if not params.isPC then
         return 1
     end
 
-    -- Calculate MTDR penaly.
-    local targetAmount = spell:getTotalTargets()
+    local targetAmount = params.targetAmount or 1
     if targetAmount == 1 then
         return 1
     end
 
-    return utils.clamp(0.9 - 0.05 * targetAmount, 0.4, 1)
+    return utils.clamp(0.9 - 0.05 * targetAmount, xi.spells.damage.mtdrMin, xi.spells.damage.mtdrMax)
 end
 
--- Bonus elemental damage from Elemetal Staves.
-xi.spells.damage.calculateElementalStaffBonus = function(caster, spellElement)
-    if spellElement == xi.element.NONE then
+xi.spells.damage.calculateElementalStaffBonusFromParams = function(params)
+    if (params.spellElement or 0) == xi.element.NONE then
         return 1
     end
 
-    return 1 + caster:getMod(xi.data.element.getElementalStaffModifier(spellElement)) * 5 / 100
+    return 1 + (params.staffMod or 0) * 5 / 100
+end
+
+xi.spells.damage.calculateElementalAffinityBonusFromParams = function(params)
+    if (params.spellElement or 0) == xi.element.NONE then
+        return 1
+    end
+
+    return 1 + (params.elementalMABMod or 0) / 100
+end
+
+xi.spells.damage.calculateAdditionalResistTierFromParams = function(params)
+    if params.hasSubtleSorcery then
+        return 1
+    end
+
+    if (params.resistanceRank or 0) < xi.spells.damage.additionalResistTierRank then
+        return 1
+    end
+
+    return xi.spells.damage.additionalResistTierHalf
+end
+
+-- Calculate: Multiple Target Damage Reduction (MTDR)
+xi.spells.damage.calculateMTDR = function(caster, spell)
+    return xi.spells.damage.calculateMTDRFromParams({
+        isPC          = caster:isPC(),
+        targetAmount  = spell:getTotalTargets(),
+    })
+end
+
+-- Bonus elemental damage from Elemental Staves.
+xi.spells.damage.calculateElementalStaffBonus = function(caster, spellElement)
+    local staffMod = 0
+    if spellElement ~= xi.element.NONE then
+        staffMod = caster:getMod(xi.data.element.getElementalStaffModifier(spellElement))
+    end
+
+    return xi.spells.damage.calculateElementalStaffBonusFromParams({
+        spellElement = spellElement,
+        staffMod     = staffMod,
+    })
 end
 
 -- Elemental "Magic Attack Bonus" from Magian trials staves, Atmas, etc...
 xi.spells.damage.calculateElementalAffinityBonus = function(caster, spellElement)
-    if spellElement == xi.element.NONE then
-        return 1
+    local mabMod = 0
+    if spellElement ~= xi.element.NONE then
+        mabMod = caster:getMod(xi.data.element.getElementalMABModifier(spellElement))
     end
 
-    return 1 + caster:getMod(xi.data.element.getElementalMABModifier(spellElement)) / 100
+    return xi.spells.damage.calculateElementalAffinityBonusFromParams({
+        spellElement    = spellElement,
+        elementalMABMod = mabMod,
+    })
 end
 
 xi.spells.damage.calculateAdditionalResistTier = function(caster, target, spellElement)
-    -- Subtle Sorcery bypasses this additional tier.
-    if caster:hasStatusEffect(xi.effect.SUBTLE_SORCERY) then
-        return 1
+    local rank = 0
+    if spellElement and spellElement > xi.element.NONE then
+        rank = target:getMod(xi.data.element.getElementalResistanceRankModifier(spellElement))
     end
 
-    -- Forced only at and after rank 4 (50% EEM).
-    if target:getMod(xi.data.element.getElementalResistanceRankModifier(spellElement)) < 4 then
-        return 1
-    end
-
-    return 0.5
+    return xi.spells.damage.calculateAdditionalResistTierFromParams({
+        hasSubtleSorcery = caster:hasStatusEffect(xi.effect.SUBTLE_SORCERY),
+        resistanceRank   = rank,
+    })
 end
 
 -----------------------------------
@@ -813,86 +869,141 @@ xi.spells.damage.calculateMagicCriticalMultiplier = function(caster)
     return 1
 end
 
+-- Pure mid/late product multipliers (consume flags for status del hosts).
+-- Returns multiplier, consume (when true host should del the matching status).
+
+xi.spells.damage.calculateDivineSealMultiplierFromParams = function(params)
+    if not params.hasDivineSeal then
+        return 1, false
+    end
+
+    if not params.targetIsUndead then
+        return 1, false
+    end
+
+    if params.skillType ~= xi.skill.HEALING_MAGIC then
+        return 1, false
+    end
+
+    return xi.spells.damage.divineSealMult, true
+end
+
+xi.spells.damage.calculateDivineEmblemMultiplierFromParams = function(params)
+    if not params.hasDivineEmblem then
+        return 1, false
+    end
+
+    if params.skillType ~= xi.skill.DIVINE_MAGIC then
+        return 1, false
+    end
+
+    return 1 + (params.divineSkill or 0) / 100, true
+end
+
+xi.spells.damage.calculateEnhancedElementalSealMultiplierFromParams = function(params)
+    if not params.hasElementalSeal then
+        return 1
+    end
+
+    if params.skillType ~= xi.skill.ELEMENTAL_MAGIC then
+        return 1
+    end
+
+    if (params.spellElement or 0) <= xi.element.NONE then
+        return 1
+    end
+
+    return 1 + (params.enhancesElementalSealMod or 0) / 100
+end
+
+xi.spells.damage.calculateEbullienceMultiplierFromParams = function(params)
+    if not params.hasEbullience then
+        return 1, false
+    end
+
+    if params.spellGroup ~= xi.magic.spellGroup.BLACK then
+        return 1, false
+    end
+
+    return xi.spells.damage.ebullienceBase + (params.ebullienceAmountMod or 0) / 100, true
+end
+
+xi.spells.damage.calculateSkillTypeMultiplierFromParams = function(params)
+    local skillType = params.skillType or 0
+    if skillType == xi.skill.ELEMENTAL_MAGIC then
+        return params.elementalPower or 1
+    elseif skillType == xi.skill.DARK_MAGIC then
+        return params.darkPower or 1
+    elseif skillType == xi.skill.NINJUTSU then
+        return params.ninjutsuPower or 1
+    elseif skillType == xi.skill.DIVINE_MAGIC then
+        return params.divinePower or 1
+    end
+
+    return 1
+end
+
 -- Divine seal applies its own multiplier to healing spells when used against undead.
 xi.spells.damage.calculateDivineSealMultiplier = function(caster, target, skillType)
-    if not caster:hasStatusEffect(xi.effect.DIVINE_SEAL) then
-        return 1
+    local mult, consume = xi.spells.damage.calculateDivineSealMultiplierFromParams({
+        hasDivineSeal  = caster:hasStatusEffect(xi.effect.DIVINE_SEAL),
+        targetIsUndead = target:isUndead(),
+        skillType      = skillType,
+    })
+    if consume then
+        caster:delStatusEffect(xi.effect.DIVINE_SEAL)
     end
 
-    if not target:isUndead() then
-        return 1
-    end
-
-    if skillType ~= xi.skill.HEALING_MAGIC then
-        return 1
-    end
-
-    caster:delStatusEffect(xi.effect.DIVINE_SEAL)
-
-    return 2
+    return mult
 end
 
 -- Divine Emblem applies its own damage multiplier to divine spells.
 xi.spells.damage.calculateDivineEmblemMultiplier = function(caster, skillType)
-    if not caster:hasStatusEffect(xi.effect.DIVINE_EMBLEM) then
-        return 1
+    local mult, consume = xi.spells.damage.calculateDivineEmblemMultiplierFromParams({
+        hasDivineEmblem = caster:hasStatusEffect(xi.effect.DIVINE_EMBLEM),
+        skillType       = skillType,
+        divineSkill     = caster:getSkillLevel(xi.skill.DIVINE_MAGIC),
+    })
+    if consume then
+        caster:delStatusEffect(xi.effect.DIVINE_EMBLEM)
     end
 
-    if skillType ~= xi.skill.DIVINE_MAGIC then
-        return 1
-    end
-
-    caster:delStatusEffect(xi.effect.DIVINE_EMBLEM)
-
-    return 1 + caster:getSkillLevel(xi.skill.DIVINE_MAGIC) / 100
+    return mult
 end
 
--- Elemental seal applies its own multiplier to spells when Laevateinn is equipped,
--- or some other source of ENHANCES_ELEMENTAL_SEAL is available to the caster.
+-- Elemental seal enhance mult (no consume in LSB).
 xi.spells.damage.calculateEnhancedElementalSealMultiplier = function(caster, skillType, spellElement)
-    if not caster:hasStatusEffect(xi.effect.ELEMENTAL_SEAL) then
-        return 1
-    end
-
-    if skillType ~= xi.skill.ELEMENTAL_MAGIC then
-        return 1
-    end
-
-    if spellElement <= xi.element.NONE then
-        return 1
-    end
-
-    return 1 + caster:getMod(xi.mod.ENHANCES_ELEMENTAL_SEAL) / 100
+    return xi.spells.damage.calculateEnhancedElementalSealMultiplierFromParams({
+        hasElementalSeal         = caster:hasStatusEffect(xi.effect.ELEMENTAL_SEAL),
+        skillType                = skillType,
+        spellElement             = spellElement,
+        enhancesElementalSealMod = caster:getMod(xi.mod.ENHANCES_ELEMENTAL_SEAL),
+    })
 end
 
 -- Ebullience applies an entirely separate multiplier to Black Magic.
 xi.spells.damage.calculateEbullienceMultiplier = function(caster, spellGroup)
-    if not caster:hasStatusEffect(xi.effect.EBULLIENCE) then
-        return 1
+    local mult, consume = xi.spells.damage.calculateEbullienceMultiplierFromParams({
+        hasEbullience       = caster:hasStatusEffect(xi.effect.EBULLIENCE),
+        spellGroup          = spellGroup,
+        ebullienceAmountMod = caster:getMod(xi.mod.EBULLIENCE_AMOUNT),
+    })
+    if consume then
+        caster:delStatusEffectSilent(xi.effect.EBULLIENCE)
     end
 
-    if spellGroup ~= xi.magic.spellGroup.BLACK then
-        return 1
-    end
-
-    caster:delStatusEffectSilent(xi.effect.EBULLIENCE)
-
-    return 1.2 + caster:getMod(xi.mod.EBULLIENCE_AMOUNT) / 100
+    return mult
 end
 
 -- CUSTOM function supported in settings.
 xi.spells.damage.calculateSkillTypeMultiplier = function(skillType)
-    if skillType == xi.skill.ELEMENTAL_MAGIC then
-        return xi.settings.main.ELEMENTAL_POWER
-    elseif skillType == xi.skill.DARK_MAGIC then
-        return xi.settings.main.DARK_POWER
-    elseif skillType == xi.skill.NINJUTSU then
-        return xi.settings.main.NINJUTSU_POWER
-    elseif skillType == xi.skill.DIVINE_MAGIC then
-        return xi.settings.main.DIVINE_POWER
-    end
-
-    return 1
+    return xi.spells.damage.calculateSkillTypeMultiplierFromParams({
+        skillType      = skillType,
+        elementalPower = xi.settings.main.ELEMENTAL_POWER,
+        darkPower      = xi.settings.main.DARK_POWER,
+        ninjutsuPower  = xi.settings.main.NINJUTSU_POWER,
+        divinePower    = xi.settings.main.DIVINE_POWER,
+    })
 end
 
 xi.spells.damage.calculateNinSkillBonus = function(caster, spellId, skillType)
@@ -957,43 +1068,70 @@ xi.spells.damage.calculateNinjutsuMultiplier = function(caster, target, skillTyp
     return 1 + caster:getMod(xi.mod.NIN_NUKE_BONUS_INNIN) / 100
 end
 
+xi.spells.damage.isHelixSpell = function(spellId)
+    spellId = spellId or 0
+    return (spellId >= xi.magic.spell.GEOHELIX and spellId <= xi.magic.spell.LUMINOHELIX) or
+        (spellId >= xi.magic.spell.GEOHELIX_II and spellId <= xi.magic.spell.LUMINOHELIX_II)
+end
+
+xi.spells.damage.calculateUndeadDivinePenaltyFromParams = function(params)
+    if not params.targetIsUndead then
+        return 1
+    end
+
+    if params.skillType ~= xi.skill.DIVINE_MAGIC then
+        return 1
+    end
+
+    return xi.spells.damage.undeadDivinePenalty
+end
+
+xi.spells.damage.calculateHelixMeritMultiplierFromParams = function(params)
+    if not xi.spells.damage.isHelixSpell(params.spellId) then
+        return 1
+    end
+
+    return 1 + 2 * (params.helixMagicAccAttMerit or 0) / 100
+end
+
+xi.spells.damage.calculateAreaOfEffectResistanceFromParams = function(params)
+    if params.isPrimaryTarget then
+        return 1
+    end
+
+    return utils.clamp(1 + (params.dmgAoEMod or 0) / 10000,
+        xi.spells.damage.aoeResistMin, xi.spells.damage.aoeResistMax)
+end
+
+xi.spells.damage.calculateSpellActionTypeMultiplierFromParams = function(params)
+    return 1 + (params.powerMultiplierSpellMod or 0) / 100
+end
+
 xi.spells.damage.calculateUndeadDivinePenalty = function(target, skillType)
-    if not target:isUndead() then
-        return 1
-    end
-
-    if skillType ~= xi.skill.DIVINE_MAGIC then
-        return 1
-    end
-
-    return 1.5
+    return xi.spells.damage.calculateUndeadDivinePenaltyFromParams({
+        targetIsUndead = target:isUndead(),
+        skillType      = skillType,
+    })
 end
 
 xi.spells.damage.calculateHelixMeritMultiplier = function(caster, spellId)
-    local helixMeritMultiplier = 1
-
-    if
-        (spellId >= xi.magic.spell.GEOHELIX and spellId <= xi.magic.spell.LUMINOHELIX) or
-        (spellId >= xi.magic.spell.GEOHELIX_II and spellId <= xi.magic.spell.LUMINOHELIX_II)
-    then
-        helixMeritMultiplier = 1 + 2 * caster:getMerit(xi.merit.HELIX_MAGIC_ACC_ATT) / 100
-    end
-
-    return helixMeritMultiplier
+    return xi.spells.damage.calculateHelixMeritMultiplierFromParams({
+        spellId               = spellId,
+        helixMagicAccAttMerit = caster:getMerit(xi.merit.HELIX_MAGIC_ACC_ATT),
+    })
 end
 
 xi.spells.damage.calculateAreaOfEffectResistance = function(target, spell)
-    local areaOfEffectMultiplier = 1
-
-    if target:getID() ~= spell:getPrimaryTargetID() then
-        areaOfEffectMultiplier = utils.clamp(areaOfEffectMultiplier + target:getMod(xi.mod.DMG_AOE) / 10000, 0, 2)
-    end
-
-    return areaOfEffectMultiplier
+    return xi.spells.damage.calculateAreaOfEffectResistanceFromParams({
+        isPrimaryTarget = target:getID() == spell:getPrimaryTargetID(),
+        dmgAoEMod       = target:getMod(xi.mod.DMG_AOE),
+    })
 end
 
 xi.spells.damage.calculateSpellActionTypeMultiplier = function(caster)
-    return 1 + caster:getMod(xi.mod.POWER_MULTIPLIER_SPELL) / 100
+    return xi.spells.damage.calculateSpellActionTypeMultiplierFromParams({
+        powerMultiplierSpellMod = caster:getMod(xi.mod.POWER_MULTIPLIER_SPELL),
+    })
 end
 
 -----------------------------------
