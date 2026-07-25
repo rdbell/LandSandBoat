@@ -7,6 +7,7 @@
 #include "map/equip_armor_main_look_capacity.h"
 #include "map/equip_armor_main_attack_timer_capacity.h"
 #include "map/equip_armor_main_sub_capacity.h"
+#include "map/equip_armor_post_bind_capacity.h"
 #include "map/equip_armor_weapon_slot_state_capacity.h"
 #include "map/equip_armor_ranged_compatibility_capacity.h"
 #include "map/equip_armor_ranged_look_capacity.h"
@@ -490,6 +491,18 @@ auto Check() -> bool
     });
     if (!resetEquipMainAttackTimer.resetAttackTimer || disengagedEquipMainAttackTimer.resetAttackTimer ||
         nonAttackEquipMainTimer.resetAttackTimer)
+    {
+        return false;
+    }
+
+    const auto failedBind = equiparmorpostbindhelpers::PlanFor(false, 4);
+    const auto armorBind = equiparmorpostbindhelpers::PlanFor(true, 6);
+    const auto mainBind = equiparmorpostbindhelpers::PlanFor(true, 0);
+    const auto backBind = equiparmorpostbindhelpers::PlanFor(true, 9);
+    if (failedBind.success || failedBind.refreshRemovedArmorLook ||
+        !armorBind.success || !armorBind.refreshRemovedArmorLook ||
+        !mainBind.success || mainBind.refreshRemovedArmorLook ||
+        !backBind.success || backBind.refreshRemovedArmorLook)
     {
         return false;
     }

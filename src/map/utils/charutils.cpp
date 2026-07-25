@@ -115,6 +115,7 @@
 #include "equip_armor_main_look_capacity.h"
 #include "equip_armor_main_attack_timer_capacity.h"
 #include "equip_armor_main_sub_capacity.h"
+#include "equip_armor_post_bind_capacity.h"
 #include "equip_armor_weapon_slot_state_capacity.h"
 #include "equip_armor_ranged_compatibility_capacity.h"
 #include "equip_armor_ranged_look_capacity.h"
@@ -2848,13 +2849,13 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
             break;
         }
 
-        if (!PChar->bindEquip(equipSlotID, PItem))
+        const auto postBindPlan = equiparmorpostbindhelpers::PlanFor(PChar->bindEquip(equipSlotID, PItem), equipSlotID);
+        if (!postBindPlan.success)
         {
             return false;
         }
 
-        // Changed visible equipment
-        if (equipSlotID >= SLOT_HEAD && equipSlotID <= SLOT_FEET)
+        if (postBindPlan.refreshRemovedArmorLook)
         {
             UpdateRemovedSlotsLook(PChar);
         }
