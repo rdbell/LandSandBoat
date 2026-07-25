@@ -120,6 +120,7 @@
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
 #include "inventory_move_capacity.h"
+#include "lockstyle_removed_look_capacity.h"
 #include "misc_progress_capacity.h"
 #include "entity_spawn_capacity.h"
 #include "zone_out_capacity.h"
@@ -2930,41 +2931,38 @@ void UpdateRemovedSlotsLookForLockStyle(CCharEntity* PChar)
         }
 
         const auto* PItem = xi::items::lookup<CItemEquipment>(items[i]);
-        if (!PItem)
+        const auto  plan  = lockstyleremovedlookhelpers::PlanFor({
+            .styleItemID      = items[i],
+            .itemFound        = PItem != nullptr,
+            .removeSlotLookID = PItem ? static_cast<std::uint32_t>(PItem->getRemoveSlotLookId()) : 0u,
+            .removeSlotID     = PItem ? static_cast<std::uint32_t>(PItem->getRemoveSlotId()) : 0u,
+        });
+        if (!plan.applies)
         {
             continue;
         }
 
-        auto removeSlotID = PItem->getRemoveSlotLookId();
-        // Some of the items don't have rslotlook set so we fall back on rslot to know which part to hide
-        if (removeSlotID == 0)
+        for (auto i = 4u; i <= 8u; i++)
         {
-            removeSlotID = PItem->getRemoveSlotId();
-        }
-        if (removeSlotID > 0)
-        {
-            for (auto i = 4u; i <= 8u; i++)
+            if (equiparmorremovedlookhelpers::ShouldSetTargetLook(plan.effectiveRemoveID, static_cast<uint8>(i)))
             {
-                if (removeSlotID & (1 << i))
+                switch (i)
                 {
-                    switch (i)
-                    {
-                        case SLOT_HEAD:
-                            PChar->mainlook.head = PItem->getModelId();
-                            break;
-                        case SLOT_BODY:
-                            PChar->mainlook.body = PItem->getModelId();
-                            break;
-                        case SLOT_HANDS:
-                            PChar->mainlook.hands = PItem->getModelId();
-                            break;
-                        case SLOT_LEGS:
-                            PChar->mainlook.legs = PItem->getModelId();
-                            break;
-                        case SLOT_FEET:
-                            PChar->mainlook.feet = PItem->getModelId();
-                            break;
-                    }
+                    case SLOT_HEAD:
+                        PChar->mainlook.head = PItem->getModelId();
+                        break;
+                    case SLOT_BODY:
+                        PChar->mainlook.body = PItem->getModelId();
+                        break;
+                    case SLOT_HANDS:
+                        PChar->mainlook.hands = PItem->getModelId();
+                        break;
+                    case SLOT_LEGS:
+                        PChar->mainlook.legs = PItem->getModelId();
+                        break;
+                    case SLOT_FEET:
+                        PChar->mainlook.feet = PItem->getModelId();
+                        break;
                 }
             }
         }

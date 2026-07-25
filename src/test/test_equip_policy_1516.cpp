@@ -11,6 +11,7 @@
 #include "map/equip_armor_sub_capacity.h"
 #include "map/equip_armor_target_look_capacity.h"
 #include "map/equip_policy_capacity.h"
+#include "map/lockstyle_removed_look_capacity.h"
 
 #include <iostream>
 
@@ -328,6 +329,26 @@ auto Check() -> bool
         !equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 8) ||
         equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 5) ||
         equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 9))
+    {
+        return false;
+    }
+
+    const auto preferredLockstyleLook = lockstyleremovedlookhelpers::PlanFor({
+        .styleItemID      = 100,
+        .itemFound        = true,
+        .removeSlotLookID = 1u << 4,
+        .removeSlotID     = 1u << 8,
+    });
+    const auto fallbackLockstyleLook = lockstyleremovedlookhelpers::PlanFor({
+        .styleItemID  = 100,
+        .itemFound    = true,
+        .removeSlotID = 1u << 8,
+    });
+    if (lockstyleremovedlookhelpers::PlanFor({}).applies ||
+        lockstyleremovedlookhelpers::PlanFor({ .styleItemID = 100 }).applies ||
+        lockstyleremovedlookhelpers::PlanFor({ .styleItemID = 100, .itemFound = true }).applies ||
+        !preferredLockstyleLook.applies || preferredLockstyleLook.effectiveRemoveID != (1u << 4) ||
+        !fallbackLockstyleLook.applies || fallbackLockstyleLook.effectiveRemoveID != (1u << 8))
     {
         return false;
     }
