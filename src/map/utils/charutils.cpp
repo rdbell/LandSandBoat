@@ -68,6 +68,7 @@
 #include "char_invisible_removal.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
+#include "char_party_level_sync_restore.h"
 #include "char_party_reload_id_sync.h"
 #include "char_party_reload_missing.h"
 #include "char_party_trust_disband.h"
@@ -7067,13 +7068,31 @@ void ReloadParty(CCharEntity* PChar)
         }
 
         CBattleEntity* PSyncTarget = PChar->PParty->GetSyncTarget();
-        if (PSyncTarget && PChar->getZone() == PSyncTarget->getZone() && !(PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LevelSync)) &&
-            PSyncTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LevelSync) &&
-            PSyncTarget->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync)->GetDuration() == 0s)
+        const bool    hasSyncTarget           = PSyncTarget != nullptr;
+        const bool    inSameZone              = hasSyncTarget && PChar->getZone() == PSyncTarget->getZone();
+        const bool    characterHasLevelSync   = inSameZone && PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LevelSync);
+        const bool    targetHasLevelSync      = inSameZone && !characterHasLevelSync && PSyncTarget->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LevelSync);
+        const bool    targetLevelSyncInfinite = targetHasLevelSync && PSyncTarget->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync)->GetDuration() == 0s;
+        const auto    levelSyncRestorePlan    = partylevelsyncrestorehelpers::MakePlan(
+            hasSyncTarget,
+            inSameZone,
+            characterHasLevelSync,
+            targetHasLevelSync,
+            targetLevelSyncInfinite);
+        for (std::uint8_t index = 0; index < levelSyncRestorePlan.count; ++index)
         {
-            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, PSyncTarget->GetMLevel(), MsgBasic::LevelSyncActivated);
-            PChar->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Dispelable);
-            PChar->StatusEffectContainer->AddStatusEffectSilent(xi::StatusEffect::LevelSync, static_cast<uint16>(xi::StatusEffect::LevelSync), PSyncTarget->GetMLevel(), 0s, 0s);
+            switch (levelSyncRestorePlan.actions[index])
+            {
+                case partylevelsyncrestorehelpers::Action::SendActivation:
+                    PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, PSyncTarget->GetMLevel(), MsgBasic::LevelSyncActivated);
+                    break;
+                case partylevelsyncrestorehelpers::Action::RemoveDispelableEffects:
+                    PChar->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Dispelable);
+                    break;
+                case partylevelsyncrestorehelpers::Action::AddLevelSync:
+                    PChar->StatusEffectContainer->AddStatusEffectSilent(xi::StatusEffect::LevelSync, static_cast<uint16>(xi::StatusEffect::LevelSync), PSyncTarget->GetMLevel(), 0s, 0s);
+                    break;
+            }
         }
 
         if (allianceid != 0)
