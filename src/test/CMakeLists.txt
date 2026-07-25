@@ -1445,6 +1445,8 @@ set(SOURCES
     test_char_inventory_sync_plan_6896.cpp
     test_char_inventory_equipment_slots_6897.h
     test_char_inventory_equipment_slots_6897.cpp
+    test_char_inventory_linkshell_attachments_6898.h
+    test_char_inventory_linkshell_attachments_6898.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h

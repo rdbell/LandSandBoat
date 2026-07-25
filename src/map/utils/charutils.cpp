@@ -68,6 +68,7 @@
 #include "char_history_write.h"
 #include "char_inventory_equipment_slots.h"
 #include "char_invisible_removal.h"
+#include "char_inventory_linkshell_attachments.h"
 #include "char_inventory_sync_plan.h"
 #include "char_key_item_packets.h"
 #include "char_local_player_packets.h"
@@ -1584,26 +1585,17 @@ void SendInventory(CCharEntity* PChar)
         }
     }
 
-    CItem* PItem = PChar->getEquip(SLOT_LINK1);
-    if (PItem != nullptr)
+    for (const auto attachment : inventorylinkshellhelpers::BuildAttachmentPlan())
     {
-        PItem->setSubType(ITEM_LOCKED);
-        auto eloc1 = PChar->equipLocation(SLOT_LINK1);
+        if (CItem* PItem = PChar->getEquip(attachment.slot))
+        {
+            PItem->setSubType(ITEM_LOCKED);
+            const auto eloc = PChar->equipLocation(attachment.slot);
 
-        PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PItem, *eloc1);
-        PChar->pushPacket<GP_SERV_COMMAND_ITEM_LIST>(PItem, ItemLockFlg::Linkshell);
-        PChar->pushPacket<GP_SERV_COMMAND_GROUP_COMLINK>(PChar, 1);
-    }
-
-    PItem = PChar->getEquip(SLOT_LINK2);
-    if (PItem != nullptr)
-    {
-        PItem->setSubType(ITEM_LOCKED);
-        auto eloc2 = PChar->equipLocation(SLOT_LINK2);
-
-        PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PItem, *eloc2);
-        PChar->pushPacket<GP_SERV_COMMAND_ITEM_LIST>(PItem, ItemLockFlg::Linkshell);
-        PChar->pushPacket<GP_SERV_COMMAND_GROUP_COMLINK>(PChar, 2);
+            PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PItem, *eloc);
+            PChar->pushPacket<GP_SERV_COMMAND_ITEM_LIST>(PItem, ItemLockFlg::Linkshell);
+            PChar->pushPacket<GP_SERV_COMMAND_GROUP_COMLINK>(PChar, attachment.number);
+        }
     }
 
     PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
