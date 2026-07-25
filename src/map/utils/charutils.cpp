@@ -88,6 +88,7 @@
 #include "entities/mob_entity.h"
 #include "entities/pet_entity.h"
 
+#include "aid_block_capacity.h"
 #include "battleutils.h"
 #include "blueutils.h"
 #include "charutils.h"
@@ -7102,12 +7103,9 @@ bool IsAidBlocked(CCharEntity* PInitiator, CCharEntity* PTarget)
             });
         // clang-format on
 
-        if (!inAlliance)
-        {
-            return true;
-        }
+        return aidblockhelpers::IsAidBlocked(true, inAlliance);
     }
-    return false;
+    return aidblockhelpers::IsAidBlocked(false, false);
 }
 
 void AddPoints(CCharEntity* PChar, const char* type, int32 amount, int32 max)
