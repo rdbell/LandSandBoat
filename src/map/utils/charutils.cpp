@@ -100,6 +100,7 @@
 #include "char_add_item_rare_rejection.h"
 #include "char_add_item_insert_failure.h"
 #include "char_add_item_persistence_failure.h"
+#include "char_add_item_success_packets.h"
 #include "char_trade_item_plan.h"
 #include "char_unity_leader_capacity.h"
 #include "char_unity_ranking_packets.h"
@@ -1818,8 +1819,18 @@ auto AddItem(CCharEntity* PChar, uint8 LocationID, std::unique_ptr<CItem> PItem,
         return persistencePlan.returnSlot;
     }
 
-    PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PInserted, static_cast<CONTAINER_ID>(LocationID), SlotID);
-    PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
+    for (const auto action : additemsuccesspackethelpers::BuildPlan())
+    {
+        switch (action)
+        {
+            case additemsuccesspackethelpers::Action::Attribute:
+                PChar->pushPacket<GP_SERV_COMMAND_ITEM_ATTR>(PInserted, static_cast<CONTAINER_ID>(LocationID), SlotID);
+                break;
+            case additemsuccesspackethelpers::Action::Same:
+                PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
+                break;
+        }
+    }
 
     return SlotID;
 }
