@@ -36,6 +36,7 @@
 #include "map/load_job_change_gear_capacity.h"
 #include "map/load_job_change_gear_restore_capacity.h"
 #include "map/remove_all_equipment_capacity.h"
+#include "map/weapon_skill_unlock_modifiers_capacity.h"
 
 #include <array>
 #include <iostream>
@@ -550,6 +551,20 @@ auto Check() -> bool
     const auto removePlan = removeallequipmenthelpers::PlanFor(equippedForRemoval);
     if (removePlan.unequipCount != 3 || removePlan.unequipSlots[0] != 0 || removePlan.unequipSlots[1] != 6 ||
         removePlan.unequipSlots[2] != 15 || !removePlan.checkUnarmedWeapon || !removePlan.buildWeaponSkills || !removePlan.persistEquip)
+    {
+        return false;
+    }
+
+    const auto mainOnlyUnlockModifier = weaponskillunlockmodifierhelpers::PlanFor(
+        { .hasWeapon = true, .isUnlockable = true, .isUnlocked = true },
+        { .hasWeapon = true, .isUnlockable = true });
+    const auto bothUnlockModifiers = weaponskillunlockmodifierhelpers::PlanFor(
+        { .hasWeapon = true, .isUnlockable = true, .isUnlocked = true },
+        { .hasWeapon = true, .isUnlockable = true, .isUnlocked = true });
+    const auto noUnlockModifiers = weaponskillunlockmodifierhelpers::PlanFor({}, { .hasWeapon = true, .isUnlocked = true });
+    if (!mainOnlyUnlockModifier.useMainModifier || mainOnlyUnlockModifier.useRangedModifier ||
+        !bothUnlockModifiers.useMainModifier || !bothUnlockModifiers.useRangedModifier ||
+        noUnlockModifiers.useMainModifier || noUnlockModifiers.useRangedModifier)
     {
         return false;
     }

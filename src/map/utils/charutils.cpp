@@ -103,6 +103,7 @@
 #include "check_equipment_capacity.h"
 #include "capacity_award_capacity.h"
 #include "weapon_skill_roster_capacity.h"
+#include "weapon_skill_unlock_modifiers_capacity.h"
 #include "weapon_style_update_capacity.h"
 #include "ability_table_capacity.h"
 #include "armor_style_update_capacity.h"
@@ -3752,18 +3753,26 @@ void BuildingCharWeaponSkills(CCharEntity* PChar)
     int          main_ws  = 0;
     int          range_ws = 0;
 
-    for (auto&& slot : { std::make_tuple(SLOT_MAIN, std::ref(main_ws)), std::make_tuple(SLOT_RANGED, std::ref(range_ws)) })
-    {
-        if (PChar->m_Weapons[std::get<0>(slot)])
+    auto* mainWeapon   = dynamic_cast<CItemWeapon*>(PChar->m_Weapons[SLOT_MAIN]);
+    auto* rangedWeapon = dynamic_cast<CItemWeapon*>(PChar->m_Weapons[SLOT_RANGED]);
+    const auto unlockModifierPlan = weaponskillunlockmodifierhelpers::PlanFor(
         {
-            PItem = dynamic_cast<CItemWeapon*>(PChar->m_Weapons[std::get<0>(slot)]);
-
-            // As of writing, the only unlockable weapons are: wsnm, ksnm, nyzul vigil weapons
-            if (PItem && weaponskillrosterhelpers::ShouldUseUnlockableWeaponMod(true, PItem->isUnlockable(), PItem->isUnlocked()))
-            {
-                std::get<1>(slot) = battleutils::GetScaledItemModifier(PChar, PItem, Mod::ADDS_WEAPONSKILL);
-            }
-        }
+            .hasWeapon    = mainWeapon != nullptr,
+            .isUnlockable = mainWeapon != nullptr && mainWeapon->isUnlockable(),
+            .isUnlocked   = mainWeapon != nullptr && mainWeapon->isUnlocked(),
+        },
+        {
+            .hasWeapon    = rangedWeapon != nullptr,
+            .isUnlockable = rangedWeapon != nullptr && rangedWeapon->isUnlockable(),
+            .isUnlocked   = rangedWeapon != nullptr && rangedWeapon->isUnlocked(),
+        });
+    if (unlockModifierPlan.useMainModifier)
+    {
+        main_ws = battleutils::GetScaledItemModifier(PChar, mainWeapon, Mod::ADDS_WEAPONSKILL);
+    }
+    if (unlockModifierPlan.useRangedModifier)
+    {
+        range_ws = battleutils::GetScaledItemModifier(PChar, rangedWeapon, Mod::ADDS_WEAPONSKILL);
     }
 
     // add in melee ws
