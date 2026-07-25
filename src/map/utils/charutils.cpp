@@ -91,6 +91,7 @@
 #include "char_send_to_zone_capacity.h"
 #include "char_session_update.h"
 #include "char_stratagem_removal.h"
+#include "char_subjob_update_plan.h"
 #include "char_temp_item_clear.h"
 #include "char_unity_leader_capacity.h"
 #include "char_unity_ranking_packets.h"
@@ -1856,33 +1857,84 @@ uint32 getItemCount(CCharEntity* PChar, uint16 ItemID)
 
 void UpdateSubJob(CCharEntity* PChar)
 {
-    jobpointutils::RefreshGiftMods(PChar);
-    charutils::BuildingCharSkillsTable(PChar);
-    charutils::CalculateStats(PChar);
-    charutils::CheckValidEquipment(PChar);
-    PChar->PRecastContainer->ChangeJob();
-    charutils::BuildingCharAbilityTable(PChar);
-    charutils::BuildingCharTraitsTable(PChar);
-
-    PChar->UpdateHealth();
-    PChar->health.hp = PChar->GetMaxHP();
-    PChar->health.mp = PChar->GetMaxMP();
-
-    charutils::SaveCharStats(PChar);
-    charutils::SaveCharJob(PChar, PChar->GetMJob());
-    charutils::SaveCharExp(PChar, PChar->GetMJob());
-    PChar->updatemask |= UPDATE_HP;
-
-    PChar->pushPacket<GP_SERV_COMMAND_JOB_INFO>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS2>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
-    PChar->pushPacket<CCharStatusPacket>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MERITS>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY1>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY2>(PChar);
-    PChar->pushPacket<CCharSyncPacket>(PChar);
+    for (const auto action : subjobupdatehelpers::BuildPlan())
+    {
+        switch (action)
+        {
+            case subjobupdatehelpers::Action::RefreshGiftMods:
+                jobpointutils::RefreshGiftMods(PChar);
+                break;
+            case subjobupdatehelpers::Action::BuildSkills:
+                charutils::BuildingCharSkillsTable(PChar);
+                break;
+            case subjobupdatehelpers::Action::CalculateStats:
+                charutils::CalculateStats(PChar);
+                break;
+            case subjobupdatehelpers::Action::CheckValidEquipment:
+                charutils::CheckValidEquipment(PChar);
+                break;
+            case subjobupdatehelpers::Action::ChangeRecasts:
+                PChar->PRecastContainer->ChangeJob();
+                break;
+            case subjobupdatehelpers::Action::BuildAbilities:
+                charutils::BuildingCharAbilityTable(PChar);
+                break;
+            case subjobupdatehelpers::Action::BuildTraits:
+                charutils::BuildingCharTraitsTable(PChar);
+                break;
+            case subjobupdatehelpers::Action::UpdateHealth:
+                PChar->UpdateHealth();
+                break;
+            case subjobupdatehelpers::Action::RestoreHP:
+                PChar->health.hp = PChar->GetMaxHP();
+                break;
+            case subjobupdatehelpers::Action::RestoreMP:
+                PChar->health.mp = PChar->GetMaxMP();
+                break;
+            case subjobupdatehelpers::Action::SaveStats:
+                charutils::SaveCharStats(PChar);
+                break;
+            case subjobupdatehelpers::Action::SaveJob:
+                charutils::SaveCharJob(PChar, PChar->GetMJob());
+                break;
+            case subjobupdatehelpers::Action::SaveExperience:
+                charutils::SaveCharExp(PChar, PChar->GetMJob());
+                break;
+            case subjobupdatehelpers::Action::MarkHealthUpdate:
+                PChar->updatemask |= UPDATE_HP;
+                break;
+            case subjobupdatehelpers::Action::PacketJobInfo:
+                PChar->pushPacket<GP_SERV_COMMAND_JOB_INFO>(PChar);
+                break;
+            case subjobupdatehelpers::Action::PacketCliStatus:
+                PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS>(PChar);
+                break;
+            case subjobupdatehelpers::Action::PacketCliStatus2:
+                PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS2>(PChar);
+                break;
+            case subjobupdatehelpers::Action::PacketAbilityRecast:
+                PChar->pushPacket<GP_SERV_COMMAND_ABIL_RECAST>(PChar);
+                break;
+            case subjobupdatehelpers::Action::PacketCommandData:
+                PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+                break;
+            case subjobupdatehelpers::Action::PacketCharacterStatus:
+                PChar->pushPacket<CCharStatusPacket>(PChar);
+                break;
+            case subjobupdatehelpers::Action::PacketMerits:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MERITS>(PChar);
+                break;
+            case subjobupdatehelpers::Action::PacketMonstrosity1:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY1>(PChar);
+                break;
+            case subjobupdatehelpers::Action::PacketMonstrosity2:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY2>(PChar);
+                break;
+            case subjobupdatehelpers::Action::PacketCharacterSync:
+                PChar->pushPacket<CCharSyncPacket>(PChar);
+                break;
+        }
+    }
 }
 
 /************************************************************************
