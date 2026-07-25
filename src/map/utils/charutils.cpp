@@ -109,6 +109,7 @@
 #include "equip_item_finalize_capacity.h"
 #include "equip_item_success_capacity.h"
 #include "equip_armor_direct_restrictions_capacity.h"
+#include "equip_armor_main_sub_capacity.h"
 #include "equip_armor_reverse_restrictions_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
@@ -2502,22 +2503,17 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                         case SKILL_STAFF:
                         {
                             CItemEquipment* sub = PChar->getEquip(SLOT_SUB);
-                            if (sub != nullptr && sub->isType(ITEM_EQUIPMENT))
+                            const auto mainSubPlan = equiparmormainsubhelpers::PlanFor({
+                                .incomingIsH2H    = static_cast<CItemWeapon*>(PItem)->getSkillType() == SKILL_HAND_TO_HAND,
+                                .hasSubEquipment  = sub != nullptr && sub->isType(ITEM_EQUIPMENT),
+                                .subIsWeapon       = sub != nullptr && sub->isType(ITEM_WEAPON),
+                                .subSkillNone      = sub != nullptr && sub->isType(ITEM_WEAPON) && static_cast<CItemWeapon*>(sub)->getSkillType() == SKILL_NONE,
+                            });
+                            if (mainSubPlan.unequipSub)
                             {
-                                if (sub->isType(ITEM_WEAPON))
-                                {
-                                    CItemWeapon* PWeapon = static_cast<CItemWeapon*>(sub);
-                                    if (PWeapon->getSkillType() != SKILL_NONE || static_cast<CItemWeapon*>(PItem)->getSkillType() == SKILL_HAND_TO_HAND)
-                                    {
-                                        UnequipItem(PChar, SLOT_SUB, Recalculate::No);
-                                    }
-                                }
-                                else
-                                {
-                                    UnequipItem(PChar, SLOT_SUB, Recalculate::No);
-                                }
+                                UnequipItem(PChar, SLOT_SUB, Recalculate::No);
                             }
-                            if (static_cast<CItemWeapon*>(PItem)->getSkillType() == SKILL_HAND_TO_HAND)
+                            if (mainSubPlan.setH2HSubLook)
                             {
                                 PChar->look.sub = PItem->getModelId() + 0x1000;
                             }

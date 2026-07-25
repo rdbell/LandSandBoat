@@ -3,6 +3,7 @@
 #include "map/equip_item_finalize_capacity.h"
 #include "map/equip_item_success_capacity.h"
 #include "map/equip_armor_direct_restrictions_capacity.h"
+#include "map/equip_armor_main_sub_capacity.h"
 #include "map/equip_armor_reverse_restrictions_capacity.h"
 #include "map/equip_policy_capacity.h"
 
@@ -240,6 +241,22 @@ auto Check() -> bool
             .removeSlots        = static_cast<std::uint16_t>((1u << 1) | (1u << 5)),
             .incomingEquipSlots = static_cast<std::uint16_t>(1u << 5),
         }))
+    {
+        return false;
+    }
+
+    const auto gripPlan = equiparmormainsubhelpers::PlanFor({
+        .hasSubEquipment = true,
+        .subIsWeapon      = true,
+        .subSkillNone     = true,
+    });
+    const auto h2hPlan = equiparmormainsubhelpers::PlanFor({
+        .incomingIsH2H   = true,
+        .hasSubEquipment = true,
+        .subIsWeapon      = true,
+        .subSkillNone     = true,
+    });
+    if (gripPlan.unequipSub || gripPlan.setH2HSubLook || !h2hPlan.unequipSub || !h2hPlan.setH2HSubLook)
     {
         return false;
     }
