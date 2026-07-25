@@ -3,6 +3,7 @@
 #include "map/skill_up_capacity.h"
 #include "map/skill_up_award_capacity.h"
 #include "map/skill_up_cap_capacity.h"
+#include "map/skill_up_chance_capacity.h"
 #include "map/skill_up_extra_step_capacity.h"
 #include "map/skill_up_key_items_capacity.h"
 
@@ -107,6 +108,54 @@ auto Check() -> bool
         return false;
     }
     if (!ShouldStopExtraSkillUp(0.3, 0.5, 1) || ShouldStopExtraSkillUp(0.5, 0.3, 1) || !ShouldStopExtraSkillUp(0.9, 0.1, 5))
+    {
+        return false;
+    }
+    const auto skippedChancePlan = skillupchancehelpers::PlanFor({
+        .rank         = 1,
+        .workingSkill = skilluphelpers::SkillCappedBlueFlag,
+    });
+    const auto combatChancePlan = skillupchancehelpers::PlanFor({
+        .skillID          = skilluphelpers::CombatSkillRangeAMin,
+        .rank             = 1,
+        .mainCapSkill     = 200,
+        .subCapSkill      = 100,
+        .mainMaxSkill     = 100,
+        .subMaxSkill      = 90,
+        .currentSkill     = 990,
+        .chanceMultiplier = 0,
+        .combatRateMod    = 50,
+        .random           = 0.25,
+    });
+    const auto magicForcedChancePlan = skillupchancehelpers::PlanFor({
+        .skillID          = skilluphelpers::MagicSkillRangeMin,
+        .rank             = 1,
+        .useSubSkill      = true,
+        .mainCapSkill     = 100,
+        .subCapSkill      = 200,
+        .mainMaxSkill     = 90,
+        .subMaxSkill      = 120,
+        .currentSkill     = 1190,
+        .chanceMultiplier = 0,
+        .combatRateMod    = 100,
+        .magicRateMod     = -50,
+        .random           = 0.9,
+        .forceSkillUp     = true,
+    });
+    const auto combatAboveBaseCapChancePlan = skillupchancehelpers::PlanFor({
+        .skillID       = skilluphelpers::CombatSkillRangeAMin,
+        .rank          = 1,
+        .mainCapSkill  = 10,
+        .mainMaxSkill  = 5,
+        .combatRateMod = 50,
+        .random        = 0.74,
+    });
+    if (skippedChancePlan.considerSkillUp || skippedChancePlan.gainSkillUp || !combatChancePlan.considerSkillUp ||
+        combatChancePlan.capSkill != 200 || combatChancePlan.maxSkill != 100 || combatChancePlan.diff != 1 ||
+        !nearly(combatChancePlan.chance, 0.3) || !combatChancePlan.gainSkillUp || !magicForcedChancePlan.considerSkillUp ||
+        magicForcedChancePlan.capSkill != 200 || magicForcedChancePlan.maxSkill != 120 || magicForcedChancePlan.diff != 1 ||
+        !nearly(magicForcedChancePlan.chance, 0.1) || !magicForcedChancePlan.gainSkillUp ||
+        !nearly(combatAboveBaseCapChancePlan.chance, 0.75) || !combatAboveBaseCapChancePlan.gainSkillUp)
     {
         return false;
     }

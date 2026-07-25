@@ -98,6 +98,7 @@
 #include "skill_up_capacity.h"
 #include "skill_up_award_capacity.h"
 #include "skill_up_cap_capacity.h"
+#include "skill_up_chance_capacity.h"
 #include "skill_up_extra_step_capacity.h"
 #include "skill_up_key_items_capacity.h"
 #include "calculate_stats_capacity.h"
@@ -4269,38 +4270,35 @@ void TrySkillUP(CCharEntity* PChar, SKILLTYPE SkillID, uint8 lvl, bool forceSkil
         uint16 SubCapSkill  = battleutils::GetMaxSkill(SkillID, PChar->GetSJob(), PChar->GetSLevel());
         uint16 MainMaxSkill = battleutils::GetMaxSkill(SkillID, PChar->GetMJob(), std::min(PChar->GetMLevel(), lvl));
         uint16 SubMaxSkill  = battleutils::GetMaxSkill(SkillID, PChar->GetSJob(), std::min(PChar->GetSLevel(), lvl));
-        uint16 CapSkill     = skilluphelpers::ResolveCapSkill(MainCapSkill, SubCapSkill, useSubSkill);
-        uint16 MaxSkill     = skilluphelpers::ResolveMaxSkill(MainCapSkill, SubCapSkill, MainMaxSkill, SubMaxSkill, useSubSkill);
         // Max skill this victim level will allow.
         // Note this is no longer retail accurate, since now 'decent challenge' mobs allow to cap any skill.
 
-        int16  Diff          = skilluphelpers::SkillDiff(MaxSkill, CurSkill);
-        double SkillUpChance = skilluphelpers::BaseSkillUpChance(Diff, CurSkill, settings::get<double>("map.SKILLUP_CHANCE_MULTIPLIER"));
+        const auto chancePlan = skillupchancehelpers::PlanFor({
+            .skillID          = rawSkillID,
+            .rank             = PChar->WorkingSkills.rank[rawSkillID],
+            .workingSkill     = PChar->WorkingSkills.skill[rawSkillID],
+            .useSubSkill      = useSubSkill,
+            .mainCapSkill     = MainCapSkill,
+            .subCapSkill      = SubCapSkill,
+            .mainMaxSkill     = MainMaxSkill,
+            .subMaxSkill      = SubMaxSkill,
+            .currentSkill     = CurSkill,
+            .chanceMultiplier = settings::get<double>("map.SKILLUP_CHANCE_MULTIPLIER"),
+            .combatRateMod    = PChar->getMod(Mod::COMBAT_SKILLUP_RATE),
+            .magicRateMod     = PChar->getMod(Mod::MAGIC_SKILLUP_RATE),
+            .random           = xirand::GetRandomNumber(1.),
+            .forceSkillUp     = forceSkillUp,
+        });
 
-        double random = xirand::GetRandomNumber(1.);
-
-        SkillUpChance = skilluphelpers::ClampSkillUpChance(SkillUpChance);
-
-        // Check for skillup% bonus. https://www.bg-wiki.com/bg/Category:Skill_Up_Food
-        // Assuming multiplicative even though rate is already a % because 0.5 + 0.8 would be > 1.
-        if (skilluphelpers::IsCombatSkillUpSkill(static_cast<uint8>(SkillID)))
-        // if should effect automaton replace the above with: (SkillID >= 1 && SkillID <= 31)
-        {
-            SkillUpChance = skilluphelpers::ApplySkillUpRateMod(SkillUpChance, PChar->getMod(Mod::COMBAT_SKILLUP_RATE));
-        }
-        else if (skilluphelpers::IsMagicSkillUpSkill(static_cast<uint8>(SkillID)))
-        {
-            SkillUpChance = skilluphelpers::ApplySkillUpRateMod(SkillUpChance, PChar->getMod(Mod::MAGIC_SKILLUP_RATE));
-        }
-
-        if (skilluphelpers::ShouldGainSkillUp(Diff, random, SkillUpChance, forceSkillUp))
+        if (chancePlan.gainSkillUp)
         {
             uint8  SkillAmount = 1;
-            uint8  tier        = skilluphelpers::SkillUpTier(Diff);
+            uint8  tier        = skilluphelpers::SkillUpTier(chancePlan.diff);
+            uint16 CapSkill    = chancePlan.capSkill;
 
             for (uint8 i = 0; i < 4; ++i) // 1 + 4 possible additional ones (maximum 5)
             {
-                random = xirand::GetRandomNumber(1.);
+                const auto random = xirand::GetRandomNumber(1.);
                 const auto extraStepPlan = skillupextrastephelpers::PlanFor({
                     .tier        = tier,
                     .skillAmount = SkillAmount,
