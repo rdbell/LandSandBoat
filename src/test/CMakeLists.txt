@@ -1439,6 +1439,8 @@ set(SOURCES
     test_char_quest_mission_log_packets_6893.cpp
     test_char_records_of_eminence_packets_6894.h
     test_char_records_of_eminence_packets_6894.cpp
+    test_char_key_item_packets_6895.h
+    test_char_key_item_packets_6895.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h

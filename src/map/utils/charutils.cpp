@@ -67,6 +67,7 @@
 #include "char_history_load.h"
 #include "char_history_write.h"
 #include "char_invisible_removal.h"
+#include "char_key_item_packets.h"
 #include "char_local_player_packets.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
@@ -1525,7 +1526,7 @@ void SendRecordsOfEminenceLog(CCharEntity* PChar)
 
 void SendKeyItems(CCharEntity* PChar)
 {
-    for (uint8 table = 0; table < PChar->keys.tables.size(); table++)
+    for (const auto table : keyitempackethelpers::BuildPlan())
     {
         PChar->pushPacket<GP_SERV_COMMAND_SCENARIOITEM>(PChar, table);
     }
