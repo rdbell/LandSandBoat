@@ -16,4 +16,25 @@ constexpr auto ShouldSetArmorLook(const std::uint8_t equipSlotID) -> bool
     return equipSlotID >= SlotHead && equipSlotID <= SlotFeet;
 }
 
+struct Plan
+{
+    bool          setArmorLook = false;
+    std::uint8_t  slot         = 0;
+    std::uint16_t modelID      = 0;
+};
+
+// PlanFor mirrors EquipArmor's armor target selection and model projection.
+constexpr auto PlanFor(const std::uint8_t equipSlotID, const std::uint16_t modelID) -> Plan
+{
+    if (!ShouldSetArmorLook(equipSlotID))
+    {
+        return {};
+    }
+    return {
+        .setArmorLook = true,
+        .slot         = equipSlotID,
+        .modelID      = modelID,
+    };
+}
+
 } // namespace equiparmortargetlookhelpers

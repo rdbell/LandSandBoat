@@ -320,6 +320,13 @@ auto Check() -> bool
     {
         return false;
     }
+    const auto armorTargetLook = equiparmortargetlookhelpers::PlanFor(4, 501);
+    const auto nonArmorTargetLook = equiparmortargetlookhelpers::PlanFor(3, 502);
+    if (!armorTargetLook.setArmorLook || armorTargetLook.slot != 4 || armorTargetLook.modelID != 501 ||
+        nonArmorTargetLook.setArmorLook || nonArmorTargetLook.slot != 0 || nonArmorTargetLook.modelID != 0)
+    {
+        return false;
+    }
 
     constexpr std::uint32_t removedLookMask = (1u << 4) | (1u << 6) | (1u << 8);
     if (!equiparmorremovedlookhelpers::IsSourceSlot(4) || !equiparmorremovedlookhelpers::IsSourceSlot(7) ||

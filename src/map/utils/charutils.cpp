@@ -2495,6 +2495,7 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
             }
         }
 
+        const auto targetLookPlan = equiparmortargetlookhelpers::PlanFor(equipSlotID, static_cast<uint16>(PItem->getModelId()));
         switch (equipSlotID)
         {
             case SLOT_MAIN:
@@ -2680,41 +2681,41 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
             break;
             case SLOT_HEAD:
             {
-                if (equiparmortargetlookhelpers::ShouldSetArmorLook(equipSlotID))
+                if (targetLookPlan.setArmorLook)
                 {
-                    PChar->look.head = PItem->getModelId();
+                    PChar->look.head = targetLookPlan.modelID;
                 }
             }
             break;
             case SLOT_BODY:
             {
-                if (equiparmortargetlookhelpers::ShouldSetArmorLook(equipSlotID))
+                if (targetLookPlan.setArmorLook)
                 {
-                    PChar->look.body = PItem->getModelId();
+                    PChar->look.body = targetLookPlan.modelID;
                 }
             }
             break;
             case SLOT_HANDS:
             {
-                if (equiparmortargetlookhelpers::ShouldSetArmorLook(equipSlotID))
+                if (targetLookPlan.setArmorLook)
                 {
-                    PChar->look.hands = PItem->getModelId();
+                    PChar->look.hands = targetLookPlan.modelID;
                 }
             }
             break;
             case SLOT_LEGS:
             {
-                if (equiparmortargetlookhelpers::ShouldSetArmorLook(equipSlotID))
+                if (targetLookPlan.setArmorLook)
                 {
-                    PChar->look.legs = PItem->getModelId();
+                    PChar->look.legs = targetLookPlan.modelID;
                 }
             }
             break;
             case SLOT_FEET:
             {
-                if (equiparmortargetlookhelpers::ShouldSetArmorLook(equipSlotID))
+                if (targetLookPlan.setArmorLook)
                 {
-                    PChar->look.feet = PItem->getModelId();
+                    PChar->look.feet = targetLookPlan.modelID;
                 }
             }
             break;
