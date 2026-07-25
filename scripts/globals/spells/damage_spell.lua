@@ -240,86 +240,130 @@ local pTable =
     [xi.magic.spell.CURE_VI       ] = { xi.mod.MND,    0, false,  295,    2,  295, 212, 0 },
 }
 
-local function cardinalChantBonus(actor, target, direction, spellId, skillType)
-    -- https://www.bg-wiki.com/ffxi/Cardinal_Chant
-    local chantBonus = 0
+-----------------------------------
+-- Cardinal Chant pure helpers
+-- Dual-wired to OmegaXI internal/cardinalchant (slice 6716 / 0860).
+-- https://www.bg-wiki.com/ffxi/Cardinal_Chant
+-----------------------------------
 
-    -- Early return
-    if spellId == 0 or skillType ~= xi.skill.ELEMENTAL_MAGIC then
-        return chantBonus
+xi.spells.damage.cardinalChantFervorFactor = 1.5
+xi.spells.damage.cardinalChantTraitMin    = 0
+xi.spells.damage.cardinalChantTraitMax    = 4
+
+-- Trait × direction × {nonRa, ra} base-bonus table.
+xi.spells.damage.cardinalChantTable =
+{
+    [0] = { [xi.direction.EAST] = {  0,  0 }, [xi.direction.SOUTH] = {  0,  0 }, [xi.direction.WEST] = {  0,  0 }, [xi.direction.NORTH] = {  0,  0 } },
+    [1] = { [xi.direction.EAST] = {  5,  8 }, [xi.direction.SOUTH] = {  5,  8 }, [xi.direction.WEST] = { 10, 15 }, [xi.direction.NORTH] = {  5,  8 } },
+    [2] = { [xi.direction.EAST] = {  7, 10 }, [xi.direction.SOUTH] = {  7, 10 }, [xi.direction.WEST] = { 14, 19 }, [xi.direction.NORTH] = {  7, 10 } },
+    [3] = { [xi.direction.EAST] = { 10, 14 }, [xi.direction.SOUTH] = { 10, 14 }, [xi.direction.WEST] = { 18, 24 }, [xi.direction.NORTH] = { 10, 14 } },
+    [4] = { [xi.direction.EAST] = { 13, 17 }, [xi.direction.SOUTH] = { 13, 17 }, [xi.direction.WEST] = { 22, 28 }, [xi.direction.NORTH] = { 13, 17 } },
+}
+
+xi.spells.damage.cardinalChantRaSpells =
+{
+    [xi.magic.spell.STONERA] = true,  [xi.magic.spell.STONERA_II] = true,  [xi.magic.spell.STONERA_III] = true,
+    [xi.magic.spell.WATERA] = true,   [xi.magic.spell.WATERA_II] = true,   [xi.magic.spell.WATERA_III] = true,
+    [xi.magic.spell.AERA] = true,     [xi.magic.spell.AERA_II] = true,     [xi.magic.spell.AERA_III] = true,
+    [xi.magic.spell.FIRA] = true,     [xi.magic.spell.FIRA_II] = true,     [xi.magic.spell.FIRA_III] = true,
+    [xi.magic.spell.BLIZZARA] = true, [xi.magic.spell.BLIZZARA_II] = true, [xi.magic.spell.BLIZZARA_III] = true,
+    [xi.magic.spell.THUNDARA] = true, [xi.magic.spell.THUNDARA_II] = true, [xi.magic.spell.THUNDARA_III] = true,
+}
+
+xi.spells.damage.cardinalChantIsRaSpell = function(spellId)
+    return xi.spells.damage.cardinalChantRaSpells[spellId or 0] == true
+end
+
+-- Trait×direction×ra table entry (clamps trait 0..4).
+xi.spells.damage.cardinalChantBaseBonus = function(traitLevel, direction, isRa)
+    traitLevel = traitLevel or 0
+    if traitLevel < xi.spells.damage.cardinalChantTraitMin then
+        traitLevel = xi.spells.damage.cardinalChantTraitMin
     end
 
-    -- Calculate base bonus.
-    local raSpellTable =
-    set{
-        xi.magic.spell.STONERA,  xi.magic.spell.STONERA_II,  xi.magic.spell.STONERA_III,
-        xi.magic.spell.WATERA,   xi.magic.spell.WATERA_II,   xi.magic.spell.WATERA_III,
-        xi.magic.spell.AERA,     xi.magic.spell.AERA_II,     xi.magic.spell.AERA_III,
-        xi.magic.spell.FIRA,     xi.magic.spell.FIRA_II,     xi.magic.spell.FIRA_III,
-        xi.magic.spell.BLIZZARA, xi.magic.spell.BLIZZARA_II, xi.magic.spell.BLIZZARA_III,
-        xi.magic.spell.THUNDARA, xi.magic.spell.THUNDARA_II, xi.magic.spell.THUNDARA_III,
-    }
+    if traitLevel > xi.spells.damage.cardinalChantTraitMax then
+        traitLevel = xi.spells.damage.cardinalChantTraitMax
+    end
 
-    local chantTable =
-    {
-        [0] = { [xi.direction.EAST] = {  0,  0 }, [xi.direction.SOUTH] = {  0,  0 }, [xi.direction.WEST] = {  0,  0 }, [xi.direction.NORTH] = {  0,  0 } },
-        [1] = { [xi.direction.EAST] = {  5,  8 }, [xi.direction.SOUTH] = {  5,  8 }, [xi.direction.WEST] = { 10, 15 }, [xi.direction.NORTH] = {  5,  8 } },
-        [2] = { [xi.direction.EAST] = {  7, 10 }, [xi.direction.SOUTH] = {  7, 10 }, [xi.direction.WEST] = { 14, 19 }, [xi.direction.NORTH] = {  7, 10 } },
-        [3] = { [xi.direction.EAST] = { 10, 14 }, [xi.direction.SOUTH] = { 10, 14 }, [xi.direction.WEST] = { 18, 24 }, [xi.direction.NORTH] = { 10, 14 } },
-        [4] = { [xi.direction.EAST] = { 13, 17 }, [xi.direction.SOUTH] = { 13, 17 }, [xi.direction.WEST] = { 22, 28 }, [xi.direction.NORTH] = { 13, 17 } },
-    }
+    local row = xi.spells.damage.cardinalChantTable[traitLevel]
+    if not row then
+        return 0
+    end
 
-    local isRaSpell = raSpellTable[spellId] and 2 or 1
-    local baseBonus = chantTable[actor:getMod(xi.mod.CARDINAL_CHANT)][direction][isRaSpell]
+    local entry = row[direction]
+    if not entry then
+        return 0
+    end
 
-    -- Calculate fervor %
-    local fervorFactor = actor:hasStatusEffect(xi.effect.COLLIMATED_FERVOR) and 1.5 or 1
+    if isRa then
+        return entry[2]
+    end
 
-    -- Calculate gear %
-    local gearFactor = 1 + actor:getMod(xi.mod.CARDINAL_CHANT_BONUS) / 100
+    return entry[1]
+end
 
-    -- Calculate angle %
-    local angle       = utils.getWorldRotation(actor:getPos(), target:getPos())
-    local angleFactor = 0
+-- Per-direction wedge scale from world rotation 0..255.
+xi.spells.damage.cardinalChantAngleFactor = function(direction, angle)
+    angle = angle or 0
+    if direction == xi.direction.EAST then
+        if angle > 192 then
+            return 1 - (256 - angle) / 64
+        elseif angle < 64 then
+            return 1 - angle / 64
+        end
+    elseif direction == xi.direction.SOUTH then
+        if angle > 0 and angle < 64 then
+            return 1 - (64 - angle) / 64
+        elseif angle >= 64 and angle < 128 then
+            return 1 - (angle - 64) / 64
+        end
+    elseif direction == xi.direction.WEST then
+        if angle > 64 and angle < 128 then
+            return 1 - (128 - angle) / 64
+        elseif angle >= 128 and angle < 192 then
+            return 1 - (angle - 128) / 64
+        end
+    elseif direction == xi.direction.NORTH then
+        if angle > 128 and angle < 192 then
+            return 1 - (192 - angle) / 64
+        elseif angle >= 192 then
+            return 1 - (angle - 192) / 64
+        end
+    end
 
-    switch (direction) : caseof
-    {
-        [xi.direction.EAST] = function() -- MAB -> Optimal angle = 0
-            if angle > 192 and angle < 256 then
-                angleFactor = 1 - (256 - angle) / 64
-            elseif angle >= 0 and angle < 64 then
-                angleFactor = 1 - angle / 64
-            end
-        end,
+    return 0
+end
 
-        [xi.direction.SOUTH] = function() -- MACC -> Optimal angle = 64
-            if angle > 0 and angle < 64 then
-                angleFactor = 1 - (64 - angle) / 64
-            elseif angle >= 64 and angle < 128 then
-                angleFactor = 1 - (angle - 64) / 64
-            end
-        end,
+-- Pure cardinalChantBonus inject form.
+-- params: spellId, skillType, direction, traitLevel, hasCollimatedFervor,
+--   gearBonusPercent, worldRotation
+xi.spells.damage.cardinalChantBonusFromParams = function(params)
+    local spellId = params.spellId or 0
+    local skillType = params.skillType or 0
+    if spellId == 0 or skillType ~= xi.skill.ELEMENTAL_MAGIC then
+        return 0
+    end
 
-        [xi.direction.WEST] = function() -- MBB -> Optimal angle = 128
-            if angle > 64 and angle < 128 then
-                angleFactor = 1 - (128 - angle) / 64
-            elseif angle >= 128 and angle < 192 then
-                angleFactor = 1 - (angle - 128) / 64
-            end
-        end,
+    local isRa = xi.spells.damage.cardinalChantIsRaSpell(spellId)
+    local baseBonus = xi.spells.damage.cardinalChantBaseBonus(params.traitLevel, params.direction, isRa)
+    local fervorFactor = params.hasCollimatedFervor and xi.spells.damage.cardinalChantFervorFactor or 1
+    local gearFactor = 1 + (params.gearBonusPercent or 0) / 100
+    local angleFactor = xi.spells.damage.cardinalChantAngleFactor(params.direction, params.worldRotation)
 
-        [xi.direction.NORTH] = function() -- M.Crit -> Optimal angle = 192
-            if angle > 128 and angle < 192 then
-                angleFactor = 1 - (192 - angle) / 64
-            elseif angle >= 192 and angle < 256 then
-                angleFactor = 1 - (angle - 192) / 64
-            end
-        end,
-    }
+    return math.floor(baseBonus * fervorFactor * gearFactor * angleFactor)
+end
 
-    chantBonus = math.floor(baseBonus * fervorFactor * gearFactor * angleFactor)
-
-    return chantBonus
+-- Entity host: inject trait/fervor/gear/world rotation then call pure.
+local function cardinalChantBonus(actor, target, direction, spellId, skillType)
+    return xi.spells.damage.cardinalChantBonusFromParams({
+        spellId             = spellId,
+        skillType           = skillType,
+        direction           = direction,
+        traitLevel          = actor:getMod(xi.mod.CARDINAL_CHANT),
+        hasCollimatedFervor = actor:hasStatusEffect(xi.effect.COLLIMATED_FERVOR),
+        gearBonusPercent    = actor:getMod(xi.mod.CARDINAL_CHANT_BONUS),
+        worldRotation       = utils.getWorldRotation(actor:getPos(), target:getPos()),
+    })
 end
 
 -----------------------------------
