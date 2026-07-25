@@ -1,6 +1,12 @@
 -----------------------------------
 -- Absorb Spell Utilities
 -- Drain, Aspir, Absorb-TP, Absorb-STAT, Absorb-Attri
+--
+-- Dual-wired pure inject forms (slice 6723 / 0880):
+--   absorbStatPotencyFromParams, absorbStatDurationFromParams,
+--   drainAspirRangeFromParams, drainAspirProductFromParams,
+--   maxHPBoostDurationFromParams, absorbTPDamageFromParams
+-- Parity: internal/absorbspell
 -----------------------------------
 require('scripts/globals/combat/magic_hit_rate')
 require('scripts/globals/spells/damage_spell')
@@ -9,6 +15,13 @@ xi = xi or {}
 xi.spells = xi.spells or {}
 xi.spells.absorb = xi.spells.absorb or {}
 -----------------------------------
+
+-- Pins matching internal/absorbspell clamps.
+xi.spells.absorb.statDurationMin      = 0
+xi.spells.absorb.statDurationMax      = 10000
+xi.spells.absorb.absorbTPDamageCap    = 3000
+xi.spells.absorb.skillSoftcap         = 300
+xi.spells.absorb.maxHPBoostBaseDuration = 180
 
 local absorbStatData =
 {
@@ -21,6 +34,117 @@ local absorbStatData =
     [xi.magic.spell.ABSORB_CHR] = { boostEffect = xi.effect.CHR_BOOST,      downEffect = xi.effect.CHR_DOWN,      msg = xi.msg.basic.MAGIC_ABSORB_CHR },
     [xi.magic.spell.ABSORB_ACC] = { boostEffect = xi.effect.ACCURACY_BOOST, downEffect = xi.effect.ACCURACY_DOWN, msg = xi.msg.basic.MAGIC_ABSORB_ACC },
 }
+
+local absorbPointsData =
+{
+    -- [spell ID] = { parameter, { skill <= 300 }, { skill > 300 }, divisor, increase max HP? }
+    [xi.magic.spell.DRAIN    ] = { xi.mod.HP, {   1,  20 }, { 0.625, 132.5 }, 0.50, false },
+    [xi.magic.spell.DRAIN_II ] = { xi.mod.HP, {   1, 165 }, {     1,   165 }, 0.66, true  },
+    [xi.magic.spell.DRAIN_III] = { xi.mod.HP, {   1, 255 }, {   1.5,   105 }, 0.75, true  },
+    [xi.magic.spell.ASPIR    ] = { xi.mod.MP, { 0.3,  20 }, {   0.4,     0 }, 0.50, false },
+    [xi.magic.spell.ASPIR_II ] = { xi.mod.MP, { 0.5,  30 }, {   0.6,     0 }, 0.50, false },
+    [xi.magic.spell.ASPIR_III] = { xi.mod.MP, { 0.7,  40 }, {   0.8,     0 }, 0.50, false },
+}
+
+-- Pure Absorb-STAT potency (internal/absorbspell.StatPotency).
+-- params: mainLevel, augmentsAbsorb, liberator, netherVoidPower, hasNetherVoid
+xi.spells.absorb.absorbStatPotencyFromParams = function(params)
+    params = params or {}
+    local base = 3 + math.floor((params.mainLevel or 0) / 5)
+    local gear = 1 + (params.augmentsAbsorb or 0) / 100
+    local lib  = 1 + (params.liberator or 0) / 100
+    local final = math.floor(base * gear * lib)
+    local nv = 1
+    if params.hasNetherVoid then
+        nv = 1 + (params.netherVoidPower or 0) / 100
+    end
+
+    return math.floor(final * nv)
+end
+
+-- Pure Absorb-STAT duration (internal/absorbspell.StatDuration).
+-- params: darkSkill, darkMagicDuration, absorbEffectDuration, enhancesAbsorb
+xi.spells.absorb.absorbStatDurationFromParams = function(params)
+    params = params or {}
+    local base = 180 + math.floor(((params.darkSkill or 0) - 490.5) / 5)
+    base = utils.clamp(base, xi.spells.absorb.statDurationMin, xi.spells.absorb.statDurationMax)
+    local dark = 1 + (params.darkMagicDuration or 0) / 100
+    local gear = 1 + (params.absorbEffectDuration or 0) / 100
+
+    return math.floor(base * dark * gear) + (params.enhancesAbsorb or 0)
+end
+
+-- Pure Drain/Aspir skill-equation min/max (internal/absorbspell.DrainAspirRangeForSpell).
+-- params: spellId, darkSkill
+-- returns: minPotential, maxPotential (or nil,nil if unknown spell)
+xi.spells.absorb.drainAspirRangeFromParams = function(params)
+    params = params or {}
+    local row = absorbPointsData[params.spellId]
+    if not row then
+        return nil, nil
+    end
+
+    local skill = params.darkSkill or 0
+    local skillEquation = skill > xi.spells.absorb.skillSoftcap and 3 or 2
+    local maxDamagePotential = math.floor(skill * row[skillEquation][1] + row[skillEquation][2])
+    local minDamagePotential = math.floor(maxDamagePotential * row[4])
+
+    return minDamagePotential, maxDamagePotential
+end
+
+-- Pure Drain/Aspir post-base floor chain (internal/absorbspell.DrainAspirProduct).
+xi.spells.absorb.drainAspirProductFromParams = function(params)
+    params = params or {}
+    local absorbMult = 1 + (params.augmentsAbsorb or 0) / 100 + (params.enhDrainAspir or 0) / 100
+    local libMult    = 1 + (params.liberator or 0) / 100
+    local nvMult     = 1
+    if params.hasNetherVoid then
+        nvMult = 1 + (params.netherVoidPower or 0) / 100
+    end
+
+    local dmg = params.baseDamage or 0
+    dmg = math.floor(dmg * (params.resistTier or 1))
+    dmg = math.floor(dmg * (params.additionalResistTier or 1))
+    dmg = math.floor(dmg * (params.sdt or 1))
+    dmg = math.floor(dmg * (params.elementalStaffBonus or 1))
+    dmg = math.floor(dmg * (params.elementalAffinity or 1))
+    dmg = math.floor(dmg * (params.dayAndWeather or 1))
+    dmg = math.floor(dmg * absorbMult)
+    dmg = math.floor(dmg * libMult)
+    dmg = math.floor(dmg * nvMult)
+
+    return dmg
+end
+
+-- Pure Drain II/III MAX_HP_BOOST duration (internal/absorbspell.MaxHPBoostDuration).
+xi.spells.absorb.maxHPBoostDurationFromParams = function(params)
+    params = params or {}
+    local base = xi.spells.absorb.maxHPBoostBaseDuration
+
+    return base + base * (params.darkMagicDuration or 0) / 100
+end
+
+-- Pure Absorb-TP damage product (internal/absorbspell.AbsorbTPDamage).
+-- Note: no elemental affinity term (LSB parity).
+xi.spells.absorb.absorbTPDamageFromParams = function(params)
+    params = params or {}
+    local base         = (params.targetTP or 0) * 30 / 100
+    local absorbMult   = 1 + (params.augmentsAbsorb or 0) / 100
+    local absorbTPMult = 1 + (params.augmentsAbsorbTP or 0) / 100
+    local libMult      = 1 + (params.liberator or 0) / 100
+
+    local dmg = base
+    dmg = math.floor(dmg * (params.resistTier or 1))
+    dmg = math.floor(dmg * (params.additionalResistTier or 1))
+    dmg = math.floor(dmg * (params.sdt or 1))
+    dmg = math.floor(dmg * (params.elementalStaffBonus or 1))
+    dmg = math.floor(dmg * (params.dayAndWeather or 1))
+    dmg = math.floor(dmg * absorbMult)
+    dmg = math.floor(dmg * absorbTPMult)
+    dmg = math.floor(dmg * libMult)
+
+    return utils.clamp(dmg, 0, xi.spells.absorb.absorbTPDamageCap)
+end
 
 -- https://www.bg-wiki.com/ffxi/Category:Absorb_Spell
 xi.spells.absorb.doAbsorbStatSpell = function(caster, target, spell)
@@ -35,26 +159,26 @@ xi.spells.absorb.doAbsorbStatSpell = function(caster, target, spell)
         return 0
     end
 
-    -- Calculate potency.
-    local basePotency          = 3 + math.floor(caster:getMainLvl() / 5)
-    local gearMultiplier       = 1 + caster:getMod(xi.mod.AUGMENTS_ABSORB) / 100
-    local liberatorMultiplier  = 1 + caster:getMod(xi.mod.AUGMENTS_ABSORB_LIBERATOR) / 100
-    local netherVoidMultiplier = 1
-    if caster:hasStatusEffect(xi.effect.NETHER_VOID) then
-        netherVoidMultiplier = 1 + caster:getStatusEffect(xi.effect.NETHER_VOID):getPower() / 100
+    local netherVoidPower = 0
+    local hasNetherVoid   = caster:hasStatusEffect(xi.effect.NETHER_VOID)
+    if hasNetherVoid then
+        netherVoidPower = caster:getStatusEffect(xi.effect.NETHER_VOID):getPower()
     end
 
-    local finalPotency = math.floor(basePotency * gearMultiplier * liberatorMultiplier)
-    finalPotency       = math.floor(finalPotency * netherVoidMultiplier)
+    local finalPotency = xi.spells.absorb.absorbStatPotencyFromParams({
+        mainLevel       = caster:getMainLvl(),
+        augmentsAbsorb  = caster:getMod(xi.mod.AUGMENTS_ABSORB),
+        liberator       = caster:getMod(xi.mod.AUGMENTS_ABSORB_LIBERATOR),
+        netherVoidPower = netherVoidPower,
+        hasNetherVoid   = hasNetherVoid,
+    })
 
-    -- Calculate duration.
-    -- NOTE: Wiki information is contradicting.
-    -- It states duration from gear (Absorb effect duration) is additive in gear pages and in table, but multiplicative in the equation.
-    local baseDuration           = utils.clamp(180 + math.floor((caster:getSkillLevel(xi.skill.DARK_MAGIC) - 490.5) / 5), 0, 10000)
-    local darkDurationMultiplier = 1 + caster:getMod(xi.mod.DARK_MAGIC_DURATION) / 100
-    local durationGearMultiplier = 1 + caster:getMod(xi.mod.ABSORB_EFFECT_DURATION) / 100
-
-    local finalDuration = math.floor(baseDuration * darkDurationMultiplier * durationGearMultiplier) + caster:getMod(xi.mod.ENHANCES_ABSORB_EFFECTS) -- Assume additive. TODO: Testing needed.
+    local finalDuration = xi.spells.absorb.absorbStatDurationFromParams({
+        darkSkill            = caster:getSkillLevel(xi.skill.DARK_MAGIC),
+        darkMagicDuration    = caster:getMod(xi.mod.DARK_MAGIC_DURATION),
+        absorbEffectDuration = caster:getMod(xi.mod.ABSORB_EFFECT_DURATION),
+        enhancesAbsorb       = caster:getMod(xi.mod.ENHANCES_ABSORB_EFFECTS),
+    })
 
     -- Apply debuff and buff if needed. Absorb effects can be overwriten via higher potency.
     if target:addStatusEffect(enfeeblingEffect, { power = finalPotency, duration = finalDuration, origin = caster }) then
@@ -70,17 +194,6 @@ xi.spells.absorb.doAbsorbStatSpell = function(caster, target, spell)
 
     return enfeeblingEffect
 end
-
-local absorbPointsData =
-{
-    -- [spell ID] = { parameter, { skill <= 300 }, { skill > 300 }, divisor, increase max HP? }
-    [xi.magic.spell.DRAIN    ] = { xi.mod.HP, {   1,  20 }, { 0.625, 132.5 }, 0.50, false },
-    [xi.magic.spell.DRAIN_II ] = { xi.mod.HP, {   1, 165 }, {     1,   165 }, 0.66, true  },
-    [xi.magic.spell.DRAIN_III] = { xi.mod.HP, {   1, 255 }, {   1.5,   105 }, 0.75, true  },
-    [xi.magic.spell.ASPIR    ] = { xi.mod.MP, { 0.3,  20 }, {   0.4,     0 }, 0.50, false },
-    [xi.magic.spell.ASPIR_II ] = { xi.mod.MP, { 0.5,  30 }, {   0.6,     0 }, 0.50, false },
-    [xi.magic.spell.ASPIR_III] = { xi.mod.MP, { 0.7,  40 }, {   0.8,     0 }, 0.50, false },
-}
 
 -- https://www.bg-wiki.com/ffxi/Category:Drain/Aspir_Spell
 -- https://wiki-ffo-jp.translate.goog/html/923.html?_x_tr_sl=ja&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=sc
@@ -117,37 +230,41 @@ xi.spells.absorb.doDrainingSpell = function(caster, target, spell)
         return finalDamage
     end
 
-    -- Base damage.
-    local casterSkill        = caster:getSkillLevel(xi.skill.DARK_MAGIC)
-    local skillEquation      = casterSkill > 300 and 3 or 2
-    local maxDamagePotential = math.floor(casterSkill * absorbPointsData[spellId][skillEquation][1] + absorbPointsData[spellId][skillEquation][2])
-    local minDamagePotential = math.floor(maxDamagePotential * absorbPointsData[spellId][4])
-    local baseDamage         = math.random(minDamagePotential, maxDamagePotential)
+    -- Base damage via pure skill-equation range.
+    local minDamagePotential, maxDamagePotential = xi.spells.absorb.drainAspirRangeFromParams({
+        spellId   = spellId,
+        darkSkill = caster:getSkillLevel(xi.skill.DARK_MAGIC),
+    })
+    local baseDamage = math.random(minDamagePotential, maxDamagePotential)
 
-    -- Multipliers.
+    -- Multipliers (host) → pure product chain.
     local resistTier             = xi.combat.magicHitRate.calculateResistRate(caster, target, xi.magic.spellGroup.BLACK, xi.skill.DARK_MAGIC, 0, xi.element.DARK, xi.mod.INT, 0, 0)
     local additionalResistTier   = xi.spells.damage.calculateAdditionalResistTier(caster, target, xi.element.DARK)
     local sdt                    = xi.combat.damage.magicalElementSDT(target, xi.element.DARK)
     local elementalStaffBonus    = xi.spells.damage.calculateElementalStaffBonus(caster, xi.element.DARK)
     local elementalAffinityBonus = xi.spells.damage.calculateElementalAffinityBonus(caster, xi.element.DARK)
     local dayAndWeather          = xi.spells.damage.calculateDayAndWeather(caster, xi.element.DARK, false)
-    local absorbMultiplier       = 1 + caster:getMod(xi.mod.AUGMENTS_ABSORB) / 100 + caster:getMod(xi.mod.ENH_DRAIN_ASPIR) / 100
-    local liberatorMultiplier    = 1 + caster:getMod(xi.mod.AUGMENTS_ABSORB_LIBERATOR) / 100
-    local netherVoidMultiplier   = 1
-    if caster:hasStatusEffect(xi.effect.NETHER_VOID) then
-        netherVoidMultiplier = 1 + caster:getStatusEffect(xi.effect.NETHER_VOID):getPower() / 100
+
+    local netherVoidPower = 0
+    local hasNetherVoid   = caster:hasStatusEffect(xi.effect.NETHER_VOID)
+    if hasNetherVoid then
+        netherVoidPower = caster:getStatusEffect(xi.effect.NETHER_VOID):getPower()
     end
 
-    -- Operations.
-    finalDamage = math.floor(baseDamage * resistTier)
-    finalDamage = math.floor(finalDamage * additionalResistTier)
-    finalDamage = math.floor(finalDamage * sdt)
-    finalDamage = math.floor(finalDamage * elementalStaffBonus)
-    finalDamage = math.floor(finalDamage * elementalAffinityBonus)
-    finalDamage = math.floor(finalDamage * dayAndWeather)
-    finalDamage = math.floor(finalDamage * absorbMultiplier)
-    finalDamage = math.floor(finalDamage * liberatorMultiplier)
-    finalDamage = math.floor(finalDamage * netherVoidMultiplier)
+    finalDamage = xi.spells.absorb.drainAspirProductFromParams({
+        baseDamage           = baseDamage,
+        resistTier           = resistTier,
+        additionalResistTier = additionalResistTier,
+        sdt                  = sdt,
+        elementalStaffBonus  = elementalStaffBonus,
+        elementalAffinity    = elementalAffinityBonus,
+        dayAndWeather        = dayAndWeather,
+        augmentsAbsorb       = caster:getMod(xi.mod.AUGMENTS_ABSORB),
+        enhDrainAspir        = caster:getMod(xi.mod.ENH_DRAIN_ASPIR),
+        liberator            = caster:getMod(xi.mod.AUGMENTS_ABSORB_LIBERATOR),
+        netherVoidPower      = netherVoidPower,
+        hasNetherVoid        = hasNetherVoid,
+    })
 
     -- Final operations.
     if modAbsorbed == xi.mod.HP then
@@ -193,7 +310,9 @@ xi.spells.absorb.doDrainingSpell = function(caster, target, spell)
                 (maxHPEffectPower == 0 and      -- Effect present, but it isn't %. If subpower is higher, we can override the effect.
                 maxHPEffectSubpower < overflow) -- Subpower present is lower than new one, so we can override the effect.
             then
-                local duration = 180 + 180 * caster:getMod(xi.mod.DARK_MAGIC_DURATION) / 100
+                local duration = xi.spells.absorb.maxHPBoostDurationFromParams({
+                    darkMagicDuration = caster:getMod(xi.mod.DARK_MAGIC_DURATION),
+                })
                 caster:delStatusEffect(xi.effect.MAX_HP_BOOST)
                 caster:addStatusEffect(xi.effect.MAX_HP_BOOST, { duration = duration, origin = caster, subPower = overflow })
             end
@@ -233,31 +352,24 @@ xi.spells.absorb.doAbsorbTPSpell = function(caster, target, spell)
         return finalDamage
     end
 
-    -- Base damage.
-    local baseDamage = targetTP * 30 / 100
-
-    -- Multipliers.
+    -- Multipliers (host) → pure Absorb-TP product.
     local resistTier           = xi.combat.magicHitRate.calculateResistRate(caster, target, xi.magic.spellGroup.BLACK, xi.skill.DARK_MAGIC, 0, xi.element.DARK, xi.mod.INT, 0, 0)
     local additionalResistTier = xi.spells.damage.calculateAdditionalResistTier(caster, target, xi.element.DARK)
     local sdt                  = xi.combat.damage.magicalElementSDT(target, xi.element.DARK)
     local elementalStaffBonus  = xi.spells.damage.calculateElementalStaffBonus(caster, xi.element.DARK)
     local dayAndWeather        = xi.spells.damage.calculateDayAndWeather(caster, xi.element.DARK, false)
-    local absorbMultiplier     = 1 + caster:getMod(xi.mod.AUGMENTS_ABSORB) / 100
-    local absorbTpMultiplier   = 1 + caster:getMod(xi.mod.AUGMENTS_ABSORB_TP) / 100 -- TODO: Additive with aug abs or multiplicative?
-    local liberatorMultiplier  = 1 + caster:getMod(xi.mod.AUGMENTS_ABSORB_LIBERATOR) / 100
 
-    -- Operations.
-    finalDamage = math.floor(baseDamage * resistTier)
-    finalDamage = math.floor(finalDamage * additionalResistTier)
-    finalDamage = math.floor(finalDamage * sdt)
-    finalDamage = math.floor(finalDamage * elementalStaffBonus)
-    finalDamage = math.floor(finalDamage * dayAndWeather)
-    finalDamage = math.floor(finalDamage * absorbMultiplier)
-    finalDamage = math.floor(finalDamage * absorbTpMultiplier)
-    finalDamage = math.floor(finalDamage * liberatorMultiplier)
-
-    -- Clamp
-    finalDamage = utils.clamp(finalDamage, 0, 3000)
+    finalDamage = xi.spells.absorb.absorbTPDamageFromParams({
+        targetTP             = targetTP,
+        resistTier           = resistTier,
+        additionalResistTier = additionalResistTier,
+        sdt                  = sdt,
+        elementalStaffBonus  = elementalStaffBonus,
+        dayAndWeather        = dayAndWeather,
+        augmentsAbsorb       = caster:getMod(xi.mod.AUGMENTS_ABSORB),
+        augmentsAbsorbTP     = caster:getMod(xi.mod.AUGMENTS_ABSORB_TP),
+        liberator            = caster:getMod(xi.mod.AUGMENTS_ABSORB_LIBERATOR),
+    })
 
     -- Set proper message.
     spell:setMsg(xi.msg.basic.MAGIC_ABSORB_TP)
