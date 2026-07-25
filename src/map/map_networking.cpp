@@ -20,6 +20,7 @@
 */
 
 #include "map_networking.h"
+#include "map_networking_incoming_packet_plan.h"
 #include "map_networking_capacity.h"
 
 #include <common/arguments.h>
@@ -93,66 +94,81 @@ void MapNetworking::handle_incoming_packet(ByteSpan buffer, const IPP& ipp)
 
     // set PSession if it's null and the incoming packet is non-encrypted 0x00A
     int32 decryptCount = recv_parse(PBuff.data(), &size, PSession, ipp);
-    if (PSession == nullptr)
+    const auto initialPlan = mapnetworkingincominghelpers::MakePlan({
+        .hasSession     = PSession != nullptr,
+        .decryptCount   = decryptCount,
+        .hasCharacter   = PSession != nullptr && PSession->PChar != nullptr,
+        .pendingZone    = PSession != nullptr && PSession->blowfish.status == BLOWFISH_PENDING_ZONE,
+        .parseReturnedNonZero = true,
+        .shuttingDown   = PSession != nullptr && PSession->shuttingDown == 1,
+    });
+    if (initialPlan.returnNoSession)
     {
         return;
     }
 
-    if (decryptCount != -1)
+    if (initialPlan.callParse)
     {
-        // DecryptCount of 0 means the main key decrypted the packet
-        if (decryptCount == 0 && PSession->PChar)
+        const bool parseReturnedNonZero = parse(PBuff.data(), &size, PSession) != 0;
+        const auto parsePlan = mapnetworkingincominghelpers::MakePlan({
+            .hasSession     = true,
+            .decryptCount   = decryptCount,
+            .hasCharacter   = true,
+            .pendingZone    = initialPlan.rebuildZonePacket,
+            .parseReturnedNonZero = parseReturnedNonZero,
+            .shuttingDown   = initialPlan.destroySession,
+        });
+        if (parsePlan.callSendParse)
         {
-            // If the previous package was lost, then we do not collect a new one,
-            // and send the previous packet again
-            if (!parse(PBuff.data(), &size, PSession))
-            {
-                send_parse(PBuff.data(), &size, PSession, UsePreviousKey::No);
-            }
+            send_parse(PBuff.data(), &size, PSession, UsePreviousKey::No);
         }
-        else if (decryptCount == 1 && PSession->blowfish.status == BLOWFISH_PENDING_ZONE)
+    }
+
+    if (initialPlan.rebuildZonePacket)
+    {
+        // TODO: Client will send 0x00D in response to 0x00B, so we are probably always sending an extra 0x00B when we don't need to.
+        // However, the client will fail to decrypt this if they received it before, effectively being a no-op.
+        // It could be beneficial to parse 0x00D here anyway.
+
+        //
+        // Client failed to receive 0x00B, manually rebuild it, and copy it into PBuff for
+        // re-sending
+        //
+
+        mapStatistics_.increment(MapStatistics::Key::TotalPacketsToSendPerTick);
+
+        preparePacket(PBuff.data(), PSession);
+
+        // Build the packet
+        GP_SERV_COMMAND_LOGOUT zonePacket(PSession->zone_type, PSession->zone_ipp);
+        size = FFXI_HEADER_SIZE;
+        zonePacket.setSequence(PSession->server_packet_id);
+
+        // Copy into PBuff
+        // TODO: This memcpy is funky, we need to fix the API of BasicPacket and derived
+        //     : packets.
+        std::memcpy(PBuff.data() + size, &(*zonePacket), zonePacket.getSize());
+        size += zonePacket.getSize();
+
+        auto maybePacketSize = compressPacket(PBuff.data(), size);
+        if (!maybePacketSize)
         {
-            // TODO: Client will send 0x00D in response to 0x00B, so we are probably always sending an extra 0x00B when we don't need to.
-            // However, the client will fail to decrypt this if they received it before, effectively being a no-op.
-            // It could be beneficial to parse 0x00D here anyway.
-
-            //
-            // Client failed to receive 0x00B, manually rebuild it, and copy it into PBuff for
-            // re-sending
-            //
-
-            mapStatistics_.increment(MapStatistics::Key::TotalPacketsToSendPerTick);
-
-            preparePacket(PBuff.data(), PSession);
-
-            // Build the packet
-            GP_SERV_COMMAND_LOGOUT zonePacket(PSession->zone_type, PSession->zone_ipp);
-            size = FFXI_HEADER_SIZE;
-            zonePacket.setSequence(PSession->server_packet_id);
-
-            // Copy into PBuff
-            // TODO: This memcpy is funky, we need to fix the API of BasicPacket and derived
-            //     : packets.
-            std::memcpy(PBuff.data() + size, &(*zonePacket), zonePacket.getSize());
-            size += zonePacket.getSize();
-
-            auto maybePacketSize = compressPacket(PBuff.data(), size);
-            if (!maybePacketSize)
-            {
-                ShowError("zlib compression error");
-                size = 0;
-            }
-            else
-            {
-                finalizePacket(PBuff.data(), &size, *maybePacketSize, PSession, UsePreviousKey::Yes);
-                mapStatistics_.increment(MapStatistics::Key::TotalPacketsSentPerTick);
-            }
-
-            // Increment sync count with every packet
-            // TODO: match incoming with a new parse that only cares about sync count
-            PSession->server_packet_id += 1;
+            ShowError("zlib compression error");
+            size = 0;
+        }
+        else
+        {
+            finalizePacket(PBuff.data(), &size, *maybePacketSize, PSession, UsePreviousKey::Yes);
+            mapStatistics_.increment(MapStatistics::Key::TotalPacketsSentPerTick);
         }
 
+        // Increment sync count with every packet
+        // TODO: match incoming with a new parse that only cares about sync count
+        PSession->server_packet_id += 1;
+    }
+
+    if (initialPlan.send)
+    {
         socket_->send(ipp, { PBuff.data(), size });
 
         // Go host pure half: mapwire.ApplyStoreServerPacketCache / Session.StoreServerPacketCache (6444).
@@ -161,7 +177,7 @@ void MapNetworking::handle_incoming_packet(ByteSpan buffer, const IPP& ipp)
     }
 
     // If client is logging out, just close it.
-    if (PSession->shuttingDown == 1)
+    if (initialPlan.destroySession)
     {
         mapSessions_.destroySession(PSession);
     }
