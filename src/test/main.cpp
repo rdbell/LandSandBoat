@@ -765,6 +765,7 @@ auto runCharSessionUpdate6890SelfTests() -> bool;
 auto runCharLocalPlayerPackets6891SelfTests() -> bool;
 auto runCharPartialLogPackets6892SelfTests() -> bool;
 auto runCharQuestMissionLogPackets6893SelfTests() -> bool;
+auto runCharRecordsOfEminencePackets6894SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3193,6 +3194,7 @@ namespace
         ok = runCharLocalPlayerPackets6891SelfTests() && ok;
         ok = runCharPartialLogPackets6892SelfTests() && ok;
         ok = runCharQuestMissionLogPackets6893SelfTests() && ok;
+        ok = runCharRecordsOfEminencePackets6894SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;

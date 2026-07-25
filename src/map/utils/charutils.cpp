@@ -72,6 +72,7 @@
 #include "char_mog_locker_access.h"
 #include "char_name_lookup.h"
 #include "char_mission_packet_plans.h"
+#include "char_records_of_eminence_packets.h"
 #include "char_party_alliance_attach.h"
 #include "char_party_alliance_reconcile.h"
 #include "char_party_level_sync_restore.h"
@@ -1486,25 +1487,32 @@ void SendPartialQuestLog(CCharEntity* PChar, const QuestLog log, const bool comp
 
 void SendRecordsOfEminenceLog(CCharEntity* PChar)
 {
-    // Send spark updates
-    PChar->pushPacket<GP_SERV_COMMAND_UNITY>(PChar);
+    const auto roeEnabled        = settings::get<bool>("main.ENABLE_ROE");
+    const auto notifyTimedRecord = roeEnabled && PChar->m_eminenceCache.notifyTimedRecord;
+    const auto activeTimedRecord = notifyTimedRecord ? roeutils::GetActiveTimedRecord() : 0;
+    const auto plan              = eminencepackethelpers::BuildPlan(roeEnabled, notifyTimedRecord, activeTimedRecord);
 
-    if (settings::get<bool>("main.ENABLE_ROE"))
+    for (uint8 i = 0; i < plan.count; ++i)
     {
-        // Current RoE quests
-        PChar->pushPacket<GP_SERV_COMMAND_ROE_ACTIVELOG>(PChar);
-
-        // Players logging in to a new timed record get one-time message
-        if (PChar->m_eminenceCache.notifyTimedRecord)
+        const auto& packet = plan.packets[i];
+        switch (packet.action)
         {
-            PChar->m_eminenceCache.notifyTimedRecord = false;
-            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, roeutils::GetActiveTimedRecord(), 0, MsgBasic::ROETimed);
-        }
-
-        // 4-part Eminence Completion bitmap
-        for (int i = 0; i < 4; i++)
-        {
-            PChar->pushPacket<GP_SERV_COMMAND_ROE_LOG>(PChar, i);
+            case eminencepackethelpers::Action::Unity:
+                PChar->pushPacket<GP_SERV_COMMAND_UNITY>(PChar);
+                break;
+            case eminencepackethelpers::Action::ActiveLog:
+                PChar->pushPacket<GP_SERV_COMMAND_ROE_ACTIVELOG>(PChar);
+                break;
+            case eminencepackethelpers::Action::TimedRecordMessage:
+                if (plan.clearTimedRecordNotification)
+                {
+                    PChar->m_eminenceCache.notifyTimedRecord = false;
+                }
+                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, packet.value, 0, MsgBasic::ROETimed);
+                break;
+            case eminencepackethelpers::Action::CompletionLog:
+                PChar->pushPacket<GP_SERV_COMMAND_ROE_LOG>(PChar, static_cast<uint8>(packet.value));
+                break;
         }
     }
 }
