@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 
-// Pure AddPoints policy from charutils.
+// Pure point-management policies from charutils.
 
 namespace charpointshelpers
 {
@@ -25,5 +25,28 @@ constexpr auto ClampPointTotal(const int32_t current, const int32_t amount, cons
 constexpr auto ShouldAwardUnityAccolades(const bool isUnityAccolades, const int32_t amount) -> bool
 {
     return isUnityAccolades && amount > 0;
+}
+
+struct PointSetPlan
+{
+    bool update{};
+    bool sendUnityPacket{};
+
+    constexpr auto operator==(const PointSetPlan&) const -> bool = default;
+};
+
+// PlanPointSet mirrors SetPoints after the database metadata host has resolved
+// whether the requested point column is valid.
+constexpr auto PlanPointSet(const bool validColumn, const bool isSparkOfEminence) -> PointSetPlan
+{
+    if (!validColumn)
+    {
+        return {};
+    }
+
+    return {
+        .update          = true,
+        .sendUnityPacket = isSparkOfEminence,
+    };
 }
 } // namespace charpointshelpers

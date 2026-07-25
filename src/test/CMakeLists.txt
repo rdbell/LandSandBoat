@@ -1365,6 +1365,8 @@ set(SOURCES
     test_char_points_6855.cpp
     test_unity_leader_transition_6856.h
     test_unity_leader_transition_6856.cpp
+    test_point_set_6857.h
+    test_point_set_6857.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h

@@ -7148,7 +7148,10 @@ void SetPoints(CCharEntity* PChar, const char* type, int32 amount)
         }
     }
 
-    if (charPointsColumnNames.find(type) == charPointsColumnNames.end())
+    const auto plan = charpointshelpers::PlanPointSet(
+        charPointsColumnNames.find(type) != charPointsColumnNames.end(),
+        strcmp(type, "spark_of_eminence") == 0);
+    if (!plan.update)
     {
         ShowErrorFmt("charutils::SetPoints: Invalid type {} for {}", type, PChar->getName());
         return;
@@ -7160,7 +7163,7 @@ void SetPoints(CCharEntity* PChar, const char* type, int32 amount)
     const auto query = fmt::format("UPDATE char_points SET {} = ? WHERE charid = ?", type);
     db::preparedStmt(query, amount, PChar->id);
 
-    if (strcmp(type, "spark_of_eminence") == 0)
+    if (plan.sendUnityPacket)
     {
         PChar->pushPacket<GP_SERV_COMMAND_UNITY>(PChar);
     }
