@@ -22,6 +22,7 @@
 #include "time_server.h"
 #include "time_server_earth_tick.h"
 #include "time_server_tick.h"
+#include "time_server_tick_input.h"
 #include "time_server_tick_tail.h"
 #include "time_server_vana_tick.h"
 #include "time_server_vana_totd.h"
@@ -55,18 +56,17 @@ auto time_server(Scheduler& scheduler, MapConfig config) -> Task<void>
     // Earth-based ticks.
     // Uses the JST equivalent of the current timer tick. (steady_clock -> system_clock)
 
-    // Earth time points
-    const auto jstTime    = earth_time::time_point(timer::to_utc(tick));
-    const auto jstHour    = earth_time::jst::get_hour(jstTime);
-    const auto jstWeekday = earth_time::jst::get_weekday(jstTime);
+    const auto tickInput  = timeservertickinputhelpers::MakeInput(earth_time::time_point(timer::to_utc(tick)));
+    const auto jstTime    = tickInput.earthTime;
+    const auto jstHour    = tickInput.jstHour;
+    const auto jstWeekday = tickInput.jstWeekday;
 
     // Static variable for the next tick
     static auto nextHourlyTick = std::chrono::ceil<std::chrono::hours>(jstTime);
 
-    // Vana'diel time points
-    const auto vanaTime = vanadiel_time::from_earth_time(jstTime);
-    const auto vanaTotd = vanadiel_time::get_totd(vanaTime);
-    const auto vanaHour = vanadiel_time::get_hour(vanaTime);
+    const auto vanaTime = tickInput.vanaTime;
+    const auto vanaTotd = tickInput.vanaTotd;
+    const auto vanaHour = tickInput.vanaHour;
 
     // Static variables for the next tick
     static auto nextVHourlyUpdate = std::chrono::ceil<xi::vanadiel_clock::hours>(vanaTime);
