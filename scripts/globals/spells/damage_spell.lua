@@ -947,70 +947,144 @@ xi.spells.damage.calculateSpellActionTypeMultiplier = function(caster)
     return 1 + caster:getMod(xi.mod.POWER_MULTIPLIER_SPELL) / 100
 end
 
-xi.spells.damage.calculateAbsorption = function(target, element, isMagic)
-    -- Absobtion by liement.
-    local liementFactor = target:checkLiementAbsorb(xi.damageType.ELEMENTAL + element) -- Check for Liement.
-    if liementFactor < 0 then
-        return liementFactor
+-----------------------------------
+-- Absorb / nullification pure helpers
+-- Dual-wired to OmegaXI internal/absorbnull (slice 6709 / 0864).
+-----------------------------------
+
+-- Lua chance compare: math.random(1, 100) <= chance
+xi.spells.damage.absorbNullChanceLua = function(roll, chance)
+    return (roll or 0) <= (chance or 0)
+end
+
+-- Pure calculateAbsorption once Liement factor and proc flags are injected.
+-- params: liementFactor, element, isMagic, absorbAllProc, absorbMagicProc, absorbElementProc
+xi.spells.damage.calculateAbsorptionFromParams = function(params)
+    local liement = params.liementFactor
+    if liement == nil then
+        liement = 1
     end
 
-    -- Absorb: All damage.
-    if math.random(1, 100) <= target:getMod(xi.mod.ABSORB_DMG_CHANCE) then
+    if liement < 0 then
+        return liement
+    end
+
+    if params.absorbAllProc then
         return -1
     end
 
-    -- Absorb: Magic damage.
-    if
-        isMagic and
-        math.random(1, 100) <= target:getMod(xi.mod.MAGIC_ABSORB)
-    then
+    if params.isMagic and params.absorbMagicProc then
         return -1
     end
 
-    -- Absorb: Element damage.
-    if
-        element > 0 and
-        math.random(1, 100) <= target:getMod(xi.data.element.getElementalAbsorptionModifier(element))
-    then
+    if (params.element or 0) > 0 and params.absorbElementProc then
         return -1
     end
 
-    -- No absorption.
     return 1
 end
 
+-- Pure calculateNullification once proc flags are injected.
+-- params: element, isMagic, isBreath, nullAllProc, nullMagicProc, nullBreathProc, nullElementProc
+xi.spells.damage.calculateNullificationFromParams = function(params)
+    if params.nullAllProc then
+        return 0
+    end
+
+    if params.isMagic and params.nullMagicProc then
+        return 0
+    end
+
+    if params.isBreath and params.nullBreathProc then
+        return 0
+    end
+
+    if (params.element or 0) > 0 and params.nullElementProc then
+        return 0
+    end
+
+    return 1
+end
+
+-- Entity host: absorption by Liement then chance ladder (early-exit RNG order).
+xi.spells.damage.calculateAbsorption = function(target, element, isMagic)
+    local liementFactor = target:checkLiementAbsorb(xi.damageType.ELEMENTAL + element)
+    if liementFactor < 0 then
+        return xi.spells.damage.calculateAbsorptionFromParams({
+            liementFactor = liementFactor,
+        })
+    end
+
+    if math.random(1, 100) <= target:getMod(xi.mod.ABSORB_DMG_CHANCE) then
+        return xi.spells.damage.calculateAbsorptionFromParams({
+            liementFactor = 1,
+            absorbAllProc = true,
+        })
+    end
+
+    if isMagic and math.random(1, 100) <= target:getMod(xi.mod.MAGIC_ABSORB) then
+        return xi.spells.damage.calculateAbsorptionFromParams({
+            liementFactor   = 1,
+            isMagic         = true,
+            absorbMagicProc = true,
+        })
+    end
+
+    if
+        (element or 0) > 0 and
+        math.random(1, 100) <= target:getMod(xi.data.element.getElementalAbsorptionModifier(element))
+    then
+        return xi.spells.damage.calculateAbsorptionFromParams({
+            liementFactor     = 1,
+            element           = element,
+            absorbElementProc = true,
+        })
+    end
+
+    return xi.spells.damage.calculateAbsorptionFromParams({
+        liementFactor = 1,
+        element       = element,
+        isMagic       = isMagic,
+    })
+end
+
+-- Entity host: nullification chance ladder (early-exit RNG order).
 xi.spells.damage.calculateNullification = function(target, element, isMagic, isBreath)
-    -- Nullify: All damage.
     if math.random(1, 100) <= target:getMod(xi.mod.NULL_DAMAGE) then
-        return 0
+        return xi.spells.damage.calculateNullificationFromParams({
+            nullAllProc = true,
+        })
     end
 
-    -- Nullify: Magic damage.
-    if
-        isMagic and
-        math.random(1, 100) <= target:getMod(xi.mod.NULL_MAGICAL_DAMAGE)
-    then
-        return 0
+    if isMagic and math.random(1, 100) <= target:getMod(xi.mod.NULL_MAGICAL_DAMAGE) then
+        return xi.spells.damage.calculateNullificationFromParams({
+            isMagic       = true,
+            nullMagicProc = true,
+        })
     end
 
-    -- Nullify: Breath damage.
-    if
-        isBreath and
-        math.random(1, 100) <= target:getMod(xi.mod.NULL_BREATH_DAMAGE)
-    then
-        return 0
+    if isBreath and math.random(1, 100) <= target:getMod(xi.mod.NULL_BREATH_DAMAGE) then
+        return xi.spells.damage.calculateNullificationFromParams({
+            isBreath       = true,
+            nullBreathProc = true,
+        })
     end
 
-    -- Nullify: Element damage.
     if
-        element > 0 and
+        (element or 0) > 0 and
         math.random(1, 100) <= target:getMod(xi.data.element.getElementalNullificationModifier(element))
     then
-        return 0
+        return xi.spells.damage.calculateNullificationFromParams({
+            element         = element,
+            nullElementProc = true,
+        })
     end
 
-    -- No nullification.
-    return 1
+    return xi.spells.damage.calculateNullificationFromParams({
+        element  = element,
+        isMagic  = isMagic,
+        isBreath = isBreath,
+    })
 end
 
 xi.spells.damage.calculateIfMagicBurst = function(target, spellElement, skillchainCount)
