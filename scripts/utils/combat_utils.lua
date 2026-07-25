@@ -1,49 +1,270 @@
 ---@class utils
 utils = utils or {}
 
+-----------------------------------
+-- Shadow mitigation pure helpers
+-- Dual-wired to OmegaXI internal/shadowabsorb (slice 6706 / 0877 / 6040).
+-----------------------------------
+
+utils.shadowDefaultProcChance       = 50
+utils.shadowBlinkFailThreshold      = 20
+utils.shadowTakeShadowsBlinkProc    = 80
+
+-- Copy-Image icon for remaining Utsusemi shadows (0 / CI / CI2 / CI3 / CI4+).
+utils.copyImageIcon = function(remaining)
+    remaining = remaining or 0
+    if remaining <= 0 then
+        return 0
+    elseif remaining == 1 then
+        return xi.effect.COPY_IMAGE
+    elseif remaining == 2 then
+        return xi.effect.COPY_IMAGE_2
+    elseif remaining == 3 then
+        return xi.effect.COPY_IMAGE_3
+    end
+
+    return xi.effect.COPY_IMAGE_4
+end
+
+-- Pure damage scale after known consume counts (Go TakeShadowsDamage).
+-- if used >= remove → 0; else trunc toward zero of damage * (remove-used)/remove
+utils.takeShadowsDamage = function(damage, remove, used)
+    damage = damage or 0
+    remove = remove or 0
+    used   = used or 0
+    if remove <= 0 then
+        remove = 1
+    end
+
+    if used >= remove then
+        return 0
+    end
+
+    -- Go int(float64) truncates toward zero; positive damage → floor.
+    return math.floor(damage * (remove - used) / remove)
+end
+
+-- Pure attemptShadowMitigation once NIN/Utsusemi gates and d100 rolls inject.
+-- params: attemptedRemovals, isNIN, hasUtsusemi, procChance?, rolls[]
+utils.attemptShadowMitigationFromParams = function(params)
+    local attempted = params.attemptedRemovals or 0
+    if attempted <= 0 then
+        return 0
+    end
+
+    if not params.isNIN or not params.hasUtsusemi then
+        return 0
+    end
+
+    local chance = params.procChance or 0
+    if chance <= 0 then
+        chance = utils.shadowDefaultProcChance
+    end
+
+    local rolls = params.rolls or {}
+    local mitigated = 0
+    for i = 1, attempted do
+        local roll = rolls[i] or 101 -- missing → fail
+        if roll <= chance then
+            mitigated = mitigated + 1
+        end
+    end
+
+    return math.min(mitigated, attempted - 1)
+end
+
+-- Pure takeShadows once mods and Blink rolls inject.
+-- params: damage, utsusemi, blink, shadowsToRemove, blinkRolls[]
+-- returns: { damage, used, remaining, modID, usedUtsusemi, usedBlink, icon, setIcon, delCopyImage, delBlink }
+utils.takeShadowsFromParams = function(params)
+    local damage = params.damage or 0
+    local remove = params.shadowsToRemove or 0
+    if remove <= 0 then
+        remove = 1
+    end
+
+    local shadowPower = params.utsusemi or 0
+    local shadowType  = xi.mod.UTSUSEMI
+    local usedUtsu    = true
+    if shadowPower == 0 then
+        shadowPower = params.blink or 0
+        shadowType  = xi.mod.BLINK
+        usedUtsu    = false
+    end
+
+    if shadowPower == 0 then
+        return {
+            damage       = damage,
+            used         = 0,
+            remaining    = 0,
+            modID        = 0,
+            usedUtsusemi = false,
+            usedBlink    = false,
+            icon         = 0,
+            setIcon      = false,
+            delCopyImage = false,
+            delBlink     = false,
+        }
+    end
+
+    local remaining = shadowPower
+    local used      = 0
+    local outDmg
+
+    if shadowType == xi.mod.BLINK then
+        local rolls = params.blinkRolls or {}
+        for i = 1, remove do
+            local roll = rolls[i] or 101
+            if remaining > 0 and roll <= utils.shadowTakeShadowsBlinkProc then
+                remaining = remaining - 1
+                used      = used + 1
+            end
+        end
+
+        outDmg = utils.takeShadowsDamage(damage, remove, used)
+    else
+        if shadowPower >= remove then
+            remaining = shadowPower - remove
+            used      = remove
+            outDmg    = 0
+        else
+            used      = shadowPower
+            remaining = 0
+            outDmg    = utils.takeShadowsDamage(damage, remove, used)
+        end
+    end
+
+    local res = {
+        damage       = outDmg,
+        used         = used,
+        remaining    = remaining,
+        modID        = shadowType,
+        usedUtsusemi = usedUtsu,
+        usedBlink    = not usedUtsu,
+        icon         = 0,
+        setIcon      = false,
+        delCopyImage = false,
+        delBlink     = false,
+    }
+
+    if remaining <= 0 then
+        res.delCopyImage = true
+        res.delBlink     = true
+    elseif usedUtsu then
+        res.icon    = utils.copyImageIcon(remaining)
+        res.setIcon = true
+    end
+
+    return res
+end
+
+-- Pure shadowAbsorb once mod values, remove count, and Blink fail roll inject.
+-- params: utsusemi, blink, shadowsToRemove, blinkFailRoll, hasCopyImageEffect
+-- returns: { absorbHit, consumed, remaining, usedUtsusemi, usedBlink, icon, setIcon, delCopyImage, delBlink }
+utils.shadowAbsorbFromParams = function(params)
+    local utsusemi = params.utsusemi or 0
+    local blink    = params.blink or 0
+    local remove   = params.shadowsToRemove or 0
+
+    if utsusemi == 0 and blink == 0 then
+        return {
+            absorbHit    = false,
+            consumed     = 0,
+            remaining    = 0,
+            usedUtsusemi = false,
+            usedBlink    = false,
+            icon         = 0,
+            setIcon      = false,
+            delCopyImage = false,
+            delBlink     = false,
+        }
+    end
+
+    if utsusemi > 0 then
+        local consumed  = utils.clamp(remove, 0, utsusemi)
+        local remaining = utsusemi - consumed
+        local res =
+        {
+            absorbHit    = utsusemi >= remove,
+            consumed     = consumed,
+            remaining    = remaining,
+            usedUtsusemi = true,
+            usedBlink    = false,
+            icon         = 0,
+            setIcon      = false,
+            delCopyImage = false,
+            delBlink     = false,
+        }
+
+        if remaining == 0 then
+            res.delCopyImage = params.hasCopyImageEffect and true or false
+        else
+            res.icon    = utils.copyImageIcon(remaining)
+            res.setIcon = params.hasCopyImageEffect and true or false
+        end
+
+        return res
+    end
+
+    -- Blink path (Utsusemi absent).
+    if (params.blinkFailRoll or 0) <= utils.shadowBlinkFailThreshold then
+        return {
+            absorbHit    = false,
+            consumed     = 0,
+            remaining    = 0,
+            usedUtsusemi = false,
+            usedBlink    = false,
+            icon         = 0,
+            setIcon      = false,
+            delCopyImage = false,
+            delBlink     = false,
+        }
+    end
+
+    local consumed  = utils.clamp(remove, 0, blink)
+    local remaining = blink - consumed
+    return {
+        absorbHit    = blink >= remove,
+        consumed     = consumed,
+        remaining    = remaining,
+        usedUtsusemi = false,
+        usedBlink    = true,
+        icon         = 0,
+        setIcon      = false,
+        delCopyImage = false,
+        delBlink     = remaining == 0,
+    }
+end
+
+-----------------------------------
+-- Entity hosts for shadow helpers
+-----------------------------------
+
 -- A mechanic that will occasionaly reduce shadows consumed when hit by an AOE skill.
 ---@nodiscard
 ---@param actor CBaseEntity
 ---@param attemptedRemovals integer
 ---@return integer
 function utils.attemptShadowMitigation(actor, attemptedRemovals)
-    if attemptedRemovals <= 0 then
-        return 0
-    end
-
     -- TODO: Does this mechanic work on players who are not NIN main or sub? If so remove NIN requirement.
     -- See Yagyu Darkblade: https://www.bg-wiki.com/ffxi/Yagyu_Darkblade
-    local isNIN       = actor:getMainJob() == xi.job.NIN or actor:getSubJob() == xi.job.NIN
-    local hasUtsusemi = actor:getMod(xi.mod.UTSUSEMI) > 0
-
-    if
-        not isNIN or
-        not hasUtsusemi -- Only works with Utsusemi
-    then
-        return 0
+    -- TODO: Currently unknown exactly what stats affect procChance (Ninjutsu skill).
+    local rolls = {}
+    local n = attemptedRemovals or 0
+    for i = 1, n do
+        rolls[i] = math.random(1, 100)
     end
 
-    -- TODO: Currently unknown exactly what stats affect procChance and by how much. SE mentions Ninjutsu Skill affects this to some degree.
-    -- Note: 50% was calculated from data with a relatively low Ninjutsu skill (Between 50-110~ skill range vs Lv. 75+ Targets) so this will likely lean on the conservative side (Weighted against players).
-    local procChance = 50
-
-    local mitigated  = 0
-
-    -- Through research, a skill's shadowBehavior acts as a counter for how many shadow mitigation attempts are made(attemptedRemovals).
-    -- Example: An AoE skill that takes 4 shadows will attempt the mitgation step below 4 times. A shadow will only be mitigated if it passes the proc chance check.
-    for i = 1, attemptedRemovals do
-        if math.random(1, 100) <= procChance then
-            mitigated = mitigated + 1
-        end
-    end
-
-    local maxMitigatable = attemptedRemovals - 1
-
-    return math.min(mitigated, maxMitigatable)
+    return utils.attemptShadowMitigationFromParams({
+        attemptedRemovals = n,
+        isNIN             = actor:getMainJob() == xi.job.NIN or actor:getSubJob() == xi.job.NIN,
+        hasUtsusemi       = actor:getMod(xi.mod.UTSUSEMI) > 0,
+        procChance        = utils.shadowDefaultProcChance,
+        rolls             = rolls,
+    })
 end
 
 -- TODO: Marked for retirement. See: utils.shadowAbsorb() below.
---       Some abilities and skills still use this but will need to be slightly reworked to use utils.shadowAbsorb().
 -- Calculate shadow consumption/damage absorbtion.
 ---@param actor CBaseEntity
 ---@param damage integer
@@ -51,77 +272,45 @@ end
 ---@return integer damage
 ---@return integer shadowsUsed
 function utils.takeShadows(actor, damage, shadowsToRemove)
-    shadowsToRemove = shadowsToRemove or 1
+    local utsusemi = actor:getMod(xi.mod.UTSUSEMI)
+    local blink    = actor:getMod(xi.mod.BLINK)
+    local remove   = shadowsToRemove or 1
+    local blinkRolls = {}
 
-    -- Check for Utsusemi first, then Blink.
-    local shadowPower = actor:getMod(xi.mod.UTSUSEMI)
-    local shadowType  = xi.mod.UTSUSEMI
-
-    if shadowPower == 0 then
-        shadowPower = actor:getMod(xi.mod.BLINK)
-        shadowType  = xi.mod.BLINK
-    end
-
-    -- No shadows, return full damage
-    if shadowPower == 0 then
-        return damage, 0
-    end
-
-    local shadowsRemaining = shadowPower
-    local shadowsUsed      = 0
-
-    -- Handle Blink shadow removal
-    if shadowType == xi.mod.BLINK then
-        for _ = 1, shadowsToRemove do
-            if shadowsRemaining > 0 and math.random(1, 100) <= 80 then
-                shadowsRemaining = shadowsRemaining - 1
-                shadowsUsed      = shadowsUsed + 1
-            end
-        end
-
-        if shadowsUsed >= shadowsToRemove then
-            damage = 0
-        else
-            damage = damage * ((shadowsToRemove - shadowsUsed) / shadowsToRemove)
-        end
-    else
-        -- Handle Utsusemi removal
-        if shadowPower >= shadowsToRemove then
-            shadowsRemaining = shadowPower - shadowsToRemove
-            shadowsUsed      = shadowsToRemove
-            damage           = 0
-
-            -- Update remaining Copy Image icon
-            if shadowsRemaining > 0 then
-                local effect = actor:getStatusEffect(xi.effect.COPY_IMAGE)
-                if effect then
-                    local iconMap =
-                    {
-                        [1] = xi.effect.COPY_IMAGE,
-                        [2] = xi.effect.COPY_IMAGE_2,
-                        [3] = xi.effect.COPY_IMAGE_3,
-                        -- Note: 4+ use the same icon.
-                    }
-
-                    effect:setIcon(iconMap[shadowsRemaining] or xi.effect.COPY_IMAGE_4)
-                end
-            end
-        else
-            -- Partial shadow consumption, take damage.
-            shadowsUsed      = shadowPower
-            damage           = damage * ((shadowsToRemove - shadowPower) / shadowsToRemove)
-            shadowsRemaining = 0
+    if utsusemi == 0 and blink > 0 then
+        for i = 1, remove do
+            blinkRolls[i] = math.random(1, 100)
         end
     end
 
-    actor:setMod(shadowType, shadowsRemaining)
+    local res = utils.takeShadowsFromParams({
+        damage          = damage,
+        utsusemi        = utsusemi,
+        blink           = blink,
+        shadowsToRemove = shadowsToRemove,
+        blinkRolls      = blinkRolls,
+    })
 
-    if shadowsRemaining <= 0 then
+    if res.modID ~= 0 then
+        actor:setMod(res.modID, res.remaining)
+    end
+
+    if res.setIcon then
+        local effect = actor:getStatusEffect(xi.effect.COPY_IMAGE)
+        if effect then
+            effect:setIcon(res.icon)
+        end
+    end
+
+    if res.delCopyImage then
         actor:delStatusEffect(xi.effect.COPY_IMAGE)
+    end
+
+    if res.delBlink then
         actor:delStatusEffect(xi.effect.BLINK)
     end
 
-    return damage, shadowsUsed
+    return res.damage, res.used
 end
 
 -- Calculate shadow consumption
@@ -129,75 +318,42 @@ end
 ---@param shadowsToRemove number
 ---@return boolean, number
 function utils.shadowAbsorb(target, shadowsToRemove)
-    local utsusemiMod = target:getMod(xi.mod.UTSUSEMI)
-    local blinkMod    = target:getMod(xi.mod.BLINK)
-
-    -- Early return: Target has no shadows.
-    if
-        utsusemiMod == 0 and
-        blinkMod == 0
-    then
-        return false, 0
+    local utsusemi = target:getMod(xi.mod.UTSUSEMI)
+    local blink    = target:getMod(xi.mod.BLINK)
+    local failRoll = 100
+    if utsusemi == 0 and blink > 0 then
+        failRoll = math.random(1, 100)
     end
 
-    local targetShadows   = 0
-    local shadowsConsumed = 0
-    local absorbHit       = false
+    local res = utils.shadowAbsorbFromParams({
+        utsusemi            = utsusemi,
+        blink               = blink,
+        shadowsToRemove     = shadowsToRemove,
+        blinkFailRoll       = failRoll,
+        hasCopyImageEffect  = target:getStatusEffect(xi.effect.COPY_IMAGE) ~= nil,
+    })
 
-    -- Utsusemi takes precedence over blink.
-    if utsusemiMod > 0 then
-        shadowsConsumed = utils.clamp(shadowsToRemove, 0, utsusemiMod) -- How many shadows were consumed (Used for SHADOW_ABSORB messaging later).
-        targetShadows   = utsusemiMod - shadowsConsumed                -- How many shadows left after the attack.
-        absorbHit       = utsusemiMod >= shadowsToRemove               -- Check to see if the target had enough shadows to block the attack.
-
-        local effect = target:getStatusEffect(xi.effect.COPY_IMAGE)
-        if effect then
-            if targetShadows == 0 then
-                target:delStatusEffect(xi.effect.COPY_IMAGE)
-            elseif targetShadows == 1 then
-                effect:setIcon(xi.effect.COPY_IMAGE)
-            elseif targetShadows == 2 then
-                effect:setIcon(xi.effect.COPY_IMAGE_2)
-            elseif targetShadows == 3 then
-                effect:setIcon(xi.effect.COPY_IMAGE_3)
-            else
-                effect:setIcon(xi.effect.COPY_IMAGE_4) -- 4 or more shadows active use the same "4+" icon.
+    if res.usedUtsusemi then
+        if res.delCopyImage then
+            target:delStatusEffect(xi.effect.COPY_IMAGE)
+        elseif res.setIcon then
+            local effect = target:getStatusEffect(xi.effect.COPY_IMAGE)
+            if effect then
+                effect:setIcon(res.icon)
             end
         end
 
-        target:setMod(xi.mod.UTSUSEMI, targetShadows)
-
-    -- Blink has a random chance of triggering when no utsusemi is present.
-    elseif blinkMod > 0 then
-        if math.random(1, 100) <= 20 then
-            absorbHit = false
-
-            return absorbHit, 0
-        end
-
-        shadowsConsumed = utils.clamp(shadowsToRemove, 0, blinkMod) -- How many shadows were consumed by the attack (Used for SHADOW_ABSORB messaging later)
-        targetShadows   = blinkMod - shadowsConsumed                -- How many shadows left over after the attack.
-        absorbHit       = blinkMod >= shadowsToRemove               -- Check to see if the target had enough shadows to fully block the attack.
-
-        if targetShadows == 0 then
+        target:setMod(xi.mod.UTSUSEMI, res.remaining)
+    elseif res.usedBlink then
+        if res.delBlink then
             target:delStatusEffect(xi.effect.BLINK)
         end
 
-        target:setMod(xi.mod.BLINK, targetShadows)
-
-        -- Retail Testing Notes:
-        -- Tested with WHM spell Blink
-        -- 1 hit skills took 1 shadow.
-        -- TODO: When hit by a 2 hit skill, it was observed to consume 2 blink shadows, however the message returned was SKILL_MISS rather than SHADOW_ABSORB.
-        -- Did not block 3+ hit mob skills. (Player Weaponskills untested)
-        -- AOE skills delete Blink.
-
-        -- TODO: Test Zephyr Mantle proc rate.
-        -- TODO: Test player Weapon Skills on mob/players with Blink/Zephyr Mantle.
-        -- Note: JPWiki/FFXIPedia repeatedly mentions that Blink can block multi hit skills, but this was not observed in testing. Needs further testing.
+        target:setMod(xi.mod.BLINK, res.remaining)
     end
 
-    return absorbHit, shadowsConsumed
+    -- Retail notes (Blink multi-hit / Zephyr Mantle) deferred; pure path pins math.
+    return res.absorbHit, res.consumed
 end
 
 -- Calculates Phalanx damage reduction.
