@@ -2183,6 +2183,42 @@ xi.weaponskills.absFinalDamage = function(finalDmg)
 end
 
 -----------------------------------
+-- Pure: takeWeaponskillDamage post-entity residual product (slice 6773 / 6673)
+-- Parity: internal/wsformula TakeWeaponskillPostDamage
+-----------------------------------
+-- params: finalDmg, tpHitsLanded, extraHitsLanded, hasTaChar,
+--   hasOverrideCE, hasOverrideVE, enmityMult,
+--   hasSengikori, sengikoriPower, sengikoriBonus, targetHasSkillchain, wsID
+-- returns plan table with record/enmity/sengikori/hitVar fields
+xi.weaponskills.takeWeaponskillPostDamageFromParams = function(params)
+    params = params or {}
+    local finalDmg        = params.finalDmg or 0
+    local tpHitsLanded    = params.tpHitsLanded or 0
+    local extraHitsLanded = params.extraHitsLanded or 0
+    local hasOverride     = params.hasOverrideCE and params.hasOverrideVE
+
+    local sengikori = xi.weaponskills.planSengikori(
+        tpHitsLanded,
+        extraHitsLanded,
+        params.hasSengikori,
+        params.sengikoriPower or 0,
+        params.sengikoriBonus or 0,
+        params.targetHasSkillchain
+    )
+
+    return {
+        recordDamage       = xi.weaponskills.shouldRecordWSDamage(tpHitsLanded, extraHitsLanded),
+        absFinalDmg        = xi.weaponskills.absFinalDamage(finalDmg),
+        enmityUsesTA       = xi.weaponskills.enmityEntityUsesTA(params.hasTaChar),
+        enmityUsesOverride = hasOverride and (tpHitsLanded + extraHitsLanded > 0),
+        enmityAmount       = xi.weaponskills.enmityFromDamageAmount(finalDmg, params.enmityMult or 1),
+        sengikori          = sengikori,
+        setHitVar          = xi.weaponskills.shouldSetWeaponskillHitVar(finalDmg),
+        hitLocalVar        = xi.weaponskills.weaponskillHitLocalVar(params.wsID or 0, finalDmg),
+    }
+end
+
+-----------------------------------
 -- Pure: takeWeaponskillDamage TP inject product (slice 6772 / 6661)
 -- Parity: internal/wsformula TakeWeaponskillTPInject
 -----------------------------------
@@ -2256,33 +2292,39 @@ xi.weaponskills.takeWeaponskillDamage = function(defender, attacker, wsParams, p
         extraHitTP,
         targetTPMult
     )
-    if xi.weaponskills.shouldRecordWSDamage(wsResults.tpHitsLanded, wsResults.extraHitsLanded) then
-        action:recordDamage(defender, attack.type, xi.weaponskills.absFinalDamage(finaldmg), wsResults.criticalHit)
+
+    -- Pure residual plan after entity damage (slice 6773). Host writes
+    -- recordDamage / enmity / Sengikori mods / weaponskillHit local var.
+    local sengikoriEffect = attacker:getStatusEffect(xi.effect.SENGIKORI)
+    local post = xi.weaponskills.takeWeaponskillPostDamageFromParams({
+        finalDmg            = finaldmg,
+        tpHitsLanded        = wsResults.tpHitsLanded or 0,
+        extraHitsLanded     = wsResults.extraHitsLanded or 0,
+        hasTaChar           = wsResults.taChar ~= nil,
+        hasOverrideCE       = wsParams.overrideCE ~= nil,
+        hasOverrideVE       = wsParams.overrideVE ~= nil,
+        enmityMult          = xi.weaponskills.defaultMultOr(wsParams.enmityMult ~= nil, wsParams.enmityMult or 1),
+        hasSengikori        = sengikoriEffect ~= nil,
+        sengikoriPower      = sengikoriEffect and sengikoriEffect:getPower() or 0,
+        sengikoriBonus      = attacker:getMod(xi.mod.SENGIKORI_BONUS), -- Additive % bonus: https://www.ffxiah.com/forum/topic/23457/july-11-sam-update/4/#1421344
+        targetHasSkillchain = defender:hasStatusEffect(xi.effect.SKILLCHAIN),
+        wsID                = wsResults.wsID or 0,
+    })
+
+    if post.recordDamage then
+        action:recordDamage(defender, attack.type, post.absFinalDmg, wsResults.criticalHit)
     end
 
-    local enmityEntity = xi.weaponskills.enmityEntityUsesTA(wsResults.taChar ~= nil) and wsResults.taChar or attacker
-
-    if xi.weaponskills.weaponskillEnmityUsesOverride(wsParams.overrideCE, wsParams.overrideVE, wsResults.tpHitsLanded, wsResults.extraHitsLanded) then
+    local enmityEntity = post.enmityUsesTA and wsResults.taChar or attacker
+    if post.enmityUsesOverride then
         defender:addEnmity(enmityEntity, wsParams.overrideCE, wsParams.overrideVE)
     else
-        local enmityMult = xi.weaponskills.defaultMultOr(wsParams.enmityMult ~= nil, wsParams.enmityMult or 1)
-        defender:updateEnmityFromDamage(
-            enmityEntity,
-            xi.weaponskills.enmityFromDamageAmount(finaldmg, enmityMult)
-        )
+        defender:updateEnmityFromDamage(enmityEntity, post.enmityAmount)
     end
 
-    local sengikoriEffect = attacker:getStatusEffect(xi.effect.SENGIKORI)
-    -- TODO: does this effect not apply if you do 0 damage (or absorb)?
+    -- TODO: does Sengikori not apply if you do 0 damage (or absorb)?
     -- Skillchains will still "proc" if you do 0 damage, so assume it does for now
-    local sengikoriPlan = xi.weaponskills.planSengikori(
-        wsResults.tpHitsLanded,
-        wsResults.extraHitsLanded,
-        sengikoriEffect ~= nil,
-        sengikoriEffect and sengikoriEffect:getPower() or 0,
-        attacker:getMod(xi.mod.SENGIKORI_BONUS), -- Additive % bonus: https://www.ffxiah.com/forum/topic/23457/july-11-sam-update/4/#1421344
-        defender:hasStatusEffect(xi.effect.SKILLCHAIN)
-    )
+    local sengikoriPlan = post.sengikori
     if sengikoriPlan.applies then
         -- If no SC effect, apply SC damage debuff
         -- If there is one, apply MB damage debuff
@@ -2299,13 +2341,10 @@ xi.weaponskills.takeWeaponskillDamage = function(defender, attacker, wsParams, p
         end
     end
 
-    if xi.weaponskills.shouldSetWeaponskillHitVar(finaldmg) then
+    if post.setHitVar then
         -- Pack the weaponskill ID in the top 8 bits of this variable which is utilized
         -- in OnMobDeath in luautils.  Max WSID is 255.
-        defender:setLocalVar(
-            'weaponskillHit',
-            xi.weaponskills.weaponskillHitLocalVar(wsResults.wsID, finaldmg)
-        )
+        defender:setLocalVar('weaponskillHit', post.hitLocalVar)
     end
 
     return finaldmg
