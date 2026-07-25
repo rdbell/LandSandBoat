@@ -20,6 +20,7 @@
 */
 
 #include "time_server.h"
+#include "time_server_tick_tail.h"
 
 #include "common/logging.h"
 #include "common/vana_time.h"
@@ -180,13 +181,33 @@ auto time_server(Scheduler& scheduler, MapConfig config) -> Task<void>
         nextVHourlyUpdate = std::chrono::ceil<xi::vanadiel_clock::hours>(vanaTime);
     }
 
-    CTriggerHandler::getInstance()->triggerTimer();
-    CTransportHandler::getInstance()->TransportTimer();
-    co_await instanceutils::CheckInstance(scheduler, config);
-    co_await zoneutils::ProcessLoadQueue(scheduler, config);
-    luautils::OnTimeServerTick();
-    luautils::TryReloadFilewatchList();
-    moduleutils::OnTimeServerTick();
+    for (const auto action : timeserverticktailhelpers::MakePlan())
+    {
+        switch (action)
+        {
+            case timeserverticktailhelpers::Action::TriggerTimer:
+                CTriggerHandler::getInstance()->triggerTimer();
+                break;
+            case timeserverticktailhelpers::Action::TransportTimer:
+                CTransportHandler::getInstance()->TransportTimer();
+                break;
+            case timeserverticktailhelpers::Action::CheckInstance:
+                co_await instanceutils::CheckInstance(scheduler, config);
+                break;
+            case timeserverticktailhelpers::Action::ProcessLoadQueue:
+                co_await zoneutils::ProcessLoadQueue(scheduler, config);
+                break;
+            case timeserverticktailhelpers::Action::OnTimeServerTick:
+                luautils::OnTimeServerTick();
+                break;
+            case timeserverticktailhelpers::Action::ReloadFilewatchList:
+                luautils::TryReloadFilewatchList();
+                break;
+            case timeserverticktailhelpers::Action::OnModuleTimeServerTick:
+                moduleutils::OnTimeServerTick();
+                break;
+        }
+    }
 
     TracyFrameMark;
 }

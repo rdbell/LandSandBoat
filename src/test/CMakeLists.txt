@@ -1499,6 +1499,8 @@ set(SOURCES
     test_map_networking_send_backlog_6926.cpp
     test_map_networking_decipher_6927.h
     test_map_networking_decipher_6927.cpp
+    test_time_server_tick_tail_6928.h
+    test_time_server_tick_tail_6928.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h
