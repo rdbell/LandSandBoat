@@ -8,6 +8,7 @@
 #include "map/equip_armor_ranged_compatibility_capacity.h"
 #include "map/equip_armor_reverse_restrictions_capacity.h"
 #include "map/equip_armor_sub_capacity.h"
+#include "map/equip_armor_target_look_capacity.h"
 #include "map/equip_policy_capacity.h"
 
 #include <iostream>
@@ -308,6 +309,12 @@ auto Check() -> bool
     if (!equiparmorammolookhelpers::ShouldSetRangedLook({ .incomingIsWeapon = true }) ||
         equiparmorammolookhelpers::ShouldSetRangedLook({ .incomingIsWeapon = true, .hasRangedAfterCompatibility = true }) ||
         equiparmorammolookhelpers::ShouldSetRangedLook({}))
+    {
+        return false;
+    }
+
+    if (!equiparmortargetlookhelpers::ShouldSetArmorLook(4) || !equiparmortargetlookhelpers::ShouldSetArmorLook(8) ||
+        equiparmortargetlookhelpers::ShouldSetArmorLook(3) || equiparmortargetlookhelpers::ShouldSetArmorLook(9))
     {
         return false;
     }

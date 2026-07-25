@@ -114,6 +114,7 @@
 #include "equip_armor_ranged_compatibility_capacity.h"
 #include "equip_armor_reverse_restrictions_capacity.h"
 #include "equip_armor_sub_capacity.h"
+#include "equip_armor_target_look_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
@@ -2674,27 +2675,42 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
             break;
             case SLOT_HEAD:
             {
-                PChar->look.head = PItem->getModelId();
+                if (equiparmortargetlookhelpers::ShouldSetArmorLook(equipSlotID))
+                {
+                    PChar->look.head = PItem->getModelId();
+                }
             }
             break;
             case SLOT_BODY:
             {
-                PChar->look.body = PItem->getModelId();
+                if (equiparmortargetlookhelpers::ShouldSetArmorLook(equipSlotID))
+                {
+                    PChar->look.body = PItem->getModelId();
+                }
             }
             break;
             case SLOT_HANDS:
             {
-                PChar->look.hands = PItem->getModelId();
+                if (equiparmortargetlookhelpers::ShouldSetArmorLook(equipSlotID))
+                {
+                    PChar->look.hands = PItem->getModelId();
+                }
             }
             break;
             case SLOT_LEGS:
             {
-                PChar->look.legs = PItem->getModelId();
+                if (equiparmortargetlookhelpers::ShouldSetArmorLook(equipSlotID))
+                {
+                    PChar->look.legs = PItem->getModelId();
+                }
             }
             break;
             case SLOT_FEET:
             {
-                PChar->look.feet = PItem->getModelId();
+                if (equiparmortargetlookhelpers::ShouldSetArmorLook(equipSlotID))
+                {
+                    PChar->look.feet = PItem->getModelId();
+                }
             }
             break;
         }
