@@ -1,5 +1,10 @@
 -----------------------------------
 -- Dragoon Job Utilities
+-- Dual-wired pure inject forms (slice 6748 / 0890, 6032, 6034):
+--   jump TP/multipliers, ancient circle, spirit surge, angon,
+--   steady wing, spirit link, deep breathing, healing/damage breath,
+--   wyvern exp level-ups, high jump enmity, one-hour/breath recast
+-- Parity: internal/dragoon
 -----------------------------------
 require('scripts/globals/ability')
 require('scripts/globals/combat/magic_hit_rate')
@@ -11,6 +16,331 @@ xi = xi or {}
 xi.job_utils = xi.job_utils or {}
 xi.job_utils.dragoon = xi.job_utils.dragoon or {}
 -----------------------------------
+
+
+-----------------------------------
+-- Pure inject pins (internal/dragoon, slice 6748)
+-----------------------------------
+xi.job_utils.dragoon.ancientCircleBaseDuration      = 180
+xi.job_utils.dragoon.ancientCircleMainPower         = 15
+xi.job_utils.dragoon.ancientCircleSubPower          = 5
+xi.job_utils.dragoon.spiritSurgeDuration            = 60
+xi.job_utils.dragoon.spiritSurgeMaxHPFraction       = 0.25
+xi.job_utils.dragoon.angonBaseDuration              = 15
+xi.job_utils.dragoon.angonPower                     = 20
+xi.job_utils.dragoon.steadyWingMissingHPFraction    = 0.3
+xi.job_utils.dragoon.spiritLinkRegenDuration        = 90
+xi.job_utils.dragoon.spiritLinkRegenTick            = 3
+xi.job_utils.dragoon.spiritLinkDrainMinFrac         = 0.25
+xi.job_utils.dragoon.spiritLinkDrainMaxFrac         = 0.35
+xi.job_utils.dragoon.wyvernBreathGearCap            = 64
+xi.job_utils.dragoon.wyvernExpCap                   = 1000
+xi.job_utils.dragoon.wyvernExpPerLevel              = 200
+xi.job_utils.dragoon.oneHourRecastSecondsPerMod     = 60
+xi.job_utils.dragoon.highJumpEnmityMain             = 50
+xi.job_utils.dragoon.highJumpEnmitySub              = 30
+xi.job_utils.dragoon.spiritSurgeHighJumpTPMult      = 2
+xi.job_utils.dragoon.superJumpEnmityRange           = 75.0
+xi.job_utils.dragoon.recastJump                     = 158
+xi.job_utils.dragoon.recastHighJump                 = 159
+xi.job_utils.dragoon.recastSuperJump                = 160
+xi.job_utils.dragoon.recastSpiritJump               = 166
+xi.job_utils.dragoon.recastSoulJump                 = 167
+
+-- Pure: JumpTPBonus
+xi.job_utils.dragoon.jumpTPBonusFromParams = function(params)
+    params = params or {}
+    local extra = params.jumpTPBonus or 0
+    if params.isSpiritJump then
+        extra = extra + (params.spiritJumpBonus or 0)
+    end
+
+    return math.floor(extra * (100 + (params.storeTP or 0)) / 100)
+end
+
+-- Pure: WyvernSTRBoost
+xi.job_utils.dragoon.wyvernSTRBoostFromParams = function(wyvernLevel)
+    return 1 + math.floor((wyvernLevel or 0) / 5)
+end
+
+-- Pure: SpiritLinkDrainAmount
+xi.job_utils.dragoon.spiritLinkDrainAmountFromParams = function(params)
+    params = params or {}
+    local fraction = params.fraction or 0
+    if fraction < xi.job_utils.dragoon.spiritLinkDrainMinFrac then
+        fraction = xi.job_utils.dragoon.spiritLinkDrainMinFrac
+    end
+
+    if fraction > xi.job_utils.dragoon.spiritLinkDrainMaxFrac then
+        fraction = xi.job_utils.dragoon.spiritLinkDrainMaxFrac
+    end
+
+    return math.floor((params.playerHP or 0) * fraction)
+end
+
+-- Pure: OneHourRecast
+xi.job_utils.dragoon.oneHourRecastFromParams = function(params)
+    params = params or {}
+    local r = (params.baseRecast or 0)
+        - (params.oneHourMod or 0) * xi.job_utils.dragoon.oneHourRecastSecondsPerMod
+    if r < 0 then
+        return 0
+    end
+
+    return r
+end
+
+-- Pure: JumpATTMultiplier
+xi.job_utils.dragoon.jumpATTMultiplierFromParams = function(jumpATTBonus)
+    return ((jumpATTBonus or 0) + 100) / 100
+end
+
+-- Pure: JumpFTPFromVIT
+xi.job_utils.dragoon.jumpFTPFromVITFromParams = function(vit)
+    return 1 + (vit or 0) / 256
+end
+
+-- Pure: SpiritJump / SoulJump multipliers — returns atk, tp, forceCrit
+xi.job_utils.dragoon.spiritJumpMultipliersFromParams = function(params)
+    params = params or {}
+    local atk = xi.job_utils.dragoon.jumpATTMultiplierFromParams(params.jumpATTBonus)
+        + (params.soulSpiritATTBonus or 0) / 100
+    local tp = 1
+    local force = false
+    if params.hasWyvern then
+        atk = atk + 0.25
+        tp = 2
+        force = true
+    end
+
+    return atk, tp, force
+end
+
+xi.job_utils.dragoon.soulJumpMultipliersFromParams = function(params)
+    params = params or {}
+    local atk = xi.job_utils.dragoon.jumpATTMultiplierFromParams(params.jumpATTBonus)
+        + (params.soulSpiritATTBonus or 0) / 100
+    local tp = 1
+    local force = false
+    if params.hasWyvern then
+        atk = atk + 0.5
+        tp = 3
+        force = true
+    end
+
+    return atk, tp, force
+end
+
+-- Pure: Ancient Circle
+xi.job_utils.dragoon.ancientCircleDurationFromParams = function(durationMod)
+    return xi.job_utils.dragoon.ancientCircleBaseDuration + (durationMod or 0)
+end
+
+xi.job_utils.dragoon.ancientCirclePowerFromParams = function(params)
+    params = params or {}
+    local power = xi.job_utils.dragoon.ancientCircleSubPower
+    if params.mainJobIsDRG then
+        power = xi.job_utils.dragoon.ancientCircleMainPower + (params.ancientCircleJP or 0)
+    end
+
+    return power + (params.potencyMod or 0)
+end
+
+-- Pure: Spirit Surge / Angon / Steady Wing / Spirit Link
+xi.job_utils.dragoon.spiritSurgeMaxHPBoostFromParams = function(wyvernMaxHP)
+    return (wyvernMaxHP or 0) * xi.job_utils.dragoon.spiritSurgeMaxHPFraction
+end
+
+xi.job_utils.dragoon.angonDurationFromParams = function(angonMerit)
+    return xi.job_utils.dragoon.angonBaseDuration + (angonMerit or 0)
+end
+
+xi.job_utils.dragoon.steadyWingStoneskinPowerFromParams = function(params)
+    params = params or {}
+    return (params.maxHP or 0) * xi.job_utils.dragoon.steadyWingMissingHPFraction
+        + ((params.maxHP or 0) - (params.currentHP or 0))
+end
+
+xi.job_utils.dragoon.spiritLinkRegenPowerFromParams = function(mainLevel)
+    return math.floor((mainLevel or 0) / 3)
+end
+
+xi.job_utils.dragoon.spiritLinkTPShareFromParams = function(wyvernTP)
+    return (wyvernTP or 0) / 2
+end
+
+-- Pure: DeepBreathingBonus
+xi.job_utils.dragoon.deepBreathingBonusFromParams = function(params)
+    params = params or {}
+    if not params.hasEffect then
+        return 0
+    end
+
+    local merits = params.deepBreathingMerits or 0
+    if params.isHealing then
+        local bonus = 37.5 + 12.5 * merits
+        if params.enhanceDB then
+            bonus = bonus + merits * 5
+        end
+
+        return bonus
+    end
+
+    local bonus = 0.75 + 0.25 * merits
+    if params.enhanceDB then
+        bonus = bonus + merits * 0.1
+    end
+
+    return bonus
+end
+
+-- Pure: Healing breath table
+xi.job_utils.dragoon.healingBreathTable =
+{
+    -- ability IDs: 640,641,642,639 = I,II,III,IV in ability.h mapping
+    -- use skill:getID() keys when available
+}
+
+-- Pure: HealingBreathTier
+xi.job_utils.dragoon.healingBreathTierFromParams = function(mainLevel)
+    mainLevel = mainLevel or 0
+    if mainLevel >= 80 then
+        return xi.jobAbility and xi.jobAbility.HEALING_BREATH_IV or 639
+    elseif mainLevel >= 40 then
+        return xi.jobAbility and xi.jobAbility.HEALING_BREATH_III or 642
+    elseif mainLevel >= 20 then
+        return xi.jobAbility and xi.jobAbility.HEALING_BREATH_II or 641
+    end
+
+    return xi.jobAbility and xi.jobAbility.HEALING_BREATH or 640
+end
+
+-- Pure: HealingBreathCurePower
+xi.job_utils.dragoon.healingBreathCurePowerFromParams = function(params)
+    params = params or {}
+    local gear = params.gear or 0
+    if gear > xi.job_utils.dragoon.wyvernBreathGearCap then
+        gear = xi.job_utils.dragoon.wyvernBreathGearCap
+    end
+
+    local multiplier = ((params.baseMult or 0) + gear + math.floor(params.deepMult or 0)) / 256
+    return math.floor((params.wyvernMaxHP or 0) * multiplier)
+        + (params.base or 0)
+        + (params.jobPointBonus or 0) * (params.breathAugmentsBonus or 1)
+end
+
+-- Pure: DamageBreathBase
+xi.job_utils.dragoon.damageBreathBaseFromParams = function(params)
+    params = params or {}
+    local gear = params.gear or 0
+    if gear > xi.job_utils.dragoon.wyvernBreathGearCap then
+        gear = xi.job_utils.dragoon.wyvernBreathGearCap
+    end
+
+    local gearMult = 1.0 + gear / 256
+    local base = math.floor((params.wyvernHP or 0) / 6 + 15 + (params.jobPointBonus or 0))
+    return base * gearMult * (1.0 + (params.breathAugments or 0) + (params.deepMult or 0))
+end
+
+xi.job_utils.dragoon.wyvernBreathJPBonusFromParams = function(wyvernBreathJP)
+    return (wyvernBreathJP or 0) * 10
+end
+
+xi.job_utils.dragoon.breathAugmentsBonusFromParams = function(uncapped)
+    return 1 + (uncapped or 0) / 100
+end
+
+xi.job_utils.dragoon.damageBreathAugmentsFromParams = function(uncapped)
+    return (uncapped or 0) / 100
+end
+
+-- Pure: BreathAbilityByResRank — resRanks length 6: fire,ice,wind,earth,thunder,water
+xi.job_utils.dragoon.breathAbilityByResRankFromParams = function(resRanks)
+    resRanks = resRanks or {}
+    local breaths =
+    {
+        xi.jobAbility and xi.jobAbility.FLAME_BREATH or 646,
+        xi.jobAbility and xi.jobAbility.FROST_BREATH or 647,
+        xi.jobAbility and xi.jobAbility.GUST_BREATH or 648,
+        xi.jobAbility and xi.jobAbility.SAND_BREATH or 649,
+        xi.jobAbility and xi.jobAbility.LIGHTNING_BREATH or 650,
+        xi.jobAbility and xi.jobAbility.HYDRO_BREATH or 651,
+    }
+    if #resRanks == 0 then
+        return breaths[1]
+    end
+
+    local lowest = 11
+    local out = breaths[1]
+    for i, b in ipairs(breaths) do
+        local rank = resRanks[i]
+        if rank == nil then
+            break
+        end
+
+        if rank < lowest then
+            lowest = rank
+            out = b
+        end
+    end
+
+    return out
+end
+
+-- Pure: WyvernLevelUps — returns levelUps, newExp
+xi.job_utils.dragoon.wyvernLevelUpsFromParams = function(params)
+    params = params or {}
+    local prevExp = params.prevExp or 0
+    local exp = params.exp or 0
+    if prevExp >= xi.job_utils.dragoon.wyvernExpCap then
+        return 0, prevExp
+    end
+
+    local current = exp
+    if prevExp + current > xi.job_utils.dragoon.wyvernExpCap then
+        current = xi.job_utils.dragoon.wyvernExpCap - prevExp
+    end
+
+    local levelUps = math.floor((prevExp + current) / xi.job_utils.dragoon.wyvernExpPerLevel)
+        - math.floor(prevExp / xi.job_utils.dragoon.wyvernExpPerLevel)
+    return levelUps, prevExp + current
+end
+
+xi.job_utils.dragoon.breathRecastFromParams = function(params)
+    params = params or {}
+    local r = (params.baseRecast or 0) - (params.dragoonBreathRecastMod or 0)
+    if r < 0 then
+        return 0
+    end
+
+    return r
+end
+
+xi.job_utils.dragoon.highJumpEnmityShedFromParams = function(params)
+    params = params or {}
+    local base = xi.job_utils.dragoon.highJumpEnmitySub
+    if params.mainJobIsDRG then
+        base = xi.job_utils.dragoon.highJumpEnmityMain
+    end
+
+    return base + (params.highJumpEnmityReduction or 0)
+end
+
+xi.job_utils.dragoon.spiritSurgeHighJumpTPRemoveFromParams = function(damage)
+    return (damage or 0) * xi.job_utils.dragoon.spiritSurgeHighJumpTPMult
+end
+
+xi.job_utils.dragoon.superJumpInRangeFromParams = function(distance)
+    return (distance or 0) <= xi.job_utils.dragoon.superJumpEnmityRange
+end
+
+xi.job_utils.dragoon.isSpiritOrSoulJumpFromParams = function(abilityID)
+    if xi.jobAbility then
+        return abilityID == xi.jobAbility.SPIRIT_JUMP or abilityID == xi.jobAbility.SOUL_JUMP
+    end
+
+    return abilityID == 260 or abilityID == 293
+end
 
 -- Returns a table of WS Parameters common to all damage-dealing jumps
 local function getJumpWSParams(player, atkMultiplier, tpMultiplier, forceCrit)
@@ -75,15 +405,12 @@ local function performWSJump(player, target, action, params, abilityID)
     end
 
     -- Jumps add JUMP_TP_BONUS regardless of 0 dmg or miss and is affected by Store TP but not the target's subtle blow
-    local storeTPModifier = (100 + player:getMod(xi.mod.STORETP)) / 100
-    local extraTP         = player:getMod(xi.mod.JUMP_TP_BONUS)
-
-    -- Spirit jump specific TP bonus
-    if abilityID == xi.jobAbility.SPIRIT_JUMP then
-        extraTP = extraTP + player:getMod(xi.mod.JUMP_SPIRIT_TP_BONUS)
-    end
-
-    player:addTP(math.floor(extraTP * storeTPModifier))
+    player:addTP(xi.job_utils.dragoon.jumpTPBonusFromParams({
+        jumpTPBonus     = player:getMod(xi.mod.JUMP_TP_BONUS),
+        spiritJumpBonus = player:getMod(xi.mod.JUMP_SPIRIT_TP_BONUS),
+        storeTP         = player:getMod(xi.mod.STORETP),
+        isSpiritJump    = abilityID == xi.jobAbility.SPIRIT_JUMP,
+    }))
 
     -- https://www.bg-wiki.com/ffxi/Fly_High_(Ability)
     if player:hasStatusEffect(xi.effect.FLY_HIGH) then
@@ -124,7 +451,10 @@ xi.job_utils.dragoon.abilityCheckRequiresPet = function(player, target, ability,
         end
 
         if ability:getID() == xi.jobAbility.SPIRIT_SURGE then
-            ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
+            ability:setRecast(xi.job_utils.dragoon.oneHourRecastFromParams({
+                baseRecast = ability:getRecast(),
+                oneHourMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+            }))
         end
 
         return 0, 0
@@ -184,27 +514,32 @@ xi.job_utils.dragoon.useSpiritSurge = function(player, target, ability)
     local wyvern   = player:getPet()
     local petTP    = wyvern:getTP()
     local petHP    = wyvern:getHP()
-    local duration = 60
+    local duration = xi.job_utils.dragoon.spiritSurgeDuration
 
     -- Spirit Surge increases dragoon's MAX HP increases by 25% of wyvern MaxHP
     -- bg wiki says 25% ffxiclopedia says 15%, going with 25 for now
-    local maxHPBoost = target:getPet():getMaxHP() * 0.25
+    local maxHPBoost = xi.job_utils.dragoon.spiritSurgeMaxHPBoostFromParams(target:getPet():getMaxHP())
 
     -- Dragoon gets all of wyverns TP when using Spirit Surge
     target:addTP(petTP)
     wyvern:delTP(petTP)
 
     -- Spirit Surge increases dragoon's Strength
-    local strBoost = 1 + math.floor(wyvern:getMainLvl() / 5)
+    local strBoost = xi.job_utils.dragoon.wyvernSTRBoostFromParams(wyvern:getMainLvl())
 
     target:despawnPet()
 
     -- All Jump recast times are reset, but not Spirit/Soul jump
-    target:resetRecast(xi.recast.ABILITY, 158) -- Jump
-    target:resetRecast(xi.recast.ABILITY, 159) -- High Jump
-    target:resetRecast(xi.recast.ABILITY, 160) -- Super Jump
+    target:resetRecast(xi.recast.ABILITY, xi.job_utils.dragoon.recastJump)
+    target:resetRecast(xi.recast.ABILITY, xi.job_utils.dragoon.recastHighJump)
+    target:resetRecast(xi.recast.ABILITY, xi.job_utils.dragoon.recastSuperJump)
 
-    target:addStatusEffect(xi.effect.SPIRIT_SURGE, { power = maxHPBoost, duration = duration, origin = player, subPower = strBoost })
+    target:addStatusEffect(xi.effect.SPIRIT_SURGE, {
+        power    = maxHPBoost,
+        duration = duration,
+        origin   = player,
+        subPower = strBoost,
+    })
     target:addHP(petHP) -- Add in wyvern's remaining HP before the wyvern was despawned
 end
 
@@ -213,29 +548,34 @@ xi.job_utils.dragoon.useCallWyvern = function(player, target, ability)
 end
 
 xi.job_utils.dragoon.useAncientCircle = function(player, target, ability)
-    local duration = 180 + player:getMod(xi.mod.ANCIENT_CIRCLE_DURATION)
-    local jpValue  = player:getJobPointLevel(xi.jp.ANCIENT_CIRCLE_EFFECT)
-    local power    = 5
-
-    if player:getMainJob() == xi.job.DRG then
-        power = 15 + jpValue
-    end
-
-    power = power + player:getMod(xi.mod.ANCIENT_CIRCLE_POTENCY)
+    local duration = xi.job_utils.dragoon.ancientCircleDurationFromParams(
+        player:getMod(xi.mod.ANCIENT_CIRCLE_DURATION)
+    )
+    local power = xi.job_utils.dragoon.ancientCirclePowerFromParams({
+        mainJobIsDRG   = player:getMainJob() == xi.job.DRG,
+        ancientCircleJP = player:getJobPointLevel(xi.jp.ANCIENT_CIRCLE_EFFECT),
+        potencyMod     = player:getMod(xi.mod.ANCIENT_CIRCLE_POTENCY),
+    })
 
     ability:setMsg(xi.msg.basic.USES_ABILITY_FORTIFIED_DRAGONS)
 
-    target:addStatusEffect(xi.effect.ANCIENT_CIRCLE, { power = power, duration = duration, origin = player })
+    target:addStatusEffect(xi.effect.ANCIENT_CIRCLE, {
+        power    = power,
+        duration = duration,
+        origin   = player,
+    })
 
     return xi.effect.ANCIENT_CIRCLE
 end
 
 xi.job_utils.dragoon.useJump = function(player, target, ability, action)
-    local atkMultiplier = (player:getMod(xi.mod.JUMP_ATT_BONUS) + 100) / 100
+    local atkMultiplier = xi.job_utils.dragoon.jumpATTMultiplierFromParams(
+        player:getMod(xi.mod.JUMP_ATT_BONUS)
+    )
     local params = getJumpWSParams(player, atkMultiplier, 1, false)
 
     -- Only 'Jump' and not others get the fTP VIT bonus
-    local ftp = 1 + (player:getStat(xi.mod.VIT) / 256)
+    local ftp = xi.job_utils.dragoon.jumpFTPFromVITFromParams(player:getStat(xi.mod.VIT))
     params.ftpMod = { ftp, ftp, ftp }
 
     local damage, totalHits = performWSJump(player, target, action, params, ability:getID())
@@ -360,26 +700,36 @@ xi.job_utils.dragoon.applyEmpathyBonus = function(player, wyvern)
 end
 
 xi.job_utils.dragoon.useSpiritLink = function(player, target, ability, action)
-    local wyvern      = player:getPet()
-    local playerHP    = player:getHP()
-    local petTP       = wyvern:getTP()
-    local regenAmount = player:getMainLvl() / 3 -- level/3 tic regen
+    local wyvern   = player:getPet()
+    local playerHP = player:getHP()
+    local petTP    = wyvern:getTP()
 
     xi.job_utils.dragoon.checkForRemovableEffectsOnSpiritLink(player, wyvern)
 
     -- Empathy: copy status effects and grant wyvern EXP
     xi.job_utils.dragoon.applyEmpathyBonus(player, wyvern)
 
-    wyvern:addStatusEffect(xi.effect.REGEN, { power = regenAmount, duration = 90, origin = player, tick = 3 }) -- 90 seconds of regen
-    player:addTP(petTP / 2) -- add half wyvern tp to you
-    wyvern:delTP(petTP / 2) -- remove half tp from wyvern
+    local regenAmount = xi.job_utils.dragoon.spiritLinkRegenPowerFromParams(player:getMainLvl())
+    wyvern:addStatusEffect(xi.effect.REGEN, {
+        power    = regenAmount,
+        duration = xi.job_utils.dragoon.spiritLinkRegenDuration,
+        origin   = player,
+        tick     = xi.job_utils.dragoon.spiritLinkRegenTick,
+    }) -- 90 seconds of regen
+    local tpShare = xi.job_utils.dragoon.spiritLinkTPShareFromParams(petTP)
+    player:addTP(tpShare) -- add half wyvern tp to you
+    wyvern:delTP(tpShare) -- remove half tp from wyvern
 
     -- Calculate drain amount.
     -- TODO: Shouldnt this be floored at some point, so we don't remove 1.5 hp from player health pool and/or stoneskin power?
     local drainamount = 0
 
     if wyvern:getHP() ~= wyvern:getMaxHP() then
-        drainamount = (math.random(25, 35) / 100) * playerHP
+        local fraction = math.random(25, 35) / 100
+        drainamount = xi.job_utils.dragoon.spiritLinkDrainAmountFromParams({
+            playerHP = playerHP,
+            fraction = fraction,
+        })
         drainamount = drainamount * (1 - (0.01 * player:getJobPointLevel(xi.jp.SPIRIT_LINK_EFFECT)))
     end
 
@@ -420,12 +770,12 @@ xi.job_utils.dragoon.useHighJump = function(player, target, ability, action)
     local damage, totalHits = performWSJump(player, target, action, params, ability:getID())
 
     if target:isMob() then
-        local enmityShed = 50
-        if player:getMainJob() ~= xi.job.DRG then
-            enmityShed = 30
-        end
+        local enmityShed = xi.job_utils.dragoon.highJumpEnmityShedFromParams({
+            mainJobIsDRG             = player:getMainJob() == xi.job.DRG,
+            highJumpEnmityReduction  = player:getMod(xi.mod.HIGH_JUMP_ENMITY_REDUCTION),
+        })
 
-        target:lowerEnmity(player, enmityShed + player:getMod(xi.mod.HIGH_JUMP_ENMITY_REDUCTION)) -- reduce total accumulated enmity
+        target:lowerEnmity(player, enmityShed) -- reduce total accumulated enmity
     end
 
     if
@@ -434,7 +784,7 @@ xi.job_utils.dragoon.useHighJump = function(player, target, ability, action)
     then
         -- Under Spirit Surge, High Jump reduces TP of target
         -- https://www.bg-wiki.com/ffxi/Spirit_Surge
-        target:delTP(damage * 2)
+        target:delTP(xi.job_utils.dragoon.spiritSurgeHighJumpTPRemoveFromParams(damage))
     end
 
     return damage
@@ -444,7 +794,10 @@ xi.job_utils.dragoon.useSuperJump = function(player, target, ability)
     -- http://wiki.ffo.jp/html/3367.html
     for _, mob in pairs(player:getNotorietyList()) do
         -- TODO: testing shows max range on this is >50' but stops somewhere above this. Need exact number.
-        if mob:isMob() and mob:checkDistance(player) <= 75.0 then
+        if
+            mob:isMob() and
+            xi.job_utils.dragoon.superJumpInRangeFromParams(mob:checkDistance(player))
+        then
             mob:setCE(player, 1)
             mob:setVE(player, 0)
         end
@@ -506,9 +859,15 @@ end
 
 -- https://www.bg-wiki.com/ffxi/Angon
 xi.job_utils.dragoon.useAngon = function(player, target, ability)
-    local duration   = 15 + player:getMerit(xi.merit.ANGON) -- This will return 30 sec at one investment because merit power is 15.
+    local duration = xi.job_utils.dragoon.angonDurationFromParams(
+        player:getMerit(xi.merit.ANGON)
+    ) -- This will return 30 sec at one investment because merit power is 15.
 
-    if not target:addStatusEffect(xi.effect.DEFENSE_DOWN, { power = 20, duration = duration, origin = player }) then
+    if not target:addStatusEffect(xi.effect.DEFENSE_DOWN, {
+        power    = xi.job_utils.dragoon.angonPower,
+        duration = duration,
+        origin   = player,
+    }) then
         ability:setMsg(xi.msg.basic.MAGIC_NO_EFFECT)
     end
 
@@ -533,17 +892,13 @@ xi.job_utils.dragoon.useSpiritBond = function(player, target, ability)
 end
 
 xi.job_utils.dragoon.useSpiritJump = function(player, target, ability, action)
-    local atkMultiplier = (player:getMod(xi.mod.JUMP_ATT_BONUS) + 100) / 100
-    atkMultiplier       = atkMultiplier + (player:getMod(xi.mod.JUMP_SOUL_SPIRIT_ATT_BONUS)) / 100
-    local tpMultiplier  = 1
-    local forceCrit     = false
-
     -- https://www.bg-wiki.com/ffxi/Spirit_Jump
-    if hasWyvern(player) then
-        tpMultiplier = 2
-        atkMultiplier = atkMultiplier + 0.25
-        forceCrit = true
-    end
+    local atkMultiplier, tpMultiplier, forceCrit =
+        xi.job_utils.dragoon.spiritJumpMultipliersFromParams({
+            jumpATTBonus       = player:getMod(xi.mod.JUMP_ATT_BONUS),
+            soulSpiritATTBonus = player:getMod(xi.mod.JUMP_SOUL_SPIRIT_ATT_BONUS),
+            hasWyvern          = hasWyvern(player),
+        })
 
     local params    = getJumpWSParams(player, atkMultiplier, tpMultiplier, forceCrit)
     local damage, _ = performWSJump(player, target, action, params, ability:getID())
@@ -552,18 +907,13 @@ xi.job_utils.dragoon.useSpiritJump = function(player, target, ability, action)
 end
 
 xi.job_utils.dragoon.useSoulJump = function(player, target, ability, action)
-    local atkMultiplier = (player:getMod(xi.mod.JUMP_ATT_BONUS) + 100) / 100
-    atkMultiplier       = atkMultiplier + (player:getMod(xi.mod.JUMP_SOUL_SPIRIT_ATT_BONUS)) / 100
-
-    local tpMultiplier = 1
-    local forceCrit    = false
-
     -- https://www.bg-wiki.com/ffxi/Soul_Jump
-    if hasWyvern(player) then
-        tpMultiplier  = 3
-        atkMultiplier = atkMultiplier + 0.5
-        forceCrit     = true
-    end
+    local atkMultiplier, tpMultiplier, forceCrit =
+        xi.job_utils.dragoon.soulJumpMultipliersFromParams({
+            jumpATTBonus       = player:getMod(xi.mod.JUMP_ATT_BONUS),
+            soulSpiritATTBonus = player:getMod(xi.mod.JUMP_SOUL_SPIRIT_ATT_BONUS),
+            hasWyvern          = hasWyvern(player),
+        })
 
     local params    = getJumpWSParams(player, atkMultiplier, tpMultiplier, forceCrit)
     local damage, _ = performWSJump(player, target, action, params, ability:getID())
@@ -577,11 +927,11 @@ end
 
 xi.job_utils.dragoon.useFlyHigh = function(player, target, ability)
     -- All Jump recast times are reset
-    target:resetRecast(xi.recast.ABILITY, 158) -- Jump
-    target:resetRecast(xi.recast.ABILITY, 159) -- High Jump
-    target:resetRecast(xi.recast.ABILITY, 160) -- Super Jump
-    target:resetRecast(xi.recast.ABILITY, 166) -- Spirit Jump
-    target:resetRecast(xi.recast.ABILITY, 167) -- Soul Jump
+    target:resetRecast(xi.recast.ABILITY, xi.job_utils.dragoon.recastJump)
+    target:resetRecast(xi.recast.ABILITY, xi.job_utils.dragoon.recastHighJump)
+    target:resetRecast(xi.recast.ABILITY, xi.job_utils.dragoon.recastSuperJump)
+    target:resetRecast(xi.recast.ABILITY, xi.job_utils.dragoon.recastSpiritJump)
+    target:resetRecast(xi.recast.ABILITY, xi.job_utils.dragoon.recastSoulJump)
 
     player:addStatusEffect(xi.effect.FLY_HIGH, { duration = 30, origin = player })
 
@@ -593,7 +943,10 @@ xi.job_utils.dragoon.useSteadyWing = function(player, target, ability, action)
 
     -- https://www.bg-wiki.com/ffxi/Steady_Wing
     if wyvern then
-        local power = wyvern:getMaxHP() * 0.3 + wyvern:getMaxHP() - wyvern:getHP()
+        local power = xi.job_utils.dragoon.steadyWingStoneskinPowerFromParams({
+            maxHP     = wyvern:getMaxHP(),
+            currentHP = wyvern:getHP(),
+        })
 
         if wyvern:addStatusEffect(xi.effect.STONESKIN, { power = power, duration = 300, origin = player }) then
             local effect = wyvern:getStatusEffect(xi.effect.STONESKIN)
@@ -610,29 +963,15 @@ xi.job_utils.dragoon.useSteadyWing = function(player, target, ability, action)
 end
 
 xi.job_utils.dragoon.getDeepBreathingBonus = function(wyvern, master, isHealing)
-    local bonus = 0
     local hadEffect = wyvern:hasStatusEffect(xi.effect.MAGIC_ATK_BOOST)
+    local bonus = xi.job_utils.dragoon.deepBreathingBonusFromParams({
+        hasEffect           = hadEffect,
+        deepBreathingMerits = master:getMerit(xi.merit.DEEP_BREATHING),
+        enhanceDB           = master:getMod(xi.mod.ENHANCE_DEEP_BREATHING) > 0,
+        isHealing           = isHealing,
+    })
 
     if hadEffect then
-        local deepBreathingMerits = master:getMerit(xi.merit.DEEP_BREATHING)
-        local enhanceDB = master:getMod(xi.mod.ENHANCE_DEEP_BREATHING)
-
-        if isHealing then
-            bonus = 37.5 + (12.5 * deepBreathingMerits)
-
-            -- add in augment power, +5 per merit level (including first)
-            if enhanceDB > 0 then
-                bonus = bonus + deepBreathingMerits * 5
-            end
-        else
-            bonus = 0.75 + (0.25 * deepBreathingMerits)
-
-            -- add in augment power, +0.1 per merit level (including first)
-            if enhanceDB > 0 then
-                bonus = bonus + deepBreathingMerits * 0.1
-            end
-        end
-
         wyvern:delStatusEffect(xi.effect.MAGIC_ATK_BOOST)
     end
 
@@ -652,15 +991,25 @@ xi.job_utils.dragoon.useHealingBreath = function(wyvern, target, skill, action)
 
     local master              = wyvern:getMaster()
     local deepMult            = xi.job_utils.dragoon.getDeepBreathingBonus(wyvern, master, true)
-    local jobPointBonus       = master:getJobPointLevel(xi.jp.WYVERN_BREATH_EFFECT) * 10
-    local breathAugmentsBonus = 1 + master:getMod(xi.mod.UNCAPPED_WYVERN_BREATH) / 100
+    local jobPointBonus       = xi.job_utils.dragoon.wyvernBreathJPBonusFromParams(
+        master:getJobPointLevel(xi.jp.WYVERN_BREATH_EFFECT)
+    )
+    local breathAugmentsBonus = xi.job_utils.dragoon.breathAugmentsBonusFromParams(
+        master:getMod(xi.mod.UNCAPPED_WYVERN_BREATH)
+    )
     local gear                = master:getMod(xi.mod.WYVERN_BREATH) -- Master gear that enhances breath
     local base                = healingBreathTable[skill:getID()][1]
     local baseMultiplier      = healingBreathTable[skill:getID()][2]
 
-    -- gear cap of 64/256 in multiplier
-    local multiplier      = (baseMultiplier + math.min(gear, 64) + math.floor(deepMult)) / 256
-    local curePower       = math.floor(wyvern:getMaxHP() * multiplier) + base + jobPointBonus * breathAugmentsBonus
+    local curePower = xi.job_utils.dragoon.healingBreathCurePowerFromParams({
+        wyvernMaxHP          = wyvern:getMaxHP(),
+        base                 = base,
+        baseMult             = baseMultiplier,
+        gear                 = gear,
+        deepMult             = deepMult,
+        jobPointBonus        = jobPointBonus,
+        breathAugmentsBonus  = breathAugmentsBonus,
+    })
     local totalHPRestored = target:addHP(curePower)
 
     skill:setMsg(xi.msg.basic.JA_RECOVERS_HP_2)
@@ -686,14 +1035,21 @@ end
 xi.job_utils.dragoon.useDamageBreath = function(wyvern, target, skill, action, damageType)
     local master                  = wyvern:getMaster()
     local deepBreathingMultiplier = xi.job_utils.dragoon.getDeepBreathingBonus(wyvern, master, false)
-    local jobPointBonus           = master:getJobPointLevel(xi.jp.WYVERN_BREATH_EFFECT) * 10
-    local breathAugmentsBonus     = master:getMod(xi.mod.UNCAPPED_WYVERN_BREATH) / 100
-    local gearMultiplier          = master:getMod(xi.mod.WYVERN_BREATH) -- Master gear that enhances breath
+    local jobPointBonus           = xi.job_utils.dragoon.wyvernBreathJPBonusFromParams(
+        master:getJobPointLevel(xi.jp.WYVERN_BREATH_EFFECT)
+    )
+    local breathAugmentsBonus     = xi.job_utils.dragoon.damageBreathAugmentsFromParams(
+        master:getMod(xi.mod.UNCAPPED_WYVERN_BREATH)
+    )
+    local gear                    = master:getMod(xi.mod.WYVERN_BREATH) -- Master gear that enhances breath
 
-    -- gear cap of 64/256 in multiplier
-    gearMultiplier = 1.0 + (math.min(gearMultiplier, 64)) / 256
-
-    local damage = math.floor(wyvern:getHP() / 6 + 15 + jobPointBonus) * gearMultiplier * (1.0 + breathAugmentsBonus + deepBreathingMultiplier)
+    local damage = xi.job_utils.dragoon.damageBreathBaseFromParams({
+        wyvernHP        = wyvern:getHP(),
+        jobPointBonus   = jobPointBonus,
+        gear            = gear,
+        breathAugments  = breathAugmentsBonus,
+        deepMult        = deepBreathingMultiplier,
+    })
 
     -- strafe merits are +10 per merit
     local strafeMeritPower = master:getMerit(xi.merit.STRAFE_EFFECT)
@@ -756,57 +1112,27 @@ end
 -- There is an instance of the wyvern refusing to use breaths on retail, such as against Shinryu.
 -- The wyvern will not respond to Smiting Breath, as you are simply unable to use it.
 xi.job_utils.dragoon.pickAndUseDamageBreath = function(player, target)
-    local breathList =
-    {
-        xi.jobAbility.FLAME_BREATH,
-        xi.jobAbility.FROST_BREATH,
-        xi.jobAbility.GUST_BREATH,
-        xi.jobAbility.SAND_BREATH,
-        xi.jobAbility.LIGHTNING_BREATH,
-        xi.jobAbility.HYDRO_BREATH,
-    }
-
-    local resistances =
-    {
-        xi.mod.FIRE_RES_RANK,
-        xi.mod.ICE_RES_RANK,
-        xi.mod.WIND_RES_RANK,
-        xi.mod.EARTH_RES_RANK,
-        xi.mod.THUNDER_RES_RANK,
-        xi.mod.WATER_RES_RANK,
-    }
-
-    local lowestModValue  = 11
-    local currentModValue = 0
-    local breathToUse     = breathList[1]
-
     -- https://www.bg-wiki.com/ffxi/Wyvern_(Dragoon_Pet)#Elemental_Breath
     -- The wyvern simply picks the lowest resistance breath and no longer relies on Drachen Armet et al
     -- if all resistances are equal, Flame Breath is picked first.
-    for i, v in ipairs(breathList) do
-        currentModValue = target:getMod(resistances[i])
-
-        if currentModValue < lowestModValue then
-            lowestModValue = currentModValue
-            breathToUse    = v
-        end
-    end
+    local resRanks =
+    {
+        target:getMod(xi.mod.FIRE_RES_RANK),
+        target:getMod(xi.mod.ICE_RES_RANK),
+        target:getMod(xi.mod.WIND_RES_RANK),
+        target:getMod(xi.mod.EARTH_RES_RANK),
+        target:getMod(xi.mod.THUNDER_RES_RANK),
+        target:getMod(xi.mod.WATER_RES_RANK),
+    }
+    local breathToUse = xi.job_utils.dragoon.breathAbilityByResRankFromParams(resRanks)
 
     player:getPet():usePetAbility(breathToUse, target)
 end
 
 xi.job_utils.dragoon.useRestoringBreath = function(player, ability, action)
     local wyvern          = player:getPet()
-    local healingbreath   = xi.jobAbility.HEALING_BREATH
+    local healingbreath   = xi.job_utils.dragoon.healingBreathTierFromParams(player:getMainLvl())
     local breathHealRange = 14
-
-    if player:getMainLvl() >= 80 then
-        healingbreath = xi.jobAbility.HEALING_BREATH_IV
-    elseif player:getMainLvl() >= 40 then
-        healingbreath = xi.jobAbility.HEALING_BREATH_III
-    elseif player:getMainLvl() >= 20 then
-        healingbreath = xi.jobAbility.HEALING_BREATH_II
-    end
 
     local function inBreathRange(target)
         return wyvern:checkDistance(target) <= breathHealRange
@@ -833,15 +1159,19 @@ xi.job_utils.dragoon.useRestoringBreath = function(player, ability, action)
         target = player
     end
 
-    local jobPointRecastReduction = player:getMod(xi.mod.DRAGOON_BREATH_RECAST)
-    action:setRecast(ability:getRecast() - jobPointRecastReduction)
+    action:setRecast(xi.job_utils.dragoon.breathRecastFromParams({
+        baseRecast              = ability:getRecast(),
+        dragoonBreathRecastMod  = player:getMod(xi.mod.DRAGOON_BREATH_RECAST),
+    }))
 
     wyvern:usePetAbility(healingbreath, target)
 end
 
 xi.job_utils.dragoon.useSmitingBreath = function(player, target, ability, action)
-    local jobPointRecastReduction = player:getMod(xi.mod.DRAGOON_BREATH_RECAST)
-    action:setRecast(ability:getRecast() - jobPointRecastReduction)
+    action:setRecast(xi.job_utils.dragoon.breathRecastFromParams({
+        baseRecast              = ability:getRecast(),
+        dragoonBreathRecastMod  = player:getMod(xi.mod.DRAGOON_BREATH_RECAST),
+    }))
 
     xi.job_utils.dragoon.pickAndUseDamageBreath(player, target)
 end
@@ -849,17 +1179,12 @@ end
 xi.job_utils.dragoon.addWyvernExp = function(player, exp)
     local wyvern      = player:getPet()
     local prevExp     = wyvern:getLocalVar('wyvern_exp')
-    local numLevelUps = 0
+    local numLevelUps, newExp = xi.job_utils.dragoon.wyvernLevelUpsFromParams({
+        prevExp = prevExp,
+        exp     = exp,
+    })
 
-    if prevExp < 1000 then
-        -- cap exp at 1000 to prevent wyvern leveling up many times from large exp awards
-        local currentExp = exp
-        if prevExp + currentExp > 1000 then
-            currentExp = 1000 - prevExp
-        end
-
-        numLevelUps = math.floor((prevExp + currentExp) / 200) - math.floor(prevExp / 200)
-
+    if numLevelUps > 0 or newExp ~= prevExp then
         if numLevelUps ~= 0 then
             local wyvernAttributeIncreaseEffectJP = player:getJobPointLevel(xi.jp.WYVERN_ATTR_BONUS)
             local wyvernBonusDA = player:getMod(xi.mod.WYVERN_ATTRIBUTE_DA)
@@ -882,7 +1207,7 @@ xi.job_utils.dragoon.addWyvernExp = function(player, exp)
             player:addMod(xi.mod.ALL_WSDMG_ALL_HITS, 2 * numLevelUps)
         end
 
-        wyvern:setLocalVar('wyvern_exp', prevExp + exp)
+        wyvern:setLocalVar('wyvern_exp', newExp)
         wyvern:setLocalVar('level_Ups', wyvern:getLocalVar('level_Ups') + numLevelUps)
     end
 
