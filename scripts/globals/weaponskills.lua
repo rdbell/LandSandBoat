@@ -1860,6 +1860,64 @@ xi.weaponskills.magicWeaponskillWSDProduct = function(dmg, allWSDMG, perWSWSD, i
     return dmg
 end
 
+-----------------------------------
+-- Pure: magic WS damage product composition (slice 6770 / 6653)
+-- Parity: internal/wsformula MagicWeaponskillDamagePreSevere / Final
+-----------------------------------
+
+-- Mid-product through resist/shell floors once WSC/fINT/fTP/scarlet/WSD and
+-- ability residual injects are known. Host applies handleSevereDamage next.
+-- params: wsc, mainLvl, fint, ftp, gearFTP, scarletMult,
+--   allWSDMG, perWSWSD, isPet, firstHitWSD,
+--   afterAbility, useAfterAbility, resist, damageAdj
+xi.weaponskills.magicWeaponskillDamagePreSevereFromParams = function(params)
+    params = params or {}
+    local dmg = xi.weaponskills.magicWeaponskillRawDamage(
+        params.wsc or 0,
+        params.mainLvl or 0,
+        params.fint or 0,
+        params.ftp or 0,
+        params.gearFTP or 0
+    )
+    dmg = xi.weaponskills.magicWSScarletProduct(dmg, params.scarletMult or 1)
+    dmg = xi.weaponskills.magicWeaponskillWSDProduct(
+        dmg,
+        params.allWSDMG or 0,
+        params.perWSWSD or 0,
+        params.isPet,
+        params.firstHitWSD or 0
+    )
+    if params.useAfterAbility then
+        dmg = params.afterAbility or 0
+    end
+
+    return xi.weaponskills.magicMitigationFloors(
+        dmg, params.resist or 1, params.damageAdj or 1)
+end
+
+-- Post-severe product through WEAPON_SKILL_POWER.
+-- params: afterSevere, absorb, nullify, afterMitigate, useAfterMitigate,
+--   weaponSkillPower
+-- returns: damage, negativeEarly
+xi.weaponskills.magicWeaponskillDamageFinalFromParams = function(params)
+    params = params or {}
+    local afterSevere = params.afterSevere or 0
+    if xi.weaponskills.magicWSNegativeEarlyReturn(afterSevere) then
+        return afterSevere, true
+    end
+
+    local dmg = xi.weaponskills.magicWeaponskillAbsorbNullify(
+        afterSevere,
+        params.absorb or 1,
+        params.nullify or 1
+    )
+    if params.useAfterMitigate then
+        dmg = params.afterMitigate or 0
+    end
+
+    return xi.weaponskills.applyWeaponSkillPower(dmg, params.weaponSkillPower or 1), false
+end
+
 xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, tp, action, primaryMsg)
     -- Set up conditions and wsParams used for calculating weaponskill damage
     local attack =
@@ -1898,51 +1956,80 @@ xi.weaponskills.doMagicWeaponskill = function(attacker, target, wsID, wsParams, 
     )
 
     -- Magic-based WSes never miss, so we don't need to worry about calculating a miss, only if a shadow absorbed it.
+    -- Host residual: WSC/entity mods, ability bonuses, resist, severe, absorb, Phalanx/OFA/Stoneskin.
+    -- Pure product: magicWeaponskillDamage*FromParams (slice 6770).
     if not shadowAbsorb(target) then
         local wsc = xi.combat.physical.calculateWSC(attacker, wsParams.str_wsc, wsParams.dex_wsc, wsParams.vit_wsc, wsParams.agi_wsc, wsParams.int_wsc, wsParams.mnd_wsc, wsParams.chr_wsc)
         local ftp = xi.weaponskills.fTP(tp, wsParams.ftpMod)
 
-        dmg = xi.weaponskills.magicWeaponskillRawDamage(wsc, attacker:getMainLvl(), fint, ftp, gearFTP)
-
-        -- Apply Consume Mana and Scarlet Delirium
-        -- dmg = dmg + xi.combat.damage.consumeManaAddition(attacker)
-        dmg = xi.weaponskills.magicWSScarletProduct(dmg, xi.combat.damage.scarletDeliriumMultiplier(attacker))
-
-        dmg = xi.weaponskills.magicWeaponskillWSDProduct(
-            dmg,
+        -- Build scarlet+WSD product so ability bonuses see the same intermediate.
+        local preAbility = xi.weaponskills.magicWeaponskillRawDamage(wsc, attacker:getMainLvl(), fint, ftp, gearFTP)
+        preAbility = xi.weaponskills.magicWSScarletProduct(
+            preAbility, xi.combat.damage.scarletDeliriumMultiplier(attacker))
+        preAbility = xi.weaponskills.magicWeaponskillWSDProduct(
+            preAbility,
             attacker:getMod(xi.mod.ALL_WSDMG_ALL_HITS),
             attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID),
             attacker:isPet(),
             attacker:getMod(xi.mod.ALL_WSDMG_FIRST_HIT)
         )
 
-        -- Calculate magical bonuses and reductions
-        dmg = math.floor(addBonusesAbility(attacker, wsParams.ele, target, dmg, wsParams))
-        dmg = xi.weaponskills.magicMitigationFloors(
-            dmg,
-            xi.combat.magicHitRate.calculateResistRate(attacker, target, 0, wsParams.skill, 0, wsParams.ele, 0, 0, gearAcc),
-            xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false)
-        )
-        dmg = math.floor(target:handleSevereDamage(dmg, false))
+        local afterAbility = math.floor(addBonusesAbility(attacker, wsParams.ele, target, preAbility, wsParams))
+        local resist = xi.combat.magicHitRate.calculateResistRate(
+            attacker, target, 0, wsParams.skill, 0, wsParams.ele, 0, 0, gearAcc)
+        local damageAdj = xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false)
 
-        if xi.weaponskills.magicWSNegativeEarlyReturn(dmg) then
+        local preSevere = xi.weaponskills.magicWeaponskillDamagePreSevereFromParams({
+            wsc             = wsc,
+            mainLvl         = attacker:getMainLvl(),
+            fint            = fint,
+            ftp             = ftp,
+            gearFTP         = gearFTP,
+            scarletMult     = xi.combat.damage.scarletDeliriumMultiplier(attacker),
+            allWSDMG        = attacker:getMod(xi.mod.ALL_WSDMG_ALL_HITS),
+            perWSWSD        = attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID),
+            isPet           = attacker:isPet(),
+            firstHitWSD     = attacker:getMod(xi.mod.ALL_WSDMG_FIRST_HIT),
+            useAfterAbility = true,
+            afterAbility    = afterAbility,
+            resist          = resist,
+            damageAdj       = damageAdj,
+        })
+
+        local afterSevere = math.floor(target:handleSevereDamage(preSevere, false))
+
+        local absorb  = 1
+        local nullify = 1
+        if not xi.weaponskills.magicWSNegativeEarlyReturn(afterSevere) then
+            absorb  = xi.spells.damage.calculateAbsorption(target, wsParams.ele, true)
+            nullify = xi.spells.damage.calculateNullification(target, wsParams.ele, true, false)
+        end
+
+        local afterAbsorb = xi.weaponskills.magicWeaponskillAbsorbNullify(afterSevere, absorb, nullify)
+        local afterMitigate = afterAbsorb
+        local useAfterMitigate = false
+        if not xi.weaponskills.magicWSNegativeEarlyReturn(afterSevere) then
+            afterMitigate = utils.handlePhalanx(target, afterAbsorb)
+            afterMitigate = utils.handleOneForAll(target, afterMitigate)
+            afterMitigate = utils.handleStoneskin(target, afterMitigate)
+            useAfterMitigate = true
+        end
+
+        local negativeEarly
+        dmg, negativeEarly = xi.weaponskills.magicWeaponskillDamageFinalFromParams({
+            afterSevere      = afterSevere,
+            absorb           = absorb,
+            nullify          = nullify,
+            afterMitigate    = afterMitigate,
+            useAfterMitigate = useAfterMitigate,
+            weaponSkillPower = xi.settings.main.WEAPON_SKILL_POWER,
+        })
+
+        if negativeEarly then
             calcParams.finalDmg = dmg
-
             dmg = xi.weaponskills.takeWeaponskillDamage(target, attacker, wsParams, primaryMsg, attack, calcParams, action)
             return dmg
         end
-
-        dmg = xi.weaponskills.magicWeaponskillAbsorbNullify(
-            dmg,
-            xi.spells.damage.calculateAbsorption(target, wsParams.ele, true),
-            xi.spells.damage.calculateNullification(target, wsParams.ele, true, false)
-        )
-
-        dmg = utils.handlePhalanx(target, dmg)
-        dmg = utils.handleOneForAll(target, dmg)
-        dmg = utils.handleStoneskin(target, dmg)
-
-        dmg = xi.weaponskills.applyWeaponSkillPower(dmg, xi.settings.main.WEAPON_SKILL_POWER) -- Add server bonus
     else
         local shadowPlan = xi.weaponskills.planMagicWSShadowAbsorb()
         calcParams.shadowsAbsorbed = shadowPlan.shadowsAbsorbed
