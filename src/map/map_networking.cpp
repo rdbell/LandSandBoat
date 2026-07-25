@@ -24,6 +24,7 @@
 #include "map_networking_flush_statistics.h"
 #include "map_networking_incoming_packet_plan.h"
 #include "map_networking_parse_liveness.h"
+#include "map_networking_parse_postprocess.h"
 #include "map_networking_parse_tail.h"
 #include "map_networking_small_packet.h"
 #include "map_networking_capacity.h"
@@ -541,20 +542,28 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
         }
     }
 
+    std::array<bool, mapnetworkingparsepostprocesshelpers::kEquipmentSlotCount> equipped{};
     if (PChar->retriggerLatents)
     {
-        for (uint8 equipSlotID = 0; equipSlotID < 16; ++equipSlotID)
+        for (uint8 equipSlotID = 0; equipSlotID < equipped.size(); ++equipSlotID)
         {
-            if (PChar->getEquip(static_cast<SLOTTYPE>(equipSlotID)))
-            {
-                PChar->PLatentEffectContainer->CheckLatentsEquip(equipSlotID);
-            }
+            equipped[equipSlotID] = PChar->getEquip(static_cast<SLOTTYPE>(equipSlotID)) != nullptr;
         }
+    }
+    const auto postprocessPlan = mapnetworkingparsepostprocesshelpers::MakePlan(PChar->retriggerLatents, equipped);
+    for (uint8 index = 0; index < postprocessPlan.latentEquipSlotCount; ++index)
+    {
+        PChar->PLatentEffectContainer->CheckLatentsEquip(postprocessPlan.latentEquipSlots[index]);
+    }
+    if (postprocessPlan.resetRetriggerLatents)
+    {
         PChar->retriggerLatents = false; // reset as we have retriggered the latents somewhere
     }
-
-    // Flush any batched equip changes after processing all incoming packets
-    PChar->flushEquipChanges();
+    if (postprocessPlan.flushEquipChanges)
+    {
+        // Flush any batched equip changes after processing all incoming packets.
+        PChar->flushEquipChanges();
+    }
 
     const auto parseTailPlan = mapnetworkingparsetailhelpers::MakePlan(
         SmallPD_Code,
