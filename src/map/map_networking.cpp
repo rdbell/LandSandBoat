@@ -481,7 +481,14 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
         SmallPD_Size            = smallPacket->sizeUnits;
         SmallPD_Type            = smallPacket->type;
 
-        if (!mapnetworkinghelpers::ShouldDispatchIncomingSmallPacket(smallPacket->sequence, PSession->client_packet_id, SmallPD_Code))
+        const auto disposition = mapnetworkingsmallpackethelpers::PlanDisposition(
+            smallPacket->sequence,
+            PSession->client_packet_id,
+            SmallPD_Code,
+            PChar->loc.zone != nullptr,
+            SmallPD_Type == static_cast<uint16>(PacketC2S::GP_CLI_COMMAND_LOGIN),
+            PSession->blowfish.status == BLOWFISH_PENDING_ZONE);
+        if (disposition == mapnetworkingsmallpackethelpers::Disposition::SkipSequence)
         {
             continue;
         }
@@ -496,17 +503,16 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
                          PChar->getName());
         }
 
-        switch (mapnetworkinghelpers::PlanIncomingPacketForZone(
-            PChar->loc.zone != nullptr,
-            SmallPD_Type == static_cast<uint16>(PacketC2S::GP_CLI_COMMAND_LOGIN),
-            PSession->blowfish.status == BLOWFISH_PENDING_ZONE))
+        switch (disposition)
         {
-            case mapnetworkinghelpers::IncomingPacketZonePlan::WarnAndSkipUnexpected:
+            case mapnetworkingsmallpackethelpers::Disposition::SkipSequence:
+                continue;
+            case mapnetworkingsmallpackethelpers::Disposition::WarnAndSkip:
                 ShowWarning("This packet is unexpected from %s - Received %03hX earlier without matching 0x0A", PChar->getName(), SmallPD_Type);
                 break;
-            case mapnetworkinghelpers::IncomingPacketZonePlan::SkipUnexpectedPendingZone:
+            case mapnetworkingsmallpackethelpers::Disposition::SkipPendingZone:
                 break;
-            case mapnetworkinghelpers::IncomingPacketZonePlan::Dispatch:
+            case mapnetworkingsmallpackethelpers::Disposition::Dispatch:
                 // Reuse one CBasicPacket (parseScratchPacket_) across the loop instead of re-allocating per inbound packet.
                 // We're copying in and bounding only exactly what we want, so it's safe.
                 std::memcpy(&parseScratchPacket_.ref<uint8>(0), SmallPD_ptr, PACKET_SIZE);

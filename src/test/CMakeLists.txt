@@ -1481,6 +1481,8 @@ set(SOURCES
     test_map_networking_incoming_packet_plan_6914.cpp
     test_map_networking_small_packet_6918.h
     test_map_networking_small_packet_6918.cpp
+    test_map_networking_small_packet_disposition_6919.h
+    test_map_networking_small_packet_disposition_6919.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h
