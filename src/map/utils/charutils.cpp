@@ -2667,12 +2667,14 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                         // If the subtype of the ammo is not compatible with the ranged weapon, unequip it, except for Archery where Longbow and Shortbow both use arrows
                         UnequipItem(PChar, SLOT_RANGED, Recalculate::No);
                     }
-                    if (equiparmorammolookhelpers::ShouldSetRangedLook({
+                    const auto ammoLookPlan = equiparmorammolookhelpers::PlanFor({
                             .incomingIsWeapon          = true,
                             .hasRangedAfterCompatibility = PChar->getEquip(SLOT_RANGED) != nullptr,
-                        }))
+                            .modelID                   = static_cast<uint16>(PItem->getModelId()),
+                        });
+                    if (ammoLookPlan.setRangedLook)
                     {
-                        PChar->look.ranged = PItem->getModelId();
+                        PChar->look.ranged = ammoLookPlan.modelID;
                     }
                     PChar->m_Weapons[SLOT_AMMO] = PItem;
                     UpdateWeaponStyle(PChar, equipSlotID, PItem);

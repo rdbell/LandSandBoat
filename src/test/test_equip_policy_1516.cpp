@@ -314,6 +314,15 @@ auto Check() -> bool
     {
         return false;
     }
+    const auto ammoLookPlan = equiparmorammolookhelpers::PlanFor({ .incomingIsWeapon = true, .modelID = 501 });
+    const auto noAmmoLookPlan = equiparmorammolookhelpers::PlanFor({ .incomingIsWeapon = true, .hasRangedAfterCompatibility = true, .modelID = 502 });
+    const auto nonWeaponAmmoLookPlan = equiparmorammolookhelpers::PlanFor({ .modelID = 503 });
+    if (!ammoLookPlan.setRangedLook || ammoLookPlan.modelID != 501 ||
+        noAmmoLookPlan.setRangedLook || noAmmoLookPlan.modelID != 0 ||
+        nonWeaponAmmoLookPlan.setRangedLook || nonWeaponAmmoLookPlan.modelID != 0)
+    {
+        return false;
+    }
 
     if (!equiparmortargetlookhelpers::ShouldSetArmorLook(4) || !equiparmortargetlookhelpers::ShouldSetArmorLook(8) ||
         equiparmortargetlookhelpers::ShouldSetArmorLook(3) || equiparmortargetlookhelpers::ShouldSetArmorLook(9))
