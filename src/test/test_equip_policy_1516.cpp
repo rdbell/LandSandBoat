@@ -336,19 +336,21 @@ auto Check() -> bool
     const auto preferredLockstyleLook = lockstyleremovedlookhelpers::PlanFor({
         .styleItemID      = 100,
         .itemFound        = true,
+        .modelID          = 501,
         .removeSlotLookID = 1u << 4,
         .removeSlotID     = 1u << 8,
     });
     const auto fallbackLockstyleLook = lockstyleremovedlookhelpers::PlanFor({
         .styleItemID  = 100,
         .itemFound    = true,
+        .modelID      = 502,
         .removeSlotID = 1u << 8,
     });
     if (lockstyleremovedlookhelpers::PlanFor({}).applies ||
         lockstyleremovedlookhelpers::PlanFor({ .styleItemID = 100 }).applies ||
         lockstyleremovedlookhelpers::PlanFor({ .styleItemID = 100, .itemFound = true }).applies ||
-        !preferredLockstyleLook.applies || preferredLockstyleLook.effectiveRemoveID != (1u << 4) ||
-        !fallbackLockstyleLook.applies || fallbackLockstyleLook.effectiveRemoveID != (1u << 8))
+        !preferredLockstyleLook.applies || preferredLockstyleLook.modelID != 501 || preferredLockstyleLook.effectiveRemoveID != (1u << 4) ||
+        !fallbackLockstyleLook.applies || fallbackLockstyleLook.modelID != 502 || fallbackLockstyleLook.effectiveRemoveID != (1u << 8))
     {
         return false;
     }

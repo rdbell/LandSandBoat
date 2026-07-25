@@ -2922,6 +2922,7 @@ void UpdateRemovedSlotsLookForLockStyle(CCharEntity* PChar)
         const auto  plan  = lockstyleremovedlookhelpers::PlanFor({
             .styleItemID      = items[i],
             .itemFound        = PItem != nullptr,
+            .modelID          = PItem ? static_cast<uint16>(PItem->getModelId()) : 0,
             .removeSlotLookID = PItem ? static_cast<std::uint32_t>(PItem->getRemoveSlotLookId()) : 0u,
             .removeSlotID     = PItem ? static_cast<std::uint32_t>(PItem->getRemoveSlotId()) : 0u,
         });
@@ -2937,19 +2938,19 @@ void UpdateRemovedSlotsLookForLockStyle(CCharEntity* PChar)
                 switch (i)
                 {
                     case SLOT_HEAD:
-                        PChar->mainlook.head = PItem->getModelId();
+                        PChar->mainlook.head = plan.modelID;
                         break;
                     case SLOT_BODY:
-                        PChar->mainlook.body = PItem->getModelId();
+                        PChar->mainlook.body = plan.modelID;
                         break;
                     case SLOT_HANDS:
-                        PChar->mainlook.hands = PItem->getModelId();
+                        PChar->mainlook.hands = plan.modelID;
                         break;
                     case SLOT_LEGS:
-                        PChar->mainlook.legs = PItem->getModelId();
+                        PChar->mainlook.legs = plan.modelID;
                         break;
                     case SLOT_FEET:
-                        PChar->mainlook.feet = PItem->getModelId();
+                        PChar->mainlook.feet = plan.modelID;
                         break;
                 }
             }
