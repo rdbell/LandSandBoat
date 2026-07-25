@@ -1,5 +1,10 @@
 -----------------------------------
 -- Ninja Job Utilities
+-- Dual-wired pure inject forms:
+--   tool resolve/consume (slice 6720 / 0891 → internal/ninjatool)
+--   ability products (slice 6750 / 0899 → internal/ninja):
+--     one-hour recast, Yonin/Innin/Sange/Futae/Issekigan/Mikage params,
+--     Mijin Gakure base + damage product
 -----------------------------------
 xi = xi or {}
 xi.job_utils = xi.job_utils or {}
@@ -123,11 +128,115 @@ xi.job_utils.ninja.nonPCAlwaysHasTool = function()
 end
 
 -----------------------------------
+-- Pure inject pins (internal/ninja ability products, slice 6750 / 0899)
+-----------------------------------
+xi.job_utils.ninja.oneHourRecastSecondsPerMod = 60
+xi.job_utils.ninja.yoninPower                 = 30
+xi.job_utils.ninja.yoninDurationSec           = 300
+xi.job_utils.ninja.yoninTickSec               = 15
+xi.job_utils.ninja.inninPower                 = 30
+xi.job_utils.ninja.inninDurationSec           = 300
+xi.job_utils.ninja.inninTickSec               = 15
+xi.job_utils.ninja.inninSubPower              = 20
+xi.job_utils.ninja.sangeDurationSec           = 60
+xi.job_utils.ninja.sangeMeritOffset           = 1
+xi.job_utils.ninja.sangeMeritPowerScale       = 25
+xi.job_utils.ninja.futaeDurationSec           = 60
+xi.job_utils.ninja.issekiganPower             = 25
+xi.job_utils.ninja.issekiganDurationSec       = 60
+xi.job_utils.ninja.mikageDurationSec          = 45
+xi.job_utils.ninja.mijinGakureHPFraction      = 0.8
+xi.job_utils.ninja.mijinGakureJPScale         = 0.03
+
+-- Pure: OneHourRecast
+xi.job_utils.ninja.oneHourRecastFromParams = function(params)
+    params = params or {}
+    local out = (params.abilityRecast or 0)
+        - (params.oneHourRecastMod or 0) * xi.job_utils.ninja.oneHourRecastSecondsPerMod
+    if out < 0 then
+        return 0
+    end
+
+    return out
+end
+
+-- Pure: Sange power = (merit - 1) * 25
+xi.job_utils.ninja.sangePowerFromParams = function(params)
+    params = params or {}
+    return ((params.merit or 0) - xi.job_utils.ninja.sangeMeritOffset)
+        * xi.job_utils.ninja.sangeMeritPowerScale
+end
+
+-- Pure: fixed effect params
+xi.job_utils.ninja.yoninFromParams = function()
+    return {
+        power    = xi.job_utils.ninja.yoninPower,
+        duration = xi.job_utils.ninja.yoninDurationSec,
+        tick     = xi.job_utils.ninja.yoninTickSec,
+    }
+end
+
+xi.job_utils.ninja.inninFromParams = function()
+    return {
+        power    = xi.job_utils.ninja.inninPower,
+        duration = xi.job_utils.ninja.inninDurationSec,
+        tick     = xi.job_utils.ninja.inninTickSec,
+        subPower = xi.job_utils.ninja.inninSubPower,
+    }
+end
+
+xi.job_utils.ninja.sangeFromParams = function(params)
+    return {
+        power    = xi.job_utils.ninja.sangePowerFromParams(params),
+        duration = xi.job_utils.ninja.sangeDurationSec,
+    }
+end
+
+xi.job_utils.ninja.futaeFromParams = function()
+    return {
+        duration = xi.job_utils.ninja.futaeDurationSec,
+    }
+end
+
+xi.job_utils.ninja.issekiganFromParams = function()
+    return {
+        power    = xi.job_utils.ninja.issekiganPower,
+        duration = xi.job_utils.ninja.issekiganDurationSec,
+    }
+end
+
+xi.job_utils.ninja.mikageFromParams = function()
+    return {
+        duration = xi.job_utils.ninja.mikageDurationSec,
+    }
+end
+
+-- Pure: Mijin Gakure base = floor(hp * 0.8)
+xi.job_utils.ninja.mijinGakureBaseDamageFromParams = function(params)
+    params = params or {}
+    return math.floor((params.playerHP or 0) * xi.job_utils.ninja.mijinGakureHPFraction)
+end
+
+-- Pure: Mijin Gakure damage product (stoneskin deferred to host)
+-- params: base, resist, tmdaFactor, jpLevel
+xi.job_utils.ninja.mijinGakureDamageFromParams = function(params)
+    params = params or {}
+    local dmg = math.floor((params.base or 0) * (params.resist or 0))
+    dmg = math.floor(dmg * (params.tmdaFactor or 0))
+    local jpFactor = 1 + (params.jpLevel or 0) * xi.job_utils.ninja.mijinGakureJPScale
+    dmg = math.floor(dmg * jpFactor)
+    return dmg
+end
+
+-----------------------------------
 -- Ability Check Functions
 -----------------------------------
 
 xi.job_utils.ninja.checkMijinGakure = function(player, target, ability)
-    ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
+    ability:setRecast(xi.job_utils.ninja.oneHourRecastFromParams({
+        abilityRecast    = ability:getRecast(),
+        oneHourRecastMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+    }))
     return 0, 0
 end
 
@@ -152,7 +261,10 @@ xi.job_utils.ninja.checkIssekigan = function(player, target, ability)
 end
 
 xi.job_utils.ninja.checkMikage = function(player, target, ability)
-    ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
+    ability:setRecast(xi.job_utils.ninja.oneHourRecastFromParams({
+        abilityRecast    = ability:getRecast(),
+        oneHourRecastMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+    }))
     return 0, 0
 end
 
@@ -161,14 +273,17 @@ end
 -----------------------------------
 
 xi.job_utils.ninja.useMijinGakure = function(player, target, ability, action)
-    local dmg        = math.floor(player:getHP() * 0.8)
+    local base = xi.job_utils.ninja.mijinGakureBaseDamageFromParams({
+        playerHP = player:getHP(),
+    })
     local resist     = xi.combat.magicHitRate.calculateResistRate(player, target, 0, 0, 0, xi.element.NONE, xi.mod.INT, 0, 0)
     local tmdaFactor = xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false)
-    local jpFactor   = 1 + player:getJobPointLevel(xi.jp.MIJIN_GAKURE_EFFECT) * 0.03
-
-    dmg = math.floor(dmg * resist)
-    dmg = math.floor(dmg * tmdaFactor)
-    dmg = math.floor(dmg * jpFactor)
+    local dmg = xi.job_utils.ninja.mijinGakureDamageFromParams({
+        base       = base,
+        resist     = resist,
+        tmdaFactor = tmdaFactor,
+        jpLevel    = player:getJobPointLevel(xi.jp.MIJIN_GAKURE_EFFECT),
+    })
     dmg = utils.handleStoneskin(target, dmg)
 
     target:takeDamage(dmg, player, xi.attackType.SPECIAL, xi.damageType.ELEMENTAL)
@@ -179,42 +294,74 @@ xi.job_utils.ninja.useMijinGakure = function(player, target, ability, action)
 end
 
 xi.job_utils.ninja.useYonin = function(player, target, ability, action)
+    local p = xi.job_utils.ninja.yoninFromParams()
     target:delStatusEffect(xi.effect.INNIN)
     target:delStatusEffect(xi.effect.YONIN)
-    target:addStatusEffect(xi.effect.YONIN, { power = 30, duration = 300, origin = player, tick = 15 })
+    target:addStatusEffect(xi.effect.YONIN, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+        tick     = p.tick,
+    })
 
     return xi.effect.YONIN
 end
 
 xi.job_utils.ninja.useInnin = function(player, target, ability, action)
+    local p = xi.job_utils.ninja.inninFromParams()
     target:delStatusEffect(xi.effect.INNIN)
     target:delStatusEffect(xi.effect.YONIN)
-    target:addStatusEffect(xi.effect.INNIN, { power = 30, duration = 300, origin = player, tick = 15, subPower = 20 })
+    target:addStatusEffect(xi.effect.INNIN, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+        tick     = p.tick,
+        subPower = p.subPower,
+    })
 
     return xi.effect.INNIN
 end
 
 xi.job_utils.ninja.useSange = function(player, target, ability, action)
-    local potency = player:getMerit(xi.merit.SANGE)-1
-    player:addStatusEffect(xi.effect.SANGE, { power = potency * 25, duration = 60, origin = player })
+    local p = xi.job_utils.ninja.sangeFromParams({
+        merit = player:getMerit(xi.merit.SANGE),
+    })
+    player:addStatusEffect(xi.effect.SANGE, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.SANGE
 end
 
 xi.job_utils.ninja.useFutae = function(player, target, ability, action)
-    target:addStatusEffect(xi.effect.FUTAE, { duration = 60, origin = player })
+    local p = xi.job_utils.ninja.futaeFromParams()
+    target:addStatusEffect(xi.effect.FUTAE, {
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.FUTAE
 end
 
 xi.job_utils.ninja.useIssekigan = function(player, target, ability, action)
-    target:addStatusEffect(xi.effect.ISSEKIGAN, { power = 25, duration = 60, origin = player })
+    local p = xi.job_utils.ninja.issekiganFromParams()
+    target:addStatusEffect(xi.effect.ISSEKIGAN, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.ISSEKIGAN
 end
 
 xi.job_utils.ninja.useMikage = function(player, target, ability, action)
-    target:addStatusEffect(xi.effect.MIKAGE, { duration = 45, origin = player })
+    local p = xi.job_utils.ninja.mikageFromParams()
+    target:addStatusEffect(xi.effect.MIKAGE, {
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.MIKAGE
 end
