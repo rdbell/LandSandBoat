@@ -1398,62 +1398,122 @@ xi.spells.damage.calculateNullification = function(target, element, isMagic, isB
     })
 end
 
-xi.spells.damage.calculateIfMagicBurst = function(target, spellElement, skillchainCount)
-    local magicBurst = 1 -- The variable we want to calculate
+-----------------------------------
+-- Magic burst product mult pure helpers
+-- Dual-wired to OmegaXI internal/magicburst (slice 6715 / 0853).
+-----------------------------------
+
+xi.spells.damage.magicBurstBase           = 1.25
+xi.spells.damage.magicBurstCappedBonusMax = 0.4
+xi.spells.damage.magicBurstRankBonusLow   = 1.5  -- resistRank <= -3
+xi.spells.damage.magicBurstRankBonusHigh  = 0.0  -- resistRank >= 5
+-- Mid table for resistRank -2..4 (Lua 1-based rankTable[resistRank+3]).
+xi.spells.damage.magicBurstRankTableMid   = { 1.15, 0.85, 0.6, 0.5, 0.4, 0.15, 0.05 }
+
+xi.spells.damage.magicBurstRankBonus = function(resistRank)
+    resistRank = resistRank or 0
+    if resistRank <= -3 then
+        return xi.spells.damage.magicBurstRankBonusLow
+    end
+
+    if resistRank >= 5 then
+        return xi.spells.damage.magicBurstRankBonusHigh
+    end
+
+    -- resistRank in [-2, 4] → mid table index 1..7
+    return xi.spells.damage.magicBurstRankTableMid[resistRank + 3]
+end
+
+-- Pure calculateIfMagicBurst. Returns multiplier, consumeSengikori.
+-- params: spellElement, skillchainCount, resistRank, sengikoriMod
+xi.spells.damage.calculateIfMagicBurstFromParams = function(params)
+    local magicBurst = 1
+    local spellElement = params.spellElement or 0
+    local skillchainCount = params.skillchainCount or 0
 
     if spellElement > xi.element.NONE then
-        local resistRank = target:getMod(xi.data.element.getElementalResistanceRankModifier(spellElement))
-        local rankTable  = { 1.15, 0.85, 0.6, 0.5, 0.4, 0.15, 0.05 }
-        local rankBonus  = 0
-
-        if resistRank <= -3 then
-            rankBonus = 1.5
-        elseif resistRank >= 5 then
-            rankBonus = 0
-        else
-            rankBonus = rankTable[resistRank + 3]
-        end
-
-        magicBurst = 1.25 + rankBonus + skillchainCount / 10
+        magicBurst = xi.spells.damage.magicBurstBase +
+            xi.spells.damage.magicBurstRankBonus(params.resistRank) +
+            skillchainCount / 10
     end
 
-    -- Sengikori appears to add to base mb multiplier per JP wiki https://wiki.ffo.jp/html/20051.html
+    local consume = false
+    local sengikori = params.sengikoriMod or 0
+    if skillchainCount >= 1 and sengikori > 0 then
+        magicBurst = magicBurst + sengikori / 100
+        consume = true
+    end
+
+    return magicBurst, consume
+end
+
+-- Pure calculateIfMagicBurstBonus once capped/uncapped/merits/JP/chant inject.
+-- params: spellId, cappedBonusMod, uncappedBonusMod, ancientMagicMerit,
+--   inninMerit, magicBurstJP, cardinalChantWest (all percent units before /100)
+xi.spells.damage.calculateIfMagicBurstBonusFromParams = function(params)
+    local capped = (params.cappedBonusMod or 0) / 100
+    local uncapped = (params.uncappedBonusMod or 0) / 100
+    local spellId = params.spellId or 0
+
     if
-        skillchainCount >= 1 and
-        target:getMod(xi.mod.SENGIKORI_MB_DMG_DEBUFF) > 0
+        spellId >= xi.magic.spell.FLARE and
+        spellId <= xi.magic.spell.FLOOD_II
     then
-        magicBurst = magicBurst + target:getMod(xi.mod.SENGIKORI_MB_DMG_DEBUFF) / 100
-        target:setMod(xi.mod.SENGIKORI_MB_DMG_DEBUFF, 0) -- Consume the "Effect" upon magic burst.
+        capped = capped + (params.ancientMagicMerit or 0) / 100
     end
 
-    return magicBurst
+    capped = capped + (params.inninMerit or 0) / 100
+    capped = utils.clamp(capped, 0, xi.spells.damage.magicBurstCappedBonusMax)
+
+    uncapped = uncapped +
+        (params.magicBurstJP or 0) / 100 +
+        (params.cardinalChantWest or 0) / 100
+
+    return 1 + capped + uncapped
+end
+
+xi.spells.damage.calculateIfMagicBurst = function(target, spellElement, skillchainCount)
+    local resistRank = 0
+    if (spellElement or 0) > xi.element.NONE then
+        resistRank = target:getMod(xi.data.element.getElementalResistanceRankModifier(spellElement))
+    end
+
+    local mult, consume = xi.spells.damage.calculateIfMagicBurstFromParams({
+        spellElement    = spellElement,
+        skillchainCount = skillchainCount,
+        resistRank      = resistRank,
+        sengikoriMod    = target:getMod(xi.mod.SENGIKORI_MB_DMG_DEBUFF),
+    })
+    if consume then
+        target:setMod(xi.mod.SENGIKORI_MB_DMG_DEBUFF, 0)
+    end
+
+    return mult
 end
 
 xi.spells.damage.calculateIfMagicBurstBonus = function(caster, target, spellId, skillType, spellElement)
-    local magicBurstBonus = 1 -- The variable we want to calculate
-    local cappedBonus     = caster:getMod(xi.mod.MAGIC_BURST_BONUS_CAPPED) / 100
-    local uncappedBonus   = caster:getMod(xi.mod.MAGIC_BURST_BONUS_UNCAPPED) / 100
-
-    -- TODO: merge spellFamily and spell ID tables into one table in spell_data.lua, then maybe add a family for all AM and use spellFamily here instead of spellID
-    if spellId >= xi.magic.spell.FLARE and spellId <= xi.magic.spell.FLOOD_II then
-        cappedBonus = cappedBonus + caster:getMerit(xi.merit.ANCIENT_MAGIC_BURST_DMG) / 100
-    end
-
-    -- Apply Innin Magic Burst bonus
+    local inninMerit = 0
     if caster:isBehind(target) and caster:hasStatusEffect(xi.effect.INNIN) then
-        cappedBonus = cappedBonus + caster:getMerit(xi.merit.INNIN_EFFECT) / 100
+        inninMerit = caster:getMerit(xi.merit.INNIN_EFFECT)
     end
 
-    -- Cap bonuses from first step at 40% or 0.4
-    cappedBonus = utils.clamp(cappedBonus, 0, 0.4)
+    local ancientMerit = 0
+    if
+        spellId >= xi.magic.spell.FLARE and
+        spellId <= xi.magic.spell.FLOOD_II
+    then
+        ancientMerit = caster:getMerit(xi.merit.ANCIENT_MAGIC_BURST_DMG)
+    end
 
-    -- BLM Job Point: Magic Burst Damage and GEO cardinal chant.
-    uncappedBonus = uncappedBonus + caster:getJobPointLevel(xi.jp.MAGIC_BURST_DMG_BONUS) / 100 + cardinalChantBonus(caster, target, xi.direction.WEST, spellId, skillType) / 100
-
-    -- Get final multiplier
-    magicBurstBonus = magicBurstBonus + cappedBonus + uncappedBonus
-
-    return magicBurstBonus
+    return xi.spells.damage.calculateIfMagicBurstBonusFromParams({
+        spellId           = spellId,
+        cappedBonusMod    = caster:getMod(xi.mod.MAGIC_BURST_BONUS_CAPPED),
+        uncappedBonusMod  = caster:getMod(xi.mod.MAGIC_BURST_BONUS_UNCAPPED),
+        ancientMagicMerit = ancientMerit,
+        inninMerit        = inninMerit,
+        magicBurstJP      = caster:getJobPointLevel(xi.jp.MAGIC_BURST_DMG_BONUS),
+        cardinalChantWest = cardinalChantBonus(caster, target, xi.direction.WEST, spellId, skillType),
+    })
 end
 
 -----------------------------------
