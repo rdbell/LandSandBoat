@@ -69,6 +69,7 @@
 #include "char_race_change_transition.h"
 #include "char_send_to_zone_capacity.h"
 #include "char_unity_leader_capacity.h"
+#include "char_zone_exit_transition.h"
 #include "char_zone_out_transition.h"
 #include "conquest_system.h"
 #include "grades.h"
@@ -7323,20 +7324,35 @@ void SendDisconnect(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    SaveCharPosition(PChar);
-    PChar->clearPacketList();
-
-    PChar->loc.destination     = 0xFFFF;
-    PChar->status              = STATUS_TYPE::SHUTDOWN;
-    PChar->requestedZoneChange = true;
-
-    // Save pet if any
-    if (PChar->shouldPetPersistThroughZoning())
+    const auto plan = zoneexithelpers::MakeZoneExitPlan(zoneexithelpers::ZoneExitKind::Disconnect, PChar->shouldPetPersistThroughZoning());
+    if (plan.savePosition)
+    {
+        SaveCharPosition(PChar);
+    }
+    if (plan.clearPackets)
+    {
+        PChar->clearPacketList();
+    }
+    if (plan.destination == zoneexithelpers::Destination::Invalid)
+    {
+        PChar->loc.destination = 0xFFFF;
+    }
+    if (plan.setShutdownStatus)
+    {
+        PChar->status = STATUS_TYPE::SHUTDOWN;
+    }
+    if (plan.requestZoneChange)
+    {
+        PChar->requestedZoneChange = true;
+    }
+    if (plan.savePetZoningInfo)
     {
         PChar->setPetZoningInfo();
     }
-
-    PChar->pushPacket<GP_SERV_COMMAND_LOGOUT>(GP_GAME_LOGOUT_STATE::LOGOUT, IPP());
+    if (plan.sendLogoutPacket)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_LOGOUT>(GP_GAME_LOGOUT_STATE::LOGOUT, IPP());
+    }
 }
 
 // This is just an alias for SendDisconnect?
@@ -7347,16 +7363,28 @@ void ForceLogout(CCharEntity* PChar)
 
 void ForceRezone(CCharEntity* PChar)
 {
-    PChar->loc.destination = PChar->getZone();
-    PChar->status          = STATUS_TYPE::DISAPPEAR;
-    PChar->loc.boundary    = 0;
-
-    PChar->clearPacketList();
-
-    PChar->requestedZoneChange = true;
-
-    // Save pet if any
-    if (PChar->shouldPetPersistThroughZoning())
+    const auto plan = zoneexithelpers::MakeZoneExitPlan(zoneexithelpers::ZoneExitKind::Rezone, PChar->shouldPetPersistThroughZoning());
+    if (plan.destination == zoneexithelpers::Destination::Current)
+    {
+        PChar->loc.destination = PChar->getZone();
+    }
+    if (plan.setDisappearStatus)
+    {
+        PChar->status = STATUS_TYPE::DISAPPEAR;
+    }
+    if (plan.clearBoundary)
+    {
+        PChar->loc.boundary = 0;
+    }
+    if (plan.clearPackets)
+    {
+        PChar->clearPacketList();
+    }
+    if (plan.requestZoneChange)
+    {
+        PChar->requestedZoneChange = true;
+    }
+    if (plan.savePetZoningInfo)
     {
         PChar->setPetZoningInfo();
     }
