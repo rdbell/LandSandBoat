@@ -81,6 +81,7 @@
 #include "char_playtime_save_plan.h"
 #include "char_race_change_transition.h"
 #include "char_send_to_zone_capacity.h"
+#include "char_session_update.h"
 #include "char_stratagem_removal.h"
 #include "char_temp_item_clear.h"
 #include "char_unity_leader_capacity.h"
@@ -8346,11 +8347,12 @@ void removeCharFromZone(CCharEntity* PChar)
 
 void updateSession(MapSession* PSession, CCharEntity* PChar, CZone* currentZone)
 {
+    const auto plan = charsessionupdatehelpers::MakePlan(PChar->targid, currentZone->GetIP(), PSession->client_ipp.getPort(), PChar->id);
     db::preparedStmt("UPDATE accounts_sessions SET targid = ?, server_addr = ?, client_port = ?, last_zoneout_time = 0 WHERE charid = ? LIMIT 1",
-                     PChar->targid,
-                     currentZone->GetIP(),
-                     PSession->client_ipp.getPort(),
-                     PChar->id);
+                     plan.targetId,
+                     plan.serverAddress,
+                     plan.clientPort,
+                     plan.characterId);
 }
 
 void loadDeathTimestamp(CCharEntity* PChar)

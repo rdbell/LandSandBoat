@@ -1429,6 +1429,8 @@ set(SOURCES
     test_char_name_lookup_6888.cpp
     test_forced_synth_critical_fail_6889.h
     test_forced_synth_critical_fail_6889.cpp
+    test_char_session_update_6890.h
+    test_char_session_update_6890.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h

@@ -761,6 +761,7 @@ auto runCharVarEntityOps6886SelfTests() -> bool;
 auto runHistoryWrite6887SelfTests() -> bool;
 auto runCharNameLookup6888SelfTests() -> bool;
 auto runForcedSynthCriticalFail6889SelfTests() -> bool;
+auto runCharSessionUpdate6890SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3185,6 +3186,7 @@ namespace
         ok = runHistoryWrite6887SelfTests() && ok;
         ok = runCharNameLookup6888SelfTests() && ok;
         ok = runForcedSynthCriticalFail6889SelfTests() && ok;
+        ok = runCharSessionUpdate6890SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
