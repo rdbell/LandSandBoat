@@ -1,5 +1,10 @@
 -----------------------------------
 -- Corsair Job Utilities
+-- Dual-wired pure inject forms (slice 6736 / 0885):
+--   roll power/duration/bust duration, phantom recast, max active rolls,
+--   eleven-roll inject, ability check/message products, double-up gate,
+--   crooked cards / triple shot fixed params
+-- Parity: internal/corsair
 -----------------------------------
 xi = xi or {}
 xi.job_utils = xi.job_utils or {}
@@ -421,6 +426,217 @@ local rollEnhanceMods =
     [xi.jobAbility.TACTICIANS_ROLL] = xi.mod.ENHANCES_TACTICIANS_ROLL,
 }
 
+
+-----------------------------------
+-- Pure inject pins (internal/corsair, slice 6736 / 0885)
+-----------------------------------
+xi.job_utils.corsair.baseRollDuration          = 300
+xi.job_utils.corsair.baseBustDuration          = 300
+xi.job_utils.corsair.doubleUpChanceDuration    = 45
+xi.job_utils.corsair.recastReductionCap        = 45
+xi.job_utils.corsair.recastMin                 = 15
+xi.job_utils.corsair.recastMax                 = 300
+xi.job_utils.corsair.bustThreshold             = 12
+xi.job_utils.corsair.maxDieFace                = 11
+xi.job_utils.corsair.msgCannotPerform          = 71
+xi.job_utils.corsair.msgRollMain               = 420
+xi.job_utils.corsair.msgRollSub                = 421
+xi.job_utils.corsair.msgRollMainFail           = 422
+xi.job_utils.corsair.msgRollSubFail            = 423
+xi.job_utils.corsair.msgDoubleUp               = 424
+xi.job_utils.corsair.msgDoubleUpFail           = 425
+xi.job_utils.corsair.msgDoubleUpBust           = 426
+xi.job_utils.corsair.msgDoubleUpBustSub        = 427
+xi.job_utils.corsair.msgNoEligibleRoll         = 428
+xi.job_utils.corsair.msgRollAlreadyActive      = 429
+xi.job_utils.corsair.msgNoEffect               = 283
+xi.job_utils.corsair.crookedCardsPower         = 20
+xi.job_utils.corsair.crookedCardsDuration      = 60
+xi.job_utils.corsair.tripleShotPower           = 40
+xi.job_utils.corsair.tripleShotDuration        = 90
+
+-- Pure: MaxActiveRolls (main COR → 2 else 1)
+xi.job_utils.corsair.maxActiveRollsFromParams = function(params)
+    params = params or {}
+    if params.mainJobCOR then
+        return 2
+    end
+
+    return 1
+end
+
+-- Pure: HasElevenRoll over injected subPowers
+xi.job_utils.corsair.hasElevenRollFromParams = function(subPowers)
+    subPowers = subPowers or {}
+    for _, sp in ipairs(subPowers) do
+        if sp == 11 then
+            return true
+        end
+    end
+
+    return false
+end
+
+-- Pure: RollDurationSeconds
+-- params: winningStreakMerit, phantomDurationMod, phantomRollDurationJP
+xi.job_utils.corsair.rollDurationFromParams = function(params)
+    params = params or {}
+    return xi.job_utils.corsair.baseRollDuration
+        + (params.winningStreakMerit or 0)
+        + (params.phantomDurationMod or 0)
+        + (params.phantomRollDurationJP or 0) * 2
+end
+
+-- Pure: BustDurationSeconds
+xi.job_utils.corsair.bustDurationFromParams = function(params)
+    params = params or {}
+    return xi.job_utils.corsair.baseBustDuration - (params.bustDurationMerit or 0)
+end
+
+-- Pure: PhantomRecast
+-- params: abilityRecast, meritRecast, modRecast, elevenRollActive, bustCount
+xi.job_utils.corsair.phantomRecastFromParams = function(params)
+    params = params or {}
+    local reduction = (params.meritRecast or 0) + (params.modRecast or 0)
+    if reduction < 0 then
+        reduction = 0
+    end
+
+    if reduction > xi.job_utils.corsair.recastReductionCap then
+        reduction = xi.job_utils.corsair.recastReductionCap
+    end
+
+    local recast = params.abilityRecast or 0
+    if params.elevenRollActive and (params.bustCount or 0) == 0 then
+        recast = math.floor(recast / 2)
+    end
+
+    recast = recast - reduction
+    if recast < xi.job_utils.corsair.recastMin then
+        return xi.job_utils.corsair.recastMin
+    end
+
+    if recast > xi.job_utils.corsair.recastMax then
+        return xi.job_utils.corsair.recastMax
+    end
+
+    return recast
+end
+
+-- Pure: RollPower once rollData fields known
+-- params: total, powers (table 1..11), bustPower, bonus, bonusJob, phantomBase,
+--         jobBonusActive, enhanceTriggered, phantomMult, actorLevel, targetLevel
+-- bonusJobNONE: treat 0 / nil as NONE
+xi.job_utils.corsair.rollPowerFromParams = function(params)
+    params = params or {}
+    local total = params.total or 0
+    local base
+
+    if total >= xi.job_utils.corsair.bustThreshold then
+        base = params.bustPower or 0
+    elseif total >= 1 and total <= xi.job_utils.corsair.maxDieFace then
+        local powers = params.powers or {}
+        base = powers[total] or 0
+    else
+        return 0
+    end
+
+    local bonusJob = params.bonusJob or 0
+    local jobNone  = 0
+    if xi.job and xi.job.NONE then
+        jobNone = xi.job.NONE
+    end
+
+    if
+        (bonusJob == jobNone and params.enhanceTriggered) or
+        (params.jobBonusActive and total <= xi.job_utils.corsair.maxDieFace)
+    then
+        base = base + (params.bonus or 0)
+    end
+
+    base = base + (params.phantomBase or 0) * (params.phantomMult or 0)
+
+    local actorLevel  = params.actorLevel or 0
+    local targetLevel = params.targetLevel or 0
+    if actorLevel < targetLevel and targetLevel > 0 then
+        base = base * actorLevel / targetLevel
+    end
+
+    return base
+end
+
+-- Pure: OnRollAbilityCheck
+-- params: hasSameRoll, numBusts, maxRolls
+-- returns: msg, ok
+xi.job_utils.corsair.onRollAbilityCheckFromParams = function(params)
+    params = params or {}
+    if params.hasSameRoll then
+        return xi.job_utils.corsair.msgRollAlreadyActive, false
+    end
+
+    if (params.numBusts or 0) >= (params.maxRolls or 0) then
+        return xi.job_utils.corsair.msgCannotPerform, false
+    end
+
+    return 0, true
+end
+
+-- Pure: ApplyMessage
+-- params: isCaster, isDoubleup, applied, total
+xi.job_utils.corsair.applyMessageFromParams = function(params)
+    params = params or {}
+    if not params.applied then
+        if params.isCaster then
+            return xi.job_utils.corsair.msgRollMainFail
+        end
+
+        return xi.job_utils.corsair.msgNoEffect
+    end
+
+    if (params.total or 0) > xi.job_utils.corsair.maxDieFace then
+        if params.isCaster then
+            return xi.job_utils.corsair.msgDoubleUpBust
+        end
+
+        return xi.job_utils.corsair.msgDoubleUpBustSub
+    end
+
+    if params.isCaster then
+        if params.isDoubleup then
+            return xi.job_utils.corsair.msgDoubleUp
+        end
+
+        return xi.job_utils.corsair.msgRollMain
+    end
+
+    return xi.job_utils.corsair.msgRollSub
+end
+
+-- Pure: checkDoubleUp gate
+xi.job_utils.corsair.checkDoubleUpFromParams = function(params)
+    params = params or {}
+    if not params.hasDoubleUpChance then
+        return xi.job_utils.corsair.msgNoEligibleRoll, false
+    end
+
+    return 0, true
+end
+
+-- Pure: Crooked Cards / Triple Shot fixed params
+xi.job_utils.corsair.crookedCardsFromParams = function()
+    return {
+        power    = xi.job_utils.corsair.crookedCardsPower,
+        duration = xi.job_utils.corsair.crookedCardsDuration,
+    }
+end
+
+xi.job_utils.corsair.tripleShotFromParams = function()
+    return {
+        power    = xi.job_utils.corsair.tripleShotPower,
+        duration = xi.job_utils.corsair.tripleShotDuration,
+    }
+end
+
 -----------------------------------
 -- Local helper functions
 -----------------------------------
@@ -431,7 +647,7 @@ local function corsairSetup(caster, ability, action, effect, job)
     caster:delStatusEffectSilent(xi.effect.DOUBLE_UP_CHANCE)
     caster:addStatusEffect(xi.effect.DOUBLE_UP_CHANCE, {
         power           = roll,
-        duration        = 45,
+        duration        = xi.job_utils.corsair.doubleUpChanceDuration,
         origin          = caster,
         subPower        = effect,
         tier            = job,
@@ -444,20 +660,17 @@ local function corsairSetup(caster, ability, action, effect, job)
     caster:setLocalVar('corsairDuEffect', effect)
     action:info(caster:getID(), roll)
 
-    local recastReduction = utils.clamp(caster:getMerit(xi.merit.PHANTOM_ROLL_RECAST) + caster:getMod(xi.mod.PHANTOM_RECAST), 0, 45)
-    local recastTime      = ability:getRecast()
-
-    -- While an XI roll is active, Phantom Roll recast is halved.
-    if
-        xi.job_utils.corsair.checkForElevenRoll(caster) and
-        caster:numBustEffects() == 0
-    then
-        recastTime = math.floor(recastTime / 2)
-    end
+    local recastTime = xi.job_utils.corsair.phantomRecastFromParams({
+        abilityRecast      = ability:getRecast(),
+        meritRecast        = caster:getMerit(xi.merit.PHANTOM_ROLL_RECAST),
+        modRecast          = caster:getMod(xi.mod.PHANTOM_RECAST),
+        elevenRollActive   = xi.job_utils.corsair.checkForElevenRoll(caster),
+        bustCount          = caster:numBustEffects(),
+    })
 
     -- https://wiki-ffo-jp.translate.goog/html/3347.html?_x_tr_sl=ja&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=sc (Near the middle)
     -- In short, it seems the minimum recast time is 15 seconds.
-    action:setRecast(utils.clamp(recastTime - recastReduction, 15, 300))
+    action:setRecast(recastTime)
 
     xi.job_utils.corsair.checkForJobBonus(caster, job)
 end
@@ -498,7 +711,9 @@ local function applyCorsairEffect(caster, target, abilityId, power, subPower)
                 then
                     target:addStatusEffect(xi.effect.BUST, {
                         power           = power,
-                        duration        = 300 - caster:getMerit(xi.merit.BUST_DURATION),
+                        duration        = xi.job_utils.corsair.bustDurationFromParams({
+                            bustDurationMerit = caster:getMerit(xi.merit.BUST_DURATION),
+                        }),
                         subType         = rollInfo.bustMod,
                         subPower        = subPower,
                         sourceType      = effect:getSourceType(),
@@ -538,9 +753,16 @@ local function applyCorsairEffect(caster, target, abilityId, power, subPower)
     end
 
     -- Determine slot and duration: upgrade in-place, claim a free slot, or evict the oldest roll.
-    local addDuration = 300 + caster:getMerit(xi.merit.WINNING_STREAK) + caster:getMod(xi.mod.PHANTOM_DURATION) + caster:getJobPointLevel(xi.jp.PHANTOM_ROLL_DURATION) * 2
+    local addDuration = xi.job_utils.corsair.rollDurationFromParams({
+        winningStreakMerit     = caster:getMerit(xi.merit.WINNING_STREAK),
+        phantomDurationMod     = caster:getMod(xi.mod.PHANTOM_DURATION),
+        phantomRollDurationJP  = caster:getJobPointLevel(xi.jp.PHANTOM_ROLL_DURATION),
+    })
     local addSlot     = nil
     local addSilent   = true
+    local maxRolls    = xi.job_utils.corsair.maxActiveRollsFromParams({
+        mainJobCOR = caster:getMainJob() == xi.job.COR,
+    })
 
     -- Upgrading an existing roll: Preserve the existing effect's slot and remaining duration.
     if upgradeEffect then
@@ -549,7 +771,7 @@ local function applyCorsairEffect(caster, target, abilityId, power, subPower)
         addSlot     = upgradeEffect:getEffectSlot()
 
     -- New roll when there is a free slot: Use the lowest available slot and the full duration.
-    elseif numOfEffects < (caster:getMainJob() == xi.job.COR and 2 or 1) then
+    elseif numOfEffects < maxRolls then
         addSlot     = utils.getLowestFreeSlot(target)
 
     -- Unique roll with no free slots: Evict the oldest existing roll
@@ -582,18 +804,14 @@ end
 -----------------------------------
 
 xi.job_utils.corsair.checkForElevenRoll = function(caster)
-    local effects = caster:getStatusEffects()
-
-    for _, effect in pairs(effects) do
-        if
-            effect:hasEffectFlag(xi.effectFlag.ROLL) and
-            effect:getSubPower() == 11
-        then
-            return true
+    local subPowers = {}
+    for _, effect in pairs(caster:getStatusEffects()) do
+        if effect:hasEffectFlag(xi.effectFlag.ROLL) then
+            subPowers[#subPowers + 1] = effect:getSubPower()
         end
     end
 
-    return false
+    return xi.job_utils.corsair.hasElevenRollFromParams(subPowers)
 end
 
 xi.job_utils.corsair.onRollEffectLose = function(player, effect)
@@ -761,63 +979,34 @@ end
 
 -- in_ability == current_ability if not using doubleup. current_ability is used to set the message whether you're using a doubleup or not.
 xi.job_utils.corsair.applyRoll = function(caster, target, inAbility, total, isDoubleup, currentAbility)
-    local abilityId   = inAbility:getID()
-    local rollInfo    = xi.job_utils.corsair.rollData[abilityId]
-    local effectpower = total >= 12 and rollInfo.bustPower or rollInfo.powers[total]    -- Get roll or bust power values
-    local enhanceMod  = rollEnhanceMods[abilityId]                                      -- Check for roll enhancement gear mod specific to the rolled ability
-    local doBonus     = enhanceMod and math.random(1, 100) <= caster:getMod(enhanceMod) -- Chance to enhance roll based on gear mod
+    local abilityId  = inAbility:getID()
+    local rollInfo   = xi.job_utils.corsair.rollData[abilityId]
+    local enhanceMod = rollEnhanceMods[abilityId]
+    local doBonus    = enhanceMod and math.random(1, 100) <= caster:getMod(enhanceMod)
 
-    -- Apply roll bonus if matching job or gear mod triggers
-    if
-        (rollInfo.bonusJob == xi.job.NONE and doBonus) or
-        (caster:getLocalVar('corsairRollBonus') == 1 and total <= 11)
-    then
-        effectpower = effectpower + rollInfo.bonus
-    end
-
-    -- Apply Additional Phantom Roll+ Buff
-    local phantomMult = caster:getMaxGearMod(xi.mod.PHANTOM_ROLL)
-    effectpower       = effectpower + rollInfo.phantomBase * phantomMult
-
-    -- Effect Power varies depending on COR level (Main vs Sub)
-    local actorLevel  = utils.getActiveJobLevel(caster, xi.job.COR)
-    local targetLevel = target:getMainLvl()
-
-    -- Level correction.
-    if actorLevel < targetLevel then
-        effectpower = effectpower * actorLevel / targetLevel
-    end
+    local effectpower = xi.job_utils.corsair.rollPowerFromParams({
+        total            = total,
+        powers           = rollInfo.powers,
+        bustPower        = rollInfo.bustPower,
+        bonus            = rollInfo.bonus,
+        bonusJob         = rollInfo.bonusJob,
+        phantomBase      = rollInfo.phantomBase,
+        jobBonusActive   = caster:getLocalVar('corsairRollBonus') == 1,
+        enhanceTriggered = doBonus,
+        phantomMult      = caster:getMaxGearMod(xi.mod.PHANTOM_ROLL),
+        actorLevel       = utils.getActiveJobLevel(caster, xi.job.COR),
+        targetLevel      = target:getMainLvl(),
+    })
 
     caster:setLocalVar('corsairApplyingRoll', 1)
 
-    -- Handle messages: No effect or otherwise prevented.
-    if not applyCorsairEffect(caster, target, abilityId, effectpower, total) then
-        if caster:getID() == target:getID() then                  -- dead code? you can't roll if the same roll is already active. There is no known buff that would prevent a corsair roll.
-            currentAbility:setMsg(xi.msg.basic.ROLL_MAIN_FAIL)    -- no effect for the COR rolling if they had the buff already
-        else
-            currentAbility:setMsg(xi.msg.basic.NO_EFFECT)         -- no effect for the target if they had the buff already. Testing in retail shows it's _not_ xi.msg.basic.ROLL_SUB_FAIL if the roll is already active. There is no known buff that would prevent a corsair roll, so maybe this would be used there if there were one?
-        end
-
-    -- Handle messages: Bust.
-    elseif total > 11 then
-        if caster:getID() == target:getID() then
-            currentAbility:setMsg(xi.msg.basic.DOUBLEUP_BUST)     -- bust message for the COR rolling
-        else
-            currentAbility:setMsg(xi.msg.basic.DOUBLEUP_BUST_SUB) -- bust message for the target getting the roll
-        end
-
-    -- Handle messages: Success
-    else
-        if caster:getID() == target:getID() then
-            if isDoubleup then
-                currentAbility:setMsg(xi.msg.basic.DOUBLEUP)      -- success on doubleup for COR has different message than from just using Phantom Roll
-            else
-                currentAbility:setMsg(xi.msg.basic.ROLL_MAIN)     -- success message for the COR rolling the first time
-            end
-        else
-            currentAbility:setMsg(xi.msg.basic.ROLL_SUB)          -- message for the target getting the roll. Always the same, even if it's the COR's first roll.
-        end
-    end
+    local applied = applyCorsairEffect(caster, target, abilityId, effectpower, total)
+    currentAbility:setMsg(xi.job_utils.corsair.applyMessageFromParams({
+        isCaster   = caster:getID() == target:getID(),
+        isDoubleup = isDoubleup,
+        applied    = applied,
+        total      = total,
+    }))
 
     caster:setLocalVar('corsairApplyingRoll', 0)
 
@@ -832,25 +1021,30 @@ end
 -- Prevent using a roll if the same roll is already active, or if the player has too many busts.
 xi.job_utils.corsair.onRollAbilityCheck = function(player, target, ability)
     local abilityId = ability:getID()
-    local numBusts  = player:numBustEffects()
     local effectId  = xi.job_utils.corsair.rollData[abilityId].effect
-    local maxRolls  = player:getMainJob() == xi.job.COR and 2 or 1
-
-    if player:hasStatusEffect(effectId) then
-        return xi.msg.basic.ROLL_ALREADY_ACTIVE, 0
-    elseif numBusts >= maxRolls then
-        return xi.msg.basic.CANNOT_PERFORM, 0
+    local msg, ok   = xi.job_utils.corsair.onRollAbilityCheckFromParams({
+        hasSameRoll = player:hasStatusEffect(effectId),
+        numBusts    = player:numBustEffects(),
+        maxRolls    = xi.job_utils.corsair.maxActiveRollsFromParams({
+            mainJobCOR = player:getMainJob() == xi.job.COR,
+        }),
+    })
+    if ok then
+        return 0, 0
     end
 
-    return 0, 0
+    return msg, 0
 end
 
 xi.job_utils.corsair.checkDoubleUp = function(player, target, ability)
-    if not player:hasStatusEffect(xi.effect.DOUBLE_UP_CHANCE) then
-        return xi.msg.basic.NO_ELIGIBLE_ROLL, 0
-    else
+    local msg, ok = xi.job_utils.corsair.checkDoubleUpFromParams({
+        hasDoubleUpChance = player:hasStatusEffect(xi.effect.DOUBLE_UP_CHANCE),
+    })
+    if ok then
         return 0, 0
     end
+
+    return msg, 0
 end
 
 xi.job_utils.corsair.checkFold = function(player)
