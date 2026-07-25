@@ -62,6 +62,7 @@
 #include "ability.h"
 #include "alliance.h"
 #include "char_death_timestamp_load.h"
+#include "char_death_time_save_plan.h"
 #include "char_drop_item_dispatch.h"
 #include "char_equip_mod_update.h"
 #include "char_extended_job_packets.h"
@@ -6781,8 +6782,8 @@ void SaveDeathTime(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    uint32 secondsSinceDeath = static_cast<uint32>(timer::count_seconds(PChar->GetTimeSinceDeath()));
-    db::preparedStmt("UPDATE char_stats SET death = ? WHERE charid = ? LIMIT 1", secondsSinceDeath, PChar->id);
+    const auto plan = deathtimesavehelpers::MakePlan(timer::count_seconds(PChar->GetTimeSinceDeath()));
+    db::preparedStmt("UPDATE char_stats SET death = ? WHERE charid = ? LIMIT 1", plan.secondsSinceDeath, PChar->id);
 }
 
 void SavePlayTime(CCharEntity* PChar)
