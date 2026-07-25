@@ -639,6 +639,80 @@ end
 ---@param wRatio number
 ---@param pDifFinalCap number
 -- Pure PC wRatio → pDIF lower/upper caps (OmegaXI slice 6684 dual-wire / 0840).
+-----------------------------------
+-- Pure: cRatio level-correction factor (slice 6757 / internal/pdif.LevelDifFactor)
+-- Melee slope 3/64; ranged 3/128. Non-PC clamps negative to 0; PC clamps positive to 0.
+-- params: actorLevel, targetLevel, applyLevelCorrection, actorIsPC, ranged
+-----------------------------------
+xi.combat.physical.meleeLevelCorrectionPerLevel  = 3 / 64
+xi.combat.physical.rangedLevelCorrectionPerLevel = 3 / 128
+xi.combat.physical.rangedCRatioMin               = 0
+xi.combat.physical.rangedCRatioMax               = 10
+
+xi.combat.physical.levelDifFactorFromParams = function(params)
+    params = params or {}
+    if not params.applyLevelCorrection then
+        return 0
+    end
+
+    local slope = xi.combat.physical.meleeLevelCorrectionPerLevel
+    if params.ranged then
+        slope = xi.combat.physical.rangedLevelCorrectionPerLevel
+    end
+
+    local factor = ((params.actorLevel or 0) - (params.targetLevel or 0)) * slope
+
+    -- Only players suffer from negative level difference.
+    if not params.actorIsPC and factor < 0 then
+        return 0
+    end
+
+    -- Players do not get positive level correction, only monsters
+    if params.actorIsPC and factor > 0 then
+        return 0
+    end
+
+    return factor
+end
+
+-- Pure: clamp ranged base ratio to [0, 10]
+xi.combat.physical.clampRangedCRatioFromParams = function(params)
+    params = params or {}
+    local baseRatio = params.baseRatio or 0
+    if baseRatio < xi.combat.physical.rangedCRatioMin then
+        return xi.combat.physical.rangedCRatioMin
+    end
+
+    if baseRatio > xi.combat.physical.rangedCRatioMax then
+        return xi.combat.physical.rangedCRatioMax
+    end
+
+    return baseRatio
+end
+
+-- Pure: ranged pDIF cap bands from clamped cRatio (before level correction)
+-- returns: lowerCap, upperCap
+xi.combat.physical.rangedCRatioCapsFromParams = function(params)
+    params = params or {}
+    local cRatio       = params.cRatio or 0
+    local pDifFinalCap = params.pDifFinalCap or 0
+
+    if cRatio < 0.9 then
+        return cRatio, cRatio * 10 / 9
+    elseif cRatio < 1.1 then
+        return 1, 1
+    end
+
+    return math.min(cRatio * 20 / 19 - 3 / 19, pDifFinalCap), math.min(cRatio, pDifFinalCap)
+end
+
+-- Pure: add levelDifFactor to both caps
+xi.combat.physical.applyLevelDifToCapsFromParams = function(params)
+    params = params or {}
+    local factor = params.levelDifFactor or 0
+    return (params.lowerCap or 0) + factor, (params.upperCap or 0) + factor
+end
+
 xi.combat.physical.wRatioCapPC = function(wRatio, pDifFinalCap)
     local pDifUpperCap = 0
     local pDifLowerCap = 0
@@ -815,30 +889,16 @@ xi.combat.physical.calculateMeleePDIF = function(actor, target, weaponType, wsAt
     ----------------------------------------
     -- Step 2: cRatio (Level correction, corrected ratio) Zone based!
     ----------------------------------------
-    local levelDifFactor = 0
-
     -- https://forum.square-enix.com/ffxi/threads/31310-March-27-2013-(JST)-Version-Update
     -- TODO: There is some weirdness with needing 2 levels to start level correction in retail
     -- It is not currently implemented.
-    if applyLevelCorrection then
-        levelDifFactor = (actor:getMainLvl() - target:getMainLvl()) * 3 / 64 -- 3/64 from JP model which fits better
-    end
-
-    -- Only players suffer from negative level difference.
-    if
-        not actor:isPC() and
-        levelDifFactor < 0
-    then
-        levelDifFactor = 0
-    end
-
-    -- Players do not get positive level correction, only monsters
-    if
-        actor:isPC() and
-        levelDifFactor > 0
-    then
-        levelDifFactor = 0
-    end
+    local levelDifFactor = xi.combat.physical.levelDifFactorFromParams({
+        actorLevel            = actor:getMainLvl(),
+        targetLevel           = target:getMainLvl(),
+        applyLevelCorrection  = applyLevelCorrection,
+        actorIsPC             = actor:isPC(),
+        ranged                = false,
+    })
 
     ----------------------------------------
     -- Step 3: wRatio and pDif Caps (Melee)
@@ -965,8 +1025,6 @@ xi.combat.physical.calculateRangedPDIF = function(actor, target, weaponType, wsA
     ----------------------------------------
     -- Step 2: cRatio (Level correction, corrected ratio) Zone based!
     ----------------------------------------
-    local levelDifFactor = 0
-
     -- Mod-based bypass for ranged level correction
     if actor:isPC() and actor:getMod(xi.mod.RA_IGNORE_LVL_DIFF) > 0 then
         applyLevelCorrection = false
@@ -975,27 +1033,17 @@ xi.combat.physical.calculateRangedPDIF = function(actor, target, weaponType, wsA
     -- https://forum.square-enix.com/ffxi/threads/31310-March-27-2013-(JST)-Version-Update
     -- TODO: There is some weirdness with needing 2 levels to start level correction in retail
     -- It is not currently implemented.
-    if applyLevelCorrection then
-        levelDifFactor = (actor:getMainLvl() - target:getMainLvl()) * (3 / 128) -- half the melee correction
-    end
+    local levelDifFactor = xi.combat.physical.levelDifFactorFromParams({
+        actorLevel            = actor:getMainLvl(),
+        targetLevel           = target:getMainLvl(),
+        applyLevelCorrection  = applyLevelCorrection,
+        actorIsPC             = actor:isPC(),
+        ranged                = true,
+    })
 
-    -- Only players suffer from negative level difference.
-    if
-        not actor:isPC() and
-        levelDifFactor < 0
-    then
-        levelDifFactor = 0
-    end
-
-    -- Players do not get positive level correction, only monsters
-    if
-        actor:isPC() and
-        levelDifFactor > 0
-    then
-        levelDifFactor = 0
-    end
-
-    local cRatio = utils.clamp(baseRatio, 0, 10) -- Clamp for the lower limit, mainly.
+    local cRatio = xi.combat.physical.clampRangedCRatioFromParams({
+        baseRatio = baseRatio,
+    }) -- Clamp for the lower limit, mainly.
 
     -- TODO: Presumably, pets get a Cap here if the target checks as 'Too Weak'. More info needed.
 
@@ -1019,21 +1067,16 @@ xi.combat.physical.calculateRangedPDIF = function(actor, target, weaponType, wsA
 
     pDif = utils.clamp(pDif, 0, pDifFinalCap)
 
-    -- pDIF upper and lower caps.
-    if cRatio < 0.9 then
-        pDifUpperCap = cRatio * 10 / 9
-        pDifLowerCap = cRatio
-    elseif cRatio < 1.1 then
-        pDifUpperCap = 1
-        pDifLowerCap = 1
-    else
-        pDifUpperCap = math.min(cRatio, pDifFinalCap)
-        pDifLowerCap = math.min(cRatio * 20 / 19 - 3 / 19, pDifFinalCap)
-    end
-
-    -- Add in level correction
-    pDifUpperCap = pDifUpperCap + levelDifFactor
-    pDifLowerCap = pDifLowerCap + levelDifFactor
+    -- pDIF upper and lower caps + level correction.
+    pDifLowerCap, pDifUpperCap = xi.combat.physical.rangedCRatioCapsFromParams({
+        cRatio       = cRatio,
+        pDifFinalCap = pDifFinalCap,
+    })
+    pDifLowerCap, pDifUpperCap = xi.combat.physical.applyLevelDifToCapsFromParams({
+        lowerCap       = pDifLowerCap,
+        upperCap       = pDifUpperCap,
+        levelDifFactor = levelDifFactor,
+    })
 
     pDif = math.random(pDifLowerCap * 1000, pDifUpperCap * 1000) / 1000
 
