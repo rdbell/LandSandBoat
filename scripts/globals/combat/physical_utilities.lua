@@ -434,30 +434,68 @@ xi.combat.physical.calculateRangedStatFactor = function(actor, target)
 end
 
 -- Weapon Skill Secondary Attribute Modifier: Function used to get stat addition to base damage.
+-----------------------------------
+-- Pure WSC injects (OmegaXI slice 6685)
+-- Dual-wired to internal/wsc.Calculate / Term.
+-- Distinct from blue magic WSC (no per-stat floor / no WS_*_BONUS there).
+-----------------------------------
+
+-- Pure single-term floor(stat * (multiplier + bonusPercent/100)).
+xi.combat.physical.wscTerm = function(stat, multiplier, bonusPercent)
+    return math.floor((stat or 0) * ((multiplier or 0) + (bonusPercent or 0) / 100))
+end
+
+-- Pure full WSC once stats, script multipliers, and WS_*_BONUS percents are known.
+-- params.stats / .multipliers / .bonusPercents each have str,dex,vit,agi,int,mnd,chr
+-- (nil fields sanitize to 0).
+xi.combat.physical.wscFromParams = function(params)
+    params = params or {}
+    local stats = params.stats or {}
+    local mults = params.multipliers or {}
+    local bonus = params.bonusPercents or {}
+
+    local term = xi.combat.physical.wscTerm
+
+    return term(stats.str, mults.str, bonus.str) +
+        term(stats.dex, mults.dex, bonus.dex) +
+        term(stats.vit, mults.vit, bonus.vit) +
+        term(stats.agi, mults.agi, bonus.agi) +
+        term(stats.int, mults.int, bonus.int) +
+        term(stats.mnd, mults.mnd, bonus.mnd) +
+        term(stats.chr, mults.chr, bonus.chr)
+end
+
+-- Entity host: getStat / WS_*_BONUS injects → pure.
 xi.combat.physical.calculateWSC = function(actor, wsSTRmod, wsDEXmod, wsVITmod, wsAGImod, wsINTmod, wsMNDmod, wsCHRmod)
-    local finalWSC = 0
-
-    -- Sanitize parameters.
-    local strMultiplier = wsSTRmod or 0
-    local dexMultiplier = wsDEXmod or 0
-    local vitMultiplier = wsVITmod or 0
-    local agiMultiplier = wsAGImod or 0
-    local intMultiplier = wsINTmod or 0
-    local mndMultiplier = wsMNDmod or 0
-    local chrMultiplier = wsCHRmod or 0
-
-    -- wscSTAT = actor stat * (WS stat modifier + Actor-specific WS stat modifier)
-    local wscSTR = math.floor(actor:getStat(xi.mod.STR) * (strMultiplier + actor:getMod(xi.mod.WS_STR_BONUS) / 100))
-    local wscDEX = math.floor(actor:getStat(xi.mod.DEX) * (dexMultiplier + actor:getMod(xi.mod.WS_DEX_BONUS) / 100))
-    local wscVIT = math.floor(actor:getStat(xi.mod.VIT) * (vitMultiplier + actor:getMod(xi.mod.WS_VIT_BONUS) / 100))
-    local wscAGI = math.floor(actor:getStat(xi.mod.AGI) * (agiMultiplier + actor:getMod(xi.mod.WS_AGI_BONUS) / 100))
-    local wscINT = math.floor(actor:getStat(xi.mod.INT) * (intMultiplier + actor:getMod(xi.mod.WS_INT_BONUS) / 100))
-    local wscMND = math.floor(actor:getStat(xi.mod.MND) * (mndMultiplier + actor:getMod(xi.mod.WS_MND_BONUS) / 100))
-    local wscCHR = math.floor(actor:getStat(xi.mod.CHR) * (chrMultiplier + actor:getMod(xi.mod.WS_CHR_BONUS) / 100))
-
-    finalWSC = wscSTR + wscDEX + wscVIT + wscAGI + wscINT + wscMND + wscCHR
-
-    return finalWSC
+    return xi.combat.physical.wscFromParams({
+        stats = {
+            str = actor:getStat(xi.mod.STR),
+            dex = actor:getStat(xi.mod.DEX),
+            vit = actor:getStat(xi.mod.VIT),
+            agi = actor:getStat(xi.mod.AGI),
+            int = actor:getStat(xi.mod.INT),
+            mnd = actor:getStat(xi.mod.MND),
+            chr = actor:getStat(xi.mod.CHR),
+        },
+        multipliers = {
+            str = wsSTRmod or 0,
+            dex = wsDEXmod or 0,
+            vit = wsVITmod or 0,
+            agi = wsAGImod or 0,
+            int = wsINTmod or 0,
+            mnd = wsMNDmod or 0,
+            chr = wsCHRmod or 0,
+        },
+        bonusPercents = {
+            str = actor:getMod(xi.mod.WS_STR_BONUS),
+            dex = actor:getMod(xi.mod.WS_DEX_BONUS),
+            vit = actor:getMod(xi.mod.WS_VIT_BONUS),
+            agi = actor:getMod(xi.mod.WS_AGI_BONUS),
+            int = actor:getMod(xi.mod.WS_INT_BONUS),
+            mnd = actor:getMod(xi.mod.WS_MND_BONUS),
+            chr = actor:getMod(xi.mod.WS_CHR_BONUS),
+        },
+    })
 end
 
 -- TP factor equation. Used to determine TP modifer across all cases of 'X varies with TP'
