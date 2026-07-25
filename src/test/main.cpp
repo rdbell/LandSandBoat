@@ -717,6 +717,7 @@ auto runAbilityTable1513SelfTests() -> bool;
 auto runGambitConditions6636SelfTests() -> bool;
 auto runPetAbilityTable1514SelfTests() -> bool;
 auto runKeyItemSpell1515SelfTests() -> bool;
+auto runLearnedAbilityMutation6845SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
 auto runStyleUpdate1518SelfTests() -> bool;
@@ -3096,6 +3097,7 @@ namespace
         ok = runGambitConditions6636SelfTests() && ok;
         ok = runPetAbilityTable1514SelfTests() && ok;
         ok = runKeyItemSpell1515SelfTests() && ok;
+        ok = runLearnedAbilityMutation6845SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
         ok = runStyleUpdate1518SelfTests() && ok;
