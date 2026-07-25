@@ -1,8 +1,15 @@
 -----------------------------------
+-- Treasure Hunter drop-rate helpers.
+-- Pure table + getDropRate dual-wired to OmegaXI internal/treasurehunter (slice 6694 / 0834).
+-----------------------------------
 xi = xi or {}
 xi.combat = xi.combat or {}
 xi.combat.treasureHunter = xi.combat.treasureHunter or {}
 -----------------------------------
+
+xi.combat.treasureHunter.maxTier = 14
+xi.combat.treasureHunter.maxDropRate = 10000
+xi.combat.treasureHunter.bracketCount = 7
 
 -- https://forum.square-enix.com/ffxi/threads/56550
 xi.combat.treasureHunter.treasureHunterTable =
@@ -36,34 +43,42 @@ xi.combat.treasureHunter.dropBracketTable =
     [7] = {    0 }, -- Set to 0, for weird cases in DB.
 }
 
-xi.combat.treasureHunter.getDropRate = function(thLevel, dropRate)
-    -- Sanitize parameters
-    local thTier     = utils.defaultIfNil(thLevel, 0)
-    local thDropRate = utils.defaultIfNil(dropRate, 0)
+-- Pure clamp helpers (parity with Go ClampTier / ClampDropRate).
+xi.combat.treasureHunter.clampTier = function(thLevel)
+    return utils.clamp(utils.defaultIfNil(thLevel, 0), 0, xi.combat.treasureHunter.maxTier)
+end
 
-    thTier     = utils.clamp(thTier, 0, 14)
-    thDropRate = utils.clamp(thDropRate, 0, 10000)
+xi.combat.treasureHunter.clampDropRate = function(dropRate)
+    return utils.clamp(utils.defaultIfNil(dropRate, 0), 0, xi.combat.treasureHunter.maxDropRate)
+end
+
+-- Pure rarity bracket (1..7) for a base drop rate on the 1/10000 scale.
+xi.combat.treasureHunter.dropBracket = function(dropRate)
+    local thDropRate = xi.combat.treasureHunter.clampDropRate(dropRate)
+
+    for i = 1, #xi.combat.treasureHunter.dropBracketTable do
+        if thDropRate >= xi.combat.treasureHunter.dropBracketTable[i][1] then
+            return i
+        end
+    end
+
+    return 0
+end
+
+-- Pure getDropRate: TH tier + base drop rate → remapped 1/10000 drop rate.
+-- Already entity-free; dual-wired to internal/treasurehunter.GetDropRate.
+xi.combat.treasureHunter.getDropRate = function(thLevel, dropRate)
+    local thTier = xi.combat.treasureHunter.clampTier(thLevel)
+    local thDropRate = xi.combat.treasureHunter.clampDropRate(dropRate)
 
     -- Early returns: Drop is guaranteed or non-existant.
-    if thDropRate == 10000 then
-        return 10000
+    if thDropRate == xi.combat.treasureHunter.maxDropRate then
+        return xi.combat.treasureHunter.maxDropRate
     elseif thDropRate == 0 then
         return 0
     end
 
-    -- Calculate original drop rate bracket.
-    local thBracket = 0
+    local thBracket = xi.combat.treasureHunter.dropBracket(thDropRate)
 
-    for i = 1, #xi.combat.treasureHunter.dropBracketTable do
-        if thDropRate >= xi.combat.treasureHunter.dropBracketTable[i][1] then
-            thBracket = i
-
-            break
-        end
-    end
-
-    -- Calculate TH drop rate
-    local newDropRate = xi.combat.treasureHunter.treasureHunterTable[thTier][thBracket]
-
-    return newDropRate
+    return xi.combat.treasureHunter.treasureHunterTable[thTier][thBracket]
 end
