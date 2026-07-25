@@ -1,5 +1,9 @@
 -----------------------------------
 -- Beastmaster Job Utilities
+-- Dual-wired pure inject forms (slice 6737 / 0886):
+--   charm chance/duration, gauge message, jug pet gate, reward heal/regen,
+--   stay tick, killer instinct/spur/feral howl, one-hour recast
+-- Parity: internal/beastmaster
 -----------------------------------
 require('scripts/globals/ability')
 require('scripts/globals/jobpoints')
@@ -24,41 +28,267 @@ xi.job_utils.beastmaster.petFoodData =
     [xi.item.PET_FOOD_THETA_BISCUIT]   = { minHealing = 1600, regen = 20, mndMult = 4, mndThreshold = 55 },
 }
 
+
+-----------------------------------
+-- Pure inject pins (internal/beastmaster, slice 6737 / 0886)
+-----------------------------------
+xi.job_utils.beastmaster.charmChanceBase              = 50
+xi.job_utils.beastmaster.charmChanceCap               = 95
+xi.job_utils.beastmaster.charmDurationCHRScale        = 1.25
+xi.job_utils.beastmaster.charmDurationCHRAddend       = 150
+xi.job_utils.beastmaster.charmTimePerMod              = 0.05
+xi.job_utils.beastmaster.rewardRegenDuration          = 180
+xi.job_utils.beastmaster.rewardRegenTick              = 3
+xi.job_utils.beastmaster.stayTickMax                  = 10
+xi.job_utils.beastmaster.stayTickMin                  = 5
+xi.job_utils.beastmaster.killerInstinctBaseDuration   = 180
+xi.job_utils.beastmaster.killerInstinctMeritUnit      = 10
+xi.job_utils.beastmaster.killerInstinctPower          = 10
+xi.job_utils.beastmaster.spurBasePower                = 20
+xi.job_utils.beastmaster.spurJPAttackPerLevel         = 3
+xi.job_utils.beastmaster.spurDuration                 = 90
+xi.job_utils.beastmaster.feralHowlBaseDuration        = 10
+xi.job_utils.beastmaster.feralHowlMeritUnit           = 5
+xi.job_utils.beastmaster.oneHourRecastSecondsPerMod   = 60
+xi.job_utils.beastmaster.unleashPower                 = 9
+xi.job_utils.beastmaster.unleashDuration              = 60
+xi.job_utils.beastmaster.msgCannotCharm               = 210
+xi.job_utils.beastmaster.msgVeryDifficultCharm        = 211
+xi.job_utils.beastmaster.msgDifficultToCharm          = 212
+xi.job_utils.beastmaster.msgMightBeAbleCharm          = 213
+xi.job_utils.beastmaster.msgShouldBeAbleCharm         = 214
+
+-- Pure: dLvl charm duration multiplier
+xi.job_utils.beastmaster.dLvlCharmMultiplierFromParams = function(dLvl)
+    dLvl = dLvl or 0
+    if dLvl < -6 then
+        return 1 / 24
+    end
+
+    if dLvl >= 9 then
+        return 6
+    end
+
+    return 0.9997336 + 0.3652882 * dLvl + 0.02097742 * dLvl ^ 2
+        - 0.004106429 * dLvl ^ 3 + 0.000007231037 * dLvl ^ 4
+        + 0.00005102634 * dLvl ^ 5
+end
+
+-- Pure: CharmDuration
+-- params: charmerCHR, charmerLevel, targetLevel, charmTimeMod
+xi.job_utils.beastmaster.charmDurationFromParams = function(params)
+    params = params or {}
+    local base = math.floor(xi.job_utils.beastmaster.charmDurationCHRScale * (params.charmerCHR or 0)
+        + xi.job_utils.beastmaster.charmDurationCHRAddend)
+    local dLvl = (params.charmerLevel or 0) - (params.targetLevel or 0)
+    local dur = base * xi.job_utils.beastmaster.dLvlCharmMultiplierFromParams(dLvl)
+    dur = dur + dur * ((params.charmTimeMod or 0) * xi.job_utils.beastmaster.charmTimePerMod)
+    return math.floor(dur)
+end
+
+-- Pure: ValidJugPetID
+-- params: ammoSubSkill, ammoSkill, ammoPresent, ammoReqLevel, playerMainLevel
+-- returns: petId or nil
+xi.job_utils.beastmaster.validJugPetIDFromParams = function(params)
+    params = params or {}
+    if
+        (params.ammoSkill or 0) ~= 0 or
+        not params.ammoPresent or
+        (params.playerMainLevel or 0) < (params.ammoReqLevel or 0)
+    then
+        return nil
+    end
+
+    local petId = params.ammoSubSkill or 0
+    local sheepFamiliar = 21
+    if xi.petId and xi.petId.SHEEP_FAMILIAR then
+        sheepFamiliar = xi.petId.SHEEP_FAMILIAR
+    end
+
+    if petId >= sheepFamiliar then
+        return petId
+    end
+
+    return nil
+end
+
+-- Pure: CharmChance
+-- params: eligible, charmerBSTLevel, targetLevel, charmRes, lightResRank,
+--         includeMods, charmChanceMod, charmerCHR, targetCHR
+xi.job_utils.beastmaster.charmChanceFromParams = function(params)
+    params = params or {}
+    if not params.eligible then
+        return 0
+    end
+
+    local chance = xi.job_utils.beastmaster.charmChanceBase - (params.charmRes or 0)
+    local charmerLvl = params.charmerBSTLevel or 0
+    local targetLvl  = params.targetLevel or 0
+
+    if charmerLvl < targetLvl then
+        local dLvl = targetLvl - charmerLvl
+        if targetLvl >= 71 then
+            chance = chance - 10 * dLvl
+        elseif targetLvl >= 51 then
+            chance = chance - 5 * dLvl
+        else
+            chance = chance - 3 * dLvl
+        end
+    end
+
+    local rank = params.lightResRank or 0
+    if rank <= -3 then
+        chance = chance * 1.5
+    elseif rank <= -2 then
+        chance = chance * 1.4
+    elseif rank <= -1 then
+        chance = chance * 1.2
+    elseif rank <= 0 then
+        -- identity
+    else
+        chance = chance / 2
+    end
+
+    if params.includeMods then
+        chance = chance + (params.charmChanceMod or 0)
+    end
+
+    chance = chance + ((params.charmerCHR or 0) - (params.targetCHR or 0))
+
+    if chance < 0 then
+        return 0
+    end
+
+    if chance > xi.job_utils.beastmaster.charmChanceCap then
+        return xi.job_utils.beastmaster.charmChanceCap
+    end
+
+    return chance
+end
+
+-- Pure: GaugeMessage
+xi.job_utils.beastmaster.gaugeMessageFromParams = function(chance)
+    chance = chance or 0
+    if chance >= 75 then
+        return xi.job_utils.beastmaster.msgShouldBeAbleCharm
+    elseif chance >= 50 then
+        return xi.job_utils.beastmaster.msgMightBeAbleCharm
+    elseif chance >= 25 then
+        return xi.job_utils.beastmaster.msgDifficultToCharm
+    elseif chance >= 1 then
+        return xi.job_utils.beastmaster.msgVeryDifficultCharm
+    end
+
+    return xi.job_utils.beastmaster.msgCannotCharm
+end
+
+-- Pure: RewardHealing
+-- params: foodItemId, playerMND, rewardHPBonus, petMissingHP
+-- returns: total, ok
+xi.job_utils.beastmaster.rewardHealingFromParams = function(params)
+    params = params or {}
+    local foodData = xi.job_utils.beastmaster.petFoodData[params.foodItemId]
+    if not foodData then
+        return 0, false
+    end
+
+    local total = foodData.minHealing + foodData.mndMult * ((params.playerMND or 0) - foodData.mndThreshold)
+    -- integer product (Lua floor of int arith)
+    total = math.floor(total)
+
+    if (params.rewardHPBonus or 0) > 0 then
+        total = total + math.floor(total * (params.rewardHPBonus or 0) / 100)
+    end
+
+    local missing = params.petMissingHP or 0
+    if missing < 0 then
+        missing = 0
+    end
+
+    if total > missing then
+        total = missing
+    end
+
+    return total, true
+end
+
+-- Pure: RewardRegen power
+xi.job_utils.beastmaster.rewardRegenFromParams = function(foodItemId)
+    local foodData = xi.job_utils.beastmaster.petFoodData[foodItemId]
+    if not foodData then
+        return 0, false
+    end
+
+    return foodData.regen, true
+end
+
+-- Pure: StayHealingTick
+xi.job_utils.beastmaster.stayHealingTickFromParams = function(bstLevel)
+    bstLevel = bstLevel or 0
+    if bstLevel < 0 then
+        bstLevel = 0
+    end
+
+    local tick = xi.job_utils.beastmaster.stayTickMax - math.ceil(math.max(0, bstLevel / 20))
+    if tick < xi.job_utils.beastmaster.stayTickMin then
+        return xi.job_utils.beastmaster.stayTickMin
+    end
+
+    if tick > xi.job_utils.beastmaster.stayTickMax then
+        return xi.job_utils.beastmaster.stayTickMax
+    end
+
+    return tick
+end
+
+-- Pure: KillerInstinctDuration
+xi.job_utils.beastmaster.killerInstinctDurationFromParams = function(meritValue)
+    return xi.job_utils.beastmaster.killerInstinctBaseDuration
+        + ((meritValue or 0) - xi.job_utils.beastmaster.killerInstinctMeritUnit)
+end
+
+-- Pure: SpurPowers — returns power, subPower
+xi.job_utils.beastmaster.spurPowersFromParams = function(params)
+    params = params or {}
+    local power = xi.job_utils.beastmaster.spurBasePower + (params.enhancesSpur or 0)
+    local subPower = (params.spurJP or 0) * xi.job_utils.beastmaster.spurJPAttackPerLevel
+    return power, subPower
+end
+
+-- Pure: FeralHowlDuration (pre-resist)
+xi.job_utils.beastmaster.feralHowlDurationFromParams = function(params)
+    params = params or {}
+    local duration = xi.job_utils.beastmaster.feralHowlBaseDuration
+    if (params.feralHowlDurationMod or 0) >= 1 then
+        duration = duration + math.floor((params.meritValue or 0) / xi.job_utils.beastmaster.feralHowlMeritUnit)
+    end
+
+    return duration
+end
+
+-- Pure: OneHourRecast
+xi.job_utils.beastmaster.oneHourRecastFromParams = function(params)
+    params = params or {}
+    local recast = (params.abilityRecast or 0)
+        - (params.oneHourRecastMod or 0) * xi.job_utils.beastmaster.oneHourRecastSecondsPerMod
+    if recast < 0 then
+        return 0
+    end
+
+    return recast
+end
+
 -----------------------------------
 -- Helper Functions
 -----------------------------------
 
 local function getCharmDuration(charmer, target)
-    local charmDuration = 0
-
-    -- Calculate base duration (see https://www.bg-wiki.com/ffxi/Charm_Duration) and dLvl
-    local baseCharmDuration = math.floor(1.25 * charmer:getStat(xi.mod.CHR) + 150)
-    local dLvl = charmer:getMainLvl() - target:getMainLvl()
-
-    -- Default multiplier for dLvl -6 or lower
-    local dLvlCharmMult = 1 / 24
-
-    if dLvl >= -6 and dLvl < 9 then
-        -- Quintic least squares fitting of duration multiplier as function of dLvl (r^2 > 0.999)
-        -- Fitting on values from table at https://www.bg-wiki.com/ffxi/Charm_Duration
-        -- See fitting at https://mycurvefit.com/index.html?action=openshare&id=358a5d99-4499-4a6a-bbfe-0a667739335c
-        dLvlCharmMult = 0.9997336 + 0.3652882 * dLvl + 0.02097742 * dLvl ^ 2
-            - 0.004106429 * dLvl ^ 3 + 0.000007231037 * dLvl ^ 4
-            + 0.00005102634 * dLvl ^ 5
-        -- Caps at dLvl > 9
-    elseif dLvl >= 9 then
-        dLvlCharmMult = 6
-    end
-
-    -- Apply the dLvl multiplier
-    charmDuration = baseCharmDuration * dLvlCharmMult
-
-    -- Apply charm duration extension from gear
-    local charmTimeMod = charmer:getMod(xi.mod.CHARM_TIME)
-    local extraDurationFromMod = charmDuration * (charmTimeMod * 0.5 / 10) -- Assumes 5% per charmTimeMod
-    charmDuration = charmDuration + extraDurationFromMod
-
-    return math.floor(charmDuration)
+    return xi.job_utils.beastmaster.charmDurationFromParams({
+        charmerCHR   = charmer:getStat(xi.mod.CHR),
+        charmerLevel = charmer:getMainLvl(),
+        targetLevel  = target:getMainLvl(),
+        charmTimeMod = charmer:getMod(xi.mod.CHARM_TIME),
+    })
 end
 
 local getValidJugPetID = function(player)
@@ -66,80 +296,36 @@ local getValidJugPetID = function(player)
     -- - equipped in the ammo slot
     -- - have skillid 0
     -- - the subskill maps to the jug petid
-    local petId        = player:getWeaponSubSkillType(xi.slot.AMMO)
-    local ammoEquip    = player:getEquippedItem(xi.slot.AMMO)
-    local ammoSkill    = player:getWeaponSkillType(xi.slot.AMMO)
-    local minimumLevel = ammoEquip and ammoEquip:getReqLvl() or nil
-    if
-        ammoSkill ~= 0 or
-        minimumLevel == nil or
-        player:getMainLvl() < minimumLevel
-    then
-        petId = nil
-    end
-
-    -- there are certain ammo items that have subskill < 20, double check we exclude that
-    if petId and petId >= xi.petId.SHEEP_FAMILIAR then
-        return petId
-    end
-
-    return nil
+    local ammoEquip = player:getEquippedItem(xi.slot.AMMO)
+    return xi.job_utils.beastmaster.validJugPetIDFromParams({
+        ammoSubSkill    = player:getWeaponSubSkillType(xi.slot.AMMO),
+        ammoSkill       = player:getWeaponSkillType(xi.slot.AMMO),
+        ammoPresent     = ammoEquip ~= nil,
+        ammoReqLevel    = ammoEquip and ammoEquip:getReqLvl() or 0,
+        playerMainLevel = player:getMainLvl(),
+    })
 end
 
 xi.job_utils.beastmaster.getCharmChance = function(charmer, target, includeMods)
-    if
-        not charmer or                                -- Invalid charmer
-        not target or                                 -- Invalid target
-        not charmer:isPC() or                         -- Charmer not a player
-        not target:isMob() or                         -- Target not a mob
-        target:getMobMod(xi.mobMod.CHARMABLE) == 0 or -- Not charmable
-        target:getMaster() ~= nil                     -- Someone else's pet
-    then
-        return 0
-    end
+    local eligible =
+        charmer and
+        target and
+        charmer:isPC() and
+        target:isMob() and
+        target:getMobMod(xi.mobMod.CHARMABLE) ~= 0 and
+        target:getMaster() == nil
 
-    -- Use the players BST level (even if subjob) for charm chance calc
-    local charmerJobLevel = charmer:getJobLevel(xi.job.BST)
-    local targetLevel     = target:getMainLvl()
-    local charmres        = target:getMod(xi.mod.CHARMRES)
-    local charmChance     = 50 - charmres
-    -- dLvl only applies when player lvl < mob lvl
-    -- and varies for different target levels
-    if charmerJobLevel < targetLevel then
-        if targetLevel >= 71 then
-            charmChance = charmChance - 10 * (targetLevel - charmerJobLevel)
-        elseif targetLevel >= 51 then
-            charmChance = charmChance - 5 * (targetLevel - charmerJobLevel)
-        else
-            charmChance = charmChance - 3 * (targetLevel - charmerJobLevel)
-        end
-    end
-
-    -- Another multiplier determined by target light res rank
-    -- as charm is a light based ability
-    local rank = target:getMod(xi.mod.LIGHT_RES_RANK)
-    if rank <= -3 then
-        charmChance = charmChance * 1.5
-    elseif rank <= -2 then
-        charmChance = charmChance * 1.4
-    elseif rank <= -1 then
-        charmChance = charmChance * 1.2
-    elseif rank <= 0 then
-        charmChance = charmChance
-    else
-        charmChance = charmChance / 2
-    end
-
-    -- Need a includeMods param because staves (which give CHARM_CHANCE) are not taken into account for Gauge
-    if includeMods then
-        charmChance = charmChance + charmer:getMod(xi.mod.CHARM_CHANCE)
-    end
-
-    -- apply the dCHR component
-    local dCHR = charmer:getStat(xi.mod.CHR) - target:getStat(xi.mod.CHR)
-    charmChance = charmChance + dCHR
-
-    return utils.clamp(charmChance, 0, 95)
+    return xi.job_utils.beastmaster.charmChanceFromParams({
+        eligible        = eligible,
+        charmerBSTLevel = eligible and charmer:getJobLevel(xi.job.BST) or 0,
+        targetLevel     = eligible and target:getMainLvl() or 0,
+        charmRes        = eligible and target:getMod(xi.mod.CHARMRES) or 0,
+        lightResRank    = eligible and target:getMod(xi.mod.LIGHT_RES_RANK) or 0,
+        includeMods     = includeMods,
+        charmChanceMod  = (eligible and includeMods) and charmer:getMod(xi.mod.CHARM_CHANCE) or 0,
+        charmerCHR      = eligible and charmer:getStat(xi.mod.CHR) or 0,
+        targetCHR       = eligible and target:getStat(xi.mod.CHR) or 0,
+    })
 end
 
 xi.job_utils.beastmaster.attemptCharm = function(charmer, target)
@@ -225,7 +411,10 @@ xi.job_utils.beastmaster.checkFamiliar = function(player, target, ability)
         return xi.msg.basic.NO_EFFECT_ON_PET, 0
     end
 
-    ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
+    ability:setRecast(xi.job_utils.beastmaster.oneHourRecastFromParams({
+        abilityRecast     = ability:getRecast(),
+        oneHourRecastMod  = player:getMod(xi.mod.ONE_HOUR_RECAST),
+    }))
 
     return 0, 0
 end
@@ -289,7 +478,10 @@ xi.job_utils.beastmaster.checkReward = function(player, target, ability)
 end
 
 xi.job_utils.beastmaster.checkUnleash = function(player, target, ability)
-    ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
+    ability:setRecast(xi.job_utils.beastmaster.oneHourRecastFromParams({
+        abilityRecast    = ability:getRecast(),
+        oneHourRecastMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+    }))
 
     return 0, 0
 end
@@ -441,18 +633,7 @@ end
 
 xi.job_utils.beastmaster.useGauge = function(player, target, ability)
     local charmChance = xi.job_utils.beastmaster.getCharmChance(player, target, false)
-
-    if charmChance >= 75 then
-        ability:setMsg(xi.msg.basic.SHOULD_BE_ABLE_CHARM) -- The <player> should be able to charm <target>.
-    elseif charmChance >= 50 then
-        ability:setMsg(xi.msg.basic.MIGHT_BE_ABLE_CHARM)  -- The <player> might be able to charm <target>.
-    elseif charmChance >= 25 then
-        ability:setMsg(xi.msg.basic.DIFFICULT_TO_CHARM)   -- It would be difficult for the <player> to charm <target>.
-    elseif charmChance >= 1 then
-        ability:setMsg(xi.msg.basic.VERY_DIFFICULT_CHARM) -- It would be very difficult for the <player> to charm <target>.
-    else
-        ability:setMsg(xi.msg.basic.CANNOT_CHARM)         -- The <player> cannot charm <target>!
-    end
+    ability:setMsg(xi.job_utils.beastmaster.gaugeMessageFromParams(charmChance))
 end
 
 -- **NOTE** Use of Battlemod may remove message
@@ -510,26 +691,30 @@ end
 xi.job_utils.beastmaster.useReward = function(player, target, ability)
     -- 1st need to get the pet food is equipped in the range slot.
     local rangeObj         = player:getEquipID(xi.slot.AMMO)
-    local minimumHealing   = 0
-    local totalHealing     = 0
-    local playerMnd        = player:getStat(xi.mod.MND)
     local rewardHealingMod = player:getMod(xi.mod.REWARD_HP_BONUS)
-    local regenAmount      = 1   -- 1 is the minimum.
-    local regenTime        = 180 -- 3 minutes
     local pet              = player:getPet()
     local petCurrentHP     = pet:getHP()
     local petMaxHP         = pet:getMaxHP()
 
-    -- Need to start to calculate the HP to restore to the pet.
     -- Please note that I used this as base for the calculations:
     -- http://wiki.ffxiclopedia.org/wiki/Reward
 
-    local foodData = xi.job_utils.beastmaster.petFoodData[rangeObj]
-    if foodData then
-        minimumHealing = foodData.minHealing
-        regenAmount    = foodData.regen
-        totalHealing   = math.floor(minimumHealing + foodData.mndMult * (playerMnd - foodData.mndThreshold))
+    local totalHealing, healOk = xi.job_utils.beastmaster.rewardHealingFromParams({
+        foodItemId    = rangeObj,
+        playerMND     = player:getStat(xi.mod.MND),
+        rewardHPBonus = rewardHealingMod or 0,
+        petMissingHP  = petMaxHP - petCurrentHP,
+    })
+    if not healOk then
+        totalHealing = 0
     end
+
+    local regenAmount, regenOk = xi.job_utils.beastmaster.rewardRegenFromParams(rangeObj)
+    if not regenOk then
+        regenAmount = 1 -- 1 is the minimum host default when food missing
+    end
+
+    local regenTime = xi.job_utils.beastmaster.rewardRegenDuration
 
     -- Now calculating the bonus based on gear.
     switch(player:getEquipID(xi.slot.BODY)):caseof
@@ -569,28 +754,18 @@ xi.job_utils.beastmaster.useReward = function(player, target, ability)
         end,
     }
 
-    -- Adding bonus to the total to heal.
-
-    if
-        rewardHealingMod ~= nil and
-        rewardHealingMod > 0
-    then
-        totalHealing = totalHealing + math.floor(totalHealing * rewardHealingMod / 100)
-    end
-
-    local diff = petMaxHP - petCurrentHP
-
-    if diff < totalHealing then
-        totalHealing = diff
-    end
-
     pet:addHP(totalHealing)
     pet:wakeUp()
 
     -- Apply regen xi.effect.
 
     pet:delStatusEffect(xi.effect.REGEN)
-    pet:addStatusEffect(xi.effect.REGEN, { power = regenAmount, duration = regenTime, origin = player, tick = 3 }) -- 3 = tick, each 3 seconds.
+    pet:addStatusEffect(xi.effect.REGEN, {
+        power    = regenAmount,
+        duration = regenTime,
+        origin   = player,
+        tick     = xi.job_utils.beastmaster.rewardRegenTick,
+    })
     player:removeAmmo(1)
 
     pet:updateEnmityFromCure(pet, totalHealing)
@@ -599,7 +774,11 @@ xi.job_utils.beastmaster.useReward = function(player, target, ability)
 end
 
 xi.job_utils.beastmaster.useUnleash = function(player, target, ability)
-    player:addStatusEffect(xi.effect.UNLEASH, { power = 9, duration = 60, origin = player })
+    player:addStatusEffect(xi.effect.UNLEASH, {
+        power    = xi.job_utils.beastmaster.unleashPower,
+        duration = xi.job_utils.beastmaster.unleashDuration,
+        origin   = player,
+    })
 
     return xi.effect.UNLEASH
 end
@@ -659,7 +838,7 @@ xi.job_utils.beastmaster.useStay = function(player, target, ability)
             level = player:getSubLvl()
         end
 
-        local tick = 10 - math.ceil(math.max(0, level / 20))
+        local tick = xi.job_utils.beastmaster.stayHealingTickFromParams(level)
 
         pet:addStatusEffect(xi.effect.HEALING, { origin = player, tick = tick, icon = 0 })
         pet:setAnimation(0)
@@ -682,20 +861,34 @@ xi.job_utils.beastmaster.useKillerInstinct = function(player, target, ability, a
     -- Notes: Pet ecosystem is assigned to the subPower, then mapped to the correct killer mod in the effect script.
     local pet          = player:getPet()
     local petEcosystem = pet:getEcosystem()
-    local power        = 10
-    local duration     = 180 + (player:getMerit(xi.merit.KILLER_INSTINCT) - 10)
+    local power        = xi.job_utils.beastmaster.killerInstinctPower
+    local duration     = xi.job_utils.beastmaster.killerInstinctDurationFromParams(
+        player:getMerit(xi.merit.KILLER_INSTINCT)
+    )
 
-    target:addStatusEffect(xi.effect.KILLER_INSTINCT, { power = power, duration = duration, origin = player, subPower = petEcosystem })
+    target:addStatusEffect(xi.effect.KILLER_INSTINCT, {
+        power    = power,
+        duration = duration,
+        origin   = player,
+        subPower = petEcosystem,
+    })
 
     return xi.effect.KILLER_INSTINCT
 end
 
 xi.job_utils.beastmaster.useSpur = function(player)
-    local power = 20 + player:getMod(xi.mod.ENHANCES_SPUR)          -- bonus STORETP
-    local subpower = player:getJobPointLevel(xi.jp.SPUR_EFFECT) * 3 -- bonus attack
+    local power, subpower = xi.job_utils.beastmaster.spurPowersFromParams({
+        enhancesSpur = player:getMod(xi.mod.ENHANCES_SPUR),
+        spurJP       = player:getJobPointLevel(xi.jp.SPUR_EFFECT),
+    })
     local pet = player:getPet()
     if pet then
-        pet:addStatusEffect(xi.effect.SPUR, { power = power, duration = 90, origin = player, subPower = subpower })
+        pet:addStatusEffect(xi.effect.SPUR, {
+            power    = power,
+            duration = xi.job_utils.beastmaster.spurDuration,
+            origin   = player,
+            subPower = subpower,
+        })
     end
 end
 
@@ -728,14 +921,10 @@ end
 xi.job_utils.beastmaster.useFeralHowl = function(player, target, ability, action)
     local modAcc       = player:getMerit(xi.merit.FERAL_HOWL)
     local feralHowlMod = player:getMod(xi.mod.FERAL_HOWL_DURATION)
-    local duration     = 10
-
-    -- Calculate duration bonus from gear
-    if feralHowlMod >= 1 then
-        -- https://ffxiclopedia.fandom.com/wiki/Monster_Jackcoat_%2B2
-        -- Add 1 second duration per merit level if wearing Monster Jackcoat +2
-        duration = duration + (modAcc / 5)
-    end
+    local duration     = xi.job_utils.beastmaster.feralHowlDurationFromParams({
+        meritValue           = modAcc,
+        feralHowlDurationMod = feralHowlMod,
+    })
 
     if
         xi.data.statusEffect.isTargetImmune(target, xi.effect.TERROR, xi.element.DARK) or
