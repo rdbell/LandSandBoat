@@ -20,6 +20,7 @@
 */
 
 #include "time_server.h"
+#include "time_server_earth_tick.h"
 #include "time_server_tick_tail.h"
 
 #include "common/logging.h"
@@ -66,32 +67,55 @@ auto time_server(Scheduler& scheduler, MapConfig config) -> Task<void>
         {
             // Daily tick (midnight JST)
             ShowDebugFmt("Daily tick... (current tick: {})", tickNum);
-            if (jstWeekday == 1)
+            if (jstWeekday == timeserverearthhelpers::kMonday)
             {
                 // Weekly tick (Monday JST)
                 ShowDebugFmt("Weekly tick... (current tick: {})", tickNum);
-                roeutils::CycleWeeklyRecords();
-                roeutils::CycleUnityRankings();
             }
-            roeutils::CycleDailyRecords();
-            guildutils::UpdateGuildPointsPattern();
-            luautils::OnJSTMidnight();
-            luautils::UpdateSanrakusMobs();
         }
         // 1-hour tick
         ShowDebugFmt("1-hour tick... (current tick: {})", tickNum);
-        roeutils::UpdateUnityRankings();
-
         if (jstHour % 2 == 0)
         {
             // 2-hour tick
             ShowDebugFmt("2-hour tick... (current tick: {})", tickNum);
-            luautils::ZNMPopPriceDecay();
             if (jstHour % 4 == 0)
             {
                 // 4-hour tick
                 ShowDebugFmt("4-hour tick... (current tick: {})", tickNum);
-                roeutils::CycleTimedRecords();
+            }
+        }
+
+        const auto earthTickPlan = timeserverearthhelpers::MakePlan(jstHour, jstWeekday);
+        for (std::size_t index = 0; index < earthTickPlan.count; ++index)
+        {
+            switch (earthTickPlan.actions[index])
+            {
+                case timeserverearthhelpers::Action::CycleWeekly:
+                    roeutils::CycleWeeklyRecords();
+                    roeutils::CycleUnityRankings();
+                    break;
+                case timeserverearthhelpers::Action::CycleDaily:
+                    roeutils::CycleDailyRecords();
+                    break;
+                case timeserverearthhelpers::Action::GuildPattern:
+                    guildutils::UpdateGuildPointsPattern();
+                    break;
+                case timeserverearthhelpers::Action::JSTMidnight:
+                    luautils::OnJSTMidnight();
+                    break;
+                case timeserverearthhelpers::Action::SanrakuMobs:
+                    luautils::UpdateSanrakusMobs();
+                    break;
+                case timeserverearthhelpers::Action::UpdateUnityRankings:
+                    roeutils::UpdateUnityRankings();
+                    break;
+                case timeserverearthhelpers::Action::ZNMDecay:
+                    luautils::ZNMPopPriceDecay();
+                    break;
+                case timeserverearthhelpers::Action::CycleTimed:
+                    roeutils::CycleTimedRecords();
+                    break;
             }
         }
 
