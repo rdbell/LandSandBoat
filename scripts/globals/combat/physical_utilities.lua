@@ -84,7 +84,8 @@ xi.combat.physical.weaponCap = function(skillType)
     return cap
 end
 
-local shieldSizeToBlockRateTable =
+-- Pure shield-size → base block rate (OmegaXI slice 6688 dual-wire).
+xi.combat.physical.shieldSizeToBlockRateTable =
 {
     [1] =  55, -- Buckler
     [2] =  40, -- Round
@@ -93,6 +94,16 @@ local shieldSizeToBlockRateTable =
     [5] =  50, -- Aegis and Srivatsa
     [6] = 100, -- Ochain  https://www.bg-wiki.com/ffxi/Category:Shields
 }
+
+xi.combat.physical.blockRateMin = 5
+xi.combat.physical.blockRateMax = 100
+xi.combat.physical.blockSkillDeltaCoeff = 0.2325
+xi.combat.physical.automatonBlockSkillDeltaCoeff = 0.215
+xi.combat.physical.reprisalSkillScale = 1.15
+xi.combat.physical.reprisalMultDefault = 1.5
+xi.combat.physical.reprisalMultBonus = 3.0
+xi.combat.physical.nonPCBlockAbsorbFraction = 0.5
+xi.combat.physical.softMaxTrustLevel = 99
 
 -- WARNING: This function is used in src/map/attack.cpp "ProcessDamage" function.
 -- If you update these parameters, update them there as well.
@@ -1408,134 +1419,265 @@ xi.combat.physical.calculateGuardRate = function(defender, attacker)
     return guardRate
 end
 
-xi.combat.physical.canBlock = function(defender, attacker)
-    local canBlock = false
+-----------------------------------
+-- Pure shield block helpers (OmegaXI slice 6688)
+-- Dual-wired to internal/blockrate.
+-----------------------------------
 
-    if
-        defender:isFacing(attacker) and
-        not defender:hasPreventActionEffect(true)
-    then
-        if defender:isPC() and defender:getSkillRank(xi.skill.SHIELD) > 0 then
-            local shield = defender:getEquippedItem(xi.slot.SUB)
-            if shield then
-                canBlock = shield:isShield()
+xi.combat.physical.blockRateFromShieldSize = function(shieldSize)
+    return xi.combat.physical.shieldSizeToBlockRateTable[shieldSize] or 0
+end
+
+-- Pure canBlock after facing/prevent/equip/mobmod injects.
+-- params: facing, preventAction, isPC, isMobPetOrTrust,
+--   shieldSkillRank, hasSubItem, subIsShield, canShieldBlockMod
+xi.combat.physical.canBlockFromParams = function(params)
+    if not params.facing or params.preventAction then
+        return false
+    end
+
+    if params.isPC then
+        if (params.shieldSkillRank or 0) <= 0 then
+            return false
+        end
+
+        return params.hasSubItem and params.subIsShield
+    end
+
+    if not params.isMobPetOrTrust then
+        return false
+    end
+
+    return (params.canShieldBlockMod or 0) > 0
+end
+
+-- Pure calculateBlockRate once kind and skills are injected.
+-- kind: 'pc' | 'mob' | 'automaton'
+-- params: kind, hasShield, shieldSize, canShieldBlock, baseBlockRate,
+--   blockSkill, attackSkill, automatonMeleeSkill, palisadeMod,
+--   hasReprisal, reprisalBlockBonus
+xi.combat.physical.blockRateFromParams = function(params)
+    local kind = params.kind or 'mob'
+    local attackSkill = params.attackSkill or 0
+    local palisade = params.palisadeMod or 0
+
+    if kind == 'pc' then
+        if not params.hasShield then
+            return 0
+        end
+
+        local blockRate = xi.combat.physical.blockRateFromShieldSize(params.shieldSize or 0)
+        local blockSkill = params.blockSkill or 0
+        local reprisalMult = 1.0
+
+        if params.hasReprisal then
+            blockSkill = blockSkill * xi.combat.physical.reprisalSkillScale
+            reprisalMult = xi.combat.physical.reprisalMultDefault
+
+            if params.reprisalBlockBonus then
+                reprisalMult = xi.combat.physical.reprisalMultBonus
             end
-        elseif
-            defender:isMob() or
-            defender:isPet() or
-            defender:isTrust()
-        then
-            canBlock = defender:getMobMod(xi.mobMod.CAN_SHIELD_BLOCK) > 0
+        end
+
+        local skillModifier = (blockSkill - attackSkill) * xi.combat.physical.blockSkillDeltaCoeff
+
+        return utils.clamp((blockRate + skillModifier + palisade) * reprisalMult,
+            xi.combat.physical.blockRateMin, xi.combat.physical.blockRateMax)
+    end
+
+    if not params.canShieldBlock then
+        return 0
+    end
+
+    if kind == 'automaton' then
+        local skillModifier = ((params.automatonMeleeSkill or 0) - attackSkill) *
+            xi.combat.physical.automatonBlockSkillDeltaCoeff
+
+        return math.max(0, (params.baseBlockRate or 0) + skillModifier)
+    end
+
+    -- mob / pet / trust
+    local blockRate = params.baseBlockRate or 0
+    local blockSkill = params.blockSkill or 0
+    local reprisalMult = 1.0
+
+    if params.hasReprisal then
+        blockSkill = blockSkill * xi.combat.physical.reprisalSkillScale
+        reprisalMult = xi.combat.physical.reprisalMultDefault
+
+        if params.reprisalBlockBonus then
+            reprisalMult = xi.combat.physical.reprisalMultBonus
         end
     end
 
-    return canBlock
+    local skillModifier = (blockSkill - attackSkill) * xi.combat.physical.blockSkillDeltaCoeff
+
+    return utils.clamp((blockRate + skillModifier + palisade) * reprisalMult,
+        xi.combat.physical.blockRateMin, xi.combat.physical.blockRateMax)
+end
+
+-- Pure getDamageReductionForBlock after shield def / absorb injects.
+-- Returns flat damage reduction (original - remaining).
+xi.combat.physical.damageReductionForBlockFromParams = function(params)
+    local originalDamage = params.damage or 0
+
+    if originalDamage <= 0 then
+        return 0
+    end
+
+    local damage = math.max(0, originalDamage - (params.shieldDefBonus or 0))
+
+    if params.isPC then
+        local absorb = utils.clamp(100 - (params.shieldAbsorbRate or 0), 0, 100)
+        damage = math.floor(damage * (absorb / 100))
+    else
+        damage = math.floor(damage * xi.combat.physical.nonPCBlockAbsorbFraction)
+    end
+
+    return originalDamage - damage
+end
+
+-- Pure isBlocked roll: rate * 100 >= roll (roll in 1..10000).
+xi.combat.physical.blockSucceeds = function(rate, roll)
+    return (rate or 0) * 100 >= (roll or 0)
+end
+
+-- Pure attacker skill type for block rate (H2H default vs main weapon).
+xi.combat.physical.attackerSkillTypeForBlock = function(usingH2H, mainWeaponSkillType)
+    if usingH2H then
+        return xi.skill.HAND_TO_HAND
+    end
+
+    return mainWeaponSkillType
+end
+
+-----------------------------------
+-- Entity hosts for shield block
+-----------------------------------
+
+xi.combat.physical.canBlock = function(defender, attacker)
+    local isPC = defender:isPC()
+    local isMobPetOrTrust = defender:isMob() or defender:isPet() or defender:isTrust()
+    local hasSub = false
+    local subIsShield = false
+    local shieldRank = 0
+
+    if isPC then
+        shieldRank = defender:getSkillRank(xi.skill.SHIELD)
+        local shield = defender:getEquippedItem(xi.slot.SUB)
+        if shield then
+            hasSub = true
+            subIsShield = shield:isShield()
+        end
+    end
+
+    return xi.combat.physical.canBlockFromParams({
+        facing             = defender:isFacing(attacker),
+        preventAction      = defender:hasPreventActionEffect(true),
+        isPC               = isPC,
+        isMobPetOrTrust    = isMobPetOrTrust,
+        shieldSkillRank    = shieldRank,
+        hasSubItem         = hasSub,
+        subIsShield        = subIsShield,
+        canShieldBlockMod  = isMobPetOrTrust and defender:getMobMod(xi.mobMod.CAN_SHIELD_BLOCK) or 0,
+    })
 end
 
 xi.combat.physical.calculateBlockRate = function(defender, attacker)
-    local blockRate = 0
-    local shieldSize = 3
-    local skillModifier = 0
-    local palisadeMod = defender:getMod(xi.mod.PALISADE_BLOCK_BONUS)
-    local reprisalMult = 1.0
-
-    -- assume bare hands case
-    local attackerSkillType = xi.skill.HAND_TO_HAND
-    if not attacker:isUsingH2H() then
-        attackerSkillType = attacker:getWeaponSkillType(xi.slot.MAIN)
-    end
-
+    local attackerSkillType = xi.combat.physical.attackerSkillTypeForBlock(
+        attacker:isUsingH2H(),
+        attacker:getWeaponSkillType(xi.slot.MAIN)
+    )
     local attackSkill = attacker:getSkillLevel(attackerSkillType)
-    local blockSkill = defender:getSkillLevel(xi.skill.SHIELD)
+    local palisadeMod = defender:getMod(xi.mod.PALISADE_BLOCK_BONUS)
+    local hasReprisal = defender:hasStatusEffect(xi.effect.REPRISAL)
+    local reprisalBonus = defender:getMod(xi.mod.REPRISAL_BLOCK_BONUS) > 0
 
     if defender:isPC() then
         local shield = defender:getEquippedItem(xi.slot.SUB)
-        -- already checked in canBlock but check again here to make sure
-        if shield and shield:isShield() then
-            shieldSize = shield:getShieldSize()
-        else
+        if not (shield and shield:isShield()) then
             return 0
         end
-    elseif
-        defender:isMob() or
-        defender:isPet() or
-        defender:isTrust()
-    then
-        -- already checked in canBlock but check again here to make sure
-        if defender:getMobMod(xi.mobMod.CAN_SHIELD_BLOCK) > 0 then
-            blockRate = defender:getMod(xi.mod.SHIELDBLOCKRATE)
-            -- automations are a special case
-            if defender:isAutomaton() then
-                skillModifier = (defender:getSkillLevel(xi.skill.AUTOMATON_MELEE) - attackSkill) * 0.215
-                return math.max(0, blockRate + skillModifier)
-            -- mobs and trusts use max skill for job and level
-            elseif defender:isTrust() then
-                -- TODO: check trust type for ilvl > 99 when implemented
-                blockSkill = defender:getMaxSkillLevel(math.min(defender:getMainLvl(), 99), defender:getMainJob(), xi.skill.SHIELD)
-            else
-                blockSkill = defender:getMaxSkillLevel(defender:getMainLvl(), defender:getMainJob(), xi.skill.SHIELD)
-            end
-        else -- No block mobmod so zero rate
-            return 0
-        end
+
+        return xi.combat.physical.blockRateFromParams({
+            kind               = 'pc',
+            hasShield          = true,
+            shieldSize         = shield:getShieldSize(),
+            blockSkill         = defender:getSkillLevel(xi.skill.SHIELD),
+            attackSkill        = attackSkill,
+            palisadeMod        = palisadeMod,
+            hasReprisal        = hasReprisal,
+            reprisalBlockBonus = reprisalBonus,
+        })
     end
 
-    if defender:isPC() then
-        -- get blockrate from table and use default value of 0
-        blockRate = shieldSizeToBlockRateTable[shieldSize] or 0
+    if not (defender:isMob() or defender:isPet() or defender:isTrust()) then
+        return 0
     end
 
-    -- Check for Reprisal and adjust skill and block rate bonus multiplier
-    if defender:hasStatusEffect(xi.effect.REPRISAL) then
-        blockSkill   = blockSkill * 1.15
-        reprisalMult = 1.5
-
-        -- Adamas and Priwen set the multiplier to 3.0x while equipped
-        if defender:getMod(xi.mod.REPRISAL_BLOCK_BONUS) > 0 then
-            reprisalMult = 3.0
-        end
+    if defender:getMobMod(xi.mobMod.CAN_SHIELD_BLOCK) <= 0 then
+        return 0
     end
 
-    skillModifier = (blockSkill - attackSkill) * 0.2325
+    if defender:isAutomaton() then
+        return xi.combat.physical.blockRateFromParams({
+            kind                = 'automaton',
+            canShieldBlock      = true,
+            baseBlockRate       = defender:getMod(xi.mod.SHIELDBLOCKRATE),
+            automatonMeleeSkill = defender:getSkillLevel(xi.skill.AUTOMATON_MELEE),
+            attackSkill         = attackSkill,
+        })
+    end
 
-    -- Add skill and Palisade bonuses and multiply by Reprisals bonus
-    blockRate = (blockRate + skillModifier + palisadeMod) * reprisalMult
+    local blockSkill
+    if defender:isTrust() then
+        -- TODO: check trust type for ilvl > 99 when implemented
+        blockSkill = defender:getMaxSkillLevel(
+            math.min(defender:getMainLvl(), xi.combat.physical.softMaxTrustLevel),
+            defender:getMainJob(),
+            xi.skill.SHIELD
+        )
+    else
+        blockSkill = defender:getMaxSkillLevel(defender:getMainLvl(), defender:getMainJob(), xi.skill.SHIELD)
+    end
 
-    -- Apply the lower and upper caps
-    blockRate = utils.clamp(blockRate, 5, 100)
-
-    return blockRate
+    return xi.combat.physical.blockRateFromParams({
+        kind               = 'mob',
+        canShieldBlock     = true,
+        baseBlockRate      = defender:getMod(xi.mod.SHIELDBLOCKRATE),
+        blockSkill         = blockSkill,
+        attackSkill        = attackSkill,
+        palisadeMod        = palisadeMod,
+        hasReprisal        = hasReprisal,
+        reprisalBlockBonus = reprisalBonus,
+    })
 end
 
 xi.combat.physical.getDamageReductionForBlock = function(defender, attacker, damage)
-    -- save original damage for comparison
-    local originalDamage = damage
+    local isPC = defender:isPC()
+    local absorbRate = 0
 
-    -- do not reduce if damage is negative
-    if damage > 0 then
-        -- shield def bonus is a flat raw damage reduction that occurs before absorb
-        damage = math.max(0, damage - defender:getMod(xi.mod.SHIELD_DEF_BONUS))
-
-        if defender:isPC() then
-            local shield = defender:getEquippedItem(xi.slot.SUB)
-            local absorb = utils.clamp(100 - shield:getShieldAbsorptionRate(), 0, 100)
-            damage = math.floor(damage * (absorb / 100))
-        else
-            damage = math.floor(damage * 0.5)
-        end
+    if isPC then
+        local shield = defender:getEquippedItem(xi.slot.SUB)
+        absorbRate = shield:getShieldAbsorptionRate()
     end
 
-    -- return the difference between original and new damage
-    -- in other words the damage reduction (as a flat value)
-    return originalDamage - damage
+    return xi.combat.physical.damageReductionForBlockFromParams({
+        damage           = damage,
+        shieldDefBonus   = defender:getMod(xi.mod.SHIELD_DEF_BONUS),
+        isPC             = isPC,
+        shieldAbsorbRate = absorbRate,
+    })
 end
 
 xi.combat.physical.isBlocked = function(defender, attacker)
     local blocked = false
 
     if xi.combat.physical.canBlock(defender, attacker) then
-
-        if xi.combat.physical.calculateBlockRate(defender, attacker) * 100 >= math.random(1, 10000) then
+        if xi.combat.physical.blockSucceeds(
+            xi.combat.physical.calculateBlockRate(defender, attacker),
+            math.random(1, 10000)
+        ) then
             blocked = true
         end
 
