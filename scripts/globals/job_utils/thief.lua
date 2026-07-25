@@ -1,5 +1,10 @@
 -----------------------------------
 -- Thief Job Utilities
+-- Dual-wired pure inject forms (slice 6745 / 0901):
+--   one-hour recast, accomplice/collaborator gates, despoil debuff power,
+--   steal/despoil/mug chance, mug HP/gil, conspirator ladder, assassin's
+--   charge/bully/perfect dodge/flee/SA/TA products
+-- Parity: internal/thief
 -----------------------------------
 require('scripts/globals/quests')
 -----------------------------------
@@ -11,7 +16,7 @@ xi.job_utils.thief = xi.job_utils.thief or {}
 -- Variable Definitions
 -----------------------------------
 
-local despoilDebuffs =
+xi.job_utils.thief.despoilDebuffs =
 {
     xi.effect.EVASION_DOWN,
     xi.effect.DEFENSE_DOWN,
@@ -22,7 +27,7 @@ local despoilDebuffs =
     xi.effect.SLOW
 }
 
-local stealableSPEffects =
+xi.job_utils.thief.stealableSPEffects =
 {
     xi.effect.MIGHTY_STRIKES,   xi.effect.HUNDRED_FISTS, xi.effect.MANAFONT,     xi.effect.CHAINSPELL,
     xi.effect.PERFECT_DODGE,    xi.effect.INVINCIBLE,    xi.effect.BLOOD_WEAPON, xi.effect.SOUL_VOICE,
@@ -30,63 +35,289 @@ local stealableSPEffects =
     xi.effect.ELEMENTAL_SFORZO
 }
 
+
+local despoilDebuffs = xi.job_utils.thief.despoilDebuffs
+local stealableSPEffects = xi.job_utils.thief.stealableSPEffects
+
+-----------------------------------
+-- Pure inject pins (internal/thief, slice 6745 / 0901)
+-----------------------------------
+xi.job_utils.thief.oneHourRecastSecondsPerMod   = 60
+xi.job_utils.thief.stealChanceBase              = 50
+xi.job_utils.thief.stealModScale                = 2
+xi.job_utils.thief.mugChanceBase                = 90
+xi.job_utils.thief.mugHPStealScale              = 0.05
+xi.job_utils.thief.mugGilDivBase                = 8
+xi.job_utils.thief.despoilDuration              = 90
+xi.job_utils.thief.despoilDebuffDefaultPower    = 10
+xi.job_utils.thief.despoilSlowBase              = 1500
+xi.job_utils.thief.despoilSlowMin               = 750
+xi.job_utils.thief.despoilSlowMax               = 3000
+xi.job_utils.thief.conspiratorDuration          = 60
+xi.job_utils.thief.assassinsChargeMeritOffset   = 5
+xi.job_utils.thief.assassinsChargeMeritCritDiv  = 5
+xi.job_utils.thief.assassinsChargeDuration      = 60
+xi.job_utils.thief.bullyBasePower               = 15
+xi.job_utils.thief.bullyDuration                = 30
+xi.job_utils.thief.perfectDodgeBaseDuration     = 30
+xi.job_utils.thief.perfectDodgePower            = 1
+xi.job_utils.thief.fleeBaseDuration             = 30
+xi.job_utils.thief.fleePower                    = 10000
+xi.job_utils.thief.sneakAttackPower             = 1
+xi.job_utils.thief.sneakAttackDuration          = 60
+xi.job_utils.thief.trickAttackPower             = 1
+xi.job_utils.thief.trickAttackDuration          = 60
+xi.job_utils.thief.msgCannotOnThatTarg          = 155
+
+-- Pure: OneHourRecast
+xi.job_utils.thief.oneHourRecastFromParams = function(params)
+    params = params or {}
+    local out = (params.abilityRecast or 0)
+        - (params.oneHourRecastMod or 0) * xi.job_utils.thief.oneHourRecastSecondsPerMod
+    if out < 0 then
+        return 0
+    end
+
+    return out
+end
+
+-- Pure: CheckAccomplice / CheckCollaborator
+-- returns: msg, ok
+xi.job_utils.thief.checkAccompliceFromParams = function(params)
+    params = params or {}
+    if params.isSelf or not params.isPC then
+        return xi.job_utils.thief.msgCannotOnThatTarg, false
+    end
+
+    return 0, true
+end
+
+xi.job_utils.thief.checkCollaboratorFromParams = function(params)
+    return xi.job_utils.thief.checkAccompliceFromParams(params)
+end
+
+-- Pure: DespoilDebuffPower
+-- params: debuff, playerMND, targetMND
+xi.job_utils.thief.despoilDebuffPowerFromParams = function(params)
+    params = params or {}
+    local debuff = params.debuff
+    local attackDown = xi.effect and xi.effect.ATTACK_DOWN or 147
+    local defenseDown = xi.effect and xi.effect.DEFENSE_DOWN or 149
+    local magicAtkDown = xi.effect and xi.effect.MAGIC_ATK_DOWN or 175
+    local magicDefDown = xi.effect and xi.effect.MAGIC_DEF_DOWN or 167
+    local evasionDown = xi.effect and xi.effect.EVASION_DOWN or 148
+    local accuracyDown = xi.effect and xi.effect.ACCURACY_DOWN or 146
+    local slow = xi.effect and xi.effect.SLOW or 13
+
+    if debuff == attackDown then
+        return 20
+    elseif debuff == defenseDown then
+        return 30
+    elseif debuff == magicAtkDown then
+        return xi.job_utils.thief.despoilDebuffDefaultPower
+    elseif debuff == magicDefDown then
+        return 20
+    elseif debuff == evasionDown then
+        return 30
+    elseif debuff == accuracyDown then
+        return 20
+    elseif debuff == slow then
+        local dMND = (params.playerMND or 0) - (params.targetMND or 0)
+        local power
+        if dMND >= 0 then
+            power = 2 * dMND + xi.job_utils.thief.despoilSlowBase
+        else
+            power = dMND + xi.job_utils.thief.despoilSlowBase
+        end
+
+        if power < xi.job_utils.thief.despoilSlowMin then
+            return xi.job_utils.thief.despoilSlowMin
+        end
+
+        if power > xi.job_utils.thief.despoilSlowMax then
+            return xi.job_utils.thief.despoilSlowMax
+        end
+
+        return power
+    end
+
+    return xi.job_utils.thief.despoilDebuffDefaultPower
+end
+
+-- Pure: Chance (steal/despoil)
+xi.job_utils.thief.chanceFromParams = function(params)
+    params = params or {}
+    return xi.job_utils.thief.stealChanceBase
+        + (params.mod or 0) * xi.job_utils.thief.stealModScale
+        + (params.level or 0)
+        - (params.targetMainLvl or 0)
+end
+
+-- Pure: MugChance
+xi.job_utils.thief.mugChanceFromParams = function(params)
+    params = params or {}
+    return xi.job_utils.thief.mugChanceBase
+        + (params.thfLevel or 0)
+        - (params.targetMainLvl or 0)
+end
+
+-- Pure: MugHPSteal
+xi.job_utils.thief.mugHPStealFromParams = function(params)
+    params = params or {}
+    return ((params.agi or 0) + (params.dex or 0))
+        * (params.mugJP or 0)
+        * xi.job_utils.thief.mugHPStealScale
+end
+
+-- Pure: MugGil
+-- params: fatpurse, purse, divRoll0to8, mugEffectMod
+xi.job_utils.thief.mugGilFromParams = function(params)
+    params = params or {}
+    local denom = xi.job_utils.thief.mugGilDivBase + (params.divRoll0to8 or 0)
+    if denom == 0 then
+        denom = xi.job_utils.thief.mugGilDivBase
+    end
+
+    local gil = (params.fatpurse or 0) / denom
+    if gil == 0 then
+        gil = (params.fatpurse or 0) / 2
+    end
+
+    if gil == 0 then
+        gil = params.fatpurse or 0
+    end
+
+    if gil > (params.purse or 0) then
+        gil = params.purse or 0
+    end
+
+    if gil <= 0 then
+        return 0
+    end
+
+    gil = gil * (1 + (params.mugEffectMod or 0))
+    return math.floor(gil)
+end
+
+-- Pure: ConspiratorPowers — returns subtleBlow, accuracy
+xi.job_utils.thief.conspiratorPowersFromParams = function(enmityCount)
+    enmityCount = enmityCount or 0
+    if enmityCount <= 0 then
+        return 0, 0
+    end
+
+    if enmityCount < 6 then
+        return 20, 15
+    end
+
+    if enmityCount < 18 then
+        return 50, 25
+    end
+
+    return 50, 49
+end
+
+-- Pure: ConspiratorScaled
+xi.job_utils.thief.conspiratorScaledFromParams = function(params)
+    params = params or {}
+    local scale = params.scale or 1
+    return (params.subtleBlow or 0) * scale, (params.accuracy or 0) * scale
+end
+
+-- Pure: AssassinsCharge
+xi.job_utils.thief.assassinsChargePowerFromParams = function(merits)
+    return (merits or 0) - xi.job_utils.thief.assassinsChargeMeritOffset
+end
+
+xi.job_utils.thief.assassinsChargeSubPowerFromParams = function(params)
+    params = params or {}
+    if not params.augmentsAssassinsCharge then
+        return 0
+    end
+
+    return (params.merits or 0) / xi.job_utils.thief.assassinsChargeMeritCritDiv
+end
+
+-- Pure: Bully / PerfectDodge / Flee / SA / TA
+xi.job_utils.thief.bullyPowerFromParams = function(bullyJP)
+    return xi.job_utils.thief.bullyBasePower + (bullyJP or 0)
+end
+
+xi.job_utils.thief.perfectDodgeDurationFromParams = function(perfectDodgeMod)
+    return xi.job_utils.thief.perfectDodgeBaseDuration + (perfectDodgeMod or 0)
+end
+
+xi.job_utils.thief.fleeDurationFromParams = function(fleeDurationMod)
+    return xi.job_utils.thief.fleeBaseDuration + (fleeDurationMod or 0)
+end
+
+xi.job_utils.thief.sneakAttackFromParams = function()
+    return {
+        power    = xi.job_utils.thief.sneakAttackPower,
+        duration = xi.job_utils.thief.sneakAttackDuration,
+    }
+end
+
+xi.job_utils.thief.trickAttackFromParams = function()
+    return {
+        power    = xi.job_utils.thief.trickAttackPower,
+        duration = xi.job_utils.thief.trickAttackDuration,
+    }
+end
+
 -----------------------------------
 -- Local Functions
 -----------------------------------
 local function processDebuff(player, target, ability, debuff)
-    local power = 10
-
+    -- Host still sets ability message per debuff type.
     if debuff == xi.effect.ATTACK_DOWN then
         ability:setMsg(xi.msg.basic.DESPOIL_ATT_DOWN)
-        power = 20
     elseif debuff == xi.effect.DEFENSE_DOWN then
         ability:setMsg(xi.msg.basic.DESPOIL_DEF_DOWN)
-        power = 30
     elseif debuff == xi.effect.MAGIC_ATK_DOWN then
         ability:setMsg(xi.msg.basic.DESPOIL_MATT_DOWN)
     elseif debuff == xi.effect.MAGIC_DEF_DOWN then
         ability:setMsg(xi.msg.basic.DESPOIL_MDEF_DOWN)
-        power = 20
     elseif debuff == xi.effect.EVASION_DOWN then
         ability:setMsg(xi.msg.basic.DESPOIL_EVA_DOWN)
-        power = 30
     elseif debuff == xi.effect.ACCURACY_DOWN then
         ability:setMsg(xi.msg.basic.DESPOIL_ACC_DOWN)
-        power = 20
     elseif debuff == xi.effect.SLOW then
         ability:setMsg(xi.msg.basic.DESPOIL_SLOW)
-
-        local dMND = player:getStat(xi.mod.MND) - target:getStat(xi.mod.MND)
-
-        if dMND >= 0 then
-            power = 2 * dMND + 1500
-        else
-            power = dMND + 1500
-        end
-
-        power = utils.clamp(power, 750, 3000)
     end
 
-    return power
+    return xi.job_utils.thief.despoilDebuffPowerFromParams({
+        debuff    = debuff,
+        playerMND = player:getStat(xi.mod.MND),
+        targetMND = target:getStat(xi.mod.MND),
+    })
 end
 
 -----------------------------------
 -- Ability Check Functions
 -----------------------------------
 xi.job_utils.thief.checkAccomplice = function(player, target, ability)
-    if target == nil or target:getID() == player:getID() or not target:isPC() then
-        return xi.msg.basic.CANNOT_ON_THAT_TARG, 0
-    else
+    local msg, ok = xi.job_utils.thief.checkAccompliceFromParams({
+        isSelf = target == nil or target:getID() == player:getID(),
+        isPC   = target ~= nil and target:isPC(),
+    })
+    if ok then
         return 0, 0
     end
+
+    return msg, 0
 end
 
 xi.job_utils.thief.checkCollaborator = function(player, target, ability)
-    if target == nil or target:getID() == player:getID() or not target:isPC() then
-        return xi.msg.basic.CANNOT_ON_THAT_TARG, 0
-    else
+    local msg, ok = xi.job_utils.thief.checkCollaboratorFromParams({
+        isSelf = target == nil or target:getID() == player:getID(),
+        isPC   = target ~= nil and target:isPC(),
+    })
+    if ok then
         return 0, 0
     end
+
+    return msg, 0
 end
 
 xi.job_utils.thief.checkDespoil = function(player, target, ability)
@@ -107,13 +338,19 @@ xi.job_utils.thief.checkDespoil = function(player, target, ability)
 end
 
 xi.job_utils.thief.checkLarceny = function(player, target, ability)
-    ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
+    ability:setRecast(xi.job_utils.thief.oneHourRecastFromParams({
+        abilityRecast    = ability:getRecast(),
+        oneHourRecastMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+    }))
 
     return 0, 0
 end
 
 xi.job_utils.thief.checkPerfectDodge = function(player, target, ability)
-    ability:setRecast(math.max(0, ability:getRecast() - player:getMod(xi.mod.ONE_HOUR_RECAST) * 60))
+    ability:setRecast(xi.job_utils.thief.oneHourRecastFromParams({
+        abilityRecast    = ability:getRecast(),
+        oneHourRecastMod = player:getMod(xi.mod.ONE_HOUR_RECAST),
+    }))
 
     return 0, 0
 end
@@ -140,21 +377,33 @@ end
 
 xi.job_utils.thief.useAssassinsCharge = function(player, target, ability, action)
     local merits = player:getMerit(xi.merit.ASSASSINS_CHARGE)
-    local crit   = 0
+    local power = xi.job_utils.thief.assassinsChargePowerFromParams(merits)
+    local crit = xi.job_utils.thief.assassinsChargeSubPowerFromParams({
+        merits                   = merits,
+        augmentsAssassinsCharge  = player:getMod(xi.mod.AUGMENTS_ASSASSINS_CHARGE) > 0,
+    })
 
-    if player:getMod(xi.mod.AUGMENTS_ASSASSINS_CHARGE) > 0 then
-        crit = merits / 5
-    end
-
-    player:addStatusEffect(xi.effect.ASSASSINS_CHARGE, { power = merits - 5, duration = 60, origin = player, subPower = crit })
+    player:addStatusEffect(xi.effect.ASSASSINS_CHARGE, {
+        power    = power,
+        duration = xi.job_utils.thief.assassinsChargeDuration,
+        origin   = player,
+        subPower = crit,
+    })
 
     return xi.effect.ASSASSINS_CHARGE
 end
 
 xi.job_utils.thief.useBully = function(player, target, ability)
-    local jpValue = player:getJobPointLevel(xi.jp.BULLY_EFFECT)
+    local power = xi.job_utils.thief.bullyPowerFromParams(
+        player:getJobPointLevel(xi.jp.BULLY_EFFECT)
+    )
 
-    target:addStatusEffect(xi.effect.DOUBT, { power = 15 + jpValue, duration = 30, origin = player, icon = xi.effect.INTIMIDATE })
+    target:addStatusEffect(xi.effect.DOUBT, {
+        power    = power,
+        duration = xi.job_utils.thief.bullyDuration,
+        origin   = player,
+        icon     = xi.effect.INTIMIDATE,
+    })
 
     return xi.effect.INTIMIDATE
 end
@@ -171,19 +420,8 @@ xi.job_utils.thief.useConspirator = function(player, target, ability)
 
     if mob then
         local enmityList = mob:getEnmityList()
-
-        if enmityList and #enmityList > 0 then
-            if #enmityList < 6 then
-                subtleBlow = 20
-                accuracy = 15
-            elseif #enmityList < 18 then
-                subtleBlow = 50
-                accuracy = 25
-            else
-                subtleBlow = 50
-                accuracy = 49
-            end
-        end
+        local count = enmityList and #enmityList or 0
+        subtleBlow, accuracy = xi.job_utils.thief.conspiratorPowersFromParams(count)
 
         -- See if we should apply the effects to the player at the top of the hate list
         if mob:getTarget() == target then
@@ -191,7 +429,18 @@ xi.job_utils.thief.useConspirator = function(player, target, ability)
         end
     end
 
-    target:addStatusEffect(xi.effect.CONSPIRATOR, { power = subtleBlow * scale, duration = 60, origin = player, subPower = accuracy * scale })
+    subtleBlow, accuracy = xi.job_utils.thief.conspiratorScaledFromParams({
+        subtleBlow = subtleBlow,
+        accuracy   = accuracy,
+        scale      = scale,
+    })
+
+    target:addStatusEffect(xi.effect.CONSPIRATOR, {
+        power    = subtleBlow,
+        duration = xi.job_utils.thief.conspiratorDuration,
+        origin   = player,
+        subPower = accuracy,
+    })
 
     return xi.effect.CONSPIRATOR
 end
@@ -199,7 +448,11 @@ end
 xi.job_utils.thief.useDespoil = function(player, target, ability, action)
     local level         = utils.getActiveJobLevel(player, xi.job.THF)
     local despoilMod    = player:getMod(xi.mod.DESPOIL)
-    local despoilChance = 50 + despoilMod * 2 + level - target:getMainLvl() -- Same math as Steal
+    local despoilChance = xi.job_utils.thief.chanceFromParams({
+        mod           = despoilMod,
+        level         = level,
+        targetMainLvl = target:getMainLvl(),
+    }) -- Same math as Steal
 
     -- TODO: Need to verify if there's a message associated with this
     local jpValue = player:getJobPointLevel(xi.jp.DESPOIL_EFFECT)
@@ -272,14 +525,20 @@ xi.job_utils.thief.useFeint = function(player, target, ability, action)
 end
 
 xi.job_utils.thief.useFlee = function(player, target, ability)
-    local duration = 30 + player:getMod(xi.mod.FLEE_DURATION)
+    local duration = xi.job_utils.thief.fleeDurationFromParams(
+        player:getMod(xi.mod.FLEE_DURATION)
+    )
 
     -- TODO: Flee will not override all types of weight effect. Find out which aren't overriden.
     if player:hasStatusEffect(xi.effect.WEIGHT) then
         player:delStatusEffect(xi.effect.WEIGHT)
     end
 
-    player:addStatusEffect(xi.effect.FLEE, { power = 10000, duration = duration, origin = player })
+    player:addStatusEffect(xi.effect.FLEE, {
+        power    = xi.job_utils.thief.fleePower,
+        duration = duration,
+        origin   = player,
+    })
 
     return xi.effect.FLEE
 end
@@ -351,7 +610,11 @@ xi.job_utils.thief.useMug = function(player, target, ability, action)
     local jpValue = player:getJobPointLevel(xi.jp.MUG_EFFECT)
 
     if jpValue > 0 and player:getMainJob() == xi.job.THF then
-        local hpSteal = ((player:getStat(xi.mod.AGI) + player:getStat(xi.mod.DEX)) * jpValue) * 0.05
+        local hpSteal = xi.job_utils.thief.mugHPStealFromParams({
+            agi   = player:getStat(xi.mod.AGI),
+            dex   = player:getStat(xi.mod.DEX),
+            mugJP = jpValue,
+        })
         local mobHP = target:getHP()
 
         if hpSteal > mobHP then
@@ -362,7 +625,10 @@ xi.job_utils.thief.useMug = function(player, target, ability, action)
         player:addHP(hpSteal)
     end
 
-    local mugChance = 90 + thfLevel - target:getMainLvl()
+    local mugChance = xi.job_utils.thief.mugChanceFromParams({
+        thfLevel      = thfLevel,
+        targetMainLvl = target:getMainLvl(),
+    })
 
     if
         target:isMob() and
@@ -371,26 +637,18 @@ xi.job_utils.thief.useMug = function(player, target, ability, action)
     then
         local purse    = target:getMobMod(xi.mobMod.MUG_GIL)
         local fatpurse = target:getGil()
+        local divRoll  = math.random(0, 8)
 
-        gil = fatpurse / (8 + math.random(0, 8))
-
-        if gil == 0 then
-            gil = fatpurse / 2
-        end
-
-        if gil == 0 then
-            gil = fatpurse
-        end
-
-        if gil > purse then
-            gil = purse
-        end
+        gil = xi.job_utils.thief.mugGilFromParams({
+            fatpurse      = fatpurse,
+            purse         = purse,
+            divRoll0to8   = divRoll,
+            mugEffectMod  = player:getMod(xi.mod.MUG_EFFECT),
+        })
 
         if gil <= 0 then
             ability:setMsg(xi.msg.basic.MUG_FAIL)
         else
-            gil = gil * (1 + player:getMod(xi.mod.MUG_EFFECT))
-
             player:addGil(gil)
             target:setMobMod(xi.mobMod.MUG_GIL, target:getMobMod(xi.mobMod.MUG_GIL) - gil)
             ability:setMsg(xi.msg.basic.MUG_SUCCESS)
@@ -404,15 +662,26 @@ xi.job_utils.thief.useMug = function(player, target, ability, action)
 end
 
 xi.job_utils.thief.usePerfectDodge = function(player, target, ability)
-    local duration = 30 + player:getMod(xi.mod.PERFECT_DODGE)
+    local duration = xi.job_utils.thief.perfectDodgeDurationFromParams(
+        player:getMod(xi.mod.PERFECT_DODGE)
+    )
 
-    player:addStatusEffect(xi.effect.PERFECT_DODGE, { power = 1, duration = duration, origin = player })
+    player:addStatusEffect(xi.effect.PERFECT_DODGE, {
+        power    = xi.job_utils.thief.perfectDodgePower,
+        duration = duration,
+        origin   = player,
+    })
 
     return xi.effect.PERFECT_DODGE
 end
 
 xi.job_utils.thief.useSneakAttack = function(player, target, ability)
-    player:addStatusEffect(xi.effect.SNEAK_ATTACK, { power = 1, duration = 60, origin = player })
+    local p = xi.job_utils.thief.sneakAttackFromParams()
+    player:addStatusEffect(xi.effect.SNEAK_ATTACK, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.SNEAK_ATTACK
 end
@@ -421,7 +690,11 @@ xi.job_utils.thief.useSteal = function(player, target, ability, action)
     local thfLevel    = utils.getActiveJobLevel(player, xi.job.THF)
     local stolen      = action:getParam(target:getID())
     local stealMod    = player:getMod(xi.mod.STEAL)
-    local stealChance = 50 + stealMod * 2 + thfLevel - target:getMainLvl()
+    local stealChance = xi.job_utils.thief.chanceFromParams({
+        mod           = stealMod,
+        level         = thfLevel,
+        targetMainLvl = target:getMainLvl(),
+    })
 
     if stolen == 0 then
         stolen = target:getStealItem()
@@ -500,7 +773,12 @@ xi.job_utils.thief.useSteal = function(player, target, ability, action)
 end
 
 xi.job_utils.thief.useTrickAttack = function(player, target, ability)
-    player:addStatusEffect(xi.effect.TRICK_ATTACK, { power = 1, duration = 60, origin = player })
+    local p = xi.job_utils.thief.trickAttackFromParams()
+    player:addStatusEffect(xi.effect.TRICK_ATTACK, {
+        power    = p.power,
+        duration = p.duration,
+        origin   = player,
+    })
 
     return xi.effect.TRICK_ATTACK
 end
