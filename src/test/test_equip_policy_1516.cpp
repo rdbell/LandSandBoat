@@ -5,6 +5,7 @@
 #include "map/equip_armor_direct_restrictions_capacity.h"
 #include "map/equip_armor_main_sub_capacity.h"
 #include "map/equip_armor_reverse_restrictions_capacity.h"
+#include "map/equip_armor_sub_capacity.h"
 #include "map/equip_policy_capacity.h"
 
 #include <iostream>
@@ -257,6 +258,21 @@ auto Check() -> bool
         .subSkillNone     = true,
     });
     if (gripPlan.unequipSub || gripPlan.setH2HSubLook || !h2hPlan.unequipSub || !h2hPlan.setH2HSubLook)
+    {
+        return false;
+    }
+
+    const auto h2hShieldPlan = equiparmorsubhelpers::PlanFor({ .mainKind = equiparmorsubhelpers::MainKind::HandToHand });
+    const auto oneHandedWeaponPlan = equiparmorsubhelpers::PlanFor({
+        .mainKind         = equiparmorsubhelpers::MainKind::OneHanded,
+        .incomingIsWeapon = true,
+    });
+    const auto otherGripPlan = equiparmorsubhelpers::PlanFor({
+        .mainKind         = equiparmorsubhelpers::MainKind::Other,
+        .incomingIsWeapon = true,
+    });
+    if (!h2hShieldPlan.unequipMain || !oneHandedWeaponPlan.setSubWeapon || !oneHandedWeaponPlan.setDualWield ||
+        otherGripPlan.unequipMain || otherGripPlan.setSubWeapon || otherGripPlan.setDualWield)
     {
         return false;
     }

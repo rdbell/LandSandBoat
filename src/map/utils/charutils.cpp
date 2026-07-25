@@ -111,6 +111,7 @@
 #include "equip_armor_direct_restrictions_capacity.h"
 #include "equip_armor_main_sub_capacity.h"
 #include "equip_armor_reverse_restrictions_capacity.h"
+#include "equip_armor_sub_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
@@ -2557,7 +2558,11 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                     {
                         case SKILL_HAND_TO_HAND:
                         {
-                            if (!PItem->isType(ITEM_WEAPON))
+                            const auto subPlan = equiparmorsubhelpers::PlanFor({
+                                .mainKind         = equiparmorsubhelpers::MainKind::HandToHand,
+                                .incomingIsWeapon = PItem->isType(ITEM_WEAPON),
+                            });
+                            if (subPlan.unequipMain)
                             {
                                 UnequipItem(PChar, SLOT_MAIN, Recalculate::No);
                             }
@@ -2576,9 +2581,16 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                             {
                                 return false;
                             }
-                            PChar->m_Weapons[SLOT_SUB] = PItem;
+                            const auto subPlan = equiparmorsubhelpers::PlanFor({
+                                .mainKind         = equiparmorsubhelpers::MainKind::OneHanded,
+                                .incomingIsWeapon = isWeapon,
+                            });
+                            if (subPlan.setSubWeapon)
+                            {
+                                PChar->m_Weapons[SLOT_SUB] = PItem;
+                            }
                             // only set m_dualWield if equipping a weapon (not for example a shield)
-                            if (isWeapon)
+                            if (subPlan.setDualWield)
                             {
                                 PChar->m_dualWield = true;
                             }
@@ -2586,7 +2598,11 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                         break;
                         default:
                         {
-                            if (!PItem->isType(ITEM_WEAPON))
+                            const auto subPlan = equiparmorsubhelpers::PlanFor({
+                                .mainKind         = equiparmorsubhelpers::MainKind::Other,
+                                .incomingIsWeapon = PItem->isType(ITEM_WEAPON),
+                            });
+                            if (subPlan.unequipMain)
                             {
                                 UnequipItem(PChar, SLOT_MAIN, Recalculate::No);
                             }
