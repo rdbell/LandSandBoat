@@ -192,39 +192,6 @@ xi.combat.magicHitRate.targetResistanceRankFromParams = function(params)
 end
 
 -----------------------------------
--- Calculate Target Resistance Rank (entity host)
------------------------------------
-local function calculateTargetResistanceRank(actor, target, params)
-    if target:isPC() then
-        return xi.combat.magicHitRate.targetResistanceRankFromParams({
-            targetIsPC = true,
-        })
-    end
-
-    local statusAssociated = 0
-    if (params.effectId or 0) > 0 then
-        statusAssociated = xi.data.statusEffect.getAssociatedResistanceRankModifier(params.effectId, params.magicalElement)
-    end
-
-    local elementalRankMod = xi.data.element.getElementalResistanceRankModifier(params.magicalElement)
-    local resistanceRankMod = xi.combat.magicHitRate.resistanceRankModID(
-        params.effectId, statusAssociated, elementalRankMod)
-
-    local baseRank = target:getMod(resistanceRankMod)
-    local immunobreakMod = 0
-    if (params.effectId or 0) > 0 then
-        immunobreakMod = target:getMod(xi.data.statusEffect.getAssociatedImmunobreakModifier(params.effectId))
-    end
-
-    return xi.combat.magicHitRate.targetResistanceRankFromParams({
-        targetIsPC     = false,
-        effectId       = params.effectId,
-        baseRank       = baseRank,
-        immunobreakMod = immunobreakMod,
-    })
-end
-
------------------------------------
 -- Calculate Actor Magic Accuracy
 -- Pure contribution helpers dual-wired to OmegaXI internal/magacc (slice 6705).
 -----------------------------------
@@ -861,38 +828,90 @@ xi.combat.magicHitRate.resistanceFactorFromParams = function(params)
 end
 
 -----------------------------------
--- Calculate resist rate (entity host)
+-- Resist rate pure composition (OmegaXI slice 6761 / 6088)
+-- Dual-wired to internal/magichitrate EvaluateResistRate / CalculateResistRate.
 -----------------------------------
-local function calculateResistanceFactor(actor, target, params)
-    local elementalMeva = 0
-    if target:isPC() and (params.magicalElement or 0) ~= xi.element.NONE then
-        elementalMeva = target:getMod(xi.data.element.getElementalMEVAModifier(params.magicalElement)) or 0
+
+-- Pure body after Magic Shield / non-elemental early returns, once rank /
+-- MACC / MEVA / rolls inject. Returns a result table:
+--   factor, magicHitRate, resistTier, maxTiers, autoResist, assemblySkipped
+--
+-- params: resistanceRank, effectId, actorMagicAccuracy, targetMagicEvasion,
+--   isPC, elementalMeva, resistRolls
+xi.combat.magicHitRate.evaluateResistRateFromParams = function(params)
+    local result =
+    {
+        factor           = 1,
+        magicHitRate     = MAGIC_HIT_RATE_FLOOR,
+        resistTier       = 0,
+        maxTiers         = 0,
+        autoResist       = false,
+        assemblySkipped  = false,
+    }
+
+    local autoFactor, isAuto = xi.combat.magicHitRate.autoResistFactor(
+        params.resistanceRank or 0, params.effectId or 0)
+    if isAuto then
+        result.factor     = autoFactor
+        result.autoResist = true
+        result.maxTiers   = xi.combat.magicHitRate.maxResistTier(
+            params.isPC, params.elementalMeva or 0)
+        return result
     end
 
-    local hasMagicShield = target:hasStatusEffect(xi.effect.MAGIC_SHIELD, 0)
+    if xi.combat.magicHitRate.skipHitRateAssembly(params.resistanceRank or 0) then
+        result.magicHitRate    = MAGIC_HIT_RATE_FLOOR
+        result.assemblySkipped = true
+    else
+        result.magicHitRate = xi.combat.magicHitRate.calculateMagicHitRate(
+            params.actorMagicAccuracy or 0, params.targetMagicEvasion or 0)
+    end
+
+    result.maxTiers = xi.combat.magicHitRate.maxResistTier(
+        params.isPC, params.elementalMeva or 0)
+    result.resistTier = xi.combat.magicHitRate.countResistTiers(
+        result.maxTiers, params.resistRolls)
+    result.factor = xi.combat.magicHitRate.resistanceFactorFromTier(result.resistTier)
+    return result
+end
+
+-- Pure calculateResistRate once entity reads and RNG rolls inject.
+-- params: hasMagicShield, magicalElement, targetIsPC, effectId, baseRank,
+--   immunobreakMod, actorMagicAccuracy, targetMagicEvasion, isPC,
+--   elementalMeva, resistRolls
+--
+-- Rank ≥ 11 short-circuits before Magic Shield / non-elemental gates (LSB).
+xi.combat.magicHitRate.calculateResistRateFromParams = function(params)
+    local rank = xi.combat.magicHitRate.targetResistanceRankFromParams({
+        targetIsPC     = params.targetIsPC,
+        effectId       = params.effectId or 0,
+        baseRank       = params.baseRank or 0,
+        immunobreakMod = params.immunobreakMod or 0,
+    })
+
+    local autoFactor, isAuto = xi.combat.magicHitRate.autoResistFactor(
+        rank, params.effectId or 0)
+    if isAuto then
+        return autoFactor
+    end
+
+    -- Magic Shield / non-elemental live inside calculateResistanceFactor.
     local early, ok = xi.combat.magicHitRate.resistanceFactorEarly(
-        hasMagicShield, params.magicalElement)
+        params.hasMagicShield, params.magicalElement)
     if ok then
         return early
     end
 
-    local maxResistTier = xi.combat.magicHitRate.maxResistTier(target:isPC(), elementalMeva)
-    local rolls = {}
-    for i = 1, maxResistTier do
-        if math.random() > params.magicHitRate then
-            rolls[i] = true
-        else
-            break
-        end
-    end
-
-    return xi.combat.magicHitRate.resistanceFactorFromParams({
-        hasMagicShield  = false, -- already handled early
-        magicalElement  = params.magicalElement,
-        isPC            = target:isPC(),
-        elementalMeva   = elementalMeva,
-        resistRolls     = rolls,
+    local res = xi.combat.magicHitRate.evaluateResistRateFromParams({
+        resistanceRank     = rank,
+        effectId           = params.effectId or 0,
+        actorMagicAccuracy = params.actorMagicAccuracy or 0,
+        targetMagicEvasion = params.targetMagicEvasion or 0,
+        isPC               = params.isPC,
+        elementalMeva      = params.elementalMeva or 0,
+        resistRolls        = params.resistRolls,
     })
+    return res.factor
 end
 
 -----------------------------------
@@ -920,6 +939,8 @@ local function validateParameters(actor, target, fedData)
     return params
 end
 
+-- Host residual: entity rank/MACC/MEVA/shield reads + RNG roll loop.
+-- Pure product: calculateResistRateFromParams (slice 6761).
 xi.combat.magicHitRate.calculateResistRate = function(actor, target, spellGroup, skillType, skillRank, actionElement, statUsed, effectId, bonusMacc)
     local fedData = -- Temporal measure: Table fed parameters. TODO: Feed a table to this function directly.
     {
@@ -935,25 +956,90 @@ xi.combat.magicHitRate.calculateResistRate = function(actor, target, spellGroup,
     -- Validate fed parameters.
     local params = validateParameters(actor, target, fedData)
 
-    -- Calculate and table resistance rank.
-    params.resistanceRank = calculateTargetResistanceRank(actor, target, params)
+    -- Rank injects for pure product (mirrors calculateTargetResistanceRank host).
+    local targetIsPC = target:isPC()
+    local baseRank = 0
+    local immunobreakMod = 0
+    if not targetIsPC then
+        local statusAssociated = 0
+        if (params.effectId or 0) > 0 then
+            statusAssociated = xi.data.statusEffect.getAssociatedResistanceRankModifier(
+                params.effectId, params.magicalElement)
+        end
 
-    -- Early return: Auto-resist (rank ≥ 11).
-    local autoFactor, isAuto = xi.combat.magicHitRate.autoResistFactor(params.resistanceRank, params.effectId)
-    if isAuto then
+        local elementalRankMod = xi.data.element.getElementalResistanceRankModifier(params.magicalElement)
+        local resistanceRankMod = xi.combat.magicHitRate.resistanceRankModID(
+            params.effectId, statusAssociated, elementalRankMod)
+
+        baseRank = target:getMod(resistanceRankMod)
+        if (params.effectId or 0) > 0 then
+            immunobreakMod = target:getMod(
+                xi.data.statusEffect.getAssociatedImmunobreakModifier(params.effectId))
+        end
+    end
+
+    params.resistanceRank = xi.combat.magicHitRate.targetResistanceRankFromParams({
+        targetIsPC     = targetIsPC,
+        effectId       = params.effectId,
+        baseRank       = baseRank,
+        immunobreakMod = immunobreakMod,
+    })
+
+    -- Elemental MEVA screen + Magic Shield for pure product / roll generation.
+    local elementalMeva = 0
+    if targetIsPC and (params.magicalElement or 0) ~= xi.element.NONE then
+        elementalMeva = target:getMod(
+            xi.data.element.getElementalMEVAModifier(params.magicalElement)) or 0
+    end
+
+    local hasMagicShield = target:hasStatusEffect(xi.effect.MAGIC_SHIELD, 0)
+
+    -- Host residual: assemble MACC/MEVA for roll generation when needed.
+    -- Pure still re-derives MHR from injects (parity with Go CalculateResistRate).
+    local actorMacc = 0
+    local targetMeva = 0
+    local magicHitRate = MAGIC_HIT_RATE_FLOOR
+    local autoFactor, isAuto = xi.combat.magicHitRate.autoResistFactor(
+        params.resistanceRank, params.effectId)
+    local earlyFactor, earlyOk = xi.combat.magicHitRate.resistanceFactorEarly(
+        hasMagicShield, params.magicalElement)
+
+    local rolls = {}
+    if not isAuto and not earlyOk then
+        if xi.combat.magicHitRate.skipHitRateAssembly(params.resistanceRank) then
+            magicHitRate = MAGIC_HIT_RATE_FLOOR
+        else
+            actorMacc = calculateActorMagicAccuracy(actor, target, params)
+            targetMeva = calculateTargetMagicEvasion(actor, target, params)
+            magicHitRate = xi.combat.magicHitRate.calculateMagicHitRate(actorMacc, targetMeva)
+        end
+
+        local maxResistTier = xi.combat.magicHitRate.maxResistTier(targetIsPC, elementalMeva)
+        for i = 1, maxResistTier do
+            if math.random() > magicHitRate then
+                rolls[i] = true
+            else
+                break
+            end
+        end
+    elseif isAuto then
+        -- Keep short-circuit path explicit; pure also handles auto.
         return autoFactor
+    elseif earlyOk then
+        return earlyFactor
     end
 
-    -- Early return: MHR is floored to 0.05. Skip calculating it (rank ∈ [10, 11)).
-    if xi.combat.magicHitRate.skipHitRateAssembly(params.resistanceRank) then
-        params.magicHitRate = MAGIC_HIT_RATE_FLOOR
-        return calculateResistanceFactor(actor, target, params)
-    end
-
-    -- Calculate and table MACC, MEVA and MHR.
-    params.actorMagicAccuracy = calculateActorMagicAccuracy(actor, target, params)
-    params.targetMagicEvasion = calculateTargetMagicEvasion(actor, target, params)
-    params.magicHitRate       = calculateMagicHitRate(params)
-
-    return calculateResistanceFactor(actor, target, params)
+    return xi.combat.magicHitRate.calculateResistRateFromParams({
+        hasMagicShield     = hasMagicShield,
+        magicalElement     = params.magicalElement,
+        targetIsPC         = targetIsPC,
+        effectId           = params.effectId,
+        baseRank           = baseRank,
+        immunobreakMod     = immunobreakMod,
+        actorMagicAccuracy = actorMacc,
+        targetMagicEvasion = targetMeva,
+        isPC               = targetIsPC,
+        elementalMeva      = elementalMeva,
+        resistRolls        = rolls,
+    })
 end

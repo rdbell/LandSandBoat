@@ -1,85 +1,112 @@
 -----------------------------------
--- Pure system tests for calculateResistRate top-level composition (slice 6088).
+-- Pure system tests for calculateResistRate top-level composition (slice 6761 / 6088).
+-- Calls production xi.combat.magicHitRate pure exports (not local copies).
 -----------------------------------
 
-describe('calculate resist rate pure composition', function()
-    local function targetResistanceRank(p)
-        if p.targetIsPC then
-            return 0
-        end
-        local rank = p.baseRank
-        if p.effectId and p.effectId > 0 then
-            rank = rank - (p.immunobreakMod or 0)
-        end
-        return utils.clamp(rank, -3, 11)
-    end
+require('scripts/globals/combat/magic_hit_rate')
 
-    local function resistanceFactor(p)
-        if p.hasMagicShield then
-            return 0
-        end
-        if p.magicalElement == xi.element.NONE then
-            return 1
-        end
-        local maxTiers = 3
-        if p.isPC then
-            if (p.elementalMeva or 0) < 0 then
-                maxTiers = 1
-            elseif (p.elementalMeva or 0) == 0 then
-                maxTiers = 2
-            end
-        end
-        local tier = 0
-        local rolls = p.rolls or {}
-        for i = 1, maxTiers do
-            if not rolls[i] then
-                break
-            end
-            tier = tier + 1
-        end
-        return 1 / (2 ^ tier)
-    end
-
-    local function calculateResistRate(p)
-        local rank = targetResistanceRank({
-            targetIsPC = p.targetIsPC,
-            baseRank = p.baseRank or 0,
-            effectId = p.effectId or 0,
-            immunobreakMod = p.immunobreakMod or 0,
-        })
-        if rank >= 11 then
-            if (p.effectId or 0) > 0 then
-                return 0
-            end
-            return 0.25
-        end
-        return resistanceFactor({
-            hasMagicShield = p.hasMagicShield,
-            magicalElement = p.magicalElement,
-            isPC = p.isPC,
-            elementalMeva = p.elementalMeva,
-            rolls = p.rolls,
-        })
-    end
-
+describe('calculate resist rate evaluateResistRateFromParams', function()
     it('rank 11 auto-resist', function()
-        assert(calculateResistRate({ magicalElement = xi.element.FIRE, baseRank = 11, effectId = 2 }) == 0)
-        assert(calculateResistRate({ magicalElement = xi.element.FIRE, baseRank = 11, effectId = 0 }) == 0.25)
+        local nuke = xi.combat.magicHitRate.evaluateResistRateFromParams({
+            resistanceRank = 11, effectId = 0,
+        })
+        assert(nuke.autoResist == true)
+        assert(nuke.factor == 0.25)
+
+        local status = xi.combat.magicHitRate.evaluateResistRateFromParams({
+            resistanceRank = 11, effectId = 1,
+        })
+        assert(status.autoResist == true)
+        assert(status.factor == 0)
+    end)
+
+    it('rank 10 skips MACC/MEVA assembly and uses floor MHR', function()
+        local res = xi.combat.magicHitRate.evaluateResistRateFromParams({
+            resistanceRank = 10,
+            resistRolls    = { true, true, false },
+            isPC           = false,
+        })
+        assert(res.assemblySkipped == true)
+        assert(res.magicHitRate == 0.05)
+        assert(res.resistTier == 2)
+        assert(res.factor == 0.25)
+    end)
+
+    it('normal assembly macc==meva → 0.50 MHR, no resists → factor 1', function()
+        local res = xi.combat.magicHitRate.evaluateResistRateFromParams({
+            resistanceRank     = 0,
+            actorMagicAccuracy = 300,
+            targetMagicEvasion = 300,
+            resistRolls        = { false, true, true },
+        })
+        assert(res.magicHitRate == 0.50)
+        assert(res.factor == 1)
+        assert(res.resistTier == 0)
+        assert(res.autoResist == false)
+        assert(res.assemblySkipped == false)
+    end)
+
+    it('PC weak element caps max tiers at 1', function()
+        local res = xi.combat.magicHitRate.evaluateResistRateFromParams({
+            resistanceRank     = 0,
+            actorMagicAccuracy = 300,
+            targetMagicEvasion = 300,
+            isPC               = true,
+            elementalMeva      = -5,
+            resistRolls        = { true, true, true },
+        })
+        assert(res.maxTiers == 1)
+        assert(res.resistTier == 1)
+        assert(res.factor == 0.5)
+    end)
+end)
+
+describe('calculate resist rate calculateResistRateFromParams', function()
+    it('rank 11 auto-resist before shield/element gates', function()
+        assert(xi.combat.magicHitRate.calculateResistRateFromParams({
+            magicalElement = xi.element.FIRE, baseRank = 11, effectId = 2,
+        }) == 0)
+        assert(xi.combat.magicHitRate.calculateResistRateFromParams({
+            magicalElement = xi.element.FIRE, baseRank = 11, effectId = 0,
+        }) == 0.25)
     end)
 
     it('magic shield and non-elemental after rank gate', function()
-        assert(calculateResistRate({ hasMagicShield = true, magicalElement = xi.element.FIRE, baseRank = 0 }) == 0)
-        assert(calculateResistRate({ magicalElement = xi.element.NONE, baseRank = 0 }) == 1)
+        assert(xi.combat.magicHitRate.calculateResistRateFromParams({
+            hasMagicShield = true, magicalElement = xi.element.FIRE, baseRank = 0,
+        }) == 0)
+        assert(xi.combat.magicHitRate.calculateResistRateFromParams({
+            magicalElement = xi.element.NONE, baseRank = 0,
+        }) == 1)
     end)
 
-    it('tier composition', function()
-        assert(calculateResistRate({
-            magicalElement = xi.element.FIRE, targetIsPC = true, baseRank = 5,
-            rolls = { true, true, false },
+    it('tier composition after injects', function()
+        -- PC target always rank 0; two resists → 0.25
+        assert(xi.combat.magicHitRate.calculateResistRateFromParams({
+            magicalElement     = xi.element.FIRE,
+            targetIsPC         = true,
+            baseRank           = 5,
+            actorMagicAccuracy = 100,
+            targetMagicEvasion = 100,
+            resistRolls        = { true, true, false },
         }) == 0.25)
-        assert(calculateResistRate({
+
+        -- Rank 10 uses floor MHR path; three resists non-PC → 0.125
+        assert(xi.combat.magicHitRate.calculateResistRateFromParams({
             magicalElement = xi.element.FIRE, baseRank = 10, effectId = 0,
-            rolls = { true, true, true },
+            resistRolls    = { true, true, true },
         }) == 0.125)
+    end)
+
+    it('PC weak element elementalMeva screen on full product', function()
+        assert(xi.combat.magicHitRate.calculateResistRateFromParams({
+            magicalElement     = xi.element.FIRE,
+            targetIsPC         = true,
+            isPC               = true,
+            elementalMeva      = -10,
+            actorMagicAccuracy = 300,
+            targetMagicEvasion = 300,
+            resistRolls        = { true, true, true },
+        }) == 0.5)
     end)
 end)
