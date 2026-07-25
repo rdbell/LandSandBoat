@@ -112,6 +112,7 @@
 #include "pet_ability_table_capacity.h"
 #include "pet_ability_table_lifecycle_capacity.h"
 #include "summoner_pet_ability_roster_capacity.h"
+#include "trait_roster_capacity.h"
 #include "traits_source_capacity.h"
 #include "keyitem_spell_capacity.h"
 #include "equip_item_finalize_capacity.h"
@@ -4229,8 +4230,10 @@ void BuildingCharTraitsTable(CCharEntity* PChar)
     }
     const auto traitsPlan = traitssourcehelpers::PlanFor(traitsFacts);
 
-    battleutils::AddTraits(PChar, traits::GetTraits(static_cast<JOBTYPE>(traitsPlan.mainJob)), traitsPlan.mainLevel);
-    battleutils::AddTraits(PChar, traits::GetTraits(static_cast<JOBTYPE>(traitsPlan.subJob)), traitsPlan.subLevel);
+    for (const auto& source : traitrosterhelpers::PlanFor(traitsPlan).addTraitSources)
+    {
+        battleutils::AddTraits(PChar, traits::GetTraits(static_cast<JOBTYPE>(source.job)), source.level);
+    }
 
     if (traitsPlan.calculateBlueTraits)
     {

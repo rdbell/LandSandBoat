@@ -2,6 +2,7 @@
 
 #include "map/pet_ability_table_capacity.h"
 #include "map/pet_ability_table_lifecycle_capacity.h"
+#include "map/trait_roster_capacity.h"
 #include "map/traits_source_capacity.h"
 
 #include <iostream>
@@ -124,6 +125,19 @@ auto Check() -> bool
         normalTraits.subLevel != 49 || !normalTraits.calculateBlueTraits || monstrosityTraits.mainJob != petabilitytablehelpers::JobBLU ||
         monstrosityTraits.subJob != 1 || monstrosityTraits.mainLevel != 50 || monstrosityTraits.subLevel != 50 ||
         !monstrosityTraits.calculateBlueTraits || noBlueTraits.calculateBlueTraits)
+    {
+        return false;
+    }
+    const auto normalTraitRoster = traitrosterhelpers::PlanFor(normalTraits);
+    const auto monstrosityTraitRoster = traitrosterhelpers::PlanFor(monstrosityTraits);
+    if (normalTraitRoster.addTraitSources != std::vector<traitrosterhelpers::Source>{
+            { .job = 1, .level = 99 },
+            { .job = petabilitytablehelpers::JobBLU, .level = 49 },
+        } ||
+        monstrosityTraitRoster.addTraitSources != std::vector<traitrosterhelpers::Source>{
+            { .job = petabilitytablehelpers::JobBLU, .level = 50 },
+            { .job = 1, .level = 50 },
+        })
     {
         return false;
     }
