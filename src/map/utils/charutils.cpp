@@ -65,6 +65,7 @@
 #include "char_equip_mod_update.h"
 #include "char_home_point_transition.h"
 #include "char_history_load.h"
+#include "char_history_write.h"
 #include "char_invisible_removal.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
@@ -7965,7 +7966,29 @@ void WriteHistory(const CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (PChar == nullptr)
+    historyloadhelpers::CharHistory history{};
+    if (PChar != nullptr)
+    {
+        history = {
+            .enemiesDefeated   = PChar->m_charHistory.enemiesDefeated,
+            .timesKnockedOut   = PChar->m_charHistory.timesKnockedOut,
+            .mhEntrances       = PChar->m_charHistory.mhEntrances,
+            .joinedParties     = PChar->m_charHistory.joinedParties,
+            .joinedAlliances   = PChar->m_charHistory.joinedAlliances,
+            .spellsCast        = PChar->m_charHistory.spellsCast,
+            .abilitiesUsed     = PChar->m_charHistory.abilitiesUsed,
+            .wsUsed            = PChar->m_charHistory.wsUsed,
+            .itemsUsed         = PChar->m_charHistory.itemsUsed,
+            .chatsSent         = PChar->m_charHistory.chatsSent,
+            .npcInteractions   = PChar->m_charHistory.npcInteractions,
+            .battlesFought     = PChar->m_charHistory.battlesFought,
+            .gmCalls           = PChar->m_charHistory.gmCalls,
+            .distanceTravelled = PChar->m_charHistory.distanceTravelled,
+        };
+    }
+
+    const auto plan = historywritehelpers::MakeHistoryWritePlan(PChar != nullptr, history);
+    if (!plan.persist)
     {
         return;
     }
@@ -8003,20 +8026,20 @@ void WriteHistory(const CCharEntity* PChar)
         "gm_calls = VALUES(gm_calls), "
         "distance_travelled = VALUES(distance_travelled)",
         PChar->id,
-        PChar->m_charHistory.enemiesDefeated,
-        PChar->m_charHistory.timesKnockedOut,
-        PChar->m_charHistory.mhEntrances,
-        PChar->m_charHistory.joinedParties,
-        PChar->m_charHistory.joinedAlliances,
-        PChar->m_charHistory.spellsCast,
-        PChar->m_charHistory.abilitiesUsed,
-        PChar->m_charHistory.wsUsed,
-        PChar->m_charHistory.itemsUsed,
-        PChar->m_charHistory.chatsSent,
-        PChar->m_charHistory.npcInteractions,
-        PChar->m_charHistory.battlesFought,
-        PChar->m_charHistory.gmCalls,
-        PChar->m_charHistory.distanceTravelled);
+        plan.history.enemiesDefeated,
+        plan.history.timesKnockedOut,
+        plan.history.mhEntrances,
+        plan.history.joinedParties,
+        plan.history.joinedAlliances,
+        plan.history.spellsCast,
+        plan.history.abilitiesUsed,
+        plan.history.wsUsed,
+        plan.history.itemsUsed,
+        plan.history.chatsSent,
+        plan.history.npcInteractions,
+        plan.history.battlesFought,
+        plan.history.gmCalls,
+        plan.history.distanceTravelled);
 }
 
 uint8 getMaxItemLevel(CCharEntity* PChar)

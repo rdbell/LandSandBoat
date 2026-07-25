@@ -758,6 +758,7 @@ auto runCharVarSetDispatch6883SelfTests() -> bool;
 auto runCharVarClearAll6884SelfTests() -> bool;
 auto runCharVarIncrement6885SelfTests() -> bool;
 auto runCharVarEntityOps6886SelfTests() -> bool;
+auto runHistoryWrite6887SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3179,6 +3180,7 @@ namespace
         ok = runCharVarClearAll6884SelfTests() && ok;
         ok = runCharVarIncrement6885SelfTests() && ok;
         ok = runCharVarEntityOps6886SelfTests() && ok;
+        ok = runHistoryWrite6887SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
