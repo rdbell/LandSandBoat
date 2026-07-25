@@ -1,5 +1,10 @@
 -----------------------------------
 -- Song Utilities
+-- Dual-wired pure inject forms (slice 6729 / 0875 / 6115):
+--   resolveSingingLevelFromParams, calculateSongPowerFromParams,
+--   calculateSongDurationFromParams, resolveSubEffect, paramFourFor,
+--   marchPower, useEnhancingSongFromParams
+-- Parity: internal/enhancingsong
 -----------------------------------
 require('scripts/globals/jobpoints')
 -----------------------------------
@@ -119,33 +124,50 @@ local pTable =
     [xi.magic.spell.ADVENTURERS_DIRGE ] = { 1, xi.effect.DIRGE,     xi.mod.AUGMENT_SONG_STAT, 0,                      0,                        0,                   32,   0,  32,   0,  0, true  },
 }
 
--- Enhancing Song Potency function. (1/2)
-xi.spells.enhancing.calculateSongPower = function(caster, target, spell, spellId, tier, songEffect, instrumentBoost, soulVoicePower)
-    local power       = pTable[spellId][column.POWER_BASE] -- The variable we want to calculate.
-    local meritEffect = pTable[spellId][column.MERIT_ID]
-    local jpEffect    = pTable[spellId][column.JOB_POINT_ID]
-    local skillNeeded = pTable[spellId][column.SKILL_REQUIREMENT]
-    local potencyCap  = pTable[spellId][column.POWER_CAP]
-    local multiplier  = pTable[spellId][column.MULTIPLIER]
-    local divisor     = pTable[spellId][column.DIVISOR]
-    local singingLvl  = caster:getSkillLevel(xi.skill.SINGING)
+-----------------------------------
+-- Pure inject forms (slice 6729)
+-- Parity: internal/enhancingsong
+-----------------------------------
+xi.spells.enhancing.baseSongDurationSeconds = 120
+xi.spells.enhancing.skillSinging            = 40
+xi.spells.enhancing.skillStringInstrument   = 41
+xi.spells.enhancing.skillWindInstrument     = 42
 
-    if caster:isPC() then
-        -- Add ranged skill level ONLY if it's an instrument.
-        local rangeType = caster:getWeaponSkillType(xi.slot.RANGED)
-
-        -- String instruments have half the skill effectiveness and amplify the AoE in exchange.
-        if rangeType == xi.skill.WIND_INSTRUMENT then
-            singingLvl = singingLvl + caster:getSkillLevel(rangeType)
-        elseif rangeType == xi.skill.STRING_INSTRUMENT then
-            singingLvl = singingLvl + math.floor(caster:getSkillLevel(rangeType) / 2)
-        end
-    else
-        singingLvl = singingLvl * 2
+-- Pure ResolveSingingLevel (internal/enhancingsong.ResolveSingingLevel).
+-- params: isPC, singingSkill, rangedSkillType, rangedSkillLevel
+xi.spells.enhancing.resolveSingingLevelFromParams = function(params)
+    params = params or {}
+    local singing = params.singingSkill or 0
+    if not params.isPC then
+        return singing * 2
     end
 
-    -- Get Potency bonuses from Singing Skill and Instrument Skill. TODO: Investigate JP-Wiki. Most of this makes no sense.
-    -- NOTE: Tier 1 Etudes.
+    local rangeType = params.rangedSkillType or 0
+    if rangeType == xi.skill.WIND_INSTRUMENT then
+        return singing + (params.rangedSkillLevel or 0)
+    elseif rangeType == xi.skill.STRING_INSTRUMENT then
+        return singing + math.floor((params.rangedSkillLevel or 0) / 2)
+    end
+
+    return singing
+end
+
+-- Pure calculateSongPower (internal/enhancingsong.SongPower).
+-- params: powerBase, tier, songEffect, skillNeeded, potencyCap, multiplier, divisor,
+--         soulVoiceAffectsPower, singingLvl, instrumentBoost, meritBonus, jobPointBonus,
+--         hasSoulVoice, hasMarcato, marcatoPower, augmentSongStat
+xi.spells.enhancing.calculateSongPowerFromParams = function(params)
+    params = params or {}
+    local power      = params.powerBase or 0
+    local tier       = params.tier or 0
+    local songEffect = params.songEffect or 0
+    local singingLvl = params.singingLvl or 0
+    local skillNeeded = params.skillNeeded or 0
+    local potencyCap = params.potencyCap or 0
+    local multiplier = params.multiplier or 0
+    local divisor    = params.divisor or 0
+
+    -- Skill ladders.
     if songEffect == xi.effect.ETUDE and tier == 1 then
         if singingLvl >= 450 then
             power = power + 6
@@ -160,7 +182,6 @@ xi.spells.enhancing.calculateSongPower = function(caster, target, spell, spellId
         elseif singingLvl >= 182 then
             power = power + 1
         end
-    -- NOTE: Tier 2 Etudes.
     elseif songEffect == xi.effect.ETUDE and tier == 2 then
         if singingLvl >= 475 then
             power = power + 3
@@ -169,141 +190,260 @@ xi.spells.enhancing.calculateSongPower = function(caster, target, spell, spellId
         elseif singingLvl >= 417 then
             power = power + 1
         end
-    -- Other songs.
     else
         if singingLvl > skillNeeded then
-            -- NOTE: Paeon
             if divisor == 0 then
                 if skillNeeded > 0 then
                     power = power + 1
                 end
-            -- NOTE: Aubade, Capriccio, Gavotte, Madrigal, March, Minne, Minuet, Operetta, Pastoral, Prelude, Round.
             else
                 power = math.floor(power + (singingLvl - skillNeeded) / divisor)
             end
         end
-
-        -- NOTE: Ballad, Hymnus, Mazurka have constant base power.
     end
 
-    -- Apply Cap to power. (Applied before Merits, Job-Points and Status-Effects)
     if power > potencyCap then
         power = potencyCap
     end
 
-    -- Instrument song boost. (All Songs +X, SONG_NAME +X)
-    power = math.floor(power + instrumentBoost * multiplier)
+    power = math.floor(power + (params.instrumentBoost or 0) * multiplier)
 
-    -- Additional Potency from Merits.
-    if meritEffect ~= 0 then
-        power = math.floor(power + caster:getMerit(meritEffect))
+    if (params.meritBonus or 0) ~= 0 then
+        power = math.floor(power + params.meritBonus)
     end
 
-    -- Additional Potency from Job Points.
-    if jpEffect ~= 0 then
-        power = math.floor(power + caster:getJobPointLevel(jpEffect))
+    if (params.jobPointBonus or 0) ~= 0 then
+        power = math.floor(power + params.jobPointBonus)
     end
 
-    -- Additional Potency from Status Effects.
-    if soulVoicePower then -- Soul Voice/Macarato affects Power.
-        local marcatoEffect = caster:getStatusEffect(xi.effect.MARCATO)
-        if caster:hasStatusEffect(xi.effect.SOUL_VOICE) then
+    if params.soulVoiceAffectsPower then
+        if params.hasSoulVoice then
             power = math.floor(power * 2)
-        elseif marcatoEffect ~= nil then
-            power = math.floor(power * (1 + (marcatoEffect:getPower() / 100)))
+        elseif params.hasMarcato then
+            power = math.floor(power * (1 + (params.marcatoPower or 0) / 100))
         end
     end
 
-    -- EXCEPTION: AUGMENT_SONG_STAT works differently for etudes, becouse they already boost an stat. And becouse we can't have anything be straightforward in this game.
     if songEffect == xi.effect.ETUDE then
-        power = power + caster:getMod(xi.mod.AUGMENT_SONG_STAT)
+        power = power + (params.augmentSongStat or 0)
     end
 
-    -- Finish
     return power
 end
 
--- Enhancing Song Duration function. (2/2)
-xi.spells.enhancing.calculateSongDuration = function(caster, target, spell, instrumentBoost, soulVoicePower)
-    local duration = 120 -- The variable we want to calculate.
+-- Pure calculateSongDuration (internal/enhancingsong.SongDuration).
+-- returns: { duration, consumeMarcato }
+-- Note: after Marcato JP add, LSB deletes Marcato so SV duration arm only sees SV.
+xi.spells.enhancing.calculateSongDurationFromParams = function(params)
+    params = params or {}
+    local duration = xi.spells.enhancing.baseSongDurationSeconds
+    local consume  = false
 
-    -- Additional duration from "Song Bonus" (from instruments) and "Duration Bonus" Modifier
-    duration = math.floor(duration * ((instrumentBoost * 0.1) + (caster:getMod(xi.mod.SONG_DURATION_BONUS) / 100) + 1))
+    duration = math.floor(duration * ((params.instrumentBoost or 0) * 0.1 + (params.songDurationBonus or 0) / 100 + 1))
 
-    -- Additional duration from Job points.
-    if caster:hasStatusEffect(xi.effect.CLARION_CALL) then
-        duration = math.floor(duration + caster:getJobPointLevel(xi.jp.CLARION_CALL_EFFECT) * 2)
+    if params.hasClarionCall then
+        duration = math.floor(duration + (params.clarionCallJP or 0) * 2)
     end
 
-    if caster:hasStatusEffect(xi.effect.MARCATO) then
-        duration = math.floor(duration + caster:getJobPointLevel(xi.jp.MARCATO_EFFECT))
-        caster:delStatusEffect(xi.effect.MARCATO)
+    if params.hasMarcato then
+        duration = math.floor(duration + (params.marcatoJP or 0))
+        consume  = true
     end
 
-    if caster:hasStatusEffect(xi.effect.TENUTO) then
-        duration = math.floor(duration + caster:getJobPointLevel(xi.jp.TENUTO_EFFECT) * 2)
+    if params.hasTenuto then
+        duration = math.floor(duration + (params.tenutoJP or 0) * 2)
     end
 
-    -- Additional duration from Status Effects.
-    if not soulVoicePower then -- Soul Voice/Macarato doesn't affect potency, so it affects Duration.
-        local marcatoEffect = caster:getStatusEffect(xi.effect.MARCATO)
-        if caster:hasStatusEffect(xi.effect.SOUL_VOICE) then
-            duration = math.floor(duration * 2)
-        elseif marcatoEffect ~= nil then
-            duration = math.floor(duration * (1 + (marcatoEffect:getPower() / 100)))
-        end
-    end
-
-    if caster:hasStatusEffect(xi.effect.TROUBADOUR) then
+    -- When power is NOT affected by Soul Voice, SV scales duration ×2.
+    -- Marcato is consumed above, so no Marcato duration product after consume.
+    if not params.soulVoiceAffectsPower and params.hasSoulVoice then
         duration = math.floor(duration * 2)
     end
 
-    -- Finish
-    return duration
+    if params.hasTroubadour then
+        duration = math.floor(duration * 2)
+    end
+
+    return { duration = duration, consumeMarcato = consume }
 end
 
--- Main function for Enhancing Songs.
-xi.spells.enhancing.useEnhancingSong = function(caster, target, spell)
-    local spellId   = spell:getID()
-    local paramFour = 0
+-- Pure subEffect resolve (internal/enhancingsong.ResolveSubEffect).
+xi.spells.enhancing.resolveSubEffect = function(songEffect, tableSub, augmentSongStat, subModValue)
+    if songEffect == xi.effect.CAROL then
+        return (tableSub or 0) + (augmentSongStat or 0) * 100
+    elseif songEffect == xi.effect.ETUDE then
+        return tableSub or 0
+    end
 
-    -- Get Variables from Parameters Table.
+    return subModValue or 0
+end
+
+-- Pure Etude tier-2 paramFour (internal/enhancingsong.ParamFourFor).
+xi.spells.enhancing.paramFourFor = function(songEffect, tier)
+    if songEffect == xi.effect.ETUDE and tier == 2 then
+        return 10
+    end
+
+    return 0
+end
+
+-- Pure March conversion (internal/enhancingsong.MarchPower).
+xi.spells.enhancing.marchPower = function(power)
+    return math.floor(((power or 0) / 1024) * 10000)
+end
+
+-- Pure useEnhancingSong plan (internal/enhancingsong.Use).
+-- params: songEffect, tier, power, duration, tableSub, augmentSongStat, subModValue,
+--         hasMarcato, addBardSongOK
+xi.spells.enhancing.useEnhancingSongFromParams = function(params)
+    params = params or {}
+    local songEffect = params.songEffect or 0
+    local power      = params.power or 0
+
+    if songEffect == xi.effect.MARCH then
+        power = xi.spells.enhancing.marchPower(power)
+    end
+
+    local res =
+    {
+        returnEffect   = songEffect,
+        setMsg         = false,
+        msg            = 0,
+        applySong      = false,
+        power          = power,
+        duration       = params.duration or 0,
+        paramFour      = xi.spells.enhancing.paramFourFor(songEffect, params.tier or 0),
+        subEffect      = xi.spells.enhancing.resolveSubEffect(
+            songEffect,
+            params.tableSub or 0,
+            params.augmentSongStat or 0,
+            params.subModValue or 0
+        ),
+        tier           = params.tier or 0,
+        consumeMarcato = params.hasMarcato and true or false,
+    }
+
+    if not params.addBardSongOK then
+        res.setMsg = true
+        res.msg    = 75 -- MAGIC_NO_EFFECT
+        return res
+    end
+
+    res.applySong = true
+    return res
+end
+
+-- Enhancing Song Potency function. (1/2) host → pure
+xi.spells.enhancing.calculateSongPower = function(caster, target, spell, spellId, tier, songEffect, instrumentBoost, soulVoicePower)
+    local meritEffect = pTable[spellId][column.MERIT_ID]
+    local jpEffect    = pTable[spellId][column.JOB_POINT_ID]
+    local rangeType   = 0
+    local rangeSkill  = 0
+    if caster:isPC() then
+        rangeType  = caster:getWeaponSkillType(xi.slot.RANGED)
+        rangeSkill = caster:getSkillLevel(rangeType)
+    end
+
+    local singingLvl = xi.spells.enhancing.resolveSingingLevelFromParams({
+        isPC             = caster:isPC(),
+        singingSkill     = caster:getSkillLevel(xi.skill.SINGING),
+        rangedSkillType  = rangeType,
+        rangedSkillLevel = rangeSkill,
+    })
+
+    local meritBonus = 0
+    if meritEffect ~= 0 then
+        meritBonus = caster:getMerit(meritEffect)
+    end
+
+    local jobPointBonus = 0
+    if jpEffect ~= 0 then
+        jobPointBonus = caster:getJobPointLevel(jpEffect)
+    end
+
+    local marcatoEffect = caster:getStatusEffect(xi.effect.MARCATO)
+    local hasMarcato    = marcatoEffect ~= nil
+    local marcatoPower  = hasMarcato and marcatoEffect:getPower() or 0
+
+    return xi.spells.enhancing.calculateSongPowerFromParams({
+        powerBase             = pTable[spellId][column.POWER_BASE],
+        tier                  = tier,
+        songEffect            = songEffect,
+        skillNeeded           = pTable[spellId][column.SKILL_REQUIREMENT],
+        potencyCap            = pTable[spellId][column.POWER_CAP],
+        multiplier            = pTable[spellId][column.MULTIPLIER],
+        divisor               = pTable[spellId][column.DIVISOR],
+        soulVoiceAffectsPower = soulVoicePower,
+        singingLvl            = singingLvl,
+        instrumentBoost       = instrumentBoost,
+        meritBonus            = meritBonus,
+        jobPointBonus         = jobPointBonus,
+        hasSoulVoice          = caster:hasStatusEffect(xi.effect.SOUL_VOICE),
+        hasMarcato            = hasMarcato,
+        marcatoPower          = marcatoPower,
+        augmentSongStat       = caster:getMod(xi.mod.AUGMENT_SONG_STAT),
+    })
+end
+
+-- Enhancing Song Duration function. (2/2) host → pure
+xi.spells.enhancing.calculateSongDuration = function(caster, target, spell, instrumentBoost, soulVoicePower)
+    local res = xi.spells.enhancing.calculateSongDurationFromParams({
+        instrumentBoost       = instrumentBoost,
+        songDurationBonus     = caster:getMod(xi.mod.SONG_DURATION_BONUS),
+        hasClarionCall        = caster:hasStatusEffect(xi.effect.CLARION_CALL),
+        clarionCallJP         = caster:getJobPointLevel(xi.jp.CLARION_CALL_EFFECT),
+        hasMarcato            = caster:hasStatusEffect(xi.effect.MARCATO),
+        marcatoJP             = caster:getJobPointLevel(xi.jp.MARCATO_EFFECT),
+        hasTenuto             = caster:hasStatusEffect(xi.effect.TENUTO),
+        tenutoJP              = caster:getJobPointLevel(xi.jp.TENUTO_EFFECT),
+        soulVoiceAffectsPower = soulVoicePower,
+        hasSoulVoice          = caster:hasStatusEffect(xi.effect.SOUL_VOICE),
+        hasTroubadour         = caster:hasStatusEffect(xi.effect.TROUBADOUR),
+    })
+
+    if res.consumeMarcato then
+        caster:delStatusEffect(xi.effect.MARCATO)
+    end
+
+    return res.duration
+end
+
+-- Main function for Enhancing Songs (host → pure plan).
+xi.spells.enhancing.useEnhancingSong = function(caster, target, spell)
+    local spellId = spell:getID()
+
     local tier            = pTable[spellId][column.EFFECT_TIER]
     local songEffect      = pTable[spellId][column.EFFECT_MAIN]
-    local subEffect       = 0
     local instrumentBoost = caster:getMod(pTable[spellId][column.MODIFIER]) + caster:getMod(xi.mod.ALL_SONGS_EFFECT)
     local soulVoicePower  = pTable[spellId][column.SOUL_VOICE]
+    local tableSub        = pTable[spellId][column.EFFECT_SUB]
 
-    -- Calculate Song Pottency, Duration and SubEffect.
     local power    = xi.spells.enhancing.calculateSongPower(caster, target, spell, spellId, tier, songEffect, instrumentBoost, soulVoicePower)
     local duration = xi.spells.enhancing.calculateSongDuration(caster, target, spell, instrumentBoost, soulVoicePower)
 
-    -- Handle subEffect
-    if songEffect == xi.effect.CAROL then
-        subEffect = pTable[spellId][column.EFFECT_SUB] + (caster:getMod(xi.mod.AUGMENT_SONG_STAT) * 100)
-    elseif songEffect == xi.effect.ETUDE then
-        subEffect = pTable[spellId][column.EFFECT_SUB]
-    else
-        subEffect = caster:getMod(pTable[spellId][column.EFFECT_SUB])
+    local subModValue = 0
+    if songEffect ~= xi.effect.CAROL and songEffect ~= xi.effect.ETUDE then
+        subModValue = caster:getMod(tableSub)
     end
 
-    -- EXCEPTION: Tier 2 Ettudes Fourth Parameter.
-    if songEffect == xi.effect.ETUDE and tier == 2 then
-        paramFour = 10
-    end
+    local plan = xi.spells.enhancing.useEnhancingSongFromParams({
+        songEffect      = songEffect,
+        tier            = tier,
+        power           = power,
+        duration        = duration,
+        tableSub        = tableSub,
+        augmentSongStat = caster:getMod(xi.mod.AUGMENT_SONG_STAT),
+        subModValue     = subModValue,
+        hasMarcato      = caster:hasStatusEffect(xi.effect.MARCATO),
+        addBardSongOK   = true,
+    })
 
-    -- EXCEPTION: March Songs effect conversion.
-    if songEffect == xi.effect.MARCH then
-        power = math.floor((power / 1024) * 10000)
-    end
-
-    -- Handle Status Effects.
-    if caster:hasStatusEffect(xi.effect.MARCATO) then
+    if plan.consumeMarcato then
         caster:delStatusEffect(xi.effect.MARCATO)
     end
 
     -- Change message when higher effect already in place.
-    if not target:addBardSong(caster, songEffect, power, paramFour, duration, caster:getID(), subEffect, tier) then
+    if not target:addBardSong(caster, songEffect, plan.power, plan.paramFour, plan.duration, caster:getID(), plan.subEffect, plan.tier) then
         spell:setMsg(xi.msg.basic.MAGIC_NO_EFFECT)
     end
 
