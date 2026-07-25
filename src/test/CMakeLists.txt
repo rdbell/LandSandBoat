@@ -1401,6 +1401,8 @@ set(SOURCES
     test_party_trust_disband_6874.cpp
     test_party_reload_missing_6875.h
     test_party_reload_missing_6875.cpp
+    test_party_reload_id_sync_6876.h
+    test_party_reload_id_sync_6876.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h

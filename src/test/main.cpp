@@ -747,6 +747,7 @@ auto runEquipModRemoval6871SelfTests() -> bool;
 auto runEquipModApplication6873SelfTests() -> bool;
 auto runPartyTrustDisband6874SelfTests() -> bool;
 auto runPartyReloadMissing6875SelfTests() -> bool;
+auto runPartyReloadIDSync6876SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3157,6 +3158,7 @@ namespace
         ok = runEquipModApplication6873SelfTests() && ok;
         ok = runPartyTrustDisband6874SelfTests() && ok;
         ok = runPartyReloadMissing6875SelfTests() && ok;
+        ok = runPartyReloadIDSync6876SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;

@@ -68,6 +68,7 @@
 #include "char_invisible_removal.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
+#include "char_party_reload_id_sync.h"
 #include "char_party_reload_missing.h"
 #include "char_party_trust_disband.h"
 #include "char_points_capacity.h"
@@ -7034,7 +7035,7 @@ void ReloadParty(CCharEntity* PChar)
         // for example, joining a party from another server
         if (PChar->PParty)
         {
-            if (PChar->PParty->GetPartyID() != partyid)
+            if (partyreloadidsynchelpers::ShouldSynchronize(PChar->PParty->GetPartyID(), partyid))
             {
                 PChar->PParty->SetPartyID(partyid);
             }
