@@ -32,6 +32,7 @@
 #include "map/unequip_weapon_finalize_capacity.h"
 #include "map/equip_policy_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
+#include "map/save_job_change_gear_capacity.h"
 
 #include <array>
 #include <iostream>
@@ -503,6 +504,16 @@ auto Check() -> bool
         !armorBind.success || !armorBind.refreshRemovedArmorLook ||
         !mainBind.success || mainBind.refreshRemovedArmorLook ||
         !backBind.success || backBind.refreshRemovedArmorLook)
+    {
+        return false;
+    }
+
+    constexpr std::array<uint16_t, 16> savedGearIDs{ 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115 };
+    const auto savedGear = savejobchangegearhelpers::SnapshotFor(savedGearIDs);
+    if (savedGear.main != 100 || savedGear.sub != 101 || savedGear.ranged != 102 || savedGear.ammo != 103 ||
+        savedGear.head != 104 || savedGear.body != 105 || savedGear.hands != 106 || savedGear.legs != 107 || savedGear.feet != 108 ||
+        savedGear.neck != 109 || savedGear.waist != 110 || savedGear.ear1 != 111 || savedGear.ear2 != 112 ||
+        savedGear.ring1 != 113 || savedGear.ring2 != 114 || savedGear.back != 115)
     {
         return false;
     }

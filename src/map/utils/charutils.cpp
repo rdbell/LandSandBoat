@@ -142,6 +142,7 @@
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
 #include "style_lock_transition_capacity.h"
+#include "save_job_change_gear_capacity.h"
 #include "inventory_move_capacity.h"
 #include "lockstyle_removed_look_capacity.h"
 #include "misc_progress_capacity.h"
@@ -3270,22 +3271,16 @@ void SaveJobChangeGear(CCharEntity* PChar)
         return (PChar->getEquip(slot) != nullptr) ? PChar->getEquip(slot)->getID() : 0;
     };
 
-    uint16 main   = getEquipIdFromSlot(PChar, SLOT_MAIN);
-    uint16 sub    = getEquipIdFromSlot(PChar, SLOT_SUB);
-    uint16 ranged = getEquipIdFromSlot(PChar, SLOT_RANGED);
-    uint16 ammo   = getEquipIdFromSlot(PChar, SLOT_AMMO);
-    uint16 head   = getEquipIdFromSlot(PChar, SLOT_HEAD);
-    uint16 body   = getEquipIdFromSlot(PChar, SLOT_BODY);
-    uint16 hands  = getEquipIdFromSlot(PChar, SLOT_HANDS);
-    uint16 legs   = getEquipIdFromSlot(PChar, SLOT_LEGS);
-    uint16 feet   = getEquipIdFromSlot(PChar, SLOT_FEET);
-    uint16 neck   = getEquipIdFromSlot(PChar, SLOT_NECK);
-    uint16 waist  = getEquipIdFromSlot(PChar, SLOT_WAIST);
-    uint16 ear1   = getEquipIdFromSlot(PChar, SLOT_EAR1);
-    uint16 ear2   = getEquipIdFromSlot(PChar, SLOT_EAR2);
-    uint16 ring1  = getEquipIdFromSlot(PChar, SLOT_RING1);
-    uint16 ring2  = getEquipIdFromSlot(PChar, SLOT_RING2);
-    uint16 back   = getEquipIdFromSlot(PChar, SLOT_BACK);
+    const auto savedGear = savejobchangegearhelpers::SnapshotFor({
+        getEquipIdFromSlot(PChar, SLOT_MAIN), getEquipIdFromSlot(PChar, SLOT_SUB),
+        getEquipIdFromSlot(PChar, SLOT_RANGED), getEquipIdFromSlot(PChar, SLOT_AMMO),
+        getEquipIdFromSlot(PChar, SLOT_HEAD), getEquipIdFromSlot(PChar, SLOT_BODY),
+        getEquipIdFromSlot(PChar, SLOT_HANDS), getEquipIdFromSlot(PChar, SLOT_LEGS),
+        getEquipIdFromSlot(PChar, SLOT_FEET), getEquipIdFromSlot(PChar, SLOT_NECK),
+        getEquipIdFromSlot(PChar, SLOT_WAIST), getEquipIdFromSlot(PChar, SLOT_EAR1),
+        getEquipIdFromSlot(PChar, SLOT_EAR2), getEquipIdFromSlot(PChar, SLOT_RING1),
+        getEquipIdFromSlot(PChar, SLOT_RING2), getEquipIdFromSlot(PChar, SLOT_BACK),
+    });
 
     db::preparedStmt(
         "INSERT INTO char_equip_saved SET "
@@ -3326,22 +3321,22 @@ void SaveJobChangeGear(CCharEntity* PChar)
         "back = VALUES(back)",
         PChar->id,
         PChar->GetMJob(),
-        main,
-        sub,
-        ranged,
-        ammo,
-        head,
-        body,
-        hands,
-        legs,
-        feet,
-        neck,
-        waist,
-        ear1,
-        ear2,
-        ring1,
-        ring2,
-        back);
+        savedGear.main,
+        savedGear.sub,
+        savedGear.ranged,
+        savedGear.ammo,
+        savedGear.head,
+        savedGear.body,
+        savedGear.hands,
+        savedGear.legs,
+        savedGear.feet,
+        savedGear.neck,
+        savedGear.waist,
+        savedGear.ear1,
+        savedGear.ear2,
+        savedGear.ring1,
+        savedGear.ring2,
+        savedGear.back);
 }
 
 void LoadJobChangeGear(CCharEntity* PChar)
