@@ -514,86 +514,135 @@ xi.spells.damage.calculateAdditionalResistTier = function(caster, target, spellE
     return 0.5
 end
 
-xi.spells.damage.calculateDayAndWeather = function(caster, spellElement, alwaysApply)
-    local dayAndWeather = 1 -- The variable we want to calculate
+-----------------------------------
+-- Day/weather damage mult pure helpers
+-- Dual-wired to OmegaXI internal/dayweather (slice 6710 / 0855).
+-----------------------------------
 
-    -- Early return: Invalid element.
+xi.spells.damage.dayWeatherMultMin          = 0
+xi.spells.damage.dayWeatherMultMax          = 1.4
+xi.spells.damage.dayWeatherSingleStep       = 0.10
+xi.spells.damage.dayWeatherDoubleStep       = 0.25
+xi.spells.damage.dayWeatherDayStep          = 0.10
+xi.spells.damage.dayWeatherIridescenceStep  = 0.05
+xi.spells.damage.dayWeatherProcChance       = 33
+
+-- Pure calculateDayAndWeather once weather/day/proc/mod injects are known.
+-- params: spellElement, weather, dayElement, alwaysApply, randomProc,
+--   forceDWBonusPenalty, forceElementBonus, iridescence, dayWeatherProcBonus, dayNukeBonus
+xi.spells.damage.calculateDayAndWeatherFromParams = function(params)
+    local dayAndWeather = 1
+    local spellElement = params.spellElement or 0
+
     if spellElement <= xi.element.NONE then
         return dayAndWeather
     end
 
-    -- Define what to apply.
-    local applyBonuses   = false
+    local applyBonuses = false
     local applyPenalties = false
 
-    if
-        alwaysApply or                                    -- Helixes and other actions always apply both bonuses and penalties.
-        math.random(1, 100) <= 33 or                      -- Random. Applies to both bonuses and penalties.
-        caster:getMod(xi.mod.FORCE_DW_BONUS_PENALTY) >= 1 -- Hachirin-no-Obi forces both bonuses and penalties.
-    then
-        applyBonuses   = true
+    if params.alwaysApply or params.randomProc or params.forceDWBonusPenalty then
+        applyBonuses = true
         applyPenalties = true
-    elseif caster:getMod(xi.data.element.getForcedDayOrWeatherBonusModifier(spellElement)) >= 1 then -- Elemental Obis only force bonuses, not penalties.
+    elseif params.forceElementBonus then
         applyBonuses = true
     end
 
-    -- Calculate bonuses and penalties.
-    local weather    = caster:getWeather()
-    local dayElement = VanadielDayElement()
+    local weather = params.weather or 0
+    local dayElement = params.dayElement or 0
+    local iri = (params.iridescence or 0) * xi.spells.damage.dayWeatherIridescenceStep
+    local singleWeather = params.associatedSingleWeather
+    local doubleWeather = params.associatedDoubleWeather
+    local oppSingle = params.oppositeSingleWeather
+    local oppDouble = params.oppositeDoubleWeather
+    local weakness = params.elementWeakness
 
-    -- Calculate bonuses.
+    if singleWeather == nil then
+        singleWeather = xi.data.element.getAssociatedSingleWeather(spellElement)
+    end
+
+    if doubleWeather == nil then
+        doubleWeather = xi.data.element.getAssociatedDoubleWeather(spellElement)
+    end
+
+    if oppSingle == nil then
+        oppSingle = xi.data.element.getOppositeSingleWeather(spellElement)
+    end
+
+    if oppDouble == nil then
+        oppDouble = xi.data.element.getOppositeDoubleWeather(spellElement)
+    end
+
+    if weakness == nil then
+        weakness = xi.data.element.getElementWeakness(spellElement)
+    end
+
     if applyBonuses then
-        local singleWeather = xi.data.element.getAssociatedSingleWeather(spellElement)
-        local doubleWeather = xi.data.element.getAssociatedDoubleWeather(spellElement)
-        -- Strong weathers.
         if weather == singleWeather then
-            dayAndWeather = dayAndWeather + 0.1 + caster:getMod(xi.mod.IRIDESCENCE) * 0.05
+            dayAndWeather = dayAndWeather + xi.spells.damage.dayWeatherSingleStep + iri
         elseif weather == doubleWeather then
-            dayAndWeather = dayAndWeather + 0.25 + caster:getMod(xi.mod.IRIDESCENCE) * 0.05
+            dayAndWeather = dayAndWeather + xi.spells.damage.dayWeatherDoubleStep + iri
         end
 
-        -- Strong day.
         if dayElement == spellElement then
-            dayAndWeather = dayAndWeather + 0.1
+            dayAndWeather = dayAndWeather + xi.spells.damage.dayWeatherDayStep
         end
 
-        -- Twilight cape.
         if
             weather == singleWeather or
             weather == doubleWeather or
             dayElement == spellElement
         then
-            dayAndWeather = dayAndWeather + caster:getMod(xi.mod.DAY_WEATHER_PROC_BONUS) / 100
+            dayAndWeather = dayAndWeather + (params.dayWeatherProcBonus or 0) / 100
         end
     end
 
-    -- Calculate penalties.
     if applyPenalties then
-        -- Weak weathers.
-        if weather == xi.data.element.getOppositeSingleWeather(spellElement) then
-            dayAndWeather = dayAndWeather - 0.1 - caster:getMod(xi.mod.IRIDESCENCE) * 0.05
-        elseif weather == xi.data.element.getOppositeDoubleWeather(spellElement) then
-            dayAndWeather = dayAndWeather - 0.25 - caster:getMod(xi.mod.IRIDESCENCE) * 0.05
+        if weather == oppSingle then
+            dayAndWeather = dayAndWeather - xi.spells.damage.dayWeatherSingleStep - iri
+        elseif weather == oppDouble then
+            dayAndWeather = dayAndWeather - xi.spells.damage.dayWeatherDoubleStep - iri
         end
 
-        -- Weak day.
-        if dayElement == xi.data.element.getElementWeakness(spellElement) then
-            dayAndWeather = dayAndWeather - 0.1
+        if dayElement == weakness then
+            dayAndWeather = dayAndWeather - xi.spells.damage.dayWeatherDayStep
         end
     end
 
-    -- Zodiac ring / Sorcerer Tunban / Others (proc not needed, doesn't work with Light nor Dark).
     if
         spellElement <= xi.element.WATER and
         spellElement == dayElement
     then
-        dayAndWeather = dayAndWeather + caster:getMod(xi.mod.DAY_NUKE_BONUS) / 100
+        dayAndWeather = dayAndWeather + (params.dayNukeBonus or 0) / 100
     end
 
-    -- Cap bonuses.
-    dayAndWeather = utils.clamp(dayAndWeather, 0, 1.4)
+    return utils.clamp(dayAndWeather, xi.spells.damage.dayWeatherMultMin, xi.spells.damage.dayWeatherMultMax)
+end
 
-    return dayAndWeather
+-- Entity host for day/weather damage multiplier.
+xi.spells.damage.calculateDayAndWeather = function(caster, spellElement, alwaysApply)
+    local forceElementBonus = false
+    if (spellElement or 0) > xi.element.NONE then
+        forceElementBonus = caster:getMod(xi.data.element.getForcedDayOrWeatherBonusModifier(spellElement)) >= 1
+    end
+
+    return xi.spells.damage.calculateDayAndWeatherFromParams({
+        spellElement              = spellElement,
+        weather                   = caster:getWeather(),
+        dayElement                = VanadielDayElement(),
+        alwaysApply               = alwaysApply,
+        randomProc                = math.random(1, 100) <= xi.spells.damage.dayWeatherProcChance,
+        forceDWBonusPenalty       = caster:getMod(xi.mod.FORCE_DW_BONUS_PENALTY) >= 1,
+        forceElementBonus         = forceElementBonus,
+        iridescence               = caster:getMod(xi.mod.IRIDESCENCE),
+        dayWeatherProcBonus       = caster:getMod(xi.mod.DAY_WEATHER_PROC_BONUS),
+        dayNukeBonus              = caster:getMod(xi.mod.DAY_NUKE_BONUS),
+        associatedSingleWeather   = (spellElement or 0) > 0 and xi.data.element.getAssociatedSingleWeather(spellElement) or 0,
+        associatedDoubleWeather   = (spellElement or 0) > 0 and xi.data.element.getAssociatedDoubleWeather(spellElement) or 0,
+        oppositeSingleWeather     = (spellElement or 0) > 0 and xi.data.element.getOppositeSingleWeather(spellElement) or 0,
+        oppositeDoubleWeather     = (spellElement or 0) > 0 and xi.data.element.getOppositeDoubleWeather(spellElement) or 0,
+        elementWeakness           = (spellElement or 0) > 0 and xi.data.element.getElementWeakness(spellElement) or 0,
+    })
 end
 
 -----------------------------------
