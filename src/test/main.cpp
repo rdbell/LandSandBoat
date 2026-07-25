@@ -791,6 +791,7 @@ auto runMapNetworkingSmallPacketDisposition6919SelfTests() -> bool;
 auto runMapNetworkingParseTail6920SelfTests() -> bool;
 auto runMapNetworkingFlushStatistics6921SelfTests() -> bool;
 auto runMapNetworkingZonePacketRebuild6922SelfTests() -> bool;
+auto runMapNetworkingEncryptedReceive6923SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3245,6 +3246,7 @@ namespace
         ok = runMapNetworkingParseTail6920SelfTests() && ok;
         ok = runMapNetworkingFlushStatistics6921SelfTests() && ok;
         ok = runMapNetworkingZonePacketRebuild6922SelfTests() && ok;
+        ok = runMapNetworkingEncryptedReceive6923SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;

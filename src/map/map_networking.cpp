@@ -20,6 +20,7 @@
 */
 
 #include "map_networking.h"
+#include "map_networking_encrypted_receive.h"
 #include "map_networking_flush_statistics.h"
 #include "map_networking_incoming_packet_plan.h"
 #include "map_networking_parse_tail.h"
@@ -407,7 +408,11 @@ int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSess
             previousDecrypted = map_decipher_packet(PBuffCopy.data(), *buffsize, PSession, &PSession->prev_blowfish) != -1;
         }
 
-        switch (mapnetworkinghelpers::PlanIncomingDecryption(primaryDecrypted, PSession->blowfish.status == BLOWFISH_PENDING_ZONE, previousDecrypted))
+        const auto encryptedReceivePlan = mapnetworkingencryptedreceivehelpers::MakePlan(
+            primaryDecrypted,
+            PSession->blowfish.status == BLOWFISH_PENDING_ZONE,
+            previousDecrypted);
+        switch (encryptedReceivePlan.decryption)
         {
             case mapnetworkinghelpers::IncomingDecryptionPlan::UsePrimary:
                 break;
@@ -415,19 +420,22 @@ int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSess
             {
                 // Copy decrypted bytes back into buffer
                 std::memcpy(buff, PBuffCopy.data(), *buffsize);
-                decryptCount++;
+                decryptCount = encryptedReceivePlan.decryptCount;
                 break;
             }
             case mapnetworkinghelpers::IncomingDecryptionPlan::Reject:
             {
-                *buffsize = 0;
+                if (encryptedReceivePlan.clearOutput)
+                {
+                    *buffsize = 0;
+                }
                 return -1;
             }
         }
 
         // This is when a real decrypt of the current key hits.
         // We gate this variable to allow no longer allow incoming 0x00As to be handled
-        if (mapnetworkinghelpers::ShouldMarkCurrentKeyDecryption(decryptCount))
+        if (encryptedReceivePlan.markCurrentKeyDecryption)
         {
             PSession->hasDecryptedPacket = true;
         }
