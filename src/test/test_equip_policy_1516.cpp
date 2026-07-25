@@ -35,6 +35,7 @@
 #include "map/save_job_change_gear_capacity.h"
 #include "map/load_job_change_gear_capacity.h"
 #include "map/load_job_change_gear_restore_capacity.h"
+#include "map/remove_all_equipment_capacity.h"
 
 #include <array>
 #include <iostream>
@@ -538,6 +539,17 @@ auto Check() -> bool
         restorePlan.actions[2].equipSlotID != 4 || restorePlan.actions[2].itemID != 104 ||
         restorePlan.actions[3].equipSlotID != 15 || restorePlan.actions[3].itemID != 115 ||
         loadjobchangegearrestorehelpers::SearchContainers != std::array<uint8_t, 9>{ 0, 8, 10, 11, 12, 13, 14, 15, 16 })
+    {
+        return false;
+    }
+
+    std::array<bool, 16> equippedForRemoval{};
+    equippedForRemoval[0] = true;
+    equippedForRemoval[6] = true;
+    equippedForRemoval[15] = true;
+    const auto removePlan = removeallequipmenthelpers::PlanFor(equippedForRemoval);
+    if (removePlan.unequipCount != 3 || removePlan.unequipSlots[0] != 0 || removePlan.unequipSlots[1] != 6 ||
+        removePlan.unequipSlots[2] != 15 || !removePlan.checkUnarmedWeapon || !removePlan.buildWeaponSkills || !removePlan.persistEquip)
     {
         return false;
     }

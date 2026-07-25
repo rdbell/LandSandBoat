@@ -145,6 +145,7 @@
 #include "save_job_change_gear_capacity.h"
 #include "load_job_change_gear_capacity.h"
 #include "load_job_change_gear_restore_capacity.h"
+#include "remove_all_equipment_capacity.h"
 #include "inventory_move_capacity.h"
 #include "lockstyle_removed_look_capacity.h"
 #include "misc_progress_capacity.h"
@@ -3709,22 +3710,32 @@ void CheckValidEquipment(CCharEntity* PChar)
 
 void RemoveAllEquipment(CCharEntity* PChar)
 {
-    CItemEquipment* PItem = nullptr;
-
-    for (uint8 slotID = 0; slotID < 16; ++slotID)
+    std::array<bool, 16> equipped{};
+    for (uint8 slotID = 0; slotID < equipped.size(); ++slotID)
     {
-        PItem = PChar->getEquip((SLOTTYPE)slotID);
-
-        if ((PItem != nullptr) && PItem->isType(ITEM_EQUIPMENT))
-        {
-            UnequipItem(PChar, slotID);
-        }
+        CItemEquipment* PItem = PChar->getEquip(static_cast<SLOTTYPE>(slotID));
+        equipped[slotID] = PItem != nullptr && PItem->isType(ITEM_EQUIPMENT);
     }
-    // Determines the UnarmedItem to use, since all slots are empty now.
-    CheckUnarmedWeapon(PChar);
+    const auto removePlan = removeallequipmenthelpers::PlanFor(equipped);
 
-    BuildingCharWeaponSkills(PChar);
-    PChar->RequestPersist(CHAR_PERSIST::EQUIP);
+    for (uint8 actionIndex = 0; actionIndex < removePlan.unequipCount; ++actionIndex)
+    {
+        UnequipItem(PChar, removePlan.unequipSlots[actionIndex]);
+    }
+
+    if (removePlan.checkUnarmedWeapon)
+    {
+        // Determines the UnarmedItem to use, since all slots are empty now.
+        CheckUnarmedWeapon(PChar);
+    }
+    if (removePlan.buildWeaponSkills)
+    {
+        BuildingCharWeaponSkills(PChar);
+    }
+    if (removePlan.persistEquip)
+    {
+        PChar->RequestPersist(CHAR_PERSIST::EQUIP);
+    }
 }
 
 /************************************************************************
