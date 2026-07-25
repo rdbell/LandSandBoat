@@ -108,6 +108,7 @@
 #include "weapon_style_update_capacity.h"
 #include "ability_table_capacity.h"
 #include "armor_style_update_capacity.h"
+#include "jug_pet_ability_roster_capacity.h"
 #include "pet_ability_table_capacity.h"
 #include "summoner_pet_ability_roster_capacity.h"
 #include "keyitem_spell_capacity.h"
@@ -3849,9 +3850,13 @@ void BuildingCharPetAbilityTable(CCharEntity* PChar, CPetEntity* PPet, uint32 Pe
     if (PPet->getPetType() == PET_TYPE::JUG_PET)
     {
         auto skillList{ battleutils::GetMobSkillList(PPet->m_MobSkillList) };
-        for (auto&& abilityid : skillList)
+        const auto rosterPlan = jugpetabilityrosterhelpers::PlanFor({
+            .isJugPet    = true,
+            .mobSkillIDs = skillList,
+        });
+        for (const auto bit : rosterPlan.addPetAbilityBits)
         {
-            addPetAbility(PChar, petabilitytablehelpers::JugPetAbilityBit(static_cast<uint16>(abilityid)));
+            addPetAbility(PChar, bit);
         }
     }
     PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);

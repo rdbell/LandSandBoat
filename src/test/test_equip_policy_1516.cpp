@@ -31,6 +31,7 @@
 #include "map/unequip_weapon_slot_state_capacity.h"
 #include "map/unequip_weapon_finalize_capacity.h"
 #include "map/equip_policy_capacity.h"
+#include "map/jug_pet_ability_roster_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
 #include "map/save_job_change_gear_capacity.h"
 #include "map/load_job_change_gear_capacity.h"
@@ -611,6 +612,22 @@ auto Check() -> bool
     if (carbunclePetAbilityRoster.addPetAbilityBits != std::vector<uint16_t>{ 8, 261 } ||
         sirenPetAbilityRoster.addPetAbilityBits != std::vector<uint16_t>{ 448 } ||
         !nonSummonerPetAbilityRoster.addPetAbilityBits.empty())
+    {
+        return false;
+    }
+
+    const auto jugPetAbilityRoster = jugpetabilityrosterhelpers::PlanFor({
+        .isJugPet    = true,
+        .mobSkillIDs = {
+            petabilitytablehelpers::AbilitySoothingRuby,
+            petabilitytablehelpers::AbilityPacifyingRuby,
+        },
+    });
+    const auto nonJugPetAbilityRoster = jugpetabilityrosterhelpers::PlanFor({
+        .mobSkillIDs = { petabilitytablehelpers::AbilitySoothingRuby },
+    });
+    if (jugPetAbilityRoster.addPetAbilityBits != std::vector<uint16_t>{ 8, 261 } ||
+        !nonJugPetAbilityRoster.addPetAbilityBits.empty())
     {
         return false;
     }
