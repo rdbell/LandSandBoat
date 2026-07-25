@@ -73,6 +73,7 @@
 #include "char_race_change_transition.h"
 #include "char_send_to_zone_capacity.h"
 #include "char_stratagem_removal.h"
+#include "char_temp_item_clear.h"
 #include "char_unity_leader_capacity.h"
 #include "char_zone_exit_transition.h"
 #include "char_zone_out_transition.h"
@@ -6979,10 +6980,24 @@ void ClearTempItems(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
+    static_assert(LOC_TEMPITEMS == tempitemclearhelpers::TempItemLocation);
     CItemContainer* Temp = PChar->getStorage(LOC_TEMPITEMS);
-
-    db::preparedStmt("DELETE FROM char_inventory WHERE charid = ? AND location = 3", PChar->id);
-    Temp->Clear();
+    const auto      plan = tempitemclearhelpers::MakePlan();
+    for (std::uint8_t index = 0; index < plan.count; ++index)
+    {
+        switch (plan.actions[index])
+        {
+            case tempitemclearhelpers::Action::DeletePersistedItems:
+                db::preparedStmt(
+                    "DELETE FROM char_inventory WHERE charid = ? AND location = ?",
+                    PChar->id,
+                    tempitemclearhelpers::TempItemLocation);
+                break;
+            case tempitemclearhelpers::Action::ClearItemContainer:
+                Temp->Clear();
+                break;
+        }
+    }
 }
 
 void ReloadParty(CCharEntity* PChar)
