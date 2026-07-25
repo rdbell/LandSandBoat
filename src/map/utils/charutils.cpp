@@ -62,6 +62,7 @@
 #include "ability.h"
 #include "alliance.h"
 #include "char_points_capacity.h"
+#include "char_unity_leader_capacity.h"
 #include "conquest_system.h"
 #include "grades.h"
 #include "ipc_client.h"
@@ -7182,19 +7183,26 @@ void SetUnityLeader(CCharEntity* PChar, uint8 leaderID)
 {
     TracyZoneScoped;
 
-    if (leaderID < 1 || leaderID > 11)
+    const auto plan = unityleaderhelpers::PlanUnityLeaderChange(leaderID, PChar->PUnityChat != nullptr);
+    if (!plan.accepted)
     {
         return;
     }
 
-    PChar->profile.unity_leader = leaderID;
-    if (PChar->PUnityChat)
+    PChar->profile.unity_leader = plan.newLeader;
+    if (plan.removeExistingMember)
     {
         unitychat::DelOnlineMember(PChar, PChar->PUnityChat->getLeader());
     }
-    unitychat::AddOnlineMember(PChar, PChar->profile.unity_leader);
+    if (plan.addNewMember)
+    {
+        unitychat::AddOnlineMember(PChar, PChar->profile.unity_leader);
+    }
 
-    db::preparedStmt("UPDATE char_profile SET unity_leader = ? WHERE charid = ?", PChar->profile.unity_leader, PChar->id);
+    if (plan.persist)
+    {
+        db::preparedStmt("UPDATE char_profile SET unity_leader = ? WHERE charid = ?", PChar->profile.unity_leader, PChar->id);
+    }
 }
 
 std::string GetConquestPointsName(CCharEntity* PChar)
