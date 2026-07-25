@@ -70,6 +70,7 @@
 #include "char_playtime_save_plan.h"
 #include "char_race_change_transition.h"
 #include "char_send_to_zone_capacity.h"
+#include "char_stratagem_removal.h"
 #include "char_unity_leader_capacity.h"
 #include "char_zone_exit_transition.h"
 #include "char_zone_out_transition.h"
@@ -6889,35 +6890,38 @@ void RemoveInvisible(const CCharEntity* PChar)
 
 void RemoveStratagems(CCharEntity* PChar, CSpell* PSpell)
 {
+    auto spellGroup = stratagemremovalhelpers::SpellGroup::Other;
     if (PSpell->getSpellGroup() == SPELLGROUP_WHITE)
     {
-        // rapture to be deleted in applicable scripts
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Penury);
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Celerity);
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Enlightenment);
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Altruism);
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Tranquility);
-        if (PSpell->getAOE() == SPELLAOE_RADIAL_ACCE)
-        {
-            PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Accession);
-        }
-        if (PSpell->getSkillType() == SKILL_ENHANCING_MAGIC)
-        {
-            PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Perpetuance);
-        }
+        spellGroup = stratagemremovalhelpers::SpellGroup::White;
     }
     else if (PSpell->getSpellGroup() == SPELLGROUP_BLACK)
     {
-        // ebullience to be deleted in applicable scripts
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Parsimony);
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Alacrity);
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Enlightenment);
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Focalization);
-        PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Equanimity);
-        if (PSpell->getAOE() == SPELLAOE_RADIAL_MANI)
-        {
-            PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Manifestation);
-        }
+        spellGroup = stratagemremovalhelpers::SpellGroup::Black;
+    }
+    const auto plan = stratagemremovalhelpers::MakePlan(
+        spellGroup,
+        PSpell->getAOE() == SPELLAOE_RADIAL_ACCE,
+        PSpell->getAOE() == SPELLAOE_RADIAL_MANI,
+        PSpell->getSkillType() == SKILL_ENHANCING_MAGIC);
+    // Rapture and Ebullience remain script-owned.
+    constexpr std::array statusEffects{
+        xi::StatusEffect::Penury,
+        xi::StatusEffect::Celerity,
+        xi::StatusEffect::Enlightenment,
+        xi::StatusEffect::Altruism,
+        xi::StatusEffect::Tranquility,
+        xi::StatusEffect::Accession,
+        xi::StatusEffect::Perpetuance,
+        xi::StatusEffect::Parsimony,
+        xi::StatusEffect::Alacrity,
+        xi::StatusEffect::Focalization,
+        xi::StatusEffect::Equanimity,
+        xi::StatusEffect::Manifestation,
+    };
+    for (std::uint8_t index = 0; index < plan.count; ++index)
+    {
+        PChar->StatusEffectContainer->DelStatusEffect(statusEffects[static_cast<std::uint8_t>(plan.effects[index])]);
     }
 }
 

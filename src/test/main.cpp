@@ -741,6 +741,7 @@ auto runHistoryLoad6865SelfTests() -> bool;
 auto runZoneExitTransition6866SelfTests() -> bool;
 auto runPlayTimeSavePlan6867SelfTests() -> bool;
 auto runMogLockerAccess6868SelfTests() -> bool;
+auto runStratagemRemoval6869SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
 auto runStyleUpdate1518SelfTests() -> bool;
@@ -3144,6 +3145,7 @@ namespace
         ok = runZoneExitTransition6866SelfTests() && ok;
         ok = runPlayTimeSavePlan6867SelfTests() && ok;
         ok = runMogLockerAccess6868SelfTests() && ok;
+        ok = runStratagemRemoval6869SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
         ok = runStyleUpdate1518SelfTests() && ok;

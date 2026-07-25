@@ -1389,6 +1389,8 @@ set(SOURCES
     test_playtime_save_plan_6867.cpp
     test_mog_locker_access_6868.h
     test_mog_locker_access_6868.cpp
+    test_stratagem_removal_6869.h
+    test_stratagem_removal_6869.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h
