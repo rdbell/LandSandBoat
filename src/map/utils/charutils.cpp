@@ -118,6 +118,7 @@
 #include "equip_armor_removed_look_capacity.h"
 #include "equip_armor_reverse_restrictions_capacity.h"
 #include "equip_armor_sub_capacity.h"
+#include "equip_armor_sub_look_capacity.h"
 #include "equip_armor_target_look_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
@@ -2547,13 +2548,17 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
             break;
             case SLOT_SUB:
             {
+                const auto subLookPlan = equiparmorsublookhelpers::PlanFor(static_cast<uint16>(PItem->getModelId()));
                 CItemWeapon* weapon = dynamic_cast<CItemWeapon*>(PChar->getEquip(SLOT_MAIN));
                 // NULL weapon can be unarmed weapon that just got unequipped
                 if (!weapon)
                 {
                     if (PItem->IsShield())
                     {
-                        PChar->look.sub = PItem->getModelId();
+                        if (subLookPlan.setSubLook)
+                        {
+                            PChar->look.sub = subLookPlan.modelID;
+                        }
                         UpdateWeaponStyle(PChar, equipSlotID, PItem);
                         break;
                     }
@@ -2624,7 +2629,10 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                         }
                     }
                 }
-                PChar->look.sub = PItem->getModelId();
+                if (subLookPlan.setSubLook)
+                {
+                    PChar->look.sub = subLookPlan.modelID;
+                }
                 UpdateWeaponStyle(PChar, equipSlotID, PItem);
             }
             break;

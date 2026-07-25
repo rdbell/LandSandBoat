@@ -10,6 +10,7 @@
 #include "map/equip_armor_removed_look_capacity.h"
 #include "map/equip_armor_reverse_restrictions_capacity.h"
 #include "map/equip_armor_sub_capacity.h"
+#include "map/equip_armor_sub_look_capacity.h"
 #include "map/equip_armor_target_look_capacity.h"
 #include "map/equip_policy_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
@@ -326,6 +327,11 @@ auto Check() -> bool
     }
     const auto rangedLookPlan = equiparmorrangedlookhelpers::PlanFor(504);
     if (!rangedLookPlan.setRangedLook || rangedLookPlan.modelID != 504)
+    {
+        return false;
+    }
+    const auto subLookPlan = equiparmorsublookhelpers::PlanFor(505);
+    if (!subLookPlan.setSubLook || subLookPlan.modelID != 505)
     {
         return false;
     }
