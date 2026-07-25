@@ -63,6 +63,7 @@
 #include "alliance.h"
 #include "char_death_timestamp_load.h"
 #include "char_home_point_transition.h"
+#include "char_history_load.h"
 #include "char_mannequin_update.h"
 #include "char_points_capacity.h"
 #include "char_race_change_transition.h"
@@ -7775,20 +7776,39 @@ void ReadHistory(CCharEntity* PChar)
                                        PChar->id);
     FOR_DB_SINGLE_RESULT(rset)
     {
-        PChar->m_charHistory.enemiesDefeated   = rset->get<uint32>("enemies_defeated");
-        PChar->m_charHistory.timesKnockedOut   = rset->get<uint32>("times_knocked_out");
-        PChar->m_charHistory.mhEntrances       = rset->get<uint32>("mh_entrances");
-        PChar->m_charHistory.joinedParties     = rset->get<uint32>("joined_parties");
-        PChar->m_charHistory.joinedAlliances   = rset->get<uint32>("joined_alliances");
-        PChar->m_charHistory.spellsCast        = rset->get<uint32>("spells_cast");
-        PChar->m_charHistory.abilitiesUsed     = rset->get<uint32>("abilities_used");
-        PChar->m_charHistory.wsUsed            = rset->get<uint32>("ws_used");
-        PChar->m_charHistory.itemsUsed         = rset->get<uint32>("items_used");
-        PChar->m_charHistory.chatsSent         = rset->get<uint32>("chats_sent");
-        PChar->m_charHistory.npcInteractions   = rset->get<uint32>("npc_interactions");
-        PChar->m_charHistory.battlesFought     = rset->get<uint32>("battles_fought");
-        PChar->m_charHistory.gmCalls           = rset->get<uint32>("gm_calls");
-        PChar->m_charHistory.distanceTravelled = rset->get<uint32>("distance_travelled");
+        const auto plan = historyloadhelpers::MakeHistoryLoadPlan(true, true, {
+            .enemiesDefeated   = rset->get<uint32>("enemies_defeated"),
+            .timesKnockedOut   = rset->get<uint32>("times_knocked_out"),
+            .mhEntrances       = rset->get<uint32>("mh_entrances"),
+            .joinedParties     = rset->get<uint32>("joined_parties"),
+            .joinedAlliances   = rset->get<uint32>("joined_alliances"),
+            .spellsCast        = rset->get<uint32>("spells_cast"),
+            .abilitiesUsed     = rset->get<uint32>("abilities_used"),
+            .wsUsed            = rset->get<uint32>("ws_used"),
+            .itemsUsed         = rset->get<uint32>("items_used"),
+            .chatsSent         = rset->get<uint32>("chats_sent"),
+            .npcInteractions   = rset->get<uint32>("npc_interactions"),
+            .battlesFought     = rset->get<uint32>("battles_fought"),
+            .gmCalls           = rset->get<uint32>("gm_calls"),
+            .distanceTravelled = rset->get<uint32>("distance_travelled"),
+        });
+        if (plan.apply)
+        {
+            PChar->m_charHistory.enemiesDefeated   = plan.history.enemiesDefeated;
+            PChar->m_charHistory.timesKnockedOut   = plan.history.timesKnockedOut;
+            PChar->m_charHistory.mhEntrances       = plan.history.mhEntrances;
+            PChar->m_charHistory.joinedParties     = plan.history.joinedParties;
+            PChar->m_charHistory.joinedAlliances   = plan.history.joinedAlliances;
+            PChar->m_charHistory.spellsCast        = plan.history.spellsCast;
+            PChar->m_charHistory.abilitiesUsed     = plan.history.abilitiesUsed;
+            PChar->m_charHistory.wsUsed            = plan.history.wsUsed;
+            PChar->m_charHistory.itemsUsed         = plan.history.itemsUsed;
+            PChar->m_charHistory.chatsSent         = plan.history.chatsSent;
+            PChar->m_charHistory.npcInteractions   = plan.history.npcInteractions;
+            PChar->m_charHistory.battlesFought     = plan.history.battlesFought;
+            PChar->m_charHistory.gmCalls           = plan.history.gmCalls;
+            PChar->m_charHistory.distanceTravelled = plan.history.distanceTravelled;
+        }
     }
 }
 

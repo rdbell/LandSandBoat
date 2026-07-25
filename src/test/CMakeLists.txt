@@ -1381,6 +1381,8 @@ set(SOURCES
     test_mannequin_update_6863.cpp
     test_race_change_transition_6864.h
     test_race_change_transition_6864.cpp
+    test_history_load_6865.h
+    test_history_load_6865.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h
