@@ -82,6 +82,7 @@
 #include "char_stratagem_removal.h"
 #include "char_temp_item_clear.h"
 #include "char_unity_leader_capacity.h"
+#include "char_var_fetch.h"
 #include "char_zone_exit_transition.h"
 #include "char_zone_out_transition.h"
 #include "conquest_system.h"
@@ -7676,22 +7677,20 @@ auto FetchCharVar(uint32 charId, const std::string& varName) -> std::pair<int32,
 {
     const auto rset = db::preparedStmt("SELECT value, expiry FROM char_vars WHERE charid = ? AND varname = ? LIMIT 1", charId, varName);
 
-    int32  value  = 0;
-    uint32 expiry = 0;
-
     if (rset && rset->rowsCount() && rset->next())
     {
-        value  = rset->get<int32>(0);
-        expiry = rset->get<uint32>(1);
-
-        if (expiry > 0 && expiry <= earth_time::timestamp())
+        const auto value  = rset->get<int32>(0);
+        const auto expiry = rset->get<uint32>(1);
+        const auto now    = expiry > 0 ? earth_time::timestamp() : 0;
+        const auto plan   = charvarfetchhelpers::MakePlan(true, value, expiry, now);
+        if (plan.deleteExpired)
         {
-            value = 0;
             db::preparedStmt("DELETE FROM char_vars WHERE charid = ? AND varname = ?", charId, varName);
         }
+        return { plan.value, plan.expiry };
     }
 
-    return { value, expiry };
+    return {};
 }
 
 void PersistCharVar(uint32 charId, const std::string& var, int32 value, uint32 expiry /* = 0 */)

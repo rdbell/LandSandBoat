@@ -752,6 +752,7 @@ auto runPartyLevelSyncRestore6877SelfTests() -> bool;
 auto runPartyAllianceReconcile6878SelfTests() -> bool;
 auto runPartyAllianceAttach6879SelfTests() -> bool;
 auto runPartyReloadAssembly6880SelfTests() -> bool;
+auto runCharVarFetch6881SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3167,6 +3168,7 @@ namespace
         ok = runPartyAllianceReconcile6878SelfTests() && ok;
         ok = runPartyAllianceAttach6879SelfTests() && ok;
         ok = runPartyReloadAssembly6880SelfTests() && ok;
+        ok = runCharVarFetch6881SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;

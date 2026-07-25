@@ -1411,6 +1411,8 @@ set(SOURCES
     test_party_alliance_attach_6879.cpp
     test_party_reload_assembly_6880.h
     test_party_reload_assembly_6880.cpp
+    test_char_var_fetch_6881.h
+    test_char_var_fetch_6881.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h
