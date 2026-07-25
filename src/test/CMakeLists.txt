@@ -1369,6 +1369,8 @@ set(SOURCES
     test_point_set_6857.cpp
     test_point_lookup_6858.h
     test_point_lookup_6858.cpp
+    test_send_to_zone_6859.h
+    test_send_to_zone_6859.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h

@@ -62,6 +62,7 @@
 #include "ability.h"
 #include "alliance.h"
 #include "char_points_capacity.h"
+#include "char_send_to_zone_capacity.h"
 #include "char_unity_leader_capacity.h"
 #include "conquest_system.h"
 #include "grades.h"
@@ -7223,13 +7224,13 @@ auto SendToZone(CCharEntity* PChar, uint16 zoneId) -> bool
 {
     TracyZoneScoped;
 
-    if (PChar->PSession->blowfish.status == BLOWFISH_PENDING_ZONE)
+    if (sendtozonehelpers::ShouldRejectPendingZone(PChar->PSession->blowfish.status == BLOWFISH_PENDING_ZONE))
     {
         return false;
     }
 
     auto ipp = IPP(zoneutils::GetZoneIPP(zoneId));
-    if (ipp.getIP() == 0)
+    if (sendtozonehelpers::ShouldRejectInvalidZoneIP(ipp.getIP() != 0))
     {
         ShowErrorFmt("charutils::SendToZone : Invalid zoneId {}", zoneId);
         return false;
@@ -7242,13 +7243,21 @@ auto SendToZone(CCharEntity* PChar, uint16 zoneId) -> bool
         return false;
     }
 
+    const auto plan = sendtozonehelpers::MakeSendToZonePlan(
+        PChar->inMogHouse(),
+        PChar->loc.destination == PChar->getZone(),
+        PChar->loc.prevzone,
+        PChar->getZone(),
+        PChar->shouldPetPersistThroughZoning(),
+        PChar->activeTransaction<SynthTransaction>());
+
     db::preparedStmt("UPDATE chars "
                      "SET pos_zone = ?, pos_prevzone = ?, pos_rot = ?,"
                      "pos_x = ?, pos_y = ?, pos_z = ?,"
                      "moghouse = ?, boundary = ? "
                      "WHERE charid = ?",
                      PChar->loc.destination,
-                     (PChar->inMogHouse() || PChar->loc.destination == PChar->getZone()) ? PChar->loc.prevzone : PChar->getZone(),
+                     plan.previousZoneToPersist,
                      PChar->loc.p.rotation,
                      PChar->loc.p.x,
                      PChar->loc.p.y,
@@ -7257,31 +7266,46 @@ auto SendToZone(CCharEntity* PChar, uint16 zoneId) -> bool
                      PChar->loc.boundary,
                      PChar->id);
 
-    if (PChar->shouldPetPersistThroughZoning())
+    if (plan.savePetZoningInfoBeforeTransition)
     {
         PChar->setPetZoningInfo();
     }
-    else
+    else if (plan.resetPetZoningInfo)
     {
         PChar->resetPetZoningInfo();
     }
 
     // If player somehow gets zoned, force crit fail their synth
-    if (PChar->activeTransaction<SynthTransaction>())
+    if (plan.forceSynthCriticalFail)
     {
         charutils::forceSynthCritFail("SendToZone", PChar);
     }
 
-    PChar->requestedZoneChange = true;
-    PChar->requestedWarp       = false; // a previous warp can get us here, which could infinitely loop. So un-request warp.
+    if (plan.requestZoneChange)
+    {
+        PChar->requestedZoneChange = true;
+    }
+    if (plan.clearRequestedWarp)
+    {
+        PChar->requestedWarp = false; // a previous warp can get us here, which could infinitely loop. So un-request warp.
+    }
 
-    PChar->PSession->zone_ipp = {};
-    PChar->pushPacket<GP_SERV_COMMAND_LOGOUT>(GP_GAME_LOGOUT_STATE::ZONECHANGE, IPP(ipp));
+    if (plan.clearSessionZoneIPP)
+    {
+        PChar->PSession->zone_ipp = {};
+    }
+    if (plan.sendZoneLogout)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_LOGOUT>(GP_GAME_LOGOUT_STATE::ZONECHANGE, IPP(ipp));
+    }
 
-    PChar->status = STATUS_TYPE::DISAPPEAR;
+    if (plan.setDisappearStatus)
+    {
+        PChar->status = STATUS_TYPE::DISAPPEAR;
+    }
 
     // Save pet if any
-    if (PChar->shouldPetPersistThroughZoning())
+    if (plan.savePetZoningInfoAfterTransition)
     {
         PChar->setPetZoningInfo();
     }
