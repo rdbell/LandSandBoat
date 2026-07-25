@@ -2182,6 +2182,31 @@ xi.weaponskills.absFinalDamage = function(finalDmg)
     return math.abs(finalDmg)
 end
 
+-----------------------------------
+-- Pure: takeWeaponskillDamage TP inject product (slice 6772 / 6661)
+-- Parity: internal/wsformula TakeWeaponskillTPInject
+-----------------------------------
+-- params: isJump, attackerTPMult, extraHitsLanded, storeTPMod, bonusTP, tpHitsLanded
+-- returns: { attackerTPMult, extraHitsLanded, extraHitTP, tpHitsForCore }
+xi.weaponskills.takeWeaponskillTPInjectFromParams = function(params)
+    params = params or {}
+    local attackerTPMult, extraHitsLanded = xi.weaponskills.jumpTPAdjust(
+        params.isJump,
+        params.attackerTPMult or 1,
+        params.extraHitsLanded or 0
+    )
+    local storeTPModifier = xi.weaponskills.storeTPModifier(params.storeTPMod or 0)
+    local extraHitTP = xi.weaponskills.weaponskillExtraHitTP(
+        extraHitsLanded, storeTPModifier, params.bonusTP or 0)
+
+    return {
+        attackerTPMult  = attackerTPMult,
+        extraHitsLanded = extraHitsLanded,
+        extraHitTP      = extraHitTP,
+        tpHitsForCore   = xi.weaponskills.tpHitsForCore(params.tpHitsLanded or 0, attackerTPMult),
+    }
+end
+
 xi.weaponskills.takeWeaponskillDamage = function(defender, attacker, wsParams, primaryMsg, attack, wsResults, action)
     local finaldmg = wsResults.finalDmg
 
@@ -2207,12 +2232,18 @@ xi.weaponskills.takeWeaponskillDamage = function(defender, attacker, wsParams, p
     local attackerTPMult = xi.weaponskills.defaultMultOr(wsParams.attackerTPMult ~= nil, wsParams.attackerTPMult or 1)
     local isJump         = wsParams.isJump or false
 
-    -- DA/TA/QA/OaT/Oa2-3 etc give full TP return per hit on Jumps
-    attackerTPMult, wsResults.extraHitsLanded = xi.weaponskills.jumpTPAdjust(isJump, attackerTPMult, wsResults.extraHitsLanded)
-
-    -- Core does not modify the TP for the 10 TP/hit like it should, so we're doing it here
-    local storeTPModifier = xi.weaponskills.storeTPModifier(attacker:getMod(xi.mod.STORETP)) -- TODO, make a global function to get this (inhibit TP is not accounted for properly in core)
-    local extraHitTP     = xi.weaponskills.weaponskillExtraHitTP(wsResults.extraHitsLanded, storeTPModifier, wsResults.bonusTP)
+    -- Pure Jump/STORETP/extra-hit TP inject (slice 6772). Host residual: STORETP mod.
+    local tpInject = xi.weaponskills.takeWeaponskillTPInjectFromParams({
+        isJump          = isJump,
+        attackerTPMult  = attackerTPMult,
+        extraHitsLanded = wsResults.extraHitsLanded or 0,
+        storeTPMod      = attacker:getMod(xi.mod.STORETP),
+        bonusTP         = wsResults.bonusTP or 0,
+        tpHitsLanded    = wsResults.tpHitsLanded or 0,
+    })
+    attackerTPMult              = tpInject.attackerTPMult
+    wsResults.extraHitsLanded   = tpInject.extraHitsLanded
+    local extraHitTP            = tpInject.extraHitTP
 
     finaldmg = defender:takeWeaponskillDamage(
         attacker,
@@ -2221,7 +2252,7 @@ xi.weaponskills.takeWeaponskillDamage = function(defender, attacker, wsParams, p
         attack.damageType,
         attack.slot,
         primaryMsg,
-        xi.weaponskills.tpHitsForCore(wsResults.tpHitsLanded, attackerTPMult),
+        tpInject.tpHitsForCore,
         extraHitTP,
         targetTPMult
     )
