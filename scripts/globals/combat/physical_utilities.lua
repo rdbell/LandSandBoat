@@ -332,6 +332,85 @@ xi.combat.physical.clampNonNegativeDamageFromParams = function(params)
     return damage
 end
 
+-----------------------------------
+-- Pure: Restraint WSD boost (slice 6768 / 2764)
+-- Parity: internal/attack ShouldApplyRestraintBoost / ComputeRestraintWSDBoost /
+-- ResolveRestraintWSDBoost; C++ attackhelpers same names.
+-----------------------------------
+xi.combat.physical.restraintMaxPower = 30
+
+-- params: isFirstSwing, hasRestraint, powerLessThan30
+xi.combat.physical.shouldApplyRestraintBoostFromParams = function(params)
+    params = params or {}
+    return not not params.isFirstSwing
+        and not not params.hasRestraint
+        and not not params.powerLessThan30
+end
+
+-- Pure math half once weaponDelayMs / power / subPower / enhances / jp inject.
+-- params: weaponDelayMs, effectPower, effectSubPower, enhancesRestraint, jpBonus
+-- returns: { boostAmount, newSubPower, applies = true }
+xi.combat.physical.computeRestraintWSDBoostFromParams = function(params)
+    params = params or {}
+    local weaponDelayMs     = params.weaponDelayMs or 0
+    local effectPower       = params.effectPower or 0
+    local effectSubPower    = params.effectSubPower or 0
+    local enhancesRestraint = params.enhancesRestraint or 0
+    local jpBonus           = params.jpBonus or 0
+
+    local boostPerRound = ((weaponDelayMs / 1000) * 60) / 385
+    local remainder     = effectSubPower / 100
+
+    boostPerRound = (boostPerRound
+        * (1 + enhancesRestraint / 100)
+        * (1 + jpBonus / 100)) + remainder
+
+    -- (1 - (ceil - x)) * 100; integral boost stores 100 (LSB production quirk).
+    remainder     = (1 - (math.ceil(boostPerRound) - boostPerRound)) * 100
+    boostPerRound = math.floor(boostPerRound)
+
+    if effectPower + boostPerRound > xi.combat.physical.restraintMaxPower then
+        boostPerRound = xi.combat.physical.restraintMaxPower - effectPower
+    end
+
+    return {
+        boostAmount = boostPerRound,
+        newSubPower = math.floor(remainder),
+        applies     = true,
+    }
+end
+
+-- Combined gate + pure math for host writeback.
+-- params: isFirstSwing, hasRestraint, effectPower, effectSubPower,
+--   weaponDelayMs, enhancesRestraint, jpBonus
+-- returns: { boostAmount, newSubPower, applies }
+xi.combat.physical.resolveRestraintWSDBoostFromParams = function(params)
+    params = params or {}
+    local effectPower    = params.effectPower or 0
+    local effectSubPower = params.effectSubPower or 0
+
+    if not xi.combat.physical.shouldApplyRestraintBoostFromParams({
+        isFirstSwing     = params.isFirstSwing,
+        hasRestraint     = params.hasRestraint,
+        powerLessThan30  = effectPower < xi.combat.physical.restraintMaxPower,
+    })
+    then
+        return {
+            boostAmount = 0,
+            newSubPower = effectSubPower,
+            applies     = false,
+        }
+    end
+
+    return xi.combat.physical.computeRestraintWSDBoostFromParams({
+        weaponDelayMs     = params.weaponDelayMs or 0,
+        effectPower       = effectPower,
+        effectSubPower    = effectSubPower,
+        enhancesRestraint = params.enhancesRestraint or 0,
+        jpBonus           = params.jpBonus or 0,
+    })
+end
+
 --[[
   Pure product once injects are known (matches internal/attack.CalculateAttackDamage).
   params:
@@ -584,40 +663,39 @@ xi.combat.physical.calculateAttackDamage = function(actor, target, slot, physica
 
     damage = xi.combat.physical.clampNonNegativeDamageFromParams({ damage = damage })
 
-    -- Apply Restraint Weaponskill Damage
+    -- Apply Restraint Weaponskill Damage (pure dual-wire slice 6768 / 2764).
+    -- Parity with C++ ProcessDamage / internal/attack ResolveRestraintWSDBoost.
+    -- Intentional: Lua previously used (3*baseDelay/50)/385; production uses
+    -- (weaponDelayMs/1000)*60/385. Host injects ms from base delay × 1000/60.
     if
         isFirstSwing and
         actor:hasStatusEffect(xi.effect.RESTRAINT)
     then
         local effect = actor:getStatusEffect(xi.effect.RESTRAINT)
-        local power  = effect and effect:getPower() or 30
-
-        if
-            effect and
-            power < 30
-        then
-            local jpBonus = actor:getJobPointLevel(xi.jp.RESTRAINT_EFFECT) * 2
-
-            -- Convert weapon delay and divide
-            -- Pull remainder of previous hit's value from Effect Sub Power
-            local boostPerRound = (3 * actor:getBaseDelay() / 50) / 385
-            local remainder     = effect:getSubPower() / 100
-
-            -- Calculate bonuses from Enhances Restraint, Job Point upgrades, and remainder from previous hit
-            boostPerRound = remainder + boostPerRound * (1 + actor:getMod(xi.mod.ENHANCES_RESTRAINT) / 100) * (1 + jpBonus / 100)
-
-            -- Calculate new remainder and multiply by 100 so significant digits aren't lost
-            remainder     = math.floor((1 - math.ceil(boostPerRound) - boostPerRound) * 100)
-            boostPerRound = math.floor(boostPerRound)
-
-            -- Cap total power to +30% WSD
-            if power + boostPerRound > 30 then
-                boostPerRound = 30 - power
+        if effect then
+            local jpBonus = 0
+            if actor:isPC() then
+                jpBonus = actor:getJobPointLevel(xi.jp.RESTRAINT_EFFECT) * 2
             end
 
-            effect:setPower(power + boostPerRound)
-            effect:setSubPower(remainder)
-            actor:setMod(xi.mod.ALL_WSDMG_FIRST_HIT, boostPerRound)
+            -- Convert FFXI delay units → ms (delay/60 seconds × 1000).
+            local weaponDelayMs = math.floor((actor:getBaseDelay() or 0) * 1000 / 60)
+            local plan = xi.combat.physical.resolveRestraintWSDBoostFromParams({
+                isFirstSwing      = isFirstSwing,
+                hasRestraint      = true,
+                effectPower       = effect:getPower() or 0,
+                effectSubPower    = effect:getSubPower() or 0,
+                weaponDelayMs     = weaponDelayMs,
+                enhancesRestraint = actor:getMod(xi.mod.ENHANCES_RESTRAINT) or 0,
+                jpBonus           = jpBonus,
+            })
+
+            if plan.applies then
+                effect:setPower((effect:getPower() or 0) + plan.boostAmount)
+                effect:setSubPower(plan.newSubPower)
+                -- C++ uses addModifier; prior Lua used setMod (parity with C++).
+                actor:addMod(xi.mod.ALL_WSDMG_FIRST_HIT, plan.boostAmount)
+            end
         end
     end
 
