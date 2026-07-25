@@ -94,38 +94,97 @@ xi.combat.tp.calculateTPReturn = function(gainee, delay)
     return xi.combat.tp.calculateTPReturnFromDelay(isPCOrPetFormula, delay)
 end
 
-xi.combat.tp.getModifiedDelayAndCanZanshin = function(actor, delay)
+-----------------------------------
+-- Pure modified-delay / Zanshin helpers (OmegaXI slice 6680)
+-- Dual-wired to internal/attackutils.GetModifiedDelayAndCanZanshin.
+-----------------------------------
+
+-- Actor kind for H2H branch (PC / MOB / residual pet-trust-etc).
+xi.combat.tp.modifiedDelayActor =
+{
+    PC    = 0,
+    MOB   = 1,
+    OTHER = 2,
+}
+
+-- H2H floors and DELAYP mult floor (Attack_Speed).
+xi.combat.tp.h2hSingleSwingMinDelay = 96
+xi.combat.tp.h2hFistMinDelay        = 48
+xi.combat.tp.delayPMinMultiplier    = 0.85
+
+-- Pure delay rewrite once dual-wield / H2H / actor kind / mods are injected.
+-- params:
+--   delay, dualWield, dualWieldMod, usingH2H, actorKind (modifiedDelayActor),
+--   subEquipped, h2hSkillRankZero, martialArtsMod, delayP
+-- returns { canZanshin = bool, modifiedDelay = floor(...) }
+-- https://www.bg-wiki.com/ffxi/Tactical_Points
+-- https://www.bg-wiki.com/ffxi/Attack_Speed
+-- https://www.bg-wiki.com/ffxi/Zanshin
+xi.combat.tp.getModifiedDelayAndCanZanshinFromParams = function(params)
+    local delay          = params.delay or 0
+    local dualWield      = params.dualWield or false
+    local dualWieldMod   = params.dualWieldMod or 0
+    local usingH2H       = params.usingH2H or false
+    local actorKind      = params.actorKind or xi.combat.tp.modifiedDelayActor.OTHER
+    local subEquipped    = params.subEquipped or false
+    local h2hRankZero    = params.h2hSkillRankZero or false
+    local martialArts    = params.martialArtsMod or 0
+    local delayP         = params.delayP or 0
+
     local modifiedDelay = delay
     local canZanshin    = false
 
-    -- DW/H2H delay is halved for the purposes of a single hit's TP return when applicable, see https://www.bg-wiki.com/ffxi/Tactical_Points
-    if actor:isDualWielding() then -- NOTE: this 'isDualWielding' may trip on non-PCs even if they are 'using h2h'. If this is rectified in core in the future this should fall through correctly.
-        modifiedDelay = (delay * (100 - actor:getMod(xi.mod.DUAL_WIELD)) / 100) / 2
-    elseif actor:isUsingH2H() then
-        if actor:getObjType() == xi.objType.PC then -- handle h2h with > 1 swing only on PC
-            if
-                actor:getEquippedItem(xi.slot.SUB) ~= nil or   -- equipped shield = one swing
-                actor:getSkillRank(xi.skill.HAND_TO_HAND) == 0 -- zero h2h rank skill = one swing
-            then
-                modifiedDelay = math.max((delay - actor:getMod(xi.mod.MARTIAL_ARTS)), 96) -- min delay of 96 total, https://www.bg-wiki.com/ffxi/Attack_Speed
-                canZanshin    = true -- Zanshin can proc on an 'unarmed' swing               -- https://www.bg-wiki.com/ffxi/Zanshin
+    -- DW/H2H delay is halved for a single hit's TP return when applicable.
+    -- NOTE: isDualWielding may trip on non-PCs even if they are using H2H.
+    if dualWield then
+        modifiedDelay = (delay * (100 - dualWieldMod) / 100) / 2
+    elseif usingH2H then
+        if actorKind == xi.combat.tp.modifiedDelayActor.PC then
+            if subEquipped or h2hRankZero then
+                modifiedDelay = math.max(delay - martialArts, xi.combat.tp.h2hSingleSwingMinDelay)
+                canZanshin    = true -- unarmed / single-fist swing
             else
-                modifiedDelay = math.max((delay - actor:getMod(xi.mod.MARTIAL_ARTS)) / 2, 48) -- min delay of 96 total so 96/2 per fist, https://www.bg-wiki.com/ffxi/Attack_Speed
+                modifiedDelay = math.max((delay - martialArts) / 2, xi.combat.tp.h2hFistMinDelay)
             end
-        elseif actor:getObjType() == xi.objType.MOB then
-            modifiedDelay = math.max(delay / 2, 48) -- Mobs are not affected at all by Martial Arts.
+        elseif actorKind == xi.combat.tp.modifiedDelayActor.MOB then
+            -- Mobs are not affected at all by Martial Arts.
+            modifiedDelay = math.max(delay / 2, xi.combat.tp.h2hFistMinDelay)
         else
-            -- TODO: handle the corner case where a PC-like entity is using h2h but is only hitting with one 'fist'. Perhaps they have a shield with no main weapon.
-            -- elseif actor:getAutoAttackHits() > 1
-            modifiedDelay = math.max((delay - actor:getMod(xi.mod.MARTIAL_ARTS)) / 2, 48)
+            -- Pet/trust/etc. residual H2H arm.
+            modifiedDelay = math.max((delay - martialArts) / 2, xi.combat.tp.h2hFistMinDelay)
         end
     else -- single melee swing, either 1H or 2H
-        canZanshin = true -- https://www.bg-wiki.com/ffxi/Zanshin
+        canZanshin = true
     end
 
-    modifiedDelay = modifiedDelay * math.max((100 + actor:getMod(xi.mod.DELAYP)) / 100, 0.85) -- minimum cap of -15% https://www.bg-wiki.com/ffxi/Attack_Speed. Undocumented if 15% + Claymore Grip goes above 15%.
+    -- DELAYP scale with -15% floor.
+    modifiedDelay = modifiedDelay * math.max((100 + delayP) / 100, xi.combat.tp.delayPMinMultiplier)
 
-    return ({ canZanshin = canZanshin , modifiedDelay = math.floor(modifiedDelay) })
+    return ({ canZanshin = canZanshin, modifiedDelay = math.floor(modifiedDelay) })
+end
+
+-- Entity host: dual-wield / H2H / equip / skill-rank / mod reads → pure.
+xi.combat.tp.getModifiedDelayAndCanZanshin = function(actor, delay)
+    local actorKind = xi.combat.tp.modifiedDelayActor.OTHER
+    local objType   = actor:getObjType()
+
+    if objType == xi.objType.PC then
+        actorKind = xi.combat.tp.modifiedDelayActor.PC
+    elseif objType == xi.objType.MOB then
+        actorKind = xi.combat.tp.modifiedDelayActor.MOB
+    end
+
+    return xi.combat.tp.getModifiedDelayAndCanZanshinFromParams({
+        delay            = delay,
+        dualWield        = actor:isDualWielding(),
+        dualWieldMod     = actor:getMod(xi.mod.DUAL_WIELD),
+        usingH2H         = actor:isUsingH2H(),
+        actorKind        = actorKind,
+        subEquipped      = actor:getEquippedItem(xi.slot.SUB) ~= nil,
+        h2hSkillRankZero = actor:getSkillRank(xi.skill.HAND_TO_HAND) == 0,
+        martialArtsMod   = actor:getMod(xi.mod.MARTIAL_ARTS),
+        delayP           = actor:getMod(xi.mod.DELAYP),
+    })
 end
 
 -- Bonus subtle blow II from Tandem Blow (BST trait)
