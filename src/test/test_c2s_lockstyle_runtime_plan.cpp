@@ -2,6 +2,7 @@
 
 #include "map/lockstyle_set_conflict_capacity.h"
 #include "map/lockstyle_set_item_capacity.h"
+#include "map/lockstyle_set_style_update_capacity.h"
 #include "map/packets/c2s/0x053_lockstyle.h"
 
 #include <iostream>
@@ -126,6 +127,19 @@ auto runC2SLockstyleRuntimePlanSelfTests() -> bool
             lockstylesetconflicthelpers::Item{ .itemID = 400, .found = true, .removeSlots = std::uint16_t{ 1 } << 15 },
         });
     check(clearsUnscanned.styleItems[15] == 0);
+
+    const auto styleUpdates = lockstylesetstyleupdatehelpers::PlanFor(false);
+    check(styleUpdates.actionCount == 9 &&
+          styleUpdates.actions[0].kind == lockstylesetstyleupdatehelpers::ActionKind::Weapon && styleUpdates.actions[0].slot == 0 &&
+          styleUpdates.actions[1].kind == lockstylesetstyleupdatehelpers::ActionKind::Weapon && styleUpdates.actions[1].slot == 1 &&
+          styleUpdates.actions[2].kind == lockstylesetstyleupdatehelpers::ActionKind::Weapon && styleUpdates.actions[2].slot == 2 &&
+          styleUpdates.actions[3].kind == lockstylesetstyleupdatehelpers::ActionKind::Weapon && styleUpdates.actions[3].slot == 3 &&
+          styleUpdates.actions[4].kind == lockstylesetstyleupdatehelpers::ActionKind::Armor && styleUpdates.actions[4].slot == 4 &&
+          styleUpdates.actions[8].kind == lockstylesetstyleupdatehelpers::ActionKind::Armor && styleUpdates.actions[8].slot == 8);
+
+    const auto h2hStyleUpdates = lockstylesetstyleupdatehelpers::PlanFor(true);
+    check(h2hStyleUpdates.actionCount == 8 && h2hStyleUpdates.actions[0].slot == 0 && h2hStyleUpdates.actions[1].slot == 2 &&
+          h2hStyleUpdates.actions[7].kind == lockstylesetstyleupdatehelpers::ActionKind::Armor && h2hStyleUpdates.actions[7].slot == 8);
 
     return ok;
 }

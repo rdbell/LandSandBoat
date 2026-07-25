@@ -25,6 +25,7 @@
 #include "items/item_equipment.h"
 #include "lockstyle_set_conflict_capacity.h"
 #include "lockstyle_set_item_capacity.h"
+#include "lockstyle_set_style_update_capacity.h"
 #include "packets/char_sync.h"
 #include "packets/s2c/0x009_message.h"
 #include "packets/s2c/0x051_grap_list.h"
@@ -147,34 +148,19 @@ void GP_CLI_COMMAND_LOCKSTYLE::process(MapSession* PSession, CCharEntity* PChar)
                 PChar->styleItems[i] = conflictPlan.styleItems[i];
             }
 
-            for (int i = 0; i < 10; i++)
+            const auto styleUpdatePlan = lockstylesetstyleupdatehelpers::PlanFor(hasH2HInMainSlot);
+            for (std::size_t i = 0; i < styleUpdatePlan.actionCount; ++i)
             {
-                // variable initialized here due to case/switch optimization throwing warnings inside the case
-                auto* PItem = PChar->getEquip(static_cast<SLOTTYPE>(i));
+                const auto& action = styleUpdatePlan.actions[i];
+                auto* PItem         = PChar->getEquip(static_cast<SLOTTYPE>(action.slot));
 
-                switch (i)
+                switch (action.kind)
                 {
-                    case SLOT_SUB:
-                        // Don't update the style of sub if main already assigned one (from being a h2h weapon)
-                        if (hasH2HInMainSlot)
-                        {
-                            continue;
-                        }
-                        charutils::UpdateWeaponStyle(PChar, i, PItem);
+                    case lockstylesetstyleupdatehelpers::ActionKind::Weapon:
+                        charutils::UpdateWeaponStyle(PChar, action.slot, PItem);
                         break;
-                    case SLOT_MAIN:
-                    case SLOT_RANGED:
-                    case SLOT_AMMO:
-                        charutils::UpdateWeaponStyle(PChar, i, PItem);
-                        break;
-                    case SLOT_HEAD:
-                    case SLOT_BODY:
-                    case SLOT_HANDS:
-                    case SLOT_LEGS:
-                    case SLOT_FEET:
-                        charutils::UpdateArmorStyle(PChar, i);
-                        break;
-                    default:
+                    case lockstylesetstyleupdatehelpers::ActionKind::Armor:
+                        charutils::UpdateArmorStyle(PChar, action.slot);
                         break;
                 }
             }
