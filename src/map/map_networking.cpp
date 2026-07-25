@@ -20,6 +20,7 @@
 */
 
 #include "map_networking.h"
+#include "map_networking_decipher.h"
 #include "map_networking_encrypted_receive.h"
 #include "map_networking_flush_statistics.h"
 #include "map_networking_incoming_packet_plan.h"
@@ -201,18 +202,9 @@ int32 MapNetworking::map_decipher_packet(uint8* buff, size_t buffsize, MapSessio
 {
     TracyZoneScoped;
 
-    uint16 tmp = 0;
-
-    // counting blocks whose size = 4 byte
-    tmp = (uint16)((buffsize - FFXI_HEADER_SIZE) / 4);
-    tmp -= tmp % 2;
-
     const auto ip = PSession->client_ipp.getIP();
 
-    // tmp is an even count of 4-byte words, i.e. 2 words (one 64-bit block) per cipher step.
-    blowfish_decipher_blocks((uint32*)buff + 7, tmp / 2, pbfkey->P, pbfkey->S[0]);
-
-    if (checksum((uint8*)(buff + FFXI_HEADER_SIZE), (uint32)(buffsize - (FFXI_HEADER_SIZE + 16)), (char*)(buff + buffsize - 16)) == 0)
+    if (mapnetworkingdecipherhelpers::DecipherAndVerify(std::span<uint8>{ buff, buffsize }, pbfkey))
     {
         return 0;
     }
