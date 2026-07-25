@@ -83,6 +83,7 @@
 #include "char_temp_item_clear.h"
 #include "char_unity_leader_capacity.h"
 #include "char_var_fetch.h"
+#include "char_var_persist.h"
 #include "char_zone_exit_transition.h"
 #include "char_zone_out_transition.h"
 #include "conquest_system.h"
@@ -7695,13 +7696,14 @@ auto FetchCharVar(uint32 charId, const std::string& varName) -> std::pair<int32,
 
 void PersistCharVar(uint32 charId, const std::string& var, int32 value, uint32 expiry /* = 0 */)
 {
-    if (value == 0)
+    switch (charvarpersisthelpers::ActionFor(value))
     {
-        db::preparedStmt("DELETE FROM char_vars WHERE charid = ? AND varname = ? LIMIT 1", charId, var);
-    }
-    else
-    {
-        db::preparedStmt("INSERT INTO char_vars SET charid = ?, varname = ?, value = ?, expiry = ? ON DUPLICATE KEY UPDATE value = ?, expiry = ?", charId, var, value, expiry, value, expiry);
+        case charvarpersisthelpers::Action::Delete:
+            db::preparedStmt("DELETE FROM char_vars WHERE charid = ? AND varname = ? LIMIT 1", charId, var);
+            break;
+        case charvarpersisthelpers::Action::Upsert:
+            db::preparedStmt("INSERT INTO char_vars SET charid = ?, varname = ?, value = ?, expiry = ? ON DUPLICATE KEY UPDATE value = ?, expiry = ?", charId, var, value, expiry, value, expiry);
+            break;
     }
 }
 
