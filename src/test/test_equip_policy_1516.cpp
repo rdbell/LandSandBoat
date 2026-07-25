@@ -264,8 +264,12 @@ auto Check() -> bool
         .hasSubEquipment = true,
         .subIsWeapon      = true,
         .subSkillNone     = true,
+        .modelID          = 0x1234,
     });
-    if (gripPlan.unequipSub || gripPlan.setH2HSubLook || !h2hPlan.unequipSub || !h2hPlan.setH2HSubLook)
+    const auto h2hWrapPlan = equiparmormainsubhelpers::PlanFor({ .incomingIsH2H = true, .modelID = 0xf123 });
+    if (gripPlan.unequipSub || gripPlan.setH2HSubLook || gripPlan.h2hSubModel != 0 ||
+        !h2hPlan.unequipSub || !h2hPlan.setH2HSubLook || h2hPlan.h2hSubModel != 0x2234 ||
+        !h2hWrapPlan.setH2HSubLook || h2hWrapPlan.h2hSubModel != 0x0123)
     {
         return false;
     }

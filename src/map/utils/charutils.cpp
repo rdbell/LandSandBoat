@@ -2522,6 +2522,7 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                                 .hasSubEquipment  = sub != nullptr && sub->isType(ITEM_EQUIPMENT),
                                 .subIsWeapon       = sub != nullptr && sub->isType(ITEM_WEAPON),
                                 .subSkillNone      = sub != nullptr && sub->isType(ITEM_WEAPON) && static_cast<CItemWeapon*>(sub)->getSkillType() == SKILL_NONE,
+                                .modelID           = static_cast<uint16>(PItem->getModelId()),
                             });
                             if (mainSubPlan.unequipSub)
                             {
@@ -2529,7 +2530,7 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                             }
                             if (mainSubPlan.setH2HSubLook)
                             {
-                                PChar->look.sub = PItem->getModelId() + 0x1000;
+                                PChar->look.sub = mainSubPlan.h2hSubModel;
                             }
                         }
                         break;
