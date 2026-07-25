@@ -1,6 +1,7 @@
 #include "test_keyitem_spell_1515.h"
 
 #include "map/keyitem_spell_capacity.h"
+#include "map/keyitem_table_bit_capacity.h"
 
 #include <iostream>
 
@@ -26,6 +27,24 @@ auto Check() -> bool
         return false;
     }
     if (!KeyItemTableInRange(0, 1) || !KeyItemTableInRange(0, 2) || KeyItemTableInRange(1, 1) || KeyItemTableInRange(2, 2))
+    {
+        return false;
+    }
+    const auto firstTablePlan = keyitemtablebithelpers::PlanFor({
+        .keyItemID   = 511,
+        .tablesSize = 1,
+    });
+    const auto crossTablePlan = keyitemtablebithelpers::PlanFor({
+        .keyItemID   = 513,
+        .tablesSize = 2,
+    });
+    const auto missingTablePlan = keyitemtablebithelpers::PlanFor({
+        .keyItemID   = 512,
+        .tablesSize = 1,
+    });
+    if (!firstTablePlan.inRange || firstTablePlan.tableIndex != 0 || firstTablePlan.bitIndex != 511 ||
+        !crossTablePlan.inRange || crossTablePlan.tableIndex != 1 || crossTablePlan.bitIndex != 1 ||
+        missingTablePlan.inRange || missingTablePlan.tableIndex != 1 || missingTablePlan.bitIndex != 0)
     {
         return false;
     }

@@ -121,6 +121,7 @@
 #include "trait_roster_capacity.h"
 #include "traits_source_capacity.h"
 #include "keyitem_spell_capacity.h"
+#include "keyitem_table_bit_capacity.h"
 #include "equip_item_finalize_capacity.h"
 #include "equip_item_success_capacity.h"
 #include "equip_armor_direct_restrictions_capacity.h"
@@ -4442,86 +4443,98 @@ void CheckWeaponSkill(CCharEntity* PChar, uint8 skill)
 
 auto hasKeyItem(const CCharEntity* PChar, const KeyItem keyItemId) -> bool
 {
-    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
-    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemPlan = keyitemtablebithelpers::PlanFor({
+        .keyItemID   = static_cast<uint16_t>(keyItemId),
+        .tablesSize = PChar->keys.tables.size(),
+    });
 
-    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
+    if (!keyItemPlan.inRange)
     {
-        ShowErrorFmt("charutils::hasKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
+        ShowErrorFmt("charutils::hasKeyItem() - Index {} exceeds key items table capacity.", keyItemPlan.tableIndex);
         return false;
     }
 
-    return PChar->keys.tables[keyItemTable].keyList[keyItemIndex];
+    return PChar->keys.tables[keyItemPlan.tableIndex].keyList[keyItemPlan.bitIndex];
 }
 
 auto seenKeyItem(CCharEntity* PChar, KeyItem keyItemId) -> bool
 {
-    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
-    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemPlan = keyitemtablebithelpers::PlanFor({
+        .keyItemID   = static_cast<uint16_t>(keyItemId),
+        .tablesSize = PChar->keys.tables.size(),
+    });
 
-    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
+    if (!keyItemPlan.inRange)
     {
-        ShowErrorFmt("charutils::seenKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
+        ShowErrorFmt("charutils::seenKeyItem() - Index {} exceeds key items table capacity.", keyItemPlan.tableIndex);
         return false;
     }
 
-    return PChar->keys.tables[keyItemTable].seenList[keyItemIndex];
+    return PChar->keys.tables[keyItemPlan.tableIndex].seenList[keyItemPlan.bitIndex];
 }
 
 void markSeenKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 {
-    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
-    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemPlan = keyitemtablebithelpers::PlanFor({
+        .keyItemID   = static_cast<uint16_t>(keyItemId),
+        .tablesSize = PChar->keys.tables.size(),
+    });
 
-    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
+    if (!keyItemPlan.inRange)
     {
-        ShowErrorFmt("charutils::markSeenKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
+        ShowErrorFmt("charutils::markSeenKeyItem() - Index {} exceeds key items table capacity.", keyItemPlan.tableIndex);
         return;
     }
 
-    PChar->keys.tables[keyItemTable].seenList[keyItemIndex] = true;
+    PChar->keys.tables[keyItemPlan.tableIndex].seenList[keyItemPlan.bitIndex] = true;
 }
 
 void unseenKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 {
-    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
-    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemPlan = keyitemtablebithelpers::PlanFor({
+        .keyItemID   = static_cast<uint16_t>(keyItemId),
+        .tablesSize = PChar->keys.tables.size(),
+    });
 
-    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
+    if (!keyItemPlan.inRange)
     {
-        ShowErrorFmt("charutils::unseenKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
+        ShowErrorFmt("charutils::unseenKeyItem() - Index {} exceeds key items table capacity.", keyItemPlan.tableIndex);
         return;
     }
 
-    PChar->keys.tables[keyItemTable].seenList[keyItemIndex] = false;
+    PChar->keys.tables[keyItemPlan.tableIndex].seenList[keyItemPlan.bitIndex] = false;
 }
 
 void addKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 {
-    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
-    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemPlan = keyitemtablebithelpers::PlanFor({
+        .keyItemID   = static_cast<uint16_t>(keyItemId),
+        .tablesSize = PChar->keys.tables.size(),
+    });
 
-    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
+    if (!keyItemPlan.inRange)
     {
-        ShowErrorFmt("charutils::addKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
+        ShowErrorFmt("charutils::addKeyItem() - Index {} exceeds key items table capacity.", keyItemPlan.tableIndex);
         return;
     }
 
-    PChar->keys.tables[keyItemTable].keyList[keyItemIndex] = true;
+    PChar->keys.tables[keyItemPlan.tableIndex].keyList[keyItemPlan.bitIndex] = true;
 }
 
 void delKeyItem(CCharEntity* PChar, KeyItem keyItemId)
 {
-    const auto keyItemTable = keyitemspellhelpers::KeyItemTableIndex(static_cast<uint16_t>(keyItemId));
-    const auto keyItemIndex = keyitemspellhelpers::KeyItemBitIndex(static_cast<uint16_t>(keyItemId));
+    const auto keyItemPlan = keyitemtablebithelpers::PlanFor({
+        .keyItemID   = static_cast<uint16_t>(keyItemId),
+        .tablesSize = PChar->keys.tables.size(),
+    });
 
-    if (!keyitemspellhelpers::KeyItemTableInRange(keyItemTable, PChar->keys.tables.size()))
+    if (!keyItemPlan.inRange)
     {
-        ShowErrorFmt("charutils::delKeyItem() - Index {} exceeds key items table capacity.", keyItemTable);
+        ShowErrorFmt("charutils::delKeyItem() - Index {} exceeds key items table capacity.", keyItemPlan.tableIndex);
         return;
     }
 
-    PChar->keys.tables[keyItemTable].keyList[keyItemIndex] = false;
+    PChar->keys.tables[keyItemPlan.tableIndex].keyList[keyItemPlan.bitIndex] = false;
 }
 
 /************************************************************************
