@@ -745,6 +745,7 @@ auto runStratagemRemoval6869SelfTests() -> bool;
 auto runInvisibleRemoval6870SelfTests() -> bool;
 auto runEquipModRemoval6871SelfTests() -> bool;
 auto runEquipModApplication6873SelfTests() -> bool;
+auto runPartyTrustDisband6874SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3153,6 +3154,7 @@ namespace
         ok = runInvisibleRemoval6870SelfTests() && ok;
         ok = runEquipModRemoval6871SelfTests() && ok;
         ok = runEquipModApplication6873SelfTests() && ok;
+        ok = runPartyTrustDisband6874SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;

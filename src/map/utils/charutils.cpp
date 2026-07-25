@@ -68,6 +68,7 @@
 #include "char_invisible_removal.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
+#include "char_party_trust_disband.h"
 #include "char_points_capacity.h"
 #include "char_playtime_save_plan.h"
 #include "char_race_change_transition.h"
@@ -7127,10 +7128,14 @@ void ReloadParty(CCharEntity* PChar)
 
     // Attempt to disband party if the last trust was just released
     // NOTE: Trusts are not counted as party members, so the current member count will be 1
-    if (PChar->PParty && PChar->PParty->HasOnlyOneMember() && PChar->PTrusts.empty())
+    const bool hasParty         = PChar->PParty != nullptr;
+    const bool hasOnlyOneMember = hasParty && PChar->PParty->HasOnlyOneMember();
+    const bool hasNoTrusts      = hasOnlyOneMember && PChar->PTrusts.empty();
+    const auto trustDisbandPlan = partytrustdisbandhelpers::MakePlan(hasParty, hasOnlyOneMember, hasNoTrusts);
+    if (trustDisbandPlan.checkMemberCountAcrossProcesses)
     {
         // Looks good so far, check OTHER processes to see if we should disband
-        if (PChar->PParty->GetMemberCountAcrossAllProcesses() == 1)
+        if (partytrustdisbandhelpers::ShouldDisband(PChar->PParty->GetMemberCountAcrossAllProcesses()))
         {
             PChar->PParty->DisbandParty();
             destroy(PChar->PParty);
