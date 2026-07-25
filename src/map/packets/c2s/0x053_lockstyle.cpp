@@ -23,6 +23,7 @@
 
 #include "enums/msg_std.h"
 #include "items/item_equipment.h"
+#include "lockstyle_set_item_capacity.h"
 #include "packets/char_sync.h"
 #include "packets/s2c/0x009_message.h"
 #include "packets/s2c/0x051_grap_list.h"
@@ -95,26 +96,23 @@ void GP_CLI_COMMAND_LOCKSTYLE::process(MapSession* PSession, CCharEntity* PChar)
                 }
 
                 const auto* PItem = xi::items::lookup<CItemEquipment>(itemId);
-                if (!PItem || !(PItem->isType(ITEM_WEAPON) || PItem->isType(ITEM_EQUIPMENT)))
-                {
-                    itemId = 0;
-                }
-                else if ((PItem->getEquipSlotId() & (1 << item.EquipKind)) == 0) // item doesn't fit in slot
-                {
-                    itemId = 0;
-                }
+                const bool  isVisibleItem = PItem != nullptr && (PItem->isType(ITEM_WEAPON) || PItem->isType(ITEM_EQUIPMENT));
+                const auto* PItemWeapon   = i == SLOT_MAIN ? dynamic_cast<const CItemWeapon*>(PItem) : nullptr;
+                const auto plan = lockstylesetitemhelpers::PlanFor({
+                    .packetIndex   = static_cast<std::uint8_t>(i),
+                    .equipKind     = item.EquipKind,
+                    .itemID        = itemId,
+                    .itemFound     = PItem != nullptr,
+                    .isVisibleItem = isVisibleItem,
+                    .fitsEquipKind = isVisibleItem && (PItem->getEquipSlotId() & (1 << item.EquipKind)) != 0,
+                    .isHandToHand  = PItemWeapon != nullptr && PItemWeapon->isHandToHand(),
+                });
 
-                PChar->styleItems[item.EquipKind] = itemId;
+                PChar->styleItems[plan.styleSlot] = plan.styleItemID;
 
-                if (i == SLOT_MAIN)
+                if (plan.mainHasH2H)
                 {
-                    if (const CItemWeapon* PItemWeapon = dynamic_cast<const CItemWeapon*>(PItem); PItemWeapon)
-                    {
-                        if (PItemWeapon->isHandToHand())
-                        {
-                            hasH2HInMainSlot = true;
-                        }
-                    }
+                    hasH2HInMainSlot = true;
                 }
             }
 
