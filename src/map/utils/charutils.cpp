@@ -65,6 +65,7 @@
 #include "char_home_point_transition.h"
 #include "char_history_load.h"
 #include "char_mannequin_update.h"
+#include "char_mog_locker_access.h"
 #include "char_points_capacity.h"
 #include "char_playtime_save_plan.h"
 #include "char_race_change_transition.h"
@@ -6724,34 +6725,19 @@ auto hasMogLockerAccess(const CCharEntity* PChar) -> bool
 
     const auto tstamp     = static_cast<uint32>(PChar->getCharVar("mog-locker-expiry-timestamp"));
     const auto accessType = static_cast<uint32>(PChar->getCharVar("mog-locker-access-type"));
-    if (earth_time::vanadiel_timestamp() < tstamp)
+    const auto now        = earth_time::vanadiel_timestamp();
+    if (now >= tstamp)
     {
-        const auto curZone = PChar->loc.zone;
-        switch (accessType)
-        {
-            case 1: // All areas
-                // Allowed if in a zone with a Nomad Moogle or in your own Mog House
-                return curZone->CanUseMisc(MISC_MOGMENU) || PChar->m_moghouseID == PChar->id;
-            case 0: // Al Zahbi only
-            default:
-                const auto zoneId = curZone->GetID();
-
-                // Either in your own MH in Al Zahbi or Whitegate
-                if (PChar->m_moghouseID == PChar->id &&
-                    (zoneId == ZONE_AL_ZAHBI || zoneId == ZONE_AHT_URHGAN_WHITEGATE))
-                {
-                    return true;
-                }
-
-                // Or in Nashmau where a Nomad Moogle is present.
-                if (zoneId == ZONE_NASHMAU)
-                {
-                    return true;
-                }
-        };
+        return false;
     }
-
-    return false;
+    const auto curZone    = PChar->loc.zone;
+    return moglockeraccesshelpers::HasMogLockerAccess(
+        now,
+        tstamp,
+        accessType,
+        curZone->GetID(),
+        curZone->CanUseMisc(MISC_MOGMENU),
+        PChar->m_moghouseID == PChar->id);
 }
 
 uint8 getQuestStatus(CCharEntity* PChar, uint8 log, uint8 quest)

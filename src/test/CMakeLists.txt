@@ -1387,6 +1387,8 @@ set(SOURCES
     test_zone_exit_transition_6866.cpp
     test_playtime_save_plan_6867.h
     test_playtime_save_plan_6867.cpp
+    test_mog_locker_access_6868.h
+    test_mog_locker_access_6868.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h
