@@ -312,6 +312,8 @@ set(SOURCES
     test_c2s_packet_id_enum.cpp
     test_packet_system_registration_6934.h
     test_packet_system_registration_6934.cpp
+    test_map_networking_packet_system_6935.h
+    test_map_networking_packet_system_6935.cpp
     test_c2s_packet_rate_limiter.h
     test_c2s_packet_rate_limiter.cpp
     test_c2s_packet_validation_scalars.h
