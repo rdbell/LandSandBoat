@@ -96,6 +96,7 @@
 #include "char_temp_item_clear.h"
 #include "char_can_trade_plan.h"
 #include "char_add_item_request_plan.h"
+#include "char_add_item_currency_plan.h"
 #include "char_trade_item_plan.h"
 #include "char_unity_leader_capacity.h"
 #include "char_unity_ranking_packets.h"
@@ -1767,10 +1768,11 @@ uint8 AddItem(CCharEntity* PChar, uint8 LocationID, uint16 ItemID, uint32 quanti
 
 auto AddItem(CCharEntity* PChar, uint8 LocationID, std::unique_ptr<CItem> PItem, bool silence) -> uint8
 {
-    if (tradeitemhelpers::ShouldUpdateCurrencyInstead(PItem->isType(ITEM_CURRENCY)))
+    const auto currencyPlan = additemcurrencyhelpers::BuildPlan(PItem->isType(ITEM_CURRENCY));
+    if (currencyPlan.updateCurrency)
     {
-        UpdateItem(PChar, LocationID, tradeitemhelpers::CurrencyInventorySlot, PItem->getQuantity());
-        return 0;
+        UpdateItem(PChar, LocationID, currencyPlan.slot, PItem->getQuantity());
+        return currencyPlan.returnSlot;
     }
 
     if (tradeitemhelpers::ShouldRejectRareAddItem(PItem->hasFlag(ItemFlag::Rare), HasItem(PChar, PItem->getID())))
