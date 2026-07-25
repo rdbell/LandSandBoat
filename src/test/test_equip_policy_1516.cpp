@@ -17,6 +17,7 @@
 #include "map/unequip_main_sub_look_capacity.h"
 #include "map/unequip_item_recast_capacity.h"
 #include "map/unequip_item_unlock_capacity.h"
+#include "map/unequip_recalculate_capacity.h"
 #include "map/unequip_ranged_look_capacity.h"
 #include "map/unequip_sub_look_capacity.h"
 #include "map/unequip_sub_state_capacity.h"
@@ -462,6 +463,14 @@ auto Check() -> bool
 
     const auto itemUnlock = unequipitemunlockhelpers::PlanFor();
     if (!itemUnlock.setItemSubtype || itemUnlock.subtype != 0xFE)
+    {
+        return false;
+    }
+
+    const auto noRecalculate = unequiprecalculatehelpers::PlanFor(false);
+    const auto recalculate = unequiprecalculatehelpers::PlanFor(true);
+    if (noRecalculate.buildSkills || noRecalculate.updateHealth || noRecalculate.markUpdateHP || noRecalculate.markUpdateLook ||
+        !recalculate.buildSkills || !recalculate.updateHealth || !recalculate.markUpdateHP || !recalculate.markUpdateLook)
     {
         return false;
     }

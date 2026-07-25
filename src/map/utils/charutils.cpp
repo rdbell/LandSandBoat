@@ -125,6 +125,7 @@
 #include "unequip_main_sub_look_capacity.h"
 #include "unequip_item_recast_capacity.h"
 #include "unequip_item_unlock_capacity.h"
+#include "unequip_recalculate_capacity.h"
 #include "unequip_ranged_look_capacity.h"
 #include "unequip_sub_look_capacity.h"
 #include "unequip_sub_state_capacity.h"
@@ -2420,11 +2421,21 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
 
         PChar->inventorySyncState().queueEquipChange(LOC_INVENTORY, 0, static_cast<SLOTTYPE>(equipSlotID), PItem, Equipping::No);
 
-        if (recalculate)
+        const auto recalculatePlan = unequiprecalculatehelpers::PlanFor(recalculate);
+        if (recalculatePlan.buildSkills)
         {
             charutils::BuildingCharSkillsTable(PChar);
+        }
+        if (recalculatePlan.updateHealth)
+        {
             PChar->UpdateHealth();
+        }
+        if (recalculatePlan.markUpdateHP)
+        {
             PChar->updatemask |= UPDATE_HP;
+        }
+        if (recalculatePlan.markUpdateLook)
+        {
             PChar->updatemask |= UPDATE_LOOK;
         }
     }
