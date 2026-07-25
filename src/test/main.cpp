@@ -721,6 +721,7 @@ auto runLearnedAbilityMutation6845SelfTests() -> bool;
 auto runAbilityMutation6846SelfTests() -> bool;
 auto runTitleMutation6847SelfTests() -> bool;
 auto runTraitMutation6848SelfTests() -> bool;
+auto runWeaponSkillMutation6849SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
 auto runStyleUpdate1518SelfTests() -> bool;
@@ -3104,6 +3105,7 @@ namespace
         ok = runAbilityMutation6846SelfTests() && ok;
         ok = runTitleMutation6847SelfTests() && ok;
         ok = runTraitMutation6848SelfTests() && ok;
+        ok = runWeaponSkillMutation6849SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
         ok = runStyleUpdate1518SelfTests() && ok;
