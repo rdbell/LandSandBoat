@@ -158,33 +158,70 @@ xi.combat.magicHitRate.skipHitRateAssembly = function(rank)
 end
 
 -----------------------------------
--- Calculate Target Resistance Rank
+-- Target resistance rank pure helpers
+-- Dual-wired to OmegaXI internal/magichitrate (slice 6717 / 6085).
 -----------------------------------
-local function calculateTargetResistanceRank(actor, target, params)
-    -- Early return: Players don't use resistance ranks.
-    if target:isPC() then
+
+-- Select resistance-rank mod ID once status/element lookups are known.
+xi.combat.magicHitRate.resistanceRankModID = function(effectId, statusAssociatedRankMod, elementalRankMod)
+    local mod = 0
+    if (effectId or 0) > 0 then
+        mod = statusAssociatedRankMod or 0
+    end
+
+    if mod == 0 then
+        mod = elementalRankMod or 0
+    end
+
+    return mod
+end
+
+-- Pure calculateTargetResistanceRank once PC gate and mod values inject.
+-- params: targetIsPC, effectId, baseRank, immunobreakMod
+xi.combat.magicHitRate.targetResistanceRankFromParams = function(params)
+    if params.targetIsPC then
         return 0
     end
 
-    -- Calculate what modifier to use.
-    local resistanceRankMod = 0 -- Modifier ID of the resistance rank to use.
-    if params.effectId > 0 then -- Check if it's an effect.
-        resistanceRankMod = xi.data.statusEffect.getAssociatedResistanceRankModifier(params.effectId, params.magicalElement)
+    local rank = params.baseRank or 0
+    if (params.effectId or 0) > 0 then
+        rank = rank - (params.immunobreakMod or 0)
     end
 
-    if resistanceRankMod == 0 then -- If it's an effect and this is 0, try with element.
-        resistanceRankMod = xi.data.element.getElementalResistanceRankModifier(params.magicalElement)
+    return xi.combat.magicHitRate.clampResistRank(rank)
+end
+
+-----------------------------------
+-- Calculate Target Resistance Rank (entity host)
+-----------------------------------
+local function calculateTargetResistanceRank(actor, target, params)
+    if target:isPC() then
+        return xi.combat.magicHitRate.targetResistanceRankFromParams({
+            targetIsPC = true,
+        })
     end
 
-    -- Fetch resistance rank.
-    local resistanceRank = target:getMod(resistanceRankMod)
-
-    -- Apply possible resistance rank modifications.
-    if params.effectId > 0 then
-        resistanceRank = resistanceRank - target:getMod(xi.data.statusEffect.getAssociatedImmunobreakModifier(params.effectId)) -- Apply immunobreak modification.
+    local statusAssociated = 0
+    if (params.effectId or 0) > 0 then
+        statusAssociated = xi.data.statusEffect.getAssociatedResistanceRankModifier(params.effectId, params.magicalElement)
     end
 
-    return xi.combat.magicHitRate.clampResistRank(resistanceRank)
+    local elementalRankMod = xi.data.element.getElementalResistanceRankModifier(params.magicalElement)
+    local resistanceRankMod = xi.combat.magicHitRate.resistanceRankModID(
+        params.effectId, statusAssociated, elementalRankMod)
+
+    local baseRank = target:getMod(resistanceRankMod)
+    local immunobreakMod = 0
+    if (params.effectId or 0) > 0 then
+        immunobreakMod = target:getMod(xi.data.statusEffect.getAssociatedImmunobreakModifier(params.effectId))
+    end
+
+    return xi.combat.magicHitRate.targetResistanceRankFromParams({
+        targetIsPC     = false,
+        effectId       = params.effectId,
+        baseRank       = baseRank,
+        immunobreakMod = immunobreakMod,
+    })
 end
 
 -----------------------------------
@@ -711,33 +748,77 @@ local function calculateActorMagicAccuracy(actor, target, params)
 end
 
 -----------------------------------
--- Calculate Target Magic Evasion
+-- Target magic evasion pure helpers
+-- Dual-wired to OmegaXI internal/magichitrate (slice 6717 / 6083).
+-----------------------------------
+
+-- Non-PC level-correction MEVA bonus only (0 when gated off).
+xi.combat.magicHitRate.levelCorrectionMeva = function(targetIsPC, zoneLevelCorrected, targetLvl, actorLvl)
+    if targetIsPC or not zoneLevelCorrected then
+        return 0
+    end
+
+    local dlvl = utils.clamp((targetLvl or 0) - (actorLvl or 0), 0, 100)
+    return dlvl * 4
+end
+
+-- floor(baseMeva * resistRankMultiplier[rank])
+xi.combat.magicHitRate.applyResistRankToMeva = function(baseMeva, rank)
+    return math.floor((baseMeva or 0) * xi.combat.magicHitRate.resistRankMultiplier(rank or 0))
+end
+
+-- Pure calculateTargetMagicEvasion once mods/level/rank inject.
+-- params: baseMeva, magicalElement, elementalMevaMod, effectId, effectMevaMod,
+--   statusMevaMod, targetIsPC, zoneLevelCorrected, targetLvl, actorLvl, resistanceRank
+xi.combat.magicHitRate.targetMagicEvasionFromParams = function(params)
+    local magicEva = params.baseMeva or 0
+
+    if (params.magicalElement or 0) ~= xi.element.NONE then
+        magicEva = magicEva + (params.elementalMevaMod or 0)
+    end
+
+    if (params.effectId or 0) > 0 then
+        magicEva = magicEva + (params.effectMevaMod or 0) + (params.statusMevaMod or 0)
+    end
+
+    magicEva = magicEva + xi.combat.magicHitRate.levelCorrectionMeva(
+        params.targetIsPC,
+        params.zoneLevelCorrected,
+        params.targetLvl,
+        params.actorLvl)
+
+    return xi.combat.magicHitRate.applyResistRankToMeva(magicEva, params.resistanceRank)
+end
+
+-----------------------------------
+-- Calculate Target Magic Evasion (entity host)
 -----------------------------------
 local function calculateTargetMagicEvasion(actor, target, params)
-    local magicEva = target:getMod(xi.mod.MEVA) -- Base MACC.
-
-    -- Elemental magic evasion. All actions and effects have an associated element.
+    local elementalMevaMod = 0
     if params.magicalElement ~= xi.element.NONE then
-        magicEva = magicEva + target:getMod(xi.data.element.getElementalMEVAModifier(params.magicalElement))
+        elementalMevaMod = target:getMod(xi.data.element.getElementalMEVAModifier(params.magicalElement))
     end
 
-    -- Magic evasion against specific status effects.
-    if params.effectId > 0 then
-        magicEva = magicEva + target:getMod(xi.data.statusEffect.getAssociatedMagicEvasionModifier(params.effectId)) + target:getMod(xi.mod.STATUS_MEVA)
+    local effectMevaMod = 0
+    local statusMevaMod = 0
+    if (params.effectId or 0) > 0 then
+        effectMevaMod = target:getMod(xi.data.statusEffect.getAssociatedMagicEvasionModifier(params.effectId))
+        statusMevaMod = target:getMod(xi.mod.STATUS_MEVA)
     end
 
-    -- Level correction. Target gets a bonus the higher the level if it's a mob. Never a penalty.
-    if
-        not target:isPC() and
-        xi.data.levelCorrection.isLevelCorrectedZone(actor)
-    then
-        magicEva = magicEva + utils.clamp(target:getMainLvl() - actor:getMainLvl(), 0, 100) * 4
-    end
-
-    -- Apply resistance rank multiplier.
-    magicEva = math.floor(magicEva * xi.combat.magicHitRate.resistRankMultiplier(params.resistanceRank))
-
-    return magicEva
+    return xi.combat.magicHitRate.targetMagicEvasionFromParams({
+        baseMeva           = target:getMod(xi.mod.MEVA),
+        magicalElement     = params.magicalElement,
+        elementalMevaMod   = elementalMevaMod,
+        effectId           = params.effectId,
+        effectMevaMod      = effectMevaMod,
+        statusMevaMod      = statusMevaMod,
+        targetIsPC         = target:isPC(),
+        zoneLevelCorrected = xi.data.levelCorrection.isLevelCorrectedZone(actor),
+        targetLvl          = target:getMainLvl(),
+        actorLvl           = actor:getMainLvl(),
+        resistanceRank     = params.resistanceRank,
+    })
 end
 
 -----------------------------------
@@ -748,32 +829,56 @@ local function calculateMagicHitRate(params)
 end
 
 -----------------------------------
--- Calculate resist rate.
+-- Resistance factor pure helpers
+-- Dual-wired to OmegaXI internal/magichitrate (slice 6717 / 6086).
+-----------------------------------
+
+-- Magic Shield / non-elemental early gates. Returns factor, earlyApplied.
+xi.combat.magicHitRate.resistanceFactorEarly = function(hasMagicShield, magicalElement)
+    if hasMagicShield then
+        return 0, true
+    end
+
+    if (magicalElement or 0) == xi.element.NONE then
+        return 1, true
+    end
+
+    return 0, false
+end
+
+-- Pure calculateResistanceFactor once shield/element/tiers/rolls inject.
+-- params: hasMagicShield, magicalElement, isPC, elementalMeva, resistRolls
+xi.combat.magicHitRate.resistanceFactorFromParams = function(params)
+    local early, ok = xi.combat.magicHitRate.resistanceFactorEarly(
+        params.hasMagicShield, params.magicalElement)
+    if ok then
+        return early
+    end
+
+    local maxTiers = xi.combat.magicHitRate.maxResistTier(params.isPC, params.elementalMeva or 0)
+    local resistTier = xi.combat.magicHitRate.countResistTiers(maxTiers, params.resistRolls)
+    return xi.combat.magicHitRate.resistanceFactorFromTier(resistTier)
+end
+
+-----------------------------------
+-- Calculate resist rate (entity host)
 -----------------------------------
 local function calculateResistanceFactor(actor, target, params)
-    -- Early return: Magic shield.
-    if target:hasStatusEffect(xi.effect.MAGIC_SHIELD, 0) then
-        return 0
-    end
-
-    -- Early return: Cannot resist non-elemental magic.
-    if params.magicalElement == xi.element.NONE then
-        return 1
-    end
-
-    -- Calculate max allowed resist tier (PC elemental MEVA screen gate).
     local elementalMeva = 0
-    if target:isPC() then
+    if target:isPC() and (params.magicalElement or 0) ~= xi.element.NONE then
         elementalMeva = target:getMod(xi.data.element.getElementalMEVAModifier(params.magicalElement)) or 0
     end
 
-    local maxResistTier = xi.combat.magicHitRate.maxResistTier(target:isPC(), elementalMeva)
+    local hasMagicShield = target:hasStatusEffect(xi.effect.MAGIC_SHIELD, 0)
+    local early, ok = xi.combat.magicHitRate.resistanceFactorEarly(
+        hasMagicShield, params.magicalElement)
+    if ok then
+        return early
+    end
 
-    -- Calculate first N resist tiers.
-    -- Notes: https://wiki-ffo-jp.translate.goog/html/795.html?_x_tr_sl=ja&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=sc
+    local maxResistTier = xi.combat.magicHitRate.maxResistTier(target:isPC(), elementalMeva)
     local rolls = {}
     for i = 1, maxResistTier do
-        -- true = resisted (math.random() > magicHitRate)
         if math.random() > params.magicHitRate then
             rolls[i] = true
         else
@@ -781,9 +886,13 @@ local function calculateResistanceFactor(actor, target, params)
         end
     end
 
-    local resistTier = xi.combat.magicHitRate.countResistTiers(maxResistTier, rolls)
-
-    return xi.combat.magicHitRate.resistanceFactorFromTier(resistTier)
+    return xi.combat.magicHitRate.resistanceFactorFromParams({
+        hasMagicShield  = false, -- already handled early
+        magicalElement  = params.magicalElement,
+        isPC            = target:isPC(),
+        elementalMeva   = elementalMeva,
+        resistRolls     = rolls,
+    })
 end
 
 -----------------------------------

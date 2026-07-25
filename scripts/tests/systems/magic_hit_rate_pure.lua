@@ -506,3 +506,119 @@ describe('calculateActorMagicAccuracyFromParams', function()
         }) == 106)
     end)
 end)
+
+-----------------------------------
+-- Target MEVA / resistance rank / factor pure (slice 6717 / 6083/6085/6086)
+-- Goldens match internal/magichitrate.
+-----------------------------------
+
+local mhr = xi.combat.magicHitRate
+local el = xi.element
+
+describe('resistanceRankModID', function()
+    it('selects status-associated then elemental fallback', function()
+        assert(mhr.resistanceRankModID(0, 999, 192) == 192)
+        assert(mhr.resistanceRankModID(2, 300, 192) == 300)
+        assert(mhr.resistanceRankModID(2, 0, 192) == 192)
+    end)
+end)
+
+describe('targetResistanceRankFromParams', function()
+    it('PC always 0; immunobreak and clamp', function()
+        assert(mhr.targetResistanceRankFromParams({
+            targetIsPC = true, baseRank = 5, effectId = 2, immunobreakMod = 1,
+        }) == 0)
+        assert(mhr.targetResistanceRankFromParams({
+            baseRank = 3, effectId = 0, immunobreakMod = 10,
+        }) == 3)
+        assert(mhr.targetResistanceRankFromParams({
+            baseRank = 5, effectId = 2, immunobreakMod = 2,
+        }) == 3)
+        assert(mhr.targetResistanceRankFromParams({ baseRank = 20 }) == 11)
+        assert(mhr.targetResistanceRankFromParams({
+            baseRank = -2, effectId = 1, immunobreakMod = 5,
+        }) == -3)
+    end)
+end)
+
+describe('levelCorrectionMeva and applyResistRankToMeva', function()
+    it('level correction gates and rank scale', function()
+        assert(mhr.levelCorrectionMeva(false, false, 99, 1) == 0)
+        assert(mhr.levelCorrectionMeva(false, true, 60, 50) == 40)
+        assert(mhr.levelCorrectionMeva(false, true, 40, 50) == 0)
+        assert(mhr.levelCorrectionMeva(false, true, 200, 50) == 400)
+        assert(mhr.levelCorrectionMeva(true, true, 80, 70) == 0)
+        assert(mhr.applyResistRankToMeva(100, 1) == 102) -- floor(100*1.023)
+        assert(mhr.applyResistRankToMeva(200, 0) == 200)
+    end)
+end)
+
+describe('targetMagicEvasionFromParams', function()
+    it('base element status level and rank', function()
+        assert(mhr.targetMagicEvasionFromParams({
+            baseMeva = 200, magicalElement = el.NONE, resistanceRank = 0,
+        }) == 200)
+        assert(mhr.targetMagicEvasionFromParams({
+            baseMeva = 200, magicalElement = el.FIRE, elementalMevaMod = 50, resistanceRank = 0,
+        }) == 250)
+        assert(mhr.targetMagicEvasionFromParams({
+            baseMeva = 200, magicalElement = el.NONE, elementalMevaMod = 50, resistanceRank = 0,
+        }) == 200)
+        assert(mhr.targetMagicEvasionFromParams({
+            baseMeva = 100, effectId = 0, effectMevaMod = 20, statusMevaMod = 10, resistanceRank = 0,
+        }) == 100)
+        assert(mhr.targetMagicEvasionFromParams({
+            baseMeva = 100, effectId = 2, effectMevaMod = 20, statusMevaMod = 10, resistanceRank = 0,
+        }) == 130)
+        assert(mhr.targetMagicEvasionFromParams({
+            baseMeva = 100, targetIsPC = false, zoneLevelCorrected = true,
+            targetLvl = 80, actorLvl = 70, resistanceRank = 0,
+        }) == 140)
+        assert(mhr.targetMagicEvasionFromParams({
+            baseMeva = 100, targetIsPC = true, zoneLevelCorrected = true,
+            targetLvl = 80, actorLvl = 70, resistanceRank = 0,
+        }) == 100)
+        assert(mhr.targetMagicEvasionFromParams({
+            baseMeva = 100, resistanceRank = 1,
+        }) == 102)
+        assert(mhr.targetMagicEvasionFromParams({
+            baseMeva = 200, magicalElement = el.WIND, elementalMevaMod = 30,
+            effectId = 5, effectMevaMod = 15, statusMevaMod = 10,
+            targetIsPC = false, zoneLevelCorrected = true, targetLvl = 75, actorLvl = 70,
+            resistanceRank = 0,
+        }) == 275)
+    end)
+end)
+
+describe('resistanceFactorEarly and FromParams', function()
+    it('early gates and tier product', function()
+        local f, ok = mhr.resistanceFactorEarly(true, el.FIRE)
+        assert(ok and f == 0)
+        f, ok = mhr.resistanceFactorEarly(false, el.NONE)
+        assert(ok and f == 1)
+        f, ok = mhr.resistanceFactorEarly(false, el.FIRE)
+        assert(not ok)
+
+        assert(mhr.resistanceFactorFromParams({
+            hasMagicShield = true, magicalElement = el.FIRE,
+        }) == 0)
+        assert(mhr.resistanceFactorFromParams({
+            hasMagicShield = false, magicalElement = el.NONE,
+        }) == 1)
+        -- non-PC max tiers 3; three resists → 0.125
+        assert(mhr.resistanceFactorFromParams({
+            hasMagicShield = false, magicalElement = el.FIRE, isPC = false,
+            resistRolls = { true, true, true },
+        }) == 0.125)
+        -- PC weak element max tiers 1
+        assert(mhr.resistanceFactorFromParams({
+            hasMagicShield = false, magicalElement = el.FIRE, isPC = true,
+            elementalMeva = -5, resistRolls = { true, true, true },
+        }) == 0.5)
+        -- hit first roll → factor 1
+        assert(mhr.resistanceFactorFromParams({
+            hasMagicShield = false, magicalElement = el.FIRE, isPC = false,
+            resistRolls = { false, true, true },
+        }) == 1)
+    end)
+end)
