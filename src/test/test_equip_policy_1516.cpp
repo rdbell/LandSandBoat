@@ -17,6 +17,7 @@
 #include "map/unequip_main_sub_look_capacity.h"
 #include "map/unequip_ranged_look_capacity.h"
 #include "map/unequip_sub_look_capacity.h"
+#include "map/unequip_sub_state_capacity.h"
 #include "map/unequip_weapon_finalize_capacity.h"
 #include "map/equip_policy_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
@@ -419,6 +420,25 @@ auto Check() -> bool
         stringInstrumentFinalize.clearTP || stringInstrumentFinalize.clearAftermath || !stringInstrumentFinalize.buildWeaponSkills ||
         windInstrumentFinalize.clearTP || windInstrumentFinalize.clearAftermath || !windInstrumentFinalize.buildWeaponSkills ||
         ammoFinalize.clearTP || ammoFinalize.clearAftermath || ammoFinalize.buildWeaponSkills)
+    {
+        return false;
+    }
+
+    const auto emptyMainSubState = unequipsubstatehelpers::PlanFor({ .equipSlotID = 1 });
+    const auto nonEquipmentMainSubState = unequipsubstatehelpers::PlanFor({
+        .equipSlotID       = 1,
+        .hasMainAfterClear = true,
+    });
+    const auto equipmentMainSubState = unequipsubstatehelpers::PlanFor({
+        .equipSlotID                = 1,
+        .hasMainAfterClear          = true,
+        .mainAfterClearIsEquipment = true,
+    });
+    const auto otherSlotSubState = unequipsubstatehelpers::PlanFor({ .equipSlotID = 0 });
+    if (!emptyMainSubState.checkUnarmedWeapon || !emptyMainSubState.clearDualWield ||
+        !nonEquipmentMainSubState.checkUnarmedWeapon || !nonEquipmentMainSubState.clearDualWield ||
+        equipmentMainSubState.checkUnarmedWeapon || !equipmentMainSubState.clearDualWield ||
+        otherSlotSubState.checkUnarmedWeapon || otherSlotSubState.clearDualWield)
     {
         return false;
     }

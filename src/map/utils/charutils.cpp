@@ -125,6 +125,7 @@
 #include "unequip_main_sub_look_capacity.h"
 #include "unequip_ranged_look_capacity.h"
 #include "unequip_sub_look_capacity.h"
+#include "unequip_sub_state_capacity.h"
 #include "unequip_weapon_finalize_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
@@ -2262,13 +2263,18 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
         }
         PItem->setSubType(ITEM_UNLOCKED);
 
-        if (equipSlotID == SLOT_SUB)
+        CItemEquipment* const mainAfterClear = PChar->getEquip(SLOT_MAIN);
+        const auto subStatePlan = unequipsubstatehelpers::PlanFor({
+            .equipSlotID                = equipSlotID,
+            .hasMainAfterClear          = mainAfterClear != nullptr,
+            .mainAfterClearIsEquipment = mainAfterClear != nullptr && mainAfterClear->isType(ITEM_EQUIPMENT),
+        });
+        if (subStatePlan.checkUnarmedWeapon)
         {
-            // Removed sub item, if main hand is empty, then possibly eligible for H2H weapon
-            if (!PChar->getEquip(SLOT_MAIN) || !PChar->getEquip(SLOT_MAIN)->isType(ITEM_EQUIPMENT))
-            {
-                CheckUnarmedWeapon(PChar);
-            }
+            CheckUnarmedWeapon(PChar);
+        }
+        if (subStatePlan.clearDualWield)
+        {
             PChar->m_dualWield = false;
         }
         PChar->delEquipModifiers(&((CItemEquipment*)PItem)->modList, ((CItemEquipment*)PItem)->getReqLvl(), equipSlotID);
