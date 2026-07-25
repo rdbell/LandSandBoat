@@ -21,6 +21,7 @@
 
 #include "map_networking.h"
 #include "map_networking_incoming_packet_plan.h"
+#include "map_networking_small_packet.h"
 #include "map_networking_capacity.h"
 
 #include <common/arguments.h>
@@ -473,13 +474,14 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
         PSession->tapLastUpdate();
     }
 
-    for (uint8* SmallPD_ptr = PacketData_Begin; SmallPD_ptr + (ref<uint8>(SmallPD_ptr, 1) & 0xFE) * 2 <= PacketData_End && (ref<uint8>(SmallPD_ptr, 1) & 0xFE);
-         SmallPD_ptr        = SmallPD_ptr + SmallPD_Size * 2)
+    const auto packetData = std::span<const uint8>{ PacketData_Begin, static_cast<std::size_t>(PacketData_End - PacketData_Begin) };
+    for (std::size_t offset = 0; const auto smallPacket = mapnetworkingsmallpackethelpers::Next(packetData, offset); offset += smallPacket->byteSize)
     {
-        SmallPD_Size = (ref<uint8>(SmallPD_ptr, 1) & 0x0FE);
-        SmallPD_Type = (ref<uint16>(SmallPD_ptr, 0) & 0x1FF);
+        const auto* SmallPD_ptr = PacketData_Begin + offset;
+        SmallPD_Size            = smallPacket->sizeUnits;
+        SmallPD_Type            = smallPacket->type;
 
-        if (!mapnetworkinghelpers::ShouldDispatchIncomingSmallPacket(ref<uint16>(SmallPD_ptr, 2), PSession->client_packet_id, SmallPD_Code))
+        if (!mapnetworkinghelpers::ShouldDispatchIncomingSmallPacket(smallPacket->sequence, PSession->client_packet_id, SmallPD_Code))
         {
             continue;
         }
@@ -488,7 +490,7 @@ int32 MapNetworking::parse(uint8* buff, size_t* buffsize, MapSession* PSession)
         {
             DebugPackets("parse: %03hX | %04hX %04hX %02hX from user: %s",
                          SmallPD_Type,
-                         ref<uint16>(SmallPD_ptr, 2),
+                         smallPacket->sequence,
                          ref<uint16>(buff, 2),
                          SmallPD_Size,
                          PChar->getName());

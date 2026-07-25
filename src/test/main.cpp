@@ -786,6 +786,7 @@ auto runCharTimerPacketPlan6911SelfTests() -> bool;
 auto runCharDeathTimeSavePlan6912SelfTests() -> bool;
 auto runCharPositionSavePlan6913SelfTests() -> bool;
 auto runMapNetworkingIncomingPacketPlan6914SelfTests() -> bool;
+auto runMapNetworkingSmallPacket6918SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3235,6 +3236,7 @@ namespace
         ok = runCharDeathTimeSavePlan6912SelfTests() && ok;
         ok = runCharPositionSavePlan6913SelfTests() && ok;
         ok = runMapNetworkingIncomingPacketPlan6914SelfTests() && ok;
+        ok = runMapNetworkingSmallPacket6918SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
