@@ -2,6 +2,7 @@
 
 #include "map/skill_up_capacity.h"
 #include "map/skill_up_award_capacity.h"
+#include "map/skill_up_cap_capacity.h"
 
 #include <cmath>
 #include <iostream>
@@ -124,6 +125,26 @@ auto Check() -> bool
         return false;
     }
     if (!HitsSkillCap(20, 990, 1000) || HitsSkillCap(3, 100, 1000))
+    {
+        return false;
+    }
+    const auto belowCapAward = skillupcaphelpers::PlanFor({
+        .currentSkill = 900,
+        .skillAmount  = 5,
+        .capSkill     = 1000,
+    });
+    const auto exactCapAward = skillupcaphelpers::PlanFor({
+        .currentSkill = 990,
+        .skillAmount  = 10,
+        .capSkill     = 1000,
+    });
+    const auto overCapAward = skillupcaphelpers::PlanFor({
+        .currentSkill = 990,
+        .skillAmount  = 20,
+        .capSkill     = 1000,
+    });
+    if (belowCapAward.skillAmount != 5 || belowCapAward.markSkillCapped || exactCapAward.skillAmount != 10 ||
+        !exactCapAward.markSkillCapped || overCapAward.skillAmount != 10 || !overCapAward.markSkillCapped)
     {
         return false;
     }

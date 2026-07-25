@@ -97,6 +97,7 @@
 #include "exp_loss_capacity.h"
 #include "skill_up_capacity.h"
 #include "skill_up_award_capacity.h"
+#include "skill_up_cap_capacity.h"
 #include "calculate_stats_capacity.h"
 #include "distribute_gil_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -4331,10 +4332,15 @@ void TrySkillUP(CCharEntity* PChar, SKILLTYPE SkillID, uint8 lvl, bool forceSkil
             SkillAmount = skilluphelpers::ApplyRovSkillAmount(SkillAmount, rovKeyItemCount);
             SkillAmount = skilluphelpers::ApplySkillAmountMultiplier(SkillAmount, settings::get<uint8>("map.SKILLUP_AMOUNT_MULTIPLIER"));
 
-            if (skilluphelpers::HitsSkillCap(SkillAmount, CurSkill, CapSkill))
+            const auto capPlan = skillupcaphelpers::PlanFor({
+                .currentSkill = CurSkill,
+                .skillAmount  = SkillAmount,
+                .capSkill     = CapSkill,
+            });
+            SkillAmount = capPlan.skillAmount;
+            if (capPlan.markSkillCapped)
             {
                 // skill is capped. set blue flag
-                SkillAmount = skilluphelpers::CapSkillAmountToCeiling(SkillAmount, CurSkill, CapSkill);
                 PChar->WorkingSkills.skill[SkillID] |= skilluphelpers::SkillCappedBlueFlag;
             }
 
