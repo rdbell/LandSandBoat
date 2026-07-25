@@ -108,6 +108,7 @@
 #include "keyitem_spell_capacity.h"
 #include "equip_item_finalize_capacity.h"
 #include "equip_item_success_capacity.h"
+#include "equip_armor_direct_restrictions_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
@@ -2428,37 +2429,42 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
 
     UnequipItem(PChar, equipSlotID, Recalculate::No);
 
-    // When equipping PItem - Remove all equip in slots which are also restricted by PItem
-    // e.g. Equipping a Black Cloak should remove head equipment
-    if (PItem->getEquipSlotId() & (1 << equipSlotID))
-    {
-        auto removeSlotID = PItem->getRemoveSlotId();
+    const auto directRestrictionPlan = equiparmordirecthelpers::PlanFor({
+        .equipSlotID    = equipSlotID,
+        .itemEquipSlots = PItem->getEquipSlotId(),
+        .removeSlots    = PItem->getRemoveSlotId(),
+    });
 
-        for (auto i = 0u; i < sizeof(removeSlotID) * 8; ++i)
+    // When equipping PItem, remove all slots restricted by PItem. For example,
+    // equipping a Black Cloak removes head equipment.
+    if (directRestrictionPlan.applies)
+    {
+        for (std::size_t actionIndex = 0; actionIndex < directRestrictionPlan.actionCount; ++actionIndex)
         {
-            if (removeSlotID & (1 << i))
+            const auto action = directRestrictionPlan.actions[actionIndex];
+            if (action.kind == equiparmordirecthelpers::ActionKind::Unequip)
             {
-                UnequipItem(PChar, i, Recalculate::No);
-                if (i >= SLOT_HEAD && i <= SLOT_FEET)
+                UnequipItem(PChar, action.slot, Recalculate::No);
+            }
+            else if (action.kind == equiparmordirecthelpers::ActionKind::SetArmorLook)
+            {
+                switch (action.slot)
                 {
-                    switch (i)
-                    {
-                        case SLOT_HEAD:
-                            PChar->look.head = PItem->getModelId();
-                            break;
-                        case SLOT_BODY:
-                            PChar->look.body = PItem->getModelId();
-                            break;
-                        case SLOT_HANDS:
-                            PChar->look.hands = PItem->getModelId();
-                            break;
-                        case SLOT_LEGS:
-                            PChar->look.legs = PItem->getModelId();
-                            break;
-                        case SLOT_FEET:
-                            PChar->look.feet = PItem->getModelId();
-                            break;
-                    }
+                    case SLOT_HEAD:
+                        PChar->look.head = PItem->getModelId();
+                        break;
+                    case SLOT_BODY:
+                        PChar->look.body = PItem->getModelId();
+                        break;
+                    case SLOT_HANDS:
+                        PChar->look.hands = PItem->getModelId();
+                        break;
+                    case SLOT_LEGS:
+                        PChar->look.legs = PItem->getModelId();
+                        break;
+                    case SLOT_FEET:
+                        PChar->look.feet = PItem->getModelId();
+                        break;
                 }
             }
         }
