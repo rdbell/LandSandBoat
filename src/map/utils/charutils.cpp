@@ -82,6 +82,7 @@
 #include "char_stratagem_removal.h"
 #include "char_temp_item_clear.h"
 #include "char_unity_leader_capacity.h"
+#include "char_var_clear_all.h"
 #include "char_var_fetch.h"
 #include "char_var_persist.h"
 #include "char_var_set_dispatch.h"
@@ -7645,12 +7646,16 @@ int32 ClearCharVarsWithPrefix(CCharEntity* PChar, const std::string& prefix)
 
 void ClearCharVarFromAll(const std::string& varName, bool localOnly)
 {
-    if (!localOnly)
+    const auto plan = charvarclearallhelpers::MakePlan(localOnly);
+
+    if (plan.deletePersisted)
     {
         db::preparedStmt("DELETE FROM char_vars WHERE varname = ?", varName);
     }
 
-    // clang-format off
+    if (plan.refreshLocalCaches)
+    {
+        // clang-format off
         zoneutils::ForEachZone([varName](CZone* PZone)
         {
             PZone->ForEachChar([varName](CCharEntity* PChar)
@@ -7658,7 +7663,8 @@ void ClearCharVarFromAll(const std::string& varName, bool localOnly)
                 PChar->updateCharVarCache(varName, 0);
             });
         });
-    // clang-format on
+        // clang-format on
+    }
 }
 
 void IncrementCharVar(uint32 charId, const std::string& var, int32 value)
