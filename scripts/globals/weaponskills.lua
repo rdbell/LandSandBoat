@@ -1594,6 +1594,33 @@ xi.weaponskills.rangedWeaponskillMitigation = function(rangedDmgTakenResult, pie
     return math.floor(rangedDmgTakenResult * (1 + pierceSDT / 10000))
 end
 
+-----------------------------------
+-- Pure: physical/ranged WS final damage product (slice 6774)
+-- Parity: internal/wsformula PhysicalWeaponskillFinal / RangedWeaponskillFinal
+-----------------------------------
+-- params: rawFinalDmg, useHybridMagic, hybridMagicDmg, weaponSkillPower
+xi.weaponskills.physicalWeaponskillFinalFromParams = function(params)
+    params = params or {}
+    local dmg = xi.weaponskills.floorRawFinalDmg(params.rawFinalDmg or 0)
+    if params.useHybridMagic then
+        dmg = xi.weaponskills.hybridMagicAdd(dmg, params.hybridMagicDmg or 0)
+    end
+
+    return xi.weaponskills.applyWeaponSkillPower(dmg, params.weaponSkillPower or 1)
+end
+
+-- params: rangedDmgTakenResult, pierceSDT, useHybridMagic, hybridMagicDmg, weaponSkillPower
+xi.weaponskills.rangedWeaponskillFinalFromParams = function(params)
+    params = params or {}
+    local dmg = xi.weaponskills.rangedWeaponskillMitigation(
+        params.rangedDmgTakenResult or 0, params.pierceSDT or 0)
+    if params.useHybridMagic then
+        dmg = xi.weaponskills.hybridMagicAdd(dmg, params.hybridMagicDmg or 0)
+    end
+
+    return xi.weaponskills.applyWeaponSkillPower(dmg, params.weaponSkillPower or 1)
+end
+
 -- Pure residual doMagicWeaponskill / post-raw bookkeeping (OmegaXI slice 6672).
 
 xi.weaponskills.magicWSHitsLanded      = 1
@@ -1708,16 +1735,15 @@ xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParam
     calcParams.skillType    = attack.weaponType
 
     -- Send our wsParams off to calculate our raw WS damage, hits landed, and shadows absorbed
-    calcParams     = xi.weaponskills.calculateRawWSDmg(attacker, target, wsID, tp, action, wsParams, calcParams)
-    local finaldmg = xi.weaponskills.floorRawFinalDmg(calcParams.finalDmg)
+    calcParams = xi.weaponskills.calculateRawWSDmg(attacker, target, wsID, tp, action, wsParams, calcParams)
 
-    -- Add in magic damage for hybrid weaponskills
-    -- Only procs if the mob still has HP remaining
-    if xi.weaponskills.hybridMagicApplies(wsParams.hybridWS, target:getHP(), finaldmg) then
-        finaldmg = xi.weaponskills.hybridMagicAdd(
-            finaldmg,
-            calculateHybridMagicDamage(tp, finaldmg, attacker, target, wsParams, calcParams, wsID)
-        )
+    -- Hybrid gate needs floored physical final as HP threshold / hybrid base.
+    local flooredPhysical = xi.weaponskills.floorRawFinalDmg(calcParams.finalDmg)
+    local hybridMagicDmg  = 0
+    local useHybrid       = false
+    if xi.weaponskills.hybridMagicApplies(wsParams.hybridWS, target:getHP(), flooredPhysical) then
+        hybridMagicDmg = calculateHybridMagicDamage(tp, flooredPhysical, attacker, target, wsParams, calcParams, wsID)
+        useHybrid      = true
     end
 
     -- Delete statuses that may have been spent by the WS
@@ -1725,7 +1751,13 @@ xi.weaponskills.doPhysicalWeaponskill = function(attacker, target, wsID, wsParam
     attacker:delStatusEffect(xi.effect.SNEAK_ATTACK)
     attacker:delStatusEffectSilent(xi.effect.BUILDING_FLOURISH)
 
-    finaldmg            = xi.weaponskills.applyWeaponSkillPower(finaldmg, xi.settings.main.WEAPON_SKILL_POWER) -- Add server bonus
+    -- Pure final product: floor → hybrid? → WEAPON_SKILL_POWER (slice 6774).
+    local finaldmg = xi.weaponskills.physicalWeaponskillFinalFromParams({
+        rawFinalDmg      = calcParams.finalDmg,
+        useHybridMagic   = useHybrid,
+        hybridMagicDmg   = hybridMagicDmg,
+        weaponSkillPower = xi.settings.main.WEAPON_SKILL_POWER,
+    })
     calcParams.finalDmg = finaldmg
     finaldmg            = xi.weaponskills.takeWeaponskillDamage(target, attacker, wsParams, primaryMsg, attack, calcParams, action)
 
@@ -1794,29 +1826,32 @@ xi.weaponskills.doRangedWeaponskill = function(attacker, target, wsID, wsParams,
 
     -- Send our params off to calculate our raw WS damage, hits landed, and shadows absorbed
     calcParams = xi.weaponskills.calculateRawWSDmg(attacker, target, wsID, tp, action, wsParams, calcParams)
-    local finaldmg = calcParams.finalDmg
 
     -- Delete statuses that may have been spent by the WS
     attacker:delStatusEffectsByFlag(xi.effectFlag.DETECTABLE)
     attacker:delStatusEffect(xi.effect.FLASHY_SHOT)
     attacker:delStatusEffect(xi.effect.STEALTH_SHOT)
 
-    -- Calculate reductions
-    finaldmg = xi.weaponskills.rangedWeaponskillMitigation(
-        target:rangedDmgTaken(finaldmg),
-        target:getMod(xi.mod.PIERCE_SDT)
-    )
+    -- Host residual: rangedDmgTaken + PIERCE_SDT injects for pure mitigation.
+    local rangedTaken = target:rangedDmgTaken(calcParams.finalDmg)
+    local pierceSDT   = target:getMod(xi.mod.PIERCE_SDT)
+    local mitigated   = xi.weaponskills.rangedWeaponskillMitigation(rangedTaken, pierceSDT)
 
-    -- Add in magic damage for hybrid weaponskills
-    -- Only procs if the mob still has HP remaining
-    if xi.weaponskills.hybridMagicApplies(wsParams.hybridWS, target:getHP(), finaldmg) then
-        finaldmg = xi.weaponskills.hybridMagicAdd(
-            finaldmg,
-            calculateHybridMagicDamage(tp, finaldmg, attacker, target, wsParams, calcParams, wsID)
-        )
+    local hybridMagicDmg = 0
+    local useHybrid      = false
+    if xi.weaponskills.hybridMagicApplies(wsParams.hybridWS, target:getHP(), mitigated) then
+        hybridMagicDmg = calculateHybridMagicDamage(tp, mitigated, attacker, target, wsParams, calcParams, wsID)
+        useHybrid      = true
     end
 
-    finaldmg            = xi.weaponskills.applyWeaponSkillPower(finaldmg, xi.settings.main.WEAPON_SKILL_POWER) -- Add server bonus
+    -- Pure final product: mitigation → hybrid? → WEAPON_SKILL_POWER (slice 6774).
+    local finaldmg = xi.weaponskills.rangedWeaponskillFinalFromParams({
+        rangedDmgTakenResult = rangedTaken,
+        pierceSDT            = pierceSDT,
+        useHybridMagic       = useHybrid,
+        hybridMagicDmg       = hybridMagicDmg,
+        weaponSkillPower     = xi.settings.main.WEAPON_SKILL_POWER,
+    })
     calcParams.finalDmg = finaldmg
 
     finaldmg = xi.weaponskills.takeWeaponskillDamage(target, attacker, wsParams, primaryMsg, attack, calcParams, action)
