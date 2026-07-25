@@ -70,17 +70,90 @@ xi.combat.behavior.isEntityBusy = function(actor)
     })
 end
 
+-----------------------------------
+-- Pure chooseAction helpers (OmegaXI slice 6701 dual-wire / 1037)
+-- Dual-wired to internal/combatbehavior.
+-----------------------------------
+xi.combat.behavior.allyMaxDistance = 8
+xi.combat.behavior.defaultWeight = 100
+
+-- Elemental DoT effects that need getEffectToRemove / getNullificatingEffect gates.
+xi.combat.behavior.elementalDoTEffects =
+{
+    [xi.effect.BURN ] = true,
+    [xi.effect.FROST] = true,
+    [xi.effect.CHOKE] = true,
+    [xi.effect.RASP ] = true,
+    [xi.effect.SHOCK] = true,
+    [xi.effect.DROWN] = true,
+}
+
+xi.combat.behavior.isElementalDoT = function(effectId)
+    return xi.combat.behavior.elementalDoTEffects[effectId] == true
+end
+
+-- Pure Lua `weight or 100` for a missing weight only (explicit 0 stays 0).
+-- present=false → default; present=true → use weight as-is.
+xi.combat.behavior.normalizeWeight = function(weight, present)
+    if not present then
+        return xi.combat.behavior.defaultWeight
+    end
+
+    return weight or 0
+end
+
+-- Pure desired flags for disableAllActions / enableAllActions.
+xi.combat.behavior.disableAllActionsFlags = function()
+    return { autoAttack = false, magicCasting = false, mobAbility = false }
+end
+
+xi.combat.behavior.enableAllActionsFlags = function()
+    return { autoAttack = true, magicCasting = true, mobAbility = true }
+end
+
+-- Pure total weight of actionList entries { actionId, target, weight }.
+xi.combat.behavior.totalWeight = function(actionList)
+    local total = 0
+    for i = 1, #actionList do
+        total = total + (actionList[i][3] or 0)
+    end
+
+    return total
+end
+
+-- Pure weighted pick once filtered list and dN roll are known.
+-- roll should be in 1..totalWeight (math.random(1, totalWeight)).
+-- returns actionId, target, ok
+xi.combat.behavior.pickWeightedFromParams = function(actionList, roll)
+    local total = xi.combat.behavior.totalWeight(actionList)
+    if total <= 0 or #actionList == 0 then
+        return 0, nil, false
+    end
+
+    local weight = 0
+    for i = 1, #actionList do
+        weight = weight + (actionList[i][3] or 0)
+        if (roll or 0) <= weight then
+            return actionList[i][1], actionList[i][2], true
+        end
+    end
+
+    return 0, nil, false
+end
+
 -- For "decoration" type mobs and faked actions.
 xi.combat.behavior.disableAllActions = function(actor)
-    actor:setAutoAttackEnabled(false)
-    actor:setMagicCastingEnabled(false)
-    actor:setMobAbilityEnabled(false)
+    local flags = xi.combat.behavior.disableAllActionsFlags()
+    actor:setAutoAttackEnabled(flags.autoAttack)
+    actor:setMagicCastingEnabled(flags.magicCasting)
+    actor:setMobAbilityEnabled(flags.mobAbility)
 end
 
 xi.combat.behavior.enableAllActions = function(actor)
-    actor:setAutoAttackEnabled(true)
-    actor:setMagicCastingEnabled(true)
-    actor:setMobAbilityEnabled(true)
+    local flags = xi.combat.behavior.enableAllActionsFlags()
+    actor:setAutoAttackEnabled(flags.autoAttack)
+    actor:setMagicCastingEnabled(flags.magicCasting)
+    actor:setMobAbilityEnabled(flags.mobAbility)
 end
 
 xi.combat.behavior.chooseAction = function(actor, mainTarget, optionalTargets, actionTable)
@@ -337,23 +410,10 @@ xi.combat.behavior.chooseAction = function(actor, mainTarget, optionalTargets, a
         return 0, nil
     end
 
-    -- Calculate total weight of the new list.
-    local totalWeight = 0
-    for i = 1, #actionList do
-        totalWeight = totalWeight + actionList[i][3]
-    end
+    -- Choose action and target via pure weighted pick.
+    local totalWeight = xi.combat.behavior.totalWeight(actionList)
+    local randomRoll = math.random(1, totalWeight)
+    local actionId, actionTarget = xi.combat.behavior.pickWeightedFromParams(actionList, randomRoll)
 
-    -- Choose action and target.
-    local randomRoll  = math.random(1, totalWeight)
-    local chosenEntry = 0
-    local weight      = 0
-    for i = 1, #actionList do
-        weight = weight + actionList[i][3]
-        if randomRoll <= weight then
-            chosenEntry = i
-            break
-        end
-    end
-
-    return actionList[chosenEntry][1], actionList[chosenEntry][2]
+    return actionId, actionTarget
 end
