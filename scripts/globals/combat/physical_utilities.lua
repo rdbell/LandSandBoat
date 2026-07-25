@@ -1730,6 +1730,29 @@ xi.combat.physical.clampCriticalRate = function(rate)
 end
 
 -----------------------------------
+-- Pure: full swing/ranged critical-rate product (slice 6764 / 6079)
+-- Parity: internal/critrate SwingRate / RangedRate
+-----------------------------------
+-- params: statBonus, inninBonus, fencerBonus, flourishBonus, weaponSlot,
+--   modifierBonus, meritBonus, targetEvasion, targetMerit, tpFactor
+xi.combat.physical.criticalRateFromParams = function(params)
+    params = params or {}
+    local rate = xi.combat.physical.baseCriticalRate
+        + (params.statBonus or 0)
+        + (params.inninBonus or 0)
+        + (params.fencerBonus or 0)
+        + (params.flourishBonus or 0)
+        + (params.weaponSlot or 0)
+        + (params.modifierBonus or 0)
+        + (params.meritBonus or 0)
+        - (params.targetEvasion or 0)
+        - (params.targetMerit or 0)
+        + (params.tpFactor or 0)
+
+    return xi.combat.physical.clampCriticalRate(rate)
+end
+
+-----------------------------------
 -- Entity hosts for critical-rate components
 -----------------------------------
 
@@ -1821,30 +1844,27 @@ end
 ---@param slot xi.slot
 ---@param optCritModTable table?
 ---@return integer
+-- Host residual: entity dDEX/Innin/Fencer/Flourish/slot/mod/merit/TP injects.
+-- Pure product: criticalRateFromParams (slice 6764). StatBonus uses dDEX ladder.
 xi.combat.physical.calculateSwingCriticalRate = function(actor, target, actorTP, slot, optCritModTable)
     -- See reference at https://www.bg-wiki.com/ffxi/Critical_Hit_Rate
-    local finalCriticalRate     = 0
-    local baseCriticalRate      = 0.05
-    local statBonus             = xi.combat.physical.criticalRateFromStatDiff(actor, target)
-    local inninBonus            = xi.combat.physical.criticalRateFromInnin(actor, target)
-    local fencerBonus           = xi.combat.physical.criticalRateFromFencer(actor)
-    local buildingFlourishBonus = xi.combat.physical.criticalRateFromFlourish(actor)
-    local weaponSlotBonus       = xi.combat.physical.criticalRateFromWeaponSlot(actor, slot)
-    local modifierBonus         = actor:getMod(xi.mod.CRITHITRATE) / 100
-    local meritBonus            = actor:getMerit(xi.merit.CRIT_HIT_RATE) / 100
-    local targetCriticalEvasion = target:getMod(xi.mod.CRITICAL_HIT_EVASION) / 100
-    local targetMeritPenalty    = target:getMerit(xi.merit.ENEMY_CRIT_RATE) / 100
-    local tpFactor              = 0
-
-    -- For weaponskills.
+    local tpFactor = 0
     if optCritModTable then
         tpFactor = xi.combat.physical.calculateTPfactor(actorTP, optCritModTable)
     end
 
-    -- Add all different bonuses and clamp.
-    finalCriticalRate = baseCriticalRate + statBonus + inninBonus + fencerBonus + buildingFlourishBonus + weaponSlotBonus + modifierBonus + meritBonus - targetCriticalEvasion - targetMeritPenalty + tpFactor
-
-    return xi.combat.physical.clampCriticalRate(finalCriticalRate) -- TODO: Need confirmation of no upper cap.
+    return xi.combat.physical.criticalRateFromParams({
+        statBonus     = xi.combat.physical.criticalRateFromStatDiff(actor, target),
+        inninBonus    = xi.combat.physical.criticalRateFromInnin(actor, target),
+        fencerBonus   = xi.combat.physical.criticalRateFromFencer(actor),
+        flourishBonus = xi.combat.physical.criticalRateFromFlourish(actor),
+        weaponSlot    = xi.combat.physical.criticalRateFromWeaponSlot(actor, slot),
+        modifierBonus = actor:getMod(xi.mod.CRITHITRATE) / 100,
+        meritBonus    = actor:getMerit(xi.merit.CRIT_HIT_RATE) / 100,
+        targetEvasion = target:getMod(xi.mod.CRITICAL_HIT_EVASION) / 100,
+        targetMerit   = target:getMerit(xi.merit.ENEMY_CRIT_RATE) / 100,
+        tpFactor      = tpFactor,
+    }) -- TODO: Need confirmation of no upper cap.
 end
 
 ---@param actor CBaseEntity
@@ -1853,30 +1873,27 @@ end
 ---@param slot xi.slot
 ---@param optCritModTable table?
 ---@return integer
+-- Host residual: entity dAGI/Innin/Fencer/Flourish/slot/mod/merit/TP injects.
+-- Pure product: criticalRateFromParams (slice 6764). StatBonus uses dAGI ladder.
 xi.combat.physical.calculateRangedCriticalRate = function(actor, target, actorTP, slot, optCritModTable)
     -- See reference at https://www.bg-wiki.com/ffxi/Critical_Hit_Rate
-    local finalCriticalRate     = 0
-    local baseCriticalRate      = 0.05
-    local statBonus             = xi.combat.physical.criticalRateFromAGIDiff(actor, target)
-    local inninBonus            = xi.combat.physical.criticalRateFromInnin(actor, target)
-    local fencerBonus           = xi.combat.physical.criticalRateFromFencer(actor)
-    local buildingFlourishBonus = xi.combat.physical.criticalRateFromFlourish(actor)
-    local weaponSlotBonus       = xi.combat.physical.criticalRateFromWeaponSlot(actor, slot)
-    local modifierBonus         = actor:getMod(xi.mod.CRITHITRATE) / 100
-    local meritBonus            = actor:getMerit(xi.merit.CRIT_HIT_RATE) / 100
-    local targetCriticalEvasion = target:getMod(xi.mod.CRITICAL_HIT_EVASION) / 100
-    local targetMeritPenalty    = target:getMerit(xi.merit.ENEMY_CRIT_RATE) / 100
-    local tpFactor              = 0
-
-    -- For weaponskills.
+    local tpFactor = 0
     if optCritModTable then
         tpFactor = xi.combat.physical.calculateTPfactor(actorTP, optCritModTable)
     end
 
-    -- Add all different bonuses and clamp.
-    finalCriticalRate = baseCriticalRate + statBonus + inninBonus + fencerBonus + buildingFlourishBonus + weaponSlotBonus + modifierBonus + meritBonus - targetCriticalEvasion - targetMeritPenalty + tpFactor
-
-    return xi.combat.physical.clampCriticalRate(finalCriticalRate) -- TODO: Need confirmation of no upper cap.
+    return xi.combat.physical.criticalRateFromParams({
+        statBonus     = xi.combat.physical.criticalRateFromAGIDiff(actor, target),
+        inninBonus    = xi.combat.physical.criticalRateFromInnin(actor, target),
+        fencerBonus   = xi.combat.physical.criticalRateFromFencer(actor),
+        flourishBonus = xi.combat.physical.criticalRateFromFlourish(actor),
+        weaponSlot    = xi.combat.physical.criticalRateFromWeaponSlot(actor, slot),
+        modifierBonus = actor:getMod(xi.mod.CRITHITRATE) / 100,
+        meritBonus    = actor:getMerit(xi.merit.CRIT_HIT_RATE) / 100,
+        targetEvasion = target:getMod(xi.mod.CRITICAL_HIT_EVASION) / 100,
+        targetMerit   = target:getMerit(xi.merit.ENEMY_CRIT_RATE) / 100,
+        tpFactor      = tpFactor,
+    }) -- TODO: Need confirmation of no upper cap.
 end
 
 xi.combat.physical.calculateNumberOfHits = function(actor, additionalParamsHere)
