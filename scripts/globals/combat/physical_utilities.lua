@@ -70,6 +70,20 @@ xi.combat.physical.pDifWeaponCapTable =
     [xi.skill.THROWING        ] = 3.25,
 }
 
+-- Pure weapon pDIF cap lookup (OmegaXI slice 6684 dual-wire of pDifWeaponCapTable).
+-- Unknown skill types fall back to 3 (NONE entry / DefaultWeaponCap).
+xi.combat.physical.defaultWeaponCap = 3
+
+xi.combat.physical.weaponCap = function(skillType)
+    local cap = xi.combat.physical.pDifWeaponCapTable[skillType]
+
+    if cap == nil then
+        return xi.combat.physical.defaultWeaponCap
+    end
+
+    return cap
+end
+
 local shieldSizeToBlockRateTable =
 {
     [1] =  55, -- Buckler
@@ -447,6 +461,8 @@ xi.combat.physical.calculateWSC = function(actor, wsSTRmod, wsDEXmod, wsVITmod, 
 end
 
 -- TP factor equation. Used to determine TP modifer across all cases of 'X varies with TP'
+-- Pure TP-segment factor (OmegaXI slice 6684 dual-wire / 0840).
+-- table[1]/[2]/[3] = values at 1000 / 2000 / 3000 TP.
 xi.combat.physical.calculateTPfactor = function(actorTP, tpModifierTable)
     if not tpModifierTable then
         return 0
@@ -506,6 +522,7 @@ end
 
 ---@param wRatio number
 ---@param pDifFinalCap number
+-- Pure PC wRatio → pDIF lower/upper caps (OmegaXI slice 6684 dual-wire / 0840).
 xi.combat.physical.wRatioCapPC = function(wRatio, pDifFinalCap)
     local pDifUpperCap = 0
     local pDifLowerCap = 0
@@ -539,7 +556,8 @@ xi.combat.physical.wRatioCapPC = function(wRatio, pDifFinalCap)
     return pDifLowerCap, pDifUpperCap
 end
 
--- wRatio cap for non-PCs
+-- Pure non-PC wRatio → pDIF lower/upper caps (OmegaXI slice 6684 dual-wire / 0840).
+-- see https://www.ffxiah.com/forum/topic/58479/monster-pdif-curves-and-other-info/
 ---@param wRatio number
 ---@param pDifFinalCap number
 xi.combat.physical.wRatioCapOthers = function(wRatio, pDifFinalCap)
@@ -717,7 +735,7 @@ xi.combat.physical.calculateMeleePDIF = function(actor, target, weaponType, wsAt
     local pDifFinalCap       = 0
 
     if actor:isPC() then
-        pDifFinalCap = (xi.combat.physical.pDifWeaponCapTable[weaponType] + damageLimitPlus) * damageLimitPercent + (isCritical and 1 or 0)
+        pDifFinalCap = (xi.combat.physical.weaponCap(weaponType) + damageLimitPlus) * damageLimitPercent + (isCritical and 1 or 0)
 
         local sRatio = getSpikeRatio(true, wRatio)
 
@@ -875,7 +893,7 @@ xi.combat.physical.calculateRangedPDIF = function(actor, target, weaponType, wsA
     local pDifFinalCap       = 0
 
     if actor:isPC() then
-        pDifFinalCap = (xi.combat.physical.pDifWeaponCapTable[weaponType] + damageLimitPlus) * damageLimitPercent -- Added damage limit bonuses
+        pDifFinalCap = (xi.combat.physical.weaponCap(weaponType) + damageLimitPlus) * damageLimitPercent -- Added damage limit bonuses
     else
         -- 4.0 is guessed. there is some indication that mob pdif can go to 8.0 in ilvl content
         -- 3.0 with level correction matches player ranged pdif cap for 2013 and may need verification
