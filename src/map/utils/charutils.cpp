@@ -121,6 +121,7 @@
 #include "equip_armor_sub_capacity.h"
 #include "equip_armor_sub_look_capacity.h"
 #include "equip_armor_target_look_capacity.h"
+#include "unequip_armor_look_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
@@ -2270,22 +2271,38 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
         PChar->PLatentEffectContainer->DelLatentEffects(((CItemEquipment*)PItem)->getReqLvl(), equipSlotID);
         PChar->delPetModifiers(&((CItemEquipment*)PItem)->petModList);
 
+        const auto armorLookPlan = unequiparmorlookhelpers::PlanFor(equipSlotID);
         switch (equipSlotID)
         {
             case SLOT_HEAD:
-                PChar->look.head = 0;
+                if (armorLookPlan.setArmorLook)
+                {
+                    PChar->look.head = armorLookPlan.modelID;
+                }
                 break;
             case SLOT_BODY:
-                PChar->look.body = 0;
+                if (armorLookPlan.setArmorLook)
+                {
+                    PChar->look.body = armorLookPlan.modelID;
+                }
                 break;
             case SLOT_HANDS:
-                PChar->look.hands = 0;
+                if (armorLookPlan.setArmorLook)
+                {
+                    PChar->look.hands = armorLookPlan.modelID;
+                }
                 break;
             case SLOT_LEGS:
-                PChar->look.legs = 0;
+                if (armorLookPlan.setArmorLook)
+                {
+                    PChar->look.legs = armorLookPlan.modelID;
+                }
                 break;
             case SLOT_FEET:
-                PChar->look.feet = 0;
+                if (armorLookPlan.setArmorLook)
+                {
+                    PChar->look.feet = armorLookPlan.modelID;
+                }
                 break;
             case SLOT_SUB:
             {

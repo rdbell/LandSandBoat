@@ -13,6 +13,7 @@
 #include "map/equip_armor_sub_capacity.h"
 #include "map/equip_armor_sub_look_capacity.h"
 #include "map/equip_armor_target_look_capacity.h"
+#include "map/unequip_armor_look_capacity.h"
 #include "map/equip_policy_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
 
@@ -343,6 +344,13 @@ auto Check() -> bool
     }
     const auto mainLookPlan = equiparmormainlookhelpers::PlanFor(506);
     if (!mainLookPlan.setMainLook || mainLookPlan.modelID != 506)
+    {
+        return false;
+    }
+    const auto unequipArmorLook = unequiparmorlookhelpers::PlanFor(4);
+    const auto noUnequipArmorLook = unequiparmorlookhelpers::PlanFor(3);
+    if (!unequipArmorLook.setArmorLook || unequipArmorLook.slot != 4 || unequipArmorLook.modelID != 0 ||
+        noUnequipArmorLook.setArmorLook || noUnequipArmorLook.slot != 0 || noUnequipArmorLook.modelID != 0)
     {
         return false;
     }
