@@ -69,6 +69,7 @@
 #include "char_invisible_removal.h"
 #include "char_mannequin_update.h"
 #include "char_mog_locker_access.h"
+#include "char_name_lookup.h"
 #include "char_party_alliance_attach.h"
 #include "char_party_alliance_reconcile.h"
 #include "char_party_level_sync_restore.h"
@@ -8169,10 +8170,10 @@ uint32 getCharIdFromName(const std::string& name)
     const auto rset = db::preparedStmt("SELECT charid FROM chars WHERE charname = ? LIMIT 1", name);
     FOR_DB_SINGLE_RESULT(rset)
     {
-        return rset->get<uint32>("charid");
+        return charnamelookuphelpers::CharIDFromResult(true, rset->get<uint32>("charid"));
     }
 
-    return 0;
+    return charnamelookuphelpers::CharIDFromResult(false, 0);
 }
 
 uint32 getAccountIdFromName(const std::string& name)
@@ -8182,10 +8183,10 @@ uint32 getAccountIdFromName(const std::string& name)
     const auto rset = db::preparedStmt("SELECT accid FROM chars WHERE charname = ? LIMIT 1", name);
     FOR_DB_SINGLE_RESULT(rset)
     {
-        return rset->get<uint32>("accid");
+        return charnamelookuphelpers::AccountIDFromResult(true, rset->get<uint32>("accid"));
     }
 
-    return 0;
+    return charnamelookuphelpers::AccountIDFromResult(false, 0);
 }
 
 auto getCharIdAndAccountIdFromName(const std::string& name) -> std::pair<uint32, uint32>
@@ -8195,10 +8196,12 @@ auto getCharIdAndAccountIdFromName(const std::string& name) -> std::pair<uint32,
     const auto rset = db::preparedStmt("SELECT charid, accid FROM chars WHERE charname = ? LIMIT 1", name);
     FOR_DB_SINGLE_RESULT(rset)
     {
-        return { rset->get<uint32>("charid"), rset->get<uint32>("accid") };
+        const auto ids = charnamelookuphelpers::IDsFromResult(true, rset->get<uint32>("charid"), rset->get<uint32>("accid"));
+        return { ids.charId, ids.accountId };
     }
 
-    return { 0, 0 };
+    const auto ids = charnamelookuphelpers::IDsFromResult(false, 0, 0);
+    return { ids.charId, ids.accountId };
 }
 
 void forceSynthCritFail(const std::string& sourceFunction, CCharEntity* PChar)
