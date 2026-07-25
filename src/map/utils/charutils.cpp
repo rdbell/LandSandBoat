@@ -123,6 +123,7 @@
 #include "equip_armor_target_look_capacity.h"
 #include "unequip_armor_look_capacity.h"
 #include "unequip_main_sub_look_capacity.h"
+#include "unequip_item_recast_capacity.h"
 #include "unequip_ranged_look_capacity.h"
 #include "unequip_sub_look_capacity.h"
 #include "unequip_sub_state_capacity.h"
@@ -2257,9 +2258,14 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
             }
         }
 
-        if (PItem->isSubType(ITEM_CHARGED))
+        const auto itemRecastPlan = unequipitemrecasthelpers::PlanFor({
+            .itemIsCharged  = PItem->isSubType(ITEM_CHARGED),
+            .itemSlotID     = PItem->getSlotID(),
+            .itemLocationID = PItem->getLocationID(),
+        });
+        if (itemRecastPlan.removeItemRecast)
         {
-            PChar->PRecastContainer->Del(RECAST_ITEM, static_cast<Recast>(PItem->getSlotID() << 8 | PItem->getLocationID())); // Also remove item from the Recast List no matter what bag its in
+            PChar->PRecastContainer->Del(RECAST_ITEM, static_cast<Recast>(itemRecastPlan.recastKey)); // Also remove item from the Recast List no matter what bag its in
         }
         PItem->setSubType(ITEM_UNLOCKED);
 

@@ -15,6 +15,7 @@
 #include "map/equip_armor_target_look_capacity.h"
 #include "map/unequip_armor_look_capacity.h"
 #include "map/unequip_main_sub_look_capacity.h"
+#include "map/unequip_item_recast_capacity.h"
 #include "map/unequip_ranged_look_capacity.h"
 #include "map/unequip_sub_look_capacity.h"
 #include "map/unequip_sub_state_capacity.h"
@@ -439,6 +440,21 @@ auto Check() -> bool
         !nonEquipmentMainSubState.checkUnarmedWeapon || !nonEquipmentMainSubState.clearDualWield ||
         equipmentMainSubState.checkUnarmedWeapon || !equipmentMainSubState.clearDualWield ||
         otherSlotSubState.checkUnarmedWeapon || otherSlotSubState.clearDualWield)
+    {
+        return false;
+    }
+
+    const auto chargedItemRecast = unequipitemrecasthelpers::PlanFor({
+        .itemIsCharged  = true,
+        .itemSlotID     = 0x34,
+        .itemLocationID = 0x12,
+    });
+    const auto normalItemRecast = unequipitemrecasthelpers::PlanFor({
+        .itemSlotID     = 0x34,
+        .itemLocationID = 0x12,
+    });
+    if (!chargedItemRecast.removeItemRecast || chargedItemRecast.recastKey != 0x3412 ||
+        normalItemRecast.removeItemRecast || normalItemRecast.recastKey != 0)
     {
         return false;
     }
