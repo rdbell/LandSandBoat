@@ -123,6 +123,7 @@
 #include "equip_armor_target_look_capacity.h"
 #include "unequip_armor_look_capacity.h"
 #include "unequip_ranged_look_capacity.h"
+#include "unequip_sub_look_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
 #include "style_update_capacity.h"
@@ -2277,6 +2278,7 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
             .equipSlotID          = equipSlotID,
             .hasRangedAfterClear = PChar->getEquip(SLOT_RANGED) != nullptr,
         });
+        const auto subLookPlan = unequipsublookhelpers::PlanFor(equipSlotID);
         switch (equipSlotID)
         {
             case SLOT_HEAD:
@@ -2311,7 +2313,10 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
                 break;
             case SLOT_SUB:
             {
-                PChar->look.sub            = 0;
+                if (subLookPlan.setSubLook)
+                {
+                    PChar->look.sub = subLookPlan.modelID;
+                }
                 PChar->m_Weapons[SLOT_SUB] = xi::items::unarmed(); // << equips "nothing" in the sub slot to prevent multi attack exploit
                 PChar->health.tp           = 0;
                 PChar->StatusEffectContainer->DelStatusEffect(xi::StatusEffect::Aftermath);

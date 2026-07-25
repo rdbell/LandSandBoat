@@ -15,6 +15,7 @@
 #include "map/equip_armor_target_look_capacity.h"
 #include "map/unequip_armor_look_capacity.h"
 #include "map/unequip_ranged_look_capacity.h"
+#include "map/unequip_sub_look_capacity.h"
 #include "map/equip_policy_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
 
@@ -367,6 +368,14 @@ auto Check() -> bool
         ammoRangedKeep.setRangedLook || ammoRangedKeep.modelID != 0 ||
         !rangedClear.setRangedLook || rangedClear.modelID != 0 ||
         unrelatedSlot.setRangedLook || unrelatedSlot.modelID != 0)
+    {
+        return false;
+    }
+
+    const auto subLookClear = unequipsublookhelpers::PlanFor(1);
+    const auto noSubLook    = unequipsublookhelpers::PlanFor(2);
+    if (!subLookClear.setSubLook || subLookClear.modelID != 0 ||
+        noSubLook.setSubLook || noSubLook.modelID != 0)
     {
         return false;
     }
