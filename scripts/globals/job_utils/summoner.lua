@@ -1,5 +1,9 @@
 -----------------------------------
 -- Summoner Job Utilities
+-- Dual-wired pure inject forms (slice 6744 / 0903):
+--   base MP cost catalog/Astral Flow/Apogee, Blood Boon MP cost,
+--   Mana Cede TP product, Soothing Ruby power/erase count
+-- Parity: internal/summoner
 -----------------------------------
 require('scripts/globals/ability')
 require('scripts/globals/jobpoints')
@@ -9,6 +13,116 @@ xi = xi or {}
 xi.job_utils = xi.job_utils or {}
 xi.job_utils.summoner = xi.job_utils.summoner or {}
 -----------------------------------
+
+-- sort of a misnomer, as if Apogee is up, the 'base' mp cost rises.
+-----------------------------------
+-- Pure inject pins (internal/summoner)
+-----------------------------------
+xi.job_utils.summoner.baseMPCostMissing           = 9999
+xi.job_utils.summoner.apogeeMPCostMultiplier      = 1.5
+xi.job_utils.summoner.bloodBoonConserveMin        = 8
+xi.job_utils.summoner.bloodBoonConserveMax        = 15
+xi.job_utils.summoner.bloodBoonConserveDiv        = 16
+xi.job_utils.summoner.manaCedeMPCost              = 100
+xi.job_utils.summoner.manaCedeBonusTPBase         = 1000
+xi.job_utils.summoner.manaCedeJPPerLevel          = 50
+xi.job_utils.summoner.manaCedeTPMin               = 1000
+xi.job_utils.summoner.manaCedeTPMax               = 3000
+xi.job_utils.summoner.soothingRubyPowerMin        = 1
+xi.job_utils.summoner.soothingRubyPowerMax        = 6
+xi.job_utils.summoner.baseMPCostPactCount         = 100
+
+-- Pure: BaseMPCost
+-- params: abilityId, mainLvl, isAstralFlow, hasApogee, catalogCost (nil if missing)
+-- When isAstralFlow, catalogCost is ignored. When not AF and catalogCost is nil → 9999.
+xi.job_utils.summoner.baseMPCostFromParams = function(params)
+    params = params or {}
+    local base
+    if params.isAstralFlow then
+        base = (params.mainLvl or 0) * 2
+    else
+        if params.catalogCost == nil then
+            return xi.job_utils.summoner.baseMPCostMissing
+        end
+
+        base = params.catalogCost
+    end
+
+    if params.hasApogee then
+        base = base * xi.job_utils.summoner.apogeeMPCostMultiplier
+    end
+
+    return base
+end
+
+-- Pure: BloodBoonMPCost
+-- params: base, bloodBoonRate, roll1to100, conserveRoll8to15, isAstralFlow
+xi.job_utils.summoner.bloodBoonMPCostFromParams = function(params)
+    params = params or {}
+    local base = params.base or 0
+    if params.isAstralFlow then
+        return base
+    end
+
+    if (params.roll1to100 or 0) > (params.bloodBoonRate or 0) then
+        return base
+    end
+
+    return base * (params.conserveRoll8to15 or 0) / xi.job_utils.summoner.bloodBoonConserveDiv
+end
+
+-- Pure: ManaCedeTP
+-- params: avatarTP, manaCedeJP, enhancesManaCede
+xi.job_utils.summoner.manaCedeTPFromParams = function(params)
+    params = params or {}
+    local bonusTP = xi.job_utils.summoner.manaCedeBonusTPBase
+        + (params.manaCedeJP or 0) * xi.job_utils.summoner.manaCedeJPPerLevel
+    local manaCedeBonus = (100 + (params.enhancesManaCede or 0)) / 100
+    local newTP = (params.avatarTP or 0) + bonusTP * manaCedeBonus
+    if newTP < xi.job_utils.summoner.manaCedeTPMin then
+        newTP = xi.job_utils.summoner.manaCedeTPMin
+    end
+
+    if newTP > xi.job_utils.summoner.manaCedeTPMax then
+        newTP = xi.job_utils.summoner.manaCedeTPMax
+    end
+
+    return math.floor(newTP)
+end
+
+-- Pure: SoothingRubyPower
+xi.job_utils.summoner.soothingRubyPowerFromParams = function(summoningSkill)
+    local factor = math.floor(((summoningSkill or 0) + 99) / 100)
+    if factor < xi.job_utils.summoner.soothingRubyPowerMin then
+        return xi.job_utils.summoner.soothingRubyPowerMin
+    end
+
+    if factor > xi.job_utils.summoner.soothingRubyPowerMax then
+        return xi.job_utils.summoner.soothingRubyPowerMax
+    end
+
+    return factor
+end
+
+-- Pure: SoothingRubyEffectsErased
+xi.job_utils.summoner.soothingRubyEffectsErasedFromParams = function(params)
+    params = params or {}
+    local power = params.power or 0
+    local erasableCount = params.erasableCount or 0
+    if power < 0 then
+        power = 0
+    end
+
+    if erasableCount < 0 then
+        erasableCount = 0
+    end
+
+    if erasableCount < power then
+        return erasableCount
+    end
+
+    return power
+end
 
 -- sort of a misnomer, as if Apogee is up, the 'base' mp cost rises.
 local function getBaseMPCost(player, ability)
@@ -127,43 +241,51 @@ local function getBaseMPCost(player, ability)
         [xi.jobAbility.HYSTERIC_ASSAULT] = 222,
     }
 
-    local baseMPCost = nil
+    local isAstralFlow = false
+    local catalogCost  = nil
+    local abilityId    = 0
 
     if ability then
-        if ability:getAddType() == xi.addType.ADDTYPE_ASTRAL_FLOW then
-            baseMPCost = player:getMainLvl() * 2
-        else
-            baseMPCost = baseMPCostMap[ability:getID()]
+        abilityId = ability:getID()
+        isAstralFlow = ability:getAddType() == xi.addType.ADDTYPE_ASTRAL_FLOW
+        if not isAstralFlow then
+            catalogCost = baseMPCostMap[abilityId]
         end
     end
 
-    if baseMPCost == nil then
-        printf('[warning] scripts/globals/job_utils/summoner.lua::getBaseMPCost(): MP cost for xi.jobAbility with id %d not implemented.', ability:getID())
-        return 9999
+    if not isAstralFlow and catalogCost == nil then
+        printf('[warning] scripts/globals/job_utils/summoner.lua::getBaseMPCost(): MP cost for xi.jobAbility with id %d not implemented.', abilityId)
     end
 
     -- https://www.bg-wiki.com/ffxi/Apogee
     -- Apogee, 1.5x MP cost, don't delete effect here because we need to reset BP: Ward/Rage timer upon use
-    if player:hasStatusEffect(xi.effect.APOGEE) then
-        baseMPCost = baseMPCost * 1.5
-    end
-
-    return baseMPCost
+    return xi.job_utils.summoner.baseMPCostFromParams({
+        abilityId    = abilityId,
+        mainLvl      = player:getMainLvl(),
+        isAstralFlow = isAstralFlow,
+        hasApogee    = player:hasStatusEffect(xi.effect.APOGEE),
+        catalogCost  = catalogCost,
+    })
 end
 
 local function getMPCost(baseMPCost, player, petskill)
-    local mpCost = baseMPCost
+    local isAstralFlow = petskill:getAddType() == xi.addType.ADDTYPE_ASTRAL_FLOW
+    local bloodBoonRate = player:getMod(xi.mod.BLOOD_BOON)
+    -- assuming it works like Conserve MP... https://www.bg-wiki.com/ffxi/Conserve_MP
+    -- Inject RNG rolls into pure form (host rolls once).
+    local roll1to100 = math.random(1, 100)
+    local conserveRoll = math.random(
+        xi.job_utils.summoner.bloodBoonConserveMin,
+        xi.job_utils.summoner.bloodBoonConserveMax
+    )
 
-    -- don't proc blood boon on Astral Flow
-    if petskill:getAddType() ~= xi.addType.ADDTYPE_ASTRAL_FLOW then
-        local bloodBoonRate = player:getMod(xi.mod.BLOOD_BOON)
-        -- assuming it works like Conserve MP... https://www.bg-wiki.com/ffxi/Conserve_MP
-        if math.random(1, 100) <= bloodBoonRate then
-            mpCost = mpCost * math.random(8, 15) / 16
-        end
-    end
-
-    return mpCost
+    return xi.job_utils.summoner.bloodBoonMPCostFromParams({
+        base               = baseMPCost,
+        bloodBoonRate      = bloodBoonRate,
+        roll1to100         = roll1to100,
+        conserveRoll8to15  = conserveRoll,
+        isAstralFlow       = isAstralFlow,
+    })
 end
 
 -- Bloodpact Delay is handled in charentity.cpp
@@ -247,14 +369,15 @@ xi.job_utils.summoner.useManaCede = function(player, ability, action)
     local avatar = player:getPet()
 
     if avatar ~= nil then
-        local avatarTP = avatar:getTP()
-        local bonusTP = 1000 + player:getJobPointLevel(xi.jp.MANA_CEDE_EFFECT) * 50
-        local manaCedeBonus = (100 + player:getMod(xi.mod.ENHANCES_MANA_CEDE)) / 100
-        local avatarNewTP = utils.clamp(avatarTP + bonusTP * manaCedeBonus, 1000, 3000)
+        local avatarNewTP = xi.job_utils.summoner.manaCedeTPFromParams({
+            avatarTP         = avatar:getTP(),
+            manaCedeJP       = player:getJobPointLevel(xi.jp.MANA_CEDE_EFFECT),
+            enhancesManaCede = player:getMod(xi.mod.ENHANCES_MANA_CEDE),
+        })
 
         action:ID(player:getID(), avatar:getID())
         avatar:setTP(avatarNewTP)
-        player:delMP(100)
+        player:delMP(xi.job_utils.summoner.manaCedeMPCost)
     end
 end
 
@@ -285,11 +408,15 @@ xi.job_utils.summoner.useSoothingRuby = function(target, pet, petskill, summoner
     end
 
     -- Calculate the ammount of effects this skill can potentialy erase.
-    local summoningSkillFactor = math.floor((summoner:getSkillLevel(xi.skill.SUMMONING_MAGIC) + 99) / 100)
-    local soothingRubyPower    = utils.clamp(summoningSkillFactor, 1, 6)
+    local soothingRubyPower = xi.job_utils.summoner.soothingRubyPowerFromParams(
+        summoner:getSkillLevel(xi.skill.SUMMONING_MAGIC)
+    )
 
     -- Erase effects.
-    local effectsErased = math.min(#erasableEffectTable, soothingRubyPower)
+    local effectsErased = xi.job_utils.summoner.soothingRubyEffectsErasedFromParams({
+        power         = soothingRubyPower,
+        erasableCount = #erasableEffectTable,
+    })
 
     if effectsErased > 0 then
         for i = 1, effectsErased do
