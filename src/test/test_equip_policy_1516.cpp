@@ -3,6 +3,7 @@
 #include "map/equip_item_finalize_capacity.h"
 #include "map/equip_item_success_capacity.h"
 #include "map/equip_armor_direct_restrictions_capacity.h"
+#include "map/equip_armor_ammo_look_capacity.h"
 #include "map/equip_armor_main_sub_capacity.h"
 #include "map/equip_armor_ranged_compatibility_capacity.h"
 #include "map/equip_armor_reverse_restrictions_capacity.h"
@@ -300,6 +301,13 @@ auto Check() -> bool
             .incomingSkill    = 25,
             .otherSkill       = 26,
         }))
+    {
+        return false;
+    }
+
+    if (!equiparmorammolookhelpers::ShouldSetRangedLook({ .incomingIsWeapon = true }) ||
+        equiparmorammolookhelpers::ShouldSetRangedLook({ .incomingIsWeapon = true, .hasRangedAfterCompatibility = true }) ||
+        equiparmorammolookhelpers::ShouldSetRangedLook({}))
     {
         return false;
     }

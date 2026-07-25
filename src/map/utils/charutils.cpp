@@ -109,6 +109,7 @@
 #include "equip_item_finalize_capacity.h"
 #include "equip_item_success_capacity.h"
 #include "equip_armor_direct_restrictions_capacity.h"
+#include "equip_armor_ammo_look_capacity.h"
 #include "equip_armor_main_sub_capacity.h"
 #include "equip_armor_ranged_compatibility_capacity.h"
 #include "equip_armor_reverse_restrictions_capacity.h"
@@ -2659,7 +2660,10 @@ bool EquipArmor(CCharEntity* PChar, uint8 slotID, uint8 equipSlotID, uint8 conta
                         // If the subtype of the ammo is not compatible with the ranged weapon, unequip it, except for Archery where Longbow and Shortbow both use arrows
                         UnequipItem(PChar, SLOT_RANGED, Recalculate::No);
                     }
-                    if (!PChar->getEquip(SLOT_RANGED))
+                    if (equiparmorammolookhelpers::ShouldSetRangedLook({
+                            .incomingIsWeapon          = true,
+                            .hasRangedAfterCompatibility = PChar->getEquip(SLOT_RANGED) != nullptr,
+                        }))
                     {
                         PChar->look.ranged = PItem->getModelId();
                     }
