@@ -1351,6 +1351,8 @@ set(SOURCES
     test_trait_mutation_6848.cpp
     test_weaponskill_mutation_6849.h
     test_weaponskill_mutation_6849.cpp
+    test_pet_command_mutation_6850.h
+    test_pet_command_mutation_6850.cpp
     test_equip_policy_1516.h
     test_equip_policy_1516.cpp
     test_trade_item_1517.h
