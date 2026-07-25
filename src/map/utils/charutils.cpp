@@ -112,6 +112,7 @@
 #include "equip_armor_ammo_look_capacity.h"
 #include "equip_armor_main_sub_capacity.h"
 #include "equip_armor_ranged_compatibility_capacity.h"
+#include "equip_armor_removed_look_capacity.h"
 #include "equip_armor_reverse_restrictions_capacity.h"
 #include "equip_armor_sub_capacity.h"
 #include "equip_armor_target_look_capacity.h"
@@ -2983,7 +2984,7 @@ void UpdateRemovedSlotsLook(CCharEntity* PChar)
         return;
     }
 
-    for (int i = SLOT_HEAD; i < SLOT_FEET; i++)
+    for (int i = SLOT_HEAD; equiparmorremovedlookhelpers::IsSourceSlot(static_cast<uint8>(i)); i++)
     {
         CItemEquipment* armor = PChar->getEquip((SLOTTYPE)i);
         if (armor && armor->isType(ITEM_EQUIPMENT) && armor->getRemoveSlotLookId())
@@ -2991,7 +2992,7 @@ void UpdateRemovedSlotsLook(CCharEntity* PChar)
             auto removeSlotID = armor->getRemoveSlotLookId();
             for (int j = SLOT_HEAD; j <= SLOT_FEET; j++)
             {
-                if (removeSlotID & (1 << j))
+                if (equiparmorremovedlookhelpers::ShouldSetTargetLook(removeSlotID, static_cast<uint8>(j)))
                 {
                     switch (j)
                     {

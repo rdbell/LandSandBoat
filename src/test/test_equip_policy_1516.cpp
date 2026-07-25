@@ -6,6 +6,7 @@
 #include "map/equip_armor_ammo_look_capacity.h"
 #include "map/equip_armor_main_sub_capacity.h"
 #include "map/equip_armor_ranged_compatibility_capacity.h"
+#include "map/equip_armor_removed_look_capacity.h"
 #include "map/equip_armor_reverse_restrictions_capacity.h"
 #include "map/equip_armor_sub_capacity.h"
 #include "map/equip_armor_target_look_capacity.h"
@@ -315,6 +316,18 @@ auto Check() -> bool
 
     if (!equiparmortargetlookhelpers::ShouldSetArmorLook(4) || !equiparmortargetlookhelpers::ShouldSetArmorLook(8) ||
         equiparmortargetlookhelpers::ShouldSetArmorLook(3) || equiparmortargetlookhelpers::ShouldSetArmorLook(9))
+    {
+        return false;
+    }
+
+    constexpr std::uint32_t removedLookMask = (1u << 4) | (1u << 6) | (1u << 8);
+    if (!equiparmorremovedlookhelpers::IsSourceSlot(4) || !equiparmorremovedlookhelpers::IsSourceSlot(7) ||
+        equiparmorremovedlookhelpers::IsSourceSlot(3) || equiparmorremovedlookhelpers::IsSourceSlot(8) ||
+        !equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 4) ||
+        !equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 6) ||
+        !equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 8) ||
+        equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 5) ||
+        equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 9))
     {
         return false;
     }
