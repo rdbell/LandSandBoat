@@ -724,6 +724,7 @@ auto runTraitMutation6848SelfTests() -> bool;
 auto runWeaponSkillMutation6849SelfTests() -> bool;
 auto runPetCommandMutation6850SelfTests() -> bool;
 auto runWeaponSkillPoints6851SelfTests() -> bool;
+auto runArrowUsageForScavenge6852SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
 auto runStyleUpdate1518SelfTests() -> bool;
@@ -3110,6 +3111,7 @@ namespace
         ok = runWeaponSkillMutation6849SelfTests() && ok;
         ok = runPetCommandMutation6850SelfTests() && ok;
         ok = runWeaponSkillPoints6851SelfTests() && ok;
+        ok = runArrowUsageForScavenge6852SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
         ok = runStyleUpdate1518SelfTests() && ok;
