@@ -99,6 +99,7 @@
 #include "skill_up_award_capacity.h"
 #include "skill_up_cap_capacity.h"
 #include "skill_up_extra_step_capacity.h"
+#include "skill_up_key_items_capacity.h"
 #include "calculate_stats_capacity.h"
 #include "distribute_gil_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -225,13 +226,6 @@ std::pair<uint16, uint8> IncrediblyEasyPreyCheck = { 1, 56 };
 
 namespace
 {
-
-// Key items granting an increase to the rate of skillups
-const std::set skillupIncreaseKeyItems = {
-    KeyItem::RHAPSODY_IN_WHITE,
-    KeyItem::RHAPSODY_IN_CRIMSON,
-    KeyItem::RHAPSODY_IN_FUCHSIA
-};
 
 // Key items granting an increase to earned experience points
 const std::set experienceBonusKeyItems = {
@@ -4323,14 +4317,12 @@ void TrySkillUP(CCharEntity* PChar, SKILLTYPE SkillID, uint8 lvl, bool forceSkil
             // convert to 10th units
             CapSkill = skilluphelpers::CapSkillTenths(CapSkill);
 
-            uint8 rovKeyItemCount = 0;
-            for (const auto skillupIncreaseKeyItem : skillupIncreaseKeyItems)
+            skilluprovhelpers::Facts rovFacts;
+            for (size_t index = 0; index < skilluprovhelpers::SkillUpIncreaseKeyItems.size(); ++index)
             {
-                if (hasKeyItem(PChar, skillupIncreaseKeyItem))
-                {
-                    rovKeyItemCount += 1;
-                }
+                rovFacts.held[index] = hasKeyItem(PChar, skilluprovhelpers::SkillUpIncreaseKeyItems[index]);
             }
+            const auto rovKeyItemCount = skilluprovhelpers::PlanFor(rovFacts).heldCount;
 
             SkillAmount = skilluphelpers::ApplyRovSkillAmount(SkillAmount, rovKeyItemCount);
             SkillAmount = skilluphelpers::ApplySkillAmountMultiplier(SkillAmount, settings::get<uint8>("map.SKILLUP_AMOUNT_MULTIPLIER"));

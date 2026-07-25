@@ -4,6 +4,7 @@
 #include "map/skill_up_award_capacity.h"
 #include "map/skill_up_cap_capacity.h"
 #include "map/skill_up_extra_step_capacity.h"
+#include "map/skill_up_key_items_capacity.h"
 
 #include <cmath>
 #include <iostream>
@@ -128,6 +129,17 @@ auto Check() -> bool
         continuedExtraStep.nextSkillAmount != 2 || !stoppedExtraStep.stop || stoppedExtraStep.chance != 0.2 ||
         stoppedExtraStep.nextTier != 1 || stoppedExtraStep.nextSkillAmount != 1 || !maxedExtraStep.stop ||
         maxedExtraStep.nextTier != 5 || maxedExtraStep.nextSkillAmount != 5)
+    {
+        return false;
+    }
+    const auto noRovKeyItems = skilluprovhelpers::PlanFor({});
+    const auto heldRovKeyItems = skilluprovhelpers::PlanFor({
+        .held = { true, false, true },
+    });
+    if (skilluprovhelpers::SkillUpIncreaseKeyItems[0] != KeyItem::RHAPSODY_IN_WHITE ||
+        skilluprovhelpers::SkillUpIncreaseKeyItems[1] != KeyItem::RHAPSODY_IN_CRIMSON ||
+        skilluprovhelpers::SkillUpIncreaseKeyItems[2] != KeyItem::RHAPSODY_IN_FUCHSIA || noRovKeyItems.heldCount != 0 ||
+        heldRovKeyItems.heldCount != 2)
     {
         return false;
     }
