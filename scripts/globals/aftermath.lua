@@ -13,14 +13,74 @@ xi.aftermath.type =
 } -- TODO: Add Aeonic
 
 -----------------------------------
--- HELPERS : For aftermath eyes only
+-- HELPERS : Dual-wired pure (slice 6726 / 0878)
+-- Parity: internal/aftermath
 -----------------------------------
-local getTier1RelicDuration = function(tp)
-    return math.floor(tp * 0.02)
+xi.aftermath.getTier1RelicDuration = function(tp)
+    return math.floor((tp or 0) * 0.02)
 end
 
-local getTier2RelicDuration = function(tp)
-    return math.floor(tp * 0.06)
+xi.aftermath.getTier2RelicDuration = function(tp)
+    return math.floor((tp or 0) * 0.06)
+end
+
+-- Local aliases so existing effects table rows keep working.
+local getTier1RelicDuration = xi.aftermath.getTier1RelicDuration
+local getTier2RelicDuration = xi.aftermath.getTier2RelicDuration
+
+-- Effect ID pins (internal/aftermath).
+xi.aftermath.effectAftermath    = 273
+xi.aftermath.effectAftermathLV1 = 270
+xi.aftermath.effectAftermathLV2 = 271
+xi.aftermath.effectAftermathLV3 = 272
+
+xi.aftermath.levelFromTP = function(tp)
+    return math.floor((tp or 0) / 1000)
+end
+
+xi.aftermath.levelIcon = function(level)
+    if level == 1 then
+        return xi.aftermath.effectAftermathLV1
+    elseif level == 2 then
+        return xi.aftermath.effectAftermathLV2
+    elseif level == 3 then
+        return xi.aftermath.effectAftermathLV3
+    end
+
+    return xi.aftermath.effectAftermath
+end
+
+xi.aftermath.validID = function(typ, id)
+    id = id or 0
+    if typ == xi.aftermath.type.RELIC then
+        return id >= 1 and id <= 28
+    elseif typ == xi.aftermath.type.MYTHIC then
+        return id >= 29 and id <= 43
+    elseif typ == xi.aftermath.type.EMPYREAN then
+        return id >= 44 and id <= 45
+    end
+
+    return false
+end
+
+xi.aftermath.includePets = function(id)
+    return id == 19 -- Guttler T2
+end
+
+xi.aftermath.clearsSpikes = function(id)
+    return id == 8 or id == 22 -- Gungnir T1/T2
+end
+
+xi.aftermath.relicDurationSeconds = function(id, tp)
+    id = id or 0
+    tp = tp or 0
+    if id >= 1 and id <= 14 then
+        return xi.aftermath.getTier1RelicDuration(tp)
+    elseif id >= 15 and id <= 28 then
+        return xi.aftermath.getTier2RelicDuration(tp)
+    end
+
+    return nil
 end
 
 xi.aftermath.effects =
@@ -551,73 +611,208 @@ xi.aftermath.effects =
     }
 }
 
+-----------------------------------
+-- Pure inject forms (slice 6726)
+-----------------------------------
+
+-- Pure duration seconds (internal/aftermath.DurationSeconds).
+-- params: aftermathType, id, tp
+-- returns seconds or nil
+xi.aftermath.durationSecondsFromParams = function(params)
+    params = params or {}
+    local typ = params.aftermathType or 0
+    local id  = params.id or 0
+    local tp  = params.tp or 0
+
+    if typ == xi.aftermath.type.RELIC then
+        return xi.aftermath.relicDurationSeconds(id, tp)
+    end
+
+    local row = xi.aftermath.effects[id]
+    if not row or type(row.duration) ~= 'table' then
+        return nil
+    end
+
+    local level = xi.aftermath.levelFromTP(tp)
+    if level < 1 or level > 3 then
+        return nil
+    end
+
+    return row.duration[level]
+end
+
+-- Pure empyrean power ladder (internal/aftermath.EmpyreanPower).
+xi.aftermath.empyreanPowerFromParams = function(params)
+    params = params or {}
+    local id    = params.id or 0
+    local level = params.level or 0
+    local row   = xi.aftermath.effects[id]
+    if not row or not row.power or level < 1 or level > 3 then
+        return nil
+    end
+
+    return row.power[level]
+end
+
+-- Pure canOverwrite (internal/aftermath.CanOverwrite).
+-- params: hasEffect, existingTier, existingSubPower, existingTimeRemainingMs,
+--         newType, newID, newTP
+xi.aftermath.canOverwriteFromParams = function(params)
+    params = params or {}
+    if not params.hasEffect then
+        return true
+    end
+
+    local newType = params.newType or 0
+    if newType < (params.existingTier or 0) then
+        return false
+    end
+
+    if newType == xi.aftermath.type.RELIC then
+        local secs = xi.aftermath.durationSecondsFromParams({
+            aftermathType = xi.aftermath.type.RELIC,
+            id            = params.newID or 0,
+            tp            = params.newTP or 0,
+        })
+        if not secs then
+            return false
+        end
+
+        return secs * 1000 > (params.existingTimeRemainingMs or 0)
+    elseif newType == xi.aftermath.type.MYTHIC or newType == xi.aftermath.type.EMPYREAN then
+        local currentLevel = xi.aftermath.levelFromTP(params.existingSubPower or 0)
+        local newLevel     = xi.aftermath.levelFromTP(params.newTP or 0)
+        return currentLevel == 1 or currentLevel < newLevel
+    end
+
+    return false
+end
+
+-- Pure addStatusEffect plan (internal/aftermath.AddStatusEffect).
+-- params: isPC, hasWeapon, aftermathID, aftermathType, tp,
+--         hasEffect, existingTier, existingSubPower, existingTimeRemainingMs
+-- returns: { ok, delAftermath, clearSpikes, power, duration, subPower, tier, icon, hasIcon }
+xi.aftermath.addStatusEffectFromParams = function(params)
+    params = params or {}
+    if not params.isPC or not params.hasWeapon then
+        return { ok = false }
+    end
+
+    local typ = params.aftermathType or 0
+    local id  = params.aftermathID or 0
+    local tp  = params.tp or 0
+
+    if not xi.aftermath.validID(typ, id) then
+        return { ok = false }
+    end
+
+    local dur = xi.aftermath.durationSecondsFromParams({
+        aftermathType = typ,
+        id            = id,
+        tp            = tp,
+    })
+    if not dur then
+        return { ok = false }
+    end
+
+    if not xi.aftermath.canOverwriteFromParams({
+        hasEffect               = params.hasEffect,
+        existingTier            = params.existingTier,
+        existingSubPower        = params.existingSubPower,
+        existingTimeRemainingMs = params.existingTimeRemainingMs,
+        newType                 = typ,
+        newID                   = id,
+        newTP                   = tp,
+    }) then
+        return { ok = false }
+    end
+
+    local res =
+    {
+        ok           = true,
+        delAftermath = true,
+        clearSpikes  = false,
+        power        = id,
+        duration     = dur,
+        subPower     = tp,
+        tier         = typ,
+        icon         = 0,
+        hasIcon      = false,
+    }
+
+    if typ == xi.aftermath.type.RELIC and xi.aftermath.clearsSpikes(id) then
+        res.clearSpikes = true
+    end
+
+    if typ == xi.aftermath.type.MYTHIC or typ == xi.aftermath.type.EMPYREAN then
+        res.hasIcon = true
+        res.icon    = xi.aftermath.levelIcon(xi.aftermath.levelFromTP(tp))
+    end
+
+    return res
+end
+
 xi.aftermath.addStatusEffect = function(player, tp, weaponSlot, aftermathType)
-    -- Players only!
-    if player:getObjType() ~= xi.objType.PC then
+    -- Players only! Host gathers injects then pure plan applies.
+    local isPC = player:getObjType() == xi.objType.PC
+    local weapon = isPC and player:getStorageItem(0, 0, weaponSlot) or nil
+    local id = weapon and weapon:getMod(xi.mod.AFTERMATH) or 0
+
+    local hasEffect = false
+    local existingTier = 0
+    local existingSubPower = 0
+    local existingTimeRemainingMs = 0
+    local effect = player:getStatusEffect(xi.effect.AFTERMATH)
+    if effect then
+        hasEffect = true
+        existingTier = effect:getTier()
+        existingSubPower = effect:getSubPower()
+        existingTimeRemainingMs = effect:getTimeRemaining()
+    end
+
+    local plan = xi.aftermath.addStatusEffectFromParams({
+        isPC                    = isPC,
+        hasWeapon               = weapon ~= nil,
+        aftermathID             = id,
+        aftermathType           = aftermathType,
+        tp                      = tp,
+        hasEffect               = hasEffect,
+        existingTier            = existingTier,
+        existingSubPower        = existingSubPower,
+        existingTimeRemainingMs = existingTimeRemainingMs,
+    })
+
+    if not plan.ok then
         return
     end
 
-    local weapon = player:getStorageItem(0, 0, weaponSlot)
-    if not weapon then
-        return
+    if plan.delAftermath then
+        player:delStatusEffect(xi.effect.AFTERMATH)
     end
 
-    local id = weapon:getMod(xi.mod.AFTERMATH)
-
-    -- Verify the aftermath ID matches the aftermath Type
-    local invalid = false
-    switch (aftermathType) : caseof
-    {
-        [xi.aftermath.type.RELIC] = function(x)
-            invalid = id > 28
-        end,
-
-        [xi.aftermath.type.MYTHIC] = function(x)
-            invalid = id < 29 or id > 43
-        end,
-
-        [xi.aftermath.type.EMPYREAN] = function(x)
-            invalid = id < 44
-        end
-    }
-
-    if invalid then
-        return
+    if plan.clearSpikes then
+        -- Gungnir's AM overwrites and prevents all Spikes spells from landing. Core handles the latter
+        player:delStatusEffectsByType(xi.effectType.SPIKES)
     end
 
-    local aftermath = xi.aftermath.effects[id]
-    if not aftermath then
-        return
+    if plan.hasIcon then
+        player:addStatusEffect(xi.effect.AFTERMATH, {
+            power    = plan.power,
+            duration = plan.duration,
+            origin   = player,
+            icon     = plan.icon,
+            subPower = plan.subPower,
+            tier     = plan.tier,
+        })
+    else
+        player:addStatusEffect(xi.effect.AFTERMATH, {
+            power    = plan.power,
+            duration = plan.duration,
+            origin   = player,
+            subPower = plan.subPower,
+            tier     = plan.tier,
+        })
     end
-
-    if not xi.aftermath.canOverwrite(player, tp, id, aftermathType) then
-        return
-    end
-
-    player:delStatusEffect(xi.effect.AFTERMATH)
-    switch (aftermathType) : caseof
-    {
-        [xi.aftermath.type.RELIC] = function(x)
-            -- Gungnir's AM overwrites and prevents all Spikes spells from landing. Core handles the latter
-            if id == 8 or id == 22 then -- Gungnir Shock Spikes
-                player:delStatusEffectsByType(xi.effectType.SPIKES)
-            end
-
-            player:addStatusEffect(xi.effect.AFTERMATH, { power = id, duration = aftermath.duration(tp), origin = player, subPower = tp, tier = aftermathType })
-        end,
-
-        [xi.aftermath.type.MYTHIC] = function(x)
-            local tier = math.floor(tp / 1000)
-            local icon = xi.effect['AFTERMATH_LV'..tier]
-            player:addStatusEffect(xi.effect.AFTERMATH, { power = id, duration = aftermath.duration[tier], origin = player, icon = icon, subPower = tp, tier = aftermathType })
-        end,
-
-        [xi.aftermath.type.EMPYREAN] = function(x)
-            local tier = math.floor(tp / 1000)
-            local icon = xi.effect['AFTERMATH_LV'..tier]
-            player:addStatusEffect(xi.effect.AFTERMATH, { power = id, duration = aftermath.duration[tier], origin = player, icon = icon, subPower = tp, tier = aftermathType })
-        end
-    }
 end
 
 -----------------------------------
@@ -669,38 +864,19 @@ xi.aftermath.onEffectGain = function(target, effect)
 end
 
 xi.aftermath.canOverwrite = function(player, tp, aftermathId, aftermathType)
+    -- Host → pure canOverwriteFromParams (slice 6726).
     local effect = player:getStatusEffect(xi.effect.AFTERMATH)
     if not effect then
-        return true
+        return xi.aftermath.canOverwriteFromParams({ hasEffect = false })
     end
 
-    -- This is some jank about mixed RMEA aftermaths, but also for Mythic AM level 1/2/3.
-    -- We already remove AM on weapon switch, so this probably is only useful for mythics
-    if aftermathType < effect:getTier() then
-        return false
-    end
-
-    local canOverwrite = false
-    local aftermath = xi.aftermath.effects[aftermathId]
-    switch (aftermathType) : caseof
-    {
-        [xi.aftermath.type.RELIC] = function(x)
-            local newDuration = aftermath.duration(tp) * 1000
-            canOverwrite = newDuration > effect:getTimeRemaining()
-        end,
-
-        [xi.aftermath.type.MYTHIC] = function(x)
-            local currentLevel = math.floor(effect:getSubPower() / 1000)
-            local newLevel = math.floor(tp / 1000)
-            canOverwrite = currentLevel == 1 or currentLevel < newLevel
-        end,
-
-        [xi.aftermath.type.EMPYREAN] = function(x)
-            local currentLevel = math.floor(effect:getSubPower() / 1000)
-            local newLevel = math.floor(tp / 1000)
-            canOverwrite = currentLevel == 1 or currentLevel < newLevel
-        end,
-    }
-
-    return canOverwrite
+    return xi.aftermath.canOverwriteFromParams({
+        hasEffect               = true,
+        existingTier            = effect:getTier(),
+        existingSubPower        = effect:getSubPower(),
+        existingTimeRemainingMs = effect:getTimeRemaining(),
+        newType                 = aftermathType,
+        newID                   = aftermathId,
+        newTP                   = tp,
+    })
 end
