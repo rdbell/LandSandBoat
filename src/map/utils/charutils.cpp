@@ -94,6 +94,7 @@
 #include "char_stratagem_removal.h"
 #include "char_subjob_update_plan.h"
 #include "char_temp_item_clear.h"
+#include "char_can_trade_plan.h"
 #include "char_trade_item_plan.h"
 #include "char_unity_leader_capacity.h"
 #include "char_unity_ranking_packets.h"
@@ -2148,28 +2149,36 @@ void DropItem(CCharEntity* PChar, uint8 container, uint8 slotID, int32 quantity,
 
 bool CanTrade(CCharEntity* PChar, CCharEntity* PTarget)
 {
-    if (tradeitemhelpers::ShouldRejectMonstrosityTrade(PChar->m_PMonstrosity != nullptr, PTarget->m_PMonstrosity != nullptr))
+    const auto charMonstro     = PChar->m_PMonstrosity != nullptr;
+    const auto targetMonstro   = PTarget->m_PMonstrosity != nullptr;
+    const auto targetFreeSlots = PTarget->getStorage(LOC_INVENTORY)->GetFreeSlotsCount();
+    const auto tradeItemCount  = PChar->UContainer->GetItemsCount();
+    if (cantradeplanhelpers::BuildPlan({ charMonstro, targetMonstro, targetFreeSlots, tradeItemCount, false }) == cantradeplanhelpers::Decision::RejectMonstrosity)
     {
         return false;
     }
-
-    if (tradeitemhelpers::ShouldRejectTradeForSpace(PTarget->getStorage(LOC_INVENTORY)->GetFreeSlotsCount(), PChar->UContainer->GetItemsCount()))
+    if (cantradeplanhelpers::BuildPlan({ charMonstro, targetMonstro, targetFreeSlots, tradeItemCount, false }) == cantradeplanhelpers::Decision::RejectSpace)
     {
         ShowDebug("Unable to trade, %s doesn't have enough inventory space", PTarget->getName());
         return false;
     }
 
+    CItem* rareDuplicate = nullptr;
     for (uint8 slotid = 0; slotid <= tradeitemhelpers::TradeSlotMax; ++slotid)
     {
         CItem* PItem = PChar->UContainer->GetItem(slotid);
 
         if (PItem != nullptr && tradeitemhelpers::ShouldRejectRareDuplicate(PItem->hasFlag(ItemFlag::Rare), HasItem(PTarget, PItem->getID())))
         {
-            ShowDebug("Unable to trade, %s has the rare item already (%s)", PTarget->getName(), PItem->getName());
-            return false;
+            rareDuplicate = PItem;
+            break;
         }
     }
-
+    if (cantradeplanhelpers::BuildPlan({ charMonstro, targetMonstro, targetFreeSlots, tradeItemCount, rareDuplicate != nullptr }) == cantradeplanhelpers::Decision::RejectRareDuplicate)
+    {
+        ShowDebug("Unable to trade, %s has the rare item already (%s)", PTarget->getName(), rareDuplicate->getName());
+        return false;
+    }
     return true;
 }
 

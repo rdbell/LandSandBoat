@@ -775,6 +775,7 @@ auto runCharUnityRankingPackets6900SelfTests() -> bool;
 auto runCharSubJobUpdatePlan6901SelfTests() -> bool;
 auto runCharDropItemDispatch6902SelfTests() -> bool;
 auto runCharTradeItemPlan6903SelfTests() -> bool;
+auto runCharCanTradePlan6904SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3213,6 +3214,7 @@ namespace
         ok = runCharSubJobUpdatePlan6901SelfTests() && ok;
         ok = runCharDropItemDispatch6902SelfTests() && ok;
         ok = runCharTradeItemPlan6903SelfTests() && ok;
+        ok = runCharCanTradePlan6904SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;
