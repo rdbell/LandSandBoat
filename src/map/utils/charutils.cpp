@@ -93,6 +93,7 @@
 #include "char_stratagem_removal.h"
 #include "char_temp_item_clear.h"
 #include "char_unity_leader_capacity.h"
+#include "char_unity_ranking_packets.h"
 #include "char_var_clear_all.h"
 #include "char_var_entity_ops.h"
 #include "char_var_fetch.h"
@@ -1630,48 +1631,43 @@ void SendUnityPackets(CCharEntity* PChar)
         }
     }
 
-    // Previous week (full results)
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::BASE>(UNITY_RESULTSET::PreviousWeek, UNITY_DATATYPE::Base);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::MEMBERS>(UNITY_RESULTSET::PreviousWeek, unity_previous);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::POINTS>(UNITY_RESULTSET::PreviousWeek, unity_previous);
-    // Types 0x03-0x0F (empty/flag packets)
-    for (int i = 3; i < 0x10; i++)
+    const auto plan = unityrankingpackethelpers::BuildPlan();
+    for (uint8 i = 0; i < plan.count; ++i)
     {
-        PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::BASE>(UNITY_RESULTSET::PreviousWeek, static_cast<UNITY_DATATYPE>(i));
+        const auto& packet = plan.packets[i];
+        switch (packet.action)
+        {
+            case unityrankingpackethelpers::Action::Base:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::BASE>(packet.resultSet, static_cast<UNITY_DATATYPE>(packet.dataType));
+                break;
+            case unityrankingpackethelpers::Action::Members:
+                if (packet.resultSet == UNITY_RESULTSET::PreviousWeek)
+                {
+                    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::MEMBERS>(packet.resultSet, unity_previous);
+                }
+                else
+                {
+                    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::MEMBERS>(packet.resultSet, unity_current);
+                }
+                break;
+            case unityrankingpackethelpers::Action::Points:
+                if (packet.resultSet == UNITY_RESULTSET::PreviousWeek)
+                {
+                    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::POINTS>(packet.resultSet, unity_previous);
+                }
+                else
+                {
+                    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::POINTS>(packet.resultSet, unity_current);
+                }
+                break;
+            case unityrankingpackethelpers::Action::Data:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(packet.resultSet, packet.dataType, packet.value);
+                break;
+            case unityrankingpackethelpers::Action::Personal:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::PERSONAL>(packet.resultSet, packet.value);
+                break;
+        }
     }
-    // Types 0x10-0x1F for PreviousWeek (mostly 0x0008 flags from retail captures)
-    for (int i = 0x10; i < 0x20; i++)
-    {
-        PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::PreviousWeek, i, 0x0008);
-    }
-
-    // Current week (partial results)
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::BASE>(UNITY_RESULTSET::CurrentWeek, UNITY_DATATYPE::Base);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::MEMBERS>(UNITY_RESULTSET::CurrentWeek, unity_current);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::POINTS>(UNITY_RESULTSET::CurrentWeek, unity_current);
-    // Types 0x03-0x0F (empty/flag packets)
-    for (int i = 3; i < 0x10; i++)
-    {
-        PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::BASE>(UNITY_RESULTSET::CurrentWeek, static_cast<UNITY_DATATYPE>(i));
-    }
-    // Types 0x10-0x1F for CurrentWeek with appropriate values
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x10, 0x2007);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x11, 0x2CC2);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x12, 0x6867); // ASCII 'gh'
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x13, 0x6E6F); // ASCII 'on'
-    // Type 0x14: Personal ranking points (TODO: calculate from player's Unity contributions)
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::PERSONAL>(UNITY_RESULTSET::CurrentWeek, 0);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x15, 0x3605);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x16, 0x2007);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x17, 0x6C6C); // ASCII 'll'
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x18, 0x616E); // ASCII 'na'
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x19, 0x6767); // ASCII 'gg'
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x1A, 0x0000);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x1B, 0x2007);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x1C, 0x2007);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x1D, 0x0022);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x1E, 0x0004);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::UNITY::DATA>(UNITY_RESULTSET::CurrentWeek, 0x1F, 0x2007);
 }
 
 // Send relevant 0x044 packets for extended job information (BLU spells, Automaton, Monstrosity)
