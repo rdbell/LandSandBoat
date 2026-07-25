@@ -122,6 +122,7 @@
 #include "equip_armor_sub_look_capacity.h"
 #include "equip_armor_target_look_capacity.h"
 #include "unequip_armor_look_capacity.h"
+#include "unequip_main_attack_timer_capacity.h"
 #include "unequip_main_sub_look_capacity.h"
 #include "unequip_item_recast_capacity.h"
 #include "unequip_item_unlock_capacity.h"
@@ -2397,13 +2398,16 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
                     PChar->look.sub = mainSubLookPlan.modelID;
                 }
 
-                if (PChar->PAI->IsEngaged())
+                const bool isEngaged = PChar->PAI->IsEngaged();
+                auto* const state = isEngaged ? dynamic_cast<CAttackState*>(PChar->PAI->GetCurrentState()) : nullptr;
+                const auto attackTimerPlan = unequipmainattacktimerhelpers::PlanFor({
+                    .equipSlotID         = equipSlotID,
+                    .isEngaged           = isEngaged,
+                    .currentStateIsAttack = state != nullptr,
+                });
+                if (attackTimerPlan.resetAttackTimer)
                 {
-                    auto* state = dynamic_cast<CAttackState*>(PChar->PAI->GetCurrentState());
-                    if (state)
-                    {
-                        state->ResetAttackTimer();
-                    }
+                    state->ResetAttackTimer();
                 }
 
                 // If main hand is empty, figure out which UnarmedItem to give the player.

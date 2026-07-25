@@ -14,6 +14,7 @@
 #include "map/equip_armor_sub_look_capacity.h"
 #include "map/equip_armor_target_look_capacity.h"
 #include "map/unequip_armor_look_capacity.h"
+#include "map/unequip_main_attack_timer_capacity.h"
 #include "map/unequip_main_sub_look_capacity.h"
 #include "map/unequip_item_recast_capacity.h"
 #include "map/unequip_item_unlock_capacity.h"
@@ -445,6 +446,30 @@ auto Check() -> bool
         !nonEquipmentMainSubState.checkUnarmedWeapon || !nonEquipmentMainSubState.clearDualWield ||
         equipmentMainSubState.checkUnarmedWeapon || !equipmentMainSubState.clearDualWield ||
         otherSlotSubState.checkUnarmedWeapon || otherSlotSubState.clearDualWield)
+    {
+        return false;
+    }
+
+    const auto resetMainAttackTimer = unequipmainattacktimerhelpers::PlanFor({
+        .equipSlotID         = 0,
+        .isEngaged           = true,
+        .currentStateIsAttack = true,
+    });
+    const auto disengagedMainAttackTimer = unequipmainattacktimerhelpers::PlanFor({
+        .equipSlotID         = 0,
+        .currentStateIsAttack = true,
+    });
+    const auto nonAttackMainTimer = unequipmainattacktimerhelpers::PlanFor({
+        .equipSlotID = 0,
+        .isEngaged   = true,
+    });
+    const auto subAttackTimer = unequipmainattacktimerhelpers::PlanFor({
+        .equipSlotID         = 1,
+        .isEngaged           = true,
+        .currentStateIsAttack = true,
+    });
+    if (!resetMainAttackTimer.resetAttackTimer || disengagedMainAttackTimer.resetAttackTimer ||
+        nonAttackMainTimer.resetAttackTimer || subAttackTimer.resetAttackTimer)
     {
         return false;
     }
