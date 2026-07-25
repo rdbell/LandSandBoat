@@ -596,104 +596,160 @@ xi.spells.damage.calculateDayAndWeather = function(caster, spellElement, alwaysA
     return dayAndWeather
 end
 
--- Magic Attack Bonus VS Magic Defense Bonus
-xi.spells.damage.calculateMagicBonusDiff = function(caster, target, spellId, skillType, spellElement, bonusMATT)
-    local magicBonusDiff = 1 -- The variable we want to calculate
-    local casterJob      = caster:getMainJob()
-    local mab            = caster:getMod(xi.mod.MATT) + cardinalChantBonus(caster, target, xi.direction.EAST, spellId, skillType) + bonusMATT
-    local mabCritChance  = caster:getMod(xi.mod.MAGIC_CRITHITRATE) + cardinalChantBonus(caster, target, xi.direction.NORTH, spellId, skillType)
-    local mDefBarBonus   = 0
+-----------------------------------
+-- MAB/MDB ratio pure helpers
+-- Dual-wired to OmegaXI internal/mabdiff (slice 6707 / 0859).
+-----------------------------------
 
-    -- Ninja spell bonuses
+xi.spells.damage.mabCritAddMin         = 10
+xi.spells.damage.mabCritAddMax         = 40
+xi.spells.damage.theurgicFocusBase     = 50
+xi.spells.damage.theurgicFocusJPScale  = 3
+xi.spells.damage.mabRatioMin           = 0
+xi.spells.damage.mabRatioMax           = 10
+
+xi.spells.damage.isAncientMagic = function(spellId)
+    return spellId >= xi.magic.spell.FLARE and spellId <= xi.magic.spell.FLOOD_II
+end
+
+xi.spells.damage.isTheurgicRa = function(spellId)
+    return (spellId >= xi.magic.spell.FIRA and spellId <= xi.magic.spell.WATERA_II) or
+        (spellId >= xi.magic.spell.FIRA_III and spellId <= xi.magic.spell.WATERA_III)
+end
+
+-- clamp(10 + MAGIC_CRIT_DMG_INCREASE, 10, 40)
+xi.spells.damage.mabCritAdd = function(magicCritDmgIncrease)
+    return utils.clamp(10 + (magicCritDmgIncrease or 0), xi.spells.damage.mabCritAddMin, xi.spells.damage.mabCritAddMax)
+end
+
+-- Category 1 elemental ninjutsu merit amount once spell-band merit injects known.
+xi.spells.damage.elementalNinMeritFromParams = function(params)
+    local spellId = params.spellId or 0
+    if spellId >= xi.magic.spell.KATON_ICHI and spellId <= xi.magic.spell.KATON_SAN then
+        return params.katonEffectMerit or 0
+    elseif spellId >= xi.magic.spell.HYOTON_ICHI and spellId <= xi.magic.spell.HYOTON_SAN then
+        return params.hyotonEffectMerit or 0
+    elseif spellId >= xi.magic.spell.HUTON_ICHI and spellId <= xi.magic.spell.HUTON_SAN then
+        return params.hutonEffectMerit or 0
+    elseif spellId >= xi.magic.spell.DOTON_ICHI and spellId <= xi.magic.spell.DOTON_SAN then
+        return params.dotonEffectMerit or 0
+    elseif spellId >= xi.magic.spell.RAITON_ICHI and spellId <= xi.magic.spell.RAITON_SAN then
+        return params.raitonEffectMerit or 0
+    elseif spellId >= xi.magic.spell.SUITON_ICHI and spellId <= xi.magic.spell.SUITON_SAN then
+        return params.suitonEffectMerit or 0
+    end
+
+    return 0
+end
+
+-- Pure calculateMagicBonusDiff once entity halves and crit roll are injected.
+-- params: spellId, skillType, spellElement, baseMAB, mabCritProc, magicCritDmgIncrease,
+--   ninMagicBonusMerit, katon..suitonEffectMerit, ninNukeBonusGear,
+--   elementalPotencyMerit, barspellSubPower, mainJob, rdmJobPointMAB, geoJobPointMAB,
+--   ancientMagicAtkBonusMerit, hasTheurgicFocus, theurgicFocusJP,
+--   autoMABCoefficient, targetMDEF
+xi.spells.damage.calculateMagicBonusDiffFromParams = function(params)
+    local mab = params.baseMAB or 0
+    local skillType = params.skillType or 0
+    local spellId = params.spellId or 0
+    local spellElement = params.spellElement or 0
+
     if skillType == xi.skill.NINJUTSU then
-        -- Ninja Category 2 merits.
-        mab = mab + caster:getMerit(xi.merit.NIN_MAGIC_BONUS)
-        -- Ninja Category 1 merits
-        -- TODO: merge spellFamily and spell ID tables into one table in spell_data.lua, then use spellFamily here instead of spellID
-        if
-            spellId >= xi.magic.spell.KATON_ICHI and
-            spellId <= xi.magic.spell.KATON_SAN
-        then
-            mab = mab + caster:getMerit(xi.merit.KATON_EFFECT)
-        elseif
-            spellId >= xi.magic.spell.HYOTON_ICHI and
-            spellId <= xi.magic.spell.HYOTON_SAN
-        then
-            mab = mab + caster:getMerit(xi.merit.HYOTON_EFFECT)
-        elseif
-            spellId >= xi.magic.spell.HUTON_ICHI and
-            spellId <= xi.magic.spell.HUTON_SAN
-        then
-            mab = mab + caster:getMerit(xi.merit.HUTON_EFFECT)
-        elseif
-            spellId >= xi.magic.spell.DOTON_ICHI and
-            spellId <= xi.magic.spell.DOTON_SAN
-        then
-            mab = mab + caster:getMerit(xi.merit.DOTON_EFFECT)
-        elseif
-            spellId >= xi.magic.spell.RAITON_ICHI and
-            spellId <= xi.magic.spell.RAITON_SAN
-        then
-            mab = mab + caster:getMerit(xi.merit.RAITON_EFFECT)
-        elseif
-            spellId >= xi.magic.spell.SUITON_ICHI and
-            spellId <= xi.magic.spell.SUITON_SAN
-        then
-            mab = mab + caster:getMerit(xi.merit.SUITON_EFFECT)
+        mab = mab + (params.ninMagicBonusMerit or 0)
+        mab = mab + xi.spells.damage.elementalNinMeritFromParams(params)
+        mab = mab + (params.ninNukeBonusGear or 0)
+    end
+
+    if params.mabCritProc then
+        mab = mab + xi.spells.damage.mabCritAdd(params.magicCritDmgIncrease)
+    end
+
+    local mDefBarBonus = 0
+    if spellElement >= xi.element.FIRE and spellElement <= xi.element.WATER then
+        mab = mab + (params.elementalPotencyMerit or 0)
+        mDefBarBonus = params.barspellSubPower or 0
+    end
+
+    local mainJob = params.mainJob or 0
+    if mainJob == xi.job.RDM then
+        mab = mab + (params.rdmJobPointMAB or 0)
+    elseif mainJob == xi.job.GEO then
+        mab = mab + (params.geoJobPointMAB or 0)
+    end
+
+    if xi.spells.damage.isAncientMagic(spellId) then
+        mab = mab + (params.ancientMagicAtkBonusMerit or 0)
+    end
+
+    if params.hasTheurgicFocus and xi.spells.damage.isTheurgicRa(spellId) then
+        mab = mab + xi.spells.damage.theurgicFocusBase +
+            (params.theurgicFocusJP or 0) * xi.spells.damage.theurgicFocusJPScale
+    end
+
+    local finalCasterMAB = (100 + mab) * (1 + (params.autoMABCoefficient or 0) / 100)
+    local finalTargetMDB = 100 + (params.targetMDEF or 0) + mDefBarBonus
+
+    -- Match Go zero-MDB guard (retail MDB is always positive).
+    if finalTargetMDB == 0 then
+        if finalCasterMAB > 0 then
+            return xi.spells.damage.mabRatioMax
+        elseif finalCasterMAB < 0 then
+            return xi.spells.damage.mabRatioMin
         end
 
-        -- "Enhances ninjutsu damage" ("Koga Hatsuburi" type gear)
-        mab = mab + caster:getMod(xi.mod.NIN_NUKE_BONUS_GEAR)
+        return 0
     end
 
-    if math.random(1, 100) <= mabCritChance then
-        mab = mab + utils.clamp(10 + caster:getMod(xi.mod.MAGIC_CRIT_DMG_INCREASE), 10, 40)
-    end
+    return utils.clamp(finalCasterMAB / finalTargetMDB, xi.spells.damage.mabRatioMin, xi.spells.damage.mabRatioMax)
+end
 
-    -- Bar Spells bonuses and BLM merits.
+-- Magic Attack Bonus VS Magic Defense Bonus (entity host)
+xi.spells.damage.calculateMagicBonusDiff = function(caster, target, spellId, skillType, spellElement, bonusMATT)
+    local baseMAB = caster:getMod(xi.mod.MATT) +
+        cardinalChantBonus(caster, target, xi.direction.EAST, spellId, skillType) +
+        (bonusMATT or 0)
+    local mabCritChance = caster:getMod(xi.mod.MAGIC_CRITHITRATE) +
+        cardinalChantBonus(caster, target, xi.direction.NORTH, spellId, skillType)
+
+    local elementalPotency = 0
+    local barspellSubPower = 0
     if
         spellElement >= xi.element.FIRE and
         spellElement <= xi.element.WATER
     then
-        mab = mab + caster:getMerit(xi.data.element.getElementalPotencyMerit(spellElement))
-
-        if target:hasStatusEffect(xi.data.element.getAssociatedBarspellEffect(spellElement)) then -- bar- spell magic defense bonus
-            mDefBarBonus = target:getStatusEffect(xi.data.element.getAssociatedBarspellEffect(spellElement)):getSubPower()
+        elementalPotency = caster:getMerit(xi.data.element.getElementalPotencyMerit(spellElement))
+        local barEffectId = xi.data.element.getAssociatedBarspellEffect(spellElement)
+        if target:hasStatusEffect(barEffectId) then
+            barspellSubPower = target:getStatusEffect(barEffectId):getSubPower()
         end
     end
 
-    -- Job Point regular MAB
-    if casterJob == xi.job.RDM then
-        mab = mab + caster:getJobPointLevel(xi.jp.RDM_MAGIC_ATK_BONUS)
-    elseif casterJob == xi.job.GEO then
-        mab = mab + caster:getJobPointLevel(xi.jp.GEO_MAGIC_ATK_BONUS)
-    end
-
-    -- Ancient Magic I and II specific MAB
-    if
-        spellId >= xi.magic.spell.FLARE and
-        spellId <= xi.magic.spell.FLOOD_II
-    then
-        mab = mab + caster:getMerit(xi.merit.ANCIENT_MAGIC_ATK_BONUS)
-    end
-
-    -- "Theurgic focus" -ra specific MAB
-    if caster:hasStatusEffect(xi.effect.THEURGIC_FOCUS) then
-        if
-            (spellId >= xi.magic.spell.FIRA and spellId <= xi.magic.spell.WATERA_II) or
-            (spellId >= xi.magic.spell.FIRA_III and spellId <= xi.magic.spell.WATERA_III)
-        then
-            mab = mab + 50 + caster:getJobPointLevel(xi.jp.THEURGIC_FOCUS_EFFECT) * 3
-        end
-    end
-
-    -- Final operations
-    local finalCasterMAB = (100 + mab) * (1 + caster:getMod(xi.mod.AUTO_MAB_COEFFICIENT) / 100)
-    local finalTargetMDB = 100 + target:getMod(xi.mod.MDEF) + mDefBarBonus
-
-    magicBonusDiff = utils.clamp(finalCasterMAB / finalTargetMDB, 0, 10)
-
-    return magicBonusDiff
+    return xi.spells.damage.calculateMagicBonusDiffFromParams({
+        spellId                   = spellId,
+        skillType                 = skillType,
+        spellElement              = spellElement,
+        baseMAB                   = baseMAB,
+        mabCritProc               = math.random(1, 100) <= mabCritChance,
+        magicCritDmgIncrease      = caster:getMod(xi.mod.MAGIC_CRIT_DMG_INCREASE),
+        ninMagicBonusMerit        = caster:getMerit(xi.merit.NIN_MAGIC_BONUS),
+        katonEffectMerit          = caster:getMerit(xi.merit.KATON_EFFECT),
+        hyotonEffectMerit         = caster:getMerit(xi.merit.HYOTON_EFFECT),
+        hutonEffectMerit          = caster:getMerit(xi.merit.HUTON_EFFECT),
+        dotonEffectMerit          = caster:getMerit(xi.merit.DOTON_EFFECT),
+        raitonEffectMerit         = caster:getMerit(xi.merit.RAITON_EFFECT),
+        suitonEffectMerit         = caster:getMerit(xi.merit.SUITON_EFFECT),
+        ninNukeBonusGear          = caster:getMod(xi.mod.NIN_NUKE_BONUS_GEAR),
+        elementalPotencyMerit     = elementalPotency,
+        barspellSubPower          = barspellSubPower,
+        mainJob                   = caster:getMainJob(),
+        rdmJobPointMAB            = caster:getJobPointLevel(xi.jp.RDM_MAGIC_ATK_BONUS),
+        geoJobPointMAB            = caster:getJobPointLevel(xi.jp.GEO_MAGIC_ATK_BONUS),
+        ancientMagicAtkBonusMerit = caster:getMerit(xi.merit.ANCIENT_MAGIC_ATK_BONUS),
+        hasTheurgicFocus          = caster:hasStatusEffect(xi.effect.THEURGIC_FOCUS),
+        theurgicFocusJP           = caster:getJobPointLevel(xi.jp.THEURGIC_FOCUS_EFFECT),
+        autoMABCoefficient        = caster:getMod(xi.mod.AUTO_MAB_COEFFICIENT),
+        targetMDEF                = target:getMod(xi.mod.MDEF),
+    })
 end
 
 xi.spells.damage.calculateMagicCriticalMultiplier = function(caster)
