@@ -104,6 +104,7 @@
 #include "capacity_award_capacity.h"
 #include "weapon_skill_roster_capacity.h"
 #include "weapon_skill_roster_build_capacity.h"
+#include "weapon_skill_unlock_roster_capacity.h"
 #include "weapon_skill_unlock_modifiers_capacity.h"
 #include "weapon_style_update_capacity.h"
 #include "ability_table_capacity.h"
@@ -4390,14 +4391,22 @@ void CheckWeaponSkill(CCharEntity* PChar, uint8 skill)
     const auto& WeaponSkillList = battleutils::GetWeaponSkills(skill);
     uint16      curSkill        = weaponskillrosterhelpers::RealSkillLevels(PChar->RealSkills.skill[skill]);
 
+    weaponskillunlockrosterhelpers::Facts unlockFacts{
+        .currentSkill = curSkill,
+    };
     for (auto&& PSkill : WeaponSkillList)
     {
-        if (weaponskillrosterhelpers::ShouldUnlockWeaponSkillOnSkillUp(curSkill, PSkill->getSkillLevel(), battleutils::CanUseWeaponskill(PChar, PSkill)))
-        {
-            addWeaponSkill(PChar, PSkill->getID());
-            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, PSkill->getID(), PSkill->getID(), MsgBasic::LearnsAbility);
-            PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
-        }
+        unlockFacts.candidates.push_back({
+            .id         = PSkill->getID(),
+            .skillLevel = PSkill->getSkillLevel(),
+            .canUse     = battleutils::CanUseWeaponskill(PChar, PSkill),
+        });
+    }
+    for (const auto weaponSkillID : weaponskillunlockrosterhelpers::PlanFor(unlockFacts).unlockWeaponSkillIDs)
+    {
+        addWeaponSkill(PChar, weaponSkillID);
+        PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, weaponSkillID, weaponSkillID, MsgBasic::LearnsAbility);
+        PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
     }
 }
 

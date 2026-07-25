@@ -1,6 +1,7 @@
 #include "test_weapon_skill_roster_1512.h"
 
 #include "map/weapon_skill_roster_capacity.h"
+#include "map/weapon_skill_unlock_roster_capacity.h"
 
 #include <iostream>
 
@@ -38,6 +39,24 @@ auto Check() -> bool
     }
     if (!ShouldUnlockWeaponSkillOnSkillUp(100, 100, true) || ShouldUnlockWeaponSkillOnSkillUp(100, 99, true) ||
         ShouldUnlockWeaponSkillOnSkillUp(100, 100, false))
+    {
+        return false;
+    }
+    const auto unlockRoster = weaponskillunlockrosterhelpers::PlanFor({
+        .currentSkill = 100,
+        .candidates = {
+            { .id = 10, .skillLevel = 99, .canUse = true },
+            { .id = 11, .skillLevel = 100, .canUse = true },
+            { .id = 12, .skillLevel = 100 },
+            { .id = 13, .skillLevel = 100, .canUse = true },
+            { .id = 14, .skillLevel = 101, .canUse = true },
+        },
+    });
+    const auto unusableUnlockRoster = weaponskillunlockrosterhelpers::PlanFor({
+        .currentSkill = 100,
+        .candidates = { { .id = 11, .skillLevel = 100 } },
+    });
+    if (unlockRoster.unlockWeaponSkillIDs != std::vector<uint16_t>{ 11, 13 } || !unusableUnlockRoster.unlockWeaponSkillIDs.empty())
     {
         return false;
     }
