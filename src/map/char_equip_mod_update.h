@@ -2,20 +2,21 @@
 
 #include <cstdint>
 
-namespace equipmodremovalhelpers
+namespace equipmodupdatehelpers
 {
 constexpr std::uint8_t EquipSlotCount = 16;
 
 struct Plan
 {
-    bool removeModifiers{};
-    bool removeLatentEffects{};
+    bool updateModifiers{};
+    bool updateLatentEffects{};
     bool checkLatents{};
 
     constexpr auto operator==(const Plan&) const -> bool = default;
 };
 
-// MakePlan preserves RemoveAllEquipMods' work for one equipment slot.
+// MakePlan preserves the shared per-slot policy in ApplyAllEquipMods and
+// RemoveAllEquipMods. Their hosts choose the add or remove APIs.
 constexpr auto MakePlan(const bool itemPresent, const std::uint8_t itemRequiredLevel, const std::uint8_t mainLevel) -> Plan
 {
     if (!itemPresent)
@@ -23,12 +24,12 @@ constexpr auto MakePlan(const bool itemPresent, const std::uint8_t itemRequiredL
         return {};
     }
 
-    Plan plan{ .removeModifiers = true };
+    Plan plan{ .updateModifiers = true };
     if (itemRequiredLevel <= mainLevel)
     {
-        plan.removeLatentEffects = true;
-        plan.checkLatents         = true;
+        plan.updateLatentEffects = true;
+        plan.checkLatents        = true;
     }
     return plan;
 }
-} // namespace equipmodremovalhelpers
+} // namespace equipmodupdatehelpers

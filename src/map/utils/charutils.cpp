@@ -62,7 +62,7 @@
 #include "ability.h"
 #include "alliance.h"
 #include "char_death_timestamp_load.h"
-#include "char_equip_mod_removal.h"
+#include "char_equip_mod_update.h"
 #include "char_home_point_transition.h"
 #include "char_history_load.h"
 #include "char_invisible_removal.h"
@@ -6932,7 +6932,7 @@ void RemoveStratagems(CCharEntity* PChar, CSpell* PSpell)
 
 void RemoveAllEquipMods(CCharEntity* PChar)
 {
-    for (uint8 slotID = 0; slotID < equipmodremovalhelpers::EquipSlotCount; ++slotID)
+    for (uint8 slotID = 0; slotID < equipmodupdatehelpers::EquipSlotCount; ++slotID)
     {
         CItemEquipment* PItem = PChar->getEquip((SLOTTYPE)slotID);
         if (!PItem)
@@ -6940,15 +6940,15 @@ void RemoveAllEquipMods(CCharEntity* PChar)
             continue;
         }
 
-        const auto plan = equipmodremovalhelpers::MakePlan(
+        const auto plan = equipmodupdatehelpers::MakePlan(
             true,
             PItem->getReqLvl(),
             PChar->GetMLevel());
-        if (plan.removeModifiers)
+        if (plan.updateModifiers)
         {
             PChar->delEquipModifiers(&PItem->modList, PItem->getReqLvl(), slotID);
         }
-        if (plan.removeLatentEffects)
+        if (plan.updateLatentEffects)
         {
             PChar->PLatentEffectContainer->DelLatentEffects(PItem->getReqLvl(), slotID);
         }
@@ -6961,17 +6961,29 @@ void RemoveAllEquipMods(CCharEntity* PChar)
 
 void ApplyAllEquipMods(CCharEntity* PChar)
 {
-    for (uint8 slotID = 0; slotID < 16; ++slotID)
+    for (uint8 slotID = 0; slotID < equipmodupdatehelpers::EquipSlotCount; ++slotID)
     {
         CItemEquipment* PItem = PChar->getEquip((SLOTTYPE)slotID);
-        if (PItem)
+        if (!PItem)
+        {
+            continue;
+        }
+
+        const auto plan = equipmodupdatehelpers::MakePlan(
+            true,
+            PItem->getReqLvl(),
+            PChar->GetMLevel());
+        if (plan.updateModifiers)
         {
             PChar->addEquipModifiers(&PItem->modList, PItem->getReqLvl(), slotID);
-            if (PItem->getReqLvl() <= PChar->GetMLevel())
-            {
-                PChar->PLatentEffectContainer->AddLatentEffects(PItem->latentList, PItem->getReqLvl(), slotID);
-                PChar->PLatentEffectContainer->CheckLatentsEquip(slotID);
-            }
+        }
+        if (plan.updateLatentEffects)
+        {
+            PChar->PLatentEffectContainer->AddLatentEffects(PItem->latentList, PItem->getReqLvl(), slotID);
+        }
+        if (plan.checkLatents)
+        {
+            PChar->PLatentEffectContainer->CheckLatentsEquip(slotID);
         }
     }
 }

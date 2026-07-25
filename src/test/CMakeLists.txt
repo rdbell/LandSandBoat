@@ -1395,6 +1395,8 @@ set(SOURCES
     test_invisible_removal_6870.cpp
     test_equip_mod_removal_6871.h
     test_equip_mod_removal_6871.cpp
+    test_equip_mod_application_6873.h
+    test_equip_mod_application_6873.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h
