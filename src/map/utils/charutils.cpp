@@ -62,6 +62,7 @@
 #include "ability.h"
 #include "alliance.h"
 #include "char_death_timestamp_load.h"
+#include "char_drop_item_dispatch.h"
 #include "char_equip_mod_update.h"
 #include "char_extended_job_packets.h"
 #include "char_home_point_transition.h"
@@ -2119,12 +2120,22 @@ uint32 UpdateItem(CCharEntity* PChar, uint8 LocationID, uint8 slotID, int32 quan
 // A wrapper around UpdateItem, with some packets
 void DropItem(CCharEntity* PChar, uint8 container, uint8 slotID, int32 quantity, uint16 ItemID)
 {
-    if (inventorymovehelpers::ShouldEmitDropMessages(
-            charutils::UpdateItem(PChar, container, slotID, inventorymovehelpers::DropQuantityDelta(quantity))))
+    const auto plan = dropitemdispatchhelpers::BuildPlan(inventorymovehelpers::ShouldEmitDropMessages(
+        charutils::UpdateItem(PChar, container, slotID, inventorymovehelpers::DropQuantityDelta(quantity))));
+    for (uint8 i = 0; i < plan.count; ++i)
     {
-        ShowInfo("Player %s DROPPING itemID: %s (%u) quantity: %u", PChar->getName(), xi::items::lookup(ItemID)->getName(), ItemID, quantity);
-        PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(nullptr, ItemID, quantity, MsgStd::ThrowAway);
-        PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
+        switch (plan.actions[i])
+        {
+            case dropitemdispatchhelpers::Action::Log:
+                ShowInfo("Player %s DROPPING itemID: %s (%u) quantity: %u", PChar->getName(), xi::items::lookup(ItemID)->getName(), ItemID, quantity);
+                break;
+            case dropitemdispatchhelpers::Action::ThrowAwayMessage:
+                PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(nullptr, ItemID, quantity, MsgStd::ThrowAway);
+                break;
+            case dropitemdispatchhelpers::Action::ItemSame:
+                PChar->pushPacket<GP_SERV_COMMAND_ITEM_SAME>(PChar);
+                break;
+        }
     }
 }
 
