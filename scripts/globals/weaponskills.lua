@@ -2062,14 +2062,29 @@ xi.weaponskills.calculatedIgnoredDef = function(tp, def, ignoredDefenseTable)
     return 0
 end
 
+-----------------------------------
+-- Pure: handleWeaponskillEffect apply gate (slice 6755 / internal/wsformula.ShouldApplyWeaponskillEffect)
+-- params: damage, hasStatusEffect, isTargetImmune, isTargetResistant, isEffectNullified
+-- returns: shouldApply (bool)
+-----------------------------------
+xi.weaponskills.shouldApplyWeaponskillEffectFromParams = function(params)
+    params = params or {}
+    return (params.damage or 0) > 0 and
+        not params.hasStatusEffect and
+        not params.isTargetImmune and
+        not params.isTargetResistant and
+        not params.isEffectNullified
+end
+
 xi.weaponskills.handleWeaponskillEffect = function(actor, target, effectId, actionElement, damage, power, duration)
-    if
-        damage > 0 and
-        not target:hasStatusEffect(effectId) and
-        not xi.data.statusEffect.isTargetImmune(target, effectId, actionElement) and
-        not xi.data.statusEffect.isTargetResistant(actor, target, effectId) and
-        not xi.data.statusEffect.isEffectNullified(target, effectId, 0)
-    then
+    local shouldApply = xi.weaponskills.shouldApplyWeaponskillEffectFromParams({
+        damage            = damage,
+        hasStatusEffect   = target:hasStatusEffect(effectId),
+        isTargetImmune    = xi.data.statusEffect.isTargetImmune(target, effectId, actionElement),
+        isTargetResistant = xi.data.statusEffect.isTargetResistant(actor, target, effectId),
+        isEffectNullified = xi.data.statusEffect.isEffectNullified(target, effectId, 0),
+    })
+    if shouldApply then
         target:addStatusEffect(effectId, { power = power, duration = duration, origin = actor })
     end
 end
