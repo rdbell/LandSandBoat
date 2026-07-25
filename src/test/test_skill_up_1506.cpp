@@ -1,6 +1,7 @@
 #include "test_skill_up_1506.h"
 
 #include "map/skill_up_capacity.h"
+#include "map/skill_up_award_capacity.h"
 
 #include <cmath>
 #include <iostream>
@@ -132,6 +133,29 @@ auto Check() -> bool
         return false;
     }
     if (!ShouldIncrementWorkingSkill(false, 10, 20) || !ShouldIncrementWorkingSkill(true, 10, 10) || ShouldIncrementWorkingSkill(true, 10, 20))
+    {
+        return false;
+    }
+    const auto noLevelAward = skillupawardhelpers::PlanFor({
+        .currentSkill = 90,
+        .skillAmount  = 5,
+    });
+    const auto levelAward = skillupawardhelpers::PlanFor({
+        .currentSkill = 99,
+        .skillAmount  = 2,
+    });
+    const auto artsLevelAward = skillupawardhelpers::PlanFor({
+        .currentSkill     = 99,
+        .skillAmount      = 2,
+        .artsActive       = true,
+        .skillBonusBefore = 10,
+        .skillBonusAfter  = 20,
+    });
+    if (!noLevelAward.sendSkillGain || noLevelAward.incrementWorkingSkill || noLevelAward.sendStatus ||
+        noLevelAward.sendSkillLevelUp || noLevelAward.checkWeaponSkill || !noLevelAward.saveSkill || noLevelAward.skillLevel != 0 ||
+        !levelAward.incrementWorkingSkill || !levelAward.sendStatus || !levelAward.sendSkillLevelUp ||
+        !levelAward.checkWeaponSkill || levelAward.skillLevel != 10 || artsLevelAward.incrementWorkingSkill ||
+        !artsLevelAward.sendStatus || !artsLevelAward.sendSkillLevelUp || !artsLevelAward.checkWeaponSkill)
     {
         return false;
     }

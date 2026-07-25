@@ -96,6 +96,7 @@
 #include "exp_award_capacity.h"
 #include "exp_loss_capacity.h"
 #include "skill_up_capacity.h"
+#include "skill_up_award_capacity.h"
 #include "calculate_stats_capacity.h"
 #include "distribute_gil_capacity.h"
 #include "treasure_hunter_drop_capacity.h"
@@ -4345,22 +4346,43 @@ void TrySkillUP(CCharEntity* PChar, SKILLTYPE SkillID, uint8 lvl, bool forceSkil
             }
 
             PChar->RealSkills.skill[SkillID] += SkillAmount;
-            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, SkillID, SkillAmount, MsgBasic::SkillGain);
 
-            if (skilluphelpers::CrossedSkillLevel(CurSkill, SkillAmount)) // if gone up a level
+            bool  artsActive      = false;
+            int16 skillBonusAfter = skillBonus;
+            if (skilluphelpers::CrossedSkillLevel(CurSkill, SkillAmount))
             {
-                // Light/Dark Arts artificially boost certain skills
-                // if skillup happens when real skill is below the base for active arts, don't increment the shown skill
-                if (skilluphelpers::ShouldIncrementWorkingSkill(
-                        isArtsBonusActive(PChar, SkillID),
-                        skillBonus,
-                        isArtsBonusActive(PChar, SkillID) ? ArtsBonusSkill(PChar, SkillID) : skillBonus))
+                artsActive = isArtsBonusActive(PChar, SkillID);
+                if (artsActive)
                 {
-                    PChar->WorkingSkills.skill[SkillID] += 1;
+                    skillBonusAfter = ArtsBonusSkill(PChar, SkillID);
                 }
+            }
+            const auto awardPlan = skillupawardhelpers::PlanFor({
+                .currentSkill     = CurSkill,
+                .skillAmount      = SkillAmount,
+                .artsActive       = artsActive,
+                .skillBonusBefore = skillBonus,
+                .skillBonusAfter  = skillBonusAfter,
+            });
+            if (awardPlan.sendSkillGain)
+            {
+                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, SkillID, SkillAmount, MsgBasic::SkillGain);
+            }
+            if (awardPlan.incrementWorkingSkill)
+            {
+                PChar->WorkingSkills.skill[SkillID] += 1;
+            }
+            if (awardPlan.sendStatus)
+            {
                 PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS2>(PChar);
-                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, SkillID, (CurSkill + SkillAmount) / 10, MsgBasic::SkillLevelUp);
+            }
+            if (awardPlan.sendSkillLevelUp)
+            {
+                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, SkillID, awardPlan.skillLevel, MsgBasic::SkillLevelUp);
+            }
 
+            if (awardPlan.checkWeaponSkill)
+            {
                 CheckWeaponSkill(PChar, SkillID);
                 /* ignoring this for now
                 if (SkillID >= 1 && SkillID <= 12)
@@ -4370,7 +4392,10 @@ void TrySkillUP(CCharEntity* PChar, SKILLTYPE SkillID, uint8 lvl, bool forceSkil
                 }
                 */
             }
-            SaveCharSkills(PChar, SkillID);
+            if (awardPlan.saveSkill)
+            {
+                SaveCharSkills(PChar, SkillID);
+            }
         }
     }
 }
