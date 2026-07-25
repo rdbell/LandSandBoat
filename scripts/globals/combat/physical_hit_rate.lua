@@ -161,64 +161,131 @@ xi.combat.physicalHitRate.getFlashPenalty = function(entity)
     return 0
 end
 
+-----------------------------------
+-- Pure hit-rate modifier injects (OmegaXI slice 6683)
+-- Dual-wired to internal/hitratemod.HitRateModifiers.
+-----------------------------------
+
+xi.combat.physicalHitRate.behindAngle          = 23
+xi.combat.physicalHitRate.facingConeYonin      = 64
+xi.combat.physicalHitRate.buildingFlourishBase = 40
+xi.combat.physicalHitRate.buildingFlourishSubPowerScale = 2
+xi.combat.physicalHitRate.yoninJPScale         = 2
+
+-- Pure getHitRateModifiers once status/merit/JP/geometry/Flash are injected.
+-- params fields:
+--   isRanged, isWeaponskill,
+--   hasBuildingFlourish, buildingFlourishPower, buildingFlourishSubPower,
+--   hasInnin, inninPower, inninJP, isBehind23,
+--   attackerIsPC, attackerIsFacing, attackerClosedPositionMerit,
+--   hasAmbushTrait, ambushMerit,
+--   hasYonin, yoninPower, yoninJP, isFacing64,
+--   targetIsPC, targetIsFacing, targetClosedPositionMerit,
+--   flashPenalty
+-- returns accBonus, evaBonus
+xi.combat.physicalHitRate.hitRateModifiersFromParams = function(params)
+    local accBonus = 0
+    local evaBonus = 0
+    local isRanged = params.isRanged or false
+
+    -- Melee only: Building Flourish, Innin, attacker Closed Position.
+    if not isRanged then
+        if
+            params.isWeaponskill and
+            params.hasBuildingFlourish and
+            (params.buildingFlourishPower or 0) >= 1
+        then
+            accBonus = xi.combat.physicalHitRate.buildingFlourishBase +
+                (params.buildingFlourishSubPower or 0) * xi.combat.physicalHitRate.buildingFlourishSubPowerScale
+        end
+
+        if params.hasInnin and params.isBehind23 then
+            accBonus = accBonus + (params.inninPower or 0) + (params.inninJP or 0)
+        end
+
+        if params.attackerIsPC and params.attackerIsFacing then
+            accBonus = accBonus + (params.attackerClosedPositionMerit or 0)
+        end
+    end
+
+    -- Ambush: melee and ranged.
+    if params.hasAmbushTrait and params.isBehind23 then
+        accBonus = accBonus + (params.ambushMerit or 0)
+    end
+
+    -- Yonin: melee and ranged.
+    if params.hasYonin and params.isFacing64 then
+        evaBonus = evaBonus + (params.yoninPower or 0) +
+            xi.combat.physicalHitRate.yoninJPScale * (params.yoninJP or 0)
+    end
+
+    -- Target Closed Position.
+    if params.targetIsPC and params.targetIsFacing then
+        evaBonus = evaBonus + (params.targetClosedPositionMerit or 0)
+    end
+
+    accBonus = accBonus - (params.flashPenalty or 0)
+
+    return accBonus, evaBonus
+end
+
+-- Entity host: status/merit/JP/geometry/Flash reads → pure.
 ---@param attacker CBaseEntity
 ---@param target CBaseEntity
 ---@param isWeaponskill boolean
 ---@return number, number
 xi.combat.physicalHitRate.getHitRateModifiers = function(attacker, target, isWeaponskill, isRanged)
-    local accBonus = 0
-    local evaBonus = 0
+    local flourishEffect = attacker:getStatusEffect(xi.effect.BUILDING_FLOURISH)
+    local hasFlourish = flourishEffect ~= nil
+    local flourishPower = 0
+    local flourishSubPower = 0
 
-    -- Melee only
-    if not isRanged then
-        local flourishEffect = attacker:getStatusEffect(xi.effect.BUILDING_FLOURISH)
-
-        if
-            isWeaponskill and
-            flourishEffect ~= nil and
-            flourishEffect:getPower() >= 1
-        then -- 1 or more Finishing moves used.
-            accBonus = 40 + flourishEffect:getSubPower() * 2
-        end
-
-        if
-            attacker:hasStatusEffect(xi.effect.INNIN) and
-            attacker:isBehind(target, 23) -- angle needs confirmation
-        then
-            local jpValue = target:getJobPointLevel(xi.jp.INNIN_EFFECT)
-
-            -- Innin acc boost if attacker is behind target
-            accBonus = accBonus + attacker:getStatusEffect(xi.effect.INNIN):getPower() + jpValue
-        end
-
-        if attacker:isPC() and attacker:isFacing(target) then
-            accBonus = accBonus + attacker:getMerit(xi.merit.CLOSED_POSITION)
-        end
+    if hasFlourish then
+        flourishPower = flourishEffect:getPower()
+        flourishSubPower = flourishEffect:getSubPower()
     end
 
-    -- Description calls out both melee and ranged
-    if attacker:hasTrait(xi.trait.AMBUSH) and attacker:isBehind(target, 23) then
-        accBonus = accBonus + attacker:getMerit(xi.merit.AMBUSH)
+    local hasInnin = attacker:hasStatusEffect(xi.effect.INNIN)
+    local inninPower = 0
+
+    if hasInnin then
+        inninPower = attacker:getStatusEffect(xi.effect.INNIN):getPower()
     end
 
-    -- Yonin evasion is likely agnostic to ranged or melee but needs confirmation
-    if
-        attacker:hasStatusEffect(xi.effect.YONIN) and
-        attacker:isFacing(target, 64) -- angle needs confirmation
-    then
-        local jpValue = target:getJobPointLevel(xi.jp.YONIN_EFFECT)
+    local hasYonin = attacker:hasStatusEffect(xi.effect.YONIN)
+    local yoninPower = 0
 
-        evaBonus = evaBonus + attacker:getStatusEffect(xi.effect.YONIN):getPower() + 2 * jpValue
+    if hasYonin then
+        yoninPower = attacker:getStatusEffect(xi.effect.YONIN):getPower()
     end
 
-    -- target modifiers
-    if target:isPC() and target:isFacing(attacker) then
-        evaBonus = evaBonus + target:getMerit(xi.merit.CLOSED_POSITION)
-    end
+    local isBehind23 = attacker:isBehind(target, xi.combat.physicalHitRate.behindAngle)
+    local isFacing64 = attacker:isFacing(target, xi.combat.physicalHitRate.facingConeYonin)
 
-    accBonus = accBonus - xi.combat.physicalHitRate.getFlashPenalty(attacker)
-
-    return accBonus, evaBonus
+    return xi.combat.physicalHitRate.hitRateModifiersFromParams({
+        isRanged                     = isRanged,
+        isWeaponskill                = isWeaponskill,
+        hasBuildingFlourish          = hasFlourish,
+        buildingFlourishPower        = flourishPower,
+        buildingFlourishSubPower     = flourishSubPower,
+        hasInnin                     = hasInnin,
+        inninPower                   = inninPower,
+        inninJP                      = target:getJobPointLevel(xi.jp.INNIN_EFFECT),
+        isBehind23                   = isBehind23,
+        attackerIsPC                 = attacker:isPC(),
+        attackerIsFacing             = attacker:isFacing(target),
+        attackerClosedPositionMerit  = attacker:getMerit(xi.merit.CLOSED_POSITION),
+        hasAmbushTrait               = attacker:hasTrait(xi.trait.AMBUSH),
+        ambushMerit                  = attacker:getMerit(xi.merit.AMBUSH),
+        hasYonin                     = hasYonin,
+        yoninPower                   = yoninPower,
+        yoninJP                      = target:getJobPointLevel(xi.jp.YONIN_EFFECT),
+        isFacing64                   = isFacing64,
+        targetIsPC                   = target:isPC(),
+        targetIsFacing               = target:isFacing(attacker),
+        targetClosedPositionMerit    = target:getMerit(xi.merit.CLOSED_POSITION),
+        flashPenalty                 = xi.combat.physicalHitRate.getFlashPenalty(attacker),
+    })
 end
 
 ---@param attacker CBaseEntity
