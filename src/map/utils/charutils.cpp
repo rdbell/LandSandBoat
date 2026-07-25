@@ -132,6 +132,7 @@
 #include "unequip_ranged_look_capacity.h"
 #include "unequip_sub_look_capacity.h"
 #include "unequip_sub_state_capacity.h"
+#include "unequip_weapon_slot_state_capacity.h"
 #include "unequip_weapon_finalize_capacity.h"
 #include "equip_policy_capacity.h"
 #include "trade_item_capacity.h"
@@ -2312,6 +2313,7 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
             .removedRangedIsStringInstrument = equipSlotID == SLOT_RANGED && static_cast<CItemWeapon*>(PItem)->getSkillType() == SKILL_STRING_INSTRUMENT,
             .removedRangedIsWindInstrument   = equipSlotID == SLOT_RANGED && static_cast<CItemWeapon*>(PItem)->getSkillType() == SKILL_WIND_INSTRUMENT,
         });
+        const auto weaponSlotStatePlan = unequipweaponslotstatehelpers::PlanFor(equipSlotID);
         const auto applyWeaponFinalizePlan = [&]()
         {
             if (weaponFinalizePlan.clearTP)
@@ -2365,7 +2367,10 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
                 {
                     PChar->look.sub = subLookPlan.modelID;
                 }
-                PChar->m_Weapons[SLOT_SUB] = xi::items::unarmed(); // << equips "nothing" in the sub slot to prevent multi attack exploit
+                if (weaponSlotStatePlan.action == unequipweaponslotstatehelpers::Action::SetUnarmed)
+                {
+                    PChar->m_Weapons[weaponSlotStatePlan.slot] = xi::items::unarmed(); // << equips "nothing" in the sub slot to prevent multi attack exploit
+                }
                 applyWeaponFinalizePlan();
                 UpdateWeaponStyle(PChar, equipSlotID, nullptr);
             }
@@ -2376,7 +2381,10 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
                 {
                     PChar->look.ranged = rangedLookPlan.modelID;
                 }
-                PChar->m_Weapons[SLOT_AMMO] = nullptr;
+                if (weaponSlotStatePlan.action == unequipweaponslotstatehelpers::Action::Clear)
+                {
+                    PChar->m_Weapons[weaponSlotStatePlan.slot] = nullptr;
+                }
                 UpdateWeaponStyle(PChar, equipSlotID, nullptr);
             }
             break;
@@ -2386,7 +2394,10 @@ void UnequipItem(CCharEntity* PChar, uint8 equipSlotID, Recalculate recalculate)
                 {
                     PChar->look.ranged = rangedLookPlan.modelID;
                 }
-                PChar->m_Weapons[SLOT_RANGED] = nullptr;
+                if (weaponSlotStatePlan.action == unequipweaponslotstatehelpers::Action::Clear)
+                {
+                    PChar->m_Weapons[weaponSlotStatePlan.slot] = nullptr;
+                }
                 applyWeaponFinalizePlan();
                 UpdateWeaponStyle(PChar, equipSlotID, nullptr);
             }

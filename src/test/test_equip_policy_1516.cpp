@@ -24,6 +24,7 @@
 #include "map/unequip_ranged_look_capacity.h"
 #include "map/unequip_sub_look_capacity.h"
 #include "map/unequip_sub_state_capacity.h"
+#include "map/unequip_weapon_slot_state_capacity.h"
 #include "map/unequip_weapon_finalize_capacity.h"
 #include "map/equip_policy_capacity.h"
 #include "map/lockstyle_removed_look_capacity.h"
@@ -470,6 +471,18 @@ auto Check() -> bool
     });
     if (!resetMainAttackTimer.resetAttackTimer || disengagedMainAttackTimer.resetAttackTimer ||
         nonAttackMainTimer.resetAttackTimer || subAttackTimer.resetAttackTimer)
+    {
+        return false;
+    }
+
+    const auto unarmedSubWeapon = unequipweaponslotstatehelpers::PlanFor(1);
+    const auto clearAmmoWeapon = unequipweaponslotstatehelpers::PlanFor(3);
+    const auto clearRangedWeapon = unequipweaponslotstatehelpers::PlanFor(2);
+    const auto unchangedMainWeapon = unequipweaponslotstatehelpers::PlanFor(0);
+    if (unarmedSubWeapon.slot != 1 || unarmedSubWeapon.action != unequipweaponslotstatehelpers::Action::SetUnarmed ||
+        clearAmmoWeapon.slot != 3 || clearAmmoWeapon.action != unequipweaponslotstatehelpers::Action::Clear ||
+        clearRangedWeapon.slot != 2 || clearRangedWeapon.action != unequipweaponslotstatehelpers::Action::Clear ||
+        unchangedMainWeapon.action != unequipweaponslotstatehelpers::Action::None)
     {
         return false;
     }
