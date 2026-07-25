@@ -778,6 +778,7 @@ auto runCharTradeItemPlan6903SelfTests() -> bool;
 auto runCharCanTradePlan6904SelfTests() -> bool;
 auto runCharAddItemRequestPlan6905SelfTests() -> bool;
 auto runCharAddItemCurrencyPlan6906SelfTests() -> bool;
+auto runCharAddItemRareRejection6907SelfTests() -> bool;
 auto runTempItemClear6872SelfTests() -> bool;
 auto runEquipPolicy1516SelfTests() -> bool;
 auto runTradeItem1517SelfTests() -> bool;
@@ -3219,6 +3220,7 @@ namespace
         ok = runCharCanTradePlan6904SelfTests() && ok;
         ok = runCharAddItemRequestPlan6905SelfTests() && ok;
         ok = runCharAddItemCurrencyPlan6906SelfTests() && ok;
+        ok = runCharAddItemRareRejection6907SelfTests() && ok;
         ok = runTempItemClear6872SelfTests() && ok;
         ok = runEquipPolicy1516SelfTests() && ok;
         ok = runTradeItem1517SelfTests() && ok;

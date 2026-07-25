@@ -97,6 +97,7 @@
 #include "char_can_trade_plan.h"
 #include "char_add_item_request_plan.h"
 #include "char_add_item_currency_plan.h"
+#include "char_add_item_rare_rejection.h"
 #include "char_trade_item_plan.h"
 #include "char_unity_leader_capacity.h"
 #include "char_unity_ranking_packets.h"
@@ -1775,13 +1776,14 @@ auto AddItem(CCharEntity* PChar, uint8 LocationID, std::unique_ptr<CItem> PItem,
         return currencyPlan.returnSlot;
     }
 
-    if (tradeitemhelpers::ShouldRejectRareAddItem(PItem->hasFlag(ItemFlag::Rare), HasItem(PChar, PItem->getID())))
+    const auto rarePlan = additemrarerejectionhelpers::BuildPlan(PItem->hasFlag(ItemFlag::Rare), HasItem(PChar, PItem->getID()), silence);
+    if (rarePlan.reject)
     {
-        if (!silence)
+        if (rarePlan.sendItemEx)
         {
             PChar->pushPacket<GP_SERV_COMMAND_MESSAGE>(PChar, PItem->getID(), 0, MsgStd::ItemEx);
         }
-        return ERROR_SLOTID;
+        return rarePlan.returnSlot;
     }
 
     auto* PStorage = PChar->getStorage(LocationID);
