@@ -1491,6 +1491,8 @@ set(SOURCES
     test_map_networking_zone_packet_rebuild_6922.cpp
     test_map_networking_encrypted_receive_6923.h
     test_map_networking_encrypted_receive_6923.cpp
+    test_map_networking_parse_liveness_6924.h
+    test_map_networking_parse_liveness_6924.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h
