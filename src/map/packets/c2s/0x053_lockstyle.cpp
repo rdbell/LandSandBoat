@@ -26,6 +26,7 @@
 #include "lockstyle_set_conflict_capacity.h"
 #include "lockstyle_set_item_capacity.h"
 #include "lockstyle_set_style_update_capacity.h"
+#include "lockstyle_set_tail_capacity.h"
 #include "packets/char_sync.h"
 #include "packets/s2c/0x009_message.h"
 #include "packets/s2c/0x051_grap_list.h"
@@ -165,9 +166,19 @@ void GP_CLI_COMMAND_LOCKSTYLE::process(MapSession* PSession, CCharEntity* PChar)
                 }
             }
 
-            charutils::UpdateRemovedSlotsLookForLockStyle(PChar);
-            PChar->RequestPersist(CHAR_PERSIST::EQUIP);
-            updateClientAppearance(PChar);
+            const auto setTailPlan = lockstylesettailhelpers::PlanFor();
+            if (setTailPlan.updateRemovedSlots)
+            {
+                charutils::UpdateRemovedSlotsLookForLockStyle(PChar);
+            }
+            if (setTailPlan.persist)
+            {
+                PChar->RequestPersist(CHAR_PERSIST::EQUIP);
+            }
+            if (setTailPlan.refresh)
+            {
+                updateClientAppearance(PChar);
+            }
         }
         break;
         case GP_CLI_COMMAND_LOCKSTYLE_MODE::Enable:

@@ -3,6 +3,7 @@
 #include "map/lockstyle_set_conflict_capacity.h"
 #include "map/lockstyle_set_item_capacity.h"
 #include "map/lockstyle_set_style_update_capacity.h"
+#include "map/lockstyle_set_tail_capacity.h"
 #include "map/packets/c2s/0x053_lockstyle.h"
 
 #include <iostream>
@@ -140,6 +141,9 @@ auto runC2SLockstyleRuntimePlanSelfTests() -> bool
     const auto h2hStyleUpdates = lockstylesetstyleupdatehelpers::PlanFor(true);
     check(h2hStyleUpdates.actionCount == 8 && h2hStyleUpdates.actions[0].slot == 0 && h2hStyleUpdates.actions[1].slot == 2 &&
           h2hStyleUpdates.actions[7].kind == lockstylesetstyleupdatehelpers::ActionKind::Armor && h2hStyleUpdates.actions[7].slot == 8);
+
+    const auto setTail = lockstylesettailhelpers::PlanFor();
+    check(setTail.updateRemovedSlots && setTail.persist && setTail.refresh);
 
     return ok;
 }
