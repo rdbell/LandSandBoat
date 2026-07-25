@@ -779,6 +779,37 @@ xi.weaponskills.weaponskillSneakAttackBonus = function(finalDmg, pdif, dex, snea
     return math.floor(finalDmg + pdif * dexFactor)
 end
 
+-----------------------------------
+-- Pure: first-hit SA/TA/augment product (slice 6771 / 6662)
+-- Parity: internal/wsformula FirstHitSATAProduct
+-----------------------------------
+-- params: finalDmg, pdif, isTHFMain, sneakApplicable, trickApplicable,
+--   dex, sneakAtkDexMod, agi, trickAtkAgiMod, augmentsSA, augmentsTA
+xi.weaponskills.firstHitSATAProductFromParams = function(params)
+    params = params or {}
+    local dmg = params.finalDmg or 0
+
+    if params.isTHFMain and params.sneakApplicable then
+        dmg = xi.weaponskills.weaponskillSneakAttackBonus(
+            dmg, params.pdif or 0, params.dex or 0, params.sneakAtkDexMod or 0)
+    end
+
+    if params.isTHFMain and params.trickApplicable then
+        dmg = xi.weaponskills.weaponskillTrickAttackBonus(
+            dmg, params.pdif or 0, params.agi or 0, params.trickAtkAgiMod or 0)
+    end
+
+    if params.sneakApplicable then
+        dmg = xi.weaponskills.weaponskillAugmentSA(dmg, params.augmentsSA or 0)
+    end
+
+    if params.trickApplicable then
+        dmg = xi.weaponskills.weaponskillAugmentTA(dmg, params.augmentsTA or 0)
+    end
+
+    return dmg
+end
+
 -- Pure Trick Attack first-hit add (THF main path): floor(final + pdif * floor(AGI * (1 + TRICK_ATK_AGI/100))).
 xi.weaponskills.weaponskillTrickAttackBonus = function(finalDmg, pdif, agi, trickAtkAgiMod)
     local agiFactor = math.floor(agi * (1 + trickAtkAgiMod / 100))
@@ -1218,36 +1249,20 @@ xi.weaponskills.calculateRawWSDmg = function(attacker, target, wsID, tp, action,
     local numOffhandMultis  = 0
     local numMultiProcs     = xi.weaponskills.initialMultiProcCount(numMainHandMultis)
 
-    -- Have to calculate added bonus for SA/TA here since it is done outside of the fTP multiplier
-    if attacker:getMainJob() == xi.job.THF then
-        -- Add DEX/AGI bonus to base damage of first hit if THF main and valid Sneak/Trick Attack
-        if calcParams.sneakApplicable then
-            finaldmg = xi.weaponskills.weaponskillSneakAttackBonus(
-                finaldmg,
-                calcParams.pdif,
-                attacker:getStat(xi.mod.DEX),
-                attacker:getMod(xi.mod.SNEAK_ATK_DEX)
-            )
-        end
-
-        if calcParams.trickApplicable then
-            finaldmg = xi.weaponskills.weaponskillTrickAttackBonus(
-                finaldmg,
-                calcParams.pdif,
-                attacker:getStat(xi.mod.AGI),
-                attacker:getMod(xi.mod.TRICK_ATK_AGI)
-            )
-        end
-    end
-
-    -- these are deliberately left outside of the "If main job is THF" if-statement
-    if calcParams.sneakApplicable then
-        finaldmg = xi.weaponskills.weaponskillAugmentSA(finaldmg, attacker:getMod(xi.mod.AUGMENTS_SA))
-    end
-
-    if calcParams.trickApplicable then
-        finaldmg = xi.weaponskills.weaponskillAugmentTA(finaldmg, attacker:getMod(xi.mod.AUGMENTS_TA))
-    end
+    -- First-hit SA/TA/augment product (slice 6771). Host residual: job/status/mod injects.
+    finaldmg = xi.weaponskills.firstHitSATAProductFromParams({
+        finalDmg        = finaldmg,
+        pdif            = calcParams.pdif or 0,
+        isTHFMain       = attacker:getMainJob() == xi.job.THF,
+        sneakApplicable = calcParams.sneakApplicable,
+        trickApplicable = calcParams.trickApplicable,
+        dex             = attacker:getStat(xi.mod.DEX),
+        sneakAtkDexMod  = attacker:getMod(xi.mod.SNEAK_ATK_DEX),
+        agi             = attacker:getStat(xi.mod.AGI),
+        trickAtkAgiMod  = attacker:getMod(xi.mod.TRICK_ATK_AGI),
+        augmentsSA      = attacker:getMod(xi.mod.AUGMENTS_SA),
+        augmentsTA      = attacker:getMod(xi.mod.AUGMENTS_TA),
+    })
 
     -- We've now accounted for any crit from SA/TA, so nullify them
     calcParams.forcedFirstCrit = false
