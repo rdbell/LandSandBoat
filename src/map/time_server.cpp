@@ -21,6 +21,7 @@
 
 #include "time_server.h"
 #include "time_server_earth_tick.h"
+#include "time_server_tick.h"
 #include "time_server_tick_tail.h"
 #include "time_server_vana_tick.h"
 
@@ -61,8 +62,37 @@ auto time_server(Scheduler& scheduler, MapConfig config) -> Task<void>
     // Static variable for the next tick
     static auto nextHourlyTick = std::chrono::ceil<std::chrono::hours>(jstTime);
 
+    // Vana'diel time points
+    const auto vanaTime = vanadiel_time::from_earth_time(jstTime);
+    const auto vanaTotd = vanadiel_time::get_totd(vanaTime);
+    const auto vanaHour = vanadiel_time::get_hour(vanaTime);
+
+    // Static variables for the next tick
+    static auto nextVHourlyUpdate = std::chrono::ceil<xi::vanadiel_clock::hours>(vanaTime);
+    static auto prevTotd          = vanaTotd;
+
+    auto       runEarth  = false;
+    auto       runVana   = false;
+    auto       runTail   = false;
+    const auto phasePlan = timeservertickhelpers::MakePlan(jstTime >= nextHourlyTick, vanaTime >= nextVHourlyUpdate);
+    for (std::size_t index = 0; index < phasePlan.count; ++index)
+    {
+        switch (phasePlan.actions[index])
+        {
+            case timeservertickhelpers::Action::Earth:
+                runEarth = true;
+                break;
+            case timeservertickhelpers::Action::Vana:
+                runVana = true;
+                break;
+            case timeservertickhelpers::Action::Tail:
+                runTail = true;
+                break;
+        }
+    }
+
     // Hourly ticks
-    if (jstTime >= nextHourlyTick)
+    if (runEarth)
     {
         if (jstHour == 0)
         {
@@ -128,16 +158,7 @@ auto time_server(Scheduler& scheduler, MapConfig config) -> Task<void>
     // Note: Vana'diel minute is equal to the tick interval (2400ms). It is possible to miss a minute if there is
     //       variance in the tick time.
 
-    // Vana'diel time points
-    const auto vanaTime = vanadiel_time::from_earth_time(jstTime);
-    const auto vanaTotd = vanadiel_time::get_totd(vanaTime);
-    const auto vanaHour = vanadiel_time::get_hour(vanaTime);
-
-    // Static variables for the next tick
-    static auto nextVHourlyUpdate = std::chrono::ceil<xi::vanadiel_clock::hours>(vanaTime);
-    static auto prevTotd          = vanaTotd;
-
-    if (vanaTime >= nextVHourlyUpdate)
+    if (runVana)
     {
         const auto vanaTickPlan = timeservervanatickhelpers::MakePlan(vanaHour, vanaTotd != prevTotd);
         for (std::size_t index = 0; index < vanaTickPlan.count; ++index)
@@ -207,31 +228,34 @@ auto time_server(Scheduler& scheduler, MapConfig config) -> Task<void>
         nextVHourlyUpdate = std::chrono::ceil<xi::vanadiel_clock::hours>(vanaTime);
     }
 
-    for (const auto action : timeserverticktailhelpers::MakePlan())
+    if (runTail)
     {
-        switch (action)
+        for (const auto action : timeserverticktailhelpers::MakePlan())
         {
-            case timeserverticktailhelpers::Action::TriggerTimer:
-                CTriggerHandler::getInstance()->triggerTimer();
-                break;
-            case timeserverticktailhelpers::Action::TransportTimer:
-                CTransportHandler::getInstance()->TransportTimer();
-                break;
-            case timeserverticktailhelpers::Action::CheckInstance:
-                co_await instanceutils::CheckInstance(scheduler, config);
-                break;
-            case timeserverticktailhelpers::Action::ProcessLoadQueue:
-                co_await zoneutils::ProcessLoadQueue(scheduler, config);
-                break;
-            case timeserverticktailhelpers::Action::OnTimeServerTick:
-                luautils::OnTimeServerTick();
-                break;
-            case timeserverticktailhelpers::Action::ReloadFilewatchList:
-                luautils::TryReloadFilewatchList();
-                break;
-            case timeserverticktailhelpers::Action::OnModuleTimeServerTick:
-                moduleutils::OnTimeServerTick();
-                break;
+            switch (action)
+            {
+                case timeserverticktailhelpers::Action::TriggerTimer:
+                    CTriggerHandler::getInstance()->triggerTimer();
+                    break;
+                case timeserverticktailhelpers::Action::TransportTimer:
+                    CTransportHandler::getInstance()->TransportTimer();
+                    break;
+                case timeserverticktailhelpers::Action::CheckInstance:
+                    co_await instanceutils::CheckInstance(scheduler, config);
+                    break;
+                case timeserverticktailhelpers::Action::ProcessLoadQueue:
+                    co_await zoneutils::ProcessLoadQueue(scheduler, config);
+                    break;
+                case timeserverticktailhelpers::Action::OnTimeServerTick:
+                    luautils::OnTimeServerTick();
+                    break;
+                case timeserverticktailhelpers::Action::ReloadFilewatchList:
+                    luautils::TryReloadFilewatchList();
+                    break;
+                case timeserverticktailhelpers::Action::OnModuleTimeServerTick:
+                    moduleutils::OnTimeServerTick();
+                    break;
+            }
         }
     }
 
