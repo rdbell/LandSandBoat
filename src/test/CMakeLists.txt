@@ -1471,6 +1471,8 @@ set(SOURCES
     test_char_add_item_persistence_failure_6909.cpp
     test_char_add_item_success_packets_6910.h
     test_char_add_item_success_packets_6910.cpp
+    test_char_timer_packet_plan_6911.h
+    test_char_timer_packet_plan_6911.cpp
     test_temp_item_clear_6872.h
     test_temp_item_clear_6872.cpp
     test_equip_policy_1516.h

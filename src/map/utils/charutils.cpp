@@ -101,6 +101,7 @@
 #include "char_add_item_insert_failure.h"
 #include "char_add_item_persistence_failure.h"
 #include "char_add_item_success_packets.h"
+#include "char_timer_packet_plan.h"
 #include "char_trade_item_plan.h"
 #include "char_unity_leader_capacity.h"
 #include "char_unity_ranking_packets.h"
@@ -7810,7 +7811,8 @@ uint16 getWideScanRange(CCharEntity* PChar)
 
 void SendTimerPacket(CCharEntity* PChar, uint32 seconds)
 {
-    PChar->pushPacket<GP_SERV_COMMAND_BATTLEFIELD>(seconds);
+    const auto plan = timerpackethelpers::BuildTimerPlan(seconds);
+    PChar->pushPacket<GP_SERV_COMMAND_BATTLEFIELD>(plan.seconds);
 }
 
 void SendTimerPacket(CCharEntity* PChar, timer::duration dur)
@@ -7821,7 +7823,11 @@ void SendTimerPacket(CCharEntity* PChar, timer::duration dur)
 
 void SendClearTimerPacket(CCharEntity* PChar)
 {
-    PChar->pushPacket<GP_SERV_COMMAND_BATTLEFIELD>();
+    const auto plan = timerpackethelpers::BuildClearPlan();
+    if (plan.action == timerpackethelpers::Action::ClearTimer)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_BATTLEFIELD>();
+    }
 }
 
 earth_time::time_point getTraverserEpoch(CCharEntity* PChar)
