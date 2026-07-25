@@ -604,9 +604,89 @@ xi.weaponskills.hybridWeaponskillMagicBonusFTP = function(magicdmg, physicaldmg,
     return math.floor(magicdmg + bonusFTP * physicaldmg)
 end
 
+-----------------------------------
+-- Pure: hybrid WS magic product composition (slice 6769 / 6652 / 6676)
+-- Parity: internal/wsformula HybridWeaponskillMagic*
+-----------------------------------
+
+-- Mid-product after ability bonuses, through bonus-fTP and resist/shell floors.
+-- Host applies handleSevereDamage to the result.
+-- params: afterAbility, physicaldmg, hasBonusFTP, bonusFTP, resist, damageAdj
+xi.weaponskills.hybridWeaponskillMagicPreSevereFromParams = function(params)
+    params = params or {}
+    local bonusFTP = xi.weaponskills.bonusFTPOrZero(
+        not not params.hasBonusFTP, params.bonusFTP or 0)
+    local dmg = xi.weaponskills.hybridWeaponskillMagicBonusFTP(
+        params.afterAbility or 0,
+        params.physicaldmg or 0,
+        bonusFTP
+    )
+    return xi.weaponskills.magicMitigationFloors(
+        dmg, params.resist or 1, params.damageAdj or 1)
+end
+
+-- Post-severe product through final floor. When useAfterMitigate and damage
+-- still warrants Phalanx/OFA/Stoneskin, afterMitigate is the host result.
+-- params: afterSevere, absorb, nullify, afterMitigate, useAfterMitigate
+xi.weaponskills.hybridWeaponskillMagicFinalFromParams = function(params)
+    params = params or {}
+    local dmg = xi.weaponskills.hybridMagicPostSevere(
+        params.afterSevere or 0,
+        params.absorb or 1,
+        params.nullify or 1
+    )
+    if xi.weaponskills.hybridMagicShouldMitigate(dmg) and params.useAfterMitigate then
+        dmg = params.afterMitigate or 0
+    end
+    return xi.weaponskills.floorHybridMagicFinal(dmg)
+end
+
+-- Full product once entity residual injects are known.
+-- params: physicaldmg, ftp, magicDamageMod, allWSDMG, perWSWSD,
+--   afterAbility + useAfterAbility, hasBonusFTP, bonusFTP, resist, damageAdj,
+--   afterSevere + useAfterSevere, absorb, nullify,
+--   afterMitigate + useAfterMitigate
+xi.weaponskills.hybridWeaponskillMagicFromParams = function(params)
+    params = params or {}
+    local dmg = xi.weaponskills.hybridWeaponskillMagicBase(
+        params.physicaldmg or 0,
+        params.ftp or 0,
+        params.magicDamageMod or 0,
+        params.allWSDMG or 0,
+        params.perWSWSD or 0
+    )
+    if params.useAfterAbility then
+        dmg = params.afterAbility or 0
+    end
+
+    local pre = xi.weaponskills.hybridWeaponskillMagicPreSevereFromParams({
+        afterAbility = dmg,
+        physicaldmg  = params.physicaldmg or 0,
+        hasBonusFTP  = params.hasBonusFTP,
+        bonusFTP     = params.bonusFTP or 0,
+        resist       = params.resist or 1,
+        damageAdj    = params.damageAdj or 1,
+    })
+
+    local afterSevere = pre
+    if params.useAfterSevere then
+        afterSevere = params.afterSevere or 0
+    end
+
+    return xi.weaponskills.hybridWeaponskillMagicFinalFromParams({
+        afterSevere      = afterSevere,
+        absorb           = params.absorb or 1,
+        nullify          = params.nullify or 1,
+        afterMitigate    = params.afterMitigate or 0,
+        useAfterMitigate = params.useAfterMitigate,
+    })
+end
+
+-- Host residual: addBonusesAbility, resist rate, damage adj, severe damage,
+-- absorb/nullify, Phalanx/OFA/Stoneskin. Pure product: hybridWeaponskillMagic*.
 local function calculateHybridMagicDamage(tp, physicaldmg, attacker, target, wsParams, calcParams, wsID)
     local ftp = xi.weaponskills.fTP(tp, wsParams.ftpMod)
-    local magicdmg = xi.weaponskills.hybridWeaponskillMagicBase(
+    local base = xi.weaponskills.hybridWeaponskillMagicBase(
         physicaldmg,
         ftp,
         attacker:getMod(xi.mod.MAGIC_DAMAGE),
@@ -614,33 +694,58 @@ local function calculateHybridMagicDamage(tp, physicaldmg, attacker, target, wsP
         attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID)
     )
 
-    magicdmg = math.floor(addBonusesAbility(attacker, wsParams.ele, target, magicdmg, wsParams))
-    magicdmg = xi.weaponskills.hybridWeaponskillMagicBonusFTP(
-        magicdmg,
-        physicaldmg,
-        xi.weaponskills.bonusFTPOrZero(calcParams.bonusfTP ~= nil, calcParams.bonusfTP or 0)
-    )
+    local afterAbility = math.floor(addBonusesAbility(attacker, wsParams.ele, target, base, wsParams))
+    local resist       = xi.combat.magicHitRate.calculateResistRate(
+        attacker, target, 0, wsParams.skill, 0, wsParams.ele, 0, 0, calcParams.bonusAcc)
+    local damageAdj    = xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false)
 
-    local resist    = xi.combat.magicHitRate.calculateResistRate(attacker, target, 0, wsParams.skill, 0, wsParams.ele, 0, 0, calcParams.bonusAcc)
-    local damageAdj = xi.combat.damage.calculateDamageAdjustment(target, false, true, false, false)
-    magicdmg        = xi.weaponskills.magicMitigationFloors(magicdmg, resist, damageAdj)
-    magicdmg        = math.floor(target:handleSevereDamage(magicdmg, false))
+    local preSevere = xi.weaponskills.hybridWeaponskillMagicPreSevereFromParams({
+        afterAbility = afterAbility,
+        physicaldmg  = physicaldmg,
+        hasBonusFTP  = calcParams.bonusfTP ~= nil,
+        bonusFTP     = calcParams.bonusfTP or 0,
+        resist       = resist,
+        damageAdj    = damageAdj,
+    })
 
-    if xi.weaponskills.hybridMagicPositive(magicdmg) then
-        magicdmg = xi.weaponskills.hybridMagicPostSevere(
-            magicdmg,
-            xi.spells.damage.calculateAbsorption(target, wsParams.ele, true),
-            xi.spells.damage.calculateNullification(target, wsParams.ele, true, false)
-        )
+    local afterSevere = math.floor(target:handleSevereDamage(preSevere, false))
+
+    local absorb  = 1
+    local nullify = 1
+    if xi.weaponskills.hybridMagicPositive(afterSevere) then
+        absorb  = xi.spells.damage.calculateAbsorption(target, wsParams.ele, true)
+        nullify = xi.spells.damage.calculateNullification(target, wsParams.ele, true, false)
     end
 
-    if xi.weaponskills.hybridMagicShouldMitigate(magicdmg) then -- handle nonzero damage if previous function does not absorb or nullify
-        magicdmg = utils.handlePhalanx(target, magicdmg)
-        magicdmg = utils.handleOneForAll(target, magicdmg)
-        magicdmg = utils.handleStoneskin(target, magicdmg)
+    local afterAbsorb = xi.weaponskills.hybridMagicPostSevere(afterSevere, absorb, nullify)
+    local afterMitigate = afterAbsorb
+    local useAfterMitigate = false
+    if xi.weaponskills.hybridMagicShouldMitigate(afterAbsorb) then
+        afterMitigate = utils.handlePhalanx(target, afterAbsorb)
+        afterMitigate = utils.handleOneForAll(target, afterMitigate)
+        afterMitigate = utils.handleStoneskin(target, afterMitigate)
+        useAfterMitigate = true
     end
 
-    return xi.weaponskills.floorHybridMagicFinal(magicdmg)
+    return xi.weaponskills.hybridWeaponskillMagicFromParams({
+        physicaldmg      = physicaldmg,
+        ftp              = ftp,
+        magicDamageMod   = attacker:getMod(xi.mod.MAGIC_DAMAGE),
+        allWSDMG         = attacker:getMod(xi.mod.ALL_WSDMG_ALL_HITS),
+        perWSWSD         = attacker:getMod(xi.mod.WEAPONSKILL_DAMAGE_BASE + wsID),
+        useAfterAbility  = true,
+        afterAbility     = afterAbility,
+        hasBonusFTP      = calcParams.bonusfTP ~= nil,
+        bonusFTP         = calcParams.bonusfTP or 0,
+        resist           = resist,
+        damageAdj        = damageAdj,
+        useAfterSevere   = true,
+        afterSevere      = afterSevere,
+        absorb           = absorb,
+        nullify          = nullify,
+        useAfterMitigate = useAfterMitigate,
+        afterMitigate    = afterMitigate,
+    })
 end
 
 -- returns ammo used, if any
