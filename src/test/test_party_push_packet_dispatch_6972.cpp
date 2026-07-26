@@ -38,12 +38,13 @@ auto runPartyPushPacketDispatch6972SelfTests() -> bool
     auto packet = std::make_unique<CBasicPacket>();
     packet->setType(0x4321);
     party.PushPacket(sender.id, 0, packet);
+    packet->setType(0x1234);
 
     bool ok = expect(sender.getPacketCount() == 0, "sender is excluded") &&
               expect(peer.getPacketCount() == 1, "eligible peer receives packet");
     if (peer.getPacketCount() == 1)
     {
-        ok = expect(peer.getPacketList().front()->getType() == 0x4321, "peer receives packet copy") && ok;
+        ok = expect(peer.getPacketList().front()->getType() == 0x4321, "peer receives packet copy isolated from source mutation") && ok;
     }
     sender.PParty = nullptr;
     peer.PParty   = nullptr;
