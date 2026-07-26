@@ -831,6 +831,7 @@ auto runCharNameLookup6888SelfTests() -> bool;
 auto runForcedSynthCriticalFail6889SelfTests() -> bool;
 auto runSynthCriticalFail7076SelfTests() -> bool;
 auto runSynthDone7077SelfTests() -> bool;
+auto runSynthStart7078SelfTests() -> bool;
 auto runCharSessionUpdate6890SelfTests() -> bool;
 auto runCharLocalPlayerPackets6891SelfTests() -> bool;
 auto runCharPartialLogPackets6892SelfTests() -> bool;
@@ -3378,6 +3379,7 @@ namespace
         ok = runForcedSynthCriticalFail6889SelfTests() && ok;
         ok = runSynthCriticalFail7076SelfTests() && ok;
         ok = runSynthDone7077SelfTests() && ok;
+        ok = runSynthStart7078SelfTests() && ok;
         ok = runCharSessionUpdate6890SelfTests() && ok;
         ok = runCharLocalPlayerPackets6891SelfTests() && ok;
         ok = runCharPartialLogPackets6892SelfTests() && ok;

@@ -25,6 +25,7 @@
 
 #include "synth_critical_fail.h"
 #include "synth_done.h"
+#include "synth_start.h"
 
 #include "charutils.h"
 #include "common/database.h"
@@ -1125,45 +1126,75 @@ void doSynthSkillUp(CCharEntity* PChar)
  ************************/
 void startSynth(CCharEntity* PChar, const SynthOffer& offer)
 {
-    PChar->m_LastSynthTime = timer::now();
+    const auto timestampPlan = synthstarthelpers::MakePlan(false, false);
+    if (timestampPlan.recordLastSynthTime)
+    {
+        PChar->m_LastSynthTime = timer::now();
+    }
 
-    if (!resolveRecipe(PChar, offer))
+    const auto recipePlan = synthstarthelpers::MakePlan(resolveRecipe(PChar, offer), false);
+    if (!recipePlan.startTransaction)
     {
         return;
     }
 
-    auto synthTransaction = SynthTransaction::start(PChar, offer);
-    if (!synthTransaction)
+    auto       synthTransaction = SynthTransaction::start(PChar, offer);
+    const auto plan             = synthstarthelpers::MakePlan(true, synthTransaction != nullptr);
+    if (plan.warnClaimFailure)
     {
         ShowWarningFmt("startSynth: failed to claim ingredients for {}", PChar->getName());
+    }
+    if (plan.sendCancelBadRecipe)
+    {
         PChar->pushPacket<GP_SERV_COMMAND_COMBINE_ANS>(PChar, SynthesisResult::CancelBadRecipe);
+    }
+    if (!plan.consumeCrystal)
+    {
         return;
     }
 
     const auto effect = crystalProps(offer.crystal.itemId).effect;
 
-    PChar->addTransaction(std::move(synthTransaction))->consumeCrystal();
-
-    uint8 result = handleSynthResult(PChar);
-
-    // Calculate what craft this recipe "belongs" to based on highest skill required
-    uint32 skillType    = 0;
-    uint32 highestSkill = 0;
-    for (uint8 skillID = SKILL_WOODWORKING; skillID <= SKILL_COOKING; ++skillID)
+    if (plan.consumeCrystal)
     {
-        if (const uint8 skillRequired = PChar->craftState().skillRequired(skillID - SKILL_WOODWORKING); skillRequired > highestSkill)
-        {
-            skillType    = skillID;
-            highestSkill = skillRequired;
-        }
+        PChar->addTransaction(std::move(synthTransaction))->consumeCrystal();
     }
 
-    PChar->animation = ANIMATION_SYNTH;
-    PChar->updatemask |= UPDATE_HP;
-    PChar->pushPacket<CCharStatusPacket>(PChar);
-    PChar->startSynth(static_cast<SKILLTYPE>(skillType));
+    uint8 result{};
+    if (plan.resolveResult)
+    {
+        result = handleSynthResult(PChar);
+    }
 
-    PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_EFFECT>(PChar, effect, result));
+    // Calculate what craft this recipe "belongs" to based on highest skill required
+    std::array<uint8, SynthMaxIngredients> skillRequirements{};
+    for (uint8 skillID = SKILL_WOODWORKING; skillID <= SKILL_COOKING; ++skillID)
+    {
+        skillRequirements[skillID - SKILL_WOODWORKING] = PChar->craftState().skillRequired(skillID - SKILL_WOODWORKING);
+    }
+    const auto skillType = synthstarthelpers::HighestRequiredCraft(skillRequirements);
+
+    if (plan.setAnimationSynth)
+    {
+        PChar->animation = ANIMATION_SYNTH;
+    }
+    if (plan.setUpdateHP)
+    {
+        PChar->updatemask |= UPDATE_HP;
+    }
+    if (plan.sendCharStatus)
+    {
+        PChar->pushPacket<CCharStatusPacket>(PChar);
+    }
+    if (plan.startCharacterSynth)
+    {
+        PChar->startSynth(static_cast<SKILLTYPE>(skillType));
+    }
+
+    if (plan.broadcastSynthEffect)
+    {
+        PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_EFFECT>(PChar, effect, result));
+    }
 }
 
 void sendSynthDone(CCharEntity* PChar)
