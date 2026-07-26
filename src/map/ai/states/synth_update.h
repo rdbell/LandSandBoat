@@ -1,5 +1,7 @@
 #pragma once
 
+#include "modifier.h"
+
 // Pure CSynthState::Update / SynthReady gates (slice 6315).
 // Dual-wire of Go aistate.SynthReady / SynthUpdatePure
 // (internal/aistate/synth.go). Host owns doSynthCriticalFail / sendSynthDone
@@ -15,6 +17,24 @@ namespace synthupdate
 constexpr auto isReady(const bool remainingNegative, const bool isAlive) -> bool
 {
     return remainingNegative && isAlive;
+}
+
+// speedModID mirrors CSynthState's constructor skill switch. Non-craft skills
+// return NONE and must not consume a synthesis-speed modifier.
+constexpr auto speedModID(const uint8 skillID) -> Mod
+{
+    switch (skillID)
+    {
+        case 49: return Mod::SYNTH_SPEED_WOODWORKING;
+        case 50: return Mod::SYNTH_SPEED_SMITHING;
+        case 51: return Mod::SYNTH_SPEED_GOLDSMITHING;
+        case 52: return Mod::SYNTH_SPEED_CLOTHCRAFT;
+        case 53: return Mod::SYNTH_SPEED_LEATHERCRAFT;
+        case 54: return Mod::SYNTH_SPEED_BONECRAFT;
+        case 55: return Mod::SYNTH_SPEED_ALCHEMY;
+        case 56: return Mod::SYNTH_SPEED_COOKING;
+        default: return Mod::NONE;
+    }
 }
 
 // shouldCriticalFailExit reports whether Update should critical-fail and exit.

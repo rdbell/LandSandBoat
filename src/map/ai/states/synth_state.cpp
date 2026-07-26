@@ -31,34 +31,10 @@ CSynthState::CSynthState(CCharEntity* PChar, SKILLTYPE skill)
 : CState(PChar, PChar->targid)
 , m_PEntity(PChar)
 {
-    switch (skill)
+    const auto speedMod = synthupdate::speedModID(static_cast<uint8>(skill));
+    if (speedMod != Mod::NONE)
     {
-        case SKILL_WOODWORKING:
-            m_synthFinishTime -= std::chrono::milliseconds(PChar->getMod(Mod::SYNTH_SPEED_WOODWORKING));
-            break;
-        case SKILL_SMITHING:
-            m_synthFinishTime -= std::chrono::milliseconds(PChar->getMod(Mod::SYNTH_SPEED_SMITHING));
-            break;
-        case SKILL_GOLDSMITHING:
-            m_synthFinishTime -= std::chrono::milliseconds(PChar->getMod(Mod::SYNTH_SPEED_GOLDSMITHING));
-            break;
-        case SKILL_CLOTHCRAFT:
-            m_synthFinishTime -= std::chrono::milliseconds(PChar->getMod(Mod::SYNTH_SPEED_CLOTHCRAFT));
-            break;
-        case SKILL_LEATHERCRAFT:
-            m_synthFinishTime -= std::chrono::milliseconds(PChar->getMod(Mod::SYNTH_SPEED_LEATHERCRAFT));
-            break;
-        case SKILL_BONECRAFT:
-            m_synthFinishTime -= std::chrono::milliseconds(PChar->getMod(Mod::SYNTH_SPEED_BONECRAFT));
-            break;
-        case SKILL_ALCHEMY:
-            m_synthFinishTime -= std::chrono::milliseconds(PChar->getMod(Mod::SYNTH_SPEED_ALCHEMY));
-            break;
-        case SKILL_COOKING:
-            m_synthFinishTime -= std::chrono::milliseconds(PChar->getMod(Mod::SYNTH_SPEED_COOKING));
-            break;
-        default:
-            break;
+        m_synthFinishTime -= std::chrono::milliseconds(PChar->getMod(speedMod));
     }
 }
 

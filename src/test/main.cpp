@@ -1670,6 +1670,7 @@ auto runC2sItemDumpHandlerHost6446SelfTests() -> bool;
 auto runC2sItemMoveHandlerHost6447SelfTests() -> bool;
 auto runC2sTranslateHandlerHost6448SelfTests() -> bool;
 auto runSynthUpdate6315SelfTests() -> bool;
+auto runSynthSpeed7090SelfTests() -> bool;
 auto runItemUpdate6316SelfTests() -> bool;
 auto runStateSetTarget6317SelfTests() -> bool;
 auto runDeathRaisePlan6318SelfTests() -> bool;
@@ -4221,6 +4222,7 @@ namespace
         ok = runC2sItemMoveHandlerHost6447SelfTests() && ok;
         ok = runC2sTranslateHandlerHost6448SelfTests() && ok;
         ok = runSynthUpdate6315SelfTests() && ok;
+        ok = runSynthSpeed7090SelfTests() && ok;
         ok = runItemUpdate6316SelfTests() && ok;
         ok = runStateSetTarget6317SelfTests() && ok;
         ok = runDeathRaisePlan6318SelfTests() && ok;

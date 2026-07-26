@@ -3277,6 +3277,8 @@ set(SOURCES
     test_c2s_translate_handler_host_6448.cpp
     test_synth_update_6315.h
     test_synth_update_6315.cpp
+    test_synth_speed_7090.h
+    test_synth_speed_7090.cpp
     test_item_update_6316.h
     test_item_update_6316.cpp
     test_state_set_target_6317.h
