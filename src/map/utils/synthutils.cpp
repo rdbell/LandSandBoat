@@ -27,6 +27,7 @@
 #include "synth_critical_fail.h"
 #include "synth_difficulty.h"
 #include "synth_done.h"
+#include "synth_material_loss.h"
 #include "synth_recipe_load.h"
 #include "synth_recipe_resolve.h"
 #include "synth_result.h"
@@ -631,14 +632,7 @@ void handleMaterialLoss(CCharEntity* PChar)
     int16 breakTypeReduction      = PChar->getMod((Mod)((int32)Mod::SYNTH_MATERIAL_LOSS_WOODWORKING + currentCraft - SKILL_WOODWORKING));
     int16 synthDifficulty         = getSynthDifficulty(PChar, currentCraft);
 
-    if (synthDifficulty < 0)
-    {
-        synthDifficulty = 0;
-    }
-
-    // Break Chance.
-    // Clamp note: https://wiki-ffo-jp.translate.goog/html/36626.html?_x_tr_sl=ja&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=sc
-    int16 breakChance = std::clamp(50 - breakGlobalReduction - breakElementalReduction - breakTypeReduction + 5 * synthDifficulty, 20, 100);
+    const auto breakChance = synthmateriallosshelpers::CalculateBreakChance(breakGlobalReduction, breakElementalReduction, breakTypeReduction, synthDifficulty);
 
     for (uint8 idx = 0; idx < SynthMaxIngredients; ++idx)
     {
@@ -647,8 +641,8 @@ void handleMaterialLoss(CCharEntity* PChar)
             continue;
         }
 
-        const uint8 random = 1 + xirand::GetRandomNumber(100);
-        if (random <= breakChance)
+        const auto outcome = synthmateriallosshelpers::ResolveIngredient(xirand::GetRandomNumber(100), breakChance);
+        if (outcome == synthmateriallosshelpers::IngredientOutcome::Break)
         {
             craftState.markBroken(idx);
         }
