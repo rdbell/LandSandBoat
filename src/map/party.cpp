@@ -597,7 +597,13 @@ std::vector<CParty::partyInfo_t> CParty::GetPartyInfo() const
 {
     std::vector<CParty::partyInfo_t> memberinfo;
 
-    if (!partyhelpers::ShouldQueryPartyInfo(m_PartyType == PARTY_PCS))
+    const auto queryPlan = partyhelpers::PlanGetPartyInfoQuery(
+        m_PartyType == PARTY_PCS,
+        m_PAlliance != nullptr,
+        m_PAlliance ? m_PAlliance->m_AllianceID : 0,
+        m_PartyID);
+
+    if (!queryPlan.query)
     {
         ShowWarning("%s", partyhelpers::FormatGetPartyInfoMobWarning());
         return memberinfo;
@@ -606,9 +612,9 @@ std::vector<CParty::partyInfo_t> CParty::GetPartyInfo() const
     const auto rset = db::preparedStmt("SELECT chars.charid, partyid, allianceid, charname, partyflag, pos_zone, pos_prevzone FROM accounts_parties "
                                        "LEFT JOIN chars ON accounts_parties.charid = chars.charid WHERE "
                                        "(allianceid <> 0 AND allianceid = ?) OR partyid = ? ORDER BY partyflag & ?, timestamp",
-                                       partyhelpers::GetPartyInfoAllianceIDInject(m_PAlliance != nullptr, m_PAlliance ? m_PAlliance->m_AllianceID : 0),
-                                       m_PartyID,
-                                       partyhelpers::GetPartyInfoOrderFlags);
+                                       queryPlan.allianceID,
+                                       queryPlan.partyID,
+                                       queryPlan.orderFlags);
     if (rset && rset->rowsCount())
     {
         while (rset->next())

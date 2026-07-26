@@ -1021,6 +1021,34 @@ inline auto GetPartyInfoAllianceIDInject(const bool hasAlliance, const uint32 al
 // GetPartyInfoOrderFlags is PARTY_SECOND | PARTY_THIRD used in ORDER BY partyflag & ?.
 constexpr uint16 GetPartyInfoOrderFlags = 0x0001 | 0x0002;
 
+// get_party_info_query_plan is the SQL dispatch and positional bindings for
+// CParty::GetPartyInfo. Mob parties warn and return before this plan is used.
+struct get_party_info_query_plan
+{
+    bool   query      = false;
+    uint32 allianceID = 0;
+    uint32 partyID    = 0;
+    uint16 orderFlags = 0;
+};
+
+// PlanGetPartyInfoQuery mirrors GetPartyInfo's PC-party gate and the three
+// prepared-statement values: alliance ID, party ID, then party flag mask.
+inline auto PlanGetPartyInfoQuery(const bool isPCParty, const bool hasAlliance, const uint32 allianceID, const uint32 partyID)
+    -> get_party_info_query_plan
+{
+    if (!ShouldQueryPartyInfo(isPCParty))
+    {
+        return {};
+    }
+
+    return {
+        .query      = true,
+        .allianceID = GetPartyInfoAllianceIDInject(hasAlliance, allianceID),
+        .partyID    = partyID,
+        .orderFlags = GetPartyInfoOrderFlags,
+    };
+}
+
 // PartyQMFlag is PARTY_QM (0x0010).
 constexpr uint16 PartyQMFlag = 0x0010;
 
