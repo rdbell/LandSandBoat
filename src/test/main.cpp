@@ -371,6 +371,7 @@ auto runPartySetLeaderHost6996SelfTests() -> bool;
 auto runAlliancePartyLeaderChangeHost6997SelfTests() -> bool;
 auto runPartySetMobLeaderHost6998SelfTests() -> bool;
 auto runPartyRemoveMobLeaderHost6999SelfTests() -> bool;
+auto runPartyRemoveMobLeaderRolesHost7006SelfTests() -> bool;
 auto runPartyDisbandMobHost7000SelfTests() -> bool;
 auto runPartyPopMemberHost7001SelfTests() -> bool;
 auto runPartyPushMemberHost7002SelfTests() -> bool;
@@ -2890,6 +2891,7 @@ namespace
         ok = runAlliancePartyLeaderChangeHost6997SelfTests() && ok;
         ok = runPartySetMobLeaderHost6998SelfTests() && ok;
         ok = runPartyRemoveMobLeaderHost6999SelfTests() && ok;
+        ok = runPartyRemoveMobLeaderRolesHost7006SelfTests() && ok;
         ok = runPartyDisbandMobHost7000SelfTests() && ok;
         ok = runPartyPopMemberHost7001SelfTests() && ok;
         ok = runPartyPushMemberHost7002SelfTests() && ok;
