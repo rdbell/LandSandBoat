@@ -359,6 +359,7 @@ auto runPartyEffectsChanged6984SelfTests() -> bool;
 auto runPartyPushEffectsCompletion6985SelfTests() -> bool;
 auto runPartyRefreshFlags6986SelfTests() -> bool;
 auto runPartyDisableSync6987SelfTests() -> bool;
+auto runPartyMemberCountHost6988SelfTests() -> bool;
 auto runTreasurePassAllVotedResolve6965SelfTests() -> bool;
 auto runTreasureFlush6959SelfTests() -> bool;
 auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool;
@@ -2860,6 +2861,7 @@ namespace
         ok = runPartyPushEffectsCompletion6985SelfTests() && ok;
         ok = runPartyRefreshFlags6986SelfTests() && ok;
         ok = runPartyDisableSync6987SelfTests() && ok;
+        ok = runPartyMemberCountHost6988SelfTests() && ok;
         ok = runTreasurePassAllVotedResolve6965SelfTests() && ok;
         ok = runTreasureFlush6959SelfTests() && ok;
         ok = runTreasureUpdatePoolDispatch6960SelfTests() && ok;
