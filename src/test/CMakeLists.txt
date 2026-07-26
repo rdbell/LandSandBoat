@@ -2671,6 +2671,8 @@ set(SOURCES
     test_party_info_query_host_7017.cpp
     test_party_remote_add_host_7020.h
     test_party_remote_add_host_7020.cpp
+    test_alliance_remote_add_host_7023.h
+    test_alliance_remote_add_host_7023.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
