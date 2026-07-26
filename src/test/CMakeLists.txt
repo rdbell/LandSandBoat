@@ -2637,6 +2637,8 @@ set(SOURCES
     test_alliance_assign_leader_host_6994.cpp
     test_alliance_dissolve_local_host_6995.h
     test_alliance_dissolve_local_host_6995.cpp
+    test_party_set_leader_host_6996.h
+    test_party_set_leader_host_6996.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
