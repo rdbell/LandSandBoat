@@ -2685,6 +2685,8 @@ set(SOURCES
     test_char_look_save_host_7066.cpp
     test_char_stats_save_host_7067.h
     test_char_stats_save_host_7067.cpp
+    test_player_settings_save_host_7068.h
+    test_player_settings_save_host_7068.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
