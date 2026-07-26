@@ -2599,6 +2599,8 @@ set(SOURCES
     test_alliance_del_party_main_6973.cpp
     test_alliance_push_party_6974.h
     test_alliance_push_party_6974.cpp
+    test_alliance_construct_from_party_6975.h
+    test_alliance_construct_from_party_6975.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
