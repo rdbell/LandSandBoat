@@ -350,6 +350,7 @@ auto runAllianceDelPartyMain6973SelfTests() -> bool;
 auto runAlliancePushParty6974SelfTests() -> bool;
 auto runAllianceConstructFromParty6975SelfTests() -> bool;
 auto runPartyConstructFromEntity6976SelfTests() -> bool;
+auto runPartyConstructRejectExisting6977SelfTests() -> bool;
 auto runTreasurePassAllVotedResolve6965SelfTests() -> bool;
 auto runTreasureFlush6959SelfTests() -> bool;
 auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool;
@@ -2842,6 +2843,7 @@ namespace
         ok = runAlliancePushParty6974SelfTests() && ok;
         ok = runAllianceConstructFromParty6975SelfTests() && ok;
         ok = runPartyConstructFromEntity6976SelfTests() && ok;
+        ok = runPartyConstructRejectExisting6977SelfTests() && ok;
         ok = runTreasurePassAllVotedResolve6965SelfTests() && ok;
         ok = runTreasureFlush6959SelfTests() && ok;
         ok = runTreasureUpdatePoolDispatch6960SelfTests() && ok;
