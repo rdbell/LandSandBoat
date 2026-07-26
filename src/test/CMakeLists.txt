@@ -2607,6 +2607,8 @@ set(SOURCES
     test_party_construct_reject_existing_6977.cpp
     test_party_reload_treasure_pool_6980.h
     test_party_reload_treasure_pool_6980.cpp
+    test_party_reload_treasure_pool_alliance_6981.h
+    test_party_reload_treasure_pool_alliance_6981.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
