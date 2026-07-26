@@ -30,6 +30,7 @@
 #include "synth_recipe_load.h"
 #include "synth_recipe_resolve.h"
 #include "synth_result.h"
+#include "synth_result_dispatch.h"
 #include "synth_start.h"
 
 #include "charutils.h"
@@ -614,22 +615,7 @@ auto handleSynthResult(CCharEntity* PChar) -> uint8
 
     PChar->craftState().setResult(synthResult);
 
-    switch (synthResult)
-    {
-        case SYNTHESIS_FAIL:
-            synthResult = RESULT_FAIL;
-            break;
-        case SYNTHESIS_SUCCESS:
-            synthResult = RESULT_SUCCESS;
-            break;
-        case SYNTHESIS_HQ:
-        case SYNTHESIS_HQ2:
-        case SYNTHESIS_HQ3:
-            synthResult = RESULT_HQ;
-            break;
-    }
-
-    return synthResult;
+    return synthresultdispatchhelpers::PacketResult(synthResult);
 }
 
 // Used in: LOCAL handleSynthFail
