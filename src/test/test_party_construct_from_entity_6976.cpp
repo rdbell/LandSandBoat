@@ -7,6 +7,7 @@
 
 namespace
 {
+
 auto expect(const bool condition, const char* const label) -> bool
 {
     if (!condition)
@@ -15,6 +16,7 @@ auto expect(const bool condition, const char* const label) -> bool
     }
     return condition;
 }
+
 } // namespace
 
 // Direct CParty(CBattleEntity*) characterization (slice 6976). The mob path
@@ -41,8 +43,19 @@ auto runPartyConstructFromEntity6976SelfTests() -> bool
     party.AddMember(&sixth);
     party.AddMember(&seventh);
 
-    return expect(party.GetPartyID() == 77, "party ID comes from entity") &&
-           expect(party.GetLeader() == &leader, "entity is leader") &&
-           expect(leader.PParty == &party, "leader is attached") &&
-           expect(party.members.size() == 7, "mob party does not enforce PC capacity");
+    const bool partyIDComesFromEntity = party.GetPartyID() == 77;
+    const bool entityIsLeader         = party.GetLeader() == &leader;
+    const bool leaderIsAttached       = leader.PParty == &party;
+    const bool mobPartyHasNoCapacity  = party.members.size() == 7;
+
+    for (auto* member : party.members)
+    {
+        member->PParty = nullptr;
+    }
+    party.members.clear();
+
+    return expect(partyIDComesFromEntity, "party ID comes from entity") &&
+           expect(entityIsLeader, "entity is leader") &&
+           expect(leaderIsAttached, "leader is attached") &&
+           expect(mobPartyHasNoCapacity, "mob party does not enforce PC capacity");
 }

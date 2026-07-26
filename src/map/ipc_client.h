@@ -39,6 +39,7 @@ class IPCClient final : public ipc::IPCMessageHandlerBase<IPCClient>
 {
 public:
     IPCClient(MapNetworking& networking, ZMQService& zmqService);
+    ~IPCClient();
 
     auto getZMQEndpointString() -> std::string;
     auto getZMQRoutingId() -> uint64;
@@ -130,12 +131,18 @@ namespace detail
 {
 
 auto client() -> IPCClient&;
+auto initialized() -> bool;
 
 } // namespace detail
 
 template <typename T>
 void send(const T& message)
 {
+    if (!detail::initialized())
+    {
+        return;
+    }
+
     detail::client().sendMessage(message);
 }
 

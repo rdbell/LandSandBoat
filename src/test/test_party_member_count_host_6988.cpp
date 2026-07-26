@@ -8,6 +8,7 @@
 
 namespace
 {
+
 auto expect(const bool condition, const char* const label) -> bool
 {
     if (!condition)
@@ -16,6 +17,7 @@ auto expect(const bool condition, const char* const label) -> bool
     }
     return condition;
 }
+
 } // namespace
 
 // Direct CParty::MemberCount characterization (slice 6988). Characters add
@@ -46,7 +48,11 @@ auto runPartyMemberCountHost6988SelfTests() -> bool
     wrappedCharacter.loc.destination = 102;
     wrappedCharacter.PTrusts.resize(255);
     wrappedParty.members = { &wrappedCharacter };
-    const bool wraps = expect(wrappedParty.MemberCount(102) == 0, "uint8 total wraps after member plus 255 trusts");
+    const bool wraps     = expect(wrappedParty.MemberCount(102) == 0, "uint8 total wraps after member plus 255 trusts");
+
+    inZoneCharacter.PTrusts.clear();
+    offZoneCharacter.PTrusts.clear();
+    wrappedCharacter.PTrusts.clear();
 
     return zone100 && zone101 && wraps;
 }

@@ -21,6 +21,7 @@
 
 #include <test/test_application.h>
 
+#include <common/database.h>
 #include <common/lua.h>
 #include <common/tracy.h>
 #include <map/utils/charutils.h>
@@ -2572,6 +2573,7 @@ namespace
 {
     auto runOmegaSelfTests() -> bool
     {
+        auto* const initializedTestDatabase = &db::getDatabase();
         bool ok = true;
         ok = runEarthTimeSelfTests() && ok;
         ok = runIPPSelfTests() && ok;
@@ -2862,6 +2864,10 @@ namespace
         ok = runTracyHexHelperSelfTests() && ok;
         ok = runTriggerAreaSelfTests() && ok;
         ok = runTriggerAreaDispatch2648SelfTests() && ok;
+        // Several isolated database tests intentionally replace the global
+        // backend. Resume the test application's SQLite backend for the map
+        // host characterization tests that follow.
+        db::setDatabase(initializedTestDatabase);
         ok = runTreasureCheckItems6958SelfTests() && ok;
         ok = runTreasureAddItemDispatch6961SelfTests() && ok;
         ok = runTreasureAddItemTimestamp6962SelfTests() && ok;
@@ -3760,6 +3766,7 @@ namespace
         ok = runS2CBlackEditPacketSelfTests() && ok;
         ok = runS2CBlackListPacketSelfTests() && ok;
         ok = runS2CCharStatusPacketSelfTests() && ok;
+        db::setDatabase(initializedTestDatabase);
         ok = runS2CCharSyncPacketSelfTests() && ok;
         ok = runS2CCharUpdatePacketSelfTests() && ok;
         ok = runS2CChatStdPacketSelfTests() && ok;
@@ -5122,11 +5129,11 @@ int main(int argc, char** argv)
 
     auto testApp = std::make_unique<TestApplication>(argc, argv);
 
+    const auto success = testApp->run();
+
     charutils::SetCharacterPersistenceSuppressedForTests(true);
     const auto omegaSelfTestsSuccess = runOmegaSelfTests();
     charutils::SetCharacterPersistenceSuppressedForTests(false);
-
-    const auto success = testApp->run();
 
     const auto exitCode = success && omegaSelfTestsSuccess ? EXIT_SUCCESS : EXIT_FAILURE;
 

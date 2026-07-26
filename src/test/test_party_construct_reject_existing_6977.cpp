@@ -7,6 +7,7 @@
 
 namespace
 {
+
 auto expect(const bool condition, const char* const label) -> bool
 {
     if (!condition)
@@ -15,6 +16,7 @@ auto expect(const bool condition, const char* const label) -> bool
     }
     return condition;
 }
+
 } // namespace
 
 // Direct CParty(CBattleEntity*) rejection characterization (slice 6977). An
@@ -28,8 +30,15 @@ auto runPartyConstructRejectExisting6977SelfTests() -> bool
     CParty existing(&entity);
     CParty rejected(&entity);
 
-    return expect(entity.PParty == &existing, "existing party remains attached") &&
-           expect(rejected.GetPartyID() == 0, "rejected constructor retains default ID") &&
-           expect(rejected.GetLeader() == nullptr, "rejected constructor has no leader") &&
-           expect(rejected.members.empty(), "rejected constructor has no members");
+    const bool existingPartyRemainsAttached = entity.PParty == &existing;
+    const bool rejectedRetainsDefaultID     = rejected.GetPartyID() == 0;
+    const bool rejectedHasNoLeader          = rejected.GetLeader() == nullptr;
+    const bool rejectedHasNoMembers         = rejected.members.empty();
+
+    entity.PParty = nullptr;
+
+    return expect(existingPartyRemainsAttached, "existing party remains attached") &&
+           expect(rejectedRetainsDefaultID, "rejected constructor retains default ID") &&
+           expect(rejectedHasNoLeader, "rejected constructor has no leader") &&
+           expect(rejectedHasNoMembers, "rejected constructor has no members");
 }

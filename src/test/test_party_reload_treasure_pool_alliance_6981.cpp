@@ -9,6 +9,7 @@
 
 namespace
 {
+
 auto expect(const bool condition, const char* const label) -> bool
 {
     if (!condition)
@@ -17,6 +18,7 @@ auto expect(const bool condition, const char* const label) -> bool
     }
     return condition;
 }
+
 } // namespace
 
 // Direct CParty::ReloadTreasurePool characterization (slice 6981). An
@@ -28,6 +30,7 @@ auto runPartyReloadTreasurePoolAlliance6981SelfTests() -> bool
     CTreasurePool firstPool(TreasurePoolType::Solo);
     CTreasurePool laterPool(TreasurePoolType::Solo);
     CCharEntity   self;
+    CCharEntity   oldPoolKeeper;
     CCharEntity   first;
     CCharEntity   later;
     CParty        ownParty(1);
@@ -54,6 +57,8 @@ auto runPartyReloadTreasurePoolAlliance6981SelfTests() -> bool
 
     self.PTreasurePool = &oldPool;
     oldPool.addMember(&self);
+    oldPoolKeeper.PTreasurePool = &oldPool;
+    oldPool.addMember(&oldPoolKeeper);
     first.PTreasurePool = &firstPool;
     firstPool.addMember(&first);
     later.PTreasurePool = &laterPool;
@@ -67,14 +72,15 @@ auto runPartyReloadTreasurePoolAlliance6981SelfTests() -> bool
                     expect(!oldPool.isMember(&self), "old pool removes self") &&
                     expect(!laterPool.isMember(&self), "later alliance candidate is not selected");
 
-    self.PTreasurePool  = nullptr;
-    first.PTreasurePool = nullptr;
-    later.PTreasurePool = nullptr;
-    self.PParty         = nullptr;
-    first.PParty        = nullptr;
-    later.PParty        = nullptr;
-    ownParty.m_PAlliance   = nullptr;
-    firstParty.m_PAlliance = nullptr;
-    laterParty.m_PAlliance = nullptr;
+    self.PTreasurePool          = nullptr;
+    oldPoolKeeper.PTreasurePool = nullptr;
+    first.PTreasurePool         = nullptr;
+    later.PTreasurePool         = nullptr;
+    self.PParty                 = nullptr;
+    first.PParty                = nullptr;
+    later.PParty                = nullptr;
+    ownParty.m_PAlliance        = nullptr;
+    firstParty.m_PAlliance      = nullptr;
+    laterParty.m_PAlliance      = nullptr;
     return ok;
 }

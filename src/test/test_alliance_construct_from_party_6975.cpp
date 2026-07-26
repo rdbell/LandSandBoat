@@ -11,6 +11,7 @@
 
 namespace
 {
+
 auto expect(const bool condition, const char* const label) -> bool
 {
     if (!condition)
@@ -37,6 +38,7 @@ public:
 private:
     db::Database* previous_;
 };
+
 } // namespace
 
 // Direct CAlliance(CBattleEntity*) characterization (slice 6975). A valid
@@ -58,11 +60,19 @@ auto runAllianceConstructFromParty6975SelfTests() -> bool
 
     const auto persistedLeader = db::preparedStmt("SELECT allianceid, partyflag FROM accounts_parties WHERE charid = ?", 1);
 
-    return expect(alliance.m_AllianceID == 42, "alliance ID comes from party") &&
-           expect(party.m_PAlliance == &alliance, "party is attached") &&
-           expect(alliance.partyList.size() == 1 && alliance.partyList.front() == &party, "party is sole list entry") &&
-           expect(alliance.getMainParty() == &party, "party is main party") &&
-           expect(persistedLeader && persistedLeader->next() && persistedLeader->get<uint32>("allianceid") == 42 &&
-                      persistedLeader->get<uint16>("partyflag") == (PARTY_LEADER | ALLIANCE_LEADER),
-                  "leader receives persisted alliance flags");
+    const bool allianceIDComesFromParty = alliance.m_AllianceID == 42;
+    const bool partyIsAttached          = party.m_PAlliance == &alliance;
+    const bool partyIsSoleListEntry     = alliance.partyList.size() == 1 && alliance.partyList.front() == &party;
+    const bool partyIsMain              = alliance.getMainParty() == &party;
+    const bool leaderPersisted          = persistedLeader && persistedLeader->next() && persistedLeader->get<uint32>("allianceid") == 42 &&
+                                          persistedLeader->get<uint16>("partyflag") == (PARTY_LEADER | ALLIANCE_LEADER);
+
+    party.m_PAlliance = nullptr;
+    leader.PParty     = nullptr;
+
+    return expect(allianceIDComesFromParty, "alliance ID comes from party") &&
+           expect(partyIsAttached, "party is attached") &&
+           expect(partyIsSoleListEntry, "party is sole list entry") &&
+           expect(partyIsMain, "party is main party") &&
+           expect(leaderPersisted, "leader receives persisted alliance flags");
 }

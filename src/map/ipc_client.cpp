@@ -92,6 +92,11 @@ auto message::detail::client() -> IPCClient&
     return *sClient;
 }
 
+auto message::detail::initialized() -> bool
+{
+    return sClient != nullptr;
+}
+
 void message::handle_incoming()
 {
     TracyZoneScoped;
@@ -104,6 +109,14 @@ IPCClient::IPCClient(MapNetworking& networking, ZMQService& zmqService)
 , channel_(zmqService.registerDealer(getZMQEndpointString(), getZMQRoutingId()))
 {
     TracyZoneScoped;
+}
+
+IPCClient::~IPCClient()
+{
+    if (sClient == this)
+    {
+        sClient = nullptr;
+    }
 }
 
 auto IPCClient::getZMQEndpointString() -> std::string
