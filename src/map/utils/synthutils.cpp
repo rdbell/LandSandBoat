@@ -27,6 +27,7 @@
 #include "synth_critical_fail.h"
 #include "synth_difficulty.h"
 #include "synth_done.h"
+#include "synth_failure.h"
 #include "synth_material_loss.h"
 #include "synth_recipe_load.h"
 #include "synth_recipe_resolve.h"
@@ -714,10 +715,7 @@ void handleSynthFail(CCharEntity* PChar)
     // Push "Synthesis failed" messages.
     uint16 currentZone = PChar->loc.zone->GetID();
 
-    if (currentZone &&
-        currentZone != ZONE_MONORAIL_PRE_RELEASE &&
-        currentZone != ZONE_49 &&
-        currentZone < MAX_ZONEID)
+    if (synthfailurehelpers::ShouldBroadcastFailure(currentZone))
     {
         PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_COMBINE_INF>(PChar, SynthesisResult::Failed));
     }
