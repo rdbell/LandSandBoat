@@ -829,6 +829,7 @@ auto runCharVarEntityOps6886SelfTests() -> bool;
 auto runHistoryWrite6887SelfTests() -> bool;
 auto runCharNameLookup6888SelfTests() -> bool;
 auto runForcedSynthCriticalFail6889SelfTests() -> bool;
+auto runSynthCriticalFail7076SelfTests() -> bool;
 auto runCharSessionUpdate6890SelfTests() -> bool;
 auto runCharLocalPlayerPackets6891SelfTests() -> bool;
 auto runCharPartialLogPackets6892SelfTests() -> bool;
@@ -3374,6 +3375,7 @@ namespace
         ok = runHistoryWrite6887SelfTests() && ok;
         ok = runCharNameLookup6888SelfTests() && ok;
         ok = runForcedSynthCriticalFail6889SelfTests() && ok;
+        ok = runSynthCriticalFail7076SelfTests() && ok;
         ok = runCharSessionUpdate6890SelfTests() && ok;
         ok = runCharLocalPlayerPackets6891SelfTests() && ok;
         ok = runCharPartialLogPackets6892SelfTests() && ok;

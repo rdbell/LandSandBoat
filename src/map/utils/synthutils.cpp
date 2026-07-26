@@ -23,6 +23,8 @@
 
 #include "utils/synthutils_capacity.h"
 
+#include "synth_critical_fail.h"
+
 #include "charutils.h"
 #include "common/database.h"
 #include "common/logging.h"
@@ -1202,34 +1204,53 @@ void doSynthCriticalFail(CCharEntity* PChar)
         return;
     }
 
-    auto& craftState = PChar->craftState();
+    auto&                                   craftState = PChar->craftState();
+    std::array<uint16, SynthMaxIngredients> ingredientItemIDs{};
     for (uint8 idx = 0; idx < SynthMaxIngredients; ++idx)
     {
-        if (craftState.ingredientItemId(idx) != 0)
+        ingredientItemIDs[idx] = craftState.ingredientItemId(idx);
+    }
+    const auto plan = synthcriticalfailhelpers::MakePlan(true, ingredientItemIDs, PChar->loc.zone->GetID());
+    for (uint8 idx = 0; idx < SynthMaxIngredients; ++idx)
+    {
+        if (plan.markBroken[idx])
         {
             craftState.markBroken(idx);
         }
     }
 
     // Push "Synthesis failed" messages.
-    uint16 currentZone = PChar->loc.zone->GetID();
-
-    if (currentZone &&
-        currentZone != ZONE_MONORAIL_PRE_RELEASE &&
-        currentZone != ZONE_49 &&
-        currentZone < MAX_ZONEID)
+    if (plan.sendInterruptedInfo)
     {
         PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_COMBINE_INF>(PChar, SynthesisResult::InterruptedCritical));
     }
 
-    PChar->pushPacket<GP_SERV_COMMAND_COMBINE_ANS>(PChar, SynthesisResult::InterruptedCritical, CCraftState::Result{ MANGLED_MESS, 0 });
+    if (plan.sendInterruptedAnswer)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_COMBINE_ANS>(PChar, SynthesisResult::InterruptedCritical, CCraftState::Result{ MANGLED_MESS, 0 });
+    }
 
-    std::ignore = synthTransaction->commit();
-    PChar->removeTransaction(synthTransaction);
+    if (plan.commitTransaction)
+    {
+        std::ignore = synthTransaction->commit();
+    }
+    if (plan.removeTransaction)
+    {
+        PChar->removeTransaction(synthTransaction);
+    }
 
-    PChar->animation = ANIMATION_NONE;
-    PChar->updatemask |= UPDATE_HP;
-    PChar->pushPacket<CCharStatusPacket>(PChar);
+    if (plan.setAnimationNone)
+    {
+        PChar->animation = ANIMATION_NONE;
+    }
+    if (plan.setUpdateHP)
+    {
+        PChar->updatemask |= UPDATE_HP;
+    }
+    if (plan.sendCharStatus)
+    {
+        PChar->pushPacket<CCharStatusPacket>(PChar);
+    }
 }
 
 } // namespace synthutils

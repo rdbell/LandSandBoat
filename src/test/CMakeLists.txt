@@ -1445,6 +1445,8 @@ set(SOURCES
     test_char_name_lookup_6888.cpp
     test_forced_synth_critical_fail_6889.h
     test_forced_synth_critical_fail_6889.cpp
+    test_synth_critical_fail_7076.h
+    test_synth_critical_fail_7076.cpp
     test_char_session_update_6890.h
     test_char_session_update_6890.cpp
     test_char_local_player_packets_6891.h
