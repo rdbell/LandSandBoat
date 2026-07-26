@@ -323,6 +323,19 @@ auto testCombineAskIngredientPlan() -> bool
     return ok;
 }
 
+auto testCombineAskSynthCooldown() -> bool
+{
+    using namespace std::chrono_literals;
+    using combineaskhelpers::shouldWaitForSynth;
+
+    const auto last = timer::time_point{};
+    bool ok         = true;
+    ok              = expectTrue(shouldWaitForSynth(last, last + 14s + 999ms), "COMBINE_ASK synth cooldown before boundary") && ok;
+    ok              = expectFalse(shouldWaitForSynth(last, last + 15s), "COMBINE_ASK synth cooldown exact boundary") && ok;
+    ok              = expectFalse(shouldWaitForSynth(last, last + 16s), "COMBINE_ASK synth cooldown after boundary") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SCombineAskPacketSelfTests() -> bool
@@ -330,5 +343,6 @@ auto runC2SCombineAskPacketSelfTests() -> bool
     return testCombineAskLayoutMetadataAndPayload() &&
            testCombineAskCrystalConstants() &&
            testCombineAskPureValidationFacts() &&
-           testCombineAskIngredientPlan();
+           testCombineAskIngredientPlan() &&
+           testCombineAskSynthCooldown();
 }

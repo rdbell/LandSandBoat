@@ -25,9 +25,17 @@
 #include <array>
 
 #include "base.h"
+#include "common/timer.h"
 
 namespace combineaskhelpers
 {
+
+// shouldWaitForSynth mirrors the COMBINE_ASK synthesis cooldown. The boundary
+// is strict: exactly fifteen seconds after the prior start is allowed.
+[[nodiscard]] inline auto shouldWaitForSynth(const timer::time_point lastSynthTime, const timer::time_point now) -> bool
+{
+    return lastSynthTime + std::chrono::seconds(15) > now;
+}
 
 // IngredientFact captures the inventory lookup result for one requested
 // synthesis ingredient. The process host remains responsible for looking up

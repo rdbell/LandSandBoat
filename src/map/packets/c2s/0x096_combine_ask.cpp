@@ -87,7 +87,7 @@ void GP_CLI_COMMAND_COMBINE_ASK::process(MapSession* PSession, CCharEntity* PCha
     // Thus players can synth on whatever fps they want
     // TODO: Escutcheons will require changes to this block
     // See SYNTH_SPEED_XXX mods
-    if (PChar->m_LastSynthTime + 15s > timer::now())
+    if (combineaskhelpers::shouldWaitForSynth(PChar->m_LastSynthTime, timer::now()))
     {
         PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::WaitLonger);
         return;
