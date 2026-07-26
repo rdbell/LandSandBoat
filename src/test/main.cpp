@@ -1014,6 +1014,7 @@ auto runC2SPacketValidationStateSelfTests() -> bool;
 auto runC2SPacketIDEnumSelfTests() -> bool;
 auto runPacketSystemRegistration6934SelfTests() -> bool;
 auto runMapNetworkingPacketSystem6935SelfTests() -> bool;
+auto runMapNetworkingSessionContainer6936SelfTests() -> bool;
 auto runC2SPacketRateLimiterSelfTests() -> bool;
 auto runS2CPacketIDEnumSelfTests() -> bool;
 auto runC2SPacketBaseHelperSelfTests() -> bool;
@@ -3467,6 +3468,7 @@ namespace
         ok = runC2SPacketIDEnumSelfTests() && ok;
         ok = runPacketSystemRegistration6934SelfTests() && ok;
         ok = runMapNetworkingPacketSystem6935SelfTests() && ok;
+        ok = runMapNetworkingSessionContainer6936SelfTests() && ok;
         ok = runC2SPacketRateLimiterSelfTests() && ok;
         ok = runS2CPacketIDEnumSelfTests() && ok;
         ok = runC2SPacketBaseHelperSelfTests() && ok;

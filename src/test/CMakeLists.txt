@@ -314,6 +314,8 @@ set(SOURCES
     test_packet_system_registration_6934.cpp
     test_map_networking_packet_system_6935.h
     test_map_networking_packet_system_6935.cpp
+    test_map_networking_session_container_6936.h
+    test_map_networking_session_container_6936.cpp
     test_c2s_packet_rate_limiter.h
     test_c2s_packet_rate_limiter.cpp
     test_c2s_packet_validation_scalars.h
