@@ -1569,5 +1569,5 @@ std::size_t CParty::GetMemberCountAcrossAllProcesses()
     // TODO: We should detect whether or not we're a multi-process
     // setup. So we can avoid asking the database for more information
     // than we need to.
-    return GetPartyInfo().size();
+    return partyhelpers::CountPartyMembersAcrossAllProcesses(GetPartyInfo().size());
 }

@@ -89,6 +89,9 @@ auto runPartyReload1352SelfTests() -> bool
     // Offline zone
     ok = expect(partyhelpers::OfflineMemberZoneID(0, 100) == 100, "prev zone") && ok;
     ok = expect(partyhelpers::OfflineMemberZoneID(50, 100) == 50, "current zone") && ok;
+    ok = expect(partyhelpers::CountPartyMembersAcrossAllProcesses(0) == 0, "cross-process no members") && ok;
+    ok = expect(partyhelpers::CountPartyMembersAcrossAllProcesses(1) == 1, "cross-process one member") && ok;
+    ok = expect(partyhelpers::CountPartyMembersAcrossAllProcesses(6) == 6, "cross-process full party") && ok;
 
     // ReloadTreasurePool
     ok = expect(partyhelpers::ShouldRejectNullReloadTreasurePool(true), "pool null") && ok;

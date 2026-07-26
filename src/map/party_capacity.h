@@ -1502,6 +1502,13 @@ inline auto OfflineMemberZoneID(const uint16 zone, const uint16 prevZone) -> uin
     return zone == 0 ? prevZone : zone;
 }
 
+// CountPartyMembersAcrossAllProcesses mirrors GetPartyInfo().size() in
+// CParty::GetMemberCountAcrossAllProcesses.
+inline auto CountPartyMembersAcrossAllProcesses(const std::size_t partyInfoCount) -> std::size_t
+{
+    return partyInfoCount;
+}
+
 // FormatReloadTreasurePoolNullWarning mirrors ReloadTreasurePool null gate.
 inline auto FormatReloadTreasurePoolNullWarning() -> std::string
 {
