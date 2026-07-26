@@ -383,6 +383,7 @@ auto runPartySetIDHost7008SelfTests() -> bool;
 auto runPartyPushEffectsHost7009SelfTests() -> bool;
 auto runPartyGetIDHost7010SelfTests() -> bool;
 auto runPartyInfoQueryHost7017SelfTests() -> bool;
+auto runPartyRemoteAddHost7020SelfTests() -> bool;
 auto runTreasurePassAllVotedResolve6965SelfTests() -> bool;
 auto runTreasureFlush6959SelfTests() -> bool;
 auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool;
@@ -2908,6 +2909,7 @@ namespace
         ok = runPartyPushEffectsHost7009SelfTests() && ok;
         ok = runPartyGetIDHost7010SelfTests() && ok;
         ok = runPartyInfoQueryHost7017SelfTests() && ok;
+        ok = runPartyRemoteAddHost7020SelfTests() && ok;
         ok = runTreasurePassAllVotedResolve6965SelfTests() && ok;
         ok = runTreasureFlush6959SelfTests() && ok;
         ok = runTreasureUpdatePoolDispatch6960SelfTests() && ok;
