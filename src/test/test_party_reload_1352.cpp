@@ -62,6 +62,16 @@ auto runPartyReload1352SelfTests() -> bool
     listPosition = partyhelpers::BeginReloadPartyMemberListRow(listPosition, 0x0000);
     ok = expect(listPosition.allianceCursor == 0 && listPosition.listIndex == 0, "main resets row") && ok;
 
+    const uint16 allianceFlags[] = { 0x0004, 0x0010, 0x0001, 0x0005, 0x0002, 0x0006 };
+    const uint8  allianceIndexes[] = { 0, 1, 0, 1, 0, 1 };
+    listPosition = {};
+    for (std::size_t i = 0; i < sizeof(allianceFlags) / sizeof(allianceFlags[0]); ++i)
+    {
+        listPosition = partyhelpers::BeginReloadPartyMemberListRow(listPosition, allianceFlags[i]);
+        ok = expect(listPosition.listIndex == allianceIndexes[i], "alliance row sequence") && ok;
+        listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
+    }
+
     for (uint16 i = 0; i < 256; ++i)
     {
         listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
