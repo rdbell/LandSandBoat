@@ -50,6 +50,12 @@ auto charVarValue(uint32 characterID, const char* name) -> int32
     return row->get<int32>("value");
 }
 
+auto hasCharVar(uint32 characterID, const char* name) -> bool
+{
+    const auto row = db::preparedStmt("SELECT value FROM char_vars WHERE charid = ? AND varname = ?", characterID, name);
+    return row && row->rowsCount() == 1;
+}
+
 } // namespace
 
 // Direct charutils::SaveCharStats characterization (slice 7067). It writes
@@ -93,8 +99,8 @@ auto runCharStatsSaveHost7067SelfTests() -> bool
                                     stats->get<int16>("pet_hp") == character.petZoningInfo.petHP &&
                                     stats->get<int16>("pet_mp") == character.petZoningInfo.petMP &&
                                     stats->get<uint8>("pet_level") == character.petZoningInfo.petLevel;
-    const bool noJugPetClearsVars = charVarValue(character.id, "jugpet-spawn-time") == 0 &&
-                                    charVarValue(character.id, "jugpet-duration-seconds") == 0;
+    const bool noJugPetClearsVars = !hasCharVar(character.id, "jugpet-spawn-time") &&
+                                    !hasCharVar(character.id, "jugpet-duration-seconds");
 
     character.petZoningInfo.jugSpawnTime = timer::now();
     character.petZoningInfo.jugDuration  = std::chrono::seconds(123);
