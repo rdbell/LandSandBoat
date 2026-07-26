@@ -39,5 +39,12 @@ auto runPartyLevelSync1330SelfTests() -> bool
     ok = expect(!partyhelpers::ShouldApplySyncToMember(false, true), "mob same zone") && ok;
     ok = expect(!partyhelpers::ShouldApplySyncToMember(false, false), "mob other zone") && ok;
 
+    auto plan = partyhelpers::PlanRefreshSyncMember(true, true, 30, 50, 50);
+    ok = expect(plan.apply && plan.newMainLevel == 30 && plan.rebuild, "eligible rebuild") && ok;
+    plan = partyhelpers::PlanRefreshSyncMember(true, true, 50, 30, 30);
+    ok = expect(plan.apply && plan.newMainLevel == 30 && !plan.rebuild, "eligible no rebuild") && ok;
+    plan = partyhelpers::PlanRefreshSyncMember(true, false, 30, 50, 50);
+    ok = expect(!plan.apply && !plan.rebuild, "other-zone skip") && ok;
+
     return ok;
 }

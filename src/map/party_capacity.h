@@ -92,9 +92,9 @@
 // and (objtype == TYPE_PC, members.size()) into ShouldStampLeaderCreatedPartyTime
 // after append before stamping PLeader->m_LeaderCreatedPartyTime.
 // Production host: CParty::RefreshSync (party.cpp) injects syncLevel into
-// ShouldRemoveSyncForLowLevel before SetSyncTarget clear, and
-// (objtype == TYPE_PC, getZone() == sync->getZone()) into ShouldApplySyncToMember
-// before ResolveSyncMemberLevel / status-effect power / SetMLevel.
+// ShouldRemoveSyncForLowLevel before SetSyncTarget clear, then gates non-PC
+// entities before injecting the same-zone state, levels, and current main
+// level into PlanRefreshSyncMember for status-effect power / SetMLevel work.
 // Production host: CParty::SetSyncTarget ENABLE (party.cpp:~1222) injects
 // isPC / notDisappear / sameZone into ShouldApplySyncEnableToMember before
 // LevelSync message / DelStatusEffectsByFlag / AddStatusEffectSilent / CharSync.
@@ -365,6 +365,37 @@ inline auto ResolveSyncMemberLevel(const uint8 syncLevel, const uint8 memberMain
 inline auto ShouldApplySyncToMember(const bool isPC, const bool sameZoneAsSyncTarget) -> bool
 {
     return isPC && sameZoneAsSyncTarget;
+}
+
+// refresh_sync_member_plan is the packet and character-refresh decision for
+// one CParty::RefreshSync member after the target's level has been resolved.
+struct refresh_sync_member_plan
+{
+    bool  apply        = false;
+    uint8 newMainLevel = 0;
+    bool  rebuild      = false;
+};
+
+// PlanRefreshSyncMember mirrors RefreshSync's per-member filter, main-level
+// resolution, and expensive-rebuild gate.
+inline auto PlanRefreshSyncMember(
+    const bool  isPC,
+    const bool  sameZoneAsSyncTarget,
+    const uint8 syncLevel,
+    const uint8 memberMainJobLevel,
+    const uint8 currentMainLevel) -> refresh_sync_member_plan
+{
+    if (!ShouldApplySyncToMember(isPC, sameZoneAsSyncTarget))
+    {
+        return {};
+    }
+
+    const uint8 newMainLevel = ResolveSyncMemberLevel(syncLevel, memberMainJobLevel);
+    return {
+        .apply        = true,
+        .newMainLevel = newMainLevel,
+        .rebuild      = currentMainLevel != newMainLevel,
+    };
 }
 
 // LevelSyncDisableDurationSeconds is the countdown applied when removing an

@@ -1375,14 +1375,22 @@ void CParty::RefreshSync()
     }
     for (auto& i : members)
     {
-        if (!partyhelpers::ShouldApplySyncToMember(i->objtype == TYPE_PC, i->getZone() == sync->getZone()))
+        if (i->objtype != TYPE_PC)
         {
             continue;
         }
 
         CCharEntity* member = (CCharEntity*)i;
-
-        const uint8 NewMLevel = partyhelpers::ResolveSyncMemberLevel(syncLevel, member->jobs.job[member->GetMJob()]);
+        const auto plan = partyhelpers::PlanRefreshSyncMember(
+            true,
+            member->getZone() == sync->getZone(),
+            syncLevel,
+            member->jobs.job[member->GetMJob()],
+            member->GetMLevel());
+        if (!plan.apply)
+        {
+            continue;
+        }
 
         CStatusEffect* syncEffect = member->StatusEffectContainer->GetStatusEffect(xi::StatusEffect::LevelSync);
         if (syncEffect != nullptr)
@@ -1390,11 +1398,11 @@ void CParty::RefreshSync()
             syncEffect->SetPower(syncLevel);
         }
 
-        if (member->GetMLevel() != NewMLevel)
+        if (plan.rebuild)
         {
             charutils::RemoveAllEquipMods(member);
-            member->m_LevelRestriction = NewMLevel;
-            member->SetMLevel(NewMLevel);
+            member->m_LevelRestriction = plan.newMainLevel;
+            member->SetMLevel(plan.newMainLevel);
             member->SetSLevel(member->jobs.job[member->GetSJob()]);
             charutils::ApplyAllEquipMods(member);
 
