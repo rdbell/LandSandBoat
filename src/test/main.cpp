@@ -835,6 +835,7 @@ auto runSynthStart7078SelfTests() -> bool;
 auto runSynthRecipeResolve7079SelfTests() -> bool;
 auto runSynthRecipeLoad7080SelfTests() -> bool;
 auto runSynthDifficulty7081SelfTests() -> bool;
+auto runSynthResult7082SelfTests() -> bool;
 auto runCharSessionUpdate6890SelfTests() -> bool;
 auto runCharLocalPlayerPackets6891SelfTests() -> bool;
 auto runCharPartialLogPackets6892SelfTests() -> bool;
@@ -3386,6 +3387,7 @@ namespace
         ok = runSynthRecipeResolve7079SelfTests() && ok;
         ok = runSynthRecipeLoad7080SelfTests() && ok;
         ok = runSynthDifficulty7081SelfTests() && ok;
+        ok = runSynthResult7082SelfTests() && ok;
         ok = runCharSessionUpdate6890SelfTests() && ok;
         ok = runCharLocalPlayerPackets6891SelfTests() && ok;
         ok = runCharPartialLogPackets6892SelfTests() && ok;

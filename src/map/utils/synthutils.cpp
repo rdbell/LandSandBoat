@@ -28,6 +28,7 @@
 #include "synth_done.h"
 #include "synth_recipe_load.h"
 #include "synth_recipe_resolve.h"
+#include "synth_result.h"
 #include "synth_start.h"
 
 #include "charutils.h"
@@ -400,18 +401,14 @@ auto canSynthesizeHQ(CCharEntity* PChar, uint8 skillID) -> bool
 
 auto calculateSynthResult(CCharEntity* PChar) -> uint8
 {
-    uint8 synthResult     = SYNTHESIS_SUCCESS;
-    uint8 skillID         = 0;
-    uint8 finalHQTier     = 4;
-    uint8 currentHQTier   = 0;
-    int16 synthDifficulty = 0;
-    float successRate     = 0.0f;
-    bool  canHQ           = true;
+    uint8 synthResult = SYNTHESIS_SUCCESS;
+    uint8 finalHQTier = 4;
+    bool  canHQ       = true;
 
     //------------------------------
     // Section 2: Break handling
     //------------------------------
-    for (skillID = SKILL_WOODWORKING; skillID <= SKILL_COOKING; ++skillID)
+    for (auto skillID = static_cast<uint8>(SKILL_WOODWORKING); skillID <= SKILL_COOKING; ++skillID)
     {
         // Skip current iteration if skill isn't involved.
         if (PChar->craftState().skillRequired(skillID - SKILL_WOODWORKING) == 0)
@@ -419,62 +416,23 @@ auto calculateSynthResult(CCharEntity* PChar) -> uint8
             continue;
         }
 
-        // Skill is involved. Get synth difficulty for current skill.
-        synthDifficulty = getSynthDifficulty(PChar, skillID);
-        successRate     = 95.0f;
-        currentHQTier   = 0;
-
-        if (synthDifficulty >= 4)
-        {
-            successRate = 80.0f - 10.0f * (synthDifficulty - 3);
-            canHQ       = false;
-        }
-        else if (synthDifficulty >= 1)
-        {
-            successRate = 95.0f - 5.0f * synthDifficulty;
-            canHQ       = false;
-        }
-        else if (synthDifficulty >= -10) // 0-10 levels over recipe.
-        {
-            currentHQTier = 1;
-        }
-        else if (synthDifficulty >= -30) // 11-30 levels over recipe.
-        {
-            currentHQTier = 2;
-        }
-        else if (synthDifficulty >= -50) // 31-50 levels over recipe.
-        {
-            currentHQTier = 3;
-        }
-        else // 51 or more levels over recipe.
-        {
-            currentHQTier = 4;
-        }
+        // Preserve calculateSynthResult's entity read order.
+        const auto synthDifficulty = getSynthDifficulty(PChar, skillID);
+        const auto successRateMod  = PChar->getMod(Mod::SYNTH_SUCCESS_RATE);
+        const auto skillAllowsHQ   = canSynthesizeHQ(PChar, skillID);
+        const auto plan            = synthresulthelpers::MakeSkillPlan(synthDifficulty, successRateMod, skillAllowsHQ);
 
         // Set final HQ Tier available if needed.
-        if (currentHQTier < finalHQTier)
+        if (plan.hqTier < finalHQTier)
         {
-            finalHQTier = currentHQTier;
+            finalHQTier = plan.hqTier;
+        }
+        if (!plan.canHQ)
+        {
+            canHQ = false;
         }
 
-        successRate = successRate + PChar->getMod(Mod::SYNTH_SUCCESS_RATE);
-
-        // Crafting ring handling.
-        if (!canSynthesizeHQ(PChar, skillID))
-        {
-            canHQ       = false;           // Assuming here that if a crafting ring is used matching a recipe's subsynth, overall HQ will still be blocked
-            successRate = successRate + 1; // The crafting rings that block HQ synthesis all also increase their respective craft's success rate by 1%
-        }
-
-        // Clamp success rate to 99%
-        // https://www.bluegartr.com/threads/120352-CraftyMath
-        // http://www.ffxiah.com/item/5781/kitron-macaron
-        if (successRate > 99.0f)
-        {
-            successRate = 99.0f;
-        }
-
-        if (xirand::GetRandomNumber(0.0f, 100.f) > successRate) // Synthesis broke. This is not a mistake, the break check HAS to be done per craft skill involved.
+        if (xirand::GetRandomNumber(0.0f, 100.f) > plan.successRate) // Synthesis broke. This is not a mistake, the break check HAS to be done per craft skill involved.
         {
             // Keep the skill because of which the synthesis failed.
             PChar->craftState().setFailingSkill(skillID);
