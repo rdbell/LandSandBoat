@@ -79,8 +79,17 @@ auto runPartySetLeaderHost6996SelfTests() -> bool
                                      formerRow->get<uint32>("allianceid") == 101 &&
                                      formerRow->get<uint16>("partyflag") == 0;
 
+    CParty        missingParty(700);
+    CBattleEntity missingLeader;
+    missingLeader.name  = "Previous";
+    missingParty.members = { &missingLeader };
+    missingParty.m_PLeader = &missingLeader;
+    missingParty.SetLeader("Missing");
+    const bool missingLookupPreservesState = missingParty.GetPartyID() == 700 && missingParty.GetLeader() == &missingLeader;
+
     return expect(party.GetPartyID() == 101, "party ID follows new leader") &&
            expect(party.GetLeader() == &successor, "local successor becomes leader") &&
            expect(successorPersisted, "successor party identity and flags persisted") &&
-           expect(formerLeaderCleared, "former leader flags cleared");
+           expect(formerLeaderCleared, "former leader flags cleared") &&
+           expect(missingLookupPreservesState, "missing successor leaves party state unchanged");
 }
