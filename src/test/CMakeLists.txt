@@ -2623,6 +2623,8 @@ set(SOURCES
     test_party_disable_sync_6987.cpp
     test_party_member_count_host_6988.h
     test_party_member_count_host_6988.cpp
+    test_party_member_lookup_host_6989.h
+    test_party_member_lookup_host_6989.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
