@@ -7,6 +7,8 @@
 #undef private
 
 #include "map/entities/battle_entity.h"
+#include "map/entities/char_entity.h"
+#include "map/treasure_pool.h"
 
 namespace
 {
@@ -22,7 +24,8 @@ auto expect(const bool condition, const char* const label) -> bool
 
 // Direct CParty::AddMember characterization (slice 7003). A valid entity is
 // attached and appended even when its default entity ID is zero; the next call
-// rejects the same in-list entity before a second append.
+// rejects the same in-list entity before a second append. The PC path also
+// reloads its pool and increments party-join history after admission.
 auto runPartyAddMemberHost7003SelfTests() -> bool
 {
     CParty        party(1);
@@ -36,5 +39,20 @@ auto runPartyAddMemberHost7003SelfTests() -> bool
 
     party.AddMember(&member);
 
-    return firstAdd && expect(party.members.size() == 1, "duplicate member rejected");
+    CTreasurePool pcPool(TreasurePoolType::Solo);
+    CParty        pcParty(2);
+    CCharEntity   pcMember;
+    pcMember.PTreasurePool = &pcPool;
+    pcPool.addMember(&pcMember);
+
+    pcParty.AddMember(&pcMember);
+    const bool pcPostProcess = expect(pcMember.PParty == &pcParty, "PC member attached") &&
+                               expect(pcParty.members.size() == 1 && pcParty.members.front() == &pcMember, "PC member appended") &&
+                               expect(pcMember.m_charHistory.joinedParties == 1, "PC party join history increments") &&
+                               expect(pcMember.PTreasurePool == &pcPool && pcPool.isMember(&pcMember), "PC treasure pool remains valid");
+
+    pcMember.PTreasurePool = nullptr;
+    pcMember.PParty        = nullptr;
+    pcParty.members.clear();
+    return firstAdd && expect(party.members.size() == 1, "duplicate member rejected") && pcPostProcess;
 }
