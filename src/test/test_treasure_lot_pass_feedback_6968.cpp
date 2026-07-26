@@ -12,7 +12,8 @@
 namespace
 {
 
-constexpr auto lootPointOffset  = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_TROPHY_SOLUTION::PacketData, LootPoint);
+constexpr auto lootUniqueNoOffset = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_TROPHY_SOLUTION::PacketData, LootUniqueNo);
+constexpr auto lootPointOffset    = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_TROPHY_SOLUTION::PacketData, LootPoint);
 constexpr auto entryPointOffset = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_TROPHY_SOLUTION::PacketData, EntryPoint);
 constexpr auto slotOffset       = sizeof(GP_SERV_HEADER) + offsetof(GP_SERV_COMMAND_TROPHY_SOLUTION::PacketData, TrophyItemIndex);
 
@@ -72,5 +73,49 @@ auto runTreasureLotPassFeedback6968SelfTests() -> bool
 
     first.PTreasurePool  = nullptr;
     second.PTreasurePool = nullptr;
+
+    // Equal lots retain the first recorded lotter as the displayed highest.
+    {
+        CTreasurePool tiePool(TreasurePoolType::Party);
+        CCharEntity   tieFirst;
+        CCharEntity   tieSecond;
+        CCharEntity   tieThird;
+        tieFirst.id  = 101;
+        tieSecond.id = 202;
+        tieFirst.PTreasurePool  = &tiePool;
+        tieSecond.PTreasurePool = &tiePool;
+        tieThird.PTreasurePool  = &tiePool;
+        tieFirst.getStorage(LOC_INVENTORY)->SetSize(1);
+        tieSecond.getStorage(LOC_INVENTORY)->SetSize(1);
+        tieThird.getStorage(LOC_INVENTORY)->SetSize(1);
+        tiePool.addMember(&tieFirst);
+        tiePool.addMember(&tieSecond);
+        tiePool.addMember(&tieThird);
+        tieFirst.clearPacketList();
+        tieSecond.clearPacketList();
+        tieThird.clearPacketList();
+        tiePool.addItem(1, nullptr);
+        tieFirst.clearPacketList();
+        tieSecond.clearPacketList();
+        tieThird.clearPacketList();
+        tiePool.lotItem(&tieFirst, 0, 500);
+        tieFirst.clearPacketList();
+        tieSecond.clearPacketList();
+        tieThird.clearPacketList();
+        tiePool.lotItem(&tieSecond, 0, 500);
+
+        for (CCharEntity* member : { &tieFirst, &tieSecond, &tieThird })
+        {
+            ok = expect(member->getPacketCount() == 1, "tied lot broadcasts one feedback packet") && ok;
+            if (member->getPacketCount() == 1)
+            {
+                ok = expect(member->getPacketList().front()->ref<uint32>(lootUniqueNoOffset) == tieFirst.id, "first tied lotter remains highest") && ok;
+            }
+        }
+
+        tieFirst.PTreasurePool  = nullptr;
+        tieSecond.PTreasurePool = nullptr;
+        tieThird.PTreasurePool  = nullptr;
+    }
     return ok;
 }
