@@ -2583,6 +2583,8 @@ set(SOURCES
     test_treasure_add_item_solo_resolve_6963.cpp
     test_treasure_lot_all_voted_resolve_6964.h
     test_treasure_lot_all_voted_resolve_6964.cpp
+    test_treasure_add_member_update_6966.h
+    test_treasure_add_member_update_6966.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
