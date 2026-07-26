@@ -907,30 +907,25 @@ void CParty::ReloadParty()
             {
                 CCharEntity* PChar = (CCharEntity*)member;
                 PChar->ReloadPartyDec();
-                uint16 alliance = 0;
                 PChar->pushPacket<GP_SERV_COMMAND_GROUP_TBL>(party);
                 // auto effects = std::make_unique<GP_SERV_COMMAND_GROUP_EFFECTS>();
-                uint8 j = 0;
+                partyhelpers::reload_party_member_list_position listPosition{};
                 for (auto&& memberinfo : info)
                 {
-                    if (partyhelpers::ShouldResetAllianceListIndex(memberinfo.flags, alliance))
-                    {
-                        alliance = partyhelpers::NextAllianceListCursor(memberinfo.flags);
-                        j        = 0;
-                    }
+                    listPosition = partyhelpers::BeginReloadPartyMemberListRow(listPosition, memberinfo.flags);
                     auto* PPartyMember = zoneutils::GetChar(memberinfo.id);
                     if (PPartyMember)
                     {
-                        PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(PPartyMember, j, memberinfo.flags, PChar->getZone());
+                        PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(PPartyMember, listPosition.listIndex, memberinfo.flags, PChar->getZone());
                         // if (memberinfo.partyid == party->GetPartyID() && PPartyMember != PChar)
                         //    effects->AddMemberEffects(PChar);
                     }
                     else
                     {
                         uint16 zoneid = partyhelpers::OfflineMemberZoneID(memberinfo.zone, memberinfo.prev_zone);
-                        PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(memberinfo.id, memberinfo.name, memberinfo.flags, j, zoneid);
+                        PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(memberinfo.id, memberinfo.name, memberinfo.flags, listPosition.listIndex, zoneid);
                     }
-                    j++;
+                    listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
                 }
                 // PChar->pushPacket(effects.release());
             }
@@ -1001,29 +996,23 @@ void CParty::ReloadPartyMembers(CCharEntity* PChar)
     PChar->ReloadPartyDec();
     PChar->pushPacket<GP_SERV_COMMAND_GROUP_TBL>(this);
 
-    uint16 alliance = 0;
-
     auto info = GetPartyInfo();
     RefreshFlags(info);
-    uint8 j = 0;
+    partyhelpers::reload_party_member_list_position listPosition{};
     for (auto&& memberinfo : info)
     {
-        if (partyhelpers::ShouldResetAllianceListIndex(memberinfo.flags, alliance))
-        {
-            alliance = partyhelpers::NextAllianceListCursor(memberinfo.flags);
-            j        = 0;
-        }
+        listPosition = partyhelpers::BeginReloadPartyMemberListRow(listPosition, memberinfo.flags);
         CCharEntity* PPartyMember = zoneutils::GetChar(memberinfo.id);
         if (PPartyMember)
         {
-            PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(PPartyMember, j, memberinfo.flags, PChar->getZone());
+            PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(PPartyMember, listPosition.listIndex, memberinfo.flags, PChar->getZone());
         }
         else
         {
             uint16 zoneid = partyhelpers::OfflineMemberZoneID(memberinfo.zone, memberinfo.prev_zone);
-            PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(memberinfo.id, memberinfo.name, memberinfo.flags, j, zoneid);
+            PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(memberinfo.id, memberinfo.name, memberinfo.flags, listPosition.listIndex, zoneid);
         }
-        j++;
+        listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
     }
 }
 

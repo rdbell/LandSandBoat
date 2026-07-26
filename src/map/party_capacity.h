@@ -1405,6 +1405,35 @@ inline auto NextAllianceListCursor(const uint16 memberFlags) -> uint16
     return memberFlags & AlliancePartySlotMask;
 }
 
+// reload_party_member_list_position is the client group-list position carried
+// between rows. Alliance slot changes start a new client list at index zero.
+struct reload_party_member_list_position
+{
+    uint16 allianceCursor = 0;
+    uint8  listIndex      = 0;
+};
+
+// BeginReloadPartyMemberListRow applies the alliance-slot reset before a
+// GROUP_LIST row is emitted.
+inline auto BeginReloadPartyMemberListRow(
+    reload_party_member_list_position position,
+    const uint16                      memberFlags) -> reload_party_member_list_position
+{
+    if (ShouldResetAllianceListIndex(memberFlags, position.allianceCursor))
+    {
+        position.allianceCursor = NextAllianceListCursor(memberFlags);
+        position.listIndex      = 0;
+    }
+    return position;
+}
+
+// AdvanceReloadPartyMemberListRow advances after a GROUP_LIST row is emitted.
+inline auto AdvanceReloadPartyMemberListRow(reload_party_member_list_position position) -> reload_party_member_list_position
+{
+    position.listIndex++;
+    return position;
+}
+
 // OfflineMemberZoneID mirrors zone == 0 ? prev_zone : zone for offline list rows.
 inline auto OfflineMemberZoneID(const uint16 zone, const uint16 prevZone) -> uint16
 {

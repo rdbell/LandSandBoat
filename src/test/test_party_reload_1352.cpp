@@ -46,6 +46,28 @@ auto runPartyReload1352SelfTests() -> bool
     ok = expect(partyhelpers::NextAllianceListCursor(0x0005) == 0x0001, "cursor second") && ok;
     ok = expect(partyhelpers::NextAllianceListCursor(0x0006) == 0x0002, "cursor third") && ok;
 
+    partyhelpers::reload_party_member_list_position listPosition{};
+    listPosition = partyhelpers::BeginReloadPartyMemberListRow(listPosition, 0x0000);
+    ok = expect(listPosition.allianceCursor == 0 && listPosition.listIndex == 0, "main first row") && ok;
+    listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
+    listPosition = partyhelpers::BeginReloadPartyMemberListRow(listPosition, 0x0000);
+    ok = expect(listPosition.allianceCursor == 0 && listPosition.listIndex == 1, "main next row") && ok;
+    listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
+    listPosition = partyhelpers::BeginReloadPartyMemberListRow(listPosition, 0x0001);
+    ok = expect(listPosition.allianceCursor == 0x0001 && listPosition.listIndex == 0, "second resets row") && ok;
+    listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
+    listPosition = partyhelpers::BeginReloadPartyMemberListRow(listPosition, 0x0002);
+    ok = expect(listPosition.allianceCursor == 0x0002 && listPosition.listIndex == 0, "third resets row") && ok;
+    listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
+    listPosition = partyhelpers::BeginReloadPartyMemberListRow(listPosition, 0x0000);
+    ok = expect(listPosition.allianceCursor == 0 && listPosition.listIndex == 0, "main resets row") && ok;
+
+    for (uint16 i = 0; i < 256; ++i)
+    {
+        listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
+    }
+    ok = expect(listPosition.listIndex == 0, "index wraps") && ok;
+
     // Offline zone
     ok = expect(partyhelpers::OfflineMemberZoneID(0, 100) == 100, "prev zone") && ok;
     ok = expect(partyhelpers::OfflineMemberZoneID(50, 100) == 50, "current zone") && ok;
