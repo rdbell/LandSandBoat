@@ -10,6 +10,13 @@
 namespace synthupdate
 {
 
+enum class UpdateAction
+{
+    Countdown,
+    CriticalFail,
+    Done,
+};
+
 // isReady mirrors CSynthState::SynthReady:
 //   return m_synthFinishTime < 0ms && isAlive;
 // remainingNegative — host m_synthFinishTime < 0ms (strict <)
@@ -51,6 +58,21 @@ constexpr auto shouldCriticalFailExit(const bool isDead) -> bool
 constexpr auto shouldFinishExit(const bool remainingNegative, const bool isAlive) -> bool
 {
     return isReady(remainingNegative, isAlive);
+}
+
+// updateAction selects CSynthState::Update's terminal side effect. Critical
+// failure has precedence over a simultaneously ready synthesis session.
+constexpr auto updateAction(const bool isDead, const bool isReady) -> UpdateAction
+{
+    if (isDead)
+    {
+        return UpdateAction::CriticalFail;
+    }
+    if (isReady)
+    {
+        return UpdateAction::Done;
+    }
+    return UpdateAction::Countdown;
 }
 
 } // namespace synthupdate

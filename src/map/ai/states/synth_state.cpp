@@ -40,24 +40,23 @@ CSynthState::CSynthState(CCharEntity* PChar, SKILLTYPE skill)
 
 bool CSynthState::Update(timer::time_point tick)
 {
-    // Dead → critical fail exit (slice 6315 dual-wire).
-    if (synthupdate::shouldCriticalFailExit(m_PEntity->isDead()))
+    const bool isDead = m_PEntity->isDead();
+    switch (synthupdate::updateAction(isDead, !isDead && SynthReady()))
     {
-        synthutils::doSynthCriticalFail(m_PEntity);
-        return true;
+        case synthupdate::UpdateAction::CriticalFail:
+            synthutils::doSynthCriticalFail(m_PEntity);
+            return true;
+
+        case synthupdate::UpdateAction::Done:
+            synthutils::sendSynthDone(m_PEntity);
+            return true;
+
+        case synthupdate::UpdateAction::Countdown:
+            m_synthFinishTime -= (m_PEntity->PAI->getTick() - m_PEntity->PAI->getPrevTick());
+            return false;
     }
 
-    // Ready → sendSynthDone exit (slice 6315 dual-wire via SynthReady inject).
-    if (SynthReady())
-    {
-        synthutils::sendSynthDone(m_PEntity);
-        return true;
-    }
-    else
-    {
-        m_synthFinishTime -= (m_PEntity->PAI->getTick() - m_PEntity->PAI->getPrevTick());
-    }
-    return false;
+    return false; // unreachable; keeps compilers without exhaustive-switch analysis happy
 }
 
 void CSynthState::Cleanup(timer::time_point tick)
