@@ -1018,6 +1018,7 @@ auto runMapNetworkingSessionContainer6936SelfTests() -> bool;
 auto runMapNetworkingStatisticsOwner6937SelfTests() -> bool;
 auto runMapNetworkingSchedulerOwner6938SelfTests() -> bool;
 auto runMapNetworkingIncomingCallback6939SelfTests() -> bool;
+auto runMapNetworkingUnencryptedLoginHandoff6940SelfTests() -> bool;
 auto runC2SPacketRateLimiterSelfTests() -> bool;
 auto runS2CPacketIDEnumSelfTests() -> bool;
 auto runC2SPacketBaseHelperSelfTests() -> bool;
@@ -3475,6 +3476,7 @@ namespace
         ok = runMapNetworkingStatisticsOwner6937SelfTests() && ok;
         ok = runMapNetworkingSchedulerOwner6938SelfTests() && ok;
         ok = runMapNetworkingIncomingCallback6939SelfTests() && ok;
+        ok = runMapNetworkingUnencryptedLoginHandoff6940SelfTests() && ok;
         ok = runC2SPacketRateLimiterSelfTests() && ok;
         ok = runS2CPacketIDEnumSelfTests() && ok;
         ok = runC2SPacketBaseHelperSelfTests() && ok;
