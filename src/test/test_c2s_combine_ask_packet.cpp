@@ -347,6 +347,14 @@ auto testCombineAskMatchedTradePending() -> bool
     return ok;
 }
 
+auto testCombineAskPeerTradeCancel() -> bool
+{
+    using combineaskhelpers::shouldCancelPeerTrade;
+
+    return expectTrue(shouldCancelPeerTrade(true), "COMBINE_ASK cancels a resolved peer trade") &&
+           expectFalse(shouldCancelPeerTrade(false), "COMBINE_ASK does not cancel a missing peer trade");
+}
+
 } // namespace
 
 auto runC2SCombineAskPacketSelfTests() -> bool
@@ -356,5 +364,6 @@ auto runC2SCombineAskPacketSelfTests() -> bool
            testCombineAskPureValidationFacts() &&
            testCombineAskIngredientPlan() &&
            testCombineAskSynthCooldown() &&
-           testCombineAskMatchedTradePending();
+           testCombineAskMatchedTradePending() &&
+           testCombineAskPeerTradeCancel();
 }

@@ -108,7 +108,7 @@ void GP_CLI_COMMAND_COMBINE_ASK::process(MapSession* PSession, CCharEntity* PCha
     // trade request.
     if (PChar->UContainer->GetType() != UCONTAINER_EMPTY)
     {
-        if (PTarget)
+        if (combineaskhelpers::shouldCancelPeerTrade(PTarget != nullptr))
         {
             ShowDebug("%s trade request with %s was canceled because %s tried to craft.",
                       PChar->getName(),

@@ -44,6 +44,13 @@ namespace combineaskhelpers
     return targetPresent && pendingID == targetID;
 }
 
+// shouldCancelPeerTrade mirrors the target-dependent half of COMBINE_ASK's
+// trade-container cancellation branch.
+[[nodiscard]] constexpr auto shouldCancelPeerTrade(const bool targetPresent) -> bool
+{
+    return targetPresent;
+}
+
 // IngredientFact captures the inventory lookup result for one requested
 // synthesis ingredient. The process host remains responsible for looking up
 // the slot and for starting the transaction.
