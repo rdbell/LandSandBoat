@@ -24,6 +24,7 @@
 #include "utils/synthutils_capacity.h"
 
 #include "synth_critical_fail.h"
+#include "synth_done.h"
 
 #include "charutils.h"
 #include "common/database.h"
@@ -1167,33 +1168,43 @@ void startSynth(CCharEntity* PChar, const SynthOffer& offer)
 
 void sendSynthDone(CCharEntity* PChar)
 {
-    // forceSynthCritFail already ran, the transaction is gone -- clear the ANIMATION_SYNTH flag and bail.
-    auto* synthTransaction = PChar->activeTransaction<SynthTransaction>();
-    if (!synthTransaction)
+    auto*      synthTransaction = PChar->activeTransaction<SynthTransaction>();
+    const auto plan             = synthdonehelpers::MakePlan(
+        synthTransaction != nullptr,
+        synthTransaction != nullptr && PChar->craftState().result() == SYNTHESIS_FAIL);
+
+    switch (plan.completion)
+    {
+        case synthdonehelpers::Completion::Failure:
+            handleSynthFail(PChar);
+            break;
+        case synthdonehelpers::Completion::Success:
+            handleSynthSuccess(PChar);
+            break;
+        case synthdonehelpers::Completion::None:
+            break;
+    }
+
+    if (plan.skillUp)
+    {
+        doSynthSkillUp(PChar);
+    }
+
+    if (plan.commitTransaction)
+    {
+        std::ignore = synthTransaction->commit();
+    }
+    if (plan.removeTransaction)
+    {
+        PChar->removeTransaction(synthTransaction);
+    }
+
+    if (plan.resetStatus)
     {
         PChar->animation = ANIMATION_NONE;
         PChar->updatemask |= UPDATE_HP;
         PChar->pushPacket<CCharStatusPacket>(PChar);
-        return;
     }
-
-    if (PChar->craftState().result() == SYNTHESIS_FAIL)
-    {
-        handleSynthFail(PChar);
-    }
-    else
-    {
-        handleSynthSuccess(PChar);
-    }
-
-    doSynthSkillUp(PChar);
-
-    std::ignore = synthTransaction->commit();
-    PChar->removeTransaction(synthTransaction);
-
-    PChar->animation = ANIMATION_NONE;
-    PChar->updatemask |= UPDATE_HP;
-    PChar->pushPacket<CCharStatusPacket>(PChar);
 }
 
 void doSynthCriticalFail(CCharEntity* PChar)
