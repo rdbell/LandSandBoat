@@ -2627,6 +2627,8 @@ set(SOURCES
     test_party_member_lookup_host_6989.cpp
     test_party_set_quartermaster_host_6990.h
     test_party_set_quartermaster_host_6990.cpp
+    test_alliance_add_party_host_6991.h
+    test_alliance_add_party_host_6991.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
