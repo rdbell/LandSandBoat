@@ -2693,6 +2693,8 @@ set(SOURCES
     test_char_job_save_host_7070.cpp
     test_char_skill_save_host_7071.h
     test_char_skill_save_host_7071.cpp
+    test_char_exp_save_host_7072.h
+    test_char_exp_save_host_7072.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
