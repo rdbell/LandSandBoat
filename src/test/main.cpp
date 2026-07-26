@@ -388,6 +388,7 @@ auto runPartyRemoteAddHost7020SelfTests() -> bool;
 auto runAllianceRemoteAddHost7023SelfTests() -> bool;
 auto runTitleSaveHost7062SelfTests() -> bool;
 auto runZonesVisitedSaveHost7063SelfTests() -> bool;
+auto runPrevZoneLineSaveHost7064SelfTests() -> bool;
 auto runTreasurePassAllVotedResolve6965SelfTests() -> bool;
 auto runTreasureFlush6959SelfTests() -> bool;
 auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool;
@@ -2922,6 +2923,7 @@ namespace
         ok = runAllianceRemoteAddHost7023SelfTests() && ok;
         ok = runTitleSaveHost7062SelfTests() && ok;
         ok = runZonesVisitedSaveHost7063SelfTests() && ok;
+        ok = runPrevZoneLineSaveHost7064SelfTests() && ok;
         ok = runTreasurePassAllVotedResolve6965SelfTests() && ok;
         ok = runTreasureFlush6959SelfTests() && ok;
         ok = runTreasureUpdatePoolDispatch6960SelfTests() && ok;

@@ -2677,6 +2677,8 @@ set(SOURCES
     test_title_save_host_7062.cpp
     test_zones_visited_save_host_7063.h
     test_zones_visited_save_host_7063.cpp
+    test_prev_zone_line_save_host_7064.h
+    test_prev_zone_line_save_host_7064.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
