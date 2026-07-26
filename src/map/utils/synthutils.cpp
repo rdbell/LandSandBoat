@@ -24,6 +24,7 @@
 #include "utils/synthutils_capacity.h"
 
 #include "synth_critical_fail.h"
+#include "synth_difficulty.h"
 #include "synth_done.h"
 #include "synth_recipe_load.h"
 #include "synth_recipe_resolve.h"
@@ -354,40 +355,9 @@ auto resolveRecipe(CCharEntity* PChar, const SynthOffer& offer) -> bool
 // Used in: LOCAL handleSynthResult
 auto getSynthDifficulty(CCharEntity* PChar, uint8 skillID) -> int16
 {
-    Mod ModID = Mod::NONE;
-
-    switch (skillID)
-    {
-        case SKILL_WOODWORKING:
-            ModID = Mod::WOOD;
-            break;
-        case SKILL_SMITHING:
-            ModID = Mod::SMITH;
-            break;
-        case SKILL_GOLDSMITHING:
-            ModID = Mod::GOLDSMITH;
-            break;
-        case SKILL_CLOTHCRAFT:
-            ModID = Mod::CLOTH;
-            break;
-        case SKILL_LEATHERCRAFT:
-            ModID = Mod::LEATHER;
-            break;
-        case SKILL_BONECRAFT:
-            ModID = Mod::BONE;
-            break;
-        case SKILL_ALCHEMY:
-            ModID = Mod::ALCHEMY;
-            break;
-        case SKILL_COOKING:
-            ModID = Mod::COOK;
-            break;
-    }
-
-    uint8 charSkill  = PChar->RealSkills.skill[skillID] / 10; // Player skill level is truncated before synth difficulty is calculated
-    int16 difficulty = PChar->craftState().skillRequired(skillID - SKILL_WOODWORKING) - charSkill - PChar->getMod(ModID);
-
-    return difficulty;
+    return synthdifficultyhelpers::Calculate(PChar->craftState().skillRequired(skillID - SKILL_WOODWORKING),
+                                             PChar->RealSkills.skill[skillID],
+                                             PChar->getMod(synthdifficultyhelpers::ModForSkill(skillID)));
 }
 
 // Used in: LOCAL handleSynthResult
