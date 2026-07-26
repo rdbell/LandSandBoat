@@ -337,6 +337,7 @@ auto runTriggerAreaSelfTests() -> bool;
 auto runTriggerAreaDispatch2648SelfTests() -> bool;
 auto runTreasureCheckItems6958SelfTests() -> bool;
 auto runTreasureAddItemDispatch6961SelfTests() -> bool;
+auto runTreasureAddItemTimestamp6962SelfTests() -> bool;
 auto runTreasureFlush6959SelfTests() -> bool;
 auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool;
 auto runTreasurePoolResolutionSelfTests() -> bool;
@@ -2815,6 +2816,7 @@ namespace
         ok = runTriggerAreaDispatch2648SelfTests() && ok;
         ok = runTreasureCheckItems6958SelfTests() && ok;
         ok = runTreasureAddItemDispatch6961SelfTests() && ok;
+        ok = runTreasureAddItemTimestamp6962SelfTests() && ok;
         ok = runTreasureFlush6959SelfTests() && ok;
         ok = runTreasureUpdatePoolDispatch6960SelfTests() && ok;
         ok = runTreasurePoolResolutionSelfTests() && ok;
