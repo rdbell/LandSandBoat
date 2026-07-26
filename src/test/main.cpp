@@ -344,6 +344,7 @@ auto runTreasureAddMemberUpdate6966SelfTests() -> bool;
 auto runTreasureAddMemberPromotion6967SelfTests() -> bool;
 auto runTreasureLotPassFeedback6968SelfTests() -> bool;
 auto runTreasureTerminalResolutionDispatch6970SelfTests() -> bool;
+auto runTreasureAddItemRareAdmission6971SelfTests() -> bool;
 auto runTreasurePassAllVotedResolve6965SelfTests() -> bool;
 auto runTreasureFlush6959SelfTests() -> bool;
 auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool;
@@ -2830,6 +2831,7 @@ namespace
         ok = runTreasureAddMemberPromotion6967SelfTests() && ok;
         ok = runTreasureLotPassFeedback6968SelfTests() && ok;
         ok = runTreasureTerminalResolutionDispatch6970SelfTests() && ok;
+        ok = runTreasureAddItemRareAdmission6971SelfTests() && ok;
         ok = runTreasurePassAllVotedResolve6965SelfTests() && ok;
         ok = runTreasureFlush6959SelfTests() && ok;
         ok = runTreasureUpdatePoolDispatch6960SelfTests() && ok;
