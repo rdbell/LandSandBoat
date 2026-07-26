@@ -25,6 +25,7 @@
 
 #include "synth_critical_fail.h"
 #include "synth_done.h"
+#include "synth_recipe_resolve.h"
 #include "synth_start.h"
 
 #include "charutils.h"
@@ -359,7 +360,7 @@ auto resolveRecipe(CCharEntity* PChar, const SynthOffer& offer) -> bool
     const auto possibleRecipeKey = SynthRecipe::ingredientKey(offer.crystal.itemId, ingredientIds);
 
     auto it = synthRecipes.find(possibleRecipeKey);
-    if (it == synthRecipes.end())
+    if (synthreciperesolvehelpers::CheckFound(it != synthRecipes.end()) != synthreciperesolvehelpers::Decision::Continue)
     {
         PChar->pushPacket<GP_SERV_COMMAND_COMBINE_ANS>(PChar, SynthesisResult::CancelBadRecipe);
         return false;
@@ -367,20 +368,21 @@ auto resolveRecipe(CCharEntity* PChar, const SynthOffer& offer) -> bool
 
     const auto& recipe = it->second;
 
-    if (!luautils::IsContentEnabled(recipe.ContentTag))
+    if (synthreciperesolvehelpers::CheckContent(luautils::IsContentEnabled(recipe.ContentTag)) != synthreciperesolvehelpers::Decision::Continue)
     {
         PChar->pushPacket<GP_SERV_COMMAND_COMBINE_ANS>(PChar, SynthesisResult::CancelBadRecipe);
         return false;
     }
 
-    const CItem* PItem = xi::items::lookup(recipe.Result);
-    if (PItem && PItem->hasFlag(ItemFlag::Rare) && charutils::HasItem(PChar, recipe.Result))
+    const CItem* PItem        = xi::items::lookup(recipe.Result);
+    const bool   resultIsRare = PItem && PItem->hasFlag(ItemFlag::Rare);
+    if (resultIsRare && synthreciperesolvehelpers::CheckRareItem(true, charutils::HasItem(PChar, recipe.Result)) != synthreciperesolvehelpers::Decision::Continue)
     {
         PChar->pushPacket<GP_SERV_COMMAND_COMBINE_ANS>(PChar, SynthesisResult::CancelRareItem);
         return false;
     }
 
-    if (recipe.RequiredKeyItem != KeyItem::NONE && !charutils::hasKeyItem(PChar, recipe.RequiredKeyItem))
+    if (recipe.RequiredKeyItem != KeyItem::NONE && synthreciperesolvehelpers::CheckRequiredKeyItem(!charutils::hasKeyItem(PChar, recipe.RequiredKeyItem)) != synthreciperesolvehelpers::Decision::Continue)
     {
         PChar->pushPacket<GP_SERV_COMMAND_COMBINE_ANS>(PChar, SynthesisResult::CancelBadRecipe);
         return false;
@@ -412,7 +414,7 @@ auto resolveRecipe(CCharEntity* PChar, const SynthOffer& offer) -> bool
 
         data.skillRequired[skillID - SKILL_WOODWORKING] = static_cast<uint8>(skillValue);
 
-        if (currentSkill < (skillValue * 10 - 150))
+        if (synthreciperesolvehelpers::CheckSkill(currentSkill, static_cast<uint8>(skillValue)) != synthreciperesolvehelpers::Decision::Continue)
         {
             PChar->pushPacket<GP_SERV_COMMAND_COMBINE_ANS>(PChar, SynthesisResult::CancelSkillTooLow);
             return false;

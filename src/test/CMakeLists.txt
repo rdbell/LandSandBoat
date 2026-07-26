@@ -1451,6 +1451,8 @@ set(SOURCES
     test_synth_done_7077.cpp
     test_synth_start_7078.h
     test_synth_start_7078.cpp
+    test_synth_recipe_resolve_7079.h
+    test_synth_recipe_resolve_7079.cpp
     test_char_session_update_6890.h
     test_char_session_update_6890.cpp
     test_char_local_player_packets_6891.h
