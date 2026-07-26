@@ -31,6 +31,7 @@
 #include "synth_material_loss.h"
 #include "synth_recipe_load.h"
 #include "synth_recipe_resolve.h"
+#include "synth_skill_up.h"
 #include "synth_result.h"
 #include "synth_result_dispatch.h"
 #include "synth_start.h"
@@ -741,24 +742,12 @@ void doSynthSkillUp(CCharEntity* PChar)
         uint16 maxSkill  = (PChar->RealSkills.rank[skillID] + 1) * 100; // Skill cap, depending on rank
         uint16 charSkill = PChar->RealSkills.skill[skillID];            // Compare against real character skill, without image support, gear or moghancements
 
-        // We don't skill Up if the involved skill is caped (As a fail-safe measure, we also check if a naughty GM has set its skill over cap aswell)
-        if (charSkill >= maxSkill)
-        {
-            continue; // Break current loop iteration.
-        }
-
         // We don't Skill Up if the recipe isn't difficult enough.
         // Era -> Char lvl must be bellow recipe level. Retail -> Char level myst be bellow recipe level + 10.
         // Char level does NOT count the effects of image support/gear.
         int16 baseDiff = PChar->craftState().skillRequired(skillID - SKILL_WOODWORKING) - charSkill / 10;
-        int8  minDiff  = settings::get<bool>("map.CRAFT_MODERN_SYSTEM") ? -11 : 0;
-        if (baseDiff <= minDiff)
-        {
-            continue; // Break current loop iteration.
-        }
-
-        // We don't Skill Up if the synth breaks outside the [-5, 0) interval
-        if (PChar->craftState().result() == SYNTHESIS_FAIL && (baseDiff > 5 || baseDiff <= 0))
+        if (!synthskilluphelpers::IsEligible(charSkill, maxSkill, baseDiff, settings::get<bool>("map.CRAFT_MODERN_SYSTEM"),
+                                              PChar->craftState().result() == SYNTHESIS_FAIL))
         {
             continue; // Break current loop iteration.
         }
