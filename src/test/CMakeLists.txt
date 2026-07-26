@@ -2697,6 +2697,8 @@ set(SOURCES
     test_char_exp_save_host_7072.cpp
     test_teleport_save_host_7073.h
     test_teleport_save_host_7073.cpp
+    test_maze_unlocks_save_host_7074.h
+    test_maze_unlocks_save_host_7074.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
