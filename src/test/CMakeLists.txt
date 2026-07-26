@@ -2587,6 +2587,8 @@ set(SOURCES
     test_treasure_add_member_update_6966.cpp
     test_treasure_add_member_promotion_6967.h
     test_treasure_add_member_promotion_6967.cpp
+    test_treasure_lot_pass_feedback_6968.h
+    test_treasure_lot_pass_feedback_6968.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
