@@ -2575,6 +2575,8 @@ set(SOURCES
     test_trigger_area_dispatch_2648.cpp
     test_treasure_check_items_6958.h
     test_treasure_check_items_6958.cpp
+    test_treasure_add_item_dispatch_6961.h
+    test_treasure_add_item_dispatch_6961.cpp
     test_treasure_flush_6959.h
     test_treasure_flush_6959.cpp
     test_treasure_update_pool_dispatch_6960.h
