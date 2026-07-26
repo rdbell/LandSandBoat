@@ -397,6 +397,7 @@ auto runChatFilterFlagsSaveHost7069SelfTests() -> bool;
 auto runCharJobSaveHost7070SelfTests() -> bool;
 auto runCharSkillSaveHost7071SelfTests() -> bool;
 auto runCharExpSaveHost7072SelfTests() -> bool;
+auto runTeleportSaveHost7073SelfTests() -> bool;
 auto runTreasurePassAllVotedResolve6965SelfTests() -> bool;
 auto runTreasureFlush6959SelfTests() -> bool;
 auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool;
@@ -2940,6 +2941,7 @@ namespace
         ok = runCharJobSaveHost7070SelfTests() && ok;
         ok = runCharSkillSaveHost7071SelfTests() && ok;
         ok = runCharExpSaveHost7072SelfTests() && ok;
+        ok = runTeleportSaveHost7073SelfTests() && ok;
         ok = runTreasurePassAllVotedResolve6965SelfTests() && ok;
         ok = runTreasureFlush6959SelfTests() && ok;
         ok = runTreasureUpdatePoolDispatch6960SelfTests() && ok;
