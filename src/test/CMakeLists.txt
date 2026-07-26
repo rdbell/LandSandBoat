@@ -318,6 +318,8 @@ set(SOURCES
     test_map_networking_session_container_6936.cpp
     test_map_networking_statistics_owner_6937.h
     test_map_networking_statistics_owner_6937.cpp
+    test_map_networking_scheduler_owner_6938.h
+    test_map_networking_scheduler_owner_6938.cpp
     test_c2s_packet_rate_limiter.h
     test_c2s_packet_rate_limiter.cpp
     test_c2s_packet_validation_scalars.h
