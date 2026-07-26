@@ -2593,6 +2593,8 @@ set(SOURCES
     test_treasure_terminal_resolution_dispatch_6970.cpp
     test_treasure_add_item_rare_admission_6971.h
     test_treasure_add_item_rare_admission_6971.cpp
+    test_party_push_packet_dispatch_6972.h
+    test_party_push_packet_dispatch_6972.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
