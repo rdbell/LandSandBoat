@@ -355,6 +355,7 @@ auto runPartyReloadTreasurePool6980SelfTests() -> bool;
 auto runPartyReloadTreasurePoolAlliance6981SelfTests() -> bool;
 auto runPartyHasTrusts6982SelfTests() -> bool;
 auto runPartyLastMemberJoined6983SelfTests() -> bool;
+auto runPartyEffectsChanged6984SelfTests() -> bool;
 auto runTreasurePassAllVotedResolve6965SelfTests() -> bool;
 auto runTreasureFlush6959SelfTests() -> bool;
 auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool;
@@ -2852,6 +2853,7 @@ namespace
         ok = runPartyReloadTreasurePoolAlliance6981SelfTests() && ok;
         ok = runPartyHasTrusts6982SelfTests() && ok;
         ok = runPartyLastMemberJoined6983SelfTests() && ok;
+        ok = runPartyEffectsChanged6984SelfTests() && ok;
         ok = runTreasurePassAllVotedResolve6965SelfTests() && ok;
         ok = runTreasureFlush6959SelfTests() && ok;
         ok = runTreasureUpdatePoolDispatch6960SelfTests() && ok;
