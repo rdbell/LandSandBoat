@@ -2611,6 +2611,8 @@ set(SOURCES
     test_party_reload_treasure_pool_alliance_6981.cpp
     test_party_has_trusts_6982.h
     test_party_has_trusts_6982.cpp
+    test_party_last_member_joined_6983.h
+    test_party_last_member_joined_6983.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
