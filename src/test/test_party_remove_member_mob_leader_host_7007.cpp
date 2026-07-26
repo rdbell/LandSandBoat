@@ -7,6 +7,7 @@
 #undef private
 
 #include "map/entities/battle_entity.h"
+#include "map/entities/char_entity.h"
 
 namespace
 {
@@ -26,7 +27,7 @@ auto expect(const bool condition, const char* const label) -> bool
 auto runPartyRemoveMemberMobLeaderHost7007SelfTests() -> bool
 {
     CParty        party(1);
-    CBattleEntity leaving;
+    CCharEntity   leaving;
     CBattleEntity next;
     CBattleEntity later;
     party.m_PartyType = PARTY_MOBS;
@@ -39,6 +40,7 @@ auto runPartyRemoveMemberMobLeaderHost7007SelfTests() -> bool
     party.RemoveMember(&leaving);
 
     return expect(leaving.PParty == nullptr, "former leader detached") &&
+           expect(leaving.ReloadParty(), "character leader clears trusts and requests reload") &&
            expect(next.PParty == &party, "successor remains attached") &&
            expect(later.PParty == &party, "other member remains attached") &&
            expect(party.GetLeader() == &next, "first other member promoted") &&
