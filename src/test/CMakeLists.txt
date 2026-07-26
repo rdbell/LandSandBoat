@@ -324,6 +324,8 @@ set(SOURCES
     test_map_networking_incoming_callback_6939.cpp
     test_map_networking_unencrypted_login_handoff_6940.h
     test_map_networking_unencrypted_login_handoff_6940.cpp
+    test_map_networking_encrypted_receive_adapter_6941.h
+    test_map_networking_encrypted_receive_adapter_6941.cpp
     test_c2s_packet_rate_limiter.h
     test_c2s_packet_rate_limiter.cpp
     test_c2s_packet_validation_scalars.h
