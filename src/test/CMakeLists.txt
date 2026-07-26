@@ -2645,6 +2645,8 @@ set(SOURCES
     test_party_set_mob_leader_host_6998.cpp
     test_party_remove_mob_leader_host_6999.h
     test_party_remove_mob_leader_host_6999.cpp
+    test_party_disband_mob_host_7000.h
+    test_party_disband_mob_host_7000.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
