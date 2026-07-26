@@ -37,6 +37,13 @@ namespace combineaskhelpers
     return lastSynthTime + std::chrono::seconds(15) > now;
 }
 
+// shouldClearMatchedTradePending mirrors the resolved-peer condition before
+// COMBINE_ASK's trade-container gate.
+[[nodiscard]] constexpr auto shouldClearMatchedTradePending(const bool targetPresent, const uint32 pendingID, const uint32 targetID) -> bool
+{
+    return targetPresent && pendingID == targetID;
+}
+
 // IngredientFact captures the inventory lookup result for one requested
 // synthesis ingredient. The process host remains responsible for looking up
 // the slot and for starting the transaction.

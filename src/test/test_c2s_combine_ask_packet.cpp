@@ -336,6 +336,17 @@ auto testCombineAskSynthCooldown() -> bool
     return ok;
 }
 
+auto testCombineAskMatchedTradePending() -> bool
+{
+    using combineaskhelpers::shouldClearMatchedTradePending;
+
+    bool ok = true;
+    ok      = expectTrue(shouldClearMatchedTradePending(true, 42, 42), "COMBINE_ASK matched pending trade") && ok;
+    ok      = expectFalse(shouldClearMatchedTradePending(false, 42, 42), "COMBINE_ASK missing pending-trade target") && ok;
+    ok      = expectFalse(shouldClearMatchedTradePending(true, 42, 43), "COMBINE_ASK mismatched pending-trade ID") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SCombineAskPacketSelfTests() -> bool
@@ -344,5 +355,6 @@ auto runC2SCombineAskPacketSelfTests() -> bool
            testCombineAskCrystalConstants() &&
            testCombineAskPureValidationFacts() &&
            testCombineAskIngredientPlan() &&
-           testCombineAskSynthCooldown();
+           testCombineAskSynthCooldown() &&
+           testCombineAskMatchedTradePending();
 }
