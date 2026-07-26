@@ -25,6 +25,7 @@
 
 #include "synth_critical_fail.h"
 #include "synth_done.h"
+#include "synth_recipe_load.h"
 #include "synth_recipe_resolve.h"
 #include "synth_start.h"
 
@@ -118,84 +119,6 @@ struct SynthRecipe
             default:
                 return 0;
         }
-    }
-
-    static auto crystalString(uint16 crystalID) -> std::string
-    {
-        std::string out = "None";
-
-        switch (crystalID)
-        {
-            case FIRE_CRYSTAL:
-            case INFERNO_CRYSTAL:
-            case PYRE_CRYSTAL:
-                out = "Fire";
-                break;
-
-            case ICE_CRYSTAL:
-            case GLACIER_CRYSTAL:
-            case FROST_CRYSTAL:
-                out = "Ice";
-                break;
-
-            case WIND_CRYSTAL:
-            case CYCLONE_CRYSTAL:
-            case VORTEX_CRYSTAL:
-                out = "Wind";
-                break;
-
-            case EARTH_CRYSTAL:
-            case TERRA_CRYSTAL:
-            case GEO_CRYSTAL:
-                out = "Earth";
-                break;
-
-            case LIGHTNING_CRYSTAL:
-            case PLASMA_CRYSTAL:
-            case BOLT_CRYSTAL:
-                out = "Lightning";
-                break;
-
-            case WATER_CRYSTAL:
-            case TORRENT_CRYSTAL:
-            case FLUID_CRYSTAL:
-                out = "Water";
-                break;
-
-            case LIGHT_CRYSTAL:
-            case AURORA_CRYSTAL:
-            case GLIMMER_CRYSTAL:
-                out = "Light";
-                break;
-
-            case DARK_CRYSTAL:
-            case TWILIGHT_CRYSTAL:
-            case SHADOW_CRYSTAL:
-                out = "Dark";
-                break;
-        }
-
-        return out;
-    }
-
-    static auto ingredientKey(uint16 crystal, const std::array<uint16, 8>& ingredients) -> std::string
-    {
-        return fmt::format("{}-{}-{}-{}-{}-{}-{}-{}-{}",
-                           crystalString(crystal),
-                           ingredients[0],
-                           ingredients[1],
-                           ingredients[2],
-                           ingredients[3],
-                           ingredients[4],
-                           ingredients[5],
-                           ingredients[6],
-                           ingredients[7]);
-    }
-
-    auto key() const
-    {
-        return ingredientKey(Crystal,
-                             { Ingredient1, Ingredient2, Ingredient3, Ingredient4, Ingredient5, Ingredient6, Ingredient7, Ingredient8 });
     }
 };
 
@@ -333,7 +256,10 @@ void LoadSynthRecipes()
             .ContentTag      = rset->getOrDefault<std::string>("content_tag", ""),
         };
 
-        synthRecipes[recipe.key()] = recipe;
+        synthrecipeloadhelpers::StoreByIngredientKey(synthRecipes,
+                                                     recipe.Crystal,
+                                                     { recipe.Ingredient1, recipe.Ingredient2, recipe.Ingredient3, recipe.Ingredient4, recipe.Ingredient5, recipe.Ingredient6, recipe.Ingredient7, recipe.Ingredient8 },
+                                                     recipe);
     }
 }
 
@@ -357,7 +283,7 @@ auto resolveRecipe(CCharEntity* PChar, const SynthOffer& offer) -> bool
         ingredientIds[i] = offer.ingredients[i].itemId;
     }
 
-    const auto possibleRecipeKey = SynthRecipe::ingredientKey(offer.crystal.itemId, ingredientIds);
+    const auto possibleRecipeKey = synthrecipeloadhelpers::IngredientKey(offer.crystal.itemId, ingredientIds);
 
     auto it = synthRecipes.find(possibleRecipeKey);
     if (synthreciperesolvehelpers::CheckFound(it != synthRecipes.end()) != synthreciperesolvehelpers::Decision::Continue)
