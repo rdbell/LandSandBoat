@@ -6,6 +6,7 @@
 #include "map/party.h"
 #undef private
 
+#include "map/alliance.h"
 #include "map/entities/battle_entity.h"
 
 namespace
@@ -20,8 +21,9 @@ auto expect(const bool condition, const char* const label) -> bool
 }
 } // namespace
 
-// Direct CParty::DisbandParty characterization (slice 7000). The mob branch
-// detaches every roster entity from the party before deleting the party.
+// Direct CParty::DisbandParty characterization. The mob branch detaches every
+// roster entity before deleting the party; the common prelude detaches an
+// attached alliance before the PC branch's final deletion.
 auto runPartyDisbandMobHost7000SelfTests() -> bool
 {
     auto* party = new CParty(1);
@@ -45,8 +47,18 @@ auto runPartyDisbandMobHost7000SelfTests() -> bool
     singletonParty->m_PLeader   = &singleton;
     const bool removeReturned   = singletonParty->RemovePartyLeader(&singleton);
 
-    return expect(first.PParty == nullptr, "first member detached") &&
-           expect(second.PParty == nullptr, "second member detached") &&
-           expect(!removeReturned, "singleton leader removal returns false") &&
-           expect(singleton.PParty == nullptr, "singleton leader removal disbands");
+    const bool mobDisband = expect(first.PParty == nullptr, "first member detached") &&
+                            expect(second.PParty == nullptr, "second member detached") &&
+                            expect(!removeReturned, "singleton leader removal returns false") &&
+                            expect(singleton.PParty == nullptr, "singleton leader removal disbands");
+
+    CAlliance alliance(3);
+    auto*     pcParty = new CParty(3);
+    pcParty->m_PAlliance = &alliance;
+    alliance.partyList.emplace_back(pcParty);
+
+    pcParty->DisbandParty(false);
+
+    const bool pcPrelude = expect(alliance.partyList.empty(), "PC disband detaches alliance before deletion");
+    return mobDisband && pcPrelude;
 }
