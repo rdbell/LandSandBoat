@@ -2633,6 +2633,8 @@ set(SOURCES
     test_alliance_del_party_host_6992.cpp
     test_alliance_remove_party_host_6993.h
     test_alliance_remove_party_host_6993.cpp
+    test_alliance_assign_leader_host_6994.h
+    test_alliance_assign_leader_host_6994.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
