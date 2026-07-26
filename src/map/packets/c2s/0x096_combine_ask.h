@@ -51,6 +51,35 @@ namespace combineaskhelpers
     return targetPresent;
 }
 
+struct CrystalFact
+{
+    bool   present{};
+    uint16 inventoryItemID{};
+    uint32 quantity{};
+    bool   busy{};
+    bool   locked{};
+};
+
+enum class CrystalAvailability : uint8
+{
+    Invalid,
+    Busy,
+    Usable,
+};
+
+[[nodiscard]] constexpr auto ClassifyCrystal(const uint16 requestedID, const CrystalFact& crystal) -> CrystalAvailability
+{
+    if (!crystal.present || requestedID != crystal.inventoryItemID || crystal.quantity == 0)
+    {
+        return CrystalAvailability::Invalid;
+    }
+    if (crystal.busy || crystal.locked)
+    {
+        return CrystalAvailability::Busy;
+    }
+    return CrystalAvailability::Usable;
+}
+
 // IngredientFact captures the inventory lookup result for one requested
 // synthesis ingredient. The process host remains responsible for looking up
 // the slot and for starting the transaction.

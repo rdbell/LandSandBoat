@@ -355,6 +355,23 @@ auto testCombineAskPeerTradeCancel() -> bool
            expectFalse(shouldCancelPeerTrade(false), "COMBINE_ASK does not cancel a missing peer trade");
 }
 
+auto testCombineAskCrystalAvailability() -> bool
+{
+    using combineaskhelpers::ClassifyCrystal;
+    using combineaskhelpers::CrystalAvailability;
+    using combineaskhelpers::CrystalFact;
+
+    constexpr auto requested = static_cast<uint16>(FIRE_CRYSTAL);
+    bool ok = true;
+    ok      = expectTrue(ClassifyCrystal(requested, {}) == CrystalAvailability::Invalid, "COMBINE_ASK missing crystal") && ok;
+    ok      = expectTrue(ClassifyCrystal(requested, CrystalFact{ .present = true, .inventoryItemID = static_cast<uint16>(EARTH_CRYSTAL), .quantity = 1 }) == CrystalAvailability::Invalid, "COMBINE_ASK mismatched crystal") && ok;
+    ok      = expectTrue(ClassifyCrystal(requested, CrystalFact{ .present = true, .inventoryItemID = requested }) == CrystalAvailability::Invalid, "COMBINE_ASK depleted crystal") && ok;
+    ok      = expectTrue(ClassifyCrystal(requested, CrystalFact{ .present = true, .inventoryItemID = requested, .quantity = 1, .busy = true }) == CrystalAvailability::Busy, "COMBINE_ASK busy crystal") && ok;
+    ok      = expectTrue(ClassifyCrystal(requested, CrystalFact{ .present = true, .inventoryItemID = requested, .quantity = 1, .locked = true }) == CrystalAvailability::Busy, "COMBINE_ASK locked crystal") && ok;
+    ok      = expectTrue(ClassifyCrystal(requested, CrystalFact{ .present = true, .inventoryItemID = requested, .quantity = 1 }) == CrystalAvailability::Usable, "COMBINE_ASK usable crystal") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runC2SCombineAskPacketSelfTests() -> bool
@@ -365,5 +382,6 @@ auto runC2SCombineAskPacketSelfTests() -> bool
            testCombineAskIngredientPlan() &&
            testCombineAskSynthCooldown() &&
            testCombineAskMatchedTradePending() &&
-           testCombineAskPeerTradeCancel();
+           testCombineAskPeerTradeCancel() &&
+           testCombineAskCrystalAvailability();
 }

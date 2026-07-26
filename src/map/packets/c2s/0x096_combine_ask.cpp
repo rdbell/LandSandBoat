@@ -129,9 +129,14 @@ void GP_CLI_COMMAND_COMBINE_ASK::process(MapSession* PSession, CCharEntity* PCha
     // End temporary additions
 
     const auto* PItem = PChar->getStorage(LOC_INVENTORY)->GetItem(this->CrystalIdx);
-    if (!PItem ||
-        this->Crystal != PItem->getID() ||
-        PItem->getQuantity() == 0)
+    const auto crystal = combineaskhelpers::CrystalFact{
+        .present         = PItem != nullptr,
+        .inventoryItemID = static_cast<uint16>(PItem ? PItem->getID() : 0),
+        .quantity        = PItem ? PItem->getQuantity() : 0,
+        .busy            = PItem && PItem->isBusy(),
+        .locked          = PItem && PItem->isSubType(ITEM_LOCKED),
+    };
+    if (combineaskhelpers::ClassifyCrystal(this->Crystal, crystal) == combineaskhelpers::CrystalAvailability::Invalid)
     {
         // Detect invalid crystal usage
         // Prevent crafting exploit to crash on container size > 8
@@ -139,7 +144,7 @@ void GP_CLI_COMMAND_COMBINE_ASK::process(MapSession* PSession, CCharEntity* PCha
         return;
     }
 
-    if (PItem->isBusy() || PItem->isSubType(ITEM_LOCKED))
+    if (combineaskhelpers::ClassifyCrystal(this->Crystal, crystal) == combineaskhelpers::CrystalAvailability::Busy)
     {
         ShowWarningFmt("GP_CLI_COMMAND_COMBINE_ASK: {} trying to use unavailable crystal", PChar->getName());
         PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, 0, 0, MsgBasic::CannotUseInArea);
