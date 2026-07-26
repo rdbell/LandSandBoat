@@ -35,6 +35,9 @@ auto runPartyAssignRole1347SelfTests() -> bool
     ok = expect(partyhelpers::ClassifyAssignPartyRole(true, true, true, 2) == action::REJECT_UNKNOWN_ROLE, "pearl") && ok;
     ok = expect(partyhelpers::ClassifyAssignPartyRole(true, true, true, 99) == action::REJECT_UNKNOWN_ROLE, "unknown") && ok;
 
+    ok = expect(partyhelpers::ShouldNotifyAllianceReloadOnRole(true), "accepted alliance role reload") && ok;
+    ok = expect(!partyhelpers::ShouldNotifyAllianceReloadOnRole(false), "accepted party role reload") && ok;
+
     ok = expect(partyhelpers::ShouldNotifyAllianceReloadOnRole(true), "alliance reload") && ok;
     ok = expect(!partyhelpers::ShouldNotifyAllianceReloadOnRole(false), "party reload") && ok;
 
