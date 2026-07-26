@@ -2617,6 +2617,8 @@ set(SOURCES
     test_party_effects_changed_6984.cpp
     test_party_push_effects_completion_6985.h
     test_party_push_effects_completion_6985.cpp
+    test_party_refresh_flags_6986.h
+    test_party_refresh_flags_6986.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
