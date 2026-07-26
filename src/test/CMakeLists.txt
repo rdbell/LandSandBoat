@@ -1471,6 +1471,8 @@ set(SOURCES
     test_synth_failure_7087.cpp
     test_synth_skill_up_7088.h
     test_synth_skill_up_7088.cpp
+    test_synth_specialization_7089.h
+    test_synth_specialization_7089.cpp
     test_char_session_update_6890.h
     test_char_session_update_6890.cpp
     test_char_local_player_packets_6891.h

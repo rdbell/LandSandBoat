@@ -866,27 +866,14 @@ void doSynthSkillUp(CCharEntity* PChar)
         //------------------------------
         // Section 5: Spezialization System (Craft delevel system over certain point)
         //------------------------------
-        uint16 craftCommonCap    = settings::get<uint16>("map.CRAFT_COMMON_CAP");
-        uint16 skillCumulation   = skillUpAmount;
-        uint8  skillHighest      = skillID; // Default to lowering current skill in use, since we have to lower something if it's going past the limit... (AKA, badly configurated server)
-        uint16 skillHighestValue = settings::get<uint16>("map.CRAFT_COMMON_CAP");
-
-        if ((charSkill + skillUpAmount) > craftCommonCap) // If server is using the specialization system
+        std::array<uint16, 8> craftSkills{};
+        for (uint8 i = SKILL_WOODWORKING; i <= SKILL_COOKING; ++i)
         {
-            for (uint8 i = SKILL_WOODWORKING; i <= SKILL_COOKING; i++) // Cycle through all skills
-            {
-                if (PChar->RealSkills.skill[i] > craftCommonCap) // If the skill being checked is above the cap from wich spezialitation points start counting.
-                {
-                    skillCumulation += (PChar->RealSkills.skill[i] - craftCommonCap); // Add to the ammount of specialization points in use.
-
-                    if (skillID != i && PChar->RealSkills.skill[i] > skillHighestValue) // Set the ID of the highest craft UNLESS it's the craft currently in use and if it's the highest skill.
-                    {
-                        skillHighest      = i;
-                        skillHighestValue = PChar->RealSkills.skill[i];
-                    }
-                }
-            }
+            craftSkills[i - SKILL_WOODWORKING] = PChar->RealSkills.skill[i];
         }
+        const auto specializationPlan = synthskilluphelpers::MakeSpecializationPlan(
+            SKILL_WOODWORKING, skillID, charSkill, skillUpAmount, settings::get<uint16>("map.CRAFT_COMMON_CAP"),
+            settings::get<uint16>("map.CRAFT_SPECIALIZATION_POINTS"), craftSkills);
 
         //------------------------------
         // Section 6: Handle messages and save results.
@@ -912,19 +899,21 @@ void doSynthSkillUp(CCharEntity* PChar)
         charutils::SaveCharSkills(PChar, skillID);
 
         // Skill Up removal if using spezialization system
-        if (skillCumulation > settings::get<uint16>("map.CRAFT_SPECIALIZATION_POINTS"))
+        if (specializationPlan.removeSkill)
         {
-            PChar->RealSkills.skill[skillHighest] -= skillUpAmount;
-            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, skillHighest, skillUpAmount, MsgBasic::SkillDrop);
+            PChar->RealSkills.skill[specializationPlan.skillHighest] -= skillUpAmount;
+            PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, specializationPlan.skillHighest, skillUpAmount, MsgBasic::SkillDrop);
 
-            if ((PChar->RealSkills.skill[skillHighest] + skillUpAmount) / 10 > (PChar->RealSkills.skill[skillHighest]) / 10)
+            if ((PChar->RealSkills.skill[specializationPlan.skillHighest] + skillUpAmount) / 10 >
+                (PChar->RealSkills.skill[specializationPlan.skillHighest]) / 10)
             {
-                PChar->WorkingSkills.skill[skillHighest] -= 0x20;
+                PChar->WorkingSkills.skill[specializationPlan.skillHighest] -= 0x20;
                 PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS2>(PChar);
-                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, skillHighest, (PChar->RealSkills.skill[skillHighest] - skillUpAmount) / 10, MsgBasic::SkillLevelUp);
+                PChar->pushPacket<GP_SERV_COMMAND_BATTLE_MESSAGE>(PChar, PChar, specializationPlan.skillHighest,
+                                                                   (PChar->RealSkills.skill[specializationPlan.skillHighest] - skillUpAmount) / 10, MsgBasic::SkillLevelUp);
             }
 
-            charutils::SaveCharSkills(PChar, skillHighest);
+            charutils::SaveCharSkills(PChar, specializationPlan.skillHighest);
         }
     }
 }
