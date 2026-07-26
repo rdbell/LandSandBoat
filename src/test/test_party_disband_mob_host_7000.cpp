@@ -8,6 +8,7 @@
 
 #include "map/alliance.h"
 #include "map/entities/battle_entity.h"
+#include "map/entities/char_entity.h"
 
 namespace
 {
@@ -60,5 +61,15 @@ auto runPartyDisbandMobHost7000SelfTests() -> bool
     pcParty->DisbandParty(false);
 
     const bool pcPrelude = expect(alliance.partyList.empty(), "PC disband detaches alliance before deletion");
-    return mobDisband && pcPrelude;
+
+    auto*       memberParty = new CParty(4);
+    CCharEntity pcMember;
+    pcMember.PParty       = memberParty;
+    memberParty->members  = { &pcMember };
+    memberParty->m_PLeader = &pcMember;
+    memberParty->DisbandParty(false);
+
+    const bool pcMemberDisband = expect(pcMember.PParty == nullptr, "PC disband detaches member") &&
+                                 expect(pcMember.ReloadParty(), "PC disband clears trusts and requests reload");
+    return mobDisband && pcPrelude && pcMemberDisband;
 }
