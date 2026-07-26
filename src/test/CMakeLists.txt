@@ -2653,6 +2653,8 @@ set(SOURCES
     test_party_push_member_host_7002.cpp
     test_party_add_member_host_7003.h
     test_party_add_member_host_7003.cpp
+    test_party_set_sync_target_host_7004.h
+    test_party_set_sync_target_host_7004.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
