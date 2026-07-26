@@ -23,6 +23,7 @@
 
 #include "utils/synthutils_capacity.h"
 
+#include "desynth_result.h"
 #include "synth_critical_fail.h"
 #include "synth_difficulty.h"
 #include "synth_done.h"
@@ -515,14 +516,11 @@ auto calculateSynthResult(CCharEntity* PChar) -> uint8
 
 auto calculateDesynthResult(CCharEntity* PChar) -> uint8
 {
-    uint8 synthResult     = SYNTHESIS_SUCCESS;
-    uint8 skillID         = 0;
-    int16 synthDifficulty = 0;
-    float successRate     = 0.0f;
-    bool  canHQ           = true;
+    uint8 synthResult = SYNTHESIS_SUCCESS;
+    bool  canHQ       = true;
 
     // Calculate success or break.
-    for (skillID = SKILL_WOODWORKING; skillID <= SKILL_COOKING; ++skillID)
+    for (auto skillID = static_cast<uint8>(SKILL_WOODWORKING); skillID <= SKILL_COOKING; ++skillID)
     {
         // Skip current iteration if skill isn't involved.
         if (PChar->craftState().skillRequired(skillID - SKILL_WOODWORKING) == 0)
@@ -530,32 +528,18 @@ auto calculateDesynthResult(CCharEntity* PChar) -> uint8
             continue;
         }
 
-        // Skill is involved. Get synth difficulty for current skill.
-        synthDifficulty = getSynthDifficulty(PChar, skillID);
+        // Preserve calculateDesynthResult's entity read order.
+        const auto synthDifficulty = getSynthDifficulty(PChar, skillID);
+        const auto successRateMod  = PChar->getMod(Mod::SYNTH_SUCCESS_RATE_DESYNTHESIS);
+        const auto skillAllowsHQ   = canSynthesizeHQ(PChar, skillID);
+        const auto plan            = desynthresulthelpers::MakeSkillPlan(synthDifficulty, successRateMod, skillAllowsHQ);
 
-        if (synthDifficulty >= 8)
+        if (!plan.canHQ)
         {
-            successRate = 10.0f - 10.0f * (synthDifficulty - 7) / 3.0f;
-        }
-        else if (synthDifficulty >= 1)
-        {
-            successRate = 40.0f - 5.0f * (synthDifficulty - 1);
-        }
-        else
-        {
-            successRate = 40.0f;
+            canHQ = false;
         }
 
-        successRate = successRate + PChar->getMod(Mod::SYNTH_SUCCESS_RATE_DESYNTHESIS);
-
-        // Crafting ring handling.
-        if (!canSynthesizeHQ(PChar, skillID))
-        {
-            successRate = successRate + 1.0f; // The crafting rings that block HQ synthesis all also increase their respective craft's success rate by 1%
-            canHQ       = false;              // Assuming here that if a crafting ring is used matching a recipe's subsynth, overall HQ will still be blocked
-        }
-
-        if (xirand::GetRandomNumber(0.0f, 100.f) > successRate) // Synthesis broke. This is not a mistake, the break check HAS to be done per craft skill involved.
+        if (xirand::GetRandomNumber(0.0f, 100.f) > plan.successRate) // Synthesis broke. This is not a mistake, the break check HAS to be done per craft skill involved.
         {
             // Keep the skill because of which the synthesis failed.
             PChar->craftState().setFailingSkill(skillID);
