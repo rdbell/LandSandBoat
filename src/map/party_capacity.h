@@ -1137,6 +1137,33 @@ inline auto ShouldRunPCRemoveCleanup(const bool isPCParty, const bool isPCEntity
     return isPCParty && isPCEntity;
 }
 
+// pc_member_removal_persistence_plan is the DB/IPC tail of a non-leader
+// CParty::RemoveMember PC cleanup after its local character packets.
+struct pc_member_removal_persistence_plan
+{
+    bool   deleteRow       = false;
+    bool   allianceReload  = false;
+    uint32 reloadID        = 0;
+};
+
+inline auto PlanPCMemberRemovalPersistence(
+    const bool isPCParty,
+    const bool isPCEntity,
+    const bool hasAlliance,
+    const uint32 allianceID,
+    const uint32 partyID) -> pc_member_removal_persistence_plan
+{
+    if (!ShouldRunPCRemoveCleanup(isPCParty, isPCEntity))
+    {
+        return {};
+    }
+    return {
+        .deleteRow      = true,
+        .allianceReload = hasAlliance,
+        .reloadID       = hasAlliance ? allianceID : partyID,
+    };
+}
+
 // add_member_gate is the pure outcome of AddMember admission before mutation.
 enum class add_member_gate : uint8_t
 {

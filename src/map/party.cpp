@@ -371,18 +371,27 @@ void CParty::RemoveMember(CBattleEntity* PEntity)
                 PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(PChar, 0, 0, PChar->getZone());
                 PChar->pushPacket<CCharStatusPacket>(PChar);
 
-                db::preparedStmt("DELETE FROM accounts_parties WHERE charid = ?", PChar->id);
+                const auto removalPlan = partyhelpers::PlanPCMemberRemovalPersistence(
+                    m_PartyType == PARTY_PCS,
+                    PEntity->objtype == TYPE_PC,
+                    m_PAlliance != nullptr,
+                    m_PAlliance ? m_PAlliance->m_AllianceID : 0,
+                    m_PartyID);
+                if (removalPlan.deleteRow)
+                {
+                    db::preparedStmt("DELETE FROM accounts_parties WHERE charid = ?", PChar->id);
+                }
 
-                if (m_PAlliance)
+                if (removalPlan.allianceReload)
                 {
                     message::send(ipc::AllianceReload{
-                        .allianceId = m_PAlliance->m_AllianceID,
+                        .allianceId = removalPlan.reloadID,
                     });
                 }
                 else
                 {
                     message::send(ipc::PartyReload{
-                        .partyId = m_PartyID,
+                        .partyId = removalPlan.reloadID,
                     });
                 }
 

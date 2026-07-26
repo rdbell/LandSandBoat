@@ -42,6 +42,12 @@ auto runPartyRemoveMember1349SelfTests() -> bool
     ok = expect(partyhelpers::ShouldRunPCRemoveCleanup(true, true), "pc cleanup") && ok;
     ok = expect(!partyhelpers::ShouldRunPCRemoveCleanup(true, false), "mob entity") && ok;
     ok = expect(!partyhelpers::ShouldRunPCRemoveCleanup(false, true), "mob party") && ok;
+    const auto noPersistence = partyhelpers::PlanPCMemberRemovalPersistence(false, true, true, 77, 42);
+    const auto partyPersistence = partyhelpers::PlanPCMemberRemovalPersistence(true, true, false, 77, 42);
+    const auto alliancePersistence = partyhelpers::PlanPCMemberRemovalPersistence(true, true, true, 77, 42);
+    ok = expect(!noPersistence.deleteRow && !noPersistence.allianceReload && noPersistence.reloadID == 0, "non-PC no persistence") && ok;
+    ok = expect(partyPersistence.deleteRow && !partyPersistence.allianceReload && partyPersistence.reloadID == 42, "party removal persistence") && ok;
+    ok = expect(alliancePersistence.deleteRow && alliancePersistence.allianceReload && alliancePersistence.reloadID == 77, "alliance removal persistence") && ok;
 
     ok = expect(partyhelpers::ShouldApplyLeavingSyncCountdown(true, false, true, true), "leave countdown") && ok;
     ok = expect(!partyhelpers::ShouldApplyLeavingSyncCountdown(true, true, true, true), "leaver is target") && ok;
