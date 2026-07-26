@@ -1465,6 +1465,8 @@ set(SOURCES
     test_synth_result_dispatch_7084.cpp
     test_synth_material_loss_7085.h
     test_synth_material_loss_7085.cpp
+    test_synth_success_7086.h
+    test_synth_success_7086.cpp
     test_char_session_update_6890.h
     test_char_session_update_6890.cpp
     test_char_local_player_packets_6891.h

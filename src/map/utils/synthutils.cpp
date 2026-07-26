@@ -33,6 +33,7 @@
 #include "synth_result.h"
 #include "synth_result_dispatch.h"
 #include "synth_start.h"
+#include "synth_success.h"
 
 #include "charutils.h"
 #include "common/database.h"
@@ -663,7 +664,7 @@ void handleSynthSuccess(CCharEntity* PChar)
     synthTransaction.setResultDelivery(result);
 
     // Use appropiate message (Regular or desynthesis)
-    const auto message = craftState.craftMode() == CRAFT_DESYNTHESIS ? SynthesisResult::SuccessDesynth : SynthesisResult::Success;
+    const auto message = synthsuccesshelpers::MessageForCraftMode(craftState.craftMode() == CRAFT_DESYNTHESIS);
 
     PChar->loc.zone->PushPacket(PChar, CHAR_INRANGE, std::make_unique<GP_SERV_COMMAND_COMBINE_INF>(PChar, message, result));
     PChar->pushPacket<GP_SERV_COMMAND_COMBINE_ANS>(PChar, message, result);
