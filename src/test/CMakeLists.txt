@@ -224,6 +224,8 @@ set(SOURCES
     test_c2s_item_use_runtime.cpp
     test_c2s_item_transfer_runtime.h
     test_c2s_item_transfer_runtime.cpp
+    test_c2s_item_transfer_post_trade.h
+    test_c2s_item_transfer_post_trade.cpp
     test_c2s_gameok_packet.h
     test_c2s_gameok_packet.cpp
     test_c2s_gameok_runtime.h

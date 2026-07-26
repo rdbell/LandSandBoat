@@ -127,12 +127,9 @@ void GP_CLI_COMMAND_ITEM_TRANSFER::process(MapSession* PSession, CCharEntity* PC
 
     luautils::OnTrade(PChar, PNpc);
     PChar->TradeContainer->unreserveUnconfirmed();
-    if (PChar->isInEvent())
+    if (itemtransferhelpers::ShouldForceSynthCriticalFail(PChar->isInEvent(), PChar->isCrafting()))
     {
         // Retail accurate: If the trade started an event then any current synth is a crit fail.
-        if (PChar->isCrafting())
-        {
-            charutils::forceSynthCritFail("GP_CLI_COMMAND_ITEM_TRANSFER", PChar);
-        }
+        charutils::forceSynthCritFail("GP_CLI_COMMAND_ITEM_TRANSFER", PChar);
     }
 }

@@ -1141,6 +1141,7 @@ auto runC2STradeResRuntimeSelfTests() -> bool;
 auto runC2SItemSearchRuntimeSelfTests() -> bool;
 auto runC2SItemUseRuntimeSelfTests() -> bool;
 auto runC2SItemTransferRuntimeSelfTests() -> bool;
+auto runC2SItemTransferPostTradeSelfTests() -> bool;
 auto runC2SItemDumpMovePacketSelfTests() -> bool;
 auto runC2SItemLookupPacketSelfTests() -> bool;
 auto runC2SPlayerTradePacketSelfTests() -> bool;
@@ -3689,6 +3690,7 @@ namespace
         ok = runC2SItemSearchRuntimeSelfTests() && ok;
         ok = runC2SItemUseRuntimeSelfTests() && ok;
         ok = runC2SItemTransferRuntimeSelfTests() && ok;
+        ok = runC2SItemTransferPostTradeSelfTests() && ok;
         ok = runC2SItemDumpMovePacketSelfTests() && ok;
         ok = runC2SItemLookupPacketSelfTests() && ok;
         ok = runC2SPlayerTradePacketSelfTests() && ok;

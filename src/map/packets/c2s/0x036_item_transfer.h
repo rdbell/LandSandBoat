@@ -117,6 +117,14 @@ struct Plan
     return plan;
 }
 
+// ShouldForceSynthCriticalFail mirrors ITEM_TRANSFER's post-OnTrade gate.
+// Lua may start an event while an earlier synthesis remains active, so this
+// must be evaluated after OnTrade and unreserveUnconfirmed.
+[[nodiscard]] constexpr auto ShouldForceSynthCriticalFail(const bool inEvent, const bool crafting) -> bool
+{
+    return inEvent && crafting;
+}
+
 } // namespace itemtransferhelpers
 
 // https://github.com/atom0s/XiPackets/tree/main/world/client/0x0036
