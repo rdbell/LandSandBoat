@@ -38,6 +38,38 @@ public:
 private:
     db::Database* previous_;
 };
+
+auto testMainPartyPromotionLookup() -> bool
+{
+    db::SQLiteDatabase database("file:alliance_remove_party_promote?mode=memory&cache=shared");
+    ScopedDatabase     activeDatabase(database);
+    database.executeScript(R"sql(
+        CREATE TABLE accounts_sessions (charid INTEGER PRIMARY KEY, timestamp INTEGER NOT NULL);
+        CREATE TABLE chars (charid INTEGER PRIMARY KEY, charname TEXT NOT NULL);
+        CREATE TABLE accounts_parties (charid INTEGER PRIMARY KEY, partyid INTEGER NOT NULL, allianceid INTEGER NOT NULL, partyflag INTEGER NOT NULL);
+        INSERT INTO chars (charid, charname) VALUES (100, 'Oldest'), (101, 'Newer');
+        INSERT INTO accounts_sessions (charid, timestamp) VALUES (100, 10), (101, 20);
+        INSERT INTO accounts_parties (charid, partyid, allianceid, partyflag) VALUES
+            (10, 10, 1, 12), (100, 20, 1, 4), (101, 30, 1, 4);
+    )sql");
+
+    CAlliance alliance(1);
+    CParty    departingMain(10);
+    CParty    oldestCandidate(20);
+    CParty    newerCandidate(30);
+    departingMain.m_PartyType = PARTY_MOBS;
+    alliance.partyList        = { &departingMain, &oldestCandidate, &newerCandidate };
+    departingMain.m_PAlliance = &alliance;
+    oldestCandidate.m_PAlliance = &alliance;
+    newerCandidate.m_PAlliance  = &alliance;
+    alliance.setMainParty(&departingMain);
+
+    alliance.removeParty(&departingMain);
+
+    return expect(alliance.m_AllianceID == 100, "oldest other-party leader becomes alliance ID") &&
+           expect(alliance.getMainParty() == nullptr, "remote successor clears local main party") &&
+           expect(departingMain.m_PAlliance == nullptr, "departing main party detached");
+}
 } // namespace
 
 // Direct CAlliance::removeParty characterization (slice 6993). A non-main
@@ -73,5 +105,6 @@ auto runAllianceRemovePartyHost6993SelfTests() -> bool
            expect(alliance.getMainParty() == &mainParty, "main party retained") &&
            expect(persistedParty && persistedParty->next() && persistedParty->get<uint32>("allianceid") == 0 &&
                       persistedParty->get<uint16>("partyflag") == (PARTY_LEADER | PARTY_QM),
-                  "leaving party's alliance flags are cleared");
+                  "leaving party's alliance flags are cleared") &&
+           testMainPartyPromotionLookup();
 }
