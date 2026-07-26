@@ -2655,6 +2655,8 @@ set(SOURCES
     test_party_add_member_host_7003.cpp
     test_party_set_sync_target_host_7004.h
     test_party_set_sync_target_host_7004.cpp
+    test_party_remove_member_host_7005.h
+    test_party_remove_member_host_7005.cpp
     test_treasure_pass_all_voted_resolve_6965.h
     test_treasure_pass_all_voted_resolve_6965.cpp
     test_treasure_flush_6959.h
