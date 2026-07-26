@@ -335,6 +335,7 @@ auto runIPCMessageFramingSelfTests() -> bool;
 auto runTracyHexHelperSelfTests() -> bool;
 auto runTriggerAreaSelfTests() -> bool;
 auto runTriggerAreaDispatch2648SelfTests() -> bool;
+auto runTreasureCheckItems6958SelfTests() -> bool;
 auto runTreasurePoolResolutionSelfTests() -> bool;
 auto runWeatherContainerSelfTests() -> bool;
 auto runZoneWeatherDecoder2649SelfTests() -> bool;
@@ -2809,6 +2810,7 @@ namespace
         ok = runTracyHexHelperSelfTests() && ok;
         ok = runTriggerAreaSelfTests() && ok;
         ok = runTriggerAreaDispatch2648SelfTests() && ok;
+        ok = runTreasureCheckItems6958SelfTests() && ok;
         ok = runTreasurePoolResolutionSelfTests() && ok;
         ok = runWeatherContainerSelfTests() && ok;
         ok = runZoneWeatherDecoder2649SelfTests() && ok;
