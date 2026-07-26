@@ -1447,12 +1447,13 @@ bool CParty::IsFull() const
 
 uint32 CParty::LoadPartySize() const
 {
-    if (m_PartyType != PARTYTYPE::PARTY_PCS)
+    const auto queryPlan = partyhelpers::PlanLoadPartySizeQuery(m_PartyType == PARTYTYPE::PARTY_PCS, m_PartyID);
+    if (!queryPlan.query)
     {
         return partyhelpers::LoadPartySizeForType(false, members.size(), 0);
     }
 
-    const auto rset = db::preparedStmt("SELECT COUNT(*) FROM accounts_parties WHERE partyid = ?", m_PartyID);
+    const auto rset = db::preparedStmt("SELECT COUNT(*) FROM accounts_parties WHERE partyid = ?", queryPlan.partyID);
     if (rset && rset->rowsCount() && rset->next())
     {
         return partyhelpers::LoadPartySizeForType(true, members.size(), rset->get<uint32>(0));

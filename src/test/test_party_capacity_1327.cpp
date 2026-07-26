@@ -51,6 +51,10 @@ auto runPartyCapacity1327SelfTests() -> bool
     ok = expect(partyhelpers::LoadPartySizeForType(false, 4, 99) == 4, "mob local size") && ok;
     ok = expect(partyhelpers::LoadPartySizeForType(true, 4, 99) == 99, "pc db size") && ok;
     ok = expect(partyhelpers::LoadPartySizeForType(true, 4, 0) == 0, "pc db miss") && ok;
+    const auto mobSizeQuery = partyhelpers::PlanLoadPartySizeQuery(false, 42);
+    const auto pcSizeQuery  = partyhelpers::PlanLoadPartySizeQuery(true, 42);
+    ok = expect(!mobSizeQuery.query && mobSizeQuery.partyID == 0, "mob skips size query") && ok;
+    ok = expect(pcSizeQuery.query && pcSizeQuery.partyID == 42, "PC size query binding") && ok;
 
     ok = expect(partyhelpers::ShouldRejectPCAddFull(true, true, true), "reject full pc") && ok;
     ok = expect(!partyhelpers::ShouldRejectPCAddFull(true, true, false), "allow not full") && ok;

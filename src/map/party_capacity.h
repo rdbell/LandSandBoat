@@ -218,6 +218,23 @@ inline auto LoadPartySizeForType(const bool isPCParty, const std::size_t localMe
     return dbCount;
 }
 
+// party_size_query_plan is the one binding required by CParty::LoadPartySize.
+// Mob parties return their local roster size without querying accounts_parties.
+struct party_size_query_plan
+{
+    bool   query   = false;
+    uint32 partyID = 0;
+};
+
+// PlanLoadPartySizeQuery mirrors LoadPartySize's PARTY_PCS database gate.
+inline auto PlanLoadPartySizeQuery(const bool isPCParty, const uint32 partyID) -> party_size_query_plan
+{
+    return {
+        .query   = isPCParty,
+        .partyID = isPCParty ? partyID : 0,
+    };
+}
+
 // ShouldRejectPCAddFull mirrors AddMember's IsFull gate for TYPE_PC + PARTY_PCS.
 //
 // Formula (slice 3870 dedicated dual-wire; residual expand 2928 /
