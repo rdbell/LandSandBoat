@@ -68,6 +68,13 @@ auto runPartyReload1352SelfTests() -> bool
     }
     ok = expect(listPosition.listIndex == 0, "index wraps") && ok;
 
+    auto soloRow = partyhelpers::PlanSoloReloadPartyRow(4, true, 2);
+    ok = expect(soloRow.memberIndex == 4 && soloRow.nextIndex == 7, "online row trusts") && ok;
+    soloRow = partyhelpers::PlanSoloReloadPartyRow(4, false, 2);
+    ok = expect(soloRow.memberIndex == 4 && soloRow.nextIndex == 5, "offline row no trusts") && ok;
+    soloRow = partyhelpers::PlanSoloReloadPartyRow(255, true, 1);
+    ok = expect(soloRow.memberIndex == 255 && soloRow.nextIndex == 1, "trust row wraps") && ok;
+
     // Offline zone
     ok = expect(partyhelpers::OfflineMemberZoneID(0, 100) == 100, "prev zone") && ok;
     ok = expect(partyhelpers::OfflineMemberZoneID(50, 100) == 50, "current zone") && ok;

@@ -957,6 +957,7 @@ void CParty::ReloadParty()
             for (auto&& memberinfo : info)
             {
                 auto* PPartyMember = zoneutils::GetChar(memberinfo.id);
+                const auto rowPlan = partyhelpers::PlanSoloReloadPartyRow(j, PPartyMember != nullptr, trustCount);
                 if (PPartyMember)
                 {
                     PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(PPartyMember, j, memberinfo.flags, PChar->getZone());
@@ -978,7 +979,7 @@ void CParty::ReloadParty()
                     uint16 zoneid = partyhelpers::OfflineMemberZoneID(memberinfo.zone, memberinfo.prev_zone);
                     PChar->pushPacket<GP_SERV_COMMAND_GROUP_LIST>(memberinfo.id, memberinfo.name, memberinfo.flags, j, zoneid);
                 }
-                j++;
+                j = rowPlan.nextIndex;
             }
         }
     }

@@ -1465,6 +1465,37 @@ inline auto AdvanceReloadPartyMemberListRow(reload_party_member_list_position po
     return position;
 }
 
+// solo_reload_party_row_plan is the GROUP_LIST index range consumed by one
+// regular-party ReloadParty roster row and its leader-trust injections.
+struct solo_reload_party_row_plan
+{
+    uint8 memberIndex = 0;
+    uint8 nextIndex   = 0;
+};
+
+// PlanSoloReloadPartyRow mirrors ReloadParty's index progression. Offline
+// roster rows do not inject leader trusts; online rows inject every trust
+// between their own row and the next roster row.
+inline auto PlanSoloReloadPartyRow(
+    const uint8       memberIndex,
+    const bool        memberOnline,
+    const std::size_t leaderTrustCount) -> solo_reload_party_row_plan
+{
+    uint8 nextIndex = memberIndex;
+    if (memberOnline)
+    {
+        for (std::size_t i = 0; i < leaderTrustCount; ++i)
+        {
+            nextIndex++;
+        }
+    }
+    nextIndex++;
+    return {
+        .memberIndex = memberIndex,
+        .nextIndex   = nextIndex,
+    };
+}
+
 // OfflineMemberZoneID mirrors zone == 0 ? prev_zone : zone for offline list rows.
 inline auto OfflineMemberZoneID(const uint16 zone, const uint16 prevZone) -> uint16
 {
