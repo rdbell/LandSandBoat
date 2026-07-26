@@ -1182,6 +1182,7 @@ auto runC2SShopSellSetRuntimeSelfTests() -> bool;
 auto runC2SGuildBuyRuntimeSelfTests() -> bool;
 auto runC2SGuildSellRuntimeSelfTests() -> bool;
 auto runC2SCombineAskPacketSelfTests() -> bool;
+auto runSynthStartPlanSelfTests() -> bool;
 auto runC2SChocoboRaceReqPacketSelfTests() -> bool;
 auto runC2SDicePacketSelfTests() -> bool;
 auto runC2SDigRuntimeSelfTests() -> bool;
@@ -3733,6 +3734,7 @@ namespace
         ok = runC2SGuildBuyRuntimeSelfTests() && ok;
         ok = runC2SGuildSellRuntimeSelfTests() && ok;
         ok = runC2SCombineAskPacketSelfTests() && ok;
+        ok = runSynthStartPlanSelfTests() && ok;
         ok = runC2SChocoboRaceReqPacketSelfTests() && ok;
         ok = runC2SDicePacketSelfTests() && ok;
         ok = runC2SDigRuntimeSelfTests() && ok;

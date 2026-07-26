@@ -142,6 +142,8 @@ set(SOURCES
     test_c2s_clstat_runtime.cpp
     test_c2s_combine_ask_packet.h
     test_c2s_combine_ask_packet.cpp
+    test_synth_start_plan.h
+    test_synth_start_plan.cpp
     test_c2s_comlink_myroom_packets.h
     test_c2s_comlink_myroom_packets.cpp
     test_c2s_myroom_is_runtime.h
