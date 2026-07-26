@@ -370,6 +370,7 @@ auto runAllianceDissolveLocalHost6995SelfTests() -> bool;
 auto runPartySetLeaderHost6996SelfTests() -> bool;
 auto runAlliancePartyLeaderChangeHost6997SelfTests() -> bool;
 auto runPartySetMobLeaderHost6998SelfTests() -> bool;
+auto runPartyRemoveMobLeaderHost6999SelfTests() -> bool;
 auto runTreasurePassAllVotedResolve6965SelfTests() -> bool;
 auto runTreasureFlush6959SelfTests() -> bool;
 auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool;
@@ -2882,6 +2883,7 @@ namespace
         ok = runPartySetLeaderHost6996SelfTests() && ok;
         ok = runAlliancePartyLeaderChangeHost6997SelfTests() && ok;
         ok = runPartySetMobLeaderHost6998SelfTests() && ok;
+        ok = runPartyRemoveMobLeaderHost6999SelfTests() && ok;
         ok = runTreasurePassAllVotedResolve6965SelfTests() && ok;
         ok = runTreasureFlush6959SelfTests() && ok;
         ok = runTreasureUpdatePoolDispatch6960SelfTests() && ok;
