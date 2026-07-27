@@ -899,6 +899,16 @@ xi.mob.callPetSpawnIds = function(candidates, maxSpawns)
     return selected
 end
 
+-- Builds the temporary spawn position around the owner from injected jitter.
+xi.mob.callPetSpawnPosition = function(ownerPos, jitterX, jitterZ)
+    return {
+        x   = ownerPos.x + (jitterX or 0),
+        y   = ownerPos.y,
+        z   = ownerPos.z + (jitterZ or 0),
+        rot = ownerPos.rot,
+    }
+end
+
 xi.mob.callPets = function(mob, petIds, params)
     params = params or {}
     -- params table:
@@ -979,7 +989,8 @@ xi.mob.callPets = function(mob, petIds, params)
             then
                 spawnedCount = spawnedCount + 1
                 -- spawn pet around owner
-                petToSummon:setSpawn(pos.x + math.random(-2, 2), pos.y, pos.z + math.random(-2, 2), pos.rot)
+                local petPos = xi.mob.callPetSpawnPosition(pos, math.random(-2, 2), math.random(-2, 2))
+                petToSummon:setSpawn(petPos.x, petPos.y, petPos.z, petPos.rot)
                 petToSummon:spawn()
                 -- set home to be the owner's home position
                 petToSummon:setSpawn(spawnPos.x, spawnPos.y, spawnPos.z, spawnPos.rot)

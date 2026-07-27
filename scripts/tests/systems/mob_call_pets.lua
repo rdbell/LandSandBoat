@@ -68,6 +68,11 @@ describe('Mob call pets spawn cap', function()
         }, 2)
         assert(#ids == 2 and ids[1] == 502 and ids[2] == 503)
     end)
+
+    it('places a summoned pet around the owner using X/Z jitter', function()
+        local pos = xi.mob.callPetSpawnPosition({ x = 100, y = 5, z = -20, rot = 77 }, 2, -2)
+        assert(pos.x == 102 and pos.y == 5 and pos.z == -22 and pos.rot == 77)
+    end)
 end)
 
 describe('Mob call pets action packet', function()
