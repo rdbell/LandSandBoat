@@ -77,27 +77,43 @@ describe('barge event pure plan', function()
         return csid == 31 or csid == 32 or csid == 43
     end
 
+    local function nextScheduleEvent(currentTime, schedule)
+        if schedule[#schedule].endTime <= currentTime or schedule[1].endTime > currentTime then
+            return schedule[1]
+        end
+
+        for _, event in ipairs(schedule) do
+            if event.endTime > currentTime then
+                return event
+            end
+        end
+    end
+
     local function nextChannelRoute(currentTime)
         local channel = {
             { endTime = 275, route = 1 }, { endTime = 535, route = 0 },
             { endTime = 960, route = 2 }, { endTime = 1155, route = 3 },
             { endTime = 1415, route = 0 },
         }
-
-        if channel[#channel].endTime <= currentTime or channel[1].endTime > currentTime then
-            return channel[1].route
-        end
-
-        for _, event in ipairs(channel) do
-            if event.endTime > currentTime then
-                return event.route
-            end
-        end
+        return nextScheduleEvent(currentTime, channel).route
     end
 
     local function landingArrivalEvent(destination)
         local docks = { [0] = 38, [2] = 11, [3] = 10 }
         return docks[destination] or docks[3]
+    end
+
+    local function planTimekeeper(schedule, channel, currentTime, eventId)
+        local next = nextScheduleEvent(currentTime, schedule)
+        local gameMins = remainingGameMins(currentTime, next.endTime)
+        local earthSecsVal = earthSecs(gameMins)
+
+        if channel then
+            local useEventId, earthMins = planChannelEvent(eventId, earthSecsVal)
+            return useEventId, earthMins, math.floor(gameMins / 60), next.route
+        end
+
+        return eventId, earthSecsVal, next.action, 0, next.route
     end
 
     it('remaining and earth secs', function()
@@ -142,5 +158,26 @@ describe('barge event pure plan', function()
         assert(nextChannelRoute(535) == 2)
         assert(nextChannelRoute(1415) == 1) -- wraps to Central Landing Emfea
         assert(landingArrivalEvent(1) == 10) -- EMFEA falls back to Central
+    end)
+
+    it('timekeeper dock and channel event arguments', function()
+        local central = {
+            { endTime = 275, action = 0, route = 0 },
+            { endTime = 325, action = 1, route = 0 },
+            { endTime = 1155, action = 0, route = 0 },
+            { endTime = 1205, action = 1, route = 0 },
+        }
+        local channel = {
+            { endTime = 275, route = 1 }, { endTime = 535, route = 0 },
+            { endTime = 960, route = 2 }, { endTime = 1155, route = 3 },
+            { endTime = 1415, route = 0 },
+        }
+
+        local id, a, b, c, d = planTimekeeper(central, false, 300, 100)
+        assert(id == 100 and a == 60 and b == 1 and c == 0 and d == 0)
+        id, a, b, c = planTimekeeper(channel, true, 535, 100)
+        assert(id == 100 and a == 17 and b == 7 and c == 2)
+        id, a, b, c = planTimekeeper(channel, true, 1410, 100)
+        assert(id == 99 and a == 0 and b == 0 and c == 0)
     end)
 end)
