@@ -922,6 +922,26 @@ xi.mob.callPetAnimationPlan = function(inactiveTime, noAnimation, ignoreInactive
     }
 end
 
+xi.mob.callPetAssistNone   = 0
+xi.mob.callPetAssistTarget = 1
+xi.mob.callPetAssistFollow = 2
+xi.mob.callPetAssistDie    = 3
+
+-- Selects the owner-assist listener action after host entity reads.
+xi.mob.callPetAssistAction = function(ownerExists, ownerHasTarget, ownerAlive, petHasFollowTarget, persistOnDeath)
+    if not ownerExists then
+        return xi.mob.callPetAssistNone
+    elseif ownerHasTarget then
+        return xi.mob.callPetAssistTarget
+    elseif not persistOnDeath and not ownerAlive then
+        return xi.mob.callPetAssistDie
+    elseif ownerAlive and not petHasFollowTarget then
+        return xi.mob.callPetAssistFollow
+    end
+
+    return xi.mob.callPetAssistNone
+end
+
 xi.mob.callPets = function(mob, petIds, params)
     params = params or {}
     -- params table:
@@ -1035,48 +1055,24 @@ xi.mob.callPets = function(mob, petIds, params)
                 petToSummon:stun(500)
                 if petToSummon ~= mobArg:getPet() then
                     local persistOnDeath = params.persistOnDeath or false
-                    if persistOnDeath then
-                        petToSummon:addListener('ROAM_TICK', 'ASSIST_OWNER', function(petArg)
-                            local owner = GetMobByID(ownerID)
-                            if not owner then
-                                return
-                            end
+                    petToSummon:addListener('ROAM_TICK', 'ASSIST_OWNER', function(petArg)
+                        local owner = GetMobByID(ownerID)
+                        local newTarget = owner and owner:getTarget() or nil
+                        local action = xi.mob.callPetAssistAction(
+                            owner ~= nil,
+                            newTarget ~= nil,
+                            owner and owner:isAlive() or false,
+                            petArg:hasFollowTarget(),
+                            persistOnDeath)
 
-                            local newTarget = owner:getTarget() or nil
-                            if newTarget then
-                                petArg:updateEnmity(newTarget)
-                                return
-                            end
-
-                            if owner:isAlive() and not petArg:hasFollowTarget() then
-                                petArg:follow(owner, xi.followType.ROAM)
-                                return
-                            end
-                        end)
-                    else
-                        petToSummon:addListener('ROAM_TICK', 'ASSIST_OWNER', function(petArg)
-                            local owner = GetMobByID(ownerID)
-                            if not owner then
-                                return
-                            end
-
-                            local newTarget = owner:getTarget() or nil
-                            if newTarget then
-                                petArg:updateEnmity(newTarget)
-                                return
-                            end
-
-                            if owner:isDead() then
-                                petArg:setHP(0)
-                                return
-                            end
-
-                            if not petArg:hasFollowTarget() then
-                                petArg:follow(owner, xi.followType.ROAM)
-                                return
-                            end
-                        end)
-                    end
+                        if action == xi.mob.callPetAssistTarget then
+                            petArg:updateEnmity(newTarget)
+                        elseif action == xi.mob.callPetAssistDie then
+                            petArg:setHP(0)
+                        elseif action == xi.mob.callPetAssistFollow then
+                            petArg:follow(owner, xi.followType.ROAM)
+                        end
+                    end)
 
                     -- so we don't wait for the next roam tick (pet assists as soon as :stun is complete)
                     petToSummon:queue(0, function(petArg)
