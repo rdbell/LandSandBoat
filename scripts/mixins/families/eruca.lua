@@ -25,6 +25,48 @@ xi.mix.eruca = xi.mix.eruca or {}
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
+xi.mix.eruca.resleepTime = function(now)
+    return now + 120
+end
+
+xi.mix.eruca.roamAction = function(params)
+    params = params or {}
+
+    local subAnimation = params.subAnimation or 0
+    local currentHour = params.currentHour or 0
+    local sleepHour = params.sleepHour or 0
+    local wakeHour = params.wakeHour or 0
+
+    if
+        subAnimation == 0 and
+        (currentHour >= sleepHour or currentHour < wakeHour) and
+        not params.engaged
+    then
+        local resleepTime = params.resleepTime or 0
+        if resleepTime ~= 0 and (params.distanceFromSpawn or 0) > 25 then
+            return 'resetResleep'
+        elseif resleepTime <= (params.now or 0) then
+            return 'sleep'
+        end
+    elseif
+        subAnimation == 1 and
+        currentHour < sleepHour and
+        currentHour >= wakeHour
+    then
+        return 'wake'
+    end
+
+    return 'none'
+end
+
+xi.mix.eruca.regainAction = function(isFireDay, currentRegain)
+    if isFireDay and currentRegain == 0 then
+        return 30
+    elseif not isFireDay and currentRegain ~= 0 then
+        return 0
+    end
+end
+
 local function bedTime(mob)
     mob:setAnimationSub(mob:getAnimationSub() + 1)
     mob:setMobMod(xi.mobMod.NO_MOVE, 1)
@@ -64,37 +106,44 @@ g_mixins.families.eruca = function(erucaMob)
         local currentHour = VanadielHour()
         local sleepHour = mob:getLocalVar('[eruca]sleepHour')
         local subAnimation = mob:getAnimationSub()
+        local wakeHour = mob:getLocalVar('[eruca]wakeHour')
+        local resleepTime = mob:getLocalVar('ResleepTime')
+        local engaged = false
+        local distanceFromSpawn = 0
+        local now = 0
 
-        if
-            subAnimation == 0 and
-            (currentHour >= sleepHour or currentHour < mob:getLocalVar('[eruca]wakeHour')) and
-            not mob:isEngaged()
-        then
-            local resleepTime = mob:getLocalVar('ResleepTime')
-
-            if resleepTime ~= 0 and mob:checkDistance(mob:getSpawnPos()) > 25 then
-                mob:setLocalVar('ResleepTime', GetSystemTime() + 120) -- Reset sleep timer until crawler returns home
-            elseif resleepTime <= GetSystemTime() then -- No timer was set (normal behavior) OR crawler has been back home for 2 minutes since disengaged
-                bedTime(mob)
+        if subAnimation == 0 and (currentHour >= sleepHour or currentHour < wakeHour) then
+            engaged = mob:isEngaged()
+            if not engaged then
+                now = GetSystemTime()
+                if resleepTime ~= 0 then
+                    distanceFromSpawn = mob:checkDistance(mob:getSpawnPos())
+                end
             end
-        elseif
-            subAnimation == 1 and
-            currentHour < sleepHour and
-            currentHour >= mob:getLocalVar('[eruca]wakeHour')
-        then
+        end
+
+        local roamAction = xi.mix.eruca.roamAction({
+            subAnimation = subAnimation,
+            currentHour = currentHour,
+            sleepHour = sleepHour,
+            wakeHour = wakeHour,
+            engaged = engaged,
+            resleepTime = resleepTime,
+            distanceFromSpawn = distanceFromSpawn,
+            now = now,
+        })
+
+        if roamAction == 'resetResleep' then
+            mob:setLocalVar('ResleepTime', xi.mix.eruca.resleepTime(now))
+        elseif roamAction == 'sleep' then
+            bedTime(mob)
+        elseif roamAction == 'wake' then
             wakeUp(mob)
         end
 
-        if
-            VanadielDayElement() == xi.element.FIRE and
-            mob:getMod(xi.mod.REGAIN) == 0
-        then
-            mob:setMod(xi.mod.REGAIN, 30)
-        elseif
-            VanadielDayElement() ~= xi.element.FIRE and
-            mob:getMod(xi.mod.REGAIN) ~= 0
-        then
-            mob:setMod(xi.mod.REGAIN, 0)
+        local regain = xi.mix.eruca.regainAction(VanadielDayElement() == xi.element.FIRE, mob:getMod(xi.mod.REGAIN))
+        if regain ~= nil then
+            mob:setMod(xi.mod.REGAIN, regain)
         end
     end)
 
@@ -105,7 +154,7 @@ g_mixins.families.eruca = function(erucaMob)
     end)
 
     erucaMob:addListener('DISENGAGE', 'ERUCA_DISENGAGE', function(mob)
-        mob:setLocalVar('ResleepTime', GetSystemTime() + 120) -- Eruca crawlers go back to sleep exactly 2 minutes after they were engaged.
+        mob:setLocalVar('ResleepTime', xi.mix.eruca.resleepTime(GetSystemTime())) -- Eruca crawlers go back to sleep exactly 2 minutes after they were engaged.
     end)
 end
 
