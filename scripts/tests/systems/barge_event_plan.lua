@@ -116,6 +116,36 @@ describe('barge event pure plan', function()
         return eventId, earthSecsVal, next.action, 0, next.route
     end
 
+    local function planTransportEvent(aboard, transportId, hasSingle, hasMulti, multiUses)
+        local docks = {
+            [1] = { transports = { 25 }, depart = 16, kick = 34 },
+            [2] = { transports = { 20, 23 }, depart = 14, kick = 33 },
+            [3] = { transports = { 21, 26 }, depart = 40, kick = 42 },
+        }
+        local dock = docks[aboard]
+        if not dock then
+            return 'none'
+        end
+
+        local valid = false
+        for _, id in ipairs(dock.transports) do
+            valid = valid or id == transportId
+        end
+        if not valid or (not hasSingle and not hasMulti) then
+            return 'kick', dock.kick
+        end
+        if hasSingle then
+            return 'single', dock.depart, true
+        end
+
+        multiUses = multiUses - 1
+        local del = multiUses <= 0
+        if del then
+            multiUses = 0
+        end
+        return 'multi', dock.depart, false, multiUses, del
+    end
+
     it('remaining and earth secs', function()
         assert(remainingGameMins(100, 160) == 60)
         assert(remainingGameMins(1400, 10) == 50) -- wrap
@@ -179,5 +209,20 @@ describe('barge event pure plan', function()
         assert(id == 100 and a == 17 and b == 7 and c == 2)
         id, a, b, c = planTimekeeper(channel, true, 1410, 100)
         assert(id == 99 and a == 0 and b == 0 and c == 0)
+    end)
+
+    it('transport dispatch uses dock data and ticket effects', function()
+        local kind, event, one, uses, del = planTransportEvent(99, 25, true, false, 0)
+        assert(kind == 'none' and event == nil)
+        kind, event = planTransportEvent(3, 999, false, false, 0)
+        assert(kind == 'kick' and event == 42)
+        kind, event, one = planTransportEvent(1, 25, true, false, 0)
+        assert(kind == 'single' and event == 16 and one)
+        kind, event, one, uses, del = planTransportEvent(2, 20, false, true, 1)
+        assert(kind == 'multi' and event == 14 and not one and uses == 0 and del)
+        kind, event, one, uses, del = planTransportEvent(2, 20, false, true, 0)
+        assert(kind == 'multi' and event == 14 and not one and uses == 0 and del)
+        kind, event = planTransportEvent(3, 26, false, false, 0)
+        assert(kind == 'kick' and event == 42)
     end)
 end)
