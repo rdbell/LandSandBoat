@@ -63,6 +63,29 @@ xi.pet.castingCheckResult = function(hasSpawnedPet, astralOnly, hasAstralFlow, c
     return hasAssignedPet and 0 or 1
 end
 
+-- Pure Familiar-buff eligibility after the host reads pet state.
+xi.pet.familiarBuffsShouldApply = function(ownerPresent, petPresent, petAlive, hasFamiliarBuffs)
+    return ownerPresent and petPresent and petAlive and not hasFamiliarBuffs
+end
+
+-- Pure Familiar bonuses after the host checks eligibility.
+xi.pet.familiarBuffPlan = function(familiarBonus, extendCharm, petMaxHP)
+    local plan =
+    {
+        extendCharm = extendCharm,
+        hasteAbility = familiarBonus > 0 and familiarBonus * 100 or 0,
+        addedHP = petMaxHP * 0.1,
+    }
+
+    if extendCharm then
+        local bonusSeconds = familiarBonus * 60
+        plan.charmMinSeconds = 25 * 60 + bonusSeconds
+        plan.charmMaxSeconds = 30 * 60 + bonusSeconds
+    end
+
+    return plan
+end
+
 ---@param target CBaseEntity
 ---@param mob CBaseEntity
 ---@param skill CMobSkill
@@ -162,39 +185,37 @@ end
 
 -- TODO should charmed entities lose their buffs when they become uncharmed?
 xi.pet.applyFamiliarBuffs = function(owner, pet)
-    if
-        not owner or
-        not pet or
-        not pet:isAlive() or
-        pet:getLocalVar('hasFamiliarBuffs') ~= 0
-    then
+    -- Keep these host reads short-circuited; FamiliarBuffsShouldApply provides
+    -- the pure equivalent after they have been read.
+    if not owner or not pet then
+        return
+    end
+
+    local petAlive = pet:isAlive()
+    if not petAlive then
+        return
+    end
+
+    local hasFamiliarBuffs = pet:getLocalVar('hasFamiliarBuffs') ~= 0
+    if not xi.pet.familiarBuffsShouldApply(true, true, petAlive, hasFamiliarBuffs) then
         return
     end
 
     pet:setLocalVar('hasFamiliarBuffs', 1)
 
     local familiarBonus = owner:getMod(xi.mod.FAMILIAR_BONUS)
-    if
-        owner:isPC() and
-        pet:isCharmed()
-    then
-        -- extends duration by 25m-30m
-        local minSeconds = 25 * 60
-        local maxSeconds = 30 * 60
-        local bonusSeconds = familiarBonus * 60
-        pet:extendCharm(minSeconds + bonusSeconds, maxSeconds + bonusSeconds)
+    local plan = xi.pet.familiarBuffPlan(familiarBonus, owner:isPC() and pet:isCharmed(), pet:getMaxHP())
+    if plan.extendCharm then
+        pet:extendCharm(plan.charmMinSeconds, plan.charmMaxSeconds)
     end
 
-    if familiarBonus > 0 then
-        pet:addMod(xi.mod.HASTE_ABILITY, familiarBonus * 100)
+    if plan.hasteAbility > 0 then
+        pet:addMod(xi.mod.HASTE_ABILITY, plan.hasteAbility)
     end
 
-    local familiarBoost = 10
-    local familiarBoostPerc = familiarBoost / 100
-    local addedHP = pet:getMaxHP() * familiarBoostPerc
-    pet:setMaxHP(pet:getMaxHP() + addedHP) -- technically BASE_HP mod is added back to generate modhp, but close enough
+    pet:setMaxHP(pet:getMaxHP() + plan.addedHP) -- technically BASE_HP mod is added back to generate modhp, but close enough
     -- wakes up pets
-    pet:addHP(addedHP)
+    pet:addHP(plan.addedHP)
 
     -- TODO does familiar give some bonus resistance to crowd control? Is it only for mob pets?
     -- Lots of reports of mobs using Familiar and the pet having higher chance to resist bind/sleep/etc
