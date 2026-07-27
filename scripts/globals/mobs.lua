@@ -909,6 +909,19 @@ xi.mob.callPetSpawnPosition = function(ownerPos, jitterX, jitterZ)
     }
 end
 
+-- Plans the owner-side timer, inactivity, and summon animation decisions.
+xi.mob.callPetAnimationPlan = function(inactiveTime, noAnimation, ignoreInactive)
+    inactiveTime = inactiveTime or 0
+    local delayed = inactiveTime > 0
+    return {
+        timerDelay      = inactiveTime,
+        stunDuration    = delayed and not ignoreInactive and inactiveTime or 0,
+        startAnimation  = delayed and not noAnimation,
+        stopAnimation   = delayed and not noAnimation,
+        injectAction    = not delayed and not noAnimation,
+    }
+end
+
 xi.mob.callPets = function(mob, petIds, params)
     params = params or {}
     -- params table:
@@ -955,6 +968,7 @@ xi.mob.callPets = function(mob, petIds, params)
     params.inactiveTime = xi.mob.callPetInactiveTime(params.inactiveTime)
 
     local actionParams = xi.mob.callPetActionParams(params.callPetJob, params.inactiveTime, params.action)
+    local animationPlan = xi.mob.callPetAnimationPlan(params.inactiveTime, params.noAnimation, params.ignoreInactive)
 
     params.action = params.action or {}
 
@@ -965,15 +979,11 @@ xi.mob.callPets = function(mob, petIds, params)
         end
 
         -- inject action packet to indicate mob is summoning a pet
-        if not params.noAnimation then
-            if params.inactiveTime > 0 then
-                mobArg:entityAnimationPacket(xi.animationString.CAST_SUMMONER_STOP)
-            else
-                if actionParams then
-                    -- Generic 2-hour animation with no message
-                    mobArg:injectActionPacket(mobArg:getID(), actionParams.finishCategory, actionParams.animationID, 0, 0x18, actionParams.messageID, actionParams.actionID, actionParams.param)
-                end
-            end
+        if animationPlan.stopAnimation then
+            mobArg:entityAnimationPacket(xi.animationString.CAST_SUMMONER_STOP)
+        elseif animationPlan.injectAction and actionParams then
+            -- Generic 2-hour animation with no message
+            mobArg:injectActionPacket(mobArg:getID(), actionParams.finishCategory, actionParams.animationID, 0, 0x18, actionParams.messageID, actionParams.actionID, actionParams.param)
         end
 
         local spawnPos = mobArg:getSpawnPos()
@@ -1089,21 +1099,18 @@ xi.mob.callPets = function(mob, petIds, params)
         end
     end
 
-    if params.inactiveTime > 0 then
-        if not params.ignoreInactive then
-            -- put owner into inactive state until the timer fires
-            mob:stun(params.inactiveTime)
-        end
+    if animationPlan.stunDuration > 0 then
+        -- put owner into inactive state until the timer fires
+        mob:stun(animationPlan.stunDuration)
+    end
 
-        -- start call pet animation
-        if not params.noAnimation then
-            mob:entityAnimationPacket(xi.animationString.CAST_SUMMONER_START)
-        end
+    if animationPlan.startAnimation then
+        mob:entityAnimationPacket(xi.animationString.CAST_SUMMONER_START)
     end
 
     -- regardless, call the anonymous function from above in params.inactiveTime ms (possibly zero)
     -- note that timers cause xi.combat.behavior.isEntityBusy to return true, and so does mob:stun(X)
-    mob:timer(params.inactiveTime, callPetFinish)
+    mob:timer(animationPlan.timerDelay, callPetFinish)
 
     return true
 end

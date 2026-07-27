@@ -73,6 +73,22 @@ describe('Mob call pets spawn cap', function()
         local pos = xi.mob.callPetSpawnPosition({ x = 100, y = 5, z = -20, rot = 77 }, 2, -2)
         assert(pos.x == 102 and pos.y == 5 and pos.z == -22 and pos.rot == 77)
     end)
+
+    it('plans delayed and instant owner animation behavior', function()
+        local delayed = xi.mob.callPetAnimationPlan(1000, false, false)
+        assert(delayed.timerDelay == 1000 and delayed.stunDuration == 1000)
+        assert(delayed.startAnimation and delayed.stopAnimation and not delayed.injectAction)
+
+        local ignored = xi.mob.callPetAnimationPlan(1000, false, true)
+        assert(ignored.stunDuration == 0 and ignored.startAnimation and ignored.stopAnimation)
+
+        local instant = xi.mob.callPetAnimationPlan(0, false, false)
+        assert(instant.timerDelay == 0 and instant.stunDuration == 0)
+        assert(not instant.startAnimation and not instant.stopAnimation and instant.injectAction)
+
+        local silent = xi.mob.callPetAnimationPlan(1000, true, false)
+        assert(silent.stunDuration == 1000 and not silent.startAnimation and not silent.stopAnimation and not silent.injectAction)
+    end)
 end)
 
 describe('Mob call pets action packet', function()
