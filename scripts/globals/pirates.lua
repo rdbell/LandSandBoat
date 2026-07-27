@@ -253,6 +253,55 @@ xi.pirates.summonAnimationPlan = function(hidden, followingPath, initialState, c
     return plan
 end
 
+-- The action-local work for one pirate NPC periodic trigger after the host
+-- resolves the NPC's pirate index and route position.
+xi.pirates.npcTriggerPlan = function(action, pirateIdx, cloakRoll, summonEndTime)
+    local plan =
+    {
+        setBodyModel          = false,
+        bodyModelId           = 0,
+        setNMCanSpawn         = false,
+        nmCanSpawn            = 0,
+        setStartPosition      = false,
+        setNormalStatus       = false,
+        clearPath             = false,
+        pathToStart           = false,
+        pathToStanding        = false,
+        setInitialState       = false,
+        startSummonAnimations = false,
+        clearSummonTimes      = false,
+        stopSummonAnimation   = false,
+        hide                  = false,
+        changeZoneState       = true,
+    }
+
+    if action == actions.PIRATES_ARRIVE then
+        if pirateIdx == xi.pirates.vermCloakPirateIndex then
+            local hasVermCloak = xi.pirates.vermCloakRollPassed(cloakRoll)
+            plan.setBodyModel  = true
+            plan.bodyModelId   = xi.pirates.bodyModelId(hasVermCloak)
+            plan.setNMCanSpawn = true
+            plan.nmCanSpawn    = hasVermCloak and 1 or 0
+        end
+
+        plan.setStartPosition      = true
+        plan.setNormalStatus       = true
+        plan.clearPath             = true
+        plan.pathToStanding        = true
+        plan.setInitialState       = true
+        plan.startSummonAnimations = true
+    elseif action == actions.PIRATES_RETREAT then
+        plan.clearSummonTimes    = true
+        plan.stopSummonAnimation = summonEndTime > 0
+        plan.pathToStart         = true
+    elseif action == actions.DEPART then
+        plan.clearPath = true
+        plan.hide      = true
+    end
+
+    return plan
+end
+
 -- Calls itself via timer until the npc is hidden.
 local function summonAnimations(npc, rotation, offset)
     if npc:getStatus() == xi.status.DISAPPEAR then
@@ -357,43 +406,71 @@ xi.pirates.pirateNPCTimeTrigger = function(npc, triggerId, zoneKey)
         return
     end
 
-    -- Pirates appear and run to position
-    if triggerId == actions.PIRATES_ARRIVE then
-        if pirateIdx == xi.pirates.vermCloakPirateIndex then
-            -- middle pirate has chance to wear a verm cloak, which then means the pirate encounter _might_ have the NM spawn
-            local hasVermCloak = xi.pirates.vermCloakRollPassed(math.random(1, 100))
-            npc:setModelId(xi.pirates.bodyModelId(hasVermCloak), xi.slot.BODY)
-            pirateZone:setLocalVar('nmCanSpawn', hasVermCloak and 1 or 0) -- 1 = NM still eligible; cleared to 0 once it spawns
-        end
+    local cloakRoll     = 0
+    local summonEndTime = 0
+    if triggerId == actions.PIRATES_ARRIVE and pirateIdx == xi.pirates.vermCloakPirateIndex then
+        cloakRoll = math.random(1, 100)
+    elseif triggerId == actions.PIRATES_RETREAT then
+        summonEndTime = npc:getLocalVar('summonEndTime')
+    end
 
+    local plan = xi.pirates.npcTriggerPlan(triggerId, pirateIdx, cloakRoll, summonEndTime)
+
+    if plan.setBodyModel then
+        npc:setModelId(plan.bodyModelId, xi.slot.BODY)
+    end
+
+    if plan.setNMCanSpawn then
+        pirateZone:setLocalVar('nmCanSpawn', plan.nmCanSpawn) -- 1 = NM still eligible; cleared to 0 once it spawns
+    end
+
+    if plan.setStartPosition then
         npc:setPos(pirateData.startPos)
-        npc:setStatus(xi.status.NORMAL)
-        npc:clearPath()
-        npc:pathTo(pirateData.standingPos.x, pirateData.standingPos.y, pirateData.standingPos.z, xi.path.flag.RUN + xi.path.flag.WALLHACK)
+    end
 
+    if plan.setNormalStatus then
+        npc:setStatus(xi.status.NORMAL)
+    end
+
+    if plan.clearPath then
+        npc:clearPath()
+    end
+
+    if plan.pathToStanding then
+        npc:pathTo(pirateData.standingPos.x, pirateData.standingPos.y, pirateData.standingPos.z, xi.path.flag.RUN + xi.path.flag.WALLHACK)
+    end
+
+    if plan.setInitialState then
         -- Indicates we need to rotate NPC after pathing completes
         npc:setLocalVar('initialNpcState', 1)
-        summonAnimations(npc, pirateData.standingPos.rotation, pirateIdx)
+    end
 
-    -- Retreat.
-    elseif triggerId == actions.PIRATES_RETREAT then
-        local summonEndTime = npc:getLocalVar('summonEndTime')
+    if plan.startSummonAnimations then
+        summonAnimations(npc, pirateData.standingPos.rotation, pirateIdx)
+    end
+
+    if plan.clearSummonTimes then
         -- No more animations will happen and recursive function self destructs
         npc:setLocalVar('summonStartTime', 0)
         npc:setLocalVar('summonEndTime', 0)
-        if summonEndTime > 0 then
-            npc:entityAnimationPacket(xi.animationString.CAST_SUMMONER_STOP)
-        end
+    end
 
+    if plan.stopSummonAnimation then
+        npc:entityAnimationPacket(xi.animationString.CAST_SUMMONER_STOP)
+    end
+
+    if plan.pathToStart then
         npc:pathTo(pirateData.startPos.x, pirateData.startPos.y, pirateData.startPos.z, xi.path.flag.RUN + xi.path.flag.WALLHACK)
+    end
 
-    -- Just in case summonAnimations didn't set status
-    elseif triggerId == actions.DEPART then
-        npc:clearPath()
+    -- Just in case summonAnimations didn't set status.
+    if plan.hide then
         npc:setStatus(xi.status.DISAPPEAR)
     end
 
-    xi.pirates.zoneStateChange(pirateZone, triggerId)
+    if plan.changeZoneState then
+        xi.pirates.zoneStateChange(pirateZone, triggerId)
+    end
 end
 
 xi.pirates.zoneStateChange = function(zone, action)

@@ -201,6 +201,42 @@ describe('Pirates summon-animation plan', function()
     end)
 end)
 
+describe('Pirates NPC trigger plan', function()
+    it('sets up the middle pirate arrival with the cloak and summon path', function()
+        local plan = xi.pirates.npcTriggerPlan(xi.pirates.actions.PIRATES_ARRIVE, 2, 10, 0)
+
+        assert(plan.setBodyModel and plan.bodyModelId == xi.pirates.vermCloakModelId)
+        assert(plan.setNMCanSpawn and plan.nmCanSpawn == 1)
+        assert(plan.setStartPosition and plan.setNormalStatus and plan.clearPath and plan.pathToStanding)
+        assert(plan.setInitialState and plan.startSummonAnimations and plan.changeZoneState)
+    end)
+
+    it('keeps outer-pirate arrival model state unchanged', function()
+        local plan = xi.pirates.npcTriggerPlan(xi.pirates.actions.PIRATES_ARRIVE, 1, 1, 0)
+
+        assert(not plan.setBodyModel and not plan.setNMCanSpawn)
+        assert(plan.setStartPosition and plan.pathToStanding)
+    end)
+
+    it('stops a running summon and paths home on retreat', function()
+        local plan = xi.pirates.npcTriggerPlan(xi.pirates.actions.PIRATES_RETREAT, 1, 1, 1)
+
+        assert(plan.clearSummonTimes and plan.stopSummonAnimation and plan.pathToStart)
+        assert(plan.changeZoneState)
+    end)
+
+    it('clears and hides the pirate on departure', function()
+        local plan = xi.pirates.npcTriggerPlan(xi.pirates.actions.DEPART, 1, 1, 0)
+        assert(plan.clearPath and plan.hide and plan.changeZoneState)
+    end)
+
+    it('only advances zone state for an ordinary action', function()
+        local plan = xi.pirates.npcTriggerPlan(xi.pirates.actions.ARRIVE, 1, 1, 0)
+        assert(plan.changeZoneState)
+        assert(not plan.setStartPosition and not plan.clearSummonTimes and not plan.hide)
+    end)
+end)
+
 describe('Pirates route NM', function()
     it('sails Blackbeard on the Selbina route', function()
         assert(xi.pirates.nmIsBlackbeard(xi.zone.SHIP_BOUND_FOR_SELBINA_PIRATES))
