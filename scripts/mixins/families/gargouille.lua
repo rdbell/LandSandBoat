@@ -3,6 +3,10 @@
 -----------------------------------
 require('scripts/globals/mixins')
 -----------------------------------
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.gargouille = xi.mix.gargouille or {}
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
@@ -10,6 +14,14 @@ g_mixins.families = g_mixins.families or {}
 -- While standing, they use Terror Eye, Triumphant Roar and Bloody Claw
 -- While flying, they use Dark Mist and Dark Orb, and they receive Evasion +60 and Magic Dmg Taken -12.5%.
 -- Some Gargouille NMs can also use Shadow Burst
+
+xi.mix.gargouille.formTimer = function(now, delay)
+    return now + delay
+end
+
+xi.mix.gargouille.shouldChangeStance = function(now, formTimer)
+    return now >= formTimer
+end
 
 local function changeStance(mob)
     -- If mob is standing
@@ -28,7 +40,7 @@ local function changeStance(mob)
     end
 
     -- Reset timer
-    mob:setLocalVar('formTimer', GetSystemTime() + math.random(180, 240))
+    mob:setLocalVar('formTimer', xi.mix.gargouille.formTimer(GetSystemTime(), math.random(180, 240)))
 end
 
 g_mixins.families.gargouille = function(gargouilleMob)
@@ -36,19 +48,19 @@ g_mixins.families.gargouille = function(gargouilleMob)
     gargouilleMob:addListener('SPAWN', 'GARGOUILLE_SPAWN', function(mob)
         mob:setAnimationSub(4)
         mob:setMobMod(xi.mobMod.SKILL_LIST, 118) -- Set Standing Skill List. ('Terror Eye', 'Triumphant Roar' and 'Bloody Claw')
-        mob:setLocalVar('formTimer', GetSystemTime() + math.random(180, 240))
+        mob:setLocalVar('formTimer', xi.mix.gargouille.formTimer(GetSystemTime(), math.random(180, 240)))
     end)
 
     -- Handle regular changes on roam.
     gargouilleMob:addListener('ROAM_TICK', 'GARGOUILLE_ROAM', function(mob)
-        if GetSystemTime() - mob:getLocalVar('formTimer') >= 0 then
+        if xi.mix.gargouille.shouldChangeStance(GetSystemTime(), mob:getLocalVar('formTimer')) then
             changeStance(mob)
         end
     end)
 
     -- Handle swapping stances in combat
     gargouilleMob:addListener('COMBAT_TICK', 'GARGOUILLE_COMBAT', function(mob)
-        if GetSystemTime() - mob:getLocalVar('formTimer') >= 0 then
+        if xi.mix.gargouille.shouldChangeStance(GetSystemTime(), mob:getLocalVar('formTimer')) then
             changeStance(mob)
         end
     end)
