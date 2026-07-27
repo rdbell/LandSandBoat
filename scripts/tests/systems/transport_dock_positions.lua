@@ -1,0 +1,16 @@
+require('scripts/globals/transport')
+
+describe('Transport dock NPC positions', function()
+    it('pins the arrival and departure points for Mhaura and Selbina', function()
+        local mhaura = xi.transport.dockNPCPositions(xi.zone.MHAURA)
+        local selbina = xi.transport.dockNPCPositions(xi.zone.SELBINA)
+
+        assert(#mhaura.ARRIVING == 1 and #mhaura.DEPARTING == 1)
+        assert(#selbina.ARRIVING == 1 and #selbina.DEPARTING == 1)
+        assert(mhaura.ARRIVING[1].x == 7.06 and mhaura.ARRIVING[1].rotation == 211)
+        assert(mhaura.DEPARTING[1].x == 8.26 and mhaura.DEPARTING[1].rotation == 193)
+        assert(selbina.ARRIVING[1].z == -58.843 and selbina.ARRIVING[1].rotation == 209)
+        assert(selbina.DEPARTING[1].y == -1.389 and selbina.DEPARTING[1].rotation == 191)
+        assert(next(xi.transport.dockNPCPositions(0)) == nil)
+    end)
+end)

@@ -165,6 +165,21 @@ local scheduleTable =
     },
 }
 
+-- Dock NPC positions keyed by dock and announcement direction.
+local dockNpcPositions =
+{
+    [xi.zone.MHAURA] =
+    {
+        ARRIVING  = { { x = 7.06, y = -1.36, z = 2.20, rotation = 211 }, },
+        DEPARTING = { { x = 8.26, y = -1.36, z = 2.20, rotation = 193 }, },
+    },
+    [xi.zone.SELBINA] =
+    {
+        ARRIVING  = { { x = 16.768, y = -1.38,  z = -58.843, rotation = 209 }, },
+        DEPARTING = { { x = 17.979, y = -1.389, z = -58.800, rotation = 191 }, },
+    },
+}
+
 -----------------------------------
 -- Public functions
 -----------------------------------
@@ -176,26 +191,17 @@ xi.transport.captainMessage = function(npc, triggerID, messages)
     end
 end
 
-xi.transport.dockMessage = function(npc, triggerID, messages, dock)
-    local dockNpcPos =
-    {
-        [xi.zone.MHAURA] =
-        {
-            ARRIVING  = { { x = 7.06, y = -1.36, z = 2.20, rotation = 211 }, },
-            DEPARTING = { { x = 8.26, y = -1.36, z = 2.20, rotation = 193 }, },
-        },
-        [xi.zone.SELBINA] =
-        {
-            ARRIVING  = { { x = 16.768, y = -1.38,  z = -58.843, rotation = 209 }, },
-            DEPARTING = { { x = 17.979, y = -1.389, z = -58.800, rotation = 191 }, },
-        },
-    }
+-- Dock NPC arrival and departure positions for a dock, or an empty table.
+xi.transport.dockNPCPositions = function(dock)
+    return dockNpcPositions[dock] or {}
+end
 
+xi.transport.dockMessage = function(npc, triggerID, messages, dock)
     npc:showText(npc, messages[triggerID])
     if (triggerID % 2) == 0 then
-        npc:pathThrough(dockNpcPos[dock].ARRIVING, bit.bor(xi.path.flag.PATROL, xi.path.flag.WALLHACK))
+        npc:pathThrough(dockNpcPositions[dock].ARRIVING, bit.bor(xi.path.flag.PATROL, xi.path.flag.WALLHACK))
     else
-        npc:pathThrough(dockNpcPos[dock].DEPARTING, bit.bor(xi.path.flag.PATROL, xi.path.flag.WALLHACK))
+        npc:pathThrough(dockNpcPositions[dock].DEPARTING, bit.bor(xi.path.flag.PATROL, xi.path.flag.WALLHACK))
     end
 end
 
