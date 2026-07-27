@@ -27,7 +27,7 @@ local avatarPetIDs = set
 local onMasterDeath = function(mob)
     local pet = mob:getPet()
     if pet ~= nil and pet:isAlive() then
-        if not pet:isEngaged() then
+        if xi.pet.shouldDespawnOnMasterDeath(true, true, pet:isEngaged()) then
             DespawnMob(pet:getID(), 2)
         end
     end
@@ -38,6 +38,11 @@ local astralOnlySpellIDs = set
     xi.magic.spell.ODIN,
     xi.magic.spell.ALEXANDER,
 }
+
+-- Pure Beastmaster cleanup gate after the master-death listener reads pet state.
+xi.pet.shouldDespawnOnMasterDeath = function(hasPet, petAlive, petEngaged)
+    return hasPet and petAlive and not petEngaged
+end
 
 -- Summoning mob skills require an assigned pet that is not already spawned.
 xi.pet.mobSkillCheckResult = function(hasAssignedPet, hasSpawnedPet)

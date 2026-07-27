@@ -1,5 +1,14 @@
 require('scripts/globals/pets')
 
+describe('Beastmaster master-death pet cleanup', function()
+    it('despawns only a living, unengaged assigned pet', function()
+        assert(not xi.pet.shouldDespawnOnMasterDeath(false, true, false))
+        assert(not xi.pet.shouldDespawnOnMasterDeath(true, false, false))
+        assert(not xi.pet.shouldDespawnOnMasterDeath(true, true, true))
+        assert(xi.pet.shouldDespawnOnMasterDeath(true, true, false))
+    end)
+end)
+
 describe('Pet mob-skill admission', function()
     it('blocks summoning when no pet is assigned or a pet is already spawned', function()
         assert(xi.pet.mobSkillCheckResult(false, false) == 1)
