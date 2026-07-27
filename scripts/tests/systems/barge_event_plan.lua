@@ -292,4 +292,11 @@ describe('barge event pure plan', function()
         kind, event = planTransportEvent(3, 26, false, false, 0)
         assert(kind == 'kick' and event == 42)
     end)
+
+    it('landing zone-in return tuple', function()
+        local arrivalCsId = 10
+        local eventArg = -1
+        local flags = bit.bor(0x0001, 0x0002)
+        assert(arrivalCsId == 10 and eventArg == -1 and flags == 3)
+    end)
 end)
