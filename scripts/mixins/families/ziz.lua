@@ -7,26 +7,32 @@ AnimationSub(3) sleeping z's
 --]]
 require('scripts/globals/mixins')
 -----------------------------------
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.ziz = xi.mix.ziz or {}
 
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
+
+xi.mix.ziz.sleepPlan = function(totd, animationSub)
+    if totd == xi.time.NIGHT or totd == xi.time.MIDNIGHT then
+        if animationSub ~= 3 then
+            return { animationSub = 3, aggressive = false, noMove = 1 }
+        end
+    elseif animationSub ~= 1 then
+        return { animationSub = 1, aggressive = true, noMove = 0 }
+    end
+end
 
 local function sleepDuringNight(mob)
     local aSub = mob:getAnimationSub()
     local totd = VanadielTOTD()
 
-    if totd == xi.time.NIGHT or totd == xi.time.MIDNIGHT then -- 20:00 to 4:00
-        if aSub ~= 3 then
-            mob:setAnimationSub(3)
-            mob:setAggressive(false)
-            mob:setMobMod(xi.mobMod.NO_MOVE, 1)
-        end
-    else
-        if aSub ~= 1 then
-            mob:setAnimationSub(1)
-            mob:setAggressive(true)
-            mob:setMobMod(xi.mobMod.NO_MOVE, 0)
-        end
+    local plan = xi.mix.ziz.sleepPlan(totd, aSub)
+    if plan then
+        mob:setAnimationSub(plan.animationSub)
+        mob:setAggressive(plan.aggressive)
+        mob:setMobMod(xi.mobMod.NO_MOVE, plan.noMove)
     end
 end
 
