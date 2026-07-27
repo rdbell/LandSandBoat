@@ -126,6 +126,36 @@ xi.pirates.mobsSpawnSelection = function(nmCanSpawn, roll)
     return 'wight'
 end
 
+-- The zone-wide work for one periodic action. Every pirate NPC receives the
+-- same trigger, so a repeated action makes no changes. Host code still owns
+-- mob lookup and the successful-NM-spawn guard around clearing nmCanSpawn.
+xi.pirates.zoneStatePlan = function(currentAction, action, nmCanSpawn, roll)
+    if currentAction == action then
+        return { setAction = false }
+    end
+
+    local plan =
+    {
+        setAction          = true,
+        action             = action,
+        clearPirates       = false,
+        respawnCrossbones  = false,
+        spawn              = nil,
+        clearNMCanSpawn    = false,
+    }
+
+    if action == actions.MOBS_SPAWN then
+        plan.clearPirates      = true
+        plan.respawnCrossbones = true
+        plan.spawn             = xi.pirates.mobsSpawnSelection(nmCanSpawn, roll)
+        plan.clearNMCanSpawn   = plan.spawn == 'nm'
+    elseif action == actions.PIRATES_RETREAT then
+        plan.clearPirates = true
+    end
+
+    return plan
+end
+
 -- This ride's NM: Blackbeard sails the Selbina route, Silverhook the Mhaura route.
 xi.pirates.nmIsBlackbeard = function(zoneId)
     return zoneId == xi.zone.SHIP_BOUND_FOR_SELBINA_PIRATES
@@ -281,19 +311,32 @@ end
 
 xi.pirates.zoneStateChange = function(zone, action)
     -- change the zone's state once per action cycle (this function is called by each NPC)
-    if zone:getLocalVar('currPiratesAction') == action then
+    local currentAction = zone:getLocalVar('currPiratesAction')
+    if currentAction == action then
         return
     end
 
     zone:setLocalVar('currPiratesAction', action)
 
-    local zoneId = zone:getID()
-    local ID     = zones[zoneId]
-
+    local zoneId     = zone:getID()
+    local ID         = zones[zoneId]
+    local nmCanSpawn = 0
+    local roll       = 0
     if action == actions.MOBS_SPAWN then
+        nmCanSpawn = zone:getLocalVar('nmCanSpawn')
+        if xi.pirates.nmEligible(nmCanSpawn) then
+            roll = math.random(1, 100)
+        end
+    end
+
+    local plan = xi.pirates.zoneStatePlan(currentAction, action, nmCanSpawn, roll)
+
+    if plan.clearPirates then
         -- clear any mobs lingering from a previous ride before summoning fresh ones
         clearPirates(zoneId)
+    end
 
+    if plan.respawnCrossbones then
         -- the skeletons the pirate NPCs are "summoning" onto the deck
         for _, mobId in ipairs(ID.mob.CROSSBONES) do
             local crossbones = GetMobByID(mobId)
@@ -301,27 +344,22 @@ xi.pirates.zoneStateChange = function(zone, action)
                 crossbones:setRespawnTime(1)
             end
         end
+    end
 
-        -- Short-circuit over the primitives: upstream only rolls for the NM once
-        -- the ride is eligible.
-        if
-            xi.pirates.nmEligible(zone:getLocalVar('nmCanSpawn')) and
-            xi.pirates.nmRollPassed(math.random(1, 100))
-        then
-            -- HQ ride, 75%: NM appears from the start
-            local nm = GetMobByID(getNMId(zoneId))
-            if nm then
-                nm:setRespawnTime(1)
+    if plan.spawn == 'nm' then
+        -- HQ ride, 75%: NM appears from the start
+        local nm = GetMobByID(getNMId(zoneId))
+        if nm then
+            nm:setRespawnTime(1)
+            if plan.clearNMCanSpawn then
                 zone:setLocalVar('nmCanSpawn', 0) -- NM is up; no longer eligible to spawn
             end
-        else
-            -- normal ride, or the 25% placeholder Wight on an HQ ride
-            local wight = GetMobByID(ID.mob.SHIP_WIGHT)
-            if wight then
-                wight:setRespawnTime(1)
-            end
         end
-    elseif action == actions.PIRATES_RETREAT then
-        clearPirates(zoneId)
+    elseif plan.spawn == 'wight' then
+        -- normal ride, or the 25% placeholder Wight on an HQ ride
+        local wight = GetMobByID(ID.mob.SHIP_WIGHT)
+        if wight then
+            wight:setRespawnTime(1)
+        end
     end
 end

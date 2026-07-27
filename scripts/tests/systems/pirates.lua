@@ -104,6 +104,50 @@ describe('Pirates NM spawn selection', function()
     end)
 end)
 
+describe('Pirates zone-state plan', function()
+    it('does nothing when an NPC repeats the current action', function()
+        local plan = xi.pirates.zoneStatePlan(
+            xi.pirates.actions.MOBS_SPAWN,
+            xi.pirates.actions.MOBS_SPAWN,
+            1,
+            1
+        )
+
+        assert(not plan.setAction)
+    end)
+
+    it('clears the deck, summons Crossbones, and selects the NM on an eligible passing ride', function()
+        local plan = xi.pirates.zoneStatePlan(0, xi.pirates.actions.MOBS_SPAWN, 1, 75)
+
+        assert(plan.setAction)
+        assert(plan.action == xi.pirates.actions.MOBS_SPAWN)
+        assert(plan.clearPirates)
+        assert(plan.respawnCrossbones)
+        assert(plan.spawn == 'nm')
+        assert(plan.clearNMCanSpawn)
+    end)
+
+    it('summons the Wight for an ineligible ride', function()
+        local plan = xi.pirates.zoneStatePlan(0, xi.pirates.actions.MOBS_SPAWN, 0, 1)
+
+        assert(plan.setAction)
+        assert(plan.spawn == 'wight')
+        assert(not plan.clearNMCanSpawn)
+    end)
+
+    it('clears the deck on retreat and only records ordinary actions', function()
+        local retreat = xi.pirates.zoneStatePlan(0, xi.pirates.actions.PIRATES_RETREAT, 0, 1)
+        assert(retreat.setAction)
+        assert(retreat.clearPirates)
+        assert(not retreat.respawnCrossbones)
+
+        local depart = xi.pirates.zoneStatePlan(0, xi.pirates.actions.DEPART, 0, 1)
+        assert(depart.setAction)
+        assert(depart.action == xi.pirates.actions.DEPART)
+        assert(not depart.clearPirates)
+    end)
+end)
+
 describe('Pirates route NM', function()
     it('sails Blackbeard on the Selbina route', function()
         assert(xi.pirates.nmIsBlackbeard(xi.zone.SHIP_BOUND_FOR_SELBINA_PIRATES))
