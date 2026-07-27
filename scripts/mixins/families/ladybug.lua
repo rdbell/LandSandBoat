@@ -7,27 +7,57 @@ xi.mix.ladybug = xi.mix.ladybug or {}
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
-local function night(mob)
-    if mob:getLocalVar('Phase') == 0 then
-        mob:setMobMod(xi.mobMod.NO_AGGRO, 1)
-        mob:setMobMod(xi.mobMod.ROAM_COOL, 10)
-        mob:delMod(xi.mod.EVA, 15)
-        mob:delMod(xi.mod.ACC, 15)
-        mob:setMod(xi.mod.DELAY, -400)
-        mob:setMobMod(xi.mobMod.SKILL_LIST, mob:getLocalVar('[ladybug]nightSkillList'))
-        mob:setLocalVar('Phase', 1)
+xi.mix.ladybug.phasePlan = function(hour, phase, daySkillList, nightSkillList)
+    if hour >= 18 or hour < 6 then
+        if phase == 0 then
+            return {
+                phase = 1,
+                noAggro = 1,
+                roamCool = 10,
+                evasionDelta = -15,
+                accuracyDelta = -15,
+                delay = -400,
+                skillList = nightSkillList,
+            }
+        end
+    elseif phase == 1 then
+        return {
+            phase = 0,
+            noAggro = 0,
+            roamCool = 0,
+            evasionDelta = 15,
+            accuracyDelta = 15,
+            delay = 0,
+            skillList = daySkillList,
+        }
     end
+
+    return nil
 end
 
-local function day(mob)
-    if mob:getLocalVar('Phase') == 1 then
-        mob:setMobMod(xi.mobMod.NO_AGGRO, 0)
-        mob:setMobMod(xi.mobMod.ROAM_COOL, 0)
-        mob:addMod(xi.mod.EVA, 15)
-        mob:addMod(xi.mod.ACC, 15)
-        mob:setMod(xi.mod.DELAY, 0)
-        mob:setMobMod(xi.mobMod.SKILL_LIST, mob:getLocalVar('[ladybug]daySkillList'))
-        mob:setLocalVar('Phase', 0)
+local function applyPlan(mob, plan)
+    mob:setMobMod(xi.mobMod.NO_AGGRO, plan.noAggro)
+    mob:setMobMod(xi.mobMod.ROAM_COOL, plan.roamCool)
+    if plan.evasionDelta < 0 then
+        mob:delMod(xi.mod.EVA, -plan.evasionDelta)
+        mob:delMod(xi.mod.ACC, -plan.accuracyDelta)
+    else
+        mob:addMod(xi.mod.EVA, plan.evasionDelta)
+        mob:addMod(xi.mod.ACC, plan.accuracyDelta)
+    end
+    mob:setMod(xi.mod.DELAY, plan.delay)
+    mob:setMobMod(xi.mobMod.SKILL_LIST, plan.skillList)
+    mob:setLocalVar('Phase', plan.phase)
+end
+
+local function updatePhase(mob)
+    local plan = xi.mix.ladybug.phasePlan(
+        VanadielHour(),
+        mob:getLocalVar('Phase'),
+        mob:getLocalVar('[ladybug]daySkillList'),
+        mob:getLocalVar('[ladybug]nightSkillList'))
+    if plan then
+        applyPlan(mob, plan)
     end
 end
 
@@ -48,23 +78,11 @@ g_mixins.families.ladybug = function(mob)
     end)
 
     mob:addListener('ROAM_TICK', 'LADYBUG_ROAM_TICK', function(ladybug)
-        local currentHour = VanadielHour()
-
-        if currentHour >= 18 or currentHour < 6 then
-            night(ladybug)
-        elseif currentHour < 18 and currentHour >= 6 then
-            day(ladybug)
-        end
+        updatePhase(ladybug)
     end)
 
     mob:addListener('COMBAT_TICK', 'LADYBUG_COMBAT_TICK', function(ladybug)
-        local currentHour = VanadielHour()
-
-        if currentHour >= 18 or currentHour < 6 then
-            night(ladybug)
-        elseif currentHour < 18 and currentHour >= 6 then
-            day(ladybug)
-        end
+        updatePhase(ladybug)
     end)
 end
 
