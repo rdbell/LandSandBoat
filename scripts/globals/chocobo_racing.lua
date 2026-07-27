@@ -210,48 +210,67 @@ xi.chocoboRacing.startRace = function()
     end
 end
 
+local chocobos =
+{
+    'One',
+    'Two',
+    'Three',
+    'Four',
+    'Five',
+    'Six',
+    'Seven',
+    'Eight',
+}
+
+local eventUpdateSharedArgs = { 389304928, -1, 610862737, -5 }
+
+-- Pure event 210 update parameters; player event calls remain in the host.
+xi.chocoboRacing.eventUpdatePlan = function(csid, option)
+    if csid ~= 210 then
+        return nil
+    end
+
+    if option == 5 then
+        return {
+            debug = 'Intro banner',
+            args = { 1, 0, -132554, -14500, unpack(eventUpdateSharedArgs) },
+        }
+    elseif option == 274 then
+        return {
+            debug = 'Names 1-4',
+            strings = { chocobos[1], chocobos[2], chocobos[3], chocobos[4] },
+            args = { 70, 0, 7, 4, unpack(eventUpdateSharedArgs) },
+        }
+    elseif option == 510 or option == 530 then
+        return {
+            debug = 'Names 5-8 and Start',
+            strings = { chocobos[5], chocobos[6], chocobos[7], chocobos[8] },
+            args = { 70, 0, 7, 4, unpack(eventUpdateSharedArgs) },
+        }
+    elseif option == 17 then
+        return {
+            debug = 'End and announce winnings',
+            args = { 70, 0, 1076, 1, 0, 3, 3, -5 },
+        }
+    end
+
+    return nil
+end
+
 -- 0x05C
 xi.chocoboRacing.onEventUpdate = function(player, csid, option, npc)
     debug(player, 'update', csid, option)
 
-    local chocobos =
-    {
-        'One',
-        'Two',
-        'Three',
-        'Four',
-        'Five',
-        'Six',
-        'Seven',
-        'Eight',
-    }
-
-    local winningsPerQuill = 1076
-
-    local unknown0 = 389304928
-    local unknown1 = -1
-    local unknown2 = 610862737
-    local unknown3 = -5
-
-    -- NOTE: The race win order seems to be encoded in here
-
-    if csid == 210 then
-        if option == 5 then
-            debug(player, 'Intro banner')
-            player:updateEvent(1, 0, -132554, -14500, unknown0, unknown1, unknown2, unknown3)
-        elseif option == 274 then
-            debug(player, 'Names 1-4')
-            player:updateEventString(chocobos[1], chocobos[2], chocobos[3], chocobos[4])
-            player:updateEvent(70, 0, 7, 4, unknown0, unknown1, unknown2, unknown3)
-        elseif option == 510 or option == 530 then
-            debug(player, 'Names 5-8 and Start')
-            player:updateEventString(chocobos[5], chocobos[6], chocobos[7], chocobos[8])
-            player:updateEvent(70, 0, 7, 4, unknown0, unknown1, unknown2, unknown3)
-        elseif option == 17 then
-            debug(player, 'End and announce winnings')
-            player:updateEvent(70, 0, winningsPerQuill, 1, 0, 3, 3, unknown3)
-        end
+    local plan = xi.chocoboRacing.eventUpdatePlan(csid, option)
+    if not plan then
+        return
     end
+
+    debug(player, plan.debug)
+    if plan.strings then
+        player:updateEventString(unpack(plan.strings))
+    end
+    player:updateEvent(unpack(plan.args))
 end
 
 xi.chocoboRacing.onEventFinish = function(player, csid, option, npc)

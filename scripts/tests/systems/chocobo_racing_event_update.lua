@@ -1,0 +1,25 @@
+require('scripts/globals/chocobo_racing')
+
+describe('Chocobo racing event-update plan', function()
+    it('pins the four event 210 option branches', function()
+        local intro = xi.chocoboRacing.eventUpdatePlan(210, 5)
+        assert(intro.debug == 'Intro banner')
+        assert(intro.args[1] == 1 and intro.args[3] == -132554 and intro.args[8] == -5)
+
+        local firstNames = xi.chocoboRacing.eventUpdatePlan(210, 274)
+        assert(table.concat(firstNames.strings, ',') == 'One,Two,Three,Four')
+        assert(firstNames.args[1] == 70 and firstNames.args[3] == 7 and firstNames.args[4] == 4)
+
+        local lastNames = xi.chocoboRacing.eventUpdatePlan(210, 510)
+        assert(table.concat(lastNames.strings, ',') == 'Five,Six,Seven,Eight')
+        assert(lastNames.args[1] == 70 and lastNames.args[3] == 7 and lastNames.args[4] == 4)
+        assert(xi.chocoboRacing.eventUpdatePlan(210, 530).strings[1] == 'Five')
+
+        local winnings = xi.chocoboRacing.eventUpdatePlan(210, 17)
+        assert(winnings.debug == 'End and announce winnings')
+        assert(winnings.args[1] == 70 and winnings.args[3] == 1076 and winnings.args[4] == 1)
+        assert(winnings.args[8] == -5)
+        assert(xi.chocoboRacing.eventUpdatePlan(209, 5) == nil)
+        assert(xi.chocoboRacing.eventUpdatePlan(210, 0) == nil)
+    end)
+end)
