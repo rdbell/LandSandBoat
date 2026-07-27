@@ -13,6 +13,17 @@ local function playerWithPartyCount(numParties)
     return { getAlliance = function() return alliance end }
 end
 
+local function playerWithPartyLeaders(names)
+    local alliance = {}
+
+    for i, name in ipairs(names) do
+        local leader = { getName = function() return name end }
+        alliance[i] = { getPartyLeader = function() return leader end }
+    end
+
+    return { getAlliance = function() return alliance end }
+end
+
 describe('Garrison wave schedules', function()
     it('defines every party-size wave group and its delay', function()
         local schedules = xi.garrison.waves.spawnSchedule
@@ -90,6 +101,7 @@ describe('Garrison spawn schedule selection', function()
         assert(xi.garrison.getSpawnSchedule(playerWithPartyCount(3)) == xi.garrison.waves.spawnSchedule[3])
         assert(xi.garrison.getSpawnSchedule(playerWithPartyCount(0)) == xi.garrison.waves.spawnSchedule[1])
         assert(xi.garrison.getSpawnSchedule(playerWithPartyCount(4)) == xi.garrison.waves.spawnSchedule[1])
+        assert(xi.garrison.getSpawnSchedule(playerWithPartyLeaders({ 'same', 'same' })) == xi.garrison.waves.spawnSchedule[1])
     end)
 end)
 
