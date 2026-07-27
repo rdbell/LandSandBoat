@@ -3,6 +3,10 @@
 -----------------------------------
 require('scripts/globals/mixins')
 -----------------------------------
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.chigoe = xi.mix.chigoe or {}
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
@@ -19,6 +23,10 @@ local jobAbilities = set{
     xi.jobAbility.STUTTER_STEP,
     xi.jobAbility.FEATHER_STEP,
 }
+
+xi.mix.chigoe.isLethalAbility = function(abilityId)
+    return jobAbilities[abilityId] == true
+end
 
 g_mixins.families.chigoe = function(chigoeMob)
     chigoeMob:addListener('SPAWN', 'CHIGOE_SPAWN', function(mob)
@@ -49,7 +57,7 @@ g_mixins.families.chigoe = function(chigoeMob)
     end)
 
     chigoeMob:addListener('ABILITY_TAKE', 'CHIGOE_ABILITY_TAKE', function(user, target, skill, action)
-        if not jobAbilities[skill:getID()] then
+        if not xi.mix.chigoe.isLethalAbility(skill:getID()) then
             return
         end
 
