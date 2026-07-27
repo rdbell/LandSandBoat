@@ -25,6 +25,7 @@ describe('Paladin pure pins', function()
         assert(almost(p.shieldBashLvlScale, 0.273))
         assert(almost(p.chivalryBaseMP, 0.05) and almost(p.chivalryMNDScale, 0.0015))
         assert(p.oneHourRecastSecondsPerMod == 60)
+        assert(p.msgRequiresShield == xi.msg.basic.REQUIRES_SHIELD)
     end)
 end)
 

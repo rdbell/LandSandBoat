@@ -41,7 +41,7 @@ xi.job_utils.paladin.chivalryBaseMP               = 0.05
 xi.job_utils.paladin.chivalryMNDScale             = 0.0015
 xi.job_utils.paladin.oneHourRecastSecondsPerMod   = 60
 xi.job_utils.paladin.msgCannotPerformTarg         = 72
-xi.job_utils.paladin.msgRequiresShield            = 217
+xi.job_utils.paladin.msgRequiresShield            = 199
 xi.job_utils.paladin.msgCannotOnThatTarg          = 155
 
 -- Pure: OneHourRecast
