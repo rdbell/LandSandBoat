@@ -77,6 +77,10 @@ describe('barge event pure plan', function()
         return csid == 31 or csid == 32 or csid == 43
     end
 
+    local function planTicketShopTrigger(eventId, multiUses, hasSingle, hasMulti)
+        return eventId, 618, 652, 50, 300, multiUses, planTicketHasMask(hasSingle, hasMulti), 0, 0
+    end
+
     local function nextScheduleEvent(currentTime, schedule)
         if schedule[#schedule].endTime <= currentTime or schedule[1].endTime > currentTime then
             return schedule[1]
@@ -181,6 +185,15 @@ describe('barge event pure plan', function()
         assert(not planCanBuy(true, 10, 10, 300, 300)) -- multi full
         assert(not planCanBuy(false, nil, 0, 49, 50)) -- poor
         assert(planTicketCsidOk(31) and planTicketCsidOk(43) and not planTicketCsidOk(1))
+    end)
+
+    it('ticket shop trigger arguments', function()
+        local id, ki1, ki2, cost1, cost2, uses, mask, zero1, zero2 = planTicketShopTrigger(32, 0, false, false)
+        assert(id == 32 and ki1 == 618 and ki2 == 652 and cost1 == 50 and cost2 == 300)
+        assert(uses == 0 and mask == 0 and zero1 == 0 and zero2 == 0)
+        id, ki1, ki2, cost1, cost2, uses, mask, zero1, zero2 = planTicketShopTrigger(43, 7, true, true)
+        assert(id == 43 and ki1 == 618 and ki2 == 652 and cost1 == 50 and cost2 == 300)
+        assert(uses == 7 and mask == 3 and zero1 == 0 and zero2 == 0)
     end)
 
     it('channel route and landing fallback pins', function()
