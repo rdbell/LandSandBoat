@@ -77,6 +77,29 @@ describe('barge event pure plan', function()
         return csid == 31 or csid == 32 or csid == 43
     end
 
+    local function nextChannelRoute(currentTime)
+        local channel = {
+            { endTime = 275, route = 1 }, { endTime = 535, route = 0 },
+            { endTime = 960, route = 2 }, { endTime = 1155, route = 3 },
+            { endTime = 1415, route = 0 },
+        }
+
+        if channel[#channel].endTime <= currentTime or channel[1].endTime > currentTime then
+            return channel[1].route
+        end
+
+        for _, event in ipairs(channel) do
+            if event.endTime > currentTime then
+                return event.route
+            end
+        end
+    end
+
+    local function landingArrivalEvent(destination)
+        local docks = { [0] = 38, [2] = 11, [3] = 10 }
+        return docks[destination] or docks[3]
+    end
+
     it('remaining and earth secs', function()
         assert(remainingGameMins(100, 160) == 60)
         assert(remainingGameMins(1400, 10) == 50) -- wrap
@@ -112,5 +135,12 @@ describe('barge event pure plan', function()
         assert(not planCanBuy(true, 10, 10, 300, 300)) -- multi full
         assert(not planCanBuy(false, nil, 0, 49, 50)) -- poor
         assert(planTicketCsidOk(31) and planTicketCsidOk(43) and not planTicketCsidOk(1))
+    end)
+
+    it('channel route and landing fallback pins', function()
+        -- At 08:55, the strict next-event lookup selects the 16:00 North route.
+        assert(nextChannelRoute(535) == 2)
+        assert(nextChannelRoute(1415) == 1) -- wraps to Central Landing Emfea
+        assert(landingArrivalEvent(1) == 10) -- EMFEA falls back to Central
     end)
 end)
