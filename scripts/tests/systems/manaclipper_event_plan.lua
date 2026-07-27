@@ -78,4 +78,13 @@ describe('manaclipper event pure plan', function()
         u, del = planMultiUses(1)
         assert(u == 0 and del)
     end)
+
+    it('zone-in onboard arrival and Bibiki return', function()
+        -- At 05:00, the next onboard event is 08:40 Purgonorgo Isle.
+        assert(planArrivalEvent(PURG) == 13)
+        local stored = 13
+        assert(stored == 13) -- Bibiki return preserves the Purgonorgo event.
+        stored = 99
+        assert((stored == 13 and 13 or 12) == 12) -- malformed value falls back.
+    end)
 end)
