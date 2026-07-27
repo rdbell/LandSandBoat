@@ -9,6 +9,22 @@ describe('Beastmaster master-death pet cleanup', function()
     end)
 end)
 
+describe('Non-PC pet spawn state', function()
+    it('suppresses the state message for non-PC casters only', function()
+        assert(not xi.pet.spawnPetStatePlan(true, true, true).suppressStateMessage)
+        assert(not xi.pet.spawnPetStatePlan(false, false, true).suppressStateMessage)
+        assert(xi.pet.spawnPetStatePlan(false, true, false).suppressStateMessage)
+    end)
+
+    it('adds Beastmaster cleanup listeners only for Call Beast', function()
+        local callBeast = xi.pet.spawnPetStatePlan(false, true, true)
+        assert(callBeast.addMasterDeathListener and callBeast.addMasterDespawnListener)
+
+        local other = xi.pet.spawnPetStatePlan(false, true, false)
+        assert(not other.addMasterDeathListener and not other.addMasterDespawnListener)
+    end)
+end)
+
 describe('Pet mob-skill admission', function()
     it('blocks summoning when no pet is assigned or a pet is already spawned', function()
         assert(xi.pet.mobSkillCheckResult(false, false) == 1)

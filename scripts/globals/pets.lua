@@ -44,6 +44,20 @@ xi.pet.shouldDespawnOnMasterDeath = function(hasPet, petAlive, petEngaged)
     return hasPet and petAlive and not petEngaged
 end
 
+-- Pure non-PC spawnPet state effects after the host reads state identity.
+xi.pet.spawnPetStatePlan = function(isPC, hasState, isCallBeast)
+    if isPC or not hasState then
+        return {}
+    end
+
+    return
+    {
+        suppressStateMessage = true,
+        addMasterDeathListener = isCallBeast,
+        addMasterDespawnListener = isCallBeast,
+    }
+end
+
 -- Summoning mob skills require an assigned pet that is not already spawned.
 xi.pet.mobSkillCheckResult = function(hasAssignedPet, hasSpawnedPet)
     if not hasAssignedPet or hasSpawnedPet then
@@ -153,12 +167,20 @@ xi.pet.spawnPet = function(caster, petID, state, target)
 
     -- mobs don't emit message when using call beast/wyvern, activate, or summoner spells
     if caster:getObjType() ~= xi.objType.PC and state then
-        state:setMsg(xi.msg.basic.NONE)
+        local plan = xi.pet.spawnPetStatePlan(false, true, false)
+        if plan.suppressStateMessage then
+            state:setMsg(xi.msg.basic.NONE)
+        end
 
         if state:getID() == xi.mobSkill.CALL_BEAST then
+            plan = xi.pet.spawnPetStatePlan(false, true, true)
             -- bst mob pets despawn if not engaged when owner leaves
-            caster:addListener('DEATH', 'BEASTMASTER_DEATH', onMasterDeath)
-            caster:addListener('DESPAWN', 'BEASTMASTER_DESPAWN', onMasterDeath)
+            if plan.addMasterDeathListener then
+                caster:addListener('DEATH', 'BEASTMASTER_DEATH', onMasterDeath)
+            end
+            if plan.addMasterDespawnListener then
+                caster:addListener('DESPAWN', 'BEASTMASTER_DESPAWN', onMasterDeath)
+            end
         end
     end
 
