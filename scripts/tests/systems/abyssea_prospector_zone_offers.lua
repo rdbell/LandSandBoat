@@ -8,6 +8,9 @@ describe('Abyssea Cruor Prospector key-item offers', function()
         { 'Altepa', 'scripts/zones/Abyssea-Altepa/npcs/Cruor_Prospector', xi.ki.MAP_OF_ABYSSEA_ALTEPA, 4500 },
         { 'Grauberg', 'scripts/zones/Abyssea-Grauberg/npcs/Cruor_Prospector', xi.ki.MAP_OF_ABYSSEA_GRAUBERG, 4500 },
         { 'Uleguerand', 'scripts/zones/Abyssea-Uleguerand/npcs/Cruor_Prospector', xi.ki.MAP_OF_ABYSSEA_ULEGUERAND, 4500 },
+        { 'Attohwa', 'scripts/zones/Abyssea-Attohwa/npcs/Cruor_Prospector', xi.ki.MAP_OF_ABYSSEA_ATTOHWA, 4500 },
+        { 'Misareaux', 'scripts/zones/Abyssea-Misareaux/npcs/Cruor_Prospector', xi.ki.MAP_OF_ABYSSEA_MISAREAUX, 4500 },
+        { 'Vunkerl', 'scripts/zones/Abyssea-Vunkerl/npcs/Cruor_Prospector', xi.ki.MAP_OF_ABYSSEA_VUNKERL, 4500 },
     }
 
     for _, entry in ipairs(cases) do
