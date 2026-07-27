@@ -48,6 +48,21 @@ xi.pet.mobSkillCheckResult = function(hasAssignedPet, hasSpawnedPet)
     return 0
 end
 
+-- Ordered casting admission after the branch-specific host reads.
+xi.pet.castingCheckResult = function(hasSpawnedPet, astralOnly, hasAstralFlow, canUsePet, isPC, avatarMiniFightResult, hasAssignedPet)
+    if hasSpawnedPet then
+        return xi.msg.basic.ALREADY_HAS_A_PET
+    elseif astralOnly and not hasAstralFlow then
+        return xi.msg.basic.MAGIC_MUST_ASTRAL_FLOW
+    elseif not canUsePet then
+        return xi.msg.basic.CANT_BE_USED_IN_AREA
+    elseif isPC then
+        return avatarMiniFightResult
+    end
+
+    return hasAssignedPet and 0 or 1
+end
+
 ---@param target CBaseEntity
 ---@param mob CBaseEntity
 ---@param skill CMobSkill
@@ -62,27 +77,21 @@ end
 ---@param spell CSpell
 ---@return number
 xi.pet.onCastingCheck = function(caster, target, spell)
-    local result = 0
-
     if caster:hasPet() then
-        result = xi.msg.basic.ALREADY_HAS_A_PET
+        return xi.pet.castingCheckResult(true, false, false, true, false, 0, false)
     elseif
         astralOnlySpellIDs[spell:getID()] and
         not caster:hasStatusEffect(xi.effect.ASTRAL_FLOW)
     then
-        result = xi.msg.basic.MAGIC_MUST_ASTRAL_FLOW
+        return xi.pet.castingCheckResult(false, true, false, true, false, 0, false)
     elseif not caster:canUseMisc(xi.zoneMisc.PET) then
-        result = xi.msg.basic.CANT_BE_USED_IN_AREA
+        return xi.pet.castingCheckResult(false, false, false, false, false, 0, false)
     elseif caster:getObjType() == xi.objType.PC then
-        result = xi.summon.avatarMiniFightCheck(caster, spell:getID())
-    else
-        -- non-pc without an attached pet
-        if caster:getPet() == nil then
-            result = 1
-        end
+        return xi.pet.castingCheckResult(false, false, false, true, true, xi.summon.avatarMiniFightCheck(caster, spell:getID()), false)
     end
 
-    return result
+    -- non-PC without an attached pet.
+    return xi.pet.castingCheckResult(false, false, false, true, false, 0, caster:getPet() ~= nil)
 end
 
 ---@param caster CBaseEntity
