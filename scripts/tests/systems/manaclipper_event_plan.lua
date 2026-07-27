@@ -76,6 +76,18 @@ describe('manaclipper event pure plan', function()
         return eventId, earthSecs, next.act, 0, next.dest
     end
 
+    local function planTransportEvent(aboard, hasSingle, hasMulti, uses)
+        local kind = planTransport(aboard, hasSingle, hasMulti)
+        if kind == TRANS_NONE then return kind end
+        if kind == TRANS_SINGLE then return kind, 14, true end
+        if kind == TRANS_MULTI then
+            local newUses, del = planMultiUses(uses)
+            return kind, 14, false, newUses, del, del and 'end' or 'left'
+        end
+        if kind == TRANS_KICK then return kind, nil, false, nil, false, 'none', 489, -3, 713, 200 end
+        return kind, 16
+    end
+
     it('channel arriving shortly', function()
         local id, m = planChannelEvent(50, 120)
         assert(id == 50 and m == 2)
@@ -120,5 +132,19 @@ describe('manaclipper event pure plan', function()
         assert(id == 100 and a == 8 and b == 3 and c == 2)
         id, a, b, c = planTimekeeper(true, 1235, 100)
         assert(id == 99 and a == 0 and b == 0 and c == 2)
+    end)
+
+    it('transport events include ticket, billet, and kick effects', function()
+        local kind, event, single, uses, del, message = planTransportEvent(1, true, false, 0)
+        assert(kind == TRANS_SINGLE and event == 14 and single)
+        kind, event, single, uses, del, message = planTransportEvent(1, false, true, 1)
+        assert(kind == TRANS_MULTI and event == 14 and not single and uses == 0 and del and message == 'end')
+        kind, event, single, uses, del, message = planTransportEvent(1, false, true, 4)
+        assert(kind == TRANS_MULTI and event == 14 and uses == 3 and not del and message == 'left')
+        local x, y, z, r
+        kind, event, single, uses, del, message, x, y, z, r = planTransportEvent(1, false, false, 0)
+        assert(kind == TRANS_KICK and message == 'none' and x == 489 and y == -3 and z == 713 and r == 200)
+        kind, event = planTransportEvent(2, false, false, 0)
+        assert(kind == TRANS_PURG and event == 16)
     end)
 end)
