@@ -86,6 +86,27 @@ xi.pet.familiarBuffPlan = function(familiarBonus, extendCharm, petMaxHP)
     return plan
 end
 
+-- Pure setMobPet admission and entity-action plan after host state reads.
+xi.pet.setMobPetPlan = function(mobPresent, mobIsMob, petFound, nameMatches, petHasMaster, mobHasPet, mobSpawned, petSpawned)
+    if
+        not mobPresent or
+        not mobIsMob or
+        not petFound or
+        not nameMatches or
+        petHasMaster or
+        mobHasPet
+    then
+        return {}
+    end
+
+    return
+    {
+        disallowRespawn = true,
+        despawnPet = not mobSpawned and petSpawned,
+        linkPet = true,
+    }
+end
+
 ---@param target CBaseEntity
 ---@param mob CBaseEntity
 ---@param skill CMobSkill
@@ -237,16 +258,26 @@ xi.pet.setMobPet = function(mob, offset, petName)
         return
     end
 
-    if pet:getMaster() or mob:getPet() then
+    if pet:getMaster() then
         return
     end
 
-    -- pet is always spawned by master
-    DisallowRespawn(pet:getID(), true)
-    if not mob:isSpawned() and pet:isSpawned() then
+    if mob:getPet() then
+        return
+    end
+
+    local plan = xi.pet.setMobPetPlan(true, true, true, true, false, false, mob:isSpawned(), pet:isSpawned())
+    if plan.disallowRespawn then
+        -- pet is always spawned by master
+        DisallowRespawn(pet:getID(), true)
+    end
+
+    if plan.despawnPet then
         DespawnMob(pet:getID(), 2)
     end
 
-    -- link mob and pet for things like call_beast, summon elemental, etc
-    mob:setPet(pet)
+    if plan.linkPet then
+        -- link mob and pet for things like call_beast, summon elemental, etc
+        mob:setPet(pet)
+    end
 end
