@@ -19,17 +19,21 @@ g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
 xi.mix.tauri.canUseRay = function(mob)
-    -- Normal Tauri only use mortal ray once per life
-    if mob:getLocalVar('mortalRayUsed') == 1 then
-        return false
-    end
+    return xi.mix.tauri.canUseRayWithLocalVar(mob:getLocalVar('mortalRayUsed'))
+end
 
-    return true
+xi.mix.tauri.canUseRayWithLocalVar = function(mortalRayUsed)
+    -- Normal Tauri only use Mortal Ray once per life.
+    return mortalRayUsed ~= 1
+end
+
+xi.mix.tauri.shouldRecordRay = function(skillID)
+    return skillID == xi.mobSkill.MORTAL_RAY_1
 end
 
 g_mixins.families.tauri = function(tauriMob)
     tauriMob:addListener('WEAPONSKILL_USE', 'TAURI_NM_WEAPONSKILL_USE', function(mob, target, skill, tp, action, damage)
-        if skill:getID() == xi.mobSkill.MORTAL_RAY_1 then
+        if xi.mix.tauri.shouldRecordRay(skill:getID()) then
             mob:setLocalVar('mortalRayUsed', 1)
         end
     end)
