@@ -1,22 +1,32 @@
 require('scripts/globals/caskets')
 
 describe('Treasure Casket spawn initialization', function()
-    local function spawn(styleRoll)
-        local vars = { ['[caskets]SPAWNTIME'] = 0, ['[caskets]SPAWNSTATUS'] = 0 }
+    local function spawn(styleRoll, firstStatus)
+        local varsByID = {
+            [100] = { ['[caskets]SPAWNTIME'] = 0, ['[caskets]SPAWNSTATUS'] = firstStatus or 0 },
+            [101] = { ['[caskets]SPAWNTIME'] = 0, ['[caskets]SPAWNSTATUS'] = 0 },
+        }
         local model
         local timer
-        local npc = {
-            getLocalVar = function(_, name) return vars[name] end,
-            setLocalVar = function(_, name, value) vars[name] = value end,
-            resetLocalVars = function() end,
-            setAnimation = function() end,
-            setAnimationSub = function() end,
-            setPos = function() end,
-            setStatus = function() end,
-            entityAnimationPacket = function() end,
-            setModelId = function(_, value) model = value end,
-            timer = function(_, value) timer = value end,
-        }
+        local selectedID
+        local function makeNPC(id)
+            local vars = varsByID[id]
+            return {
+                getLocalVar = function(_, name) return vars[name] end,
+                setLocalVar = function(_, name, value) vars[name] = value end,
+                resetLocalVars = function()
+                    for name in pairs(vars) do vars[name] = nil end
+                end,
+                setAnimation = function() end,
+                setAnimationSub = function() end,
+                setPos = function() end,
+                setStatus = function() end,
+                entityAnimationPacket = function() end,
+                setModelId = function(_, value) selectedID, model = id, value end,
+                timer = function(_, value) timer = value end,
+            }
+        end
+        local npcs = { [100] = makeNPC(100), [101] = makeNPC(101) }
         local zone = {
             queryEntitiesByName = function()
                 return { { getID = function() return 100 end } }
@@ -38,7 +48,7 @@ describe('Treasure Casket spawn initialization', function()
         local oldRandom = math.random
         local oldRate = xi.settings.main.CASKET_DROP_RATE
         local oldZone = zones[999]
-        stub('GetNPCByID', function(id) return id == 100 and npc or nil end)
+        stub('GetNPCByID', function(id) return npcs[id] end)
         stub('GetSystemTime', function() return 600000 end)
         math.random = function(low, high)
             if low == nil then return 0 end -- dropChance
@@ -56,11 +66,12 @@ describe('Treasure Casket spawn initialization', function()
         xi.settings.main.CASKET_DROP_RATE = oldRate
         zones[999] = oldZone
 
-        return vars, model, timer
+        return varsByID[selectedID], model, timer, selectedID
     end
 
     it('initializes a brown locked casket from its resolved rolls', function()
-        local vars, model, timer = spawn(15)
+        local vars, model, timer, selectedID = spawn(15)
+        assert(selectedID == 100)
         assert(model == 966 and timer == 180000)
         assert(vars['[caskets]PARTYID'] == 77 and vars['[caskets]MOBLVL'] == 42)
         assert(vars['[caskets]ITEMS_SET'] == 0 and vars['[caskets]SPAWNSTATUS'] == 1)
@@ -71,7 +82,8 @@ describe('Treasure Casket spawn initialization', function()
     end)
 
     it('initializes a blue temporary-item casket from its resolved rolls', function()
-        local vars, model, timer = spawn(16)
+        local vars, model, timer, selectedID = spawn(16)
+        assert(selectedID == 100)
         assert(model == 965 and timer == 180000)
         assert(vars['[caskets]PARTYID'] == 77 and vars['[caskets]MOBLVL'] == 42)
         assert(vars['[caskets]ITEMS_SET'] == 0 and vars['[caskets]SPAWNSTATUS'] == 1)
@@ -79,5 +91,11 @@ describe('Treasure Casket spawn initialization', function()
         assert(vars['[caskets]LOCKED'] == 0 and vars['[caskets]LOOT_TYPE'] == 1)
         assert(vars['[caskets]ATTEMPTS'] == nil and vars['[caskets]CORRECT_NUM'] == nil)
         assert(vars['[caskets]FAILED_ATEMPTS'] == nil and vars['[caskets]HINTS_TABLE'] == nil)
+    end)
+
+    it('skips an occupied casket slot and initializes the first reusable one', function()
+        local vars, model, timer, selectedID = spawn(15, 2)
+        assert(selectedID == 101 and model == 966 and timer == 180000)
+        assert(vars['[caskets]SPAWNSTATUS'] == 1 and vars['[caskets]PARTYID'] == 77)
     end)
 end)
