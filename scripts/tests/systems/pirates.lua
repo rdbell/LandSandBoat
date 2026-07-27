@@ -148,6 +148,59 @@ describe('Pirates zone-state plan', function()
     end)
 end)
 
+describe('Pirates summon-animation plan', function()
+    it('does nothing for a hidden pirate and only polls while pathing', function()
+        local hidden = xi.pirates.summonAnimationPlan(true, false, false, 100, 0, 0, 1, 1, 5)
+        assert(not hidden.scheduleNext)
+
+        local pathing = xi.pirates.summonAnimationPlan(false, true, false, 100, 0, 0, 1, 1, 5)
+        assert(pathing.scheduleNext)
+        assert(not pathing.hide)
+    end)
+
+    it('rotates an arriving pirate and offsets its first summon by NPC order', function()
+        local plan = xi.pirates.summonAnimationPlan(false, false, true, 100, 0, 0, 2, 1, 5)
+
+        assert(plan.clearInitialState)
+        assert(plan.rotateToBoat)
+        assert(plan.setSummonStartTime and plan.summonStartTime == 102)
+        assert(plan.scheduleNext)
+    end)
+
+    it('starts the first pirate immediately after rotating it', function()
+        local plan = xi.pirates.summonAnimationPlan(false, false, true, 100, 0, 0, 1, 1, 5)
+
+        assert(plan.clearInitialState and plan.rotateToBoat)
+        assert(plan.setSummonStartTime and plan.summonStartTime == 0)
+        assert(plan.setSummonEndTime and plan.summonEndTime == 101)
+        assert(plan.startAnimation and plan.scheduleNext)
+    end)
+
+    it('starts a due summon and records its randomized end time', function()
+        local plan = xi.pirates.summonAnimationPlan(false, false, false, 100, 100, 0, 1, 2, 5)
+
+        assert(plan.setSummonStartTime and plan.summonStartTime == 0)
+        assert(plan.setSummonEndTime and plan.summonEndTime == 102)
+        assert(plan.startAnimation)
+        assert(plan.scheduleNext)
+    end)
+
+    it('stops a due summon and schedules the next one with its offset', function()
+        local plan = xi.pirates.summonAnimationPlan(false, false, false, 100, 0, 100, 3, 1, 7)
+
+        assert(plan.setSummonStartTime and plan.summonStartTime == 107)
+        assert(plan.setSummonEndTime and plan.summonEndTime == 0)
+        assert(plan.stopAnimation)
+        assert(plan.scheduleNext)
+    end)
+
+    it('hides an idle pirate without scheduling another poll', function()
+        local plan = xi.pirates.summonAnimationPlan(false, false, false, 100, 0, 0, 1, 1, 5)
+        assert(plan.hide)
+        assert(not plan.scheduleNext)
+    end)
+end)
+
 describe('Pirates route NM', function()
     it('sails Blackbeard on the Selbina route', function()
         assert(xi.pirates.nmIsBlackbeard(xi.zone.SHIP_BOUND_FOR_SELBINA_PIRATES))

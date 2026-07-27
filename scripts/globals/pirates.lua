@@ -189,54 +189,141 @@ local function clearPirates(zoneId)
     end
 end
 
+-- The pure state transition for one summon-animation timer tick. The host
+-- owns entity reads, local-var writes, position/animation calls, and timer
+-- scheduling; randomized durations are supplied only for the selected branch.
+xi.pirates.summonAnimationPlan = function(hidden, followingPath, initialState, currentTime, summonStartTime, summonEndTime, offset, startDuration, nextStartDelay)
+    local plan =
+    {
+        clearInitialState   = false,
+        rotateToBoat        = false,
+        setSummonStartTime  = false,
+        summonStartTime     = 0,
+        setSummonEndTime    = false,
+        summonEndTime       = 0,
+        startAnimation      = false,
+        stopAnimation       = false,
+        hide                = false,
+        scheduleNext        = false,
+    }
+
+    if hidden then
+        return plan
+    end
+
+    if followingPath then
+        plan.scheduleNext = true
+        return plan
+    end
+
+    if initialState then
+        plan.clearInitialState  = true
+        plan.rotateToBoat       = true
+        summonStartTime         = currentTime + (offset - 1) * 2
+        plan.setSummonStartTime = true
+        plan.summonStartTime    = summonStartTime
+    end
+
+    if summonStartTime ~= 0 and summonStartTime <= currentTime then
+        summonStartTime         = 0
+        summonEndTime           = currentTime + startDuration
+        plan.setSummonStartTime = true
+        plan.summonStartTime    = summonStartTime
+        plan.setSummonEndTime   = true
+        plan.summonEndTime      = summonEndTime
+        plan.startAnimation     = true
+    end
+
+    if summonEndTime ~= 0 and summonEndTime <= currentTime then
+        summonStartTime         = currentTime + nextStartDelay
+        summonEndTime           = 0
+        plan.setSummonStartTime = true
+        plan.summonStartTime    = summonStartTime
+        plan.setSummonEndTime   = true
+        plan.summonEndTime      = summonEndTime
+        plan.stopAnimation      = true
+    end
+
+    if summonEndTime == 0 and summonStartTime == 0 then
+        plan.hide = true
+    else
+        plan.scheduleNext = true
+    end
+
+    return plan
+end
+
 -- Calls itself via timer until the npc is hidden.
 local function summonAnimations(npc, rotation, offset)
     if npc:getStatus() == xi.status.DISAPPEAR then
         return
     end
 
-    if not npc:isFollowingPath() then
-        local pos         = npc:getPos()
-        local currentTime = GetSystemTime()
+    local followingPath = npc:isFollowingPath()
+    local initialState  = false
+    local currentTime   = 0
+    local summonStartTime = 0
+    local summonEndTime   = 0
+    local startDuration   = 0
+    local nextStartDelay  = 0
 
-        if npc:getLocalVar('initialNpcState') == 1 then
-            npc:setLocalVar('initialNpcState', 0)
-            -- rotate to face the player boat
-            npc:setPos(pos.x, pos.y, pos.z, rotation)
-            -- first summoning rotation happens in order of NPC ID
-            npc:setLocalVar('summonStartTime', currentTime + (offset - 1) * 2)
+    if not followingPath then
+        currentTime     = GetSystemTime()
+        initialState    = npc:getLocalVar('initialNpcState') == 1
+        summonStartTime = npc:getLocalVar('summonStartTime')
+        summonEndTime   = npc:getLocalVar('summonEndTime')
+
+        local plannedStartTime = summonStartTime
+        if initialState then
+            plannedStartTime = currentTime + (offset - 1) * 2
         end
 
-        local summonStartTime = npc:getLocalVar('summonStartTime')
-        if summonStartTime ~= 0 and summonStartTime <= currentTime then
-            npc:setLocalVar('summonStartTime', 0)
-            npc:setLocalVar('summonEndTime', currentTime + math.random(1, 2))
-
-            npc:entityAnimationPacket(xi.animationString.CAST_SUMMONER_START)
-        end
-
-        local summonEndTime = npc:getLocalVar('summonEndTime')
-        if summonEndTime ~= 0 and summonEndTime <= currentTime then
-            npc:setLocalVar('summonStartTime', currentTime + math.random(4 + offset, 10))
-            npc:setLocalVar('summonEndTime', 0)
-
-            npc:entityAnimationPacket(xi.animationString.CAST_SUMMONER_STOP)
-        end
-
-        -- No more animations and npc is done pathing
-        if summonEndTime == 0 and summonStartTime == 0 then
-            npc:setStatus(xi.status.DISAPPEAR)
+        if plannedStartTime ~= 0 and plannedStartTime <= currentTime then
+            startDuration = math.random(1, 2)
+        elseif summonEndTime ~= 0 and summonEndTime <= currentTime then
+            nextStartDelay = math.random(4 + offset, 10)
         end
     end
 
-    if npc:getStatus() == xi.status.DISAPPEAR then
-        return
+    local plan = xi.pirates.summonAnimationPlan(false, followingPath, initialState, currentTime, summonStartTime, summonEndTime, offset, startDuration, nextStartDelay)
+
+    if plan.clearInitialState then
+        npc:setLocalVar('initialNpcState', 0)
     end
 
-    -- check again in 1.2s (pirates summon animation can last from 1s to 2s)
-    npc:timer(1200, function(npcArg)
-        summonAnimations(npcArg, rotation, offset)
-    end)
+    if plan.rotateToBoat then
+        local pos = npc:getPos()
+        -- rotate to face the player boat
+        npc:setPos(pos.x, pos.y, pos.z, rotation)
+    end
+
+    if plan.setSummonStartTime then
+        npc:setLocalVar('summonStartTime', plan.summonStartTime)
+    end
+
+    if plan.setSummonEndTime then
+        npc:setLocalVar('summonEndTime', plan.summonEndTime)
+    end
+
+    if plan.startAnimation then
+        npc:entityAnimationPacket(xi.animationString.CAST_SUMMONER_START)
+    end
+
+    if plan.stopAnimation then
+        npc:entityAnimationPacket(xi.animationString.CAST_SUMMONER_STOP)
+    end
+
+    -- No more animations and npc is done pathing.
+    if plan.hide then
+        npc:setStatus(xi.status.DISAPPEAR)
+    end
+
+    if plan.scheduleNext then
+        -- check again in 1.2s (pirates summon animation can last from 1s to 2s)
+        npc:timer(1200, function(npcArg)
+            summonAnimations(npcArg, rotation, offset)
+        end)
+    end
 end
 
 xi.pirates.setupPirateNPCSchedule = function(npc)
