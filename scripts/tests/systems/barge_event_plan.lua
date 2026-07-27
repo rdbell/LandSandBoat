@@ -99,6 +99,17 @@ describe('barge event pure plan', function()
         return 'buy', ticket.cost, ticket.keyItem, ticket.charges or 0, ticket.charges
     end
 
+    local function planEntityVisibility(zoneFound, currentDestination, destination)
+        if not zoneFound or currentDestination == destination + 1 then
+            return false
+        end
+        local routes = {
+            [0] = { 0, 0, 0 }, [1] = { 0, 1, 0 },
+            [2] = { 1, 0, 1 }, [3] = { 1, 1, 1 },
+        }
+        return true, destination + 1, routes[destination]
+    end
+
     local function nextScheduleEvent(currentTime, schedule)
         if schedule[#schedule].endTime <= currentTime or schedule[1].endTime > currentTime then
             return schedule[1]
@@ -226,6 +237,17 @@ describe('barge event pure plan', function()
         assert(kind == 'buy' and cost == 50 and keyItem == 618 and charges == 0 and setUses == nil)
         kind, cost, keyItem, charges, setUses = planTicketShopFinish(31, 2, 7, 300, true)
         assert(kind == 'buy' and cost == 300 and keyItem == 652 and charges == 10 and setUses == 10)
+    end)
+
+    it('entity visibility route selection and guards', function()
+        local set, stored, route = planEntityVisibility(true, 0, 2)
+        assert(set and stored == 3 and route[1] == 1 and route[2] == 0 and route[3] == 1)
+        set = planEntityVisibility(false, 0, 0)
+        assert(not set)
+        set = planEntityVisibility(true, 4, 3)
+        assert(not set)
+        set, stored, route = planEntityVisibility(true, 0, 99)
+        assert(set and stored == 100 and route == nil)
     end)
 
     it('channel route and landing fallback pins', function()
