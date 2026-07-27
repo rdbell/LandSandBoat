@@ -14,3 +14,25 @@ describe('Transport dock NPC positions', function()
         assert(next(xi.transport.dockNPCPositions(0)) == nil)
     end)
 end)
+
+describe('Transport dock path selection', function()
+    it('uses arrival points for even triggers and departure points for odd triggers', function()
+        local path
+        local shown
+        local npc = {
+            showText = function(_, _, message)
+                shown = message
+            end,
+            pathThrough = function(_, points)
+                path = points
+            end,
+        }
+        local messages = { [0] = 100, [1] = 101 }
+
+        xi.transport.dockMessage(npc, 0, messages, xi.zone.MHAURA)
+        assert(shown == 100 and path[1].x == 7.06 and path[1].rotation == 211)
+
+        xi.transport.dockMessage(npc, 1, messages, xi.zone.MHAURA)
+        assert(shown == 101 and path[1].x == 8.26 and path[1].rotation == 193)
+    end)
+end)
