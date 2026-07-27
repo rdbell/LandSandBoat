@@ -25,6 +25,30 @@ describe('Non-PC pet spawn state', function()
     end)
 end)
 
+describe('Avatar pet spawn effects', function()
+    it('reapplies Favor and selects the special-avatar actions', function()
+        local alexander = xi.pet.avatarSpawnPlan(true, true, xi.petId.ALEXANDER, false, true)
+        assert(alexander.resetFavor and alexander.applyFavorAura and alexander.applyFavorDebuffs)
+        assert(alexander.timers[1].delay == 5000 and alexander.timers[1].ability == xi.jobAbility.PERFECT_DEFENSE and alexander.timers[1].target == 'pet')
+
+        local odin = xi.pet.avatarSpawnPlan(true, false, xi.petId.ODIN, true, false)
+        assert(odin.attackTarget and #odin.timers == 0)
+
+        local atomos = xi.pet.avatarSpawnPlan(true, false, xi.petId.ATOMOS, true, true)
+        assert(#atomos.timers == 2)
+        assert(atomos.timers[1].delay == 3000 and atomos.timers[1].ability == xi.jobAbility.DECONSTRUCTION and atomos.timers[1].target == 'target')
+        assert(atomos.timers[2].delay == 10000 and atomos.timers[2].ability == xi.jobAbility.CHRONOSHIFT and atomos.timers[2].target == 'pet')
+    end)
+
+    it('does nothing for non-avatars or unavailable special-action inputs', function()
+        local nonAvatar = xi.pet.avatarSpawnPlan(false, true, xi.petId.ALEXANDER, true, true)
+        assert(not nonAvatar.resetFavor and not nonAvatar.attackTarget and #nonAvatar.timers == 0)
+
+        local noPet = xi.pet.avatarSpawnPlan(true, false, xi.petId.ALEXANDER, false, false)
+        assert(#noPet.timers == 0)
+    end)
+end)
+
 describe('Pet mob-skill admission', function()
     it('blocks summoning when no pet is assigned or a pet is already spawned', function()
         assert(xi.pet.mobSkillCheckResult(false, false) == 1)

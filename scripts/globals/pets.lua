@@ -58,6 +58,31 @@ xi.pet.spawnPetStatePlan = function(isPC, hasState, isCallBeast)
     }
 end
 
+-- Pure avatar-specific post-spawn requests after host state reads.
+xi.pet.avatarSpawnPlan = function(isAvatar, hasFavor, petID, hasTarget, hasSpawnedPet)
+    local plan = { timers = {} }
+    if not isAvatar then
+        return plan
+    end
+
+    if hasFavor then
+        plan.resetFavor = true
+        plan.applyFavorAura = true
+        plan.applyFavorDebuffs = true
+    end
+
+    if petID == xi.petId.ALEXANDER and hasSpawnedPet then
+        table.insert(plan.timers, { delay = 5000, ability = xi.jobAbility.PERFECT_DEFENSE, target = 'pet' })
+    elseif petID == xi.petId.ODIN and hasTarget then
+        plan.attackTarget = true
+    elseif petID == xi.petId.ATOMOS and hasTarget and hasSpawnedPet then
+        table.insert(plan.timers, { delay = 3000, ability = xi.jobAbility.DECONSTRUCTION, target = 'target' })
+        table.insert(plan.timers, { delay = 10000, ability = xi.jobAbility.CHRONOSHIFT, target = 'pet' })
+    end
+
+    return plan
+end
+
 -- Summoning mob skills require an assigned pet that is not already spawned.
 xi.pet.mobSkillCheckResult = function(hasAssignedPet, hasSpawnedPet)
     if not hasAssignedPet or hasSpawnedPet then
@@ -186,41 +211,33 @@ xi.pet.spawnPet = function(caster, petID, state, target)
 
     if avatarPetIDs[petID] then
         local effect = caster:getStatusEffect(xi.effect.AVATARS_FAVOR)
-        if effect then
+        local pet = nil
+        if petID == xi.petId.ALEXANDER or (petID == xi.petId.ATOMOS and target) then
+            pet = caster:getPet()
+        end
+
+        local plan = xi.pet.avatarSpawnPlan(true, effect ~= nil, petID, target ~= nil, pet ~= nil)
+        if plan.resetFavor then
             effect:setPower(1) -- resummon resets effect
+        end
+        if plan.applyFavorAura then
             xi.avatarsFavor.applyAvatarsFavorAuraToPet(caster, effect)
+        end
+        if plan.applyFavorDebuffs then
             xi.avatarsFavor.applyAvatarsFavorDebuffsToPet(caster)
         end
 
-        if petID == xi.petId.ALEXANDER then
-            -- Use Perfect Defense 5 seconds after spawning.
-            local pet = caster:getPet()
-            if pet then
-                pet:timer(5000, function()
-                    pet:usePetAbility(xi.jobAbility.PERFECT_DEFENSE, pet)
-                end)
-            end
-        elseif petID == xi.petId.ODIN then
-            if target then
-                caster:petAttack(target)
-                --pet:timer(5000, function()
-                --    pet:usePetAbility(xi.jobAbility.ZANTETSUKEN, target)
-                --end)
-            end
-        elseif petID == xi.petId.ATOMOS then
-            if target then
-                -- Use Deconstruction on the target 3 seconds after spawning.
-                local pet = caster:getPet()
-                if pet then
-                    -- Timed sequence after spawning, wait -> Deconstruction -> wait -> Chronoshift (despawn pet after complete)
-                    pet:timer(3000, function()
-                        pet:usePetAbility(xi.jobAbility.DECONSTRUCTION, target)
-                    end)
+        if plan.attackTarget then
+            caster:petAttack(target)
+        end
 
-                    pet:timer(10000, function()
-                        pet:usePetAbility(xi.jobAbility.CHRONOSHIFT, pet)
-                    end)
-                end
+        if pet then
+            for _, timer in ipairs(plan.timers) do
+                local timerRequest = timer
+                pet:timer(timerRequest.delay, function()
+                    local abilityTarget = timerRequest.target == 'pet' and pet or target
+                    pet:usePetAbility(timerRequest.ability, abilityTarget)
+                end)
             end
         end
     end
