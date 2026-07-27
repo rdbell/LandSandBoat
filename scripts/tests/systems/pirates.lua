@@ -104,6 +104,25 @@ describe('Pirates NM spawn selection', function()
     end)
 end)
 
+describe('Pirates deck-clear plan', function()
+    it('ignores a missing mob', function()
+        local plan = xi.pirates.deckClearPlan(false, false, false)
+        assert(not plan.disableRespawn and not plan.despawn)
+    end)
+
+    it('disables respawn for every found mob', function()
+        local unspawned = xi.pirates.deckClearPlan(true, false, false)
+        local engaged = xi.pirates.deckClearPlan(true, true, true)
+        assert(unspawned.disableRespawn and not unspawned.despawn)
+        assert(engaged.disableRespawn and not engaged.despawn)
+    end)
+
+    it('despawns only a found, spawned, unengaged mob', function()
+        local plan = xi.pirates.deckClearPlan(true, true, false)
+        assert(plan.disableRespawn and plan.despawn)
+    end)
+end)
+
 describe('Pirates zone-state plan', function()
     it('does nothing when an NPC repeats the current action', function()
         local plan = xi.pirates.zoneStatePlan(

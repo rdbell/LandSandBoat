@@ -169,6 +169,19 @@ local function getNMId(zoneId)
     return zones[zoneId].mob.SILVERHOOK
 end
 
+-- Per-mob deck-clear work after the host resolves entity existence and state.
+xi.pirates.deckClearPlan = function(exists, spawned, engaged)
+    if not exists then
+        return { disableRespawn = false, despawn = false }
+    end
+
+    return
+    {
+        disableRespawn = true,
+        despawn        = spawned and not engaged,
+    }
+end
+
 -- Clear the deck of pirate mobs: disable respawns, despawn idle ones, and leave any still in combat to be finished off (they won't respawn).
 -- Used at retreat and before a fresh ride spawns
 local function clearPirates(zoneId)
@@ -181,8 +194,17 @@ local function clearPirates(zoneId)
     for _, mobId in ipairs(mobIdTable) do
         local mob = GetMobByID(mobId)
         if mob then
-            mob:setRespawnTime(0) -- Stop the waves / Cancel any pending respawn.
-            if mob:isSpawned() and not mob:isEngaged() then
+            local spawned = mob:isSpawned()
+            local engaged = false
+            if spawned then
+                engaged = mob:isEngaged()
+            end
+
+            local plan = xi.pirates.deckClearPlan(true, spawned, engaged)
+            if plan.disableRespawn then
+                mob:setRespawnTime(0) -- Stop the waves / Cancel any pending respawn.
+            end
+            if plan.despawn then
                 DespawnMob(mobId) -- Engaged mobs stay until killed, then won't return.
             end
         end
