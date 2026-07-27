@@ -77,6 +77,11 @@ xi.pirates.schedule = function()
     return piratesSchedule
 end
 
+-- Route-specific pirate start and standing positions in pirate order.
+xi.pirates.positions = function(zoneId)
+    return piratesData[zoneId] or {}
+end
+
 -- The middle pirate is the one that may wear a verm cloak.
 xi.pirates.vermCloakPirateIndex = 2
 
