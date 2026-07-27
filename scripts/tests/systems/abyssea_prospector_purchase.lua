@@ -132,4 +132,51 @@ describe('Abyssea cruor prospector purchase', function()
         npcUtil.giveTempItem = oldGiveTempItem
         assert(granted and not removed)
     end)
+
+    it('grants a key item and charges only after the grant succeeds', function()
+        local granted = nil
+        local removed = nil
+        local player = {
+            getCurrency = function() return 3500 end,
+            delCurrency = function(_, currency, amount) removed = { currency, amount } end,
+        }
+        local oldGiveKeyItem = npcUtil.giveKeyItem
+        npcUtil.giveKeyItem = function(_, keyItem)
+            granted = keyItem
+            return true
+        end
+
+        xi.abyssea.visionsCruorProspectorOnEventFinish(
+            player,
+            0,
+            xi.abyssea.itemType.KEYITEM + 65536,
+            { [xi.abyssea.itemType.KEYITEM] = { [1] = { xi.ki.MAP_OF_ABYSSEA_KONSCHTAT, 3500 } } }
+        )
+
+        npcUtil.giveKeyItem = oldGiveKeyItem
+        assert(granted == xi.ki.MAP_OF_ABYSSEA_KONSCHTAT)
+        assert(removed[1] == 'cruor' and removed[2] == 3500)
+    end)
+
+    it('does not charge a key item when the grant fails or cruor is insufficient', function()
+        local granted = false
+        local removed = false
+        local player = {
+            getCurrency = function() return 3499 end,
+            delCurrency = function() removed = true end,
+        }
+        local oldGiveKeyItem = npcUtil.giveKeyItem
+        npcUtil.giveKeyItem = function()
+            granted = true
+            return false
+        end
+        local offers = { [xi.abyssea.itemType.KEYITEM] = { [1] = { xi.ki.MAP_OF_ABYSSEA_KONSCHTAT, 3500 } } }
+
+        xi.abyssea.visionsCruorProspectorOnEventFinish(player, 0, xi.abyssea.itemType.KEYITEM + 65536, offers)
+        assert(not granted and not removed)
+        player.getCurrency = function() return 3500 end
+        xi.abyssea.visionsCruorProspectorOnEventFinish(player, 0, xi.abyssea.itemType.KEYITEM + 65536, offers)
+        npcUtil.giveKeyItem = oldGiveKeyItem
+        assert(granted and not removed)
+    end)
 end)
