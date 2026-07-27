@@ -51,6 +51,31 @@ describe('manaclipper event pure plan', function()
         return uses, false
     end
 
+    local function planTimekeeper(onboard, currentTime, eventId)
+        local schedule = onboard and {
+            { endTime = 10, route = 3 }, { endTime = 290, route = 0 },
+            { endTime = 520, route = 2 }, { endTime = 730, route = 3 },
+            { endTime = 1010, route = 1 }, { endTime = 1240, route = 2 },
+        } or {
+            { endTime = 10, act = 0, dest = 0 }, { endTime = 50, act = 1, dest = 0 },
+        }
+        local next = schedule[1]
+        for _, event in ipairs(schedule) do
+            if event.endTime > currentTime then
+                next = event
+                break
+            end
+        end
+        local gameMins = next.endTime - currentTime
+        if gameMins < 0 then gameMins = gameMins + 1440 end
+        local earthSecs = math.floor(gameMins * 60 / 25)
+        if onboard then
+            local id, earthMins = planChannelEvent(eventId, earthSecs)
+            return id, earthMins, math.floor(gameMins / 60), next.route
+        end
+        return eventId, earthSecs, next.act, 0, next.dest
+    end
+
     it('channel arriving shortly', function()
         local id, m = planChannelEvent(50, 120)
         assert(id == 50 and m == 2)
@@ -86,5 +111,14 @@ describe('manaclipper event pure plan', function()
         assert(stored == 13) -- Bibiki return preserves the Purgonorgo event.
         stored = 99
         assert((stored == 13 and 13 or 12) == 12) -- malformed value falls back.
+    end)
+
+    it('timekeeper dock and onboard event arguments', function()
+        local id, a, b, c, d = planTimekeeper(false, 20, 100)
+        assert(id == 100 and a == 72 and b == 1 and c == 0 and d == 0)
+        id, a, b, c = planTimekeeper(true, 300, 100)
+        assert(id == 100 and a == 8 and b == 3 and c == 2)
+        id, a, b, c = planTimekeeper(true, 1235, 100)
+        assert(id == 99 and a == 0 and b == 0 and c == 2)
     end)
 end)
