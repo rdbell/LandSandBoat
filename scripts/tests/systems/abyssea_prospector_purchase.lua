@@ -179,4 +179,53 @@ describe('Abyssea cruor prospector purchase', function()
         npcUtil.giveKeyItem = oldGiveKeyItem
         assert(granted and not removed)
     end)
+
+    it('applies affordable enhancement effects, HP, and cruor cost', function()
+        local effects = {}
+        local hp = nil
+        local removed = nil
+        local player = {
+            getCurrency = function() return 50 end,
+            addStatusEffect = function(_, effect, options) effects[#effects + 1] = { effect, options } end,
+            addHP = function(_, amount) hp = amount end,
+            delCurrency = function(_, currency, amount) removed = { currency, amount } end,
+        }
+        local oldGetAbyssiteTotal = xi.abyssea.getAbyssiteTotal
+        xi.abyssea.getAbyssiteTotal = function(_, abyssite)
+            return abyssite == xi.abyssea.abyssiteType.MERIT and 2 or 0
+        end
+
+        xi.abyssea.visionsCruorProspectorOnEventFinish(
+            player,
+            0,
+            xi.abyssea.itemType.ENHANCEMENT + 6 * 65536,
+            { [xi.abyssea.itemType.ENHANCEMENT] = {
+                [6] = { { { xi.effect.ABYSSEA_HP, xi.effect.MAX_HP_BOOST, 20, xi.abyssea.abyssiteType.MERIT, 10 } }, 50 },
+            } }
+        )
+
+        xi.abyssea.getAbyssiteTotal = oldGetAbyssiteTotal
+        assert(#effects == 1 and effects[1][1] == xi.effect.ABYSSEA_HP)
+        assert(effects[1][2].power == 40 and effects[1][2].icon == xi.effect.MAX_HP_BOOST)
+        assert(hp == 40 and removed[1] == 'cruor' and removed[2] == 50)
+    end)
+
+    it('does not apply or charge an unaffordable enhancement', function()
+        local applied = false
+        local removed = false
+        local player = {
+            getCurrency = function() return 49 end,
+            addStatusEffect = function() applied = true end,
+            delCurrency = function() removed = true end,
+        }
+        xi.abyssea.visionsCruorProspectorOnEventFinish(
+            player,
+            0,
+            xi.abyssea.itemType.ENHANCEMENT + 6 * 65536,
+            { [xi.abyssea.itemType.ENHANCEMENT] = {
+                [6] = { { { xi.effect.ABYSSEA_HP, xi.effect.MAX_HP_BOOST, 20, xi.abyssea.abyssiteType.MERIT, 10 } }, 50 },
+            } }
+        )
+        assert(not applied and not removed)
+    end)
 end)
