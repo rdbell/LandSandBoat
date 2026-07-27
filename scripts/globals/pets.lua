@@ -39,17 +39,22 @@ local astralOnlySpellIDs = set
     xi.magic.spell.ALEXANDER,
 }
 
+-- Summoning mob skills require an assigned pet that is not already spawned.
+xi.pet.mobSkillCheckResult = function(hasAssignedPet, hasSpawnedPet)
+    if not hasAssignedPet or hasSpawnedPet then
+        return 1
+    end
+
+    return 0
+end
+
 ---@param target CBaseEntity
 ---@param mob CBaseEntity
 ---@param skill CMobSkill
 ---@return number
 xi.pet.onMobSkillCheck = function(target, mob, skill)
     -- block mobskill if mob doesn't have an assigned pet or pet is currently spawned
-    if mob:getPet() == nil or mob:hasPet() then
-        return 1
-    end
-
-    return 0
+    return xi.pet.mobSkillCheckResult(mob:getPet() ~= nil, mob:hasPet())
 end
 
 ---@param caster CBaseEntity
