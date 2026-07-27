@@ -52,6 +52,22 @@ describe('Mob call pets spawn cap', function()
         assert(xi.mob.callPetMaxSpawns(nil, 3) == 3)
         assert(xi.mob.callPetMaxSpawns(1, 3) == 1)
     end)
+
+    it('selects existing unspawned pets in order up to the cap', function()
+        local ids = xi.mob.callPetSpawnIds({
+            { id = 500, exists = true,  spawned = true },
+            { id = 501, exists = false, spawned = false },
+            { id = 502, exists = true,  spawned = false },
+            { id = 503, exists = true,  spawned = false },
+        }, 1)
+        assert(#ids == 1 and ids[1] == 502)
+
+        ids = xi.mob.callPetSpawnIds({
+            { id = 502, exists = true, spawned = false },
+            { id = 503, exists = true, spawned = false },
+        }, 2)
+        assert(#ids == 2 and ids[1] == 502 and ids[2] == 503)
+    end)
 end)
 
 describe('Mob call pets action packet', function()

@@ -886,6 +886,19 @@ xi.mob.callPetMaxSpawns = function(maxSpawns, petCount)
     return maxSpawns or petCount
 end
 
+-- Selects the existing, unspawned pets in caller order, capped by maxSpawns.
+-- The callPets entity host supplies each candidate's lookup/spawn state.
+xi.mob.callPetSpawnIds = function(candidates, maxSpawns)
+    local selected = {}
+    for _, candidate in ipairs(candidates or {}) do
+        if #selected < (maxSpawns or #candidates) and candidate.exists and not candidate.spawned then
+            table.insert(selected, candidate.id)
+        end
+    end
+
+    return selected
+end
+
 xi.mob.callPets = function(mob, petIds, params)
     params = params or {}
     -- params table:
