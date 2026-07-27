@@ -2,8 +2,20 @@
 
 require('scripts/globals/mixins')
 
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.amphiptere = xi.mix.amphiptere or {}
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
+
+xi.mix.amphiptere.auraEndTime = function(now)
+    return now + 20
+end
+
+xi.mix.amphiptere.shouldContinueAura = function(now, auraEndTime)
+    return now < auraEndTime
+end
 
 g_mixins.families.amphiptere = function(amphiptereMob)
     amphiptereMob:addListener('SPAWN', 'AMPHIPTERE_SPAWN', function(mob)
@@ -29,7 +41,7 @@ g_mixins.families.amphiptere = function(amphiptereMob)
         if skill:getID() == xi.mobSkill.REAVING_WIND then
             mobArg:setAnimationSub(2)
             -- Zirnitra spams a knockback while aura is active
-            mobArg:setLocalVar('auraEndTime', GetSystemTime() + 20)
+            mobArg:setLocalVar('auraEndTime', xi.mix.amphiptere.auraEndTime(GetSystemTime()))
         end
     end)
 
@@ -37,7 +49,7 @@ g_mixins.families.amphiptere = function(amphiptereMob)
         if skillId == xi.mobSkill.REAVING_WIND then
             mobArg:useMobAbility(xi.mobSkill.REAVING_WIND_KNOCKBACK)
         elseif skillId == xi.mobSkill.REAVING_WIND_KNOCKBACK then
-            if GetSystemTime() >= mobArg:getLocalVar('auraEndTime') then
+            if not xi.mix.amphiptere.shouldContinueAura(GetSystemTime(), mobArg:getLocalVar('auraEndTime')) then
                 mobArg:setLocalVar('auraEndTime', 0)
                 mobArg:setAnimationSub(0)
             else
