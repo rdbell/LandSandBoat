@@ -81,6 +81,24 @@ describe('barge event pure plan', function()
         return eventId, 618, 652, 50, 300, multiUses, planTicketHasMask(hasSingle, hasMulti), 0, 0
     end
 
+    local function planTicketShopFinish(csid, option, multiUses, gil, hasTicket)
+        local tickets = {
+            [1] = { keyItem = 618, cost = 50 },
+            [2] = { keyItem = 652, cost = 300, charges = 10 },
+        }
+        local ticket = tickets[option]
+        if not ticket or not planTicketCsidOk(csid) then
+            return 'none'
+        end
+        if hasTicket and not (ticket.charges and multiUses < ticket.charges) then
+            return 'none'
+        end
+        if gil < ticket.cost then
+            return 'poor'
+        end
+        return 'buy', ticket.cost, ticket.keyItem, ticket.charges or 0, ticket.charges
+    end
+
     local function nextScheduleEvent(currentTime, schedule)
         if schedule[#schedule].endTime <= currentTime or schedule[1].endTime > currentTime then
             return schedule[1]
@@ -194,6 +212,20 @@ describe('barge event pure plan', function()
         id, ki1, ki2, cost1, cost2, uses, mask, zero1, zero2 = planTicketShopTrigger(43, 7, true, true)
         assert(id == 43 and ki1 == 618 and ki2 == 652 and cost1 == 50 and cost2 == 300)
         assert(uses == 7 and mask == 3 and zero1 == 0 and zero2 == 0)
+    end)
+
+    it('ticket shop finish outcomes', function()
+        local kind = planTicketShopFinish(1, 1, 0, 50, false)
+        assert(kind == 'none')
+        kind = planTicketShopFinish(31, 1, 0, 50, true)
+        assert(kind == 'none')
+        kind = planTicketShopFinish(32, 2, 4, 299, true)
+        assert(kind == 'poor')
+        local cost, keyItem, charges, setUses
+        kind, cost, keyItem, charges, setUses = planTicketShopFinish(43, 1, 0, 50, false)
+        assert(kind == 'buy' and cost == 50 and keyItem == 618 and charges == 0 and setUses == nil)
+        kind, cost, keyItem, charges, setUses = planTicketShopFinish(31, 2, 7, 300, true)
+        assert(kind == 'buy' and cost == 300 and keyItem == 652 and charges == 10 and setUses == 10)
     end)
 
     it('channel route and landing fallback pins', function()
