@@ -49,6 +49,13 @@ describe('Avatar pet spawn effects', function()
     end)
 end)
 
+describe('Nyzul pet-spawn Pathos', function()
+    it('requests Pathos only in Nyzul Isle', function()
+        assert(xi.pet.shouldAddNyzulPetSpawnPathos(xi.zone.NYZUL_ISLE))
+        assert(not xi.pet.shouldAddNyzulPetSpawnPathos(xi.zone.NYZUL_ISLE - 1))
+    end)
+end)
+
 describe('Pet mob-skill admission', function()
     it('blocks summoning when no pet is assigned or a pet is already spawned', function()
         assert(xi.pet.mobSkillCheckResult(false, false) == 1)

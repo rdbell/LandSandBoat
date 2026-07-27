@@ -83,6 +83,11 @@ xi.pet.avatarSpawnPlan = function(isAvatar, hasFavor, petID, hasTarget, hasSpawn
     return plan
 end
 
+-- Pure spawnPet admission for the Nyzul Isle Pathos host.
+xi.pet.shouldAddNyzulPetSpawnPathos = function(zoneID)
+    return zoneID == xi.zone.NYZUL_ISLE
+end
+
 -- Summoning mob skills require an assigned pet that is not already spawned.
 xi.pet.mobSkillCheckResult = function(hasAssignedPet, hasSpawnedPet)
     if not hasAssignedPet or hasSpawnedPet then
@@ -243,7 +248,7 @@ xi.pet.spawnPet = function(caster, petID, state, target)
     end
 
     -- Nyzul Isle has Pathos set randomly on floors and is recorded as bits in a localvar of the instance
-    if caster:getZoneID() == xi.zone.NYZUL_ISLE then
+    if xi.pet.shouldAddNyzulPetSpawnPathos(caster:getZoneID()) then
         xi.nyzul.addPetSpawnPathos(caster)
     end
 end
