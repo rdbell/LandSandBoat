@@ -26,6 +26,7 @@
 #include "latent_hp_selection.h"
 #include "latent_job_level_selection.h"
 #include "latent_mp_selection.h"
+#include "latent_party_job_selection.h"
 #include "latent_party_member_plan.h"
 #include "latent_roll_song_selection.h"
 #include "latent_status_selection.h"
@@ -455,7 +456,7 @@ void CLatentEffectContainer::CheckLatentsPartyJobs()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            if (latentEffect.GetConditionsID() == xi::Latent::JobInParty)
+            if (latenthelpers::ShouldProcessPartyJobLatent(latentEffect.GetConditionsID()))
             {
                 return ProcessLatentEffect(latentEffect);
             }
