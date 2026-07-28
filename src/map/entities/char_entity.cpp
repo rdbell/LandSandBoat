@@ -20,6 +20,7 @@
 */
 
 #include "char_entity.h"
+#include "level_sync_departure.h"
 
 #include "can_attack_capacity.h"
 #include "char_action_boundary_capacity.h"
@@ -378,30 +379,36 @@ CCharEntity::~CCharEntity()
         charutils::SaveDeathTime(this);
     }
 
-    if (m_LevelRestriction != 0)
+    uint8 sameZonePeerCount = 0;
+    if (m_LevelRestriction != 0 && PParty && PParty->GetSyncTarget())
     {
-        if (PParty)
+        for (uint32 i = 0; i < PParty->members.size(); ++i)
         {
-            if (PParty->GetSyncTarget() == this || PParty->GetLeader() == this)
+            if (PParty->members.at(i) != this && PParty->members.at(i)->getZone() == PParty->GetSyncTarget()->getZone())
             {
-                PParty->SetSyncTarget("", MsgStd::LevelSyncDeactivateLeftArea);
-            }
-            if (PParty->GetSyncTarget() != nullptr)
-            {
-                uint8 count = 0;
-                for (uint32 i = 0; i < PParty->members.size(); ++i)
-                {
-                    if (PParty->members.at(i) != this && PParty->members.at(i)->getZone() == PParty->GetSyncTarget()->getZone())
-                    {
-                        count++;
-                    }
-                }
-                if (count < 2) // 3, because one is zoning out - thus at least 2 will be left
-                {
-                    PParty->SetSyncTarget("", MsgStd::LevelSyncRemoveTooFewMembers);
-                }
+                sameZonePeerCount++;
             }
         }
+    }
+    const auto plan = partyhelpers::PlanLevelSyncDeparture(
+        m_LevelRestriction != 0,
+        PParty != nullptr,
+        PParty && (PParty->GetSyncTarget() == this || PParty->GetLeader() == this),
+        PParty && PParty->GetSyncTarget() != nullptr,
+        sameZonePeerCount);
+    switch (plan.action)
+    {
+        case partyhelpers::LevelSyncDepartureAction::DeactivateLeftArea:
+            PParty->SetSyncTarget("", MsgStd::LevelSyncDeactivateLeftArea);
+            break;
+        case partyhelpers::LevelSyncDepartureAction::RemoveTooFewMembers:
+            PParty->SetSyncTarget("", MsgStd::LevelSyncRemoveTooFewMembers);
+            break;
+        case partyhelpers::LevelSyncDepartureAction::None:
+            break;
+    }
+    if (plan.clearDepartingEffects)
+    {
         StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::LevelSync);
         StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::LevelRestriction);
     }

@@ -33,6 +33,7 @@ constexpr std::uint16_t WeatherCycle = 2160;
 // Each of these zones has special behavior
 
 #include "zone.h"
+#include "level_sync_departure.h"
 #include "zone_in_battlefield.h"
 
 #include "trigger_area_dispatch.h"
@@ -1208,30 +1209,36 @@ void CZone::CharZoneOut(CCharEntity* PChar)
     moduleutils::OnCharZoneOut(PChar);
     luautils::OnZoneOut(PChar);
 
-    if (PChar->m_LevelRestriction != 0)
+    uint8 sameZonePeerCount = 0;
+    if (PChar->m_LevelRestriction != 0 && PChar->PParty && PChar->PParty->GetSyncTarget())
     {
-        if (PChar->PParty)
+        for (uint32 i = 0; i < PChar->PParty->members.size(); ++i)
         {
-            if (PChar->PParty->GetSyncTarget() == PChar || PChar->PParty->GetLeader() == PChar)
+            if (PChar->PParty->members.at(i) != PChar && PChar->PParty->members.at(i)->getZone() == PChar->PParty->GetSyncTarget()->getZone())
             {
-                PChar->PParty->SetSyncTarget("", MsgStd::LevelSyncDeactivateLeftArea);
-            }
-            if (PChar->PParty->GetSyncTarget() != nullptr)
-            {
-                uint8 count = 0;
-                for (uint32 i = 0; i < PChar->PParty->members.size(); ++i)
-                {
-                    if (PChar->PParty->members.at(i) != PChar && PChar->PParty->members.at(i)->getZone() == PChar->PParty->GetSyncTarget()->getZone())
-                    {
-                        count++;
-                    }
-                }
-                if (count < 2) // 3, because one is zoning out - thus at least 2 will be left
-                {
-                    PChar->PParty->SetSyncTarget("", MsgStd::LevelSyncRemoveTooFewMembers);
-                }
+                sameZonePeerCount++;
             }
         }
+    }
+    const auto plan = partyhelpers::PlanLevelSyncDeparture(
+        PChar->m_LevelRestriction != 0,
+        PChar->PParty != nullptr,
+        PChar->PParty && (PChar->PParty->GetSyncTarget() == PChar || PChar->PParty->GetLeader() == PChar),
+        PChar->PParty && PChar->PParty->GetSyncTarget() != nullptr,
+        sameZonePeerCount);
+    switch (plan.action)
+    {
+        case partyhelpers::LevelSyncDepartureAction::DeactivateLeftArea:
+            PChar->PParty->SetSyncTarget("", MsgStd::LevelSyncDeactivateLeftArea);
+            break;
+        case partyhelpers::LevelSyncDepartureAction::RemoveTooFewMembers:
+            PChar->PParty->SetSyncTarget("", MsgStd::LevelSyncRemoveTooFewMembers);
+            break;
+        case partyhelpers::LevelSyncDepartureAction::None:
+            break;
+    }
+    if (plan.clearDepartingEffects)
+    {
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::LevelSync);
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::LevelRestriction);
     }
