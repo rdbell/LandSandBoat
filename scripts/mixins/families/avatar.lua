@@ -30,6 +30,38 @@ local randomAvatarOptions =
     xi.petId.RAMUH,
 }
 
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.avatar = xi.mix.avatar or {}
+
+xi.mix.avatar.astralDelay = function(astralDelayMs)
+    return astralDelayMs > 0 and astralDelayMs or 0
+end
+
+xi.mix.avatar.spawnPlan = function(petId, randomPetId, astralDelayMs)
+    if petId == 0 then
+        petId = randomPetId
+    end
+
+    for modelId, ability in pairs(abilityData) do
+        if ability.petId == petId then
+            local delay = xi.mix.avatar.astralDelay(astralDelayMs)
+            return { modelId = modelId, astralDelayMs = delay, cleanupDelayMs = delay + 5000 }
+        end
+    end
+
+    return nil
+end
+
+xi.mix.avatar.engagePlan = function(modelId, astralDelayMs)
+    local abilityId = abilityData[modelId] and abilityData[modelId].abilityId or 0
+    if abilityId > 0 then
+        return { abilityId = abilityId, astralDelayMs = xi.mix.avatar.astralDelay(astralDelayMs) }
+    end
+
+    return nil
+end
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
@@ -37,27 +69,20 @@ g_mixins.families.avatar = function(avatarMob)
     avatarMob:addListener('SPAWN', 'AVATAR_SPAWN', function(mob)
         mob:removeListener('AVATAR_MOBSKILL_FINISHED')
 
-        local modelId = 0
         local petId   = mob:getMobMod(xi.mobMod.AVATAR_PETID)
         if petId == 0 then
             -- choose a random petId since it's not specified by the avatar mob
             petId = utils.randomEntry(randomAvatarOptions)
         end
 
-        for mId, ability in pairs(abilityData) do
-            if ability.petId == petId then
-                modelId = mId
-                break
-            end
-        end
-
-        if modelId == 0 then
+        local plan = xi.mix.avatar.spawnPlan(petId, petId, mob:getMobMod(xi.mobMod.AVATAR_ASTRAL_DELAY))
+        if not plan then
             -- if AVATAR_PETID is set and doesn't map to an ability, exit and don't install listeners
             -- this is used for pets that can either use AF or be regular pets (like Pandemonium Lamps)
             return
         end
 
-        mob:setModelId(modelId)
+        mob:setModelId(plan.modelId)
         mob:hideName(false)
         mob:setUntargetable(true)
         mob:setUnkillable(true)
@@ -81,8 +106,7 @@ g_mixins.families.avatar = function(avatarMob)
         end)
 
         -- If something goes wrong, the avatar will clean itself up 5s after astralDelayMs
-        local astralDelayMs = mob:getMobMod(xi.mobMod.AVATAR_ASTRAL_DELAY) > 0 and mob:getMobMod(xi.mobMod.AVATAR_ASTRAL_DELAY) or 0
-        mob:timer(astralDelayMs + 5000, function(mobArg)
+        mob:timer(plan.cleanupDelayMs, function(mobArg)
             if mobArg:isAlive() then
                 mobArg:setUnkillable(false)
                 mobArg:setHP(0)
@@ -91,14 +115,12 @@ g_mixins.families.avatar = function(avatarMob)
     end)
 
     avatarMob:addListener('ENGAGE', 'AVATAR_ENGAGE', function(mob, target)
-        local modelId       = mob:getModelId()
-        local abilityId     = abilityData[modelId] and abilityData[modelId].abilityId or 0 -- Use AF ability AVATAR_ASTRAL_DELAY milliseconds after spawn/engage (engaged immediately in astral_flow.lua)
-        local astralDelayMs = mob:getMobMod(xi.mobMod.AVATAR_ASTRAL_DELAY) > 0 and mob:getMobMod(xi.mobMod.AVATAR_ASTRAL_DELAY) or 0
+        local plan = xi.mix.avatar.engagePlan(mob:getModelId(), mob:getMobMod(xi.mobMod.AVATAR_ASTRAL_DELAY))
 
-        if abilityId > 0 then
-            mob:timer(astralDelayMs, function(mobArg)
+        if plan then
+            mob:timer(plan.astralDelayMs, function(mobArg)
                 if mobArg:isAlive() then
-                    mobArg:useMobAbility(abilityId, target)
+                    mobArg:useMobAbility(plan.abilityId, target)
                 end
             end)
         end
