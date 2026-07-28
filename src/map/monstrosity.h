@@ -29,6 +29,9 @@
 #include "packets/c2s/0x01a_action.h"
 
 #include <array>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 struct mon_data_t;
 class CCharEntity;
@@ -69,6 +72,19 @@ public:
     uint8      EntryMainJob;
     uint8      EntrySubJob;
 };
+
+struct SpeciesCatalogRow
+{
+    uint8       monstrosityId{};
+    uint16      monstrositySpeciesCode{};
+    std::string name{};
+    JOBTYPE     mjob{};
+    JOBTYPE     sjob{};
+    uint8       size{};
+    uint16      look{};
+};
+
+using SpeciesCatalog = std::unordered_map<uint16, SpeciesCatalogRow>;
 
 struct DeathMenuPlan
 {
@@ -199,6 +215,7 @@ struct MonstrosityDataWritePlan
 };
 
 void LoadStaticData();
+void ApplySpeciesCatalogRows(SpeciesCatalog& catalog, const std::vector<SpeciesCatalogRow>& rows);
 
 void ReadMonstrosityData(CCharEntity* PChar);
 void WriteMonstrosityData(CCharEntity* PChar);

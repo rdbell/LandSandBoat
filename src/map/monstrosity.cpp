@@ -50,17 +50,6 @@
 #include "status_effect.h"
 #include "status_effect_container.h"
 
-struct MonstrositySpeciesRow
-{
-    uint8       monstrosityId{};
-    uint16      monstrositySpeciesCode{};
-    std::string name{};
-    JOBTYPE     mjob{};
-    JOBTYPE     sjob{};
-    uint8       size{};
-    uint16      look{};
-};
-
 struct MonstrosityInstinctRow
 {
     uint16                 monstrosityInstinctId{};
@@ -72,7 +61,7 @@ struct MonstrosityInstinctRow
 namespace
 {
 
-std::unordered_map<uint16, MonstrositySpeciesRow>  gMonstrositySpeciesMap{};
+monstrosity::SpeciesCatalog                         gMonstrositySpeciesMap{};
 std::unordered_map<uint16, MonstrosityInstinctRow> gMonstrosityInstinctMap{};
 
 } // namespace
@@ -108,10 +97,11 @@ void monstrosity::LoadStaticData()
         const auto rset = db::preparedStmt("SELECT monstrosity_id, monstrosity_species_code, name, mjob, sjob, size, look FROM monstrosity_species");
         if (rset && rset->rowsCount())
         {
+            auto rows = std::vector<SpeciesCatalogRow>{};
             while (rset->next())
             {
                 const auto monstrositySpeciesCode              = rset->get<uint16>("monstrosity_species_code");
-                gMonstrositySpeciesMap[monstrositySpeciesCode] = MonstrositySpeciesRow{
+                rows.emplace_back(SpeciesCatalogRow{
                     .monstrosityId          = rset->get<uint8>("monstrosity_id"),
                     .monstrositySpeciesCode = monstrositySpeciesCode,
                     .name                   = rset->get<std::string>("name"),
@@ -119,8 +109,9 @@ void monstrosity::LoadStaticData()
                     .sjob                   = rset->get<JOBTYPE>("sjob"),
                     .size                   = rset->get<uint8>("size"),
                     .look                   = rset->get<uint16>("look"),
-                };
+                });
             }
+            ApplySpeciesCatalogRows(gMonstrositySpeciesMap, rows);
         }
     }
 
@@ -152,6 +143,14 @@ void monstrosity::LoadStaticData()
                 entry.mods.emplace_back(mod, val);
             }
         }
+    }
+}
+
+void monstrosity::ApplySpeciesCatalogRows(SpeciesCatalog& catalog, const std::vector<SpeciesCatalogRow>& rows)
+{
+    for (const auto& row : rows)
+    {
+        catalog[row.monstrositySpeciesCode] = row;
     }
 }
 

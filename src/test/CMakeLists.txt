@@ -2418,6 +2418,8 @@ set(SOURCES
     test_monstrosity_stored_data_7490.cpp
     test_monstrosity_stored_data_write_7491.h
     test_monstrosity_stored_data_write_7491.cpp
+    test_monstrosity_species_catalog_7492.h
+    test_monstrosity_species_catalog_7492.cpp
     test_s2c_miscdata_status_icons_packet.h
     test_s2c_miscdata_status_icons_packet.cpp
     test_s2c_miscdata_unknown_packet.h
