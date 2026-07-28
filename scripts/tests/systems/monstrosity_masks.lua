@@ -677,3 +677,32 @@ describe('Level-based instinct update', function()
         assert(instincts[3] == 0x5A)
     end)
 end)
+
+describe('Monstrosity unlock-all data', function()
+    it('unlocks every source species, purchasable instinct, and variant without clearing other data', function()
+        local data = {
+            levels = { [14] = 47 },
+            instincts = { [0] = 0x01, [63] = 0x01 },
+            variants = { [31] = 0x01 },
+        }
+
+        xi.monstrosity.applyUnlockAllData(data)
+
+        for _, species in pairs(xi.monstrosity.species) do
+            assert(data.levels[species] == 99)
+        end
+        assert(data.levels[14] == 47)
+
+        assert(data.instincts[0] == 0xFD and data.instincts[63] == 0xF1)
+        for byteOffset = 20, 23 do
+            assert(data.instincts[byteOffset] == 0xFF)
+        end
+
+        for _, variant in pairs(xi.monstrosity.variants) do
+            local byteOffset = math.floor(variant / 8)
+            local shiftAmount = variant % 8
+            assert(bit.band(data.variants[byteOffset], bit.lshift(0x01, shiftAmount)) ~= 0)
+        end
+        assert(data.variants[31] == 0xF1)
+    end)
+end)
