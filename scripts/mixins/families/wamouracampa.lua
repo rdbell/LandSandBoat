@@ -4,6 +4,46 @@
 -----------------------------------
 require('scripts/globals/mixins')
 -----------------------------------
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.wamouracampa = xi.mix.wamouracampa or {}
+
+xi.mix.wamouracampa.canUseEclosion = function(mobId, wamouraOffsets)
+    for _, wamouraId in pairs(wamouraOffsets) do
+        if mobId + 1 == wamouraId then
+            return true
+        end
+    end
+    return false
+end
+
+xi.mix.wamouracampa.resetPlan = function(now, delay, hp, maxHP)
+    return { formTimeEngaged = now + delay, hitPoints = hp - math.floor(maxHP * 20 / 100) }
+end
+
+xi.mix.wamouracampa.shouldStretch = function(animationSub, now, formTimeEngaged, formTimeRoam, hitPoints, hp)
+    return animationSub == 5 and now > formTimeEngaged and now > formTimeRoam and hitPoints < hp
+end
+
+xi.mix.wamouracampa.shouldCurl = function(now, formTimeEngaged, amount, maxHP, hitPoints, hp)
+    return now > formTimeEngaged and (amount > math.floor(maxHP * 5 / 100) or hitPoints > hp)
+end
+
+xi.mix.wamouracampa.roamAction = function(animationSub, now, formTimeRoam)
+    if now > formTimeRoam then
+        if animationSub == 4 then
+            return 'curl'
+        elseif animationSub == 5 then
+            return 'stretch'
+        end
+    end
+    return nil
+end
+
+xi.mix.wamouracampa.shouldEclose = function(eclosionTime, now)
+    return eclosionTime ~= 0 and now >= eclosionTime
+end
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
@@ -43,8 +83,9 @@ local function strechUpEngaged(mob)
 end
 
 local function resetCount(mob)
-    mob:setLocalVar('formTimeEngaged', GetSystemTime() + math.random(40, 50))
-    mob:setLocalVar('hitPoints',  mob:getHP() - math.floor(mob:getMaxHP() * 20 / 100))
+    local plan = xi.mix.wamouracampa.resetPlan(GetSystemTime(), math.random(40, 50), mob:getHP(), mob:getMaxHP())
+    mob:setLocalVar('formTimeEngaged', plan.formTimeEngaged)
+    mob:setLocalVar('hitPoints', plan.hitPoints)
 end
 
 g_mixins.families.wamouracampa = function(wamouracampaMob)
@@ -52,13 +93,7 @@ g_mixins.families.wamouracampa = function(wamouracampaMob)
     -- Any wamouracampa that is followed by a Wamoura means that it can evolve into it via eclosion.
     local ID = zones[wamouracampaMob:getZoneID()]
 
-    local canUseEclosion = false
-    local eclosionID = wamouracampaMob:getID() + 1
-    for _, wamouraID in pairs(ID.mob.WAMOURA_OFFSET) do
-        if eclosionID == wamouraID then
-            canUseEclosion = true
-        end
-    end
+    local canUseEclosion = xi.mix.wamouracampa.canUseEclosion(wamouracampaMob:getID(), ID.mob.WAMOURA_OFFSET)
 
     -- Set spawn.
     wamouracampaMob:addListener('SPAWN', 'WAMOURACAMPA_SPAWN', function(mob)
@@ -76,17 +111,16 @@ g_mixins.families.wamouracampa = function(wamouracampaMob)
 
     -- Handle regular changes on roam.
     wamouracampaMob:addListener('ROAM_TICK', 'WAMOURACAMPA_ROAM', function(mob)
-        if GetSystemTime() - mob:getLocalVar('formTimeRoam') > 0 then
-            if mob:getAnimationSub() == 4 then
-                curlUpRoaming(mob)
-            elseif mob:getAnimationSub() == 5 then
-                strechUpRoaming(mob)
-            end
+        local action = xi.mix.wamouracampa.roamAction(mob:getAnimationSub(), GetSystemTime(), mob:getLocalVar('formTimeRoam'))
+        if action == 'curl' then
+            curlUpRoaming(mob)
+        elseif action == 'stretch' then
+            strechUpRoaming(mob)
         end
 
         if canUseEclosion then
             local eclosionTime = mob:getLocalVar('eclosionTime')
-            if eclosionTime ~= 0 and GetSystemTime() >= eclosionTime then
+            if xi.mix.wamouracampa.shouldEclose(eclosionTime, GetSystemTime()) then
                 mob:useMobAbility(xi.mobSkill.ECLOSION, mob)
             end
         end
@@ -111,12 +145,7 @@ g_mixins.families.wamouracampa = function(wamouracampaMob)
 
     -- Handle streching from curl.
     wamouracampaMob:addListener('COMBAT_TICK', 'WAMOURACAMPA_COMBAT', function(mob)
-        if
-            mob:getAnimationSub() == 5 and
-            GetSystemTime() - mob:getLocalVar('formTimeEngaged') > 0 and -- IF safety timer is over
-            GetSystemTime() - mob:getLocalVar('formTimeRoam') > 0 and    -- Additional check in case its already curled.
-            mob:getLocalVar('hitPoints') < mob:getHP()
-        then
+        if xi.mix.wamouracampa.shouldStretch(mob:getAnimationSub(), GetSystemTime(), mob:getLocalVar('formTimeEngaged'), mob:getLocalVar('formTimeRoam'), mob:getLocalVar('hitPoints'), mob:getHP()) then
             strechUpEngaged(mob)
             resetCount(mob)
         end
@@ -124,11 +153,7 @@ g_mixins.families.wamouracampa = function(wamouracampaMob)
 
     -- Handle curling from being streched or remaining curled.
     wamouracampaMob:addListener('TAKE_DAMAGE', 'WAMOURACAMPA_TAKE_DAMAGE', function(mob, amount, attacker, attackType, damageType)
-        if
-            GetSystemTime() - mob:getLocalVar('formTimeEngaged') > 0 and
-            (amount > math.floor(mob:getMaxHP() * 5 / 100) or
-            mob:getLocalVar('hitPoints') > mob:getHP())
-        then
+        if xi.mix.wamouracampa.shouldCurl(GetSystemTime(), mob:getLocalVar('formTimeEngaged'), amount, mob:getMaxHP(), mob:getLocalVar('hitPoints'), mob:getHP()) then
             if mob:getAnimationSub() == 4 then
                 curlUpEngaged(mob)
             end
