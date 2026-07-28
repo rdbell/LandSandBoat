@@ -1108,6 +1108,24 @@ xi.monstrosity.purchasePageMask = function(offers, speciesLevel, hasUnlockedVari
     return pageMask
 end
 
+-- Plans a Terynon MON purchase after the host has decoded a valid offer and
+-- read the player's infamy. A species unlock takes precedence over a variant,
+-- matching the event-finish branch.
+xi.monstrosity.monPurchasePlan = function(monData, infamy)
+    if infamy < monData.infamyCost then
+        return { deny = true }
+    end
+
+    local plan = { cost = monData.infamyCost }
+    if monData.monSpecies then
+        plan.unlockSpecies = monData.monSpecies
+    elseif monData.monVariant then
+        plan.unlockVariant = monData.monVariant
+    end
+
+    return plan
+end
+
 local function getMonPageMask(player, monCategory)
     return xi.monstrosity.purchasePageMask(
         terynonMonData[monCategory],
@@ -1472,13 +1490,14 @@ xi.monstrosity.teyrnonOnEventFinish = function(player, csid, option, npc)
             return
         end
 
-        if player:getCurrency('infamy') >= monData.infamyCost then
-            player:delCurrency('infamy', monData.infamyCost)
+        local plan = xi.monstrosity.monPurchasePlan(monData, player:getCurrency('infamy'))
+        if not plan.deny then
+            player:delCurrency('infamy', plan.cost)
 
-            if monData.monSpecies then
-                xi.monstrosity.unlockSpecies(player, monData.monSpecies)
-            elseif monData.monVariant then
-                xi.monstrosity.unlockVariant(player, monData.monVariant)
+            if plan.unlockSpecies then
+                xi.monstrosity.unlockSpecies(player, plan.unlockSpecies)
+            elseif plan.unlockVariant then
+                xi.monstrosity.unlockVariant(player, plan.unlockVariant)
             end
 
             player:messageSpecial(zones[xi.zone.FERETORY].text.MAY_POSSESS_BEASTS + 3 * selectedCategory, 0, selectedMon)

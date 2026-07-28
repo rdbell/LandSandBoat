@@ -190,3 +190,22 @@ describe('Terynon MON purchase page mask', function()
         assert(xi.monstrosity.purchasePageMask(offers, speciesLevel({ [5] = 1 }), function() return false end) == 0)
     end)
 end)
+
+describe('Terynon MON purchase disposition', function()
+    it('charges the exact offer cost and unlocks a species at the cost boundary', function()
+        local plan = xi.monstrosity.monPurchasePlan({ infamyCost = 500, monSpecies = 5 }, 500)
+        assert(plan.cost == 500 and plan.unlockSpecies == 5 and plan.unlockVariant == nil)
+    end)
+
+    it('denies an insufficient-infamy purchase', function()
+        assert(xi.monstrosity.monPurchasePlan({ infamyCost = 500, monSpecies = 5 }, 499).deny)
+    end)
+
+    it('unlocks a variant when no species is present and preserves species precedence', function()
+        local variant = xi.monstrosity.monPurchasePlan({ infamyCost = 750, monVariant = 9 }, 1000)
+        assert(variant.cost == 750 and variant.unlockVariant == 9 and variant.unlockSpecies == nil)
+
+        local both = xi.monstrosity.monPurchasePlan({ infamyCost = 1, monSpecies = 5, monVariant = 9 }, 1)
+        assert(both.unlockSpecies == 5 and both.unlockVariant == nil)
+    end)
+end)
