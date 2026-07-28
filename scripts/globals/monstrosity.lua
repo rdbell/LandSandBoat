@@ -1145,6 +1145,26 @@ xi.monstrosity.instinctPurchasePlan = function(selectedInstinct, checkValue, lim
     return { cost = price, purchaseInstinct = selectedInstinct }
 end
 
+xi.monstrosity.protectPlan = function(mainLevel, enhancedReceived)
+    local power, tier = 220, 5
+    if mainLevel < 27 then power, tier = 20, 1
+    elseif mainLevel < 47 then power, tier = 50, 2
+    elseif mainLevel < 63 then power, tier = 90, 3
+    elseif mainLevel < 76 then power, tier = 140, 4 end
+    if enhancedReceived then power = power + 2 * tier end
+    return { power = power, tier = tier, duration = 1800 }
+end
+
+xi.monstrosity.shellPlan = function(mainLevel, enhancedReceived)
+    local power, tier = 2930, 5
+    if mainLevel < 37 then power, tier = 1055, 1
+    elseif mainLevel < 57 then power, tier = 1641, 2
+    elseif mainLevel < 68 then power, tier = 2188, 3
+    elseif mainLevel < 76 then power, tier = 2617, 4 end
+    if enhancedReceived then power = power + 39 * tier end
+    return { power = power, tier = tier, duration = 1800 }
+end
+
 local function getMonPageMask(player, monCategory)
     return xi.monstrosity.purchasePageMask(
         terynonMonData[monCategory],
@@ -1623,32 +1643,11 @@ xi.monstrosity.teyrnonOnEventFinish = function(player, csid, option, npc)
                     return
                 end
 
-                local mLvl  = player:getMainLvl()
-                local power = 220
-                local tier  = 5
-
-                if mLvl < 27 then
-                    power = 20
-                    tier = 1
-                elseif mLvl < 47 then
-                    power = 50
-                    tier = 2
-                elseif mLvl < 63 then
-                    power = 90
-                    tier = 3
-                elseif mLvl < 76 then
-                    power = 140
-                    tier = 4
-                end
-
-                local bonus = 0
-                if player:getMod(xi.mod.ENHANCES_PROT_SHELL_RCVD) > 0 then
-                    bonus = 2 -- 2x Tier from MOD
-                end
-
-                power = power + (bonus * tier)
+                local plan = xi.monstrosity.protectPlan(
+                    player:getMainLvl(),
+                    player:getMod(xi.mod.ENHANCES_PROT_SHELL_RCVD) > 0)
                 player:delStatusEffectSilent(xi.effect.PROTECT)
-                player:addStatusEffect(xi.effect.PROTECT, { power = power, duration = 1800, origin = player, tier = tier })
+                player:addStatusEffect(xi.effect.PROTECT, { power = plan.power, duration = plan.duration, origin = player, tier = plan.tier })
             end,
 
             -- 5: Shell
@@ -1657,34 +1656,11 @@ xi.monstrosity.teyrnonOnEventFinish = function(player, csid, option, npc)
                     return
                 end
 
-                local mLvl  = player:getMainLvl()
-
-                -- Shell V (75/256)
-                local power = 2930
-                local tier  = 5
-
-                if mLvl < 37 then
-                    power = 1055 -- Shell I   (27/256)
-                    tier = 1
-                elseif mLvl < 57 then
-                    power = 1641 -- Shell II  (42/256)
-                    tier = 2
-                elseif mLvl < 68 then
-                    power = 2188 -- Shell III (56/256)
-                    tier = 3
-                elseif mLvl < 76 then
-                    power = 2617 -- Shell IV  (67/256)
-                    tier = 4
-                end
-
-                local bonus = 0
-                if player:getMod(xi.mod.ENHANCES_PROT_SHELL_RCVD) > 0 then
-                    bonus = 39   -- (1/256 bonus buff per tier of spell)
-                end
-
-                power = power + (bonus * tier)
+                local plan = xi.monstrosity.shellPlan(
+                    player:getMainLvl(),
+                    player:getMod(xi.mod.ENHANCES_PROT_SHELL_RCVD) > 0)
                 player:delStatusEffectSilent(xi.effect.SHELL)
-                player:addStatusEffect(xi.effect.SHELL, { power = power, duration = 1800, origin = player, tier = tier })
+                player:addStatusEffect(xi.effect.SHELL, { power = plan.power, duration = plan.duration, origin = player, tier = plan.tier })
             end,
 
             -- 6: Haste
