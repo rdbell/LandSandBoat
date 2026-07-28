@@ -502,6 +502,39 @@ monstrosity::DescriptorUpdatePlan monstrosity::PlanDescriptorUpdate(const bool s
     return plan;
 }
 
+monstrosity::InstinctSlotUpdatePlan monstrosity::PlanInstinctSlotUpdate(const uint16 requestedInstinct, const bool hasCatalogEntry, const bool isUnlocked, const bool rejectLoadout)
+{
+    auto plan = InstinctSlotUpdatePlan{};
+    if (requestedInstinct == 0)
+    {
+        return plan;
+    }
+
+    if (requestedInstinct == 0xFFFF)
+    {
+        plan.setRequestedInstinct    = true;
+        plan.removePreviousModifiers = true;
+        return plan;
+    }
+
+    if (!hasCatalogEntry)
+    {
+        return plan;
+    }
+
+    if (!isUnlocked)
+    {
+        plan.abortHandler = true;
+        return plan;
+    }
+
+    plan.setRequestedInstinct   = true;
+    plan.requestedInstinct      = requestedInstinct;
+    plan.restorePreviousLoadout = rejectLoadout;
+    plan.addRequestedModifiers = !rejectLoadout;
+    return plan;
+}
+
 void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& data)
 {
     // There used to be more checks here, but they've been moved to the packet handler.
@@ -582,45 +615,63 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
 
         for (std::size_t idx = 0; idx < InstinctSlotCount; ++idx)
         {
-            if (data.Slots[idx] != 0)
+            const auto requestedInstinct = data.Slots[idx];
+            if (requestedInstinct == 0)
             {
-                if (data.Slots[idx] == 0xFFFF) // Entry equals 0xFFFF if it's being removed
-                {
-                    PChar->m_PMonstrosity->EquippedInstincts[idx] = 0x0000;
+                continue;
+            }
 
+            if (requestedInstinct == 0xFFFF) // Entry equals 0xFFFF if it's being removed
+            {
+                const auto plan = PlanInstinctSlotUpdate(requestedInstinct, false, false, false);
+                if (plan.setRequestedInstinct)
+                {
+                    PChar->m_PMonstrosity->EquippedInstincts[idx] = plan.requestedInstinct;
+                }
+
+                if (plan.removePreviousModifiers)
+                {
                     for (const auto& mod : gMonstrosityInstinctMap[previousEquipped[idx]].mods)
                     {
                         PChar->delModifier(mod.getModID(), mod.getModAmount());
                     }
                 }
-                else
+                continue;
+            }
+
+            const auto maybeInstinct = gMonstrosityInstinctMap.find(requestedInstinct);
+            const auto hasCatalogEntry = maybeInstinct != gMonstrosityInstinctMap.end();
+            const auto isUnlocked = hasCatalogEntry && IsInstinctUnlocked(PChar, requestedInstinct);
+            auto       rejectLoadout = false;
+            if (isUnlocked)
+            {
+                auto proposedEquipped = PChar->m_PMonstrosity->EquippedInstincts;
+                proposedEquipped[idx] = requestedInstinct;
+                const auto totalCost = TotalInstinctCost(resolveInstinctCosts(proposedEquipped));
+                rejectLoadout = ShouldRejectInstinctLoadout(totalCost, maxPoints, HasDuplicateInstincts(proposedEquipped));
+            }
+
+            const auto plan = PlanInstinctSlotUpdate(requestedInstinct, hasCatalogEntry, isUnlocked, rejectLoadout);
+            if (plan.abortHandler)
+            {
+                return;
+            }
+            if (!plan.setRequestedInstinct)
+            {
+                continue;
+            }
+
+            PChar->m_PMonstrosity->EquippedInstincts[idx] = plan.requestedInstinct;
+            if (plan.restorePreviousLoadout)
+            {
+                // Reset to what it was before and don't handle mods.
+                PChar->m_PMonstrosity->EquippedInstincts = previousEquipped;
+            }
+            else if (plan.addRequestedModifiers)
+            {
+                for (const auto& mod : maybeInstinct->second.mods)
                 {
-                    auto maybeInstinct = gMonstrosityInstinctMap.find(data.Slots[idx]);
-                    if (maybeInstinct != gMonstrosityInstinctMap.end())
-                    {
-                        if (!IsInstinctUnlocked(PChar, data.Slots[idx]))
-                        {
-                            return;
-                        }
-
-                        PChar->m_PMonstrosity->EquippedInstincts[idx] = data.Slots[idx];
-
-                        // Validate cost / duplicates via pure helpers (catalog costs resolved by host).
-                        const auto totalCost = TotalInstinctCost(resolveInstinctCosts(PChar->m_PMonstrosity->EquippedInstincts));
-                        if (ShouldRejectInstinctLoadout(totalCost, maxPoints, HasDuplicateInstincts(PChar->m_PMonstrosity->EquippedInstincts)))
-                        {
-                            // Reset to what it was before and don't handle mods
-                            PChar->m_PMonstrosity->EquippedInstincts = previousEquipped;
-                        }
-                        else
-                        {
-                            auto instinct = (*maybeInstinct).second;
-                            for (const auto& mod : instinct.mods)
-                            {
-                                PChar->addModifier(mod.getModID(), mod.getModAmount());
-                            }
-                        }
-                    }
+                    PChar->addModifier(mod.getModID(), mod.getModAmount());
                 }
             }
         }
