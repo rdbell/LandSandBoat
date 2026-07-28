@@ -196,6 +196,15 @@ struct InstinctSlotUpdatePlan
     bool   abortHandler{};
 };
 
+struct InstinctLoadoutPlan
+{
+    std::array<uint8, 12> costs{};
+    uint16                totalCost{};
+    uint16                maxPoints{};
+    bool                  hasDuplicates{};
+    bool                  rejectLoadout{};
+};
+
 struct PopulateMonstrosityDataPlan
 {
     bool readData{};
@@ -258,6 +267,7 @@ void ApplySpeciesCatalogRows(SpeciesCatalog& catalog, const std::vector<SpeciesC
 void ApplyInstinctCatalogRows(InstinctCatalog& catalog, const std::vector<InstinctCatalogRow>& rows);
 void ApplyInstinctModifierRows(InstinctCatalog& catalog, const std::vector<InstinctModifierRow>& rows);
 std::array<uint8, 12> ResolveEquippedInstinctCosts(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts);
+InstinctLoadoutPlan PlanInstinctLoadout(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts, uint8 level);
 
 void ReadMonstrosityData(CCharEntity* PChar);
 void WriteMonstrosityData(CCharEntity* PChar);

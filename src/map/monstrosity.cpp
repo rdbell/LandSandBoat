@@ -184,6 +184,17 @@ std::array<uint8, 12> monstrosity::ResolveEquippedInstinctCosts(InstinctCatalog&
     return costs;
 }
 
+monstrosity::InstinctLoadoutPlan monstrosity::PlanInstinctLoadout(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts, const uint8 level)
+{
+    auto plan          = InstinctLoadoutPlan{};
+    plan.costs         = ResolveEquippedInstinctCosts(catalog, equippedInstincts);
+    plan.totalCost     = TotalInstinctCost(plan.costs);
+    plan.maxPoints     = InstinctMaxPoints(level);
+    plan.hasDuplicates = HasDuplicateInstincts(equippedInstincts);
+    plan.rejectLoadout = ShouldRejectInstinctLoadout(plan.totalCost, plan.maxPoints, plan.hasDuplicates);
+    return plan;
+}
+
 void monstrosity::ReadMonstrosityData(CCharEntity* PChar)
 {
     auto data = std::make_unique<MonstrosityData_t>();
@@ -768,8 +779,7 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
         const auto previousEquipped = PChar->m_PMonstrosity->EquippedInstincts;
 
         // NOTE: This is set by the client
-        const auto maxPoints = InstinctMaxPoints(PChar->m_PMonstrosity->levels[PChar->m_PMonstrosity->MonstrosityId]);
-
+        const auto speciesLevel = PChar->m_PMonstrosity->levels[PChar->m_PMonstrosity->MonstrosityId];
         for (std::size_t idx = 0; idx < InstinctSlotCount; ++idx)
         {
             const auto requestedInstinct = data.Slots[idx];
@@ -804,8 +814,8 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
             {
                 auto proposedEquipped = PChar->m_PMonstrosity->EquippedInstincts;
                 proposedEquipped[idx] = requestedInstinct;
-                const auto totalCost = TotalInstinctCost(ResolveEquippedInstinctCosts(gMonstrosityInstinctMap, proposedEquipped));
-                rejectLoadout = ShouldRejectInstinctLoadout(totalCost, maxPoints, HasDuplicateInstincts(proposedEquipped));
+                const auto loadoutPlan = PlanInstinctLoadout(gMonstrosityInstinctMap, proposedEquipped, speciesLevel);
+                rejectLoadout          = loadoutPlan.rejectLoadout;
             }
 
             const auto plan = PlanInstinctSlotUpdate(requestedInstinct, hasCatalogEntry, isUnlocked, rejectLoadout);

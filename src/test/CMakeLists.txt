@@ -2428,6 +2428,8 @@ set(SOURCES
     test_monstrosity_full_update_7495.cpp
     test_monstrosity_instinct_costs_7497.h
     test_monstrosity_instinct_costs_7497.cpp
+    test_monstrosity_instinct_loadout_plan_7498.h
+    test_monstrosity_instinct_loadout_plan_7498.cpp
     test_s2c_miscdata_status_icons_packet.h
     test_s2c_miscdata_status_icons_packet.cpp
     test_s2c_miscdata_unknown_packet.h
