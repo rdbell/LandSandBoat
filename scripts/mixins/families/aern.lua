@@ -55,6 +55,12 @@ xi.mix.aern.shouldRespawnPet = function(now, respawnTime, hasPet, mainJob)
     return respawnTime > 0 and now >= respawnTime and not hasPet and (mainJob == xi.job.BST or mainJob == xi.job.SMN)
 end
 
+xi.mix.aern.reraisePlan = function(reraises, currentReraise, roll, allowDrops)
+    if reraises == 0 then reraises = 1 end
+    if currentReraise >= reraises or roll <= 60 then return { reraise = false, noDrops = 0 } end
+    return { reraise = true, noDrops = allowDrops == 0 and 1 or nil }
+end
+
 g_mixins.families.aern = function(aernMob)
     local petDeath = function(mob)
         local pet = mob:getPet()
@@ -200,22 +206,9 @@ g_mixins.families.aern = function(aernMob)
         local reraises    = mob:getLocalVar('AERN_RERAISE_MAX')
         local currReraise = mob:getLocalVar('AERN_RERAISES')
 
-        if reraises == 0 then
-            reraises = 1
-        end
-
-        if
-            currReraise >= reraises or
-            math.random(1, 100) <= 60
-        then
-            mob:setMobMod(xi.mobMod.NO_DROPS, 0)
-
-            return
-        end
-
-        if mob:getLocalVar('ALLOW_DROPS') == 0 then
-            mob:setMobMod(xi.mobMod.NO_DROPS, 1)
-        end
+        local reraisePlan = xi.mix.aern.reraisePlan(reraises, currReraise, math.random(1, 100), mob:getLocalVar('ALLOW_DROPS'))
+        if not reraisePlan.reraise then mob:setMobMod(xi.mobMod.NO_DROPS, reraisePlan.noDrops); return end
+        if reraisePlan.noDrops then mob:setMobMod(xi.mobMod.NO_DROPS, reraisePlan.noDrops) end
 
         local target   = mob:getTarget()
         local targetID = 0
