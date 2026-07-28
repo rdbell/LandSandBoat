@@ -1273,6 +1273,16 @@ xi.monstrosity.aengusTriggerPlan = function(monstrosityEnabled, belligerency, in
     return { csid = 13, args = { belligerency and 1 or 0, infamy, 0, 0, 0, 0, 0, 0 } }
 end
 
+-- Plans Aengus's event-finish belligerency update. Only event 13 option 1
+-- changes the flag; the player mutation remains in the event host.
+xi.monstrosity.aengusEventFinishPlan = function(csid, option, belligerency)
+    if csid ~= 13 or option ~= 1 then
+        return nil
+    end
+
+    return { belligerency = not belligerency }
+end
+
 -----------------------------------
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
@@ -1576,9 +1586,10 @@ xi.monstrosity.aengusOnEventUpdate = function(player, csid, option, npc)
 end
 
 xi.monstrosity.aengusOnEventFinish = function(player, csid, option, npc)
-    if csid == 13 and option == 1 then
-        -- Toggle
-        player:setBelligerencyFlag(not player:getBelligerencyFlag())
+    local plan = xi.monstrosity.aengusEventFinishPlan(csid, option, player:getBelligerencyFlag())
+
+    if plan then
+        player:setBelligerencyFlag(plan.belligerency)
     end
 end
 
