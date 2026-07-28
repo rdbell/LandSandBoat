@@ -601,3 +601,16 @@ describe('Feretory zone-in plan', function()
         end
     end)
 end)
+
+describe('Feretory zone-out plan', function()
+    it('removes both zoning-survival flags when Monstrosity is exactly enabled', function()
+        local plan = xi.monstrosity.feretoryZoneOutPlan(1)
+        assert(plan.effectFlags[1] == xi.effectFlag.ON_ZONE)
+        assert(plan.effectFlags[2] == xi.effectFlag.LOGOUT)
+    end)
+
+    it('does nothing unless Monstrosity is exactly enabled', function()
+        assert(xi.monstrosity.feretoryZoneOutPlan(0) == nil)
+        assert(xi.monstrosity.feretoryZoneOutPlan(2) == nil)
+    end)
+end)

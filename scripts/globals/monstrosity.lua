@@ -1623,16 +1623,28 @@ xi.monstrosity.feretoryOnZoneIn = function(player, prevZone)
     return cs
 end
 
+-- Plans the effect flags removed so status effects survive Feretory zone-out.
+-- Entity mutation remains host work.
+xi.monstrosity.feretoryZoneOutPlan = function(monstrosityEnabled)
+    if monstrosityEnabled ~= 1 then
+        return nil
+    end
+
+    return { effectFlags = { xi.effectFlag.ON_ZONE, xi.effectFlag.LOGOUT } }
+end
+
 xi.monstrosity.feretoryOnZoneOut = function(player)
-    if xi.settings.main.ENABLE_MONSTROSITY ~= 1 then
+    local plan = xi.monstrosity.feretoryZoneOutPlan(xi.settings.main.ENABLE_MONSTROSITY)
+    if not plan then
         return
     end
 
     -- Mark all status effects so they'll survive zoning
     -- (there are some routines that will force them off anyway)
     for _, effect in pairs(player:getStatusEffects()) do
-        effect:delEffectFlag(xi.effectFlag.ON_ZONE)
-        effect:delEffectFlag(xi.effectFlag.LOGOUT)
+        for _, effectFlag in ipairs(plan.effectFlags) do
+            effect:delEffectFlag(effectFlag)
+        end
     end
 end
 
