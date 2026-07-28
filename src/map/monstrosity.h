@@ -26,6 +26,7 @@
 #include "packets/basic.h"
 
 #include "entities/battle_entity.h"
+#include "modifier.h"
 #include "packets/c2s/0x01a_action.h"
 
 #include <array>
@@ -85,6 +86,16 @@ struct SpeciesCatalogRow
 };
 
 using SpeciesCatalog = std::unordered_map<uint16, SpeciesCatalogRow>;
+
+struct InstinctCatalogRow
+{
+    uint16                 monstrosityInstinctId{};
+    uint8                  cost{};
+    std::string            name{};
+    std::vector<CModifier> mods{};
+};
+
+using InstinctCatalog = std::unordered_map<uint16, InstinctCatalogRow>;
 
 struct DeathMenuPlan
 {
@@ -216,6 +227,7 @@ struct MonstrosityDataWritePlan
 
 void LoadStaticData();
 void ApplySpeciesCatalogRows(SpeciesCatalog& catalog, const std::vector<SpeciesCatalogRow>& rows);
+void ApplyInstinctCatalogRows(InstinctCatalog& catalog, const std::vector<InstinctCatalogRow>& rows);
 
 void ReadMonstrosityData(CCharEntity* PChar);
 void WriteMonstrosityData(CCharEntity* PChar);

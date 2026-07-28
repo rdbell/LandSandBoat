@@ -50,19 +50,11 @@
 #include "status_effect.h"
 #include "status_effect_container.h"
 
-struct MonstrosityInstinctRow
-{
-    uint16                 monstrosityInstinctId{};
-    uint8                  cost{};
-    std::string            name{};
-    std::vector<CModifier> mods{};
-};
-
 namespace
 {
 
 monstrosity::SpeciesCatalog                         gMonstrositySpeciesMap{};
-std::unordered_map<uint16, MonstrosityInstinctRow> gMonstrosityInstinctMap{};
+monstrosity::InstinctCatalog                        gMonstrosityInstinctMap{};
 
 } // namespace
 
@@ -119,15 +111,17 @@ void monstrosity::LoadStaticData()
         const auto rset = db::preparedStmt("SELECT monstrosity_instinct_id, cost, name FROM monstrosity_instincts");
         if (rset && rset->rowsCount())
         {
+            auto rows = std::vector<InstinctCatalogRow>{};
             while (rset->next())
             {
                 const auto monstrosityInstinctId               = rset->get<uint16>("monstrosity_instinct_id");
-                gMonstrosityInstinctMap[monstrosityInstinctId] = MonstrosityInstinctRow{
+                rows.emplace_back(InstinctCatalogRow{
                     .monstrosityInstinctId = monstrosityInstinctId,
                     .cost                  = rset->get<uint8>("cost"),
                     .name                  = rset->get<std::string>("name"),
-                };
+                });
             }
+            ApplyInstinctCatalogRows(gMonstrosityInstinctMap, rows);
         }
     }
 
@@ -151,6 +145,14 @@ void monstrosity::ApplySpeciesCatalogRows(SpeciesCatalog& catalog, const std::ve
     for (const auto& row : rows)
     {
         catalog[row.monstrositySpeciesCode] = row;
+    }
+}
+
+void monstrosity::ApplyInstinctCatalogRows(InstinctCatalog& catalog, const std::vector<InstinctCatalogRow>& rows)
+{
+    for (const auto& row : rows)
+    {
+        catalog[row.monstrosityInstinctId] = row;
     }
 }
 
