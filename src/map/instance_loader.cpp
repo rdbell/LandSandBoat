@@ -23,6 +23,7 @@
 
 #include "instance_loader.h"
 #include "instance_loader_create.h"
+#include "instance_loader_mob.h"
 #include "zone_instance.h"
 
 #include "entities/char_entity.h"
@@ -119,6 +120,14 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
     {
         FOR_DB_MULTIPLE_RESULTS(rset)
         {
+            const auto mobPlan = instanceloader::PlanMobLoad(
+                rset->get<float>("pos_x"), rset->get<float>("pos_y"), rset->get<float>("pos_z"),
+                rset->get<uint8>("mobType"), rset->get<int16>("charmable"));
+            if (!mobPlan.load)
+            {
+                continue;
+            }
+
             auto* PMob = new CMobEntity();
 
             PMob->name.insert(0, rset->get<std::string>("mobname"));
@@ -236,7 +245,7 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
             const auto aggro      = rset->get<uint32>("aggro");
             PMob->m_Aggro         = aggro;
             // If a special instanced mob aggros, it should always aggro regardless of level.
-            if (PMob->m_Type & MOBTYPE_EVENT)
+            if (mobPlan.setAlwaysAggro)
             {
                 PMob->setMobMod(MOBMOD_ALWAYS_AGGRO, aggro);
             }
@@ -244,14 +253,7 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
             PMob->m_MobSkillList  = rset->get<uint16>("skill_list_id");
             PMob->m_TrueDetection = rset->get<bool>("true_detection");
             PMob->setMobMod(MOBMOD_DETECTION, rset->get<int16>("detects"));
-            PMob->setMobMod(MOBMOD_CHARMABLE, rset->get<int16>("charmable"));
-
-            // Overwrite base family charmables depending on mob type. Disallowed mobs which should be charmable
-            // can be set in in their onInitialize
-            if (PMob->m_Type & MOBTYPE_EVENT || PMob->m_Type & MOBTYPE_FISHED || PMob->m_Type & MOBTYPE_BATTLEFIELD || PMob->m_Type & MOBTYPE_NOTORIOUS)
-            {
-                PMob->setMobMod(MOBMOD_CHARMABLE, 0);
-            }
+            PMob->setMobMod(MOBMOD_CHARMABLE, mobPlan.charmable);
 
             // must be here first to define mobmods
             mobutils::InitializeMob(PMob);
