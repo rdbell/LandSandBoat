@@ -1,0 +1,17 @@
+local peiste = require('scripts/mixins/families/peiste')
+
+describe('Peiste mixin', function()
+    it('selects gaze forms and their effect data unless blinded', function()
+        local grim = xi.mix.peiste.gazePlan(xi.mobSkill.GRIM_GLOWER, false, 30)
+        assert(grim.animationSub == 1 and grim.duration == 30)
+        assert(xi.mix.peiste.gazePlan(xi.mobSkill.GRIM_GLOWER, true, 30) == nil)
+        assert(xi.mix.peiste.gazePlan(0, false, 30) == nil)
+
+        local red = xi.mix.peiste.effectsFor(1)
+        assert(red[xi.effect.PETRIFICATION].power == 1 and red[xi.effect.PETRIFICATION].duration == 15)
+        local orange = xi.mix.peiste.effectsFor(5)
+        assert(orange[xi.effect.CURSE_II].power == 0 and orange[xi.effect.CURSE_II].duration == 30)
+        assert(orange[xi.effect.TERROR].power == 1 and orange[xi.effect.TERROR].duration == 30)
+        assert(xi.mix.peiste.effectsFor(0) == nil)
+    end)
+end)

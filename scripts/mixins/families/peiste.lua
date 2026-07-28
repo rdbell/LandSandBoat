@@ -7,6 +7,10 @@ require('scripts/globals/mixins')
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.peiste = xi.mix.peiste or {}
+
 -- Maps mobskill IDs to animation sub
 local gazeAnimationSubs =
 {
@@ -43,13 +47,34 @@ local gazeEffects =
     },
 }
 
+xi.mix.peiste.gazePlan = function(skillID, isBlinded, duration)
+    local animationSub = gazeAnimationSubs[skillID]
+    if animationSub and not isBlinded then
+        return { animationSub = animationSub, duration = duration }
+    end
+    return nil
+end
+
+xi.mix.peiste.effectsFor = function(animationSub)
+    local effects = gazeEffects[animationSub]
+    if not effects then
+        return nil
+    end
+
+    local resolved = {}
+    for effect, info in pairs(effects) do
+        resolved[effect] = { power = info.power or 1, duration = info.duration or 15 }
+    end
+    return resolved
+end
+
 g_mixins.families.peiste = function(peisteMob)
     peisteMob:addListener('WEAPONSKILL_USE', 'PEISTE_MIXIN_WS_USE', function(mob, target, skill, tp, action, damage)
-        local gazeAnimSub = gazeAnimationSubs[skill:getID()]
-        if gazeAnimSub and not mob:getStatusEffect(xi.effect.BLINDNESS) then
+        local plan = xi.mix.peiste.gazePlan(skill:getID(), mob:getStatusEffect(xi.effect.BLINDNESS), 0)
+        if plan then
             -- could be moved to mobskill luas with skill:setFinalAnimationSub(), but leaving here due to reliance on the mapping table
             -- Sets glowy eyes, which triggers the combat tick aura gaze
-            mob:setAnimationSub(gazeAnimSub)
+            mob:setAnimationSub(plan.animationSub)
             mob:timer(math.random(30, 45) * 1000, function(mobArg)
                 mobArg:setAnimationSub(0)
             end)
@@ -57,7 +82,7 @@ g_mixins.families.peiste = function(peisteMob)
     end)
 
     peisteMob:addListener('COMBAT_TICK', 'PEISTE_MIXIN_CTICK', function(mob, target)
-        local gazeData = gazeEffects[mob:getAnimationSub()]
+        local gazeData = xi.mix.peiste.effectsFor(mob:getAnimationSub())
         if gazeData then
             if mob:getStatusEffect(xi.effect.BLINDNESS) then
                 -- Note that testing this manually will break the animation for the game client
@@ -70,9 +95,7 @@ g_mixins.families.peiste = function(peisteMob)
                     if mob:checkDistance(entity) < 10 then
                         for gazeEffect, gazeEffectInfo in pairs(gazeData) do
                             if not entity:getStatusEffect(gazeEffect) then
-                                local power = gazeEffectInfo.power or 1
-                                local duration = gazeEffectInfo.duration or 15
-                                xi.mobskills.mobGazeMove(mob, entity, gazeEffect, power, 3, duration)
+                                xi.mobskills.mobGazeMove(mob, entity, gazeEffect, gazeEffectInfo.power, 3, gazeEffectInfo.duration)
                             end
                         end
                     end
