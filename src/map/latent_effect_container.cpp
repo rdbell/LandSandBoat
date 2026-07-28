@@ -33,6 +33,7 @@
 #include "latent_tp_selection.h"
 #include "latent_weapon_break_selection.h"
 #include "latent_weapon_draw_plan.h"
+#include "latent_weather_plan.h"
 #include "latent_ws_plan.h"
 #include "latent_zone_selection.h"
 
@@ -594,15 +595,31 @@ void CLatentEffectContainer::CheckLatentsWeather(Weather weather)
     ProcessLatentEffects(
         [this, weather](CLatentEffect& latent)
         {
+            const auto applyAction = [&latent](const latenthelpers::WeatherLatentAction action) {
+                switch (action)
+                {
+                    case latenthelpers::WeatherLatentAction::Activate:
+                        return latent.Activate();
+                    case latenthelpers::WeatherLatentAction::Deactivate:
+                        return latent.Deactivate();
+                    case latenthelpers::WeatherLatentAction::Ignore:
+                    default:
+                        return false;
+                }
+            };
+
             if (latent.GetConditionsID() == xi::Latent::WeatherElement)
             {
-                auto element = zoneutils::GetWeatherElement(battleutils::GetWeather((CBattleEntity*)m_POwner, false, weather));
-                return ApplyLatentEffect(latent, latent.GetConditionsValue() == element);
+                const auto resolvedWeather = battleutils::GetWeather((CBattleEntity*)m_POwner, false, weather);
+                const auto element         = zoneutils::GetWeatherElement(resolvedWeather);
+                return applyAction(latenthelpers::DetermineWeatherLatentAction(
+                    latent.GetConditionsID(), latent.GetConditionsValue(), static_cast<uint16>(resolvedWeather), static_cast<uint16>(element)));
             }
             else if (latent.GetConditionsID() == xi::Latent::WeatherCondition)
             {
-                auto element = battleutils::GetWeather((CBattleEntity*)m_POwner, false, weather);
-                return ApplyLatentEffect(latent, latent.GetConditionsValue() == static_cast<uint16_t>(element));
+                const auto resolvedWeather = battleutils::GetWeather((CBattleEntity*)m_POwner, false, weather);
+                return applyAction(latenthelpers::DetermineWeatherLatentAction(
+                    latent.GetConditionsID(), latent.GetConditionsValue(), static_cast<uint16>(resolvedWeather), 0));
             }
             return false;
         });

@@ -2606,6 +2606,7 @@ auto runLatentWsPlan7528SelfTests() -> bool;
 auto runLatentHpSelection7529SelfTests() -> bool;
 auto runLatentTpSelection7530SelfTests() -> bool;
 auto runLatentMpSelection7531SelfTests() -> bool;
+auto runLatentWeatherPlan7532SelfTests() -> bool;
 auto runInstanceLoaderCreate7504SelfTests() -> bool;
 auto runInstanceLoaderMob7505SelfTests() -> bool;
 auto runInstanceLoaderLoad7506SelfTests() -> bool;
@@ -5209,6 +5210,7 @@ namespace
         ok = runLatentHpSelection7529SelfTests() && ok;
         ok = runLatentTpSelection7530SelfTests() && ok;
         ok = runLatentMpSelection7531SelfTests() && ok;
+        ok = runLatentWeatherPlan7532SelfTests() && ok;
         ok = runInstanceLoaderCreate7504SelfTests() && ok;
         ok = runInstanceLoaderMob7505SelfTests() && ok;
         ok = runInstanceLoaderLoad7506SelfTests() && ok;
