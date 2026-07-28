@@ -868,13 +868,16 @@ xi.monstrosity.belligerencyCaps =
 -- Helpers
 -----------------------------------
 -- Use xi.monstrosity.species
-xi.monstrosity.unlockStartingMONs = function(player, choice)
-    local data =
+xi.monstrosity.startingMONData = function(choice)
+    return
     {
         monstrosityId = choice,
         species       = choice,
     }
+end
 
+xi.monstrosity.unlockStartingMONs = function(player, choice)
+    local data = xi.monstrosity.startingMONData(choice)
     player:setMonstrosityData(data)
 end
 

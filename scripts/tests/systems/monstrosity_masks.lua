@@ -728,3 +728,13 @@ describe('Monstrosity species and variant unlock data', function()
         assert(variants[32] == nil)
     end)
 end)
+
+describe('Monstrosity starting data', function()
+    it('copies the selected species into both starter identifiers', function()
+        local rabbit = xi.monstrosity.startingMONData(xi.monstrosity.species.RABBIT)
+        local spriggan = xi.monstrosity.startingMONData(xi.monstrosity.species.EORZEAN_SPRIGGAN)
+
+        assert(rabbit.monstrosityId == 1 and rabbit.species == 1)
+        assert(spriggan.monstrosityId == 127 and spriggan.species == 127)
+    end)
+end)
