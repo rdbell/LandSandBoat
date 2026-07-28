@@ -2422,6 +2422,8 @@ set(SOURCES
     test_monstrosity_species_catalog_7492.cpp
     test_monstrosity_instinct_catalog_7493.h
     test_monstrosity_instinct_catalog_7493.cpp
+    test_monstrosity_instinct_modifiers_7494.h
+    test_monstrosity_instinct_modifiers_7494.cpp
     test_s2c_miscdata_status_icons_packet.h
     test_s2c_miscdata_status_icons_packet.cpp
     test_s2c_miscdata_unknown_packet.h

@@ -130,12 +130,16 @@ void monstrosity::LoadStaticData()
         const auto rset = db::preparedStmt("SELECT modId, value FROM monstrosity_instinct_mods WHERE monstrosity_instinct_id = ?", entry.monstrosityInstinctId);
         if (rset && rset->rowsCount())
         {
+            auto rows = std::vector<InstinctModifierRow>{};
             while (rset->next())
             {
-                const auto mod = rset->get<Mod>("modId");
-                const auto val = rset->get<int16>("value");
-                entry.mods.emplace_back(mod, val);
+                rows.emplace_back(InstinctModifierRow{
+                    .monstrosityInstinctId = entry.monstrosityInstinctId,
+                    .mod                  = rset->get<Mod>("modId"),
+                    .value                = rset->get<int16>("value"),
+                });
             }
+            ApplyInstinctModifierRows(gMonstrosityInstinctMap, rows);
         }
     }
 }
@@ -153,6 +157,18 @@ void monstrosity::ApplyInstinctCatalogRows(InstinctCatalog& catalog, const std::
     for (const auto& row : rows)
     {
         catalog[row.monstrosityInstinctId] = row;
+    }
+}
+
+void monstrosity::ApplyInstinctModifierRows(InstinctCatalog& catalog, const std::vector<InstinctModifierRow>& rows)
+{
+    for (const auto& row : rows)
+    {
+        const auto entry = catalog.find(row.monstrosityInstinctId);
+        if (entry != catalog.end())
+        {
+            entry->second.mods.emplace_back(row.mod, row.value);
+        }
     }
 }
 

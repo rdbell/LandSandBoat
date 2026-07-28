@@ -97,6 +97,13 @@ struct InstinctCatalogRow
 
 using InstinctCatalog = std::unordered_map<uint16, InstinctCatalogRow>;
 
+struct InstinctModifierRow
+{
+    uint16 monstrosityInstinctId{};
+    Mod    mod{};
+    int16  value{};
+};
+
 struct DeathMenuPlan
 {
     bool restoreHpMp{};
@@ -228,6 +235,7 @@ struct MonstrosityDataWritePlan
 void LoadStaticData();
 void ApplySpeciesCatalogRows(SpeciesCatalog& catalog, const std::vector<SpeciesCatalogRow>& rows);
 void ApplyInstinctCatalogRows(InstinctCatalog& catalog, const std::vector<InstinctCatalogRow>& rows);
+void ApplyInstinctModifierRows(InstinctCatalog& catalog, const std::vector<InstinctModifierRow>& rows);
 
 void ReadMonstrosityData(CCharEntity* PChar);
 void WriteMonstrosityData(CCharEntity* PChar);
