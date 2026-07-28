@@ -195,6 +195,43 @@ monstrosity::InstinctLoadoutPlan monstrosity::PlanInstinctLoadout(InstinctCatalo
     return plan;
 }
 
+monstrosity::InstinctLoadoutMutationPlan monstrosity::PlanInstinctLoadoutMutation(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts, const std::array<uint16, 12>& requestedInstincts, const std::array<bool, 12>& unlockedInstincts, const uint8 level)
+{
+    auto plan     = InstinctLoadoutMutationPlan{};
+    plan.equipped = equippedInstincts;
+
+    for (std::size_t idx = 0; idx < InstinctSlotCount; ++idx)
+    {
+        const auto requestedInstinct = requestedInstincts[idx];
+        const auto hasCatalogEntry   = catalog.contains(requestedInstinct);
+        auto       rejectLoadout     = false;
+        if (hasCatalogEntry && unlockedInstincts[idx])
+        {
+            auto proposedEquipped = plan.equipped;
+            proposedEquipped[idx] = requestedInstinct;
+            rejectLoadout         = PlanInstinctLoadout(catalog, proposedEquipped, level).rejectLoadout;
+        }
+
+        const auto slotPlan = PlanInstinctSlotUpdate(requestedInstinct, hasCatalogEntry, unlockedInstincts[idx], rejectLoadout);
+        plan.slotPlans[idx] = slotPlan;
+        if (slotPlan.abortHandler)
+        {
+            return plan;
+        }
+        if (!slotPlan.setRequestedInstinct)
+        {
+            continue;
+        }
+
+        plan.equipped[idx] = slotPlan.requestedInstinct;
+        if (slotPlan.restorePreviousLoadout)
+        {
+            plan.equipped = equippedInstincts;
+        }
+    }
+    return plan;
+}
+
 void monstrosity::ReadMonstrosityData(CCharEntity* PChar)
 {
     auto data = std::make_unique<MonstrosityData_t>();
@@ -780,45 +817,23 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
 
         // NOTE: This is set by the client
         const auto speciesLevel = PChar->m_PMonstrosity->levels[PChar->m_PMonstrosity->MonstrosityId];
+        auto       requested    = std::array<uint16, InstinctSlotCount>{};
+        auto       unlocked     = std::array<bool, InstinctSlotCount>{};
         for (std::size_t idx = 0; idx < InstinctSlotCount; ++idx)
         {
             const auto requestedInstinct = data.Slots[idx];
-            if (requestedInstinct == 0)
-            {
-                continue;
-            }
-
-            if (requestedInstinct == 0xFFFF) // Entry equals 0xFFFF if it's being removed
-            {
-                const auto plan = PlanInstinctSlotUpdate(requestedInstinct, false, false, false);
-                if (plan.setRequestedInstinct)
-                {
-                    PChar->m_PMonstrosity->EquippedInstincts[idx] = plan.requestedInstinct;
-                }
-
-                if (plan.removePreviousModifiers)
-                {
-                    for (const auto& mod : gMonstrosityInstinctMap[previousEquipped[idx]].mods)
-                    {
-                        PChar->delModifier(mod.getModID(), mod.getModAmount());
-                    }
-                }
-                continue;
-            }
-
+            requested[idx]               = requestedInstinct;
             const auto maybeInstinct = gMonstrosityInstinctMap.find(requestedInstinct);
-            const auto hasCatalogEntry = maybeInstinct != gMonstrosityInstinctMap.end();
-            const auto isUnlocked = hasCatalogEntry && IsInstinctUnlocked(PChar, requestedInstinct);
-            auto       rejectLoadout = false;
-            if (isUnlocked)
+            if (requestedInstinct != 0 && requestedInstinct != 0xFFFF && maybeInstinct != gMonstrosityInstinctMap.end())
             {
-                auto proposedEquipped = PChar->m_PMonstrosity->EquippedInstincts;
-                proposedEquipped[idx] = requestedInstinct;
-                const auto loadoutPlan = PlanInstinctLoadout(gMonstrosityInstinctMap, proposedEquipped, speciesLevel);
-                rejectLoadout          = loadoutPlan.rejectLoadout;
+                unlocked[idx] = IsInstinctUnlocked(PChar, requestedInstinct);
             }
+        }
 
-            const auto plan = PlanInstinctSlotUpdate(requestedInstinct, hasCatalogEntry, isUnlocked, rejectLoadout);
+        const auto mutationPlan = PlanInstinctLoadoutMutation(gMonstrosityInstinctMap, previousEquipped, requested, unlocked, speciesLevel);
+        for (std::size_t idx = 0; idx < InstinctSlotCount; ++idx)
+        {
+            const auto& plan = mutationPlan.slotPlans[idx];
             if (plan.abortHandler)
             {
                 return;
@@ -836,6 +851,7 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
             }
             else if (plan.addRequestedModifiers)
             {
+                const auto maybeInstinct = gMonstrosityInstinctMap.find(plan.requestedInstinct);
                 for (const auto& mod : maybeInstinct->second.mods)
                 {
                     PChar->addModifier(mod.getModID(), mod.getModAmount());

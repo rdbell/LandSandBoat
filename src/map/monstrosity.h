@@ -205,6 +205,12 @@ struct InstinctLoadoutPlan
     bool                  rejectLoadout{};
 };
 
+struct InstinctLoadoutMutationPlan
+{
+    std::array<InstinctSlotUpdatePlan, 12> slotPlans{};
+    std::array<uint16, 12>                 equipped{};
+};
+
 struct PopulateMonstrosityDataPlan
 {
     bool readData{};
@@ -268,6 +274,7 @@ void ApplyInstinctCatalogRows(InstinctCatalog& catalog, const std::vector<Instin
 void ApplyInstinctModifierRows(InstinctCatalog& catalog, const std::vector<InstinctModifierRow>& rows);
 std::array<uint8, 12> ResolveEquippedInstinctCosts(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts);
 InstinctLoadoutPlan PlanInstinctLoadout(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts, uint8 level);
+InstinctLoadoutMutationPlan PlanInstinctLoadoutMutation(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts, const std::array<uint16, 12>& requestedInstincts, const std::array<bool, 12>& unlockedInstincts, uint8 level);
 
 void ReadMonstrosityData(CCharEntity* PChar);
 void WriteMonstrosityData(CCharEntity* PChar);
