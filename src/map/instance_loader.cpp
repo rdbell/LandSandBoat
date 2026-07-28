@@ -22,6 +22,7 @@
 #include <chrono>
 
 #include "instance_loader.h"
+#include "instance_loader_create.h"
 #include "zone_instance.h"
 
 #include "entities/char_entity.h"
@@ -63,7 +64,8 @@ CInstanceLoader::CInstanceLoader(uint32 instanceid, CCharEntity* PRequester)
     auto   instanceData = instanceutils::GetInstanceData(instanceid);
     CZone* PZone        = zoneutils::GetZone(instanceData.instance_zone);
 
-    if (!PZone || !(PZone->GetTypeMask() & ZONE_TYPE::INSTANCED))
+    const auto plan = instanceloader::PlanCreate(PZone != nullptr, PZone && (PZone->GetTypeMask() & ZONE_TYPE::INSTANCED));
+    if (!plan.createInstance)
     {
         ShowError("Invalid zone for instanceid: %d", instanceid);
         return;

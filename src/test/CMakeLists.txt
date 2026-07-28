@@ -514,6 +514,7 @@ set(SOURCES
     test_instance_lifecycle.cpp
     test_instance_loader_2639.h
     test_instance_loader_2639.cpp
+    test_instance_loader_create_7504.cpp
     test_instance_utils_runtime.h
     test_instance_utils_runtime.cpp
     test_grades.h
