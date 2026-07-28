@@ -349,3 +349,32 @@ describe('Terynon MON event-finish plan', function()
         assert(xi.monstrosity.monEventFinishPlan(2, offers, 999999) == nil)
     end)
 end)
+
+describe('Terynon instinct event-finish plan', function()
+    it('decodes an advanced instinct and consults its paired limit break', function()
+        local option = bit.bor(bit.lshift(119, 16), bit.lshift(xi.monstrosity.purchasableInstincts.WAR, 8), 2)
+        local checkedJob
+        local plan = xi.monstrosity.instinctEventFinishPlan(option, function(job)
+            checkedJob = job
+            return job == xi.job.WAR
+        end, 5000)
+
+        assert(checkedJob == xi.job.WAR, checkedJob)
+        assert(plan.cost == 5000 and plan.purchaseInstinct == xi.monstrosity.purchasableInstincts.WAR)
+    end)
+
+    it('does not consult a limit break for racial instincts', function()
+        local option = bit.bor(bit.lshift(119, 16), bit.lshift(xi.monstrosity.purchasableInstincts.HUME_II, 8), 2)
+        local plan = xi.monstrosity.instinctEventFinishPlan(option, function()
+            assert(false, 'racial instinct should not query a limit break')
+        end, 500)
+
+        assert(plan.cost == 500 and plan.purchaseInstinct == xi.monstrosity.purchasableInstincts.HUME_II)
+    end)
+
+    it('preserves invalid checks and ignores other option types', function()
+        local invalid = bit.bor(bit.lshift(118, 16), bit.lshift(xi.monstrosity.purchasableInstincts.HUME_II, 8), 2)
+        assert(xi.monstrosity.instinctEventFinishPlan(invalid, function() return false end, 999999).invalid)
+        assert(xi.monstrosity.instinctEventFinishPlan(1, function() return false end, 999999) == nil)
+    end)
+end)

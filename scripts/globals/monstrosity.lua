@@ -1218,6 +1218,21 @@ xi.monstrosity.monEventFinishPlan = function(option, monData, infamy)
     return plan
 end
 
+-- Decodes Terynon's type-2 event-finish option and selects its instinct
+-- purchase work. Advanced instincts use their paired limit-break completion.
+xi.monstrosity.instinctEventFinishPlan = function(option, hasCompletedLimitBreak, infamy)
+    if bit.band(option, 0xFF) ~= 2 then
+        return nil
+    end
+
+    local selectedInstinct = bit.band(bit.rshift(option, 8), 0xFF)
+    local checkValue       = bit.rshift(option, 16)
+    local limitBreakCompleted = selectedInstinct > xi.monstrosity.purchasableInstincts.GALKA_II and
+        hasCompletedLimitBreak(selectedInstinct - xi.monstrosity.purchasableInstincts.GALKA_II)
+
+    return xi.monstrosity.instinctPurchasePlan(selectedInstinct, checkValue, limitBreakCompleted, infamy)
+end
+
 -----------------------------------
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
@@ -1584,10 +1599,11 @@ xi.monstrosity.teyrnonOnEventFinish = function(player, csid, option, npc)
         -- prerequisites.  This data is not tabled with Terynon, as it cannot be controlled.
 
         local selectedInstinct = bit.band(bit.rshift(option, 8), 0xFF)
-        local checkValue       = bit.rshift(option, 16)
-        local limitBreakCompleted = selectedInstinct > xi.monstrosity.purchasableInstincts.GALKA_II and
-            hasCompletedLimitBreak(player, selectedInstinct - xi.monstrosity.purchasableInstincts.GALKA_II)
-        local plan = xi.monstrosity.instinctPurchasePlan(selectedInstinct, checkValue, limitBreakCompleted, player:getCurrency('infamy'))
+        local plan = xi.monstrosity.instinctEventFinishPlan(
+            option,
+            function(job) return hasCompletedLimitBreak(player, job) end,
+            player:getCurrency('infamy')
+        )
 
         if plan.invalid then
             print(string.format('Invalid Event Finish Option received by Terynon! (%s:%d)', player:getName(), option))
