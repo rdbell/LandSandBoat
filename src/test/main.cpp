@@ -2583,6 +2583,7 @@ auto runSynergyClaimFurnace3866SelfTests() -> bool;
 auto runSalvageClaimTransport3867SelfTests() -> bool;
 auto runCampaignAffordNotes3868SelfTests() -> bool;
 auto runBattlefieldEnterPC3869SelfTests() -> bool;
+auto runBattlefieldHandlerRegistration7501SelfTests() -> bool;
 auto runPartyRejectPCAddFull3870SelfTests() -> bool;
 auto runGuildpointsCanAfford3871SelfTests() -> bool;
 auto runFollowCanFollow3872SelfTests() -> bool;
@@ -5155,6 +5156,7 @@ namespace
         ok = runSalvageClaimTransport3867SelfTests() && ok;
         ok = runCampaignAffordNotes3868SelfTests() && ok;
         ok = runBattlefieldEnterPC3869SelfTests() && ok;
+        ok = runBattlefieldHandlerRegistration7501SelfTests() && ok;
         ok = runPartyRejectPCAddFull3870SelfTests() && ok;
         ok = runGuildpointsCanAfford3871SelfTests() && ok;
         ok = runFollowCanFollow3872SelfTests() && ok;

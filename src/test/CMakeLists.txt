@@ -72,6 +72,7 @@ set(SOURCES
     test_base_entity_model.cpp
     test_battlefield.h
     test_battlefield.cpp
+    test_battlefield_handler_registration_7501.cpp
     test_application.h
     test_application.cpp
     test_application_lifecycle_2554.h

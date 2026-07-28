@@ -28,6 +28,7 @@
 
 #include "battlefield.h"
 #include "battlefield_handler.h"
+#include "battlefield_handler_registration.h"
 
 #include "entities/battle_entity.h"
 #include "entities/char_entity.h"
@@ -212,11 +213,6 @@ CBattlefield* CBattlefieldHandler::GetBattlefieldByInitiator(uint32 charID)
 
 uint8 CBattlefieldHandler::RegisterBattlefield(CCharEntity* PChar, const BattlefieldRegistration& registration)
 {
-    if (PChar->PBattlefield)
-    {
-        ShowDebug("%s tried to enter another battlefield", PChar->getName());
-        return BATTLEFIELD_RETURN_CODE_WAIT;
-    }
     // attempt to add to an existing battlefield
     auto* PBattlefield = GetBattlefield(PChar, true);
 
@@ -231,47 +227,36 @@ uint8 CBattlefieldHandler::RegisterBattlefield(CCharEntity* PChar, const Battlef
                 break;
             }
         }
-        // If the player has no Registered Battlefield...
-        if (!PBattlefield)
-        {
-            // ...but they do have the BCNM Status Effect somehow (This should not happen, but keeping to be safe)
-            if (PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Battlefield))
-            {
-                // Do not allow them to attain a new registration
-                return BATTLEFIELD_RETURN_CODE_REQS_NOT_MET;
-            }
-            // ...but they did have the flag to enter an existing one
-            if (PChar->GetLocalVar("[BCNM]EnterExisting") == 1)
-            {
-                // Reset the flag, and do not allow them to attain a new registration
-                PChar->SetLocalVar("[BCNM]EnterExisting", 0);
-                return BATTLEFIELD_RETURN_CODE_REQS_NOT_MET;
-            }
-        }
     }
-    // If they have a Registered Battlefield -AND- they have the Battlefield Status Effect
-    if (PBattlefield && PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Battlefield))
-    {
-        // Reset their progress var to 0 and proceed to attempt to enter them into the BCNM
-        PChar->SetLocalVar("[BCNM]EnterExisting", 0);
-        if (!PBattlefield->CheckInProgress())
-        {
-            // players haven't started fighting yet, try entering
-            if (registration.area != PBattlefield->GetArea())
-            {
-                return BATTLEFIELD_RETURN_CODE_INCREMENT_REQUEST;
-            }
 
-            return PBattlefield->InsertEntity(PChar, false) ? BATTLEFIELD_RETURN_CODE_CUTSCENE : BATTLEFIELD_RETURN_CODE_BATTLEFIELD_FULL;
-        }
-        else
-        {
-            // todo: probably clear registered chars
-            // can't enter, mobs been slapped
-            return BATTLEFIELD_RETURN_CODE_LOCKED;
-        }
+    const auto plan = battlefieldhandlerhelpers::PlanRegistration(
+        PChar->PBattlefield != nullptr,
+        PBattlefield != nullptr,
+        PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Battlefield),
+        PChar->GetLocalVar("[BCNM]EnterExisting") == 1,
+        PBattlefield && PBattlefield->CheckInProgress(),
+        PBattlefield && registration.area == PBattlefield->GetArea());
+
+    if (plan.resetEnterExisting)
+    {
+        PChar->SetLocalVar("[BCNM]EnterExisting", 0);
     }
-    return LoadBattlefield(PChar, registration);
+
+    switch (plan.action)
+    {
+        case battlefieldhandlerhelpers::RegistrationAction::Return:
+            if (PChar->PBattlefield)
+            {
+                ShowDebug("%s tried to enter another battlefield", PChar->getName());
+            }
+            return plan.returnCode;
+        case battlefieldhandlerhelpers::RegistrationAction::InsertExisting:
+            return PBattlefield->InsertEntity(PChar, false) ? BATTLEFIELD_RETURN_CODE_CUTSCENE : BATTLEFIELD_RETURN_CODE_BATTLEFIELD_FULL;
+        case battlefieldhandlerhelpers::RegistrationAction::LoadNew:
+            return LoadBattlefield(PChar, registration);
+    }
+
+    return BATTLEFIELD_RETURN_CODE_WAIT;
 }
 
 bool CBattlefieldHandler::RemoveFromBattlefield(CBaseEntity* PEntity, CBattlefield* PBattlefield, uint8 leavecode)
