@@ -5,45 +5,88 @@ https://www.bg-wiki.com/ffxi/Category:Hpemde
 require('scripts/globals/mixins')
 -----------------------------------
 
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.hpemde = xi.mix.hpemde or {}
+
+xi.mix.hpemde.divePlan = function(canDive)
+    return { autoAttack = false, mobAbility = false, hideName = canDive, untargetable = canDive, animationSub = canDive and 5 or nil }
+end
+
+xi.mix.hpemde.surfacePlan = function(animationSub)
+    return { hideName = false, untargetable = false, animationSub = (animationSub == 0 or animationSub == 5) and 6 or nil, waitMs = (animationSub == 0 or animationSub == 5) and 2000 or 0 }
+end
+
+xi.mix.hpemde.openMouthPlan = function(mainLvl)
+    return { baseDamageModifier = mainLvl + 2, damageMod = 10000, animationSub = 3, waitMs = 2000 }
+end
+
+xi.mix.hpemde.closeMouthPlan = function(battleTime)
+    return { baseDamageModifier = 0, damageMod = 0, changeTime = battleTime + 30, animationSub = 6, waitMs = 2000 }
+end
+
+xi.mix.hpemde.combatPlan = function(damaged, hp, maxHP, disengageTime, battleTime, animationSub, changeTime, closeMouthHP)
+    if damaged == 0 then
+        if hp < maxHP then
+            return { action = 'activate', changeTime = battleTime + 30 }
+        elseif disengageTime > 0 and battleTime > disengageTime then
+            return { action = 'disengage' }
+        end
+    elseif animationSub == 6 and battleTime > changeTime then
+        return { action = 'open' }
+    elseif animationSub == 3 and hp < closeMouthHP then
+        return { action = 'close' }
+    end
+
+    return nil
+end
+
+xi.mix.hpemde.shouldCloseMouth = function(animationSub, damage)
+    return animationSub == 3 and damage >= 250
+end
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
 local function dive(mob)
-    mob:setAutoAttackEnabled(false)
-    mob:setMobAbilityEnabled(false)
+    local plan = xi.mix.hpemde.divePlan(mob:getPool() ~= xi.mobPool.HPEMDE_NO_DIVING)
+    mob:setAutoAttackEnabled(plan.autoAttack)
+    mob:setMobAbilityEnabled(plan.mobAbility)
 
     -- Om'hpedme in north half of Al'Taieu do not dive or become untargetable
-    if mob:getPool() ~= xi.mobPool.HPEMDE_NO_DIVING then
-        mob:hideName(true)
-        mob:setUntargetable(true)
-        mob:setAnimationSub(5)
+    if plan.animationSub then
+        mob:hideName(plan.hideName)
+        mob:setUntargetable(plan.untargetable)
+        mob:setAnimationSub(plan.animationSub)
     end
 end
 
 local function surface(mob)
-    mob:hideName(false)
-    mob:setUntargetable(false)
-    local animationSub = mob:getAnimationSub()
-    if animationSub == 0 or animationSub == 5 then
-        mob:setAnimationSub(6)
-        mob:wait(2000)
+    local plan = xi.mix.hpemde.surfacePlan(mob:getAnimationSub())
+    mob:hideName(plan.hideName)
+    mob:setUntargetable(plan.untargetable)
+    if plan.animationSub then
+        mob:setAnimationSub(plan.animationSub)
+        mob:wait(plan.waitMs)
     end
 end
 
 -- Hpemde take 100% increased damage and deal 2x base damage in open mouth form
 local function openMouth(mob)
-    mob:setMobMod(xi.mobMod.BASE_DAMAGE_MODIFIER, mob:getMainLvl() + 2)
-    mob:setMod(xi.mod.DMG, 10000)
-    mob:setAnimationSub(3)
-    mob:wait(2000)
+    local plan = xi.mix.hpemde.openMouthPlan(mob:getMainLvl())
+    mob:setMobMod(xi.mobMod.BASE_DAMAGE_MODIFIER, plan.baseDamageModifier)
+    mob:setMod(xi.mod.DMG, plan.damageMod)
+    mob:setAnimationSub(plan.animationSub)
+    mob:wait(plan.waitMs)
 end
 
 local function closeMouth(mob)
-    mob:setMobMod(xi.mobMod.BASE_DAMAGE_MODIFIER, 0)
-    mob:setMod(xi.mod.DMG, 0)
-    mob:setLocalVar('[hpemde]changeTime', mob:getBattleTime() + 30)
-    mob:setAnimationSub(6)
-    mob:wait(2000)
+    local plan = xi.mix.hpemde.closeMouthPlan(mob:getBattleTime())
+    mob:setMobMod(xi.mobMod.BASE_DAMAGE_MODIFIER, plan.baseDamageModifier)
+    mob:setMod(xi.mod.DMG, plan.damageMod)
+    mob:setLocalVar('[hpemde]changeTime', plan.changeTime)
+    mob:setAnimationSub(plan.animationSub)
+    mob:wait(plan.waitMs)
 end
 
 g_mixins.families.hpemde = function(hpemdeMob)
@@ -75,38 +118,26 @@ g_mixins.families.hpemde = function(hpemdeMob)
     end)
 
     hpemdeMob:addListener('COMBAT_TICK', 'HPEMDE_CTICK', function(mob)
-        if mob:getLocalVar('[hpemde]damaged') == 0 then
-            local disengageTime = mob:getLocalVar('[hpemde]disengageTime')
-
-            if mob:getHP() < mob:getMaxHP() then
+        local plan = xi.mix.hpemde.combatPlan(mob:getLocalVar('[hpemde]damaged'), mob:getHP(), mob:getMaxHP(), mob:getLocalVar('[hpemde]disengageTime'), mob:getBattleTime(), mob:getAnimationSub(), mob:getLocalVar('[hpemde]changeTime'), mob:getLocalVar('[hpemde]closeMouthHP'))
+        if plan then
+            if plan.action == 'activate' then
                 mob:setAutoAttackEnabled(true)
                 mob:setMobAbilityEnabled(true)
                 mob:setLocalVar('[hpemde]damaged', 1)
-                mob:setLocalVar('[hpemde]changeTime', mob:getBattleTime() + 30)
-            elseif disengageTime > 0 and mob:getBattleTime() > disengageTime then
-                mob:setLocalVar('[hpemde]disengageTime',  0)
+                mob:setLocalVar('[hpemde]changeTime', plan.changeTime)
+            elseif plan.action == 'disengage' then
+                mob:setLocalVar('[hpemde]disengageTime', 0)
                 mob:disengage()
-            end
-        else
-            if
-                mob:getAnimationSub() == 6 and
-                mob:getBattleTime() > mob:getLocalVar('[hpemde]changeTime')
-            then
+            elseif plan.action == 'open' then
                 openMouth(mob)
-            elseif
-                mob:getAnimationSub() == 3 and
-                mob:getHP() < mob:getLocalVar('[hpemde]closeMouthHP')
-            then
+            elseif plan.action == 'close' then
                 closeMouth(mob)
             end
         end
     end)
 
     hpemdeMob:addListener('TAKE_DAMAGE', 'HPEMDE_TAKE_DAMAGE', function(mob, damage, attacker, attackType, damageType)
-        if
-            mob:getAnimationSub() == 3 and
-            damage >= 250
-        then
+        if xi.mix.hpemde.shouldCloseMouth(mob:getAnimationSub(), damage) then
             closeMouth(mob)
         end
     end)
