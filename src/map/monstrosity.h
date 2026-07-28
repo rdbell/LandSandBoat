@@ -257,6 +257,7 @@ void LoadStaticData();
 void ApplySpeciesCatalogRows(SpeciesCatalog& catalog, const std::vector<SpeciesCatalogRow>& rows);
 void ApplyInstinctCatalogRows(InstinctCatalog& catalog, const std::vector<InstinctCatalogRow>& rows);
 void ApplyInstinctModifierRows(InstinctCatalog& catalog, const std::vector<InstinctModifierRow>& rows);
+std::array<uint8, 12> ResolveEquippedInstinctCosts(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts);
 
 void ReadMonstrosityData(CCharEntity* PChar);
 void WriteMonstrosityData(CCharEntity* PChar);

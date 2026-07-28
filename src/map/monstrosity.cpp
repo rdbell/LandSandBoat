@@ -172,6 +172,18 @@ void monstrosity::ApplyInstinctModifierRows(InstinctCatalog& catalog, const std:
     }
 }
 
+std::array<uint8, 12> monstrosity::ResolveEquippedInstinctCosts(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts)
+{
+    std::array<uint8, 12> costs{};
+    for (std::size_t i = 0; i < equippedInstincts.size(); ++i)
+    {
+        // operator[] default-constructs missing catalog rows (cost 0), matching
+        // the equip-change handler's historical map lookup behavior.
+        costs[i] = catalog[equippedInstincts[i]].cost;
+    }
+    return costs;
+}
+
 void monstrosity::ReadMonstrosityData(CCharEntity* PChar)
 {
     auto data = std::make_unique<MonstrosityData_t>();
@@ -698,17 +710,6 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
     // NOTE: The amount of pointer per level is level + 10, this is set in the client
     // Pure cost/dupe/max-point helpers live in monstrosity_instinct_equip.h.
 
-    auto resolveInstinctCosts = [&](const std::array<uint16, InstinctSlotCount>& input) -> std::array<uint8, InstinctSlotCount>
-    {
-        std::array<uint8, InstinctSlotCount> costs{};
-        for (std::size_t i = 0; i < InstinctSlotCount; ++i)
-        {
-            // operator[] default-constructs missing catalog rows (cost 0), matching prior map lookup.
-            costs[i] = gMonstrosityInstinctMap[input[i]].cost;
-        }
-        return costs;
-    };
-
     if (data.Flags0.SpeciesFlag)
     {
         const auto previousId = PChar->m_PMonstrosity->MonstrosityId;
@@ -803,7 +804,7 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
             {
                 auto proposedEquipped = PChar->m_PMonstrosity->EquippedInstincts;
                 proposedEquipped[idx] = requestedInstinct;
-                const auto totalCost = TotalInstinctCost(resolveInstinctCosts(proposedEquipped));
+                const auto totalCost = TotalInstinctCost(ResolveEquippedInstinctCosts(gMonstrosityInstinctMap, proposedEquipped));
                 rejectLoadout = ShouldRejectInstinctLoadout(totalCost, maxPoints, HasDuplicateInstincts(proposedEquipped));
             }
 
