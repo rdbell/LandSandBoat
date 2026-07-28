@@ -2597,6 +2597,7 @@ auto runLatentTargetSelection7519SelfTests() -> bool;
 auto runLatentTimeSelection7520SelfTests() -> bool;
 auto runLatentStatusSelection7521SelfTests() -> bool;
 auto runLatentJobLevelSelection7522SelfTests() -> bool;
+auto runLatentWeaponDrawPlan7523SelfTests() -> bool;
 auto runInstanceLoaderCreate7504SelfTests() -> bool;
 auto runInstanceLoaderMob7505SelfTests() -> bool;
 auto runInstanceLoaderLoad7506SelfTests() -> bool;
@@ -5191,6 +5192,7 @@ namespace
         ok = runLatentTimeSelection7520SelfTests() && ok;
         ok = runLatentStatusSelection7521SelfTests() && ok;
         ok = runLatentJobLevelSelection7522SelfTests() && ok;
+        ok = runLatentWeaponDrawPlan7523SelfTests() && ok;
         ok = runInstanceLoaderCreate7504SelfTests() && ok;
         ok = runInstanceLoaderMob7505SelfTests() && ok;
         ok = runInstanceLoaderLoad7506SelfTests() && ok;

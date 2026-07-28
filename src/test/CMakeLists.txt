@@ -86,6 +86,7 @@ set(SOURCES
     test_latent_time_selection_7520.cpp
     test_latent_status_selection_7521.cpp
     test_latent_job_level_selection_7522.cpp
+    test_latent_weapon_draw_plan_7523.cpp
     test_application.h
     test_application.cpp
     test_application_lifecycle_2554.h

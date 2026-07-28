@@ -25,6 +25,7 @@
 #include "latent_status_selection.h"
 #include "latent_target_selection.h"
 #include "latent_time_selection.h"
+#include "latent_weapon_draw_plan.h"
 #include "latent_zone_selection.h"
 
 #include "ai/ai_container.h"
@@ -263,57 +264,17 @@ void CLatentEffectContainer::CheckLatentsWeaponDraw(bool drawn)
     ProcessLatentEffects(
         [this, drawn](CLatentEffect& latentEffect)
         {
-            if (drawn)
+            switch (latenthelpers::DetermineWeaponDrawLatentAction(
+                latentEffect.GetConditionsID(), drawn, m_POwner->health.hp, m_POwner->health.mp, latentEffect.GetConditionsValue()))
             {
-                switch (latentEffect.GetConditionsID())
-                {
-                    case xi::Latent::WeaponDrawn:
-                        return latentEffect.Activate();
-                        break;
-                    case xi::Latent::WeaponDrawnMpOver:
-                        if (m_POwner->health.mp > latentEffect.GetConditionsValue())
-                        {
-                            return latentEffect.Activate();
-                        }
-                        else
-                        {
-                            return latentEffect.Deactivate();
-                        }
-                        break;
-                    case xi::Latent::WeaponDrawnHpUnder:
-                        if (m_POwner->health.hp < latentEffect.GetConditionsValue())
-                        {
-                            return latentEffect.Activate();
-                        }
-                        else
-                        {
-                            return latentEffect.Deactivate();
-                        }
-                        break;
-                    case xi::Latent::WeaponSheathed:
-                        return latentEffect.Deactivate();
-                        break;
-                    default:
-                        break;
-                }
+                case latenthelpers::WeaponDrawLatentAction::Activate:
+                    return latentEffect.Activate();
+                case latenthelpers::WeaponDrawLatentAction::Deactivate:
+                    return latentEffect.Deactivate();
+                case latenthelpers::WeaponDrawLatentAction::Ignore:
+                default:
+                    return false;
             }
-            else
-            {
-                switch (latentEffect.GetConditionsID())
-                {
-                    case xi::Latent::WeaponDrawn:
-                    case xi::Latent::WeaponDrawnMpOver:
-                    case xi::Latent::WeaponDrawnHpUnder:
-                        return latentEffect.Deactivate();
-                        break;
-                    case xi::Latent::WeaponSheathed:
-                        return latentEffect.Activate();
-                        break;
-                    default:
-                        break;
-                }
-            }
-            return false;
         });
 }
 
