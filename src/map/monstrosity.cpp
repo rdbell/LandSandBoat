@@ -183,33 +183,36 @@ void monstrosity::ReadMonstrosityData(CCharEntity* PChar)
 
     if (rset && rset->rowsCount() && rset->next())
     {
-        data->MonstrosityId = rset->get<uint8>("current_monstrosity_id");
-        data->Species       = rset->get<uint16>("current_monstrosity_species");
-        data->Look          = gMonstrositySpeciesMap[data->Species].look;
-
-        data->NamePrefix1 = rset->get<uint8>("current_monstrosity_name_prefix_1");
-        data->NamePrefix2 = rset->get<uint8>("current_monstrosity_name_prefix_2");
-        data->CurrentExp  = rset->get<uint32>("current_exp");
-
-        data->EquippedInstincts = rset->get<std::array<uint16, 12>>("equip");
-        data->levels            = rset->get<std::array<uint8, 128>>("levels");
-        data->instincts         = rset->get<std::array<uint8, 64>>("instincts");
-        data->variants          = rset->get<std::array<uint8, 32>>("variants");
-
-        data->Belligerency = static_cast<bool>(rset->get<uint32>("belligerency"));
-
-        data->EntryPos.x        = rset->get<float>("entry_x");
-        data->EntryPos.y        = rset->get<float>("entry_y");
-        data->EntryPos.z        = rset->get<float>("entry_z");
-        data->EntryPos.rotation = rset->get<uint8>("entry_rot");
-        data->EntryZoneId       = rset->get<uint16>("entry_zone_id");
-        data->EntryMainJob      = rset->get<uint8>("entry_mjob");
-        data->EntrySubJob       = rset->get<uint8>("entry_sjob");
-
-        // Build additional data from lookups
-        data->MainJob = gMonstrositySpeciesMap[data->Species].mjob;
-        data->SubJob  = gMonstrositySpeciesMap[data->Species].sjob;
-        data->Size    = gMonstrositySpeciesMap[data->Species].size;
+        auto row = MonstrosityDataRow{
+            .monstrosityId     = rset->get<uint8>("current_monstrosity_id"),
+            .species           = rset->get<uint16>("current_monstrosity_species"),
+            .namePrefix1       = rset->get<uint8>("current_monstrosity_name_prefix_1"),
+            .namePrefix2       = rset->get<uint8>("current_monstrosity_name_prefix_2"),
+            .currentExp        = rset->get<uint32>("current_exp"),
+            .equippedInstincts = rset->get<std::array<uint16, 12>>("equip"),
+            .levels            = rset->get<std::array<uint8, 128>>("levels"),
+            .instincts         = rset->get<std::array<uint8, 64>>("instincts"),
+            .variants          = rset->get<std::array<uint8, 32>>("variants"),
+            .belligerency      = static_cast<bool>(rset->get<uint32>("belligerency")),
+            .entryZoneId  = rset->get<uint16>("entry_zone_id"),
+            .entryMainJob = rset->get<uint8>("entry_mjob"),
+            .entrySubJob  = rset->get<uint8>("entry_sjob"),
+        };
+        row.entryPos.x        = rset->get<float>("entry_x");
+        row.entryPos.y        = rset->get<float>("entry_y");
+        row.entryPos.z        = rset->get<float>("entry_z");
+        row.entryPos.rotation = rset->get<uint8>("entry_rot");
+        const auto& species = gMonstrositySpeciesMap[row.species];
+        *data = BuildMonstrosityData(
+            true,
+            row,
+            true,
+            {
+                .look    = species.look,
+                .mainJob = species.mjob,
+                .subJob  = species.sjob,
+                .size    = species.size,
+            });
 
         // TODO:
         auto level  = data->levels[data->MonstrosityId];
@@ -217,6 +220,45 @@ void monstrosity::ReadMonstrosityData(CCharEntity* PChar)
     }
 
     PChar->m_PMonstrosity = std::move(data);
+}
+
+monstrosity::MonstrosityData_t monstrosity::BuildMonstrosityData(const bool hasRow, const MonstrosityDataRow& row, const bool hasSpecies, const SpeciesRuntimeData& species)
+{
+    auto data = MonstrosityData_t{};
+    if (!hasRow)
+    {
+        return data;
+    }
+
+    data.MonstrosityId     = row.monstrosityId;
+    data.Species           = row.species;
+    data.NamePrefix1       = row.namePrefix1;
+    data.NamePrefix2       = row.namePrefix2;
+    data.CurrentExp        = row.currentExp;
+    data.EquippedInstincts = row.equippedInstincts;
+    data.levels            = row.levels;
+    data.instincts         = row.instincts;
+    data.variants          = row.variants;
+    data.Belligerency      = row.belligerency;
+    data.EntryPos          = row.entryPos;
+    data.EntryZoneId       = row.entryZoneId;
+    data.EntryMainJob      = row.entryMainJob;
+    data.EntrySubJob       = row.entrySubJob;
+    if (hasSpecies)
+    {
+        data.Look    = species.look;
+        data.MainJob = species.mainJob;
+        data.SubJob  = species.subJob;
+        data.Size    = species.size;
+    }
+    else
+    {
+        data.Look    = 0;
+        data.MainJob = JOB_NON;
+        data.SubJob  = JOB_NON;
+        data.Size    = 0;
+    }
+    return data;
 }
 
 void monstrosity::WriteMonstrosityData(CCharEntity* PChar)

@@ -1332,6 +1332,7 @@ auto runMonstrositySpeciesChange7486SelfTests() -> bool;
 auto runMonstrosityDescriptorUpdate7487SelfTests() -> bool;
 auto runMonstrosityInstinctSlotUpdate7488SelfTests() -> bool;
 auto runMonstrosityPopulate7489SelfTests() -> bool;
+auto runMonstrosityStoredData7490SelfTests() -> bool;
 auto runS2CMiscDataStatusIconsPacketSelfTests() -> bool;
 auto runS2CMiscDataUnknownPacketSelfTests() -> bool;
 auto runS2CMiscDataUnityPacketSelfTests() -> bool;
@@ -3894,6 +3895,7 @@ namespace
         ok = runMonstrosityDescriptorUpdate7487SelfTests() && ok;
         ok = runMonstrosityInstinctSlotUpdate7488SelfTests() && ok;
         ok = runMonstrosityPopulate7489SelfTests() && ok;
+        ok = runMonstrosityStoredData7490SelfTests() && ok;
         ok = runS2CMiscDataStatusIconsPacketSelfTests() && ok;
         ok = runS2CMiscDataUnknownPacketSelfTests() && ok;
         ok = runS2CMiscDataUnityPacketSelfTests() && ok;
