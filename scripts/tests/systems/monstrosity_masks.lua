@@ -401,3 +401,18 @@ describe('Terynon special-effect event-finish plan', function()
         assert(xi.monstrosity.specialEffectEventFinishPlan(2, 1, false, 999999) == nil)
     end)
 end)
+
+describe('Terynon trigger plan', function()
+    it('starts event 7 with infamy followed by seven empty arguments', function()
+        local plan = xi.monstrosity.teyrnonTriggerPlan(1, 1234)
+        assert(plan.csid == 7 and plan.args[1] == 1234)
+        for index = 2, 8 do
+            assert(plan.args[index] == 0, index)
+        end
+    end)
+
+    it('requires the setting to be exactly one', function()
+        assert(xi.monstrosity.teyrnonTriggerPlan(0, 1234) == nil)
+        assert(xi.monstrosity.teyrnonTriggerPlan(2, 1234) == nil)
+    end)
+end)

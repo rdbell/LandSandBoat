@@ -1243,6 +1243,16 @@ xi.monstrosity.specialEffectEventFinishPlan = function(option, mainLevel, enhanc
     return xi.monstrosity.specialEffectPlan(bit.rshift(option, 8), mainLevel, enhancedReceived, infamy)
 end
 
+-- Plans Terynon's opening event. The source setting must be exactly one,
+-- matching the NPC's ENABLE_MONSTROSITY gate.
+xi.monstrosity.teyrnonTriggerPlan = function(monstrosityEnabled, infamy)
+    if monstrosityEnabled ~= 1 then
+        return nil
+    end
+
+    return { csid = 7, args = { infamy, 0, 0, 0, 0, 0, 0, 0 } }
+end
+
 -----------------------------------
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
@@ -1557,11 +1567,14 @@ xi.monstrosity.teyrnonOnTrade = function(player, npc, trade)
 end
 
 xi.monstrosity.teyrnonOnTrigger = function(player, npc)
-    if xi.settings.main.ENABLE_MONSTROSITY ~= 1 then
-        return
-    end
+    local plan = xi.monstrosity.teyrnonTriggerPlan(
+        xi.settings.main.ENABLE_MONSTROSITY,
+        player:getCurrency('infamy')
+    )
 
-    player:startEvent(7, player:getCurrency('infamy'), 0, 0, 0, 0, 0, 0, 0)
+    if plan then
+        player:startEvent(plan.csid, unpack(plan.args))
+    end
 end
 
 xi.monstrosity.teyrnonOnEventUpdate = function(player, csid, option, npc)
