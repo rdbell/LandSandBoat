@@ -89,6 +89,7 @@ set(SOURCES
     test_latent_weapon_draw_plan_7523.cpp
     test_latent_party_member_plan_7524.cpp
     test_latent_food_selection_7525.cpp
+    test_latent_roll_song_selection_7526.cpp
     test_application.h
     test_application.cpp
     test_application_lifecycle_2554.h

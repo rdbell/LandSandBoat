@@ -24,6 +24,7 @@
 #include "latent_food_selection.h"
 #include "latent_job_level_selection.h"
 #include "latent_party_member_plan.h"
+#include "latent_roll_song_selection.h"
 #include "latent_status_selection.h"
 #include "latent_target_selection.h"
 #include "latent_time_selection.h"
@@ -330,14 +331,9 @@ void CLatentEffectContainer::CheckLatentsRollSong()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            switch (latentEffect.GetConditionsID())
+            if (latenthelpers::ShouldProcessRollSongLatent(latentEffect.GetConditionsID()))
             {
-                case xi::Latent::SongRollActive:
-                case xi::Latent::ElevenRollActive:
-                    return ProcessLatentEffect(latentEffect);
-                    break;
-                default:
-                    break;
+                return ProcessLatentEffect(latentEffect);
             }
             return false;
         });
