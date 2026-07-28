@@ -268,6 +268,9 @@ void monstrosity::WriteMonstrosityData(CCharEntity* PChar)
         return;
     }
 
+    auto plan = PlanMonstrosityDataWrite(true, PChar->id, *PChar->m_PMonstrosity);
+    auto& data = plan.values;
+
     const char* query =
         "INSERT INTO char_monstrosity SET "
         "charid = ?, "
@@ -309,24 +312,53 @@ void monstrosity::WriteMonstrosityData(CCharEntity* PChar)
 
     db::preparedStmt(
         query,
-        PChar->id,
-        PChar->m_PMonstrosity->MonstrosityId,
-        PChar->m_PMonstrosity->Species,
-        PChar->m_PMonstrosity->NamePrefix1,
-        PChar->m_PMonstrosity->NamePrefix2,
-        PChar->m_PMonstrosity->CurrentExp,
-        PChar->m_PMonstrosity->EquippedInstincts,
-        PChar->m_PMonstrosity->levels,
-        PChar->m_PMonstrosity->instincts,
-        PChar->m_PMonstrosity->variants,
-        static_cast<uint8>(PChar->m_PMonstrosity->Belligerency),
-        PChar->m_PMonstrosity->EntryPos.x,
-        PChar->m_PMonstrosity->EntryPos.y,
-        PChar->m_PMonstrosity->EntryPos.z,
-        PChar->m_PMonstrosity->EntryPos.rotation,
-        PChar->m_PMonstrosity->EntryZoneId,
-        PChar->m_PMonstrosity->EntryMainJob,
-        PChar->m_PMonstrosity->EntrySubJob);
+        data.charId,
+        data.monstrosityId,
+        data.species,
+        data.namePrefix1,
+        data.namePrefix2,
+        data.currentExp,
+        data.equippedInstincts,
+        data.levels,
+        data.instincts,
+        data.variants,
+        data.belligerency,
+        data.entryPos.x,
+        data.entryPos.y,
+        data.entryPos.z,
+        data.entryPos.rotation,
+        data.entryZoneId,
+        data.entryMainJob,
+        data.entrySubJob);
+}
+
+monstrosity::MonstrosityDataWritePlan monstrosity::PlanMonstrosityDataWrite(const bool hasData, const uint32 charId, const MonstrosityData_t& data)
+{
+    if (!hasData)
+    {
+        return {};
+    }
+
+    return {
+        .write = true,
+        .values = {
+            .charId            = charId,
+            .monstrosityId     = data.MonstrosityId,
+            .species           = data.Species,
+            .namePrefix1       = data.NamePrefix1,
+            .namePrefix2       = data.NamePrefix2,
+            .currentExp        = data.CurrentExp,
+            .equippedInstincts = data.EquippedInstincts,
+            .levels            = data.levels,
+            .instincts         = data.instincts,
+            .variants          = data.variants,
+            .belligerency      = static_cast<uint8>(data.Belligerency),
+            .entryPos          = data.EntryPos,
+            .entryZoneId       = data.EntryZoneId,
+            .entryMainJob      = data.EntryMainJob,
+            .entrySubJob       = data.EntrySubJob,
+        },
+    };
 }
 
 void monstrosity::TryPopulateMonstrosityData(CCharEntity* PChar)

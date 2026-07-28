@@ -173,6 +173,31 @@ struct SpeciesRuntimeData
     uint8   size{};
 };
 
+struct MonstrosityDataWrite
+{
+    uint32                charId{};
+    uint8                 monstrosityId{};
+    uint16                species{};
+    uint8                 namePrefix1{};
+    uint8                 namePrefix2{};
+    uint32                currentExp{};
+    std::array<uint16, 12> equippedInstincts{};
+    std::array<uint8, 128> levels{};
+    std::array<uint8, 64>  instincts{};
+    std::array<uint8, 32>  variants{};
+    uint8                 belligerency{};
+    position_t            entryPos{};
+    uint16                entryZoneId{};
+    uint8                 entryMainJob{};
+    uint8                 entrySubJob{};
+};
+
+struct MonstrosityDataWritePlan
+{
+    bool                  write{};
+    MonstrosityDataWrite values{};
+};
+
 void LoadStaticData();
 
 void ReadMonstrosityData(CCharEntity* PChar);
@@ -197,6 +222,7 @@ DescriptorUpdatePlan PlanDescriptorUpdate(bool speciesFlag, bool instinctFlag, b
 InstinctSlotUpdatePlan PlanInstinctSlotUpdate(uint16 requestedInstinct, bool hasCatalogEntry, bool isUnlocked, bool rejectLoadout);
 PopulateMonstrosityDataPlan PlanPopulateMonstrosityData(bool monstrosityEnabled, uint8 mainJob);
 MonstrosityData_t BuildMonstrosityData(bool hasRow, const MonstrosityDataRow& row, bool hasSpecies, const SpeciesRuntimeData& species);
+MonstrosityDataWritePlan PlanMonstrosityDataWrite(bool hasData, uint32 charId, const MonstrosityData_t& data);
 
 bool IsInstinctUnlocked(CCharEntity* PChar, uint16 instinct);
 bool IsVariantUnlocked(CCharEntity* PChar, uint8 variant);

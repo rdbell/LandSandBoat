@@ -42,7 +42,7 @@ auto runMonstrosityStoredData7490SelfTests() -> bool
     row.instincts[10]        = 0xAA;
     row.variants[4]          = 0x55;
 
-    const auto species = SpeciesRuntimeData{ .look = 0x4321, .mainJob = JOB_WAR, .subJob = 2, .size = 2 };
+    const auto species = SpeciesRuntimeData{ .look = 0x4321, .mainJob = JOB_WAR, .subJob = static_cast<JOBTYPE>(2), .size = 2 };
     const auto loaded  = BuildMonstrosityData(true, row, true, species);
     if (loaded.MonstrosityId != 43 || loaded.Species != 99 || loaded.Look != 0x4321 || loaded.MainJob != JOB_WAR || loaded.SubJob != 2 || loaded.Size != 2 || loaded.NamePrefix1 != 12 || loaded.NamePrefix2 != 34 || loaded.CurrentExp != 5678 || loaded.EquippedInstincts[2] != 321 || loaded.levels[43] != 55 || loaded.instincts[10] != 0xAA || loaded.variants[4] != 0x55 || !loaded.Belligerency || loaded.EntryPos.x != 1.5F || loaded.EntryPos.y != -2.5F || loaded.EntryPos.z != 3.5F || loaded.EntryPos.rotation != 16 || loaded.EntryZoneId != 777 || loaded.EntryMainJob != 4 || loaded.EntrySubJob != 5)
     {
