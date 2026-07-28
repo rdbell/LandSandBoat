@@ -28,6 +28,7 @@
 #include "latent_status_selection.h"
 #include "latent_target_selection.h"
 #include "latent_time_selection.h"
+#include "latent_weapon_break_selection.h"
 #include "latent_weapon_draw_plan.h"
 #include "latent_zone_selection.h"
 
@@ -564,7 +565,7 @@ void CLatentEffectContainer::CheckLatentsWeaponBreak(uint8 slot)
     ProcessLatentEffects(
         [this, slot](CLatentEffect& latentEffect)
         {
-            if (latentEffect.GetConditionsID() == xi::Latent::WeaponBroken && latentEffect.GetConditionsValue() == slot)
+            if (latenthelpers::ShouldProcessWeaponBreakLatent(latentEffect.GetConditionsID(), latentEffect.GetConditionsValue(), slot))
             {
                 return ProcessLatentEffect(latentEffect);
             }
