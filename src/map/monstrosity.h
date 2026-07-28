@@ -141,6 +141,12 @@ struct InstinctSlotUpdatePlan
     bool   abortHandler{};
 };
 
+struct PopulateMonstrosityDataPlan
+{
+    bool readData{};
+    bool writeData{};
+};
+
 void LoadStaticData();
 
 void ReadMonstrosityData(CCharEntity* PChar);
@@ -163,6 +169,7 @@ MonsterSkillActionPlan PlanMonsterSkillAction(uint8 mainJob, bool hasMonstrosity
 SpeciesChangePlan PlanSpeciesChange(bool hasCandidate, uint16 speciesIndex, const SpeciesChangeCandidate& candidate, uint8 previousMonstrosityId, uint8 speciesLevel, bool variantUnlocked, bool dontWipeBuffs);
 DescriptorUpdatePlan PlanDescriptorUpdate(bool speciesFlag, bool instinctFlag, bool descriptor1Flag, bool descriptor2Flag, uint8 descriptor1Index, uint8 descriptor2Index);
 InstinctSlotUpdatePlan PlanInstinctSlotUpdate(uint16 requestedInstinct, bool hasCatalogEntry, bool isUnlocked, bool rejectLoadout);
+PopulateMonstrosityDataPlan PlanPopulateMonstrosityData(bool monstrosityEnabled, uint8 mainJob);
 
 bool IsInstinctUnlocked(CCharEntity* PChar, uint16 instinct);
 bool IsVariantUnlocked(CCharEntity* PChar, uint8 variant);

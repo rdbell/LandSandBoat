@@ -291,14 +291,33 @@ void monstrosity::TryPopulateMonstrosityData(CCharEntity* PChar)
 {
     TracyZoneScoped;
 
-    if (settings::get<bool>("main.ENABLE_MONSTROSITY") && PChar->GetMJob() == JOB_MON)
+    const auto plan = PlanPopulateMonstrosityData(
+        settings::get<bool>("main.ENABLE_MONSTROSITY"),
+        PChar->GetMJob());
+    if (plan.readData)
     {
         // Populates PChar->m_PMonstrosity
         ReadMonstrosityData(PChar);
+    }
 
+    if (plan.writeData)
+    {
         // This handles !monstrosity GM command, is this needed?
         WriteMonstrosityData(PChar);
     }
+}
+
+monstrosity::PopulateMonstrosityDataPlan monstrosity::PlanPopulateMonstrosityData(const bool monstrosityEnabled, const uint8 mainJob)
+{
+    if (!monstrosityEnabled || mainJob != JOB_MON)
+    {
+        return {};
+    }
+
+    return {
+        .readData  = true,
+        .writeData = true,
+    };
 }
 
 monstrosity::ZoneInPlan monstrosity::PlanZoneIn(const bool monstrosityEnabled, const bool hasMonstrosity, const bool isFeretory, const bool belligerency)
