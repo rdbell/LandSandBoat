@@ -31,6 +31,21 @@ xi.mix.rampart.combatPlan = function(time, swapTime, prevented, animationSub)
     end
 end
 
+xi.mix.rampart.shouldDisableTimedSpawn = function(spawnAvailable, numberSpawned, spawnLimit)
+    return not spawnAvailable or (numberSpawned >= spawnLimit and spawnLimit ~= 0)
+end
+
+xi.mix.rampart.nextPetTime = function(now, roll)
+    return (roll * 5) + 45 + now
+end
+
+xi.mix.rampart.nextPetAfterSpawn = function(timedSpawn, nextPet, roll)
+    if timedSpawn > 1 then return timedSpawn + nextPet end
+    return xi.mix.rampart.nextPetTime(nextPet, roll)
+end
+
+xi.mix.rampart.isPetDue = function(now, nextPet) return now > nextPet end
+
 g_mixins.families.rampart = function(rampartMob)
     -- AnimationSub for Ramparts
     local doorClosed = 0
@@ -76,28 +91,24 @@ g_mixins.families.rampart = function(rampartMob)
                 end
             end
 
-            if not spawnAvail or (mob:getLocalVar('numberSpawned') >= limit and limit ~= 0) then
+            if xi.mix.rampart.shouldDisableTimedSpawn(spawnAvail, mob:getLocalVar('numberSpawned'), limit) then
                 mob:setLocalVar('timedSpawn', 0)
                 return
             end
 
             if not mob:hasPreventActionEffect() then
                 if mob:getLocalVar('nextPet') == 0 then
-                    mob:setLocalVar('nextPet', (math.random(0, 3) * 5) + 45 + time)
+                    mob:setLocalVar('nextPet', xi.mix.rampart.nextPetTime(time, math.random(0, 3)))
                 end
 
                 local nextPet = mob:getLocalVar('nextPet')
 
-                if time > nextPet then
+                if xi.mix.rampart.isPetDue(time, nextPet) then
                     for number = 1, count do
                         local add = GetMobByID(mobID + number, instance)
                         if add and not add:isSpawned() then
                             add:setLocalVar('masterID', mobID)
-                            if timedSpawn > 1 then
-                                mob:setLocalVar('nextPet', timedSpawn + nextPet)
-                            else
-                                mob:setLocalVar('nextPet', (math.random(0, 3) * 5) + 45 + nextPet)
-                            end
+                            mob:setLocalVar('nextPet', xi.mix.rampart.nextPetAfterSpawn(timedSpawn, nextPet, math.random(0, 3)))
 
                             mob:useMobAbility(2034)
                             -- Setup add with var with masters ID to allow respawning on death of it.
