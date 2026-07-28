@@ -23,6 +23,7 @@
 #include "zone_entities_npc_insert.h"
 #include "zone_entities_summon_insert.h"
 #include "zone_entities_transport_depart.h"
+#include "zone_entities_mob_insert.h"
 #include "zone_capacity.h"
 #include "common/utils.h"
 #include "enmity_container.h"
@@ -259,7 +260,8 @@ void CZoneEntities::InsertAlly(CBaseEntity* PMob)
 {
     TracyZoneScoped;
 
-    if (PMob != nullptr && PMob->objtype == TYPE_MOB)
+    const auto plan = zoneentities::PlanMobInsertion(PMob != nullptr && PMob->objtype == TYPE_MOB, true);
+    if (plan.insert)
     {
         PMob->loc.zone           = m_zone;
         m_allyList[PMob->targid] = PMob;
@@ -272,7 +274,8 @@ void CZoneEntities::InsertMOB(CBaseEntity* PMob)
 {
     TracyZoneScoped;
 
-    if (PMob != nullptr && PMob->objtype == TYPE_MOB)
+    const auto plan = zoneentities::PlanMobInsertion(PMob != nullptr && PMob->objtype == TYPE_MOB, false);
+    if (plan.insert)
     {
         PMob->loc.zone = m_zone;
 
