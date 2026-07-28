@@ -35,6 +35,7 @@ constexpr std::uint16_t WeatherCycle = 2160;
 #include "zone.h"
 #include "level_sync_departure.h"
 #include "zone_in_battlefield.h"
+#include "zone_treasure_reset.h"
 
 #include "trigger_area_dispatch.h"
 #include "zone_capacity.h"
@@ -1250,7 +1251,10 @@ void CZone::CharZoneOut(CCharEntity* PChar)
 
     // If zone-wide treasure pool but no players in zone then destroy current pool and create new pool
     // this prevents loot from staying in zone pool after the last player leaves the zone
-    if (m_TreasurePool && m_TreasurePool->getPoolType() == TreasurePoolType::Zone && m_zoneEntities->CharListEmpty())
+    const auto hasPool       = m_TreasurePool != nullptr;
+    const auto isZonePool    = hasPool && m_TreasurePool->getPoolType() == TreasurePoolType::Zone;
+    const auto charListEmpty = isZonePool && m_zoneEntities->CharListEmpty();
+    if (zonehelpers::ShouldResetZoneTreasurePool(hasPool, isZonePool, charListEmpty))
     {
         destroy(m_TreasurePool);
         m_TreasurePool = new CTreasurePool(TreasurePoolType::Zone);

@@ -78,6 +78,7 @@ set(SOURCES
     test_battlefield_handler_lookup_7512.cpp
     test_zone_in_battlefield_7513.cpp
     test_level_sync_departure_7514.cpp
+    test_zone_treasure_reset_7515.cpp
     test_application.h
     test_application.cpp
     test_application_lifecycle_2554.h
