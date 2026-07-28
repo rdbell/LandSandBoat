@@ -1058,10 +1058,11 @@ local function getLimitBreakMask(player)
     end)
 end
 
-local function hasPurchaseRequirements(player, monCategory, selectedMon)
-    local selectedMonData = terynonMonData[monCategory][selectedMon]
-    local eligibleSpecies = selectedMonData.monSpecies and xi.monstrosity.getSpeciesLevel(player, selectedMonData.monSpecies) == 0
-    local eligibleVariant = selectedMonData.monVariant and not xi.monstrosity.hasUnlockedVariant(player, selectedMonData.monVariant)
+-- Determines whether a Terynon MON offer unlocks something new and satisfies
+-- all of its species-level prerequisites. Host player lookups are injected.
+xi.monstrosity.purchaseRequirementsMet = function(selectedMonData, speciesLevel, hasUnlockedVariant)
+    local eligibleSpecies = selectedMonData.monSpecies and speciesLevel(selectedMonData.monSpecies) == 0
+    local eligibleVariant = selectedMonData.monVariant and not hasUnlockedVariant(selectedMonData.monVariant)
 
     if
         eligibleSpecies or
@@ -1069,7 +1070,7 @@ local function hasPurchaseRequirements(player, monCategory, selectedMon)
     then
         if selectedMonData.requirements then
             for _, reqTable in ipairs(selectedMonData.requirements) do
-                if xi.monstrosity.getSpeciesLevel(player, reqTable[1]) < reqTable[2] then
+                if speciesLevel(reqTable[1]) < reqTable[2] then
                     return false
                 end
             end
@@ -1079,6 +1080,16 @@ local function hasPurchaseRequirements(player, monCategory, selectedMon)
     end
 
     return false
+end
+
+local function hasPurchaseRequirements(player, monCategory, selectedMon)
+    local selectedMonData = terynonMonData[monCategory][selectedMon]
+
+    return xi.monstrosity.purchaseRequirementsMet(
+        selectedMonData,
+        function(species) return xi.monstrosity.getSpeciesLevel(player, species) end,
+        function(variant) return xi.monstrosity.hasUnlockedVariant(player, variant) end
+    )
 end
 
 local function getMonPageMask(player, monCategory)

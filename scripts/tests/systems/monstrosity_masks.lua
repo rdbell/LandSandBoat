@@ -135,3 +135,33 @@ describe('Monstrosity limit break mask', function()
         assert(mask == 0, mask)
     end)
 end)
+
+describe('Terynon MON purchase requirements', function()
+    local function speciesLevel(levels)
+        return function(species) return levels[species] or 0 end
+    end
+
+    it('admits a locked species with satisfied prerequisites', function()
+        local offer = { monSpecies = 5, requirements = { { 1, 2 }, { 2, 1 } } }
+        assert(xi.monstrosity.purchaseRequirementsMet(offer, speciesLevel({ [1] = 2, [2] = 1 }), function() return false end))
+    end)
+
+    it('rejects an unlocked species, locked prerequisite, or unlocked variant', function()
+        local species = { monSpecies = 5 }
+        assert(not xi.monstrosity.purchaseRequirementsMet(species, speciesLevel({ [5] = 1 }), function() return false end))
+
+        local gated = { monSpecies = 5, requirements = { { 1, 2 } } }
+        assert(not xi.monstrosity.purchaseRequirementsMet(gated, speciesLevel({ [1] = 1 }), function() return false end))
+
+        local variant = { monVariant = 9 }
+        assert(not xi.monstrosity.purchaseRequirementsMet(variant, speciesLevel({}), function() return true end))
+    end)
+
+    it('admits a locked variant and accepts either new unlock type', function()
+        local variant = { monVariant = 9 }
+        assert(xi.monstrosity.purchaseRequirementsMet(variant, speciesLevel({}), function() return false end))
+
+        local both = { monSpecies = 5, monVariant = 9 }
+        assert(xi.monstrosity.purchaseRequirementsMet(both, speciesLevel({ [5] = 1 }), function() return false end))
+    end)
+end)
