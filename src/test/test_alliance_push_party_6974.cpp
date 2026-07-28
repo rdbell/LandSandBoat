@@ -30,6 +30,7 @@ auto runAlliancePushParty6974SelfTests() -> bool
     CTreasurePool oldPool(TreasurePoolType::Solo);
     CTreasurePool candidatePool(TreasurePoolType::Solo);
     CCharEntity   self;
+    CCharEntity   oldPoolKeeper;
     CCharEntity   candidate;
     CAlliance     alliance(1);
     CParty        party(2);
@@ -43,6 +44,8 @@ auto runAlliancePushParty6974SelfTests() -> bool
 
     self.PTreasurePool = &oldPool;
     oldPool.addMember(&self);
+    oldPoolKeeper.PTreasurePool = &oldPool;
+    oldPool.addMember(&oldPoolKeeper);
     candidate.PTreasurePool = &candidatePool;
     candidatePool.addMember(&candidate);
 
@@ -54,6 +57,7 @@ auto runAlliancePushParty6974SelfTests() -> bool
                     expect(!oldPool.isMember(&self) && candidatePool.isMember(&self), "member moves to candidate pool");
 
     self.PTreasurePool      = nullptr;
+    oldPoolKeeper.PTreasurePool = nullptr;
     candidate.PTreasurePool = nullptr;
     self.PParty             = nullptr;
     candidate.PParty        = nullptr;

@@ -1,7 +1,7 @@
 #include "test_treasure_add_member_update_6966.h"
 
-#include "map/enums/packet_s2c.h"
 #include "map/entities/char_entity.h"
+#include "map/enums/packet_s2c.h"
 #include "map/treasure_pool.h"
 
 #include <iostream>
@@ -27,6 +27,7 @@ auto runTreasureAddMemberUpdate6966SelfTests() -> bool
 {
     CTreasurePool pool(TreasurePoolType::Solo);
     CCharEntity   member;
+    member.status        = STATUS_TYPE::NORMAL;
     member.PTreasurePool = &pool;
 
     pool.addMember(&member);

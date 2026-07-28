@@ -27,6 +27,8 @@ auto runTreasurePassAllVotedResolve6965SelfTests() -> bool
     CTreasurePool pool(TreasurePoolType::Party);
     CCharEntity   first;
     CCharEntity   second;
+    first.id             = 6965001;
+    second.id            = 6965002;
     first.PTreasurePool  = &pool;
     second.PTreasurePool = &pool;
     pool.addMember(&first);

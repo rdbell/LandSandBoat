@@ -43,12 +43,15 @@ auto runPartyPushMemberHost7002SelfTests() -> bool
     CTreasurePool candidatePool(TreasurePoolType::Solo);
     CParty        pcParty(2);
     CCharEntity   pushed;
+    CCharEntity   oldPoolKeeper;
     CCharEntity   candidate;
     pushed.loc.destination    = 42;
     candidate.loc.destination = 42;
     pushed.PTreasurePool      = &oldPool;
+    oldPoolKeeper.PTreasurePool = &oldPool;
     candidate.PTreasurePool   = &candidatePool;
     oldPool.addMember(&pushed);
+    oldPool.addMember(&oldPoolKeeper);
     candidatePool.addMember(&candidate);
     candidate.PParty = &pcParty;
     pcParty.members.emplace_back(&candidate);
@@ -59,6 +62,7 @@ auto runPartyPushMemberHost7002SelfTests() -> bool
                              expect(!oldPool.isMember(&pushed) && candidatePool.isMember(&pushed), "pushed character moves to candidate pool");
 
     pushed.PTreasurePool    = nullptr;
+    oldPoolKeeper.PTreasurePool = nullptr;
     candidate.PTreasurePool = nullptr;
     pushed.PParty           = nullptr;
     candidate.PParty        = nullptr;

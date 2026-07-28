@@ -33,6 +33,8 @@ auto runTreasureAddItemRareAdmission6971SelfTests() -> bool
         CTreasurePool pool(TreasurePoolType::Party);
         CCharEntity   first;
         CCharEntity   second;
+        first.id             = 6971001;
+        second.id            = 6971002;
         first.PTreasurePool  = &pool;
         second.PTreasurePool = &pool;
         first.getStorage(LOC_INVENTORY)->SetSize(2);
@@ -44,7 +46,7 @@ auto runTreasureAddItemRareAdmission6971SelfTests() -> bool
         first.clearPacketList();
         second.clearPacketList();
 
-        ok = expect(pool.addItem(RareItemID, nullptr) == 0 && pool.itemCount() == 0, "all owners reject rare item") && ok;
+        ok                   = expect(pool.addItem(RareItemID, nullptr) == 0 && pool.itemCount() == 0, "all owners reject rare item") && ok;
         first.PTreasurePool  = nullptr;
         second.PTreasurePool = nullptr;
     }
@@ -52,6 +54,8 @@ auto runTreasureAddItemRareAdmission6971SelfTests() -> bool
         CTreasurePool pool(TreasurePoolType::Party);
         CCharEntity   first;
         CCharEntity   second;
+        first.id             = 6971003;
+        second.id            = 6971004;
         first.PTreasurePool  = &pool;
         second.PTreasurePool = &pool;
         first.getStorage(LOC_INVENTORY)->SetSize(2);
@@ -62,7 +66,7 @@ auto runTreasureAddItemRareAdmission6971SelfTests() -> bool
         first.clearPacketList();
         second.clearPacketList();
 
-        ok = expect(pool.addItem(RareItemID, nullptr) == 1 && pool.itemCount() == 1, "missing owner admits rare item") && ok;
+        ok                   = expect(pool.addItem(RareItemID, nullptr) == 1 && pool.itemCount() == 1, "missing owner admits rare item") && ok;
         first.PTreasurePool  = nullptr;
         second.PTreasurePool = nullptr;
     }

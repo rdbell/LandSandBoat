@@ -70,6 +70,11 @@ auto makeQueryTimer(const std::string& query) -> xi::final_action<std::function<
 
 } // namespace
 
+void db::CachingDatabase::clearConnectionState()
+{
+    tlsStates.erase(this);
+}
+
 auto db::CachingDatabase::getState() -> detail::ConnectionState&
 {
     TracyZoneScoped;

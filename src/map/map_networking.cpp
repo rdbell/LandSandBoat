@@ -435,11 +435,17 @@ int32 MapNetworking::recv_parse(uint8* buff, size_t* buffsize, MapSession* PSess
             PSession->hasDecryptedPacket = true;
         }
 
-        // reading data size
-        uint32 PacketDataSize = ref<uint32>(buff, *buffsize - sizeof(int32) - 16);
+        const auto compressedSize = *buffsize - FFXI_HEADER_SIZE - 16;
+        const auto bitSize        = ref<uint32>(buff, *buffsize - sizeof(int32) - 16);
+        if (!mapnetworkinghelpers::HasCompressedPayloadMarker(buff[FFXI_HEADER_SIZE]) ||
+            !mapnetworkinghelpers::HasValidCompressedBitCount(bitSize, compressedSize))
+        {
+            return decryptCount;
+        }
 
-        // it's decompressing data and getting new size
-        PacketDataSize = zlib_decompress((int8*)(buff + FFXI_HEADER_SIZE), PacketDataSize, (int8*)PScratchBuffer.data(), kMaxBufferSize);
+        // Exclude the marker byte from the encoded bit count. zlib_decompress
+        // starts after that byte, and treating it as data emits a spurious byte.
+        uint32 PacketDataSize = zlib_decompress((int8*)(buff + FFXI_HEADER_SIZE), bitSize - 8, (int8*)PScratchBuffer.data(), kMaxBufferSize);
 
         // Not sure why zlib_decompress is defined to return a uint32 when it returns -1 in situations.
         if (static_cast<int32>(PacketDataSize) != -1)

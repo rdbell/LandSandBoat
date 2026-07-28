@@ -144,7 +144,7 @@ bool CAlliance::isFull() const
 
 uint32 CAlliance::loadPartyCount() const
 {
-    const auto rset = db::preparedStmt("SELECT * FROM accounts_parties WHERE allianceid = ? GROUP BY partyid", m_AllianceID, PARTY_SECOND | PARTY_THIRD);
+    const auto rset = db::preparedStmt("SELECT * FROM accounts_parties WHERE allianceid = ? GROUP BY partyid", m_AllianceID);
     return alliancehelpers::LoadPartyCountFromQuery(static_cast<bool>(rset), rset ? rset->rowsCount() : 0);
 }
 

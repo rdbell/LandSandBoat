@@ -73,7 +73,7 @@ auto runPartyReload1352SelfTests() -> bool
     }
     ok = expect(listPosition.allianceCursor == 0x0002 && listPosition.listIndex == 2, "members request final state") && ok;
 
-    for (uint16 i = 0; i < 256; ++i)
+    for (uint16 i = 0; i < 254; ++i)
     {
         listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
     }

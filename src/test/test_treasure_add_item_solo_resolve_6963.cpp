@@ -30,13 +30,14 @@ auto runTreasureAddItemSoloResolve6963SelfTests() -> bool
     {
         CTreasurePool pool(TreasurePoolType::Solo);
         CCharEntity   member;
+        member.id            = 6963001;
         member.PTreasurePool = &pool;
         member.getStorage(LOC_INVENTORY)->SetSize(1);
         pool.addMember(&member);
         member.clearPacketList();
 
-        ok = expect(pool.addItem(1, nullptr) == 1, "solo inserts before resolution") && ok;
-        ok = expect(pool.itemCount() == 0, "solo member with space resolves immediately") && ok;
+        ok                   = expect(pool.addItem(1, nullptr) == 0, "solo returns post-resolution count") && ok;
+        ok                   = expect(pool.itemCount() == 0, "solo member with space resolves immediately") && ok;
         member.PTreasurePool = nullptr;
     }
 
@@ -44,6 +45,8 @@ auto runTreasureAddItemSoloResolve6963SelfTests() -> bool
         CTreasurePool pool(TreasurePoolType::Party);
         CCharEntity   first;
         CCharEntity   second;
+        first.id             = 6963002;
+        second.id            = 6963003;
         first.PTreasurePool  = &pool;
         second.PTreasurePool = &pool;
         first.getStorage(LOC_INVENTORY)->SetSize(1);
@@ -53,8 +56,8 @@ auto runTreasureAddItemSoloResolve6963SelfTests() -> bool
         first.clearPacketList();
         second.clearPacketList();
 
-        ok = expect(pool.addItem(1, nullptr) == 1, "party inserts") && ok;
-        ok = expect(pool.itemCount() == 1, "multiple members defer resolution") && ok;
+        ok                   = expect(pool.addItem(1, nullptr) == 1, "party inserts") && ok;
+        ok                   = expect(pool.itemCount() == 1, "multiple members defer resolution") && ok;
         first.PTreasurePool  = nullptr;
         second.PTreasurePool = nullptr;
     }

@@ -29,6 +29,8 @@
 #include <string>
 
 #include "entities/char_entity.h"
+#include "map/job_points.h"
+#include "map/merit.h"
 #include "map/packets/char_sync.h"
 #include "status_effect_container.h"
 
@@ -56,6 +58,14 @@ auto packetData(CBasicPacket& packet) -> uint8*
 
 void populateChar(CCharEntity& entity, std::uint32_t id, std::uint16_t targid, std::uint8_t mainJobLevel)
 {
+    if (!entity.PJobPoints)
+    {
+        entity.PJobPoints = std::make_unique<CJobPoints>(&entity);
+    }
+    if (!entity.PMeritPoints)
+    {
+        entity.PMeritPoints = std::make_unique<CMeritPoints>(&entity);
+    }
     entity.id                         = id;
     entity.targid                     = targid;
     entity.jobs.job[entity.GetMJob()] = mainJobLevel;

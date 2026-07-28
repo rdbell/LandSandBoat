@@ -28,23 +28,25 @@ auto runPartyPushPacketDispatch6972SelfTests() -> bool
     CParty      party(1);
     CCharEntity sender;
     CCharEntity peer;
-    sender.id = 101;
-    peer.id   = 202;
+    sender.id     = 6972001;
+    sender.status = STATUS_TYPE::NORMAL;
+    peer.id       = 6972002;
+    peer.status   = STATUS_TYPE::NORMAL;
     sender.PParty = &party;
     peer.PParty   = &party;
     party.members.emplace_back(&sender);
     party.members.emplace_back(&peer);
 
     auto packet = std::make_unique<CBasicPacket>();
-    packet->setType(0x4321);
+    packet->setType(0x121);
     party.PushPacket(sender.id, 0, packet);
-    packet->setType(0x1234);
+    packet->setType(0x123);
 
     bool ok = expect(sender.getPacketCount() == 0, "sender is excluded") &&
               expect(peer.getPacketCount() == 1, "eligible peer receives packet");
     if (peer.getPacketCount() == 1)
     {
-        ok = expect(peer.getPacketList().front()->getType() == 0x4321, "peer receives packet copy isolated from source mutation") && ok;
+        ok = expect(peer.getPacketList().front()->getType() == 0x121, "peer receives packet copy isolated from source mutation") && ok;
     }
     sender.PParty = nullptr;
     peer.PParty   = nullptr;

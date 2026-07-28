@@ -17,6 +17,9 @@ describe('Warp Out Ealdnarche mob skill', function()
         assert(skill.onMobSkillCheck({}, mob, sk) == 0)
         assert(skill.onMobWeaponSkill(mob, {}, sk, {}) == 0)
         assert(teleported and msg == xi.msg.basic.NONE)
+
+        mob.getTarget = function() return nil end
+        assert(skill.onMobWeaponSkill(mob, {}, sk, {}) == nil)
         NearLocation = origNear
     end)
 end)

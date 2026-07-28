@@ -19,6 +19,7 @@
 ===========================================================================
 */
 
+#include <common/database/caching_database.h>
 #include <common/database/database.h>
 
 #include <common/database/libmariadb/libmariadb_database.h>
@@ -44,5 +45,9 @@ auto db::getDatabase() -> Database&
 
 auto db::setDatabase(Database* database) -> void
 {
+    if (auto* cachingDatabase = dynamic_cast<CachingDatabase*>(gActiveDatabase))
+    {
+        cachingDatabase->clearConnectionState();
+    }
     gActiveDatabase = database;
 }

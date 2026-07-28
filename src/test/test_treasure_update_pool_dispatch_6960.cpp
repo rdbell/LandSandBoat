@@ -13,8 +13,8 @@
 
 #include "test_treasure_update_pool_dispatch_6960.h"
 
-#include "map/enums/packet_s2c.h"
 #include "map/entities/char_entity.h"
+#include "map/enums/packet_s2c.h"
 #include "map/treasure_pool.h"
 
 #include <iostream>
@@ -42,6 +42,7 @@ auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool
 
     CTreasurePool pool(TreasurePoolType::Solo);
     CCharEntity   visible;
+    visible.status        = STATUS_TYPE::NORMAL;
     visible.PTreasurePool = &pool;
 
     pool.updatePool(&visible);
@@ -56,7 +57,7 @@ auto runTreasureUpdatePoolDispatch6960SelfTests() -> bool
     pool.updatePool(&visible);
     ok = expect(visible.getPacketCount() == 0, "disappeared member receives no packet") && ok;
 
-    visible.status         = STATUS_TYPE::NORMAL;
+    visible.status        = STATUS_TYPE::NORMAL;
     visible.PTreasurePool = nullptr;
     pool.updatePool(&visible);
     ok = expect(visible.getPacketCount() == 0, "mismatched member receives no packet") && ok;

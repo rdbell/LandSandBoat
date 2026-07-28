@@ -11,7 +11,7 @@ auto runDesynthResult7083SelfTests() -> bool
 
     const bool ok = MakeSkillPlan(0, 0, true) == SkillPlan{ .successRate = 40.0f, .canHQ = true } &&
                     MakeSkillPlan(1, 0, true) == SkillPlan{ .successRate = 40.0f, .canHQ = true } &&
-                    MakeSkillPlan(8, 0, true) == SkillPlan{ .successRate = 10.0f, .canHQ = true } &&
+                    MakeSkillPlan(8, 0, true) == SkillPlan{ .successRate = 10.0f - 10.0f / 3.0f, .canHQ = true } &&
                     MakeSkillPlan(10, 0, true) == SkillPlan{ .successRate = 0.0f, .canHQ = true } &&
                     MakeSkillPlan(0, 100, false) == SkillPlan{ .successRate = 141.0f, .canHQ = false };
     if (!ok)

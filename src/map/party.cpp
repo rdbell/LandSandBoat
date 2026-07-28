@@ -19,6 +19,7 @@
 ===========================================================================
 */
 
+#include "common/database.h"
 #include "common/logging.h"
 #include "common/timer.h"
 
@@ -1292,11 +1293,22 @@ void CParty::SetQuarterMaster(const std::string& MemberName)
 
     if (partyhelpers::ShouldSetQuarterMasterDBFlag(PEntity != nullptr))
     {
-        db::preparedStmt("UPDATE accounts_parties JOIN chars ON accounts_parties.charid = chars.charid "
-                         "SET partyflag = partyflag | ? WHERE partyid = ? AND charname = ?",
-                         partyhelpers::PartyQMFlag,
-                         m_PartyID,
-                         MemberName);
+        if (db::getDatabaseVersion().rfind("SQLite ", 0) == 0)
+        {
+            db::preparedStmt("UPDATE accounts_parties SET partyflag = partyflag | ? WHERE partyid = ? "
+                             "AND charid = (SELECT charid FROM chars WHERE charname = ?)",
+                             partyhelpers::PartyQMFlag,
+                             m_PartyID,
+                             MemberName);
+        }
+        else
+        {
+            db::preparedStmt("UPDATE accounts_parties JOIN chars ON accounts_parties.charid = chars.charid "
+                             "SET partyflag = partyflag | ? WHERE partyid = ? AND charname = ?",
+                             partyhelpers::PartyQMFlag,
+                             m_PartyID,
+                             MemberName);
+        }
     }
 }
 

@@ -50,6 +50,9 @@ struct ConnectionState
 class CachingDatabase : public Database
 {
 public:
+    // Drops this thread's cached connection and statements before a backend swap.
+    void clearConnectionState();
+
     auto execute(const std::string& query, const std::vector<BoundValue>& params) -> std::unique_ptr<ResultSet> override;
 
     auto getSchema() -> std::string override;

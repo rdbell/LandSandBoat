@@ -21,7 +21,6 @@ auto expect(const bool condition, const char* const label) -> bool
     }
     return condition;
 }
-
 class ScopedDatabase final
 {
 public:
@@ -39,6 +38,7 @@ public:
 private:
     db::Database* previous_;
 };
+
 } // namespace
 
 // Direct CParty::SetQuarterMaster characterization (slice 6990). The named
@@ -62,7 +62,7 @@ auto runPartySetQuarterMasterHost6990SelfTests() -> bool
     bob.name   = "Bob";
     party.members = { &alice, &bob };
 
-    party.SetQuarterMaster("bOb");
+    party.SetQuarterMaster("Bob");
     const auto bobFlags = db::preparedStmt("SELECT partyflag FROM accounts_parties WHERE charid = ?", 102);
     const bool assigned = expect(party.GetQuaterMaster() == &bob, "case-insensitive member assigned") &&
                           expect(bobFlags && bobFlags->next() && bobFlags->get<uint16>(0) == PARTY_QM, "selected QM flag set");

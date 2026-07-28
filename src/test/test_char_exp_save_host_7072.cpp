@@ -52,8 +52,9 @@ auto runCharExpSaveHost7072SelfTests() -> bool
     )sql");
     CCharEntity character;
     character.id                = 77;
-    character.jobs.exp[JOB_WAR] = 123456;
-    character.jobs.exp[JOB_RUN] = 654321;
+    character.PMeritPoints      = std::make_unique<CMeritPoints>(&character);
+    character.jobs.exp[JOB_WAR] = 12345;
+    character.jobs.exp[JOB_RUN] = 54321;
     character.PMeritPoints->SetMeritPoints(10);
     character.PMeritPoints->SetLimitPoints(4321);
 
@@ -65,7 +66,7 @@ auto runCharExpSaveHost7072SelfTests() -> bool
 
     const auto row       = db::preparedStmt("SELECT war, run, merits, limits FROM char_exp WHERE charid = ?", character.id);
     const bool persisted = row && row->rowsCount() == 1 && row->next() &&
-                           row->get<uint32>("war") == 123456 && row->get<uint32>("run") == 654321 &&
+                           row->get<uint32>("war") == 12345 && row->get<uint32>("run") == 54321 &&
                            row->get<uint8>("merits") == 10 && row->get<uint16>("limits") == 4321;
     return expect(persisted, "playable columns and point values update while guarded jobs do not");
 }

@@ -32,12 +32,19 @@ auto runPartyRemoveMobLeaderHost6999SelfTests() -> bool
     party.m_PartyType = PARTY_MOBS;
     party.members     = { &leaving, &next, &later };
     party.m_PLeader   = &leaving;
+    leaving.PParty    = &party;
+    next.PParty       = &party;
+    later.PParty      = &party;
 
     const bool removed = party.RemovePartyLeader(&leaving);
 
-    return expect(removed, "returns true") &&
-           expect(party.GetLeader() == &next, "first remaining member promoted") &&
-           expect(party.members.size() == 2, "leader removed") &&
-           expect(party.members[0] == &next, "next member remains first") &&
-           expect(party.members[1] == &later, "later member remains second");
+    const bool ok = expect(removed, "returns true") &&
+                    expect(party.GetLeader() == &next, "first remaining member promoted") &&
+                    expect(party.members.size() == 2, "leader removed") &&
+                    expect(party.members[0] == &next, "next member remains first") &&
+                    expect(party.members[1] == &later, "later member remains second");
+    leaving.PParty = nullptr;
+    next.PParty    = nullptr;
+    later.PParty   = nullptr;
+    return ok;
 }
