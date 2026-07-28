@@ -33,6 +33,7 @@ constexpr std::uint16_t WeatherCycle = 2160;
 // Each of these zones has special behavior
 
 #include "zone.h"
+#include "zone_in_battlefield.h"
 
 #include "trigger_area_dispatch.h"
 #include "zone_capacity.h"
@@ -1118,51 +1119,41 @@ void CZone::CharZoneIn(CCharEntity* PChar)
         PChar->PInstance = nullptr;
     }
 
-    if (m_BattlefieldHandler)
+    auto* PBattlefield = m_BattlefieldHandler ? m_BattlefieldHandler->GetBattlefield(PChar, true) : nullptr;
+    const auto plan    = zonehelpers::PlanZoneInBattlefield(
+        m_BattlefieldHandler != nullptr,
+        PBattlefield != nullptr,
+        PChar->StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::Confrontation),
+        CBattlefield::hasPlayerEntered(PChar),
+        PChar->PPet != nullptr,
+        PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LevelSync),
+        PChar->PParty != nullptr);
+
+    switch (plan.action)
     {
-        auto* PBattlefield = m_BattlefieldHandler->GetBattlefield(PChar, true);
-        if (PBattlefield != nullptr && PChar->StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::Confrontation))
-        {
-            PBattlefield->InsertEntity(PChar, CBattlefield::hasPlayerEntered(PChar));
-        }
-        else if (PChar->StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::Confrontation))
-        {
-            // Player is in a zone with a battlefield but they are not part of one.
-            if (CBattlefield::hasPlayerEntered(PChar))
+        case zonehelpers::ZoneInBattlefieldAction::InsertRegistered:
+            PBattlefield->InsertEntity(PChar, plan.entered);
+            break;
+        case zonehelpers::ZoneInBattlefieldAction::AddOrphaned:
+            m_BattlefieldHandler->addOrphanedPlayer(PChar);
+            break;
+        case zonehelpers::ZoneInBattlefieldAction::ClearConfrontation:
+            PChar->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Confrontation, EffectNotice::Silent);
+            if (plan.updateLevelRestriction)
             {
-                // If inside of the battlefield arena then kick them out
-                // Battlefield and level restriction effects will be removed once fully kicked.
-                m_BattlefieldHandler->addOrphanedPlayer(PChar);
-            }
-            else
-            {
-                // Is not inside of a battlefield arena so remove the battlefield effect
-                PChar->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Confrontation, EffectNotice::Silent);
                 updateCharLevelRestriction(PChar);
-                if (PChar->PPet)
-                {
-                    PChar->PPet->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Confrontation, EffectNotice::Silent);
-                }
             }
-        }
-    }
-    else if (PChar->StatusEffectContainer->HasStatusEffectByFlag(xi::StatusEffectFlag::Confrontation))
-    {
-        // Player is zoning into a zone that does not have a battlefield but the player has a confrontation effect - remove it
-        PChar->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Confrontation, EffectNotice::Silent);
-        if (PChar->PPet)
-        {
-            PChar->PPet->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Confrontation, EffectNotice::Silent);
-        }
-    }
-    else if (PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::LevelSync))
-    {
-        // Logging in with no party and a level sync status = bad.
-        if (!PChar->PParty)
-        {
+            if (plan.clearPetConfrontation)
+            {
+                PChar->PPet->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Confrontation, EffectNotice::Silent);
+            }
+            break;
+        case zonehelpers::ZoneInBattlefieldAction::ClearLevelSync:
             PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::LevelSync);
             PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::LevelRestriction);
-        }
+            break;
+        case zonehelpers::ZoneInBattlefieldAction::None:
+            break;
     }
 
     // Mark current zone as visited
