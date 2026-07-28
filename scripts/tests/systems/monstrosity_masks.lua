@@ -378,3 +378,26 @@ describe('Terynon instinct event-finish plan', function()
         assert(xi.monstrosity.instinctEventFinishPlan(1, function() return false end, 999999) == nil)
     end)
 end)
+
+describe('Terynon special-effect event-finish plan', function()
+    it('decodes a type-3 selection and composes its level-scaled effect', function()
+        local option = bit.bor(bit.lshift(4, 8), 3)
+        local plan = xi.monstrosity.specialEffectEventFinishPlan(option, 76, true, 100)
+
+        assert(plan.effect == 'protect' and plan.cost == 100)
+        assert(plan.power == 230 and plan.tier == 5 and plan.duration == 1800)
+    end)
+
+    it('keeps Haste free and preserves the catalog denial', function()
+        local haste = xi.monstrosity.specialEffectEventFinishPlan(bit.bor(bit.lshift(6, 8), 3), 1, false, 0)
+        assert(haste.effect == 'haste' and haste.cost == 0 and haste.power == 1000)
+
+        local denied = xi.monstrosity.specialEffectEventFinishPlan(bit.bor(bit.lshift(1, 8), 3), 1, false, 399)
+        assert(denied.deny)
+    end)
+
+    it('ignores unknown selections and other option types', function()
+        assert(xi.monstrosity.specialEffectEventFinishPlan(bit.bor(bit.lshift(7, 8), 3), 1, false, 999999) == nil)
+        assert(xi.monstrosity.specialEffectEventFinishPlan(2, 1, false, 999999) == nil)
+    end)
+end)

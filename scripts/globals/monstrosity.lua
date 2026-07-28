@@ -1233,6 +1233,16 @@ xi.monstrosity.instinctEventFinishPlan = function(option, hasCompletedLimitBreak
     return xi.monstrosity.instinctPurchasePlan(selectedInstinct, checkValue, limitBreakCompleted, infamy)
 end
 
+-- Decodes Terynon's type-3 event-finish option and selects its special-effect
+-- purchase work. Effect application remains the event host's responsibility.
+xi.monstrosity.specialEffectEventFinishPlan = function(option, mainLevel, enhancedReceived, infamy)
+    if bit.band(option, 0xFF) ~= 3 then
+        return nil
+    end
+
+    return xi.monstrosity.specialEffectPlan(bit.rshift(option, 8), mainLevel, enhancedReceived, infamy)
+end
+
 -----------------------------------
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
@@ -1625,101 +1635,42 @@ xi.monstrosity.teyrnonOnEventFinish = function(player, csid, option, npc)
     elseif optionType == 3 then
         -- TODO: The casting effects and animations
 
-        local tryPayCost = function(playerArg, cost)
-            if playerArg:getCurrency('infamy') < cost then
-                playerArg:messageSpecial(zones[xi.zone.FERETORY].text.THY_BRAZEN_DISREGARD)
-                return false
-            end
-
-            playerArg:delCurrency('infamy', cost)
-            return true
+        local plan = xi.monstrosity.specialEffectEventFinishPlan(
+            option,
+            player:getMainLvl(),
+            player:getMod(xi.mod.ENHANCES_PROT_SHELL_RCVD) > 0,
+            player:getCurrency('infamy')
+        )
+        if not plan then
+            return
+        elseif plan.deny then
+            player:messageSpecial(zones[xi.zone.FERETORY].text.THY_BRAZEN_DISREGARD)
+            return
         end
 
-        local selectedEffect = bit.rshift(option, 8)
-        switch(selectedEffect): caseof
-        {
-            -- 0: Dedication 1
-            -- 50% experience bonus 60 minutes or until a maximum bonus of 10,000 EXP is gained
-            [0] = function()
-                if not tryPayCost(player, 3000) then
-                    return
-                end
+        if plan.cost > 0 then
+            player:delCurrency('infamy', plan.cost)
+        end
 
-                local effect   = xi.effect.DEDICATION
-                local power    = 50
-                local duration = utils.minutes(60)
-                local subpower = 10000
-                player:delStatusEffectSilent(power)
-                xi.itemUtils.addItemExpEffect(player, effect, power, duration, subpower)
-            end,
-
-            -- 1: Dedication 2
-            -- 100% experience bonus 60 minutes or until a maximum bonus of 2,000 EXP is gained
-            [1] = function()
-                if not tryPayCost(player, 400) then
-                    return
-                end
-
-                local effect   = xi.effect.DEDICATION
-                local power    = 100
-                local duration = utils.minutes(60)
-                local subpower = 2000
-                player:delStatusEffectSilent(power)
-                xi.itemUtils.addItemExpEffect(player, effect, power, duration, subpower)
-            end,
-
-            -- 2: Regen
-            [2] = function()
-                if not tryPayCost(player, 10) then
-                    return
-                end
-
-                player:delStatusEffectSilent(xi.effect.REGEN)
-                player:addStatusEffect(xi.effect.REGEN, { power = 1, duration = 3600, origin = player, tick = 3 })
-            end,
-
-            -- 3: Refresh
-            [3] = function()
-                if not tryPayCost(player, 10) then
-                    return
-                end
-
-                player:delStatusEffectSilent(xi.effect.REFRESH)
-                player:addStatusEffect(xi.effect.REFRESH, { power = 1, duration = 3600, origin = player, tick = 3 }) -- Does indeed get overwriten by regular refresh.
-            end,
-
-            -- 4: Protect
-            [4] = function()
-                if not tryPayCost(player, 100) then
-                    return
-                end
-
-                local plan = xi.monstrosity.protectPlan(
-                    player:getMainLvl(),
-                    player:getMod(xi.mod.ENHANCES_PROT_SHELL_RCVD) > 0)
-                player:delStatusEffectSilent(xi.effect.PROTECT)
-                player:addStatusEffect(xi.effect.PROTECT, { power = plan.power, duration = plan.duration, origin = player, tier = plan.tier })
-            end,
-
-            -- 5: Shell
-            [5] = function()
-                if not tryPayCost(player, 100) then
-                    return
-                end
-
-                local plan = xi.monstrosity.shellPlan(
-                    player:getMainLvl(),
-                    player:getMod(xi.mod.ENHANCES_PROT_SHELL_RCVD) > 0)
-                player:delStatusEffectSilent(xi.effect.SHELL)
-                player:addStatusEffect(xi.effect.SHELL, { power = plan.power, duration = plan.duration, origin = player, tier = plan.tier })
-            end,
-
-            -- 6: Haste
-            [6] = function()
-                player:delStatusEffectSilent(xi.effect.HASTE)
-                player:addStatusEffect(xi.effect.HASTE, { power = 1000, duration = 600, origin = player })
-            end,
-        }
+        if plan.effect == 'dedication' then
+            player:delStatusEffectSilent(plan.power)
+            xi.itemUtils.addItemExpEffect(player, xi.effect.DEDICATION, plan.power, plan.duration, plan.subpower)
+        elseif plan.effect == 'regen' then
+            player:delStatusEffectSilent(xi.effect.REGEN)
+            player:addStatusEffect(xi.effect.REGEN, { power = plan.power, duration = plan.duration, origin = player, tick = plan.tick })
+        elseif plan.effect == 'refresh' then
+            player:delStatusEffectSilent(xi.effect.REFRESH)
+            player:addStatusEffect(xi.effect.REFRESH, { power = plan.power, duration = plan.duration, origin = player, tick = plan.tick }) -- Does indeed get overwriten by regular refresh.
+        elseif plan.effect == 'protect' then
+            player:delStatusEffectSilent(xi.effect.PROTECT)
+            player:addStatusEffect(xi.effect.PROTECT, { power = plan.power, duration = plan.duration, origin = player, tier = plan.tier })
+        elseif plan.effect == 'shell' then
+            player:delStatusEffectSilent(xi.effect.SHELL)
+            player:addStatusEffect(xi.effect.SHELL, { power = plan.power, duration = plan.duration, origin = player, tier = plan.tier })
+        elseif plan.effect == 'haste' then
+            player:delStatusEffectSilent(xi.effect.HASTE)
+            player:addStatusEffect(xi.effect.HASTE, { power = plan.power, duration = plan.duration, origin = player })
+        end
     end
 end
 
