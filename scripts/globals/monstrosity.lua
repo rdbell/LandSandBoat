@@ -1301,6 +1301,13 @@ xi.monstrosity.odysseanPassageTriggerPlan = function(monstrosityEnabled, monSize
     return { csid = 5, args = { 0, monSize, hasBelligerency, 0, 0, 0, 0, 0 } }
 end
 
+-- Plans the Odyssean Passage's event-update response. The caller-provided
+-- option selects its zone at bits 4 and above.
+xi.monstrosity.odysseanPassageEventUpdatePlan = function(option)
+    local zoneSelected = bit.rshift(option, 4)
+    return { xi.monstrosity.belligerencyCaps[zoneSelected], 0, 0, 0, 1, 0, 0, 0 }
+end
+
 -----------------------------------
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
@@ -1495,8 +1502,8 @@ xi.monstrosity.odysseanPassageOnTrigger = function(player, npc)
 end
 
 xi.monstrosity.odysseanPassageOnEventUpdate = function(player, csid, option, npc)
-    local zoneSelected = bit.rshift(option, 4)
-    player:updateEvent(xi.monstrosity.belligerencyCaps[zoneSelected], 0, 0, 0, 1, 0, 0, 0)
+    local plan = xi.monstrosity.odysseanPassageEventUpdatePlan(option)
+    player:updateEvent(unpack(plan, 1, 8))
 end
 
 xi.monstrosity.odysseanPassageOnEventFinish = function(player, csid, option, npc)

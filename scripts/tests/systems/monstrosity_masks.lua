@@ -484,3 +484,28 @@ describe('Odyssean Passage trigger plan', function()
         assert(xi.monstrosity.odysseanPassageTriggerPlan(2, 42, true, 0) == nil)
     end)
 end)
+
+describe('Odyssean Passage event-update plan', function()
+    it('looks up all configured belligerency caps from the selected zone', function()
+        local caps =
+        {
+            [xi.zone.BUBURIMU_PENINSULA] = 30,
+            [xi.zone.XARCABARD]          = 60,
+            [xi.zone.ULEGUERAND_RANGE]   = 90,
+        }
+
+        for zone, cap in pairs(caps) do
+            local plan = xi.monstrosity.odysseanPassageEventUpdatePlan(bit.lshift(zone, 4))
+            assert(plan[1] == cap, zone)
+            assert(plan[5] == 1, zone)
+            for _, index in ipairs({ 2, 3, 4, 6, 7, 8 }) do
+                assert(plan[index] == 0, index)
+            end
+        end
+    end)
+
+    it('preserves an absent cap for an unknown selected zone', function()
+        local plan = xi.monstrosity.odysseanPassageEventUpdatePlan(bit.lshift(1, 4))
+        assert(plan[1] == nil and plan[5] == 1)
+    end)
+end)
