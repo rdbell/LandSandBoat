@@ -2400,6 +2400,8 @@ set(SOURCES
     test_monstrosity_name_2753.cpp
     test_monstrosity_instinct_equip_2766.h
     test_monstrosity_instinct_equip_2766.cpp
+    test_monstrosity_death_menu_7483.h
+    test_monstrosity_death_menu_7483.cpp
     test_s2c_miscdata_status_icons_packet.h
     test_s2c_miscdata_status_icons_packet.cpp
     test_s2c_miscdata_unknown_packet.h

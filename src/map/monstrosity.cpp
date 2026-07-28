@@ -569,24 +569,61 @@ void monstrosity::SetLevel(CCharEntity* PChar, uint8 id, uint8 level)
     PChar->m_PMonstrosity->levels[id] = level;
 }
 
+monstrosity::DeathMenuPlan monstrosity::PlanDeathMenu(const bool hasMonstrosity, const GP_CLI_COMMAND_ACTION_HOMEPOINTMENU type)
+{
+    if (!hasMonstrosity)
+    {
+        return {};
+    }
+
+    auto plan = DeathMenuPlan{
+        .restoreHpMp    = true,
+        .clearAnimation = true,
+        .markHpUpdate   = true,
+    };
+
+    if (type == GP_CLI_COMMAND_ACTION_HOMEPOINTMENU::MonstrosityCancel)
+    {
+        plan.returnToEntrance = true;
+    }
+    else if (type == GP_CLI_COMMAND_ACTION_HOMEPOINTMENU::MonstrosityRetry)
+    {
+        plan.retryAtOrigin      = true;
+        plan.clearDeathTime     = true;
+        plan.setDisappear       = true;
+        plan.clearPacketList    = true;
+        plan.restartCurrentZone = true;
+    }
+
+    return plan;
+}
+
 void monstrosity::HandleDeathMenu(CCharEntity* PChar, const GP_CLI_COMMAND_ACTION_HOMEPOINTMENU type)
 {
-    if (!PChar->m_PMonstrosity)
+    const auto plan = PlanDeathMenu(PChar->m_PMonstrosity != nullptr, type);
+    if (!plan.restoreHpMp)
     {
         return;
     }
 
     PChar->health.hp = PChar->GetMaxHP();
     PChar->health.mp = PChar->GetMaxMP();
-    PChar->animation = ANIMATION_NONE;
 
-    PChar->updatemask |= UPDATE_HP;
+    if (plan.clearAnimation)
+    {
+        PChar->animation = ANIMATION_NONE;
+    }
 
-    if (type == GP_CLI_COMMAND_ACTION_HOMEPOINTMENU::MonstrosityCancel)
+    if (plan.markHpUpdate)
+    {
+        PChar->updatemask |= UPDATE_HP;
+    }
+
+    if (plan.returnToEntrance)
     {
         luautils::OnMonstrosityReturnToEntrance(PChar);
     }
-    else if (type == GP_CLI_COMMAND_ACTION_HOMEPOINTMENU::MonstrosityRetry)
+    else if (plan.retryAtOrigin)
     {
         // TODO: Pick a location from the starting points list
 
@@ -594,16 +631,28 @@ void monstrosity::HandleDeathMenu(CCharEntity* PChar, const GP_CLI_COMMAND_ACTIO
         PChar->loc.p.y = 0.0f;
         PChar->loc.p.z = 0.0f;
 
-        PChar->SetDeathTime(timer::time_point::min());
+        if (plan.clearDeathTime)
+        {
+            PChar->SetDeathTime(timer::time_point::min());
+        }
 
-        PChar->status = STATUS_TYPE::DISAPPEAR;
+        if (plan.setDisappear)
+        {
+            PChar->status = STATUS_TYPE::DISAPPEAR;
+        }
 
-        PChar->clearPacketList();
+        if (plan.clearPacketList)
+        {
+            PChar->clearPacketList();
+        }
 
-        // Restart this zone with Gestation effect
-        PChar->loc.destination = PChar->loc.zone->GetID();
+        if (plan.restartCurrentZone)
+        {
+            // Restart this zone with Gestation effect
+            PChar->loc.destination = PChar->loc.zone->GetID();
 
-        PChar->requestedZoneChange = true;
+            PChar->requestedZoneChange = true;
+        }
     }
 }
 

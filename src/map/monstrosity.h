@@ -70,6 +70,19 @@ public:
     uint8      EntrySubJob;
 };
 
+struct DeathMenuPlan
+{
+    bool restoreHpMp{};
+    bool clearAnimation{};
+    bool markHpUpdate{};
+    bool returnToEntrance{};
+    bool retryAtOrigin{};
+    bool clearDeathTime{};
+    bool setDisappear{};
+    bool clearPacketList{};
+    bool restartCurrentZone{};
+};
+
 void LoadStaticData();
 
 void ReadMonstrosityData(CCharEntity* PChar);
@@ -86,6 +99,7 @@ void HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& data);
 void SetLevel(CCharEntity* PChar, uint8 id, uint8 level);
 
 void HandleDeathMenu(CCharEntity* PChar, GP_CLI_COMMAND_ACTION_HOMEPOINTMENU type);
+DeathMenuPlan PlanDeathMenu(bool hasMonstrosity, GP_CLI_COMMAND_ACTION_HOMEPOINTMENU type);
 
 bool IsInstinctUnlocked(CCharEntity* PChar, uint16 instinct);
 bool IsVariantUnlocked(CCharEntity* PChar, uint8 variant);
