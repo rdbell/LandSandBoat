@@ -432,3 +432,21 @@ describe('Maccus trigger plan', function()
         assert(xi.monstrosity.maccusTriggerPlan(2) == nil)
     end)
 end)
+
+describe('Aengus trigger plan', function()
+    it('starts event 13 with belligerency and infamy', function()
+        local belligerent = xi.monstrosity.aengusTriggerPlan(1, true, 1234)
+        assert(belligerent.csid == 13 and belligerent.args[1] == 1 and belligerent.args[2] == 1234)
+
+        local peaceful = xi.monstrosity.aengusTriggerPlan(1, false, 1234)
+        assert(peaceful.args[1] == 0 and peaceful.args[2] == 1234)
+        for index = 3, 8 do
+            assert(peaceful.args[index] == 0, index)
+        end
+    end)
+
+    it('requires the setting to be exactly one', function()
+        assert(xi.monstrosity.aengusTriggerPlan(0, true, 1234) == nil)
+        assert(xi.monstrosity.aengusTriggerPlan(2, true, 1234) == nil)
+    end)
+end)

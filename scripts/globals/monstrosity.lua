@@ -1263,6 +1263,16 @@ xi.monstrosity.maccusTriggerPlan = function(monstrosityEnabled)
     return { csid = 9, args = { 285, 2, 2, 0, 0, 0, 0, 0 } }
 end
 
+-- Plans Aengus's opening event. The source setting must be exactly one,
+-- matching the NPC's ENABLE_MONSTROSITY gate.
+xi.monstrosity.aengusTriggerPlan = function(monstrosityEnabled, belligerency, infamy)
+    if monstrosityEnabled ~= 1 then
+        return nil
+    end
+
+    return { csid = 13, args = { belligerency and 1 or 0, infamy, 0, 0, 0, 0, 0, 0 } }
+end
+
 -----------------------------------
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
@@ -1551,12 +1561,15 @@ xi.monstrosity.aengusOnTrade = function(player, npc, trade)
 end
 
 xi.monstrosity.aengusOnTrigger = function(player, npc)
-    if xi.settings.main.ENABLE_MONSTROSITY ~= 1 then
-        return
-    end
+    local plan = xi.monstrosity.aengusTriggerPlan(
+        xi.settings.main.ENABLE_MONSTROSITY,
+        player:getBelligerencyFlag(),
+        player:getCurrency('infamy')
+    )
 
-    local inBelligerency = player:getBelligerencyFlag() and 1 or 0
-    player:startEvent(13, inBelligerency, player:getCurrency('infamy'), 0, 0, 0, 0, 0, 0)
+    if plan then
+        player:startEvent(plan.csid, unpack(plan.args))
+    end
 end
 
 xi.monstrosity.aengusOnEventUpdate = function(player, csid, option, npc)
