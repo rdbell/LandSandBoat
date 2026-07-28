@@ -1126,6 +1126,25 @@ xi.monstrosity.monPurchasePlan = function(monData, infamy)
     return plan
 end
 
+-- Plans a Terynon instinct purchase after the host has decoded the option.
+-- Advanced instincts use their paired limit-break completion for a discount.
+xi.monstrosity.instinctPurchasePlan = function(selectedInstinct, checkValue, limitBreakCompleted, infamy)
+    if checkValue ~= 119 then
+        return { invalid = true }
+    end
+
+    local price = selectedInstinct > xi.monstrosity.purchasableInstincts.GALKA_II and 10000 or 500
+    if selectedInstinct > xi.monstrosity.purchasableInstincts.GALKA_II and limitBreakCompleted then
+        price = price / 2
+    end
+
+    if infamy < price then
+        return { deny = true }
+    end
+
+    return { cost = price, purchaseInstinct = selectedInstinct }
+end
+
 local function getMonPageMask(player, monCategory)
     return xi.monstrosity.purchasePageMask(
         terynonMonData[monCategory],
@@ -1510,24 +1529,19 @@ xi.monstrosity.teyrnonOnEventFinish = function(player, csid, option, npc)
         -- prerequisites.  This data is not tabled with Terynon, as it cannot be controlled.
 
         local selectedInstinct = bit.band(bit.rshift(option, 8), 0xFF)
-        local instinctPrice    = selectedInstinct > xi.monstrosity.purchasableInstincts.GALKA_II and 10000 or 500
         local checkValue       = bit.rshift(option, 16)
+        local limitBreakCompleted = selectedInstinct > xi.monstrosity.purchasableInstincts.GALKA_II and
+            hasCompletedLimitBreak(player, selectedInstinct - xi.monstrosity.purchasableInstincts.GALKA_II)
+        local plan = xi.monstrosity.instinctPurchasePlan(selectedInstinct, checkValue, limitBreakCompleted, player:getCurrency('infamy'))
 
-        if checkValue ~= 119 then
+        if plan.invalid then
             print(string.format('Invalid Event Finish Option received by Terynon! (%s:%d)', player:getName(), option))
             return
         end
 
-        if
-            selectedInstinct > xi.monstrosity.purchasableInstincts.GALKA_II and
-            hasCompletedLimitBreak(player, selectedInstinct - xi.monstrosity.purchasableInstincts.GALKA_II)
-        then
-            instinctPrice = instinctPrice / 2
-        end
-
-        if player:getCurrency('infamy') >= instinctPrice then
-            player:delCurrency('infamy', instinctPrice)
-            addPurchasedInstinct(player, selectedInstinct)
+        if not plan.deny then
+            player:delCurrency('infamy', plan.cost)
+            addPurchasedInstinct(player, plan.purchaseInstinct)
 
             -- NOTE: The offset below is the beginning parameter for purchased instincts used by this message, and
             -- lower values will result in an item being placed in the message.  Base offset for all instincts
