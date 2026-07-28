@@ -184,6 +184,20 @@ std::array<uint8, 12> monstrosity::ResolveEquippedInstinctCosts(InstinctCatalog&
     return costs;
 }
 
+std::vector<CModifier> monstrosity::ResolveEquippedInstinctModifiers(const InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts)
+{
+    auto modifiers = std::vector<CModifier>{};
+    for (const auto instinctId : equippedInstincts)
+    {
+        const auto maybeInstinct = catalog.find(instinctId);
+        if (maybeInstinct != catalog.end())
+        {
+            modifiers.insert(modifiers.end(), maybeInstinct->second.mods.begin(), maybeInstinct->second.mods.end());
+        }
+    }
+    return modifiers;
+}
+
 monstrosity::InstinctLoadoutPlan monstrosity::PlanInstinctLoadout(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts, const uint8 level)
 {
     auto plan          = InstinctLoadoutPlan{};
@@ -505,18 +519,9 @@ void monstrosity::HandleZoneIn(CCharEntity* PChar)
         return;
     }
 
-    // Add stats from equipped instincts
-    for (auto instinctId : PChar->m_PMonstrosity->EquippedInstincts)
+    for (const auto& mod : ResolveEquippedInstinctModifiers(gMonstrosityInstinctMap, PChar->m_PMonstrosity->EquippedInstincts))
     {
-        auto maybeInstinct = gMonstrosityInstinctMap.find(instinctId);
-        if (maybeInstinct != gMonstrosityInstinctMap.end())
-        {
-            auto instinct = (*maybeInstinct).second;
-            for (const auto& mod : instinct.mods)
-            {
-                PChar->addModifier(mod.getModID(), mod.getModAmount());
-            }
-        }
+        PChar->addModifier(mod.getModID(), mod.getModAmount());
     }
 
     // NOTE: Whenever you log in as a MON, you'll have Gestation - even if you've previously clicked it off.

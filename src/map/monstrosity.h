@@ -273,6 +273,7 @@ void ApplySpeciesCatalogRows(SpeciesCatalog& catalog, const std::vector<SpeciesC
 void ApplyInstinctCatalogRows(InstinctCatalog& catalog, const std::vector<InstinctCatalogRow>& rows);
 void ApplyInstinctModifierRows(InstinctCatalog& catalog, const std::vector<InstinctModifierRow>& rows);
 std::array<uint8, 12> ResolveEquippedInstinctCosts(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts);
+std::vector<CModifier> ResolveEquippedInstinctModifiers(const InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts);
 InstinctLoadoutPlan PlanInstinctLoadout(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts, uint8 level);
 InstinctLoadoutMutationPlan PlanInstinctLoadoutMutation(InstinctCatalog& catalog, const std::array<uint16, 12>& equippedInstincts, const std::array<uint16, 12>& requestedInstincts, const std::array<bool, 12>& unlockedInstincts, uint8 level);
 

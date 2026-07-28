@@ -2432,6 +2432,8 @@ set(SOURCES
     test_monstrosity_instinct_loadout_plan_7498.cpp
     test_monstrosity_instinct_mutation_7499.h
     test_monstrosity_instinct_mutation_7499.cpp
+    test_monstrosity_equipped_modifiers_7500.h
+    test_monstrosity_equipped_modifiers_7500.cpp
     test_s2c_miscdata_status_icons_packet.h
     test_s2c_miscdata_status_icons_packet.cpp
     test_s2c_miscdata_unknown_packet.h
