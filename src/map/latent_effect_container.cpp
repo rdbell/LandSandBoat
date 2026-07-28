@@ -22,6 +22,7 @@
 #include "latent_effect_container.h"
 #include "latent_capacity.h"
 #include "latent_target_selection.h"
+#include "latent_time_selection.h"
 #include "latent_zone_selection.h"
 
 #include "ai/ai_container.h"
@@ -403,7 +404,7 @@ void CLatentEffectContainer::CheckLatentsDay()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            if (latentEffect.GetConditionsID() == xi::Latent::TimeOfDay)
+            if (latenthelpers::ShouldProcessTimeLatent(latenthelpers::LatentTimeRefresh::Day, latentEffect.GetConditionsID()))
             {
                 return ProcessLatentEffect(latentEffect);
             }
@@ -424,7 +425,7 @@ void CLatentEffectContainer::CheckLatentsMoonPhase()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            if (latentEffect.GetConditionsID() == xi::Latent::MoonPhase)
+            if (latenthelpers::ShouldProcessTimeLatent(latenthelpers::LatentTimeRefresh::MoonPhase, latentEffect.GetConditionsID()))
             {
                 return ProcessLatentEffect(latentEffect);
             }
@@ -444,20 +445,9 @@ void CLatentEffectContainer::CheckLatentsWeekDay()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            switch (latentEffect.GetConditionsID())
+            if (latenthelpers::ShouldProcessTimeLatent(latenthelpers::LatentTimeRefresh::WeekDay, latentEffect.GetConditionsID()))
             {
-                case xi::Latent::Firesday:
-                case xi::Latent::Earthsday:
-                case xi::Latent::Watersday:
-                case xi::Latent::Windsday:
-                case xi::Latent::Darksday:
-                case xi::Latent::Iceday:
-                case xi::Latent::Lightningsday:
-                case xi::Latent::Lightsday:
-                    return ProcessLatentEffect(latentEffect);
-                    break;
-                default:
-                    break;
+                return ProcessLatentEffect(latentEffect);
             }
             return false;
         });
@@ -476,7 +466,7 @@ void CLatentEffectContainer::CheckLatentsHours()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            if (latentEffect.GetConditionsID() == xi::Latent::HourOfDay)
+            if (latenthelpers::ShouldProcessTimeLatent(latenthelpers::LatentTimeRefresh::Hour, latentEffect.GetConditionsID()))
             {
                 return ProcessLatentEffect(latentEffect);
             }

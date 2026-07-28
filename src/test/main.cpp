@@ -2594,6 +2594,7 @@ auto runZoneInTreasurePool7516SelfTests() -> bool;
 auto runZoneInCleanup7517SelfTests() -> bool;
 auto runLatentZoneSelection7518SelfTests() -> bool;
 auto runLatentTargetSelection7519SelfTests() -> bool;
+auto runLatentTimeSelection7520SelfTests() -> bool;
 auto runInstanceLoaderCreate7504SelfTests() -> bool;
 auto runInstanceLoaderMob7505SelfTests() -> bool;
 auto runInstanceLoaderLoad7506SelfTests() -> bool;
@@ -5185,6 +5186,7 @@ namespace
         ok = runZoneInCleanup7517SelfTests() && ok;
         ok = runLatentZoneSelection7518SelfTests() && ok;
         ok = runLatentTargetSelection7519SelfTests() && ok;
+        ok = runLatentTimeSelection7520SelfTests() && ok;
         ok = runInstanceLoaderCreate7504SelfTests() && ok;
         ok = runInstanceLoaderMob7505SelfTests() && ok;
         ok = runInstanceLoaderLoad7506SelfTests() && ok;

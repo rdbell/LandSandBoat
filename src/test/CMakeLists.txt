@@ -83,6 +83,7 @@ set(SOURCES
     test_zone_in_cleanup_7517.cpp
     test_latent_zone_selection_7518.cpp
     test_latent_target_selection_7519.cpp
+    test_latent_time_selection_7520.cpp
     test_application.h
     test_application.cpp
     test_application_lifecycle_2554.h
