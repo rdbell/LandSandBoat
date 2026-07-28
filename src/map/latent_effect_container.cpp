@@ -29,6 +29,7 @@
 #include "latent_status_selection.h"
 #include "latent_target_selection.h"
 #include "latent_time_selection.h"
+#include "latent_tp_selection.h"
 #include "latent_weapon_break_selection.h"
 #include "latent_weapon_draw_plan.h"
 #include "latent_ws_plan.h"
@@ -163,18 +164,9 @@ void CLatentEffectContainer::CheckLatentsTP()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            switch (latentEffect.GetConditionsID())
+            if (latenthelpers::ShouldProcessTpLatent(latentEffect.GetConditionsID()))
             {
-                case xi::Latent::TpUnder:
-                case xi::Latent::TpOver:
-                case xi::Latent::HpUnderTpUnder100:
-                case xi::Latent::HpOverTpUnder100:
-                case xi::Latent::SanctionRefreshBonus:
-                case xi::Latent::SigilRefreshBonus:
-                    return ProcessLatentEffect(latentEffect);
-                    break;
-                default:
-                    break;
+                return ProcessLatentEffect(latentEffect);
             }
             return false;
         });
