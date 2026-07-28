@@ -24,6 +24,7 @@
 #include "latent_food_selection.h"
 #include "latent_hp_selection.h"
 #include "latent_job_level_selection.h"
+#include "latent_mp_selection.h"
 #include "latent_party_member_plan.h"
 #include "latent_roll_song_selection.h"
 #include "latent_status_selection.h"
@@ -207,17 +208,9 @@ void CLatentEffectContainer::CheckLatentsMP()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            switch (latentEffect.GetConditionsID())
+            if (latenthelpers::ShouldProcessMpLatent(latentEffect.GetConditionsID()))
             {
-                case xi::Latent::MpUnderPercent:
-                case xi::Latent::MpUnder:
-                case xi::Latent::MpOver:
-                case xi::Latent::WeaponDrawnMpOver:
-                case xi::Latent::MpUnderVisibleGear:
-                    return ProcessLatentEffect(latentEffect);
-                    break;
-                default:
-                    break;
+                return ProcessLatentEffect(latentEffect);
             }
             return false;
         });

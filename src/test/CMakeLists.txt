@@ -94,6 +94,7 @@ set(SOURCES
     test_latent_ws_plan_7528.cpp
     test_latent_hp_selection_7529.cpp
     test_latent_tp_selection_7530.cpp
+    test_latent_mp_selection_7531.cpp
     test_application.h
     test_application.cpp
     test_application_lifecycle_2554.h
