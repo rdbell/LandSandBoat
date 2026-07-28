@@ -1283,6 +1283,24 @@ xi.monstrosity.aengusEventFinishPlan = function(csid, option, belligerency)
     return { belligerency = not belligerency }
 end
 
+-- Plans the Odyssean Passage opening event. The source Monstrosity and PvP
+-- bypass settings use exact-one gates.
+xi.monstrosity.odysseanPassageTriggerPlan = function(monstrosityEnabled, monSize, belligerency, pvpZoneBypass)
+    if monstrosityEnabled ~= 1 then
+        return nil
+    end
+
+    local hasBelligerency = belligerency and 1 or 0
+    -- Show the full menu, not the restricted one.
+    if pvpZoneBypass == 1 then
+        hasBelligerency = 0
+    end
+
+    -- The client derives available zones from visited-zone state. Its fifth
+    -- parameter is observed as 0, 1, or 2, but this source path sends zero.
+    return { csid = 5, args = { 0, monSize, hasBelligerency, 0, 0, 0, 0, 0 } }
+end
+
 -----------------------------------
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
@@ -1464,24 +1482,16 @@ xi.monstrosity.odysseanPassageOnTrade = function(player, npc, trade)
 end
 
 xi.monstrosity.odysseanPassageOnTrigger = function(player, npc)
-    if xi.settings.main.ENABLE_MONSTROSITY ~= 1 then
-        return
+    local plan = xi.monstrosity.odysseanPassageTriggerPlan(
+        xi.settings.main.ENABLE_MONSTROSITY,
+        player:getMonstrositySize(),
+        player:getBelligerencyFlag(),
+        xi.settings.main.MONSTROSITY_PVP_ZONE_BYPASS
+    )
+
+    if plan then
+        player:startEvent(plan.csid, unpack(plan.args))
     end
-
-    local monSize         = player:getMonstrositySize()
-    local hasBelligerency = player:getBelligerencyFlag() and 1 or 0
-
-    -- Show the full menu, not the restricted one
-    if xi.settings.main.MONSTROSITY_PVP_ZONE_BYPASS == 1 then
-        hasBelligerency = 0
-    end
-
-    -- NOTE: The list of available zones is built from the char's list of
-    -- visited zones. If you haven't visited any zones in a category it'll back
-    -- out immediately.
-    -- NOTE: Param5 is not consistent, Bee has seen 0, 1, and 2 so far
-    -- player:startEvent(5, 0, 0, 0, 0, 2, 0, 0, 0) -- Bee
-    player:startEvent(5, 0, monSize, hasBelligerency, 0, 0, 0, 0, 0)
 end
 
 xi.monstrosity.odysseanPassageOnEventUpdate = function(player, csid, option, npc)

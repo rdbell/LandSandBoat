@@ -463,3 +463,24 @@ describe('Aengus event-finish plan', function()
         assert(xi.monstrosity.aengusEventFinishPlan(13, 2, true) == nil)
     end)
 end)
+
+describe('Odyssean Passage trigger plan', function()
+    it('starts event 5 with MON size and belligerency', function()
+        local plan = xi.monstrosity.odysseanPassageTriggerPlan(1, 42, true, 0)
+        assert(plan.csid == 5 and plan.args[1] == 0 and plan.args[2] == 42 and plan.args[3] == 1)
+        for index = 4, 8 do
+            assert(plan.args[index] == 0, index)
+        end
+    end)
+
+    it('lets the exact PvP bypass value suppress belligerency', function()
+        assert(xi.monstrosity.odysseanPassageTriggerPlan(1, 42, true, 1).args[3] == 0)
+        assert(xi.monstrosity.odysseanPassageTriggerPlan(1, 42, true, 2).args[3] == 1)
+        assert(xi.monstrosity.odysseanPassageTriggerPlan(1, 42, false, 0).args[3] == 0)
+    end)
+
+    it('requires Monstrosity to be exactly enabled', function()
+        assert(xi.monstrosity.odysseanPassageTriggerPlan(0, 42, true, 0) == nil)
+        assert(xi.monstrosity.odysseanPassageTriggerPlan(2, 42, true, 0) == nil)
+    end)
+end)
