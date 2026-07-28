@@ -21,6 +21,7 @@
 
 #include "latent_effect_container.h"
 #include "latent_capacity.h"
+#include "latent_zone_selection.h"
 
 #include "ai/ai_container.h"
 #include "conquest_system.h"
@@ -669,21 +670,9 @@ void CLatentEffectContainer::CheckLatentsZone()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            switch (latentEffect.GetConditionsID())
+            if (latenthelpers::ShouldProcessZoneLatent(latentEffect.GetConditionsID()))
             {
-                case xi::Latent::Zone:
-                case xi::Latent::InAssault:
-                case xi::Latent::InDynamis:
-                case xi::Latent::InAdoulin:
-                case xi::Latent::WeatherCondition:
-                case xi::Latent::WeatherElement:
-                case xi::Latent::NationControl:
-                case xi::Latent::NationCitizen:
-                case xi::Latent::ZoneHomeNation:
-                    return ProcessLatentEffect(latentEffect);
-                    break;
-                default:
-                    break;
+                return ProcessLatentEffect(latentEffect);
             }
             return false;
         });

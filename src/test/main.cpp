@@ -2592,6 +2592,7 @@ auto runLevelSyncDeparture7514SelfTests() -> bool;
 auto runZoneTreasureReset7515SelfTests() -> bool;
 auto runZoneInTreasurePool7516SelfTests() -> bool;
 auto runZoneInCleanup7517SelfTests() -> bool;
+auto runLatentZoneSelection7518SelfTests() -> bool;
 auto runInstanceLoaderCreate7504SelfTests() -> bool;
 auto runInstanceLoaderMob7505SelfTests() -> bool;
 auto runInstanceLoaderLoad7506SelfTests() -> bool;
@@ -5181,6 +5182,7 @@ namespace
         ok = runZoneTreasureReset7515SelfTests() && ok;
         ok = runZoneInTreasurePool7516SelfTests() && ok;
         ok = runZoneInCleanup7517SelfTests() && ok;
+        ok = runLatentZoneSelection7518SelfTests() && ok;
         ok = runInstanceLoaderCreate7504SelfTests() && ok;
         ok = runInstanceLoaderMob7505SelfTests() && ok;
         ok = runInstanceLoaderLoad7506SelfTests() && ok;
