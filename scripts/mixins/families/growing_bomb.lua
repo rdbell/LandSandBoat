@@ -9,6 +9,13 @@ xi = xi or {}
 xi.mix = xi.mix or {}
 xi.mix.growingBomb = xi.mix.growingBomb or {}
 
+xi.mix.growingBomb.growthPlan = function(damage, animationSub, nextChange, now)
+    if damage > 280 and animationSub < 3 and (nextChange == 0 or now >= nextChange) then
+        return { animationSub = animationSub + 1, nextChange = now + 5 }
+    end
+    return nil
+end
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
@@ -53,19 +60,16 @@ g_mixins.families.growing_bomb = function(bombMob)
         local currentTime       = GetSystemTime()
         local nextChange = mobArg:getLocalVar('BOMB_GROW_NEXT_CHANGE')
 
-        if
-            damage > 280 and
-            animation < 3 and
-            (nextChange == 0 or currentTime >= nextChange)
-        then
-            mobArg:setLocalVar('BOMB_GROW_NEXT_CHANGE', currentTime + 5) -- 5 second cooldown between growths
+        local plan = xi.mix.growingBomb.growthPlan(damage, animation, nextChange, currentTime)
+        if plan then
+            mobArg:setLocalVar('BOMB_GROW_NEXT_CHANGE', plan.nextChange) -- 5 second cooldown between growths
             mobArg:addMod(xi.mod.ATT, 50) -- Approximate values based on some testing, needs more precise capturing
             mobArg:addMod(xi.mod.MATT, 35) -- Observed significantly stronger magic damage at larger sizes
             mobArg:addMod(xi.mod.ENSPELL_DMG_BONUS, 15) -- Observed 60-65 enfire damage at giant size
 
             -- Bomb doesn't grow immediately and instead queues the action
             mobArg:queue(0, function(m)
-                m:setAnimationSub(animation + 1)
+                m:setAnimationSub(plan.animationSub)
             end)
         end
     end)

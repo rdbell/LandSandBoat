@@ -1,0 +1,13 @@
+local bomb = require('scripts/mixins/families/growing_bomb')
+
+describe('Growing Bomb mixin', function()
+    it('grows only above the damage threshold and at an inclusive cooldown boundary', function()
+        assert(xi.mix.growingBomb.growthPlan(280, 0, 0, 100) == nil)
+        assert(xi.mix.growingBomb.growthPlan(281, 3, 0, 100) == nil)
+        assert(xi.mix.growingBomb.growthPlan(281, 1, 106, 100) == nil)
+        local first = xi.mix.growingBomb.growthPlan(281, 1, 0, 100)
+        assert(first.animationSub == 2 and first.nextChange == 105)
+        local boundary = xi.mix.growingBomb.growthPlan(281, 1, 105, 105)
+        assert(boundary.animationSub == 2 and boundary.nextChange == 110)
+    end)
+end)
