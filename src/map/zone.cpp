@@ -35,6 +35,7 @@ constexpr std::uint16_t WeatherCycle = 2160;
 #include "zone.h"
 #include "level_sync_departure.h"
 #include "zone_in_battlefield.h"
+#include "zone_in_treasure_pool.h"
 #include "zone_treasure_reset.h"
 
 #include "trigger_area_dispatch.h"
@@ -1096,23 +1097,21 @@ void CZone::CharZoneIn(CCharEntity* PChar)
 
     PChar->ReloadPartyInc();
 
-    // Zone-wide treasure pool takes precendence over all others
-    if (m_TreasurePool && m_TreasurePool->getPoolType() == TreasurePoolType::Zone)
+    // Zone-wide treasure pool takes precedence over all others.
+    const auto hasZonePool = m_TreasurePool && m_TreasurePool->getPoolType() == TreasurePoolType::Zone;
+    switch (zonehelpers::PlanZoneInTreasurePool(hasZonePool, PChar->PParty != nullptr))
     {
-        PChar->PTreasurePool = m_TreasurePool;
-        PChar->PTreasurePool->addMember(PChar);
-    }
-    else
-    {
-        if (PChar->PParty)
-        {
+        case zonehelpers::ZoneInTreasurePoolAction::AttachZonePool:
+            PChar->PTreasurePool = m_TreasurePool;
+            PChar->PTreasurePool->addMember(PChar);
+            break;
+        case zonehelpers::ZoneInTreasurePoolAction::ReloadPartyPool:
             PChar->PParty->ReloadTreasurePool(PChar);
-        }
-        else
-        {
+            break;
+        case zonehelpers::ZoneInTreasurePoolAction::CreateSoloPool:
             PChar->PTreasurePool = new CTreasurePool(TreasurePoolType::Solo);
             PChar->PTreasurePool->addMember(PChar);
-        }
+            break;
     }
 
     if (!(m_zoneType & ZONE_TYPE::INSTANCED))

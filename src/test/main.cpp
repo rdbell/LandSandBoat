@@ -2590,6 +2590,7 @@ auto runBattlefieldHandlerLookup7512SelfTests() -> bool;
 auto runZoneInBattlefield7513SelfTests() -> bool;
 auto runLevelSyncDeparture7514SelfTests() -> bool;
 auto runZoneTreasureReset7515SelfTests() -> bool;
+auto runZoneInTreasurePool7516SelfTests() -> bool;
 auto runInstanceLoaderCreate7504SelfTests() -> bool;
 auto runInstanceLoaderMob7505SelfTests() -> bool;
 auto runInstanceLoaderLoad7506SelfTests() -> bool;
@@ -5177,6 +5178,7 @@ namespace
         ok = runZoneInBattlefield7513SelfTests() && ok;
         ok = runLevelSyncDeparture7514SelfTests() && ok;
         ok = runZoneTreasureReset7515SelfTests() && ok;
+        ok = runZoneInTreasurePool7516SelfTests() && ok;
         ok = runInstanceLoaderCreate7504SelfTests() && ok;
         ok = runInstanceLoaderMob7505SelfTests() && ok;
         ok = runInstanceLoaderLoad7506SelfTests() && ok;
