@@ -37,6 +37,24 @@ xi.mix.aern.shouldToggleTimer = function(now, braceletTimer)
     return now > braceletTimer
 end
 
+xi.mix.aern.petSpawnPlan = function(mainJob, hasPet, elementalCount)
+    if hasPet then
+        return nil
+    end
+
+    if mainJob == xi.job.SMN and elementalCount <= 5 then
+        return { castElemental = true, elementalCount = elementalCount + 1 }
+    elseif mainJob == xi.job.BST or mainJob == xi.job.DRG then
+        return { callPet = true, inactiveTime = 3000, ignoreBusy = true }
+    end
+
+    return nil
+end
+
+xi.mix.aern.shouldRespawnPet = function(now, respawnTime, hasPet, mainJob)
+    return respawnTime > 0 and now >= respawnTime and not hasPet and (mainJob == xi.job.BST or mainJob == xi.job.SMN)
+end
+
 g_mixins.families.aern = function(aernMob)
     local petDeath = function(mob)
         local pet = mob:getPet()
@@ -52,26 +70,23 @@ g_mixins.families.aern = function(aernMob)
 
     -- Aerns only spawn on engage, we need to manually control the spawn behavior with a summoning animation
     local petSpawn = function(mob)
-        -- Don't spawn a pet if the mob already has one
-        if mob:hasPet() then
+        local mainJob = mob:getMainJob()
+        local plan = xi.mix.aern.petSpawnPlan(mainJob, mob:hasPet(), mob:getLocalVar('aernElementalCount'))
+
+        if not plan then
             return
         end
 
-        local mainJob = mob:getMainJob()
-
-        if mainJob == xi.job.SMN then
+        if plan.castElemental then
             -- SMN Aerns only spawn 5 elementals
-            local eleCount = mob:getLocalVar('aernElementalCount')
-            if eleCount <= 5 then
-                local elemental = math.random(xi.magic.spell.FIRE_SPIRIT, xi.magic.spell.DARK_SPIRIT)
-                mob:castSpell(elemental, mob)
-                mob:setLocalVar('aernElementalCount', eleCount + 1)
+            local elemental = math.random(xi.magic.spell.FIRE_SPIRIT, xi.magic.spell.DARK_SPIRIT)
+            mob:castSpell(elemental, mob)
+            mob:setLocalVar('aernElementalCount', plan.elementalCount)
 
-                -- Add death listener to elemental when it spawns
-                petDeath(mob)
-            end
-        elseif mainJob == xi.job.BST or mainJob == xi.job.DRG then
-            xi.mob.callPets(mob, nil, { inactiveTime = 3000, ignoreBusy = true })
+            -- Add death listener to elemental when it spawns
+            petDeath(mob)
+        elseif plan.callPet then
+            xi.mob.callPets(mob, nil, { inactiveTime = plan.inactiveTime, ignoreBusy = plan.ignoreBusy })
 
             -- Add death listener to pet when it spawns
             petDeath(mob)
@@ -149,13 +164,7 @@ g_mixins.families.aern = function(aernMob)
         -- Pet respawn check
         local petRespawnTime = mob:getLocalVar('petRespawnTime')
 
-        if
-            petRespawnTime > 0 and
-            GetSystemTime() >= petRespawnTime and
-            (not mob:hasPet() or mob:getPet() == nil) and
-            (mob:getMainJob() == xi.job.BST or
-            mob:getMainJob() == xi.job.SMN)
-        then
+        if xi.mix.aern.shouldRespawnPet(GetSystemTime(), petRespawnTime, mob:hasPet() and mob:getPet() ~= nil, mob:getMainJob()) then
             mob:setLocalVar('petRespawnTime', 0) -- Clear the timer
             petSpawn(mob)
         end
