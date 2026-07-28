@@ -580,3 +580,24 @@ describe('Monstrosity return-to-entrance plan', function()
         assert(xi.monstrosity.returnToEntrancePlan(2, xi.zone.EAST_RONFAURE, entry).restoreJobs)
     end)
 end)
+
+describe('Feretory zone-in plan', function()
+    it('corrects the zero-position entry before applying enabled Monstrosity actions', function()
+        local plan = xi.monstrosity.feretoryZoneInPlan(1, 0, 0, 0, xi.job.WAR)
+        assert(plan.position[1] == -358 and plan.position[2] == -3.4 and plan.position[3] == -440 and plan.position[4] == 63)
+        assert(plan.changeJob and plan.mainJob == xi.job.MON and plan.clearEffects)
+    end)
+
+    it('does not correct nonzero positions, and skips changing an existing MON job', function()
+        local plan = xi.monstrosity.feretoryZoneInPlan(1, 0, 0, 1, xi.job.MON)
+        assert(plan.position == nil and not plan.changeJob and plan.clearEffects)
+    end)
+
+    it('uses exact-one enable gating after the zero-position correction', function()
+        for _, enabled in ipairs({ 0, 2 }) do
+            local plan = xi.monstrosity.feretoryZoneInPlan(enabled, 0, 0, 0, xi.job.WAR)
+            assert(plan.position[1] == -358 and plan.position[2] == -3.4 and plan.position[3] == -440 and plan.position[4] == 63)
+            assert(not plan.changeJob and not plan.clearEffects)
+        end
+    end)
+end)

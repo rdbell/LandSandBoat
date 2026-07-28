@@ -1574,27 +1574,50 @@ end
 -- Feretory
 -----------------------------------
 
+-- Plans Feretory entry actions. Position correction precedes the exact-one
+-- enable gate; entity mutations remain host work.
+xi.monstrosity.feretoryZoneInPlan = function(monstrosityEnabled, x, y, z, mainJob)
+    local plan = {}
+
+    if x == 0 and y == 0 and z == 0 then
+        plan.position = { -358, -3.4, -440, 63 }
+    end
+
+    if monstrosityEnabled ~= 1 then
+        return plan
+    end
+
+    if mainJob ~= xi.job.MON then
+        plan.changeJob = true
+        plan.mainJob   = xi.job.MON
+    end
+
+    plan.clearEffects = true
+    return plan
+end
+
 xi.monstrosity.feretoryOnZoneIn = function(player, prevZone)
     local cs = -1
+    local plan = xi.monstrosity.feretoryZoneInPlan(
+        xi.settings.main.ENABLE_MONSTROSITY,
+        player:getXPos(),
+        player:getYPos(),
+        player:getZPos(),
+        player:getMainJob()
+    )
 
-    if
-        player:getXPos() == 0 and
-        player:getYPos() == 0 and
-        player:getZPos() == 0
-    then
-        player:setPos(-358.000, -3.400, -440.00, 63)
+    if plan.position then
+        player:setPos(plan.position[1], plan.position[2], plan.position[3], plan.position[4])
     end
 
-    if xi.settings.main.ENABLE_MONSTROSITY ~= 1 then
-        return cs
+    if plan.changeJob then
+        player:changeJob(plan.mainJob)
     end
 
-    if player:getMainJob() ~= xi.job.MON then
-        player:changeJob(xi.job.MON)
-    end
-
-    for _, effect in pairs(player:getStatusEffects()) do
-        player:delStatusEffectSilent(effect:getEffectType())
+    if plan.clearEffects then
+        for _, effect in pairs(player:getStatusEffects()) do
+            player:delStatusEffectSilent(effect:getEffectType())
+        end
     end
 
     return cs
