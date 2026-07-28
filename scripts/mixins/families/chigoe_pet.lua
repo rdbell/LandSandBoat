@@ -2,8 +2,24 @@
 
 require('scripts/globals/mixins')
 
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.chigoePet = xi.mix.chigoePet or {}
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
+
+xi.mix.chigoePet.spawnCount = function(pool)
+    if pool == xi.mobPool.PEALLAIDH then
+        return 2
+    end
+
+    return 1
+end
+
+xi.mix.chigoePet.shouldSpawnCandidate = function(exists, spawned, remaining)
+    return exists and not spawned and remaining > 0
+end
 
 g_mixins.families.chigoe_pet = function(hostMob)
     local ID = zones[hostMob:getZoneID()]
@@ -16,15 +32,12 @@ g_mixins.families.chigoe_pet = function(hostMob)
             return
         end
 
-        local numChigoesToSpawn = 1
-        if mob:getPool() == xi.mobPool.PEALLAIDH then
-            numChigoesToSpawn = 2
-        end
+        local numChigoesToSpawn = xi.mix.chigoePet.spawnCount(mob:getPool())
 
         for _, mobID in pairs(ID.mob.CHIGOES[mobName]) do
             local chigoe = GetMobByID(mobID)
 
-            if chigoe and not chigoe:isSpawned() then
+            if xi.mix.chigoePet.shouldSpawnCandidate(chigoe ~= nil, chigoe and chigoe:isSpawned(), numChigoesToSpawn) then
                 chigoe:setSpawn(hostMob:getXPos() + math.random(-2, 2), hostMob:getYPos() + math.random(-2, 2), hostMob:getZPos() + math.random(-2, 2), hostMob:getRotPos())
                 chigoe:spawn()
                 if target then

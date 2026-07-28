@@ -1,0 +1,12 @@
+local chigoePet = require('scripts/mixins/families/chigoe_pet')
+
+describe('Chigoe pet mixin', function()
+    it('uses Peallaidh two-pet count and accepts only available candidates', function()
+        assert(xi.mix.chigoePet.spawnCount(xi.mobPool.PEALLAIDH) == 2)
+        assert(xi.mix.chigoePet.spawnCount(0) == 1)
+        assert(xi.mix.chigoePet.shouldSpawnCandidate(true, false, 1))
+        assert(not xi.mix.chigoePet.shouldSpawnCandidate(false, false, 1))
+        assert(not xi.mix.chigoePet.shouldSpawnCandidate(true, true, 1))
+        assert(not xi.mix.chigoePet.shouldSpawnCandidate(true, false, 0))
+    end)
+end)
