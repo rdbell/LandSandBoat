@@ -165,3 +165,28 @@ describe('Terynon MON purchase requirements', function()
         assert(xi.monstrosity.purchaseRequirementsMet(both, speciesLevel({ [5] = 1 }), function() return false end))
     end)
 end)
+
+describe('Terynon MON purchase page mask', function()
+    local function speciesLevel(levels)
+        return function(species) return levels[species] or 0 end
+    end
+
+    it('sets bits only for currently purchasable offers', function()
+        local offers =
+        {
+            [0] = { monSpecies = 5 },
+            [1] = { monVariant = 9 },
+            [5] = { monSpecies = 6, requirements = { { 2, 3 } } },
+        }
+
+        local mask = xi.monstrosity.purchasePageMask(offers, speciesLevel({ [2] = 3 }), function(variant) return variant == 9 end)
+        assert(mask == bit.lshift(1, 0) + bit.lshift(1, 5), mask)
+    end)
+
+    it('returns an empty mask for a missing category or no eligible offers', function()
+        assert(xi.monstrosity.purchasePageMask(nil, speciesLevel({}), function() return false end) == 0)
+
+        local offers = { [3] = { monSpecies = 5 } }
+        assert(xi.monstrosity.purchasePageMask(offers, speciesLevel({ [5] = 1 }), function() return false end) == 0)
+    end)
+end)

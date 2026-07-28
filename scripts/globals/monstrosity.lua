@@ -1092,20 +1092,28 @@ local function hasPurchaseRequirements(player, monCategory, selectedMon)
     )
 end
 
-local function getMonPageMask(player, monCategory)
+-- Builds Terynon's client-visible offer bitmask for one MON category. Offer
+-- data and player state lookups are injected so the decision stays pure.
+xi.monstrosity.purchasePageMask = function(offers, speciesLevel, hasUnlockedVariant)
     local pageMask = 0
 
-    if terynonMonData[monCategory] then
-        local categoryTable = terynonMonData[monCategory]
-
-        for bitPos, _ in pairs(categoryTable) do
-            if hasPurchaseRequirements(player, monCategory, bitPos) then
+    if offers then
+        for bitPos, offer in pairs(offers) do
+            if xi.monstrosity.purchaseRequirementsMet(offer, speciesLevel, hasUnlockedVariant) then
                 pageMask = utils.mask.setBit(pageMask, bitPos, true)
             end
         end
     end
 
     return pageMask
+end
+
+local function getMonPageMask(player, monCategory)
+    return xi.monstrosity.purchasePageMask(
+        terynonMonData[monCategory],
+        function(species) return xi.monstrosity.getSpeciesLevel(player, species) end,
+        function(variant) return xi.monstrosity.hasUnlockedVariant(player, variant) end
+    )
 end
 
 -----------------------------------
