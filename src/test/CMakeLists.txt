@@ -96,6 +96,7 @@ set(SOURCES
     test_latent_tp_selection_7530.cpp
     test_latent_mp_selection_7531.cpp
     test_latent_weather_plan_7532.cpp
+    test_latent_equip_selection_7533.cpp
     test_application.h
     test_application.cpp
     test_application_lifecycle_2554.h

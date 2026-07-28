@@ -21,6 +21,7 @@
 
 #include "latent_effect_container.h"
 #include "latent_capacity.h"
+#include "latent_equip_selection.h"
 #include "latent_food_selection.h"
 #include "latent_hp_selection.h"
 #include "latent_job_level_selection.h"
@@ -227,7 +228,7 @@ void CLatentEffectContainer::CheckLatentsEquip(uint8 slot)
     ProcessLatentEffects(
         [this, slot](CLatentEffect& latentEffect)
         {
-            if (latentEffect.GetSlot() == slot)
+            if (latenthelpers::ShouldProcessEquipLatent(latentEffect.GetSlot(), slot))
             {
                 return ProcessLatentEffect(latentEffect);
             }
