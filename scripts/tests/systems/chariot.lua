@@ -1,0 +1,11 @@
+local chariot = require('scripts/mixins/families/chariot')
+
+describe('Chariot mixin', function()
+    it('schedules a turn at the inclusive combat timer boundary', function()
+        assert(xi.mix.chariot.engagePlan(100, 17).turnTime == 100)
+        assert(xi.mix.chariot.engagePlan(100, 17).turnDelay == 17)
+        assert(xi.mix.chariot.turnPlan(99, 100, 12) == nil)
+        assert(xi.mix.chariot.turnPlan(100, 100, 12).turnTime == 112)
+        assert(xi.mix.chariot.turnPlan(101, 100, 12).turnTime == 113)
+    end)
+end)
