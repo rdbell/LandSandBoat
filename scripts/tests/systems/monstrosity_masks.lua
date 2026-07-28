@@ -638,3 +638,42 @@ describe('Relinquish countdown tick plan', function()
         assert(clamped.returnToEntrance and clamped.nextCountdown == 5)
     end)
 end)
+
+describe('Level-based instinct update', function()
+    it('packs 30/60/90 tiers by species and preserves existing bits', function()
+        local levels = setmetatable(
+        {
+            [xi.monstrosity.species.RABBIT] = 30,
+            [xi.monstrosity.species.TIGER]  = 60,
+            [xi.monstrosity.species.SHEEP]  = 90,
+        }, { __index = function() return 0 end })
+        local instincts = { [0] = 0x01 }
+
+        xi.monstrosity.updateLevelBasedInstincts(levels, instincts)
+
+        assert(instincts[0] == 0x85)
+        assert(instincts[1] == 0x03)
+    end)
+
+    it('writes Astoltian Slime and Eorzean Spriggan into the final instinct byte', function()
+        local levels = setmetatable(
+        {
+            [xi.monstrosity.species.ASTOLTIAN_SLIME]  = 60,
+            [xi.monstrosity.species.EORZEAN_SPRIGGAN] = 90,
+        }, { __index = function() return 0 end })
+        local instincts = {}
+
+        xi.monstrosity.updateLevelBasedInstincts(levels, instincts)
+
+        assert(instincts[63] == 0xE0 and instincts[31] == nil)
+    end)
+
+    it('does not update species IDs outside the source catalog', function()
+        local levels = setmetatable({ [14] = 99 }, { __index = function() return 0 end })
+        local instincts = { [3] = 0x5A }
+
+        xi.monstrosity.updateLevelBasedInstincts(levels, instincts)
+
+        assert(instincts[3] == 0x5A)
+    end)
+end)

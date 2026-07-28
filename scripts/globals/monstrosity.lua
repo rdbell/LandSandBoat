@@ -1339,14 +1339,14 @@ end
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
 
-xi.monstrosity.onMonstrosityUpdate = function(player, data)
+xi.monstrosity.updateLevelBasedInstincts = function(levels, instincts)
     -- Tap level-based unlocks
 
     -- Instincts by MON level
     -- NOTE: Since this is a bitfield, it's zero-indexed!
     for _, val in pairs(xi.monstrosity.species) do
         local speciesKey   = val
-        local speciesLevel = data.levels[val]
+        local speciesLevel = levels[val]
         local byteOffset   = math.floor(speciesKey / 4)
         local unlockAmount = math.floor(speciesLevel / 30)
         local shiftAmount  = (speciesKey * 2) % 8
@@ -1357,11 +1357,15 @@ xi.monstrosity.onMonstrosityUpdate = function(player, data)
         end
 
         if byteOffset < 64 then
-            data.instincts[byteOffset] = bit.bor(data.instincts[byteOffset] or 0, bit.lshift(unlockAmount, shiftAmount))
+            instincts[byteOffset] = bit.bor(instincts[byteOffset] or 0, bit.lshift(unlockAmount, shiftAmount))
         else
             print('byteOffset out of range')
         end
     end
+end
+
+xi.monstrosity.onMonstrosityUpdate = function(player, data)
+    xi.monstrosity.updateLevelBasedInstincts(data.levels, data.instincts)
 
     -- TODO: Handle level-based variants here
 end
