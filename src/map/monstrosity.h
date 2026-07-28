@@ -99,6 +99,28 @@ struct MonsterSkillActionPlan
     uint16 skillId{};
 };
 
+struct SpeciesChangeCandidate
+{
+    uint8   monstrosityId{};
+    JOBTYPE mainJob{};
+    JOBTYPE subJob{};
+    uint8   size{};
+    uint16  look{};
+};
+
+struct SpeciesChangePlan
+{
+    bool    changeSpecies{};
+    uint16  species{};
+    uint8   monstrosityId{};
+    JOBTYPE mainJob{};
+    JOBTYPE subJob{};
+    uint8   size{};
+    uint16  look{};
+    bool    clearInstincts{};
+    bool    eraseStatusEffects{};
+};
+
 void LoadStaticData();
 
 void ReadMonstrosityData(CCharEntity* PChar);
@@ -118,6 +140,7 @@ void HandleDeathMenu(CCharEntity* PChar, GP_CLI_COMMAND_ACTION_HOMEPOINTMENU typ
 DeathMenuPlan PlanDeathMenu(bool hasMonstrosity, GP_CLI_COMMAND_ACTION_HOMEPOINTMENU type);
 ZoneInPlan PlanZoneIn(bool monstrosityEnabled, bool hasMonstrosity, bool isFeretory, bool belligerency);
 MonsterSkillActionPlan PlanMonsterSkillAction(uint8 mainJob, bool hasMonstrosity, uint16 actionIndex, uint16 skillId);
+SpeciesChangePlan PlanSpeciesChange(bool hasCandidate, uint16 speciesIndex, const SpeciesChangeCandidate& candidate, uint8 previousMonstrosityId, uint8 speciesLevel, bool variantUnlocked, bool dontWipeBuffs);
 
 bool IsInstinctUnlocked(CCharEntity* PChar, uint16 instinct);
 bool IsVariantUnlocked(CCharEntity* PChar, uint8 variant);

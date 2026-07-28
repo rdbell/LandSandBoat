@@ -465,6 +465,27 @@ void monstrosity::HandleMonsterSkillActionPacket(const CCharEntity* PChar, const
     PChar->PAI->Internal_MobSkill(plan.actionIndex, plan.skillId, std::nullopt);
 }
 
+monstrosity::SpeciesChangePlan monstrosity::PlanSpeciesChange(const bool hasCandidate, const uint16 speciesIndex, const SpeciesChangeCandidate& candidate, const uint8 previousMonstrosityId, const uint8 speciesLevel, const bool variantUnlocked, const bool dontWipeBuffs)
+{
+    if (!hasCandidate || ShouldRejectUnleveledSpecies(speciesLevel) || (ShouldCheckVariantUnlock(speciesIndex) && !variantUnlocked))
+    {
+        return {};
+    }
+
+    const bool clearInstincts = ShouldWipeInstinctsOnFamilyChange(previousMonstrosityId, candidate.monstrosityId);
+    return {
+        .changeSpecies      = true,
+        .species            = speciesIndex,
+        .monstrosityId      = candidate.monstrosityId,
+        .mainJob            = candidate.mainJob,
+        .subJob             = candidate.subJob,
+        .size               = candidate.size,
+        .look               = candidate.look,
+        .clearInstincts     = clearInstincts,
+        .eraseStatusEffects = clearInstincts && !dontWipeBuffs,
+    };
+}
+
 void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& data)
 {
     // There used to be more checks here, but they've been moved to the packet handler.
@@ -494,29 +515,35 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
         }
 
         const auto speciesData = gMonstrositySpeciesMap[data.SpeciesIndex];
-
-        // Not unlocked
-        if (ShouldRejectUnleveledSpecies(PChar->m_PMonstrosity->levels[speciesData.monstrosityId]))
+        const auto variantUnlocked = !ShouldCheckVariantUnlock(data.SpeciesIndex) ||
+                                      IsVariantUnlocked(PChar, static_cast<uint8>(data.SpeciesIndex - VariantSpeciesThreshold));
+        const auto plan = PlanSpeciesChange(
+            true,
+            data.SpeciesIndex,
+            {
+                .monstrosityId = speciesData.monstrosityId,
+                .mainJob       = speciesData.mjob,
+                .subJob        = speciesData.sjob,
+                .size          = speciesData.size,
+                .look          = speciesData.look,
+            },
+            previousId,
+            PChar->m_PMonstrosity->levels[speciesData.monstrosityId],
+            variantUnlocked,
+            settings::get<bool>("main.MONSTROSITY_DONT_WIPE_BUFFS"));
+        if (!plan.changeSpecies)
         {
             return;
         }
 
-        // If is a variant, and isn't unlocked, bail
-        if (ShouldCheckVariantUnlock(data.SpeciesIndex) && !IsVariantUnlocked(PChar, static_cast<uint8>(data.SpeciesIndex - VariantSpeciesThreshold)))
-        {
-            return;
-        }
+        PChar->m_PMonstrosity->Species       = plan.species;
+        PChar->m_PMonstrosity->MonstrosityId = plan.monstrosityId;
+        PChar->m_PMonstrosity->MainJob       = plan.mainJob;
+        PChar->m_PMonstrosity->SubJob        = plan.subJob;
+        PChar->m_PMonstrosity->Size          = plan.size;
+        PChar->m_PMonstrosity->Look          = plan.look;
 
-        PChar->m_PMonstrosity->Species = data.SpeciesIndex;
-
-        PChar->m_PMonstrosity->MonstrosityId = speciesData.monstrosityId;
-        PChar->m_PMonstrosity->MainJob       = speciesData.mjob;
-        PChar->m_PMonstrosity->SubJob        = speciesData.sjob;
-        PChar->m_PMonstrosity->Size          = speciesData.size;
-        PChar->m_PMonstrosity->Look          = speciesData.look;
-
-        // If changing "family" of species
-        if (ShouldWipeInstinctsOnFamilyChange(previousId, PChar->m_PMonstrosity->MonstrosityId))
+        if (plan.clearInstincts)
         {
             // Unequip all instincts
             for (std::size_t idx = 0; idx < InstinctSlotCount; ++idx)
@@ -524,7 +551,7 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
                 PChar->m_PMonstrosity->EquippedInstincts[idx] = 0x0000;
             }
 
-            if (!settings::get<bool>("main.MONSTROSITY_DONT_WIPE_BUFFS"))
+            if (plan.eraseStatusEffects)
             {
                 PChar->StatusEffectContainer->EraseAllStatusEffect();
             }
