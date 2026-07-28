@@ -29,6 +29,7 @@
 #include "battlefield.h"
 #include "battlefield_handler.h"
 #include "battlefield_handler_load.h"
+#include "battlefield_handler_lookup.h"
 #include "battlefield_handler_maintenance.h"
 #include "battlefield_handler_registration.h"
 
@@ -171,7 +172,8 @@ CBattlefield* CBattlefieldHandler::GetBattlefield(CBaseEntity* PEntity, bool che
     {
         for (auto& [area, battlefield] : m_Battlefields)
         {
-            if (battlefield->IsRegistered(static_cast<CCharEntity*>(entity)))
+            if (battlefieldhandlerhelpers::ShouldSelectBattlefield(true, true,
+                                                                   battlefield->IsRegistered(static_cast<CCharEntity*>(entity)), false))
             {
                 return battlefield.get();
             }
@@ -181,7 +183,8 @@ CBattlefield* CBattlefieldHandler::GetBattlefield(CBaseEntity* PEntity, bool che
 
     for (auto& [area, battlefield] : m_Battlefields)
     {
-        if (battlefield->GetEntity(entity))
+        if (battlefieldhandlerhelpers::ShouldSelectBattlefield(checkRegistered, entity && entity->objtype == TYPE_PC, false,
+                                                               battlefield->GetEntity(entity) != nullptr))
         {
             return battlefield.get();
         }

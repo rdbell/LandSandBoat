@@ -2586,6 +2586,7 @@ auto runBattlefieldEnterPC3869SelfTests() -> bool;
 auto runBattlefieldHandlerRegistration7501SelfTests() -> bool;
 auto runBattlefieldHandlerLoad7502SelfTests() -> bool;
 auto runBattlefieldHandlerMaintenance7503SelfTests() -> bool;
+auto runBattlefieldHandlerLookup7512SelfTests() -> bool;
 auto runInstanceLoaderCreate7504SelfTests() -> bool;
 auto runInstanceLoaderMob7505SelfTests() -> bool;
 auto runInstanceLoaderLoad7506SelfTests() -> bool;
@@ -5169,6 +5170,7 @@ namespace
         ok = runBattlefieldHandlerRegistration7501SelfTests() && ok;
         ok = runBattlefieldHandlerLoad7502SelfTests() && ok;
         ok = runBattlefieldHandlerMaintenance7503SelfTests() && ok;
+        ok = runBattlefieldHandlerLookup7512SelfTests() && ok;
         ok = runInstanceLoaderCreate7504SelfTests() && ok;
         ok = runInstanceLoaderMob7505SelfTests() && ok;
         ok = runInstanceLoaderLoad7506SelfTests() && ok;
