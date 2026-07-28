@@ -514,33 +514,79 @@ uint32 monstrosity::GetPackedMonstrosityName(CCharEntity* PChar)
 
 void monstrosity::SendFullMonstrosityUpdate(CCharEntity* PChar)
 {
-    if (PChar->m_PMonstrosity == nullptr)
+    auto speciesLook = uint16{};
+    if (PChar->m_PMonstrosity != nullptr)
     {
-        return;
+        // The source map lookup intentionally default-inserts an empty row for
+        // a missing species, preserving the original zero-look fallback.
+        speciesLook = gMonstrositySpeciesMap[PChar->m_PMonstrosity->Species].look;
     }
 
-    // Make sure look is up to date before we send packets
-    PChar->m_PMonstrosity->Look = gMonstrositySpeciesMap[PChar->m_PMonstrosity->Species].look;
+    const auto plan = PlanFullMonstrosityUpdate(PChar->m_PMonstrosity != nullptr, speciesLook);
+    for (const auto action : plan.actions)
+    {
+        switch (action)
+        {
+            case FullMonstrosityUpdateAction::RefreshLook:
+                PChar->m_PMonstrosity->Look = plan.look;
+                break;
+            case FullMonstrosityUpdateAction::BuildTraits:
+                charutils::BuildingCharTraitsTable(PChar);
+                break;
+            case FullMonstrosityUpdateAction::NotifyLua:
+                luautils::OnMonstrosityUpdate(PChar);
+                break;
+            case FullMonstrosityUpdateAction::SendMonstrosity1:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY1>(PChar);
+                break;
+            case FullMonstrosityUpdateAction::SendMonstrosity2:
+                PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY2>(PChar);
+                break;
+            case FullMonstrosityUpdateAction::SendJobInfo:
+                PChar->pushPacket<GP_SERV_COMMAND_JOB_INFO>(PChar);
+                break;
+            case FullMonstrosityUpdateAction::SendExtendedJobPackets:
+                charutils::SendExtendedJobPackets(PChar);
+                break;
+            case FullMonstrosityUpdateAction::SendGrapList:
+                PChar->pushPacket<GP_SERV_COMMAND_GRAP_LIST>(PChar);
+                break;
+            case FullMonstrosityUpdateAction::SendCLIStatus:
+                PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS>(PChar);
+                break;
+            case FullMonstrosityUpdateAction::SendCommandData:
+                PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+                break;
+            case FullMonstrosityUpdateAction::MarkLookUpdate:
+                PChar->updatemask |= UPDATE_LOOK;
+                break;
+        }
+    }
+}
 
-    // TODO: Safety checks:
-    //     : The species box on the UI should never be empty - everything breaks if that happens.
-    //     : We should detect a bad state and fall back to being a Lv1 Bunny if that happens.
+monstrosity::FullMonstrosityUpdatePlan monstrosity::PlanFullMonstrosityUpdate(const bool hasMonstrosity, const uint16 speciesLook)
+{
+    if (!hasMonstrosity)
+    {
+        return {};
+    }
 
-    // TODO: Only send model change packets when the model actually changes - otherwise it disappears!
-
-    charutils::BuildingCharTraitsTable(PChar);
-
-    luautils::OnMonstrosityUpdate(PChar);
-
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY1>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_MISCDATA::MONSTROSITY2>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_JOB_INFO>(PChar);
-    charutils::SendExtendedJobPackets(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_GRAP_LIST>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_CLISTATUS>(PChar);
-    PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
-
-    PChar->updatemask |= UPDATE_LOOK;
+    return {
+        .look = speciesLook,
+        .actions = {
+            FullMonstrosityUpdateAction::RefreshLook,
+            FullMonstrosityUpdateAction::BuildTraits,
+            FullMonstrosityUpdateAction::NotifyLua,
+            FullMonstrosityUpdateAction::SendMonstrosity1,
+            FullMonstrosityUpdateAction::SendMonstrosity2,
+            FullMonstrosityUpdateAction::SendJobInfo,
+            FullMonstrosityUpdateAction::SendExtendedJobPackets,
+            FullMonstrosityUpdateAction::SendGrapList,
+            FullMonstrosityUpdateAction::SendCLIStatus,
+            FullMonstrosityUpdateAction::SendCommandData,
+            FullMonstrosityUpdateAction::MarkLookUpdate,
+        },
+    };
 }
 
 monstrosity::MonsterSkillActionPlan monstrosity::PlanMonsterSkillAction(const uint8 mainJob, const bool hasMonstrosity, const uint16 actionIndex, const uint16 skillId)

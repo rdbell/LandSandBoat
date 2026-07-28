@@ -126,6 +126,27 @@ struct ZoneInPlan
     bool   markLookUpdate{};
 };
 
+enum class FullMonstrosityUpdateAction : uint8
+{
+    RefreshLook,
+    BuildTraits,
+    NotifyLua,
+    SendMonstrosity1,
+    SendMonstrosity2,
+    SendJobInfo,
+    SendExtendedJobPackets,
+    SendGrapList,
+    SendCLIStatus,
+    SendCommandData,
+    MarkLookUpdate,
+};
+
+struct FullMonstrosityUpdatePlan
+{
+    uint16                                  look{};
+    std::vector<FullMonstrosityUpdateAction> actions{};
+};
+
 struct MonsterSkillActionPlan
 {
     bool   invokeMobSkill{};
@@ -253,6 +274,7 @@ void SetLevel(CCharEntity* PChar, uint8 id, uint8 level);
 void HandleDeathMenu(CCharEntity* PChar, GP_CLI_COMMAND_ACTION_HOMEPOINTMENU type);
 DeathMenuPlan PlanDeathMenu(bool hasMonstrosity, GP_CLI_COMMAND_ACTION_HOMEPOINTMENU type);
 ZoneInPlan PlanZoneIn(bool monstrosityEnabled, bool hasMonstrosity, bool isFeretory, bool belligerency);
+FullMonstrosityUpdatePlan PlanFullMonstrosityUpdate(bool hasMonstrosity, uint16 speciesLook);
 MonsterSkillActionPlan PlanMonsterSkillAction(uint8 mainJob, bool hasMonstrosity, uint16 actionIndex, uint16 skillId);
 SpeciesChangePlan PlanSpeciesChange(bool hasCandidate, uint16 speciesIndex, const SpeciesChangeCandidate& candidate, uint8 previousMonstrosityId, uint8 speciesLevel, bool variantUnlocked, bool dontWipeBuffs);
 DescriptorUpdatePlan PlanDescriptorUpdate(bool speciesFlag, bool instinctFlag, bool descriptor1Flag, bool descriptor2Flag, uint8 descriptor1Index, uint8 descriptor2Index);
