@@ -1,0 +1,11 @@
+local mimic = require('scripts/mixins/families/mimic')
+
+describe('Mimic mixin', function()
+    it('requests draw-in only for an out-of-range target', function()
+        assert(xi.mix.mimic.drawInPlan(false, 100, 3) == nil)
+        assert(xi.mix.mimic.drawInPlan(true, 2.9, 3) == nil)
+        local edge = xi.mix.mimic.drawInPlan(true, 3, 3)
+        assert(edge.offset == 2.8)
+        assert(xi.mix.mimic.drawInPlan(true, 20, 5).offset == 4.8)
+    end)
+end)
