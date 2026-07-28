@@ -22,6 +22,7 @@
 #include "zone_entities.h"
 #include "zone_entities_npc_insert.h"
 #include "zone_entities_summon_insert.h"
+#include "zone_entities_transport_depart.h"
 #include "zone_capacity.h"
 #include "common/utils.h"
 #include "enmity_container.h"
@@ -442,7 +443,10 @@ void CZoneEntities::TransportDepart(uint16 boundary, uint16 prevZoneId, uint16 t
     {
         if (PCurrentChar->loc.boundary == boundary)
         {
-            if (PCurrentChar->eventPreparation->targetEntity != nullptr)
+            const auto recovery = zoneentities::PlanTransportDepartureRecovery(
+                PCurrentChar->eventPreparation->targetEntity != nullptr,
+                PCurrentChar->eventPreparation->scriptFile);
+            if (recovery.clearTarget)
             {
                 // The player talked to one of the guys on the boat, and the event target is wrong.
                 // This leads to the wrong script being loaded and you get stuck on a black screen
@@ -450,12 +454,9 @@ void CZoneEntities::TransportDepart(uint16 boundary, uint16 prevZoneId, uint16 t
 
                 // Attempt to load the proper script
                 PCurrentChar->eventPreparation->targetEntity = nullptr;
-                size_t deleteStart                           = PCurrentChar->eventPreparation->scriptFile.find("npcs/");
-                size_t deleteEnd                             = PCurrentChar->eventPreparation->scriptFile.find(".lua");
-
-                if (deleteStart != std::string::npos && deleteEnd != std::string::npos)
+                if (recovery.setScriptFile)
                 {
-                    PCurrentChar->eventPreparation->scriptFile.replace(deleteStart, deleteEnd - deleteStart, "Zone");
+                    PCurrentChar->eventPreparation->scriptFile = recovery.scriptFile;
                 }
             }
 

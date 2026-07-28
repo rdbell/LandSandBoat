@@ -2592,6 +2592,7 @@ auto runInstanceLoaderLoad7506SelfTests() -> bool;
 auto runInstanceLoaderFinalize7507SelfTests() -> bool;
 auto runZoneEntitiesNpcInsert7508SelfTests() -> bool;
 auto runZoneEntitiesSummonInsert7509SelfTests() -> bool;
+auto runZoneEntitiesTransportDepart7510SelfTests() -> bool;
 auto runPartyRejectPCAddFull3870SelfTests() -> bool;
 auto runGuildpointsCanAfford3871SelfTests() -> bool;
 auto runFollowCanFollow3872SelfTests() -> bool;
@@ -5173,6 +5174,7 @@ namespace
         ok = runInstanceLoaderFinalize7507SelfTests() && ok;
         ok = runZoneEntitiesNpcInsert7508SelfTests() && ok;
         ok = runZoneEntitiesSummonInsert7509SelfTests() && ok;
+        ok = runZoneEntitiesTransportDepart7510SelfTests() && ok;
         ok = runPartyRejectPCAddFull3870SelfTests() && ok;
         ok = runGuildpointsCanAfford3871SelfTests() && ok;
         ok = runFollowCanFollow3872SelfTests() && ok;
