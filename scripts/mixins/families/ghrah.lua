@@ -9,6 +9,10 @@ require('scripts/globals/mixins')
 local palaceID = zones[xi.zone.GRAND_PALACE_OF_HUXZOI]
 local gardenID = zones[xi.zone.THE_GARDEN_OF_RUHMET]
 -----------------------------------
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.ghrah = xi.mix.ghrah or {}
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
@@ -157,38 +161,57 @@ local function initializeOriginalMods(mob)
     end
 end
 
-local function switchMobForm(mob, form, aggressive)
+xi.mix.ghrah.formPlan = function(form, originalAtt, originalDef, originalEva, mainLevel)
+    local plan = {
+        baseDamageModifier = 0,
+        att                = originalAtt,
+        def                = originalDef,
+        eva                = originalEva,
+        tripleAttack       = 0,
+        aggressive         = form ~= 0,
+        animationSub       = form,
+    }
+
+    if form == 1 then
+        plan.def = originalDef * 2 + 60
+    elseif form == 2 then
+        plan.baseDamageModifier = mainLevel + 2
+        plan.att = originalAtt + 11
+        plan.def = originalDef + 11
+    elseif form == 3 then
+        plan.eva = originalEva + 48
+        plan.tripleAttack = 5
+    end
+
+    return plan
+end
+
+xi.mix.ghrah.formChangePlan = function(now, changeTime, currentForm, targetForm)
+    if now <= changeTime then
+        return nil
+    end
+
+    local nextForm = 0
+    if currentForm == 0 then
+        nextForm = targetForm
+    end
+
+    return { form = nextForm, changeTime = now + 60 }
+end
+
+local function switchMobForm(mob, form)
     local originalAtt = mob:getLocalVar('originalATT')
     local originalDef = mob:getLocalVar('originalDEF')
     local originalEva = mob:getLocalVar('originalEVA')
 
-    -- Reset to base stats first
-    mob:setMobMod(xi.mobMod.BASE_DAMAGE_MODIFIER, 0)
-    mob:setMod(xi.mod.ATT, originalAtt)
-    mob:setMod(xi.mod.DEF, originalDef)
-    mob:setMod(xi.mod.EVA, originalEva)
-    mob:setMod(xi.mod.TRIPLE_ATTACK, 0)
-
-    -- Apply form-specific modifications
-    if form == 1 then
-        -- Human form
-        -- Has a 100% increase to DEF plus equivalent PLD defense bonus
-        mob:setMod(xi.mod.DEF, originalDef * 2 + 60)
-    elseif form == 2 then
-        -- Spider form
-        -- ATT and DEF traits equivalent to 75 WAR
-        mob:setMobMod(xi.mobMod.BASE_DAMAGE_MODIFIER, mob:getMainLvl() + 2)
-        mob:setMod(xi.mod.ATT, originalAtt + 11)
-        mob:setMod(xi.mod.DEF, originalDef + 11)
-    elseif form == 3 then
-        -- Bird form
-        -- EVA and Triple Attack equivalent to 75 THF
-        mob:setMod(xi.mod.EVA, originalEva + 48)
-        mob:setMod(xi.mod.TRIPLE_ATTACK, 5)
-    end
-
-    mob:setAggressive(aggressive)
-    mob:setAnimationSub(form)
+    local plan = xi.mix.ghrah.formPlan(form, originalAtt, originalDef, originalEva, mob:getMainLvl())
+    mob:setMobMod(xi.mobMod.BASE_DAMAGE_MODIFIER, plan.baseDamageModifier)
+    mob:setMod(xi.mod.ATT, plan.att)
+    mob:setMod(xi.mod.DEF, plan.def)
+    mob:setMod(xi.mod.EVA, plan.eva)
+    mob:setMod(xi.mod.TRIPLE_ATTACK, plan.tripleAttack)
+    mob:setAggressive(plan.aggressive)
+    mob:setAnimationSub(plan.animationSub)
 end
 
 -- Consolidated form change logic
@@ -197,15 +220,10 @@ local function handleFormChange(mob)
     local currentTime = GetSystemTime()
     local currentForm = mob:getAnimationSub()
 
-    if currentTime > changeTime then
-        local targetForm = mob:getLocalVar('targetForm') or 0 -- Use cached target form
-        if currentForm == 0 then
-            switchMobForm(mob, targetForm, true)
-        else
-            switchMobForm(mob, 0, false)
-        end
-
-        mob:setLocalVar('changeTime', currentTime + 60)
+    local changePlan = xi.mix.ghrah.formChangePlan(currentTime, changeTime, currentForm, mob:getLocalVar('targetForm') or 0)
+    if changePlan then
+        switchMobForm(mob, changePlan.form)
+        mob:setLocalVar('changeTime', changePlan.changeTime)
     end
 end
 
