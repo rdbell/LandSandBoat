@@ -882,14 +882,21 @@ xi.monstrosity.unlockStartingMONs = function(player, choice)
 end
 
 -- Use xi.monstrosity.species
+xi.monstrosity.speciesLevel = function(levels, species)
+    return levels[species]
+end
+
 xi.monstrosity.getSpeciesLevel = function(player, species)
-    local data = player:getMonstrosityData()
-    return data['levels'][species]
+    return xi.monstrosity.speciesLevel(player:getMonstrosityData().levels, species)
 end
 
 -- Use xi.monstrosity.species
+xi.monstrosity.speciesUnlocked = function(levels, species)
+    return xi.monstrosity.speciesLevel(levels, species) > 0
+end
+
 xi.monstrosity.hasUnlockedSpecies = function(player, species)
-    return xi.monstrosity.getSpeciesLevel(player, species) > 0
+    return xi.monstrosity.speciesUnlocked(player:getMonstrosityData().levels, species)
 end
 
 -- Use xi.monstrosity.species

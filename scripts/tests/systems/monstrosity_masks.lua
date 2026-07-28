@@ -738,3 +738,14 @@ describe('Monstrosity starting data', function()
         assert(spriggan.monstrosityId == 127 and spriggan.species == 127)
     end)
 end)
+
+describe('Monstrosity species level reads', function()
+    it('returns the stored level and unlock state', function()
+        local levels = { [xi.monstrosity.species.RABBIT] = 1, [xi.monstrosity.species.TIGER] = 99, [xi.monstrosity.species.SHEEP] = 0 }
+
+        assert(xi.monstrosity.speciesLevel(levels, xi.monstrosity.species.RABBIT) == 1)
+        assert(xi.monstrosity.speciesLevel(levels, xi.monstrosity.species.TIGER) == 99)
+        assert(xi.monstrosity.speciesUnlocked(levels, xi.monstrosity.species.RABBIT))
+        assert(not xi.monstrosity.speciesUnlocked(levels, xi.monstrosity.species.SHEEP))
+    end)
+end)
