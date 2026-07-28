@@ -614,3 +614,27 @@ describe('Feretory zone-out plan', function()
         assert(xi.monstrosity.feretoryZoneOutPlan(2) == nil)
     end)
 end)
+
+describe('Relinquish countdown tick plan', function()
+    it('clamps low counters and emits the four-to-one countdown', function()
+        local initial = xi.monstrosity.relinquishTickPlan(-1)
+        assert(initial.countdown == 4 and initial.nextCountdown == 1)
+
+        local second = xi.monstrosity.relinquishTickPlan(1)
+        assert(second.countdown == 3 and second.nextCountdown == 2)
+
+        local middle = xi.monstrosity.relinquishTickPlan(2)
+        assert(middle.countdown == 2 and middle.nextCountdown == 3)
+
+        local last = xi.monstrosity.relinquishTickPlan(3)
+        assert(last.countdown == 1 and last.nextCountdown == 4)
+    end)
+
+    it('returns to the entrance from step four and on clamped higher counters', function()
+        local stepFour = xi.monstrosity.relinquishTickPlan(4)
+        assert(stepFour.returnToEntrance and stepFour.nextCountdown == 5)
+
+        local clamped = xi.monstrosity.relinquishTickPlan(99)
+        assert(clamped.returnToEntrance and clamped.nextCountdown == 5)
+    end)
+end)

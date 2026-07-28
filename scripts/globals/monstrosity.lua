@@ -1415,35 +1415,30 @@ end
 -- Relinquish
 -----------------------------------
 
-xi.monstrosity.relinquishSteps =
-{
-    [0] = function(player)
-        player:messageBasic(xi.msg.basic.FERETORY_COUNTDOWN, 0, 4)
-    end,
+-- Plans one timer tick of the Relinquish countdown. Counters remain clamped
+-- on subsequent recursive ticks, preserving the source's repeated return path.
+xi.monstrosity.relinquishTickPlan = function(relinquishCountdown)
+    local step = utils.clamp(relinquishCountdown, 0, 4)
 
-    [1] = function(player)
-        player:messageBasic(xi.msg.basic.FERETORY_COUNTDOWN, 0, 3)
-    end,
+    if step == 4 then
+        return { returnToEntrance = true, nextCountdown = step + 1 }
+    end
 
-    [2] = function(player)
-        player:messageBasic(xi.msg.basic.FERETORY_COUNTDOWN, 0, 2)
-    end,
-
-    [3] = function(player)
-        player:messageBasic(xi.msg.basic.FERETORY_COUNTDOWN, 0, 1)
-    end,
-
-    [4] = function(player)
-        xi.monstrosity.onMonstrosityReturnToEntrance(player)
-    end,
-}
+    return { countdown = 4 - step, nextCountdown = step + 1 }
+end
 
 xi.monstrosity.relinquishFuncBody = function(player)
     -- TODO: Make this countdown interruptable
     player:timer(1000, function(playerArg)
-        local step = utils.clamp(playerArg:getLocalVar('RELINQUISH_COUNTDOWN'), 0, 4)
-        xi.monstrosity.relinquishSteps[step](playerArg)
-        playerArg:setLocalVar('RELINQUISH_COUNTDOWN', step + 1)
+        local plan = xi.monstrosity.relinquishTickPlan(playerArg:getLocalVar('RELINQUISH_COUNTDOWN'))
+
+        if plan.countdown then
+            playerArg:messageBasic(xi.msg.basic.FERETORY_COUNTDOWN, 0, plan.countdown)
+        elseif plan.returnToEntrance then
+            xi.monstrosity.onMonstrosityReturnToEntrance(playerArg)
+        end
+
+        playerArg:setLocalVar('RELINQUISH_COUNTDOWN', plan.nextCountdown)
         xi.monstrosity.relinquishFuncBody(playerArg)
     end)
 end
