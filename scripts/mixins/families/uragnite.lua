@@ -27,31 +27,59 @@ xi = xi or {}
 xi.mix = xi.mix or {}
 xi.mix.uragnite = xi.mix.uragnite or {}
 
+xi.mix.uragnite.shouldEnterShell = function(isPhysical, roll, chanceToShell, animationSub)
+    return isPhysical and roll <= chanceToShell and bit.band(animationSub, 1) == 0
+end
+
+xi.mix.uragnite.enterPlan = function(animationSub, regen, skillList)
+    return {
+        animationSub = animationSub + 1,
+        autoAttack = false,
+        damageTakenMod = -7500,
+        regen = regen,
+        skillList = skillList,
+        noMove = 1,
+    }
+end
+
+xi.mix.uragnite.exitPlan = function(animationSub, regen, skillList)
+    return {
+        animationSub = animationSub - 1,
+        autoAttack = true,
+        damageTakenMod = -7500,
+        regen = regen,
+        skillList = skillList,
+        noMove = 0,
+    }
+end
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
 local function enterShell(mob)
-    mob:setAnimationSub(mob:getAnimationSub() + 1)
-    mob:setAutoAttackEnabled(false)
-    mob:addMod(xi.mod.UDMGPHYS, -7500)
-    mob:addMod(xi.mod.UDMGRANGE, -7500)
-    mob:addMod(xi.mod.UDMGMAGIC, -7500)
-    mob:addMod(xi.mod.UDMGBREATH, -7500)
-    mob:addMod(xi.mod.REGEN, mob:getLocalVar('[uragnite]inShellRegen'))
-    mob:setMobMod(xi.mobMod.SKILL_LIST, mob:getLocalVar('[uragnite]inShellSkillList'))
-    mob:setMobMod(xi.mobMod.NO_MOVE, 1)
+    local plan = xi.mix.uragnite.enterPlan(mob:getAnimationSub(), mob:getLocalVar('[uragnite]inShellRegen'), mob:getLocalVar('[uragnite]inShellSkillList'))
+    mob:setAnimationSub(plan.animationSub)
+    mob:setAutoAttackEnabled(plan.autoAttack)
+    mob:addMod(xi.mod.UDMGPHYS, plan.damageTakenMod)
+    mob:addMod(xi.mod.UDMGRANGE, plan.damageTakenMod)
+    mob:addMod(xi.mod.UDMGMAGIC, plan.damageTakenMod)
+    mob:addMod(xi.mod.UDMGBREATH, plan.damageTakenMod)
+    mob:addMod(xi.mod.REGEN, plan.regen)
+    mob:setMobMod(xi.mobMod.SKILL_LIST, plan.skillList)
+    mob:setMobMod(xi.mobMod.NO_MOVE, plan.noMove)
 end
 
 local function exitShell(mob)
-    mob:setAnimationSub(mob:getAnimationSub() - 1)
-    mob:setAutoAttackEnabled(true)
-    mob:delMod(xi.mod.UDMGPHYS, -7500)
-    mob:delMod(xi.mod.UDMGRANGE, -7500)
-    mob:delMod(xi.mod.UDMGMAGIC, -7500)
-    mob:delMod(xi.mod.UDMGBREATH, -7500)
-    mob:delMod(xi.mod.REGEN, mob:getLocalVar('[uragnite]inShellRegen'))
-    mob:setMobMod(xi.mobMod.SKILL_LIST, mob:getLocalVar('[uragnite]noShellSkillList'))
-    mob:setMobMod(xi.mobMod.NO_MOVE, 0)
+    local plan = xi.mix.uragnite.exitPlan(mob:getAnimationSub(), mob:getLocalVar('[uragnite]inShellRegen'), mob:getLocalVar('[uragnite]noShellSkillList'))
+    mob:setAnimationSub(plan.animationSub)
+    mob:setAutoAttackEnabled(plan.autoAttack)
+    mob:delMod(xi.mod.UDMGPHYS, plan.damageTakenMod)
+    mob:delMod(xi.mod.UDMGRANGE, plan.damageTakenMod)
+    mob:delMod(xi.mod.UDMGMAGIC, plan.damageTakenMod)
+    mob:delMod(xi.mod.UDMGBREATH, plan.damageTakenMod)
+    mob:delMod(xi.mod.REGEN, plan.regen)
+    mob:setMobMod(xi.mobMod.SKILL_LIST, plan.skillList)
+    mob:setMobMod(xi.mobMod.NO_MOVE, plan.noMove)
 end
 
 xi.mix.uragnite.config = function(mob, params)
@@ -94,17 +122,17 @@ g_mixins.families.uragnite = function(uragniteMob)
     end)
 
     uragniteMob:addListener('TAKE_DAMAGE', 'URAGNITE_TAKE_DAMAGE', function(mob, amount, attacker, attackType, damageType)
-        if attackType == xi.attackType.PHYSICAL then
-            if
-                math.random(1, 100) <= mob:getLocalVar('[uragnite]chanceToShell') and
-                bit.band(mob:getAnimationSub(), 1) == 0
-            then
-                enterShell(mob)
-                local timeInShell = math.random(mob:getLocalVar('[uragnite]timeInShellMin'), mob:getLocalVar('[uragnite]timeInShellMax'))
-                mob:timer(timeInShell * 1000, function(mobArg)
-                    exitShell(mobArg)
-                end)
-            end
+        if xi.mix.uragnite.shouldEnterShell(
+            attackType == xi.attackType.PHYSICAL,
+            math.random(1, 100),
+            mob:getLocalVar('[uragnite]chanceToShell'),
+            mob:getAnimationSub())
+        then
+            enterShell(mob)
+            local timeInShell = math.random(mob:getLocalVar('[uragnite]timeInShellMin'), mob:getLocalVar('[uragnite]timeInShellMax'))
+            mob:timer(timeInShell * 1000, function(mobArg)
+                exitShell(mobArg)
+            end)
         end
     end)
 end
