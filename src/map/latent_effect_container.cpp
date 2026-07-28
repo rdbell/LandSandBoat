@@ -21,6 +21,7 @@
 
 #include "latent_effect_container.h"
 #include "latent_capacity.h"
+#include "latent_target_selection.h"
 #include "latent_zone_selection.h"
 
 #include "ai/ai_container.h"
@@ -721,15 +722,9 @@ void CLatentEffectContainer::CheckLatentsTargetChange()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            switch (latentEffect.GetConditionsID())
+            if (latenthelpers::ShouldProcessTargetLatent(latentEffect.GetConditionsID()))
             {
-                case xi::Latent::SignetBonus:
-                case xi::Latent::VsEcosystem:
-                case xi::Latent::VsSpecies:
-                case xi::Latent::VsFamily:
-                    return ProcessLatentEffect(latentEffect);
-                default:
-                    break;
+                return ProcessLatentEffect(latentEffect);
             }
             return false;
         });
