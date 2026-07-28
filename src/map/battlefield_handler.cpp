@@ -28,6 +28,7 @@
 
 #include "battlefield.h"
 #include "battlefield_handler.h"
+#include "battlefield_handler_load.h"
 #include "battlefield_handler_registration.h"
 
 #include "entities/battle_entity.h"
@@ -104,23 +105,16 @@ uint8 CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, const Battlefield
 {
     TracyZoneScoped;
 
-    if (PChar->PBattlefield != nullptr || m_Battlefields.size() >= m_MaxBattlefields)
-    {
-        return BATTLEFIELD_RETURN_CODE_WAIT;
-    }
+    const auto areaOccupied = m_Battlefields.contains(registration.area);
+    const auto plan         = battlefieldhandlerhelpers::PlanLoadAdmission(
+        PChar->PBattlefield != nullptr,
+        m_Battlefields.size() >= m_MaxBattlefields,
+        areaOccupied,
+        registration.id == 0xFFFF);
 
-    for (auto&& battlefield : m_Battlefields)
+    if (plan.action == battlefieldhandlerhelpers::LoadAction::Return)
     {
-        if (battlefield.first == registration.area)
-        {
-            return BATTLEFIELD_RETURN_CODE_INCREMENT_REQUEST;
-        }
-    }
-
-    if (registration.id == 0xFFFF)
-    {
-        // made it this far so looks like there's a free battlefield
-        return BATTLEFIELD_RETURN_CODE_CUTSCENE;
+        return plan.returnCode;
     }
 
     auto battlefield = std::make_unique<CBattlefield>(registration.id, m_PZone, registration.area, PChar);
@@ -133,7 +127,7 @@ uint8 CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, const Battlefield
     if (!rset || rset->rowsCount() == 0 || !rset->next())
     {
         ShowError("Cannot load battlefield : %u ", registration.id);
-        return BATTLEFIELD_RETURN_CODE_REQS_NOT_MET;
+        return battlefieldhandlerhelpers::PlanLoadRecordResult(false);
     }
 
     const auto name            = rset->get<std::string>("name");
@@ -164,7 +158,7 @@ uint8 CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, const Battlefield
     luautils::OnBattlefieldInitialize(PBattlefield);
     PBattlefield->InsertEntity(PChar, true);
 
-    return BATTLEFIELD_RETURN_CODE_CUTSCENE;
+    return battlefieldhandlerhelpers::PlanLoadRecordResult(true);
 }
 
 CBattlefield* CBattlefieldHandler::GetBattlefield(CBaseEntity* PEntity, bool checkRegistered)
