@@ -924,17 +924,19 @@ xi.monstrosity.unlockSpecies = function(player, species)
 end
 
 -- Use xi.monstrosity.variants
-xi.monstrosity.hasUnlockedVariant = function(player, variant)
-    local data = player:getMonstrosityData()
-
+xi.monstrosity.variantUnlocked = function(variants, variant)
     local byteOffset  = math.floor(variant / 8)
     local shiftAmount = variant % 8
 
     if byteOffset < 32 then
-        return bit.band(data.variants[byteOffset] or 0, bit.lshift(0x01, shiftAmount)) > 0
+        return bit.band(variants[byteOffset] or 0, bit.lshift(0x01, shiftAmount)) > 0
     end
 
     return false
+end
+
+xi.monstrosity.hasUnlockedVariant = function(player, variant)
+    return xi.monstrosity.variantUnlocked(player:getMonstrosityData().variants, variant)
 end
 
 -- Use xi.monstrosity.variants

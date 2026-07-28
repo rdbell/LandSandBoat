@@ -749,3 +749,13 @@ describe('Monstrosity species level reads', function()
         assert(not xi.monstrosity.speciesUnlocked(levels, xi.monstrosity.species.SHEEP))
     end)
 end)
+
+describe('Monstrosity variant ownership reads', function()
+    it('reports set, absent, and out-of-range variant bits', function()
+        local variants = { [0] = 0x04 }
+
+        assert(xi.monstrosity.variantUnlocked(variants, 2))
+        assert(not xi.monstrosity.variantUnlocked(variants, 3))
+        assert(not xi.monstrosity.variantUnlocked(variants, 256))
+    end)
+end)
