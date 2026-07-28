@@ -2588,6 +2588,7 @@ auto runBattlefieldHandlerLoad7502SelfTests() -> bool;
 auto runBattlefieldHandlerMaintenance7503SelfTests() -> bool;
 auto runInstanceLoaderCreate7504SelfTests() -> bool;
 auto runInstanceLoaderMob7505SelfTests() -> bool;
+auto runInstanceLoaderLoad7506SelfTests() -> bool;
 auto runPartyRejectPCAddFull3870SelfTests() -> bool;
 auto runGuildpointsCanAfford3871SelfTests() -> bool;
 auto runFollowCanFollow3872SelfTests() -> bool;
@@ -5165,6 +5166,7 @@ namespace
         ok = runBattlefieldHandlerMaintenance7503SelfTests() && ok;
         ok = runInstanceLoaderCreate7504SelfTests() && ok;
         ok = runInstanceLoaderMob7505SelfTests() && ok;
+        ok = runInstanceLoaderLoad7506SelfTests() && ok;
         ok = runPartyRejectPCAddFull3870SelfTests() && ok;
         ok = runGuildpointsCanAfford3871SelfTests() && ok;
         ok = runFollowCanFollow3872SelfTests() && ok;

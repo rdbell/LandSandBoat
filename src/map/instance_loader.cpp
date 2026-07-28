@@ -23,6 +23,7 @@
 
 #include "instance_loader.h"
 #include "instance_loader_create.h"
+#include "instance_loader_load.h"
 #include "instance_loader_mob.h"
 #include "zone_instance.h"
 
@@ -116,7 +117,8 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
                                  mobPlan.instanceId,
                                  mobPlan.effectiveZoneId);
 
-    if (!m_PInstance->Failed())
+    const auto loadPlan = instanceloader::PlanLoad(m_PInstance->Failed());
+    if (loadPlan.loadEntities)
     {
         FOR_DB_MULTIPLE_RESULTS(rset)
         {
