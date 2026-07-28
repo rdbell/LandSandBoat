@@ -29,6 +29,7 @@
 #include "latent_party_avatar_selection.h"
 #include "latent_party_job_selection.h"
 #include "latent_party_member_plan.h"
+#include "latent_pet_type_selection.h"
 #include "latent_roll_song_selection.h"
 #include "latent_status_selection.h"
 #include "latent_target_selection.h"
@@ -516,7 +517,7 @@ void CLatentEffectContainer::CheckLatentsPetType()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            if (latentEffect.GetConditionsID() == xi::Latent::PetId)
+            if (latenthelpers::ShouldProcessPetTypeLatent(latentEffect.GetConditionsID()))
             {
                 return ProcessLatentEffect(latentEffect);
             }
