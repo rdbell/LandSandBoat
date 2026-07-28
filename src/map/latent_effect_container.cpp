@@ -21,6 +21,7 @@
 
 #include "latent_effect_container.h"
 #include "latent_capacity.h"
+#include "latent_job_level_selection.h"
 #include "latent_status_selection.h"
 #include "latent_target_selection.h"
 #include "latent_time_selection.h"
@@ -577,17 +578,9 @@ void CLatentEffectContainer::CheckLatentsJobLevel()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            switch (latentEffect.GetConditionsID())
+            if (latenthelpers::ShouldProcessJobLevelLatent(latentEffect.GetConditionsID()))
             {
-                case xi::Latent::JobMultiple:
-                case xi::Latent::JobMultipleAtNight:
-                case xi::Latent::JobLevelBelow:
-                case xi::Latent::JobLevelAbove:
-                case xi::Latent::InGarrison:
-                    return ProcessLatentEffect(latentEffect);
-                    break;
-                default:
-                    break;
+                return ProcessLatentEffect(latentEffect);
             }
             return false;
         });
