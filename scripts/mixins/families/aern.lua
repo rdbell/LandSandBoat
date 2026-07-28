@@ -61,6 +61,14 @@ xi.mix.aern.reraisePlan = function(reraises, currentReraise, roll, allowDrops)
     return { reraise = true, noDrops = allowDrops == 0 and 1 or nil }
 end
 
+xi.mix.aern.reraiseTargetPlan = function(targetAlive, targetDistance, alliance)
+    if targetAlive and targetDistance < 25 then return { engageTarget = 0 } end
+    for index, member in pairs(alliance or {}) do
+        if member.alive and member.distance < 25 then return { engageTarget = index } end
+    end
+    return { disengage = true }
+end
+
 g_mixins.families.aern = function(aernMob)
     local petDeath = function(mob)
         local pet = mob:getPet()
