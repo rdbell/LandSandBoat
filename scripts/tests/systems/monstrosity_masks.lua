@@ -706,3 +706,25 @@ describe('Monstrosity unlock-all data', function()
         assert(data.variants[31] == 0xF1)
     end)
 end)
+
+describe('Monstrosity species and variant unlock data', function()
+    it('unlocks a locked species once without lowering existing levels', function()
+        local levels = { [xi.monstrosity.species.RABBIT] = 0, [xi.monstrosity.species.TIGER] = 99 }
+
+        assert(xi.monstrosity.unlockSpeciesData(levels, xi.monstrosity.species.RABBIT))
+        assert(levels[xi.monstrosity.species.RABBIT] == 1)
+        assert(not xi.monstrosity.unlockSpeciesData(levels, xi.monstrosity.species.RABBIT))
+        assert(not xi.monstrosity.unlockSpeciesData(levels, xi.monstrosity.species.TIGER))
+        assert(levels[xi.monstrosity.species.TIGER] == 99)
+    end)
+
+    it('sets a valid variant bit once and rejects an out-of-range ID', function()
+        local variants = {}
+
+        assert(xi.monstrosity.unlockVariantData(variants, xi.monstrosity.variants.LAPINION))
+        assert(variants[0] == 0x04)
+        assert(not xi.monstrosity.unlockVariantData(variants, xi.monstrosity.variants.LAPINION))
+        assert(not xi.monstrosity.unlockVariantData(variants, 256))
+        assert(variants[32] == nil)
+    end)
+end)
