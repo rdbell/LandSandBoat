@@ -22,6 +22,7 @@
 #include "latent_effect_container.h"
 #include "latent_capacity.h"
 #include "latent_job_level_selection.h"
+#include "latent_party_member_plan.h"
 #include "latent_status_selection.h"
 #include "latent_target_selection.h"
 #include "latent_time_selection.h"
@@ -442,55 +443,36 @@ void CLatentEffectContainer::CheckLatentsPartyMembers(size_t members, size_t tru
         [this, members, trustCount](CLatentEffect& latentEffect)
         {
             size_t totalMembers = members + trustCount;
+            auto   inZone       = 0;
 
-            switch (latentEffect.GetConditionsID())
+            if (latentEffect.GetConditionsID() == xi::Latent::PartyMembersInZone && latentEffect.GetConditionsValue() <= totalMembers)
             {
-                case xi::Latent::PartyMembers:
-                    if (latentEffect.GetConditionsValue() <= totalMembers)
+                for (size_t m = 0; m < members; ++m)
+                {
+                    auto* PMember = dynamic_cast<CCharEntity*>(m_POwner->PParty->members.at(m));
+                    if (PMember != nullptr && PMember->getZone() == m_POwner->getZone())
                     {
-                        return latentEffect.Activate();
+                        inZone++;
                     }
-                    else
-                    {
-                        return latentEffect.Deactivate();
-                    }
-                case xi::Latent::PartyMembersInZone:
-                    if (latentEffect.GetConditionsValue() <= totalMembers)
-                    {
-                        auto inZone = 0;
-                        for (size_t m = 0; m < members; ++m)
-                        {
-                            auto* PMember = dynamic_cast<CCharEntity*>(m_POwner->PParty->members.at(m));
-                            if (PMember != nullptr && PMember->getZone() == m_POwner->getZone())
-                            {
-                                inZone++;
-                            }
-                        }
+                }
 
-                        auto* PLeader = dynamic_cast<CCharEntity*>(m_POwner->PParty->GetLeader());
-                        if (PLeader != nullptr && m_POwner->getZone() == PLeader->getZone())
-                        {
-                            inZone = inZone + static_cast<int>(trustCount);
-                        }
-
-                        if (inZone == latentEffect.GetConditionsValue())
-                        {
-                            return latentEffect.Activate();
-                        }
-                        else
-                        {
-                            return latentEffect.Deactivate();
-                        }
-                    }
-                    else
-                    {
-                        return latentEffect.Deactivate();
-                    }
-                    break;
-                default:
-                    break;
+                auto* PLeader = dynamic_cast<CCharEntity*>(m_POwner->PParty->GetLeader());
+                if (PLeader != nullptr && m_POwner->getZone() == PLeader->getZone())
+                {
+                    inZone = inZone + static_cast<int>(trustCount);
+                }
             }
-            return false;
+
+            switch (latenthelpers::DeterminePartyMemberLatentAction(latentEffect.GetConditionsID(), latentEffect.GetConditionsValue(), totalMembers, inZone))
+            {
+                case latenthelpers::PartyMemberLatentAction::Activate:
+                    return latentEffect.Activate();
+                case latenthelpers::PartyMemberLatentAction::Deactivate:
+                    return latentEffect.Deactivate();
+                case latenthelpers::PartyMemberLatentAction::Ignore:
+                default:
+                    return false;
+            }
         });
 }
 
