@@ -22,6 +22,7 @@
 #include "latent_effect_container.h"
 #include "latent_capacity.h"
 #include "latent_food_selection.h"
+#include "latent_hp_selection.h"
 #include "latent_job_level_selection.h"
 #include "latent_party_member_plan.h"
 #include "latent_roll_song_selection.h"
@@ -143,19 +144,9 @@ void CLatentEffectContainer::CheckLatentsHP()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            switch (latentEffect.GetConditionsID())
+            if (latenthelpers::ShouldProcessHpLatent(latentEffect.GetConditionsID()))
             {
-                case xi::Latent::HpUnderPercent:
-                case xi::Latent::HpOverPercent:
-                case xi::Latent::HpUnderTpUnder100:
-                case xi::Latent::HpOverTpUnder100:
-                case xi::Latent::SanctionRegenBonus:
-                case xi::Latent::SigilRegenBonus:
-                case xi::Latent::HpOverVisibleGear:
-                    return ProcessLatentEffect(latentEffect);
-                    break;
-                default:
-                    break;
+                return ProcessLatentEffect(latentEffect);
             }
             return false;
         });
