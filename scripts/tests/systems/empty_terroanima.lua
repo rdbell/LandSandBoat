@@ -1,0 +1,13 @@
+local empty = require('scripts/mixins/families/empty_terroanima')
+
+describe('Empty Terroanima mixin', function()
+    it('runs only during a strict active-terror interval and restores after expiry', function()
+        assert(xi.mix.emptyTerroanima.terrorPlan(0, 20, 100, false) == nil)
+        local active = xi.mix.emptyTerroanima.terrorPlan(100, 20, 119, false)
+        assert(active.run and not active.restore)
+        assert(xi.mix.emptyTerroanima.terrorPlan(100, 20, 119, true) == nil)
+        assert(xi.mix.emptyTerroanima.terrorPlan(100, 20, 120, false) == nil)
+        local expired = xi.mix.emptyTerroanima.terrorPlan(100, 20, 121, false)
+        assert(expired.restore and not expired.run)
+    end)
+end)
