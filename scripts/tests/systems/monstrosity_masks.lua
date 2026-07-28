@@ -416,3 +416,19 @@ describe('Terynon trigger plan', function()
         assert(xi.monstrosity.teyrnonTriggerPlan(2, 1234) == nil)
     end)
 end)
+
+describe('Maccus trigger plan', function()
+    it('starts event 9 with its fixed opening arguments', function()
+        local plan = xi.monstrosity.maccusTriggerPlan(1)
+        assert(plan.csid == 9)
+        assert(plan.args[1] == 285 and plan.args[2] == 2 and plan.args[3] == 2)
+        for index = 4, 8 do
+            assert(plan.args[index] == 0, index)
+        end
+    end)
+
+    it('requires the setting to be exactly one', function()
+        assert(xi.monstrosity.maccusTriggerPlan(0) == nil)
+        assert(xi.monstrosity.maccusTriggerPlan(2) == nil)
+    end)
+end)

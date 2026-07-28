@@ -1253,6 +1253,16 @@ xi.monstrosity.teyrnonTriggerPlan = function(monstrosityEnabled, infamy)
     return { csid = 7, args = { infamy, 0, 0, 0, 0, 0, 0, 0 } }
 end
 
+-- Plans Maccus's opening event. The source setting must be exactly one,
+-- matching the NPC's ENABLE_MONSTROSITY gate.
+xi.monstrosity.maccusTriggerPlan = function(monstrosityEnabled)
+    if monstrosityEnabled ~= 1 then
+        return nil
+    end
+
+    return { csid = 9, args = { 285, 2, 2, 0, 0, 0, 0, 0 } }
+end
+
 -----------------------------------
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
@@ -1695,11 +1705,11 @@ xi.monstrosity.maccusOnTrade = function(player, npc, trade)
 end
 
 xi.monstrosity.maccusOnTrigger = function(player, npc)
-    if xi.settings.main.ENABLE_MONSTROSITY ~= 1 then
-        return
-    end
+    local plan = xi.monstrosity.maccusTriggerPlan(xi.settings.main.ENABLE_MONSTROSITY)
 
-    player:startEvent(9, 285, 2, 2, 0, 0, 0, 0, 0)
+    if plan then
+        player:startEvent(plan.csid, unpack(plan.args))
+    end
 end
 
 xi.monstrosity.maccusOnEventUpdate = function(player, csid, option, npc)
