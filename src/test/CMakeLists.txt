@@ -80,6 +80,7 @@ set(SOURCES
     test_level_sync_departure_7514.cpp
     test_zone_treasure_reset_7515.cpp
     test_zone_in_treasure_pool_7516.cpp
+    test_zone_in_cleanup_7517.cpp
     test_application.h
     test_application.cpp
     test_application_lifecycle_2554.h

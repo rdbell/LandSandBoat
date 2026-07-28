@@ -35,6 +35,7 @@ constexpr std::uint16_t WeatherCycle = 2160;
 #include "zone.h"
 #include "level_sync_departure.h"
 #include "zone_in_battlefield.h"
+#include "zone_in_cleanup.h"
 #include "zone_in_treasure_pool.h"
 #include "zone_treasure_reset.h"
 
@@ -1090,7 +1091,10 @@ void CZone::CharZoneIn(CCharEntity* PChar)
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Costume);
     }
 
-    if (PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Illusion))
+    const auto cleanupPlan = zonehelpers::PlanZoneInCleanup(
+        PChar->StatusEffectContainer->HasStatusEffect(xi::StatusEffect::Illusion),
+        m_zoneType & ZONE_TYPE::INSTANCED);
+    if (cleanupPlan.clearIllusion)
     {
         PChar->StatusEffectContainer->DelStatusEffectSilent(xi::StatusEffect::Illusion);
     }
@@ -1114,7 +1118,7 @@ void CZone::CharZoneIn(CCharEntity* PChar)
             break;
     }
 
-    if (!(m_zoneType & ZONE_TYPE::INSTANCED))
+    if (cleanupPlan.clearNonInstanceState)
     {
         charutils::ClearTempItems(PChar);
         PChar->PInstance = nullptr;
