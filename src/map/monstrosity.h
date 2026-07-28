@@ -92,6 +92,13 @@ struct ZoneInPlan
     bool   markLookUpdate{};
 };
 
+struct MonsterSkillActionPlan
+{
+    bool   invokeMobSkill{};
+    uint16 actionIndex{};
+    uint16 skillId{};
+};
+
 void LoadStaticData();
 
 void ReadMonstrosityData(CCharEntity* PChar);
@@ -110,6 +117,7 @@ void SetLevel(CCharEntity* PChar, uint8 id, uint8 level);
 void HandleDeathMenu(CCharEntity* PChar, GP_CLI_COMMAND_ACTION_HOMEPOINTMENU type);
 DeathMenuPlan PlanDeathMenu(bool hasMonstrosity, GP_CLI_COMMAND_ACTION_HOMEPOINTMENU type);
 ZoneInPlan PlanZoneIn(bool monstrosityEnabled, bool hasMonstrosity, bool isFeretory, bool belligerency);
+MonsterSkillActionPlan PlanMonsterSkillAction(uint8 mainJob, bool hasMonstrosity, uint16 actionIndex, uint16 skillId);
 
 bool IsInstinctUnlocked(CCharEntity* PChar, uint16 instinct);
 bool IsVariantUnlocked(CCharEntity* PChar, uint8 variant);

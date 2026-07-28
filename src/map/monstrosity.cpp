@@ -433,14 +433,28 @@ void monstrosity::SendFullMonstrosityUpdate(CCharEntity* PChar)
     PChar->updatemask |= UPDATE_LOOK;
 }
 
-void monstrosity::HandleMonsterSkillActionPacket(const CCharEntity* PChar, const GP_CLI_COMMAND_ACTION& data)
+monstrosity::MonsterSkillActionPlan monstrosity::PlanMonsterSkillAction(const uint8 mainJob, const bool hasMonstrosity, const uint16 actionIndex, const uint16 skillId)
 {
-    if (PChar->GetMJob() != JOB_MON)
+    if (mainJob != JOB_MON || !hasMonstrosity)
     {
-        return;
+        return {};
     }
 
-    if (!PChar->m_PMonstrosity)
+    return {
+        .invokeMobSkill = true,
+        .actionIndex    = actionIndex,
+        .skillId        = skillId,
+    };
+}
+
+void monstrosity::HandleMonsterSkillActionPacket(const CCharEntity* PChar, const GP_CLI_COMMAND_ACTION& data)
+{
+    const auto plan = PlanMonsterSkillAction(
+        PChar->GetMJob(),
+        PChar->m_PMonstrosity != nullptr,
+        data.ActIndex,
+        data.MonsterSkill.SkillId);
+    if (!plan.invokeMobSkill)
     {
         return;
     }
@@ -448,7 +462,7 @@ void monstrosity::HandleMonsterSkillActionPacket(const CCharEntity* PChar, const
     // TODO: Validate that this move is available at this level, for this species, and that
     // we're capable of using it (state, TP, etc.).
 
-    PChar->PAI->Internal_MobSkill(data.ActIndex, data.MonsterSkill.SkillId, std::nullopt);
+    PChar->PAI->Internal_MobSkill(plan.actionIndex, plan.skillId, std::nullopt);
 }
 
 void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& data)
