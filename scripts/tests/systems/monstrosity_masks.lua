@@ -322,3 +322,30 @@ describe('Terynon event-update plan', function()
         assert(xi.monstrosity.eventUpdatePlan(7, 2, {}, function() return 0 end, function() return false end, function() return false end, function() return false end) == nil)
     end)
 end)
+
+describe('Terynon MON event-finish plan', function()
+    local offers =
+    {
+        [2] =
+        {
+            [8] = { infamyCost = 500, monSpecies = 5 },
+        },
+    }
+    local option = bit.bor(bit.lshift(8, 16), bit.lshift(3, 8), 1)
+
+    it('decodes the selected category and MON before planning its purchase', function()
+        local plan = xi.monstrosity.monEventFinishPlan(option, offers, 500)
+        assert(plan.selectedCategory == 2 and plan.selectedMon == 8)
+        assert(plan.cost == 500 and plan.unlockSpecies == 5)
+    end)
+
+    it('preserves the infamy denial and rejects missing categories or offers', function()
+        assert(xi.monstrosity.monEventFinishPlan(option, offers, 499).deny)
+        assert(xi.monstrosity.monEventFinishPlan(option, {}, 999999).invalid)
+        assert(xi.monstrosity.monEventFinishPlan(bit.bor(bit.lshift(8, 16), 1), offers, 999999).invalid)
+    end)
+
+    it('ignores other event-finish option types', function()
+        assert(xi.monstrosity.monEventFinishPlan(2, offers, 999999) == nil)
+    end)
+end)

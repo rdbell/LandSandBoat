@@ -1197,6 +1197,27 @@ xi.monstrosity.eventUpdatePlan = function(csid, option, monData, speciesLevel, h
     return nil
 end
 
+-- Decodes Terynon's type-1 event-finish option and selects its MON purchase
+-- work. Missing categories or offers are invalid rather than host errors.
+xi.monstrosity.monEventFinishPlan = function(option, monData, infamy)
+    if bit.band(option, 0xFF) ~= 1 then
+        return nil
+    end
+
+    local selectedCategory = bit.band(bit.rshift(option, 8), 0xF) - 1
+    local selectedMon      = bit.rshift(option, 16)
+    local categoryData     = monData[selectedCategory]
+    local selectedMonData  = categoryData and categoryData[selectedMon]
+    if not selectedMonData then
+        return { invalid = true }
+    end
+
+    local plan = xi.monstrosity.monPurchasePlan(selectedMonData, infamy)
+    plan.selectedCategory = selectedCategory
+    plan.selectedMon      = selectedMon
+    return plan
+end
+
 -----------------------------------
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
@@ -1538,16 +1559,12 @@ xi.monstrosity.teyrnonOnEventFinish = function(player, csid, option, npc)
     local optionType = bit.band(option, 0xFF)
 
     if optionType == 1 then
-        local selectedCategory = bit.band(bit.rshift(option, 8), 0xF) - 1
-        local selectedMon      = bit.rshift(option, 16)
-        local monData          = terynonMonData[selectedCategory][selectedMon]
-
-        if not monData then
+        local plan = xi.monstrosity.monEventFinishPlan(option, terynonMonData, player:getCurrency('infamy'))
+        if plan.invalid then
             print(string.format('Invalid Event Finish Option received by Terynon! (%s:%d)', player:getName(), option))
             return
         end
 
-        local plan = xi.monstrosity.monPurchasePlan(monData, player:getCurrency('infamy'))
         if not plan.deny then
             player:delCurrency('infamy', plan.cost)
 
@@ -1557,7 +1574,7 @@ xi.monstrosity.teyrnonOnEventFinish = function(player, csid, option, npc)
                 xi.monstrosity.unlockVariant(player, plan.unlockVariant)
             end
 
-            player:messageSpecial(zones[xi.zone.FERETORY].text.MAY_POSSESS_BEASTS + 3 * selectedCategory, 0, selectedMon)
+            player:messageSpecial(zones[xi.zone.FERETORY].text.MAY_POSSESS_BEASTS + 3 * plan.selectedCategory, 0, plan.selectedMon)
         else
             player:messageSpecial(zones[xi.zone.FERETORY].text.THY_BRAZEN_DISREGARD)
         end
