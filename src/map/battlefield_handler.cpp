@@ -29,6 +29,7 @@
 #include "battlefield.h"
 #include "battlefield_handler.h"
 #include "battlefield_handler_load.h"
+#include "battlefield_handler_maintenance.h"
 #include "battlefield_handler_registration.h"
 
 #include "entities/battle_entity.h"
@@ -84,14 +85,15 @@ void CBattlefieldHandler::HandleBattlefields(timer::time_point tick)
 
     for (auto iter = m_orphanedPlayers.begin(); iter != m_orphanedPlayers.end();)
     {
-        if (tick < (*iter).second)
+        auto*       PChar = m_PZone->GetCharByID((*iter).first);
+        const auto plan  = battlefieldhandlerhelpers::PlanOrphanedPlayer(tick < (*iter).second, PChar != nullptr);
+        if (plan.keepPending)
         {
             ++iter;
             continue;
         }
 
-        auto* PChar = m_PZone->GetCharByID((*iter).first);
-        if (PChar)
+        if (plan.kickAndClear)
         {
             luautils::OnBattlefieldKick(PChar);
             PChar->StatusEffectContainer->DelStatusEffectsByFlag(xi::StatusEffectFlag::Confrontation, EffectNotice::Silent);
@@ -274,7 +276,7 @@ bool CBattlefieldHandler::IsRegistered(CCharEntity* PChar)
 bool CBattlefieldHandler::ReachedMaxCapacity(int battlefieldId) const
 {
     // area all areas full
-    if (m_Battlefields.size() >= (size_t)m_MaxBattlefields)
+    if (battlefieldhandlerhelpers::HasReachedMaxCapacity(m_Battlefields.size(), m_MaxBattlefields))
     {
         return true;
     }
