@@ -271,3 +271,54 @@ describe('Terynon special-effect catalog', function()
         assert(xi.monstrosity.specialEffectPlan(7, 1, false, 999999) == nil)
     end)
 end)
+
+describe('Terynon event-update plan', function()
+    it('returns the selected MON page mask as its first event argument', function()
+        local pages =
+        {
+            [3] =
+            {
+                [0] = { monSpecies = 5 },
+                [4] = { monVariant = 9 },
+            },
+        }
+        local option = bit.lshift(3, 16)
+        local plan = xi.monstrosity.eventUpdatePlan(
+            7,
+            option,
+            pages,
+            function() return 0 end,
+            function(variant) return variant == 9 end,
+            function() return false end,
+            function() return false end
+        )
+
+        assert(plan[1] == bit.lshift(1, 0), plan[1])
+        for index = 2, 8 do
+            assert(plan[index] == 0, index)
+        end
+    end)
+
+    it('returns purchased instincts and completed limit breaks for the instinct page', function()
+        local plan = xi.monstrosity.eventUpdatePlan(
+            7,
+            1,
+            {},
+            function() return 0 end,
+            function() return false end,
+            function(instinct) return instinct == xi.monstrosity.purchasableInstincts.HUME_II end,
+            function(job) return job == xi.job.WAR end
+        )
+
+        assert(plan[1] == 0x1, plan[1])
+        assert(plan[2] == 0x1, plan[2])
+        for index = 3, 8 do
+            assert(plan[index] == 0, index)
+        end
+    end)
+
+    it('ignores other event IDs and unsupported options', function()
+        assert(xi.monstrosity.eventUpdatePlan(6, 0, {}, function() return 0 end, function() return false end, function() return false end, function() return false end) == nil)
+        assert(xi.monstrosity.eventUpdatePlan(7, 2, {}, function() return 0 end, function() return false end, function() return false end, function() return false end) == nil)
+    end)
+end)

@@ -1023,12 +1023,6 @@ local function hasPurchasedInstinct(player, purchasableInstinctId)
     return result
 end
 
-local function getPurchasedInstinctsMask(player)
-    return xi.monstrosity.purchasedInstinctsMask(function(purchasableInstinctId)
-        return hasPurchasedInstinct(player, purchasableInstinctId)
-    end)
-end
-
 local function addPurchasedInstinct(player, purchasableInstinctId)
     local data = player:getMonstrosityData()
 
@@ -1050,12 +1044,6 @@ local function hasCompletedLimitBreak(player, jobId)
     else
         return player:hasCompletedQuest(unpack(limitBreakQuests[jobId]))
     end
-end
-
-local function getLimitBreakMask(player)
-    return xi.monstrosity.limitBreakMask(function(jobId)
-        return hasCompletedLimitBreak(player, jobId)
-    end)
 end
 
 -- Determines whether a Terynon MON offer unlocks something new and satisfies
@@ -1191,12 +1179,22 @@ xi.monstrosity.specialEffectPlan = function(selectedEffect, mainLevel, enhancedR
     return plan
 end
 
-local function getMonPageMask(player, monCategory)
-    return xi.monstrosity.purchasePageMask(
-        terynonMonData[monCategory],
-        function(species) return xi.monstrosity.getSpeciesLevel(player, species) end,
-        function(variant) return xi.monstrosity.hasUnlockedVariant(player, variant) end
-    )
+-- Plans the eight event-update arguments Terynon returns for the MON catalog
+-- and instinct pages. Player state reads are injected by the event host.
+xi.monstrosity.eventUpdatePlan = function(csid, option, monData, speciesLevel, hasUnlockedVariant, isInstinctPurchased, hasCompletedLimitBreak)
+    if csid ~= 7 then
+        return nil
+    end
+
+    local optionType = bit.band(option, 0xFF)
+    if optionType == 0 then
+        local monPage = bit.rshift(option, 16)
+        return { xi.monstrosity.purchasePageMask(monData[monPage], speciesLevel, hasUnlockedVariant), 0, 0, 0, 0, 0, 0, 0 }
+    elseif optionType == 1 then
+        return { xi.monstrosity.purchasedInstinctsMask(isInstinctPurchased), xi.monstrosity.limitBreakMask(hasCompletedLimitBreak), 0, 0, 0, 0, 0, 0 }
+    end
+
+    return nil
 end
 
 -----------------------------------
@@ -1521,24 +1519,18 @@ xi.monstrosity.teyrnonOnTrigger = function(player, npc)
 end
 
 xi.monstrosity.teyrnonOnEventUpdate = function(player, csid, option, npc)
-    if csid == 7 then
-        local optionType = bit.band(option, 0xFF)
+    local plan = xi.monstrosity.eventUpdatePlan(
+        csid,
+        option,
+        terynonMonData,
+        function(species) return xi.monstrosity.getSpeciesLevel(player, species) end,
+        function(variant) return xi.monstrosity.hasUnlockedVariant(player, variant) end,
+        function(instinct) return hasPurchasedInstinct(player, instinct) end,
+        function(job) return hasCompletedLimitBreak(player, job) end
+    )
 
-        if optionType == 0 then
-            -- Monsters
-
-            local monPage       = bit.rshift(option, 16)
-            local availableMons = getMonPageMask(player, monPage)
-
-            player:updateEvent(availableMons, 0, 0, 0, 0, 0, 0, 0)
-        elseif optionType == 1 then
-            -- Instincts
-
-            local purchasedInstincts = getPurchasedInstinctsMask(player)
-            local completedLimits    = getLimitBreakMask(player)
-
-            player:updateEvent(purchasedInstincts, completedLimits, 0, 0, 0, 0, 0, 0)
-        end
+    if plan then
+        player:updateEvent(unpack(plan))
     end
 end
 
