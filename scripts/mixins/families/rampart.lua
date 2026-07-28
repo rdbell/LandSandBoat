@@ -1,7 +1,35 @@
 require('scripts/globals/mixins')
 
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.rampart = xi.mix.rampart or {}
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
+
+xi.mix.rampart.engagePlan = function(animationSub)
+    return { stun = animationSub == 0, animationSub = 1, swapTime = 30 }
+end
+
+xi.mix.rampart.roamPlan = function(engaged, timedSpawn, animationSub)
+    if engaged then
+        return nil
+    elseif timedSpawn == 0 and animationSub == 1 then
+        return { stun = true, animationSub = 0 }
+    elseif timedSpawn > 0 and animationSub == 0 then
+        return { stun = true, animationSub = 1 }
+    end
+end
+
+xi.mix.rampart.combatPlan = function(time, swapTime, prevented, animationSub)
+    if time <= swapTime or prevented then
+        return nil
+    elseif animationSub == 0 then
+        return { stun = true, animationSub = 1, swapTime = time + 30 }
+    elseif animationSub == 1 then
+        return { stun = true, animationSub = 0, swapTime = time + 9 }
+    end
+end
 
 g_mixins.families.rampart = function(rampartMob)
     -- AnimationSub for Ramparts
@@ -9,32 +37,28 @@ g_mixins.families.rampart = function(rampartMob)
     local doorOpen   = 1
 
     rampartMob:addListener('ENGAGE', 'RAMPART_ENGAGED', function(mob, target)
-        if mob:getAnimationSub() == doorClosed then
+        local plan = xi.mix.rampart.engagePlan(mob:getAnimationSub())
+        if plan.stun then
             mob:stun(3000)
-            mob:setAnimationSub(doorOpen)
         end
-
-        mob:setLocalVar('swapTime', 30)
+        mob:setAnimationSub(plan.animationSub)
+        mob:setLocalVar('swapTime', plan.swapTime)
     end)
 
     rampartMob:addListener('ROAM_TICK', 'RAMPART_TICK', function(mob)
         -- Function to allow Reinforcements to work in a timed scenario (Idle).
         -- Set local var in onMobSpawn to what the reuse is to activate function.
         -- example: (mob:setLocalVar('timedSpawn', 60)) for 60 second intervals
-        if mob:isEngaged() then
-            return
-        end
-
         local timedSpawn = mob:getLocalVar('timedSpawn')
+        local roamPlan = xi.mix.rampart.roamPlan(mob:isEngaged(), timedSpawn, mob:getAnimationSub())
         -- Can only have doors open if in combat or if it is a timed Reinforcements type,
         -- as it can only use the mobSkill with the doors open.
-        if timedSpawn == 0 and mob:getAnimationSub() == doorOpen then
+        if roamPlan then
             mob:stun(3000)
-            mob:setAnimationSub(doorClosed)
-        elseif timedSpawn > 0 and mob:getAnimationSub() == doorClosed then
-            mob:stun(3000)
-            mob:setAnimationSub(doorOpen)
+            mob:setAnimationSub(roamPlan.animationSub)
         end
+
+        if mob:isEngaged() then return end
 
         if timedSpawn > 0 and not mob:isEngaged() then
             local instance   = mob:getInstance()
@@ -114,19 +138,11 @@ g_mixins.families.rampart = function(rampartMob)
         local time     = mob:getBattleTime()
         local swapTime = mob:getLocalVar('swapTime')
 
-        if time > swapTime and not mob:hasPreventActionEffect() then
-            local animationSub = mob:getAnimationSub()
-
-            if animationSub == doorClosed then
-                mob:stun(3000)
-                mob:setAnimationSub(doorOpen)
-                mob:setLocalVar('swapTime', time + 30)
-
-            elseif animationSub == doorOpen then
-                mob:stun(3000)
-                mob:setAnimationSub(doorClosed)
-                mob:setLocalVar('swapTime', time + 9)
-            end
+        local plan = xi.mix.rampart.combatPlan(time, swapTime, mob:hasPreventActionEffect(), mob:getAnimationSub())
+        if plan then
+            mob:stun(3000)
+            mob:setAnimationSub(plan.animationSub)
+            mob:setLocalVar('swapTime', plan.swapTime)
         end
     end)
 end
