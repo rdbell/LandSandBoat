@@ -1308,6 +1308,33 @@ xi.monstrosity.odysseanPassageEventUpdatePlan = function(option)
     return { xi.monstrosity.belligerencyCaps[zoneSelected], 0, 0, 0, 1, 0, 0, 0 }
 end
 
+-- Plans the Odyssean Passage's event-finish work. The caller owns the random
+-- destination choice and the player mutations.
+xi.monstrosity.odysseanPassageEventFinishPlan = function(option, chooseTeleport)
+    if bit.band(option, 0xF) ~= 1 then
+        return nil
+    end
+
+    local zoneSelected = bit.rshift(option, 4)
+    if zoneSelected == 0 then
+        return { returnToEntrance = true }
+    end
+
+    local teleports = xi.monstrosity.teleports[zoneSelected]
+    if teleports then
+        return {
+            position = teleports[chooseTeleport(#teleports)],
+            zone     = zoneSelected,
+        }
+    end
+
+    return {
+        fallback = true,
+        position = { 0, 0, 0, 0 },
+        zone     = zoneSelected,
+    }
+end
+
 -----------------------------------
 -- Bound by C++ (DO NOT CHANGE SIGNATURE)
 -----------------------------------
@@ -1507,27 +1534,25 @@ xi.monstrosity.odysseanPassageOnEventUpdate = function(player, csid, option, npc
 end
 
 xi.monstrosity.odysseanPassageOnEventFinish = function(player, csid, option, npc)
-    local eventOption  = bit.band(option, 0xF)
-    local zoneSelected = bit.rshift(option, 4)
+    local plan = xi.monstrosity.odysseanPassageEventFinishPlan(option, function(count)
+        return math.random(1, count)
+    end)
 
-    if eventOption == 1 then
-        if zoneSelected == 0 then
-            xi.monstrosity.onMonstrosityReturnToEntrance(player)
-        else
-            if xi.monstrosity.teleports[zoneSelected] then
-                local teleportPos = xi.monstrosity.teleports[zoneSelected][math.random(1, #xi.monstrosity.teleports[zoneSelected])]
-
-                player:setPos(teleportPos[1],
-                    teleportPos[2],
-                    teleportPos[3],
-                    teleportPos[4],
-                    zoneSelected
-                )
-            else
-                print('Monstrosity Teleport - No Valid Entries for Zone ' .. zoneSelected .. '. Setting pos to (0, 0, 0)!')
-                player:setPos(0, 0, 0, 0, zoneSelected)
-            end
+    if not plan then
+        return
+    elseif plan.returnToEntrance then
+        xi.monstrosity.onMonstrosityReturnToEntrance(player)
+    else
+        if plan.fallback then
+            print('Monstrosity Teleport - No Valid Entries for Zone ' .. plan.zone .. '. Setting pos to (0, 0, 0)!')
         end
+
+        player:setPos(plan.position[1],
+            plan.position[2],
+            plan.position[3],
+            plan.position[4],
+            plan.zone
+        )
     end
 end
 

@@ -509,3 +509,43 @@ describe('Odyssean Passage event-update plan', function()
         assert(plan[1] == nil and plan[5] == 1)
     end)
 end)
+
+describe('Odyssean Passage event-finish plan', function()
+    it('returns to the entrance only for option type one with zone zero', function()
+        assert(xi.monstrosity.odysseanPassageEventFinishPlan(1, function()
+            assert(false, 'return should not choose a teleport')
+        end).returnToEntrance)
+        assert(xi.monstrosity.odysseanPassageEventFinishPlan(0, function() return 1 end) == nil)
+    end)
+
+    it('uses the caller-selected position from every configured destination zone', function()
+        local cases =
+        {
+            { xi.zone.EAST_RONFAURE,        1, { 120, 0.5, -530, 192 } },
+            { xi.zone.EAST_RONFAURE,        2, { 115, -59.684, 247, 16 } },
+            { xi.zone.QUFIM_ISLAND,         1, { -2, -20.001, 324, 64 } },
+            { xi.zone.QUFIM_ISLAND,         2, { 161, -20, 37, 192 } },
+            { xi.zone.SOUTH_GUSTABERG,      1, { -115, -0.136, -165, 64 } },
+            { xi.zone.VALKURM_DUNES,        1, { 838, 0, -162, 64 } },
+            { xi.zone.WESTERN_ALTEPA_DESERT, 1, { 685.548, -1.744, -50.395, 128 } },
+        }
+
+        for _, test in ipairs(cases) do
+            local zone, choice, expected = test[1], test[2], test[3]
+            local plan = xi.monstrosity.odysseanPassageEventFinishPlan(bit.bor(bit.lshift(zone, 4), 1), function(count)
+                assert(count >= choice)
+                return choice
+            end)
+            assert(plan.zone == zone and plan.position[1] == expected[1] and plan.position[2] == expected[2])
+            assert(plan.position[3] == expected[3] and plan.position[4] == expected[4])
+        end
+    end)
+
+    it('uses the source zero-position fallback for an unknown selected zone', function()
+        local plan = xi.monstrosity.odysseanPassageEventFinishPlan(bit.bor(bit.lshift(1, 4), 1), function()
+            assert(false, 'fallback should not choose a teleport')
+        end)
+        assert(plan.fallback and plan.zone == 1)
+        assert(plan.position[1] == 0 and plan.position[2] == 0 and plan.position[3] == 0 and plan.position[4] == 0)
+    end)
+end)
