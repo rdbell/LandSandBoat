@@ -21,6 +21,7 @@
 
 #include "zone_entities.h"
 #include "zone_entities_npc_insert.h"
+#include "zone_entities_summon_insert.h"
 #include "zone_capacity.h"
 #include "common/utils.h"
 #include "enmity_container.h"
@@ -316,13 +317,14 @@ void CZoneEntities::InsertPET(CBaseEntity* PPet)
 {
     TracyZoneScoped;
 
-    if (PPet == nullptr)
+    const auto plan = zoneentities::PlanSummonInsertion(PPet != nullptr, PPet && PPet->PInstance);
+    if (!plan.insert)
     {
         ShowError("CZone::InsertPET: entity is null");
         return;
     }
 
-    if (PPet->PInstance)
+    if (plan.targidOwner == zoneentities::DynamicTargidOwner::Instance)
     {
         PPet->PInstance->AssignDynamicTargIDandLongID(PPet);
     }
@@ -335,20 +337,24 @@ void CZoneEntities::InsertPET(CBaseEntity* PPet)
 
     TryAddToNearbySpawnLists(PPet);
 
-    PPet->spawnAnimation = SPAWN_ANIMATION::NORMAL; // Turn off special spawn animation
+    if (plan.resetSpawnAnimation)
+    {
+        PPet->spawnAnimation = SPAWN_ANIMATION::NORMAL; // Turn off special spawn animation
+    }
 }
 
 void CZoneEntities::InsertTRUST(CBaseEntity* PTrust)
 {
     TracyZoneScoped;
 
-    if (PTrust == nullptr)
+    const auto plan = zoneentities::PlanSummonInsertion(PTrust != nullptr, PTrust && PTrust->PInstance);
+    if (!plan.insert)
     {
         ShowError("CZone::InsertTRUST: entity is null");
         return;
     }
 
-    if (PTrust->PInstance)
+    if (plan.targidOwner == zoneentities::DynamicTargidOwner::Instance)
     {
         PTrust->PInstance->AssignDynamicTargIDandLongID(PTrust);
     }
@@ -361,7 +367,10 @@ void CZoneEntities::InsertTRUST(CBaseEntity* PTrust)
 
     TryAddToNearbySpawnLists(PTrust);
 
-    PTrust->spawnAnimation = SPAWN_ANIMATION::NORMAL; // Turn off special spawn animation
+    if (plan.resetSpawnAnimation)
+    {
+        PTrust->spawnAnimation = SPAWN_ANIMATION::NORMAL; // Turn off special spawn animation
+    }
 }
 
 void CZoneEntities::FindPartyForMob(CBaseEntity* PEntity)
