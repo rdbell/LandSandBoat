@@ -1165,6 +1165,32 @@ xi.monstrosity.shellPlan = function(mainLevel, enhancedReceived)
     return { power = power, tier = tier, duration = 1800 }
 end
 
+xi.monstrosity.specialEffectPlan = function(selectedEffect, mainLevel, enhancedReceived, infamy)
+    local plan
+    if selectedEffect == 0 then
+        plan = { cost = 3000, effect = 'dedication', power = 50, duration = 3600, subpower = 10000 }
+    elseif selectedEffect == 1 then
+        plan = { cost = 400, effect = 'dedication', power = 100, duration = 3600, subpower = 2000 }
+    elseif selectedEffect == 2 then
+        plan = { cost = 10, effect = 'regen', power = 1, duration = 3600, tick = 3 }
+    elseif selectedEffect == 3 then
+        plan = { cost = 10, effect = 'refresh', power = 1, duration = 3600, tick = 3 }
+    elseif selectedEffect == 4 then
+        plan = xi.monstrosity.protectPlan(mainLevel, enhancedReceived)
+        plan.cost, plan.effect = 100, 'protect'
+    elseif selectedEffect == 5 then
+        plan = xi.monstrosity.shellPlan(mainLevel, enhancedReceived)
+        plan.cost, plan.effect = 100, 'shell'
+    elseif selectedEffect == 6 then
+        return { cost = 0, effect = 'haste', power = 1000, duration = 600 }
+    else
+        return nil
+    end
+
+    if infamy < plan.cost then return { deny = true } end
+    return plan
+end
+
 local function getMonPageMask(player, monCategory)
     return xi.monstrosity.purchasePageMask(
         terynonMonData[monCategory],
