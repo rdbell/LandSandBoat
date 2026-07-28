@@ -23,6 +23,7 @@
 
 #include "instance_loader.h"
 #include "instance_loader_create.h"
+#include "instance_loader_finalize.h"
 #include "instance_loader_load.h"
 #include "instance_loader_mob.h"
 #include "zone_instance.h"
@@ -315,17 +316,30 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
         // Finish setting up Mobs
         m_PInstance->ForEachMob([&](CMobEntity* PMob)
         {
-            luautils::OnMobInitialize(PMob);
-            m_PInstance->FindPartyForMob(PMob);
-            luautils::ApplyMixins(PMob);
-            ((CMobEntity*)PMob)->saveModifiers();
-            ((CMobEntity*)PMob)->saveMobModifiers();
-
-            // Add to cache
-            luautils::LoadLuaObjectFromFile(
-                fmt::format("./scripts/zones/{}/mobs/{}.lua",
-                            PMob->loc.zone->getName(),
-                            PMob->getName()));
+            for (const auto action : instanceloader::MobFinalizationOrder)
+            {
+                switch (action)
+                {
+                    case instanceloader::MobFinalizationAction::Initialize:
+                        luautils::OnMobInitialize(PMob);
+                        break;
+                    case instanceloader::MobFinalizationAction::FindParty:
+                        m_PInstance->FindPartyForMob(PMob);
+                        break;
+                    case instanceloader::MobFinalizationAction::ApplyMixins:
+                        luautils::ApplyMixins(PMob);
+                        break;
+                    case instanceloader::MobFinalizationAction::SaveModifiers:
+                        ((CMobEntity*)PMob)->saveModifiers();
+                        break;
+                    case instanceloader::MobFinalizationAction::SaveMobModifiers:
+                        ((CMobEntity*)PMob)->saveMobModifiers();
+                        break;
+                    case instanceloader::MobFinalizationAction::CacheScript:
+                        luautils::LoadLuaObjectFromFile(fmt::format("./scripts/zones/{}/mobs/{}.lua", PMob->loc.zone->getName(), PMob->getName()));
+                        break;
+                }
+            }
         });
         // clang-format on
 
@@ -333,22 +347,37 @@ auto CInstanceLoader::LoadInstance() const -> CInstance*
         // Finish setting up NPCs
         m_PInstance->ForEachNpc([&](CNpcEntity* PNpc)
         {
-            luautils::OnNpcSpawn(PNpc);
-
-            // Add to cache
-            luautils::LoadLuaObjectFromFile(
-                fmt::format("./scripts/zones/{}/npcs/{}.lua",
-                            PNpc->loc.zone->getName(),
-                            PNpc->getName()));
+            for (const auto action : instanceloader::NpcFinalizationOrder)
+            {
+                switch (action)
+                {
+                    case instanceloader::NpcFinalizationAction::Spawn:
+                        luautils::OnNpcSpawn(PNpc);
+                        break;
+                    case instanceloader::NpcFinalizationAction::CacheScript:
+                        luautils::LoadLuaObjectFromFile(fmt::format("./scripts/zones/{}/npcs/{}.lua", PNpc->loc.zone->getName(), PNpc->getName()));
+                        break;
+                }
+            }
         });
         // clang-format on
 
-        // Cache Instance script (TODO: This will be done multiple times, don't do that)
-        luautils::LoadLuaObjectFromFile(instanceutils::GetInstanceData(m_PInstance->GetID()).filename);
-
-        // Finish setup
-        luautils::OnInstanceCreatedCallback(m_PRequester, m_PInstance);
-        luautils::OnInstanceCreated(m_PInstance);
+        for (const auto action : instanceloader::InstanceFinalizationOrder)
+        {
+            switch (action)
+            {
+                case instanceloader::InstanceFinalizationAction::CacheScript:
+                    // TODO: This will be done multiple times, don't do that.
+                    luautils::LoadLuaObjectFromFile(instanceutils::GetInstanceData(m_PInstance->GetID()).filename);
+                    break;
+                case instanceloader::InstanceFinalizationAction::CreatedCallback:
+                    luautils::OnInstanceCreatedCallback(m_PRequester, m_PInstance);
+                    break;
+                case instanceloader::InstanceFinalizationAction::Created:
+                    luautils::OnInstanceCreated(m_PInstance);
+                    break;
+            }
+        }
     }
 
     return m_PInstance;
