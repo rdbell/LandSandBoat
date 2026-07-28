@@ -21,6 +21,7 @@
 
 #include "latent_effect_container.h"
 #include "latent_capacity.h"
+#include "latent_food_selection.h"
 #include "latent_job_level_selection.h"
 #include "latent_party_member_plan.h"
 #include "latent_status_selection.h"
@@ -310,14 +311,9 @@ void CLatentEffectContainer::CheckLatentsFoodEffect()
     ProcessLatentEffects(
         [this](CLatentEffect& latentEffect)
         {
-            switch (latentEffect.GetConditionsID())
+            if (latenthelpers::ShouldProcessFoodLatent(latentEffect.GetConditionsID()))
             {
-                case xi::Latent::FoodActive:
-                case xi::Latent::NoFoodActive:
-                    return ProcessLatentEffect(latentEffect);
-                    break;
-                default:
-                    break;
+                return ProcessLatentEffect(latentEffect);
             }
             return false;
         });
