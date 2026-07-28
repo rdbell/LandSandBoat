@@ -301,14 +301,36 @@ void monstrosity::TryPopulateMonstrosityData(CCharEntity* PChar)
     }
 }
 
-void monstrosity::HandleZoneIn(CCharEntity* PChar)
+monstrosity::ZoneInPlan monstrosity::PlanZoneIn(const bool monstrosityEnabled, const bool hasMonstrosity, const bool isFeretory, const bool belligerency)
 {
-    if (!settings::get<bool>("main.ENABLE_MONSTROSITY"))
+    if (!monstrosityEnabled || !hasMonstrosity)
     {
-        return;
+        return {};
     }
 
-    if (PChar->m_PMonstrosity == nullptr)
+    auto plan = ZoneInPlan{
+        .applyInstinctModifiers = true,
+        .sendFullUpdate         = true,
+        .markLookUpdate         = true,
+    };
+
+    if (!isFeretory)
+    {
+        plan.addGestation             = true;
+        plan.gestationDurationSeconds = belligerency ? 60 : 18 * 60 * 60;
+    }
+
+    return plan;
+}
+
+void monstrosity::HandleZoneIn(CCharEntity* PChar)
+{
+    const auto plan = PlanZoneIn(
+        settings::get<bool>("main.ENABLE_MONSTROSITY"),
+        PChar->m_PMonstrosity != nullptr,
+        PChar->loc.zone->GetID() == ZONE_FERETORY,
+        PChar->m_PMonstrosity != nullptr && PChar->m_PMonstrosity->Belligerency);
+    if (!plan.applyInstinctModifiers)
     {
         return;
     }
@@ -330,10 +352,8 @@ void monstrosity::HandleZoneIn(CCharEntity* PChar)
     // NOTE: Whenever you log in as a MON, you'll have Gestation - even if you've previously clicked it off.
     // TODO: Check this is true in Belligerency.
     // TODO: There are more conditions to handle here?
-    if (PChar->loc.zone->GetID() != ZONE_FERETORY)
+    if (plan.addGestation)
     {
-        auto duration = PChar->m_PMonstrosity->Belligerency ? 1min : 18h;
-
         // TODO: Move these flags into the db
         const auto gestationFlags = xi::StatusEffectFlag::Invisible |
                                     xi::StatusEffectFlag::Death |
@@ -348,7 +368,7 @@ void monstrosity::HandleZoneIn(CCharEntity* PChar)
             static_cast<uint16>(xi::StatusEffect::Gestation),
             0,
             0s,
-            duration,
+            std::chrono::seconds(plan.gestationDurationSeconds),
             0,
             0,
             0,
@@ -356,9 +376,15 @@ void monstrosity::HandleZoneIn(CCharEntity* PChar)
             gestationFlags);
     }
 
-    SendFullMonstrosityUpdate(PChar);
+    if (plan.sendFullUpdate)
+    {
+        SendFullMonstrosityUpdate(PChar);
+    }
 
-    PChar->updatemask |= UPDATE_LOOK;
+    if (plan.markLookUpdate)
+    {
+        PChar->updatemask |= UPDATE_LOOK;
+    }
 }
 
 uint32 monstrosity::GetPackedMonstrosityName(CCharEntity* PChar)
