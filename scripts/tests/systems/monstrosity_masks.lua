@@ -549,3 +549,34 @@ describe('Odyssean Passage event-finish plan', function()
         assert(plan.position[1] == 0 and plan.position[2] == 0 and plan.position[3] == 0 and plan.position[4] == 0)
     end)
 end)
+
+describe('Monstrosity return-to-entrance plan', function()
+    local entry =
+    {
+        entry_x       = 12.5,
+        entry_y       = -3,
+        entry_z       = 42,
+        entry_rot     = 16,
+        entry_zone_id = 101,
+        entry_mjob    = xi.job.WAR,
+        entry_sjob    = xi.job.WHM,
+    }
+
+    it('uses the exact-one Feretory override only outside Feretory', function()
+        local plan = xi.monstrosity.returnToEntrancePlan(1, xi.zone.EAST_RONFAURE, entry)
+        assert(plan.clearEffects and not plan.restoreJobs and plan.zone == xi.zone.FERETORY)
+        assert(plan.position[1] == -358 and plan.position[2] == -3.4 and plan.position[3] == -440 and plan.position[4] == 64)
+
+        local fallthrough = xi.monstrosity.returnToEntrancePlan(1, xi.zone.FERETORY, entry)
+        assert(fallthrough.restoreJobs and fallthrough.zone == entry.entry_zone_id)
+    end)
+
+    it('restores jobs and the entry position when the override is disabled', function()
+        local plan = xi.monstrosity.returnToEntrancePlan(0, xi.zone.EAST_RONFAURE, entry)
+        assert(plan.clearEffects and plan.restoreJobs)
+        assert(plan.mainJob == entry.entry_mjob and plan.subJob == entry.entry_sjob and plan.zone == entry.entry_zone_id)
+        assert(plan.position[1] == entry.entry_x and plan.position[2] == entry.entry_y and plan.position[3] == entry.entry_z and plan.position[4] == entry.entry_rot)
+
+        assert(xi.monstrosity.returnToEntrancePlan(2, xi.zone.EAST_RONFAURE, entry).restoreJobs)
+    end)
+end)

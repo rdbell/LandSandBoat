@@ -1366,35 +1366,49 @@ xi.monstrosity.onMonstrosityUpdate = function(player, data)
     -- TODO: Handle level-based variants here
 end
 
+-- Plans the actions that return a player from Monstrosity. Status-effect
+-- removal remains common to both paths; entity mutations remain host work.
+xi.monstrosity.returnToEntrancePlan = function(teleportToFeretory, currentZone, data)
+    if teleportToFeretory == 1 and currentZone ~= xi.zone.FERETORY then
+        return {
+            clearEffects = true,
+            position     = { -358, -3.4, -440, 64 },
+            zone         = xi.zone.FERETORY,
+        }
+    end
+
+    return {
+        clearEffects = true,
+        restoreJobs  = true,
+        mainJob      = data.entry_mjob,
+        subJob       = data.entry_sjob,
+        position     = { data.entry_x, data.entry_y, data.entry_z, data.entry_rot },
+        zone         = data.entry_zone_id,
+    }
+end
+
 xi.monstrosity.onMonstrosityReturnToEntrance = function(player)
     local data = player:getMonstrosityData()
-
-    local x      = data.entry_x
-    local y      = data.entry_y
-    local z      = data.entry_z
-    local rot    = data.entry_rot
-    local zoneId = data.entry_zone_id
-    local mjob   = data.entry_mjob
-    local sjob   = data.entry_sjob
+    local plan = xi.monstrosity.returnToEntrancePlan(
+        xi.settings.main.MONSTROSITY_TELEPORT_TO_FERETORY,
+        player:getZoneID(),
+        data
+    )
 
     -- TODO: Sanity check
 
-    for _, effect in pairs(player:getStatusEffects()) do
-        player:delStatusEffectSilent(effect:getEffectType())
-    end
-
-    if xi.settings.main.MONSTROSITY_TELEPORT_TO_FERETORY == 1 then
-        if player:getZoneID() ~= xi.zone.FERETORY then
-            player:setPos(-358, -3.4, -440, 64, xi.zone.FERETORY)
-            return
+    if plan.clearEffects then
+        for _, effect in pairs(player:getStatusEffects()) do
+            player:delStatusEffectSilent(effect:getEffectType())
         end
-
-        -- Otherwise fallthrough and exit as normal
     end
 
-    player:changeJob(mjob)
-    player:changesJob(sjob)
-    player:setPos(x, y, z, rot, zoneId)
+    if plan.restoreJobs then
+        player:changeJob(plan.mainJob)
+        player:changesJob(plan.subJob)
+    end
+
+    player:setPos(plan.position[1], plan.position[2], plan.position[3], plan.position[4], plan.zone)
 end
 
 -----------------------------------
