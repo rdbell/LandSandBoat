@@ -1329,6 +1329,7 @@ auto runMonstrosityDeathMenu7483SelfTests() -> bool;
 auto runMonstrosityZoneIn7484SelfTests() -> bool;
 auto runMonstrosityMonsterSkill7485SelfTests() -> bool;
 auto runMonstrositySpeciesChange7486SelfTests() -> bool;
+auto runMonstrosityDescriptorUpdate7487SelfTests() -> bool;
 auto runS2CMiscDataStatusIconsPacketSelfTests() -> bool;
 auto runS2CMiscDataUnknownPacketSelfTests() -> bool;
 auto runS2CMiscDataUnityPacketSelfTests() -> bool;
@@ -3888,6 +3889,7 @@ namespace
         ok = runMonstrosityZoneIn7484SelfTests() && ok;
         ok = runMonstrosityMonsterSkill7485SelfTests() && ok;
         ok = runMonstrositySpeciesChange7486SelfTests() && ok;
+        ok = runMonstrosityDescriptorUpdate7487SelfTests() && ok;
         ok = runS2CMiscDataStatusIconsPacketSelfTests() && ok;
         ok = runS2CMiscDataUnknownPacketSelfTests() && ok;
         ok = runS2CMiscDataUnityPacketSelfTests() && ok;

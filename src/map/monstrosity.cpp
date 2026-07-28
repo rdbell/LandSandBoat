@@ -486,6 +486,22 @@ monstrosity::SpeciesChangePlan monstrosity::PlanSpeciesChange(const bool hasCand
     };
 }
 
+monstrosity::DescriptorUpdatePlan monstrosity::PlanDescriptorUpdate(const bool speciesFlag, const bool instinctFlag, const bool descriptor1Flag, const bool descriptor2Flag, const uint8 descriptor1Index, const uint8 descriptor2Index)
+{
+    auto plan = DescriptorUpdatePlan{};
+    if (!speciesFlag && !instinctFlag && descriptor1Flag)
+    {
+        plan.setNamePrefix1 = true;
+        plan.namePrefix1    = descriptor1Index;
+    }
+    else if (!speciesFlag && !instinctFlag && descriptor2Flag)
+    {
+        plan.setNamePrefix2 = true;
+        plan.namePrefix2    = descriptor2Index;
+    }
+    return plan;
+}
+
 void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& data)
 {
     // There used to be more checks here, but they've been moved to the packet handler.
@@ -609,13 +625,20 @@ void monstrosity::HandleEquipChangePacket(CCharEntity* PChar, const mon_data_t& 
             }
         }
     }
-    else if (data.Flags0.Descriptor1Flag)
+    const auto descriptorPlan = PlanDescriptorUpdate(
+        data.Flags0.SpeciesFlag,
+        data.Flags0.InstinctFlag,
+        data.Flags0.Descriptor1Flag,
+        data.Flags0.Descriptor2Flag,
+        data.Descriptor1Index,
+        data.Descriptor2Index);
+    if (descriptorPlan.setNamePrefix1)
     {
-        PChar->m_PMonstrosity->NamePrefix1 = data.Descriptor1Index;
+        PChar->m_PMonstrosity->NamePrefix1 = descriptorPlan.namePrefix1;
     }
-    else if (data.Flags0.Descriptor2Flag)
+    else if (descriptorPlan.setNamePrefix2)
     {
-        PChar->m_PMonstrosity->NamePrefix2 = data.Descriptor2Index;
+        PChar->m_PMonstrosity->NamePrefix2 = descriptorPlan.namePrefix2;
     }
 
     WriteMonstrosityData(PChar);

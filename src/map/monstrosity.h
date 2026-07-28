@@ -121,6 +121,16 @@ struct SpeciesChangePlan
     bool    eraseStatusEffects{};
 };
 
+struct DescriptorUpdatePlan
+{
+    bool  setNamePrefix1{};
+    uint8 namePrefix1{};
+    bool  setNamePrefix2{};
+    uint8 namePrefix2{};
+    bool  writeData{ true };
+    bool  sendFullUpdate{ true };
+};
+
 void LoadStaticData();
 
 void ReadMonstrosityData(CCharEntity* PChar);
@@ -141,6 +151,7 @@ DeathMenuPlan PlanDeathMenu(bool hasMonstrosity, GP_CLI_COMMAND_ACTION_HOMEPOINT
 ZoneInPlan PlanZoneIn(bool monstrosityEnabled, bool hasMonstrosity, bool isFeretory, bool belligerency);
 MonsterSkillActionPlan PlanMonsterSkillAction(uint8 mainJob, bool hasMonstrosity, uint16 actionIndex, uint16 skillId);
 SpeciesChangePlan PlanSpeciesChange(bool hasCandidate, uint16 speciesIndex, const SpeciesChangeCandidate& candidate, uint8 previousMonstrosityId, uint8 speciesLevel, bool variantUnlocked, bool dontWipeBuffs);
+DescriptorUpdatePlan PlanDescriptorUpdate(bool speciesFlag, bool instinctFlag, bool descriptor1Flag, bool descriptor2Flag, uint8 descriptor1Index, uint8 descriptor2Index);
 
 bool IsInstinctUnlocked(CCharEntity* PChar, uint16 instinct);
 bool IsVariantUnlocked(CCharEntity* PChar, uint8 variant);

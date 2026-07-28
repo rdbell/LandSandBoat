@@ -2408,6 +2408,8 @@ set(SOURCES
     test_monstrosity_monster_skill_7485.cpp
     test_monstrosity_species_change_7486.h
     test_monstrosity_species_change_7486.cpp
+    test_monstrosity_descriptor_update_7487.h
+    test_monstrosity_descriptor_update_7487.cpp
     test_s2c_miscdata_status_icons_packet.h
     test_s2c_miscdata_status_icons_packet.cpp
     test_s2c_miscdata_unknown_packet.h
