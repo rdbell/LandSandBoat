@@ -2609,6 +2609,7 @@ auto runLatentMpSelection7531SelfTests() -> bool;
 auto runLatentWeatherPlan7532SelfTests() -> bool;
 auto runLatentEquipSelection7533SelfTests() -> bool;
 auto runLatentPartyJobSelection7534SelfTests() -> bool;
+auto runLatentPartyAvatarSelection7535SelfTests() -> bool;
 auto runInstanceLoaderCreate7504SelfTests() -> bool;
 auto runInstanceLoaderMob7505SelfTests() -> bool;
 auto runInstanceLoaderLoad7506SelfTests() -> bool;
@@ -5215,6 +5216,7 @@ namespace
         ok = runLatentWeatherPlan7532SelfTests() && ok;
         ok = runLatentEquipSelection7533SelfTests() && ok;
         ok = runLatentPartyJobSelection7534SelfTests() && ok;
+        ok = runLatentPartyAvatarSelection7535SelfTests() && ok;
         ok = runInstanceLoaderCreate7504SelfTests() && ok;
         ok = runInstanceLoaderMob7505SelfTests() && ok;
         ok = runInstanceLoaderLoad7506SelfTests() && ok;

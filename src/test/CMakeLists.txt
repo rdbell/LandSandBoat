@@ -98,6 +98,7 @@ set(SOURCES
     test_latent_weather_plan_7532.cpp
     test_latent_equip_selection_7533.cpp
     test_latent_party_job_selection_7534.cpp
+    test_latent_party_avatar_selection_7535.cpp
     test_application.h
     test_application.cpp
     test_application_lifecycle_2554.h
