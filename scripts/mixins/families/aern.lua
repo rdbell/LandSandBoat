@@ -7,8 +7,35 @@
 
 require('scripts/globals/mixins')
 
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.aern = xi.mix.aern or {}
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
+
+xi.mix.aern.braceletPlan = function(braceletActive, now)
+    if braceletActive == 0 then
+        return { active = 1, timer = now + 30, animationSub = 2, attp = 30, delayp = -33, acc = 40 }
+    elseif braceletActive == 1 then
+        return { active = 0, timer = now + 80, damageTaken = 0, animationSub = 1, attp = -30, delayp = 33, acc = -40 }
+    end
+
+    return nil
+end
+
+xi.mix.aern.damagePlan = function(braceletActive, damageTaken, amount)
+    if braceletActive ~= 0 then
+        return nil
+    end
+
+    damageTaken = damageTaken + amount
+    return { damageTaken = damageTaken, shouldToggle = damageTaken >= 300 }
+end
+
+xi.mix.aern.shouldToggleTimer = function(now, braceletTimer)
+    return now > braceletTimer
+end
 
 g_mixins.families.aern = function(aernMob)
     local petDeath = function(mob)
@@ -55,22 +82,28 @@ g_mixins.families.aern = function(aernMob)
     -- They last for 30 seconds and give a 30% attack boost, +40 acc, and 33% delay reduction.
     local function toggleBracelets(mob)
         local braceletActive = mob:getLocalVar('braceletActive')
+        local plan = xi.mix.aern.braceletPlan(braceletActive, GetSystemTime())
 
-        if braceletActive == 0 then
-            mob:setLocalVar('braceletTimer', GetSystemTime() + 30)
-            mob:setLocalVar('braceletActive', 1)
-            mob:setAnimationSub(2)
-            mob:addMod(xi.mod.ATTP, 30)
-            mob:addMod(xi.mod.DELAYP, -33)
-            mob:addMod(xi.mod.ACC, 40)
-        elseif braceletActive == 1 then
-            mob:setLocalVar('braceletTimer', GetSystemTime() + 80)
-            mob:setLocalVar('braceletActive', 0)
-            mob:setLocalVar('braceletDamageTaken', 0)
-            mob:setAnimationSub(1)
-            mob:delMod(xi.mod.ACC, 40)
-            mob:delMod(xi.mod.ATTP, 30)
-            mob:delMod(xi.mod.DELAYP, -33)
+        if not plan then
+            return
+        end
+
+        mob:setLocalVar('braceletTimer', plan.timer)
+        mob:setLocalVar('braceletActive', plan.active)
+        mob:setAnimationSub(plan.animationSub)
+
+        if plan.damageTaken then
+            mob:setLocalVar('braceletDamageTaken', plan.damageTaken)
+        end
+
+        if plan.active == 1 then
+            mob:addMod(xi.mod.ATTP, plan.attp)
+            mob:addMod(xi.mod.DELAYP, plan.delayp)
+            mob:addMod(xi.mod.ACC, plan.acc)
+        else
+            mob:delMod(xi.mod.ACC, -plan.acc)
+            mob:delMod(xi.mod.ATTP, -plan.attp)
+            mob:delMod(xi.mod.DELAYP, -plan.delayp)
         end
     end
 
@@ -130,7 +163,7 @@ g_mixins.families.aern = function(aernMob)
         -- Bracelet activation check
         local braceletTimer = mob:getLocalVar('braceletTimer')
 
-        if GetSystemTime() > braceletTimer then
+        if xi.mix.aern.shouldToggleTimer(GetSystemTime(), braceletTimer) then
             toggleBracelets(mob)
         end
     end)
@@ -139,13 +172,12 @@ g_mixins.families.aern = function(aernMob)
         local braceletActive = mob:getLocalVar('braceletActive')
 
         -- Only track damage if not already using bracelets
-        if braceletActive == 0 then
-            local damageTaken = mob:getLocalVar('braceletDamageTaken')
-            damageTaken = damageTaken + amount
-            mob:setLocalVar('braceletDamageTaken', damageTaken)
+        local plan = xi.mix.aern.damagePlan(braceletActive, mob:getLocalVar('braceletDamageTaken'), amount)
+        if plan then
+            mob:setLocalVar('braceletDamageTaken', plan.damageTaken)
 
             -- Check if 300 damage threshold reached
-            if damageTaken >= 300 then
+            if plan.shouldToggle then
                 toggleBracelets(mob)
             end
         end
