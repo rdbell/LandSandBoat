@@ -1,0 +1,21 @@
+local euvhi = require('scripts/mixins/families/euvhi')
+
+describe('Euvhi mixin', function()
+    it('uses mouth bits, strict timing, and its damage threshold', function()
+        assert(xi.mix.euvhi.isMouthOpen(2))
+        assert(xi.mix.euvhi.isMouthOpen(3))
+        assert(not xi.mix.euvhi.isMouthOpen(1))
+
+        local open = xi.mix.euvhi.openMouthPlan(75)
+        assert(open.baseDamageModifier == 38.5 and open.animationSub == 2 and open.waitMs == 2000)
+        local close = xi.mix.euvhi.closeMouthPlan(100)
+        assert(close.baseDamageModifier == 0 and close.changeTime == 180 and close.closeMouth == 0 and close.animationSub == 1)
+
+        assert(xi.mix.euvhi.combatPlan(1, 100, 0, 100, false) == nil)
+        assert(xi.mix.euvhi.combatPlan(1, 100, 0, 101, false) == 'open')
+        assert(xi.mix.euvhi.combatPlan(2, 0, 1, 100, false) == 'close')
+        assert(xi.mix.euvhi.combatPlan(2, 0, 1, 100, true) == nil)
+        assert(xi.mix.euvhi.shouldCloseMouth(2, 350))
+        assert(not xi.mix.euvhi.shouldCloseMouth(2, 349))
+    end)
+end)
