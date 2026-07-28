@@ -1,0 +1,13 @@
+local morbol = require('scripts/mixins/families/morbol_toau')
+
+describe('ToAU Morbol mixin', function()
+    it('pins night movement, minimum percentages, and hit-only drain', function()
+        assert(xi.mix.toau_morbol.noMovePlan(0, true, 20) == true)
+        assert(xi.mix.toau_morbol.noMovePlan(0, true, 5) == false)
+        assert(xi.mix.toau_morbol.noMovePlan(1, true, 22) == nil)
+        assert(xi.mix.toau_morbol.regenPotency(true, 999, 0) == 9)
+        assert(xi.mix.toau_morbol.regenPotency(false, 999, 5) == 0)
+        assert(xi.mix.toau_morbol.drainPlan(false, true, 1000, 10) == 100)
+        assert(xi.mix.toau_morbol.drainPlan(false, false, 1000, 10) == nil)
+    end)
+end)

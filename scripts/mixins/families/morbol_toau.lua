@@ -23,6 +23,31 @@ xi = xi or {}
 xi.mix = xi.mix or {}
 xi.mix.toau_morbol = xi.mix.toau_morbol or {}
 
+xi.mix.toau_morbol.noMovePlan = function(nightRoaming, withinArea, vanaHour)
+    if nightRoaming == 1 then
+        return nil
+    end
+
+    return withinArea and (vanaHour >= 20 or vanaHour < 5)
+end
+
+xi.mix.toau_morbol.percentPotency = function(maxHP, percent)
+    local fraction = percent / 100
+    return math.floor(maxHP * (fraction > 0 and fraction or 0.01))
+end
+
+xi.mix.toau_morbol.regenPotency = function(withinArea, maxHP, percent)
+    return withinArea and xi.mix.toau_morbol.percentPotency(maxHP, percent) or 0
+end
+
+xi.mix.toau_morbol.drainPlan = function(withinArea, landedHit, targetMaxHP, percent)
+    if not withinArea and landedHit then
+        return xi.mix.toau_morbol.percentPotency(targetMaxHP, percent)
+    end
+
+    return nil
+end
+
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
@@ -57,18 +82,9 @@ g_mixins.families.morbol_toau = function(morbolToAUMob)
 
     -- unless defined otherwise, mob does not roam from 20:00 to 05:00, unless away from its spawn point
     morbolToAUMob:addListener('ROAM_TICK', 'MORBOL_TOAU_ROAM_TICK', function(mob)
-        if mob:getLocalVar('[morbolToAU]nightRoaming') ~= 1 then
-            local vanaHour    = VanadielHour()
-            local mobModValue = 0
-
-            if
-                isWithinArea(mob) and
-                (vanaHour >= 20 or vanaHour < 5) -- Is night.
-            then
-                mobModValue = 1
-            end
-
-            mob:setMobMod(xi.mobMod.NO_MOVE, mobModValue)
+        local noMove = xi.mix.toau_morbol.noMovePlan(mob:getLocalVar('[morbolToAU]nightRoaming'), isWithinArea(mob), VanadielHour())
+        if noMove ~= nil then
+            mob:setMobMod(xi.mobMod.NO_MOVE, noMove and 1 or 0)
         end
     end)
 
@@ -79,11 +95,7 @@ g_mixins.families.morbol_toau = function(morbolToAUMob)
 
     -- mob regens a % of its maximum hp when inside its spawn area
     morbolToAUMob:addListener('COMBAT_TICK', 'MORBOL_TOAU_COMBAT_TICK', function(mob)
-        local regenVar     = mob:getLocalVar('[morbolToAU]regenPercent') / 100
-        local regenPercent = regenVar > 0 and regenVar or 0.01
-        local regenPotency = isWithinArea(mob) and math.floor(mob:getMaxHP() * regenPercent) or 0
-
-        mob:setMod(xi.mod.REGEN, regenPotency)
+        mob:setMod(xi.mod.REGEN, xi.mix.toau_morbol.regenPotency(isWithinArea(mob), mob:getMaxHP(), mob:getLocalVar('[morbolToAU]regenPercent')))
     end)
 
     -- auto-attacks have a fixed % of target's max hp drain when outside of its spawn area
@@ -91,13 +103,12 @@ g_mixins.families.morbol_toau = function(morbolToAUMob)
         local targetID  = target:getID()
         local actionMsg = action:getMsg(targetID)
 
-        if
-            not isWithinArea(attacker) and
-            (actionMsg == xi.msg.basic.HIT_DMG or actionMsg == xi.msg.basic.HIT_CRIT)
-        then
-            local drainVar     = attacker:getLocalVar('[morbolToAU]drainPercent') / 100
-            local drainPercent = drainVar > 0 and drainVar or 0.01
-            local drainPotency = math.floor(target:getMaxHP() * drainPercent)
+        local drainPotency = xi.mix.toau_morbol.drainPlan(
+            isWithinArea(attacker),
+            actionMsg == xi.msg.basic.HIT_DMG or actionMsg == xi.msg.basic.HIT_CRIT,
+            target:getMaxHP(),
+            attacker:getLocalVar('[morbolToAU]drainPercent'))
+        if drainPotency then
 
             drainPotency = utils.handleStoneskin(target, drainPotency)
 
