@@ -2602,6 +2602,7 @@ auto runLatentPartyMemberPlan7524SelfTests() -> bool;
 auto runLatentFoodSelection7525SelfTests() -> bool;
 auto runLatentRollSongSelection7526SelfTests() -> bool;
 auto runLatentWeaponBreakSelection7527SelfTests() -> bool;
+auto runLatentWsPlan7528SelfTests() -> bool;
 auto runInstanceLoaderCreate7504SelfTests() -> bool;
 auto runInstanceLoaderMob7505SelfTests() -> bool;
 auto runInstanceLoaderLoad7506SelfTests() -> bool;
@@ -5201,6 +5202,7 @@ namespace
         ok = runLatentFoodSelection7525SelfTests() && ok;
         ok = runLatentRollSongSelection7526SelfTests() && ok;
         ok = runLatentWeaponBreakSelection7527SelfTests() && ok;
+        ok = runLatentWsPlan7528SelfTests() && ok;
         ok = runInstanceLoaderCreate7504SelfTests() && ok;
         ok = runInstanceLoaderMob7505SelfTests() && ok;
         ok = runInstanceLoaderLoad7506SelfTests() && ok;

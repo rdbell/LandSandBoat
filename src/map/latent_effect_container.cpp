@@ -30,6 +30,7 @@
 #include "latent_time_selection.h"
 #include "latent_weapon_break_selection.h"
 #include "latent_weapon_draw_plan.h"
+#include "latent_ws_plan.h"
 #include "latent_zone_selection.h"
 
 #include "ai/ai_container.h"
@@ -198,14 +199,16 @@ void CLatentEffectContainer::CheckLatentsWS(bool isDuringWs)
     ProcessLatentEffects(
         [this, isDuringWs](CLatentEffect& latentEffect)
         {
-            switch (latentEffect.GetConditionsID())
+            switch (latenthelpers::DetermineDuringWsLatentAction(latentEffect.GetConditionsID(), isDuringWs))
             {
-                case xi::Latent::DuringWs:
-                    return ProcessLatentEffect(latentEffect, isDuringWs);
+                case latenthelpers::DuringWsLatentAction::Activate:
+                    return latentEffect.Activate();
+                case latenthelpers::DuringWsLatentAction::Deactivate:
+                    return latentEffect.Deactivate();
+                case latenthelpers::DuringWsLatentAction::Ignore:
                 default:
-                    break;
+                    return false;
             }
-            return false;
         });
 }
 
