@@ -20,6 +20,7 @@
 */
 
 #include "zone_entities.h"
+#include "zone_entities_npc_insert.h"
 #include "zone_capacity.h"
 #include "common/utils.h"
 #include "enmity_container.h"
@@ -283,31 +284,32 @@ void CZoneEntities::InsertNPC(CBaseEntity* PNpc)
 {
     TracyZoneScoped;
 
-    if (PNpc != nullptr && PNpc->objtype == TYPE_NPC)
+    const bool isNpc       = PNpc != nullptr && PNpc->objtype == TYPE_NPC;
+    const bool isShipModel = isNpc && PNpc->look.size == MODEL_SHIP;
+    const bool duplicate   = isShipModel ? m_TransportList.contains(PNpc->targid) : isNpc && m_npcList.contains(PNpc->targid);
+    const auto plan        = zoneentities::PlanNpcInsertion(isNpc, isShipModel, duplicate);
+    if (!plan.insert)
     {
-        PNpc->loc.zone = m_zone;
-
-        if (PNpc->look.size == MODEL_SHIP)
-        {
-            if (m_TransportList.contains(PNpc->targid))
-            {
-                ShowError("Error: Inserting Transport NPC with duplicate ID!");
-            }
-
-            m_TransportList[PNpc->targid] = PNpc;
-        }
-        else
-        {
-            if (m_npcList.contains(PNpc->targid))
-            {
-                ShowError("Error: Inserting NPC with duplicate ID!");
-            }
-
-            m_npcList[PNpc->targid] = PNpc;
-        }
-
-        TryAddToNearbySpawnLists(PNpc);
+        return;
     }
+
+    PNpc->loc.zone = m_zone;
+
+    if (plan.warnDuplicate)
+    {
+        ShowError(plan.transportList ? "Error: Inserting Transport NPC with duplicate ID!" : "Error: Inserting NPC with duplicate ID!");
+    }
+
+    if (plan.transportList)
+    {
+        m_TransportList[PNpc->targid] = PNpc;
+    }
+    else
+    {
+        m_npcList[PNpc->targid] = PNpc;
+    }
+
+    TryAddToNearbySpawnLists(PNpc);
 }
 
 void CZoneEntities::InsertPET(CBaseEntity* PPet)
