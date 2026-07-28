@@ -5,20 +5,36 @@ require('scripts/globals/mixins')
 g_mixins = g_mixins or {}
 g_mixins.families = g_mixins.families or {}
 
+xi = xi or {}
+xi.mix = xi.mix or {}
+xi.mix.chigoeNM = xi.mix.chigoeNM or {}
+
+xi.mix.chigoeNM.eventPlan = function(event)
+    if event == 'ENGAGE' then
+        return { hideName = false, untargetable = false }
+    elseif event == 'SPAWN' or event == 'DISENGAGE' then
+        return { hideName = true, untargetable = true }
+    end
+    return nil
+end
+
 g_mixins.families.chigoe_nm = function(chigoeMob)
     chigoeMob:addListener('SPAWN', 'CHIGOE_SPAWN', function(mob)
-        mob:hideName(true)
-        mob:setUntargetable(true)
+        local plan = xi.mix.chigoeNM.eventPlan('SPAWN')
+        mob:hideName(plan.hideName)
+        mob:setUntargetable(plan.untargetable)
     end)
 
     chigoeMob:addListener('ENGAGE', 'CHIGOE_ENGAGE', function(mob, target)
-        mob:hideName(false)
-        mob:setUntargetable(false)
+        local plan = xi.mix.chigoeNM.eventPlan('ENGAGE')
+        mob:hideName(plan.hideName)
+        mob:setUntargetable(plan.untargetable)
     end)
 
     chigoeMob:addListener('DISENGAGE', 'CHIGOE_DISENGAGE', function(mob, target)
-        mob:hideName(true)
-        mob:setUntargetable(true)
+        local plan = xi.mix.chigoeNM.eventPlan('DISENGAGE')
+        mob:hideName(plan.hideName)
+        mob:setUntargetable(plan.untargetable)
     end)
 end
 

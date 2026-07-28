@@ -1,0 +1,13 @@
+local chigoe = require('scripts/mixins/families/chigoe_nm')
+
+describe('Chigoe NM mixin', function()
+    it('hides and untargets except while engaged', function()
+        local spawn = xi.mix.chigoeNM.eventPlan('SPAWN')
+        assert(spawn.hideName and spawn.untargetable)
+        local engage = xi.mix.chigoeNM.eventPlan('ENGAGE')
+        assert(not engage.hideName and not engage.untargetable)
+        local disengage = xi.mix.chigoeNM.eventPlan('DISENGAGE')
+        assert(disengage.hideName and disengage.untargetable)
+        assert(xi.mix.chigoeNM.eventPlan('COMBAT_TICK') == nil)
+    end)
+end)
