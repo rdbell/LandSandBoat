@@ -16,6 +16,18 @@ struct LatentActivationPlan
     constexpr auto operator==(const LatentActivationPlan&) const -> bool = default;
 };
 
+struct LatentDeactivationPlan
+{
+    bool changed{};
+    bool removeItemModifier{};
+    bool removeOwnerModifier{};
+    bool rebuildWeaponSkills{};
+    bool pushCommandData{};
+    bool markDeactivated{};
+
+    constexpr auto operator==(const LatentDeactivationPlan&) const -> bool = default;
+};
+
 constexpr auto PlanLatentActivation(const bool alreadyActivated, const bool itemOnly, const bool hasEquippedItem) -> LatentActivationPlan
 {
     if (alreadyActivated)
@@ -40,6 +52,34 @@ constexpr auto PlanLatentActivation(const bool alreadyActivated, const bool item
         plan.rebuildWeaponSkills = true;
         plan.pushCommandData     = true;
         plan.rememberItem        = true;
+    }
+
+    return plan;
+}
+
+constexpr auto PlanLatentDeactivation(const bool activated, const bool itemOnly, const bool hasRememberedItem) -> LatentDeactivationPlan
+{
+    if (!activated)
+    {
+        return {};
+    }
+
+    LatentDeactivationPlan plan{
+        .changed         = true,
+        .markDeactivated = true,
+    };
+
+    if (!itemOnly)
+    {
+        plan.removeOwnerModifier = true;
+        return plan;
+    }
+
+    if (hasRememberedItem)
+    {
+        plan.removeItemModifier  = true;
+        plan.rebuildWeaponSkills = true;
+        plan.pushCommandData     = true;
     }
 
     return plan;

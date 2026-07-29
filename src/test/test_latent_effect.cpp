@@ -163,6 +163,38 @@ auto testLatentActivationPlan() -> bool
     return ok;
 }
 
+auto testLatentDeactivationPlan() -> bool
+{
+    bool ok = true;
+
+    ok = expectBool(latenthelpers::PlanLatentDeactivation(false, false, false) == latenthelpers::LatentDeactivationPlan{}, true, "deactivation inactive plan") &&
+         ok;
+
+    const latenthelpers::LatentDeactivationPlan expectedOwner{
+        .changed             = true,
+        .removeOwnerModifier = true,
+        .markDeactivated     = true,
+    };
+    ok = expectBool(latenthelpers::PlanLatentDeactivation(true, false, false) == expectedOwner, true, "deactivation owner plan") && ok;
+
+    const latenthelpers::LatentDeactivationPlan expectedItem{
+        .changed             = true,
+        .removeItemModifier  = true,
+        .rebuildWeaponSkills = true,
+        .pushCommandData     = true,
+        .markDeactivated     = true,
+    };
+    ok = expectBool(latenthelpers::PlanLatentDeactivation(true, true, true) == expectedItem, true, "deactivation item plan") && ok;
+
+    const latenthelpers::LatentDeactivationPlan expectedMissing{
+        .changed         = true,
+        .markDeactivated = true,
+    };
+    ok = expectBool(latenthelpers::PlanLatentDeactivation(true, true, false) == expectedMissing, true, "deactivation missing-item plan") && ok;
+
+    return ok;
+}
+
 auto testLatentEffectContainerBookkeeping() -> bool
 {
     CLatentEffectContainer container(nullptr);
@@ -250,6 +282,7 @@ auto runLatentEffectSelfTests() -> bool
     ok      = testLatentEffectSetters() && ok;
     ok      = testModOnItemOnly() && ok;
     ok      = testLatentActivationPlan() && ok;
+    ok      = testLatentDeactivationPlan() && ok;
     ok      = testLatentEffectContainerBookkeeping() && ok;
     ok      = testLatentEffectContainerEquipmentInsertion() && ok;
     return ok;

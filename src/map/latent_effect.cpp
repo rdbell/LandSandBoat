@@ -172,28 +172,30 @@ bool CLatentEffect::Activate()
 
 bool CLatentEffect::Deactivate()
 {
-    if (IsActivated())
+    const auto plan = latenthelpers::PlanLatentDeactivation(IsActivated(), ModOnItemOnly(GetModValue()), m_PItem != nullptr);
+    if (!plan.changed)
     {
-        // Remove the modifier from item, not player
-        if (ModOnItemOnly(GetModValue()))
-        {
-            if (m_PItem != nullptr)
-            {
-                m_PItem->delModifier(GetModValue(), GetModPower());
-                CCharEntity* PChar = static_cast<CCharEntity*>(m_POwner);
-                charutils::BuildingCharWeaponSkills(PChar);
-                PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
-            }
-        }
-        // Remove other modifiers from player
-        else
-        {
-            m_POwner->delModifier(m_ModValue, m_ModPower);
-        }
-
-        m_Activated = false;
-        // printf("LATENT DEACTIVATED: %d", m_ModValue);
-        return true;
+        return false;
     }
-    return false;
+
+    if (plan.removeItemModifier)
+    {
+        m_PItem->delModifier(GetModValue(), GetModPower());
+    }
+    if (plan.rebuildWeaponSkills)
+    {
+        charutils::BuildingCharWeaponSkills(static_cast<CCharEntity*>(m_POwner));
+    }
+    if (plan.pushCommandData)
+    {
+        auto* PChar = static_cast<CCharEntity*>(m_POwner);
+        PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+    }
+    if (plan.removeOwnerModifier)
+    {
+        m_POwner->delModifier(m_ModValue, m_ModPower);
+    }
+
+    m_Activated = !plan.markDeactivated;
+    return plan.changed;
 }
