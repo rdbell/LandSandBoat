@@ -23,6 +23,7 @@
 
 #include "data/enums/latent.h"
 #include "entities/char_entity.h"
+#include "latent_capacity.h"
 #include "latent_activation_plan.h"
 #include "latent_effect.h"
 #include "latent_effect_container.h"
@@ -195,6 +196,16 @@ auto testLatentDeactivationPlan() -> bool
     return ok;
 }
 
+auto testLatentChangeAccumulation() -> bool
+{
+    bool ok = true;
+    ok      = expectBool(latenthelpers::AccumulateLatentChange(false, false), false, "no latent changed") && ok;
+    ok      = expectBool(latenthelpers::AccumulateLatentChange(false, true), true, "first latent changed") && ok;
+    ok      = expectBool(latenthelpers::AccumulateLatentChange(true, false), true, "prior change retained") && ok;
+    ok      = expectBool(latenthelpers::AccumulateLatentChange(true, true), true, "additional change retained") && ok;
+    return ok;
+}
+
 auto testLatentEffectContainerBookkeeping() -> bool
 {
     CLatentEffectContainer container(nullptr);
@@ -283,6 +294,7 @@ auto runLatentEffectSelfTests() -> bool
     ok      = testModOnItemOnly() && ok;
     ok      = testLatentActivationPlan() && ok;
     ok      = testLatentDeactivationPlan() && ok;
+    ok      = testLatentChangeAccumulation() && ok;
     ok      = testLatentEffectContainerBookkeeping() && ok;
     ok      = testLatentEffectContainerEquipmentInsertion() && ok;
     return ok;

@@ -651,10 +651,7 @@ void CLatentEffectContainer::ProcessLatentEffects(const std::function<bool(CLate
 
     for (auto& latent : m_LatentEffectList)
     {
-        if (logic(latent))
-        {
-            update = true;
-        }
+        update = latenthelpers::AccumulateLatentChange(update, logic(latent));
     }
 
     if (latenthelpers::ProcessLatentListWantsHealthUpdate(update))

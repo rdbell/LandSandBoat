@@ -341,6 +341,13 @@ inline auto ProcessLatentListWantsHealthUpdate(const bool anyLatentChanged) -> b
     return anyLatentChanged;
 }
 
+// AccumulateLatentChange records whether any callback changed a latent while
+// allowing the caller to continue processing the remaining effects.
+inline auto AccumulateLatentChange(const bool anyLatentChanged, const bool latentChanged) -> bool
+{
+    return anyLatentChanged || latentChanged;
+}
+
 // --- Slice 1360: time / moon / zone / job-multiple / nation / flags ---
 
 // EvaluateZone mirrors getZone() == value.
