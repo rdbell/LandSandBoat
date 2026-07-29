@@ -23,7 +23,7 @@
 
 #include "entities/char_entity.h"
 #include "items/item_weapon.h"
-#include "latent_activation_plan.h"
+#include "latent_action_plan.h"
 #include "latent_effect.h"
 #include "packets/s2c/0x0ac_command_data.h"
 #include "status_effect_container.h"

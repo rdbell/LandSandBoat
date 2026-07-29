@@ -79,7 +79,7 @@ set(MAP_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/items.h
     ${CMAKE_CURRENT_SOURCE_DIR}/job_points.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/job_points.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/latent_activation_plan.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/latent_action_plan.h
     ${CMAKE_CURRENT_SOURCE_DIR}/latent_effect_container.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/latent_effect_container.h
     ${CMAKE_CURRENT_SOURCE_DIR}/latent_effect.cpp

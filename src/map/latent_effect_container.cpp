@@ -20,6 +20,7 @@
 */
 
 #include "latent_effect_container.h"
+#include "latent_action_plan.h"
 #include "latent_capacity.h"
 #include "latent_equip_selection.h"
 #include "latent_food_selection.h"
@@ -1187,12 +1188,14 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
 // Activates a latent effect if true otherwise deactivates the latent effect
 bool CLatentEffectContainer::ApplyLatentEffect(CLatentEffect& effect, bool expression)
 {
-    if (latenthelpers::ApplyLatentWantsActivate(expression))
+    switch (latenthelpers::PlanLatentTransition(latenthelpers::ApplyLatentWantsActivate(expression), effect.IsActivated()))
     {
-        return effect.Activate();
-    }
-    else
-    {
-        return effect.Deactivate();
+        case latenthelpers::LatentTransitionAction::Activate:
+            return effect.Activate();
+        case latenthelpers::LatentTransitionAction::Deactivate:
+            return effect.Deactivate();
+        case latenthelpers::LatentTransitionAction::None:
+        default:
+            return false;
     }
 }

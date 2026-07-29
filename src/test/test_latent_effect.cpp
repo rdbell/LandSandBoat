@@ -24,7 +24,7 @@
 #include "data/enums/latent.h"
 #include "entities/char_entity.h"
 #include "latent_capacity.h"
-#include "latent_activation_plan.h"
+#include "latent_action_plan.h"
 #include "latent_effect.h"
 #include "latent_effect_container.h"
 
@@ -206,6 +206,18 @@ auto testLatentChangeAccumulation() -> bool
     return ok;
 }
 
+auto testLatentTransitionPlan() -> bool
+{
+    using latenthelpers::LatentTransitionAction;
+
+    bool ok = true;
+    ok      = expectBool(latenthelpers::PlanLatentTransition(true, false) == LatentTransitionAction::Activate, true, "true inactive activates") && ok;
+    ok      = expectBool(latenthelpers::PlanLatentTransition(true, true) == LatentTransitionAction::None, true, "true active unchanged") && ok;
+    ok      = expectBool(latenthelpers::PlanLatentTransition(false, true) == LatentTransitionAction::Deactivate, true, "false active deactivates") && ok;
+    ok      = expectBool(latenthelpers::PlanLatentTransition(false, false) == LatentTransitionAction::None, true, "false inactive unchanged") && ok;
+    return ok;
+}
+
 auto testLatentEffectContainerBookkeeping() -> bool
 {
     CLatentEffectContainer container(nullptr);
@@ -295,6 +307,7 @@ auto runLatentEffectSelfTests() -> bool
     ok      = testLatentActivationPlan() && ok;
     ok      = testLatentDeactivationPlan() && ok;
     ok      = testLatentChangeAccumulation() && ok;
+    ok      = testLatentTransitionPlan() && ok;
     ok      = testLatentEffectContainerBookkeeping() && ok;
     ok      = testLatentEffectContainerEquipmentInsertion() && ok;
     return ok;

@@ -3,6 +3,13 @@
 namespace latenthelpers
 {
 
+enum class LatentTransitionAction
+{
+    None,
+    Activate,
+    Deactivate,
+};
+
 struct LatentActivationPlan
 {
     bool changed{};
@@ -83,6 +90,16 @@ constexpr auto PlanLatentDeactivation(const bool activated, const bool itemOnly,
     }
 
     return plan;
+}
+
+constexpr auto PlanLatentTransition(const bool expression, const bool activated) -> LatentTransitionAction
+{
+    if (expression)
+    {
+        return activated ? LatentTransitionAction::None : LatentTransitionAction::Activate;
+    }
+
+    return activated ? LatentTransitionAction::Deactivate : LatentTransitionAction::None;
 }
 
 } // namespace latenthelpers
