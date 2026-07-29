@@ -23,6 +23,7 @@
 
 #include "data/enums/latent.h"
 #include "entities/char_entity.h"
+#include "latent_activation_plan.h"
 #include "latent_effect.h"
 #include "latent_effect_container.h"
 
@@ -126,6 +127,42 @@ auto testModOnItemOnly() -> bool
     return ok;
 }
 
+auto testLatentActivationPlan() -> bool
+{
+    bool ok = true;
+
+    const auto alreadyActive = latenthelpers::PlanLatentActivation(true, false, false);
+    ok                       = expectBool(alreadyActive == latenthelpers::LatentActivationPlan{}, true, "activation already-active plan") && ok;
+
+    const auto                                ownerModifier = latenthelpers::PlanLatentActivation(false, false, false);
+    const latenthelpers::LatentActivationPlan expectedOwner{
+        .changed          = true,
+        .addOwnerModifier = true,
+        .markActivated    = true,
+    };
+    ok = expectBool(ownerModifier == expectedOwner, true, "activation owner plan") && ok;
+
+    const auto                                itemModifier = latenthelpers::PlanLatentActivation(false, true, true);
+    const latenthelpers::LatentActivationPlan expectedItem{
+        .changed             = true,
+        .addItemModifier     = true,
+        .rebuildWeaponSkills = true,
+        .pushCommandData     = true,
+        .rememberItem        = true,
+        .markActivated       = true,
+    };
+    ok = expectBool(itemModifier == expectedItem, true, "activation item plan") && ok;
+
+    const auto                                missingItem = latenthelpers::PlanLatentActivation(false, true, false);
+    const latenthelpers::LatentActivationPlan expectedMissing{
+        .changed       = true,
+        .markActivated = true,
+    };
+    ok = expectBool(missingItem == expectedMissing, true, "activation missing-item plan") && ok;
+
+    return ok;
+}
+
 auto testLatentEffectContainerBookkeeping() -> bool
 {
     CLatentEffectContainer container(nullptr);
@@ -212,6 +249,7 @@ auto runLatentEffectSelfTests() -> bool
     ok      = testLatentEffectConstructor() && ok;
     ok      = testLatentEffectSetters() && ok;
     ok      = testModOnItemOnly() && ok;
+    ok      = testLatentActivationPlan() && ok;
     ok      = testLatentEffectContainerBookkeeping() && ok;
     ok      = testLatentEffectContainerEquipmentInsertion() && ok;
     return ok;

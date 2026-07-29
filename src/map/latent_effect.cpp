@@ -23,6 +23,7 @@
 
 #include "entities/char_entity.h"
 #include "items/item_weapon.h"
+#include "latent_activation_plan.h"
 #include "latent_effect.h"
 #include "packets/s2c/0x0ac_command_data.h"
 #include "status_effect_container.h"
@@ -128,32 +129,45 @@ bool CLatentEffect::ModOnItemOnly(Mod modID)
 
 bool CLatentEffect::Activate()
 {
-    if (!IsActivated())
+    const auto itemOnly = ModOnItemOnly(GetModValue());
+    auto*      PChar    = static_cast<CCharEntity*>(nullptr);
+    auto*      item     = static_cast<CItemEquipment*>(nullptr);
+
+    if (!IsActivated() && itemOnly)
     {
-        // Additional effect/dmg latents add mod to item, not player
-        if (ModOnItemOnly(GetModValue()))
-        {
-            CCharEntity*    PChar = static_cast<CCharEntity*>(m_POwner);
-            CItemEquipment* item  = PChar->getEquip((SLOTTYPE)GetSlot());
-
-            if (item)
-            {
-                item->addModifier(GetModValue(), GetModPower());
-                charutils::BuildingCharWeaponSkills(PChar);
-                PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
-                m_PItem = item;
-            }
-        }
-        // Other modifiers go on the player
-        else
-        {
-            m_POwner->addModifier(m_ModValue, m_ModPower);
-        }
-
-        m_Activated = true;
-        return true;
+        PChar = static_cast<CCharEntity*>(m_POwner);
+        item  = PChar->getEquip((SLOTTYPE)GetSlot());
     }
-    return false;
+
+    const auto plan = latenthelpers::PlanLatentActivation(IsActivated(), itemOnly, item != nullptr);
+    if (!plan.changed)
+    {
+        return false;
+    }
+
+    if (plan.addItemModifier)
+    {
+        item->addModifier(GetModValue(), GetModPower());
+    }
+    if (plan.rebuildWeaponSkills)
+    {
+        charutils::BuildingCharWeaponSkills(PChar);
+    }
+    if (plan.pushCommandData)
+    {
+        PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+    }
+    if (plan.rememberItem)
+    {
+        m_PItem = item;
+    }
+    if (plan.addOwnerModifier)
+    {
+        m_POwner->addModifier(m_ModValue, m_ModPower);
+    }
+
+    m_Activated = plan.markActivated;
+    return plan.changed;
 }
 
 bool CLatentEffect::Deactivate()
