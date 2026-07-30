@@ -91,6 +91,7 @@ auto runLatentConditionEval1360SelfTests() -> bool
     ok = expect(latenthelpers::EvaluateWeatherElementMatch(3, 3), "element") && ok;
     ok = expect(latenthelpers::EvaluateVsTargetValue(true, 7, 7), "vs target") && ok;
     ok = expect(!latenthelpers::EvaluateVsTargetValue(false, 7, 7), "vs no target") && ok;
+    ok = expect(!latenthelpers::EvaluateVsTargetValue(true, 8, 7), "vs target mismatch") && ok;
 
     // Avatar / job in party helpers
     ok = expect(latenthelpers::IsLiveAvatar(false, 5), "live avatar") && ok;
