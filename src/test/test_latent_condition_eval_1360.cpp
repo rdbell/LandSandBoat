@@ -78,6 +78,8 @@ auto runLatentConditionEval1360SelfTests() -> bool
     ok = expect(!latenthelpers::EvaluateWeaponDrawnHpAbsolute(true, 50, 50), "drawn hp abs eq") && ok;
     ok = expect(latenthelpers::EvaluateWeaponBroken(true, true, true), "broken") && ok;
     ok = expect(!latenthelpers::EvaluateWeaponBroken(false, true, true), "not weapon slot") && ok;
+    ok = expect(!latenthelpers::EvaluateWeaponBroken(true, false, false), "weapon missing") && ok;
+    ok = expect(!latenthelpers::EvaluateWeaponBroken(true, true, false), "weapon locked") && ok;
     ok = expect(latenthelpers::EvaluateInFlag(true), "flag") && ok;
     ok = expect(latenthelpers::EvaluateInGarrison(true, 50, 50), "garrison") && ok;
     ok = expect(!latenthelpers::EvaluateInGarrison(true, 49, 50), "garrison low") && ok;
