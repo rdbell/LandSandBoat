@@ -64,6 +64,7 @@ auto runLatentConditionEval1359SelfTests() -> bool
 
     // Slot / drawn combos
     ok = expect(latenthelpers::EvaluateEquippedInSlot(4, 4), "slot") && ok;
+    ok = expect(!latenthelpers::EvaluateEquippedInSlot(4, 5), "slot mismatch") && ok;
     ok = expect(latenthelpers::EvaluateWeaponDrawnHPUnder(true, 25, 100, 50), "drawn hp") && ok;
     ok = expect(latenthelpers::EvaluateWeaponDrawnMPOver(true, 51, 50), "drawn mp") && ok;
     ok = expect(!latenthelpers::EvaluateWeaponDrawnMPOver(true, 50, 50), "drawn mp eq") && ok;
