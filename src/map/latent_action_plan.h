@@ -10,6 +10,16 @@ enum class LatentTransitionAction
     Deactivate,
 };
 
+enum class LatentActivationAction
+{
+    AddItemModifier,
+    RebuildWeaponSkills,
+    PushCommandData,
+    RememberItem,
+    AddOwnerModifier,
+    MarkActivated,
+};
+
 struct LatentActivationPlan
 {
     bool changed{};
@@ -62,6 +72,40 @@ constexpr auto PlanLatentActivation(const bool alreadyActivated, const bool item
     }
 
     return plan;
+}
+
+template <typename Apply>
+constexpr auto ApplyLatentActivationPlan(const LatentActivationPlan& plan, Apply&& apply) -> bool
+{
+    if (!plan.changed)
+    {
+        return false;
+    }
+    if (plan.addItemModifier)
+    {
+        apply(LatentActivationAction::AddItemModifier);
+    }
+    if (plan.rebuildWeaponSkills)
+    {
+        apply(LatentActivationAction::RebuildWeaponSkills);
+    }
+    if (plan.pushCommandData)
+    {
+        apply(LatentActivationAction::PushCommandData);
+    }
+    if (plan.rememberItem)
+    {
+        apply(LatentActivationAction::RememberItem);
+    }
+    if (plan.addOwnerModifier)
+    {
+        apply(LatentActivationAction::AddOwnerModifier);
+    }
+    if (plan.markActivated)
+    {
+        apply(LatentActivationAction::MarkActivated);
+    }
+    return true;
 }
 
 constexpr auto PlanLatentDeactivation(const bool activated, const bool itemOnly, const bool hasRememberedItem) -> LatentDeactivationPlan

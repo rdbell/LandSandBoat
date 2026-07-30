@@ -164,6 +164,46 @@ auto testLatentActivationPlan() -> bool
     return ok;
 }
 
+auto testLatentActivationDispatch() -> bool
+{
+    using latenthelpers::LatentActivationAction;
+
+    std::vector<LatentActivationAction> actions;
+    const latenthelpers::LatentActivationPlan plan{
+        .changed             = true,
+        .addItemModifier     = true,
+        .rebuildWeaponSkills = true,
+        .pushCommandData     = true,
+        .rememberItem        = true,
+        .markActivated       = true,
+    };
+
+    const auto changed = latenthelpers::ApplyLatentActivationPlan(
+        plan,
+        [&actions](const LatentActivationAction action)
+        {
+            actions.emplace_back(action);
+        });
+    const std::vector expected{
+        LatentActivationAction::AddItemModifier,
+        LatentActivationAction::RebuildWeaponSkills,
+        LatentActivationAction::PushCommandData,
+        LatentActivationAction::RememberItem,
+        LatentActivationAction::MarkActivated,
+    };
+
+    bool ok = true;
+    ok      = expectBool(changed, true, "activation dispatch changed") && ok;
+    ok      = expectBool(actions == expected, true, "activation dispatch order") && ok;
+
+    actions.clear();
+    ok = expectBool(latenthelpers::ApplyLatentActivationPlan({}, [&actions](auto action) { actions.emplace_back(action); }), false,
+                    "activation no-op unchanged") &&
+         ok;
+    ok = expectBool(actions.empty(), true, "activation no-op actions") && ok;
+    return ok;
+}
+
 auto testLatentDeactivationPlan() -> bool
 {
     bool ok = true;
@@ -346,6 +386,7 @@ auto runLatentEffectSelfTests() -> bool
     ok      = testLatentEffectSetters() && ok;
     ok      = testModOnItemOnly() && ok;
     ok      = testLatentActivationPlan() && ok;
+    ok      = testLatentActivationDispatch() && ok;
     ok      = testLatentDeactivationPlan() && ok;
     ok      = testLatentChangeAccumulation() && ok;
     ok      = testLatentHealthUpdateSelection() && ok;

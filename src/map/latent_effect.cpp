@@ -140,34 +140,32 @@ bool CLatentEffect::Activate()
     }
 
     const auto plan = latenthelpers::PlanLatentActivation(IsActivated(), itemOnly, item != nullptr);
-    if (!plan.changed)
-    {
-        return false;
-    }
-
-    if (plan.addItemModifier)
-    {
-        item->addModifier(GetModValue(), GetModPower());
-    }
-    if (plan.rebuildWeaponSkills)
-    {
-        charutils::BuildingCharWeaponSkills(PChar);
-    }
-    if (plan.pushCommandData)
-    {
-        PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
-    }
-    if (plan.rememberItem)
-    {
-        m_PItem = item;
-    }
-    if (plan.addOwnerModifier)
-    {
-        m_POwner->addModifier(m_ModValue, m_ModPower);
-    }
-
-    m_Activated = plan.markActivated;
-    return plan.changed;
+    return latenthelpers::ApplyLatentActivationPlan(
+        plan,
+        [this, PChar, item](const latenthelpers::LatentActivationAction action)
+        {
+            switch (action)
+            {
+                case latenthelpers::LatentActivationAction::AddItemModifier:
+                    item->addModifier(GetModValue(), GetModPower());
+                    break;
+                case latenthelpers::LatentActivationAction::RebuildWeaponSkills:
+                    charutils::BuildingCharWeaponSkills(PChar);
+                    break;
+                case latenthelpers::LatentActivationAction::PushCommandData:
+                    PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+                    break;
+                case latenthelpers::LatentActivationAction::RememberItem:
+                    m_PItem = item;
+                    break;
+                case latenthelpers::LatentActivationAction::AddOwnerModifier:
+                    m_POwner->addModifier(m_ModValue, m_ModPower);
+                    break;
+                case latenthelpers::LatentActivationAction::MarkActivated:
+                    m_Activated = true;
+                    break;
+            }
+        });
 }
 
 bool CLatentEffect::Deactivate()
