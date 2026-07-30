@@ -51,6 +51,7 @@ auto runLatentConditionEval1359SelfTests() -> bool
     ok = expect(latenthelpers::EvaluateJobLevelBelow(49, 50), "lvl below") && ok;
     ok = expect(latenthelpers::EvaluateJobLevelAbove(50, 50), "lvl above") && ok;
     ok = expect(latenthelpers::EvaluateDuringWS(true), "during ws") && ok;
+    ok = expect(!latenthelpers::EvaluateDuringWS(false), "outside ws") && ok;
 
     // Pet / status / food / party
     ok = expect(latenthelpers::EvaluatePetID(true, true, 7, 7), "pet id") && ok;
