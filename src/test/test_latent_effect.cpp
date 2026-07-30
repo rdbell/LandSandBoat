@@ -274,6 +274,14 @@ auto testLatentDeactivationDispatch() -> bool
     return ok;
 }
 
+auto testLatentCleanupSelection() -> bool
+{
+    bool ok = true;
+    ok      = expectBool(latenthelpers::ShouldCleanupLatent(false), false, "inactive latent skips cleanup") && ok;
+    ok      = expectBool(latenthelpers::ShouldCleanupLatent(true), true, "active latent requests cleanup") && ok;
+    return ok;
+}
+
 auto testLatentChangeAccumulation() -> bool
 {
     bool ok = true;
@@ -427,6 +435,7 @@ auto runLatentEffectSelfTests() -> bool
     ok      = testLatentActivationDispatch() && ok;
     ok      = testLatentDeactivationPlan() && ok;
     ok      = testLatentDeactivationDispatch() && ok;
+    ok      = testLatentCleanupSelection() && ok;
     ok      = testLatentChangeAccumulation() && ok;
     ok      = testLatentHealthUpdateSelection() && ok;
     ok      = testLatentTransitionPlan() && ok;

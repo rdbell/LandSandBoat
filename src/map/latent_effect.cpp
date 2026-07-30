@@ -41,7 +41,7 @@ CLatentEffect::CLatentEffect(CBattleEntity* owner, xi::Latent conditionsId, uint
 
 CLatentEffect::~CLatentEffect()
 {
-    if (m_Activated)
+    if (latenthelpers::ShouldCleanupLatent(IsActivated()))
     {
         Deactivate();
     }
