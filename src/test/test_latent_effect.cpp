@@ -226,6 +226,39 @@ auto testLatentTransitionPlan() -> bool
     return ok;
 }
 
+auto testLatentTransitionDispatch() -> bool
+{
+    bool ok = true;
+
+    for (const auto expression : { false, true })
+    {
+        for (const auto activated : { false, true })
+        {
+            auto activateCalls   = 0;
+            auto deactivateCalls = 0;
+            const auto action     = latenthelpers::PlanLatentTransition(expression, activated);
+            const auto result     = latenthelpers::ApplyLatentTransition(
+                action,
+                [&activateCalls]()
+                {
+                    ++activateCalls;
+                    return true;
+                },
+                [&deactivateCalls]()
+                {
+                    ++deactivateCalls;
+                    return false;
+                });
+
+            ok = expectEqual(activateCalls, action == latenthelpers::LatentTransitionAction::Activate ? 1 : 0, "transition activate calls") && ok;
+            ok = expectEqual(deactivateCalls, action == latenthelpers::LatentTransitionAction::Deactivate ? 1 : 0, "transition deactivate calls") && ok;
+            ok = expectBool(result, action == latenthelpers::LatentTransitionAction::Activate, "transition callback result") && ok;
+        }
+    }
+
+    return ok;
+}
+
 auto testLatentEffectContainerBookkeeping() -> bool
 {
     CLatentEffectContainer container(nullptr);
@@ -317,6 +350,7 @@ auto runLatentEffectSelfTests() -> bool
     ok      = testLatentChangeAccumulation() && ok;
     ok      = testLatentHealthUpdateSelection() && ok;
     ok      = testLatentTransitionPlan() && ok;
+    ok      = testLatentTransitionDispatch() && ok;
     ok      = testLatentEffectContainerBookkeeping() && ok;
     ok      = testLatentEffectContainerEquipmentInsertion() && ok;
     return ok;

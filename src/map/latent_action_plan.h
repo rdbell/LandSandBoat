@@ -102,4 +102,19 @@ constexpr auto PlanLatentTransition(const bool expression, const bool activated)
     return activated ? LatentTransitionAction::Deactivate : LatentTransitionAction::None;
 }
 
+template <typename Activate, typename Deactivate>
+constexpr auto ApplyLatentTransition(const LatentTransitionAction action, Activate&& activate, Deactivate&& deactivate) -> bool
+{
+    switch (action)
+    {
+        case LatentTransitionAction::Activate:
+            return activate();
+        case LatentTransitionAction::Deactivate:
+            return deactivate();
+        case LatentTransitionAction::None:
+        default:
+            return false;
+    }
+}
+
 } // namespace latenthelpers

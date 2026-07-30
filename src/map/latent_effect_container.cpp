@@ -1188,14 +1188,14 @@ auto CLatentEffectContainer::ProcessLatentEffect(CLatentEffect& latentEffect, bo
 // Activates a latent effect if true otherwise deactivates the latent effect
 bool CLatentEffectContainer::ApplyLatentEffect(CLatentEffect& effect, bool expression)
 {
-    switch (latenthelpers::PlanLatentTransition(latenthelpers::ApplyLatentWantsActivate(expression), effect.IsActivated()))
-    {
-        case latenthelpers::LatentTransitionAction::Activate:
+    return latenthelpers::ApplyLatentTransition(
+        latenthelpers::PlanLatentTransition(latenthelpers::ApplyLatentWantsActivate(expression), effect.IsActivated()),
+        [&effect]()
+        {
             return effect.Activate();
-        case latenthelpers::LatentTransitionAction::Deactivate:
+        },
+        [&effect]()
+        {
             return effect.Deactivate();
-        case latenthelpers::LatentTransitionAction::None:
-        default:
-            return false;
-    }
+        });
 }
