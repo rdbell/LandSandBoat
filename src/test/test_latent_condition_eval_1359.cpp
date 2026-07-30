@@ -58,6 +58,8 @@ auto runLatentConditionEval1359SelfTests() -> bool
     ok = expect(latenthelpers::EvaluateStatusEffectActive(true), "status") && ok;
     ok = expect(latenthelpers::EvaluateNoFoodActive(false), "no food") && ok;
     ok = expect(latenthelpers::EvaluateFoodActive(true, true), "food") && ok;
+    ok = expect(!latenthelpers::EvaluateFoodActive(false, false), "food missing") && ok;
+    ok = expect(!latenthelpers::EvaluateFoodActive(true, false), "food item mismatch") && ok;
     ok = expect(latenthelpers::EvaluatePartyMembers(3, 2, 1), "party") && ok;
     ok = expect(!latenthelpers::EvaluatePartyMembers(4, 2, 1), "party short") && ok;
     ok = expect(latenthelpers::EvaluatePartyMembersInZone(2, 2), "in zone") && ok;
