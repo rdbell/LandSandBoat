@@ -26,6 +26,7 @@ auto runLatentConditionEval1360SelfTests() -> bool
     ok = expect(latenthelpers::EvaluateZone(100, 100), "zone") && ok;
     ok = expect(!latenthelpers::EvaluateZone(100, 101), "zone miss") && ok;
     ok = expect(latenthelpers::EvaluateSynthTrainee(390, false), "synth under 40") && ok; // 390/10=39
+    ok = expect(latenthelpers::EvaluateSynthTrainee(399, false), "synth truncates below 40") && ok;
     ok = expect(!latenthelpers::EvaluateSynthTrainee(400, false), "synth 40") && ok;
     ok = expect(!latenthelpers::EvaluateSynthTrainee(100, true), "synth imagery") && ok;
     ok = expect(latenthelpers::EvaluateSongRollActive(true), "song roll") && ok;
