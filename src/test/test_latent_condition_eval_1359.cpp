@@ -55,6 +55,9 @@ auto runLatentConditionEval1359SelfTests() -> bool
 
     // Pet / status / food / party
     ok = expect(latenthelpers::EvaluatePetID(true, true, 7, 7), "pet id") && ok;
+    ok = expect(!latenthelpers::EvaluatePetID(false, false, 0, 7), "pet missing") && ok;
+    ok = expect(!latenthelpers::EvaluatePetID(true, false, 7, 7), "pet wrong type") && ok;
+    ok = expect(!latenthelpers::EvaluatePetID(true, true, 8, 7), "pet id mismatch") && ok;
     ok = expect(latenthelpers::EvaluateStatusEffectActive(true), "status") && ok;
     ok = expect(latenthelpers::EvaluateNoFoodActive(false), "no food") && ok;
     ok = expect(latenthelpers::EvaluateFoodActive(true, true), "food") && ok;
