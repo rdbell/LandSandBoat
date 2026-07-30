@@ -75,6 +75,10 @@ auto Check() -> bool
     {
         return false;
     }
+    if (!IsInAssault(true, static_cast<std::uint16_t>(ZoneTypeInstanced | ZoneTypeDynamis), RegionWestAhtUrhgan))
+    {
+        return false;
+    }
 
     // --- IsInAdoulin ---
     const std::uint16_t adoulinZones[] = {
