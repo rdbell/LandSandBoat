@@ -206,6 +206,14 @@ auto testLatentChangeAccumulation() -> bool
     return ok;
 }
 
+auto testLatentHealthUpdateSelection() -> bool
+{
+    bool ok = true;
+    ok      = expectBool(latenthelpers::ProcessLatentListWantsHealthUpdate(false), false, "unchanged list skips health update") && ok;
+    ok      = expectBool(latenthelpers::ProcessLatentListWantsHealthUpdate(true), true, "changed list requests health update") && ok;
+    return ok;
+}
+
 auto testLatentTransitionPlan() -> bool
 {
     using latenthelpers::LatentTransitionAction;
@@ -307,6 +315,7 @@ auto runLatentEffectSelfTests() -> bool
     ok      = testLatentActivationPlan() && ok;
     ok      = testLatentDeactivationPlan() && ok;
     ok      = testLatentChangeAccumulation() && ok;
+    ok      = testLatentHealthUpdateSelection() && ok;
     ok      = testLatentTransitionPlan() && ok;
     ok      = testLatentEffectContainerBookkeeping() && ok;
     ok      = testLatentEffectContainerEquipmentInsertion() && ok;
