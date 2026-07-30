@@ -171,29 +171,30 @@ bool CLatentEffect::Activate()
 bool CLatentEffect::Deactivate()
 {
     const auto plan = latenthelpers::PlanLatentDeactivation(IsActivated(), ModOnItemOnly(GetModValue()), m_PItem != nullptr);
-    if (!plan.changed)
-    {
-        return false;
-    }
-
-    if (plan.removeItemModifier)
-    {
-        m_PItem->delModifier(GetModValue(), GetModPower());
-    }
-    if (plan.rebuildWeaponSkills)
-    {
-        charutils::BuildingCharWeaponSkills(static_cast<CCharEntity*>(m_POwner));
-    }
-    if (plan.pushCommandData)
-    {
-        auto* PChar = static_cast<CCharEntity*>(m_POwner);
-        PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
-    }
-    if (plan.removeOwnerModifier)
-    {
-        m_POwner->delModifier(m_ModValue, m_ModPower);
-    }
-
-    m_Activated = !plan.markDeactivated;
-    return plan.changed;
+    return latenthelpers::ApplyLatentDeactivationPlan(
+        plan,
+        [this](const latenthelpers::LatentDeactivationAction action)
+        {
+            switch (action)
+            {
+                case latenthelpers::LatentDeactivationAction::RemoveItemModifier:
+                    m_PItem->delModifier(GetModValue(), GetModPower());
+                    break;
+                case latenthelpers::LatentDeactivationAction::RebuildWeaponSkills:
+                    charutils::BuildingCharWeaponSkills(static_cast<CCharEntity*>(m_POwner));
+                    break;
+                case latenthelpers::LatentDeactivationAction::PushCommandData:
+                {
+                    auto* PChar = static_cast<CCharEntity*>(m_POwner);
+                    PChar->pushPacket<GP_SERV_COMMAND_COMMAND_DATA>(PChar);
+                    break;
+                }
+                case latenthelpers::LatentDeactivationAction::RemoveOwnerModifier:
+                    m_POwner->delModifier(m_ModValue, m_ModPower);
+                    break;
+                case latenthelpers::LatentDeactivationAction::MarkDeactivated:
+                    m_Activated = false;
+                    break;
+            }
+        });
 }
