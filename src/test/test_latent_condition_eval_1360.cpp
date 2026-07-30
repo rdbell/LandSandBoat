@@ -53,6 +53,7 @@ auto runLatentConditionEval1360SelfTests() -> bool
 
     // Weekday / moon
     ok = expect(latenthelpers::EvaluateWeekdayMatch(3, 3), "weekday") && ok;
+    ok = expect(!latenthelpers::EvaluateWeekdayMatch(3, 4), "weekday mismatch") && ok;
     ok = expect(latenthelpers::EvaluateMoonPhase(3, 0, 0), "new moon low") && ok;
     ok = expect(latenthelpers::EvaluateMoonPhase(8, 1, 0), "new moon waning") && ok;
     ok = expect(latenthelpers::EvaluateMoonPhase(20, 2, 1), "waxing crescent") && ok;
