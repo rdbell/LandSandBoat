@@ -30,6 +30,7 @@ auto runLatentConditionEval1360SelfTests() -> bool
     ok = expect(!latenthelpers::EvaluateSynthTrainee(100, true), "synth imagery") && ok;
     ok = expect(latenthelpers::EvaluateSongRollActive(true), "song roll") && ok;
     ok = expect(latenthelpers::EvaluateElevenRollActive(true), "eleven") && ok;
+    ok = expect(!latenthelpers::EvaluateElevenRollActive(false), "no eleven") && ok;
 
     // Time of day
     ok = expect(latenthelpers::EvaluateTimeOfDay(12, 0), "daytime") && ok;
