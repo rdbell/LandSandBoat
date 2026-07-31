@@ -91,6 +91,30 @@ auto runRangedHitCount1389SelfTests() -> bool
         static_cast<uint8>(3),
         "barrage over triple") && ok;
 
+    // The host-facing overload receives already-folded triple/double proc
+    // results, so it must preserve the same exclusive ladder without the
+    // separate effect-presence flags.
+    ok = expectEq(
+        ResolveRangedHitCount(true, false, false, false, true, 3, false, 0, false, 0, false, false),
+        static_cast<uint8>(4),
+        "simple char barrage") && ok;
+    ok = expectEq(
+        ResolveRangedHitCount(true, false, true, false, false, 0, true, 5, true, 2, false, false),
+        static_cast<uint8>(2),
+        "simple sange ammo cap") && ok;
+    ok = expectEq(
+        ResolveRangedHitCount(true, false, false, false, false, 0, false, 0, false, 0, true, false),
+        static_cast<uint8>(3),
+        "simple triple") && ok;
+    ok = expectEq(
+        ResolveRangedHitCount(true, false, false, false, false, 0, false, 0, false, 0, false, true),
+        static_cast<uint8>(2),
+        "simple double") && ok;
+    ok = expectEq(
+        ResolveRangedHitCount(true, false, false, false, true, 2, false, 0, false, 0, true, true),
+        static_cast<uint8>(3),
+        "simple barrage over multi-shot") && ok;
+
     ok = expectEq(ResolveRangedWeaponSlot(true), SlotAmmo, "slot ammo") && ok;
     ok = expectEq(ResolveRangedWeaponSlot(false), SlotRanged, "slot ranged") && ok;
     ok = expect(ShouldNullRangedWeaponOnAmmoThrow(true) && !ShouldNullRangedWeaponOnAmmoThrow(false), "null item") && ok;
