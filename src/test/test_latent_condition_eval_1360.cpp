@@ -93,7 +93,13 @@ auto runLatentConditionEval1360SelfTests() -> bool
     // Nation / weather / vs
     ok = expect(latenthelpers::EvaluateNationCitizen(1, 1), "citizen") && ok;
     ok = expect(latenthelpers::EvaluateNationControlUnder(true, true, true), "control under") && ok;
+    ok = expect(!latenthelpers::EvaluateNationControlUnder(false, true, true), "control under region") && ok;
+    ok = expect(!latenthelpers::EvaluateNationControlUnder(true, false, true), "control under owner") && ok;
+    ok = expect(!latenthelpers::EvaluateNationControlUnder(true, true, false), "control under status") && ok;
     ok = expect(latenthelpers::EvaluateNationControlOutside(true, true, true), "control out") && ok;
+    ok = expect(!latenthelpers::EvaluateNationControlOutside(false, true, true), "control out region") && ok;
+    ok = expect(!latenthelpers::EvaluateNationControlOutside(true, false, true), "control out owner") && ok;
+    ok = expect(!latenthelpers::EvaluateNationControlOutside(true, true, false), "control out status") && ok;
     ok = expect(latenthelpers::EvaluateZoneHomeNation(0, 0, true), "home nation") && ok;
     ok = expect(!latenthelpers::EvaluateZoneHomeNation(1, 0, true), "home nation mismatch") && ok;
     ok = expect(!latenthelpers::EvaluateZoneHomeNation(0, 0, false), "home region mismatch") && ok;
