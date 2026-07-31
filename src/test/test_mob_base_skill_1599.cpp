@@ -37,7 +37,9 @@ auto Check() -> bool
     {
         return false;
     }
-    if (BestEvasionSkillRank(5, 2, false) != 2 || BestEvasionSkillRank(5, 2, true) != 5)
+    if (BestEvasionSkillRank(5, 2, false) != 2 || BestEvasionSkillRank(5, 2, true) != 5 ||
+        BestEvasionSkillRank(2, 5, false) != 2 || BestEvasionSkillRank(4, 4, false) != 4 ||
+        BestEvasionSkillRank(0, 255, true) != 0)
     {
         return false;
     }
