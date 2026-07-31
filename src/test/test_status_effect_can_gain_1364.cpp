@@ -56,6 +56,7 @@ auto runStatusEffectCanGain1364SelfTests() -> bool
     ok = expect(statuseffecthelpers::ShouldBlockCharmOnPet(true, true), "charm pet") && ok;
     ok = expect(!statuseffecthelpers::ShouldBlockCharmOnPet(true, false), "charm no master") && ok;
     ok = expect(statuseffecthelpers::ShouldBlockByBlockId(5, true), "block id") && ok;
+    ok = expect(!statuseffecthelpers::ShouldBlockByBlockId(5, false), "block id absent") && ok;
     ok = expect(!statuseffecthelpers::ShouldBlockByBlockId(0, true), "block id zero") && ok;
     ok = expect(statuseffecthelpers::ShouldBlockSpikesDueToAftermath(true, 8), "aftermath 8") && ok;
     ok = expect(statuseffecthelpers::ShouldBlockSpikesDueToAftermath(true, 22), "aftermath 22") && ok;
@@ -65,6 +66,8 @@ auto runStatusEffectCanGain1364SelfTests() -> bool
     ok = expect(statuseffecthelpers::ShouldDeleteOnOverwrite(statuseffecthelpers::OverwriteAlways), "delete overwrite") && ok;
     ok = expect(!statuseffecthelpers::ShouldDeleteOnOverwrite(statuseffecthelpers::OverwriteIgnoreDuplicate), "keep ignore") && ok;
     ok = expect(statuseffecthelpers::ShouldRemoveLinkedId(10, 0), "remove linked") && ok;
+    ok = expect(!statuseffecthelpers::ShouldRemoveLinkedId(9, 10), "linked below ko") && ok;
+    ok = expect(!statuseffecthelpers::ShouldRemoveLinkedId(10, 10), "linked equal ko") && ok;
     ok = expect(!statuseffecthelpers::ShouldRemoveLinkedId(0, 0), "no remove ko") && ok;
     ok = expect(statuseffecthelpers::ShouldRejectSleepImmunity(true, true, false, true, false), "sleep light") && ok;
     ok = expect(statuseffecthelpers::ShouldRejectSleepImmunity(true, false, true, false, true), "sleep dark") && ok;
