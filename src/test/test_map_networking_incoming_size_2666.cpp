@@ -30,5 +30,13 @@ auto runMapNetworkingIncomingSize2666SelfTests() -> bool
             return false;
         }
     }
+
+    // Both production lengths are std::size_t; preserve unsigned conversion
+    // for a synthetic negative output capacity that wraps above the frame.
+    if (!mapnetworkinghelpers::HasValidIncomingPacketSize(minimumPacketSize, -1))
+    {
+        std::cerr << "map networking incoming size signed wrap self-test failed\n";
+        return false;
+    }
     return true;
 }
