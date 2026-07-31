@@ -56,7 +56,9 @@ auto runAttackHitRate1379SelfTests() -> bool
     ok = expect(ShouldStampSATAOnPerfectHit(HitRatePath::RightMelee, 100), "sata stamp") && ok;
     ok = expect(!ShouldStampSATAOnPerfectHit(HitRatePath::RightMelee, 99), "sata not 100") && ok;
     ok = expect(!ShouldStampSATAOnPerfectHit(HitRatePath::LeftMelee, 100), "sata left no") && ok;
-    ok = expect(IsRightAttackDirection(AttackDirectionRight) && IsLeftAttackDirection(AttackDirectionLeft), "dirs") && ok;
+    ok = expect(IsRightAttackDirection(AttackDirectionRight) && !IsRightAttackDirection(AttackDirectionLeft), "right dir") && ok;
+    ok = expect(IsLeftAttackDirection(AttackDirectionLeft) && !IsLeftAttackDirection(AttackDirectionRight), "left dir") && ok;
+    ok = expect(!IsRightAttackDirection(2) && !IsLeftAttackDirection(2), "invalid dirs") && ok;
 
     return ok;
 }
