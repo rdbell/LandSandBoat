@@ -2,7 +2,9 @@
 
 #include "map/map_networking_capacity.h"
 
+#include <cstdint>
 #include <iostream>
+#include <limits>
 
 namespace
 {
@@ -62,6 +64,22 @@ auto runMapDynamicTargIdPercent2769SelfTests() -> bool
     const auto capacity2 = AccumulateDynamicTargIdCapacity(2);
     ok                   = expect(capacity2 == 1022, "compose capacity") && ok;
     ok                   = expect(DynamicTargIdUsagePercent(200, capacity2) == DynamicTargIdUsagePercent(200, 1022), "compose percent") && ok;
+
+    // Both inputs are std::size_t in LSB. Pin the native-width conversion for
+    // a synthetic negative count without requiring a fixed host word size.
+    const auto maxCapacity = std::numeric_limits<std::int64_t>::max();
+    const auto expectedNegativeCount = static_cast<std::int64_t>(
+        static_cast<double>(static_cast<std::size_t>(-1)) /
+        static_cast<double>(static_cast<std::size_t>(maxCapacity)) * 100.0);
+    ok = expect(DynamicTargIdUsagePercent(-1, maxCapacity) == expectedNegativeCount,
+               "negative count uses native size_t conversion") &&
+         ok;
+    const auto expectedNegativeCapacity = static_cast<std::int64_t>(
+        static_cast<double>(static_cast<std::size_t>(maxCapacity)) /
+        static_cast<double>(static_cast<std::size_t>(-1)) * 100.0);
+    ok = expect(DynamicTargIdUsagePercent(maxCapacity, -1) == expectedNegativeCapacity,
+               "negative capacity uses native size_t conversion") &&
+         ok;
 
     return ok;
 }
