@@ -36,6 +36,15 @@ auto Check() -> bool
         return false;
     }
 
+    // Shared rate clamps keep the parry/guard and shield-block curves inside
+    // their native bounds before flat or multiplier bonuses are applied.
+    if (!AlmostEqual(ClampRate(4.0), 5.0) || !AlmostEqual(ClampRate(25.0), 25.0) ||
+        !AlmostEqual(ClampRate(26.0), 25.0) || !AlmostEqual(ClampBlockRate(4.0), 5.0) ||
+        !AlmostEqual(ClampBlockRate(100.0), 100.0) || !AlmostEqual(ClampBlockRate(101.0), 100.0))
+    {
+        return false;
+    }
+
     // Ability eligibility.
     if (!PCParryAbilityEligible(true, true, false) || PCParryAbilityEligible(true, true, true) ||
         PCParryAbilityEligible(false, true, false) || PCParryAbilityEligible(true, false, false))
