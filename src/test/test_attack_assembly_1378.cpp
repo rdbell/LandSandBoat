@@ -52,11 +52,14 @@ auto runAttackAssembly1378SelfTests() -> bool
 
     // Mob non-kick: (50+10)*0.425 = 25.5
     ok = expectNear(AssembleMobH2HDamagePreRatio(50, false, 0, 10, 0.425f), 25.5f, "mob punch") && ok;
+    ok = expectEq(AssembleMobH2HDamage(50, false, 0, 10, 0.425f), static_cast<int32>(25), "mob punch integer cast") && ok;
     // Mob kick: (50+5)*0.425*(2/3) + 10
     {
         float expected = (50.0f + 5.0f) * 0.425f * MobKickPenalty + 10.0f;
-        ok = expectNear(AssembleMobH2HDamagePreRatio(50, true, 5, 10, 0.425f), expected, "mob kick") && ok;
+        ok             = expectNear(AssembleMobH2HDamagePreRatio(50, true, 5, 10, 0.425f), expected, "mob kick") && ok;
+        ok             = expectEq(AssembleMobH2HDamage(50, true, 5, 10, 0.425f), static_cast<int32>(25), "mob kick integer cast") && ok;
     }
+    ok = expectEq(AssembleMobH2HDamage(-100, false, 0, 0, 1.0f), static_cast<int32>(0), "mob damage clamp") && ok;
 
     ok = expectEq(AssemblePlayerH2HKickPreRatio(14, 10, 5, 3), static_cast<int32>(32), "player kick") && ok;
     ok = expectEq(AssemblePlayerH2HPunchPreRatio(20, 14, 5, 3), static_cast<int32>(42), "player punch") && ok;
