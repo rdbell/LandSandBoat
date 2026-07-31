@@ -34,6 +34,12 @@ auto Check() -> bool
     {
         return false;
     }
+    const auto hIndex = FrameIndex(FrameHarlequin);
+    const auto sIndex = FrameIndex(FrameStormwaker);
+    if (!hIndex || *hIndex != 0 || !sIndex || *sIndex != 3 || FrameIndex(0).has_value())
+    {
+        return false;
+    }
     if (CapStatsLevel(0) != 0 || CapStatsLevel(50) != 50 || CapStatsLevel(99) != 99 || CapStatsLevel(100) != 99 ||
         CapStatsLevel(255) != 99)
     {
