@@ -72,7 +72,7 @@ auto Check() -> bool
         return false;
     }
 
-    if (NextChainNumberAfterAward(3) != 4)
+    if (NextChainNumberAfterAward(0) != 1 || NextChainNumberAfterAward(3) != 4 || NextChainNumberAfterAward(65535) != 0)
     {
         return false;
     }
