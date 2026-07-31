@@ -31,5 +31,6 @@ auto runZoneCharSyncExisting6260SelfTests() -> bool
     ok = expect(ShouldAddToSwapPool(32, 32, 1.0f, 2.0f), "full pool replaces strictly lower score") && ok;
     ok = expect(!ShouldAddToSwapPool(32, 32, 1.0f, 1.0f), "full pool keeps tie at boundary") && ok;
     ok = expect(!ShouldAddToSwapPool(32, 32, 1.0f, 0.0f), "full pool rejects lower score") && ok;
+    ok = expect(!ShouldAddToSwapPool(-1, 32, 1.0f, 0.0f), "negative synthetic current count wraps above cap") && ok;
     return ok;
 }
