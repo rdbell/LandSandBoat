@@ -7,6 +7,7 @@
 namespace
 {
 using spellcasthelpers::CalculateSpellCastMs;
+using spellcasthelpers::ClampI16;
 using spellcasthelpers::FloorMulMs;
 using spellcasthelpers::ShouldReturnZeroNullSpell;
 using spellcasthelpers::SpellCastParams;
@@ -33,6 +34,11 @@ auto Check() -> bool
     if (!ShouldReturnZeroNullSpell(true) || ShouldReturnZeroNullSpell(false))
     {
         return fail("null", 0, 0);
+    }
+    if (ClampI16(-120, -100, 50) != -100 || ClampI16(-100, -100, 50) != -100 ||
+        ClampI16(25, -100, 50) != 25 || ClampI16(50, -100, 50) != 50 || ClampI16(75, -100, 50) != 50)
+    {
+        return fail("clamp-i16", ClampI16(75, -100, 50), 50);
     }
     {
         auto p = Base(5000);
