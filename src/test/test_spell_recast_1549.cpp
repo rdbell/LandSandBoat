@@ -44,7 +44,7 @@ auto Check() -> bool
         return fail("floor-boundaries", FloorMulMs(1000, 0.333f), 333);
     }
     // cap 80% → floor base*0.2
-    if (RecastCapFloorMs(10000, 80.0f) != 2000)
+    if (RecastCapFloorMs(10000, 80.0f) != 2000 || RecastCapFloorMs(10000, 0.0f) != 10000 || RecastCapFloorMs(10000, 100.0f) != 0)
     {
         return fail("cap-floor", RecastCapFloorMs(10000, 80.0f), 2000);
     }
