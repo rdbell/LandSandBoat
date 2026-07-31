@@ -152,7 +152,8 @@ auto Check() -> bool
         return false;
     }
     if (!ShouldApplyParryHPRecovery(true, 50, false) || ShouldApplyParryHPRecovery(true, 50, true) ||
-        ShouldApplyParryHPRecovery(true, 0, false) || ShouldApplyParryHPRecovery(false, 50, false))
+        ShouldApplyParryHPRecovery(true, 0, false) || ShouldApplyParryHPRecovery(true, -1, false) ||
+        ShouldApplyParryHPRecovery(false, 50, false))
     {
         return false;
     }
