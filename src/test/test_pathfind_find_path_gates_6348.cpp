@@ -38,6 +38,9 @@ auto runPathfindFindPathGates6348SelfTests() -> bool
     ok = expect(RandomPathPolyRadius(10.f) == 1.f, "poly radius") && ok;
     ok = expect(ShouldClearAfterFailedPath(false) && !ShouldClearAfterFailedPath(true), "clear after fail") && ok;
     ok = expect(RandomPathHasTurns(1) && !RandomPathHasTurns(0), "has turns") && ok;
+    // The production turn count is std::size_t; preserve unsigned conversion
+    // for a synthetic negative host value at the non-empty boundary.
+    ok = expect(RandomPathHasTurns(-1), "signed wrap has turns") && ok;
     ok = expect(DistanceFromPointValue(3.f) == 3.f, "6347 residual") && ok;
 
     return ok;
