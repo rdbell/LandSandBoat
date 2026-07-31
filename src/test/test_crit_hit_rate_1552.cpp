@@ -87,12 +87,23 @@ auto Check() -> bool
         return false;
     }
 
-    // Fencer eligible
+    // Fencer eligible: one-handed main with no sub-item.
     if (!FencerCritEligible(true, false, false, false, false, 0, false))
     {
         return false;
     }
-    if (FencerCritEligible(true, true, false, false, false, 0, false))
+    // Main-hand and sub-item gates.
+    if (FencerCritEligible(false, false, false, false, false, 0, false) ||
+        FencerCritEligible(true, true, false, false, false, 0, false) ||
+        FencerCritEligible(true, false, true, false, false, 0, false))
+    {
+        return false;
+    }
+    // A shield qualifies; a weapon only qualifies when its skill type is NONE.
+    if (!FencerCritEligible(true, false, false, true, false, 32, true) ||
+        !FencerCritEligible(true, false, false, true, true, 0, false) ||
+        FencerCritEligible(true, false, false, true, true, 3, false) ||
+        FencerCritEligible(true, false, false, true, false, 0, false))
     {
         return false;
     }
