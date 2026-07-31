@@ -26,9 +26,11 @@ auto runAttackRoundPostBuildPlan2768SelfTests() -> bool
     const auto one     = PlanAttackRoundPostBuild(1);
     const auto several = PlanAttackRoundPostBuild(3);
     const auto maxed   = PlanAttackRoundPostBuild(8);
+    const auto negative = PlanAttackRoundPostBuild(-1);
 
     return expect(!empty.setFirstSwing && empty.deleteHasteSamba, "empty swings") &&
            expect(one.setFirstSwing && one.deleteHasteSamba, "one swing") &&
            expect(several.setFirstSwing && several.deleteHasteSamba, "several swings") &&
-           expect(maxed.setFirstSwing && maxed.deleteHasteSamba, "max swings");
+           expect(maxed.setFirstSwing && maxed.deleteHasteSamba, "max swings") &&
+           expect(negative.setFirstSwing && negative.deleteHasteSamba, "negative synthetic count wraps");
 }
