@@ -27,7 +27,8 @@ auto Check() -> bool
         return false;
     }
 
-    if (!ShouldRejectClearPrefix(4) || ShouldRejectClearPrefix(5) || ShouldRejectClearPrefix(10))
+    if (!ShouldRejectClearPrefix(4) || ShouldRejectClearPrefix(5) || ShouldRejectClearPrefix(10) ||
+        ShouldRejectClearPrefix(-1))
     {
         return false;
     }
