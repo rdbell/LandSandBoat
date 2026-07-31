@@ -105,7 +105,9 @@ auto runLatentConditionEval1360SelfTests() -> bool
     ok = expect(!latenthelpers::EvaluateSignetBonus(true, false, true), "signet level") && ok;
     ok = expect(!latenthelpers::EvaluateSignetBonus(true, true, false), "signet region") && ok;
     ok = expect(latenthelpers::EvaluateWeatherMatch(5, 5), "weather") && ok;
+    ok = expect(!latenthelpers::EvaluateWeatherMatch(5, 6), "weather mismatch") && ok;
     ok = expect(latenthelpers::EvaluateWeatherElementMatch(3, 3), "element") && ok;
+    ok = expect(!latenthelpers::EvaluateWeatherElementMatch(3, 4), "element mismatch") && ok;
     ok = expect(latenthelpers::EvaluateVsTargetValue(true, 7, 7), "vs target") && ok;
     ok = expect(!latenthelpers::EvaluateVsTargetValue(false, 7, 7), "vs no target") && ok;
     ok = expect(!latenthelpers::EvaluateVsTargetValue(true, 8, 7), "vs target mismatch") && ok;
