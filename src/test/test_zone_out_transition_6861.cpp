@@ -17,6 +17,13 @@ auto Check() -> bool
 {
     bool ok = true;
 
+    // Death timestamp loading subtracts the elapsed seconds from "now" at
+    // the host boundary.  Pin the helper's identity conversion so callers do
+    // not accidentally reinterpret the persisted value as a duration unit.
+    ok = zoneouthelpers::DeathSecondsSinceDeath(0) == 0 && ok;
+    ok = zoneouthelpers::DeathSecondsSinceDeath(600) == 600 && ok;
+    ok = zoneouthelpers::DeathSecondsSinceDeath(0xFFFFFFFFu) == 0xFFFFFFFFu && ok;
+
     const auto zoning = zoneouttransitionhelpers::MakeZoneOutTransitionPlan({
         .hasSession = true, .hasZone = true, .animation = 1, .hasTrusts = true, .status = 2,
     });
