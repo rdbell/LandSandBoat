@@ -16,7 +16,7 @@ auto AlmostEqual(const double a, const double b) -> bool
 
 auto Check() -> bool
 {
-    if (AttunerAttachmentSlot() != static_cast<std::uint8_t>(ItemAttunerAttachment - AttachmentIDOffset))
+    if (AttunerAttachmentSlot() != 5)
     {
         return false;
     }
