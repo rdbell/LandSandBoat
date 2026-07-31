@@ -30,5 +30,13 @@ auto runMapNetworkingIncomingBlocks2663SelfTests() -> bool
             return false;
         }
     }
+
+    // The production packet length is std::size_t; preserve unsigned
+    // conversion for a synthetic negative host value after the header check.
+    if (mapnetworkinghelpers::IncomingEncryptedBlockCount(-1) == 0)
+    {
+        std::cerr << "map networking incoming blocks signed wrap self-test failed\n";
+        return false;
+    }
     return true;
 }
