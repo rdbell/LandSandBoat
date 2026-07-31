@@ -22,6 +22,7 @@ auto runC2SChatNameRuntimeSelfTests() -> bool
     using chatnamehelpers::Action;
 
     const auto lengthOK = chatnamehelpers::BoundedMessageLength(0) == 0 &&
+                          chatnamehelpers::BoundedMessageLength(-1) == chatnamehelpers::MaxMessageLength &&
                           chatnamehelpers::BoundedMessageLength(chatnamehelpers::MessageOffset) == 0 &&
                           chatnamehelpers::BoundedMessageLength(chatnamehelpers::MessageOffset + 7) == 7 &&
                           chatnamehelpers::BoundedMessageLength(chatnamehelpers::MessageOffset + 999) == chatnamehelpers::MaxMessageLength;
