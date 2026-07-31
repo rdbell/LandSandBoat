@@ -84,7 +84,8 @@ auto CheckRunes() -> bool
         return false;
     }
 
-    if (!CanUseRunes(0, 1) || CanUseRunes(1, 1) || CanUseRunes(2, 1))
+    if (!CanUseRunes(0, 1) || CanUseRunes(1, 1) || CanUseRunes(2, 1) || CanUseRunes(-1, 1) ||
+        !CanUseRunes(0, -1))
     {
         return false;
     }
