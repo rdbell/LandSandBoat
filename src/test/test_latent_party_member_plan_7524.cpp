@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <limits>
 
 auto runLatentPartyMemberPlan7524SelfTests() -> bool
 {
@@ -36,10 +37,14 @@ auto runLatentPartyMemberPlan7524SelfTests() -> bool
         }
     }
 
+    const auto nativeMax = std::numeric_limits<std::size_t>::max();
+
     return expect(latenthelpers::DeterminePartyMemberLatentAction(xi::Latent::PartyMembers, 3, 3, 0) == latenthelpers::PartyMemberLatentAction::Activate, "members reaches total") &&
            expect(latenthelpers::DeterminePartyMemberLatentAction(xi::Latent::PartyMembers, 4, 3, 0) == latenthelpers::PartyMemberLatentAction::Deactivate, "members above total") &&
+           expect(latenthelpers::DeterminePartyMemberLatentAction(xi::Latent::PartyMembers, 3, nativeMax, 0) == latenthelpers::PartyMemberLatentAction::Activate, "members native size wrap") &&
            expect(latenthelpers::DeterminePartyMemberLatentAction(xi::Latent::PartyMembersInZone, 3, 3, 3) == latenthelpers::PartyMemberLatentAction::Activate, "in-zone exact total") &&
            expect(latenthelpers::DeterminePartyMemberLatentAction(xi::Latent::PartyMembersInZone, 4, 3, 4) == latenthelpers::PartyMemberLatentAction::Deactivate, "in-zone above total") &&
+           expect(latenthelpers::DeterminePartyMemberLatentAction(xi::Latent::PartyMembersInZone, 3, nativeMax, 3) == latenthelpers::PartyMemberLatentAction::Activate, "in-zone native size wrap") &&
            expect(latenthelpers::DeterminePartyMemberLatentAction(xi::Latent::PartyMembersInZone, 2, 3, 3) == latenthelpers::PartyMemberLatentAction::Deactivate, "in-zone above value") &&
            expect(latenthelpers::DeterminePartyMemberLatentAction(xi::Latent::PartyMembersInZone, 2, 3, 1) == latenthelpers::PartyMemberLatentAction::Deactivate, "in-zone below value");
 }
