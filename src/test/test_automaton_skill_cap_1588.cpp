@@ -23,6 +23,21 @@ auto Check() -> bool
         return false;
     }
 
+    if (FrameSkillRank(FrameHarlequin, SkillMelee) != RankBMinus ||
+        FrameSkillRank(FrameValoredge, SkillRanged) != 0 ||
+        FrameHasSkill(FrameSharpshot, SkillRanged) == false ||
+        FrameHasSkill(FrameStormwaker, SkillRanged) == true)
+    {
+        return false;
+    }
+    if (HeadSkillBonus(HeadValoredge, SkillMelee) != HeadBonus ||
+        HeadSkillBonus(HeadValoredge, SkillRanged) != 0 ||
+        HeadSkillBonus(HeadSoulsoother, SkillMagic) != HeadBonus ||
+        HeadSkillBonus(HeadHarlequin, SkillMagic) != 0)
+    {
+        return false;
+    }
+
     // Harlequin melee B-
     if (SkillCapRank(FrameHarlequin, HeadHarlequin, SkillMelee) != RankBMinus)
     {
