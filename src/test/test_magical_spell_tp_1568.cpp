@@ -31,7 +31,8 @@ auto Check() -> bool
         }
     }
 
-    if (!ShouldZeroMagicalTPGain(false, 0, false) || !ShouldZeroMagicalTPGain(false, 5, true) ||
+    if (!ShouldZeroMagicalTPGain(true, 5, false) || !ShouldZeroMagicalTPGain(false, 0, false) ||
+        !ShouldZeroMagicalTPGain(false, 5, true) ||
         ShouldZeroMagicalTPGain(false, 5, false))
     {
         return false;
