@@ -60,6 +60,9 @@ auto runStatusEffectSelection1365SelfTests() -> bool
     ok = expect(!IsFlagRemovableCandidate(true, false, false), "dispel zero dur") && ok;
     ok = expect(HasRemovableCandidates(1), "has candidates") && ok;
     ok = expect(!HasRemovableCandidates(0), "no candidates") && ok;
+    // The production count is std::size_t; preserve unsigned conversion for
+    // a synthetic negative host value at the non-empty boundary.
+    ok = expect(HasRemovableCandidates(-1), "signed wrap has candidates") && ok;
 
     // Ranges
     ok = expect(IsBardSongID(BardSongIDFirst) && IsBardSongID(BardSongIDLast), "bard ends") && ok;
