@@ -72,6 +72,7 @@ auto runAttackRoundFollowUp1375SelfTests() -> bool
     ok = expect(CanStoreFollowUpSwing(1, false, true), "store differ") && ok;
     ok = expect(!CanStoreFollowUpSwing(1, false, false), "store same dir") && ok;
     ok = expect(!CanStoreFollowUpSwing(2, false, true), "store full") && ok;
+    ok = expect(!CanStoreFollowUpSwing(-1, true, false), "negative count wraps full") && ok;
     ok = expect(ShouldAppendStoredFollowUps(true) && !ShouldAppendStoredFollowUps(false), "append") && ok;
     ok = expect(ShouldProcFollowUpForChar(true, true) && !ShouldProcFollowUpForChar(false, true), "char follow") && ok;
 
