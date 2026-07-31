@@ -66,6 +66,10 @@ auto runLatentConditionEval1359SelfTests() -> bool
     ok = expect(latenthelpers::EvaluatePartyMembers(3, 2, 1), "party") && ok;
     ok = expect(!latenthelpers::EvaluatePartyMembers(4, 2, 1), "party short") && ok;
     ok = expect(latenthelpers::EvaluatePartyMembersInZone(2, 2), "in zone") && ok;
+    // The production helper converts the signed host count to uint16 before
+    // comparing. Keep the wraparound behavior pinned at both boundaries.
+    ok = expect(latenthelpers::EvaluatePartyMembersInZone(65535, -1), "in zone signed wrap") && ok;
+    ok = expect(!latenthelpers::EvaluatePartyMembersInZone(1, 65536), "in zone uint16 wrap") && ok;
 
     // Slot / drawn combos
     ok = expect(latenthelpers::EvaluateEquippedInSlot(4, 4), "slot") && ok;
