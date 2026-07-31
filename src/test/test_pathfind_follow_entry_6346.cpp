@@ -38,6 +38,9 @@ auto runPathfindFollowEntry6346SelfTests() -> bool
     ok = expect(ShouldFollowPath(true) && !ShouldFollowPath(false), "follow entry") && ok;
     ok = expect(!ShouldStepVertical(0.5f) && ShouldStepVertical(0.51f), "vertical boundary") && ok;
     ok = expect(HasDestination(1) && !HasDestination(0), "destination") && ok;
+    // The production point count is std::size_t; preserve unsigned conversion
+    // for a synthetic negative host value at the non-empty boundary.
+    ok = expect(HasDestination(-1), "signed wrap has destination") && ok;
     ok = expect(nearEq(ClampVerticalStep(0.f, 1.f, 3.f), 1.f), "clamp low") && ok;
     ok = expect(nearEq(ClampVerticalStep(2.f, 1.f, 3.f), 2.f), "clamp mid") && ok;
     ok = expect(nearEq(ClampVerticalStep(5.f, 1.f, 3.f), 3.f), "clamp high") && ok;
