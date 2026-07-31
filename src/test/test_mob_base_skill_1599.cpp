@@ -28,7 +28,8 @@ auto Check() -> bool
     {
         return false;
     }
-    if (CapMagicEvasionLevel(50) != 50 || CapMagicEvasionLevel(100) != 99)
+    if (CapMagicEvasionLevel(0) != 0 || CapMagicEvasionLevel(50) != 50 || CapMagicEvasionLevel(99) != 99 ||
+        CapMagicEvasionLevel(100) != 99 || CapMagicEvasionLevel(255) != 99)
     {
         return false;
     }
