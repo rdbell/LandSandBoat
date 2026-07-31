@@ -93,7 +93,8 @@ auto Check() -> bool
         return false;
     }
 
-    if (!ShouldProcessMember(true, false) || ShouldProcessMember(false, false) || ShouldProcessMember(true, true))
+    if (!ShouldProcessMember(true, false) || ShouldProcessMember(false, false) || ShouldProcessMember(true, true) ||
+        ShouldProcessMember(false, true))
     {
         return false;
     }
