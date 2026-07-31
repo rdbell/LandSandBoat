@@ -120,6 +120,14 @@ auto Check() -> bool
         return false;
     }
 
+    // Shared conversion helpers: half-away-from-zero rounding and inclusive clamp.
+    if (fstrhelpers::LlroundI32(0.5) != 1 || fstrhelpers::LlroundI32(-0.5) != -1 ||
+        fstrhelpers::ClampF64(-1.0, 0.0, 2.0) != 0.0 || fstrhelpers::ClampF64(3.0, 0.0, 2.0) != 2.0 ||
+        fstrhelpers::ClampF64(1.0, 0.0, 2.0) != 1.0)
+    {
+        return false;
+    }
+
     return true;
 }
 } // namespace
