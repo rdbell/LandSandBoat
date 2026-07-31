@@ -32,6 +32,9 @@ auto runPathfindFindPathGates6348SelfTests() -> bool
 
     ok = expect(ArePositionsClose(0.999f) && !ArePositionsClose(1.0f), "close boundary") && ok;
     ok = expect(FindPathSucceeded(1) && !FindPathSucceeded(0), "path success") && ok;
+    // The production point count is std::size_t; preserve unsigned conversion
+    // for a synthetic negative host value at the non-empty boundary.
+    ok = expect(FindPathSucceeded(-1), "signed wrap path success") && ok;
     ok = expect(RandomPathPolyRadius(10.f) == 1.f, "poly radius") && ok;
     ok = expect(ShouldClearAfterFailedPath(false) && !ShouldClearAfterFailedPath(true), "clear after fail") && ok;
     ok = expect(RandomPathHasTurns(1) && !RandomPathHasTurns(0), "has turns") && ok;
