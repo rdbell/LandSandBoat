@@ -30,6 +30,12 @@ auto Check() -> bool
     {
         return false;
     }
+    // Production storage lengths are std::size_t; preserve unsigned conversion
+    // for synthetic negative host lengths in both range gates.
+    if (!KeyItemTableInRange(0, -1))
+    {
+        return false;
+    }
     const auto firstTablePlan = keyitemtablebithelpers::PlanFor({
         .keyItemID   = 511,
         .tablesSize = 1,
@@ -61,6 +67,10 @@ auto Check() -> bool
         return false;
     }
     if (!LearnedWeaponskillInRange(0, 1) || !LearnedWeaponskillInRange(5, 6) || LearnedWeaponskillInRange(6, 6) || LearnedWeaponskillInRange(0, 0))
+    {
+        return false;
+    }
+    if (!LearnedWeaponskillInRange(0, -1))
     {
         return false;
     }
