@@ -34,7 +34,8 @@ auto Check() -> bool
     {
         return false;
     }
-    if (CapStatsLevel(50) != 50 || CapStatsLevel(100) != 99)
+    if (CapStatsLevel(0) != 0 || CapStatsLevel(50) != 50 || CapStatsLevel(99) != 99 || CapStatsLevel(100) != 99 ||
+        CapStatsLevel(255) != 99)
     {
         return false;
     }
