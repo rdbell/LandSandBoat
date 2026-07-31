@@ -31,6 +31,7 @@
 
 #include "common/utils.h"
 #include "map/packets/c2s/0x0b5_chat_std.h"
+#include "map/packets/c2s/chat_std_capacity.h"
 #include "map/packets/c2s/0x0b6_chat_name.h"
 #include "map/packets/c2s/0x0b7_assist_channel.h"
 
@@ -302,6 +303,11 @@ auto testChatStdLayoutMetadataAndPayload() -> bool
          ok;
     ok = expectEqualInt(shortPacket.Kind, 0x1A, "CHAT_STD short Kind") && ok;
     ok = expectEqualInt(fullPacket.Str[127], static_cast<std::uint8_t>('A' + (127 % 26)), "CHAT_STD full final Str byte") && ok;
+    ok = expectEqualInt(chatstdhelpers::BoundedMessageLength(0), chatstdhelpers::MaxMessageLength, "CHAT_STD wrapped zero length") && ok;
+    ok = expectEqualInt(chatstdhelpers::BoundedMessageLength(-1), chatstdhelpers::MaxMessageLength, "CHAT_STD wrapped negative length") && ok;
+    ok = expectEqualInt(chatstdhelpers::BoundedMessageLength(chatstdhelpers::MessageOffset), 0, "CHAT_STD message offset") && ok;
+    ok = expectEqualInt(chatstdhelpers::BoundedMessageLength(chatstdhelpers::MessageOffset + 10), 10, "CHAT_STD bounded length") && ok;
+    ok = expectEqualInt(chatstdhelpers::BoundedMessageLength(chatstdhelpers::MessageOffset + 999), chatstdhelpers::MaxMessageLength, "CHAT_STD length cap") && ok;
     return ok;
 }
 

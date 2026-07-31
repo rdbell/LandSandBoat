@@ -20,6 +20,7 @@
 */
 
 #include "0x0b5_chat_std.h"
+#include "chat_std_capacity.h"
 
 #include "aman.h"
 #include "command_handler.h"
@@ -114,7 +115,7 @@ void GP_CLI_COMMAND_CHAT_STD::process(MapSession* PSession, CCharEntity* PChar) 
     // Extremely important to figure out the message length here.
     // Depending on alignment, the message may not be NULL-terminated.
     // Start with reported size and skip the first 6 bytes (4x header + 1x kind + 1x unknown).
-    const auto messageLength              = std::min<std::size_t>((header.size * 4) - 0x6, sizeof(this->Str));
+    const auto messageLength              = chatstdhelpers::BoundedMessageLength(static_cast<std::size_t>(header.size) * 4U);
     const auto rawMessage                 = asStringFromUntrustedSource(this->Str, messageLength);
     const auto firstChar                  = rawMessage[0];
     const auto rawMessageWithoutFirstChar = rawMessage.substr(1);
