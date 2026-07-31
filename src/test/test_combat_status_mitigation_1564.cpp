@@ -113,11 +113,15 @@ auto Check() -> bool
     }
 
     // Schurzen
-    if (ApplySchurzenCap(500, 100, true, true, true) != 99)
+    if (ApplySchurzenCap(100, 100, true, true, true) != 99 ||
+        ApplySchurzenCap(500, 100, true, true, true) != 99 ||
+        ApplySchurzenCap(99, 100, true, true, true) != 99)
     {
         return false;
     }
-    if (ApplySchurzenCap(500, 100, true, true, false) != 500)
+    if (ApplySchurzenCap(500, 100, false, true, true) != 500 ||
+        ApplySchurzenCap(500, 100, true, false, true) != 500 ||
+        ApplySchurzenCap(500, 100, true, true, false) != 500)
     {
         return false;
     }
