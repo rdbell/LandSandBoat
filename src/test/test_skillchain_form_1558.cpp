@@ -67,6 +67,10 @@ auto Check() -> bool
     {
         return false;
     }
+    if (LookupSkillchainPair(255, 255) != SCElementNone)
+    {
+        return false;
+    }
 
     // Magic elements
     {
