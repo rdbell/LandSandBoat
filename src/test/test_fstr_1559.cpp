@@ -8,6 +8,7 @@ namespace
 {
 using fstrhelpers::GetFSTR;
 using fstrhelpers::MeleeStatFactor;
+using fstrhelpers::MobMeleeStatDiff;
 using fstrhelpers::PlayerStatDiffRaw;
 using fstrhelpers::RangedStatFactor;
 using fstrhelpers::SlotAmmo;
@@ -18,6 +19,16 @@ using fstrhelpers::StatFactorActor;
 
 auto Check() -> bool
 {
+    // Mob/pet melee ladder floor before level clamp.
+    if (MobMeleeStatDiff(36) != 8 || MobMeleeStatDiff(26) != 5 || MobMeleeStatDiff(17) != 3 ||
+        MobMeleeStatDiff(4) != 0 || MobMeleeStatDiff(-8) != -2 || MobMeleeStatDiff(-13) != -3 ||
+        MobMeleeStatDiff(-19) != -4 || MobMeleeStatDiff(-32) != -7 || MobMeleeStatDiff(-42) != -10 ||
+        MobMeleeStatDiff(-54) != -12 || MobMeleeStatDiff(-67) != -15 || MobMeleeStatDiff(-76) != -17 ||
+        MobMeleeStatDiff(-77) != -17)
+    {
+        return false;
+    }
+
     // Shared player/trust stat-difference ladder boundaries.
     if (PlayerStatDiffRaw(12) != 16 || PlayerStatDiffRaw(11) != 17 || PlayerStatDiffRaw(6) != 12 ||
         PlayerStatDiffRaw(5) != 12 || PlayerStatDiffRaw(1) != 8 || PlayerStatDiffRaw(0) != 8 ||
