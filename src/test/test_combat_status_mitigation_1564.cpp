@@ -10,6 +10,13 @@ using namespace combatstatusmitigationhelpers;
 
 auto Check() -> bool
 {
+    // Shared int32 clamp used by damage-cap tails.
+    if (ClampI32(-120, -100, 50) != -100 || ClampI32(-100, -100, 50) != -100 ||
+        ClampI32(25, -100, 50) != 25 || ClampI32(50, -100, 50) != 50 || ClampI32(75, -100, 50) != 50)
+    {
+        return false;
+    }
+
     // One For All
     if (HandleOneForAll(100, 30, true) != 70 || HandleOneForAll(20, 30, true) != 0 ||
         HandleOneForAll(100, 30, false) != 100 || HandleOneForAll(0, 30, true) != 0)
