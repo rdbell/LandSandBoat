@@ -45,6 +45,8 @@ auto runPartyLevelSync1330SelfTests() -> bool
     ok = expect(plan.apply && plan.newMainLevel == 30 && !plan.rebuild, "eligible no rebuild") && ok;
     plan = partyhelpers::PlanRefreshSyncMember(true, false, 30, 50, 50);
     ok = expect(!plan.apply && !plan.rebuild, "other-zone skip") && ok;
+    plan = partyhelpers::PlanRefreshSyncMember(false, true, 30, 50, 50);
+    ok = expect(!plan.apply && !plan.rebuild, "non-PC skip") && ok;
 
     return ok;
 }
