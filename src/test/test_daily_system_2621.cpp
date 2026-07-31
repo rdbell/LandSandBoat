@@ -11,6 +11,7 @@ auto runDailySystem2621SelfTests() -> bool
     const bool ok   = daily::SelectItemFromPool(pool, 0) == 1001 &&
                     daily::SelectItemFromPool(pool, 2) == 1003 &&
                     daily::SelectItemFromPool(pool, 3) == 1001 &&
+                    daily::SelectItemFromPool(pool, -1) == 1001 &&
                     daily::SelectItemFromPool({}, 0) == 0;
     if (!ok)
     {
