@@ -20,7 +20,8 @@ auto Check() -> bool
         return false;
     }
     // Size path requires both presence and IsShield; defense uses has && isShield.
-    if (ShieldSize(true, true, 0) != 0 || ShieldDefense(true, true, 0) != 0)
+    if (ShieldSize(true, true, 0) != 0 || ShieldSize(true, true, -1) != -1 ||
+        ShieldDefense(true, true, 0) != 0 || ShieldDefense(true, true, -1) != -1)
     {
         return false;
     }
