@@ -23,6 +23,14 @@ auto Check() -> bool
         return false;
     }
 
+    // CosClampPattern preserves the float32 cosine transform and unit clamp.
+    if (!Near(CosClampPattern(0.0f, 0.0f, 7), 1.0f) ||
+        !Near(CosClampPattern(0.0f, 3.1415927f, 0), 0.0f) ||
+        !Near(CosClampPattern(0.82f, 0.16f, 3), HourPattern1(3)))
+    {
+        return false;
+    }
+
     // Moon phase classifier
     if (GetMoonPhase(0, 0) != 0 || GetMoonPhase(95, 0) != 4 || GetMoonPhase(20, 2) != 1)
     {
