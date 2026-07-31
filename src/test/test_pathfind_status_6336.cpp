@@ -29,6 +29,10 @@ auto runPathfindStatus6336SelfTests() -> bool
     bool ok = true;
 
     ok = expect(!IsFollowingPath(0) && IsFollowingPath(1) && IsFollowingPath(3), "follow by count") && ok;
+
+    // The production point count is std::size_t; preserve unsigned conversion
+    // for synthetic negative host values at the non-empty boundary.
+    ok = expect(IsFollowingPath(-1), "signed wrap is following") && ok;
     ok = expect(!IsFollowingScriptedPath(false, true) && !IsFollowingScriptedPath(true, false), "scripted requires both") && ok;
     ok = expect(IsFollowingScriptedPath(true, true), "scripted both true") && ok;
     ok = expect(!IsPatrolling(false) && IsPatrolling(true), "patrol flag") && ok;
