@@ -12,9 +12,11 @@ auto runCharTick1444SelfTests() -> bool
 
     bool ok = !chartickhelpers::HasDeathTimestamp(0s, 0s) &&
               chartickhelpers::HasDeathTimestamp(1s, 0s) &&
+              !chartickhelpers::HasDeathTimestamp(1s, 1s) &&
               !chartickhelpers::DeathSyncDue(false, 20s, 20s) &&
               !chartickhelpers::DeathSyncDue(true, 19s, 20s) &&
-              chartickhelpers::DeathSyncDue(true, 20s, 20s);
+              chartickhelpers::DeathSyncDue(true, 20s, 20s) &&
+              chartickhelpers::DeathSyncDue(true, 21s, 20s);
 
     auto             nextDeathSync = 20s;
     uint8            updateMask    = 0x80;
