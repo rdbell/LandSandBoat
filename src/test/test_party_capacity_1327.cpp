@@ -29,6 +29,9 @@ auto runPartyCapacity1327SelfTests() -> bool
     ok = expect(!partyhelpers::IsLocalPartyFull(5), "local 5 not full") && ok;
     ok = expect(partyhelpers::IsLocalPartyFull(6), "local 6 full") && ok;
     ok = expect(partyhelpers::IsLocalPartyFull(7), "local 7 full") && ok;
+    // The production count is std::size_t; preserve unsigned conversion for
+    // synthetic negative host values at the capacity boundary.
+    ok = expect(partyhelpers::IsLocalPartyFull(-1), "local signed wrap full") && ok;
 
     ok = expect(!partyhelpers::IsRemotePartyFull(0), "remote 0") && ok;
     ok = expect(!partyhelpers::IsRemotePartyFull(5), "remote 5 not full") && ok;
