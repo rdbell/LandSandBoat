@@ -56,5 +56,8 @@ auto runNotorietyHasEnmityResult2832SelfTests() -> bool
         ok = expect(NotorietySize(n) == n, "size identity") && ok;
     }
 
+    const auto wrappedSize = static_cast<std::size_t>(-1);
+    ok                     = expect(NotorietySize(-1) == wrappedSize, "size_t conversion") && ok;
+
     return ok;
 }
