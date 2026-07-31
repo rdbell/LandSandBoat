@@ -20,8 +20,8 @@ auto Check() -> bool
     {
         return false;
     }
-    // Race 0: (0%2)^(0>6) = 0
-    if (FromRace(0) != 0)
+    // Race 0: (0%2)^(0>6) = 0; uint8 upper bound still flips parity.
+    if (FromRace(0) != 0 || FromRace(255) != 0)
     {
         return false;
     }
