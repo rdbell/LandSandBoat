@@ -33,5 +33,6 @@ auto runZoneCharSyncCandidate6261SelfTests() -> bool
     ok = expect(ShouldAdmit(32, 32, false, 5.0f, 6.0f), "full list admits score above lowest swap") && ok;
     ok = expect(!ShouldAdmit(32, 32, false, 5.0f, 5.0f), "full list keeps score tie") && ok;
     ok = expect(!ShouldAdmit(32, 32, true, 0.0f, 100.0f), "full list without replaceable entry excludes candidate") && ok;
+    ok = expect(!ShouldAdmit(-1, 32, true, 0.0f, 100.0f), "negative synthetic spawned count wraps above cap") && ok;
     return ok;
 }
