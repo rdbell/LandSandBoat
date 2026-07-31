@@ -37,6 +37,9 @@ auto runAicontainerCanPushState6312SelfTests() -> bool
     ok = expect(CanPushState(10), "10 at ceiling → allow") && ok;
     ok = expect(!CanPushState(11), "11 exceeds → reject") && ok;
     ok = expect(!CanPushState(100), "100 → reject") && ok;
+    // The production count is std::size_t; preserve unsigned conversion for
+    // a synthetic negative host value above the stack ceiling.
+    ok = expect(!CanPushState(-1), "signed wrap exceeds ceiling") && ok;
 
     for (const std::size_t n : { std::size_t{ 0 }, std::size_t{ 10 }, std::size_t{ 11 } })
     {
