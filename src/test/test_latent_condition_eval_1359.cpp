@@ -65,6 +65,10 @@ auto runLatentConditionEval1359SelfTests() -> bool
     ok = expect(!latenthelpers::EvaluateFoodActive(true, false), "food item mismatch") && ok;
     ok = expect(latenthelpers::EvaluatePartyMembers(3, 2, 1), "party") && ok;
     ok = expect(!latenthelpers::EvaluatePartyMembers(4, 2, 1), "party short") && ok;
+    // Party and trust counts are size_t in the production helper. Preserve
+    // unsigned host conversion for synthetic negative-count boundaries.
+    ok = expect(latenthelpers::EvaluatePartyMembers(1, -1, 0), "party signed wrap") && ok;
+    ok = expect(latenthelpers::EvaluatePartyMembers(65535, -1, 0), "party signed max") && ok;
     ok = expect(latenthelpers::EvaluatePartyMembersInZone(2, 2), "in zone") && ok;
     // The production helper converts the signed host count to uint16 before
     // comparing. Keep the wraparound behavior pinned at both boundaries.
