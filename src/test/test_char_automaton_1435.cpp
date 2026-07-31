@@ -14,6 +14,8 @@ auto runCharAutomaton1435SelfTests() -> bool
               capacities == std::array<uint8, 8>{ 10, 11, 12, 13, 14, 15, 16, 17 };
     ok = charautomatonhelpers::ApplyElementalCapacityBonus(5, bonus, capacities) && ok;
     ok = bonus == 5 && capacities == std::array<uint8, 8>{ 13, 14, 15, 16, 17, 18, 19, 20 } && ok;
+    ok = !charautomatonhelpers::ApplyElementalCapacityBonus(5, bonus, capacities) &&
+         capacities == std::array<uint8, 8>{ 13, 14, 15, 16, 17, 18, 19, 20 } && ok;
     ok = charautomatonhelpers::ApplyElementalCapacityBonus(1, bonus, capacities) && ok;
     ok = bonus == 1 && capacities == std::array<uint8, 8>{ 9, 10, 11, 12, 13, 14, 15, 16 } && ok;
 
