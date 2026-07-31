@@ -9,6 +9,7 @@ namespace
 using spellrecasthelpers::CalculateSpellRecastMs;
 using spellrecasthelpers::FloorMulMs;
 using spellrecasthelpers::JobSCH;
+using spellrecasthelpers::MaxI64;
 using spellrecasthelpers::RecastCapFloorMs;
 using spellrecasthelpers::ShouldReturnZeroNullSpell;
 using spellrecasthelpers::SpellGroupBlack;
@@ -47,6 +48,10 @@ auto Check() -> bool
     if (RecastCapFloorMs(10000, 80.0f) != 2000 || RecastCapFloorMs(10000, 0.0f) != 10000 || RecastCapFloorMs(10000, 100.0f) != 0)
     {
         return fail("cap-floor", RecastCapFloorMs(10000, 80.0f), 2000);
+    }
+    if (MaxI64(5, 3) != 5 || MaxI64(3, 5) != 5 || MaxI64(-7, -2) != -2 || MaxI64(9, 9) != 9)
+    {
+        return fail("max-i64", MaxI64(-7, -2), -2);
     }
 
     // No mods: base unchanged then max with floor(base*0.2) still base
