@@ -241,6 +241,12 @@ auto Check() -> bool
     {
         return false;
     }
+    // A sweet spot at the maximum ranged distance uses the outer fallback
+    // rather than dividing by a non-positive denominator: 20% of 200 = 40.
+    if (AttackDistancePenalty(true, 30, 0, 25, 0, 0, 200) != 40)
+    {
+        return false;
+    }
 
     return true;
 }
