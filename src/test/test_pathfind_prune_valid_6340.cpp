@@ -39,6 +39,9 @@ auto runPathfindPruneValid6340SelfTests() -> bool
     ok = expect(ShouldContinuePrune(-1, 0.f, 10.f), "signed wrap continues") && ok;
     ok = expect(ValidPosition(true) && !ValidPosition(false), "valid inject") && ok;
     ok = expect(ShouldTruncatePathPoints(51, 50, false), "6339 residual") && ok;
+    // Both production counts are std::size_t; preserve unsigned conversion
+    // for a synthetic negative point count above the maximum.
+    ok = expect(ShouldTruncatePathPoints(-1, 50, false), "signed wrap truncates") && ok;
     ok = expect(!LimitDistanceReached(0.f, 1.f), "6339 residual limit") && ok;
 
     return ok;
