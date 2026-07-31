@@ -46,6 +46,17 @@ auto Check() -> bool
         return false;
     }
 
+    // Rod view projection preserves every field used by the pure outcome helpers.
+    {
+        const auto rod = MakeRodView(1234, SizeTypeLarge, 5, 6, 1, 2, 3, 4, true, true);
+        if (rod.rodID != 1234 || rod.sizeType != SizeTypeLarge || rod.minRank != 5 || rod.maxRank != 6 ||
+            rod.smDelayBonus != 1 || rod.smMoveBonus != 2 || rod.lgDelayBonus != 3 || rod.lgMoveBonus != 4 ||
+            !rod.legendary || !rod.breakable)
+        {
+            return false;
+        }
+    }
+
     // Delay: base 10 count 1 no bonus
     {
         const auto rod = MakeRodView(0, SizeTypeSmall, 0, 0, 0, 0, 0, 0, false, false);
