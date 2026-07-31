@@ -52,5 +52,71 @@ auto runMobPartyLink6250SelfTests() -> bool
     ok = expect(MatchesPartyLink(0, false, 7, 10, 0, false, false, 99, 7), "sublink match") && ok;
     ok = expect(!MatchesPartyLink(0, false, 7, 10, 0, false, true, 99, 8), "normal mismatch rejects") && ok;
 
+    // Exhaustive small-domain pins keep the three pure policies aligned with
+    // their production formulas, including zero/non-zero link boundaries.
+    for (const bool forceLink : { false, true })
+    {
+        for (const bool familyLink : { false, true })
+        {
+            for (const int16_t sublink : { int16_t(-1), int16_t(0), int16_t(1) })
+            {
+                for (const bool hasParty : { false, true })
+                {
+                    const bool want = (forceLink || familyLink || sublink != 0) && !hasParty;
+                    ok              = expect(ShouldAttemptPartyLink(forceLink, familyLink, sublink, hasParty) == want,
+                                             "ShouldAttemptPartyLink exhaustive formula") &&
+                                      ok;
+                }
+            }
+        }
+    }
+
+    for (const bool forceLink : { false, true })
+    {
+        for (const int16_t sourceSublink : { int16_t(-1), int16_t(0), int16_t(1) })
+        {
+            for (const bool candidateFamilyLink : { false, true })
+            {
+                const bool want = forceLink || sourceSublink != 0 || candidateFamilyLink;
+                ok              = expect(ShouldConsiderPartyLinkCandidate(forceLink, sourceSublink, candidateFamilyLink) == want,
+                                         "ShouldConsiderPartyLinkCandidate exhaustive formula") &&
+                                  ok;
+            }
+        }
+    }
+
+    for (const int16_t sourceSuperlink : { int16_t(-1), int16_t(0), int16_t(1) })
+    {
+        for (const bool sourceForceLink : { false, true })
+        {
+            for (const int16_t sourceSublink : { int16_t(-1), int16_t(0), int16_t(1) })
+            {
+                for (const uint16_t sourceFamily : { uint16_t(10), uint16_t(11) })
+                {
+                    for (const int16_t candidateSuperlink : { int16_t(-1), int16_t(0), int16_t(1) })
+                    {
+                        for (const bool candidateForceLink : { false, true })
+                        {
+                            for (const bool candidateFamilyLink : { false, true })
+                            {
+                                for (const uint16_t candidateFamily : { uint16_t(10), uint16_t(11) })
+                                {
+                                    for (const int16_t candidateSublink : { int16_t(-1), int16_t(0), int16_t(1) })
+                                    {
+                                        const bool want = sourceSuperlink != 0 ? candidateSuperlink == sourceSuperlink : sourceForceLink ? candidateForceLink
+                                                                                                                                         : (candidateFamilyLink && candidateFamily == sourceFamily) || (sourceSublink != 0 && sourceSublink == candidateSublink);
+                                        ok              = expect(MatchesPartyLink(sourceSuperlink, sourceForceLink, sourceSublink, sourceFamily, candidateSuperlink, candidateForceLink, candidateFamilyLink, candidateFamily, candidateSublink) == want,
+                                                                 "MatchesPartyLink exhaustive precedence formula") &&
+                                                          ok;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     return ok;
 }
