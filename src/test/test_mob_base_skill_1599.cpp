@@ -20,7 +20,16 @@ auto Check() -> bool
     {
         return false;
     }
-    if (BaseSkillProxy(0, skill, job) || BaseSkillProxy(6, skill, job))
+    if (!BaseSkillProxy(2, skill, job) || skill != SkillStaff || job != JobWAR ||
+        !BaseSkillProxy(3, skill, job) || skill != SkillEvasion || job != JobWAR ||
+        !BaseSkillProxy(4, skill, job) || skill != SkillArchery || job != JobWAR)
+    {
+        return false;
+    }
+    skill = 999;
+    job   = 99;
+    if (BaseSkillProxy(0, skill, job) || skill != 999 || job != 99 || BaseSkillProxy(6, skill, job) ||
+        skill != 999 || job != 99 || BaseSkillProxy(255, skill, job) || skill != 999 || job != 99)
     {
         return false;
     }
