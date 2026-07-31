@@ -44,7 +44,15 @@ auto Check() -> bool
         return false;
     }
 
+    // Clearing all zones must invalidate every active roster, not only the
+    // most recently updated zone.
+    SetZonePlayers(8, { 4 });
     ClearAllZonePlayers();
+    if (IsPlayerInGarrison(7, 3) || IsPlayerInGarrison(8, 4))
+    {
+        return false;
+    }
+
     return true;
 }
 } // namespace
