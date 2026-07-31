@@ -85,6 +85,10 @@ auto runLatentConditionEval1360SelfTests() -> bool
     ok = expect(!latenthelpers::EvaluateInFlag(false), "flag inactive") && ok;
     ok = expect(latenthelpers::EvaluateInGarrison(true, 50, 50), "garrison") && ok;
     ok = expect(!latenthelpers::EvaluateInGarrison(true, 49, 50), "garrison low") && ok;
+    ok = expect(latenthelpers::EvaluatePartyMembers(3, 2, 1), "party members") && ok;
+    ok = expect(!latenthelpers::EvaluatePartyMembers(4, 2, 1), "party members over") && ok;
+    ok = expect(latenthelpers::EvaluatePartyMembersInZone(2, 2), "party in zone") && ok;
+    ok = expect(!latenthelpers::EvaluatePartyMembersInZone(3, 2), "party in zone over") && ok;
 
     // Nation / weather / vs
     ok = expect(latenthelpers::EvaluateNationCitizen(1, 1), "citizen") && ok;
