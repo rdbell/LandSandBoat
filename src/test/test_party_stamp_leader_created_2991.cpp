@@ -84,6 +84,10 @@ auto runPartyStampLeaderCreated2991SelfTests() -> bool
     ok = expect(!ShouldStampLeaderCreatedPartyTime(true, 0), "PC size 0 must not stamp") && ok;
     ok = expect(!ShouldStampLeaderCreatedPartyTime(false, 2), "mob size 2 must not stamp") && ok;
 
+    // The production count is std::size_t; preserve unsigned conversion for
+    // synthetic negative host values at the greater-than-one boundary.
+    ok = expect(ShouldStampLeaderCreatedPartyTime(true, -1), "PC signed wrap must stamp") && ok;
+
     // Dense compose: isPC × memberCount edges free == inline == pin.
     // Edges: memberCount 0, 1, 2 (and a few above for coverage).
     for (const bool isPCEntity : { false, true })
