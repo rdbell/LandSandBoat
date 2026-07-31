@@ -9,6 +9,7 @@ namespace
 using charweaponskillprimaryhelpers::IsNegatedResolution;
 using charweaponskillprimaryhelpers::ShouldAwardWSPoints;
 using charweaponskillprimaryhelpers::ShouldNotifyHit;
+using charweaponskillprimaryhelpers::SkillchainWSPointBonus;
 using charweaponskillprimaryhelpers::SkillchainWSPointLevel;
 using charweaponskillprimaryhelpers::TotalWSPoints;
 
@@ -36,7 +37,14 @@ auto Check() -> bool
         return false;
     }
 
-    if (TotalWSPoints(5, false, 7, 2) != 5 || TotalWSPoints(5, true, 7, 2) != 7)
+    if (SkillchainWSPointBonus(7, 2) != 2 || SkillchainWSPointBonus(3, 2) != 4 ||
+        SkillchainWSPointBonus(1, 2) != 6 || SkillchainWSPointBonus(1, 255) != 253)
+    {
+        return false;
+    }
+
+    if (TotalWSPoints(5, false, 7, 2) != 5 || TotalWSPoints(5, true, 7, 2) != 7 ||
+        TotalWSPoints(5, true, 1, 255) != 2)
     {
         return false;
     }
