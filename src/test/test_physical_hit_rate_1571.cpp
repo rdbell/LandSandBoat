@@ -182,6 +182,16 @@ auto Check() -> bool
     {
         return false;
     }
+    // distance 15, centroidEnd 5, pct=.5, floor(.5 * 37.5)=18
+    if (AccuracyDistancePenalty(true, 15, 5, 0, 0, 75) != 18)
+    {
+        return false;
+    }
+    // A sweet spot at the maximum ranged distance has no usable denominator.
+    if (AccuracyDistancePenalty(true, 30, 25, 0, 0, 75) != 0)
+    {
+        return false;
+    }
 
     // Sweet spot resolve
     {
