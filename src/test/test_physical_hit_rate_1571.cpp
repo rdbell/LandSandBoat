@@ -22,6 +22,12 @@ auto Check() -> bool
     {
         return false;
     }
+    if (ClampFloat(-1.25, -1.0, 1.0) != -1.0 || ClampFloat(-1.0, -1.0, 1.0) != -1.0 ||
+        ClampFloat(0.375, -1.0, 1.0) != 0.375 || ClampFloat(1.0, -1.0, 1.0) != 1.0 ||
+        ClampFloat(1.25, -1.0, 1.0) != 1.0)
+    {
+        return false;
+    }
 
     // HitRateCap table.
     if (!AlmostEqual(HitRateCap(true, false, false, false, false), CapPet) ||
