@@ -23,5 +23,14 @@ auto runZoneOutTrigger2664SelfTests() -> bool
                                                          {
                                                              return id == 3 || id == 7;
                                                          });
-    return it != a.end() && (*it)->id == 3;
+    if (it == a.end() || (*it)->id != 3)
+    {
+        return false;
+    }
+
+    const auto missing = zonehelpers::FirstZoneOutTriggerArea(a, [](uint32 id)
+                                                              {
+                                                                  return id == 4;
+                                                              });
+    return missing == a.end();
 }
