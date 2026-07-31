@@ -81,6 +81,8 @@ auto runPartyReload1352SelfTests() -> bool
 
     auto soloRow = partyhelpers::PlanSoloReloadPartyRow(4, true, 2);
     ok = expect(soloRow.memberIndex == 4 && soloRow.nextIndex == 7, "online row trusts") && ok;
+    soloRow = partyhelpers::PlanSoloReloadPartyRow(0, true, 0);
+    ok = expect(soloRow.memberIndex == 0 && soloRow.nextIndex == 1, "online row no trusts") && ok;
     soloRow = partyhelpers::PlanSoloReloadPartyRow(4, false, 2);
     ok = expect(soloRow.memberIndex == 4 && soloRow.nextIndex == 5, "offline row no trusts") && ok;
     soloRow = partyhelpers::PlanSoloReloadPartyRow(255, true, 1);
