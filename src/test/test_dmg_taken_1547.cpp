@@ -76,7 +76,7 @@ auto Check() -> bool
     {
         return false;
     }
-    if (!ShouldLiementShortCircuit(-1.0f) || ShouldLiementShortCircuit(1.0f))
+    if (!ShouldLiementShortCircuit(-1.0f) || ShouldLiementShortCircuit(0.0f) || ShouldLiementShortCircuit(1.0f))
     {
         return false;
     }
