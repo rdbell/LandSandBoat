@@ -13,7 +13,7 @@ using skillchaintableshelpers::IsValidSkillchainElement;
 auto Check() -> bool
 {
     // Bounds
-    if (!IsValidSkillchainElement(0) || !IsValidSkillchainElement(16) || IsValidSkillchainElement(17))
+    if (!IsValidSkillchainElement(0) || !IsValidSkillchainElement(16) || IsValidSkillchainElement(17) || IsValidSkillchainElement(255))
     {
         return false;
     }
