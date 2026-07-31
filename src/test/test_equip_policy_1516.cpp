@@ -730,7 +730,8 @@ auto Check() -> bool
 
     constexpr std::uint32_t removedLookMask = (1u << 4) | (1u << 6) | (1u << 8);
     if (!equiparmorremovedlookhelpers::IsSourceSlot(4) || !equiparmorremovedlookhelpers::IsSourceSlot(7) ||
-        equiparmorremovedlookhelpers::IsSourceSlot(3) || equiparmorremovedlookhelpers::IsSourceSlot(8) ||
+        equiparmorremovedlookhelpers::IsSourceSlot(0) || equiparmorremovedlookhelpers::IsSourceSlot(3) ||
+        equiparmorremovedlookhelpers::IsSourceSlot(8) || equiparmorremovedlookhelpers::IsSourceSlot(255) ||
         !equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 4) ||
         !equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 6) ||
         !equiparmorremovedlookhelpers::ShouldSetTargetLook(removedLookMask, 8) ||
