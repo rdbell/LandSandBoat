@@ -89,6 +89,10 @@ auto runLatentConditionEval1360SelfTests() -> bool
     ok = expect(!latenthelpers::EvaluatePartyMembers(4, 2, 1), "party members over") && ok;
     ok = expect(latenthelpers::EvaluatePartyMembersInZone(2, 2), "party in zone") && ok;
     ok = expect(!latenthelpers::EvaluatePartyMembersInZone(3, 2), "party in zone over") && ok;
+    ok = expect(latenthelpers::EvaluateAvatarMatch(true, 5, 5), "avatar exact") && ok;
+    ok = expect(latenthelpers::EvaluateAvatarMatch(true, 5, 21), "avatar any") && ok;
+    ok = expect(!latenthelpers::EvaluateAvatarMatch(false, 5, 5), "avatar dead") && ok;
+    ok = expect(!latenthelpers::EvaluateAvatarMatch(true, 25, 21), "avatar non-avatar") && ok;
 
     // Nation / weather / vs
     ok = expect(latenthelpers::EvaluateNationCitizen(1, 1), "citizen") && ok;
