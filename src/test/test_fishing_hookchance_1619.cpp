@@ -16,6 +16,13 @@ auto Near(const float a, const float b, const float eps = 1e-5f) -> bool
 
 auto Check() -> bool
 {
+    // Clamp01 bounds pattern values to the unit interval.
+    if (Clamp01(-0.25f) != 0.0f || Clamp01(0.0f) != 0.0f || Clamp01(0.625f) != 0.625f ||
+        Clamp01(1.0f) != 1.0f || Clamp01(1.25f) != 1.0f)
+    {
+        return false;
+    }
+
     // Moon phase classifier
     if (GetMoonPhase(0, 0) != 0 || GetMoonPhase(95, 0) != 4 || GetMoonPhase(20, 2) != 1)
     {
