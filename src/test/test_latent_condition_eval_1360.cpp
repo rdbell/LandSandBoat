@@ -93,6 +93,14 @@ auto runLatentConditionEval1360SelfTests() -> bool
     ok = expect(latenthelpers::EvaluateZoneHomeNation(0, 0, true), "home nation") && ok;
     ok = expect(!latenthelpers::EvaluateZoneHomeNation(1, 0, true), "home nation mismatch") && ok;
     ok = expect(!latenthelpers::EvaluateZoneHomeNation(0, 0, false), "home region mismatch") && ok;
+    ok = expect(latenthelpers::EvaluateSanctionRegionHPUnder(true, 40, 100, 50), "sanction hp") && ok;
+    ok = expect(!latenthelpers::EvaluateSanctionRegionHPUnder(false, 40, 100, 50), "sanction hp region") && ok;
+    ok = expect(latenthelpers::EvaluateSanctionRegionMPUnder(true, 40, 100, 50), "sanction mp") && ok;
+    ok = expect(!latenthelpers::EvaluateSanctionRegionMPUnder(true, 40, 0, 50), "sanction mp max") && ok;
+    ok = expect(latenthelpers::EvaluateSigilRegionHPUnder(true, 40, 100, 50), "sigil hp") && ok;
+    ok = expect(!latenthelpers::EvaluateSigilRegionHPUnder(false, 40, 100, 50), "sigil hp region") && ok;
+    ok = expect(latenthelpers::EvaluateSigilRegionMPUnder(true, 40, 100, 50), "sigil mp") && ok;
+    ok = expect(!latenthelpers::EvaluateSigilRegionMPUnder(true, 40, 0, 50), "sigil mp max") && ok;
     ok = expect(latenthelpers::EvaluateWeatherMatch(5, 5), "weather") && ok;
     ok = expect(latenthelpers::EvaluateWeatherElementMatch(3, 3), "element") && ok;
     ok = expect(latenthelpers::EvaluateVsTargetValue(true, 7, 7), "vs target") && ok;
