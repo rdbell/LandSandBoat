@@ -172,6 +172,10 @@ auto Check() -> bool
 
     // Sweet spot resolve
     {
+        if (!IsYoichiWeapon(21210) || IsYoichiWeapon(1))
+        {
+            return false;
+        }
         const auto y = ResolveSweetSpot(true, 21210, SkillArchery, 0);
         if (!AlmostEqual(y.end, SweetYoichi.end))
         {
