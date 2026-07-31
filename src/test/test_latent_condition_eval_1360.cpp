@@ -91,6 +91,8 @@ auto runLatentConditionEval1360SelfTests() -> bool
     ok = expect(latenthelpers::EvaluateNationControlUnder(true, true, true), "control under") && ok;
     ok = expect(latenthelpers::EvaluateNationControlOutside(true, true, true), "control out") && ok;
     ok = expect(latenthelpers::EvaluateZoneHomeNation(0, 0, true), "home nation") && ok;
+    ok = expect(!latenthelpers::EvaluateZoneHomeNation(1, 0, true), "home nation mismatch") && ok;
+    ok = expect(!latenthelpers::EvaluateZoneHomeNation(0, 0, false), "home region mismatch") && ok;
     ok = expect(latenthelpers::EvaluateWeatherMatch(5, 5), "weather") && ok;
     ok = expect(latenthelpers::EvaluateWeatherElementMatch(3, 3), "element") && ok;
     ok = expect(latenthelpers::EvaluateVsTargetValue(true, 7, 7), "vs target") && ok;
