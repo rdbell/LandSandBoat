@@ -8,6 +8,7 @@ namespace
 {
 using fstrhelpers::GetFSTR;
 using fstrhelpers::MeleeStatFactor;
+using fstrhelpers::PlayerStatDiffRaw;
 using fstrhelpers::RangedStatFactor;
 using fstrhelpers::SlotAmmo;
 using fstrhelpers::SlotMain;
@@ -17,6 +18,16 @@ using fstrhelpers::StatFactorActor;
 
 auto Check() -> bool
 {
+    // Shared player/trust stat-difference ladder boundaries.
+    if (PlayerStatDiffRaw(12) != 16 || PlayerStatDiffRaw(11) != 17 || PlayerStatDiffRaw(6) != 12 ||
+        PlayerStatDiffRaw(5) != 12 || PlayerStatDiffRaw(1) != 8 || PlayerStatDiffRaw(0) != 8 ||
+        PlayerStatDiffRaw(-2) != 6 || PlayerStatDiffRaw(-3) != 6 || PlayerStatDiffRaw(-7) != 2 ||
+        PlayerStatDiffRaw(-8) != 2 || PlayerStatDiffRaw(-15) != -5 || PlayerStatDiffRaw(-16) != -4 ||
+        PlayerStatDiffRaw(-21) != -9 || PlayerStatDiffRaw(-22) != -9)
+    {
+        return false;
+    }
+
     // PC baseline: STR=VIT=50, rank=3, lvl=75 → melee 2, ranged 4
     if (MeleeStatFactor(StatFactorActor::PC, 75, 50, 50, 3) != 2)
     {
