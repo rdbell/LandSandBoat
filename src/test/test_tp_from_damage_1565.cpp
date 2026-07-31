@@ -108,7 +108,8 @@ auto Check() -> bool
         }
     }
 
-    if (!ShouldZeroPhysicalTPGain(false, 0, false) || !ShouldZeroPhysicalTPGain(false, 10, true) ||
+    if (!ShouldZeroPhysicalTPGain(true, 10, false) || !ShouldZeroPhysicalTPGain(false, 0, false) ||
+        !ShouldZeroPhysicalTPGain(false, 10, true) ||
         ShouldZeroPhysicalTPGain(false, 10, false))
     {
         return false;
