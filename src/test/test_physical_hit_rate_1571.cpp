@@ -16,6 +16,13 @@ auto AlmostEqual(const double a, const double b) -> bool
 
 auto Check() -> bool
 {
+    // Shared integer clamp used by level-correction inputs.
+    if (ClampInt(-120, -100, 50) != -100 || ClampInt(-100, -100, 50) != -100 ||
+        ClampInt(25, -100, 50) != 25 || ClampInt(50, -100, 50) != 50 || ClampInt(75, -100, 50) != 50)
+    {
+        return false;
+    }
+
     // HitRateCap table.
     if (!AlmostEqual(HitRateCap(true, false, false, false, false), CapPet) ||
         !AlmostEqual(HitRateCap(false, true, true, false, false), CapPCH2H) ||
