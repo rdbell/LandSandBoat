@@ -49,7 +49,8 @@ auto Check() -> bool
     {
         return false;
     }
-    if (IsValidSelfTargetWeaponskill(0) || IsValidSelfTargetWeaponskill(1) || IsValidSelfTargetWeaponskill(162))
+    if (IsValidSelfTargetWeaponskill(-1) || IsValidSelfTargetWeaponskill(0) ||
+        IsValidSelfTargetWeaponskill(1) || IsValidSelfTargetWeaponskill(162) || IsValidSelfTargetWeaponskill(256))
     {
         return false;
     }
