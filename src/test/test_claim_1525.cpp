@@ -16,6 +16,7 @@ using claimhelpers::DirtyExpMember;
 using claimhelpers::DirtyExpMerge;
 using claimhelpers::HasClaim;
 using claimhelpers::HighestEnmityAllowsClaim;
+using claimhelpers::ResolveHighestEnmityIsTrustPromote;
 using claimhelpers::RelinquishPassCandidate;
 using claimhelpers::ShouldAssignPClaimedMob;
 using claimhelpers::ShouldDirtyExpOnClaim;
@@ -99,6 +100,10 @@ auto Check() -> bool
         return false;
     }
     if (!HighestEnmityAllowsClaim(false, false, false) || HighestEnmityAllowsClaim(true, false, false))
+    {
+        return false;
+    }
+    if (!ResolveHighestEnmityIsTrustPromote(true) || ResolveHighestEnmityIsTrustPromote(false))
     {
         return false;
     }
