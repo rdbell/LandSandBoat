@@ -9,6 +9,7 @@ namespace
 using fstrhelpers::GetFSTR;
 using fstrhelpers::MeleeStatFactor;
 using fstrhelpers::MobMeleeStatDiff;
+using fstrhelpers::MobRangedStatDiff;
 using fstrhelpers::PlayerStatDiffRaw;
 using fstrhelpers::RangedStatFactor;
 using fstrhelpers::SlotAmmo;
@@ -25,6 +26,15 @@ auto Check() -> bool
         MobMeleeStatDiff(-19) != -4 || MobMeleeStatDiff(-32) != -7 || MobMeleeStatDiff(-42) != -10 ||
         MobMeleeStatDiff(-54) != -12 || MobMeleeStatDiff(-67) != -15 || MobMeleeStatDiff(-76) != -17 ||
         MobMeleeStatDiff(-77) != -17)
+    {
+        return false;
+    }
+
+    // Mob/pet ranged ladder floor before level clamp.
+    if (MobRangedStatDiff(36) != 16 || MobRangedStatDiff(26) != 11 || MobRangedStatDiff(15) != 6 ||
+        MobRangedStatDiff(4) != 1 || MobRangedStatDiff(-8) != -4 || MobRangedStatDiff(-16) != -8 ||
+        MobRangedStatDiff(-31) != -15 || MobRangedStatDiff(-42) != -20 || MobRangedStatDiff(-53) != -25 ||
+        MobRangedStatDiff(-64) != -30 || MobRangedStatDiff(-76) != -35 || MobRangedStatDiff(-77) != -35)
     {
         return false;
     }
