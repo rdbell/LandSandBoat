@@ -90,8 +90,10 @@ auto runZonePolicy1363SelfTests() -> bool
     ok = expect(!zonehelpers::ShouldReportAllMobsHomeAndHealed(true, true), "some away") && ok;
 
     // Misc
+    ok = expect(zonehelpers::CanUseMisc(0x0000, 0x0000), "empty misc requirement") && ok;
     ok = expect(zonehelpers::CanUseMisc(0x0003, 0x0001), "misc ok") && ok;
     ok = expect(!zonehelpers::CanUseMisc(0x0001, 0x0003), "misc fail") && ok;
+    ok = expect(zonehelpers::CanUseMisc(0xFFFF, 0xFFFF), "all misc flags") && ok;
 
     return ok;
 }
