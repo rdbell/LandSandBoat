@@ -6,6 +6,8 @@
 #include <array>
 #include <chrono>
 #include <iostream>
+#include <limits>
+#include <string>
 
 namespace
 {
@@ -48,8 +50,23 @@ auto runLoginConnectConsole1326SelfTests() -> bool
     ok = expect(loginHelpers::SumAuthenticatedAccountSessions(counts.data(), counts.size()) == 7, "sum accounts") && ok;
     ok = expect(loginHelpers::SumAuthenticatedAccountSessions(nullptr, 0) == 0, "sum empty") && ok;
 
+    // Both the element values and accumulator are native unsigned sizes.
+    // Keep a wrapped addition here so a signed Go port cannot silently diverge.
+    const std::array<std::size_t, 2> wrappedCounts{ std::numeric_limits<std::size_t>::max(), 1 };
+    ok = expect(loginHelpers::SumAuthenticatedAccountSessions(wrappedCounts.data(), wrappedCounts.size()) == 0,
+                                                              "sum native wrap") &&
+         ok;
+
     ok = expect(loginHelpers::FormatConnectStats(0, 0) == "Serving 0 IP addresses with 0 accounts", "stats zero") && ok;
     ok = expect(loginHelpers::FormatConnectStats(3, 7) == "Serving 3 IP addresses with 7 accounts", "stats sample") && ok;
+    ok = expect(loginHelpers::FormatConnectStats(std::numeric_limits<std::size_t>::max(), 0) ==
+                    ("Serving " + std::to_string(std::numeric_limits<std::size_t>::max()) + " IP addresses with 0 accounts"),
+                "stats native size") &&
+         ok;
+    ok = expect(loginHelpers::FormatConnectStats(0, std::numeric_limits<std::size_t>::max()) ==
+                    ("Serving 0 IP addresses with " + std::to_string(std::numeric_limits<std::size_t>::max()) + " accounts"),
+                "stats native account size") &&
+         ok;
 
     return ok;
 }
