@@ -42,7 +42,7 @@ auto Check() -> bool
         DayElementFromWeekday(2) != ElementWater || DayElementFromWeekday(3) != ElementWind ||
         DayElementFromWeekday(4) != ElementIce || DayElementFromWeekday(5) != ElementThunder ||
         DayElementFromWeekday(6) != ElementLight || DayElementFromWeekday(7) != ElementDark ||
-        DayElementFromWeekday(8) != ElementNone)
+        DayElementFromWeekday(8) != ElementNone || DayElementFromWeekday(9) != ElementNone)
     {
         return false;
     }
