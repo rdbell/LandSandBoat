@@ -77,7 +77,7 @@ auto runPartyReload1352SelfTests() -> bool
     {
         listPosition = partyhelpers::AdvanceReloadPartyMemberListRow(listPosition);
     }
-    ok = expect(listPosition.listIndex == 0, "index wraps") && ok;
+    ok = expect(listPosition.listIndex == 0 && listPosition.allianceCursor == 0x0002, "index wraps") && ok;
 
     auto soloRow = partyhelpers::PlanSoloReloadPartyRow(4, true, 2);
     ok = expect(soloRow.memberIndex == 4 && soloRow.nextIndex == 7, "online row trusts") && ok;
