@@ -3,7 +3,9 @@
 #include "map/distribute_gil_capacity.h"
 
 #include <cmath>
+#include <cstdint>
 #include <iostream>
+#include <limits>
 
 namespace
 {
@@ -76,6 +78,11 @@ auto Check() -> bool
         return false;
     }
     if (GilPerPerson(100, 4) != 25 || GilPerPerson(100, 0) != 0)
+    {
+        return false;
+    }
+    const auto maxGil = std::numeric_limits<std::uint32_t>::max();
+    if (GilPerPerson(maxGil, -1) != static_cast<std::uint32_t>(maxGil / static_cast<std::size_t>(-1)))
     {
         return false;
     }
