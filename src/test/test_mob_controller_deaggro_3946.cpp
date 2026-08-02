@@ -1401,8 +1401,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      !mobcontrollermagicdetection::CanDetect(false, 9.9f, 10.0f, true, [&]() { magicCallbackCalled = true; return true; }, []() { return true; }) &&
                                      !magicCallbackCalled;
     bool lowHPCallbackCalled = false;
+    bool lowHPMeleeCallbackCalled = false;
     const bool mobLowHPDetectionOK = mobcontrollerlowhpdetection::CanDetect(true, 74, true, []() { return false; }) &&
                                      mobcontrollerlowhpdetection::CanDetect(true, 74, false, []() { return true; }) &&
+                                     mobcontrollerlowhpdetection::CanDetect(true, 74, true, [&]() { lowHPMeleeCallbackCalled = true; return false; }) &&
+                                     !lowHPMeleeCallbackCalled &&
                                      !mobcontrollerlowhpdetection::CanDetect(true, 74, false, []() { return false; }) &&
                                      !mobcontrollerlowhpdetection::CanDetect(true, 75, true, []() { return true; }) &&
                                      !mobcontrollerlowhpdetection::CanDetect(false, 74, true, [&]() { lowHPCallbackCalled = true; return true; }) &&
