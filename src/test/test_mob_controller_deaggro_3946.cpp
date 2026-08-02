@@ -143,6 +143,7 @@
 #include "map/ai/controllers/trust_controller_noncombat_movement_capacity.h"
 #include "map/ai/controllers/trust_controller_noncombat_movement_dispatch_capacity.h"
 #include "map/ai/controllers/trust_controller_combat_movement_capacity.h"
+#include "map/ai/controllers/trust_controller_despawn_capacity.h"
 #include "map/ai/controllers/player_charm_controller_roam_capacity.h"
 #include "map/ai/controllers/player_charm_controller_combat_capacity.h"
 #include "map/ai/controllers/player_charm_controller_tick_capacity.h"
@@ -807,6 +808,17 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                              trustcontrollertick::Resolve(true, false, false, false, true, false) == Route::Combat &&
                              trustcontrollertick::Resolve(true, false, false, false, false, false) == Route::Roam &&
                              trustcontrollertick::Resolve(true, false, false, false, false, true) == Route::None;
+    std::vector<int> trustDespawnCalls;
+    trustcontrollerdespawn::Apply(
+        [&]() { trustDespawnCalls.push_back(1); },
+        [&]() { trustDespawnCalls.push_back(2); },
+        [&]() { trustDespawnCalls.push_back(3); });
+    const bool trustDespawnOK = trustDespawnCalls == std::vector<int>{ 1, 2, 3 };
+    if (!trustDespawnOK)
+    {
+        std::cerr << "trust controller despawn self-test failed\n";
+        return false;
+    }
     const bool trustTargetSyncOK = ShouldSync(true, true, 1, 0) &&
                                    !ShouldSync(false, true, 1, 0) &&
                                    !ShouldSync(true, false, 1, 0) &&

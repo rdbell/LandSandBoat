@@ -30,6 +30,7 @@
 #include "trust_controller_combat_master_engagement_capacity.h"
 #include "trust_controller_combat_post_movement_capacity.h"
 #include "trust_controller_combat_warp_admission_capacity.h"
+#include "trust_controller_despawn_capacity.h"
 #include "trust_controller_master_enmity_capacity.h"
 #include "trust_controller_melee_path_result_capacity.h"
 #include "trust_controller_target_sync_admission_capacity.h"
@@ -117,9 +118,10 @@ CTrustController::~CTrustController()
 
 void CTrustController::Despawn()
 {
-    POwner->PMaster   = nullptr;
-    POwner->animation = ANIMATION_DESPAWN;
-    CMobController::Despawn();
+    trustcontrollerdespawn::Apply(
+        [&]() { POwner->PMaster = nullptr; },
+        [&]() { POwner->animation = ANIMATION_DESPAWN; },
+        [&]() { CMobController::Despawn(); });
 }
 
 auto CTrustController::Tick(timer::time_point tick) -> Task<void>
