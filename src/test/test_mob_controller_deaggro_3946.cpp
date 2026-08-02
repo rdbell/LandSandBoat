@@ -1774,6 +1774,8 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
         position_t{ 0.0f, 8.0f, 0.0f, 9, 42 }, position_t{ 10.0f, 3.0f, 0.0f, 8, 7 });
     const auto mobOverlapNearPoint = mobcontrolleroverlaprepositionpoint::Destination(
         position_t{ 0.0f, 8.0f, 0.0f, 9, 64 }, position_t{ 0.0f, 3.0f, 0.0f, 8, 7 });
+    const auto mobOverlapWrappedPoint = mobcontrolleroverlaprepositionpoint::Destination(
+        position_t{ 0.0f, 8.0f, 0.0f, 9, 255 }, position_t{ 0.0f, 3.0f, 0.0f, 8, 7 });
     const bool mobOverlapRepositionPointOK = std::abs(mobOverlapPoint.x) < 0.001f &&
                                               std::abs(mobOverlapPoint.y - 3.0f) < 0.001f &&
                                               std::abs(mobOverlapPoint.z - 1.5f) < 0.001f &&
@@ -1781,7 +1783,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                               std::abs(mobOverlapNearPoint.x - 1.5f) < 0.001f &&
                                               std::abs(mobOverlapNearPoint.y - 3.0f) < 0.001f &&
                                               std::abs(mobOverlapNearPoint.z) < 0.001f &&
-                                              mobOverlapNearPoint.moving == 0 && mobOverlapNearPoint.rotation == 0;
+                                              mobOverlapNearPoint.moving == 0 && mobOverlapNearPoint.rotation == 0 &&
+                                              std::abs(mobOverlapWrappedPoint.x + 0.0368f) < 0.001f &&
+                                              std::abs(mobOverlapWrappedPoint.y - 3.0f) < 0.001f &&
+                                              std::abs(mobOverlapWrappedPoint.z - 1.4995f) < 0.001f &&
+                                              mobOverlapWrappedPoint.moving == 0 && mobOverlapWrappedPoint.rotation == 0;
     if (!mobOverlapRepositionPointOK)
     {
         std::cerr << "mob overlap-reposition point self-test failed\n";
