@@ -915,6 +915,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                          trustcontrollernoncombatmovement::Resolve(9.0f, 3.0f) == trustcontrollernoncombatmovement::Action::Step &&
                                          trustcontrollernoncombatmovement::Resolve(10.0f, 3.0f) == trustcontrollernoncombatmovement::Action::Step &&
                                          trustcontrollernoncombatmovement::Resolve(30.0f, 3.0f) == trustcontrollernoncombatmovement::Action::Step &&
+                                         trustcontrollernoncombatmovement::Resolve(31.0f, 20.0f) == trustcontrollernoncombatmovement::Action::Warp &&
                                          trustcontrollernoncombatmovement::Resolve(30.1f, 3.0f) == trustcontrollernoncombatmovement::Action::Warp &&
                                          trustcontrollernoncombatmovement::Resolve(8.9f, 3.0f) == trustcontrollernoncombatmovement::Action::Path;
     bool trustNonCombatDispatchSpeedChecked = false;
