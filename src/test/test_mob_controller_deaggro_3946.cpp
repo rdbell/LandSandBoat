@@ -871,6 +871,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                       !trustcontrollerrangedattack::CanStart(std::chrono::seconds(3), true, std::chrono::seconds(3), false) &&
                                       !trustcontrollerrangedattack::CanStart(std::chrono::seconds(11), false, std::chrono::seconds(0), true);
     const bool trustCastCoordinationOK = !trustcontrollercastcoordination::CanCast(true, false, false, false, 1, 10, 1, 11, false, 0) &&
+                                         !trustcontrollercastcoordination::CanCast(true, false, false, false, 1, 11, 1, 11, false, 0) &&
                                          trustcontrollercastcoordination::CanCast(true, false, false, false, 1, 12, 1, 11, false, 0) &&
                                          !trustcontrollercastcoordination::CanCast(false, true, false, false, 0, 0, 0, 0, true, 51) &&
                                          trustcontrollercastcoordination::CanCast(false, true, false, false, 0, 0, 0, 0, true, 50) &&
