@@ -1280,8 +1280,10 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
         mobcontrollerdisengageroamschedule::Schedule(disengageRoamTick, std::chrono::seconds(5)) == base + std::chrono::seconds(25);
     const auto noIdleDespawn = mobcontrolleridledespawn::Resolve(0);
     const auto idleDespawn = mobcontrolleridledespawn::Resolve(60);
+    const auto negativeIdleDespawn = mobcontrolleridledespawn::Resolve(-1);
     const bool mobIdleDespawnOK = !noIdleDespawn.shouldSet && noIdleDespawn.duration == std::chrono::seconds(0) &&
-                                  idleDespawn.shouldSet && idleDespawn.duration == std::chrono::seconds(60);
+                                  idleDespawn.shouldSet && idleDespawn.duration == std::chrono::seconds(60) &&
+                                  negativeIdleDespawn.shouldSet && negativeIdleDespawn.duration == std::chrono::seconds(-1);
     const auto engageDelayTick = base + std::chrono::seconds(20);
     const bool mobEngageDelayOK =
         mobcontrollerengagedelay::ScheduleMagic(engageDelayTick, std::chrono::seconds(0), std::chrono::seconds(0)) == engageDelayTick &&
