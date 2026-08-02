@@ -1367,8 +1367,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                       !mobcontrollerambushdetection::CanDetect(true, 2.9f, true) &&
                                       !mobcontrollerambushdetection::CanDetect(false, 2.9f, false);
     bool sightCallbackCalled = false;
+    bool sightMeleeCallbackCalled = false;
     const bool mobSightDetectionOK = mobcontrollersightdetection::CanDetect(true, false, 9.9f, 10.0f, true, true, []() { return false; }) &&
                                      mobcontrollersightdetection::CanDetect(true, false, 9.9f, 10.0f, true, false, []() { return true; }) &&
+                                     mobcontrollersightdetection::CanDetect(true, false, 9.9f, 10.0f, true, true, [&]() { sightMeleeCallbackCalled = true; return false; }) &&
+                                     !sightMeleeCallbackCalled &&
                                      !mobcontrollersightdetection::CanDetect(true, false, 9.9f, 10.0f, true, false, []() { return false; }) &&
                                      !mobcontrollersightdetection::CanDetect(true, true, 9.9f, 10.0f, true, true, []() { return true; }) &&
                                      !mobcontrollersightdetection::CanDetect(true, false, 10.0f, 10.0f, true, true, []() { return true; }) &&
