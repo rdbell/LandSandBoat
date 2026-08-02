@@ -13,7 +13,10 @@ auto runTargetfindRadius3924SelfTests() -> bool
                     IsWithinRadius(origin, position_t{ 3.0f, 0.0f, 4.0f, 0, 0 }, 5.0f) &&
                     IsWithinRadius(origin, position_t{ 0.0f, 3.0f, 4.0f, 0, 0 }, 5.0f) &&
                     !IsWithinRadius(origin, position_t{ 3.0f, 0.0f, 4.0f, 0, 0 }, 4.9f) &&
-                    !IsWithinRadius(origin, position_t{ 0.0f, 0.0f, 0.0f, 0, 0 }, -1.0f);
+                    !IsWithinRadius(origin, position_t{ 0.0f, 0.0f, 0.0f, 0, 0 }, -1.0f) &&
+                    !IsWithinRadius(origin,
+                                    position_t{ 6179.25146484375f, -5063.8037109375f, 2342.068603515625f, 0, 0 },
+                                    8325.294921875f);
     if (!ok)
     {
         std::cerr << "targetfind radius 3924 self-test failed\n";
