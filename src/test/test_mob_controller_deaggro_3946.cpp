@@ -377,14 +377,18 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                   !CanCastSpells(true, false, false, false, false, true, false, false) &&
                                   CanCastSpells(true, false, false, false, false, true, true, false);
     const auto baseRange = Resolve(5, 0, false, 0, 0);
+    const auto nonPositiveSkillRange = Resolve(5, -1, false, 0, 0);
     const auto skillRange = Resolve(5, 9, false, 0, 0);
     const auto rangedRange = Resolve(5, 9, true, 20, 0);
     const auto offsetRange = Resolve(5, 0, false, 0, 15);
+    const auto negativeOffsetRange = Resolve(5, 0, false, 0, -10);
     const auto clampedRange = Resolve(1, 0, false, 0, 20);
     const bool moveRangeOK = baseRange.attackRange == 5 && baseRange.closeDistance == 4.6f &&
+                             nonPositiveSkillRange.attackRange == 5 && nonPositiveSkillRange.closeDistance == 4.6f &&
                              skillRange.attackRange == 9 && skillRange.closeDistance == 8.6f &&
                              rangedRange.attackRange == 20 && rangedRange.closeDistance == 19.6f &&
-                             offsetRange.closeDistance == 3.5f && clampedRange.closeDistance == 0;
+                             offsetRange.closeDistance == 3.5f && negativeOffsetRange.closeDistance == 6.0f &&
+                             clampedRange.closeDistance == 0;
     const bool targetValidityOK = ShouldDeaggroNoTarget(false, true) && !ShouldDeaggroNoTarget(false, false) &&
                                   !TargetInvalid(true, true, false, true, true, true, true, true, true, true) &&
                                   TargetInvalid(false, true, false, true, true, true, true, true, true, true) &&
