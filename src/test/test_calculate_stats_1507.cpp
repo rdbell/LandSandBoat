@@ -92,6 +92,11 @@ auto Check() -> bool
     {
         return false;
     }
+    // uint8_t promotes before subtraction, so zero still contributes -1.
+    if (!nearly(ComposeSubJobHP(10, 1, 0.5f, 0, 0, 0), 4.5f))
+    {
+        return false;
+    }
     if (FinalMaxHP(100, 200, 30, 50, 10) != 390)
     {
         return false;
@@ -101,6 +106,10 @@ auto Check() -> bool
         return false;
     }
     if (!nearly(ComposeSubJobMP(10, 2, 11, 2.0f), (10 + 20) / 2.0f))
+    {
+        return false;
+    }
+    if (!nearly(ComposeSubJobMP(10, 2, 0, 2.0f), 4.0f))
     {
         return false;
     }
@@ -122,6 +131,10 @@ auto Check() -> bool
         return false;
     }
     if (!nearly(ComposeSubJobStat(10, 2, 11), (10 + 20) / 2.0f))
+    {
+        return false;
+    }
+    if (!nearly(ComposeSubJobStat(10, 2, 0), 4.0f))
     {
         return false;
     }
