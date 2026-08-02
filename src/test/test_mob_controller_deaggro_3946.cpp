@@ -1358,7 +1358,8 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
         mobcontrollermobskilllistroute::Resolve(true, -1) == mobcontrollermobskilllistroute::Route::Explicit &&
         mobcontrollermobskilllistroute::Resolve(true, 0) == mobcontrollermobskilllistroute::Route::Modifier;
     const bool mobSkillOverrideOK = mobcontrollermobskilloverride::Resolve(42, 0) == 42 &&
-                                    mobcontrollermobskilloverride::Resolve(42, 99) == 99;
+                                    mobcontrollermobskilloverride::Resolve(42, 99) == 99 &&
+                                    mobcontrollermobskilloverride::Resolve(42, 65535) == 65535;
     const bool mobSkillDefinitionOK = mobcontrollermobskilldefinition::IsDefined(true) &&
                                       !mobcontrollermobskilldefinition::IsDefined(false);
     const bool mobAmbushDetectionOK = mobcontrollerambushdetection::CanDetect(true, 2.9f, false) &&
