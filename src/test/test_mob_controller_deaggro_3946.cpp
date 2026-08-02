@@ -1355,6 +1355,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool mobSkillListRouteOK =
         mobcontrollermobskilllistroute::Resolve(false, 42) == mobcontrollermobskilllistroute::Route::Reject &&
         mobcontrollermobskilllistroute::Resolve(true, 42) == mobcontrollermobskilllistroute::Route::Explicit &&
+        mobcontrollermobskilllistroute::Resolve(true, -1) == mobcontrollermobskilllistroute::Route::Explicit &&
         mobcontrollermobskilllistroute::Resolve(true, 0) == mobcontrollermobskilllistroute::Route::Modifier;
     const bool mobSkillOverrideOK = mobcontrollermobskilloverride::Resolve(42, 0) == 42 &&
                                     mobcontrollermobskilloverride::Resolve(42, 99) == 99;
