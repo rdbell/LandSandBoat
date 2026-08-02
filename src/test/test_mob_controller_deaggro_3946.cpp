@@ -1379,8 +1379,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                      !mobcontrollersightdetection::CanDetect(false, false, 9.9f, 10.0f, true, true, [&]() { sightCallbackCalled = true; return true; }) &&
                                      !sightCallbackCalled;
     bool hearingCallbackCalled = false;
+    bool hearingMeleeCallbackCalled = false;
     const bool mobHearingDetectionOK = mobcontrollerhearingdetection::CanDetect(true, 9.9f, 10.0f, false, true, []() { return false; }) &&
                                        mobcontrollerhearingdetection::CanDetect(true, 9.9f, 10.0f, false, false, []() { return true; }) &&
+                                       mobcontrollerhearingdetection::CanDetect(true, 9.9f, 10.0f, false, true, [&]() { hearingMeleeCallbackCalled = true; return false; }) &&
+                                       !hearingMeleeCallbackCalled &&
                                        !mobcontrollerhearingdetection::CanDetect(true, 9.9f, 10.0f, false, false, []() { return false; }) &&
                                        !mobcontrollerhearingdetection::CanDetect(true, 9.9f, 10.0f, true, true, []() { return true; }) &&
                                        !mobcontrollerhearingdetection::CanDetect(true, 10.0f, 10.0f, false, true, []() { return true; }) &&
