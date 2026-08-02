@@ -51,7 +51,8 @@ auto runZanshin1400SelfTests() -> bool
     hassoChecks = rollChecks = 0;
     ok = expect(run(ResolutionHit, ReactionCounter, 40, false, false, { 39 }, hassoChecks, rollChecks).normal, "counter eligible") && ok;
     hassoChecks = rollChecks = 0;
-    ok = expect(run(ResolutionHit, 0, 40, true, true, { 9 }, hassoChecks, rollChecks).hasso, "Hasso hit proc") && ok;
+    const auto hassoOnly = run(ResolutionHit, 0, 40, true, true, { 9 }, hassoChecks, rollChecks);
+    ok = expect(hassoOnly == ProcResult{ false, true } && hassoOnly.addSwing(), "Hasso-only add swing") && ok;
     hassoChecks = rollChecks = 0;
     ok = expect(!run(1, 0, 0, false, false, { 0 }, hassoChecks, rollChecks).addSwing() && rollChecks == 1, "zero chance still rolls") && ok;
 
