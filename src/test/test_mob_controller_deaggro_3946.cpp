@@ -1319,6 +1319,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool mobRoamResetFacingOK = !mobcontrollerroamresetfacing::ShouldReset(false, 1.0f, 2.0f) &&
                                       mobcontrollerroamresetfacing::ShouldReset(true, 1.0f, 2.0f) &&
                                       mobcontrollerroamresetfacing::ShouldReset(true, 2.0f, 2.0f) &&
+                                      mobcontrollerroamresetfacing::ShouldReset(true, 0.100000002f, 0.1f) &&
                                       !mobcontrollerroamresetfacing::ShouldReset(true, 2.1f, 2.0f);
     const bool mobWormEmergenceOK = mobcontrollerwormemergence::ShouldEmerge(true, true) &&
                                     !mobcontrollerwormemergence::ShouldEmerge(false, true) &&
