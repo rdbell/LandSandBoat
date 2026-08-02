@@ -1390,8 +1390,11 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                        !mobcontrollerhearingdetection::CanDetect(false, 9.9f, 10.0f, false, true, [&]() { hearingCallbackCalled = true; return true; }) &&
                                        !hearingCallbackCalled;
     bool magicCallbackCalled = false;
+    bool magicMeleeCallbackCalled = false;
     const bool mobMagicDetectionOK = mobcontrollermagicdetection::CanDetect(true, 9.9f, 10.0f, true, []() { return true; }, []() { return false; }) &&
                                      mobcontrollermagicdetection::CanDetect(true, 9.9f, 10.0f, false, []() { return true; }, []() { return true; }) &&
+                                     mobcontrollermagicdetection::CanDetect(true, 9.9f, 10.0f, true, []() { return true; }, [&]() { magicMeleeCallbackCalled = true; return false; }) &&
+                                     !magicMeleeCallbackCalled &&
                                      !mobcontrollermagicdetection::CanDetect(true, 9.9f, 10.0f, false, []() { return true; }, []() { return false; }) &&
                                      !mobcontrollermagicdetection::CanDetect(true, 9.9f, 10.0f, true, []() { return false; }, []() { return true; }) &&
                                      !mobcontrollermagicdetection::CanDetect(true, 10.0f, 10.0f, true, []() { return true; }, []() { return true; }) &&
