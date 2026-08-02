@@ -788,6 +788,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                     Item(true, true, false).dispatch && !Item(false, true, false).dispatch && !Item(true, true, true).dispatch;
     const bool playerAbilityGateOK = playercontrollerabilitygate::Evaluate(true, true, true, false, false).dispatch &&
                                      playercontrollerabilitygate::Evaluate(false, true, true, false, false).error == AbilityError::Unable &&
+                                     playercontrollerabilitygate::Evaluate(true, false, true, false, false).error == AbilityError::Unable &&
                                      playercontrollerabilitygate::Evaluate(true, true, false, false, false).error == AbilityError::Unable &&
                                      playercontrollerabilitygate::Evaluate(true, true, true, true, false).error == AbilityError::Recast &&
                                      !playercontrollerabilitygate::Evaluate(true, true, true, false, true).dispatch;
