@@ -3,6 +3,7 @@
 #include "map/add_mod_list_capacity.h"
 
 #include <iostream>
+#include <limits>
 #include <unordered_map>
 #include <vector>
 
@@ -51,6 +52,12 @@ auto runAddModList1692SelfTests() -> bool
     ok = expect(ApplyAddToValue(-10, -4) == -14, "AddToValue both neg") && ok;
     ok = expect(ApplyAddToValue(-20, 20) == 0, "AddToValue to zero") && ok;
     ok = expect(ApplyAddToValue(0, 7) == 7, "AddToValue from zero") && ok;
+    ok = expect(ApplyAddToValue(std::numeric_limits<std::int16_t>::max(), 1) == std::numeric_limits<std::int16_t>::min(),
+                "AddToValue positive int16 wrap") &&
+         ok;
+    ok = expect(ApplyAddToValue(std::numeric_limits<std::int16_t>::min(), -1) == std::numeric_limits<std::int16_t>::max(),
+                "AddToValue negative int16 wrap") &&
+         ok;
 
     // --- Empty list is a pure copy ---
     {
