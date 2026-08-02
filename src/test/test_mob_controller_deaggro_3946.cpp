@@ -864,6 +864,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                  trustcontrollerrecovery::Resolve(true, true, std::chrono::seconds(16), std::chrono::seconds(16), std::chrono::seconds(11), 1).nextHealingTick == 2 &&
                                  !trustcontrollerrecovery::Resolve(true, false, std::chrono::seconds(16), std::chrono::seconds(16), std::chrono::seconds(16), 2).recover &&
                                  trustcontrollerrecovery::Resolve(true, true, std::chrono::seconds(16), std::chrono::seconds(16), std::chrono::seconds(4), 3).nextHealingTick == 3 &&
+                                 trustcontrollerrecovery::Resolve(true, true, std::chrono::seconds(16), std::chrono::seconds(16), std::chrono::seconds(4), 256).nextHealingTick == 3 &&
                                  trustcontrollerrecovery::Amount(101) == 5;
     const bool trustRangedAttackOK = trustcontrollerrangedattack::CanStart(std::chrono::seconds(10) + std::chrono::nanoseconds(1), false, std::chrono::seconds(0), false) &&
                                       !trustcontrollerrangedattack::CanStart(std::chrono::seconds(10), false, std::chrono::seconds(0), false) &&
