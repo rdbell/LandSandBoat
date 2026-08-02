@@ -91,7 +91,8 @@ auto Check() -> bool
     {
         return false;
     }
-    if (!nearly(ApplySkillUpRateMod(0.4, 50), 0.6))
+    if (!nearly(ApplySkillUpRateMod(0.4, 50), 0.6) ||
+        !nearly(ApplySkillUpRateMod(0.37, 1), 0.37 * static_cast<double>((100.0f + 1.0f) / 100.0f)))
     {
         return false;
     }
@@ -204,11 +205,12 @@ auto Check() -> bool
     {
         return false;
     }
-    if (CapSkillAmountToCeiling(5, 990, 1000) != 5 || CapSkillAmountToCeiling(20, 990, 1000) != 10)
+    if (CapSkillAmountToCeiling(5, 990, 1000) != 5 || CapSkillAmountToCeiling(20, 990, 1000) != 10 ||
+        CapSkillAmountToCeiling(255, 65535, 65535) != 0)
     {
         return false;
     }
-    if (!HitsSkillCap(20, 990, 1000) || HitsSkillCap(3, 100, 1000))
+    if (!HitsSkillCap(20, 990, 1000) || HitsSkillCap(3, 100, 1000) || !HitsSkillCap(255, 65535, 65535))
     {
         return false;
     }
@@ -233,7 +235,7 @@ auto Check() -> bool
         return false;
     }
     // (99/10=9) < ((99+2)/10=10); (90/10=9) < ((90+5)/10=9) is false; (100/10=10) < ((100+10)/10=11)
-    if (!CrossedSkillLevel(99, 2) || CrossedSkillLevel(90, 5) || !CrossedSkillLevel(100, 10))
+    if (!CrossedSkillLevel(99, 2) || CrossedSkillLevel(90, 5) || !CrossedSkillLevel(100, 10) || !CrossedSkillLevel(65530, 10))
     {
         return false;
     }
