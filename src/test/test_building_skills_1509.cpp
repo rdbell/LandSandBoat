@@ -68,7 +68,7 @@ auto Check() -> bool
     {
         return false;
     }
-    if (!ShouldSetCraftBlueFlag(2, 300) || ShouldSetCraftBlueFlag(2, 299))
+    if (!ShouldSetCraftBlueFlag(2, 300) || ShouldSetCraftBlueFlag(2, 299) || ShouldSetCraftBlueFlag(255, 100))
     {
         return false;
     }
