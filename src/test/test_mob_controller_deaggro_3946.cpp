@@ -1957,6 +1957,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
         return false;
     }
     const bool automatonHealingMasterDistanceOK = automatoncontrollerhealingmasterdistance::ShouldMeasureDistance(true, 51, 50, 50.0f) &&
+                                                  automatoncontrollerhealingmasterdistance::ShouldMeasureDistance(true, 51, 50, 50.5f) &&
                                                   !automatoncontrollerhealingmasterdistance::ShouldMeasureDistance(false, 51, 50, 50.0f) &&
                                                   !automatoncontrollerhealingmasterdistance::ShouldMeasureDistance(true, 50, 50, 50.0f) &&
                                                   !automatoncontrollerhealingmasterdistance::ShouldMeasureDistance(true, 51, 51, 50.0f);
