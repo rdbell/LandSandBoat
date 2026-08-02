@@ -782,10 +782,12 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                  RemainingSeconds(recastBase + std::chrono::seconds(10), recastBase + std::chrono::seconds(5), std::chrono::seconds(1), std::chrono::seconds(2), 1) == 6 &&
                                  RemainingSeconds(recastBase + std::chrono::seconds(10), recastBase + std::chrono::seconds(5), std::chrono::seconds(1), std::chrono::seconds(2), 3) == 2 &&
                                  RemainingSeconds(recastBase + std::chrono::seconds(1), recastBase + std::chrono::seconds(5), std::chrono::seconds(0), std::chrono::seconds(0), 0) == 0;
-    const bool playerActionGateOK = Cast(true, false, false).dispatch && Cast(true, true, false).error == ActionError::Unable &&
-                                    !Cast(true, false, true).dispatch && Ranged(true, true, false).dispatch &&
-                                    Ranged(false, true, false).error == ActionError::WaitLonger && !Ranged(true, true, true).dispatch &&
-                                    Item(true, true, false).dispatch && !Item(false, true, false).dispatch && !Item(true, true, true).dispatch;
+    const bool playerActionGateOK = Cast(true, false, false).dispatch && Cast(false, false, false).error == ActionError::Unable &&
+                                    Cast(true, true, false).error == ActionError::Unable && !Cast(true, false, true).dispatch &&
+                                    Ranged(true, true, false).dispatch && Ranged(false, true, false).error == ActionError::WaitLonger &&
+                                    Ranged(true, false, false).error == ActionError::WaitLonger && !Ranged(true, true, true).dispatch &&
+                                    Item(true, true, false).dispatch && !Item(false, true, false).dispatch && !Item(true, false, false).dispatch &&
+                                    !Item(true, true, true).dispatch;
     const bool playerAbilityGateOK = playercontrollerabilitygate::Evaluate(true, true, true, false, false).dispatch &&
                                      playercontrollerabilitygate::Evaluate(false, true, true, false, false).error == AbilityError::Unable &&
                                      playercontrollerabilitygate::Evaluate(true, false, true, false, false).error == AbilityError::Unable &&
