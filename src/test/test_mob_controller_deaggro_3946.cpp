@@ -1189,6 +1189,8 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                                          false, skillchainStart, skillchainStart + std::chrono::seconds(4)) &&
                                                      !automatoncontrollertpskillchainresonancegate::CanUseResonance(
                                                          true, skillchainStart, skillchainStart + std::chrono::seconds(3)) &&
+                                                     automatoncontrollertpskillchainresonancegate::CanUseResonance(
+                                                         true, skillchainStart, skillchainStart + std::chrono::seconds(3) + std::chrono::milliseconds(1)) &&
                                                      !automatoncontrollertpskillchainresonancegate::CanUseResonance(
                                                          true, skillchainStart, skillchainStart + std::chrono::seconds(2));
     const auto automatonResonanceProperties = automatoncontrollertpskillchainresonanceproperties::Decode(0xABCD);
