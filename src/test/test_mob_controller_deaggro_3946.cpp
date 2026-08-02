@@ -425,6 +425,14 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
                                                   []() { return true; },
                                                   []() { return true; },
                                                   true);
+    int targetValiditySameBattleCallbacks = 0;
+    const bool targetValiditySameBattleOrderOK = TargetInvalidWithChecks(
+                                                    true, false, true, true, true,
+                                                    [&]() { ++targetValiditySameBattleCallbacks; return true; },
+                                                    [&]() { ++targetValiditySameBattleCallbacks; return true; },
+                                                    [&]() { ++targetValiditySameBattleCallbacks; return true; },
+                                                    false) &&
+                                                targetValiditySameBattleCallbacks == 3;
     const bool deaggroRetargetOK = mobcontrollerdeaggroretarget::Resolve(true) == mobcontrollerdeaggroretarget::Action::Replacement &&
                                    mobcontrollerdeaggroretarget::Resolve(false) == mobcontrollerdeaggroretarget::Action::Clear;
     bool avatarOwnershipCalled = false;
@@ -2540,7 +2548,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
         std::cerr << "detection check-order self-test failed\n";
         return false;
     }
-    if (!targetValidityCheckOrderOK)
+    if (!targetValidityCheckOrderOK || !targetValiditySameBattleOrderOK)
     {
         std::cerr << "target-validity check-order self-test failed\n";
         return false;
