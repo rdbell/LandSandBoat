@@ -4,6 +4,7 @@
 #include "map/knockback_capacity.h"
 #include "map/magic_aoe_capacity.h"
 
+#include <array>
 #include <iostream>
 
 namespace
@@ -106,10 +107,23 @@ auto Check() -> bool
         return false;
     }
 
-    if (knockbackhelpers::Calculate(5, 0) != 5 || knockbackhelpers::Calculate(5, 2) != 3 ||
-        knockbackhelpers::Calculate(1, 5) != 0 || knockbackhelpers::Calculate(10, 0) != knockbackhelpers::Level7)
+    const std::array knockbackCases{
+        std::array{ 5, 0, 5 },
+        std::array{ 7, 0, knockbackhelpers::Level7 },
+        std::array{ 5, 2, 3 },
+        std::array{ 5, 5, knockbackhelpers::LevelNone },
+        std::array{ 5, 8, knockbackhelpers::LevelNone },
+        std::array{ 10, 3, knockbackhelpers::Level7 },
+        std::array{ 3, -2, 5 },
+        std::array{ 0, -8, knockbackhelpers::Level7 },
+        std::array{ -1, 0, knockbackhelpers::LevelNone },
+    };
+    for (const auto& [skillKnockback, reductionMod, expected] : knockbackCases)
     {
-        return false;
+        if (knockbackhelpers::Calculate(skillKnockback, reductionMod) != expected)
+        {
+            return false;
+        }
     }
     return true;
 }
