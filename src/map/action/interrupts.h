@@ -47,6 +47,21 @@ auto RangedInterruptAction(uint32 actorId) -> action_t;
 // MobSkillNoTargetInRange.
 auto MobSkillNoTargetInRangeAction(uint32 actorId) -> action_t;
 
+// AvatarOutOfRangeAction builds the first BATTLE2 action emitted when an
+// avatar pet skill's target is out of range. Packet delivery remains owned by
+// AvatarOutOfRange.
+auto AvatarOutOfRangeAction(uint32 actorId, uint32 targetId, const CPetSkill* PSkill) -> action_t;
+
+// WyvernOutOfRangeAction builds the first BATTLE2 action emitted when a
+// wyvern pet skill's target is out of range. Packet delivery remains owned by
+// WyvernOutOfRange.
+auto WyvernOutOfRangeAction(uint32 actorId, uint32 targetId, const CPetSkill* PSkill) -> action_t;
+
+// PetSkillInterruptAction builds the final BATTLE2 action emitted after a
+// pet skill is interrupted. Packet delivery remains owned by the public
+// pet-skill interruption helpers.
+auto PetSkillInterruptAction(uint32 actorId) -> action_t;
+
 // OutOfRangeAction builds the BATTLE2 action emitted when a mob or weapon
 // skill's target is out of range. Packet delivery remains owned by the public
 // interruption helpers.

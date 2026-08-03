@@ -27,6 +27,34 @@
 namespace ActionInterrupts
 {
 
+namespace
+{
+
+auto petSkillOutOfRangeAction(const uint32 actorId, const uint32 targetId, const CPetSkill* PSkill, const ActionResolution resolution) -> action_t
+{
+    const auto skillID = PSkill->getMobSkillID() > 0 ? PSkill->getMobSkillID() : PSkill->getID();
+
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::MagicFinish,
+        .targets    = {
+            {
+                .actorId = targetId,
+                .results = {
+                    {
+                        .resolution = resolution,
+                        .animation  = ActionAnimation::SkillInterrupt,
+                        .param      = skillID,
+                        .messageID  = MsgBasic::TooFarAwayRed,
+                    },
+                },
+            },
+        },
+    };
+}
+
+} // namespace
+
 auto detail::AbilityInterruptAction(const uint32 actorId) -> action_t
 {
     return {
@@ -77,6 +105,35 @@ auto detail::MobSkillNoTargetInRangeAction(const uint32 actorId) -> action_t
                     {
                         .animation = ActionAnimation::SkillInterrupt,
                         .messageID = MsgBasic::NoTargetInAreaOfEffect,
+                    },
+                },
+            },
+        },
+    };
+}
+
+auto detail::AvatarOutOfRangeAction(const uint32 actorId, const uint32 targetId, const CPetSkill* PSkill) -> action_t
+{
+    return petSkillOutOfRangeAction(actorId, targetId, PSkill, ActionResolution::Hit);
+}
+
+auto detail::WyvernOutOfRangeAction(const uint32 actorId, const uint32 targetId, const CPetSkill* PSkill) -> action_t
+{
+    return petSkillOutOfRangeAction(actorId, targetId, PSkill, ActionResolution::Miss);
+}
+
+auto detail::PetSkillInterruptAction(const uint32 actorId) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::SkillStart,
+        .actionid   = static_cast<uint32_t>(FourCC::SkillInterrupt),
+        .targets    = {
+            {
+                .actorId = actorId,
+                .results = {
+                    {
+                        .animation = ActionAnimation::SkillInterrupt,
                     },
                 },
             },
@@ -285,39 +342,10 @@ void AvatarOutOfRange(CBattleEntity* PAvatar, const CPetSkill* PSkill, const CBa
     // - 2. SKILL_USE with SKILL_INTERRUPT animation and no message
 
     // 1. Build the MAGIC_FINISH packet
-    auto magicFinishAction = action_t{
-        .actorId    = PAvatar->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .targets    = {
-            {
-                .actorId = PTarget->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .param     = PSkill->getMobSkillID() > 0 ? PSkill->getMobSkillID() : PSkill->getID(),
-                        .messageID = MsgBasic::TooFarAwayRed,
-                    },
-                },
-            },
-        },
-    };
+    auto magicFinishAction = detail::AvatarOutOfRangeAction(PAvatar->id, PTarget->id, PSkill);
 
     // 2. Skill start packet with skill interrupt FourCC
-    auto interruptAction = action_t{
-        .actorId    = PAvatar->id,
-        .actiontype = ActionCategory::SkillStart,
-        .actionid   = static_cast<uint32_t>(FourCC::SkillInterrupt),
-        .targets    = {
-            {
-                .actorId = PAvatar->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                    },
-                },
-            },
-        }
-    };
+    auto interruptAction = detail::PetSkillInterruptAction(PAvatar->id);
 
     PAvatar->loc.zone->PushPacket(PAvatar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicFinishAction));
     PAvatar->loc.zone->PushPacket(PAvatar, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(interruptAction));
@@ -330,40 +358,10 @@ void WyvernOutOfRange(CBattleEntity* PWyvern, const CPetSkill* PSkill, const CBa
     // - 2. SKILL_USE with SKILL_INTERRUPT
 
     // 1. Build the MAGIC_FINISH packet
-    auto magicFinishAction = action_t{
-        .actorId    = PWyvern->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .targets    = {
-            {
-                .actorId = PTarget->id,
-                .results = {
-                    {
-                        .resolution = ActionResolution::Miss,
-                        .animation  = ActionAnimation::SkillInterrupt,
-                        .param      = PSkill->getMobSkillID() > 0 ? PSkill->getMobSkillID() : PSkill->getID(),
-                        .messageID  = MsgBasic::TooFarAwayRed,
-                    },
-                },
-            },
-        },
-    };
+    auto magicFinishAction = detail::WyvernOutOfRangeAction(PWyvern->id, PTarget->id, PSkill);
 
     // 2. Build the final SKILL_USE
-    auto interruptAction = action_t{
-        .actorId    = PWyvern->id,
-        .actiontype = ActionCategory::SkillStart,
-        .actionid   = static_cast<uint32_t>(FourCC::SkillInterrupt),
-        .targets    = {
-            {
-                .actorId = PWyvern->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                    },
-                },
-            },
-        },
-    };
+    auto interruptAction = detail::PetSkillInterruptAction(PWyvern->id);
 
     PWyvern->loc.zone->PushPacket(PWyvern, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicFinishAction));
     PWyvern->loc.zone->PushPacket(PWyvern, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(interruptAction));
