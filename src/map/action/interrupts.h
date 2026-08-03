@@ -67,6 +67,20 @@ auto RangedParalyzedAction(uint32 actorId) -> action_t;
 // by the public helper.
 auto AbilityParalyzedAction(uint32 actorId, uint32 targetId) -> action_t;
 
+// MagicInterruptAction builds the BATTLE2 action emitted when a spell is
+// interrupted before its finish action. Packet delivery remains owned by
+// MagicInterrupt.
+auto MagicInterruptAction(uint32 actorId, uint16 spellId, FourCC interruptID) -> action_t;
+
+// MagicStatusFinishAction builds the first BATTLE2 action emitted when a
+// spell is interrupted by a status effect. Packet delivery remains owned by
+// MagicParalyzed and MagicIntimidated.
+auto MagicStatusFinishAction(uint32 actorId, uint32 targetId, uint16 spellId, MsgBasic messageID) -> action_t;
+
+// MagicStopCastAction builds the stop-cast BATTLE2 action emitted after a
+// status interruption. Packet delivery remains owned by the public helper.
+auto MagicStopCastAction(uint32 actorId, uint16 spellId, FourCC interruptID, timer::duration recast) -> action_t;
+
 } // namespace detail
 
 void AbilityInterrupt(CBattleEntity* PEntity);

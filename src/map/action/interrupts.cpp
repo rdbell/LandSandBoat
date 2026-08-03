@@ -160,6 +160,67 @@ auto detail::AbilityParalyzedAction(const uint32 actorId, const uint32 targetId)
     };
 }
 
+auto detail::MagicInterruptAction(const uint32 actorId, const uint16 spellId, const FourCC interruptID) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::MagicStart,
+        .actionid   = static_cast<uint32_t>(interruptID),
+        .targets    = {
+            {
+                .actorId = actorId,
+                .results = {
+                    {
+                        .param = static_cast<int32_t>(spellId),
+                    },
+                },
+            },
+        },
+    };
+}
+
+auto detail::MagicStatusFinishAction(const uint32 actorId, const uint32 targetId, const uint16 spellId, const MsgBasic messageID) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::MagicFinish,
+        .actionid   = static_cast<uint32_t>(spellId),
+        .recast     = 2s,
+        .targets    = {
+            {
+                .actorId = targetId,
+                .results = {
+                    {
+                        .animation = ActionAnimation::SkillInterrupt,
+                        .messageID = messageID,
+                    },
+                },
+            },
+        },
+    };
+}
+
+auto detail::MagicStopCastAction(const uint32 actorId, const uint16 spellId, const FourCC interruptID, const timer::duration recast) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::MagicStart,
+        .actionid   = static_cast<uint32_t>(interruptID),
+        .recast     = recast,
+        .targets    = {
+            {
+                .actorId = actorId,
+                .results = {
+                    {
+                        .animation = ActionAnimation::SkillInterrupt,
+                        .param     = static_cast<int32_t>(spellId),
+                    },
+                },
+            },
+        },
+    };
+}
+
 void AvatarOutOfRange(CBattleEntity* PAvatar, const CPetSkill* PSkill, const CBattleEntity* PTarget)
 {
     // Avatars using BP against an enemy out of range use a specific set of BATTLE2 packets:
@@ -302,61 +363,19 @@ void RangedParalyzed(CBattleEntity* PEntity)
 
 void MagicInterrupt(CBattleEntity* PEntity, CSpell* PSpell)
 {
-    auto interruptAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicStart,
-        .actionid   = static_cast<uint32_t>(PSpell->getFourCC(true)),
-        .targets    = {
-            {
-                .actorId = PEntity->id,
-                .results = {
-                    {
-                        .param = static_cast<int32_t>(PSpell->getID()),
-                    },
-                },
-            },
-        },
-    };
+    auto interruptAction = detail::MagicInterruptAction(
+        PEntity->id,
+        static_cast<uint16>(PSpell->getID()),
+        PSpell->getFourCC(true));
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(interruptAction));
 }
 
 void MagicParalyzed(CBattleEntity* PEntity, CSpell* PSpell, const CBattleEntity* PTarget)
 {
-    auto interruptedAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .actionid   = static_cast<uint16>(PSpell->getID()),
-        .recast     = 2s,
-        .targets    = {
-            {
-                .actorId = PTarget->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .messageID = MsgBasic::IsParalyzed2,
-                    },
-                },
-            },
-        }
-    };
-
-    auto stopCastAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicStart,
-        .actionid   = static_cast<uint32_t>(PSpell->getFourCC(true)),
-        .targets    = {
-            {
-                .actorId = PEntity->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .param     = static_cast<int32_t>(PSpell->getID()),
-                    },
-                },
-            },
-        },
-    };
+    const auto spellID           = static_cast<uint16>(PSpell->getID());
+    auto       interruptedAction = detail::MagicStatusFinishAction(PEntity->id, PTarget->id, spellID, MsgBasic::IsParalyzed2);
+    auto       stopCastAction    = detail::MagicStopCastAction(PEntity->id, spellID, PSpell->getFourCC(true), 0s);
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(interruptedAction));
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(stopCastAction));
@@ -364,41 +383,9 @@ void MagicParalyzed(CBattleEntity* PEntity, CSpell* PSpell, const CBattleEntity*
 
 void MagicIntimidated(CBattleEntity* PEntity, CSpell* PSpell, const CBattleEntity* PTarget)
 {
-    auto magicFinishAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .actionid   = static_cast<uint32_t>(PSpell->getID()),
-        .recast     = 2s,
-        .targets    = {
-            {
-                .actorId = PTarget->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .messageID = MsgBasic::IsIntimidated,
-                    },
-                },
-            },
-        },
-    };
-
-    auto magicInterrupt = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicStart,
-        .actionid   = static_cast<uint32_t>(PSpell->getFourCC(true)),
-        .recast     = 2s,
-        .targets    = {
-            {
-                .actorId = PEntity->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .param     = static_cast<int32_t>(PSpell->getID()),
-                    },
-                },
-            },
-        },
-    };
+    const auto spellID           = static_cast<uint16>(PSpell->getID());
+    auto       magicFinishAction = detail::MagicStatusFinishAction(PEntity->id, PTarget->id, spellID, MsgBasic::IsIntimidated);
+    auto       magicInterrupt    = detail::MagicStopCastAction(PEntity->id, spellID, PSpell->getFourCC(true), 2s);
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicFinishAction));
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicInterrupt));
