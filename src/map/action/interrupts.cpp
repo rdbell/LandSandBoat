@@ -215,21 +215,7 @@ void WyvernOutOfRange(CBattleEntity* PWyvern, const CPetSkill* PSkill, const CBa
 
 void WyvernSkillReady(CBattleEntity* PWyvern)
 {
-    auto skillUseAction = action_t{
-        .actorId    = PWyvern->id,
-        .actiontype = ActionCategory::SkillStart,
-        .actionid   = static_cast<uint32_t>(FourCC::SkillInterrupt),
-        .targets    = {
-            {
-                .actorId = PWyvern->id,
-                .results = {
-                    {
-                        // Empty result
-                    },
-                },
-            },
-        }
-    };
+    auto skillUseAction = detail::AbilityInterruptAction(PWyvern->id);
 
     PWyvern->loc.zone->PushPacket(PWyvern, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(skillUseAction));
 }
