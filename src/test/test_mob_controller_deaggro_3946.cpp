@@ -2189,6 +2189,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool petFollowDistanceOK = petcontrollerfollowdistance::ShouldHold(0.0f) &&
                                      petcontrollerfollowdistance::ShouldHold(2.09f) &&
                                      petcontrollerfollowdistance::ShouldHold(2.1f) &&
+                                     !petcontrollerfollowdistance::ShouldHold(2.1000001f) &&
                                      !petcontrollerfollowdistance::ShouldHold(2.11f);
 
     const bool scentOK = CanPursueByScent(true, false, true, false, false) &&
