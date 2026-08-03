@@ -140,10 +140,19 @@ auto CheckInitial() -> bool
 
 auto CheckAdjust() -> bool
 {
-    if (!charabilityrecasthelpers::IsRewardRecastHead(15157) ||
-        charabilityrecasthelpers::IsRewardRecastHead(1))
+    for (const auto itemID : { 15157u, 15158u, 16104u, 16105u })
     {
-        return false;
+        if (!charabilityrecasthelpers::IsRewardRecastHead(itemID))
+        {
+            return false;
+        }
+    }
+    for (const auto itemID : { 0u, 1u, 15156u, 15159u, 16103u, 16106u, 65535u })
+    {
+        if (charabilityrecasthelpers::IsRewardRecastHead(itemID))
+        {
+            return false;
+        }
     }
     if (AdjustPostParalysis(30, charabilityrecasthelpers::AbilityReward, true, 0) != 20)
     {
