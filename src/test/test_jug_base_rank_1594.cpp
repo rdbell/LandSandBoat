@@ -48,8 +48,18 @@ auto Check() -> bool
     {
         return false;
     }
+    if (JugBase(2, 50) != 147 || JugBase(3, 50) != 142 || JugBase(4, 50) != 136 ||
+        JugBase(5, 50) != 126 || JugBase(6, 50) != 120 || JugBase(7, 50) != 115)
+    {
+        return false;
+    }
     // L51 high band: rank1 = 153 + 1*5 = 158
     if (JugBase(1, 51) != 158)
+    {
+        return false;
+    }
+    if (JugBase(2, 51) != 151 || JugBase(3, 51) != 140 || JugBase(4, 51) != 130 ||
+        JugBase(5, 51) != 120 || JugBase(6, 51) != 110 || JugBase(7, 51) != 100)
     {
         return false;
     }
@@ -63,7 +73,12 @@ auto Check() -> bool
     {
         return false;
     }
-    if (JugBase(0, 50) != 0 || JugBase(8, 50) != 0)
+    if (JugBase(1, 0) != 6 || JugBase(2, 0) != 5 || JugBase(3, 0) != 5 || JugBase(4, 0) != 4 ||
+        JugBase(5, 0) != 4 || JugBase(6, 0) != 3 || JugBase(7, 0) != 3)
+    {
+        return false;
+    }
+    if (JugBase(0, 50) != 0 || JugBase(8, 50) != 0 || JugBase(0, 51) != 0 || JugBase(8, 51) != 0)
     {
         return false;
     }
