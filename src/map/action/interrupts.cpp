@@ -84,6 +84,25 @@ auto detail::MobSkillNoTargetInRangeAction(const uint32 actorId) -> action_t
     };
 }
 
+auto detail::OutOfRangeAction(const uint32 actorId, const uint32 targetId) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::MagicFinish,
+        .targets    = {
+            {
+                .actorId = targetId,
+                .results = {
+                    {
+                        .animation = ActionAnimation::SkillInterrupt,
+                        .messageID = MsgBasic::TooFarAway,
+                    },
+                },
+            },
+        },
+    };
+}
+
 void AvatarOutOfRange(CBattleEntity* PAvatar, const CPetSkill* PSkill, const CBattleEntity* PTarget)
 {
     // Avatars using BP against an enemy out of range use a specific set of BATTLE2 packets:
@@ -219,42 +238,14 @@ void MobSkillNoTargetInRange(CBattleEntity* PEntity)
 
 void MobSkillOutOfRange(CBattleEntity* PEntity, const CBattleEntity* PTarget)
 {
-    auto magicFinishAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .targets    = {
-            {
-                .actorId = PTarget->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .messageID = MsgBasic::TooFarAway,
-                    },
-                },
-            },
-        },
-    };
+    auto magicFinishAction = detail::OutOfRangeAction(PEntity->id, PTarget->id);
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicFinishAction));
 }
 
 void WeaponSkillOutOfRange(CBattleEntity* PEntity, const CBattleEntity* PTarget)
 {
-    auto magicFinishAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .targets    = {
-            {
-                .actorId = PTarget->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .messageID = MsgBasic::TooFarAway,
-                    },
-                },
-            },
-        },
-    };
+    auto magicFinishAction = detail::OutOfRangeAction(PEntity->id, PTarget->id);
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicFinishAction));
 }

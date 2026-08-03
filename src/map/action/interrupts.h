@@ -47,6 +47,11 @@ auto RangedInterruptAction(uint32 actorId) -> action_t;
 // MobSkillNoTargetInRange.
 auto MobSkillNoTargetInRangeAction(uint32 actorId) -> action_t;
 
+// OutOfRangeAction builds the BATTLE2 action emitted when a mob or weapon
+// skill's target is out of range. Packet delivery remains owned by the public
+// interruption helpers.
+auto OutOfRangeAction(uint32 actorId, uint32 targetId) -> action_t;
+
 } // namespace detail
 
 void AbilityInterrupt(CBattleEntity* PEntity);
