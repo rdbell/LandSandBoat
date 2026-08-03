@@ -38,13 +38,30 @@ auto Check() -> bool
     {
         return false;
     }
+    // LSB preserves negative intermediate TP rather than flooring at zero.
+    if (CalculateWeaponSkillTP(100, 0, true, false, 250, 0, 0, false, 0) != -150)
+    {
+        return false;
+    }
     if (!FencerEligible(true, false, false, false, false, 0, false))
     {
         return false;
     }
+    if (FencerEligible(false, false, false, false, false, 0, false))
+    {
+        return false; // no main-hand weapon
+    }
     if (FencerEligible(true, true, false, false, false, 0, false))
     {
         return false; // two-handed
+    }
+    if (FencerEligible(true, false, true, false, false, 0, false))
+    {
+        return false; // hand-to-hand
+    }
+    if (!FencerEligible(true, false, false, true, false, 0, true))
+    {
+        return false; // shield
     }
     if (!FencerEligible(true, false, false, true, true, 0, false))
     {
@@ -53,6 +70,10 @@ auto Check() -> bool
     if (FencerEligible(true, false, false, true, true, 1, false))
     {
         return false; // real offhand weapon
+    }
+    if (FencerEligible(true, false, false, true, false, 0, false))
+    {
+        return false; // non-weapon, non-shield offhand
     }
     return true;
 }
