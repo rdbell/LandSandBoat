@@ -1725,6 +1725,8 @@ set(SOURCES
     test_physical_hit_rate_1571.cpp
     test_pdif_1572.h
     test_pdif_1572.cpp
+    test_pdif_7989.h
+    test_pdif_7989.cpp
     test_level_correction_1574.h
     test_level_correction_1574.cpp
     test_anticipate_seigan_1575.h

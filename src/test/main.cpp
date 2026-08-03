@@ -949,6 +949,7 @@ auto runMagicalSpellTP1568SelfTests() -> bool;
 auto runSkillchainDamage1570SelfTests() -> bool;
 auto runPhysicalHitRate1571SelfTests() -> bool;
 auto runPDIF1572SelfTests() -> bool;
+auto runPDIF7989SelfTests() -> bool;
 auto runLevelCorrection1574SelfTests() -> bool;
 auto runAnticipateSeigan1575SelfTests() -> bool;
 auto runAttuner1576SelfTests() -> bool;
@@ -3572,6 +3573,7 @@ namespace
         ok = runSkillchainDamage1570SelfTests() && ok;
         ok = runPhysicalHitRate1571SelfTests() && ok;
         ok = runPDIF1572SelfTests() && ok;
+        ok = runPDIF7989SelfTests() && ok;
         ok = runLevelCorrection1574SelfTests() && ok;
         ok = runAnticipateSeigan1575SelfTests() && ok;
         ok = runAttuner1576SelfTests() && ok;
