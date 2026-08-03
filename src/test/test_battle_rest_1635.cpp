@@ -15,6 +15,8 @@ auto runBattleRest1635SelfTests() -> bool
     ok = ok && ResolveResourcePercent(1, 1000) == 1; // floor would be 0.1 → max(1,0)=1
     ok = ok && ResolveResourcePercent(100, 100) == 100;
     ok = ok && ResolveResourcePercent(10, 0) == 0;
+    // Preserve the float32 intermediate: float64 arithmetic floors 57.999... to 57.
+    ok = ok && ResolveResourcePercent(29, 50) == 58;
 
     ok = ok && CanRest(false, false);
     ok = ok && !CanRest(true, false);
