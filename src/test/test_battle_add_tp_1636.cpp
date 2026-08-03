@@ -42,6 +42,12 @@ auto runBattleAddTP1636SelfTests() -> bool
         ok           = ok && r.newTP == 3000 && r.returnedAbsDelta == 200;
     }
     {
+        // LSB narrows currentTP + scaledTP to int16 before clamping:
+        // 3000 + 32767 → -29769 → 0, not 3000.
+        const auto r = ResolveAddTP(3000, 32767);
+        ok           = ok && r.newTP == 0 && r.returnedAbsDelta == 3000 && r.setUpdateHP;
+    }
+    {
         // floor at 0: 100 + (-200) → 0, abs(100-0)=100
         const auto r = ResolveAddTP(100, -200);
         ok           = ok && r.newTP == 0 && r.returnedAbsDelta == 100 && r.setUpdateHP;
