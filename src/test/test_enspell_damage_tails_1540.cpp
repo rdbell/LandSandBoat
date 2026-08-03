@@ -15,6 +15,7 @@ using enspelldamagetailshelpers::EnspellBonusFromExclude;
 using enspelldamagetailshelpers::EnspellDamageMultiplier;
 using enspelldamagetailshelpers::EnspellDayWeatherBonus;
 using enspelldamagetailshelpers::EnspellNonWeaponPct;
+using enspelldamagetailshelpers::EnspellPctApplicable;
 using enspelldamagetailshelpers::EnspellResistLadder;
 using enspelldamagetailshelpers::EnspellRuneDPS;
 using enspelldamagetailshelpers::EnspellRuneMinMax;
@@ -68,7 +69,15 @@ auto Check() -> bool
     {
         return false;
     }
+    if (ApplyEnspellDamageMultiplier(1, EnspellDamageMultiplier(18, 82, true)) != 4)
+    {
+        return false;
+    }
     if (ApplyEnspellDamageMultiplier(10, 3.3f) != 33)
+    {
+        return false;
+    }
+    if (EnspellPctApplicable(30, 12) != 18)
     {
         return false;
     }
