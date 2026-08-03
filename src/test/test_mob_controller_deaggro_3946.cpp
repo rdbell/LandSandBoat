@@ -2181,6 +2181,7 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     const bool petFollowPathOK = petcontrollerfollowpath::ShouldRecalculate(false, 0.0f) &&
                                  petcontrollerfollowpath::ShouldRecalculate(true, 2.01f) &&
                                  !petcontrollerfollowpath::ShouldRecalculate(true, 2.0f) &&
+                                 petcontrollerfollowpath::ShouldRecalculate(true, 2.0000002f) &&
                                  !petcontrollerfollowpath::ShouldRecalculate(true, 1.99f);
     const bool petPathFallbackOK = petcontrollerpathfallback::ShouldWarp(false, false) &&
                                    !petcontrollerpathfallback::ShouldWarp(true, false) &&
