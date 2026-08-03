@@ -52,6 +52,11 @@ auto MobSkillNoTargetInRangeAction(uint32 actorId) -> action_t;
 // interruption helpers.
 auto OutOfRangeAction(uint32 actorId, uint32 targetId) -> action_t;
 
+// AttackInterruptAction builds the BATTLE2 action emitted when an attack is
+// interrupted by a status effect. Packet delivery remains owned by the public
+// interruption helpers.
+auto AttackInterruptAction(uint32 actorId, uint32 targetId, MsgBasic messageID) -> action_t;
+
 } // namespace detail
 
 void AbilityInterrupt(CBattleEntity* PEntity);

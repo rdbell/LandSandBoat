@@ -103,6 +103,25 @@ auto detail::OutOfRangeAction(const uint32 actorId, const uint32 targetId) -> ac
     };
 }
 
+auto detail::AttackInterruptAction(const uint32 actorId, const uint32 targetId, const MsgBasic messageID) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::MagicFinish,
+        .targets    = {
+            {
+                .actorId = targetId,
+                .results = {
+                    {
+                        .animation = ActionAnimation::SkillInterrupt,
+                        .messageID = messageID,
+                    },
+                },
+            },
+        },
+    };
+}
+
 void AvatarOutOfRange(CBattleEntity* PAvatar, const CPetSkill* PSkill, const CBattleEntity* PTarget)
 {
     // Avatars using BP against an enemy out of range use a specific set of BATTLE2 packets:
@@ -378,42 +397,14 @@ void MagicIntimidated(CBattleEntity* PEntity, CSpell* PSpell, const CBattleEntit
 
 void AttackParalyzed(CBattleEntity* PEntity, const CBattleEntity* PTarget)
 {
-    auto magicFinishSelfAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .targets    = {
-            {
-                .actorId = PTarget->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .messageID = MsgBasic::IsParalyzed2,
-                    },
-                },
-            },
-        },
-    };
+    auto magicFinishSelfAction = detail::AttackInterruptAction(PEntity->id, PTarget->id, MsgBasic::IsParalyzed2);
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicFinishSelfAction));
 }
 
 void AttackIntimidated(CBattleEntity* PEntity, const CBattleEntity* PTarget)
 {
-    auto magicFinishAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .targets    = {
-            {
-                .actorId = PTarget->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .messageID = MsgBasic::IsIntimidated,
-                    },
-                },
-            },
-        },
-    };
+    auto magicFinishAction = detail::AttackInterruptAction(PEntity->id, PTarget->id, MsgBasic::IsIntimidated);
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicFinishAction));
 }

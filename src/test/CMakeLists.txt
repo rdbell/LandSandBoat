@@ -48,6 +48,8 @@ set(SOURCES
     test_action_interrupt_2637.cpp
     test_action_interrupt_7980.h
     test_action_interrupt_7980.cpp
+    test_action_interrupt_7981.h
+    test_action_interrupt_7981.cpp
     test_item_dump_2635.h
     test_item_dump_2635.cpp
     test_conquest_data_2620.h
