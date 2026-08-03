@@ -22,6 +22,22 @@ auto Check() -> bool
         return false;
     }
 
+    // uint16_t promotes to int before the subtraction and multiplication.
+    constexpr std::uint16_t maxLevel = 0xFFFF;
+    if (GetBaseToRank(1, 0) != 5 || GetBaseToRank(2, 0) != 4 || GetBaseToRank(3, 0) != 4 ||
+        GetBaseToRank(4, 0) != 3 || GetBaseToRank(5, 0) != 3 || GetBaseToRank(6, 0) != 2 ||
+        GetBaseToRank(7, 0) != 2)
+    {
+        return false;
+    }
+    if (GetBaseToRank(1, maxLevel) != 32772 || GetBaseToRank(2, maxLevel) != 29494 ||
+        GetBaseToRank(3, maxLevel) != 26217 || GetBaseToRank(4, maxLevel) != 22939 ||
+        GetBaseToRank(5, maxLevel) != 19663 || GetBaseToRank(6, maxLevel) != 16385 ||
+        GetBaseToRank(7, maxLevel) != 13108)
+    {
+        return false;
+    }
+
     // JugBase low band L1 rank1 = 6
     if (JugBase(1, 1) != 6 || JugBase(7, 1) != 3)
     {
