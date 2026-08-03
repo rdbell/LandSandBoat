@@ -22,6 +22,16 @@ auto Check() -> bool
     {
         return false;
     }
+    if (ApplyMPMultiplier(1000, 1.5f) != 1500 || ApplyMPMultiplier(1000, 0.05f) != 1000)
+    {
+        return false;
+    }
+    if (!JobGivesMP(JobPLD) || !JobGivesMP(JobWHM) || !JobGivesMP(JobBLM) || !JobGivesMP(JobRDM) ||
+        !JobGivesMP(JobDRK) || !JobGivesMP(JobBLU) || !JobGivesMP(JobSCH) || !JobGivesMP(JobSMN) ||
+        JobGivesMP(0) || JobGivesMP(1) || JobGivesMP(255))
+    {
+        return false;
+    }
     if (!JobHasMP(JobWHM, 1) || !JobHasMP(1, JobBLM) || JobHasMP(1, 2))
     {
         return false;
