@@ -18,7 +18,9 @@ using spikeshelpers::SpikesEquipRatio;
 using spikeshelpers::SpikesPacketParam;
 using spikeshelpers::SpikesPath;
 using spikeshelpers::ShouldCallOnSpikesDamage;
+using spikeshelpers::ShouldClaimOnSpikeKill;
 using spikeshelpers::ShouldRunSpellSpikeSwitch;
+using spikeshelpers::ParrySpikesActive;
 
 auto Check() -> bool
 {
@@ -79,6 +81,14 @@ auto Check() -> bool
         return false;
     }
     if (!ItemSubEffectIsSpikeType(6) || ItemSubEffectIsSpikeType(7))
+    {
+        return false;
+    }
+    if (!ShouldClaimOnSpikeKill(true) || ShouldClaimOnSpikeKill(false))
+    {
+        return false;
+    }
+    if (!ParrySpikesActive(false) || ParrySpikesActive(true))
     {
         return false;
     }
