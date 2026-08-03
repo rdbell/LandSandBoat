@@ -7,9 +7,14 @@
 namespace
 {
 using weathermatcheshelpers::ElementDark;
+using weathermatcheshelpers::ElementEarth;
 using weathermatcheshelpers::ElementFire;
+using weathermatcheshelpers::ElementIce;
+using weathermatcheshelpers::ElementLight;
 using weathermatcheshelpers::ElementNone;
+using weathermatcheshelpers::ElementThunder;
 using weathermatcheshelpers::ElementWater;
+using weathermatcheshelpers::ElementWind;
 using weathermatcheshelpers::WeatherMatchesElement;
 
 auto Check() -> bool
@@ -18,7 +23,14 @@ auto Check() -> bool
     {
         return false;
     }
-    if (!WeatherMatchesElement(Weather::HotSpell, ElementFire) || !WeatherMatchesElement(Weather::HeatWave, ElementFire))
+    if (!WeatherMatchesElement(Weather::HotSpell, ElementFire) || !WeatherMatchesElement(Weather::HeatWave, ElementFire) ||
+        !WeatherMatchesElement(Weather::Snow, ElementIce) || !WeatherMatchesElement(Weather::Blizzards, ElementIce) ||
+        !WeatherMatchesElement(Weather::Wind, ElementWind) || !WeatherMatchesElement(Weather::Gales, ElementWind) ||
+        !WeatherMatchesElement(Weather::DustStorm, ElementEarth) || !WeatherMatchesElement(Weather::SandStorm, ElementEarth) ||
+        !WeatherMatchesElement(Weather::Thunder, ElementThunder) ||
+        !WeatherMatchesElement(Weather::Thunderstorms, ElementThunder) ||
+        !WeatherMatchesElement(Weather::Auroras, ElementLight) ||
+        !WeatherMatchesElement(Weather::StellarGlare, ElementLight))
     {
         return false;
     }
@@ -35,6 +47,10 @@ auto Check() -> bool
         return false;
     }
     if (WeatherMatchesElement(Weather::HotSpell, 99))
+    {
+        return false;
+    }
+    if (WeatherMatchesElement(static_cast<Weather>(255), ElementDark))
     {
         return false;
     }
