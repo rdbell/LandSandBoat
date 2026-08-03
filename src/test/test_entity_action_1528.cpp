@@ -17,6 +17,7 @@ using entityactionhelpers::RangedAccuracyBonuses;
 using entityactionhelpers::RangedAttackBonuses;
 using entityactionhelpers::RangedDelayReduction;
 using entityactionhelpers::ShouldApplyAbsorbedMP;
+using entityactionhelpers::ShouldSearchCoverParty;
 using entityactionhelpers::ShouldStandUpPet;
 using entityactionhelpers::ShouldTurnTowardsTarget;
 using entityactionhelpers::StandUpAction;
@@ -82,6 +83,10 @@ auto Check() -> bool
     }
 
     if (!IsMagicCovered(true, 1) || IsMagicCovered(false, 1) || IsMagicCovered(true, 0))
+    {
+        return false;
+    }
+    if (!ShouldSearchCoverParty(true) || ShouldSearchCoverParty(false))
     {
         return false;
     }
