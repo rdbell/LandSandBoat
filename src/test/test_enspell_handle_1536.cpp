@@ -159,6 +159,10 @@ auto Check() -> bool
     {
         return false;
     }
+    if (BloodWeaponAbsorbed(5, true, 10) != 5)
+    {
+        return false;
+    }
     if (!ShouldRewriteAddEffectToRecoverHP(MsgAddEffectDamage, -5))
     {
         return false;
