@@ -11,11 +11,12 @@ using namespace petweapondamagehelpers;
 auto Check() -> bool
 {
     // Wyvern L75 → 40
-    if (WyvernWeaponDamage(75) != 40 || WyvernWeaponDamage(1) != 3)
+    if (WyvernWeaponDamage(0) != 3 || WyvernWeaponDamage(1) != 3 || WyvernWeaponDamage(2) != 4 ||
+        WyvernWeaponDamage(3) != 4 || WyvernWeaponDamage(75) != 40 || WyvernWeaponDamage(255) != 130)
     {
         return false;
     }
-    if (WyvernWeaponDamageWithRating(75, 2) != 42)
+    if (WyvernWeaponDamageWithRating(75, 2) != 42 || WyvernWeaponDamageWithRating(1, -5) != -2)
     {
         return false;
     }
@@ -31,6 +32,10 @@ auto Check() -> bool
     }
     // Jug L10: 10 * (1.4 - 0.1) truncates to 12 (same as Go)
     if (JugWeaponDamage(10.0f) != 12)
+    {
+        return false;
+    }
+    if (JugWeaponDamage(10.5f) != 13 || JugWeaponDamageWithRating(10.5f, -2) != 11)
     {
         return false;
     }
