@@ -453,6 +453,7 @@ auto runActionInterrupt2637SelfTests() -> bool;
 auto runActionInterrupt7980SelfTests() -> bool;
 auto runActionInterrupt7981SelfTests() -> bool;
 auto runActionInterrupt7983SelfTests() -> bool;
+auto runActionInterrupt7984SelfTests() -> bool;
 auto runItemDump2635SelfTests() -> bool;
 auto runFishingContestState2623SelfTests() -> bool;
 auto runFishingContestRanking2642SelfTests() -> bool;
@@ -3072,6 +3073,7 @@ namespace
         ok = runActionInterrupt7980SelfTests() && ok;
         ok = runActionInterrupt7981SelfTests() && ok;
         ok = runActionInterrupt7983SelfTests() && ok;
+        ok = runActionInterrupt7984SelfTests() && ok;
         ok = runItemDump2635SelfTests() && ok;
         ok = runFishingContestState2623SelfTests() && ok;
         ok = runFishingContestRanking2642SelfTests() && ok;

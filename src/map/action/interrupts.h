@@ -62,6 +62,11 @@ auto AttackInterruptAction(uint32 actorId, uint32 targetId, MsgBasic messageID) 
 // first packet and packet delivery remains owned by the public helper.
 auto RangedParalyzedAction(uint32 actorId) -> action_t;
 
+// AbilityParalyzedAction builds one of the ordered BATTLE2 actions emitted
+// when an ability is interrupted by paralysis. Packet delivery remains owned
+// by the public helper.
+auto AbilityParalyzedAction(uint32 actorId, uint32 targetId) -> action_t;
+
 } // namespace detail
 
 void AbilityInterrupt(CBattleEntity* PEntity);

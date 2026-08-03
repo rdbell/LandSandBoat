@@ -141,6 +141,25 @@ auto detail::RangedParalyzedAction(const uint32 actorId) -> action_t
     };
 }
 
+auto detail::AbilityParalyzedAction(const uint32 actorId, const uint32 targetId) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::MagicFinish,
+        .targets    = {
+            {
+                .actorId = targetId,
+                .results = {
+                    {
+                        .animation = ActionAnimation::SkillInterrupt,
+                        .messageID = MsgBasic::IsParalyzed2,
+                    },
+                },
+            },
+        },
+    };
+}
+
 void AvatarOutOfRange(CBattleEntity* PAvatar, const CPetSkill* PSkill, const CBattleEntity* PTarget)
 {
     // Avatars using BP against an enemy out of range use a specific set of BATTLE2 packets:
@@ -401,39 +420,8 @@ void AttackIntimidated(CBattleEntity* PEntity, const CBattleEntity* PTarget)
 
 void AbilityParalyzed(CBattleEntity* PEntity, const CBattleEntity* PTarget)
 {
-    // 1. Generic MagicFinish with Paralyzed message
-    auto magicFinishSelfAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .targets    = {
-            {
-                .actorId = PEntity->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .messageID = MsgBasic::IsParalyzed2,
-                    },
-                },
-            },
-        },
-    };
-
-    // 2. Generic MagicFinish with Paralyzed message
-    auto magicFinishTargetAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .targets    = {
-            {
-                .actorId = PTarget->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .messageID = MsgBasic::IsParalyzed2,
-                    },
-                },
-            },
-        },
-    };
+    auto magicFinishSelfAction   = detail::AbilityParalyzedAction(PEntity->id, PEntity->id);
+    auto magicFinishTargetAction = detail::AbilityParalyzedAction(PEntity->id, PTarget->id);
 
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicFinishSelfAction));
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(magicFinishTargetAction));
