@@ -122,6 +122,25 @@ auto detail::AttackInterruptAction(const uint32 actorId, const uint32 targetId, 
     };
 }
 
+auto detail::RangedParalyzedAction(const uint32 actorId) -> action_t
+{
+    return {
+        .actorId    = actorId,
+        .actiontype = ActionCategory::MagicFinish,
+        .targets    = {
+            {
+                .actorId = actorId,
+                .results = {
+                    {
+                        .animation = ActionAnimation::SkillInterrupt,
+                        .messageID = MsgBasic::IsParalyzed2,
+                    },
+                },
+            },
+        },
+    };
+}
+
 void AvatarOutOfRange(CBattleEntity* PAvatar, const CPetSkill* PSkill, const CBattleEntity* PTarget)
 {
     // Avatars using BP against an enemy out of range use a specific set of BATTLE2 packets:
@@ -257,23 +276,8 @@ void WeaponSkillOutOfRange(CBattleEntity* PEntity, const CBattleEntity* PTarget)
 
 void RangedParalyzed(CBattleEntity* PEntity)
 {
-    auto paralyzeAction = action_t{
-        .actorId    = PEntity->id,
-        .actiontype = ActionCategory::MagicFinish,
-        .targets    = {
-            {
-                .actorId = PEntity->id,
-                .results = {
-                    {
-                        .animation = ActionAnimation::SkillInterrupt,
-                        .messageID = MsgBasic::IsParalyzed2,
-                    },
-                },
-            },
-        },
-    };
-
     RangedInterrupt(PEntity);
+    auto paralyzeAction = detail::RangedParalyzedAction(PEntity->id);
     PEntity->loc.zone->PushPacket(PEntity, CHAR_INRANGE_SELF, std::make_unique<GP_SERV_COMMAND_BATTLE2>(paralyzeAction));
 }
 

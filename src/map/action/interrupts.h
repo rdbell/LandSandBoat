@@ -57,6 +57,11 @@ auto OutOfRangeAction(uint32 actorId, uint32 targetId) -> action_t;
 // interruption helpers.
 auto AttackInterruptAction(uint32 actorId, uint32 targetId, MsgBasic messageID) -> action_t;
 
+// RangedParalyzedAction builds the second BATTLE2 action emitted when a
+// ranged attack is interrupted by paralysis. RangedInterrupt remains the
+// first packet and packet delivery remains owned by the public helper.
+auto RangedParalyzedAction(uint32 actorId) -> action_t;
+
 } // namespace detail
 
 void AbilityInterrupt(CBattleEntity* PEntity);
