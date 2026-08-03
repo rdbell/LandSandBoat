@@ -27,6 +27,15 @@ auto Check() -> bool
         return false;
     }
 
+    // uint8 job-scale operands are promoted before addition in the C++
+    // formula. These cases pin the non-wrapping behavior at the upper input
+    // boundary for both jobScale + 5 and jobScale + 6.
+    if (CalculateBaseMobHP(2, 0, 255, 0) != 260 || CalculateBaseMobHP(31, 0, 255, 0) != 7942 ||
+        CalculateBaseMobHP(32, 0, 255, 0) != 8266)
+    {
+        return false;
+    }
+
     if (CalculateSubjobHP(20, 6, 1) != 0 || CalculateSubjobHP(25, 6, 1) != 15)
     {
         return false;
