@@ -81,6 +81,20 @@ auto MagicStatusFinishAction(uint32 actorId, uint32 targetId, uint16 spellId, Ms
 // status interruption. Packet delivery remains owned by the public helper.
 auto MagicStopCastAction(uint32 actorId, uint16 spellId, FourCC interruptID, timer::duration recast) -> action_t;
 
+// ItemInterruptAction builds the BATTLE2 action emitted when an item use is
+// interrupted before completion. Packet delivery remains owned by
+// ItemInterrupt.
+auto ItemInterruptAction(uint32 actorId) -> action_t;
+
+// ItemStatusFinishAction builds the first BATTLE2 action emitted when an item
+// use is interrupted by a status effect. Packet delivery remains owned by
+// ItemParalyzed and ItemIntimidated.
+auto ItemStatusFinishAction(uint32 actorId, uint32 targetId, MsgBasic messageID) -> action_t;
+
+// ItemStopAction builds the item-cancel BATTLE2 action emitted after a status
+// interruption. Packet delivery remains owned by the public helper.
+auto ItemStopAction(uint32 actorId) -> action_t;
+
 } // namespace detail
 
 void AbilityInterrupt(CBattleEntity* PEntity);
