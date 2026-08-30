@@ -25,6 +25,7 @@
 #include <common/lua.h>
 #include <common/tracy.h>
 #include <map/utils/charutils.h>
+#include <test/omega_self_test_registry.h>
 
 #include <cstdlib>
 #include <iostream>
@@ -841,7 +842,6 @@ auto runSynthDone7077SelfTests() -> bool;
 auto runSynthStart7078SelfTests() -> bool;
 auto runSynthRecipeResolve7079SelfTests() -> bool;
 auto runSynthRecipeLoad7080SelfTests() -> bool;
-auto runSynthRecipeSkillValue8059SelfTests() -> bool;
 auto runSynthDifficulty7081SelfTests() -> bool;
 auto runSynthResult7082SelfTests() -> bool;
 auto runDesynthResult7083SelfTests() -> bool;
@@ -1546,7 +1546,6 @@ auto runZoneRejectInvalidWeather3019SelfTests() -> bool;
 auto runZoneScentWeather6247SelfTests() -> bool;
 auto runZoneEntityUpdateRouting6248SelfTests() -> bool;
 auto runZoneNearbySpawn6249SelfTests() -> bool;
-auto runZoneForEachChar8060SelfTests() -> bool;
 auto runMobPartyLink6250SelfTests() -> bool;
 auto runZoneWideScan6251SelfTests() -> bool;
 auto runZonePacketBroadcast6252SelfTests() -> bool;
@@ -3467,7 +3466,6 @@ namespace
         ok = runSynthStart7078SelfTests() && ok;
         ok = runSynthRecipeResolve7079SelfTests() && ok;
         ok = runSynthRecipeLoad7080SelfTests() && ok;
-        ok = runSynthRecipeSkillValue8059SelfTests() && ok;
         ok = runSynthDifficulty7081SelfTests() && ok;
         ok = runSynthResult7082SelfTests() && ok;
         ok = runDesynthResult7083SelfTests() && ok;
@@ -4164,7 +4162,6 @@ namespace
         ok = runZoneScentWeather6247SelfTests() && ok;
         ok = runZoneEntityUpdateRouting6248SelfTests() && ok;
         ok = runZoneNearbySpawn6249SelfTests() && ok;
-        ok = runZoneForEachChar8060SelfTests() && ok;
         ok = runMobPartyLink6250SelfTests() && ok;
         ok = runZoneWideScan6251SelfTests() && ok;
         ok = runZonePacketBroadcast6252SelfTests() && ok;
@@ -5321,9 +5318,21 @@ int main(int argc, char** argv)
 
     const auto success = testApp->run();
 
-    charutils::SetCharacterPersistenceSuppressedForTests(true);
-    const auto omegaSelfTestsSuccess = runOmegaSelfTests();
-    charutils::SetCharacterPersistenceSuppressedForTests(false);
+    bool omegaSelfTestsSuccess = true;
+    if (!testApp->args().get<bool>("--skip-omega-self-tests"))
+    {
+        charutils::SetCharacterPersistenceSuppressedForTests(true);
+        const auto filters = testApp->args().get<std::vector<std::string>>("--omega-self-test");
+        if (filters.empty())
+        {
+            omegaSelfTestsSuccess = runOmegaSelfTests() && omega::selftest::Run({});
+        }
+        else
+        {
+            omegaSelfTestsSuccess = omega::selftest::Run(filters);
+        }
+        charutils::SetCharacterPersistenceSuppressedForTests(false);
+    }
 
     const auto exitCode = success && omegaSelfTestsSuccess ? EXIT_SUCCESS : EXIT_FAILURE;
 

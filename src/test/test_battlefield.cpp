@@ -1,4 +1,5 @@
 #include "test_battlefield.h"
+#include "omega_self_test_registry.h"
 
 #include "common/mmo.h"
 #include "common/timer.h"
@@ -134,5 +135,7 @@ auto testRemainingTime() -> bool
 
 auto runBattlefieldSelfTests() -> bool
 {
-    return testMembershipAndCleanupState() && testRegistrationCapacityOrdering() && testRemainingTime();
+    return testMembershipAndCleanupState() && testRegistrationCapacityOrdering();
 }
+
+OMEGA_REGISTER_SELF_TEST("battlefield-remaining-time-8058", testRemainingTime);

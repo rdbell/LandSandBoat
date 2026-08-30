@@ -1,4 +1,5 @@
 #include "test_synth_recipe_skill_value_8059.h"
+#include "omega_self_test_registry.h"
 
 #include "map/utils/synth_recipe.h"
 
@@ -57,3 +58,5 @@ auto runSynthRecipeSkillValue8059SelfTests() -> bool
 
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("synth-recipe-skill-value-8059", runSynthRecipeSkillValue8059SelfTests);

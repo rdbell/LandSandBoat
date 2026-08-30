@@ -1156,6 +1156,21 @@ auto appConfig() -> ApplicationConfig
                 .type        = ArgumentType::Flag,
             },
             ArgumentDefinition{
+                .name        = "--native-only",
+                .description = "Initialize the test server without running Lua tests.",
+                .type        = ArgumentType::Flag,
+            },
+            ArgumentDefinition{
+                .name        = "--skip-omega-self-tests",
+                .description = "Skip Omega native self-tests after the test server exits.",
+                .type        = ArgumentType::Flag,
+            },
+            ArgumentDefinition{
+                .name        = "--omega-self-test",
+                .description = "Run registered Omega native self-tests whose names match the regex.",
+                .type        = ArgumentType::Multiple,
+            },
+            ArgumentDefinition{
                 .name        = "--tag",
                 .description = "Only run tests with these #tags.",
                 .type        = ArgumentType::Multiple,
@@ -1213,6 +1228,7 @@ auto TestApplication::run() -> bool
 {
     TracyZoneScoped;
     const bool daemonMode = args().get<bool>("--daemon-stdio");
+    const bool nativeOnly = args().get<bool>("--native-only");
     const bool sqliteMemory = args().get<bool>("--sqlite-memory") || args().hasRawArgument("--sqlite-memory");
     ShowInfoFmt("sqliteMemory flag: {}", sqliteMemory);
     static std::unique_ptr<db::SQLiteDatabase> sqliteDatabase;
@@ -1272,6 +1288,13 @@ auto TestApplication::run() -> bool
                 // From this point, every logging statements end up in the in-memory sink
                 // Print to stderr directly if needed
                 captureLogger();
+
+                if (nativeOnly)
+                {
+                    success_ = true;
+                    this->requestExit();
+                    co_return;
+                }
 
                 if (daemonMode)
                 {

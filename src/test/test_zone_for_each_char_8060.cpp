@@ -1,4 +1,5 @@
 #include "test_zone_for_each_char_8060.h"
+#include "omega_self_test_registry.h"
 
 #include "common/scheduler.h"
 #include "map/entities/char_entity.h"
@@ -83,3 +84,5 @@ auto runZoneForEachChar8060SelfTests() -> bool
 
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("zone-for-each-char-8060", runZoneForEachChar8060SelfTests);

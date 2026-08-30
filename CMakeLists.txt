@@ -118,6 +118,7 @@ if(UNIX AND NOT APPLE)
     # zstd is sometimes a prereq for binutils
     find_package(Zstd REQUIRED)
     find_package(Binutils REQUIRED)
+    include_directories(SYSTEM ${BINUTILS_INCLUDE_DIR})
 endif()
 
 # Link this 'library' to set the c++ standard / compile-time options requested
