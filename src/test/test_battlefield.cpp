@@ -1,8 +1,22 @@
 #include "test_battlefield.h"
 
+#include "common/mmo.h"
+#include "common/timer.h"
+#include "sol/sol.hpp"
+
+#include <functional>
+#include <memory>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#define private public
 #include "map/battlefield.h"
+#undef private
 #include "map/entities/char_entity.h"
 
+#include <chrono>
 #include <iostream>
 
 namespace
@@ -72,9 +86,53 @@ auto testRegistrationCapacityOrdering() -> bool
     return ok;
 }
 
+auto testRemainingTime() -> bool
+{
+    using namespace std::chrono_literals;
+
+    CCharEntity initiator;
+    initiator.id      = 40;
+    auto* battlefield = new CBattlefield(14, nullptr, 1, &initiator);
+
+    const auto setTimes = [battlefield](const timer::duration limit, const timer::duration elapsed)
+    {
+        battlefield->m_StartTime = timer::time_point{};
+        battlefield->m_Tick      = timer::time_point{ elapsed };
+        battlefield->m_TimeLimit = limit;
+    };
+
+    bool ok = true;
+
+    setTimes(10s, 0s);
+    ok = expect(battlefield->GetRemainingTime() == 10s, "remaining time at start") && ok;
+
+    setTimes(10s, 4s);
+    ok = expect(battlefield->GetRemainingTime() == 6s, "remaining time subtracts elapsed") && ok;
+
+    setTimes(10s, 10s);
+    ok = expect(battlefield->GetRemainingTime() == timer::duration::zero(), "equal limit and elapsed returns zero") && ok;
+
+    setTimes(10s, 11s);
+    ok = expect(battlefield->GetRemainingTime() == timer::duration::zero(), "elapsed beyond limit returns zero") && ok;
+
+    setTimes(-2s, -5s);
+    ok = expect(battlefield->GetRemainingTime() == 3s, "negative durations retain strict comparison and subtraction") && ok;
+
+    setTimes(-5s, -2s);
+    ok = expect(battlefield->GetRemainingTime() == timer::duration::zero(), "negative elapsed beyond limit returns zero") && ok;
+
+    setTimes(timer::duration::max(), 1ns);
+    ok = expect(battlefield->GetRemainingTime() == timer::duration::max() - 1ns, "high duration boundary") && ok;
+
+    setTimes(timer::duration::min() + 1ns, timer::duration::min());
+    ok = expect(battlefield->GetRemainingTime() == 1ns, "low duration boundary") && ok;
+
+    return ok;
+}
+
 } // namespace
 
 auto runBattlefieldSelfTests() -> bool
 {
-    return testMembershipAndCleanupState() && testRegistrationCapacityOrdering();
+    return testMembershipAndCleanupState() && testRegistrationCapacityOrdering() && testRemainingTime();
 }

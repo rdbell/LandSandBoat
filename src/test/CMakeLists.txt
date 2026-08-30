@@ -1509,6 +1509,8 @@ set(SOURCES
     test_synth_recipe_resolve_7079.cpp
     test_synth_recipe_load_7080.h
     test_synth_recipe_load_7080.cpp
+    test_synth_recipe_skill_value_8059.h
+    test_synth_recipe_skill_value_8059.cpp
     test_synth_difficulty_7081.h
     test_synth_difficulty_7081.cpp
     test_synth_result_7082.h
@@ -3063,6 +3065,8 @@ set(SOURCES
     test_zone_entity_update_routing_6248.cpp
     test_zone_nearby_spawn_6249.h
     test_zone_nearby_spawn_6249.cpp
+    test_zone_for_each_char_8060.h
+    test_zone_for_each_char_8060.cpp
     test_mob_party_link_6250.h
     test_mob_party_link_6250.cpp
     test_zone_wide_scan_6251.h
