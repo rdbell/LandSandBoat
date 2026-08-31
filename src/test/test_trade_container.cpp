@@ -251,6 +251,15 @@ auto testUnreserveUnconfirmed() -> bool
     bool ok = true;
     ok      = expectUInt(confirmedItem.getReserve(), 4, "confirmed reserve restored") && ok;
     ok      = expectUInt(unconfirmedItem.getReserve(), 0, "unconfirmed reserve cleared") && ok;
+
+    CItem outsideFixedRange(0x6003);
+    outsideFixedRange.setStackSize(99);
+    outsideFixedRange.setQuantity(6);
+    outsideFixedRange.setReserve(6);
+    container.setSize(CONTAINER_SIZE + 1);
+    container.setItem(CONTAINER_SIZE, &outsideFixedRange);
+    container.unreserveUnconfirmed();
+    ok = expectUInt(outsideFixedRange.getReserve(), 6, "slot outside fixed scan unchanged") && ok;
     return ok;
 }
 
