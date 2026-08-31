@@ -933,6 +933,8 @@ set(SOURCES
     test_status_effect_remove_all_range_8242.cpp
     test_status_effect_remove_by_icon_8243.h
     test_status_effect_remove_by_icon_8243.cpp
+    test_status_effect_remove_by_type_8244.h
+    test_status_effect_remove_by_type_8244.cpp
     test_status_effect_save_1373.h
     test_status_effect_save_1373.cpp
     test_status_save_plan_2793.h
