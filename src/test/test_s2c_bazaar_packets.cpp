@@ -306,6 +306,29 @@ auto testBazaarCloseCharacterConstructor() -> bool
     return ok;
 }
 
+auto testBazaarShoppingCharacterConstructor() -> bool
+{
+    CCharEntity character{};
+    character.id    = 0x11223344;
+    character.targid = 0x5566;
+    character.name  = "ShopperNameThatIsTooLong";
+
+    auto packet = BazaarShopping(&character, GP_SERV_COMMAND_BAZAAR_SHOPPING_STATE::Exit);
+    const auto* data = static_cast<const uint8*>(packet);
+    const auto expectedName = std::array<uint8, 16>{
+        'S', 'h', 'o', 'p', 'p', 'e', 'r', 'N', 'a', 'm', 'e', 'T', 'h', 'a', 't', 'I',
+    };
+
+    bool ok = true;
+    ok      = expectBytes(data + bazaarShoppingUniqueNoOffset, std::array<uint8, 4>{ 0x44, 0x33, 0x22, 0x11 }, "BAZAAR_SHOPPING character UniqueNo") && ok;
+    ok      = expectBytes(data + bazaarShoppingStateOffset, std::array<uint8, 4>{ 0x01, 0x00, 0x00, 0x00 }, "BAZAAR_SHOPPING character State") && ok;
+    ok      = expectEqualUInt(data[bazaarShoppingHideLevelOffset], 0, "BAZAAR_SHOPPING character HideLevel default") && ok;
+    ok      = expectEqualUInt(data[bazaarShoppingPadding00Offset], 0, "BAZAAR_SHOPPING character padding default") && ok;
+    ok      = expectBytes(data + bazaarShoppingActIndexOffset, std::array<uint8, 2>{ 0x66, 0x55 }, "BAZAAR_SHOPPING character ActIndex") && ok;
+    ok      = expectBytes(data + bazaarShoppingNameOffset, expectedName, "BAZAAR_SHOPPING character name truncation") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CBazaarPacketSelfTests() -> bool
@@ -314,6 +337,7 @@ auto runS2CBazaarPacketSelfTests() -> bool
     ok      = testLayoutAndEnums() && ok;
     ok      = testPacketDataBytes() && ok;
     ok      = testBazaarCloseCharacterConstructor() && ok;
+    ok      = testBazaarShoppingCharacterConstructor() && ok;
     return ok;
 }
 
