@@ -1,6 +1,7 @@
 #include "test_attack_state_1387.h"
 
 #include "map/ai/states/attack_state_capacity.h"
+#include "omega_self_test_registry.h"
 
 #include <iostream>
 
@@ -75,3 +76,5 @@ auto runAttackState1387SelfTests() -> bool
 
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("attack-state-1387", runAttackState1387SelfTests);
