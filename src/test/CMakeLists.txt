@@ -1996,6 +1996,8 @@ set(SOURCES
     test_login_malformed_string.cpp
     test_login_otp_helpers.h
     test_login_otp_helpers.cpp
+    test_login_trust_token_8320.h
+    test_login_trust_token_8320.cpp
     test_login_packet_hash.h
     test_login_packet_hash.cpp
     test_login_packet_helpers.h
