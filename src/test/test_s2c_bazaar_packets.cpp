@@ -329,6 +329,35 @@ auto testBazaarShoppingCharacterConstructor() -> bool
     return ok;
 }
 
+auto testBazaarSellCharacterConstructor() -> bool
+{
+    CCharEntity character{};
+    character.id    = 0x11223344;
+    character.name  = "SellerNameThatIsTooLong";
+
+    auto packet = BazaarSell(&character, 0x77, 0x88);
+    const auto* data = static_cast<const uint8*>(packet);
+    const auto expectedName = std::array<uint8, 16>{
+        'S', 'e', 'l', 'l', 'e', 'r', 'N', 'a', 'm', 'e', 'T', 'h', 'a', 't', 'I', 's',
+    };
+
+    bool ok = true;
+    ok      = expectBytes(data + bazaarSellUniqueNoOffset, std::array<uint8, 4>{ 0x44, 0x33, 0x22, 0x11 }, "BAZAAR_SELL character UniqueNo") && ok;
+    ok      = expectBytes(data + bazaarSellItemNumOffset, std::array<uint8, 4>{ 0x88, 0x00, 0x00, 0x00 }, "BAZAAR_SELL character ItemNum") && ok;
+    ok      = expectBytes(data + bazaarSellItemIndexOffset, std::array<uint8, 1>{ 0x77 }, "BAZAAR_SELL character ItemIndex") && ok;
+    ok      = expectBytes(data + bazaarSellNameOffset, expectedName, "BAZAAR_SELL character name truncation") && ok;
+    for (std::size_t i = bazaarSellPadding00Offset; i < bazaarSellPacketSize; ++i)
+    {
+        if (data[i] != 0)
+        {
+            std::cerr << "s2c bazaar packet self-test failed: BAZAAR_SELL constructor padding byte " << i << " got "
+                      << static_cast<unsigned>(data[i]) << " expected 0\n";
+            ok = false;
+        }
+    }
+    return ok;
+}
+
 } // namespace
 
 auto runS2CBazaarPacketSelfTests() -> bool
@@ -338,6 +367,7 @@ auto runS2CBazaarPacketSelfTests() -> bool
     ok      = testPacketDataBytes() && ok;
     ok      = testBazaarCloseCharacterConstructor() && ok;
     ok      = testBazaarShoppingCharacterConstructor() && ok;
+    ok      = testBazaarSellCharacterConstructor() && ok;
     return ok;
 }
 
