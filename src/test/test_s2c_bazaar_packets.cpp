@@ -30,6 +30,7 @@
 #include <string>
 
 #include "entities/char_entity.h"
+#include "items/item.h"
 #include "map/packets/s2c/0x105_bazaar_list.h"
 #include "map/packets/s2c/0x106_bazaar_buy.h"
 #include "map/packets/s2c/0x107_bazaar_close.h"
@@ -378,6 +379,25 @@ auto testBazaarSaleCharacterConstructor() -> bool
         if (data[i] != 0)
         {
             std::cerr << "s2c bazaar packet self-test failed: BAZAAR_SALE constructor padding byte " << i << " got "
+                      << static_cast<unsigned>(data[i]) << " expected 0\n";
+            ok = false;
+        }
+    }
+
+    CItem item(0x5566);
+    item.setStackSize(0xFFFFFFFF);
+    item.setQuantity(0x11223344);
+
+    auto itemPacket = BazaarSale(&character, &item);
+    data                  = static_cast<const uint8*>(itemPacket);
+    ok     = expectBytes(data + bazaarSaleItemNumOffset, std::array<uint8, 4>{ 0x44, 0x33, 0x22, 0x11 }, "BAZAAR_SALE item ItemNum") && ok;
+    ok     = expectBytes(data + bazaarSaleItemNoOffset, std::array<uint8, 2>{ 0x66, 0x55 }, "BAZAAR_SALE item ItemNo") && ok;
+    ok     = expectBytes(data + bazaarSaleNameOffset, expectedName, "BAZAAR_SALE item name truncation") && ok;
+    for (std::size_t i = bazaarSalePadding00Offset; i < bazaarSalePacketSize; ++i)
+    {
+        if (data[i] != 0)
+        {
+            std::cerr << "s2c bazaar packet self-test failed: BAZAAR_SALE item constructor padding byte " << i << " got "
                       << static_cast<unsigned>(data[i]) << " expected 0\n";
             ok = false;
         }
