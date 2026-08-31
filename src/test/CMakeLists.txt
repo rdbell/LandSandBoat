@@ -1705,6 +1705,8 @@ set(SOURCES
     test_spell_recast_1549.cpp
     test_spell_cast_1550.h
     test_spell_cast_1550.cpp
+    test_spell_four_cc_8640.h
+    test_spell_four_cc_8640.cpp
     test_multi_hits_1551.h
     test_multi_hits_1551.cpp
     test_crit_hit_rate_1552.h

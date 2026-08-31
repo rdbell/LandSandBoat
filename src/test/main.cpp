@@ -929,6 +929,7 @@ auto runDmgTaken1547SelfTests() -> bool;
 auto runWSTP1548SelfTests() -> bool;
 auto runSpellRecast1549SelfTests() -> bool;
 auto runSpellCast1550SelfTests() -> bool;
+auto runSpellFourCC8640SelfTests() -> bool;
 auto runMultiHits1551SelfTests() -> bool;
 auto runCritHitRate1552SelfTests() -> bool;
 auto runIsIntimidated1553SelfTests() -> bool;
@@ -3553,6 +3554,7 @@ namespace
         ok = runWSTP1548SelfTests() && ok;
         ok = runSpellRecast1549SelfTests() && ok;
         ok = runSpellCast1550SelfTests() && ok;
+        ok = runSpellFourCC8640SelfTests() && ok;
         ok = runMultiHits1551SelfTests() && ok;
         ok = runCritHitRate1552SelfTests() && ok;
         ok = runIsIntimidated1553SelfTests() && ok;
