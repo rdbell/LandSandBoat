@@ -20,8 +20,10 @@
 */
 
 #include "test_trade_container.h"
+#include "omega_self_test_registry.h"
 
 #include "map/trade_container.h"
+#include "map/items/item.h"
 
 #include <cstdint>
 #include <iostream>
@@ -217,6 +219,41 @@ auto testAccountingMutationBoundaries() -> bool
     return ok;
 }
 
+auto testUnreserveUnconfirmed() -> bool
+{
+    CTradeContainer container;
+    CItem confirmedItem(0x6001);
+    CItem unconfirmedItem(0x6002);
+
+    confirmedItem.setStackSize(99);
+    confirmedItem.setQuantity(10);
+    unconfirmedItem.setStackSize(99);
+    unconfirmedItem.setQuantity(7);
+
+    // The pointer overload is independent from the scalar vectors used by
+    // the trade packet. Confirmation reads the pointed item's quantity.
+    container.setItem(0, &confirmedItem);
+    container.setItemID(0, 0);
+    container.setQuantity(0, 1);
+    if (!container.setConfirmedStatus(0, 4))
+    {
+        std::cerr << "trade container self-test failed: confirm item" << '\n';
+        return false;
+    }
+    confirmedItem.setReserve(1);
+
+    container.setItem(1, &unconfirmedItem);
+    container.setItemID(1, 0x6002);
+    unconfirmedItem.setReserve(7);
+
+    container.unreserveUnconfirmed();
+
+    bool ok = true;
+    ok      = expectUInt(confirmedItem.getReserve(), 4, "confirmed reserve restored") && ok;
+    ok      = expectUInt(unconfirmedItem.getReserve(), 0, "unconfirmed reserve cleared") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runTradeContainerSelfTests() -> bool
@@ -226,5 +263,8 @@ auto runTradeContainerSelfTests() -> bool
     ok      = testScalarSlotsAndTotals() && ok;
     ok      = testRestrictionsResizeAndClean() && ok;
     ok      = testAccountingMutationBoundaries() && ok;
+    ok      = testUnreserveUnconfirmed() && ok;
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("trade-container", runTradeContainerSelfTests);
