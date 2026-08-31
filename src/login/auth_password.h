@@ -52,6 +52,13 @@ inline auto LoginResultForAccountCreateSettings(const account_create_settings_ga
     return std::nullopt;
 }
 
+// FormatAccountCreateDisabledWarning preserves the LOGIN_CREATE diagnostic
+// emitted when account creation is disabled by settings.
+inline auto FormatAccountCreateDisabledWarning(const std::string& username) -> std::string
+{
+    return fmt::format("login_parse: New account attempt <{}> but is disabled in settings.", username);
+}
+
 // account_create_lookup_gate is the pure outcome of the username existence
 // query used by LOGIN_CREATE before allocating an ID.
 enum class account_create_lookup_gate : uint8_t

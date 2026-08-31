@@ -1,6 +1,7 @@
 #include "test_login_auth_account_create_1310.h"
 
 #include "login/auth_password.h"
+#include "omega_self_test_registry.h"
 
 #include <iostream>
 
@@ -52,5 +53,12 @@ auto runLoginAuthAccountCreate1310SelfTests() -> bool
     const auto failed = loginHelpers::LoginResultForAccountCreateLookup(lookup_gate::QUERY_FAILED);
     ok = expect(failed.has_value() && *failed == login_result::LOGIN_ERROR_CREATE, "QUERY_FAILED maps") && ok;
 
+    ok = expect(loginHelpers::FormatAccountCreateDisabledWarning("new-user") ==
+                    "login_parse: New account attempt <new-user> but is disabled in settings.",
+                "disabled account warning") &&
+         ok;
+
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("login-account-create-8220", runLoginAuthAccountCreate1310SelfTests);
