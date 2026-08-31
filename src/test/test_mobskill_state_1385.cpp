@@ -1,6 +1,7 @@
 #include "test_mobskill_state_1385.h"
 
 #include "map/ai/states/mobskill_state_capacity.h"
+#include "omega_self_test_registry.h"
 
 #include <iostream>
 
@@ -98,3 +99,5 @@ auto runMobSkillState1385SelfTests() -> bool
 
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("mobskill-state-1385", runMobSkillState1385SelfTests);
