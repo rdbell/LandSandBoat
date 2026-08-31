@@ -1450,12 +1450,16 @@ void CStatusEffectContainer::RemoveNewestStatusEffectInIDRange(xi::StatusEffect 
     CStatusEffect* newest = nullptr;
     for (const auto& PStatusEffect : m_StatusEffectSet)
     {
-        if (PStatusEffect->GetStatusID() >= start && PStatusEffect->GetStatusID() <= end && !PStatusEffect->isDeleted())
+        if (statuseffecthelpers::ShouldSelectNewerInRange(
+                static_cast<uint16>(PStatusEffect->GetStatusID()),
+                static_cast<uint16>(start),
+                static_cast<uint16>(end),
+                PStatusEffect->isDeleted(),
+                newest != nullptr,
+                PStatusEffect->GetStartTime().time_since_epoch().count(),
+                newest ? newest->GetStartTime().time_since_epoch().count() : 0))
         {
-            if (!newest || PStatusEffect->GetStartTime() > newest->GetStartTime())
-            {
-                newest = PStatusEffect.get();
-            }
+            newest = PStatusEffect.get();
         }
     }
     if (newest)
