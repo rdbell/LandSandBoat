@@ -1,6 +1,7 @@
 #include "test_login_character_name_1316.h"
 
 #include "login/character_name.h"
+#include "omega_self_test_registry.h"
 
 #include <cstring>
 #include <iostream>
@@ -79,5 +80,61 @@ auto runLoginCharacterName1316SelfTests() -> bool
     std::memcpy(field, "Tester", 6);
     ok = expect(loginHelpers::ExtractCharacterNameField(field) == "Tester", "extract field") && ok;
 
+    // VIEW 0x22 applies database and banned-word outcomes in order, allowing
+    // later outcomes to overwrite local and earlier query reasons.
+    ok = expect(loginHelpers::ResolveCharacterNameInvalidReason(
+                    loginHelpers::CharacterNameInvalidLengthReason,
+                    true,
+                    false,
+                    false,
+                    true,
+                    false,
+                    std::nullopt) == loginHelpers::CharacterNameInvalidLengthReason,
+                "local reason retained") &&
+         ok;
+    ok = expect(loginHelpers::ResolveCharacterNameInvalidReason(
+                    std::nullopt,
+                    false,
+                    false,
+                    false,
+                    true,
+                    false,
+                    std::nullopt) == loginHelpers::CharacterNameEntityQueryFailedReason,
+                "entity query failure") &&
+         ok;
+    ok = expect(loginHelpers::ResolveCharacterNameInvalidReason(
+                    loginHelpers::CharacterNameInvalidCharactersReason,
+                    true,
+                    true,
+                    true,
+                    false,
+                    false,
+                    std::nullopt) == loginHelpers::CharacterNameEntityQueryFailedNoPeriodReason,
+                "mob query failure overwrites entity result") &&
+         ok;
+    ok = expect(loginHelpers::ResolveCharacterNameInvalidReason(
+                    std::nullopt,
+                    true,
+                    false,
+                    true,
+                    true,
+                    true,
+                    std::nullopt) == loginHelpers::CharacterNameAlreadyInUseReason,
+                "mob name taken") &&
+         ok;
+    ok = expect(loginHelpers::ResolveCharacterNameInvalidReason(
+                    loginHelpers::CharacterNameInvalidCharactersReason,
+                    false,
+                    false,
+                    true,
+                    false,
+                    false,
+                    std::string("Name matched with bad words list <BAD>.") ) ==
+                    "Name matched with bad words list <BAD>.",
+                "banned reason wins") &&
+         ok;
+
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("login-character-name-1316", runLoginCharacterName1316SelfTests);

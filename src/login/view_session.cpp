@@ -271,17 +271,14 @@ void view_session::read_func()
 
             // Check if the name is already in use by another character
             const auto rset0 = db::preparedStmt("SELECT charname FROM chars WHERE charname LIKE ?", nameStr);
-            if (!rset0)
-            {
-                invalidNameReason = loginHelpers::CharacterNameEntityQueryFailedReason;
-            }
-            else if (rset0 && rset0->rowsCount() != 0)
-            {
-                invalidNameReason = loginHelpers::CharacterNameAlreadyInUseReason;
-            }
+            const bool entityQueryOk  = static_cast<bool>(rset0);
+            const bool entityNameTaken = entityQueryOk && rset0->rowsCount() != 0;
 
             // (optional) Check if the name is in use by NPC or Mob entities
-            if (settings::get<bool>("login.DISABLE_MOB_NPC_CHAR_NAMES"))
+            const bool checkMobNPCNames = settings::get<bool>("login.DISABLE_MOB_NPC_CHAR_NAMES");
+            bool       mobNPCQueryOk   = true;
+            bool       mobNPCNameTaken = false;
+            if (checkMobNPCNames)
             {
                 const auto query =
                     "SELECT polutils_name AS `name` FROM npc_list "
@@ -293,18 +290,13 @@ void view_session::read_func()
                     "LIKE REPLACE(REPLACE(UPPER(?), '-', ''), '_', '')";
 
                 const auto rset1 = db::preparedStmt(query, nameStr, nameStr);
-                if (!rset1)
-                {
-                    invalidNameReason = loginHelpers::CharacterNameEntityQueryFailedNoPeriodReason;
-                }
-                else if (rset1->rowsCount() != 0)
-                {
-                    invalidNameReason = loginHelpers::CharacterNameAlreadyInUseReason;
-                }
+                mobNPCQueryOk   = static_cast<bool>(rset1);
+                mobNPCNameTaken = mobNPCQueryOk && rset1->rowsCount() != 0;
             }
 
             // TODO: Don't raw-access Lua like this outside of Lua helper code.
             // (optional) Check if the name contains any words on the bad word list
+            Maybe<std::string> bannedReason = std::nullopt;
             const auto loginSettingsTable = lua["xi"]["settings"]["login"].get<sol::table>();
             if (auto badWordsList = loginSettingsTable.get_or<sol::table>("BANNED_WORDS_LIST", sol::lua_nil); badWordsList.valid())
             {
@@ -316,9 +308,18 @@ void view_session::read_func()
                 }
                 if (auto banned = loginHelpers::FindBannedWordMatch(potentialName, upperBadWords))
                 {
-                    invalidNameReason = *banned;
+                    bannedReason = *banned;
                 }
             }
+
+            invalidNameReason = loginHelpers::ResolveCharacterNameInvalidReason(
+                std::move(invalidNameReason),
+                entityQueryOk,
+                entityNameTaken,
+                checkMobNPCNames,
+                mobNPCQueryOk,
+                mobNPCNameTaken,
+                std::move(bannedReason));
 
             const auto namePlan = login::PlanViewNameCheckNameResponse(!invalidNameReason.has_value());
             if (namePlan.logInvalidName)

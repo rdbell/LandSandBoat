@@ -9,6 +9,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <common/types/maybe.h>
@@ -125,6 +126,47 @@ inline auto FindBannedWordMatch(const std::string& upperName, const std::vector<
         {
             reason = FormatBannedWordMatchReason(badWord);
         }
+    }
+    return reason;
+}
+
+// ResolveCharacterNameInvalidReason mirrors VIEW 0x22's ordered validation
+// overwrites after local checks. Every later host query or banned-word match
+// replaces an earlier reason, including a successful local validation.
+inline auto ResolveCharacterNameInvalidReason(
+    Maybe<std::string> localReason,
+    const bool        entityQueryOk,
+    const bool        entityNameTaken,
+    const bool        checkMobNPCNames,
+    const bool        mobNPCQueryOk,
+    const bool        mobNPCNameTaken,
+    Maybe<std::string> bannedReason) -> Maybe<std::string>
+{
+    auto reason = std::move(localReason);
+    if (!entityQueryOk)
+    {
+        reason = CharacterNameEntityQueryFailedReason;
+    }
+    else if (entityNameTaken)
+    {
+        reason = CharacterNameAlreadyInUseReason;
+    }
+
+    if (checkMobNPCNames)
+    {
+        if (!mobNPCQueryOk)
+        {
+            reason = CharacterNameEntityQueryFailedNoPeriodReason;
+        }
+        else if (mobNPCNameTaken)
+        {
+            reason = CharacterNameAlreadyInUseReason;
+        }
+    }
+
+    if (bannedReason)
+    {
+        reason = std::move(bannedReason);
     }
     return reason;
 }
