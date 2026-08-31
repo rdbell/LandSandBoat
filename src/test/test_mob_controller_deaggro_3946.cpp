@@ -1,6 +1,7 @@
 #include "test_mob_controller_deaggro_3946.h"
 
 #include "map/ai/controllers/controller_action_dispatch_capacity.h"
+#include "omega_self_test_registry.h"
 
 #include "map/ai/controllers/mob_controller_deaggro_capacity.h"
 #include "map/ai/controllers/mob_controller_deaggro_retarget_capacity.h"
@@ -2776,3 +2777,5 @@ auto runMobControllerDeaggro3946SelfTests() -> bool
     }
     return scentOK && detectionOK && readinessOK && movementOK && aggroOK && tpTriggerOK && followOK && followAdmissionOK && spellAdmissionOK && moveRangeOK && targetValidityOK && playerEngageOK && playerWeaponSkillOK && abilityRecastOK && playerActionGateOK && playerAbilityGateOK && trustFollowOK && trustTickOK && trustTargetSyncOK && trustEngageOK && trustRoamFormationOK && trustRecoveryOK && trustRangedAttackOK && trustCastCoordinationOK && trustRepositionOK && trustAbilityOK && trustNonCombatMovementOK && trustNonCombatMovementDispatchOK && trustCombatMovementOK && playerCharmRoamOK && playerCharmCombatOK && playerCharmTickOK && petTickOK && petDeaggroOK && petHealingOK && petBuffTickOK && petMasterLossOK && petImmobileOK && petHealingRoamOK && petSpecialHealingRoamOK && petStateChangeRoamOK && petAbilityOK && petSkillOK && automatonStandBackOK && automatonCooldownOK && automatonFrameCooldownOK && automatonManeuversOK && automatonMasterLossOK && automatonMoveOK && automatonActionGateOK && automatonShieldBashGateOK && automatonSpellGateOK && automatonHealingThresholdOK && automatonHealingTargetOK && automatonCureTierOK && automatonElementalTierOK && automatonResistanceOrderOK && automatonEnfeebleGateOK && automatonStatusRemovalGateOK && automatonSoulsootherPartyStatusRemovalGateOK && automatonSpiritreaverEnhancementOK && automatonEnhanceGateOK && automatonRangedAttackGateOK && automatonTPSkillTypeOK && automatonTPSkillCandidateOK && automatonTPSkillPriorityOK && automatonTPSkillchainCandidateOK && automatonTPSkillSelectionFallbackOK && automatonSpellPermissionOK && automatonCastAdmissionOK && petFollowPathOK && petPathFallbackOK && petFollowDistanceOK && hideOK && lockOK;
 }
+
+OMEGA_REGISTER_SELF_TEST("mob-controller-deaggro-3946", runMobControllerDeaggro3946SelfTests);
