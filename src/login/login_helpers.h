@@ -23,6 +23,7 @@
 
 #include <map>
 #include <cstddef>
+#include <fmt/format.h>
 
 #include <common/md52.h>
 #include <common/mmo.h>
@@ -41,6 +42,18 @@ using json = nlohmann::json;
 
 namespace loginHelpers
 {
+
+// FormatMalformedUsernameWarning and FormatMalformedPasswordWarning preserve
+// the AUTH parser diagnostics emitted for bounded credential failures.
+inline auto FormatMalformedUsernameWarning(const std::string& ipAddress) -> std::string
+{
+    return fmt::format("login_parse: malformed username from {}", ipAddress);
+}
+
+inline auto FormatMalformedPasswordWarning(const std::string& ipAddress) -> std::string
+{
+    return fmt::format("login_parse: malformed password from {}", ipAddress);
+}
 
 std::unordered_map<std::string, std::map<std::string, session_t>>& getAuthenticatedSessions();
 

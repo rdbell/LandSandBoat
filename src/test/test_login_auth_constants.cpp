@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "login/auth_session.h"
+#include "omega_self_test_registry.h"
 
 namespace
 {
@@ -151,10 +152,15 @@ auto testAccountCodes() -> bool
 
 auto runLoginAuthConstantSelfTests() -> bool
 {
-    return testLoginCommands() &&
-           testLoginResults() &&
-           testSupportedXiloaderVersion() &&
-           testAuthInputValidation() &&
-           testAuthComponents() &&
-           testAccountCodes();
+    bool ok = testLoginCommands() &&
+              testLoginResults() &&
+              testSupportedXiloaderVersion() &&
+              testAuthInputValidation() &&
+              testAuthComponents() &&
+              testAccountCodes();
+    ok = loginHelpers::FormatMalformedUsernameWarning("127.0.0.1") == "login_parse: malformed username from 127.0.0.1" && ok;
+    ok = loginHelpers::FormatMalformedPasswordWarning("127.0.0.1") == "login_parse: malformed password from 127.0.0.1" && ok;
+    return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("login-auth-diagnostics-8221", runLoginAuthConstantSelfTests);
