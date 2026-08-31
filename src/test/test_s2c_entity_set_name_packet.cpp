@@ -21,6 +21,8 @@
 
 #include "test_s2c_entity_set_name_packet.h"
 
+#include "test/omega_self_test_registry.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -179,6 +181,23 @@ auto testTrustConstructorIncludesMasterTargID() -> bool
     return ok;
 }
 
+auto testMaximumDeclaredNameFillsPacketTail() -> bool
+{
+    auto entity = CCharEntity{};
+    populateEntity(entity, 0x01020304, 0x3344, "ABCDEFGHIJKLMNOPQRST");
+
+    auto packet = CEntitySetNamePacket(&entity);
+
+    bool ok = true;
+    ok      = expectPackedMessageSize(packet, entitySetNamePacketSize, "maximum name") && ok;
+    ok      = expectBytes(packet, entitySetNameNameOffset,
+                          std::array<uint8, 20>{ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+                                                 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T' },
+                          "maximum name bytes") && ok;
+    ok      = expectZeroRange(packet, entitySetNamePacketSize, PACKET_SIZE, "maximum packet tail") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CEntitySetNamePacketSelfTests() -> bool
@@ -187,5 +206,8 @@ auto runS2CEntitySetNamePacketSelfTests() -> bool
     ok      = testLayout() && ok;
     ok      = testNormalEntityConstructor() && ok;
     ok      = testTrustConstructorIncludesMasterTargID() && ok;
+    ok      = testMaximumDeclaredNameFillsPacketTail() && ok;
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("s2c-entity-set-name-packet", runS2CEntitySetNamePacketSelfTests);
