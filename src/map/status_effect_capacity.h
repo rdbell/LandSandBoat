@@ -410,6 +410,21 @@ inline auto ShouldCountActiveInRange(
     return IsInInclusiveIDRange(id, first, last) && !deleted;
 }
 
+// ShouldSelectOlderInRange mirrors the candidate gate and strict start-time
+// comparison used by RemoveOldestStatusEffectInIDRange. Equal start times keep
+// the first candidate encountered by the container traversal.
+inline auto ShouldSelectOlderInRange(
+    const uint16 id,
+    const uint16 first,
+    const uint16 last,
+    const bool deleted,
+    const bool hasCurrent,
+    const int64 candidateStart,
+    const int64 currentStart) -> bool
+{
+    return IsInInclusiveIDRange(id, first, last) && !deleted && (!hasCurrent || candidateStart < currentStart);
+}
+
 // PreferHigherRuneCount: true when candidate should replace current highest.
 // Ties keep the current (first-seen) highest — matches iter->second > highestRuneValue.
 inline auto PreferHigherRuneCount(
