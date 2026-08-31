@@ -21,6 +21,8 @@
 
 #include "test_s2c_map_group_packet.h"
 
+#include "test/omega_self_test_registry.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -146,3 +148,5 @@ auto runS2CMapGroupPacketSelfTests() -> bool
     ok      = testRuntimePlan() && ok;
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("s2c-map-group-packet", runS2CMapGroupPacketSelfTests);
