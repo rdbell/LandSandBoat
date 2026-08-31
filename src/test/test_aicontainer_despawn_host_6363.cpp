@@ -2,6 +2,7 @@
 
 #include "map/ai/ai_container_capacity.h"
 #include "map/ai/controllers/controller_action_dispatch_capacity.h"
+#include "omega_self_test_registry.h"
 
 #include <iostream>
 
@@ -60,3 +61,5 @@ auto runAicontainerDespawnHost6363SelfTests() -> bool
 
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("aicontainer-despawn-host-6363", runAicontainerDespawnHost6363SelfTests);
