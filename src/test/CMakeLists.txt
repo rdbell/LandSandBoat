@@ -2068,6 +2068,8 @@ set(SOURCES
     test_attackround_initial_weapon_2742.cpp
     test_attack_critical_ratio_2745.h
     test_attack_critical_ratio_2745.cpp
+    test_attack_critical_state_8620.h
+    test_attack_critical_state_8620.cpp
     test_attack_cover_resolution_2748.h
     test_attack_cover_resolution_2748.cpp
     test_attack_parry_resolution_2751.h

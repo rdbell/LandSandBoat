@@ -129,9 +129,12 @@ void CAttack::SetCritical(bool value)
         enhancesSange,
         sangeMeritValue);
 
+    float rangedRatio = 0.0f;
+    float meleeRatio  = 0.0f;
+
     if (isDaken)
     {
-        m_damageRatio = battleutils::GetRangedDamageRatio(m_attacker, m_victim, m_isCritical, modifiers.rangedAttackBonus);
+        rangedRatio = battleutils::GetRangedDamageRatio(m_attacker, m_victim, m_isCritical, modifiers.rangedAttackBonus);
     }
     else
     {
@@ -152,8 +155,12 @@ void CAttack::SetCritical(bool value)
         }
 
         // need to pass the weapon slot because damage ratio depends on ATT which varies by slot
-        m_damageRatio = battleutils::GetDamageRatio(m_attacker, m_victim, m_isCritical, modifiers.meleeAttackBonus, skilltype, weaponSlot, false);
+        meleeRatio = battleutils::GetDamageRatio(m_attacker, m_victim, m_isCritical, modifiers.meleeAttackBonus, skilltype, weaponSlot, false);
     }
+
+    const auto state = attackhelpers::ResolveCriticalState(value, isDaken, rangedRatio, meleeRatio);
+    m_isCritical     = state.isCritical;
+    m_damageRatio    = state.damageRatio;
 }
 
 /************************************************************************

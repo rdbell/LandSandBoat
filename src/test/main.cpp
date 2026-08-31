@@ -195,6 +195,7 @@ auto runMapCompressFailure2788SelfTests() -> bool;
 auto runAttackGuardResolution2739SelfTests() -> bool;
 auto runAttackRoundInitialWeapon2742SelfTests() -> bool;
 auto runAttackCriticalRatio2745SelfTests() -> bool;
+auto runAttackCriticalState8620SelfTests() -> bool;
 auto runAttackCoverResolution2748SelfTests() -> bool;
 auto runAttackParryResolution2751SelfTests() -> bool;
 auto runAttackRestraintWsd2764SelfTests() -> bool;
@@ -2830,6 +2831,7 @@ namespace
         ok = runAttackGuardResolution2739SelfTests() && ok;
         ok = runAttackRoundInitialWeapon2742SelfTests() && ok;
         ok = runAttackCriticalRatio2745SelfTests() && ok;
+        ok = runAttackCriticalState8620SelfTests() && ok;
         ok = runAttackCoverResolution2748SelfTests() && ok;
         ok = runAttackParryResolution2751SelfTests() && ok;
         ok = runAttackRestraintWsd2764SelfTests() && ok;

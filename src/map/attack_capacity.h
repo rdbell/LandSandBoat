@@ -119,6 +119,25 @@ inline auto IsDakenAttack(const uint8 attackType) -> bool
     return attackType == AttackTypeDaken;
 }
 
+// CriticalState is the pure state mutation performed by CAttack::SetCritical
+// after the entity-dependent damage-ratio calculation has been injected.
+struct CriticalState
+{
+    bool  isCritical{};
+    float damageRatio{};
+};
+
+// ResolveCriticalState preserves SetCritical's type branch: Daken uses the
+// ranged ratio and every other attack type uses the melee ratio. The ratio is
+// assigned even when clearing the critical flag.
+inline auto ResolveCriticalState(const bool  value,
+                                 const bool  isDaken,
+                                 const float rangedRatio,
+                                 const float meleeRatio) -> CriticalState
+{
+    return { value, isDaken ? rangedRatio : meleeRatio };
+}
+
 // ---------------------------------------------------------------------------
 // Slice 3166 — CheckParried Daken early-out (dedicated expand residual 2996)
 // ---------------------------------------------------------------------------
