@@ -1,6 +1,7 @@
 #include "test_item_update_6316.h"
 
 #include "map/ai/states/item_update.h"
+#include "omega_self_test_registry.h"
 
 #include <iostream>
 
@@ -84,3 +85,5 @@ auto runItemUpdate6316SelfTests() -> bool
 
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("item-update-6316", runItemUpdate6316SelfTests);
