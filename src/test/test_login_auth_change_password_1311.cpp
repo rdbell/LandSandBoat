@@ -1,6 +1,7 @@
 #include "test_login_auth_change_password_1311.h"
 
 #include "login/auth_password.h"
+#include "omega_self_test_registry.h"
 
 #include <cstdint>
 #include <iostream>
@@ -45,5 +46,16 @@ auto runLoginAuthChangePassword1311SelfTests() -> bool
     ok = expect(!loginHelpers::IsEmptyUpdatedPassword("x"), "non-empty not empty") && ok;
     ok = expect(!loginHelpers::IsEmptyUpdatedPassword(" "), "whitespace is not empty") && ok;
 
+    ok = expect(loginHelpers::FormatEmptyPasswordWarning("user") ==
+                    "login_parse: Empty password: Could not update password for user <user>.",
+                "empty password warning") &&
+         ok;
+    ok = expect(loginHelpers::FormatPasswordUpdateDatabaseError("user") ==
+                    "login_parse: Error trying to update password in database for user <user>.",
+                "password update database warning") &&
+         ok;
+
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("login-password-diagnostics-8222", runLoginAuthChangePassword1311SelfTests);

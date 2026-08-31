@@ -252,6 +252,20 @@ inline auto IsEmptyUpdatedPassword(const std::string& updatedPassword) -> bool
     return updatedPassword == "";
 }
 
+// FormatEmptyPasswordWarning preserves the LOGIN_CHANGE_PASSWORD diagnostic
+// emitted when the new password is empty.
+inline auto FormatEmptyPasswordWarning(const std::string& username) -> std::string
+{
+    return fmt::format("login_parse: Empty password: Could not update password for user <{}>.", username);
+}
+
+// FormatPasswordUpdateDatabaseError preserves the diagnostic emitted when the
+// LOGIN_CHANGE_PASSWORD UPDATE statement fails.
+inline auto FormatPasswordUpdateDatabaseError(const std::string& username) -> std::string
+{
+    return fmt::format("login_parse: Error trying to update password in database for user <{}>.", username);
+}
+
 // TOTP URI fixed parameters embedded by LOGIN_CREATE_TOTP (not settings-driven).
 inline constexpr const char* TOTPURIAlgorithm = "SHA1";
 inline constexpr int         TOTPURIDigits    = 6;
