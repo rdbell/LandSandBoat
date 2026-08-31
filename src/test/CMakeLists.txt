@@ -925,6 +925,8 @@ set(SOURCES
     test_status_effect_add_remove_1371.cpp
     test_status_effect_delete_1372.h
     test_status_effect_delete_1372.cpp
+    test_status_effect_charm_gain_side_effects_8240.h
+    test_status_effect_charm_gain_side_effects_8240.cpp
     test_status_effect_save_1373.h
     test_status_effect_save_1373.cpp
     test_status_save_plan_2793.h
