@@ -1,6 +1,7 @@
 #include "test_petskill_state_1386.h"
 
 #include "map/ai/states/petskill_state_capacity.h"
+#include "omega_self_test_registry.h"
 
 #include <iostream>
 
@@ -53,8 +54,10 @@ auto runPetSkillState1386SelfTests() -> bool
     }
 
     ok = expect(ShouldFinishPetSkill(true, false) && !ShouldFinishPetSkill(true, true), "finish") && ok;
+    ok = expect(!ShouldFinishPetSkill(false, false), "finish before cast") && ok;
     ok = expect(SkillSuccessFromAction(false) && !SkillSuccessFromAction(true), "success") && ok;
     ok = expect(ShouldExitPetSkill(true, true) && !ShouldExitPetSkill(false, true), "exit") && ok;
+    ok = expect(!ShouldExitPetSkill(true, false), "exit before animation") && ok;
 
     ok = expect(ShouldUpdateExitEnmity(true, true, true, false, true), "enmity ok") && ok;
     ok = expect(!ShouldUpdateExitEnmity(true, true, true, true, true), "enmity self") && ok;
@@ -86,3 +89,5 @@ auto runPetSkillState1386SelfTests() -> bool
 
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("petskill-state-1386", runPetSkillState1386SelfTests);
