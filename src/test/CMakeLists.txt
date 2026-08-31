@@ -897,6 +897,8 @@ set(SOURCES
     test_status_effect_selection_1365.cpp
     test_status_effect_steal_8540.h
     test_status_effect_steal_8540.cpp
+    test_status_effect_erase_all_8541.h
+    test_status_effect_erase_all_8541.cpp
     test_status_effect_tick_1366.h
     test_status_effect_tick_1366.cpp
     test_treasure_pool_policy_1367.h
