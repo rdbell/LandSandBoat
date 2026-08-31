@@ -20,6 +20,7 @@
 */
 
 #include "test_s2c_bazaar_packets.h"
+#include "omega_self_test_registry.h"
 
 #include <array>
 #include <cstddef>
@@ -28,6 +29,7 @@
 #include <iostream>
 #include <string>
 
+#include "entities/char_entity.h"
 #include "map/packets/s2c/0x105_bazaar_list.h"
 #include "map/packets/s2c/0x106_bazaar_buy.h"
 #include "map/packets/s2c/0x107_bazaar_close.h"
@@ -278,6 +280,32 @@ auto testPacketDataBytes() -> bool
     return ok;
 }
 
+auto testBazaarCloseCharacterConstructor() -> bool
+{
+    CCharEntity character{};
+    character.name = "BazaarOwnerNameThatIsTooLong";
+
+    auto packet = BazaarClose(&character);
+    const auto* data = static_cast<const uint8*>(packet);
+
+    const auto expectedName = std::array<uint8, 16>{
+        'B', 'a', 'z', 'a', 'a', 'r', 'O', 'w', 'n', 'e', 'r', 'N', 'a', 'm', 'e', 'T',
+    };
+
+    bool ok = true;
+    ok      = expectBytes(data + bazaarCloseNameOffset, expectedName, "BAZAAR_CLOSE character name truncation") && ok;
+    for (std::size_t i = bazaarClosePadding00Offset; i < bazaarClosePacketSize; ++i)
+    {
+        if (data[i] != 0)
+        {
+            std::cerr << "s2c bazaar packet self-test failed: BAZAAR_CLOSE constructor padding byte " << i << " got "
+                      << static_cast<unsigned>(data[i]) << " expected 0\n";
+            ok = false;
+        }
+    }
+    return ok;
+}
+
 } // namespace
 
 auto runS2CBazaarPacketSelfTests() -> bool
@@ -285,5 +313,8 @@ auto runS2CBazaarPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayoutAndEnums() && ok;
     ok      = testPacketDataBytes() && ok;
+    ok      = testBazaarCloseCharacterConstructor() && ok;
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("s2c-bazaar-packets", runS2CBazaarPacketSelfTests);
