@@ -3,6 +3,7 @@
 #include "map/entities/char_entity.h"
 #include "map/entities/fellow_entity.h"
 #include "map/zone.h"
+#include "omega_self_test_registry.h"
 
 #include <cmath>
 #include <iostream>
@@ -49,6 +50,24 @@ auto testIdentityPositionAndDynamicState() -> bool
 
     entity.targid = 0x0700;
     ok            = expect(entity.IsDynamicEntity(), "dynamic target-id classification") && ok;
+    return ok;
+}
+
+auto testDynamicEntityClassification8600() -> bool
+{
+    CCharEntity entity;
+    bool ok = true;
+
+    for (const auto targid : { uint16{ 0x0000 }, uint16{ 0x06FF } })
+    {
+        entity.targid = targid;
+        ok = expect(!entity.IsDynamicEntity(), "static target-id is not dynamic") && ok;
+    }
+    for (const auto targid : { uint16{ 0x0700 }, uint16{ 0xFFFF } })
+    {
+        entity.targid = targid;
+        ok = expect(entity.IsDynamicEntity(), "dynamic target-id classification") && ok;
+    }
     return ok;
 }
 
@@ -113,3 +132,5 @@ auto runBaseEntityModelSelfTests() -> bool
            testFellowConstructorClassification() &&
            testZoneLineSpawnCycle();
 }
+
+OMEGA_REGISTER_SELF_TEST("entity-dynamic-8600", testDynamicEntityClassification8600);
