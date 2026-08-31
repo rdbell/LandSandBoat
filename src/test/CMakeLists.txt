@@ -929,6 +929,8 @@ set(SOURCES
     test_status_effect_charm_gain_side_effects_8240.cpp
     test_status_effect_oldest_range_8241.h
     test_status_effect_oldest_range_8241.cpp
+    test_status_effect_remove_all_range_8242.h
+    test_status_effect_remove_all_range_8242.cpp
     test_status_effect_save_1373.h
     test_status_effect_save_1373.cpp
     test_status_save_plan_2793.h
