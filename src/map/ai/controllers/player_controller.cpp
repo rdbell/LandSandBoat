@@ -20,6 +20,7 @@
 */
 
 #include "player_controller.h"
+#include "player_controller_can_act_capacity.h"
 #include "player_controller_engage_capacity.h"
 #include "player_controller_ability_recast_capacity.h"
 
@@ -297,7 +298,5 @@ CWeaponSkill* CPlayerController::getLastWeaponSkill()
 // TODO: there seems to be a penalty or rate limit to incoming 0x01As if you act too early
 bool CPlayerController::canAct()
 {
-    auto timeSinceLastSpell = timer::now() - getLastSpellFinishedTime();
-
-    return timeSinceLastSpell > 2.5s;
+    return playercontrollercanact::CanAct(timer::now(), getLastSpellFinishedTime());
 }
