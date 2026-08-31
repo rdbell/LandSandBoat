@@ -56,6 +56,9 @@ auto runLoginTrustToken8320SelfTests() -> bool
                     "a8ae6e6ee929abea3afcfc5258c8ccd6f85273e0d4626d26c7279f3250f77c8e",
                 "canonical token SHA-256") &&
          ok;
+    const auto generated = otpHelpers::generateTrustToken();
+    ok = expect(generated.size() == 64, "generated token length") && ok;
+    ok = expect(otpHelpers::isValidTrustTokenFormat(generated), "generated token format") && ok;
     return ok;
 }
 
