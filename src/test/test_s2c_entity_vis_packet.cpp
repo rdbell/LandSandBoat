@@ -21,6 +21,8 @@
 
 #include "test_s2c_entity_vis_packet.h"
 
+#include "test/omega_self_test_registry.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -120,6 +122,29 @@ auto testConstructor() -> bool
     return ok;
 }
 
+auto testMaximumEntityList() -> bool
+{
+    auto ids = std::vector<uint32>{};
+    ids.reserve(32);
+    for (std::uint32_t i = 0; i < 32; ++i)
+    {
+        ids.push_back(0x10000000 + i);
+    }
+
+    auto packet = GP_SERV_COMMAND_ENTITY_VIS(ids);
+    bool ok     = true;
+    for (std::size_t i = 0; i < ids.size(); ++i)
+    {
+        for (std::size_t byte = 0; byte < sizeof(uint32); ++byte)
+        {
+            ok = expectEqualUInt(packetData(packet)[entityVisUniqueNoOffset + i * sizeof(uint32) + byte],
+                                 (ids[i] >> (byte * 8)) & 0xFF, "maximum list byte") && ok;
+        }
+    }
+    ok = expectZeroRange(packet, entityVisPacketSize, PACKET_SIZE, "maximum list tail") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CEntityVisPacketSelfTests() -> bool
@@ -127,5 +152,8 @@ auto runS2CEntityVisPacketSelfTests() -> bool
     bool ok = true;
     ok      = testLayout() && ok;
     ok      = testConstructor() && ok;
+    ok      = testMaximumEntityList() && ok;
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("s2c-entity-vis-packet", runS2CEntityVisPacketSelfTests);
