@@ -1541,6 +1541,8 @@ set(SOURCES
     test_synth_recipe_load_7080.cpp
     test_synth_recipe_skill_value_8059.h
     test_synth_recipe_skill_value_8059.cpp
+    test_synth_recipe_ingredient_order_9100.h
+    test_synth_recipe_ingredient_order_9100.cpp
     test_synth_difficulty_7081.h
     test_synth_difficulty_7081.cpp
     test_synth_result_7082.h
