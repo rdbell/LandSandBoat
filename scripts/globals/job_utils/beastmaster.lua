@@ -57,6 +57,26 @@ xi.job_utils.beastmaster.msgVeryDifficultCharm        = 211
 xi.job_utils.beastmaster.msgDifficultToCharm          = 212
 xi.job_utils.beastmaster.msgMightBeAbleCharm          = 213
 xi.job_utils.beastmaster.msgShouldBeAbleCharm         = 214
+xi.job_utils.beastmaster.msgAlreadyHasAPet            = 315
+xi.job_utils.beastmaster.msgCantBeUsedInArea          = 316
+xi.job_utils.beastmaster.msgNoJugPetItem              = 337
+
+-- Pure: Bestial Loyalty admission check. The jug result is resolved by the
+-- caller before this policy is evaluated, matching getValidJugPetID's place
+-- in checkBestialLoyalty.
+-- params: hasPet, jugValid, canUsePet
+xi.job_utils.beastmaster.checkBestialLoyaltyFromParams = function(params)
+    params = params or {}
+    if params.hasPet then
+        return xi.job_utils.beastmaster.msgAlreadyHasAPet, 0
+    elseif not params.jugValid then
+        return xi.job_utils.beastmaster.msgNoJugPetItem, 0
+    elseif not params.canUsePet then
+        return xi.job_utils.beastmaster.msgCantBeUsedInArea, 0
+    end
+
+    return 0, 0
+end
 
 -- Pure: dLvl charm duration multiplier
 xi.job_utils.beastmaster.dLvlCharmMultiplierFromParams = function(dLvl)
@@ -387,16 +407,17 @@ end
 
 xi.job_utils.beastmaster.checkBestialLoyalty = function(player, target, ability)
     local petId = getValidJugPetID(player)
-
-    if player:getPet() ~= nil then
-        return xi.msg.basic.ALREADY_HAS_A_PET, 0
-    elseif not petId then
-        return xi.msg.basic.NO_JUG_PET_ITEM, 0
-    elseif not player:canUseMisc(xi.zoneMisc.PET) then
-        return xi.msg.basic.CANT_BE_USED_IN_AREA, 0
+    local hasPet = player:getPet() ~= nil
+    local canUsePet = true
+    if not hasPet and petId then
+        canUsePet = player:canUseMisc(xi.zoneMisc.PET)
     end
 
-    return 0, 0
+    return xi.job_utils.beastmaster.checkBestialLoyaltyFromParams({
+        hasPet    = hasPet,
+        jugValid  = petId ~= nil,
+        canUsePet = canUsePet,
+    })
 end
 
 xi.job_utils.beastmaster.checkFamiliar = function(player, target, ability)
