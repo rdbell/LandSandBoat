@@ -35,6 +35,17 @@ xi.job_utils.rune_fencer.emboldenDurationSec          = 60
 xi.job_utils.rune_fencer.elementalSforzoPower         = 1
 xi.job_utils.rune_fencer.elementalSforzoDurationSec   = 30
 xi.job_utils.rune_fencer.oneHourRecastSecondsPerMod   = 60
+xi.job_utils.rune_fencer.requireRuneMessage           = 666
+
+-- Pure: active-rune admission gate. activeRuneCount is a native uint8.
+xi.job_utils.rune_fencer.checkHaveRunesFromParams = function(params)
+    params = params or {}
+    if (params.activeRuneCount or 0) > 0 then
+        return 0, 0
+    end
+
+    return xi.job_utils.rune_fencer.requireRuneMessage, 0
+end
 
 -- Pure: MaxRunes by RUN level
 xi.job_utils.rune_fencer.maxRunesFromParams = function(params)
@@ -586,11 +597,9 @@ xi.job_utils.rune_fencer.useVivaciousPulse = function(player, target, ability, e
 end
 
 xi.job_utils.rune_fencer.checkHaveRunes = function(player)
-    if player:getActiveRuneCount() > 0 then
-        return 0, 0
-    end
-
-    return  xi.msg.basic.REQUIRE_RUNE, 0 -- That action requires the ability Rune Enchantment.
+    return xi.job_utils.rune_fencer.checkHaveRunesFromParams({
+        activeRuneCount = player:getActiveRuneCount(),
+    })
 end
 
 --see https://www.bg-wiki.com/ffxi/Vallation, https://www.bg-wiki.com/ffxi/Valiance, https://www.bg-wiki.com/ffxi/Inspiration
