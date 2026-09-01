@@ -34,6 +34,7 @@
 #include "items/item_equipment.h"
 #include "map/packets/s2c/0x0c9_equip_inspect_equipment.h"
 #include "map/packets/s2c/0x0c9_equip_inspect_general.h"
+#include "omega_self_test_registry.h"
 
 namespace
 {
@@ -323,6 +324,40 @@ auto testEquipmentConstructorChunksEquippedItems() -> bool
     return ok;
 }
 
+auto testEquipmentConstructorSparseSlots() -> bool
+{
+    std::array<std::unique_ptr<CItemEquipment>, 2> items{};
+    auto                                           target = CCharEntity{};
+    populateEntity(target, 0x22334455, 0x6677);
+
+    const std::array<uint8, 2> slots{ 2, 15 };
+    for (std::size_t index = 0; index < slots.size(); ++index)
+    {
+        const auto slot = slots[index];
+        items[index]    = std::make_unique<CItemEquipment>(static_cast<uint16>(0x3000 + slot));
+        auto& signature = items[index]->exdata<Exdata::AugmentStandard>().Signature;
+        for (std::size_t signatureIndex = 0; signatureIndex < sizeof(signature); ++signatureIndex)
+        {
+            signature[signatureIndex] = static_cast<uint8>(0xB0 + slot + signatureIndex);
+        }
+        if (!target.bindEquip(slot, items[index].get()))
+        {
+            std::cerr << "s2c EQUIP_INSPECT packet self-test failed: sparse bindEquip slot " << static_cast<unsigned>(slot) << '\n';
+            return false;
+        }
+    }
+
+    auto checker = CCharEntity{};
+    auto packet  = EquipmentPacket(&checker, &target);
+
+    bool ok = true;
+    ok      = expectEqualUInt(packet.getSize(), sizeof(GP_SERV_HEADER) + equipHeaderSize + checkItemSize * 2, "EQUIPMENT sparse size") && ok;
+    ok      = expectEqualUInt(packetData(packet)[equipCountOffset], 2, "EQUIPMENT sparse count") && ok;
+    ok      = expectCheckItem(packet, 0, 0x3002, 2, 0xB2, "EQUIPMENT sparse slot 2") && ok;
+    ok      = expectCheckItem(packet, 1, 0x300F, 15, 0xBF, "EQUIPMENT sparse slot 15") && ok;
+    return ok;
+}
+
 } // namespace
 
 auto runS2CEquipInspectPacketSelfTests() -> bool
@@ -333,5 +368,8 @@ auto runS2CEquipInspectPacketSelfTests() -> bool
     ok      = testGeneralConstructorAnonVisibility() && ok;
     ok      = testEquipmentConstructorBytes() && ok;
     ok      = testEquipmentConstructorChunksEquippedItems() && ok;
+    ok      = testEquipmentConstructorSparseSlots() && ok;
     return ok;
 }
+
+OMEGA_REGISTER_SELF_TEST("s2c-equip-inspect-packet-8702", runS2CEquipInspectPacketSelfTests);
