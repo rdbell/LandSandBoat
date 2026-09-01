@@ -203,7 +203,7 @@ xi.pyxis.npc.onPyxisEventFinish = function(player, csid, option, npc)
     local lockedEvent, unlockedEvent = GetEvents(chestTier)
     local openchoice       = bit.lshift(1, option - 65)
 
-    if option > 0 and spawnstatus ~= 1 then
+    if xi.pyxis.npc.shouldDespawnStale(option, spawnstatus) then
         player:messageSpecial(ID.text.CHEST_DESPAWNED)
         return
     end
@@ -259,4 +259,10 @@ xi.pyxis.npc.onPyxisEventFinish = function(player, csid, option, npc)
             xi.pyxis.removeChest(player, npc, 1, 1)
         end
     end
+end
+
+-- The stale-chest guard intentionally precedes option-999 removal and event
+-- dispatch. Keep the native option/local-var values intact at this boundary.
+xi.pyxis.npc.shouldDespawnStale = function(option, spawnstatus)
+    return option > 0 and spawnstatus ~= 1
 end
