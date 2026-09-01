@@ -2010,6 +2010,8 @@ set(SOURCES
     test_login_packet_hash.cpp
     test_login_packet_helpers.h
     test_login_packet_helpers.cpp
+    test_login_delete_character_packet_8720.h
+    test_login_delete_character_packet_8720.cpp
     test_login_version_lock.h
     test_login_version_lock.cpp
     test_login_world_list_packet.h
