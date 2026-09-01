@@ -20,11 +20,31 @@ describe('Rune Fencer Battuta', function()
                 return 4
             end,
         }
-        local action = { info = function(_, id, value) info = { id, value } end }
+        local action = {
+            info = function(_, id, value)
+                info = { id, (info and info[2] or xi.action.info.CRITICAL_HIT) | value }
+            end,
+        }
 
         assert(xi.job_utils.rune_fencer.useBattuta(player, target, {}, action) == xi.effect.BATTUTA)
         assert(applied[1] == xi.effect.BATTUTA)
         assert(applied[2].power == 40 and applied[2].subPower == 20 and applied[2].duration == 90 and applied[2].origin == player)
-        assert(info[1] == 9 and info[2] == 1)
+        assert(info[1] == 9 and info[2] == 3)
+    end)
+
+    it('returns Battuta even when status insertion is rejected', function()
+        local target = {
+            getActiveRuneCount = function() return 1 end,
+            getHighestRuneEffect = function() return xi.effect.IGNIS end,
+            getID = function() return 9 end,
+            addStatusEffect = function() return false end,
+        }
+        local player = {
+            getMerit = function() return 0 end,
+            getMod = function() return 0 end,
+        }
+        local action = { info = function() end }
+
+        assert(xi.job_utils.rune_fencer.useBattuta(player, target, {}, action) == xi.effect.BATTUTA)
     end)
 end)
