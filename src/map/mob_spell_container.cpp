@@ -23,6 +23,7 @@
 
 #include "mob_modifier.h"
 #include "mob_spell_container.h"
+#include "mob_spell_container_capacity.h"
 #include "mob_spell_container_membership.h"
 #include "recast_container.h"
 #include "status_effect_container.h"
@@ -191,85 +192,7 @@ Maybe<SpellID> CMobSpellContainer::GetBestIndiSpell(CBattleEntity* PTarget)
     auto magicHitRate   = float(totalMacc - tMaeva) / 10;
     bool mAccBuffNeeded = magicHitRate < 10 ? true : false;
 
-    Maybe<SpellID> choice    = std::nullopt;
-    Maybe<SpellID> subChoice = SpellID::Indi_Regen;
-
-    switch (mJob)
-    {
-        case JOB_WAR:
-        case JOB_MNK:
-        case JOB_THF:
-        case JOB_DRK:
-        case JOB_BST:
-        case JOB_RNG:
-        case JOB_SAM:
-        case JOB_DRG:
-        case JOB_BLU:
-        case JOB_COR:
-        case JOB_PUP:
-        case JOB_DNC:
-        {
-            if (accBuffNeeded)
-            {
-                choice = SpellID::Indi_Precision;
-            }
-            else
-            {
-                choice = SpellID::Indi_Fury;
-            }
-            subChoice = SpellID::Indi_Regen;
-            break;
-        }
-        case JOB_WHM:
-        case JOB_BRD:
-        case JOB_SMN:
-        case JOB_GEO:
-        {
-            choice    = SpellID::Indi_Refresh;
-            subChoice = SpellID::Indi_Refresh;
-            break;
-        }
-        case JOB_BLM:
-        case JOB_RDM:
-        case JOB_SCH:
-        {
-            if (mAccBuffNeeded)
-            {
-                choice = SpellID::Indi_Focus;
-            }
-            else
-            {
-                choice = SpellID::Indi_Acumen;
-            }
-            subChoice = SpellID::Indi_Refresh;
-            break;
-        }
-        case JOB_PLD:
-        case JOB_RUN:
-        case JOB_NIN:
-        {
-            choice    = SpellID::Indi_Haste;
-            subChoice = SpellID::Indi_Regen;
-            break;
-        }
-        default:
-            break;
-    }
-
-    if (PTarget->GetMLevel() < 20)
-    {
-        choice = std::nullopt;
-    }
-    else if (PTarget->GetMLevel() < 93)
-    {
-        choice = subChoice;
-        if (subChoice == SpellID::Indi_Refresh && PTarget->GetMLevel() < 30)
-        {
-            choice = SpellID::Indi_Regen;
-        }
-    }
-
-    return choice;
+    return mobspellhelpers::ResolveBestIndiSpell(mJob, accBuffNeeded, mAccBuffNeeded, PTarget->GetMLevel());
 }
 
 Maybe<SpellID> CMobSpellContainer::GetBestEntrustedSpell(CBattleEntity* PTarget)

@@ -779,6 +779,8 @@ set(SOURCES
     test_mob_spell_container_2609.cpp
     test_mob_spell_entrusted_8840.h
     test_mob_spell_entrusted_8840.cpp
+    test_mob_spell_indi_8880.h
+    test_mob_spell_indi_8880.cpp
     test_ability_two_hour_8841.h
     test_ability_two_hour_8841.cpp
     test_login_character_delete_1319.h
