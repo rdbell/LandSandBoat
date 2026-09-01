@@ -23,6 +23,7 @@
 
 #include "common/database/database.h"
 #include "common/database/libmariadb/libmariadb_result_set.h"
+#include "omega_self_test_registry.h"
 
 #include <functional>
 #include <iostream>
@@ -60,7 +61,7 @@ public:
 
     auto getVersion() -> std::string override
     {
-        return "MariaDB 10.6";
+        return version;
     }
 
     auto getDriverVersion() -> std::string override
@@ -71,6 +72,7 @@ public:
     std::vector<std::string>                 queries;
     std::vector<std::vector<db::BoundValue>> params;
     std::vector<std::unique_ptr<db::ResultSet>> results;
+    std::string                              version = "MariaDB 10.6";
 };
 
 struct DatabaseResetGuard
@@ -277,9 +279,39 @@ auto testTableColumnNames() -> bool
     return ok;
 }
 
+auto testTableColumnNamesSQLite() -> bool
+{
+    DatabaseResetGuard guard;
+    FakeDatabase       fake;
+    fake.version = "SQLite 3.45.1";
+    fake.results.push_back(selectResult("SELECT columns", "name", { std::string("charid"), std::string("charname") }));
+    db::setDatabase(&fake);
+
+    const auto names = db::getTableColumnNames("chars");
+    bool       ok    = expectEqual(names.size(), static_cast<std::size_t>(2), "SQLite table column count");
+    if (names.size() == 2)
+    {
+        ok = expectEqual(names[0], std::string("charid"), "SQLite first table column") && ok;
+        ok = expectEqual(names[1], std::string("charname"), "SQLite second table column") && ok;
+    }
+    ok = expectEqual(fake.queries.size(), static_cast<std::size_t>(1), "SQLite table column query count") && ok;
+    if (fake.queries.size() == 1)
+    {
+        ok = expectEqual(fake.queries[0], std::string("SELECT name FROM pragma_table_info(?)"), "SQLite table column query") && ok;
+    }
+    ok = expectEqual(fake.params.size(), static_cast<std::size_t>(1), "SQLite table column parameter count") && ok;
+    if (fake.params.size() == 1)
+    {
+        ok = expectStringParam(fake.params[0][0], std::string("chars"), "SQLite table column table parameter") && ok;
+    }
+    return ok;
+}
+
 } // namespace
 
 auto runDatabaseConvenienceHelpersSelfTests() -> bool
 {
     return testAutoCommitHelpers() && testTransactionHelpers() && testTableColumnNames();
 }
+
+OMEGA_REGISTER_SELF_TEST("database-table-columns-sqlite-8803", testTableColumnNamesSQLite);
