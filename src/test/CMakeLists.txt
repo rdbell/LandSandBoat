@@ -5309,6 +5309,8 @@ set(SOURCES
     test_pathfind_finished_3930.cpp
     test_mob_controller_deaggro_3946.h
     test_mob_controller_deaggro_3946.cpp
+    test_player_charm_controller_action_8760.h
+    test_player_charm_controller_action_8760.cpp
     test_player_controller_can_act_8560.h
     test_player_controller_can_act_8560.cpp
 )

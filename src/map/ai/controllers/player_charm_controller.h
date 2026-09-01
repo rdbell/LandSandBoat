@@ -20,6 +20,7 @@
 */
 
 #include "player_controller.h"
+#include "player_charm_controller_action_capacity.h"
 
 #ifndef _PLAYERCHARMCONTROLLER_H
 #define _PLAYERCHARMCONTROLLER_H
@@ -36,27 +37,27 @@ public:
 
     virtual bool Cast(uint16 targid, SpellID spellid) override
     {
-        return false;
+        return playercharmcontrolleraction::CanDispatch(playercharmcontrolleraction::Action::Cast);
     }
 
     virtual bool ChangeTarget(uint16 targid) override
     {
-        return false;
+        return playercharmcontrolleraction::CanDispatch(playercharmcontrolleraction::Action::ChangeTarget);
     }
 
     virtual bool WeaponSkill(uint16 targid, uint16 wsid) override
     {
-        return false;
+        return playercharmcontrolleraction::CanDispatch(playercharmcontrolleraction::Action::WeaponSkill);
     }
 
     virtual bool Ability(uint16 targid, uint16 abilityid) override
     {
-        return false;
+        return playercharmcontrolleraction::CanDispatch(playercharmcontrolleraction::Action::Ability);
     }
 
     virtual bool RangedAttack(uint16 targid) override
     {
-        return false;
+        return playercharmcontrolleraction::CanDispatch(playercharmcontrolleraction::Action::RangedAttack);
     }
 
 private:
