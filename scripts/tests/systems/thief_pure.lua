@@ -29,6 +29,13 @@ describe('Thief pure pins', function()
         assert(t.stealableSPEffects and #t.stealableSPEffects == 13)
         assert(t.despoilDebuffs[1] == xi.effect.EVASION_DOWN)
         assert(t.despoilDebuffs[7] == xi.effect.SLOW)
+
+        local percent, range = t.accompliceTransferParamsFromParams({ accCollabEffect = 0 })
+        assert(percent == 50 and almost(range, 20.6))
+        percent, range = t.accompliceTransferParamsFromParams({ accCollabEffect = 7 })
+        assert(percent == 57 and almost(range, 20.6))
+        percent, range = t.accompliceTransferParamsFromParams({ accCollabEffect = -7 })
+        assert(percent == 43 and almost(range, 20.6))
     end)
 end)
 

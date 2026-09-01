@@ -68,6 +68,8 @@ xi.job_utils.thief.sneakAttackDuration          = 60
 xi.job_utils.thief.trickAttackPower             = 1
 xi.job_utils.thief.trickAttackDuration          = 60
 xi.job_utils.thief.msgCannotOnThatTarg          = 155
+xi.job_utils.thief.accompliceTransferPercentBase = 50
+xi.job_utils.thief.accompliceTransferRange      = 20.6
 
 -- Pure: OneHourRecast
 xi.job_utils.thief.oneHourRecastFromParams = function(params)
@@ -94,6 +96,15 @@ end
 
 xi.job_utils.thief.checkCollaboratorFromParams = function(params)
     return xi.job_utils.thief.checkAccompliceFromParams(params)
+end
+
+-- Pure: Accomplice transfer parameters
+-- ACC_COLLAB_EFFECT is a native int16 modifier; transferEnmity narrows the
+-- resulting percentage to its uint8 parameter at the Lua/C++ boundary.
+xi.job_utils.thief.accompliceTransferParamsFromParams = function(params)
+    params = params or {}
+    return xi.job_utils.thief.accompliceTransferPercentBase
+        + (params.accCollabEffect or 0), xi.job_utils.thief.accompliceTransferRange
 end
 
 -- Pure: DespoilDebuffPower
@@ -372,7 +383,10 @@ end
 -- Ability Use Functions
 -----------------------------------
 xi.job_utils.thief.useAccomplice = function(player, target, ability)
-    target:transferEnmity(player, 50 + player:getMod(xi.mod.ACC_COLLAB_EFFECT), 20.6)
+    local percent, rangeYalms = xi.job_utils.thief.accompliceTransferParamsFromParams({
+        accCollabEffect = player:getMod(xi.mod.ACC_COLLAB_EFFECT),
+    })
+    target:transferEnmity(player, percent, rangeYalms)
 end
 
 xi.job_utils.thief.useAssassinsCharge = function(player, target, ability, action)
