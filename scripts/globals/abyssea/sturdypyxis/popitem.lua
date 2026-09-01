@@ -93,10 +93,25 @@ xi.pyxis.popitem.updateEvent = function(player, npc)
     player:updateEvent(unpack(GetChestItemTable(npc)))
 end
 
+-- Decode the native option's upper 16 bits before routing the selected loot.
+-- Zero means no route, one through eight are direct slots, and nine is the
+-- ordered treasure transfer route.
+xi.pyxis.popitem.routeSelection = function(option)
+    local itemSelected = bit.rshift(option, 16)
+
+    if itemSelected > 0 and itemSelected <= 8 then
+        return itemSelected
+    elseif itemSelected == 9 then
+        return 9
+    end
+
+    return 0
+end
+
 xi.pyxis.popitem.givePopItem = function(player, npc, option)
     local ID = zones[npc:getZoneID()]
     local loottable = GetLootTable(player, npc)
-    local itemSelected = bit.rshift(option, 16)
+    local itemSelected = xi.pyxis.popitem.routeSelection(option)
 
     if itemSelected > 0 and itemSelected <= 8 then
         GiveItem(player, npc, itemSelected)
