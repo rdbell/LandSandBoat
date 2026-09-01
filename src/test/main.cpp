@@ -1123,6 +1123,7 @@ auto runMapKeyItemEnumSelfTests() -> bool;
 auto runMobModifierSelfTests() -> bool;
 auto runMobSpellListSelfTests() -> bool;
 auto runSchedulerCombinatorSelfTests() -> bool;
+auto runSchedulerSpawn8721SelfTests() -> bool;
 auto runC2SGameOKPacketSelfTests() -> bool;
 auto runC2SGameOKRuntimeSelfTests() -> bool;
 auto runC2SNetEndPacketSelfTests() -> bool;
@@ -3735,6 +3736,7 @@ namespace
         ok = runMobModifierSelfTests() && ok;
         ok = runMobSpellListSelfTests() && ok;
         ok = runSchedulerCombinatorSelfTests() && ok;
+        ok = runSchedulerSpawn8721SelfTests() && ok;
         ok = runC2SGameOKPacketSelfTests() && ok;
         ok = runC2SGameOKRuntimeSelfTests() && ok;
         ok = runC2SNetEndPacketSelfTests() && ok;

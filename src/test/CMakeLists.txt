@@ -2674,6 +2674,8 @@ set(SOURCES
     test_settings_loader.cpp
     test_scheduler_combinators.h
     test_scheduler_combinators.cpp
+    test_scheduler_spawn_8721.h
+    test_scheduler_spawn_8721.cpp
     test_singleton_helper.h
     test_singleton_helper.cpp
     test_sqlite_query_translation.h
