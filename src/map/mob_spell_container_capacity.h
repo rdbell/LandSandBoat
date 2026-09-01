@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 #include "common/mmo.h"
@@ -8,6 +9,36 @@
 
 namespace mobspellhelpers
 {
+
+// ResolveStormDaySpell mirrors CMobSpellContainer::GetStormDay after the host
+// resolves the current Vana'diel day element. GetBestAvailable remains
+// host-owned and is injected so availability and spell-tier selection keep
+// their production behavior.
+template <typename SelectBestAvailable>
+inline auto ResolveStormDaySpell(const std::size_t dayElement, SelectBestAvailable&& selectBestAvailable) -> Maybe<SpellID>
+{
+    switch (dayElement)
+    {
+        case 1: // ELEMENT_FIRE
+            return selectBestAvailable(SPELLFAMILY_FIRESTORM);
+        case 2: // ELEMENT_ICE
+            return selectBestAvailable(SPELLFAMILY_HAILSTORM);
+        case 3: // ELEMENT_WIND
+            return selectBestAvailable(SPELLFAMILY_WINDSTORM);
+        case 4: // ELEMENT_EARTH
+            return selectBestAvailable(SPELLFAMILY_SANDSTORM);
+        case 5: // ELEMENT_THUNDER
+            return selectBestAvailable(SPELLFAMILY_THUNDERSTORM);
+        case 6: // ELEMENT_WATER
+            return selectBestAvailable(SPELLFAMILY_RAINSTORM);
+        case 7: // ELEMENT_LIGHT
+            return selectBestAvailable(SPELLFAMILY_AURORASTORM);
+        case 8: // ELEMENT_DARK
+            return selectBestAvailable(SPELLFAMILY_VOIDSTORM);
+        default:
+            return std::nullopt;
+    }
+}
 
 // ResolveBestIndiSpell mirrors the final selection policy in
 // CMobSpellContainer::GetBestIndiSpell. Hit-rate and entity modifier reads

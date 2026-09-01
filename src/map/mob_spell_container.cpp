@@ -508,52 +508,9 @@ Maybe<SpellID> CMobSpellContainer::HelixAgainstTargetWeakness(CBattleEntity* PTa
 
 Maybe<SpellID> CMobSpellContainer::GetStormDay()
 {
-    Maybe<SpellID> choice    = std::nullopt;
-    std::size_t    dotwIndex = battleutils::GetDayElement();
-    switch (dotwIndex)
-    {
-        case ELEMENT_FIRE:
-        {
-            choice = GetBestAvailable(SPELLFAMILY_FIRESTORM);
-            break;
-        }
-        case ELEMENT_ICE:
-        {
-            choice = GetBestAvailable(SPELLFAMILY_HAILSTORM);
-            break;
-        }
-        case ELEMENT_WIND:
-        {
-            choice = GetBestAvailable(SPELLFAMILY_WINDSTORM);
-            break;
-        }
-        case ELEMENT_EARTH:
-        {
-            choice = GetBestAvailable(SPELLFAMILY_SANDSTORM);
-            break;
-        }
-        case ELEMENT_THUNDER:
-        {
-            choice = GetBestAvailable(SPELLFAMILY_THUNDERSTORM);
-            break;
-        }
-        case ELEMENT_WATER:
-        {
-            choice = GetBestAvailable(SPELLFAMILY_RAINSTORM);
-            break;
-        }
-        case ELEMENT_LIGHT:
-        {
-            choice = GetBestAvailable(SPELLFAMILY_AURORASTORM);
-            break;
-        }
-        case ELEMENT_DARK:
-        {
-            choice = GetBestAvailable(SPELLFAMILY_VOIDSTORM);
-            break;
-        }
-    }
-    return choice;
+    return mobspellhelpers::ResolveStormDaySpell(
+        battleutils::GetDayElement(),
+        [this](const SPELLFAMILY family) { return GetBestAvailable(family); });
 }
 
 Maybe<SpellID> CMobSpellContainer::GetHelixDay()
