@@ -23,6 +23,7 @@
 #define _CDEATH_STATE_H
 
 #include "state.h"
+#include "death_state_policy.h"
 
 class CDeathState : public CState
 {
@@ -39,17 +40,17 @@ public:
     // whether the state can be changed by normal means
     virtual bool CanChangeState() override
     {
-        return false;
+        return deathstatepolicy::canChangeState();
     }
 
     virtual bool CanFollowPath() override
     {
-        return false;
+        return deathstatepolicy::canFollowPath();
     }
 
     virtual bool CanInterrupt() override
     {
-        return false;
+        return deathstatepolicy::canInterrupt();
     }
 
     void allowSendRaise();
