@@ -1025,6 +1025,8 @@ set(SOURCES
     test_synthutils_can_hq_2876.cpp
     test_synergy_claim_furnace_2877.h
     test_synergy_claim_furnace_2877.cpp
+    test_synergy_recipe_ingredient_order_9101.h
+    test_synergy_recipe_ingredient_order_9101.cpp
     test_casket_drop_chance_2878.h
     test_casket_drop_chance_2878.cpp
     test_artisan_buy_sack_2879.h
