@@ -48,6 +48,7 @@
 #include "spawn_initial_dispatch.h"
 #include "spawn_initial_registered.h"
 #include "zone_instance.h"
+#include "zone_capacity.h"
 
 #include <algorithm>
 #include <cstring>
@@ -1381,7 +1382,7 @@ auto IsZoneAtPlayerCap(uint16 zoneId, bool isGM) -> bool
 
 auto IsResidentialArea(const CCharEntity* PChar) -> bool
 {
-    return PChar->inMogHouse();
+    return zonehelpers::IsResidentialArea(PChar->inMogHouse());
 }
 
 void AfterZoneIn(CBaseEntity* PEntity)

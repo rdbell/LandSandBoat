@@ -879,6 +879,8 @@ set(SOURCES
     test_spawn_can_spawn_1362.cpp
     test_zone_policy_1363.h
     test_zone_policy_1363.cpp
+    test_zone_residential_area_8961.h
+    test_zone_residential_area_8961.cpp
     test_zone_char_targid_2650.h
     test_zone_char_targid_2650.cpp
     test_zone_idle_shutdown_2652.h

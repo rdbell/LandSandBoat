@@ -154,6 +154,13 @@
 namespace zonehelpers
 {
 
+// IsResidentialArea mirrors zoneutils::IsResidentialArea after the host reads
+// CCharEntity::inMogHouse().
+inline auto IsResidentialArea(const bool inMogHouse) -> bool
+{
+    return inMogHouse;
+}
+
 // CharTargidHighThreshold is the exclusive upper bound for player targids
 // (0x700). At or above this value, insert packets are ignored.
 constexpr uint16 CharTargidHighThreshold = 0x700;
