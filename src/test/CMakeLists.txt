@@ -34,6 +34,8 @@ set(SOURCES
     mock_socket.h
     omega_self_test_registry.cpp
     omega_self_test_registry.h
+    test_lua_cache_9102.h
+    test_lua_cache_9102.cpp
     test_active_database_dispatch.h
     test_active_database_dispatch.cpp
     test_console_service_input.h
