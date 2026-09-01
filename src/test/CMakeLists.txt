@@ -777,6 +777,8 @@ set(SOURCES
     test_merit_2619.cpp
     test_mob_spell_container_2609.h
     test_mob_spell_container_2609.cpp
+    test_mob_spell_entrusted_8840.h
+    test_mob_spell_entrusted_8840.cpp
     test_login_character_delete_1319.h
     test_login_character_delete_1319.cpp
     test_login_character_create_1320.h
