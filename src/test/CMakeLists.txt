@@ -34,6 +34,7 @@ set(SOURCES
     mock_socket.h
     omega_self_test_registry.cpp
     test_atma_fabricant_9400.cpp
+    test_avatars_favor_debuffs_9360.cpp
     test_death_state_policy_9282.cpp
     omega_self_test_registry.h
     test_lua_cache_9102.h
