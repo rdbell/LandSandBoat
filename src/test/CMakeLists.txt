@@ -3781,6 +3781,7 @@ set(SOURCES
     test_casket_drop_threshold_3155.cpp
     test_dominion_xp_multiplier_3156.h
     test_dominion_xp_multiplier_3156.cpp
+    test_dominion_sergeant_event_9300.cpp
     test_enmity_zero_out_of_range_3157.h
     test_enmity_zero_out_of_range_3157.cpp
     test_mobutils_can_drop_gil_3158.h
